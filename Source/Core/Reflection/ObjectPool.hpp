@@ -174,7 +174,11 @@ inline ObjectHeader& GetDefaultHeader()
         s_onceFlag,
         []
         {
+#if defined(HYP_TOOL) && HYP_TOOL
+            s_defaultHeader.cls = GetClass(TypeIdOf<T>());
+#else
             s_defaultHeader.cls = GetClass<T>();
+#endif
         });
 
     return s_defaultHeader;

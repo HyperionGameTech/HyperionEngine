@@ -608,6 +608,7 @@ extern struct CharacterControllerComponent
     MaxPushSpeed : float
     PushSpeedScale : float
     PushPredictionReleaseDelay : float
+    MinGroundSupportMass : float
     IsOnGround : bool
 end
 extern struct BoundingBoxComponent

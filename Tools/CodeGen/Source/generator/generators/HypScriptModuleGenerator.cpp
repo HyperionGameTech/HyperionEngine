@@ -40,7 +40,7 @@ FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, c
 {
     FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 
-    return analyzer.GetHypScriptOutputDirectory() / relativePath.BasePath() / StringUtil::StripExtension(relativePath.Basename()) + ".hyp";
+    return analyzer.GetHypScriptOutputDirectory() / relativePath.BasePath() / String(StringUtil::StripExtension(relativePath.Basename())) + ".hyp";
 }
 
 Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(

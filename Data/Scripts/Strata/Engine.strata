@@ -268,464 +268,580 @@ struct WindowOptions;
 struct WorldGridLayerInfo;
 
 // UIObject
-extern void UIObject_Init(UIObject self);
-extern UIStage UIObject_GetStage(UIObject self);
-extern void UIObject_SetStage(UIObject self, UIStage stage);
-extern float UIObject_GetUIScaleFactor(UIObject self);
-extern void UIObject_GetName(UIObject self, ref Name outReturn);
-extern void UIObject_SetName(UIObject self, const Name name);
-extern void UIObject_GetPosition(UIObject self, ref Vec2i outReturn);
-extern void UIObject_SetPosition(UIObject self, const Vec2i position);
-extern void UIObject_GetOffsetPosition(UIObject self, ref Vec2f outReturn);
-extern void UIObject_GetAbsolutePosition(UIObject self, ref Vec2f outReturn);
-extern bool UIObject_IsPositionAbsolute(UIObject self);
-extern void UIObject_SetIsPositionAbsolute(UIObject self, bool isPositionAbsolute);
-extern void UIObject_GetSize(UIObject self, ref UIObjectSize outReturn);
-extern void UIObject_SetSize(UIObject self, const UIObjectSize size);
-extern void UIObject_GetInnerSize(UIObject self, ref UIObjectSize outReturn);
-extern void UIObject_SetInnerSize(UIObject self, const UIObjectSize size);
-extern void UIObject_GetMaxSize(UIObject self, ref UIObjectSize outReturn);
-extern void UIObject_SetMaxSize(UIObject self, const UIObjectSize size);
-extern void UIObject_GetActualSize(UIObject self, ref Vec2i outReturn);
-extern void UIObject_GetActualSizeClamped(UIObject self, ref Vec2i outReturn);
-extern void UIObject_GetActualInnerSize(UIObject self, ref Vec2i outReturn);
-extern void UIObject_GetScrollOffset(UIObject self, ref Vec2f outReturn);
-extern void UIObject_SetScrollOffset(UIObject self, const Vec2f scrollOffset, bool smooth);
-extern void UIObject_ScrollToChild(UIObject self, UIObject child);
-extern int UIObject_GetVerticalScrollbarSize(UIObject self);
-extern int UIObject_GetHorizontalScrollbarSize(UIObject self);
-extern int UIObject_GetComputedDepth(UIObject self);
-extern int UIObject_GetDepth(UIObject self);
-extern void UIObject_SetDepth(UIObject self, int depth);
-extern bool UIObject_AcceptsFocus(UIObject self);
-extern void UIObject_SetAcceptsFocus(UIObject self, bool acceptsFocus);
-extern bool UIObject_NeedsUpdate(UIObject self);
-extern void UIObject_Focus(UIObject self);
-extern void UIObject_Blur(UIObject self, bool blurChildren);
-extern void UIObject_SetAffectsParentSize(UIObject self, bool affectsParentSize);
-extern bool UIObject_AffectsParentSize(UIObject self);
-extern uint UIObject_GetBorderRadius(UIObject self);
-extern void UIObject_SetBorderRadius(UIObject self, uint borderRadius);
-extern void UIObject_GetAspectRatio(UIObject self, ref UIObjectAspectRatio outReturn);
-extern void UIObject_SetAspectRatio(UIObject self, const UIObjectAspectRatio aspectRatio);
-extern void UIObject_GetPadding(UIObject self, ref Vec2i outReturn);
-extern void UIObject_SetPadding(UIObject self, const Vec2i padding);
-extern void UIObject_GetBackgroundColor(UIObject self, ref Color outReturn);
-extern void UIObject_SetBackgroundColor(UIObject self, const Color backgroundColor);
-extern void UIObject_GetTextColor(UIObject self, ref Color outReturn);
-extern void UIObject_SetTextColor(UIObject self, const Color textColor);
-extern string UIObject_GetText(UIObject self);
-extern void UIObject_SetText(UIObject self, const string text);
-extern float UIObject_GetTextSize(UIObject self);
-extern void UIObject_SetTextSize(UIObject self, float textSize);
-extern bool UIObject_IsVisible(UIObject self);
-extern void UIObject_SetIsVisible(UIObject self, bool isVisible);
-extern bool UIObject_IsEnabled(UIObject self);
-extern void UIObject_SetIsEnabled(UIObject self, bool isEnabled);
-extern UIObject UIObject_GetParentUIObject(UIObject self);
-extern bool UIObject_RemoveChildUIObject(UIObject self, UIObject uiObject);
-extern void UIObject_ClearDeep(UIObject self);
-extern bool UIObject_RemoveFromParent(UIObject self);
-extern bool UIObject_HasChildUIObjects(UIObject self);
-extern uint UIObject_NumChildUIObjects(UIObject self, bool deep);
-extern World UIObject_GetWorld(UIObject self);
-extern void UIObject_GetAABB(UIObject self, ref BoundingBox outReturn);
-extern void UIObject_GetAABBClamped(UIObject self, ref BoundingBox outReturn);
+impl UIObject {
+    extern void Init(UIObject self);
+    extern UIStage GetStage(UIObject self);
+    extern void SetStage(UIObject self, UIStage stage);
+    extern float GetUIScaleFactor(UIObject self);
+    extern void GetName(UIObject self, ref Name outReturn);
+    extern void SetName(UIObject self, const Name name);
+    extern void GetPosition(UIObject self, ref Vec2i outReturn);
+    extern void SetPosition(UIObject self, const Vec2i position);
+    extern void GetOffsetPosition(UIObject self, ref Vec2f outReturn);
+    extern void GetAbsolutePosition(UIObject self, ref Vec2f outReturn);
+    extern bool IsPositionAbsolute(UIObject self);
+    extern void SetIsPositionAbsolute(UIObject self, bool isPositionAbsolute);
+    extern void GetSize(UIObject self, ref UIObjectSize outReturn);
+    extern void SetSize(UIObject self, const UIObjectSize size);
+    extern void GetInnerSize(UIObject self, ref UIObjectSize outReturn);
+    extern void SetInnerSize(UIObject self, const UIObjectSize size);
+    extern void GetMaxSize(UIObject self, ref UIObjectSize outReturn);
+    extern void SetMaxSize(UIObject self, const UIObjectSize size);
+    extern void GetActualSize(UIObject self, ref Vec2i outReturn);
+    extern void GetActualSizeClamped(UIObject self, ref Vec2i outReturn);
+    extern void GetActualInnerSize(UIObject self, ref Vec2i outReturn);
+    extern void GetScrollOffset(UIObject self, ref Vec2f outReturn);
+    extern void SetScrollOffset(UIObject self, const Vec2f scrollOffset, bool smooth);
+    extern void ScrollToChild(UIObject self, UIObject child);
+    extern int GetVerticalScrollbarSize(UIObject self);
+    extern int GetHorizontalScrollbarSize(UIObject self);
+    extern int GetComputedDepth(UIObject self);
+    extern int GetDepth(UIObject self);
+    extern void SetDepth(UIObject self, int depth);
+    extern bool AcceptsFocus(UIObject self);
+    extern void SetAcceptsFocus(UIObject self, bool acceptsFocus);
+    extern bool NeedsUpdate(UIObject self);
+    extern void Focus(UIObject self);
+    extern void Blur(UIObject self, bool blurChildren);
+    extern void SetAffectsParentSize(UIObject self, bool affectsParentSize);
+    extern bool AffectsParentSize(UIObject self);
+    extern uint GetBorderRadius(UIObject self);
+    extern void SetBorderRadius(UIObject self, uint borderRadius);
+    extern void GetAspectRatio(UIObject self, ref UIObjectAspectRatio outReturn);
+    extern void SetAspectRatio(UIObject self, const UIObjectAspectRatio aspectRatio);
+    extern void GetPadding(UIObject self, ref Vec2i outReturn);
+    extern void SetPadding(UIObject self, const Vec2i padding);
+    extern void GetBackgroundColor(UIObject self, ref Color outReturn);
+    extern void SetBackgroundColor(UIObject self, const Color backgroundColor);
+    extern void GetTextColor(UIObject self, ref Color outReturn);
+    extern void SetTextColor(UIObject self, const Color textColor);
+    extern string GetText(UIObject self);
+    extern void SetText(UIObject self, const string text);
+    extern float GetTextSize(UIObject self);
+    extern void SetTextSize(UIObject self, float textSize);
+    extern bool IsVisible(UIObject self);
+    extern void SetIsVisible(UIObject self, bool isVisible);
+    extern bool IsEnabled(UIObject self);
+    extern void SetIsEnabled(UIObject self, bool isEnabled);
+    extern UIObject GetParentUIObject(UIObject self);
+    extern bool RemoveChildUIObject(UIObject self, UIObject uiObject);
+    extern void ClearDeep(UIObject self);
+    extern bool RemoveFromParent(UIObject self);
+    extern bool HasChildUIObjects(UIObject self);
+    extern uint NumChildUIObjects(UIObject self, bool deep);
+    extern World GetWorld(UIObject self);
+    extern void GetAABB(UIObject self, ref BoundingBox outReturn);
+    extern void GetAABBClamped(UIObject self, ref BoundingBox outReturn);
+    property bool IsPositionAbsolute { get = UIObject_Get_IsPositionAbsolute; set = UIObject_Set_IsPositionAbsolute; }
+    property int Depth { get = UIObject_Get_Depth; set = UIObject_Set_Depth; }
+    property bool AcceptsFocus { get = UIObject_Get_AcceptsFocus; set = UIObject_Set_AcceptsFocus; }
+    property bool AffectsParentSize { get = UIObject_Get_AffectsParentSize; set = UIObject_Set_AffectsParentSize; }
+    property uint BorderRadius { get = UIObject_Get_BorderRadius; set = UIObject_Set_BorderRadius; }
+    property string Text { get = UIObject_Get_Text; set = UIObject_Set_Text; }
+    property float TextSize { get = UIObject_Get_TextSize; set = UIObject_Set_TextSize; }
+    property bool IsVisible { get = UIObject_Get_IsVisible; set = UIObject_Set_IsVisible; }
+    property bool IsEnabled { get = UIObject_Get_IsEnabled; set = UIObject_Set_IsEnabled; }
+}
 
 // UIText
-extern void UIText_GetCharacterOffset(UIText self, int characterIndex, ref Vec2f outReturn);
-extern int UIText_GetClosestCharacterIndex(UIText self, const Vec2f localPosition);
+impl UIText {
+    extern void GetCharacterOffset(UIText self, int characterIndex, ref Vec2f outReturn);
+    extern int GetClosestCharacterIndex(UIText self, const Vec2f localPosition);
+}
 
 // UIStage
-extern void UIStage_GetSurfaceSize(UIStage self, ref Vec2i outReturn);
-extern void UIStage_SetSurfaceSize(UIStage self, const Vec2i surfaceSize);
-extern float UIStage_GetUIScaleFactor(UIStage self);
-extern void UIStage_SetUIScaleFactor(UIStage self, float scaleFactor);
-extern Scene UIStage_GetScene(UIStage self);
+impl UIStage {
+    extern void GetSurfaceSize(UIStage self, ref Vec2i outReturn);
+    extern void SetSurfaceSize(UIStage self, const Vec2i surfaceSize);
+    extern float GetUIScaleFactor(UIStage self);
+    extern void SetUIScaleFactor(UIStage self, float scaleFactor);
+    extern Scene GetScene(UIStage self);
+}
 
 // UIPanel
-extern bool UIPanel_IsHorizontalScrollEnabled(UIPanel self);
-extern bool UIPanel_IsVerticalScrollEnabled(UIPanel self);
+impl UIPanel {
+    extern bool IsHorizontalScrollEnabled(UIPanel self);
+    extern bool IsVerticalScrollEnabled(UIPanel self);
+}
 
 // UITextbox
-extern string UITextbox_GetPlaceholder(UITextbox self);
-extern void UITextbox_SetPlaceholder(UITextbox self, const string placeholder);
-extern void UITextbox_GetPlaceholderTextColor(UITextbox self, ref Color outReturn);
+impl UITextbox {
+    extern string GetPlaceholder(UITextbox self);
+    extern void SetPlaceholder(UITextbox self, const string placeholder);
+    extern void GetPlaceholderTextColor(UITextbox self, ref Color outReturn);
+    property string Placeholder { get = UITextbox_Get_Placeholder; set = UITextbox_Set_Placeholder; }
+}
 
 // UIMenuBar
-extern void UIMenuBar_SetSelectedMenuItemIndex(UIMenuBar self, uint index);
-extern UIMenuItem UIMenuBar_GetMenuItem(UIMenuBar self, const Name name);
-extern uint UIMenuBar_GetMenuItemIndex(UIMenuBar self, const Name name);
-extern bool UIMenuBar_RemoveMenuItem(UIMenuBar self, const Name name);
+impl UIMenuBar {
+    extern void SetSelectedMenuItemIndex(UIMenuBar self, uint index);
+    extern UIMenuItem GetMenuItem(UIMenuBar self, const Name name);
+    extern uint GetMenuItemIndex(UIMenuBar self, const Name name);
+    extern bool RemoveMenuItem(UIMenuBar self, const Name name);
+}
 
 // UIListView
-extern void UIListView_SetSelectedItem(UIListView self, UIListViewItem listViewItem);
-extern int UIListView_GetSelectedItemIndex(UIListView self);
-extern void UIListView_SetSelectedItemIndex(UIListView self, int index);
+impl UIListView {
+    extern void SetSelectedItem(UIListView self, UIListViewItem listViewItem);
+    extern int GetSelectedItemIndex(UIListView self);
+    extern void SetSelectedItemIndex(UIListView self, int index);
+}
 
 // UIGridColumn
-extern int UIGridColumn_GetColumnSize(UIGridColumn self);
-extern void UIGridColumn_SetColumnSize(UIGridColumn self, int columnSize);
+impl UIGridColumn {
+    extern int GetColumnSize(UIGridColumn self);
+    extern void SetColumnSize(UIGridColumn self, int columnSize);
+    property int ColumnSize { get = UIGridColumn_Get_ColumnSize; set = UIGridColumn_Set_ColumnSize; }
+}
 
 // UIGrid
-extern int UIGrid_GetNumColumns(UIGrid self);
-extern void UIGrid_SetNumColumns(UIGrid self, int numColumns);
-extern uint UIGrid_GetNumRows(UIGrid self);
-extern void UIGrid_SetNumRows(UIGrid self, uint numRows);
+impl UIGrid {
+    extern int GetNumColumns(UIGrid self);
+    extern void SetNumColumns(UIGrid self, int numColumns);
+    extern uint GetNumRows(UIGrid self);
+    extern void SetNumRows(UIGrid self, uint numRows);
+    property int NumColumns { get = UIGrid_Get_NumColumns; set = UIGrid_Set_NumColumns; }
+    property uint NumRows { get = UIGrid_Get_NumRows; set = UIGrid_Set_NumRows; }
+}
 
 // UIDataSource
-extern int UIDataSource_Size(UIDataSource self);
-extern void UIDataSource_Clear(UIDataSource self);
+impl UIDataSource {
+    extern int Size(UIDataSource self);
+    extern void Clear(UIDataSource self);
+}
 
 // UIElementFactoryBase
-extern void UIElementFactoryBase_GetElementTypeId(UIElementFactoryBase self, ref TypeId outReturn);
+impl UIElementFactoryBase {
+    extern void GetElementTypeId(UIElementFactoryBase self, ref TypeId outReturn);
+}
 
 // UIDataSourceBase
-extern int UIDataSourceBase_Size(UIDataSourceBase self);
-extern void UIDataSourceBase_Clear(UIDataSourceBase self);
+impl UIDataSourceBase {
+    extern int Size(UIDataSourceBase self);
+    extern void Clear(UIDataSourceBase self);
+}
 
 // IOSApplicationWindow (requires HYP_IOS)
-extern void IOSApplicationWindow_SetMousePosition(IOSApplicationWindow self, const Vec2i position);
-extern void IOSApplicationWindow_GetMousePosition(IOSApplicationWindow self, ref Vec2i outReturn);
-extern void IOSApplicationWindow_GetDimensions(IOSApplicationWindow self, ref Vec2i outReturn);
-extern void IOSApplicationWindow_SetIsMouseLocked(IOSApplicationWindow self, bool locked);
-extern bool IOSApplicationWindow_IsMouseLocked(IOSApplicationWindow self);
-extern bool IOSApplicationWindow_HasMouseFocus(IOSApplicationWindow self);
-extern bool IOSApplicationWindow_IsHighDPI(IOSApplicationWindow self);
-extern float IOSApplicationWindow_GetContentScaleFactor(IOSApplicationWindow self);
-extern float IOSApplicationWindow_GetRenderTargetScale(IOSApplicationWindow self);
-extern void IOSApplicationWindow_Close(IOSApplicationWindow self);
-extern void IOSApplicationWindow_ShowVirtualKeyboard(IOSApplicationWindow self);
-extern void IOSApplicationWindow_HideVirtualKeyboard(IOSApplicationWindow self);
+impl IOSApplicationWindow {
+    extern void SetMousePosition(IOSApplicationWindow self, const Vec2i position);
+    extern void GetMousePosition(IOSApplicationWindow self, ref Vec2i outReturn);
+    extern void GetDimensions(IOSApplicationWindow self, ref Vec2i outReturn);
+    extern void SetIsMouseLocked(IOSApplicationWindow self, bool locked);
+    extern bool IsMouseLocked(IOSApplicationWindow self);
+    extern bool HasMouseFocus(IOSApplicationWindow self);
+    extern bool IsHighDPI(IOSApplicationWindow self);
+    extern float GetContentScaleFactor(IOSApplicationWindow self);
+    extern float GetRenderTargetScale(IOSApplicationWindow self);
+    extern void Close(IOSApplicationWindow self);
+    extern void ShowVirtualKeyboard(IOSApplicationWindow self);
+    extern void HideVirtualKeyboard(IOSApplicationWindow self);
+}
 
 // Win32ApplicationWindow (requires HYP_WINDOWS)
-extern void Win32ApplicationWindow_SetMousePosition(Win32ApplicationWindow self, const Vec2i position);
-extern void Win32ApplicationWindow_GetMousePosition(Win32ApplicationWindow self, ref Vec2i outReturn);
-extern void Win32ApplicationWindow_GetDimensions(Win32ApplicationWindow self, ref Vec2i outReturn);
-extern void Win32ApplicationWindow_SetIsMouseLocked(Win32ApplicationWindow self, bool locked);
-extern bool Win32ApplicationWindow_IsMouseLocked(Win32ApplicationWindow self);
-extern bool Win32ApplicationWindow_HasMouseFocus(Win32ApplicationWindow self);
-extern void Win32ApplicationWindow_Close(Win32ApplicationWindow self);
+impl Win32ApplicationWindow {
+    extern void SetMousePosition(Win32ApplicationWindow self, const Vec2i position);
+    extern void GetMousePosition(Win32ApplicationWindow self, ref Vec2i outReturn);
+    extern void GetDimensions(Win32ApplicationWindow self, ref Vec2i outReturn);
+    extern void SetIsMouseLocked(Win32ApplicationWindow self, bool locked);
+    extern bool IsMouseLocked(Win32ApplicationWindow self);
+    extern bool HasMouseFocus(Win32ApplicationWindow self);
+    extern void Close(Win32ApplicationWindow self);
+}
 
 // CocoaApplicationWindow (requires HYP_MACOS)
-extern void CocoaApplicationWindow_SetMousePosition(CocoaApplicationWindow self, const Vec2i position);
-extern void CocoaApplicationWindow_GetMousePosition(CocoaApplicationWindow self, ref Vec2i outReturn);
-extern void CocoaApplicationWindow_GetDimensions(CocoaApplicationWindow self, ref Vec2i outReturn);
-extern void CocoaApplicationWindow_SetIsMouseLocked(CocoaApplicationWindow self, bool locked);
-extern bool CocoaApplicationWindow_IsMouseLocked(CocoaApplicationWindow self);
-extern bool CocoaApplicationWindow_HasMouseFocus(CocoaApplicationWindow self);
-extern bool CocoaApplicationWindow_IsHighDPI(CocoaApplicationWindow self);
-extern float CocoaApplicationWindow_GetContentScaleFactor(CocoaApplicationWindow self);
-extern float CocoaApplicationWindow_GetRenderTargetScale(CocoaApplicationWindow self);
-extern void CocoaApplicationWindow_Close(CocoaApplicationWindow self);
+impl CocoaApplicationWindow {
+    extern void SetMousePosition(CocoaApplicationWindow self, const Vec2i position);
+    extern void GetMousePosition(CocoaApplicationWindow self, ref Vec2i outReturn);
+    extern void GetDimensions(CocoaApplicationWindow self, ref Vec2i outReturn);
+    extern void SetIsMouseLocked(CocoaApplicationWindow self, bool locked);
+    extern bool IsMouseLocked(CocoaApplicationWindow self);
+    extern bool HasMouseFocus(CocoaApplicationWindow self);
+    extern bool IsHighDPI(CocoaApplicationWindow self);
+    extern float GetContentScaleFactor(CocoaApplicationWindow self);
+    extern float GetRenderTargetScale(CocoaApplicationWindow self);
+    extern void Close(CocoaApplicationWindow self);
+}
 
 // AppContextBase
-extern string AppContextBase_GetAppName(AppContextBase self);
-extern ApplicationWindow AppContextBase_GetMainWindow(AppContextBase self);
-extern void AppContextBase_RemoveWindow(AppContextBase self, ApplicationWindow window);
+impl AppContextBase {
+    extern string GetAppName(AppContextBase self);
+    extern ApplicationWindow GetMainWindow(AppContextBase self);
+    extern void RemoveWindow(AppContextBase self, ApplicationWindow window);
+}
 
 // ApplicationWindow
-extern void ApplicationWindow_GetHWND(ApplicationWindow self, ref HWND outReturn);
-extern void ApplicationWindow_GetSize(ApplicationWindow self, ref Vec2i outReturn);
-extern void ApplicationWindow_SetMousePosition(ApplicationWindow self, const Vec2i position);
-extern void ApplicationWindow_GetMousePosition(ApplicationWindow self, ref Vec2i outReturn);
-extern void ApplicationWindow_SetIsMouseLocked(ApplicationWindow self, bool locked);
-extern bool ApplicationWindow_IsMouseLocked(ApplicationWindow self);
-extern bool ApplicationWindow_HasMouseFocus(ApplicationWindow self);
-extern void ApplicationWindow_ShowVirtualKeyboard(ApplicationWindow self);
-extern void ApplicationWindow_HideVirtualKeyboard(ApplicationWindow self);
-extern bool ApplicationWindow_HasFocus(ApplicationWindow self);
-extern bool ApplicationWindow_IsHighDPI(ApplicationWindow self);
-extern float ApplicationWindow_GetContentScaleFactor(ApplicationWindow self);
-extern float ApplicationWindow_GetRenderTargetScale(ApplicationWindow self);
-extern void ApplicationWindow_GetRenderSize(ApplicationWindow self, ref Vec2i outReturn);
-extern void ApplicationWindow_GetDimensions(ApplicationWindow self, ref Vec2i outReturn);
-extern void ApplicationWindow_Close(ApplicationWindow self);
+impl ApplicationWindow {
+    extern void GetHWND(ApplicationWindow self, ref HWND outReturn);
+    extern void GetSize(ApplicationWindow self, ref Vec2i outReturn);
+    extern void SetMousePosition(ApplicationWindow self, const Vec2i position);
+    extern void GetMousePosition(ApplicationWindow self, ref Vec2i outReturn);
+    extern void SetIsMouseLocked(ApplicationWindow self, bool locked);
+    extern bool IsMouseLocked(ApplicationWindow self);
+    extern bool HasMouseFocus(ApplicationWindow self);
+    extern void ShowVirtualKeyboard(ApplicationWindow self);
+    extern void HideVirtualKeyboard(ApplicationWindow self);
+    extern bool HasFocus(ApplicationWindow self);
+    extern bool IsHighDPI(ApplicationWindow self);
+    extern float GetContentScaleFactor(ApplicationWindow self);
+    extern float GetRenderTargetScale(ApplicationWindow self);
+    extern void GetRenderSize(ApplicationWindow self, ref Vec2i outReturn);
+    extern void GetDimensions(ApplicationWindow self, ref Vec2i outReturn);
+    extern void Close(ApplicationWindow self);
+}
 
 // AndroidApplicationWindow (requires HYP_ANDROID)
-extern void AndroidApplicationWindow_SetMousePosition(AndroidApplicationWindow self, const Vec2i position);
-extern void AndroidApplicationWindow_GetMousePosition(AndroidApplicationWindow self, ref Vec2i outReturn);
-extern void AndroidApplicationWindow_GetDimensions(AndroidApplicationWindow self, ref Vec2i outReturn);
-extern void AndroidApplicationWindow_SetIsMouseLocked(AndroidApplicationWindow self, bool locked);
-extern bool AndroidApplicationWindow_IsMouseLocked(AndroidApplicationWindow self);
-extern bool AndroidApplicationWindow_HasMouseFocus(AndroidApplicationWindow self);
-extern float AndroidApplicationWindow_GetContentScaleFactor(AndroidApplicationWindow self);
-extern float AndroidApplicationWindow_GetRenderTargetScale(AndroidApplicationWindow self);
-extern void AndroidApplicationWindow_Close(AndroidApplicationWindow self);
-extern void AndroidApplicationWindow_ShowVirtualKeyboard(AndroidApplicationWindow self);
-extern void AndroidApplicationWindow_HideVirtualKeyboard(AndroidApplicationWindow self);
+impl AndroidApplicationWindow {
+    extern void SetMousePosition(AndroidApplicationWindow self, const Vec2i position);
+    extern void GetMousePosition(AndroidApplicationWindow self, ref Vec2i outReturn);
+    extern void GetDimensions(AndroidApplicationWindow self, ref Vec2i outReturn);
+    extern void SetIsMouseLocked(AndroidApplicationWindow self, bool locked);
+    extern bool IsMouseLocked(AndroidApplicationWindow self);
+    extern bool HasMouseFocus(AndroidApplicationWindow self);
+    extern float GetContentScaleFactor(AndroidApplicationWindow self);
+    extern float GetRenderTargetScale(AndroidApplicationWindow self);
+    extern void Close(AndroidApplicationWindow self);
+    extern void ShowVirtualKeyboard(AndroidApplicationWindow self);
+    extern void HideVirtualKeyboard(AndroidApplicationWindow self);
+}
 
 // StreamingVolumeBase
-extern bool StreamingVolumeBase_GetBoundingBox(StreamingVolumeBase self, BoundingBox outAabb);
-extern bool StreamingVolumeBase_GetBoundingSphere(StreamingVolumeBase self, BoundingSphere outSphere);
-extern bool StreamingVolumeBase_ContainsPoint(StreamingVolumeBase self, float3 point);
-extern void StreamingVolumeBase_NotifyUpdate(StreamingVolumeBase self);
+impl StreamingVolumeBase {
+    extern bool GetBoundingBox(StreamingVolumeBase self, BoundingBox outAabb);
+    extern bool GetBoundingSphere(StreamingVolumeBase self, BoundingSphere outSphere);
+    extern bool ContainsPoint(StreamingVolumeBase self, float3 point);
+    extern void NotifyUpdate(StreamingVolumeBase self);
+}
 
 // StreamingManager
-extern void StreamingManager_RemoveStreamingVolume(StreamingManager self, StreamingVolumeBase volume);
+impl StreamingManager {
+    extern void RemoveStreamingVolume(StreamingManager self, StreamingVolumeBase volume);
+}
 
 // StreamableBase
-extern void StreamableBase_GetBoundingBox(StreamableBase self, ref BoundingBox outReturn);
-extern void StreamableBase_OnStreamStart(StreamableBase self);
-extern void StreamableBase_OnLoaded(StreamableBase self);
-extern void StreamableBase_OnRemoved(StreamableBase self);
+impl StreamableBase {
+    extern void GetBoundingBox(StreamableBase self, ref BoundingBox outReturn);
+    extern void OnStreamStart(StreamableBase self);
+    extern void OnLoaded(StreamableBase self);
+    extern void OnRemoved(StreamableBase self);
+}
 
 // StreamingCell
-extern void StreamingCell_GetPatchInfo(StreamingCell self, ref StreamingCellInfo outReturn);
+impl StreamingCell {
+    extern void GetPatchInfo(StreamingCell self, ref StreamingCellInfo outReturn);
+}
 
 // WorldGridLayer
-extern void WorldGridLayer_GetName(WorldGridLayer self, ref Name outReturn);
-extern void WorldGridLayer_SetName(WorldGridLayer self, const Name name);
-extern void WorldGridLayer_GetLayerInfo(WorldGridLayer self, ref WorldGridLayerInfo outReturn);
-extern void WorldGridLayer_OnAdded(WorldGridLayer self, WorldGrid worldGrid);
-extern void WorldGridLayer_OnRemoved(WorldGridLayer self, WorldGrid worldGrid);
-extern void WorldGridLayer_AddStreamingObject(WorldGridLayer self, AssetObject assetObject, const Vec2i coord);
-extern void WorldGridLayer_RemoveStreamingObject(WorldGridLayer self, AssetObject assetObject);
+impl WorldGridLayer {
+    extern void GetName(WorldGridLayer self, ref Name outReturn);
+    extern void SetName(WorldGridLayer self, const Name name);
+    extern void GetLayerInfo(WorldGridLayer self, ref WorldGridLayerInfo outReturn);
+    extern void OnAdded(WorldGridLayer self, WorldGrid worldGrid);
+    extern void OnRemoved(WorldGridLayer self, WorldGrid worldGrid);
+    extern void AddStreamingObject(WorldGridLayer self, AssetObject assetObject, const Vec2i coord);
+    extern void RemoveStreamingObject(WorldGridLayer self, AssetObject assetObject);
+}
 
 // WorldGrid
-extern World WorldGrid_GetWorld(WorldGrid self);
-extern bool WorldGrid_RemoveLayer(WorldGrid self, WorldGridLayer layer);
+impl WorldGrid {
+    extern World GetWorld(WorldGrid self);
+    extern bool RemoveLayer(WorldGrid self, WorldGridLayer layer);
+}
 
 // Keyframe
 extern void Keyframe_Blend(Keyframe self, const Keyframe to, float blend, ref Keyframe outReturn);
 
 // View
-extern void View_AddScene(View self, Scene scene);
-extern void View_RemoveScene(View self, Scene scene);
-extern Camera View_GetCamera(View self);
-extern void View_SetCamera(View self, Camera camera);
-extern int View_GetPriority(View self);
-extern void View_SetPriority(View self, int priority);
+impl View {
+    extern void AddScene(View self, Scene scene);
+    extern void RemoveScene(View self, Scene scene);
+    extern Camera GetCamera(View self);
+    extern void SetCamera(View self, Camera camera);
+    extern int GetPriority(View self);
+    extern void SetPriority(View self, int priority);
+}
 
 // TouchControlsSubsystem
-extern void TouchControlsSubsystem_GetMovementDelta(TouchControlsSubsystem self, ref Vec2f outReturn);
-extern void TouchControlsSubsystem_GetLookDelta(TouchControlsSubsystem self, ref Vec2f outReturn);
-extern bool TouchControlsSubsystem_IsActive(TouchControlsSubsystem self);
-extern void TouchControlsSubsystem_SetEnabled(TouchControlsSubsystem self, bool enabled);
-extern bool TouchControlsSubsystem_IsEnabled(TouchControlsSubsystem self);
-extern void TouchControlsSubsystem_SetJoystickSize(TouchControlsSubsystem self, float size);
-extern void TouchControlsSubsystem_SetDeadzone(TouchControlsSubsystem self, float deadzone);
+impl TouchControlsSubsystem {
+    extern void GetMovementDelta(TouchControlsSubsystem self, ref Vec2f outReturn);
+    extern void GetLookDelta(TouchControlsSubsystem self, ref Vec2f outReturn);
+    extern bool IsActive(TouchControlsSubsystem self);
+    extern void SetEnabled(TouchControlsSubsystem self, bool enabled);
+    extern bool IsEnabled(TouchControlsSubsystem self);
+    extern void SetJoystickSize(TouchControlsSubsystem self, float size);
+    extern void SetDeadzone(TouchControlsSubsystem self, float deadzone);
+}
 
 // EditorSubsystem (requires HYP_EDITOR)
-extern EditorViewport EditorSubsystem_GetActiveViewport(EditorSubsystem self);
-extern void EditorSubsystem_SetActiveViewport(EditorSubsystem self, EditorViewport viewport);
-extern void EditorSubsystem_RemoveViewport(EditorSubsystem self, EditorViewport viewport);
-extern bool EditorSubsystem_StartSimulation(EditorSubsystem self);
-extern bool EditorSubsystem_StopSimulation(EditorSubsystem self);
-extern bool EditorSubsystem_PauseSimulation(EditorSubsystem self);
-extern bool EditorSubsystem_ExecuteCommandByName(EditorSubsystem self, const Name name, const string arguments);
-extern void EditorSubsystem_NewProject(EditorSubsystem self);
-extern void EditorSubsystem_CloseProject(EditorSubsystem self, bool shutdownWorld);
-extern void EditorSubsystem_ShowImportContentDialog(EditorSubsystem self);
-extern void EditorSubsystem_ClearSelection(EditorSubsystem self);
-extern string EditorSubsystem_GetCodeEditor(EditorSubsystem self);
-extern EditorGizmoBase EditorSubsystem_GetSelectedGizmo(EditorSubsystem self);
-extern bool EditorSubsystem_IsMeshEditModeEnabled(EditorSubsystem self);
-extern void EditorSubsystem_EnterMeshEditMode(EditorSubsystem self);
-extern void EditorSubsystem_ExitMeshEditMode(EditorSubsystem self, bool saveEdits);
-extern bool EditorSubsystem_IsSimulating(EditorSubsystem self);
-extern bool EditorSubsystem_CanEnableMeshEditMode(EditorSubsystem self);
-extern Node EditorSubsystem_GetMeshEditTargetNode(EditorSubsystem self);
-extern bool EditorSubsystem_HasMeshEditFaceSelected(EditorSubsystem self);
-extern bool EditorSubsystem_IsMeshEditDragActive(EditorSubsystem self);
-extern bool EditorSubsystem_HasPendingMeshEdits(EditorSubsystem self);
-extern int EditorSubsystem_GetMeshEditLockedAxis(EditorSubsystem self);
-extern bool EditorSubsystem_IsMeshEditAlignToNormal(EditorSubsystem self);
-extern void EditorSubsystem_SetMeshEditAlignToNormal(EditorSubsystem self, bool alignToNormal);
-extern bool EditorSubsystem_IsSnapToGridEnabled(EditorSubsystem self);
-extern void EditorSubsystem_SetSnapToGridEnabled(EditorSubsystem self, bool snapToGrid);
-extern bool EditorSubsystem_IsPhysicsDebugDrawEnabled(EditorSubsystem self);
-extern void EditorSubsystem_SetPhysicsDebugDrawEnabled(EditorSubsystem self, bool enabled);
-extern bool EditorSubsystem_CanFitPhysicsShapeToMesh(EditorSubsystem self);
-extern void EditorSubsystem_FitPhysicsShapeToMesh(EditorSubsystem self);
-extern void EditorSubsystem_SetSelectedBucket(EditorSubsystem self, uint bucketIndex);
-extern float3 EditorSubsystem_CalculateSceneInsertionPoint(EditorSubsystem self, float desiredDistance, float offsetFromSurface);
-extern void EditorSubsystem_UpdateNormalizedCubeSpherePreview(EditorSubsystem self, uint numDivisions);
-extern void EditorSubsystem_CommitMeshPreview(EditorSubsystem self);
-extern void EditorSubsystem_CancelMeshPreview(EditorSubsystem self);
+impl EditorSubsystem {
+    extern EditorViewport GetActiveViewport(EditorSubsystem self);
+    extern void SetActiveViewport(EditorSubsystem self, EditorViewport viewport);
+    extern void RemoveViewport(EditorSubsystem self, EditorViewport viewport);
+    extern bool StartSimulation(EditorSubsystem self);
+    extern bool StopSimulation(EditorSubsystem self);
+    extern bool PauseSimulation(EditorSubsystem self);
+    extern bool ExecuteCommandByName(EditorSubsystem self, const Name name, const string arguments);
+    extern void NewProject(EditorSubsystem self);
+    extern void CloseProject(EditorSubsystem self, bool shutdownWorld);
+    extern void ShowImportContentDialog(EditorSubsystem self);
+    extern void ClearSelection(EditorSubsystem self);
+    extern string GetCodeEditor(EditorSubsystem self);
+    extern EditorGizmoBase GetSelectedGizmo(EditorSubsystem self);
+    extern bool IsMeshEditModeEnabled(EditorSubsystem self);
+    extern void EnterMeshEditMode(EditorSubsystem self);
+    extern void ExitMeshEditMode(EditorSubsystem self, bool saveEdits);
+    extern bool IsSimulating(EditorSubsystem self);
+    extern bool CanEnableMeshEditMode(EditorSubsystem self);
+    extern Node GetMeshEditTargetNode(EditorSubsystem self);
+    extern bool HasMeshEditFaceSelected(EditorSubsystem self);
+    extern bool IsMeshEditDragActive(EditorSubsystem self);
+    extern bool HasPendingMeshEdits(EditorSubsystem self);
+    extern int GetMeshEditLockedAxis(EditorSubsystem self);
+    extern bool IsMeshEditAlignToNormal(EditorSubsystem self);
+    extern void SetMeshEditAlignToNormal(EditorSubsystem self, bool alignToNormal);
+    extern bool IsSnapToGridEnabled(EditorSubsystem self);
+    extern void SetSnapToGridEnabled(EditorSubsystem self, bool snapToGrid);
+    extern bool IsPhysicsDebugDrawEnabled(EditorSubsystem self);
+    extern void SetPhysicsDebugDrawEnabled(EditorSubsystem self, bool enabled);
+    extern bool CanFitPhysicsShapeToMesh(EditorSubsystem self);
+    extern void FitPhysicsShapeToMesh(EditorSubsystem self);
+    extern void SetSelectedBucket(EditorSubsystem self, uint bucketIndex);
+    extern float3 CalculateSceneInsertionPoint(EditorSubsystem self, float desiredDistance, float offsetFromSurface);
+    extern void UpdateNormalizedCubeSpherePreview(EditorSubsystem self, uint numDivisions);
+    extern void CommitMeshPreview(EditorSubsystem self);
+    extern void CancelMeshPreview(EditorSubsystem self);
+}
 
 // EditorGizmoBase (requires HYP_EDITOR)
-extern bool EditorGizmoBase_IsDragging(EditorGizmoBase self);
-extern int EditorGizmoBase_GetPriority(EditorGizmoBase self);
-extern string EditorGizmoBase_GetMenuText(EditorGizmoBase self);
+impl EditorGizmoBase {
+    extern bool IsDragging(EditorGizmoBase self);
+    extern int GetPriority(EditorGizmoBase self);
+    extern string GetMenuText(EditorGizmoBase self);
+}
 
 // Node
-extern void Node_GetUUID(Node self, ref UUID outReturn);
-extern void Node_SetUUID(Node self, const UUID uuid);
-extern bool Node_HasName(Node self);
-extern void Node_GetName(Node self, ref Name outReturn);
-extern void Node_SetName(Node self, const Name name);
-extern Node Node_GetParent(Node self);
-extern bool Node_IsOrHasParent(Node self, Node node);
-extern bool Node_IsRoot(Node self);
-extern Scene Node_GetScene(Node self);
-extern void Node_SetScene(Node self, Scene scene, bool moveToDetached);
-extern World Node_GetWorld(Node self);
-extern void Node_GetLocalBounds(Node self, ref BoundingBox outReturn);
-extern void Node_SetLocalBounds(Node self, const BoundingBox aabb);
-extern bool Node_RemoveAt(Node self, uint index, bool moveToDetached);
-extern bool Node_Remove(Node self, bool moveToDetached);
-extern void Node_RemoveAllChildren(Node self, bool moveToDetached);
-extern uint Node_NumChildren(Node self);
-// requires: HYP_EDITOR
-extern void Node_SetLocalTransform_EditorOnly(Node self, const Transform transform);
-extern void Node_GetLocalTransform(Node self, ref Transform outReturn);
-extern float3 Node_GetLocalTranslation(Node self);
-extern void Node_Translate(Node self, float3 translation);
-extern float3 Node_GetLocalScale(Node self);
-extern void Node_Scale(Node self, float3 scale);
-extern void Node_GetLocalRotation(Node self, ref Quat4f outReturn);
-extern void Node_Rotate(Node self, const Quat4f rotation);
-extern void Node_GetWorldMatrix(Node self, ref Mat4f outReturn);
-extern float3 Node_GetWorldTranslation(Node self);
-extern float3 Node_GetWorldScale(Node self);
-extern void Node_GetWorldRotation(Node self, ref Quat4f outReturn);
-extern bool Node_IsTransformLocked(Node self);
-extern void Node_GetLocalBoundsWithChildren(Node self, ref BoundingBox outReturn);
-extern void Node_GetWorldBounds(Node self, ref BoundingBox outReturn);
-extern void Node_UpdateWorldTransform(Node self, bool updateChildTransforms);
-extern uint Node_CalculateDepth(Node self);
-extern uint Node_FindSelfIndex(Node self);
-extern Node Node_FindChildByName(Node self, const StringHash name);
-extern Node Node_FindChildByUUID(Node self, const UUID uuid);
-// requires: HYP_EDITOR
-extern void Node_MarkDirty(Node self);
+impl Node {
+    extern void GetUUID(Node self, ref UUID outReturn);
+    extern void SetUUID(Node self, const UUID uuid);
+    extern bool HasName(Node self);
+    extern void GetName(Node self, ref Name outReturn);
+    extern void SetName(Node self, const Name name);
+    extern Node GetParent(Node self);
+    extern bool IsOrHasParent(Node self, Node node);
+    extern bool IsRoot(Node self);
+    extern Scene GetScene(Node self);
+    extern void SetScene(Node self, Scene scene, bool moveToDetached);
+    extern World GetWorld(Node self);
+    extern void GetLocalBounds(Node self, ref BoundingBox outReturn);
+    extern void SetLocalBounds(Node self, const BoundingBox aabb);
+    extern bool RemoveAt(Node self, uint index, bool moveToDetached);
+    extern bool Remove(Node self, bool moveToDetached);
+    extern void RemoveAllChildren(Node self, bool moveToDetached);
+    extern uint NumChildren(Node self);
+    // requires: HYP_EDITOR
+    extern void SetLocalTransform_EditorOnly(Node self, const Transform transform);
+    extern void GetLocalTransform(Node self, ref Transform outReturn);
+    extern float3 GetLocalTranslation(Node self);
+    extern void Translate(Node self, float3 translation);
+    extern float3 GetLocalScale(Node self);
+    extern void Scale(Node self, float3 scale);
+    extern void GetLocalRotation(Node self, ref Quat4f outReturn);
+    extern void Rotate(Node self, const Quat4f rotation);
+    extern void GetWorldMatrix(Node self, ref Mat4f outReturn);
+    extern float3 GetWorldTranslation(Node self);
+    extern float3 GetWorldScale(Node self);
+    extern void GetWorldRotation(Node self, ref Quat4f outReturn);
+    extern bool IsTransformLocked(Node self);
+    extern void GetLocalBoundsWithChildren(Node self, ref BoundingBox outReturn);
+    extern void GetWorldBounds(Node self, ref BoundingBox outReturn);
+    extern void UpdateWorldTransform(Node self, bool updateChildTransforms);
+    extern uint CalculateDepth(Node self);
+    extern uint FindSelfIndex(Node self);
+    extern Node FindChildByName(Node self, const StringHash name);
+    extern Node FindChildByUUID(Node self, const UUID uuid);
+    // requires: HYP_EDITOR
+    extern void MarkDirty(Node self);
+    property Node Parent { get = Node_Get_Parent; }
+    property Scene Scene { get = Node_Get_Scene; }
+    property World World { get = Node_Get_World; }
+    property float3 LocalTranslation { get = Node_Get_LocalTranslation; }
+    property float3 LocalScale { get = Node_Get_LocalScale; }
+    property float3 WorldTranslation { get = Node_Get_WorldTranslation; }
+    property float3 WorldScale { get = Node_Get_WorldScale; }
+}
 
 // Entity
-extern EntityManager Entity_GetEntityManager(Entity self);
-extern bool Entity_HasNoLayers(Entity self);
-extern bool Entity_IsInLayer(Entity self, const LayerId layerId);
-extern void Entity_AddToLayer(Entity self, const LayerId layerId);
-extern void Entity_RemoveFromLayer(Entity self, const LayerId layerId);
-extern bool Entity_IsInLayerByName(Entity self, const Name layerName);
-extern void Entity_AddToLayerByName(Entity self, const Name layerName);
-extern void Entity_RemoveFromLayerByName(Entity self, const Name layerName);
-extern bool Entity_ReceivesUpdate(Entity self);
-extern void Entity_SetReceivesUpdate(Entity self, bool receivesUpdate);
+impl Entity {
+    extern EntityManager GetEntityManager(Entity self);
+    extern bool HasNoLayers(Entity self);
+    extern bool IsInLayer(Entity self, const LayerId layerId);
+    extern void AddToLayer(Entity self, const LayerId layerId);
+    extern void RemoveFromLayer(Entity self, const LayerId layerId);
+    extern bool IsInLayerByName(Entity self, const Name layerName);
+    extern void AddToLayerByName(Entity self, const Name layerName);
+    extern void RemoveFromLayerByName(Entity self, const Name layerName);
+    extern bool ReceivesUpdate(Entity self);
+    extern void SetReceivesUpdate(Entity self, bool receivesUpdate);
+}
 
 // CameraController
-extern Camera CameraController_GetCamera(CameraController self);
-extern bool CameraController_IsMouseLockAllowed(CameraController self);
-extern bool CameraController_IsMouseLockRequested(CameraController self);
-extern void CameraController_SetTranslation(CameraController self, float3 translation);
-extern void CameraController_SetNextTranslation(CameraController self, float3 translation);
-extern void CameraController_SetDirection(CameraController self, float3 direction);
-extern void CameraController_SetUpVector(CameraController self, float3 up);
+impl CameraController {
+    extern Camera GetCamera(CameraController self);
+    extern bool IsMouseLockAllowed(CameraController self);
+    extern bool IsMouseLockRequested(CameraController self);
+    extern void SetTranslation(CameraController self, float3 translation);
+    extern void SetNextTranslation(CameraController self, float3 translation);
+    extern void SetDirection(CameraController self, float3 direction);
+    extern void SetUpVector(CameraController self, float3 up);
+    property Camera Camera { get = CameraController_Get_Camera; }
+}
 
 // Camera
-extern bool Camera_HasActiveCameraController(Camera self);
-extern void Camera_GetDimensions(Camera self, ref Vec2i outReturn);
-extern void Camera_SetDimensions(Camera self, const Vec2i dimensions);
-extern float Camera_GetNearClip(Camera self);
-extern void Camera_SetNearClip(Camera self, float _near);
-extern float Camera_GetFarClip(Camera self);
-extern void Camera_SetFarClip(Camera self, float _far);
-extern float Camera_GetFOV(Camera self);
-extern void Camera_SetFOV(Camera self, float fov);
-extern float3 Camera_GetDirection(Camera self);
-extern void Camera_SetDirection(Camera self, float3 direction);
-extern float3 Camera_GetUpVector(Camera self);
-extern void Camera_SetUpVector(Camera self, float3 up);
-extern void Camera_GetOrthoRect(Camera self, ref CameraOrthoRect outReturn);
-extern void Camera_SetOrthoRect(Camera self, const CameraOrthoRect orthoRect);
-extern float3 Camera_GetSideVector(Camera self);
-extern float3 Camera_GetTarget(Camera self);
-extern void Camera_SetTarget(Camera self, float3 target);
-extern void Camera_Rotate(Camera self, float3 axis, float radians);
-extern void Camera_GetFrustum(Camera self, ref Frustum outReturn);
-extern void Camera_SetFrustum(Camera self, const Frustum frustum);
-extern void Camera_GetViewMatrix(Camera self, ref Mat4f outReturn);
-extern void Camera_SetViewMatrix(Camera self, const Mat4f viewMat);
-extern void Camera_GetProjectionMatrix(Camera self, ref Mat4f outReturn);
-extern void Camera_SetProjectionMatrix(Camera self, const Mat4f projMat);
-extern void Camera_GetViewProjectionMatrix(Camera self, ref Mat4f outReturn);
-extern void Camera_SetViewProjectionMatrix(Camera self, const Mat4f viewMat, const Mat4f projMat);
-extern void Camera_GetPreviousViewProjectionMatrix(Camera self, ref Mat4f outReturn);
-extern float3 Camera_TransformScreenToNDC(Camera self, const Vec2f screen);
-extern float4 Camera_TransformNDCToWorld(Camera self, float3 ndc);
-extern float3 Camera_TransformWorldToNDC(Camera self, float3 world);
-extern void Camera_TransformWorldToScreen(Camera self, float3 world, ref Vec2f outReturn);
-extern void Camera_TransformNDCToScreen(Camera self, float3 ndc, ref Vec2f outReturn);
-extern float4 Camera_TransformScreenToWorld(Camera self, const Vec2f screen);
-extern void Camera_GetPixelSize(Camera self, ref Vec2f outReturn);
-extern void Camera_GetPickRay(Camera self, const Vec2f screen, ref Ray outReturn);
+impl Camera {
+    extern bool HasActiveCameraController(Camera self);
+    extern void GetDimensions(Camera self, ref Vec2i outReturn);
+    extern void SetDimensions(Camera self, const Vec2i dimensions);
+    extern float GetNearClip(Camera self);
+    extern void SetNearClip(Camera self, float _near);
+    extern float GetFarClip(Camera self);
+    extern void SetFarClip(Camera self, float _far);
+    extern float GetFOV(Camera self);
+    extern void SetFOV(Camera self, float fov);
+    extern float3 GetDirection(Camera self);
+    extern void SetDirection(Camera self, float3 direction);
+    extern float3 GetUpVector(Camera self);
+    extern void SetUpVector(Camera self, float3 up);
+    extern void GetOrthoRect(Camera self, ref CameraOrthoRect outReturn);
+    extern void SetOrthoRect(Camera self, const CameraOrthoRect orthoRect);
+    extern float3 GetSideVector(Camera self);
+    extern float3 GetTarget(Camera self);
+    extern void SetTarget(Camera self, float3 target);
+    extern void Rotate(Camera self, float3 axis, float radians);
+    extern void GetFrustum(Camera self, ref Frustum outReturn);
+    extern void SetFrustum(Camera self, const Frustum frustum);
+    extern void GetViewMatrix(Camera self, ref Mat4f outReturn);
+    extern void SetViewMatrix(Camera self, const Mat4f viewMat);
+    extern void GetProjectionMatrix(Camera self, ref Mat4f outReturn);
+    extern void SetProjectionMatrix(Camera self, const Mat4f projMat);
+    extern void GetViewProjectionMatrix(Camera self, ref Mat4f outReturn);
+    extern void SetViewProjectionMatrix(Camera self, const Mat4f viewMat, const Mat4f projMat);
+    extern void GetPreviousViewProjectionMatrix(Camera self, ref Mat4f outReturn);
+    extern float3 TransformScreenToNDC(Camera self, const Vec2f screen);
+    extern float4 TransformNDCToWorld(Camera self, float3 ndc);
+    extern float3 TransformWorldToNDC(Camera self, float3 world);
+    extern void TransformWorldToScreen(Camera self, float3 world, ref Vec2f outReturn);
+    extern void TransformNDCToScreen(Camera self, float3 ndc, ref Vec2f outReturn);
+    extern float4 TransformScreenToWorld(Camera self, const Vec2f screen);
+    extern void GetPixelSize(Camera self, ref Vec2f outReturn);
+    extern void GetPickRay(Camera self, const Vec2f screen, ref Ray outReturn);
+    property float NearClip { get = Camera_Get_NearClip; set = Camera_Set_NearClip; }
+    property float FarClip { get = Camera_Get_FarClip; set = Camera_Set_FarClip; }
+    property float FOV { get = Camera_Get_FOV; set = Camera_Set_FOV; }
+    property float3 Direction { get = Camera_Get_Direction; set = Camera_Set_Direction; }
+    property float3 UpVector { get = Camera_Get_UpVector; set = Camera_Set_UpVector; }
+}
 
 // LightmapVolume
-extern void LightmapVolume_SetName(LightmapVolume self, const Name name);
-extern void LightmapVolume_GetLightmapVolumeId(LightmapVolume self, ref LightmapVolumeId outReturn);
-extern void LightmapVolume_SetLightmapVolumeId(LightmapVolume self, const LightmapVolumeId id);
-// requires: HYP_EDITOR
-extern void LightmapVolume_BakeLightmap(LightmapVolume self);
-// requires: HYP_EDITOR
-extern void LightmapVolume_BakeBentNormals(LightmapVolume self);
+impl LightmapVolume {
+    extern void SetName(LightmapVolume self, const Name name);
+    extern void GetLightmapVolumeId(LightmapVolume self, ref LightmapVolumeId outReturn);
+    extern void SetLightmapVolumeId(LightmapVolume self, const LightmapVolumeId id);
+    // requires: HYP_EDITOR
+    extern void BakeLightmap(LightmapVolume self);
+    // requires: HYP_EDITOR
+    extern void BakeBentNormals(LightmapVolume self);
+}
 
 // FogVolume
-// requires: HYP_EDITOR
-extern void FogVolume_Rebake(FogVolume self);
+impl FogVolume {
+    // requires: HYP_EDITOR
+    extern void Rebake(FogVolume self);
+}
 
 // EnvProbe
-extern bool EnvProbe_IsReflectionProbe(EnvProbe self);
-extern bool EnvProbe_IsSkyProbe(EnvProbe self);
-extern bool EnvProbe_IsAmbientProbe(EnvProbe self);
-extern bool EnvProbe_IsBaked(EnvProbe self);
-extern void EnvProbe_SetIsBaked(EnvProbe self, bool isBaked);
-extern bool EnvProbe_IsRealtime(EnvProbe self);
-extern bool EnvProbe_IsPathTraced(EnvProbe self);
-extern float3 EnvProbe_GetOrigin(EnvProbe self, bool fromCenter);
-extern void EnvProbe_SetOrigin(EnvProbe self, float3 origin, bool fromCenter);
-extern Camera EnvProbe_GetCamera(EnvProbe self);
-extern float EnvProbe_GetDiffuseStrength(EnvProbe self);
-extern void EnvProbe_SetDiffuseStrength(EnvProbe self, float diffuseStrength);
+impl EnvProbe {
+    extern bool IsReflectionProbe(EnvProbe self);
+    extern bool IsSkyProbe(EnvProbe self);
+    extern bool IsAmbientProbe(EnvProbe self);
+    extern bool IsBaked(EnvProbe self);
+    extern void SetIsBaked(EnvProbe self, bool isBaked);
+    extern bool IsRealtime(EnvProbe self);
+    extern bool IsPathTraced(EnvProbe self);
+    extern float3 GetOrigin(EnvProbe self, bool fromCenter);
+    extern void SetOrigin(EnvProbe self, float3 origin, bool fromCenter);
+    extern Camera GetCamera(EnvProbe self);
+    extern float GetDiffuseStrength(EnvProbe self);
+    extern void SetDiffuseStrength(EnvProbe self, float diffuseStrength);
+    property float DiffuseStrength { get = EnvProbe_Get_DiffuseStrength; set = EnvProbe_Set_DiffuseStrength; }
+}
 
 // ReflectionProbe
-// requires: HYP_EDITOR
-extern void ReflectionProbe_BakeCubemap(ReflectionProbe self);
+impl ReflectionProbe {
+    // requires: HYP_EDITOR
+    extern void BakeCubemap(ReflectionProbe self);
+}
 
 // IrradianceProbe
-// requires: HYP_EDITOR
-extern void IrradianceProbe_RecomputeIrradiance(IrradianceProbe self);
+impl IrradianceProbe {
+    // requires: HYP_EDITOR
+    extern void RecomputeIrradiance(IrradianceProbe self);
+}
 
 // TextSprite
-extern void TextSprite_SetText(TextSprite self, const string text);
-extern string TextSprite_GetText(TextSprite self);
-extern void TextSprite_SetTextColor(TextSprite self, const Color color);
-extern void TextSprite_GetTextColor(TextSprite self, ref Color outReturn);
-extern void TextSprite_SetTextSize(TextSprite self, float textSize);
-extern float TextSprite_GetTextSize(TextSprite self);
+impl TextSprite {
+    extern void SetText(TextSprite self, const string text);
+    extern string GetText(TextSprite self);
+    extern void SetTextColor(TextSprite self, const Color color);
+    extern void GetTextColor(TextSprite self, ref Color outReturn);
+    extern void SetTextSize(TextSprite self, float textSize);
+    extern float GetTextSize(TextSprite self);
+    property string Text { get = TextSprite_Get_Text; set = TextSprite_Set_Text; }
+    property float TextSize { get = TextSprite_Get_TextSize; set = TextSprite_Set_TextSize; }
+}
 
 // DirectionalLight
-extern float3 DirectionalLight_GetDirection(DirectionalLight self);
-extern void DirectionalLight_SetDirection(DirectionalLight self, float3 direction);
+impl DirectionalLight {
+    extern float3 GetDirection(DirectionalLight self);
+    extern void SetDirection(DirectionalLight self, float3 direction);
+}
 
 // Light
-extern float3 Light_GetNormal(Light self);
-extern void Light_SetNormal(Light self, float3 normal);
-extern void Light_GetAreaSize(Light self, ref Vec2f outReturn);
-extern void Light_SetAreaSize(Light self, const Vec2f areaSize);
-extern void Light_GetColor(Light self, ref Color outReturn);
-extern void Light_SetColor(Light self, const Color color);
-extern float Light_GetIntensity(Light self);
-extern void Light_SetIntensity(Light self, float intensity);
-extern float Light_GetRadius(Light self);
-extern void Light_SetRadius(Light self, float radius);
-extern float Light_GetFalloff(Light self);
-extern void Light_SetFalloff(Light self, float falloff);
-extern void Light_GetSpotAngles(Light self, ref Vec2f outReturn);
-extern void Light_SetSpotAngles(Light self, const Vec2f spotAngles);
-extern void Light_GetShadowMapDimensions(Light self, ref Vec2u outReturn);
-extern void Light_SetShadowMapDimensions(Light self, const Vec2u shadowMapDimensions);
-extern uint Light_GetNumShadowMapCascades(Light self);
-extern void Light_SetNumShadowMapCascades(Light self, uint numShadowMapCascades);
-// requires: HYP_EDITOR
-extern void Light_BakeStaticShadows(Light self);
-// requires: HYP_EDITOR
-extern void Light_RemoveBakedShadows(Light self);
-// requires: HYP_EDITOR
-extern bool Light_CanBakeStaticShadows(Light self);
+impl Light {
+    extern float3 GetNormal(Light self);
+    extern void SetNormal(Light self, float3 normal);
+    extern void GetAreaSize(Light self, ref Vec2f outReturn);
+    extern void SetAreaSize(Light self, const Vec2f areaSize);
+    extern void GetColor(Light self, ref Color outReturn);
+    extern void SetColor(Light self, const Color color);
+    extern float GetIntensity(Light self);
+    extern void SetIntensity(Light self, float intensity);
+    extern float GetRadius(Light self);
+    extern void SetRadius(Light self, float radius);
+    extern float GetFalloff(Light self);
+    extern void SetFalloff(Light self, float falloff);
+    extern void GetSpotAngles(Light self, ref Vec2f outReturn);
+    extern void SetSpotAngles(Light self, const Vec2f spotAngles);
+    extern void GetShadowMapDimensions(Light self, ref Vec2u outReturn);
+    extern void SetShadowMapDimensions(Light self, const Vec2u shadowMapDimensions);
+    extern uint GetNumShadowMapCascades(Light self);
+    extern void SetNumShadowMapCascades(Light self, uint numShadowMapCascades);
+    // requires: HYP_EDITOR
+    extern void BakeStaticShadows(Light self);
+    // requires: HYP_EDITOR
+    extern void RemoveBakedShadows(Light self);
+    // requires: HYP_EDITOR
+    extern bool CanBakeStaticShadows(Light self);
+    property float3 Normal { get = Light_Get_Normal; set = Light_Set_Normal; }
+    property float Intensity { get = Light_Get_Intensity; set = Light_Set_Intensity; }
+    property float Radius { get = Light_Get_Radius; set = Light_Set_Radius; }
+    property float Falloff { get = Light_Get_Falloff; set = Light_Set_Falloff; }
+    property uint ShadowMapCascades { get = Light_Get_ShadowMapCascades; set = Light_Set_ShadowMapCascades; }
+}
 
 // EntityManager
-extern World EntityManager_GetWorld(EntityManager self);
-extern Scene EntityManager_GetScene(EntityManager self);
+impl EntityManager {
+    extern World GetWorld(EntityManager self);
+    extern Scene GetScene(EntityManager self);
+}
 
 // MaterialParameters
 extern bool MaterialParameters_IsNormalMapFlipY(MaterialParameters self);
@@ -734,28 +850,36 @@ extern bool MaterialParameters_IsParallaxInverseHeight(MaterialParameters self);
 extern void MaterialParameters_SetParallaxInverseHeight(MaterialParameters self, bool value);
 
 // UISubsystem
-extern bool UISubsystem_RemoveDebugOverlay(UISubsystem self, OverlayBase debugOverlay);
+impl UISubsystem {
+    extern bool RemoveDebugOverlay(UISubsystem self, OverlayBase debugOverlay);
+}
 
 // InputManager
-extern bool InputManager_IsMouseLocked(InputManager self);
-extern void InputManager_PushMouseLockState(InputManager self, bool mouseLocked, bool syncToVirtualPosition);
-extern void InputManager_PopMouseLockState(InputManager self);
-extern void InputManager_GetMousePosition(InputManager self, ref Vec2i outReturn);
-extern void InputManager_GetVirtualMousePosition(InputManager self, ref Vec2i outReturn);
-extern void InputManager_GetPreviousVirtualMousePosition(InputManager self, ref Vec2i outReturn);
-extern void InputManager_GetVirtualMousePositionNormalized(InputManager self, ref Vec2f outReturn);
-extern void InputManager_GetWindowSize(InputManager self, ref Vec2i outReturn);
-extern bool InputManager_IsShiftDown(InputManager self);
-extern bool InputManager_IsAltDown(InputManager self);
-extern bool InputManager_IsCtrlDown(InputManager self);
-extern ApplicationWindow InputManager_GetWindow(InputManager self);
+impl InputManager {
+    extern bool IsMouseLocked(InputManager self);
+    extern void PushMouseLockState(InputManager self, bool mouseLocked, bool syncToVirtualPosition);
+    extern void PopMouseLockState(InputManager self);
+    extern void GetMousePosition(InputManager self, ref Vec2i outReturn);
+    extern void GetVirtualMousePosition(InputManager self, ref Vec2i outReturn);
+    extern void GetPreviousVirtualMousePosition(InputManager self, ref Vec2i outReturn);
+    extern void GetVirtualMousePositionNormalized(InputManager self, ref Vec2f outReturn);
+    extern void GetWindowSize(InputManager self, ref Vec2i outReturn);
+    extern bool IsShiftDown(InputManager self);
+    extern bool IsAltDown(InputManager self);
+    extern bool IsCtrlDown(InputManager self);
+    extern ApplicationWindow GetWindow(InputManager self);
+}
 
 // FirstPersonCameraController
-extern bool FirstPersonCameraController_IsMouseLockAllowed(FirstPersonCameraController self);
+impl FirstPersonCameraController {
+    extern bool IsMouseLockAllowed(FirstPersonCameraController self);
+}
 
 // CommandletBase
-extern void CommandletBase_GetArgumentDefinitions(ref CommandLineArgumentDefinitions outReturn);
-extern void CommandletBase_Run(CommandletBase self, const CommandLineArguments args, ref Result outReturn);
+impl CommandletBase {
+    extern void GetArgumentDefinitions(ref CommandLineArgumentDefinitions outReturn);
+    extern void Run(CommandletBase self, const CommandLineArguments args, ref Result outReturn);
+}
 
 // GameState
 extern bool GameState_IsStopped(GameState self);
@@ -763,54 +887,72 @@ extern bool GameState_IsSimulating(GameState self);
 extern bool GameState_IsPaused(GameState self);
 
 // Game
-extern void Game_GetGameState(Game self, ref GameState outReturn);
-extern void Game_Initialize(Game self);
-extern void Game_Shutdown(Game self, bool shutdownWorld);
-extern void Game_ConnectToServer(Game self, const string hostAddress);
-extern bool Game_IsLaunched(Game self);
-extern void Game_StartSimulating(Game self);
-extern void Game_StopSimulating(Game self);
-extern void Game_PauseSimulation(Game self);
-extern void Game_UnregisterInputHandler(Game self, InputHandlerBase inputHandler);
+impl Game {
+    extern void GetGameState(Game self, ref GameState outReturn);
+    extern void Initialize(Game self);
+    extern void Shutdown(Game self, bool shutdownWorld);
+    extern void ConnectToServer(Game self, const string hostAddress);
+    extern bool IsLaunched(Game self);
+    extern void StartSimulating(Game self);
+    extern void StopSimulating(Game self);
+    extern void PauseSimulation(Game self);
+    extern void UnregisterInputHandler(Game self, InputHandlerBase inputHandler);
+    property bool IsLaunched { get = Game_Get_IsLaunched; }
+}
 
 // EditorGame (requires HYP_EDITOR)
-extern EditorSubsystem EditorGame_GetEditorSubsystem(EditorGame self);
+impl EditorGame {
+    extern EditorSubsystem GetEditorSubsystem(EditorGame self);
+    property EditorSubsystem EditorSubsystem { get = EditorGame_Get_EditorSubsystem; }
+}
 
 // EngineStats
-extern float EngineStats_GetFps(EngineStats self);
-extern float EngineStats_GetMsPerFrame(EngineStats self);
+impl EngineStats {
+    extern float GetFps(EngineStats self);
+    extern float GetMsPerFrame(EngineStats self);
+}
 
 // EngineDriver
-extern World EngineDriver_GetCurrentWorld(EngineDriver self);
-extern void EngineDriver_SetCurrentWorld(EngineDriver self, World world);
-extern void EngineDriver_SetGameInstance(EngineDriver self, Game gameInstance);
-extern Game EngineDriver_GetGameInstance(EngineDriver self);
+impl EngineDriver {
+    extern World GetCurrentWorld(EngineDriver self);
+    extern void SetCurrentWorld(EngineDriver self, World world);
+    extern void SetGameInstance(EngineDriver self, Game gameInstance);
+    extern Game GetGameInstance(EngineDriver self);
+}
 
 // DeviceDetails
-extern string DeviceDetails_GetGpuModel(DeviceDetails self);
-extern string DeviceDetails_GetGpuVendorName(DeviceDetails self);
-extern string DeviceDetails_GetDriverVersion(DeviceDetails self);
-extern bool DeviceDetails_IsDiscreteGpu(DeviceDetails self);
-extern bool DeviceDetails_SupportsRayTracing(DeviceDetails self);
-extern bool DeviceDetails_SupportsRayQueries(DeviceDetails self);
-extern bool DeviceDetails_SupportsVariableRateShading(DeviceDetails self);
-extern bool DeviceDetails_SupportsSamplerFeedback(DeviceDetails self);
-extern bool DeviceDetails_SupportsBindless(DeviceDetails self);
+impl DeviceDetails {
+    extern string GetGpuModel(DeviceDetails self);
+    extern string GetGpuVendorName(DeviceDetails self);
+    extern string GetDriverVersion(DeviceDetails self);
+    extern bool IsDiscreteGpu(DeviceDetails self);
+    extern bool SupportsRayTracing(DeviceDetails self);
+    extern bool SupportsRayQueries(DeviceDetails self);
+    extern bool SupportsVariableRateShading(DeviceDetails self);
+    extern bool SupportsSamplerFeedback(DeviceDetails self);
+    extern bool SupportsBindless(DeviceDetails self);
+}
 
 // AssetManager
-extern void AssetManager_GetBasePath(AssetManager self, ref FilePath outReturn);
-extern void AssetManager_SetBasePath(AssetManager self, const FilePath basePath);
+impl AssetManager {
+    extern void GetBasePath(AssetManager self, ref FilePath outReturn);
+    extern void SetBasePath(AssetManager self, const FilePath basePath);
+}
 
 // AssetCollector
-extern void AssetCollector_GetBasePath(AssetCollector self, ref FilePath outReturn);
-extern void AssetCollector_SetBasePath(AssetCollector self, const FilePath basePath);
-extern bool AssetCollector_IsWatching(AssetCollector self);
-extern void AssetCollector_StartWatching(AssetCollector self);
-extern void AssetCollector_StopWatching(AssetCollector self);
+impl AssetCollector {
+    extern void GetBasePath(AssetCollector self, ref FilePath outReturn);
+    extern void SetBasePath(AssetCollector self, const FilePath basePath);
+    extern bool IsWatching(AssetCollector self);
+    extern void StartWatching(AssetCollector self);
+    extern void StopWatching(AssetCollector self);
+}
 
 // AssetRegistry
-extern void AssetRegistry_GetRootPath(AssetRegistry self, ref FilePath outReturn);
-extern void AssetRegistry_SetRootPath(AssetRegistry self, const FilePath rootPath);
+impl AssetRegistry {
+    extern void GetRootPath(AssetRegistry self, ref FilePath outReturn);
+    extern void SetRootPath(AssetRegistry self, const FilePath rootPath);
+}
 
 // AssetPath
 extern bool AssetPath_IsValid(AssetPath self);
@@ -819,176 +961,222 @@ extern void AssetPath_GetName(AssetPath self, ref Name outReturn);
 extern string AssetPath_ToString(AssetPath self);
 
 // AssetObject
-extern void AssetObject_GetName(AssetObject self, ref Name outReturn);
-extern void AssetObject_SetName(AssetObject self, const Name name);
-extern void AssetObject_Rename(AssetObject self, const Name name, ref Result outReturn);
-extern void AssetObject_MarkDirty(AssetObject self);
-extern bool AssetObject_IsDirty(AssetObject self);
-extern uint AssetObject_GetAssetIndex(AssetObject self);
-extern bool AssetObject_IsRegistered(AssetObject self);
-extern void AssetObject_GetPath(AssetObject self, ref AssetPath outReturn);
-extern void AssetObject_SetPersistentRequested(AssetObject self, bool persistentlyLoaded, bool markDirty);
-extern bool AssetObject_IsTransient(AssetObject self);
-extern void AssetObject_SetIsTransient(AssetObject self, bool isTransient);
-extern bool AssetObject_IsSaved(AssetObject self);
-extern void AssetObject_Save(AssetObject self, ref Result outReturn);
-extern void AssetObject_SaveAs(AssetObject self, const FilePath manifestPath, ref Result outReturn);
+impl AssetObject {
+    extern void GetName(AssetObject self, ref Name outReturn);
+    extern void SetName(AssetObject self, const Name name);
+    extern void Rename(AssetObject self, const Name name, ref Result outReturn);
+    extern void MarkDirty(AssetObject self);
+    extern bool IsDirty(AssetObject self);
+    extern uint GetAssetIndex(AssetObject self);
+    extern bool IsRegistered(AssetObject self);
+    extern void GetPath(AssetObject self, ref AssetPath outReturn);
+    extern void SetPersistentRequested(AssetObject self, bool persistentlyLoaded, bool markDirty);
+    extern bool IsTransient(AssetObject self);
+    extern void SetIsTransient(AssetObject self, bool isTransient);
+    extern bool IsSaved(AssetObject self);
+    extern void Save(AssetObject self, ref Result outReturn);
+    extern void SaveAs(AssetObject self, const FilePath manifestPath, ref Result outReturn);
+}
 
 // ScriptAsset
-extern void ScriptAsset_GetScriptDesc(ScriptAsset self, ref ScriptDesc outReturn);
+impl ScriptAsset {
+    extern void GetScriptDesc(ScriptAsset self, ref ScriptDesc outReturn);
+}
 
 // AnimationTrack
-extern void AnimationTrack_GetBoneName(AnimationTrack self, ref Name outReturn);
-extern void AnimationTrack_SetBoneName(AnimationTrack self, const Name boneName);
-extern float AnimationTrack_GetLength(AnimationTrack self);
-extern void AnimationTrack_GetKeyframe(AnimationTrack self, float time, ref Keyframe outReturn);
+impl AnimationTrack {
+    extern void GetBoneName(AnimationTrack self, ref Name outReturn);
+    extern void SetBoneName(AnimationTrack self, const Name boneName);
+    extern float GetLength(AnimationTrack self);
+    extern void GetKeyframe(AnimationTrack self, float time, ref Keyframe outReturn);
+}
 
 // Animation
-extern float Animation_GetLength(Animation self);
-extern uint Animation_NumTracks(Animation self);
-extern void Animation_Apply(Animation self, Skeleton skeleton, float time);
+impl Animation {
+    extern float GetLength(Animation self);
+    extern uint NumTracks(Animation self);
+    extern void Apply(Animation self, Skeleton skeleton, float time);
+    property float Length { get = Animation_Get_Length; }
+}
 
 // World
-extern Game World_GetGame(World self);
-extern Subsystem World_GetSubsystemByName(World self, const StringHash name);
-extern bool World_RemoveSubsystem(World self, Subsystem subsystem);
-extern void World_GetGameState(World self, ref GameState outReturn);
-extern void World_GetActiveLayerName(World self, ref Name outReturn);
-extern void World_SetActiveLayer(World self, const Name layerName);
-extern bool World_RemoveScene(World self, Scene scene, bool removeFromStreamingLayer);
-extern void World_AddView(World self, View view);
-extern void World_RemoveView(World self, View view);
-extern bool World_RemoveSystem(World self, SystemBase system);
+impl World {
+    extern Game GetGame(World self);
+    extern Subsystem GetSubsystemByName(World self, const StringHash name);
+    extern bool RemoveSubsystem(World self, Subsystem subsystem);
+    extern void GetGameState(World self, ref GameState outReturn);
+    extern void GetActiveLayerName(World self, ref Name outReturn);
+    extern void SetActiveLayer(World self, const Name layerName);
+    extern bool RemoveScene(World self, Scene scene, bool removeFromStreamingLayer);
+    extern void AddView(World self, View view);
+    extern void RemoveView(World self, View view);
+    extern bool RemoveSystem(World self, SystemBase system);
+}
 
 // Scene
-extern void Scene_GetUUID(Scene self, ref UUID outReturn);
-extern Camera Scene_GetPrimaryCamera(Scene self);
-extern Node Scene_FindNodeByName(Scene self, const StringHash name);
-extern Node Scene_FindNodeByUUID(Scene self, const UUID uuid);
-extern bool Scene_IsAttachedToWorld(Scene self);
-extern World Scene_GetWorld(Scene self);
-extern void Scene_SetWorld(Scene self, World world);
-extern bool Scene_IsForegroundScene(Scene self);
-extern bool Scene_IsBackgroundScene(Scene self);
-extern bool Scene_GetIsAudioListener(Scene self);
-extern void Scene_SetIsAudioListener(Scene self, bool isAudioListener);
-extern void Scene_GetStreamingCentroid(Scene self, ref Vec2i outReturn);
-extern void Scene_SetStreamingCenroid(Scene self, const Vec2i streamingCentroid);
-extern bool Scene_AddToWorld(Scene self, World world);
-extern bool Scene_RemoveFromWorld(Scene self);
+impl Scene {
+    extern void GetUUID(Scene self, ref UUID outReturn);
+    extern Camera GetPrimaryCamera(Scene self);
+    extern Node FindNodeByName(Scene self, const StringHash name);
+    extern Node FindNodeByUUID(Scene self, const UUID uuid);
+    extern bool IsAttachedToWorld(Scene self);
+    extern World GetWorld(Scene self);
+    extern void SetWorld(Scene self, World world);
+    extern bool IsForegroundScene(Scene self);
+    extern bool IsBackgroundScene(Scene self);
+    extern bool GetIsAudioListener(Scene self);
+    extern void SetIsAudioListener(Scene self, bool isAudioListener);
+    extern void GetStreamingCentroid(Scene self, ref Vec2i outReturn);
+    extern void SetStreamingCenroid(Scene self, const Vec2i streamingCentroid);
+    extern bool AddToWorld(Scene self, World world);
+    extern bool RemoveFromWorld(Scene self);
+    property World World { get = Scene_Get_World; set = Scene_Set_World; }
+    property bool IsAudioListener { get = Scene_Get_IsAudioListener; set = Scene_Set_IsAudioListener; }
+}
 
 // Texture
-extern void Texture_Rename(Texture self, const Name name, ref Result outReturn);
-extern void Texture_GetTextureDesc(Texture self, ref TextureDesc outReturn);
-extern void Texture_SetTextureDesc(Texture self, const TextureDesc textureDesc);
-// requires: HYP_EDITOR
-extern void Texture_RegenerateMipmaps(Texture self);
+impl Texture {
+    extern void Rename(Texture self, const Name name, ref Result outReturn);
+    extern void GetTextureDesc(Texture self, ref TextureDesc outReturn);
+    extern void SetTextureDesc(Texture self, const TextureDesc textureDesc);
+    // requires: HYP_EDITOR
+    extern void RegenerateMipmaps(Texture self);
+}
 
 // Mesh
-extern void Mesh_Rename(Mesh self, const Name name, ref Result outReturn);
-extern uint Mesh_NumIndices(Mesh self, byte lodIndex);
-extern void Mesh_GetAABB(Mesh self, ref BoundingBox outReturn);
-extern void Mesh_SetAABB(Mesh self, const BoundingBox aabb);
-// requires: HYP_EDITOR
-extern void Mesh_RegenerateNormals(Mesh self);
-// requires: HYP_EDITOR
-extern void Mesh_RebuildBVH(Mesh self);
-// requires: HYP_EDITOR
-extern void Mesh_RecalculateBounds(Mesh self);
+impl Mesh {
+    extern void Rename(Mesh self, const Name name, ref Result outReturn);
+    extern uint NumIndices(Mesh self, byte lodIndex);
+    extern void GetAABB(Mesh self, ref BoundingBox outReturn);
+    extern void SetAABB(Mesh self, const BoundingBox aabb);
+    // requires: HYP_EDITOR
+    extern void RegenerateNormals(Mesh self);
+    // requires: HYP_EDITOR
+    extern void RebuildBVH(Mesh self);
+    // requires: HYP_EDITOR
+    extern void RecalculateBounds(Mesh self);
+}
 
 // Material
-extern void Material_GetAttributes(Material self, ref MaterialAttributes outReturn);
-extern void Material_SetAttributes(Material self, const MaterialAttributes attributes);
-extern void Material_GetParameters(Material self, ref MaterialParameters outReturn);
-extern void Material_SetParameters(Material self, const MaterialParameters parameters);
-extern bool Material_IsStatic(Material self);
-extern bool Material_GetIsDynamic(Material self);
-extern void Material_SetIsDynamic(Material self, bool isDynamic);
+impl Material {
+    extern void GetAttributes(Material self, ref MaterialAttributes outReturn);
+    extern void SetAttributes(Material self, const MaterialAttributes attributes);
+    extern void GetParameters(Material self, ref MaterialParameters outReturn);
+    extern void SetParameters(Material self, const MaterialParameters parameters);
+    extern bool IsStatic(Material self);
+    extern bool GetIsDynamic(Material self);
+    extern void SetIsDynamic(Material self, bool isDynamic);
+}
 
 // Sound
-extern ulong Sound_GetFrequency(Sound self);
-extern void Sound_SetFrequency(Sound self, ulong freq);
-extern float Sound_GetDuration(Sound self);
+impl Sound {
+    extern ulong GetFrequency(Sound self);
+    extern void SetFrequency(Sound self, ulong freq);
+    extern float GetDuration(Sound self);
+    property ulong Frequency { get = Sound_Get_Frequency; set = Sound_Set_Frequency; }
+}
 
 // EditorViewport (requires HYP_EDITOR)
-extern ApplicationWindow EditorViewport_GetWindow(EditorViewport self);
+impl EditorViewport {
+    extern ApplicationWindow GetWindow(EditorViewport self);
+}
 
 // EditorTaskBase (requires HYP_EDITOR)
-extern string EditorTaskBase_GetTitle(EditorTaskBase self);
-extern void EditorTaskBase_SetTitle(EditorTaskBase self, const string title);
-extern string EditorTaskBase_GetDescription(EditorTaskBase self);
-extern void EditorTaskBase_SetDescription(EditorTaskBase self, const string description);
-extern float EditorTaskBase_GetProgress(EditorTaskBase self);
-extern void EditorTaskBase_SetProgress(EditorTaskBase self, float progress);
-extern bool EditorTaskBase_IsCancellationRequested(EditorTaskBase self);
-extern bool EditorTaskBase_IsCommitted(EditorTaskBase self);
-extern void EditorTaskBase_Start(EditorTaskBase self);
-extern void EditorTaskBase_Cancel(EditorTaskBase self);
-extern bool EditorTaskBase_IsCompleted(EditorTaskBase self);
-extern bool EditorTaskBase_Commit(EditorTaskBase self);
+impl EditorTaskBase {
+    extern string GetTitle(EditorTaskBase self);
+    extern void SetTitle(EditorTaskBase self, const string title);
+    extern string GetDescription(EditorTaskBase self);
+    extern void SetDescription(EditorTaskBase self, const string description);
+    extern float GetProgress(EditorTaskBase self);
+    extern void SetProgress(EditorTaskBase self, float progress);
+    extern bool IsCancellationRequested(EditorTaskBase self);
+    extern bool IsCommitted(EditorTaskBase self);
+    extern void Start(EditorTaskBase self);
+    extern void Cancel(EditorTaskBase self);
+    extern bool IsCompleted(EditorTaskBase self);
+    extern bool Commit(EditorTaskBase self);
+}
 
 // LongRunningEditorTask (requires HYP_EDITOR)
-extern void LongRunningEditorTask_Start(LongRunningEditorTask self);
-extern void LongRunningEditorTask_Cancel(LongRunningEditorTask self);
-extern bool LongRunningEditorTask_IsCompleted(LongRunningEditorTask self);
-extern void LongRunningEditorTask_Process(LongRunningEditorTask self);
-extern bool LongRunningEditorTask_Commit(LongRunningEditorTask self);
+impl LongRunningEditorTask {
+    extern void Start(LongRunningEditorTask self);
+    extern void Cancel(LongRunningEditorTask self);
+    extern bool IsCompleted(LongRunningEditorTask self);
+    extern void Process(LongRunningEditorTask self);
+    extern bool Commit(LongRunningEditorTask self);
+}
 
 // TickableEditorTask (requires HYP_EDITOR)
-extern bool TickableEditorTask_IsForegroundTask(TickableEditorTask self);
-extern void TickableEditorTask_SetIsForegroundTask(TickableEditorTask self, bool isForeground);
-extern void TickableEditorTask_Start(TickableEditorTask self);
-extern void TickableEditorTask_Cancel(TickableEditorTask self);
-extern bool TickableEditorTask_IsCompleted(TickableEditorTask self);
-extern bool TickableEditorTask_Commit(TickableEditorTask self);
-extern void TickableEditorTask_Tick(TickableEditorTask self);
+impl TickableEditorTask {
+    extern bool IsForegroundTask(TickableEditorTask self);
+    extern void SetIsForegroundTask(TickableEditorTask self, bool isForeground);
+    extern void Start(TickableEditorTask self);
+    extern void Cancel(TickableEditorTask self);
+    extern bool IsCompleted(TickableEditorTask self);
+    extern bool Commit(TickableEditorTask self);
+    extern void Tick(TickableEditorTask self);
+}
 
 // GenerateLightmapsEditorTask (requires HYP_EDITOR)
-extern void GenerateLightmapsEditorTask_Start(GenerateLightmapsEditorTask self);
-extern bool GenerateLightmapsEditorTask_IsCompleted(GenerateLightmapsEditorTask self);
-extern void GenerateLightmapsEditorTask_Tick(GenerateLightmapsEditorTask self);
+impl GenerateLightmapsEditorTask {
+    extern void Start(GenerateLightmapsEditorTask self);
+    extern bool IsCompleted(GenerateLightmapsEditorTask self);
+    extern void Tick(GenerateLightmapsEditorTask self);
+}
 
 // GenerateBentNormalsEditorTask (requires HYP_EDITOR)
-extern void GenerateBentNormalsEditorTask_Start(GenerateBentNormalsEditorTask self);
-extern bool GenerateBentNormalsEditorTask_IsCompleted(GenerateBentNormalsEditorTask self);
-extern void GenerateBentNormalsEditorTask_Tick(GenerateBentNormalsEditorTask self);
+impl GenerateBentNormalsEditorTask {
+    extern void Start(GenerateBentNormalsEditorTask self);
+    extern bool IsCompleted(GenerateBentNormalsEditorTask self);
+    extern void Tick(GenerateBentNormalsEditorTask self);
+}
 
 // EditorProject (requires HYP_EDITOR)
-extern void EditorProject_GetName(EditorProject self, ref Name outReturn);
-extern void EditorProject_SetName(EditorProject self, const Name name);
-extern void EditorProject_GetLastSavedTime(EditorProject self, ref Time outReturn);
-extern void EditorProject_GetFilePath(EditorProject self, ref FilePath outReturn);
-extern void EditorProject_GetTempDirectory(EditorProject self, ref FilePath outReturn);
-extern void EditorProject_RemoveScene(EditorProject self, Scene scene);
-extern void EditorProject_GetProjectsDirectory(EditorProject self, ref FilePath outReturn);
-extern bool EditorProject_IsSaved(EditorProject self);
-extern void EditorProject_Save(EditorProject self, ref Result outReturn);
-extern void EditorProject_SaveAs(EditorProject self, const FilePath filepath, ref Result outReturn);
-extern bool EditorProject_IsDirty(EditorProject self);
-extern void EditorProject_GetActiveBakeLayerName(EditorProject self, ref Name outReturn);
-extern void EditorProject_SetActiveBakeLayer(EditorProject self, const Name layerName);
-extern void EditorProject_Close(EditorProject self, bool shutdownWorld);
+impl EditorProject {
+    extern void GetName(EditorProject self, ref Name outReturn);
+    extern void SetName(EditorProject self, const Name name);
+    extern void GetLastSavedTime(EditorProject self, ref Time outReturn);
+    extern void GetFilePath(EditorProject self, ref FilePath outReturn);
+    extern void GetTempDirectory(EditorProject self, ref FilePath outReturn);
+    extern void RemoveScene(EditorProject self, Scene scene);
+    extern void GetProjectsDirectory(EditorProject self, ref FilePath outReturn);
+    extern bool IsSaved(EditorProject self);
+    extern void Save(EditorProject self, ref Result outReturn);
+    extern void SaveAs(EditorProject self, const FilePath filepath, ref Result outReturn);
+    extern bool IsDirty(EditorProject self);
+    extern void GetActiveBakeLayerName(EditorProject self, ref Name outReturn);
+    extern void SetActiveBakeLayer(EditorProject self, const Name layerName);
+    extern void Close(EditorProject self, bool shutdownWorld);
+}
 
 // EditorCommandBase (requires HYP_EDITOR)
-extern string EditorCommandBase_GetText(EditorCommandBase self);
-extern int EditorCommandBase_NumArguments(EditorCommandBase self);
-extern string EditorCommandBase_GetArgument(EditorCommandBase self, int index);
+impl EditorCommandBase {
+    extern string GetText(EditorCommandBase self);
+    extern int NumArguments(EditorCommandBase self);
+    extern string GetArgument(EditorCommandBase self, int index);
+}
 
 // EditorActionStack (requires HYP_EDITOR)
-extern bool EditorActionStack_CanUndo(EditorActionStack self);
-extern bool EditorActionStack_CanRedo(EditorActionStack self);
-extern void EditorActionStack_Undo(EditorActionStack self);
-extern void EditorActionStack_Redo(EditorActionStack self);
+impl EditorActionStack {
+    extern bool CanUndo(EditorActionStack self);
+    extern bool CanRedo(EditorActionStack self);
+    extern void Undo(EditorActionStack self);
+    extern void Redo(EditorActionStack self);
+}
 
 // EditorActionBase (requires HYP_EDITOR)
-extern string EditorActionBase_GetText(EditorActionBase self);
-extern void EditorActionBase_Execute(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
-extern void EditorActionBase_Revert(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
+impl EditorActionBase {
+    extern string GetText(EditorActionBase self);
+    extern void Execute(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
+    extern void Revert(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
+}
 
 // FunctionalEditorAction (requires HYP_EDITOR)
-extern string FunctionalEditorAction_GetText(FunctionalEditorAction self);
-extern void FunctionalEditorAction_Execute(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
-extern void FunctionalEditorAction_Revert(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
+impl FunctionalEditorAction {
+    extern string GetText(FunctionalEditorAction self);
+    extern void Execute(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
+    extern void Revert(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
+}
 
 // UUID
 extern string UUID_ToString(UUID self);

@@ -51,7 +51,7 @@ FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, cons
 {
     FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 
-    return analyzer.GetCSharpOutputDirectory() / relativePath.BasePath() / StringUtil::StripExtension(relativePath.Basename()) + ".cs";
+    return analyzer.GetCSharpOutputDirectory() / relativePath.BasePath() / String(StringUtil::StripExtension(relativePath.Basename())) + ".cs";
 }
 
 Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const

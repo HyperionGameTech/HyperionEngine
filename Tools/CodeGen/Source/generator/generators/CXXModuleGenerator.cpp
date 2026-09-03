@@ -113,7 +113,7 @@ FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const M
     const FilePath relativePath = FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory());
     const FilePath subdir = GetClassDeclsOutputSubdirForAPIMacro(GetAPIMacroForModule(analyzer, mod));
 
-    return analyzer.GetCXXOutputDirectory() / subdir / StringUtil::StripExtension(relativePath.Basename()) + ".generated.cpp";
+    return analyzer.GetCXXOutputDirectory() / subdir / String(StringUtil::StripExtension(relativePath.Basename())) + ".generated.cpp";
 }
 
 FilePath CXXModuleGenerator::GetInlineOutputFilePath(const Analyzer& analyzer, const Module& mod) const
@@ -122,7 +122,7 @@ FilePath CXXModuleGenerator::GetInlineOutputFilePath(const Analyzer& analyzer, c
     const FilePath subdir = GetClassDeclsOutputSubdirForAPIMacro(GetAPIMacroForModule(analyzer, mod));
 
     // Flatten .inl files into the root of the CXX output directory so they can be included as <Foo.generated.inl>
-    return analyzer.GetCXXOutputDirectory() / subdir / StringUtil::StripExtension(relativePath.Basename()) + ".generated.inl";
+    return analyzer.GetCXXOutputDirectory() / subdir / String(StringUtil::StripExtension(relativePath.Basename())) + ".generated.inl";
 }
 
 // Currently this ClassDecls header is unused, may disappear soonish.
