@@ -98,18 +98,15 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : AssetObject(name),
       m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
-      m_activeLayer(s_defaultLayerName),
       m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr),
-      m_isInitialized(false)
+      m_isInitialized(false),
+      m_activeLayerId(InvalidLayerId)
 {
     if (m_worldFlags & WorldFlags::AllStreamingLayerFlags)
     {
         Assert(m_worldFlags & WorldFlags::HasStreaming, "Streaming layers require streaming to be enabled!");
     }
-
-    const Handle<Layer>& defaultLayer = GetOrCreateLayer(s_defaultLayerName);
-    m_activeLayerIdCache.Set(defaultLayer ? defaultLayer->layerId : InvalidLayerId, MemoryOrder::RELEASE);
 }
 
 World::~World()
@@ -279,6 +276,17 @@ void World::Initialize()
         {
             AddSystem(MakeHandle<ReplicationApplySystem>());
         }
+    }
+
+    if (m_activeLayerId == Invalid<LayerId>)
+    {
+        // Set to default layer
+        const Handle<Layer>& defaultLayer = GetOrCreateLayer(s_defaultLayerName);
+
+        m_activeLayer = defaultLayer->name;
+        m_activeLayerId = defaultLayer->layerId;
+
+        OnActiveLayerChanged(m_activeLayer);
     }
 
     m_isInitialized = true;
@@ -601,17 +609,7 @@ const Handle<Layer>& World::GetOrCreateLayer(Name layerName)
         }
     }
 
-    uint32 freeId = MaxLayersPerWorld;
-
-    for (uint32 i = 0; i < MaxLayersPerWorld; i++)
-    {
-        if (!usedIds.Test(i))
-        {
-            freeId = i;
-
-            break;
-        }
-    }
+    uint64 freeId = (~usedIds).FirstOneBit();
 
     if (freeId >= MaxLayersPerWorld)
     {
@@ -658,11 +656,11 @@ void World::SetActiveLayer(Name layerName)
     {
         layerName = s_defaultLayerName;
     }
+    
+    const Handle<Layer>& layer = GetOrCreateLayer(layerName);
 
     m_activeLayer = layerName;
-
-    const Handle<Layer>& layer = GetOrCreateLayer(m_activeLayer);
-    m_activeLayerIdCache.Set(layer ? layer->layerId : InvalidLayerId, MemoryOrder::RELEASE);
+    m_activeLayerId = layer->layerId;
 
     OnActiveLayerChanged(m_activeLayer);
 }
@@ -679,6 +677,13 @@ const Handle<Layer>& World::GetActiveLayer()
     }
 
     return GetOrCreateLayer(activeLayer);
+}
+
+const Handle<Layer>& World::GetDefaultLayer()
+{
+    AssertOnThread(g_simThread);
+
+    return GetOrCreateLayer(s_defaultLayerName);
 }
 
 const Handle<Layer>& World::TryGetLayer(Name layerName)

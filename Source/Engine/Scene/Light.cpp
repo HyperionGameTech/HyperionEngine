@@ -17,6 +17,8 @@
 #include <Scene/Camera/OrthoCamera.hpp>
 #include <Scene/Camera/PerspectiveCamera.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Rendering/Shadows/ShadowMap.hpp>
 #include <Rendering/Shadows/ShadowCameraHelper.hpp>
 
@@ -40,10 +42,6 @@
 #ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/ShadowMap/ShadowMapBakeData.hpp>
-
-#include <Editor/EditorState.hpp>
-#include <Editor/EditorSubsystem.hpp>
-#include <Editor/EditorProject.hpp>
 #endif
 
 #include <Light.generated.inl>
@@ -569,23 +567,14 @@ void Light::BakeStaticShadows()
         return;
     }
 
-    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-    if (!editorSubsystem.IsValid())
+    Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(*this);
+
+    if (layers.Empty())
     {
-        HYP_LOG(Editor, Error, "Cannot bake Light {}: No editor subsystem", GetName());
+        HYP_LOG(Editor, Error, "Cannot bake Light {}: could not resolve a target layer for it", GetName());
 
         return;
     }
-
-    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
-    if (!currentProject.IsValid())
-    {
-        HYP_LOG(Editor, Error, "Cannot bake Light {}: No active project", GetName());
-
-        return;
-    }
-
-    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -594,7 +583,10 @@ void Light::BakeStaticShadows()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakeLayer, MakeStrongRef(this));
+    for (const Handle<Layer>& layer : layers)
+    {
+        bakerSubsystem->EnqueueBake(layer->bakeLayer, MakeStrongRef(this));
+    }
 }
 
 #endif

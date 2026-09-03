@@ -91,7 +91,11 @@ namespace Hyperion.Editor.ViewModels
             _                   => "Circle",
         };
 
+        private readonly List<NodeViewModel> _allChildren = new List<NodeViewModel>();
+
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
+
+        public IReadOnlyList<NodeViewModel> AllChildren => _allChildren;
 
         public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
 
@@ -130,16 +134,26 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isDropTarget, value);
         }
 
+        private bool _isFilteredOut;
+        public bool IsFilteredOut
+        {
+            get => _isFilteredOut;
+            private set => SetProperty(ref _isFilteredOut, value);
+        }
+
         // @TODO
         public bool IsDirty => false;//_node.Dirty;
 
         private DelegateHandler? _onChildAdded;
         private DelegateHandler? _onChildRemoved;
 
-        public NodeViewModel(Node node, NodeViewModel? parent = null)
+        private readonly Action? _onChildrenChanged;
+
+        public NodeViewModel(Node node, NodeViewModel? parent = null, Action? onChildrenChanged = null)
         {
             _node = node;
             _parent = parent;
+            _onChildrenChanged = onChildrenChanged;
             _name = node.Name.ToString();
             
             // Root nodes are expanded by default
@@ -152,7 +166,10 @@ namespace Hyperion.Editor.ViewModels
 
                 if (child != null)
                 {
-                    Children.Add(new NodeViewModel(child, this));
+                    NodeViewModel childViewModel = new NodeViewModel(child, this, onChildrenChanged);
+
+                    _allChildren.Add(childViewModel);
+                    Children.Add(childViewModel);
                 }
             }
 
@@ -170,7 +187,15 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                Dispatcher.UIThread.Post(() => target!.Children.Add(new NodeViewModel(child, target)));
+                Dispatcher.UIThread.Post(() =>
+                {
+                    NodeViewModel childViewModel = new NodeViewModel(child, target, target!._onChildrenChanged);
+
+                    target!._allChildren.Add(childViewModel);
+                    target!.Children.Add(childViewModel);
+
+                    target!._onChildrenChanged?.Invoke();
+                });
             });
 
             _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
@@ -187,6 +212,15 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
+                    for (int i = 0; i < target!._allChildren.Count; i++)
+                    {
+                        if (target!._allChildren[i].Node == child)
+                        {
+                            target!._allChildren.RemoveAt(i);
+                            break;
+                        }
+                    }
+
                     for (int i = 0; i < target!.Children.Count; i++)
                     {
                         if (target!.Children[i].Node == child)
@@ -195,8 +229,62 @@ namespace Hyperion.Editor.ViewModels
                             break;
                         }
                     }
+
+                    target!._onChildrenChanged?.Invoke();
                 });
             });
+        }
+
+        /// <summary>
+        /// Prunes or restores this node from its parent's <see cref="Children"/> collection based on the
+        /// current layer filter. Removed nodes stay alive in <see cref="AllChildren"/> so they can be
+        /// restored later. Must be called on the UI thread.
+        /// </summary>
+        public void SetFilteredOut(bool filteredOut)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (_isFilteredOut == filteredOut)
+            {
+                return;
+            }
+
+            IsFilteredOut = filteredOut;
+
+            // Root nodes have no parent collection; the scene hierarchy manages them separately.
+            if (_parent == null)
+            {
+                return;
+            }
+
+            NodeViewModel parent = _parent;
+
+            if (filteredOut)
+            {
+                parent.Children.Remove(this);
+            }
+            else
+            {
+                // Re-insert at the position matching the visible sibling order. Count how many
+                // currently-visible siblings come before this node in the full child list, so the
+                // item lands in the right spot even when earlier siblings are still filtered out.
+                int index = 0;
+
+                foreach (NodeViewModel sibling in parent._allChildren)
+                {
+                    if (ReferenceEquals(sibling, this))
+                    {
+                        break;
+                    }
+
+                    if (!sibling.IsFilteredOut)
+                    {
+                        ++index;
+                    }
+                }
+
+                parent.Children.Insert(index, this);
+            }
         }
     }
 }

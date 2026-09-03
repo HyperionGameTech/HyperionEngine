@@ -913,7 +913,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         const VisibilityStateSnapshot visibilityStateSnapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(Id());
 
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         [[maybe_unused]] uint32 numCollectedEntities = 0;
         [[maybe_unused]] uint32 numSkippedEntities = 0;
@@ -1337,7 +1337,7 @@ void View::CollectLights(RenderProxyList& rpl)
     for (Scene* scene : m_scenes)
     {
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1410,7 +1410,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
     for (Scene* scene : m_scenes)
     {
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         for (auto [lightmapVolume] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1455,7 +1455,7 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
     for (Scene* scene : m_scenes)
     {
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<ParticleVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1512,7 +1512,7 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
     for (Scene* scene : m_scenes)
     {
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<FogVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1559,7 +1559,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
     for (Scene* scene : m_scenes)
     {
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1629,7 +1629,7 @@ void View::CollectSprites(RenderProxyList& rpl)
     for (Scene* scene : m_scenes)
     {
         World* world = scene->GetWorld();
-        const LayerId activeLayerId = world ? world->GetActiveLayerId() : InvalidLayerId;
+        const LayerId activeLayerId = world->GetActiveLayerId();
 
         for (auto [sprite] : scene->GetEntityManager()->GetEntitySet<EntityType<Sprite>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {

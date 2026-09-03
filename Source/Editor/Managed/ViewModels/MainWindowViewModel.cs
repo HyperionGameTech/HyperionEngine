@@ -949,6 +949,10 @@ namespace Hyperion.Editor.ViewModels
                             {
                                 _ = Inspector.EntityLayers.RefreshAsync();
                             }
+
+                            // Re-apply the layer filter to the scene hierarchy. This also runs during
+                            // simulation so the hierarchy tracks the active layer live.
+                            SceneHierarchy.RefreshFilter();
                         });
                     });
             }
@@ -1092,6 +1096,8 @@ namespace Hyperion.Editor.ViewModels
                 ActiveBakeLayerName = activeLayerName;
 
                 OnPropertyChanged(nameof(BakeLayers));
+
+                SceneHierarchy.RefreshFilter();
             });
         }
 

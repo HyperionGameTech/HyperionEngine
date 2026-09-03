@@ -14,6 +14,7 @@
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
+#include <Scene/Layer.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -171,6 +172,49 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
     outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
 
     entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
+}
+
+Array<Handle<Layer>> GetTargetLayers(const Entity& entity, Handle<Layer> fallback)
+{
+    Array<Handle<Layer>> result;
+
+    World* world = entity.GetWorld();
+
+    if (!world)
+    {
+        return result;
+    }
+
+    if (entity.HasNoLayers())
+    {
+        if (!fallback.IsValid())
+        {
+            fallback = world->GetDefaultLayer();
+        }
+
+        result.PushBack(fallback);
+
+        return result;
+    }
+
+    for (uint32 layerId = 0; layerId < MaxLayersPerWorld; layerId++)
+    {
+        if (!entity.IsInLayer(LayerId(layerId)))
+        {
+            continue;
+        }
+
+        const Handle<Layer>& layer = world->TryGetLayerById(LayerId(layerId));
+
+        if (!layer)
+        {
+            continue;
+        }
+
+        result.PushBack(layer);
+    }
+
+    return result;
 }
 
 } // namespace SceneHelpers

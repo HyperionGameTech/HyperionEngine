@@ -9,10 +9,6 @@ class EnvProbe;
 class World;
 class Scene;
 
-namespace Baking {
-struct BakeLayer;
-} // namespace Baking
-
 HYP_CLASS()
 class GenerateLightmapsEditorTask : public TickableEditorTask
 {
@@ -20,14 +16,13 @@ class GenerateLightmapsEditorTask : public TickableEditorTask
 
 public:
     GenerateLightmapsEditorTask()
-        : TickableEditorTask(),
-          m_bakeLayer(nullptr)
+        : TickableEditorTask()
     {
     }
 
-    GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<LightmapVolume>& volume);
-    GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<EnvProbe>& probe);
-    GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<ObjectBase>>& sources);
+    explicit GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume);
+    explicit GenerateLightmapsEditorTask(const Handle<EnvProbe>& probe);
+    explicit GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -67,8 +62,6 @@ protected:
     virtual void Cancel_Impl() override;
 
 private:
-    Baking::BakeLayer* m_bakeLayer;
-
     Array<Handle<ObjectBase>, EditorAllocator> m_sources;
     Handle<World> m_world;
     Handle<Scene> m_scene;
@@ -83,14 +76,11 @@ class GenerateBentNormalsEditorTask : public TickableEditorTask
 
 public:
     GenerateBentNormalsEditorTask()
-        : TickableEditorTask(),
-          m_bakeLayer(nullptr)
+        : TickableEditorTask()
     {
     }
 
-    GenerateBentNormalsEditorTask(
-        Baking::BakeLayer& bakeLayer,
-        const Array<Handle<LightmapVolume>>& volumes);
+    explicit GenerateBentNormalsEditorTask(const Array<Handle<LightmapVolume>>& volumes);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
@@ -130,8 +120,6 @@ protected:
     virtual void Cancel_Impl() override;
 
 private:
-    Baking::BakeLayer* m_bakeLayer;
-
     Array<Handle<LightmapVolume>, EditorAllocator> m_volumes;
     Handle<World> m_world;
     Handle<Scene> m_scene;

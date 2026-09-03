@@ -161,7 +161,6 @@ void Entity::RemoveFromLayerByName(Name layerName)
 
     RemoveFromLayer(layer->layerId);
 }
-
 Handle<Node> Entity::Clone() const
 {
     // Clone Node base
@@ -321,29 +320,39 @@ void Entity::OnAddedToWorld(World* world)
 
     if (m_entityInitInfo.layerNames.Any())
     {
-        for (Name layerName : m_entityInitInfo.layerNames)
+        for (size_t i = 0; i < m_entityInitInfo.layerNames.Size();)
         {
+            const Name layerName = m_entityInitInfo.layerNames[i];
+
             const Handle<Layer>& layer = world->TryGetLayer(layerName);
 
             if (!layer)
             {
                 HYP_LOG(Entity, Warning, "Entity {} references unknown Layer '{}'", GetName(), layerName);
 
+                // don't remove from names list; we want to maybe add it later to the appropriate world
+                ++i;
+
                 continue;
             }
 
             AddToLayer(layer->layerId);
+
+            m_entityInitInfo.layerNames.EraseAt(i);
         }
 
-        // we're done with these deferred layer names.
-        m_entityInitInfo.layerNames.Clear();
+        // drop allocation if possible
+        if (m_entityInitInfo.layerNames.Empty())
+        {
+            m_entityInitInfo.layerNames.Clear();
+        }
     }
 }
 
 void Entity::OnRemovedFromWorld(World* world)
 {
     // Clear our the names list
-    m_entityInitInfo.layerNames.SetCapacity(m_layerMask.CountOnes());
+    m_entityInitInfo.layerNames.SetCapacity(m_entityInitInfo.layerNames.Size() + m_layerMask.CountOnes());
     
     // init layerNames as we otherwise won't be able to reach the layers we're attached to
     for (uint64 bit : m_layerMask)
@@ -354,6 +363,11 @@ void Entity::OnRemovedFromWorld(World* world)
         {
             HYP_LOG(Entity, Warning, "Entity {} references invalid Layer bit '{}'", GetName(), bit);
 
+            continue;
+        }
+
+        if (m_entityInitInfo.layerNames.Contains(layer->name))
+        {
             continue;
         }
 
@@ -927,14 +941,9 @@ Array<Name> Entity::SerializeLayers() const
         return result;
     }
 
-    for (uint32 layerId = 0; layerId < MaxLayersPerWorld; layerId++)
+    for (uint64 bit : m_layerMask)
     {
-        if (!m_layerMask.Test(layerId))
-        {
-            continue;
-        }
-
-        const Handle<Layer>& layer = world->TryGetLayerById(LayerId(layerId));
+        const Handle<Layer>& layer = world->TryGetLayerById(LayerId(bit));
 
         if (!layer)
         {
@@ -954,8 +963,17 @@ void Entity::DeserializeLayers(const Array<Name>& layerNames)
     if (!world)
     {
         // Defer till we are attached to the world.
-        m_entityInitInfo.layerNames.Resize(layerNames.Size());
-        m_entityInitInfo.layerNames.Concat(layerNames);
+
+        // Drop dynamic allocation, if possible. Or reserve enough memory upfront.
+        m_entityInitInfo.layerNames.SetCapacity(m_entityInitInfo.layerNames.Size() + layerNames.Size());
+
+        for (Name layerName : layerNames)
+        {
+            if (!m_entityInitInfo.layerNames.Contains(layerName))
+            {
+                m_entityInitInfo.layerNames.PushBack(layerName);
+            }
+        }
 
         return;
     }

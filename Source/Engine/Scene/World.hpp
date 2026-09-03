@@ -182,17 +182,17 @@ public:
     void SetActiveLayer(Name layerName);
 
     const Handle<Layer>& GetActiveLayer();
+    const Handle<Layer>& GetDefaultLayer();
 
     const Handle<Layer>& TryGetLayer(Name layerName);
     const Handle<Layer>& TryGetLayerById(LayerId layerId) const;
     const Handle<Layer>& GetOrCreateLayer(Name layerName);
 
-    /*! \brief Lock-free snapshot of the active Layer's id - safe to read from any thread, including
-     *  the parallel View-collection tasks dispatched via TaskSystem, unlike GetActiveLayer()/etc.
-     *  above which assert the sim thread. Only updated from SetActiveLayer() (sim thread only). */
+    /// Read the cached last active layer id value
+    /// only call from sim thread or from dependant task thread (e.g during View async collection)
     HYP_FORCE_INLINE LayerId GetActiveLayerId() const
     {
-        return m_activeLayerIdCache.Get(MemoryOrder::ACQUIRE);
+        return m_activeLayerId;
     }
 
     HYP_FIELD()
@@ -345,16 +345,17 @@ private:
 
     //-- Serialization Only Properties --
 
-    HYP_METHOD(Property = "NonStreamingScenes", Serialize)
+    /// Needs Layers to load before
+    HYP_METHOD(Property = "NonStreamingScenes", Serialize, LoadOrder = 5)
     void DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes);
 
-    HYP_METHOD(Property = "NonStreamingScenes", Serialize)
+    HYP_METHOD(Property = "NonStreamingScenes")
     Array<Handle<Scene>> SerializeNonStreamingScenes() const;
 
     HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
     void DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers);
 
-    HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
+    HYP_METHOD(Property = "StreamingLayers")
     Array<WGLayerDesc, DynamicAllocator> SerializeStreamingLayers() const;
 
     HYP_METHOD(Property = "Systems", Serialize)
@@ -374,13 +375,14 @@ private:
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
 
-    HYP_FIELD(Property = "Layers", Serialize)
+    HYP_FIELD(Property = "Layers", Serialize, LoadOrder = 0)
     Array<Handle<Layer>> m_layers;
 
-    HYP_FIELD(Property = "ActiveLayer", Serialize)
+    HYP_FIELD(Property = "ActiveLayer", Serialize, LoadOrder = 0)
     Name m_activeLayer;
 
-    AtomicVar<LayerId> m_activeLayerIdCache { InvalidLayerId };
+    // Cached for fast access
+    LayerId m_activeLayerId;
 
     // systems must load after flags are set
     HYP_FIELD(Property = "Systems", LoadOrder = 200)

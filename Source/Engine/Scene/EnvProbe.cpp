@@ -13,6 +13,8 @@
 #include <Scene/Light.hpp>
 #include <Scene/EntityManager.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Shared.hpp>
@@ -26,10 +28,6 @@
 
 #ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
-
-#include <Editor/EditorSubsystem.hpp>
-#include <Editor/EditorProject.hpp>
-#include <Editor/EditorState.hpp>
 #endif // HYP_EDITOR
 
 #include <Framework/EngineDriver.hpp>
@@ -1141,23 +1139,14 @@ void ReflectionProbe::BakeCubemap()
         return;
     }
     
-    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-    if (!editorSubsystem.IsValid())
+    Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(*this);
+
+    if (layers.Empty())
     {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", GetName());
+        HYP_LOG(Editor, Error, "Cannot bake {}: could not resolve a target layer for it", GetName());
 
         return;
     }
-
-    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
-    if (!currentProject.IsValid())
-    {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", GetName());
-
-        return;
-    }
-
-    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -1166,7 +1155,10 @@ void ReflectionProbe::BakeCubemap()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    for (const Handle<Layer>& layer : layers)
+    {
+        bakerSubsystem->EnqueueBake(layer->bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    }
 }
 
 #endif
@@ -1222,23 +1214,14 @@ void IrradianceProbe::RecomputeIrradiance()
         return;
     }
 
-    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-    if (!editorSubsystem.IsValid())
+    Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(*this);
+
+    if (layers.Empty())
     {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", GetName());
+        HYP_LOG(Editor, Error, "Cannot bake {}: could not resolve a target layer for it", GetName());
 
         return;
     }
-
-    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
-    if (!currentProject.IsValid())
-    {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", GetName());
-
-        return;
-    }
-
-    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -1247,7 +1230,10 @@ void IrradianceProbe::RecomputeIrradiance()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    for (const Handle<Layer>& layer : layers)
+    {
+        bakerSubsystem->EnqueueBake(layer->bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    }
 }
 
 #endif // HYP_EDITOR

@@ -37,6 +37,22 @@ namespace Hyperion.Editor.ViewModels
         private Scene? _scene;
         public Scene? Scene => _scene;
 
+        private bool _showOnlyActiveLayer = true;
+        public bool ShowOnlyActiveLayer
+        {
+            get => _showOnlyActiveLayer;
+            set
+            {
+                if (SetProperty(ref _showOnlyActiveLayer, value))
+                {
+                    OnPropertyChanged(nameof(ShowOnlyActiveLayerIconKind));
+                    RefreshFilter();
+                }
+            }
+        }
+
+        public string ShowOnlyActiveLayerIconKind => ShowOnlyActiveLayer ? "EyeOff" : "Eye";
+
         private DelegateHandler? _onSelectedNodeChanged;
 
         public void AttachToScene(Scene? scene)
@@ -64,8 +80,10 @@ namespace Hyperion.Editor.ViewModels
             Node? root = scene.RootNode;
             if (root != null)
             {
-                RootNodes.Add(new NodeViewModel(root));
+                RootNodes.Add(new NodeViewModel(root, onChildrenChanged: RefreshFilter));
             }
+
+            RefreshFilter();
             
             _onSelectedNodeChanged?.Remove();
             _onSelectedNodeChanged = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
@@ -76,10 +94,117 @@ namespace Hyperion.Editor.ViewModels
                     RootNodes.Clear();
                     if (newRoot != null)
                     {
-                        RootNodes.Add(new NodeViewModel(newRoot));
+                        RootNodes.Add(new NodeViewModel(newRoot, onChildrenChanged: RefreshFilter));
                     }
+
+                    RefreshFilter();
                 });
             });
+        }
+
+        public void RefreshFilter()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (_scene == null)
+            {
+                return;
+            }
+
+            if (!ShowOnlyActiveLayer)
+            {
+                SetFilteredOutRecursive(RootNodes, filteredOut: false);
+
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(ComputeHiddenNodesOnSimThread)
+                .ContinueWith(task =>
+                {
+                    if (task.IsCompletedSuccessfully)
+                    {
+                        Dispatcher.UIThread.Post(() => ApplyHiddenNodes(task.Result));
+                    }
+                }, TaskScheduler.Default);
+        }
+
+        private static void SetFilteredOutRecursive(IEnumerable<NodeViewModel> nodes, bool filteredOut)
+        {
+            foreach (NodeViewModel nodeViewModel in nodes)
+            {
+                nodeViewModel.SetFilteredOut(filteredOut);
+
+                SetFilteredOutRecursive(nodeViewModel.AllChildren, filteredOut);
+            }
+        }
+
+        private void ApplyHiddenNodes(HashSet<IntPtr> hiddenNativeAddresses)
+        {
+            foreach (NodeViewModel root in RootNodes)
+            {
+                ApplyFilterRecursive(root, hiddenNativeAddresses);
+            }
+        }
+
+        private static void ApplyFilterRecursive(NodeViewModel nodeViewModel, HashSet<IntPtr> hiddenNativeAddresses)
+        {
+            nodeViewModel.SetFilteredOut(
+                nodeViewModel.Node != null
+                    && nodeViewModel.Node.IsValid
+                    && hiddenNativeAddresses.Contains(nodeViewModel.Node.NativeAddress));
+
+            foreach (NodeViewModel child in nodeViewModel.AllChildren)
+            {
+                ApplyFilterRecursive(child, hiddenNativeAddresses);
+            }
+        }
+
+        private HashSet<IntPtr> ComputeHiddenNodesOnSimThread()
+        {
+            var hidden = new HashSet<IntPtr>();
+
+            Scene? scene = _scene;
+            if (scene == null || !scene.IsValid)
+            {
+                return hidden;
+            }
+
+            Node? root = scene.RootNode;
+            World? world = scene.GetWorld();
+
+            if (root == null || world == null)
+            {
+                return hidden;
+            }
+
+            Name activeLayerName = world.GetActiveLayerName();
+
+            void Walk(Node node)
+            {
+                if (node is Entity entity)
+                {
+                    bool isVisible = entity.HasNoLayers() || entity.IsInLayerByName(activeLayerName);
+
+                    if (!isVisible)
+                    {
+                        hidden.Add(node.NativeAddress);
+                    }
+                }
+
+                for (uint i = 0; i < node.NumChildren(); i++)
+                {
+                    Node? child = node.GetChild(i);
+
+                    if (child != null)
+                    {
+                        Walk(child);
+                    }
+                }
+            }
+
+            Walk(root);
+
+            return hidden;
         }
 
         void DetachFromScene()
@@ -185,7 +310,7 @@ namespace Hyperion.Editor.ViewModels
         private static void FlattenRecursive(NodeViewModel node, List<NodeViewModel> result)
         {
             result.Add(node);
-            foreach (NodeViewModel child in node.Children)
+            foreach (NodeViewModel child in node.AllChildren)
             {
                 FlattenRecursive(child, result);
             }
@@ -245,7 +370,7 @@ namespace Hyperion.Editor.ViewModels
                 return nodeViewModel;
             }
 
-            foreach (NodeViewModel child in nodeViewModel.Children)
+            foreach (NodeViewModel child in nodeViewModel.AllChildren)
             {
                 NodeViewModel? found = FindNodeViewModelRecursive(child, nativeAddress);
                 if (found != null)

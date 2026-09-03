@@ -608,8 +608,6 @@ public:
             return;
         }
 
-        Baking::BakeLayer& bakeLayer = project->GetActiveBakeLayer();
-
         Array<Handle<ObjectBase>> reflectionProbes;
 
         if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
@@ -642,7 +640,7 @@ public:
             return;
         }
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakeLayer, reflectionProbes);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbes);
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -692,8 +690,6 @@ public:
             return;
         }
 
-        Baking::BakeLayer& bakeLayer = project->GetActiveBakeLayer();
-
         Array<Handle<ObjectBase>> irradianceProbes;
 
         if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
@@ -726,7 +722,7 @@ public:
             return;
         }
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakeLayer, irradianceProbes);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(irradianceProbes);
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 
@@ -776,8 +772,6 @@ public:
             return;
         }
 
-        Baking::BakeLayer& bakeLayer = project->GetActiveBakeLayer();
-
         Array<Handle<ObjectBase>> sources;
 
         if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
@@ -806,7 +800,7 @@ public:
 
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakeLayer, sources);
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
         editorTask->SetIsForegroundTask(true);
         editorTask->SetScene(activeScene);
         editorTask->SetWorld(worldHandle);
@@ -864,8 +858,6 @@ public:
             }
         }
 
-        Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
-
         if (lightmapVolumes.Empty())
         {
             HYP_LOG(Editor, Warning, "No LightmapVolumes in the active scene. Cannot bake bent normals.");
@@ -879,7 +871,7 @@ public:
             return;
         }
 
-        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(bakeLayer, lightmapVolumes);
+        Handle<GenerateBentNormalsEditorTask> generateBentNormalsTask = MakeHandle<GenerateBentNormalsEditorTask>(lightmapVolumes);
         InitObject(generateBentNormalsTask);
 
         generateBentNormalsTask->SetScene(activeScene);
@@ -1150,8 +1142,6 @@ public:
             return;
         }
 
-        Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
-
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
         Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), ReflectionProbe::DefaultDimensions);
@@ -1204,7 +1194,7 @@ public:
         if (reflectionProbe->IsBaked())
         {
             // kickoff task to generate reflection cubemap
-            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakeLayer, reflectionProbe);
+            Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
             editorTask->SetIsForegroundTask(true);
             InitObject(editorTask);
 
@@ -1433,8 +1423,6 @@ public:
             return;
         }
 
-        Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
-
         Handle<FogVolume> fogVolume = MakeHandle<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
         fogVolume->SetName(activeScene->GetUniqueNodeNameT<FogVolume>());
         InitObject(fogVolume);
@@ -1482,7 +1470,7 @@ public:
 
         // start baking fog volume
 
-        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(bakeLayer, Array<Handle<ObjectBase>> { fogVolume });
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(Array<Handle<ObjectBase>> { fogVolume });
         editorTask->SetIsForegroundTask(true);
         InitObject(editorTask);
 

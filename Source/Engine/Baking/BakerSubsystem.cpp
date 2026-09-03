@@ -203,9 +203,11 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(
     HYP_LOG(Lightmap, Info, "EnqueueBake_Internal: bakerSubsystem = {}, world = {}, source = {}",
         (void*)this, (void*)GetWorld(), source->Id());
     
-    auto it = m_bakes.FindIf([source](const ObjectBakeState& bs)
+    // dedupe
+    auto it = m_bakes.FindIf([source, &bakeLayer](const ObjectBakeState& bs)
     {
-        return bs.obj == source.Get();
+        return bs.obj == source.Get()
+            && bs.bakeLayer == &bakeLayer;
     });
 
     if (it != m_bakes.End())

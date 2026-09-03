@@ -434,7 +434,7 @@
                         <!--  Scene Hierarchy  -->
                         <Grid Grid.Row="0" RowDefinitions="Auto, *">
                             <Border Grid.Row="0" Classes="panel-header">
-                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto,Auto">
                                     <DropDownButton
                                         x:Name="SceneDropDown"
                                         Grid.Column="0"
@@ -471,8 +471,19 @@
                                             </Flyout>
                                         </DropDownButton.Flyout>
                                     </DropDownButton>
-                                    <Button
+                                    <ToggleButton
                                         Grid.Column="1"
+                                        Margin="0,0,4,0"
+                                        Padding="8,2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Classes="panel-toggle"
+                                        IsChecked="{Binding SceneHierarchy.ShowOnlyActiveLayer}"
+                                        ToolTip.Tip="Show nodes only for the active layer">
+                                        <LucideIcon Kind="{Binding SceneHierarchy.ShowOnlyActiveLayerIconKind}" Size="16" />
+                                    </ToggleButton>
+                                    <Button
+                                        Grid.Column="2"
                                         Margin="0,0,4,0"
                                         Padding="8,2"
                                         HorizontalAlignment="Right"

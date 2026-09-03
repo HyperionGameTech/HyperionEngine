@@ -5,6 +5,8 @@
 #include <Scene/FogVolume.hpp>
 #include <Scene/World.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/Baker.hpp>
 
@@ -21,19 +23,18 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #pragma region GenerateLightmapsEditorTask
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<LightmapVolume>& volume)
-    : GenerateLightmapsEditorTask(bakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume)
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
 {
 }
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Handle<EnvProbe>& probe)
-    : GenerateLightmapsEditorTask(bakeLayer, Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<EnvProbe>& probe)
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
 {
 }
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<ObjectBase>>& sources)
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources)
     : TickableEditorTask(),
-      m_bakeLayer(&bakeLayer),
       m_sources(sources)
 {
     m_title = "Bake Task";
@@ -60,13 +61,6 @@ void GenerateLightmapsEditorTask::Start()
 {
     AssertOnThread(g_simThread);
 
-    Assert(m_bakeLayer != nullptr);
-
-    if (!m_bakeLayer)
-    {
-        return;
-    }
-
     if (m_sources.Empty())
     {
         HYP_LOG(Editor, Error, "No valid sources provided for GenerateLightmapsEditorTask");
@@ -92,24 +86,39 @@ void GenerateLightmapsEditorTask::Start()
 
     for (const Handle<ObjectBase>& source : m_sources)
     {
-        Task<void> task;
+        Handle<Entity> entitySource = DynamicCast<Entity>(source);
+        Assert(entitySource.IsValid());
 
-        if (source->IsA<LightmapVolume>())
+        Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(*entitySource);
+
+        if (layers.Empty())
         {
-            task = bakerSubsystem->EnqueueBake(*m_bakeLayer, StaticCast<LightmapVolume>(source));
-        }
-        else if (source->IsA<EnvProbe>())
-        {
-            task = bakerSubsystem->EnqueueBake(*m_bakeLayer, StaticCast<EnvProbe>(source));
-        }
-        else if (source->IsA<FogVolume>())
-        {
-            task = bakerSubsystem->EnqueueBake(*m_bakeLayer, StaticCast<FogVolume>(source));
+            HYP_LOG(Editor, Error, "Cannot bake {}: could not resolve any target layer(s) for it", source->Id());
+
+            continue;
         }
 
-        if (task.IsValid())
+        for (const Handle<Layer>& layer : layers)
         {
-            m_tasks.PushBack(std::move(task));
+            Task<void> task;
+
+            if (source->IsA<LightmapVolume>())
+            {
+                task = bakerSubsystem->EnqueueBake(layer->bakeLayer, StaticCast<LightmapVolume>(source));
+            }
+            else if (source->IsA<EnvProbe>())
+            {
+                task = bakerSubsystem->EnqueueBake(layer->bakeLayer, StaticCast<EnvProbe>(source));
+            }
+            else if (source->IsA<FogVolume>())
+            {
+                task = bakerSubsystem->EnqueueBake(layer->bakeLayer, StaticCast<FogVolume>(source));
+            }
+
+            if (task.IsValid())
+            {
+                m_tasks.PushBack(std::move(task));
+            }
         }
     }
 }
@@ -201,9 +210,8 @@ void GenerateLightmapsEditorTask::Tick()
 
 #pragma region GenerateBentNormalsEditorTask
 
-GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(Baking::BakeLayer& bakeLayer, const Array<Handle<LightmapVolume>>& volumes)
+GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(const Array<Handle<LightmapVolume>>& volumes)
     : TickableEditorTask(),
-      m_bakeLayer(&bakeLayer),
       m_volumes(volumes)
 {
     m_title = "Generating bent normals";
@@ -212,13 +220,6 @@ GenerateBentNormalsEditorTask::GenerateBentNormalsEditorTask(Baking::BakeLayer& 
 void GenerateBentNormalsEditorTask::Start()
 {
     AssertOnThread(g_simThread);
-
-    Assert(m_bakeLayer != nullptr);
-
-    if (!m_bakeLayer)
-    {
-        return;
-    }
 
     if (m_volumes.Empty())
     {
@@ -247,11 +248,23 @@ void GenerateBentNormalsEditorTask::Start()
 
     for (const Handle<LightmapVolume>& volume : m_volumes)
     {
-        Task<void> task = lightmapperSubsystem->EnqueueBake(*m_bakeLayer, volume, bentNormalOnlyMask);
+        Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(*volume);
 
-        if (task.IsValid())
+        if (layers.Empty())
         {
-            m_tasks.PushBack(std::move(task));
+            HYP_LOG(Editor, Error, "Cannot bake {}: could not resolve any target layer(s) for it", volume->Id());
+
+            continue;
+        }
+
+        for (const Handle<Layer>& layer : layers)
+        {
+            Task<void> task = lightmapperSubsystem->EnqueueBake(layer->bakeLayer, volume, bentNormalOnlyMask);
+
+            if (task.IsValid())
+            {
+                m_tasks.PushBack(std::move(task));
+            }
         }
     }
 }

@@ -16,6 +16,8 @@
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderProxy.hpp>
 
@@ -37,10 +39,6 @@
 #include <Baking/Baker.hpp>
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/LightmapVolume/LightmapVolumeBakeData.hpp>
-
-#include <Editor/EditorState.hpp>
-#include <Editor/EditorSubsystem.hpp>
-#include <Editor/EditorProject.hpp>
 #endif // HYP_EDITOR
 
 #include <LightmapVolume.generated.inl>
@@ -417,23 +415,14 @@ static void EnqueueBake(LightmapVolume& self)
         return;
     }
 
-    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-    if (!editorSubsystem.IsValid())
+    Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(self);
+
+    if (layers.Empty())
     {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", self.GetName());
+        HYP_LOG(Editor, Error, "Cannot bake {}: could not resolve a target layer for it", self.GetName());
 
         return;
     }
-
-    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
-    if (!currentProject.IsValid())
-    {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", self.GetName());
-
-        return;
-    }
-
-    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -442,7 +431,10 @@ static void EnqueueBake(LightmapVolume& self)
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakeLayer, MakeStrongRef(&self), (1u << uint32(ShadingType)));
+    for (const Handle<Layer>& layer : layers)
+    {
+        bakerSubsystem->EnqueueBake(layer->bakeLayer, MakeStrongRef(&self), (1u << uint32(ShadingType)));
+    }
 }
 
 void LightmapVolume::BakeLightmap()

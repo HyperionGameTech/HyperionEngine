@@ -38,6 +38,8 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/VisibilityStateComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
@@ -5586,8 +5588,6 @@ void EditorSubsystem::UpdateBakeStatus()
         return;
     }
 
-    Baking::BakeLayer& bakeLayer = m_currentProject->GetActiveBakeLayer();
-
     Array<String, EditorAllocator> lightmapVolumeNames;
     Array<String, EditorAllocator> reflectionProbeNames;
     Array<String, EditorAllocator> irradianceProbeNames;
@@ -5609,19 +5609,33 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            uint64 storedEpoch;
+            bool isOutOfDate = false;
 
-            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch))
+            for (const Handle<Layer>& layer : SceneHelpers::GetTargetLayers(*volume))
             {
-                // not tracked yet. bake it to track it
-                lightmapVolumeNames.PushBack(*volume->GetName());
+                Baking::BakeLayer& bakeLayer = layer->bakeLayer;
 
-                continue;
+                uint64 storedEpoch;
+
+                if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch))
+                {
+                    // not tracked yet. bake it to track it
+                    isOutOfDate = true;
+
+                    break;
+                }
+
+                const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, bakeLayer);
+
+                if (storedEpoch != computedEpoch)
+                {
+                    isOutOfDate = true;
+
+                    break;
+                }
             }
 
-            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, bakeLayer);
-
-            if (storedEpoch != computedEpoch)
+            if (isOutOfDate)
             {
                 lightmapVolumeNames.PushBack(*volume->GetName());
             }
@@ -5650,19 +5664,31 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            uint64 storedEpoch;
+            bool isOutOfDate = false;
 
-            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch))
+            for (const Handle<Layer>& layer : SceneHelpers::GetTargetLayers(*probe))
             {
-                // not tracked yet. bake it to track it
-                outNames->PushBack(*probe->GetName());
+                uint64 storedEpoch;
 
-                continue;
+                if (!layer->bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch))
+                {
+                    // not tracked yet. bake it to track it
+                    isOutOfDate = true;
+
+                    break;
+                }
+
+                const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, layer->bakeLayer);
+
+                if (storedEpoch != computedEpoch)
+                {
+                    isOutOfDate = true;
+
+                    break;
+                }
             }
 
-            const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, bakeLayer);
-
-            if (storedEpoch != computedEpoch)
+            if (isOutOfDate)
             {
                 outNames->PushBack(*probe->GetName());
             }

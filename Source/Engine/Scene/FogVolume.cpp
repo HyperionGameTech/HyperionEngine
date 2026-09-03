@@ -10,6 +10,8 @@
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/Shared.hpp>
@@ -28,10 +30,6 @@
 #ifdef HYP_EDITOR
 #include <Baking/BakerSubsystem.hpp>
 #include <Baking/FogVolume/FogVolumeBakeData.hpp>
-
-#include <Editor/EditorState.hpp>
-#include <Editor/EditorSubsystem.hpp>
-#include <Editor/EditorProject.hpp>
 #endif
 
 #include <FogVolume.generated.inl>
@@ -146,23 +144,14 @@ void FogVolume::Rebake()
         return;
     }
 
-    Handle<EditorSubsystem> editorSubsystem = g_editorState->GetEditorSubsystem();
-    if (!editorSubsystem.IsValid())
+    Array<Handle<Layer>> layers = SceneHelpers::GetTargetLayers(*this);
+
+    if (layers.Empty())
     {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No editor subsystem", Id());
+        HYP_LOG(Editor, Error, "Cannot bake {}: could not resolve a target layer for it", Id());
 
         return;
     }
-
-    Handle<EditorProject> currentProject = editorSubsystem->GetCurrentProject();
-    if (!currentProject.IsValid())
-    {
-        HYP_LOG(Editor, Error, "Cannot bake {}: No active project", Id());
-
-        return;
-    }
-
-    Baking::BakeLayer& bakeLayer = currentProject->GetActiveBakeLayer();
 
     BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>();
 
@@ -171,7 +160,10 @@ void FogVolume::Rebake()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(bakeLayer, MakeStrongRef(this));
+    for (const Handle<Layer>& layer : layers)
+    {
+        bakerSubsystem->EnqueueBake(layer->bakeLayer, MakeStrongRef(this));
+    }
 }
 
 #endif
