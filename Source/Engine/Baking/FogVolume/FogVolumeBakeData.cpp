@@ -62,7 +62,7 @@ static void GenerateNoiseBitmap(typename BakeData<FogVolume>::NoiseBitmap& noise
     }
 }
 
-Result BakeData<FogVolume>::Build()
+Result BakeData<FogVolume>::GatherSceneData()
 {
     Assert(m_fogVolume != nullptr);
 
@@ -141,63 +141,71 @@ Result BakeData<FogVolume>::Build()
         }
     }
 
-    m_volumeBitmap = VolumeBitmap(dimensions.x, dimensions.y, dimensions.z);
+    m_worldBounds = m_fogVolume->GetWorldBounds();
 
-    const Vec3f extentWS = m_fogVolume->GetWorldBounds().GetExtent();
-    const Vec3f texelSizeWS = extentWS / Vec3f(dimensions);
-
-    texels.Resize(dimensions.Volume());
-
-    BoundingBox voxelOctreeAabb = m_fogVolume->GetWorldBounds();
-
-    if (!voxelOctreeAabb.IsValid() || !voxelOctreeAabb.IsFinite() || voxelOctreeAabb.IsZero())
+    if (!m_worldBounds.IsValid() || !m_worldBounds.IsFinite() || m_worldBounds.IsZero())
     {
         return HYP_MAKE_ERROR(Error, "Invalid fog volume AABB for voxel octree build");
     }
 
+    const Vec3f extentWS = m_worldBounds.GetExtent();
+
+    if (maxExtent < MathUtil::epsilonF)
+    {
+        m_occDimensions = Vec3u::One();
+    }
+    else
+    {
+        static constexpr float OccScale = 1.0f / OccSdfTargetVoxelSize;
+
+        m_occDimensions = Vec3u(MathUtil::Min(
+            Vec3f(float(OccSdfTargetExtent)),
+            MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(extentWS * OccScale))));
+    }
+
+    EntityManager* fogVolumeEntityManager = m_fogVolume->GetEntityManager();
+    Assert(fogVolumeEntityManager != nullptr);
+
+    m_voxelOctreeElements.Resize(0);
+    m_voxelOctreeElements.Concat(VoxelOctree::GatherElements(*fogVolumeEntityManager));
+
+    return {};
+}
+
+Result BakeData<FogVolume>::Build()
+{
     VoxelOctreeParams octreeParams;
-    octreeParams.aabb = voxelOctreeAabb;
+    octreeParams.aabb = m_worldBounds;
     octreeParams.allowResize = false;
     octreeParams.maxDepth = 10;
 
     m_voxelOctree = MakeUniqueWithAllocator<VoxelOctree, BakerAllocator>();
 
-    auto buildResult = m_voxelOctree->Build(octreeParams, *m_fogVolume->GetEntityManager());
+    auto buildResult = m_voxelOctree->Build(octreeParams, m_voxelOctreeElements.ToSpan());
 
     if (buildResult.HasError())
     {
         return buildResult.GetError();
     }
 
-    Vec3u occDimensions;
-
-    if (maxExtent < MathUtil::epsilonF)
-    {
-        occDimensions = Vec3u::One();
-    }
-    else
-    {
-        static constexpr float OccScale = 1.0f / OccSdfTargetVoxelSize;
-
-        occDimensions = Vec3u(MathUtil::Min(
-            Vec3f(float(OccSdfTargetExtent)),
-            MathUtil::Max(Vec3f(1.0f), MathUtil::Ceil(extentWS * OccScale))));
-    }
+    m_volumeBitmap = VolumeBitmap(dimensions.x, dimensions.y, dimensions.z);
+    texels.Resize(dimensions.Volume());
 
     m_occSdfBitmap = OccSdfBitmap(
-        occDimensions.x, occDimensions.y, occDimensions.z);
+        m_occDimensions.x, m_occDimensions.y, m_occDimensions.z);
 
-    const Vec3f occTexelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(occDimensions));
+    const Vec3f extentWS = m_worldBounds.GetExtent();
+    const Vec3f occTexelHalfSizeWS = extentWS * (Vec3f(0.5f) / Vec3f(m_occDimensions));
     const float occSdfMaxDistance = extentWS.Length() * 4.0f;
 
-    for (uint32 z = 0; z < occDimensions.z; z++)
+    for (uint32 z = 0; z < m_occDimensions.z; z++)
     {
-        for (uint32 y = 0; y < occDimensions.y; y++)
+        for (uint32 y = 0; y < m_occDimensions.y; y++)
         {
-            for (uint32 x = 0; x < occDimensions.x; x++)
+            for (uint32 x = 0; x < m_occDimensions.x; x++)
             {
-                const Vec3f posWS = voxelOctreeAabb.GetMin()
-                    + (extentWS * (Vec3f(float(x), float(y), float(z)) / Vec3f(occDimensions)))
+                const Vec3f posWS = m_worldBounds.GetMin()
+                    + (extentWS * (Vec3f(float(x), float(y), float(z)) / Vec3f(m_occDimensions)))
                     + occTexelHalfSizeWS;
 
                 const double sdf = m_voxelOctree->GetSignedDistanceAtPoint(posWS);

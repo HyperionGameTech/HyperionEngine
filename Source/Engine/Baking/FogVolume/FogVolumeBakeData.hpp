@@ -100,6 +100,8 @@ public:
         return m_envProbes;
     }
 
+    Result GatherSceneData();
+
     virtual Result Build() override;
 
 protected:
@@ -112,6 +114,10 @@ protected:
     Vec3f m_sunDirection;
     Array<Handle<Light>, BakerAllocator> m_lights;
     Array<Handle<EnvProbe>, BakerAllocator> m_envProbes;
+
+    BoundingBox m_worldBounds;
+    Vec3u m_occDimensions;
+    Array<VoxelOctreeElement, BakerAllocator> m_voxelOctreeElements;
 };
 
 } // namespace Baking

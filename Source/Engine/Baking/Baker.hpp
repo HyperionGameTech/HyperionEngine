@@ -346,6 +346,8 @@ protected:
     ClockTimer m_updateTimer;
 
 protected:
+    void GatherBakeEntities();
+
     virtual void Build();
     void DispatchJobs();
     void OnCompleted();

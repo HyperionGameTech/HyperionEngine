@@ -16,6 +16,9 @@
 
 #include <Scene/FogVolume.hpp>
 
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/TaskThread.hpp>
+
 #include <Framework/EngineGlobals.hpp>
 
 namespace Hyperion {
@@ -32,13 +35,57 @@ UniquePtr<BakeJobBase> Baker<FogVolume>::CreateJob(BakeJobParams&& params)
     return MakeUnique<BakeJob<FogVolume>>(std::move(params), m_fogVolume, &m_bakeData);
 }
 
-Result Baker<FogVolume>::Build_Internal()
+void Baker<FogVolume>::Build()
 {
+    HYP_SCOPE;
+
     Assert(m_fogVolume != nullptr);
+    Assert(m_numJobs == 0, "Cannot initialize fog volume baker -- jobs currently running!");
+
+    GatherBakeEntities();
 
     m_bakeData = BakeData<FogVolume>(m_bakeEntities, m_fogVolume.Get());
 
-    return m_bakeData.Build();
+    if (Result gatherResult = m_bakeData.GatherSceneData(); gatherResult.HasError())
+    {
+        HYP_LOG(Lightmap, Error, "Failed to gather scene data for fog volume bake: {}", gatherResult.GetError().GetMessage());
+
+        return;
+    }
+
+    m_bakeDataBuildTask = TaskSystem::GetInstance().Enqueue(
+        [buildData = std::move(m_bakeData)]() mutable -> BakeData<FogVolume>
+        {
+            Result result = buildData.Build();
+
+            if (result.HasError())
+            {
+                HYP_LOG(Lightmap, Error, "Failed to build fog volume occlusion data: {}", result.GetError().GetMessage());
+
+                return {};
+            }
+
+            return std::move(buildData);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+
+    m_state = BakerState::Building;
+}
+
+void Baker<FogVolume>::OnBuildReady()
+{
+    AssertOnThread(g_simThread);
+
+    m_bakeData = std::move(m_bakeDataBuildTask).Await();
+
+    if (!m_bakeData.IsBuilt())
+    {
+        HYP_LOG(Lightmap, Error, "Fog volume occlusion bake failed to build, skipping for {}", m_fogVolume->Id());
+
+        return;
+    }
+
+    DispatchJobs();
 }
 
 void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)

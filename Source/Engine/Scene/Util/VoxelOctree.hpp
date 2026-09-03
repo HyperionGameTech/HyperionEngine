@@ -13,6 +13,9 @@
 #include <Core/Math/Triangle.hpp>
 
 #include <Core/Utilities/Result.hpp>
+#include <Core/Utilities/Span.hpp>
+
+#include <Core/Containers/Array.hpp>
 
 // #include <Core/logging/LoggerFwd.hpp>
 
@@ -123,7 +126,10 @@ public:
 
     ~VoxelOctree() = default;
 
+    static Array<VoxelOctreeElement> GatherElements(EntityManager& entityManager);
+
     VoxelOctreeBuildResult Build(const VoxelOctreeParams& params, EntityManager& entityManager);
+    VoxelOctreeBuildResult Build(const VoxelOctreeParams& params, Span<const VoxelOctreeElement> elements);
 
     /*! \brief Gets the distance from the given point to the nearest occupied voxel.
      *  \return The signed distance at the given point. Positive values indicate the point is outside occupied space, negative values indicate the point is inside occupied space.

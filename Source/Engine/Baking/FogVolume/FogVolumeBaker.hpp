@@ -28,7 +28,13 @@ public:
     Baker(Baker&& other) noexcept = delete;
     Baker& operator=(Baker&& other) noexcept = delete;
 
-    virtual ~Baker() override = default;
+    virtual ~Baker() override
+    {
+        if (m_bakeDataBuildTask.IsValid() && !m_bakeDataBuildTask.IsCompleted())
+        {
+            m_bakeDataBuildTask.Await();
+        }
+    }
 
     virtual bool PerformsRayTracing() const override
     {
@@ -63,11 +69,26 @@ protected:
 
     virtual UniquePtr<BakeJobBase> CreateJob(BakeJobParams&& params) override;
 
-    virtual Result Build_Internal() override;
     virtual void HandleCompletedJob_Internal(BakeJobBase* job) override;
+
+    virtual bool IsBuildAsync() const override
+    {
+        return true;
+    }
+
+    virtual bool PollBuildReady() override
+    {
+        return m_bakeDataBuildTask.IsValid() && m_bakeDataBuildTask.IsCompleted();
+    }
+
+    virtual void OnBuildReady() override;
+
+    virtual void Build() override;
 
     Handle<FogVolume> m_fogVolume;
     BakeData<FogVolume> m_bakeData;
+
+    Task<BakeData<FogVolume>> m_bakeDataBuildTask;
 };
 
 } // namespace Baking

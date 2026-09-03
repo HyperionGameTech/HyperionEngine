@@ -349,14 +349,9 @@ void BakerBase::CreateLightmapRenderers()
 {
 }
 
-void BakerBase::Build()
+void BakerBase::GatherBakeEntities()
 {
     HYP_SCOPE;
-
-    Assert(m_numJobs == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
-
-    // Build jobs
-    HYP_LOG(Lightmap, Verbose, "Building graph for lightmapper");
 
     EntityManager& mgr = *m_scene->GetEntityManager();
 
@@ -408,6 +403,18 @@ void BakerBase::Build()
 
         m_bakeEntitiesByEntity.Set(bakeEntity.entity, &bakeEntity);
     }
+}
+
+void BakerBase::Build()
+{
+    HYP_SCOPE;
+
+    Assert(m_numJobs == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
+
+    // Build jobs
+    HYP_LOG(Lightmap, Verbose, "Building graph for lightmapper");
+
+    GatherBakeEntities();
 
     if (Result buildInternalResult = Build_Internal(); buildInternalResult.HasError())
     {

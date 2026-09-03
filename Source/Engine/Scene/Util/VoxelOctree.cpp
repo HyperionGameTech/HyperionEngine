@@ -29,7 +29,41 @@
 
 namespace Hyperion {
 
+Array<VoxelOctreeElement> VoxelOctree::GatherElements(EntityManager& entityManager)
+{
+    Array<VoxelOctreeElement> elements;
+
+    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (!meshComponent.mesh.IsValid())
+        {
+            continue;
+        }
+
+        if (!meshComponent.material.IsValid())
+        {
+            continue;
+        }
+
+        VoxelOctreeElement element {};
+        element.entity = MakeStrongRef(entity);
+        element.mesh = meshComponent.mesh;
+        element.material = meshComponent.material;
+        element.transformMatrix = entity->GetWorldMatrix();
+        element.aabb = boundingBoxComponent.worldAabb;
+
+        elements.PushBack(std::move(element));
+    }
+
+    return elements;
+}
+
 VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, EntityManager& entityManager)
+{
+    return Build(params, GatherElements(entityManager).ToSpan());
+}
+
+VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Span<const VoxelOctreeElement> elements)
 {
     m_params = params;
 
@@ -46,52 +80,45 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     Array<Tuple<VoxelOctreeElement, MeshDesc, VertexArrayView, Span<const ubyte>, UniquePtr<TSharedResLock<AssetObject>>>> meshDatas;
 
-    for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    for (const VoxelOctreeElement& element : elements)
     {
-        if (!meshComponent.mesh.IsValid())
+        if (!element.mesh.IsValid())
         {
             continue;
         }
 
-        if (!meshComponent.material.IsValid())
+        if (!element.material.IsValid())
         {
             continue;
         }
 
-        if (meshComponent.material->GetBucket() != RenderBucket::Opaque
-            && meshComponent.material->GetBucket() != RenderBucket::Lightmapped
-            && meshComponent.material->GetBucket() != RenderBucket::Translucent)
+        if (element.material->GetBucket() != RenderBucket::Opaque
+            && element.material->GetBucket() != RenderBucket::Lightmapped
+            && element.material->GetBucket() != RenderBucket::Translucent)
         {
             continue;
         }
 
         if (params.allowResize)
         {
-            newAabb = newAabb.Union(boundingBoxComponent.worldAabb);
+            newAabb = newAabb.Union(element.aabb);
         }
         else
         {
-            if (!OctreeBase::m_aabb.Overlaps(boundingBoxComponent.worldAabb))
+            if (!OctreeBase::m_aabb.Overlaps(element.aabb))
             {
                 // Skip meshes that are out of bounds
                 continue;
             }
         }
 
-        VoxelOctreeElement element {};
-        element.entity = MakeStrongRef(entity);
-        element.mesh = meshComponent.mesh;
-        element.material = meshComponent.material;
-        element.transformMatrix = entity->GetWorldMatrix();
-        element.aabb = boundingBoxComponent.worldAabb;
-
-        auto lock = MakeUnique<TSharedResLock<AssetObject>>(*meshComponent.mesh);
+        auto lock = MakeUnique<TSharedResLock<AssetObject>>(*element.mesh);
 
         meshDatas.EmplaceBack(
             element,
-            meshComponent.mesh->GetMeshDesc(),
-            meshComponent.mesh->GetVertexData(0),
-            meshComponent.mesh->GetIndexData(0),
+            element.mesh->GetMeshDesc(),
+            element.mesh->GetVertexData(0),
+            element.mesh->GetIndexData(0),
             std::move(lock));
     }
 
