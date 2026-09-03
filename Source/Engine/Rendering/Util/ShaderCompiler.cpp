@@ -3771,6 +3771,9 @@ bool ShaderCompiler::RequestShader(
         return false;
     }
 
+    // prevent derefing a bad Shader
+    bundle->compiledShaders = Filter(bundle->compiledShaders, &Handle<Shader>::IsValid);
+
     auto it = bundle->compiledShaders.FindIf(
         [&properties, &inputLayout](const Handle<Shader>& shader) -> bool
         {

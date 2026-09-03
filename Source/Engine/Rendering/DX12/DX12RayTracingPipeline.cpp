@@ -20,7 +20,7 @@
 
 #include <Core/Math/MathUtil.hpp>
 
-#include <Core/Memory/Allocator/ArenaAllocator.hpp>
+#include <Core/Memory/Allocator/ThreadAllocator.hpp>
 
 #include <DX12RayTracingPipeline.generated.inl>
 
@@ -57,7 +57,7 @@ RendererResult DX12RayTracingPipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Ray tracing shader not provided to pipeline");
     }
 
-    DX12ShaderInstance* shaderInstance = static_cast<DX12ShaderInstance*>(m_shaderInstance.Get());
+    DX12ShaderInstance* shaderInstance = StaticCast<DX12ShaderInstance>(m_shaderInstance);
     Assert(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
 
     if (!shaderInstance->IsCreated())
@@ -82,12 +82,16 @@ RendererResult DX12RayTracingPipeline::Create()
         D3D12_SHADER_BYTECODE bytecode;
     };
 
-    Array<RayTracingModule, DX12TempAllocator> rtModules;
+    ThreadAllocator* threadAllocator = GetDefaultAllocatorInstance<ThreadAllocator>();
+    Assert(threadAllocator != nullptr);
+
+    FatArray<RayTracingModule, InlineAllocator<5, DX12Allocator>> rtModules;
     rtModules.Reserve(5);
 
     for (ShaderModuleType type : { ShaderModuleType::RayGen, ShaderModuleType::Miss, ShaderModuleType::ClosestHit, ShaderModuleType::AnyHit, ShaderModuleType::Intersect })
     {
         auto* blob = shaderInstance->GetShaderBlob(type);
+
         if (blob && blob->bytecode.BytecodeLength > 0)
         {
             rtModules.PushBack({ type, blob->bytecode });
@@ -100,10 +104,10 @@ RendererResult DX12RayTracingPipeline::Create()
     }
 
     // Build export names as wide strings for the DXIL library
-    Array<D3D12_EXPORT_DESC, DX12TempAllocator> exports;
+    Array<D3D12_EXPORT_DESC, InlineAllocator<5, DX12Allocator>> exports;
     exports.Reserve(rtModules.Size());
 
-    Array<D3D12_DXIL_LIBRARY_DESC, DX12TempAllocator> dxilLibraries;
+    Array<D3D12_DXIL_LIBRARY_DESC, InlineAllocator<5, DX12Allocator>> dxilLibraries;
     dxilLibraries.Reserve(rtModules.Size());
 
     for (const RayTracingModule& mod : rtModules)
@@ -114,7 +118,7 @@ RendererResult DX12RayTracingPipeline::Create()
         WideString wideEntryName = WideString(entryName);
 
         // Allocate name storage that outlives the subobjects array
-        wchar_t* nameStorage = (wchar_t*)g_dx12Arena->Allocate((wideEntryName.Size() + 1) * sizeof(wchar_t), alignof(wchar_t));
+        wchar_t* nameStorage = (wchar_t*)threadAllocator->Allocate((wideEntryName.Size() + 1) * sizeof(wchar_t), alignof(wchar_t));
         std::memcpy(nameStorage, wideEntryName.Data(), (wideEntryName.Size() + 1) * sizeof(wchar_t));
 
         D3D12_EXPORT_DESC& exp = exports.EmplaceBack();
@@ -136,11 +140,17 @@ RendererResult DX12RayTracingPipeline::Create()
     for (const RayTracingModule& mod : rtModules)
     {
         if (mod.type == ShaderModuleType::ClosestHit)
+        {
             hasClosestHit = true;
+        }
         else if (mod.type == ShaderModuleType::AnyHit)
+        {
             hasAnyHit = true;
+        }
         else if (mod.type == ShaderModuleType::Intersect)
+        {
             hasIntersect = true;
+        }
     }
 
     // Build hit group definition (single hit group with all available modules)
@@ -193,20 +203,20 @@ RendererResult DX12RayTracingPipeline::Create()
     // Just like Vulkan impl, we don't use recursion with ray tracing, just loops
     pipelineConfig.MaxTraceRecursionDepth = 1;
 
-    D3D12_DXIL_LIBRARY_DESC* pLibDescs = (D3D12_DXIL_LIBRARY_DESC*)g_dx12Arena->Allocate(sizeof(D3D12_DXIL_LIBRARY_DESC) * dxilLibraries.Size(), alignof(D3D12_DXIL_LIBRARY_DESC));
+    D3D12_DXIL_LIBRARY_DESC* pLibDescs = (D3D12_DXIL_LIBRARY_DESC*)threadAllocator->Allocate(sizeof(D3D12_DXIL_LIBRARY_DESC) * dxilLibraries.Size(), alignof(D3D12_DXIL_LIBRARY_DESC));
     Memory::Copy(pLibDescs, dxilLibraries.Data(), dxilLibraries.Size() * sizeof(D3D12_DXIL_LIBRARY_DESC));
 
-    D3D12_HIT_GROUP_DESC* pHitGroupDesc = HYP_POOL_NEW(g_dx12Arena, D3D12_HIT_GROUP_DESC);
+    D3D12_HIT_GROUP_DESC* pHitGroupDesc = HYP_POOL_NEW(threadAllocator, D3D12_HIT_GROUP_DESC);
     *pHitGroupDesc = hitGroupDesc;
 
-    D3D12_RAYTRACING_SHADER_CONFIG* pShaderConfig = HYP_POOL_NEW(g_dx12Arena, D3D12_RAYTRACING_SHADER_CONFIG);
+    D3D12_RAYTRACING_SHADER_CONFIG* pShaderConfig = HYP_POOL_NEW(threadAllocator, D3D12_RAYTRACING_SHADER_CONFIG);
     *pShaderConfig = shaderConfig;
 
-    D3D12_RAYTRACING_PIPELINE_CONFIG* pPipelineConfig = HYP_POOL_NEW(g_dx12Arena, D3D12_RAYTRACING_PIPELINE_CONFIG);
+    D3D12_RAYTRACING_PIPELINE_CONFIG* pPipelineConfig = HYP_POOL_NEW(threadAllocator, D3D12_RAYTRACING_PIPELINE_CONFIG);
     *pPipelineConfig = pipelineConfig;
 
     // Build subobjects array
-    Array<D3D12_STATE_SUBOBJECT, DX12TempAllocator> subobjects;
+    Array<D3D12_STATE_SUBOBJECT, InlineAllocator<9, DX12Allocator>> subobjects;
     subobjects.Reserve(dxilLibraries.Size() + int(hasHitGroup) + 3);
 
     for (uint32 i = 0; i < uint32(dxilLibraries.Size()); i++)
@@ -236,7 +246,7 @@ RendererResult DX12RayTracingPipeline::Create()
     }
 
     {
-        ID3D12RootSignature** ppRootSignature = HYP_POOL_NEW(g_dx12Arena, ID3D12RootSignature*);
+        ID3D12RootSignature** ppRootSignature = HYP_POOL_NEW(threadAllocator, ID3D12RootSignature*);
         *ppRootSignature = m_rootSignature.Get();
 
         D3D12_STATE_SUBOBJECT& sub = subobjects.EmplaceBack();
@@ -290,11 +300,11 @@ RendererResult DX12RayTracingPipeline::BuildRootSignature()
 
     const_cast<ShaderInputGroup*>(decl)->RecalculateAllIndices();
 
-    Array<D3D12_ROOT_PARAMETER, DX12TempAllocator> rootParams;
+    Array<D3D12_ROOT_PARAMETER, DX12Allocator> rootParams;
 
-    List<Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>, DX12TempAllocator> rangeAllocations;
+    List<Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator>, DX12Allocator> rangeAllocations;
 
-    auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
+    auto AllocateRangeStorage = [&](Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator>&& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
     {
         if (newRanges.Empty())
             return nullptr;
@@ -334,10 +344,10 @@ RendererResult DX12RayTracingPipeline::BuildRootSignature()
             pSetDecl = refSetDecl;
         }
 
-        Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator> viewRanges;
-        Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator> samplerRanges;
+        Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator> viewRanges;
+        Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator> samplerRanges;
 
-        Array<const ShaderInput*, DX12TempAllocator> dynamicDeclarations;
+        Array<const ShaderInput*, DX12Allocator> dynamicDeclarations;
 
         for (uint8 slotIndex = 0; slotIndex < NumDescriptorSlots; slotIndex++)
         {
@@ -361,7 +371,7 @@ RendererResult DX12RayTracingPipeline::BuildRootSignature()
                     continue;
                 }
 
-                Array<D3D12_DESCRIPTOR_RANGE, DX12TempAllocator>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
+                Array<D3D12_DESCRIPTOR_RANGE, DX12Allocator>* currRanges = (descDecl.slot == ShaderRegister::SAMPLER ? &samplerRanges : &viewRanges);
 
                 D3D12_DESCRIPTOR_RANGE& range = currRanges->EmplaceBack();
                 range.RangeType = ToDX12DescriptorRangeType(descDecl.slot);

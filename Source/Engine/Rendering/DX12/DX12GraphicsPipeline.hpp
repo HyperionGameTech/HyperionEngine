@@ -75,8 +75,8 @@ private:
     RendererResult Rebuild() override;
 
     void BuildVertexAttributes(
-        Array<D3D12_INPUT_ELEMENT_DESC, DX12TempAllocator>& outInputElementDescs,
-        Array<uint32, DX12TempAllocator>& outBindingStrides);
+        Array<D3D12_INPUT_ELEMENT_DESC, DX12Allocator>& outInputElementDescs,
+        Array<uint32, DX12Allocator>& outBindingStrides);
 
     void UpdateViewport(DX12CommandBuffer* commandBuffer, const Viewport& viewport);
 

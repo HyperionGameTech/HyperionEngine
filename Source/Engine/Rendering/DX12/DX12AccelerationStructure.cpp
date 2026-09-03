@@ -786,7 +786,7 @@ RendererResult DX12TopLevelAS::BuildInstancesBuffer(uint32 first, uint32 last)
         return RendererResult();
     }
 
-    Array<D3D12_RAYTRACING_INSTANCE_DESC, DX12TempAllocator> instances;
+    Array<D3D12_RAYTRACING_INSTANCE_DESC, DX12Allocator> instances;
     instances.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -835,7 +835,7 @@ RendererResult DX12TopLevelAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 
         return RendererResult();
     }
 
-    Array<MeshDescription, DX12TempAllocator> meshDescriptions;
+    Array<MeshDescription, DX12Allocator> meshDescriptions;
     meshDescriptions.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)

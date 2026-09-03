@@ -200,7 +200,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
         if (!member)
         {
             // Unknown field: warn and skip its value
-            Warning(MSG_UNKNOWN_FIELD, Peek().GetLocation(), cls->GetName().ToString() + "::" + fieldName);
+            Warning(MSG_UNKNOWN_FIELD, Peek().GetLocation(), cls->GetName().ToString(), fieldName);
             
             SkipValue();
 

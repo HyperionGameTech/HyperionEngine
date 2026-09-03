@@ -106,20 +106,21 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
     const size_t idx = texture->Id().ToIndex();
 
     TSharedLock sharedLock(mutex);
+    Optional<TUniqueLock<SharedMutex>> uniqueLockOpt;
 
     SubtypeData& subtypeData = GetSubtypeData(texture->Id());
 
     if (!subtypeData.imageViews.HasIndex(idx))
     {
+        // Upgrade lock. We need it to mutate these
+        sharedLock.Reset();
+        uniqueLockOpt.Emplace(mutex);
+
         subtypeData.imageViews.Emplace(idx);
         subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
     }
 
     auto& textureImageViews = subtypeData.imageViews.Get(idx);
-
-    ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
-    bool isLockUnique = false;
-    HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
 
     const uint64 key = CalculateImageViewHash(subResource, viewTextureType);
 
@@ -127,11 +128,12 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
     if (it == textureImageViews.End())
     {
-        sharedLock.Reset();
-
-        uniqueLockStorage.Construct(mutex);
-
-        isLockUnique = true;
+        // Upgrade lock if not already 
+        if (!uniqueLockOpt.HasValue())
+        {
+            sharedLock.Reset();
+            uniqueLockOpt.Emplace(mutex);
+        }
 
         // Re-check now that we hold the exclusive lock -- another thread may have raced us
         // and already inserted this entry while we were waiting on the shared -> unique upgrade.
