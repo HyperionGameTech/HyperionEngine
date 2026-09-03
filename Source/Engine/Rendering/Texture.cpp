@@ -119,7 +119,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
     // Must run before the frame's render commands: isUploaded is set to true as soon as we return
     // here, so the very same frame can bind and sample this texture.
-    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
     if (uploadTextureData)
     {
@@ -359,7 +359,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         cr << InsertBarrier(&image, initialState);
     }
 
-    cr.Done();
+    cr.Submit();
 
     return {};
 }
@@ -982,7 +982,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
     Check(readbackBuffer->Create());
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Done(); });
+    HYP_DEFER({ cr.Submit(); });
 
     cr << InsertBarrier(m_gpuImage, RS_COPY_SRC);
     cr << InsertBarrier(readbackBuffer, RS_COPY_DST);

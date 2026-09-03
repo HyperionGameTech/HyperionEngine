@@ -93,43 +93,8 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
     Assert(inTexture != nullptr);
     Assert(!envProbe.IsAmbientProbe());
 
-    //// temp: dump the raw rendered cubemap before mip generation / convolution touch it,
-    //// so we can tell whether corruption is already present in the render output or only
-    //// shows up after the scratch-image mip/convolve step below.
-    {
-        GpuBufferRef tempReadbackBuffer;
-        inTexture->Readback(tempReadbackBuffer);
-
-        if (tempReadbackBuffer.IsValid())
-        {
-            const Vec3u extent = inTexture->GetExtent();
-
-            Bitmap_RGBA16F tempBitmap(extent.x, extent.y * 6);
-
-            const size_t faceByteSize = tempBitmap.GetByteSize() / 6;
-            AssertDebug(tempReadbackBuffer->Size() >= faceByteSize * 6);
-
-            ubyte* dst = tempBitmap.ToByteView().Data();
-
-            for (uint32 face = 0; face < 6; face++)
-            {
-                tempReadbackBuffer->Read(face * faceByteSize, faceByteSize, dst + face * faceByteSize);
-            }
-
-            FileByteWriter tempWriter(EngineGlobals::GetTempDirectory() / "TempEnvProbeRaster.bmp");
-            tempBitmap.Write(&tempWriter);
-            tempWriter.Close();
-
-            EnqueueDeletion(std::move(tempReadbackBuffer));
-        }
-    }
-
-    // Alloc command recorder
-    // we need to do this after we Create() the src texture,
-    // because CreateGpuImage in Texture.cpp creates its own command recorder,
-    // so we need that one to run before this one.
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Done(); });
+    HYP_DEFER({ cr.Submit(); });
 
     ENGINE_STAT_GPU_SCOPE(&s_statConvolveEnvProbe, &cr);
 
@@ -702,7 +667,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
     }
     else
     {
-        cr.Done();
+        cr.Submit();
     }
 }
 

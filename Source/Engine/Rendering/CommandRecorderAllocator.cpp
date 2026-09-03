@@ -129,12 +129,12 @@ CommandRecorder& CommandRecorderAllocator::GetCommandRecorder(CommandRecorderQue
 
     AssertDebug(!m_isShuttingDown);
 
-    List<CommandRecorder>& tempCommandRecorders = queue == CommandRecorderQueue::PreRender
+    List<CommandRecorder>& targetList = queue == CommandRecorderQueue::PreRender
         ? m_tempPreRenderCommandRecorders
         : m_tempCommandRecorders;
 
     AtomicIncrement(&m_tempCommandRecordersCount);
-    auto& newCommandRecorder = tempCommandRecorders.EmplaceBack();
+    auto& newCommandRecorder = targetList.EmplaceBack();
 
     AssertDebug(newCommandRecorder.IsWritable());
 

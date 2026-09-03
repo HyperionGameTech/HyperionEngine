@@ -642,13 +642,7 @@ void Mesh::UploadGpuData()
     stagingBuffer->Copy(packedVerticesSize, packedIndicesSize, indices.Data());
     stagingBuffer->Flush(0, bufferSizeCombined);
 
-    Frame* currentFrame = nullptr;
-
-    // Must run before the frame's render commands: the mesh is marked uploaded as soon as we return here,
-    // so the very same frame can bind these buffers for drawing.
-    CommandRecorder& cr = IsOnThread(g_renderThread) && (currentFrame = RI.GetCurrentFrame()) != nullptr
-        ? currentFrame->preRenderCommands
-        : RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
     cr << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
@@ -676,10 +670,7 @@ void Mesh::UploadGpuData()
 
     isUploaded.Store(true);
 
-    if (!currentFrame || &cr != &currentFrame->preRenderCommands)
-    {
-        cr.Done();
-    }
+    cr.Submit();
 }
 
 void Mesh::ReleaseGpuData()
