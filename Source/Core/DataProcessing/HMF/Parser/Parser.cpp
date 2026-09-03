@@ -28,6 +28,7 @@
 #include <Core/Utilities/Uuid.hpp>
 
 #include <cstdlib>
+#include <algorithm>
 
 namespace Hyperion::DataProcessing::HMF {
 
@@ -158,6 +159,15 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
 {
     const SourceLocation currLocation = Peek().GetLocation();
 
+    struct PendingFieldSet
+    {
+        int loadOrder;
+        const IMember* member;
+        BoxedValue value;
+    };
+
+    Array<PendingFieldSet> pendingFieldSets;
+
     while (Peek().GetTokenClass() != TK_CLOSE_BRACE && Peek().GetTokenClass() != TK_EMPTY)
     {
         if (Peek().GetTokenClass() == TK_COMMA)
@@ -235,13 +245,31 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             }
         }
 
-        switch (member->GetMemberType())
+        int loadOrder = 0;
+
+        if (const ClassAttributeValue& loadOrderAttribute = member->GetAttribute(Attributes::g_attrLoadOrder); loadOrderAttribute.IsValid())
+        {
+            loadOrder = loadOrderAttribute.GetInt();
+        }
+
+        pendingFieldSets.PushBack({ loadOrder, member, std::move(fieldValue) });
+    }
+
+    std::stable_sort(pendingFieldSets.Begin(), pendingFieldSets.End(),
+        [](const PendingFieldSet& a, const PendingFieldSet& b)
+        {
+            return a.loadOrder < b.loadOrder;
+        });
+
+    for (PendingFieldSet& pendingFieldSet : pendingFieldSets)
+    {
+        switch (pendingFieldSet.member->GetMemberType())
         {
         case MemberType::Field:
-            static_cast<const Field*>(member)->Set(target, fieldValue);
+            static_cast<const Field*>(pendingFieldSet.member)->Set(target, pendingFieldSet.value);
             break;
         case MemberType::Property:
-            static_cast<const Property*>(member)->Set(target, fieldValue);
+            static_cast<const Property*>(pendingFieldSet.member)->Set(target, pendingFieldSet.value);
             break;
         default:
             break;

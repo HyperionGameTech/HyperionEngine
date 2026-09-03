@@ -171,9 +171,9 @@ struct JoltCharacterControllerInternalData
 {
     JPH::Ref<JPH::CharacterVirtual> character;
 
-    // Desired ("wish") velocity for this tick, set by the gameplay side. The character
-    // accelerates toward it rather than snapping to it instantly.
     Vec3f walkVelocity;
+
+    JPH::Vec3 commandedHorizontalVelocity = JPH::Vec3::sZero();
 
     float capsuleCenterOffset = 0.0f;
     float stepHeight = 0.35f;
@@ -1056,9 +1056,8 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             ? desiredHorizontalVelocity * (1.0f / wishSpeed)
             : JPH::Vec3::sZero();
 
-        JPH::Vec3 horizontalVelocity = isGrounded
-            ? JPH::Vec3(currentVelocity.GetX() - groundHorizontalVelocity.GetX(), 0.0f, currentVelocity.GetZ() - groundHorizontalVelocity.GetZ())
-            : JPH::Vec3(currentVelocity.GetX(), 0.0f, currentVelocity.GetZ());
+        const JPH::Vec3 previousHorizontalVelocity = internalData->commandedHorizontalVelocity;
+        JPH::Vec3 horizontalVelocity = previousHorizontalVelocity;
 
         if (isGrounded)
         {
@@ -1069,7 +1068,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
         {
             horizontalVelocity = AccelerateCharacterHorizontal(horizontalVelocity, wishDirection, wishSpeed, internalData->airAcceleration, substepDelta);
 
-            const float maxAirSpeed = MathUtil::Max(JPH::Vec3(currentVelocity.GetX(), 0.0f, currentVelocity.GetZ()).Length(), wishSpeed);
+            const float maxAirSpeed = MathUtil::Max(previousHorizontalVelocity.Length(), wishSpeed);
             const float airSpeed = horizontalVelocity.Length();
 
             if (airSpeed > maxAirSpeed && airSpeed > MathUtil::epsilonF)
@@ -1077,6 +1076,8 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
                 horizontalVelocity = horizontalVelocity * (maxAirSpeed / airSpeed);
             }
         }
+
+        internalData->commandedHorizontalVelocity = horizontalVelocity;
 
         JPH::Vec3 newVelocity = horizontalVelocity + groundHorizontalVelocity;
         newVelocity.SetY(isGrounded ? groundVelocity.GetY() : currentVelocity.GetY());
@@ -1178,6 +1179,7 @@ void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
     internalData->coyoteTimeRemaining = 0.0f;
     internalData->walkVelocity = Vec3f::Zero();
     internalData->isRisingFromJump = false;
+    internalData->commandedHorizontalVelocity = JPH::Vec3::sZero();
 
     character->RefreshContacts(
         m_physicsSystem->GetDefaultBroadPhaseLayerFilter(JoltLayers::MOVING),

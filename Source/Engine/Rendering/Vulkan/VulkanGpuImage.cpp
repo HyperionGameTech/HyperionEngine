@@ -123,7 +123,7 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                 RS_COPY_SRC,
                 ShaderModuleType::None);
 
-            AssertDebug(GetSubResourceState(dst) == RS_COPY_DST);
+            Assert(GetSubResourceState(dst) == RS_COPY_DST);
 
             if (i == int32(numMipmaps))
             {
@@ -872,8 +872,8 @@ void VulkanGpuImage::Blit(
         const ResourceState srcResourceState = srcImage->m_resourceState;
         const ResourceState dstResourceState = m_resourceState;
 
-        AssertDebug(srcResourceState == RS_COPY_SRC);
-        AssertDebug(dstResourceState == RS_COPY_DST);
+        Assert(srcResourceState == RS_COPY_SRC);
+        Assert(dstResourceState == RS_COPY_DST);
 
         VkImageBlit blit {
             .srcSubresource = {
@@ -917,8 +917,8 @@ void VulkanGpuImage::Blit(
                 .numLayers = 1
             });
 
-            AssertDebug(srcResourceState == RS_COPY_SRC);
-            AssertDebug(dstResourceState == RS_COPY_DST);
+            Assert(srcResourceState == RS_COPY_SRC);
+            Assert(dstResourceState == RS_COPY_DST);
 
             const Vec3u perMipSrcExtent = srcImage->GetTextureDesc().GetMipExtent(uint8(srcSubResource.baseMipLevel + mipLevel));
             const Vec3u perMipDstExtent = m_textureDesc.GetMipExtent(uint8(dstSubResource.baseMipLevel + mipLevel));
@@ -1252,8 +1252,8 @@ void VulkanGpuImage::CopyFrom(
         const ResourceState srcResourceState = srcImage->m_resourceState;
         const ResourceState dstResourceState = m_resourceState;
 
-        AssertDebug(srcResourceState == RS_COPY_SRC);
-        AssertDebug(dstResourceState == RS_COPY_DST);
+        Assert(srcResourceState == RS_COPY_SRC);
+        Assert(dstResourceState == RS_COPY_DST);
 
         VkImageCopy copy {};
         copy.extent = { clampedExtent.x, clampedExtent.y, clampedExtent.z };
@@ -1302,8 +1302,8 @@ void VulkanGpuImage::CopyFrom(
                 .numLayers = 1
             });
 
-           // AssertDebug(srcResourceState == RS_COPY_SRC);
-           // AssertDebug(dstResourceState == RS_COPY_DST);
+            Assert(srcResourceState == RS_COPY_SRC);
+            Assert(dstResourceState == RS_COPY_DST);
 
             const Vec3u perMipSrcExtent = srcImage->GetTextureDesc().GetMipExtent(uint8(newSrcSubResource.baseMipLevel + mipLevel));
             const Vec3u perMipDstExtent = m_textureDesc.GetMipExtent(uint8(newDstSubResource.baseMipLevel + mipLevel));

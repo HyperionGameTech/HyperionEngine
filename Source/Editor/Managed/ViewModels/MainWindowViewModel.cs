@@ -921,7 +921,16 @@ namespace Hyperion.Editor.ViewModels
                         UpdateUndoRedoHeaders(project);
                         UpdatePasteHeader();
 
-                        Dispatcher.UIThread.Post(() => SceneHierarchy.RefreshAllNames());
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            SceneHierarchy.RefreshAllNames();
+
+                            // Entity layer assignments are tracked as editor actions (the inspector's
+                            // add/remove-layer buttons push them), so re-apply the layer filter here to
+                            // keep the hierarchy in sync with changes made in the inspector (and
+                            // undo/redo of those changes).
+                            SceneHierarchy.RefreshFilter();
+                        });
                     });
             }
 

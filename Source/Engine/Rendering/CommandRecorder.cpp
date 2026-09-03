@@ -510,16 +510,15 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 EndCurrentPass(commandBuffer);
 
                 // Transition src,dst before inserting copy cmd
-                if (cmd->srcImage->GetSubResourceState(cmd->srcSubResource) != RS_COPY_SRC)
-                {
-                    cmd->srcImage->InsertBarrier(commandBuffer, cmd->srcSubResource, RS_COPY_SRC, ShaderModuleType::None);
-                }
-
-                if (cmd->dstImage->GetSubResourceState(cmd->dstSubResource) != RS_COPY_DST)
-                {
-                    cmd->dstImage->InsertBarrier(commandBuffer, cmd->dstSubResource, RS_COPY_DST, ShaderModuleType::None);
-                }
-
+                //if (cmd->srcImage->GetSubResourceState(cmd->srcSubResource) != RS_COPY_SRC)
+                //{
+                //    cmd->srcImage->InsertBarrier(commandBuffer, cmd->srcSubResource, RS_COPY_SRC, ShaderModuleType::None);
+                //}
+                //
+                //if (cmd->dstImage->GetSubResourceState(cmd->dstSubResource) != RS_COPY_DST)
+                //{
+                //    cmd->dstImage->InsertBarrier(commandBuffer, cmd->dstSubResource, RS_COPY_DST, ShaderModuleType::None);
+                //}
 
                 cmd->dstImage->CopyFrom(commandBuffer, cmd->srcImage, cmd->srcOffset, cmd->dstOffset, cmd->extent, cmd->srcSubResource, cmd->dstSubResource);
             }

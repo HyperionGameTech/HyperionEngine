@@ -117,7 +117,9 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
     CheckResultOrReturn(image.Create());
 
-    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+    // Must run before the frame's render commands: isUploaded is set to true as soon as we return
+    // here, so the very same frame can bind and sample this texture.
+    CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
 
     if (uploadTextureData)
     {

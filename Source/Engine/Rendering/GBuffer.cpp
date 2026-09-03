@@ -216,7 +216,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
                 storeOp });
     };
 
-    auto addSharedAttachment = [&](uint32 binding, LoadOperation loadOp = LoadOperation::LOAD, StoreOperation storeOp = StoreOperation::STORE) -> Attachment*
+    auto addSharedAttachment = [&](uint32 binding, LoadOperation loadOp = LoadOperation::LOAD, StoreOperation storeOp = StoreOperation::STORE, uint32 newBinding = ~0u) -> Attachment*
     {
         Assert(parentFramebuffer != nullptr);
 
@@ -228,7 +228,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         newDesc.storeOp = storeOp;
 
         return framebuffer->AddAttachment(
-            binding,
+            newBinding == ~0u ? binding : newBinding,
             newDesc,
             RI.MakeImageView(parentAttachment->GetGpuImage()));
     };
@@ -265,12 +265,15 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             switch (pass)
             {
             case GBufferPass::Effect:
-                // EFFECT does not write normals, mat data, velocity, depth...
-                // Use Store op == NONE for those
+                if (i == GBufferTarget::Depth)
+                {
+                    addSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE, /* newBinding */ 1);
+
+                    continue;
+                }
+
                 if (i != GBufferTarget::Color)
                 {
-                    addSharedAttachment(i, LoadOperation::LOAD, StoreOperation::NONE);
-
                     continue;
                 }
 

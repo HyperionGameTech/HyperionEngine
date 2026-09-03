@@ -41,9 +41,9 @@ static HYP_FORCE_INLINE void CreateTextureIfNotAlready(Texture* tex)
     if (!tex->isUploaded.Load())
     {
         Check(tex->Create());
-
-        Assert(tex->isUploaded.LoadVolatile());
     }
+
+    Assert(tex->isUploaded.LoadVolatile());
 }
 
 void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
@@ -104,7 +104,9 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
             Texture* srcTexture = proxyCasted->visibilityTexture;
             CreateTextureIfNotAlready(srcTexture);
 
-            CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+            // Must run before the frame's render commands: this probe's binding index is usable
+            // for sampling as soon as we return, so the array texture needs to be up to date this same frame.
+            CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
 
             Texture* dstTexture = RI.envProbesDepthTexture;
 
@@ -201,10 +203,10 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             return;
         }
 
-        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-
         Texture* srcTexture = proxyCasted->texture;
         CreateTextureIfNotAlready(srcTexture);
+
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
 
         Texture* dstTexture = RI.envProbesColorTexture;
 
@@ -215,20 +217,9 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         GpuImage* dstImage = dstTexture->GetGpuImage();
         AssertDebug(dstImage != nullptr);
 
-        ImageSubResource srcAllMipsSubResource {};
-        srcAllMipsSubResource.baseMipLevel = 0;
-        srcAllMipsSubResource.numLevels = srcImage->NumMips();
-        srcAllMipsSubResource.baseArrayLayer = 0;
-        srcAllMipsSubResource.numLayers = 6;
+        Assert(next * 6 < dstImage->NumArrayLayers());
 
-        ImageSubResource dstAllMipsSubResource {};
-        dstAllMipsSubResource.baseMipLevel = 0;
-        dstAllMipsSubResource.numLevels = dstImage->NumMips();
-        dstAllMipsSubResource.baseArrayLayer = uint16(6 * next);
-        dstAllMipsSubResource.numLayers = 6;
-
-        cr << InsertBarrier(srcImage, RS_COPY_SRC, srcAllMipsSubResource);
-        cr << InsertBarrier(dstImage, RS_COPY_DST, dstAllMipsSubResource);
+        cr << InsertBarrier(dstImage, RS_COPY_DST);
 
         for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
         {
@@ -251,6 +242,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
             const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
             const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+            
+            cr << InsertBarrier(srcImage, RS_COPY_SRC, srcSubResource);
 
             if (srcMipExtent == dstMipExtent && srcImage->GetTextureDesc().format == dstImage->GetTextureDesc().format)
             {
@@ -266,10 +259,11 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
                     srcSubResource,
                     dstSubResource);
             }
+            
+            cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, srcSubResource);
         }
 
-        cr << InsertBarrier(srcImage, RS_SHADER_RESOURCE, srcAllMipsSubResource);
-        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE, dstAllMipsSubResource);
+        cr << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
 
         cr.Done();
     }
