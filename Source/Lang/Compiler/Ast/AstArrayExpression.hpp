@@ -27,6 +27,11 @@ public:
         return m_members;
     }
 
+    HYP_FORCE_INLINE void SetHeldType(const SymbolType* heldType)
+    {
+        m_heldType = heldType;
+    }
+
     virtual void Visit(AstVisitor* visitor, Module* mod) override;
     virtual UniquePtr<Buildable> Build(AstVisitor* visitor, Module* mod) override;
     virtual void Optimize(AstVisitor* visitor, Module* mod) override;

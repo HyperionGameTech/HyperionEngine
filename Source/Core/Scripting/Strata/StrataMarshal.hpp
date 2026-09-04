@@ -157,5 +157,20 @@ HYP_FORCE_INLINE void SetReturnArray(ArrayView<T>* outArray, const T* data, size
     outArray->length = uint64(count);
 }
 
+// Writes the {ptr, len} fat of a `string` return through an out-param, like
+// SetReturnArray does for arrays. The buffer is allocated from the Strata
+// pool (the caller owns it) and keeps the NUL at [len] invariant.
+HYP_FORCE_INLINE void SetReturnString(ArrayView<char>* outString, const char* data, size_t size)
+{
+    outString->data = AllocReturnString(data, size);
+    outString->length = uint64(size);
+}
+
+template <class StringType>
+HYP_FORCE_INLINE void SetReturnString(ArrayView<char>* outString, const StringType& str)
+{
+    SetReturnString(outString, str.Data(), str.Size());
+}
+
 } // namespace Strata
 } // namespace Hyperion

@@ -149,6 +149,1003 @@ handle ConsoleOverlay extends OverlayBase;
 handle TextOverlay extends OverlayBase;
 handle TextureOverlay extends OverlayBase;
 handle NullOverlay extends OverlayBase;
+
+enum CommandLineArgumentType : byte
+{
+    STRING,
+    INTEGER,
+    FLOAT,
+    BOOLEAN,
+    ENUM
+};
+enum LogLevel : byte
+{
+    Fatal,
+    Error,
+    Warning,
+    Info,
+    Verbose,
+    Debug
+};
+enum RayTestFlags : uint
+{
+    None = 0x0,
+    TestBVH = 0x1,
+    EditorPick = 0x2,
+    Max = 0xFFFFFFFF
+};
+enum EditorActionStackState : uint
+{
+    NONE = 0x0,
+    CAN_UNDO = 0x1,
+    CAN_REDO = 0x2
+};
+enum EditorCameraControllerMode : uint
+{
+    INACTIVE = 0,
+    FOCUSED = 1,
+    MOUSE_LOCKED = 2
+};
+enum EditorManipulationMode : byte
+{
+    None = 0,
+    Translate,
+    Rotate,
+    Scale,
+    ReshapeVolume
+};
+enum MeshEditFaceMode : byte
+{
+    Triangle = 0,
+    Quad
+};
+enum AssetRegistryId : uint
+{
+    Game = 0,
+    Engine,
+    Editor
+};
+enum AssetChangeType : uint
+{
+    CHANGED = 0,
+    CREATED = 1,
+    DELETED = 2,
+    RENAMED = 3,
+    MAX
+};
+enum AssetObjectFlags : byte
+{
+    None = 0x0,
+    Persistent = 0x1,
+    Transient = 0x2
+};
+enum AddAssetConflictMode : byte
+{
+    FailOnConflict = 0,
+    GenerateNewName,
+    ReplaceExisting,
+    Default
+};
+enum AudioLoopMode : byte
+{
+    Once,
+    Repeat
+};
+enum AudioPlaybackStatus : byte
+{
+    Stopped,
+    Paused,
+    Playing
+};
+enum SoundFormat : uint
+{
+    MONO8,
+    MONO16,
+    STEREO8,
+    STEREO16
+};
+enum LightmapShadingType : uint
+{
+    LIGHTMAP = 0,
+    FULL,
+    IRRADIANCE,
+    SHADOW,
+    DISTANCE,
+    BENT_NORMAL,
+    MAX
+};
+enum BakerState : byte
+{
+    Initialized = 0,
+    Building,
+    Running,
+    Complete,
+    Cancelled
+};
+enum GpuVendor : byte
+{
+    Unknown = 0,
+    Nvidia,
+    Amd,
+    Intel,
+    Qualcomm,
+    Apple,
+    Microsoft
+};
+enum GpuType : byte
+{
+    Unknown = 0,
+    Integrated,
+    Dedicated
+};
+enum GameStateMode : uint
+{
+    STOPPED = 0,
+    SIMULATING,
+    PAUSED
+};
+enum ControllerButton : ushort
+{
+    None = 0,
+    A,
+    B,
+    X,
+    Y,
+    DPad_Up,
+    DPad_Down,
+    DPad_Left,
+    DPad_Right,
+    Left_Bumper,
+    Right_Bumper,
+    Left_Trigger,
+    Right_Trigger,
+    Left_Stick,
+    Right_Stick,
+    Start,
+    Select,
+    Guide
+};
+enum EventFlags : byte
+{
+    NONE = 0x0,
+    RELATIVE_MOUSE = 0x1
+};
+enum EventType : uint
+{
+    INVALID = ~0u,
+    WINDOW_EVENT = 0x0200,
+    SHUTDOWN = 0x0100,
+    KEYDOWN = 0x0300,
+    KEYUP = 0x0301,
+    MOUSEMOTION = 0x0400,
+    MOUSEBUTTON_DOWN = 0x0401,
+    MOUSEBUTTON_UP = 0x0402,
+    MOUSESCROLL = 0x0403,
+    TOUCH_DOWN = 0x0500,
+    TOUCH_UP = 0x0501,
+    TOUCH_MOVE = 0x0502,
+    TEXT_INPUT = 0x0503,
+    CONTROLLER_BUTTON_DOWN = 0x0600,
+    CONTROLLER_BUTTON_UP = 0x0601,
+    CONTROLLER_ANALOG_MOVE = 0x0602,
+    FILE_DROP = 0x1000,
+    WINDOW_MOVED = 0x0204,
+    WINDOW_RESIZED = 0x0205,
+    WINDOW_FOCUS_GAINED = 0x020C,
+    WINDOW_FOCUS_LOST = 0x020D,
+    WINDOW_CLOSE = 0x0203,
+    WINDOW_MINIMIZED = 0x0206
+};
+enum KeyCode : ushort
+{
+    KEY_UNKNOWN = UINT16_MAX,
+    KEY_A = 97,
+    KEY_B,
+    KEY_C,
+    KEY_D,
+    KEY_E,
+    KEY_F,
+    KEY_G,
+    KEY_H,
+    KEY_I,
+    KEY_J,
+    KEY_K,
+    KEY_L,
+    KEY_M,
+    KEY_N,
+    KEY_O,
+    KEY_P,
+    KEY_Q,
+    KEY_R,
+    KEY_S,
+    KEY_T,
+    KEY_U,
+    KEY_V,
+    KEY_W,
+    KEY_X,
+    KEY_Y,
+    KEY_Z,
+    KEY_0 = 48,
+    KEY_1,
+    KEY_2,
+    KEY_3,
+    KEY_4,
+    KEY_5,
+    KEY_6,
+    KEY_7,
+    KEY_8,
+    KEY_9,
+    KEY_F1 = 58,
+    KEY_F2,
+    KEY_F3,
+    KEY_F4,
+    KEY_F5,
+    KEY_F6,
+    KEY_F7,
+    KEY_F8,
+    KEY_F9,
+    KEY_F10,
+    KEY_F11,
+    KEY_F12,
+    KEY_LCTRL = 224,
+    KEY_LSHIFT = 225,
+    KEY_LALT = 226,
+    KEY_RCTRL = 228,
+    KEY_RSHIFT = 229,
+    KEY_RALT = 230,
+    KEY_SPACE = 32,
+    KEY_APOSTROPHE = 39,
+    KEY_COMMA = 44,
+    KEY_DASH = 45,
+    KEY_PERIOD = 46,
+    KEY_SLASH = 47,
+    KEY_SEMICOLON = 59,
+    KEY_EQUALS = 61,
+    KEY_RETURN = 13,
+    KEY_TAB = 258,
+    KEY_BACKSPACE = 8,
+    KEY_CAPSLOCK = 280,
+    KEY_TILDE = 96,
+    KEY_RIGHT = 79,
+    KEY_LEFT = 80,
+    KEY_DOWN = 81,
+    KEY_UP = 82,
+    KEY_ESCAPE = 27
+};
+enum MouseButtonState : byte
+{
+    NONE = 0x0,
+    LEFT = 0x1,
+    MIDDLE = 0x2,
+    RIGHT = 0x4
+};
+enum MouseButtonKey : uint
+{
+    MBK_INVALID = ~0u,
+    MBK_LEFT = 0,
+    MBK_MIDDLE,
+    MBK_RIGHT,
+    MBK_MAX
+};
+enum PhysicsShapeType : byte
+{
+    Box,
+    Sphere,
+    Plane,
+    ConvexHull,
+    Capsule,
+    Max
+};
+enum AccelerationStructureType : byte
+{
+    BOTTOM_LEVEL,
+    TOP_LEVEL
+};
+enum GBufferPass : byte
+{
+    Opaque,
+    Translucent,
+    Lightmapped,
+    Debug,
+    Effect,
+    Max
+};
+enum GpuImageFlags : uint
+{
+    NONE = 0x0
+};
+enum MaterialTextureKey : ulong
+{
+    NONE = 0,
+    Diffuse = 0x1,
+    Normals = 0x2,
+    Parallax = 0x4,
+    Metalness = 0x8,
+    Roughness = 0x10,
+    AmbientOcclusion = 0x20
+};
+enum MaterialTextureChannel : byte
+{
+    R = 0,
+    G = 1,
+    B = 2,
+    A = 3
+};
+enum MeshFlags : uint
+{
+    None = 0x0,
+    ViewIndependent = 0x1
+};
+enum MaterialAttributeFlags : byte
+{
+    MAF_NONE = 0x0,
+    MAF_DEPTH_WRITE = 0x1,
+    MAF_DEPTH_TEST = 0x2,
+    MAF_DEPTH_BIAS = 0x4,
+    MAF_DEPTH_CLAMP = 0x8,
+    MAF_STENCIL_TEST = 0x10,
+    MAF_ALPHA_DISCARD = 0x20
+};
+enum RenderBucket : byte
+{
+    Opaque,
+    Lightmapped,
+    Translucent,
+    Sky,
+    Debug
+};
+enum Topology : byte
+{
+    TOP_TRIANGLES,
+    TOP_TRIANGLE_FAN,
+    TOP_TRIANGLE_STRIP,
+    TOP_LINES,
+    TOP_POINTS
+};
+enum BlendModeFactor : byte
+{
+    None,
+    One,
+    Zero,
+    SrcColor,
+    SrcAlpha,
+    DstColor,
+    DstAlpha,
+    OneMinusSrcColor,
+    OneMinusSrcAlpha,
+    OneMinusDstColor,
+    OneMinusDstAlpha,
+    Max
+};
+enum ShaderResourceCategory : byte
+{
+    Unknown,
+    Buffer,
+    Image,
+    Sampler,
+    AccelerationStructure
+};
+enum ShaderModuleType : byte
+{
+    None = 0,
+    Vertex,
+    Pixel,
+    Geometry,
+    Compute,
+    Task,
+    Mesh,
+    TessControl,
+    TessEval,
+    RayGen,
+    Intersect,
+    AnyHit,
+    ClosestHit,
+    Miss,
+    Max
+};
+enum GpuElemType : byte
+{
+    GET_UNSIGNED_BYTE,
+    GET_SIGNED_BYTE,
+    GET_UNSIGNED_SHORT,
+    GET_SIGNED_SHORT,
+    GET_UNSIGNED_INT,
+    GET_SIGNED_INT,
+    GET_FLOAT,
+    GET_MAX
+};
+enum StencilOp : byte
+{
+    SO_KEEP,
+    SO_ZERO,
+    SO_REPLACE,
+    SO_INCREMENT,
+    SO_DECREMENT
+};
+enum TextureWrapMode : byte
+{
+    TWM_CLAMP_TO_EDGE,
+    TWM_CLAMP_TO_BORDER,
+    TWM_REPEAT
+};
+enum GpuBufferType : byte
+{
+    NONE = 0,
+    IndexBuffer,
+    VertexBuffer,
+    ConstantBuffer,
+    StructuredBuffer,
+    RWStructuredBuffer,
+    ByteAddressBuffer,
+    RWByteAddressBuffer,
+    ReadbackBuffer,
+    StagingBuffer,
+    IndirectArgsBuffer,
+    ShaderBindingTable,
+    AccelerationStructureBuffer,
+    AccelerationStructureInstanceBuffer,
+    RTMeshIndexBuffer,
+    RTMeshVertexBuffer,
+    ScratchBuffer,
+    MAX
+};
+enum StencilCompareOp : byte
+{
+    SCO_ALWAYS,
+    SCO_NEVER,
+    SCO_EQUAL,
+    SCO_NOT_EQUAL
+};
+enum ImageSupport : byte
+{
+    Attachment,
+    ShaderResource,
+    UnorderedAccess
+};
+enum FillMode : byte
+{
+    FM_FILL,
+    FM_LINE
+};
+enum DefaultImageFormat : byte
+{
+    DIF_NONE,
+    DIF_COLOR,
+    DIF_DEPTH
+};
+enum TextureType : byte
+{
+    Texture2D,
+    Texture3D,
+    Cubemap,
+    Texture2DArray,
+    CubemapArray,
+    Max
+};
+enum TextureBaseFormat : byte
+{
+    Red,
+    RG,
+    RGB,
+    RGBA,
+    BGR,
+    BGRA,
+    Depth,
+    DepthStencil
+};
+enum DepthCompareOp : byte
+{
+    DCO_LESS,
+    DCO_LESS_OR_EQUAL,
+    DCO_GREATER,
+    DCO_GREATER_OR_EQUAL,
+    DCO_EQUAL,
+    DCO_NOT_EQUAL,
+    DCO_ALWAYS,
+    DCO_NEVER
+};
+enum StoreOperation : byte
+{
+    UNDEFINED,
+    NONE,
+    STORE
+};
+enum ImageUsage : byte
+{
+    IU_NONE = 0x0,
+    IU_SAMPLED = 0x1,
+    IU_STORAGE = 0x2,
+    IU_ATTACHMENT = 0x4,
+    IU_BLENDED = 0x8,
+    IU_EXTERNAL = 0x10
+};
+enum ResourceState : byte
+{
+    RS_UNDEFINED,
+    RS_PRE_INITIALIZED,
+    RS_COMMON,
+    RS_VERTEX_BUFFER,
+    RS_CONSTANT_BUFFER,
+    RS_INDEX_BUFFER,
+    RS_RENDER_TARGET,
+    RS_UNORDERED_ACCESS,
+    RS_DEPTH_STENCIL,
+    RS_SHADER_RESOURCE,
+    RS_STREAM_OUT,
+    RS_INDIRECT_ARG,
+    RS_COPY_DST,
+    RS_COPY_SRC,
+    RS_RESOLVE_DST,
+    RS_RESOLVE_SRC,
+    RS_PRESENT,
+    RS_READ_GENERIC,
+    RS_PREDICATION
+};
+enum TextureFormat : byte
+{
+    R8,
+    RG8,
+    RGB8,
+    RGBA8,
+    B8,
+    BG8,
+    BGR8,
+    BGRA8,
+    R16,
+    RG16,
+    RGB16,
+    RGBA16,
+    R32,
+    RG32,
+    RGB32,
+    RGBA32,
+    R11G11B10F,
+    R10G10B10A2,
+    R16F,
+    RG16F,
+    RGB16F,
+    RGBA16F,
+    R32F,
+    RG32F,
+    RGB32F,
+    RGBA32F,
+    R8_SRGB,
+    RG8_SRGB,
+    RGB8_SRGB,
+    RGBA8_SRGB,
+    B8_SRGB,
+    BG8_SRGB,
+    BGR8_SRGB,
+    BGRA8_SRGB,
+    D16,
+    D24_S8,
+    D32F,
+    D32F_S8
+};
+enum ShaderPropertyFlags : byte
+{
+    SPF_NONE = 0x0,
+    SPF_VERTEX_ATTRIBUTE = 0x1,
+    SPF_PERMUTATION = 0x2
+};
+enum FaceCullMode : byte
+{
+    FCM_NONE,
+    FCM_BACK,
+    FCM_FRONT
+};
+enum ShaderInputType : byte
+{
+    Unset,
+    CBV,
+    CBV_Dynamic,
+    SRV,
+    SRV_Dynamic,
+    UAV,
+    UAV_Dynamic,
+    Sampler,
+    MAX
+};
+enum RenderTargetType : byte
+{
+    RTT_NONE = 0,
+    RTT_PRESENT,
+    RTT_SHADER_RESOURCE,
+    RTT_MAX
+};
+enum SamplerCompareOp : byte
+{
+    None,
+    Less,
+    LessEq,
+    Greater,
+    GreaterEq,
+    Equal,
+    NotEqual,
+    Always,
+    Never
+};
+enum LoadOperation : byte
+{
+    UNDEFINED,
+    NONE,
+    CLEAR,
+    LOAD
+};
+enum TextureFilterMode : byte
+{
+    TFM_NEAREST,
+    TFM_LINEAR,
+    TFM_NEAREST_LINEAR,
+    TFM_NEAREST_MIPMAP,
+    TFM_LINEAR_MIPMAP,
+    TFM_MINMAX_MIPMAP
+};
+enum VertexType : byte
+{
+    VT_Invalid = 0x0,
+    VT_Position = 0x1,
+    VT_Normal = 0x2,
+    VT_UV0 = 0x4,
+    VT_UV1 = 0x8,
+    VT_Simple = ((VT_Position | VT_Normal) | VT_UV0),
+    VT_Skeletal = 0x10
+};
+enum ShadowMapType : byte
+{
+    SMT_DIRECTIONAL,
+    SMT_SPOT,
+    SMT_OMNI
+};
+enum ShaderRegister : byte
+{
+    NONE = 0,
+    SRV,
+    UAV,
+    BUFFER,
+    SAMPLER,
+    MAX
+};
+enum ShaderLanguage : uint
+{
+    GLSL,
+    HLSL
+};
+enum ShaderInputSetFlags : byte
+{
+    None = 0x0,
+    Reference = 0x1,
+    Template = 0x2
+};
+enum ShaderCompileTargetBackend : uint
+{
+    None = 0x00000000,
+    Vulkan = 0x00000100,
+    DX12 = 0x00000200,
+    AllBackends = (Vulkan | DX12)
+};
+enum ShaderCompileTargetPlatform : uint
+{
+    None = 0x00000000,
+    Windows = 0x00000001,
+    Mac = 0x00000002,
+    Linux = 0x00000004,
+    Android = 0x00000008,
+    IOS = 0x00000010,
+    AllPlatforms = ((((Windows | Mac) | Linux) | Android) | IOS)
+};
+enum ProcessShaderSourcePhase : uint
+{
+    BEFORE_PREPROCESS,
+    AFTER_PREPROCESS
+};
+enum VulkanDeviceQueueType : byte
+{
+    INVALID = 0,
+    GRAPHICS,
+    COMPUTE,
+    TRANSFER,
+    PRESENT,
+    MAX
+};
+enum VulkanSemaphoreType : byte
+{
+    BINARY = 0,
+    TIMELINE = 1
+};
+enum ComponentAccess : byte
+{
+    NONE = 0,
+    READ = 0x1,
+    WRITE = 0x2,
+    READ_WRITE = (READ | WRITE)
+};
+enum EnvProbeFlags : uint
+{
+    EPF_NONE = 0x0,
+    EPF_PARALLAX_CORRECTED = 0x1,
+    EPF_BAKED = 0x2,
+    EPF_REALTIME = 0x4,
+    EPF_ORIGIN_FROM_CENTER = 0x8,
+    EPF_VISIBILITY = 0x10,
+    EPF_PATH_TRACED = 0x20,
+    EPF_HIT_MASK = 0x40
+};
+enum EnvProbeType : uint
+{
+    EPT_INVALID = ~0u,
+    EPT_SKY = 0,
+    EPT_REFLECTION,
+    EPT_AMBIENT,
+    EPT_MAX
+};
+enum EnvProbeDimensions : ushort
+{
+    Dim64 = 64,
+    Dim128 = 128,
+    Dim256 = 256
+};
+enum LightFlags : uint
+{
+    None = 0x0,
+    ShadowCaster = 0x1,
+    CacheStaticShadowMaps = 0x10,
+    BakeStaticShadows = 0x20,
+    OnlyDrawStaticShadowMaps = 0x40,
+    Default = (ShadowCaster | CacheStaticShadowMaps)
+};
+enum LightType : uint
+{
+    Directional = 0,
+    Point,
+    Spot,
+    AreaRect,
+    Max
+};
+enum NodeFlags : uint
+{
+    None = 0x0,
+    IgnoreParentTranslation = 0x1,
+    IgnoreParentScale = 0x2,
+    IgnoreParentRotation = 0x4,
+    IgnoreParentTransform = ((IgnoreParentTranslation | IgnoreParentScale) | IgnoreParentRotation),
+    ExcludeFromParentBounds = 0x8,
+    ExcludeFromOctree = 0x10,
+    HideInSceneOutline = 0x1000,
+    Mobility = 0xE000,
+    MobilityStatic = 0x2000,
+    MobilityStaticByProxy = 0x4000,
+    MobilityDynamic = (Mobility & ~(MobilityStatic | MobilityStaticByProxy)),
+    Default = MobilityStatic
+};
+enum TransformChangeType : byte
+{
+    Default = 0,
+    Simulation = 1
+};
+enum SceneFlags : uint
+{
+    NONE = 0x0,
+    FOREGROUND = 0x1,
+    BACKDROP = 0x2,
+    DETACHED = 0x4,
+    UI = 0x8,
+    EDITOR = 0x10,
+    STREAMED = 0x20,
+    HAS_OCTREE = 0x40,
+    AUDIO_LISTENER = 0x80,
+    DEFAULT = ((FOREGROUND | STREAMED) | HAS_OCTREE)
+};
+enum SpriteType : uint
+{
+    None = 0,
+    Text,
+    Editor_EnvProbe,
+    Editor_LightmapVolume,
+    Editor_Camera,
+    Max
+};
+enum SubsystemUpdatePhase : byte
+{
+    BeforeVis,
+    AfterVis
+};
+enum ViewFlags : uint
+{
+    NONE = 0x0,
+    GBUFFER = 0x1,
+    ALL_WORLD_SCENES = 0x2,
+    COLLECT_STATIC_ENTITIES = 0x4,
+    COLLECT_DYNAMIC_ENTITIES = 0x8,
+    COLLECT_ALL_ENTITIES = (COLLECT_STATIC_ENTITIES | COLLECT_DYNAMIC_ENTITIES),
+    NO_FRUSTUM_CULLING = 0x10,
+    SKIP_ENV_PROBES = 0x20,
+    SKIP_LIGHTS = 0x80,
+    SKIP_LIGHTMAP_VOLUMES = 0x100,
+    SKIP_PARTICLE_VOLUMES = 0x200,
+    SKIP_FOG_VOLUMES = 0x400,
+    SKIP_CAMERAS = 0x800,
+    SKIP_SPRITES = 0x1000,
+    NOT_MULTI_BUFFERED = 0x2000,
+    NO_DRAW_CALLS = 0x4000,
+    NO_PARALLEL_DRAW_CALL_COLLECTION = 0x8000,
+    RAY_TRACING = 0x100000,
+    MATCH_CAMERA_DIMENSIONS = 0x200000,
+    SHADOW_VIEW = 0x400000,
+    BAKER_VIEW = 0x800000,
+    UI_VIEW = 0x1000000,
+    ENV_PROBE_VIEW = 0x2000000,
+    CUBEMAP_FACE_VIEW = 0x4000000,
+    EDITOR_VIEW = 0x8000000,
+    EXTERNAL_RENDERTARGET = 0x10000000,
+    NO_SHADOW_VIEWS = 0x20000000,
+    NO_ASYNC_SHADER_LOADING = 0x40000000,
+    DEFAULT = (ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES)
+};
+enum WorldFlags : uint
+{
+    None = 0x0,
+    Editor = 0x1,
+    HasPhysics = 0x2,
+    HasStreaming = 0x4,
+    IsReplicated = 0x8,
+    HasSceneStreamingLayer = 0x100,
+    AllStreamingLayerFlags = HasSceneStreamingLayer,
+    Default = (((HasPhysics | HasStreaming) | IsReplicated) | AllStreamingLayerFlags)
+};
+enum CameraProjectionMode : uint
+{
+    NONE = 0,
+    PERSPECTIVE = 1,
+    ORTHOGRAPHIC = 2
+};
+enum CameraFlags : uint
+{
+    None = 0x0,
+    MatchWindowSize = 0x1,
+    HasStreamingVolume = 0x2
+};
+enum FirstPersonCameraControllerMode : uint
+{
+    MOUSE_LOCKED = 0,
+    MOUSE_FREE = 1
+};
+enum AnimationLoopMode : byte
+{
+    ONCE = 0,
+    REPEAT
+};
+enum AnimationPlaybackStatus : byte
+{
+    STOPPED = 0,
+    PAUSED,
+    PLAYING
+};
+enum ScriptComponentFlags : uint
+{
+    NONE = 0x0,
+    INITIALIZED = 0x1,
+    RELOADING = 0x2,
+    INITIALIZATION_STARTED = 0x4,
+    ACTIVATED = 0x8
+};
+enum VisibilityStateFlags : uint
+{
+    NONE = 0x0,
+    ALWAYS_VISIBLE = 0x1,
+    INVALIDATED = 0x2
+};
+enum ScriptCompileStatus : byte
+{
+    Uninitialized = 0x0,
+    Compiled = 0x1,
+    Dirty = 0x2,
+    Processing = 0x4,
+    Errored = 0x8
+};
+enum ScriptLanguage : byte
+{
+    Invalid = UINT8_MAX,
+    Native = 0,
+    HypScript = 1,
+    CSharp = 2,
+    Strata = 3
+};
+enum StreamingCellState : uint
+{
+    INVALID = ~0u,
+    UNLOADED = 0,
+    UNLOADING,
+    WAITING,
+    LOADING,
+    LOADED,
+    MAX
+};
+enum StreamingVolumeShape : uint
+{
+    SPHERE = 0,
+    BOX,
+    MAX,
+    INVALID = ~0u
+};
+enum WindowFlags : uint
+{
+    NONE = 0x0,
+    HEADLESS = 0x1,
+    NO_GFX = 0x2,
+    HIGH_DPI = 0x4,
+    EVENTS_POLLING = 0x8
+};
+enum UIListViewOrientation : byte
+{
+    VERTICAL = 0,
+    HORIZONTAL
+};
+enum UIMenuBarDropDirection : uint
+{
+    DOWN,
+    UP
+};
+enum UIObjectUpdateSizeFlags : uint
+{
+    NONE = 0x0,
+    MAX_SIZE = 0x1,
+    INNER_SIZE = 0x2,
+    OUTER_SIZE = 0x4,
+    DEFAULT = ((MAX_SIZE | INNER_SIZE) | OUTER_SIZE)
+};
+enum UIObjectAlignment : uint
+{
+    TOP_LEFT = 0,
+    TOP_RIGHT = 1,
+    CENTER = 2,
+    BOTTOM_LEFT = 3,
+    BOTTOM_RIGHT = 4
+};
+enum UIObjectBorderFlags : uint
+{
+    NONE = 0x0,
+    TOP = 0x1,
+    LEFT = 0x2,
+    BOTTOM = 0x4,
+    RIGHT = 0x8,
+    ALL = (((TOP | LEFT) | BOTTOM) | RIGHT)
+};
+enum UIObjectUpdateType : uint
+{
+    NONE = 0x0,
+    UPDATE_SIZE = 0x1,
+    UPDATE_POSITION = 0x2,
+    UPDATE_MATERIAL = 0x4,
+    UPDATE_MESH_DATA = 0x8,
+    UPDATE_COMPUTED_VISIBILITY = 0x10,
+    UPDATE_CLAMPED_SIZE = 0x20,
+    UPDATE_CUSTOM = 0x40,
+    UPDATE_ALL = UINT16_MAX,
+    UPDATE_CHILDREN_SIZE = (UPDATE_SIZE << 16),
+    UPDATE_CHILDREN_POSITION = (UPDATE_POSITION << 16),
+    UPDATE_CHILDREN_MATERIAL = (UPDATE_MATERIAL << 16),
+    UPDATE_CHILDREN_MESH_DATA = (UPDATE_MESH_DATA << 16),
+    UPDATE_CHILDREN_COMPUTED_VISIBILITY = (UPDATE_COMPUTED_VISIBILITY << 16),
+    UPDATE_CHILDREN_CLAMPED_SIZE = (UPDATE_CLAMPED_SIZE << 16),
+    UPDATE_CHILDREN_CUSTOM = (UPDATE_CUSTOM << 16),
+    UPDATE_CHILDREN_ALL = (UPDATE_ALL << 16)
+};
+enum UIObjectFocusState : uint
+{
+    NONE = 0x0,
+    HOVER = 0x1,
+    PRESSED = 0x2,
+    TOGGLED = 0x4,
+    FOCUSED = 0x8
+};
+enum ScrollAxis : byte
+{
+    SA_NONE = 0x0,
+    SA_HORIZONTAL = 0x1,
+    SA_VERTICAL = 0x2,
+    SA_ALL = (SA_HORIZONTAL | SA_VERTICAL)
+};
 struct AnimationComponent;
 struct AnimationPlaybackState;
 struct AssetBucket;
@@ -311,6 +1308,7 @@ impl UIObject {
     extern void ScrollToChild(UIObject self, UIObject child);
     extern int GetVerticalScrollbarSize(UIObject self);
     extern int GetHorizontalScrollbarSize(UIObject self);
+    extern bool CanScrollOnAxis(UIObject self, ScrollAxis axis);
     extern int GetComputedDepth(UIObject self);
     extern int GetDepth(UIObject self);
     extern void SetDepth(UIObject self, int depth);
@@ -331,7 +1329,7 @@ impl UIObject {
     extern void SetBackgroundColor(UIObject self, const Color backgroundColor);
     extern void GetTextColor(UIObject self, return Color outReturn);
     extern void SetTextColor(UIObject self, const Color textColor);
-    extern string GetText(UIObject self);
+    extern void GetText(UIObject self, return string outReturn);
     extern void SetText(UIObject self, const string text);
     extern float GetTextSize(UIObject self);
     extern void SetTextSize(UIObject self, float textSize);
@@ -378,11 +1376,12 @@ impl UIStage {
 impl UIPanel {
     extern bool IsHorizontalScrollEnabled(UIPanel self);
     extern bool IsVerticalScrollEnabled(UIPanel self);
+    extern void SetIsScrollEnabled(UIPanel self, ScrollAxis axis, bool isScrollEnabled);
 }
 
 // UITextbox
 impl UITextbox {
-    extern string GetPlaceholder(UITextbox self);
+    extern void GetPlaceholder(UITextbox self, return string outReturn);
     extern void SetPlaceholder(UITextbox self, const string placeholder);
     extern void GetPlaceholderTextColor(UITextbox self, return Color outReturn);
     property string Placeholder { get = UITextbox_GetPlaceholder; set = UITextbox_SetPlaceholder; }
@@ -390,10 +1389,13 @@ impl UITextbox {
 
 // UIMenuBar
 impl UIMenuBar {
+    extern UIMenuBarDropDirection GetDropDirection(UIMenuBar self);
+    extern void SetDropDirection(UIMenuBar self, UIMenuBarDropDirection dropDirection);
     extern void SetSelectedMenuItemIndex(UIMenuBar self, uint index);
     extern UIMenuItem GetMenuItem(UIMenuBar self, const Name name);
     extern uint GetMenuItemIndex(UIMenuBar self, const Name name);
     extern bool RemoveMenuItem(UIMenuBar self, const Name name);
+    property UIMenuBarDropDirection DropDirection { get = UIMenuBar_GetDropDirection; set = UIMenuBar_SetDropDirection; }
 }
 
 // UIListView
@@ -401,6 +1403,9 @@ impl UIListView {
     extern void SetSelectedItem(UIListView self, UIListViewItem listViewItem);
     extern int GetSelectedItemIndex(UIListView self);
     extern void SetSelectedItemIndex(UIListView self, int index);
+    extern UIListViewOrientation GetOrientation(UIListView self);
+    extern void SetOrientation(UIListView self, UIListViewOrientation orientation);
+    property UIListViewOrientation Orientation { get = UIListView_GetOrientation; set = UIListView_SetOrientation; }
 }
 
 // UIGridColumn
@@ -480,7 +1485,7 @@ impl CocoaApplicationWindow {
 
 // AppContextBase
 impl AppContextBase {
-    extern string GetAppName(AppContextBase self);
+    extern void GetAppName(AppContextBase self, return string outReturn);
     extern ApplicationWindow GetMainWindow(AppContextBase self);
     extern void RemoveWindow(AppContextBase self, ApplicationWindow window);
 }
@@ -522,6 +1527,7 @@ impl AndroidApplicationWindow {
 
 // StreamingVolumeBase
 impl StreamingVolumeBase {
+    extern StreamingVolumeShape GetShape(StreamingVolumeBase self);
     extern bool GetBoundingBox(StreamingVolumeBase self, BoundingBox outAabb);
     extern bool GetBoundingSphere(StreamingVolumeBase self, BoundingSphere outSphere);
     extern bool ContainsPoint(StreamingVolumeBase self, float3 point);
@@ -602,8 +1608,11 @@ impl EditorSubsystem {
     extern void CloseProject(EditorSubsystem self, bool shutdownWorld);
     extern void ShowImportContentDialog(EditorSubsystem self);
     extern void ClearSelection(EditorSubsystem self);
-    extern string GetCodeEditor(EditorSubsystem self);
+    extern void GetCodeEditor(EditorSubsystem self, return string outReturn);
+    extern EditorManipulationMode GetSelectedManipulationMode(EditorSubsystem self);
+    extern void SetSelectedManipulationMode(EditorSubsystem self, EditorManipulationMode mode);
     extern EditorGizmoBase GetSelectedGizmo(EditorSubsystem self);
+    extern EditorGizmoBase GetGizmo(EditorSubsystem self, EditorManipulationMode mode);
     extern bool IsMeshEditModeEnabled(EditorSubsystem self);
     extern void EnterMeshEditMode(EditorSubsystem self);
     extern void ExitMeshEditMode(EditorSubsystem self, bool saveEdits);
@@ -614,6 +1623,8 @@ impl EditorSubsystem {
     extern bool IsMeshEditDragActive(EditorSubsystem self);
     extern bool HasPendingMeshEdits(EditorSubsystem self);
     extern int GetMeshEditLockedAxis(EditorSubsystem self);
+    extern MeshEditFaceMode GetMeshEditFaceMode(EditorSubsystem self);
+    extern void SetMeshEditFaceMode(EditorSubsystem self, MeshEditFaceMode faceMode);
     extern bool IsMeshEditAlignToNormal(EditorSubsystem self);
     extern void SetMeshEditAlignToNormal(EditorSubsystem self, bool alignToNormal);
     extern bool IsSnapToGridEnabled(EditorSubsystem self);
@@ -632,8 +1643,9 @@ impl EditorSubsystem {
 // EditorGizmoBase (requires HYP_EDITOR)
 impl EditorGizmoBase {
     extern bool IsDragging(EditorGizmoBase self);
+    extern EditorManipulationMode GetManipulationMode(EditorGizmoBase self);
     extern int GetPriority(EditorGizmoBase self);
-    extern string GetMenuText(EditorGizmoBase self);
+    extern void GetMenuText(EditorGizmoBase self, return string outReturn);
 }
 
 // Node
@@ -655,19 +1667,26 @@ impl Node {
     extern bool Remove(Node self, bool moveToDetached);
     extern void RemoveAllChildren(Node self, bool moveToDetached);
     extern uint NumChildren(Node self);
+    extern void SetLocalTransform(Node self, const Transform transform, TransformChangeType changeType);
     // requires: HYP_EDITOR
     extern void SetLocalTransform_EditorOnly(Node self, const Transform transform);
     extern void GetLocalTransform(Node self, return Transform outReturn);
     extern float3 GetLocalTranslation(Node self);
+    extern void SetLocalTranslation(Node self, float3 translation, TransformChangeType changeType);
     extern void Translate(Node self, float3 translation);
     extern float3 GetLocalScale(Node self);
+    extern void SetLocalScale(Node self, float3 scale, TransformChangeType changeType);
     extern void Scale(Node self, float3 scale);
     extern void GetLocalRotation(Node self, return Quat4f outReturn);
+    extern void SetLocalRotation(Node self, const Quat4f rotation, TransformChangeType changeType);
     extern void Rotate(Node self, const Quat4f rotation);
     extern void GetWorldMatrix(Node self, return Mat4f outReturn);
     extern float3 GetWorldTranslation(Node self);
+    extern void SetWorldTranslation(Node self, float3 translation, TransformChangeType changeType);
     extern float3 GetWorldScale(Node self);
+    extern void SetWorldScale(Node self, float3 scale, TransformChangeType changeType);
     extern void GetWorldRotation(Node self, return Quat4f outReturn);
+    extern void SetWorldRotation(Node self, const Quat4f rotation, TransformChangeType changeType);
     extern bool IsTransformLocked(Node self);
     extern void GetLocalBoundsWithChildren(Node self, return BoundingBox outReturn);
     extern void GetWorldBounds(Node self, return BoundingBox outReturn);
@@ -704,6 +1723,7 @@ impl Entity {
 // CameraController
 impl CameraController {
     extern Camera GetCamera(CameraController self);
+    extern CameraProjectionMode GetProjectionMode(CameraController self);
     extern bool IsMouseLockAllowed(CameraController self);
     extern bool IsMouseLockRequested(CameraController self);
     extern void SetTranslation(CameraController self, float3 translation);
@@ -711,6 +1731,7 @@ impl CameraController {
     extern void SetDirection(CameraController self, float3 direction);
     extern void SetUpVector(CameraController self, float3 up);
     property Camera Camera { get = CameraController_GetCamera; }
+    property CameraProjectionMode ProjectionMode { get = CameraController_GetProjectionMode; }
 }
 
 // Camera
@@ -777,6 +1798,7 @@ impl FogVolume {
 
 // EnvProbe
 impl EnvProbe {
+    extern EnvProbeType GetEnvProbeType(EnvProbe self);
     extern bool IsReflectionProbe(EnvProbe self);
     extern bool IsSkyProbe(EnvProbe self);
     extern bool IsAmbientProbe(EnvProbe self);
@@ -787,8 +1809,11 @@ impl EnvProbe {
     extern float3 GetOrigin(EnvProbe self, bool fromCenter);
     extern void SetOrigin(EnvProbe self, float3 origin, bool fromCenter);
     extern Camera GetCamera(EnvProbe self);
+    extern EnvProbeDimensions GetDimensions(EnvProbe self);
+    extern void SetDimensions(EnvProbe self, EnvProbeDimensions dimensions);
     extern float GetDiffuseStrength(EnvProbe self);
     extern void SetDiffuseStrength(EnvProbe self, float diffuseStrength);
+    property EnvProbeDimensions Dimensions { get = EnvProbe_GetDimensions; set = EnvProbe_SetDimensions; }
     property float DiffuseStrength { get = EnvProbe_GetDiffuseStrength; set = EnvProbe_SetDiffuseStrength; }
 }
 
@@ -807,7 +1832,7 @@ impl IrradianceProbe {
 // TextSprite
 impl TextSprite {
     extern void SetText(TextSprite self, const string text);
-    extern string GetText(TextSprite self);
+    extern void GetText(TextSprite self, return string outReturn);
     extern void SetTextColor(TextSprite self, const Color color);
     extern void GetTextColor(TextSprite self, return Color outReturn);
     extern void SetTextSize(TextSprite self, float textSize);
@@ -824,6 +1849,7 @@ impl DirectionalLight {
 
 // Light
 impl Light {
+    extern LightType GetLightType(Light self);
     extern float3 GetNormal(Light self);
     extern void SetNormal(Light self, float3 normal);
     extern float2 GetAreaSize(Light self);
@@ -863,13 +1889,38 @@ impl EntityManager {
     extern Scene GetScene(EntityManager self);
 }
 
+// BlendFunction
+impl BlendFunction {
+    extern BlendModeFactor GetSrcColor(BlendFunction self);
+    extern void SetSrcColor(BlendFunction self, BlendModeFactor src);
+    extern BlendModeFactor GetDstColor(BlendFunction self);
+    extern void SetDstColor(BlendFunction self, BlendModeFactor dst);
+    extern BlendModeFactor GetSrcAlpha(BlendFunction self);
+    extern void SetSrcAlpha(BlendFunction self, BlendModeFactor src);
+    extern BlendModeFactor GetDstAlpha(BlendFunction self);
+    extern void SetDstAlpha(BlendFunction self, BlendModeFactor dst);
+    property BlendModeFactor SrcColor { get = BlendFunction_GetSrcColor; set = BlendFunction_SetSrcColor; }
+    property BlendModeFactor DstColor { get = BlendFunction_GetDstColor; set = BlendFunction_SetDstColor; }
+    property BlendModeFactor SrcAlpha { get = BlendFunction_GetSrcAlpha; set = BlendFunction_SetSrcAlpha; }
+    property BlendModeFactor DstAlpha { get = BlendFunction_GetDstAlpha; set = BlendFunction_SetDstAlpha; }
+}
+
 // MaterialParameters
 impl MaterialParameters {
     extern bool IsNormalMapFlipY(MaterialParameters self);
     extern void SetNormalMapFlipY(MaterialParameters self, bool value);
+    extern MaterialTextureChannel GetRoughnessChannel(MaterialParameters self);
+    extern void SetRoughnessChannel(MaterialParameters self, MaterialTextureChannel channel);
+    extern MaterialTextureChannel GetMetalnessChannel(MaterialParameters self);
+    extern void SetMetalnessChannel(MaterialParameters self, MaterialTextureChannel channel);
+    extern MaterialTextureChannel GetAmbientOcclusionChannel(MaterialParameters self);
+    extern void SetAmbientOcclusionChannel(MaterialParameters self, MaterialTextureChannel channel);
     extern bool IsParallaxInverseHeight(MaterialParameters self);
     extern void SetParallaxInverseHeight(MaterialParameters self, bool value);
     property bool NormalMapFlipY { get = MaterialParameters_IsNormalMapFlipY; set = MaterialParameters_SetNormalMapFlipY; }
+    property MaterialTextureChannel RoughnessChannel { get = MaterialParameters_GetRoughnessChannel; set = MaterialParameters_SetRoughnessChannel; }
+    property MaterialTextureChannel MetalnessChannel { get = MaterialParameters_GetMetalnessChannel; set = MaterialParameters_SetMetalnessChannel; }
+    property MaterialTextureChannel AmbientOcclusionChannel { get = MaterialParameters_GetAmbientOcclusionChannel; set = MaterialParameters_SetAmbientOcclusionChannel; }
     property bool InverseHeight { get = MaterialParameters_IsParallaxInverseHeight; set = MaterialParameters_SetParallaxInverseHeight; }
 }
 
@@ -888,15 +1939,22 @@ impl InputManager {
     extern void GetPreviousVirtualMousePosition(InputManager self, return Vec2i outReturn);
     extern float2 GetVirtualMousePositionNormalized(InputManager self);
     extern void GetWindowSize(InputManager self, return Vec2i outReturn);
+    extern bool IsKeyDown(InputManager self, KeyCode key);
+    extern bool IsKeyUp(InputManager self, KeyCode key);
     extern bool IsShiftDown(InputManager self);
     extern bool IsAltDown(InputManager self);
     extern bool IsCtrlDown(InputManager self);
+    extern bool IsButtonDown(InputManager self, MouseButtonKey btn);
+    extern bool IsButtonUp(InputManager self, MouseButtonKey btn);
     extern ApplicationWindow GetWindow(InputManager self);
 }
 
 // FirstPersonCameraController
 impl FirstPersonCameraController {
+    extern FirstPersonCameraControllerMode GetMode(FirstPersonCameraController self);
+    extern void SetMode(FirstPersonCameraController self, FirstPersonCameraControllerMode mode);
     extern bool IsMouseLockAllowed(FirstPersonCameraController self);
+    property FirstPersonCameraControllerMode Mode { get = FirstPersonCameraController_GetMode; set = FirstPersonCameraController_SetMode; }
 }
 
 // CommandletBase
@@ -948,9 +2006,11 @@ impl EngineDriver {
 
 // DeviceDetails
 impl DeviceDetails {
-    extern string GetGpuModel(DeviceDetails self);
-    extern string GetGpuVendorName(DeviceDetails self);
-    extern string GetDriverVersion(DeviceDetails self);
+    extern GpuType GetGpuType(DeviceDetails self);
+    extern GpuVendor GetGpuVendor(DeviceDetails self);
+    extern void GetGpuModel(DeviceDetails self, return string outReturn);
+    extern void GetGpuVendorName(DeviceDetails self, return string outReturn);
+    extern void GetDriverVersion(DeviceDetails self, return string outReturn);
     extern bool IsDiscreteGpu(DeviceDetails self);
     extern bool SupportsRayTracing(DeviceDetails self);
     extern bool SupportsRayQueries(DeviceDetails self);
@@ -969,9 +2029,11 @@ impl AssetManager {
 impl AssetCollector {
     extern void GetBasePath(AssetCollector self, return FilePath outReturn);
     extern void SetBasePath(AssetCollector self, const FilePath basePath);
+    extern void NotifyAssetChanged(AssetCollector self, const FilePath path, AssetChangeType changeType);
     extern bool IsWatching(AssetCollector self);
     extern void StartWatching(AssetCollector self);
     extern void StopWatching(AssetCollector self);
+    extern void OnAssetChanged(AssetCollector self, const FilePath path, AssetChangeType changeType);
 }
 
 // AssetRegistry
@@ -985,7 +2047,7 @@ impl AssetPath {
     extern bool IsValid(AssetPath self);
     extern void GetBucket(AssetPath self, return AssetBucket outReturn);
     extern void GetName(AssetPath self, return Name outReturn);
-    extern string ToString(AssetPath self);
+    extern void ToString(AssetPath self, return string outReturn);
     property string Value { get = AssetPath_ToString; }
 }
 
@@ -1097,11 +2159,19 @@ impl Material {
     extern void SetIsDynamic(Material self, bool isDynamic);
 }
 
+// PhysicsShape
+impl PhysicsShape {
+    extern PhysicsShapeType GetType(PhysicsShape self);
+}
+
 // Sound
 impl Sound {
+    extern SoundFormat GetFormat(Sound self);
+    extern void SetFormat(Sound self, SoundFormat format);
     extern ulong GetFrequency(Sound self);
     extern void SetFrequency(Sound self, ulong freq);
     extern float GetDuration(Sound self);
+    property SoundFormat Format { get = Sound_GetFormat; set = Sound_SetFormat; }
     property ulong Frequency { get = Sound_GetFrequency; set = Sound_SetFrequency; }
 }
 
@@ -1112,9 +2182,9 @@ impl EditorViewport {
 
 // EditorTaskBase (requires HYP_EDITOR)
 impl EditorTaskBase {
-    extern string GetTitle(EditorTaskBase self);
+    extern void GetTitle(EditorTaskBase self, return string outReturn);
     extern void SetTitle(EditorTaskBase self, const string title);
-    extern string GetDescription(EditorTaskBase self);
+    extern void GetDescription(EditorTaskBase self, return string outReturn);
     extern void SetDescription(EditorTaskBase self, const string description);
     extern float GetProgress(EditorTaskBase self);
     extern void SetProgress(EditorTaskBase self, float progress);
@@ -1180,9 +2250,9 @@ impl EditorProject {
 
 // EditorCommandBase (requires HYP_EDITOR)
 impl EditorCommandBase {
-    extern string GetText(EditorCommandBase self);
+    extern void GetText(EditorCommandBase self, return string outReturn);
     extern int NumArguments(EditorCommandBase self);
-    extern string GetArgument(EditorCommandBase self, int index);
+    extern void GetArgument(EditorCommandBase self, int index, return string outReturn);
 }
 
 // EditorActionStack (requires HYP_EDITOR)
@@ -1195,21 +2265,21 @@ impl EditorActionStack {
 
 // EditorActionBase (requires HYP_EDITOR)
 impl EditorActionBase {
-    extern string GetText(EditorActionBase self);
+    extern void GetText(EditorActionBase self, return string outReturn);
     extern void Execute(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
     extern void Revert(EditorActionBase self, EditorSubsystem editorSubsystem, EditorProject project);
 }
 
 // FunctionalEditorAction (requires HYP_EDITOR)
 impl FunctionalEditorAction {
-    extern string GetText(FunctionalEditorAction self);
+    extern void GetText(FunctionalEditorAction self, return string outReturn);
     extern void Execute(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
     extern void Revert(FunctionalEditorAction self, EditorSubsystem editorSubsystem, EditorProject project);
 }
 
 // UUID
 impl UUID {
-    extern string ToString(UUID self);
+    extern void ToString(UUID self, return string outReturn);
 }
 
 // Result
@@ -1273,15 +2343,15 @@ impl Mat3f {
 // Color
 impl Color {
     extern float GetRed(Color self);
-    extern void SetRed(Color self, float red, return Color outReturn);
+    extern void SetRed(Color self, float red);
     extern float GetGreen(Color self);
-    extern void SetGreen(Color self, float green, return Color outReturn);
+    extern void SetGreen(Color self, float green);
     extern float GetBlue(Color self);
-    extern void SetBlue(Color self, float blue, return Color outReturn);
+    extern void SetBlue(Color self, float blue);
     extern float GetAlpha(Color self);
-    extern void SetAlpha(Color self, float alpha, return Color outReturn);
-    property float Red { get = Color_GetRed; set = Color_Set_Red; }
-    property float Green { get = Color_GetGreen; set = Color_Set_Green; }
-    property float Blue { get = Color_GetBlue; set = Color_Set_Blue; }
-    property float Alpha { get = Color_GetAlpha; set = Color_Set_Alpha; }
+    extern void SetAlpha(Color self, float alpha);
+    property float Red { get = Color_GetRed; set = Color_SetRed; }
+    property float Green { get = Color_GetGreen; set = Color_SetGreen; }
+    property float Blue { get = Color_GetBlue; set = Color_SetBlue; }
+    property float Alpha { get = Color_GetAlpha; set = Color_SetAlpha; }
 }

@@ -1,3 +1,5 @@
+// The contents of this file are primarily AI generated
+
 #if defined(HYP_TESTS) && defined(HYP_SCRIPT)
 
 #include <Lang/HypScript.hpp>

@@ -174,6 +174,8 @@ void AstVariableDeclaration::Visit(AstVisitor* visitor, Module* mod)
 
                     if (dstElemType != nullptr)
                     {
+                        arrayExpr->SetHeldType(dstElemType);
+
                         for (auto& member : arrayExpr->GetMembers())
                         {
                             member = MakeHandle<AstAsExpression>(

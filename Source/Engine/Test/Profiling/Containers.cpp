@@ -1,8 +1,10 @@
+// The contents of this file are primarily AI generated
+
 /*!
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
-*/
+ */
 
 #ifdef HYP_TESTS
 

@@ -389,15 +389,6 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         return HYP_MAKE_ERROR(Error, "Null type");
     }
 
-    // References have no Strata representation, except for the handful of
-    // value types that are conventionally passed around by const reference in
-    // C++ (String/ANSIString, Array<T>, Vec2f/Vec3f/Vec4f) despite crossing the
-    // Strata boundary by value / fat-pointer rather than by C++ reference, and
-    // UDT structs (HYP_STRUCT / unreflected types), which Strata always passes
-    // by reference implicitly, matching the pointer convention used when the
-    // C++ side takes/returns them by pointer instead. Unwrap those; every
-    // other reference remains unsupported (e.g. a HYP_CLASS by reference,
-    // which must be passed as a handle instead).
     if (type->isLvalueReference || type->isRvalueReference)
     {
         if (!type->refTo)
@@ -440,10 +431,6 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "C-strings are not supported in Strata bindings");
         }
 
-        // A raw `T*` is only valid if T is a known engine class/struct. Classes
-        // (HYP_CLASS) are handles, mirroring the host-side object directly.
-        // Structs (HYP_STRUCT) are UDTs, passed by reference like their `T&`
-        // counterpart above - not handles, since they aren't in allHandleNames.
         if (type->ptrTo->typeName.HasValue() && !type->ptrTo->typeName->parts.Empty())
         {
             const String innerName = type->ptrTo->typeName->ToString(/* includeNamespace */ false);
@@ -451,23 +438,19 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
                 definition && definition->type == ClassDefinitionType::Class)
             {
-                return StrataTypeMapping { definition->name, true, false, false, false, false, BuildQualifiedCXXName(*definition) };
+                return StrataTypeMapping { definition->name, true, false, false, false, false, false, BuildQualifiedCXXName(*definition) };
             }
 
             if (const ClassDefinition* definition = analyzer.FindClassDefinition(innerName);
                 definition && definition->type == ClassDefinitionType::Struct)
             {
-                return StrataTypeMapping { definition->name, false, true, false, false, false, BuildQualifiedCXXName(*definition) };
+                return StrataTypeMapping { definition->name, false, true, false, false, false, false, BuildQualifiedCXXName(*definition) };
             }
         }
 
         return HYP_MAKE_ERROR(Error, "Pointer to non-class type is not supported in Strata bindings");
     }
 
-    // Arrays: `Array<T>` (and the SlimArray/FatArray variants it aliases) map
-    // to Strata's `T[]`, a fat {ptr, u64} value. Only scalar element types are
-    // representable for now - handles/structs/strings/vectors would need a
-    // second indirection (or `box<T>`) the current thunk marshaling doesn't do.
     if (type->isTemplate)
     {
         const String templateName = type->typeName.HasValue() && type->typeName->parts.Any()
@@ -514,9 +497,6 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
 
     const String typeNameString = type->typeName->ToString(/* includeNamespace */ false);
 
-    // Strata's `string` is a raw, length-less char* under the hood, so only a
-    // null-terminated owning String is safe to bind - a view over
-    // non-terminated data would read out of bounds on the Strata side.
     if (typeNameString == "StringView" || typeNameString == "UTF8StringView" || typeNameString == "ANSIStringView"
         || typeNameString == "UTF16StringView" || typeNameString == "UTF32StringView" || typeNameString == "WideStringView")
     {
@@ -579,7 +559,7 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             return HYP_MAKE_ERROR(Error, "Aggregate value types must be passed as pointers in Strata bindings");
         }
 
-        return StrataTypeMapping { definition->name, false, true, false, false, false, BuildQualifiedCXXName(*definition) };
+        return StrataTypeMapping { definition->name, false, true, false, false, false, false, BuildQualifiedCXXName(*definition) };
     }
 
     // Unknown types are treated as an unreflected C++ struct that will be forward-
@@ -848,26 +828,31 @@ String ASTType::Format(bool useCsharpSyntax) const
     if (useCsharpSyntax)
     {
         String csharpType = "object";
+
         if (typeName.HasValue() && !typeName->parts.Empty())
         {
             csharpType = typeName->parts[typeName->parts.Size() - 1];
         }
+
         if (isArray)
         {
             csharpType += "[]";
         }
-        // Simple generic handling (only surface-level):
+        
         if (isTemplate && templateArguments.Any())
         {
             csharpType += "<";
+            
             for (int i = 0; i < templateArguments.Size(); ++i)
             {
                 if (i > 0)
                 {
                     csharpType += ", ";
                 }
-                csharpType += "object"; // Or produce a more robust mapping here
+
+                csharpType += "object";
             }
+
             csharpType += ">";
         }
 
