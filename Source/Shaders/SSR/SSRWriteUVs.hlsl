@@ -82,6 +82,8 @@ DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define MAX_ROUGHNESS 0.4
+
+#if 0
 #define HIZ_STOP_LEVEL 0.0
 
 /// https://maorachow.github.io/3d/graphics/2024/09/11/a-high-performance-screen-space-reflection-algorithm.html
@@ -331,6 +333,86 @@ bool TraceRays(
     hit_point = scene_view_position.xyz;
 
     return true;
+}
+#endif
+
+bool TraceRays(
+    float3 ray_origin,
+    float3 ray_direction,
+    float jitter,
+    float surface_roughness,
+    out float2 hit_pixel,
+    out float3 hit_point,
+    out float num_iterations)
+{
+    ray_direction = normalize(ray_direction);
+    float3 currStep = ssrConstants.ray_step * ray_direction;
+    float3 currPosition = ray_origin;
+
+    const int max_iterations = int(ssrConstants.num_iterations);
+
+    num_iterations = 0.0;
+    hit_pixel = float2(0.0, 0.0);
+    hit_point = float3(0.0, 0.0, 0.0);
+
+    int i = 0;
+    for (; i < max_iterations; i++)
+    {
+        currPosition += currStep;
+
+        hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
+
+        if (hit_pixel.x != saturate(hit_pixel.x) || hit_pixel.y != saturate(hit_pixel.y))
+        {
+            return false;
+        }
+
+        // @TODO Make use of the hi z bricks to skip empty spaces!
+        float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
+        float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
+
+        float step_delta = currPosition.z - view_space_position.z;
+        num_iterations += 1.0;
+
+        if (ssrConstants.max_ray_distance > 0.0)
+        {
+            float t = distance(ray_origin, currPosition);
+            if (t > ssrConstants.max_ray_distance)
+            {
+                break;
+            }
+        }
+
+        if (step_delta > 0.0)
+        {
+            if (step_delta < ssrConstants.thickness)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    currStep *= 0.5;
+                    currPosition -= currStep * sign(step_delta);
+
+                    hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
+                    depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
+                    view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
+
+                    step_delta = currPosition.z - view_space_position.z;
+
+                    if (abs(step_delta) < ssrConstants.distance_bias)
+                    {
+                        hit_point = view_space_position.xyz;
+                        return true;
+                    }
+                }
+            }
+
+            hit_point = view_space_position.xyz;
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 float CalculateAlpha(
