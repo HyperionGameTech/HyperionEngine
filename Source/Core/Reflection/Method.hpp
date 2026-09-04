@@ -28,14 +28,6 @@ class Class;
 
 CORE_API extern const char* LookupTypeName(const TypeId& typeId);
 
-#ifdef HYP_SCRIPT
-enum class BytecodeAddress : uint32;
-#ifndef INVALID_FUNCTION_ADDRESS
-#define INVALID_FUNCTION_ADDRESS BytecodeAddress(~0u)
-#endif
-
-#endif
-
 struct MethodParameter
 {
     const TypeInfo* typeInfo = &TypeInfo_Void();
@@ -167,24 +159,8 @@ public:
           m_flags(MethodFlags::NONE),
           m_attributes(attributes)
     {
-#ifdef HYP_SCRIPT
-        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
-#endif
     }
 
-#ifdef HYP_SCRIPT
-    Method(Name name, const TypeInfo* returnTypeInfo, const TypeInfo* targetTypeInfo, BytecodeAddress scriptAddress, EnumFlags<MethodFlags> flags, Span<const ClassAttribute> attributes = {})
-        : m_name(name),
-          m_returnTypeInfo(returnTypeInfo),
-          m_targetTypeInfo(targetTypeInfo),
-          m_scriptAddress(scriptAddress),
-          m_flags(flags),
-          m_attributes(attributes)
-    {
-        HYP_CORE_ASSERT(m_returnTypeInfo != nullptr, "Return TypeInfo cannot be null");
-        HYP_CORE_ASSERT(m_targetTypeInfo != nullptr, "Target TypeInfo cannot be null");
-    }
-#endif
 
     template <class ReturnType, class TargetType, class... ArgTypes>
     Method(Name name, ReturnType (TargetType::*memFn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
@@ -209,9 +185,6 @@ public:
                   }
               })
     {
-#ifdef HYP_SCRIPT
-        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
-#endif
 
         m_returnTypeInfo = &TypeOf<NormalizedType<ReturnType>>();
         m_targetTypeInfo = &TypeOf<NormalizedType<TargetType>>();
@@ -244,9 +217,6 @@ public:
                   }
               })
     {
-#ifdef HYP_SCRIPT
-        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
-#endif
 
         m_returnTypeInfo = &TypeOf<NormalizedType<ReturnType>>();
         m_targetTypeInfo = &TypeOf<NormalizedType<TargetType>>();
@@ -277,9 +247,6 @@ public:
                   }
               })
     {
-#ifdef HYP_SCRIPT
-        m_scriptAddress = INVALID_FUNCTION_ADDRESS;
-#endif
 
         m_returnTypeInfo = &TypeOf<NormalizedType<ReturnType>>();
         m_targetTypeInfo = &TypeInfo_Void();
@@ -367,17 +334,6 @@ public:
         return m_proc(const_cast<BoxedValue**>(args.Data()), args.Size());
     }
 
-#ifdef HYP_SCRIPT
-    HYP_FORCE_INLINE BytecodeAddress GetScriptAddress() const
-    {
-        return m_scriptAddress;
-    }
-
-    HYP_FORCE_INLINE bool IsScriptFunction() const
-    {
-        return m_scriptAddress != INVALID_FUNCTION_ADDRESS;
-    }
-#endif
 
 private:
     Name m_name;
@@ -389,9 +345,6 @@ private:
 
     Proc<BoxedValue(BoxedValue**, size_t)> m_proc;
 
-#ifdef HYP_SCRIPT
-    BytecodeAddress m_scriptAddress;
-#endif
 };
 
 #undef HYP_METHOD_MEMBER_FN_WRAPPER

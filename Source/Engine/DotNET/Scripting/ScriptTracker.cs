@@ -18,7 +18,6 @@ namespace Hyperion
         private IntPtr callbackSelfPtr;
 
         private CSharpScriptCompiler? csharpCompiler = null;
-        private HypScriptCompiler? hypScriptCompiler = null;
         private StrataScriptCompiler? strataCompiler = null;
 
         private Dictionary<string, ScriptDescWrapper> processingScripts = [];
@@ -46,8 +45,6 @@ namespace Hyperion
                 csharpCompiler = new CSharpScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
                 csharpCompiler.BuildAllProjects();
 
-                hypScriptCompiler = new HypScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
-                hypScriptCompiler.BuildAllProjects();
 
                 strataCompiler = new StrataScriptCompiler(sourceDirectories[0], intermediateDirectory, binaryOutputDirectory);
                 strataCompiler.BuildAllProjects();
@@ -100,17 +97,6 @@ namespace Hyperion
                 csWatcher.Created += OnCsFileChanged;
                 watchers.Add(csWatcher);
 
-                // Watch for HypScript files
-                var hypWatcher = new FileSystemWatcher(sourceDir)
-                {
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
-                    Filter = "*.hyp",
-                    EnableRaisingEvents = true,
-                    IncludeSubdirectories = true
-                };
-                hypWatcher.Changed += OnHypFileChanged;
-                hypWatcher.Created += OnHypFileChanged;
-                watchers.Add(hypWatcher);
 
                 // Watch for Strata files
                 var strataWatcher = new FileSystemWatcher(sourceDir)
@@ -144,7 +130,6 @@ namespace Hyperion
             callbackSelfPtr = IntPtr.Zero;
 
             csharpCompiler = null;
-            hypScriptCompiler = null;
             strataCompiler = null;
 
             sourceDirectories.Clear();
@@ -188,7 +173,6 @@ namespace Hyperion
                 ScriptCompilerBase? compiler = entry.Value.Get().Language switch
                 {
                     ScriptLanguage.CSharp => csharpCompiler,
-                    ScriptLanguage.HypScript => hypScriptCompiler,
                     ScriptLanguage.Strata => strataCompiler,
                     _ => null
                 };
@@ -233,7 +217,7 @@ namespace Hyperion
 
                 bool removedFromProcessing = processingScripts.Remove(scriptPath);
 
-                if (language == ScriptLanguage.CSharp) // HypScript editor tasks are managed on the native side.
+                if (language == ScriptLanguage.CSharp)
                 {
                     if (tasks.Remove(scriptPath, out CompileScriptEditorTask? task))
                     {
@@ -255,12 +239,6 @@ namespace Hyperion
             ProcessScriptFile(e.FullPath, ScriptLanguage.CSharp);
         }
 
-        private void OnHypFileChanged(object source, FileSystemEventArgs e)
-        {
-            Logger.Log(logChannel, LogLevel.Info, "ScriptTracker: HypScript file changed: {0} {1}", e.FullPath, e.ChangeType);
-
-            ProcessScriptFile(e.FullPath, ScriptLanguage.HypScript);
-        }
 
         private void OnStrataFileChanged(object source, FileSystemEventArgs e)
         {
@@ -300,7 +278,7 @@ namespace Hyperion
             if (language == ScriptLanguage.CSharp)
             {
                 // Start editor task for script compilation
-                // We only do this for C# since HypScript is compiled from C++ so we manage the editor task from there.
+                // Only C# compilation runs as an editor task.
                 StartCompilationTask(filePath, language);
             }
         }

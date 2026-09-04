@@ -44,10 +44,6 @@
 #include <Editor/EditorState.hpp>
 #endif
 
-#if HYP_SCRIPT
-#include <Lang/HypScript.hpp>
-#endif
-
 namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(SimThread);
@@ -234,11 +230,6 @@ void SimThread::operator()()
     {
         InitThreadAllocator();
     }
-
-#if HYP_SCRIPT
-    HypScript::Initialize();
-    AddOnExitCallback(&HypScript::Shutdown);
-#endif
 
     if (m_gameInstance != nullptr)
     {

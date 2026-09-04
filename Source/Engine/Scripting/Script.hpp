@@ -57,7 +57,7 @@ struct ScriptDesc
     uint64 lastModifiedTimestamp;
 
     ScriptDesc()
-        : language(ScriptLanguage::HypScript),
+        : language(ScriptLanguage::Strata),
           path{},
           assemblyPath{},
           className{},

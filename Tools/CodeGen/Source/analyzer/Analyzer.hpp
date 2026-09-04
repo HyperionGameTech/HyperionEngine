@@ -85,16 +85,6 @@ public:
         m_csharpOutputDirectory = csharpOutputDirectory;
     }
 
-    HYP_FORCE_INLINE const FilePath& GetHypScriptOutputDirectory() const
-    {
-        return m_hypscriptOutputDirectory;
-    }
-
-    HYP_FORCE_INLINE void SetHypScriptOutputDirectory(const FilePath& hypscriptOutputDirectory)
-    {
-        m_hypscriptOutputDirectory = hypscriptOutputDirectory;
-    }
-
     HYP_FORCE_INLINE const FilePath& GetStrataOutputDirectory() const
     {
         return m_strataOutputDirectory;
@@ -205,7 +195,6 @@ private:
     FilePath m_sourceDirectory;
     FilePath m_cxxOutputDirectory;
     FilePath m_csharpOutputDirectory;
-    FilePath m_hypscriptOutputDirectory;
     FilePath m_strataOutputDirectory;
 
     Set<FilePath> m_excludeDirectories;

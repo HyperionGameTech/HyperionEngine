@@ -6,7 +6,6 @@ void (*ScriptObjectFunctions::IncScriptObjectRef)(ObjectBase*) = nullptr;
 void (*ScriptObjectFunctions::DecScriptObjectRef)(ObjectBase*) = nullptr;
 
 ScriptObjectResource* (*ScriptObjectFunctions::CreateScriptObjectResource_DotNet)(ObjectBase*, const memory::SharedPtr<dotnet::ManagedClass, threading::AtomicVar<unsigned int, void>>&) = nullptr;
-ScriptObjectResource* (*ScriptObjectFunctions::CreateScriptObjectResource_Script)(ScriptInstance*, ObjectBase*) = nullptr;
 void (*ScriptObjectFunctions::DestroyScriptObjectResource)(ScriptObjectResource*) = nullptr;
 
 void (*ScriptObjectFunctions::ReleaseDotNetGCHandle)(ObjectBase*) = nullptr;

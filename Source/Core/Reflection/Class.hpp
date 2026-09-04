@@ -911,16 +911,12 @@ protected:
 protected:
 };
 
-/*! \brief a runtime created Class instance, for use in scripts or external code such as .NET or HypScript */
+/*! \brief a runtime created Class instance, for use in scripts or external code such as .NET */
 class CORE_API DynamicClassInstance final : public Class
 {
 public:
 #ifdef HYP_DOTNET
     DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members);
-#endif
-
-#ifdef HYP_SCRIPT
-    DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members);
 #endif
 
     virtual ~DynamicClassInstance() override;

@@ -37,10 +37,6 @@
 
 #include <HyperionEngine.hpp>
 
-#ifdef HYP_SCRIPT
-#include <Lang/HypScript.hpp>
-#endif
-
 #include <ScriptSystem.generated.inl>
 
 namespace Hyperion {
@@ -222,13 +218,6 @@ void ScriptSystem::OnAddedToWorld(World* world)
                             return;
                         }
                         break;
-                    case ScriptLanguage::HypScript:
-                        // Compilation is driven from C++; only act while the script is pending.
-                        if (!(inScriptDesc.compileStatus & uint32(ScriptCompileStatus::Processing)))
-                        {
-                            return;
-                        }
-                        break;
                     case ScriptLanguage::Strata:
                         break;
                     default:
@@ -258,15 +247,14 @@ void ScriptSystem::OnAddedToWorld(World* world)
 
                             bool matchesScript = false;
 
-                            if ((inScriptDesc.language == ScriptLanguage::HypScript
-                                    || inScriptDesc.language == ScriptLanguage::Strata)
+                            if (inScriptDesc.language == ScriptLanguage::Strata
                                 && scriptAsset->IsRegistered())
                             {
                                 Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
 
                                 if (registry.IsValid())
                                 {
-                                    const char* extension = inScriptDesc.language == ScriptLanguage::Strata ? ".strata" : ".hyp";
+                                    const char* extension = ".strata";
 
                                     const FilePath incomingPath(inScriptDesc.path.Data());
                                     const FilePath expectedSourcePath = registry->GetRootPath() / "Scripts" / (scriptAsset->GetName().ToString() + extension);

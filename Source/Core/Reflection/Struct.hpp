@@ -203,16 +203,6 @@ struct DynamicStructInstanceFunctions
 class CORE_API DynamicStructInstance final : public Struct
 {
 public:
-#ifdef HYP_SCRIPT
-    DynamicStructInstance(
-        TypeId typeId,
-        Name name,
-        Span<const ClassAttribute> attributes,
-        EnumFlags<ClassFlags> flags,
-        Span<MemberVariant> members,
-        const DynamicStructInstanceFunctions& functions);
-#endif
-
     DynamicStructInstance(
         TypeId typeId,
         Name name,

@@ -39,11 +39,6 @@ struct CSharpTypeMapping
     bool isNullable = false;           // Whether the type should be nullable in C#
 };
 
-struct HypScriptTypeMapping
-{
-    String typeName; // Name of the type in HypScript
-};
-
 struct StrataTypeMapping
 {
     String typeName;            // Name of the type in Strata
@@ -62,10 +57,7 @@ struct StrataTypeMapping
     }
 };
 
-extern const HypScriptTypeMapping g_hypscriptAnyTypeMapping;
-
 TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTType* type);
-TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const ASTType* type);
 TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTType* type);
 
 struct ASTNode

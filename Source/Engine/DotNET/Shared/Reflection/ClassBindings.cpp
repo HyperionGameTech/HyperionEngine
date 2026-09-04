@@ -23,7 +23,7 @@
 #include <DotNET/ManagedObject.hpp>
 #include <DotNET/ManagedClass.hpp>
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#if defined(HYP_DOTNET)
 #include <Scripting/ScriptObjectResource.hpp>
 #endif
 

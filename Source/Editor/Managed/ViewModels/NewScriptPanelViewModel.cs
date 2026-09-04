@@ -29,7 +29,6 @@ namespace Hyperion.Editor.ViewModels
 
         public ScriptLanguageEntry[] Languages { get; } =
         {
-            new ScriptLanguageEntry("HypScript", "hypscript", ".hyp"),
             new ScriptLanguageEntry("Strata", "strata", ".strata"),
             new ScriptLanguageEntry("C#", "csharp", ".cs")
         };
@@ -48,7 +47,6 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _selectedLanguage, value))
                 {
                     // Keep the radio buttons in sync with the selection.
-                    OnPropertyChanged(nameof(IsHypScriptSelected));
                     OnPropertyChanged(nameof(IsStrataSelected));
                     OnPropertyChanged(nameof(IsCSharpSelected));
                 }
@@ -56,22 +54,16 @@ namespace Hyperion.Editor.ViewModels
         }
 
         // Radio buttons bind to these; each setter drives SelectedLanguage.
-        public bool IsHypScriptSelected
-        {
-            get => _selectedLanguage.LanguageArg == "hypscript";
-            set { if (value) SelectedLanguage = Languages[0]; }
-        }
-
         public bool IsStrataSelected
         {
             get => _selectedLanguage.LanguageArg == "strata";
-            set { if (value) SelectedLanguage = Languages[1]; }
+            set { if (value) SelectedLanguage = Languages[0]; }
         }
 
         public bool IsCSharpSelected
         {
             get => _selectedLanguage.LanguageArg == "csharp";
-            set { if (value) SelectedLanguage = Languages[2]; }
+            set { if (value) SelectedLanguage = Languages[1]; }
         }
 
         public ICommand ConfirmCommand { get; }

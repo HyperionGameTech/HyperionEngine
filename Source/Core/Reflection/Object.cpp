@@ -17,20 +17,11 @@
 
 #include <Core/Containers/Stack.hpp>
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
-
 #ifdef HYP_DOTNET
-#include <DotNET/ManagedClass.hpp>
-#include <DotNET/ManagedObject.hpp>
-#endif // HYP_DOTNET
-
-#ifdef HYP_SCRIPT
-#include <Lang/HypScript.hpp>
-#endif // HYP_SCRIPT
 
 #include <Scripting/ScriptObjectResource.hpp>
 
-#endif // HYP_DOTNET || HYP_SCRIPT
+#endif // HYP_DOTNET
 
 namespace Hyperion {
 
@@ -70,7 +61,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
     ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
     AssertDebug(target->GetObjectHeader_Internal()->GetRefCountStrong() == 1);
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
     AssertDebug(target->GetScriptObjectResource() == nullptr);
 
     if (!(ptr.GetClass()->GetFlags() & ClassFlags::NO_SCRIPT_BINDINGS))
@@ -107,18 +98,6 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             }
 #endif // !HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-            if (!scriptObjectResource)
-            {
-                scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_Script((ScriptInstance*)nullptr, target);
-
-                target->SetScriptObjectResource(scriptObjectResource);
-            }
-            else
-            {
-                scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript { nullptr, target });
-            }
-#endif
         }
     }
 #endif
@@ -157,7 +136,7 @@ void ObjectHeader::DestructThisObject(ObjectHeader* header)
 ObjectBase::ObjectBase()
     : m_initState(INIT_STATE_UNINITIALIZED)
 {
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
     m_scriptObjectResource = nullptr;
 #endif
 
@@ -169,51 +148,10 @@ ObjectBase::ObjectBase()
 
 ObjectBase::~ObjectBase()
 {
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
 
     if (m_scriptObjectResource)
     {
-#ifdef HYP_SCRIPT
-        // destruct all dynamic fields
-        if (m_header->cls->IsDynamic())
-        {
-            const Class* cls = m_header->cls;
-
-            AssertDebug(cls->IsClassType());
-
-            const bool isScriptObj = ScriptObjectFunctions::GetScriptLanguageMask
-                ? (ScriptObjectFunctions::GetScriptLanguageMask(m_scriptObjectResource) & (1u << uint32(ScriptLanguage::HypScript))) != 0
-                : false;
-
-            if (isScriptObj)
-            {
-                size_t fieldOffset = sizeof(ObjectBase);
-
-                while (cls != nullptr && cls->IsDynamic())
-                {
-                    for (Field* field : cls->GetFields())
-                    {
-                        // align field offset
-                        fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
-
-                        BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(this) + fieldOffset);
-
-                        // We don't want to destruct values that are in tracked memory!
-                        // Destruct only if we own it
-                        if (fieldPtr->extData.gcIndex == INVALID_GC_INDEX)
-                        {
-                            fieldPtr->~BoxedValue();
-                        }
-
-                        fieldOffset += sizeof(BoxedValue);
-                    }
-
-                    cls = cls->GetParent();
-                }
-            }
-        }
-#endif
-
         if (ScriptObjectFunctions::DestroyScriptObjectResource)
         {
             ScriptObjectFunctions::DestroyScriptObjectResource(m_scriptObjectResource);

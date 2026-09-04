@@ -124,10 +124,6 @@ CORE_API extern void InitializeModule_Core();
 EDITOR_API extern void InitializeModule_Editor();
 #endif // HYP_EDITOR
 
-#ifdef HYP_SCRIPT
-SCRIPT_API extern void InitializeModule_Script();
-#endif // HYP_SCRIPT
-
 // defined in PlatformUtils.[cpp|mm]
 namespace PlatformUtils {
 ENGINE_API extern PlatformString GetExecutableAbsolutePath();
@@ -449,10 +445,6 @@ extern "C"
 #ifdef HYP_EDITOR
         InitializeModule_Editor();
 #endif // HYP_EDITOR
-
-#ifdef HYP_SCRIPT
-        InitializeModule_Script();
-#endif // HYP_SCRIPT
 
 #if HYP_ANDROID
         const FilePath basePath = FilePath(AndroidAssetPathPrefix);

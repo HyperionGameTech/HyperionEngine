@@ -92,10 +92,12 @@ namespace Hyperion.Editor.Views.Inspector
                     }
 
                     // @FIXME same as in ContentBrowserViewModel.cs
+                    string extension = "strata";
+
                     string scriptPath = Path.Combine(
                         AssetManager.Instance.AssetRegistry.GetRootPath(),
                         "Scripts",
-                        scriptAsset.Name.ToString() + ".hyp");
+                        scriptAsset.Name.ToString() + "." + extension);
 
                     Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
                 });

@@ -83,13 +83,6 @@ struct GetReturnTypeHelper<BoxedValue, true>
 
 struct GenericArrayWrapper;
 
-#ifdef HYP_SCRIPT
-enum class GCIndex : uint32;
-
-static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
-static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex((1u << 31) - 1);
-static constexpr GCIndex MAX_GC_INDEX = GCIndex((1u << 31) - 2);
-#endif // HYP_SCRIPT
 
 /*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, SharedPtr<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
@@ -175,14 +168,6 @@ struct CORE_API BoxedValue
 
     union
     {
-#ifdef HYP_SCRIPT
-        // HypScript only - object metadata
-        struct
-        {
-            GCIndex gcIndex : 31;   // index into the pool of tracked objects
-            uint8 isStaticInit : 1; // static data pool / stack data - will be 1 if init
-        };
-#endif
         uint32 dummy;
     } extData;
 
@@ -239,11 +224,7 @@ struct CORE_API BoxedValue
         return *this;
     }
 
-#if defined(HYP_SCRIPT) && defined(HYP_DEBUG_MODE)
-    ~BoxedValue();
-#else   // !HYP_SCRIPT || !HYP_DEBUG_MODE
     ~BoxedValue() = default;
-#endif  // HYP_SCRIPT && HYP_DEBUG_MODE
 
     HYP_FORCE_INLINE bool IsValid() const
     {

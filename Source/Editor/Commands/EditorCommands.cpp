@@ -2607,9 +2607,9 @@ class EditorCommandNewScript final : public EditorCommandBase
 public:
     virtual ~EditorCommandNewScript() override = default;
 
-    // The language is passed as the first argument (e.g. "hypscript", "strata",
+    // The language is passed as the first argument (e.g. "strata",
     // "csharp") by the caller -- see ContentBrowserViewModel. Defaults to
-    // HypScript when no argument is supplied.
+    // Strata when no argument is supplied.
     virtual String GetText() const override
     {
         const String& language = GetArgument(0);
@@ -2622,11 +2622,6 @@ public:
         if (language == "csharp")
         {
             return "New C# Script";
-        }
-
-        if (language == "hypscript")
-        {
-            return "New HypScript Script";
         }
 
         return "New Script";
@@ -2730,9 +2725,9 @@ public:
             : "NewScript";
 
         ScriptDesc scriptDesc;
-        scriptDesc.language = ScriptLanguage::HypScript;
+        scriptDesc.language = ScriptLanguage::Strata;
 
-        String extension = ".hyp";
+        String extension = ".strata";
         String templateCode;
 
         if (languageArg == "strata")
@@ -2747,7 +2742,7 @@ public:
             templateCode += "void Update(float delta)\n{\n}\n\n";
             templateCode += "void Destroy()\n{\n}\n";
         }
-        else if (languageArg == "csharp")
+        else // csharp
         {
             scriptDesc.language = ScriptLanguage::CSharp;
             extension = ".cs";
@@ -2760,20 +2755,6 @@ public:
             templateCode += "    public override void Update(float deltaTime)\n    {\n    }\n\n";
             templateCode += "    public override void Destroy()\n    {\n    }\n";
             templateCode += "}\n";
-        }
-        else // hypscript
-        {
-            static constexpr const char ScriptTemplateCode[] = "import Lib.*\n\n"
-                                                               "func OnAdded(entity : Entity)\n"
-                                                               "    // Called when added to the scene, entity is the target this script is attached to.\n"
-                                                               "end\n"
-                                                               "\n"
-                                                               "func Update(deltaTime : float)\n"
-                                                               "    // This gets called each frame when the script is active.\n"
-                                                               "end\n"
-                                                               "\n";
-
-            templateCode = ScriptTemplateCode;
         }
 
         Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(Name(assetName), scriptDesc);

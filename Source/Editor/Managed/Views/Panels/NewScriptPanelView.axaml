@@ -26,7 +26,6 @@
 
                 <StackPanel Spacing="6">
                     <TextBlock Classes="section-label" Text="Language" />
-                    <RadioButton Content="HypScript" IsChecked="{Binding IsHypScriptSelected, Mode=TwoWay}" />
                     <RadioButton Content="Strata" IsChecked="{Binding IsStrataSelected, Mode=TwoWay}" />
                     <RadioButton Content="C#" IsChecked="{Binding IsCSharpSelected, Mode=TwoWay}" />
                 </StackPanel>

@@ -22,9 +22,6 @@
 #include <Core/Util.hpp>
 #include <Core/Types.hpp>
 
-#ifdef HYP_SCRIPT
-#include <Core/Reflection/BoxedValue.hpp>
-#endif // HYP_SCRIPT
 
 #ifdef HYP_STRATA_JIT
 struct StrataJit;
@@ -51,15 +48,6 @@ struct ScriptObjectData_DotNet final
 };
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-struct ScriptObjectData_HypScript final
-{
-    static constexpr ScriptLanguage Language = ScriptLanguage::HypScript;
-
-    ScriptInstance* instance = nullptr;
-    ObjectBase* obj = nullptr;
-};
-#endif // HYP_SCRIPT
 
 struct ScriptObjectData_Strata final
 {
@@ -93,9 +81,6 @@ public:
     ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-    ScriptObjectResource(ScriptInstance* hypScriptInstance, ObjectBase* hypScriptValue);
-#endif // HYP_SCRIPT
 
 #ifdef HYP_STRATA
     ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash);
@@ -146,22 +131,6 @@ public:
     }
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-    ScriptObjectData_HypScript* GetScriptObjectData_HypScript()
-    {
-        return hypScriptData.TryGet();
-    }
-
-    const ScriptObjectData_HypScript* GetScriptObjectData_HypScript() const
-    {
-        return hypScriptData.TryGet();
-    }
-
-    void SetScriptObjectData_HypScript(const ScriptObjectData_HypScript& data)
-    {
-        hypScriptData = data;
-    }
-#endif // HYP_SCRIPT
     
 #ifdef HYP_STRATA
     ScriptObjectData_Strata* GetScriptObjectData_Strata()
@@ -192,9 +161,6 @@ protected:
     Optional<ScriptObjectData_DotNet> dotNetData;
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-    Optional<ScriptObjectData_HypScript> hypScriptData;
-#endif // HYP_SCRIPT
     
 #ifdef HYP_STRATA
     Optional<ScriptObjectData_Strata> strataData;

@@ -34,9 +34,6 @@
 #    include <Editor/EditorTask.hpp>
 #endif // HYP_EDITOR
 
-#ifdef HYP_SCRIPT
-#    include <Lang/HypScript.hpp>
-#endif // HYP_SCRIPT
 
 #ifdef HYP_STRATA
 #    include <Core/Scripting/Strata/StrataMarshal.hpp>
@@ -329,37 +326,6 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
     }
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-    if (mask & (1u << uint32(ScriptLanguage::HypScript)))
-    {
-        auto* data = sor->GetScriptObjectData_HypScript();
-        Assert(data != nullptr);
-
-        namespace HS = HypScript;
-
-        BoxedValue functionValue;
-        if (HS::GetFunctionHandle(data->instance, methodName, functionValue))
-        {
-            const size_t numArgs = sizeof...(ArgTypes);
-
-            FixedArray<BoxedValue, sizeof...(ArgTypes)> argsArray { BoxedValue(args)... };
-
-            BoxedValue returnValue = HS::CallFunctionArgV(data->instance, functionValue, argsArray.Data(), uint8(argsArray.Size()));
-
-            if constexpr (!std::is_void_v<ReturnType>)
-            {
-                Assert(returnValue.IsValid());
-                Assert(returnValue.Is<ReturnType>());
-
-                AssertDebug(outReturnValue != nullptr);
-
-                // we construct the return value in place
-                new (outReturnValue) ReturnType(std::move(returnValue.Get<ReturnType>()));
-            }
-        }
-    }
-#endif // HYP_SCRIPT
-
 #ifdef HYP_STRATA
     if (mask & (1u << uint32(ScriptLanguage::Strata)))
     {
@@ -450,7 +416,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
             }
         }
     }
-    else // external script object (C# or HypScript)
+    else // external script object (C# or Strata)
     {
         const Handle<ScriptAsset>& scriptAsset = scriptComponent.script;
 
@@ -576,203 +542,6 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
             break;
         }
 #endif // HYP_DOTNET
-#ifdef HYP_SCRIPT
-        case ScriptLanguage::HypScript:
-        {
-            namespace HS = HypScript;
-
-            if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
-            {
-                delete sor;
-                sor = nullptr;
-
-                auto readScope = scriptAsset->GetReadScope();
-
-                ScriptInstance* instance = nullptr;
-
-                // Create from bytecode
-                ConstByteView bytecode = scriptAsset->GetBytecode();
-
-#    ifdef HYP_EDITOR
-                if (bytecode.Size() > 0)
-                {
-                    // Check if source file has been modified since the bytecode was compiled
-                    bool needsRecompile = false;
-
-                    {
-                        Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
-
-                        if (registry.IsValid())
-                        {
-                            const FilePath sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".hyp");
-
-                            if (sourcePath.Exists() && sourcePath.CanRead())
-                            {
-                                const Time sourceModified = sourcePath.LastModifiedTimestamp();
-                                const Time lastCompiled(scriptDesc.lastModifiedTimestamp);
-
-                                if (sourceModified > lastCompiled)
-                                {
-                                    needsRecompile = true;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!needsRecompile)
-                    {
-                        instance = HS::CreateFromBytecode(bytecode);
-                        Assert(instance != nullptr);
-                    }
-                }
-
-                if (!instance) // needs recompile
-                {
-                    // Load source file and compile it
-                    Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
-                    AssertDebug(registry.IsValid());
-
-                    if (!registry.IsValid())
-                    {
-                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Invalid AssetRegistry, cannot load script source", scriptAsset->GetName());
-                        return;
-                    }
-
-                    const FilePath sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".hyp");
-
-                    if (!sourcePath.Exists() || !sourcePath.CanRead())
-                    {
-                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Script file '{}' does not exist or cannot be read!", scriptDesc.path.Data());
-                        return;
-                    }
-
-                    EditorTaskScope editorTaskScope(
-                        TickableEditorTask::StaticClass(),
-                        "Compiling script",
-                        "Processing source file: " + sourcePath,
-                        /* isForegroundTask */ true);
-
-                    FileByteReader readStream { sourcePath };
-
-                    if (readStream.Eof())
-                    {
-                        HYP_LOG(Scripting, Error, "ScriptSystem::OnEntityAdded: Failed to open script file '{}' for reading!", scriptDesc.path.Data());
-                        return;
-                    }
-
-                    ByteBuffer byteBuffer = readStream.Read();
-
-                    SourceFile sourceFile(sourcePath, byteBuffer.Size());
-                    sourceFile.ReadIntoBuffer(byteBuffer);
-
-                    byteBuffer.Clear();
-
-                    HypScriptCompileParams compileParams;
-                    // Add data / scripts path as scan path so we pick up Lib.hyp
-                    compileParams.scanPaths.Add(EngineGlobals::GetDataDirectory() / AssetBuckets::Scripts.GetName());
-
-                    ErrorList errorList;
-                    instance = HS::Compile(sourceFile, errorList, compileParams);
-
-                    if (errorList.HasFatalErrors())
-                    {
-                        SystemMessageBox(MessageBoxType::CRITICAL)
-                            .Title("Script Compilation Error")
-                            .Text(HYP_FORMAT("Failed to compile script file '{}'. See the log for details.", sourcePath))
-                            .Button("Close", []()
-                                    {
-                                    })
-                            .Show(/* showBlocking */ false);
-
-                        return;
-                    }
-
-                    Assert(instance != nullptr);
-
-#        if 1
-                    {
-                        // Debug: decompile the bytecode
-                        std::stringstream ss;
-                        HS::Decompile(instance, &ss);
-                        HYP_LOG(Scripting, Debug, "Decompiled bytecode:\n\n{}", ss.str().c_str());
-                    }
-#        endif
-
-                    // Record the source file timestamp so we can detect future changes
-                    scriptDesc.lastModifiedTimestamp = uint64(sourcePath.LastModifiedTimestamp());
-
-                    { // Save bytecode.
-                        MemoryByteWriter<DynamicAllocator> bytecodeStream;
-                        HS::WriteBytecodeToStream(instance, bytecodeStream);
-
-                        readScope.Reset();
-
-                        // Get exclusive access to write the bytecode data.
-                        auto writeScope = scriptAsset->GetWriteScope();
-                        scriptAsset->SetBytecode(bytecodeStream.GetBuffer().ToByteView());
-                        writeScope.Reset();
-
-                        // Save script binary again if it exists on the filesystem.
-                        if (scriptAsset->IsSaved())
-                        {
-                            Result saveResult = scriptAsset->Save();
-                            if (saveResult.HasError())
-                            {
-                                HYP_LOG(Scripting, Warning, "Failed to save script asset: {}", saveResult.GetError().GetMessage());
-                            }
-                        }
-
-                        readScope = scriptAsset->GetReadScope();
-                    }
-                }
-#    else
-                if (bytecode.Size() > 0)
-                {
-                    instance = HS::CreateFromBytecode(bytecode);
-                    Assert(instance != nullptr);
-                }
-                else
-                {
-                    HYP_LOG(Scripting, Error, "Invalid bytecode for script: {}", scriptAsset->GetName());
-                    return;
-                }
-#    endif
-
-                sor = new ScriptObjectResource(instance, (ObjectBase*)nullptr);
-                sor->AddReader();
-
-                if (!gameState.IsStopped())
-                {
-
-                    if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
-                    {
-                        // run the script to initialize classes, functions, etc.
-                        HS::Run(instance);
-
-                        InvokeScriptMethodT<void>(nullptr, sor, "BeforeAdded", world, scene);
-                        InvokeScriptMethodT<void>(nullptr, sor, "OnAdded", entity);
-
-                        scriptComponent.flags |= ScriptComponentFlags::ACTIVATED;
-                    }
-                }
-
-                if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
-                {
-                    if (scriptComponent.scriptObjectResource)
-                    {
-                        scriptComponent.scriptObjectResource->ReleaseReader();
-
-                        delete scriptComponent.scriptObjectResource;
-                        scriptComponent.scriptObjectResource = nullptr;
-                    }
-
-                    return;
-                }
-            }
-
-            break;
-        }
-#endif // HYP_SCRIPT
 
 #ifdef HYP_STRATA
         case ScriptLanguage::Strata:
@@ -891,9 +660,6 @@ void ShutdownEntityScript(Entity* entity, ScriptComponent& scriptComponent, cons
         sor = nullptr;
     }
 
-#ifdef HYP_SCRIPT
-    HypScript::CollectGarbage();
-#endif
 
     scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::ACTIVATED);
 }

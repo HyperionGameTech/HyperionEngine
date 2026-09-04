@@ -842,22 +842,6 @@ public:
 
             const Pair<String, String>* pathIt = attributes.TryGet("path");
 
-#ifdef HYP_SCRIPT
-            // if PATH attr exists, it's HypScript
-
-            if (!valid && pathIt)
-            {
-                ScriptComponent scriptComponent {};
-
-                ScriptDesc scriptDesc {};
-                scriptDesc.language = ScriptLanguage::HypScript;
-                Memory::CopyString(scriptDesc.path.values, pathIt->second.Data(), GetArrayCount(scriptDesc.path));
-                Memory::CopyString(scriptDesc.className.values, classIt->second.Data(), GetArrayCount(scriptDesc.className));
-
-                // \todo Check EntityScripting.cpp for reference implementation
-            }
-#endif
-
             // Native script object
             if (!valid && classIt && !pathIt && !assemblyIt)
             {

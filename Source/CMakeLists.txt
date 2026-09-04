@@ -527,10 +527,6 @@ if((HYP_IOS OR HYP_SHIPPING) AND NOT HYP_ANDROID)
   add_definitions(-DHYP_BUILD_STATIC=1)
 endif()
 
-# enable HypScript
-set(HYP_SCRIPT 1)
-add_definitions(-DHYP_SCRIPT=1)
-
 # Set to true if C# is not planned on being used for scripting
 # .NET is necessary for the editor, but for a leaner build this is recommended to disable if not using C# for scripts.
 
@@ -820,11 +816,6 @@ if(WIN32)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
-
-# add Lang folder if HypScript is enabled.
-if(HYP_SCRIPT)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/Lang ${CMAKE_BINARY_DIR}/Lang)
-endif()
 
 function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
@@ -1214,10 +1205,6 @@ if(HYP_JOLT)
   target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
 endif()
 
-if(HYP_SCRIPT)
-    target_link_libraries(${BUILD_NAME} PUBLIC hyperion-script) #Lang
-endif()
-
 # add sublibraries as dependencies so any changes get picked up.
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
   add_dependencies(${BUILD_NAME} ${SUB_LIBRARY})
@@ -1303,7 +1290,7 @@ if (CMAKE_GENERATOR MATCHES "Ninja")
 endif()
 
 # # copy sample scripts to the output directory
-# file(GLOB SAMPLE_SCRIPTS "${CMAKE_SOURCE_DIR}/../Data/Scripts/*.hyp")
+# file(GLOB SAMPLE_SCRIPTS "${CMAKE_SOURCE_DIR}/../Data/Scripts/*.strata")
 # foreach(SAMPLE_SCRIPT ${SAMPLE_SCRIPTS})
 #     file(COPY ${SAMPLE_SCRIPT} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 # endforeach()

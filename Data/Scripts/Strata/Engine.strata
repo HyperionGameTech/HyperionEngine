@@ -1047,9 +1047,8 @@ enum ScriptLanguage : byte
 {
     Invalid = UINT8_MAX,
     Native = 0,
-    HypScript = 1,
-    CSharp = 2,
-    Strata = 3
+    CSharp = 1,
+    Strata = 2
 };
 enum StreamingCellState : uint
 {

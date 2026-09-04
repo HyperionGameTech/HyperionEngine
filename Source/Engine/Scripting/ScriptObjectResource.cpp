@@ -17,10 +17,6 @@
 #include <DotNET/DotNETHost.hpp>
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-#include <Lang/HypScript.hpp>
-#endif // HYP_SCRIPT
-
 #ifdef HYP_STRATA_JIT
 #include <strata/strata.h>
 #endif // HYP_STRATA_JIT
@@ -110,18 +106,6 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotn
 }
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-
-ScriptObjectResource::ScriptObjectResource(ScriptInstance* hypScriptInstance, ObjectBase* hypScriptValue)
-    : m_ptr(nullptr)
-{
-    ScriptObjectData_HypScript& data = hypScriptData.Emplace(ScriptObjectData_HypScript());
-    data.instance = hypScriptInstance;
-    data.obj = hypScriptValue;
-}
-
-#endif // HYP_SCRIPT
-
 #ifdef HYP_STRATA
 ScriptObjectResource::ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>, StringHash moduleHash)
     : m_ptr(nullptr)
@@ -133,22 +117,6 @@ ScriptObjectResource::ScriptObjectResource(ValueWrapper<ScriptLanguage::Strata>,
 
 ScriptObjectResource::~ScriptObjectResource()
 {
-#ifdef HYP_SCRIPT
-    if (hypScriptData.HasValue())
-    {
-        if (hypScriptData->instance)
-        {
-
-            HypScript::DestroyScript(hypScriptData->instance);
-            hypScriptData->instance = nullptr;
-        }
-
-        hypScriptData->obj = nullptr;
-
-        hypScriptData.Unset();
-    }
-#endif // HYP_SCRIPT
-
 #ifdef HYP_DOTNET
     if (dotNetData.HasValue())
     {
@@ -204,13 +172,6 @@ uint32 ScriptObjectResource::GetScriptLanguageMask() const
     }
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-    if (hypScriptData.HasValue())
-    {
-        mask |= (1 << uint32(ScriptLanguage::HypScript));
-    }
-#endif // HYP_SCRIPT
-    
 #ifdef HYP_STRATA
     if (strataData.HasValue())
     {
@@ -387,7 +348,7 @@ ENGINE_API void Object_ReleaseDotNetGCHandle(ObjectBase* ptr)
 
 #endif // HYP_DOTNET
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#if defined(HYP_DOTNET) || defined(HYP_STRATA)
 static struct ScriptObjectFunctionsDependencyInject
 {
     ScriptObjectFunctionsDependencyInject()
@@ -414,12 +375,6 @@ static struct ScriptObjectFunctionsDependencyInject
             return obj->GetManagedObject();
         };
 #endif // HYP_DOTNET
-
-#if defined(HYP_SCRIPT) && HYP_SCRIPT
-        ScriptObjectFunctions::CreateScriptObjectResource_Script = [](ScriptInstance* instance, ObjectBase* target) -> ScriptObjectResource* {
-            return new ScriptObjectResource(instance, target);
-        };
-#endif // HYP_SCRIPT
 
         ScriptObjectFunctions::DestroyScriptObjectResource = [](ScriptObjectResource* obj) {
             delete obj;

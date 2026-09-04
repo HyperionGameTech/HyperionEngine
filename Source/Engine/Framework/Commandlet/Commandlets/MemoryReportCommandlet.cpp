@@ -258,7 +258,7 @@ protected:
                 stats.minRefCount = MathUtil::Min(stats.minRefCount, refCount);
                 stats.maxRefCount = MathUtil::Max(stats.maxRefCount, refCount);
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#if defined(HYP_DOTNET)
                 ObjectBase* obj = ObjectHeader::GetObjectPointer(const_cast<ObjectHeader*>(header));
                 if (obj)
                 {

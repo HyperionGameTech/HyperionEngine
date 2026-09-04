@@ -96,19 +96,6 @@ public:
         }
 #endif
 
-#ifdef HYP_SCRIPT
-        if (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::HypScript)))
-        {
-            ScriptObjectData_HypScript* hypScriptData = scriptObjectResource->GetScriptObjectData_HypScript();
-            HYP_CORE_ASSERT(hypScriptData != nullptr, "HypScript script object data is null!");
-
-            ScriptInstance* instance = hypScriptData->instance;
-            HYP_CORE_ASSERT(instance != nullptr, "HypScript instance is null!");
-
-            HYP_NOT_IMPLEMENTED(); // see EntityScripting.cpp
-        }
-#endif
-
         ScriptObjectData_Native* nativeData = scriptObjectResource->GetScriptObjectData_Native();
         if (!nativeData)
         {
@@ -164,7 +151,7 @@ private:
 };
 
 /*! \brief A delegate that can be bound to script methods.
- *  \details This delegate can be bound to methods defined in managed code (e.g., C#), HypScript, or native code (reflection methods).
+ *  \details This delegate can be bound to methods defined in managed code (e.g., C#) or native code (reflection methods).
  *  \tparam ReturnType The return type of the delegate.
  *  \tparam Args The argument types of the delegate.*/
 template <class ReturnType, class... Args>

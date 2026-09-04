@@ -24,11 +24,6 @@ enum class ObjectFlags : uint32;
 enum class ScriptLanguage : uint8;
 
 struct ScriptObjectData_DotNet;
-struct ScriptObjectData_HypScript;
-
-#ifdef HYP_SCRIPT
-struct ScriptInstance;
-#endif
 
 HYP_ENUM()
 enum class ScriptCompileStatus : uint8
@@ -49,9 +44,8 @@ enum class ScriptLanguage : uint8
 
     Native = 0,
 
-    HypScript = 1,
-    CSharp = 2,
-    Strata = 3
+    CSharp = 1,
+    Strata = 2
 };
 
 } // namespace Hyperion

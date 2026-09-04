@@ -23,18 +23,6 @@ CORE_API const TypeInfo& Class_GetTypeInfo(const Class& cls)
 
 #pragma region BoxedValue
 
-#if defined(HYP_SCRIPT) && defined(HYP_DEBUG_MODE)
-BoxedValue::~BoxedValue()
-{
-    AssertDebug(extData.gcIndex == INVALID_GC_INDEX,
-                "BoxedValue being destroyed while still registered with the GC (index = {})",
-                uint32(extData.gcIndex));
-
-    extData.gcIndex = GARBAGE_GC_INDEX;
-}
-#endif // defined(HYP_SCRIPT) && defined(HYP_DEBUG_MODE)
-
-
 HYP_NODISCARD AnyRef BoxedValue::ToRef()
 {
     if (!IsValid())

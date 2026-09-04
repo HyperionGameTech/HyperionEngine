@@ -22,9 +22,8 @@ namespace Hyperion
 
         Native = 0,
 
-        HypScript = 1,
-        CSharp = 2,
-        Strata = 3
+        CSharp = 1,
+        Strata = 2
     }
 
     [ClassBinding(Name = "ScriptDesc")]
@@ -225,7 +224,7 @@ namespace Hyperion
         {
             if (!IsValid)
             {
-                throw new InvalidOperationException("ScriptInstance is not initialized");
+                throw new InvalidOperationException("ScriptDesc is not initialized");
             }
 
             return ref System.Runtime.CompilerServices.Unsafe.AsRef<ScriptDesc>(ptr.ToPointer());

@@ -39,7 +39,7 @@ namespace Hyperion
 
             string[] directories = System.IO.Directory.GetDirectories(sourceDirectory, "*", System.IO.SearchOption.AllDirectories)
                 .Append(sourceDirectory)
-                .Where(directory => System.IO.Directory.GetFiles(directory, ".hypmodule").Length > 0 && System.IO.Directory.GetFiles(directory, "*.cs").Length > 0)
+                .Where(directory => System.IO.Directory.GetFiles(directory, "*.cs").Length > 0)
                 .ToArray();
 
             foreach (string directory in directories)
@@ -242,14 +242,9 @@ namespace Hyperion
             List<string> csFiles = System.IO.Directory.GetFiles(scriptDirectory, "*.cs")
                 .ToList();
 
-            // iterate subdirectories recursively, skipping directories when a .hypmodule file is encountered (they will be a separate module)
+            // iterate subdirectories recursively
             foreach (string subDirectory in System.IO.Directory.GetDirectories(scriptDirectory, "*", System.IO.SearchOption.AllDirectories))
             {
-                if (System.IO.File.Exists(System.IO.Path.Combine(subDirectory, ".hypmodule")))
-                {
-                    continue; // skip this directory
-                }
-
                 csFiles.AddRange(System.IO.Directory.GetFiles(subDirectory, "*.cs"));
             }
 

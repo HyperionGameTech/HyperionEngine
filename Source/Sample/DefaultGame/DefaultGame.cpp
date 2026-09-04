@@ -26,8 +26,6 @@
 #include <Scene/Components/CharacterControllerComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
 
-#include <Lang/HypScript.hpp>
-
 #include <Scripting/Asset/ScriptAsset.hpp>
 
 #include <Asset/AssetObject.hpp>

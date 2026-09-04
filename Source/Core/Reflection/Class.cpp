@@ -21,7 +21,7 @@
 #include <Core/Threading/Thread.hpp>
 #include <Core/Threading/ThreadLocalStorage.hpp>
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
 
 #ifdef HYP_DOTNET
 #include <DotNET/ManagedObject.hpp>
@@ -29,9 +29,6 @@
 #include <DotNET/Assembly.hpp>
 #endif
 
-#ifdef HYP_SCRIPT
-#include <Lang/HypScript.hpp>
-#endif
 
 #include <Scripting/ScriptObjectResource.hpp>
 
@@ -41,8 +38,6 @@
 
 namespace Hyperion {
 
-#ifdef HYP_SCRIPT
-#endif
 
 #ifdef HYP_TOOL
 const Class* g_clsObjectBase = nullptr;
@@ -1324,91 +1319,6 @@ DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class
 }
 #endif
 
-#ifdef HYP_SCRIPT
-DynamicClassInstance::DynamicClassInstance(
-    TypeId typeId,
-    Name name,
-    const Class* parentClass,
-    Span<const ClassAttribute> attributes,
-    EnumFlags<ClassFlags> flags,
-    Span<MemberVariant> members)
-    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : g_clsObjectBase->GetName(), attributes, flags | ClassFlags::DYNAMIC, members)
-{
-    m_refCount = 0;
-
-    m_parent = parentClass != nullptr ? parentClass : g_clsObjectBase;
-
-    size_t dynamicSize = sizeof(ObjectBase);
-    size_t dynamicAlignment = alignof(ObjectBase);
-
-    auto CalculateDynamicClassSize = [](const Class* cls, size_t& dynamicSize, size_t& dynamicAlignment)
-    {
-        AssertDebug(cls->IsDynamic());
-
-        for (const Field* field : cls->GetFields())
-        {
-            // In dynamic classes for scripts, all fields are stored as BoxedValue
-            const size_t fieldSize = sizeof(BoxedValue);
-            const size_t fieldAlignment = alignof(BoxedValue);
-
-            dynamicSize = ByteUtil::AlignAs(dynamicSize, fieldAlignment);
-
-            AssertDebug(field != nullptr);
-            AssertDebug(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: {}, class: {}), expected {}, got {}",
-                        field->GetName(), cls->GetName(),
-                        dynamicSize, field->GetOffset());
-
-            dynamicSize += fieldSize;
-
-            dynamicAlignment = MathUtil::Max(dynamicAlignment, fieldAlignment);
-        }
-    };
-
-    const Class* currentParent = m_parent;
-    Array<const Class*> dynamicParents;
-
-    while (currentParent != nullptr && currentParent->IsDynamic() && currentParent != g_clsObjectBase)
-    {
-        dynamicParents.PushBack(currentParent);
-
-        currentParent = currentParent->GetParent();
-    }
-
-    // add size of first non-dynamic parent class (ensuring proper alignment)
-    if (currentParent && !currentParent->IsDynamic() && currentParent != g_clsObjectBase)
-    {
-        dynamicSize = ByteUtil::AlignAs(dynamicSize, currentParent->GetAlignment());
-        dynamicSize += currentParent->GetSize();
-
-        dynamicAlignment = MathUtil::Max(dynamicAlignment, currentParent->GetAlignment());
-    }
-
-    for (size_t i = dynamicParents.Size(); i > 0; --i)
-    {
-        CalculateDynamicClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
-    }
-
-    CalculateDynamicClassSize(this, dynamicSize, dynamicAlignment);
-
-    // if no fields, we must at least be the size of ObjectBase
-    m_size = MathUtil::Max(sizeof(ObjectBase), dynamicSize);
-    m_alignment = MathUtil::Max(alignof(ObjectBase), dynamicAlignment);
-
-    m_objectContainer = &GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> ObjectContainerBase*
-                                                             {
-                                                                 ObjectContainer<ObjectBase>* container = new ObjectContainer<ObjectBase>(thisClass);
-
-                                                                 // we use the Script pool for allocating instances of dynamic classes when HYP_SCRIPT is enabled
-                                                                 Pool* scriptPool = ScriptObjectFunctions::GetScriptPool ? ScriptObjectFunctions::GetScriptPool() : nullptr;
-                                                                 Assert(scriptPool != nullptr);
-                                                                 container->SetPool(scriptPool);
-
-                                                                 return container;
-                                                             });
-
-    Assert(m_objectContainer != nullptr);
-}
-#endif
 
 DynamicClassInstance::~DynamicClassInstance()
 {
@@ -1490,9 +1400,6 @@ bool DynamicClassInstance::CanCreateInstance() const
     }
 #endif
 
-#ifdef HYP_SCRIPT
-    return true;
-#endif
 
     return false;
 }
@@ -1504,9 +1411,6 @@ bool DynamicClassInstance::ToBoxed(ByteView memory, BoxedValue& outBoxed) const
         return m_parent->ToBoxed(memory, outBoxed);
     }
 
-#ifdef HYP_SCRIPT
-    HYP_NOT_IMPLEMENTED(); // not yet implemented for script
-#endif
 
     return false;
 }
@@ -1595,119 +1499,6 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     }
 #endif // HYP_DOTNET
 
-#ifdef HYP_SCRIPT
-    if (IsEnumType())
-    {
-        HYP_NOT_IMPLEMENTED(); // enum instance creation not yet implemented for scripts
-    }
-
-    // get or create new container for dynamic type
-    ObjectContainer<ObjectBase>* container = static_cast<ObjectContainer<ObjectBase>*>(GetObjectContainer());
-    Assert(container != nullptr);
-
-    Array<const Class*> dynamicParents;
-    const Class* topParent = m_parent;
-
-    if (m_parent != nullptr)
-    {
-        while (topParent != nullptr && topParent != g_clsObjectBase)
-        {
-            if (!topParent->IsDynamic())
-            {
-                // stop after first non-dynamic parent class
-                HYP_LOG(Core, Error, "Non-dynamic parent class construction not yet implemented in HypScript for dynamic class {}, Parent class: {}",
-                        GetName(), topParent->GetName());
-
-                return isCreated;
-            }
-
-            dynamicParents.PushBack(topParent);
-
-            topParent = topParent->GetParent();
-        }
-    }
-
-    PushGlobalContext(ObjectInitializerContext { .cls = this, .flags = ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
-
-    ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(container->Allocate(m_size)) - sizeof(ObjectHeader));
-    header->cls = this;
-
-    ObjectBase* target = ObjectHeader::GetObjectPointer(header);
-    new (target) ObjectBase();
-
-    // where to start writing fields
-    size_t fieldOffset = (topParent != nullptr && !topParent->IsDynamic() && topParent != g_clsObjectBase ? topParent->GetSize() : 0)
-        + sizeof(ObjectBase);
-
-    // Add reference for this, in ReleaseObject() will decrement the ref count.
-    const_cast<DynamicClassInstance*>(this)->AddRef();
-
-    for (size_t i = dynamicParents.Size(); i > 0; i--)
-    {
-        const Class* dynamicParent = dynamicParents[i - 1];
-        AssertDebug(dynamicParent->IsDynamic(), "Expected dynamic parent class");
-
-        const DynamicClassInstance* dynamicParentInstance = static_cast<const DynamicClassInstance*>(dynamicParent);
-
-        // Init all fields to BoxedValue()
-        for (Field* field : dynamicParentInstance->GetFields())
-        {
-            // align field offset
-            fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
-
-            AssertDebug(fieldOffset + sizeof(BoxedValue) <= m_size,
-                        "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
-
-            BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(target) + fieldOffset);
-            new (fieldPtr) BoxedValue();
-
-            fieldOffset += sizeof(BoxedValue);
-        }
-    }
-
-    // our own class's fields lastly
-    for (Field* field : GetFields())
-    {
-        // align field offset
-        fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(BoxedValue));
-        AssertDebug(fieldOffset + sizeof(BoxedValue) <= m_size,
-                    "Field offset out of bounds: {} + {} > {}", fieldOffset, sizeof(BoxedValue), m_size);
-
-        BoxedValue* fieldPtr = (BoxedValue*)(UIntPtr(target) + fieldOffset);
-        new (fieldPtr) BoxedValue();
-
-        fieldOffset += sizeof(BoxedValue);
-    }
-
-    Handle<ObjectBase> handle;
-    handle.ptr = target;
-
-    BoxedValue obj(std::move(handle));
-    out = obj;
-
-    PopGlobalContext<ObjectInitializerContext>();
-
-    // ObjectInitializerContext* context = GetGlobalContext<ObjectInitializerContext>();
-
-    // if ((!context || !(context->flags & ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)))
-    // {
-    scriptObjectResource = target->GetScriptObjectResource();
-
-    if (!scriptObjectResource)
-    {
-        scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_Script((ScriptInstance*)nullptr, target);
-        Assert(scriptObjectResource != nullptr);
-
-        target->SetScriptObjectResource(scriptObjectResource);
-    }
-    else
-    {
-        scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript { nullptr, target });
-    }
-    // }
-
-    isCreated = true;
-#endif // HYP_SCRIPT
 
     return isCreated;
 }

@@ -108,7 +108,7 @@ public:
         return m_header ? m_header : &GetDefaultHeader<ObjectBase>();
     }
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
     void SetScriptObjectResource(ScriptObjectResource* scriptObjectResource)
     {
         HYP_CORE_ASSERT(m_scriptObjectResource == nullptr);
@@ -195,7 +195,7 @@ protected:
     // Pointer to the header of the object, holding container, index and ref counts. Must be the first member.
     ObjectHeader* m_header;
 
-#if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
+#ifdef HYP_DOTNET
     ScriptObjectResource* m_scriptObjectResource;
 #endif
 

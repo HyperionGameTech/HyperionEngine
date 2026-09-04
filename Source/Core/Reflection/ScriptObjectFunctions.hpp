@@ -6,7 +6,6 @@ namespace Hyperion {
 
 class ObjectBase;
 class ScriptObjectResource;
-struct ScriptInstance;
 
 namespace memory {
 class Pool;
@@ -34,7 +33,6 @@ struct CORE_API ScriptObjectFunctions
     static void (*DecScriptObjectRef)(ObjectBase*);
 
     static ScriptObjectResource* (*CreateScriptObjectResource_DotNet)(ObjectBase*, const memory::SharedPtr<dotnet::ManagedClass, threading::AtomicVar<unsigned int, void>>&);
-    static ScriptObjectResource* (*CreateScriptObjectResource_Script)(ScriptInstance*, ObjectBase*);
     static void (*DestroyScriptObjectResource)(ScriptObjectResource*);
 
     static void (*ReleaseDotNetGCHandle)(ObjectBase*);

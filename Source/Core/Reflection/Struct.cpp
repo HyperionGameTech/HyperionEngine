@@ -104,50 +104,6 @@ bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, c
 
 #pragma region DynamicStructInstance
 
-#ifdef HYP_SCRIPT
-DynamicStructInstance::DynamicStructInstance(
-    TypeId typeId,
-    Name name,
-    Span<const ClassAttribute> attributes,
-    EnumFlags<ClassFlags> flags,
-    Span<MemberVariant> members,
-    const DynamicStructInstanceFunctions& functions)
-    : Struct(typeId, name, -1, 0, Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members),
-      m_functions(functions)
-{
-    m_refCount = 0;
-    size_t dynamicSize = 0;
-    size_t dynamicAlignment = 0;
-
-    auto CalculateDynamicClassSize = [](const Class* cls, size_t& dynamicSize, size_t& dynamicAlignment)
-    {
-        AssertDebug(cls->IsDynamic());
-
-        for (const Field* field : cls->GetFields())
-        {
-            // In dynamic classes for scripts, all fields are stored as BoxedValue
-            const size_t fieldSize = sizeof(BoxedValue);
-            const size_t fieldAlignment = alignof(BoxedValue);
-
-            dynamicSize = ByteUtil::AlignAs(dynamicSize, fieldAlignment);
-
-            AssertDebug(field != nullptr);
-            AssertDebug(field->GetOffset() == dynamicSize, "Field offsets don't match expected offset! (field: {}, class: {}), expected {}, got {}",
-                field->GetName(), cls->GetName(),
-                dynamicSize, field->GetOffset());
-
-            dynamicSize += fieldSize;
-
-            dynamicAlignment = MathUtil::Max(dynamicAlignment, fieldAlignment);
-        }
-    };
-
-    CalculateDynamicClassSize(this, dynamicSize, dynamicAlignment);
-
-    m_size = MathUtil::Max(1, dynamicSize);
-    m_alignment = MathUtil::Max(1, dynamicAlignment);
-}
-#endif
 
 DynamicStructInstance::DynamicStructInstance(
     TypeId typeId,
