@@ -123,7 +123,6 @@ struct ClientPredictionState
     Array<BufferedMove, SceneAllocator> unacknowledgedMoves;
     uint32 nextMoveId = 1;
     uint32 lastAckedMoveId = 0;
-    uint32 lastSentMoveId = 0;
     Vec3f smoothingOffset = Vec3f(0.0f);
     float smoothingSecondsRemaining = 0.0f;
     float secondsSinceLastSend = 0.0f;

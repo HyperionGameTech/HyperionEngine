@@ -359,7 +359,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         cr << InsertBarrier(&image, initialState);
     }
 
-    cr.Submit();
+    cr.Done();
 
     return {};
 }
@@ -982,7 +982,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
     Check(readbackBuffer->Create());
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Submit(); });
+    HYP_DEFER({ cr.Done(); });
 
     cr << InsertBarrier(m_gpuImage, RS_COPY_SRC);
     cr << InsertBarrier(readbackBuffer, RS_COPY_DST);

@@ -670,7 +670,7 @@ void Mesh::UploadGpuData()
 
     isUploaded.Store(true);
 
-    cr.Submit();
+    cr.Done();
 }
 
 void Mesh::ReleaseGpuData()

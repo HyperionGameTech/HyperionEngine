@@ -286,14 +286,7 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
     }
 
     const double nowMs = double(Time::Now().ToMilliseconds());
-
-    // "Now" expressed on the server timeline. When we have a clock estimate, playback is driven by
-    // the server clock (smooth, jitter-independent); until then fall back to local arrival time.
     const double spaceNowMs = m_hasClockEstimate ? (nowMs - m_clockOffsetMs) : nowMs;
-
-    // Effective interpolation delay: at least the CVar value, but floored to interpRatio x the
-    // measured sample cadence (Source cl_interp_ratio 2 behavior) so the render time never runs
-    // past the newest buffered sample on a normal connection.
     const double interpDelayMs = MathUtil::Max(
         double(NetGlobals::GetInterpolationDelay()) * 1000.0,
         double(NetGlobals::GetInterpRatio()) * m_estimatedSampleIntervalMs);
@@ -414,76 +407,76 @@ void ReplicationApplySystem::UpdateInterpolatedEntities(float delta)
             }
         }
 
-            // Render transform: interpolated Net.InterpolationDelay into the past.
+        // Render transform: interpolated Net.InterpolationDelay into the past.
+        entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
+
+        if (NetGlobals::GetDeadReckoningEnabled())
+        {
+            const InterpolationState::Sample& latest = samples.Back();
+
+            const double latestTimeMs = sample_time(latest);
+
+            const double sinceSampleSec = MathUtil::Max(0.0, (spaceNowMs - latestTimeMs) / 1000.0);
+
+            const double oneWayDelaySec = MathUtil::Clamp(
+                double(g_gameClient->GetNetClient().GetRoundTripTime()) * 0.5 / 1000.0,
+                0.0,
+                0.15);
+
+            const float extrapolationSeconds = latest.isSleeping
+                ? 0.0f
+                : float(sinceSampleSec + oneWayDelaySec);
+
+            Vec3f extrapolation = it->second.velocityEstimate * extrapolationSeconds;
+
+            constexpr float MaxExtrapolationDistance = 0.25f;
+
+            const float extrapolationLength = extrapolation.Length();
+
+            if (extrapolationLength > MaxExtrapolationDistance)
+            {
+                extrapolation *= MaxExtrapolationDistance / extrapolationLength;
+            }
+
+            Transform colliderTransform = latest.transform;
+            colliderTransform.SetTranslation(latest.transform.GetTranslation() + extrapolation);
+
+            const Vec3f& angularVelocityEstimate = it->second.angularVelocityEstimate;
+            const float angularSpeed = angularVelocityEstimate.Length();
+
+            if (angularSpeed > MathUtil::epsilonF)
+            {
+                constexpr float MaxAngularExtrapolationRadians = 0.25f;
+
+                const float angleRadians = MathUtil::Clamp(
+                    angularSpeed * extrapolationSeconds,
+                    0.0f,
+                    MaxAngularExtrapolationRadians);
+
+                const Quat4f rotationDelta(
+                    angularVelocityEstimate * (1.0f / angularSpeed),
+                    angleRadians);
+
+                colliderTransform.SetRotation(rotationDelta * latest.transform.GetRotation());
+            }
+
+            // Underrun: the render time has run past the newest buffered sample (packet burst
+            // gap). Ride the extrapolated position instead of freezing at the newest sample.
+            if (renderTimeMs > latestTimeMs)
+            {
+                targetTransform = colliderTransform;
+            }
+
+            entity->SetLocalTransform(colliderTransform, TransformChangeType::Simulation);
+
+            SyncColliderToEntity(entity, it->second, delta);
+
             entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
-
-            if (NetGlobals::GetDeadReckoningEnabled())
-            {
-                const InterpolationState::Sample& latest = samples.Back();
-
-                const double latestTimeMs = sample_time(latest);
-
-                const double sinceSampleSec = MathUtil::Max(0.0, (spaceNowMs - latestTimeMs) / 1000.0);
-
-                const double oneWayDelaySec = MathUtil::Clamp(
-                    double(g_gameClient->GetNetClient().GetRoundTripTime()) * 0.5 / 1000.0,
-                    0.0,
-                    0.15);
-
-                const float extrapolationSeconds = latest.isSleeping
-                    ? 0.0f
-                    : float(sinceSampleSec + oneWayDelaySec);
-
-                Vec3f extrapolation = it->second.velocityEstimate * extrapolationSeconds;
-
-                constexpr float MaxExtrapolationDistance = 0.25f;
-
-                const float extrapolationLength = extrapolation.Length();
-
-                if (extrapolationLength > MaxExtrapolationDistance)
-                {
-                    extrapolation *= MaxExtrapolationDistance / extrapolationLength;
-                }
-
-                Transform colliderTransform = latest.transform;
-                colliderTransform.SetTranslation(latest.transform.GetTranslation() + extrapolation);
-
-                const Vec3f& angularVelocityEstimate = it->second.angularVelocityEstimate;
-                const float angularSpeed = angularVelocityEstimate.Length();
-
-                if (angularSpeed > MathUtil::epsilonF)
-                {
-                    constexpr float MaxAngularExtrapolationRadians = 0.25f;
-
-                    const float angleRadians = MathUtil::Clamp(
-                        angularSpeed * extrapolationSeconds,
-                        0.0f,
-                        MaxAngularExtrapolationRadians);
-
-                    const Quat4f rotationDelta(
-                        angularVelocityEstimate * (1.0f / angularSpeed),
-                        angleRadians);
-
-                    colliderTransform.SetRotation(rotationDelta * latest.transform.GetRotation());
-                }
-
-                // Underrun: the render time has run past the newest buffered sample (packet burst
-                // gap). Ride the extrapolated position instead of freezing at the newest sample.
-                if (renderTimeMs > latestTimeMs)
-                {
-                    targetTransform = colliderTransform;
-                }
-
-                entity->SetLocalTransform(colliderTransform, TransformChangeType::Simulation);
-
-                SyncColliderToEntity(entity, it->second, delta);
-
-                entity->SetLocalTransform(targetTransform, TransformChangeType::Simulation);
-            }
-            else
-            {
-                SyncColliderToEntity(entity, it->second, delta);
-            }
+        }
+        else
+        {
+            SyncColliderToEntity(entity, it->second, delta);
+        }
 
         ++it;
     }

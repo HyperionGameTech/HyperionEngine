@@ -94,7 +94,7 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const EnvProbe& e
     Assert(!envProbe.IsAmbientProbe());
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
-    HYP_DEFER({ cr.Submit(); });
+    HYP_DEFER({ cr.Done(); });
 
     ENGINE_STAT_GPU_SCOPE(&s_statConvolveEnvProbe, &cr);
 
@@ -443,8 +443,6 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
             shTilesBuffers[i].Initialize();
         }
 
-        const Vec2u cubemapDimensions = inColorTexture.GetExtent().GetXY();
-
         struct ComputeSHConstants
         {
             Vec4u levelDimensions;
@@ -667,7 +665,7 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
     }
     else
     {
-        cr.Submit();
+        cr.Done();
     }
 }
 

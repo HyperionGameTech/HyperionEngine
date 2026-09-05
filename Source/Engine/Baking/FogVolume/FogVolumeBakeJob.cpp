@@ -147,7 +147,7 @@ public:
         cr << InsertBarrier(readbackBuffer, RS_COPY_DST, ShaderModuleType::Compute);
         cr << CopyBuffer(payload->outputBuffer.gpuBuffer, readbackBuffer, payload->outputBuffer.gpuBuffer->Size());
 
-        cr.Submit();
+        cr.Done();
 
         struct ReadbackPayload
         {

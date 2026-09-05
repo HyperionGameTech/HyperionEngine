@@ -163,6 +163,11 @@ public:
         GetDerivedAdapter()->DerivedAdapter::SetCharacterTranslation(physicsHandle, translation);
     }
 
+    void NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+    {
+        GetDerivedAdapter()->DerivedAdapter::NudgeCharacterTranslation(physicsHandle, translation);
+    }
+
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
     {
         GetDerivedAdapter()->DerivedAdapter::GetCharacterState(physicsHandle, outTranslation, outIsOnGround);

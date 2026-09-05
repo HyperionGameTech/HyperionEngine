@@ -1097,6 +1097,28 @@ void BulletPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physic
     }
 }
 
+void BulletPhysicsAdapter::NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+{
+    CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    btTransform transform = internalData->ghostObject->getWorldTransform();
+    transform.setOrigin(ToBtVector(translation));
+    internalData->ghostObject->setWorldTransform(transform);
+
+    if (internalData->shadowBody)
+    {
+        internalData->shadowBody->setWorldTransform(transform);
+        internalData->shadowMotionState->setWorldTransform(transform);
+
+        internalData->shadowBody->setInterpolationWorldTransform(transform);
+    }
+}
+
 void BulletPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
 {
     CharacterControllerInternalData* internalData = static_cast<CharacterControllerInternalData*>(physicsHandle.GetVoid());

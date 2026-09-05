@@ -301,14 +301,14 @@ HYP_EXPORT const char* GetCacheServerAddress()
 
 namespace NetGlobals {
 
-static CVar<uint16> s_cvGameServerPort("Net.GameServerPort", 9192);
-static CVar<float> s_cvClientSendRate("Net.ClientSendRate", 30.0f);
-static CVar<bool> s_cvInterpolationEnabled("Net.InterpolationEnabled", true);
-static CVar<float> s_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
-static CVar<float> s_cvCorrectionThreshold("Net.CorrectionThreshold", 0.3f);
-static CVar<float> s_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
-static CVar<bool> s_cvDeadReckoning("Net.DeadReckoning", true);
-static CVar<float> s_cvInterpRatio("Net.InterpRatio", 2.0f);
+CVar<uint16> g_cvGameServerPort("Net.GameServerPort", 9192);
+CVar<float> g_cvClientSendRate("Net.ClientSendRate", 30.0f);
+CVar<bool> g_cvInterpolationEnabled("Net.InterpolationEnabled", true);
+CVar<float> g_cvInterpolationDelay("Net.InterpolationDelay", 0.1f);
+CVar<float> g_cvCorrectionThreshold("Net.CorrectionThreshold", 4.0f); //position error above which a client correction snaps instantly instead of smooth-correcting (teleport/respawn detection); regular corrections always rewind + replay regardless of this value
+CVar<float> g_cvCorrectionSmoothingTime("Net.CorrectionSmoothingTime", 0.1f);
+CVar<bool> g_cvDeadReckoning("Net.DeadReckoning", true);
+CVar<float> g_cvInterpRatio("Net.InterpRatio", 2.0f);
 
 HYP_EXPORT const char* GetHostAddress()
 {
@@ -318,47 +318,47 @@ HYP_EXPORT const char* GetHostAddress()
 
 HYP_EXPORT uint16 GetGameServerPort()
 {
-    return s_cvGameServerPort.Get();
+    return g_cvGameServerPort.Get();
 }
 
 HYP_EXPORT float GetClientSendRate()
 {
-    return s_cvClientSendRate.Get();
+    return g_cvClientSendRate.Get();
 }
 
 /// For debugging. Should remote clients interpolate physics objects?
 HYP_EXPORT bool GetInterpolationEnabled()
 {
-    return s_cvInterpolationEnabled.Get();
+    return g_cvInterpolationEnabled.Get();
 }
 
 // How far in the past (seconds) remote entities are rendered, to smooth over jitter.
 HYP_EXPORT float GetInterpolationDelay()
 {
-    return s_cvInterpolationDelay.Get();
+    return g_cvInterpolationDelay.Get();
 }
 
 // Position deviation in world units, above which the server will send a movement correction
 HYP_EXPORT float GetCorrectionThreshold()
 {
-    return s_cvCorrectionThreshold.Get();
+    return g_cvCorrectionThreshold.Get();
 }
 
 HYP_EXPORT bool GetDeadReckoningEnabled()
 {
-    return s_cvDeadReckoning.Get();
+    return g_cvDeadReckoning.Get();
 }
 
 // How many measured sample intervals the interpolation buffer should span (floor on the interp delay).
 HYP_EXPORT float GetInterpRatio()
 {
-    return s_cvInterpRatio.Get();
+    return g_cvInterpRatio.Get();
 }
 
 // Seconds over which a prediction error is smoothed out visually after reconciliation.
 HYP_EXPORT float GetCorrectionSmoothingTime()
 {
-    return s_cvCorrectionSmoothingTime.Get();
+    return g_cvCorrectionSmoothingTime.Get();
 }
 
 } // namespace NetGlobals

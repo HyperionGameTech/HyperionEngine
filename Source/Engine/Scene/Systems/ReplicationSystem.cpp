@@ -56,9 +56,6 @@ using net::NetChannelMode;
 using net::NetMessageId;
 using net::NetStreamKey;
 
-/// How many queued moves a single connection may consume per tick
-static constexpr uint32 MaxMovesPerTick = 8;
-
 /// \see CollectInterestedConnections
 static constexpr float ReplicationInterestRadius = 50.0f;
 static constexpr float ReplicationInterestRadiusSq = ReplicationInterestRadius * ReplicationInterestRadius;
@@ -378,7 +375,7 @@ void ReplicationSystem::ProcessPlayerMoves()
             continue;
         }
 
-        const uint32 numToProcess = MathUtil::Min(uint32(queue.moves.Size()), MaxMovesPerTick);
+        const uint32 numToProcess = uint32(queue.moves.Size());
 
         Vec3f resultTranslation = Vec3f(0.0f);
         uint32 lastProcessedMoveId = 0;
