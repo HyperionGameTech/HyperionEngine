@@ -96,6 +96,10 @@ void NullPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
 {
 }
 
+void NullPhysicsAdapter::NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+{
+}
+
 void NullPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
 {
 }

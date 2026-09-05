@@ -47,6 +47,12 @@
 
 namespace Hyperion {
 
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(GameClient);
+
+static constexpr float MinCorrectionDistance = 0.05f;
+static constexpr float MaxCorrectionVisualSpeed = 6.0f;
+static constexpr float MaxCorrectionSmoothingTime = 0.5f;
+
 #pragma region CharacterControllerInputHandler
 
 void CharacterControllerInputHandler::Update()
@@ -336,12 +342,8 @@ static void SendPlayerMoves(ClientPredictionState& state)
     {
         if (numMoves >= MaxPlayerMovesPerRequest)
         {
+            HYP_LOG(GameClient, Warning, "Too many player moves in SendPlayerMoves(). (count = {})", numMoves);
             break;
-        }
-
-        if (buffered.move.moveId <= state.lastSentMoveId)
-        {
-            continue;
         }
 
         moves[numMoves++] = buffered.move;
@@ -351,8 +353,6 @@ static void SendPlayerMoves(ClientPredictionState& state)
     {
         return;
     }
-
-    state.lastSentMoveId = moves[numMoves - 1].moveId;
 
     net::NetBuffer payload;
     MemoryByteWriter<net::NetAllocator, 1> writer(&payload);
@@ -405,16 +405,6 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
 
     state.lastAckedMoveId = ack.ackedMoveId;
 
-    const float correctionThreshold = NetGlobals::GetCorrectionThreshold();
-
-    const bool needsCorrection = !predictedResult.HasValue()
-        || (*predictedResult - ack.GetAuthTranslation()).LengthSquared() > correctionThreshold * correctionThreshold;
-
-    if (!needsCorrection)
-    {
-        return;
-    }
-
     if (!component.physicsHandle)
     {
         return;
@@ -422,17 +412,48 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
 
     PhysicsWorldBase* physicsWorld = entity->GetWorld()->GetPhysicsWorld();
 
+    const float teleportDistance = MathUtil::Max(NetGlobals::GetCorrectionThreshold(), 0.0f);
+
+    const bool hasReference = predictedResult.HasValue();
+
+    Vec3f predictedTranslation;
+
+    if (hasReference)
+    {
+        predictedTranslation = *predictedResult;
+    }
+    else if (!state.unacknowledgedMoves.Empty())
+    {
+        predictedTranslation = state.unacknowledgedMoves.Back().resultTranslation;
+    }
+    else
+    {
+        predictedTranslation = component.translation + Vec3f(0.0f, SceneHelpers::GetCapsuleHeightOffset(component), 0.0f);
+    }
+
+    const Vec3f correctionOffset = ack.GetAuthTranslation() - predictedTranslation;
+    const float errorDistance = correctionOffset.Length();
+
+
+    if (hasReference && errorDistance < MinCorrectionDistance)
+    {
+        // within bounds
+        return;
+    }
+    
+    HYP_LOG(GameClient, Info, "Error distance = {}", errorDistance);
+
     TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
     const Vec3f preRewindTranslation = transformComponent.translation;
 
-    // Rewind the physics character to the server's authoritative state (entity translation
-    // carries a capsule height offset; the controller itself is positioned at the capsule center).
+    // Rewind the physics character to the server's authoritative state
     const float heightOffset = SceneHelpers::GetCapsuleHeightOffset(component);
     const Vec3f authoritativeCapsuleCenter = ack.GetAuthTranslation() - Vec3f(0.0f, heightOffset, 0.0f);
 
     physicsWorld->SetCharacterTranslation(component.physicsHandle, authoritativeCapsuleCenter);
 
-    // Replay all unacknowledged moves on top of the corrected state
+    component.translation = authoritativeCapsuleCenter;
+
     for (ClientPredictionState::BufferedMove& buffered : state.unacknowledgedMoves)
     {
         Vec3f resultTranslation = Vec3f(0.0f);
@@ -442,30 +463,34 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
         buffered.resultTranslation = resultTranslation;
     }
 
-    if (!predictedResult.HasValue() && state.unacknowledgedMoves.Empty())
+    if (state.unacknowledgedMoves.Empty())
     {
-        // No local state to compare or replay against -- snap directly to the server state.
-        component.translation = authoritativeCapsuleCenter;
-        component.isOnGround = false;
-
         entity->SetWorldTranslation(ack.GetAuthTranslation(), TransformChangeType::Simulation);
     }
 
-    // Smooth out the visual pop of the rewind/replay over a short time window.
     const Vec3f replayedTranslation = transformComponent.translation;
-    const Vec3f correctionOffset = preRewindTranslation - replayedTranslation;
-    const float smoothingTime = NetGlobals::GetCorrectionSmoothingTime();
+    const Vec3f visualCorrectionOffset = preRewindTranslation - replayedTranslation;
+    const float visualDistance = visualCorrectionOffset.Length();
 
-    if (smoothingTime > 0.0f && correctionOffset.LengthSquared() > MathUtil::epsilonF)
-    {
-        state.smoothingOffset = correctionOffset;
-        state.smoothingSecondsRemaining = smoothingTime;
-    }
-    else
+    // Only trust teleport detection when the error was measured against the exact acked move
+    const bool isTeleport = hasReference && errorDistance > teleportDistance;
+
+    if (isTeleport || visualDistance < MinCorrectionDistance)
     {
         state.smoothingOffset = Vec3f(0.0f);
         state.smoothingSecondsRemaining = 0.0f;
+
+        return;
     }
+
+    const float minSmoothingTime = MathUtil::Max(NetGlobals::GetCorrectionSmoothingTime(), 0.0001f);
+    const float smoothingTime = MathUtil::Clamp(
+        visualDistance / MaxCorrectionVisualSpeed,
+        minSmoothingTime,
+        MaxCorrectionSmoothingTime);
+
+    state.smoothingOffset = visualCorrectionOffset;
+    state.smoothingSecondsRemaining = smoothingTime;
 }
 
 /// Local prediction of replicated props
@@ -473,6 +498,11 @@ static constexpr bool EnableLocalPrediction = false;
 
 static void ProcessClientPredictionBodies(Entity* entity, CharacterControllerComponent& component, ClientPredictionState& state, float delta)
 {
+    if constexpr (!EnableLocalPrediction)
+    {
+        return;
+    }
+
     PhysicsWorldBase* physicsWorld = entity->GetWorld()->GetPhysicsWorld();
 
     if (!physicsWorld || !component.physicsHandle)
@@ -484,46 +514,43 @@ static void ProcessClientPredictionBodies(Entity* entity, CharacterControllerCom
     
     const float releaseDelay = MathUtil::Max(component.pushPredictionReleaseDelay, 0.0f);
 
-    if constexpr (EnableLocalPrediction)
+    physicsWorld->GetCharacterTouchedRigidBodies(component.physicsHandle, touched);
+
+    for (const Handle<RigidBody>& rigidBody : touched)
     {
-        physicsWorld->GetCharacterTouchedRigidBodies(component.physicsHandle, touched);
-
-        for (const Handle<RigidBody>& rigidBody : touched)
+        if (!rigidBody)
         {
-            if (!rigidBody)
-            {
-                continue;
-            }
-
-            bool tracked = false;
-
-            for (ClientPredictionState::PredictedBodyState& predicted : state.locallyPredictedBodies)
-            {
-                if (predicted.rigidBody == rigidBody)
-                {
-                    predicted.timeSinceLastTouch = 0.0f;
-                    tracked = true;
-
-                    break;
-                }
-            }
-
-            if (tracked)
-            {
-                continue;
-            }
-
-            // Only prediction for bodies that are still Kinematic
-            if (!rigidBody->IsKinematic())
-            {
-                continue;
-            }
-
-            physicsWorld->SetRigidBodyKinematic(rigidBody, false);
-            rigidBody->SetIsLocallyPredicted(true);
-
-            state.locallyPredictedBodies.PushBack(ClientPredictionState::PredictedBodyState { rigidBody, 0.0f });
+            continue;
         }
+
+        bool tracked = false;
+
+        for (ClientPredictionState::PredictedBodyState& predicted : state.locallyPredictedBodies)
+        {
+            if (predicted.rigidBody == rigidBody)
+            {
+                predicted.timeSinceLastTouch = 0.0f;
+                tracked = true;
+
+                break;
+            }
+        }
+
+        if (tracked)
+        {
+            continue;
+        }
+
+        // Only prediction for bodies that are still Kinematic
+        if (!rigidBody->IsKinematic())
+        {
+            continue;
+        }
+
+        physicsWorld->SetRigidBodyKinematic(rigidBody, false);
+        rigidBody->SetIsLocallyPredicted(true);
+
+        state.locallyPredictedBodies.PushBack(ClientPredictionState::PredictedBodyState { rigidBody, 0.0f });
     }
 
     for (size_t i = 0; i < state.locallyPredictedBodies.Size();)
@@ -653,6 +680,11 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
     state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation });
 
+    if (state.unacknowledgedMoves.Size() > ClientPredictionState::MaxBufferedMoves)
+    {
+        HYP_LOG(GameClient, Warning, "Too many player moves (in ProcessClientPrediction). count: {}", state.unacknowledgedMoves.Size());
+    }
+
     // cap it
     CapArray(state.unacknowledgedMoves, ClientPredictionState::MaxBufferedMoves);
 
@@ -670,13 +702,13 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
             TransformChangeType::Simulation);
     }
 
-    // Flush batched moves
+    // Flush batched moves and retransmit unacked moves until the server acks them
     state.secondsSinceLastSend += delta;
 
     const float sendRate = MathUtil::Max(NetGlobals::GetClientSendRate(), 1.0f);
     const float sendInterval = 1.0f / sendRate;
 
-    if (state.secondsSinceLastSend >= sendInterval && state.lastSentMoveId < state.nextMoveId - 1)
+    if (state.secondsSinceLastSend >= sendInterval && !state.unacknowledgedMoves.Empty())
     {
         SendPlayerMoves(state);
 

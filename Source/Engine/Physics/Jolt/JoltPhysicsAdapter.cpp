@@ -57,6 +57,28 @@ static inline JPH::Vec3 ToJPHVec(const Vec3f& vec)
     return JPH::Vec3(vec.x, vec.y, vec.z);
 }
 
+class CharacterImmovableContactListener final : public JPH::CharacterContactListener
+{
+private:
+    static void ApplyContactSettings(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings)
+    {
+        ioSettings.mCanPushCharacter = !inCharacter->IsSlopeTooSteep(inContact.mContactNormal);
+    }
+
+public:
+    void OnContactAdded(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override
+    {
+        ApplyContactSettings(inCharacter, inContact, ioSettings);
+    }
+
+    void OnContactPersisted(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override
+    {
+        ApplyContactSettings(inCharacter, inContact, ioSettings);
+    }
+};
+
+static CharacterImmovableContactListener s_characterImmovableContactListener;
+
 static inline Vec3f FromJPHVec(const JPH::Vec3& vec)
 {
     return Vec3f(vec.GetX(), vec.GetY(), vec.GetZ());
@@ -701,7 +723,9 @@ void JoltPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBod
     else
     {
         const float mass = rigidBody->physicsMaterial->mass;
+        const bool isDynamic = mass > MathUtil::epsilonF;
 
+        if (isDynamic)
         {
             JPH::BodyLockWrite lock(m_physicsSystem->GetBodyLockInterface(), internalData->bodyID);
 
@@ -715,7 +739,10 @@ void JoltPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBod
             }
         }
 
-        bodyInterface.SetMotionType(internalData->bodyID, JPH::EMotionType::Dynamic, JPH::EActivation::Activate);
+        bodyInterface.SetMotionType(
+            internalData->bodyID,
+            isDynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static,
+            isDynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
     }
 
     internalData->isDynamic = !isKinematic && rigidBody->physicsMaterial->mass > MathUtil::epsilonF;
@@ -885,6 +912,9 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     settings.mShape = shape.GetPtr();
     settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -radius);
 
+    const float referenceGravity = MathUtil::Max(m_physicsSystem->GetGravity().Length(), 9.81f);
+    settings.mMaxStrength = MathUtil::Max(config.pushMassLimit, 0.0f) * referenceGravity;
+
     const Vec3f startFeetPosition = config.startTranslation - Vec3f(0.0f, totalHeight * 0.5f, 0.0f);
 
     SharedPtr<JoltCharacterControllerInternalData> internalData = MakeSharedWithAllocator<JoltCharacterControllerInternalData, PhysicsAllocator>();
@@ -894,6 +924,9 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
         JPH::Quat::sIdentity(),
         0,
         m_physicsSystem);
+
+    internalData->character->SetListener(&s_characterImmovableContactListener);
+
     internalData->capsuleCenterOffset = totalHeight * 0.5f;
     internalData->stepHeight = config.stepHeight;
     internalData->jumpSpeed = config.jumpSpeed;
@@ -1039,31 +1072,31 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         JPH::Vec3 groundVelocity = character->GetGroundVelocity();
 
-        if (isGrounded)
-        {
-            const JPH::BodyID groundBodyID = character->GetGroundBodyID();
+        // if (isGrounded)
+        // {
+        //     const JPH::BodyID groundBodyID = character->GetGroundBodyID();
 
-            if (!groundBodyID.IsInvalid())
-            {
-                JPH::BodyLockRead groundLock(m_physicsSystem->GetBodyLockInterface(), groundBodyID);
+        //     if (!groundBodyID.IsInvalid())
+        //     {
+        //         JPH::BodyLockRead groundLock(m_physicsSystem->GetBodyLockInterface(), groundBodyID);
 
-                if (groundLock.SucceededAndIsInBroadPhase())
-                {
-                    const JPH::Body& groundBody = groundLock.GetBody();
+        //         if (groundLock.SucceededAndIsInBroadPhase())
+        //         {
+        //             const JPH::Body& groundBody = groundLock.GetBody();
 
-                    if (groundBody.GetMotionType() == JPH::EMotionType::Dynamic)
-                    {
-                        const float groundInverseMass = groundBody.GetMotionProperties()->GetInverseMass();
-                        const float groundMass = groundInverseMass > MathUtil::epsilonF ? 1.0f / groundInverseMass : MathUtil::Infinity<float>();
+        //             if (groundBody.GetMotionType() == JPH::EMotionType::Dynamic)
+        //             {
+        //                 const float groundInverseMass = groundBody.GetMotionProperties()->GetInverseMass();
+        //                 const float groundMass = groundInverseMass > MathUtil::epsilonF ? 1.0f / groundInverseMass : MathUtil::Infinity<float>();
 
-                        if (groundMass < internalData->minGroundSupportMass)
-                        {
-                            groundVelocity = JPH::Vec3::sZero();
-                        }
-                    }
-                }
-            }
-        }
+        //                 if (groundMass < internalData->minGroundSupportMass)
+        //                 {
+        //                     groundVelocity = JPH::Vec3::sZero();
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         const JPH::Vec3 groundHorizontalVelocity = JPH::Vec3(groundVelocity.GetX(), 0.0f, groundVelocity.GetZ());
 
@@ -1217,6 +1250,22 @@ void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
         *m_characterBodyFilter,
         JPH::ShapeFilter(),
         *m_tempAllocator);
+}
+
+void JoltPhysicsAdapter::NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation)
+{
+    JoltCharacterControllerInternalData* internalData = static_cast<JoltCharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    JPH::CharacterVirtual* character = internalData->character.GetPtr();
+
+    const Vec3f feetPosition = translation - Vec3f(0.0f, internalData->capsuleCenterOffset, 0.0f);
+
+    character->SetPosition(ToJPHVec(feetPosition));
 }
 
 void JoltPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)

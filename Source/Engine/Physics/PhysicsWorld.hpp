@@ -71,6 +71,10 @@ public:
     virtual void ApplyCharacterJump(const SharedPtr<void>& physicsHandle, bool jumpRequested, bool jumpHeld) = 0;
     virtual void StepCharacterController(const SharedPtr<void>& physicsHandle, float deltaTime) = 0;
     virtual void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) = 0;
+    // Moves the character controller to `translation` without resetting its motion state (jump
+    // buffer, coyote time, walk velocity) -- for smooth reconciliation nudges. Same coordinate
+    // convention as SetCharacterTranslation.
+    virtual void NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) = 0;
     virtual void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) = 0;
     virtual void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out) = 0;
 
@@ -186,6 +190,11 @@ public:
     void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) override
     {
         m_adapter.SetCharacterTranslation(physicsHandle, translation);
+    }
+
+    void NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation) override
+    {
+        m_adapter.NudgeCharacterTranslation(physicsHandle, translation);
     }
 
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround) override
