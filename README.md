@@ -5,14 +5,14 @@ Hyperion Engine is a high performance game engine written in C++20, with a focus
 ![Hyperion Engine Screenshot - Baked lightmaps in Editor view](/Documentation/Images/LightmapBakeEditor.png)
 
 ## Some Features
-- Visual editor, supporting Windows and macOS. Supports project files, scene editing, asset importing, etc.
 - Clustered deferred shading supporting a large number of dynamic lights while maintaining good frame times. Uses forward clustered shading for translucent materials.
+- Visual editor on Windows and macOS, built with Avalonia.
 - Offline lightmapper integrated into the editor. Bake lightmaps into the scene,  reflection/irradiance probes for dynamic objects, fog volumes, and other static lighting data such as shadow maps.
 - Real time global illumination and reflections via Ray tracing and screen-space options for non-RT capable hardware.
-- Shader compiler system with built in permutations support - just use `PERMUTE(...)` in your shader code to define a permutation set, and the engine will automatically compile all combinations of that permutation and make it available for use at runtime.
+- Shader compiler system with built in permutations support, and live reload in editor to see changes as you make them.
+- Scripting via the [Strata programming language](https://github.com/StrataLanguage/stratac) - JIT compiled, live reload in editor, or AOT linking with shipping builds
 - Level streaming via grid-based streaming
-- Scripting via our in-house language HypScript
-- Hot reloading for shaders and scripts
+- Basic multiplayer setup, with a dedicated server, client-side prediction, replication, etc
 
 ## Platforms
 Currently, we are focusing our efforts on developing the engine for *Windows*, *macOS*, *Android*, *iOS*, and Steam Deck via Proton. Editor support is available on Windows and macOS.
