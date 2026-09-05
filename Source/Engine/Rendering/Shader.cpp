@@ -71,11 +71,6 @@ void Shader::AddShaderModule(
     AllocateBlobData(ref, blobData.Data(), blobData.Size(), 1);
 }
 
-int Shader::GetRevisionNumber() const
-{
-    return int(GetStaticDescriptorTableDeclaration().GetHashCode().Value() % INT32_MAX);
-}
-
 void Shader::PageBlobData()
 {
     Handle<AssetRegistry> registry = GetEngineAssetRegistry();

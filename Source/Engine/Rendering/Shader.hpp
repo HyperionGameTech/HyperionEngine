@@ -95,8 +95,6 @@ public:
     HYP_METHOD(Property = "PropertySet")
     void DeserializeProperties(const Array<ShaderProperty>& properties);
 
-    HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
-    int GetRevisionNumber() const;
     /// ==============================
     ///
 
