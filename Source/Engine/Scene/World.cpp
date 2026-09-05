@@ -280,11 +280,16 @@ void World::Initialize()
 
     if (m_activeLayerId == Invalid<LayerId>)
     {
-        // Set to default layer
-        const Handle<Layer>& defaultLayer = GetOrCreateLayer(s_defaultLayerName);
+        if (!m_activeLayer)
+        {
+            // Set to default layer if no ActiveLayer
+            m_activeLayer = s_defaultLayerName;
+        }
 
-        m_activeLayer = defaultLayer->name;
-        m_activeLayerId = defaultLayer->layerId;
+        const Handle<Layer>& layer = GetOrCreateLayer(m_activeLayer);
+        Assert(layer.IsValid());
+
+        m_activeLayerId = layer->layerId;
 
         OnActiveLayerChanged(m_activeLayer);
     }

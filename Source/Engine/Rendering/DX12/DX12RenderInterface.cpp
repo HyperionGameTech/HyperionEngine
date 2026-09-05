@@ -180,6 +180,7 @@ public:
 
 DX12RenderInterface::DX12RenderInterface()
     : descriptorHeapManager(nullptr),
+      m_renderConfig(MakePimplWithAllocator<DX12RenderConfig, DX12Allocator>()),
       m_allocator(nullptr),
       m_frameFenceEvent(nullptr),
       m_frameFenceIndex(0)
@@ -202,8 +203,6 @@ RendererResult DX12RenderInterface::Initialize()
 
     descriptorHeapManager = new DX12DescriptorHeapManager;
     m_gpuTimerBackend = new DX12GpuTimerBackend;
-
-    m_renderConfig = MakePimplWithAllocator<DX12RenderConfig, DX12Allocator>();
 
     uint32 createFactoryFlags = 0;
 #ifdef HYP_RHI_DEBUG_NAMES
@@ -356,8 +355,8 @@ RendererResult DX12RenderInterface::Initialize()
 #endif
 
     // Initialize render config features based on device capabilities
-    static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeBindless(this);
-    static_cast<DX12RenderConfig*>(m_renderConfig.Get())->InitializeRayTracing(this);
+    m_renderConfig->InitializeBindless(this);
+    m_renderConfig->InitializeRayTracing(this);
 
     static_assert(sizeof(decltype(m_queueData)) / sizeof(decltype(m_queueData[0])) > D3D12_COMMAND_LIST_TYPE_COPY,
                   "m_queueData is too small; must have size increased.");
