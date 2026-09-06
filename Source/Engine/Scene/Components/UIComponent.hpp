@@ -25,7 +25,7 @@ namespace Hyperion {
 class UIObject;
 class InputManager;
 
-HYP_STRUCT(Component, Size = 8, Serialize = false)
+HYP_STRUCT(Component, Size = 8, Serialize = false, Editor = false)
 struct UIComponent
 {
     HYP_STRUCT_BODY(UIComponent);

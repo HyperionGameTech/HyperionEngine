@@ -70,7 +70,9 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_isInitialized(false)
 {
     m_root = MakeHandle<Node>(s_nameSceneRoot, Transform::identity, this);
-    m_root->SetIsStatic(false);
+
+    // Root == always static; by default child nodes have 'Inherit' meaning they'll be Static too unless changed.
+    m_root->SetIsStatic(true);
 }
 
 Scene::~Scene()

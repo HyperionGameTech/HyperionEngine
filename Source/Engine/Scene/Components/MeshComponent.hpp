@@ -28,7 +28,10 @@ class InstancedMeshData;
 
 using MeshComponentUserData = UserData<32, 16>;
 
-HYP_STRUCT(Component, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
+HYP_STRUCT(Component,
+    Label = "Mesh Component",
+    Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.",
+    Editor = true)
 struct ENGINE_API MeshComponent
 {
     HYP_STRUCT_BODY(MeshComponent);

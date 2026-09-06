@@ -46,7 +46,11 @@ struct AudioPlaybackState
     }
 };
 
-HYP_STRUCT(Component, Label = "Audio Component", Description = "Controls the state of an audio source.", Editor = true)
+HYP_STRUCT(
+    Component,
+    Label = "Audio Component",
+    Description = "Controls the state of an audio source.",
+    Editor = true)
 struct AudioComponent
 {
     HYP_STRUCT_BODY(AudioComponent);
