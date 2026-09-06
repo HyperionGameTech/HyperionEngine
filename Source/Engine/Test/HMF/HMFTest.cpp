@@ -45,6 +45,7 @@
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
 
 #include <Scene/Animation/Animation.hpp>
 
@@ -2160,6 +2161,73 @@ CameraOrthoRect {
         strArr.PushBack("hello");
         BoxedToHMF(BoxedValue(strArr), text);
         Check("Array<String>: non-empty output", !text.Empty(), text);
+    }
+
+    {
+        // $LayerOverrides schema section: the writer emits per-layer diffs against the entity's
+        // own class schema; the parser collects them (fully typed) through the engine's sink.
+        Handle<Entity> entity = MakeHandle<Entity>(NAME("OverrideTestEntity"));
+
+        Check("LayerOverrides: entity created", entity.IsValid());
+
+        if (entity.IsValid())
+        {
+            entity->AddLayerOverrideSet(NAME("Morning"));
+            entity->AddLayerOverrideSet(NAME("Evening"));
+
+            Check("LayerOverrides: set Morning NodeFlags override",
+                  entity->SetLayerOverrideValue(NAME("Morning"), NAME("NodeFlags"),
+                      BoxedValue(EnumFlags<NodeFlags>(NodeFlags::MobilityDynamic))));
+
+            Check("LayerOverrides: set Evening Name override",
+                  entity->SetLayerOverrideValue(NAME("Evening"), NAME("Name"), BoxedValue(NAME("EveningSun"))));
+
+            ToHMFOptions opts;
+            opts.skipTransientProperties = true;
+
+            String overrideText;
+            ObjectToHMF(entity->InstanceClass(), BoxedValue(entity), overrideText, &opts);
+
+            Check("LayerOverrides: section present", overrideText.Contains("$LayerOverrides"), overrideText);
+            Check("LayerOverrides: Morning key present", overrideText.Contains("Morning"), overrideText);
+            Check("LayerOverrides: Evening key present", overrideText.Contains("Evening"), overrideText);
+            Check("LayerOverrides: NodeFlags override emitted",
+                  overrideText.Contains("NodeFlags = MobilityDynamic"), overrideText);
+            Check("LayerOverrides: Name override emitted",
+                  overrideText.Contains("Name = EveningSun"), overrideText);
+
+            // Parse back into a fresh entity and verify the stored override sets
+            Handle<Entity> parseTarget = MakeHandle<Entity>(NAME("OverrideParseEntity"));
+            BoxedValue targetBoxed = BoxedValue(parseTarget);
+
+            HMF::ParseResult parseResult = HMF::Parse(overrideText, nullptr, &targetBoxed);
+            Check("LayerOverrides: parse succeeds", Success(parseResult), parseResult.GetError().GetMessage());
+
+            if (Success(parseResult) && parseTarget.IsValid())
+            {
+                Check("LayerOverrides RT: Morning set exists", parseTarget->HasLayerOverrideSet(NAME("Morning")));
+                Check("LayerOverrides RT: Evening set exists", parseTarget->HasLayerOverrideSet(NAME("Evening")));
+                Check("LayerOverrides RT: NodeFlags overridden in Morning",
+                      parseTarget->IsPropertyOverriddenInLayer(NAME("Morning"), NAME("NodeFlags")));
+                Check("LayerOverrides RT: Name overridden in Evening",
+                      parseTarget->IsPropertyOverriddenInLayer(NAME("Evening"), NAME("Name")));
+
+                BoxedValue flagsOverride;
+                bool readFlags = parseTarget->GetLayerOverrideValue(NAME("Morning"), NAME("NodeFlags"), flagsOverride);
+
+                Check("LayerOverrides RT: NodeFlags override value read", readFlags);
+                Check("LayerOverrides RT: NodeFlags override is MobilityDynamic",
+                      readFlags
+                          && flagsOverride.Get<EnumFlags<NodeFlags>>() == EnumFlags<NodeFlags>(NodeFlags::MobilityDynamic));
+
+                BoxedValue nameOverride;
+                bool readName = parseTarget->GetLayerOverrideValue(NAME("Evening"), NAME("Name"), nameOverride);
+
+                Check("LayerOverrides RT: Name override value read", readName);
+                Check("LayerOverrides RT: Name override is EveningSun",
+                      readName && nameOverride.Get<Name>() == NAME("EveningSun"));
+            }
+        }
     }
 
     HYP_LOG(Engine, Info, "========== HMF Test Results: {} passed, {} failed ==========",

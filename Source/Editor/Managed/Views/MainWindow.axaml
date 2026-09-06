@@ -429,8 +429,8 @@
                 <!--  Main Content Area  -->
                 <Grid x:Name="MainContentGrid" Grid.Row="2" ColumnDefinitions="280, 2, *, 2, 320">
 
-                    <!--  Left Panel: Scene Hierarchy + Actions (cond) + Inspector  -->
-                    <Grid Grid.Column="0" RowDefinitions="*, Auto, *">
+                    <!--  Left Panel: Scene Hierarchy + Actions (cond) + Layer Overrides + Inspector  -->
+                    <Grid Grid.Column="0" RowDefinitions="*, Auto, Auto, Auto, *">
                         <!--  Scene Hierarchy  -->
                         <Grid Grid.Row="0" RowDefinitions="Auto, *">
                             <Border Grid.Row="0" Classes="panel-header">
@@ -654,7 +654,30 @@
 
                         <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
 
-                        <Grid Grid.Row="2" RowDefinitions="Auto, *">
+                        <!--  layer overrides  -->
+                        <Grid Grid.Row="2" IsVisible="{Binding Inspector.IsEntity}" RowDefinitions="Auto, Auto">
+                            <Border Grid.Row="0" Classes="panel-header">
+                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Classes="header"
+                                        Text="Layer Overrides" />
+                                </Grid>
+                            </Border>
+                            <CheckBox
+                                Grid.Row="1"
+                                Margin="0,0,4,0"
+                                Padding="8,2"
+                                Content="Only apply changes to the active layer"
+                                IsChecked="{Binding Inspector.LayerOverrideMode, Mode=TwoWay}"
+                                ToolTip.Tip="When checked, changes made in the inspector will apply only to the active layer. Otherwise changes will apply to the base properties of the Entity" />
+
+                        </Grid>
+
+                        <GridSplitter Grid.Row="3" ResizeDirection="Rows" IsVisible="{Binding Inspector.IsEntity}" />
+
+                        <Grid Grid.Row="4" RowDefinitions="Auto, *">
                             <!--  Inspector  -->
                             <Grid Grid.Row="1" RowDefinitions="Auto, *">
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

@@ -49,6 +49,8 @@ public:
     DynamicLibrary* LoadLibrary(PlatformStringView path);
 
 private:
+    DynamicLibraryCache();
+
     Pimpl<struct DynamicLibraryCacheImpl> m_impl;
 };
 

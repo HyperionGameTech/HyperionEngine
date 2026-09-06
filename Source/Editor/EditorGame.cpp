@@ -10,6 +10,8 @@
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorProject.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Node.hpp>
@@ -41,6 +43,9 @@ EditorGame::~EditorGame()
 void EditorGame::OnLaunch()
 {
     HYP_LOG(Editor, Info, "EditorGame Launched");
+
+    PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    PluginManager::GetInstance().OnEditorLaunch();
 
     Assert(GetWorld() != nullptr);
 
@@ -102,7 +107,11 @@ void EditorGame::BeforeShutdown()
 {
     HYP_LOG(Editor, Debug, "EditorGame BeforeShutdown");
 
+    PluginManager::GetInstance().OnEditorShutdown();
+
     Game::BeforeShutdown();
+
+    PluginManager::GetInstance().Shutdown();
 
     m_onProjectOpened.Reset();
     m_onProjectClosing.Reset();

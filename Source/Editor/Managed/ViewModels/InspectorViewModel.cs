@@ -93,6 +93,43 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _entityLayers, value);
         }
 
+        public bool IsDefaultLayer
+        {
+            get => (_activeLayerDisplay ?? string.Empty) == string.Empty
+                || (_activeLayerDisplay ?? string.Empty) == "Default";
+        }
+
+        private bool _layerOverrideMode;
+        public bool LayerOverrideMode
+        {
+            get => _layerOverrideMode;
+            set
+            {
+                if (SetProperty(ref _layerOverrideMode, value))
+                {
+                    LayerOverrideEditContext.OverrideModeActive = value;
+
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        EngineManager.EditorGame?.EditorSubsystem?.SetLayerOverrideMode(value);
+                    });
+                }
+            }
+        }
+
+        private string? _activeLayerDisplay;
+        public string? ActiveLayerDisplay
+        {
+            get => _activeLayerDisplay;
+            private set
+            {
+                if (SetProperty(ref _activeLayerDisplay, value))
+                {
+                    OnPropertyChanged(nameof(IsDefaultLayer));
+                }
+            }
+        }
+
         private Node? _selectedNode;
         public Node? SelectedNode
         {
@@ -161,6 +198,8 @@ namespace Hyperion.Editor.ViewModels
             HasAttachedScript = false;
             EntityTags = null;
             EntityLayers = null;
+
+            LayerOverrideEditContext.Reset();
 
             HasActions = false;
             HasComponents = false;
@@ -296,6 +335,11 @@ namespace Hyperion.Editor.ViewModels
                 EntityTags = new EntityTagsViewModel(entity);
                 EntityLayers = new EntityLayersViewModel(entity);
 
+                LayerOverrideEditContext.CurrentEntity = entity;
+
+                _ = RefreshActiveLayerInfoAsync();
+                _ = RefreshOverrideSignifiersAsync();
+
                 _ = EngineManager.PostToSimThread(() =>
                 {
                     EntityManager? mgr = entity.EntityManager;
@@ -397,6 +441,136 @@ namespace Hyperion.Editor.ViewModels
             {
                 _ = EntityLayers.RefreshAsync();
             }
+
+            _ = RefreshOverrideSignifiersAsync();
+        }
+
+        /// <summary>
+        /// Reads the World's active layer name for the selected entity and updates the
+        /// layer-override edit context + panel hint text.
+        /// </summary>
+        public async Task RefreshActiveLayerInfoAsync()
+        {
+            string activeLayerName = string.Empty;
+
+            await EngineManager.PostToSimThread(() =>
+            {
+                World? world = null;
+
+                if (SelectedNode is Entity selectedEntity && selectedEntity.IsValid)
+                {
+                    world = selectedEntity.World;
+                }
+
+                if (world == null)
+                {
+                    EditorProject? project = EngineManager.CurrentProject;
+
+                    if (project != null)
+                    {
+                        world = project.World;
+                    }
+                }
+
+                if (world != null)
+                {
+                    activeLayerName = world.GetActiveLayerName().ToString();
+                }
+            });
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                ActiveLayerDisplay = activeLayerName.Length > 0 ? activeLayerName : null;
+                LayerOverrideEditContext.ActiveLayerName = ActiveLayerDisplay;
+            });
+        }
+
+        /// <summary>
+        /// Refreshes per-row override signifiers ("LayerA, LayerB override this value") for the
+        /// selected entity's entity-level property rows.
+        /// </summary>
+        public async Task RefreshOverrideSignifiersAsync()
+        {
+            if (SelectedNode is not Entity entity || !entity.IsValid)
+            {
+                return;
+            }
+
+            // Entity-level rows only (component / delegate-backed rows are not overridable in v1)
+            List<InspectorPropertyViewModelBase> rows = Properties.Where(p => p.IsEntityLevelRow).ToList();
+
+            List<string> layerNames = new();
+            List<bool> overriddenFlags = new();
+
+            await EngineManager.PostToSimThread(() =>
+            {
+                Name[] sets = EntityLayerOverrides.GetSetLayerNames(entity);
+
+                foreach (Name set in sets)
+                {
+                    layerNames.Add(set.ToString());
+                }
+
+                foreach (InspectorPropertyViewModelBase row in rows)
+                {
+                    Name propertyName = row.Property.Name;
+
+                    foreach (Name layer in sets)
+                    {
+                        overriddenFlags.Add(EntityLayerOverrides.IsPropertyOverridden(entity, layer, propertyName));
+                    }
+                }
+            });
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (SelectedNode is not Entity selectedEntity || selectedEntity.NativeAddress != entity.NativeAddress)
+                {
+                    return;
+                }
+
+                int flagIndex = 0;
+
+                foreach (InspectorPropertyViewModelBase row in rows)
+                {
+                    List<string> overriddenLayers = new();
+
+                    foreach (string layerName in layerNames)
+                    {
+                        if (flagIndex < overriddenFlags.Count && overriddenFlags[flagIndex++])
+                        {
+                            overriddenLayers.Add(layerName);
+                        }
+                    }
+
+                    row.SetOverrideInfo(overriddenLayers);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Called when the World's active layer changes; refreshes property rows and override
+        /// signifiers (overrides may have applied natively) and updates the edit context.
+        /// </summary>
+        public void OnWorldActiveLayerChanged(string layerName)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            LayerOverrideEditContext.ActiveLayerName = string.IsNullOrEmpty(layerName) ? null : layerName;
+            ActiveLayerDisplay = LayerOverrideEditContext.ActiveLayerName;
+
+            if (SelectedNode == null || !SelectedNode.IsValid)
+            {
+                return;
+            }
+
+            // Overrides for the new active layer were just applied natively - re-read all rows
+            foreach (InspectorPropertyViewModelBase propertyVm in Properties)
+            {
+                propertyVm.RefreshValue();
+            }
+
+            _ = RefreshOverrideSignifiersAsync();
         }
 
         private void OnScenePropertyValueChanged()

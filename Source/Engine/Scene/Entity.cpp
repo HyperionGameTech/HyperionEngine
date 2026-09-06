@@ -38,9 +38,169 @@
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/SerializationUtils.hpp>
 
+#include <Core/DataProcessing/HMF/HMF.hpp>
+
+#include <Core/Reflection/Property.hpp>
+#include <Core/Reflection/Field.hpp>
+
 #include <Entity.generated.inl>
 
 namespace Hyperion {
+
+//-- Layer overrides helpers --
+
+static const IMember* ResolveOverridableMember(const Class* cls, Name propertyName)
+{
+    if (!cls || !propertyName)
+    {
+        return nullptr;
+    }
+
+    const IMember* member = cls->GetMember(StringHash(propertyName), MemberType::Field | MemberType::Property);
+
+    if (!member)
+    {
+        return nullptr;
+    }
+
+    // If has `Property = ...`, use the synthetic Property instead
+    if (member->GetMemberType() == MemberType::Field && member->GetAttribute(Attributes::g_attrProperty).IsValid())
+    {
+        if (Property* prop = cls->GetProperty(StringHash(propertyName)))
+        {
+            member = prop;
+        }
+    }
+
+    if (member->GetAttribute(Attributes::g_attrJsonIgnore).IsValid())
+    {
+        return nullptr;
+    }
+
+    if (member->GetMemberType() == MemberType::Property && !static_cast<const Property*>(member)->CanSet())
+    {
+        return nullptr;
+    }
+
+    return member;
+}
+
+static BoxedValue GetEntityMemberValue(const IMember* member, Entity* entity)
+{
+    BoxedValue target = BoxedValue(entity->HandleFromThis());
+
+    switch (member->GetMemberType())
+    {
+    case MemberType::Property:
+        return static_cast<const Property*>(member)->Get(target);
+    case MemberType::Field:
+        return static_cast<const Field*>(member)->Get(target);
+    default:
+        return BoxedValue();
+    }
+}
+
+static bool SetEntityMemberValue(const IMember* member, Entity* entity, const BoxedValue& value)
+{
+    BoxedValue target = BoxedValue(entity->HandleFromThis());
+
+    switch (member->GetMemberType())
+    {
+    case MemberType::Property:
+        static_cast<const Property*>(member)->Set(target, value);
+        return true;
+    case MemberType::Field:
+        static_cast<const Field*>(member)->Set(target, value);
+        return true;
+    default:
+        return false;
+    }
+}
+
+static EntityLayerOverrideSet* FindLayerOverrideSet(Array<EntityLayerOverrideSet>& sets, Name layerName)
+{
+    for (EntityLayerOverrideSet& set : sets)
+    {
+        if (set.layerName == layerName)
+        {
+            return &set;
+        }
+    }
+
+    return nullptr;
+}
+
+static const EntityLayerOverrideSet* FindLayerOverrideSet(const Array<EntityLayerOverrideSet>& sets, Name layerName)
+{
+    for (const EntityLayerOverrideSet& set : sets)
+    {
+        if (set.layerName == layerName)
+        {
+            return &set;
+        }
+    }
+
+    return nullptr;
+}
+
+static bool HandleLayerOverrides(BoxedValue& owner, Array<HMF::SchemaSectionEntry>&& entries)
+{
+    Entity* entity = nullptr;
+
+    if (!owner.IsNull())
+    {
+        void* pointer = owner.ToRef().GetPointer();
+
+        if (pointer != nullptr)
+        {
+            auto* object = reinterpret_cast<ObjectBase*>(pointer);
+
+            if (IsA(Entity::StaticClass(), object->InstanceClass()))
+            {
+                entity = static_cast<Entity*>(object);
+            }
+        }
+    }
+
+    if (!entity)
+    {
+        return false;
+    }
+
+    Array<EntityLayerOverrideSet> sets;
+    sets.Reserve(entries.Size());
+
+    for (HMF::SchemaSectionEntry& entry : entries)
+    {
+        EntityLayerOverrideSet set;
+        set.layerName = entry.key;
+        set.propertyOverrides.Reserve(entry.values.Size());
+
+        for (Pair<Name, BoxedValue>& value : entry.values)
+        {
+            LayerPropertyOverride overrideEntry;
+            overrideEntry.property = value.first;
+            overrideEntry.value = std::move(value.second);
+
+            set.propertyOverrides.PushBack(std::move(overrideEntry));
+        }
+
+        sets.PushBack(std::move(set));
+    }
+
+    entity->DeserializeLayerOverrides(std::move(sets));
+
+    return true;
+}
+
+//-- DI for $LayerOverrides
+static struct InitializeLayerOverridesSinks
+{
+    InitializeLayerOverridesSinks()
+    {
+        HMF::SetParseSchemaSectionFn("LayerOverrides", &HandleLayerOverrides);
+    }
+} s_installLayerOverridesSink;
 
 #pragma region Entity
 
@@ -182,6 +342,7 @@ Handle<Node> Entity::Clone() const
     }
 
     cloned->m_entityInitInfo = m_entityInitInfo;
+    cloned->m_layerOverrides = m_layerOverrides;
 
     InitObject(cloned);
 
@@ -346,6 +507,12 @@ void Entity::OnAddedToWorld(World* world)
         {
             m_entityInitInfo.layerNames.Clear();
         }
+    }
+
+    // Apply property overrides for the World's active layer, if any
+    if (HasLayerOverrides())
+    {
+        ApplyLayerOverrides(world->GetActiveLayerName());
     }
 }
 
@@ -1003,6 +1170,359 @@ void Entity::DeserializeLayers(const Array<Name>& layerNames)
 
         m_layerMask.Set(uint32(layerId), true);
     }
+}
+
+//-- Layer overrides --
+
+bool Entity::HasLayerOverrideSet(Name layerName) const
+{
+    return FindLayerOverrideSet(m_layerOverrides, layerName) != nullptr;
+}
+
+void Entity::AddLayerOverrideSet(Name layerName)
+{
+    if (!layerName || HasLayerOverrideSet(layerName))
+    {
+        return;
+    }
+
+    EntityLayerOverrideSet set;
+    set.layerName = layerName;
+
+    m_layerOverrides.PushBack(std::move(set));
+
+    MarkDirty();
+}
+
+bool Entity::RemoveLayerOverrideSet(Name layerName)
+{
+    if (m_appliedOverrideLayer == layerName)
+    {
+        RevertLayerOverrides();
+    }
+
+    for (size_t i = 0; i < m_layerOverrides.Size(); i++)
+    {
+        if (m_layerOverrides[i].layerName == layerName)
+        {
+            m_layerOverrides.EraseAt(i);
+
+            MarkDirty();
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Entity::IsPropertyOverriddenInLayer(Name layerName, Name propertyName) const
+{
+    const EntityLayerOverrideSet* set = FindLayerOverrideSet(m_layerOverrides, layerName);
+
+    if (!set)
+    {
+        return false;
+    }
+
+    for (const LayerPropertyOverride& overrideEntry : set->propertyOverrides)
+    {
+        if (overrideEntry.property == propertyName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Entity::SetLayerOverrideValue(Name layerName, Name propertyName, BoxedValue value)
+{
+    EntityLayerOverrideSet* set = FindLayerOverrideSet(m_layerOverrides, layerName);
+
+    if (!set)
+    {
+        return false;
+    }
+
+    const bool isApplied = m_appliedOverrideLayer == layerName;
+
+    for (LayerPropertyOverride& overrideEntry : set->propertyOverrides)
+    {
+        if (overrideEntry.property == propertyName)
+        {
+            overrideEntry.value = std::move(value);
+
+            if (isApplied)
+            {
+                if (const IMember* member = ResolveOverridableMember(InstanceClass(), propertyName))
+                {
+                    SetEntityMemberValue(member, this, overrideEntry.value);
+                }
+            }
+
+            MarkDirty();
+
+            return true;
+        }
+    }
+
+    LayerPropertyOverride overrideEntry;
+    overrideEntry.property = propertyName;
+    overrideEntry.value = std::move(value);
+
+    set->propertyOverrides.PushBack(std::move(overrideEntry));
+
+    if (isApplied)
+    {
+        if (const IMember* member = ResolveOverridableMember(InstanceClass(), propertyName))
+        {
+            SetEntityMemberValue(member, this, set->propertyOverrides.Back().value);
+        }
+    }
+
+    MarkDirty();
+
+    return true;
+}
+
+bool Entity::RemoveLayerOverrideValue(Name layerName, Name propertyName)
+{
+    EntityLayerOverrideSet* set = FindLayerOverrideSet(m_layerOverrides, layerName);
+
+    if (!set)
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < set->propertyOverrides.Size(); i++)
+    {
+        if (set->propertyOverrides[i].property == propertyName)
+        {
+            const bool isApplied = m_appliedOverrideLayer == layerName;
+
+            set->propertyOverrides.EraseAt(i);
+
+            if (isApplied)
+            {
+                // Restore the base value for this property
+                const Class* cls = InstanceClass();
+
+                for (const Pair<Name, BoxedValue>& snapshot : m_overrideBaseSnapshot)
+                {
+                    if (snapshot.first != propertyName)
+                    {
+                        continue;
+                    }
+
+                    if (const IMember* member = ResolveOverridableMember(cls, propertyName))
+                    {
+                        SetEntityMemberValue(member, this, snapshot.second);
+                    }
+
+                    break;
+                }
+            }
+
+            MarkDirty();
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Entity::DeserializeLayerOverrides(Array<EntityLayerOverrideSet>&& sets)
+{
+    if (m_appliedOverrideLayer)
+    {
+        RevertLayerOverrides();
+    }
+
+    m_layerOverrides = std::move(sets);
+
+    MarkDirty();
+}
+
+void Entity::ApplyLayerOverrides(Name layerName)
+{
+    if (m_appliedOverrideLayer == layerName)
+    {
+        return;
+    }
+
+    // Restore base values before applying the new set
+    RevertLayerOverrides();
+
+    const EntityLayerOverrideSet* set = FindLayerOverrideSet(m_layerOverrides, layerName);
+
+    if (!set || set->propertyOverrides.Empty())
+    {
+        return;
+    }
+
+    const Class* cls = InstanceClass();
+
+    Array<Pair<Name, BoxedValue>> baseSnapshot;
+    uint32 numApplied = 0;
+
+    for (const LayerPropertyOverride& overrideEntry : set->propertyOverrides)
+    {
+        const IMember* member = ResolveOverridableMember(cls, overrideEntry.property);
+
+        if (!member)
+        {
+            HYP_LOG(Entity, Warning, "Cannot apply layer override: Entity {} has no settable property '{}'",
+                GetName(), overrideEntry.property);
+
+            continue;
+        }
+
+        // Snapshot the base value (first occurrence wins; duplicates apply last-wins)
+        bool snapshotted = false;
+
+        for (const Pair<Name, BoxedValue>& snapshot : baseSnapshot)
+        {
+            if (snapshot.first == overrideEntry.property)
+            {
+                snapshotted = true;
+
+                break;
+            }
+        }
+
+        if (!snapshotted)
+        {
+            baseSnapshot.PushBack({ overrideEntry.property, GetEntityMemberValue(member, this) });
+        }
+
+        if (!SetEntityMemberValue(member, this, overrideEntry.value))
+        {
+            HYP_LOG(Entity, Warning, "Failed to apply layer override '{}' on Entity {}", overrideEntry.property, GetName());
+
+            continue;
+        }
+
+        ++numApplied;
+    }
+
+    m_overrideBaseSnapshot = std::move(baseSnapshot);
+    m_appliedOverrideLayer = layerName;
+
+    HYP_LOG(Entity, Info, "Applied {} layer override(s) for layer '{}' on Entity '{}'", numApplied, layerName, GetName());
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void Entity::RevertLayerOverrides()
+{
+    if (!m_appliedOverrideLayer)
+    {
+        return;
+    }
+
+    const Class* cls = InstanceClass();
+
+    for (const Pair<Name, BoxedValue>& snapshot : m_overrideBaseSnapshot)
+    {
+        if (const IMember* member = ResolveOverridableMember(cls, snapshot.first))
+        {
+            SetEntityMemberValue(member, this, snapshot.second);
+        }
+    }
+
+    m_overrideBaseSnapshot.Clear();
+    m_appliedOverrideLayer = Name::Invalid();
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+bool Entity::GetLayerOverrideBaseValue(Name layerName, Name propertyName, BoxedValue& outValue) const
+{
+    if (m_appliedOverrideLayer == layerName)
+    {
+        for (const Pair<Name, BoxedValue>& snapshot : m_overrideBaseSnapshot)
+        {
+            if (snapshot.first == propertyName)
+            {
+                outValue = snapshot.second;
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    const IMember* member = ResolveOverridableMember(InstanceClass(), propertyName);
+
+    if (!member)
+    {
+        return false;
+    }
+
+    outValue = GetEntityMemberValue(member, const_cast<Entity*>(this));
+
+    return true;
+}
+
+bool Entity::GetLayerOverrideValue(Name layerName, Name propertyName, BoxedValue& outValue) const
+{
+    const EntityLayerOverrideSet* set = FindLayerOverrideSet(m_layerOverrides, layerName);
+
+    if (!set)
+    {
+        return false;
+    }
+
+    for (const LayerPropertyOverride& overrideEntry : set->propertyOverrides)
+    {
+        if (overrideEntry.property == propertyName)
+        {
+            outValue = overrideEntry.value;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Entity::SetLayerOverrideBaseValue(Name propertyName, BoxedValue value)
+{
+    const IMember* member = ResolveOverridableMember(InstanceClass(), propertyName);
+
+    if (!member)
+    {
+        return false;
+    }
+
+    if (!SetEntityMemberValue(member, this, value))
+    {
+        return false;
+    }
+
+    // Keep the applied layer's base snapshot in sync, so a revert returns to the edited base
+    if (m_appliedOverrideLayer)
+    {
+        for (Pair<Name, BoxedValue>& snapshot : m_overrideBaseSnapshot)
+        {
+            if (snapshot.first == propertyName)
+            {
+                snapshot.second = std::move(value);
+
+                break;
+            }
+        }
+    }
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+
+    return true;
 }
 
 Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const

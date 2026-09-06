@@ -160,6 +160,11 @@ DynamicLibraryCache& DynamicLibraryCache::GetInstance()
     return s_instance;
 }
 
+DynamicLibraryCache::DynamicLibraryCache()
+    : m_impl(MakePimpl<DynamicLibraryCacheImpl>())
+{
+}
+
 DynamicLibrary* DynamicLibraryCache::LoadLibrary(PlatformStringView path)
 {
     Mutex::Guard guard(m_impl->mutex);

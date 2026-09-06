@@ -188,6 +188,14 @@ public:
     const Handle<Layer>& TryGetLayerById(LayerId layerId) const;
     const Handle<Layer>& GetOrCreateLayer(Name layerName);
 
+    /*! \brief Reverts all applied layer overrides on entities in all Scenes of this World.
+     *  Used before serializing, so base values are written to the manifest instead of applied overrides. */
+    void RevertAllLayerOverrides();
+
+    /*! \brief (Re-)applies layer overrides for the World's current active Layer to all entities
+     *  (in all Scenes) that carry override sets. */
+    void ApplyLayerOverridesForActiveLayer();
+
     /// Read the cached last active layer id value
     /// only call from sim thread or from dependant task thread (e.g during View async collection)
     HYP_FORCE_INLINE LayerId GetActiveLayerId() const

@@ -66,15 +66,18 @@ enum class WindowFlags : uint32
     EVENTS_POLLING = 0x8 //!< Window will poll for events instead of using an event callback system (e.g Win32 WindowProc)
 };
 
-HYP_MAKE_ENUM_FLAGS(WindowFlags)
+HYP_MAKE_ENUM_FLAGS(WindowFlags);
 
 namespace cli {
 
 class CommandLineArguments;
+
+struct CommandLineArgumentDefinition;
 struct CommandLineArgumentDefinitions;
 
 } // namespace cli
 
+using cli::CommandLineArgumentDefinition;
 using cli::CommandLineArgumentDefinitions;
 using cli::CommandLineArguments;
 

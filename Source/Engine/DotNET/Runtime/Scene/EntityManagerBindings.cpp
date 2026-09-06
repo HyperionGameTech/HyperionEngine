@@ -8,6 +8,8 @@
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/ComponentInterface.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/LayerOverrides.hpp>
 
 // Components
 #include <Scene/Components/TransformComponent.hpp>
@@ -219,4 +221,54 @@ extern "C"
         return numTags;
     }
 
+
+    HYP_EXPORT int8 EntityLayerOverrides_SetValue(Entity* pEntity, uint64 layerHash, uint64 propertyHash, BoxedValue* pValue)
+    {
+        if (!pEntity || !pValue)
+        {
+            return false;
+        }
+
+        return pEntity->SetLayerOverrideValue(Name(NameID(layerHash)), Name(NameID(propertyHash)), *pValue);
+    }
+
+    HYP_EXPORT int8 EntityLayerOverrides_RemoveValue(Entity* pEntity, uint64 layerHash, uint64 propertyHash)
+    {
+        if (!pEntity)
+        {
+            return false;
+        }
+
+        return pEntity->RemoveLayerOverrideValue(Name(NameID(layerHash)), Name(NameID(propertyHash)));
+    }
+
+    HYP_EXPORT int8 EntityLayerOverrides_GetBaseValue(Entity* pEntity, uint64 layerHash, uint64 propertyHash, BoxedValue* pOutValue)
+    {
+        if (!pEntity || !pOutValue)
+        {
+            return false;
+        }
+
+        return pEntity->GetLayerOverrideBaseValue(Name(NameID(layerHash)), Name(NameID(propertyHash)), *pOutValue);
+    }
+
+    HYP_EXPORT int8 EntityLayerOverrides_GetValue(Entity* pEntity, uint64 layerHash, uint64 propertyHash, BoxedValue* pOutValue)
+    {
+        if (!pEntity || !pOutValue)
+        {
+            return false;
+        }
+
+        return pEntity->GetLayerOverrideValue(Name(NameID(layerHash)), Name(NameID(propertyHash)), *pOutValue);
+    }
+
+    HYP_EXPORT int8 EntityLayerOverrides_SetBaseValue(Entity* pEntity, uint64 propertyHash, BoxedValue* pValue)
+    {
+        if (!pEntity || !pValue)
+        {
+            return false;
+        }
+
+        return pEntity->SetLayerOverrideBaseValue(Name(NameID(propertyHash)), *pValue);
+    }
 } // extern "C"

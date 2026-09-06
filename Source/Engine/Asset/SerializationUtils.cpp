@@ -8,6 +8,8 @@
 #include <Asset/AssetObject.hpp>
 #include <Asset/AssetReference.hpp>
 
+#include <Scene/Entity.hpp>
+
 #include <Core/DataProcessing/HMF/HMF.hpp>
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
@@ -1226,6 +1228,10 @@ ENGINE_API Result ObjectFromJSON(const JSON::Object& jsonObject, const Class* ta
     return {};
 }
 
+ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed);
+
+bool ResolveAssetPath(const String& path, const TypeInfo& targetType, BoxedValue& out);
+
 ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed)
 {
     if (typeInfo.IsBoolType())
@@ -2037,6 +2043,19 @@ ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& ty
         }
 
         return HYP_MAKE_ERROR(Error, "Could not find Class for type: {}", typeInfo.name);
+    }
+
+    // Asset path string -> Handle<AssetObject> (resolves via the asset registry)
+    if (typeInfo.IsHandleType() && jsonValue.IsString())
+    {
+        BoxedValue resolved;
+
+        if (ResolveAssetPath(jsonValue.AsString(), typeInfo, resolved))
+        {
+            outBoxed = std::move(resolved);
+
+            return {};
+        }
     }
 
     return HYP_MAKE_ERROR(Error, "Failed to deserialize JSON to BoxedValue of type: {}, no handle logic for JSON value: {}",
@@ -2971,6 +2990,134 @@ Result BoxedToHMFImpl(
     return HYP_MAKE_ERROR(Error, "Don't know how to serialize BoxedValue with type \"{}\" to HMF", typeInfo.name);
 }
 
+static Entity* ExtractEntityFromBoxed(const BoxedValue& target)
+{
+    if (target.IsNull())
+    {
+        return nullptr;
+    }
+
+    void* pointer = target.ToRef().GetPointer();
+
+    if (pointer == nullptr)
+    {
+        return nullptr;
+    }
+
+    auto* object = reinterpret_cast<ObjectBase*>(pointer);
+
+    if (!IsA(Entity::StaticClass(), object->InstanceClass()))
+    {
+        return nullptr;
+    }
+
+    return static_cast<Entity*>(object);
+}
+
+static const IMember* ResolveMemberForOverride(const Class* cls, Name propertyName)
+{
+    if (!cls || !propertyName)
+    {
+        return nullptr;
+    }
+
+    const IMember* member = cls->GetMember(StringHash(propertyName), MemberType::Field | MemberType::Property);
+
+    if (!member)
+    {
+        return nullptr;
+    }
+
+    // If has `Property = ...`, use the synthetic Property instead
+    if (member->GetMemberType() == MemberType::Field && member->GetAttribute(Attributes::g_attrProperty).IsValid())
+    {
+        if (Property* prop = cls->GetProperty(StringHash(propertyName)))
+        {
+            member = prop;
+        }
+    }
+
+    return member;
+}
+
+static void WriteEntityLayerOverridesSection(const Entity& entity, String& outText, ToHMFOptions& opts, int indent)
+{
+    const Array<EntityLayerOverrideSet>& overrideSets = entity.GetLayerOverrides();
+
+    if (overrideSets.Empty())
+    {
+        return;
+    }
+
+    const Class* entityClass = entity.InstanceClass();
+
+    WriteIndent(outText, indent);
+    outText += "$LayerOverrides = {\n";
+
+    for (size_t setIndex = 0; setIndex < overrideSets.Size(); setIndex++)
+    {
+        const EntityLayerOverrideSet& overrideSet = overrideSets[setIndex];
+        const bool isLastSet = setIndex + 1 >= overrideSets.Size();
+
+        WriteIndent(outText, indent + 1);
+        EscapeString(outText, overrideSet.layerName.IsValid() && overrideSet.layerName.LookupString()
+                ? overrideSet.layerName.LookupString()
+                : "");
+        outText += " = {\n";
+
+        for (size_t i = 0; i < overrideSet.propertyOverrides.Size(); i++)
+        {
+            const LayerPropertyOverride& overrideEntry = overrideSet.propertyOverrides[i];
+
+            WriteIndent(outText, indent + 2);
+            outText += overrideEntry.property.LookupString();
+            outText += " = ";
+
+            const IMember* member = ResolveMemberForOverride(entityClass, overrideEntry.property);
+
+            if (member)
+            {
+                // Emit the value against the overridden property's declared type,
+                // so the output matches the style of regular member serialization.
+                const bool typesDiffer = member->GetTypeInfo().GetClass() != overrideEntry.value.GetTypeInfo()->GetClass();
+
+                ToHMFOptions memberOpts = opts;
+                memberOpts.writeClassNamesForPolymorphic = (ForceWriteClassNamesWhenTypesDiffer && typesDiffer);
+
+                if (opts.followAssetPaths != ToHMFOptions::FollowAssetPathsMode::Always
+                    && !member->GetAttribute(Attributes::g_attrFollowAssetPath).GetBool())
+                {
+                    memberOpts.followAssetPaths = ToHMFOptions::FollowAssetPathsMode::Never;
+                }
+
+                if (Result result = BoxedToHMFImpl(overrideEntry.value, outText, &member->GetTypeInfo(), memberOpts, indent + 2);
+                    result.HasError())
+                {
+                    HYP_LOG(Core, Warning, "Failed to serialize layer override \"{}\" of Entity \"{}\": {}",
+                        overrideEntry.property, entity.GetName(), result.GetError().GetMessage());
+
+                    outText += "null";
+                }
+            }
+            else
+            {
+                HYP_LOG(Core, Warning, "Cannot serialize layer override \"{}\": Entity \"{}\" has no such settable property",
+                    overrideEntry.property, entity.GetName());
+
+                outText += "null";
+            }
+
+            outText += "\n";
+        }
+
+        WriteIndent(outText, indent + 1);
+        outText += isLastSet ? "}\n" : "},\n";
+    }
+
+    WriteIndent(outText, indent);
+    outText += "}\n";
+}
+
 Result ObjectToHMFImpl(
     const Class* cls,
     const BoxedValue& target,
@@ -2979,6 +3126,8 @@ Result ObjectToHMFImpl(
     int indent,
     bool skipNameProperty)
 {
+    const Class* originalClass = cls;
+
     Set<Name> usedMembers;
 
     while (cls != nullptr)
@@ -3080,6 +3229,15 @@ Result ObjectToHMFImpl(
         }
 
         cls = cls->GetParent();
+    }
+
+    // $-prefixed schema sections (e.g. an Entity's $LayerOverrides)
+    if (originalClass != nullptr && originalClass->IsDerivedFrom(Entity::StaticClass()))
+    {
+        if (Entity* entity = ExtractEntityFromBoxed(target))
+        {
+            WriteEntityLayerOverridesSection(*entity, outText, opts, indent);
+        }
     }
 
     return {};

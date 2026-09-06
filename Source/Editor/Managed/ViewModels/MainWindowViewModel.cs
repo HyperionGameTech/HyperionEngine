@@ -959,6 +959,10 @@ namespace Hyperion.Editor.ViewModels
                                 _ = Inspector.EntityLayers.RefreshAsync();
                             }
 
+                            // The inspector's layer-override edit target follows the active layer
+                            // when the selected entity has an override set for it.
+                            Inspector.OnWorldActiveLayerChanged(ActiveBakeLayerName);
+
                             // Re-apply the layer filter to the scene hierarchy. This also runs during
                             // simulation so the hierarchy tracks the active layer live.
                             SceneHierarchy.RefreshFilter();

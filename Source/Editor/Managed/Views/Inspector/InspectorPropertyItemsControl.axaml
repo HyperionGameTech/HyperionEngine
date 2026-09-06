@@ -87,6 +87,12 @@
             </DataTemplate>
             <DataTemplate x:DataType="vm:TransformViewModel">
                 <StackPanel Spacing="4">
+                    <TextBlock
+                        FontSize="10"
+                        TextWrapping="Wrap"
+                        Foreground="{DynamicResource Brush.TextMuted}"
+                        IsVisible="{Binding IsOverridden}"
+                        Text="{Binding OverrideSignifier}" />
                     <StackPanel Orientation="Vertical" Spacing="2">
                         <TextBlock Text="Translation" />
                         <ContentControl Content="{Binding Translation}" />
@@ -226,13 +232,28 @@
                         <ColumnDefinition Width="Auto" SharedSizeGroup="PropertyLabel" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock
+                    <StackPanel
                         Grid.Column="0"
                         IsVisible="{Binding ShowInlineLabel}"
-                        MaxWidth="100"
+                        MaxWidth="110"
                         Margin="0,0,8,0"
-                        Classes="inspector-name"
-                        Text="{Binding Label}" />
+                        Spacing="1">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Ellipse
+                                Width="5"
+                                Height="5"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsOverridden}"
+                                Fill="{DynamicResource Brush.Accent}" />
+                            <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock
+                            FontSize="10"
+                            TextWrapping="Wrap"
+                            Foreground="{DynamicResource Brush.TextMuted}"
+                            IsVisible="{Binding IsOverridden}"
+                            Text="{Binding OverrideSignifier}" />
+                    </StackPanel>
                     <ContentControl
                         Grid.Column="0"
                         Grid.ColumnSpan="2"

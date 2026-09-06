@@ -344,7 +344,8 @@ struct CVarSnapshot
 
 #pragma region CVarManager
 
-class CVarManager
+/*! \brief Exported so plugins can read/write engine CVars (see PluginAPI.hpp). */
+class ENGINE_API CVarManager
 {
 public:
     static CVarManager& GetInstance();

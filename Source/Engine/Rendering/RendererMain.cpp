@@ -98,8 +98,8 @@ static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
 {
     static constexpr StringHash CubemapShaderNames[] = { "DrawCubemap"_sh, "RenderSky"_sh };
 
-    return shaderNameHash != CubemapShaderNames[0]
-        && shaderNameHash != CubemapShaderNames[1];
+    return shaderNameHash == CubemapShaderNames[0]
+        || shaderNameHash == CubemapShaderNames[1];
 }
 
 static HYP_FORCE_INLINE bool IsGeometryPassShader(StringHash shaderNameHash)

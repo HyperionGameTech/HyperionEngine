@@ -364,7 +364,19 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     taskScope.GetEditorTask()->SetDescription("Saving package data");
 
+    // Ensure base property values are written to manifests, not values from applied layer overrides.
+    if (m_editWorld.IsValid())
+    {
+        m_editWorld->RevertAllLayerOverrides();
+    }
+
     registry.SaveDirtyAssets();
+
+    // Re-apply the active layer's overrides now that all assets have been saved
+    if (m_editWorld.IsValid())
+    {
+        m_editWorld->ApplyLayerOverridesForActiveLayer();
+    }
 
     // Move files not managed by the registry (eg. script sources in Scripts/) from the old location
     // (eg. the temporary directory of an unsaved project) to the new one.

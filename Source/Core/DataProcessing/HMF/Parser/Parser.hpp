@@ -47,6 +47,8 @@ private:
     bool ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8StringView& objectName = UTF8StringView {});
     bool ParseValue(const TypeInfo& typeInfo, BoxedValue& out);
 
+    bool ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSIStringView& sectionName);
+
     bool ParseBoolValue(BoxedValue& out);
     bool ParseIntegralValue(const TypeInfo& typeInfo, BoxedValue& out);
     bool ParseFloatValue(const TypeInfo& typeInfo, BoxedValue& out);

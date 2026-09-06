@@ -194,6 +194,16 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             return false;
         }
 
+        if (fieldName.Any() && fieldName[0] == '$')
+        {
+            if (!ParseSchemaSection(cls, target, fieldName.ToAnsi().Substr(1)))
+            {
+                return false;
+            }
+
+            continue;
+        }
+
         // Look up the member on the class
         const IMember* member = cls->GetMember(StringHash(fieldName), MemberType::Field | MemberType::Property);
 
@@ -301,6 +311,166 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             break;
         }
         }
+    }
+
+    return true;
+}
+
+bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSIStringView& sectionName)
+{
+    if (!Expect(TK_OPEN_BRACE, "{"))
+    {
+        return false;
+    }
+
+    Array<SchemaSectionEntry> entries;
+
+    while (Peek().GetTokenClass() != TK_CLOSE_BRACE && Peek().GetTokenClass() != TK_EMPTY)
+    {
+        if (Peek().GetTokenClass() == TK_COMMA)
+        {
+            const Token comma = Next();
+
+            if (Peek().GetTokenClass() == TK_CLOSE_BRACE)
+            {
+                Error(MSG_UNEXPECTED_TOKEN, comma.GetLocation(), ",");
+                return false;
+            }
+        }
+
+        // Entry key: string or identifier
+        const Token keyToken = Peek();
+
+        if (keyToken.GetTokenClass() != TK_STRING && keyToken.GetTokenClass() != TK_IDENT)
+        {
+            Error(MSG_UNEXPECTED_TOKEN, keyToken.GetLocation(), keyToken.GetValue());
+            return false;
+        }
+
+        Next();
+
+        if (!Expect(TK_EQUALS, "="))
+        {
+            return false;
+        }
+
+        SchemaSectionEntry entry;
+        entry.key = Name(ANSIString(keyToken.GetValue().ToAnsi()));
+
+        // Parse the entry body against the owner class' schema, collecting typed values
+        if (!Expect(TK_OPEN_BRACE, "{"))
+        {
+            return false;
+        }
+
+        while (Peek().GetTokenClass() != TK_CLOSE_BRACE && Peek().GetTokenClass() != TK_EMPTY)
+        {
+            if (Peek().GetTokenClass() == TK_COMMA)
+            {
+                const Token comma = Next();
+
+                if (Peek().GetTokenClass() == TK_CLOSE_BRACE)
+                {
+                    Error(MSG_UNEXPECTED_TOKEN, comma.GetLocation(), ",");
+                    return false;
+                }
+            }
+
+            String fieldName;
+            if (!ExpectIdentifier(fieldName))
+            {
+                return false;
+            }
+
+            if (fieldName.Any() && fieldName[0] == '$')
+            {
+                Error(MSG_UNEXPECTED_TOKEN, Peek().GetLocation(), "$-sections cannot be nested");
+                return false;
+            }
+
+            if (!Expect(TK_EQUALS, "="))
+            {
+                return false;
+            }
+
+            const IMember* member = cls->GetMember(StringHash(fieldName), MemberType::Field | MemberType::Property);
+
+            if (!member)
+            {
+                Warning(MSG_UNKNOWN_FIELD, Peek().GetLocation(), cls->GetName().ToString(), fieldName);
+
+                SkipValue();
+
+                continue;
+            }
+
+            // If has `Property = ...`, we want to grab the synthetic Property created instead.
+            if (member->GetMemberType() == MemberType::Field && member->GetAttribute(Attributes::g_attrProperty).IsValid())
+            {
+                if (Property* prop = cls->GetProperty(StringHash(fieldName)))
+                {
+                    member = prop;
+                }
+            }
+
+            if (member->GetAttribute(Attributes::g_attrJsonIgnore).IsValid())
+            {
+                SkipValue();
+
+                continue;
+            }
+
+            if (member->GetMemberType() == MemberType::Property && !static_cast<const Property*>(member)->CanSet())
+            {
+                Warning(MSG_CANNOT_ASSIGN_PROPERTY, Peek().GetLocation(), member->GetName().ToString(), cls->GetName().ToString());
+
+                SkipValue();
+
+                continue;
+            }
+
+            BoxedValue fieldValue;
+            if (!ParseValue(member->GetTypeInfo(), fieldValue))
+            {
+                // Failed to parse value; continue so we don't stop the world on a schema change
+                SkipValue();
+
+                continue;
+            }
+
+            entry.values.PushBack({ Name(ANSIString(fieldName.ToAnsi())), std::move(fieldValue) });
+        }
+
+        if (!Expect(TK_CLOSE_BRACE, "}"))
+        {
+            return false;
+        }
+
+        entries.PushBack(std::move(entry));
+    }
+
+    if (!Expect(TK_CLOSE_BRACE, "}"))
+    {
+        return false;
+    }
+
+    if (entries.Empty())
+    {
+        return true;
+    }
+
+    auto fn = GetParseSchemaSectionFn(sectionName);
+
+    if (!fn)
+    {
+        Warning(MSG_UNKNOWN_OVERRIDE_SECTION, Peek().GetLocation(), sectionName);
+
+        return true;
+    }
+
+    if (!fn(target, std::move(entries)))
+    {
+        Warning(MSG_OVERRIDE_SECTION_PARSE_FAILED, Peek().GetLocation(), sectionName, cls->GetName().ToString());
     }
 
     return true;

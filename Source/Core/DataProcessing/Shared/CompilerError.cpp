@@ -53,7 +53,9 @@ const Map<ErrorMessage, String> CompilerError::s_errorMessageStrings {
     { MSG_INVALID_LITERAL_FOR_TYPE, "Literal '%' is not valid for type '%'" },
     { MSG_UNBALANCED_BRACES, "Unbalanced braces: Expected '}'" },
     { MSG_UNBALANCED_BRACKETS, "Unbalanced brackets: Expected ']'" },
-    { MSG_UNKNOWN_ASSET_PATH, "Asset path '%' could not be resolved" }
+    { MSG_UNKNOWN_ASSET_PATH, "Asset path '%' could not be resolved" },
+    { MSG_UNKNOWN_OVERRIDE_SECTION, "Unknown override section: '%'" },
+    { MSG_OVERRIDE_SECTION_PARSE_FAILED, "Failed to materialize override section '%' for type '%'" }
 };
 
 bool CompilerError::operator<(const CompilerError& other) const

@@ -10,7 +10,11 @@
 
 #include <Core/FileSystem/FilePath.hpp>
 
+#include <Core/Name/Name.hpp>
+
 #include <Core/Reflection/BoxedValue.hpp>
+
+#include <Core/Utilities/Pair.hpp>
 
 #include <Core/Utilities/Result.hpp>
 
@@ -39,6 +43,21 @@ using ParseResult = TResult<BoxedValue>;
 using ResolveAssetPathFn = bool (*)(const String& path, const TypeInfo& targetType, BoxedValue& out);
 
 CORE_API extern ResolveAssetPathFn g_resolveAssetPath;
+
+//--
+
+struct SchemaSectionEntry
+{
+    Name key;
+    Array<Pair<Name, BoxedValue>> values;
+};
+
+using ParseSchemaSectionFn = bool (*)(BoxedValue& owner, Array<SchemaSectionEntry>&& entries);
+
+CORE_API void SetParseSchemaSectionFn(const ANSIStringView& sectionName, ParseSchemaSectionFn fn);
+CORE_API ParseSchemaSectionFn GetParseSchemaSectionFn(const ANSIStringView& sectionName);
+
+//--
 
 CORE_API ParseResult Parse(const FilePath& filePath, ByteReader& reader, ErrorList* outErrors = nullptr, BoxedValue* target = nullptr);
 CORE_API ParseResult Parse(const FilePath& filePath, const String& source, ErrorList* outErrors = nullptr, BoxedValue* target = nullptr);

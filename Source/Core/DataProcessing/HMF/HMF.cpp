@@ -23,6 +23,30 @@ ResolveAssetPathFn g_resolveAssetPath = nullptr;
 
 static const FilePath s_inMemoryFilePath = FilePath("<memory-buffer>");
 
+static Map<ANSIString, ParseSchemaSectionFn> s_parseSchemaSectionFns;
+static Mutex s_parseSchemaSectionFnsMutex;
+
+void SetParseSchemaSectionFn(const ANSIStringView& sectionName, ParseSchemaSectionFn fn)
+{
+    Mutex::Guard guard(s_parseSchemaSectionFnsMutex);
+
+    s_parseSchemaSectionFns[sectionName] = fn;
+}
+
+ParseSchemaSectionFn GetParseSchemaSectionFn(const ANSIStringView& sectionName)
+{
+    Mutex::Guard guard(s_parseSchemaSectionFnsMutex);
+
+    const auto it = s_parseSchemaSectionFns.Find(sectionName);
+
+    if (it == s_parseSchemaSectionFns.End())
+    {
+        return nullptr;
+    }
+
+    return it->second;
+}
+
 namespace {
 
 ParseResult RunParse(
