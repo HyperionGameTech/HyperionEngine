@@ -9,73 +9,25 @@
 #include <Scene/WorldGrid/Terrain/TerrainMeshBuilder.hpp>
 #include <Scene/WorldGrid/Terrain/Generation/TerrainGenerator.hpp>
 
-#include <Streaming/StreamingCell.hpp>
-
 namespace Hyperion {
 
 #pragma region Helpers
 
-static Array<SimpleVertex> BuildVertices(
-    uint32 cellSize,
-    const StreamingCellInfo& cellInfo,
-    const TerrainGenerator& generator,
-    Span<const float> sculptDelta)
+static Array<SimpleVertex> BuildVertices(uint32 cellSize, Span<const float> paddedHeights)
 {
-    const Vec2f cellWorldMinXZ(cellInfo.bounds.min.x, cellInfo.bounds.min.z);
-    const Vec2f scaleXZ(cellInfo.scale.x, cellInfo.scale.z);
+    const uint32 padding = TerrainGenerator::CellPadding;
+    const uint32 paddedPitch = cellSize + padding * 2u;
 
-    Array<float> paddedHeights;
-    generator.GeneratePaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, paddedHeights);
+    Assert(paddedHeights.Size() == size_t(paddedPitch) * size_t(paddedPitch), "Padded heights have unexpected size");
 
-    const uint32 margin = generator.GetErosionMargin();
-    const uint32 paddedPitch = cellSize + margin * 2u;
-
-    const bool hasSculptDelta = sculptDelta.Size() > 0;
-
-    if (hasSculptDelta)
+    if (paddedHeights.Size() != size_t(paddedPitch) * size_t(paddedPitch))
     {
-        Assert(sculptDelta.Size() == size_t(cellSize) * size_t(cellSize),
-            "Bad sculpt deltas !!! BAD!!!!");
-
-        // for debugging so we don't kill the whole thing
-        if (sculptDelta.Size() != size_t(cellSize) * size_t(cellSize))
-        {
-            return {};
-        }
+        return {};
     }
-
-    const int32 last = int32(cellSize) - 1;
-
-    const auto sculptDeltaAt = [&](int32 x, int32 z) -> float
-    {
-        return sculptDelta[size_t(z) * cellSize + size_t(x)];
-    };
 
     const auto heightAt = [&](int32 x, int32 z) -> float
     {
-        const float height = paddedHeights[size_t(z + int32(margin)) * paddedPitch + size_t(x + int32(margin))];
-
-        if (!hasSculptDelta)
-        {
-            return height;
-        }
-
-        const int32 clampedX = MathUtil::Clamp(x, 0, last);
-        const int32 clampedZ = MathUtil::Clamp(z, 0, last);
-
-        float delta = sculptDeltaAt(clampedX, clampedZ);
-
-        if (x != clampedX)
-        {
-            delta += delta - sculptDeltaAt(clampedX + (x < 0 ? 1 : -1), clampedZ);
-        }
-
-        if (z != clampedZ)
-        {
-            delta += delta - sculptDeltaAt(clampedX, clampedZ + (z < 0 ? 1 : -1));
-        }
-
-        return height + delta;
+        return paddedHeights[size_t(z + int32(padding)) * paddedPitch + size_t(x + int32(padding))];
     };
 
     Array<SimpleVertex> vertices;
@@ -280,13 +232,10 @@ void TerrainMeshBuilder::BuildSkirtVertices(
     }
 }
 
-TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellVertexData(
-    const StreamingCellInfo& cellInfo,
-    const TerrainGenerator& generator,
-    Span<const float> sculptDelta) const
+TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellVertexData(Span<const float> paddedHeights) const
 {
     CellMeshData result;
-    result.vertices = BuildVertices(m_cellSize, cellInfo, generator, sculptDelta);
+    result.vertices = BuildVertices(m_cellSize, paddedHeights);
     result.indices = BuildIndices(m_cellSize);
 
     return result;

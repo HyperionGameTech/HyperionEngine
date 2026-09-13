@@ -64,6 +64,8 @@ protected:
     Handle<Mesh> BuildMeshFromCellMeshData() const;
 
 private:
+    bool BuildCellMeshData(Array<float>& outGeneratedHeights);
+
     void RebuildMeshFull(const Handle<TerrainCellData>& cellData);
     void UpdateCollider(bool notifyPhysicsWorld);
 
@@ -83,8 +85,10 @@ private:
     Handle<Material> m_cellMaterial;
     Handle<Texture> m_splatTexture;
 
-    Array<float> m_scratchHeights;
     Array<SimpleVertex> m_scratchVertices;
+
+    ///heights generated on the streaming thread
+    Array<float> m_generatedHeights;
 
     TerrainMeshBuilder::CellMeshData m_cellMeshData;
 };

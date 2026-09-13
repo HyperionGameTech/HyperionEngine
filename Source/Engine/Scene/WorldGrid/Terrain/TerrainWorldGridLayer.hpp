@@ -68,6 +68,21 @@ public:
 
     SharedPtr<const Array<float>> GetOrGenerateCellHeights(const Vec2i& coord) const;
 
+    HYP_FORCE_INLINE uint64 GetCellFingerprint() const
+    {
+        return m_cellFingerprint;
+    }
+
+    Handle<TerrainCellData> FindCellData(const Vec2i& coord) const;
+
+    ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
+    bool AreCellHeightsCurrent(const TerrainCellData& cellData) const;
+
+    void GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights) const;
+
+    ///saves freshly generated heights into the cell's data, creating it if needed; leaves current heights untouched
+    Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights);
+
     HYP_METHOD()
     void ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise);
 
@@ -90,6 +105,7 @@ protected:
     virtual Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo) override;
 
     void Regenerate();
+    void UpdateCellFingerprint();
 
     Handle<Scene> m_scene;
     Handle<Material> m_material;
@@ -101,16 +117,18 @@ protected:
     FlatMap<Vec2i, WeakHandle<TerrainStreamingCell>> m_loadedCells;
     FlatMap<Vec2i, bool> m_cellsModifiedSinceStrokeEnd;
 
-    struct DeltaSampleCache
+    uint64 m_cellFingerprint = 0;
+
+    struct HeightsSampleCache
     {
         Handle<TerrainCellData> cell;
         TSharedResLock<AssetObject> scope;
-        ConstByteView blobData;
+        Span<const float> heights;
 
         void Invalidate();
     };
-    
-    mutable DeltaSampleCache m_deltaSampleCache;
+
+    mutable HeightsSampleCache m_heightsSampleCache;
 };
 
 } // namespace Hyperion

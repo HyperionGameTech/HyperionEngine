@@ -702,7 +702,7 @@ void Mesh::UploadGpuData()
 
     isUploaded.Store(true);
 
-    cr.Done();
+    cr.Submit();
 }
 
 void Mesh::UpdateDynamicVertexData(uint8 lodIndex, uint32 firstVertex, const VertexArrayView& vertexRange)

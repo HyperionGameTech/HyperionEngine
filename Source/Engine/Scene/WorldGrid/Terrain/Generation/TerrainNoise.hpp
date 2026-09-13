@@ -47,31 +47,8 @@ HYP_FORCE_INLINE float TerrainSmoothStep(float edge0, float edge1, float value)
     return t * t * (3.0f - 2.0f * t);
 }
 
-HYP_FORCE_INLINE float TerrainSmoothStepDerivative(float edge0, float edge1, float value)
-{
-    const float range = MathUtil::Max(edge1 - edge0, 1e-6f);
-    const float t = (value - edge0) / range;
-
-    if (t <= 0.0f || t >= 1.0f)
-    {
-        return 0.0f;
-    }
-
-    return 6.0f * t * (1.0f - t) / range;
-}
-
-struct TerrainNoiseSample
-{
-    float value = 0.0f;
-    Vec2f gradient;
-};
-
 float TerrainSimplex2D(uint32 seed, float x, float y);
 float TerrainFbm2D(uint32 seed, float x, float y, uint32 octaves, float lacunarity = 2.0f, float gain = 0.5f);
-
-TerrainNoiseSample TerrainSimplex2DGrad(uint32 seed, float x, float y);
-TerrainNoiseSample TerrainFbm2DGrad(uint32 seed, float x, float y, uint32 octaves, float lacunarity = 2.0f, float gain = 0.5f);
-TerrainNoiseSample TerrainRidged2DGrad(uint32 seed, float x, float y, uint32 octaves, float lacunarity = 2.02f, float gain = 0.5f);
-TerrainNoiseSample TerrainGully2D(uint32 seed, float x, float y, const Vec2f& flowDirection);
+float TerrainRidged2D(uint32 seed, float x, float y, uint32 octaves, float lacunarity = 2.02f, float gain = 0.5f);
 
 } // namespace Hyperion

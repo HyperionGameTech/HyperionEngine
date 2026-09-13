@@ -40,155 +40,86 @@ TerrainCellData::TerrainCellData(Name name, const Vec2i& coord, const Vec3u& ext
 
 TerrainCellData::~TerrainCellData()
 {
-    FreeBlobData(m_sculptDelta);
+    FreeBlobData(m_heights);
     FreeBlobData(m_splatMap);
 }
 
-void TerrainCellData::SetSculptDelta(ConstByteView view)
+void TerrainCellData::SetHeights(Span<const float> paddedHeights)
 {
-    if (view.Size() == 0 && m_sculptDelta.size == 0)
-    {
-        return;
-    }
+    FreeBlobData(m_heights);
 
-    FreeBlobData(m_sculptDelta);
+    m_heights = BlobDataReference {};
 
-    if (view.Size() != 0)
+    if (paddedHeights.Size() != 0)
     {
-        AllocateBlobData(m_sculptDelta, view.Data(), view.Size(), 1);
+        AllocateBlobData(m_heights, paddedHeights.Data(), paddedHeights.Size() * sizeof(float), alignof(float));
     }
 
     MarkDirty();
 }
 
-ByteView TerrainCellData::GetSculptDelta()
+void TerrainCellData::ClearHeights()
 {
-    if (m_sculptDelta.raw == nullptr || m_sculptDelta.readOnly || m_sculptDelta.size == 0)
-    {
-        return ByteView();
-    }
+    FreeBlobData(m_heights);
 
-    return ByteView((ubyte*)m_sculptDelta.raw, m_sculptDelta.size);
+    m_heights = BlobDataReference {};
+
+    generatorFingerprint = 0;
+    isSculpted = false;
+
+    MarkDirty();
 }
 
-ConstByteView TerrainCellData::GetSculptDelta() const
+Span<const float> TerrainCellData::GetHeights() const
 {
-    if (m_sculptDelta.raw == nullptr || m_sculptDelta.size == 0)
-    {
-        return ConstByteView();
-    }
-
-    return ConstByteView((const ubyte*)m_sculptDelta.raw, m_sculptDelta.size);
-}
-
-Span<const float> TerrainCellData::GetSculptDeltaFloat() const
-{
-    ConstByteView blob = GetSculptDelta();
-
-    if (blob.Size() == 0 || blob.Size() % sizeof(float) != 0)
+    if (m_heights.raw == nullptr || m_heights.size == 0 || m_heights.size % sizeof(float) != 0)
     {
         return Span<const float>();
     }
 
-    return Span<const float>((const float*)blob.Data(), blob.Size() / sizeof(float));
+    return Span<const float>((const float*)m_heights.raw, m_heights.size / sizeof(float));
 }
 
-bool TerrainCellData::EnsureWritableSculptDelta(uint32 numVertices)
+Span<float> TerrainCellData::GetHeights()
 {
-    const size_t requiredSize = size_t(numVertices) * sizeof(float);
-
-    const auto checkIsResident = [this, requiredSize]()
+    if (m_heights.raw == nullptr || m_heights.readOnly || m_heights.size == 0 || m_heights.size % sizeof(float) != 0)
     {
-        return m_sculptDelta.raw != nullptr && m_sculptDelta.size >= requiredSize;
-    };
-
-    if (checkIsResident())
-    {
-        if (m_sculptDelta.readOnly)
-        {
-            // make prviate
-            SetBlobDataResident(true);
-        }
-
-        return true;
+        return Span<float>();
     }
 
-    {
-        auto readScope = GetReadScope();
+    return Span<float>((float*)m_heights.raw, m_heights.size / sizeof(float));
+}
 
-        if (checkIsResident())
-        {
-            if (m_sculptDelta.readOnly)
-            {
-                SetBlobDataResident(true);
-            }
-
-            MarkDirty();
-
-            return true;
-        }
-    }
-
-    auto writeScope = GetWriteScope();
-
-    if (checkIsResident())
-    {
-        // loaded by another thread
-        MarkDirty();
-
-        return true;
-    }
-
-    if (m_sculptDelta.raw != nullptr)
-    {
-        // Resident, but smaller than needed (e.g. cell size changed) - grow the buffer,
-        // keeping the existing sculpted heights.
-        ByteBuffer oldData(ConstByteView((const ubyte*)m_sculptDelta.raw, m_sculptDelta.size));
-        const size_t oldSize = oldData.Size();
-
-        FreeBlobData(m_sculptDelta);
-        AllocateBlobData(m_sculptDelta, nullptr, requiredSize, alignof(float));
-
-        if (m_sculptDelta.raw == nullptr || m_sculptDelta.size < requiredSize)
-        {
-            return false;
-        }
-
-        Memory::Copy(m_sculptDelta.raw, oldData.Data(), oldSize);
-        Memory::Zero((ubyte*)m_sculptDelta.raw + oldSize, requiredSize - oldSize);
-
-        MarkDirty();
-
-        return true;
-    }
-
-    FreeBlobData(m_sculptDelta);
-    AllocateBlobData(m_sculptDelta, nullptr, requiredSize, alignof(float));
-
-    if (m_sculptDelta.raw == nullptr || m_sculptDelta.size < requiredSize)
+bool TerrainCellData::EnsureWritableHeights()
+{
+    if (m_heights.size == 0)
     {
         return false;
     }
 
-    Memory::Zero(m_sculptDelta.raw, requiredSize);
+    const auto makeWritable = [this]()
+    {
+        if (m_heights.raw != nullptr && m_heights.readOnly)
+        {
+            SetBlobDataResident(true);
+        }
 
-    MarkDirty();
+        return m_heights.raw != nullptr && !m_heights.readOnly;
+    };
 
-    return true;
+    if (makeWritable())
+    {
+        return true;
+    }
+
+    auto readScope = GetReadScope();
+
+    return makeWritable();
 }
 
 bool TerrainCellData::HasSplatMap() const
 {
     return m_splatMap.size != 0;
-}
-
-void TerrainCellData::ClearSculptDelta()
-{
-    FreeBlobData(m_sculptDelta);
-
-    m_sculptDelta = BlobDataReference {};
-
-    MarkDirty();
 }
 
 void TerrainCellData::ClearSplatMap()
@@ -335,13 +266,13 @@ void TerrainCellData::PageBlobData()
 
     const FilePath blobDirectory = registry->GetRootPath() / AssetBuckets::Terrain.GetName();
 
-    if (m_sculptDelta.raw == nullptr
-        && m_sculptDelta.key
-        && m_sculptDelta.size != 0)
+    if (m_heights.raw == nullptr
+        && m_heights.key
+        && m_heights.size != 0)
     {
-        if (!PageBlobDataFromStorage(m_sculptDelta))
+        if (!PageBlobDataFromStorage(m_heights))
         {
-            PageBlobDataFromFile(blobDirectory, "TERA", m_sculptDelta);
+            PageBlobDataFromFile(blobDirectory, "TERH", m_heights);
         }
     }
 
@@ -391,14 +322,14 @@ void TerrainCellData::UnpageBlobData()
 {
     AssetObject::UnpageBlobData();
 
-    AssertBlobDataPersisted(m_sculptDelta);
+    AssertBlobDataPersisted(m_heights);
 
-    if (!m_sculptDelta.readOnly)
+    if (!m_heights.readOnly)
     {
-        FreeBlobData(m_sculptDelta);
+        FreeBlobData(m_heights);
     }
 
-    m_sculptDelta.raw = nullptr;
+    m_heights.raw = nullptr;
 
     AssertBlobDataPersisted(m_splatMap);
 

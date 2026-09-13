@@ -13,9 +13,6 @@
 
 namespace Hyperion {
 
-class TerrainGenerator;
-struct StreamingCellInfo;
-
 class TerrainMeshBuilder
 {
 public:
@@ -32,11 +29,8 @@ public:
 
     ~TerrainMeshBuilder();
 
-    ///builds vertex/index data for one terrain cell from the generator's full pipeline (incl. erosion), plus an optional sculpt delta view
-    CellMeshData BuildCellVertexData(
-        const StreamingCellInfo& cellInfo,
-        const TerrainGenerator& generator,
-        Span<const float> sculptDelta) const;
+    ///paddedHeights is (cellSize + 2 * TerrainGenerator::CellPadding)^2
+    CellMeshData BuildCellVertexData(Span<const float> paddedHeights) const;
 
     ///the heightfield grid - skirt vertices are appended after these
     static constexpr uint32 CalculateGridVertexCount(uint32 cellSize)

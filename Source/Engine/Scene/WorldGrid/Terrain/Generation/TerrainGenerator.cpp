@@ -8,149 +8,220 @@
 
 #include <Scene/WorldGrid/Terrain/Generation/TerrainGenerator.hpp>
 #include <Scene/WorldGrid/Terrain/Generation/TerrainNoise.hpp>
+#include <Scene/WorldGrid/Terrain/Generation/TerrainErosion.hpp>
+
+#include <Core/HashCode.hpp>
+
+#include <cmath>
 
 #include <TerrainGenerator.generated.inl>
 
 namespace Hyperion {
 
+#pragma region Helpers
+
+static constexpr uint32 MaxCachedErosionRegions = 16;
+
+struct ErosionLayout
+{
+    float spacing = 1.0f;
+    int32 stride = 1;
+    int32 blend = 2;
+    int32 apron = 4;
+    int32 size = 1;
+};
+
+static ErosionLayout GetErosionLayout(const TerrainGenerationParams& params)
+{
+    ErosionLayout layout;
+    layout.spacing = MathUtil::Max(params.erosionSpacing, 0.01f);
+    layout.blend = int32(MathUtil::Max(params.erosionRegionBlend & ~1u, 2u));
+    layout.stride = int32(MathUtil::Max(params.erosionRegionSize, uint32(layout.blend) * 2u));
+    layout.apron = int32(MathUtil::Max(params.erosionRegionApron, 4u));
+    layout.size = layout.stride + layout.blend + layout.apron * 2;
+
+    return layout;
+}
+
+struct ErosionAxisBlend
+{
+    int32 regions[2];
+    float weights[2];
+};
+
+// regions tile the world with a stride; neighbors overlap by the blend band, where their weights cross-fade and sum to one
+static ErosionAxisBlend ComputeErosionAxisBlend(float sampleCoord, const ErosionLayout& layout)
+{
+    const int32 region = int32(std::floor(sampleCoord / float(layout.stride)));
+    const float offset = sampleCoord - float(region) * float(layout.stride);
+    const float halfBlend = float(layout.blend) * 0.5f;
+
+    if (offset < halfBlend)
+    {
+        const float fade = TerrainSmoothStep(-halfBlend, halfBlend, offset);
+
+        return ErosionAxisBlend { { region - 1, region }, { 1.0f - fade, fade } };
+    }
+
+    if (offset > float(layout.stride) - halfBlend)
+    {
+        const float fade = TerrainSmoothStep(-halfBlend, halfBlend, offset - float(layout.stride));
+
+        return ErosionAxisBlend { { region, region + 1 }, { 1.0f - fade, fade } };
+    }
+
+    return ErosionAxisBlend { { region, region }, { 1.0f, 0.0f } };
+}
+
+HYP_FORCE_INLINE static float CatmullRom(float p0, float p1, float p2, float p3, float t)
+{
+    return p1 + 0.5f * t * (p2 - p0 + t * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + t * (3.0f * (p1 - p2) + p3 - p0)));
+}
+
+#pragma endregion Helpers
+
 #pragma region TerrainGenerator
+
+struct TerrainGenerator::ErosionRegion
+{
+    int32 originX = 0;
+    int32 originZ = 0;
+    uint32 size = 0;
+    Array<float> heights;
+
+    float SampleBicubic(float sampleX, float sampleZ) const
+    {
+        const float localX = sampleX - float(originX);
+        const float localZ = sampleZ - float(originZ);
+
+        const int32 cellX = int32(std::floor(localX));
+        const int32 cellZ = int32(std::floor(localZ));
+
+        AssertDebug(cellX >= 1 && cellZ >= 1 && cellX + 2 < int32(size) && cellZ + 2 < int32(size));
+
+        const float fractionX = localX - float(cellX);
+        const float fractionZ = localZ - float(cellZ);
+
+        float rows[4];
+
+        for (int32 row = 0; row < 4; row++)
+        {
+            const float* rowHeights = heights.Data() + size_t(cellZ - 1 + row) * size + size_t(cellX - 1);
+
+            rows[row] = CatmullRom(rowHeights[0], rowHeights[1], rowHeights[2], rowHeights[3], fractionX);
+        }
+
+        return CatmullRom(rows[0], rows[1], rows[2], rows[3], fractionZ);
+    }
+};
+
+struct TerrainGenerator::ErosionRegionEntry
+{
+    Mutex buildMutex;
+    SharedPtr<const ErosionRegion> region;
+    uint64 lastUse = 0;
+};
+
+TerrainGenerator::TerrainGenerator() = default;
+
+TerrainGenerator::~TerrainGenerator() = default;
 
 void TerrainGenerator::Configure(const TerrainGenerationParams& params)
 {
+    Mutex::Guard guard(m_erosionRegionsMutex);
+
     m_params = params;
+    m_erosionRegions.Clear();
 }
 
-uint32 TerrainGenerator::GetErosionMargin() const
+uint64 TerrainGenerator::ComputeFingerprint(uint32 cellSize, const Vec2f& scaleXZ) const
 {
-    return m_params.thermalErosionIterations + m_params.hydraulicSmoothingIterations + 1u;
+    // bump when the generation or erosion algorithms change so previously saved heights regenerate
+    static constexpr uint32 GeneratorVersion = 1;
+
+    const TerrainGenerationParams& params = m_params;
+
+    // every param that affects heights must be listed here
+    HashCode hashCode;
+    hashCode.Add(GeneratorVersion);
+    hashCode.Add(cellSize);
+    hashCode.Add(scaleXZ.x);
+    hashCode.Add(scaleXZ.y);
+    hashCode.Add(CellPadding);
+    hashCode.Add(params.seed);
+    hashCode.Add(params.baseAmplitude);
+    hashCode.Add(params.baseFrequency);
+    hashCode.Add(params.baseOctaves);
+    hashCode.Add(params.mountainRegionFrequency);
+    hashCode.Add(params.mountainRegionThreshold);
+    hashCode.Add(params.mountainRegionFalloff);
+    hashCode.Add(params.mountainAmplitude);
+    hashCode.Add(params.mountainFrequency);
+    hashCode.Add(params.mountainOctaves);
+    hashCode.Add(params.mountainSharpness);
+    hashCode.Add(params.mountainRidgeWeight);
+    hashCode.Add(params.warpStrength);
+    hashCode.Add(params.warpFrequency);
+    hashCode.Add(params.erosionIterations);
+    hashCode.Add(params.erosionSpacing);
+    hashCode.Add(params.erosionRegionSize);
+    hashCode.Add(params.erosionRegionBlend);
+    hashCode.Add(params.erosionRegionApron);
+    hashCode.Add(params.erosionRoutingInterval);
+    hashCode.Add(params.erodibility);
+    hashCode.Add(params.hillslopeDiffusion);
+    hashCode.Add(params.talusAngle);
+
+    return uint64(hashCode.Value());
 }
 
-float TerrainGenerator::SampleAnalyticHeight(const Vec2f& worldXZ) const
+float TerrainGenerator::SampleBaseHeight(const Vec2f& worldXZ) const
 {
     const TerrainGenerationParams& params = m_params;
 
-    const float warpScale = params.warpStrength * params.warpFrequency;
-
-    const TerrainNoiseSample warpX = TerrainFbm2DGrad(
-        TerrainHashU32(params.seed ^ 0x51ED2701u),
-        worldXZ.x * params.warpFrequency + 11.3f,
-        worldXZ.y * params.warpFrequency + 7.7f,
-        4);
-
-    const TerrainNoiseSample warpZ = TerrainFbm2DGrad(
-        TerrainHashU32(params.seed ^ 0x68BC21EBu),
-        worldXZ.x * params.warpFrequency + 3.1f,
-        worldXZ.y * params.warpFrequency + 17.9f,
-        4);
-
     const Vec2f warped(
-        worldXZ.x + warpX.value * params.warpStrength,
-        worldXZ.y + warpZ.value * params.warpStrength);
+        worldXZ.x + TerrainFbm2D(params.seed ^ 0x51ED2701u, worldXZ.x * params.warpFrequency + 11.3f, worldXZ.y * params.warpFrequency + 7.7f, 3) * params.warpStrength,
+        worldXZ.y + TerrainFbm2D(params.seed ^ 0x68BC21EBu, worldXZ.x * params.warpFrequency + 3.1f, worldXZ.y * params.warpFrequency + 17.9f, 3) * params.warpStrength);
 
-    const auto unwarpGradient = [&](const Vec2f& gradient) -> Vec2f
-    {
-        return Vec2f(
-            gradient.x * (1.0f + warpScale * warpX.gradient.x) + gradient.y * (warpScale * warpZ.gradient.x),
-            gradient.x * (warpScale * warpX.gradient.y) + gradient.y * (1.0f + warpScale * warpZ.gradient.y));
-    };
+    const float region = TerrainFbm2D(params.seed ^ 0x77E1D2A4u, worldXZ.x * params.mountainRegionFrequency, worldXZ.y * params.mountainRegionFrequency, 3) * 0.5f + 0.5f;
 
-    const TerrainNoiseSample region = TerrainFbm2DGrad(
-        params.seed ^ 0x77E1D2A4u,
-        worldXZ.x * params.mountainRegionFrequency,
-        worldXZ.y * params.mountainRegionFrequency,
-        4);
+    const float mountainMask = TerrainSmoothStep(
+        params.mountainRegionThreshold,
+        params.mountainRegionThreshold + params.mountainRegionFalloff,
+        region);
 
-    const float regionValue = region.value * 0.5f + 0.5f;
-    const Vec2f regionGradient = region.gradient * (0.5f * params.mountainRegionFrequency);
-
-    const float maskEdge0 = params.mountainRegionThreshold;
-    const float maskEdge1 = params.mountainRegionThreshold + params.mountainRegionFalloff;
-
-    const float mountainMask = TerrainSmoothStep(maskEdge0, maskEdge1, regionValue);
-    const Vec2f mountainMaskGradient = regionGradient * TerrainSmoothStepDerivative(maskEdge0, maskEdge1, regionValue);
-
-    // rolling hills
-    const TerrainNoiseSample hills = TerrainFbm2DGrad(
+    const float hills = TerrainFbm2D(
         params.seed ^ 0x11F0A3E9u,
         warped.x * params.baseFrequency,
         warped.y * params.baseFrequency,
-        params.baseOctaves);
+        params.baseOctaves)
+        * params.baseAmplitude;
 
-    const float hillsHeight = hills.value * params.baseAmplitude;
-    const Vec2f hillsGradient = unwarpGradient(hills.gradient * (params.baseFrequency * params.baseAmplitude));
+    if (mountainMask <= 0.0f)
+    {
+        return hills;
+    }
 
-    // ridged mountain multifractal
-    const TerrainNoiseSample ridge = TerrainRidged2DGrad(
+    const float massif = TerrainFbm2D(
+        params.seed ^ 0x3A1F77C3u,
+        warped.x * params.mountainFrequency * 0.6f,
+        warped.y * params.mountainFrequency * 0.6f,
+        params.mountainOctaves)
+        * 0.5f + 0.5f;
+
+    const float ridge = TerrainRidged2D(
         params.seed ^ 0x22B7C9F5u,
         warped.x * params.mountainFrequency,
         warped.y * params.mountainFrequency,
-        params.mountainOctaves,
+        4,
         2.02f,
-        params.mountainGain);
+        0.4f);
 
-    const float ridgeBase = MathUtil::Max(ridge.value, 1e-4f);
-    const float ridgeValue = MathUtil::Pow(ridgeBase, params.mountainSharpness);
+    const float mountains = MathUtil::Pow(TerrainSmoothStep(0.2f, 0.85f, massif), params.mountainSharpness)
+        * params.mountainAmplitude
+        * (1.0f - params.mountainRidgeWeight + params.mountainRidgeWeight * ridge);
 
-    const Vec2f ridgeGradient = unwarpGradient(ridge.gradient
-        * (params.mountainFrequency * params.mountainSharpness * MathUtil::Pow(ridgeBase, params.mountainSharpness - 1.0f)));
-
-    const float hillsWeight = 1.0f - 0.5f * mountainMask;
-
-    const float height = hillsHeight * hillsWeight
-        + ridgeValue * mountainMask * params.mountainAmplitude;
-
-    const Vec2f gradient = hillsGradient * hillsWeight
-        - mountainMaskGradient * (0.5f * hillsHeight)
-        + (ridgeGradient * mountainMask + mountainMaskGradient * ridgeValue) * params.mountainAmplitude;
-
-    if (params.gullyOctaves == 0 || params.gullyDepth <= 0.0f)
-    {
-        return height;
-    }
-
-    // gullies only form where there is slope for water to run down
-    const float slopeFade = TerrainSmoothStep(0.1f, 0.6f, gradient.Length());
-
-    if (slopeFade <= 0.0f)
-    {
-        return height;
-    }
-
-    float amplitudeSum = 0.0f;
-
-    for (uint32 octave = 0; octave < params.gullyOctaves; octave++)
-    {
-        amplitudeSum += MathUtil::Pow(params.gullyGain, float(octave));
-    }
-
-    float gullies = 0.0f;
-    float amplitude = 1.0f / MathUtil::Max(amplitudeSum, 1e-6f);
-    float frequency = params.gullyFrequency;
-
-    Vec2f flowGradient = gradient;
-
-    for (uint32 octave = 0; octave < params.gullyOctaves; octave++)
-    {
-        const float flowLength = flowGradient.Length();
-        const Vec2f flowDirection = flowLength > 1e-6f ? flowGradient / flowLength : Vec2f(0.0f, 1.0f);
-
-        const TerrainNoiseSample gully = TerrainGully2D(
-            TerrainHashOctaveSeed(params.seed ^ 0x33D2E7B1u, octave),
-            worldXZ.x * frequency,
-            worldXZ.y * frequency,
-            flowDirection);
-
-        gullies += gully.value * amplitude;
-
-        // finer octaves follow the slope including the coarser gullies, so they branch off them
-        flowGradient += gully.gradient * (frequency * amplitude * params.gullyDepth);
-
-        amplitude *= params.gullyGain;
-        frequency *= 2.0f;
-    }
-
-    // biased toward carving so ridge crests and peaks keep their silhouette
-    return height + (gullies - 0.5f) * params.gullyDepth * slopeFade;
+    return hills + mountains * mountainMask;
 }
 
 void TerrainGenerator::GenerateCellHeights(
@@ -164,37 +235,33 @@ void TerrainGenerator::GenerateCellHeights(
     Array<float> paddedHeights;
     GeneratePaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, paddedHeights);
 
-    const uint32 margin = GetErosionMargin();
-    const uint32 paddedSize = cellSize + margin * 2u;
+    const uint32 paddedSize = cellSize + CellPadding * 2u;
 
     for (uint32 z = 0; z < cellSize; z++)
     {
         for (uint32 x = 0; x < cellSize; x++)
         {
-            outHeights[size_t(z) * cellSize + x] = paddedHeights[size_t(z + margin) * paddedSize + (x + margin)];
+            outHeights[size_t(z) * cellSize + x] = paddedHeights[size_t(z + CellPadding) * paddedSize + (x + CellPadding)];
         }
     }
 }
 
-void TerrainGenerator::GenerateCellHeightsAndNormals(
-    const Vec2f& cellWorldMinXZ,
-    const Vec2f& scaleXZ,
+void TerrainGenerator::ExtractCellHeightsAndNormals(
+    Span<const float> paddedHeights,
     uint32 cellSize,
     Array<float>& outHeights,
-    Array<Vec3f>& outNormals) const
+    Array<Vec3f>& outNormals)
 {
     outHeights.Resize(size_t(cellSize) * size_t(cellSize));
     outNormals.Resize(size_t(cellSize) * size_t(cellSize));
 
-    Array<float> paddedHeights;
-    GeneratePaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, paddedHeights);
+    const uint32 paddedSize = cellSize + CellPadding * 2u;
 
-    const uint32 margin = GetErosionMargin();
-    const uint32 paddedSize = cellSize + margin * 2u;
+    Assert(paddedHeights.Size() == size_t(paddedSize) * size_t(paddedSize), "Padded heights have unexpected size");
 
     const auto paddedHeightAt = [&](int32 x, int32 z) -> float
     {
-        return paddedHeights[size_t(z + int32(margin)) * paddedSize + size_t(x + int32(margin))];
+        return paddedHeights[size_t(z + int32(CellPadding)) * paddedSize + size_t(x + int32(CellPadding))];
     };
 
     for (uint32 z = 0; z < cellSize; z++)
@@ -220,26 +287,175 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     uint32 cellSize,
     Array<float>& outPaddedHeights) const
 {
-    const uint32 margin = GetErosionMargin();
-    const uint32 paddedSize = cellSize + margin * 2u;
+    HYP_SCOPE;
+
+    const uint32 paddedSize = cellSize + CellPadding * 2u;
 
     outPaddedHeights.Resize(size_t(paddedSize) * size_t(paddedSize));
 
-    for (uint32 pz = 0; pz < paddedSize; pz++)
+    const auto worldPositionAt = [&](uint32 px, uint32 pz) -> Vec2f
     {
-        const int32 lz = int32(pz) - int32(margin);
+        return cellWorldMinXZ + Vec2f(float(int32(px) - int32(CellPadding)), float(int32(pz) - int32(CellPadding))) * scaleXZ;
+    };
 
-        for (uint32 px = 0; px < paddedSize; px++)
+    if (m_params.erosionIterations == 0)
+    {
+        for (uint32 pz = 0; pz < paddedSize; pz++)
         {
-            const int32 lx = int32(px) - int32(margin);
+            for (uint32 px = 0; px < paddedSize; px++)
+            {
+                outPaddedHeights[size_t(pz) * paddedSize + px] = SampleBaseHeight(worldPositionAt(px, pz));
+            }
+        }
 
-            const Vec2f worldXZ = cellWorldMinXZ + Vec2f(float(lx), float(lz)) * scaleXZ;
+        return;
+    }
 
-            outPaddedHeights[size_t(pz) * paddedSize + px] = SampleAnalyticHeight(worldXZ);
+    const ErosionLayout layout = GetErosionLayout(m_params);
+
+    // resolve every region the cell touches up front, so sampling doesn't lock per vertex
+    const Vec2f worldCornerA = worldPositionAt(0, 0);
+    const Vec2f worldCornerB = worldPositionAt(paddedSize - 1, paddedSize - 1);
+
+    const int32 regionMinX = ComputeErosionAxisBlend(MathUtil::Min(worldCornerA.x, worldCornerB.x) / layout.spacing, layout).regions[0];
+    const int32 regionMaxX = ComputeErosionAxisBlend(MathUtil::Max(worldCornerA.x, worldCornerB.x) / layout.spacing, layout).regions[1];
+    const int32 regionMinZ = ComputeErosionAxisBlend(MathUtil::Min(worldCornerA.y, worldCornerB.y) / layout.spacing, layout).regions[0];
+    const int32 regionMaxZ = ComputeErosionAxisBlend(MathUtil::Max(worldCornerA.y, worldCornerB.y) / layout.spacing, layout).regions[1];
+
+    const int32 regionsWide = regionMaxX - regionMinX + 1;
+    const int32 regionsDeep = regionMaxZ - regionMinZ + 1;
+
+    Array<SharedPtr<const ErosionRegion>> regions;
+    regions.Resize(size_t(regionsWide) * size_t(regionsDeep));
+
+    for (int32 regionZ = regionMinZ; regionZ <= regionMaxZ; regionZ++)
+    {
+        for (int32 regionX = regionMinX; regionX <= regionMaxX; regionX++)
+        {
+            regions[size_t(regionZ - regionMinZ) * size_t(regionsWide) + size_t(regionX - regionMinX)] = GetOrBuildErosionRegion(Vec2i(regionX, regionZ));
         }
     }
 
-    ApplyErosion(outPaddedHeights, paddedSize, scaleXZ);
+    for (uint32 pz = 0; pz < paddedSize; pz++)
+    {
+        for (uint32 px = 0; px < paddedSize; px++)
+        {
+            const Vec2f worldXZ = worldPositionAt(px, pz);
+
+            const float sampleX = worldXZ.x / layout.spacing;
+            const float sampleZ = worldXZ.y / layout.spacing;
+
+            const ErosionAxisBlend blendX = ComputeErosionAxisBlend(sampleX, layout);
+            const ErosionAxisBlend blendZ = ComputeErosionAxisBlend(sampleZ, layout);
+
+            float height = 0.0f;
+
+            for (uint32 bz = 0; bz < 2; bz++)
+            {
+                for (uint32 bx = 0; bx < 2; bx++)
+                {
+                    const float weight = blendX.weights[bx] * blendZ.weights[bz];
+
+                    if (weight <= 0.0f)
+                    {
+                        continue;
+                    }
+
+                    const ErosionRegion& region = *regions[size_t(blendZ.regions[bz] - regionMinZ) * size_t(regionsWide) + size_t(blendX.regions[bx] - regionMinX)];
+
+                    height += weight * region.SampleBicubic(sampleX, sampleZ);
+                }
+            }
+
+            outPaddedHeights[size_t(pz) * paddedSize + px] = height;
+        }
+    }
+}
+
+SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::GetOrBuildErosionRegion(const Vec2i& regionCoord) const
+{
+    SharedPtr<ErosionRegionEntry> entry;
+
+    {
+        Mutex::Guard guard(m_erosionRegionsMutex);
+
+        auto it = m_erosionRegions.Find(regionCoord);
+
+        if (it == m_erosionRegions.End())
+        {
+            if (m_erosionRegions.Size() >= MaxCachedErosionRegions)
+            {
+                // cells hold their own references, so evicting a region in use is safe
+                auto leastRecentIt = m_erosionRegions.Begin();
+
+                for (auto candidateIt = m_erosionRegions.Begin(); candidateIt != m_erosionRegions.End(); ++candidateIt)
+                {
+                    if (candidateIt->second->lastUse < leastRecentIt->second->lastUse)
+                    {
+                        leastRecentIt = candidateIt;
+                    }
+                }
+
+                m_erosionRegions.Erase(leastRecentIt);
+            }
+
+            entry = MakeShared<ErosionRegionEntry>();
+            m_erosionRegions.Set(regionCoord, entry);
+        }
+        else
+        {
+            entry = it->second;
+        }
+
+        entry->lastUse = ++m_erosionRegionUseCounter;
+    }
+
+    // concurrent requests for the same region wait here for the first build instead of duplicating it
+    Mutex::Guard buildGuard(entry->buildMutex);
+
+    if (!entry->region)
+    {
+        entry->region = BuildErosionRegion(regionCoord);
+    }
+
+    return entry->region;
+}
+
+SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionRegion(const Vec2i& regionCoord) const
+{
+    HYP_SCOPE;
+
+    const TerrainGenerationParams& params = m_params;
+    const ErosionLayout layout = GetErosionLayout(params);
+
+    SharedPtr<ErosionRegion> region = MakeShared<ErosionRegion>();
+    region->originX = regionCoord.x * layout.stride - layout.blend / 2 - layout.apron;
+    region->originZ = regionCoord.y * layout.stride - layout.blend / 2 - layout.apron;
+    region->size = uint32(layout.size);
+    region->heights.Resize(size_t(layout.size) * size_t(layout.size));
+
+    for (int32 z = 0; z < layout.size; z++)
+    {
+        for (int32 x = 0; x < layout.size; x++)
+        {
+            const Vec2f worldXZ = Vec2f(float(region->originX + x), float(region->originZ + z)) * layout.spacing;
+
+            region->heights[size_t(z) * size_t(layout.size) + size_t(x)] = SampleBaseHeight(worldXZ);
+        }
+    }
+
+    TerrainErosionSettings settings;
+    settings.seed = params.seed;
+    settings.spacing = layout.spacing;
+    settings.iterations = params.erosionIterations;
+    settings.routingInterval = params.erosionRoutingInterval;
+    settings.erodibility = params.erodibility;
+    settings.diffusion = params.hillslopeDiffusion;
+    settings.talusSlope = std::tan(params.talusAngle * MathUtil::pi<float> / 180.0f);
+
+    TerrainErodeHeightfield(region->heights.ToSpan(), region->size, region->originX, region->originZ, settings);
+
+    return region;
 }
 
 void TerrainGenerator::SynthesizeSplatWeights(
@@ -314,122 +530,6 @@ void TerrainGenerator::SynthesizeSplatWeights(
             }
         }
     }
-}
-
-void TerrainGenerator::ApplyErosion(Span<float> paddedHeights, uint32 size, const Vec2f& scaleXZ) const
-{
-    Array<float> previousHeights;
-    previousHeights.Resize(paddedHeights.Size());
-
-    const uint32 ring = ApplyThermalErosion(paddedHeights, previousHeights.ToSpan(), size, 1u, scaleXZ);
-
-    ApplyHydraulicPasses(paddedHeights, previousHeights.ToSpan(), size, ring, scaleXZ);
-}
-
-uint32 TerrainGenerator::ApplyThermalErosion(Span<float> heights, Span<float> previousHeights, uint32 size, uint32 ring, const Vec2f& scaleXZ) const
-{
-    const TerrainGenerationParams& params = m_params;
-
-    const float step = (scaleXZ.x + scaleXZ.y) * 0.5f;
-    const float talus = std::tan(params.talusAngle * MathUtil::pi<float> / 180.0f) * step;
-
-    constexpr int32 NeighborOffsets[8][2] = {
-        { -1, -1 }, { 0, -1 }, { 1, -1 },
-        { -1,  0 },            { 1,  0 },
-        { -1,  1 }, { 0,  1 }, { 1,  1 }
-    };
-
-    constexpr float Diagonal = 1.41421356f;
-
-    constexpr float NeighborDistances[8] = {
-        Diagonal, 1.0f, Diagonal,
-        1.0f,           1.0f,
-        Diagonal, 1.0f, Diagonal
-    };
-
-    // split across 8 neighbors so a spike can't overshoot below its surroundings in one iteration
-    const float transferRate = params.thermalErosionRate * 0.125f;
-
-    for (uint32 iteration = 0; iteration < params.thermalErosionIterations && ring * 2u < size; iteration++, ring++)
-    {
-        Memory::Copy(previousHeights.Data(), heights.Data(), heights.Size() * sizeof(float));
-
-        for (int32 z = int32(ring); z < int32(size - ring); z++)
-        {
-            for (int32 x = int32(ring); x < int32(size - ring); x++)
-            {
-                const size_t index = size_t(z) * size + size_t(x);
-                const float height = previousHeights[index];
-
-                float change = 0.0f;
-
-                for (uint32 n = 0; n < 8; n++)
-                {
-                    const size_t neighborIndex = size_t(z + NeighborOffsets[n][1]) * size + size_t(x + NeighborOffsets[n][0]);
-
-                    const float difference = height - previousHeights[neighborIndex];
-                    const float excess = MathUtil::Abs(difference) - talus * NeighborDistances[n];
-
-                    if (excess <= 0.0f)
-                    {
-                        continue;
-                    }
-
-                    // the neighbor computes the exact opposite transfer, so material is conserved
-                    // without this cell ever writing outside itself
-                    change -= MathUtil::Sign(difference) * excess;
-                }
-
-                heights[index] = height + change * transferRate;
-            }
-        }
-    }
-
-    return ring;
-}
-
-uint32 TerrainGenerator::ApplyHydraulicPasses(Span<float> heights, Span<float> previousHeights, uint32 size, uint32 ring, const Vec2f& scaleXZ) const
-{
-    const TerrainGenerationParams& params = m_params;
-
-    const float step = MathUtil::Max((scaleXZ.x + scaleXZ.y) * 0.5f, 1e-6f);
-
-    // sediment fill on gentle slopes, channel carving on steep ones
-    for (uint32 iteration = 0; iteration < params.hydraulicSmoothingIterations && ring * 2u < size; iteration++, ring++)
-    {
-        Memory::Copy(previousHeights.Data(), heights.Data(), heights.Size() * sizeof(float));
-
-        for (int32 z = int32(ring); z < int32(size - ring); z++)
-        {
-            for (int32 x = int32(ring); x < int32(size - ring); x++)
-            {
-                const size_t index = size_t(z) * size + size_t(x);
-
-                const float height = previousHeights[index];
-                const float average = 0.25f
-                    * (previousHeights[index - 1]
-                        + previousHeights[index + 1]
-                        + previousHeights[index - size]
-                        + previousHeights[index + size]);
-
-                const float delta = height - average;
-                const float slope = MathUtil::Abs(delta) / step;
-
-                if (slope > params.carveThreshold)
-                {
-                    // deepen flow channels
-                    heights[index] = height - MathUtil::Sign(delta) * (slope - params.carveThreshold) * step * params.carveStrength;
-                }
-                else
-                {
-                    // settle sediment into depressions
-                    heights[index] = height - delta * params.depositStrength * (1.0f - slope / params.carveThreshold);
-                }
-            }
-        }
-    }
-
-    return ring;
 }
 
 #pragma endregion TerrainGenerator

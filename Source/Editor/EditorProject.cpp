@@ -273,17 +273,10 @@ Result EditorProject::SaveAs(FilePath filepath)
         return HYP_MAKE_ERROR(Error, "No World set on the project");
     }
 
-    ///Get EditorCamera
-    Camera* editorCamera = nullptr;
-    for (Scene* scene : m_editWorld->GetScenes())
-    {
-        if ((editorCamera = DynamicCast<Camera>(scene->FindNodeByName("EditorCamera"_sh))))
-        {
-            break;
-        }
-    }
+    ///Save EditorCamera position/direction
+    Handle<Camera> editorCamera = g_editorState->GetEditorCamera();
 
-    if (editorCamera)
+    if (editorCamera.IsValid())
     {
         ///set these -- they get serialized to disk
         m_editorCameraPosition = editorCamera->GetWorldTranslation();

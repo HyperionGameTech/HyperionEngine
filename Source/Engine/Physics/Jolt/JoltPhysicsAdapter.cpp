@@ -243,6 +243,7 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
     {
         BoundingBox aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
 
+        // [AI]
         // Guards against e.g an entity's local bounds being infinite (directional lights) or a mesh AABB
         // that hasn't been computed yet — an unbounded shape here trips Jolt's broadphase assertions.
         // This runs on every shape rebuild (OnRigidBodyAdded and OnChangePhysicsShape), not just creation.
@@ -713,6 +714,7 @@ void JoltPhysicsAdapter::MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBo
 
     JPH::BodyInterface& bodyInterface = m_physicsSystem->GetBodyInterface();
 
+    // [AI]
     // MoveKinematic derives the velocity needed to reach the target over deltaTime, so bodies in
     // contact with this one (e.g. a character standing on/pushing it) get a continuously-moving
     // surface to solve against instead of a teleport every time a network update arrives.

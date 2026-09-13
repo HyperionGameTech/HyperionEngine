@@ -36,16 +36,115 @@
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Memory/Memory.hpp>
 
+#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Guarded.hpp>
+
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+
+#ifdef HYP_EDITOR
+#include <Editor/EditorTask.hpp>
+#include <Editor/EditorState.hpp>
+#endif
 
 #include <TerrainStreamingCell.generated.inl>
 
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
+
+#ifdef HYP_EDITOR
+
+struct TerrainGenerationEditorTaskState
+{
+    AtomicVar<uint32> numGeneratingCells { 0 };
+    Guarded<Handle<TickableEditorTask>> editorTask;
+
+    void OnGenerationStarted()
+    {
+        numGeneratingCells.Increment(1, MemoryOrder::RELAXED);
+
+        Update();
+    }
+
+    void OnGenerationFinished()
+    {
+        numGeneratingCells.Decrement(1, MemoryOrder::RELAXED);
+
+        Update();
+    }
+
+    void Update()
+    {
+        const uint32 count = numGeneratingCells.Get(MemoryOrder::ACQUIRE);
+
+        editorTask.Access([this, count](Handle<TickableEditorTask>& task)
+        {
+            if (count == 0)
+            {
+                if (task.IsValid())
+                {
+                    task->Cancel();
+                    task.Reset();
+                }
+
+                return;
+            }
+
+            if (task.IsValid())
+            {
+                task->SetDescription(HYP_FORMAT("{} tiles remaining", count));
+
+                return;
+            }
+
+            if (!g_editorState.IsValid() || !EngineGlobals::IsEditor())
+            {
+                return;
+            }
+
+            Handle<TickableEditorTask> newTask = MakeHandle<TickableEditorTask>(
+                [this]()
+                {
+                    const uint32 tickCount = numGeneratingCells.Get(MemoryOrder::ACQUIRE);
+
+                    editorTask.Access([tickCount](Handle<TickableEditorTask>& task)
+                    {
+                        if (!task.IsValid())
+                        {
+                            return;
+                        }
+
+                        if (tickCount == 0)
+                        {
+                            task->Cancel();
+                            task.Reset();
+
+                            return;
+                        }
+
+                        task->SetDescription(HYP_FORMAT("{} tiles remaining", tickCount));
+                    });
+                },
+                "Generating terrain tiles...",
+                HYP_FORMAT("{} tiles remaining", count));
+
+            InitObject(newTask);
+
+            newTask->SetIsForegroundTask(true);
+
+            g_editorState->AddTask(newTask);
+
+            task = std::move(newTask);
+        });
+    }
+};
+
+static TerrainGenerationEditorTaskState s_terrainGenerationEditorTask;
+
+#endif // HYP_EDITOR
 
 static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellMeshData, uint32 cellSize, Array<float>& outHeights)
 {
@@ -209,60 +308,68 @@ TerrainStreamingCell::TerrainStreamingCell(
 
 TerrainStreamingCell::~TerrainStreamingCell() = default;
 
+bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
+{
+    HYP_SCOPE;
+
+    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
+
+    TerrainMeshBuilder meshBuilder(cellSize);
+
+    if (m_cellData.IsValid() && m_cellData->HasHeights())
+    {
+        auto cellDataReadScope = m_cellData->GetReadScope();
+
+        const TerrainCellData& cellData = *m_cellData;
+        const Span<const float> savedHeights = cellData.GetHeights();
+
+        if (m_layer->AreCellHeightsCurrent(cellData) && savedHeights.Size() == size_t(paddedSize) * size_t(paddedSize))
+        {
+            m_cellMeshData = meshBuilder.BuildCellVertexData(savedHeights);
+
+            return false;
+        }
+
+        if (cellData.isSculpted)
+        {
+            HYP_LOG(WorldGrid, Warning,
+                "Cell {} has sculpted heights that can't be used (loaded {} heights, extent {}, layer cell size {}) - regenerating, sculpt edits for this cell will be lost when saved",
+                m_cellInfo.coord,
+                savedHeights.Size(),
+                cellData.extent,
+                cellSize);
+        }
+    }
+
+    m_layer->GenerateCellPaddedHeights(m_cellInfo.coord, outGeneratedHeights);
+
+    m_cellMeshData = meshBuilder.BuildCellVertexData(outGeneratedHeights);
+
+    return true;
+}
+
 void TerrainStreamingCell::OnStreamStart()
 {
     HYP_SCOPE;
 
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
-    TerrainMeshBuilder meshBuilder(cellSize);
+    const bool generatedHeights = BuildCellMeshData(m_generatedHeights);
 
-    if (!m_cellData.IsValid())
+#ifdef HYP_EDITOR
+    if (generatedHeights)
     {
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), Span<const float>());
+        s_terrainGenerationEditorTask.OnGenerationStarted();
     }
-    else
+#endif
+
+    if (!generatedHeights)
     {
-        const bool expectSculptData = m_cellData->HasSculptDelta();
-
-        Span<const float> sculptDelta;
-
-        {
-            auto cellDataReadScope = m_cellData->GetReadScope();
-
-            sculptDelta = m_cellData->GetSculptDeltaFloat();
-
-            const size_t expectedCount = size_t(cellSize) * size_t(cellSize);
-
-            if (sculptDelta.Size() != expectedCount)
-            {
-                if (sculptDelta.Size() == 0)
-                {
-                    if (expectSculptData)
-                    {
-                        HYP_LOG(WorldGrid, Warning,
-                            "Cell {} has saved sculpt data but it could not be paged in - cell will render without sculpt edits",
-                            m_cellInfo.coord);
-                    }
-                }
-                else
-                {
-                    HYP_LOG(WorldGrid, Warning,
-                        "Saved sculpt data for cell {} has {} vertices but the layer expects {} - likely saved with a different cell size, ignoring it",
-                        m_cellInfo.coord,
-                        sculptDelta.Size(),
-                        expectedCount);
-                }
-
-                sculptDelta = {};
-            }
-
-            m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), sculptDelta);
-        }
+        m_generatedHeights.Clear();
     }
 
-    ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
+    ExtractColliderHeights(m_cellMeshData, m_layer->GetLayerInfo().cellSize, m_colliderHeights);
 }
 
 Handle<Mesh> TerrainStreamingCell::BuildMeshFromCellMeshData() const
@@ -291,6 +398,17 @@ void TerrainStreamingCell::OnLoaded()
     Assert(m_scene.IsValid(), "Invalid scene!");
     Assert(m_material.IsValid(), "Invalid material!");
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
+
+    if (m_generatedHeights.Any())
+    {
+#ifdef HYP_EDITOR
+        s_terrainGenerationEditorTask.OnGenerationFinished();
+
+        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_generatedHeights);
+#endif
+
+        m_generatedHeights = Array<float>();
+    }
 
     const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
 
@@ -396,7 +514,15 @@ void TerrainStreamingCell::OnRemoved()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
-    
+
+#ifdef HYP_EDITOR
+    // generated heights still present means the cell never finished loading
+    if (m_generatedHeights.Any())
+    {
+        s_terrainGenerationEditorTask.OnGenerationFinished();
+    }
+#endif
+
     const bool isAddedToLayer = m_node.IsValid();
 
     if (isAddedToLayer)
@@ -559,17 +685,13 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 
     m_cellData = cellData;
 
-    TerrainMeshBuilder meshBuilder(m_layer->GetLayerInfo().cellSize);
+    Array<float> generatedHeights;
 
-    if (!m_cellData.IsValid())
+    if (BuildCellMeshData(generatedHeights))
     {
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), Span<const float>());
-    }
-    else
-    {
-        auto cellDataReadScope = m_cellData->GetReadScope();
-
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), m_cellData->GetSculptDeltaFloat());
+#ifdef HYP_EDITOR
+        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, generatedHeights);
+#endif
     }
 
     ExtractColliderHeights(m_cellMeshData, m_layer->GetLayerInfo().cellSize, m_colliderHeights);
@@ -639,33 +761,32 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     const int32 updateMinZ = MathUtil::Max(minVertexZ - 1, 0);
     const int32 updateMaxZ = MathUtil::Min(maxVertexZ + 1, int32(cellSize) - 1);
 
-    // normals consistent across cell seams.
-    const int32 heightsMinX = updateMinX - 1;
-    const int32 heightsMaxX = updateMaxX + 1;
-    const int32 heightsMinZ = updateMinZ - 1;
-    const int32 heightsMaxZ = updateMaxZ + 1;
+    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
-    const int32 heightsWidth = heightsMaxX - heightsMinX + 1;
-    const int32 heightsDepth = heightsMaxZ - heightsMinZ + 1;
+    const bool hasCurrentHeights = m_cellData.IsValid() && m_layer->AreCellHeightsCurrent(*m_cellData);
 
-    m_scratchHeights.Resize(size_t(heightsWidth) * size_t(heightsDepth));
-
-    const Vec2f cellWorldMinXZ(m_cellInfo.bounds.min.x, m_cellInfo.bounds.min.z);
-    const Vec2f scaleXZ(layerInfo.scale.x, layerInfo.scale.z);
-
-    for (int32 z = heightsMinZ; z <= heightsMaxZ; z++)
+    if (!hasCurrentHeights)
     {
-        for (int32 x = heightsMinX; x <= heightsMaxX; x++)
-        {
-            const Vec2f worldXZ = cellWorldMinXZ + Vec2f(float(x), float(z)) * scaleXZ;
+        RebuildMeshFull(cellData);
 
-            m_scratchHeights[size_t(z - heightsMinZ) * size_t(heightsWidth) + size_t(x - heightsMinX)] = m_layer->SampleHeightAt(worldXZ);
-        }
+        return;
     }
 
+    auto cellDataReadScope = m_cellData->GetReadScope();
+
+    const Span<const float> paddedHeights = static_cast<const TerrainCellData&>(*m_cellData).GetHeights();
+
+    if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
+    {
+        HYP_LOG(WorldGrid, Warning, "Cell {} heights could not be paged in for a partial rebuild", m_cellInfo.coord);
+
+        return;
+    }
+
+    // the padding ring holds the neighbor's border-adjacent heights, so border normals stay consistent across seams
     const auto heightAt = [&](int32 x, int32 z) -> float
     {
-        return m_scratchHeights[size_t(z - heightsMinZ) * size_t(heightsWidth) + size_t(x - heightsMinX)];
+        return paddedHeights[size_t(z + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(x + int32(TerrainGenerator::CellPadding))];
     };
 
     const uint32 firstVertex = uint32(updateMinZ) * cellSize;

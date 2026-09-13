@@ -3743,7 +3743,7 @@ const Handle<World>& EditorSubsystem::GetProjectWorld() const
         return m_currentProject->GetWorld();
     }
 
-    return nullptr;
+    return Handle<World>::Null();
 }
 
 void EditorSubsystem::OnAddedToWorld()

@@ -37,23 +37,30 @@ public:
     HYP_FIELD(Property = "Extent", Serialize)
     Vec3u extent;
 
-    void SetSculptDelta(ConstByteView view);
+    ///fingerprint of the generator state the heights were produced with; see TerrainGenerator::ComputeFingerprint
+    HYP_FIELD(Property = "GeneratorFingerprint", Serialize)
+    uint64 generatorFingerprint = 0;
 
-    /*! True when the manifest says this cell has sculpt data - does not require the blob to be paged in. */
-    bool HasSculptDelta() const
+    ///sculpted heights are kept even when the fingerprint no longer matches
+    HYP_FIELD(Property = "IsSculpted", Serialize)
+    bool isSculpted = false;
+
+    ///(cellSize + 2 * TerrainGenerator::CellPadding)^2 heights. True when the manifest has heights, without paging them in.
+    bool HasHeights() const
     {
-        return m_sculptDelta.size != 0;
+        return m_heights.size != 0;
     }
 
-    void ClearSculptDelta();
+    void SetHeights(Span<const float> paddedHeights);
+    void ClearHeights();
+
+    Span<const float> GetHeights() const;
+    Span<float> GetHeights();
+
+    ///pages the heights in and makes them a private writable copy; false if there are none to load
+    bool EnsureWritableHeights();
+
     void ClearSplatMap();
-
-    ByteView GetSculptDelta();
-    ConstByteView GetSculptDelta() const;
-
-    Span<const float> GetSculptDeltaFloat() const;
-
-    bool EnsureWritableSculptDelta(uint32 numVertices);
 
     static constexpr uint32 NumSplatLayers = 4;
 
@@ -72,16 +79,16 @@ protected:
 
     virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
     {
-        // terrain sculpt deltas
-        outReferences.EmplaceBack("TERA", 1, &m_sculptDelta);
+        // terrain heights
+        outReferences.EmplaceBack("TERH", 1, &m_heights);
 
         // terrain splat map
         outReferences.EmplaceBack("TSM", 1, &m_splatMap);
     }
 
 private:
-    HYP_FIELD(Property = "SculptDelta", Serialize)
-    BlobDataReference m_sculptDelta;
+    HYP_FIELD(Property = "Heights", Serialize)
+    BlobDataReference m_heights;
 
     HYP_FIELD(Property = "SplatMap", Serialize)
     BlobDataReference m_splatMap;

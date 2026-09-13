@@ -879,28 +879,42 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Classes="mode-separator" IsVisible="{Binding CanToggleTerrainSculptMode}"/>
+                                <Border Classes="mode-separator" />
 
-                                <ToggleButton
-                                    x:Name="ToggleTerrainSculptModeButton"
+                                <DropDownButton
+                                    x:Name="TerrainToolsDropDown"
                                     Classes="gizmo"
-                                    Command="{Binding ToggleTerrainSculptMode}"
-                                    IsChecked="{Binding IsSculptModeActive, Mode=OneWay}"
-                                    IsVisible="{Binding CanToggleTerrainSculptMode}"
-                                    ToolTip.Tip="Terrain Sculptor">
-                                    <controls:Codicon Kind="Landscape" Size="16" />
-                                </ToggleButton>
-
-                                <ToggleButton
-                                    x:Name="ToggleTerrainPaintModeButton"
-                                    Classes="gizmo"
-                                    Command="{Binding ToggleTerrainPaintMode}"
-                                    IsChecked="{Binding IsPaintModeActive, Mode=OneWay}"
-                                    IsVisible="{Binding CanToggleTerrainSculptMode}"
-                                    ToolTip.Tip="Terrain Painter">
-
-                                    <controls:Codicon Kind="Brush" Size="16" />
-                                </ToggleButton>
+                                    Click="OnDropDownClick"
+                                    ToolTip.Tip="Terrain Tools">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <controls:Codicon Kind="Landscape" Size="16" />
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    </StackPanel>
+                                    <DropDownButton.ContextMenu>
+                                        <ContextMenu Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding ToggleTerrainSculptMode}"
+                                                Header="Terrain Sculptor"
+                                                IsChecked="{Binding IsSculptModeActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle terrain sculpt mode" />
+                                            <MenuItem
+                                                Command="{Binding ToggleTerrainPaintMode}"
+                                                Header="Terrain Painter"
+                                                IsChecked="{Binding IsPaintModeActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle terrain paint mode" />
+                                            <Separator />
+                                            <MenuItem
+                                                Command="{Binding AddTerrainLayer}"
+                                                Header="Add Terrain Layer..."
+                                                IsEnabled="{Binding !CanToggleTerrainSculptMode}"
+                                                ToolTip.Tip="Add a terrain layer to the selected entity" />
+                                        </ContextMenu>
+                                    </DropDownButton.ContextMenu>
+                                </DropDownButton>
 
                             </StackPanel>
                         </StackPanel>

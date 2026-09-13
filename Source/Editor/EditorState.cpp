@@ -8,6 +8,7 @@
 
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorProject.hpp>
+#include <Editor/EditorSubsystem.hpp>
 
 #include <Framework/Game.hpp>
 
@@ -16,6 +17,8 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
+
+#include <Scene/Scene.hpp>
 
 #include <EditorState.generated.inl>
 
@@ -66,6 +69,25 @@ Handle<EditorProject> EditorState::GetCurrentProject() const
     Mutex::Guard guard(m_mutex);
 
     return m_currentProject;
+}
+
+Handle<Camera> EditorState::GetEditorCamera() const
+{
+    AssertOnThread(g_simThread); // only callable on sim thread as we iterate nodes on the scene
+
+    Handle<EditorSubsystem> ess = GetEditorSubsystem();
+    if (!ess.IsValid())
+    {
+        return Handle<Camera>::Null();
+    }
+
+    Handle<Scene> editorScene = ess->GetEditorScene();
+    if (!editorScene.IsValid())
+    {
+        return Handle<Camera>::Null();
+    }
+
+    return MakeStrongRef(DynamicCast<Camera>(editorScene->FindNodeByName("EditorCamera"_sh)));
 }
 
 void EditorState::SetCurrentProject(const Handle<EditorProject>& project, bool isSimulationStateChange)

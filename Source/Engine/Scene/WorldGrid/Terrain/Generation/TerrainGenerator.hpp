@@ -9,7 +9,11 @@
 #include <Core/Defines.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/FlatMap.hpp>
 #include <Core/Utilities/Span.hpp>
+
+#include <Core/Memory/SharedPtr.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
@@ -26,89 +30,83 @@ struct TerrainGenerationParams
     HYP_FIELD(Property = "Seed")
     uint32 seed = 0;
 
+    // rolling hills
     HYP_FIELD(Property = "BaseAmplitude")
-    float baseAmplitude = 10.0f;
+    float baseAmplitude = 25.0f;
 
     HYP_FIELD(Property = "BaseFrequency")
-    float baseFrequency = 1.0f / 260.0f;
+    float baseFrequency = 1.0f / 400.0f;
 
     HYP_FIELD(Property = "BaseOctaves")
-    uint32 baseOctaves = 4;
+    uint32 baseOctaves = 6;
 
     // mountain regions
     HYP_FIELD(Property = "MountainRegionFrequency")
-    float mountainRegionFrequency = 1.0f / 1800.0f;
+    float mountainRegionFrequency = 1.0f / 2200.0f;
 
     HYP_FIELD(Property = "MountainRegionThreshold")
-    float mountainRegionThreshold = 0.08f;
+    float mountainRegionThreshold = 0.2f;
 
     HYP_FIELD(Property = "MountainRegionFalloff")
-    float mountainRegionFalloff = 0.42f;
+    float mountainRegionFalloff = 0.35f;
 
-    // mountains
+    // mountain massifs - kept smooth, erosion carves the ridges and valleys
     HYP_FIELD(Property = "MountainAmplitude")
-    float mountainAmplitude = 160.0f;
+    float mountainAmplitude = 300.0f;
 
     HYP_FIELD(Property = "MountainFrequency")
-    float mountainFrequency = 1.0f / 480.0f;
+    float mountainFrequency = 1.0f / 700.0f;
 
     HYP_FIELD(Property = "MountainOctaves")
     uint32 mountainOctaves = 6;
 
-    HYP_FIELD(Property = "MountainGain")
-    float mountainGain = 0.45f;
-
     HYP_FIELD(Property = "MountainSharpness")
-    float mountainSharpness = 1.5f;
+    float mountainSharpness = 1.3f;
+
+    HYP_FIELD(Property = "MountainRidgeWeight")
+    float mountainRidgeWeight = 0.4f;
 
     // domain warping
     HYP_FIELD(Property = "WarpStrength")
-    float warpStrength = 40.0f;
+    float warpStrength = 80.0f;
 
     HYP_FIELD(Property = "WarpFrequency")
-    float warpFrequency = 1.0f / 900.0f;
+    float warpFrequency = 1.0f / 1100.0f;
 
-    // gully
-    HYP_FIELD(Property = "GullyDepth")
-    float gullyDepth = 22.0f;
+    // hydraulic erosion, simulated over overlapping world-aligned regions
+    HYP_FIELD(Property = "ErosionIterations")
+    uint32 erosionIterations = 60;
 
-    HYP_FIELD(Property = "GullyFrequency")
-    float gullyFrequency = 1.0f / 150.0f;
+    HYP_FIELD(Property = "ErosionSpacing")
+    float erosionSpacing = 2.0f;
 
-    HYP_FIELD(Property = "GullyOctaves")
-    uint32 gullyOctaves = 5;
+    HYP_FIELD(Property = "ErosionRegionSize")
+    uint32 erosionRegionSize = 384;
 
-    HYP_FIELD(Property = "GullyGain")
-    float gullyGain = 0.45f;
+    HYP_FIELD(Property = "ErosionRegionBlend")
+    uint32 erosionRegionBlend = 48;
 
-    // erosion
-    HYP_FIELD(Property = "ThermalErosionIterations")
-    uint32 thermalErosionIterations = 8;
+    HYP_FIELD(Property = "ErosionRegionApron")
+    uint32 erosionRegionApron = 96;
+
+    HYP_FIELD(Property = "ErosionRoutingInterval")
+    uint32 erosionRoutingInterval = 4;
+
+    HYP_FIELD(Property = "Erodibility")
+    float erodibility = 0.06f;
+
+    HYP_FIELD(Property = "HillslopeDiffusion")
+    float hillslopeDiffusion = 0.05f;
 
     HYP_FIELD(Property = "TalusAngle")
-    float talusAngle = 40.0f;
-
-    HYP_FIELD(Property = "ThermalErosionRate")
-    float thermalErosionRate = 0.5f;
-
-    HYP_FIELD(Property = "HydraulicSmoothingIterations")
-    uint32 hydraulicSmoothingIterations = 3;
-
-    HYP_FIELD(Property = "CarveThreshold")
-    float carveThreshold = 1.1f;
-
-    HYP_FIELD(Property = "CarveStrength")
-    float carveStrength = 0.04f;
-
-    HYP_FIELD(Property = "DepositStrength")
-    float depositStrength = 0.25f;
+    float talusAngle = 50.0f;
 
     // auto splat
     HYP_FIELD(Property = "AutoPaintSplats")
     bool autoPaintSplats = true;
 
     HYP_FIELD(Property = "SnowLineFraction")
-    float snowLineFraction = 0.62f;
+    float snowLineFraction = 0.55f;
 
     HYP_FORCE_INLINE bool operator==(const TerrainGenerationParams& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const TerrainGenerationParams& other) const = default;
@@ -117,8 +115,13 @@ struct TerrainGenerationParams
 class ENGINE_API TerrainGenerator
 {
 public:
-    TerrainGenerator() = default;
-    virtual ~TerrainGenerator() = default;
+    ///rings of extra samples around a cell in GeneratePaddedCellHeights, so border normals see real neighbors
+    static constexpr uint32 CellPadding = 1;
+
+    TerrainGenerator();
+    TerrainGenerator(const TerrainGenerator& other) = delete;
+    TerrainGenerator& operator=(const TerrainGenerator& other) = delete;
+    virtual ~TerrainGenerator();
 
     void Configure(const TerrainGenerationParams& params);
 
@@ -129,7 +132,7 @@ public:
 
     HYP_FORCE_INLINE float GetMaxHeightEstimate() const
     {
-        return m_params.baseAmplitude + m_params.mountainAmplitude + m_params.gullyDepth * 0.5f;
+        return m_params.baseAmplitude + m_params.mountainAmplitude;
     }
 
     static HYP_FORCE_INLINE Vec3f ComputeGridNormal(float heightLeft, float heightRight, float heightDown, float heightUp)
@@ -140,10 +143,11 @@ public:
         return tangentZ.Cross(tangentX).Normalized();
     }
 
-    ///padding each side of GeneratePaddedCellHeights - one ring per erosion iteration, plus one so border normals see real neighbors
-    uint32 GetErosionMargin() const;
+    ///identifies everything that affects generated heights for a cell; saved heights with a different fingerprint are stale
+    uint64 ComputeFingerprint(uint32 cellSize, const Vec2f& scaleXZ) const;
 
-    virtual float SampleAnalyticHeight(const Vec2f& worldXZ) const;
+    ///uneroded input terrain
+    virtual float SampleBaseHeight(const Vec2f& worldXZ) const;
 
     void GenerateCellHeights(
         const Vec2f& cellWorldMinXZ,
@@ -151,13 +155,14 @@ public:
         uint32 cellSize,
         Array<float>& outHeights) const;
 
-    void GenerateCellHeightsAndNormals(
-        const Vec2f& cellWorldMinXZ,
-        const Vec2f& scaleXZ,
+    ///splits padded heights into the cell's heights plus local-space grid normals that see across the border
+    static void ExtractCellHeightsAndNormals(
+        Span<const float> paddedHeights,
         uint32 cellSize,
         Array<float>& outHeights,
-        Array<Vec3f>& outNormals) const;
+        Array<Vec3f>& outNormals);
 
+    ///(cellSize + 2 * CellPadding)^2 eroded heights
     void GeneratePaddedCellHeights(
         const Vec2f& cellWorldMinXZ,
         const Vec2f& scaleXZ,
@@ -173,12 +178,18 @@ public:
         Span<ubyte> outWeights) const;
 
 protected:
-    virtual void ApplyErosion(Span<float> paddedHeights, uint32 size, const Vec2f& scaleXZ) const;
-
-    uint32 ApplyThermalErosion(Span<float> heights, Span<float> previousHeights, uint32 size, uint32 ring, const Vec2f& scaleXZ) const;
-    uint32 ApplyHydraulicPasses(Span<float> heights, Span<float> previousHeights, uint32 size, uint32 ring, const Vec2f& scaleXZ) const;
-
     TerrainGenerationParams m_params;
+
+private:
+    struct ErosionRegion;
+    struct ErosionRegionEntry;
+
+    SharedPtr<const ErosionRegion> GetOrBuildErosionRegion(const Vec2i& regionCoord) const;
+    SharedPtr<const ErosionRegion> BuildErosionRegion(const Vec2i& regionCoord) const;
+
+    mutable Mutex m_erosionRegionsMutex;
+    mutable FlatMap<Vec2i, SharedPtr<ErosionRegionEntry>> m_erosionRegions;
+    mutable uint64 m_erosionRegionUseCounter = 0;
 };
 
 } // namespace Hyperion
