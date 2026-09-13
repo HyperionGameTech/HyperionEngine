@@ -47,6 +47,9 @@ public:
     ///update cell data to apply the splat map, if one.
     void UpdateSplatMaterial(const Handle<TerrainCellData>& cellData);
 
+    ///binds a splat map texture to this cell's material instance
+    void ApplySplatTexture(const Handle<Texture>& splatTexture);
+
     void RebuildPickBVH();
 
 protected:

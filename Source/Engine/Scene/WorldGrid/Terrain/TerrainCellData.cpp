@@ -16,6 +16,7 @@
 #include <Core/Logging/Logger.hpp>
 
 #include <Core/Memory/Memory.hpp>
+#include <Core/Memory/ByteBuffer.hpp>
 
 #include <TerrainCellData.generated.inl>
 
@@ -138,6 +139,29 @@ bool TerrainCellData::EnsureWritableSculptDelta(uint32 numVertices)
         return true;
     }
 
+    if (m_sculptDelta.raw != nullptr)
+    {
+        // Resident, but smaller than needed (e.g. cell size changed) - grow the buffer,
+        // keeping the existing sculpted heights.
+        ByteBuffer oldData(ConstByteView((const ubyte*)m_sculptDelta.raw, m_sculptDelta.size));
+        const size_t oldSize = oldData.Size();
+
+        FreeBlobData(m_sculptDelta);
+        AllocateBlobData(m_sculptDelta, nullptr, requiredSize, alignof(float));
+
+        if (m_sculptDelta.raw == nullptr || m_sculptDelta.size < requiredSize)
+        {
+            return false;
+        }
+
+        Memory::Copy(m_sculptDelta.raw, oldData.Data(), oldSize);
+        Memory::Zero((ubyte*)m_sculptDelta.raw + oldSize, requiredSize - oldSize);
+
+        MarkDirty();
+
+        return true;
+    }
+
     FreeBlobData(m_sculptDelta);
     AllocateBlobData(m_sculptDelta, nullptr, requiredSize, alignof(float));
 
@@ -213,11 +237,41 @@ bool TerrainCellData::EnsureSplatMapAllocated(uint32 numVertices)
         }
     }
 
-    // No usable splat map in memory - allocate one. Mutating the asset, so writers scope.
+    // Mutating the asset from here on, so writers scope.
     auto writeScope = GetWriteScope();
 
     if (checkIsResident())
     {
+        MarkDirty();
+
+        return true;
+    }
+
+    if (m_splatMap.raw != nullptr)
+    {
+        // Resident, but smaller than needed - grow it, keeping the painted weights.
+        ByteBuffer oldData(ConstByteView((const ubyte*)m_splatMap.raw, m_splatMap.size));
+        const size_t oldSize = oldData.Size();
+        const size_t oldNumVertices = oldSize / NumSplatLayers;
+
+        FreeBlobData(m_splatMap);
+        AllocateBlobData(m_splatMap, nullptr, requiredSize, 1);
+
+        if (m_splatMap.raw == nullptr || m_splatMap.size < requiredSize)
+        {
+            return false;
+        }
+
+        Memory::Copy(m_splatMap.raw, oldData.Data(), oldSize);
+
+        // Default new vertices to layer 0 fully painted.
+        ubyte* splatData = (ubyte*)m_splatMap.raw;
+
+        for (size_t i = oldNumVertices; i < size_t(numVertices); i++)
+        {
+            splatData[i * NumSplatLayers] = 255;
+        }
+
         MarkDirty();
 
         return true;

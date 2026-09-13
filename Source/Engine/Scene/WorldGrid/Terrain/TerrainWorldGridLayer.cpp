@@ -9,7 +9,6 @@
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainStreamingCell.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainCellData.hpp>
-#include <Scene/WorldGrid/Terrain/TerrainHeightField.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
 
@@ -20,10 +19,10 @@
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetReference.hpp>
 
+#include <Streaming/StreamingManager.hpp>
+
 #include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
-
-#include <Util/NoiseFactory.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Memory/Memory.hpp>
@@ -37,28 +36,6 @@ namespace Hyperion {
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 #pragma region TerrainWorldGridLayer
-
-static constexpr float BaseHeight = 6.0f;
-static constexpr float MountainHeight = 65.0f;
-
-static constexpr float BaseFrequency = 1.0f / 128.0f;
-static constexpr float MountainFrequency = 1.0f / 400.0f;
-static constexpr float MountainMaskFrequency = 1.0f / 800.0f;
-
-static UniquePtr<NoiseCombinator> MakeTerrainNoiseCombinator(uint32 seed)
-{
-    UniquePtr<NoiseCombinator> noiseCombinator = MakeUnique<NoiseCombinator>(seed);
-
-    noiseCombinator->Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, MountainHeight, 0.0f, Vec3f(MountainFrequency, MountainFrequency, 0.0f))
-        .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vec3f(MountainMaskFrequency, MountainMaskFrequency, 0.0f))
-        .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, BaseHeight, 0.0f, Vec3f(BaseFrequency, BaseFrequency, 0.0f))
-        .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.5f, 0.0f, Vec3f(BaseFrequency * 2.0f, BaseFrequency * 2.0f, 0.0f))
-        .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.25f, 0.0f, Vec3f(BaseFrequency * 4.0f, BaseFrequency * 4.0f, 0.0f))
-        .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.125f, 0.0f, Vec3f(BaseFrequency * 8.0f, BaseFrequency * 8.0f, 0.0f))
-        .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, BaseHeight * 0.0625f, 0.0f, Vec3f(BaseFrequency * 16.0f, BaseFrequency * 16.0f, 0.0f));
-
-    return noiseCombinator;
-}
 
 static Handle<Texture> LoadTerrainTexture(const char* name)
 {
@@ -139,13 +116,15 @@ static Handle<Scene> MakeTerrainScene()
 }
 
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(MakeTerrainScene())
+    : m_scene(MakeTerrainScene()),
+      m_generator(MakeUnique<TerrainGenerator>())
 {
 }
 
 TerrainWorldGridLayer::TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo)
     : WorldGridLayer(name, layerInfo),
-      m_scene(MakeTerrainScene())
+      m_scene(MakeTerrainScene()),
+      m_generator(MakeUnique<TerrainGenerator>())
 {
 }
 
@@ -155,24 +134,61 @@ TerrainWorldGridLayer::~TerrainWorldGridLayer()
 
 void TerrainWorldGridLayer::SetSeed(uint32 seed)
 {
-    if (m_noiseCombinator)
+    if (m_layerInfo.seed == seed)
     {
-        HYP_LOG(WorldGrid, Warning, "Cannot change TerrainWorldGridLayer seed after cells have started streaming");
-
         return;
     }
 
     m_layerInfo.seed = seed;
+
+    if (m_generator)
+    {
+        Regenerate();
+    }
 }
 
 void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
 {
     WorldGridLayerInfo adjustedLayerInfo = layerInfo;
-
-    // Terrain heights are generated in world units - vertical scaling is not supported.
     adjustedLayerInfo.scale.y = 1.0f;
 
+    const bool seedChanged = adjustedLayerInfo.seed != m_layerInfo.seed;
+
     WorldGridLayer::SetLayerInfo(adjustedLayerInfo);
+
+    if (seedChanged && m_generator)
+    {
+        Regenerate();
+    }
+}
+
+void TerrainWorldGridLayer::Regenerate()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_generator)
+    {
+        return;
+    }
+
+    TerrainGenerationParams params;
+    params.seed = m_layerInfo.seed;
+
+    m_generator->Configure(params);
+
+    {
+        Mutex::Guard guard(m_heightCacheMutex);
+
+        m_cellHeightsCache.Clear();
+    }
+
+    m_deltaSampleCache.Invalidate();
+
+    if (Handle<TerrainWorldGridLayer> strongThis = HandleFromThis(); strongThis.IsValid())
+    {
+        g_streamingManager->RequestLayerRefresh(strongThis.Get());
+    }
 }
 
 void TerrainWorldGridLayer::OnAdded(WorldGrid* worldGrid)
@@ -208,7 +224,7 @@ void TerrainWorldGridLayer::OnAdded(WorldGrid* worldGrid)
 
     InitObject(m_material);
 
-    m_noiseCombinator = MakeTerrainNoiseCombinator(m_layerInfo.seed);
+    Regenerate();
 
     world->AddScene(m_scene);
 }
@@ -260,6 +276,57 @@ static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec
         layerInfo.offset.y,
         layerInfo.offset.z + (float(coord.y) - 0.5f) * (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z
     };
+}
+
+SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const Vec2i& coord) const
+{
+    HYP_SCOPE;
+
+    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+
+    AssertDebug(m_generator != nullptr);
+
+    if (!m_generator)
+    {
+        return nullptr;
+    }
+
+    {
+        Mutex::Guard guard(m_heightCacheMutex);
+
+        auto cacheIt = m_cellHeightsCache.Find(coord);
+
+        if (cacheIt != m_cellHeightsCache.End())
+        {
+            return cacheIt->second;
+        }
+    }
+
+    const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
+
+    auto heights = MakeShared<Array<float>>();
+
+    m_generator->GenerateCellHeights(
+        Vec2f(cellBoundsMin.x, cellBoundsMin.z),
+        Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+        layerInfo.cellSize,
+        *heights);
+
+    {
+        Mutex::Guard guard(m_heightCacheMutex);
+
+        auto cacheIt = m_cellHeightsCache.Find(coord);
+
+        if (cacheIt != m_cellHeightsCache.End())
+        {
+            // another thread inserted the same cell while we were generating
+            return cacheIt->second;
+        }
+
+        m_cellHeightsCache.Set(coord, heights);
+    }
+
+    return heights;
 }
 
 void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise)
@@ -331,7 +398,8 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
             if (isNewCellData)
             {
                 cellData = MakeHandle<TerrainCellData>(NAME_FMT("TerrainCellData_{}_{}", coord.x, coord.y), coord, Vec3u(cellSize));
-                InitObject(cellData);
+
+                GetCurrentAssetRegistry()->PutAssetUnique(cellData);
             }
 
             m_deltaSampleCache.Invalidate();
@@ -487,7 +555,8 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
             if (isNewCellData)
             {
                 cellData = MakeHandle<TerrainCellData>(NAME_FMT("TerrainCellData_{}_{}", coord.x, coord.y), coord, Vec3u(cellSize));
-                InitObject(cellData);
+
+                GetCurrentAssetRegistry()->PutAssetUnique(cellData);
             }
 
             m_deltaSampleCache.Invalidate();
@@ -592,14 +661,12 @@ float TerrainWorldGridLayer::SampleHeightAt(const Vec2f& worldXZ) const
     const WorldGridLayerInfo& layerInfo = m_layerInfo;
     const uint32 cellSize = layerInfo.cellSize;
 
-    float height = TerrainHeightField(*m_noiseCombinator).SampleBaseHeight(worldXZ);
-
     const float cellWorldSizeX = (float(cellSize) - 1.0f) * layerInfo.scale.x;
     const float cellWorldSizeZ = (float(cellSize) - 1.0f) * layerInfo.scale.z;
 
-    if (cellWorldSizeX <= 0.0f || cellWorldSizeZ <= 0.0f)
+    if (cellWorldSizeX <= 0.0f || cellWorldSizeZ <= 0.0f || !m_generator)
     {
-        return height;
+        return 0.0f;
     }
 
     const Vec2f coordF(
@@ -607,6 +674,22 @@ float TerrainWorldGridLayer::SampleHeightAt(const Vec2f& worldXZ) const
         (worldXZ.y - layerInfo.offset.z) / cellWorldSizeZ + 0.5f);
 
     const Vec2i coord(int32(MathUtil::Floor(coordF.x)), int32(MathUtil::Floor(coordF.y)));
+
+    float height = 0.0f;
+
+    if (SharedPtr<const Array<float>> heights = GetOrGenerateCellHeights(coord); heights.IsValid()
+        && heights->Size() == size_t(cellSize) * size_t(cellSize))
+    {
+        const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
+
+        const int32 lx = int32(MathUtil::Floor((worldXZ.x - cellBoundsMin.x) / layerInfo.scale.x + 0.5f));
+        const int32 lz = int32(MathUtil::Floor((worldXZ.y - cellBoundsMin.z) / layerInfo.scale.z + 0.5f));
+
+        if (lx >= 0 && lx < int32(cellSize) && lz >= 0 && lz < int32(cellSize))
+        {
+            height = (*heights)[size_t(lz) * size_t(cellSize) + size_t(lx)];
+        }
+    }
 
     auto objectsByCoordIt = m_objectsByCoord.Find(coord);
 
@@ -656,8 +739,12 @@ bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) c
 
     const WorldGridLayerInfo& layerInfo = m_layerInfo;
 
+    const float maxHeight = m_generator
+        ? m_generator->GetMaxHeightEstimate()
+        : 256.0f;
+
     const float slabMinY = layerInfo.offset.y - 256.0f;
-    const float slabMaxY = layerInfo.offset.y + MountainHeight * 2.0f + 256.0f;
+    const float slabMaxY = layerInfo.offset.y + maxHeight * 2.0f + 256.0f;
 
     float tEnter = 0.0f;
     float tExit = 8192.0f;

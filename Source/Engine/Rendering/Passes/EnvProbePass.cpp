@@ -1209,9 +1209,6 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             {
                 needsRerender = true;
             }
-
-            // cache it to save on rendering later
-            pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
         }
         else
         {
@@ -1225,8 +1222,6 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     {
         needsRerender |= (pd->cachedProbeOrigin != envProbeProxy->bufferData.worldPosition.GetXYZ());
     }
-
-    pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
     const EnumFlags<EnvProbeFlags> envProbeFlags = EnvProbeHelpers::GetFlagsFromProxy(*envProbeProxy);
 
@@ -1268,6 +1263,21 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     if (renderedViews == 0)
     {
         return;
+    }
+
+    if (envProbe->IsA<SkyProbe>())
+    {
+        if (renderSetup.light)
+        {
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
+
+            // cache it to save on rendering later
+            pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
+        }
+    }
+    else
+    {
+        pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
     }
 
     if (!allViewsReady)

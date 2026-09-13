@@ -436,8 +436,8 @@ Result AssetObject::PersistBlobData(
 
 void AssetObject::AssertBlobDataPersisted(const BlobDataReference& reference) const
 {
-    // If this fires, it's because we're trying to unpage something that has never been saved to disk,
-    // so the data would be lost on the next attempt to page it!
+    ///If this fires, it's because we're trying to unpage something that has never been saved to disk,
+    ///so the data would be lost on the next attempt to page it!
     Assert(reference.raw == nullptr || reference.readOnly || reference.key.IsValid());
 }
 
@@ -601,6 +601,12 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
         if (reference.readOnly)
         {
             Assert(reference.raw != nullptr);
+
+            if (reference.raw == nullptr)
+            {
+                // Data failed to page in
+                return;
+            }
 
             AllocateBlobData(reference, reference.raw, reference.size, 16);
         }

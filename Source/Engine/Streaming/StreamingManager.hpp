@@ -66,6 +66,10 @@ public:
     void AddWorldGridLayer(const Handle<WorldGridLayer>& layer);
     void RemoveWorldGridLayer(WorldGridLayer* layer);
 
+    /*! Unloads all live cells of \p layer and lets them stream back in - used to regenerate
+     *  procedurally generated layers (e.g. after a seed change). */
+    void RequestLayerRefresh(WorldGridLayer* layer);
+
     void Start();
     void Stop();
     void Update(float delta);

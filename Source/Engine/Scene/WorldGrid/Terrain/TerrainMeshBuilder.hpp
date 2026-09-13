@@ -13,7 +13,7 @@
 
 namespace Hyperion {
 
-class NoiseCombinator;
+class TerrainGenerator;
 struct StreamingCellInfo;
 
 class TerrainMeshBuilder
@@ -32,10 +32,10 @@ public:
 
     ~TerrainMeshBuilder();
 
-    ///builds vertex/index data for one terrain cell from procedural noise, plus an optional sculpt delta view 
+    ///builds vertex/index data for one terrain cell from the generator's full pipeline (incl. erosion), plus an optional sculpt delta view
     CellMeshData BuildCellVertexData(
         const StreamingCellInfo& cellInfo,
-        const NoiseCombinator& noise,
+        const TerrainGenerator& generator,
         Span<const float> sculptDelta) const;
 
 private:

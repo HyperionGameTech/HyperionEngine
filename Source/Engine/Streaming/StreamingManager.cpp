@@ -29,6 +29,8 @@
 #include <Framework/EngineMemory.hpp>
 #include <Framework/Threads/SimThread.hpp>
 
+#include <utility>
+
 #include <StreamingManager.generated.inl>
 
 namespace Hyperion {
@@ -104,6 +106,8 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
         Array<StreamingCellUpdate, StreamingAllocator> cellUpdateQueue;
         // highest bit == pending removal flag, so we don't need to add another atomic + padding to eliminate false sharing
         AtomicVar<uint32> lockCount { 0 };
+        // only touched on the streaming manager thread - set from a scheduler task, consumed in DoWork
+        bool refreshRequested = false;
 
         LayerData(const Handle<WorldGridLayer>& layer)
             : layer(layer)
@@ -298,6 +302,44 @@ public:
         }
     }
 
+    void RequestLayerRefresh(const WorldGridLayer* layer)
+    {
+        if (!IsRunning() || IsOnThread(Id()))
+        {
+            auto it = m_layers.FindIf([layer](const LayerData& data)
+                                      {
+                                          return data.layer == layer;
+                                      });
+
+            if (it == m_layers.End())
+            {
+                return;
+            }
+
+            it->refreshRequested = true;
+        }
+        else
+        {
+            m_scheduler->Enqueue([this, layer]()
+                                 {
+                                     auto it = m_layers.FindIf([layer](const LayerData& data)
+                                                               {
+                                                                   return data.layer == layer;
+                                                               });
+
+                                     if (it == m_layers.End())
+                                     {
+                                         return;
+                                     }
+
+                                     it->refreshRequested = true;
+                                 },
+                                 TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+
+        m_notifier.Signal();
+    }
+
     void SinkUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
     {
         AssertOnThread(g_simThread);
@@ -490,6 +532,10 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
         Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
+        // a refresh unloads every live cell; the desired-cells diff below streams them
+        // back in with the layer's current info (e.g. a new terrain seed)
+        const bool refreshRequested = std::exchange(layerData.refreshRequested, false);
+
         Set<Vec2i, StreamingTempAllocator> desiredCells;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
@@ -510,7 +556,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         {
             auto it = desiredCells.Find(cellRuntimeInfo.coord);
 
-            if (it == desiredCells.End())
+            if (it == desiredCells.End() || refreshRequested)
             {
                 AssertDebug(cellRuntimeInfo.cell != nullptr);
 
@@ -554,13 +600,20 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         {
             for (const Vec2i& coord : cellsToAdd)
             {
-                AssertDebug(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", coord);
+                AssertDebug(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", update.coord);
 
                 cellUpdateQueue.PushBack(StreamingCellUpdate { coord, StreamingCellState::WAITING });
             }
         }
 
         ProcessCellUpdatesForLayer(layerData);
+
+        if (refreshRequested)
+        {
+            // refreshed cells were fully removed by ProcessCellUpdatesForLayer - run another
+            // pass right away so they stream back in with the layer's new info.
+            m_notifier.Signal();
+        }
 
         ++it;
     }
@@ -829,6 +882,18 @@ void StreamingManager::RemoveWorldGridLayer(WorldGridLayer* layer)
     }
 
     m_thread->RemoveWorldGridLayer(layer);
+}
+
+void StreamingManager::RequestLayerRefresh(WorldGridLayer* layer)
+{
+    HYP_SCOPE;
+
+    if (!layer)
+    {
+        return;
+    }
+
+    m_thread->RequestLayerRefresh(layer);
 }
 
 void StreamingManager::Start()

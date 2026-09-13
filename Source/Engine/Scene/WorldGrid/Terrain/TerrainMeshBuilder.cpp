@@ -7,11 +7,9 @@
 #include <ScenePch.hpp>
 
 #include <Scene/WorldGrid/Terrain/TerrainMeshBuilder.hpp>
-#include <Scene/WorldGrid/Terrain/TerrainHeightField.hpp>
+#include <Scene/WorldGrid/Terrain/Generation/TerrainGenerator.hpp>
 
 #include <Streaming/StreamingCell.hpp>
-
-#include <Util/NoiseFactory.hpp>
 
 namespace Hyperion {
 
@@ -20,18 +18,36 @@ namespace Hyperion {
 static Array<SimpleVertex> BuildVertices(
     uint32 cellSize,
     const StreamingCellInfo& cellInfo,
-    const NoiseCombinator& noise,
+    const TerrainGenerator& generator,
     Span<const float> sculptDelta)
 {
-    TerrainHeightField heightField(noise);
-
     const Vec2f cellWorldMinXZ(cellInfo.bounds.min.x, cellInfo.bounds.min.z);
     const Vec2f scaleXZ(cellInfo.scale.x, cellInfo.scale.z);
 
     Array<float> paddedHeights;
-    heightField.SampleCellHeightsPadded(cellWorldMinXZ, scaleXZ, cellSize, sculptDelta, paddedHeights);
+    generator.GeneratePaddedCellHeights(cellWorldMinXZ, scaleXZ, cellSize, paddedHeights);
 
-    const uint32 paddedPitch = cellSize + 2;
+    const uint32 margin = generator.GetErosionMargin();
+    const uint32 paddedPitch = cellSize + margin * 2u;
+
+    const bool hasSculptDelta = sculptDelta.Size() > 0;
+
+    if (hasSculptDelta)
+    {
+        Assert(sculptDelta.Size() == size_t(cellSize) * size_t(cellSize),
+            "Bad sculpt deltas !!! BAD!!!!");
+
+        // for debugging so we don't kill the whole thing
+        if (sculptDelta.Size() != size_t(cellSize) * size_t(cellSize))
+        {
+            return {};
+        }
+    }
+
+    const auto paddedHeightAt = [&](int32 x, int32 z) -> float
+    {
+        return paddedHeights[size_t(z + int32(margin)) * paddedPitch + size_t(x + int32(margin))];
+    };
 
     Array<SimpleVertex> vertices;
     vertices.Resize(cellSize * cellSize);
@@ -42,18 +58,21 @@ static Array<SimpleVertex> BuildVertices(
         {
             const uint32 i = z * cellSize + x;
 
-            // padded index for local (x, z) is (x + 1, z + 1)
-            const float h = paddedHeights[(z + 1) * paddedPitch + (x + 1)];
-            const float hL = paddedHeights[(z + 1) * paddedPitch + x];
-            const float hR = paddedHeights[(z + 1) * paddedPitch + (x + 2)];
-            const float hD = paddedHeights[z * paddedPitch + (x + 1)];
-            const float hU = paddedHeights[(z + 2) * paddedPitch + (x + 1)];
+            float h = paddedHeightAt(int32(x), int32(z));
+
+            if (hasSculptDelta)
+            {
+                h += sculptDelta[i];
+            }
+
+            const float hL = paddedHeightAt(int32(x) - 1, int32(z));
+            const float hR = paddedHeightAt(int32(x) + 1, int32(z));
+            const float hD = paddedHeightAt(int32(x), int32(z) - 1);
+            const float hU = paddedHeightAt(int32(x), int32(z) + 1);
 
             const Vec3f position = Vec3f { float(x), h, float(z) };
             const Vec2f texcoord(float(x) / float(cellSize), float(z) / float(cellSize));
 
-            // Local (unscaled, per-index-step) tangents -- the renderer's normal matrix accounts
-            // for the cell's actual world scale, so normals must be computed in local mesh space.
             const Vec3f tangentX(2.0f, hR - hL, 0.0f);
             const Vec3f tangentZ(0.0f, hU - hD, 2.0f);
             const Vec3f normal = tangentZ.Cross(tangentX).Normalized();
@@ -121,11 +140,11 @@ TerrainMeshBuilder::~TerrainMeshBuilder() = default;
 
 TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellVertexData(
     const StreamingCellInfo& cellInfo,
-    const NoiseCombinator& noise,
+    const TerrainGenerator& generator,
     Span<const float> sculptDelta) const
 {
     CellMeshData result;
-    result.vertices = BuildVertices(m_cellSize, cellInfo, noise, sculptDelta);
+    result.vertices = BuildVertices(m_cellSize, cellInfo, generator, sculptDelta);
     result.indices = BuildIndices(m_cellSize);
 
     return result;

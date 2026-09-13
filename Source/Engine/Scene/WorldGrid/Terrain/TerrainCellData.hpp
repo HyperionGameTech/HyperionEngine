@@ -39,6 +39,12 @@ public:
 
     void SetSculptDelta(ConstByteView view);
 
+    /*! True when the manifest says this cell has sculpt data - does not require the blob to be paged in. */
+    bool HasSculptDelta() const
+    {
+        return m_sculptDelta.size != 0;
+    }
+
     ByteView GetSculptDelta();
     ConstByteView GetSculptDelta() const;
 
@@ -59,8 +65,6 @@ protected:
     virtual void PageBlobData() override;
     virtual void UnpageBlobData() override;
 
-    /*! Reads a single blob file (<name>.<magic>.raw.blob) from \p directory into \p reference.
-     *  \returns true when data was paged in. */
     bool PageBlobDataFromFile(const FilePath& directory, const char* magic, BlobDataReference& reference);
 
     virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override

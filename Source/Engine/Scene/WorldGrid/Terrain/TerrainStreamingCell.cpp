@@ -57,6 +57,108 @@ static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellM
     }
 }
 
+static Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& uploadBytes)
+{
+    Handle<Texture> texture = MakeHandle<Texture>();
+    texture->SetName(NAME_FMT("TerrainCellSplatMap_{}", coord));
+
+    TextureDesc textureDesc;
+    textureDesc.type = TextureType::Texture2D;
+    textureDesc.format = TextureFormat::RGBA8;
+    textureDesc.extent = Vec3u(cellSize, cellSize, 1);
+    textureDesc.filterModeMin = TextureFilterMode::Linear;
+    textureDesc.filterModeMag = TextureFilterMode::Linear;
+
+    texture->SetTextureDesc(textureDesc);
+    texture->SetImageData(ConstByteView(uploadBytes.Data(), uploadBytes.Size()));
+    texture->SetIsTransient(true);
+
+    InitObject(texture);
+
+    return texture;
+}
+
+static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& splatBytes)
+{
+    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
+
+    Array<ubyte> uploadBytes;
+    uploadBytes.Resize(requiredSize);
+
+    const size_t rowSize = size_t(cellSize) * 4;
+
+    for (uint32 z = 0; z < cellSize; z++)
+    {
+        const size_t srcRow = size_t(cellSize - 1 - z) * rowSize;
+        const size_t dstRow = size_t(z) * rowSize;
+
+        Memory::Copy(uploadBytes.Data() + dstRow, splatBytes.Data() + srcRow, rowSize);
+    }
+
+    return CreateSplatTexture(coord, cellSize, uploadBytes);
+}
+
+static Handle<Texture> BuildAutoSplatTexture(
+    const Handle<TerrainWorldGridLayer>& layer,
+    const StreamingCellInfo& cellInfo,
+    const TerrainMeshBuilder::CellMeshData& cellMeshData)
+{
+    const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
+    const uint32 cellSize = layerInfo.cellSize;
+
+    Array<float> heights;
+    heights.Resize(cellMeshData.vertices.Size());
+
+    for (uint32 i = 0; i < cellMeshData.vertices.Size(); i++)
+    {
+        heights[i] = cellMeshData.vertices[i].GetPosition().y;
+    }
+
+    Array<ubyte> splatWeights;
+    splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
+
+    layer->GetGenerator().SynthesizeSplatWeights(
+        heights,
+        Vec2f(cellInfo.bounds.min.x, cellInfo.bounds.min.z),
+        Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+        cellSize,
+        splatWeights);
+
+    return BuildSplatTextureFromWeights(cellInfo.coord, cellSize, splatWeights);
+}
+
+static Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize)
+{
+    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
+
+    Array<ubyte> splatBytes;
+
+    {
+        auto readScope = cellData->GetReadScope();
+
+        ConstByteView splatData = cellData->GetSplatMap();
+
+        if (splatData.Size() < requiredSize)
+        {
+            if (splatData.Size() != 0)
+            {
+                HYP_LOG(WorldGrid, Warning,
+                    "Saved splat map for cell {} is {} bytes but the layer expects {} !",
+                    coord,
+                    splatData.Size(),
+                    requiredSize);
+            }
+
+            return Handle<Texture>::Null();
+        }
+
+        splatBytes.Resize(requiredSize);
+        Memory::Copy(splatBytes.Data(), splatData.Data(), requiredSize);
+    }
+
+    return BuildSplatTextureFromWeights(coord, cellSize, splatBytes);
+}
+
 static void BuildMeshDescAndDataView(const TerrainMeshBuilder::CellMeshData& cellMeshData, MeshDesc& outMeshDesc, MeshDataView& outMeshData)
 {
     outMeshDesc.meshAttributes.inputLayout = { VT_Simple };
@@ -106,13 +208,46 @@ void TerrainStreamingCell::OnStreamStart()
 
     if (!m_cellData.IsValid())
     {
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetNoiseCombinator(), Span<const float>());
+        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), Span<const float>());
     }
     else
     {
-        auto cellDataReadScope = m_cellData->GetReadScope();
+        const bool expectSculptData = m_cellData->HasSculptDelta();
 
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetNoiseCombinator(), m_cellData->GetSculptDeltaFloat());
+        Span<const float> sculptDelta;
+
+        {
+            auto cellDataReadScope = m_cellData->GetReadScope();
+
+            sculptDelta = m_cellData->GetSculptDeltaFloat();
+
+            const size_t expectedCount = size_t(cellSize) * size_t(cellSize);
+
+            if (sculptDelta.Size() != expectedCount)
+            {
+                if (sculptDelta.Size() == 0)
+                {
+                    if (expectSculptData)
+                    {
+                        HYP_LOG(WorldGrid, Warning,
+                            "Cell {} has saved sculpt data but it could not be paged in - cell will render without sculpt edits",
+                            m_cellInfo.coord);
+                    }
+                }
+                else
+                {
+                    HYP_LOG(WorldGrid, Warning,
+                        "Saved sculpt data for cell {} has {} vertices but the layer expects {} - likely saved with a different cell size, ignoring it",
+                        m_cellInfo.coord,
+                        sculptDelta.Size(),
+                        expectedCount);
+                }
+
+                sculptDelta = {};
+            }
+
+            m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), sculptDelta);
+        }
     }
 
     ExtractColliderHeights(m_cellMeshData, m_colliderHeights);
@@ -160,6 +295,22 @@ void TerrainStreamingCell::OnLoaded()
         m_entity.Reset();
 
         return;
+    }
+
+    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+
+    Handle<Texture> splatTexture;
+
+    if (m_cellData.IsValid() && m_cellData->HasSplatMap())
+    {
+        splatTexture = BuildPaintedSplatTexture(m_cellData, m_cellInfo.coord, cellSize);
+    }
+
+    if (!splatTexture.IsValid()
+        && m_layer->GetGenerator().GetParams().autoPaintSplats
+        && m_cellMeshData.vertices.Size() == size_t(cellSize) * size_t(cellSize))
+    {
+        splatTexture = BuildAutoSplatTexture(m_layer, m_cellInfo, m_cellMeshData);
     }
 
     m_mesh = BuildMeshFromCellMeshData();
@@ -214,10 +365,9 @@ void TerrainStreamingCell::OnLoaded()
     m_node->SetLocalTransform(transform);
     m_node->SetIsStatic(true);
 
-    // Painted cells load with their splat map bound.
-    if (m_cellData.IsValid() && m_cellData->HasSplatMap())
+    if (splatTexture.IsValid())
     {
-        UpdateSplatMaterial(m_cellData);
+        ApplySplatTexture(splatTexture);
     }
 
     m_layer->RegisterLoadedCell(m_cellInfo.coord, WeakHandleFromThis());
@@ -262,59 +412,37 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
     m_cellData = cellData;
 
     const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
-    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
 
     if (!cellData.IsValid() || !cellData->HasSplatMap() || !m_material.IsValid())
     {
         return;
     }
 
-    // Copy the splat data out while the blob data is paged in.
-    Array<ubyte> splatBytes;
+    Handle<Texture> splatTexture = BuildPaintedSplatTexture(cellData, m_cellInfo.coord, cellSize);
 
+    if (!splatTexture.IsValid())
     {
-        auto readScope = cellData->GetReadScope();
-
-        ConstByteView splatData = cellData->GetSplatMap();
-
-        if (splatData.Size() < requiredSize)
-        {
-            return;
-        }
-
-        splatBytes.Resize(requiredSize);
-        Memory::Copy(splatBytes.Data(), splatData.Data(), requiredSize);
+        return;
     }
 
-    Array<ubyte> uploadBytes;
-    uploadBytes.Resize(requiredSize);
+    ApplySplatTexture(splatTexture);
+}
 
-    const size_t rowSize = size_t(cellSize) * 4;
+void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
 
-    for (uint32 z = 0; z < cellSize; z++)
+    Assert(m_layer.IsValid(), "Invalid terrain layer!");
+    Assert(m_entity.IsValid(), "Cell has not finished loading yet");
+    Assert(m_mesh.IsValid(), "Cell has not finished loading yet");
+
+    if (!splatTexture.IsValid() || !m_material.IsValid())
     {
-        const size_t srcRow = size_t(cellSize - 1 - z) * rowSize;
-        const size_t dstRow = size_t(z) * rowSize;
-
-        Memory::Copy(uploadBytes.Data() + dstRow, splatBytes.Data() + srcRow, rowSize);
+        return;
     }
 
-    // Create splat map texture
-    m_splatTexture = MakeHandle<Texture>();
-    m_splatTexture->SetName(NAME_FMT("TerrainCellSplatMap_{}", m_cellInfo.coord));
-
-    TextureDesc textureDesc;
-    textureDesc.type = TextureType::Texture2D;
-    textureDesc.format = TextureFormat::RGBA8;
-    textureDesc.extent = Vec3u(cellSize, cellSize, 1);
-    textureDesc.filterModeMin = TextureFilterMode::Linear;
-    textureDesc.filterModeMag = TextureFilterMode::Linear;
-
-    m_splatTexture->SetTextureDesc(textureDesc);
-    m_splatTexture->SetImageData(ConstByteView(uploadBytes.Data(), uploadBytes.Size()));
-    m_splatTexture->SetIsTransient(true);
-
-    InitObject(m_splatTexture);
+    m_splatTexture = splatTexture;
 
     if (!m_cellMaterial.IsValid())
     {
@@ -355,13 +483,13 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 
     if (!m_cellData.IsValid())
     {
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetNoiseCombinator(), Span<const float>());
+        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), Span<const float>());
     }
     else
     {
         auto cellDataReadScope = m_cellData->GetReadScope();
 
-        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetNoiseCombinator(), m_cellData->GetSculptDeltaFloat());
+        m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), m_cellData->GetSculptDeltaFloat());
     }
 
     ExtractColliderHeights(m_cellMeshData, m_colliderHeights);

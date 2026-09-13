@@ -1558,7 +1558,7 @@ void AssetRegistry::SaveDirtyAssets()
 
             do
             {
-                index = data.dirtyIndices.NextSetBitIndex(1);
+                index = data.dirtyIndices.NextSetBitIndex(0);
 
                 if (index == Bitset::NotFound)
                 {
