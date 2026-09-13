@@ -4067,14 +4067,6 @@ public:
         Handle<WorldGridLayer>& layer = instanceData.Get<Handle<WorldGridLayer>>();
         AssertDebug(layer != nullptr);
 
-        std::random_device randomDevice;
-
-        WorldGridLayerInfo layerInfo;
-        layerInfo.cellSize = 64;
-        layerInfo.maxDistance = 3.0f;
-        layerInfo.seed = randomDevice();
-
-        layer->SetLayerInfo(layerInfo);
         layer->SetName(CreateLayerName(layerClass));
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(

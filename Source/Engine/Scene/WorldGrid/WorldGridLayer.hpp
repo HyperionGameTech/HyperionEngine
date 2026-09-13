@@ -130,6 +130,9 @@ public:
     HYP_METHOD()
     void RemoveStreamingObject(const AssetObject* assetObject);
 
+    HYP_METHOD()
+    void EnsureStreamingObjectsRegistered();
+
     Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsLoaded;
     Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsUnloaded;
 

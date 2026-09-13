@@ -29,13 +29,21 @@
 
 #include <Framework/EngineGlobals.hpp>
 
+#include <random>
+
 #include <TerrainWorldGridLayer.generated.inl>
 
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-#pragma region TerrainWorldGridLayer
+static const Name s_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
+static const Name s_terrainSceneName = NAME("TerrainScene");
+
+static const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
+    .cellSize = 64,
+    .maxDistance = 5.0f
+};
 
 static Handle<Texture> LoadTerrainTexture(const char* name)
 {
@@ -103,8 +111,6 @@ static void LoadTerrainMaterialTextures(MaterialTextures& textures)
     // NOTE: the splat map is not bound here - each painted cell gets its own splat texture on a per-cell material
 }
 
-static const Name s_terrainSceneName = NAME("TerrainScene");
-
 static Handle<Scene> MakeTerrainScene()
 {
     Handle<Scene> scene = MakeHandle<Scene>(s_terrainSceneName, SceneFlags::FOREGROUND | SceneFlags::HAS_OCTREE);
@@ -115,10 +121,14 @@ static Handle<Scene> MakeTerrainScene()
     return scene;
 }
 
+#pragma region TerrainWorldGridLayer
+
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(MakeTerrainScene()),
+    : WorldGridLayer(s_terrainWorldGridLayerName, s_defaultTerrainWorldGridLayerInfo),
+      m_scene(MakeTerrainScene()),
       m_generator(MakeUnique<TerrainGenerator>())
 {
+    m_layerInfo.seed = std::random_device()();
 }
 
 TerrainWorldGridLayer::TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo)
@@ -339,6 +349,25 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
         return;
     }
 
+    // a vertex normal reads its direct neighbors, so vertices one spacing outside the brush need new normals too -
+    // including ones across a cell border whose own sculpt delta didn't change
+    const float normalInfluenceRadius = radius + MathUtil::Max(m_layerInfo.scale.x, m_layerInfo.scale.z);
+
+    const auto rebuildLoadedCell = [this](const Vec2i& coord, const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
+    {
+        auto loadedCellIt = m_loadedCells.Find(coord);
+
+        if (loadedCellIt == m_loadedCells.End())
+        {
+            return;
+        }
+
+        if (Handle<TerrainStreamingCell> loadedCell = loadedCellIt->second.Lock(); loadedCell)
+        {
+            loadedCell->RebuildMesh(cellData, minVertex, maxVertex);
+        }
+    };
+
     const WorldGridLayerInfo& layerInfo = m_layerInfo;
     const uint32 cellSize = layerInfo.cellSize;
     const float cellWorldSizeX = (float(cellSize) - 1.0f) * layerInfo.scale.x;
@@ -379,7 +408,7 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
                 MathUtil::Clamp(worldPosXZ.x, cellWorldMinXZ.x, cellWorldMaxXZ.x),
                 MathUtil::Clamp(worldPosXZ.y, cellWorldMinXZ.y, cellWorldMaxXZ.y));
 
-            if ((closestPoint - worldPosXZ).Length() > radius)
+            if ((closestPoint - worldPosXZ).Length() > normalInfluenceRadius)
             {
                 continue;
             }
@@ -403,6 +432,8 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
             }
 
             m_deltaSampleCache.Invalidate();
+
+            const bool hadSculptDelta = cellData->HasSculptDelta();
 
             if (!cellData->EnsureWritableSculptDelta(cellSize * cellSize))
             {
@@ -431,6 +462,16 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
 
                             const float dist = (vertexWorldXZ - worldPosXZ).Length();
 
+                            if (dist > normalInfluenceRadius)
+                            {
+                                continue;
+                            }
+
+                            minVertexX = MathUtil::Min(minVertexX, int32(x));
+                            minVertexZ = MathUtil::Min(minVertexZ, int32(z));
+                            maxVertexX = MathUtil::Max(maxVertexX, int32(x));
+                            maxVertexZ = MathUtil::Max(maxVertexZ, int32(z));
+
                             if (dist > radius)
                             {
                                 continue;
@@ -441,11 +482,6 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
 
                             reinterpret_cast<float*>(delta.Data())[z * cellSize + x] += (raise ? 1.0f : -1.0f) * strength * weight;
                             anyModified = true;
-
-                            minVertexX = MathUtil::Min(minVertexX, int32(x));
-                            minVertexZ = MathUtil::Min(minVertexZ, int32(z));
-                            maxVertexX = MathUtil::Max(maxVertexX, int32(x));
-                            maxVertexZ = MathUtil::Max(maxVertexZ, int32(z));
                         }
                     }
 
@@ -458,6 +494,23 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
 
             if (!anyModified)
             {
+                // The stroke did not actually touch this cell. Drop the empty sculpt delta that
+                // EnsureWritableSculptDelta() may have created so no pointless data is persisted.
+                if (!hadSculptDelta)
+                {
+                    cellData->ClearSculptDelta();
+                }
+
+                // border normals may still read vertices the stroke moved in the adjacent cell
+                if (maxVertexX >= 0)
+                {
+                    rebuildLoadedCell(
+                        coord,
+                        isNewCellData ? Handle<TerrainCellData>() : cellData,
+                        Vec2i(minVertexX, minVertexZ),
+                        Vec2i(maxVertexX, maxVertexZ));
+                }
+
                 continue;
             }
 
@@ -468,18 +521,7 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
 
             m_cellsModifiedSinceStrokeEnd[coord] = true;
 
-            auto loadedCellIt = m_loadedCells.Find(coord);
-
-            if (loadedCellIt != m_loadedCells.End())
-            {
-                if (Handle<TerrainStreamingCell> loadedCell = loadedCellIt->second.Lock(); loadedCell)
-                {
-                    loadedCell->RebuildMesh(
-                        cellData,
-                        Vec2i(minVertexX, minVertexZ),
-                        Vec2i(maxVertexX, maxVertexZ));
-                }
-            }
+            rebuildLoadedCell(coord, cellData, Vec2i(minVertexX, minVertexZ), Vec2i(maxVertexX, maxVertexZ));
         }
     }
 }
@@ -561,6 +603,8 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
 
             m_deltaSampleCache.Invalidate();
 
+            const bool hadSplatMap = cellData->HasSplatMap();
+
             if (!cellData->EnsureSplatMapAllocated(cellSize * cellSize))
             {
                 continue;
@@ -575,6 +619,31 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
 
                 if (splatMap.Size() != 0)
                 {
+                    if (isNewCellData && !hadSplatMap && m_generator && m_generator->GetParams().autoPaintSplats)
+                    {
+                        // seed fresh splat maps
+                        if (splatMap.Size() == size_t(cellSize) * size_t(cellSize) * TerrainCellData::NumSplatLayers)
+                        {
+                            Array<float> heights;
+                            Array<Vec3f> normals;
+
+                            m_generator->GenerateCellHeightsAndNormals(
+                                cellWorldMinXZ,
+                                Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+                                cellSize,
+                                heights,
+                                normals);
+
+                            m_generator->SynthesizeSplatWeights(
+                                heights,
+                                normals,
+                                cellWorldMinXZ,
+                                Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+                                cellSize,
+                                Span<ubyte>(reinterpret_cast<ubyte*>(splatMap.Data()), splatMap.Size()));
+                        }
+                    }
+
                     for (uint32 z = 0; z < cellSize; z++)
                     {
                         for (uint32 x = 0; x < cellSize; x++)
@@ -598,15 +667,61 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
                                 continue;
                             }
 
-                            ubyte& channel = splatMap[(size_t(z) * cellSize + x) * TerrainCellData::NumSplatLayers + layerIndex];
+                            const size_t baseIndex = (size_t(z) * cellSize + x) * TerrainCellData::NumSplatLayers;
+
+                            ubyte& channel = splatMap[baseIndex + layerIndex];
 
                             const int32 oldValue = int32(channel);
 
-                            channel = erase
-                                ? ubyte(MathUtil::Max(oldValue - paintDelta, 0))
-                                : ubyte(MathUtil::Min(oldValue + paintDelta, 255));
+                            if (erase)
+                            {
+                                channel = ubyte(MathUtil::Max(oldValue - paintDelta, 0));
 
-                            anyModified |= channel != oldValue;
+                                anyModified |= channel != oldValue;
+                            }
+                            else
+                            {
+                                const int32 newValue = MathUtil::Min(oldValue + paintDelta, 255);
+
+                                if (newValue != oldValue)
+                                {
+                                    // Pull the other layers down so the total stays at 255 - a fully
+                                    // painted layer needs to reach full weight, otherwise its normal
+                                    // map blends away into the other layers.
+                                    int32 othersTotal = 0;
+
+                                    for (uint32 layer = 0; layer < TerrainCellData::NumSplatLayers; layer++)
+                                    {
+                                        if (layer != layerIndex)
+                                        {
+                                            othersTotal += int32(splatMap[baseIndex + layer]);
+                                        }
+                                    }
+
+                                    channel = ubyte(newValue);
+
+                                    const int32 targetOthers = MathUtil::Max(255 - newValue, 0);
+
+                                    if (othersTotal > targetOthers)
+                                    {
+                                        for (uint32 layer = 0; layer < TerrainCellData::NumSplatLayers; layer++)
+                                        {
+                                            if (layer == layerIndex)
+                                            {
+                                                continue;
+                                            }
+
+                                            const int32 layerValue = int32(splatMap[baseIndex + layer]);
+
+                                            splatMap[baseIndex + layer] = othersTotal != 0
+                                                ? ubyte(layerValue * targetOthers / othersTotal)
+                                                : ubyte(0);
+                                        }
+                                    }
+
+                                    anyModified = true;
+                                }
+                            }
                         }
                     }
 
@@ -619,6 +734,14 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
 
             if (!anyModified)
             {
+                // The stroke did not actually touch this cell. Drop the default splat map that
+                // EnsureSplatMapAllocated() may have created, otherwise it would override the
+                // auto-painted splats when the cell is streamed again (e.g. after loading).
+                if (!hadSplatMap)
+                {
+                    cellData->ClearSplatMap();
+                }
+
                 // Nothing painted - the freshly created cell data simply dies without being
                 // registered.
                 continue;
@@ -840,6 +963,7 @@ void TerrainWorldGridLayer::EndBrushStroke()
         if (Handle<TerrainStreamingCell> loadedCell = loadedCellIt->second.Lock(); loadedCell)
         {
             loadedCell->RebuildPickBVH();
+            loadedCell->RefreshAutoSplat();
         }
     }
 

@@ -129,6 +129,31 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
     m_objectsByCoord[coord].EmplaceBack(assetObject->GetPath());
 }
 
+void WorldGridLayer::EnsureStreamingObjectsRegistered()
+{
+    HYP_SCOPE;
+
+    Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
+    for (auto& pair : m_objectsByCoord)
+    {
+        for (const AssetReference& assetReference : pair.second)
+        {
+            Handle<AssetObject> assetObject = assetReference.Resolve();
+
+            if (assetObject.IsValid() && !assetObject->IsRegistered())
+            {
+                registry->PutAssetUnique(assetObject);
+            }
+        }
+    }
+}
+
 void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
 {
     HYP_SCOPE;

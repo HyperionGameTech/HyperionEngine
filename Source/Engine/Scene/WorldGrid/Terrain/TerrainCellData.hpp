@@ -45,6 +45,9 @@ public:
         return m_sculptDelta.size != 0;
     }
 
+    void ClearSculptDelta();
+    void ClearSplatMap();
+
     ByteView GetSculptDelta();
     ConstByteView GetSculptDelta() const;
 

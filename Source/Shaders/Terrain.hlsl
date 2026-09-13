@@ -198,9 +198,16 @@ float3 SampleTerrainLayerNormal(uint layerIndex, float3 position, float3 blendin
     default: tex = GET_TEXTURE(material, TerrainNormal3); scale = TERRAIN_LAYER3_SCALE; break;
     }
 
-    const float3 tangent_normal_x = SAMPLE_TEXTURE_2D(texture_sampler, tex, position.zy * scale).rgb * 2.0 - 1.0;
-    const float3 tangent_normal_y = SAMPLE_TEXTURE_2D(texture_sampler, tex, position.xz * scale).rgb * 2.0 - 1.0;
-    const float3 tangent_normal_z = SAMPLE_TEXTURE_2D(texture_sampler, tex, position.xy * scale).rgb * 2.0 - 1.0;
+    float3 tangent_normal_x = SAMPLE_TEXTURE_2D(texture_sampler, tex, position.zy * scale).rgb * 2.0 - 1.0;
+    float3 tangent_normal_y = SAMPLE_TEXTURE_2D(texture_sampler, tex, position.xz * scale).rgb * 2.0 - 1.0;
+    float3 tangent_normal_z = SAMPLE_TEXTURE_2D(texture_sampler, tex, position.xy * scale).rgb * 2.0 - 1.0;
+
+    if (GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_NORMAL_MAP_FLIP_Y))
+    {
+        tangent_normal_x.y = -tangent_normal_x.y;
+        tangent_normal_y.y = -tangent_normal_y.y;
+        tangent_normal_z.y = -tangent_normal_z.y;
+    }
 
     return normalize(
         tangent_normal_x.zyx * blending.x

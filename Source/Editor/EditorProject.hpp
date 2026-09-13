@@ -126,7 +126,6 @@ public:
     HYP_METHOD()
     Result SaveAs(FilePath filepath);
 
-    /*! \brief Checks if the project needs a save before a destructive action like closing the editor / project, or opening another. */
     HYP_METHOD()
     bool IsDirty() const;
 
@@ -136,9 +135,6 @@ public:
         return m_actionStack;
     }
 
-    /*! \brief The Swatch/BakeLayer data now lives on World (so it works outside the editor too) - these
-     *  are thin forwarders kept so existing callers (editor commands, the toolbar UI) don't need to
-     *  change. \see{World::GetActiveSwatch} */
     BakeLayer& GetActiveBakeLayer();
 
     /// For editor interop
@@ -169,8 +165,6 @@ private:
         m_editorSubsystem = editorSubsystem;
     }
 
-    Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
-
     HYP_FIELD(Property = "Name", Serialize)
     Name m_name;
 
@@ -185,6 +179,12 @@ private:
 
     HYP_FIELD(Property = "GameInstance", Serialize)
     Handle<Game> m_gameInstance;
+
+    HYP_FIELD(Property = "EditorCameraPosition", Serialize)
+    Vec3f m_editorCameraPosition;
+
+    HYP_FIELD(Property = "EditorCameraDirection", Serialize)
+    Vec3f m_editorCameraDirection;
 
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;

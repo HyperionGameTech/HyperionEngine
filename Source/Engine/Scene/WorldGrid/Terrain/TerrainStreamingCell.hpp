@@ -50,6 +50,9 @@ public:
     ///binds a splat map texture to this cell's material instance
     void ApplySplatTexture(const Handle<Texture>& splatTexture);
 
+    ///re-synthesizes the auto splat weights from the cell's current heights; no-op for painted cells
+    void RefreshAutoSplat();
+
     void RebuildPickBVH();
 
 protected:

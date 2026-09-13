@@ -47,11 +47,15 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellMeshData, Array<float>& outHeights)
+static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellMeshData, uint32 cellSize, Array<float>& outHeights)
 {
-    outHeights.Resize(cellMeshData.vertices.Size());
+    const size_t gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
 
-    for (uint32 i = 0; i < cellMeshData.vertices.Size(); i++)
+    Assert(cellMeshData.vertices.Size() >= gridVertexCount, "Terrain mesh data is missing skirt vertices");
+
+    outHeights.Resize(gridVertexCount);
+
+    for (uint32 i = 0; i < gridVertexCount; i++)
     {
         outHeights[i] = cellMeshData.vertices[i].GetPosition().y;
     }
@@ -105,13 +109,20 @@ static Handle<Texture> BuildAutoSplatTexture(
 {
     const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
     const uint32 cellSize = layerInfo.cellSize;
+    const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
+
+    Assert(cellMeshData.vertices.Size() >= gridVertexCount, "Terrain mesh data is missing skirt vertices");
 
     Array<float> heights;
-    heights.Resize(cellMeshData.vertices.Size());
+    heights.Resize(gridVertexCount);
 
-    for (uint32 i = 0; i < cellMeshData.vertices.Size(); i++)
+    Array<Vec3f> normals;
+    normals.Resize(gridVertexCount);
+
+    for (uint32 i = 0; i < gridVertexCount; i++)
     {
         heights[i] = cellMeshData.vertices[i].GetPosition().y;
+        normals[i] = cellMeshData.vertices[i].GetNormal();
     }
 
     Array<ubyte> splatWeights;
@@ -119,6 +130,7 @@ static Handle<Texture> BuildAutoSplatTexture(
 
     layer->GetGenerator().SynthesizeSplatWeights(
         heights,
+        normals,
         Vec2f(cellInfo.bounds.min.x, cellInfo.bounds.min.z),
         Vec2f(layerInfo.scale.x, layerInfo.scale.z),
         cellSize,
@@ -250,7 +262,7 @@ void TerrainStreamingCell::OnStreamStart()
         }
     }
 
-    ExtractColliderHeights(m_cellMeshData, m_colliderHeights);
+    ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
 }
 
 Handle<Mesh> TerrainStreamingCell::BuildMeshFromCellMeshData() const
@@ -304,11 +316,18 @@ void TerrainStreamingCell::OnLoaded()
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
     {
         splatTexture = BuildPaintedSplatTexture(m_cellData, m_cellInfo.coord, cellSize);
+
+        if (!splatTexture.IsValid())
+        {
+            HYP_LOG(WorldGrid, Warning,
+                "Cell {} has painted splat data but it could not be loaded - falling back to auto painting, visuals will differ from the painted result",
+                m_cellInfo.coord);
+        }
     }
 
     if (!splatTexture.IsValid()
         && m_layer->GetGenerator().GetParams().autoPaintSplats
-        && m_cellMeshData.vertices.Size() == size_t(cellSize) * size_t(cellSize))
+        && m_cellMeshData.vertices.Size() >= TerrainMeshBuilder::CalculateGridVertexCount(cellSize))
     {
         splatTexture = BuildAutoSplatTexture(m_layer, m_cellInfo, m_cellMeshData);
     }
@@ -428,6 +447,66 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
     ApplySplatTexture(splatTexture);
 }
 
+void TerrainStreamingCell::RefreshAutoSplat()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_layer.IsValid() || !m_mesh.IsValid())
+    {
+        return;
+    }
+
+    // Painted splat data takes priority over synthesized weights.
+    if (m_cellData.IsValid() && m_cellData->HasSplatMap())
+    {
+        return;
+    }
+
+    if (!m_layer->GetGenerator().GetParams().autoPaintSplats)
+    {
+        return;
+    }
+
+    const WorldGridLayerInfo& layerInfo = m_layer->GetLayerInfo();
+    const uint32 cellSize = layerInfo.cellSize;
+    const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
+
+    const VertexArrayView vertexData = m_mesh->GetVertexData(0);
+
+    if (vertexData.floatData == nullptr || vertexData.vertexCount < gridVertexCount)
+    {
+        return;
+    }
+
+    const Span<const SimpleVertex> gridVertices(reinterpret_cast<const SimpleVertex*>(vertexData.floatData), gridVertexCount);
+
+    Array<float> heights;
+    heights.Resize(gridVertexCount);
+
+    Array<Vec3f> normals;
+    normals.Resize(gridVertexCount);
+
+    for (uint32 i = 0; i < gridVertexCount; i++)
+    {
+        heights[i] = gridVertices[i].GetPosition().y;
+        normals[i] = gridVertices[i].GetNormal();
+    }
+
+    Array<ubyte> splatWeights;
+    splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
+
+    m_layer->GetGenerator().SynthesizeSplatWeights(
+        heights,
+        normals,
+        Vec2f(m_cellInfo.bounds.min.x, m_cellInfo.bounds.min.z),
+        Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+        cellSize,
+        splatWeights);
+
+    ApplySplatTexture(BuildSplatTextureFromWeights(m_cellInfo.coord, cellSize, splatWeights));
+}
+
 void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture)
 {
     HYP_SCOPE;
@@ -465,7 +544,8 @@ void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture
         meshComponent->material = m_cellMaterial;
     }
 
-    entityManager->AddTag<EntityTag::UpdateRenderProxy>(m_entity);
+    m_entity->SetNeedsRenderProxyUpdate();
+    m_entity->MarkDirty();
 }
 
 void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellData)
@@ -492,14 +572,16 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
         m_cellMeshData = meshBuilder.BuildCellVertexData(m_cellInfo, m_layer->GetGenerator(), m_cellData->GetSculptDeltaFloat());
     }
 
-    ExtractColliderHeights(m_cellMeshData, m_colliderHeights);
+    ExtractColliderHeights(m_cellMeshData, m_layer->GetLayerInfo().cellSize, m_colliderHeights);
 
     MeshDesc meshDesc;
     MeshDataView meshData {};
     BuildMeshDescAndDataView(m_cellMeshData, meshDesc, meshData);
 
     m_mesh->SetMeshData(meshDesc, meshData);
-    m_mesh->UploadGpuData();
+
+    // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
+    // as we need it to prevent stalls
 
     m_cellMeshData = TerrainMeshBuilder::CellMeshData();
 
@@ -514,7 +596,7 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
         return;
     }
 
-    entityManager->AddTag<EntityTag::UpdateRenderProxy>(m_entity);
+    m_entity->SetNeedsRenderProxyUpdate();
 }
 
 void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
@@ -533,9 +615,10 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     const VertexArrayView vertexData = m_mesh->GetVertexData(0);
 
-    if (vertexData.floatData == nullptr || vertexData.vertexCount != size_t(cellSize) * size_t(cellSize))
+    if (vertexData.floatData == nullptr || vertexData.vertexCount < TerrainMeshBuilder::CalculateGridVertexCount(cellSize))
     {
-        // CPU-side mesh data unavailable - fall back to rebuilding the whole cell.
+        HYP_LOG(WorldGrid, Warning, "Cell {} has invalid vertex data for terrain", m_cellInfo.coord);
+
         RebuildMeshFull(cellData);
 
         return;
@@ -551,15 +634,11 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
         return;
     }
 
-    // Update rows expanded by one vertex so normals along the border of the region can be
-    // recomputed as well.
     const int32 updateMinX = MathUtil::Max(minVertexX - 1, 0);
     const int32 updateMaxX = MathUtil::Min(maxVertexX + 1, int32(cellSize) - 1);
     const int32 updateMinZ = MathUtil::Max(minVertexZ - 1, 0);
     const int32 updateMaxZ = MathUtil::Min(maxVertexZ + 1, int32(cellSize) - 1);
 
-    // Heights sampled one vertex beyond the update window for finite-difference normals.
-    // Sampled through the layer so neighboring cells' sculpt deltas are included - this keeps
     // normals consistent across cell seams.
     const int32 heightsMinX = updateMinX - 1;
     const int32 heightsMaxX = updateMaxX + 1;
@@ -589,7 +668,6 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
         return m_scratchHeights[size_t(z - heightsMinZ) * size_t(heightsWidth) + size_t(x - heightsMinX)];
     };
 
-    // Update whole rows so the modified range stays contiguous for a single GPU upload.
     const uint32 firstVertex = uint32(updateMinZ) * cellSize;
     const uint32 numRows = uint32(updateMaxZ - updateMinZ + 1);
     const uint32 numVertices = numRows * cellSize;
@@ -626,10 +704,11 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     {
         for (int32 x = updateMinX; x <= updateMaxX; x++)
         {
-            const Vec3f tangentX(2.0f, heightAt(x + 1, z) - heightAt(x - 1, z), 0.0f);
-            const Vec3f tangentZ(0.0f, heightAt(x, z + 1) - heightAt(x, z - 1), 2.0f);
-
-            m_scratchVertices[size_t(z - updateMinZ) * cellSize + x].SetNormal(tangentZ.Cross(tangentX).Normalized());
+            m_scratchVertices[size_t(z - updateMinZ) * cellSize + x].SetNormal(TerrainGenerator::ComputeGridNormal(
+                heightAt(x - 1, z),
+                heightAt(x + 1, z),
+                heightAt(x, z - 1),
+                heightAt(x, z + 1)));
         }
     }
 
@@ -639,6 +718,24 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     rangeView.layoutDesc = vertexData.layoutDesc;
 
     m_mesh->UpdateDynamicVertexData(0, firstVertex, rangeView);
+
+    // rebuild skirts
+    const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
+    const uint32 skirtVertexCount = TerrainMeshBuilder::CalculateSkirtVertexCount(cellSize);
+
+    m_scratchVertices.Resize(skirtVertexCount);
+
+    TerrainMeshBuilder::BuildSkirtVertices(
+        cellSize,
+        Span<const SimpleVertex>(reinterpret_cast<const SimpleVertex*>(vertexData.floatData), gridVertexCount),
+        m_scratchVertices);
+
+    VertexArrayView skirtRangeView {};
+    skirtRangeView.floatData = reinterpret_cast<const float*>(m_scratchVertices.Data());
+    skirtRangeView.vertexCount = skirtVertexCount;
+    skirtRangeView.layoutDesc = vertexData.layoutDesc;
+
+    m_mesh->UpdateDynamicVertexData(0, gridVertexCount, skirtRangeView);
 
     m_entity->SetLocalBounds(m_mesh->GetAABB());
 
@@ -651,7 +748,7 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
         return;
     }
 
-    entityManager->AddTag<EntityTag::UpdateRenderProxy>(m_entity);
+    m_entity->SetNeedsRenderProxyUpdate();
 }
 
 void TerrainStreamingCell::UpdateCollider(bool notifyPhysicsWorld)

@@ -88,7 +88,7 @@ void DynamicSkySystem::InitializeSky()
     { // skybox entity setup (renders the captured texture to a box)
         m_skyboxEntity = MakeHandle<Entity>();
         m_skyboxEntity->SetName(NAME("Skybox"));
-        m_skyboxEntity->Scale(150.0f);
+        m_skyboxEntity->Scale(350.0f);
         InitObject(m_skyboxEntity);
 
         if (VisibilityStateComponent* vis = m_skyboxEntity->TryGetComponent<VisibilityStateComponent>())
@@ -109,9 +109,11 @@ void DynamicSkySystem::InitializeSky()
         MaterialAttributes materialAttributes {};
         materialAttributes.shaderName = NAME("Skybox");
         materialAttributes.bucket = RenderBucket::Sky;
+
         // flip cull faces.
         materialAttributes.cullFaces = FaceCullMode::Front;
         materialAttributes.blendFunction = BlendFunction::None();
+
         // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
         materialAttributes.flags = MAF_DEPTH_TEST;
 

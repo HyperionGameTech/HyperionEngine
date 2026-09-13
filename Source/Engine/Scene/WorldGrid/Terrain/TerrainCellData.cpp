@@ -182,6 +182,24 @@ bool TerrainCellData::HasSplatMap() const
     return m_splatMap.size != 0;
 }
 
+void TerrainCellData::ClearSculptDelta()
+{
+    FreeBlobData(m_sculptDelta);
+
+    m_sculptDelta = BlobDataReference {};
+
+    MarkDirty();
+}
+
+void TerrainCellData::ClearSplatMap()
+{
+    FreeBlobData(m_splatMap);
+
+    m_splatMap = BlobDataReference {};
+
+    MarkDirty();
+}
+
 ByteView TerrainCellData::GetSplatMap()
 {
     if (m_splatMap.raw == nullptr || m_splatMap.readOnly || m_splatMap.size == 0)

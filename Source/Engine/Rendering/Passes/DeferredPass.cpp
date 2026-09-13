@@ -1710,7 +1710,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
 
+        // sky is projected onto the far plane (depth == 1.0), so it must pass where depth is still at its cleared value
+        frame->cr << SetDepthCompareOp(DepthCompareOp::LessOrEqual);
+
         renderCollector.ExecuteDrawCalls(frame, rs, translucentPassFramebuffer, RenderBucketMask<RenderBucket::Sky>);
+
+        frame->cr << SetDepthCompareOp(DepthCompareOp::Less);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }

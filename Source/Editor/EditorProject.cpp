@@ -73,9 +73,6 @@ static Name GetUniqueProjectName()
     return Name(candidateName);
 }
 
-/*! \brief Copy files not managed by the AssetRegistry (eg. script sources in Scripts/) from an old project
- *  directory to a new one. Manifests (.hmf), blob data (.blob) and project files (.hypproject) are skipped,
- *  as those are (re-)written as part of saving the project. */
 static void CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& targetDir)
 {
     if (!sourceDir.Exists() || !sourceDir.IsDirectory())
@@ -276,7 +273,28 @@ Result EditorProject::SaveAs(FilePath filepath)
         return HYP_MAKE_ERROR(Error, "No World set on the project");
     }
 
-    // Ensure we have a valid name, unique among existing project subdirs.
+    ///Get EditorCamera
+    Camera* editorCamera = nullptr;
+    for (Scene* scene : m_editWorld->GetScenes())
+    {
+        if ((editorCamera = DynamicCast<Camera>(scene->FindNodeByName("EditorCamera"_sh))))
+        {
+            break;
+        }
+    }
+
+    if (editorCamera)
+    {
+        ///set these -- they get serialized to disk
+        m_editorCameraPosition = editorCamera->GetWorldTranslation();
+        m_editorCameraDirection = editorCamera->GetDirection();
+    }
+    else
+    {
+        HYP_LOG(Editor, Warning, "No EditorCamera found when saving scene, next load will have Camera at 0,0,0");
+    }
+
+    ///Ensure we have a valid name, unique among existing project subdirs.
     if (!m_name.IsValid())
     {
         const FilePath projectsDir = EngineGlobals::GetProjectsDirectory();

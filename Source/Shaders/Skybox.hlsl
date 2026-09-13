@@ -75,6 +75,9 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     output.position_cs = mul(camera.projection, mul(view_matrix, position));
 
+    ///pins sky to the far-plane
+    output.position_cs.z = output.position_cs.w;
+
     return output;
 }
 

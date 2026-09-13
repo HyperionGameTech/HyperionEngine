@@ -39,6 +39,7 @@
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
+#include <Scene/WorldGrid/WorldGridLayer.hpp>
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
 
@@ -5986,6 +5987,14 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
         {
             assetRegistry->Initialize();
             assetRegistry->PutAssetsDeep(world);
+
+            if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid(); worldGrid.IsValid())
+            {
+                for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
+                {
+                    layer->EnsureStreamingObjectsRegistered();
+                }
+            }
         }
     }
 
