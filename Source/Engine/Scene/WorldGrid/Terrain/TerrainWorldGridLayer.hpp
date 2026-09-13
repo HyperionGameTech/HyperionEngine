@@ -14,10 +14,10 @@
 
 #include <Core/Reflection/Handle.hpp>
 
-#include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 #include <Core/Containers/FlatMap.hpp>
 #include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <Core/Math/Ray.hpp>
 #include <Core/Math/Vector2.hpp>
@@ -30,6 +30,14 @@ class Mesh;
 class Scene;
 class TerrainStreamingCell;
 class TerrainCellData;
+struct AssetPath;
+
+struct TerrainGenerationState
+{
+    SharedPtr<TerrainGenerator> generator;
+    uint64 cellFingerprint = 0;
+    uint32 epoch = 0;
+};
 
 HYP_CLASS()
 class ENGINE_API TerrainWorldGridLayer : public WorldGridLayer
@@ -49,12 +57,22 @@ public:
         return m_scene;
     }
 
+    ///sim thread only - other threads must use GetGenerationState()
     HYP_FORCE_INLINE const TerrainGenerator& GetGenerator() const
     {
         return *m_generator;
     }
 
-    HYP_METHOD(Property = "Seed")
+    TerrainGenerationState GetGenerationState() const;
+
+    ///false once Regenerate() has replaced the generator that \p epoch belongs to
+    HYP_FORCE_INLINE bool IsGenerationCurrent(uint32 epoch) const
+    {
+        return m_generationEpoch.Get(MemoryOrder::ACQUIRE) == epoch;
+    }
+
+    ///not shown in editor because the editor for this shows LayerInfo's Seed property anyway
+    HYP_METHOD(Property = "Seed", Editor = false)
     HYP_FORCE_INLINE uint32 GetSeed() const
     {
         return m_layerInfo.seed;
@@ -66,7 +84,8 @@ public:
     HYP_METHOD()
     virtual void SetLayerInfo(const WorldGridLayerInfo& layerInfo) override;
 
-    SharedPtr<const Array<float>> GetOrGenerateCellHeights(const Vec2i& coord) const;
+    ///result is only cached while \p generationEpoch is still current
+    SharedPtr<const Array<float>> GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const;
     SharedPtr<const Array<float>> TryGetCachedCellHeights(const Vec2i& coord) const;
 
     void WarmHeightsCache(const Vec2i& coord) const;
@@ -80,8 +99,10 @@ public:
 
     ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
     bool AreCellHeightsCurrent(const TerrainCellData& cellData) const;
+    bool AreCellHeightsCurrent(const TerrainCellData& cellData, uint64 cellFingerprint) const;
 
     void GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights) const;
+    void GenerateCellPaddedHeights(const TerrainGenerator& generator, const Vec2i& coord, Array<float>& outPaddedHeights) const;
 
     ///saves freshly generated heights into the cell's data, creating it if needed; leaves current heights untouched
     Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights);
@@ -99,7 +120,24 @@ public:
     void EndBrushStroke();
 
     void RegisterLoadedCell(const Vec2i& coord, const WeakHandle<TerrainStreamingCell>& cell);
-    void UnregisterLoadedCell(const Vec2i& coord);
+
+    ///only unregisters if \p cell is the one registered at \p coord
+    void UnregisterLoadedCell(const Vec2i& coord, const TerrainStreamingCell* cell);
+
+    /// Discards all edits and regenerates the tiles procedurally
+    HYP_METHOD(EditorAction = "Regenerate")
+    void Regenerate();
+
+    /// Generate all tiles in the layer's defined range
+    HYP_METHOD(EditorAction = "Generate All", EditCondition = "HasDiscreteRange")
+    void GenerateAll();
+
+    /// not finite, has a defined range where tiles are allowed to generate.
+    HYP_METHOD()
+    bool HasDiscreteRange() const
+    {
+        return !m_layerInfo.infinite && m_layerInfo.range.x < m_layerInfo.range.y;
+    }
 
 protected:
     virtual void OnAdded(WorldGrid* worldGrid) override;
@@ -109,12 +147,25 @@ protected:
 
     virtual void StreamPrefetch(Span<const Vec2i> cellCoords) override;
 
-    void Regenerate();
+    TerrainGenerationParams MakeGenerationParams() const;
+    uint64 ComputeCellFingerprint(const TerrainGenerator& generator) const;
+
     void UpdateCellFingerprint();
+
+    ///swaps in a freshly configured generator and bumps the epoch so work started with the old one is discarded
+    void ReplaceGenerator();
+
+    void DetachLoadedCells();
+    void DiscardAllCellData();
+    void DeletePersistedCellData(const AssetPath& assetPath);
 
     Handle<Scene> m_scene;
     Handle<Material> m_material;
-    UniquePtr<TerrainGenerator> m_generator;
+
+    ///written on the sim thread only, under m_generationStateMutex
+    SharedPtr<TerrainGenerator> m_generator;
+    mutable Mutex m_generationStateMutex;
+    AtomicVar<uint32> m_generationEpoch { 0 };
 
     mutable Mutex m_heightCacheMutex;
     mutable FlatMap<Vec2i, SharedPtr<Array<float>>> m_cellHeightsCache;

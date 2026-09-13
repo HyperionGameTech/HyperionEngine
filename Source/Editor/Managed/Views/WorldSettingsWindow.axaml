@@ -162,6 +162,29 @@
                                         Margin="14,0,12,10"
                                         IsVisible="{Binding IsExpanded}"
                                         Spacing="2">
+                                        <!--  EditorActions on the layer class  -->
+                                        <ItemsControl
+                                            Margin="0,2,0,4"
+                                            IsVisible="{Binding HasActions}"
+                                            ItemsSource="{Binding Actions}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                    <Button
+                                                        Margin="0,2,6,2"
+                                                        Padding="10,4"
+                                                        Command="{Binding ExecuteActionCommand}"
+                                                        Content="{Binding Label}"
+                                                        IsEnabled="{Binding IsEnabled}"
+                                                        ToolTip.Tip="{Binding Label}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
                                         <Separator Margin="0,2,0,6" />
                                         <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
                                     </StackPanel>

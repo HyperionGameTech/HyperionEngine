@@ -20,6 +20,8 @@
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
+#include <Framework/EngineMemory.hpp>
+
 namespace Hyperion {
 
 class WorldGrid;
@@ -29,7 +31,7 @@ struct StreamingCellInfo;
 class AssetObject;
 class AssetReference;
 
-HYP_STRUCT(Size = 48)
+HYP_STRUCT()
 struct WorldGridLayerInfo
 {
     HYP_STRUCT_BODY(WorldGridLayerInfo);
@@ -40,6 +42,9 @@ struct WorldGridLayerInfo
     HYP_FIELD(Property = "Scale")
     Vec3f scale { 1.0f, 1.0f, 1.0f };
 
+    HYP_FIELD(Property = "Range")
+    Vec2i range { -10, 10 };
+
     HYP_FIELD(Property = "CellSize")
     uint32 cellSize = 32;
 
@@ -49,14 +54,19 @@ struct WorldGridLayerInfo
     HYP_FIELD(Property = "Seed")
     uint32 seed = 0;
 
+    HYP_FIELD(Property = "Infinite")
+    bool infinite = true;
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(offset);
         hc.Add(scale);
+        hc.Add(range);
         hc.Add(cellSize);
         hc.Add(maxDistance);
         hc.Add(seed);
+        hc.Add(infinite);
 
         return hc;
     }
@@ -139,14 +149,13 @@ public:
     HYP_METHOD()
     void EnsureStreamingObjectsRegistered();
 
-    Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsLoaded;
-    Delegate<void, StreamingCell*, Array<const AssetObject*>> OnStreamingObjectsUnloaded;
+    Delegate<void, StreamingCell*, Span<const AssetObject*>> OnStreamingObjectsLoaded;
+    Delegate<void, StreamingCell*, Span<const AssetObject*>> OnStreamingObjectsUnloaded;
 
 protected:
-
     Name m_name;
     WorldGridLayerInfo m_layerInfo;
-    FlatMap<Vec2i, Array<AssetReference, DynamicAllocator>> m_objectsByCoord;
+    FlatMap<Vec2i, Array<AssetReference, StreamingAllocator>, StreamingAllocator> m_objectsByCoord;
 };
 
 } // namespace Hyperion

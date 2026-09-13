@@ -265,6 +265,7 @@ static bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, co
 ///synthesizes auto splat weights and prepares them for upload - runs on the streaming thread
 static bool PrepareAutoSplatBytes(
     const Handle<TerrainWorldGridLayer>& layer,
+    const TerrainGenerator& generator,
     const StreamingCellInfo& cellInfo,
     const TerrainMeshBuilder::CellMeshData& cellMeshData,
     Array<ubyte>& outUploadBytes)
@@ -293,7 +294,7 @@ static bool PrepareAutoSplatBytes(
     Array<ubyte> splatWeights;
     splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
 
-    layer->GetGenerator().SynthesizeSplatWeights(
+    generator.SynthesizeSplatWeights(
         heights,
         normals,
         Vec2f(cellInfo.bounds.min.x, cellInfo.bounds.min.z),
@@ -365,16 +366,40 @@ TerrainStreamingCell::TerrainStreamingCell(
     const Handle<Scene>& scene,
     const Handle<Material>& material,
     const Handle<TerrainWorldGridLayer>& layer,
-    const Handle<TerrainCellData>& cellData)
+    const Handle<TerrainCellData>& cellData,
+    TerrainGenerationState&& generationState)
     : StreamingCell(cellInfo),
       m_scene(scene),
       m_material(material),
       m_layer(layer),
-      m_cellData(cellData)
+      m_cellData(cellData),
+      m_generator(std::move(generationState.generator)),
+      m_cellFingerprint(generationState.cellFingerprint),
+      m_generationEpoch(generationState.epoch)
 {
 }
 
 TerrainStreamingCell::~TerrainStreamingCell() = default;
+
+bool TerrainStreamingCell::IsStale() const
+{
+    return !m_generator || !m_layer.IsValid() || !m_layer->IsGenerationCurrent(m_generationEpoch);
+}
+
+void TerrainStreamingCell::ReleaseBuildData()
+{
+#ifdef HYP_EDITOR
+    // generated heights still present means generation was counted but never finished
+    if (m_generatedHeights.Any())
+    {
+        s_terrainGenerationEditorTask.OnGenerationFinished();
+    }
+#endif
+
+    m_generatedHeights = Array<float>();
+    m_splatUploadBytes = Array<ubyte>();
+    m_cellMeshData = TerrainMeshBuilder::CellMeshData();
+}
 
 bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
 {
@@ -392,7 +417,7 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
         const TerrainCellData& cellData = *m_cellData;
         const Span<const float> savedHeights = cellData.GetHeights();
 
-        if (m_layer->AreCellHeightsCurrent(cellData) && savedHeights.Size() == size_t(paddedSize) * size_t(paddedSize))
+        if (m_layer->AreCellHeightsCurrent(cellData, m_cellFingerprint) && savedHeights.Size() == size_t(paddedSize) * size_t(paddedSize))
         {
             m_cellMeshData = meshBuilder.BuildCellVertexData(savedHeights);
 
@@ -408,9 +433,18 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
                 cellData.extent,
                 cellSize);
         }
+        else if (m_layer->AreCellHeightsCurrent(cellData, m_cellFingerprint))
+        {
+            HYP_LOG(WorldGrid, Warning,
+                "Cell {} has current saved heights in '{}' but only {} of {} could be paged in - regenerating",
+                m_cellInfo.coord,
+                cellData.GetName(),
+                savedHeights.Size(),
+                size_t(paddedSize) * size_t(paddedSize));
+        }
     }
 
-    m_layer->GenerateCellPaddedHeights(m_cellInfo.coord, outGeneratedHeights);
+    m_layer->GenerateCellPaddedHeights(*m_generator, m_cellInfo.coord, outGeneratedHeights);
 
     m_cellMeshData = meshBuilder.BuildCellVertexData(outGeneratedHeights);
 
@@ -422,6 +456,12 @@ void TerrainStreamingCell::OnStreamStart()
     HYP_SCOPE;
 
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
+
+    if (IsStale())
+    {
+        // regenerated while this cell was queued - skip the (expensive) build, OnLoaded() discards it
+        return;
+    }
 
     const bool generatedHeights = BuildCellMeshData(m_generatedHeights);
 
@@ -450,9 +490,9 @@ void TerrainStreamingCell::OnStreamStart()
         HYP_LOG(WorldGrid, Warning, "Cell {} splat data could not be loaded!", m_cellInfo.coord);
     }
 
-    if (m_layer->GetGenerator().GetParams().autoPaintSplats)
+    if (m_generator->GetParams().autoPaintSplats)
     {
-        PrepareAutoSplatBytes(m_layer, m_cellInfo, m_cellMeshData, m_splatUploadBytes);
+        PrepareAutoSplatBytes(m_layer, *m_generator, m_cellInfo, m_cellMeshData, m_splatUploadBytes);
     }
 }
 
@@ -482,6 +522,14 @@ void TerrainStreamingCell::OnLoaded()
     Assert(m_scene.IsValid(), "Invalid scene!");
     Assert(m_material.IsValid(), "Invalid material!");
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
+
+    if (m_isRemoved || IsStale())
+    {
+        // already unloaded, or built with a replaced generator: never spawn it or persist its heights
+        ReleaseBuildData();
+
+        return;
+    }
 
     if (m_generatedHeights.Any())
     {
@@ -588,34 +636,39 @@ void TerrainStreamingCell::OnRemoved()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-#ifdef HYP_EDITOR
-    // generated heights still present means the cell never finished loading
-    if (m_generatedHeights.Any())
+    m_isRemoved = true;
+
+    // the cell may be removed before it ever finished loading
+    ReleaseBuildData();
+
+    if (m_layer.IsValid())
     {
-        s_terrainGenerationEditorTask.OnGenerationFinished();
+        m_layer->UnregisterLoadedCell(m_cellInfo.coord, this);
     }
-#endif
 
-    const bool isAddedToLayer = m_node.IsValid();
-
-    if (isAddedToLayer)
-    {
-        if (m_layer.IsValid())
-        {
-            m_layer->UnregisterLoadedCell(m_cellInfo.coord);
-        }
-
-        m_node->Remove(/* moveToDetached */ false);
-        m_node.Reset();
-
-        m_entity.Reset();
-    }
+    DetachFromScene();
 
     m_splatTexture.Reset();
     m_cellMaterial.Reset();
 
     m_collisionShape.Reset();
     m_colliderHeights.Clear();
+}
+
+void TerrainStreamingCell::DetachFromScene()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_node.IsValid())
+    {
+        return;
+    }
+
+    m_node->Remove(/* moveToDetached */ false);
+    m_node.Reset();
+
+    m_entity.Reset();
 }
 
 void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& cellData)
@@ -662,7 +715,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
         return;
     }
 
-    if (!m_layer->GetGenerator().GetParams().autoPaintSplats)
+    if (!m_generator || !m_generator->GetParams().autoPaintSplats)
     {
         return;
     }
@@ -695,7 +748,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
     Array<ubyte> splatWeights;
     splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
 
-    m_layer->GetGenerator().SynthesizeSplatWeights(
+    m_generator->SynthesizeSplatWeights(
         heights,
         normals,
         Vec2f(m_cellInfo.bounds.min.x, m_cellInfo.bounds.min.z),

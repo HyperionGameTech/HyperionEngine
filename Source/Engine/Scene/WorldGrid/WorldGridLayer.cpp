@@ -47,7 +47,7 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell(const StreamingCellInf
     cell->OnCellLoaded
         .Bind([this](StreamingCell* cell)
             {
-                Array<const AssetObject*> objs;
+                Array<const AssetObject*, StreamingTempAllocator> objs;
                 objs.Reserve(cell->GetAssetReferences().Size());
 
                 for (const AssetReference& assetReference : cell->GetAssetReferences())
@@ -73,7 +73,7 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell(const StreamingCellInf
     cell->OnCellUnloaded
         .Bind([this](StreamingCell* cell)
             {
-                Array<const AssetObject*> objs;
+                Array<const AssetObject*, StreamingTempAllocator> objs;
                 objs.Reserve(cell->GetAssetReferences().Size());
 
                 for (const AssetReference& assetReference : cell->GetAssetReferences())
@@ -167,7 +167,7 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
 
     for (auto objectsIt = m_objectsByCoord.Begin(); objectsIt != m_objectsByCoord.End(); ++objectsIt)
     {
-        Array<AssetReference, DynamicAllocator>& assetsAtCoord = objectsIt->second;
+        Array<AssetReference, StreamingAllocator>& assetsAtCoord = objectsIt->second;
 
         for (size_t i = 0; i < assetsAtCoord.Size(); ++i)
         {

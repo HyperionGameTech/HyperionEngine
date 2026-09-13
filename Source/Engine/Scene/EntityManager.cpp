@@ -506,9 +506,12 @@ void EntityManager::SetWorld(World* world)
                 Entity* entity = entityData.entityWeak.GetUnsafe();
                 Assert(entity != nullptr);
 
-                entity->OnRemovedFromWorld(m_world);
+                // @NOTE: Entities remain registered in this EntityManager while the Scene has no World.
+                // 
+                // We do NOT unset the Entity's EntityManager pointer here - otherwise the Entity can no
+                // longer be removed from this EntityManager
 
-                entity->SetEntityManagerRaw_Internal(nullptr);
+                entity->OnRemovedFromWorld(m_world);
             }
         }
     }
@@ -536,8 +539,6 @@ void EntityManager::SetWorld(World* world)
             {
                 Entity* entity = entityData.entityWeak.GetUnsafe();
                 Assert(entity != nullptr);
-
-                entity->SetEntityManagerRaw_Internal(this);
 
                 entity->OnAddedToWorld(m_world);
             }

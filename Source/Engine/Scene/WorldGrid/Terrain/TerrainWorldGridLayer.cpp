@@ -31,6 +31,11 @@
 
 #include <Framework/EngineGlobals.hpp>
 
+#ifdef HYP_EDITOR
+#include <Editor/EditorTask.hpp>
+#include <Editor/EditorState.hpp>
+#endif
+
 #include <random>
 
 #include <TerrainWorldGridLayer.generated.inl>
@@ -44,7 +49,9 @@ static const Name s_terrainSceneName = NAME("TerrainScene");
 
 static const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
     .cellSize = 64,
-    .maxDistance = 5.0f
+    .scale = Vec3f { 3.0f, 1.0f, 3.0f },
+    .maxDistance = 5.0f,
+    .seed = 1951233096
 };
 
 static Handle<Texture> LoadTerrainTexture(const char* name)
@@ -126,7 +133,7 @@ static Handle<Scene> MakeTerrainScene()
 TerrainWorldGridLayer::TerrainWorldGridLayer()
     : WorldGridLayer(s_terrainWorldGridLayerName, s_defaultTerrainWorldGridLayerInfo),
       m_scene(MakeTerrainScene()),
-      m_generator(MakeUnique<TerrainGenerator>())
+      m_generator(MakeShared<TerrainGenerator>())
 {
     m_layerInfo.seed = std::random_device()();
 }
@@ -134,7 +141,7 @@ TerrainWorldGridLayer::TerrainWorldGridLayer()
 TerrainWorldGridLayer::TerrainWorldGridLayer(Name name, const WorldGridLayerInfo& layerInfo)
     : WorldGridLayer(name, layerInfo),
       m_scene(MakeTerrainScene()),
-      m_generator(MakeUnique<TerrainGenerator>())
+      m_generator(MakeShared<TerrainGenerator>())
 {
 }
 
@@ -150,11 +157,6 @@ void TerrainWorldGridLayer::SetSeed(uint32 seed)
     }
 
     m_layerInfo.seed = seed;
-
-    if (m_generator)
-    {
-        Regenerate();
-    }
 }
 
 void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
@@ -162,19 +164,165 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
     WorldGridLayerInfo adjustedLayerInfo = layerInfo;
     adjustedLayerInfo.scale.y = 1.0f;
 
-    const bool seedChanged = adjustedLayerInfo.seed != m_layerInfo.seed;
-
     WorldGridLayer::SetLayerInfo(adjustedLayerInfo);
 
     UpdateCellFingerprint();
-
-    if (seedChanged && m_generator)
-    {
-        Regenerate();
-    }
 }
 
 void TerrainWorldGridLayer::Regenerate()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    DiscardAllCellData();
+
+    ReplaceGenerator();
+
+    DetachLoadedCells();
+
+    if (Handle<TerrainWorldGridLayer> strongThis = HandleFromThis(); strongThis.IsValid())
+    {
+        g_streamingManager->RequestLayerRefresh(strongThis.Get());
+    }
+}
+
+TerrainGenerationParams TerrainWorldGridLayer::MakeGenerationParams() const
+{
+    TerrainGenerationParams params;
+    params.seed = m_layerInfo.seed;
+
+    return params;
+}
+
+TerrainGenerationState TerrainWorldGridLayer::GetGenerationState() const
+{
+    Mutex::Guard guard(m_generationStateMutex);
+
+    return TerrainGenerationState {
+        .generator = m_generator,
+        .cellFingerprint = m_cellFingerprint,
+        .epoch = m_generationEpoch.Get(MemoryOrder::ACQUIRE)
+    };
+}
+
+void TerrainWorldGridLayer::ReplaceGenerator()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    SharedPtr<TerrainGenerator> generator = MakeShared<TerrainGenerator>();
+    generator->Configure(MakeGenerationParams());
+
+    const uint64 cellFingerprint = ComputeCellFingerprint(*generator);
+
+    SharedPtr<TerrainGenerator> previousGenerator;
+
+    {
+        Mutex::Guard guard(m_generationStateMutex);
+
+        previousGenerator = std::move(m_generator);
+
+        m_generator = std::move(generator);
+        m_cellFingerprint = cellFingerprint;
+
+        m_generationEpoch.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+    }
+
+    // in-flight work holds its own reference to the old generator; stop its queued region builds from starting
+    if (previousGenerator)
+    {
+        previousGenerator->Cancel();
+    }
+
+    {
+        // cleared after the epoch bump, so a warm task from the old generator can't insert after this
+        Mutex::Guard guard(m_heightCacheMutex);
+
+        m_cellHeightsCache.Clear();
+    }
+
+    m_heightsSampleCache.Invalidate();
+}
+
+void TerrainWorldGridLayer::DetachLoadedCells()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    for (const KeyValuePair<Vec2i, WeakHandle<TerrainStreamingCell>>& pair : m_loadedCells)
+    {
+        if (Handle<TerrainStreamingCell> loadedCell = pair.second.Lock(); loadedCell)
+        {
+            loadedCell->DetachFromScene();
+        }
+    }
+
+    m_loadedCells.Clear();
+    m_cellsModifiedSinceStrokeEnd.Clear();
+}
+
+void TerrainWorldGridLayer::DiscardAllCellData()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_objectsByCoord.Empty())
+    {
+        return;
+    }
+
+    m_heightsSampleCache.Invalidate();
+
+    for (const KeyValuePair<Vec2i, Array<AssetReference, StreamingAllocator>>& pair : m_objectsByCoord)
+    {
+        for (const AssetReference& assetReference : pair.second)
+        {
+            DeletePersistedCellData(assetReference.GetAssetPath());
+        }
+    }
+
+    m_objectsByCoord.Clear();
+}
+
+void TerrainWorldGridLayer::DeletePersistedCellData(const AssetPath& assetPath)
+{
+    HYP_SCOPE;
+
+    if (!assetPath.IsValid())
+    {
+        return;
+    }
+
+    Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
+    const FilePath bucketDirectory = registry->GetRootPath() / assetPath.GetBucket().GetName();
+    const String assetName = assetPath.assetName.ToString();
+
+    // delete by path, without resolving: cells that were never streamed in don't need loading just to be deleted
+    const FilePath persistedFiles[] = {
+        registry->GetManifestPath(assetPath),
+        bucketDirectory / (assetName + "." + TerrainCellData::HeightsBlobMagic + ".raw.blob"),
+        bucketDirectory / (assetName + "." + TerrainCellData::SplatMapBlobMagic + ".raw.blob")
+    };
+
+    for (const FilePath& persistedFile : persistedFiles)
+    {
+        if (persistedFile.Exists() && !persistedFile.Remove())
+        {
+            HYP_LOG(WorldGrid, Error, "Failed to delete stale terrain cell data file '{}'", persistedFile);
+        }
+    }
+
+    // unregisters a live instance too, so it can no longer page blob data from files a new cell will write
+    registry->RemoveAsset(assetPath.GetBucket(), assetPath.assetName);
+}
+
+void TerrainWorldGridLayer::GenerateAll()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -184,24 +332,142 @@ void TerrainWorldGridLayer::Regenerate()
         return;
     }
 
-    TerrainGenerationParams params;
-    params.seed = m_layerInfo.seed;
+    const WorldGridLayerInfo& layerInfo = m_layerInfo;
 
-    m_generator->Configure(params);
-
-    UpdateCellFingerprint();
-
+    if (layerInfo.infinite)
     {
-        Mutex::Guard guard(m_heightCacheMutex);
+        HYP_LOG(WorldGrid, Warning, "Cannot GenerateAll on infinite terrain layer '{}' - set a finite range first!", GetName());
 
-        m_cellHeightsCache.Clear();
+        return;
     }
 
-    m_heightsSampleCache.Invalidate();
-
-    if (Handle<TerrainWorldGridLayer> strongThis = HandleFromThis(); strongThis.IsValid())
+    if (m_generator->GetParams() != MakeGenerationParams())
     {
-        g_streamingManager->RequestLayerRefresh(strongThis.Get());
+        HYP_LOG(WorldGrid, Warning, "Terrain layer '{}' generation settings changed - Regenerate before using GenerateAll!", GetName());
+
+        return;
+    }
+
+    const int64 numCellsX = int64(layerInfo.range.y) - int64(layerInfo.range.x) + 1;
+    const int64 numCellsY = int64(layerInfo.range.y) - int64(layerInfo.range.x) + 1;
+
+    if (numCellsX <= 0 || numCellsY <= 0)
+    {
+        HYP_LOG(WorldGrid, Error, "Terrain layer '{}' has an invalid range [{}, {}] - nothing to generate!",
+                GetName(), layerInfo.range.x, layerInfo.range.y);
+
+        return;
+    }
+
+    const int64 numCells = numCellsX * numCellsY;
+
+    static constexpr int64 maxCells = 100 * 100; // sanity limit - cells hold padded height data assets
+
+    if (numCells > maxCells)
+    {
+        HYP_LOG(WorldGrid, Error, "Terrain layer '{}' range [{}, {}] covers {} cells (max: {}) - refusing to GenerateAll!",
+                GetName(), layerInfo.range.x, layerInfo.range.y, numCells, maxCells);
+
+        return;
+    }
+
+    HYP_LOG(WorldGrid, Info, "Generating all {} cells for terrain layer '{}'...", numCells, GetName());
+
+#ifdef HYP_EDITOR
+    int64 numCellsToGenerate = 0;
+
+    for (int y = layerInfo.range.x; y <= layerInfo.range.y; y++)
+    {
+        for (int x = layerInfo.range.x; x <= layerInfo.range.y; x++)
+        {
+            if (Handle<TerrainCellData> existingCellData = FindCellData({ x, y }); !existingCellData.IsValid() || !AreCellHeightsCurrent(*existingCellData))
+            {
+                numCellsToGenerate++;
+            }
+        }
+    }
+
+    // the sim thread is blocked for the duration, so live updates reach the UI via the description's change delegate;
+    // progress values only propagate once the task manager ticks again after this returns
+    Handle<TickableEditorTask> editorTask;
+
+    if (numCellsToGenerate != 0 && g_editorState.IsValid() && EngineGlobals::IsEditor())
+    {
+        editorTask = MakeHandle<TickableEditorTask>(
+            []()
+            { /* no tick function */ },
+            "Generating terrain",
+            HYP_FORMAT("{} cells", numCellsToGenerate));
+
+        InitObject(editorTask);
+
+        editorTask->SetIsForegroundTask(true);
+
+        g_editorState->AddTask(editorTask);
+    }
+
+    int64 numCellsGenerated = 0;
+#endif
+
+    Array<float> paddedHeights;
+
+    bool wasCancelled = false;
+
+    for (int y = layerInfo.range.x; y <= layerInfo.range.y; y++)
+    {
+        for (int x = layerInfo.range.x; x <= layerInfo.range.y; x++)
+        {
+            const Vec2i coord = { x, y };
+
+            if (Handle<TerrainCellData> existingCellData = FindCellData(coord); existingCellData.IsValid() && AreCellHeightsCurrent(*existingCellData))
+            {
+                // already generated & persisted
+                continue;
+            }
+
+#ifdef HYP_EDITOR
+            if (editorTask.IsValid() && editorTask->IsCancellationRequested())
+            {
+                wasCancelled = true;
+
+                break;
+            }
+#endif
+
+            GenerateCellPaddedHeights(coord, paddedHeights);
+            StoreGeneratedCellHeights(coord, paddedHeights);
+
+#ifdef HYP_EDITOR
+            if (editorTask.IsValid())
+            {
+                numCellsGenerated++;
+
+                editorTask->SetProgress(float(double(numCellsGenerated) / double(numCellsToGenerate)));
+                editorTask->SetDescription(HYP_FORMAT("{} / {} cells", numCellsGenerated, numCellsToGenerate));
+            }
+#endif
+        }
+
+        if (wasCancelled)
+        {
+            break;
+        }
+    }
+
+#ifdef HYP_EDITOR
+    if (editorTask.IsValid())
+    {
+        editorTask->Cancel();
+    }
+#endif
+
+    if (wasCancelled)
+    {
+        HYP_LOG(WorldGrid, Info, "GenerateAll cancelled for terrain layer '{}'", GetName());
+    }
+    else
+    {
+        HYP_LOG(WorldGrid, Info, "GenerateAll finished for terrain layer '{}'", GetName());
     }
 }
 
@@ -238,9 +504,15 @@ void TerrainWorldGridLayer::OnAdded(WorldGrid* worldGrid)
 
     InitObject(m_material);
 
-    Regenerate();
+    // not Regenerate() - that would discard the cell data just loaded with the layer
+    ReplaceGenerator();
 
     world->AddScene(m_scene);
+
+    if (Handle<TerrainWorldGridLayer> strongThis = HandleFromThis(); strongThis.IsValid())
+    {
+        g_streamingManager->RequestLayerRefresh(strongThis.Get());
+    }
 }
 
 void TerrainWorldGridLayer::OnRemoved(WorldGrid* worldGrid)
@@ -250,6 +522,20 @@ void TerrainWorldGridLayer::OnRemoved(WorldGrid* worldGrid)
 
     AssertDebug(worldGrid != nullptr);
     AssertDebug(m_scene.IsValid());
+
+    {
+        // cells still streaming in must not spawn into the removed scene or persist their heights
+        Mutex::Guard guard(m_generationStateMutex);
+
+        m_generationEpoch.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+    }
+
+    if (m_generator)
+    {
+        m_generator->Cancel();
+    }
+
+    DetachLoadedCells();
 
     worldGrid->GetWorld()->RemoveScene(m_scene);
 }
@@ -261,6 +547,9 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const Streaming
         return Handle<StreamingCell>::Null();
     }
 
+    // snapshot before reading the cell data map - see Regenerate()
+    TerrainGenerationState generationState = GetGenerationState();
+
     Handle<TerrainCellData> cellData;
 
     auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
@@ -270,7 +559,7 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const Streaming
         cellData = DynamicCast<TerrainCellData>(objectsByCoordIt->second[0].Resolve());
     }
 
-    return MakeHandle<TerrainStreamingCell>(cellInfo, m_scene, m_material, HandleFromThis(), cellData);
+    return MakeHandle<TerrainStreamingCell>(cellInfo, m_scene, m_material, HandleFromThis(), cellData, std::move(generationState));
 }
 
 void TerrainWorldGridLayer::RegisterLoadedCell(const Vec2i& coord, const WeakHandle<TerrainStreamingCell>& cell)
@@ -278,9 +567,16 @@ void TerrainWorldGridLayer::RegisterLoadedCell(const Vec2i& coord, const WeakHan
     m_loadedCells[coord] = cell;
 }
 
-void TerrainWorldGridLayer::UnregisterLoadedCell(const Vec2i& coord)
+void TerrainWorldGridLayer::UnregisterLoadedCell(const Vec2i& coord, const TerrainStreamingCell* cell)
 {
-    m_loadedCells.Erase(coord);
+    auto loadedCellIt = m_loadedCells.Find(coord);
+
+    if (loadedCellIt == m_loadedCells.End() || loadedCellIt->second.GetUnsafe() != cell)
+    {
+        return;
+    }
+
+    m_loadedCells.Erase(loadedCellIt);
 }
 
 static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord)
@@ -292,18 +588,11 @@ static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec
     };
 }
 
-SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const Vec2i& coord) const
+SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const
 {
     HYP_SCOPE;
 
     const WorldGridLayerInfo& layerInfo = m_layerInfo;
-
-    AssertDebug(m_generator != nullptr);
-
-    if (!m_generator)
-    {
-        return nullptr;
-    }
 
     {
         Mutex::Guard guard(m_heightCacheMutex);
@@ -320,7 +609,7 @@ SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(co
 
     auto heights = MakeShared<Array<float>>();
 
-    m_generator->GenerateCellHeights(
+    generator.GenerateCellHeights(
         Vec2f(cellBoundsMin.x, cellBoundsMin.z),
         Vec2f(layerInfo.scale.x, layerInfo.scale.z),
         layerInfo.cellSize,
@@ -328,6 +617,12 @@ SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(co
 
     {
         Mutex::Guard guard(m_heightCacheMutex);
+
+        if (!IsGenerationCurrent(generationEpoch))
+        {
+            // the generator was replaced while we were generating - don't poison the new cache
+            return heights;
+        }
 
         auto cacheIt = m_cellHeightsCache.Find(coord);
 
@@ -385,9 +680,9 @@ void TerrainWorldGridLayer::WarmHeightsCache(const Vec2i& coord) const
     }
 
     TaskSystem::GetInstance().Enqueue(
-        [strongThis, coord]()
+        [strongThis, generator = m_generator, generationEpoch = m_generationEpoch.Get(MemoryOrder::ACQUIRE), coord]()
         {
-            strongThis->GetOrGenerateCellHeights(coord);
+            strongThis->GetOrGenerateCellHeights(*generator, generationEpoch, coord);
 
             Mutex::Guard guard(strongThis->m_pendingWarmsMutex);
             strongThis->m_pendingHeightWarms.Erase(coord);
@@ -400,7 +695,10 @@ void TerrainWorldGridLayer::StreamPrefetch(Span<const Vec2i> cellCoords)
 {
     HYP_SCOPE;
 
-    if (!m_generator || !cellCoords)
+    // runs on the streaming manager thread
+    const TerrainGenerationState generationState = GetGenerationState();
+
+    if (!generationState.generator || !cellCoords)
     {
         return;
     }
@@ -441,43 +739,47 @@ void TerrainWorldGridLayer::StreamPrefetch(Span<const Vec2i> cellCoords)
         areaMaxXZ = Vec2f(MathUtil::Max(areaMaxXZ.x, cellMaxXZ.x), MathUtil::Max(areaMaxXZ.y, cellMaxXZ.y));
     }
 
-    Handle<TerrainWorldGridLayer> strongThis = HandleFromThis();
+    const SharedPtr<TerrainGenerator>& generator = generationState.generator;
 
-    if (!strongThis.IsValid())
-    {
-        return;
-    }
-
-    Array<Vec2i> regionCoords = m_generator->CollectRegionsForArea(
+    Array<Vec2i> regionCoords = generator->CollectRegionsForArea(
         areaMinXZ - Vec2f(cellWorldSizeX, cellWorldSizeZ),
         areaMaxXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ));
 
     for (const Vec2i& regionCoord : regionCoords)
     {
-        if (!m_generator->TryBeginRegionBuild(regionCoord))
+        if (!generator->TryBeginRegionBuild(regionCoord))
         {
             continue;
         }
 
         // builds run on the background pool as to not stall a streaming worker
         TaskSystem::GetInstance().Enqueue(
-            [strongThis, regionCoord]()
+            [generator, regionCoord]()
             {
-                strongThis->GetGenerator().BuildQueuedRegion(regionCoord);
+                generator->BuildQueuedRegion(regionCoord);
             },
             TaskThreadPoolName::THREAD_POOL_BACKGROUND,
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 
-void TerrainWorldGridLayer::UpdateCellFingerprint()
+uint64 TerrainWorldGridLayer::ComputeCellFingerprint(const TerrainGenerator& generator) const
 {
     HashCode hashCode;
-    hashCode.Add(m_generator ? m_generator->ComputeFingerprint(m_layerInfo.cellSize, Vec2f(m_layerInfo.scale.x, m_layerInfo.scale.z)) : uint64(0));
+    hashCode.Add(generator.ComputeFingerprint(m_layerInfo.cellSize, Vec2f(m_layerInfo.scale.x, m_layerInfo.scale.z)));
     hashCode.Add(m_layerInfo.offset.x);
     hashCode.Add(m_layerInfo.offset.z);
 
-    m_cellFingerprint = uint64(hashCode.Value());
+    return uint64(hashCode.Value());
+}
+
+void TerrainWorldGridLayer::UpdateCellFingerprint()
+{
+    const uint64 cellFingerprint = m_generator ? ComputeCellFingerprint(*m_generator) : uint64(0);
+
+    Mutex::Guard guard(m_generationStateMutex);
+
+    m_cellFingerprint = cellFingerprint;
 }
 
 Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) const
@@ -494,20 +796,30 @@ Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) 
 
 bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData) const
 {
+    return AreCellHeightsCurrent(cellData, m_cellFingerprint);
+}
+
+bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData, uint64 cellFingerprint) const
+{
     return cellData.HasHeights()
         && cellData.extent.x == m_layerInfo.cellSize
-        && (cellData.isSculpted || cellData.generatorFingerprint == m_cellFingerprint);
+        && (cellData.isSculpted || cellData.generatorFingerprint == cellFingerprint);
 }
 
 void TerrainWorldGridLayer::GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights) const
 {
-    HYP_SCOPE;
-
     AssertDebug(m_generator != nullptr);
+
+    GenerateCellPaddedHeights(*m_generator, coord, outPaddedHeights);
+}
+
+void TerrainWorldGridLayer::GenerateCellPaddedHeights(const TerrainGenerator& generator, const Vec2i& coord, Array<float>& outPaddedHeights) const
+{
+    HYP_SCOPE;
 
     const Vec3f cellBoundsMin = ComputeCellBoundsMin(m_layerInfo, coord);
 
-    m_generator->GeneratePaddedCellHeights(
+    generator.GeneratePaddedCellHeights(
         Vec2f(cellBoundsMin.x, cellBoundsMin.z),
         Vec2f(m_layerInfo.scale.x, m_layerInfo.scale.z),
         m_layerInfo.cellSize,

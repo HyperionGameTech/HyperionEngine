@@ -333,8 +333,7 @@ PSOutput PSMain(PSInput input)
             N = normalize(blended_normal * (TERRAIN_NORMAL_STRENGTH * detail_fade) + N);
         }
     }
-
-    // Large-scale albedo and roughness variation keeps the ground from looking uniformly tiled.
+    
     albedo *= lerp(1.0 - TERRAIN_MACRO_STRENGTH, 1.0 + TERRAIN_MACRO_STRENGTH, macro_noise);
     roughness = saturate(roughness * (1.0 + (macro_noise - 0.5) * (TERRAIN_ROUGHNESS_NOISE_STRENGTH * 2.0)));
 

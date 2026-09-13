@@ -103,7 +103,15 @@ void WorldGrid::Shutdown()
         }
 
         layer->OnRemoved(this);
+
+        if (g_streamingManager)
+        {
+            g_streamingManager->RemoveWorldGridLayer(layer);
+        }
     }
+
+    // Init() re-adds the layers; also keeps the destructor from shutting down twice
+    SetReady(false);
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
@@ -249,10 +257,10 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
         layerDesc.layerName = layer->GetName();
         layerDesc.info = layer->GetLayerInfo();
 
-        for (const KeyValuePair<Vec2i, Array<AssetReference, DynamicAllocator>>& pair : layer->m_objectsByCoord)
+        for (const KeyValuePair<Vec2i, Array<AssetReference, StreamingAllocator>>& pair : layer->m_objectsByCoord)
         {
             const Vec2i& coord = pair.first;
-            const Array<AssetReference, DynamicAllocator>& assetReferences = pair.second;
+            const Array<AssetReference, StreamingAllocator>& assetReferences = pair.second;
 
             layerDesc.objects.Reserve(layerDesc.objects.Size() + assetReferences.Size());
 

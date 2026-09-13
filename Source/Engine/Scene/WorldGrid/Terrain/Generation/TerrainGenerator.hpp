@@ -131,6 +131,16 @@ public:
         return m_params;
     }
 
+    HYP_FORCE_INLINE void Cancel()
+    {
+        m_cancelled.Set(true, MemoryOrder::RELEASE);
+    }
+
+    HYP_FORCE_INLINE bool IsCancelled() const
+    {
+        return m_cancelled.Get(MemoryOrder::ACQUIRE);
+    }
+
     HYP_FORCE_INLINE float GetMaxHeightEstimate() const
     {
         return m_params.baseAmplitude + m_params.mountainAmplitude;
@@ -196,6 +206,8 @@ private:
     mutable Mutex m_erosionRegionsMutex;
     mutable FlatMap<Vec2i, SharedPtr<ErosionRegionEntry>> m_erosionRegions;
     mutable uint64 m_erosionRegionUseCounter = 0;
+
+    AtomicVar<bool> m_cancelled { false };
 };
 
 } // namespace Hyperion

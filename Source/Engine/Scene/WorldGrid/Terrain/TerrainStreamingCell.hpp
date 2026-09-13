@@ -13,6 +13,8 @@
 
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Memory/SharedPtr.hpp>
+
 namespace Hyperion {
 
 class Scene;
@@ -23,7 +25,9 @@ class Entity;
 class Texture;
 class TerrainWorldGridLayer;
 class TerrainCellData;
+class TerrainGenerator;
 class HeightFieldPhysicsShape;
+struct TerrainGenerationState;
 
 HYP_CLASS()
 class TerrainStreamingCell : public StreamingCell
@@ -38,9 +42,13 @@ public:
         const Handle<Scene>& scene,
         const Handle<Material>& material,
         const Handle<TerrainWorldGridLayer>& layer,
-        const Handle<TerrainCellData>& cellData);
+        const Handle<TerrainCellData>& cellData,
+        TerrainGenerationState&& generationState);
 
     virtual ~TerrainStreamingCell() override;
+
+    ///removes the cell's node and entity from the scene right away; the cell itself is unloaded later by the streaming manager
+    void DetachFromScene();
 
     void RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex);
 
@@ -64,6 +72,11 @@ protected:
     Handle<Mesh> BuildMeshFromCellMeshData() const;
 
 private:
+    ///the layer has been regenerated since this cell was created if this returns true
+    bool IsStale() const;
+
+    void ReleaseBuildData();
+
     bool BuildCellMeshData(Array<float>& outGeneratedHeights);
 
     void RebuildMeshFull(const Handle<TerrainCellData>& cellData);
@@ -73,6 +86,14 @@ private:
     Handle<Material> m_material;
     Handle<TerrainWorldGridLayer> m_layer;
     Handle<TerrainCellData> m_cellData;
+
+    SharedPtr<TerrainGenerator> m_generator;
+    uint64 m_cellFingerprint = 0;
+    uint32 m_generationEpoch = 0;
+
+    ///sim thread only
+    bool m_isRemoved = false;
+
     Handle<Node> m_node;
     Handle<Entity> m_entity;
 

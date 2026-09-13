@@ -4,31 +4,28 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "WorldGridLayerInfo")]
-    [StructLayout(LayoutKind.Explicit, Size = 48, Pack = 16)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct WorldGridLayerInfo
     {
-        [FieldOffset(0)]
         public Vec3f offset;
-
-        [FieldOffset(16)]
         public Vec3f scale;
-
-        [FieldOffset(32)]
+        public Vec2i range; // only relevant if infinite==false
         public uint cellSize;
-
-        [FieldOffset(36)]
         public float maxDistance;
-
-        [FieldOffset(40)]
         public uint seed;
+
+        [MarshalAs(UnmanagedType.I1)]
+        public bool infinite;
 
         public WorldGridLayerInfo()
         {
             offset = new Vec3f(0.0f, 0.0f, 0.0f);
             scale = new Vec3f(1.0f, 1.0f, 1.0f);
+            range = new Vec2i(-10, 10);
             cellSize = 32;
             maxDistance = 1.0f;
             seed = 0;
+            infinite = true;
         }
     }
 

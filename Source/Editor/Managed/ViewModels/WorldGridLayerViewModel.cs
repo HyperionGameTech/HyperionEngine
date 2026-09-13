@@ -24,6 +24,15 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
 
+        public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
+
+        private bool _hasActions;
+        public bool HasActions
+        {
+            get => _hasActions;
+            private set => SetProperty(ref _hasActions, value);
+        }
+
         private string _displayName = string.Empty;
         public string DisplayName
         {
@@ -60,6 +69,41 @@ namespace Hyperion.Editor.ViewModels
             _displayName = name ?? string.Empty;
 
             BuildPropertyViewModels();
+            BuildActionViewModels();
+        }
+
+        private void BuildActionViewModels()
+        {
+            Class? instanceClass = Class.TryGetClass(TypeName);
+
+            foreach (InspectorActionViewModel action in InspectorActionsHelper.GetActions(Layer, instanceClass ?? Layer.Class))
+            {
+                Actions.Add(action);
+            }
+
+            HasActions = Actions.Count > 0;
+        }
+
+        private void RefreshActions()
+        {
+            if (Actions.Count == 0)
+            {
+                return;
+            }
+
+            Class? instanceClass = Class.TryGetClass(TypeName);
+
+            List<InspectorActionViewModel> refreshed = InspectorActionsHelper.GetActions(Layer, instanceClass ?? Layer.Class);
+
+            foreach (InspectorActionViewModel existing in Actions)
+            {
+                InspectorActionViewModel? updated = refreshed.FirstOrDefault(a => a.Label == existing.Label);
+
+                if (updated != null)
+                {
+                    existing.SetEnabled(updated.IsEnabled);
+                }
+            }
         }
 
         private void BuildPropertyViewModels()
@@ -82,7 +126,7 @@ namespace Hyperion.Editor.ViewModels
                             : null,
                         valueChangedCallback: property.Name == namePropertyName
                             ? UpdateDisplayName
-                            : null);
+                            : RefreshActions);
                 }
                 catch (Exception ex)
                 {

@@ -272,7 +272,7 @@ void TerrainCellData::PageBlobData()
     {
         if (!PageBlobDataFromStorage(m_heights))
         {
-            PageBlobDataFromFile(blobDirectory, "TCD", m_heights);
+            PageBlobDataFromFile(blobDirectory, HeightsBlobMagic, m_heights);
         }
     }
 
@@ -282,7 +282,7 @@ void TerrainCellData::PageBlobData()
     {
         if (!PageBlobDataFromStorage(m_splatMap))
         {
-            PageBlobDataFromFile(blobDirectory, "SPLT", m_splatMap);
+            PageBlobDataFromFile(blobDirectory, SplatMapBlobMagic, m_splatMap);
         }
     }
 }

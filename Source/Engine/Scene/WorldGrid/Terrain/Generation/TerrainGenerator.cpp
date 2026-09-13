@@ -449,7 +449,10 @@ bool TerrainGenerator::TryBeginRegionBuild(const Vec2i& regionCoord) const
 
 void TerrainGenerator::BuildQueuedRegion(const Vec2i& regionCoord) const
 {
-    GetOrBuildErosionRegion(regionCoord);
+    if (!IsCancelled())
+    {
+        GetOrBuildErosionRegion(regionCoord);
+    }
 
     {
         Mutex::Guard guard(m_erosionRegionsMutex);

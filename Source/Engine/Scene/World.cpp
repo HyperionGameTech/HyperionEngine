@@ -1796,9 +1796,10 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
     set.Remove(&layer->OnStreamingObjectsUnloaded);
 
     set.Add(layer->OnStreamingObjectsLoaded.Bind(
-        [world](StreamingCell* cell, Array<const AssetObject*> objs)
+        [world](StreamingCell* cell, Span<const AssetObject*> objs)
         {
             AssertOnThread(g_simThread);
+
             for (const AssetObject* obj : objs)
             {
                 if (obj->IsA(Scene::StaticClass()))
@@ -1813,9 +1814,10 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
         }));
 
     set.Add(layer->OnStreamingObjectsUnloaded.Bind(
-        [world](StreamingCell* cell, Array<const AssetObject*> objs)
+        [world](StreamingCell* cell, Span<const AssetObject*> objs)
         {
             AssertOnThread(g_simThread);
+
             for (const AssetObject* obj : objs)
             {
                 if (obj->IsA(Scene::StaticClass()))

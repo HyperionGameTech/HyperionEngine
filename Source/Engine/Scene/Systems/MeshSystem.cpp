@@ -125,7 +125,14 @@ void MeshSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    if (!ShouldProcessScene(entity->GetScene()))
+    Scene* scene = entity->GetScene();
+
+    if (!scene)
+    {
+        return;
+    }
+
+    if (!ShouldProcessScene(scene))
     {
         return;
     }

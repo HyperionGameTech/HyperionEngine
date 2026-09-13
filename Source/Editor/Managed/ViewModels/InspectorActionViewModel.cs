@@ -28,14 +28,30 @@ namespace Hyperion.Editor.ViewModels
             }
 
             Label = label;
-            IsEnabled = isEnabled;
+            _isEnabled = isEnabled;
 
             _executeCommand = new RelayCommand(Execute, CanExecute);
         }
 
         public string Label { get; }
 
-        public bool IsEnabled { get; }
+        private bool _isEnabled;
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            private set => SetProperty(ref _isEnabled, value);
+        }
+
+        /// <summary>
+        /// Re-evaluates the action's enabled state (e.g. after a property the EditCondition
+        /// depends on was changed). Must be called on the UI thread.
+        /// </summary>
+        internal void SetEnabled(bool isEnabled)
+        {
+            IsEnabled = isEnabled;
+
+            _executeCommand.RaiseCanExecuteChanged();
+        }
 
         public ICommand ExecuteActionCommand => _executeCommand;
 

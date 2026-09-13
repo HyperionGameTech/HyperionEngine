@@ -20,6 +20,9 @@ class ENGINE_API TerrainCellData : public AssetObject
     HYP_OBJECT_BODY(TerrainCellData);
 
 public:
+    static constexpr const char* HeightsBlobMagic = "TCD";
+    static constexpr const char* SplatMapBlobMagic = "SPLT";
+
     TerrainCellData();
     explicit TerrainCellData(Name name, const Vec2i& coord = Vec2i::Zero(), const Vec3u& extent = Vec3u::Zero());
 
@@ -37,7 +40,7 @@ public:
     HYP_FIELD(Property = "Extent", Serialize)
     Vec3u extent;
 
-    ///fingerprint of the generator state the heights were produced with; see TerrainGenerator::ComputeFingerprint
+    ///fingerprint of the generator state the heights were produced with
     HYP_FIELD(Property = "GeneratorFingerprint", Serialize)
     uint64 generatorFingerprint = 0;
 
@@ -79,8 +82,8 @@ protected:
 
     virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
     {
-        outReferences.EmplaceBack("TCD", 1, &m_heights);
-        outReferences.EmplaceBack("SPLT", 1, &m_splatMap);
+        outReferences.EmplaceBack(HeightsBlobMagic, 1, &m_heights);
+        outReferences.EmplaceBack(SplatMapBlobMagic, 1, &m_splatMap);
     }
 
 private:
