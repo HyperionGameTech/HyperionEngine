@@ -90,6 +90,9 @@ private:
     ///heights generated on the streaming thread
     Array<float> m_generatedHeights;
 
+    ///splat map bytes prepared on the streaming thread, ready for texture upload
+    Array<ubyte> m_splatUploadBytes;
+
     TerrainMeshBuilder::CellMeshData m_cellMeshData;
 };
 } // namespace Hyperion

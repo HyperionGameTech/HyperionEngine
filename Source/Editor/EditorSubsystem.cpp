@@ -2027,6 +2027,7 @@ Handle<EditorTerrainState> EditorSubsystem::GetTerrainState()
     {
         m_terrainSculpting = MakeHandle<EditorTerrainState>();
         InitObject(m_terrainSculpting);
+
         m_terrainSculpting->Initialize(this);
     }
 

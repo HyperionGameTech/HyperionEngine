@@ -19,6 +19,7 @@ namespace Hyperion {
 class EditorSubsystem;
 class DebugDrawCommandList;
 class Scene;
+class World;
 class TerrainWorldGridLayer;
 
 HYP_ENUM()
@@ -84,6 +85,9 @@ public:
 
     HYP_METHOD()
     bool CanSculptTerrainForScene(const Handle<Scene>& scene) const;
+
+    HYP_METHOD()
+    bool CanSculptTerrainForWorld(const Handle<World>& world) const;
 
     void BeginStroke(const Vec2f& relativePos, bool invert);
     void UpdateStroke(const Vec2f& relativePos, bool invert);

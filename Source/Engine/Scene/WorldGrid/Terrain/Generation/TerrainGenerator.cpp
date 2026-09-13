@@ -20,7 +20,8 @@ namespace Hyperion {
 
 #pragma region Helpers
 
-static constexpr uint32 MaxCachedErosionRegions = 16;
+// ~1.5 MB per region - generous budget keeps revisited areas from paying a rebuild
+static constexpr uint32 MaxCachedErosionRegions = 64;
 
 struct ErosionLayout
 {
@@ -119,6 +120,10 @@ struct TerrainGenerator::ErosionRegionEntry
 {
     Mutex buildMutex;
     SharedPtr<const ErosionRegion> region;
+    // set while an async build is queued/pending, so duplicate requests don't spawn duplicate builds
+    AtomicVar<uint8> buildQueued { 0 };
+    // set once region has been assigned - safe to check without holding buildMutex
+    AtomicVar<uint8> built { 0 };
     uint64 lastUse = 0;
 };
 
@@ -372,6 +377,92 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     }
 }
 
+Array<Vec2i> TerrainGenerator::CollectRegionsForArea(const Vec2f& areaMinXZ, const Vec2f& areaMaxXZ) const
+{
+    Array<Vec2i> regionCoords;
+
+    if (m_params.erosionIterations == 0)
+    {
+        return regionCoords;
+    }
+
+    const ErosionLayout layout = GetErosionLayout(m_params);
+
+    // expand by the apron so regions whose blended borders touch the area are included
+    const float apronWorld = float(layout.apron) * layout.spacing;
+
+    const ErosionAxisBlend blendMinX = ComputeErosionAxisBlend((areaMinXZ.x - apronWorld) / layout.spacing, layout);
+    const ErosionAxisBlend blendMaxX = ComputeErosionAxisBlend((areaMaxXZ.x + apronWorld) / layout.spacing, layout);
+    const ErosionAxisBlend blendMinZ = ComputeErosionAxisBlend((areaMinXZ.y - apronWorld) / layout.spacing, layout);
+    const ErosionAxisBlend blendMaxZ = ComputeErosionAxisBlend((areaMaxXZ.y + apronWorld) / layout.spacing, layout);
+
+    for (int32 regionZ = blendMinZ.regions[0]; regionZ <= blendMaxZ.regions[1]; regionZ++)
+    {
+        for (int32 regionX = blendMinX.regions[0]; regionX <= blendMaxX.regions[1]; regionX++)
+        {
+            regionCoords.PushBack(Vec2i(regionX, regionZ));
+        }
+    }
+
+    return regionCoords;
+}
+
+bool TerrainGenerator::TryBeginRegionBuild(const Vec2i& regionCoord) const
+{
+    SharedPtr<ErosionRegionEntry> entry;
+
+    {
+        Mutex::Guard guard(m_erosionRegionsMutex);
+
+        auto it = m_erosionRegions.Find(regionCoord);
+
+        if (it != m_erosionRegions.End())
+        {
+            entry = it->second;
+        }
+        else
+        {
+            entry = MakeShared<ErosionRegionEntry>();
+            m_erosionRegions.Set(regionCoord, entry);
+        }
+
+        if (entry->built.Get(MemoryOrder::ACQUIRE))
+        {
+            entry->lastUse = ++m_erosionRegionUseCounter;
+
+            return false;
+        }
+
+        uint8 expected = 0;
+
+        if (!entry->buildQueued.CompareExchangeStrong(expected, uint8(1), MemoryOrder::ACQUIRE_RELEASE))
+        {
+            // a build is already queued
+            return false;
+        }
+
+        entry->lastUse = ++m_erosionRegionUseCounter;
+    }
+
+    return true;
+}
+
+void TerrainGenerator::BuildQueuedRegion(const Vec2i& regionCoord) const
+{
+    GetOrBuildErosionRegion(regionCoord);
+
+    {
+        Mutex::Guard guard(m_erosionRegionsMutex);
+
+        auto it = m_erosionRegions.Find(regionCoord);
+
+        if (it != m_erosionRegions.End())
+        {
+            it->second->buildQueued.Set(0, MemoryOrder::RELEASE);
+        }
+    }
+}
+
 SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::GetOrBuildErosionRegion(const Vec2i& regionCoord) const
 {
     SharedPtr<ErosionRegionEntry> entry;
@@ -416,6 +507,7 @@ SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::GetOrBuildEro
     if (!entry->region)
     {
         entry->region = BuildErosionRegion(regionCoord);
+        entry->built.Set(1, MemoryOrder::RELEASE);
     }
 
     return entry->region;

@@ -909,7 +909,7 @@
                                             <Separator />
                                             <MenuItem
                                                 Command="{Binding AddTerrainLayer}"
-                                                Header="Add Terrain Layer..."
+                                                Header="Add Terrain Layer"
                                                 IsEnabled="{Binding !CanToggleTerrainSculptMode}"
                                                 ToolTip.Tip="Add a terrain layer to the selected entity" />
                                         </ContextMenu>

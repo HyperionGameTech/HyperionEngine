@@ -67,6 +67,9 @@ public:
     virtual void SetLayerInfo(const WorldGridLayerInfo& layerInfo) override;
 
     SharedPtr<const Array<float>> GetOrGenerateCellHeights(const Vec2i& coord) const;
+    SharedPtr<const Array<float>> TryGetCachedCellHeights(const Vec2i& coord) const;
+
+    void WarmHeightsCache(const Vec2i& coord) const;
 
     HYP_FORCE_INLINE uint64 GetCellFingerprint() const
     {
@@ -104,6 +107,8 @@ protected:
 
     virtual Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo) override;
 
+    virtual void StreamPrefetch(Span<const Vec2i> cellCoords) override;
+
     void Regenerate();
     void UpdateCellFingerprint();
 
@@ -113,6 +118,9 @@ protected:
 
     mutable Mutex m_heightCacheMutex;
     mutable FlatMap<Vec2i, SharedPtr<Array<float>>> m_cellHeightsCache;
+
+    mutable Mutex m_pendingWarmsMutex;
+    mutable FlatMap<Vec2i, bool> m_pendingHeightWarms;
 
     FlatMap<Vec2i, WeakHandle<TerrainStreamingCell>> m_loadedCells;
     FlatMap<Vec2i, bool> m_cellsModifiedSinceStrokeEnd;

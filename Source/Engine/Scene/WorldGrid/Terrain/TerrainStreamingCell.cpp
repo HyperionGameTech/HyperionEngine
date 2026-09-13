@@ -59,7 +59,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 struct TerrainGenerationEditorTaskState
 {
-    AtomicVar<uint32> numGeneratingCells { 0 };
+    AtomicVar<int32> numGeneratingCells { 0 };
     Guarded<Handle<TickableEditorTask>> editorTask;
 
     void OnGenerationStarted()
@@ -78,25 +78,57 @@ struct TerrainGenerationEditorTaskState
 
     void Update()
     {
-        const uint32 count = numGeneratingCells.Get(MemoryOrder::ACQUIRE);
-
-        editorTask.Access([this, count](Handle<TickableEditorTask>& task)
+        auto readCount = [numGeneratingCells = &numGeneratingCells]() -> int
         {
-            if (count == 0)
+            return numGeneratingCells->Get(MemoryOrder::RELAXED);
+        };
+
+        auto updateTaskWithCount = [](Handle<TickableEditorTask>& task, int count) -> bool
+        {
+            if (task.IsValid() && task->IsCancellationRequested())
+            {
+                task.Reset();
+
+                return true;
+            }
+
+            if (count <= 0)
             {
                 if (task.IsValid())
                 {
                     task->Cancel();
-                    task.Reset();
+
+                    if (task->IsCancellationRequested())
+                    {
+                        task.Reset();
+                    }
                 }
 
-                return;
+                return true;
             }
 
             if (task.IsValid())
             {
-                task->SetDescription(HYP_FORMAT("{} tiles remaining", count));
+                task->SetDescription(HYP_FORMAT("{} cells", count));
 
+                return true;
+            }
+
+            return false;
+        };
+
+        auto updateTask = [readCount, updateTaskWithCount](Handle<TickableEditorTask>& task, int& outCount) -> bool
+        {
+            outCount = readCount();
+
+            return updateTaskWithCount(task, outCount);
+        };
+
+        editorTask.Access([this, readCount, updateTaskWithCount](Handle<TickableEditorTask>& task)
+        {
+            const int count = readCount();
+            if (updateTaskWithCount(task, count))
+            {
                 return;
             }
 
@@ -106,30 +138,18 @@ struct TerrainGenerationEditorTaskState
             }
 
             Handle<TickableEditorTask> newTask = MakeHandle<TickableEditorTask>(
-                [this]()
+                [this, readCount, updateTaskWithCount]()
                 {
-                    const uint32 tickCount = numGeneratingCells.Get(MemoryOrder::ACQUIRE);
-
-                    editorTask.Access([tickCount](Handle<TickableEditorTask>& task)
+                    editorTask.Access([&](Handle<TickableEditorTask>& task)
                     {
-                        if (!task.IsValid())
-                        {
-                            return;
-                        }
+                        int count = readCount();
+                        const bool res = updateTaskWithCount(task, count);
 
-                        if (tickCount == 0)
-                        {
-                            task->Cancel();
-                            task.Reset();
-
-                            return;
-                        }
-
-                        task->SetDescription(HYP_FORMAT("{} tiles remaining", tickCount));
+                        AssertDebug(res);
                     });
                 },
-                "Generating terrain tiles...",
-                HYP_FORMAT("{} tiles remaining", count));
+                "Generating terrain",
+                HYP_FORMAT("{} cells", count));
 
             InitObject(newTask);
 
@@ -181,12 +201,11 @@ static Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, c
     return texture;
 }
 
-static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& splatBytes)
+static void FlipSplatRowsForUpload(uint32 cellSize, const Array<ubyte>& splatBytes, Array<ubyte>& outUploadBytes)
 {
     const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
 
-    Array<ubyte> uploadBytes;
-    uploadBytes.Resize(requiredSize);
+    outUploadBytes.Resize(requiredSize);
 
     const size_t rowSize = size_t(cellSize) * 4;
 
@@ -195,22 +214,69 @@ static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 c
         const size_t srcRow = size_t(cellSize - 1 - z) * rowSize;
         const size_t dstRow = size_t(z) * rowSize;
 
-        Memory::Copy(uploadBytes.Data() + dstRow, splatBytes.Data() + srcRow, rowSize);
+        Memory::Copy(outUploadBytes.Data() + dstRow, splatBytes.Data() + srcRow, rowSize);
     }
+}
+
+static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& splatBytes)
+{
+    Array<ubyte> uploadBytes;
+    FlipSplatRowsForUpload(cellSize, splatBytes, uploadBytes);
 
     return CreateSplatTexture(coord, cellSize, uploadBytes);
 }
 
-static Handle<Texture> BuildAutoSplatTexture(
+///copies a painted splat map out of cell data and prepares it for upload
+///call from streaming thread!
+static bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize, Array<ubyte>& outUploadBytes)
+{
+    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
+
+    Array<ubyte> splatBytes;
+
+    {
+        auto readScope = cellData->GetReadScope();
+
+        ConstByteView splatData = cellData->GetSplatMap();
+
+        if (splatData.Size() < requiredSize)
+        {
+            if (splatData.Size() != 0)
+            {
+                HYP_LOG(WorldGrid, Warning,
+                    "Saved splat map for cell {} is {} bytes but the layer expects {} !",
+                    coord,
+                    splatData.Size(),
+                    requiredSize);
+            }
+
+            return false;
+        }
+
+        splatBytes.Resize(requiredSize);
+        Memory::Copy(splatBytes.Data(), splatData.Data(), requiredSize);
+    }
+
+    FlipSplatRowsForUpload(cellSize, splatBytes, outUploadBytes);
+
+    return true;
+}
+
+///synthesizes auto splat weights and prepares them for upload - runs on the streaming thread
+static bool PrepareAutoSplatBytes(
     const Handle<TerrainWorldGridLayer>& layer,
     const StreamingCellInfo& cellInfo,
-    const TerrainMeshBuilder::CellMeshData& cellMeshData)
+    const TerrainMeshBuilder::CellMeshData& cellMeshData,
+    Array<ubyte>& outUploadBytes)
 {
     const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
     const uint32 cellSize = layerInfo.cellSize;
     const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
 
-    Assert(cellMeshData.vertices.Size() >= gridVertexCount, "Terrain mesh data is missing skirt vertices");
+    if (cellMeshData.vertices.Size() < gridVertexCount)
+    {
+        return false;
+    }
 
     Array<float> heights;
     heights.Resize(gridVertexCount);
@@ -235,7 +301,9 @@ static Handle<Texture> BuildAutoSplatTexture(
         cellSize,
         splatWeights);
 
-    return BuildSplatTextureFromWeights(cellInfo.coord, cellSize, splatWeights);
+    FlipSplatRowsForUpload(cellSize, splatWeights, outUploadBytes);
+
+    return true;
 }
 
 static Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize)
@@ -370,6 +438,22 @@ void TerrainStreamingCell::OnStreamStart()
     }
 
     ExtractColliderHeights(m_cellMeshData, m_layer->GetLayerInfo().cellSize, m_colliderHeights);
+
+    // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
+    if (m_cellData.IsValid() && m_cellData->HasSplatMap())
+    {
+        if (PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, m_layer->GetLayerInfo().cellSize, m_splatUploadBytes))
+        {
+            return;
+        }
+
+        HYP_LOG(WorldGrid, Warning, "Cell {} splat data could not be loaded!", m_cellInfo.coord);
+    }
+
+    if (m_layer->GetGenerator().GetParams().autoPaintSplats)
+    {
+        PrepareAutoSplatBytes(m_layer, m_cellInfo, m_cellMeshData, m_splatUploadBytes);
+    }
 }
 
 Handle<Mesh> TerrainStreamingCell::BuildMeshFromCellMeshData() const
@@ -429,26 +513,15 @@ void TerrainStreamingCell::OnLoaded()
 
     const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
 
+    ///create the texture
     Handle<Texture> splatTexture;
 
-    if (m_cellData.IsValid() && m_cellData->HasSplatMap())
+    if (m_splatUploadBytes.Any())
     {
-        splatTexture = BuildPaintedSplatTexture(m_cellData, m_cellInfo.coord, cellSize);
-
-        if (!splatTexture.IsValid())
-        {
-            HYP_LOG(WorldGrid, Warning,
-                "Cell {} has painted splat data but it could not be loaded - falling back to auto painting, visuals will differ from the painted result",
-                m_cellInfo.coord);
-        }
+        splatTexture = CreateSplatTexture(m_cellInfo.coord, cellSize, m_splatUploadBytes);
     }
 
-    if (!splatTexture.IsValid()
-        && m_layer->GetGenerator().GetParams().autoPaintSplats
-        && m_cellMeshData.vertices.Size() >= TerrainMeshBuilder::CalculateGridVertexCount(cellSize))
-    {
-        splatTexture = BuildAutoSplatTexture(m_layer, m_cellInfo, m_cellMeshData);
-    }
+    m_splatUploadBytes.Clear();
 
     m_mesh = BuildMeshFromCellMeshData();
 

@@ -13,6 +13,7 @@
 #include <Core/Utilities/Span.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 #include <Core/Threading/Mutex.hpp>
 
 #include <Core/Math/Vector2.hpp>
@@ -161,6 +162,11 @@ public:
         uint32 cellSize,
         Array<float>& outHeights,
         Array<Vec3f>& outNormals);
+
+    Array<Vec2i> CollectRegionsForArea(const Vec2f& areaMinXZ, const Vec2f& areaMaxXZ) const;
+
+    bool TryBeginRegionBuild(const Vec2i& regionCoord) const;
+    void BuildQueuedRegion(const Vec2i& regionCoord) const;
 
     ///(cellSize + 2 * CellPadding)^2 eroded heights
     void GeneratePaddedCellHeights(

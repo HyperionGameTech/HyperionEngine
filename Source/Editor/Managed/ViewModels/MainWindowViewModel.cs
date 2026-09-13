@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Runtime.CompilerServices;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -242,27 +243,53 @@ namespace Hyperion.Editor.ViewModels
 
         private void RefreshTerrainToolState()
         {
-            _ = EngineManager.PostToSimThread(() =>
+            var action = () =>
             {
-                bool sculptActive = _editorSubsystem.EditorTerrainState?.IsSculptActive ?? false;
-                bool paintActive = _editorSubsystem.EditorTerrainState?.IsPaintActive ?? false;
-
-                Dispatcher.UIThread.Post(() =>
+                var updateOnUIThread = (bool shouldBeActive, bool sculptActive, bool paintActive) =>
                 {
-                    bool changed = _isSculptModeActive != sculptActive || _isPaintModeActive != paintActive;
-
-                    _isSculptModeActive = sculptActive;
-                    _isPaintModeActive = paintActive;
-
-                    if (changed)
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        OnPropertyChanged(nameof(IsSculptModeActive));
-                        OnPropertyChanged(nameof(IsPaintModeActive));
-                    }
+                        bool changed = shouldBeActive != _canToggleTerrainSculptMode
+                            || _isSculptModeActive != sculptActive
+                            || _isPaintModeActive != paintActive;
 
-                    UpdateTerrainToolPanels();
-                });
-            });
+                        if (changed)
+                        {
+                            _canToggleTerrainSculptMode = shouldBeActive;
+                            _isSculptModeActive = sculptActive;
+                            _isPaintModeActive = paintActive;
+
+                            OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
+                            OnPropertyChanged(nameof(IsSculptModeActive));
+                            OnPropertyChanged(nameof(IsPaintModeActive));
+
+                            UpdateTerrainToolPanels();
+                        }
+                    });
+                };
+
+                EditorTerrainState? ets = _editorSubsystem.EditorTerrainState;
+                if (ets == null)
+                {
+                    updateOnUIThread(false, false, false);
+
+                    return;
+                }
+
+                bool shouldBeActive = ets.CanSculptTerrainForWorld(EngineManager.CurrentProject?.World);
+                bool sculptActive = shouldBeActive && ets.IsSculptActive;
+                bool paintActive = shouldBeActive && ets.IsPaintActive;
+
+                updateOnUIThread(shouldBeActive, sculptActive, paintActive);
+            };
+
+            if (EngineManager.IsOnSimThread)
+            {
+                action();
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(action);
         }
 
         private void UpdateTerrainToolPanel<TPanel>(ref TPanel? field, bool shouldBeOpen, Func<TPanel> createPanel)
@@ -461,6 +488,10 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _activeSwatchChangedHandler;
         private DelegateHandler? _activeLayersChangedHandler;
 
+        private Lock _sceneChildrenChangedHandlersLock = new();
+        private ConditionalWeakTable<Scene, Tuple<DelegateHandler, DelegateHandler>> _sceneChildrenAddRemoveHandlers = new();
+        private ConditionalWeakTable<Scene, DelegateHandler> _sceneRootNodeChangedHandlers = new();
+
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private int _isUpdatingFocusedNodeFromEngine = 0; // atomic
         private bool _isReady = false;
@@ -519,7 +550,6 @@ namespace Hyperion.Editor.ViewModels
             PanelService.Instance.ActivePanelChanged += OnActivePanelChanged;
 
             SceneHierarchy = new SceneHierarchyViewModel();
-            SceneHierarchy.SceneChildrenChanged += OnSceneChildrenChanged;
 
             Inspector = new InspectorViewModel();
             ForegroundTask = new ForegroundTaskViewModel();
@@ -927,6 +957,22 @@ namespace Hyperion.Editor.ViewModels
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
 
+            lock (_sceneChildrenChangedHandlersLock)
+            {
+                foreach (KeyValuePair<Scene, Tuple<DelegateHandler, DelegateHandler>> kvp in _sceneChildrenAddRemoveHandlers)
+                {
+                    kvp.Value.Item1.Remove();
+                    kvp.Value.Item2.Remove();
+                }
+                _sceneChildrenAddRemoveHandlers.Clear();
+
+                foreach (KeyValuePair<Scene, DelegateHandler> kvp in _sceneRootNodeChangedHandlers)
+                {
+                    kvp.Value.Remove();
+                }
+                _sceneRootNodeChangedHandlers.Clear();
+            }
+
             if (isDisposing)
             {
                 EngineManager.SceneAdded -= OnSceneAdded;
@@ -935,50 +981,11 @@ namespace Hyperion.Editor.ViewModels
                 EngineManager.TaskEnded -= OnTaskEnded;
                 EngineManager.TaskProgressUpdated -= OnTaskProgressUpdated;
 
-                SceneHierarchy.SceneChildrenChanged -= OnSceneChildrenChanged;
-
                 SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
                 SceneHierarchy.SelectionChanged -= OnSceneHierarchySelectionChanged;
                 
                 ContentBrowser.Dispose();
             }
-        }
-
-        private void OnSceneChildrenChanged(Scene scene)
-        {
-            Action checkItAndSetIt = () =>
-            {
-                // check it
-                bool canSculptTerrain = scene != null && (_editorSubsystem.EditorTerrainState?.CanSculptTerrainForScene(scene) ?? false);
-                bool sculptActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsSculptActive ?? false);
-                bool paintActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsPaintActive ?? false);
-
-                Logger.Log(LogLevel.Info, "Can sculpt terrain = {0}", canSculptTerrain);
-
-                // set it (on the ui thread of course)
-                Dispatcher.UIThread.Post(() =>
-                {
-                    _canToggleTerrainSculptMode = canSculptTerrain;
-                    _isSculptModeActive = sculptActive;
-                    _isPaintModeActive = paintActive;
-
-                    OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
-                    OnPropertyChanged(nameof(IsSculptModeActive));
-                    OnPropertyChanged(nameof(IsPaintModeActive));
-                    UpdateTerrainToolPanels();
-                });
-            };
-
-            if (EngineManager.IsOnSimThread)
-            {
-                // just do it
-                checkItAndSetIt();
-
-                return;
-            }
-
-            // make the sim thread do it for us
-            EngineManager.PostToSimThread(checkItAndSetIt);
         }
 
         private void OnTaskStarted(EditorTaskBase task, bool isForegroundTask)
@@ -1041,10 +1048,6 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleActiveSceneChanged(Scene? scene)
         {
-            bool canSculptTerrain = scene != null && (_editorSubsystem.EditorTerrainState?.CanSculptTerrainForScene(scene) ?? false);
-            bool sculptActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsSculptActive ?? false);
-            bool paintActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsPaintActive ?? false);
-
             Dispatcher.UIThread.Post(() =>
             {
                 if (!_isReady)
@@ -1059,15 +1062,8 @@ namespace Hyperion.Editor.ViewModels
 
                     SceneHierarchy.AttachToScene(null);
 
-                    _isSculptModeActive = false;
-                    _isPaintModeActive = false;
-
                     OnPropertyChanged(nameof(ActiveScene));
                     OnPropertyChanged(nameof(CanAddToScene));
-                    OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
-                    OnPropertyChanged(nameof(IsSculptModeActive));
-                    OnPropertyChanged(nameof(IsPaintModeActive));
-                    UpdateTerrainToolPanels();
 
                     return;
                 }
@@ -1084,18 +1080,10 @@ namespace Hyperion.Editor.ViewModels
                     OnPropertyChanged(nameof(Scenes));
                 }
 
-                _canToggleTerrainSculptMode = canSculptTerrain;
-                _isSculptModeActive = sculptActive;
-                _isPaintModeActive = paintActive;
-
                 SceneHierarchy.AttachToScene(scene);
 
                 OnPropertyChanged(nameof(ActiveScene));
                 OnPropertyChanged(nameof(CanAddToScene));
-                OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
-                OnPropertyChanged(nameof(IsSculptModeActive));
-                OnPropertyChanged(nameof(IsPaintModeActive));
-                UpdateTerrainToolPanels();
             });
         }
 
@@ -1590,15 +1578,41 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                foreach (SceneViewModel svm in Scenes)
+                foreach (SceneViewModel currSvm in Scenes)
                 {
-                    if (svm.Scene.Id == scene.Id)
+                    if (currSvm.Scene.Id == scene.Id)
                     {
                         return; // already exists
                     }
                 }
 
-                Scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+                SceneViewModel svm = new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id);
+                Scenes.Add(svm);
+
+                lock (_sceneChildrenChangedHandlersLock)
+                {
+                    BindChildrenChangedCallbacks(scene);
+
+                    WeakReference<Scene> weakScene = new(scene);
+
+                    var dh = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) => {
+                        if (!weakScene.TryGetTarget(out Scene? target))
+                        {
+                            return;
+                        }
+
+                        lock (_sceneChildrenChangedHandlersLock)
+                        {
+                            UnbindChildrenChangedCallbacks(target);
+                            BindChildrenChangedCallbacks(target);
+                        }
+                    });
+
+                    _sceneRootNodeChangedHandlers.Remove(scene, out DelegateHandler? oldValue);
+                    oldValue?.Remove();
+
+                    _sceneRootNodeChangedHandlers.Add(scene, dh);
+                }
 
                 OnPropertyChanged(nameof(Scenes));
             };
@@ -1621,6 +1635,16 @@ namespace Hyperion.Editor.ViewModels
                 {
                     if (Scenes[i].Scene.Id == scene.Id)
                     {
+                        lock (_sceneChildrenChangedHandlersLock)
+                        {
+                            UnbindChildrenChangedCallbacks(scene);
+
+                            if (_sceneRootNodeChangedHandlers.Remove(scene, out DelegateHandler? dh))
+                            {
+                                dh.Remove();
+                            }
+                        }
+
                         Scenes.RemoveAt(i);
 
                         OnPropertyChanged(nameof(Scenes));
@@ -1638,6 +1662,38 @@ namespace Hyperion.Editor.ViewModels
             }
 
             Dispatcher.UIThread.Post(action);
+        }
+
+        private void BindChildrenChangedCallbacks(Scene scene)
+        {
+            var callback = (Node n, bool isDirect) =>
+            {
+                RefreshTerrainToolState();
+            };
+
+            Tuple<DelegateHandler, DelegateHandler> tup = new(
+                scene.RootNode!.GetOnChildAddedDelegate().Bind(callback),
+                scene.RootNode!.GetOnChildAddedDelegate().Bind(callback));
+
+            _sceneChildrenAddRemoveHandlers.Remove(scene, out Tuple<DelegateHandler, DelegateHandler>? oldValue);
+
+            oldValue?.Item1?.Remove();
+            oldValue?.Item2?.Remove();
+
+            _sceneChildrenAddRemoveHandlers.Add(scene, tup);
+        }
+
+        private void UnbindChildrenChangedCallbacks(Scene scene)
+        {
+            if (!_sceneChildrenAddRemoveHandlers.TryGetValue(scene, out Tuple<DelegateHandler, DelegateHandler>? tup))
+            {
+                return;
+            }
+
+            tup.Item1?.Remove();
+            tup.Item2?.Remove();
+
+            _sceneChildrenAddRemoveHandlers.Remove(scene);
         }
 
         private void BindFocusedNodeChanged()

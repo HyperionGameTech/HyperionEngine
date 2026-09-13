@@ -79,11 +79,8 @@ protected:
 
     virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
     {
-        // terrain heights
-        outReferences.EmplaceBack("TERH", 1, &m_heights);
-
-        // terrain splat map
-        outReferences.EmplaceBack("TSM", 1, &m_splatMap);
+        outReferences.EmplaceBack("TCD", 1, &m_heights);
+        outReferences.EmplaceBack("SPLT", 1, &m_splatMap);
     }
 
 private:

@@ -598,6 +598,8 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         if (cellsToAdd.Any())
         {
+            layer->StreamPrefetch(Span<const Vec2i>(cellsToAdd.Data(), cellsToAdd.Size()));
+
             for (const Vec2i& coord : cellsToAdd)
             {
                 AssertDebug(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", update.coord);
@@ -938,17 +940,53 @@ void StreamingManager::Update(float delta)
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> updates;
     m_thread->SinkUpdates(updates);
 
-    if (updates.Empty())
+    if (updates.Any())
+    {
+        m_pendingCellUpdates.Concat(Span<const Pair<Handle<StreamingCell>, StreamingCellState>>(updates.Data(), updates.Size()));
+    }
+
+    if (m_pendingCellUpdates.Empty())
     {
         return;
     }
 
-    HYP_LOG(Streaming, Verbose, "Update StreamingManager, {} updates", updates.Size());
+    static constexpr uint32 MaxCellLoadsPerUpdate = 2;
+    static constexpr uint32 MaxCellUnloadsPerUpdate = 8;
 
-    for (Pair<Handle<StreamingCell>, StreamingCellState>& update : updates)
+    uint32 numLoadsApplied = 0;
+    uint32 numUnloadsApplied = 0;
+    size_t remainingSize = 0;
+
+    for (size_t index = 0; index < m_pendingCellUpdates.Size(); index++)
     {
+        Pair<Handle<StreamingCell>, StreamingCellState> update = std::move(m_pendingCellUpdates[index]);
+
         Handle<StreamingCell> cell = std::move(update.first);
         Assert(cell.IsValid(), "StreamingCell is not valid!");
+
+        bool apply = true;
+
+        switch (update.second)
+        {
+        case StreamingCellState::LOADED:
+            apply = numLoadsApplied < MaxCellLoadsPerUpdate;
+            numLoadsApplied++;
+            break;
+        case StreamingCellState::UNLOADED:
+            apply = numUnloadsApplied < MaxCellUnloadsPerUpdate;
+            numUnloadsApplied++;
+            break;
+        default:
+            break;
+        }
+
+        if (!apply)
+        {
+            // keep for the next update
+            m_pendingCellUpdates[remainingSize++] = { std::move(cell), update.second };
+
+            continue;
+        }
 
         switch (update.second)
         {
@@ -961,6 +999,15 @@ void StreamingManager::Update(float delta)
         default:
             break;
         }
+    }
+
+    m_pendingCellUpdates.Resize(remainingSize);
+
+    if (m_pendingCellUpdates.Any())
+    {
+        HYP_LOG(Streaming, Verbose, "StreamingManager: {} cells applied, {} deferred to next update",
+            numLoadsApplied + numUnloadsApplied,
+            m_pendingCellUpdates.Size());
     }
 }
 

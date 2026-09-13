@@ -15,6 +15,8 @@
 
 #include <Core/Functional/Delegate.hpp>
 
+#include <Core/Utilities/Span.hpp>
+
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
@@ -123,6 +125,10 @@ public:
 
     HYP_METHOD()
     virtual Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
+
+    virtual void StreamPrefetch(Span<const Vec2i> cellCoords)
+    {
+    }
 
     HYP_METHOD()
     void AddStreamingObject(const AssetObject* assetObject, const Vec2i& coord);

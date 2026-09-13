@@ -27,6 +27,7 @@
 #include <Core/Math/MathUtil.hpp>
 #include <Core/HashCode.hpp>
 #include <Core/Memory/Memory.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -108,8 +109,6 @@ static void LoadTerrainMaterialTextures(MaterialTextures& textures)
         textures[layer.albedoKey] = LoadTerrainTexture(layer.albedoName);
         textures[layer.normalKey] = LoadTerrainTexture(layer.normalName);
     }
-
-    // NOTE: the splat map is not bound here - each painted cell gets its own splat texture on a per-cell material
 }
 
 static Handle<Scene> MakeTerrainScene()
@@ -344,6 +343,133 @@ SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(co
     return heights;
 }
 
+SharedPtr<const Array<float>> TerrainWorldGridLayer::TryGetCachedCellHeights(const Vec2i& coord) const
+{
+    HYP_SCOPE;
+
+    Mutex::Guard guard(m_heightCacheMutex);
+
+    auto cacheIt = m_cellHeightsCache.Find(coord);
+
+    if (cacheIt != m_cellHeightsCache.End())
+    {
+        return cacheIt->second;
+    }
+
+    return nullptr;
+}
+
+void TerrainWorldGridLayer::WarmHeightsCache(const Vec2i& coord) const
+{
+    HYP_SCOPE;
+
+    {
+        Mutex::Guard guard(m_pendingWarmsMutex);
+
+        if (m_pendingHeightWarms.Find(coord) != m_pendingHeightWarms.End())
+        {
+            return;
+        }
+
+        m_pendingHeightWarms.Set(coord, true);
+    }
+
+    Handle<TerrainWorldGridLayer> strongThis = HandleFromThis();
+
+    if (!strongThis.IsValid())
+    {
+        Mutex::Guard guard(m_pendingWarmsMutex);
+        m_pendingHeightWarms.Erase(coord);
+
+        return;
+    }
+
+    TaskSystem::GetInstance().Enqueue(
+        [strongThis, coord]()
+        {
+            strongThis->GetOrGenerateCellHeights(coord);
+
+            Mutex::Guard guard(strongThis->m_pendingWarmsMutex);
+            strongThis->m_pendingHeightWarms.Erase(coord);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void TerrainWorldGridLayer::StreamPrefetch(Span<const Vec2i> cellCoords)
+{
+    HYP_SCOPE;
+
+    if (!m_generator || !cellCoords)
+    {
+        return;
+    }
+
+    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+
+    const float cellWorldSizeX = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x;
+    const float cellWorldSizeZ = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z;
+
+    if (cellWorldSizeX <= 0.0f || cellWorldSizeZ <= 0.0f)
+    {
+        return;
+    }
+
+    // area covered by the incoming cells, expanded by one cell so border-adjacent regions are included
+    Vec2f areaMinXZ(0.0f);
+    Vec2f areaMaxXZ(0.0f);
+
+    bool first = true;
+
+    for (const Vec2i& coord : cellCoords)
+    {
+        const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
+        const Vec2f cellMinXZ(cellBoundsMin.x, cellBoundsMin.z);
+        const Vec2f cellMaxXZ = cellMinXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ);
+
+        if (first)
+        {
+            areaMinXZ = cellMinXZ;
+            areaMaxXZ = cellMaxXZ;
+
+            first = false;
+
+            continue;
+        }
+
+        areaMinXZ = Vec2f(MathUtil::Min(areaMinXZ.x, cellMinXZ.x), MathUtil::Min(areaMinXZ.y, cellMinXZ.y));
+        areaMaxXZ = Vec2f(MathUtil::Max(areaMaxXZ.x, cellMaxXZ.x), MathUtil::Max(areaMaxXZ.y, cellMaxXZ.y));
+    }
+
+    Handle<TerrainWorldGridLayer> strongThis = HandleFromThis();
+
+    if (!strongThis.IsValid())
+    {
+        return;
+    }
+
+    Array<Vec2i> regionCoords = m_generator->CollectRegionsForArea(
+        areaMinXZ - Vec2f(cellWorldSizeX, cellWorldSizeZ),
+        areaMaxXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ));
+
+    for (const Vec2i& regionCoord : regionCoords)
+    {
+        if (!m_generator->TryBeginRegionBuild(regionCoord))
+        {
+            continue;
+        }
+
+        // builds run on the background pool as to not stall a streaming worker
+        TaskSystem::GetInstance().Enqueue(
+            [strongThis, regionCoord]()
+            {
+                strongThis->GetGenerator().BuildQueuedRegion(regionCoord);
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+}
+
 void TerrainWorldGridLayer::UpdateCellFingerprint()
 {
     HashCode hashCode;
@@ -399,7 +525,6 @@ Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const V
 
     const bool isNewCellData = !cellData.IsValid();
 
-    // a brush stroke may have stored heights while these were generating on the streaming thread
     if (!isNewCellData && AreCellHeightsCurrent(*cellData))
     {
         return cellData;
@@ -423,6 +548,8 @@ Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const V
 
     if (isNewCellData)
     {
+        GetCurrentAssetRegistry()->PutAssetUnique(cellData);
+
         AddStreamingObject(cellData.Get(), coord);
     }
 
@@ -927,13 +1054,16 @@ float TerrainWorldGridLayer::SampleHeightAt(const Vec2f& worldXZ) const
         }
     }
 
-    if (SharedPtr<const Array<float>> heights = GetOrGenerateCellHeights(coord); heights.IsValid()
+    if (SharedPtr<const Array<float>> heights = TryGetCachedCellHeights(coord); heights.IsValid()
         && heights->Size() == size_t(cellSize) * size_t(cellSize))
     {
         return (*heights)[size_t(lz) * size_t(cellSize) + size_t(lx)];
     }
 
-    return 0.0f;
+    ///heat it up
+    WarmHeightsCache(coord);
+
+    return m_generator->SampleBaseHeight(worldXZ);
 }
 
 bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) const

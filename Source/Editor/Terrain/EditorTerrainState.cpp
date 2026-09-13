@@ -207,6 +207,26 @@ bool EditorTerrainState::CanSculptTerrainForScene(const Handle<Scene>& scene) co
     return setView.Begin() != setView.End();
 }
 
+bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) const
+{
+    AssertOnThread(g_simThread);
+
+    if (!world.IsValid())
+    {
+        return false;
+    }
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (CanSculptTerrainForScene(scene))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool EditorTerrainState::TryGetTerrainHit(const Vec2f& relativePos, Handle<TerrainWorldGridLayer>& outLayer, Vec3f& outWorldPos) const
 {
     AssertOnThread(g_simThread);
