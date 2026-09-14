@@ -85,6 +85,8 @@ struct EntityShaderData
 
     float lodMorphStart = 0.0f;
     float lodMorphEnd = 0.0f;
+
+    ///w = LOD range multiplier
     Vec4f lodMorphOrigin;
 };
 

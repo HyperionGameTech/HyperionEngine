@@ -29,6 +29,8 @@ class TerrainGenerator;
 class HeightFieldPhysicsShape;
 struct TerrainGenerationState;
 
+enum class MaterialTextureKey : uint64;
+
 HYP_CLASS()
 class TerrainStreamingCell : public StreamingCell
 {
@@ -82,6 +84,13 @@ private:
     void RebuildMeshFull(const Handle<TerrainCellData>& cellData);
     void UpdateCollider(bool notifyPhysicsWorld);
 
+    ///rebuilds the per-cell normal map from the full resolution grid vertices (LOD 0, skirts excluded)
+    void RefreshNormalMap(Span<const TerrainVertex> gridVertices);
+    void ApplyNormalMapTexture(const Handle<Texture>& normalMapTexture);
+
+    ///binds \p texture to this cell's material instance, cloning the layer material the first time
+    void BindCellMaterialTexture(MaterialTextureKey key, const Handle<Texture>& texture);
+
     Handle<Scene> m_scene;
     Handle<Material> m_material;
     Handle<TerrainWorldGridLayer> m_layer;
@@ -105,6 +114,7 @@ private:
 
     Handle<Material> m_cellMaterial;
     Handle<Texture> m_splatTexture;
+    Handle<Texture> m_normalMapTexture;
 
     Array<TerrainVertex> m_scratchVertices;
 
@@ -113,6 +123,9 @@ private:
 
     ///splat map bytes prepared on the streaming thread, ready for texture upload
     Array<ubyte> m_splatUploadBytes;
+
+    ///normal map bytes prepared on the streaming thread, ready for texture upload
+    Array<ubyte> m_normalMapUploadBytes;
 
     TerrainMeshBuilder::CellMeshData m_cellMeshData;
 };

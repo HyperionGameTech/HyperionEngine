@@ -24,8 +24,7 @@ struct Entity
     float lod_morph_start;
     float lod_morph_end;
 
-    float3 lod_morph_origin;
-    float _pad0;
+    float4 lod_morph_origin_multiplier;
 };
 
 #define MAX_ENTITIES_PER_INSTANCE_BATCH 16

@@ -25,6 +25,9 @@ struct TerrainCellComponent
     float lodMorphStart = 0.0f;
     float lodMorphEnd = 0.0f;
 
+    ///the next LOD's morph band is this LOD's band scaled by this
+    float lodRangeMultiplier = 1.0f;
+
     Vec3f lodMorphOrigin;
 };
 

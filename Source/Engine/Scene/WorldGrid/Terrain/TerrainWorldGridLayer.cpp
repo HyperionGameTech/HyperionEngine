@@ -173,7 +173,7 @@ uint8 TerrainWorldGridLayer::GetEffectiveLodCount() const
 {
     const uint8 requested = MathUtil::Clamp<uint8>(m_lodCount, 1, MaxMeshLods);
 
-    return MathUtil::Min<uint8>(requested, TerrainMeshBuilder::CalculateMaxLodIndex(m_layerInfo.cellSize, GetEffectiveLodStrideMultiplier()) + 1);
+    return MathUtil::Min<uint8>(requested, TerrainMeshHelpers::CalculateMaxLodIndex(m_layerInfo.cellSize, GetEffectiveLodStrideMultiplier()) + 1);
 }
 
 uint32 TerrainWorldGridLayer::GetEffectiveLodStrideMultiplier() const
@@ -181,17 +181,26 @@ uint32 TerrainWorldGridLayer::GetEffectiveLodStrideMultiplier() const
     return MathUtil::Clamp<uint32>(m_lodStrideMultiplier, 2, 8);
 }
 
+float TerrainWorldGridLayer::GetEffectiveLodRangeMultiplier() const
+{
+    return MathUtil::Max(m_lodRangeMultiplier, 1.0f);
+}
+
 float TerrainWorldGridLayer::GetLodRange(uint8 lodIndex) const
 {
-    return m_lodBaseRange * MathUtil::Pow(m_lodRangeMultiplier, float(lodIndex));
+    return m_lodBaseRange * MathUtil::Pow(GetEffectiveLodRangeMultiplier(), float(lodIndex));
 }
 
 float TerrainWorldGridLayer::GetLodMorphStart(uint8 lodIndex) const
 {
+    // LOD 0's range also starts at range / multiplier (not 0) so every morph band is the previous one scaled by the
+    // multiplier - Terrain morph shaders rely on that to derive the next LOD's band
     const float rangeEnd = GetLodRange(lodIndex);
-    const float rangeStart = lodIndex == 0 ? 0.0f : GetLodRange(lodIndex - 1);
+    const float rangeStart = rangeEnd / GetEffectiveLodRangeMultiplier();
 
-    return rangeStart + (rangeEnd - rangeStart) * m_lodMorphStartRatio;
+    const float morphStartRatio = MathUtil::Clamp(m_lodMorphStartRatio, 0.0f, 0.95f);
+
+    return rangeStart + (rangeEnd - rangeStart) * morphStartRatio;
 }
 
 void TerrainWorldGridLayer::Regenerate()

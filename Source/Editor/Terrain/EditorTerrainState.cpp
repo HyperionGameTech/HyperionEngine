@@ -12,12 +12,9 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
-#include <Scene/EntityManager.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
-
-#include <Scene/Components/TerrainCellComponent.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -191,22 +188,6 @@ void EditorTerrainState::SetPaintLayer(int paintLayer)
     });
 }
 
-bool EditorTerrainState::CanSculptTerrainForScene(const Handle<Scene>& scene) const
-{
-    AssertOnThread(g_simThread);
-
-    if (!scene.IsValid())
-    {
-        return false;
-    }
-
-    // Check if we have any nodes with TerrainCellComponent
-    EntitySetView<TerrainCellComponent> setView = scene->GetEntityManager()->GetEntitySet<TerrainCellComponent>()
-        .GetScopedView(DataAccessFlags::ACCESS_READ);
-
-    return setView.Begin() != setView.End();
-}
-
 bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) const
 {
     AssertOnThread(g_simThread);
@@ -216,9 +197,16 @@ bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) co
         return false;
     }
 
-    for (const Handle<Scene>& scene : world->GetScenes())
+    const Handle<WorldGrid>& worldGrid = world->GetWorldGrid();
+
+    if (!worldGrid.IsValid())
     {
-        if (CanSculptTerrainForScene(scene))
+        return false;
+    }
+
+    for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
+    {
+        if (DynamicCast<TerrainWorldGridLayer>(layer).IsValid())
         {
             return true;
         }

@@ -172,7 +172,7 @@ static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellM
     Assert(cellMeshData.numLods > 0, "No terrain mesh LODs built");
 
     const TerrainMeshBuilder::LodMeshData& lod0 = cellMeshData.lods[0];
-    const size_t gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
+    const size_t gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
 
     Assert(lod0.vertices.Size() >= gridVertexCount, "Terrain mesh data is missing skirt vertices");
 
@@ -184,10 +184,10 @@ static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellM
     }
 }
 
-static Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& uploadBytes)
+static Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte>& uploadBytes)
 {
     Handle<Texture> texture = MakeHandle<Texture>();
-    texture->SetName(NAME_FMT("TerrainCellSplatMap_{}", coord));
+    texture->SetName(name);
 
     TextureDesc textureDesc;
     textureDesc.type = TextureType::Texture2D;
@@ -203,6 +203,11 @@ static Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, c
     InitObject(texture);
 
     return texture;
+}
+
+static Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& uploadBytes)
+{
+    return CreateCellTexture(NAME_FMT("TerrainCellSplatMap_{}", coord), cellSize, uploadBytes);
 }
 
 static void FlipSplatRowsForUpload(uint32 cellSize, const Array<ubyte>& splatBytes, Array<ubyte>& outUploadBytes)
@@ -228,6 +233,36 @@ static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 c
     FlipSplatRowsForUpload(cellSize, splatBytes, uploadBytes);
 
     return CreateSplatTexture(coord, cellSize, uploadBytes);
+}
+
+///world-space normals, row-flipped like the splat map so Terrain.hlsl samples both with the same texcoord
+static void PrepareNormalMapBytes(Span<const TerrainVertex> gridVertices, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
+{
+    const size_t texelCount = size_t(cellSize) * size_t(cellSize);
+
+    Assert(gridVertices.Size() >= texelCount, "Not enough grid vertices for the normal map");
+
+    Array<ubyte> normalBytes;
+    normalBytes.Resize(texelCount * 4);
+
+    const auto encodeUnorm = [](float value) -> ubyte
+    {
+        return ubyte(MathUtil::Clamp(value * 0.5f + 0.5f, 0.0f, 1.0f) * 255.0f + 0.5f);
+    };
+
+    for (size_t texelIndex = 0; texelIndex < texelCount; texelIndex++)
+    {
+        // grid normals are in the cell's local (unscaled) space
+        const Vec3f localNormal = gridVertices[texelIndex].GetNormal();
+        const Vec3f worldNormal = Vec3f(localNormal.x / scale.x, localNormal.y / scale.y, localNormal.z / scale.z).Normalized();
+
+        normalBytes[texelIndex * 4] = encodeUnorm(worldNormal.x);
+        normalBytes[texelIndex * 4 + 1] = encodeUnorm(worldNormal.y);
+        normalBytes[texelIndex * 4 + 2] = encodeUnorm(worldNormal.z);
+        normalBytes[texelIndex * 4 + 3] = 255;
+    }
+
+    FlipSplatRowsForUpload(cellSize, normalBytes, outUploadBytes);
 }
 
 ///copies a painted splat map out of cell data and prepares it for upload
@@ -277,7 +312,7 @@ static bool PrepareAutoSplatBytes(
 {
     const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
     const uint32 cellSize = layerInfo.cellSize;
-    const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
+    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
 
     if (cellMeshData.numLods == 0 || cellMeshData.lods[0].vertices.Size() < gridVertexCount)
     {
@@ -412,6 +447,7 @@ void TerrainStreamingCell::ReleaseBuildData()
 
     m_generatedHeights = Array<float>();
     m_splatUploadBytes = Array<ubyte>();
+    m_normalMapUploadBytes = Array<ubyte>();
     m_cellMeshData = TerrainMeshBuilder::CellMeshData();
 }
 
@@ -491,7 +527,15 @@ void TerrainStreamingCell::OnStreamStart()
         m_generatedHeights.Clear();
     }
 
-    ExtractColliderHeights(m_cellMeshData, m_layer->GetLayerInfo().cellSize, m_colliderHeights);
+    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+
+    ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
+
+    PrepareNormalMapBytes(
+        Span<const TerrainVertex>(m_cellMeshData.lods[0].vertices.Data(), TerrainMeshHelpers::CalculateGridVertexCount(cellSize)),
+        cellSize,
+        m_cellInfo.scale,
+        m_normalMapUploadBytes);
 
     // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
@@ -585,6 +629,15 @@ void TerrainStreamingCell::OnLoaded()
 
     m_splatUploadBytes.Clear();
 
+    Handle<Texture> normalMapTexture;
+
+    if (m_normalMapUploadBytes.Any())
+    {
+        normalMapTexture = CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, m_normalMapUploadBytes);
+    }
+
+    m_normalMapUploadBytes.Clear();
+
     m_mesh = BuildMeshFromCellMeshData();
 
     // Free the CPU-side build data now that the GPU mesh has been created from it.
@@ -625,6 +678,9 @@ void TerrainStreamingCell::OnLoaded()
         meshComponent->material = m_material;
     }
 
+    // most cells stream in far away, so start coarse until TerrainLodSystem picks the real LOD
+    meshComponent->lodIndex = uint8(m_mesh->GetMeshDesc().GetNumLods() - 1);
+
     entityManager->AddComponent<TerrainCellComponent>(m_entity, TerrainCellComponent { .layer = m_layer.ToWeak() });
 
     m_collisionShape = MakeHandle<HeightFieldPhysicsShape>(NAME_FMT("TerrainCellCollider_{}", m_cellInfo.coord));
@@ -641,6 +697,11 @@ void TerrainStreamingCell::OnLoaded()
     m_node->AddChild(m_entity);
     m_node->SetLocalTransform(transform);
     m_node->SetIsStatic(true);
+
+    if (normalMapTexture.IsValid())
+    {
+        ApplyNormalMapTexture(normalMapTexture);
+    }
 
     if (splatTexture.IsValid())
     {
@@ -668,6 +729,7 @@ void TerrainStreamingCell::OnRemoved()
     DetachFromScene();
 
     m_splatTexture.Reset();
+    m_normalMapTexture.Reset();
     m_cellMaterial.Reset();
 
     m_collisionShape.Reset();
@@ -741,7 +803,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
 
     const WorldGridLayerInfo& layerInfo = m_layer->GetLayerInfo();
     const uint32 cellSize = layerInfo.cellSize;
-    const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
+    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
 
     const VertexArrayView vertexData = m_mesh->GetVertexData(0);
 
@@ -794,6 +856,44 @@ void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture
 
     m_splatTexture = splatTexture;
 
+    BindCellMaterialTexture(MaterialTextureKey::TerrainSplatMap, m_splatTexture);
+}
+
+void TerrainStreamingCell::ApplyNormalMapTexture(const Handle<Texture>& normalMapTexture)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    Assert(m_entity.IsValid(), "Cell has not finished loading yet");
+
+    if (!normalMapTexture.IsValid() || !m_material.IsValid())
+    {
+        return;
+    }
+
+    m_normalMapTexture = normalMapTexture;
+
+    BindCellMaterialTexture(MaterialTextureKey::TerrainNormalMap, m_normalMapTexture);
+}
+
+void TerrainStreamingCell::RefreshNormalMap(Span<const TerrainVertex> gridVertices)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+
+    Array<ubyte> normalMapBytes;
+    PrepareNormalMapBytes(gridVertices, cellSize, m_cellInfo.scale, normalMapBytes);
+
+    ApplyNormalMapTexture(CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, normalMapBytes));
+}
+
+void TerrainStreamingCell::BindCellMaterialTexture(MaterialTextureKey key, const Handle<Texture>& texture)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
     if (!m_cellMaterial.IsValid())
     {
         m_cellMaterial = m_material->Clone();
@@ -801,7 +901,7 @@ void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture
         InitObject(m_cellMaterial);
     }
 
-    m_cellMaterial->SetTexture(MaterialTextureKey::TerrainSplatMap, m_splatTexture);
+    m_cellMaterial->SetTexture(key, texture);
 
     const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
 
@@ -839,7 +939,9 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 #endif
     }
 
-    ExtractColliderHeights(m_cellMeshData, m_layer->GetLayerInfo().cellSize, m_colliderHeights);
+    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+
+    ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
 
     MeshDesc meshDesc;
     MeshDataView meshData {};
@@ -849,6 +951,8 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 
     // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
     // as we need it to prevent stalls
+
+    RefreshNormalMap(Span<const TerrainVertex>(m_cellMeshData.lods[0].vertices.Data(), TerrainMeshHelpers::CalculateGridVertexCount(cellSize)));
 
     m_cellMeshData = TerrainMeshBuilder::CellMeshData();
 
@@ -886,6 +990,7 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
         // LOD 1+ (and LOD 0's own morph targets, which point at LOD 1's heights) stale until some other full
         // rebuild happened to come along, which can show as a crack or a misplaced morph the next time this
         // cell's LOD changes. A full rebuild is cheap (a few thousand vertices), so always do that instead.
+        
         RebuildMeshFull(cellData);
 
         return;
@@ -893,7 +998,7 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     const VertexArrayView vertexData = m_mesh->GetVertexData(0);
 
-    if (vertexData.floatData == nullptr || vertexData.vertexCount < TerrainMeshBuilder::CalculateGridVertexCount(cellSize))
+    if (vertexData.floatData == nullptr || vertexData.vertexCount < TerrainMeshHelpers::CalculateGridVertexCount(cellSize))
     {
         HYP_LOG(WorldGrid, Warning, "Cell {} has invalid vertex data for terrain", m_cellInfo.coord);
 
@@ -997,12 +1102,12 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     m_mesh->UpdateDynamicVertexData(0, firstVertex, rangeView);
 
     // rebuild skirts
-    const uint32 gridVertexCount = TerrainMeshBuilder::CalculateGridVertexCount(cellSize);
-    const uint32 skirtVertexCount = TerrainMeshBuilder::CalculateSkirtVertexCount(cellSize);
+    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
+    const uint32 skirtVertexCount = TerrainMeshHelpers::CalculateSkirtVertexCount(cellSize);
 
     m_scratchVertices.Resize(skirtVertexCount);
 
-    TerrainMeshBuilder::BuildSkirtVertices(
+    TerrainMeshHelpers::BuildSkirtVertices(
         cellSize,
         Span<const TerrainVertex>(reinterpret_cast<const TerrainVertex*>(vertexData.floatData), gridVertexCount),
         m_scratchVertices);
@@ -1013,6 +1118,8 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     skirtRangeView.layoutDesc = vertexData.layoutDesc;
 
     m_mesh->UpdateDynamicVertexData(0, gridVertexCount, skirtRangeView);
+
+    RefreshNormalMap(Span<const TerrainVertex>(reinterpret_cast<const TerrainVertex*>(vertexData.floatData), gridVertexCount));
 
     m_entity->SetLocalBounds(m_mesh->GetAABB());
 

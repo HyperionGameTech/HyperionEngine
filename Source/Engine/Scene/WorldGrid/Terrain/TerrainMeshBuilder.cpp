@@ -15,11 +15,27 @@ namespace Hyperion {
 
 #pragma region Helpers
 
+namespace TerrainMeshHelpers {
+
+///grid-space coordinates of the LOD grid line at or before \p value and the one after it (equal when \p value lies on a grid line)
+static Vec2u BracketLodGridCoordinate(uint32 cellSize, uint32 stride, uint32 value)
+{
+    if (value % stride == 0 || value == cellSize - 1)
+    {
+        return Vec2u { value, value };
+    }
+
+    const uint32 lower = (value / stride) * stride;
+    const uint32 upper = MathUtil::Min(lower + stride, cellSize - 1);
+
+    return Vec2u { lower, upper };
+}
+
 static float BuildLodGridVertices(
     uint32 cellSize,
     uint8 lodIndex,
+    uint8 numLods,
     uint32 strideMultiplier,
-    bool hasNextLod,
     Span<const float> paddedHeights,
     Array<TerrainVertex>& outVertices)
 {
@@ -38,24 +54,34 @@ static float BuildLodGridVertices(
         return paddedHeights[size_t(z + int32(padding)) * paddedPitch + size_t(x + int32(padding))];
     };
 
-    const uint32 stride = TerrainMeshBuilder::CalculateLodStride(lodIndex, strideMultiplier);
-    const uint32 strideNext = stride * strideMultiplier;
-    const uint32 dimension = TerrainMeshBuilder::CalculateLodGridDimension(cellSize, lodIndex, strideMultiplier);
-
-    const auto bracket = [cellSize, strideNext](uint32 value) -> Vec2u
+    // height of the surface a coarser LOD with the given stride renders at (x, z) - triangle diagonals must match BuildLodIndices()
+    const auto lodSurfaceHeightAt = [&](uint32 lodStride, uint32 x, uint32 z) -> float
     {
-        if (value % strideNext == 0 || value == cellSize - 1)
-        {
-            return Vec2u { value, value };
-        }
+        const Vec2u xBracket = BracketLodGridCoordinate(cellSize, lodStride, x);
+        const Vec2u zBracket = BracketLodGridCoordinate(cellSize, lodStride, z);
 
-        const uint32 lo = (value / strideNext) * strideNext;
-        const uint32 hi = MathUtil::Min(lo + strideNext, cellSize - 1);
+        const float u = xBracket.y > xBracket.x ? float(x - xBracket.x) / float(xBracket.y - xBracket.x) : 0.0f;
+        const float v = zBracket.y > zBracket.x ? float(z - zBracket.x) / float(zBracket.y - zBracket.x) : 0.0f;
 
-        return Vec2u { lo, hi };
+        const float heightTopLeft = heightAt(int32(xBracket.x), int32(zBracket.x));
+        const float heightTopRight = heightAt(int32(xBracket.y), int32(zBracket.x));
+        const float heightBottomLeft = heightAt(int32(xBracket.x), int32(zBracket.y));
+        const float heightBottomRight = heightAt(int32(xBracket.y), int32(zBracket.y));
+
+        return u >= v
+            ? heightTopLeft + u * (heightTopRight - heightTopLeft) + v * (heightBottomRight - heightTopRight)
+            : heightTopLeft + v * (heightBottomLeft - heightTopLeft) + u * (heightBottomRight - heightBottomLeft);
     };
 
-    outVertices.Resize(TerrainMeshBuilder::CalculateGridVertexCount(dimension));
+    const uint8 coarsestLodIndex = numLods - 1;
+
+    const uint32 stride = CalculateLodStride(lodIndex, strideMultiplier);
+    const uint32 nextLodStride = CalculateLodStride(MathUtil::Min<uint8>(lodIndex + 1, coarsestLodIndex), strideMultiplier);
+    const uint32 secondLodStride = CalculateLodStride(MathUtil::Min<uint8>(lodIndex + 2, coarsestLodIndex), strideMultiplier);
+
+    const uint32 dimension = CalculateLodGridDimension(cellSize, lodIndex, strideMultiplier);
+
+    outVertices.Resize(CalculateGridVertexCount(dimension));
 
     float geometricError = 0.0f;
 
@@ -77,33 +103,16 @@ static float BuildLodGridVertices(
                 heightAt(int32(wx), int32(wz) - 1),
                 heightAt(int32(wx), int32(wz) + 1));
 
-            float morphHeight = height;
+            const float nextLodHeight = lodSurfaceHeightAt(nextLodStride, wx, wz);
+            const float secondLodHeight = lodSurfaceHeightAt(secondLodStride, wx, wz);
 
-            if (hasNextLod)
-            {
-                const Vec2u xBracket = bracket(wx);
-                const Vec2u zBracket = bracket(wz);
-
-                const float u = xBracket.y > xBracket.x ? float(wx - xBracket.x) / float(xBracket.y - xBracket.x) : 0.0f;
-                const float v = zBracket.y > zBracket.x ? float(wz - zBracket.x) / float(zBracket.y - zBracket.x) : 0.0f;
-
-                const float heightTopLeft = heightAt(int32(xBracket.x), int32(zBracket.x));
-                const float heightTopRight = heightAt(int32(xBracket.y), int32(zBracket.x));
-                const float heightBottomLeft = heightAt(int32(xBracket.x), int32(zBracket.y));
-                const float heightBottomRight = heightAt(int32(xBracket.y), int32(zBracket.y));
-
-                morphHeight = u >= v
-                    ? heightTopLeft + u * (heightTopRight - heightTopLeft) + v * (heightBottomRight - heightTopRight)
-                    : heightTopLeft + v * (heightBottomLeft - heightTopLeft) + u * (heightBottomRight - heightBottomLeft);
-            }
-
-            geometricError = MathUtil::Max(geometricError, MathUtil::Abs(height - morphHeight));
+            geometricError = MathUtil::Max(geometricError, MathUtil::Abs(height - nextLodHeight), MathUtil::Abs(height - secondLodHeight));
 
             TerrainVertex vertex;
             vertex.SetPosition(Vec3f { float(wx), height, float(wz) });
             vertex.SetNormal(normal);
             vertex.SetUV0(texcoord);
-            vertex.SetUV1(Vec2f(morphHeight, 0.0f));
+            vertex.SetUV1(Vec2f(nextLodHeight, secondLodHeight));
 
             outVertices[k * dimension + i] = vertex;
         }
@@ -214,20 +223,7 @@ static Array<uint32> BuildLodIndices(uint32 gridDimension)
     return indices;
 }
 
-#pragma endregion Helpers
-
-#pragma region TerrainMeshBuilder
-
-TerrainMeshBuilder::TerrainMeshBuilder(uint32 cellSize, uint8 numLods, uint32 strideMultiplier)
-    : m_cellSize(cellSize),
-      m_strideMultiplier(MathUtil::Max<uint32>(strideMultiplier, 2)),
-      m_numLods(MathUtil::Clamp<uint8>(numLods, 1, CalculateMaxLodIndex(cellSize, m_strideMultiplier) + 1))
-{
-}
-
-TerrainMeshBuilder::~TerrainMeshBuilder() = default;
-
-void TerrainMeshBuilder::BuildSkirtVertices(
+void BuildSkirtVertices(
     uint32 gridDimension,
     Span<const TerrainVertex> gridVertices,
     Span<TerrainVertex> outSkirtVertices,
@@ -263,7 +259,7 @@ void TerrainMeshBuilder::BuildSkirtVertices(
             vertex.SetPosition(Vec3f { position.x, position.y - skirtDepth, position.z });
             vertex.SetNormal(gridVertex.GetNormal());
             vertex.SetUV0(gridVertex.GetUV0());
-            vertex.SetUV1(Vec2f(uv1.x - skirtDepth, uv1.y));
+            vertex.SetUV1(Vec2f(uv1.x - skirtDepth, uv1.y - skirtDepth));
 
             return vertex;
         };
@@ -275,6 +271,21 @@ void TerrainMeshBuilder::BuildSkirtVertices(
     }
 }
 
+} // namespace TerrainMeshHelpers
+
+#pragma endregion Helpers
+
+#pragma region TerrainMeshBuilder
+
+TerrainMeshBuilder::TerrainMeshBuilder(uint32 cellSize, uint8 numLods, uint32 strideMultiplier)
+    : m_cellSize(cellSize),
+      m_strideMultiplier(MathUtil::Max<uint32>(strideMultiplier, 2)),
+      m_numLods(MathUtil::Clamp<uint8>(numLods, 1, TerrainMeshHelpers::CalculateMaxLodIndex(cellSize, m_strideMultiplier) + 1))
+{
+}
+
+TerrainMeshBuilder::~TerrainMeshBuilder() = default;
+
 TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellMeshData(Span<const float> paddedHeights) const
 {
     CellMeshData result;
@@ -284,30 +295,29 @@ TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellMeshData(Span<cons
     {
         LodMeshData& lodMeshData = result.lods[lodIndex];
 
-        const bool hasNextLod = (lodIndex + 1) < m_numLods;
-        const uint32 dimension = CalculateLodGridDimension(m_cellSize, lodIndex, m_strideMultiplier);
+        const uint32 dimension = TerrainMeshHelpers::CalculateLodGridDimension(m_cellSize, lodIndex, m_strideMultiplier);
 
         lodMeshData.gridDimension = dimension;
 
         Array<TerrainVertex> gridVertices;
-        lodMeshData.geometricError = BuildLodGridVertices(m_cellSize, lodIndex, m_strideMultiplier, hasNextLod, paddedHeights, gridVertices);
+        lodMeshData.geometricError = TerrainMeshHelpers::BuildLodGridVertices(m_cellSize, lodIndex, m_numLods, m_strideMultiplier, paddedHeights, gridVertices);
 
-        const uint32 gridVertexCount = CalculateGridVertexCount(dimension);
-        const uint32 skirtVertexCount = CalculateSkirtVertexCount(dimension);
+        const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(dimension);
+        const uint32 skirtVertexCount = TerrainMeshHelpers::CalculateSkirtVertexCount(dimension);
 
         lodMeshData.vertices.Resize(gridVertexCount + skirtVertexCount);
         Memory::Copy(lodMeshData.vertices.Data(), gridVertices.Data(), gridVertexCount * sizeof(TerrainVertex));
 
         // widen the skirt to also cover this LOD's own geometric error
-        const float skirtDepth = MathUtil::Max(CalculateSkirtDepth(m_cellSize), 2.0f * lodMeshData.geometricError);
+        const float skirtDepth = MathUtil::Max(TerrainMeshHelpers::CalculateSkirtDepth(m_cellSize), 2.0f * lodMeshData.geometricError);
 
-        BuildSkirtVertices(
+        TerrainMeshHelpers::BuildSkirtVertices(
             dimension,
             Span<const TerrainVertex>(lodMeshData.vertices.Data(), gridVertexCount),
             Span<TerrainVertex>(lodMeshData.vertices.Data() + gridVertexCount, skirtVertexCount),
             skirtDepth);
 
-        lodMeshData.indices = BuildLodIndices(dimension);
+        lodMeshData.indices = TerrainMeshHelpers::BuildLodIndices(dimension);
     }
 
     return result;

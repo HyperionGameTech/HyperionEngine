@@ -13,7 +13,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using System.Runtime.CompilerServices;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -488,10 +487,6 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _activeSwatchChangedHandler;
         private DelegateHandler? _activeLayersChangedHandler;
 
-        private Lock _sceneChildrenChangedHandlersLock = new();
-        private ConditionalWeakTable<Scene, Tuple<DelegateHandler, DelegateHandler>> _sceneChildrenAddRemoveHandlers = new();
-        private ConditionalWeakTable<Scene, DelegateHandler> _sceneRootNodeChangedHandlers = new();
-
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private int _isUpdatingFocusedNodeFromEngine = 0; // atomic
         private bool _isReady = false;
@@ -957,22 +952,6 @@ namespace Hyperion.Editor.ViewModels
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
 
-            lock (_sceneChildrenChangedHandlersLock)
-            {
-                foreach (KeyValuePair<Scene, Tuple<DelegateHandler, DelegateHandler>> kvp in _sceneChildrenAddRemoveHandlers)
-                {
-                    kvp.Value.Item1.Remove();
-                    kvp.Value.Item2.Remove();
-                }
-                _sceneChildrenAddRemoveHandlers.Clear();
-
-                foreach (KeyValuePair<Scene, DelegateHandler> kvp in _sceneRootNodeChangedHandlers)
-                {
-                    kvp.Value.Remove();
-                }
-                _sceneRootNodeChangedHandlers.Clear();
-            }
-
             if (isDisposing)
             {
                 EngineManager.SceneAdded -= OnSceneAdded;
@@ -1357,6 +1336,8 @@ namespace Hyperion.Editor.ViewModels
 
                 _ = EngineManager.PostToSimThread(RefreshSwatches);
                 _ = EngineManager.PostToSimThread(RefreshActiveLayerToggles);
+
+                RefreshTerrainToolState();
             });
         }
 
@@ -1589,32 +1570,10 @@ namespace Hyperion.Editor.ViewModels
                 SceneViewModel svm = new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id);
                 Scenes.Add(svm);
 
-                lock (_sceneChildrenChangedHandlersLock)
-                {
-                    BindChildrenChangedCallbacks(scene);
-
-                    WeakReference<Scene> weakScene = new(scene);
-
-                    var dh = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) => {
-                        if (!weakScene.TryGetTarget(out Scene? target))
-                        {
-                            return;
-                        }
-
-                        lock (_sceneChildrenChangedHandlersLock)
-                        {
-                            UnbindChildrenChangedCallbacks(target);
-                            BindChildrenChangedCallbacks(target);
-                        }
-                    });
-
-                    _sceneRootNodeChangedHandlers.Remove(scene, out DelegateHandler? oldValue);
-                    oldValue?.Remove();
-
-                    _sceneRootNodeChangedHandlers.Add(scene, dh);
-                }
-
                 OnPropertyChanged(nameof(Scenes));
+
+                // a terrain layer being added (or a project world finishing load) attaches its scene - re-evaluate tool availability
+                RefreshTerrainToolState();
             };
 
             if (Dispatcher.UIThread.CheckAccess())
@@ -1635,23 +1594,16 @@ namespace Hyperion.Editor.ViewModels
                 {
                     if (Scenes[i].Scene.Id == scene.Id)
                     {
-                        lock (_sceneChildrenChangedHandlersLock)
-                        {
-                            UnbindChildrenChangedCallbacks(scene);
-
-                            if (_sceneRootNodeChangedHandlers.Remove(scene, out DelegateHandler? dh))
-                            {
-                                dh.Remove();
-                            }
-                        }
-
                         Scenes.RemoveAt(i);
 
                         OnPropertyChanged(nameof(Scenes));
 
-                        return;
+                        break;
                     }
                 }
+
+                // a terrain layer being removed detaches its scene - re-evaluate tool availability
+                RefreshTerrainToolState();
             };
 
             if (Dispatcher.UIThread.CheckAccess())
@@ -1662,38 +1614,6 @@ namespace Hyperion.Editor.ViewModels
             }
 
             Dispatcher.UIThread.Post(action);
-        }
-
-        private void BindChildrenChangedCallbacks(Scene scene)
-        {
-            var callback = (Node n, bool isDirect) =>
-            {
-                RefreshTerrainToolState();
-            };
-
-            Tuple<DelegateHandler, DelegateHandler> tup = new(
-                scene.RootNode!.GetOnChildAddedDelegate().Bind(callback),
-                scene.RootNode!.GetOnChildAddedDelegate().Bind(callback));
-
-            _sceneChildrenAddRemoveHandlers.Remove(scene, out Tuple<DelegateHandler, DelegateHandler>? oldValue);
-
-            oldValue?.Item1?.Remove();
-            oldValue?.Item2?.Remove();
-
-            _sceneChildrenAddRemoveHandlers.Add(scene, tup);
-        }
-
-        private void UnbindChildrenChangedCallbacks(Scene scene)
-        {
-            if (!_sceneChildrenAddRemoveHandlers.TryGetValue(scene, out Tuple<DelegateHandler, DelegateHandler>? tup))
-            {
-                return;
-            }
-
-            tup.Item1?.Remove();
-            tup.Item2?.Remove();
-
-            _sceneChildrenAddRemoveHandlers.Remove(scene);
         }
 
         private void BindFocusedNodeChanged()

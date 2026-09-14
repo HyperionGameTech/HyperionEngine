@@ -88,6 +88,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #define MATERIAL_TEXTURE_TerrainNormal1 12
 #define MATERIAL_TEXTURE_TerrainNormal2 13
 #define MATERIAL_TEXTURE_TerrainNormal3 14
+#define MATERIAL_TEXTURE_TerrainNormalMap 15
 
 #ifndef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(Material, TerrainSplatMap) Texture2D TerrainSplatMap;
@@ -99,6 +100,7 @@ DECLARE_SRV(Material, TerrainNormal0) Texture2D TerrainNormal0;
 DECLARE_SRV(Material, TerrainNormal1) Texture2D TerrainNormal1;
 DECLARE_SRV(Material, TerrainNormal2) Texture2D TerrainNormal2;
 DECLARE_SRV(Material, TerrainNormal3) Texture2D TerrainNormal3;
+DECLARE_SRV(Material, TerrainNormalMap) Texture2D TerrainNormalMap;
 #endif // !HYP_FEATURES_BINDLESS_TEXTURES
 
 #include "include/Scene.hlsli"
@@ -257,7 +259,17 @@ PSOutput PSMain(PSInput input)
 
     const float3 P = input.position.xyz;
 
-    float3 N = normalize(input.normal);
+    // full resolution normals per cell, so shading doesn't change when the mesh LOD underneath it does
+    float3 N;
+
+    if (HAS_TEXTURE(material, TerrainNormalMap))
+    {
+        N = normalize(SAMPLE_TEXTURE_2D(texture_sampler, GET_TEXTURE(material, TerrainNormalMap), input.texcoord0).xyz * 2.0 - 1.0);
+    }
+    else
+    {
+        N = normalize(input.normal);
+    }
 
     const float3 blending = GetTriplanarBlend(N);
     const float3 normal_blending = GetTerrainNormalBlending(N);

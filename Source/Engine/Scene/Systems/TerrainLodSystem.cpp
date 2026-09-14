@@ -70,6 +70,26 @@ static void CollectLodViewpoints(Array<Vec3f, SceneTempAllocator>& outPositions)
     }
 }
 
+// Refining early is always seamless since a finer mesh can morph all the way to the coarser surface, but coarsening is
+// only seamless once the whole cell is past the current LOD's range - so the two directions use different thresholds.
+static uint8 SelectTerrainLod(const TerrainWorldGridLayer& layer, uint8 lodCount, uint8 currentLod, float nearestDistance)
+{
+    constexpr float RefineRangeScale = 1.05f;
+    constexpr float CoarsenRangeScale = 1.1f;
+
+    for (uint8 lodIndex = 0; lodIndex + 1 < lodCount; lodIndex++)
+    {
+        const float rangeScale = lodIndex < currentLod ? RefineRangeScale : CoarsenRangeScale;
+
+        if (nearestDistance < layer.GetLodRange(lodIndex) * rangeScale)
+        {
+            return lodIndex;
+        }
+    }
+
+    return lodCount - 1;
+}
+
 void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     if (EngineGlobals::IsHeadless())
@@ -100,15 +120,11 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
             }
 
             const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
-            const uint8 currentLod = MathUtil::Min<uint8>(meshComponent.lodIndex, lodCount - 1);
 
-            constexpr float Padding = 1.05f;
-
-            uint32 lodVoteSum = 0; // numerator
-            uint32 numVotes = 0;   // denominator
-
+            // LOD selection and the shader's per-vertex morph must be driven by the same viewpoint, otherwise a switch
+            // happens while vertices are still mid-morph
             float nearestDistance = MathUtil::Infinity<float>();
-            Vec3f nearestViewpoint = Vec3f::Zero();
+            Vec3f nearestViewpoint = worldAabb.GetCenter();
 
             for (const Vec3f& viewpoint : viewpoints)
             {
@@ -125,55 +141,14 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     nearestDistance = distance;
                     nearestViewpoint = viewpoint;
                 }
-
-                uint8 lodForViewpoint = lodCount - 1;
-
-                for (uint8 lodIndex = 0; lodIndex + 1 < lodCount; lodIndex++)
-                {
-                    float range = layer->GetLodRange(lodIndex);
-
-                    if (lodIndex >= currentLod)
-                    {
-                        range *= Padding;
-                    }
-
-                    if (distance < range)
-                    {
-                        lodForViewpoint = lodIndex;
-
-                        break;
-                    }
-                }
-
-                if (lodForViewpoint == lodCount - 1)
-                {
-                    continue;
-                }
-
-                lodVoteSum += lodForViewpoint;
-                numVotes++;
             }
 
-            uint8 targetLod;
-
-            if (numVotes == 0)
-            {
-                targetLod = lodCount - 1;
-
-                if (viewpoints.Empty())
-                {
-                    nearestViewpoint = worldAabb.GetCenter();
-                }
-            }
-            else
-            {
-                const uint32 avgLod = (lodVoteSum * 2 + numVotes) / (numVotes * 2);
-
-                targetLod = MathUtil::Clamp<uint8>(uint8(avgLod), 0, lodCount - 1);
-            }
+            const uint8 currentLod = MathUtil::Min<uint8>(meshComponent.lodIndex, lodCount - 1);
+            const uint8 targetLod = SelectTerrainLod(*layer, lodCount, currentLod, nearestDistance);
 
             const float morphStart = layer->GetLodMorphStart(targetLod);
             const float morphEnd = layer->GetLodRange(targetLod);
+            const float rangeMultiplier = layer->GetEffectiveLodRangeMultiplier();
 
             // the origin moves with the camera even when the LOD doesn't change, and the shader only sees it once
             // the render proxy is refreshed
@@ -181,12 +156,14 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             const bool morphChanged = terrainCellComponent.lodMorphStart != morphStart
                 || terrainCellComponent.lodMorphEnd != morphEnd
+                || terrainCellComponent.lodRangeMultiplier != rangeMultiplier
                 || terrainCellComponent.lodMorphOrigin.DistanceSquared(nearestViewpoint) > originEpsilonSquared;
 
             if (morphChanged)
             {
                 terrainCellComponent.lodMorphStart = morphStart;
                 terrainCellComponent.lodMorphEnd = morphEnd;
+                terrainCellComponent.lodRangeMultiplier = rangeMultiplier;
                 terrainCellComponent.lodMorphOrigin = nearestViewpoint;
             }
 

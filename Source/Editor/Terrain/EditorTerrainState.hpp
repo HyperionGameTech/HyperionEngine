@@ -20,6 +20,7 @@ class EditorSubsystem;
 class DebugDrawCommandList;
 class Scene;
 class World;
+class WorldGrid;
 class TerrainWorldGridLayer;
 
 HYP_ENUM()
@@ -82,9 +83,6 @@ public:
 
     HYP_METHOD()
     void SetPaintLayer(int paintLayer);
-
-    HYP_METHOD()
-    bool CanSculptTerrainForScene(const Handle<Scene>& scene) const;
 
     HYP_METHOD()
     bool CanSculptTerrainForWorld(const Handle<World>& world) const;

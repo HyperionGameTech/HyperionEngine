@@ -789,7 +789,7 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     {
         proxy->bufferData.lodMorphStart = terrainCellComponent->lodMorphStart;
         proxy->bufferData.lodMorphEnd = terrainCellComponent->lodMorphEnd;
-        proxy->bufferData.lodMorphOrigin = Vec4f(terrainCellComponent->lodMorphOrigin, 1.0f);
+        proxy->bufferData.lodMorphOrigin = Vec4f(terrainCellComponent->lodMorphOrigin, terrainCellComponent->lodRangeMultiplier);
     }
     else
     {

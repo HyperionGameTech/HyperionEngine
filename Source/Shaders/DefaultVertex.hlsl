@@ -30,6 +30,7 @@ struct VSOutput
 };
 
 #include "include/Entity.hlsli"
+#include "include/TerrainMorph.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -83,23 +84,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // INSTANCING
 
 #if defined(TERRAIN_MORPH) && defined(VT_UV1)
-    float3 local_position = input.a_position;
-    {
-        const float morph_range_start = currentEntity.lod_morph_start;
-        const float morph_range_end = currentEntity.lod_morph_end;
-
-        float morph = 0.0;
-
-        if (morph_range_end > morph_range_start)
-        {
-            const float3 world_position_unmorphed = mul(model_matrix, float4(local_position, 1.0)).xyz;
-            const float dist = distance(currentEntity.lod_morph_origin, world_position_unmorphed);
-
-            morph = saturate((dist - morph_range_start) / (morph_range_end - morph_range_start));
-        }
-
-        local_position.y = lerp(local_position.y, input.a_texcoord1.x, morph);
-    }
+    const float3 local_position = ApplyTerrainMorph(currentEntity, model_matrix, input.a_position, input.a_texcoord1);
 #else // !TERRAIN_MORPH || !VT_UV1
     const float3 local_position = input.a_position;
 #endif // TERRAIN_MORPH && VT_UV1

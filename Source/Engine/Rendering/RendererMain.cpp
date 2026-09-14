@@ -259,6 +259,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     attributes = proxy.attributes;
 
+    // checked before the override is applied so passes like shadow maps still know they're drawing terrain
+    const StringHash sourceShaderNameHash = proxy.attributes.GetMaterialAttributes().shaderName;
+    const bool isTerrainMesh = (sourceShaderNameHash == "Terrain"_sh);
+
     if (overrideAttributes)
     {
         MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
@@ -291,7 +295,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     // Shouldn't depend on the names of shaders to conditionally handle stuff!
     const bool isCubemap = IsCubemapShader(shaderNameHash);
     const bool isGeometryPassOrSimilar = IsGeometryPassFamily(shaderNameHash);
-    const bool isTerrainShader = (shaderNameHash == "Terrain"_sh);
+    const bool supportsTerrainMorph = (shaderNameHash == "Terrain"_sh || shaderNameHash == "DrawShadowMap"_sh);
 
     uint8 stencilReferenceValue = 0;
 
@@ -321,7 +325,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     shaderProperties.Set(Props::s_propInstancing, hasInstancing);
     shaderProperties.Set(Props::s_propAlphaDiscard, hasAlphaDiscard);
     shaderProperties.Set(Props::s_propSkinning, hasSkinning);
-    shaderProperties.Set(Props::s_propTerrainMorph, isTerrainShader);
+    shaderProperties.Set(Props::s_propTerrainMorph, isTerrainMesh && supportsTerrainMorph);
 
     if (isGeometryPassOrSimilar)
     {

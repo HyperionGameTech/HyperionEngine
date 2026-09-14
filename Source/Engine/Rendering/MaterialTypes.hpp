@@ -46,7 +46,8 @@ enum class MaterialTextureKey : uint64
     TerrainNormal0 = 0x800,
     TerrainNormal1 = 0x1000,
     TerrainNormal2 = 0x2000,
-    TerrainNormal3 = 0x4000
+    TerrainNormal3 = 0x4000,
+    TerrainNormalMap = 0x8000
 };
 
 HYP_ENUM()

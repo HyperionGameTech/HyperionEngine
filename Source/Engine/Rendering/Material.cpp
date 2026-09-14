@@ -76,7 +76,8 @@ const StringHash Material::s_textureNames[] = {
     "TerrainNormal0"_sh,
     "TerrainNormal1"_sh,
     "TerrainNormal2"_sh,
-    "TerrainNormal3"_sh
+    "TerrainNormal3"_sh,
+    "TerrainNormalMap"_sh
 };
 
 Material::Material()

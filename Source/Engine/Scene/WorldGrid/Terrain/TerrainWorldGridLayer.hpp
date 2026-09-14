@@ -148,6 +148,9 @@ public:
     uint32 GetEffectiveLodStrideMultiplier() const;
 
     HYP_METHOD()
+    float GetEffectiveLodRangeMultiplier() const;
+
+    HYP_METHOD()
     float GetLodRange(uint8 lodIndex) const;
 
     HYP_METHOD()
