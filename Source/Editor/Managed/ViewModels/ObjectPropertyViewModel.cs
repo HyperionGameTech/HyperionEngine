@@ -189,6 +189,9 @@ namespace Hyperion.Editor.ViewModels
 
         public override bool ShowInlineLabel => false;
 
+        // inline sub-objects list their fields under the label, so the description goes between the two
+        public override bool ShowsDescriptionInOwnTemplate => !IsAssetObject;
+
         private void UpdateCanCreateNew()
         {
             IconKind = AssetIconHelper.FromTypeName(_propertyTypeClass?.Name.ToString());

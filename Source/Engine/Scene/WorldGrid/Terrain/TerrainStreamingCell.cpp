@@ -59,28 +59,29 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
 struct TerrainGenerationEditorTaskState
 {
-    AtomicVar<int32> numGeneratingCells { 0 };
+    ///cells queued for generation that haven't finished loading yet
+    AtomicVar<int32> numPendingCells { 0 };
     Guarded<Handle<TickableEditorTask>> editorTask;
 
-    void OnGenerationStarted()
+    void OnGenerationQueued()
     {
-        numGeneratingCells.Increment(1, MemoryOrder::RELAXED);
+        numPendingCells.Increment(1, MemoryOrder::RELAXED);
 
         Update();
     }
 
     void OnGenerationFinished()
     {
-        numGeneratingCells.Decrement(1, MemoryOrder::RELAXED);
+        numPendingCells.Decrement(1, MemoryOrder::RELAXED);
 
         Update();
     }
 
     void Update()
     {
-        auto readCount = [numGeneratingCells = &numGeneratingCells]() -> int
+        auto readCount = [numPendingCells = &numPendingCells]() -> int
         {
-            return numGeneratingCells->Get(MemoryOrder::RELAXED);
+            return numPendingCells->Get(MemoryOrder::RELAXED);
         };
 
         auto updateTaskWithCount = [](Handle<TickableEditorTask>& task, int count) -> bool
@@ -304,14 +305,12 @@ static bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, co
 ///synthesizes auto splat weights and prepares them for upload - runs on the streaming thread.
 ///always sampled from LOD 0, since the splat texture is a fixed cellSize x cellSize regardless of the mesh LOD in use
 static bool PrepareAutoSplatBytes(
-    const Handle<TerrainWorldGridLayer>& layer,
     const TerrainGenerator& generator,
     const StreamingCellInfo& cellInfo,
     const TerrainMeshBuilder::CellMeshData& cellMeshData,
     Array<ubyte>& outUploadBytes)
 {
-    const WorldGridLayerInfo& layerInfo = layer->GetLayerInfo();
-    const uint32 cellSize = layerInfo.cellSize;
+    const uint32 cellSize = cellInfo.extent.x;
     const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
 
     if (cellMeshData.numLods == 0 || cellMeshData.lods[0].vertices.Size() < gridVertexCount)
@@ -340,7 +339,7 @@ static bool PrepareAutoSplatBytes(
         heights,
         normals,
         Vec2f(cellInfo.bounds.min.x, cellInfo.bounds.min.z),
-        Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+        Vec2f(cellInfo.scale.x, cellInfo.scale.z),
         cellSize,
         splatWeights);
 
@@ -424,8 +423,16 @@ TerrainStreamingCell::TerrainStreamingCell(
       m_cellData(cellData),
       m_generator(std::move(generationState.generator)),
       m_cellFingerprint(generationState.cellFingerprint),
-      m_generationEpoch(generationState.epoch)
+      m_generationEpoch(generationState.epoch),
+      m_generationLayerInfo(generationState.layerInfo)
 {
+    AssertDebug(m_cellInfo.extent.x == m_generationLayerInfo.cellSize, "Cell info must be built from the generation state's layer info");
+
+    // counted as soon as it's queued, so the editor task shows the whole backlog rather than just the cells being finished
+    if (!IsStale() && !HasCurrentSavedHeights())
+    {
+        BeginPendingGeneration();
+    }
 }
 
 TerrainStreamingCell::~TerrainStreamingCell() = default;
@@ -435,15 +442,41 @@ bool TerrainStreamingCell::IsStale() const
     return !m_generator || !m_layer.IsValid() || !m_layer->IsGenerationCurrent(m_generationEpoch);
 }
 
-void TerrainStreamingCell::ReleaseBuildData()
+bool TerrainStreamingCell::HasCurrentSavedHeights() const
+{
+    if (!m_cellData.IsValid() || !m_cellData->HasHeights())
+    {
+        return false;
+    }
+
+    auto cellDataReadScope = m_cellData->GetReadScope();
+
+    return TerrainWorldGridLayer::AreCellHeightsCurrent(*m_cellData, GetCellSize(), m_cellFingerprint);
+}
+
+void TerrainStreamingCell::BeginPendingGeneration()
 {
 #ifdef HYP_EDITOR
-    // generated heights still present means generation was counted but never finished
-    if (m_generatedHeights.Any())
+    if (!m_isPendingGeneration.Exchange(true, MemoryOrder::ACQUIRE_RELEASE))
+    {
+        s_terrainGenerationEditorTask.OnGenerationQueued();
+    }
+#endif
+}
+
+void TerrainStreamingCell::EndPendingGeneration()
+{
+#ifdef HYP_EDITOR
+    if (m_isPendingGeneration.Exchange(false, MemoryOrder::ACQUIRE_RELEASE))
     {
         s_terrainGenerationEditorTask.OnGenerationFinished();
     }
 #endif
+}
+
+void TerrainStreamingCell::ReleaseBuildData()
+{
+    EndPendingGeneration();
 
     m_generatedHeights = Array<float>();
     m_splatUploadBytes = Array<ubyte>();
@@ -455,7 +488,7 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
 {
     HYP_SCOPE;
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 cellSize = GetCellSize();
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
     TerrainMeshBuilder meshBuilder(cellSize, m_layer->GetEffectiveLodCount(), m_layer->GetEffectiveLodStrideMultiplier());
@@ -467,7 +500,7 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
         const TerrainCellData& cellData = *m_cellData;
         const Span<const float> savedHeights = cellData.GetHeights();
 
-        if (m_layer->AreCellHeightsCurrent(cellData, m_cellFingerprint) && savedHeights.Size() == size_t(paddedSize) * size_t(paddedSize))
+        if (TerrainWorldGridLayer::AreCellHeightsCurrent(cellData, cellSize, m_cellFingerprint) && savedHeights.Size() == size_t(paddedSize) * size_t(paddedSize))
         {
             m_cellMeshData = meshBuilder.BuildCellMeshData(savedHeights);
 
@@ -483,7 +516,7 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
                 cellData.extent,
                 cellSize);
         }
-        else if (m_layer->AreCellHeightsCurrent(cellData, m_cellFingerprint))
+        else if (TerrainWorldGridLayer::AreCellHeightsCurrent(cellData, cellSize, m_cellFingerprint))
         {
             HYP_LOG(WorldGrid, Warning,
                 "Cell {} has current saved heights in '{}' but only {} of {} could be paged in - regenerating",
@@ -494,7 +527,7 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
         }
     }
 
-    m_layer->GenerateCellPaddedHeights(*m_generator, m_cellInfo.coord, outGeneratedHeights);
+    TerrainWorldGridLayer::GenerateCellPaddedHeights(*m_generator, m_generationLayerInfo, m_cellInfo.coord, outGeneratedHeights);
 
     m_cellMeshData = meshBuilder.BuildCellMeshData(outGeneratedHeights);
 
@@ -515,19 +548,19 @@ void TerrainStreamingCell::OnStreamStart()
 
     const bool generatedHeights = BuildCellMeshData(m_generatedHeights);
 
-#ifdef HYP_EDITOR
     if (generatedHeights)
     {
-        s_terrainGenerationEditorTask.OnGenerationStarted();
+        // already counted, unless the saved heights looked usable at creation but couldn't be paged in
+        BeginPendingGeneration();
     }
-#endif
-
-    if (!generatedHeights)
+    else
     {
+        EndPendingGeneration();
+
         m_generatedHeights.Clear();
     }
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 cellSize = GetCellSize();
 
     ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
 
@@ -540,7 +573,7 @@ void TerrainStreamingCell::OnStreamStart()
     // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
     {
-        if (PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, m_layer->GetLayerInfo().cellSize, m_splatUploadBytes))
+        if (PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, cellSize, m_splatUploadBytes))
         {
             return;
         }
@@ -550,7 +583,7 @@ void TerrainStreamingCell::OnStreamStart()
 
     if (m_generator->GetParams().autoPaintSplats)
     {
-        PrepareAutoSplatBytes(m_layer, *m_generator, m_cellInfo, m_cellMeshData, m_splatUploadBytes);
+        PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_cellMeshData, m_splatUploadBytes);
     }
 }
 
@@ -592,13 +625,13 @@ void TerrainStreamingCell::OnLoaded()
     if (m_generatedHeights.Any())
     {
 #ifdef HYP_EDITOR
-        s_terrainGenerationEditorTask.OnGenerationFinished();
-
         m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_generatedHeights);
 #endif
 
         m_generatedHeights = Array<float>();
     }
+
+    EndPendingGeneration();
 
     const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
 
@@ -617,7 +650,7 @@ void TerrainStreamingCell::OnLoaded()
         return;
     }
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 cellSize = GetCellSize();
 
     ///create the texture
     Handle<Texture> splatTexture;
@@ -763,7 +796,7 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
 
     m_cellData = cellData;
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 cellSize = GetCellSize();
 
     if (!cellData.IsValid() || !cellData->HasSplatMap() || !m_material.IsValid())
     {
@@ -801,8 +834,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
         return;
     }
 
-    const WorldGridLayerInfo& layerInfo = m_layer->GetLayerInfo();
-    const uint32 cellSize = layerInfo.cellSize;
+    const uint32 cellSize = GetCellSize();
     const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
 
     const VertexArrayView vertexData = m_mesh->GetVertexData(0);
@@ -833,7 +865,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
         heights,
         normals,
         Vec2f(m_cellInfo.bounds.min.x, m_cellInfo.bounds.min.z),
-        Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+        Vec2f(m_cellInfo.scale.x, m_cellInfo.scale.z),
         cellSize,
         splatWeights);
 
@@ -881,7 +913,7 @@ void TerrainStreamingCell::RefreshNormalMap(Span<const TerrainVertex> gridVertic
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 cellSize = GetCellSize();
 
     Array<ubyte> normalMapBytes;
     PrepareNormalMapBytes(gridVertices, cellSize, m_cellInfo.scale, normalMapBytes);
@@ -939,7 +971,7 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 #endif
     }
 
-    const uint32 cellSize = m_layer->GetLayerInfo().cellSize;
+    const uint32 cellSize = GetCellSize();
 
     ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
 
@@ -981,10 +1013,9 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     m_cellData = cellData;
 
-    const WorldGridLayerInfo& layerInfo = m_layer->GetLayerInfo();
-    const uint32 cellSize = layerInfo.cellSize;
+    const uint32 cellSize = GetCellSize();
 
-    if (m_layer->GetEffectiveLodCount() > 1)
+    if (m_mesh->GetMeshDesc().GetNumLods() > 1)
     {
         // The fast path below only patches LOD 0 in place. With multiple mesh LODs, a partial edit would leave
         // LOD 1+ (and LOD 0's own morph targets, which point at LOD 1's heights) stale until some other full
@@ -1024,7 +1055,7 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
-    const bool hasCurrentHeights = m_cellData.IsValid() && m_layer->AreCellHeightsCurrent(*m_cellData);
+    const bool hasCurrentHeights = m_cellData.IsValid() && TerrainWorldGridLayer::AreCellHeightsCurrent(*m_cellData, cellSize, m_layer->GetCellFingerprint());
 
     if (!hasCurrentHeights)
     {
@@ -1144,7 +1175,7 @@ void TerrainStreamingCell::UpdateCollider(bool notifyPhysicsWorld)
         return;
     }
 
-    m_collisionShape->SetHeights(m_colliderHeights, m_layer->GetLayerInfo().cellSize);
+    m_collisionShape->SetHeights(m_colliderHeights, GetCellSize());
 
     if (!notifyPhysicsWorld)
     {
@@ -1172,6 +1203,22 @@ void TerrainStreamingCell::RebuildPickBVH()
     }
 
     m_mesh->UpdateDynamicBVH();
+}
+
+bool TerrainStreamingCell::HasCollider() const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_entity.IsValid() || m_entity->GetEntityManager() == nullptr)
+    {
+        return false;
+    }
+
+    // PhysicsSystem creates the rigid body as it adds it to the physics world
+    const RigidBodyComponent* rigidBodyComponent = m_entity->TryGetComponent<RigidBodyComponent>();
+
+    return rigidBodyComponent != nullptr && rigidBodyComponent->rigidBody.IsValid();
 }
 
 #pragma endregion TerrainStreamingCell

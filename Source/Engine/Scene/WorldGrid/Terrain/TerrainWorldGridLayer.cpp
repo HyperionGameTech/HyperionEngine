@@ -156,6 +156,8 @@ void TerrainWorldGridLayer::SetSeed(uint32 seed)
         return;
     }
 
+    Mutex::Guard guard(m_generationStateMutex);
+
     m_layerInfo.seed = seed;
 }
 
@@ -164,14 +166,35 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
     WorldGridLayerInfo adjustedLayerInfo = layerInfo;
     adjustedLayerInfo.scale.y = 1.0f;
 
-    WorldGridLayer::SetLayerInfo(adjustedLayerInfo);
+    const bool cellGeometryChanged = adjustedLayerInfo.cellSize != m_layerInfo.cellSize
+        || adjustedLayerInfo.scale != m_layerInfo.scale
+        || adjustedLayerInfo.offset != m_layerInfo.offset;
 
-    UpdateCellFingerprint();
+    const uint64 cellFingerprint = m_generator ? ComputeCellFingerprint(*m_generator, adjustedLayerInfo) : uint64(0);
+
+    {
+        Mutex::Guard guard(m_generationStateMutex);
+
+        WorldGridLayer::SetLayerInfo(adjustedLayerInfo);
+
+        m_cellFingerprint = cellFingerprint;
+
+        // cells still streaming in were built for the old geometry - they must never be spawned or persisted
+        if (cellGeometryChanged)
+        {
+            m_generationEpoch.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+        }
+    }
+
+    if (cellGeometryChanged)
+    {
+        ClearHeightCaches();
+    }
 }
 
 uint8 TerrainWorldGridLayer::GetEffectiveLodCount() const
 {
-    const uint8 requested = MathUtil::Clamp<uint8>(m_lodCount, 1, MaxMeshLods);
+    const uint8 requested = MathUtil::Clamp<uint8>(m_lodCount, 1, TerrainMeshHelpers::MaxTerrainLods);
 
     return MathUtil::Min<uint8>(requested, TerrainMeshHelpers::CalculateMaxLodIndex(m_layerInfo.cellSize, GetEffectiveLodStrideMultiplier()) + 1);
 }
@@ -235,7 +258,8 @@ TerrainGenerationState TerrainWorldGridLayer::GetGenerationState() const
     return TerrainGenerationState {
         .generator = m_generator,
         .cellFingerprint = m_cellFingerprint,
-        .epoch = m_generationEpoch.Get(MemoryOrder::ACQUIRE)
+        .epoch = m_generationEpoch.Get(MemoryOrder::ACQUIRE),
+        .layerInfo = m_layerInfo
     };
 }
 
@@ -247,7 +271,7 @@ void TerrainWorldGridLayer::ReplaceGenerator()
     SharedPtr<TerrainGenerator> generator = MakeShared<TerrainGenerator>();
     generator->Configure(MakeGenerationParams());
 
-    const uint64 cellFingerprint = ComputeCellFingerprint(*generator);
+    const uint64 cellFingerprint = ComputeCellFingerprint(*generator, m_layerInfo);
 
     SharedPtr<TerrainGenerator> previousGenerator;
 
@@ -268,8 +292,15 @@ void TerrainWorldGridLayer::ReplaceGenerator()
         previousGenerator->Cancel();
     }
 
+    ClearHeightCaches();
+}
+
+void TerrainWorldGridLayer::ClearHeightCaches()
+{
+    HYP_SCOPE;
+
     {
-        // cleared after the epoch bump, so a warm task from the old generator can't insert after this
+        // cleared after the epoch bump, so a warm task from the old epoch can't insert after this
         Mutex::Guard guard(m_heightCacheMutex);
 
         m_cellHeightsCache.Clear();
@@ -574,6 +605,26 @@ void TerrainWorldGridLayer::OnRemoved(WorldGrid* worldGrid)
     worldGrid->GetWorld()->RemoveScene(m_scene);
 }
 
+static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord)
+{
+    return Vec3f {
+        layerInfo.offset.x + (float(coord.x) - 0.5f) * (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x,
+        layerInfo.offset.y,
+        layerInfo.offset.z + (float(coord.y) - 0.5f) * (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z
+    };
+}
+
+///inverse of ComputeCellBoundsMin - caller must ensure the cell's world size is non-zero
+static Vec2i ComputeCellCoord(const WorldGridLayerInfo& layerInfo, const Vec2f& worldXZ)
+{
+    const float cellWorldSizeX = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x;
+    const float cellWorldSizeZ = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z;
+
+    return Vec2i(
+        int32(MathUtil::Floor((worldXZ.x - layerInfo.offset.x) / cellWorldSizeX + 0.5f)),
+        int32(MathUtil::Floor((worldXZ.y - layerInfo.offset.z) / cellWorldSizeZ + 0.5f)));
+}
+
 Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const StreamingCellInfo& cellInfo)
 {
     if (!m_scene)
@@ -584,6 +635,14 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const Streaming
     // snapshot before reading the cell data map - see Regenerate()
     TerrainGenerationState generationState = GetGenerationState();
 
+    // the streaming manager read the layer info outside the generation lock; rebuild the cell's geometry from the
+    // snapshot so its size always matches the epoch it was created with
+    StreamingCellInfo snapshotCellInfo = cellInfo;
+    snapshotCellInfo.extent = Vec3u(generationState.layerInfo.cellSize);
+    snapshotCellInfo.scale = generationState.layerInfo.scale;
+    snapshotCellInfo.bounds.min = ComputeCellBoundsMin(generationState.layerInfo, cellInfo.coord);
+    snapshotCellInfo.bounds.max = snapshotCellInfo.bounds.min + Vec3f(snapshotCellInfo.extent) * snapshotCellInfo.scale;
+
     Handle<TerrainCellData> cellData;
 
     auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
@@ -593,7 +652,7 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const Streaming
         cellData = DynamicCast<TerrainCellData>(objectsByCoordIt->second[0].Resolve());
     }
 
-    return MakeHandle<TerrainStreamingCell>(cellInfo, m_scene, m_material, HandleFromThis(), cellData, std::move(generationState));
+    return MakeHandle<TerrainStreamingCell>(snapshotCellInfo, m_scene, m_material, HandleFromThis(), cellData, std::move(generationState));
 }
 
 void TerrainWorldGridLayer::RegisterLoadedCell(const Vec2i& coord, const WeakHandle<TerrainStreamingCell>& cell)
@@ -613,20 +672,12 @@ void TerrainWorldGridLayer::UnregisterLoadedCell(const Vec2i& coord, const Terra
     m_loadedCells.Erase(loadedCellIt);
 }
 
-static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord)
-{
-    return Vec3f {
-        layerInfo.offset.x + (float(coord.x) - 0.5f) * (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x,
-        layerInfo.offset.y,
-        layerInfo.offset.z + (float(coord.y) - 0.5f) * (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z
-    };
-}
-
 SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const
 {
     HYP_SCOPE;
 
-    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+    // runs on background threads; if the snapshot is newer than generationEpoch the result just isn't cached
+    const WorldGridLayerInfo layerInfo = GetGenerationState().layerInfo;
 
     {
         Mutex::Guard guard(m_heightCacheMutex);
@@ -737,7 +788,7 @@ void TerrainWorldGridLayer::StreamPrefetch(Span<const Vec2i> cellCoords)
         return;
     }
 
-    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+    const WorldGridLayerInfo& layerInfo = generationState.layerInfo;
 
     const float cellWorldSizeX = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x;
     const float cellWorldSizeZ = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z;
@@ -747,40 +798,25 @@ void TerrainWorldGridLayer::StreamPrefetch(Span<const Vec2i> cellCoords)
         return;
     }
 
-    // area covered by the incoming cells, expanded by one cell so border-adjacent regions are included
-    Vec2f areaMinXZ(0.0f);
-    Vec2f areaMaxXZ(0.0f);
+    const SharedPtr<TerrainGenerator>& generator = generationState.generator;
 
-    bool first = true;
+    // only the regions the cells actually sample, queued in the cells' (nearest first) order
+    Array<Vec2i, StreamingTempAllocator> regionCoords;
 
     for (const Vec2i& coord : cellCoords)
     {
         const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
-        const Vec2f cellMinXZ(cellBoundsMin.x, cellBoundsMin.z);
-        const Vec2f cellMaxXZ = cellMinXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ);
 
-        if (first)
-        {
-            areaMinXZ = cellMinXZ;
-            areaMaxXZ = cellMaxXZ;
-
-            first = false;
-
-            continue;
-        }
-
-        areaMinXZ = Vec2f(MathUtil::Min(areaMinXZ.x, cellMinXZ.x), MathUtil::Min(areaMinXZ.y, cellMinXZ.y));
-        areaMaxXZ = Vec2f(MathUtil::Max(areaMaxXZ.x, cellMaxXZ.x), MathUtil::Max(areaMaxXZ.y, cellMaxXZ.y));
+        generator->CollectRegionsForCell(
+            Vec2f(cellBoundsMin.x, cellBoundsMin.z),
+            Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+            layerInfo.cellSize,
+            regionCoords);
     }
-
-    const SharedPtr<TerrainGenerator>& generator = generationState.generator;
-
-    Array<Vec2i> regionCoords = generator->CollectRegionsForArea(
-        areaMinXZ - Vec2f(cellWorldSizeX, cellWorldSizeZ),
-        areaMaxXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ));
 
     for (const Vec2i& regionCoord : regionCoords)
     {
+        // also skips regions already queued by an earlier cell
         if (!generator->TryBeginRegionBuild(regionCoord))
         {
             continue;
@@ -797,23 +833,14 @@ void TerrainWorldGridLayer::StreamPrefetch(Span<const Vec2i> cellCoords)
     }
 }
 
-uint64 TerrainWorldGridLayer::ComputeCellFingerprint(const TerrainGenerator& generator) const
+uint64 TerrainWorldGridLayer::ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo)
 {
     HashCode hashCode;
-    hashCode.Add(generator.ComputeFingerprint(m_layerInfo.cellSize, Vec2f(m_layerInfo.scale.x, m_layerInfo.scale.z)));
-    hashCode.Add(m_layerInfo.offset.x);
-    hashCode.Add(m_layerInfo.offset.z);
+    hashCode.Add(generator.ComputeFingerprint(layerInfo.cellSize, Vec2f(layerInfo.scale.x, layerInfo.scale.z)));
+    hashCode.Add(layerInfo.offset.x);
+    hashCode.Add(layerInfo.offset.z);
 
     return uint64(hashCode.Value());
-}
-
-void TerrainWorldGridLayer::UpdateCellFingerprint()
-{
-    const uint64 cellFingerprint = m_generator ? ComputeCellFingerprint(*m_generator) : uint64(0);
-
-    Mutex::Guard guard(m_generationStateMutex);
-
-    m_cellFingerprint = cellFingerprint;
 }
 
 Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) const
@@ -830,13 +857,13 @@ Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) 
 
 bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData) const
 {
-    return AreCellHeightsCurrent(cellData, m_cellFingerprint);
+    return AreCellHeightsCurrent(cellData, m_layerInfo.cellSize, m_cellFingerprint);
 }
 
-bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData, uint64 cellFingerprint) const
+bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData, uint32 cellSize, uint64 cellFingerprint)
 {
     return cellData.HasHeights()
-        && cellData.extent.x == m_layerInfo.cellSize
+        && cellData.extent.x == cellSize
         && (cellData.isSculpted || cellData.generatorFingerprint == cellFingerprint);
 }
 
@@ -844,19 +871,19 @@ void TerrainWorldGridLayer::GenerateCellPaddedHeights(const Vec2i& coord, Array<
 {
     AssertDebug(m_generator != nullptr);
 
-    GenerateCellPaddedHeights(*m_generator, coord, outPaddedHeights);
+    GenerateCellPaddedHeights(*m_generator, m_layerInfo, coord, outPaddedHeights);
 }
 
-void TerrainWorldGridLayer::GenerateCellPaddedHeights(const TerrainGenerator& generator, const Vec2i& coord, Array<float>& outPaddedHeights) const
+void TerrainWorldGridLayer::GenerateCellPaddedHeights(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo, const Vec2i& coord, Array<float>& outPaddedHeights)
 {
     HYP_SCOPE;
 
-    const Vec3f cellBoundsMin = ComputeCellBoundsMin(m_layerInfo, coord);
+    const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
 
     generator.GeneratePaddedCellHeights(
         Vec2f(cellBoundsMin.x, cellBoundsMin.z),
-        Vec2f(m_layerInfo.scale.x, m_layerInfo.scale.z),
-        m_layerInfo.cellSize,
+        Vec2f(layerInfo.scale.x, layerInfo.scale.z),
+        layerInfo.cellSize,
         outPaddedHeights);
 }
 
@@ -866,6 +893,15 @@ Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const V
     AssertOnThread(g_simThread);
 
     const uint32 cellSize = m_layerInfo.cellSize;
+    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
+
+    if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
+    {
+        HYP_LOG(WorldGrid, Warning, "Not storing {} generated heights for cell {} - layer cell size {} expects {}",
+            paddedHeights.Size(), coord, cellSize, size_t(paddedSize) * size_t(paddedSize));
+
+        return FindCellData(coord);
+    }
 
     Handle<TerrainCellData> cellData = FindCellData(coord);
 
@@ -1369,11 +1405,7 @@ float TerrainWorldGridLayer::SampleHeightAt(const Vec2f& worldXZ) const
         return 0.0f;
     }
 
-    const Vec2f coordF(
-        (worldXZ.x - layerInfo.offset.x) / cellWorldSizeX + 0.5f,
-        (worldXZ.y - layerInfo.offset.z) / cellWorldSizeZ + 0.5f);
-
-    const Vec2i coord(int32(MathUtil::Floor(coordF.x)), int32(MathUtil::Floor(coordF.y)));
+    const Vec2i coord = ComputeCellCoord(layerInfo, worldXZ);
 
     const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
 
@@ -1500,6 +1532,44 @@ bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) c
     }
 
     return false;
+}
+
+bool TerrainWorldGridLayer::IsCollisionPendingAt(const Vec3f& worldPosition) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+
+    const float cellWorldSizeX = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x;
+    const float cellWorldSizeZ = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z;
+
+    if (cellWorldSizeX <= 0.0f || cellWorldSizeZ <= 0.0f || !m_scene.IsValid())
+    {
+        return false;
+    }
+
+    const Vec2i coord = ComputeCellCoord(layerInfo, Vec2f(worldPosition.x, worldPosition.z));
+
+    const bool isCoordInRange = layerInfo.infinite
+        || (coord.x >= layerInfo.range.x && coord.x <= layerInfo.range.y
+            && coord.y >= layerInfo.range.x && coord.y <= layerInfo.range.y);
+
+    if (!isCoordInRange)
+    {
+        return false;
+    }
+
+    auto loadedCellIt = m_loadedCells.Find(coord);
+
+    if (loadedCellIt == m_loadedCells.End())
+    {
+        return true;
+    }
+
+    Handle<TerrainStreamingCell> loadedCell = loadedCellIt->second.Lock();
+
+    return !loadedCell.IsValid() || !loadedCell->HasCollider();
 }
 
 void TerrainWorldGridLayer::EndBrushStroke()

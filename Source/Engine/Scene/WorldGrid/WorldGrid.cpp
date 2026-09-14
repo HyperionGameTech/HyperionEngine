@@ -170,6 +170,27 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
     return false;
 }
 
+bool WorldGrid::IsCollisionPendingAt(const Vec3f& worldPosition) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!IsReady())
+    {
+        return false;
+    }
+
+    for (const Handle<WorldGridLayer>& layer : m_layers)
+    {
+        if (layer.IsValid() && layer->IsCollisionPendingAt(worldPosition))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 {
     HYP_SCOPE;

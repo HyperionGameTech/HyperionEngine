@@ -29,6 +29,7 @@
 #include <Framework/EngineMemory.hpp>
 #include <Framework/Threads/SimThread.hpp>
 
+#include <algorithm>
 #include <utility>
 
 #include <StreamingManager.generated.inl>
@@ -58,6 +59,32 @@ static Vec2i WorldSpaceToCellCoord(const WorldGridLayerInfo& layerInfo, const Ve
     scaled = MathUtil::Floor(scaled);
 
     return { int(scaled.x), int(scaled.z) };
+}
+
+static bool GetVolumeCenterCoord(const WorldGridLayerInfo& layerInfo, const Handle<StreamingVolumeBase>& volume, Vec2f& outCenterCoord)
+{
+    BoundingBox aabb;
+
+    if (!volume->GetBoundingBox(aabb))
+    {
+        return false;
+    }
+
+    outCenterCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
+
+    return true;
+}
+
+static float DistanceSquaredToNearestCenter(const Array<Vec2f, StreamingTempAllocator>& centerCoords, const Vec2i& coord)
+{
+    float nearestDistanceSquared = MathUtil::MaxSafeValue<float>();
+
+    for (const Vec2f& centerCoord : centerCoords)
+    {
+        nearestDistanceSquared = MathUtil::Min(nearestDistanceSquared, Vec2f(coord).DistanceSquared(centerCoord));
+    }
+
+    return nearestDistanceSquared;
 }
 
 static bool IsCellCoordInRange(const WorldGridLayerInfo& layerInfo, const Vec2i& coord)
@@ -588,12 +615,20 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         const bool refreshRequested = layerData.refreshRequested.Exchange(false, MemoryOrder::ACQUIRE_RELEASE);
 
         Set<Vec2i, StreamingTempAllocator> desiredCells;
+        Array<Vec2f, StreamingTempAllocator> volumeCenterCoords;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
             if (!volume)
             {
                 continue;
+            }
+
+            Vec2f volumeCenterCoord;
+
+            if (GetVolumeCenterCoord(layer->GetLayerInfo(), volume, volumeCenterCoord))
+            {
+                volumeCenterCoords.PushBack(volumeCenterCoord);
             }
 
             GetDesiredCellsForLayer(layerData, volume, desiredCells);
@@ -651,10 +686,19 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         if (cellsToAdd.Any())
         {
+            // nearest first, so cells show up around the viewer first and prefetch works in the same order as the loads
+            std::sort(cellsToAdd.Begin(), cellsToAdd.End(), [&volumeCenterCoords](const Vec2i& a, const Vec2i& b)
+            {
+                return DistanceSquaredToNearestCenter(volumeCenterCoords, a) < DistanceSquaredToNearestCenter(volumeCenterCoords, b);
+            });
+
             layer->StreamPrefetch(Span<const Vec2i>(cellsToAdd.Data(), cellsToAdd.Size()));
 
-            for (const Vec2i& coord : cellsToAdd)
+            // the update queue is processed back to front - push the farthest cells first
+            for (size_t index = cellsToAdd.Size(); index > 0; index--)
             {
+                const Vec2i& coord = cellsToAdd[index - 1];
+
                 AssertDebug(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", coord);
 
                 cellUpdateQueue.PushBack(StreamingCellUpdate { coord, StreamingCellState::WAITING });
@@ -838,8 +882,9 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
 
     const WorldGridLayerInfo& layerInfo = layerData.layer->GetLayerInfo();
 
-    BoundingBox aabb;
-    if (!volume->GetBoundingBox(aabb))
+    Vec2f centerCoord;
+
+    if (!GetVolumeCenterCoord(layerInfo, volume, centerCoord))
     {
         return;
     }
@@ -848,8 +893,6 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     queue.Reserve(64);
 
     Set<Vec2i, StreamingTempAllocator> visited;
-
-    const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
 
     queue.PushBack(centerCoord);
     visited.Add(Vec2i(centerCoord));

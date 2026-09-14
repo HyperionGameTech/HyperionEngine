@@ -22,7 +22,7 @@ void SchedulerBase::RequestStop()
     }
 }
 
-void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
+void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested, uint32 timeoutMs)
 {
     // must be locked before calling this function
 
@@ -38,7 +38,17 @@ void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
 
     while (!m_stopRequested.LoadVolatile() && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
     {
-        m_hasTasksCV.Wait(mtx);
+        if (timeoutMs == 0)
+        {
+            m_hasTasksCV.Wait(mtx);
+
+            continue;
+        }
+
+        if (!m_hasTasksCV.WaitFor(mtx, timeoutMs))
+        {
+            break;
+        }
     }
 
     if (outStopRequested)

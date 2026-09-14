@@ -140,6 +140,12 @@ public:
     {
     }
 
+    ///true if this layer will provide collision at \p worldPosition that hasn't streamed in yet - sim thread only
+    virtual bool IsCollisionPendingAt(const Vec3f& worldPosition) const
+    {
+        return false;
+    }
+
     HYP_METHOD()
     void AddStreamingObject(const AssetObject* assetObject, const Vec2i& coord);
 

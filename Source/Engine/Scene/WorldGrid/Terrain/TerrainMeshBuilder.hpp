@@ -20,6 +20,8 @@ using TerrainVertex = TVertex<VT_Simple | VT_UV1>;
 
 namespace TerrainMeshHelpers {
 
+static constexpr uint8 MaxTerrainLods = 3;
+
 static constexpr uint32 CalculateLodStride(uint8 lodIndex, uint32 strideMultiplier = 2)
 {
     uint32 stride = 1;
@@ -43,7 +45,7 @@ static constexpr uint8 CalculateMaxLodIndex(uint32 cellSize, uint32 strideMultip
 {
     uint8 lodIndex = 0;
 
-    while (lodIndex + 1 < MaxMeshLods
+    while (lodIndex + 1 < MaxTerrainLods
         && CalculateLodStride(lodIndex + 1, strideMultiplier) < cellSize - 1)
     {
         lodIndex++;

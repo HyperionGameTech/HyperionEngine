@@ -186,7 +186,7 @@
                                         </ItemsControl>
 
                                         <Separator Margin="0,2,0,6" />
-                                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+                                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>

@@ -3851,6 +3851,11 @@ bool ShaderCompiler::RequestShader(
     return true;
 }
 
+bool ShaderCompiler::HasShaderBundle(Name name) const
+{
+    return m_definitions != nullptr && m_definitions->HasShader(name);
+}
+
 bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const
 {
     if (!m_definitions)

@@ -16,6 +16,8 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/Swatch.hpp>
 
+#include <Scene/WorldGrid/WorldGrid.hpp>
+
 #include <Scene/Camera/Camera.hpp>
 
 #include <Scene/Components/PlayerComponent.hpp>
@@ -159,6 +161,18 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
 
     if (!component.physicsHandle)
     {
+        return;
+    }
+
+    if (const Handle<WorldGrid>& worldGrid = entity->GetWorld()->GetWorldGrid(); worldGrid.IsValid() && worldGrid->IsCollisionPendingAt(component.translation))
+    {
+        // hold the character in place until the ground under it has streamed in, otherwise it falls through
+        physicsWorld->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
+
+        outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
+
+        entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
+
         return;
     }
 

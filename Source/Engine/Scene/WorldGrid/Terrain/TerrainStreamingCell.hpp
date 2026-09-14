@@ -15,6 +15,8 @@
 
 #include <Core/Memory/SharedPtr.hpp>
 
+#include <Core/Threading/AtomicVar.hpp>
+
 namespace Hyperion {
 
 class Scene;
@@ -65,6 +67,9 @@ public:
 
     void RebuildPickBVH();
 
+    ///true once the cell's rigid body has been added to the physics world
+    bool HasCollider() const;
+
 protected:
     virtual void OnStreamStart() override final;
 
@@ -76,6 +81,17 @@ protected:
 private:
     ///the layer has been regenerated since this cell was created if this returns true
     bool IsStale() const;
+
+    HYP_FORCE_INLINE uint32 GetCellSize() const
+    {
+        return m_generationLayerInfo.cellSize;
+    }
+
+    ///true if m_cellData has heights usable for this cell's generation state, so no generation is needed
+    bool HasCurrentSavedHeights() const;
+
+    void BeginPendingGeneration();
+    void EndPendingGeneration();
 
     void ReleaseBuildData();
 
@@ -100,8 +116,16 @@ private:
     uint64 m_cellFingerprint = 0;
     uint32 m_generationEpoch = 0;
 
+    ///the layer's info cached as of m_generationEpoch.
+    ///never read the layer's live info, it can change mid-build
+    WorldGridLayerInfo m_generationLayerInfo;
+
     ///sim thread only
     bool m_isRemoved = false;
+
+    ///set while counted in the editor's terrain generation task.
+    ///touched by the streaming manager, streaming worker and sim threads
+    AtomicVar<bool> m_isPendingGeneration { false };
 
     Handle<Node> m_node;
     Handle<Entity> m_entity;

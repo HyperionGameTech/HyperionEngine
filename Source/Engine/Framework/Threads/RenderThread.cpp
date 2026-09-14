@@ -341,6 +341,11 @@ void RenderThread::operator()()
 
     g_renderInitSignal.Signal();
 
+    if (g_shaderManager != nullptr)
+    {
+        g_shaderManager->PreloadShadersFromCacheFile();
+    }
+
     if (!isRenderOnMainThread)
     {
         while (!m_stopRequested.LoadVolatile())

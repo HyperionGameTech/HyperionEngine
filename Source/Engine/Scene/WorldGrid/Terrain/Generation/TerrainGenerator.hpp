@@ -173,7 +173,12 @@ public:
         Array<float>& outHeights,
         Array<Vec3f>& outNormals);
 
-    Array<Vec2i> CollectRegionsForArea(const Vec2f& areaMinXZ, const Vec2f& areaMaxXZ) const;
+    ///appends the erosion regions GeneratePaddedCellHeights samples for the cell (none if erosion is disabled)
+    void CollectRegionsForCell(
+        const Vec2f& cellWorldMinXZ,
+        const Vec2f& scaleXZ,
+        uint32 cellSize,
+        Array<Vec2i, StreamingTempAllocator>& outRegionCoords) const;
 
     bool TryBeginRegionBuild(const Vec2i& regionCoord) const;
     void BuildQueuedRegion(const Vec2i& regionCoord) const;
@@ -200,6 +205,8 @@ private:
     struct ErosionRegion;
     struct ErosionRegionEntry;
 
+    SharedPtr<ErosionRegionEntry> FindOrAddErosionRegionEntry(const Vec2i& regionCoord) const;
+    SharedPtr<const ErosionRegion> EnsureErosionRegionBuilt(ErosionRegionEntry& entry, const Vec2i& regionCoord) const;
     SharedPtr<const ErosionRegion> GetOrBuildErosionRegion(const Vec2i& regionCoord) const;
     SharedPtr<const ErosionRegion> BuildErosionRegion(const Vec2i& regionCoord) const;
 

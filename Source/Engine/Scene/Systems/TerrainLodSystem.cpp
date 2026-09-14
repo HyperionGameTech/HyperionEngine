@@ -10,6 +10,7 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
+#include <Scene/EntityTag.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
 
@@ -17,55 +18,89 @@
 
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 
+#include <Rendering/Mesh.hpp>
+
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Containers/Array.hpp>
 
-#include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/GameState.hpp>
 
 #include <TerrainLodSystem.generated.inl>
 
 namespace Hyperion {
 
-static void CollectLodViewpoints(Array<Vec3f, SceneTempAllocator>& outPositions)
+template <EntityTag CameraTag>
+static bool FindTaggedCameraPosition(const World& world, bool foregroundScenesOnly, Vec3f& outPosition)
 {
-    const Handle<EngineDriver>& engineDriver = EngineDriver::GetInstance();
-
-    if (!engineDriver)
+    for (const Handle<Scene>& scene : world.GetScenes())
     {
-        return;
-    }
-
-    for (const Handle<World>& world : engineDriver->GetWorlds())
-    {
-        if (!world)
+        if (!scene || (foregroundScenesOnly && !(scene->GetSceneFlags() & SceneFlags::FOREGROUND)))
         {
             continue;
         }
 
-        for (const Handle<Scene>& scene : world->GetScenes())
+        EntityManager* entityManager = scene->GetEntityManager();
+
+        if (!entityManager)
         {
-            if (!scene)
+            continue;
+        }
+
+        for (auto [camera, _] : entityManager->GetEntitySet<EntityType<Camera>, TagComponent<CameraTag>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            outPosition = camera->GetWorldTranslation();
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Only the camera actually being looked through drives LOD. Every other camera with a streaming volume (e.g. the player
+// camera sitting in the scene while editing) would otherwise claim the cells nearest to it, and a cell pops whenever its
+// nearest camera changes.
+static void CollectLodViewpoints(const World& world, Array<Vec3f, SceneTempAllocator>& outPositions)
+{
+    Vec3f cameraPosition;
+
+    if (world.GetGameState().IsStopped() && FindTaggedCameraPosition<EntityTag::EditorCamera>(world, false, cameraPosition))
+    {
+        outPositions.PushBack(cameraPosition);
+
+        return;
+    }
+
+    if (FindTaggedCameraPosition<EntityTag::PrimaryCamera>(world, true, cameraPosition))
+    {
+        outPositions.PushBack(cameraPosition);
+
+        return;
+    }
+
+    for (const Handle<Scene>& scene : world.GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        EntityManager* entityManager = scene->GetEntityManager();
+
+        if (!entityManager)
+        {
+            continue;
+        }
+
+        for (auto [camera] : entityManager->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!(camera->GetCameraFlags() & CameraFlags::HasStreamingVolume))
             {
                 continue;
             }
 
-            EntityManager* entityManager = scene->GetEntityManager();
-
-            if (!entityManager)
-            {
-                continue;
-            }
-
-            for (auto [camera] : entityManager->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-            {
-                if (!(camera->GetCameraFlags() & CameraFlags::HasStreamingVolume))
-                {
-                    continue;
-                }
-
-                outPositions.PushBack(camera->GetWorldTranslation());
-            }
+            outPositions.PushBack(camera->GetWorldTranslation());
         }
     }
 }
@@ -92,13 +127,13 @@ static uint8 SelectTerrainLod(const TerrainWorldGridLayer& layer, uint8 lodCount
 
 void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
-    if (EngineGlobals::IsHeadless())
+    if (EngineGlobals::IsHeadless() || !GetWorld())
     {
         return;
     }
 
     Array<Vec3f, SceneTempAllocator> viewpoints;
-    CollectLodViewpoints(viewpoints);
+    CollectLodViewpoints(*GetWorld(), viewpoints);
 
     for (Scene* scene : scenes)
     {
@@ -112,7 +147,13 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 continue;
             }
 
-            const uint8 lodCount = layer->GetEffectiveLodCount();
+            if (!meshComponent.mesh)
+            {
+                continue;
+            }
+
+            // the layer's LOD settings can change after this cell's mesh was built - bands must match the LODs it actually has
+            const uint8 lodCount = meshComponent.mesh->GetMeshDesc().GetNumLods();
 
             if (lodCount <= 1)
             {

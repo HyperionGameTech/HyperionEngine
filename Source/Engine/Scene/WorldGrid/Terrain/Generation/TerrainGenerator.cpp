@@ -74,6 +74,28 @@ static ErosionAxisBlend ComputeErosionAxisBlend(float sampleCoord, const Erosion
     return ErosionAxisBlend { { region, region }, { 1.0f, 0.0f } };
 }
 
+struct ErosionRegionRange
+{
+    int32 minX = 0;
+    int32 maxX = -1;
+    int32 minZ = 0;
+    int32 maxZ = -1;
+};
+
+// every region sampled by a cell's padded heights
+static ErosionRegionRange ComputePaddedCellRegionRange(const ErosionLayout& layout, const Vec2f& cellWorldMinXZ, const Vec2f& scaleXZ, uint32 cellSize)
+{
+    const Vec2f worldCornerA = cellWorldMinXZ - Vec2f(float(TerrainGenerator::CellPadding)) * scaleXZ;
+    const Vec2f worldCornerB = cellWorldMinXZ + Vec2f(float(cellSize + TerrainGenerator::CellPadding - 1)) * scaleXZ;
+
+    return ErosionRegionRange {
+        .minX = ComputeErosionAxisBlend(MathUtil::Min(worldCornerA.x, worldCornerB.x) / layout.spacing, layout).regions[0],
+        .maxX = ComputeErosionAxisBlend(MathUtil::Max(worldCornerA.x, worldCornerB.x) / layout.spacing, layout).regions[1],
+        .minZ = ComputeErosionAxisBlend(MathUtil::Min(worldCornerA.y, worldCornerB.y) / layout.spacing, layout).regions[0],
+        .maxZ = ComputeErosionAxisBlend(MathUtil::Max(worldCornerA.y, worldCornerB.y) / layout.spacing, layout).regions[1]
+    };
+}
+
 HYP_FORCE_INLINE static float CatmullRom(float p0, float p1, float p2, float p3, float t)
 {
     return p1 + 0.5f * t * (p2 - p0 + t * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + t * (3.0f * (p1 - p2) + p3 - p0)));
@@ -124,6 +146,8 @@ struct TerrainGenerator::ErosionRegionEntry
     AtomicVar<uint8> buildQueued { 0 };
     // set once region has been assigned - safe to check without holding buildMutex
     AtomicVar<uint8> built { 0 };
+    // threads building or waiting on region - a queued build skips a claimed region instead of blocking its worker
+    AtomicVar<uint32> numBuildClaims { 0 };
     uint64 lastUse = 0;
 };
 
@@ -319,13 +343,12 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     const ErosionLayout layout = GetErosionLayout(m_params);
 
     // resolve every region the cell touches up front, so sampling doesn't lock per vertex
-    const Vec2f worldCornerA = worldPositionAt(0, 0);
-    const Vec2f worldCornerB = worldPositionAt(paddedSize - 1, paddedSize - 1);
+    const ErosionRegionRange regionRange = ComputePaddedCellRegionRange(layout, cellWorldMinXZ, scaleXZ, cellSize);
 
-    const int32 regionMinX = ComputeErosionAxisBlend(MathUtil::Min(worldCornerA.x, worldCornerB.x) / layout.spacing, layout).regions[0];
-    const int32 regionMaxX = ComputeErosionAxisBlend(MathUtil::Max(worldCornerA.x, worldCornerB.x) / layout.spacing, layout).regions[1];
-    const int32 regionMinZ = ComputeErosionAxisBlend(MathUtil::Min(worldCornerA.y, worldCornerB.y) / layout.spacing, layout).regions[0];
-    const int32 regionMaxZ = ComputeErosionAxisBlend(MathUtil::Max(worldCornerA.y, worldCornerB.y) / layout.spacing, layout).regions[1];
+    const int32 regionMinX = regionRange.minX;
+    const int32 regionMaxX = regionRange.maxX;
+    const int32 regionMinZ = regionRange.minZ;
+    const int32 regionMaxZ = regionRange.maxZ;
 
     const int32 regionsWide = regionMaxX - regionMinX + 1;
     const int32 regionsDeep = regionMaxZ - regionMinZ + 1;
@@ -377,34 +400,22 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     }
 }
 
-Array<Vec2i> TerrainGenerator::CollectRegionsForArea(const Vec2f& areaMinXZ, const Vec2f& areaMaxXZ) const
+void TerrainGenerator::CollectRegionsForCell(const Vec2f& cellWorldMinXZ, const Vec2f& scaleXZ, uint32 cellSize, Array<Vec2i>& outRegionCoords) const
 {
-    Array<Vec2i> regionCoords;
-
     if (m_params.erosionIterations == 0)
     {
-        return regionCoords;
+        return;
     }
 
-    const ErosionLayout layout = GetErosionLayout(m_params);
+    const ErosionRegionRange regionRange = ComputePaddedCellRegionRange(GetErosionLayout(m_params), cellWorldMinXZ, scaleXZ, cellSize);
 
-    // expand by the apron so regions whose blended borders touch the area are included
-    const float apronWorld = float(layout.apron) * layout.spacing;
-
-    const ErosionAxisBlend blendMinX = ComputeErosionAxisBlend((areaMinXZ.x - apronWorld) / layout.spacing, layout);
-    const ErosionAxisBlend blendMaxX = ComputeErosionAxisBlend((areaMaxXZ.x + apronWorld) / layout.spacing, layout);
-    const ErosionAxisBlend blendMinZ = ComputeErosionAxisBlend((areaMinXZ.y - apronWorld) / layout.spacing, layout);
-    const ErosionAxisBlend blendMaxZ = ComputeErosionAxisBlend((areaMaxXZ.y + apronWorld) / layout.spacing, layout);
-
-    for (int32 regionZ = blendMinZ.regions[0]; regionZ <= blendMaxZ.regions[1]; regionZ++)
+    for (int32 regionZ = regionRange.minZ; regionZ <= regionRange.maxZ; regionZ++)
     {
-        for (int32 regionX = blendMinX.regions[0]; regionX <= blendMaxX.regions[1]; regionX++)
+        for (int32 regionX = regionRange.minX; regionX <= regionRange.maxX; regionX++)
         {
-            regionCoords.PushBack(Vec2i(regionX, regionZ));
+            outRegionCoords.PushBack(Vec2i(regionX, regionZ));
         }
     }
-
-    return regionCoords;
 }
 
 bool TerrainGenerator::TryBeginRegionBuild(const Vec2i& regionCoord) const
@@ -451,7 +462,17 @@ void TerrainGenerator::BuildQueuedRegion(const Vec2i& regionCoord) const
 {
     if (!IsCancelled())
     {
-        GetOrBuildErosionRegion(regionCoord);
+        const SharedPtr<ErosionRegionEntry> entry = FindOrAddErosionRegionEntry(regionCoord);
+
+        uint32 expectedClaims = 0;
+
+        // a claimed region is already being built (or awaited) by a thread that will build it if needed
+        if (!entry->built.Get(MemoryOrder::ACQUIRE) && entry->numBuildClaims.CompareExchangeStrong(expectedClaims, uint32(1), MemoryOrder::ACQUIRE_RELEASE))
+        {
+            EnsureErosionRegionBuilt(*entry, regionCoord);
+
+            entry->numBuildClaims.Decrement(1, MemoryOrder::RELEASE);
+        }
     }
 
     {
@@ -466,54 +487,70 @@ void TerrainGenerator::BuildQueuedRegion(const Vec2i& regionCoord) const
     }
 }
 
-SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::GetOrBuildErosionRegion(const Vec2i& regionCoord) const
+SharedPtr<TerrainGenerator::ErosionRegionEntry> TerrainGenerator::FindOrAddErosionRegionEntry(const Vec2i& regionCoord) const
 {
+    Mutex::Guard guard(m_erosionRegionsMutex);
+
     SharedPtr<ErosionRegionEntry> entry;
 
+    auto it = m_erosionRegions.Find(regionCoord);
+
+    if (it == m_erosionRegions.End())
     {
-        Mutex::Guard guard(m_erosionRegionsMutex);
-
-        auto it = m_erosionRegions.Find(regionCoord);
-
-        if (it == m_erosionRegions.End())
+        if (m_erosionRegions.Size() >= MaxCachedErosionRegions)
         {
-            if (m_erosionRegions.Size() >= MaxCachedErosionRegions)
+            // cells hold their own references, so evicting a region in use is safe
+            auto leastRecentIt = m_erosionRegions.Begin();
+
+            for (auto candidateIt = m_erosionRegions.Begin(); candidateIt != m_erosionRegions.End(); ++candidateIt)
             {
-                // cells hold their own references, so evicting a region in use is safe
-                auto leastRecentIt = m_erosionRegions.Begin();
-
-                for (auto candidateIt = m_erosionRegions.Begin(); candidateIt != m_erosionRegions.End(); ++candidateIt)
+                if (candidateIt->second->lastUse < leastRecentIt->second->lastUse)
                 {
-                    if (candidateIt->second->lastUse < leastRecentIt->second->lastUse)
-                    {
-                        leastRecentIt = candidateIt;
-                    }
+                    leastRecentIt = candidateIt;
                 }
-
-                m_erosionRegions.Erase(leastRecentIt);
             }
 
-            entry = MakeShared<ErosionRegionEntry>();
-            m_erosionRegions.Set(regionCoord, entry);
-        }
-        else
-        {
-            entry = it->second;
+            m_erosionRegions.Erase(leastRecentIt);
         }
 
-        entry->lastUse = ++m_erosionRegionUseCounter;
+        entry = MakeShared<ErosionRegionEntry>();
+        m_erosionRegions.Set(regionCoord, entry);
     }
-
-    // concurrent requests for the same region wait here for the first build instead of duplicating it
-    Mutex::Guard buildGuard(entry->buildMutex);
-
-    if (!entry->region)
+    else
     {
-        entry->region = BuildErosionRegion(regionCoord);
-        entry->built.Set(1, MemoryOrder::RELEASE);
+        entry = it->second;
     }
 
-    return entry->region;
+    entry->lastUse = ++m_erosionRegionUseCounter;
+
+    return entry;
+}
+
+SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::EnsureErosionRegionBuilt(ErosionRegionEntry& entry, const Vec2i& regionCoord) const
+{
+    // concurrent requests for the same region wait here for the first build instead of duplicating it
+    Mutex::Guard buildGuard(entry.buildMutex);
+
+    if (!entry.region)
+    {
+        entry.region = BuildErosionRegion(regionCoord);
+        entry.built.Set(1, MemoryOrder::RELEASE);
+    }
+
+    return entry.region;
+}
+
+SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::GetOrBuildErosionRegion(const Vec2i& regionCoord) const
+{
+    const SharedPtr<ErosionRegionEntry> entry = FindOrAddErosionRegionEntry(regionCoord);
+
+    entry->numBuildClaims.Increment(1, MemoryOrder::RELEASE);
+
+    SharedPtr<const ErosionRegion> region = EnsureErosionRegionBuilt(*entry, regionCoord);
+
+    entry->numBuildClaims.Decrement(1, MemoryOrder::RELEASE);
+
+    return region;
 }
 
 SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionRegion(const Vec2i& regionCoord) const

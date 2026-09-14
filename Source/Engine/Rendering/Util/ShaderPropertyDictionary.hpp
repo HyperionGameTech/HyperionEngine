@@ -38,6 +38,9 @@ bool ReadShaderPropertyDictionary(ByteReader& stream);
 ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty);
 
+uint32 GetShaderPropertyCount();
+bool GetShaderPropertyDictionaryHashCode(uint32 propertyIdCount, HashCode& outHashCode);
+
 // ====================
 
 inline void InitShaderPropertyDictionary()
@@ -63,6 +66,16 @@ inline ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
 inline bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty)
 {
     return ShaderPropertyDictionary::GetInstance().GetById(propertyId, outProperty);
+}
+
+inline uint32 GetShaderPropertyCount()
+{
+    return ShaderPropertyDictionary::GetInstance().Count();
+}
+
+inline bool GetShaderPropertyDictionaryHashCode(uint32 propertyIdCount, HashCode& outHashCode)
+{
+    return ShaderPropertyDictionary::GetInstance().GetHashCodeForIds(propertyIdCount, outHashCode);
 }
 
 } // namespace Hyperion

@@ -37,6 +37,9 @@ struct TerrainGenerationState
     SharedPtr<TerrainGenerator> generator;
     uint64 cellFingerprint = 0;
     uint32 epoch = 0;
+
+    ///taken together with the epoch - cell geometry (size, scale, offset) changes bump the epoch
+    WorldGridLayerInfo layerInfo;
 };
 
 HYP_CLASS()
@@ -99,10 +102,12 @@ public:
 
     ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
     bool AreCellHeightsCurrent(const TerrainCellData& cellData) const;
-    bool AreCellHeightsCurrent(const TerrainCellData& cellData, uint64 cellFingerprint) const;
+    ///thread safe when \p cellSize and \p cellFingerprint come from a GetGenerationState() snapshot
+    static bool AreCellHeightsCurrent(const TerrainCellData& cellData, uint32 cellSize, uint64 cellFingerprint);
 
     void GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights) const;
-    void GenerateCellPaddedHeights(const TerrainGenerator& generator, const Vec2i& coord, Array<float>& outPaddedHeights) const;
+    ///thread safe when \p generator and \p layerInfo come from a GetGenerationState() snapshot
+    static void GenerateCellPaddedHeights(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo, const Vec2i& coord, Array<float>& outPaddedHeights);
 
     ///saves freshly generated heights into the cell's data, creating it if needed; leaves current heights untouched
     Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights);
@@ -116,6 +121,8 @@ public:
 
     float SampleHeightAt(const Vec2f& worldXZ) const;
     bool RaycastSurface(const Ray& ray, Vec3f& outHitPoint) const;
+
+    virtual bool IsCollisionPendingAt(const Vec3f& worldPosition) const override;
 
     void EndBrushStroke();
 
@@ -167,12 +174,13 @@ protected:
     virtual void StreamPrefetch(Span<const Vec2i> cellCoords) override;
 
     TerrainGenerationParams MakeGenerationParams() const;
-    uint64 ComputeCellFingerprint(const TerrainGenerator& generator) const;
-
-    void UpdateCellFingerprint();
+    static uint64 ComputeCellFingerprint(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo);
 
     ///swaps in a freshly configured generator and bumps the epoch so work started with the old one is discarded
     void ReplaceGenerator();
+
+    ///call after bumping the epoch, so in-flight work from the previous epoch can't repopulate the caches
+    void ClearHeightCaches();
 
     void DetachLoadedCells();
     void DiscardAllCellData();
@@ -181,19 +189,24 @@ protected:
     Handle<Scene> m_scene;
     Handle<Material> m_material;
 
-    HYP_FIELD(Property = "LodCount", Editor = true)
-    uint8 m_lodCount = 4;
+    HYP_FIELD(Property = "LodCount", Editor = true,
+        Description = "Number of mesh LODs per cell")
+    uint8 m_lodCount = 3;
 
-    HYP_FIELD(Property = "LodStrideMultiplier", Editor = true)
+    HYP_FIELD(Property = "LodStrideMultiplier", Editor = true,
+        Description = "How much sparser each LOD's vertex grid is than the previous one")
     uint32 m_lodStrideMultiplier = 4;
 
-    HYP_FIELD(Property = "LodBaseRange", Editor = true)
+    HYP_FIELD(Property = "LodBaseRange", Editor = true,
+        Description = "World-space distance from the camera where full-resolution cells finish morphing into LOD 1.")
     float m_lodBaseRange = 96.0f;
 
-    HYP_FIELD(Property = "LodRangeMultiplier", Editor = true)
+    HYP_FIELD(Property = "LodRangeMultiplier", Editor = true,
+        Description = "Each LOD's range is the previous LOD's range times this value.")
     float m_lodRangeMultiplier = 2.0f;
 
-    HYP_FIELD(Property = "LodMorphStartRatio", Editor = true)
+    HYP_FIELD(Property = "LodMorphStartRatio", Editor = true,
+        Description = "Fraction of each LOD's distance band spent at full detail before it starts morphing into the next LOD. Lower values == longer, smoother transitions")
     float m_lodMorphStartRatio = 0.7f;
     
     ///written on the sim thread only, under m_generationStateMutex
