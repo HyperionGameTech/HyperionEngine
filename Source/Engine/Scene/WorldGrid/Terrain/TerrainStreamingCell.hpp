@@ -213,6 +213,9 @@ private:
     ///(cellSize + 2 * CellPadding)^2 - patches, the collider and the normal map are all built from these
     Array<float> m_paddedHeights;
 
+    ///cellSize^2 TerrainErosionMasks, loaded or generated with m_paddedHeights. Empty for cells saved without them
+    Array<ubyte> m_erosionMasks;
+
     TerrainQuadtreeLayout m_quadtreeLayout;
     Array<float> m_nodeMinHeights;
     Array<float> m_nodeMaxHeights;

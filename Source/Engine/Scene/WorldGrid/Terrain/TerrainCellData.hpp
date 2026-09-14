@@ -22,6 +22,7 @@ class ENGINE_API TerrainCellData : public AssetObject
 public:
     static constexpr const char* HeightsBlobMagic = "TCD";
     static constexpr const char* SplatMapBlobMagic = "SPLT";
+    static constexpr const char* ErosionMasksBlobMagic = "EMSK";
 
     TerrainCellData();
     explicit TerrainCellData(Name name, const Vec2i& coord = Vec2i::Zero(), const Vec3u& extent = Vec3u::Zero());
@@ -74,6 +75,16 @@ public:
 
     bool EnsureSplatMapAllocated(uint32 numVertices);
 
+    ///cellSize^2 TerrainErosionMasks saved with generated heights. Kept as generated when the heights are sculpted
+    bool HasErosionMasks() const
+    {
+        return m_erosionMasks.size != 0;
+    }
+
+    void SetErosionMasks(ConstByteView erosionMasks);
+
+    ConstByteView GetErosionMasks() const;
+
 protected:
     virtual void PageBlobData() override;
     virtual void UnpageBlobData() override;
@@ -84,6 +95,7 @@ protected:
     {
         outReferences.EmplaceBack(HeightsBlobMagic, 1, &m_heights);
         outReferences.EmplaceBack(SplatMapBlobMagic, 1, &m_splatMap);
+        outReferences.EmplaceBack(ErosionMasksBlobMagic, 1, &m_erosionMasks);
     }
 
 private:
@@ -92,6 +104,9 @@ private:
 
     HYP_FIELD(Property = "SplatMap", Serialize)
     BlobDataReference m_splatMap;
+
+    HYP_FIELD(Property = "ErosionMasks", Serialize)
+    BlobDataReference m_erosionMasks;
 };
 
 } // namespace Hyperion

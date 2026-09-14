@@ -108,12 +108,17 @@ public:
     ///thread safe when \p cellSize and \p cellFingerprint come from a GetGenerationState() snapshot
     static bool AreCellHeightsCurrent(const TerrainCellData& cellData, uint32 cellSize, uint64 cellFingerprint);
 
-    void GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights) const;
+    void GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights, Array<ubyte>* outErosionMasks = nullptr) const;
     ///thread safe when \p generator and \p layerInfo come from a GetGenerationState() snapshot
-    static void GenerateCellPaddedHeights(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo, const Vec2i& coord, Array<float>& outPaddedHeights);
+    static void GenerateCellPaddedHeights(
+        const TerrainGenerator& generator,
+        const WorldGridLayerInfo& layerInfo,
+        const Vec2i& coord,
+        Array<float>& outPaddedHeights,
+        Array<ubyte>* outErosionMasks = nullptr);
 
-    ///saves freshly generated heights into the cell's data, creating it if needed; leaves current heights untouched
-    Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights);
+    ///saves freshly generated heights and their erosion masks into the cell's data, creating it if needed; leaves current heights untouched
+    Handle<TerrainCellData> StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights, Span<const ubyte> erosionMasks);
 
     HYP_METHOD()
     void ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise);

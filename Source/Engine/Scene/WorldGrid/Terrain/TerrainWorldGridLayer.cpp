@@ -452,7 +452,8 @@ void TerrainWorldGridLayer::DeletePersistedCellData(const AssetPath& assetPath)
     const FilePath persistedFiles[] = {
         registry->GetManifestPath(assetPath),
         bucketDirectory / (assetName + "." + TerrainCellData::HeightsBlobMagic + ".raw.blob"),
-        bucketDirectory / (assetName + "." + TerrainCellData::SplatMapBlobMagic + ".raw.blob")
+        bucketDirectory / (assetName + "." + TerrainCellData::SplatMapBlobMagic + ".raw.blob"),
+        bucketDirectory / (assetName + "." + TerrainCellData::ErosionMasksBlobMagic + ".raw.blob")
     };
 
     for (const FilePath& persistedFile : persistedFiles)
@@ -643,6 +644,7 @@ void TerrainWorldGridLayer::GenerateAll()
 #endif
 
     Array<float> paddedHeights;
+    Array<ubyte> erosionMasks;
 
     bool wasCancelled = false;
 
@@ -667,8 +669,8 @@ void TerrainWorldGridLayer::GenerateAll()
             }
 #endif
 
-            GenerateCellPaddedHeights(coord, paddedHeights);
-            StoreGeneratedCellHeights(coord, paddedHeights);
+            GenerateCellPaddedHeights(coord, paddedHeights, &erosionMasks);
+            StoreGeneratedCellHeights(coord, paddedHeights, erosionMasks);
 
 #ifdef HYP_EDITOR
             if (editorTask.IsValid())
@@ -1052,14 +1054,19 @@ bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellDat
         && (cellData.isSculpted || cellData.generatorFingerprint == cellFingerprint);
 }
 
-void TerrainWorldGridLayer::GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights) const
+void TerrainWorldGridLayer::GenerateCellPaddedHeights(const Vec2i& coord, Array<float>& outPaddedHeights, Array<ubyte>* outErosionMasks) const
 {
     AssertDebug(m_generator != nullptr);
 
-    GenerateCellPaddedHeights(*m_generator, m_layerInfo, coord, outPaddedHeights);
+    GenerateCellPaddedHeights(*m_generator, m_layerInfo, coord, outPaddedHeights, outErosionMasks);
 }
 
-void TerrainWorldGridLayer::GenerateCellPaddedHeights(const TerrainGenerator& generator, const WorldGridLayerInfo& layerInfo, const Vec2i& coord, Array<float>& outPaddedHeights)
+void TerrainWorldGridLayer::GenerateCellPaddedHeights(
+    const TerrainGenerator& generator,
+    const WorldGridLayerInfo& layerInfo,
+    const Vec2i& coord,
+    Array<float>& outPaddedHeights,
+    Array<ubyte>* outErosionMasks)
 {
     HYP_SCOPE;
 
@@ -1069,10 +1076,11 @@ void TerrainWorldGridLayer::GenerateCellPaddedHeights(const TerrainGenerator& ge
         Vec2f(cellBoundsMin.x, cellBoundsMin.z),
         Vec2f(layerInfo.scale.x, layerInfo.scale.z),
         layerInfo.cellSize,
-        outPaddedHeights);
+        outPaddedHeights,
+        outErosionMasks);
 }
 
-Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights)
+Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const Vec2i& coord, Span<const float> paddedHeights, Span<const ubyte> erosionMasks)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -1111,6 +1119,7 @@ Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const V
         cellData->generatorFingerprint = m_cellFingerprint;
         cellData->isSculpted = false;
         cellData->SetHeights(paddedHeights);
+        cellData->SetErosionMasks(ConstByteView(erosionMasks.Data(), erosionMasks.Size()));
     }
 
     if (isNewCellData)
@@ -1198,10 +1207,11 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
                 && cellData->EnsureWritableHeights();
 
             Array<float> generatedHeights;
+            Array<ubyte> generatedErosionMasks;
 
             if (!hasCurrentHeights)
             {
-                GenerateCellPaddedHeights(coord, generatedHeights);
+                GenerateCellPaddedHeights(coord, generatedHeights, &generatedErosionMasks);
             }
 
             bool anyModified = false;
@@ -1291,6 +1301,7 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
                 cellData->generatorFingerprint = m_cellFingerprint;
                 cellData->isSculpted = true;
                 cellData->SetHeights(generatedHeights);
+                cellData->SetErosionMasks(ConstByteView(generatedErosionMasks.Data(), generatedErosionMasks.Size()));
             }
 
             if (isNewCellData)
@@ -1408,27 +1419,32 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
                         const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
                         Array<float> generatedHeights;
+                        Array<ubyte> generatedErosionMasks;
+
                         Span<const float> paddedHeights;
+                        Span<const ubyte> erosionMasks;
 
                         if (!isNewCellData && AreCellHeightsCurrent(*cellData))
                         {
-                            paddedHeights = static_cast<const TerrainCellData&>(*cellData).GetHeights();
+                            const TerrainCellData& constCellData = *cellData;
+
+                            paddedHeights = constCellData.GetHeights();
+
+                            const ConstByteView savedErosionMasks = constCellData.GetErosionMasks();
+                            erosionMasks = Span<const ubyte>(savedErosionMasks.Data(), savedErosionMasks.Size());
                         }
 
                         if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
                         {
-                            GenerateCellPaddedHeights(coord, generatedHeights);
+                            GenerateCellPaddedHeights(coord, generatedHeights, &generatedErosionMasks);
+
                             paddedHeights = generatedHeights.ToSpan();
+                            erosionMasks = generatedErosionMasks.ToSpan();
                         }
 
-                        Array<float> heights;
-                        Array<Vec3f> normals;
-
-                        TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, normals);
-
                         m_generator->SynthesizeSplatWeights(
-                            heights,
-                            normals,
+                            paddedHeights,
+                            erosionMasks,
                             cellWorldMinXZ,
                             Vec2f(layerInfo.scale.x, layerInfo.scale.z),
                             cellSize,

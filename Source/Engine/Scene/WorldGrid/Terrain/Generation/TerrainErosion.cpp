@@ -12,6 +12,7 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Memory/Memory.hpp>
+#include <Core/Profiling/ProfileScope.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -37,11 +38,43 @@ HYP_FORCE_INLINE bool FloodEntryGreater(const FloodEntry& a, const FloodEntry& b
 
 } // namespace
 
-void TerrainErodeHeightfield(Span<float> heights, uint32 size, int32 originX, int32 originZ, const TerrainErosionSettings& settings)
+void TerrainErosionMasks::FillNeutral(Span<ubyte> outMasks)
+{
+    for (size_t sampleIndex = 0; sampleIndex + NumChannels <= outMasks.Size(); sampleIndex += NumChannels)
+    {
+        outMasks[sampleIndex + FlowChannel] = 0;
+        outMasks[sampleIndex + IncisionChannel] = 0;
+        outMasks[sampleIndex + DepositionChannel] = 0;
+        outMasks[sampleIndex + ConcavityChannel] = 128;
+    }
+}
+
+void TerrainErodeHeightfield(
+    Span<float> heights,
+    uint32 size,
+    int32 originX,
+    int32 originZ,
+    const TerrainErosionSettings& settings,
+    const TerrainErosionOutputs& outputs)
 {
     const size_t count = size_t(size) * size_t(size);
 
     Assert(heights.Size() == count, "Heightfield size mismatch");
+    const bool outputUpstreamSamples = outputs.upstreamSamples.Size() != 0;
+    const bool outputDepositedDepth = outputs.depositedDepth.Size() != 0;
+
+    Assert(!outputUpstreamSamples || outputs.upstreamSamples.Size() == count, "Upstream samples size mismatch");
+    Assert(!outputDepositedDepth || outputs.depositedDepth.Size() == count, "Deposited depth size mismatch");
+
+    for (size_t i = 0; i < outputs.upstreamSamples.Size(); i++)
+    {
+        outputs.upstreamSamples[i] = 1.0f;
+    }
+
+    for (size_t i = 0; i < outputs.depositedDepth.Size(); i++)
+    {
+        outputs.depositedDepth[i] = 0.0f;
+    }
 
     if (size < 3 || settings.iterations == 0)
     {
@@ -258,7 +291,139 @@ void TerrainErodeHeightfield(Span<float> heights, uint32 size, int32 originX, in
                 }
 
                 heights[index] = height + change;
+
+                if (outputDepositedDepth && change > 0.0f)
+                {
+                    outputs.depositedDepth[index] += change;
+                }
             }
+        }
+    }
+
+    if (outputUpstreamSamples)
+    {
+        for (size_t i = 0; i < count; i++)
+        {
+            outputs.upstreamSamples[i] = drainageArea[i] / cellArea;
+        }
+    }
+}
+
+// mean of values within radius (clamped at the edges), from a summed area table
+static void BoxBlurHeightfield(Span<const float> values, uint32 size, int32 radius, Array<float>& outBlurred)
+{
+    const int32 sizeSigned = int32(size);
+    const size_t tablePitch = size_t(size) + 1;
+
+    Array<double> summedArea;
+    summedArea.Resize(tablePitch * tablePitch);
+    Memory::Zero(summedArea.Data(), summedArea.Size() * sizeof(double));
+
+    for (int32 z = 0; z < sizeSigned; z++)
+    {
+        double rowSum = 0.0;
+
+        for (int32 x = 0; x < sizeSigned; x++)
+        {
+            rowSum += double(values[size_t(z) * size + size_t(x)]);
+
+            summedArea[size_t(z + 1) * tablePitch + size_t(x + 1)] = summedArea[size_t(z) * tablePitch + size_t(x + 1)] + rowSum;
+        }
+    }
+
+    outBlurred.Resize(size_t(size) * size_t(size));
+
+    for (int32 z = 0; z < sizeSigned; z++)
+    {
+        const int32 minZ = MathUtil::Max(z - radius, 0);
+        const int32 maxZ = MathUtil::Min(z + radius, sizeSigned - 1);
+
+        for (int32 x = 0; x < sizeSigned; x++)
+        {
+            const int32 minX = MathUtil::Max(x - radius, 0);
+            const int32 maxX = MathUtil::Min(x + radius, sizeSigned - 1);
+
+            const double sum = summedArea[size_t(maxZ + 1) * tablePitch + size_t(maxX + 1)]
+                - summedArea[size_t(minZ) * tablePitch + size_t(maxX + 1)]
+                - summedArea[size_t(maxZ + 1) * tablePitch + size_t(minX)]
+                + summedArea[size_t(minZ) * tablePitch + size_t(minX)];
+
+            const double sampleCount = double((maxX - minX + 1) * (maxZ - minZ + 1));
+
+            outBlurred[size_t(z) * size + size_t(x)] = float(sum / sampleCount);
+        }
+    }
+}
+
+void TerrainBuildErosionMasks(
+    Span<const float> baseHeights,
+    Span<const float> erodedHeights,
+    Span<const float> upstreamSamples,
+    Span<const float> depositedDepth,
+    uint32 size,
+    float spacing,
+    Span<ubyte> outMasks)
+{
+    HYP_SCOPE;
+
+    const size_t count = size_t(size) * size_t(size);
+
+    Assert(baseHeights.Size() == count && erodedHeights.Size() == count, "Heightfield size mismatch");
+    Assert(upstreamSamples.Size() == count && depositedDepth.Size() == count, "Erosion output size mismatch");
+    Assert(outMasks.Size() == count * TerrainErosionMasks::NumChannels, "Erosion masks size mismatch");
+
+    const int32 sizeSigned = int32(size);
+
+    // stream power lowers the whole region toward its fixed border, so only erosion deeper than its surroundings marks a gully
+    Array<float> carvedDepth;
+    carvedDepth.Resize(count);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        carvedDepth[i] = MathUtil::Max(baseHeights[i] - erodedHeights[i], 0.0f);
+    }
+
+    Array<float> surroundingCarvedDepth;
+    BoxBlurHeightfield(carvedDepth, size, TerrainErosionMasks::IncisionRadius, surroundingCarvedDepth);
+
+    const auto erodedHeightAt = [&](int32 x, int32 z) -> float
+    {
+        return erodedHeights[size_t(MathUtil::Clamp(z, 0, sizeSigned - 1)) * size + size_t(MathUtil::Clamp(x, 0, sizeSigned - 1))];
+    };
+
+    const int32 ringRadius = TerrainErosionMasks::ConcavityRadius;
+    const float ringDistance = float(ringRadius) * spacing;
+
+    const auto toByte = [](float value) -> ubyte
+    {
+        return ubyte(value * 255.0f + 0.5f);
+    };
+
+    for (int32 z = 0; z < sizeSigned; z++)
+    {
+        for (int32 x = 0; x < sizeSigned; x++)
+        {
+            const size_t index = size_t(z) * size + size_t(x);
+
+            const float ringMean = (erodedHeightAt(x - ringRadius, z - ringRadius)
+                + erodedHeightAt(x, z - ringRadius)
+                + erodedHeightAt(x + ringRadius, z - ringRadius)
+                + erodedHeightAt(x - ringRadius, z)
+                + erodedHeightAt(x + ringRadius, z)
+                + erodedHeightAt(x - ringRadius, z + ringRadius)
+                + erodedHeightAt(x, z + ringRadius)
+                + erodedHeightAt(x + ringRadius, z + ringRadius))
+                / 8.0f;
+
+            const float concavity = (ringMean - erodedHeights[index]) / ringDistance;
+            const float incision = carvedDepth[index] - surroundingCarvedDepth[index];
+
+            ubyte* masks = outMasks.Data() + index * TerrainErosionMasks::NumChannels;
+
+            masks[TerrainErosionMasks::FlowChannel] = toByte(TerrainErosionMasks::EncodeFlowLog2(std::log2(MathUtil::Max(upstreamSamples[index], 1.0f))));
+            masks[TerrainErosionMasks::IncisionChannel] = toByte(TerrainErosionMasks::EncodeDepth(incision));
+            masks[TerrainErosionMasks::DepositionChannel] = toByte(TerrainErosionMasks::EncodeDepth(depositedDepth[index]));
+            masks[TerrainErosionMasks::ConcavityChannel] = toByte(TerrainErosionMasks::EncodeConcavity(concavity));
         }
     }
 }

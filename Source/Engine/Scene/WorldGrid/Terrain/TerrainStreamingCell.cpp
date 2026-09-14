@@ -9,6 +9,7 @@
 #include <Scene/WorldGrid/Terrain/TerrainStreamingCell.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainCellData.hpp>
+#include <Scene/WorldGrid/Terrain/Generation/TerrainErosion.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
 
@@ -240,13 +241,21 @@ static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 c
 }
 
 ///world-space normals, row-flipped like the splat map so Terrain.hlsl samples both with the same texcoord
-static void PrepareNormalMapBytes(Span<const float> paddedHeights, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
+static void PrepareNormalMapBytes(Span<const float> paddedHeights, Span<const ubyte> erosionMasks, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
 {
     const size_t texelCount = size_t(cellSize) * size_t(cellSize);
+    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
+
+    const bool hasErosionMasks = erosionMasks.Size() == texelCount * TerrainErosionMasks::NumChannels;
 
     Array<float> heights;
     Array<Vec3f> localNormals;
     TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, localNormals);
+
+    const auto paddedHeightAt = [&](int32 x, int32 z) -> float
+    {
+        return paddedHeights[size_t(z + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(x + int32(TerrainGenerator::CellPadding))];
+    };
 
     Array<ubyte> normalBytes;
     normalBytes.Resize(texelCount * 4);
@@ -256,16 +265,37 @@ static void PrepareNormalMapBytes(Span<const float> paddedHeights, uint32 cellSi
         return ubyte(MathUtil::Clamp(value * 0.5f + 0.5f, 0.0f, 1.0f) * 255.0f + 0.5f);
     };
 
-    for (size_t texelIndex = 0; texelIndex < texelCount; texelIndex++)
-    {
-        // grid normals are in the cell's local (unscaled) space
-        const Vec3f localNormal = localNormals[texelIndex];
-        const Vec3f worldNormal = Vec3f(localNormal.x / scale.x, localNormal.y / scale.y, localNormal.z / scale.z).Normalized();
+    const float sampleSpacing = MathUtil::Max((scale.x + scale.z) * 0.5f, 0.0001f);
 
-        normalBytes[texelIndex * 4] = encodeUnorm(worldNormal.x);
-        normalBytes[texelIndex * 4 + 1] = encodeUnorm(worldNormal.y);
-        normalBytes[texelIndex * 4 + 2] = encodeUnorm(worldNormal.z);
-        normalBytes[texelIndex * 4 + 3] = 255;
+    for (uint32 z = 0; z < cellSize; z++)
+    {
+        for (uint32 x = 0; x < cellSize; x++)
+        {
+            const size_t texelIndex = size_t(z) * cellSize + x;
+
+            // grid normals are in the cell's local (unscaled) space
+            const Vec3f localNormal = localNormals[texelIndex];
+            const Vec3f worldNormal = Vec3f(localNormal.x / scale.x, localNormal.y / scale.y, localNormal.z / scale.z).Normalized();
+
+            // sculpted detail the erosion masks never saw still reads as hollows and bumps
+            const float neighborMean = (paddedHeightAt(int32(x) - 1, int32(z))
+                + paddedHeightAt(int32(x) + 1, int32(z))
+                + paddedHeightAt(int32(x), int32(z) - 1)
+                + paddedHeightAt(int32(x), int32(z) + 1))
+                * 0.25f;
+
+            float concavity = (neighborMean - heights[texelIndex]) / sampleSpacing;
+
+            if (hasErosionMasks)
+            {
+                concavity += TerrainErosionMasks::DecodeConcavity(erosionMasks[texelIndex * TerrainErosionMasks::NumChannels + TerrainErosionMasks::ConcavityChannel]);
+            }
+
+            normalBytes[texelIndex * 4] = encodeUnorm(worldNormal.x);
+            normalBytes[texelIndex * 4 + 1] = encodeUnorm(worldNormal.y);
+            normalBytes[texelIndex * 4 + 2] = encodeUnorm(worldNormal.z);
+            normalBytes[texelIndex * 4 + 3] = ubyte(TerrainErosionMasks::EncodeConcavity(concavity) * 255.0f + 0.5f);
+        }
     }
 
     FlipSplatRowsForUpload(cellSize, normalBytes, outUploadBytes);
@@ -313,6 +343,7 @@ static bool PrepareAutoSplatBytes(
     const TerrainGenerator& generator,
     const StreamingCellInfo& cellInfo,
     Span<const float> paddedHeights,
+    Span<const ubyte> erosionMasks,
     Array<ubyte>& outUploadBytes)
 {
     const uint32 cellSize = cellInfo.extent.x;
@@ -323,16 +354,12 @@ static bool PrepareAutoSplatBytes(
         return false;
     }
 
-    Array<float> heights;
-    Array<Vec3f> normals;
-    TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, normals);
-
     Array<ubyte> splatWeights;
     splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
 
     generator.SynthesizeSplatWeights(
-        heights,
-        normals,
+        paddedHeights,
+        erosionMasks,
         Vec2f(cellInfo.bounds.min.x, cellInfo.bounds.min.z),
         Vec2f(cellInfo.scale.x, cellInfo.scale.z),
         cellSize,
@@ -502,6 +529,19 @@ bool TerrainStreamingCell::LoadOrGeneratePaddedHeights()
             m_paddedHeights.Resize(savedHeights.Size());
             Memory::Copy(m_paddedHeights.Data(), savedHeights.Data(), savedHeights.Size() * sizeof(float));
 
+            // cells sculpted before erosion masks were saved have none
+            const ConstByteView savedErosionMasks = cellData.GetErosionMasks();
+
+            if (savedErosionMasks.Size() == size_t(cellSize) * size_t(cellSize) * TerrainErosionMasks::NumChannels)
+            {
+                m_erosionMasks.Resize(savedErosionMasks.Size());
+                Memory::Copy(m_erosionMasks.Data(), savedErosionMasks.Data(), savedErosionMasks.Size());
+            }
+            else
+            {
+                m_erosionMasks.Clear();
+            }
+
             return false;
         }
 
@@ -525,7 +565,7 @@ bool TerrainStreamingCell::LoadOrGeneratePaddedHeights()
         }
     }
 
-    TerrainWorldGridLayer::GenerateCellPaddedHeights(*m_generator, m_generationLayerInfo, m_cellInfo.coord, m_paddedHeights);
+    TerrainWorldGridLayer::GenerateCellPaddedHeights(*m_generator, m_generationLayerInfo, m_cellInfo.coord, m_paddedHeights, &m_erosionMasks);
 
     return true;
 }
@@ -559,7 +599,7 @@ void TerrainStreamingCell::OnStreamStart()
     ResetQuadtree();
     BuildInitialPatchMeshData();
 
-    PrepareNormalMapBytes(m_paddedHeights, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
+    PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
 
     // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
@@ -574,7 +614,7 @@ void TerrainStreamingCell::OnStreamStart()
 
     if (m_generator->GetParams().autoPaintSplats)
     {
-        PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_splatUploadBytes);
+        PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, m_splatUploadBytes);
     }
 }
 
@@ -593,6 +633,7 @@ void TerrainStreamingCell::OnLoaded()
         ReleaseBuildData();
 
         m_paddedHeights = Array<float>();
+        m_erosionMasks = Array<ubyte>();
 
         return;
     }
@@ -600,7 +641,7 @@ void TerrainStreamingCell::OnLoaded()
     if (m_hasGeneratedHeights)
     {
 #ifdef HYP_EDITOR
-        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights);
+        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights, m_erosionMasks);
 #endif
 
         m_hasGeneratedHeights = false;
@@ -760,6 +801,7 @@ void TerrainStreamingCell::OnRemoved()
 
     m_collisionShape.Reset();
     m_paddedHeights = Array<float>();
+    m_erosionMasks = Array<ubyte>();
 }
 
 void TerrainStreamingCell::DetachFromScene()
@@ -834,7 +876,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
 
     Array<ubyte> splatUploadBytes;
 
-    if (!PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, splatUploadBytes))
+    if (!PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, splatUploadBytes))
     {
         return;
     }
@@ -885,7 +927,7 @@ void TerrainStreamingCell::RefreshNormalMap()
     const uint32 cellSize = GetCellSize();
 
     Array<ubyte> normalMapBytes;
-    PrepareNormalMapBytes(m_paddedHeights, cellSize, m_cellInfo.scale, normalMapBytes);
+    PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, normalMapBytes);
 
     ApplyNormalMapTexture(CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, normalMapBytes));
 }
@@ -945,7 +987,7 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     if (LoadOrGeneratePaddedHeights())
     {
 #ifdef HYP_EDITOR
-        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights);
+        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights, m_erosionMasks);
 #endif
     }
 

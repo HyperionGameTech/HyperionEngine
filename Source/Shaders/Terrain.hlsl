@@ -41,7 +41,17 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 #define TERRAIN_ROUGHNESS_SLOPE_STRENGTH 0.15
 
 #define TERRAIN_PACKED_AO_STRENGTH 1.0
-#define TERRAIN_HEIGHT_BLEND_CONTRAST 0.6
+// a layer's height rides on its splat weight - only layers within this depth of the tallest one show through
+#define TERRAIN_HEIGHT_BLEND_DEPTH 0.1
+// how far a layer's height map can lift it over layers with more splat weight
+#define TERRAIN_HEIGHT_BLEND_STRENGTH 1.0
+// height used for layers without a height map
+#define TERRAIN_DEFAULT_LAYER_HEIGHT 0.5
+
+// concavity (normal map alpha) - erosion hollows are darker and duller, ridges catch the light
+#define TERRAIN_HOLLOW_DARKEN 0.35
+#define TERRAIN_HOLLOW_DESATURATE 0.3
+#define TERRAIN_RIDGE_LIGHTEN 0.15
 
 // world units at height 0; heights are normalized to 0..1 at cook time
 #define TERRAIN_LAYER0_PARALLAX_DEPTH 0.12
@@ -384,9 +394,15 @@ PSOutput PSMain(PSInput input)
     // full resolution normals per cell, so shading doesn't change when the mesh LOD underneath it does
     float3 N;
 
+    // -1 ridge to 1 hollow
+    float concavity = 0.0;
+
     if (HAS_TEXTURE(material, TerrainNormalMap))
     {
-        N = normalize(SAMPLE_TEXTURE_2D(texture_sampler, GET_TEXTURE(material, TerrainNormalMap), input.texcoord0).xyz * 2.0 - 1.0);
+        const float4 normal_map_sample = SAMPLE_TEXTURE_2D(texture_sampler, GET_TEXTURE(material, TerrainNormalMap), input.texcoord0);
+
+        N = normalize(normal_map_sample.xyz * 2.0 - 1.0);
+        concavity = normal_map_sample.a * 2.0 - 1.0;
     }
     else
     {
@@ -444,14 +460,25 @@ PSOutput PSMain(PSInput input)
 
     const float3 detail_position = P + parallax_offset;
 
+    // stones poke out of the grass around them instead of fading into it; layers with no weight never show
+    float4 layer_heights = float4(-1.0, -1.0, -1.0, -1.0);
+    float4 layer_detail_heights = float4(TERRAIN_DEFAULT_LAYER_HEIGHT, TERRAIN_DEFAULT_LAYER_HEIGHT, TERRAIN_DEFAULT_LAYER_HEIGHT, TERRAIN_DEFAULT_LAYER_HEIGHT);
+
     if (weights.x > 0.001 && HAS_TEXTURE(material, TerrainNormal0))
-        weights.x *= lerp(1.0, SampleTerrainLayerHeight(0, detail_position, position_ddx, position_ddy, blending), TERRAIN_HEIGHT_BLEND_CONTRAST);
+        layer_detail_heights.x = SampleTerrainLayerHeight(0, detail_position, position_ddx, position_ddy, blending);
     if (weights.y > 0.001 && HAS_TEXTURE(material, TerrainNormal1))
-        weights.y *= lerp(1.0, SampleTerrainLayerHeight(1, detail_position, position_ddx, position_ddy, blending), TERRAIN_HEIGHT_BLEND_CONTRAST);
+        layer_detail_heights.y = SampleTerrainLayerHeight(1, detail_position, position_ddx, position_ddy, blending);
     if (weights.z > 0.001 && HAS_TEXTURE(material, TerrainNormal2))
-        weights.z *= lerp(1.0, SampleTerrainLayerHeight(2, detail_position, position_ddx, position_ddy, blending), TERRAIN_HEIGHT_BLEND_CONTRAST);
+        layer_detail_heights.z = SampleTerrainLayerHeight(2, detail_position, position_ddx, position_ddy, blending);
     if (weights.w > 0.001 && HAS_TEXTURE(material, TerrainNormal3))
-        weights.w *= lerp(1.0, SampleTerrainLayerHeight(3, detail_position, position_ddx, position_ddy, blending), TERRAIN_HEIGHT_BLEND_CONTRAST);
+        layer_detail_heights.w = SampleTerrainLayerHeight(3, detail_position, position_ddx, position_ddy, blending);
+
+    const float4 has_weight = step(0.001, weights);
+    layer_heights = lerp(layer_heights, weights + layer_detail_heights * TERRAIN_HEIGHT_BLEND_STRENGTH, has_weight);
+
+    const float blend_threshold = max(max(layer_heights.x, layer_heights.y), max(layer_heights.z, layer_heights.w)) - TERRAIN_HEIGHT_BLEND_DEPTH;
+
+    weights = max(layer_heights - blend_threshold, 0.0) * has_weight;
 
     const float total_weight = weights.x + weights.y + weights.z + weights.w;
 
@@ -541,6 +568,14 @@ PSOutput PSMain(PSInput input)
     //     albedo *= lerp(1.0, packed_ao, TERRAIN_PACKED_AO_STRENGTH);
 
     albedo *= lerp(1.0 - TERRAIN_MACRO_STRENGTH, 1.0 + TERRAIN_MACRO_STRENGTH, macro_noise);
+
+    const float hollow = saturate(concavity);
+    const float ridge = saturate(-concavity);
+
+    const float albedo_luminance = dot(albedo, float3(0.2126, 0.7152, 0.0722));
+
+    albedo = lerp(albedo, float3(albedo_luminance, albedo_luminance, albedo_luminance), hollow * TERRAIN_HOLLOW_DESATURATE);
+    albedo *= (1.0 - hollow * TERRAIN_HOLLOW_DARKEN) * (1.0 + ridge * TERRAIN_RIDGE_LIGHTEN);
 
     // float layer_ao = any_layers
     //     ? (weights.x * TERRAIN_LAYER0_AO

@@ -96,7 +96,8 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 {
     static const TerrainLayerPackSpec s_specs[] = {
         { 0, "patchy-meadow1_albedo.png", "patchy-meadow1_normal-ogl.png", "patchy-meadow1_ao.png", "patchy-meadow1_height.png", false },
-        { 1, "dirtwithrocks_Base_Color.png", "dirtwithrocks_Normal-dx.png", "dirtwithrocks_Ambient_Occlusion.png", "dirtwithrocks_Height.png", true }
+        { 1, "dirtwithrocks_Base_Color.png", "dirtwithrocks_Normal-dx.png", "dirtwithrocks_Ambient_Occlusion.png", "dirtwithrocks_Height.png", true },
+        { 2, "bumpy_worn_ground_albedo.png", "bumpy_worn_ground_normal-ogl.png", "bumpy_worn_ground_ao.png", "bumpy_worn_ground_height.png", false }
     };
 
     for (const TerrainLayerPackSpec& spec : s_specs)

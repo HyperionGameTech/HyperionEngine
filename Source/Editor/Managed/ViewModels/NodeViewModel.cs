@@ -189,6 +189,10 @@ namespace Hyperion.Editor.ViewModels
         private readonly Action? _onChildrenChanged;
         private readonly NodeViewModelIndex? _index;
 
+        /// <summary>
+        /// Walks the node's subtree and binds its child handlers, so this must run on the thread that mutates the
+        /// hierarchy (the sim thread). Register the result with <see cref="NodeViewModelIndex.Add"/> on the UI thread.
+        /// </summary>
         public NodeViewModel(Node node, NodeViewModel? parent = null, Action? onChildrenChanged = null, NodeViewModelIndex? index = null)
         {
             _node = node;
@@ -196,11 +200,9 @@ namespace Hyperion.Editor.ViewModels
             _onChildrenChanged = onChildrenChanged;
             _index = index;
             _name = node.Name.ToString();
-            
+
             // Root nodes are expanded by default
             _isExpanded = parent == null;
-
-            _index?.Add(this);
 
             // Initialize existing children
             for (uint i = 0; i < node.NumChildren(); i++)
@@ -230,10 +232,12 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                // built inline on the thread attaching the child; its subtree may be mutated again before the UI gets to it
+                NodeViewModel childViewModel = new NodeViewModel(child, target, target!._onChildrenChanged, target!._index);
+
                 Dispatcher.UIThread.Post(() =>
                 {
-                    NodeViewModel childViewModel = new NodeViewModel(child, target, target!._onChildrenChanged, target!._index);
-
+                    target!._index?.Add(childViewModel);
                     target!._allChildren.Add(childViewModel);
                     target!.Children.Add(childViewModel);
 
@@ -343,6 +347,11 @@ namespace Hyperion.Editor.ViewModels
         public void Add(NodeViewModel nodeViewModel)
         {
             _nodeViewModelsByUUID[nodeViewModel.UUID] = nodeViewModel;
+
+            foreach (NodeViewModel child in nodeViewModel.AllChildren)
+            {
+                Add(child);
+            }
         }
 
         public void Remove(NodeViewModel nodeViewModel)

@@ -109,6 +109,18 @@ struct TerrainGenerationParams
     HYP_FIELD(Property = "SnowLineFraction")
     float snowLineFraction = 0.55f;
 
+    // dirt follows drainage channels with at least 2^this many upstream erosion samples
+    HYP_FIELD(Property = "ChannelFlowLog2")
+    float channelFlowLog2 = 8.0f;
+
+    // rubble where erosion cut this much deeper than its surroundings, in world units
+    HYP_FIELD(Property = "RubbleIncisionDepth")
+    float rubbleIncisionDepth = 2.5f;
+
+    // rubble where hillslope transport piled up this much material in a hollow, in world units
+    HYP_FIELD(Property = "RubbleDepositionDepth")
+    float rubbleDepositionDepth = 2.0f;
+
     HYP_FORCE_INLINE bool operator==(const TerrainGenerationParams& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const TerrainGenerationParams& other) const = default;
 };
@@ -183,16 +195,18 @@ public:
     bool TryBeginRegionBuild(const Vec2i& regionCoord) const;
     void BuildQueuedRegion(const Vec2i& regionCoord) const;
 
-    ///(cellSize + 2 * CellPadding)^2 eroded heights
+    ///(cellSize + 2 * CellPadding)^2 eroded heights, plus cellSize^2 TerrainErosionMasks if \p outErosionMasks is given
     void GeneratePaddedCellHeights(
         const Vec2f& cellWorldMinXZ,
         const Vec2f& scaleXZ,
         uint32 cellSize,
-        Array<float>& outPaddedHeights) const;
+        Array<float>& outPaddedHeights,
+        Array<ubyte>* outErosionMasks = nullptr) const;
 
+    ///\p erosionMasks may be empty (e.g. cells sculpted before masks were saved) - layers then follow slope and noise only
     void SynthesizeSplatWeights(
-        Span<const float> heights,
-        Span<const Vec3f> normals,
+        Span<const float> paddedHeights,
+        Span<const ubyte> erosionMasks,
         const Vec2f& cellWorldMinXZ,
         const Vec2f& scaleXZ,
         uint32 cellSize,

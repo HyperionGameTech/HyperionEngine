@@ -42,6 +42,7 @@ TerrainCellData::~TerrainCellData()
 {
     FreeBlobData(m_heights);
     FreeBlobData(m_splatMap);
+    FreeBlobData(m_erosionMasks);
 }
 
 void TerrainCellData::SetHeights(Span<const float> paddedHeights)
@@ -63,6 +64,10 @@ void TerrainCellData::ClearHeights()
     FreeBlobData(m_heights);
 
     m_heights = BlobDataReference {};
+
+    FreeBlobData(m_erosionMasks);
+
+    m_erosionMasks = BlobDataReference {};
 
     generatorFingerprint = 0;
     isSculpted = false;
@@ -149,6 +154,30 @@ ConstByteView TerrainCellData::GetSplatMap() const
     }
 
     return ConstByteView((const ubyte*)m_splatMap.raw, m_splatMap.size);
+}
+
+void TerrainCellData::SetErosionMasks(ConstByteView erosionMasks)
+{
+    FreeBlobData(m_erosionMasks);
+
+    m_erosionMasks = BlobDataReference {};
+
+    if (erosionMasks.Size() != 0)
+    {
+        AllocateBlobData(m_erosionMasks, erosionMasks.Data(), erosionMasks.Size(), 1);
+    }
+
+    MarkDirty();
+}
+
+ConstByteView TerrainCellData::GetErosionMasks() const
+{
+    if (m_erosionMasks.raw == nullptr || m_erosionMasks.size == 0)
+    {
+        return ConstByteView();
+    }
+
+    return ConstByteView((const ubyte*)m_erosionMasks.raw, m_erosionMasks.size);
 }
 
 bool TerrainCellData::EnsureSplatMapAllocated(uint32 numVertices)
@@ -285,6 +314,16 @@ void TerrainCellData::PageBlobData()
             PageBlobDataFromFile(blobDirectory, SplatMapBlobMagic, m_splatMap);
         }
     }
+
+    if (m_erosionMasks.raw == nullptr
+        && m_erosionMasks.key
+        && m_erosionMasks.size != 0)
+    {
+        if (!PageBlobDataFromStorage(m_erosionMasks))
+        {
+            PageBlobDataFromFile(blobDirectory, ErosionMasksBlobMagic, m_erosionMasks);
+        }
+    }
 }
 
 bool TerrainCellData::PageBlobDataFromFile(const FilePath& directory, const char* magic, BlobDataReference& reference)
@@ -339,6 +378,15 @@ void TerrainCellData::UnpageBlobData()
     }
 
     m_splatMap.raw = nullptr;
+
+    AssertBlobDataPersisted(m_erosionMasks);
+
+    if (!m_erosionMasks.readOnly)
+    {
+        FreeBlobData(m_erosionMasks);
+    }
+
+    m_erosionMasks.raw = nullptr;
 }
 
 #pragma endregion TerrainCellData

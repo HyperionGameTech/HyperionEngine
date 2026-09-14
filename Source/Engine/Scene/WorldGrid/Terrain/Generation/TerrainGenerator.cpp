@@ -20,7 +20,7 @@ namespace Hyperion {
 
 #pragma region Helpers
 
-// ~1.5 MB per region - generous budget keeps revisited areas from paying a rebuild
+// ~3 MB per region (heights + erosion masks) - generous budget keeps revisited areas from paying a rebuild
 static constexpr uint32 MaxCachedErosionRegions = 64;
 
 struct ErosionLayout
@@ -111,6 +111,33 @@ struct TerrainGenerator::ErosionRegion
     int32 originZ = 0;
     uint32 size = 0;
     Array<float> heights;
+    Array<ubyte> erosionMasks;
+
+    ///adds the bilinearly sampled masks, scaled by \p weight, to \p outChannels
+    void AccumulateErosionMasks(float sampleX, float sampleZ, float weight, float outChannels[TerrainErosionMasks::NumChannels]) const
+    {
+        const float localX = sampleX - float(originX);
+        const float localZ = sampleZ - float(originZ);
+
+        const int32 cellX = MathUtil::Clamp(int32(std::floor(localX)), 0, int32(size) - 2);
+        const int32 cellZ = MathUtil::Clamp(int32(std::floor(localZ)), 0, int32(size) - 2);
+
+        const float fractionX = MathUtil::Clamp(localX - float(cellX), 0.0f, 1.0f);
+        const float fractionZ = MathUtil::Clamp(localZ - float(cellZ), 0.0f, 1.0f);
+
+        const ubyte* topLeft = erosionMasks.Data() + (size_t(cellZ) * size + size_t(cellX)) * TerrainErosionMasks::NumChannels;
+        const ubyte* topRight = topLeft + TerrainErosionMasks::NumChannels;
+        const ubyte* bottomLeft = topLeft + size_t(size) * TerrainErosionMasks::NumChannels;
+        const ubyte* bottomRight = bottomLeft + TerrainErosionMasks::NumChannels;
+
+        for (uint32 channel = 0; channel < TerrainErosionMasks::NumChannels; channel++)
+        {
+            const float top = float(topLeft[channel]) + (float(topRight[channel]) - float(topLeft[channel])) * fractionX;
+            const float bottom = float(bottomLeft[channel]) + (float(bottomRight[channel]) - float(bottomLeft[channel])) * fractionX;
+
+            outChannels[channel] += weight * (top + (bottom - top) * fractionZ);
+        }
+    }
 
     float SampleBicubic(float sampleX, float sampleZ) const
     {
@@ -166,7 +193,8 @@ void TerrainGenerator::Configure(const TerrainGenerationParams& params)
 uint64 TerrainGenerator::ComputeFingerprint(uint32 cellSize, const Vec2f& scaleXZ) const
 {
     // bump when the generation or erosion algorithms change so previously saved heights regenerate
-    static constexpr uint32 GeneratorVersion = 1;
+    // 2: erosion masks are saved with the heights
+    static constexpr uint32 GeneratorVersion = 2;
 
     const TerrainGenerationParams& params = m_params;
 
@@ -314,13 +342,19 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     const Vec2f& cellWorldMinXZ,
     const Vec2f& scaleXZ,
     uint32 cellSize,
-    Array<float>& outPaddedHeights) const
+    Array<float>& outPaddedHeights,
+    Array<ubyte>* outErosionMasks) const
 {
     HYP_SCOPE;
 
     const uint32 paddedSize = cellSize + CellPadding * 2u;
 
     outPaddedHeights.Resize(size_t(paddedSize) * size_t(paddedSize));
+
+    if (outErosionMasks)
+    {
+        outErosionMasks->Resize(size_t(cellSize) * size_t(cellSize) * TerrainErosionMasks::NumChannels);
+    }
 
     const auto worldPositionAt = [&](uint32 px, uint32 pz) -> Vec2f
     {
@@ -335,6 +369,11 @@ void TerrainGenerator::GeneratePaddedCellHeights(
             {
                 outPaddedHeights[size_t(pz) * paddedSize + px] = SampleBaseHeight(worldPositionAt(px, pz));
             }
+        }
+
+        if (outErosionMasks)
+        {
+            TerrainErosionMasks::FillNeutral(*outErosionMasks);
         }
 
         return;
@@ -376,7 +415,12 @@ void TerrainGenerator::GeneratePaddedCellHeights(
             const ErosionAxisBlend blendX = ComputeErosionAxisBlend(sampleX, layout);
             const ErosionAxisBlend blendZ = ComputeErosionAxisBlend(sampleZ, layout);
 
+            const bool isCellSample = outErosionMasks != nullptr
+                && px >= CellPadding && px < cellSize + CellPadding
+                && pz >= CellPadding && pz < cellSize + CellPadding;
+
             float height = 0.0f;
+            float maskChannels[TerrainErosionMasks::NumChannels] = {};
 
             for (uint32 bz = 0; bz < 2; bz++)
             {
@@ -392,10 +436,25 @@ void TerrainGenerator::GeneratePaddedCellHeights(
                     const ErosionRegion& region = *regions[size_t(blendZ.regions[bz] - regionMinZ) * size_t(regionsWide) + size_t(blendX.regions[bx] - regionMinX)];
 
                     height += weight * region.SampleBicubic(sampleX, sampleZ);
+
+                    if (isCellSample)
+                    {
+                        region.AccumulateErosionMasks(sampleX, sampleZ, weight, maskChannels);
+                    }
                 }
             }
 
             outPaddedHeights[size_t(pz) * paddedSize + px] = height;
+
+            if (isCellSample)
+            {
+                ubyte* masks = outErosionMasks->Data() + (size_t(pz - CellPadding) * cellSize + size_t(px - CellPadding)) * TerrainErosionMasks::NumChannels;
+
+                for (uint32 channel = 0; channel < TerrainErosionMasks::NumChannels; channel++)
+                {
+                    masks[channel] = ubyte(MathUtil::Clamp(maskChannels[channel] + 0.5f, 0.0f, 255.0f));
+                }
+            }
         }
     }
 }
@@ -589,30 +648,55 @@ SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionR
     settings.diffusion = params.hillslopeDiffusion;
     settings.talusSlope = std::tan(params.talusAngle * MathUtil::pi<float> / 180.0f);
 
-    TerrainErodeHeightfield(region->heights.ToSpan(), region->size, region->originX, region->originZ, settings);
+    const Array<float> baseHeights = region->heights;
+
+    Array<float> upstreamSamples;
+    upstreamSamples.Resize(region->heights.Size());
+
+    Array<float> depositedDepth;
+    depositedDepth.Resize(region->heights.Size());
+
+    TerrainErosionOutputs outputs;
+    outputs.upstreamSamples = upstreamSamples.ToSpan();
+    outputs.depositedDepth = depositedDepth.ToSpan();
+
+    TerrainErodeHeightfield(region->heights.ToSpan(), region->size, region->originX, region->originZ, settings, outputs);
+
+    region->erosionMasks.Resize(region->heights.Size() * TerrainErosionMasks::NumChannels);
+
+    TerrainBuildErosionMasks(baseHeights, region->heights, upstreamSamples, depositedDepth, region->size, layout.spacing, region->erosionMasks);
 
     return region;
 }
 
 void TerrainGenerator::SynthesizeSplatWeights(
-    Span<const float> heights,
-    Span<const Vec3f> normals,
+    Span<const float> paddedHeights,
+    Span<const ubyte> erosionMasks,
     const Vec2f& cellWorldMinXZ,
     const Vec2f& scaleXZ,
     uint32 cellSize,
     Span<ubyte> outWeights) const
 {
+    HYP_SCOPE;
+
     const TerrainGenerationParams& params = m_params;
 
     const size_t vertexCount = size_t(cellSize) * size_t(cellSize);
+    const uint32 paddedSize = cellSize + CellPadding * 2u;
 
     Assert(outWeights.Size() >= vertexCount * 4u, "Splat weight buffer too small");
-    Assert(heights.Size() >= vertexCount && normals.Size() >= vertexCount, "Splat synthesis input too small");
+    Assert(paddedHeights.Size() == size_t(paddedSize) * size_t(paddedSize), "Padded heights have unexpected size");
 
-    if (outWeights.Size() < vertexCount * 4u || heights.Size() < vertexCount || normals.Size() < vertexCount)
+    if (outWeights.Size() < vertexCount * 4u || paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
     {
         return;
     }
+
+    const bool hasErosionMasks = erosionMasks.Size() == vertexCount * TerrainErosionMasks::NumChannels;
+
+    Array<float> heights;
+    Array<Vec3f> normals;
+    ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, normals);
 
     const float snowLine = MathUtil::Max(params.mountainAmplitude, 1.0f) * params.snowLineFraction;
 
@@ -639,20 +723,51 @@ void TerrainGenerator::SynthesizeSplatWeights(
             const float breakup = TerrainFbm2D(params.seed ^ 0x44C3A921u, worldXZ.x * 0.02f, worldXZ.y * 0.02f, 3) * 0.5f + 0.5f;
             const float patches = TerrainFbm2D(params.seed ^ 0x55E8F13Bu, worldXZ.x * 0.06f, worldXZ.y * 0.06f, 3) * 0.5f + 0.5f;
 
-            // rock takes over on steep slopes, with a noisy boundary
+            float flowLog2 = 0.0f;
+            float incisionDepth = 0.0f;
+            float depositionDepth = 0.0f;
+            float concavity = 0.0f;
+
+            if (hasErosionMasks)
+            {
+                const ubyte* masks = erosionMasks.Data() + index * TerrainErosionMasks::NumChannels;
+
+                flowLog2 = TerrainErosionMasks::DecodeFlowLog2(masks[TerrainErosionMasks::FlowChannel]);
+                incisionDepth = TerrainErosionMasks::DecodeDepth(masks[TerrainErosionMasks::IncisionChannel]);
+                depositionDepth = TerrainErosionMasks::DecodeDepth(masks[TerrainErosionMasks::DepositionChannel]);
+                concavity = TerrainErosionMasks::DecodeConcavity(masks[TerrainErosionMasks::ConcavityChannel]);
+            }
+
+            // bare rock takes over on steep slopes, with a noisy boundary
             const float rockStart = 0.30f + breakup * 0.15f;
-            const float rock = TerrainSmoothStep(rockStart, rockStart + 0.2f, slope);
+            const float steepRock = TerrainSmoothStep(rockStart, rockStart + 0.2f, slope);
+
+            // water keeps drainage channels down to dirt
+            const float channel = TerrainSmoothStep(params.channelFlowLog2, params.channelFlowLog2 + 2.0f, flowLog2);
+
+            // scree on the banks erosion cut into, and rubble piled up in hollows and at the foot of slopes
+            const float incisionRubble = TerrainSmoothStep(params.rubbleIncisionDepth * 0.5f, params.rubbleIncisionDepth * 1.5f, incisionDepth)
+                * TerrainSmoothStep(0.03f, 0.15f, slope);
+
+            const float depositionRubble = TerrainSmoothStep(params.rubbleDepositionDepth * 0.5f, params.rubbleDepositionDepth * 1.5f, depositionDepth)
+                * TerrainSmoothStep(0.0f, 0.08f, concavity);
+
+            const float rubble = MathUtil::Max(incisionRubble, depositionRubble)
+                * (0.6f + 0.4f * patches)
+                * (1.0f - channel);
+
+            const float rock = MathUtil::Max(steepRock, rubble);
 
             // snow caps on high ground that isn't too steep to hold snow
             const float snowLineJittered = snowLine * (0.85f + breakup * 0.3f);
             const float snow = TerrainSmoothStep(snowLineJittered - snowLine * 0.12f, snowLineJittered + snowLine * 0.12f, height)
                 * TerrainSmoothStep(0.55f, 0.35f, slope);
 
-            // dirt patches on shallow ground
-            const float dirt = TerrainSmoothStep(0.55f, 0.75f, patches)
-                * (1.0f - rock)
-                * (1.0f - snow)
-                * 0.65f;
+            // dirt in channels and in sparse noisy patches on shallow ground - grass keeps the convex, dry ground that's left
+            const float patchDirt = TerrainSmoothStep(0.65f, 0.8f, patches) * 0.5f * (1.0f - rock);
+
+            const float dirt = MathUtil::Max(channel * (1.0f - steepRock), patchDirt)
+                * (1.0f - snow);
 
             const float grass = MathUtil::Max(1.0f - rock - snow - dirt, 0.0f);
 
@@ -662,7 +777,7 @@ void TerrainGenerator::SynthesizeSplatWeights(
 
             for (uint32 layer = 0; layer < 4; layer++)
             {
-                outSplat[layer] = ubyte(MathUtil::Clamp(weights[layer], 0.0f, 1.0f) * 255.0f);
+                outSplat[layer] = ubyte(MathUtil::Clamp(weights[layer], 0.0f, 1.0f) * 255.0f + 0.5f);
             }
         }
     }
