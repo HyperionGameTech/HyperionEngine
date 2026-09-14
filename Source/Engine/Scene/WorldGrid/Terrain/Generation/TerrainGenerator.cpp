@@ -400,7 +400,11 @@ void TerrainGenerator::GeneratePaddedCellHeights(
     }
 }
 
-void TerrainGenerator::CollectRegionsForCell(const Vec2f& cellWorldMinXZ, const Vec2f& scaleXZ, uint32 cellSize, Array<Vec2i>& outRegionCoords) const
+void TerrainGenerator::CollectRegionsForCell(
+    const Vec2f& cellWorldMinXZ,
+    const Vec2f& scaleXZ,
+    uint32 cellSize,
+    Array<Vec2i, StreamingTempAllocator>& outRegionCoords) const
 {
     if (m_params.erosionIterations == 0)
     {

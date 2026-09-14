@@ -152,6 +152,16 @@ public:
         return m_octree;
     }
 
+    void MarkStaticRenderResourcesChanged()
+    {
+        ++m_staticRenderResourcesRevision;
+    }
+
+    uint32 GetStaticRenderResourcesRevision() const
+    {
+        return m_staticRenderResourcesRevision;
+    }
+
     HYP_METHOD()
     bool IsAttachedToWorld() const
     {
@@ -271,6 +281,8 @@ private:
 
     HYP_FIELD(Property = "StreamingCentroid", Serialize = true, Editor = true)
     Vec2i m_streamingCentroid;
+
+    uint32 m_staticRenderResourcesRevision = 0;
 
     bool m_isInitialized;
 };

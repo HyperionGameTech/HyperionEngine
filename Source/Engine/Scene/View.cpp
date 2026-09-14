@@ -768,13 +768,23 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     // this must be evaluated even when the cascade is not being updated this frame.
                     //
                     // otherwise static shadow maps would freeze while the camera is not moving, since their RPL diff would never refresh.
+                    //
+                    // the RPL holds raw pointers, so resource swaps on static entities (see Scene::MarkStaticRenderResourcesChanged)
+                    // must invalidate too, or the render side keeps binding resources that have since been destroyed.
                     ////////////////////
                     HashCode inputHash = HashCode::GetHashCode(*light->GetRenderProxyVersionPtr())
                         .Combine(committedViewProjMatrix.GetHashCode());
 
                     for (Scene* shadowViewScene : shadowViewScenes)
                     {
-                        if (!shadowViewScene || !(shadowViewScene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+                        if (!shadowViewScene)
+                        {
+                            continue;
+                        }
+
+                        inputHash = inputHash.Combine(shadowViewScene->GetStaticRenderResourcesRevision());
+
+                        if (!(shadowViewScene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
                         {
                             continue;
                         }

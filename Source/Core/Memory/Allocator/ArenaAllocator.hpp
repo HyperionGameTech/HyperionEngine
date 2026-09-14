@@ -9,8 +9,12 @@
 #include <Core/Memory/Memory.hpp>
 
 #include <Core/Memory/Allocator/Allocator.hpp>
+#include <Core/Memory/Allocator/AllocatorFlags.hpp>
+
+#include <Core/Threading/AtomicFlag.hpp>
 
 #include <Core/Utilities/ByteUtil.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
 #include <Core/Debug/Debug.hpp>
 
@@ -48,10 +52,11 @@ public:
     {
     };
 
-    /*! \param blockSize Size of a block. */
-    explicit TArena(size_t blockSize);
+    /*! \param blockSize Size of a block.
+        \param flags  */
+    explicit TArena(size_t blockSize, EnumFlags<AllocatorFlags> flags = AF_NONE);
 
-    TArena(AllocatorType* pAllocator, size_t blockSize);
+    TArena(AllocatorType* pAllocator, size_t blockSize, EnumFlags<AllocatorFlags> flags = AF_NONE);
 
     TArena(const TArena& other) = delete;
     TArena& operator=(const TArena& other) = delete;
@@ -77,14 +82,29 @@ public:
         }
     }
 
+    HYP_FORCE_INLINE EnumFlags<AllocatorFlags> GetFlags() const
+    {
+        return m_flags;
+    }
+
     /*! \brief Resets the arena by settings all blocks' bump pointer to 0 */
     HYP_FORCE_INLINE void Reset()
     {
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            m_atomicFlag.Acquire();
+        }
+
         Block* block = &m_firstBlock;
         while (block != nullptr)
         {
             block->offset = 0;
             block = block->next;
+        }
+
+        if (m_flags & AF_THREAD_SAFE)
+        {
+            m_atomicFlag.Release();
         }
     }
 
@@ -103,12 +123,15 @@ private:
     AllocatorType* m_pAllocator;
     Block m_firstBlock;
     size_t m_blockSize;
+    EnumFlags<AllocatorFlags> m_flags;
+    AtomicFlag m_atomicFlag;
 };
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(size_t blockSize)
+TArena<AllocatorType>::TArena(size_t blockSize, EnumFlags<AllocatorFlags> flags)
     : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-      m_blockSize(blockSize)
+      m_blockSize(blockSize),
+      m_flags(flags)
 {
     HYP_CORE_ASSERT(m_pAllocator != nullptr);
     HYP_CORE_ASSERT(m_blockSize > 0, "Arena blockSize must be greater than 0");
@@ -119,9 +142,10 @@ TArena<AllocatorType>::TArena(size_t blockSize)
 }
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(AllocatorType* pAllocator, size_t blockSize)
+TArena<AllocatorType>::TArena(AllocatorType* pAllocator, size_t blockSize, EnumFlags<AllocatorFlags> flags)
     : m_pAllocator(pAllocator),
-      m_blockSize(blockSize)
+      m_blockSize(blockSize),
+      m_flags(flags)
 {
     HYP_CORE_ASSERT(m_pAllocator != nullptr);
     HYP_CORE_ASSERT(m_blockSize > 0, "Arena blockSize must be greater than 0");
@@ -136,6 +160,13 @@ void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
 {
     HYP_CORE_ASSERT(alignment != 0 && alignment <= maxAlign && ((alignment & (alignment - 1)) == 0),
                     "Arena requires power-of-two, non-zero alignment");
+
+    if (m_flags & AF_THREAD_SAFE)
+    {
+        m_atomicFlag.Acquire();
+    }
+
+    void* result = nullptr;
 
     Block* block = &m_firstBlock;
     bool isNewBlock = false;
@@ -153,7 +184,8 @@ void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
         {
             block->offset += totalSize;
 
-            return reinterpret_cast<void*>(alignedAddress);
+            result = reinterpret_cast<void*>(alignedAddress);
+            break;
         }
 
         if (!block->next)
@@ -180,11 +212,19 @@ void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
         block = block->next;
     }
 
+    if (m_flags & AF_THREAD_SAFE)
+    {
+        m_atomicFlag.Release();
+    }
+
 #if HYP_DEBUG_MODE
-    HYP_FAIL("Failed to allocate from linear memory allocator!");
+    if (result == nullptr)
+    {
+        HYP_FAIL("Failed to allocate from linear memory allocator!");
+    }
 #endif
 
-    return nullptr;
+    return result;
 }
 
 using Arena = TArena<DynamicAllocator>;

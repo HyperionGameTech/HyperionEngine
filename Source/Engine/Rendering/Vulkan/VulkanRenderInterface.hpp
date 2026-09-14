@@ -32,6 +32,7 @@ namespace Hyperion {
 class VulkanInstance;
 class VulkanAsyncCompute;
 class VulkanRenderConfig;
+struct VulkanTransientCommandBuffer;
 
 class VulkanDescriptorSetLayoutWrapper;
 
@@ -211,6 +212,10 @@ private:
 
     void PrepareFrame(VulkanFrame* frame) override;
 
+    /*! \brief Moves submitted transient command buffers whose fence has completed back to the free list.
+     *  m_transientCommandBuffersMutex must be held. */
+    void ReclaimCompletedTransientCommandBuffers_Internal();
+
     VulkanInstance* m_instance;
 
     VulkanRenderConfig* m_renderConfig;
@@ -222,14 +227,15 @@ private:
 
     Array<VulkanCommandBufferRef, VulkanAllocator> m_commandBuffers;
 
-    List<VulkanCommandBuffer, VulkanAllocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    List<VulkanCommandBuffer, VulkanAllocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
+    // Transient command buffers may be recorded on any thread, so they are never tied to a frame slot:
+    // a buffer is only reused once its own fence reports the GPU has finished executing it.
+    // Storage owns every entry (stable addresses); the arrays below partition those entries by state.
+    List<VulkanTransientCommandBuffer, VulkanAllocator> m_transientCommandBufferStorage;
+    Array<VulkanTransientCommandBuffer*, VulkanAllocator> m_freeTransientCommandBuffers;
+    Array<VulkanTransientCommandBuffer*, VulkanAllocator> m_recordingTransientCommandBuffers;
+    Array<VulkanTransientCommandBuffer*, VulkanAllocator> m_submittedTransientCommandBuffers;
 
     List<VulkanSemaphore, VulkanAllocator> m_transientCommandBufferSemaphores[NumFramesInFlight];
-    List<VulkanSemaphore, VulkanAllocator> m_recycledTransientCommandBufferSemaphores;
-
-    List<VulkanFence, VulkanAllocator> m_transientCommandBufferFences[NumFramesInFlight];
-    List<VulkanFence, VulkanAllocator> m_recycledTransientCommandBufferFences;
 
     Mutex m_transientCommandBuffersMutex;
 

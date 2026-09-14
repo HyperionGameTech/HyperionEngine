@@ -176,6 +176,21 @@ public:
 
 #pragma endregion DX12SingleTimeCommands
 
+#pragma region DX12TransientCommandBuffer
+
+struct DX12TransientCommandBuffer
+{
+    DX12CommandBuffer commandBuffer;
+    DX12Fence fence;
+
+    explicit DX12TransientCommandBuffer(ID3D12CommandQueue* commandQueue)
+        : commandBuffer(D3D12_COMMAND_LIST_TYPE_DIRECT, commandQueue)
+    {
+    }
+};
+
+#pragma endregion DX12TransientCommandBuffer
+
 #pragma region DX12RenderInterface
 
 DX12RenderInterface::DX12RenderInterface()
@@ -469,8 +484,6 @@ void DX12RenderInterface::Shutdown()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
 
-    const uint32 frameCounter = GetFrameCounter();
-
     // Flush all GPU work
     for (uint32 queueIndex = 0; queueIndex <= uint32(D3D12_COMMAND_LIST_TYPE_COPY); queueIndex++)
     {
@@ -548,36 +561,22 @@ void DX12RenderInterface::Shutdown()
     RenderInterface::Shutdown();
 
     { // Flush transient submits
-        auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
-        for (auto it = fences.Begin(); it != fences.End(); ++it)
-        {
-            DX12Fence& fence = *it;
-
-            if (fence.isSubmitted)
-            {
-                fence.Wait(true);
-            }
-        }
-
-        fences.Clear();
-
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
+        AssertDebug(m_recordingTransientCommandBuffers.Empty(), "Transient command buffers are still being recorded at shutdown!");
+
+        for (DX12TransientCommandBuffer* transientCommandBuffer : m_submittedTransientCommandBuffers)
         {
-            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            if (transientCommandBuffer->fence.isSubmitted)
             {
-                m_transientCommandBuffers[threadIndex][frameIndex].Clear();
-                m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
+                transientCommandBuffer->fence.Wait(true);
             }
         }
 
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            m_transientCommandBufferFences[frameIndex].Clear();
-        }
-
-        m_recycledTransientCommandBufferFences.Clear();
+        m_freeTransientCommandBuffers.Clear();
+        m_recordingTransientCommandBuffers.Clear();
+        m_submittedTransientCommandBuffers.Clear();
+        m_transientCommandBufferStorage.Clear();
     }
 
     descriptorHeapManager->Shutdown();
@@ -721,37 +720,10 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
         }
     }
 
-    // The frame fence wait above guarantees all gpu work from this frame slot is
-    // complete, so every transient fence is guaranteed to be signaled.
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        auto& fences = m_transientCommandBufferFences[frameIndex];
-        for (auto it = fences.Begin(); it != fences.End();)
-        {
-            DX12Fence& fence = *it;
-
-            fence.isSubmitted = false;
-            m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
-
-            it = fences.Erase(it);
-        }
-
-        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-        {
-            List<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[threadIndex][frameIndex];
-            List<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameIndex];
-
-            for (auto it = pendingList.Begin(); it != pendingList.End();)
-            {
-                DX12CommandBuffer& commandBuffer = *it;
-                Assert(!commandBuffer.IsRecording());
-
-                freeList.EmplaceBack(std::move(*it));
-
-                it = pendingList.Erase(it);
-            }
-        }
+        ReclaimCompletedTransientCommandBuffers_Internal();
     }
 
     frame->OnFrameStart();
@@ -808,93 +780,97 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 
 DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 {
-    // usable from main render thread or renderer worker threads.
-    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    // usable from main render thread or renderer worker threads.
-    const uint32 frameCounter = GetFrameCounter();
-    const uint32 frameIndex = frameCounter % NumFramesInFlight;
-
-    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
-
-    List<DX12CommandBuffer, DX12Allocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameIndex];
-    List<DX12CommandBuffer, DX12Allocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameIndex];
-
-    DX12CommandBuffer* pCommandBuffer = nullptr;
+    // usable from any thread (e.g. textures created on the sim thread or loader threads)
+    DX12TransientCommandBuffer* transientCommandBuffer = nullptr;
+    uint32 newCommandBufferIndex = ~0u;
 
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        if (freeList.Any())
+        if (m_freeTransientCommandBuffers.Empty())
         {
-            pCommandBuffer = &pendingList.PushBack(freeList.PopBack());
+            ReclaimCompletedTransientCommandBuffers_Internal();
+        }
+
+        if (m_freeTransientCommandBuffers.Any())
+        {
+            transientCommandBuffer = m_freeTransientCommandBuffers.PopBack();
         }
         else
         {
             const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
             AssertDebug(queueData != nullptr && queueData->commandQueue != nullptr);
 
-            pCommandBuffer = &pendingList.EmplaceBack(D3D12_COMMAND_LIST_TYPE_DIRECT, queueData->commandQueue.Get());
-            Check(pCommandBuffer->Create());
+            transientCommandBuffer = &m_transientCommandBufferStorage.EmplaceBack(queueData->commandQueue.Get());
+            newCommandBufferIndex = uint32(m_transientCommandBufferStorage.Size() - 1);
         }
+
+        m_recordingTransientCommandBuffers.PushBack(transientCommandBuffer);
     }
 
-    pCommandBuffer->Begin();
-    BindDescriptorHeaps(*pCommandBuffer);
-#ifdef HYP_RHI_DEBUG_NAMES
+    // only this thread can reach the entry until it is submitted, so creation can happen outside the lock
+    if (newCommandBufferIndex != ~0u)
     {
-        wchar_t nameBuf[128];
-        swprintf(nameBuf, GetArrayCount(nameBuf), L"Transient CommandBuffer [thread=%u][frame=%u]",
-                 renderThreadIndex, frameIndex);
-        pCommandBuffer->SetDebugName(nameBuf);
-    }
-#endif
+        Check(transientCommandBuffer->commandBuffer.Create());
+        Check(transientCommandBuffer->fence.Create());
 
-    return *pCommandBuffer;
+#ifdef HYP_RHI_DEBUG_NAMES
+        wchar_t nameBuf[64];
+
+        swprintf(nameBuf, GetArrayCount(nameBuf), L"Transient CommandBuffer [%u]", newCommandBufferIndex);
+        transientCommandBuffer->commandBuffer.SetDebugName(nameBuf);
+
+        swprintf(nameBuf, GetArrayCount(nameBuf), L"Transient Fence [%u]", newCommandBufferIndex);
+        transientCommandBuffer->fence.SetDebugName(nameBuf);
+#endif
+    }
+
+    DX12CommandBuffer& commandBuffer = transientCommandBuffer->commandBuffer;
+
+    commandBuffer.Begin();
+    BindDescriptorHeaps(commandBuffer);
+
+    return commandBuffer;
 }
 
 void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer)
 {
-    const uint32 frameCounter = GetFrameCounter();
-    const uint32 frameIndex = frameCounter % NumFramesInFlight;
+    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
 
     if (commandBuffer.IsRecording())
     {
         commandBuffer.End();
     }
 
-    DX12Fence* pTransientFence = nullptr;
+    DX12TransientCommandBuffer* transientCommandBuffer = nullptr;
 
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        DX12Fence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
-
-        if (m_recycledTransientCommandBufferFences.Any())
+        for (auto it = m_recordingTransientCommandBuffers.Begin(); it != m_recordingTransientCommandBuffers.End(); ++it)
         {
-            fence = m_recycledTransientCommandBufferFences.PopFront();
-        }
-        else
-        {
-            fence.Create();
-#ifdef HYP_RHI_DEBUG_NAMES
-            wchar_t fenceNameBuf[64];
-            swprintf(fenceNameBuf, GetArrayCount(fenceNameBuf), L"Transient Fence [frame=%u]", frameIndex);
-            fence.SetDebugName(fenceNameBuf);
-#endif
-        }
+            if (&(*it)->commandBuffer == &commandBuffer)
+            {
+                transientCommandBuffer = *it;
+                m_recordingTransientCommandBuffers.Erase(it);
 
-        pTransientFence = &fence;
+                break;
+            }
+        }
     }
+
+    Assert(transientCommandBuffer != nullptr, "Command buffer was not acquired via GetTransientCommandBuffer()");
+
+    DX12Fence& transientFence = transientCommandBuffer->fence;
 
     ID3D12CommandQueue* commandQueue = commandBuffer.GetCommandQueue();
 
     ID3D12CommandList* commandLists[] = { commandBuffer.GetCommandList() };
     commandQueue->ExecuteCommandLists(GetArrayCount(commandLists), commandLists);
 
-    pTransientFence->Increment();
+    transientFence.Increment();
 
-    HRESULT hr = commandQueue->Signal(pTransientFence->GetD3D12Fence(), pTransientFence->GetValue());
+    HRESULT hr = commandQueue->Signal(transientFence.GetD3D12Fence(), transientFence.GetValue());
     if (FAILED(hr))
     {
         HYP_LOG(RenderingBackend, Error, "Failed to signal fence after executing command lists! Error: {}", hr);
@@ -925,6 +901,33 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
                 HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
             }
         }
+    }
+
+    Mutex::Guard guard(m_transientCommandBuffersMutex);
+
+    m_submittedTransientCommandBuffers.PushBack(transientCommandBuffer);
+}
+
+void DX12RenderInterface::ReclaimCompletedTransientCommandBuffers_Internal()
+{
+    for (auto it = m_submittedTransientCommandBuffers.Begin(); it != m_submittedTransientCommandBuffers.End();)
+    {
+        DX12TransientCommandBuffer* transientCommandBuffer = *it;
+        DX12Fence& fence = transientCommandBuffer->fence;
+
+        // isSubmitted is already cleared if the fence was waited on directly
+        if (fence.isSubmitted && !fence.CheckStatus())
+        {
+            ++it;
+
+            continue;
+        }
+
+        fence.isSubmitted = false;
+
+        m_freeTransientCommandBuffers.PushBack(transientCommandBuffer);
+
+        it = m_submittedTransientCommandBuffers.Erase(it);
     }
 }
 

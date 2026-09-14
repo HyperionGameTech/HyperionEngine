@@ -947,6 +947,9 @@ void TerrainStreamingCell::BindCellMaterialTexture(MaterialTextureKey key, const
         meshComponent->material = m_cellMaterial;
     }
 
+    // the replaced texture is still referenced by static shadow views that skipped collection
+    m_scene->MarkStaticRenderResourcesChanged();
+
     m_entity->SetNeedsRenderProxyUpdate();
     m_entity->MarkDirty();
 }

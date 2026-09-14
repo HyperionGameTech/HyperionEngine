@@ -48,9 +48,9 @@ static const Name s_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
 static const Name s_terrainSceneName = NAME("TerrainScene");
 
 static const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
-    .scale = Vec3f { 3.0f, 1.0f, 3.0f },
-    .cellSize = 64,
-    .maxDistance = 5.0f,
+    .scale = Vec3f { 1.0f, 1.0f, 1.0f },
+    .cellSize = 257,
+    .maxDistance = 8.0f,
     .seed = 1951233096
 };
 
