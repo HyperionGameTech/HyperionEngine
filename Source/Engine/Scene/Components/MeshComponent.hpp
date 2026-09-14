@@ -55,6 +55,9 @@ struct ENGINE_API MeshComponent
     uint32 numInstances = 0;
 
     HYP_FIELD(Transient)
+    uint8 lodIndex = 0;
+
+    HYP_FIELD(Transient)
     Mat4f previousModelMatrix;
 
     HYP_FIELD(NoScriptBindings, Transient)

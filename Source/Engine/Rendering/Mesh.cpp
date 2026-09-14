@@ -64,8 +64,7 @@ String VertexTypeMask::ToString() const
 Mesh::Mesh()
     : AssetObject(),
       m_aabb(BoundingBox::Empty()),
-      m_flags(MeshFlags::None),
-      m_currentLodIndex(0)
+      m_flags(MeshFlags::None)
 {
 }
 
@@ -77,8 +76,7 @@ Mesh::Mesh(const MeshDataView& meshData, Topology topology)
 Mesh::Mesh(const MeshDataView& meshData, Topology topology, const VertexInputLayoutDesc& inputLayout)
     : AssetObject(),
       m_aabb(BoundingBox::Empty()),
-      m_flags(MeshFlags::None),
-      m_currentLodIndex(0)
+      m_flags(MeshFlags::None)
 {
     m_meshDesc = MeshDesc {};
     m_meshDesc.meshAttributes.inputLayout = inputLayout;
@@ -576,10 +574,34 @@ void Mesh::UploadGpuData()
         return;
     }
 
-    auto readScope = GetReadScope();
+    const uint8 numLods = MathUtil::Max<uint8>(m_meshDesc.GetNumLods(), 1);
 
-    // @TODO: Upload all LODs to GPU; for now LOD 0 is uploaded
-    const uint8 lodIndex = m_currentLodIndex;
+    uint8 uploadedLods = 0;
+
+    for (uint8 lodIndex = 0; lodIndex < numLods; lodIndex++)
+    {
+        const bool uploaded = UploadLod(lodIndex);
+
+        uploadedLods |= (1u << lodIndex) * uploaded;
+    }
+    
+    // LOD 0 must upload successfully for the mesh to be considered usable
+    if (uploadedLods & 0x1)
+    {
+        isUploaded.Store(true);
+    }
+}
+
+bool Mesh::UploadLod(uint8 lodIndex)
+{
+    AssertDebug(lodIndex < MaxMeshLods);
+
+    if (EngineGlobals::IsHeadless())
+    {
+        return false;
+    }
+
+    auto readScope = GetReadScope();
 
     // @TODO fix for non-uint32 indices
     Assert(GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType) == 4);
@@ -596,7 +618,7 @@ void Mesh::UploadGpuData()
     if (vertices.Size() == 0 || indexData.Size() == 0)
     {
         // No data
-        return;
+        return false;
     }
 
     ByteBuffer indices;
@@ -654,8 +676,8 @@ void Mesh::UploadGpuData()
         indexBuffer = RI.MakeGpuBuffer(GpuBufferType::IndexBuffer, packedIndicesSize);
 
 #ifdef HYP_RHI_DEBUG_NAMES
-        vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
-        indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
+        vertexBuffer->SetDebugName(NAME_FMT("{}_VBO_LOD{}", GetName(), lodIndex));
+        indexBuffer->SetDebugName(NAME_FMT("{}_IBO_LOD{}", GetName(), lodIndex));
 #endif
 
         Check(vertexBuffer->Create());
@@ -700,9 +722,9 @@ void Mesh::UploadGpuData()
         m_indexBuffers[lodIndex] = std::move(indexBuffer);
     }
 
-    isUploaded.Store(true);
-
     cr.Submit();
+
+    return true;
 }
 
 void Mesh::UpdateDynamicVertexData(uint8 lodIndex, uint32 firstVertex, const VertexArrayView& vertexRange)
@@ -736,11 +758,17 @@ void Mesh::UpdateDynamicVertexData(uint8 lodIndex, uint32 firstVertex, const Ver
 
     if (!vertexBlob.raw || vertexBlob.readOnly || vertexBlob.size < (firstVertex + vertexRange.vertexCount) * srcVertexSize)
     {
-        // needs a full upload
+        // needs a full upload of just this LOD
 
         writeScope.Reset();
 
-        UploadGpuData();
+        const bool uploaded = UploadLod(lodIndex);
+
+        // as above, lodIndex 0 needs to be uploaded successfully in order to say it's usable.
+        if (lodIndex == 0 && uploaded)
+        {
+            isUploaded.Store(true);
+        }
 
         return;
     }

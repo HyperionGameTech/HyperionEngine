@@ -48,8 +48,8 @@ static const Name s_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
 static const Name s_terrainSceneName = NAME("TerrainScene");
 
 static const WorldGridLayerInfo s_defaultTerrainWorldGridLayerInfo = {
-    .cellSize = 64,
     .scale = Vec3f { 3.0f, 1.0f, 3.0f },
+    .cellSize = 64,
     .maxDistance = 5.0f,
     .seed = 1951233096
 };
@@ -167,6 +167,31 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
     WorldGridLayer::SetLayerInfo(adjustedLayerInfo);
 
     UpdateCellFingerprint();
+}
+
+uint8 TerrainWorldGridLayer::GetEffectiveLodCount() const
+{
+    const uint8 requested = MathUtil::Clamp<uint8>(m_lodCount, 1, MaxMeshLods);
+
+    return MathUtil::Min<uint8>(requested, TerrainMeshBuilder::CalculateMaxLodIndex(m_layerInfo.cellSize, GetEffectiveLodStrideMultiplier()) + 1);
+}
+
+uint32 TerrainWorldGridLayer::GetEffectiveLodStrideMultiplier() const
+{
+    return MathUtil::Clamp<uint32>(m_lodStrideMultiplier, 2, 8);
+}
+
+float TerrainWorldGridLayer::GetLodRange(uint8 lodIndex) const
+{
+    return m_lodBaseRange * MathUtil::Pow(m_lodRangeMultiplier, float(lodIndex));
+}
+
+float TerrainWorldGridLayer::GetLodMorphStart(uint8 lodIndex) const
+{
+    const float rangeEnd = GetLodRange(lodIndex);
+    const float rangeStart = lodIndex == 0 ? 0.0f : GetLodRange(lodIndex - 1);
+
+    return rangeStart + (rangeEnd - rangeStart) * m_lodMorphStartRatio;
 }
 
 void TerrainWorldGridLayer::Regenerate()

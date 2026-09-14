@@ -27,6 +27,7 @@
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/SwatchOverridesComponent.hpp>
+#include <Scene/Components/TerrainCellComponent.hpp>
 
 #include <Scripting/EntityScripting.hpp>
 
@@ -57,8 +58,9 @@ Entity::Entity()
 {
 }
 
-Entity::Entity(Name name)
+Entity::Entity(Name name, const EntityInitInfo& initInfo)
     : Node(name),
+      m_entityInitInfo(initInfo),
       m_entityManager(nullptr),
       m_renderProxyVersion(0),
       m_transformChanged(false),
@@ -718,6 +720,10 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->mesh = meshComponent.mesh;
     proxy->material = meshComponent.material;
     proxy->skeleton = meshComponent.skeleton;
+
+    const uint8 numLods = MathUtil::Max<uint8>(meshComponent.mesh->GetMeshDesc().GetNumLods(), 1);
+    proxy->currentLodIndex = MathUtil::Min<uint8>(meshComponent.lodIndex, numLods - 1);
+
     proxy->numIndices = meshComponent.mesh->NumIndices(proxy->currentLodIndex);
     proxy->numInstances = meshComponent.numInstances;
     proxy->enableAutoInstancing = meshComponent.enableAutoInstancing;
@@ -778,6 +784,19 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->bufferData.previousModelMatrix = meshComponent.previousModelMatrix;
     proxy->bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
     proxy->bufferData.bucket = uint32(meshComponent.material->GetAttributes().bucket);
+
+    if (TerrainCellComponent* terrainCellComponent = TryGetComponent<TerrainCellComponent>())
+    {
+        proxy->bufferData.lodMorphStart = terrainCellComponent->lodMorphStart;
+        proxy->bufferData.lodMorphEnd = terrainCellComponent->lodMorphEnd;
+        proxy->bufferData.lodMorphOrigin = Vec4f(terrainCellComponent->lodMorphOrigin, 1.0f);
+    }
+    else
+    {
+        proxy->bufferData.lodMorphStart = 0.0f;
+        proxy->bufferData.lodMorphEnd = 0.0f;
+        proxy->bufferData.lodMorphOrigin = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 }
 
 void Entity::LockTransform()

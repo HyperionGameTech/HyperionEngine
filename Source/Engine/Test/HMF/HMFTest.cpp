@@ -503,12 +503,14 @@ HYP_EXPORT void RunHMFTest()
 
             SetFieldValue(obj, cls, "NumVertices", BoxedValue(uint32(9999)));
             SetFieldValue(obj, cls, "NumIndices", BoxedValue(uint32(33333)));
+            SetFieldValue(obj, cls, "GeometricError", BoxedValue(float(2.5f)));
 
             String text;
             ObjectToHMF(cls, obj, text);
 
             Check("MeshLodDesc: NumVertices = 9999", text.Contains("NumVertices = 9999"), text);
             Check("MeshLodDesc: NumIndices = 33333", text.Contains("NumIndices = 33333"), text);
+            Check("MeshLodDesc: GeometricError = 2.5", text.Contains("GeometricError = 2.5"), text);
         }
     }
 
@@ -562,6 +564,7 @@ HYP_EXPORT void RunHMFTest()
         const String manifest = R"(MeshLodDesc {
     NumVertices = 4096
     NumIndices = 12288
+    GeometricError = 0.5
 }
 )";
 
@@ -578,6 +581,7 @@ HYP_EXPORT void RunHMFTest()
             {
                 Check("NumVertices == 4096", GetFieldValue<uint32>(result.GetValue(), cls, "NumVertices") == 4096);
                 Check("NumIndices == 12288", GetFieldValue<uint32>(result.GetValue(), cls, "NumIndices") == 12288);
+                Check("GeometricError == 0.5", GetFieldValue<float>(result.GetValue(), cls, "GeometricError") == 0.5f);
             }
         }
     }
@@ -751,6 +755,7 @@ CameraOrthoRect {
 
             SetFieldValue(obj, cls, "NumVertices", BoxedValue(uint32(1234)));
             SetFieldValue(obj, cls, "NumIndices", BoxedValue(uint32(5678)));
+            SetFieldValue(obj, cls, "GeometricError", BoxedValue(float(1.25f)));
 
             String text;
             ObjectToHMF(cls, obj, text);
@@ -767,6 +772,7 @@ CameraOrthoRect {
                 {
                     Check("RT NumVertices == 1234", GetFieldValue<uint32>(result.GetValue(), parsedCls, "NumVertices") == 1234);
                     Check("RT NumIndices == 5678", GetFieldValue<uint32>(result.GetValue(), parsedCls, "NumIndices") == 5678);
+                    Check("RT GeometricError == 1.25", GetFieldValue<float>(result.GetValue(), parsedCls, "GeometricError") == 1.25f);
                 }
             }
         }

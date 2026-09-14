@@ -148,8 +148,8 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                         });
                 }
 
-                commandBuffer->BindIndexBuffer(g_quadMesh->GetIndexBuffer());
-                commandBuffer->BindVertexBuffer(g_quadMesh->GetVertexBuffer());
+                commandBuffer->BindIndexBuffer(g_quadMesh->GetIndexBuffer(0));
+                commandBuffer->BindVertexBuffer(g_quadMesh->GetVertexBuffer(0));
                 commandBuffer->DrawIndexed(6);
 
                 static_assert(std::is_trivially_destructible_v<DrawQuad>);

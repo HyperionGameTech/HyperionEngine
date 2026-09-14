@@ -205,11 +205,15 @@ static const Name s_nameHasParallaxMap = NAME("HAS_PARALLAX_MAP");
 static const Name s_nameHasMetalnessMap = NAME("HAS_METALNESS_MAP");
 static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
 
+static const Name s_nameTerrainMorph = NAME("TERRAIN_MORPH");
+
 /// Property interning
 
 static StaticShaderPropertyId s_propInstancing { ShaderProperty(s_nameInstancing) };
 static StaticShaderPropertyId s_propAlphaDiscard { ShaderProperty(s_nameAlphaDiscard) };
 static StaticShaderPropertyId s_propSkinning { ShaderProperty(s_nameSkinning) };
+
+static StaticShaderPropertyId s_propTerrainMorph { ShaderProperty(s_nameTerrainMorph) };
 
 // shading mode
 static StaticShaderPropertyId s_propShadingTypeDeferred { ShaderProperty(s_nameShadingType, Name(s_nameDeferred)) };
@@ -287,6 +291,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     // Shouldn't depend on the names of shaders to conditionally handle stuff!
     const bool isCubemap = IsCubemapShader(shaderNameHash);
     const bool isGeometryPassOrSimilar = IsGeometryPassFamily(shaderNameHash);
+    const bool isTerrainShader = (shaderNameHash == "Terrain"_sh);
 
     uint8 stencilReferenceValue = 0;
 
@@ -316,6 +321,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     shaderProperties.Set(Props::s_propInstancing, hasInstancing);
     shaderProperties.Set(Props::s_propAlphaDiscard, hasAlphaDiscard);
     shaderProperties.Set(Props::s_propSkinning, hasSkinning);
+    shaderProperties.Set(Props::s_propTerrainMorph, isTerrainShader);
 
     if (isGeometryPassOrSimilar)
     {
@@ -1044,6 +1050,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     const bool useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
     Mesh* prevMesh = nullptr;
+    uint8 prevLodIndex = UINT8_MAX;
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferSize = 0;
@@ -1115,9 +1122,8 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
-        // Mesh GPU buffers upload asynchronously (Mesh::UploadGpuData); skip this draw call for
-        // now if it hasn't finished yet rather than binding a null buffer -- it'll pick up once ready.
-        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer().IsValid() || !meshProxy.mesh->GetIndexBuffer().IsValid()))
+        // Skip if upload isn't ready.
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex).IsValid()))
         {
             continue;
         }
@@ -1156,10 +1162,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         cr << CommitDrawState();
 
-        if (!prevMesh || prevMesh != meshProxy.mesh)
+        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != meshProxy.currentLodIndex)
         {
-            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer());
-            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer());
+            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex));
+            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex));
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(meshProxy.material != nullptr);
@@ -1183,6 +1189,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
 
         prevMesh = meshProxy.mesh;
+        prevLodIndex = meshProxy.currentLodIndex;
 
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
         {
@@ -1212,9 +1219,8 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
-        // Mesh GPU buffers upload asynchronously (Mesh::UploadGpuData); skip this draw call for
-        // now if it hasn't finished yet rather than binding a null buffer -- it'll pick up once ready.
-        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer().IsValid() || !meshProxy.mesh->GetIndexBuffer().IsValid()))
+        // Skip if upload isn't ready.
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex).IsValid()))
         {
             continue;
         }
@@ -1263,14 +1269,14 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         cr << CommitDrawState();
 
-        if (!prevMesh || prevMesh != meshProxy.mesh)
+        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != meshProxy.currentLodIndex)
         {
-            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer());
-            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer());
+            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex));
+            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex));
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(meshProxy.material != nullptr);
-            
+
             if (!meshProxy.material->GetTexture(MaterialTextureKey::Diffuse))
             {
                 HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", meshProxy.material->GetName());
@@ -1290,6 +1296,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
 
         prevMesh = meshProxy.mesh;
+        prevLodIndex = meshProxy.currentLodIndex;
 
         // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
@@ -2086,12 +2093,12 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
             AssertDebug(Resources::GetBinding(meshProxy->mesh) != Resources::InvalidBinding);
 
             AssertDebug(meshProxy->mesh != nullptr
-                        && meshProxy->mesh->GetVertexBuffer() != nullptr
-                        && meshProxy->mesh->GetIndexBuffer() != nullptr);
+                        && meshProxy->mesh->GetVertexBuffer(meshProxy->currentLodIndex) != nullptr
+                        && meshProxy->mesh->GetIndexBuffer(meshProxy->currentLodIndex) != nullptr);
 
             AssertDebug(meshProxy->material != nullptr);
 
-            DrawCallID drawCallId { meshProxy->mesh->Id(), meshProxy->material->Id() };
+            DrawCallID drawCallId(meshProxy->mesh->Id(), meshProxy->material->Id(), meshProxy->currentLodIndex);
 
             if (!meshProxy->enableAutoInstancing && !meshProxy->numInstances)
             {
@@ -2110,10 +2117,8 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);
 
-                    // `batch` points to a BatchType instance (e.g. MeshEntityInstanceBatch) that is larger than
-                    // EntityInstanceBatch. Resetting via `*batch = EntityInstanceBatch { batchIndex }` only clears
-                    // the EntityInstanceBatch base subobject and leaves derived-only fields (e.g. previousTransforms)
-                    // stale from whatever draw call previously owned this recycled batch slot.
+                    // we need to zero it using GetStructSize() since the actual memory footprint of
+                    // the batch will potentially be bigger than sizeof(EntityInstanceBatch).
                     Memory::Zero(batch, prevDrawCallCollection.batchAllocator->GetStructSize());
                     batch->batchIndex = batchIndex;
                 }

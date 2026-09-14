@@ -405,8 +405,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
         cr << DrawIndexed(6);
 
         return;
@@ -522,8 +522,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
         cr << DrawIndexed(6);
     }
 
@@ -680,8 +680,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             cr << CommitDrawState();
 
-            cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-            cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+            cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+            cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
             cr << DrawIndexed(6);
 
             prevLightType = lightType;

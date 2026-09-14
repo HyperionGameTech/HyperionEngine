@@ -57,13 +57,16 @@ RendererResult VulkanSampler::Create()
     samplerInfo.addressModeV = ToVkSamplerAddressMode(m_wrapMode);
     samplerInfo.addressModeW = ToVkSamplerAddressMode(m_wrapMode);
 
-    // if (device->GetFeatures().GetPhysicalDeviceFeatures().samplerAnisotropy) {
-    //     samplerInfo.anisotropyEnable = VK_TRUE;
-    //     samplerInfo.maxAnisotropy = 1.0f;//device->GetFeatures().GetPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
-    // } else {
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxAnisotropy = 1.0f;
-    //}
+    if (m_minFilterMode == TextureFilterMode::LinearMipmap)
+    {
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = 8.0f;
+    }
+    else
+    {
+        samplerInfo.anisotropyEnable = VK_FALSE;
+        samplerInfo.maxAnisotropy = 1.0f;
+    }
 
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;

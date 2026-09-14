@@ -20,10 +20,12 @@ struct Entity
 
     uint bucket;
     uint flags;
-    uint _pad0;
-    uint _pad1;
+    
+    float lod_morph_start;
+    float lod_morph_end;
 
-    float4 _pad2;
+    float3 lod_morph_origin;
+    float _pad0;
 };
 
 #define MAX_ENTITIES_PER_INSTANCE_BATCH 16

@@ -30,7 +30,7 @@
 namespace Hyperion {
 namespace SceneHelpers {
 
-Camera* FindMainCamera(World& world)
+Camera* FindMainCamera(const World& world)
 {
     for (Scene* scene : world.GetScenes())
     {
@@ -55,6 +55,38 @@ Camera* FindMainCamera(World& world)
     
     return nullptr;
 }
+
+#ifdef HYP_EDITOR
+
+Camera* GetEditorCamera(const World& world)
+{
+    if (!EngineGlobals::IsEditor())
+    {
+        return nullptr;
+    }
+    
+    for (Scene* scene : world.GetScenes())
+    {
+        Assert(scene != nullptr);
+        
+        EntityManager* entityManager = scene->GetEntityManager();
+        Assert(entityManager != nullptr);
+
+        if (!entityManager)
+        {
+            continue;
+        }
+
+        for (auto [camera, _1] : entityManager->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::EditorCamera>>())
+        {
+            return camera;
+        }
+    }
+    
+    return nullptr;
+}
+
+#endif // HYP_EDITOR
 
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId)
 {

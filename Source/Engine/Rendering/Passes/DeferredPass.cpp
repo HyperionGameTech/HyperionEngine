@@ -1910,8 +1910,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << CommitDrawState();
 
-        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
 
         frame->cr << DrawIndexed(6);
 
@@ -1950,8 +1950,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << CommitDrawState();
 
-        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
 
         frame->cr << DrawIndexed(6);
 
@@ -2338,8 +2338,8 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
             m_quadMesh->UploadGpuData();
         }
 
-        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
         cr << DrawIndexed(6);
 
         // End rendering to this mip

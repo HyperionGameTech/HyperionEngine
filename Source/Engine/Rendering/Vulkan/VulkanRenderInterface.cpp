@@ -1456,6 +1456,7 @@ VulkanTopLevelASRef VulkanRenderInterface::MakeTLAS()
 void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
     const VulkanGpuBuffer* vertexBuffer,
     const VulkanGpuBuffer* indexBuffer,
+    uint32 numIndices,
     uint32 instanceOffset,
     Array<VkDrawIndexedIndirectCommand, VulkanAllocator>& outBuffer)
 {
@@ -1466,16 +1467,12 @@ void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
         outBuffer.ResizeUninitialized(requiredSize);
     }
 
-    uint32 numIndices = 0;
-
-    if (indexBuffer != nullptr)
-    {
-        numIndices = indexBuffer->Size() / sizeof(uint32);
-    }
+    AssertDebug(indexBuffer == nullptr || uint64(numIndices) * sizeof(uint32) <= indexBuffer->Size(),
+                "numIndices exceeds the bound index buffer's size");
 
     VkDrawIndexedIndirectCommand& command = outBuffer[instanceOffset];
     command = VkDrawIndexedIndirectCommand {};
-    command.indexCount = numIndices;
+    command.indexCount = indexBuffer != nullptr ? numIndices : 0;
     command.vertexOffset = 0;
     command.firstInstance = 0;
 }

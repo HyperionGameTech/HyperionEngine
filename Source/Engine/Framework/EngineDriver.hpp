@@ -102,6 +102,11 @@ public:
     void AddWorld(const Handle<World>& world);
     void RemoveWorld(const World* world, bool shutdownWorld = true);
 
+    HYP_FORCE_INLINE Span<const Handle<World>> GetWorlds() const
+    {
+        return m_worlds.ToSpan();
+    }
+
     Span<View* const> GetCurrentFrameViews() const;
 
     bool StartThreads();

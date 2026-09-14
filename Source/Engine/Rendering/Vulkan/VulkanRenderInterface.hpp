@@ -171,6 +171,7 @@ public:
     void PopulateIndirectDrawCommandsBuffer(
         const VulkanGpuBuffer* vertexBuffer,
         const VulkanGpuBuffer* indexBuffer,
+        uint32 numIndices,
         uint32 instanceOffset,
         Array<VkDrawIndexedIndirectCommand, VulkanAllocator>& outBuffer) override;
 

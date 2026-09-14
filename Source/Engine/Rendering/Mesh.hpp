@@ -58,6 +58,11 @@ struct MeshLodDesc
 
     HYP_FIELD(Serialize)
     uint32 numIndices = 0;
+
+    ///Max distance any vertex on this LOD was moved from its LOD 0 position, in local space.
+    /// Used to size skirts so geomorphing (see Mesh LOD selection) never opens a gap at the LOD's own error bound.
+    HYP_FIELD(Serialize)
+    float geometricError = 0.0f;
 };
 
 HYP_STRUCT()
@@ -73,15 +78,19 @@ struct MeshDesc
 
     HYP_FORCE_INLINE uint8 GetNumLods() const
     {
+        uint8 numLods = 0;
+
         for (uint8 i = 0; i < MaxMeshLods; i++)
         {
             if (lods[i].numIndices == 0)
             {
-                return i + 1;
+                break;
             }
+
+            numLods = i + 1;
         }
 
-        return MaxMeshLods;
+        return numLods;
     }
 };
 
@@ -141,14 +150,18 @@ public:
         return m_meshDesc.lods[lodIndex].numIndices;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetVertexBuffer(uint8 lodIndex = UINT8_MAX) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetVertexBuffer(uint8 lodIndex) const
     {
-        return m_vertexBuffers[lodIndex < MaxMeshLods ? lodIndex : m_currentLodIndex];
+        AssertDebug(lodIndex < MaxMeshLods);
+
+        return m_vertexBuffers[lodIndex];
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetIndexBuffer(uint8 lodIndex = UINT8_MAX) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetIndexBuffer(uint8 lodIndex) const
     {
-        return m_indexBuffers[lodIndex < MaxMeshLods ? lodIndex : m_currentLodIndex];
+        AssertDebug(lodIndex < MaxMeshLods);
+
+        return m_indexBuffers[lodIndex];
     }
 
     HYP_FORCE_INLINE MeshAttributes GetMeshAttributes() const
@@ -193,6 +206,8 @@ public:
 
     void UploadGpuData();
     void ReleaseGpuData();
+
+    bool UploadLod(uint8 lodIndex);
 
     ///Dynamic Mesh stuff
 
@@ -303,8 +318,6 @@ private:
 
     FixedArray<GpuBufferRef, MaxMeshLods> m_vertexBuffers;
     FixedArray<GpuBufferRef, MaxMeshLods> m_indexBuffers;
-
-    uint8 m_currentLodIndex;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };

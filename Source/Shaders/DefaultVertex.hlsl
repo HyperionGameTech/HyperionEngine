@@ -82,10 +82,32 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 #endif // INSTANCING
 
+#if defined(TERRAIN_MORPH) && defined(VT_UV1)
+    float3 local_position = input.a_position;
+    {
+        const float morph_range_start = currentEntity.lod_morph_start;
+        const float morph_range_end = currentEntity.lod_morph_end;
+
+        float morph = 0.0;
+
+        if (morph_range_end > morph_range_start)
+        {
+            const float3 world_position_unmorphed = mul(model_matrix, float4(local_position, 1.0)).xyz;
+            const float dist = distance(currentEntity.lod_morph_origin, world_position_unmorphed);
+
+            morph = saturate((dist - morph_range_start) / (morph_range_end - morph_range_start));
+        }
+
+        local_position.y = lerp(local_position.y, input.a_texcoord1.x, morph);
+    }
+#else // !TERRAIN_MORPH || !VT_UV1
+    const float3 local_position = input.a_position;
+#endif // TERRAIN_MORPH && VT_UV1
+
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
-    position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+    position = mul(model_matrix, mul(skinning_matrix, float4(local_position, 1.0)));
 
 #ifdef INSTANCING
     float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
@@ -94,18 +116,18 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 previous_model_matrix = currentEntity.previous_model_matrix;
 #endif // INSTANCING
 
-    previous_position = mul(previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+    previous_position = mul(previous_model_matrix, mul(skinning_matrix, float4(local_position, 1.0)));
     normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
 #else // !SKINNING || !VT_Skeletal
-    position = mul(model_matrix, float4(input.a_position, 1.0));
+    position = mul(model_matrix, float4(local_position, 1.0));
 
 #ifdef INSTANCING
     const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
 
-    previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(input.a_position, 1.0));
+    previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(local_position, 1.0));
 #else // !INSTANCING
 
-    previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
+    previous_position = mul(currentEntity.previous_model_matrix, float4(local_position, 1.0));
 #endif // !SKINNING || !VT_Skeletal
 #endif // SKINNING && VT_Skeletal
 

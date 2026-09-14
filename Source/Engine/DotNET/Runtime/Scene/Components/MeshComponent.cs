@@ -15,7 +15,7 @@ namespace Hyperion
         private uint _numInstances;
         private bool _enableAutoInstancing;
         private AssetReference _instanceData;
-
+        private byte lodIndex;
         private Mat4f _previousModelMatrix;
         private fixed byte _userData[32];
 

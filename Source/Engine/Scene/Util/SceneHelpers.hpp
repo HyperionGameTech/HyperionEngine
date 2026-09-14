@@ -24,7 +24,13 @@ enum class NetConnectionId : uint32;
 
 namespace SceneHelpers {
 
-Camera* FindMainCamera(World& world);
+Camera* FindMainCamera(const World& world);
+
+#ifdef HYP_EDITOR
+Camera* GetEditorCamera(const World& world);
+#else
+inline Camera* GetEditorCamera(const World&) { return nullptr; }
+#endif // HYP_EDITOR
 
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId);
 

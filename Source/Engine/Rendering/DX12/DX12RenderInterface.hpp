@@ -148,6 +148,7 @@ public:
     void PopulateIndirectDrawCommandsBuffer(
         const DX12GpuBuffer* vertexBuffer,
         const DX12GpuBuffer* indexBuffer,
+        uint32 numIndices,
         uint32 instanceOffset,
         Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer) override;
 

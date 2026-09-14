@@ -15,18 +15,22 @@ Mesh TriangleDebugDrawShape {
             MeshLodDesc {
                 NumVertices = 3
                 NumIndices = 3
+                GeometricError = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
             }
         ]
     }

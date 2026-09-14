@@ -7,62 +7,129 @@
 #pragma once
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
 #include <Core/Utilities/Span.hpp>
 
 #include <Rendering/Vertex.hpp>
+#include <Rendering/Mesh.hpp>
 
 namespace Hyperion {
+
+///U = height on the next coarser LOD's surface
+using TerrainVertex = TVertex<VT_Simple | VT_UV1>;
 
 class TerrainMeshBuilder
 {
 public:
-    struct CellMeshData
+    struct LodMeshData
     {
-        Array<SimpleVertex> vertices;
+        ///grid vertices followed by skirt vertices (CalculateGridVertexCount(gridDimension) then CalculateSkirtVertexCount(gridDimension))
+        Array<TerrainVertex> vertices;
         Array<uint32> indices;
+
+        ///vertices per side of this LOD's grid (== cellSize for LOD 0)
+        uint32 gridDimension = 0;
+
+        ///max |sourceHeight - morphTargetHeight| across this LOD's grid vertices; 0 for the coarsest built LOD
+        float geometricError = 0.0f;
     };
 
-    explicit TerrainMeshBuilder(uint32 cellSize);
+    struct CellMeshData
+    {
+        FixedArray<LodMeshData, MaxMeshLods> lods;
+        uint8 numLods = 0;
+    };
+
+    ///\p numLods is clamped to MaxMeshLods and to the highest level whose stride still leaves a usable grid for \p cellSize.
+    ///\p strideMultiplier is how much sparser each LOD's grid is than the previous one (2 = half the vertices per side)
+    TerrainMeshBuilder(uint32 cellSize, uint8 numLods = 1, uint32 strideMultiplier = 2);
 
     TerrainMeshBuilder(const TerrainMeshBuilder& other) = delete;
     TerrainMeshBuilder(TerrainMeshBuilder&& other) noexcept = delete;
 
     ~TerrainMeshBuilder();
 
-    ///paddedHeights is (cellSize + 2 * TerrainGenerator::CellPadding)^2
-    CellMeshData BuildCellVertexData(Span<const float> paddedHeights) const;
+    ///paddedHeights is (cellSize + 2 * TerrainGenerator::CellPadding)^2; builds every LOD requested in the constructor
+    CellMeshData BuildCellMeshData(Span<const float> paddedHeights) const;
 
-    ///the heightfield grid - skirt vertices are appended after these
-    static constexpr uint32 CalculateGridVertexCount(uint32 cellSize)
+    HYP_FORCE_INLINE uint8 GetNumLods() const
     {
-        return cellSize * cellSize;
+        return m_numLods;
     }
 
-    ///4 strips of cellSize vertices hanging off the grid border
-    static constexpr uint32 CalculateSkirtVertexCount(uint32 cellSize)
+    ///stride (in source height-grid samples) between adjacent vertices at \p lodIndex
+    static constexpr uint32 CalculateLodStride(uint8 lodIndex, uint32 strideMultiplier = 2)
     {
-        return 4u * cellSize;
+        uint32 stride = 1;
+
+        for (uint8 i = 0; i < lodIndex; i++)
+        {
+            stride *= strideMultiplier;
+        }
+
+        return stride;
     }
 
-    static constexpr uint32 CalculateTotalVertexCount(uint32 cellSize)
+    ///vertices per side of the grid at \p lodIndex; equals cellSize at lodIndex 0. The last strip is narrower than
+    ///the rest whenever (cellSize - 1) isn't a multiple of the stride.
+    static constexpr uint32 CalculateLodGridDimension(uint32 cellSize, uint8 lodIndex, uint32 strideMultiplier = 2)
     {
-        return CalculateGridVertexCount(cellSize) + CalculateSkirtVertexCount(cellSize);
+        const uint32 stride = CalculateLodStride(lodIndex, strideMultiplier);
+
+        return ((cellSize - 1) + (stride - 1)) / stride + 1;
     }
 
-    ///how far skirt vertices hang below the grid border, in local cell units
-    static constexpr float CalculateSkirtDepth(uint32 cellSize)
+    ///the highest LOD index for which the grid still has more than 2 vertices per side, given cellSize
+    static constexpr uint8 CalculateMaxLodIndex(uint32 cellSize, uint32 strideMultiplier = 2)
     {
-        return float(cellSize - 1) * (1.0f / 16.0f);
+        uint8 lodIndex = 0;
+
+        while (lodIndex + 1 < MaxMeshLods
+            && CalculateLodStride(lodIndex + 1, strideMultiplier) < cellSize - 1)
+        {
+            lodIndex++;
+        }
+
+        return lodIndex;
     }
 
-    ///rebuilds the 4 skirt strips from grid vertices; outSkirtVertices must be CalculateSkirtVertexCount(cellSize) in size
+    ///the heightfield grid - skirt vertices are appended after these. \p gridDimension is vertices per side (cellSize for LOD 0).
+    static constexpr uint32 CalculateGridVertexCount(uint32 gridDimension)
+    {
+        return gridDimension * gridDimension;
+    }
+
+    ///4 strips of gridDimension vertices hanging off the grid border
+    static constexpr uint32 CalculateSkirtVertexCount(uint32 gridDimension)
+    {
+        return 4u * gridDimension;
+    }
+
+    static constexpr uint32 CalculateTotalVertexCount(uint32 gridDimension)
+    {
+        return CalculateGridVertexCount(gridDimension) + CalculateSkirtVertexCount(gridDimension);
+    }
+
+    ///default (LOD-independent) skirt depth, in local cell units; multi-LOD builds widen this per-LOD to also cover
+    ///that LOD's own geometric error (see LodMeshData::geometricError), since geomorphing is the primary seam-closer
+    ///and skirts are only a safety net for edge cases (e.g. a neighbor cell more than one LOD level away).
+    static constexpr float CalculateSkirtDepth(uint32 gridDimension)
+    {
+        return float(gridDimension - 1) * (1.0f / 16.0f);
+    }
+
+    ///rebuilds the 4 skirt strips from grid vertices; outSkirtVertices must be CalculateSkirtVertexCount(gridDimension) in size.
+    ///\p skirtDepth defaults to CalculateSkirtDepth(gridDimension) when negative.
     static void BuildSkirtVertices(
-        uint32 cellSize,
-        Span<const SimpleVertex> gridVertices,
-        Span<SimpleVertex> outSkirtVertices);
+        uint32 gridDimension,
+        Span<const TerrainVertex> gridVertices,
+        Span<TerrainVertex> outSkirtVertices,
+        float skirtDepth = -1.0f);
 
 private:
     uint32 m_cellSize;
+    uint32 m_strideMultiplier;
+    uint8 m_numLods;
 };
 
 } // namespace Hyperion

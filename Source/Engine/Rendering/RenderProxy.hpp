@@ -82,10 +82,10 @@ struct EntityShaderData
 
     uint32 bucket;
     uint32 flags;
-    uint32 _pad0;
-    uint32 _pad1;
 
-    Vec4f _pad2;
+    float lodMorphStart = 0.0f;
+    float lodMorphEnd = 0.0f;
+    Vec4f lodMorphOrigin;
 };
 
 static_assert(sizeof(EntityShaderData) % 64 == 0);

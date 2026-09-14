@@ -391,6 +391,7 @@ public:
     virtual void PopulateIndirectDrawCommandsBuffer(
         const GpuBuffer* vertexBuffer,
         const GpuBuffer* indexBuffer,
+        uint32 numIndices,
         uint32 instanceOffset,
         Array<IndirectDrawCommand, RHIAllocator>& outBuffer) = 0;
 

@@ -26,6 +26,7 @@
 #include <Scene/Systems/PlayerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
+#include <Scene/Systems/TerrainLodSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
@@ -261,6 +262,9 @@ void World::Initialize()
 
     if (!HasSystem<MeshSystem>())
         AddSystem(MakeHandle<MeshSystem>());
+
+    if (!HasSystem<TerrainLodSystem>())
+        AddSystem(MakeHandle<TerrainLodSystem>());
 
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());

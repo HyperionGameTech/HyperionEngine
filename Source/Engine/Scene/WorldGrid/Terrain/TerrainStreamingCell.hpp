@@ -106,7 +106,7 @@ private:
     Handle<Material> m_cellMaterial;
     Handle<Texture> m_splatTexture;
 
-    Array<SimpleVertex> m_scratchVertices;
+    Array<TerrainVertex> m_scratchVertices;
 
     ///heights generated on the streaming thread
     Array<float> m_generatedHeights;

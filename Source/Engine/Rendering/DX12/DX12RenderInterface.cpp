@@ -1145,6 +1145,7 @@ DX12TopLevelASRef DX12RenderInterface::MakeTLAS()
 void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
     const DX12GpuBuffer* vertexBuffer,
     const DX12GpuBuffer* indexBuffer,
+    uint32 numIndices,
     uint32 instanceOffset,
     Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer)
 {
@@ -1155,16 +1156,12 @@ void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
         outBuffer.ResizeUninitialized(requiredSize);
     }
 
-    uint32 numIndices = 0;
-
-    if (indexBuffer != nullptr)
-    {
-        numIndices = uint32(indexBuffer->Size() / sizeof(uint32));
-    }
+    AssertDebug(indexBuffer == nullptr || uint64(numIndices) * sizeof(uint32) <= indexBuffer->Size(),
+                "numIndices exceeds the bound index buffer's size");
 
     D3D12_DRAW_INDEXED_ARGUMENTS& command = outBuffer[instanceOffset];
     command = D3D12_DRAW_INDEXED_ARGUMENTS {};
-    command.IndexCountPerInstance = numIndices;
+    command.IndexCountPerInstance = indexBuffer != nullptr ? numIndices : 0;
     command.InstanceCount = 1;
     command.StartIndexLocation = 0;
     command.BaseVertexLocation = 0;

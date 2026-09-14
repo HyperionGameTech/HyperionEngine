@@ -139,6 +139,22 @@ public:
         return !m_layerInfo.infinite && m_layerInfo.range.x < m_layerInfo.range.y;
     }
 
+    ///CDLOD//////////////////
+    
+    HYP_METHOD()
+    uint8 GetEffectiveLodCount() const;
+
+    HYP_METHOD()
+    uint32 GetEffectiveLodStrideMultiplier() const;
+
+    HYP_METHOD()
+    float GetLodRange(uint8 lodIndex) const;
+
+    HYP_METHOD()
+    float GetLodMorphStart(uint8 lodIndex) const;
+
+    /////////////////////////
+
 protected:
     virtual void OnAdded(WorldGrid* worldGrid) override;
     virtual void OnRemoved(WorldGrid* worldGrid) override;
@@ -162,6 +178,21 @@ protected:
     Handle<Scene> m_scene;
     Handle<Material> m_material;
 
+    HYP_FIELD(Property = "LodCount", Editor = true)
+    uint8 m_lodCount = 4;
+
+    HYP_FIELD(Property = "LodStrideMultiplier", Editor = true)
+    uint32 m_lodStrideMultiplier = 4;
+
+    HYP_FIELD(Property = "LodBaseRange", Editor = true)
+    float m_lodBaseRange = 96.0f;
+
+    HYP_FIELD(Property = "LodRangeMultiplier", Editor = true)
+    float m_lodRangeMultiplier = 2.0f;
+
+    HYP_FIELD(Property = "LodMorphStartRatio", Editor = true)
+    float m_lodMorphStartRatio = 0.7f;
+    
     ///written on the sim thread only, under m_generationStateMutex
     SharedPtr<TerrainGenerator> m_generator;
     mutable Mutex m_generationStateMutex;
