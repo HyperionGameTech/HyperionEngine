@@ -9,8 +9,7 @@
 #include <Scene/System.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
-#include <Scene/Components/TerrainCellComponent.hpp>
-#include <Scene/Components/BoundingBoxComponent.hpp>
+#include <Scene/Components/TerrainPatchComponent.hpp>
 
 namespace Hyperion {
 
@@ -34,8 +33,7 @@ private:
     {
         return {
             ComponentDescriptor<MeshComponent, ComponentAccess::READ_WRITE> {},
-            ComponentDescriptor<TerrainCellComponent, ComponentAccess::READ_WRITE> {},
-            ComponentDescriptor<BoundingBoxComponent, ComponentAccess::READ> {}
+            ComponentDescriptor<TerrainPatchComponent, ComponentAccess::READ_WRITE> {}
         };
     }
 };

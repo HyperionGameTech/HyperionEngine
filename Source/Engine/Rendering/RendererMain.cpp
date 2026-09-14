@@ -82,6 +82,7 @@ extern EngineStatTimer g_statTotalStallTime;
 static EngineStatTimer s_statProxyListReadWait("Rendering/CPU/ProxyListReadWait");
 
 extern CVar<bool> g_cvDepthPrepass;
+extern CVar<bool> g_cvDrawWireframe;
 extern CVar<bool> g_cvPathTracing;
 extern CVar<bool> g_cvEnableLightmapVolumes;
 
@@ -1368,7 +1369,10 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
         cr << SetCurrentShader(ShaderDesc(mas.shaderName, mas.shaderProperties), enableAsync);
     }
 
-    cr << SetFillMode(mas.fillMode);
+    // the depth prepass draws lines too, or it would leave depth behind where the geometry pass draws nothing
+    const bool drawWireframe = dpd != nullptr && g_cvDrawWireframe.Get();
+
+    cr << SetFillMode(drawWireframe ? FillMode::Line : mas.fillMode);
     cr << SetFaceCullMode(mas.cullFaces);
 
     cr << SetCurrentBlendFunction(mas.blendFunction);

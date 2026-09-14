@@ -22,6 +22,7 @@
 #include <Scene/Components/VisibilityStateComponent.hpp>
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TerrainCellComponent.hpp>
+#include <Scene/Components/TerrainPatchComponent.hpp>
 #include <Scene/Components/RigidBodyComponent.hpp>
 
 #include <Physics/PhysicsShape.hpp>
@@ -374,26 +375,30 @@ static Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& c
     return BuildSplatTextureFromWeights(coord, cellSize, splatBytes);
 }
 
-static void BuildMeshDescAndDataView(const TerrainMeshBuilder::CellMeshData& cellMeshData, MeshDesc& outMeshDesc, MeshDataView& outMeshData)
+static void BuildPatchMeshDescAndDataView(const TerrainPatchMeshData& patchMeshData, MeshDesc& outMeshDesc, MeshDataView& outMeshData)
 {
     outMeshDesc.meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple | VT_UV1>;
+    outMeshDesc.lods[0].numIndices = uint32(patchMeshData.indices.Size());
+    outMeshDesc.lods[0].numVertices = uint32(patchMeshData.vertices.Size());
 
-    for (uint8 lodIndex = 0; lodIndex < cellMeshData.numLods; lodIndex++)
-    {
-        const TerrainMeshBuilder::LodMeshData& lodMeshData = cellMeshData.lods[lodIndex];
+    VertexArrayView vertexArrayView {};
+    vertexArrayView.floatData = reinterpret_cast<const float*>(patchMeshData.vertices.Data());
+    vertexArrayView.vertexCount = patchMeshData.vertices.Size();
+    vertexArrayView.layoutDesc = outMeshDesc.meshAttributes.inputLayout;
 
-        outMeshDesc.lods[lodIndex].numIndices = uint32(lodMeshData.indices.Size());
-        outMeshDesc.lods[lodIndex].numVertices = uint32(lodMeshData.vertices.Size());
-        outMeshDesc.lods[lodIndex].geometricError = lodMeshData.geometricError;
+    outMeshData.vertices[0] = vertexArrayView;
+    outMeshData.indices[0] = patchMeshData.indices.ToByteView();
+}
 
-        VertexArrayView vertexArrayView {};
-        vertexArrayView.floatData = reinterpret_cast<const float*>(lodMeshData.vertices.Data());
-        vertexArrayView.vertexCount = lodMeshData.vertices.Size();
-        vertexArrayView.layoutDesc = outMeshDesc.meshAttributes.inputLayout;
+static float DistanceToBounds(const Vec3f& point, const BoundingBox& bounds)
+{
+    const Vec3f closestPoint {
+        MathUtil::Clamp(point.x, bounds.min.x, bounds.max.x),
+        MathUtil::Clamp(point.y, bounds.min.y, bounds.max.y),
+        MathUtil::Clamp(point.z, bounds.min.z, bounds.max.z)
+    };
 
-        outMeshData.vertices[lodIndex] = vertexArrayView;
-        outMeshData.indices[lodIndex] = lodMeshData.indices.ToByteView();
-    }
+    return (point - closestPoint).Length();
 }
 
 #pragma region TerrainStreamingCell
@@ -475,7 +480,7 @@ void TerrainStreamingCell::ReleaseBuildData()
     m_hasGeneratedHeights = false;
     m_splatUploadBytes = Array<ubyte>();
     m_normalMapUploadBytes = Array<ubyte>();
-    m_cellMeshData = TerrainMeshBuilder::CellMeshData();
+    m_initialPatchBuilds = Array<TerrainPatchBuild>();
 }
 
 bool TerrainStreamingCell::LoadOrGeneratePaddedHeights()
@@ -525,38 +530,6 @@ bool TerrainStreamingCell::LoadOrGeneratePaddedHeights()
     return true;
 }
 
-void TerrainStreamingCell::BuildCellMeshData(uint8 firstLodIndex)
-{
-    HYP_SCOPE;
-
-    TerrainMeshBuilder meshBuilder(GetCellSize(), m_layer->GetEffectiveLodCount(), m_layer->GetEffectiveLodStrideMultiplier());
-
-    m_cellMeshData = meshBuilder.BuildCellMeshData(m_paddedHeights, firstLodIndex);
-}
-
-uint8 TerrainStreamingCell::SelectInitialFirstMeshLod() const
-{
-    const uint32 cellSize = GetCellSize();
-
-    float minHeight = MathUtil::Infinity<float>();
-    float maxHeight = -MathUtil::Infinity<float>();
-
-    for (float height : m_paddedHeights)
-    {
-        minHeight = MathUtil::Min(minHeight, height);
-        maxHeight = MathUtil::Max(maxHeight, height);
-    }
-
-    const Vec3f& boundsMin = m_cellInfo.bounds.min;
-
-    const BoundingBox worldBounds(
-        Vec3f(boundsMin.x, boundsMin.y + minHeight, boundsMin.z),
-        Vec3f(boundsMin.x + float(cellSize - 1) * m_cellInfo.scale.x, boundsMin.y + maxHeight, boundsMin.z + float(cellSize - 1) * m_cellInfo.scale.z));
-
-    // judged as if LOD 0 wasn't loaded yet, so only cells already inside the load range pay for it up front
-    return m_layer->SelectFirstMeshLod(m_layer->GetNearestLodViewpointDistance(worldBounds), 1);
-}
-
 void TerrainStreamingCell::OnStreamStart()
 {
     HYP_SCOPE;
@@ -583,10 +556,8 @@ void TerrainStreamingCell::OnStreamStart()
 
     const uint32 cellSize = GetCellSize();
 
-    BuildCellMeshData(SelectInitialFirstMeshLod());
-
-    m_firstMeshLod = m_cellMeshData.firstLodIndex;
-    m_requestedFirstMeshLod = m_firstMeshLod;
+    ResetQuadtree();
+    BuildInitialPatchMeshData();
 
     PrepareNormalMapBytes(m_paddedHeights, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
 
@@ -605,24 +576,6 @@ void TerrainStreamingCell::OnStreamStart()
     {
         PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_splatUploadBytes);
     }
-}
-
-Handle<Mesh> TerrainStreamingCell::BuildMesh(const TerrainMeshBuilder::CellMeshData& cellMeshData) const
-{
-    Assert(cellMeshData.numLods > 0 && cellMeshData.lods[0].vertices.Any(), "No CPU-side terrain mesh data built yet");
-
-    MeshDesc meshDesc;
-    MeshDataView meshData {};
-    BuildMeshDescAndDataView(cellMeshData, meshDesc, meshData);
-
-    Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetName(NAME_FMT("TerrainChunkMesh_{}", m_cellInfo.coord));
-    mesh->SetMeshData(meshDesc, meshData);
-    mesh->SetIsTransient(true);
-    mesh->SetIsDynamicMesh(true);
-    InitObject(mesh);
-
-    return mesh;
 }
 
 void TerrainStreamingCell::OnLoaded()
@@ -669,6 +622,8 @@ void TerrainStreamingCell::OnLoaded()
         m_node.Reset();
         m_entity.Reset();
 
+        ReleaseBuildData();
+
         return;
     }
 
@@ -693,22 +648,15 @@ void TerrainStreamingCell::OnLoaded()
 
     m_normalMapUploadBytes.Clear();
 
-    m_mesh = BuildMesh(m_cellMeshData);
+    HYP_LOG(WorldGrid, Verbose, "Creating terrain tile at coord {} with extent {} and scale {}, bounds: {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, m_cellInfo.bounds);
 
-    // Free the CPU-side build data now that the GPU mesh has been created from it.
-    m_cellMeshData = TerrainMeshBuilder::CellMeshData();
-
-    HYP_LOG(WorldGrid, Verbose, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh Id: #{}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, m_cellInfo.bounds, m_mesh.Id().Value());
-
-    Transform transform;
-    transform.SetTranslation(m_cellInfo.bounds.min);
-    transform.SetScale(m_cellInfo.scale);
+    const Transform transform = ComputeTileTransform();
 
     EntityInitInfo entityInitInfo {};
     entityInitInfo.bvhDepth = 0; // don't build bvhs to save load times
 
-    m_entity = MakeHandle<Entity>(NAME_FMT("TerrainPatch_{}_Entity", m_cellInfo.coord), entityInitInfo);
-    m_entity->SetLocalBounds(ComputeLocalBounds());
+    m_entity = MakeHandle<Entity>(NAME_FMT("TerrainTile_{}_Entity", m_cellInfo.coord), entityInitInfo);
+    m_entity->SetLocalBounds(ComputeTileLocalBounds());
     m_entity->SetIsStatic(true);
 
     entityManager->AddExistingEntity(m_entity);
@@ -719,28 +667,9 @@ void TerrainStreamingCell::OnLoaded()
         transform.GetScale()
     };
 
-    entityManager->GetComponent<VisibilityStateComponent>(m_entity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
-
-    MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(m_entity);
-
-    if (!meshComponent)
-    {
-        meshComponent = &entityManager->AddComponent<MeshComponent>(m_entity, MeshComponent { m_mesh, m_material });
-    }
-    else
-    {
-        meshComponent->mesh = m_mesh;
-        meshComponent->material = m_material;
-    }
-
-    // most cells stream in far away, so start coarse until TerrainLodSystem picks the real LOD
-    meshComponent->lodIndex = uint8(m_mesh->GetMeshDesc().GetNumLods() - 1);
-
     entityManager->AddComponent<TerrainCellComponent>(m_entity, TerrainCellComponent {
         .layer = m_layer.ToWeak(),
-        .cell = WeakHandleFromThis(),
-        .firstMeshLodIndex = m_firstMeshLod,
-        .requestedFirstMeshLodIndex = m_requestedFirstMeshLod
+        .cell = WeakHandleFromThis()
     });
 
     m_collisionShape = MakeHandle<HeightFieldPhysicsShape>(NAME_FMT("TerrainCellCollider_{}", m_cellInfo.coord));
@@ -753,10 +682,17 @@ void TerrainStreamingCell::OnLoaded()
     });
 
     m_node = m_scene->GetRoot()->AddChild();
-    m_node->SetName(NAME_FMT("TerrainPatch_{}", m_cellInfo.coord));
+    m_node->SetName(NAME_FMT("TerrainTile_{}", m_cellInfo.coord));
     m_node->AddChild(m_entity);
     m_node->SetLocalTransform(transform);
     m_node->SetIsStatic(true);
+
+    for (const TerrainPatchBuild& patchBuild : m_initialPatchBuilds)
+    {
+        CreatePatch(patchBuild.patchIndex, patchBuild.meshData);
+    }
+
+    m_initialPatchBuilds = Array<TerrainPatchBuild>();
 
     if (normalMapTexture.IsValid())
     {
@@ -769,6 +705,36 @@ void TerrainStreamingCell::OnLoaded()
     }
 
     m_layer->RegisterLoadedCell(m_cellInfo.coord, WeakHandleFromThis());
+
+    // selects and assigns the drawn patches now, so the tile doesn't pop in a frame after it's added
+    const Array<Vec3f> viewpoints = m_layer->GetLodViewpoints();
+
+    UpdateLodSelection(viewpoints);
+
+    for (const TerrainPatch& patch : m_patches)
+    {
+        const Handle<Entity>& patchEntity = patch.entity;
+
+        if (!patchEntity.IsValid())
+        {
+            continue;
+        }
+
+        MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(patchEntity);
+        TerrainPatchComponent* patchComponent = entityManager->TryGetComponent<TerrainPatchComponent>(patchEntity);
+
+        if (!meshComponent || !patchComponent)
+        {
+            continue;
+        }
+
+        bool drawnMeshChanged = false;
+
+        if (ApplyPatchLod(viewpoints, *meshComponent, *patchComponent, drawnMeshChanged))
+        {
+            patchEntity->SetNeedsRenderProxyUpdate();
+        }
+    }
 }
 
 void TerrainStreamingCell::OnRemoved()
@@ -806,10 +772,16 @@ void TerrainStreamingCell::DetachFromScene()
         return;
     }
 
+    // the collider and patch entities are children of the tile node, so they leave with it
     m_node->Remove(/* moveToDetached */ false);
     m_node.Reset();
 
     m_entity.Reset();
+
+    for (TerrainPatch& patch : m_patches)
+    {
+        patch = TerrainPatch {};
+    }
 }
 
 void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& cellData)
@@ -819,7 +791,6 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
 
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
     Assert(m_entity.IsValid(), "Cell has not finished loading yet");
-    Assert(m_mesh.IsValid(), "Cell has not finished loading yet");
 
     m_cellData = cellData;
 
@@ -845,7 +816,7 @@ void TerrainStreamingCell::RefreshAutoSplat()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (!m_layer.IsValid() || !m_mesh.IsValid())
+    if (!m_layer.IsValid() || !m_entity.IsValid())
     {
         return;
     }
@@ -878,7 +849,6 @@ void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture
 
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
     Assert(m_entity.IsValid(), "Cell has not finished loading yet");
-    Assert(m_mesh.IsValid(), "Cell has not finished loading yet");
 
     if (!splatTexture.IsValid() || !m_material.IsValid())
     {
@@ -941,26 +911,34 @@ void TerrainStreamingCell::BindCellMaterialTexture(MaterialTextureKey key, const
         return;
     }
 
-    if (MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(m_entity))
+    for (const TerrainPatch& patch : m_patches)
     {
-        meshComponent->material = m_cellMaterial;
+        if (!patch.entity.IsValid())
+        {
+            continue;
+        }
+
+        if (MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(patch.entity))
+        {
+            meshComponent->material = m_cellMaterial;
+        }
+
+        patch.entity->SetNeedsRenderProxyUpdate();
     }
 
     // the replaced texture is still referenced by static shadow views that skipped collection
     m_scene->MarkStaticRenderResourcesChanged();
 
-    m_entity->SetNeedsRenderProxyUpdate();
     m_entity->MarkDirty();
 }
 
-void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellData)
+void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
     Assert(m_layer.IsValid(), "Invalid terrain layer!");
     Assert(m_entity.IsValid(), "Cell has not finished loading yet");
-    Assert(m_mesh.IsValid(), "Cell has not finished loading yet");
 
     m_cellData = cellData;
 
@@ -971,325 +949,13 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 #endif
     }
 
-    // takes any pending first LOD request along with it - the async build for that would have the old heights
-    BuildCellMeshData(m_requestedFirstMeshLod);
-
-    m_meshBuildId++;
-
-    const uint8 previousFirstMeshLod = m_firstMeshLod;
-
-    m_firstMeshLod = m_cellMeshData.firstLodIndex;
-    m_requestedFirstMeshLod = m_firstMeshLod;
-
-    if (m_firstMeshLod != previousFirstMeshLod)
-    {
-        // see ApplyFirstMeshLodBuild()
-        m_mesh = BuildMesh(m_cellMeshData);
-
-        m_scene->MarkStaticRenderResourcesChanged();
-    }
-    else
-    {
-        MeshDesc meshDesc;
-        MeshDataView meshData {};
-        BuildMeshDescAndDataView(m_cellMeshData, meshDesc, meshData);
-
-        // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
-        // as we need it to prevent stalls
-        m_mesh->SetMeshData(meshDesc, meshData);
-    }
-
-    m_cellMeshData = TerrainMeshBuilder::CellMeshData();
+    RebuildPatchesInRegion(minVertex, maxVertex);
 
     RefreshNormalMap();
 
-    m_entity->SetLocalBounds(ComputeLocalBounds());
+    m_entity->SetLocalBounds(ComputeTileLocalBounds());
 
     UpdateCollider(true /* notifyPhysicsWorld */);
-
-    UpdateMeshComponents(previousFirstMeshLod);
-}
-
-void TerrainStreamingCell::RequestFirstMeshLod(uint8 firstLodIndex)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    if (m_isRemoved || !m_entity.IsValid() || m_paddedHeights.Empty() || IsStale())
-    {
-        return;
-    }
-
-    if (firstLodIndex == m_requestedFirstMeshLod)
-    {
-        return;
-    }
-
-    m_requestedFirstMeshLod = firstLodIndex;
-
-    const uint32 buildId = ++m_meshBuildId;
-
-    if (firstLodIndex == m_firstMeshLod)
-    {
-        // back to what the mesh already has - the bumped id drops the in-flight build
-        return;
-    }
-
-    TaskSystem::GetInstance().Enqueue(
-        [weakThis = WeakHandleFromThis(),
-            paddedHeights = m_paddedHeights,
-            cellSize = GetCellSize(),
-            lodCount = m_layer->GetEffectiveLodCount(),
-            strideMultiplier = m_layer->GetEffectiveLodStrideMultiplier(),
-            firstLodIndex,
-            buildId]()
-        {
-            TerrainMeshBuilder meshBuilder(cellSize, lodCount, strideMultiplier);
-            TerrainMeshBuilder::CellMeshData cellMeshData = meshBuilder.BuildCellMeshData(paddedHeights, firstLodIndex);
-
-            ThreadBase* simThread = GetThreadById(g_simThread);
-
-            if (!simThread)
-            {
-                return;
-            }
-
-            simThread->GetScheduler().Enqueue(
-                [weakThis, cellMeshData = std::move(cellMeshData), buildId]() mutable
-                {
-                    if (Handle<TerrainStreamingCell> cell = weakThis.Lock(); cell.IsValid())
-                    {
-                        cell->ApplyFirstMeshLodBuild(std::move(cellMeshData), buildId);
-                    }
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        },
-        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
-        TaskEnqueueFlags::FIRE_AND_FORGET);
-}
-
-void TerrainStreamingCell::ApplyFirstMeshLodBuild(TerrainMeshBuilder::CellMeshData&& cellMeshData, uint32 buildId)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    // superseded by a newer request or a brush rebuild, or the cell went away while building
-    if (buildId != m_meshBuildId || m_isRemoved || !m_entity.IsValid() || IsStale() || cellMeshData.numLods == 0)
-    {
-        return;
-    }
-
-    const uint8 previousFirstMeshLod = m_firstMeshLod;
-
-    // a new mesh rather than SetMeshData(), which reuses GPU buffers that are big enough - LOD 0's would never be freed
-    m_mesh = BuildMesh(cellMeshData);
-    m_firstMeshLod = cellMeshData.firstLodIndex;
-
-    m_entity->SetLocalBounds(ComputeLocalBounds());
-
-    UpdateMeshComponents(previousFirstMeshLod);
-
-    // static shadow views that skipped collection still hold the replaced mesh
-    m_scene->MarkStaticRenderResourcesChanged();
-}
-
-void TerrainStreamingCell::UpdateMeshComponents(uint8 previousFirstMeshLod)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
-
-    if (!entityManager.IsValid())
-    {
-        return;
-    }
-
-    if (MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(m_entity))
-    {
-        const int32 lodOnScreen = int32(previousFirstMeshLod) + int32(meshComponent->lodIndex);
-        const int32 meshLodCount = int32(MathUtil::Max<uint8>(m_mesh->GetMeshDesc().GetNumLods(), 1));
-
-        meshComponent->mesh = m_mesh;
-        meshComponent->lodIndex = uint8(MathUtil::Clamp(lodOnScreen - int32(m_firstMeshLod), 0, meshLodCount - 1));
-    }
-
-    if (TerrainCellComponent* terrainCellComponent = entityManager->TryGetComponent<TerrainCellComponent>(m_entity))
-    {
-        terrainCellComponent->firstMeshLodIndex = m_firstMeshLod;
-        terrainCellComponent->requestedFirstMeshLodIndex = m_requestedFirstMeshLod;
-    }
-
-    m_entity->SetNeedsRenderProxyUpdate();
-}
-
-BoundingBox TerrainStreamingCell::ComputeLocalBounds() const
-{
-    BoundingBox bounds = m_mesh->GetAABB();
-
-    for (float height : m_paddedHeights)
-    {
-        bounds.min.y = MathUtil::Min(bounds.min.y, height);
-        bounds.max.y = MathUtil::Max(bounds.max.y, height);
-    }
-
-    return bounds;
-}
-
-void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    Assert(m_layer.IsValid(), "Invalid terrain layer!");
-    Assert(m_entity.IsValid(), "Cell has not finished loading yet");
-    Assert(m_mesh.IsValid(), "Cell has not finished loading yet");
-
-    m_cellData = cellData;
-
-    const uint32 cellSize = GetCellSize();
-
-    if (m_firstMeshLod != 0 || m_mesh->GetMeshDesc().GetNumLods() > 1)
-    {
-        // The fast path below only patches LOD 0 in place. With multiple mesh LODs, a partial edit would leave
-        // LOD 1+ (and LOD 0's own morph targets, which point at LOD 1's heights) stale until some other full
-        // rebuild happened to come along, which can show as a crack or a misplaced morph the next time this
-        // cell's LOD changes. A full rebuild is cheap (a few thousand vertices), so always do that instead.
-
-        RebuildMeshFull(cellData);
-
-        return;
-    }
-
-    const VertexArrayView vertexData = m_mesh->GetVertexData(0);
-
-    if (vertexData.floatData == nullptr || vertexData.vertexCount < TerrainMeshHelpers::CalculateGridVertexCount(cellSize))
-    {
-        HYP_LOG(WorldGrid, Warning, "Cell {} has invalid vertex data for terrain", m_cellInfo.coord);
-
-        RebuildMeshFull(cellData);
-
-        return;
-    }
-
-    const int32 minVertexX = MathUtil::Clamp(minVertex.x, 0, int32(cellSize) - 1);
-    const int32 maxVertexX = MathUtil::Clamp(maxVertex.x, 0, int32(cellSize) - 1);
-    const int32 minVertexZ = MathUtil::Clamp(minVertex.y, 0, int32(cellSize) - 1);
-    const int32 maxVertexZ = MathUtil::Clamp(maxVertex.y, 0, int32(cellSize) - 1);
-
-    if (minVertexX > maxVertexX || minVertexZ > maxVertexZ)
-    {
-        return;
-    }
-
-    const int32 updateMinX = MathUtil::Max(minVertexX - 1, 0);
-    const int32 updateMaxX = MathUtil::Min(maxVertexX + 1, int32(cellSize) - 1);
-    const int32 updateMinZ = MathUtil::Max(minVertexZ - 1, 0);
-    const int32 updateMaxZ = MathUtil::Min(maxVertexZ + 1, int32(cellSize) - 1);
-
-    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
-
-    const bool hasCurrentHeights = m_cellData.IsValid() && TerrainWorldGridLayer::AreCellHeightsCurrent(*m_cellData, cellSize, m_layer->GetCellFingerprint());
-
-    if (!hasCurrentHeights)
-    {
-        RebuildMeshFull(cellData);
-
-        return;
-    }
-
-    auto cellDataReadScope = m_cellData->GetReadScope();
-
-    const Span<const float> paddedHeights = static_cast<const TerrainCellData&>(*m_cellData).GetHeights();
-
-    if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
-    {
-        HYP_LOG(WorldGrid, Warning, "Cell {} heights could not be paged in for a partial rebuild", m_cellInfo.coord);
-
-        return;
-    }
-
-    // the padding ring holds the neighbor's border-adjacent heights, so border normals stay consistent across seams
-    const auto heightAt = [&](int32 x, int32 z) -> float
-    {
-        return paddedHeights[size_t(z + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(x + int32(TerrainGenerator::CellPadding))];
-    };
-
-    const uint32 firstVertex = uint32(updateMinZ) * cellSize;
-    const uint32 numRows = uint32(updateMaxZ - updateMinZ + 1);
-    const uint32 numVertices = numRows * cellSize;
-
-    const uint32 vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
-
-    m_scratchVertices.Resize(numVertices);
-
-    Memory::Copy(
-        m_scratchVertices.Data(),
-        vertexData.floatData + (firstVertex * vertexSizeInFloats),
-        numVertices * vertexSizeInFloats * sizeof(float));
-
-    for (int32 z = minVertexZ; z <= maxVertexZ; z++)
-    {
-        for (int32 x = minVertexX; x <= maxVertexX; x++)
-        {
-            m_scratchVertices[size_t(z - updateMinZ) * cellSize + x].SetPosition(Vec3f { float(x), heightAt(x, z), float(z) });
-        }
-    }
-
-    m_paddedHeights.Resize(paddedHeights.Size());
-    Memory::Copy(m_paddedHeights.Data(), paddedHeights.Data(), paddedHeights.Size() * sizeof(float));
-
-    for (int32 z = updateMinZ; z <= updateMaxZ; z++)
-    {
-        for (int32 x = updateMinX; x <= updateMaxX; x++)
-        {
-            m_scratchVertices[size_t(z - updateMinZ) * cellSize + x].SetNormal(TerrainGenerator::ComputeGridNormal(
-                heightAt(x - 1, z),
-                heightAt(x + 1, z),
-                heightAt(x, z - 1),
-                heightAt(x, z + 1)));
-        }
-    }
-
-    VertexArrayView rangeView {};
-    rangeView.floatData = reinterpret_cast<const float*>(m_scratchVertices.Data());
-    rangeView.vertexCount = numVertices;
-    rangeView.layoutDesc = vertexData.layoutDesc;
-
-    m_mesh->UpdateDynamicVertexData(0, firstVertex, rangeView);
-
-    // rebuild skirts
-    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
-    const uint32 skirtVertexCount = TerrainMeshHelpers::CalculateSkirtVertexCount(cellSize);
-
-    m_scratchVertices.Resize(skirtVertexCount);
-
-    TerrainMeshHelpers::BuildSkirtVertices(
-        cellSize,
-        Span<const TerrainVertex>(reinterpret_cast<const TerrainVertex*>(vertexData.floatData), gridVertexCount),
-        m_scratchVertices);
-
-    VertexArrayView skirtRangeView {};
-    skirtRangeView.floatData = reinterpret_cast<const float*>(m_scratchVertices.Data());
-    skirtRangeView.vertexCount = skirtVertexCount;
-    skirtRangeView.layoutDesc = vertexData.layoutDesc;
-
-    m_mesh->UpdateDynamicVertexData(0, gridVertexCount, skirtRangeView);
-
-    RefreshNormalMap();
-
-    m_entity->SetLocalBounds(ComputeLocalBounds());
-
-    UpdateCollider(true /* notifyPhysicsWorld */);
-
-    const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
-
-    if (!entityManager.IsValid())
-    {
-        return;
-    }
-
-    m_entity->SetNeedsRenderProxyUpdate();
 }
 
 void TerrainStreamingCell::UpdateCollider(bool notifyPhysicsWorld)
@@ -1326,12 +992,13 @@ void TerrainStreamingCell::RebuildPickBVH()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (!m_mesh.IsValid())
+    for (const TerrainPatch& patch : m_patches)
     {
-        return;
+        if (patch.mesh.IsValid())
+        {
+            patch.mesh->UpdateDynamicBVH();
+        }
     }
-
-    m_mesh->UpdateDynamicBVH();
 }
 
 bool TerrainStreamingCell::HasCollider() const
@@ -1349,6 +1016,625 @@ bool TerrainStreamingCell::HasCollider() const
 
     return rigidBodyComponent != nullptr && rigidBodyComponent->rigidBody.IsValid();
 }
+
+BoundingBox TerrainStreamingCell::ComputeTileLocalBounds() const
+{
+    const float tileExtent = float(GetCellSize() - 1);
+
+    float minHeight = 0.0f;
+    float maxHeight = 0.0f;
+
+    if (m_paddedHeights.Any())
+    {
+        minHeight = MathUtil::Infinity<float>();
+        maxHeight = -MathUtil::Infinity<float>();
+
+        for (float height : m_paddedHeights)
+        {
+            minHeight = MathUtil::Min(minHeight, height);
+            maxHeight = MathUtil::Max(maxHeight, height);
+        }
+    }
+
+    return BoundingBox(Vec3f(0.0f, minHeight, 0.0f), Vec3f(tileExtent, maxHeight, tileExtent));
+}
+
+Transform TerrainStreamingCell::ComputeTileTransform() const
+{
+    Transform transform;
+    transform.SetTranslation(m_cellInfo.bounds.min);
+    transform.SetScale(m_cellInfo.scale);
+
+    return transform;
+}
+
+const Handle<Material>& TerrainStreamingCell::GetTileMaterial() const
+{
+    return m_cellMaterial.IsValid() ? m_cellMaterial : m_material;
+}
+
+#pragma region Quadtree
+
+void TerrainStreamingCell::ResetQuadtree()
+{
+    HYP_SCOPE;
+
+    m_quadtreeLayout = TerrainWorldGridLayer::MakeQuadtreeLayout(GetCellSize());
+
+    if (!m_quadtreeLayout.IsValid())
+    {
+        HYP_LOG(WorldGrid, Error, "Cell {} has cell size {} - terrain LOD needs a cell size of 2^n + 1", m_cellInfo.coord, GetCellSize());
+    }
+
+    UpdateNodeHeightBounds();
+
+    m_nodeInRange.Resize(m_quadtreeLayout.GetNumNodes());
+
+    for (uint8& nodeInRange : m_nodeInRange)
+    {
+        nodeInRange = 0;
+    }
+
+    m_patches.Resize(m_quadtreeLayout.GetNumPatches());
+}
+
+void TerrainStreamingCell::UpdateNodeHeightBounds()
+{
+    ComputeTerrainQuadtreeNodeHeightBounds(m_quadtreeLayout, m_paddedHeights, GetCellSize(), m_nodeMinHeights, m_nodeMaxHeights);
+}
+
+BoundingBox TerrainStreamingCell::GetNodeWorldBounds(uint32 nodeIndex) const
+{
+    const TerrainQuadtreeLayout::NodeKey node = m_quadtreeLayout.GetNodeKey(nodeIndex);
+
+    const Vec2u origin = m_quadtreeLayout.GetNodeOrigin(node);
+    const float gridQuads = float(m_quadtreeLayout.GetNodeGridQuads(node.level));
+
+    const Vec3f& tileMin = m_cellInfo.bounds.min;
+    const Vec3f& scale = m_cellInfo.scale;
+
+    return BoundingBox(
+        Vec3f(tileMin.x + float(origin.x) * scale.x, tileMin.y + m_nodeMinHeights[nodeIndex], tileMin.z + float(origin.y) * scale.z),
+        Vec3f(tileMin.x + (float(origin.x) + gridQuads) * scale.x, tileMin.y + m_nodeMaxHeights[nodeIndex], tileMin.z + (float(origin.y) + gridQuads) * scale.z));
+}
+
+BoundingBox TerrainStreamingCell::GetPatchWorldBounds(uint32 patchIndex) const
+{
+    const TerrainQuadtreeLayout::PatchKey patchKey = m_quadtreeLayout.GetPatchKey(patchIndex);
+
+    // a quadrant patch covers exactly its child node's footprint
+    const TerrainQuadtreeLayout::NodeKey footprintNode = m_quadtreeLayout.HasQuadrantChildren(patchKey.node.level)
+        ? m_quadtreeLayout.GetChildNode(patchKey.node, patchKey.quadrant)
+        : patchKey.node;
+
+    return GetNodeWorldBounds(m_quadtreeLayout.GetNodeIndex(footprintNode));
+}
+
+void TerrainStreamingCell::ComputeNodeDistances(Span<const Vec3f> viewpoints, Array<float>& outNodeDistances) const
+{
+    const uint32 numNodes = m_quadtreeLayout.GetNumNodes();
+
+    outNodeDistances.Resize(numNodes);
+
+    for (uint32 nodeIndex = 0; nodeIndex < numNodes; nodeIndex++)
+    {
+        const BoundingBox nodeWorldBounds = GetNodeWorldBounds(nodeIndex);
+
+        float nearestDistance = MathUtil::Infinity<float>();
+
+        for (const Vec3f& viewpoint : viewpoints)
+        {
+            nearestDistance = MathUtil::Min(nearestDistance, DistanceToBounds(viewpoint, nodeWorldBounds));
+        }
+
+        outNodeDistances[nodeIndex] = nearestDistance;
+    }
+}
+
+float TerrainStreamingCell::GetLodRange(uint8 level) const
+{
+    return TerrainWorldGridLayer::CalculateLodRange(level, m_quadtreeLayout, m_cellInfo.scale);
+}
+
+float TerrainStreamingCell::GetLodMorphStart(uint8 level) const
+{
+    return TerrainWorldGridLayer::CalculateLodMorphStart(level, m_quadtreeLayout, m_cellInfo.scale);
+}
+
+bool TerrainStreamingCell::IsNodeResident(uint32 nodeIndex) const
+{
+    const TerrainQuadtreeLayout::NodeKey node = m_quadtreeLayout.GetNodeKey(nodeIndex);
+
+    for (uint32 quadrant = 0; quadrant < m_quadtreeLayout.GetPatchesPerNode(node.level); quadrant++)
+    {
+        if (!m_patches[m_quadtreeLayout.GetPatchIndex({ node, quadrant })].mesh.IsValid())
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool TerrainStreamingCell::IsNodeWanted(uint32 nodeIndex, float nodeDistance) const
+{
+    constexpr float BuildRangeScale = 1.5f;
+    constexpr float ReleaseRangeScale = 2.0f;
+
+    const uint8 level = m_quadtreeLayout.GetNodeKey(nodeIndex).level;
+
+    if (level == m_quadtreeLayout.GetTopLevel())
+    {
+        return true;
+    }
+
+    const float rangeScale = IsNodeResident(nodeIndex) ? ReleaseRangeScale : BuildRangeScale;
+
+    return nodeDistance < GetLodRange(level) * rangeScale;
+}
+
+void TerrainStreamingCell::BuildInitialPatchMeshData()
+{
+    HYP_SCOPE;
+
+    m_initialPatchBuilds.Clear();
+
+    if (!m_quadtreeLayout.IsValid())
+    {
+        return;
+    }
+
+    const Array<Vec3f> viewpoints = m_layer->GetLodViewpoints();
+
+    Array<float> nodeDistances;
+    ComputeNodeDistances(viewpoints, nodeDistances);
+
+    TerrainMeshBuilder meshBuilder(GetCellSize(), m_quadtreeLayout);
+
+    for (uint32 nodeIndex = 0; nodeIndex < m_quadtreeLayout.GetNumNodes(); nodeIndex++)
+    {
+        if (!IsNodeWanted(nodeIndex, nodeDistances[nodeIndex]))
+        {
+            continue;
+        }
+
+        const TerrainQuadtreeLayout::NodeKey node = m_quadtreeLayout.GetNodeKey(nodeIndex);
+
+        for (uint32 quadrant = 0; quadrant < m_quadtreeLayout.GetPatchesPerNode(node.level); quadrant++)
+        {
+            const uint32 patchIndex = m_quadtreeLayout.GetPatchIndex({ node, quadrant });
+
+            m_initialPatchBuilds.PushBack(TerrainPatchBuild { patchIndex, meshBuilder.BuildPatchMeshData(m_paddedHeights, patchIndex) });
+        }
+    }
+}
+
+void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_isRemoved || !m_node.IsValid() || !m_quadtreeLayout.IsValid())
+    {
+        return;
+    }
+
+    const uint32 numNodes = m_quadtreeLayout.GetNumNodes();
+    const uint32 numPatches = m_quadtreeLayout.GetNumPatches();
+
+    Array<float> nodeDistances;
+    ComputeNodeDistances(viewpoints, nodeDistances);
+
+    Array<uint8> nodeResident;
+    nodeResident.Resize(numNodes);
+
+    for (uint32 nodeIndex = 0; nodeIndex < numNodes; nodeIndex++)
+    {
+        nodeResident[nodeIndex] = IsNodeResident(nodeIndex) ? 1 : 0;
+    }
+
+    Array<float> levelRanges;
+    levelRanges.Resize(m_quadtreeLayout.GetNumLevels());
+
+    for (uint8 level = 0; level < m_quadtreeLayout.GetNumLevels(); level++)
+    {
+        levelRanges[level] = GetLodRange(level);
+    }
+
+    Array<uint8> nodeInRange;
+    nodeInRange.Resize(numNodes);
+
+    Array<uint8> patchDrawn;
+    patchDrawn.Resize(numPatches);
+
+    const TerrainQuadtreeSelectionInput selectionInput {
+        m_quadtreeLayout,
+        nodeDistances,
+        levelRanges,
+        nodeResident,
+        m_nodeInRange
+    };
+
+    SelectTerrainQuadtreePatches(selectionInput, nodeInRange, patchDrawn);
+
+    m_nodeInRange = std::move(nodeInRange);
+
+    for (uint32 patchIndex = 0; patchIndex < numPatches; patchIndex++)
+    {
+        m_patches[patchIndex].isDrawn = patchDrawn[patchIndex] != 0 && m_patches[patchIndex].mesh.IsValid();
+    }
+
+    // no viewpoint (e.g. between camera switches) would otherwise release everything but the top node
+    if (!viewpoints || IsStale())
+    {
+        return;
+    }
+
+    Array<uint32> patchesToBuild;
+    Array<uint32> patchesToRelease;
+
+    for (uint32 nodeIndex = 0; nodeIndex < numNodes; nodeIndex++)
+    {
+        const bool isWanted = IsNodeWanted(nodeIndex, nodeDistances[nodeIndex]);
+
+        const TerrainQuadtreeLayout::NodeKey node = m_quadtreeLayout.GetNodeKey(nodeIndex);
+
+        for (uint32 quadrant = 0; quadrant < m_quadtreeLayout.GetPatchesPerNode(node.level); quadrant++)
+        {
+            const uint32 patchIndex = m_quadtreeLayout.GetPatchIndex({ node, quadrant });
+            const TerrainPatch& patch = m_patches[patchIndex];
+
+            if (isWanted && !patch.mesh.IsValid() && !patch.isBuildQueued)
+            {
+                patchesToBuild.PushBack(patchIndex);
+            }
+            else if (!isWanted && patch.mesh.IsValid() && !patch.isDrawn)
+            {
+                patchesToRelease.PushBack(patchIndex);
+            }
+        }
+    }
+
+    if (patchesToBuild.Any())
+    {
+        QueuePatchBuilds(std::move(patchesToBuild));
+    }
+
+    if (patchesToRelease.Any())
+    {
+        // entities can't be removed while systems are processing
+        if (ThreadBase* simThread = GetThreadById(g_simThread))
+        {
+            simThread->GetScheduler().Enqueue(
+                [weakThis = WeakHandleFromThis(), patchesToRelease = std::move(patchesToRelease)]() mutable
+                {
+                    if (Handle<TerrainStreamingCell> cell = weakThis.Lock(); cell.IsValid())
+                    {
+                        cell->ReleaseUnwantedPatches(std::move(patchesToRelease));
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
+}
+
+bool TerrainStreamingCell::ApplyPatchLod(
+    Span<const Vec3f> viewpoints,
+    MeshComponent& meshComponent,
+    TerrainPatchComponent& patchComponent,
+    bool& outDrawnMeshChanged) const
+{
+    outDrawnMeshChanged = false;
+
+    const uint32 patchIndex = patchComponent.patchIndex;
+    const bool isDrawn = patchIndex < m_patches.Size() && m_patches[patchIndex].isDrawn;
+    const Handle<Mesh> drawnMesh = isDrawn ? m_patches[patchIndex].mesh : Handle<Mesh>();
+
+    if (meshComponent.mesh != drawnMesh)
+    {
+        meshComponent.mesh = drawnMesh;
+
+        outDrawnMeshChanged = true;
+    }
+
+    if (!isDrawn)
+    {
+        return outDrawnMeshChanged;
+    }
+
+    const BoundingBox patchWorldBounds = GetPatchWorldBounds(patchIndex);
+
+    float nearestDistance = MathUtil::Infinity<float>();
+    Vec3f nearestViewpoint = patchWorldBounds.GetCenter();
+
+    for (const Vec3f& viewpoint : viewpoints)
+    {
+        const float distance = DistanceToBounds(viewpoint, patchWorldBounds);
+
+        if (distance < nearestDistance)
+        {
+            nearestDistance = distance;
+            nearestViewpoint = viewpoint;
+        }
+    }
+
+    const float morphStart = GetLodMorphStart(patchComponent.level);
+    const float morphEnd = GetLodRange(patchComponent.level);
+    const float rangeMultiplier = TerrainWorldGridLayer::GetLodRangeMultiplier();
+
+    // the origin moves with the camera even when nothing else changes, and the shader only sees it once the render
+    // proxy is refreshed
+    constexpr float OriginEpsilonSquared = 0.01f;
+
+    const bool morphChanged = patchComponent.lodMorphStart != morphStart
+        || patchComponent.lodMorphEnd != morphEnd
+        || patchComponent.lodRangeMultiplier != rangeMultiplier
+        || patchComponent.lodMorphOrigin.DistanceSquared(nearestViewpoint) > OriginEpsilonSquared;
+
+    if (morphChanged)
+    {
+        patchComponent.lodMorphStart = morphStart;
+        patchComponent.lodMorphEnd = morphEnd;
+        patchComponent.lodRangeMultiplier = rangeMultiplier;
+        patchComponent.lodMorphOrigin = nearestViewpoint;
+    }
+
+    return outDrawnMeshChanged || morphChanged;
+}
+
+void TerrainStreamingCell::QueuePatchBuilds(Array<uint32>&& patchIndices)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    for (uint32 patchIndex : patchIndices)
+    {
+        m_patches[patchIndex].isBuildQueued = true;
+    }
+
+    TaskSystem::GetInstance().Enqueue(
+        [weakThis = WeakHandleFromThis(),
+            paddedHeights = m_paddedHeights,
+            cellSize = GetCellSize(),
+            layout = m_quadtreeLayout,
+            patchIndices = std::move(patchIndices),
+            buildGeneration = m_patchBuildGeneration]()
+        {
+            TerrainMeshBuilder meshBuilder(cellSize, layout);
+
+            Array<TerrainPatchBuild> patchBuilds;
+            patchBuilds.Reserve(patchIndices.Size());
+
+            for (uint32 patchIndex : patchIndices)
+            {
+                patchBuilds.PushBack(TerrainPatchBuild { patchIndex, meshBuilder.BuildPatchMeshData(paddedHeights, patchIndex) });
+            }
+
+            ThreadBase* simThread = GetThreadById(g_simThread);
+
+            if (!simThread)
+            {
+                return;
+            }
+
+            simThread->GetScheduler().Enqueue(
+                [weakThis, patchBuilds = std::move(patchBuilds), buildGeneration]() mutable
+                {
+                    if (Handle<TerrainStreamingCell> cell = weakThis.Lock(); cell.IsValid())
+                    {
+                        cell->ApplyPatchBuilds(std::move(patchBuilds), buildGeneration);
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void TerrainStreamingCell::ApplyPatchBuilds(Array<TerrainPatchBuild>&& patchBuilds, uint32 buildGeneration)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    // superseded by a brush edit, or the cell went away while building
+    const bool isCurrent = buildGeneration == m_patchBuildGeneration && !m_isRemoved && m_node.IsValid() && !IsStale();
+
+    for (const TerrainPatchBuild& patchBuild : patchBuilds)
+    {
+        if (patchBuild.patchIndex >= m_patches.Size())
+        {
+            continue;
+        }
+
+        // cleared either way, so a dropped build is requested again from the current heights
+        m_patches[patchBuild.patchIndex].isBuildQueued = false;
+
+        if (isCurrent)
+        {
+            CreatePatch(patchBuild.patchIndex, patchBuild.meshData);
+        }
+    }
+}
+
+void TerrainStreamingCell::ReleaseUnwantedPatches(Array<uint32>&& patchIndices)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_isRemoved || !m_node.IsValid())
+    {
+        return;
+    }
+
+    bool anyReleased = false;
+
+    for (uint32 patchIndex : patchIndices)
+    {
+        if (patchIndex >= m_patches.Size() || !m_patches[patchIndex].mesh.IsValid() || m_patches[patchIndex].isDrawn)
+        {
+            continue;
+        }
+
+        ReleasePatch(patchIndex);
+
+        anyReleased = true;
+    }
+
+    if (anyReleased)
+    {
+        // static shadow views that skipped collection still hold the released meshes
+        m_scene->MarkStaticRenderResourcesChanged();
+    }
+}
+
+void TerrainStreamingCell::CreatePatch(uint32 patchIndex, const TerrainPatchMeshData& meshData)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
+
+    if (!entityManager.IsValid() || !m_node.IsValid() || patchIndex >= m_patches.Size() || meshData.vertices.Empty())
+    {
+        return;
+    }
+
+    TerrainPatch& patch = m_patches[patchIndex];
+
+    if (patch.mesh.IsValid())
+    {
+        return;
+    }
+
+    MeshDesc meshDesc;
+    MeshDataView meshDataView {};
+    BuildPatchMeshDescAndDataView(meshData, meshDesc, meshDataView);
+
+    patch.mesh = MakeHandle<Mesh>();
+    patch.mesh->SetName(NAME_FMT("TerrainPatchMesh_{}_{}", m_cellInfo.coord, patchIndex));
+    patch.mesh->SetMeshData(meshDesc, meshDataView);
+    patch.mesh->SetIsTransient(true);
+    patch.mesh->SetIsDynamicMesh(true);
+    InitObject(patch.mesh);
+
+    const Transform transform = ComputeTileTransform();
+
+    EntityInitInfo entityInitInfo {};
+    entityInitInfo.bvhDepth = 0; // don't build bvhs to save load times
+
+    patch.entity = MakeHandle<Entity>(NAME_FMT("TerrainPatch_{}_{}", m_cellInfo.coord, patchIndex), entityInitInfo);
+    patch.entity->SetLocalBounds(patch.mesh->GetAABB());
+    patch.entity->SetIsStatic(true);
+
+    entityManager->AddExistingEntity(patch.entity);
+
+    entityManager->GetComponent<TransformComponent>(patch.entity) = TransformComponent {
+        transform.GetTranslation(),
+        transform.GetRotation(),
+        transform.GetScale()
+    };
+
+    entityManager->GetComponent<VisibilityStateComponent>(patch.entity) = VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE };
+
+    // added with its mesh so the component validates, then hidden until the LOD selection draws it
+    MeshComponent& meshComponent = entityManager->AddComponent<MeshComponent>(patch.entity, MeshComponent { patch.mesh, GetTileMaterial() });
+    meshComponent.mesh = Handle<Mesh>();
+
+    entityManager->AddComponent<TerrainPatchComponent>(patch.entity, TerrainPatchComponent {
+        .cell = WeakHandleFromThis(),
+        .patchIndex = patchIndex,
+        .level = m_quadtreeLayout.GetPatchKey(patchIndex).node.level
+    });
+
+    m_node->AddChild(patch.entity);
+}
+
+void TerrainStreamingCell::ReleasePatch(uint32 patchIndex)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    TerrainPatch& patch = m_patches[patchIndex];
+
+    if (patch.entity.IsValid())
+    {
+        patch.entity->Remove(/* moveToDetached */ false);
+    }
+
+    const bool isBuildQueued = patch.isBuildQueued;
+
+    patch = TerrainPatch {};
+    patch.isBuildQueued = isBuildQueued;
+}
+
+void TerrainStreamingCell::RebuildPatchesInRegion(const Vec2i& minVertex, const Vec2i& maxVertex)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_quadtreeLayout.IsValid())
+    {
+        return;
+    }
+
+    UpdateNodeHeightBounds();
+
+    // builds still in flight read the previous heights
+    m_patchBuildGeneration++;
+
+    TerrainMeshBuilder meshBuilder(GetCellSize(), m_quadtreeLayout);
+
+    bool anyRebuilt = false;
+
+    for (uint32 patchIndex = 0; patchIndex < uint32(m_patches.Size()); patchIndex++)
+    {
+        TerrainPatch& patch = m_patches[patchIndex];
+
+        if (!patch.mesh.IsValid())
+        {
+            continue;
+        }
+
+        const TerrainQuadtreeLayout::PatchRegion region = m_quadtreeLayout.GetPatchRegion(m_quadtreeLayout.GetPatchKey(patchIndex));
+
+        // morph targets sample the two coarser grids, up to four strides away from each vertex
+        const int32 margin = int32(region.stride) * 4;
+
+        const int32 regionMinX = int32(region.origin.x) - margin;
+        const int32 regionMinZ = int32(region.origin.y) - margin;
+        const int32 regionMaxX = int32(region.origin.x + region.gridQuads) + margin;
+        const int32 regionMaxZ = int32(region.origin.y + region.gridQuads) + margin;
+
+        if (regionMaxX < minVertex.x || regionMinX > maxVertex.x || regionMaxZ < minVertex.y || regionMinZ > maxVertex.y)
+        {
+            continue;
+        }
+
+        const TerrainPatchMeshData patchMeshData = meshBuilder.BuildPatchMeshData(m_paddedHeights, patchIndex);
+
+        MeshDesc meshDesc;
+        MeshDataView meshDataView {};
+        BuildPatchMeshDescAndDataView(patchMeshData, meshDesc, meshDataView);
+
+        // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
+        patch.mesh->SetMeshData(meshDesc, meshDataView);
+
+        if (patch.entity.IsValid())
+        {
+            patch.entity->SetLocalBounds(patch.mesh->GetAABB());
+            patch.entity->SetNeedsRenderProxyUpdate();
+        }
+
+        anyRebuilt = true;
+    }
+
+    if (anyRebuilt)
+    {
+        m_scene->MarkStaticRenderResourcesChanged();
+    }
+}
+
+#pragma endregion Quadtree
 
 #pragma endregion TerrainStreamingCell
 

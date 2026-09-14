@@ -45,16 +45,16 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-// mesh LODs built per cell, including full resolution - capped at TerrainMeshHelpers::MaxTerrainLods. Applies to cells built after it changes
-CVar<uint32> g_cvTerrainLodCount("Terrain.Lod.Count", 3);
-// how much sparser each LOD's vertex grid is per side than the previous one. Applies to cells built after it changes
-CVar<uint32> g_cvTerrainLodStrideMultiplier("Terrain.Lod.StrideMultiplier", 4);
-// world-space distance from the LOD camera where full-resolution cells finish morphing into LOD 1
-CVar<float> g_cvTerrainLodBaseRange("Terrain.Lod.BaseRange", 96.0f);
-// each LOD's range is the previous LOD's range times this
+// full resolution quads per side of a level 0 patch (power of two). Applies to tiles built after it changes
+CVar<uint32> g_cvTerrainLodPatchQuads("Terrain.Lod.PatchQuads", 32);
+// quadtree levels per tile, level 0 included - also capped by the tile size. Applies to tiles built after it changes
+CVar<uint32> g_cvTerrainLodMaxLevels("Terrain.Lod.MaxLevels", 8);
+// world-space distance from the LOD camera where full resolution patches finish morphing into level 1
+CVar<float> g_cvTerrainLodBaseRange("Terrain.Lod.BaseRange", 64.0f);
+// each level's range is the previous level's range times this
 CVar<float> g_cvTerrainLodRangeMultiplier("Terrain.Lod.RangeMultiplier", 2.0f);
-// fraction of each LOD's band at full detail before morphing toward the next - lower is a longer, smoother transition
-CVar<float> g_cvTerrainLodMorphStartRatio("Terrain.Lod.MorphStartRatio", 0.7f);
+// fraction of each level's band at full detail before morphing toward the next - lower is a longer, smoother transition
+CVar<float> g_cvTerrainLodMorphStartRatio("Terrain.Lod.MorphStartRatio", 0.5f);
 
 static const Name s_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
 static const Name s_terrainSceneName = NAME("TerrainScene");
@@ -177,6 +177,7 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
 {
     WorldGridLayerInfo adjustedLayerInfo = layerInfo;
     adjustedLayerInfo.scale.y = 1.0f;
+    adjustedLayerInfo.cellSize = RoundCellSizeForQuadtree(adjustedLayerInfo.cellSize);
 
     const bool cellGeometryChanged = adjustedLayerInfo.cellSize != m_layerInfo.cellSize
         || adjustedLayerInfo.scale != m_layerInfo.scale
@@ -204,55 +205,71 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
     }
 }
 
-uint8 TerrainWorldGridLayer::GetEffectiveLodCount() const
+uint32 TerrainWorldGridLayer::RoundCellSizeForQuadtree(uint32 cellSize)
 {
-    const uint8 requested = uint8(MathUtil::Clamp<uint32>(g_cvTerrainLodCount.Get(), 1, TerrainMeshHelpers::MaxTerrainLods));
+    uint32 tileQuads = 8;
 
-    return MathUtil::Min<uint8>(requested, TerrainMeshHelpers::CalculateMaxLodIndex(m_layerInfo.cellSize, GetEffectiveLodStrideMultiplier()) + 1);
+    while (tileQuads + 1 < cellSize)
+    {
+        tileQuads *= 2;
+    }
+
+    return tileQuads + 1;
 }
 
-uint32 TerrainWorldGridLayer::GetEffectiveLodStrideMultiplier() const
+TerrainQuadtreeLayout TerrainWorldGridLayer::MakeQuadtreeLayout(uint32 cellSize)
 {
-    return MathUtil::Clamp<uint32>(g_cvTerrainLodStrideMultiplier.Get(), 2, 8);
+    return TerrainQuadtreeLayout(
+        cellSize,
+        g_cvTerrainLodPatchQuads.Get(),
+        uint8(MathUtil::Clamp<uint32>(g_cvTerrainLodMaxLevels.Get(), 1, TerrainQuadtreeLayout::MaxLevels)));
 }
 
-float TerrainWorldGridLayer::GetEffectiveLodRangeMultiplier() const
+float TerrainWorldGridLayer::GetLodRangeMultiplier()
 {
     return MathUtil::Max(g_cvTerrainLodRangeMultiplier.Get(), 1.0f);
 }
 
-float TerrainWorldGridLayer::GetLodRange(uint8 lodIndex) const
+float TerrainWorldGridLayer::CalculateLodRange(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale)
 {
-    return g_cvTerrainLodBaseRange.Get() * MathUtil::Pow(GetEffectiveLodRangeMultiplier(), float(lodIndex));
+    // a level 0 node must fit within its band or its patches get drawn past what their morph targets can reach
+    const float leafNodeWorldSize = float(layout.GetPatchQuads()) * MathUtil::Max(scale.x, scale.z);
+    const float baseRange = MathUtil::Max(g_cvTerrainLodBaseRange.Get(), leafNodeWorldSize * 0.75f);
+
+    return baseRange * MathUtil::Pow(GetLodRangeMultiplier(), float(level));
 }
 
-float TerrainWorldGridLayer::GetLodMorphStart(uint8 lodIndex) const
+float TerrainWorldGridLayer::CalculateLodMorphStart(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale)
 {
-    // LOD 0's range also starts at range / multiplier (not 0) so every morph band is the previous one scaled by the
-    // multiplier - Terrain morph shaders rely on that to derive the next LOD's band
-    const float rangeEnd = GetLodRange(lodIndex);
-    const float rangeStart = rangeEnd / GetEffectiveLodRangeMultiplier();
+    // level 0's range also starts at range / multiplier (not 0) so every morph band is the previous one scaled by the
+    // multiplier - Terrain morph shaders rely on that to derive the next level's band
+    const float rangeEnd = CalculateLodRange(level, layout, scale);
+    const float rangeStart = rangeEnd / GetLodRangeMultiplier();
 
     const float morphStartRatio = MathUtil::Clamp(g_cvTerrainLodMorphStartRatio.Get(), 0.0f, 0.95f);
 
     return rangeStart + (rangeEnd - rangeStart) * morphStartRatio;
 }
 
-uint8 TerrainWorldGridLayer::SelectFirstMeshLod(float nearestDistance, uint8 currentFirstMeshLod) const
+void TerrainWorldGridLayer::UpdateLodSelection(Span<const Vec3f> viewpoints)
 {
-    // LOD 0 is built well before the cell needs it, since the rebuild is async, and dropped further out still so a
-    // cell near the boundary doesn't rebuild back and forth
-    constexpr float LoadRangeScale = 2.0f;
-    constexpr float UnloadRangeScale = 3.0f;
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
 
-    if (GetEffectiveLodCount() <= 1)
+    for (const KeyValuePair<Vec2i, WeakHandle<TerrainStreamingCell>>& pair : m_loadedCells)
     {
-        return 0;
+        if (Handle<TerrainStreamingCell> loadedCell = pair.second.Lock(); loadedCell)
+        {
+            loadedCell->UpdateLodSelection(viewpoints);
+        }
     }
+}
 
-    const float rangeScale = currentFirstMeshLod == 0 ? UnloadRangeScale : LoadRangeScale;
+Array<Vec3f> TerrainWorldGridLayer::GetLodViewpoints() const
+{
+    Mutex::Guard guard(m_lodViewpointsMutex);
 
-    return nearestDistance < GetLodRange(0) * rangeScale ? 0 : 1;
+    return m_lodViewpoints;
 }
 
 void TerrainWorldGridLayer::SetLodViewpoints(Span<const Vec3f> viewpoints)
@@ -696,6 +713,16 @@ void TerrainWorldGridLayer::OnAdded(WorldGrid* worldGrid)
     AssertDebug(m_scene.IsValid());
 
     AssertDebug(m_layerInfo.scale.y == 1.0f, "TerrainWorldGridLayer requires scale.y == 1.0f");
+
+    // layer info loaded from a world desc bypasses SetLayerInfo(); the quadtree needs 2^n + 1 samples per side
+    if (const uint32 quadtreeCellSize = RoundCellSizeForQuadtree(m_layerInfo.cellSize); quadtreeCellSize != m_layerInfo.cellSize)
+    {
+        HYP_LOG(WorldGrid, Warning, "Terrain layer '{}' cell size {} rounded up to {} for its LOD quadtree", GetName(), m_layerInfo.cellSize, quadtreeCellSize);
+
+        Mutex::Guard guard(m_generationStateMutex);
+
+        m_layerInfo.cellSize = quadtreeCellSize;
+    }
 
     World* world = worldGrid->GetWorld();
     AssertDebug(world != nullptr);

@@ -1680,6 +1680,13 @@ Span<View* const> World::GetViews() const
     return m_viewsPerFrame[GetRingIndex()].ToSpan();
 }
 
+Span<View* const> World::GetSimThreadViews() const
+{
+    AssertOnThread(g_simThread);
+
+    return Span<View* const>(m_views.Data(), m_views.Size());
+}
+
 void World::SnapshotViewsForRender()
 {
     AssertOnThread(g_renderThread);

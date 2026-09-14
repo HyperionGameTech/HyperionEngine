@@ -257,6 +257,9 @@ public:
     /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or sim thread. */
     Span<View* const> GetViews() const;
 
+    ///sim thread only - the live list AddView() / RemoveView() maintain, never holding a removed View
+    Span<View* const> GetSimThreadViews() const;
+
     /*! \brief Copy this frame's Views into render thread owned storage */
     void SnapshotViewsForRender();
 

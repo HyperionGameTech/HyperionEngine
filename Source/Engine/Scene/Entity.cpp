@@ -27,7 +27,7 @@
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/SwatchOverridesComponent.hpp>
-#include <Scene/Components/TerrainCellComponent.hpp>
+#include <Scene/Components/TerrainPatchComponent.hpp>
 
 #include <Scripting/EntityScripting.hpp>
 
@@ -785,11 +785,11 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
     proxy->bufferData.bucket = uint32(meshComponent.material->GetAttributes().bucket);
 
-    if (TerrainCellComponent* terrainCellComponent = TryGetComponent<TerrainCellComponent>())
+    if (TerrainPatchComponent* terrainPatchComponent = TryGetComponent<TerrainPatchComponent>())
     {
-        proxy->bufferData.lodMorphStart = terrainCellComponent->lodMorphStart;
-        proxy->bufferData.lodMorphEnd = terrainCellComponent->lodMorphEnd;
-        proxy->bufferData.lodMorphOrigin = Vec4f(terrainCellComponent->lodMorphOrigin, terrainCellComponent->lodRangeMultiplier);
+        proxy->bufferData.lodMorphStart = terrainPatchComponent->lodMorphStart;
+        proxy->bufferData.lodMorphEnd = terrainPatchComponent->lodMorphEnd;
+        proxy->bufferData.lodMorphOrigin = Vec4f(terrainPatchComponent->lodMorphOrigin, terrainPatchComponent->lodRangeMultiplier);
     }
     else
     {

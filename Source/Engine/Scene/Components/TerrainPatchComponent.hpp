@@ -9,19 +9,27 @@
 #include <Core/Reflection/ObjectMacros.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Math/Vector3.hpp>
+
 namespace Hyperion {
 
-class TerrainWorldGridLayer;
 class TerrainStreamingCell;
 
-///on a terrain tile's collider entity - the tile's drawn geometry lives on TerrainPatchComponent entities
+///one drawable piece of a terrain tile's quadtree
 HYP_STRUCT(Component, NoScriptBindings, Serialize = false, Editor = false, Replicated = false)
-struct TerrainCellComponent
+struct TerrainPatchComponent
 {
-    HYP_STRUCT_BODY(TerrainCellComponent);
+    HYP_STRUCT_BODY(TerrainPatchComponent);
 
-    WeakHandle<TerrainWorldGridLayer> layer;
     WeakHandle<TerrainStreamingCell> cell;
+
+    uint32 patchIndex = 0;
+    uint8 level = 0;
+
+    float lodMorphStart = 0.0f;
+    float lodMorphEnd = 0.0f;
+    float lodRangeMultiplier = 1.0f;
+    Vec3f lodMorphOrigin;
 };
 
 } // namespace Hyperion

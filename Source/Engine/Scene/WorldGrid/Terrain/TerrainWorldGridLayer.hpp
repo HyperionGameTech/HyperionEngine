@@ -9,6 +9,7 @@
 #include <Scene/WorldGrid/WorldGridLayer.hpp>
 
 #include <Scene/WorldGrid/Terrain/Generation/TerrainGenerator.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainQuadtree.hpp>
 
 #include <Asset/AssetObject.hpp>
 
@@ -150,26 +151,24 @@ public:
 
     ///CDLOD - tuned through the Terrain.Lod.* cvars, shared by every terrain layer
 
-    HYP_METHOD()
-    uint8 GetEffectiveLodCount() const;
+    ///the tile's quadtree needs (cellSize - 1) to be a power of two
+    static uint32 RoundCellSizeForQuadtree(uint32 cellSize);
 
-    HYP_METHOD()
-    uint32 GetEffectiveLodStrideMultiplier() const;
+    ///reads the Terrain.Lod cvars, so each tile keeps the layout it was built with
+    static TerrainQuadtreeLayout MakeQuadtreeLayout(uint32 cellSize);
 
-    HYP_METHOD()
-    float GetEffectiveLodRangeMultiplier() const;
+    static float GetLodRangeMultiplier();
 
-    HYP_METHOD()
-    float GetLodRange(uint8 lodIndex) const;
+    static float CalculateLodRange(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
+    static float CalculateLodMorphStart(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
 
-    HYP_METHOD()
-    float GetLodMorphStart(uint8 lodIndex) const;
+    ///sim thread only - reselects the drawn patches of every loaded tile
+    void UpdateLodSelection(Span<const Vec3f> viewpoints);
 
-    ///LODs finer than the returned one aren't kept in a cell's mesh while it's \p nearestDistance from the LOD viewpoint
-    uint8 SelectFirstMeshLod(float nearestDistance, uint8 currentFirstMeshLod) const;
-
-    ///sim thread only - lets cells streaming in pick their first mesh LOD before the LOD system sees them
+    ///sim thread only - lets tiles streaming in pick which quadtree levels to build before the LOD system sees them
     void SetLodViewpoints(Span<const Vec3f> viewpoints);
+
+    Array<Vec3f> GetLodViewpoints() const;
 
     ///infinity until the LOD system has run
     float GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const;

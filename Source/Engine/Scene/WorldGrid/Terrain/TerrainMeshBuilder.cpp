@@ -31,11 +31,11 @@ static Vec2u BracketLodGridCoordinate(uint32 cellSize, uint32 stride, uint32 val
     return Vec2u { lower, upper };
 }
 
-static float BuildLodGridVertices(
+///returns the patch's geometric error: the furthest any grid vertex moves to reach its morph targets
+static float BuildPatchGridVertices(
     uint32 cellSize,
-    uint8 lodIndex,
-    uint8 numLods,
-    uint32 strideMultiplier,
+    const TerrainQuadtreeLayout& layout,
+    uint32 patchIndex,
     Span<const float> paddedHeights,
     Array<TerrainVertex>& outVertices)
 {
@@ -54,7 +54,7 @@ static float BuildLodGridVertices(
         return paddedHeights[size_t(z + int32(padding)) * paddedPitch + size_t(x + int32(padding))];
     };
 
-    // height of the surface a coarser LOD with the given stride renders at (x, z) - triangle diagonals must match BuildLodIndices()
+    // height of the surface a coarser level with the given stride renders at (x, z) - triangle diagonals must match BuildLodIndices()
     const auto lodSurfaceHeightAt = [&](uint32 lodStride, uint32 x, uint32 z) -> float
     {
         const Vec2u xBracket = BracketLodGridCoordinate(cellSize, lodStride, x);
@@ -73,13 +73,16 @@ static float BuildLodGridVertices(
             : heightTopLeft + v * (heightBottomLeft - heightTopLeft) + u * (heightBottomRight - heightBottomLeft);
     };
 
-    const uint8 coarsestLodIndex = numLods - 1;
+    const TerrainQuadtreeLayout::PatchKey patchKey = layout.GetPatchKey(patchIndex);
+    const TerrainQuadtreeLayout::PatchRegion region = layout.GetPatchRegion(patchKey);
 
-    const uint32 stride = CalculateLodStride(lodIndex, strideMultiplier);
-    const uint32 nextLodStride = CalculateLodStride(MathUtil::Min<uint8>(lodIndex + 1, coarsestLodIndex), strideMultiplier);
-    const uint32 secondLodStride = CalculateLodStride(MathUtil::Min<uint8>(lodIndex + 2, coarsestLodIndex), strideMultiplier);
+    const uint8 level = patchKey.node.level;
+    const uint8 topLevel = layout.GetTopLevel();
 
-    const uint32 dimension = CalculateLodGridDimension(cellSize, lodIndex, strideMultiplier);
+    const uint32 nextLevelStride = TerrainQuadtreeLayout::GetStride(MathUtil::Min<uint8>(level + 1, topLevel));
+    const uint32 secondLevelStride = TerrainQuadtreeLayout::GetStride(MathUtil::Min<uint8>(level + 2, topLevel));
+
+    const uint32 dimension = region.gridQuads / region.stride + 1;
 
     outVertices.Resize(CalculateGridVertexCount(dimension));
 
@@ -87,11 +90,11 @@ static float BuildLodGridVertices(
 
     for (uint32 k = 0; k < dimension; k++)
     {
-        const uint32 wz = MathUtil::Min(k * stride, cellSize - 1);
+        const uint32 wz = region.origin.y + k * region.stride;
 
         for (uint32 i = 0; i < dimension; i++)
         {
-            const uint32 wx = MathUtil::Min(i * stride, cellSize - 1);
+            const uint32 wx = region.origin.x + i * region.stride;
 
             const float height = heightAt(int32(wx), int32(wz));
 
@@ -103,16 +106,16 @@ static float BuildLodGridVertices(
                 heightAt(int32(wx), int32(wz) - 1),
                 heightAt(int32(wx), int32(wz) + 1));
 
-            const float nextLodHeight = lodSurfaceHeightAt(nextLodStride, wx, wz);
-            const float secondLodHeight = lodSurfaceHeightAt(secondLodStride, wx, wz);
+            const float nextLevelHeight = lodSurfaceHeightAt(nextLevelStride, wx, wz);
+            const float secondLevelHeight = lodSurfaceHeightAt(secondLevelStride, wx, wz);
 
-            geometricError = MathUtil::Max(geometricError, MathUtil::Abs(height - nextLodHeight), MathUtil::Abs(height - secondLodHeight));
+            geometricError = MathUtil::Max(geometricError, MathUtil::Abs(height - nextLevelHeight), MathUtil::Abs(height - secondLevelHeight));
 
             TerrainVertex vertex;
             vertex.SetPosition(Vec3f { float(wx), height, float(wz) });
             vertex.SetNormal(normal);
             vertex.SetUV0(texcoord);
-            vertex.SetUV1(Vec2f(nextLodHeight, secondLodHeight));
+            vertex.SetUV1(Vec2f(nextLevelHeight, secondLevelHeight));
 
             outVertices[k * dimension + i] = vertex;
         }
@@ -143,8 +146,8 @@ static Array<uint32> BuildLodIndices(uint32 gridDimension)
     {
         for (uint32 x = 0; x < gridDimension - 1; x++)
         {
-            // diagonal is always top-left(i0) to bottom-right(i2) - BuildLodGridVertices() relies on this
-            // being consistent across every LOD to compute exact CDLOD morph targets
+            // diagonal is always top-left(i0) to bottom-right(i2) - BuildPatchGridVertices() relies on this
+            // being consistent across every level to compute exact CDLOD morph targets
             indices[i++] = i0;
             indices[i++] = i2;
             indices[i++] = i3;
@@ -166,7 +169,7 @@ static Array<uint32> BuildLodIndices(uint32 gridDimension)
         i3 = pitch + row;
     }
 
-    // skirt walls around the grid border; walk each edge such that the wall faces away from the cell
+    // skirt walls around the grid border; walk each edge such that the wall faces away from the patch
     const uint32 skirtBase = pitch * pitch;
     const uint32 last = gridDimension - 1;
 
@@ -232,11 +235,6 @@ void BuildSkirtVertices(
     Assert(gridVertices.Size() >= CalculateGridVertexCount(gridDimension), "Grid vertex buffer too small");
     Assert(outSkirtVertices.Size() == CalculateSkirtVertexCount(gridDimension), "Skirt vertex buffer has unexpected size");
 
-    if (skirtDepth < 0.0f)
-    {
-        skirtDepth = CalculateSkirtDepth(gridDimension);
-    }
-
     const uint32 last = gridDimension - 1;
 
     for (uint32 k = 0; k < gridDimension; k++)
@@ -247,7 +245,7 @@ void BuildSkirtVertices(
         const TerrainVertex& eastGrid = gridVertices[size_t(k) * gridDimension + last];
 
         // skirts reuse the border vertex normal so any sliver visible through a crack shades like the adjacent
-        // terrain, and offset their morph target by the same depth so they stay glued to their grid vertex at
+        // terrain, and offset their morph targets by the same depth so they stay glued to their grid vertex at
         // every point in the morph, never opening their own crack
 
         const auto skirtOf = [skirtDepth](const TerrainVertex& gridVertex) -> TerrainVertex
@@ -277,51 +275,49 @@ void BuildSkirtVertices(
 
 #pragma region TerrainMeshBuilder
 
-TerrainMeshBuilder::TerrainMeshBuilder(uint32 cellSize, uint8 numLods, uint32 strideMultiplier)
+TerrainMeshBuilder::TerrainMeshBuilder(uint32 cellSize, const TerrainQuadtreeLayout& layout)
     : m_cellSize(cellSize),
-      m_strideMultiplier(MathUtil::Max<uint32>(strideMultiplier, 2)),
-      m_numLods(MathUtil::Clamp<uint8>(numLods, 1, TerrainMeshHelpers::CalculateMaxLodIndex(cellSize, m_strideMultiplier) + 1))
+      m_layout(layout)
 {
 }
 
 TerrainMeshBuilder::~TerrainMeshBuilder() = default;
 
-TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellMeshData(Span<const float> paddedHeights, uint8 firstLodIndex) const
+TerrainPatchMeshData TerrainMeshBuilder::BuildPatchMeshData(Span<const float> paddedHeights, uint32 patchIndex) const
 {
-    CellMeshData result;
-    result.firstLodIndex = MathUtil::Min<uint8>(firstLodIndex, m_numLods - 1);
-    result.numLods = m_numLods - result.firstLodIndex;
+    HYP_SCOPE;
 
-    for (uint8 meshLodIndex = 0; meshLodIndex < result.numLods; meshLodIndex++)
+    Assert(m_layout.IsValid() && patchIndex < m_layout.GetNumPatches(), "Invalid terrain patch index");
+
+    const TerrainQuadtreeLayout::PatchRegion region = m_layout.GetPatchRegion(m_layout.GetPatchKey(patchIndex));
+    const uint32 dimension = region.gridQuads / region.stride + 1;
+
+    Array<TerrainVertex> gridVertices;
+    const float geometricError = TerrainMeshHelpers::BuildPatchGridVertices(m_cellSize, m_layout, patchIndex, paddedHeights, gridVertices);
+
+    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(dimension);
+    const uint32 skirtVertexCount = TerrainMeshHelpers::CalculateSkirtVertexCount(dimension);
+
+    TerrainPatchMeshData result;
+
+    if (gridVertices.Size() != gridVertexCount)
     {
-        const uint8 lodIndex = result.firstLodIndex + meshLodIndex;
-
-        LodMeshData& lodMeshData = result.lods[meshLodIndex];
-
-        const uint32 dimension = TerrainMeshHelpers::CalculateLodGridDimension(m_cellSize, lodIndex, m_strideMultiplier);
-
-        lodMeshData.gridDimension = dimension;
-
-        Array<TerrainVertex> gridVertices;
-        lodMeshData.geometricError = TerrainMeshHelpers::BuildLodGridVertices(m_cellSize, lodIndex, m_numLods, m_strideMultiplier, paddedHeights, gridVertices);
-
-        const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(dimension);
-        const uint32 skirtVertexCount = TerrainMeshHelpers::CalculateSkirtVertexCount(dimension);
-
-        lodMeshData.vertices.Resize(gridVertexCount + skirtVertexCount);
-        Memory::Copy(lodMeshData.vertices.Data(), gridVertices.Data(), gridVertexCount * sizeof(TerrainVertex));
-
-        // widen the skirt to also cover this LOD's own geometric error
-        const float skirtDepth = MathUtil::Max(TerrainMeshHelpers::CalculateSkirtDepth(m_cellSize), 2.0f * lodMeshData.geometricError);
-
-        TerrainMeshHelpers::BuildSkirtVertices(
-            dimension,
-            Span<const TerrainVertex>(lodMeshData.vertices.Data(), gridVertexCount),
-            Span<TerrainVertex>(lodMeshData.vertices.Data() + gridVertexCount, skirtVertexCount),
-            skirtDepth);
-
-        lodMeshData.indices = TerrainMeshHelpers::BuildLodIndices(dimension);
+        return result;
     }
+
+    result.vertices.Resize(gridVertexCount + skirtVertexCount);
+    Memory::Copy(result.vertices.Data(), gridVertices.Data(), gridVertexCount * sizeof(TerrainVertex));
+
+    // deep enough to cover the gap a neighbor a level away can leave, which is bounded by the geometric error
+    const float skirtDepth = MathUtil::Max(float(region.stride), 2.0f * geometricError);
+
+    TerrainMeshHelpers::BuildSkirtVertices(
+        dimension,
+        Span<const TerrainVertex>(result.vertices.Data(), gridVertexCount),
+        Span<TerrainVertex>(result.vertices.Data() + gridVertexCount, skirtVertexCount),
+        skirtDepth);
+
+    result.indices = TerrainMeshHelpers::BuildLodIndices(dimension);
 
     return result;
 }

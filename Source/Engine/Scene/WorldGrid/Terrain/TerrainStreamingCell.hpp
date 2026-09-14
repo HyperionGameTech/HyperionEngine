@@ -8,12 +8,14 @@
 
 #include <Scene/WorldGrid/WorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainMeshBuilder.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainQuadtree.hpp>
 
 #include <Streaming/StreamingCell.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Transform.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
 
@@ -32,6 +34,8 @@ class TerrainCellData;
 class TerrainGenerator;
 class HeightFieldPhysicsShape;
 struct TerrainGenerationState;
+struct MeshComponent;
+struct TerrainPatchComponent;
 
 enum class MaterialTextureKey : uint64;
 
@@ -53,7 +57,7 @@ public:
 
     virtual ~TerrainStreamingCell() override;
 
-    ///removes the cell's node and entity from the scene right away; the cell itself is unloaded later by the streaming manager
+    ///removes the cell's node and entities from the scene right away; the cell itself is unloaded later by the streaming manager
     void DetachFromScene();
 
     void RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex);
@@ -72,8 +76,17 @@ public:
     ///true once the cell's rigid body has been added to the physics world
     bool HasCollider() const;
 
-    ///rebuilds the mesh off the sim thread without the LODs finer than \p firstLodIndex, or with them back
-    void RequestFirstMeshLod(uint8 firstLodIndex);
+    ///sim thread - picks the patches drawn for \p viewpoints, and queues building patches that come into range and
+    ///releasing ones that leave it
+    void UpdateLodSelection(Span<const Vec3f> viewpoints);
+
+    ///sim thread - points \p meshComponent at the patch mesh if it's drawn after the last UpdateLodSelection(), and updates the
+    ///morph band. Returns true if the entity's render proxy needs updating; \p outDrawnMeshChanged is set if the mesh was swapped
+    bool ApplyPatchLod(
+        Span<const Vec3f> viewpoints,
+        MeshComponent& meshComponent,
+        TerrainPatchComponent& patchComponent,
+        bool& outDrawnMeshChanged) const;
 
 protected:
     virtual void OnStreamStart() override final;
@@ -81,9 +94,25 @@ protected:
     virtual void OnLoaded() override final;
     virtual void OnRemoved() override final;
 
-    Handle<Mesh> BuildMesh(const TerrainMeshBuilder::CellMeshData& cellMeshData) const;
-
 private:
+    struct TerrainPatch
+    {
+        ///built while the patch's node is in range of a viewpoint
+        Handle<Mesh> mesh;
+        Handle<Entity> entity;
+
+        bool isBuildQueued = false;
+
+        ///set by UpdateLodSelection() - never set without a mesh
+        bool isDrawn = false;
+    };
+
+    struct TerrainPatchBuild
+    {
+        uint32 patchIndex = 0;
+        TerrainPatchMeshData meshData;
+    };
+
     ///the layer has been regenerated since this cell was created if this returns true
     bool IsStale() const;
 
@@ -103,20 +132,48 @@ private:
     ///fills m_paddedHeights from the saved heights if they're current, otherwise generates them - returns true if generated
     bool LoadOrGeneratePaddedHeights();
 
-    void BuildCellMeshData(uint8 firstLodIndex);
+    ///includes the full resolution heights of the whole tile
+    BoundingBox ComputeTileLocalBounds() const;
 
-    ///streaming thread - starts without LOD 0 unless the cell is already near the LOD viewpoint
-    uint8 SelectInitialFirstMeshLod() const;
+    ///the tile's world transform, shared by its collider and patch entities
+    Transform ComputeTileTransform() const;
 
-    void ApplyFirstMeshLodBuild(TerrainMeshBuilder::CellMeshData&& cellMeshData, uint32 buildId);
+    const Handle<Material>& GetTileMaterial() const;
 
-    ///keeps the LOD on screen when the mesh's first LOD changes
-    void UpdateMeshComponents(uint8 previousFirstMeshLod);
+    ///streaming thread - reads the Terrain.Lod cvars for the layout
+    void ResetQuadtree();
 
-    ///includes the full resolution heights, so bounds don't shrink when LOD 0 isn't in the mesh
-    BoundingBox ComputeLocalBounds() const;
+    void UpdateNodeHeightBounds();
 
-    void RebuildMeshFull(const Handle<TerrainCellData>& cellData);
+    BoundingBox GetNodeWorldBounds(uint32 nodeIndex) const;
+    BoundingBox GetPatchWorldBounds(uint32 patchIndex) const;
+
+    void ComputeNodeDistances(Span<const Vec3f> viewpoints, Array<float>& outNodeDistances) const;
+
+    float GetLodRange(uint8 level) const;
+    float GetLodMorphStart(uint8 level) const;
+
+    bool IsNodeResident(uint32 nodeIndex) const;
+
+    ///nodes are built a little before they come into range and released well after, so a node near its boundary doesn't
+    ///rebuild back and forth. The top node is always wanted
+    bool IsNodeWanted(uint32 nodeIndex, float nodeDistance) const;
+
+    ///streaming thread - the top node plus any node already wanted for the layer's last LOD viewpoints
+    void BuildInitialPatchMeshData();
+
+    void QueuePatchBuilds(Array<uint32>&& patchIndices);
+    void ApplyPatchBuilds(Array<TerrainPatchBuild>&& patchBuilds, uint32 buildGeneration);
+
+    ///sim thread, deferred - releases patches that UpdateLodSelection() found out of range, unless they're drawn again by then
+    void ReleaseUnwantedPatches(Array<uint32>&& patchIndices);
+
+    void CreatePatch(uint32 patchIndex, const TerrainPatchMeshData& meshData);
+    void ReleasePatch(uint32 patchIndex);
+
+    ///rebuilds patches whose morph targets depend on heights in [minVertex, maxVertex], from m_paddedHeights
+    void RebuildPatchesInRegion(const Vec2i& minVertex, const Vec2i& maxVertex);
+
     void UpdateCollider(bool notifyPhysicsWorld);
 
     ///rebuilds the per-cell normal map from the full resolution heights
@@ -147,27 +204,33 @@ private:
     AtomicVar<bool> m_isPendingGeneration { false };
 
     Handle<Node> m_node;
+
+    ///holds the collider - the drawn geometry is on the patch entities
     Handle<Entity> m_entity;
-
-    Handle<Mesh> m_mesh;
-
-    ///sim thread only, after OnStreamStart()
-    uint8 m_firstMeshLod = 0;
-    uint8 m_requestedFirstMeshLod = 0;
-
-    ///bumped whenever the mesh is rebuilt or a new first LOD is requested, so older async builds are dropped
-    uint32 m_meshBuildId = 0;
 
     Handle<HeightFieldPhysicsShape> m_collisionShape;
 
-    ///(cellSize + 2 * CellPadding)^2 - the mesh, collider and normal map are all built from these, so LOD 0 can come back without regenerating
+    ///(cellSize + 2 * CellPadding)^2 - patches, the collider and the normal map are all built from these
     Array<float> m_paddedHeights;
+
+    TerrainQuadtreeLayout m_quadtreeLayout;
+    Array<float> m_nodeMinHeights;
+    Array<float> m_nodeMaxHeights;
+
+    ///nodes in range at the last selection, for hysteresis
+    Array<uint8> m_nodeInRange;
+
+    Array<TerrainPatch> m_patches;
+
+    ///bumped whenever the heights change, so async patch builds from older heights are dropped
+    uint32 m_patchBuildGeneration = 0;
+
+    ///built on the streaming thread, turned into patch entities by OnLoaded()
+    Array<TerrainPatchBuild> m_initialPatchBuilds;
 
     Handle<Material> m_cellMaterial;
     Handle<Texture> m_splatTexture;
     Handle<Texture> m_normalMapTexture;
-
-    Array<TerrainVertex> m_scratchVertices;
 
     ///set on the streaming thread when m_paddedHeights had to be generated, so OnLoaded() stores them
     bool m_hasGeneratedHeights = false;
@@ -177,7 +240,5 @@ private:
 
     ///normal map bytes prepared on the streaming thread, ready for texture upload
     Array<ubyte> m_normalMapUploadBytes;
-
-    TerrainMeshBuilder::CellMeshData m_cellMeshData;
 };
 } // namespace Hyperion
