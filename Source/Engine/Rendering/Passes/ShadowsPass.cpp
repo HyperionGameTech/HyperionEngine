@@ -60,6 +60,19 @@ extern CVar<int> g_cvCSMPriorityCascades;
 
 static CVar<bool> s_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
 
+static bool HasRenderGroups(const RenderCollector& renderCollector, uint32 bucketBits)
+{
+    for (uint32 bucketIndex = 0; bucketIndex < NumRenderBuckets; bucketIndex++)
+    {
+        if ((bucketBits & (1u << bucketIndex)) && renderCollector.mappingsByBucket[bucketIndex].Any())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 #pragma region ShadowsPassData
 
 ShadowsPassData::~ShadowsPassData()
@@ -789,7 +802,11 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 frame->cr << InsertBarrier(resultImage, ResourceState::RenderTarget, target->GetImageView()->GetImageSubResource());
 
                 RenderCollector& renderCollector = GetRenderCollector(shadowView);
-                renderCollector.ExecuteDrawCalls(frame, rs, BucketMask);
+
+                if (HasRenderGroups(renderCollector, BucketMask))
+                {
+                    renderCollector.ExecuteDrawCalls(frame, rs, BucketMask);
+                }
 
                 if (shouldCacheAfterRender)
                 {

@@ -112,6 +112,9 @@ public:
         return Handle<T>();
     }
 
+    ///true if an asset is registered under \p name, without loading it
+    bool HasAsset(const AssetBucket& bucket, StringHash name) const;
+
     void MarkAssetDirty(const AssetObject& assetObject);
     void MarkAllDirty();
 

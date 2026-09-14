@@ -165,7 +165,8 @@ PSOutput PSMain(PSInput input)
 
     float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, GBufferDepthTexture, texcoord, 0).r;
 
-    float2 unjitteredTexcoord = texcoord - camera.jitter.xy * 0.5;
+    // texcoord y runs opposite to NDC y (see ReconstructViewSpacePositionFromDepth)
+    float2 unjitteredTexcoord = texcoord - float2(camera.jitter.x, -camera.jitter.y) * 0.5;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth);
 
     float4 positionWS = mul(camera.invViewMat, positionVS);

@@ -43,6 +43,7 @@
 // Sampling
 
 #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_2D_GRAD(samp, tex, texcoord, texcoord_ddx, texcoord_ddy) (tex).SampleGrad((samp), (texcoord), (texcoord_ddx), (texcoord_ddy))
 #ifdef PIXEL_SHADER
 #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else

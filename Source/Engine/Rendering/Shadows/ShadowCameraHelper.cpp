@@ -9,6 +9,13 @@ namespace ShadowCameraHelpers {
 
 static constexpr float ZPullback = 1000.0f;
 
+// cascades are fit slightly larger than the camera slice, so small frame-to-frame changes in the camera still fit inside
+// the previous frame's bounds (see StabilizeCascadeBounds)
+static constexpr float CascadeRadiusPadding = 1.02f;
+
+// previous bounds are only kept while they're at most this much larger than a fresh fit
+static constexpr float MaxReusedCascadeOversize = 1.05f;
+
 Mat4f CalculateShadowViewMatrix(
     const BoundingSphere& sceneWorldBounds,
     const Vec3f& lightDir)
@@ -22,7 +29,6 @@ Mat4f CalculateShadowViewMatrix(
 
 BoundingBox CalculateCascadeBounds(
     const Frustum& mainCameraFrustum,
-    const BoundingSphere& sceneWorldBounds,
     const Mat4f& shadowViewMatrix,
     const Vec2u& shadowMapResolution,
     const float inNearRatio,
@@ -51,6 +57,8 @@ BoundingBox CalculateCascadeBounds(
         sphereRadius = MathUtil::Max(sphereRadius, dist);
     }
 
+    sphereRadius *= CascadeRadiusPadding;
+
     Vec4f centerLS = shadowViewMatrix.TransformVector(Vec4f(frustumCenter, 1.0f));
     centerLS /= centerLS.w;
 
@@ -62,21 +70,64 @@ BoundingBox CalculateCascadeBounds(
     centerLS.y = MathUtil::Floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
     centerLS.z = MathUtil::Floor(centerLS.z / worldUnitsPerTexel) * worldUnitsPerTexel;
 
-    Vec4f sceneCenterLS = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
-    sceneCenterLS /= sceneCenterLS.w;
-
     BoundingBox finalBounds;
     finalBounds.min.x = centerLS.x - sphereRadius;
     finalBounds.max.x = centerLS.x + sphereRadius;
     finalBounds.min.y = centerLS.y - sphereRadius;
     finalBounds.max.y = centerLS.y + sphereRadius;
-
-    float sceneMinZ = sceneCenterLS.z - sceneWorldBounds.GetRadius();
-
-    finalBounds.min.z = MathUtil::Min(centerLS.z - sphereRadius, sceneMinZ);
+    finalBounds.min.z = centerLS.z - sphereRadius;
     finalBounds.max.z = centerLS.z + sphereRadius;
 
     return finalBounds;
+}
+
+BoundingBox StabilizeCascadeBounds(
+    const BoundingBox& newBounds,
+    const BoundingBox& previousBounds)
+{
+    if (!previousBounds.IsValid() || !previousBounds.IsFinite())
+    {
+        return newBounds;
+    }
+
+    const Vec3f newCenter = newBounds.GetCenter();
+    const Vec3f previousCenter = previousBounds.GetCenter();
+
+    const float newHalfExtent = newBounds.GetExtent().x * 0.5f;
+    const float previousHalfExtent = previousBounds.GetExtent().x * 0.5f;
+
+    if (previousHalfExtent > newHalfExtent * MaxReusedCascadeOversize)
+    {
+        return newBounds;
+    }
+
+    // the unpadded fit has to lie inside the previous bounds, otherwise the padding would be what's being kept
+    const float requiredHalfExtent = newHalfExtent / CascadeRadiusPadding;
+
+    const Vec3f centerOffset = newCenter - previousCenter;
+
+    const bool fitsInPrevious = MathUtil::Abs(centerOffset.x) + requiredHalfExtent <= previousHalfExtent
+        && MathUtil::Abs(centerOffset.y) + requiredHalfExtent <= previousHalfExtent
+        && MathUtil::Abs(centerOffset.z) + requiredHalfExtent <= previousHalfExtent;
+
+    return fitsInPrevious ? previousBounds : newBounds;
+}
+
+BoundingBox CalculateCascadeCullingBounds(
+    const BoundingBox& cascadeBounds,
+    const BoundingSphere& sceneWorldBounds,
+    const Mat4f& shadowViewMatrix)
+{
+    Vec4f sceneCenterLS = shadowViewMatrix.TransformVector(Vec4f(sceneWorldBounds.GetCenter(), 1.0f));
+    sceneCenterLS /= sceneCenterLS.w;
+
+    // light-space -Z points toward the light
+    const float sceneMinZ = sceneCenterLS.z - sceneWorldBounds.GetRadius();
+
+    BoundingBox cullingBounds = cascadeBounds;
+    cullingBounds.min.z = MathUtil::Min(cascadeBounds.min.z, sceneMinZ);
+
+    return cullingBounds;
 }
 
 } // namespace ShadowCameraHelpers

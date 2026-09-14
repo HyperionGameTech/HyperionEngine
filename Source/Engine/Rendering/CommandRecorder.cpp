@@ -7,6 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/CommandRecorder.hpp>
+#include <Rendering/Buffers.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/GraphicsPipelineCache.hpp>
@@ -551,6 +552,11 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 EndCurrentPass(commandBuffer);
 
                 cmd->m_dstImage->CopyFromBuffer(commandBuffer, cmd->m_srcBuffer, cmd->m_srcBufferOffset, cmd->m_dstMipIndex, cmd->m_dstArrayLayer);
+
+                if (RI.stagingBufferPool != nullptr)
+                {
+                    RI.stagingBufferPool->RetainForCommandBuffer(cmd->m_srcBuffer, commandBuffer);
+                }
             }
             break;
             case CommandType::CopyBuffer:
@@ -560,6 +566,11 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 EndCurrentPass(commandBuffer);
 
                 cmd->m_dstBuffer->CopyFrom(commandBuffer, cmd->m_srcBuffer, cmd->m_srcOffset, cmd->m_dstOffset, cmd->m_count);
+
+                if (RI.stagingBufferPool != nullptr)
+                {
+                    RI.stagingBufferPool->RetainForCommandBuffer(cmd->m_srcBuffer, commandBuffer);
+                }
                 static_assert(std::is_trivially_destructible_v<CopyBuffer>);
             }
             break;

@@ -9,6 +9,7 @@
 #include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
+#include <Rendering/Buffers.hpp>
 #include <Rendering/CrashHandler.hpp>
 
 namespace Hyperion {
@@ -72,6 +73,8 @@ void RawBuffer::FlushInto(CommandBuffer& cmdBuffer)
     gpuBuffer->InsertBarrier(&cmdBuffer, ResourceState::CopyDst);
     gpuBuffer->CopyFrom(&cmdBuffer, stagingBuffer, 0, dirtyRangeStart, dirtyRangeEnd - dirtyRangeStart);
     gpuBuffer->InsertBarrier(&cmdBuffer, ResourceState::ShaderResource);
+
+    RI.stagingBufferPool->RetainForCommandBuffer(stagingBuffer, &cmdBuffer);
 
     dirtyRangeStart = SIZE_MAX;
     dirtyRangeEnd = 0;

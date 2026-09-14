@@ -144,6 +144,34 @@ DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float2> envPro
 
 #include "include/LightSampling.hlsli"
 
+#ifdef LIGHT_TYPE_DIRECTIONAL
+
+float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texcoord, float NdotL)
+{
+    // push the lookup out along the normal by the cascade's PCF footprint, so kernel taps on slopes don't
+    // land on the receiver's own surface. The cascade is picked from the unmoved position so this can't cross a split
+    const float cascadeWidth = 1.0 / max(abs(cascadeScaleX[cascadeIndex]), 0.000001);
+    const float normalOffset = HYP_SHADOW_FILTER_SIZE * HYP_SHADOW_NORMAL_OFFSET_SCALE * cascadeWidth;
+
+    float4 offsetPositionLS = mul(shadowViewMat, float4(position + N * normalOffset, 1.0));
+    offsetPositionLS /= offsetPositionLS.w;
+
+    float4 shadowMapCoord;
+    shadowMapCoord.x = offsetPositionLS.x * cascadeScaleX[cascadeIndex] + cascadeOffsetX[cascadeIndex];
+    shadowMapCoord.y = offsetPositionLS.y * cascadeScaleY[cascadeIndex] + cascadeOffsetY[cascadeIndex];
+    shadowMapCoord.z = offsetPositionLS.z * cascadeScaleZ[cascadeIndex] + cascadeOffsetZ[cascadeIndex];
+    shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
+
+    const float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
+    const float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+
+    return GetShadowPCF(shadowMapCoord,
+        atlasUV, atlasScale,
+        position, texcoord, camera.dimensions.xy, NdotL);
+}
+
+#endif // LIGHT_TYPE_DIRECTIONAL
+
 #ifdef LIGHT_TYPE_CLUSTERED
 
 DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
@@ -191,7 +219,8 @@ PSOutput PSMain(PSInput input)
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, GBufferDepthTexture, texcoord, 0).r;
 
-    float2 unjitteredTexcoord = texcoord - camera.jitter.xy * 0.5;
+    // texcoord y runs opposite to NDC y (see ReconstructViewSpacePositionFromDepth)
+    float2 unjitteredTexcoord = texcoord - float2(camera.jitter.x, -camera.jitter.y) * 0.5;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth);
 
     float4 position = mul(camera.invViewMat, positionVS);
@@ -469,19 +498,24 @@ PSOutput PSMain(PSInput input)
         cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
         cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
         cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
-        
-        float4 shadowMapCoord;
-        shadowMapCoord.x = uvX[cascadeIndex];
-        shadowMapCoord.y = uvY[cascadeIndex];
-        shadowMapCoord.z = uvZ[cascadeIndex];
-        shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
 
-        float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
-        float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+        int nextCascadeIndex = 4;
+        nextCascadeIndex = (insideMask.w > 0.5 && cascadeIndex < 3) ? 3 : nextCascadeIndex;
+        nextCascadeIndex = (insideMask.z > 0.5 && cascadeIndex < 2) ? 2 : nextCascadeIndex;
+        nextCascadeIndex = (insideMask.y > 0.5 && cascadeIndex < 1) ? 1 : nextCascadeIndex;
 
-        shadow = GetShadowPCF(shadowMapCoord,
-            atlasUV, atlasScale,
-            position.xyz, texcoord, camera.dimensions.xy, NdotL);
+        shadow = GetCascadeShadow(cascadeIndex, position.xyz, N, texcoord, NdotL);
+
+        // bias, normal offset and PCF footprint all scale with cascade width, so fade into the next cascade before the split
+        // rather than stepping at it (most visible on large receivers like terrain)
+        const float cascadeEdgeDistance = 0.5 - maxDist[cascadeIndex];
+        const float nextCascadeWeight = 1.0 - saturate(cascadeEdgeDistance / HYP_SHADOW_CASCADE_BLEND_SIZE);
+
+        [branch]
+        if (nextCascadeIndex < 4 && nextCascadeWeight > 0.0)
+        {
+            shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, position.xyz, N, texcoord, NdotL), nextCascadeWeight);
+        }
     }
 #endif // LIGHT_TYPE_POINT
 

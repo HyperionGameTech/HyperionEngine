@@ -16,7 +16,9 @@
 
 #include <Scene/Camera/Camera.hpp>
 
+#include <Scene/WorldGrid/WorldGrid.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainStreamingCell.hpp>
 
 #include <Rendering/Mesh.hpp>
 
@@ -135,8 +137,21 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
     Array<Vec3f, SceneTempAllocator> viewpoints;
     CollectLodViewpoints(*GetWorld(), viewpoints);
 
+    if (const Handle<WorldGrid>& worldGrid = GetWorld()->GetWorldGrid(); worldGrid.IsValid())
+    {
+        for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
+        {
+            if (const Handle<TerrainWorldGridLayer>& terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+            {
+                terrainLayer->SetLodViewpoints(Span<const Vec3f>(viewpoints.Data(), viewpoints.Size()));
+            }
+        }
+    }
+
     for (Scene* scene : scenes)
     {
+        bool anyLodChanged = false;
+
         for (auto [entity, meshComponent, terrainCellComponent, boundingBoxComponent] :
             scene->GetEntityManager()->GetEntitySet<MeshComponent, TerrainCellComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
         {
@@ -153,7 +168,8 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
             }
 
             // the layer's LOD settings can change after this cell's mesh was built - bands must match the LODs it actually has
-            const uint8 lodCount = meshComponent.mesh->GetMeshDesc().GetNumLods();
+            const uint8 firstMeshLod = terrainCellComponent.firstMeshLodIndex;
+            const uint8 lodCount = uint8(firstMeshLod + meshComponent.mesh->GetMeshDesc().GetNumLods());
 
             if (lodCount <= 1)
             {
@@ -184,8 +200,28 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 }
             }
 
-            const uint8 currentLod = MathUtil::Min<uint8>(meshComponent.lodIndex, lodCount - 1);
-            const uint8 targetLod = SelectTerrainLod(*layer, lodCount, currentLod, nearestDistance);
+            // no viewpoint (e.g. between camera switches) would otherwise unload LOD 0 everywhere
+            if (viewpoints.Any())
+            {
+                // judged against the in-flight request rather than the mesh, so turning back past the other threshold before a rebuild lands cancels it
+                const uint8 requestedFirstMeshLod = terrainCellComponent.requestedFirstMeshLodIndex;
+
+                if (const uint8 desiredFirstMeshLod = layer->SelectFirstMeshLod(nearestDistance, requestedFirstMeshLod); desiredFirstMeshLod != requestedFirstMeshLod)
+                {
+                    terrainCellComponent.requestedFirstMeshLodIndex = desiredFirstMeshLod;
+
+                    if (Handle<TerrainStreamingCell> cell = terrainCellComponent.cell.Lock(); cell.IsValid())
+                    {
+                        cell->RequestFirstMeshLod(desiredFirstMeshLod);
+                    }
+                }
+            }
+
+            const uint8 currentLod = MathUtil::Min<uint8>(firstMeshLod + meshComponent.lodIndex, lodCount - 1);
+
+            // until LOD 0 finishes loading, the finest LOD in memory stands in for it
+            const uint8 targetLod = MathUtil::Max(SelectTerrainLod(*layer, lodCount, currentLod, nearestDistance), firstMeshLod);
+            const uint8 targetMeshLodIndex = uint8(targetLod - firstMeshLod);
 
             const float morphStart = layer->GetLodMorphStart(targetLod);
             const float morphEnd = layer->GetLodRange(targetLod);
@@ -208,12 +244,19 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 terrainCellComponent.lodMorphOrigin = nearestViewpoint;
             }
 
-            if (meshComponent.lodIndex != targetLod || morphChanged)
+            if (meshComponent.lodIndex != targetMeshLodIndex || morphChanged)
             {
-                meshComponent.lodIndex = targetLod;
+                meshComponent.lodIndex = targetMeshLodIndex;
 
                 entity->SetNeedsRenderProxyUpdate();
             }
+
+            anyLodChanged |= (targetLod != currentLod);
+        }
+
+        if (anyLodChanged)
+        {
+            scene->MarkStaticRenderResourcesChanged();
         }
     }
 }

@@ -20,6 +20,7 @@
 #include <Core/Threading/AtomicVar.hpp>
 
 #include <Core/Math/Ray.hpp>
+#include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
@@ -98,6 +99,7 @@ public:
         return m_cellFingerprint;
     }
 
+    ///first of the coord's references that resolves
     Handle<TerrainCellData> FindCellData(const Vec2i& coord) const;
 
     ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
@@ -146,8 +148,8 @@ public:
         return !m_layerInfo.infinite && m_layerInfo.range.x < m_layerInfo.range.y;
     }
 
-    ///CDLOD//////////////////
-    
+    ///CDLOD - tuned through the Terrain.Lod.* cvars, shared by every terrain layer
+
     HYP_METHOD()
     uint8 GetEffectiveLodCount() const;
 
@@ -162,6 +164,15 @@ public:
 
     HYP_METHOD()
     float GetLodMorphStart(uint8 lodIndex) const;
+
+    ///LODs finer than the returned one aren't kept in a cell's mesh while it's \p nearestDistance from the LOD viewpoint
+    uint8 SelectFirstMeshLod(float nearestDistance, uint8 currentFirstMeshLod) const;
+
+    ///sim thread only - lets cells streaming in pick their first mesh LOD before the LOD system sees them
+    void SetLodViewpoints(Span<const Vec3f> viewpoints);
+
+    ///infinity until the LOD system has run
+    float GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const;
 
     /////////////////////////
 
@@ -186,29 +197,15 @@ protected:
     void DiscardAllCellData();
     void DeletePersistedCellData(const AssetPath& assetPath);
 
+    ///for cell data created because none of the coord's references resolved - replaces those references
+    void AddCellData(const Vec2i& coord, const Handle<TerrainCellData>& cellData);
+
+    ///drops references to cell data that isn't registered (never saved) and duplicate references; true if any were dropped
+    bool RemoveUnregisteredCellData();
+
     Handle<Scene> m_scene;
     Handle<Material> m_material;
 
-    HYP_FIELD(Property = "LodCount", Editor = true,
-        Description = "Number of mesh LODs per cell")
-    uint8 m_lodCount = 3;
-
-    HYP_FIELD(Property = "LodStrideMultiplier", Editor = true,
-        Description = "How much sparser each LOD's vertex grid is than the previous one")
-    uint32 m_lodStrideMultiplier = 4;
-
-    HYP_FIELD(Property = "LodBaseRange", Editor = true,
-        Description = "World-space distance from the camera where full-resolution cells finish morphing into LOD 1.")
-    float m_lodBaseRange = 96.0f;
-
-    HYP_FIELD(Property = "LodRangeMultiplier", Editor = true,
-        Description = "Each LOD's range is the previous LOD's range times this value.")
-    float m_lodRangeMultiplier = 2.0f;
-
-    HYP_FIELD(Property = "LodMorphStartRatio", Editor = true,
-        Description = "Fraction of each LOD's distance band spent at full detail before it starts morphing into the next LOD. Lower values == longer, smoother transitions")
-    float m_lodMorphStartRatio = 0.7f;
-    
     ///written on the sim thread only, under m_generationStateMutex
     SharedPtr<TerrainGenerator> m_generator;
     mutable Mutex m_generationStateMutex;
@@ -224,6 +221,9 @@ protected:
     FlatMap<Vec2i, bool> m_cellsModifiedSinceStrokeEnd;
 
     uint64 m_cellFingerprint = 0;
+
+    mutable Mutex m_lodViewpointsMutex;
+    Array<Vec3f> m_lodViewpoints;
 
     struct HeightsSampleCache
     {

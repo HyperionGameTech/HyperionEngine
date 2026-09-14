@@ -27,6 +27,7 @@
 
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/RenderConfig.hpp>
+#include <Rendering/Buffers.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/CBufferAllocator.hpp>
@@ -170,7 +171,11 @@ public:
         HRESULT hr = queueData->commandQueue->Signal(fence.GetD3D12Fence(), fence.GetValue());
         Assert(SUCCEEDED(hr));
 
-        return fence.Wait();
+        RendererResult result = fence.Wait();
+
+        RI.stagingBufferPool->ReleaseForCommandBuffer(&commandBuffer);
+
+        return result;
     }
 };
 
@@ -663,6 +668,9 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
         // HYP_LOG_TEMP("Waited on {} on frame {}", waitForValue, frameIndex);
     }
 
+    // this slot's command buffer has finished executing, so staging buffers it copied from can be reused
+    stagingBufferPool->ReleaseForCommandBuffer(m_commandBuffers[frameIndex].Get());
+
     // Read back GPU timestamps from the completed frame
     ResolveGpuFrameResults(frameIndex);
 
@@ -924,6 +932,11 @@ void DX12RenderInterface::ReclaimCompletedTransientCommandBuffers_Internal()
         }
 
         fence.isSubmitted = false;
+
+        if (stagingBufferPool != nullptr)
+        {
+            stagingBufferPool->ReleaseForCommandBuffer(&transientCommandBuffer->commandBuffer);
+        }
 
         m_freeTransientCommandBuffers.PushBack(transientCommandBuffer);
 

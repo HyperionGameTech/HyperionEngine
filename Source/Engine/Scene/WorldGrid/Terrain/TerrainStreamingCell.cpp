@@ -38,6 +38,8 @@
 
 #include <Core/Threading/AtomicVar.hpp>
 #include <Core/Threading/Guarded.hpp>
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -167,21 +169,21 @@ static TerrainGenerationEditorTaskState s_terrainGenerationEditorTask;
 
 #endif // HYP_EDITOR
 
-///the physics collider always uses LOD 0's full-resolution grid, regardless of the mesh LOD currently on screen
-static void ExtractColliderHeights(const TerrainMeshBuilder::CellMeshData& cellMeshData, uint32 cellSize, Array<float>& outHeights)
+///the physics collider always uses the full-resolution grid, regardless of the mesh LODs in memory
+static void ExtractColliderHeights(Span<const float> paddedHeights, uint32 cellSize, Array<float>& outHeights)
 {
-    Assert(cellMeshData.numLods > 0, "No terrain mesh LODs built");
+    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
-    const TerrainMeshBuilder::LodMeshData& lod0 = cellMeshData.lods[0];
-    const size_t gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
+    Assert(paddedHeights.Size() == size_t(paddedSize) * size_t(paddedSize), "Padded heights have unexpected size");
 
-    Assert(lod0.vertices.Size() >= gridVertexCount, "Terrain mesh data is missing skirt vertices");
+    outHeights.Resize(size_t(cellSize) * size_t(cellSize));
 
-    outHeights.Resize(gridVertexCount);
-
-    for (uint32 i = 0; i < gridVertexCount; i++)
+    for (uint32 z = 0; z < cellSize; z++)
     {
-        outHeights[i] = lod0.vertices[i].GetPosition().y;
+        for (uint32 x = 0; x < cellSize; x++)
+        {
+            outHeights[size_t(z) * cellSize + x] = paddedHeights[size_t(z + TerrainGenerator::CellPadding) * paddedSize + (x + TerrainGenerator::CellPadding)];
+        }
     }
 }
 
@@ -237,11 +239,13 @@ static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 c
 }
 
 ///world-space normals, row-flipped like the splat map so Terrain.hlsl samples both with the same texcoord
-static void PrepareNormalMapBytes(Span<const TerrainVertex> gridVertices, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
+static void PrepareNormalMapBytes(Span<const float> paddedHeights, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
 {
     const size_t texelCount = size_t(cellSize) * size_t(cellSize);
 
-    Assert(gridVertices.Size() >= texelCount, "Not enough grid vertices for the normal map");
+    Array<float> heights;
+    Array<Vec3f> localNormals;
+    TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, localNormals);
 
     Array<ubyte> normalBytes;
     normalBytes.Resize(texelCount * 4);
@@ -254,7 +258,7 @@ static void PrepareNormalMapBytes(Span<const TerrainVertex> gridVertices, uint32
     for (size_t texelIndex = 0; texelIndex < texelCount; texelIndex++)
     {
         // grid normals are in the cell's local (unscaled) space
-        const Vec3f localNormal = gridVertices[texelIndex].GetNormal();
+        const Vec3f localNormal = localNormals[texelIndex];
         const Vec3f worldNormal = Vec3f(localNormal.x / scale.x, localNormal.y / scale.y, localNormal.z / scale.z).Normalized();
 
         normalBytes[texelIndex * 4] = encodeUnorm(worldNormal.x);
@@ -302,35 +306,25 @@ static bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, co
     return true;
 }
 
-///synthesizes auto splat weights and prepares them for upload - runs on the streaming thread.
-///always sampled from LOD 0, since the splat texture is a fixed cellSize x cellSize regardless of the mesh LOD in use
+///synthesizes auto splat weights and prepares them for upload.
+///always sampled at full resolution, since the splat texture is a fixed cellSize x cellSize regardless of the mesh LOD in use
 static bool PrepareAutoSplatBytes(
     const TerrainGenerator& generator,
     const StreamingCellInfo& cellInfo,
-    const TerrainMeshBuilder::CellMeshData& cellMeshData,
+    Span<const float> paddedHeights,
     Array<ubyte>& outUploadBytes)
 {
     const uint32 cellSize = cellInfo.extent.x;
-    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
+    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
 
-    if (cellMeshData.numLods == 0 || cellMeshData.lods[0].vertices.Size() < gridVertexCount)
+    if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
     {
         return false;
     }
 
-    const Array<TerrainVertex>& lod0Vertices = cellMeshData.lods[0].vertices;
-
     Array<float> heights;
-    heights.Resize(gridVertexCount);
-
     Array<Vec3f> normals;
-    normals.Resize(gridVertexCount);
-
-    for (uint32 i = 0; i < gridVertexCount; i++)
-    {
-        heights[i] = lod0Vertices[i].GetPosition().y;
-        normals[i] = lod0Vertices[i].GetNormal();
-    }
+    TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, normals);
 
     Array<ubyte> splatWeights;
     splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
@@ -478,20 +472,18 @@ void TerrainStreamingCell::ReleaseBuildData()
 {
     EndPendingGeneration();
 
-    m_generatedHeights = Array<float>();
+    m_hasGeneratedHeights = false;
     m_splatUploadBytes = Array<ubyte>();
     m_normalMapUploadBytes = Array<ubyte>();
     m_cellMeshData = TerrainMeshBuilder::CellMeshData();
 }
 
-bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
+bool TerrainStreamingCell::LoadOrGeneratePaddedHeights()
 {
     HYP_SCOPE;
 
     const uint32 cellSize = GetCellSize();
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
-
-    TerrainMeshBuilder meshBuilder(cellSize, m_layer->GetEffectiveLodCount(), m_layer->GetEffectiveLodStrideMultiplier());
 
     if (m_cellData.IsValid() && m_cellData->HasHeights())
     {
@@ -502,7 +494,8 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
 
         if (TerrainWorldGridLayer::AreCellHeightsCurrent(cellData, cellSize, m_cellFingerprint) && savedHeights.Size() == size_t(paddedSize) * size_t(paddedSize))
         {
-            m_cellMeshData = meshBuilder.BuildCellMeshData(savedHeights);
+            m_paddedHeights.Resize(savedHeights.Size());
+            Memory::Copy(m_paddedHeights.Data(), savedHeights.Data(), savedHeights.Size() * sizeof(float));
 
             return false;
         }
@@ -527,11 +520,41 @@ bool TerrainStreamingCell::BuildCellMeshData(Array<float>& outGeneratedHeights)
         }
     }
 
-    TerrainWorldGridLayer::GenerateCellPaddedHeights(*m_generator, m_generationLayerInfo, m_cellInfo.coord, outGeneratedHeights);
-
-    m_cellMeshData = meshBuilder.BuildCellMeshData(outGeneratedHeights);
+    TerrainWorldGridLayer::GenerateCellPaddedHeights(*m_generator, m_generationLayerInfo, m_cellInfo.coord, m_paddedHeights);
 
     return true;
+}
+
+void TerrainStreamingCell::BuildCellMeshData(uint8 firstLodIndex)
+{
+    HYP_SCOPE;
+
+    TerrainMeshBuilder meshBuilder(GetCellSize(), m_layer->GetEffectiveLodCount(), m_layer->GetEffectiveLodStrideMultiplier());
+
+    m_cellMeshData = meshBuilder.BuildCellMeshData(m_paddedHeights, firstLodIndex);
+}
+
+uint8 TerrainStreamingCell::SelectInitialFirstMeshLod() const
+{
+    const uint32 cellSize = GetCellSize();
+
+    float minHeight = MathUtil::Infinity<float>();
+    float maxHeight = -MathUtil::Infinity<float>();
+
+    for (float height : m_paddedHeights)
+    {
+        minHeight = MathUtil::Min(minHeight, height);
+        maxHeight = MathUtil::Max(maxHeight, height);
+    }
+
+    const Vec3f& boundsMin = m_cellInfo.bounds.min;
+
+    const BoundingBox worldBounds(
+        Vec3f(boundsMin.x, boundsMin.y + minHeight, boundsMin.z),
+        Vec3f(boundsMin.x + float(cellSize - 1) * m_cellInfo.scale.x, boundsMin.y + maxHeight, boundsMin.z + float(cellSize - 1) * m_cellInfo.scale.z));
+
+    // judged as if LOD 0 wasn't loaded yet, so only cells already inside the load range pay for it up front
+    return m_layer->SelectFirstMeshLod(m_layer->GetNearestLodViewpointDistance(worldBounds), 1);
 }
 
 void TerrainStreamingCell::OnStreamStart()
@@ -546,9 +569,9 @@ void TerrainStreamingCell::OnStreamStart()
         return;
     }
 
-    const bool generatedHeights = BuildCellMeshData(m_generatedHeights);
+    m_hasGeneratedHeights = LoadOrGeneratePaddedHeights();
 
-    if (generatedHeights)
+    if (m_hasGeneratedHeights)
     {
         // already counted, unless the saved heights looked usable at creation but couldn't be paged in
         BeginPendingGeneration();
@@ -556,19 +579,16 @@ void TerrainStreamingCell::OnStreamStart()
     else
     {
         EndPendingGeneration();
-
-        m_generatedHeights.Clear();
     }
 
     const uint32 cellSize = GetCellSize();
 
-    ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
+    BuildCellMeshData(SelectInitialFirstMeshLod());
 
-    PrepareNormalMapBytes(
-        Span<const TerrainVertex>(m_cellMeshData.lods[0].vertices.Data(), TerrainMeshHelpers::CalculateGridVertexCount(cellSize)),
-        cellSize,
-        m_cellInfo.scale,
-        m_normalMapUploadBytes);
+    m_firstMeshLod = m_cellMeshData.firstLodIndex;
+    m_requestedFirstMeshLod = m_firstMeshLod;
+
+    PrepareNormalMapBytes(m_paddedHeights, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
 
     // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
@@ -583,17 +603,17 @@ void TerrainStreamingCell::OnStreamStart()
 
     if (m_generator->GetParams().autoPaintSplats)
     {
-        PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_cellMeshData, m_splatUploadBytes);
+        PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_splatUploadBytes);
     }
 }
 
-Handle<Mesh> TerrainStreamingCell::BuildMeshFromCellMeshData() const
+Handle<Mesh> TerrainStreamingCell::BuildMesh(const TerrainMeshBuilder::CellMeshData& cellMeshData) const
 {
-    Assert(m_cellMeshData.numLods > 0 && m_cellMeshData.lods[0].vertices.Any(), "No CPU-side terrain mesh data built yet");
+    Assert(cellMeshData.numLods > 0 && cellMeshData.lods[0].vertices.Any(), "No CPU-side terrain mesh data built yet");
 
     MeshDesc meshDesc;
     MeshDataView meshData {};
-    BuildMeshDescAndDataView(m_cellMeshData, meshDesc, meshData);
+    BuildMeshDescAndDataView(cellMeshData, meshDesc, meshData);
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME_FMT("TerrainChunkMesh_{}", m_cellInfo.coord));
@@ -619,16 +639,18 @@ void TerrainStreamingCell::OnLoaded()
         // already unloaded, or built with a replaced generator: never spawn it or persist its heights
         ReleaseBuildData();
 
+        m_paddedHeights = Array<float>();
+
         return;
     }
 
-    if (m_generatedHeights.Any())
+    if (m_hasGeneratedHeights)
     {
 #ifdef HYP_EDITOR
-        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_generatedHeights);
+        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights);
 #endif
 
-        m_generatedHeights = Array<float>();
+        m_hasGeneratedHeights = false;
     }
 
     EndPendingGeneration();
@@ -671,7 +693,7 @@ void TerrainStreamingCell::OnLoaded()
 
     m_normalMapUploadBytes.Clear();
 
-    m_mesh = BuildMeshFromCellMeshData();
+    m_mesh = BuildMesh(m_cellMeshData);
 
     // Free the CPU-side build data now that the GPU mesh has been created from it.
     m_cellMeshData = TerrainMeshBuilder::CellMeshData();
@@ -686,7 +708,7 @@ void TerrainStreamingCell::OnLoaded()
     entityInitInfo.bvhDepth = 0; // don't build bvhs to save load times
 
     m_entity = MakeHandle<Entity>(NAME_FMT("TerrainPatch_{}_Entity", m_cellInfo.coord), entityInitInfo);
-    m_entity->SetLocalBounds(m_mesh->GetAABB());
+    m_entity->SetLocalBounds(ComputeLocalBounds());
     m_entity->SetIsStatic(true);
 
     entityManager->AddExistingEntity(m_entity);
@@ -714,7 +736,12 @@ void TerrainStreamingCell::OnLoaded()
     // most cells stream in far away, so start coarse until TerrainLodSystem picks the real LOD
     meshComponent->lodIndex = uint8(m_mesh->GetMeshDesc().GetNumLods() - 1);
 
-    entityManager->AddComponent<TerrainCellComponent>(m_entity, TerrainCellComponent { .layer = m_layer.ToWeak() });
+    entityManager->AddComponent<TerrainCellComponent>(m_entity, TerrainCellComponent {
+        .layer = m_layer.ToWeak(),
+        .cell = WeakHandleFromThis(),
+        .firstMeshLodIndex = m_firstMeshLod,
+        .requestedFirstMeshLodIndex = m_requestedFirstMeshLod
+    });
 
     m_collisionShape = MakeHandle<HeightFieldPhysicsShape>(NAME_FMT("TerrainCellCollider_{}", m_cellInfo.coord));
     InitObject(m_collisionShape);
@@ -766,7 +793,7 @@ void TerrainStreamingCell::OnRemoved()
     m_cellMaterial.Reset();
 
     m_collisionShape.Reset();
-    m_colliderHeights.Clear();
+    m_paddedHeights = Array<float>();
 }
 
 void TerrainStreamingCell::DetachFromScene()
@@ -834,42 +861,14 @@ void TerrainStreamingCell::RefreshAutoSplat()
         return;
     }
 
-    const uint32 cellSize = GetCellSize();
-    const uint32 gridVertexCount = TerrainMeshHelpers::CalculateGridVertexCount(cellSize);
+    Array<ubyte> splatUploadBytes;
 
-    const VertexArrayView vertexData = m_mesh->GetVertexData(0);
-
-    if (vertexData.floatData == nullptr || vertexData.vertexCount < gridVertexCount)
+    if (!PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, splatUploadBytes))
     {
         return;
     }
 
-    const Span<const TerrainVertex> gridVertices(reinterpret_cast<const TerrainVertex*>(vertexData.floatData), gridVertexCount);
-
-    Array<float> heights;
-    heights.Resize(gridVertexCount);
-
-    Array<Vec3f> normals;
-    normals.Resize(gridVertexCount);
-
-    for (uint32 i = 0; i < gridVertexCount; i++)
-    {
-        heights[i] = gridVertices[i].GetPosition().y;
-        normals[i] = gridVertices[i].GetNormal();
-    }
-
-    Array<ubyte> splatWeights;
-    splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
-
-    m_generator->SynthesizeSplatWeights(
-        heights,
-        normals,
-        Vec2f(m_cellInfo.bounds.min.x, m_cellInfo.bounds.min.z),
-        Vec2f(m_cellInfo.scale.x, m_cellInfo.scale.z),
-        cellSize,
-        splatWeights);
-
-    ApplySplatTexture(BuildSplatTextureFromWeights(m_cellInfo.coord, cellSize, splatWeights));
+    ApplySplatTexture(CreateSplatTexture(m_cellInfo.coord, GetCellSize(), splatUploadBytes));
 }
 
 void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture)
@@ -908,7 +907,7 @@ void TerrainStreamingCell::ApplyNormalMapTexture(const Handle<Texture>& normalMa
     BindCellMaterialTexture(MaterialTextureKey::TerrainNormalMap, m_normalMapTexture);
 }
 
-void TerrainStreamingCell::RefreshNormalMap(Span<const TerrainVertex> gridVertices)
+void TerrainStreamingCell::RefreshNormalMap()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -916,7 +915,7 @@ void TerrainStreamingCell::RefreshNormalMap(Span<const TerrainVertex> gridVertic
     const uint32 cellSize = GetCellSize();
 
     Array<ubyte> normalMapBytes;
-    PrepareNormalMapBytes(gridVertices, cellSize, m_cellInfo.scale, normalMapBytes);
+    PrepareNormalMapBytes(m_paddedHeights, cellSize, m_cellInfo.scale, normalMapBytes);
 
     ApplyNormalMapTexture(CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, normalMapBytes));
 }
@@ -965,35 +964,139 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
 
     m_cellData = cellData;
 
-    Array<float> generatedHeights;
-
-    if (BuildCellMeshData(generatedHeights))
+    if (LoadOrGeneratePaddedHeights())
     {
 #ifdef HYP_EDITOR
-        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, generatedHeights);
+        m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights);
 #endif
     }
 
-    const uint32 cellSize = GetCellSize();
+    // takes any pending first LOD request along with it - the async build for that would have the old heights
+    BuildCellMeshData(m_requestedFirstMeshLod);
 
-    ExtractColliderHeights(m_cellMeshData, cellSize, m_colliderHeights);
+    m_meshBuildId++;
 
-    MeshDesc meshDesc;
-    MeshDataView meshData {};
-    BuildMeshDescAndDataView(m_cellMeshData, meshDesc, meshData);
+    const uint8 previousFirstMeshLod = m_firstMeshLod;
 
-    m_mesh->SetMeshData(meshDesc, meshData);
+    m_firstMeshLod = m_cellMeshData.firstLodIndex;
+    m_requestedFirstMeshLod = m_firstMeshLod;
 
-    // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
-    // as we need it to prevent stalls
+    if (m_firstMeshLod != previousFirstMeshLod)
+    {
+        // see ApplyFirstMeshLodBuild()
+        m_mesh = BuildMesh(m_cellMeshData);
 
-    RefreshNormalMap(Span<const TerrainVertex>(m_cellMeshData.lods[0].vertices.Data(), TerrainMeshHelpers::CalculateGridVertexCount(cellSize)));
+        m_scene->MarkStaticRenderResourcesChanged();
+    }
+    else
+    {
+        MeshDesc meshDesc;
+        MeshDataView meshData {};
+        BuildMeshDescAndDataView(m_cellMeshData, meshDesc, meshData);
+
+        // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
+        // as we need it to prevent stalls
+        m_mesh->SetMeshData(meshDesc, meshData);
+    }
 
     m_cellMeshData = TerrainMeshBuilder::CellMeshData();
 
-    m_entity->SetLocalBounds(m_mesh->GetAABB());
+    RefreshNormalMap();
+
+    m_entity->SetLocalBounds(ComputeLocalBounds());
 
     UpdateCollider(true /* notifyPhysicsWorld */);
+
+    UpdateMeshComponents(previousFirstMeshLod);
+}
+
+void TerrainStreamingCell::RequestFirstMeshLod(uint8 firstLodIndex)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_isRemoved || !m_entity.IsValid() || m_paddedHeights.Empty() || IsStale())
+    {
+        return;
+    }
+
+    if (firstLodIndex == m_requestedFirstMeshLod)
+    {
+        return;
+    }
+
+    m_requestedFirstMeshLod = firstLodIndex;
+
+    const uint32 buildId = ++m_meshBuildId;
+
+    if (firstLodIndex == m_firstMeshLod)
+    {
+        // back to what the mesh already has - the bumped id drops the in-flight build
+        return;
+    }
+
+    TaskSystem::GetInstance().Enqueue(
+        [weakThis = WeakHandleFromThis(),
+            paddedHeights = m_paddedHeights,
+            cellSize = GetCellSize(),
+            lodCount = m_layer->GetEffectiveLodCount(),
+            strideMultiplier = m_layer->GetEffectiveLodStrideMultiplier(),
+            firstLodIndex,
+            buildId]()
+        {
+            TerrainMeshBuilder meshBuilder(cellSize, lodCount, strideMultiplier);
+            TerrainMeshBuilder::CellMeshData cellMeshData = meshBuilder.BuildCellMeshData(paddedHeights, firstLodIndex);
+
+            ThreadBase* simThread = GetThreadById(g_simThread);
+
+            if (!simThread)
+            {
+                return;
+            }
+
+            simThread->GetScheduler().Enqueue(
+                [weakThis, cellMeshData = std::move(cellMeshData), buildId]() mutable
+                {
+                    if (Handle<TerrainStreamingCell> cell = weakThis.Lock(); cell.IsValid())
+                    {
+                        cell->ApplyFirstMeshLodBuild(std::move(cellMeshData), buildId);
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void TerrainStreamingCell::ApplyFirstMeshLodBuild(TerrainMeshBuilder::CellMeshData&& cellMeshData, uint32 buildId)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    // superseded by a newer request or a brush rebuild, or the cell went away while building
+    if (buildId != m_meshBuildId || m_isRemoved || !m_entity.IsValid() || IsStale() || cellMeshData.numLods == 0)
+    {
+        return;
+    }
+
+    const uint8 previousFirstMeshLod = m_firstMeshLod;
+
+    // a new mesh rather than SetMeshData(), which reuses GPU buffers that are big enough - LOD 0's would never be freed
+    m_mesh = BuildMesh(cellMeshData);
+    m_firstMeshLod = cellMeshData.firstLodIndex;
+
+    m_entity->SetLocalBounds(ComputeLocalBounds());
+
+    UpdateMeshComponents(previousFirstMeshLod);
+
+    // static shadow views that skipped collection still hold the replaced mesh
+    m_scene->MarkStaticRenderResourcesChanged();
+}
+
+void TerrainStreamingCell::UpdateMeshComponents(uint8 previousFirstMeshLod)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
 
     const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
 
@@ -1002,7 +1105,35 @@ void TerrainStreamingCell::RebuildMeshFull(const Handle<TerrainCellData>& cellDa
         return;
     }
 
+    if (MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(m_entity))
+    {
+        const int32 lodOnScreen = int32(previousFirstMeshLod) + int32(meshComponent->lodIndex);
+        const int32 meshLodCount = int32(MathUtil::Max<uint8>(m_mesh->GetMeshDesc().GetNumLods(), 1));
+
+        meshComponent->mesh = m_mesh;
+        meshComponent->lodIndex = uint8(MathUtil::Clamp(lodOnScreen - int32(m_firstMeshLod), 0, meshLodCount - 1));
+    }
+
+    if (TerrainCellComponent* terrainCellComponent = entityManager->TryGetComponent<TerrainCellComponent>(m_entity))
+    {
+        terrainCellComponent->firstMeshLodIndex = m_firstMeshLod;
+        terrainCellComponent->requestedFirstMeshLodIndex = m_requestedFirstMeshLod;
+    }
+
     m_entity->SetNeedsRenderProxyUpdate();
+}
+
+BoundingBox TerrainStreamingCell::ComputeLocalBounds() const
+{
+    BoundingBox bounds = m_mesh->GetAABB();
+
+    for (float height : m_paddedHeights)
+    {
+        bounds.min.y = MathUtil::Min(bounds.min.y, height);
+        bounds.max.y = MathUtil::Max(bounds.max.y, height);
+    }
+
+    return bounds;
 }
 
 void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
@@ -1018,13 +1149,13 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     const uint32 cellSize = GetCellSize();
 
-    if (m_mesh->GetMeshDesc().GetNumLods() > 1)
+    if (m_firstMeshLod != 0 || m_mesh->GetMeshDesc().GetNumLods() > 1)
     {
         // The fast path below only patches LOD 0 in place. With multiple mesh LODs, a partial edit would leave
         // LOD 1+ (and LOD 0's own morph targets, which point at LOD 1's heights) stale until some other full
         // rebuild happened to come along, which can show as a crack or a misplaced morph the next time this
         // cell's LOD changes. A full rebuild is cheap (a few thousand vertices), so always do that instead.
-        
+
         RebuildMeshFull(cellData);
 
         return;
@@ -1105,16 +1236,8 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
         }
     }
 
-    if (m_collisionShape.IsValid() && m_colliderHeights.Size() == size_t(cellSize) * size_t(cellSize))
-    {
-        for (int32 z = minVertexZ; z <= maxVertexZ; z++)
-        {
-            for (int32 x = minVertexX; x <= maxVertexX; x++)
-            {
-                m_colliderHeights[size_t(z) * size_t(cellSize) + size_t(x)] = heightAt(x, z);
-            }
-        }
-    }
+    m_paddedHeights.Resize(paddedHeights.Size());
+    Memory::Copy(m_paddedHeights.Data(), paddedHeights.Data(), paddedHeights.Size() * sizeof(float));
 
     for (int32 z = updateMinZ; z <= updateMaxZ; z++)
     {
@@ -1153,9 +1276,9 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     m_mesh->UpdateDynamicVertexData(0, gridVertexCount, skirtRangeView);
 
-    RefreshNormalMap(Span<const TerrainVertex>(reinterpret_cast<const TerrainVertex*>(vertexData.floatData), gridVertexCount));
+    RefreshNormalMap();
 
-    m_entity->SetLocalBounds(m_mesh->GetAABB());
+    m_entity->SetLocalBounds(ComputeLocalBounds());
 
     UpdateCollider(true /* notifyPhysicsWorld */);
 
@@ -1173,12 +1296,15 @@ void TerrainStreamingCell::UpdateCollider(bool notifyPhysicsWorld)
 {
     HYP_SCOPE;
 
-    if (!m_collisionShape.IsValid() || !m_layer.IsValid() || !m_colliderHeights.Any())
+    if (!m_collisionShape.IsValid() || !m_layer.IsValid() || m_paddedHeights.Empty())
     {
         return;
     }
 
-    m_collisionShape->SetHeights(m_colliderHeights, GetCellSize());
+    Array<float> colliderHeights;
+    ExtractColliderHeights(m_paddedHeights, GetCellSize(), colliderHeights);
+
+    m_collisionShape->SetHeights(colliderHeights, GetCellSize());
 
     if (!notifyPhysicsWorld)
     {

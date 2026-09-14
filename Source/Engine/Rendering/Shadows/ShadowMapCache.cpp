@@ -35,6 +35,8 @@ namespace Hyperion {
 CVar<float> g_cvShadowDepthBias("Rendering.ShadowDepthBias", 0.05f);
 CVar<float> g_cvShadowDepthBiasDirectional("Rendering.ShadowDepthBiasDirectional", 0.05f);
 
+static CVar<float> s_cvCSMDepthBiasTexels("Rendering.Shadows.CSMDepthBiasTexels", 1.0f);
+
 // Set to true to create camera-specific shadow maps for CSM
 // Will cause more shadow maps to be allocated, and specifically other non-main cameras
 // (e.g EnvProbes) will likely not be able to use shadow maps due to running out of slots.
@@ -197,8 +199,16 @@ static ViewDesc GetViewDesc(
 
     const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows || onlyStaticShadowMaps;
 
-    const float depthBias = (isDirectional ? g_cvShadowDepthBiasDirectional.Get() : g_cvShadowDepthBias.Get());
-    const float depthBiasScaled = depthBias * depthRange * (isDirectional ? DepthBiasScaleFactor[cascadeIndex] : 1.0f);
+    float depthBiasScaled = g_cvShadowDepthBias.Get() * depthRange;
+
+    if (isDirectional)
+    {
+        // cascades are as deep as they are wide, so a D16 unit is a fixed fraction of a texel and this bias stays the
+        // same size relative to the texels in every cascade, however far it reaches
+        const float shadowMapResolution = float(MathUtil::Max(light->GetShadowMapDimensions().Max(), 1u));
+
+        depthBiasScaled = s_cvCSMDepthBiasTexels.Get() * (65535.0f / shadowMapResolution) * DepthBiasScaleFactor[cascadeIndex];
+    }
 
     ViewDesc viewDesc {};
     viewDesc.flags = DefaultShadowViewFlags | ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target

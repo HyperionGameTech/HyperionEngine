@@ -52,7 +52,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
 
-// #define HYP_DISABLE_VISIBILITY_CHECK
+//#define HYP_DISABLE_VISIBILITY_CHECK
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
 #include <View.generated.inl>
@@ -597,12 +597,20 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                 shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
                     csmMainCameraFrustum,
-                    worldBoundsSphere,
                     shadowViewMatrix,
                     shadowMapDimensions,
                     nearRatio,
                     farRatio,
                     lightDir);
+
+                // previous bounds were fit in the old basis when it just changed, so they can't be reused
+                if (!csmInvalidated)
+                {
+                    if (View* previousCascadeView = RI.shadowMapCache->TryGetShadowView(this, light, shadowViewIndex, /* isStatic */ onlyStaticShadowMaps))
+                    {
+                        shadowViewBounds = ShadowCameraHelpers::StabilizeCascadeBounds(shadowViewBounds, previousCascadeView->cachedBounds);
+                    }
+                }
 
                 const Mat4f cascadeProjMatrix = Mat4f::Orthographic(
                     shadowViewBounds.min.x, shadowViewBounds.max.x,
@@ -612,7 +620,15 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 shadowInvProjMatrix = cascadeProjMatrix.Inverse();
                 shadowViewProjMatrix = cascadeProjMatrix * shadowViewMatrix;
 
-                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
+                // the projection only spans the cascade; casters toward the light are culled against the scene and depth clamped when drawn
+                const BoundingBox cullingBounds = ShadowCameraHelpers::CalculateCascadeCullingBounds(shadowViewBounds, worldBoundsSphere, shadowViewMatrix);
+
+                const Mat4f cullingProjMatrix = Mat4f::Orthographic(
+                    cullingBounds.min.x, cullingBounds.max.x,
+                    cullingBounds.min.y, cullingBounds.max.y,
+                    cullingBounds.min.z, cullingBounds.max.z);
+
+                shadowViewFrustum.SetFromViewProjectionMatrix(cullingProjMatrix * shadowViewMatrix);
 
                 depthRange = shadowViewBounds.max.z - shadowViewBounds.min.z;
             }

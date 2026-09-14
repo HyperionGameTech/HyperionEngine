@@ -40,6 +40,10 @@ struct StagingBufferPoolImpl
         uint32 lastUsedFrame = uint32(-1);
         GpuBufferRef buffer;
 
+        // Command buffers that copy from this buffer and have not yet finished executing on the GPU
+        Array<const CommandBufferBase*, RenderAllocator> retainers;
+        bool wasRetained = false;
+
         HYP_FORCE_INLINE bool operator==(const CachedStagingBuffer& other) const
         {
             return buffer == other.buffer;
@@ -53,6 +57,7 @@ struct StagingBufferPoolImpl
 
     Array<CachedStagingBuffer, RenderAllocator> cachedBuffers;
     List<CachedStagingBuffer, RenderAllocator> usedBuffers;
+    uint32 numRetainers = 0;
     SharedMutex mutex;
 
     ~StagingBufferPoolImpl() = default;
@@ -65,15 +70,28 @@ struct StagingBufferPoolImpl
     {
         TUniqueLock lock(mutex);
 
-        if (HYP_UNLIKELY(prevFrameIndex < NumFramesInFlight))
+        for (auto it = usedBuffers.Begin(); it != usedBuffers.End();)
         {
-            return;
-        }
+            CachedStagingBuffer& usedBuffer = *it;
 
-        TBufferCache<CachedStagingBuffer, GpuBufferRef>::RecycleUsedBuffers(
-            usedBuffers,
-            cachedBuffers,
-            prevFrameIndex - NumFramesInFlight);
+            const bool isRecyclable = usedBuffer.retainers.Empty()
+                && (usedBuffer.wasRetained || int64(prevFrameIndex) - int64(usedBuffer.lastUsedFrame) >= MaxFramesBeforeDiscard);
+
+            if (!isRecyclable)
+            {
+                ++it;
+
+                continue;
+            }
+
+            usedBuffer.lastUsedFrame = prevFrameIndex;
+            usedBuffer.wasRetained = false;
+
+            auto lowerBoundIt = cachedBuffers.LowerBound(usedBuffer);
+            cachedBuffers.Insert(lowerBoundIt, std::move(usedBuffer));
+
+            it = usedBuffers.Erase(it);
+        }
 
         for (auto it = cachedBuffers.Begin(); it != cachedBuffers.End();)
         {
@@ -138,6 +156,52 @@ struct StagingBufferPoolImpl
 
         return usedBuffers.PushBack(std::move(newBuffer)).buffer.Get();
     }
+
+    void RetainForCommandBuffer(const GpuBuffer* buffer, const CommandBufferBase* commandBuffer)
+    {
+        TUniqueLock lock(mutex);
+
+        for (CachedStagingBuffer& usedBuffer : usedBuffers)
+        {
+            if (usedBuffer.buffer.Get() != buffer)
+            {
+                continue;
+            }
+
+            if (!usedBuffer.retainers.Contains(commandBuffer))
+            {
+                usedBuffer.retainers.PushBack(commandBuffer);
+                ++numRetainers;
+            }
+
+            usedBuffer.wasRetained = true;
+
+            return;
+        }
+    }
+
+    void ReleaseForCommandBuffer(const CommandBufferBase* commandBuffer)
+    {
+        TUniqueLock lock(mutex);
+
+        for (CachedStagingBuffer& usedBuffer : usedBuffers)
+        {
+            if (numRetainers == 0)
+            {
+                break;
+            }
+
+            auto retainerIt = usedBuffer.retainers.Find(commandBuffer);
+
+            if (retainerIt == usedBuffer.retainers.End())
+            {
+                continue;
+            }
+
+            usedBuffer.retainers.Erase(retainerIt);
+            --numRetainers;
+        }
+    }
 };
 
 StagingBufferPool::StagingBufferPool()
@@ -158,6 +222,23 @@ void StagingBufferPool::OnFrameEnd(uint32 prevFrameIndex)
 GpuBuffer* StagingBufferPool::AcquireStagingBuffer(size_t bufferSize)
 {
     return m_impl->GetOrCreateBuffer(bufferSize);
+}
+
+void StagingBufferPool::RetainForCommandBuffer(const GpuBuffer* buffer, const CommandBufferBase* commandBuffer)
+{
+    if (buffer == nullptr || buffer->GetBufferType() != GpuBufferType::StagingBuffer)
+    {
+        return;
+    }
+
+    AssertDebug(commandBuffer != nullptr);
+
+    m_impl->RetainForCommandBuffer(buffer, commandBuffer);
+}
+
+void StagingBufferPool::ReleaseForCommandBuffer(const CommandBufferBase* commandBuffer)
+{
+    m_impl->ReleaseForCommandBuffer(commandBuffer);
 }
 
 #pragma endregion StagingBufferPool

@@ -30,6 +30,7 @@
 #include <Core/Threading/TaskSystem.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
 
 #ifdef HYP_EDITOR
 #include <Editor/EditorTask.hpp>
@@ -43,6 +44,17 @@
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
+
+// mesh LODs built per cell, including full resolution - capped at TerrainMeshHelpers::MaxTerrainLods. Applies to cells built after it changes
+CVar<uint32> g_cvTerrainLodCount("Terrain.Lod.Count", 3);
+// how much sparser each LOD's vertex grid is per side than the previous one. Applies to cells built after it changes
+CVar<uint32> g_cvTerrainLodStrideMultiplier("Terrain.Lod.StrideMultiplier", 4);
+// world-space distance from the LOD camera where full-resolution cells finish morphing into LOD 1
+CVar<float> g_cvTerrainLodBaseRange("Terrain.Lod.BaseRange", 96.0f);
+// each LOD's range is the previous LOD's range times this
+CVar<float> g_cvTerrainLodRangeMultiplier("Terrain.Lod.RangeMultiplier", 2.0f);
+// fraction of each LOD's band at full detail before morphing toward the next - lower is a longer, smoother transition
+CVar<float> g_cvTerrainLodMorphStartRatio("Terrain.Lod.MorphStartRatio", 0.7f);
 
 static const Name s_terrainWorldGridLayerName = NAME("TerrainWorldGridLayer");
 static const Name s_terrainSceneName = NAME("TerrainScene");
@@ -194,24 +206,24 @@ void TerrainWorldGridLayer::SetLayerInfo(const WorldGridLayerInfo& layerInfo)
 
 uint8 TerrainWorldGridLayer::GetEffectiveLodCount() const
 {
-    const uint8 requested = MathUtil::Clamp<uint8>(m_lodCount, 1, TerrainMeshHelpers::MaxTerrainLods);
+    const uint8 requested = uint8(MathUtil::Clamp<uint32>(g_cvTerrainLodCount.Get(), 1, TerrainMeshHelpers::MaxTerrainLods));
 
     return MathUtil::Min<uint8>(requested, TerrainMeshHelpers::CalculateMaxLodIndex(m_layerInfo.cellSize, GetEffectiveLodStrideMultiplier()) + 1);
 }
 
 uint32 TerrainWorldGridLayer::GetEffectiveLodStrideMultiplier() const
 {
-    return MathUtil::Clamp<uint32>(m_lodStrideMultiplier, 2, 8);
+    return MathUtil::Clamp<uint32>(g_cvTerrainLodStrideMultiplier.Get(), 2, 8);
 }
 
 float TerrainWorldGridLayer::GetEffectiveLodRangeMultiplier() const
 {
-    return MathUtil::Max(m_lodRangeMultiplier, 1.0f);
+    return MathUtil::Max(g_cvTerrainLodRangeMultiplier.Get(), 1.0f);
 }
 
 float TerrainWorldGridLayer::GetLodRange(uint8 lodIndex) const
 {
-    return m_lodBaseRange * MathUtil::Pow(GetEffectiveLodRangeMultiplier(), float(lodIndex));
+    return g_cvTerrainLodBaseRange.Get() * MathUtil::Pow(GetEffectiveLodRangeMultiplier(), float(lodIndex));
 }
 
 float TerrainWorldGridLayer::GetLodMorphStart(uint8 lodIndex) const
@@ -221,9 +233,60 @@ float TerrainWorldGridLayer::GetLodMorphStart(uint8 lodIndex) const
     const float rangeEnd = GetLodRange(lodIndex);
     const float rangeStart = rangeEnd / GetEffectiveLodRangeMultiplier();
 
-    const float morphStartRatio = MathUtil::Clamp(m_lodMorphStartRatio, 0.0f, 0.95f);
+    const float morphStartRatio = MathUtil::Clamp(g_cvTerrainLodMorphStartRatio.Get(), 0.0f, 0.95f);
 
     return rangeStart + (rangeEnd - rangeStart) * morphStartRatio;
+}
+
+uint8 TerrainWorldGridLayer::SelectFirstMeshLod(float nearestDistance, uint8 currentFirstMeshLod) const
+{
+    // LOD 0 is built well before the cell needs it, since the rebuild is async, and dropped further out still so a
+    // cell near the boundary doesn't rebuild back and forth
+    constexpr float LoadRangeScale = 2.0f;
+    constexpr float UnloadRangeScale = 3.0f;
+
+    if (GetEffectiveLodCount() <= 1)
+    {
+        return 0;
+    }
+
+    const float rangeScale = currentFirstMeshLod == 0 ? UnloadRangeScale : LoadRangeScale;
+
+    return nearestDistance < GetLodRange(0) * rangeScale ? 0 : 1;
+}
+
+void TerrainWorldGridLayer::SetLodViewpoints(Span<const Vec3f> viewpoints)
+{
+    AssertOnThread(g_simThread);
+
+    Mutex::Guard guard(m_lodViewpointsMutex);
+
+    m_lodViewpoints.Resize(viewpoints.Size());
+
+    for (size_t viewpointIndex = 0; viewpointIndex < viewpoints.Size(); viewpointIndex++)
+    {
+        m_lodViewpoints[viewpointIndex] = viewpoints[viewpointIndex];
+    }
+}
+
+float TerrainWorldGridLayer::GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const
+{
+    Mutex::Guard guard(m_lodViewpointsMutex);
+
+    float nearestDistance = MathUtil::Infinity<float>();
+
+    for (const Vec3f& viewpoint : m_lodViewpoints)
+    {
+        const Vec3f closestPoint {
+            MathUtil::Clamp(viewpoint.x, worldBounds.min.x, worldBounds.max.x),
+            MathUtil::Clamp(viewpoint.y, worldBounds.min.y, worldBounds.max.y),
+            MathUtil::Clamp(viewpoint.z, worldBounds.min.z, worldBounds.max.z)
+        };
+
+        nearestDistance = MathUtil::Min(nearestDistance, (viewpoint - closestPoint).Length());
+    }
+
+    return nearestDistance;
 }
 
 void TerrainWorldGridLayer::Regenerate()
@@ -385,6 +448,94 @@ void TerrainWorldGridLayer::DeletePersistedCellData(const AssetPath& assetPath)
 
     // unregisters a live instance too, so it can no longer page blob data from files a new cell will write
     registry->RemoveAsset(assetPath.GetBucket(), assetPath.assetName);
+}
+
+void TerrainWorldGridLayer::AddCellData(const Vec2i& coord, const Handle<TerrainCellData>& cellData)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    // left in place, they'd be retried (and fail) ahead of the new cell data on every lookup
+    if (auto objectsByCoordIt = m_objectsByCoord.Find(coord); objectsByCoordIt != m_objectsByCoord.End())
+    {
+        objectsByCoordIt->second.Clear();
+    }
+
+    AddStreamingObject(cellData.Get(), coord);
+}
+
+bool TerrainWorldGridLayer::RemoveUnregisteredCellData()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+
+    if (!registry.IsValid())
+    {
+        return false;
+    }
+
+    uint32 numRemoved = 0;
+
+    for (auto objectsByCoordIt = m_objectsByCoord.Begin(); objectsByCoordIt != m_objectsByCoord.End();)
+    {
+        Array<AssetReference, StreamingAllocator>& assetReferences = objectsByCoordIt->second;
+
+        for (size_t index = 0; index < assetReferences.Size();)
+        {
+            const AssetReference& assetReference = assetReferences[index];
+            const AssetPath& assetPath = assetReference.GetAssetPath();
+
+            bool isDuplicate = false;
+
+            for (size_t previousIndex = 0; previousIndex < index; previousIndex++)
+            {
+                if (assetReferences[previousIndex].GetAssetPath() == assetPath)
+                {
+                    isDuplicate = true;
+
+                    break;
+                }
+            }
+
+            // a loaded reference holds its cell data, so only a path can dangle. the manifest check keeps a registry whose
+            // descs aren't loaded yet from dropping every reference
+            const bool isUnregistered = !assetReference.IsLoaded()
+                && (!assetPath.IsValid()
+                    || (assetPath.registryId == registry->GetRegistryId()
+                        && !registry->HasAsset(assetPath.GetBucket(), assetPath.assetName)
+                        && !registry->GetManifestPath(assetPath).Exists()));
+
+            if (isDuplicate || isUnregistered)
+            {
+                assetReferences.EraseAt(index);
+                numRemoved++;
+
+                continue;
+            }
+
+            index++;
+        }
+
+        if (assetReferences.Empty())
+        {
+            objectsByCoordIt = m_objectsByCoord.Erase(objectsByCoordIt);
+
+            continue;
+        }
+
+        ++objectsByCoordIt;
+    }
+
+    if (numRemoved == 0)
+    {
+        return false;
+    }
+
+    HYP_LOG(WorldGrid, Warning, "Removed {} unregistered or duplicate cell data references from terrain layer '{}'", numRemoved, GetName());
+
+    return true;
 }
 
 void TerrainWorldGridLayer::GenerateAll()
@@ -569,6 +720,12 @@ void TerrainWorldGridLayer::OnAdded(WorldGrid* worldGrid)
 
     InitObject(m_material);
 
+    // eg. references saved to cell data whose manifest never was
+    if (RemoveUnregisteredCellData())
+    {
+        world->MarkDirty();
+    }
+
     // not Regenerate() - that would discard the cell data just loaded with the layer
     ReplaceGenerator();
 
@@ -643,14 +800,7 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const Streaming
     snapshotCellInfo.bounds.min = ComputeCellBoundsMin(generationState.layerInfo, cellInfo.coord);
     snapshotCellInfo.bounds.max = snapshotCellInfo.bounds.min + Vec3f(snapshotCellInfo.extent) * snapshotCellInfo.scale;
 
-    Handle<TerrainCellData> cellData;
-
-    auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
-
-    if (objectsByCoordIt != m_objectsByCoord.End() && objectsByCoordIt->second.Any())
-    {
-        cellData = DynamicCast<TerrainCellData>(objectsByCoordIt->second[0].Resolve());
-    }
+    Handle<TerrainCellData> cellData = FindCellData(cellInfo.coord);
 
     return MakeHandle<TerrainStreamingCell>(snapshotCellInfo, m_scene, m_material, HandleFromThis(), cellData, std::move(generationState));
 }
@@ -847,12 +997,20 @@ Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) 
 {
     auto objectsByCoordIt = m_objectsByCoord.Find(coord);
 
-    if (objectsByCoordIt == m_objectsByCoord.End() || !objectsByCoordIt->second.Any())
+    if (objectsByCoordIt == m_objectsByCoord.End())
     {
         return Handle<TerrainCellData>();
     }
 
-    return DynamicCast<TerrainCellData>(objectsByCoordIt->second[0].Resolve());
+    for (const AssetReference& assetReference : objectsByCoordIt->second)
+    {
+        if (Handle<TerrainCellData> cellData = DynamicCast<TerrainCellData>(assetReference.Resolve()); cellData.IsValid())
+        {
+            return cellData;
+        }
+    }
+
+    return Handle<TerrainCellData>();
 }
 
 bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData) const
@@ -932,7 +1090,7 @@ Handle<TerrainCellData> TerrainWorldGridLayer::StoreGeneratedCellHeights(const V
     {
         GetCurrentAssetRegistry()->PutAssetUnique(cellData);
 
-        AddStreamingObject(cellData.Get(), coord);
+        AddCellData(coord, cellData);
     }
 
     return cellData;
@@ -1110,7 +1268,7 @@ void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, floa
 
             if (isNewCellData)
             {
-                AddStreamingObject(cellData.Get(), coord);
+                AddCellData(coord, cellData);
             }
 
             m_cellsModifiedSinceStrokeEnd[coord] = true;
@@ -1185,14 +1343,7 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
                 continue;
             }
 
-            Handle<TerrainCellData> cellData;
-
-            auto objectsByCoordIt = m_objectsByCoord.Find(coord);
-
-            if (objectsByCoordIt != m_objectsByCoord.End() && objectsByCoordIt->second.Any())
-            {
-                cellData = DynamicCast<TerrainCellData>(objectsByCoordIt->second[0].Resolve());
-            }
+            Handle<TerrainCellData> cellData = FindCellData(coord);
 
             const bool isNewCellData = !cellData.IsValid();
 
@@ -1362,7 +1513,7 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
 
             if (isNewCellData)
             {
-                AddStreamingObject(cellData.Get(), coord);
+                AddCellData(coord, cellData);
             }
 
             m_cellsModifiedSinceStrokeEnd[coord] = true;

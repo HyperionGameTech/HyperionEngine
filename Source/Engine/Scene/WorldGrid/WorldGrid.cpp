@@ -110,8 +110,22 @@ void WorldGrid::Shutdown()
         }
     }
 
-    // Init() re-adds the layers; also keeps the destructor from shutting down twice
+    // Restart() re-adds the layers; also keeps the destructor from shutting down twice
     SetReady(false);
+}
+
+void WorldGrid::Restart()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    // a grid that was never initialized gets started by InitObject() instead
+    if (!IsInitCalled() || IsReady())
+    {
+        return;
+    }
+
+    Init();
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)

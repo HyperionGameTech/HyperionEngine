@@ -5234,7 +5234,7 @@ void EditorSubsystem::NewProject()
 
     Handle<DirectionalLight> sun = MakeHandle<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
-    sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
+    sun->SetDirection(Vec3f(0.0f, 0.5f, -0.7f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
     sun->SetIntensity(18.0f);
     InitObject(sun);
@@ -6003,6 +6003,15 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
     g_engineDriver->AddWorld(world);
 
+    if (!isStartSimulation)
+    {
+        // restarts the grid shut down for the simulation - see ShutdownProjectWorld()
+        if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid(); worldGrid.IsValid())
+        {
+            worldGrid->Restart();
+        }
+    }
+
     Handle<Scene> activeScene;
 
     for (const Handle<Scene>& scene : world->GetScenes())
@@ -6377,6 +6386,16 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project,
     world->OnSceneRemoved.RemoveAllFromSet(m_delegateHandlers);
 
     gameInstance->OnGameStateChange.RemoveAllFromSet(m_delegateHandlers);
+
+    // a world kept alive for the simulation would otherwise keep streaming its layers, which store generated data
+    // (eg. terrain cells) into the simulation's asset registry
+    if (!shutdownWorld)
+    {
+        if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid(); worldGrid.IsValid())
+        {
+            worldGrid->Shutdown();
+        }
+    }
 
     g_engineDriver->RemoveWorld(world, shutdownWorld);
 

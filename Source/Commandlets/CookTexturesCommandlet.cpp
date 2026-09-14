@@ -93,7 +93,7 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 {
     static const TerrainLayerPackSpec s_specs[] = {
         { 0, "patchy-meadow1_albedo.png", "patchy-meadow1_normal-ogl.png", "patchy-meadow1_ao.png", "patchy-meadow1_height.png", false },
-        { 2, "dirtwithrocks_Base_Color.png", "dirtwithrocks_Normal-dx.png", "dirtwithrocks_Ambient_Occlusion.png", "dirtwithrocks_Height.png", true }
+        { 1, "dirtwithrocks_Base_Color.png", "dirtwithrocks_Normal-dx.png", "dirtwithrocks_Ambient_Occlusion.png", "dirtwithrocks_Height.png", true }
     };
 
     for (const TerrainLayerPackSpec& spec : s_specs)
@@ -121,6 +121,33 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
         ubyte* albedoDst = albedoBytes.Data();
         ubyte* normalDst = normalBytes.Data();
 
+        // stretch heights to the full 0..1 range so the top of the surface sits at zero parallax depth
+        float heightMin = 0.0f;
+        float heightMax = 1.0f;
+
+        if (heightMask.IsValid())
+        {
+            heightMin = 1.0f;
+            heightMax = 0.0f;
+
+            for (uint32 y = 0; y < height; y++)
+            {
+                for (uint32 x = 0; x < width; x++)
+                {
+                    const float h = heightMask->Sample2D(Vec2f { (float(x) + 0.5f) / float(width), (float(y) + 0.5f) / float(height) }).x;
+
+                    heightMin = MathUtil::Min(heightMin, h);
+                    heightMax = MathUtil::Max(heightMax, h);
+                }
+            }
+
+            if (heightMax - heightMin < 0.001f)
+            {
+                heightMin = 0.0f;
+                heightMax = 1.0f;
+            }
+        }
+
         for (uint32 y = 0; y < height; y++)
         {
             for (uint32 x = 0; x < width; x++)
@@ -131,16 +158,15 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
                 const Vec4f c = color->Sample2D(uv);  // linear (sRGB decoded)
                 const Vec4f n = normal->Sample2D(uv); // linear
                 const float ao = aoMask.IsValid() ? aoMask->Sample2D(uv).x : 1.0f;
-                const float h = heightMask.IsValid() ? heightMask->Sample2D(uv).x : 1.0f;
+                const float h = heightMask.IsValid() ? (heightMask->Sample2D(uv).x - heightMin) / (heightMax - heightMin) : 1.0f;
 
                 const float g = spec.flipNormalGreen ? 1.0f - n.y : n.y;
 
                 const size_t i = (size_t(y) * size_t(width) + size_t(x)) * 4u;
 
-                // engine decodes sRGB with pow 2.2, so encode back the same way (alpha stays linear)
-                albedoDst[i + 0] = ubyte(MathUtil::Clamp(MathUtil::Pow(c.x, 1.0f / 2.2f), 0.0f, 1.0f) * 255.0f);
-                albedoDst[i + 1] = ubyte(MathUtil::Clamp(MathUtil::Pow(c.y, 1.0f / 2.2f), 0.0f, 1.0f) * 255.0f);
-                albedoDst[i + 2] = ubyte(MathUtil::Clamp(MathUtil::Pow(c.z, 1.0f / 2.2f), 0.0f, 1.0f) * 255.0f);
+                albedoDst[i + 0] = ubyte(c.x * 255.0f);
+                albedoDst[i + 1] = ubyte(c.y * 255.0f);
+                albedoDst[i + 2] = ubyte(c.z * 255.0f);
                 albedoDst[i + 3] = ubyte(MathUtil::Clamp(ao, 0.0f, 1.0f) * 255.0f);
 
                 normalDst[i + 0] = ubyte(MathUtil::Clamp(n.x, 0.0f, 1.0f) * 255.0f);
@@ -166,6 +192,7 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 
         Handle<Texture> albedoTexture = MakeHandle<Texture>(albedoDesc, albedoBytes.ToByteView());
         albedoTexture->SetName(albedoName);
+        albedoTexture->SetIsTransient(true);
 
         TextureDesc packedNormalDesc {
             TextureType::Texture2D,
@@ -180,18 +207,21 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 
         Handle<Texture> normalTexture = MakeHandle<Texture>(packedNormalDesc, normalBytes.ToByteView());
         normalTexture->SetName(normalName);
-
-        // replace the generic-cooked assets from the loop above (same names)
-        registry->RemoveAsset(AssetBuckets::Textures, albedoName);
-        registry->RemoveAsset(AssetBuckets::Textures, normalName);
+        normalTexture->SetIsTransient(true);
 
         registry->PutAsset(albedoTexture);
         registry->PutAsset(normalTexture);
 
-        HYP_LOG(Assets, Info, "Packed terrain layer {} ({}x{}, ao: {}, height: {})",
+        registry->RemoveAsset(color);
+        registry->RemoveAsset(normal);
+        registry->RemoveAsset(aoMask);
+        registry->RemoveAsset(heightMask);
+
+        HYP_LOG(Assets, Info, "Packed terrain layer {} ({}x{}, ao: {}, height: {}, height range: {}..{})",
             spec.layerIndex, width, height,
             aoMask.IsValid() ? "yes" : "neutral",
-            heightMask.IsValid() ? "yes" : "neutral");
+            heightMask.IsValid() ? "yes" : "neutral",
+            heightMin, heightMax);
     }
 }
 
@@ -265,59 +295,59 @@ protected:
         uint32 numCooked = 0;
         uint32 numFailed = 0;
 
-        for (const FilePath& filepath : inputDir.GetAllFilesInDirectory())
-        {
-            const String extensionLower = filepath.GetExtension().ToLower();
+        // for (const FilePath& filepath : inputDir.GetAllFilesInDirectory())
+        // {
+        //     const String extensionLower = filepath.GetExtension().ToLower();
 
-            bool isSupported = false;
+        //     bool isSupported = false;
 
-            for (const char* cookedExtension : s_cookedTextureExtensions)
-            {
-                if (extensionLower == cookedExtension)
-                {
-                    isSupported = true;
-                    break;
-                }
-            }
+        //     for (const char* cookedExtension : s_cookedTextureExtensions)
+        //     {
+        //         if (extensionLower == cookedExtension)
+        //         {
+        //             isSupported = true;
+        //             break;
+        //         }
+        //     }
 
-            if (!isSupported)
-            {
-                continue;
-            }
+        //     if (!isSupported)
+        //     {
+        //         continue;
+        //     }
 
-            const bool isLinear = IsLinearTextureName(String(filepath.Basename()).ToLower());
+        //     const bool isLinear = IsLinearTextureName(String(filepath.Basename()).ToLower());
 
-            // color maps are imported as sRGB; data maps (normals, masks, etc) stay linear
-            const AssetLoadHint hint = isLinear
-                ? AssetLoadHint::NoHint
-                : AssetLoadHint::TextureLoader_LoadAsSRGB;
+        //     // color maps are imported as sRGB; data maps (normals, masks, etc) stay linear
+        //     const AssetLoadHint hint = isLinear
+        //         ? AssetLoadHint::NoHint
+        //         : AssetLoadHint::TextureLoader_LoadAsSRGB;
 
-            auto loadResult = g_assetManager->Load<Texture>(filepath, String::empty, hint);
+        //     auto loadResult = g_assetManager->Load<Texture>(filepath, String::empty, hint);
 
-            if (loadResult.HasError())
-            {
-                HYP_LOG(Assets, Warning, "Failed to cook '{}': {}", filepath, loadResult.GetError().GetMessage());
-                numFailed++;
-            }
-            else
-            {
-                Handle<Texture> texture = loadResult.GetValue().ExtractAs<Handle<Texture>>();
+        //     if (loadResult.HasError())
+        //     {
+        //         HYP_LOG(Assets, Warning, "Failed to cook '{}': {}", filepath, loadResult.GetError().GetMessage());
+        //         numFailed++;
+        //     }
+        //     else
+        //     {
+        //         Handle<Texture> texture = loadResult.GetValue().ExtractAs<Handle<Texture>>();
 
-                HYP_LOG(Assets, Info, "Cooked '{}' ({}x{}, srgb: {})", filepath,
-                    texture->GetTextureDesc().extent.x, texture->GetTextureDesc().extent.y,
-                    texture->GetTextureDesc().IsSrgb());
-                numCooked++;
-            }
-        }
+        //         HYP_LOG(Assets, Info, "Cooked '{}' ({}x{}, srgb: {})", filepath,
+        //             texture->GetTextureDesc().extent.x, texture->GetTextureDesc().extent.y,
+        //             texture->GetTextureDesc().IsSrgb());
+        //         numCooked++;
+        //     }
+        // }
 
-        HYP_LOG(Assets, Info, "Cook loop done: {} cooked, {} failed", numCooked, numFailed);
+        // HYP_LOG(Assets, Info, "Cook loop done: {} cooked, {} failed", numCooked, numFailed);
 
-        if (numCooked == 0)
-        {
-            return HYP_MAKE_ERROR(Error, "No textures were cooked - check the input directory");
-        }
+        // if (numCooked == 0)
+        // {
+        //     return HYP_MAKE_ERROR(Error, "No textures were cooked - check the input directory");
+        // }
 
-        registry->SaveDirtyAssets();
+        // registry->SaveDirtyAssets();
 
         PackTerrainLayerTextures(inputDir, registry);
 

@@ -11,6 +11,8 @@
 
 #include <Core/Containers/FixedArray.hpp>
 
+#include <Core/Threading/Mutex.hpp>
+
 #include <vulkan/vulkan.h>
 
 namespace Hyperion {
@@ -34,6 +36,8 @@ struct VulkanDeviceQueue
     VkQueue queue = VK_NULL_HANDLE;
     uint32 familyIndex = 0;
     FixedArray<VkCommandPool, NumRendererWorkerThreads + 1> commandPools {};
+
+    Mutex mutex;
 };
 
 } // namespace Hyperion

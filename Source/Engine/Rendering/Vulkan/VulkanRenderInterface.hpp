@@ -235,8 +235,6 @@ private:
     Array<VulkanTransientCommandBuffer*, VulkanAllocator> m_recordingTransientCommandBuffers;
     Array<VulkanTransientCommandBuffer*, VulkanAllocator> m_submittedTransientCommandBuffers;
 
-    List<VulkanSemaphore, VulkanAllocator> m_transientCommandBufferSemaphores[NumFramesInFlight];
-
     Mutex m_transientCommandBuffersMutex;
 
     Array<VulkanAsyncCompute*, VulkanAllocator> m_asyncComputePool;

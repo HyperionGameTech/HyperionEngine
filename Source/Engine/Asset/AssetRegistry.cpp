@@ -801,6 +801,13 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     return assetObject;
 }
 
+bool AssetRegistry::HasAsset(const AssetBucket& bucket, StringHash name) const
+{
+    AssetDesc assetDesc;
+
+    return m_assetBucketData[bucket.GetIndex()].GetAssetDesc(name, assetDesc);
+}
+
 void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
 {
     if (assetObject.IsTransient())

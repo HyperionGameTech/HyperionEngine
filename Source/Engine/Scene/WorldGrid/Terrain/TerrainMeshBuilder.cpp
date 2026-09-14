@@ -286,14 +286,17 @@ TerrainMeshBuilder::TerrainMeshBuilder(uint32 cellSize, uint8 numLods, uint32 st
 
 TerrainMeshBuilder::~TerrainMeshBuilder() = default;
 
-TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellMeshData(Span<const float> paddedHeights) const
+TerrainMeshBuilder::CellMeshData TerrainMeshBuilder::BuildCellMeshData(Span<const float> paddedHeights, uint8 firstLodIndex) const
 {
     CellMeshData result;
-    result.numLods = m_numLods;
+    result.firstLodIndex = MathUtil::Min<uint8>(firstLodIndex, m_numLods - 1);
+    result.numLods = m_numLods - result.firstLodIndex;
 
-    for (uint8 lodIndex = 0; lodIndex < m_numLods; lodIndex++)
+    for (uint8 meshLodIndex = 0; meshLodIndex < result.numLods; meshLodIndex++)
     {
-        LodMeshData& lodMeshData = result.lods[lodIndex];
+        const uint8 lodIndex = result.firstLodIndex + meshLodIndex;
+
+        LodMeshData& lodMeshData = result.lods[meshLodIndex];
 
         const uint32 dimension = TerrainMeshHelpers::CalculateLodGridDimension(m_cellSize, lodIndex, m_strideMultiplier);
 

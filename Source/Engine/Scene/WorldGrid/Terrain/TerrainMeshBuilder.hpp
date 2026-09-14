@@ -102,6 +102,9 @@ public:
     {
         FixedArray<LodMeshData, MaxMeshLods> lods;
         uint8 numLods = 0;
+
+        ///the LOD built into lods[0] - finer LODs were left out
+        uint8 firstLodIndex = 0;
     };
 
     TerrainMeshBuilder(uint32 cellSize, uint8 numLods = 1, uint32 strideMultiplier = 2);
@@ -111,8 +114,9 @@ public:
 
     ~TerrainMeshBuilder();
 
-    ///paddedHeights is (cellSize + 2 * TerrainGenerator::CellPadding)^2; builds every LOD requested in the constructor
-    CellMeshData BuildCellMeshData(Span<const float> paddedHeights) const;
+    ///paddedHeights is (cellSize + 2 * TerrainGenerator::CellPadding)^2; builds the LODs requested in the constructor from \p firstLodIndex on.
+    ///morph targets are the same whichever LODs are left out
+    CellMeshData BuildCellMeshData(Span<const float> paddedHeights, uint8 firstLodIndex = 0) const;
 
     HYP_FORCE_INLINE uint8 GetNumLods() const
     {

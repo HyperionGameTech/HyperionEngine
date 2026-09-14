@@ -126,6 +126,9 @@ public:
 
     void Shutdown();
 
+    ///re-adds the layers to streaming after Shutdown() - sim thread only
+    void Restart();
+
 private:
     void Init() override;
 

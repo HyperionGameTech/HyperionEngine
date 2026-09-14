@@ -5,7 +5,13 @@
 #include "Aabb.hlsli"
 
 #define HYP_SHADOW_BIAS 0.0005
-// #define HYP_SHADOW_VARIABLE_BIAS 1
+#define HYP_SHADOW_VARIABLE_BIAS 1
+// PCF kernel radius, in the shadow map's own [0, 1] UV space (before atlas scaling)
+#define HYP_SHADOW_FILTER_SIZE 0.001
+// receivers are pushed out along their normal by this many PCF kernel radii before sampling
+#define HYP_SHADOW_NORMAL_OFFSET_SCALE 1.5
+// CSM lookups within this distance (in the cascade's [0, 1] UV space) of a cascade's edge fade into the next cascade
+#define HYP_SHADOW_CASCADE_BLEND_SIZE 0.1
 #define HYP_SHADOW_PENUMBRA_MIN 0.05
 #define HYP_SHADOW_PENUMBRA_MAX 6.0
 
@@ -133,7 +139,7 @@ float GetShadowPCF(in float4 shadowMapCoord, // w = slice
 {
     const float layerIndex = shadowMapCoord.w;
 
-    const float shadow_filter_size = 0.001;
+    const float shadow_filter_size = HYP_SHADOW_FILTER_SIZE;
 
     float noise = InterleavedGradientNoise(texcoord * screen_dimensions - 0.5) * HYP_FMATH_TWO_PI;
 

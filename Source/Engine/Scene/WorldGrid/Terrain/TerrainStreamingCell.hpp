@@ -13,6 +13,8 @@
 
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Math/BoundingBox.hpp>
+
 #include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Threading/AtomicVar.hpp>
@@ -70,13 +72,16 @@ public:
     ///true once the cell's rigid body has been added to the physics world
     bool HasCollider() const;
 
+    ///rebuilds the mesh off the sim thread without the LODs finer than \p firstLodIndex, or with them back
+    void RequestFirstMeshLod(uint8 firstLodIndex);
+
 protected:
     virtual void OnStreamStart() override final;
 
     virtual void OnLoaded() override final;
     virtual void OnRemoved() override final;
 
-    Handle<Mesh> BuildMeshFromCellMeshData() const;
+    Handle<Mesh> BuildMesh(const TerrainMeshBuilder::CellMeshData& cellMeshData) const;
 
 private:
     ///the layer has been regenerated since this cell was created if this returns true
@@ -95,13 +100,27 @@ private:
 
     void ReleaseBuildData();
 
-    bool BuildCellMeshData(Array<float>& outGeneratedHeights);
+    ///fills m_paddedHeights from the saved heights if they're current, otherwise generates them - returns true if generated
+    bool LoadOrGeneratePaddedHeights();
+
+    void BuildCellMeshData(uint8 firstLodIndex);
+
+    ///streaming thread - starts without LOD 0 unless the cell is already near the LOD viewpoint
+    uint8 SelectInitialFirstMeshLod() const;
+
+    void ApplyFirstMeshLodBuild(TerrainMeshBuilder::CellMeshData&& cellMeshData, uint32 buildId);
+
+    ///keeps the LOD on screen when the mesh's first LOD changes
+    void UpdateMeshComponents(uint8 previousFirstMeshLod);
+
+    ///includes the full resolution heights, so bounds don't shrink when LOD 0 isn't in the mesh
+    BoundingBox ComputeLocalBounds() const;
 
     void RebuildMeshFull(const Handle<TerrainCellData>& cellData);
     void UpdateCollider(bool notifyPhysicsWorld);
 
-    ///rebuilds the per-cell normal map from the full resolution grid vertices (LOD 0, skirts excluded)
-    void RefreshNormalMap(Span<const TerrainVertex> gridVertices);
+    ///rebuilds the per-cell normal map from the full resolution heights
+    void RefreshNormalMap();
     void ApplyNormalMapTexture(const Handle<Texture>& normalMapTexture);
 
     ///binds \p texture to this cell's material instance, cloning the layer material the first time
@@ -132,9 +151,17 @@ private:
 
     Handle<Mesh> m_mesh;
 
+    ///sim thread only, after OnStreamStart()
+    uint8 m_firstMeshLod = 0;
+    uint8 m_requestedFirstMeshLod = 0;
+
+    ///bumped whenever the mesh is rebuilt or a new first LOD is requested, so older async builds are dropped
+    uint32 m_meshBuildId = 0;
+
     Handle<HeightFieldPhysicsShape> m_collisionShape;
 
-    Array<float> m_colliderHeights;
+    ///(cellSize + 2 * CellPadding)^2 - the mesh, collider and normal map are all built from these, so LOD 0 can come back without regenerating
+    Array<float> m_paddedHeights;
 
     Handle<Material> m_cellMaterial;
     Handle<Texture> m_splatTexture;
@@ -142,8 +169,8 @@ private:
 
     Array<TerrainVertex> m_scratchVertices;
 
-    ///heights generated on the streaming thread
-    Array<float> m_generatedHeights;
+    ///set on the streaming thread when m_paddedHeights had to be generated, so OnLoaded() stores them
+    bool m_hasGeneratedHeights = false;
 
     ///splat map bytes prepared on the streaming thread, ready for texture upload
     Array<ubyte> m_splatUploadBytes;
