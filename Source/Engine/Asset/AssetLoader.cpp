@@ -110,7 +110,7 @@ AssetLoadResult AssetLoaderBase::Load(
     AssetManager& assetManager,
     const String& path,
     const String& batchIdentifier,
-    AssetLoadHint hint) const
+    EnumFlags<AssetLoadHint> hint) const
 {
     HYP_SCOPE;
 

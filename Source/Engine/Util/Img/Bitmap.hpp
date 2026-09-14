@@ -138,8 +138,11 @@ struct PixelReference
 
         if constexpr (IsSRGB)
         {
-            // convert from linear to sRGB
-            value = MathUtil::Pow(value, 1.0f / 2.2f);
+            if (NumComponents < 4 || index != 3)
+            {
+                // convert from linear to sRGB
+                value = MathUtil::Pow(value, 1.0f / 2.2f);
+            }
         }
 
         if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
@@ -220,12 +223,6 @@ struct PixelReference
             }
         }
 
-        if constexpr (IsSRGB)
-        {
-            // convert from sRGB to linear
-            rg = MathUtil::Pow(rg, 2.2f);
-        }
-
         return rg;
     }
 
@@ -239,13 +236,6 @@ struct PixelReference
         if (HYP_UNLIKELY(!byteOffset))
         {
             return;
-        }
-
-        if constexpr (IsSRGB)
-        {
-            // convert from linear to sRGB
-            r = MathUtil::Pow(r, 1.0f / 2.2f);
-            g = MathUtil::Pow(g, 1.0f / 2.2f);
         }
 
         if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
@@ -306,12 +296,6 @@ struct PixelReference
             }
         }
 
-        if constexpr (IsSRGB)
-        {
-            // convert from sRGB to linear
-            rgb = MathUtil::Pow(rgb, 2.2f);
-        }
-
         return rgb;
     }
 
@@ -325,14 +309,6 @@ struct PixelReference
         if (HYP_UNLIKELY(!byteOffset))
         {
             return;
-        }
-
-        if constexpr (IsSRGB)
-        {
-            // convert from linear to sRGB
-            r = MathUtil::Pow(r, 1.0f / 2.2f);
-            g = MathUtil::Pow(g, 1.0f / 2.2f);
-            b = MathUtil::Pow(b, 1.0f / 2.2f);
         }
 
         if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)
@@ -413,15 +389,6 @@ struct PixelReference
             }
         }
 
-        if constexpr (IsSRGB)
-        {
-            // convert from sRGB to linear
-            Vec3f linear = MathUtil::Pow(rgba.GetXYZ(), 2.2f);
-            rgba.x = linear.x;
-            rgba.y = linear.y;
-            rgba.z = linear.z;
-        }
-
         return rgba;
     }
 
@@ -435,15 +402,6 @@ struct PixelReference
         if (HYP_UNLIKELY(!byteOffset))
         {
             return;
-        }
-
-        if constexpr (IsSRGB)
-        {
-            // convert from linear to sRGB
-            r = MathUtil::Pow(r, 1.0f / 2.2f);
-            g = MathUtil::Pow(g, 1.0f / 2.2f);
-            b = MathUtil::Pow(b, 1.0f / 2.2f);
-            // alpha is not converted to sRGB
         }
 
         if constexpr (!std::is_floating_point_v<ComponentType> && !std::is_same_v<ComponentType, Float16>)

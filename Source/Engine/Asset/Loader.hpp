@@ -9,6 +9,7 @@
 #include <Core/IO/ByteReader.hpp>
 
 #include <Core/Utilities/Result.hpp>
+#include <Core/Utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 
@@ -18,9 +19,12 @@ class AssetRegistry;
 enum class AssetLoadHint : uint32
 {
     NoHint = 0,
+    Transient = 0x1,                  //<! Not registered with the registry
 
-    TextureLoader_LoadAsSRGB
+    TextureSRGB = 0x2                 //<! Hint to the texture loader that this is sRGB format
 };
+
+HYP_MAKE_ENUM_FLAGS(AssetLoadHint);
 
 struct LoaderState
 {
@@ -30,7 +34,7 @@ struct LoaderState
     AssetManager* assetManager = nullptr;
     FilePath filepath;
     String batchIdentifier;
-    AssetLoadHint hint = AssetLoadHint::NoHint;
+    EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint;
 };
 
 class AssetLoadError final : public Error

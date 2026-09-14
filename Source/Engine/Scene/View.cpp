@@ -60,7 +60,7 @@
 namespace Hyperion {
 
 
-static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 100.0f);
+static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 500.0f);
 
 static CVar<float> s_cvCSMSplit0("Rendering.Shadows.CSMSplit0", 0.075f);
 static CVar<float> s_cvCSMSplit1("Rendering.Shadows.CSMSplit1", 0.15f);

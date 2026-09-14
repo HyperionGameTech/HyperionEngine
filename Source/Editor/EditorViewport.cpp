@@ -46,9 +46,9 @@ void EditorViewport::Init()
 
         m_camera->AddCameraController(MakeHandle<EditorCameraController>());
 
-        m_camera->SetFOV(60.0f);
+        m_camera->SetFOV(75.0f);
         m_camera->SetNearClip(0.1f);
-        m_camera->SetFarClip(1000.0f);
+        m_camera->SetFarClip(3000.0f);
     }
 
     InitObject(m_camera);

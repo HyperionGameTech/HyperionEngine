@@ -461,9 +461,8 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
                 texturesBatch->Add(
                     it.first,
                     it.second,
-                    srgbTextures.Contains(it.first)
-                        ? AssetLoadHint::TextureLoader_LoadAsSRGB
-                        : AssetLoadHint::NoHint);
+                    (state.hint & ~AssetLoadHint::TextureSRGB) | (srgbTextures.Contains(it.first)
+                        ? AssetLoadHint::TextureSRGB : AssetLoadHint::NoHint));
 
                 if (pathsString.Any())
                 {

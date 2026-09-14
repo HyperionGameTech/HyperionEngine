@@ -274,9 +274,9 @@ Result EditorProject::SaveAs(FilePath filepath)
     }
 
     ///Save EditorCamera position/direction
-    Handle<Camera> editorCamera = g_editorState->GetEditorCamera();
+    Camera* editorCamera = g_editorState->GetEditorCamera();
 
-    if (editorCamera.IsValid())
+    if (editorCamera)
     {
         ///set these -- they get serialized to disk
         m_editorCameraPosition = editorCamera->GetWorldTranslation();

@@ -64,7 +64,7 @@ public:
     Handle<EditorProject> GetCurrentProject() const;
 
     HYP_METHOD()
-    Handle<Camera> GetEditorCamera() const;
+    Camera* GetEditorCamera() const;
 
     HYP_METHOD()
     void SetCurrentProject(const Handle<EditorProject>& project, bool isSimulationStateChange);

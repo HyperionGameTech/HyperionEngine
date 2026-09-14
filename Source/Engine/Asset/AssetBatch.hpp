@@ -112,9 +112,14 @@ struct ProcessAssetFunctor final : public ProcessAssetFunctorBase
     String key;
     String path;
     AssetBatchCallbacks* callbacks;
-    AssetLoadHint hint;
+    EnumFlags<AssetLoadHint> hint;
 
-    ProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks, AssetLoadHint hint)
+    ProcessAssetFunctor(
+        const String& batchIdentifier,
+        const String& key,
+        const String& path,
+        AssetBatchCallbacks* callbacks,
+        EnumFlags<AssetLoadHint> hint)
         : batchIdentifier(batchIdentifier),
           key(key),
           path(path),
@@ -217,8 +222,8 @@ public:
 
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
-    ENGINE_API void Add(const String& key, const String& path, AssetLoadHint hint = AssetLoadHint::NoHint);
-    ENGINE_API void Add(const String& key, const String& path, const Proc<void(LoadedAsset&)>& callback, AssetLoadHint hint = AssetLoadHint::NoHint);
+    ENGINE_API void Add(const String& key, const String& path, EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint);
+    ENGINE_API void Add(const String& key, const String& path, const Proc<void(LoadedAsset&)>& callback, EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint);
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */

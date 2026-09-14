@@ -19,6 +19,8 @@
 #include <Asset/AssetObject.hpp>
 
 #include <Scene/Scene.hpp>
+#include <Scene/EntityManager.hpp>
+#include <Scene/EntityTag.hpp>
 
 #include <EditorState.generated.inl>
 
@@ -70,24 +72,36 @@ Handle<EditorProject> EditorState::GetCurrentProject() const
 
     return m_currentProject;
 }
-
-Handle<Camera> EditorState::GetEditorCamera() const
+Camera* EditorState::GetEditorCamera() const
 {
     AssertOnThread(g_simThread); // only callable on sim thread as we iterate nodes on the scene
 
     Handle<EditorSubsystem> ess = GetEditorSubsystem();
     if (!ess.IsValid())
     {
-        return Handle<Camera>::Null();
+        return nullptr;
     }
 
-    Handle<Scene> editorScene = ess->GetEditorScene();
+    const Handle<Scene>& editorScene = ess->GetEditorScene();
     if (!editorScene.IsValid())
     {
-        return Handle<Camera>::Null();
+        return nullptr;
     }
 
-    return MakeStrongRef(DynamicCast<Camera>(editorScene->FindNodeByName("EditorCamera"_sh)));
+    Assert(editorScene->GetEntityManager().IsValid());
+
+    if (!editorScene->GetEntityManager().IsValid())
+    {
+        return nullptr;
+    }
+
+    // Find a Camera entity with the EditorCamera tag
+    for (auto [camera, _] : editorScene->GetEntityManager()->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::EditorCamera>>().GetScopedView(DataAccessFlags::ACCESS_READ))
+    {
+        return camera;
+    }
+
+    return nullptr;
 }
 
 void EditorState::SetCurrentProject(const Handle<EditorProject>& project, bool isSimulationStateChange)

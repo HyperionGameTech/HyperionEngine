@@ -130,7 +130,7 @@ AssetMap AssetBatch::ForceLoad()
     return std::move(*m_assetMap);
 }
 
-void AssetBatch::Add(const String& key, const String& path, AssetLoadHint hint)
+void AssetBatch::Add(const String& key, const String& path, EnumFlags<AssetLoadHint> hint)
 {
     Assert(IsCompleted(), "Cannot add assets while loading!");
     Assert(m_assetMap != nullptr, "AssetBatch is in invalid state");
@@ -164,7 +164,7 @@ UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(
     const String& key,
     const String& path,
     AssetBatchCallbacks* callbacksPtr,
-    AssetLoadHint hint)
+    EnumFlags<AssetLoadHint> hint)
 {
     auto it = m_functorFactories.Find(loaderTypeId);
     Assert(it != m_functorFactories.End());

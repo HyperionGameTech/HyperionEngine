@@ -5258,6 +5258,8 @@ void EditorSubsystem::NewProject()
     camera->SetName(NAME("Camera"));
     camera->SetLocalTranslation(Vec3f(0.0f, 1.6f, 0.0f));
     camera->SetCameraFlags(CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
+    camera->SetFarClip(3000.0f);
+    camera->SetNearClip(0.1f);
     camera->AddTag<EntityTag::PrimaryCamera>();
 
     Handle<FirstPersonCameraController> firstPersonController = MakeHandle<FirstPersonCameraController>();

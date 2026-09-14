@@ -218,7 +218,7 @@ public:
         AssetManager& assetManager,
         const String& path,
         const String& batchIdentifier = String::empty,
-        AssetLoadHint hint = AssetLoadHint::NoHint) const;
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint) const;
 
 protected:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const = 0;

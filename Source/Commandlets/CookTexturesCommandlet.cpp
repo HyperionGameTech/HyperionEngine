@@ -61,7 +61,10 @@ struct TerrainLayerPackSpec
     bool flipNormalGreen;
 };
 
-static Handle<Texture> LoadPackSourceTexture(const FilePath& inputDir, const char* filename, AssetLoadHint hint)
+static Handle<Texture> LoadPackSourceTexture(
+    const FilePath& inputDir,
+    const char* filename,
+    EnumFlags<AssetLoadHint> hint)
 {
     if (filename == nullptr)
     {
@@ -98,8 +101,8 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 
     for (const TerrainLayerPackSpec& spec : s_specs)
     {
-        Handle<Texture> color = LoadPackSourceTexture(inputDir, spec.colorFile, AssetLoadHint::TextureLoader_LoadAsSRGB);
-        Handle<Texture> normal = LoadPackSourceTexture(inputDir, spec.normalFile, AssetLoadHint::NoHint);
+        Handle<Texture> color = LoadPackSourceTexture(inputDir, spec.colorFile, AssetLoadHint::TextureSRGB | AssetLoadHint::Transient);
+        Handle<Texture> normal = LoadPackSourceTexture(inputDir, spec.normalFile, AssetLoadHint::Transient);
 
         if (!color.IsValid() || !normal.IsValid())
         {
@@ -109,8 +112,8 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
         }
 
         // AO / height are optional; missing files stay neutral white
-        Handle<Texture> aoMask = LoadPackSourceTexture(inputDir, spec.aoFile, AssetLoadHint::NoHint);
-        Handle<Texture> heightMask = LoadPackSourceTexture(inputDir, spec.heightFile, AssetLoadHint::NoHint);
+        Handle<Texture> aoMask = LoadPackSourceTexture(inputDir, spec.aoFile, AssetLoadHint::Transient);
+        Handle<Texture> heightMask = LoadPackSourceTexture(inputDir, spec.heightFile, AssetLoadHint::Transient);
 
         const uint32 width = color->GetExtent().x;
         const uint32 height = color->GetExtent().y;
@@ -164,9 +167,9 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 
                 const size_t i = (size_t(y) * size_t(width) + size_t(x)) * 4u;
 
-                albedoDst[i + 0] = ubyte(c.x * 255.0f);
-                albedoDst[i + 1] = ubyte(c.y * 255.0f);
-                albedoDst[i + 2] = ubyte(c.z * 255.0f);
+                albedoDst[i + 0] = ubyte(MathUtil::Clamp(MathUtil::Pow(c.x, 1.0f / 2.2f), 0.0f, 1.0f) * 255.0f);
+                albedoDst[i + 1] = ubyte(MathUtil::Clamp(MathUtil::Pow(c.y, 1.0f / 2.2f), 0.0f, 1.0f) * 255.0f);
+                albedoDst[i + 2] = ubyte(MathUtil::Clamp(MathUtil::Pow(c.z, 1.0f / 2.2f), 0.0f, 1.0f) * 255.0f);
                 albedoDst[i + 3] = ubyte(MathUtil::Clamp(ao, 0.0f, 1.0f) * 255.0f);
 
                 normalDst[i + 0] = ubyte(MathUtil::Clamp(n.x, 0.0f, 1.0f) * 255.0f);
@@ -192,7 +195,6 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 
         Handle<Texture> albedoTexture = MakeHandle<Texture>(albedoDesc, albedoBytes.ToByteView());
         albedoTexture->SetName(albedoName);
-        albedoTexture->SetIsTransient(true);
 
         TextureDesc packedNormalDesc {
             TextureType::Texture2D,
@@ -207,7 +209,6 @@ static void PackTerrainLayerTextures(const FilePath& inputDir, Handle<AssetRegis
 
         Handle<Texture> normalTexture = MakeHandle<Texture>(packedNormalDesc, normalBytes.ToByteView());
         normalTexture->SetName(normalName);
-        normalTexture->SetIsTransient(true);
 
         registry->PutAsset(albedoTexture);
         registry->PutAsset(normalTexture);

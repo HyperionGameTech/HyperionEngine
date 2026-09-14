@@ -137,7 +137,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         baseMipData = std::move(newByteBuffer);
     }
 
-    if (state.hint == AssetLoadHint::TextureLoader_LoadAsSRGB)
+    if (state.hint & AssetLoadHint::TextureSRGB)
     {
         textureDesc.format = TextureUtils::ChangeFormatSRGB(textureDesc.format, /* useSRGB */ true);
     }
@@ -150,8 +150,15 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
     texture->SetName(assetName);
     //texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
-
-    GetCurrentAssetRegistry()->PutAssetUnique(texture);
+    
+    if (state.hint & AssetLoadHint::Transient)
+    {
+        texture->SetIsTransient(true);
+    }
+    else
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(texture);
+    }
 
     AssetLoadResult result = LoadedAsset { std::move(texture) };
 
