@@ -107,13 +107,53 @@ DECLARE_SRV(BindlessResources0, Textures) TextureCube textures[]; // aliasing te
 DECLARE_SRV(Default, DiffuseMap) TextureCube DiffuseMap;
 #endif // HYP_FEATURES_BINDLESS_TEXTURES
 
+DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+
+#include "include/Atmosphere.hlsli"
+
+// a little bigger than the real sun (about 0.27 degrees) so it reads at game resolutions
+static const float SunDiskInnerCosAngle = 0.99997563; // cos(0.4 degrees)
+static const float SunDiskOuterCosAngle = 0.99996192; // cos(0.5 degrees)
+
+// physically the disk would be ~1e5 times brighter than the sun's irradiance, which only blows out bloom
+static const float SunDiskRadianceScale = 20.0;
+
+float3 GetSunDisk(float3 rayDirection)
+{
+    const uint requiredFlags = WORLD_ENVIRONMENT_FLAG_HAS_SUN | WORLD_ENVIRONMENT_FLAG_SUN_DISK;
+
+    if ((world_shader_data.environment_flags & requiredFlags) != requiredFlags)
+    {
+        return (float3)0.0;
+    }
+
+    const float3 directionToSun = normalize(world_shader_data.sun_direction_intensity.xyz);
+    const float diskMask = smoothstep(SunDiskOuterCosAngle, SunDiskInnerCosAngle, dot(rayDirection, directionToSun));
+
+    if (diskMask <= 0.0)
+    {
+        return (float3)0.0;
+    }
+
+    // an overcast sky has no visible sun, even where the clouds thin out
+    const float overcastWeight = smoothstep(0.5, 1.0, world_shader_data.sky_light_params.w);
+
+    return world_shader_data.sun_color.rgb
+        * world_shader_data.sun_direction_intensity.w
+        * GetSunTransmittance(0.0, directionToSun)
+        * (diskMask * (1.0 - overcastWeight) * SunDiskRadianceScale);
+}
+
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    float3 normal = normalize(input.normal);
+    const float3 rayDirection = normalize(input.position);
 
-    output.gbuffer_albedo = float4(SAMPLE_MATERIAL_TEXTURE_CUBE(material, DiffuseMap, input.position).rgb, 1.0);
+    const float3 skyRadiance = SAMPLE_MATERIAL_TEXTURE_CUBE(material, DiffuseMap, input.position).rgb;
+
+    output.gbuffer_albedo = float4(skyRadiance + GetSunDisk(rayDirection), 1.0);
 
     return output;
 }

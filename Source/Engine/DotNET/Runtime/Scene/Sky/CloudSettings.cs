@@ -29,10 +29,10 @@ namespace Hyperion
 
         public CloudShapeSettings()
         {
-            coverage = 0.6f;
+            coverage = 0.85f;
             cloudTypeBias = 0.9f;
             densityMultiplier = 1.0f;
-            detailErosion = 0.8f;
+            detailErosion = 0.3f;
         }
     }
 

@@ -66,6 +66,28 @@
         <!--  Settings content  -->
         <ScrollViewer Padding="0">
             <StackPanel Margin="16,14" Spacing="14">
+                <!--  Environment  -->
+                <StackPanel IsVisible="{Binding HasEnvironment}" Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="section-label" Text="Environment" />
+                        <TextBlock
+                            Classes="muted"
+                            FontSize="11"
+                            Text="Sky look, sky light, exposure, color and height fog for the World."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border
+                        Padding="14,8,12,10"
+                        Background="{DynamicResource Brush.PanelRaised}"
+                        BorderBrush="{DynamicResource Brush.BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Medium}"
+                        DataContext="{Binding Environment}">
+                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
+                    </Border>
+                </StackPanel>
+
                 <!--  Sky and clouds  -->
                 <StackPanel IsVisible="{Binding HasSky}" Spacing="14">
                     <StackPanel Spacing="4">

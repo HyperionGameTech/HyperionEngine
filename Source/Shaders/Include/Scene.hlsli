@@ -3,12 +3,30 @@
 
 #include "Defines.hlsli"
 
+#define WORLD_ENVIRONMENT_FLAG_HAS_SUN 0x1
+#define WORLD_ENVIRONMENT_FLAG_SUN_DISK 0x2
+#define WORLD_ENVIRONMENT_FLAG_HEIGHT_FOG 0x4
+
+// matches WorldShaderData in RenderProxy.hpp
 struct WorldShaderData
 {
     float game_time;
     uint frame_counter;
-    uint _pad0;
-    uint _pad1;
+    uint tonemap_operator;
+    uint environment_flags;
+
+    float4 exposure_grading;
+    float4 white_balance_rows[3];
+
+    float4 sun_direction_intensity;
+    float4 sun_color;
+
+    float4 sky_tint_intensity;
+    float4 sky_light_params;
+
+    float4 height_fog_params;
+    float4 atmosphere_fog_params;
+    float4 fog_phase_params;
 };
 
 struct Camera

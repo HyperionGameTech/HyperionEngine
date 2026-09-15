@@ -62,13 +62,49 @@ struct NullProxy final
 {
 };
 
+// matches the WORLD_ENVIRONMENT_FLAG_* defines in Shaders/Include/Scene.hlsli
+enum WorldEnvironmentFlags : uint32
+{
+    WEF_NONE = 0x0,
+    WEF_HAS_SUN = 0x1,
+    WEF_SUN_DISK = 0x2,
+    WEF_HEIGHT_FOG = 0x4
+};
+
 struct WorldShaderData
 {
     float gameTime;
     uint32 frameCounter;
-    uint32 _pad0;
-    uint32 _pad1;
+    uint32 tonemapOperator;
+    uint32 environmentFlags;
+
+    // x = exposure multiplier, y = contrast, z = saturation
+    Vec4f exposureGrading;
+
+    // linear rgb white balance matrix, one row per element
+    Vec4f whiteBalanceRows[3];
+
+    // xyz = direction toward the sun, w = sun intensity
+    Vec4f sunDirectionIntensity;
+    Vec4f sunColor;
+
+    // rgb = tint, w = intensity
+    Vec4f skyTintIntensity;
+
+    // x = diffuse sky light, y = specular sky light, z = overcast brightness, w = cloud coverage
+    Vec4f skyLightParams;
+
+    // x = density, y = height falloff, z = base height, w = start distance
+    Vec4f heightFogParams;
+
+    // x = aerial perspective distance, y = sky inscatter, z = sun inscatter, w = max opacity
+    Vec4f atmosphereFogParams;
+
+    // x = sun anisotropy
+    Vec4f fogPhaseParams;
 };
+
+static_assert(sizeof(WorldShaderData) == 192);
 
 struct EntityShaderData
 {

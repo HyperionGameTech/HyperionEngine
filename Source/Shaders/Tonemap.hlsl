@@ -1,7 +1,6 @@
 #include "include/Defines.hlsli"
 #include "include/Shared.hlsli"
-
-PERMUTE(EXPOSURE, 1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0);
+#include "include/Scene.hlsli"
 
 #ifdef VERTEX_SHADER
 
@@ -54,6 +53,9 @@ DECLARE_SRV(Tonemap, BloomResultTexture) Texture2D BloomResultTexture;
 DECLARE_SAMPLER(Tonemap, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
 
+DECLARE_SRV(Tonemap, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+
 #include "include/Tonemap.hlsli"
 
 float4 PSMain(PSInput input) : SV_Target0
@@ -65,7 +67,9 @@ float4 PSMain(PSInput input) : SV_Target0
 
     float4 color_with_bloom = shaded_result + bloom_result;
 
-    float4 color_output = float4(Tonemap(color_with_bloom.rgb), 1.0);
+    const float3 graded_color = ApplyColorGrading(color_with_bloom.rgb, world_shader_data);
+
+    float4 color_output = float4(Tonemap(graded_color, world_shader_data.tonemap_operator), 1.0);
 
 #ifdef OUTPUT_PQ_HDR
     const float peakNits = 1000.0;

@@ -15,6 +15,7 @@
 #include <Rendering/Passes/TonemapPass.hpp>
 #include <Rendering/Passes/LightmapPass.hpp>
 #include <Rendering/Passes/FogVolumePass.hpp>
+#include <Rendering/Passes/HeightFogPass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 
 #ifdef HYP_EDITOR
@@ -147,7 +148,6 @@ CVar<bool> g_cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> g_cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
 CVar<bool> g_cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
-CVar<float> g_cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvDrawWireframe { "Rendering.DrawWireframe", false };
 CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
@@ -1090,6 +1090,9 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
         passData.fogVolumePass->Create();
 
+        passData.heightFogPass = MakeUnique<HeightFogPass>();
+        passData.heightFogPass->Create();
+
         passData.cloudPass = MakeUnique<CloudPass>(gbuffer->GetExtent());
         passData.cloudPass->Create();
 
@@ -1959,6 +1962,14 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentBlendFunction(BlendFunction::None());
 
         frame->cr << SetCurrentFramebuffer(nullptr);
+    }
+
+    if (debugVisMode == 0)
+    {
+        RenderSetup heightFogRS = lightingRS.Fork();
+        heightFogRS.framebuffer = passData.lightingFramebuffer;
+
+        passData.heightFogPass->Render(frame, heightFogRS);
     }
 
     { // Render the deferred lighting into the color target with a full screen quad.

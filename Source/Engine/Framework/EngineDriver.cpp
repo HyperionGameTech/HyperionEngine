@@ -904,9 +904,22 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
         *bufferData = {};
         bufferData->frameCounter = GetFrameCounter();
 
-        if (m_currentWorld)
+        // the editor world renders first but the project world owns the environment
+        World* primaryWorld = worldsToRender.Any() ? worldsToRender.Front() : nullptr;
+
+        for (World* world : worldsToRender)
         {
-            bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
+            if (!(world->GetWorldFlags() & WorldFlags::Editor))
+            {
+                primaryWorld = world;
+
+                break;
+            }
+        }
+
+        if (primaryWorld != nullptr)
+        {
+            primaryWorld->FillWorldShaderData(*bufferData);
         }
 
         m_viewsPerFrame[slot].Resize(views.Size());

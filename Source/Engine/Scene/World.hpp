@@ -25,6 +25,7 @@
 #include <Scripting/ScriptableDelegate.hpp>
 
 #include <Scene/Layer.hpp>
+#include <Scene/EnvironmentSettings.hpp>
 
 #include <Framework/EngineMemory.hpp>
 
@@ -43,6 +44,7 @@ class Swatch;
 class SystemExecutionGroup;
 
 struct GameState;
+struct WorldShaderData;
 
 namespace threading {
 class TaskBatch;
@@ -145,6 +147,13 @@ public:
 
     HYP_METHOD()
     const GameState& GetGameState() const;
+
+    HYP_FORCE_INLINE const EnvironmentSettings& GetEnvironmentSettings() const
+    {
+        return m_environmentSettings;
+    }
+
+    void FillWorldShaderData(WorldShaderData& outShaderData) const;
 
     ///Subsystems
 
@@ -431,6 +440,9 @@ private:
 
     HYP_FIELD(Property = "WorldFlags", Serialize, LoadOrder = 0)
     EnumFlags<WorldFlags> m_worldFlags;
+
+    HYP_FIELD(Property = "Environment", Serialize)
+    EnvironmentSettings m_environmentSettings;
 
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;

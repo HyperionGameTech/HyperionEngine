@@ -15,6 +15,9 @@
 #include <Scene/SystemExecutionGroup.hpp>
 #include <Scene/Swatch.hpp>
 #include <Scene/Subsystem.hpp>
+#include <Scene/Light.hpp>
+
+#include <Scene/Sky/DynamicSkySystem.hpp>
 
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
@@ -562,6 +565,54 @@ const GameState& World::GetGameState() const
     // fallback
     static GameState s_defaultGameState;
     return s_defaultGameState;
+}
+
+void World::FillWorldShaderData(WorldShaderData& outShaderData) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    outShaderData.gameTime = GetGameState().gameTime;
+
+    WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
+
+    bool hasSun = false;
+
+    for (Scene* scene : m_scenes)
+    {
+        if (hasSun)
+        {
+            break;
+        }
+
+        if (!(scene->GetSceneFlags() & SceneFlags::FOREGROUND))
+        {
+            continue;
+        }
+
+        for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (light->GetLightType() != LightType::Directional)
+            {
+                continue;
+            }
+
+            outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
+            outShaderData.sunColor = Vec4f(light->GetColor());
+            outShaderData.environmentFlags |= WEF_HAS_SUN;
+
+            hasSun = true;
+
+            break;
+        }
+    }
+
+    if (DynamicSkySystem* skySystem = GetSystem<DynamicSkySystem>())
+    {
+        const CloudSettings& cloudSettings = skySystem->GetCloudSettings();
+
+        outShaderData.skyLightParams.w = cloudSettings.enabled ? MathUtil::Clamp(cloudSettings.shape.coverage, 0.0f, 1.0f) : 0.0f;
+    }
 }
 
 #pragma region Swatches

@@ -34,6 +34,10 @@ public:
     Vec4f cachedLightDirIntensity;
     Vec3f cachedProbeOrigin;
 
+    // rgb = tint * intensity, a = overcast brightness
+    Vec4f cachedSkyLook;
+    float cachedCloudCoverage = 0.0f;
+
     // whether the last sky capture had clouds composited in, and how long ago that was
     bool hasCompositedClouds = false;
     ClockTimer cloudRefreshTimer;

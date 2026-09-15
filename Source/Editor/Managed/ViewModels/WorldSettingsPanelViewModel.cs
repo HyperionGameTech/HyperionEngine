@@ -67,6 +67,21 @@ namespace Hyperion.Editor.ViewModels
 
         public bool HasSky => Sky != null;
 
+        private EnvironmentSettingsViewModel? _environment;
+        public EnvironmentSettingsViewModel? Environment
+        {
+            get => _environment;
+            private set
+            {
+                if (SetProperty(ref _environment, value))
+                {
+                    OnPropertyChanged(nameof(HasEnvironment));
+                }
+            }
+        }
+
+        public bool HasEnvironment => Environment != null;
+
         public bool HasLayers => FilteredLayers.Count > 0;
 
         public bool ShowNoLayersHint => HasWorldGrid && !HasLayers;
@@ -130,6 +145,9 @@ namespace Hyperion.Editor.ViewModels
             uint skyWorldId = 0;
             uint skySystemId = 0;
 
+            World? environmentWorld = null;
+            uint environmentWorldId = 0;
+
             await EngineManager.PostToSimThread(() =>
             {
                 World? world = EngineManager.CurrentProject?.World;
@@ -138,6 +156,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     return;
                 }
+
+                environmentWorld = world;
+                environmentWorldId = world.Id.Value;
 
                 skySystem = FindDynamicSkySystem();
 
@@ -196,6 +217,16 @@ namespace Hyperion.Editor.ViewModels
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 HasWorldGrid = hasWorldGrid;
+
+                // only rebuilt when the world changes, so in-progress edits aren't disturbed
+                if (environmentWorld == null)
+                {
+                    Environment = null;
+                }
+                else if (Environment == null || Environment.WorldId != environmentWorldId)
+                {
+                    Environment = new EnvironmentSettingsViewModel(environmentWorld, environmentWorldId);
+                }
 
                 // only rebuilt when the sky system itself changes, so in-progress edits aren't disturbed
                 if (skySystem == null || skyWorld == null)

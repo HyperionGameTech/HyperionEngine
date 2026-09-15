@@ -52,6 +52,7 @@ class LightingPass;
 class ReflectionsPass;
 class LightmapPass;
 class FogVolumePass;
+class HeightFogPass;
 class CloudPass;
 class TonemapPass;
 #ifdef HYP_EDITOR
@@ -88,6 +89,8 @@ public:
     UniquePtr<LightmapPass> lightmapPass;
 
     UniquePtr<FogVolumePass> fogVolumePass;
+
+    UniquePtr<HeightFogPass> heightFogPass;
 
     UniquePtr<CloudPass> cloudPass;
 

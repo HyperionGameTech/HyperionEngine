@@ -30,7 +30,7 @@ struct CloudShapeSettings
     HYP_STRUCT_BODY(CloudShapeSettings);
 
     HYP_FIELD(Property = "Coverage", Serialize, Label = "Cloud Coverage")
-    float coverage = 0.6f;
+    float coverage = 0.85f;
 
     HYP_FIELD(Property = "CloudTypeBias", Serialize, Label = "Cloud Type Bias")
     float cloudTypeBias = 0.9f;
@@ -39,7 +39,7 @@ struct CloudShapeSettings
     float densityMultiplier = 1.0f;
 
     HYP_FIELD(Property = "DetailErosion", Serialize, Label = "Detail Erosion")
-    float detailErosion = 0.8f;
+    float detailErosion = 0.3f;
 };
 
 HYP_STRUCT()

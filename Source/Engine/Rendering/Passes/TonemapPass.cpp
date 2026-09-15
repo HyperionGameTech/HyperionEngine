@@ -32,7 +32,6 @@
 namespace Hyperion {
 
 extern CVar<bool> g_cvBloom;
-extern CVar<float> g_cvTonemapExposure;
 
 #pragma region TonemapPass
 
@@ -40,6 +39,8 @@ TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer)
 {
     SetPassName(NAME("Tonemap"));
+
+    m_shaderDesc = ShaderDesc(NAME("Tonemap"));
 }
 
 TonemapPass::~TonemapPass()
@@ -53,10 +54,6 @@ void TonemapPass::Resize_Internal(Vec2u newSize)
 
 void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
-    ShaderPropertySet shaderProperties;
-    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("EXPOSURE"), g_cvTonemapExposure.Get())));
-    m_shaderDesc = ShaderDesc(NAME("Tonemap"), shaderProperties);
-
     Begin(frame, rs);
 
     CommandRecorder& cr = frame->cr;

@@ -72,6 +72,14 @@ static EngineStatGpuTimer s_statComputeEnvProbeSH("Rendering/GPU/ComputeEnvProbe
 
 extern CVar<float> g_cvCloudsSkyProbeRefreshSeconds;
 
+static constexpr float SkyLookRecaptureSeconds = 0.1f;
+
+// the parts of the world environment that are baked into the sky capture
+static Vec4f GetSkyLook(const WorldShaderData& worldShaderData)
+{
+    return Vec4f(worldShaderData.skyTintIntensity.GetXYZ() * worldShaderData.skyTintIntensity.w, worldShaderData.skyLightParams.z);
+}
+
 #pragma region EnvProbeHelpers
 
 namespace EnvProbeHelpers {
@@ -1275,6 +1283,15 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         {
             needsRerender = true;
         }
+
+        // environment edits recapture, throttled so dragging a slider doesn't capture every frame
+        const WorldShaderData* worldShaderData = GetWorldBufferData();
+
+        if ((GetSkyLook(*worldShaderData) != pd->cachedSkyLook || worldShaderData->skyLightParams.w != pd->cachedCloudCoverage)
+            && pd->cloudRefreshTimer.Interval(ClockTimer::Now()) >= SkyLookRecaptureSeconds)
+        {
+            needsRerender = true;
+        }
     }
     else
     {
@@ -1332,6 +1349,11 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             // cache it to save on rendering later
             pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
         }
+
+        const WorldShaderData* worldShaderData = GetWorldBufferData();
+
+        pd->cachedSkyLook = GetSkyLook(*worldShaderData);
+        pd->cachedCloudCoverage = worldShaderData->skyLightParams.w;
     }
     else
     {

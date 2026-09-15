@@ -207,6 +207,10 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Clouds/CloudComposite.hlsl"
             PS = "Clouds/CloudComposite.hlsl"
         }
+        ShaderDefinition "HeightFog" {
+            VS = "HeightFog.hlsl"
+            PS = "HeightFog.hlsl"
+        }
         ShaderDefinition "CloudShadowMap" {
             CS = "Clouds/CloudShadowMap.hlsl"
         }
