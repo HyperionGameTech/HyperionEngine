@@ -16,6 +16,10 @@ static constexpr float CascadeRadiusPadding = 1.02f;
 // previous bounds are only kept while they're at most this much larger than a fresh fit
 static constexpr float MaxReusedCascadeOversize = 1.05f;
 
+// logarithmic splits off a tiny near clip would squeeze the first cascade down to a sliver in front of the camera
+// so we make sure it has a sane min value
+static constexpr float MinLogarithmicSplitNear = 0.5f;
+
 Mat4f CalculateShadowViewMatrix(
     const BoundingSphere& sceneWorldBounds,
     const Vec3f& lightDir)
@@ -25,6 +29,42 @@ Mat4f CalculateShadowViewMatrix(
     const Vec3f center = sceneWorldBounds.GetCenter();
 
     return Mat4f::LookAt(center, center - lightDir * ZPullback, Vec3f::UnitY());
+}
+
+
+float CalculateCascadeSplitRatio(
+    uint32 splitIndex,
+    uint32 numCascades,
+    float nearDistance,
+    float farDistance,
+    float lambda)
+{
+    if (splitIndex == 0 || numCascades == 0)
+    {
+        return 0.0f;
+    }
+
+    if (splitIndex >= numCascades)
+    {
+        return 1.0f;
+    }
+
+    const float fraction = float(splitIndex) / float(numCascades);
+    const float range = farDistance - nearDistance;
+
+    const float logarithmicNear = MathUtil::Max(nearDistance, MinLogarithmicSplitNear);
+
+    if (range <= MathUtil::epsilonF || logarithmicNear >= farDistance)
+    {
+        return fraction;
+    }
+
+    const float uniformSplit = nearDistance + range * fraction;
+    const float logarithmicSplit = logarithmicNear * MathUtil::Pow(farDistance / logarithmicNear, fraction);
+
+    const float splitDistance = MathUtil::Lerp(uniformSplit, logarithmicSplit, MathUtil::Clamp(lambda, 0.0f, 1.0f));
+
+    return MathUtil::Clamp((splitDistance - nearDistance) / range, 0.0f, 1.0f);
 }
 
 BoundingBox CalculateCascadeBounds(

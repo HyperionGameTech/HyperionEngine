@@ -42,16 +42,6 @@ static CVar<float> s_cvCSMDepthBiasTexels("Rendering.Shadows.CSMDepthBiasTexels"
 // (e.g EnvProbes) will likely not be able to use shadow maps due to running out of slots.
 static constexpr bool IsCSMCameraDependent = false;
 
-// How much does the depth bias constant get scaled per cascade index?
-// This can combat some of the precision artifacts that are seen primarily with higher cascades numbers,
-// as they the scene from farther distances.
-static constexpr float DepthBiasScaleFactor[MaxShadowMapCascades] = {
-    1.0f,
-    1.5f,
-    1.5f,
-    1.75f
-};
-
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
     | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
@@ -207,7 +197,7 @@ static ViewDesc GetViewDesc(
         // same size relative to the texels in every cascade, however far it reaches
         const float shadowMapResolution = float(MathUtil::Max(light->GetShadowMapDimensions().Max(), 1u));
 
-        depthBiasScaled = s_cvCSMDepthBiasTexels.Get() * (65535.0f / shadowMapResolution) * DepthBiasScaleFactor[cascadeIndex];
+        depthBiasScaled = s_cvCSMDepthBiasTexels.Get() * (65535.0f / shadowMapResolution);
     }
 
     ViewDesc viewDesc {};

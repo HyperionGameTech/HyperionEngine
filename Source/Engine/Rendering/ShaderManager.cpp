@@ -1020,7 +1020,7 @@ public:
                     }
                 }
 
-                items.PushBack(ReloadItem { it.first, entry, nullptr, Handle<Shader>::FromPointer(entry->shader) });
+                items.PushBack(ReloadItem { it.first, entry, nullptr, MakeStrongRef(entry->shader) });
             }
         }
 

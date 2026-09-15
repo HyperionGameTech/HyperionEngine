@@ -239,14 +239,74 @@ DECLARE_BUFFER_DYNAMIC(Default, ForwardShadingConstants) cbuffer ForwardShadingC
     Light lights[MAX_LIGHTS];
     ShadowMap shadowMaps[MAX_LIGHTS];
     EnvProbe fallbackProbe; // always the scene's sky probe, or a zeroed EnvProbe if none
-    
+
+    // CSM of the first directional light (matches DirectionalLightCSMData)
+    float4x4 shadowViewMat;
+
+    float4 atlasU;
+    float4 atlasV;
+    float4 atlasScaleX;
+    float4 atlasScaleY;
+
+    uint4 atlasSlice;
+
+    float4 cascadeScaleX;
+    float4 cascadeScaleY;
+    float4 cascadeScaleZ;
+
+    float4 cascadeOffsetX;
+    float4 cascadeOffsetY;
+    float4 cascadeOffsetZ;
+
     uint numBoundLights;
+    uint directionalCSMLightIndex; // ~0u if none
 };
 
 DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "include/Shadows.hlsli"
+
+// cascades follow the main camera, so a capture position can be outside all of them - treated as lit
+float GetDirectionalCSMShadow(float3 position, float3 N, float NdotL)
+{
+    float4 positionLS = mul(shadowViewMat, float4(position, 1.0));
+    positionLS /= positionLS.w;
+
+    const float4 uvX = positionLS.x * cascadeScaleX + cascadeOffsetX;
+    const float4 uvY = positionLS.y * cascadeScaleY + cascadeOffsetY;
+    const float4 uvZ = positionLS.z * cascadeScaleZ + cascadeOffsetZ;
+
+    const float4 maxDist = max(abs(uvX - 0.5), max(abs(uvY - 0.5), abs(uvZ - 0.5)));
+    const float4 insideMask = step(maxDist, (float4)0.5);
+
+    [branch]
+    if (dot(insideMask, (float4)1.0) < 0.5)
+    {
+        return 1.0;
+    }
+
+    int cascadeIndex = 3;
+    cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
+    cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
+    cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
+
+    const float cascadeWidth = 1.0 / max(abs(cascadeScaleX[cascadeIndex]), 0.000001);
+    const float normalOffset = GetCascadeNormalOffset(cascadeWidth, NdotL);
+
+    float4 offsetPositionLS = mul(shadowViewMat, float4(position + N * normalOffset, 1.0));
+    offsetPositionLS /= offsetPositionLS.w;
+
+    float4 shadowMapCoord;
+    shadowMapCoord.x = offsetPositionLS.x * cascadeScaleX[cascadeIndex] + cascadeOffsetX[cascadeIndex];
+    shadowMapCoord.y = offsetPositionLS.y * cascadeScaleY[cascadeIndex] + cascadeOffsetY[cascadeIndex];
+    shadowMapCoord.z = offsetPositionLS.z * cascadeScaleZ[cascadeIndex] + cascadeOffsetZ[cascadeIndex];
+    shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
+
+    return GetShadowCSM(shadowMapCoord,
+        float2(atlasU[cascadeIndex], atlasV[cascadeIndex]),
+        float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]));
+}
 
 #endif // FORWARD_SHADING
 
@@ -354,10 +414,9 @@ PSOutput PSMain(PSInput input)
 
             if (lightType == HYP_LIGHT_TYPE_DIRECTIONAL)
             {
-                // directional shadow
-                if ((lightFlags & LF_SHADOW_CASTER) != 0)
+                if ((lightFlags & LF_SHADOW_CASTER) != 0 && lightIdx == directionalCSMLightIndex)
                 {
-                    shadow = GetShadowStandard(shadowMaps[lightIdx], input.position, float2(0, 0), NdotL);
+                    shadow = GetDirectionalCSMShadow(input.position, N, NdotL);
                 }
             }
             else

@@ -32,6 +32,7 @@
 #include <Rendering/Shadows/ShadowMap.hpp>
 
 #include <Rendering/Passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPassShared.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -186,9 +187,6 @@ ParallelRenderingState::~ParallelRenderingState()
 #pragma region GeometryPass
 
 namespace GeometryPass {
-
-static constexpr StringHash DefaultShaderName = "GeometryPass"_sh;
-
 namespace Props {
 
 /// Static property names
@@ -760,7 +758,9 @@ static void SetForwardShadingConstants(
             LightShaderData lights[MaxBoundLightsForwardShading];
             ShadowMapData shadowMaps[MaxBoundLightsForwardShading];
             EnvProbeShaderData fallbackProbe; // always the scene's sky probe, or a zeroed EnvProbeShaderData if none
+            DirectionalLightCSMData directionalCSM;
             uint32 numBoundLights;
+            uint32 directionalCSMLightIndex; // index into lights of the directional light directionalCSM belongs to, ~0u if none
         };
 
         ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)RI.cbufferAllocator->Allocate(
@@ -771,6 +771,8 @@ static void SetForwardShadingConstants(
 
         Assert(forwardShadingConstants != nullptr);
         Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
+
+        forwardShadingConstants->directionalCSMLightIndex = ~0u;
 
         // @TODO Sort by light dist
 
@@ -787,6 +789,48 @@ static void SetForwardShadingConstants(
             const uint32 lightIndex = forwardShadingConstants->numBoundLights++;
 
             forwardShadingConstants->lights[lightIndex] = lightProxy->bufferData;
+
+            if (light->GetLightType() == LightType::Directional)
+            {
+                if (forwardShadingConstants->directionalCSMLightIndex != ~0u)
+                {
+                    continue;
+                }
+
+                ShadowMap* cascadeShadowMaps[MaxShadowMapCascades] {};
+                View* cascadeViewsDynamic[MaxShadowMapCascades] {};
+                View* cascadeViewsStatic[MaxShadowMapCascades] {};
+
+                const uint32 numCascades = MathUtil::Clamp(lightProxy->numCascades, 1u, MaxShadowMapCascades);
+
+                bool anyCascadeBound = false;
+
+                for (uint32 cascadeIndex = 0; cascadeIndex < numCascades; cascadeIndex++)
+                {
+                    cascadeShadowMaps[cascadeIndex] = RI.shadowMapCache->GetShadowMap(
+                        light,
+                        renderSetup.view,
+                        cascadeIndex,
+                        cascadeViewsDynamic[cascadeIndex],
+                        cascadeViewsStatic[cascadeIndex]);
+
+                    anyCascadeBound |= cascadeShadowMaps[cascadeIndex] != nullptr;
+                }
+
+                if (anyCascadeBound)
+                {
+                    DeferredRendererHelpers::FillShadowMapDataCSM(
+                        &forwardShadingConstants->directionalCSM,
+                        cascadeViewsDynamic,
+                        cascadeViewsStatic,
+                        cascadeShadowMaps,
+                        numCascades);
+
+                    forwardShadingConstants->directionalCSMLightIndex = lightIndex;
+                }
+
+                continue;
+            }
 
             // Set shadow map
             ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
@@ -1354,7 +1398,7 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
     cr << SetCurrentViewport(renderSetup.viewport);
 
     if (isNormalDrawingPass
-        && mas.shaderName == GeometryPass::DefaultShaderName
+        && mas.shaderName == "GeometryPass"_sh
         && mas.shaderProperties.Test(s_propShadingTypeForward)
         && dpd->gridTilesBuffer != nullptr)
     {

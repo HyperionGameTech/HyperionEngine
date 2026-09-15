@@ -161,7 +161,7 @@ float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texco
     // push the lookup out along the normal by the cascade's PCF footprint, so kernel taps on slopes don't
     // land on the receiver's own surface. The cascade is picked from the unmoved position so this can't cross a split
     const float cascadeWidth = 1.0 / max(abs(cascadeScaleX[cascadeIndex]), 0.000001);
-    const float normalOffset = HYP_SHADOW_FILTER_SIZE * HYP_SHADOW_NORMAL_OFFSET_SCALE * cascadeWidth;
+    const float normalOffset = GetCascadeNormalOffset(cascadeWidth, NdotL);
 
     float4 offsetPositionLS = mul(shadowViewMat, float4(position + N * normalOffset, 1.0));
     offsetPositionLS /= offsetPositionLS.w;
@@ -177,7 +177,7 @@ float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texco
 
     return GetShadowPCF(shadowMapCoord,
         atlasUV, atlasScale,
-        position, texcoord, camera.dimensions.xy, NdotL);
+        position, texcoord, camera.dimensions.xy);
 }
 
 #endif // LIGHT_TYPE_DIRECTIONAL

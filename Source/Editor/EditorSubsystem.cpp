@@ -6581,11 +6581,9 @@ void EditorSubsystem::UpdateBakeStatus()
         return;
     }
 
-    Array<Name> swatchNames = world->GetSwatchNames();
-    Array<Handle<Swatch>> swatches = MapToArray(swatchNames, [world](Name swatchName)
-        {
-            return world->TryGetSwatch(swatchName);
-        });
+    // Epochs are computed from the live scene, which only reflects the active swatch's overrides,
+    // so other swatches' stored epochs can never match here
+    const Handle<Swatch> activeSwatch = world->TryGetSwatch(world->GetActiveSwatchName());
 
     Array<String, EditorAllocator> lightmapVolumeNames;
     Array<String, EditorAllocator> reflectionProbeNames;
@@ -6608,40 +6606,18 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            bool isOutOfDate = false;
-
-            for (const Handle<Swatch>& swatch : swatches)
+            if (!activeSwatch.IsValid())
             {
-                Assert(swatch.IsValid());
-
-                if (!swatch.IsValid())
-                {
-                    continue;
-                }
-
-                Baking::BakeLayer& bakeLayer = swatch->bakeLayer;
-
-                uint64 storedEpoch;
-
-                if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch))
-                {
-                    // not tracked yet. bake it to track it
-                    isOutOfDate = true;
-
-                    break;
-                }
-
-                const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*volume, bakeLayer);
-
-                if (storedEpoch != computedEpoch)
-                {
-                    isOutOfDate = true;
-
-                    break;
-                }
+                continue;
             }
 
-            if (isOutOfDate)
+            Baking::BakeLayer& bakeLayer = activeSwatch->bakeLayer;
+
+            uint64 storedEpoch;
+
+            // not tracked yet counts as out of date. bake it to track it
+            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch)
+                || storedEpoch != Baking::BakeEpoch::ComputeEpoch(*volume, bakeLayer))
             {
                 lightmapVolumeNames.PushBack(*volume->GetName());
             }
@@ -6670,38 +6646,18 @@ void EditorSubsystem::UpdateBakeStatus()
                 continue;
             }
 
-            bool isOutOfDate = false;
-
-            for (const Handle<Swatch>& swatch : swatches)
+            if (!activeSwatch.IsValid())
             {
-                Assert(swatch.IsValid());
-
-                if (!swatch.IsValid())
-                {
-                    continue;
-                }
-
-                uint64 storedEpoch;
-
-                if (!swatch->bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch))
-                {
-                    // not tracked yet. bake it to track it
-                    isOutOfDate = true;
-
-                    break;
-                }
-
-                const uint64 computedEpoch = Baking::BakeEpoch::ComputeEpoch(*probe, swatch->bakeLayer);
-
-                if (storedEpoch != computedEpoch)
-                {
-                    isOutOfDate = true;
-
-                    break;
-                }
+                continue;
             }
 
-            if (isOutOfDate)
+            Baking::BakeLayer& bakeLayer = activeSwatch->bakeLayer;
+
+            uint64 storedEpoch;
+
+            // not tracked yet counts as out of date. bake it to track it
+            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*probe, storedEpoch)
+                || storedEpoch != Baking::BakeEpoch::ComputeEpoch(*probe, bakeLayer))
             {
                 outNames->PushBack(*probe->GetName());
             }

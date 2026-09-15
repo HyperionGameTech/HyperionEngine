@@ -63,17 +63,8 @@ namespace Hyperion {
 
 static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 500.0f);
 
-static CVar<float> s_cvCSMSplit0("Rendering.Shadows.CSMSplit0", 0.075f);
-static CVar<float> s_cvCSMSplit1("Rendering.Shadows.CSMSplit1", 0.15f);
-static CVar<float> s_cvCSMSplit2("Rendering.Shadows.CSMSplit2", 0.3f);
-static CVar<float> s_cvCSMSplit3("Rendering.Shadows.CSMSplit3", 1.0f);
-
-static CVar<float>* s_csmClipDistances[] = {
-    &s_cvCSMSplit0,
-    &s_cvCSMSplit1,
-    &s_cvCSMSplit2,
-    &s_cvCSMSplit3
-};
+// 0 = uniform splits, 1 = logarithmic. near cascades stay small as CSMMaxDistance grows the closer this is to 1
+static CVar<float> s_cvCSMSplitLambda("Rendering.Shadows.CSMSplitLambda", 0.95f);
 
 CVar<bool> g_cvCSMTimeSlicingEnabled("Rendering.Shadows.CSMTimeSlicingEnabled", true);
 CVar<int> g_cvCSMMaxUpdatesPerFrame("Rendering.Shadows.CSMMaxUpdatesPerFrame", 1);
@@ -487,6 +478,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         Frustum csmMainCameraFrustum;
         Vec3f lightDir;
 
+        // cascade i spans [cascadeSplitRatios[i], cascadeSplitRatios[i + 1]] of csmMainCameraFrustum
+        FixedArray<float, MaxShadowMapCascades + 1> cascadeSplitRatios {};
+
         // Calculate total world bounds for CSM
         BoundingSphere worldBoundsSphere;
         bool isWorldBoundsSphereValid = false;
@@ -504,6 +498,20 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             const float mainCameraFarRatio = MathUtil::Clamp(s_cvCSMMaxDistance.Get() / m_camera->GetFarClip(), 0.0f, 1.0f);
             csmMainCameraFrustum = (mainCameraFarRatio >= 0.9999f ? mainCameraFrustum : mainCameraFrustum.SubFrustum(0.0f, mainCameraFarRatio));
+
+            // SubFrustum lerps between the near and far corners, so ratios are linear in view distance
+            const float csmNearDistance = m_camera->GetNearClip();
+            const float csmFarDistance = MathUtil::Lerp(csmNearDistance, m_camera->GetFarClip(), mainCameraFarRatio);
+
+            for (uint32 splitIndex = 0; splitIndex <= numCascades; splitIndex++)
+            {
+                cascadeSplitRatios[splitIndex] = ShadowCameraHelpers::CalculateCascadeSplitRatio(
+                    splitIndex,
+                    numCascades,
+                    csmNearDistance,
+                    csmFarDistance,
+                    s_cvCSMSplitLambda.Get());
+            }
 
             lightDir = light->GetWorldTranslation().Normalized();
         }
@@ -593,8 +601,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (isDirectional)
             {
-                const float nearRatio = (shadowViewIndex == 0) ? 0.0f : s_csmClipDistances[shadowViewIndex - 1]->Get();
-                const float farRatio = s_csmClipDistances[shadowViewIndex]->Get();
+                const float nearRatio = cascadeSplitRatios[shadowViewIndex];
+                const float farRatio = cascadeSplitRatios[shadowViewIndex + 1];
 
                 shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
                     csmMainCameraFrustum,

@@ -22,6 +22,13 @@ Mat4f CalculateShadowViewMatrix(
     const BoundingSphere& sceneWorldBounds,
     const Vec3f& lightDir);
 
+float CalculateCascadeSplitRatio(
+    uint32 splitIndex,
+    uint32 numCascades,
+    float nearDistance,
+    float farDistance,
+    float lambda);
+
 BoundingBox CalculateCascadeBounds(
     const Frustum& mainCameraFrustum,
     const Mat4f& shadowViewMatrix,
@@ -30,8 +37,6 @@ BoundingBox CalculateCascadeBounds(
     const float inFarRatio,
     const Vec3f& lightDir);
 
-///\p previousBounds while the new fit still lies inside them, so small frame-to-frame changes in the camera
-///(dimensions, clip planes) don't rescale and resample the whole cascade. Both must be in the same light-space basis
 BoundingBox StabilizeCascadeBounds(
     const BoundingBox& newBounds,
     const BoundingBox& previousBounds);

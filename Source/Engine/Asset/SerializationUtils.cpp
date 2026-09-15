@@ -42,10 +42,11 @@
 #include <Core/Logging/Logger.hpp>
 
 #include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
 
 namespace Hyperion {
-
-HYP_DISABLE_OPTIMIZATION;
 
 struct LoadAssetsFromReferencesContext
 {
@@ -2399,6 +2400,24 @@ void WriteIndent(String& outText, int indent)
     }
 }
 
+template <class FloatType>
+void WriteFloatValue(String& outText, FloatType value)
+{
+    char buffer[64];
+
+    for (int precision = 6; precision <= std::numeric_limits<FloatType>::max_digits10; precision++)
+    {
+        std::snprintf(buffer, sizeof(buffer), "%.*g", precision, double(value));
+
+        if (!std::isfinite(value) || FloatType(std::strtod(buffer, nullptr)) == value)
+        {
+            break;
+        }
+    }
+
+    outText += buffer;
+}
+
 static BoxedValue DereferenceElement(AnyRef ref)
 {
     if (ref.HasValue() && ref.GetTypeInfo()->IsHandleType())
@@ -2614,12 +2633,12 @@ Result BoxedToHMFImpl(
     // Floats
     if (value.Is<float>(/* strict */ true))
     {
-        outText += HYP_FORMAT("{}", value.Get<float>());
+        WriteFloatValue(outText, value.Get<float>());
         return {};
     }
     if (value.Is<double>(/* strict */ true))
     {
-        outText += HYP_FORMAT("{}", value.Get<double>());
+        WriteFloatValue(outText, value.Get<double>());
         return {};
     }
 
