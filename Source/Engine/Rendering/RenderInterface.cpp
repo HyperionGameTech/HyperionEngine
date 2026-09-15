@@ -59,6 +59,8 @@
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
+#include <Rendering/Clouds/CloudResources.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 #include <Rendering/Util/ShaderCompiler.hpp>
@@ -69,6 +71,8 @@
 #include <Scene/Light.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
+#include <Scene/Sky/CloudEffectVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
@@ -670,6 +674,7 @@ RenderInterface::RenderInterface()
       samplerCache(nullptr),
       blasCache(nullptr),
       shadowMapCache(nullptr),
+      cloudResources(nullptr),
       finalPass(nullptr),
       stagingBufferPool(nullptr),
       m_gpuTimerBackend(nullptr)
@@ -727,6 +732,7 @@ RendererResult RenderInterface::Initialize()
     samplerCache = PoolNew<SamplerCache>(*g_renderPool);
     blasCache = PoolNew<BLASCache>(*g_renderPool);
     shadowMapCache = PoolNew<ShadowMapCache>(*g_renderPool);
+    cloudResources = PoolNew<CloudResources>(*g_renderPool);
     stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
 
     InitDeviceDetails(deviceDetails);
@@ -916,6 +922,11 @@ void RenderInterface::Shutdown()
 
     envProbesColorTexture.Reset();
     envProbesDepthTexture.Reset();
+
+    cloudResources->Shutdown();
+
+    PoolDelete(*g_renderPool, cloudResources);
+    cloudResources = nullptr;
 
     shadowMapCache->Shutdown();
     placeholderData->Shutdown();
@@ -2364,6 +2375,7 @@ DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, NamedBu
 
 DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBuffer::Invalid, nullptr, &s_particleVolumeBinder);
 DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(CloudEffectVolume, RenderProxyEffectVolume, NamedBuffer::Invalid, nullptr, &s_effectVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Sprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 DECLARE_RENDER_DATA_CONTAINER(TextSprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);

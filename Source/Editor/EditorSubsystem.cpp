@@ -5511,6 +5511,27 @@ Array<Name> EditorSubsystem::GetAvailableWorldGridLayerClassNames() const
     return result;
 }
 
+Handle<DynamicSkySystem> EditorSubsystem::GetDynamicSkySystem() const
+{
+    AssertOnThread(g_simThread);
+
+    const Handle<World>& world = GetProjectWorld();
+
+    if (!world.IsValid())
+    {
+        return Handle<DynamicSkySystem>::empty;
+    }
+
+    DynamicSkySystem* dynamicSkySystem = world->GetSystem<DynamicSkySystem>();
+
+    if (!dynamicSkySystem)
+    {
+        return Handle<DynamicSkySystem>::empty;
+    }
+
+    return MakeStrongRef(dynamicSkySystem);
+}
+
 Handle<Node> EditorSubsystem::GetFocusedNode() const
 {
     AssertOnThread(g_simThread);

@@ -9,6 +9,8 @@
 #include <Scene/Scene.hpp>
 #include <Scene/System.hpp>
 #include <Scene/EnvProbe.hpp>
+#include <Scene/Sky/CloudSettings.hpp>
+#include <Scene/Sky/CloudEffectVolume.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -34,6 +36,20 @@ public:
     {
         return m_envProbe;
     }
+
+    HYP_FORCE_INLINE const Handle<CloudEffectVolume>& GetCloudEffectVolume() const
+    {
+        return m_cloudEffectVolume;
+    }
+
+    HYP_METHOD(Property = "CloudSettings", Serialize)
+    HYP_FORCE_INLINE const CloudSettings& GetCloudSettings() const
+    {
+        return m_cloudSettings;
+    }
+
+    HYP_METHOD(Property = "CloudSettings", Serialize)
+    void SetCloudSettings(const CloudSettings& cloudSettings);
 
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
@@ -67,6 +83,11 @@ private:
     // Stuff that gets added to world
     Handle<Entity> m_skyboxEntity;
     Handle<Scene> m_visScene;
+
+    HYP_FIELD(Property = "CloudSettings", Serialize)
+    CloudSettings m_cloudSettings;
+
+    Handle<CloudEffectVolume> m_cloudEffectVolume;
 
     ClockTimer m_updateTimer;
     uint32 m_lastFrame;

@@ -52,6 +52,21 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private SkySettingsViewModel? _sky;
+        public SkySettingsViewModel? Sky
+        {
+            get => _sky;
+            private set
+            {
+                if (SetProperty(ref _sky, value))
+                {
+                    OnPropertyChanged(nameof(HasSky));
+                }
+            }
+        }
+
+        public bool HasSky => Sky != null;
+
         public bool HasLayers => FilteredLayers.Count > 0;
 
         public bool ShowNoLayersHint => HasWorldGrid && !HasLayers;
@@ -110,6 +125,11 @@ namespace Hyperion.Editor.ViewModels
             var layerTypes = new List<string>();
             bool hasWorldGrid = false;
 
+            World? skyWorld = null;
+            DynamicSkySystem? skySystem = null;
+            uint skyWorldId = 0;
+            uint skySystemId = 0;
+
             await EngineManager.PostToSimThread(() =>
             {
                 World? world = EngineManager.CurrentProject?.World;
@@ -117,6 +137,15 @@ namespace Hyperion.Editor.ViewModels
                 if (world == null)
                 {
                     return;
+                }
+
+                skySystem = FindDynamicSkySystem();
+
+                if (skySystem != null)
+                {
+                    skyWorld = world;
+                    skyWorldId = world.Id.Value;
+                    skySystemId = skySystem.Id.Value;
                 }
 
                 WorldGrid? worldGrid = world.WorldGrid;
@@ -168,6 +197,16 @@ namespace Hyperion.Editor.ViewModels
             {
                 HasWorldGrid = hasWorldGrid;
 
+                // only rebuilt when the sky system itself changes, so in-progress edits aren't disturbed
+                if (skySystem == null || skyWorld == null)
+                {
+                    Sky = null;
+                }
+                else if (Sky == null || Sky.SkySystemId != skySystemId || Sky.WorldId != skyWorldId)
+                {
+                    Sky = new SkySettingsViewModel(skyWorld, skyWorldId, skySystem, skySystemId);
+                }
+
                 layerTypes.Sort(StringComparer.OrdinalIgnoreCase);
 
                 IEnumerable<string> layerTypeNames = AvailableLayerTypes.Select(t => t.ClassName);
@@ -192,6 +231,21 @@ namespace Hyperion.Editor.ViewModels
             });
 
             IsRefreshing = false;
+        }
+
+        /// <summary>
+        /// The current project world's DynamicSkySystem, or null if it has none. Sim thread only.
+        /// </summary>
+        private static DynamicSkySystem? FindDynamicSkySystem()
+        {
+            if (EngineManager.EditorGame?.EditorSubsystem is not { } editorSubsystem)
+            {
+                return null;
+            }
+
+            DynamicSkySystem? skySystem = editorSubsystem.InvokeNativeMethod<DynamicSkySystem>(new Name("GetDynamicSkySystem"));
+
+            return skySystem != null && skySystem.IsValid ? skySystem : null;
         }
 
         /// <summary>

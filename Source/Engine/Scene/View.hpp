@@ -75,6 +75,7 @@ enum class ViewFlags : uint32
     SKIP_FOG_VOLUMES = 0x400,       //!< If set, the view will not collect FogVolumes.
     SKIP_CAMERAS = 0x800,           //!< If set, the view will not collect Cameras.
     SKIP_SPRITES = 0x1000,          //!< If set, the view will not collect Sprites.
+    SKIP_EFFECT_VOLUMES = 0x10000,  //!< If set, the view will not collect EffectVolumes.
 
     NOT_MULTI_BUFFERED = 0x2000,    //!< Disables double / triple buffering for the RenderProxyList this View writes to.
                                     //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
@@ -330,6 +331,7 @@ protected:
     void CollectLightmapVolumes(RenderProxyList& rpl);
     void CollectParticleVolumes(RenderProxyList& rpl);
     void CollectFogVolumes(RenderProxyList& rpl);
+    void CollectEffectVolumes(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
     void CollectSprites(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);

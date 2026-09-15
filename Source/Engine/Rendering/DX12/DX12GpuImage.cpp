@@ -256,6 +256,13 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
         SetResourceState(ResourceState::Common);
     }
 
+#ifdef HYP_RHI_DEBUG_NAMES
+    if (Name debugName = GetDebugName())
+    {
+        SetDebugName(debugName);
+    }
+#endif
+
     return {};
 }
 

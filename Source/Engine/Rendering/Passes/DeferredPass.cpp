@@ -32,6 +32,7 @@
 #include <Rendering/Passes/HBAOPass.hpp>
 #include <Rendering/Passes/BloomPass.hpp>
 #include <Rendering/DepthOfField.hpp>
+#include <Rendering/Frame.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Material.hpp>
@@ -62,8 +63,15 @@
 #include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
+
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
+
+#include <Scene/Sky/CloudEffectVolume.hpp>
+
+#include <Rendering/Clouds/CloudResources.hpp>
+#include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Framework/CVarManager.hpp>
 
@@ -145,6 +153,8 @@ CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvDrawWireframe { "Rendering.DrawWireframe", false };
 CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
 CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights", true };
+
+extern CVar<bool> g_cvClouds;
 
 #ifdef HYP_EDITOR
 CVar<bool> g_cvEditorGrid { "Editor.ShowGrid", true };
@@ -1081,6 +1091,9 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
         passData.fogVolumePass->Create();
 
+        passData.cloudPass = MakeUnique<CloudPass>(gbuffer->GetExtent(), gbuffer);
+        passData.cloudPass->Create();
+
 #ifdef HYP_EDITOR
         passData.editorGridPass = MakeUnique<EditorGridPass>();
         passData.editorGridPass->Create();
@@ -1289,6 +1302,9 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
     passData.fogVolumePass = MakeUnique<FogVolumePass>(newSize, gbuffer);
     passData.fogVolumePass->Create();
 
+    passData.cloudPass = MakeUnique<CloudPass>(newSize, gbuffer);
+    passData.cloudPass->Create();
+
 #ifdef HYP_EDITOR
     passData.editorGridPass = MakeUnique<EditorGridPass>();
     passData.editorGridPass->Create();
@@ -1369,6 +1385,44 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 if (gbuffer->GetExtent() != rs.viewport.extent)
                 {
                     ResizeView(rs.viewport, view, *pdCasted);
+                }
+            }
+
+            { // Clouds
+                Vec3f cloudCameraPosition = Vec3f::Zero();
+                
+                RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
+
+                if (cameraProxy)
+                {
+                    cloudCameraPosition = cameraProxy->bufferData.cameraPosition.GetXYZ();
+                }
+
+                Vec3f cloudDirectionToSun = Vec3f::Zero();
+
+                for (Light* light : rpl.GetLights())
+                {
+                    if (light->GetLightType() != LightType::Directional)
+                    {
+                        continue;
+                    }
+
+                    if (RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light)))
+                    {
+                        cloudDirectionToSun = lightProxy->bufferData.positionIntensity.GetXYZ();
+
+                        break;
+                    }
+                }
+
+                for (EffectVolume* effectVolume : rpl.GetEffectVolumes().GetElements<CloudEffectVolume>())
+                {
+                    const RenderProxyEffectVolume* cloudVolumeProxy = static_cast<RenderProxyEffectVolume*>(GetRenderProxy(effectVolume));
+
+                    if (cloudVolumeProxy)
+                    {
+                        RI.cloudResources->Update(frame, cloudVolumeProxy, cloudCameraPosition, cloudDirectionToSun);
+                    }
                 }
             }
         }
@@ -1962,6 +2016,17 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetStencilTest(false);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
+    }
+
+    if (g_cvClouds.Get())
+    {
+        // over the lit scene's sky pixels, before translucents so they draw in front of the clouds
+        passData.cloudPass->Render(frame, rs);
+
+        RenderSetup cloudCompositeRS = rs.Fork();
+        cloudCompositeRS.framebuffer = effectPassFramebuffer;
+
+        passData.cloudPass->Composite(frame, cloudCompositeRS);
     }
 
     frame->cr << SetAsyncShaderLoadingEnabled(true);

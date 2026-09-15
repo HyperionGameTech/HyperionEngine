@@ -145,6 +145,11 @@ DECLARE_SRV(FogVolume, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 DECLARE_SRV(FogVolume, DataMap) Texture3D<float4> DataMap;
 DECLARE_SRV(FogVolume, NoiseMap) Texture3D<float> NoiseMap;
 
+#include "../include/Clouds.hlsli"
+
+DECLARE_SRV(FogVolume, CloudWeatherMapTexture) Texture2DArray CloudWeatherMapTexture;
+DECLARE_SRV(FogVolume, CloudShadowMapTexture) Texture2D CloudShadowMapTexture;
+
 #ifdef CLUSTERED_LIGHTS
 
 DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
@@ -170,6 +175,10 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
     float4 cascadeOffsetX;
     float4 cascadeOffsetY;
     float4 cascadeOffsetZ;
+
+    CloudVolume cloudVolume;
+    CloudWeatherMap cloudWeatherMap;
+    CloudShadowMap cloudShadowMap;
 
     ShadowMap shadowMaps[MAX_CLUSTERED_SHADOW_MAPS];
 
@@ -209,6 +218,10 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
     float4 cascadeOffsetX;
     float4 cascadeOffsetY;
     float4 cascadeOffsetZ;
+
+    CloudVolume cloudVolume;
+    CloudWeatherMap cloudWeatherMap;
+    CloudShadowMap cloudShadowMap;
 
     Light fogLights[MAX_FOG_LIGHTS];
     ShadowMap fogLightShadowMaps[MAX_FOG_LIGHTS];
@@ -385,6 +398,8 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
             {
                 shadow = GetDirectionalLightCSMShadow(currentPos);
             }
+
+            shadow *= GetCloudShadow(CloudWeatherMapTexture, CloudShadowMapTexture, SamplerLinear, cloudVolume, cloudWeatherMap, cloudShadowMap, currentPos, -lightDir);
 
             stepLightEnergy += directionalLight.color.rgb * directionalLight.position_intensity.w * phase * shadow;
         }

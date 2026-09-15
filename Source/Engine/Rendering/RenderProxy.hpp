@@ -10,7 +10,10 @@
 
 #include <Core/Containers/FixedArray.hpp>
 
+#include <Core/Memory/Memory.hpp>
+
 #include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Vector2.hpp>
 #include <Core/Math/Mat3f.hpp>
 #include <Core/Math/Mat4f.hpp>
 #include <Core/Math/Frustum.hpp>
@@ -29,6 +32,7 @@ class Texture;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
+class EffectVolume;
 class Material;
 class Skeleton;
 class EnvProbe;
@@ -272,6 +276,76 @@ struct RenderProxyFogVolume : IRenderProxy
     Texture* noiseTexture = nullptr;
     BoundingBox worldAabb;
     FogVolumeShaderData bufferData {};
+};
+
+struct EffectVolumeShaderData
+{
+    Vec4f aabbMin;
+    Vec4f aabbMax;
+
+    // layout depends on the volume's class, e.g. CloudVolumeShaderData for CloudEffectVolume
+    Vec4f params[14];
+
+    template <class ParamsType>
+    void SetParams(const ParamsType& value)
+    {
+        static_assert(std::is_trivially_copyable_v<ParamsType> && sizeof(ParamsType) <= sizeof(params));
+
+        Memory::Copy(params, &value, sizeof(ParamsType));
+    }
+
+    template <class ParamsType>
+    ParamsType GetParams() const
+    {
+        static_assert(std::is_trivially_copyable_v<ParamsType> && sizeof(ParamsType) <= sizeof(params));
+
+        ParamsType value;
+        Memory::Copy(&value, params, sizeof(ParamsType));
+
+        return value;
+    }
+};
+
+static_assert(sizeof(EffectVolumeShaderData) == 256);
+
+// matches CloudVolumeParams in Shaders/Include/Clouds.hlsli
+struct CloudVolumeShaderData
+{
+    float coverage;
+    float cloudTypeBias;
+    float densityMultiplier;
+    float detailErosion;
+
+    float baseAltitude;
+    float layerThickness;
+    float hazeDistance;
+    uint32 seed;
+
+    float weatherScale;
+    float shapeNoiseScale;
+    float detailNoiseScale;
+    float evolutionTime;
+
+    Vec2f windDirection;
+    float shadowStrength;
+    float shadowSoftness;
+
+    // wind offsets, each wrapped to the period of the noise it scrolls so floats stay precise
+    Vec2f weatherWindOffset;
+    Vec2f shapeWindOffset;
+
+    Vec2f detailWindOffset;
+    uint32 enabled;
+    float cloudSize;
+};
+
+static_assert(sizeof(CloudVolumeShaderData) % 16 == 0);
+
+struct RenderProxyEffectVolume : IRenderProxy
+{
+    EffectVolume* effectVolume = nullptr;
+    BoundingBox worldAabb;
+    EffectVolumeShaderData bufferData {};
 };
 
 struct MaterialShaderData

@@ -76,6 +76,7 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #include "include/Gbuffer.hlsli"
 #include "include/Entity.hlsli"
 #include "include/Scene.hlsli"
+#include "include/Clouds.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/Material.hlsli"
@@ -108,11 +109,20 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     float4 cascadeOffsetX;
     float4 cascadeOffsetY;
     float4 cascadeOffsetZ;
+
+    CloudVolume cloudVolume;
+    CloudWeatherMap cloudWeatherMap;
+    CloudShadowMap cloudShadowMap;
 #else // !LIGHT_TYPE_DIRECTIONAL
     ShadowMap shadowMap;
 #endif // LIGHT_TYPE_DIRECTIONAL
 };
 #endif // !LIGHT_TYPE_CLUSTERED
+
+#ifdef LIGHT_TYPE_DIRECTIONAL
+DECLARE_SRV(DeferredPass, CloudWeatherMapTexture) Texture2DArray cloudWeatherMapTexture;
+DECLARE_SRV(DeferredPass, CloudShadowMapTexture) Texture2D cloudShadowMapTexture;
+#endif // LIGHT_TYPE_DIRECTIONAL
 
 #ifdef LIGHT_TYPE_AREA_RECT
 
@@ -517,7 +527,20 @@ PSOutput PSMain(PSInput input)
             shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, position.xyz, N, texcoord, NdotL), nextCascadeWeight);
         }
     }
-#endif // LIGHT_TYPE_POINT
+    
+    // cloud coverage
+    
+    const float cloudShadow = GetCloudShadow(cloudWeatherMapTexture, cloudShadowMapTexture, sampler_linear, cloudVolume, cloudWeatherMap, cloudShadowMap, position.xyz, L);
+    shadow *= cloudShadow;
+    
+    [branch]
+    if (cloudWeatherMap.debugShadows != 0)
+    {
+        output.output_color = float4((1.0 - cloudShadow) * float3(1.0, 0.0, 1.0), 1.0);
+
+        return output;
+    }
+#endif
 
     const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
     const float G = V_SmithGGXCorrelated(roughness * roughness, NdotV, NdotL);

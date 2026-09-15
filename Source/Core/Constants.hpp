@@ -62,6 +62,7 @@ static constexpr uint32 MaxBoundMeshes = 1u << 15;           // 32768
 static constexpr uint32 MaxBoundResourceTextures = 1u << 14; // 16384
 static constexpr uint32 MaxBoundParticleVolumes = 256;
 static constexpr uint32 MaxBoundFogVolumes = 256;
+static constexpr uint32 MaxBoundEffectVolumes = 256;
 
 // Per-material texture slots.
 static constexpr uint32 MaxBoundTextures = 16;

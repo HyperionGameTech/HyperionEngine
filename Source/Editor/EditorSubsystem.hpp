@@ -53,6 +53,7 @@ class LightmapVolume;
 class VolumeBase;
 class TerrainWorldGridLayer;
 class WorldGridLayer;
+class DynamicSkySystem;
 class EditorTerrainState;
 class AppContextBase;
 struct Ray;
@@ -543,6 +544,10 @@ public:
     /*! \brief Names of all concrete WorldGridLayer-derived classes registered with the engine. */
     HYP_METHOD()
     Array<Name> GetAvailableWorldGridLayerClassNames() const;
+
+    /*! \brief The current project world's DynamicSkySystem, or an empty handle if it has none. */
+    HYP_METHOD()
+    Handle<DynamicSkySystem> GetDynamicSkySystem() const;
 
     HYP_METHOD()
     EditorManipulationMode GetSelectedManipulationMode() const;

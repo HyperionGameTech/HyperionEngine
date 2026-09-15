@@ -57,6 +57,7 @@ class ShaderManager;
 class DeletionQueue;
 class BLASCache;
 class ShadowMapCache;
+class CloudResources;
 class CrashHandler;
 class EngineConfig;
 class SamplerCache;
@@ -442,6 +443,8 @@ public:
     BLASCache* blasCache;
 
     ShadowMapCache* shadowMapCache;
+
+    CloudResources* cloudResources;
 
     FinalPass* finalPass;
 

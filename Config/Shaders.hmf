@@ -188,6 +188,31 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GenerateMipmap" {
             CS = "GenerateMipmap.hlsl"
         }
+        ShaderDefinition "CloudWeatherMap" {
+            CS = "Clouds/CloudWeatherMap.hlsl"
+        }
+        ShaderDefinition "CloudNoiseGenerate" {
+            CS = "Clouds/CloudNoiseGenerate.hlsl"
+        }
+        ShaderDefinition "CloudNoiseDownsample" {
+            CS = "Clouds/CloudNoiseDownsample.hlsl"
+        }
+        ShaderDefinition "CloudTrace" {
+            CS = "Clouds/CloudTrace.hlsl"
+        }
+        ShaderDefinition "CloudReconstruct" {
+            CS = "Clouds/CloudReconstruct.hlsl"
+        }
+        ShaderDefinition "CloudComposite" {
+            VS = "Clouds/CloudComposite.hlsl"
+            PS = "Clouds/CloudComposite.hlsl"
+        }
+        ShaderDefinition "CloudShadowMap" {
+            CS = "Clouds/CloudShadowMap.hlsl"
+        }
+        ShaderDefinition "CloudSkyProbe" {
+            CS = "Clouds/CloudSkyProbe.hlsl"
+        }
         ShaderDefinition "EditorGrid" {
             VS = "Editor/EditorGrid.hlsl"
             PS = "Editor/EditorGrid.hlsl"

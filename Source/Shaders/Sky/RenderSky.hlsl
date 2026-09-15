@@ -41,35 +41,10 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
 
-#define PLANET_RADIUS 6371e3
-#define ATMOSPHERE_RADIUS 6471e3
-
-#define RAYLEIGH_SCATTER_COEFF float3(5.5e-6, 13.0e-6, 22.4e-6)
-#define RAYLEIGH_SCATTER_HEIGHT 8e3
-
-#define MIE_SCATTER_COEFF 21e-6
-#define MIE_SCATTER_HEIGHT 1.2e3
-#define MIE_SCATTER_DIRECTION 0.758
+#include "../include/Atmosphere.hlsli"
 
 #define NUM_STEPS_X 16
 #define NUM_STEPS_Y 16
-
-float2 RaySphereIntersection(float3 r0, float3 rd, float sr)
-{
-    float a = dot(rd, rd);
-    float b = 2.0 * dot(rd, r0);
-    float c = dot(r0, r0) - (sr * sr);
-    float d = (b * b) - 4.0 * a * c;
-
-    if (d < 0.0)
-    {
-        return float2(1e5, -1e5);
-    }
-
-    return float2(
-        (-b - sqrt(d)) / (2.0 * a),
-        (-b + sqrt(d)) / (2.0 * a));
-}
 
 float3 GetAtmosphere(float3 ray_direction, float3 light_direction, float sun_intensity)
 {

@@ -43,7 +43,7 @@ namespace Hyperion {
 
 extern uint32 GetFrameCounter();
 
-static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(1.0f); // update every second
+static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(0.33f);
 
 DynamicSkySystem::DynamicSkySystem()
     : m_updateTimer { DynamicSkyUpdateTimer },
@@ -121,9 +121,11 @@ void DynamicSkySystem::InitializeSky()
         m_visScene->SetIsTransient(true); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
-        m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(
+        Handle<SkyProbe> skyProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(
             BoundingBox::Infinity(),
             SkyProbe::DefaultDimensions);
+
+        m_envProbe = skyProbe;
 
         m_envProbe->SetName(NAME("DynamicSkyProbe"));
         InitObject(m_envProbe);
@@ -133,7 +135,7 @@ void DynamicSkySystem::InitializeSky()
         m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates
 
         Handle<Material> skyboxMaterial = MakeHandle<Material>(NAME("SkyboxMaterial"), materialAttributes);
-        skyboxMaterial->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
+        skyboxMaterial->SetTexture(MaterialTextureKey::Diffuse, skyProbe->GetSkyboxCubemap());
         skyboxMaterial->SetIsTransient(true);
         InitObject(skyboxMaterial);
 
@@ -141,6 +143,13 @@ void DynamicSkySystem::InitializeSky()
 
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterial });
+
+        m_cloudEffectVolume = MakeHandle<CloudEffectVolume>();
+        m_cloudEffectVolume->SetName(NAME("CloudEffectVolume"));
+        m_cloudEffectVolume->SetSettings(m_cloudSettings);
+        InitObject(m_cloudEffectVolume);
+
+        m_visScene->GetRoot()->AddChild(m_cloudEffectVolume);
 
 #if 0
         // Sky Visibility view
@@ -229,8 +238,25 @@ void DynamicSkySystem::OnRemovedFromWorld(World* world)
     GetWorld()->RemoveScene(m_visScene);
 }
 
+void DynamicSkySystem::SetCloudSettings(const CloudSettings& cloudSettings)
+{
+    m_cloudSettings = cloudSettings;
+
+    // settings can be deserialized before the sky is initialized; InitializeSky() applies them then
+    if (m_cloudEffectVolume.IsValid())
+    {
+        m_cloudEffectVolume->SetSettings(m_cloudSettings);
+    }
+}
+
 void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
 {
+    // advances whether or not the game is simulating, so clouds move in the editor too
+    if (m_cloudEffectVolume.IsValid())
+    {
+        m_cloudEffectVolume->AdvanceClock(delta);
+    }
+
     if (!m_envProbe)
     {
         return;

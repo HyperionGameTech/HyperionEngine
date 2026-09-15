@@ -37,6 +37,8 @@
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
 
+#include <Rendering/Clouds/CloudResources.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
@@ -613,6 +615,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         shadowMapViewsStatic,
                         shadowMaps,
                         numCascadesToWrite);
+
+                    RI.cloudResources->WriteShaderData(*RI.cbufferAllocator, rpl);
                 }
                 else
                 {
@@ -644,6 +648,12 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], Resources::GetBinding(light));
 
+            if (lightType == LightType::Directional)
+            {
+                cr << SetShaderUniform(localNumShaderUniforms++, "CloudWeatherMapTexture"_sh, RI.cloudResources->GetWeatherMapView());
+                cr << SetShaderUniform(localNumShaderUniforms++, "CloudShadowMapTexture"_sh, RI.cloudResources->GetShadowMapView());
+            }
+
             if (lightType == LightType::AreaRect)
             {
                 if (lightProxy != nullptr && lightProxy->lightMaterial != nullptr)
@@ -671,11 +681,15 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 cr << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
 
-                if (m_ltcMatrixTexture != nullptr)
+                if (m_ltcMatrixTexture.IsValid())
+                {
                     cr << SetShaderUniform(localNumShaderUniforms++, "LTCMatrixTexture"_sh, RI.textureViewCache->GetOrCreate(m_ltcMatrixTexture));
+                }
 
-                if (m_ltcBrdfTexture != nullptr)
+                if (m_ltcBrdfTexture.IsValid())
+                {
                     cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, RI.textureViewCache->GetOrCreate(m_ltcBrdfTexture));
+                }
             }
 
             cr << CommitDrawState();

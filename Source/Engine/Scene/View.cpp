@@ -15,6 +15,7 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
@@ -896,6 +897,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectLightmapVolumes(rpl);
             CollectParticleVolumes(rpl);
             CollectFogVolumes(rpl);
+            CollectEffectVolumes(rpl);
             CollectEnvProbes(rpl);
             CollectSprites(rpl);
             CollectMeshEntities(rpl);
@@ -1619,6 +1621,54 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
             }
 
             rpl.GetFogVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
+        }
+    }
+}
+
+void View::CollectEffectVolumes(RenderProxyList& rpl)
+{
+    HYP_SCOPE;
+
+    if (flags & (ViewFlags::SKIP_EFFECT_VOLUMES | ViewFlags::SHADOW_VIEW))
+    {
+        return;
+    }
+
+    for (Scene* scene : m_scenes)
+    {
+        World* world = scene->GetWorld();
+        const LayersMask& activeLayers = world->GetActiveLayers();
+
+        for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<EffectVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!volume->HasNoLayers() && !volume->IsInAnyLayers(activeLayers))
+            {
+                continue;
+            }
+
+            const BoundingBox worldBounds = volume->GetWorldBounds();
+
+            if (!worldBounds.IsValid())
+            {
+                HYP_LOG(Scene, Warning, "EffectVolume {} has an invalid AABB in view {}", volume->Id(), Id());
+                continue;
+            }
+
+            // unbounded volumes (e.g. clouds) are never culled
+            if (worldBounds.IsFinite())
+            {
+                if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
+                {
+                    continue;
+                }
+
+                if (!(flags & ViewFlags::NO_FRUSTUM_CULLING) && !cachedFrustum.ContainsAABB(worldBounds))
+                {
+                    continue;
+                }
+            }
+
+            rpl.GetEffectVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
         }
     }
 }

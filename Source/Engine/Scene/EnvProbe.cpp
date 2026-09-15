@@ -685,6 +685,14 @@ void EnvProbe::CreateViewData()
         StoreOperation::Store
     });
 
+    EnumFlags<ImageUsage> colorUsage = ImageUsage::Sampled | ImageUsage::Attachment;
+
+    // clouds are composited into the sky capture by compute
+    if (IsSkyProbe())
+    {
+        colorUsage |= ImageUsage::Storage;
+    }
+
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         colorDesc.imageType,
         colorDesc.format,
@@ -693,7 +701,7 @@ void EnvProbe::CreateViewData()
         TextureFilterMode::Linear,
         TextureWrapMode::ClampToEdge,
         1,
-        ImageUsage::Sampled | ImageUsage::Attachment }));
+        colorUsage }));
 
     // Visibility target
     // @FIXME: Needs to be created with HAS_VISIBILITY flag set for this to ever be created.
@@ -1531,8 +1539,33 @@ void ReflectionProbe::BakeCubemap()
 
 #pragma region SkyProbe
 
+SkyProbe::~SkyProbe()
+{
+    if (m_skyboxTexture.IsValid())
+    {
+        EnqueueDeletion(std::move(m_skyboxTexture));
+    }
+}
+
 void SkyProbe::CreateTexture()
 {
+    if (!m_skyboxTexture.IsValid())
+    {
+        m_skyboxTexture = MakeHandle<Texture>(TextureDesc {
+            TextureType::Cubemap,
+            TextureFormat::RGBA16F,
+            Vec3u(Vec2u(uint32(m_dimensions)), 1),
+            TextureFilterMode::Linear,
+            TextureFilterMode::Linear,
+            TextureWrapMode::ClampToEdge,
+            1,
+            ImageUsage::Storage | ImageUsage::Sampled
+        });
+
+        m_skyboxTexture->SetName(NAME_FMT("{}_SkyboxMap", GetName()));
+        m_skyboxTexture->SetIsTransient(true);
+    }
+
     if (m_texture.IsValid())
     {
         return;
