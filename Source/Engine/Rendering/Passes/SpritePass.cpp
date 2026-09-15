@@ -8,6 +8,7 @@
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderConfig.hpp>
+#include <Rendering/Bindless.hpp>
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/GBuffer.hpp>
@@ -600,7 +601,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             const float textSize = spriteProxy->bufferData.positionSize.w;
 
-            const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
+            const uint32 textureIndex = GetBindlessTextureIndex(spriteProxy->texture);
 
             const TextMetrics metrics = MeasureText(*spriteProxy->fontAtlas, spriteProxy->text, textSize);
 

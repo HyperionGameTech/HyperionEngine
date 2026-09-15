@@ -67,4 +67,7 @@ private:
     ResourceList m_resources[BindlessStorage_Max];
 };
 
+/// render thread only
+uint32 GetBindlessTextureIndex(const Texture* texture);
+
 } // namespace Hyperion

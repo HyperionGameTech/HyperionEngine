@@ -59,6 +59,16 @@ struct CharacterControllerConfig
     float minGroundSupportMass = 20.0f;
 };
 
+// Everything about a character's movement besides its position, so client prediction can rewind to a past move
+struct CharacterMotionState
+{
+    Vec3f horizontalVelocity;
+    float verticalVelocity = 0.0f;
+    float coyoteTimeRemaining = 0.0f;
+    float jumpBufferTimeRemaining = 0.0f;
+    bool isRisingFromJump = false;
+};
+
 template <class DerivedAdapter>
 class PhysicsAdapter
 {
@@ -171,6 +181,16 @@ public:
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround)
     {
         GetDerivedAdapter()->DerivedAdapter::GetCharacterState(physicsHandle, outTranslation, outIsOnGround);
+    }
+
+    void GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState)
+    {
+        GetDerivedAdapter()->DerivedAdapter::GetCharacterMotionState(physicsHandle, outMotionState);
+    }
+
+    void SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState)
+    {
+        GetDerivedAdapter()->DerivedAdapter::SetCharacterMotionState(physicsHandle, motionState);
     }
 
     void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)

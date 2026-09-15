@@ -1105,8 +1105,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
     {
         const JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 
-        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround
-            && !character->IsSlopeTooSteep(character->GetGroundNormal());
+        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
 
         JPH::Vec3 groundVelocity = character->GetGroundVelocity();
 
@@ -1249,6 +1248,8 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         updateSettings.mWalkStairsStepUp = JPH::Vec3(0.0f, internalData->stepHeight, 0.0f);
 
+        const JPH::RVec3 previousPosition = character->GetPosition();
+
         character->ExtendedUpdate(
             substepDelta,
             gravity,
@@ -1258,6 +1259,17 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             *m_characterBodyFilter,
             JPH::ShapeFilter(),
             *m_tempAllocator);
+
+        const float achievedVerticalSpeed = JPH::Vec3(character->GetPosition() - previousPosition).GetY() / substepDelta;
+
+        JPH::Vec3 resolvedVelocity = character->GetLinearVelocity();
+
+        if (resolvedVelocity.GetY() < 0.0f && achievedVerticalSpeed > resolvedVelocity.GetY())
+        {
+            resolvedVelocity.SetY(MathUtil::Min(achievedVerticalSpeed, 0.0f));
+
+            character->SetLinearVelocity(resolvedVelocity);
+        }
     }
 }
 
@@ -1275,12 +1287,6 @@ void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
     const Vec3f feetPosition = translation - Vec3f(0.0f, internalData->capsuleCenterOffset, 0.0f);
 
     character->SetPosition(ToJPHVec(feetPosition));
-
-    internalData->jumpBufferTimeRemaining = 0.0f;
-    internalData->coyoteTimeRemaining = 0.0f;
-    internalData->walkVelocity = Vec3f::Zero();
-    internalData->isRisingFromJump = false;
-    internalData->commandedHorizontalVelocity = JPH::Vec3::sZero();
 
     character->RefreshContacts(
         m_physicsSystem->GetDefaultBroadPhaseLayerFilter(JoltLayers::MOVING),
@@ -1319,6 +1325,39 @@ void JoltPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle,
 
     outTranslation = FromJPHVec(character->GetPosition()) + Vec3f(0.0f, internalData->capsuleCenterOffset, 0.0f);
     outIsOnGround = character->IsSupported();
+}
+
+void JoltPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState)
+{
+    JoltCharacterControllerInternalData* internalData = static_cast<JoltCharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    outMotionState.horizontalVelocity = FromJPHVec(internalData->commandedHorizontalVelocity);
+    outMotionState.verticalVelocity = internalData->character->GetLinearVelocity().GetY();
+    outMotionState.coyoteTimeRemaining = internalData->coyoteTimeRemaining;
+    outMotionState.jumpBufferTimeRemaining = internalData->jumpBufferTimeRemaining;
+    outMotionState.isRisingFromJump = internalData->isRisingFromJump;
+}
+
+void JoltPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState)
+{
+    JoltCharacterControllerInternalData* internalData = static_cast<JoltCharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    internalData->commandedHorizontalVelocity = JPH::Vec3(motionState.horizontalVelocity.x, 0.0f, motionState.horizontalVelocity.z);
+    internalData->coyoteTimeRemaining = motionState.coyoteTimeRemaining;
+    internalData->jumpBufferTimeRemaining = motionState.jumpBufferTimeRemaining;
+    internalData->isRisingFromJump = motionState.isRisingFromJump;
+
+    internalData->character->SetLinearVelocity(JPH::Vec3(motionState.horizontalVelocity.x, motionState.verticalVelocity, motionState.horizontalVelocity.z));
 }
 
 void JoltPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)

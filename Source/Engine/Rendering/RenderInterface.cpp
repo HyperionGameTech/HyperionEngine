@@ -2371,7 +2371,7 @@ DECLARE_RENDER_DATA_CONTAINER(CloudEffectVolume, RenderProxyEffectVolume, NamedB
 DECLARE_RENDER_DATA_CONTAINER(Sprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 DECLARE_RENDER_DATA_CONTAINER(TextSprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
+DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, NamedBuffer::Materials, &WriteBufferData_Material, &s_materialBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, NamedBuffer::Invalid, nullptr, &s_textureBinder);
 

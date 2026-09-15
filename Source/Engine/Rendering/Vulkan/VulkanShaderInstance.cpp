@@ -148,6 +148,11 @@ RendererResult VulkanShaderInstance::AttachShaderModules()
 
         Assert(blob.Size() != 0);
 
+        if (blob.Data() == nullptr)
+        {
+            return HYP_MAKE_ERROR(RendererError, "Blob data for shader '{}' module '{}' failed to page in, the shader cache may be stale", 0, m_shader->GetName(), moduleName);
+        }
+
         CheckResultOrReturn(AttachShaderModule(moduleType, moduleName, entryPointName, blob));
     }
 

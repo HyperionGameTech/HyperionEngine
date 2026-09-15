@@ -31,6 +31,7 @@ extern void OnBindingChanged_FogVolume(FogVolume* fogVolume, uint32 prev, uint32
 extern void OnBindingChanged_Sprite(Sprite* sprite, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next);
+extern void WriteBufferData_Material(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 

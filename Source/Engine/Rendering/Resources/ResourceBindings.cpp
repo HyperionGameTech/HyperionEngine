@@ -334,6 +334,54 @@ void WriteBufferData_Light(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* 
     sbuffer.Write(idx * sizeof(bufferData), sizeof(bufferData), &bufferData);
 }
 
+void WriteBufferData_Material(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy)
+{
+    AssertDebug(idx != InvalidBinding);
+
+    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
+    static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
+
+    RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
+    AssertDebug(proxyCasted != nullptr);
+
+    if (!s_isBindlessSupported)
+    {
+        sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
+
+        return;
+    }
+
+    MaterialShaderData& bufferData = proxyCasted->bufferData;
+    uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);
+
+    for (uint32 slot = 0; slot < uint32(proxyCasted->boundTextureIndices.Size()); slot++)
+    {
+        const uint32 boundTextureIndex = proxyCasted->boundTextureIndices[slot];
+
+        if (boundTextureIndex == InvalidBinding)
+        {
+            continue;
+        }
+
+        AssertDebug(boundTextureIndex < proxyCasted->boundTextures.Size());
+
+        const uint32 bindlessTextureIndex = GetBindlessTextureIndex(proxyCasted->boundTextures[boundTextureIndex]);
+
+        if (bindlessTextureIndex == InvalidBinding)
+        {
+            bufferData.textureUsage &= ~(1u << slot);
+            textureIndicesU32[slot] = 0;
+
+            continue;
+        }
+
+        bufferData.textureUsage |= (1u << slot);
+        textureIndicesU32[slot] = bindlessTextureIndex;
+    }
+
+    sbuffer.Write(idx * sizeof(bufferData), sizeof(bufferData), &bufferData);
+}
+
 void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 {
     AssertOnThread(g_renderThread);
@@ -404,13 +452,19 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     {
         if (next != InvalidBinding)
         {
-            // @TODO Use 'next' rather than texture->Id().ToIndex() here
-            RI.bindlessStorage->AddResource(BindlessStorage_Textures, texture->Id().ToIndex(), RI.textureViewCache->GetOrCreate(texture));
+            if (next < MaxBindlessResources[BindlessStorage_Textures])
+            {
+                RI.bindlessStorage->AddResource(BindlessStorage_Textures, next, RI.textureViewCache->GetOrCreate(texture));
+            }
+            else
+            {
+                HYP_LOG_ONCE(Rendering, Warning, "Texture binding {} for {} exceeds the bindless texture array size ({}), it will not be sampled",
+                    next, texture->Id(), MaxBindlessResources[BindlessStorage_Textures]);
+            }
         }
-        else
+        else if (prev != InvalidBinding)
         {
-            // @TODO Use 'prev' rather than texture->Id().ToIndex() here
-            RI.bindlessStorage->RemoveResource(BindlessStorage_Textures, texture->Id().ToIndex());
+            RI.bindlessStorage->RemoveResource(BindlessStorage_Textures, prev);
         }
     }
 

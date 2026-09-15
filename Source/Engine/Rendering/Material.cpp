@@ -448,14 +448,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
 
-            if (useBindlessTextures)
-            {
-                textureIndicesU32[slot] = texture->Id().ToIndex();
-            }
-            else
-            {
-                textureIndicesU32[slot] = idx;
-            }
+            textureIndicesU32[slot] = idx;
 
             bufferData.textureUsage |= (1u << slot);
             proxy->boundTextureIndices[slot] = idx;

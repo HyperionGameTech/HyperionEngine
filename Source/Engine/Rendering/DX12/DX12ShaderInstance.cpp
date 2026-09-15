@@ -77,6 +77,11 @@ RendererResult DX12ShaderInstance::Create()
             continue;
         }
 
+        if (blob.Data() == nullptr)
+        {
+            return HYP_MAKE_ERROR(RendererError, "Blob data for shader '{}' module '{}' failed to page in, the shader cache may be stale", 0, m_shader->GetName(), moduleName);
+        }
+
         ubyte* ownedData = (ubyte*)g_dx12Pool->Allocate(blob.Size());
         Assert(ownedData != nullptr);
 

@@ -104,6 +104,14 @@ void NullPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle,
 {
 }
 
+void NullPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState)
+{
+}
+
+void NullPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState)
+{
+}
+
 void NullPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
 {
     out.Clear();

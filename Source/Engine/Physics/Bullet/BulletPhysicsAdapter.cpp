@@ -1132,6 +1132,16 @@ void BulletPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandl
     outIsOnGround = internalData->kcc->onGround();
 }
 
+// btKinematicCharacterController has no persistent horizontal momentum or jump timers, and its vertical velocity
+// already survives SetCharacterTranslation, so there's nothing to snapshot here
+void BulletPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState)
+{
+}
+
+void BulletPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState)
+{
+}
+
 void BulletPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
 {
     out.Clear();

@@ -358,6 +358,9 @@ public:
 
     void SetAsset(AssetDesc& assetDesc, const Handle<AssetObject>& assetObject);
 
+    // expectedAsset: when set, only remove if the slot still holds this asset, to prevent deleting an asset that has since been replaced.
+    void RemoveAsset(StringHash name, const AssetObject* expectedAsset);
+
     /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
      *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
      *   \param comparator If provided, returning true from the comparator will indicate equality between assets,
@@ -1360,26 +1363,34 @@ void AssetRegistry::RemoveAsset(const Handle<AssetObject>& asset)
         return;
     }
 
-    RemoveAsset(bucket, asset->GetName());
+    m_assetBucketData[bucket.GetIndex()].RemoveAsset(asset->GetName(), asset.Get());
 }
 
 void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
 {
-    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+    m_assetBucketData[bucket.GetIndex()].RemoveAsset(name, nullptr);
+}
 
-    TUniqueLock lock(data.mtx);
+void AssetBucketData::RemoveAsset(StringHash name, const AssetObject* expectedAsset)
+{
+    TUniqueLock lock(mtx);
 
-    auto it = data.assetDescs.Find(name);
-    if (it == data.assetDescs.End())
+    auto it = assetDescs.Find(name);
+    if (it == assetDescs.End())
     {
         return;
     }
 
-    Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(it->index);
+    Handle<AssetObject>* pAssetObject = assetObjectCache.TryGet(it->index);
 
     if (pAssetObject != nullptr && pAssetObject->IsValid())
     {
         Handle<AssetObject>& assetObject = *pAssetObject;
+
+        if (expectedAsset != nullptr && assetObject.Get() != expectedAsset)
+        {
+            return;
+        }
 
         assetObject->m_assetIndex = AssetDesc::InvalidIndex;
         assetObject->OnUnloaded();
@@ -1393,10 +1404,10 @@ void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
         return;
     }
 
-    data.assetDescs.Erase(it);
-    data.usedIndices.Set(index, false);
-    data.dirtyIndices.Set(index, false);
-    data.assetObjectCache.EraseAt(index);
+    assetDescs.Erase(it);
+    usedIndices.Set(index, false);
+    dirtyIndices.Set(index, false);
+    assetObjectCache.EraseAt(index);
 }
 
 void AssetRegistry::SyncAssetName(const AssetBucket& bucket, Name oldName, Name newName)

@@ -110,4 +110,17 @@ void BindlessStorage::RemoveResource(BindlessStorageSlot slot, uint32 index)
     resources.EraseAt(index);
 }
 
+uint32 GetBindlessTextureIndex(const Texture* texture)
+{
+    const uint32 binding = Resources::GetBinding(texture);
+
+    // bindings past the end of the bindless array never get a descriptor written for them
+    if (binding >= MaxBindlessResources[BindlessStorage_Textures])
+    {
+        return Resources::InvalidBinding;
+    }
+
+    return binding;
+}
+
 } // namespace Hyperion
