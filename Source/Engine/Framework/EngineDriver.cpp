@@ -473,6 +473,13 @@ void EngineDriver::LoadEngineContent()
 
             if (syncResult.HasError())
             {
+                if (EngineGlobals::IsHeadless())
+                {
+                    HYP_LOG(Assets, Error, "Failed to sync engine content from {}: {}", EngineGlobals::GetCacheServerAddress(), syncResult.GetError().GetMessage());
+
+                    std::exit(1);
+                }
+
                 bool clickedRetry = false;
                 bool clickedExit = false;
 
@@ -507,6 +514,11 @@ void EngineDriver::LoadEngineContent()
     {
         // Initialize with no sync.
         engineRegistry->Initialize(nullptr);
+    }
+    else if (EngineGlobals::IsHeadless())
+    {
+        // nobody to click through the prompt (e.g. a server launched by the editor with a fresh --cachedir)
+        doSync();
     }
     else
     {

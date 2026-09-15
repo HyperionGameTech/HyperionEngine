@@ -41,6 +41,8 @@
 
 #include <Core/Threading/Threads.hpp>
 
+#include <Core/Utilities/GlobalContext.hpp>
+
 #include <Core/Core.hpp>
 
 #include <Asset/Assets.hpp>
@@ -136,7 +138,9 @@ void RenderThread::Update()
 
     float targetFrameRate = g_cvTargetFrameRate.Get();
 
-    if (g_cvLimitFrameRateWhenIdle.Get() && (!mainWindow || !mainWindow->HasFocus()))
+    const bool isIdle = (!mainWindow || !mainWindow->HasFocus()) && !IsGlobalContextActive<SuppressIdleThrottlingContext>();
+
+    if (g_cvLimitFrameRateWhenIdle.Get() && isIdle)
     {
         targetFrameRate = (targetFrameRate > 0) ? MathUtil::Min(targetFrameRate, IdleMaxFrameRate) : IdleMaxFrameRate;
 
@@ -175,7 +179,7 @@ void RenderThread::Update()
         {
             if (g_cvSkipRenderingWhenIdle.Get() > 0)
             {
-                const bool skipRenderingThisFrame = (!mainWindow || !mainWindow->HasFocus());
+                const bool skipRenderingThisFrame = isIdle;
 
                 if ((skipRenderingValue != 0) != skipRenderingThisFrame)
                 {

@@ -148,6 +148,7 @@ public:
 
     void RemoveCached();
     void RemoveCached(const AssetBucket& bucket);
+    void RemoveCached(const AssetBucket& bucket, StringHash name);
 
     /// End new assetbucket based stuff
 

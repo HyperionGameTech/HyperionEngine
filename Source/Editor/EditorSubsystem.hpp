@@ -92,7 +92,8 @@ enum class EditorPlayNetState : uint8
     Connected,
     Failed,
     Disconnected,
-    Hosting
+    Hosting,
+    StartingServer
 };
 
 struct MeshEditFaceSelection
@@ -539,10 +540,43 @@ public:
     void SetPlayNetPort(uint32 port);
 
     HYP_METHOD()
+    bool GetPlayNetAutoLaunchServer() const
+    {
+        return m_playNetAutoLaunchServer;
+    }
+
+    HYP_METHOD()
+    void SetPlayNetAutoLaunchServer(bool autoLaunchServer);
+
+    HYP_METHOD()
+    uint32 GetPlayNetCachePort() const
+    {
+        return m_playNetCachePort;
+    }
+
+    HYP_METHOD()
+    void SetPlayNetCachePort(uint32 port);
+
+    HYP_METHOD()
     EditorPlayNetState GetPlayNetState() const
     {
         return m_playNetState;
     }
+
+    HYP_METHOD()
+    bool IsPlayNetServerAutoLaunched() const
+    {
+        return m_activeAutoLaunchServer;
+    }
+
+    HYP_METHOD()
+    String GetPlayNetProjectDirectory() const;
+
+    HYP_METHOD()
+    void OnPlayNetServerReady();
+
+    HYP_METHOD()
+    void OnPlayNetServerFailed();
 
     HYP_METHOD()
     bool ExecuteCommand(const Handle<EditorCommandBase>& command);
@@ -978,9 +1012,12 @@ private:
     EditorPlayNetMode m_playNetMode;
     String m_playNetHost;
     uint32 m_playNetPort;
+    bool m_playNetAutoLaunchServer;
+    uint32 m_playNetCachePort;
 
-    // latched from m_playNetMode when a simulation starts
+    // latched from the settings above when a simulation starts
     EditorPlayNetMode m_activeNetMode;
+    bool m_activeAutoLaunchServer;
     EditorPlayNetState m_playNetState;
 
     Handle<Entity> m_meshPreviewEntity;

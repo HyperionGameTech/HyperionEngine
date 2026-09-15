@@ -9,11 +9,15 @@ namespace Hyperion.Editor.ViewModels
     {
         public string Host { get; }
         public uint Port { get; }
+        public bool AutoLaunchServer { get; }
+        public uint CachePort { get; }
 
-        public NetworkSettingsResult(string host, uint port)
+        public NetworkSettingsResult(string host, uint port, bool autoLaunchServer, uint cachePort)
         {
             Host = host;
             Port = port;
+            AutoLaunchServer = autoLaunchServer;
+            CachePort = cachePort;
         }
     }
 
@@ -47,6 +51,26 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private bool _autoLaunchServer;
+        public bool AutoLaunchServer
+        {
+            get => _autoLaunchServer;
+            set => SetProperty(ref _autoLaunchServer, value);
+        }
+
+        private string _cachePort;
+        public string CachePort
+        {
+            get => _cachePort;
+            set
+            {
+                if (SetProperty(ref _cachePort, value))
+                {
+                    Validate();
+                }
+            }
+        }
+
         private string _errorText = string.Empty;
         public string ErrorText
         {
@@ -65,21 +89,23 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
 
-        public NetworkSettingsPanelViewModel(string host, uint port, Action<NetworkSettingsResult?> onCompleted)
+        public NetworkSettingsPanelViewModel(string host, uint port, bool autoLaunchServer, uint cachePort, Action<NetworkSettingsResult?> onCompleted)
             : base("Network Settings")
         {
             _onCompleted = onCompleted ?? throw new ArgumentNullException(nameof(onCompleted));
 
             _host = host;
             _port = port.ToString();
+            _autoLaunchServer = autoLaunchServer;
+            _cachePort = cachePort.ToString();
 
             ConfirmCommand = new RelayCommand(OnConfirm, () => !HasError);
             CancelCommand = new RelayCommand(OnCancel);
         }
 
-        private bool TryParsePort(out ushort port)
+        private static bool TryParsePort(string text, out ushort port)
         {
-            return ushort.TryParse(_port.Trim(), out port) && port != 0;
+            return ushort.TryParse(text.Trim(), out port) && port != 0;
         }
 
         private void Validate()
@@ -88,9 +114,17 @@ namespace Hyperion.Editor.ViewModels
             {
                 ErrorText = "Host cannot be empty.";
             }
-            else if (!TryParsePort(out _))
+            else if (!TryParsePort(_port, out ushort gamePort))
             {
                 ErrorText = "Port must be a number between 1 and 65535.";
+            }
+            else if (!TryParsePort(_cachePort, out ushort cachePort))
+            {
+                ErrorText = "Cache server port must be a number between 1 and 65535.";
+            }
+            else if (gamePort == cachePort)
+            {
+                ErrorText = "Port and cache server port must be different.";
             }
             else
             {
@@ -102,12 +136,14 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnConfirm()
         {
-            if (string.IsNullOrWhiteSpace(_host) || !TryParsePort(out ushort port))
+            Validate();
+
+            if (HasError || !TryParsePort(_port, out ushort port) || !TryParsePort(_cachePort, out ushort cachePort))
             {
                 return;
             }
 
-            _onCompleted(new NetworkSettingsResult(_host.Trim(), port));
+            _onCompleted(new NetworkSettingsResult(_host.Trim(), port, _autoLaunchServer, cachePort));
             PanelService.Instance.RemovePanel(this);
         }
 

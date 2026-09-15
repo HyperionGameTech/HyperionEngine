@@ -76,6 +76,18 @@ Result NetClient::Connect(const NetAddress& serverAddress)
         return HYP_MAKE_ERROR(Error, "Already connected or connecting");
     }
 
+    m_reliableChannel.Reset();
+    m_unreliableChannel.Reset();
+
+    m_connectionId = Invalid<NetConnectionId>;
+    m_rttMilliseconds.Set(0, MemoryOrder::RELEASE);
+
+    {
+        Mutex::Guard guard(m_lastErrorMutex);
+
+        m_lastError = {};
+    }
+
     if (Result bindResult = m_socket.Bind(0); bindResult.HasError())
     {
         return bindResult;

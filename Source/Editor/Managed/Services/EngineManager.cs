@@ -261,6 +261,8 @@ namespace Hyperion.Editor
 
             ObjectBase.IsEngineShuttingDown = true;
 
+            Services.PlayInEditorServerService.Instance.Dispose();
+
             NativeBindings.Hyp_Shutdown();
 
             IsInitialized = false;

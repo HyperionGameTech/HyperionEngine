@@ -1646,7 +1646,7 @@ void AssetRegistry::SaveDirtyAssets()
             }
 
             // Pins the blob data so another thread releasing the last reader can't unpage it mid-write
-            auto readScope = assetObject->GetReadScope();
+            //auto readScope = assetObject->GetReadScope();
 
             const uint32 assetIndex = assetObject->GetAssetIndex();
 
@@ -1817,6 +1817,35 @@ void AssetRegistry::RemoveCached(const AssetBucket& bucket)
             bucketData.assetObjectCache.EraseAt(desc.index);
         }
     }
+}
+
+void AssetRegistry::RemoveCached(const AssetBucket& bucket, StringHash name)
+{
+    AssetBucketData& bucketData = m_assetBucketData[bucket.GetIndex()];
+
+    TUniqueLock lock(bucketData.mtx);
+
+    auto it = bucketData.assetDescs.Find(name);
+
+    if (it == bucketData.assetDescs.End())
+    {
+        return;
+    }
+
+    const Handle<AssetObject>* pAssetObject = bucketData.assetObjectCache.TryGet(it->index);
+
+    if (pAssetObject == nullptr)
+    {
+        return;
+    }
+
+    if (const Handle<AssetObject>& assetObject = *pAssetObject; assetObject.IsValid())
+    {
+        assetObject->m_assetIndex = AssetDesc::InvalidIndex;
+        assetObject->OnUnloaded();
+    }
+
+    bucketData.assetObjectCache.EraseAt(it->index);
 }
 
 void AssetRegistry::Update()

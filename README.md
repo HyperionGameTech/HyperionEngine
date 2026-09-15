@@ -9,9 +9,13 @@ That, and the editor shouldn't suck.
 [Website](https://hyperionengine.dev)
 [Discord](https://discord.gg/Fv8PwMJEUb)
 
----
-
-![Hyperion Engine Screenshot](/Documentation/Images/editor-scene.jpg)
+## Screenshots
+| | |
+|:---:|:---:|
+| ![Hyperion Engine - Baked lightmaps](/Documentation/Images/image.png) | ![Hyperion Engine - Multiplayer editing in the Editor](/Documentation/Images/multiplayer-editor-1.png) |
+| Baked lightmaps and reflections | Multiplayer, in play-in-editor mode |
+| ![Hyperion Engine - DDGI](/Documentation/Images/ddgi.gif) | ![Hyperion Engine - GPU particles](/Documentation/Images/particles.gif) |
+| DDGI - _(old capture, needs update)_ | GPU particles with depth buffer collisions |
 
 ## Some Features
 - Clustered deferred shading supporting a large number of dynamic lights while maintaining good frame times. Uses forward clustered shading for translucent materials.

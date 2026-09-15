@@ -247,6 +247,11 @@ void NetChannel::OnAck(NetStreamKey key, uint32 sequence)
         stream.outgoing.unackedReliable.UpperBound(sequence));
 }
 
+void NetChannel::Reset()
+{
+    m_streams->Clear();
+}
+
 StreamState& NetChannel::GetOrCreateStream(NetStreamKey key)
 {
     auto it = m_streams->Find(key);

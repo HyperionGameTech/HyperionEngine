@@ -863,6 +863,12 @@ void EnvProbe::CreateViewData()
         view->SetName(NAME_FMT("{}_{}_View{}", InstanceClass()->GetName(), GetName(), viewIndex));
         InitObject(view);
 
+        // probe views are never added to the World, so ALL_FOREGROUND_SCENES doesn't give them any scenes on its own
+        if (World* world = GetWorld())
+        {
+            world->SyncViewForegroundScenes(view);
+        }
+
         m_views[viewIndex] = std::move(view);
     }
 }
@@ -1194,6 +1200,8 @@ void EnvProbe::Update(float delta)
 
     FixedArray<Mat4f, 6> matrices = CreateCubemapMatrices(GetWorldTranslation());
 
+    World* world = GetWorld();
+
     Set<Scene*, SceneTempAllocator> allScenes;
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -1203,6 +1211,12 @@ void EnvProbe::Update(float delta)
         if (!view)
         {
             continue;
+        }
+
+        // scenes removed from the World since the last update would be left dangling below
+        if (world != nullptr)
+        {
+            world->SyncViewForegroundScenes(view);
         }
 
         const Mat4f& viewMatrix = matrices[viewIndex];

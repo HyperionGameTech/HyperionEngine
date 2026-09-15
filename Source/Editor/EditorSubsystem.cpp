@@ -107,6 +107,7 @@
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -130,7 +131,7 @@
 #include <Framework/Client/GameClient.hpp>
 
 #include <Framework/EngineDriver.hpp>
-#include <Rendering/DebugDrawer.hpp>
+#include <Framework/Threads/RenderThread.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -141,14 +142,20 @@ namespace Hyperion {
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
-
-// Master switch for physics collision shape debug visualization in editor viewports.
-// Surfaced as a toolbar toggle via EditorSubsystem::IsPhysicsDebugDrawEnabled / SetPhysicsDebugDrawEnabled.
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
 
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
+
+struct SuppressIdleThrottlingContext {};
+
+static bool IsLoopbackHost(const UTF8StringView& host)
+{
+    return host == "localhost"
+        || host == "::1"
+        || host.FindFirstIndex("127.") == 0;
+}
 
 #pragma region EditorGizmoBase
 
@@ -3679,7 +3686,10 @@ EditorSubsystem::EditorSubsystem()
       m_playNetMode(EditorPlayNetMode::Standalone),
       m_playNetHost("127.0.0.1"),
       m_playNetPort(NetGlobals::GetGameServerPort()),
+      m_playNetAutoLaunchServer(true),
+      m_playNetCachePort(8081),
       m_activeNetMode(EditorPlayNetMode::Standalone),
+      m_activeAutoLaunchServer(false),
       m_playNetState(EditorPlayNetState::None),
       m_snapToGridEnabled(false),
       m_swatchOverrideMode(false),
@@ -4507,7 +4517,17 @@ bool EditorSubsystem::StartSimulation()
         uiSubsystem->SetDebugOverlaysSuppressed(true);
     }
 
+    // Keep simulating at full rate while another window (e.g. a connected client) has focus.
+    // Pushed on the render thread since that's where the throttling is checked and global contexts are per-thread.
+    GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+        []()
+        {
+            PushGlobalContext(SuppressIdleThrottlingContext {});
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+
     m_activeNetMode = netMode;
+    m_activeAutoLaunchServer = netMode == EditorPlayNetMode::Client && m_playNetAutoLaunchServer && IsLoopbackHost(m_playNetHost);
 
     isSimulationStarted = true;
 
@@ -4516,7 +4536,14 @@ bool EditorSubsystem::StartSimulation()
         HYP_LOG(Editor, Warning, "World '{}' is not flagged IsReplicated, so nothing will be replicated in this session", m_currentProject->GetWorld()->GetName());
     }
 
-    if (m_activeNetMode == EditorPlayNetMode::Client)
+    if (m_activeNetMode == EditorPlayNetMode::Client && m_activeAutoLaunchServer)
+    {
+        // The editor launches the server process now that the snapshot is saved, then calls OnPlayNetServerReady()
+        HYP_LOG(Editor, Info, "Play As Client: waiting for local server on port {}", m_playNetPort);
+
+        SetPlayNetState(EditorPlayNetState::StartingServer);
+    }
+    else if (m_activeNetMode == EditorPlayNetMode::Client)
     {
         // Connect only after the snapshot world has launched. Game::ConnectToServer isn't usable here:
         // before launch it swaps in a temp loading world, and after launch its connected state re-runs Launch().
@@ -4570,12 +4597,23 @@ bool EditorSubsystem::StopSimulation()
         }
 
         m_activeNetMode = EditorPlayNetMode::Standalone;
+        m_activeAutoLaunchServer = false;
         SetPlayNetState(EditorPlayNetState::None);
 
         if (UISubsystem* uiSubsystem = Subsystem::GetWorld()->GetSubsystem<UISubsystem>())
         {
             uiSubsystem->SetDebugOverlaysSuppressed(false);
         }
+
+        GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+            []()
+            {
+                if (IsGlobalContextActive<SuppressIdleThrottlingContext>())
+                {
+                    PopGlobalContext<SuppressIdleThrottlingContext>();
+                }
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
 
         return true;
     }
@@ -4598,6 +4636,8 @@ bool EditorSubsystem::PauseSimulation()
 static constexpr const char* s_playNetModeConfigKey = "PlayInEditor.NetMode";
 static constexpr const char* s_playNetHostConfigKey = "PlayInEditor.Host";
 static constexpr const char* s_playNetPortConfigKey = "PlayInEditor.Port";
+static constexpr const char* s_playNetAutoLaunchServerConfigKey = "PlayInEditor.AutoLaunchServer";
+static constexpr const char* s_playNetCachePortConfigKey = "PlayInEditor.CachePort";
 
 void EditorSubsystem::LoadPlayNetSettings()
 {
@@ -4641,6 +4681,21 @@ void EditorSubsystem::LoadPlayNetSettings()
             m_playNetPort = port;
         }
     }
+
+    if (const ConfigValue& autoLaunchValue = config.Get(s_playNetAutoLaunchServerConfigKey); autoLaunchValue.IsBool())
+    {
+        m_playNetAutoLaunchServer = autoLaunchValue.ToBool();
+    }
+
+    if (const ConfigValue& cachePortValue = config.Get(s_playNetCachePortConfigKey); cachePortValue.IsNumber())
+    {
+        const uint32 port = cachePortValue.ToUInt32();
+
+        if (port > 0 && port <= MathUtil::MaxSafeValue<uint16>())
+        {
+            m_playNetCachePort = port;
+        }
+    }
 }
 
 void EditorSubsystem::SavePlayNetSettings()
@@ -4665,6 +4720,8 @@ void EditorSubsystem::SavePlayNetSettings()
     config.Set(s_playNetModeConfigKey, ConfigValue(String(modeString)));
     config.Set(s_playNetHostConfigKey, ConfigValue(m_playNetHost));
     config.Set(s_playNetPortConfigKey, ConfigValue(m_playNetPort));
+    config.Set(s_playNetAutoLaunchServerConfigKey, ConfigValue(m_playNetAutoLaunchServer));
+    config.Set(s_playNetCachePortConfigKey, ConfigValue(m_playNetCachePort));
 
     if (!config.Save())
     {
@@ -4715,6 +4772,67 @@ void EditorSubsystem::SetPlayNetPort(uint32 port)
     m_playNetPort = port;
 
     SavePlayNetSettings();
+}
+
+void EditorSubsystem::SetPlayNetAutoLaunchServer(bool autoLaunchServer)
+{
+    if (autoLaunchServer == m_playNetAutoLaunchServer)
+    {
+        return;
+    }
+
+    m_playNetAutoLaunchServer = autoLaunchServer;
+
+    SavePlayNetSettings();
+}
+
+void EditorSubsystem::SetPlayNetCachePort(uint32 port)
+{
+    if (port == 0 || port > MathUtil::MaxSafeValue<uint16>())
+    {
+        HYP_LOG(Editor, Warning, "Ignoring invalid Play In Editor cache server port {}", port);
+
+        return;
+    }
+
+    if (port == m_playNetCachePort)
+    {
+        return;
+    }
+
+    m_playNetCachePort = port;
+
+    SavePlayNetSettings();
+}
+
+String EditorSubsystem::GetPlayNetProjectDirectory() const
+{
+    if (!m_preSimulationProject.IsValid())
+    {
+        return String::empty;
+    }
+
+    return m_preSimulationProject->GetFilePath().BasePath();
+}
+
+void EditorSubsystem::OnPlayNetServerReady()
+{
+    if (m_activeNetMode != EditorPlayNetMode::Client || m_playNetState != EditorPlayNetState::StartingServer)
+    {
+        return;
+    }
+
+    ConnectPlayNetClient();
+}
+
+void EditorSubsystem::OnPlayNetServerFailed()
+{
+    if (m_activeNetMode != EditorPlayNetMode::Client || m_playNetState != EditorPlayNetState::StartingServer)
+    {
+        return;
+    }
+
+    SetPlayNetState(EditorPlayNetState::Failed);
 }
 
 void EditorSubsystem::ConnectPlayNetClient()
@@ -5559,6 +5677,8 @@ void EditorSubsystem::NewProject()
     CharacterControllerComponent characterControllerComponent;
     characterControllerComponent.shape = capsuleShape;
     playerEntity->AddComponent<CharacterControllerComponent>(characterControllerComponent);
+
+    playerEntity->AddTag<EntityTag::Player>();
 
     playerEntity->AddChild(camera);
 

@@ -905,6 +905,43 @@ void World::ProcessViewAsync(View* view)
     m_processViews.PushBack(view);
 }
 
+void World::SyncViewForegroundScenes(View* view) const
+{
+    AssertOnThread(g_simThread);
+
+    if (!view || !(view->GetFlags() & ViewFlags::ALL_FOREGROUND_SCENES))
+    {
+        return;
+    }
+
+    const Array<Scene*>& viewScenes = view->GetScenes();
+
+    for (size_t index = viewScenes.Size(); index > 0; index--)
+    {
+        Scene* viewScene = viewScenes[index - 1];
+
+        // only compares pointers, the Scene may have been destroyed since it was removed from the World
+        const bool isInWorld = m_scenes.FindIf([viewScene](const Handle<Scene>& scene)
+                                   {
+                                       return scene.Get() == viewScene;
+                                   })
+            != m_scenes.End();
+
+        if (!isInWorld)
+        {
+            view->RemoveScene(viewScene);
+        }
+    }
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        if (scene && (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        {
+            view->AddScene(scene);
+        }
+    }
+}
+
 void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
@@ -1206,6 +1243,9 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
         for (size_t i = 0; i < m_processViews.Size(); i++)
         {
             View& view = *m_processViews[i];
+
+            // not in m_views, so AddScene() / RemoveScene() never updated its scenes
+            SyncViewForegroundScenes(&view);
 
             m_viewsPerFrame[slot][offset + i] = &view;
         }

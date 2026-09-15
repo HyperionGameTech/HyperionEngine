@@ -197,21 +197,11 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
         return true;
     }
 
-    // Track the instance before attaching it to the scene so OnEntityAdded recognizes it as a
-    // spawned player rather than registering it as another template.
+    // Track the instance before attaching it to the scene so OnEntityAdded recognizes it as a spawned player rather than registering it as another template.
     m_connectionIdToPlayerEntity.Set(connectionId, clone);
 
-    Node* parent = templateEntity->GetParent();
-
-    if (parent)
-    {
-        parent->AddChild(clone);
-    }
-    else
-    {
-        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
-    }
-
+    // Must also be set up before attaching.
+    // if the template was already tagged Replicated, the clone joins ReplicationSystem during AddChild, which reads the owning connection then and isn't notified again
     if (PlayerComponent* existingPlayerComponent = clone->TryGetComponent<PlayerComponent>())
     {
         existingPlayerComponent->connectionId = connectionId;
@@ -224,6 +214,17 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
     if (!clone->HasTag<EntityTag::Replicated>())
     {
         clone->AddTag<EntityTag::Replicated>();
+    }
+
+    Node* parent = templateEntity->GetParent();
+
+    if (parent)
+    {
+        parent->AddChild(clone);
+    }
+    else
+    {
+        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
     }
 
     const Vec3f worldTranslation = clone->GetWorldTranslation();

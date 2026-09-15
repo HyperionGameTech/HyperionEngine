@@ -310,6 +310,9 @@ void ReplicationSystem::ApplyPendingRequests()
 
             if (it == m_connectionIdToEntity.End())
             {
+                HYP_LOG_ONCE(Replication, Warning, "Dropping player moves from connection {}: no replicated entity is owned by it, so they will never be acked",
+                    uint32(requestPtr->connectionId));
+
                 break;
             }
 

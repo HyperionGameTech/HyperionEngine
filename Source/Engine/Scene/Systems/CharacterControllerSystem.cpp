@@ -734,12 +734,30 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, component] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent>().GetScopedView(GetComponentInfos()))
         {
-            const bool isLocalPlayerEntity = SceneHelpers::IsLocalPlayerEntity(*entity);
+            const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
+
+            const bool isLocalPlayerEntity = playerComponent != nullptr && playerComponent->IsLocalPlayer();
+            const bool isRemotePlayerEntity = playerComponent != nullptr && !isLocalPlayerEntity;
+
+            if (isRemotePlayerEntity)
+            {
+                if (component.inputHandler)
+                {
+                    if (Game* game = GetWorld()->GetGame())
+                    {
+                        game->UnregisterInputHandler(component.inputHandler);
+                    }
+
+                    component.inputHandler.Reset();
+                }
+
+                continue;
+            }
 
             // Check needs initialization
             if (!component.inputHandler)
             {
-                if (!isLocalPlayerEntity && !EngineGlobals::HasAuthority())
+                if (!isLocalPlayerEntity && !hasAuthority)
                 {
                     continue;
                 }
@@ -763,14 +781,6 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (hasAuthority)
             {
-                // Remote-controlled players are simulated from their move queues by ReplicationSystem.
-                const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
-
-                if (playerComponent != nullptr && !playerComponent->IsLocalPlayer())
-                {
-                    continue;
-                }
-
                 if (!component.physicsHandle)
                 {
                     HYP_LOG_ONCE(Scene, Warning, "physicsHandle is null for Entity {}'s character controller.", entity->GetName());

@@ -32,7 +32,7 @@
             <StackPanel Margin="12,12,12,8" Spacing="12">
                 <TextBlock
                     Foreground="{DynamicResource Brush.TextMuted}"
-                    Text="Play As Client connects to Host:Port. Play As Dedicated Server listens on Port. Both sides must run the same saved project content."
+                    Text="Play As Client connects to Host:Port. Play As Dedicated Server listens on Port."
                     TextWrapping="Wrap" />
 
                 <StackPanel Spacing="6">
@@ -48,6 +48,30 @@
                         Text="{Binding Port, Mode=TwoWay}"
                         PlaceholderText="9192" />
                 </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Cache Server Port" />
+                    <TextBox
+                        Text="{Binding CachePort, Mode=TwoWay}"
+                        PlaceholderText="8081" />
+                </StackPanel>
+
+                <TextBlock
+                    Foreground="{DynamicResource Brush.TextMuted}"
+                    Text="The editor serves the saved project from a cache server on this port for Play As Dedicated Server and auto-launched servers. Standalone clients sync from it with --cacheserver=http://127.0.0.1:&lt;port&gt;."
+                    TextWrapping="Wrap" />
+
+                <CheckBox
+                    Content="Auto-launch local server"
+                    IsChecked="{Binding AutoLaunchServer, Mode=TwoWay}" />
+
+                <TextBlock
+                    Foreground="{DynamicResource Brush.TextMuted}"
+                    Text="When Play As Client targets 127.0.0.1 or localhost, start a headless server for the session."
+                    TextWrapping="Wrap" />
+
 
                 <TextBlock
                     Foreground="{DynamicResource Brush.Danger}"

@@ -440,6 +440,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorPlayNetState.Failed => $"Could not connect to {PlayNetAddress} (see log)",
                 EditorPlayNetState.Disconnected => $"Lost connection to {PlayNetAddress}",
                 EditorPlayNetState.Hosting => $"Hosting dedicated server on port {_playNetPort}",
+                EditorPlayNetState.StartingServer => $"Starting local server on port {_playNetPort}...",
                 _ => "Ready"
             };
         }
@@ -448,6 +449,8 @@ namespace Hyperion.Editor.ViewModels
         private EditorPlayNetState _playNetState = EditorPlayNetState.None;
         private string _playNetHost = "127.0.0.1";
         private uint _playNetPort = 9192;
+        private bool _playNetAutoLaunchServer = true;
+        private uint _playNetCachePort = 8081;
 
         private string PlayNetAddress => $"{_playNetHost}:{_playNetPort}";
 
@@ -455,8 +458,12 @@ namespace Hyperion.Editor.ViewModels
         public bool IsPlayNetModeClient => _playNetMode == EditorPlayNetMode.Client;
         public bool IsPlayNetModeDedicatedServer => _playNetMode == EditorPlayNetMode.DedicatedServer;
 
+        private bool WillAutoLaunchServer => _playNetAutoLaunchServer
+            && (_playNetHost == "localhost" || _playNetHost == "::1" || _playNetHost.StartsWith("127."));
+
         public string PlayTooltip => _playNetMode switch
         {
+            EditorPlayNetMode.Client when WillAutoLaunchServer => $"Play As Client ({PlayNetAddress}, launches a local server)",
             EditorPlayNetMode.Client => $"Play As Client ({PlayNetAddress})",
             EditorPlayNetMode.DedicatedServer => $"Play As Dedicated Server (port {_playNetPort})",
             _ => "Play"
@@ -475,6 +482,8 @@ namespace Hyperion.Editor.ViewModels
                 EditorPlayNetState state = _editorSubsystem.GetPlayNetState();
                 string host = _editorSubsystem.GetPlayNetHost();
                 uint port = _editorSubsystem.GetPlayNetPort();
+                bool autoLaunchServer = _editorSubsystem.GetPlayNetAutoLaunchServer();
+                uint cachePort = _editorSubsystem.GetPlayNetCachePort();
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -482,6 +491,8 @@ namespace Hyperion.Editor.ViewModels
                     _playNetState = state;
                     _playNetHost = host;
                     _playNetPort = port;
+                    _playNetAutoLaunchServer = autoLaunchServer;
+                    _playNetCachePort = cachePort;
 
                     OnPropertyChanged(nameof(IsPlayNetModeStandalone));
                     OnPropertyChanged(nameof(IsPlayNetModeClient));
@@ -692,7 +703,7 @@ namespace Hyperion.Editor.ViewModels
 
             OpenNetworkSettings = new RelayCommand(() =>
             {
-                var panel = new NetworkSettingsPanelViewModel(_playNetHost, _playNetPort, result =>
+                var panel = new NetworkSettingsPanelViewModel(_playNetHost, _playNetPort, _playNetAutoLaunchServer, _playNetCachePort, result =>
                 {
                     if (result == null)
                         return;
@@ -701,6 +712,8 @@ namespace Hyperion.Editor.ViewModels
                     {
                         _editorSubsystem.SetPlayNetHost(result.Host);
                         _editorSubsystem.SetPlayNetPort(result.Port);
+                        _editorSubsystem.SetPlayNetAutoLaunchServer(result.AutoLaunchServer);
+                        _editorSubsystem.SetPlayNetCachePort(result.CachePort);
 
                         RefreshPlayNetSettings();
                     });

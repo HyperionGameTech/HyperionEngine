@@ -274,6 +274,10 @@ public:
     /*! \brief Adds a View for processing asynchronously for this frame. */
     void ProcessViewAsync(View* view);
 
+    /*! \brief Matches the Scenes of a View with the ALL_FOREGROUND_SCENES flag to this World's foreground Scenes.
+     *  Views added with AddView() are kept in sync already; this is for Views that are only processed via ProcessViewAsync(). Sim thread only. */
+    void SyncViewForegroundScenes(View* view) const;
+
     ///Systems
 
     /*! \brief Adds a System to the World.
