@@ -16,6 +16,7 @@
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorCommand.hpp>
+#include <Editor/EditorConfig.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
 
@@ -98,6 +99,9 @@
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
+
+#include <Framework/Server/GameServer.hpp>
+
 #include <Rendering/Texture.hpp>
 #include <Rendering/RendererMain.hpp>
 #include <Rendering/RenderProxyList.hpp>
@@ -123,6 +127,7 @@
 #include <Scripting/ScriptingService.hpp>
 
 #include <Framework/Game.hpp>
+#include <Framework/Client/GameClient.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Rendering/DebugDrawer.hpp>
@@ -3671,6 +3676,11 @@ void EditorSubsystem::UpdateGizmoProximityVisibility()
 
 EditorSubsystem::EditorSubsystem()
     : m_selectedManipulationMode(EditorManipulationMode::None),
+      m_playNetMode(EditorPlayNetMode::Standalone),
+      m_playNetHost("127.0.0.1"),
+      m_playNetPort(NetGlobals::GetGameServerPort()),
+      m_activeNetMode(EditorPlayNetMode::Standalone),
+      m_playNetState(EditorPlayNetState::None),
       m_snapToGridEnabled(false),
       m_swatchOverrideMode(false),
       m_gizmosHiddenByProximity(false),
@@ -3689,6 +3699,8 @@ EditorSubsystem::EditorSubsystem()
     GetTerrainState();
 
     m_bakeStatusUpdateTimer = ClockTimer { 0.5f };
+
+    LoadPlayNetSettings();
 
     OnSelectedGizmoChanged
         .Bind(this, [this](EditorGizmoBase* newGizmo, EditorGizmoBase* prevGizmo)
@@ -4218,6 +4230,7 @@ void EditorSubsystem::Update(float delta)
 
     GetTerrainState()->Update();
     UpdateBakeStatus();
+    UpdatePlayNetState();
 
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
@@ -4345,6 +4358,45 @@ bool EditorSubsystem::StartSimulation()
         return true;
     }
 
+    const EditorPlayNetMode netMode = m_playNetMode;
+
+    if (netMode == EditorPlayNetMode::Client && g_gameClient == nullptr)
+    {
+        HYP_LOG(Editor, Error, "Cannot Play As Client: no GameClient instance exists in this process");
+
+        return false;
+    }
+
+    bool isServerStarted = false;
+    bool isSimulationStarted = false;
+
+    HYP_DEFER({
+        if (isServerStarted && !isSimulationStarted)
+        {
+            g_gameServer->Stop();
+        }
+    });
+
+    if (netMode == EditorPlayNetMode::DedicatedServer)
+    {
+        if (g_gameServer == nullptr)
+        {
+            HYP_LOG(Editor, Error, "Cannot Play As Dedicated Server: no GameServer instance exists in this process");
+
+            return false;
+        }
+
+        // Must be listening before the snapshot world initializes, PlayerSystem binds to the server as it's added
+        if (Result listenResult = g_gameServer->Start(uint16(m_playNetPort)); listenResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "Play As Dedicated Server: could not listen on port {}: {}", m_playNetPort, listenResult.GetError().GetMessage());
+
+            return false;
+        }
+
+        isServerStarted = true;
+    }
+
     // Save the current project state as a snapshot to restore from when simulation ends.
     if (Result saveResult = m_currentProject->Save(); saveResult.HasError())
     {
@@ -4368,6 +4420,11 @@ bool EditorSubsystem::StartSimulation()
         HYP_LOG(Editor, Error, "Failed to load project when starting simulation!! Error was: {}", loadResult.GetError().GetMessage());
 
         return false;
+    }
+
+    if (netMode == EditorPlayNetMode::DedicatedServer)
+    {
+        (*loadResult)->GetGame()->SetIsServerGame(true);
     }
 
     // Open project to start simulating
@@ -4450,6 +4507,28 @@ bool EditorSubsystem::StartSimulation()
         uiSubsystem->SetDebugOverlaysSuppressed(true);
     }
 
+    m_activeNetMode = netMode;
+
+    isSimulationStarted = true;
+
+    if (m_activeNetMode != EditorPlayNetMode::Standalone && !(m_currentProject->GetWorld()->GetWorldFlags() & WorldFlags::IsReplicated))
+    {
+        HYP_LOG(Editor, Warning, "World '{}' is not flagged IsReplicated, so nothing will be replicated in this session", m_currentProject->GetWorld()->GetName());
+    }
+
+    if (m_activeNetMode == EditorPlayNetMode::Client)
+    {
+        // Connect only after the snapshot world has launched. Game::ConnectToServer isn't usable here:
+        // before launch it swaps in a temp loading world, and after launch its connected state re-runs Launch().
+        ConnectPlayNetClient();
+    }
+    else if (m_activeNetMode == EditorPlayNetMode::DedicatedServer)
+    {
+        HYP_LOG(Editor, Info, "Play As Dedicated Server: listening on port {}", m_playNetPort);
+
+        SetPlayNetState(EditorPlayNetState::Hosting);
+    }
+
     return true;
 }
 
@@ -4478,6 +4557,21 @@ bool EditorSubsystem::StopSimulation()
 
         m_preSimulationProject.Reset();
 
+        // Only once the simulation world is gone, so its PlayerSystem / ReplicationSystem no longer use the connection
+        if (m_activeNetMode == EditorPlayNetMode::Client && g_gameClient != nullptr)
+        {
+            g_gameClient->Disconnect();
+        }
+        else if (m_activeNetMode == EditorPlayNetMode::DedicatedServer && g_gameServer != nullptr)
+        {
+            g_gameServer->Stop();
+
+            HYP_LOG(Editor, Info, "Play As Dedicated Server: stopped listening on port {}", m_playNetPort);
+        }
+
+        m_activeNetMode = EditorPlayNetMode::Standalone;
+        SetPlayNetState(EditorPlayNetState::None);
+
         if (UISubsystem* uiSubsystem = Subsystem::GetWorld()->GetSubsystem<UISubsystem>())
         {
             uiSubsystem->SetDebugOverlaysSuppressed(false);
@@ -4499,6 +4593,199 @@ bool EditorSubsystem::PauseSimulation()
     }
 
     return false;
+}
+
+static constexpr const char* s_playNetModeConfigKey = "PlayInEditor.NetMode";
+static constexpr const char* s_playNetHostConfigKey = "PlayInEditor.Host";
+static constexpr const char* s_playNetPortConfigKey = "PlayInEditor.Port";
+
+void EditorSubsystem::LoadPlayNetSettings()
+{
+    EditorConfig config;
+
+    // A missing file just means nothing has been saved yet
+    if (!config.Load())
+    {
+        return;
+    }
+
+    if (const ConfigValue& modeValue = config.Get(s_playNetModeConfigKey); modeValue.IsString())
+    {
+        const String modeString = modeValue.ToString();
+
+        if (modeString == "Client")
+        {
+            m_playNetMode = EditorPlayNetMode::Client;
+        }
+        else if (modeString == "DedicatedServer")
+        {
+            m_playNetMode = EditorPlayNetMode::DedicatedServer;
+        }
+        else
+        {
+            m_playNetMode = EditorPlayNetMode::Standalone;
+        }
+    }
+
+    if (const ConfigValue& hostValue = config.Get(s_playNetHostConfigKey); hostValue.IsString() && hostValue.ToString().Any())
+    {
+        m_playNetHost = hostValue.ToString();
+    }
+
+    if (const ConfigValue& portValue = config.Get(s_playNetPortConfigKey); portValue.IsNumber())
+    {
+        const uint32 port = portValue.ToUInt32();
+
+        if (port > 0 && port <= MathUtil::MaxSafeValue<uint16>())
+        {
+            m_playNetPort = port;
+        }
+    }
+}
+
+void EditorSubsystem::SavePlayNetSettings()
+{
+    EditorConfig config;
+    config.Load();
+
+    const char* modeString = "Standalone";
+
+    switch (m_playNetMode)
+    {
+    case EditorPlayNetMode::Client:
+        modeString = "Client";
+        break;
+    case EditorPlayNetMode::DedicatedServer:
+        modeString = "DedicatedServer";
+        break;
+    default:
+        break;
+    }
+
+    config.Set(s_playNetModeConfigKey, ConfigValue(String(modeString)));
+    config.Set(s_playNetHostConfigKey, ConfigValue(m_playNetHost));
+    config.Set(s_playNetPortConfigKey, ConfigValue(m_playNetPort));
+
+    if (!config.Save())
+    {
+        HYP_LOG(Editor, Warning, "Failed to save Play In Editor network settings");
+    }
+}
+
+void EditorSubsystem::SetPlayNetMode(EditorPlayNetMode mode)
+{
+    if (mode == m_playNetMode)
+    {
+        return;
+    }
+
+    m_playNetMode = mode;
+
+    SavePlayNetSettings();
+}
+
+void EditorSubsystem::SetPlayNetHost(const String& host)
+{
+    const String trimmedHost = host.Trimmed();
+
+    if (trimmedHost.Empty() || trimmedHost == m_playNetHost)
+    {
+        return;
+    }
+
+    m_playNetHost = trimmedHost;
+
+    SavePlayNetSettings();
+}
+
+void EditorSubsystem::SetPlayNetPort(uint32 port)
+{
+    if (port == 0 || port > MathUtil::MaxSafeValue<uint16>())
+    {
+        HYP_LOG(Editor, Warning, "Ignoring invalid Play In Editor port {}", port);
+
+        return;
+    }
+
+    if (port == m_playNetPort)
+    {
+        return;
+    }
+
+    m_playNetPort = port;
+
+    SavePlayNetSettings();
+}
+
+void EditorSubsystem::ConnectPlayNetClient()
+{
+    Assert(g_gameClient != nullptr);
+
+    HYP_LOG(Editor, Info, "Play As Client: connecting to {}:{}", m_playNetHost, m_playNetPort);
+
+    if (Result connectResult = g_gameClient->Connect(m_playNetHost.ToAnsi(), uint16(m_playNetPort)); connectResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Play As Client: failed to connect to {}:{}: {}", m_playNetHost, m_playNetPort, connectResult.GetError().GetMessage());
+
+        SetPlayNetState(EditorPlayNetState::Failed);
+
+        return;
+    }
+
+    SetPlayNetState(EditorPlayNetState::Connecting);
+}
+
+void EditorSubsystem::UpdatePlayNetState()
+{
+    if (m_activeNetMode != EditorPlayNetMode::Client || g_gameClient == nullptr)
+    {
+        return;
+    }
+
+    switch (g_gameClient->GetConnectionState())
+    {
+    case NetClientConnectionState::Connected:
+        if (m_playNetState != EditorPlayNetState::Connected)
+        {
+            HYP_LOG(Editor, Info, "Play As Client: connected to {}:{}", m_playNetHost, m_playNetPort);
+
+            SetPlayNetState(EditorPlayNetState::Connected);
+        }
+
+        break;
+    case NetClientConnectionState::Disconnected:
+        if (m_playNetState == EditorPlayNetState::Connecting)
+        {
+            const Result lastError = g_gameClient->GetLastError();
+
+            HYP_LOG(Editor, Error, "Play As Client: could not connect to {}:{}: {}", m_playNetHost, m_playNetPort,
+                lastError.HasError() ? lastError.GetError().GetMessage() : "unknown error");
+
+            SetPlayNetState(EditorPlayNetState::Failed);
+        }
+        else if (m_playNetState == EditorPlayNetState::Connected)
+        {
+            HYP_LOG(Editor, Warning, "Play As Client: lost connection to {}:{}", m_playNetHost, m_playNetPort);
+
+            SetPlayNetState(EditorPlayNetState::Disconnected);
+        }
+
+        break;
+    default:
+        break;
+    }
+}
+
+void EditorSubsystem::SetPlayNetState(EditorPlayNetState state)
+{
+    if (state == m_playNetState)
+    {
+        return;
+    }
+
+    m_playNetState = state;
+
+    OnPlayNetStateChanged(state);
 }
 
 void EditorSubsystem::InitViewport()

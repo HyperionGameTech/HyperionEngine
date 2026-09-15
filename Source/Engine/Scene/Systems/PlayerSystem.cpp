@@ -89,8 +89,10 @@ void PlayerSystem::OnAddedToWorld(World* world)
     // We DO need something for single player
     // some way of checking if HasAuthority changes.. hmm
 
+    const bool isServerWorld = world->IsServerWorld();
+
     // Client delegates first
-    if (g_gameClient != nullptr)
+    if (g_gameClient != nullptr && !isServerWorld)
     {
         m_delegateHandlers.Add(
             NAME("OnConnected"),
@@ -114,7 +116,7 @@ void PlayerSystem::OnAddedToWorld(World* world)
         }
     }
 
-    if (!EngineGlobals::IsServer())
+    if (!isServerWorld)
     {
         return;
     }
@@ -142,12 +144,8 @@ void PlayerSystem::OnRemovedFromWorld(World* world)
 {
     m_delegateHandlers.Remove("OnConnected"_sh);
     m_delegateHandlers.Remove("OnDisconnected"_sh);
-
-    if (EngineGlobals::IsServer())
-    {
-        m_delegateHandlers.Remove("OnClientConnected"_sh);
-        m_delegateHandlers.Remove("OnClientDisconnected"_sh);
-    }
+    m_delegateHandlers.Remove("OnClientConnected"_sh);
+    m_delegateHandlers.Remove("OnClientDisconnected"_sh);
 
     SystemBase::OnRemovedFromWorld(world);
 }

@@ -153,6 +153,10 @@ Result GameClient::Connect(const NetAddress& serverAddress)
         m_thread.Reset();
     }
 
+    // Callers are on the sim thread outside of the world update, so no replication consumer is running either.
+    // Without this, a reconnect (e.g. editor Stop -> Play) would apply ops from the previous session.
+    m_replicationManager.Reset();
+
     if (Result connectResult = m_netClient.Connect(serverAddress); connectResult.HasError())
     {
         return connectResult;

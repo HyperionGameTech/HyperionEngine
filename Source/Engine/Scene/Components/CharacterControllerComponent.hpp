@@ -21,28 +21,10 @@ class InputHandlerBase;
 
 struct PlayerMove;
 
-HYP_STRUCT(Component,
-    Label = "Character Controller Component",
-    Description = "Allows an entity to have its movement driven by player input and interact with physics",
-    Editor = true)
-struct CharacterControllerComponent
+HYP_STRUCT()
+struct CharacterMovementSettings
 {
-    HYP_STRUCT_BODY(CharacterControllerComponent);
-
-    HYP_FIELD(Property = "Shape", Serialize)
-    Handle<PhysicsShape> shape;
-
-    HYP_FIELD(Transient)
-    Handle<InputHandlerBase> inputHandler;
-
-    HYP_FIELD(Transient)
-    SharedPtr<void> physicsHandle;
-
-    HYP_FIELD(Transient)
-    Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);
-
-    HYP_FIELD(Transient)
-    Vec3f translation;
+    HYP_STRUCT_BODY(CharacterMovementSettings);
 
     HYP_FIELD(Property = "MoveSpeed", Serialize, Title = "Move Speed", Description = "Target ground speed in m/s")
     float moveSpeed = 5.0f;
@@ -67,12 +49,18 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Property = "MaxSlopeAngle", Serialize, Title = "Max Slope Angle")
     float maxSlopeAngle = 45.0f;
+};
 
-    HYP_FIELD(Property = "JumpSpeed", Serialize, Title = "Jump Speed")
-    float jumpSpeed = 4.9f;
+HYP_STRUCT()
+struct CharacterJumpSettings
+{
+    HYP_STRUCT_BODY(CharacterJumpSettings);
 
-    HYP_FIELD(Property = "JumpCutGravityMultiplier", Serialize, Title = "Jump Cut Gravity Multiplier", Description = "Extra gravity while rising if the jump button was released early (variable jump height)")
-    float jumpCutGravityMultiplier = 2.2f;
+    HYP_FIELD(Property = "Speed", Serialize, Title = "Speed")
+    float speed = 4.9f;
+
+    HYP_FIELD(Property = "CutGravityMultiplier", Serialize, Title = "Cut Gravity Multiplier", Description = "Extra gravity while rising if the jump button was released early (variable jump height)")
+    float cutGravityMultiplier = 2.2f;
 
     HYP_FIELD(Property = "ApexGravityMultiplier", Serialize, Title = "Apex Gravity Multiplier", Description = "Gravity scale near the top of the jump; below 1 gives a little hang time")
     float apexGravityMultiplier = 0.85f;
@@ -86,29 +74,77 @@ struct CharacterControllerComponent
     HYP_FIELD(Property = "CoyoteTime", Serialize, Title = "Coyote Time", Description = "Time before falling off a ledge")
     float coyoteTime = 0.15f;
 
-    HYP_FIELD(Property = "JumpBufferTime", Serialize, Title = "Jump Buffer Time")
-    float jumpBufferTime = 0.15f;
+    HYP_FIELD(Property = "BufferTime", Serialize, Title = "Buffer Time")
+    float bufferTime = 0.15f;
+};
 
-    HYP_FIELD(Property = "ShadowMaxSpeed", Serialize, Editor = false)
-    float shadowMaxSpeed = 60.0f;
+HYP_STRUCT()
+struct CharacterPushSettings
+{
+    HYP_STRUCT_BODY(CharacterPushSettings);
 
-    HYP_FIELD(Property = "ShadowTeleportDistance", Serialize, Editor = false)
-    float shadowTeleportDistance = 0.5f;
+    HYP_FIELD(Property = "MassLimit", Serialize, Title = "Mass Limit")
+    float massLimit = 350.0f;
 
-    HYP_FIELD(Property = "PushMassLimit", Serialize, Title = "Push Mass Limit")
-    float pushMassLimit = 350.0f;
+    HYP_FIELD(Property = "MaxSpeed", Serialize, Title = "Max Speed")
+    float maxSpeed = 1.5f;
 
-    HYP_FIELD(Property = "MaxPushSpeed", Serialize, Title = "Max Push Speed")
-    float maxPushSpeed = 1.5f;
+    HYP_FIELD(Property = "SpeedScale", Serialize, Title = "Speed Scale")
+    float speedScale = 1.0f;
 
-    HYP_FIELD(Property = "PushSpeedScale", Serialize, Title = "Push Speed Scale")
-    float pushSpeedScale = 1.0f;
-
-    HYP_FIELD(Property = "PushPredictionReleaseDelay", Serialize, Title = "Push Prediction Release Delay", Description = "Grace period after last contact before a locally-predicted pushed body is handed back to replication")
-    float pushPredictionReleaseDelay = 0.25f;
+    HYP_FIELD(Property = "PredictionReleaseDelay", Serialize, Title = "Prediction Release Delay", Description = "Grace period after last contact before a locally-predicted pushed body is handed back to replication")
+    float predictionReleaseDelay = 0.25f;
 
     HYP_FIELD(Property = "MinGroundSupportMass", Serialize, Title = "Min Ground Support Mass", Description = "Dynamic bodies lighter than this won't have their velocity treated as moving-platform footing, so a light pushable prop can't fling the character around when brushed or briefly stood on")
     float minGroundSupportMass = 20.0f;
+};
+
+HYP_STRUCT()
+struct CharacterShadowBodySettings
+{
+    HYP_STRUCT_BODY(CharacterShadowBodySettings);
+
+    HYP_FIELD(Property = "MaxSpeed", Serialize)
+    float maxSpeed = 60.0f;
+
+    HYP_FIELD(Property = "TeleportDistance", Serialize)
+    float teleportDistance = 0.5f;
+};
+
+HYP_STRUCT(Component,
+    Label = "Character Controller Component",
+    Description = "Allows an entity to have its movement driven by player input and interact with physics",
+    Editor = true)
+struct CharacterControllerComponent
+{
+    HYP_STRUCT_BODY(CharacterControllerComponent);
+
+    HYP_FIELD(Property = "Shape", Serialize)
+    Handle<PhysicsShape> shape;
+
+    HYP_FIELD(Transient)
+    Handle<InputHandlerBase> inputHandler;
+
+    HYP_FIELD(Transient)
+    SharedPtr<void> physicsHandle;
+
+    HYP_FIELD(Transient)
+    Vec3f viewDirection = Vec3f(0.0f, 0.0f, 1.0f);
+
+    HYP_FIELD(Transient)
+    Vec3f translation;
+
+    HYP_FIELD(Property = "Movement", Serialize, Title = "Movement")
+    CharacterMovementSettings movement;
+
+    HYP_FIELD(Property = "Jump", Serialize, Title = "Jump")
+    CharacterJumpSettings jump;
+
+    HYP_FIELD(Property = "Push", Serialize, Title = "Push")
+    CharacterPushSettings push;
+
+    HYP_FIELD(Property = "ShadowBody", Serialize, Editor = false)
+    CharacterShadowBodySettings shadowBody;
 
     HYP_FIELD(Transient)
     bool isOnGround = false;

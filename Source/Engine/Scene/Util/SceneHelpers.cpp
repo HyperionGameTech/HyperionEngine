@@ -202,8 +202,8 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         }
 
         const float wishSpeed = bool(move.sprintHeld)
-            ? MathUtil::Max(component.sprintSpeed, 0.0f)
-            : MathUtil::Max(component.moveSpeed, 0.0f);
+            ? MathUtil::Max(component.movement.sprintSpeed, 0.0f)
+            : MathUtil::Max(component.movement.moveSpeed, 0.0f);
 
         walkDirection = wishDirection * wishSpeed;
     }

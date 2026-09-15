@@ -966,11 +966,43 @@
                                     Classes="Play"
                                     Command="{Binding SetGameModePlaying}"
                                     IsVisible="{Binding CanSetGameModePlaying}"
-                                    ToolTip.Tip="Play">
+                                    ToolTip.Tip="{Binding PlayTooltip}">
                                     <controls:Codicon
                                         Foreground="White"
                                         Kind="Play"
                                         Size="16" />
+                                </Button>
+                                <Button
+                                    Padding="2,0"
+                                    IsVisible="{Binding !IsSimulating}"
+                                    ToolTip.Tip="Play options">
+                                    <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    <Button.Flyout>
+                                        <MenuFlyout Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeStandalone}"
+                                                Header="Standalone"
+                                                IsChecked="{Binding IsPlayNetModeStandalone, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Play locally with no network connection" />
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeClient}"
+                                                Header="Play As Client"
+                                                IsChecked="{Binding IsPlayNetModeClient, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Connect to the server set in Network Settings once play starts" />
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeDedicatedServer}"
+                                                Header="Play As Dedicated Server"
+                                                IsChecked="{Binding IsPlayNetModeDedicatedServer, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Host the play session as a server on the port set in Network Settings" />
+                                            <Separator />
+                                            <MenuItem
+                                                Command="{Binding OpenNetworkSettings}"
+                                                Header="Network Settings..." />
+                                        </MenuFlyout>
+                                    </Button.Flyout>
                                 </Button>
                                 <Button
                                     Command="{Binding SetGameModePaused}"

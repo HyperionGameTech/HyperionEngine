@@ -78,6 +78,20 @@ public:
         return m_gameState;
     }
 
+    /*! \brief Worlds set on this Game from now on are flagged as server worlds before they initialize.
+     *  Used by the editor for Play As Dedicated Server; standalone --server processes don't need it. */
+    HYP_METHOD()
+    void SetIsServerGame(bool isServerGame)
+    {
+        m_isServerGame = isServerGame;
+    }
+
+    HYP_METHOD()
+    bool IsServerGame() const
+    {
+        return m_isServerGame;
+    }
+
     HYP_METHOD()
     void Initialize();
 
@@ -174,6 +188,7 @@ protected:
 
     bool m_assetRegistryActive;
     bool m_isInitialized;
+    bool m_isServerGame;
 
     AtomicVar<bool> m_isLaunched;
 

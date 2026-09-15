@@ -135,6 +135,13 @@ public:
         m_moveAckQueue.PublishBatch();
     }
 
+    /// Drops ops and acks left over from a previous connection. The client thread must be stopped.
+    void Reset()
+    {
+        m_queue.Reset();
+        m_moveAckQueue.Reset();
+    }
+
     template <class AllocatorType>
     void DrainPendingOps(Array<ReplicationOpBase*, AllocatorType>& outOps)
     {

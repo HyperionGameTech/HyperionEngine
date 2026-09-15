@@ -76,6 +76,25 @@ enum class MeshEditFaceMode : uint8
     Quad
 };
 
+HYP_ENUM()
+enum class EditorPlayNetMode : uint8
+{
+    Standalone = 0,
+    Client,
+    DedicatedServer
+};
+
+HYP_ENUM()
+enum class EditorPlayNetState : uint8
+{
+    None = 0,
+    Connecting,
+    Connected,
+    Failed,
+    Disconnected,
+    Hosting
+};
+
 struct MeshEditFaceSelection
 {
     WeakHandle<Node> node;
@@ -490,6 +509,41 @@ public:
     HYP_METHOD()
     bool PauseSimulation();
 
+    ///Play net mode
+
+    HYP_METHOD()
+    EditorPlayNetMode GetPlayNetMode() const
+    {
+        return m_playNetMode;
+    }
+
+    HYP_METHOD()
+    void SetPlayNetMode(EditorPlayNetMode mode);
+
+    HYP_METHOD()
+    String GetPlayNetHost() const
+    {
+        return m_playNetHost;
+    }
+
+    HYP_METHOD()
+    void SetPlayNetHost(const String& host);
+
+    HYP_METHOD()
+    uint32 GetPlayNetPort() const
+    {
+        return m_playNetPort;
+    }
+
+    HYP_METHOD()
+    void SetPlayNetPort(uint32 port);
+
+    HYP_METHOD()
+    EditorPlayNetState GetPlayNetState() const
+    {
+        return m_playNetState;
+    }
+
     HYP_METHOD()
     bool ExecuteCommand(const Handle<EditorCommandBase>& command);
 
@@ -762,8 +816,18 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void> OnMeshEditStateChanged;
 
+    HYP_FIELD()
+    ScriptableDelegate<void, EditorPlayNetState> OnPlayNetStateChanged;
+
 private:
     void InitViewport();
+
+    void LoadPlayNetSettings();
+    void SavePlayNetSettings();
+
+    void ConnectPlayNetClient();
+    void UpdatePlayNetState();
+    void SetPlayNetState(EditorPlayNetState state);
 
     void InitializeProjectWorld(const Handle<EditorProject>& project, bool isStartSimulation = false);
     void ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld = true);
@@ -910,6 +974,14 @@ private:
 
     Handle<View> m_simulationView;
     FilePath m_simulationSnapshotPath;
+
+    EditorPlayNetMode m_playNetMode;
+    String m_playNetHost;
+    uint32 m_playNetPort;
+
+    // latched from m_playNetMode when a simulation starts
+    EditorPlayNetMode m_activeNetMode;
+    EditorPlayNetState m_playNetState;
 
     Handle<Entity> m_meshPreviewEntity;
     Handle<Material> m_meshPreviewMaterial;

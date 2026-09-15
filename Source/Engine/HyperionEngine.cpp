@@ -666,6 +666,15 @@ extern "C"
         else
         {
             g_gameClient = new GameClient;
+
+#ifdef HYP_EDITOR
+            // Not listening; started and stopped by Play As Dedicated Server. Created up front so the pointer
+            // the main thread reads never changes while the sim thread uses it.
+            if (EngineGlobals::IsEditor())
+            {
+                g_gameServer = new GameServer;
+            }
+#endif // HYP_EDITOR
         }
 
         if (!EngineGlobals::IsHeadless())

@@ -129,6 +129,14 @@ public:
     HYP_METHOD(Property = "WorldFlags", Serialize)
     void SetWorldFlags(EnumFlags<WorldFlags> flags);
 
+    /*! \brief True if this World replicates to clients, either because the process was launched with --server
+     *  or because it was flagged with SetIsServerWorld() (e.g. editor Play As Dedicated Server). */
+    HYP_METHOD()
+    bool IsServerWorld() const;
+
+    /*! \brief Must be called before Initialize(), which is when replication systems are chosen. Not serialized. */
+    void SetIsServerWorld(bool isServerWorld);
+
     HYP_METHOD()
     const Handle<WorldGrid>& GetWorldGrid() const
     {
@@ -379,6 +387,8 @@ private:
 
     bool AddSystemToExecutionGroup(SystemBase* system);
 
+    void UpdateReplicationSystems();
+
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
     Handle<WorldGridLayer> GetStreamingLayer(Name streamingLayerName) const;
 
@@ -477,6 +487,7 @@ private:
     DelegateHandlerSet m_delegateHandlers;
 
     bool m_isInitialized;
+    bool m_isServerWorld;
 };
 
 } // namespace Hyperion

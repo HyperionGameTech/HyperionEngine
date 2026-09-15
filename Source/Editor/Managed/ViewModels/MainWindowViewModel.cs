@@ -433,7 +433,81 @@ namespace Hyperion.Editor.ViewModels
 
         public string StatusText
         {
-            get => "Ready";
+            get => _playNetState switch
+            {
+                EditorPlayNetState.Connecting => $"Connecting to {PlayNetAddress}...",
+                EditorPlayNetState.Connected => $"Connected to {PlayNetAddress}",
+                EditorPlayNetState.Failed => $"Could not connect to {PlayNetAddress} (see log)",
+                EditorPlayNetState.Disconnected => $"Lost connection to {PlayNetAddress}",
+                EditorPlayNetState.Hosting => $"Hosting dedicated server on port {_playNetPort}",
+                _ => "Ready"
+            };
+        }
+
+        private EditorPlayNetMode _playNetMode = EditorPlayNetMode.Standalone;
+        private EditorPlayNetState _playNetState = EditorPlayNetState.None;
+        private string _playNetHost = "127.0.0.1";
+        private uint _playNetPort = 9192;
+
+        private string PlayNetAddress => $"{_playNetHost}:{_playNetPort}";
+
+        public bool IsPlayNetModeStandalone => _playNetMode == EditorPlayNetMode.Standalone;
+        public bool IsPlayNetModeClient => _playNetMode == EditorPlayNetMode.Client;
+        public bool IsPlayNetModeDedicatedServer => _playNetMode == EditorPlayNetMode.DedicatedServer;
+
+        public string PlayTooltip => _playNetMode switch
+        {
+            EditorPlayNetMode.Client => $"Play As Client ({PlayNetAddress})",
+            EditorPlayNetMode.DedicatedServer => $"Play As Dedicated Server (port {_playNetPort})",
+            _ => "Play"
+        };
+
+        public ICommand SetPlayNetModeStandalone { get; private set; }
+        public ICommand SetPlayNetModeClient { get; private set; }
+        public ICommand SetPlayNetModeDedicatedServer { get; private set; }
+        public ICommand OpenNetworkSettings { get; private set; }
+
+        private void RefreshPlayNetSettings()
+        {
+            var action = () =>
+            {
+                EditorPlayNetMode mode = _editorSubsystem.GetPlayNetMode();
+                EditorPlayNetState state = _editorSubsystem.GetPlayNetState();
+                string host = _editorSubsystem.GetPlayNetHost();
+                uint port = _editorSubsystem.GetPlayNetPort();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _playNetMode = mode;
+                    _playNetState = state;
+                    _playNetHost = host;
+                    _playNetPort = port;
+
+                    OnPropertyChanged(nameof(IsPlayNetModeStandalone));
+                    OnPropertyChanged(nameof(IsPlayNetModeClient));
+                    OnPropertyChanged(nameof(IsPlayNetModeDedicatedServer));
+                    OnPropertyChanged(nameof(PlayTooltip));
+                    OnPropertyChanged(nameof(StatusText));
+                });
+            };
+
+            if (EngineManager.IsOnSimThread)
+            {
+                action();
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(action);
+        }
+
+        private void SetPlayNetMode(EditorPlayNetMode mode)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                _editorSubsystem.SetPlayNetMode(mode);
+
+                RefreshPlayNetSettings();
+            });
         }
 
         public bool IsSimulating => _editorSubsystem?.IsSimulating() ?? false;
@@ -486,6 +560,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _meshEditStateChangedHandler;
         private DelegateHandler? _activeSwatchChangedHandler;
         private DelegateHandler? _activeLayersChangedHandler;
+        private DelegateHandler? _playNetStateChangedHandler;
 
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private int _isUpdatingFocusedNodeFromEngine = 0; // atomic
@@ -610,6 +685,29 @@ namespace Hyperion.Editor.ViewModels
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
             SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
+
+            SetPlayNetModeStandalone = new RelayCommand(() => SetPlayNetMode(EditorPlayNetMode.Standalone));
+            SetPlayNetModeClient = new RelayCommand(() => SetPlayNetMode(EditorPlayNetMode.Client));
+            SetPlayNetModeDedicatedServer = new RelayCommand(() => SetPlayNetMode(EditorPlayNetMode.DedicatedServer));
+
+            OpenNetworkSettings = new RelayCommand(() =>
+            {
+                var panel = new NetworkSettingsPanelViewModel(_playNetHost, _playNetPort, result =>
+                {
+                    if (result == null)
+                        return;
+
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.SetPlayNetHost(result.Host);
+                        _editorSubsystem.SetPlayNetPort(result.Port);
+
+                        RefreshPlayNetSettings();
+                    });
+                });
+
+                PanelService.Instance.OpenPanel(panel);
+            });
 
             ToggleMeshEditMode = new RelayCommand(() =>
             {
@@ -909,6 +1007,7 @@ namespace Hyperion.Editor.ViewModels
             BindFocusedNodeChanged();
             BindSelectionChanged();
             BindMeshEditStateChanged();
+            BindPlayNetStateChanged();
 
             EngineManager.TaskStarted += OnTaskStarted;
             EngineManager.TaskEnded += OnTaskEnded;
@@ -951,6 +1050,7 @@ namespace Hyperion.Editor.ViewModels
             _actionStackStateChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
+            _playNetStateChangedHandler?.Remove();
 
             if (isDisposing)
             {
@@ -1743,6 +1843,25 @@ namespace Hyperion.Editor.ViewModels
 
                     target.HandleSelectionUpdate();
                 });
+        }
+
+        private void BindPlayNetStateChanged()
+        {
+            WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
+
+            _playNetStateChangedHandler?.Remove();
+            _playNetStateChangedHandler = _editorSubsystem.GetOnPlayNetStateChangedDelegate()
+                .Bind((EditorPlayNetState state) =>
+                {
+                    if (!weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        return;
+                    }
+
+                    target.RefreshPlayNetSettings();
+                });
+
+            RefreshPlayNetSettings();
         }
 
         private void BindMeshEditStateChanged()

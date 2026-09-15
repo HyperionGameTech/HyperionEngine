@@ -16,6 +16,8 @@
 
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+
 #include <System/DirectoryInitializer.hpp>
 
 #include <Framework/EngineGlobals.hpp>
@@ -41,6 +43,7 @@ static CommandLineArgumentRegistration g_argCacheServer { "cacheserver", {}, "En
 static CommandLineArgumentRegistration g_argHeadless { "headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
 static CommandLineArgumentRegistration g_argServer { "server", {}, "Launch standalone game as headless authoritative server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
 static CommandLineArgumentRegistration g_argHost { "host", {}, "Provide host address for connecting to a game server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argGamePort { "gameport", {}, "Game server port to listen on / connect to. Overrides the Net.GameServerPort CVar", CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER };
 static CommandLineArgumentRegistration g_argEditor { "editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
 
 /// Editor build only
@@ -318,6 +321,13 @@ HYP_EXPORT const char* GetHostAddress()
 
 HYP_EXPORT uint16 GetGameServerPort()
 {
+    static const int32 s_portArgument = CoreApi::GetCommandLineArguments()["gameport"].ToInt32();
+
+    if (s_portArgument > 0 && s_portArgument <= int32(MathUtil::MaxSafeValue<uint16>()))
+    {
+        return uint16(s_portArgument);
+    }
+
     return g_cvGameServerPort.Get();
 }
 

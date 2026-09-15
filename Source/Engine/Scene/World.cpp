@@ -109,6 +109,7 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
       m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr),
       m_isInitialized(false),
+      m_isServerWorld(false),
       m_activeSwatchId(InvalidSwatchId),
       m_activeLayers {}
 {
@@ -284,18 +285,7 @@ void World::Initialize()
             AddSystem(MakeHandle<PlayerSystem>());
     }
 
-    if (m_worldFlags & WorldFlags::IsReplicated)
-    {
-        if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
-        {
-            AddSystem(MakeHandle<ReplicationSystem>());
-        }
-
-        if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
-        {
-            AddSystem(MakeHandle<ReplicationApplySystem>());
-        }
-    }
+    UpdateReplicationSystems();
 
     if (m_activeSwatchId == Invalid<SwatchId>)
     {
@@ -500,30 +490,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
     // Same thing for replication
     if (changedFlags & uint32(WorldFlags::IsReplicated))
     {
-        if (m_worldFlags & WorldFlags::IsReplicated)
-        {
-            if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
-            {
-                AddSystem(MakeHandle<ReplicationSystem>());
-            }
-
-            if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
-            {
-                AddSystem(MakeHandle<ReplicationApplySystem>());
-            }
-        }
-        else
-        {
-            if (HasSystem<ReplicationSystem>())
-            {
-                RemoveSystem(GetSystem<ReplicationSystem>());
-            }
-
-            if (HasSystem<ReplicationApplySystem>())
-            {
-                RemoveSystem(GetSystem<ReplicationApplySystem>());
-            }
-        }
+        UpdateReplicationSystems();
     }
 
     bool needToShutdownWorldGrid = false;
@@ -1948,6 +1915,74 @@ Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
     }
 
     return m_worldGrid->GetStreamingLayerDescs();
+}
+
+bool World::IsServerWorld() const
+{
+    return m_isServerWorld || EngineGlobals::IsServer();
+}
+
+void World::SetIsServerWorld(bool isServerWorld)
+{
+    if (m_isInitialized)
+    {
+        HYP_LOG(Scene, Error, "SetIsServerWorld() called on World {} after it was initialized; ignoring", m_name);
+
+        return;
+    }
+
+    m_isServerWorld = isServerWorld;
+}
+
+void World::UpdateReplicationSystems()
+{
+    const bool isReplicated = bool(m_worldFlags & WorldFlags::IsReplicated);
+    const bool isServerWorld = IsServerWorld();
+
+    // Saved worlds serialize whichever replication system the saving process had, so the wrong one can be present
+    const auto removeSystem = [this](SystemBase* system)
+    {
+        if (system == nullptr)
+        {
+            return;
+        }
+
+        if (m_isInitialized)
+        {
+            RemoveSystem(system);
+
+            return;
+        }
+
+        if (auto it = m_systems.Find(system); it != m_systems.End())
+        {
+            m_systems.Erase(it);
+        }
+    };
+
+    if (isReplicated && isServerWorld)
+    {
+        if (!HasSystem<ReplicationSystem>())
+        {
+            AddSystem(MakeHandle<ReplicationSystem>());
+        }
+    }
+    else
+    {
+        removeSystem(GetSystem<ReplicationSystem>());
+    }
+
+    if (isReplicated && !isServerWorld)
+    {
+        if (!HasSystem<ReplicationApplySystem>())
+        {
+            AddSystem(MakeHandle<ReplicationApplySystem>());
+        }
+    }
+    else
+    {
+        removeSystem(GetSystem<ReplicationApplySystem>());
+    }
 }
 
 void World::DeserializeSystems(const Array<Handle<SystemBase>>& systems)

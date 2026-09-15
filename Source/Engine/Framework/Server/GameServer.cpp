@@ -180,6 +180,14 @@ Result GameServer::Start(uint16 port)
         return HYP_MAKE_ERROR(Error, "Game server is already running");
     }
 
+    // The editor restarts the same GameServer for each Play As Dedicated Server session
+    m_requestManager.Reset();
+
+    {
+        Mutex::Guard guard(m_newConnectionsMutex);
+        m_newConnections.Clear();
+    }
+
     if (Result listenResult = m_netServer.Listen(port); listenResult.HasError())
     {
         return listenResult;
@@ -197,8 +205,12 @@ Result GameServer::Start(uint16 port)
         m_thread->Start();
     }
 
-    m_consoleInputThread = MakeUnique<ConsoleInputThread>();
-    m_consoleInputThread->Start();
+    // Blocks on stdin and can only be detached, never joined - never start it inside a windowed process like the editor
+    if (EngineGlobals::IsHeadless())
+    {
+        m_consoleInputThread = MakeUnique<ConsoleInputThread>();
+        m_consoleInputThread->Start();
+    }
 
     return {};
 }

@@ -10,6 +10,25 @@ namespace Hyperion
         Quad
     }
 
+    [ClassBinding(Name = "EditorPlayNetMode")]
+    public enum EditorPlayNetMode : byte
+    {
+        Standalone = 0,
+        Client,
+        DedicatedServer
+    }
+
+    [ClassBinding(Name = "EditorPlayNetState")]
+    public enum EditorPlayNetState : byte
+    {
+        None = 0,
+        Connecting,
+        Connected,
+        Failed,
+        Disconnected,
+        Hosting
+    }
+
     [ClassBinding(Name = "EditorSubsystem")]
     public class EditorSubsystem : Subsystem
     {
