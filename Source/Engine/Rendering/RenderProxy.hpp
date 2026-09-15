@@ -283,7 +283,6 @@ struct EffectVolumeShaderData
     Vec4f aabbMin;
     Vec4f aabbMax;
 
-    // layout depends on the volume's class, e.g. CloudVolumeShaderData for CloudEffectVolume
     Vec4f params[14];
 
     template <class ParamsType>
@@ -295,14 +294,19 @@ struct EffectVolumeShaderData
     }
 
     template <class ParamsType>
-    ParamsType GetParams() const
+    ParamsType& GetParams() &
     {
-        static_assert(std::is_trivially_copyable_v<ParamsType> && sizeof(ParamsType) <= sizeof(params));
+        static_assert(sizeof(ParamsType) <= sizeof(params));
 
-        ParamsType value;
-        Memory::Copy(&value, params, sizeof(ParamsType));
+        return *reinterpret_cast<ParamsType*>(params);
+    }
 
-        return value;
+    template <class ParamsType>
+    const ParamsType& GetParams() const&
+    {
+        static_assert(sizeof(ParamsType) <= sizeof(params));
+
+        return *reinterpret_cast<const ParamsType*>(params);
     }
 };
 

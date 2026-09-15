@@ -37,7 +37,7 @@
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
 
-#include <Rendering/Clouds/CloudResources.hpp>
+#include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -616,7 +616,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         shadowMaps,
                         numCascadesToWrite);
 
-                    RI.cloudResources->WriteShaderData(*RI.cbufferAllocator, rpl);
+                    dpd->cloudPass->WriteShaderData(*RI.cbufferAllocator);
                 }
                 else
                 {
@@ -650,8 +650,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             if (lightType == LightType::Directional)
             {
-                cr << SetShaderUniform(localNumShaderUniforms++, "CloudWeatherMapTexture"_sh, RI.cloudResources->GetWeatherMapView());
-                cr << SetShaderUniform(localNumShaderUniforms++, "CloudShadowMapTexture"_sh, RI.cloudResources->GetShadowMapView());
+                cr << SetShaderUniform(localNumShaderUniforms++, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
+                cr << SetShaderUniform(localNumShaderUniforms++, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
             }
 
             if (lightType == LightType::AreaRect)

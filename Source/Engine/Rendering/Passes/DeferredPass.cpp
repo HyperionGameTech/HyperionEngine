@@ -70,7 +70,6 @@
 
 #include <Scene/Sky/CloudEffectVolume.hpp>
 
-#include <Rendering/Clouds/CloudResources.hpp>
 #include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Framework/CVarManager.hpp>
@@ -1091,7 +1090,7 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
         passData.fogVolumePass->Create();
 
-        passData.cloudPass = MakeUnique<CloudPass>(gbuffer->GetExtent(), gbuffer);
+        passData.cloudPass = MakeUnique<CloudPass>(gbuffer->GetExtent());
         passData.cloudPass->Create();
 
 #ifdef HYP_EDITOR
@@ -1302,8 +1301,8 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
     passData.fogVolumePass = MakeUnique<FogVolumePass>(newSize, gbuffer);
     passData.fogVolumePass->Create();
 
-    passData.cloudPass = MakeUnique<CloudPass>(newSize, gbuffer);
-    passData.cloudPass->Create();
+    // resized rather than recreated, so the noise, weather map and shadow map survive
+    passData.cloudPass->Resize(newSize);
 
 #ifdef HYP_EDITOR
     passData.editorGridPass = MakeUnique<EditorGridPass>();
@@ -1355,6 +1354,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     FixedArray<Set<Light*, RenderTempAllocator>, NumLightTypes> lights;
     Map<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
+
+    // the first view with active clouds; sky probes composite its clouds
+    DeferredPassData* skyProbeCloudsPassData = nullptr;
     // ---
 
     // init view pass data and collect global rendering resources
@@ -1388,41 +1390,19 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 }
             }
 
-            { // Clouds
-                Vec3f cloudCameraPosition = Vec3f::Zero();
-                
-                RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
+            { // Clouds - before lighting, fog and the sky probe sample the view's weather and shadow maps
+                DeferredPassData* pd = DynamicCast<DeferredPassData>(FetchViewPassData(view));
+                AssertDebug(pd != nullptr);
 
-                if (cameraProxy)
+                RenderSetup cloudRS = rs.Fork();
+                cloudRS.view = view;
+                cloudRS.passData = pd;
+
+                pd->cloudPass->Update(frame, cloudRS);
+
+                if (!skyProbeCloudsPassData && pd->cloudPass->CanCompositeSkyProbe())
                 {
-                    cloudCameraPosition = cameraProxy->bufferData.cameraPosition.GetXYZ();
-                }
-
-                Vec3f cloudDirectionToSun = Vec3f::Zero();
-
-                for (Light* light : rpl.GetLights())
-                {
-                    if (light->GetLightType() != LightType::Directional)
-                    {
-                        continue;
-                    }
-
-                    if (RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light)))
-                    {
-                        cloudDirectionToSun = lightProxy->bufferData.positionIntensity.GetXYZ();
-
-                        break;
-                    }
-                }
-
-                for (EffectVolume* effectVolume : rpl.GetEffectVolumes().GetElements<CloudEffectVolume>())
-                {
-                    const RenderProxyEffectVolume* cloudVolumeProxy = static_cast<RenderProxyEffectVolume*>(GetRenderProxy(effectVolume));
-
-                    if (cloudVolumeProxy)
-                    {
-                        RI.cloudResources->Update(frame, cloudVolumeProxy, cloudCameraPosition, cloudDirectionToSun);
-                    }
+                    skyProbeCloudsPassData = pd;
                 }
             }
         }
@@ -1522,6 +1502,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             envProbeSetup.light = lights[uint32(LightType::Directional)].Front();
         }
+
+        // probe views set their own pass data; this only carries the clouds to sky probe captures
+        envProbeSetup.passData = skyProbeCloudsPassData;
 
         if (envProbes.Any())
         {
@@ -2021,12 +2004,10 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     if (g_cvClouds.Get())
     {
         // over the lit scene's sky pixels, before translucents so they draw in front of the clouds
-        passData.cloudPass->Render(frame, rs);
+        RenderSetup cloudRS = rs.Fork();
+        cloudRS.framebuffer = effectPassFramebuffer;
 
-        RenderSetup cloudCompositeRS = rs.Fork();
-        cloudCompositeRS.framebuffer = effectPassFramebuffer;
-
-        passData.cloudPass->Composite(frame, cloudCompositeRS);
+        passData.cloudPass->Render(frame, cloudRS);
     }
 
     frame->cr << SetAsyncShaderLoadingEnabled(true);

@@ -29,7 +29,7 @@
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
 
-#include <Rendering/Clouds/CloudResources.hpp>
+#include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
@@ -244,8 +244,8 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(11, "ShadowMapIndexBuffer"_sh, *dpd->clusteredShadowMapIndexBuffer);
 
-    cr << SetShaderUniform(15, "CloudWeatherMapTexture"_sh, RI.cloudResources->GetWeatherMapView());
-    cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, RI.cloudResources->GetShadowMapView());
+    cr << SetShaderUniform(15, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
+    cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
 
     LightShaderData fogLightData[MaxFogLights] {};
     ShadowMapData fogShadowMapData[MaxFogLights] {};
@@ -335,7 +335,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
             RI.cbufferAllocator->Write(&shaderData);
             RI.cbufferAllocator->Write(&directionalLightShaderData);
             RI.cbufferAllocator->Write(&directionalCSMData);
-            RI.cloudResources->WriteShaderData(*RI.cbufferAllocator, rpl);
+            dpd->cloudPass->WriteShaderData(*RI.cbufferAllocator);
 
             if (useClusteredLights)
             {

@@ -10,19 +10,16 @@ DECLARE_BUFFER_DYNAMIC(Clouds, CloudWeatherMapConstants) cbuffer CloudWeatherMap
     CloudWeatherMap weatherMap;
 };
 
+/////
 static const uint RegionalOctaves = 3;
 static const uint WarpOctaves = 2;
 static const uint CellOctaves = 4;
 static const uint DetailOctaves = 3;
-
-// in weather cells - warping bends regional blobs into clusters and streaks
+/////
 static const float WarpStrength = 0.6;
-
-// how far regional weather pushes local coverage away from the Coverage setting
 static const float RegionalCoverageVariation = 0.35;
-
-// width of the soft edge between clear sky and cloud, in normalized noise units
 static const float CoverageEdgeWidth = 0.12;
+/////
 
 // fbm sums are narrow around zero; this spreads them over most of [0, 1] so thresholds behave like area fractions
 float NormalizeFbm(float value)

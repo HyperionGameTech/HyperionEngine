@@ -32,7 +32,7 @@
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
-#include <Rendering/Clouds/CloudResources.hpp>
+#include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -468,12 +468,14 @@ static bool CaptureSkyProbeSky(const RenderSetup& renderSetup, SkyProbe* skyProb
         cr << InsertBarrier(colorAttachment->GetGpuImage(), ResourceState::ShaderResource);
     }
 
-    CloudResources& cloudResources = *RI.cloudResources;
+    DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
 
-    if (!cloudResources.IsActive() || !cloudResources.IsNoiseReady())
+    if (!cloudsPassData || !cloudsPassData->cloudPass->CanCompositeSkyProbe())
     {
         return false;
     }
+
+    CloudPass* cloudPass = cloudsPassData->cloudPass.Get();
 
     RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe));
     AssertDebug(skyProbeProxy != nullptr);
@@ -482,7 +484,7 @@ static bool CaptureSkyProbeSky(const RenderSetup& renderSetup, SkyProbe* skyProb
         ? static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light))
         : nullptr;
 
-    cloudResources.CompositeSkyProbe(skyboxTexture.Get(), colorAttachment, skyProbeProxy->bufferData, sunProxy ? &sunProxy->bufferData : nullptr);
+    cloudPass->CompositeSkyProbe(skyboxTexture.Get(), colorAttachment, skyProbeProxy->bufferData, sunProxy ? &sunProxy->bufferData : nullptr);
 
     return true;
 }
@@ -1264,7 +1266,9 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         }
 
         // recapture as clouds move, and once when they appear or go away
-        const bool cloudsReady = RI.cloudResources->IsActive() && RI.cloudResources->IsNoiseReady();
+        // DeferredPass hands over the pass data of the first view with active clouds, if there is one
+        const DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
+        const bool cloudsReady = cloudsPassData && cloudsPassData->cloudPass->CanCompositeSkyProbe();
 
         if (cloudsReady != pd->hasCompositedClouds
             || (cloudsReady && pd->cloudRefreshTimer.Interval(ClockTimer::Now()) >= g_cvCloudsSkyProbeRefreshSeconds.Get()))

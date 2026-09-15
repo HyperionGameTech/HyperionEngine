@@ -1561,26 +1561,29 @@ void AssetRegistry::SaveDirtyAssets()
 
             TBitset<AssetAllocator> seenIndices;
 
-            Bitset::BitIndex index;
+            bool foundUnseenIndex = true;
 
-            do
+            while (foundUnseenIndex)
             {
-                index = data.dirtyIndices.NextSetBitIndex(0);
+                foundUnseenIndex = false;
 
-                if (index == Bitset::NotFound)
+                for (Bitset::BitIndex index = data.dirtyIndices.NextSetBitIndex(0);
+                     index != Bitset::NotFound;
+                     index = data.dirtyIndices.NextSetBitIndex(index + 1))
                 {
-                    break;
-                }
+                    if (seenIndices.Test(index))
+                    {
+                        continue;
+                    }
 
-                if (!seenIndices.Test(index))
-                {
+                    seenIndices.Set(index, true);
+                    foundUnseenIndex = true;
+
                     const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
 
                     if (!pAssetObject || !pAssetObject->IsValid() || (*pAssetObject)->IsTransient())
                     {
                         data.dirtyIndices.Set(index, false);
-
-                        seenIndices.Set(index, true);
 
                         continue;
                     }
@@ -1591,19 +1594,14 @@ void AssetRegistry::SaveDirtyAssets()
 
                     lock.Reset();
 
-                    // recursively register properties for this asset object
-                    PutAssetsDeep(*pAssetObject);
+                    // recursively register properties for this asset object.
+                    // may dirty assets at lower indices, which the next pass picks up.
+                    PutAssetsDeep(assetObject);
 
                     // relock
                     lock.Reset(data.mtx);
-
-                    seenIndices.Set(index, true);
                 }
-
-                // mark this asset as no longer dirty so we don't keep looping over the same index.
-                data.dirtyIndices.Set(index, false);
             }
-            while (index != Bitset::NotFound);
         }
 
         if (dirtyAssets.Empty())
@@ -1630,6 +1628,28 @@ void AssetRegistry::SaveDirtyAssets()
             // Is this causing more deadlocks?
             //auto writeScope = assetObject->GetWriteScope();
 
+            if (!assetObject->IsRegistered())
+            {
+                // removed from the registry since it was collected
+                continue;
+            }
+
+            // Pins the blob data so another thread releasing the last reader can't unpage it mid-write
+            auto readScope = assetObject->GetReadScope();
+
+            const uint32 assetIndex = assetObject->GetAssetIndex();
+
+            if (assetIndex == AssetDesc::InvalidIndex)
+            {
+                continue;
+            }
+
+            // Cleared before writing so a MarkDirty() racing with the save isn't lost
+            {
+                TUniqueLock dirtyLock(data.mtx);
+                data.dirtyIndices.Set(assetIndex, false);
+            }
+
             const Name assetName = assetObject->GetName();
             AssertDebug(assetName.IsValid());
 
@@ -1644,6 +1664,9 @@ void AssetRegistry::SaveDirtyAssets()
             {
                 HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                         assetName, bucketName, saveBlobResult.GetError().GetMessage());
+
+                // Keep it dirty, otherwise releasing readScope would unpage blob data that was never written
+                data.MarkDirty(assetIndex);
                 continue;
             }
 
@@ -1653,6 +1676,8 @@ void AssetRegistry::SaveDirtyAssets()
                 if (!manifestWriter.IsOpen())
                 {
                     HYP_LOG(Assets, Warning, "Failed to open manifest file '{}' for writing", manifestPath);
+
+                    data.MarkDirty(assetIndex);
                     continue;
                 }
 
@@ -1660,6 +1685,8 @@ void AssetRegistry::SaveDirtyAssets()
                 {
                     HYP_LOG(Assets, Warning, "Failed to save manifest for asset '{}' in bucket '{}': {}",
                             assetName, bucketName, saveManifestResult.GetError().GetMessage());
+
+                    data.MarkDirty(assetIndex);
                     continue;
                 }
 

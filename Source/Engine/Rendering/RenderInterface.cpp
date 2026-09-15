@@ -59,8 +59,6 @@
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
-#include <Rendering/Clouds/CloudResources.hpp>
-
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 #include <Rendering/Util/ShaderCompiler.hpp>
@@ -674,7 +672,6 @@ RenderInterface::RenderInterface()
       samplerCache(nullptr),
       blasCache(nullptr),
       shadowMapCache(nullptr),
-      cloudResources(nullptr),
       finalPass(nullptr),
       stagingBufferPool(nullptr),
       m_gpuTimerBackend(nullptr)
@@ -732,7 +729,6 @@ RendererResult RenderInterface::Initialize()
     samplerCache = PoolNew<SamplerCache>(*g_renderPool);
     blasCache = PoolNew<BLASCache>(*g_renderPool);
     shadowMapCache = PoolNew<ShadowMapCache>(*g_renderPool);
-    cloudResources = PoolNew<CloudResources>(*g_renderPool);
     stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
 
     InitDeviceDetails(deviceDetails);
@@ -922,11 +918,6 @@ void RenderInterface::Shutdown()
 
     envProbesColorTexture.Reset();
     envProbesDepthTexture.Reset();
-
-    cloudResources->Shutdown();
-
-    PoolDelete(*g_renderPool, cloudResources);
-    cloudResources = nullptr;
 
     shadowMapCache->Shutdown();
     placeholderData->Shutdown();

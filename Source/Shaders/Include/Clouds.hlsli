@@ -40,7 +40,7 @@ struct CloudVolume
     float4 _unusedParams[8];
 };
 
-// matches CloudWeatherMapShaderData in Rendering/Clouds/CloudResources.hpp
+// matches CloudWeatherMapShaderData in Rendering/Clouds/CloudPass.hpp
 struct CloudWeatherMap
 {
     float2 origin;
@@ -66,7 +66,7 @@ struct CloudWeatherMap
     float _pad0;
 };
 
-// matches CloudShadowMapShaderData in Rendering/Clouds/CloudResources.hpp
+// matches CloudShadowMapShaderData in Rendering/Clouds/CloudPass.hpp
 struct CloudShadowMap
 {
     // world XZ of the map's min corner, on the y = 0 plane
@@ -88,7 +88,7 @@ struct CloudShadowMap
 // how dark a fully covered, full density patch of sky makes the ground: exp(-scale)
 static const float CloudShadowOpticalDepthScale = 6.0;
 
-// log2(CloudResources::WeatherMapOriginSnapTexels) - coarser mips shift when the map recenters, which reads as a pop
+// log2(CloudPass::WeatherMapOriginSnapTexels) - coarser mips shift when the map recenters, which reads as a pop
 static const float CloudWeatherMapMaxStableLod = 4.0;
 
 float2 GetCloudWeatherMapUV(CloudWeatherMap weatherMap, float2 cloudSpaceXZ)

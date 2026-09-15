@@ -441,10 +441,17 @@ PSOutput PSMain(PSInput input)
         weights = float4(1.0 - rock_blend, rock_blend, 0.0, 0.0);
     }
     
-    weights.x *= float(HAS_TEXTURE(material, TerrainLayer0));
-    weights.y *= float(HAS_TEXTURE(material, TerrainLayer1));
-    weights.z *= float(HAS_TEXTURE(material, TerrainLayer2));
-    weights.w *= float(HAS_TEXTURE(material, TerrainLayer3));
+    const float4 has_layer_texture = float4(
+        float(HAS_TEXTURE(material, TerrainLayer0)),
+        float(HAS_TEXTURE(material, TerrainLayer1)),
+        float(HAS_TEXTURE(material, TerrainLayer2)),
+        float(HAS_TEXTURE(material, TerrainLayer3)));
+
+    // layers with no texture hand their weight to the base layer, otherwise it drops to flat material albedo
+    const float missing_layer_weight = dot(weights, 1.0 - has_layer_texture);
+
+    weights *= has_layer_texture;
+    weights.x += missing_layer_weight * has_layer_texture.x;
 
     const float base_total_weight = weights.x + weights.y + weights.z + weights.w;
     const float parallax_fade = 1.0 - smoothstep(TERRAIN_PARALLAX_FADE_START, TERRAIN_PARALLAX_FADE_END, view_distance);
