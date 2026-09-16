@@ -151,6 +151,7 @@ struct NamedPass
         ParticleVolume,
         Sprite,
         SSAO,
+        SkyVisibility,
 
         Max
     };
@@ -163,6 +164,7 @@ struct NamedPass
         "ParticleVolume",
         "Sprite",
         "SSAO",
+        "SkyVisibility",
     };
 
     NamedPass(Name value)

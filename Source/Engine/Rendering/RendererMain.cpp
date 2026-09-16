@@ -265,9 +265,20 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     if (overrideAttributes)
     {
+        const MaterialAttributes& sourceMaterialAttributes = attributes.GetMaterialAttributes();
+
         MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
         // do not override bucket!
-        newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
+        newMaterialAttributes.bucket = sourceMaterialAttributes.bucket;
+
+        // cutouts and two sided geometry have to stay that way in depth only passes, or foliage
+        // casts solid shadows and drops its back faces
+        newMaterialAttributes.flags |= (sourceMaterialAttributes.flags & MAF_ALPHA_DISCARD);
+
+        if (sourceMaterialAttributes.cullFaces == FaceCullMode::None)
+        {
+            newMaterialAttributes.cullFaces = FaceCullMode::None;
+        }
 
         attributes.SetMaterialAttributes(newMaterialAttributes);
     }

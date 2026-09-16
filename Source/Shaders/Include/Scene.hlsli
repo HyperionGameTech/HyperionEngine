@@ -23,6 +23,7 @@ struct WorldShaderData
 
     float4 sky_tint_intensity;
     float4 sky_light_params;
+    float4 sky_occlusion_params;
 
     float4 height_fog_params;
     float4 atmosphere_fog_params;

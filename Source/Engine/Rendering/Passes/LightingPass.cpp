@@ -11,6 +11,7 @@
 #include <Rendering/Passes/HBAOPass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 #include <Rendering/Passes/SSRPass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/DeferredPassShared.hpp>
 
 #include <Rendering/MaterialTextureCache.hpp>
@@ -395,7 +396,12 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 RI.cbufferAllocator->Write(&s_dummyEnvProbeData);
             }
 
+            SkyVisibilityPass* skyVisibilityPass = static_cast<SkyVisibilityPass*>(RI.namedPasses[NamedPass::SkyVisibility][0]);
+            skyVisibilityPass->WriteShaderData(*RI.cbufferAllocator);
+
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+            cr << SetShaderUniform(numShaderUniforms++, "SkyVisibilityTexture"_sh, skyVisibilityPass->GetDepthImageView());
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }

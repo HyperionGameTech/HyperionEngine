@@ -607,11 +607,15 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
         }
     }
 
+    outShaderData.skyLightParams.w = 0.0f;
+
     if (DynamicSkySystem* skySystem = GetSystem<DynamicSkySystem>())
     {
-        const CloudSettings& cloudSettings = skySystem->GetCloudSettings();
-
-        outShaderData.skyLightParams.w = cloudSettings.enabled ? MathUtil::Clamp(cloudSettings.shape.coverage, 0.0f, 1.0f) : 0.0f;
+        if (CloudEffectVolume* cloudEffectVolume = skySystem->GetCloudEffectVolume();
+                cloudEffectVolume && cloudEffectVolume->GetSettings().enabled)
+        {
+            outShaderData.skyLightParams.w = MathUtil::Clamp(cloudEffectVolume->GetSettings().shape.coverage, 0.0f, 1.0f);
+        }
     }
 }
 

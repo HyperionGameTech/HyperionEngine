@@ -115,6 +115,7 @@
 //                           meaning will change depending on context
 #define OBJECT_MASK_UNLIT (0x01u)
 #define OBJECT_MASK_LIGHTMAPPED (0x02u)
+#define OBJECT_MASK_FOLIAGE (0x04u)
 
 // Helper math utilities.
 #define HYP_FMATH_SQR(num) ((num) * (num))

@@ -55,6 +55,7 @@
 #include <Rendering/Passes/ShadowsPass.hpp>
 #include <Rendering/Passes/ParticlesPass.hpp>
 #include <Rendering/Passes/SpritePass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/UIPass.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
@@ -843,6 +844,10 @@ RendererResult RenderInterface::Initialize()
     namedPasses[NamedPass::Sprite].ResizeZeroed(1);
     namedPasses[NamedPass::Sprite][0] = new SpritePass;
     namedPasses[NamedPass::Sprite][0]->Initialize();
+
+    namedPasses[NamedPass::SkyVisibility].ResizeZeroed(1);
+    namedPasses[NamedPass::SkyVisibility][0] = new SkyVisibilityPass;
+    namedPasses[NamedPass::SkyVisibility][0]->Initialize();
 
     return {};
 }

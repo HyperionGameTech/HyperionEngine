@@ -94,6 +94,9 @@ struct WorldShaderData
     // x = diffuse sky light, y = specular sky light, z = overcast brightness, w = cloud coverage
     Vec4f skyLightParams;
 
+    // x = sky occlusion strength, y = filter radius in meters, z = depth bias in meters
+    Vec4f skyOcclusionParams;
+
     // x = density, y = height falloff, z = base height, w = start distance
     Vec4f heightFogParams;
 
@@ -104,7 +107,7 @@ struct WorldShaderData
     Vec4f fogPhaseParams;
 };
 
-static_assert(sizeof(WorldShaderData) == 192);
+static_assert(sizeof(WorldShaderData) == 208);
 
 struct EntityShaderData
 {

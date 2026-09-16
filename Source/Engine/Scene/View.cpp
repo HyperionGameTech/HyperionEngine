@@ -340,9 +340,10 @@ void View::UpdateVisibility()
     //AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
-    if (!(flags & ViewFlags::SHADOW_VIEW))
+    if (!(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::SKY_VISIBILITY_VIEW)))
     {
-        // Shadow views update their own frustums and VP matrices (View::PrepareShadowViews())
+        // Shadow views update their own frustums and VP matrices (View::PrepareShadowViews()),
+        // as does the sky visibility view (DynamicSkySystem::UpdateSkyVisibilityView())
 
         // Cubemap face views do not automatically update the sub-frustum
         if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))

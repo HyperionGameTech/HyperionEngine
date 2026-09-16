@@ -77,6 +77,8 @@ enum class ViewFlags : uint32
     SKIP_SPRITES = 0x1000,          //!< If set, the view will not collect Sprites.
     SKIP_EFFECT_VOLUMES = 0x10000,  //!< If set, the view will not collect EffectVolumes.
 
+    SKY_VISIBILITY_VIEW = 0x20000,  //!< Top-down depth capture of what blocks the sky. Sets its own matrices, like a shadow view.
+
     NOT_MULTI_BUFFERED = 0x2000,    //!< Disables double / triple buffering for the RenderProxyList this View writes to.
                                     //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
                                     //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.

@@ -108,6 +108,10 @@ public:
     HYP_FIELD(Property = "Unlit", Editor, Serialize)
     bool unlit;
 
+    // two sided, wrapped lighting with light coming through from behind - leaves, grass, cloth
+    HYP_FIELD(Property = "Foliage", Editor, Serialize)
+    bool foliage;
+
     HYP_FIELD(Property = "Flags", Serialize, Editor = false)
     uint8 flags;
 

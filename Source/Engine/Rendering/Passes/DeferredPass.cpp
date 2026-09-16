@@ -16,6 +16,7 @@
 #include <Rendering/Passes/LightmapPass.hpp>
 #include <Rendering/Passes/FogVolumePass.hpp>
 #include <Rendering/Passes/HeightFogPass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 
 #ifdef HYP_EDITOR
@@ -1408,6 +1409,14 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                     skyProbeCloudsPassData = pd;
                 }
             }
+        }
+        else if (view->GetFlags() & ViewFlags::SKY_VISIBILITY_VIEW)
+        {
+            // must run before lighting reads it for sky occlusion
+            RenderSetup skyVisibilityRS = rs.Fork();
+            skyVisibilityRS.view = view;
+
+            RI.namedPasses[NamedPass::SkyVisibility][0]->RenderFrame(frame, skyVisibilityRS);
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
         {

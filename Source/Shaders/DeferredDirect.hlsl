@@ -211,6 +211,15 @@ uint GetShadowMapIndexForLight(uint lightIndex)
 
 #endif // LIGHT_TYPE_CLUSTERED
 
+// how far light wraps past the terminator on thin two sided surfaces, and how tight the backlit lobe is
+#define FOLIAGE_WRAP 0.5
+#define FOLIAGE_TRANSMISSION_POWER 4.0
+
+float FoliageWrapDiffuse(float NdotL)
+{
+    return saturate((NdotL + FOLIAGE_WRAP) / ((1.0 + FOLIAGE_WRAP) * (1.0 + FOLIAGE_WRAP)));
+}
+
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
@@ -247,6 +256,9 @@ PSOutput PSMain(PSInput input)
 
         return output;
     }
+
+    const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
+    const float transmission = isFoliage ? float(materialBits & 0xFFu) / 255.0 : 0.0;
 
     const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
     const float metalness = materialParams.metalness;
@@ -373,9 +385,16 @@ PSOutput PSMain(PSInput input)
         float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
         float4 diffuse = diffuse_lobe;
 
-        float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
+        const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-        result += float4((direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+        float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL;
+
+        if (isFoliage)
+        {
+            direct_component += diffuse * (pow(saturate(dot(V, -L)), FOLIAGE_TRANSMISSION_POWER) * transmission);
+        }
+
+        result += float4((direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
 
         lightHit = true;
     }
@@ -574,9 +593,17 @@ PSOutput PSMain(PSInput input)
     float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
     float4 diffuse = diffuse_lobe;
 
-    float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
+    // leaves and grass wrap light around and let some through from behind
+    const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-    result += direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation);
+    float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL;
+
+    if (isFoliage)
+    {
+        direct_component += diffuse * (pow(saturate(dot(V, -L)), FOLIAGE_TRANSMISSION_POWER) * transmission);
+    }
+
+    result += direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT

@@ -115,7 +115,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif
 
     output.v_position = position.xyz / position.w;
-    output.v_texcoord0 = input.a_texcoord0 * CURRENT_MATERIAL.uv_scale;
+    // matches DefaultVertex.hlsl, which flips V
+    output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y) * CURRENT_MATERIAL.uv_scale;
 
     float4 position_ndc = mul(vpMatrix, position);
     position_ndc /= position_ndc.w;
@@ -150,7 +151,7 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.v_texcoord0);
-        clip(albedo_texture.a - MATERIAL_ALPHA_DISCARD);
+        clip(albedo_texture.a - GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD));
     }
 #endif
 

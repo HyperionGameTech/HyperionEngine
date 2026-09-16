@@ -7,12 +7,10 @@
 #pragma once
 
 #include <Scene/EffectVolume.hpp>
-#include <Scene/Sky/CloudSettings.hpp>
+#include <Scene/EnvironmentSettings.hpp>
 
 namespace Hyperion {
 
-/*! \brief Carries the world's cloud settings and cloud clock to the render thread. Unbounded; owned by DynamicSkySystem. */
-HYP_CLASS()
 class ENGINE_API CloudEffectVolume final : public EffectVolume
 {
     HYP_OBJECT_BODY(CloudEffectVolume);

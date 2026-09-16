@@ -5,6 +5,9 @@
 #include "../include/BRDF.hlsli"
 #include "../include/Octahedron.hlsli"
 
+// how much of the sky this pixel can see; DeferredIndirect sets it per pixel, everything else leaves it open
+static float g_skyVisibility = 1.0;
+
 struct Refraction
 {
     float3 position;
@@ -358,8 +361,8 @@ void EvaluateEnvProbes(
         const float reflectionsResidual = 1.0 - smoothstep(0.01, 0.1, saturate(reflectionsWeightSum));
         const float irradianceResidual = 1.0 - irradianceWeightSum;
         
-        const float skyReflectionsIntensity = world_shader_data.sky_light_params.y;
-        const float skyIrradianceIntensity = world_shader_data.sky_light_params.x;
+        const float skyReflectionsIntensity = world_shader_data.sky_light_params.y * g_skyVisibility;
+        const float skyIrradianceIntensity = world_shader_data.sky_light_params.x * g_skyVisibility;
 
         const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
         reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight * skyReflectionsIntensity;

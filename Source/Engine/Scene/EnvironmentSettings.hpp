@@ -27,6 +27,111 @@ enum class TonemapOperator : uint32
 };
 
 HYP_STRUCT()
+struct CloudLayerSettings
+{
+    HYP_STRUCT_BODY(CloudLayerSettings);
+
+    HYP_FIELD(Property = "BaseAltitude", Serialize, Label = "Base Altitude")
+    float baseAltitude = 1500.0f;
+
+    HYP_FIELD(Property = "Thickness", Serialize, Label = "Thickness")
+    float thickness = 1000.0f;
+};
+
+HYP_STRUCT()
+struct CloudShapeSettings
+{
+    HYP_STRUCT_BODY(CloudShapeSettings);
+
+    HYP_FIELD(Property = "Coverage", Serialize, Label = "Cloud Coverage")
+    float coverage = 0.85f;
+
+    HYP_FIELD(Property = "CloudTypeBias", Serialize, Label = "Cloud Type Bias")
+    float cloudTypeBias = 0.9f;
+
+    HYP_FIELD(Property = "DensityMultiplier", Serialize, Label = "Density Multiplier")
+    float densityMultiplier = 1.0f;
+
+    HYP_FIELD(Property = "DetailErosion", Serialize, Label = "Detail Erosion")
+    float detailErosion = 0.3f;
+};
+
+HYP_STRUCT()
+struct CloudNoiseSettings
+{
+    HYP_STRUCT_BODY(CloudNoiseSettings);
+
+    HYP_FIELD(Property = "WeatherScale", Serialize, Label = "Weather Scale")
+    float weatherScale = 12000.0f;
+
+    HYP_FIELD(Property = "CloudSize", Serialize, Label = "Cloud Size")
+    float cloudSize = 1500.0f;
+
+    HYP_FIELD(Property = "ShapeScale", Serialize, Label = "Shape Scale")
+    float shapeScale = 3000.0f;
+
+    HYP_FIELD(Property = "DetailScale", Serialize, Label = "Detail Scale")
+    float detailScale = 250.0f;
+
+    HYP_FIELD(Property = "Seed", Serialize, Label = "Seed")
+    uint32 seed = 0;
+};
+
+HYP_STRUCT()
+struct CloudWindSettings
+{
+    HYP_STRUCT_BODY(CloudWindSettings);
+
+    HYP_FIELD(Property = "Direction", Serialize, Label = "Direction")
+    float directionDegrees = 45.0f;
+
+    HYP_FIELD(Property = "Speed", Serialize, Label = "Speed")
+    float speed = 10.0f;
+
+    HYP_FIELD(Property = "EvolutionSpeed", Serialize, Label = "Evolution Speed")
+    float evolutionSpeed = 1.0f;
+};
+
+HYP_STRUCT()
+struct CloudLightingSettings
+{
+    HYP_STRUCT_BODY(CloudLightingSettings);
+
+    HYP_FIELD(Property = "ShadowStrength", Serialize, Label = "Shadow Strength")
+    float shadowStrength = 0.85f;
+
+    HYP_FIELD(Property = "ShadowSoftness", Serialize, Label = "Shadow Softness")
+    float shadowSoftness = 0.2f;
+
+    HYP_FIELD(Property = "HazeDistance", Serialize, Label = "Haze Distance")
+    float hazeDistance = 40000.0f;
+};
+
+HYP_STRUCT()
+struct CloudSettings
+{
+    HYP_STRUCT_BODY(CloudSettings);
+
+    HYP_FIELD(Property = "Enabled", Serialize, Label = "Enabled")
+    bool enabled = true;
+
+    HYP_FIELD(Property = "Layer", Serialize, Label = "Layer")
+    CloudLayerSettings layer;
+
+    HYP_FIELD(Property = "Shape", Serialize, Label = "Shape")
+    CloudShapeSettings shape;
+
+    HYP_FIELD(Property = "Noise", Serialize, Label = "Noise")
+    CloudNoiseSettings noise;
+
+    HYP_FIELD(Property = "Wind", Serialize, Label = "Wind")
+    CloudWindSettings wind;
+
+    HYP_FIELD(Property = "Lighting", Serialize, Label = "Lighting")
+    CloudLightingSettings lighting;
+};
+
+HYP_STRUCT()
 struct SkyLookSettings
 {
     HYP_STRUCT_BODY(SkyLookSettings);
@@ -50,10 +155,19 @@ struct SkyLightSettings
     HYP_STRUCT_BODY(SkyLightSettings);
 
     HYP_FIELD(Property = "DiffuseIntensity", Serialize, Label = "Diffuse Intensity")
-    float diffuseIntensity = 1.0f;
+    float diffuseIntensity = 1.3f;
 
     HYP_FIELD(Property = "SpecularIntensity", Serialize, Label = "Specular Intensity")
     float specularIntensity = 1.0f;
+
+    HYP_FIELD(Property = "OcclusionStrength", Serialize, Label = "Occlusion Strength")
+    float occlusionStrength = 1.0f;
+
+    HYP_FIELD(Property = "OcclusionRadius", Serialize, Label = "Occlusion Radius")
+    float occlusionRadius = 3.0f;
+
+    HYP_FIELD(Property = "OcclusionBias", Serialize, Label = "Occlusion Bias")
+    float occlusionBias = 0.5f;
 };
 
 HYP_STRUCT()
@@ -68,16 +182,16 @@ struct ExposureSettings
     TonemapOperator tonemapOperator = TonemapOperator::ACES;
 
     HYP_FIELD(Property = "WhiteBalanceTemperature", Serialize, Label = "Temperature")
-    float whiteBalanceTemperature = 0.0f;
+    float whiteBalanceTemperature = -0.1f;
 
     HYP_FIELD(Property = "WhiteBalanceTint", Serialize, Label = "Tint")
     float whiteBalanceTint = 0.0f;
 
     HYP_FIELD(Property = "Saturation", Serialize, Label = "Saturation")
-    float saturation = 1.15f;
+    float saturation = 0.95f;
 
     HYP_FIELD(Property = "Contrast", Serialize, Label = "Contrast")
-    float contrast = 1.0f;
+    float contrast = 0.9f;
 };
 
 HYP_STRUCT()
@@ -89,7 +203,7 @@ struct HeightFogSettings
     bool enabled = true;
 
     HYP_FIELD(Property = "Density", Serialize, Label = "Density")
-    float density = 0.0012f;
+    float density = 0.003f;
 
     HYP_FIELD(Property = "HeightFalloff", Serialize, Label = "Height Falloff")
     float heightFalloff = 0.05f;
@@ -101,7 +215,7 @@ struct HeightFogSettings
     float startDistance = 50.0f;
 
     HYP_FIELD(Property = "AerialPerspectiveDistance", Serialize, Label = "Aerial Perspective Distance")
-    float aerialPerspectiveDistance = 6000.0f;
+    float aerialPerspectiveDistance = 4500.0f;
 
     HYP_FIELD(Property = "SkyInscatter", Serialize, Label = "Sky Inscatter")
     float skyInscatterStrength = 1.0f;

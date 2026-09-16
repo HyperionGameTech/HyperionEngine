@@ -101,6 +101,12 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
     outShaderData.skyLightParams.y = MathUtil::Max(settings.skyLight.specularIntensity, 0.0f);
     outShaderData.skyLightParams.z = MathUtil::Max(sky.overcastBrightness, 0.0f);
 
+    outShaderData.skyOcclusionParams = Vec4f(
+        MathUtil::Clamp(settings.skyLight.occlusionStrength, 0.0f, 1.0f),
+        MathUtil::Max(settings.skyLight.occlusionRadius, 0.0f),
+        MathUtil::Max(settings.skyLight.occlusionBias, 0.0f),
+        0.0f);
+
     if (sky.showSunDisk)
     {
         outShaderData.environmentFlags |= WEF_SUN_DISK;

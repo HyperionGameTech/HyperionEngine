@@ -153,7 +153,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // SHADING_TYPE_LIGHTMAPPED
 
     output.object_mask = lightmappedMask
-        | (min(1u, GET_MATERIAL_PARAM_BIT(material, 0)) * OBJECT_MASK_UNLIT);
+        | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_UNLIT)) * OBJECT_MASK_UNLIT)
+        | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_FOLIAGE)) * OBJECT_MASK_FOLIAGE);
 
 #ifndef INSTANCING
 #undef currentEntity
