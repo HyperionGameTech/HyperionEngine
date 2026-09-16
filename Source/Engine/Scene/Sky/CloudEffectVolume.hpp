@@ -11,6 +11,7 @@
 
 namespace Hyperion {
 
+HYP_CLASS()
 class ENGINE_API CloudEffectVolume final : public EffectVolume
 {
     HYP_OBJECT_BODY(CloudEffectVolume);

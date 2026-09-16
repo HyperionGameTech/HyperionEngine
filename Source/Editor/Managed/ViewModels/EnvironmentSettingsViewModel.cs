@@ -9,7 +9,7 @@ namespace Hyperion.Editor.ViewModels
     /// </summary>
     public class EnvironmentSettingsViewModel : ViewModelBase
     {
-        private const string EnvironmentPropertyName = "Environment";
+        private const string EnvironmentPropertyName = "EnvironmentSettings";
 
         internal readonly World World;
 

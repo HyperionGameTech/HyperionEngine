@@ -246,6 +246,9 @@ struct EnvironmentSettings
 
     HYP_FIELD(Property = "HeightFog", Serialize, Label = "Height Fog")
     HeightFogSettings heightFog;
+
+    HYP_FIELD(Property = "Clouds", Serialize, Label  = "Clouds")
+    CloudSettings clouds;
 };
 
 void WriteEnvironmentShaderData(

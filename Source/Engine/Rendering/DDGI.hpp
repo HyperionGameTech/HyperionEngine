@@ -8,6 +8,7 @@
 
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/RenderProxy.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 
@@ -21,14 +22,13 @@ struct RenderSetup;
 
 struct DDGIInfo
 {
-    BoundingBox aabb;
-    float probeDistance = 3.5f;
+    Vec3u probeCountsPerCascade = { 16, 8, 16 };
+    float probeDistance = 2.5f;
+
+    uint32 numCascades = 4;
     uint32 numRaysPerProbe = 16;
 
-    HYP_FORCE_INLINE const Vec3f& GetOrigin() const
-    {
-        return aabb.min;
-    }
+    float rayMaxDistance = 1000.0f;
 };
 
 struct RotationMatrixGenerator
@@ -46,16 +46,12 @@ struct RotationMatrixGenerator
     }
 };
 
-struct DDGIProbeData
-{
-    Vec3f position;
-};
-
-class DDGI
+class DDGI final
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
+    static constexpr uint32 MaxCascades = DDGIMaxCascades;
     static constexpr uint32 IrradianceOctahedronSize = 8;
     static constexpr uint32 DepthOctahedronSize = 8;
     static constexpr Vec3u ProbeBorder = Vec3u { 2, 0, 2 };
@@ -90,7 +86,22 @@ public:
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
-    void FillProbeGrid();
+    struct CascadeState
+    {
+        Vec3i gridOffset = Vec3i::Zero();
+        Vec3i gridOffsetPrev = Vec3i::Zero();
+        float probeSpacing = 0.0f;
+        float blendAlpha = 0.0f;
+        uint32 updateInterval = 1;
+        bool needsReset = true;
+    };
+
+    uint32 NumProbesPerCascade() const;
+    uint32 NumProbesTotal() const;
+    Vec2u GetRayDataDimensions() const;
+
+    void InitializeCascades();
+    void ScrollCascades(const Vec3f& cameraPosition);
 
     void CreateConstantBuffers();
     void CreateStorageBuffers();
@@ -98,7 +109,10 @@ private:
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
 
     DDGIInfo m_gridInfo;
-    Array<DDGIProbeData, DynamicAllocator> m_probeData;
+
+    FixedArray<CascadeState, MaxCascades> m_cascades;
+    uint32 m_cascadeUpdateMask;
+    uint32 m_cascadeResetMask;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_cbuffers;
 

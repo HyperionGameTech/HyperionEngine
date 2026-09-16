@@ -148,12 +148,17 @@ public:
     HYP_METHOD()
     const GameState& GetGameState() const;
 
+    ///Environment Settings
+
+    /// Get EnvironmentSettings - only script bindings for Strata, C# does not have this struct
+    HYP_METHOD(Property = "EnvironmentSettings", Serialize, Editor, OnlyLanguages = "strata")
     HYP_FORCE_INLINE const EnvironmentSettings& GetEnvironmentSettings() const
     {
         return m_environmentSettings;
     }
 
-    void FillWorldShaderData(WorldShaderData& outShaderData) const;
+    HYP_METHOD(Property = "EnvironmentSettings", OnlyLanguages = "Strata")
+    void SetEnvironmentSettings(const EnvironmentSettings& environmentSettings);
 
     ///Subsystems
 
@@ -382,6 +387,8 @@ public:
     void BeginUpdate(TaskBatch& inBatch, float delta);
     void EndUpdate();
 
+    void FillWorldShaderData(WorldShaderData& outShaderData) const;
+
     HYP_FIELD()
     static ScriptableDelegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
 
@@ -393,6 +400,9 @@ public:
 
     HYP_FIELD()
     static ScriptableDelegate<void, LayersMask> OnActiveLayersChanged;
+
+    HYP_FIELD()
+    static ScriptableDelegate<void, const EnvironmentSettings&> OnEnvironmentSettingsChanged;
 
 private:
     void SyncPhysicsToEntities();
@@ -441,7 +451,7 @@ private:
     HYP_FIELD(Property = "WorldFlags", Serialize, LoadOrder = 0)
     EnumFlags<WorldFlags> m_worldFlags;
 
-    HYP_FIELD(Property = "Environment", Serialize)
+    HYP_FIELD(Property = "Environment")
     EnvironmentSettings m_environmentSettings;
 
     HYP_FIELD(Property = "Scenes", Transient)
@@ -458,7 +468,7 @@ private:
     HYP_FIELD(Property = "ActiveSwatchId", Transient)
     SwatchId m_activeSwatchId;
 
-    ///Laeyrs
+    ///Layers
 
     HYP_FIELD(Property = "Layers", Serialize, LoadOrder = 0)
     Array<Handle<Layer>> m_layers;

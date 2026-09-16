@@ -69,17 +69,28 @@ void RayGenMain()
     const uint probe_index = coord.x;
     const uint ray_index = coord.y;
 
+    const uint probesPerCascade = DDGIProbesPerCascade();
+    const uint cascadeIndex = probe_index / probesPerCascade;
+
+    if (cascadeIndex >= ddgiConstants.numCascades || !DDGIIsCascadeUpdating(cascadeIndex))
+    {
+        return;
+    }
+
+    const int3 storageCoord = DDGIStorageIndexToStorageCoord(probe_index % probesPerCascade);
+    const int3 gridCoord = DDGIStorageCoordToGridCoord(cascadeIndex, storageCoord);
+
     const float3 direction = normalize(mul(float3x3(
         ddgiConstants.rotationMatrix[0].xyz,
         ddgiConstants.rotationMatrix[1].xyz,
         ddgiConstants.rotationMatrix[2].xyz
-    ), SphericalFibonacci(ray_index, ddgiConstants.num_rays_per_probe)));
+    ), SphericalFibonacci(ray_index, ddgiConstants.numRaysPerProbe)));
 
-    const float3 origin = ProbeIndexToWorldPosition(probe_index) + direction * RAY_OFFSET;
+    const float3 origin = DDGIProbeWorldPosition(cascadeIndex, gridCoord) + direction * RAY_OFFSET;
 
     RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
     float tmin = RAY_OFFSET;
-    float tmax = 1000.0; //ddgiConstants.probe_distance;
+    float tmax = ddgiConstants.cascades[cascadeIndex].rayMaxDistance;
 
     uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 256);
 
@@ -128,6 +139,8 @@ void RayGenMain()
                 float3 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envTextureIndex, localDirection, 0.0).rgb * ENVIRONMENT_INTENSITY;
                 radiance += env;
             }
+
+            ray_data.direction_depth += float4(localDirection, tmax);
 
             accumRadiance += float4(radiance, 1.0);
             break;

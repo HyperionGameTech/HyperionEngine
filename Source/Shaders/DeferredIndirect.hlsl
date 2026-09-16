@@ -281,13 +281,15 @@ PSOutput PSMain(PSInput input)
     float3 V = normalize(camera.position.xyz - positionWS.xyz);
     float3 R = normalize(reflect(-V, N));
     
-    float ao = 1.0;
+    // material ambient occlusion rides in gbuffer albedo alpha; screen-space AO can only resolve a few pixels of radius,
+    // so large surfaces like terrain depend on this to darken their own creases and hollows
+    float ao = albedo.a;
     float4 irradiance = (float4)0.0;
     float4 reflections = (float4)0.0;
 
 #if HBAO_ENABLED || SSAO_ENABLED
     const float4 ssao_data = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSAOResultTexture, texcoord, 0);
-    ao = ssao_data.r;
+    ao *= ssao_data.r;
 #endif
 
     const uint2 viewportExtent = camera.dimensions.xy;
@@ -327,9 +329,11 @@ PSOutput PSMain(PSInput input)
 #endif
 
 #ifdef RT_GI
-    float4 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V) * DDGI_MULTIPLIER;
-    // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used
-    irradiance = lerp(irradiance, ddgi, 1.0 - ssgi.a);
+    float4 ddgi = DDGISampleIrradiance(positionWS.xyz, normal, V);
+    ddgi.rgb *= DDGI_MULTIPLIER;
+    // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used.
+    // ddgi alpha fades out past the last cascade, falling back to env probe irradiance.
+    irradiance = lerp(irradiance, ddgi, (1.0 - ssgi.a) * ddgi.a);
 #endif
 
     const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));

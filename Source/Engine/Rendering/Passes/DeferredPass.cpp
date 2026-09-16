@@ -139,6 +139,11 @@ CVar<int> g_cvDeferredDebugVis { "Rendering.Deferred.DebugVis", 0 };
 
 CVar<bool> g_cvRayTracingEnabled { "Rendering.RayTracingEnabled", true };
 CVar<bool> g_cvDDGI { "Rendering.DDGI", false };
+CVar<int> g_cvDDGINumCascades { "Rendering.DDGI.NumCascades", 4 };
+CVar<float> g_cvDDGIProbeDistance { "Rendering.DDGI.ProbeDistance", 2.5f };
+CVar<int> g_cvDDGIProbeCountHorizontal { "Rendering.DDGI.ProbeCountHorizontal", 16 };
+CVar<int> g_cvDDGIProbeCountVertical { "Rendering.DDGI.ProbeCountVertical", 8 };
+CVar<int> g_cvDDGIRaysPerProbe { "Rendering.DDGI.RaysPerProbe", 16 };
 CVar<bool> g_cvRayTracedReflections { "Rendering.RayTracing.RayTracedReflections", false };
 CVar<bool> g_cvPathTracing { "Rendering.PathTracing", false };
 
@@ -1150,8 +1155,17 @@ void DeferredPass::CreateViewRayTracingPasses(View* view, DeferredPassData& pass
     passData.rayTracingReflections = MakeUnique<RayTracingReflections>(gbuffer);
     passData.rayTracingReflections->Create();
 
-    /// FIXME: Proper AABB for DDGI
-    passData.ddgi = MakeUnique<DDGI>(DDGIInfo { .aabb = { { -30.0f, -5.0f, -30.0f }, { 30.0f, 35.0f, 30.0f } } });
+    DDGIInfo ddgiInfo {};
+    ddgiInfo.probeCountsPerCascade = Vec3u {
+        uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2)),
+        uint32(MathUtil::Max(g_cvDDGIProbeCountVertical.Get(), 2)),
+        uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2))
+    };
+    ddgiInfo.probeDistance = g_cvDDGIProbeDistance.Get();
+    ddgiInfo.numCascades = uint32(MathUtil::Clamp(g_cvDDGINumCascades.Get(), 1, int(DDGI::MaxCascades)));
+    ddgiInfo.numRaysPerProbe = uint32(MathUtil::Max(g_cvDDGIRaysPerProbe.Get(), 1));
+
+    passData.ddgi = MakeUnique<DDGI>(std::move(ddgiInfo));
     passData.ddgi->Create();
 }
 

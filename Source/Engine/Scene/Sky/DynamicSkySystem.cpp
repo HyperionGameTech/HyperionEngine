@@ -147,7 +147,7 @@ void DynamicSkySystem::InitializeSky()
 
         m_cloudEffectVolume = MakeHandle<CloudEffectVolume>();
         m_cloudEffectVolume->SetName(NAME("CloudEffectVolume"));
-        m_cloudEffectVolume->SetSettings(m_cloudSettings);
+        m_cloudEffectVolume->SetSettings(m_world->GetEnvironmentSettings().clouds);
         InitObject(m_cloudEffectVolume);
 
         m_visScene->GetRoot()->AddChild(m_cloudEffectVolume);
@@ -288,11 +288,21 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
             view->AddScene(m_renderScene);
         }
     }
+
+    m_onWorldEnvironmentSettingsChangedHandler = World::OnEnvironmentSettingsChanged.Bind(world, [this](const EnvironmentSettings& environmentSettings)
+    {
+        if (m_cloudEffectVolume.IsValid())
+        {
+            m_cloudEffectVolume->SetSettings(environmentSettings.clouds);
+        }
+    });
 }
 
 void DynamicSkySystem::OnRemovedFromWorld(World* world)
 {
     SystemBase::OnRemovedFromWorld(world);
+
+    m_onWorldEnvironmentSettingsChangedHandler.Reset();
 
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {

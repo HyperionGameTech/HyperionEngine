@@ -44,32 +44,21 @@ static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
 static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
 static constexpr uint32 DDGIMaxBoundLights = 4;
 
+static constexpr float DDGIHysteresis = 0.97f;
+
 static StaticShaderPropertyId s_propUpdateProbeDataModeIrradiance { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")) };
 static StaticShaderPropertyId s_propUpdateProbeDataModeDepth { ShaderProperty(NAME("MODE"), NAME("DEPTH")) };
 
-static Vec3u NumProbesPerDimension(const DDGIInfo& info)
-{
-    const Vec3f probesPerDimension = MathUtil::Ceil((info.aabb.GetExtent() / info.probeDistance) + Vec3f(DDGI::ProbeBorder));
-
-    return Vec3u(probesPerDimension);
-}
-
-static uint32 NumProbes(const DDGIInfo& info)
-{
-    const Vec3u perDimension = NumProbesPerDimension(info);
-
-    return perDimension.x * perDimension.y * perDimension.z;
-}
-
-static Vec2u GetImageDimensions(const DDGIInfo& info)
-{
-    return { uint32(MathUtil::NextPowerOf2(NumProbes(info))), info.numRaysPerProbe };
-}
-
 DDGI::DDGI(DDGIInfo&& gridInfo)
     : m_gridInfo(std::move(gridInfo)),
+      m_cascadeUpdateMask(0),
+      m_cascadeResetMask(0),
       m_counter(0)
 {
+    m_gridInfo.numCascades = MathUtil::Clamp(m_gridInfo.numCascades, 1u, MaxCascades);
+    m_gridInfo.probeCountsPerCascade = MathUtil::Max(m_gridInfo.probeCountsPerCascade, Vec3u { 2, 2, 2 });
+    m_gridInfo.probeDistance = MathUtil::Max(m_gridInfo.probeDistance, 0.01f);
+    m_gridInfo.numRaysPerProbe = MathUtil::Max(m_gridInfo.numRaysPerProbe, 1u);
 }
 
 DDGI::~DDGI()
@@ -80,32 +69,80 @@ DDGI::~DDGI()
     EnqueueDeletion(std::move(m_visibilityTexture));
 }
 
+uint32 DDGI::NumProbesPerCascade() const
+{
+    return m_gridInfo.probeCountsPerCascade.x * m_gridInfo.probeCountsPerCascade.y * m_gridInfo.probeCountsPerCascade.z;
+}
+
+uint32 DDGI::NumProbesTotal() const
+{
+    return NumProbesPerCascade() * m_gridInfo.numCascades;
+}
+
+Vec2u DDGI::GetRayDataDimensions() const
+{
+    return { NumProbesTotal(), m_gridInfo.numRaysPerProbe };
+}
+
 void DDGI::Create()
 {
-    FillProbeGrid();
+    InitializeCascades();
 
     CreateConstantBuffers();
     CreateStorageBuffers();
 }
 
-void DDGI::FillProbeGrid()
+void DDGI::InitializeCascades()
 {
-    const Vec3u grid = NumProbesPerDimension(m_gridInfo);
-    m_probeData.Resize(NumProbes(m_gridInfo));
-
-    for (uint32 x = 0; x < grid.x; x++)
+    for (uint32 cascadeIndex = 0; cascadeIndex < m_gridInfo.numCascades; cascadeIndex++)
     {
-        for (uint32 y = 0; y < grid.y; y++)
-        {
-            for (uint32 z = 0; z < grid.z; z++)
-            {
-                const uint32 index = x * grid.x * grid.y + y * grid.z + z;
+        CascadeState& cascade = m_cascades[cascadeIndex];
 
-                m_probeData[index] = DDGIProbeData {
-                    (Vec3f { float(x), float(y), float(z) } - (Vec3f(ProbeBorder) * 0.5f)) * m_gridInfo.probeDistance
-                };
-            }
+        cascade.probeSpacing = m_gridInfo.probeDistance * float(1u << cascadeIndex);
+        cascade.updateInterval = 1u << cascadeIndex;
+        cascade.blendAlpha = 1.0f - MathUtil::Pow(DDGIHysteresis, float(cascade.updateInterval));
+        cascade.gridOffset = Vec3i::Zero();
+        cascade.gridOffsetPrev = Vec3i::Zero();
+        cascade.needsReset = true;
+    }
+}
+
+void DDGI::ScrollCascades(const Vec3f& cameraPosition)
+{
+    m_cascadeUpdateMask = 0;
+    m_cascadeResetMask = 0;
+
+    for (uint32 cascadeIndex = 0; cascadeIndex < m_gridInfo.numCascades; cascadeIndex++)
+    {
+        CascadeState& cascade = m_cascades[cascadeIndex];
+
+        const bool shouldUpdate = cascade.needsReset
+            || (m_counter % cascade.updateInterval) == (cascadeIndex % cascade.updateInterval);
+
+        if (!shouldUpdate)
+        {
+            continue;
         }
+
+        m_cascadeUpdateMask |= 1u << cascadeIndex;
+
+        if (cascade.needsReset)
+        {
+            m_cascadeResetMask |= 1u << cascadeIndex;
+        }
+
+        Vec3i gridOffset;
+
+        for (uint32 axis = 0; axis < 3; axis++)
+        {
+            const int centerLatticeCoord = MathUtil::Floor((cameraPosition[axis] / cascade.probeSpacing) + 0.5f);
+
+            gridOffset[axis] = centerLatticeCoord - int(m_gridInfo.probeCountsPerCascade[axis] / 2);
+        }
+
+        cascade.gridOffsetPrev = cascade.gridOffset;
+        cascade.gridOffset = gridOffset;
+        cascade.needsReset = false;
     }
 }
 
@@ -122,16 +159,17 @@ void DDGI::CreateConstantBuffers()
 
 void DDGI::CreateStorageBuffers()
 {
-    const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
-    const Vec2u imageDimensions = GetImageDimensions(m_gridInfo);
+    const Vec3u probeCounts = m_gridInfo.probeCountsPerCascade;
+    const Vec2u rayDataDimensions = GetRayDataDimensions();
 
-    m_radianceBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, imageDimensions.x * imageDimensions.y * sizeof(ProbeRayData));
+    m_radianceBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, rayDataDimensions.x * rayDataDimensions.y * sizeof(ProbeRayData));
     Assert(m_radianceBuffer->Create());
 
+    // Cascades are stacked vertically in the probe atlases; each one owns probeCounts.z rows of probeCounts.x * probeCounts.y probes.
     { // irradiance image
         const Vec3u extent {
-            (IrradianceOctahedronSize + 2) * probeCounts.x * probeCounts.y + 2,
-            (IrradianceOctahedronSize + 2) * probeCounts.z + 2,
+            (IrradianceOctahedronSize + ProbeBorder.x) * probeCounts.x * probeCounts.y + 2,
+            (IrradianceOctahedronSize + ProbeBorder.x) * probeCounts.z * m_gridInfo.numCascades + 2,
             1
         };
 
@@ -144,7 +182,7 @@ void DDGI::CreateStorageBuffers()
                 TextureFilterMode::Nearest,
                 TextureWrapMode::ClampToEdge,
                 1,
-                ImageUsage::Storage | ImageUsage::Sampled 
+                ImageUsage::Storage | ImageUsage::Sampled
             });
 
         m_irradianceTexture->SetName(NAME("DDGIIrradianceTexture"));
@@ -154,8 +192,8 @@ void DDGI::CreateStorageBuffers()
 
     { // depth image
         const Vec3u extent {
-            (DepthOctahedronSize + 2) * probeCounts.x * probeCounts.y + 2,
-            (DepthOctahedronSize + 2) * probeCounts.z + 2,
+            (DepthOctahedronSize + ProbeBorder.x) * probeCounts.x * probeCounts.y + 2,
+            (DepthOctahedronSize + ProbeBorder.x) * probeCounts.z * m_gridInfo.numCascades + 2,
             1
         };
 
@@ -185,21 +223,46 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    const Vec2u gridImageDimensions = GetImageDimensions(m_gridInfo);
-    const Vec3u numProbesPerDimension = NumProbesPerDimension(m_gridInfo);
+    Vec3f cameraPosition = Vec3f::Zero();
+
+    if (Camera* camera = renderSetup.view->GetCamera())
+    {
+        if (RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera)))
+        {
+            cameraPosition = cameraProxy->bufferData.cameraPosition.GetXYZ();
+        }
+    }
+
+    ScrollCascades(cameraPosition);
+
+    const Vec2u rayDataDimensions = GetRayDataDimensions();
 
     DDGIConstants ddgiConstants {};
     ddgiConstants.rotationMatrix = m_randomGenerator.Next();
-    ddgiConstants.aabbMax = Vec4f(m_gridInfo.aabb.max, 1.0f);
-    ddgiConstants.aabbMin = Vec4f(m_gridInfo.aabb.min, 1.0f);
     ddgiConstants.probeBorder = Vec4u(ProbeBorder, 0);
-    ddgiConstants.probeCounts = { numProbesPerDimension.x, numProbesPerDimension.y, numProbesPerDimension.z, 0 };
-    ddgiConstants.gridDimensions = { gridImageDimensions.x, gridImageDimensions.y, 0, 0 };
+    ddgiConstants.probeCounts = Vec4u(m_gridInfo.probeCountsPerCascade, 0);
+    ddgiConstants.gridDimensions = { rayDataDimensions.x, rayDataDimensions.y, 0, 0 };
     ddgiConstants.imageDimensions = Vec4u { m_irradianceTexture->GetExtent().GetXY(), m_visibilityTexture->GetExtent().GetXY() };
-    ddgiConstants.probeDistance = m_gridInfo.probeDistance;
+    ddgiConstants.numCascades = m_gridInfo.numCascades;
     ddgiConstants.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
     ddgiConstants.numBoundLights = 0;
     ddgiConstants.counter = m_counter++;
+    ddgiConstants.cascadeUpdateMask = m_cascadeUpdateMask;
+    ddgiConstants.cascadeResetMask = m_cascadeResetMask;
+    ddgiConstants.probeDistance = m_gridInfo.probeDistance;
+
+    for (uint32 cascadeIndex = 0; cascadeIndex < m_gridInfo.numCascades; cascadeIndex++)
+    {
+        const CascadeState& cascade = m_cascades[cascadeIndex];
+
+        DDGICascadeData& cascadeData = ddgiConstants.cascades[cascadeIndex];
+        cascadeData.gridOffset = Vec4i(cascade.gridOffset, 0);
+        cascadeData.gridOffsetPrev = Vec4i(cascade.gridOffsetPrev, 0);
+        cascadeData.probeSpacing = Vec4f(Vec3f(cascade.probeSpacing), 0.0f);
+        cascadeData.blendAlpha = cascade.blendAlpha;
+        cascadeData.rayMaxDistance = m_gridInfo.rayMaxDistance;
+        cascadeData.normalBias = cascade.probeSpacing * 0.05f;
+    }
 
     Array<Pair<Light*, LightShaderData*>, RenderTempAllocator> tempLights;
     tempLights.Reserve(DDGIMaxBoundLights);
@@ -274,6 +337,11 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     UpdateUniforms(frame, renderSetup);
 
+    if (m_cascadeUpdateMask == 0)
+    {
+        return;
+    }
+
     RayTracingPassData* pd = DynamicCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
@@ -306,12 +374,13 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(11, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
     frame->cr << SetShaderUniform(12, "EnvProbesDepthTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesDepthTexture));
 
-    frame->cr << TraceRays(Vec3u { NumProbes(m_gridInfo), m_gridInfo.numRaysPerProbe, 1u });
+    // Probes in cascades that aren't scheduled this frame exit immediately in the raygen shader.
+    frame->cr << TraceRays(Vec3u { NumProbesTotal(), m_gridInfo.numRaysPerProbe, 1u });
 
     frame->cr << InsertBarrier(m_radianceBuffer, ResourceState::UnorderedAccess);
 
-    // Compute irradiance for ray traced probes
-    const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
+    const Vec3u probeCounts = m_gridInfo.probeCountsPerCascade;
+    const Vec3u updateProbeDataGroupCount { probeCounts.x * probeCounts.y, probeCounts.z * m_gridInfo.numCascades, 1u };
 
     frame->cr << InsertBarrier(m_irradianceTexture->GetGpuImage(), ResourceState::UnorderedAccess);
     frame->cr << InsertBarrier(m_visibilityTexture->GetGpuImage(), ResourceState::UnorderedAccess);
@@ -326,7 +395,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
     frame->cr << SetShaderUniform(2, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_irradianceTexture));
 
-    frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+    frame->cr << DispatchCompute(updateProbeDataGroupCount);
 
     frame->cr << InsertBarrier(m_irradianceTexture->GetGpuImage(), ResourceState::ShaderResource);
 
@@ -340,43 +409,9 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
     frame->cr << SetShaderUniform(2, "OutputImage"_sh, RI.textureViewCache->GetOrCreate(m_visibilityTexture));
 
-    frame->cr << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+    frame->cr << DispatchCompute(updateProbeDataGroupCount);
 
     frame->cr << InsertBarrier(m_visibilityTexture->GetGpuImage(), ResourceState::ShaderResource);
-
-#if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
-    frame->cr << InsertBarrier(m_irradianceImage, ResourceState::UnorderedAccess);
-    frame->cr << InsertBarrier(m_depthImage, ResourceState::UnorderedAccess);
-
-    // Copy border texels irradiance
-    frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsIrradiance")));
-    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cbuffers[frameIndex]);
-    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
-    frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
-    frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
-
-    frame->cr << DispatchCompute(Vec3u {
-        (probeCounts.x * probeCounts.y * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.x)) + 7 / 8,
-        (probeCounts.z * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.z)) + 7 / 8,
-        1u
-    });
-
-    // Copy border texels depth
-    frame->cr << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsDepth")));
-    frame->cr << SetShaderUniform(0, "DDGIConstants"_sh, m_cbuffers[frameIndex]);
-    frame->cr << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer, ShaderDataOffset(0, sizeof(ProbeRayData)));
-    frame->cr << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
-    frame->cr << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
-
-    frame->cr << DispatchCompute(Vec3u {
-        (probeCounts.x * probeCounts.y * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.x)) + 15 / 16,
-        (probeCounts.z * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.z)) + 15 / 16,
-        1u
-    });
-
-    frame->cr << InsertBarrier(m_irradianceImage, ResourceState::ShaderResource);
-    frame->cr << InsertBarrier(m_depthImage, ResourceState::ShaderResource);
-#endif
 }
 
 } // namespace Hyperion

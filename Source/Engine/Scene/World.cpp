@@ -82,6 +82,7 @@ ScriptableDelegate<void, World*, const Handle<Scene>&> World::OnSceneAdded;
 ScriptableDelegate<void, World*, Scene*> World::OnSceneRemoved;
 ScriptableDelegate<void, Name> World::OnActiveSwatchChanged;
 ScriptableDelegate<void, LayersMask> World::OnActiveLayersChanged;
+ScriptableDelegate<void, const EnvironmentSettings&> World::OnEnvironmentSettingsChanged;
 
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
@@ -109,11 +110,11 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : AssetObject(name),
       m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
-      m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr),
+      m_rayTracingView(nullptr),
+      m_activeSwatchId(InvalidSwatchId),
       m_isInitialized(false),
       m_isServerWorld(false),
-      m_activeSwatchId(InvalidSwatchId),
       m_activeLayers {}
 {
     if (m_worldFlags & WorldFlags::AllStreamingLayerFlags)
@@ -132,6 +133,7 @@ World::~World()
     OnSceneRemoved.RemoveAllForTarget(this);
     OnActiveSwatchChanged.RemoveAllForTarget(this);
     OnActiveLayersChanged.RemoveAllForTarget(this);
+    OnEnvironmentSettingsChanged.RemoveAllForTarget(this);
 }
 
 void World::Initialize()
@@ -567,56 +569,16 @@ const GameState& World::GetGameState() const
     return s_defaultGameState;
 }
 
-void World::FillWorldShaderData(WorldShaderData& outShaderData) const
+void World::SetEnvironmentSettings(const EnvironmentSettings& environmentSettings)
 {
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    outShaderData.gameTime = GetGameState().gameTime;
-
-    WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
-
-    bool hasSun = false;
-
-    for (Scene* scene : m_scenes)
+    if (memcmp(&m_environmentSettings, &environmentSettings, sizeof(EnvironmentSettings)) == 0)
     {
-        if (hasSun)
-        {
-            break;
-        }
-
-        if (!(scene->GetSceneFlags() & SceneFlags::FOREGROUND))
-        {
-            continue;
-        }
-
-        for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            if (light->GetLightType() != LightType::Directional)
-            {
-                continue;
-            }
-
-            outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
-            outShaderData.sunColor = Vec4f(light->GetColor());
-            outShaderData.environmentFlags |= WEF_HAS_SUN;
-
-            hasSun = true;
-
-            break;
-        }
+        return;
     }
 
-    outShaderData.skyLightParams.w = 0.0f;
-
-    if (DynamicSkySystem* skySystem = GetSystem<DynamicSkySystem>())
-    {
-        if (CloudEffectVolume* cloudEffectVolume = skySystem->GetCloudEffectVolume();
-                cloudEffectVolume && cloudEffectVolume->GetSettings().enabled)
-        {
-            outShaderData.skyLightParams.w = MathUtil::Clamp(cloudEffectVolume->GetSettings().shape.coverage, 0.0f, 1.0f);
-        }
-    }
+    m_environmentSettings = environmentSettings;
+    
+    OnEnvironmentSettingsChanged.Fire(this, m_environmentSettings);
 }
 
 #pragma region Swatches
@@ -1765,6 +1727,11 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
     for (Handle<Scene>& scene : m_scenes)
     {
+        if (!scene)
+        {
+            continue;
+        }
+
         if (m_worldFlags & WorldFlags::HasSceneStreamingLayer)
         {
             if (Handle<WorldGridLayer> scenesStreamingLayer = GetStreamingLayer(s_nameStreamingLayerScenes); scenesStreamingLayer)
@@ -2320,6 +2287,58 @@ bool World::AddSystemToExecutionGroup(SystemBase* system)
     }
 
     return wasAdded;
+}
+
+void World::FillWorldShaderData(WorldShaderData& outShaderData) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    outShaderData.gameTime = GetGameState().gameTime;
+
+    WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
+
+    bool hasSun = false;
+
+    for (Scene* scene : m_scenes)
+    {
+        if (hasSun)
+        {
+            break;
+        }
+
+        if (!(scene->GetSceneFlags() & SceneFlags::FOREGROUND))
+        {
+            continue;
+        }
+
+        for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (light->GetLightType() != LightType::Directional)
+            {
+                continue;
+            }
+
+            outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
+            outShaderData.sunColor = Vec4f(light->GetColor());
+            outShaderData.environmentFlags |= WEF_HAS_SUN;
+
+            hasSun = true;
+
+            break;
+        }
+    }
+
+    outShaderData.skyLightParams.w = 0.0f;
+
+    if (DynamicSkySystem* skySystem = GetSystem<DynamicSkySystem>())
+    {
+        if (CloudEffectVolume* cloudEffectVolume = skySystem->GetCloudEffectVolume();
+                cloudEffectVolume && cloudEffectVolume->GetSettings().enabled)
+        {
+            outShaderData.skyLightParams.w = MathUtil::Clamp(cloudEffectVolume->GetSettings().shape.coverage, 0.0f, 1.0f);
+        }
+    }
 }
 
 } // namespace Hyperion

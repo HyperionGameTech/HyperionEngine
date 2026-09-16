@@ -112,8 +112,9 @@ void HeightFogPass::Render(Frame* frame, const RenderSetup& renderSetup)
     {
         if (RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(*skyProbes.Begin())))
         {
+            // the probe's spherical harmonics light the fog even while its cubemap isn't resident
             skyProbeShaderData = skyProbeProxy->bufferData;
-            constants.hasSkyProbe = skyProbeShaderData.textureIndices != ~0u ? 1 : 0;
+            constants.hasSkyProbe = 1;
         }
     }
 

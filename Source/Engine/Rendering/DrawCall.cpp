@@ -16,10 +16,6 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/Entity.hpp>
-
-#include <Scene/Animation/Skeleton.hpp>
-
 #include <DrawCall.generated.inl>
 
 namespace Hyperion {
@@ -288,12 +284,6 @@ static Map<TypeId, EntityBatchAllocatorBase*> s_entityBatchAllocatorMap;
 
 using CreateFnMap = Map<TypeId, PFNCreateEntityBatchAllocator>;
 
-static Mutex& GetEntityBatchAllocatorMutex()
-{
-    static Mutex s_entityBatchAllocatorMutex;
-    return s_entityBatchAllocatorMutex;
-}
-
 static CreateFnMap& GetEntityBatchAllocatorCreateFnMap()
 {
     static CreateFnMap s_entityBatchAllocatorCreateFnMap;
@@ -326,12 +316,12 @@ void EntityBatchAllocatorBase::MarkBatchDirty(EntityInstanceBatch* batch)
 
 EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
 {
+    AssertOnThread(g_renderThread);
+
     if (!typeId)
     {
         return nullptr;
     }
-
-    Mutex& mtx = GetEntityBatchAllocatorMutex();
 
     auto it = s_entityBatchAllocatorMap.Find(typeId);
 
@@ -341,8 +331,6 @@ EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
     }
 
     CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
-
-    Mutex::Guard guard(mtx);
 
     auto createFnIt = funcs.Find(typeId);
     AssertDebug(createFnIt != funcs.End());
@@ -359,12 +347,12 @@ EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)
 
 HYP_NODISCARD static bool SetEntityBatchAllocator(const TypeId& typeId, EntityBatchAllocatorBase* pBatchAllocator)
 {
+    AssertOnThread(g_renderThread);
+
     if (!typeId || !pBatchAllocator)
     {
         return false;
     }
-
-    Mutex& mtx = GetEntityBatchAllocatorMutex();
 
     auto it = s_entityBatchAllocatorMap.Find(typeId);
     if (it != s_entityBatchAllocatorMap.End())
@@ -379,6 +367,8 @@ HYP_NODISCARD static bool SetEntityBatchAllocator(const TypeId& typeId, EntityBa
 
 EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
 {
+    AssertOnThread(g_renderThread);
+
     if (!typeId)
     {
         return nullptr;
@@ -389,10 +379,7 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
     if (!batchAllocator)
     {
         {
-            Mutex& mtx = GetEntityBatchAllocatorMutex();
             CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
-
-            Mutex::Guard guard(mtx);
 
             PFNCreateEntityBatchAllocator createFn = nullptr;
 
@@ -430,10 +417,7 @@ void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllo
         return;
     }
 
-    Mutex& mtx = GetEntityBatchAllocatorMutex();
     CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
-
-    Mutex::Guard guard(mtx);
 
     auto it = funcs.Find(typeId);
     if (it != funcs.End())

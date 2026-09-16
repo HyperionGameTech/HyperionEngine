@@ -16,7 +16,11 @@
 
 #include <Core/Utilities/ClockTimer.hpp>
 
+#include <Core/Functional/Delegate.hpp>
+
 namespace Hyperion {
+
+struct EnvironmentSettings;
 
 HYP_CLASS()
 class ENGINE_API DynamicSkySystem : public SystemBase
@@ -63,6 +67,8 @@ public:
 private:
     void InitializeSky();
 
+    void HandleWorldEnvironmentSettingsChanged(const EnvironmentSettings& environmentSettings);
+
     // Centers the top-down capture on the viewer and rebuilds its matrices. Sim thread only.
     void UpdateSkyVisibilityView();
 
@@ -86,13 +92,12 @@ private:
     Handle<Entity> m_skyboxEntity;
     Handle<Scene> m_visScene;
 
-    HYP_FIELD(Property = "CloudSettings", Serialize)
-    CloudSettings m_cloudSettings;
-
     Handle<CloudEffectVolume> m_cloudEffectVolume;
 
     ClockTimer m_updateTimer;
     uint32 m_lastFrame;
+
+    DelegateHandler m_onWorldEnvironmentSettingsChangedHandler;
 };
 
 } // namespace Hyperion

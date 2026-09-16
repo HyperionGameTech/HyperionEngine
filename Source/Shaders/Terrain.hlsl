@@ -5,42 +5,39 @@ PERMUTE(TERRAIN_MORPH);
 PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 
 #define TERRAIN_SPLAT_SCALE 0.002
-#define TERRAIN_LAYER0_SCALE 0.08
-#define TERRAIN_LAYER1_SCALE 0.045
-#define TERRAIN_LAYER2_SCALE 0.06
-#define TERRAIN_LAYER3_SCALE 0.10
 
-#define TERRAIN_SLOPE_BLEND_START 0.25
-#define TERRAIN_SLOPE_BLEND_END 0.55
+// cooked roughness is per-texel; these remap each layer's 0..1 range so a source map can be retuned without a recook
+#define TERRAIN_LAYER0_ROUGHNESS_RANGE float2(0.78, 1.00)
+#define TERRAIN_LAYER1_ROUGHNESS_RANGE float2(0.45, 0.92)
+#define TERRAIN_LAYER2_ROUGHNESS_RANGE float2(0.62, 0.98)
+// snow is diffuse dominant - only a wind crust is glossy, and a tight lobe on a near-white surface reads as a blown highlight
+#define TERRAIN_LAYER3_ROUGHNESS_RANGE float2(0.55, 0.88)
 
-#define TERRAIN_LAYER0_ROUGHNESS 0.90
-#define TERRAIN_LAYER1_ROUGHNESS 0.85
-#define TERRAIN_LAYER2_ROUGHNESS 0.85
-#define TERRAIN_LAYER3_ROUGHNESS 0.60
-
-#define TERRAIN_LAYER0_AO 1.00
-#define TERRAIN_LAYER1_AO 0.82
-#define TERRAIN_LAYER2_AO 0.90
-#define TERRAIN_LAYER3_AO 1.00
-
-#define TERRAIN_SPLAT_SHARPNESS 1.35
 #define TERRAIN_SPLAT_NOISE_BREAKUP 0.10
 
 #define TERRAIN_ANTITILE_ROTATION 1.1
 #define TERRAIN_ANTITILE_MASK_SCALE 0.03
 
+// two octaves: ridge-scale patchiness and a much broader drift that survives to the horizon
 #define TERRAIN_MACRO_NOISE_SCALE 0.012
 #define TERRAIN_MACRO_STRENGTH 0.12
+#define TERRAIN_FAR_NOISE_SCALE 0.0016
+#define TERRAIN_FAR_STRENGTH 0.14
+
+// No natural ground reflects more than this. The gbuffer albedo target is RGBA16F and does not clamp,
+// so without a ceiling the macro gains multiply bright materials past 1.0 and snow turns into a flat white cutout.
+#define TERRAIN_MAX_ALBEDO 0.88
+// macro variation shifts hue as well as brightness; varying brightness alone still reads as one material
+#define TERRAIN_MACRO_HUE_WARM float3(1.06, 1.00, 0.90)
+#define TERRAIN_MACRO_HUE_COOL float3(0.92, 0.97, 1.08)
+
 #define TERRAIN_ROUGHNESS_NOISE_STRENGTH 0.08
 
-#define TERRAIN_CAVITY_SLOPE_STRENGTH 0.35
-#define TERRAIN_CAVITY_MACRO_STRENGTH 0.30
-#define TERRAIN_CAVITY_DETAIL_SCALE 0.35
-#define TERRAIN_CAVITY_DETAIL_STRENGTH 0.15
-#define TERRAIN_ROUGHNESS_ALBEDO_STRENGTH 0.35
-#define TERRAIN_ROUGHNESS_SLOPE_STRENGTH 0.15
-
 #define TERRAIN_PACKED_AO_STRENGTH 1.0
+// material AO rides in gbuffer albedo alpha and only attenuates indirect light, so it can be applied at full strength
+#define TERRAIN_AO_SLOPE_STRENGTH 0.25
+#define TERRAIN_AO_HOLLOW_STRENGTH 0.30
+#define TERRAIN_AO_MIN 0.25
 // a layer's height rides on its splat weight - only layers within this depth of the tallest one show through
 #define TERRAIN_HEIGHT_BLEND_DEPTH 0.1
 // how far a layer's height map can lift it over layers with more splat weight
@@ -66,8 +63,17 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 #define TERRAIN_PARALLAX_FADE_END 40.0
 
 #define TERRAIN_NORMAL_STRENGTH 1.6
-#define TERRAIN_NORMAL_FADE_START 40.0
-#define TERRAIN_NORMAL_FADE_END 250.0
+#define TERRAIN_NORMAL_FADE_START 120.0
+#define TERRAIN_NORMAL_FADE_END 1600.0
+// detail never fades out entirely, otherwise distant slopes collapse to the interpolated mesh normal
+#define TERRAIN_NORMAL_MIN_FADE 0.35
+
+// Past the detail range the layer tiling drops below a texel and mips average it to a flat colour.
+// The dominant layer is re-sampled at a much larger tiling that stays resolvable, and crossfaded in.
+#define TERRAIN_MACRO_TILING_RATIO 0.14
+#define TERRAIN_MACRO_TILING_FADE_START 150.0
+#define TERRAIN_MACRO_TILING_FADE_END 700.0
+#define TERRAIN_MACRO_TILING_MAX 0.75
 
 struct PSInput
 {
@@ -101,16 +107,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #include "include/Material.hlsli"
 
-#define MATERIAL_TEXTURE_TerrainSplatMap 6
-#define MATERIAL_TEXTURE_TerrainLayer0 7
-#define MATERIAL_TEXTURE_TerrainLayer1 8
-#define MATERIAL_TEXTURE_TerrainLayer2 9
-#define MATERIAL_TEXTURE_TerrainLayer3 10
-#define MATERIAL_TEXTURE_TerrainNormal0 11
-#define MATERIAL_TEXTURE_TerrainNormal1 12
-#define MATERIAL_TEXTURE_TerrainNormal2 13
-#define MATERIAL_TEXTURE_TerrainNormal3 14
-#define MATERIAL_TEXTURE_TerrainNormalMap 15
+#include "include/TerrainMaterial.hlsli"
 
 #ifndef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(Material, TerrainSplatMap) Texture2D TerrainSplatMap;
@@ -258,40 +255,36 @@ float4 SampleTriplanarAntiTile(Texture2D tex, TerrainTriplanarCoords coords, flo
         antitile_mask);
 }
 
-float4 SampleTerrainLayer(uint layerIndex, float3 position, float3 position_ddx, float3 position_ddy, float3 blending, float antitile_mask)
+// Textures are passed in rather than selected from a layer index: DXC cannot emit an OpPhi of an image type,
+// so a Texture2D assigned across control flow fails SPIR-V validation unless the index folds to a constant.
+
+// rg = tangent normal xy (z reconstructed), b = ambient occlusion, a = height
+// Whiteout blend (add xy, multiply z), applied per triplanar projection with the geometric normal as the base.
+// From the AMD "Ruby: Whiteout" demo, via Oat, C., "Real-Time Wrinkles", Advanced Real-Time Rendering in 3D
+// Graphics and Games, SIGGRAPH Course, 2007. Named and compared against the alternatives in
+// Barré-Brisebois, C. and Hill, S., "Blending in Detail", 2012:
+// https://blog.selfshadow.com/publications/blending-in-detail/
+//
+// Folding the geometric normal in is what preserves its sign. A bare swizzle sends a flat detail normal to
+// normalize(blendWeights), always in the +++ octant, so faces with a negative component shade in the wrong
+// hemisphere and light up as if they faced the sun. Strength scales the tangent xy, so 0 returns N exactly.
+float3 SampleTerrainNormalTriplanar(Texture2D tex, float3 position, float3 position_ddx, float3 position_ddy, float3 geometric_normal, float3 normal_blending, float3 blending, float scale, float strength, out float ao)
 {
-    Texture2D tex;
-    float scale;
-
-    switch (layerIndex)
-    {
-    case 0: tex = GET_TEXTURE(material, TerrainLayer0); scale = TERRAIN_LAYER0_SCALE; break;
-    case 1: tex = GET_TEXTURE(material, TerrainLayer1); scale = TERRAIN_LAYER1_SCALE; break;
-    case 2: tex = GET_TEXTURE(material, TerrainLayer2); scale = TERRAIN_LAYER2_SCALE; break;
-    default: tex = GET_TEXTURE(material, TerrainLayer3); scale = TERRAIN_LAYER3_SCALE; break;
-    }
-
-    return SampleTriplanarAntiTile(tex, MakeTerrainTriplanarCoords(position, position_ddx, position_ddy, scale), blending, antitile_mask);
-}
-
-float3 SampleTerrainLayerNormal(uint layerIndex, float3 position, float3 position_ddx, float3 position_ddy, float3 blending)
-{
-    Texture2D tex;
-    float scale;
-
-    switch (layerIndex)
-    {
-    case 0: tex = GET_TEXTURE(material, TerrainNormal0); scale = TERRAIN_LAYER0_SCALE; break;
-    case 1: tex = GET_TEXTURE(material, TerrainNormal1); scale = TERRAIN_LAYER1_SCALE; break;
-    case 2: tex = GET_TEXTURE(material, TerrainNormal2); scale = TERRAIN_LAYER2_SCALE; break;
-    default: tex = GET_TEXTURE(material, TerrainNormal3); scale = TERRAIN_LAYER3_SCALE; break;
-    }
-
     const TerrainTriplanarCoords coords = MakeTerrainTriplanarCoords(position, position_ddx, position_ddy, scale);
 
-    float3 tangent_normal_x = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, coords.uv_x, coords.uv_ddx_x, coords.uv_ddy_x).rgb * 2.0 - 1.0;
-    float3 tangent_normal_y = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, coords.uv_y, coords.uv_ddx_y, coords.uv_ddy_y).rgb * 2.0 - 1.0;
-    float3 tangent_normal_z = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, coords.uv_z, coords.uv_ddx_z, coords.uv_ddy_z).rgb * 2.0 - 1.0;
+    const float4 packed_x = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, coords.uv_x, coords.uv_ddx_x, coords.uv_ddy_x);
+    const float4 packed_y = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, coords.uv_y, coords.uv_ddx_y, coords.uv_ddy_y);
+    const float4 packed_z = SAMPLE_TEXTURE_2D_GRAD(texture_sampler, tex, coords.uv_z, coords.uv_ddx_z, coords.uv_ddy_z);
+
+    ao = packed_x.b * blending.x + packed_y.b * blending.y + packed_z.b * blending.z;
+
+    float3 tangent_normal_x = float3(packed_x.rg * 2.0 - 1.0, 0.0);
+    float3 tangent_normal_y = float3(packed_y.rg * 2.0 - 1.0, 0.0);
+    float3 tangent_normal_z = float3(packed_z.rg * 2.0 - 1.0, 0.0);
+
+    tangent_normal_x.z = sqrt(saturate(1.0 - dot(tangent_normal_x.xy, tangent_normal_x.xy)));
+    tangent_normal_y.z = sqrt(saturate(1.0 - dot(tangent_normal_y.xy, tangent_normal_y.xy)));
+    tangent_normal_z.z = sqrt(saturate(1.0 - dot(tangent_normal_z.xy, tangent_normal_z.xy)));
 
     if (GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_NORMAL_MAP_FLIP_Y))
     {
@@ -300,40 +293,139 @@ float3 SampleTerrainLayerNormal(uint layerIndex, float3 position, float3 positio
         tangent_normal_z.y = -tangent_normal_z.y;
     }
 
+    tangent_normal_x.xy *= strength;
+    tangent_normal_y.xy *= strength;
+    tangent_normal_z.xy *= strength;
+
+    const float3 whiteout_x = float3(tangent_normal_x.xy + geometric_normal.zy, abs(tangent_normal_x.z) * geometric_normal.x);
+    const float3 whiteout_y = float3(tangent_normal_y.xy + geometric_normal.xz, abs(tangent_normal_y.z) * geometric_normal.y);
+    const float3 whiteout_z = float3(tangent_normal_z.xy + geometric_normal.xy, abs(tangent_normal_z.z) * geometric_normal.z);
+
     return normalize(
-        tangent_normal_x.zyx * blending.x
-        + tangent_normal_y.xzy * blending.y
-        + tangent_normal_z.xyz * blending.z);
+        whiteout_x.zyx * normal_blending.x
+        + whiteout_y.xzy * normal_blending.y
+        + whiteout_z.xyz * normal_blending.z);
 }
 
-float SampleTerrainLayerHeight(uint layerIndex, float3 position, float3 position_ddx, float3 position_ddy, float3 blending)
+float SampleTerrainHeightTriplanar(Texture2D tex, float3 position, float3 position_ddx, float3 position_ddy, float3 blending, float scale)
 {
-    Texture2D tex;
-    float scale;
-
-    switch (layerIndex)
-    {
-    case 0: tex = GET_TEXTURE(material, TerrainNormal0); scale = TERRAIN_LAYER0_SCALE; break;
-    case 1: tex = GET_TEXTURE(material, TerrainNormal1); scale = TERRAIN_LAYER1_SCALE; break;
-    case 2: tex = GET_TEXTURE(material, TerrainNormal2); scale = TERRAIN_LAYER2_SCALE; break;
-    default: tex = GET_TEXTURE(material, TerrainNormal3); scale = TERRAIN_LAYER3_SCALE; break;
-    }
-
     return SampleTriplanarGrad(tex, MakeTerrainTriplanarCoords(position, position_ddx, position_ddy, scale), blending).a;
 }
+
+struct TerrainLayerContext
+{
+    float3 geometric_normal;
+    float normal_strength;
+    float3 detail_position;
+    float3 position_ddx;
+    float3 position_ddy;
+    float3 blending;
+    float3 normal_blending;
+    float antitile_mask;
+};
+
+struct TerrainLayerAccumulator
+{
+    float3 albedo;
+    float roughness;
+    float ao;
+    float3 normal;
+    float normal_weight;
+};
+
+void AccumulateTerrainLayer(
+    Texture2D albedoTexture,
+    Texture2D normalTexture,
+    bool hasNormalTexture,
+    float weight,
+    float scale,
+    float3 tint,
+    float2 roughnessRange,
+    float farBlend,
+    TerrainLayerContext context,
+    inout TerrainLayerAccumulator accumulator)
+{
+    if (weight <= 0.001)
+    {
+        return;
+    }
+
+    float4 layer_sample = SampleTriplanarAntiTile(
+        albedoTexture,
+        MakeTerrainTriplanarCoords(context.detail_position, context.position_ddx, context.position_ddy, scale),
+        context.blending,
+        context.antitile_mask);
+
+    if (farBlend > 0.001)
+    {
+        const float4 far_sample = SampleTriplanarGrad(
+            albedoTexture,
+            MakeTerrainTriplanarCoords(context.detail_position, context.position_ddx, context.position_ddy, scale * TERRAIN_MACRO_TILING_RATIO),
+            context.blending);
+
+        layer_sample = lerp(layer_sample, far_sample, farBlend);
+    }
+
+    accumulator.albedo += weight * layer_sample.rgb * tint;
+    accumulator.roughness += weight * lerp(roughnessRange.x, roughnessRange.y, layer_sample.a);
+
+    if (!hasNormalTexture)
+    {
+        accumulator.ao += weight;
+
+        return;
+    }
+
+    float layer_ao;
+    float3 layer_normal = SampleTerrainNormalTriplanar(
+        normalTexture, context.detail_position, context.position_ddx, context.position_ddy,
+        context.geometric_normal, context.normal_blending, context.blending, scale, context.normal_strength, layer_ao);
+
+    if (farBlend > 0.001)
+    {
+        float far_ao;
+        const float3 far_normal = SampleTerrainNormalTriplanar(
+            normalTexture, context.detail_position, context.position_ddx, context.position_ddy,
+            context.geometric_normal, context.normal_blending, context.blending, scale * TERRAIN_MACRO_TILING_RATIO, context.normal_strength, far_ao);
+
+        layer_normal = normalize(lerp(layer_normal, far_normal, farBlend));
+        layer_ao = lerp(layer_ao, far_ao, farBlend);
+    }
+
+    accumulator.normal += weight * layer_normal;
+    accumulator.ao += weight * layer_ao;
+    accumulator.normal_weight += weight;
+}
+
+// the layer index has to reach GET_TEXTURE as a literal, so this is a macro rather than a loop
+#define ACCUMULATE_TERRAIN_LAYER(layerIndex, weight, dominantLayer, macroTilingFade, context, accumulator) \
+    AccumulateTerrainLayer( \
+        GET_TEXTURE(material, TerrainLayer##layerIndex), \
+        GET_TEXTURE(material, TerrainNormal##layerIndex), \
+        HAS_TEXTURE(material, TerrainNormal##layerIndex), \
+        (weight), \
+        TERRAIN_LAYER##layerIndex##_SCALE, \
+        TERRAIN_LAYER##layerIndex##_TINT, \
+        TERRAIN_LAYER##layerIndex##_ROUGHNESS_RANGE, \
+        ((dominantLayer) == layerIndex##u) ? (macroTilingFade) : 0.0, \
+        (context), \
+        (accumulator))
+
+#define SAMPLE_TERRAIN_LAYER_HEIGHT(layerIndex, position, blending) \
+    SampleTerrainHeightTriplanar(GET_TEXTURE(material, TerrainNormal##layerIndex), (position), position_ddx, position_ddy, (blending), TERRAIN_LAYER##layerIndex##_SCALE)
 
 float SampleTerrainSurfaceDepth(float3 position, float3 position_ddx, float3 position_ddy, float3 blending, float4 weights)
 {
     float depth = 0.0;
 
     if (weights.x > 0.001 && HAS_TEXTURE(material, TerrainNormal0))
-        depth += weights.x * (1.0 - SampleTerrainLayerHeight(0, position, position_ddx, position_ddy, blending)) * TERRAIN_LAYER0_PARALLAX_DEPTH;
+        depth += weights.x * (1.0 - SAMPLE_TERRAIN_LAYER_HEIGHT(0, position, blending)) * TERRAIN_LAYER0_PARALLAX_DEPTH;
     if (weights.y > 0.001 && HAS_TEXTURE(material, TerrainNormal1))
-        depth += weights.y * (1.0 - SampleTerrainLayerHeight(1, position, position_ddx, position_ddy, blending)) * TERRAIN_LAYER1_PARALLAX_DEPTH;
+        depth += weights.y * (1.0 - SAMPLE_TERRAIN_LAYER_HEIGHT(1, position, blending)) * TERRAIN_LAYER1_PARALLAX_DEPTH;
     if (weights.z > 0.001 && HAS_TEXTURE(material, TerrainNormal2))
-        depth += weights.z * (1.0 - SampleTerrainLayerHeight(2, position, position_ddx, position_ddy, blending)) * TERRAIN_LAYER2_PARALLAX_DEPTH;
+        depth += weights.z * (1.0 - SAMPLE_TERRAIN_LAYER_HEIGHT(2, position, blending)) * TERRAIN_LAYER2_PARALLAX_DEPTH;
     if (weights.w > 0.001 && HAS_TEXTURE(material, TerrainNormal3))
-        depth += weights.w * (1.0 - SampleTerrainLayerHeight(3, position, position_ddx, position_ddy, blending)) * TERRAIN_LAYER3_PARALLAX_DEPTH;
+        depth += weights.w * (1.0 - SAMPLE_TERRAIN_LAYER_HEIGHT(3, position, blending)) * TERRAIN_LAYER3_PARALLAX_DEPTH;
 
     return depth;
 }
@@ -413,9 +505,16 @@ PSOutput PSMain(PSInput input)
     const float3 normal_blending = GetTerrainNormalBlending(N);
 
     const float view_distance = length(P - input.camera_position);
-    const float detail_fade = 1.0 - smoothstep(TERRAIN_NORMAL_FADE_START, TERRAIN_NORMAL_FADE_END, view_distance);
+    const float detail_fade = lerp(
+        TERRAIN_NORMAL_MIN_FADE,
+        1.0,
+        1.0 - smoothstep(TERRAIN_NORMAL_FADE_START, TERRAIN_NORMAL_FADE_END, view_distance));
+
+    const float macro_tiling_fade = TERRAIN_MACRO_TILING_MAX
+        * smoothstep(TERRAIN_MACRO_TILING_FADE_START, TERRAIN_MACRO_TILING_FADE_END, view_distance);
 
     const float macro_noise = TerrainFbm(P.xz * TERRAIN_MACRO_NOISE_SCALE);
+    const float far_noise = TerrainFbm(P.xz * TERRAIN_FAR_NOISE_SCALE + 117.3);
     const float antitile_mask = smoothstep(0.35, 0.65, TerrainFbm(P.xz * TERRAIN_ANTITILE_MASK_SCALE + 43.7));
 
     const float slope = saturate(1.0 - N.y);
@@ -472,13 +571,13 @@ PSOutput PSMain(PSInput input)
     float4 layer_detail_heights = float4(TERRAIN_DEFAULT_LAYER_HEIGHT, TERRAIN_DEFAULT_LAYER_HEIGHT, TERRAIN_DEFAULT_LAYER_HEIGHT, TERRAIN_DEFAULT_LAYER_HEIGHT);
 
     if (weights.x > 0.001 && HAS_TEXTURE(material, TerrainNormal0))
-        layer_detail_heights.x = SampleTerrainLayerHeight(0, detail_position, position_ddx, position_ddy, blending);
+        layer_detail_heights.x = SAMPLE_TERRAIN_LAYER_HEIGHT(0, detail_position, blending);
     if (weights.y > 0.001 && HAS_TEXTURE(material, TerrainNormal1))
-        layer_detail_heights.y = SampleTerrainLayerHeight(1, detail_position, position_ddx, position_ddy, blending);
+        layer_detail_heights.y = SAMPLE_TERRAIN_LAYER_HEIGHT(1, detail_position, blending);
     if (weights.z > 0.001 && HAS_TEXTURE(material, TerrainNormal2))
-        layer_detail_heights.z = SampleTerrainLayerHeight(2, detail_position, position_ddx, position_ddy, blending);
+        layer_detail_heights.z = SAMPLE_TERRAIN_LAYER_HEIGHT(2, detail_position, blending);
     if (weights.w > 0.001 && HAS_TEXTURE(material, TerrainNormal3))
-        layer_detail_heights.w = SampleTerrainLayerHeight(3, detail_position, position_ddx, position_ddy, blending);
+        layer_detail_heights.w = SAMPLE_TERRAIN_LAYER_HEIGHT(3, detail_position, blending);
 
     const float4 has_weight = step(0.001, weights);
     layer_heights = lerp(layer_heights, weights + layer_detail_heights * TERRAIN_HEIGHT_BLEND_STRENGTH, has_weight);
@@ -499,8 +598,13 @@ PSOutput PSMain(PSInput input)
     float3 albedo = material.albedo.rgb;
     float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
     const float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
-    
-    float packed_ao = 0.0;
+
+    float packed_ao = 1.0;
+
+    // the layer under the most weight carries the far tiling; at range one layer covers almost every pixel
+    const uint dominant_layer = weights.x >= weights.y
+        ? (weights.x >= weights.z ? (weights.x >= weights.w ? 0u : 3u) : (weights.z >= weights.w ? 2u : 3u))
+        : (weights.y >= weights.z ? (weights.y >= weights.w ? 1u : 3u) : (weights.z >= weights.w ? 2u : 3u));
 
     float3 blended_normal = float3(0.0, 0.0, 0.0);
     float total_normal_weight = 0.0;
@@ -509,72 +613,50 @@ PSOutput PSMain(PSInput input)
     {
         albedo = float3(0.0, 0.0, 0.0);
         roughness = 0.0;
+        packed_ao = 0.0;
 
-        if (weights.x > 0.001)
+        TerrainLayerAccumulator accumulator;
+        accumulator.albedo = float3(0.0, 0.0, 0.0);
+        accumulator.roughness = 0.0;
+        accumulator.ao = 0.0;
+        accumulator.normal = float3(0.0, 0.0, 0.0);
+        accumulator.normal_weight = 0.0;
+
+        TerrainLayerContext context;
+        context.geometric_normal = N;
+        context.normal_strength = TERRAIN_NORMAL_STRENGTH * detail_fade;
+        context.detail_position = detail_position;
+        context.position_ddx = position_ddx;
+        context.position_ddy = position_ddy;
+        context.blending = blending;
+        context.normal_blending = normal_blending;
+        context.antitile_mask = antitile_mask;
+
+        ACCUMULATE_TERRAIN_LAYER(0, weights.x, dominant_layer, macro_tiling_fade, context, accumulator);
+        ACCUMULATE_TERRAIN_LAYER(1, weights.y, dominant_layer, macro_tiling_fade, context, accumulator);
+        ACCUMULATE_TERRAIN_LAYER(2, weights.z, dominant_layer, macro_tiling_fade, context, accumulator);
+        ACCUMULATE_TERRAIN_LAYER(3, weights.w, dominant_layer, macro_tiling_fade, context, accumulator);
+
+        albedo = accumulator.albedo;
+        roughness = accumulator.roughness;
+        packed_ao = accumulator.ao;
+        blended_normal = accumulator.normal;
+        total_normal_weight = accumulator.normal_weight;
+
+        // each layer normal already carries the surface orientation, so this replaces N instead of perturbing it
+        if (total_normal_weight > 0.001)
         {
-            const float4 layer0_sample = SampleTerrainLayer(0, detail_position, position_ddx, position_ddy, blending, antitile_mask);
-            albedo += weights.x * layer0_sample.rgb;
-            packed_ao += weights.x * layer0_sample.a;
-            roughness += weights.x * TERRAIN_LAYER0_ROUGHNESS;
-
-            if (HAS_TEXTURE(material, TerrainNormal0))
-            {
-                blended_normal += weights.x * SampleTerrainLayerNormal(0, detail_position, position_ddx, position_ddy, normal_blending);
-                total_normal_weight += weights.x;
-            }
-        }
-
-        if (weights.y > 0.001)
-        {
-            const float4 layer1_sample = SampleTerrainLayer(1, detail_position, position_ddx, position_ddy, blending, antitile_mask);
-            albedo += weights.y * layer1_sample.rgb;
-            packed_ao += weights.y * layer1_sample.a;
-            roughness += weights.y * TERRAIN_LAYER1_ROUGHNESS;
-
-            if (HAS_TEXTURE(material, TerrainNormal1))
-            {
-                blended_normal += weights.y * SampleTerrainLayerNormal(1, detail_position, position_ddx, position_ddy, normal_blending);
-                total_normal_weight += weights.y;
-            }
-        }
-
-        if (weights.z > 0.001)
-        {
-            const float4 layer2_sample = SampleTerrainLayer(2, detail_position, position_ddx, position_ddy, blending, antitile_mask);
-            albedo += weights.z * layer2_sample.rgb;
-            packed_ao += weights.z * layer2_sample.a;
-            roughness += weights.z * TERRAIN_LAYER2_ROUGHNESS;
-
-            if (HAS_TEXTURE(material, TerrainNormal2))
-            {
-                blended_normal += weights.z * SampleTerrainLayerNormal(2, detail_position, position_ddx, position_ddy, normal_blending);
-                total_normal_weight += weights.z;
-            }
-        }
-
-        if (weights.w > 0.001)
-        {
-            const float4 layer3_sample = SampleTerrainLayer(3, detail_position, position_ddx, position_ddy, blending, antitile_mask);
-            albedo += weights.w * layer3_sample.rgb;
-            packed_ao += weights.w * layer3_sample.a;
-            roughness += weights.w * TERRAIN_LAYER3_ROUGHNESS;
-
-            if (HAS_TEXTURE(material, TerrainNormal3))
-            {
-                blended_normal += weights.w * SampleTerrainLayerNormal(3, detail_position, position_ddx, position_ddy, normal_blending);
-                total_normal_weight += weights.w;
-            }
-        }
-        if (total_normal_weight > 0.001 && detail_fade > 0.001)
-        {
-            N = normalize(blended_normal * (TERRAIN_NORMAL_STRENGTH * detail_fade) + N);
+            N = normalize(blended_normal);
         }
     }
-    
-    // if (any_layers)
-    //     albedo *= lerp(1.0, packed_ao, TERRAIN_PACKED_AO_STRENGTH);
 
-    albedo *= lerp(1.0 - TERRAIN_MACRO_STRENGTH, 1.0 + TERRAIN_MACRO_STRENGTH, macro_noise);
+    // two octaves of brightness plus a hue swing, so distant slopes keep varying once the tiling has mipped away.
+    // Summed into one gain rather than multiplied, so the octaves can't compound on top of each other.
+    const float macro_variation = (macro_noise - 0.5) * (TERRAIN_MACRO_STRENGTH * 2.0)
+        + (far_noise - 0.5) * (TERRAIN_FAR_STRENGTH * 2.0);
+
+    albedo *= max(1.0 + macro_variation, 0.0);
+    albedo *= lerp(TERRAIN_MACRO_HUE_COOL, TERRAIN_MACRO_HUE_WARM, saturate(far_noise));
 
     const float hollow = saturate(concavity);
     const float ridge = saturate(-concavity);
@@ -584,26 +666,19 @@ PSOutput PSMain(PSInput input)
     albedo = lerp(albedo, float3(albedo_luminance, albedo_luminance, albedo_luminance), hollow * TERRAIN_HOLLOW_DESATURATE);
     albedo *= (1.0 - hollow * TERRAIN_HOLLOW_DARKEN) * (1.0 + ridge * TERRAIN_RIDGE_LIGHTEN);
 
-    // float layer_ao = any_layers
-    //     ? (weights.x * TERRAIN_LAYER0_AO
-    //         + weights.y * TERRAIN_LAYER1_AO
-    //         + weights.z * TERRAIN_LAYER2_AO
-    //         + weights.w * TERRAIN_LAYER3_AO)
-    //     : 1.0;
-    // const float slope_ao = 1.0 - TERRAIN_CAVITY_SLOPE_STRENGTH * smoothstep(0.0, 0.6, slope);
-    // const float macro_ao = lerp(1.0 - TERRAIN_CAVITY_MACRO_STRENGTH, 1.0, macro_noise);
-    // const float detail_noise = TerrainValueNoise(P.xz * TERRAIN_CAVITY_DETAIL_SCALE);
-    // const float detail_ao = 1.0 - TERRAIN_CAVITY_DETAIL_STRENGTH * (1.0 - detail_noise);
-    // albedo *= layer_ao * slope_ao * macro_ao * detail_ao;
+    // scaled rather than clamped per channel, so the ceiling doesn't drag bright materials toward grey
+    const float peak_albedo = max(albedo.r, max(albedo.g, albedo.b));
+    albedo *= min(1.0, TERRAIN_MAX_ALBEDO / max(peak_albedo, 0.0001));
 
-    // const float albedo_luma = dot(albedo, float3(0.2126, 0.7152, 0.0722));
-    // roughness = saturate(roughness
-    //     + (albedo_luma - 0.25) * TERRAIN_ROUGHNESS_ALBEDO_STRENGTH
-    //     + slope * TERRAIN_ROUGHNESS_SLOPE_STRENGTH
-    //     + (detail_noise - 0.5) * TERRAIN_ROUGHNESS_NOISE_STRENGTH * 2.0);
     roughness = saturate(roughness * (1.0 + (macro_noise - 0.5) * (TERRAIN_ROUGHNESS_NOISE_STRENGTH * 2.0)));
 
-    output.gbuffer_albedo = float4(albedo, 1.0);
+    // erosion hollows and steep faces sit in their own shadow; this only attenuates indirect light downstream
+    float material_ao = lerp(1.0, packed_ao, TERRAIN_PACKED_AO_STRENGTH);
+    material_ao *= 1.0 - TERRAIN_AO_SLOPE_STRENGTH * smoothstep(0.0, 0.6, slope);
+    material_ao *= 1.0 - hollow * TERRAIN_AO_HOLLOW_STRENGTH;
+    material_ao = max(material_ao, TERRAIN_AO_MIN);
+
+    output.gbuffer_albedo = float4(albedo, material_ao);
 
     roughness = roughness * roughness;
 

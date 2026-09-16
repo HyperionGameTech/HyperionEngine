@@ -66,7 +66,8 @@ struct PSOutput
     float4 color : SV_Target0;
 };
 
-static const float SkyInscatterMipLevel = 5.0;
+// smooths out the probe's clouds and sun without losing the horizon gradient the fog has to match
+static const float SkyInscatterMipLevel = 2.0;
 
 float HeightFogPhase(float cosTheta, float anisotropy)
 {
@@ -138,14 +139,30 @@ PSOutput PSMain(PSInput input)
 
     float3 inscatter = (float3)0.0;
 
-    const uint skyTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(skyProbe);
-
-    if (hasSkyProbe != 0 && skyTextureIndex != INVALID_ENV_PROBE_TEXTURE)
+    if (hasSkyProbe != 0)
     {
         // looking down still hazes toward the horizon, not the ground bounce below it
         const float3 skyDirection = normalize(float3(viewDirection.x, max(viewDirection.y, 0.05), viewDirection.z));
 
-        inscatter += EnvProbeSample(SamplerLinear, EnvProbesColorTexture, skyTextureIndex, skyDirection, SkyInscatterMipLevel).rgb
+        // haze with no sky behind it is lit by the whole sky rather than by the radiance in one direction, so it
+        // scatters the probe's irradiance (EnvProbeSH is already divided by pi, giving the mean radiance)
+        float shBands[9];
+        ProjectSHBands(skyDirection, shBands);
+
+        const float3 skyIrradiance = max(EnvProbeSH(skyProbe, shBands), (float3)0.0);
+
+        // the irradiance is the whole hemisphere's average, so near the horizon it reads far brighter than the sky there
+        const uint skyTextureIndex = GET_ENV_PROBE_COLOR_TEXTURE_INDEX(skyProbe);
+
+        const float3 skyRadiance = skyTextureIndex != INVALID_ENV_PROBE_TEXTURE
+            ? EnvProbeSample(SamplerLinear, EnvProbesColorTexture, skyTextureIndex, skyDirection, SkyInscatterMipLevel).rgb
+            : skyIrradiance;
+
+        // a ray toward the horizon ends on sky, so the fog in front of it has to settle on the same colour or the
+        // skyline shows a seam. A ray pointed down has no sky behind it, and the hemisphere's average lights it better
+        const float skyFacing = saturate(viewDirection.y * 4.0 + 1.0);
+
+        inscatter += lerp(skyIrradiance, skyRadiance, skyFacing)
             * world_shader_data.atmosphere_fog_params.y;
     }
 

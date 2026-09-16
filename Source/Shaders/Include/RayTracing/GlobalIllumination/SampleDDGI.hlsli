@@ -4,55 +4,61 @@
 #include "./ProbeUniforms.hlsli"
 #include "./Shared.hlsli"
 
-float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
+float4 DDGISampleCascadeIrradiance(uint cascadeIndex, float3 P, float3 N, float3 V)
 {
-    const int3 base_grid_coord = BaseGridCoord(P);
-    const float3 base_probe_position = GridPositionToWorldPosition(base_grid_coord);
-    
-    float3 total_irradiance = float3(0.0, 0.0, 0.0);
-    float total_weight = 0.0;
-    
-    float3 alpha = clamp((P - base_probe_position) / PROBE_GRID_STEP, float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0));
-    
+    const float3 spacing = DDGIProbeSpacing(cascadeIndex);
+    const int3 counts = DDGIProbeCounts();
+    const int3 gridOffset = ddgiConstants.cascades[cascadeIndex].gridOffset.xyz;
+    const float normalBias = ddgiConstants.cascades[cascadeIndex].normalBias;
+
+    const int3 baseGridCoord = clamp(int3(floor(P / spacing)), gridOffset, gridOffset + counts - 2);
+    const float3 baseProbePosition = float3(baseGridCoord) * spacing;
+
+    const float3 alpha = saturate((P - baseProbePosition) / spacing);
+
+    float3 totalIrradiance = float3(0.0, 0.0, 0.0);
+    float totalWeight = 0.0;
+
     for (int i = 0; i < 8; i++)
     {
         int3 offset = int3(i, i >> 1, i >> 2) & int3(1, 1, 1);
-        int3 probe_grid_coord = clamp(base_grid_coord + offset, int3(0, 0, 0), int3(ddgiConstants.probe_counts.xyz) - int3(1, 1, 1));
-        
-        int probe_index = GridPositionToProbeIndex(probe_grid_coord);
-        float3 probe_position = GridPositionToWorldPosition(probe_grid_coord);
-        float3 probe_to_point = P - probe_position + (N + 3.0 * V) * PROBE_NORMAL_BIAS;
-        float3 dir = normalize(-probe_to_point);
+
+        int3 gridCoord = baseGridCoord + offset;
+        uint probeIndex = DDGIProbeIndex(cascadeIndex, DDGIWrapCoord(gridCoord));
+
+        float3 probePosition = float3(gridCoord) * spacing;
+        float3 probeToPoint = P - probePosition + (N + 3.0 * V) * normalBias;
+        float3 dir = normalize(-probeToPoint);
 
         float3 trilinear = lerp(float3(1.0, 1.0, 1.0) - alpha, alpha, float3(offset));
         float weight = 1.0;
-        
+
         /* Backface test */
-        
-        float3 true_direction_to_probe = normalize(probe_position - P);
-        weight *= HYP_FMATH_SQR(max(0.0001, (dot(true_direction_to_probe, N) + 1.0) * 0.5)) + 0.2;
-        
+
+        float3 trueDirectionToProbe = normalize(probePosition - P);
+        weight *= HYP_FMATH_SQR(max(0.0001, (dot(trueDirectionToProbe, N) + 1.0) * 0.5)) + 0.2;
+
         /* Visibility test */
-        float2 depth_texcoord = TextureCoordFromDirection(-dir, probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.zw, DDGI_PROBE_SIDE_LENGTH_DEPTH);
-        float distance_to_probe = length(probe_to_point);
+        float2 depthTexcoord = TextureCoordFromDirection(-dir, probeIndex, ddgiConstants.imageDimensions.zw, DDGI_PROBE_SIDE_LENGTH_DEPTH);
+        float distanceToProbe = length(probeToPoint);
 
-        float2 depth_sample = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_depth, depth_texcoord, 0.0).rg;
-        
-        float mean = depth_sample.x;
-        float variance = abs(HYP_FMATH_SQR(mean) - depth_sample.y);
+        float2 depthSample = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_depth, depthTexcoord, 0.0).rg;
 
-        float chebyshev = variance / (variance + HYP_FMATH_SQR(max(distance_to_probe - mean, 0.0)));
+        float mean = depthSample.x;
+        float variance = abs(HYP_FMATH_SQR(mean) - depthSample.y);
+
+        float chebyshev = variance / (variance + HYP_FMATH_SQR(max(distanceToProbe - mean, 0.0)));
         chebyshev = max(HYP_FMATH_CUBE(chebyshev), 0.0);
-        weight *= (distance_to_probe <= mean) ? 1.0 : chebyshev;
+        weight *= (distanceToProbe <= mean) ? 1.0 : chebyshev;
         weight = max(0.0001, weight);
 
-        float3 irradiance_dir = N;
-        float2 irradiance_texcoord = TextureCoordFromDirection(normalize(irradiance_dir), probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.xy, DDGI_PROBE_SIDE_LENGTH_IRRADIANCE);
-        float3 irradiance = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_irradiance, irradiance_texcoord, 0.0).rgb;
-    
-        const float crush_threshold = 0.2;
-        if (weight < crush_threshold) {
-            weight *= weight * weight * (1.0 / HYP_FMATH_SQR(crush_threshold));
+        float2 irradianceTexcoord = TextureCoordFromDirection(normalize(N), probeIndex, ddgiConstants.imageDimensions.xy, DDGI_PROBE_SIDE_LENGTH_IRRADIANCE);
+        float3 irradiance = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_irradiance, irradianceTexcoord, 0.0).rgb;
+
+        const float crushThreshold = 0.2;
+        if (weight < crushThreshold)
+        {
+            weight *= weight * weight * (1.0 / HYP_FMATH_SQR(crushThreshold));
         }
 
         // trilinear
@@ -60,14 +66,45 @@ float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
 
         irradiance = sqrt(irradiance);
 
-        total_irradiance += irradiance * weight;
-        total_weight += weight;
+        totalIrradiance += irradiance * weight;
+        totalWeight += weight;
     }
 
-    float3 net_irradiance = total_irradiance / max(total_weight, 0.001);
-    net_irradiance = HYP_FMATH_SQR(net_irradiance);
+    float3 netIrradiance = totalIrradiance / max(totalWeight, 0.001);
+    netIrradiance = HYP_FMATH_SQR(netIrradiance);
 
-    return float4(net_irradiance, 1.0);
+    return float4(netIrradiance, 1.0);
+}
+
+/* Samples the finest cascade that contains P, cross fading into the next one across its outer band.
+   Alpha is zero outside of the coarsest cascade so the caller can fall back to other sources of indirect light. */
+float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
+{
+    for (uint cascadeIndex = 0; cascadeIndex < ddgiConstants.numCascades; cascadeIndex++)
+    {
+        const float weight = DDGICascadeWeight(cascadeIndex, P);
+
+        if (weight <= 0.0)
+        {
+            continue;
+        }
+
+        const float4 irradiance = DDGISampleCascadeIrradiance(cascadeIndex, P, N, V);
+
+        if (cascadeIndex + 1 >= ddgiConstants.numCascades)
+        {
+            return float4(irradiance.rgb, weight);
+        }
+
+        if (weight >= 1.0)
+        {
+            return irradiance;
+        }
+
+        return lerp(DDGISampleCascadeIrradiance(cascadeIndex + 1, P, N, V), irradiance, weight);
+    }
+
+    return float4(0.0, 0.0, 0.0, 0.0);
 }
 
 #endif

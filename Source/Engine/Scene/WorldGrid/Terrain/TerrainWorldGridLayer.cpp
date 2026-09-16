@@ -50,7 +50,7 @@ CVar<uint32> g_cvTerrainLodPatchQuads("Terrain.Lod.PatchQuads", 32);
 // quadtree levels per tile, level 0 included - also capped by the tile size. Applies to tiles built after it changes
 CVar<uint32> g_cvTerrainLodMaxLevels("Terrain.Lod.MaxLevels", 8);
 // world-space distance from the LOD camera where full resolution patches finish morphing into level 1
-CVar<float> g_cvTerrainLodBaseRange("Terrain.Lod.BaseRange", 64.0f);
+CVar<float> g_cvTerrainLodBaseRange("Terrain.Lod.BaseRange", 96.0f);
 // each level's range is the previous level's range times this
 CVar<float> g_cvTerrainLodRangeMultiplier("Terrain.Lod.RangeMultiplier", 2.0f);
 // fraction of each level's band at full detail before morphing toward the next - lower is a longer, smoother transition

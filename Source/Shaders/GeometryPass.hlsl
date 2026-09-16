@@ -353,6 +353,12 @@ PSOutput PSMain(PSInput input)
     }
 #endif // SHADING_TYPE_FORWARD
 
+#ifndef SHADING_TYPE_FORWARD
+    // gbuffer albedo alpha carries material ambient occlusion, which only attenuates indirect light.
+    // The deferred path never consumed the opacity that was written here.
+    output.gbuffer_albedo.a = ao;
+#endif // !SHADING_TYPE_FORWARD
+
 #ifdef DEBUG_RAW_REFLECTIONS
     roughness = 0.0001;
 #endif

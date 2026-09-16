@@ -518,21 +518,42 @@ struct ProbeRayData
     Vec4f color;
 };
 
+static constexpr uint32 DDGIMaxCascades = 6;
+
+struct alignas(16) DDGICascadeData
+{
+    Vec4i gridOffset;
+    Vec4i gridOffsetPrev;
+    Vec4f probeSpacing;
+
+    float blendAlpha;
+    float rayMaxDistance;
+    float normalBias;
+    float padding;
+};
+
+static_assert(sizeof(DDGICascadeData) == 64);
+
 struct alignas(16) DDGIConstants
 {
     Mat4f rotationMatrix;
 
-    Vec4f aabbMax;
-    Vec4f aabbMin;
     Vec4u probeBorder;
     Vec4u probeCounts;
     Vec4u gridDimensions;
     Vec4u imageDimensions;
 
-    float probeDistance;
+    uint32 numCascades;
     uint32 numRaysPerProbe;
     uint32 numBoundLights;
     uint32 counter;
+
+    uint32 cascadeUpdateMask;
+    uint32 cascadeResetMask;
+    float probeDistance;
+    float padding;
+
+    DDGICascadeData cascades[DDGIMaxCascades];
 };
 
 } // namespace Hyperion

@@ -109,9 +109,16 @@ struct TerrainGenerationParams
     HYP_FIELD(Property = "SnowLineFraction")
     float snowLineFraction = 0.55f;
 
-    // dirt follows drainage channels with at least 2^this many upstream erosion samples
+    // dirt follows drainage channels with at least 2^this many upstream erosion samples.
+    // Raise this to cut the number of channels - it is the only knob that should be used for that.
     HYP_FIELD(Property = "ChannelFlowLog2")
-    float channelFlowLog2 = 8.0f;
+    float channelFlowLog2 = 11.0f;
+
+    // how many more log2 steps of flow it takes to reach bare channel bed. Keep this narrow: the shader's
+    // height blend is a switch, not a gradient, so a layer left sitting at 0.05-0.40 weight renders as
+    // isolated specks rather than a faint bed. A wide range puts most of a channel's length in that band.
+    HYP_FIELD(Property = "ChannelFlowRange")
+    float channelFlowRange = 1.0f;
 
     // rubble where erosion cut this much deeper than its surroundings, in world units
     HYP_FIELD(Property = "RubbleIncisionDepth")

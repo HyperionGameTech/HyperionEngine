@@ -3164,6 +3164,20 @@ bool ShaderCompiler::CompileBundle(
     {
         permsToCompile.SetRequiredVertexAttributes(declaredPerms.GetRequiredVertexAttributes());
         permsToCompile.SetOptionalVertexAttributes(declaredPerms.GetOptionalVertexAttributes());
+
+        // permsToCompile was copied before the sources were scanned, so it is missing their STATIC() declarations.
+        // Without them a variant compiled with no shader request builds with those defines absent.
+        for (ShaderPropertyId propertyId : outBundle->staticProperties.ToArray())
+        {
+            ShaderProperty property;
+
+            if (!GetShaderPropertyById(propertyId, property))
+            {
+                continue;
+            }
+
+            MergeProperty(permsToCompile, property);
+        }
     }
 
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
