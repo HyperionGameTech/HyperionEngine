@@ -40,6 +40,8 @@ class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 
+struct ThumbnailCaptureState;
+
 enum class GBufferPass : uint8;
 
 namespace threading {
@@ -104,6 +106,8 @@ enum class ViewFlags : uint32
     NO_SHADOW_VIEWS = 0x20000000,   //!< No shadow view collection for this view will happen
 
     NO_ASYNC_SHADER_LOADING = 0x40000000,   //!< Draws for this view will block until shaders are loaded rather than skipping draws for async loading shaders.
+
+    THUMBNAIL_VIEW = 0x80000000,    //!< Offscreen asset thumbnail capture. Keeps its own fixed extent instead of matching the swapchain viewport, and is not composited to the screen.
 
     DEFAULT = ALL_FOREGROUND_SCENES | COLLECT_ALL_ENTITIES
 };
@@ -316,6 +320,10 @@ public:
     Name name;
 
     EnumFlags<ViewFlags> flags;
+
+    //!< Set for ViewFlags::THUMBNAIL_VIEW - the offscreen target this View's output is copied into
+    //!< instead of being composited to the screen. Owned by whoever created the View.
+    ThumbnailCaptureState* thumbnailCaptureState = nullptr;
 
     CameraMatrices cachedMatrices;
     Frustum cachedFrustum;

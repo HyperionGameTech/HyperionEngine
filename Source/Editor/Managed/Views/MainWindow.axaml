@@ -2024,31 +2024,43 @@
                                                             <ListBox.ItemTemplate>
                                                                 <DataTemplate x:DataType="vm:AssetObjectViewModel">
                                                                     <Border
-                                                                        Width="64"
-                                                                        Height="64"
+                                                                        Width="84"
+                                                                        Height="84"
                                                                         Margin="3"
-                                                                        Padding="3"
+                                                                        Padding="4"
                                                                         Background="Transparent"
-                                                                        CornerRadius="{DynamicResource Radius.Small}">
-                                                                        <StackPanel
-                                                                            HorizontalAlignment="Center"
-                                                                            VerticalAlignment="Center"
-                                                                            Spacing="2">
-                                                                            <controls:Codicon
-                                                                                HorizontalAlignment="Center"
-                                                                                Foreground="{DynamicResource Brush.AccentHover}"
-                                                                                Kind="{Binding IconKind}"
-                                                                                Opacity="0.85"
-                                                                                Size="20" />
+                                                                        CornerRadius="{DynamicResource Radius.Small}"
+                                                                        ToolTip.Tip="{Binding DisplayName}">
+                                                                        <!--  Fixed rows rather than a centred stack, so every tile puts its icon at the same height however long the name is.  -->
+                                                                        <Grid RowDefinitions="*,Auto">
+                                                                            <Panel Grid.Row="0">
+                                                                                <controls:Codicon
+                                                                                    HorizontalAlignment="Center"
+                                                                                    VerticalAlignment="Center"
+                                                                                    Foreground="{DynamicResource Brush.AccentHover}"
+                                                                                    IsVisible="{Binding !HasThumbnail}"
+                                                                                    Kind="{Binding IconKind}"
+                                                                                    Opacity="0.85"
+                                                                                    Size="34" />
+                                                                                <Image
+                                                                                    Width="56"
+                                                                                    Height="56"
+                                                                                    HorizontalAlignment="Center"
+                                                                                    VerticalAlignment="Center"
+                                                                                    IsVisible="{Binding HasThumbnail}"
+                                                                                    Source="{Binding Thumbnail}"
+                                                                                    Stretch="Uniform" />
+                                                                            </Panel>
                                                                             <TextBlock
-                                                                                MaxWidth="58"
+                                                                                Grid.Row="1"
+                                                                                MaxWidth="76"
                                                                                 HorizontalAlignment="Center"
                                                                                 FontSize="10"
                                                                                 Text="{Binding DisplayName}"
                                                                                 TextAlignment="Center"
                                                                                 TextTrimming="CharacterEllipsis"
-                                                                                TextWrapping="Wrap" />
-                                                                        </StackPanel>
+                                                                                TextWrapping="NoWrap" />
+                                                                        </Grid>
                                                                         <Border.ContextMenu>
                                                                             <ContextMenu Opened="OnAssetContextMenuOpened">
                                                                                 <MenuItem

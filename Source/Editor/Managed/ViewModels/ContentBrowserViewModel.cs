@@ -28,6 +28,7 @@ namespace Hyperion.Editor.ViewModels
         public static ContentBrowserViewModel? Instance { get; private set; }
 
         private readonly EditorSubsystem _editorSubsystem;
+        private readonly ThumbnailService _thumbnailService;
 
         public ObservableCollection<AssetBucketViewModel> Buckets { get; } = new ObservableCollection<AssetBucketViewModel>();
         public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
@@ -154,23 +155,31 @@ namespace Hyperion.Editor.ViewModels
 
             NewMaterialCommand = new RelayCommand(() =>
             {
-                var panel = new NewMaterialPanelViewModel(confirmed =>
+                _ = EngineManager.PostToSimThread(() =>
                 {
-                    if (!confirmed)
+                    AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+                    uint bucketIndex = AssetBucket.Materials.Value;
+
+                    // EditorCommandNewMaterial picks a unique name for the material itself and gives us
+                    // no way to ask for it, so diff the bucket to find out what it ended up being.
+                    var namesBefore = new HashSet<string>(
+                        registry.GetBucketAssetDescs(bucketIndex).Select(assetDesc => assetDesc.Name.ToString()),
+                        StringComparer.Ordinal);
+
+                    _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewMaterial"));
+
+                    string? createdName = registry.GetBucketAssetDescs(bucketIndex)
+                        .Select(assetDesc => assetDesc.Name.ToString())
+                        .FirstOrDefault(name => !namesBefore.Contains(name));
+
+                    if (createdName == null)
                     {
-                        Logger.Log(LogLevel.Warning, "New material creation cancelled.");
+                        Logger.Log(LogLevel.Error, "New material creation failed; no new asset appeared in the materials bucket.");
                         return;
                     }
 
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewMaterial"));
-
-                        Dispatcher.UIThread.Post(() => FocusAsset(AssetBucket.Materials.Value, "NewMaterial", openEditor: true));
-                    });
+                    Dispatcher.UIThread.Post(() => FocusAsset(bucketIndex, createdName, openEditor: true));
                 });
-
-                PanelService.Instance.OpenPanel(panel);
             });
 
             NewPhysicsShapeCommand = new RelayCommand(() =>
@@ -208,6 +217,8 @@ namespace Hyperion.Editor.ViewModels
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandAddAsset"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
             });
 
+            _thumbnailService = new ThumbnailService(editorSubsystem);
+
             Instance = this;
         }
 
@@ -240,6 +251,10 @@ namespace Hyperion.Editor.ViewModels
                 {
                     if (_currentBucket?.BucketIndex == bucketIndex)
                     {
+                        // An asset in this bucket was added, removed or edited - the decoded images we
+                        // are holding may no longer match what is on disk.
+                        _thumbnailService.Clear();
+
                         RefreshAssets();
                     }
                 });
@@ -254,6 +269,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 Dispatcher.UIThread.Post(() =>
                 {
+                    _thumbnailService.Clear();
+
                     Assets.Clear();
                     SelectedAsset = null;
 
@@ -265,6 +282,11 @@ namespace Hyperion.Editor.ViewModels
         /// <summary>Reloads the asset list for the given bucket and resolves any pending focus/edit request. Must run on the UI thread.</summary>
         private void ReloadBucketAssets(uint bucketIndex)
         {
+            // Whatever was still queued, and whatever is subscribed, belongs to the asset set we are
+            // about to replace.
+            _thumbnailService.CancelPending();
+            _thumbnailService.ClearSubscribers();
+
             Assets.Clear();
             SelectedAsset = null;
 
@@ -283,11 +305,12 @@ namespace Hyperion.Editor.ViewModels
                         string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".hmf");
 
                         DateTime? dateModified = null;
-                        string? typeName = null; // @TODO
+                        string? typeName = null;
 
                         if (File.Exists(manifestPath))
                         {
                             dateModified = File.GetLastWriteTime(manifestPath);
+                            typeName = ReadAssetTypeName(manifestPath);
                         }
 
                         Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
@@ -314,8 +337,12 @@ namespace Hyperion.Editor.ViewModels
 
                 if (_pendingFocusNameHint != null)
                 {
+                    // Prefer an exact match: unique asset names are generated by appending a suffix,
+                    // so a prefix match on "NewMaterial" would also hit "NewMaterial_1".
                     SelectedAsset = Assets.FirstOrDefault(a =>
-                        a.DisplayName.StartsWith(_pendingFocusNameHint, StringComparison.OrdinalIgnoreCase));
+                        string.Equals(a.DisplayName, _pendingFocusNameHint, StringComparison.OrdinalIgnoreCase))
+                        ?? Assets.FirstOrDefault(a =>
+                            a.DisplayName.StartsWith(_pendingFocusNameHint, StringComparison.OrdinalIgnoreCase));
                     _pendingFocusNameHint = null;
                 }
 
@@ -330,6 +357,54 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(Assets));
             OnPropertyChanged(nameof(CurrentBucket));
+
+            RequestThumbnails();
+        }
+
+        /// <summary>
+        /// Reads an asset's concrete class name out of its .hmf manifest without deserializing it.
+        /// HMF is a text format whose first token is the class name, e.g. <c>Material "CubeMaterial" {</c>,
+        /// so a short read off the front is enough. Returns null if the file can't be read.
+        /// </summary>
+        private static string? ReadAssetTypeName(string manifestPath)
+        {
+            Span<char> buffer = stackalloc char[128];
+            int count;
+
+            try
+            {
+                using var reader = new StreamReader(manifestPath);
+
+                count = reader.Read(buffer);
+            }
+            catch (Exception)
+            {
+                // An unreadable manifest just means no type icon; the asset still lists.
+                return null;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                char c = buffer[i];
+
+                // The class name runs until the first separator - whitespace, the quoted asset name,
+                // or the opening brace when the asset is anonymous.
+                if (char.IsWhiteSpace(c) || c == '"' || c == '{')
+                {
+                    return i > 0 ? new string(buffer.Slice(0, i)) : null;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Requests preview images for the currently listed assets. Must run on the UI thread.</summary>
+        private void RequestThumbnails()
+        {
+            foreach (AssetObjectViewModel assetVm in Assets)
+            {
+                assetVm.RequestThumbnail();
+            }
         }
 
         /// <summary>Reloads the assets of the currently selected bucket, preserving the selection where possible. Must run on the UI thread.</summary>
@@ -382,6 +457,8 @@ namespace Hyperion.Editor.ViewModels
 
         public void Dispose()
         {
+            _thumbnailService.Dispose();
+
             _onSelectedBucketChangedHandler?.Remove();
             _onSelectedBucketChangedHandler?.Dispose();
             _onAssetsChangedHandler?.Remove();

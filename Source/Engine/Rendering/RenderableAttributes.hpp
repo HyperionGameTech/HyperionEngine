@@ -45,7 +45,7 @@ struct MaterialAttributes final
     HYP_FIELD(Property = "ShaderName", Serialize, Editor)
     Name shaderName;
 
-    HYP_FIELD(Property = "ShaderProperties", Serialize, Editor)
+    HYP_FIELD(Property = "ShaderProperties", Serialize, Editor = false)
     ShaderPropertySet shaderProperties;
 
     HYP_FIELD(Property = "Bucket", Serialize, Editor)

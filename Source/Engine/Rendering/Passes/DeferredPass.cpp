@@ -44,6 +44,7 @@
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/TextureViewCache.hpp>
+#include <Rendering/ThumbnailCaptureState.hpp>
 #include <Rendering/BLASCache.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 #include <Rendering/BLASBuilder.hpp>
@@ -375,6 +376,19 @@ RayTracingPassData::~RayTracingPassData()
 #pragma endregion RayTracingPassData
 
 #pragma region DeferredPass
+
+static Viewport GetViewportForView(View* view, const RenderSetup& rs)
+{
+    if (!(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW))
+    {
+        return rs.viewport;
+    }
+
+    Viewport viewport {};
+    viewport.extent = view->GetViewDesc().framebufferDesc.extent;
+
+    return viewport;
+}
 
 static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
 {
@@ -1392,7 +1406,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
 
-            if (!gbuffer || gbuffer->GetExtent() != rs.viewport.extent)
+            const Viewport viewViewport = GetViewportForView(view, rs);
+
+            if (!gbuffer || gbuffer->GetExtent() != viewViewport.extent)
             {
                 PassData* pd = FetchViewPassData(view);
                 Assert(pd != nullptr);
@@ -1402,9 +1418,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 pdCasted->priority = view->GetPriority();
 
-                if (gbuffer->GetExtent() != rs.viewport.extent)
+                if (gbuffer->GetExtent() != viewViewport.extent)
                 {
-                    ResizeView(rs.viewport, view, *pdCasted);
+                    ResizeView(viewViewport, view, *pdCasted);
                 }
             }
 
@@ -1590,6 +1606,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         RenderSetup currentViewSetup = rs.Fork();
         currentViewSetup.view = view;
         currentViewSetup.passData = pd;
+        currentViewSetup.viewport = GetViewportForView(view, rs);
 
         RenderFrameForView(frame, currentViewSetup);
 
@@ -2144,6 +2161,25 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     GpuImageViewRef finalImageView = (passData.taaPass != nullptr && g_cvTAA.Get())
         ? RI.textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
+
+    if (view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
+    {
+        if (view->thumbnailCaptureState != nullptr)
+        {
+            const FramebufferRef& gbufferFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
+            
+            Attachment* albedoAttachment = gbufferFramebuffer.IsValid()
+                ? gbufferFramebuffer->GetAttachment(GBufferTarget::Color)
+                : nullptr;
+
+            if (albedoAttachment != nullptr)
+            {
+                view->thumbnailCaptureState->CaptureFrom(frame, finalImageView, albedoAttachment->GetImageView());
+            }
+        }
+
+        return;
+    }
 
     // Ordered by View priority
     auto outputsIt = std::lower_bound(

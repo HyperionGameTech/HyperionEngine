@@ -10,12 +10,17 @@
 #include <Editor/EditorTask.hpp>
 #include <Editor/EditorMemory.hpp>
 
+#include <Editor/Preview/AssetThumbnailService.hpp>
+#include <Editor/Preview/MaterialPreviewRenderer.hpp>
+
 #include <Scene/Subsystem.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 #include <Core/Containers/Set.hpp>
+
+#include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Utilities/ClockTimer.hpp>
 
@@ -782,6 +787,45 @@ public:
     HYP_METHOD()
     void SetSelectedBucket(uint32 bucketIndex);
 
+    /*! \brief Queue a content browser thumbnail render for an asset. Returns immediately; OnThumbnailReady
+     *  fires once the image is on disk. When a current thumbnail is already cached it fires right away. */
+    HYP_METHOD()
+    void RequestAssetThumbnail(uint32 bucketIndex, Name assetName);
+
+    /*! \brief Absolute path of the cached thumbnail for an asset, or an empty string when none has been
+     *  generated yet or the cached one is older than the asset itself. */
+    HYP_METHOD()
+    String GetAssetThumbnailPath(uint32 bucketIndex, Name assetName) const;
+
+    /*! \brief Drop queued thumbnail requests that have not started yet, e.g. when the user switches to a
+     *  different bucket and the queued assets are no longer on screen. */
+    HYP_METHOD()
+    void CancelPendingAssetThumbnails();
+
+    /*! \brief Start rendering a live preview of a material for the asset editing panel. Pass an invalid
+     *  name to stop. Frames are pulled with EditorSubsystem_CopyMaterialPreviewFrame once
+     *  OnMaterialPreviewUpdated fires. */
+    HYP_METHOD()
+    void BeginMaterialPreview(uint32 bucketIndex, Name assetName);
+
+    /*! \brief Stop the live material preview and release its last frame. */
+    HYP_METHOD()
+    void EndMaterialPreview();
+
+    /*! \brief Aim the material preview's key light. Angles are radians, driven by the mouse position over
+     *  the preview image so dragging across it relights the sphere. */
+    HYP_METHOD()
+    void SetMaterialPreviewLightAngles(float yaw, float pitch);
+
+    /*! \brief Mark the material preview out of date, e.g. after a property edit, so it re-renders. */
+    HYP_METHOD()
+    void InvalidateMaterialPreview();
+
+    HYP_FORCE_INLINE MaterialPreviewRenderer* GetMaterialPreviewRenderer() const
+    {
+        return m_materialPreviewRenderer.Get();
+    }
+
     /*! \brief Calculate an appropriate position for inserting a new object into the scene.
      *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.
      *
@@ -837,6 +881,15 @@ public:
      *  (e.g. by deleting an asset or importing content). The argument is the index of the affected bucket. */
     HYP_FIELD()
     ScriptableDelegate<void, uint32> OnAssetsChanged;
+
+    /*! \brief Fired when a content browser thumbnail has been written to the cache and is ready to be
+     *  displayed. Arguments are the asset's bucket index and name. */
+    HYP_FIELD()
+    ScriptableDelegate<void, uint32, Name> OnThumbnailReady;
+
+    /*! \brief Fired when the live material preview has a newly rendered frame waiting to be copied. */
+    HYP_FIELD()
+    ScriptableDelegate<void> OnMaterialPreviewUpdated;
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
@@ -1022,6 +1075,9 @@ private:
 
     Handle<Entity> m_meshPreviewEntity;
     Handle<Material> m_meshPreviewMaterial;
+
+    UniquePtr<AssetThumbnailService> m_thumbnailService;
+    UniquePtr<MaterialPreviewRenderer> m_materialPreviewRenderer;
 
     DelegateHandlerSet m_delegateHandlers;
 

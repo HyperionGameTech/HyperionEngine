@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Hyperion
@@ -136,8 +137,64 @@ namespace Hyperion
     public unsafe struct ShaderPropertySet
     {
         public const int NumChunks = 8;
+        public const int ChunkSizeBits = 32;
+        public const int MaxProperties = NumChunks * ChunkSizeBits;
 
         public fixed uint Chunks[NumChunks];
+
+        public bool Test(uint propertyId)
+        {
+            if (propertyId >= MaxProperties)
+            {
+                return false;
+            }
+
+            return (Chunks[propertyId / ChunkSizeBits] & (1u << (int)(propertyId % ChunkSizeBits))) != 0;
+        }
+
+        public void Set(uint propertyId, bool enabled)
+        {
+            if (propertyId >= MaxProperties)
+            {
+                return;
+            }
+
+            uint mask = 1u << (int)(propertyId % ChunkSizeBits);
+
+            if (enabled)
+            {
+                Chunks[propertyId / ChunkSizeBits] |= mask;
+            }
+            else
+            {
+                Chunks[propertyId / ChunkSizeBits] &= ~mask;
+            }
+        }
+
+        public List<uint> GetSetPropertyIds()
+        {
+            var propertyIds = new List<uint>();
+
+            for (uint chunkIndex = 0; chunkIndex < NumChunks; chunkIndex++)
+            {
+                uint chunk = Chunks[chunkIndex];
+
+                if (chunk == 0)
+                {
+                    continue;
+                }
+
+                for (int bit = 0; bit < ChunkSizeBits; bit++)
+                {
+                    if ((chunk & (1u << bit)) != 0)
+                    {
+                        propertyIds.Add(chunkIndex * ChunkSizeBits + (uint)bit);
+                    }
+                }
+            }
+
+            return propertyIds;
+        }
     }
 
     [ClassBinding(Name = "MaterialAttributes")]

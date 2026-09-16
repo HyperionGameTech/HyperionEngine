@@ -841,6 +841,8 @@ void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
     AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
 
     data.MarkDirty(assetObject.m_assetIndex);
+
+    OnAssetMarkedDirty(bucket.GetIndex(), assetObject.GetName());
 }
 
 void AssetRegistry::MarkAllDirty()

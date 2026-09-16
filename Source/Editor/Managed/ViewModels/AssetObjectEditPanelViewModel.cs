@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using Hyperion;
 using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
@@ -34,6 +35,29 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasSubHeading, value);
         }
 
+        private MaterialPreviewViewModel? _preview;
+
+        /// <summary>Live preview of the edited asset, or null for asset types that have no preview.</summary>
+        public MaterialPreviewViewModel? Preview
+        {
+            get => _preview;
+            private set
+            {
+                if (SetProperty(ref _preview, value))
+                {
+                    OnPropertyChanged(nameof(HasPreview));
+                }
+            }
+        }
+
+        public bool HasPreview => _preview != null;
+
+        /// <summary>
+        /// The panel may be opened on a property that already reports edits to its owner (the inspector
+        /// does this), so the existing callback is kept and chained rather than replaced.
+        /// </summary>
+        private readonly Action? _previousValueChangedCallback;
+
         public AssetObjectEditPanelViewModel(ObjectPropertyViewModel source, Action? onClosed = null)
             : base($"Edit {source?.Label}")
         {
@@ -41,10 +65,24 @@ namespace Hyperion.Editor.ViewModels
 
             Heading = source.Label;
 
+            _previousValueChangedCallback = _source.ValueChangedCallback;
+            _source.ValueChangedCallback = () =>
+            {
+                _previousValueChangedCallback?.Invoke();
+
+                // The edit has already been written to the material, so the next rendered frame shows it.
+                _preview?.Invalidate();
+            };
+
             _source.PropertyChanged += OnSourcePropertyChanged;
             OnClosed = () =>
             {
                 _source.PropertyChanged -= OnSourcePropertyChanged;
+                _source.ValueChangedCallback = _previousValueChangedCallback;
+
+                Preview?.Dispose();
+                Preview = null;
+
                 onClosed?.Invoke();
             };
 
@@ -72,10 +110,48 @@ namespace Hyperion.Editor.ViewModels
             SubHeading = hasPath ? assetPath : string.Empty;
             HasSubHeading = hasPath;
 
+            SyncPreview();
+
             if (SubObject == null)
             {
                 PanelService.Instance.RemovePanel(this);
             }
+        }
+
+        /// <summary>Creates or tears down the preview to match whatever the panel is currently editing.</summary>
+        private void SyncPreview()
+        {
+            // Only materials have a preview today; everything else keeps a properties-only panel.
+            if (SubObject?.Target is not Material material || !material.IsRegistered())
+            {
+                Preview?.Dispose();
+                Preview = null;
+
+                return;
+            }
+
+            AssetPath path = material.Path;
+
+            if (Preview != null)
+            {
+                // Already previewing something; only rebuild when the panel moved to a different asset.
+                if (Preview.Matches(path.BucketIndex, material.Name))
+                {
+                    return;
+                }
+
+                Preview.Dispose();
+                Preview = null;
+            }
+
+            EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+            if (editorSubsystem == null)
+            {
+                return;
+            }
+
+            Preview = new MaterialPreviewViewModel(editorSubsystem, path.BucketIndex, material.Name);
         }
     }
 }

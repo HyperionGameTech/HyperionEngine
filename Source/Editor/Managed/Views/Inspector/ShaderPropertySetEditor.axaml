@@ -1,0 +1,55 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.ShaderPropertySetEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:ShaderPropertySetViewModel"
+    mc:Ignorable="d">
+    <StackPanel Spacing="4">
+        <TextBlock
+            Classes="muted"
+            FontSize="11.5"
+            IsVisible="{Binding HasStatusText}"
+            Text="{Binding StatusText}"
+            TextWrapping="Wrap" />
+
+        <ItemsControl IsVisible="{Binding HasGroups}" ItemsSource="{Binding Groups}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShaderPropertyGroupViewModel">
+                    <Grid Margin="0,2,0,2" ColumnDefinitions="*,Auto" Opacity="{Binding Opacity}">
+                        <TextBlock
+                            Grid.Column="0"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            Classes="inspector-name"
+                            IsVisible="{Binding IsValueGroup}"
+                            Text="{Binding Name}"
+                            ToolTip.Tip="{Binding Tooltip}" />
+
+                        <CheckBox
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            VerticalAlignment="Center"
+                            Content="{Binding Name}"
+                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                            IsEnabled="{Binding IsEditable}"
+                            IsVisible="{Binding IsToggle}"
+                            ToolTip.Tip="{Binding Tooltip}" />
+
+                        <ComboBox
+                            Grid.Column="1"
+                            MinWidth="140"
+                            VerticalAlignment="Center"
+                            IsEnabled="{Binding IsEditable}"
+                            IsVisible="{Binding IsValueGroup}"
+                            ItemsSource="{Binding ValueLabels}"
+                            SelectedIndex="{Binding SelectedValueIndex, Mode=TwoWay}"
+                            ToolTip.Tip="{Binding Tooltip}" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

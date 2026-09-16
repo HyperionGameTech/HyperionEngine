@@ -941,16 +941,16 @@ struct StencilFunction
 {
     HYP_STRUCT_BODY(StencilFunction);
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "PassOp", Serialize)
     StencilOp passOp = StencilOp::Replace;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "FailOp", Serialize)
     StencilOp failOp = StencilOp::Keep;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "DepthFailOp", Serialize)
     StencilOp depthFailOp = StencilOp::Keep;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "CompareOp", Serialize)
     StencilCompareOp compareOp = StencilCompareOp::Always;
 
     HYP_FORCE_INLINE bool operator==(const StencilFunction& other) const = default;

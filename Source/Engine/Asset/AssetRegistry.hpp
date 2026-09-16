@@ -118,6 +118,14 @@ public:
     void MarkAssetDirty(const AssetObject& assetObject);
     void MarkAllDirty();
 
+    /*! \brief Fired whenever an asset is marked dirty, i.e. whenever anything about it changes. Arguments
+     *  are the asset's bucket index and name.
+     *
+     *  MarkAssetDirty() is the single choke point every mutation funnels through, so this is the reliable
+     *  place to hang derived data that has to be rebuilt - the editor's thumbnail cache uses it. Fired on
+     *  whichever thread made the change, so handlers must be threadsafe. */
+    Delegate<void, uint32, Name> OnAssetMarkedDirty;
+
     /*! \brief Load all registered assets that are not yet loaded, and page in blob data for all of them.
      *  Must be called while the root path still refers to the location the blob data currently resides in,
      *  so that it can be re-written to a new location (eg. when saving an unsaved project from its

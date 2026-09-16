@@ -23,6 +23,39 @@
                 Text="{Binding SubHeading}"
                 TextTrimming="CharacterEllipsis" />
 
+            <Border
+                Margin="8,2,8,10"
+                Padding="1"
+                HorizontalAlignment="Stretch"
+                Background="Transparent"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.Small}"
+                IsVisible="{Binding HasPreview}">
+                <Panel
+                    Name="MaterialPreviewSurface"
+                    Height="180"
+                    Background="Transparent"
+                    Cursor="Hand"
+                    PointerMoved="OnPreviewPointerMoved"
+                    PointerPressed="OnPreviewPointerPressed"
+                    PointerReleased="OnPreviewPointerReleased"
+                    ToolTip.Tip="Drag over the preview to aim the light">
+                    <Image
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding Preview.HasPreview}"
+                        Source="{Binding Preview.PreviewImage}"
+                        Stretch="Uniform" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Classes="muted"
+                        IsVisible="{Binding !Preview.HasPreview}"
+                        Text="Rendering preview..." />
+                </Panel>
+            </Border>
+
             <inspector:InspectorPropertyItemsControl
                 IsVisible="{Binding SubObject.HasProperties}"
                 ItemsSource="{Binding SubObject.Properties}" />

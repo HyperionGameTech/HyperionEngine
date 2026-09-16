@@ -1,8 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Threading;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -28,6 +30,53 @@ namespace Hyperion.Editor.ViewModels
         public string IconKind => _typeName != null
             ? AssetIconHelper.FromTypeName(_typeName)
             : "File";
+
+        private IImage? _thumbnail;
+
+        /// <summary>Rendered preview of this asset, or null while none has been generated. The type icon stands in until it arrives.</summary>
+        public IImage? Thumbnail
+        {
+            get => _thumbnail;
+            private set
+            {
+                if (SetProperty(ref _thumbnail, value))
+                {
+                    OnPropertyChanged(nameof(HasThumbnail));
+                }
+            }
+        }
+
+        public bool HasThumbnail => _thumbnail != null;
+
+        private int _isRequestingThumbnail;
+
+        /// <summary>Asks for this asset's preview image, if one hasn't already been requested for this view model.</summary>
+        public void RequestThumbnail()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (ThumbnailService.Instance == null || _thumbnail != null)
+            {
+                return;
+            }
+
+            if (_bucket == null)
+            {
+                return;
+            }
+
+            if (Interlocked.Exchange(ref _isRequestingThumbnail, 1) != 0)
+            {
+                return;
+            }
+
+            ThumbnailService.Instance.Request(_bucket.BucketIndex, _assetDesc.Name, image =>
+            {
+                _isRequestingThumbnail = 0;
+
+                Thumbnail = image;
+            });
+        }
 
         public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
 

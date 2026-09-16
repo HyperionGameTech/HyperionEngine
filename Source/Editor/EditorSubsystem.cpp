@@ -4242,6 +4242,16 @@ void EditorSubsystem::Update(float delta)
     UpdateBakeStatus();
     UpdatePlayNetState();
 
+    if (m_thumbnailService)
+    {
+        m_thumbnailService->Update();
+    }
+
+    if (m_materialPreviewRenderer)
+    {
+        m_materialPreviewRenderer->Update();
+    }
+
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
     DebugDrawMeshEditSelection(dbg);
@@ -5550,6 +5560,74 @@ void EditorSubsystem::SetSelectedBucket(uint32 bucketIndex)
     OnSelectedBucketChanged(bucketIndex);
 }
 
+void EditorSubsystem::RequestAssetThumbnail(uint32 bucketIndex, Name assetName)
+{
+    AssertOnThread(g_simThread);
+
+    if (m_thumbnailService)
+    {
+        m_thumbnailService->Request(bucketIndex, assetName);
+    }
+}
+
+String EditorSubsystem::GetAssetThumbnailPath(uint32 bucketIndex, Name assetName) const
+{
+    if (!m_thumbnailService)
+    {
+        return String::empty;
+    }
+
+    return m_thumbnailService->GetCachedThumbnailPath(bucketIndex, assetName);
+}
+
+void EditorSubsystem::CancelPendingAssetThumbnails()
+{
+    AssertOnThread(g_simThread);
+
+    if (m_thumbnailService)
+    {
+        m_thumbnailService->CancelPending();
+    }
+}
+
+void EditorSubsystem::BeginMaterialPreview(uint32 bucketIndex, Name assetName)
+{
+    AssertOnThread(g_simThread);
+
+    if (m_materialPreviewRenderer)
+    {
+        m_materialPreviewRenderer->SetMaterial(bucketIndex, assetName);
+    }
+}
+
+void EditorSubsystem::EndMaterialPreview()
+{
+    AssertOnThread(g_simThread);
+
+    if (m_materialPreviewRenderer)
+    {
+        m_materialPreviewRenderer->SetMaterial(0, Name());
+    }
+}
+
+void EditorSubsystem::SetMaterialPreviewLightAngles(float yaw, float pitch)
+{
+    AssertOnThread(g_simThread);
+
+    if (m_materialPreviewRenderer)
+    {
+        m_materialPreviewRenderer->SetLightAngles(yaw, pitch);
+    }
+}
+
+void EditorSubsystem::InvalidateMaterialPreview()
+{
+    if (m_materialPreviewRenderer)
+    {
+        m_materialPreviewRenderer->Invalidate();
+    }
+}
+
 bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
 {
     if (!command)
@@ -5699,6 +5777,19 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
+        // Tear the preview scenes down before the world goes away - they hold Scenes inside it.
+        if (m_thumbnailService)
+        {
+            m_thumbnailService->Shutdown();
+            m_thumbnailService.Reset();
+        }
+
+        if (m_materialPreviewRenderer)
+        {
+            m_materialPreviewRenderer->Shutdown();
+            m_materialPreviewRenderer.Reset();
+        }
+
         ShutdownProjectWorld(m_currentProject, /* shutdownWorld */ shutdownWorld);
         OnProjectClosing(m_currentProject);
 
@@ -5741,6 +5832,24 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     m_currentProject = project;
 
     InitializeProjectWorld(m_currentProject, isStartSimulation);
+
+    m_thumbnailService = MakeUnique<AssetThumbnailService>();
+    m_thumbnailService->OnThumbnailReady
+        .Bind([this](uint32 bucketIndex, Name assetName)
+              {
+                  OnThumbnailReady(bucketIndex, assetName);
+              })
+        .Detach();
+    m_thumbnailService->Initialize(m_currentProject->GetWorld().Get());
+
+    m_materialPreviewRenderer = MakeUnique<MaterialPreviewRenderer>();
+    m_materialPreviewRenderer->OnFrameReady
+        .Bind([this]()
+              {
+                  OnMaterialPreviewUpdated();
+              })
+        .Detach();
+    m_materialPreviewRenderer->Initialize(m_currentProject->GetWorld().Get());
 
     OnProjectOpened(m_currentProject);
 
