@@ -17,18 +17,65 @@ namespace Hyperion {
 
 namespace TerrainMeshHelpers {
 
-///grid-space coordinates of the LOD grid line at or before \p value and the one after it (equal when \p value lies on a grid line)
-static Vec2u BracketLodGridCoordinate(uint32 cellSize, uint32 stride, uint32 value)
+struct LodGridBracket
 {
-    if (value % stride == 0 || value == cellSize - 1)
+    uint32 lower = 0;
+    uint32 upper = 0;
+    float fraction = 0.0f;
+};
+
+static LodGridBracket BracketLodGridCoordinate(uint32 cellSize, uint32 stride, float value)
+{
+    const uint32 lastGridLine = cellSize - 1;
+    const float clamped = MathUtil::Clamp(value, 0.0f, float(lastGridLine));
+
+    LodGridBracket bracket;
+    bracket.lower = MathUtil::Min(uint32(clamped / float(stride)) * stride, lastGridLine);
+    bracket.upper = MathUtil::Min(bracket.lower + stride, lastGridLine);
+
+    if (bracket.upper > bracket.lower)
     {
-        return Vec2u { value, value };
+        bracket.fraction = (clamped - float(bracket.lower)) / float(bracket.upper - bracket.lower);
     }
 
-    const uint32 lower = (value / stride) * stride;
-    const uint32 upper = MathUtil::Min(lower + stride, cellSize - 1);
+    return bracket;
+}
 
-    return Vec2u { lower, upper };
+float SampleLodSurfaceHeight(
+    Span<const float> paddedHeights,
+    uint32 cellSize,
+    uint32 stride,
+    float gridX,
+    float gridZ)
+{
+    const uint32 padding = TerrainGenerator::CellPadding;
+    const uint32 paddedPitch = cellSize + padding * 2u;
+
+    if (paddedHeights.Size() != size_t(paddedPitch) * size_t(paddedPitch) || cellSize < 2 || stride == 0)
+    {
+        return 0.0f;
+    }
+
+    const LodGridBracket xBracket = BracketLodGridCoordinate(cellSize, stride, gridX);
+    const LodGridBracket zBracket = BracketLodGridCoordinate(cellSize, stride, gridZ);
+
+    const auto heightAt = [&](uint32 x, uint32 z) -> float
+    {
+        return paddedHeights[size_t(z + padding) * paddedPitch + size_t(x + padding)];
+    };
+
+    const float heightTopLeft = heightAt(xBracket.lower, zBracket.lower);
+    const float heightTopRight = heightAt(xBracket.upper, zBracket.lower);
+    const float heightBottomLeft = heightAt(xBracket.lower, zBracket.upper);
+    const float heightBottomRight = heightAt(xBracket.upper, zBracket.upper);
+
+    const float u = xBracket.fraction;
+    const float v = zBracket.fraction;
+
+    // the diagonal splits top-left to bottom-right - BuildLodIndices() emits every quad that way
+    return u >= v
+        ? heightTopLeft + u * (heightTopRight - heightTopLeft) + v * (heightBottomRight - heightTopRight)
+        : heightTopLeft + v * (heightBottomLeft - heightTopLeft) + u * (heightBottomRight - heightBottomLeft);
 }
 
 ///returns the patch's geometric error: the furthest any grid vertex moves to reach its morph targets
@@ -54,23 +101,10 @@ static float BuildPatchGridVertices(
         return paddedHeights[size_t(z + int32(padding)) * paddedPitch + size_t(x + int32(padding))];
     };
 
-    // height of the surface a coarser level with the given stride renders at (x, z) - triangle diagonals must match BuildLodIndices()
+    // height of the surface a coarser level with the given stride renders at (x, z)
     const auto lodSurfaceHeightAt = [&](uint32 lodStride, uint32 x, uint32 z) -> float
     {
-        const Vec2u xBracket = BracketLodGridCoordinate(cellSize, lodStride, x);
-        const Vec2u zBracket = BracketLodGridCoordinate(cellSize, lodStride, z);
-
-        const float u = xBracket.y > xBracket.x ? float(x - xBracket.x) / float(xBracket.y - xBracket.x) : 0.0f;
-        const float v = zBracket.y > zBracket.x ? float(z - zBracket.x) / float(zBracket.y - zBracket.x) : 0.0f;
-
-        const float heightTopLeft = heightAt(int32(xBracket.x), int32(zBracket.x));
-        const float heightTopRight = heightAt(int32(xBracket.y), int32(zBracket.x));
-        const float heightBottomLeft = heightAt(int32(xBracket.x), int32(zBracket.y));
-        const float heightBottomRight = heightAt(int32(xBracket.y), int32(zBracket.y));
-
-        return u >= v
-            ? heightTopLeft + u * (heightTopRight - heightTopLeft) + v * (heightBottomRight - heightTopRight)
-            : heightTopLeft + v * (heightBottomLeft - heightTopLeft) + u * (heightBottomRight - heightBottomLeft);
+        return SampleLodSurfaceHeight(paddedHeights, cellSize, lodStride, float(x), float(z));
     };
 
     const TerrainQuadtreeLayout::PatchKey patchKey = layout.GetPatchKey(patchIndex);

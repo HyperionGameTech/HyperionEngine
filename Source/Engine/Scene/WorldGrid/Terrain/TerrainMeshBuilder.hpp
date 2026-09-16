@@ -37,6 +37,13 @@ void BuildSkirtVertices(
     Span<TerrainVertex> outSkirtVertices,
     float skirtDepth);
 
+float SampleLodSurfaceHeight(
+    Span<const float> paddedHeights,
+    uint32 cellSize,
+    uint32 stride,
+    float gridX,
+    float gridZ);
+
 } // namespace TerrainMeshHelpers
 
 struct TerrainPatchMeshData

@@ -103,6 +103,9 @@ public:
     ///first of the coord's references that resolves
     Handle<TerrainCellData> FindCellData(const Vec2i& coord) const;
 
+    ///sim thread - the loaded tile at \p coord, if there is one
+    Handle<TerrainStreamingCell> FindLoadedCell(const Vec2i& coord) const;
+
     ///saved heights are usable if they match the current generator, or were sculpted (frozen) at the current cell size
     bool AreCellHeightsCurrent(const TerrainCellData& cellData) const;
     ///thread safe when \p cellSize and \p cellFingerprint come from a GetGenerationState() snapshot
@@ -127,7 +130,13 @@ public:
     HYP_METHOD()
     void PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
 
+    ///world space height of the full resolution surface - the one the collider and the brush work on
     float SampleHeightAt(const Vec2f& worldXZ) const;
+
+    ///world space height of the surface currently drawn at \p worldXZ, CDLOD morph included. Falls back to
+    ///SampleHeightAt() where no tile is loaded. Editor picking uses this so the cursor lands on what's on screen
+    float SampleDrawnHeightAt(const Vec2f& worldXZ) const;
+
     bool RaycastSurface(const Ray& ray, Vec3f& outHitPoint) const;
 
     virtual bool IsCollisionPendingAt(const Vec3f& worldPosition) const override;

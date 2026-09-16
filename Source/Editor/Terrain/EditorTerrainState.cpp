@@ -265,19 +265,9 @@ bool EditorTerrainState::TryGetTerrainHit(const Vec2f& relativePos, Handle<Terra
     return false;
 }
 
-bool EditorTerrainState::TryApplyAtScreenPos(const Vec2f& relativePos, bool invert, float dt)
+void EditorTerrainState::ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer, const Vec3f& worldPos, bool invert, float dt)
 {
     AssertOnThread(g_simThread);
-
-    Handle<TerrainWorldGridLayer> layer;
-    Vec3f worldPos;
-
-    if (!TryGetTerrainHit(relativePos, layer, worldPos))
-    {
-        m_hoveredLayer.Reset();
-
-        return false;
-    }
 
     const float brushStrength = m_strength * MathUtil::Clamp(dt, 0.0f, 0.1f);
 
@@ -305,6 +295,47 @@ bool EditorTerrainState::TryApplyAtScreenPos(const Vec2f& relativePos, bool inve
     m_hasHover = true;
     m_hoverWorldPos = worldPos;
     m_hoveredLayer = layer;
+}
+
+bool EditorTerrainState::TryApplyAtScreenPos(const Vec2f& relativePos, bool invert, float dt)
+{
+    AssertOnThread(g_simThread);
+
+    Handle<TerrainWorldGridLayer> layer;
+    Vec3f worldPos;
+
+    if (!TryGetTerrainHit(relativePos, layer, worldPos))
+    {
+        m_hoveredLayer.Reset();
+        m_strokeLayer.Reset();
+
+        return false;
+    }
+
+    m_strokeWorldPos = worldPos;
+    m_strokeLayer = layer;
+    m_strokeNeedsPick = false;
+
+    ApplyBrushAt(layer, worldPos, invert, dt);
+
+    return true;
+}
+
+bool EditorTerrainState::ApplyStroke(float dt)
+{
+    AssertOnThread(g_simThread);
+
+    Handle<TerrainWorldGridLayer> layer = m_strokeLayer.Lock();
+
+    if (m_strokeNeedsPick || !layer.IsValid())
+    {
+        return TryApplyAtScreenPos(m_strokeScreenPos, m_strokeInvert, dt);
+    }
+
+    Vec3f worldPos = m_strokeWorldPos;
+    worldPos.y = layer->SampleDrawnHeightAt(Vec2f(worldPos.x, worldPos.z));
+
+    ApplyBrushAt(layer, worldPos, m_strokeInvert, dt);
 
     return true;
 }
@@ -321,6 +352,7 @@ void EditorTerrainState::BeginStroke(const Vec2f& relativePos, bool invert)
     m_isStroking = true;
     m_strokeInvert = invert;
     m_strokeScreenPos = relativePos;
+    m_strokeNeedsPick = true;
 
     m_strokeTimer.Reset();
     m_strokeTimer.NextTick();
@@ -341,7 +373,12 @@ void EditorTerrainState::UpdateStroke(const Vec2f& relativePos, bool invert)
     }
 
     m_strokeInvert = invert;
-    m_strokeScreenPos = relativePos;
+
+    if (relativePos != m_strokeScreenPos)
+    {
+        m_strokeScreenPos = relativePos;
+        m_strokeNeedsPick = true;
+    }
 }
 
 void EditorTerrainState::EndStroke()
@@ -354,6 +391,7 @@ void EditorTerrainState::EndStroke()
     }
 
     m_isStroking = false;
+    m_strokeLayer.Reset();
 
     Handle<Scene> activeScene = m_subsystem->GetActiveScene();
 
@@ -405,7 +443,7 @@ void EditorTerrainState::Update()
 
     m_strokeTimer.NextTick();
 
-    if (!TryApplyAtScreenPos(m_strokeScreenPos, m_strokeInvert, m_strokeTimer.delta))
+    if (!ApplyStroke(m_strokeTimer.delta))
     {
         m_hasHover = false;
     }
@@ -419,6 +457,12 @@ void EditorTerrainState::UpdateHover(const Vec2f& relativePos)
     {
         m_hasHover = false;
 
+        return;
+    }
+
+    if (m_isStroking)
+    {
+        // the stroke places the cursor - a second pick here would put it back on the ray the stroke is anchored against
         return;
     }
 
@@ -458,43 +502,7 @@ static RenderableAttributeSet TerrainCursorDrawAttributes()
 
 static Vec3f ProjectOntoTerrain(const Handle<TerrainWorldGridLayer>& layer, const Vec2f& worldXZ)
 {
-    return Vec3f(worldXZ.x, layer->SampleHeightAt(worldXZ), worldXZ.y);
-}
-
-static void SmoothTerrainPolylineHeights(Span<Vec3f> points, bool closed, uint32 iterations = 2)
-{
-    const uint32 pointCount = uint32(points.Size());
-
-    if (pointCount < 3)
-    {
-        return;
-    }
-
-    Array<float> smoothed;
-    smoothed.Resize(pointCount);
-
-    for (uint32 iteration = 0; iteration < iterations; iteration++)
-    {
-        for (uint32 i = 0; i < pointCount; i++)
-        {
-            if (!closed && (i == 0 || i == pointCount - 1))
-            {
-                smoothed[i] = points[i].y;
-
-                continue;
-            }
-
-            const uint32 prev = (i + pointCount - 1) % pointCount;
-            const uint32 next = (i + 1) % pointCount;
-
-            smoothed[i] = 0.25f * points[prev].y + 0.5f * points[i].y + 0.25f * points[next].y;
-        }
-
-        for (uint32 i = 0; i < pointCount; i++)
-        {
-            points[i].y = smoothed[i];
-        }
-    }
+    return Vec3f(worldXZ.x, layer->SampleDrawnHeightAt(worldXZ), worldXZ.y);
 }
 
 static Vec3f TerrainSurfaceNormal(const Vec2f& gradient)
@@ -535,8 +543,6 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
         return;
     }
 
-    static constexpr float SurfaceOffset = 0.1f;
-    static constexpr float MinSampleSpacing = 0.5f;
     static constexpr uint32 GridLinesPerSide = 3;
 
     Color baseColor;
@@ -572,10 +578,18 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
 
     const float ribbonWidth = MathUtil::Clamp(radius * 0.035f, 0.06f, 0.3f);
 
-    const float sampleSpacing = MathUtil::Max(MinSampleSpacing, radius * 0.04f);
+    // a big brush is usually looked at from farther away, where a fixed lift is below the depth buffer's precision
+    // and the ribbon starts breaking up against the terrain
+    const float surfaceOffset = MathUtil::Max(radius * 0.01f, 0.1f);
+
+    // step along the terrain's own vertex spacing: a coarser step chords across hills and dips into valleys, which is
+    // what makes the cursor look like it is floating rather than lying on the surface
+    const Vec3f& layerScale = layer->GetLayerInfo().scale;
+    const float sampleSpacing = MathUtil::Max(MathUtil::Min(layerScale.x, layerScale.z) * 0.5f, 0.05f);
+
     const uint32 ringSegments = MathUtil::Clamp(
         uint32(MathUtil::Ceil((2.0f * MathUtil::pi<float> * radius) / sampleSpacing)),
-        48u, 160u);
+        48u, 256u);
 
     Array<Vec3f> ringInner;
     Array<Vec3f> ringOuter;
@@ -595,9 +609,6 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
         ringOuter[i] = ProjectOntoTerrain(layer, centerXZ + dir * (radius + ribbonWidth * 0.5f));
     }
 
-    SmoothTerrainPolylineHeights(ringInner, /* closed */ true);
-    SmoothTerrainPolylineHeights(ringOuter, /* closed */ true);
-
     for (uint32 i = 0; i < ringSegments; i++)
     {
         const Vec2f& dir = ringDirections[i];
@@ -614,8 +625,8 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
 
         const Vec3f normal = TerrainSurfaceNormal(dir * radialGradient + tangent * tangentialGradient);
 
-        ringInner[i] += normal * SurfaceOffset;
-        ringOuter[i] += normal * SurfaceOffset;
+        ringInner[i] += normal * surfaceOffset;
+        ringOuter[i] += normal * surfaceOffset;
     }
 
     DrawTerrainRibbon(
@@ -649,7 +660,7 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
 
             const uint32 linePointCount = MathUtil::Clamp(
                 uint32(MathUtil::Ceil((chordHalfLength * 2.0f) / sampleSpacing)),
-                6u, 64u) + 1;
+                6u, 96u) + 1;
 
             Array<Vec3f> edgeLeft;
             Array<Vec3f> edgeRight;
@@ -666,9 +677,6 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
                 edgeRight[i] = ProjectOntoTerrain(layer, linePoint + linePerp * (lineWidth * 0.5f));
             }
 
-            SmoothTerrainPolylineHeights(edgeLeft, /* closed */ false);
-            SmoothTerrainPolylineHeights(edgeRight, /* closed */ false);
-
             for (uint32 i = 0; i < linePointCount; i++)
             {
                 const uint32 prev = (i > 0) ? i - 1 : 0;
@@ -682,8 +690,8 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
 
                 const Vec3f normal = TerrainSurfaceNormal(lineDir * ((centerNext - centerPrev) / distance));
 
-                edgeLeft[i] += normal * SurfaceOffset;
-                edgeRight[i] += normal * SurfaceOffset;
+                edgeLeft[i] += normal * surfaceOffset;
+                edgeRight[i] += normal * surfaceOffset;
             }
 
             DrawTerrainRibbon(

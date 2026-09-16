@@ -146,7 +146,7 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             bool drawnMeshChanged = false;
 
-            if (cell->ApplyPatchLod(viewpointsView, meshComponent, terrainPatchComponent, drawnMeshChanged))
+            if (cell->ApplyPatchLod(meshComponent, terrainPatchComponent, drawnMeshChanged))
             {
                 entity->SetNeedsRenderProxyUpdate();
             }

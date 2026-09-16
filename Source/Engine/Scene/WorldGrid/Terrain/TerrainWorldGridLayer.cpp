@@ -1042,6 +1042,20 @@ Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) 
     return Handle<TerrainCellData>();
 }
 
+Handle<TerrainStreamingCell> TerrainWorldGridLayer::FindLoadedCell(const Vec2i& coord) const
+{
+    AssertOnThread(g_simThread);
+
+    auto loadedCellIt = m_loadedCells.Find(coord);
+
+    if (loadedCellIt == m_loadedCells.End())
+    {
+        return Handle<TerrainStreamingCell>();
+    }
+
+    return loadedCellIt->second.Lock();
+}
+
 bool TerrainWorldGridLayer::AreCellHeightsCurrent(const TerrainCellData& cellData) const
 {
     return AreCellHeightsCurrent(cellData, m_layerInfo.cellSize, m_cellFingerprint);
@@ -1601,6 +1615,18 @@ float TerrainWorldGridLayer::SampleHeightAt(const Vec2f& worldXZ) const
 
     const Vec2i coord = ComputeCellCoord(layerInfo, worldXZ);
 
+    // the loaded tile's heights are what its mesh and collider were built from, so they are the surface that's on screen.
+    // the saved cell data can lag behind them (blob not paged in, replaced by a newer generation, ...)
+    if (Handle<TerrainStreamingCell> loadedCell = FindLoadedCell(coord); loadedCell.IsValid())
+    {
+        float loadedCellHeight;
+
+        if (loadedCell->SampleSurfaceHeight(worldXZ, loadedCellHeight))
+        {
+            return loadedCellHeight;
+        }
+    }
+
     const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
 
     const int32 lx = MathUtil::Clamp(int32(MathUtil::Floor((worldXZ.x - cellBoundsMin.x) / layerInfo.scale.x + 0.5f)), 0, int32(cellSize) - 1);
@@ -1622,20 +1648,48 @@ float TerrainWorldGridLayer::SampleHeightAt(const Vec2f& worldXZ) const
 
         if (heights.Size() == size_t(paddedSize) * size_t(paddedSize))
         {
-            return heights[size_t(lz + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(lx + int32(TerrainGenerator::CellPadding))];
+            return layerInfo.offset.y + heights[size_t(lz + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(lx + int32(TerrainGenerator::CellPadding))];
         }
     }
 
     if (SharedPtr<const Array<float>> heights = TryGetCachedCellHeights(coord); heights.IsValid()
         && heights->Size() == size_t(cellSize) * size_t(cellSize))
     {
-        return (*heights)[size_t(lz) * size_t(cellSize) + size_t(lx)];
+        return layerInfo.offset.y + (*heights)[size_t(lz) * size_t(cellSize) + size_t(lx)];
     }
 
     ///heat it up
     WarmHeightsCache(coord);
 
-    return m_generator->SampleBaseHeight(worldXZ);
+    // the base height leaves out erosion, so this is only a stand-in until the cache is warm
+    return layerInfo.offset.y + m_generator->SampleBaseHeight(worldXZ);
+}
+
+float TerrainWorldGridLayer::SampleDrawnHeightAt(const Vec2f& worldXZ) const
+{
+    const WorldGridLayerInfo& layerInfo = m_layerInfo;
+
+    const float cellWorldSizeX = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x;
+    const float cellWorldSizeZ = (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z;
+
+    if (cellWorldSizeX <= 0.0f || cellWorldSizeZ <= 0.0f)
+    {
+        return SampleHeightAt(worldXZ);
+    }
+
+    const Vec2i coord = ComputeCellCoord(layerInfo, worldXZ);
+
+    if (Handle<TerrainStreamingCell> loadedCell = FindLoadedCell(coord); loadedCell.IsValid())
+    {
+        float drawnHeight;
+
+        if (loadedCell->SampleDrawnHeight(worldXZ, drawnHeight))
+        {
+            return drawnHeight;
+        }
+    }
+
+    return SampleHeightAt(worldXZ);
 }
 
 bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) const
@@ -1679,7 +1733,7 @@ bool TerrainWorldGridLayer::RaycastSurface(const Ray& ray, Vec3f& outHitPoint) c
     {
         const Vec3f p = ray.position + ray.direction * t;
 
-        return p.y - SampleHeightAt(Vec2f(p.x, p.z));
+        return p.y - SampleDrawnHeightAt(Vec2f(p.x, p.z));
     };
 
     float t0 = tEnter;
@@ -1773,18 +1827,19 @@ void TerrainWorldGridLayer::EndBrushStroke()
 
     for (const KeyValuePair<Vec2i, bool>& pair : m_cellsModifiedSinceStrokeEnd)
     {
-        auto loadedCellIt = m_loadedCells.Find(pair.first);
+        Handle<TerrainStreamingCell> loadedCell = FindLoadedCell(pair.first);
 
-        if (loadedCellIt == m_loadedCells.End())
+        if (!loadedCell.IsValid())
         {
+            // the heights were edited but no tile was there to rebuild, so nothing changed on screen. Once per
+            // stroke rather than per brush dab, which runs every frame
+            HYP_LOG(WorldGrid, Warning, "Sculpted cell {} of terrain layer '{}' has no loaded tile - the edit won't show until it streams in",
+                pair.first, GetName());
+
             continue;
         }
 
-        if (Handle<TerrainStreamingCell> loadedCell = loadedCellIt->second.Lock(); loadedCell)
-        {
-            loadedCell->RebuildPickBVH();
-            loadedCell->RefreshAutoSplat();
-        }
+        loadedCell->RefreshAutoSplat();
     }
 
     m_cellsModifiedSinceStrokeEnd.Clear();

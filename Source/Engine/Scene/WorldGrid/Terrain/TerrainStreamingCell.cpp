@@ -771,7 +771,7 @@ void TerrainStreamingCell::OnLoaded()
 
         bool drawnMeshChanged = false;
 
-        if (ApplyPatchLod(viewpoints, *meshComponent, *patchComponent, drawnMeshChanged))
+        if (ApplyPatchLod(*meshComponent, *patchComponent, drawnMeshChanged))
         {
             patchEntity->SetNeedsRenderProxyUpdate();
         }
@@ -984,14 +984,21 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
 
     m_cellData = cellData;
 
+    Vec2i rebuildMinVertex = minVertex;
+    Vec2i rebuildMaxVertex = maxVertex;
+
     if (LoadOrGeneratePaddedHeights())
     {
 #ifdef HYP_EDITOR
         m_cellData = m_layer->StoreGeneratedCellHeights(m_cellInfo.coord, m_paddedHeights, m_erosionMasks);
 #endif
+
+        // every patch was built from the heights that just got replaced, not only the brushed ones
+        rebuildMinVertex = Vec2i(0, 0);
+        rebuildMaxVertex = Vec2i(int32(GetCellSize()) - 1, int32(GetCellSize()) - 1);
     }
 
-    RebuildPatchesInRegion(minVertex, maxVertex);
+    RebuildPatchesInRegion(rebuildMinVertex, rebuildMaxVertex);
 
     RefreshNormalMap();
 
@@ -1027,20 +1034,6 @@ void TerrainStreamingCell::UpdateCollider(bool notifyPhysicsWorld)
     }
 
     entityManager->AddTag<EntityTag::UpdatePhysicsShape>(m_entity);
-}
-
-void TerrainStreamingCell::RebuildPickBVH()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    for (const TerrainPatch& patch : m_patches)
-    {
-        if (patch.mesh.IsValid())
-        {
-            patch.mesh->UpdateDynamicBVH();
-        }
-    }
 }
 
 bool TerrainStreamingCell::HasCollider() const
@@ -1303,7 +1296,31 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
 
     for (uint32 patchIndex = 0; patchIndex < numPatches; patchIndex++)
     {
-        m_patches[patchIndex].isDrawn = patchDrawn[patchIndex] != 0 && m_patches[patchIndex].mesh.IsValid();
+        TerrainPatch& patch = m_patches[patchIndex];
+
+        patch.isDrawn = patchDrawn[patchIndex] != 0 && patch.mesh.IsValid();
+
+        if (!patch.isDrawn)
+        {
+            continue;
+        }
+
+        // the shader measures the morph from here, and so does SampleDrawnHeight()
+        const BoundingBox patchWorldBounds = GetPatchWorldBounds(patchIndex);
+
+        float nearestDistance = MathUtil::Infinity<float>();
+        patch.lodMorphOrigin = patchWorldBounds.GetCenter();
+
+        for (const Vec3f& viewpoint : viewpoints)
+        {
+            const float distance = DistanceToBounds(viewpoint, patchWorldBounds);
+
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                patch.lodMorphOrigin = viewpoint;
+            }
+        }
     }
 
     // no viewpoint (e.g. between camera switches) would otherwise release everything but the top node
@@ -1361,7 +1378,6 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
 }
 
 bool TerrainStreamingCell::ApplyPatchLod(
-    Span<const Vec3f> viewpoints,
     MeshComponent& meshComponent,
     TerrainPatchComponent& patchComponent,
     bool& outDrawnMeshChanged) const
@@ -1384,21 +1400,7 @@ bool TerrainStreamingCell::ApplyPatchLod(
         return outDrawnMeshChanged;
     }
 
-    const BoundingBox patchWorldBounds = GetPatchWorldBounds(patchIndex);
-
-    float nearestDistance = MathUtil::Infinity<float>();
-    Vec3f nearestViewpoint = patchWorldBounds.GetCenter();
-
-    for (const Vec3f& viewpoint : viewpoints)
-    {
-        const float distance = DistanceToBounds(viewpoint, patchWorldBounds);
-
-        if (distance < nearestDistance)
-        {
-            nearestDistance = distance;
-            nearestViewpoint = viewpoint;
-        }
-    }
+    const Vec3f& nearestViewpoint = m_patches[patchIndex].lodMorphOrigin;
 
     const float morphStart = GetLodMorphStart(patchComponent.level);
     const float morphEnd = GetLodRange(patchComponent.level);
@@ -1609,6 +1611,150 @@ void TerrainStreamingCell::ReleasePatch(uint32 patchIndex)
     patch.isBuildQueued = isBuildQueued;
 }
 
+bool TerrainStreamingCell::WorldToGridPosition(const Vec2f& worldXZ, Vec2f& outGridXZ) const
+{
+    if (!m_quadtreeLayout.IsValid())
+    {
+        return false;
+    }
+
+    const Vec3f& scale = m_cellInfo.scale;
+
+    if (scale.x <= 0.0f || scale.z <= 0.0f)
+    {
+        return false;
+    }
+
+    const Vec3f& tileMin = m_cellInfo.bounds.min;
+    const float tileQuads = float(m_quadtreeLayout.GetTileQuads());
+
+    outGridXZ = Vec2f((worldXZ.x - tileMin.x) / scale.x, (worldXZ.y - tileMin.z) / scale.z);
+
+    return outGridXZ.x >= 0.0f && outGridXZ.x <= tileQuads
+        && outGridXZ.y >= 0.0f && outGridXZ.y <= tileQuads;
+}
+
+bool TerrainStreamingCell::FindDrawnPatchAt(const Vec2f& gridXZ, uint32& outPatchIndex) const
+{
+    if (m_patches.Size() != m_quadtreeLayout.GetNumPatches())
+    {
+        return false;
+    }
+
+    // the finest level wins: a coarser node's patches are only drawn where none of its children are
+    for (uint8 level = 0; level < m_quadtreeLayout.GetNumLevels(); level++)
+    {
+        const uint32 nodeGridQuads = m_quadtreeLayout.GetNodeGridQuads(level);
+        const uint32 nodesPerSide = m_quadtreeLayout.GetNodesPerSide(level);
+
+        const TerrainQuadtreeLayout::NodeKey node {
+            level,
+            MathUtil::Min(uint32(gridXZ.x) / nodeGridQuads, nodesPerSide - 1),
+            MathUtil::Min(uint32(gridXZ.y) / nodeGridQuads, nodesPerSide - 1)
+        };
+
+        uint32 quadrant = 0;
+
+        if (m_quadtreeLayout.HasQuadrantChildren(level))
+        {
+            const Vec2u nodeOrigin = m_quadtreeLayout.GetNodeOrigin(node);
+            const uint32 halfGridQuads = nodeGridQuads / 2;
+
+            const uint32 quadrantX = MathUtil::Min(uint32(gridXZ.x - float(nodeOrigin.x)) / halfGridQuads, 1u);
+            const uint32 quadrantZ = MathUtil::Min(uint32(gridXZ.y - float(nodeOrigin.y)) / halfGridQuads, 1u);
+
+            quadrant = quadrantZ * 2 + quadrantX;
+        }
+
+        const uint32 patchIndex = m_quadtreeLayout.GetPatchIndex({ node, quadrant });
+
+        if (m_patches[patchIndex].isDrawn)
+        {
+            outPatchIndex = patchIndex;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TerrainStreamingCell::SampleSurfaceHeight(const Vec2f& worldXZ, float& outHeight) const
+{
+    Vec2f gridXZ;
+
+    if (!WorldToGridPosition(worldXZ, gridXZ) || m_paddedHeights.Empty())
+    {
+        return false;
+    }
+
+    const float height = TerrainMeshHelpers::SampleLodSurfaceHeight(
+        m_paddedHeights.ToSpan(),
+        GetCellSize(),
+        /* stride */ 1,
+        gridXZ.x,
+        gridXZ.y);
+
+    outHeight = m_cellInfo.bounds.min.y + height * m_cellInfo.scale.y;
+
+    return true;
+}
+
+bool TerrainStreamingCell::SampleDrawnHeight(const Vec2f& worldXZ, float& outHeight) const
+{
+    Vec2f gridXZ;
+    uint32 patchIndex;
+
+    if (!WorldToGridPosition(worldXZ, gridXZ) || m_paddedHeights.Empty() || !FindDrawnPatchAt(gridXZ, patchIndex))
+    {
+        return false;
+    }
+
+    const TerrainPatch& patch = m_patches[patchIndex];
+
+    const uint8 level = m_quadtreeLayout.GetPatchKey(patchIndex).node.level;
+    const uint8 topLevel = m_quadtreeLayout.GetTopLevel();
+
+    const uint32 cellSize = GetCellSize();
+    const Span<const float> paddedHeights = m_paddedHeights.ToSpan();
+
+    const auto lodSurfaceHeightAt = [&](uint8 lodLevel) -> float
+    {
+        return TerrainMeshHelpers::SampleLodSurfaceHeight(
+            paddedHeights,
+            cellSize,
+            TerrainQuadtreeLayout::GetStride(MathUtil::Min<uint8>(lodLevel, topLevel)),
+            gridXZ.x,
+            gridXZ.y);
+    };
+
+    float height = lodSurfaceHeightAt(level);
+
+    // mirrors ApplyTerrainMorph() in TerrainMorph.hlsli - the morph is a function of the unmorphed world position
+    const float morphStart = GetLodMorphStart(level);
+    const float morphEnd = GetLodRange(level);
+
+    if (morphEnd > morphStart)
+    {
+        const Vec3f worldPosition(worldXZ.x, m_cellInfo.bounds.min.y + height * m_cellInfo.scale.y, worldXZ.y);
+        const float morphDistance = patch.lodMorphOrigin.Distance(worldPosition);
+
+        const float rangeMultiplier = TerrainWorldGridLayer::GetLodRangeMultiplier();
+
+        const float nextLodMorph = MathUtil::Clamp((morphDistance - morphStart) / (morphEnd - morphStart), 0.0f, 1.0f);
+        const float secondLodMorph = MathUtil::Clamp((morphDistance - morphStart * rangeMultiplier) / ((morphEnd - morphStart) * rangeMultiplier), 0.0f, 1.0f);
+
+        height = MathUtil::Lerp(
+            MathUtil::Lerp(height, lodSurfaceHeightAt(uint8(level + 1)), nextLodMorph),
+            lodSurfaceHeightAt(uint8(level + 2)),
+            secondLodMorph);
+    }
+
+    outHeight = m_cellInfo.bounds.min.y + height * m_cellInfo.scale.y;
+
+    return true;
+}
+
 void TerrainStreamingCell::RebuildPatchesInRegion(const Vec2i& minVertex, const Vec2i& maxVertex)
 {
     HYP_SCOPE;
@@ -1626,6 +1772,25 @@ void TerrainStreamingCell::RebuildPatchesInRegion(const Vec2i& minVertex, const 
 
     TerrainMeshBuilder meshBuilder(GetCellSize(), m_quadtreeLayout);
 
+    const int32 tileQuads = int32(m_quadtreeLayout.GetTileQuads());
+
+    // a patch only reads heights on its own grid lines - the coarser grids its morph targets sample sit on a subset of
+    // them - plus the immediate neighbours each vertex takes its normal from. A brush that misses every one of those
+    // lines cannot change the patch, so a coarse patch covering the whole tile is left alone by a small stroke
+    const auto readsChangedGridLines = [](uint32 stride, int32 readMin, int32 readMax, int32 changedMin, int32 changedMax) -> bool
+    {
+        const int32 overlapMin = MathUtil::Max(readMin, changedMin - 1);
+        const int32 overlapMax = MathUtil::Min(readMax, changedMax + 1);
+
+        if (overlapMin > overlapMax)
+        {
+            return false;
+        }
+
+        // the highest grid line at or below overlapMax, which is inside the overlap if it reaches overlapMin
+        return (overlapMax / int32(stride)) * int32(stride) >= overlapMin;
+    };
+
     bool anyRebuilt = false;
 
     for (uint32 patchIndex = 0; patchIndex < uint32(m_patches.Size()); patchIndex++)
@@ -1642,24 +1807,43 @@ void TerrainStreamingCell::RebuildPatchesInRegion(const Vec2i& minVertex, const 
         // morph targets sample the two coarser grids, up to four strides away from each vertex
         const int32 margin = int32(region.stride) * 4;
 
-        const int32 regionMinX = int32(region.origin.x) - margin;
-        const int32 regionMinZ = int32(region.origin.y) - margin;
-        const int32 regionMaxX = int32(region.origin.x + region.gridQuads) + margin;
-        const int32 regionMaxZ = int32(region.origin.y + region.gridQuads) + margin;
+        const int32 readMinX = MathUtil::Max(int32(region.origin.x) - margin, 0);
+        const int32 readMinZ = MathUtil::Max(int32(region.origin.y) - margin, 0);
+        const int32 readMaxX = MathUtil::Min(int32(region.origin.x + region.gridQuads) + margin, tileQuads);
+        const int32 readMaxZ = MathUtil::Min(int32(region.origin.y + region.gridQuads) + margin, tileQuads);
 
-        if (regionMaxX < minVertex.x || regionMinX > maxVertex.x || regionMaxZ < minVertex.y || regionMinZ > maxVertex.y)
+        if (!readsChangedGridLines(region.stride, readMinX, readMaxX, minVertex.x, maxVertex.x)
+            || !readsChangedGridLines(region.stride, readMinZ, readMaxZ, minVertex.y, maxVertex.y))
         {
             continue;
         }
 
         const TerrainPatchMeshData patchMeshData = meshBuilder.BuildPatchMeshData(m_paddedHeights, patchIndex);
 
-        MeshDesc meshDesc;
-        MeshDataView meshDataView {};
-        BuildPatchMeshDescAndDataView(patchMeshData, meshDesc, meshDataView);
+        if (patchMeshData.vertices.Empty())
+        {
+            // heights of an unexpected size - leave the patch drawing what it has rather than emptying its mesh
+            continue;
+        }
 
-        // Don't UploadGpuData() yet - allow the ResourceBinder to do that on the render thread
-        patch.mesh->SetMeshData(meshDesc, meshDataView);
+        if (patchMeshData.vertices.Size() == patch.mesh->GetMeshDesc().lods[0].numVertices)
+        {
+            VertexArrayView vertexRange {};
+            vertexRange.floatData = reinterpret_cast<const float*>(patchMeshData.vertices.Data());
+            vertexRange.vertexCount = patchMeshData.vertices.Size();
+            vertexRange.layoutDesc = StaticVertexInputLayout<VT_Simple | VT_UV1>;
+
+            patch.mesh->UpdateDynamicVertexData(0, 0, vertexRange);
+        }
+        else
+        {
+            MeshDesc meshDesc;
+            MeshDataView meshDataView {};
+            BuildPatchMeshDescAndDataView(patchMeshData, meshDesc, meshDataView);
+
+            patch.mesh->SetMeshData(meshDesc, meshDataView);
+            patch.mesh->UploadGpuData();
+        }
 
         if (patch.entity.IsValid())
         {

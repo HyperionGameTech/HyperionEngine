@@ -71,8 +71,6 @@ public:
     ///re-synthesizes the auto splat weights from the cell's current heights; no-op for painted cells
     void RefreshAutoSplat();
 
-    void RebuildPickBVH();
-
     ///true once the cell's rigid body has been added to the physics world
     bool HasCollider() const;
 
@@ -83,10 +81,17 @@ public:
     ///sim thread - points \p meshComponent at the patch mesh if it's drawn after the last UpdateLodSelection(), and updates the
     ///morph band. Returns true if the entity's render proxy needs updating; \p outDrawnMeshChanged is set if the mesh was swapped
     bool ApplyPatchLod(
-        Span<const Vec3f> viewpoints,
         MeshComponent& meshComponent,
         TerrainPatchComponent& patchComponent,
         bool& outDrawnMeshChanged) const;
+
+    ///sim thread - world space height of the full resolution surface at \p worldXZ, the one the collider uses.
+    ///false when the position is outside the tile or its heights aren't loaded
+    bool SampleSurfaceHeight(const Vec2f& worldXZ, float& outHeight) const;
+
+    ///sim thread - world space height of the surface actually drawn at \p worldXZ: the LOD the last UpdateLodSelection()
+    ///picked, with the same CDLOD morph the vertex shader applies. False when no drawn patch covers the position
+    bool SampleDrawnHeight(const Vec2f& worldXZ, float& outHeight) const;
 
 protected:
     virtual void OnStreamStart() override final;
@@ -105,6 +110,9 @@ private:
 
         ///set by UpdateLodSelection() - never set without a mesh
         bool isDrawn = false;
+
+        ///set by UpdateLodSelection() - the viewpoint the patch's morph is measured from
+        Vec3f lodMorphOrigin;
     };
 
     struct TerrainPatchBuild
@@ -173,6 +181,12 @@ private:
 
     ///rebuilds patches whose morph targets depend on heights in [minVertex, maxVertex], from m_paddedHeights
     void RebuildPatchesInRegion(const Vec2i& minVertex, const Vec2i& maxVertex);
+
+    ///tile grid space position of \p worldXZ; false when it falls outside the tile
+    bool WorldToGridPosition(const Vec2f& worldXZ, Vec2f& outGridXZ) const;
+
+    ///the drawn patch covering \p gridXZ, finest level first
+    bool FindDrawnPatchAt(const Vec2f& gridXZ, uint32& outPatchIndex) const;
 
     void UpdateCollider(bool notifyPhysicsWorld);
 
