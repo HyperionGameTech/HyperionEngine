@@ -26,6 +26,8 @@
 #include <Rendering/StencilMasks.hpp>
 #include <Rendering/Shared.hpp>
 
+#include <Scene/LOD.hpp>
+
 #include <Framework/EngineStats.hpp>
 
 namespace Hyperion {
@@ -125,6 +127,9 @@ public:
     // map entity id to previous attribute handle (for draw call collection)
     SparsePagedArray<RenderableAttributeHandle, 64, RenderAllocator> previousAttributes;
 
+    // map entity id to the LOD this view chose last frame, used to give LOD selection hysteresis
+    SparsePagedArray<uint8, 64, RenderAllocator> previousLodIndices;
+
     using BinnedDrawCallCollections = SparsePagedArray<DrawCallCollection, 64, RenderAllocator>;
     FixedArray<BinnedDrawCallCollections, NumRenderBuckets> mappingsByBucket;
 
@@ -174,7 +179,7 @@ public:
         uint32 bucketBits,
         bool isDepthPrepass = false);
 
-    void CollectRenderables(uint32 bucketBits);
+    void CollectRenderables(View* view, uint32 bucketBits);
 
     void RemoveEmptyRenderGroups();
 
@@ -185,6 +190,9 @@ public:
     void BuildRenderGroups(View* view, RenderProxyList& renderProxyList);
 
 protected:
+    /*! \brief Picks the LOD this view should draw \ref{meshProxy} at, and remembers it for next frame's hysteresis. */
+    uint8 SelectLod(const RenderProxyMesh& meshProxy, const LODViewData& lodViewData, int32 viewLodBias);
+
     void PerformRendering(Frame* frame, struct PerformRenderingPayloadBase& payload);
 
     // Helper for derived types that don't have access to the payload struct.

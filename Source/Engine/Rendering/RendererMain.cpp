@@ -88,6 +88,9 @@ extern CVar<bool> g_cvDrawWireframe;
 extern CVar<bool> g_cvPathTracing;
 extern CVar<bool> g_cvEnableLightmapVolumes;
 
+///extra LOD bias for shadow views, which can usually afford coarser geometry than the view that sees it directly
+static CVar<int32> s_cvMeshLodShadowBias { "Rendering.MeshLod.ShadowBias", 0 };
+
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
 
@@ -1170,6 +1173,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         const RenderProxyMesh& meshProxy = *drawCalls.meshProxies[i];
 
+        // the LOD was picked for this view when the draw call was built
+        const uint8 lodIndex = uint8(drawCalls.ids[i].lodIndex);
+
         if (handleDepthPrepass(meshProxy))
         {
             continue;
@@ -1184,10 +1190,12 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
 
         // Skip if upload isn't ready.
-        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex).IsValid()))
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(lodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(lodIndex).IsValid()))
         {
             continue;
         }
+
+        const uint32 numIndices = meshProxy.mesh->NumIndices(lodIndex);
 
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
@@ -1223,10 +1231,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         cr << CommitDrawState();
 
-        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != meshProxy.currentLodIndex)
+        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != lodIndex)
         {
-            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex));
-            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex));
+            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(lodIndex));
+            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(lodIndex));
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(meshProxy.material != nullptr);
@@ -1246,16 +1254,16 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
         else
         {
-            cr << DrawIndexed(meshProxy.numIndices, 1);
+            cr << DrawIndexed(numIndices, 1);
         }
 
         prevMesh = meshProxy.mesh;
-        prevLodIndex = meshProxy.currentLodIndex;
+        prevLodIndex = lodIndex;
 
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
         {
             g_statDrawCalls++;
-            g_statTriangles += meshProxy.numIndices / 3;
+            g_statTriangles += numIndices / 3;
         }
     }
 
@@ -1266,6 +1274,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         uint32 numDrawCallUniforms = numShaderUniforms;
 
         const RenderProxyMesh& meshProxy = *instancedDrawCalls.meshProxies[i];
+
+        // the LOD was picked for this view when the draw call was built
+        const uint8 lodIndex = uint8(instancedDrawCalls.ids[i].lodIndex);
 
         if (handleDepthPrepass(meshProxy))
         {
@@ -1281,10 +1292,12 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
 
         // Skip if upload isn't ready.
-        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex).IsValid()))
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(lodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(lodIndex).IsValid()))
         {
             continue;
         }
+
+        const uint32 numIndices = meshProxy.mesh->NumIndices(lodIndex);
 
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
@@ -1330,10 +1343,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         cr << CommitDrawState();
 
-        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != meshProxy.currentLodIndex)
+        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != lodIndex)
         {
-            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(meshProxy.currentLodIndex));
-            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(meshProxy.currentLodIndex));
+            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(lodIndex));
+            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(lodIndex));
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(meshProxy.material != nullptr);
@@ -1353,17 +1366,17 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
         else
         {
-            cr << DrawIndexed(meshProxy.numIndices, entityInstanceBatch->numEntities);
+            cr << DrawIndexed(numIndices, entityInstanceBatch->numEntities);
         }
 
         prevMesh = meshProxy.mesh;
-        prevLodIndex = meshProxy.currentLodIndex;
+        prevLodIndex = lodIndex;
 
         // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
         {
             g_statInstancedDrawCalls += entityInstanceBatch->numEntities;
-            g_statTriangles += meshProxy.numIndices / 3;
+            g_statTriangles += numIndices / 3;
         }
     }
 }
@@ -2100,11 +2113,66 @@ void RenderCollector::ExecuteDrawCalls(
     }
 }
 
+uint8 RenderCollector::SelectLod(const RenderProxyMesh& meshProxy, const LODViewData& lodViewData, int32 viewLodBias)
+{
+    const ObjId<Entity> entityId = meshProxy.entity->Id();
+
+    const uint8 numLods = MathUtil::Max(meshProxy.numLods, uint8(1));
+
+    const uint8 overrideLod = GetMeshLodOverride(entityId);
+
+    if (overrideLod != uint8(~0))
+    {
+        return MathUtil::Min(overrideLod, uint8(numLods - 1));
+    }
+
+    MeshLodSelectionParams params;
+    params.numLods = numLods;
+    params.forcedLod = meshProxy.forcedLod;
+    params.lodBias = meshProxy.lodBias;
+
+    const BoundingSphere boundingSphere { BoundingBox(meshProxy.bufferData.worldAabbMin, meshProxy.bufferData.worldAabbMax) };
+
+    const float screenSize = lodViewData.ComputeScreenSize(boundingSphere);
+
+    const uint32 entityIndex = entityId.ToIndex();
+
+    const uint8* previousLod = previousLodIndices.TryGet(entityIndex);
+
+    const uint8 lodIndex = SelectMeshLod(meshProxy.mesh->GetMeshDesc(), params, screenSize, previousLod != nullptr ? *previousLod : 0, viewLodBias);
+
+    previousLodIndices.Set(entityIndex, lodIndex);
+
+    return lodIndex;
+}
+
 // Called at start of frame on render thread
-void RenderCollector::CollectRenderables(uint32 bucketBits)
+void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    // views without a camera have no vantage point to measure screen size from, so everything in them stays at LOD 0
+    LODViewData lodViewData;
+    bool canSelectLods = false;
+
+    // Shadow views select for themselves, so they can be biased coarser without touching what the camera sees.
+    const int32 viewLodBias = (view != nullptr && (view->GetFlags() & ViewFlags::SHADOW_VIEW))
+        ? s_cvMeshLodShadowBias.Get()
+        : 0;
+
+    if (view != nullptr && view->GetCamera() != nullptr)
+    {
+        if (const RenderProxyCamera* cameraProxy = static_cast<const RenderProxyCamera*>(GetRenderProxy(view->GetCamera())))
+        {
+            lodViewData = LODViewData(
+                cameraProxy->bufferData.projMat,
+                cameraProxy->bufferData.cameraPosition.GetXYZ(),
+                cameraProxy->bufferData.cameraNear);
+
+            canSelectLods = true;
+        }
+    }
 
     if (!batchAllocator)
     {
@@ -2156,13 +2224,17 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
         {
             AssertDebug(Resources::GetBinding(meshProxy->mesh) != Resources::InvalidBinding);
 
+            const uint8 lodIndex = (canSelectLods && meshProxy->selectsLod)
+                ? SelectLod(*meshProxy, lodViewData, viewLodBias)
+                : uint8(0);
+
             AssertDebug(meshProxy->mesh != nullptr
-                        && meshProxy->mesh->GetVertexBuffer(meshProxy->currentLodIndex) != nullptr
-                        && meshProxy->mesh->GetIndexBuffer(meshProxy->currentLodIndex) != nullptr);
+                        && meshProxy->mesh->GetVertexBuffer(lodIndex) != nullptr
+                        && meshProxy->mesh->GetIndexBuffer(lodIndex) != nullptr);
 
             AssertDebug(meshProxy->material != nullptr);
 
-            DrawCallID drawCallId(meshProxy->mesh->Id(), meshProxy->material->Id(), meshProxy->currentLodIndex);
+            DrawCallID drawCallId(meshProxy->mesh->Id(), meshProxy->material->Id(), lodIndex);
 
             if (!meshProxy->enableAutoInstancing && !meshProxy->numInstances)
             {
@@ -2378,6 +2450,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             drawCallCollection.meshProxies.EraseAt(idx);
 
             previousAttributes.EraseAt(idx);
+
+            if (previousLodIndices.HasIndex(idx))
+            {
+                previousLodIndices.EraseAt(idx);
+            }
         }
     }
 

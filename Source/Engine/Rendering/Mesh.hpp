@@ -47,8 +47,6 @@ enum class MeshFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(MeshFlags);
 
-static constexpr uint8 MaxMeshLods = 4;
-
 HYP_STRUCT()
 struct MeshLodDesc
 {

@@ -54,9 +54,6 @@ struct ENGINE_API MeshComponent
     HYP_FIELD(Transient)
     uint32 numInstances = 0;
 
-    HYP_FIELD(Property = "CurrentLod", EditEnabled = false, Transient)
-    uint8 lodIndex = 0;
-
     HYP_FIELD(Transient)
     Mat4f previousModelMatrix;
 
@@ -69,12 +66,6 @@ struct ENGINE_API MeshComponent
 
     HYP_FIELD(Property = "LodBias", Serialize)
     int8 lodBias = 0;
-
-    HYP_FIELD(Property = "ScreenSize", EditEnabled = false, Transient)
-    float screenSize = 0.0f;
-
-    HYP_FIELD(Transient)
-    uint32 lodDataVersion = 0;
 
     MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),

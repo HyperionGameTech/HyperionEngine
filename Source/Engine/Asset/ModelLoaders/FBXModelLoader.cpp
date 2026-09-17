@@ -1039,10 +1039,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
 
-    // Include our root dir as part of the path
     const FilePath path = state.filepath;
-    const FilePath currentDir = FilePath::Current();
-    const FilePath basePath = path.BasePath();
 
     const String baseName = StringUtil::StripExtension(path.Basename());
 
@@ -2181,9 +2178,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             String resolvedPath;
 
             for (const String& candidate : Array<String> {
-                     FilePath::Join(basePath, FilePath(normalizedFilename).Basename()),
-                     FilePath::Join(basePath, normalizedFilename),
-                     normalizedFilename })
+                     ResolveReferencedFilepath(path, FilePath(normalizedFilename).Basename()),
+                     ResolveReferencedFilepath(path, normalizedFilename),
+                     ResolveReferencedFilepath(FilePath(), normalizedFilename) })
             {
                 if (candidate.Any() && FilePath(candidate).Exists())
                 {
@@ -2195,7 +2192,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (resolvedPath.Empty())
             {
-                HYP_LOG(Assets, Warning, "FBX texture '{}' could not be resolved to an existing file relative to '{}'", fbxTexture->filename, basePath);
+                HYP_LOG(Assets, Warning, "FBX texture '{}' could not be resolved to an existing file relative to '{}'", fbxTexture->filename, path.BasePath());
 
                 continue;
             }

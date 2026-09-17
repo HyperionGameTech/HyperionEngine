@@ -1973,7 +1973,7 @@ public:
 
                 for (const FilePath& file : result.GetValue())
                 {
-                    batch->Add(file.Basename(), (CoreApi::GetExecutablePath() / file.ToRelative(CoreApi::GetExecutablePath())).ToCanonical());
+                    batch->Add(file.Basename(), file);
                 }
 
                 batch->GetCallbacks().OnItemComplete

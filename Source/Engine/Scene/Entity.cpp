@@ -721,10 +721,17 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->material = meshComponent.material;
     proxy->skeleton = meshComponent.skeleton;
 
-    const uint8 numLods = MathUtil::Max<uint8>(meshComponent.mesh->GetMeshDesc().GetNumLods(), 1);
-    proxy->currentLodIndex = MathUtil::Min<uint8>(meshComponent.lodIndex, numLods - 1);
+    proxy->numLods = MathUtil::Max<uint8>(meshComponent.mesh->GetMeshDesc().GetNumLods(), 1);
 
-    proxy->numIndices = meshComponent.mesh->NumIndices(proxy->currentLodIndex);
+    // the proxy stores these packed, and a bias or forced LOD beyond the mesh's own LODs would mean the same thing anyway
+    proxy->forcedLod = MathUtil::Min<uint8>(meshComponent.forcedLod, MaxMeshLods);
+    proxy->lodBias = int8(MathUtil::Clamp(int32(meshComponent.lodBias), -int32(MaxMeshLods), int32(MaxMeshLods)));
+
+    // each view picks its own LOD at draw call collection time, except for these, which have no per-entity LOD to pick
+    proxy->selectsLod = proxy->numLods > 1
+        && meshComponent.numInstances == 0
+        && !TryGetComponent<TerrainPatchComponent>();
+
     proxy->numInstances = meshComponent.numInstances;
     proxy->enableAutoInstancing = meshComponent.enableAutoInstancing;
     proxy->attributes = RenderableAttributeSet(meshComponent.mesh->GetMeshAttributes(), meshComponent.material->GetAttributes());

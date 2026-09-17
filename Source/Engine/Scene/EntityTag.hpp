@@ -40,8 +40,7 @@ class Entity;
     X(UpdateInstancedMeshData, 0x50, false, false)  \
     X(UpdateReplication, 0x60, false, false)        \
     X(UpdatePhysicsShape, 0x100, false, false)      \
-    X(UpdatePhysicsMaterial, 0x200, false, false)   \
-    X(MeshLodPinned, 0x400, false, false)
+    X(UpdatePhysicsMaterial, 0x200, false, false)
 
 // clang-format on
 

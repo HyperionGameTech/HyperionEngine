@@ -95,5 +95,19 @@ std::string FileSystem::RelativePath(const std::string& path, const std::string&
     return std::filesystem::proximate(path, base).string();
 }
 
+std::string FileSystem::CanonicalPath(const std::string& path)
+{
+    std::error_code errorCode;
+
+    const std::filesystem::path canonicalPath = std::filesystem::weakly_canonical(path, errorCode);
+
+    if (errorCode)
+    {
+        return path;
+    }
+
+    return canonicalPath.string();
+}
+
 } // namespace filesystem
 } // namespace Hyperion

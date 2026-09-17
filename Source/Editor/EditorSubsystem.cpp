@@ -34,10 +34,10 @@
 #include <Scene/Prefab.hpp>
 #include <Scene/Swatch.hpp>
 
+#include <Scene/LOD.hpp>
 #include <Scene/System.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
-#include <Scene/Systems/MeshLodSystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
@@ -146,10 +146,6 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
 static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
-
-namespace CoreApi {
-CORE_API extern const FilePath& GetExecutablePath();
-} // namespace CoreApi
 
 struct SuppressIdleThrottlingContext {};
 
@@ -809,12 +805,7 @@ void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
 
     SetSelectedMeshEditFace({});
 
-    Handle<Node> targetNode = m_meshEditState.targetNode.Lock();
-
-    if (Entity* entity = DynamicCast<Entity>(targetNode.Get()))
-    {
-        entity->RemoveTag<EntityTag::MeshLodPinned>();
-    }
+    ClearMeshLodOverride();
 
     m_meshEditState.hoveredFace.Unset();
     m_meshEditState.targetNode.Reset();
@@ -881,6 +872,32 @@ void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
     m_meshEditState.hoveredFace.Unset();
 }
 
+// LOD is chosen per view when draw calls are built, so when the editor has to name a single LOD on the sim
+// thread it recreates that choice from the largest screen size any of the world's LOD-collecting views sees.
+static uint8 SelectMeshLodForViews(Span<const LODViewData> viewDatas, const MeshComponent& meshComponent, const BoundingBox& worldAabb)
+{
+    if (!meshComponent.mesh.IsValid())
+    {
+        return 0;
+    }
+
+    MeshLodSelectionParams params;
+    params.numLods = MathUtil::Max(meshComponent.mesh->GetMeshDesc().GetNumLods(), uint8(1));
+    params.forcedLod = meshComponent.forcedLod;
+    params.lodBias = meshComponent.lodBias;
+
+    const BoundingSphere boundingSphere { worldAabb };
+
+    float screenSize = 0.0f;
+
+    for (const LODViewData& viewData : viewDatas)
+    {
+        screenSize = MathUtil::Max(screenSize, viewData.ComputeScreenSize(boundingSphere));
+    }
+
+    return SelectMeshLod(meshComponent.mesh->GetMeshDesc(), params, screenSize, 0);
+}
+
 uint8 EditorSubsystem::ResolveMeshEditLod(Node* targetNode) const
 {
     Entity* entity = DynamicCast<Entity>(targetNode);
@@ -897,16 +914,17 @@ uint8 EditorSubsystem::ResolveMeshEditLod(Node* targetNode) const
         return 0;
     }
 
-    const uint8 numLods = MathUtil::Max(meshComponent->mesh->GetMeshDesc().GetNumLods(), uint8(1));
+    BoundingBoxComponent* boundingBoxComponent = entity->TryGetComponent<BoundingBoxComponent>();
 
-    const int32 forcedLod = GetViewportForcedLod();
-
-    if (forcedLod >= 0)
+    if (boundingBoxComponent == nullptr)
     {
-        return uint8(MathUtil::Min(forcedLod, int32(numLods) - 1));
+        return 0;
     }
 
-    return MathUtil::Min(meshComponent->lodIndex, uint8(numLods - 1));
+    Array<LODViewData, SceneTempAllocator> viewDatas;
+    GetCurrentProject()->GetWorld()->CollectLODViewDatas(viewDatas);
+
+    return SelectMeshLodForViews(viewDatas.ToSpan(), *meshComponent, boundingBoxComponent->worldAabb);
 }
 
 uint8 EditorSubsystem::GetMeshEditLod() const
@@ -952,15 +970,8 @@ void EditorSubsystem::SetMeshEditLod(uint8 lodIndex)
     m_meshEditState.lodIndex = clampedLodIndex;
     m_meshEditState.lodPickBvhDirty = true;
 
-    // the mesh must keep rendering the LOD being edited
-    entity->AddTag<EntityTag::MeshLodPinned>();
-
-    if (meshComponent->lodIndex != clampedLodIndex)
-    {
-        meshComponent->lodIndex = clampedLodIndex;
-
-        entity->SetNeedsRenderProxyUpdate();
-    }
+    // every view must keep rendering the LOD being edited, whatever screen size the entity is at
+    SetMeshLodOverride(entity->Id(), clampedLodIndex);
 
     OnMeshEditStateChanged();
 }
@@ -2490,7 +2501,12 @@ void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandLi
         Color(1.0f, 0.25f, 0.25f, 1.0f)
     };
 
-    for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
+    World* world = GetCurrentProject()->GetWorld();
+
+    Array<LODViewData, SceneTempAllocator> viewDatas;
+    world->CollectLODViewDatas(viewDatas);
+
+    for (Scene* scene : world->GetScenes())
     {
         for (auto [entity, meshComponent, boundingBoxComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -2506,10 +2522,12 @@ void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandLi
                 continue;
             }
 
+            const uint8 selectedLod = SelectMeshLodForViews(viewDatas.ToSpan(), meshComponent, boundingBoxComponent.worldAabb);
+
             debugDrawCommandList.sphere(
                 boundingSphere.center,
                 boundingSphere.radius,
-                lodColors[MathUtil::Min(meshComponent.lodIndex, uint8(GetArrayCount(lodColors) - 1))],
+                lodColors[MathUtil::Min(selectedLod, uint8(GetArrayCount(lodColors) - 1))],
                 wireframeAttributes);
         }
     }
@@ -4401,7 +4419,7 @@ void EditorSubsystem::ShowImportContentDialog()
 
             for (const FilePath& file : result.GetValue())
             {
-                batch->Add(file.Basename(), FilePath::Relative(file, CoreApi::GetExecutablePath()));
+                batch->Add(file.Basename(), file);
             }
 
             batch->OnComplete

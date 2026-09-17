@@ -23,6 +23,7 @@
 #include <Rendering/RenderMemory.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderGroup.hpp>
+#include <Rendering/Shared.hpp>
 
 namespace Hyperion {
 
@@ -87,6 +88,8 @@ struct DrawCallID
             uint32 materialIdValue;
         };
     };
+
+    static_assert(MaxMeshLods <= (1u << 3), "MaxMeshLods no longer fits in DrawCallID's lodIndex field");
 
     DrawCallID()
         : value(0)

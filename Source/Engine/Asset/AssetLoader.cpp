@@ -50,58 +50,76 @@ ENGINE_API void LoadedAsset::OnPostLoad()
 
 #pragma region AssetLoaderBase
 
-FilePath AssetLoaderBase::GetRebasedFilepath(const FilePath& basePath, const FilePath& filepath)
+static FilePath Normalized(const FilePath& filepath)
 {
-    const FilePath relativeFilepath = FilePath::Relative(filepath, FilePath::Current());
+    return filepath.IsAbsolute() ? FilePath::Canonical(filepath) : filepath;
+}
 
-    if (basePath.Any())
+FilePath AssetLoaderBase::ResolveReferencedFilepath(const FilePath& referencingFilepath, const FilePath& referencedPath)
+{
+    if (referencedPath.Empty() || referencedPath.IsAbsolute())
     {
-        return FilePath::Join(basePath, relativeFilepath);
+        return referencedPath;
     }
 
-    return relativeFilepath;
+    const FilePath baseDirectory = referencingFilepath.BasePath();
+
+    if (baseDirectory.Any())
+    {
+        return Normalized(FilePath::Join(baseDirectory, referencedPath));
+    }
+
+    // Nothing to anchor on, so fall back to the working directory the way a plain fopen() would.
+    return Normalized(FilePath::Join(FilePath::Current(), referencedPath));
 }
 
 Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepath) const
 {
-    const FilePath currentPath = CoreApi::GetExecutablePath();
+    Array<FilePath> paths;
 
-    
-
-    Array<FilePath> paths {
-        originalFilepath.IsAbsolute()
-            ? originalFilepath
-            : FilePath::Relative(originalFilepath, currentPath)
-    };
-
-    auto AddRebasedFilepath = [&paths, &originalFilepath, &currentPath](const FilePath& basePath)
+    auto AddCandidate = [&paths](const FilePath& basePath, const FilePath& filepath)
     {
-        const FilePath filepath = GetRebasedFilepath(basePath, originalFilepath);
-
-        paths.PushBack(FilePath::Relative(filepath, currentPath));
-        paths.PushBack(filepath);
-    };
-
-    const FilePath& basePath = AssetManager::GetInstance()->GetBasePath();
-
-    if (basePath.Any())
-    {
-        AddRebasedFilepath(basePath);
-    }
-
-    auto FindAssetCollectorFunctor = [&AddRebasedFilepath, &basePath](const Handle<AssetCollector>& assetCollector)
-    {
-        if (assetCollector->GetBasePath() == basePath)
+        if (basePath.Empty())
         {
-            return false;
+            return;
         }
 
-        AddRebasedFilepath(assetCollector->GetBasePath());
+        // Already rooted at this base (an asset path carrying its own prefix), so don't prefix it twice.
+        const FilePath candidate = filepath.StartsWith(basePath)
+            ? Normalized(filepath)
+            : Normalized(FilePath::Join(basePath, filepath));
+
+        if (candidate.Any() && !paths.Contains(candidate))
+        {
+            paths.PushBack(candidate);
+        }
+    };
+
+    if (originalFilepath.IsAbsolute())
+    {
+        paths.PushBack(FilePath::Canonical(originalFilepath));
+
+        return paths;
+    }
+
+    // Relative paths are anchored on the roots we know about rather than the process working directory,
+    // which anything in the host application is free to move out from under us.
+    AddCandidate(CoreApi::GetExecutablePath(), originalFilepath);
+
+    AssetManager* assetManager = AssetManager::GetInstance();
+
+    AddCandidate(assetManager->GetBasePath(), originalFilepath);
+
+    auto FindAssetCollectorFunctor = [&AddCandidate, &originalFilepath](const Handle<AssetCollector>& assetCollector)
+    {
+        AddCandidate(assetCollector->GetBasePath(), originalFilepath);
 
         return false;
     };
 
-    AssetManager::GetInstance()->FindAssetCollector(FindAssetCollectorFunctor);
+    assetManager->FindAssetCollector(FindAssetCollectorFunctor);
+
+    AddCandidate(FilePath::Current(), originalFilepath);
 
     return paths;
 }

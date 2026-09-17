@@ -237,6 +237,11 @@ public:
         return FilePath(FileSystem::RelativePath(path.Data(), base.Data()).c_str());
     }
 
+    static inline FilePath Canonical(const FilePath& path)
+    {
+        return FilePath(FileSystem::CanonicalPath(path.Data()).c_str());
+    }
+
     template <class... Strings>
     static inline FilePath Join(Strings&&... args)
     {

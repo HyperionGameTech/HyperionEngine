@@ -221,7 +221,7 @@ void ShowOpenFileDialog(
                 ofn.nFilterIndex = 1;
                 ofn.lpstrTitle = titleWide.Data();
                 ofn.lpstrInitialDir = baseDirWide.Data();
-                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
                 if (allowMultiple)
                 {
@@ -337,7 +337,7 @@ void ShowSaveFileDialog(
     ofn.nFilterIndex = 1;
     ofn.lpstrTitle = titleWide.Data();
     ofn.lpstrInitialDir = baseDirWide.Data();
-    ofn.Flags = OFN_OVERWRITEPROMPT;
+    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 
     // Set default extension if provided
     WideString defaultExtWide;

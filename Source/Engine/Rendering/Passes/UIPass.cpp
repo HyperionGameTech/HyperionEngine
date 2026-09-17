@@ -287,7 +287,7 @@ void UIPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderSetup rs = renderSetup.Fork();
     rs.passData = pd;
 
-    pd->renderCollector.CollectRenderables(0);
+    pd->renderCollector.CollectRenderables(renderSetup.view, 0);
     pd->renderCollector.ExecuteDrawCalls(frame, rs, nullptr, 0);
 }
 

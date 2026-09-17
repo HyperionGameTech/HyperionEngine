@@ -28,6 +28,7 @@ public:
     static int MkDir(const std::string& path);
     static std::string CurrentPath();
     static std::string RelativePath(const std::string& path, const std::string& base);
+    static std::string CanonicalPath(const std::string& path);
 };
 } // namespace filesystem
 

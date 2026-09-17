@@ -426,9 +426,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
     {
         for (const auto& it : item.textures)
         {
-            const FilePath texturePath = FilePath::Join(
-                FilePath::Relative(FilePath(library.filepath).BasePath(), FilePath::Current()),
-                it.name);
+            const FilePath texturePath = ResolveReferencedFilepath(FilePath(library.filepath), it.name);
 
             textureNamesToPath[it.name] = texturePath;
 

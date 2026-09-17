@@ -20,6 +20,7 @@
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/Shared.hpp>
 
 namespace Hyperion {
 
@@ -156,7 +157,6 @@ struct RenderProxyMesh final : IRenderProxy
     Material* material = nullptr;
     Skeleton* skeleton = nullptr;
 
-    uint32 numIndices = 0;
     uint32 numInstances = 0;
 
     LightmapVolume* lightmapVolume = nullptr;
@@ -170,7 +170,16 @@ struct RenderProxyMesh final : IRenderProxy
 
     uint8 enableAutoInstancing : 1 = false;
 
-    uint8 currentLodIndex = 0;
+    ///false for instanced entities, whose whole batch shares one draw call and whose bounds say nothing
+    ///about any single instance, and for terrain patches, which pick their LOD via TerrainLodSystem.
+    uint8 selectsLod : 1 = false;
+
+    uint8 numLods : MeshLodCountBits = 1;
+
+    ///0 == automatic lod selection, otherwise uses this minus one
+    uint8 forcedLod : MeshLodCountBits = 0;
+
+    int8 lodBias : MeshLodBiasBits = 0;
 };
 
 struct EnvProbeShaderData

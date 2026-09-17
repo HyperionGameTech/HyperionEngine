@@ -16,13 +16,10 @@ namespace Hyperion
         private bool _enableAutoInstancing;
         private AssetReference _instanceData;
         private uint _numInstances;
-        private byte _lodIndex;
         private Mat4f _previousModelMatrix;
         private fixed byte _userData[32];
         private byte _forcedLod;
         private sbyte _lodBias;
-        private float _screenSize;
-        private uint _lodDataVersion;
 
         public void Dispose()
         {

@@ -1372,7 +1372,7 @@ void RenderInterface::UpdateResources(AtomicFlag* pCancelFlag)
             vd.rplRender.BeginRead();
 
             vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
-            vd.renderCollector.CollectRenderables(0);
+            vd.renderCollector.CollectRenderables(vd.view, 0);
 
             vd.rplRender.EndRead();
         }

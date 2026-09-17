@@ -223,7 +223,8 @@ public:
 protected:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const = 0;
 
-    static FilePath GetRebasedFilepath(const FilePath& basePath, const FilePath& filepath);
+    static FilePath ResolveReferencedFilepath(const FilePath& referencingFilepath, const FilePath& referencedPath);
+
     Array<FilePath> GetTryFilepaths(const FilePath& originalFilepath) const;
 };
 
