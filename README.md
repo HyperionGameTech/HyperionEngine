@@ -6,7 +6,8 @@ Our aim with Hyperion is to offer a high fidelity gaming experience even on low-
 
 That, and the editor shouldn't suck.
 
-[Website: hyperionengine.dev](https://hyperionengine.dev)
+[Website](https://hyperionengine.dev)
+[Discord](https://discord.gg/Fv8PwMJEUb)
 
 ---
 
