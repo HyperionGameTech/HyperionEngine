@@ -372,11 +372,10 @@ namespace Hyperion.Editor.ViewModels
         public ICommand TogglePhysicsDebugDraw { get; private set; }
         public bool IsPhysicsDebugDrawEnabled => _editorSubsystem?.IsPhysicsDebugDrawEnabled() ?? false;
 
-        public ICommand FitPhysicsShapeToMesh { get; private set; }
-        public bool CanFitPhysicsShapeToMesh => _canFitPhysicsShapeToMesh;
-
-        public ICommand GenerateConvexCollision { get; private set; }
-        public bool CanGenerateConvexCollision => _canGenerateConvexCollision;
+        // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
+        // that was right-clicked rather than whatever happens to be focused.
+        public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
+        public EditorCommand FitCollisionToMesh => new EditorCommand("FitCollisionToMesh", GetSelectedNodeUuid);
 
         public ICommand SetViewportLod { get; private set; }
 
@@ -426,8 +425,7 @@ namespace Hyperion.Editor.ViewModels
 
         private MeshEditStateSnapshot _meshEditState = new MeshEditStateSnapshot();
 
-        private bool _canFitPhysicsShapeToMesh;
-        private bool _canGenerateConvexCollision;
+
         private int _viewportForcedLod = -1;
 
         public ICommand ToggleMeshEditMode { get; private set; }
@@ -735,32 +733,6 @@ namespace Hyperion.Editor.ViewModels
                     });
                 },
                 () => CanToggleTerrainSculptMode);
-
-            FitPhysicsShapeToMesh = new RelayCommand(
-                () =>
-                {
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        _editorSubsystem.FitPhysicsShapeToMesh();
-
-                        RefreshMeshEditState();
-                    });
-                },
-                () => CanFitPhysicsShapeToMesh);
-
-            GenerateConvexCollision = new RelayCommand<object?>(
-                presetIndex =>
-                {
-                    uint preset = (uint)Math.Max(ParseCommandInt(presetIndex, 0), 0);
-
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        _editorSubsystem.GenerateConvexCollision(preset);
-
-                        RefreshMeshEditState();
-                    });
-                },
-                _ => CanGenerateConvexCollision);
 
             SetViewportLod = new RelayCommand<object?>(lodIndex =>
             {
@@ -2047,8 +2019,6 @@ namespace Hyperion.Editor.ViewModels
 
             MeshEditStateSnapshot snapshot = new MeshEditStateSnapshot();
 
-            bool canFitPhysicsShapeToMesh = false;
-            bool canGenerateConvexCollision = false;
             int viewportForcedLod = -1;
 
             try
@@ -2068,8 +2038,6 @@ namespace Hyperion.Editor.ViewModels
                 snapshot.NumLods = _editorSubsystem.GetMeshEditNumLods();
                 snapshot.LodsOutOfDate = _editorSubsystem.AreMeshEditLodsOutOfDate();
 
-                canFitPhysicsShapeToMesh = _editorSubsystem.CanFitPhysicsShapeToMesh();
-                canGenerateConvexCollision = _editorSubsystem.CanGenerateConvexCollision();
                 viewportForcedLod = _editorSubsystem.GetViewportForcedLod();
             }
             catch (Exception ex)
@@ -2083,8 +2051,6 @@ namespace Hyperion.Editor.ViewModels
             {
                 _meshEditState = snapshot;
 
-                _canFitPhysicsShapeToMesh = canFitPhysicsShapeToMesh;
-                _canGenerateConvexCollision = canGenerateConvexCollision;
                 _viewportForcedLod = viewportForcedLod;
 
                 NotifyMeshEditStateChanged();
@@ -2109,12 +2075,6 @@ namespace Hyperion.Editor.ViewModels
             (ToggleMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
             (SaveMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
             (DiscardMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
-
-            OnPropertyChanged(nameof(CanFitPhysicsShapeToMesh));
-            (FitPhysicsShapeToMesh as RelayCommand)?.RaiseCanExecuteChanged();
-
-            OnPropertyChanged(nameof(CanGenerateConvexCollision));
-            (GenerateConvexCollision as RelayCommand<object?>)?.RaiseCanExecuteChanged();
 
             OnPropertyChanged(nameof(ViewportForcedLod));
             OnPropertyChanged(nameof(ViewportLodText));

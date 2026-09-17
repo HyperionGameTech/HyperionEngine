@@ -87,8 +87,28 @@
                         Classes="gizmo"
                         Command="{Binding NewCommand}"
                         IsEnabled="{Binding CanCreateNew}"
+                        IsVisible="{Binding !HasCreatableClassChoice}"
                         ToolTip.Tip="Create new">
                         <controls:Codicon Kind="Add" Size="14" />
+                    </Button>
+                    <Button
+                        Classes="gizmo"
+                        IsEnabled="{Binding CanCreateNew}"
+                        IsVisible="{Binding HasCreatableClassChoice}"
+                        ToolTip.Tip="Create new...">
+                        <StackPanel Orientation="Horizontal" Spacing="1">
+                            <controls:Codicon Kind="Add" Size="14" />
+                            <controls:Codicon Kind="ChevronDown" Size="8" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <MenuFlyout ItemsSource="{Binding CreatableClasses}">
+                                <MenuFlyout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CreatableClassViewModel">
+                                        <MenuItem Command="{Binding CreateCommand}" Header="{Binding ClassName}" />
+                                    </DataTemplate>
+                                </MenuFlyout.ItemTemplate>
+                            </MenuFlyout>
+                        </Button.Flyout>
                     </Button>
                     <ToggleButton
                         Classes="gizmo"

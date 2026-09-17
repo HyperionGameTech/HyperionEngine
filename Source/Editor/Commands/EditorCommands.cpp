@@ -2575,6 +2575,77 @@ DEFINE_EDITOR_COMMAND(DeleteNode);
 
 #pragma region TeleportTo
 
+#pragma region Collision
+
+static Node* ResolveCollisionCommandNode(EditorSubsystem* subsystem, const String& nodeUuidArgument)
+{
+    if (nodeUuidArgument.Empty())
+    {
+        return nullptr;
+    }
+
+    const UUID nodeUuid = UUID(nodeUuidArgument.Data());
+
+    if (nodeUuid == UUID::Invalid())
+    {
+        HYP_LOG(Editor, Warning, "Collision command: invalid UUID '{}'", nodeUuidArgument);
+
+        return nullptr;
+    }
+
+    return subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+}
+
+class EditorCommandGenerateConvexCollision final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandGenerateConvexCollision);
+
+public:
+    virtual ~EditorCommandGenerateConvexCollision() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Generate Convex Collision";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Node* node = ResolveCollisionCommandNode(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+
+        subsystem->GenerateConvexCollision(node);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(GenerateConvexCollision);
+
+class EditorCommandFitCollisionToMesh final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandFitCollisionToMesh);
+
+public:
+    virtual ~EditorCommandFitCollisionToMesh() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Fit Collision To Mesh";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Node* node = ResolveCollisionCommandNode(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+
+        subsystem->FitPhysicsShapeToMesh(node);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(FitCollisionToMesh);
+
+#pragma endregion Collision
+
 class EditorCommandTeleportTo final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandTeleportTo);

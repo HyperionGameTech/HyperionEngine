@@ -1122,6 +1122,8 @@ void World::EndUpdate()
 #endif
 }
 
+extern PhysicsShape* GetDefaultPhysicsShape();
+
 void World::SyncPhysicsToEntities()
 {
     PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*m_physicsWorld);
@@ -1144,6 +1146,13 @@ void World::SyncPhysicsToEntities()
             {
                 continue;
             }
+
+            // The body caches a raw pointer to the shape it was created with, so a swap on the component
+            // (the inspector assigning a different shape, generated collision replacing it) has to be
+            // picked up here, otherwise the rebuild below uses the shape that was just replaced.
+            rigidBody->shape = rigidBodyComponent.shape.IsValid()
+                ? rigidBodyComponent.shape.Get()
+                : GetDefaultPhysicsShape();
 
             physicsWorld.GetAdapter().OnChangePhysicsShape(rigidBody.Get());
 

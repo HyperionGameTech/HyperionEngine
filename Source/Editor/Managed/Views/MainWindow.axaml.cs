@@ -616,6 +616,7 @@ namespace Hyperion.Editor
             {
                 nodeViewModel.RefreshActions();
                 nodeViewModel.RefreshMoveToSceneTargets();
+                nodeViewModel.RefreshCollisionState();
             }
         }
 

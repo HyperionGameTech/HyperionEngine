@@ -117,6 +117,58 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasMoveToSceneTargets, value);
         }
 
+        private bool _canGenerateCollision;
+        public bool CanGenerateCollision
+        {
+            get => _canGenerateCollision;
+            private set => SetProperty(ref _canGenerateCollision, value);
+        }
+
+        private bool _canFitCollisionToMesh;
+        public bool CanFitCollisionToMesh
+        {
+            get => _canFitCollisionToMesh;
+            private set => SetProperty(ref _canFitCollisionToMesh, value);
+        }
+
+        /// <summary>
+        /// Whether either collision action applies to this node, so the submenu can hide entirely for
+        /// nodes that are not mesh entities.
+        /// </summary>
+        public bool HasCollisionActions => CanGenerateCollision || CanFitCollisionToMesh;
+
+        /// <summary>
+        /// Reads whether the collision actions apply to this node. The component lookups behind them have
+        /// to run on the sim thread, so the menu items start disabled and enable themselves a frame later.
+        /// </summary>
+        public void RefreshCollisionState()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            Node node = _node;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+                if (editorSubsystem == null)
+                {
+                    return;
+                }
+
+                bool canGenerate = editorSubsystem.CanGenerateConvexCollision(node);
+                bool canFit = editorSubsystem.CanFitPhysicsShapeToMesh(node);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    CanGenerateCollision = canGenerate;
+                    CanFitCollisionToMesh = canFit;
+
+                    OnPropertyChanged(nameof(HasCollisionActions));
+                });
+            });
+        }
+
         public void RefreshActions()
         {
             Dispatcher.UIThread.VerifyAccess();

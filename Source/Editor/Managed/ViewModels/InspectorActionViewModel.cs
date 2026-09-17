@@ -13,13 +13,20 @@ namespace Hyperion.Editor.ViewModels
         private readonly Method _method;
         private readonly RelayCommand _executeCommand;
         private readonly Action? _onCompleted;
+        private readonly Action? _onCompletedSimThread;
         private int _isExecuting;
 
-        public InspectorActionViewModel(ObjectBase? target, Method method, string label, bool isEnabled = true, Action? onCompleted = null)
+        /// <summary>
+        /// <paramref name="onCompletedSimThread"/> runs on the sim thread once the action has been
+        /// invoked, for follow-up work that touches engine state (entity tags, dirty flags).
+        /// <paramref name="onCompleted"/> runs afterwards on the UI thread, for re-reading the panel.
+        /// </summary>
+        public InspectorActionViewModel(ObjectBase? target, Method method, string label, bool isEnabled = true, Action? onCompleted = null, Action? onCompletedSimThread = null)
         {
             _target = target ?? throw new ArgumentNullException(nameof(target));
             _method = method;
             _onCompleted = onCompleted;
+            _onCompletedSimThread = onCompletedSimThread;
             _isExecuting = 0;
 
             if (string.IsNullOrWhiteSpace(label))
@@ -79,6 +86,10 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     using BoxedValue _ = _method.Invoke(_target);
+
+                    // Still on the sim thread, and before the UI hears about it - same ordering a property
+                    // write uses for its PostWriteCallback.
+                    _onCompletedSimThread?.Invoke();
                 }
                 catch (Exception ex)
                 {

@@ -2172,21 +2172,26 @@ static Handle<PhysicsShape> ClonePhysicsShape(const Handle<PhysicsShape>& source
     }
 }
 
-bool EditorSubsystem::CanFitPhysicsShapeToMesh() const
+Entity* EditorSubsystem::ResolveCollisionTargetEntity(Node* node) const
 {
     if (!m_currentProject.IsValid() || IsSimulating())
     {
-        return false;
+        return nullptr;
     }
 
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
+    if (node == nullptr)
     {
-        return false;
+        Handle<Node> focusedNode = m_focusedNode.Lock();
+
+        return DynamicCast<Entity>(focusedNode.Get());
     }
 
-    Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+    return DynamicCast<Entity>(node);
+}
+
+bool EditorSubsystem::CanFitPhysicsShapeToMesh(Node* node) const
+{
+    Entity* entity = ResolveCollisionTargetEntity(node);
 
     if (entity == nullptr)
     {
@@ -2253,27 +2258,15 @@ Handle<PhysicsShape> EditorSubsystem::EnsureUniquePhysicsShape(Entity* entity)
     return clone;
 }
 
-void EditorSubsystem::FitPhysicsShapeToMesh()
+void EditorSubsystem::FitPhysicsShapeToMesh(Node* node)
 {
-    if (IsSimulating())
-    {
-        return;
-    }
-
     Handle<EditorProject> project = GetCurrentProject();
     if (!project.IsValid())
     {
         return;
     }
 
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return;
-    }
-
-    Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+    Entity* entity = ResolveCollisionTargetEntity(node);
 
     if (entity == nullptr)
     {
@@ -2343,21 +2336,14 @@ void EditorSubsystem::FitPhysicsShapeToMesh()
         }));
 }
 
-bool EditorSubsystem::CanGenerateConvexCollision() const
+bool EditorSubsystem::CanGenerateConvexCollision(Node* node) const
 {
-    if (!m_currentProject.IsValid() || IsSimulating() || !IsConvexDecompositionSupported())
+    if (!IsConvexDecompositionSupported())
     {
         return false;
     }
 
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return false;
-    }
-
-    Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+    Entity* entity = ResolveCollisionTargetEntity(node);
 
     if (entity == nullptr)
     {
@@ -2372,30 +2358,21 @@ bool EditorSubsystem::CanGenerateConvexCollision() const
         && rigidBodyComponent != nullptr;
 }
 
-uint32 EditorSubsystem::GetNumConvexCollisionPresets() const
+void EditorSubsystem::GenerateConvexCollision(Node* node)
 {
-    return GetNumConvexDecompositionPresets();
-}
-
-String EditorSubsystem::GetConvexCollisionPresetName(uint32 presetIndex) const
-{
-    return String(GetConvexDecompositionPresetName(presetIndex));
-}
-
-void EditorSubsystem::GenerateConvexCollision(uint32 presetIndex)
-{
-    if (!CanGenerateConvexCollision())
+    if (!CanGenerateConvexCollision(node))
     {
         return;
     }
 
-    Entity* entity = DynamicCast<Entity>(m_focusedNode.Lock().Get());
+    Entity* entity = ResolveCollisionTargetEntity(node);
     Assert(entity != nullptr);
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
     Handle<Mesh> mesh = meshComponent->mesh;
 
-    const ConvexDecompositionSettings settings = GetConvexDecompositionPreset(presetIndex);
+    // The shape carries these settings from here on, so they can be tuned and regenerated in the inspector.
+    const ConvexDecompositionSettings settings = ConvexDecompositionSettings {};
 
     EditorTaskScope* editorTaskScope = new EditorTaskScope(
         TickableEditorTask::StaticClass(),
@@ -2443,6 +2420,12 @@ void EditorSubsystem::GenerateConvexCollision(uint32 presetIndex)
                         Span<const uint32>(result.indices.Data(), result.indices.Size()),
                         Span<const ConvexHullRange>(result.hulls.Data(), result.hulls.Size()));
                     compoundShape->SetDecompositionSettings(settings);
+
+                    {
+                        auto readScope = mesh->GetReadScope();
+
+                        compoundShape->SetSource(mesh, mesh->ComputeLod0DataHash());
+                    }
 
                     GetCurrentAssetRegistry()->PutAssetUnique(compoundShape);
 

@@ -965,50 +965,6 @@
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>
 
-                                <DropDownButton
-                                    x:Name="PhysicsToolsDropDown"
-                                    Classes="gizmo"
-                                    Click="OnDropDownClick"
-                                    ToolTip.Tip="Collision Tools">
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <controls:Codicon Kind="Shield" Size="16" />
-                                        <controls:Codicon Kind="ChevronDown" Size="10" />
-                                    </StackPanel>
-                                    <DropDownButton.ContextMenu>
-                                        <ContextMenu Placement="Bottom">
-                                            <MenuItem
-                                                Command="{Binding FitPhysicsShapeToMesh}"
-                                                Header="Fit Box To Mesh"
-                                                IsEnabled="{Binding CanFitPhysicsShapeToMesh}"
-                                                ToolTip.Tip="Resize the selected entity's box collision to its mesh bounds" />
-                                            <MenuItem
-                                                Command="{Binding GenerateConvexCollision}"
-                                                CommandParameter="0"
-                                                Header="Single Convex Hull"
-                                                IsEnabled="{Binding CanGenerateConvexCollision}"
-                                                ToolTip.Tip="Wrap the selected entity's mesh in one convex hull" />
-                                            <MenuItem Header="Convex Decomposition" IsEnabled="{Binding CanGenerateConvexCollision}">
-                                                <MenuItem
-                                                    Command="{Binding GenerateConvexCollision}"
-                                                    CommandParameter="1"
-                                                    Header="Low" />
-                                                <MenuItem
-                                                    Command="{Binding GenerateConvexCollision}"
-                                                    CommandParameter="2"
-                                                    Header="Medium" />
-                                                <MenuItem
-                                                    Command="{Binding GenerateConvexCollision}"
-                                                    CommandParameter="3"
-                                                    Header="High" />
-                                                <MenuItem
-                                                    Command="{Binding GenerateConvexCollision}"
-                                                    CommandParameter="4"
-                                                    Header="Very High" />
-                                            </MenuItem>
-                                        </ContextMenu>
-                                    </DropDownButton.ContextMenu>
-                                </DropDownButton>
-
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -1325,6 +1281,21 @@
                                                                                     <Setter Property="Command" Value="{Binding MoveToSceneCommand}" />
                                                                                 </ControlTheme>
                                                                             </MenuItem.ItemContainerTheme>
+                                                                        </MenuItem>
+                                                                        <Separator />
+                                                                        <MenuItem Header="Collision" IsEnabled="{Binding HasCollisionActions}">
+                                                                            <MenuItem
+                                                                                Command="{Binding GenerateConvexCollision, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                CommandParameter="{Binding UUID}"
+                                                                                Header="Generate Convex Collision"
+                                                                                IsEnabled="{Binding CanGenerateCollision}"
+                                                                                ToolTip.Tip="Decompose this entity's mesh into convex hulls and use them as its collision shape" />
+                                                                            <MenuItem
+                                                                                Command="{Binding FitCollisionToMesh, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                CommandParameter="{Binding UUID}"
+                                                                                Header="Fit Box To Mesh"
+                                                                                IsEnabled="{Binding CanFitCollisionToMesh}"
+                                                                                ToolTip.Tip="Resize this entity's box collision to match its mesh bounds" />
                                                                         </MenuItem>
                                                                         <Separator IsVisible="{Binding HasActions}" />
                                                                         <MenuItem

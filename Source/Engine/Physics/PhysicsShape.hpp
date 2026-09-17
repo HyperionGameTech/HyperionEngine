@@ -29,6 +29,8 @@
 
 namespace Hyperion {
 
+class Mesh;
+
 HYP_ENUM()
 enum class PhysicsShapeType : uint8
 {
@@ -457,6 +459,24 @@ public:
 
     void SetDecompositionSettings(const ConvexDecompositionSettings& settings);
 
+    HYP_FORCE_INLINE const Handle<Mesh>& GetSourceMesh() const
+    {
+        return m_sourceMesh;
+    }
+
+    void SetSource(const Handle<Mesh>& sourceMesh, uint64 sourceDataHash);
+
+    HYP_METHOD(Property = "CollisionOutOfDate", Editor = false, Transient)
+    bool IsOutOfDate() const;
+
+#ifdef HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditorAction = "Regenerate", EditCondition = "CanRegenerate")
+    void Regenerate();
+
+    HYP_METHOD()
+    bool CanRegenerate() const;
+#endif // HYP_EDITOR
+
     void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
     {
         if (m_vertexData.size != 0)
@@ -485,6 +505,12 @@ protected:
 
     HYP_FIELD(Property = "DecompositionSettings", Serialize)
     ConvexDecompositionSettings m_decompositionSettings;
+
+    HYP_FIELD(Property = "SourceMesh", Serialize, EditEnabled = false)
+    Handle<Mesh> m_sourceMesh;
+
+    HYP_FIELD(Property = "SourceDataHash", Serialize, Editor = false)
+    uint64 m_sourceDataHash = 0;
 };
 
 } // namespace Hyperion

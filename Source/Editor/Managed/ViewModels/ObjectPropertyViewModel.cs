@@ -13,6 +13,21 @@ using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
+    /// <summary>One implementation offered by an object property's "create new" menu.</summary>
+    public class CreatableClassViewModel
+    {
+        public string ClassName { get; }
+
+        public ICommand CreateCommand { get; }
+
+        public CreatableClassViewModel(string className, Action<string> create)
+        {
+            ClassName = className;
+
+            CreateCommand = new RelayCommand(() => create(className));
+        }
+    }
+
     public class ObjectPropertyViewModel : InspectorPropertyViewModelBase
     {
         private const int MaxDepth = 4;
@@ -57,6 +72,15 @@ namespace Hyperion.Editor.ViewModels
             get => _canCreateNew && EngineManager.CanCreateAssets;
             private set => SetProperty(ref _canCreateNew, value);
         }
+
+        /// <summary>Concrete classes the "create new" button can instantiate for this property.</summary>
+        public ObservableCollection<CreatableClassViewModel> CreatableClasses { get; } = new();
+
+        /// <summary>
+        /// The property's declared type cannot be instantiated on its own, so creating one means choosing
+        /// an implementation: the "create new" button opens a menu instead of creating outright.
+        /// </summary>
+        public bool HasCreatableClassChoice => CreatableClasses.Count > 1;
 
         private bool _isEditorExpanded;
         public bool IsEditorExpanded
@@ -196,19 +220,23 @@ namespace Hyperion.Editor.ViewModels
         {
             IconKind = AssetIconHelper.FromTypeName(_propertyTypeClass?.Name.ToString());
 
+            PopulateCreatableClasses();
+
+            CanCreateNew = CreatableClasses.Count > 0;
+
+            OnPropertyChanged(nameof(HasCreatableClassChoice));
+        }
+
+        private void PopulateCreatableClasses()
+        {
+            CreatableClasses.Clear();
+
             if (!_isAssetObjectType || _isReadOnly || _propertyTypeClass == null)
             {
-                CanCreateNew = false;
                 return;
             }
 
             Class expected = _propertyTypeClass.Value;
-
-            if (expected.IsAbstract)
-            {
-                CanCreateNew = false;
-                return;
-            }
 
             // Scripts are created through the New Script panel (language + file), not as blank registry entries.
             Class? scriptAssetClass = Class.TryGetClass<ScriptAsset>();
@@ -216,11 +244,28 @@ namespace Hyperion.Editor.ViewModels
             if (scriptAssetClass.HasValue
                 && (expected == scriptAssetClass.Value || expected.IsSubclassOf(scriptAssetClass.Value)))
             {
-                CanCreateNew = false;
                 return;
             }
 
-            CanCreateNew = true;
+            if (!expected.IsAbstract)
+            {
+                CreatableClasses.Add(new CreatableClassViewModel(expected.Name.ToString(), CreateNewOfClass));
+                return;
+            }
+
+            // An abstract property type (PhysicsShape, say) has no instance of its own to create, so the
+            // choice of which implementation to create is the user's.
+            List<string> derivedNames = [];
+            NameCallbackDelegate callback = (name, _) => derivedNames.Add(name);
+
+            NativeBindings.Hyp_GetAllDerivedClassNames(expected.Name.ToString(), callback, IntPtr.Zero);
+
+            derivedNames.Sort(StringComparer.Ordinal);
+
+            foreach (string derivedName in derivedNames)
+            {
+                CreatableClasses.Add(new CreatableClassViewModel(derivedName, CreateNewOfClass));
+            }
         }
 
         private static bool DetectIsAssetObjectType(TypeInfo typeInfo)
@@ -460,12 +505,22 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnNew()
         {
-            if (!CanCreateNew || _isReadOnly || _propertyTypeClass == null)
+            // With more than one implementation to pick from the button hosts a menu instead, and each
+            // entry calls CreateNewOfClass directly.
+            if (CreatableClasses.Count != 1)
             {
                 return;
             }
 
-            string className = _propertyTypeClass.Value.Name.ToString();
+            CreateNewOfClass(CreatableClasses[0].ClassName);
+        }
+
+        private void CreateNewOfClass(string className)
+        {
+            if (!CanCreateNew || _isReadOnly)
+            {
+                return;
+            }
 
             _ = EngineManager.PostToSimThread(() =>
             {

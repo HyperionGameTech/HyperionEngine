@@ -459,33 +459,29 @@ public:
     HYP_METHOD()
     void SetPhysicsDebugDrawEnabled(bool enabled);
 
-    /*! \brief True if the focused entity has a mesh and a BoxPhysicsShape whose AABB can be fitted
-     *  to the mesh via \ref FitPhysicsShapeToMesh. */
+    /*! \brief True if \p node (or the focused node when null) has a mesh and a BoxPhysicsShape whose
+     *  AABB can be fitted to the mesh via \ref FitPhysicsShapeToMesh. */
     HYP_METHOD()
-    bool CanFitPhysicsShapeToMesh() const;
+    bool CanFitPhysicsShapeToMesh(Node* node) const;
 
-    /*! \brief Resize the focused entity's BoxPhysicsShape so its local AABB matches the entity's
-     *  mesh AABB. Undoable. */
+    /*! \brief Resize the entity's BoxPhysicsShape so its local AABB matches its mesh AABB. Undoable.
+     *  Acts on \p node, or the focused node when null. */
     HYP_METHOD()
-    void FitPhysicsShapeToMesh();
+    void FitPhysicsShapeToMesh(Node* node);
 
     void SyncBoxPhysicsShapeToLocalBounds(Entity* entity);
 
-    /*! \brief True if the focused entity has a mesh and a rigid body that convex collision can be built for. */
+    /*! \brief True if \p node (or the focused node when null) has a mesh and a rigid body that convex
+     *  collision can be built for. */
     HYP_METHOD()
-    bool CanGenerateConvexCollision() const;
+    bool CanGenerateConvexCollision(Node* node) const;
 
-    /*! \brief Decompose the focused entity's mesh into convex hulls and assign them as its collision shape.
-     *  Runs in the background; the swap is undoable. \p presetIndex selects a decomposition preset,
-     *  0 being a single hull. */
+    /*! \brief Decompose the entity's mesh into convex hulls and assign them as its collision shape.
+     *  Runs in the background; the swap is undoable. Acts on \p node, or the focused node when null.
+     *  The generated shape remembers the mesh it came from, so it can be tuned and regenerated from
+     *  the inspector afterwards. */
     HYP_METHOD()
-    void GenerateConvexCollision(uint32 presetIndex);
-
-    HYP_METHOD()
-    uint32 GetNumConvexCollisionPresets() const;
-
-    HYP_METHOD()
-    String GetConvexCollisionPresetName(uint32 presetIndex) const;
+    void GenerateConvexCollision(Node* node);
 
     /*! \brief LOD every mesh renders at in the viewport: -1 selects automatically, otherwise the LOD index. */
     HYP_METHOD()
@@ -690,6 +686,8 @@ private:
     bool PickMeshEditFaceTriangle(const Ray& ray, const Handle<Node>& targetNode, Mesh* mesh, uint8 lodIndex, uint32& outTriangleIndex);
 
     uint8 ResolveMeshEditLod(Node* targetNode) const;
+
+    Entity* ResolveCollisionTargetEntity(Node* node) const;
     void SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection);
     void UpdateHoveredMeshEditFace(const Ray& ray);
     void DebugDrawMeshEditSelection(class DebugDrawCommandList& debugDrawCommandList);

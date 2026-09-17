@@ -325,16 +325,6 @@ public:
 
     void SetLodGenerationSettings(const MeshLodGenerationSettings& settings);
 
-    HYP_METHOD(Property = "LodInfo", EditEnabled = false, Transient)
-    Array<MeshLodInfo> GetLodInfo() const;
-
-    HYP_METHOD(Property = "LodScreenSizes", Transient)
-    Array<float> GetLodScreenSizes() const;
-
-    HYP_METHOD(Property = "LodScreenSizes", Transient)
-    void SetLodScreenSizes(const Array<float>& screenSizes);
-
-    HYP_METHOD(Property = "LodsOutOfDate", EditEnabled = false, Transient)
     bool AreLodsOutOfDate() const;
 
     uint64 ComputeLod0DataHash() const;
@@ -436,7 +426,7 @@ private:
     HYP_FIELD(Serialize)
     MeshDesc m_meshDesc;
 
-    HYP_FIELD(Property = "LodGeneration", Editor, Serialize)
+    HYP_FIELD(Property = "LodGeneration", Serialize, Editor = false)
     MeshLodGenerationSettings m_lodGenerationSettings;
 
     HYP_FIELD(Serialize)

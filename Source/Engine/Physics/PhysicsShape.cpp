@@ -5,8 +5,13 @@
  * */
 
 #include <Physics/PhysicsShape.hpp>
+#include <Physics/ConvexDecomposition.hpp>
 
 #include <Rendering/Vertex.hpp>
+#include <Rendering/Mesh.hpp>
+
+#include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/Threads.hpp>
 
 #include <Core/Logging/Logger.hpp>
 
@@ -153,6 +158,74 @@ void CompoundPhysicsShape::SetDecompositionSettings(const ConvexDecompositionSet
 
     MarkDirty();
 }
+
+void CompoundPhysicsShape::SetSource(const Handle<Mesh>& sourceMesh, uint64 sourceDataHash)
+{
+    m_sourceMesh = sourceMesh;
+    m_sourceDataHash = sourceDataHash;
+
+    MarkDirty();
+}
+
+bool CompoundPhysicsShape::IsOutOfDate() const
+{
+    if (!m_sourceMesh.IsValid() || m_sourceDataHash == 0)
+    {
+        return false;
+    }
+
+    auto readScope = m_sourceMesh->GetReadScope();
+
+    return m_sourceMesh->ComputeLod0DataHash() != m_sourceDataHash;
+}
+
+#ifdef HYP_EDITOR
+
+bool CompoundPhysicsShape::CanRegenerate() const
+{
+    return m_sourceMesh.IsValid() && IsConvexDecompositionSupported();
+}
+
+void CompoundPhysicsShape::Regenerate()
+{
+    if (!CanRegenerate())
+    {
+        return;
+    }
+
+    // decomposition takes seconds on a dense mesh, so it can't run on the thread the editor action came from
+    TaskSystem::GetInstance().Enqueue(
+        [self = MakeStrongRef(this), sourceMesh = m_sourceMesh, settings = m_decompositionSettings]()
+        {
+            TResult<ConvexDecompositionResult> decompositionResult = DecomposeMesh(sourceMesh.Get(), settings);
+
+            if (decompositionResult.HasError())
+            {
+                HYP_LOG(Physics, Error, "Failed to regenerate collision for '{}': {}",
+                    self->GetName(), decompositionResult.GetError().GetMessage());
+
+                return;
+            }
+
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [self, sourceMesh, result = std::move(decompositionResult.GetValue())]()
+                {
+                    self->SetHulls(
+                        Span<const float>(result.positions.Data(), result.positions.Size()),
+                        Span<const uint32>(result.indices.Data(), result.indices.Size()),
+                        Span<const ConvexHullRange>(result.hulls.Data(), result.hulls.Size()));
+
+                    auto readScope = sourceMesh->GetReadScope();
+
+                    self->SetSource(sourceMesh, sourceMesh->ComputeLod0DataHash());
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+#endif // HYP_EDITOR
 
 void CompoundPhysicsShape::PageBlobData()
 {

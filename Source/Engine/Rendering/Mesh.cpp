@@ -792,66 +792,6 @@ void Mesh::SetLodGenerationSettings(const MeshLodGenerationSettings& settings)
     MarkDirty();
 }
 
-Array<MeshLodInfo> Mesh::GetLodInfo() const
-{
-    Array<MeshLodInfo> lodInfo;
-
-    const uint8 numLods = m_meshDesc.GetNumLods();
-    lodInfo.Reserve(numLods);
-
-    for (uint8 lodIndex = 0; lodIndex < numLods; lodIndex++)
-    {
-        const MeshLodDesc& lodDesc = m_meshDesc.lods[lodIndex];
-
-        lodInfo.PushBack(MeshLodInfo {
-            lodDesc.numVertices,
-            lodDesc.numIndices / 3,
-            lodDesc.geometricError,
-            lodDesc.screenSize
-        });
-    }
-
-    return lodInfo;
-}
-
-Array<float> Mesh::GetLodScreenSizes() const
-{
-    Array<float> screenSizes;
-    screenSizes.Resize(MaxMeshLods);
-
-    for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
-    {
-        screenSizes[lodIndex] = m_meshDesc.lods[lodIndex].screenSize;
-    }
-
-    return screenSizes;
-}
-
-void Mesh::SetLodScreenSizes(const Array<float>& screenSizes)
-{
-    auto writeScope = GetWriteScope();
-
-    float previousScreenSize = MathUtil::MaxSafeValue<float>();
-
-    for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
-    {
-        if (lodIndex >= screenSizes.Size())
-        {
-            break;
-        }
-
-        const float screenSize = MathUtil::Clamp(screenSizes[lodIndex], 0.0f, previousScreenSize);
-
-        m_meshDesc.lods[lodIndex].screenSize = screenSize;
-
-        previousScreenSize = screenSize;
-    }
-
-    MarkDirty();
-
-    writeScope.Reset();
-}
-
 uint64 Mesh::ComputeLod0DataHash() const
 {
     const VertexArrayView vertices = GetVertexData(0);
