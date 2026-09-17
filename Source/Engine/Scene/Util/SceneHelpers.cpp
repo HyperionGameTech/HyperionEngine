@@ -24,6 +24,8 @@
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
 
+#include <Scene/Systems/SwatchOverrideSystem.hpp>
+
 #include <Physics/PhysicsWorld.hpp>
 #include <Physics/PhysicsShape.hpp>
 
@@ -218,6 +220,18 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
     outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
 
     entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
+}
+
+SwatchOverrideSystem* GetSwatchOverrideSystemFor(const Entity& entity)
+{
+    World* world = entity.GetWorld();
+
+    if (!world)
+    {
+        return nullptr;
+    }
+
+    return world->GetSystem<SwatchOverrideSystem>();
 }
 
 } // namespace SceneHelpers

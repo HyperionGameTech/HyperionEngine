@@ -133,16 +133,7 @@ void MaterialPreviewRenderer::ApplyLightAngles()
         return;
     }
 
-    const float cosPitch = MathUtil::Cos(m_lightPitch);
-
-    // Direction the light travels, so the lit side follows the cursor rather than running from it.
-    const Vec3f direction {
-        -MathUtil::Sin(m_lightYaw) * cosPitch,
-        -MathUtil::Sin(m_lightPitch),
-        -MathUtil::Cos(m_lightYaw) * cosPitch
-    };
-
-    m_previewScene->SetKeyLightDirection(direction);
+    m_previewScene->SetKeyLightViewAngles(m_lightYaw, m_lightPitch);
 }
 
 void MaterialPreviewRenderer::Invalidate()

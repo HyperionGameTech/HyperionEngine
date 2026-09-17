@@ -34,6 +34,21 @@ static constexpr float SubjectFramingPadding = 1.35f;
 
 static const Vec3f ViewDirection = Vec3f(-0.55f, -0.45f, -0.7f).Normalized();
 
+// Lights store the direction towards the light, so zero yaw/pitch places the light behind the
+// viewer and lights the subject head-on.
+static Vec3f ViewRelativeLightDirection(float yaw, float pitch)
+{
+    const Vec3f right = Vec3f::UnitY().Cross(ViewDirection).Normalized();
+    const Vec3f up = ViewDirection.Cross(right).Normalized();
+
+    const float cosPitch = MathUtil::Cos(pitch);
+
+    return (right * (MathUtil::Sin(yaw) * cosPitch)
+        + up * MathUtil::Sin(pitch)
+        - ViewDirection * (MathUtil::Cos(yaw) * cosPitch))
+        .Normalized();
+}
+
 AssetPreviewScene::AssetPreviewScene(Name name, Vec2u extent)
     : m_name(name),
       m_extent(MathUtil::Max(extent, Vec2u::One()))
@@ -77,7 +92,7 @@ bool AssetPreviewScene::Initialize(World* world)
     m_scene->GetRoot()->AddChild(m_camera);
 
     m_keyLight = MakeHandle<DirectionalLight>(
-        Vec3f(-0.6f, -0.7f, -0.4f).Normalized(),
+        ViewRelativeLightDirection(MathUtil::DegToRad(-35.0f), MathUtil::DegToRad(35.0f)),
         Color(1.0f, 0.98f, 0.94f, 1.0f),
         4.0f);
 
@@ -269,6 +284,13 @@ void AssetPreviewScene::SetKeyLightDirection(const Vec3f& direction)
     }
 
     m_keyLight->SetDirection(direction.Normalized());
+}
+
+void AssetPreviewScene::SetKeyLightViewAngles(float yaw, float pitch)
+{
+    AssertOnThread(g_simThread);
+
+    SetKeyLightDirection(ViewRelativeLightDirection(yaw, pitch));
 }
 
 void AssetPreviewScene::Submit()

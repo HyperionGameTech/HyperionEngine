@@ -10,6 +10,9 @@
 #include <Editor/EditorTask.hpp>
 #include <Editor/EditorMemory.hpp>
 
+#include <Editor/Gizmo/EditorGizmoBase.hpp>
+#include <Editor/Gizmo/EditorGizmoController.hpp>
+
 #include <Editor/Preview/AssetThumbnailService.hpp>
 #include <Editor/Preview/MaterialPreviewRenderer.hpp>
 
@@ -66,17 +69,6 @@ struct KeyboardEvent;
 struct MeshComponent;
 
 HYP_ENUM()
-enum class EditorManipulationMode : uint8
-{
-    None = 0,
-
-    Translate,
-    Rotate,
-    Scale,
-    ReshapeVolume
-};
-
-HYP_ENUM()
 enum class MeshEditFaceMode : uint8
 {
     Triangle = 0,
@@ -123,342 +115,14 @@ struct MeshEditFaceSelection
     }
 };
 
-/*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
-HYP_CLASS(Abstract)
-class EDITOR_API EditorGizmoBase : public ObjectBase
-{
-    HYP_OBJECT_BODY(EditorGizmoBase);
-
-public:
-    static Pool* GetAllocator() { return g_editorPool; }
-
-    EditorGizmoBase();
-    virtual ~EditorGizmoBase();
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Node>& GetNode() const
-    {
-        return m_node;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE bool IsDragging() const
-    {
-        return m_isDragging;
-    }
-
-    HYP_FORCE_INLINE void SetCurrentProject(const WeakHandle<EditorProject>& project)
-    {
-        m_currentProject = project;
-    }
-
-    HYP_FORCE_INLINE void SetEditorSubsystem(EditorSubsystem* editorSubsystem)
-    {
-        m_editorSubsystem = editorSubsystem;
-    }
-
-    void Shutdown();
-
-    HYP_METHOD()
-    virtual EditorManipulationMode GetManipulationMode() const = 0;
-
-    HYP_METHOD()
-    virtual int GetPriority() const
-    {
-        return -1;
-    }
-
-    HYP_METHOD()
-    virtual String GetMenuText() const = 0;
-
-    virtual void SetFocusedNode(const Handle<Node>& focusedNode);
-
-    virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint);
-    virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent);
-
-    virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-    {
-        return false;
-    }
-
-    virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-    {
-        return false;
-    }
-
-    virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-    {
-        return false;
-    }
-
-    virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
-    {
-        return false;
-    }
-
-protected:
-    virtual void Init() override;
-
-    virtual Handle<Node> Load_Internal() const = 0;
-
-    Handle<EditorProject> GetCurrentProject() const;
-
-    HYP_FORCE_INLINE EditorSubsystem* GetEditorSubsystem() const
-    {
-        return m_editorSubsystem;
-    }
-
-    WeakHandle<Node> m_focusedNode;
-    Handle<Node> m_node;
-    struct InputMouseLockScope* m_mouseLockScope;
-
-    // Keeps the gizmo in sync when the focused node's transform changes externally
-    // (e.g. swatch overrides applied on active-swatch switch)
-    DelegateHandler m_focusedNodeTransformHandler;
-
-private:
-    EditorSubsystem* m_editorSubsystem;
-    WeakHandle<EditorProject> m_currentProject;
-
-    bool m_isDragging;
-};
-
-HYP_CLASS()
-class NullEditorGizmo : public EditorGizmoBase
-{
-    HYP_OBJECT_BODY(NullEditorGizmo);
-
-public:
-    virtual ~NullEditorGizmo() override = default;
-
-    virtual String GetMenuText() const override
-    {
-        return "<null>";
-    }
-
-    virtual EditorManipulationMode GetManipulationMode() const override
-    {
-        return EditorManipulationMode::None;
-    }
-
-protected:
-    virtual Handle<Node> Load_Internal() const override
-    {
-        return Handle<Node>::empty;
-    }
-};
-
-HYP_CLASS()
-class TranslateEditorGizmo : public EditorGizmoBase
-{
-    HYP_OBJECT_BODY(TranslateEditorGizmo);
-
-public:
-    virtual ~TranslateEditorGizmo() override = default;
-
-    virtual EditorManipulationMode GetManipulationMode() const override
-    {
-        return EditorManipulationMode::Translate;
-    }
-
-    virtual String GetMenuText() const override
-    {
-        return "Translate";
-    }
-
-    virtual int GetPriority() const override
-    {
-        return 0;
-    }
-
-    virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;
-    virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent) override;
-
-    virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-
-    virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node) override;
-
-protected:
-    struct DragData
-    {
-        Vec3f axisDirection;
-        Vec3f planeNormal;
-        Vec3f planePoint;
-        Vec3f hitpointOrigin;
-        Vec3f nodeOrigin;
-    };
-
-    virtual Handle<Node> Load_Internal() const override;
-
-    Optional<DragData> m_dragData;
-    Array<Pair<Handle<Node>, Vec3f>> m_selectedNodes;
-};
-
-HYP_CLASS()
-class RotateEditorGizmo : public EditorGizmoBase
-{
-    HYP_OBJECT_BODY(RotateEditorGizmo);
-
-public:
-    virtual ~RotateEditorGizmo() override = default;
-
-    virtual EditorManipulationMode GetManipulationMode() const override
-    {
-        return EditorManipulationMode::Rotate;
-    }
-
-    virtual String GetMenuText() const override
-    {
-        return "Rotate";
-    }
-
-    virtual int GetPriority() const override
-    {
-        return 0;
-    }
-
-    virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;
-    virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent) override;
-
-    virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-
-    virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node) override;
-
-protected:
-    struct DragData
-    {
-        Vec3f axis;
-        Vec3f planePoint;
-        Vec3f startVector;
-        Quat4f startRotation;
-        Quat4f currentRotation;
-    };
-
-    virtual Handle<Node> Load_Internal() const override;
-
-    Optional<DragData> m_dragData;
-    Array<Pair<Handle<Node>, Quat4f>> m_selectedNodes;
-};
-
-HYP_CLASS()
-class ScaleEditorGizmo : public EditorGizmoBase
-{
-    HYP_OBJECT_BODY(ScaleEditorGizmo);
-
-public:
-    virtual ~ScaleEditorGizmo() override = default;
-
-    virtual EditorManipulationMode GetManipulationMode() const override
-    {
-        return EditorManipulationMode::Scale;
-    }
-
-    virtual String GetMenuText() const override
-    {
-        return "Scale";
-    }
-
-    virtual int GetPriority() const override
-    {
-        return 0;
-    }
-
-    virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;
-    virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent) override;
-
-    virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-
-protected:
-    struct DragData
-    {
-        Vec3f axisDirection;
-        Vec3f planeNormal;
-        Vec3f planePoint;
-        Vec3f hitpointOrigin;
-        Vec3f nodeOrigin;
-        Vec3f initialScale;
-        int axis = -1;
-    };
-
-    virtual Handle<Node> Load_Internal() const override;
-
-    Optional<DragData> m_dragData;
-    Array<Pair<Handle<Node>, Pair<Vec3f, Vec3f>>> m_selectedNodes; // node + (origin scale, origin translation)
-};
-
-/*! \brief A gizmo for editing axis-aligned bounding boxes by dragging individual faces.
- *  Used for resizing volumes such as LightmapVolume, FogVolume, etc.
- *  Each face of the AABB is represented as a draggable quad handle.
- */
-HYP_CLASS()
-class VolumeEditorGizmo : public EditorGizmoBase
-{
-    HYP_OBJECT_BODY(VolumeEditorGizmo);
-
-public:
-    VolumeEditorGizmo();
-    virtual ~VolumeEditorGizmo() override = default;
-
-    virtual EditorManipulationMode GetManipulationMode() const override
-    {
-        return EditorManipulationMode::ReshapeVolume;
-    }
-
-    virtual String GetMenuText() const override
-    {
-        return "Volume Edit";
-    }
-
-    virtual int GetPriority() const override
-    {
-        return 0;
-    }
-
-    virtual void SetFocusedNode(const Handle<Node>& focusedNode) override;
-
-    virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;
-    virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent) override;
-
-    virtual bool OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-    virtual bool OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node) override;
-
-    virtual bool OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node) override;
-
-protected:
-    struct DragData
-    {
-        int faceIndex;
-        Vec3f faceNormal;
-        Vec3f planePoint;
-        Vec3f planeNormal;
-        float hitOffset;
-        BoundingBox originalBounds;
-    };
-
-    virtual Handle<Node> Load_Internal() const override;
-
-private:
-    void UpdateFaceGeometry(const BoundingBox& localBounds, const Vec3f& worldTranslation);
-
-    Optional<DragData> m_dragData;
-    BoundingBox m_currentBounds;
-};
-
 HYP_CLASS()
 class EDITOR_API EditorSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    using EditorGizmoSet = HashTable<Handle<EditorGizmoBase>, &EditorGizmoBase::GetManipulationMode, EditorAllocator>;
-    
+    using EditorGizmoSet = EditorGizmoController::EditorGizmoSet;
+
     static Pool* GetAllocator() { return g_editorPool; }
 
     EditorSubsystem();
@@ -516,6 +180,11 @@ public:
 
     HYP_METHOD()
     bool PauseSimulation();
+
+    /*! \brief Whether new assets may be created right now. Simulation runs against a throwaway
+     *  snapshot of the project, so anything authored while it runs would be lost when it stops. */
+    HYP_METHOD()
+    bool CanCreateAssets() const;
 
     ///Play net mode
 
@@ -976,14 +645,14 @@ private:
 
     HYP_FORCE_INLINE bool IsHoveringGizmo() const
     {
-        return m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid();
+        return m_gizmoController->IsHoveringGizmo();
     }
 
     void UpdateGizmoProximityVisibility();
 
     HYP_FORCE_INLINE bool AreGizmosHiddenByProximity() const
     {
-        return m_gizmosHiddenByProximity;
+        return m_gizmoController->AreGizmosHiddenByProximity();
     }
 
     ///Mesh edits
@@ -1096,11 +765,7 @@ private:
 
     WeakHandle<Scene> m_activeScene;
 
-    EditorManipulationMode m_selectedManipulationMode;
-    EditorGizmoSet m_gizmos;
-
-    WeakHandle<EditorGizmoBase> m_hoveredGizmo;
-    WeakHandle<Node> m_hoveredGizmoNode;
+    UniquePtr<EditorGizmoController> m_gizmoController;
 
     WeakHandle<Node> m_focusedNode;
     // the actual node that displays the highlight for the focused item
@@ -1141,10 +806,7 @@ private:
 
     ////////////////////
 
-    bool m_snapToGridEnabled;
     bool m_swatchOverrideMode;
-
-    bool m_gizmosHiddenByProximity;
 
     bool m_editorCameraEnabled;
     bool m_shouldCancelNextClick;

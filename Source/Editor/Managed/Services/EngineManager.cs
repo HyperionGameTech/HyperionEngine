@@ -339,6 +339,10 @@ namespace Hyperion.Editor
 
         public static bool IsOnSimThread => SimThread.IsOnIt;
 
+        /// Whether new assets may be authored right now. Simulation runs against a throwaway snapshot
+        /// of the project, so anything created while it runs would be thrown away with the snapshot.
+        public static bool CanCreateAssets => EditorGame?.EditorSubsystem?.CanCreateAssets() ?? false;
+
         public static async Task PostToSimThread(Action action)
         {
             await SimThread.PostTask(action).ConfigureAwait(false);

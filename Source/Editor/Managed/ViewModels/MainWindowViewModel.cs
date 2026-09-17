@@ -180,8 +180,25 @@ namespace Hyperion.Editor.ViewModels
         private bool _canToggleTerrainSculptMode = false;
         public bool CanToggleTerrainSculptMode
         {
-            get => _canToggleTerrainSculptMode;
+            get => _canToggleTerrainSculptMode && !IsSimulating;
             set => SetProperty(ref _canToggleTerrainSculptMode, value);
+        }
+
+        // The terrain tools need a terrain layer to work on; adding one is offered when there isn't one yet.
+        public bool CanAddTerrainLayer => !_canToggleTerrainSculptMode && !IsSimulating;
+
+        /// Re-checked on the sim thread because the panels that author new content can outlive the
+        /// click that opened them, and simulation may have started in between.
+        private static bool CanCreateInProject(string description)
+        {
+            if (EngineManager.CanCreateAssets)
+            {
+                return true;
+            }
+
+            Logger.Log(LogLevel.Warning, $"Cannot create a new {description} while simulation is active.");
+
+            return false;
         }
 
         private bool _isSculptModeActive = false;
@@ -366,7 +383,7 @@ namespace Hyperion.Editor.ViewModels
         /// <summary>-1 renders each mesh at the LOD chosen from its screen size.</summary>
         public int ViewportForcedLod => _viewportForcedLod;
         public bool IsViewportLodAutomatic => _viewportForcedLod < 0;
-        public string ViewportLodText => _viewportForcedLod < 0 ? "LOD: Auto" : $"LOD: {_viewportForcedLod}";
+        public string ViewportLodText => _viewportForcedLod < 0 ? "Viewport LOD: Auto" : $"Viewport LOD: {_viewportForcedLod}";
 
         public ICommand SetMeshEditLod { get; private set; }
         public int MeshEditLod => _meshEditState.LodIndex;
@@ -581,6 +598,18 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(IsSimulating));
             OnPropertyChanged(nameof(GameStateText));
             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
+            OnPropertyChanged(nameof(CanAddTerrainLayer));
+
+            (ToggleTerrainSculptMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleTerrainPaintMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewLayerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+
+            ContentBrowser?.RefreshCanCreateAssets();
+
+            // Starting simulation turns the terrain tools off in the engine; mirror that in the tool panels.
+            RefreshTerrainToolState();
         }
 
         private DelegateHandler? _gameInstanceLaunchedHandler;
@@ -692,7 +721,8 @@ namespace Hyperion.Editor.ViewModels
 
                         RefreshTerrainToolState();
                     });
-                });
+                },
+                () => CanToggleTerrainSculptMode);
 
             ToggleTerrainPaintMode = new RelayCommand(
                 () =>
@@ -703,7 +733,8 @@ namespace Hyperion.Editor.ViewModels
 
                         RefreshTerrainToolState();
                     });
-                });
+                },
+                () => CanToggleTerrainSculptMode);
 
             FitPhysicsShapeToMesh = new RelayCommand(
                 () =>
@@ -739,11 +770,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _editorSubsystem.SetViewportForcedLod(lod);
 
-                    int appliedLod = _editorSubsystem.GetViewportForcedLod();
-
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _viewportForcedLod = appliedLod;
+                        _viewportForcedLod = Math.Clamp(lod, -1, 4);
 
                         OnPropertyChanged(nameof(ViewportForcedLod));
                         OnPropertyChanged(nameof(ViewportLodText));
@@ -906,6 +935,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateInProject("scene"))
+                        {
+                            return;
+                        }
+
                         try
                         {
                             Scene newScene = new Scene();
@@ -929,7 +963,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => !IsSimulating);
 
             SetActiveSwatchCommand = new RelayCommand<string>(swatchName =>
             {
@@ -966,6 +1000,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateInProject("swatch"))
+                        {
+                            return;
+                        }
+
                         try
                         {
                             EditorProject? project = EngineManager.CurrentProject;
@@ -987,7 +1026,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => !IsSimulating);
 
             AddNewLayerCommand = new RelayCommand(() =>
             {
@@ -1000,6 +1039,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateInProject("layer"))
+                        {
+                            return;
+                        }
+
                         try
                         {
                             World? world = EngineManager.CurrentProject?.GetWorld();
@@ -1031,7 +1075,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => !IsSimulating);
 
             AddNormalizedCubeSphereCommand = new RelayCommand(() =>
             {

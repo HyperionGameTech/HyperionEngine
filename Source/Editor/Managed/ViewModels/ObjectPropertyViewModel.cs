@@ -54,7 +54,7 @@ namespace Hyperion.Editor.ViewModels
         private bool _canCreateNew;
         public bool CanCreateNew
         {
-            get => _canCreateNew;
+            get => _canCreateNew && EngineManager.CanCreateAssets;
             private set => SetProperty(ref _canCreateNew, value);
         }
 
@@ -469,6 +469,13 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                if (!EngineManager.CanCreateAssets)
+                {
+                    Logger.Log(LogLevel.Warning, $"Cannot create a new asset for property '{Label}' while simulation is active.");
+
+                    return;
+                }
+
                 try
                 {
                     BoxedValueInternal result;

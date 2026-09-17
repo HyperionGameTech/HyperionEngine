@@ -627,6 +627,31 @@ namespace Hyperion.Editor
             }
         }
 
+        /// <summary>
+        /// Brings the selected asset into view. The content browser selects assets programmatically -
+        /// a newly created one, for instance - and the selection is otherwise invisible if the item
+        /// sits below the scrolled region.
+        /// </summary>
+        private void OnContentBrowserSelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ListBox listBox || listBox.SelectedItem is not AssetObjectViewModel selected)
+            {
+                return;
+            }
+
+            // The list was likely just repopulated, so the containers are not laid out yet and there
+            // is nothing to scroll to until the next layout pass.
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (ReferenceEquals(listBox.SelectedItem, selected))
+                    {
+                        listBox.ScrollIntoView(selected);
+                    }
+                },
+                DispatcherPriority.Loaded);
+        }
+
         private void OnRenameNodeMenuItemClick(object? sender, RoutedEventArgs e)
         {
             if ((sender as MenuItem)?.DataContext is not NodeViewModel nodeViewModel)

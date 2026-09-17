@@ -2719,6 +2719,102 @@ DEFINE_EDITOR_COMMAND(MoveToCamera);
 
 #pragma endregion MoveToCamera
 
+#pragma region MoveEditorCamera
+
+class EditorCommandMoveEditorCamera final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandMoveEditorCamera);
+
+public:
+    virtual ~EditorCommandMoveEditorCamera() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Move Editor Camera";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 3)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: expected <x> <y> <z> [<directionX> <directionY> <directionZ>]");
+
+            return;
+        }
+
+        Vec3f translation;
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (!StringUtil::Parse(GetArgument(i), &translation[i]))
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: invalid translation component '{}'", GetArgument(i));
+
+                return;
+            }
+        }
+
+        Vec3f direction;
+        bool hasDirection = false;
+
+        if (NumArguments() >= 6)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (!StringUtil::Parse(GetArgument(3 + i), &direction[i]))
+                {
+                    HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: invalid direction component '{}'", GetArgument(3 + i));
+
+                    return;
+                }
+            }
+
+            if (direction.LengthSquared() <= MathUtil::epsilonF)
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: direction cannot be zero length");
+
+                return;
+            }
+
+            direction.Normalize();
+
+            hasDirection = true;
+        }
+
+        Camera* camera = nullptr;
+
+        if (EditorViewport* activeViewport = subsystem->GetActiveViewport())
+        {
+            camera = activeViewport->GetCamera();
+        }
+
+        if (!camera && g_editorState.IsValid())
+        {
+            camera = g_editorState->GetEditorCamera();
+        }
+
+        if (!camera)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: no editor camera to move");
+
+            return;
+        }
+
+        camera->SetWorldTranslation(translation);
+
+        if (hasDirection)
+        {
+            camera->SetDirection(direction);
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(MoveEditorCamera);
+
+#pragma endregion MoveEditorCamera
+
 #pragma region Copy
 
 class EditorCommandCopy final : public EditorCommandBase
@@ -3973,6 +4069,109 @@ public:
 DEFINE_EDITOR_COMMAND(AddCube);
 
 #pragma endregion AddCube
+
+#pragma region AddCylinder
+
+class EditorCommandAddCylinder final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddCylinder);
+
+public:
+    virtual ~EditorCommandAddCylinder() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add Cylinder";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add cylinder!");
+
+            return;
+        }
+
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+
+        // Use mesh builder to create cylinder mesh
+
+        Handle<Mesh> cylinderMesh = MeshBuilder::Cylinder(0.5f, 1.0f, 32);
+        cylinderMesh->SetName(NAME("CylinderMesh"));
+
+        MaterialAttributes attributes;
+        attributes.shaderName = NAME("GeometryPass");
+
+        Handle<Material> material = MakeHandle<Material>(NAME("CylinderMaterial"), attributes);
+
+        Handle<Entity> entity = MakeHandle<Entity>();
+        entity->SetName(NAME("CylinderEntity"));
+
+        entity->SetWorldTranslation(insertionPoint);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [cylinderMesh, entity, material]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem* subsystem, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(cylinderMesh);
+                                GetCurrentAssetRegistry()->PutAssetUnique(material);
+
+                                // Make an entity, assign MeshComponent w/ Mesh and a base Material
+
+                                Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+                                if (activeScene.IsValid())
+                                {
+                                    activeScene->GetRoot()->AddChild(entity);
+
+                                    if (!entity->HasComponent<MeshComponent>())
+                                    {
+                                        // assign mesh component
+                                        MeshComponent meshComponent;
+                                        meshComponent.mesh = cylinderMesh;
+                                        meshComponent.material = material;
+                                        entity->AddComponent<MeshComponent>(meshComponent);
+                                    }
+                                    else // has component
+                                    {
+                                        // This can happen if going undo->redo
+
+                                        MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
+                                        meshComponent.mesh = cylinderMesh;
+                                        meshComponent.material = material;
+                                    }
+
+                                    entity->SetLocalBounds(cylinderMesh->GetAABB());
+                                    entity->SetNeedsRenderProxyUpdate();
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem*, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(cylinderMesh);
+                                GetCurrentAssetRegistry()->RemoveAsset(material);
+
+                                entity->Remove();
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddCylinder);
+
+#pragma endregion AddCylinder
 
 #pragma region AddWorldGridLayer
 

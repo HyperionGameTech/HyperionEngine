@@ -153,6 +153,8 @@ CORE_API extern const FilePath& GetExecutablePath();
 
 struct SuppressIdleThrottlingContext {};
 
+#pragma region Helpers
+
 static bool IsLoopbackHost(const UTF8StringView& host)
 {
     return host == "localhost"
@@ -160,1879 +162,38 @@ static bool IsLoopbackHost(const UTF8StringView& host)
         || host.FindFirstIndex("127.") == 0;
 }
 
-#pragma region EditorGizmoBase
 
-EditorGizmoBase::EditorGizmoBase()
-    : m_isDragging(false),
-      m_mouseLockScope(nullptr)
+static RenderableAttributeSet PhysicsWireframeAttributes()
 {
+    RenderableAttributeSet attributes;
+
+    MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
+    meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple>;
+    meshAttributes.topology = Topology::Triangles;
+
+    MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+    materialAttributes.bucket = RenderBucket::Debug;
+    materialAttributes.fillMode = FillMode::Line;
+    materialAttributes.blendFunction = BlendFunction::None();
+    materialAttributes.flags = MAF_DEPTH_TEST;
+
+    return attributes;
 }
 
-EditorGizmoBase::~EditorGizmoBase()
+static Vec3f ComputeMeshEditDragPlaneNormal(const Handle<Camera>& camera, const Vec3f& axisDirection)
 {
-    if (m_mouseLockScope)
+    if (axisDirection.LengthSquared() < MathUtil::epsilonF)
     {
-        delete m_mouseLockScope;
-        m_mouseLockScope = nullptr;
+        return -camera->GetDirection();
     }
+
+    const Vec3f crossUp = axisDirection.Cross(camera->GetUpVector());
+    const Vec3f crossSide = axisDirection.Cross(camera->GetSideVector());
+
+    return (crossUp.LengthSquared() > crossSide.LengthSquared() ? crossUp : crossSide).Normalized();
 }
 
-void EditorGizmoBase::Init()
-{
-    // Keep the node around so we only have to load it once.
-    if (m_node.IsValid() || IsA(NullEditorGizmo::StaticClass()))
-    {
-        return;
-    }
-
-    m_node = Load_Internal();
-
-    if (!m_node.IsValid())
-    {
-        HYP_LOG(Editor, Warning, "Failed to create gizmo node for \"{}\"!", InstanceClass()->GetName());
-
-        // Create default node so we don't crash trying to use it
-        m_node = MakeHandle<Node>();
-        m_node->SetName(NAME_FMT("{}_FallbackGizmoNode", InstanceClass()->GetName()));
-    }
-
-    m_node->UnlockTransform();
-
-    m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::HideInSceneOutline);
-}
-
-void EditorGizmoBase::Shutdown()
-{
-    m_focusedNodeTransformHandler.Reset();
-
-    if (m_node.IsValid())
-    {
-        // Remove from scene
-        m_node->Remove();
-    }
-
-    m_focusedNode.Reset();
-}
-
-void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
-{
-    // Stop tracking the previously focused node's transform
-    m_focusedNodeTransformHandler.Reset();
-
-    if (!focusedNode.IsValid() || focusedNode->IsRoot() || focusedNode->IsA<SkyProbe>())
-    {
-        // don't want to move the root node or sky
-        m_focusedNode.Reset();
-
-        return;
-    }
-
-    m_focusedNode = focusedNode;
-
-    if (!m_node.IsValid())
-    {
-        return;
-    }
-
-    m_node->SetWorldTranslation(focusedNode->GetWorldTranslation());
-
-    // Keep the gizmo in sync when the focused node's transform changes externally
-    // (e.g. swatch overrides applied on active-swatch switch, undo/redo from other paths).
-    const WeakHandle<Node> weakFocused = focusedNode;
-    const Handle<Node> gizmoNode = m_node;
-
-    m_focusedNodeTransformHandler = Node::TransformUpdated.Bind(
-        focusedNode.Get(),
-        [weakFocused, gizmoNode](Node* updatedNode) -> void
-        {
-            if (!gizmoNode.IsValid())
-            {
-                return;
-            }
-
-            const Handle<Node> focused = weakFocused.Lock();
-
-            if (!focused.IsValid() || focused.Get() != updatedNode)
-            {
-                return;
-            }
-
-            gizmoNode->SetWorldTranslation(focused->GetWorldTranslation());
-        });
-}
-
-void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
-{
-    m_isDragging = true;
-
-    if (!m_mouseLockScope)
-    {
-        m_mouseLockScope = new InputMouseLockScope();
-    }
-
-    *m_mouseLockScope = g_appContext->GetMainWindow()->GetInputManager()->AcquireMouseLock(/* syncToVirtualPosition */ true);
-}
-
-void EditorGizmoBase::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
-{
-    m_isDragging = false;
-
-    if (m_mouseLockScope)
-    {
-        m_mouseLockScope->Reset();
-    }
-}
-
-Handle<EditorProject> EditorGizmoBase::GetCurrentProject() const
-{
-    return m_currentProject.Lock();
-}
-
-#pragma endregion EditorGizmoBase
-
-#pragma region TranslateEditorGizmo
-
-void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
-{
-    EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
-
-    m_dragData.Unset();
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return;
-    }
-
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
-
-    if (!axisTag)
-    {
-        return;
-    }
-
-    int axis = -1;
-    axisTag.data.Visit(
-        [&axis](auto&& value)
-        {
-            if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
-            {
-                axis = int(value);
-            }
-        });
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return;
-    }
-
-    DragData dragData {
-        .axisDirection = Vec3f::Zero(),
-        .planeNormal = Vec3f::Zero(),
-        .planePoint = m_node->GetWorldTranslation(),
-        .hitpointOrigin = hitpoint,
-        .nodeOrigin = focusedNode->GetWorldTranslation()
-    };
-
-    const Ray ray = camera->GetPickRay(mouseEvent.relativePos);
-
-    if (axis == -1)
-    {
-        // Centroid - allow dragging to any direction (screen space)
-        dragData.planeNormal = -camera->GetDirection();
-    }
-    else
-    {
-        dragData.axisDirection[axis] = 1.0f;
-
-        if (axis == 1) // +Y, -Y
-        {
-            dragData.planeNormal = dragData.axisDirection.Cross(camera->GetSideVector()).Normalize();
-        }
-        else
-        {
-            dragData.planeNormal = dragData.axisDirection.Cross(camera->GetUpVector()).Normalize();
-        }
-
-        RayHit planeRayHit;
-
-        if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(dragData.planePoint, dragData.planeNormal))
-        {
-            planeRayHit = *planeRayHitOpt;
-        }
-        else
-        {
-            HYP_LOG(Editor, Verbose, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
-            return;
-        }
-    }
-
-    m_dragData = dragData;
-
-    m_selectedNodes.Clear();
-
-    if (EditorSubsystem* subsystem = GetEditorSubsystem())
-    {
-        Array<Handle<Node>> selectedNodes = subsystem->GetSelectedNodes();
-
-        for (const Handle<Node>& selectedNode : selectedNodes)
-        {
-            if (!selectedNode.IsValid())
-            {
-                continue;
-            }
-
-            m_selectedNodes.PushBack({ selectedNode, selectedNode->GetWorldTranslation() });
-        }
-    }
-}
-
-#pragma region Swatch Overrides
-
-static SwatchOverrideSystem* GetSwatchOverrideSystemFor(const Entity* entity)
-{
-    if (!entity)
-    {
-        return nullptr;
-    }
-
-    World* world = entity->GetWorld();
-
-    if (!world)
-    {
-        return nullptr;
-    }
-
-    return world->GetSystem<SwatchOverrideSystem>();
-}
-
-struct SwatchOverrideTransformEditState
-{
-    Handle<Entity> entity;
-    Name swatch;
-    bool routeToOverride = false;   // override mode: edits land in the active swatch's set
-    bool wasOverridden = false;     // LocalTransform was overridden in the active swatch's set
-    Transform preTransform;
-    Transform postTransform;
-};
-
-/*! Captures swatch-override state for entities affected by a gizmo transform edit */
-template <class T>
-static Array<SwatchOverrideTransformEditState> CaptureSwatchOverrideTransformEdits(
-    const Array<Pair<Handle<Node>, T>>& nodeData,
-    bool overrideMode)
-{
-    Array<SwatchOverrideTransformEditState> result;
-
-    for (const auto& pair : nodeData)
-    {
-        Handle<Entity> entityHandle = DynamicCast<Entity>(pair.first);
-
-        if (!entityHandle.IsValid())
-        {
-            continue;
-        }
-
-        Entity* entity = entityHandle.Get();
-
-        SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity);
-
-        if (!overrideSystem)
-        {
-            continue;
-        }
-
-        World* world = entity->GetWorld();
-
-        if (!world)
-        {
-            continue;
-        }
-
-        const Name activeSwatch = world->GetActiveSwatchName();
-
-        if (!activeSwatch || IsDefaultSwatch(activeSwatch))
-        {
-            continue;
-        }
-
-        const bool hasSet = overrideSystem->HasSwatchOverrideSet(entity, activeSwatch);
-
-        if (overrideMode)
-        {
-            if (!hasSet)
-            {
-                overrideSystem->AddSwatchOverrideSet(entity, activeSwatch);
-            }
-
-            if (overrideSystem->GetAppliedOverrideSwatch(entity) != activeSwatch)
-            {
-                overrideSystem->ApplyOverrides(entity, activeSwatch);
-            }
-        }
-        else if (!hasSet)
-        {
-            // Plain base edit - nothing to keep in sync
-            continue;
-        }
-
-        SwatchOverrideTransformEditState state;
-        state.entity = entityHandle;
-        state.swatch = activeSwatch;
-        state.routeToOverride = overrideMode;
-        state.wasOverridden = overrideSystem->IsPropertyOverriddenInSwatch(entity, activeSwatch, NAME("LocalTransform"));
-        state.postTransform = entity->GetLocalTransform();
-
-        if (state.wasOverridden)
-        {
-            BoxedValue preValue;
-
-            if (overrideSystem->GetSwatchOverrideValue(entity, activeSwatch, NAME("LocalTransform"), preValue))
-            {
-                state.preTransform = preValue.Get<Transform>();
-            }
-            else
-            {
-                state.wasOverridden = false;
-            }
-        }
-
-        if (overrideMode)
-        {
-            overrideSystem->SetSwatchOverrideValue(entity, activeSwatch, NAME("LocalTransform"), BoxedValue(state.postTransform));
-        }
-
-        result.PushBack(std::move(state));
-    }
-
-    return result;
-}
-
-// Shared execute/revert loops for gizmo undo actions
-static void ExecuteSwatchOverrideTransformEdits(const Array<SwatchOverrideTransformEditState>& states)
-{
-    for (const SwatchOverrideTransformEditState& state : states)
-    {
-        if (!state.entity.IsValid() || (!state.routeToOverride && !state.wasOverridden))
-        {
-            continue;
-        }
-
-        if (SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(state.entity.Get()))
-        {
-            overrideSystem->SetSwatchOverrideValue(state.entity.Get(), state.swatch, NAME("LocalTransform"), BoxedValue(state.postTransform));
-        }
-    }
-}
-
-static void RevertSwatchOverrideTransformEdits(const Array<SwatchOverrideTransformEditState>& states)
-{
-    for (const SwatchOverrideTransformEditState& state : states)
-    {
-        if (!state.entity.IsValid() || (!state.routeToOverride && !state.wasOverridden))
-        {
-            continue;
-        }
-
-        SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(state.entity.Get());
-
-        if (!overrideSystem)
-        {
-            continue;
-        }
-
-        if (state.wasOverridden)
-        {
-            overrideSystem->SetSwatchOverrideValue(state.entity.Get(), state.swatch, NAME("LocalTransform"), BoxedValue(state.preTransform));
-        }
-        else
-        {
-            overrideSystem->RemoveSwatchOverrideValue(state.entity.Get(), state.swatch, NAME("LocalTransform"));
-        }
-    }
-}
-
-#pragma endregion Swatch Overrides
-
-void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
-{
-    EditorGizmoBase::OnDragEnd(camera, mouseEvent);
-
-    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
-    {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
-        {
-            const Vec3f focusedFinalPosition = focusedNode->GetWorldTranslation();
-            const Vec3f focusedOrigin = m_dragData->nodeOrigin;
-
-            // Sort nodes by depth (ancestors first) so SetWorldTranslation on a parent
-            // happens before its descendants, preventing the parent's accumulated transform
-            // from corrupting the descendant's computed local transform during undo/redo.
-            auto nodeData = m_selectedNodes;
-            std::sort(nodeData.Begin(), nodeData.End(),
-                      [](const Pair<Handle<Node>, Vec3f>& a, const Pair<Handle<Node>, Vec3f>& b)
-                      {
-                          return a.first->CalculateDepth() < b.first->CalculateDepth();
-                      });
-
-            String text = nodeData.Size() == 1
-                ? HYP_FORMAT("Translate {}", nodeData[0].first->GetName())
-                : HYP_FORMAT("Translate {} nodes", nodeData.Size());
-
-            EditorSubsystem* overrideModeSubsystem = GetEditorSubsystem();
-            const bool overrideMode = overrideModeSubsystem && overrideModeSubsystem->IsSwatchOverrideModeEnabled();
-
-            Array<SwatchOverrideTransformEditState> overrideEdits = CaptureSwatchOverrideTransformEdits(nodeData, overrideMode);
-
-            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                text,
-                [focusedNode, node = m_node, focusedFinalPosition, focusedOrigin, nodeData = std::move(nodeData), overrideEdits = std::move(overrideEdits)]() -> EditorActionFunctions
-                {
-                    auto nodeDataPtr = MakeShared<decltype(nodeData)>(std::move(nodeData));
-                    auto overrideEditsPtr = MakeShared<decltype(overrideEdits)>(std::move(overrideEdits));
-
-                    return {
-                        [focusedNode, node, focusedFinalPosition, focusedOrigin, nodeDataPtr, overrideEditsPtr](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
-                        {
-                            const auto& nodeData = *nodeDataPtr;
-                            const Vec3f translationDelta = focusedFinalPosition - focusedOrigin;
-
-                            for (const auto& pair : nodeData)
-                            {
-                                const Handle<Node>& selectedNode = pair.first;
-
-                                if (!selectedNode.IsValid())
-                                {
-                                    continue;
-                                }
-
-                                selectedNode->SetWorldTranslation(pair.second + translationDelta);
-                            }
-
-                            ExecuteSwatchOverrideTransformEdits(*overrideEditsPtr);
-
-                            if (Node* parent = node->FindParentWithName("TranslateGizmo"))
-                            {
-                                parent->SetWorldTranslation(focusedFinalPosition);
-                            }
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        },
-                        [focusedNode, node, focusedOrigin, nodeDataPtr, overrideEditsPtr](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
-                        {
-                            const auto& nodeData = *nodeDataPtr;
-
-                            for (const auto& pair : nodeData)
-                            {
-                                const Handle<Node>& selectedNode = pair.first;
-
-                                if (!selectedNode.IsValid())
-                                {
-                                    continue;
-                                }
-
-                                selectedNode->SetWorldTranslation(pair.second);
-                            }
-
-                            RevertSwatchOverrideTransformEdits(*overrideEditsPtr);
-
-                            if (Node* parent = node->FindParentWithName("TranslateGizmo"))
-                            {
-                                parent->SetWorldTranslation(focusedOrigin);
-                            }
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        }
-                    };
-                }));
-        }
-    }
-
-    m_dragData.Unset();
-    m_selectedNodes.Clear();
-}
-
-bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    MaterialParameters newParameters = meshComponent->material->GetParameters();
-    newParameters.albedo = Vec4f(1.0f, 1.0f, 0.0, 1.0);
-
-    meshComponent->material->SetParameters(newParameters);
-
-    return true;
-}
-
-bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
-    {
-        MaterialParameters newParameters = meshComponent->material->GetParameters();
-        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
-
-        meshComponent->material->SetParameters(newParameters);
-    }
-
-    return true;
-}
-
-bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
-    {
-        return false;
-    }
-
-    if (!m_dragData)
-    {
-        return false;
-    }
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
-
-    if (!axisTag)
-    {
-        return false;
-    }
-
-    AssertDebug(mouseEvent.baseEvent->GetWindow() != nullptr);
-
-    InputManager* inputMgr = mouseEvent.baseEvent->GetWindow()->GetInputManager();
-    AssertDebug(inputMgr != nullptr);
-
-    const Ray ray = camera->GetPickRay(inputMgr->GetVirtualMousePositionNormalized());
-
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->nodeOrigin, m_dragData->planeNormal))
-    {
-        planeRayHit = *planeRayHitOpt;
-    }
-    else
-    {
-        return true;
-    }
-
-    const bool snapToGrid = GetEditorSubsystem() && GetEditorSubsystem()->IsSnapToGridEnabled();
-
-    Vec3f translation;
-
-    if (m_dragData->axisDirection == Vec3f::Zero())
-    {
-        Vec3f delta = planeRayHit.hitpoint - m_dragData->hitpointOrigin;
-
-        if (snapToGrid)
-        {
-        delta = MathUtil::Round(delta);
-        }
-
-        translation = m_dragData->nodeOrigin + delta;
-    }
-    else
-    {
-        float t = (planeRayHit.hitpoint - m_dragData->hitpointOrigin).Dot(m_dragData->axisDirection);
-
-        if (snapToGrid)
-        {
-            t = MathUtil::Round(t);
-        }
-
-        translation = m_dragData->nodeOrigin + (m_dragData->axisDirection * t);
-    }
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return false;
-    }
-
-    NodeUnlockTransformScope unlockTransformScope(*focusedNode);
-    focusedNode->SetWorldTranslation(translation);
-
-    if (Node* parent = node->FindParentWithName("TranslateGizmo"))
-    {
-        parent->SetWorldTranslation(translation);
-    }
-
-    // Apply the same translation delta to all selected nodes
-    const Vec3f translationDelta = translation - m_dragData->nodeOrigin;
-
-    for (const auto& pair : m_selectedNodes)
-    {
-        const Handle<Node>& selectedNode = pair.first;
-
-        if (!selectedNode.IsValid())
-        {
-            continue;
-        }
-
-        selectedNode->SetWorldTranslation(pair.second + translationDelta);
-    }
-
-    return true;
-}
-
-bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
-{
-    if (!node)
-    {
-        return false;
-    }
-
-    const Handle<CameraController>& controller = camera->GetCameraController();
-
-    if (!controller)
-    {
-        return false;
-    }
-
-    InputHandlerBase* inputHandler = controller->GetInputHandler();
-
-    if (!inputHandler)
-    {
-        return false;
-    }
-
-    switch (keyboardEvent.keyCode)
-    {
-    case KeyCode::KEY_LEFT:
-    case KeyCode::KEY_RIGHT:
-    case KeyCode::KEY_UP:
-    case KeyCode::KEY_DOWN: // fallthrough
-    {
-        const BitField<NumKeyboardKeys>& keyStates = inputHandler->GetKeyStates();
-
-        const bool snapMovement = keyStates.Test(uint32(KeyCode::KEY_LALT)) || keyStates.Test(uint32(KeyCode::KEY_RALT));
-
-        float step = 1.0f;
-
-        if (keyStates.Test(uint32(KeyCode::KEY_LSHIFT)) || keyStates.Test(uint32(KeyCode::KEY_RSHIFT)))
-        {
-            // use larger step with shift held down
-            step *= 10.0f;
-        }
-
-        const Vec3f cameraForwardVector = camera->GetDirection();
-        const Vec3f cameraSideVector = camera->GetSideVector();
-
-        const Quat4f invNodeRotation = node->GetWorldRotation().Inverse();
-
-        const Vec3f nodeForwardVector = invNodeRotation.RotateVector(cameraForwardVector);
-        const Vec3f nodeSideVector = invNodeRotation.RotateVector(cameraSideVector);
-
-        NodeUnlockTransformScope scope(*node);
-
-        Vec3f moveVec;
-
-        switch (keyboardEvent.keyCode)
-        {
-        case KeyCode::KEY_LEFT:
-            moveVec = nodeSideVector;
-
-            break;
-        case KeyCode::KEY_RIGHT:
-            moveVec = -nodeSideVector;
-
-            break;
-        case KeyCode::KEY_UP:
-            moveVec = nodeForwardVector;
-
-            break;
-        case KeyCode::KEY_DOWN:
-            moveVec = -nodeForwardVector;
-
-            break;
-        default:
-            return false;
-        }
-
-        int dominantAxis;
-
-        if (std::fabsf(moveVec.x) >= std::fabsf(moveVec.y) && std::fabsf(moveVec.x) >= std::fabsf(moveVec.z))
-        {
-            dominantAxis = 0;
-        }
-        else if (std::fabsf(moveVec.y) >= std::fabsf(moveVec.z) && std::fabsf(moveVec.y) >= std::fabsf(moveVec.x))
-        {
-            dominantAxis = 1;
-        }
-        else
-        {
-            dominantAxis = 2;
-        }
-
-        for (int i = 0; i < 3; i++)
-        {
-            if (i != dominantAxis)
-            {
-                moveVec[i] = 0.0f;
-            }
-        }
-
-        moveVec = node->GetWorldRotation().RotateVector(moveVec);
-        moveVec.Normalize();
-        moveVec *= step;
-
-        Vec3f worldTranslation = node->GetWorldTranslation() + moveVec;
-        if (snapMovement)
-        {
-            /// \todo : Configurable snap value
-            worldTranslation[dominantAxis] = std::fmodf(worldTranslation[dominantAxis], 1.0f);
-        }
-
-        node->SetWorldTranslation(worldTranslation);
-    }
-
-    break;
-    default:
-        break;
-    }
-
-    return false;
-}
-
-Handle<Node> TranslateEditorGizmo::Load_Internal() const
-{
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
-
-    if (Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "TranslateGizmo"_sh); prefab.IsValid())
-    {
-        return prefab->GetRoot();
-    }
-
-    return Handle<Node>::Null();
-}
-
-#pragma endregion TranslateEditorGizmo
-
-#pragma region RotateEditorGizmo
-
-Handle<Node> RotateEditorGizmo::Load_Internal() const
-{
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
-
-    if (Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "RotateGizmo"_sh); prefab.IsValid())
-    {
-        return prefab->GetRoot();
-    }
-
-    return Handle<Node>::Null();
-}
-
-void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
-{
-    EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
-
-    m_dragData.Unset();
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return;
-    }
-
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
-
-    if (!axisTag)
-    {
-        return;
-    }
-
-    int axis = -1;
-    axisTag.data.Visit(
-        [&axis](auto&& value)
-        {
-            if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
-            {
-                axis = int(value);
-            }
-        });
-
-    if (axis < 0)
-    {
-        return;
-    }
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return;
-    }
-
-    DragData dragData {};
-
-    dragData.axis = Vec3f::Zero();
-    dragData.axis[axis] = 1.0f;
-    dragData.axis = focusedNode->GetWorldRotation().RotateVector(dragData.axis).Normalize();
-
-    dragData.planePoint = m_node->GetWorldTranslation();
-    dragData.startRotation = focusedNode->GetWorldRotation();
-    dragData.currentRotation = dragData.startRotation;
-
-    Vec3f startVector = hitpoint - dragData.planePoint;
-    startVector = startVector - dragData.axis * startVector.Dot(dragData.axis);
-
-    if (startVector.LengthSquared() < MathUtil::epsilonF)
-    {
-        Vec3f fallback = camera->GetSideVector();
-        fallback = fallback - dragData.axis * fallback.Dot(dragData.axis);
-
-        if (fallback.LengthSquared() < MathUtil::epsilonF)
-        {
-            return;
-        }
-
-        startVector = fallback;
-    }
-
-    dragData.startVector = startVector.Normalize();
-
-    m_dragData = dragData;
-
-    m_selectedNodes.Clear();
-
-    if (EditorSubsystem* subsystem = GetEditorSubsystem())
-    {
-        Array<Handle<Node>> selectedNodes = subsystem->GetSelectedNodes();
-
-        for (const Handle<Node>& selectedNode : selectedNodes)
-        {
-            if (!selectedNode.IsValid())
-            {
-                continue;
-            }
-
-            m_selectedNodes.PushBack({ selectedNode, selectedNode->GetWorldRotation() });
-        }
-    }
-}
-
-void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
-{
-    EditorGizmoBase::OnDragEnd(camera, mouseEvent);
-
-    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
-    {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
-        {
-            const Quat4f finalRotation = m_dragData->currentRotation;
-            const Quat4f originRotation = m_dragData->startRotation;
-            const Quat4f deltaRotation = finalRotation * originRotation.Inverse();
-
-            // Sort nodes by depth (ancestors first) so SetWorldRotation on a parent
-            // happens before its descendants, preventing accumulated parent rotation
-            // from corrupting the descendant's computed local rotation.
-            auto nodeData = m_selectedNodes;
-            std::sort(nodeData.Begin(), nodeData.End(),
-                      [](const Pair<Handle<Node>, Quat4f>& a, const Pair<Handle<Node>, Quat4f>& b)
-                      {
-                          return a.first->CalculateDepth() < b.first->CalculateDepth();
-                      });
-
-            EditorSubsystem* overrideModeSubsystem = GetEditorSubsystem();
-            const bool overrideMode = overrideModeSubsystem && overrideModeSubsystem->IsSwatchOverrideModeEnabled();
-
-            Array<SwatchOverrideTransformEditState> overrideEdits = CaptureSwatchOverrideTransformEdits(nodeData, overrideMode);
-
-            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                nodeData.Size() == 1
-                    ? HYP_FORMAT("Rotate {}", nodeData[0].first->GetName())
-                    : HYP_FORMAT("Rotate {} nodes", nodeData.Size()),
-                [focusedNode, finalRotation, originRotation, deltaRotation, nodeData, overrideEdits = std::move(overrideEdits)]() -> EditorActionFunctions
-                {
-                    auto nodeDataPtr = MakeShared<decltype(nodeData)>(std::move(nodeData));
-                    auto overrideEditsPtr = MakeShared<decltype(overrideEdits)>(std::move(overrideEdits));
-
-                    return {
-                        [focusedNode, deltaRotation, nodeDataPtr, overrideEditsPtr](EditorSubsystem* editorSubsystem, EditorProject*)
-                        {
-                            const auto& nodeData = *nodeDataPtr;
-
-                            // Execute: ancestors first so parent rotation is up-to-date
-                            for (const auto& pair : nodeData)
-                            {
-                                const Handle<Node>& selectedNode = pair.first;
-
-                                if (!selectedNode.IsValid())
-                                {
-                                    continue;
-                                }
-
-                                selectedNode->SetWorldRotation(deltaRotation * pair.second);
-                            }
-
-                            ExecuteSwatchOverrideTransformEdits(*overrideEditsPtr);
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        },
-                        [focusedNode, nodeDataPtr, overrideEditsPtr](EditorSubsystem* editorSubsystem, EditorProject*)
-                        {
-                            const auto& nodeData = *nodeDataPtr;
-
-                            // Revert: ancestors first so parent rotation is up-to-date
-                            for (const auto& pair : nodeData)
-                            {
-                                const Handle<Node>& selectedNode = pair.first;
-
-                                if (!selectedNode.IsValid())
-                                {
-                                    continue;
-                                }
-
-                                selectedNode->SetWorldRotation(pair.second);
-                            }
-
-                            RevertSwatchOverrideTransformEdits(*overrideEditsPtr);
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        }
-                    };
-                }));
-        }
-    }
-
-    m_dragData.Unset();
-    m_selectedNodes.Clear();
-}
-
-bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    MaterialParameters newParameters = meshComponent->material->GetParameters();
-    newParameters.albedo = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
-
-    meshComponent->material->SetParameters(newParameters);
-
-    return true;
-}
-
-bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
-    {
-        MaterialParameters newParameters = meshComponent->material->GetParameters();
-        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
-
-        meshComponent->material->SetParameters(newParameters);
-    }
-
-    return true;
-}
-
-bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
-    {
-        return false;
-    }
-
-    if (!m_dragData)
-    {
-        return false;
-    }
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    AssertDebug(mouseEvent.baseEvent->GetWindow() != nullptr);
-
-    InputManager* inputMgr = mouseEvent.baseEvent->GetWindow()->GetInputManager();
-    AssertDebug(inputMgr != nullptr);
-
-    const Ray ray = camera->GetPickRay(inputMgr->GetVirtualMousePositionNormalized());
-
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->planePoint, m_dragData->axis))
-    {
-        planeRayHit = *planeRayHitOpt;
-    }
-    else
-    {
-        return true;
-    }
-
-    Vec3f currentVector = planeRayHit.hitpoint - m_dragData->planePoint;
-    currentVector = currentVector - m_dragData->axis * currentVector.Dot(m_dragData->axis);
-
-    if (currentVector.LengthSquared() < MathUtil::epsilonF)
-    {
-        return true;
-    }
-
-    currentVector.Normalize();
-
-    const Vec3f cross = m_dragData->startVector.Cross(currentVector);
-    const float sinAngle = cross.Dot(m_dragData->axis);
-    const float cosAngle = m_dragData->startVector.Dot(currentVector);
-    const float angle = std::atan2(sinAngle, cosAngle);
-
-    Quat4f deltaRotation = Quat4f::AxisAngles(m_dragData->axis, angle).Inverse();
-    Quat4f newRotation = deltaRotation * m_dragData->startRotation;
-
-    m_dragData->currentRotation = newRotation;
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return false;
-    }
-
-    NodeUnlockTransformScope unlockTransformScope(*focusedNode);
-    focusedNode->SetWorldRotation(newRotation);
-
-    // Apply the same delta rotation to all selected nodes
-    deltaRotation = newRotation * m_dragData->startRotation.Inverse();
-
-    for (const auto& pair : m_selectedNodes)
-    {
-        const Handle<Node>& selectedNode = pair.first;
-
-        if (!selectedNode.IsValid())
-        {
-            continue;
-        }
-
-        selectedNode->SetWorldRotation(deltaRotation * pair.second);
-    }
-
-    return true;
-}
-
-bool RotateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
-{
-    return false;
-}
-
-#pragma endregion RotateEditorGizmo
-
-#pragma region ScaleEditorGizmo
-
-Handle<Node> ScaleEditorGizmo::Load_Internal() const
-{
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
-
-    if (Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "ScaleGizmo"_sh); prefab.IsValid())
-    {
-        return prefab->GetRoot();
-    }
-
-    return Handle<Node>::Null();
-}
-
-void ScaleEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
-{
-    EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
-
-    m_dragData.Unset();
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return;
-    }
-
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
-
-    if (!axisTag)
-    {
-        return;
-    }
-
-    int axis = -1;
-    axisTag.data.Visit(
-        [&axis](auto&& value)
-        {
-            if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
-            {
-                axis = int(value);
-            }
-        });
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return;
-    }
-
-    const Vec3f nodeOrigin = focusedNode->GetWorldTranslation();
-    const Vec3f initialScale = focusedNode->GetWorldScale();
-    const Vec3f cameraDirection = camera->GetDirection();
-
-    const Vec3f axisDirections[3] = { Vec3f(1.0f, 0.0f, 0.0f), Vec3f(0.0f, 1.0f, 0.0f), Vec3f(0.0f, 0.0f, 1.0f) };
-
-    Vec3f axisDirection;
-    Vec3f planeNormal;
-
-    if (axis >= 0)
-    {
-        axisDirection = axisDirections[axis];
-
-        if (axis == 1)
-        {
-            planeNormal = axisDirection.Cross(camera->GetSideVector()).Normalize();
-        }
-        else
-        {
-            planeNormal = axisDirection.Cross(camera->GetUpVector()).Normalize();
-        }
-    }
-    else
-    {
-        axisDirection = Vec3f::Zero();
-        planeNormal = -cameraDirection;
-    }
-
-    DragData dragData {};
-    dragData.axisDirection = axisDirection;
-    dragData.planeNormal = planeNormal;
-    dragData.planePoint = nodeOrigin;
-    dragData.hitpointOrigin = hitpoint;
-    dragData.nodeOrigin = nodeOrigin;
-    dragData.initialScale = initialScale;
-    dragData.axis = axis;
-
-    m_dragData = dragData;
-
-    m_selectedNodes.Clear();
-
-    if (EditorSubsystem* subsystem = GetEditorSubsystem())
-    {
-        Array<Handle<Node>> selectedNodes = subsystem->GetSelectedNodes();
-
-        for (const Handle<Node>& selectedNode : selectedNodes)
-        {
-            if (!selectedNode.IsValid())
-            {
-                continue;
-            }
-
-            m_selectedNodes.PushBack({ selectedNode, { selectedNode->GetWorldScale(), selectedNode->GetWorldTranslation() } });
-        }
-    }
-}
-
-void ScaleEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
-{
-    EditorGizmoBase::OnDragEnd(camera, mouseEvent);
-
-    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
-    {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
-        {
-            const Vec3f finalScale = focusedNode->GetWorldScale();
-            const Vec3f originScale = m_dragData->initialScale;
-            const Vec3f scaleFactor = finalScale / originScale;
-
-            // Sort nodes by depth (ancestors first) so SetWorldScale on a parent
-            // happens before its descendants, preventing the parent's accumulated transform
-            // from corrupting the descendant's computed local transform during undo/redo.
-            auto nodeData = m_selectedNodes;
-            std::sort(nodeData.Begin(), nodeData.End(),
-                      [](const Pair<Handle<Node>, Pair<Vec3f, Vec3f>>& a, const Pair<Handle<Node>, Pair<Vec3f, Vec3f>>& b)
-                      {
-                          return a.first->CalculateDepth() < b.first->CalculateDepth();
-                      });
-
-            EditorSubsystem* overrideModeSubsystem = GetEditorSubsystem();
-            const bool overrideMode = overrideModeSubsystem && overrideModeSubsystem->IsSwatchOverrideModeEnabled();
-
-            Array<SwatchOverrideTransformEditState> overrideEdits = CaptureSwatchOverrideTransformEdits(nodeData, overrideMode);
-
-            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                nodeData.Size() == 1
-                    ? HYP_FORMAT("Scale {}", nodeData[0].first->GetName())
-                    : HYP_FORMAT("Scale {} nodes", nodeData.Size()),
-                [focusedNode, finalScale, originScale, scaleFactor, nodeData, overrideEdits = std::move(overrideEdits)]() -> EditorActionFunctions
-                {
-                    auto nodeDataPtr = MakeShared<decltype(nodeData)>(std::move(nodeData));
-                    auto overrideEditsPtr = MakeShared<decltype(overrideEdits)>(std::move(overrideEdits));
-
-                    return {
-                        [focusedNode, scaleFactor, nodeDataPtr, overrideEditsPtr](EditorSubsystem* editorSubsystem, EditorProject*)
-                        {
-                            const auto& nodeData = *nodeDataPtr;
-
-                            for (const auto& pair : nodeData)
-                            {
-                                const Handle<Node>& selectedNode = pair.first;
-
-                                if (!selectedNode.IsValid())
-                                {
-                                    continue;
-                                }
-
-                                selectedNode->SetWorldScale(pair.second.first * scaleFactor);
-                            }
-
-                            ExecuteSwatchOverrideTransformEdits(*overrideEditsPtr);
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        },
-                        [focusedNode, nodeDataPtr, overrideEditsPtr](EditorSubsystem* editorSubsystem, EditorProject*)
-                        {
-                            const auto& nodeData = *nodeDataPtr;
-
-                            for (const auto& pair : nodeData)
-                            {
-                                const Handle<Node>& selectedNode = pair.first;
-
-                                if (!selectedNode.IsValid())
-                                {
-                                    continue;
-                                }
-
-                                selectedNode->SetWorldScale(pair.second.first);
-                            }
-
-                            RevertSwatchOverrideTransformEdits(*overrideEditsPtr);
-
-                            editorSubsystem->SetFocusedNode(focusedNode, true);
-                        }
-                    };
-                }));
-        }
-    }
-
-    m_dragData.Unset();
-    m_selectedNodes.Clear();
-}
-
-bool ScaleEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    MaterialParameters newParameters = meshComponent->material->GetParameters();
-    newParameters.albedo = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
-
-    meshComponent->material->SetParameters(newParameters);
-
-    return true;
-}
-
-bool ScaleEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
-    {
-        MaterialParameters newParameters = meshComponent->material->GetParameters();
-        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
-
-        meshComponent->material->SetParameters(newParameters);
-    }
-
-    return true;
-}
-
-bool ScaleEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
-    {
-        return false;
-    }
-
-    if (!m_dragData)
-    {
-        return false;
-    }
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return false;
-    }
-
-    InputManager* inputMgr = mouseEvent.baseEvent->GetWindow()->GetInputManager();
-    AssertDebug(inputMgr != nullptr);
-
-    const Ray ray = camera->GetPickRay(inputMgr->GetVirtualMousePositionNormalized());
-
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->nodeOrigin, m_dragData->planeNormal))
-    {
-        planeRayHit = *planeRayHitOpt;
-    }
-    else
-    {
-        return true;
-    }
-
-    Vec3f newScale;
-
-    if (m_dragData->axis >= 0)
-    {
-        const Vec3f axisDirections[3] = { Vec3f(1.0f, 0.0f, 0.0f), Vec3f(0.0f, 1.0f, 0.0f), Vec3f(0.0f, 0.0f, 1.0f) };
-        const Vec3f& axisDir = axisDirections[m_dragData->axis];
-
-        const float initialProj = (m_dragData->hitpointOrigin - m_dragData->nodeOrigin).Dot(axisDir);
-        const float currentProj = (planeRayHit.hitpoint - m_dragData->nodeOrigin).Dot(axisDir);
-
-        const float reference = MathUtil::Max(MathUtil::Abs(initialProj), 0.05f);
-        const float factor = MathUtil::Max(1.0f + (currentProj - initialProj) / reference, 0.0001f);
-
-        newScale = m_dragData->initialScale;
-        newScale[m_dragData->axis] *= factor;
-    }
-    else
-    {
-        const Vec3f cameraUp = camera->GetUpVector();
-
-        const float delta = (planeRayHit.hitpoint - m_dragData->hitpointOrigin).Dot(cameraUp);
-        const float cameraDistance = (camera->GetWorldTranslation() - m_dragData->nodeOrigin).Length();
-        const float reference = MathUtil::Max(cameraDistance * 0.5f, 0.001f);
-        const float factor = MathUtil::Max(1.0f + delta / reference, 0.0001f);
-
-        newScale = m_dragData->initialScale * factor;
-    }
-
-    newScale = Vec3f::Max(Vec3f(0.0001f), newScale);
-
-    NodeUnlockTransformScope unlockTransformScope(*focusedNode);
-    focusedNode->SetWorldScale(newScale);
-
-    // Apply the same scale factor to all selected nodes
-    const Vec3f scaleFactor = newScale / m_dragData->initialScale;
-
-    for (const auto& pair : m_selectedNodes)
-    {
-        const Handle<Node>& selectedNode = pair.first;
-
-        if (!selectedNode.IsValid())
-        {
-            continue;
-        }
-
-        selectedNode->SetWorldScale(pair.second.first * scaleFactor);
-    }
-
-    return true;
-}
-
-#pragma endregion ScaleEditorGizmo
-
-#pragma region VolumeEditorGizmo
-
-enum VolumeEditorFace : int
-{
-    VEF_PosX, // +X face (max.x side)
-    VEF_NegX, // -X face (min.x side)
-    VEF_PosY, // +Y face (max.y side)
-    VEF_NegY, // -Y face (min.y side)
-    VEF_PosZ, // +Z face (max.z side)
-    VEF_NegZ, // -Z face (min.z side)
-
-    VEF_Max
-};
-
-static constexpr Vec3f GetFaceNormal(int faceIndex)
-{
-    constexpr Vec3f FaceNormals[VEF_Max] = {
-        Vec3f(1.0f, 0.0f, 0.0f),
-        Vec3f(-1.0f, 0.0f, 0.0f),
-        Vec3f(0.0f, 1.0f, 0.0f),
-        Vec3f(0.0f, -1.0f, 0.0f),
-        Vec3f(0.0f, 0.0f, 1.0f),
-        Vec3f(0.0f, 0.0f, -1.0f)
-    };
-
-    return FaceNormals[faceIndex];
-}
-
-VolumeEditorGizmo::VolumeEditorGizmo()
-    : EditorGizmoBase(),
-      m_currentBounds(BoundingBox::Zero())
-{
-}
-
-void VolumeEditorGizmo::UpdateFaceGeometry(const BoundingBox& localBounds, const Vec3f& worldTranslation)
-{
-    if (!m_node.IsValid())
-    {
-        return;
-    }
-
-    const Vec3f center = localBounds.GetCenter() - worldTranslation;
-    const Vec3f extent = localBounds.GetExtent();
-    const Vec3f halfExtent = extent * 0.5f;
-
-    for (int i = 0; i < VEF_Max; i++)
-    {
-        Node* faceNode = m_node->FindChildByName(StringHash(HYP_FORMAT("VolumeFace_{}", i)));
-
-        if (!faceNode)
-        {
-            continue;
-        }
-
-        const Vec3f normal = GetFaceNormal(i);
-        Vec3f faceCenter = center + normal * halfExtent[i / 2];
-        Vec3f faceScale;
-
-        switch (i)
-        {
-        case VEF_PosX: // fallthrough
-        case VEF_NegX:
-            // Face in YZ plane
-            faceScale = Vec3f(halfExtent.z, halfExtent.y, 1.0f);
-            break;
-        case VEF_PosY: // fallthrough
-        case VEF_NegY:
-            // Face in XZ plane
-            faceScale = Vec3f(halfExtent.x, halfExtent.z, 1.0f);
-            break;
-        case VEF_PosZ: // fallthrough
-        case VEF_NegZ:
-            // Face in XY plane
-            faceScale = Vec3f(halfExtent.x, halfExtent.y, 1.0f);
-            break;
-        }
-
-        faceNode->UnlockTransform();
-        faceNode->SetLocalTranslation(faceCenter);
-        faceNode->SetLocalScale(faceScale);
-    }
-
-    m_node->UnlockTransform();
-    m_node->SetWorldTranslation(worldTranslation);
-}
-
-Handle<Node> VolumeEditorGizmo::Load_Internal() const
-{
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { GetEditorAssetRegistry() } };
-
-    if (Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "VolumeEditGizmo"_sh); prefab.IsValid())
-    {
-        Handle<Node> rootNode = prefab->GetRoot();
-
-        if (rootNode.IsValid())
-        {
-            for (const Handle<Node>& child : rootNode->GetChildren())
-            {
-                if (Entity* entity = DynamicCast<Entity>(child.Get()))
-                {
-                    if (VisibilityStateComponent* visibilityState = entity->TryGetComponent<VisibilityStateComponent>())
-                    {
-                        visibilityState->flags |= VisibilityStateFlags::ALWAYS_VISIBLE;
-                    }
-                    else
-                    {
-                        entity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent { VisibilityStateFlags::ALWAYS_VISIBLE });
-                    }
-                }
-            }
-        }
-
-        return rootNode;
-    }
-
-    return Handle<Node>::Null();
-}
-
-void VolumeEditorGizmo::SetFocusedNode(const Handle<Node>& focusedNode)
-{
-    EditorGizmoBase::SetFocusedNode(focusedNode);
-
-    if (!focusedNode.IsValid() || !m_node.IsValid())
-    {
-        return;
-    }
-
-    m_currentBounds = focusedNode->GetWorldBounds();
-
-    if (!m_currentBounds.IsValid() || !m_currentBounds.IsFinite() || m_currentBounds.IsZero())
-    {
-        // unbounded volumes (e.g. sky probe) cannot be reshaped
-        m_focusedNode.Reset();
-
-        return;
-    }
-
-    UpdateFaceGeometry(m_currentBounds, focusedNode->GetWorldTranslation());
-}
-
-void VolumeEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)
-{
-    EditorGizmoBase::OnDragStart(camera, mouseEvent, node, hitpoint);
-
-    m_dragData.Unset();
-
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return;
-    }
-
-    const NodeTag& faceTag = node->GetTag("VolumeFaceIndex"_sh);
-
-    if (!faceTag)
-    {
-        return;
-    }
-
-    const int faceIndex = faceTag.data.TryGet<int>(-1);
-
-    if (faceIndex < 0 || faceIndex >= VEF_Max)
-    {
-        return;
-    }
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return;
-    }
-
-    const Vec3f faceNormal = GetFaceNormal(faceIndex);
-
-    Vec3f planeNormal;
-
-    if (faceIndex / 2 == 1) // y axis
-    {
-        planeNormal = faceNormal.Cross(camera->GetSideVector()).Normalize();
-    }
-    else
-    {
-        planeNormal = faceNormal.Cross(camera->GetUpVector()).Normalize();
-    }
-
-    if (planeNormal.LengthSquared() < MathUtil::epsilonF)
-    {
-        planeNormal = -camera->GetDirection();
-    }
-
-    DragData dragData {};
-    dragData.faceIndex = faceIndex;
-    dragData.faceNormal = faceNormal;
-    dragData.planePoint = hitpoint;
-    dragData.planeNormal = planeNormal;
-    dragData.hitOffset = (hitpoint - focusedNode->GetWorldTranslation()).Dot(faceNormal);
-    dragData.originalBounds = m_currentBounds;
-
-    m_dragData = dragData;
-}
-
-void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
-{
-    EditorGizmoBase::OnDragEnd(camera, mouseEvent);
-
-    // @TODO we should show a "Commit" ui button, and when clicked, that will actually set the
-
-    if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
-    {
-        if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
-        {
-            if (m_dragData)
-            {
-                const BoundingBox finalBounds = m_currentBounds;
-                const BoundingBox originalBounds = m_dragData->originalBounds;
-
-                project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                    "Edit Volume Shape",
-                    [manipulationMode = GetManipulationMode(), focusedNode, finalBounds, originalBounds]() -> EditorActionFunctions
-                    {
-                        return {
-                            [focusedNode, finalBounds, manipulationMode](EditorSubsystem* editorSubsystem, EditorProject*)
-                            {
-                                BoundingBox finalBoundsLocal = finalBounds;
-                                finalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * finalBoundsLocal;
-
-                                focusedNode->SetLocalBounds(finalBoundsLocal);
-
-                                editorSubsystem->SetSelectedManipulationMode(manipulationMode);
-                                editorSubsystem->SetFocusedNode(focusedNode, true);
-                            },
-                            [focusedNode, originalBounds, manipulationMode](EditorSubsystem* editorSubsystem, EditorProject*)
-                            {
-                                BoundingBox originalBoundsLocal = originalBounds;
-                                originalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * originalBoundsLocal;
-
-                                focusedNode->SetLocalBounds(originalBoundsLocal);
-
-                                editorSubsystem->SetSelectedManipulationMode(manipulationMode);
-                                editorSubsystem->SetFocusedNode(focusedNode, true);
-                            }
-                        };
-                    }));
-            }
-        }
-    }
-
-    m_dragData.Unset();
-}
-
-bool VolumeEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    MaterialParameters newParameters = meshComponent->material->GetParameters();
-    newParameters.albedo = Vec4f(0.7f, 0.35f, 0.0f, 0.35f);
-    meshComponent->material->SetParameters(newParameters);
-
-    return true;
-}
-
-bool VolumeEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    Entity* entity = DynamicCast<Entity>(node);
-    if (!entity)
-    {
-        return false;
-    }
-
-    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    if (!meshComponent || !meshComponent->material)
-    {
-        return false;
-    }
-
-    // Restore original face color
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
-    {
-        MaterialParameters newParameters = meshComponent->material->GetParameters();
-        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
-
-        meshComponent->material->SetParameters(newParameters);
-    }
-
-    return true;
-}
-
-bool VolumeEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
-{
-    if (!mouseEvent.mouseButtons[MouseButtonState::LEFT])
-    {
-        return false;
-    }
-
-    if (!m_dragData)
-    {
-        return false;
-    }
-
-    Handle<Node> focusedNode = m_focusedNode.Lock();
-
-    if (!focusedNode.IsValid())
-    {
-        return false;
-    }
-
-    AssertDebug(mouseEvent.baseEvent->GetWindow() != nullptr);
-
-    InputManager* inputMgr = mouseEvent.baseEvent->GetWindow()->GetInputManager();
-    AssertDebug(inputMgr != nullptr);
-
-    const Ray ray = camera->GetPickRay(inputMgr->GetVirtualMousePositionNormalized());
-
-    RayHit planeRayHit;
-
-    if (Optional<RayHit> planeRayHitOpt = ray.TestPlane(m_dragData->planePoint, m_dragData->planeNormal))
-    {
-        planeRayHit = *planeRayHitOpt;
-    }
-    else
-    {
-        return true;
-    }
-
-    const Vec3f worldOffset = planeRayHit.hitpoint - m_dragData->planePoint;
-    const int faceIndex = m_dragData->faceIndex;
-    const int axis = faceIndex / 2; // 0=X, 1=Y, 2=Z
-    Vec3f axisDirection = Vec3f::Zero();
-    axisDirection[axis] = 1.0f;
-    const float displacement = worldOffset.Dot(axisDirection);
-
-    BoundingBox newBounds = m_dragData->originalBounds;
-
-    if (faceIndex % 2 == 0)
-    {
-        // positive face
-        newBounds.max[axis] = m_dragData->originalBounds.max[axis] + displacement;
-
-        // clamp
-        if (newBounds.max[axis] < newBounds.min[axis] + MathUtil::epsilonF)
-        {
-            newBounds.max[axis] = newBounds.min[axis] + MathUtil::epsilonF;
-        }
-    }
-    else // negative
-    {
-        newBounds.min[axis] = m_dragData->originalBounds.min[axis] + displacement;
-
-        // clamp
-        if (newBounds.min[axis] > newBounds.max[axis] - MathUtil::epsilonF)
-        {
-            newBounds.min[axis] = newBounds.max[axis] - MathUtil::epsilonF;
-        }
-    }
-
-    m_currentBounds = newBounds;
-
-    // set new bounds
-    // const BoundingBox newBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * newBounds;
-    // focusedNode->SetLocalBounds(newBoundsLocal);
-
-    UpdateFaceGeometry(newBounds, focusedNode->GetWorldTranslation());
-
-    return true;
-}
-
-bool VolumeEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const KeyboardEvent& keyboardEvent, const Handle<Node>& node)
-{
-    return false;
-}
-
-#pragma endregion VolumeEditorGizmo
+#pragma endregion Helpers
 
 #pragma region Terrain
 
@@ -2162,25 +323,31 @@ bool EditorSubsystem::IsSimulating() const
     return m_preSimulationProject.IsValid();
 }
 
+bool EditorSubsystem::CanCreateAssets() const
+{
+    return m_currentProject.IsValid() && !IsSimulating();
+}
+
 bool EditorSubsystem::IsSnapToGridEnabled() const
 {
-    //AssertOnThread(g_simThread);
-
-    return m_snapToGridEnabled;
+    return m_gizmoController->IsSnapToGridEnabled();
 }
 
 void EditorSubsystem::SetSnapToGridEnabled(bool snapToGrid)
 {
-    //AssertOnThread(g_simThread);
-
-    m_snapToGridEnabled = snapToGrid;
+    m_gizmoController->SetSnapToGridEnabled(snapToGrid);
 }
 
 #pragma region Entity Swatch Overrides
 
 Array<Name> EditorSubsystem::GetEntitySwatchOverrideSets(Entity* entity) const
 {
-    if (SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity))
+    if (!entity)
+    {
+        return {};
+    }
+
+    if (SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity))
     {
         return overrideSystem->GetSetSwatchNames(entity);
     }
@@ -2190,21 +357,36 @@ Array<Name> EditorSubsystem::GetEntitySwatchOverrideSets(Entity* entity) const
 
 bool EditorSubsystem::EntityHasSwatchOverrideSet(Entity* entity, Name swatchName) const
 {
-    SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity);
+    if (!entity)
+    {
+        return false;
+    }
+
+    SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity);
 
     return overrideSystem && overrideSystem->HasSwatchOverrideSet(entity, swatchName);
 }
 
 bool EditorSubsystem::EntityHasSwatchOverrideValues(Entity* entity, Name swatchName) const
 {
-    SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity);
+    if (!entity)
+    {
+        return false;
+    }
+
+    SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity);
 
     return overrideSystem && overrideSystem->HasAnyOverriddenProperty(entity, swatchName);
 }
 
 void EditorSubsystem::EntityAddSwatchOverrideSet(Entity* entity, Name swatchName) const
 {
-    if (SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity))
+    if (!entity)
+    {
+        return;
+    }
+
+    if (SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity))
     {
         overrideSystem->AddSwatchOverrideSet(entity, swatchName);
     }
@@ -2212,28 +394,48 @@ void EditorSubsystem::EntityAddSwatchOverrideSet(Entity* entity, Name swatchName
 
 bool EditorSubsystem::EntityRemoveSwatchOverrideSet(Entity* entity, Name swatchName) const
 {
-    SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity);
+    if (!entity)
+    {
+        return false;
+    }
+
+    SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity);
 
     return overrideSystem && overrideSystem->RemoveSwatchOverrideSet(entity, swatchName);
 }
 
 bool EditorSubsystem::IsEntityPropertyOverridden(Entity* entity, Name swatchName, Name propertyName) const
 {
-    SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity);
+    if (!entity)
+    {
+        return false;
+    }
+
+    SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity);
 
     return overrideSystem && overrideSystem->IsPropertyOverriddenInSwatch(entity, swatchName, propertyName);
 }
 
 bool EditorSubsystem::EntityRemoveSwatchOverrideValue(Entity* entity, Name swatchName, Name propertyName) const
 {
-    SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity);
+    if (!entity)
+    {
+        return false;
+    }
+
+    SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity);
 
     return overrideSystem && overrideSystem->RemoveSwatchOverrideValue(entity, swatchName, propertyName);
 }
 
 Name EditorSubsystem::GetEntityAppliedOverrideSwatch(Entity* entity) const
 {
-    if (SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity))
+    if (!entity)
+    {
+        return Name::Invalid();
+    }
+
+    if (SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity))
     {
         return overrideSystem->GetAppliedOverrideSwatch(entity);
     }
@@ -2243,7 +445,12 @@ Name EditorSubsystem::GetEntityAppliedOverrideSwatch(Entity* entity) const
 
 void EditorSubsystem::EntityApplySwatchOverrides(Entity* entity, Name swatchName) const
 {
-    if (SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity))
+    if (!entity)
+    {
+        return;
+    }
+
+    if (SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity))
     {
         overrideSystem->ApplyOverrides(entity, swatchName);
     }
@@ -2251,7 +458,12 @@ void EditorSubsystem::EntityApplySwatchOverrides(Entity* entity, Name swatchName
 
 void EditorSubsystem::EntityRevertSwatchOverrides(Entity* entity) const
 {
-    if (SwatchOverrideSystem* overrideSystem = GetSwatchOverrideSystemFor(entity))
+    if (!entity)
+    {
+        return;
+    }
+
+    if (SwatchOverrideSystem* overrideSystem = SceneHelpers::GetSwatchOverrideSystemFor(*entity))
     {
         overrideSystem->RevertOverrides(entity);
     }
@@ -2554,7 +766,7 @@ void EditorSubsystem::EnterMeshEditMode()
 
     m_meshEditState.targetNode = MakeWeakRef(target);
 
-    m_meshEditState.manipulationModeBeforeMeshEdit = m_selectedManipulationMode;
+    m_meshEditState.manipulationModeBeforeMeshEdit = m_gizmoController->GetSelectedManipulationMode();
 
     m_meshEditState.enabled = true;
 
@@ -3420,19 +1632,6 @@ void EditorSubsystem::DebugDrawMeshEditSelection(DebugDrawCommandList& debugDraw
     }
 }
 
-static Vec3f ComputeMeshEditDragPlaneNormal(const Handle<Camera>& camera, const Vec3f& axisDirection)
-{
-    if (axisDirection.LengthSquared() < MathUtil::epsilonF)
-    {
-        return -camera->GetDirection();
-    }
-
-    const Vec3f crossUp = axisDirection.Cross(camera->GetUpVector());
-    const Vec3f crossSide = axisDirection.Cross(camera->GetSideVector());
-
-    return (crossUp.LengthSquared() > crossSide.LengthSquared() ? crossUp : crossSide).Normalized();
-}
-
 void EditorSubsystem::StartMeshEditDrag(const Handle<Camera>& camera, const MouseEvent& mouseEvent)
 {
     if (!m_meshEditState.selectedFace)
@@ -3554,7 +1753,7 @@ void EditorSubsystem::UpdateMeshEditDrag(const Handle<Camera>& camera, const Mou
     {
         worldDelta = planeHit->hitpoint - m_meshEditState.dragData->hitpointOrigin;
 
-        if (m_snapToGridEnabled)
+        if (m_gizmoController->IsSnapToGridEnabled())
         {
             worldDelta = MathUtil::Round(worldDelta);
         }
@@ -3563,7 +1762,7 @@ void EditorSubsystem::UpdateMeshEditDrag(const Handle<Camera>& camera, const Mou
     {
         float t = (planeHit->hitpoint - m_meshEditState.dragData->hitpointOrigin).Dot(m_meshEditState.dragData->axisDirection);
 
-        if (m_snapToGridEnabled)
+        if (m_gizmoController->IsSnapToGridEnabled())
         {
             t = MathUtil::Round(t);
         }
@@ -3704,41 +1903,17 @@ void EditorSubsystem::SetMeshEditDragLockedAxis(const Handle<Camera>& camera, co
 
 void EditorSubsystem::InitializeGizmos()
 {
-    AssertOnThread(g_simThread);
-
-    for (const Handle<EditorGizmoBase>& gizmo : m_gizmos)
-    {
-        gizmo->SetEditorSubsystem(this);
-        gizmo->SetCurrentProject(m_currentProject);
-
-        InitObject(gizmo);
-    }
+    m_gizmoController->Initialize(this);
 }
 
 void EditorSubsystem::ShutdownGizmos()
 {
-    AssertOnThread(g_simThread);
-
-    if (m_selectedManipulationMode != EditorManipulationMode::None)
-    {
-        m_selectedManipulationMode = EditorManipulationMode::None;
-
-        OnSelectedGizmoChanged(
-            m_gizmos.At(EditorManipulationMode::None),
-            m_gizmos.At(m_selectedManipulationMode));
-    }
-
-    for (auto& it : m_gizmos)
-    {
-        it->Shutdown();
-    }
+    m_gizmoController->Shutdown();
 }
 
 EditorManipulationMode EditorSubsystem::GetSelectedManipulationMode() const
 {
-    //AssertOnThread(g_simThread);
-
-    return m_selectedManipulationMode;
+    return m_gizmoController->GetSelectedManipulationMode();
 }
 
 void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
@@ -3750,121 +1925,27 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
         ExitMeshEditMode(/* saveEdits */ true);
     }
 
-    if (mode == m_selectedManipulationMode)
-    {
-        return;
-    }
-
-    if (!m_gizmos.Contains(mode))
-    {
-        SetSelectedManipulationMode(EditorManipulationMode::None);
-        return;
-    }
-
-    EditorGizmoBase* newGizmo = m_gizmos.At(mode);
-    EditorGizmoBase* prevGizmo = m_gizmos.At(m_selectedManipulationMode);
-
-    m_selectedManipulationMode = mode;
-
-    OnSelectedGizmoChanged(newGizmo, prevGizmo);
+    m_gizmoController->SetSelectedManipulationMode(mode);
 }
 
 EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
 {
-    AssertOnThread(g_simThread);
-
-    return m_gizmos.At(m_selectedManipulationMode);
+    return m_gizmoController->GetSelectedGizmo();
 }
 
 EditorGizmoBase* EditorSubsystem::GetGizmo(EditorManipulationMode mode) const
 {
-    AssertOnThread(g_simThread);
-
-    if (!m_gizmos.Contains(mode))
-    {
-        return nullptr;
-    }
-
-    return m_gizmos.At(mode);
+    return m_gizmoController->GetGizmo(mode);
 }
 
 const EditorSubsystem::EditorGizmoSet& EditorSubsystem::GetGizmos() const
 {
-    AssertOnThread(g_simThread);
-
-    return m_gizmos;
+    return m_gizmoController->GetGizmos();
 }
 
 void EditorSubsystem::UpdateGizmoProximityVisibility()
 {
-    AssertOnThread(g_simThread);
-
-    EditorGizmoBase* gizmo = GetSelectedGizmo();
-
-    if (gizmo == nullptr || gizmo->GetManipulationMode() == EditorManipulationMode::None)
-    {
-        m_gizmosHiddenByProximity = false;
-
-        return;
-    }
-
-    // Never change gizmo visibility while a drag is active
-    if (gizmo->IsDragging())
-    {
-        return;
-    }
-
-    const Handle<Node>& gizmoNode = gizmo->GetNode();
-
-    if (!gizmoNode.IsValid() || !m_editorScene.IsValid())
-    {
-        return;
-    }
-
-    EditorViewport* activeViewport = GetActiveViewport();
-
-    if (activeViewport == nullptr || !activeViewport->GetCamera().IsValid())
-    {
-        return;
-    }
-
-    static constexpr float HideDistanceFactor = 0.8f;
-    static constexpr float ShowDistanceFactor = 1.2f;
-
-    const float gizmoScale = gizmoNode->GetWorldScale().Max();
-    const float hideDistance = gizmoScale * HideDistanceFactor;
-    const float showDistance = gizmoScale * ShowDistanceFactor;
-
-    const float cameraDistance = (activeViewport->GetCamera()->GetWorldTranslation() - gizmoNode->GetWorldTranslation()).Length();
-
-    const bool shouldHide = m_gizmosHiddenByProximity
-        ? cameraDistance < showDistance
-        : cameraDistance < hideDistance;
-
-    if (shouldHide == m_gizmosHiddenByProximity)
-    {
-        if (shouldHide && gizmoNode->GetParent() != nullptr)
-        {
-            SetHoveredGizmo(MouseEvent {}, nullptr, Handle<Node>::Null());
-
-            gizmoNode->Remove();
-        }
-
-        return;
-    }
-
-    m_gizmosHiddenByProximity = shouldHide;
-
-    if (shouldHide)
-    {
-        SetHoveredGizmo(MouseEvent {}, nullptr, Handle<Node>::Null());
-
-        gizmoNode->Remove();
-    }
-    else
-    {
-        m_editorScene->GetRoot()->AddChild(gizmoNode);
-    }
+    m_gizmoController->UpdateGizmoProximityVisibility();
 }
 
 #pragma endregion EditorSubsystem Gizmos
@@ -3874,7 +1955,7 @@ void EditorSubsystem::UpdateGizmoProximityVisibility()
 #ifdef HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem()
-    : m_selectedManipulationMode(EditorManipulationMode::None),
+    : m_gizmoController(MakeUnique<EditorGizmoController>()),
       m_playNetMode(EditorPlayNetMode::Standalone),
       m_playNetHost("127.0.0.1"),
       m_playNetPort(NetGlobals::GetGameServerPort()),
@@ -3883,18 +1964,10 @@ EditorSubsystem::EditorSubsystem()
       m_activeNetMode(EditorPlayNetMode::Standalone),
       m_activeAutoLaunchServer(false),
       m_playNetState(EditorPlayNetState::None),
-      m_snapToGridEnabled(false),
       m_swatchOverrideMode(false),
-      m_gizmosHiddenByProximity(false),
       m_editorCameraEnabled(false),
       m_shouldCancelNextClick(false)
 {
-    m_gizmos.Insert(MakeHandle<NullEditorGizmo>());
-    m_gizmos.Insert(MakeHandle<TranslateEditorGizmo>());
-    m_gizmos.Insert(MakeHandle<RotateEditorGizmo>());
-    m_gizmos.Insert(MakeHandle<ScaleEditorGizmo>());
-    m_gizmos.Insert(MakeHandle<VolumeEditorGizmo>());
-
     m_editorDelegates = new EditorDelegates();
 
     // Create eagerly so the managed side can always fetch it, regardless of the calling thread.
@@ -4417,25 +2490,6 @@ void EditorSubsystem::SetViewportForcedLod(int32 lodIndex)
     g_cvMeshLodForceLod.Set(MathUtil::Clamp(lodIndex, -1, int32(MaxMeshLods) - 1));
 }
 
-// Wireframe attributes for physics shape visualization: depth-tested against scene geometry so shapes
-// sit correctly in the world, but not depth-written so nearby shapes don't occlude one another.
-static RenderableAttributeSet PhysicsWireframeAttributes()
-{
-    RenderableAttributeSet attributes;
-
-    MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
-    meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple>;
-    meshAttributes.topology = Topology::Triangles;
-
-    MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
-    materialAttributes.bucket = RenderBucket::Debug;
-    materialAttributes.fillMode = FillMode::Line;
-    materialAttributes.blendFunction = BlendFunction::None();
-    materialAttributes.flags = MAF_DEPTH_TEST;
-
-    return attributes;
-}
-
 // Which LOD each mesh is rendering, without needing a shader path for it.
 void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandList)
 {
@@ -4834,6 +2888,12 @@ bool EditorSubsystem::StartSimulation()
 
     // Save the edits to meshes before simulating.
     ExitMeshEditMode(/* saveEdits */ true);
+
+    // The terrain tools edit the source world, not the snapshot that simulation runs against.
+    if (m_terrainSculpting.IsValid())
+    {
+        m_terrainSculpting->SetEnabled(false);
+    }
 
     const GameState& gameState = m_currentProject->GetGame()->GetGameState();
 
@@ -5586,8 +3646,8 @@ void EditorSubsystem::InitViewport()
             if (IsHoveringGizmo())
             {
                 // If the mouse is currently over a gizmo, don't allow camera to handle the event
-                Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
-                Handle<Node> node = m_hoveredGizmoNode.Lock();
+                Handle<EditorGizmoBase> gizmo = m_gizmoController->GetHoveredGizmo().Lock();
+                Handle<Node> node = m_gizmoController->GetHoveredGizmoNode().Lock();
 
                 if (!gizmo || !node)
                 {
@@ -5681,7 +3741,7 @@ void EditorSubsystem::InitViewport()
                         if (!rayHit.node)
                             continue;
 
-                        if (rayHit.node == m_hoveredGizmoNode.GetUnsafe())
+                        if (rayHit.node == m_gizmoController->GetHoveredGizmoNode().GetUnsafe())
                         {
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
@@ -5749,8 +3809,8 @@ void EditorSubsystem::InitViewport()
 
             if (IsHoveringGizmo())
             {
-                Handle<EditorGizmoBase> gizmo = m_hoveredGizmo.Lock();
-                Handle<Node> node = m_hoveredGizmoNode.Lock();
+                Handle<EditorGizmoBase> gizmo = m_gizmoController->GetHoveredGizmo().Lock();
+                Handle<Node> node = m_gizmoController->GetHoveredGizmoNode().Lock();
 
                 if (gizmo && node && !gizmo->IsDragging())
                 {
@@ -6817,33 +4877,7 @@ void EditorSubsystem::SetHoveredGizmo(
     EditorGizmoBase* gizmo,
     const Handle<Node>& gizmoNode)
 {
-    EditorViewport* activeViewport = GetActiveViewport();
-    if (activeViewport == nullptr)
-    {
-        return;
-    }
-
-    if (m_hoveredGizmo.IsValid() && m_hoveredGizmoNode.IsValid())
-    {
-        Handle<Node> hoveredGizmoNode = m_hoveredGizmoNode.Lock();
-        Handle<EditorGizmoBase> hoveredGizmo = m_hoveredGizmo.Lock();
-
-        if (hoveredGizmoNode && hoveredGizmo)
-        {
-            hoveredGizmo->OnMouseLeave(activeViewport->GetCamera(), event, hoveredGizmoNode);
-        }
-    }
-
-    if (gizmo != nullptr)
-    {
-        m_hoveredGizmo = MakeWeakRef(gizmo);
-    }
-    else
-    {
-        m_hoveredGizmo.Reset();
-    }
-
-    m_hoveredGizmoNode = gizmoNode;
+    m_gizmoController->SetHoveredGizmo(event, gizmo, gizmoNode);
 }
 
 void EditorSubsystem::SetActiveScene(const Handle<Scene>& scene)

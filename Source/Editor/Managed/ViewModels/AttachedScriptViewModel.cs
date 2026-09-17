@@ -74,7 +74,7 @@ namespace Hyperion.Editor.ViewModels
             _entity = entity;
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
-            NewCommand = new RelayCommand(OnNew);
+            NewCommand = new RelayCommand(OnNew, () => EngineManager.CanCreateAssets);
             EditCommand = new RelayCommand(OnEdit);
             CopyCommand = new AsyncRelayCommand(OnCopyAsync);
             PasteCommand = new AsyncRelayCommand(OnPasteAsync);
@@ -290,6 +290,13 @@ namespace Hyperion.Editor.ViewModels
 
                 _ = EngineManager.PostToSimThread(() =>
                 {
+                    if (!EngineManager.CanCreateAssets)
+                    {
+                        Logger.Log(LogLevel.Warning, "Cannot create a new script while simulation is active.");
+
+                        return;
+                    }
+
                     try
                     {
                         EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(

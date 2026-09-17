@@ -55,6 +55,11 @@ public:
 
     void SetKeyLightDirection(const Vec3f& direction);
 
+    /*! \brief Aims the key light with angles relative to the preview camera - zero yaw and pitch puts
+     *  the light behind the viewer, positive yaw swings it to the right of the image and positive
+     *  pitch raises it. */
+    void SetKeyLightViewAngles(float yaw, float pitch);
+
     /*! \brief Register the View for rendering this frame. ProcessViewAsync only lasts one frame, so this
      *  has to be called every sim tick for as long as the preview needs to render. */
     void Submit();

@@ -14,6 +14,8 @@ class Entity;
 class Scene;
 class Swatch;
 
+class SwatchOverrideSystem;
+
 struct CharacterControllerComponent;
 
 struct PlayerMove;
@@ -41,6 +43,8 @@ bool CanSimulateEntityPhysics(const Entity& entity);
 
 float GetCapsuleHeightOffset(const CharacterControllerComponent& component);
 void MoveCharacter(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
+
+SwatchOverrideSystem* GetSwatchOverrideSystemFor(const Entity& entity);
 
 } // namespace SceneHelpers
 

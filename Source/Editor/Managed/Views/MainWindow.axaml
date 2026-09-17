@@ -487,7 +487,10 @@
 
                                             <Separator />
 
-                                            <MenuItem Command="{Binding AddNewLayerCommand, Source={x:Static vm:MainWindowViewModel.Instance}}" Header="Add New Layer..." />
+                                            <MenuItem
+                                                Command="{Binding AddNewLayerCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                Header="Add New Layer..."
+                                                IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                         </StackPanel>
                                     </Flyout>
                                 </DropDownButton.Flyout>
@@ -536,7 +539,10 @@
                                                 </ItemsControl>
 
                                                 <Separator />
-                                                <MenuItem Command="{Binding AddNewSwatchCommand, Source={x:Static vm:MainWindowViewModel.Instance}}" Header="New Swatch..." />
+                                                <MenuItem
+                                                    Command="{Binding AddNewSwatchCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                    Header="New Swatch..."
+                                                    IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                             </StackPanel>
                                         </Flyout>
                                     </DropDownButton.Flyout>
@@ -953,7 +959,7 @@
                                             <MenuItem
                                                 Command="{Binding AddTerrainLayer}"
                                                 Header="Add Terrain Layer"
-                                                IsEnabled="{Binding !CanToggleTerrainSculptMode}"
+                                                IsEnabled="{Binding CanAddTerrainLayer}"
                                                 ToolTip.Tip="Add a terrain layer to the selected entity" />
                                         </ContextMenu>
                                     </DropDownButton.ContextMenu>
@@ -970,13 +976,6 @@
                                     </StackPanel>
                                     <DropDownButton.ContextMenu>
                                         <ContextMenu Placement="Bottom">
-                                            <MenuItem
-                                                Command="{Binding TogglePhysicsDebugDraw}"
-                                                Header="Draw Collision Shapes"
-                                                IsChecked="{Binding IsPhysicsDebugDrawEnabled, Mode=OneWay}"
-                                                ToggleType="CheckBox"
-                                                ToolTip.Tip="Draw collision shapes in the viewport" />
-                                            <Separator />
                                             <MenuItem
                                                 Command="{Binding FitPhysicsShapeToMesh}"
                                                 Header="Fit Box To Mesh"
@@ -1010,44 +1009,6 @@
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>
 
-                                <DropDownButton
-                                    x:Name="ViewportLodDropDown"
-                                    Classes="gizmo"
-                                    Click="OnDropDownClick"
-                                    ToolTip.Tip="Mesh LOD shown in the viewport">
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <TextBlock VerticalAlignment="Center" Text="{Binding ViewportLodText}" />
-                                        <controls:Codicon Kind="ChevronDown" Size="10" />
-                                    </StackPanel>
-                                    <DropDownButton.ContextMenu>
-                                        <ContextMenu Placement="Bottom">
-                                            <MenuItem
-                                                Command="{Binding SetViewportLod}"
-                                                CommandParameter="-1"
-                                                Header="Auto"
-                                                IsChecked="{Binding IsViewportLodAutomatic, Mode=OneWay}"
-                                                ToggleType="CheckBox" />
-                                            <Separator />
-                                            <MenuItem
-                                                Command="{Binding SetViewportLod}"
-                                                CommandParameter="0"
-                                                Header="Force LOD 0" />
-                                            <MenuItem
-                                                Command="{Binding SetViewportLod}"
-                                                CommandParameter="1"
-                                                Header="Force LOD 1" />
-                                            <MenuItem
-                                                Command="{Binding SetViewportLod}"
-                                                CommandParameter="2"
-                                                Header="Force LOD 2" />
-                                            <MenuItem
-                                                Command="{Binding SetViewportLod}"
-                                                CommandParameter="3"
-                                                Header="Force LOD 3" />
-                                        </ContextMenu>
-                                    </DropDownButton.ContextMenu>
-                                </DropDownButton>
-
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -1075,6 +1036,34 @@
                                               Click="OnWorldSettingsClick"
                                               ToolTip.Tip="Manage settings for the game's world" />
                                   
+                                    <Separator />
+                                    <MenuItem Header="{Binding ViewportLodText}" ToolTip.Tip="Mesh LOD shown in the viewport">
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="-1"
+                                            Header="Auto"
+                                            IsChecked="{Binding IsViewportLodAutomatic, Mode=OneWay}"
+                                            ToggleType="CheckBox"
+                                            ToolTip.Tip="Pick each mesh's LOD from its screen size" />
+                                        <Separator />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="0"
+                                            Header="Force LOD 0" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="1"
+                                            Header="Force LOD 1" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="2"
+                                            Header="Force LOD 2" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="3"
+                                            Header="Force LOD 3" />
+                                    </MenuItem>
+
                                     <Separator />
                                     <MenuItem Header="Layout">
                                         <MenuItem
@@ -2090,13 +2079,42 @@
                                                         Classes="panel-header"
                                                         DockPanel.Dock="Top">
                                                         <Grid VerticalAlignment="Center" ColumnDefinitions="*, Auto, Auto, Auto">
-                                                            <TextBlock
+                                                            <TextBox
                                                                 Grid.Column="0"
-                                                                Margin="6,0"
+                                                                MaxWidth="260"
+                                                                Margin="0,0,8,0"
+                                                                Padding="4,2"
+                                                                HorizontalAlignment="Left"
                                                                 VerticalAlignment="Center"
-                                                                Classes="header"
-                                                                FontSize="12"
-                                                                Text="Assets" />
+                                                                FontSize="11"
+                                                                Text="{Binding ContentBrowser.SearchText, Mode=TwoWay}"
+                                                                ToolTip.Tip="Filter the assets in this bucket by name"
+                                                                Watermark="Search assets...">
+                                                                <TextBox.InnerLeftContent>
+                                                                    <controls:Codicon
+                                                                        Margin="6,0,4,0"
+                                                                        VerticalAlignment="Center"
+                                                                        Foreground="{DynamicResource Brush.TextMuted}"
+                                                                        Kind="Search"
+                                                                        Size="12" />
+                                                                </TextBox.InnerLeftContent>
+                                                                <TextBox.InnerRightContent>
+                                                                    <Button
+                                                                        Margin="2,0"
+                                                                        Padding="3"
+                                                                        VerticalAlignment="Center"
+                                                                        Background="Transparent"
+                                                                        BorderThickness="0"
+                                                                        Command="{Binding ContentBrowser.ClearSearchCommand}"
+                                                                        IsVisible="{Binding ContentBrowser.HasSearchText}"
+                                                                        ToolTip.Tip="Clear search">
+                                                                        <controls:Codicon
+                                                                            Foreground="{DynamicResource Brush.TextMuted}"
+                                                                            Kind="Close"
+                                                                            Size="10" />
+                                                                    </Button>
+                                                                </TextBox.InnerRightContent>
+                                                            </TextBox>
                                                             <ComboBox
                                                                 Grid.Column="1"
                                                                 Margin="0,0,4,0"
@@ -2147,7 +2165,8 @@
                                                             Grid.Column="1"
                                                             ItemsSource="{Binding ContentBrowser.Assets}"
                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                            SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}">
+                                                            SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}"
+                                                            SelectionChanged="OnContentBrowserSelectionChanged">
                                                             <ListBox.ItemsPanel>
                                                                 <ItemsPanelTemplate>
                                                                     <WrapPanel />
@@ -2236,6 +2255,15 @@
                                                                 </DataTemplate>
                                                             </ListBox.ItemTemplate>
                                                         </ListBox>
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            Margin="12"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Classes="muted"
+                                                            IsHitTestVisible="False"
+                                                            IsVisible="{Binding ContentBrowser.HasNoMatches}"
+                                                            Text="No assets match the search." />
                                                     </Grid>
                                                 </DockPanel>
                                             </ContentControl>

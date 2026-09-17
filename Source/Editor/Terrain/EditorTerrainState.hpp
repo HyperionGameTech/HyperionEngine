@@ -84,6 +84,11 @@ public:
     HYP_METHOD()
     void SetPaintLayer(int paintLayer);
 
+    /*! \brief Whether the sculpt/paint tools may be turned on right now, independent of what the
+     *  world contains. */
+    HYP_METHOD()
+    bool CanEnterTerrainTools() const;
+
     HYP_METHOD()
     bool CanSculptTerrainForWorld(const Handle<World>& world) const;
 

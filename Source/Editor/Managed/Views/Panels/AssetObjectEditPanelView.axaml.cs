@@ -66,7 +66,13 @@ namespace Hyperion.Editor.Views.Panels
 
             Avalonia.Point position = e.GetPosition(surface);
 
-            viewModel.Preview.SetLightFromNormalizedPosition(position.X / width, position.Y / height);
+            // The preview is square and centred in the surface, so aiming is normalised against the
+            // image rather than the whole panel.
+            double size = System.Math.Min(width, height);
+            double originX = (width - size) * 0.5;
+            double originY = (height - size) * 0.5;
+
+            viewModel.Preview.SetLightFromNormalizedPosition((position.X - originX) / size, (position.Y - originY) / size);
         }
     }
 }

@@ -22,9 +22,13 @@
 
 #include <Core/Math/MathUtil.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
 #include <EditorTerrainState.generated.inl>
 
 namespace Hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #pragma region EditorTerrainState
 
@@ -67,6 +71,11 @@ void EditorTerrainState::SetEnabled(bool enabled)
     DispatchToSimThread([this, enabled]()
     {
         AssertOnThread(g_simThread);
+
+        if (enabled && !CanEnterTerrainTools())
+        {
+            return;
+        }
 
         if (!enabled && m_isStroking)
         {
@@ -150,6 +159,11 @@ void EditorTerrainState::ActivateSculpt()
             return;
         }
 
+        if (!CanEnterTerrainTools())
+        {
+            return;
+        }
+
         SetMode(m_sculptDirection);
         SetEnabled(true);
     });
@@ -165,6 +179,11 @@ void EditorTerrainState::ActivatePaint()
         if (IsPaintActive())
         {
             SetEnabled(false);
+            return;
+        }
+
+        if (!CanEnterTerrainTools())
+        {
             return;
         }
 
@@ -186,6 +205,22 @@ void EditorTerrainState::SetPaintLayer(int paintLayer)
 
         m_paintLayer = uint32(MathUtil::Clamp(paintLayer, 0, 3));
     });
+}
+
+bool EditorTerrainState::CanEnterTerrainTools() const
+{
+    AssertOnThread(g_simThread);
+
+    // The tools edit the source world; simulation runs against a throwaway snapshot of it, so any
+    // edits made while simulating would be discarded when it stops.
+    if (m_subsystem->IsSimulating())
+    {
+        HYP_LOG(Editor, Warning, "Cannot use the terrain tools while simulation is active");
+
+        return false;
+    }
+
+    return true;
 }
 
 bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) const
