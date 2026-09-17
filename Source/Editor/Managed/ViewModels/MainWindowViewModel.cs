@@ -358,6 +358,25 @@ namespace Hyperion.Editor.ViewModels
         public ICommand FitPhysicsShapeToMesh { get; private set; }
         public bool CanFitPhysicsShapeToMesh => _canFitPhysicsShapeToMesh;
 
+        public ICommand GenerateConvexCollision { get; private set; }
+        public bool CanGenerateConvexCollision => _canGenerateConvexCollision;
+
+        public ICommand SetViewportLod { get; private set; }
+
+        /// <summary>-1 renders each mesh at the LOD chosen from its screen size.</summary>
+        public int ViewportForcedLod => _viewportForcedLod;
+        public bool IsViewportLodAutomatic => _viewportForcedLod < 0;
+        public string ViewportLodText => _viewportForcedLod < 0 ? "LOD: Auto" : $"LOD: {_viewportForcedLod}";
+
+        public ICommand SetMeshEditLod { get; private set; }
+        public int MeshEditLod => _meshEditState.LodIndex;
+        public int MeshEditNumLods => _meshEditState.NumLods;
+        public bool MeshEditHasMultipleLods => _meshEditState.NumLods > 1;
+        public bool MeshEditLodsOutOfDate => _meshEditState.LodsOutOfDate;
+        public string MeshEditLodText => $"LOD {_meshEditState.LodIndex} / {Math.Max(_meshEditState.NumLods - 1, 0)}";
+
+        public ICommand RegenerateMeshEditLods { get; private set; }
+
         // This is the text that's displayed in the main toolbar, dynamic dependent on game state
         public string GameStateText
         {
@@ -379,6 +398,9 @@ namespace Hyperion.Editor.ViewModels
             public bool Simulating;
             public int LockedAxis = -1;
             public string TargetName = string.Empty;
+            public int LodIndex;
+            public int NumLods;
+            public bool LodsOutOfDate;
 
             public MeshEditStateSnapshot()
             {
@@ -388,6 +410,8 @@ namespace Hyperion.Editor.ViewModels
         private MeshEditStateSnapshot _meshEditState = new MeshEditStateSnapshot();
 
         private bool _canFitPhysicsShapeToMesh;
+        private bool _canGenerateConvexCollision;
+        private int _viewportForcedLod = -1;
 
         public ICommand ToggleMeshEditMode { get; private set; }
         public bool IsMeshEditModeEnabled => _meshEditState.Enabled;
@@ -692,6 +716,68 @@ namespace Hyperion.Editor.ViewModels
                     });
                 },
                 () => CanFitPhysicsShapeToMesh);
+
+            GenerateConvexCollision = new RelayCommand<object?>(
+                presetIndex =>
+                {
+                    uint preset = (uint)Math.Max(ParseCommandInt(presetIndex, 0), 0);
+
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.GenerateConvexCollision(preset);
+
+                        RefreshMeshEditState();
+                    });
+                },
+                _ => CanGenerateConvexCollision);
+
+            SetViewportLod = new RelayCommand<object?>(lodIndex =>
+            {
+                int lod = ParseCommandInt(lodIndex, -1);
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetViewportForcedLod(lod);
+
+                    int appliedLod = _editorSubsystem.GetViewportForcedLod();
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _viewportForcedLod = appliedLod;
+
+                        OnPropertyChanged(nameof(ViewportForcedLod));
+                        OnPropertyChanged(nameof(ViewportLodText));
+                        OnPropertyChanged(nameof(IsViewportLodAutomatic));
+                    });
+                });
+            });
+
+            SetMeshEditLod = new RelayCommand<object?>(lodIndex =>
+            {
+                int lod = ParseCommandInt(lodIndex, -1);
+
+                if (lod < 0)
+                {
+                    return;
+                }
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditLod((byte)Math.Max(lod, 0));
+
+                    RefreshMeshEditState();
+                });
+            });
+
+            RegenerateMeshEditLods = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.RegenerateMeshEditLods();
+
+                    RefreshMeshEditState();
+                });
+            });
 
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
@@ -1897,6 +1983,17 @@ namespace Hyperion.Editor.ViewModels
         /// <summary>
         /// Reads the engine's mesh edit state and publishes it to the UI thread.
         /// </summary>
+        /// XAML command parameters arrive as strings, engine-side callers pass ints.
+        private static int ParseCommandInt(object? parameter, int fallback)
+        {
+            return parameter switch
+            {
+                int value => value,
+                string text when int.TryParse(text, out int parsed) => parsed,
+                _ => fallback
+            };
+        }
+
         private void RefreshMeshEditState()
         {
             if (_editorSubsystem == null)
@@ -1907,6 +2004,8 @@ namespace Hyperion.Editor.ViewModels
             MeshEditStateSnapshot snapshot = new MeshEditStateSnapshot();
 
             bool canFitPhysicsShapeToMesh = false;
+            bool canGenerateConvexCollision = false;
+            int viewportForcedLod = -1;
 
             try
             {
@@ -1921,7 +2020,13 @@ namespace Hyperion.Editor.ViewModels
                 snapshot.LockedAxis = _editorSubsystem.GetMeshEditLockedAxis();
                 snapshot.TargetName = _editorSubsystem.GetMeshEditTargetNode()?.Name.ToString() ?? string.Empty;
 
+                snapshot.LodIndex = _editorSubsystem.GetMeshEditLod();
+                snapshot.NumLods = _editorSubsystem.GetMeshEditNumLods();
+                snapshot.LodsOutOfDate = _editorSubsystem.AreMeshEditLodsOutOfDate();
+
                 canFitPhysicsShapeToMesh = _editorSubsystem.CanFitPhysicsShapeToMesh();
+                canGenerateConvexCollision = _editorSubsystem.CanGenerateConvexCollision();
+                viewportForcedLod = _editorSubsystem.GetViewportForcedLod();
             }
             catch (Exception ex)
             {
@@ -1935,6 +2040,8 @@ namespace Hyperion.Editor.ViewModels
                 _meshEditState = snapshot;
 
                 _canFitPhysicsShapeToMesh = canFitPhysicsShapeToMesh;
+                _canGenerateConvexCollision = canGenerateConvexCollision;
+                _viewportForcedLod = viewportForcedLod;
 
                 NotifyMeshEditStateChanged();
             });
@@ -1961,6 +2068,19 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(CanFitPhysicsShapeToMesh));
             (FitPhysicsShapeToMesh as RelayCommand)?.RaiseCanExecuteChanged();
+
+            OnPropertyChanged(nameof(CanGenerateConvexCollision));
+            (GenerateConvexCollision as RelayCommand<object?>)?.RaiseCanExecuteChanged();
+
+            OnPropertyChanged(nameof(ViewportForcedLod));
+            OnPropertyChanged(nameof(ViewportLodText));
+            OnPropertyChanged(nameof(IsViewportLodAutomatic));
+
+            OnPropertyChanged(nameof(MeshEditLod));
+            OnPropertyChanged(nameof(MeshEditNumLods));
+            OnPropertyChanged(nameof(MeshEditHasMultipleLods));
+            OnPropertyChanged(nameof(MeshEditLodsOutOfDate));
+            OnPropertyChanged(nameof(MeshEditLodText));
         }
 
         private void HandleSelectionUpdate()

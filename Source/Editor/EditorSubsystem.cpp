@@ -37,6 +37,7 @@
 #include <Scene/System.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
+#include <Scene/Systems/MeshLodSystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
@@ -57,6 +58,7 @@
 #include <Scene/Components/TerrainCellComponent.hpp>
 
 #include <Physics/PhysicsShape.hpp>
+#include <Physics/ConvexDecomposition.hpp>
 
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Volume.hpp>
@@ -143,6 +145,7 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
+static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
 
 namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
@@ -2449,19 +2452,23 @@ static void ApplyMeshEditVertexPositions(
         // Hacky solution, but it works.
         mesh->SetIndexData(lodIndex, indexData);
 
-        const BoundingBox meshBounds = mesh->CalculateAABB();
-
-        if (recomputeDerivedData)
+        // Bounds and the mesh BVH describe LOD 0; a coarser LOD's edits must not overwrite them.
+        if (lodIndex == 0)
         {
-            mesh->SetAABB(meshBounds);
+            const BoundingBox meshBounds = mesh->CalculateAABB();
 
-            BVHNode bvh;
-            mesh->BuildBVH(bvh);
+            if (recomputeDerivedData)
+            {
+                mesh->SetAABB(meshBounds);
 
-            mesh->SetBVH(std::move(bvh));
+                BVHNode bvh;
+                mesh->BuildBVH(bvh);
+
+                mesh->SetBVH(std::move(bvh));
+            }
+
+            entity->SetLocalBounds(meshBounds);
         }
-
-        entity->SetLocalBounds(meshBounds);
     }
 
     // Update editor pick cache, so we don't test against old verts
@@ -2551,6 +2558,9 @@ void EditorSubsystem::EnterMeshEditMode()
 
     m_meshEditState.enabled = true;
 
+    // Edit whatever LOD is on screen, and hold the entity there so LOD selection can't swap it mid-edit.
+    SetMeshEditLod(ResolveMeshEditLod(target));
+
     m_meshEditState.actionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
 
     m_meshEditState.baselinePositions.Clear();
@@ -2587,9 +2597,21 @@ void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
 
     SetSelectedMeshEditFace({});
 
+    Handle<Node> targetNode = m_meshEditState.targetNode.Lock();
+
+    if (Entity* entity = DynamicCast<Entity>(targetNode.Get()))
+    {
+        entity->RemoveTag<EntityTag::MeshLodPinned>();
+    }
+
     m_meshEditState.hoveredFace.Unset();
     m_meshEditState.targetNode.Reset();
     m_meshEditState.actionStack.Reset();
+
+    m_meshEditState.lodIndex = 0;
+    m_meshEditState.lodPickBvh.Reset();
+    m_meshEditState.lodPickBvhMesh.Reset();
+    m_meshEditState.lodPickBvhDirty = true;
 
     m_meshEditState.isChanging = true;
     SetSelectedManipulationMode(m_meshEditState.manipulationModeBeforeMeshEdit);
@@ -2647,6 +2669,138 @@ void EditorSubsystem::SetMeshEditFaceMode(MeshEditFaceMode faceMode)
     m_meshEditState.hoveredFace.Unset();
 }
 
+uint8 EditorSubsystem::ResolveMeshEditLod(Node* targetNode) const
+{
+    Entity* entity = DynamicCast<Entity>(targetNode);
+
+    if (entity == nullptr)
+    {
+        return 0;
+    }
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (meshComponent == nullptr || !meshComponent->mesh.IsValid())
+    {
+        return 0;
+    }
+
+    const uint8 numLods = MathUtil::Max(meshComponent->mesh->GetMeshDesc().GetNumLods(), uint8(1));
+
+    const int32 forcedLod = GetViewportForcedLod();
+
+    if (forcedLod >= 0)
+    {
+        return uint8(MathUtil::Min(forcedLod, int32(numLods) - 1));
+    }
+
+    return MathUtil::Min(meshComponent->lodIndex, uint8(numLods - 1));
+}
+
+uint8 EditorSubsystem::GetMeshEditLod() const
+{
+    AssertOnThread(g_simThread);
+
+    return m_meshEditState.lodIndex;
+}
+
+void EditorSubsystem::SetMeshEditLod(uint8 lodIndex)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_meshEditState.enabled)
+    {
+        return;
+    }
+
+    Handle<Node> targetNode = m_meshEditState.targetNode.Lock();
+    Entity* entity = DynamicCast<Entity>(targetNode.Get());
+
+    if (entity == nullptr)
+    {
+        return;
+    }
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    if (meshComponent == nullptr || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    const uint8 numLods = MathUtil::Max(meshComponent->mesh->GetMeshDesc().GetNumLods(), uint8(1));
+    const uint8 clampedLodIndex = MathUtil::Min(lodIndex, uint8(numLods - 1));
+
+    if (m_meshEditState.lodIndex != clampedLodIndex)
+    {
+        SetSelectedMeshEditFace({});
+        m_meshEditState.hoveredFace.Unset();
+    }
+
+    m_meshEditState.lodIndex = clampedLodIndex;
+    m_meshEditState.lodPickBvhDirty = true;
+
+    // the mesh must keep rendering the LOD being edited
+    entity->AddTag<EntityTag::MeshLodPinned>();
+
+    if (meshComponent->lodIndex != clampedLodIndex)
+    {
+        meshComponent->lodIndex = clampedLodIndex;
+
+        entity->SetNeedsRenderProxyUpdate();
+    }
+
+    OnMeshEditStateChanged();
+}
+
+uint8 EditorSubsystem::GetMeshEditNumLods() const
+{
+    AssertOnThread(g_simThread);
+
+    MeshComponent* meshComponent = nullptr;
+
+    if (!ResolveMeshEditTarget(&meshComponent) || meshComponent == nullptr || !meshComponent->mesh.IsValid())
+    {
+        return 0;
+    }
+
+    return meshComponent->mesh->GetMeshDesc().GetNumLods();
+}
+
+bool EditorSubsystem::AreMeshEditLodsOutOfDate() const
+{
+    AssertOnThread(g_simThread);
+
+    MeshComponent* meshComponent = nullptr;
+
+    if (!ResolveMeshEditTarget(&meshComponent) || meshComponent == nullptr || !meshComponent->mesh.IsValid())
+    {
+        return false;
+    }
+
+    auto readScope = meshComponent->mesh->GetReadScope();
+
+    return meshComponent->mesh->AreLodsOutOfDate();
+}
+
+void EditorSubsystem::RegenerateMeshEditLods()
+{
+    AssertOnThread(g_simThread);
+
+    MeshComponent* meshComponent = nullptr;
+
+    if (!ResolveMeshEditTarget(&meshComponent) || meshComponent == nullptr || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    meshComponent->mesh->GenerateLods();
+
+    m_meshEditState.lodPickBvhDirty = true;
+
+    SetMeshEditLod(m_meshEditState.lodIndex);
+}
+
 bool EditorSubsystem::IsMeshEditAlignToNormal() const
 {
     AssertOnThread(g_simThread);
@@ -2687,7 +2841,7 @@ void EditorSubsystem::CaptureMeshEditBaseline()
 
     Mesh* mesh = meshComponent->mesh;
 
-    if (!ReadAllMeshVertexPositions(mesh, /* lodIndex */ 0, m_meshEditState.baselinePositions))
+    if (!ReadAllMeshVertexPositions(mesh, m_meshEditState.lodIndex, m_meshEditState.baselinePositions))
     {
         HYP_LOG(Editor, Warning, "Failed to capture mesh edit baseline for {}; edits will not be undoable as a unit", target->GetName());
 
@@ -2756,7 +2910,7 @@ void EditorSubsystem::CommitMeshEdits()
 
     Array<Vec3f, EditorAllocator> finalPositions;
 
-    if (!ReadAllMeshVertexPositions(baselineMesh.Get(), /* lodIndex */ 0, finalPositions))
+    if (!ReadAllMeshVertexPositions(baselineMesh.Get(), m_meshEditState.lodIndex, finalPositions))
     {
         HYP_LOG(Editor, Warning, "Failed to read final mesh state for {}; mesh edits will not be undoable", node->GetName());
 
@@ -2775,24 +2929,26 @@ void EditorSubsystem::CommitMeshEdits()
         return;
     }
 
+    const uint8 lodIndex = m_meshEditState.lodIndex;
+
     project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
         "Apply Mesh Edits",
-        [nodeWeak = node.ToWeak(), baselinePositions, finalPositions]() -> EditorActionFunctions
+        [nodeWeak = node.ToWeak(), baselinePositions, finalPositions, lodIndex]() -> EditorActionFunctions
         {
             return {
-                [nodeWeak, finalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                [nodeWeak, finalPositions, lodIndex](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
                     if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                     {
-                        WriteAllMeshVertexPositions(node, /* lodIndex */ 0, finalPositions);
+                        WriteAllMeshVertexPositions(node, lodIndex, finalPositions);
                         editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(node.Get()));
                     }
                 },
-                [nodeWeak, baselinePositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                [nodeWeak, baselinePositions, lodIndex](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                 {
                     if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                     {
-                        WriteAllMeshVertexPositions(node, /* lodIndex */ 0, baselinePositions);
+                        WriteAllMeshVertexPositions(node, lodIndex, baselinePositions);
                         editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(node.Get()));
                     }
                 }
@@ -2821,7 +2977,7 @@ void EditorSubsystem::DiscardMeshEdits()
         return;
     }
 
-    WriteAllMeshVertexPositions(node, /* lodIndex */ 0, baselinePositions);
+    WriteAllMeshVertexPositions(node, m_meshEditState.lodIndex, baselinePositions);
 }
 
 static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* meshComponent)
@@ -2839,28 +2995,15 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
         return;
     }
 
-    Handle<Mesh> clonedMesh = MakeHandle<Mesh>();
+    Handle<Mesh> clonedMesh = sourceMesh->Clone();
     clonedMesh->SetName(sourceMesh->GetName()); // Will be unique'd anyway
 
+    if (!clonedMesh->GetBVH().IsValid())
     {
-        // read scope needed to access the data.
-        auto readScope = sourceMesh->GetReadScope();
-
-        const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
-        const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
-        const Span<const ubyte> indexData = sourceMesh->GetIndexData(0);
-
-        MeshDataView meshData {};
-        meshData.vertices[0] = vertexData;
-        meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
-
-        clonedMesh->SetMeshData(meshDesc, meshData);
-
-        readScope.Reset();
-
         BVHNode bvh;
         clonedMesh->BuildBVH(bvh);
 
+        auto writeScope = clonedMesh->GetWriteScope();
         clonedMesh->SetBVH(std::move(bvh));
     }
 
@@ -2878,6 +3021,73 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
     }
 }
 
+// Picking a coarser LOD can't go through Node::TestRay, which only knows the mesh's LOD 0 BVH.
+bool EditorSubsystem::PickMeshEditFaceTriangle(const Ray& ray, const Handle<Node>& targetNode, Mesh* mesh, uint8 lodIndex, uint32& outTriangleIndex)
+{
+    if (lodIndex >= mesh->GetMeshDesc().GetNumLods())
+    {
+        return false;
+    }
+
+    if (m_meshEditState.lodPickBvhDirty
+        || m_meshEditState.lodPickBvhMesh.GetUnsafe() != mesh
+        || m_meshEditState.lodPickBvhLodIndex != lodIndex)
+    {
+        auto readScope = mesh->GetReadScope();
+
+        UniquePtr<BVHNode, EditorAllocator> bvh = MakeUniqueWithAllocator<BVHNode, EditorAllocator>();
+        mesh->BuildBVH(*bvh, /* maxDepth */ 3, lodIndex);
+
+        m_meshEditState.lodPickBvh = std::move(bvh);
+        m_meshEditState.lodPickBvhMesh = MakeWeakRef(mesh);
+        m_meshEditState.lodPickBvhLodIndex = lodIndex;
+        m_meshEditState.lodPickBvhDirty = false;
+    }
+
+    if (!m_meshEditState.lodPickBvh || !m_meshEditState.lodPickBvh->IsValid())
+    {
+        return false;
+    }
+
+    auto readScope = mesh->GetReadScope();
+
+    const VertexArrayView vertexData = mesh->GetVertexData(lodIndex);
+    const Span<const ubyte> indexData = mesh->GetIndexData(lodIndex);
+
+    const Ray localSpaceRay = targetNode->GetWorldMatrix().Inverse() * ray;
+
+    RayTestResults results = m_meshEditState.lodPickBvh->TestRay(
+        localSpaceRay,
+        vertexData,
+        Span<const uint32>(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32)));
+
+    const RayHit* closestHit = nullptr;
+
+    for (const RayHit& hit : results)
+    {
+        if (hit.triangleIndex == ~0u)
+        {
+            continue;
+        }
+
+        if (closestHit && hit.distance >= closestHit->distance)
+        {
+            continue;
+        }
+
+        closestHit = &hit;
+    }
+
+    if (!closestHit)
+    {
+        return false;
+    }
+
+    outTriangleIndex = closestHit->triangleIndex;
+
+    return true;
+}
+
 bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh)
 {
     AssertOnThread(g_simThread);
@@ -2892,65 +3102,44 @@ bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection&
 
     Handle<Node> targetNode = MakeStrongRef(targetNodeRaw);
 
-    // TEMP DIAGNOSTIC: dump BVH/mesh state for this pick attempt.
+    const uint8 lodIndex = MathUtil::Min(m_meshEditState.lodIndex, uint8(MathUtil::Max(meshComponent->mesh->GetMeshDesc().GetNumLods(), 1) - 1));
+
+    uint32 pickedTriangleIndex = ~0u;
+
+    if (lodIndex == 0)
     {
-        Mesh* diagMesh = meshComponent->mesh;
-        const BVHNode& diagBvh = diagMesh->GetBVH();
-        auto diagReadScope = diagMesh->GetReadScope();
-        const VertexArrayView diagVertexData = diagMesh->GetVertexData(0);
-        const Span<const ubyte> diagIndexData = diagMesh->GetIndexData(0);
+        RayTestResults results;
 
-        HYP_LOG(Editor, Warning,
-            "[MeshEditPickDiag] ray.pos={} ray.dir={} bvh.valid={} bvh.aabb=({} - {}) vertexCount={} indexCount={}",
-            ray.position, ray.direction,
-            diagBvh.IsValid(), diagBvh.aabb.GetMin(), diagBvh.aabb.GetMax(),
-            diagVertexData.vertexCount, diagIndexData.Size() / sizeof(uint32));
-    }
-
-    RayTestResults results;
-
-    const bool hadAnyHit = targetNode->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick);
-
-    HYP_LOG(Editor, Warning, "[MeshEditPickDiag] TestRay returned {} with {} total result(s)", hadAnyHit, results.Size());
-
-    if (!hadAnyHit)
-    {
-        return false;
-    }
-
-    const RayHit* closestHit = nullptr;
-    uint32 numHitsForTargetNode = 0;
-
-    for (const RayHit& hit : results)
-    {
-        if (hit.node != targetNode.Get() || hit.triangleIndex == ~0u)
+        if (!targetNode->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
         {
-            continue;
+            return false;
         }
 
-        numHitsForTargetNode++;
+        const RayHit* closestHit = nullptr;
 
-        // // Reject backfaces.
-        // if (hit.normal.Dot(-ray.direction) < FLT_EPSILON)
-        // {
-        //     continue;
-        // }
-
-        if (closestHit && hit.distance >= closestHit->distance)
+        for (const RayHit& hit : results)
         {
-            continue;
+            if (hit.node != targetNode.Get() || hit.triangleIndex == ~0u)
+            {
+                continue;
+            }
+
+            if (closestHit && hit.distance >= closestHit->distance)
+            {
+                continue;
+            }
+
+            closestHit = &hit;
         }
 
-        closestHit = &hit;
+        if (!closestHit)
+        {
+            return false;
+        }
+
+        pickedTriangleIndex = closestHit->triangleIndex;
     }
-
-    HYP_LOG(Editor, Warning, "[MeshEditPickDiag] {} hit(s) matched target node; closestHit={} triangleIndex={} distance={}",
-        numHitsForTargetNode,
-        closestHit != nullptr,
-        closestHit ? closestHit->triangleIndex : ~0u,
-        closestHit ? closestHit->distance : -1.0f);
-
-    if (!closestHit)
+    else if (!PickMeshEditFaceTriangle(ray, targetNode, meshComponent->mesh, lodIndex, pickedTriangleIndex))
     {
         return false;
     }
@@ -2961,14 +3150,13 @@ bool EditorSubsystem::TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection&
     }
 
     Mesh* mesh = meshComponent->mesh;
-    const uint8 lodIndex = 0;
 
     auto readScope = mesh->GetReadScope();
 
     const Span<const ubyte> indexData = mesh->GetIndexData(lodIndex);
     const Span<const uint32> indices(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32));
 
-    const uint32 triangleIndex = closestHit->triangleIndex;
+    const uint32 triangleIndex = pickedTriangleIndex;
 
     Array<uint32, EditorAllocator> vertexIndices {
         indices[triangleIndex * 3 + 0],
@@ -3459,6 +3647,8 @@ void EditorSubsystem::EndMeshEditDrag(bool saveEdits)
                         if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                         {
                             ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, updatedLocalPositions, /* recomputeDerivedData */ true);
+
+                            editorSubsystem->m_meshEditState.lodPickBvhDirty = true;
                         }
                     },
                     [nodeWeak, lodIndex, vertexIndices, originalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
@@ -3466,6 +3656,8 @@ void EditorSubsystem::EndMeshEditDrag(bool saveEdits)
                         if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                         {
                             ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, originalPositions, /* recomputeDerivedData */ true);
+
+                            editorSubsystem->m_meshEditState.lodPickBvhDirty = true;
                         }
                     }
                 };
@@ -3880,6 +4072,28 @@ static Handle<PhysicsShape> ClonePhysicsShape(const Handle<PhysicsShape>& source
         view.layoutDesc = StaticVertexInputLayout<VT_Position>;
         return MakeHandle<ConvexHullPhysicsShape>(name, view);
     }
+    case PhysicsShapeType::Compound:
+    {
+        const CompoundPhysicsShape* compound = static_cast<CompoundPhysicsShape*>(source.Get());
+
+        Array<float> positions;
+        Array<uint32> indices;
+
+        for (uint32 hullIndex = 0; hullIndex < compound->NumHulls(); hullIndex++)
+        {
+            positions.Concat(compound->GetHullVertices(hullIndex));
+            indices.Concat(compound->GetHullIndices(hullIndex));
+        }
+
+        Handle<CompoundPhysicsShape> clonedShape = MakeHandle<CompoundPhysicsShape>(name);
+        clonedShape->SetHulls(
+            Span<const float>(positions.Data(), positions.Size()),
+            Span<const uint32>(indices.Data(), indices.Size()),
+            Span<const ConvexHullRange>(compound->GetHulls().Data(), compound->GetHulls().Size()));
+        clonedShape->SetDecompositionSettings(compound->GetDecompositionSettings());
+
+        return clonedShape;
+    }
     default:
         return nullptr;
     }
@@ -4056,6 +4270,153 @@ void EditorSubsystem::FitPhysicsShapeToMesh()
         }));
 }
 
+bool EditorSubsystem::CanGenerateConvexCollision() const
+{
+    if (!m_currentProject.IsValid() || IsSimulating() || !IsConvexDecompositionSupported())
+    {
+        return false;
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    if (!focusedNode.IsValid())
+    {
+        return false;
+    }
+
+    Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+
+    if (entity == nullptr)
+    {
+        return false;
+    }
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    return meshComponent != nullptr
+        && meshComponent->mesh.IsValid()
+        && rigidBodyComponent != nullptr;
+}
+
+uint32 EditorSubsystem::GetNumConvexCollisionPresets() const
+{
+    return GetNumConvexDecompositionPresets();
+}
+
+String EditorSubsystem::GetConvexCollisionPresetName(uint32 presetIndex) const
+{
+    return String(GetConvexDecompositionPresetName(presetIndex));
+}
+
+void EditorSubsystem::GenerateConvexCollision(uint32 presetIndex)
+{
+    if (!CanGenerateConvexCollision())
+    {
+        return;
+    }
+
+    Entity* entity = DynamicCast<Entity>(m_focusedNode.Lock().Get());
+    Assert(entity != nullptr);
+
+    MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+    Handle<Mesh> mesh = meshComponent->mesh;
+
+    const ConvexDecompositionSettings settings = GetConvexDecompositionPreset(presetIndex);
+
+    EditorTaskScope* editorTaskScope = new EditorTaskScope(
+        TickableEditorTask::StaticClass(),
+        []()
+        { /* no tick function */ },
+        "Generating Convex Collision",
+        mesh->GetName().ToString(),
+        /* isForegroundTask */ true);
+
+    TaskSystem::GetInstance().Enqueue(
+        [editorTaskScope, mesh, entityRef = MakeStrongRef(entity), settings]()
+        {
+            TResult<ConvexDecompositionResult> decompositionResult = DecomposeMesh(mesh.Get(), settings);
+
+            if (decompositionResult.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to generate convex collision for {}: {}",
+                    mesh->GetName(), decompositionResult.GetError().GetMessage());
+
+                delete editorTaskScope;
+
+                return;
+            }
+
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [mesh, entityRef, settings, result = std::move(decompositionResult.GetValue())]()
+                {
+                    Handle<EditorSubsystem> subsystem = g_editorState ? g_editorState->GetEditorSubsystem() : Handle<EditorSubsystem>();
+
+                    if (!entityRef.IsValid() || !subsystem.IsValid() || !subsystem->GetCurrentProject().IsValid())
+                    {
+                        return;
+                    }
+
+                    RigidBodyComponent* rigidBodyComponent = entityRef->TryGetComponent<RigidBodyComponent>();
+
+                    if (rigidBodyComponent == nullptr)
+                    {
+                        return;
+                    }
+
+                    Handle<CompoundPhysicsShape> compoundShape = MakeHandle<CompoundPhysicsShape>(NAME_FMT("{}_Collision", mesh->GetName()));
+                    compoundShape->SetHulls(
+                        Span<const float>(result.positions.Data(), result.positions.Size()),
+                        Span<const uint32>(result.indices.Data(), result.indices.Size()),
+                        Span<const ConvexHullRange>(result.hulls.Data(), result.hulls.Size()));
+                    compoundShape->SetDecompositionSettings(settings);
+
+                    GetCurrentAssetRegistry()->PutAssetUnique(compoundShape);
+
+                    Handle<PhysicsShape> previousShape = rigidBodyComponent->shape;
+
+                    subsystem->GetCurrentProject()->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+                        "Generate Convex Collision",
+                        [entityRef, compoundShape, previousShape]() -> EditorActionFunctions
+                        {
+                            return {
+                                [entityRef, compoundShape](EditorSubsystem*, EditorProject*)
+                                {
+                                    if (RigidBodyComponent* rigidBodyComponent = entityRef.IsValid() ? entityRef->TryGetComponent<RigidBodyComponent>() : nullptr)
+                                    {
+                                        rigidBodyComponent->shape = compoundShape;
+                                        entityRef->AddTag<EntityTag::UpdatePhysicsShape>();
+                                    }
+                                },
+                                [entityRef, previousShape](EditorSubsystem*, EditorProject*)
+                                {
+                                    if (RigidBodyComponent* rigidBodyComponent = entityRef.IsValid() ? entityRef->TryGetComponent<RigidBodyComponent>() : nullptr)
+                                    {
+                                        rigidBodyComponent->shape = previousShape;
+                                        entityRef->AddTag<EntityTag::UpdatePhysicsShape>();
+                                    }
+                                }
+                            };
+                        }));
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+
+            delete editorTaskScope;
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+int32 EditorSubsystem::GetViewportForcedLod() const
+{
+    return g_cvMeshLodForceLod.Get();
+}
+
+void EditorSubsystem::SetViewportForcedLod(int32 lodIndex)
+{
+    g_cvMeshLodForceLod.Set(MathUtil::Clamp(lodIndex, -1, int32(MaxMeshLods) - 1));
+}
+
 // Wireframe attributes for physics shape visualization: depth-tested against scene geometry so shapes
 // sit correctly in the world, but not depth-written so nearby shapes don't occlude one another.
 static RenderableAttributeSet PhysicsWireframeAttributes()
@@ -4073,6 +4434,63 @@ static RenderableAttributeSet PhysicsWireframeAttributes()
     materialAttributes.flags = MAF_DEPTH_TEST;
 
     return attributes;
+}
+
+// Which LOD each mesh is rendering, without needing a shader path for it.
+void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandList)
+{
+    if (!s_cvShowMeshLods.Get() || !m_currentProject.IsValid())
+    {
+        return;
+    }
+
+    static const RenderableAttributeSet wireframeAttributes = PhysicsWireframeAttributes();
+
+    static const Color lodColors[] = {
+        Color(0.3f, 1.0f, 0.4f, 1.0f),
+        Color(1.0f, 0.9f, 0.3f, 1.0f),
+        Color(1.0f, 0.5f, 0.2f, 1.0f),
+        Color(1.0f, 0.25f, 0.25f, 1.0f)
+    };
+
+    for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
+    {
+        for (auto [entity, meshComponent, boundingBoxComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!meshComponent.mesh.IsValid() || meshComponent.mesh->GetMeshDesc().GetNumLods() <= 1)
+            {
+                continue;
+            }
+
+            const BoundingSphere boundingSphere { boundingBoxComponent.worldAabb };
+
+            if (boundingSphere.radius <= 0.0f)
+            {
+                continue;
+            }
+
+            debugDrawCommandList.sphere(
+                boundingSphere.center,
+                boundingSphere.radius,
+                lodColors[MathUtil::Min(meshComponent.lodIndex, uint8(GetArrayCount(lodColors) - 1))],
+                wireframeAttributes);
+        }
+    }
+}
+
+// Hulls of one decomposition are easier to tell apart when each gets its own colour.
+static Color HullDebugColor(uint32 hullIndex)
+{
+    static const Color hullColors[] = {
+        Color(1.0f, 0.85f, 0.2f, 1.0f),
+        Color(0.3f, 0.9f, 1.0f, 1.0f),
+        Color(1.0f, 0.4f, 0.7f, 1.0f),
+        Color(0.5f, 1.0f, 0.4f, 1.0f),
+        Color(1.0f, 0.6f, 0.25f, 1.0f),
+        Color(0.7f, 0.6f, 1.0f, 1.0f)
+    };
+
+    return hullColors[hullIndex % GetArrayCount(hullColors)];
 }
 
 void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawCommandList)
@@ -4094,6 +4512,7 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
     static constexpr auto PlanePhysicsShapeTypeId = CONSTEXPR_TYPE_ID(PlanePhysicsShape);
     static constexpr auto CapsulePhysicsShapeTypeId = CONSTEXPR_TYPE_ID(CapsulePhysicsShape);
     static constexpr auto ConvexHullPhysicsShapeTypeId = CONSTEXPR_TYPE_ID(ConvexHullPhysicsShape);
+    static constexpr auto CompoundPhysicsShapeTypeId = CONSTEXPR_TYPE_ID(CompoundPhysicsShape);
 
     static constexpr float PlaneDebugHalfExtent = 5.0f;
 
@@ -4202,6 +4621,59 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
                 debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
                 break;
             }
+            case CompoundPhysicsShapeTypeId:
+            {
+                const CompoundPhysicsShape* compoundShape = static_cast<CompoundPhysicsShape*>(shape);
+
+                for (uint32 hullIndex = 0; hullIndex < compoundShape->NumHulls(); hullIndex++)
+                {
+                    const Span<const float> hullVertices = compoundShape->GetHullVertices(hullIndex);
+
+                    if (hullVertices.Size() < 3 * 3)
+                    {
+                        continue;
+                    }
+
+                    // one debug entry per triangle adds up fast, so only the selected entity gets real hulls
+                    if (!selected)
+                    {
+                        BoundingBox hullAabb = BoundingBox::Empty();
+
+                        for (size_t vertexIndex = 0; vertexIndex + 2 < hullVertices.Size(); vertexIndex += 3)
+                        {
+                            hullAabb = hullAabb.Union(Vec3f(hullVertices[vertexIndex], hullVertices[vertexIndex + 1], hullVertices[vertexIndex + 2]));
+                        }
+
+                        const Transform hullWorldTransform = entityWorldTransform * Transform(hullAabb.GetCenter(), hullAabb.GetExtent() * 0.5f, Quat4f::Identity());
+                        debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
+
+                        continue;
+                    }
+
+                    const Span<const uint32> hullIndices = compoundShape->GetHullIndices(hullIndex);
+                    const Color hullColor = HullDebugColor(hullIndex);
+
+                    for (size_t index = 0; index + 2 < hullIndices.Size(); index += 3)
+                    {
+                        const uint32 i0 = hullIndices[index] * 3;
+                        const uint32 i1 = hullIndices[index + 1] * 3;
+                        const uint32 i2 = hullIndices[index + 2] * 3;
+
+                        if (i0 + 2 >= hullVertices.Size() || i1 + 2 >= hullVertices.Size() || i2 + 2 >= hullVertices.Size())
+                        {
+                            continue;
+                        }
+
+                        const Vec3f v0 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i0], hullVertices[i0 + 1], hullVertices[i0 + 2]), 1.0f)).GetXYZ();
+                        const Vec3f v1 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i1], hullVertices[i1 + 1], hullVertices[i1 + 2]), 1.0f)).GetXYZ();
+                        const Vec3f v2 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i2], hullVertices[i2 + 1], hullVertices[i2 + 2]), 1.0f)).GetXYZ();
+
+                        debugDrawCommandList.triangle(v0, v1, v2, hullColor, wireframeAttributes);
+                    }
+                }
+
+                break;
+            }
             default:
                 break;
             }
@@ -4256,6 +4728,7 @@ void EditorSubsystem::Update(float delta)
 
     DebugDrawMeshEditSelection(dbg);
     DebugDrawPhysicsShapes(dbg);
+    DebugDrawMeshLods(dbg);
     GetTerrainState()->DebugDrawCursor(dbg);
 
     if (m_currentProject.IsValid())

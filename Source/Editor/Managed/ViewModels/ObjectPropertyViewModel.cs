@@ -811,12 +811,14 @@ namespace Hyperion.Editor.ViewModels
                         // new - rebuilding on every refresh would tear down open pop-out panels.
                         if (resolvedKey != Volatile.Read(ref _subObjectKey))
                         {
+                            // Editing a field on the sub-object (e.g. a collision shape's bounds) has to run the
+                            // owning property's post-write too, or the owner never learns that it changed.
                             newSubObject = new ComponentSubObjectViewModel(
                                 Label,
                                 obj,
                                 _depth + 1,
                                 preWriteCallback: null,
-                                postWriteCallback: null,
+                                postWriteCallback: () => PostWriteCallback?.Invoke(),
                                 valueChangedCallback: () => ValueChangedCallback?.Invoke());
                         }
                     }

@@ -310,6 +310,8 @@ public:
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
 
+    bool ShouldCollectLODs() const;
+
     HYP_FORCE_INLINE bool ShouldCollectShadowViews() const
     {
         return desc.viewIndex == 0 && !(flags & (ViewFlags::NO_SHADOW_VIEWS | ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));

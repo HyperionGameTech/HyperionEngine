@@ -91,4 +91,12 @@ namespace Hyperion
         {
         }
     }
+    
+    [ClassBinding(Name = "CompoundPhysicsShape")]
+    public class CompoundPhysicsShape : PhysicsShape
+    {
+        public CompoundPhysicsShape()
+        {
+        }
+    }
 }

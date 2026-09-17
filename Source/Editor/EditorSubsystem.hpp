@@ -48,9 +48,6 @@ class EditorSubsystem;
 class EditorProject;
 class EditorCommandBase;
 class ApplicationWindow;
-struct MouseEvent;
-struct KeyboardEvent;
-struct MeshComponent;
 class MessagesOverlay;
 class View;
 class EditorViewport;
@@ -61,7 +58,12 @@ class WorldGridLayer;
 class DynamicSkySystem;
 class EditorTerrainState;
 class AppContextBase;
+class BVHNode;
+
 struct Ray;
+struct MouseEvent;
+struct KeyboardEvent;
+struct MeshComponent;
 
 HYP_ENUM()
 enum class EditorManipulationMode : uint8
@@ -705,6 +707,24 @@ public:
     HYP_METHOD()
     MeshEditFaceMode GetMeshEditFaceMode() const;
 
+    /*! \brief LOD currently being edited. Edits only affect this LOD. */
+    HYP_METHOD()
+    uint8 GetMeshEditLod() const;
+
+    HYP_METHOD()
+    void SetMeshEditLod(uint8 lodIndex);
+
+    /*! \brief Number of LODs on the mesh being edited, or 0 when there is no target. */
+    HYP_METHOD()
+    uint8 GetMeshEditNumLods() const;
+
+    /*! \brief True when LOD 0 was edited after the mesh's LODs were generated from it. */
+    HYP_METHOD()
+    bool AreMeshEditLodsOutOfDate() const;
+
+    HYP_METHOD()
+    void RegenerateMeshEditLods();
+
     ///action stack
 
     EditorActionStack* GetActiveActionStack() const;
@@ -781,6 +801,29 @@ public:
     void FitPhysicsShapeToMesh();
 
     void SyncBoxPhysicsShapeToLocalBounds(Entity* entity);
+
+    /*! \brief True if the focused entity has a mesh and a rigid body that convex collision can be built for. */
+    HYP_METHOD()
+    bool CanGenerateConvexCollision() const;
+
+    /*! \brief Decompose the focused entity's mesh into convex hulls and assign them as its collision shape.
+     *  Runs in the background; the swap is undoable. \p presetIndex selects a decomposition preset,
+     *  0 being a single hull. */
+    HYP_METHOD()
+    void GenerateConvexCollision(uint32 presetIndex);
+
+    HYP_METHOD()
+    uint32 GetNumConvexCollisionPresets() const;
+
+    HYP_METHOD()
+    String GetConvexCollisionPresetName(uint32 presetIndex) const;
+
+    /*! \brief LOD every mesh renders at in the viewport: -1 selects automatically, otherwise the LOD index. */
+    HYP_METHOD()
+    int32 GetViewportForcedLod() const;
+
+    HYP_METHOD()
+    void SetViewportForcedLod(int32 lodIndex);
 
     ///
 
@@ -974,6 +1017,10 @@ private:
     void DiscardMeshEdits();
 
     bool TryPickMeshEditFace(const Ray& ray, MeshEditFaceSelection& outSelection, bool ensureUniqueMesh);
+
+    bool PickMeshEditFaceTriangle(const Ray& ray, const Handle<Node>& targetNode, Mesh* mesh, uint8 lodIndex, uint32& outTriangleIndex);
+
+    uint8 ResolveMeshEditLod(Node* targetNode) const;
     void SetSelectedMeshEditFace(Optional<MeshEditFaceSelection> selection);
     void UpdateHoveredMeshEditFace(const Ray& ray);
     void DebugDrawMeshEditSelection(class DebugDrawCommandList& debugDrawCommandList);
@@ -988,6 +1035,8 @@ private:
     ////////////////////
 
     void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
+
+    void DebugDrawMeshLods(class DebugDrawCommandList& debugDrawCommandList);
     /*! \brief If the focused entity's physics shape is referenced by any other entity, clone it and
      *  assign the clone to this entity, so the shape can be mutated */
     Handle<PhysicsShape> EnsureUniquePhysicsShape(Entity* entity);
@@ -1001,6 +1050,7 @@ private:
         return SubsystemUpdatePhase::AfterVis;
     }
 
+    ///this whole thing is held together by ducktape and hopes & dreams
     struct MeshEditState
     {
         bool enabled = false;
@@ -1014,6 +1064,14 @@ private:
         bool isChanging = false;
 
         Handle<EditorActionStack> actionStack;
+
+        ///LOD being edited
+        uint8 lodIndex = 0;
+
+        UniquePtr<BVHNode, EditorAllocator> lodPickBvh;
+        WeakHandle<Mesh> lodPickBvhMesh;
+        uint8 lodPickBvhLodIndex = 0;
+        bool lodPickBvhDirty = true;
 
         Array<Vec3f, EditorAllocator> baselinePositions;
         WeakHandle<Mesh> baselineMesh;

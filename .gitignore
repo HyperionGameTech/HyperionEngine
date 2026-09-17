@@ -99,3 +99,4 @@ Tools/*/build/**/*
 
 # Ignore Data stuff. it's ont used anymore except for staging assets
 Data/**/*
+.opencode

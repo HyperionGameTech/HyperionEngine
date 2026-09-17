@@ -34,6 +34,8 @@ class TerrainStreamingCell;
 class TerrainCellData;
 struct AssetPath;
 
+/// @TODO: Make a TerrainAllocator - use it throughout here.
+
 struct TerrainGenerationState
 {
     SharedPtr<TerrainGenerator> generator;

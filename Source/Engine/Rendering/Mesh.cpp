@@ -12,6 +12,7 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
+#include <Rendering/Util/MeshLodGenerator.hpp>
 
 #include <Core/Containers/SparsePagedArray.hpp>
 
@@ -319,8 +320,6 @@ void Mesh::PageBlobData()
         return;
     }
 
-    const String meshName = String(*GetName());
-
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
         BlobDataReference& vertexData = m_lodData[lodIndex].vertexData;
@@ -328,159 +327,71 @@ void Mesh::PageBlobData()
 
         // load all LODs together for now
         // (the read scope acquires all blob data references at once)
-        if (vertexData.raw == nullptr
-            && vertexData.key
-            && vertexData.size != 0)
+        if (vertexData.raw != nullptr
+            || !vertexData.key
+            || vertexData.size == 0)
         {
-            bool vertexLoaded = false;
-            bool indexLoaded = false;
+            continue;
+        }
 
-            if (lodIndex == 0)
+        const bool vertexLoaded = PageBlobDataFromStorage(vertexData)
+            || PageBlobDataFromLocalFile(vertexData, GetVertexBufferBlobMagic(lodIndex), 16);
+
+        const bool indexLoaded = PageBlobDataFromStorage(indexData)
+            || PageBlobDataFromLocalFile(indexData, GetIndexBufferBlobMagic(lodIndex), alignof(uint32));
+
+        if (vertexLoaded && indexLoaded)
+        {
+            continue;
+        }
+
+        // Both replaced together so we never end up with mismatched vertex/index counts.
+        for (BlobDataReference* reference : { &vertexData, &indexData })
+        {
+            if (reference->raw == nullptr)
             {
-                const Name blobKey = vertexData.key;
-                const uint64 expectedSize = vertexData.size;
+                continue;
+            }
 
-                vertexLoaded = ([&]() -> bool
-                    {
-                        if (PageBlobDataFromStorage(vertexData))
-                        {
-                            return true;
-                        }
-
-                        Handle<AssetRegistry> registry = GetAssetRegistry();
-                        AssertDebug(registry.IsValid());
-
-                        if (registry.IsValid())
-                        {
-                            // check if failed; if so, try to import from raw data blob in project directory
-                            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".VB.raw.blob") };
-                            if (stream.Eof())
-                            {
-                                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {}) at: {} ", GetName(), lodIndex, stream.GetFilepath());
-                                return false;
-                            }
-                            else
-                            {
-                                if (stream.Max() != expectedSize)
-                                {
-                                    HYP_LOG(Engine, Error, "Local blob data for {} vertex buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
-                                            GetName(), lodIndex, stream.Max(), expectedSize);
-
-                                    return false;
-                                }
-
-                                ByteBuffer buffer = stream.Read(stream.Max());
-
-                                AllocateBlobData(vertexData, buffer.Data(), buffer.Size(), 16);
-                                vertexData.key = blobKey;
-
-                                return true;
-                            }
-                        }
-
-                        return false;
-                    })();
+            if (reference->readOnly)
+            {
+                // Mapped from blob storage; the storage owns the memory
+                reference->raw = nullptr;
             }
             else
             {
-                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} vertex buffer (LOD {})", GetName(), lodIndex);
-            }
-
-            if (lodIndex == 0)
-            {
-                const Name blobKey = indexData.key;
-                const uint64 expectedSize = indexData.size;
-
-                indexLoaded = ([&]() -> bool
-                    {
-                        if (PageBlobDataFromStorage(indexData))
-                        {
-                            return true;
-                        }
-
-                        Handle<AssetRegistry> registry = GetAssetRegistry();
-                        AssertDebug(registry.IsValid());
-
-                        if (registry.IsValid())
-                        {
-                            // check if failed; if so, try to import from raw data blob in project directory
-                            FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".IB.raw.blob") };
-                            if (stream.Eof())
-                            {
-                                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {}) at {}", GetName(), lodIndex, stream.GetFilepath());
-                                return false;
-                            }
-                            else
-                            {
-                                if (stream.Max() != expectedSize)
-                                {
-                                    HYP_LOG(Engine, Error, "Local blob data for {} index buffer (LOD {}) is {} bytes but the manifest expects {}, ignoring it",
-                                            GetName(), lodIndex, stream.Max(), expectedSize);
-
-                                    return false;
-                                }
-
-                                ByteBuffer buffer = stream.Read(stream.Max());
-                                AssertDebug(buffer.Size() == stream.Max());
-
-                                AllocateBlobData(indexData, buffer.Data(), buffer.Size(), alignof(uint32));
-                                indexData.key = blobKey;
-
-                                return true;
-                            }
-                        }
-
-                        return false;
-                    })();
-            }
-            else
-            {
-                HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} index buffer (LOD {})", GetName(), lodIndex);
-            }
-
-            // Both replaced together so we never end up with mismatched vertex/index counts.
-            if (lodIndex == 0 && (!vertexLoaded || !indexLoaded))
-            {
-                HYP_LOG(Assets, Warning, "Using placeholder cube mesh for {} (LOD {}) because its real vertex/index data could not be loaded",
-                    GetName(), lodIndex);
-
-                const uint8 layoutMask = m_meshDesc.meshAttributes.inputLayout.mask;
-                const PlaceholderVertexIndexCache::Buffers* placeholder = PlaceholderVertexIndexCache::GetInstance().GetForLayout(layoutMask);
-
-                // Whichever of the real vertex/index buffers did load has to be released first,
-                // so the placeholder data is always allocated as a matched pair
-                // (AllocateBlobData asserts when allocating over non-readonly data).
-                for (BlobDataReference* reference : { &vertexData, &indexData })
-                {
-                    if (reference->raw == nullptr)
-                    {
-                        continue;
-                    }
-
-                    if (reference->readOnly)
-                    {
-                        // Mapped from blob storage; the storage owns the memory
-                        reference->raw = nullptr;
-                    }
-                    else
-                    {
-                        FreeBlobData(*reference);
-                    }
-                }
-
-                const Name vertexBlobKey = vertexData.key;
-                AllocateBlobData(vertexData, placeholder->vertexData.Data(), placeholder->vertexData.ByteSize(), 16);
-                vertexData.key = vertexBlobKey;
-
-                const Name indexBlobKey = indexData.key;
-                AllocateBlobData(indexData, placeholder->indexData.Data(), placeholder->indexData.ByteSize(), alignof(uint32));
-                indexData.key = indexBlobKey;
-
-                const size_t vertexSize = MathUtil::Max(VertexInputLayoutDesc { layoutMask }.VertexSize(), size_t(1));
-                m_meshDesc.lods[lodIndex].numVertices = uint32(placeholder->vertexData.ByteSize() / vertexSize);
-                m_meshDesc.lods[lodIndex].numIndices = uint32(placeholder->indexData.Size());
+                FreeBlobData(*reference);
             }
         }
+
+        if (lodIndex != 0)
+        {
+            // Cut the chain here - GetNumLods() shrinks and nothing tries to draw an empty LOD.
+            HYP_LOG(Assets, Warning, "Dropping LODs {} and above for {} because their vertex/index data could not be loaded",
+                lodIndex, GetName());
+
+            ClearLodData(lodIndex);
+
+            break;
+        }
+
+        HYP_LOG(Assets, Warning, "Using placeholder cube mesh for {} (LOD {}) because its real vertex/index data could not be loaded",
+            GetName(), lodIndex);
+
+        const uint8 layoutMask = m_meshDesc.meshAttributes.inputLayout.mask;
+        const PlaceholderVertexIndexCache::Buffers* placeholder = PlaceholderVertexIndexCache::GetInstance().GetForLayout(layoutMask);
+
+        const Name vertexBlobKey = vertexData.key;
+        AllocateBlobData(vertexData, placeholder->vertexData.Data(), placeholder->vertexData.ByteSize(), 16);
+        vertexData.key = vertexBlobKey;
+
+        const Name indexBlobKey = indexData.key;
+        AllocateBlobData(indexData, placeholder->indexData.Data(), placeholder->indexData.ByteSize(), alignof(uint32));
+        indexData.key = indexBlobKey;
+
+        const size_t vertexSize = MathUtil::Max(VertexInputLayoutDesc { layoutMask }.VertexSize(), size_t(1));
+        m_meshDesc.lods[lodIndex].numVertices = uint32(placeholder->vertexData.ByteSize() / vertexSize);
+        m_meshDesc.lods[lodIndex].numIndices = uint32(placeholder->indexData.Size());
     }
 
     // Keep BVH data separate from vertex and index data because it is mutually exclusive from them
@@ -488,42 +399,10 @@ void Mesh::PageBlobData()
         && m_bvhData.key
         && m_bvhData.size != 0)
     {
-        const Name blobKey = m_bvhData.key;
-        const uint64 expectedSize = m_bvhData.size;
-
-        ([&]()
-            {
-                if (PageBlobDataFromStorage(m_bvhData))
-                {
-                    return;
-                }
-
-                Handle<AssetRegistry> registry = GetAssetRegistry();
-                AssertDebug(registry.IsValid());
-
-                if (registry.IsValid())
-                {
-                    FileByteReader stream { registry->GetRootPath() / AssetBuckets::Meshes.GetName() / (meshName + ".BVH.raw.blob") };
-                    if (stream.Eof())
-                    {
-                        HYP_LOG(Engine, Error, "Data corruption detected for {} due to missing blob data at {} ", GetPath().ToString(), stream.GetFilepath());
-                        return;
-                    }
-                    
-                    if (stream.Max() != expectedSize)
-                    {
-                        HYP_LOG(Engine, Error, "Local BVH blob data for {} is {} bytes but the manifest expects {}, ignoring it",
-                                GetName(), stream.Max(), expectedSize);
-
-                        return;
-                    }
-
-                    ByteBuffer buffer = stream.Read(stream.Max());
-
-                    AllocateBlobData(m_bvhData, buffer.Data(), buffer.Size(), alignof(uint32));
-                    m_bvhData.key = blobKey;
-                }
-        })();
+        if (!PageBlobDataFromStorage(m_bvhData))
+        {
+            (void)PageBlobDataFromLocalFile(m_bvhData, "BVH", alignof(uint32));
+        }
     }
 
     if (m_bvhData.raw != nullptr)
@@ -873,14 +752,24 @@ void Mesh::SetMeshData(
         {
             AllocateBlobData(m_lodData[lodIndex].vertexData, vertices.floatData, vertices.layoutDesc.VertexSize() * vertices.vertexCount, 16);
         }
+        else
+        {
+            // a LOD that is going away must not keep its old key or size, or it gets saved and paged back in
+            m_lodData[lodIndex].vertexData = BlobDataReference {};
+        }
 
         if (indices.Size() != 0)
         {
             AllocateBlobData(m_lodData[lodIndex].indexData, indices.Data(), indices.Size(), alignof(uint32));
         }
+        else
+        {
+            m_lodData[lodIndex].indexData = BlobDataReference {};
+        }
     }
 
     m_meshDesc = meshDesc;
+    m_lodDataVersion.Increment(1, MemoryOrder::RELEASE);
 
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
@@ -894,6 +783,229 @@ void Mesh::SetMeshData(
     MarkDirty();
 
     writeScope.Reset();
+}
+
+void Mesh::SetLodGenerationSettings(const MeshLodGenerationSettings& settings)
+{
+    m_lodGenerationSettings = settings;
+
+    MarkDirty();
+}
+
+Array<MeshLodInfo> Mesh::GetLodInfo() const
+{
+    Array<MeshLodInfo> lodInfo;
+
+    const uint8 numLods = m_meshDesc.GetNumLods();
+    lodInfo.Reserve(numLods);
+
+    for (uint8 lodIndex = 0; lodIndex < numLods; lodIndex++)
+    {
+        const MeshLodDesc& lodDesc = m_meshDesc.lods[lodIndex];
+
+        lodInfo.PushBack(MeshLodInfo {
+            lodDesc.numVertices,
+            lodDesc.numIndices / 3,
+            lodDesc.geometricError,
+            lodDesc.screenSize
+        });
+    }
+
+    return lodInfo;
+}
+
+Array<float> Mesh::GetLodScreenSizes() const
+{
+    Array<float> screenSizes;
+    screenSizes.Resize(MaxMeshLods);
+
+    for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
+    {
+        screenSizes[lodIndex] = m_meshDesc.lods[lodIndex].screenSize;
+    }
+
+    return screenSizes;
+}
+
+void Mesh::SetLodScreenSizes(const Array<float>& screenSizes)
+{
+    auto writeScope = GetWriteScope();
+
+    float previousScreenSize = MathUtil::MaxSafeValue<float>();
+
+    for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
+    {
+        if (lodIndex >= screenSizes.Size())
+        {
+            break;
+        }
+
+        const float screenSize = MathUtil::Clamp(screenSizes[lodIndex], 0.0f, previousScreenSize);
+
+        m_meshDesc.lods[lodIndex].screenSize = screenSize;
+
+        previousScreenSize = screenSize;
+    }
+
+    MarkDirty();
+
+    writeScope.Reset();
+}
+
+uint64 Mesh::ComputeLod0DataHash() const
+{
+    const VertexArrayView vertices = GetVertexData(0);
+    const Span<const ubyte> indices = GetIndexData(0);
+
+    if (!vertices.floatData || !indices.Data())
+    {
+        return 0;
+    }
+
+    const ubyte* vertexBytes = reinterpret_cast<const ubyte*>(vertices.floatData);
+    const size_t vertexDataSize = vertices.layoutDesc.VertexSize() * vertices.vertexCount;
+
+    HashCode hashCode;
+    hashCode.Add(FNV1::DoHashBytes(vertexBytes, vertexBytes + vertexDataSize));
+    hashCode.Add(FNV1::DoHashBytes(indices.Data(), indices.Data() + indices.Size()));
+
+    return uint64(hashCode.Value());
+}
+
+bool Mesh::AreLodsOutOfDate() const
+{
+    if (m_meshDesc.GetNumLods() <= 1 || m_lodGenerationSettings.sourceDataHash == 0)
+    {
+        return false;
+    }
+
+    return ComputeLod0DataHash() != m_lodGenerationSettings.sourceDataHash;
+}
+
+void Mesh::SetLodData(
+    uint8 lodIndex,
+    const MeshLodDesc& lodDesc,
+    const VertexArrayView& vertices,
+    ConstByteView indices)
+{
+    Assert(lodIndex > 0 && lodIndex < MaxMeshLods, "LOD 0 must be set through SetMeshData()");
+    Assert(vertices.layoutDesc.mask == m_meshDesc.meshAttributes.inputLayout.mask,
+        "LOD {} has input layout mask {} but the mesh uses {}", lodIndex, vertices.layoutDesc.mask, m_meshDesc.meshAttributes.inputLayout.mask);
+
+    auto writeScope = GetWriteScope();
+
+    FreeBlobData(m_lodData[lodIndex].vertexData);
+    FreeBlobData(m_lodData[lodIndex].indexData);
+
+    m_lodData[lodIndex].vertexData = BlobDataReference {};
+    m_lodData[lodIndex].indexData = BlobDataReference {};
+
+    AllocateBlobData(m_lodData[lodIndex].vertexData, vertices.floatData, vertices.layoutDesc.VertexSize() * vertices.vertexCount, 16);
+    AllocateBlobData(m_lodData[lodIndex].indexData, indices.Data(), indices.Size(), alignof(uint32));
+
+    m_meshDesc.lods[lodIndex] = lodDesc;
+    m_meshDesc.lods[lodIndex].numVertices = uint32(vertices.vertexCount);
+    m_meshDesc.lods[lodIndex].numIndices = uint32(indices.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
+
+    m_lodDataVersion.Increment(1, MemoryOrder::RELEASE);
+
+    MarkDirty();
+
+    writeScope.Reset();
+}
+
+void Mesh::ClearLodData(uint8 firstLodIndex)
+{
+    for (uint8 lodIndex = firstLodIndex; lodIndex < MaxMeshLods; lodIndex++)
+    {
+        for (BlobDataReference* reference : { &m_lodData[lodIndex].vertexData, &m_lodData[lodIndex].indexData })
+        {
+            if (reference->readOnly)
+            {
+                // Mapped from blob storage; the storage owns the memory
+                reference->raw = nullptr;
+            }
+            else
+            {
+                FreeBlobData(*reference);
+            }
+
+            *reference = BlobDataReference {};
+        }
+
+        m_meshDesc.lods[lodIndex] = MeshLodDesc {};
+
+        if (m_vertexBuffers[lodIndex].IsValid())
+        {
+            EnqueueDeletion(std::move(m_vertexBuffers[lodIndex]));
+        }
+
+        if (m_indexBuffers[lodIndex].IsValid())
+        {
+            EnqueueDeletion(std::move(m_indexBuffers[lodIndex]));
+        }
+    }
+}
+
+void Mesh::ClearLods(uint8 firstLodIndex)
+{
+    Assert(firstLodIndex > 0 && firstLodIndex < MaxMeshLods, "LOD 0 cannot be cleared");
+
+    if (m_meshDesc.GetNumLods() <= firstLodIndex)
+    {
+        return;
+    }
+
+    auto writeScope = GetWriteScope();
+
+    ClearLodData(firstLodIndex);
+
+    m_lodDataVersion.Increment(1, MemoryOrder::RELEASE);
+
+    MarkDirty();
+
+    writeScope.Reset();
+}
+
+Handle<Mesh> Mesh::Clone() const
+{
+    auto readScope = GetReadScope();
+
+    MeshDesc meshDesc = m_meshDesc;
+    MeshDataView meshData {};
+
+    for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
+    {
+        const Span<const ubyte> indexData = GetIndexData(lodIndex);
+        const VertexArrayView vertexData = GetVertexData(lodIndex);
+
+        if (indexData.Size() == 0 || vertexData.vertexCount == 0)
+        {
+            // a LOD without data can't be cloned; make the desc agree so the copy stays consistent
+            meshDesc.lods[lodIndex] = MeshLodDesc {};
+
+            continue;
+        }
+
+        meshData.vertices[lodIndex] = vertexData;
+        meshData.indices[lodIndex] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
+    }
+
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
+    mesh->SetMeshData(meshDesc, meshData);
+    mesh->SetFlags(m_flags);
+    mesh->SetAABB(m_aabb);
+    mesh->SetLodGenerationSettings(m_lodGenerationSettings);
+
+    if (m_bvh.IsValid())
+    {
+        auto writeScope = mesh->GetWriteScope();
+
+        BVHNode bvh = m_bvh;
+        mesh->SetBVH(std::move(bvh));
+    }
+
+    return mesh;
 }
 
 void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
@@ -915,17 +1027,16 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     MarkDirty();
 }
 
-void Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth) const
+void Mesh::BuildBVH(BVHNode& bvhNode, int maxDepth, uint8 lodIndex) const
 {
-    // @TODO: Support building BVH for arbitrary LOD; for now LOD 0
-    constexpr uint8 lodIndex = 0;
+    AssertDebug(lodIndex < MaxMeshLods);
 
     const VertexArrayView vertexData = GetVertexData(lodIndex);
     const Span<const ubyte> indexData = GetIndexData(lodIndex);
     const uint32 numVertices = uint32(vertexData.vertexCount);
     const uint32 numIndices = uint32(indexData.Size() / sizeof(uint32));
 
-    const BoundingBox meshAabb = CalculateAABB();
+    const BoundingBox meshAabb = CalculateAABB(lodIndex);
 
     const size_t numTriangles = numIndices / 3;
 
@@ -963,11 +1074,9 @@ void Mesh::SetBVH(BVHNode&& bvh)
     MarkDirty();
 }
 
-BoundingBox Mesh::CalculateAABB() const
+BoundingBox Mesh::CalculateAABB(uint8 lodIndex) const
 {
-    // @TODO: AABB may need to encompass all LODs; for now use LOD 0
-    constexpr uint8 lodIndex = 0;
-
+    // Simplified LODs never leave LOD 0's bounds, so the mesh AABB stays LOD 0's.
     const VertexArrayView vertexArrayView = GetVertexData(lodIndex);
 
     BoundingBox aabb = BoundingBox::Empty();
@@ -1234,6 +1343,41 @@ void Mesh::RecalculateBounds()
     m_aabb = bounds;
 
     MarkDirty();
+}
+
+bool Mesh::CanGenerateLods() const
+{
+    return MeshLodGenerator::CanGenerate(this);
+}
+
+void Mesh::GenerateLods()
+{
+    TResult<MeshLodGenerationResult> result = MeshLodGenerator::Generate(this, m_lodGenerationSettings);
+
+    if (result.HasError())
+    {
+        HYP_LOG(Rendering, Error, "Failed to generate LODs for mesh {}: {}", GetName(), result.GetError().GetMessage());
+
+        return;
+    }
+
+    if (Result applyResult = MeshLodGenerator::Apply(this, result.GetValue()); applyResult.HasError())
+    {
+        HYP_LOG(Rendering, Error, "Failed to apply generated LODs to mesh {}: {}", GetName(), applyResult.GetError().GetMessage());
+
+        return;
+    }
+
+    HYP_LOG(Rendering, Info, "Generated {} LOD(s) for mesh {}", result.GetValue().lods.Size(), GetName());
+}
+
+void Mesh::ClearGeneratedLods()
+{
+    ClearLods(1);
+
+    MeshLodGenerationSettings settings = m_lodGenerationSettings;
+    settings.sourceDataHash = 0;
+    SetLodGenerationSettings(settings);
 }
 
 #endif // HYP_EDITOR

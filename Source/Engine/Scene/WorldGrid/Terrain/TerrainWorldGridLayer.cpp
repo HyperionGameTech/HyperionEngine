@@ -276,6 +276,7 @@ void TerrainWorldGridLayer::SetLodViewpoints(Span<const Vec3f> viewpoints)
 {
     AssertOnThread(g_simThread);
 
+    /// @TODO Do we need the mutex? Can we refactor it out?
     Mutex::Guard guard(m_lodViewpointsMutex);
 
     m_lodViewpoints.Resize(viewpoints.Size());
@@ -288,6 +289,7 @@ void TerrainWorldGridLayer::SetLodViewpoints(Span<const Vec3f> viewpoints)
 
 float TerrainWorldGridLayer::GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const
 {
+    /// @TODO Do we need the mutex? Can we refactor it out?
     Mutex::Guard guard(m_lodViewpointsMutex);
 
     float nearestDistance = MathUtil::Infinity<float>();

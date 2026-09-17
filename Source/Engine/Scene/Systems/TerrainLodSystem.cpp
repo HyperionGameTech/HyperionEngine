@@ -13,6 +13,7 @@
 #include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
 #include <Scene/View.hpp>
+#include <Scene/LOD.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -29,83 +30,6 @@
 
 namespace Hyperion {
 
-static bool IsLodView(const View& view)
-{
-    const EnumFlags<ViewFlags> excludedFlags = ViewFlags::SHADOW_VIEW
-        | ViewFlags::ENV_PROBE_VIEW
-        | ViewFlags::UI_VIEW
-        | ViewFlags::BAKER_VIEW
-        | ViewFlags::RAY_TRACING
-        | ViewFlags::CUBEMAP_FACE_VIEW;
-
-    return (view.GetFlags() & ViewFlags::GBUFFER)
-        && !(view.GetFlags() & excludedFlags)
-        && view.GetCamera() != nullptr;
-}
-
-static void CollectLodViewpoints(const World& world, Array<Vec3f, SceneTempAllocator>& outPositions)
-{
-    const bool preferEditorViews = world.GetGameState().IsStopped();
-
-    for (View* view : world.GetSimThreadViews())
-    {
-        if (!view || !IsLodView(*view))
-        {
-            continue;
-        }
-
-        const bool isEditorView = bool(view->GetFlags() & ViewFlags::EDITOR_VIEW);
-
-        if (isEditorView == preferEditorViews)
-        {
-            outPositions.PushBack(view->GetCamera()->GetWorldTranslation());
-        }
-    }
-
-    if (outPositions.Any())
-    {
-        return;
-    }
-
-    for (View* view : world.GetSimThreadViews())
-    {
-        if (view && IsLodView(*view))
-        {
-            outPositions.PushBack(view->GetCamera()->GetWorldTranslation());
-        }
-    }
-
-    if (outPositions.Any())
-    {
-        return;
-    }
-
-    for (const Handle<Scene>& scene : world.GetScenes())
-    {
-        if (!scene)
-        {
-            continue;
-        }
-
-        EntityManager* entityManager = scene->GetEntityManager();
-
-        if (!entityManager)
-        {
-            continue;
-        }
-
-        for (auto [camera] : entityManager->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            if (!(camera->GetCameraFlags() & CameraFlags::HasStreamingVolume))
-            {
-                continue;
-            }
-
-            outPositions.PushBack(camera->GetWorldTranslation());
-        }
-    }
-}
-
 void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     if (EngineGlobals::IsHeadless() || !GetWorld())
@@ -113,10 +37,19 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
         return;
     }
 
-    Array<Vec3f, SceneTempAllocator> viewpoints;
-    CollectLodViewpoints(*GetWorld(), viewpoints);
+    Array<LODViewData, SceneTempAllocator> viewDatas;
+    GetWorld()->CollectLODViewDatas(viewDatas);
 
-    const Span<const Vec3f> viewpointsView(viewpoints.Data(), viewpoints.Size());
+    // positions
+    Array<Vec3f, SceneTempAllocator> viewpoints;
+    viewpoints.Resize(viewDatas.Size());
+
+    for (size_t i = 0; i < viewDatas.Size(); i++)
+    {
+        viewpoints[i] = viewDatas[i].position;
+    }
+
+    const Span<const Vec3f> viewpointsView = viewpoints.ToSpan();
 
     if (const Handle<WorldGrid>& worldGrid = GetWorld()->GetWorldGrid(); worldGrid.IsValid())
     {

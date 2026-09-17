@@ -38,8 +38,49 @@ enum class PhysicsShapeType : uint8
     ConvexHull,
     Capsule,
     HeightField,
+    Compound,
 
     Max
+};
+
+HYP_STRUCT()
+struct ConvexDecompositionSettings
+{
+    HYP_STRUCT_BODY(ConvexDecompositionSettings);
+
+    HYP_FIELD(Property = "MaxHulls", Serialize)
+    uint32 maxHulls = 8;
+
+    ///Voxel resolution the source mesh is decomposed at - higher resolves finer concavities.
+    HYP_FIELD(Property = "Resolution", Serialize)
+    uint32 resolution = 8000;
+
+    HYP_FIELD(Property = "MaxVerticesPerHull", Serialize)
+    uint32 maxVerticesPerHull = 64;
+
+    HYP_FIELD(Property = "MaxRecursionDepth", Serialize)
+    uint32 maxRecursionDepth = 10;
+
+    HYP_FIELD(Property = "ShrinkWrap", Serialize)
+    bool shrinkWrap = true;
+};
+
+HYP_STRUCT()
+struct ConvexHullRange
+{
+    HYP_STRUCT_BODY(ConvexHullRange);
+
+    HYP_FIELD(Serialize)
+    uint32 firstVertex = 0;
+
+    HYP_FIELD(Serialize)
+    uint32 numVertices = 0;
+
+    HYP_FIELD(Serialize)
+    uint32 firstIndex = 0;
+
+    HYP_FIELD(Serialize)
+    uint32 numIndices = 0;
 };
 
 HYP_CLASS(Abstract, AssetBucket = "PhysicsShapes")
@@ -249,7 +290,18 @@ public:
 
     void SetVertexData(const struct VertexArrayView& vertexData);
 
+    void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
+    {
+        if (m_vertexData.size != 0)
+        {
+            outReferences.EmplaceBack("HULL", 1, &m_vertexData);
+        }
+    }
+
 protected:
+    void PageBlobData() override;
+    void UnpageBlobData() override;
+
     HYP_FIELD(Property = "VertexData", Serialize)
     BlobDataReference m_vertexData;
 };
@@ -355,6 +407,84 @@ public:
 protected:
     Array<float> m_heights;
     uint32 m_numSamples;
+};
+
+HYP_CLASS()
+class CompoundPhysicsShape final : public PhysicsShape
+{
+    HYP_OBJECT_BODY(CompoundPhysicsShape);
+
+public:
+    CompoundPhysicsShape()
+        : PhysicsShape(Name::Invalid(), PhysicsShapeType::Compound)
+    {
+    }
+
+    CompoundPhysicsShape(Name name)
+        : PhysicsShape(name, PhysicsShapeType::Compound)
+    {
+    }
+
+    CompoundPhysicsShape(const CompoundPhysicsShape&) = delete;
+    CompoundPhysicsShape& operator=(const CompoundPhysicsShape&) = delete;
+
+    CompoundPhysicsShape(CompoundPhysicsShape&&) noexcept = delete;
+    CompoundPhysicsShape& operator=(CompoundPhysicsShape&&) noexcept = delete;
+
+    ~CompoundPhysicsShape() override;
+
+    HYP_METHOD(Property = "NumHulls", EditEnabled = false, Transient)
+    uint32 NumHulls() const
+    {
+        return uint32(m_hulls.Size());
+    }
+
+    HYP_FORCE_INLINE const Array<ConvexHullRange>& GetHulls() const
+    {
+        return m_hulls;
+    }
+
+    Span<const float> GetHullVertices(uint32 hullIndex) const;
+
+    Span<const uint32> GetHullIndices(uint32 hullIndex) const;
+
+    void SetHulls(Span<const float> positions, Span<const uint32> indices, Span<const ConvexHullRange> hulls);
+
+    HYP_FORCE_INLINE const ConvexDecompositionSettings& GetDecompositionSettings() const
+    {
+        return m_decompositionSettings;
+    }
+
+    void SetDecompositionSettings(const ConvexDecompositionSettings& settings);
+
+    void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
+    {
+        if (m_vertexData.size != 0)
+        {
+            outReferences.EmplaceBack("CHV", 1, &m_vertexData);
+        }
+
+        if (m_indexData.size != 0)
+        {
+            outReferences.EmplaceBack("CHI", 1, &m_indexData);
+        }
+    }
+
+protected:
+    void PageBlobData() override;
+    void UnpageBlobData() override;
+
+    HYP_FIELD(Property = "Hulls", Serialize, EditEnabled = false)
+    Array<ConvexHullRange> m_hulls;
+
+    HYP_FIELD(Property = "VertexData", Serialize, Editor = false)
+    BlobDataReference m_vertexData;
+
+    HYP_FIELD(Property = "IndexData", Serialize, Editor = false)
+    BlobDataReference m_indexData;
+
+    HYP_FIELD(Property = "DecompositionSettings", Serialize)
+    ConvexDecompositionSettings m_decompositionSettings;
 };
 
 } // namespace Hyperion

@@ -45,6 +45,7 @@ class SystemExecutionGroup;
 
 struct GameState;
 struct WorldShaderData;
+struct LODViewData;
 
 namespace threading {
 class TaskBatch;
@@ -383,6 +384,8 @@ public:
     void CollectCameras(Array<Camera*, SceneTempAllocator>& outCameras);
     void CollectViews(Array<View*, SceneTempAllocator>& outViews);
     void CollectSubsystems(Array<Subsystem*, SceneTempAllocator>& outSubsystems);
+
+    void CollectLODViewDatas(Array<LODViewData, SceneTempAllocator>& outViewDatas);
 
     void BeginUpdate(TaskBatch& inBatch, float delta);
     void EndUpdate();

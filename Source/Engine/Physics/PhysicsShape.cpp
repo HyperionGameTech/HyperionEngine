@@ -47,7 +47,155 @@ void ConvexHullPhysicsShape::SetVertexData(const struct VertexArrayView& vertexD
     MarkDirty();
 }
 
+void ConvexHullPhysicsShape::PageBlobData()
+{
+    if (IsTransient() || !IsRegistered())
+    {
+        return;
+    }
+
+    if (m_vertexData.raw != nullptr || !m_vertexData.key || m_vertexData.size == 0)
+    {
+        return;
+    }
+
+    if (!PageBlobDataFromStorage(m_vertexData))
+    {
+        (void)PageBlobDataFromLocalFile(m_vertexData, "HULL", alignof(float));
+    }
+}
+
+void ConvexHullPhysicsShape::UnpageBlobData()
+{
+    AssetObject::UnpageBlobData();
+
+    AssertBlobDataPersisted(m_vertexData);
+
+    if (!m_vertexData.readOnly)
+    {
+        FreeBlobData(m_vertexData);
+    }
+
+    m_vertexData.raw = nullptr;
+}
+
 #pragma endregion ConvexHullPhysicsShape
+
+#pragma region CompoundPhysicsShape
+
+CompoundPhysicsShape::~CompoundPhysicsShape()
+{
+    FreeBlobData(m_vertexData);
+    FreeBlobData(m_indexData);
+}
+
+Span<const float> CompoundPhysicsShape::GetHullVertices(uint32 hullIndex) const
+{
+    if (hullIndex >= m_hulls.Size() || !m_vertexData.raw)
+    {
+        return {};
+    }
+
+    const ConvexHullRange& hull = m_hulls[hullIndex];
+    const float* positions = reinterpret_cast<const float*>(m_vertexData.raw);
+
+    return Span<const float>(positions + hull.firstVertex * 3, hull.numVertices * 3);
+}
+
+Span<const uint32> CompoundPhysicsShape::GetHullIndices(uint32 hullIndex) const
+{
+    if (hullIndex >= m_hulls.Size() || !m_indexData.raw)
+    {
+        return {};
+    }
+
+    const ConvexHullRange& hull = m_hulls[hullIndex];
+    const uint32* indices = reinterpret_cast<const uint32*>(m_indexData.raw);
+
+    return Span<const uint32>(indices + hull.firstIndex, hull.numIndices);
+}
+
+void CompoundPhysicsShape::SetHulls(Span<const float> positions, Span<const uint32> indices, Span<const ConvexHullRange> hulls)
+{
+    FreeBlobData(m_vertexData);
+    FreeBlobData(m_indexData);
+
+    m_vertexData = BlobDataReference {};
+    m_indexData = BlobDataReference {};
+
+    m_hulls.Clear();
+
+    if (positions.Size() != 0)
+    {
+        AllocateBlobData(m_vertexData, positions.Data(), positions.Size() * sizeof(float), alignof(float));
+    }
+
+    if (indices.Size() != 0)
+    {
+        AllocateBlobData(m_indexData, indices.Data(), indices.Size() * sizeof(uint32), alignof(uint32));
+    }
+
+    m_hulls.Reserve(hulls.Size());
+
+    for (const ConvexHullRange& hull : hulls)
+    {
+        m_hulls.PushBack(hull);
+    }
+
+    Invalidate();
+
+    MarkDirty();
+}
+
+void CompoundPhysicsShape::SetDecompositionSettings(const ConvexDecompositionSettings& settings)
+{
+    m_decompositionSettings = settings;
+
+    MarkDirty();
+}
+
+void CompoundPhysicsShape::PageBlobData()
+{
+    if (IsTransient() || !IsRegistered())
+    {
+        return;
+    }
+
+    if (m_vertexData.raw == nullptr && m_vertexData.key && m_vertexData.size != 0)
+    {
+        if (!PageBlobDataFromStorage(m_vertexData))
+        {
+            (void)PageBlobDataFromLocalFile(m_vertexData, "CHV", alignof(float));
+        }
+    }
+
+    if (m_indexData.raw == nullptr && m_indexData.key && m_indexData.size != 0)
+    {
+        if (!PageBlobDataFromStorage(m_indexData))
+        {
+            (void)PageBlobDataFromLocalFile(m_indexData, "CHI", alignof(uint32));
+        }
+    }
+}
+
+void CompoundPhysicsShape::UnpageBlobData()
+{
+    AssetObject::UnpageBlobData();
+
+    for (BlobDataReference* reference : { &m_vertexData, &m_indexData })
+    {
+        AssertBlobDataPersisted(*reference);
+
+        if (!reference->readOnly)
+        {
+            FreeBlobData(*reference);
+        }
+
+        reference->raw = nullptr;
+    }
+}
+
+#pragma endregion CompoundPhysicsShape
 
 #pragma region HeightFieldPhysicsShape
 

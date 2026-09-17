@@ -504,6 +504,7 @@ HYP_EXPORT void RunHMFTest()
             SetFieldValue(obj, cls, "NumVertices", BoxedValue(uint32(9999)));
             SetFieldValue(obj, cls, "NumIndices", BoxedValue(uint32(33333)));
             SetFieldValue(obj, cls, "GeometricError", BoxedValue(float(2.5f)));
+            SetFieldValue(obj, cls, "ScreenSize", BoxedValue(float(0.25f)));
 
             String text;
             ObjectToHMF(cls, obj, text);
@@ -511,6 +512,7 @@ HYP_EXPORT void RunHMFTest()
             Check("MeshLodDesc: NumVertices = 9999", text.Contains("NumVertices = 9999"), text);
             Check("MeshLodDesc: NumIndices = 33333", text.Contains("NumIndices = 33333"), text);
             Check("MeshLodDesc: GeometricError = 2.5", text.Contains("GeometricError = 2.5"), text);
+            Check("MeshLodDesc: ScreenSize = 0.25", text.Contains("ScreenSize = 0.25"), text);
         }
     }
 
@@ -582,6 +584,44 @@ HYP_EXPORT void RunHMFTest()
                 Check("NumVertices == 4096", GetFieldValue<uint32>(result.GetValue(), cls, "NumVertices") == 4096);
                 Check("NumIndices == 12288", GetFieldValue<uint32>(result.GetValue(), cls, "NumIndices") == 12288);
                 Check("GeometricError == 0.5", GetFieldValue<float>(result.GetValue(), cls, "GeometricError") == 0.5f);
+
+                // manifests written before LOD screen sizes existed must still load
+                Check("ScreenSize defaults to 0", GetFieldValue<float>(result.GetValue(), cls, "ScreenSize") == 0.0f);
+            }
+        }
+    }
+
+    {
+        const Class* cls = GetClass<MeshLodGenerationSettings>();
+        if (!cls || !cls->CanCreateInstance())
+        {
+            Check("MeshLodGenerationSettings registered", false);
+        }
+        else
+        {
+            BoxedValue obj;
+            cls->CreateInstance(obj);
+
+            SetFieldValue(obj, cls, "NumLods", BoxedValue(uint8(3)));
+            SetFieldValue(obj, cls, "MaxRelativeError", BoxedValue(float(0.75f)));
+            SetFieldValue(obj, cls, "LockBorder", BoxedValue(true));
+
+            String text;
+            ObjectToHMF(cls, obj, text);
+
+            HMF::ParseResult result = HMF::Parse(text);
+            Check("MeshLodGenerationSettings round-trip succeeds", Success(result), result.GetError().GetMessage());
+
+            if (Success(result))
+            {
+                const Class* parsedCls = GetClass(result.GetValue().GetTypeId());
+                if (parsedCls)
+                {
+                    Check("RT NumLods == 3", GetFieldValue<uint8>(result.GetValue(), parsedCls, "NumLods") == 3);
+                    Check("RT MaxRelativeError == 0.75", GetFieldValue<float>(result.GetValue(), parsedCls, "MaxRelativeError") == 0.75f);
+                    Check("RT LockBorder == true", GetFieldValue<bool>(result.GetValue(), parsedCls, "LockBorder"));
+                    Check("RT TriangleRatios kept 4 entries", text.Contains("TriangleRatios"), text);
+                }
             }
         }
     }
@@ -756,6 +796,7 @@ CameraOrthoRect {
             SetFieldValue(obj, cls, "NumVertices", BoxedValue(uint32(1234)));
             SetFieldValue(obj, cls, "NumIndices", BoxedValue(uint32(5678)));
             SetFieldValue(obj, cls, "GeometricError", BoxedValue(float(1.25f)));
+            SetFieldValue(obj, cls, "ScreenSize", BoxedValue(float(0.125f)));
 
             String text;
             ObjectToHMF(cls, obj, text);
@@ -773,6 +814,7 @@ CameraOrthoRect {
                     Check("RT NumVertices == 1234", GetFieldValue<uint32>(result.GetValue(), parsedCls, "NumVertices") == 1234);
                     Check("RT NumIndices == 5678", GetFieldValue<uint32>(result.GetValue(), parsedCls, "NumIndices") == 5678);
                     Check("RT GeometricError == 1.25", GetFieldValue<float>(result.GetValue(), parsedCls, "GeometricError") == 1.25f);
+                    Check("RT ScreenSize == 0.125", GetFieldValue<float>(result.GetValue(), parsedCls, "ScreenSize") == 0.125f);
                 }
             }
         }

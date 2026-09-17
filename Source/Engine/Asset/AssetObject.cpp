@@ -16,6 +16,7 @@
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
 
+#include <Core/IO/ByteReader.hpp>
 #include <Core/IO/ByteWriter.hpp>
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
@@ -532,6 +533,45 @@ bool AssetObject::PageBlobDataFromStorage(BlobDataReference& reference)
     }
 
     reference.readOnly = true;
+
+    return true;
+}
+
+bool AssetObject::PageBlobDataFromLocalFile(BlobDataReference& reference, const char* magic, size_t alignment)
+{
+    Handle<AssetRegistry> registry = GetAssetRegistry();
+    AssertDebug(registry.IsValid());
+
+    if (!registry.IsValid() || !GetPath().IsValid())
+    {
+        return false;
+    }
+
+    const Name blobKey = reference.key;
+    const uint64 expectedSize = reference.size;
+
+    FileByteReader stream { registry->GetRootPath() / GetPath().GetBucket().GetName() / (String(*GetName()) + "." + magic + ".raw.blob") };
+
+    if (stream.Eof())
+    {
+        HYP_LOG(Assets, Error, "Blob data missing or corrupted for {} ({}) at: {}", GetName(), magic, stream.GetFilepath());
+
+        return false;
+    }
+
+    if (stream.Max() != expectedSize)
+    {
+        HYP_LOG(Assets, Error, "Local blob data for {} ({}) is {} bytes but the manifest expects {}, ignoring it",
+            GetName(), magic, stream.Max(), expectedSize);
+
+        return false;
+    }
+
+    ByteBuffer buffer = stream.Read(stream.Max());
+    AssertDebug(buffer.Size() == stream.Max());
+
+    AllocateBlobData(reference, buffer.Data(), buffer.Size(), alignment);
+    reference.key = blobKey;
 
     return true;
 }

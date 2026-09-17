@@ -234,7 +234,7 @@ struct DescriptorSetElement
 {
     Range<uint32> dirtyRange;
     Array<ObjectBase*, RHIAllocator> values;
-    Bitset occupiedArrayElems;
+    TBitset<RHIAllocator> occupiedArrayElems;
     uint32 bufferStride = ~0u;
 
     HYP_FORCE_INLINE bool IsDirty() const

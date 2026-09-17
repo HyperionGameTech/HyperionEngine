@@ -16,6 +16,7 @@
 #include <Scene/Swatch.hpp>
 #include <Scene/Subsystem.hpp>
 #include <Scene/Light.hpp>
+#include <Scene/LOD.hpp>
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
 
@@ -30,6 +31,7 @@
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/TerrainLodSystem.hpp>
+#include <Scene/Systems/MeshLodSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
@@ -271,6 +273,9 @@ void World::Initialize()
 
     if (!HasSystem<TerrainLodSystem>())
         AddSystem(MakeHandle<TerrainLodSystem>());
+
+    if (!HasSystem<MeshLodSystem>())
+        AddSystem(MakeHandle<MeshLodSystem>());
 
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());
@@ -1300,6 +1305,71 @@ void World::CollectSubsystems(Array<Subsystem*, SceneTempAllocator>& outSubsyste
     for (size_t i = 0; i < m_subsystemsArray.Size(); i++)
     {
         outSubsystems[offset + i] = m_subsystemsArray[i];
+    }
+}
+
+void World::CollectLODViewDatas(Array<LODViewData, SceneTempAllocator>& outViewDatas)
+{
+    AssertOnThread(g_simThread);
+
+    const bool preferEditorViews = GetGameState().IsStopped();
+
+    for (View* view : GetSimThreadViews())
+    {
+        if (!view || !view->ShouldCollectLODs())
+        {
+            continue;
+        }
+
+        const bool isEditorView = bool(view->GetFlags() & ViewFlags::EDITOR_VIEW);
+
+        if (isEditorView == preferEditorViews)
+        {
+            outViewDatas.EmplaceBack(*view->GetCamera());
+        }
+    }
+
+    if (outViewDatas.Any())
+    {
+        return;
+    }
+
+    for (View* view : GetSimThreadViews())
+    {
+        if (view && view->ShouldCollectLODs())
+        {
+            outViewDatas.EmplaceBack(*view->GetCamera());
+        }
+    }
+
+    if (outViewDatas.Any())
+    {
+        return;
+    }
+
+    for (const Handle<Scene>& scene : GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        EntityManager* entityManager = scene->GetEntityManager();
+
+        if (!entityManager)
+        {
+            continue;
+        }
+
+        for (auto [camera] : entityManager->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!(camera->GetCameraFlags() & CameraFlags::HasStreamingVolume))
+            {
+                continue;
+            }
+
+            outViewDatas.EmplaceBack(*camera);
+        }
     }
 }
 

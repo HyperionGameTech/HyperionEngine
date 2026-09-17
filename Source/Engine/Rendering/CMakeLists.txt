@@ -47,6 +47,25 @@ foreach(filepath ${hyperion-rendering_HEADERS})
 endforeach()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Source Code" FILES ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 
+# meshoptimizer powers mesh LOD generation (MeshLodGenerator)
+set(MESHOPTIMIZER_DIR "${SUBMODULES_DIR}/meshoptimizer/src")
+
+if(EXISTS "${MESHOPTIMIZER_DIR}/meshoptimizer.h")
+  message(STATUS "meshoptimizer found, enabling mesh LOD generation")
+
+  add_definitions(-DHYP_MESHOPTIMIZER=1)
+
+  file(GLOB MESHOPTIMIZER_SOURCES "${MESHOPTIMIZER_DIR}/*.cpp")
+  file(GLOB MESHOPTIMIZER_HEADERS "${MESHOPTIMIZER_DIR}/*.h")
+
+  set_source_files_properties(${MESHOPTIMIZER_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
+  set(CURRENT_SOURCES ${CURRENT_SOURCES} ${MESHOPTIMIZER_SOURCES})
+  set(CURRENT_HEADERS ${CURRENT_HEADERS} ${MESHOPTIMIZER_HEADERS})
+
+  include_directories(SYSTEM "${MESHOPTIMIZER_DIR}")
+endif()
+
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 

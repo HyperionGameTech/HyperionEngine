@@ -943,6 +943,20 @@ void View::CollectSync()
     EndAsyncCollection();
 }
 
+bool View::ShouldCollectLODs() const
+{
+    constexpr EnumFlags<ViewFlags> ExcludedFlags = ViewFlags::SHADOW_VIEW
+        | ViewFlags::ENV_PROBE_VIEW
+        | ViewFlags::UI_VIEW
+        | ViewFlags::BAKER_VIEW
+        | ViewFlags::RAY_TRACING
+        | ViewFlags::CUBEMAP_FACE_VIEW;
+
+    return (flags & ViewFlags::GBUFFER)
+        && !(flags & ExcludedFlags)
+        && m_camera != nullptr;
+}
+
 void View::SetPriority(int priority)
 {
     this->priority = priority;
