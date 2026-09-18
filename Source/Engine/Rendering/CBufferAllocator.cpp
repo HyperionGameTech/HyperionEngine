@@ -173,7 +173,7 @@ HYP_NODISCARD void* CBufferAllocator::Allocate(size_t count, size_t alignment)
     const size_t alignedCount = alignment > 0 ? ByteUtil::AlignAs(count, alignment) : count;
     const size_t scratchOffset = ByteUtil::AlignAs(scratch.Size(), alignment);
 
-    scratch.SetSize(scratchOffset + alignedCount);
+    scratch.SetSize(scratchOffset + alignedCount, /* zeroize */ false);
 
     m_scratchAlignment[idx] = MathUtil::Max(m_scratchAlignment[idx], alignment);
 
@@ -217,7 +217,9 @@ HYP_NODISCARD void* CBufferAllocator::Allocate(size_t count, size_t alignment, G
     Block* newBlock = TryGetRecycledBlock(currentFrameCounter);
 
     if (!newBlock)
+    {
         newBlock = NewBlock(currentFrameCounter);
+    }
 
     Assert(count <= CBufferSize && newBlock->offset == 0);
 

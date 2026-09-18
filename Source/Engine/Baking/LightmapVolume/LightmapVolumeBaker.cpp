@@ -18,6 +18,7 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 
+#include <Rendering/Util/MeshLodGenerator.hpp>
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/World.hpp>
@@ -239,32 +240,19 @@ static bool BuildElementTextures(
     return true;
 }
 
-/// @TODO remove when we have a Mesh::Clone()
 static Handle<Mesh> CloneMeshForLightmapBake(const Handle<Mesh>& sourceMesh)
 {
-    Handle<Mesh> clonedMesh = MakeHandle<Mesh>();
+    Handle<Mesh> clonedMesh = sourceMesh->Clone();
 
     // Will be made unique on PutAssetUnique().
     clonedMesh->SetName(sourceMesh->GetName());
 
+    if (!clonedMesh->GetBVH().IsValid())
     {
-        auto sourceMeshReadScope = sourceMesh->GetReadScope();
-
-        const MeshDesc meshDesc = sourceMesh->GetMeshDesc();
-        const VertexArrayView vertexData = sourceMesh->GetVertexData(0);
-        const Span<const ubyte> indexData = sourceMesh->GetIndexData(0);
-
-        MeshDataView meshData {};
-        meshData.vertices[0] = vertexData;
-        meshData.indices[0] = ConstByteView(indexData.Data(), indexData.Data() + indexData.Size());
-
-        clonedMesh->SetMeshData(meshDesc, meshData);
-
-        sourceMeshReadScope.Reset();
-
         BVHNode bvh;
         clonedMesh->BuildBVH(bvh);
 
+        auto writeScope = clonedMesh->GetWriteScope();
         clonedMesh->SetBVH(std::move(bvh));
     }
 
@@ -732,9 +720,28 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             MeshDataView meshData {};
             meshData.vertices[0] = vertexArrayView;
             meshData.indices[0] = bakeMesh.indices.ToByteView();
-            
+
+            const bool hadLods = mesh->GetMeshDesc().GetNumLods() > 1;
+
             // Handles write scope on its own
             mesh->SetMeshData(newMeshDesc, meshData);
+
+            // The bake replaces LOD 0 with a new vertex set, so any LODs it had reference vertices that no
+            // longer exist - rebuild them so they carry the new lightmap UVs too.
+            if (hadLods)
+            {
+                TResult<MeshLodGenerationResult> lodResult = MeshLodGenerator::Generate(mesh.Get(), mesh->GetLodGenerationSettings());
+
+                if (lodResult.HasError())
+                {
+                    HYP_LOG(Lightmap, Warning, "Failed to rebuild LODs for mesh '{}' after baking: {}",
+                        mesh->GetName(), lodResult.GetError().GetMessage());
+                }
+                else
+                {
+                    (void)MeshLodGenerator::Apply(mesh.Get(), lodResult.GetValue());
+                }
+            }
 
             GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 

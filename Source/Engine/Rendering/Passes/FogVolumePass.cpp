@@ -29,6 +29,8 @@
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
 
+#include <Rendering/Clouds/CloudPass.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -242,6 +244,9 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(11, "ShadowMapIndexBuffer"_sh, *dpd->clusteredShadowMapIndexBuffer);
 
+    cr << SetShaderUniform(15, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
+    cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
+
     LightShaderData fogLightData[MaxFogLights] {};
     ShadowMapData fogShadowMapData[MaxFogLights] {};
     uint32 numFogLights = 0;
@@ -330,6 +335,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
             RI.cbufferAllocator->Write(&shaderData);
             RI.cbufferAllocator->Write(&directionalLightShaderData);
             RI.cbufferAllocator->Write(&directionalCSMData);
+            dpd->cloudPass->WriteShaderData(*RI.cbufferAllocator);
 
             if (useClusteredLights)
             {
@@ -377,8 +383,8 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
             cr << CommitDrawState();
 
-            cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
-            cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+            cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer(0));
+            cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer(0));
             cr << DrawIndexed(36); // draw cube
         }
     }

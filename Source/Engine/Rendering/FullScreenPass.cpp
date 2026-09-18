@@ -583,8 +583,8 @@ void FullScreenPass::RenderFullScreenQuad(Frame* frame, const RenderSetup& rende
 {
     frame->cr << CommitDrawState();
 
-    frame->cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-    frame->cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+    frame->cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+    frame->cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
     frame->cr << DrawIndexed(6);
 }
 

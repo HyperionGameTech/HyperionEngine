@@ -52,12 +52,20 @@ Result NetSocketUDP::Bind(uint16 port)
     }
 #endif
 
+#ifdef HYP_WINDOWS
+    m_handle = WSASocketW(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
+#else
     m_handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#endif
 
     if (m_handle == InvalidHandle)
     {
         return HYP_MAKE_ERROR(Error, "Failed to create UDP socket");
     }
+
+#ifndef HYP_WINDOWS
+    fcntl(m_handle, F_SETFD, fcntl(m_handle, F_GETFD) | FD_CLOEXEC);
+#endif
 
     sockaddr_in addr {};
     addr.sin_family = AF_INET;
@@ -66,9 +74,15 @@ Result NetSocketUDP::Bind(uint16 port)
 
     if (bind(m_handle, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0)
     {
+#ifdef HYP_WINDOWS
+        const int bindError = WSAGetLastError();
+#else
+        const int bindError = errno;
+#endif
+
         Close();
 
-        return HYP_MAKE_ERROR(Error, "Failed to bind UDP socket to port {}", port);
+        return HYP_MAKE_ERROR(Error, "Failed to bind UDP socket to port {} (error {})", port, bindError);
     }
 
     // non-blocking

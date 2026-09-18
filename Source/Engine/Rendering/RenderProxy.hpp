@@ -10,13 +10,17 @@
 
 #include <Core/Containers/FixedArray.hpp>
 
+#include <Core/Memory/Memory.hpp>
+
 #include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Vector2.hpp>
 #include <Core/Math/Mat3f.hpp>
 #include <Core/Math/Mat4f.hpp>
 #include <Core/Math/Frustum.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/Shared.hpp>
 
 namespace Hyperion {
 
@@ -29,6 +33,7 @@ class Texture;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
+class EffectVolume;
 class Material;
 class Skeleton;
 class EnvProbe;
@@ -58,13 +63,52 @@ struct NullProxy final
 {
 };
 
+// matches the WORLD_ENVIRONMENT_FLAG_* defines in Shaders/Include/Scene.hlsli
+enum WorldEnvironmentFlags : uint32
+{
+    WEF_NONE = 0x0,
+    WEF_HAS_SUN = 0x1,
+    WEF_SUN_DISK = 0x2,
+    WEF_HEIGHT_FOG = 0x4
+};
+
 struct WorldShaderData
 {
     float gameTime;
     uint32 frameCounter;
-    uint32 _pad0;
-    uint32 _pad1;
+    uint32 tonemapOperator;
+    uint32 environmentFlags;
+
+    // x = exposure multiplier, y = contrast, z = saturation
+    Vec4f exposureGrading;
+
+    // linear rgb white balance matrix, one row per element
+    Vec4f whiteBalanceRows[3];
+
+    // xyz = direction toward the sun, w = sun intensity
+    Vec4f sunDirectionIntensity;
+    Vec4f sunColor;
+
+    // rgb = tint, w = intensity
+    Vec4f skyTintIntensity;
+
+    // x = diffuse sky light, y = specular sky light, z = overcast brightness, w = cloud coverage
+    Vec4f skyLightParams;
+
+    // x = sky occlusion strength, y = filter radius in meters, z = depth bias in meters
+    Vec4f skyOcclusionParams;
+
+    // x = density, y = height falloff, z = base height, w = start distance
+    Vec4f heightFogParams;
+
+    // x = aerial perspective distance, y = sky inscatter, z = sun inscatter, w = max opacity
+    Vec4f atmosphereFogParams;
+
+    // x = sun anisotropy
+    Vec4f fogPhaseParams;
 };
+
+static_assert(sizeof(WorldShaderData) == 208);
 
 struct EntityShaderData
 {
@@ -82,10 +126,12 @@ struct EntityShaderData
 
     uint32 bucket;
     uint32 flags;
-    uint32 _pad0;
-    uint32 _pad1;
 
-    Vec4f _pad2;
+    float lodMorphStart = 0.0f;
+    float lodMorphEnd = 0.0f;
+
+    ///w = LOD range multiplier
+    Vec4f lodMorphOrigin;
 };
 
 static_assert(sizeof(EntityShaderData) % 64 == 0);
@@ -111,7 +157,6 @@ struct RenderProxyMesh final : IRenderProxy
     Material* material = nullptr;
     Skeleton* skeleton = nullptr;
 
-    uint32 numIndices = 0;
     uint32 numInstances = 0;
 
     LightmapVolume* lightmapVolume = nullptr;
@@ -125,7 +170,16 @@ struct RenderProxyMesh final : IRenderProxy
 
     uint8 enableAutoInstancing : 1 = false;
 
-    uint8 currentLodIndex = 0;
+    ///false for instanced entities, whose whole batch shares one draw call and whose bounds say nothing
+    ///about any single instance, and for terrain patches, which pick their LOD via TerrainLodSystem.
+    uint8 selectsLod : 1 = false;
+
+    uint8 numLods : MeshLodCountBits = 1;
+
+    ///0 == automatic lod selection, otherwise uses this minus one
+    uint8 forcedLod : MeshLodCountBits = 0;
+
+    int8 lodBias : MeshLodBiasBits = 0;
 };
 
 struct EnvProbeShaderData
@@ -272,6 +326,80 @@ struct RenderProxyFogVolume : IRenderProxy
     FogVolumeShaderData bufferData {};
 };
 
+struct EffectVolumeShaderData
+{
+    Vec4f aabbMin;
+    Vec4f aabbMax;
+
+    Vec4f params[14];
+
+    template <class ParamsType>
+    void SetParams(const ParamsType& value)
+    {
+        static_assert(std::is_trivially_copyable_v<ParamsType> && sizeof(ParamsType) <= sizeof(params));
+
+        Memory::Copy(params, &value, sizeof(ParamsType));
+    }
+
+    template <class ParamsType>
+    ParamsType& GetParams() &
+    {
+        static_assert(sizeof(ParamsType) <= sizeof(params));
+
+        return *reinterpret_cast<ParamsType*>(params);
+    }
+
+    template <class ParamsType>
+    const ParamsType& GetParams() const&
+    {
+        static_assert(sizeof(ParamsType) <= sizeof(params));
+
+        return *reinterpret_cast<const ParamsType*>(params);
+    }
+};
+
+static_assert(sizeof(EffectVolumeShaderData) == 256);
+
+// matches CloudVolumeParams in Shaders/Include/Clouds.hlsli
+struct CloudVolumeShaderData
+{
+    float coverage;
+    float cloudTypeBias;
+    float densityMultiplier;
+    float detailErosion;
+
+    float baseAltitude;
+    float layerThickness;
+    float hazeDistance;
+    uint32 seed;
+
+    float weatherScale;
+    float shapeNoiseScale;
+    float detailNoiseScale;
+    float evolutionTime;
+
+    Vec2f windDirection;
+    float shadowStrength;
+    float shadowSoftness;
+
+    // wind offsets, each wrapped to the period of the noise it scrolls so floats stay precise
+    Vec2f weatherWindOffset;
+    Vec2f shapeWindOffset;
+
+    Vec2f detailWindOffset;
+    uint32 enabled;
+    float cloudSize;
+};
+
+static_assert(sizeof(CloudVolumeShaderData) % 16 == 0);
+
+struct RenderProxyEffectVolume : IRenderProxy
+{
+    EffectVolume* effectVolume = nullptr;
+    BoundingBox worldAabb;
+    EffectVolumeShaderData bufferData {};
+};
+
 struct MaterialShaderData
 {
     Vec4f albedo;
@@ -399,21 +527,42 @@ struct ProbeRayData
     Vec4f color;
 };
 
+static constexpr uint32 DDGIMaxCascades = 6;
+
+struct alignas(16) DDGICascadeData
+{
+    Vec4i gridOffset;
+    Vec4i gridOffsetPrev;
+    Vec4f probeSpacing;
+
+    float blendAlpha;
+    float rayMaxDistance;
+    float normalBias;
+    float padding;
+};
+
+static_assert(sizeof(DDGICascadeData) == 64);
+
 struct alignas(16) DDGIConstants
 {
     Mat4f rotationMatrix;
 
-    Vec4f aabbMax;
-    Vec4f aabbMin;
     Vec4u probeBorder;
     Vec4u probeCounts;
     Vec4u gridDimensions;
     Vec4u imageDimensions;
 
-    float probeDistance;
+    uint32 numCascades;
     uint32 numRaysPerProbe;
     uint32 numBoundLights;
     uint32 counter;
+
+    uint32 cascadeUpdateMask;
+    uint32 cascadeResetMask;
+    float probeDistance;
+    float padding;
+
+    DDGICascadeData cascades[DDGIMaxCascades];
 };
 
 } // namespace Hyperion

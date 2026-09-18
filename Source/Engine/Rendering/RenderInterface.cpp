@@ -55,6 +55,7 @@
 #include <Rendering/Passes/ShadowsPass.hpp>
 #include <Rendering/Passes/ParticlesPass.hpp>
 #include <Rendering/Passes/SpritePass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/UIPass.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
@@ -69,6 +70,8 @@
 #include <Scene/Light.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
+#include <Scene/Sky/CloudEffectVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
@@ -842,6 +845,10 @@ RendererResult RenderInterface::Initialize()
     namedPasses[NamedPass::Sprite][0] = new SpritePass;
     namedPasses[NamedPass::Sprite][0]->Initialize();
 
+    namedPasses[NamedPass::SkyVisibility].ResizeZeroed(1);
+    namedPasses[NamedPass::SkyVisibility][0] = new SkyVisibilityPass;
+    namedPasses[NamedPass::SkyVisibility][0]->Initialize();
+
     return {};
 }
 
@@ -1365,7 +1372,7 @@ void RenderInterface::UpdateResources(AtomicFlag* pCancelFlag)
             vd.rplRender.BeginRead();
 
             vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
-            vd.renderCollector.CollectRenderables(0);
+            vd.renderCollector.CollectRenderables(vd.view, 0);
 
             vd.rplRender.EndRead();
         }
@@ -2364,11 +2371,12 @@ DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, NamedBu
 
 DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBuffer::Invalid, nullptr, &s_particleVolumeBinder);
 DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(CloudEffectVolume, RenderProxyEffectVolume, NamedBuffer::Invalid, nullptr, &s_effectVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Sprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 DECLARE_RENDER_DATA_CONTAINER(TextSprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, NamedBuffer::Materials, nullptr, &s_materialBinder);
+DECLARE_RENDER_DATA_CONTAINER(Material, RenderProxyMaterial, NamedBuffer::Materials, &WriteBufferData_Material, &s_materialBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, NamedBuffer::Invalid, nullptr, &s_textureBinder);
 

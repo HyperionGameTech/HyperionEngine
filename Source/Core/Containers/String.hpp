@@ -451,7 +451,7 @@ public:
     {
         if constexpr (isUtf8)
         {
-            if constexpr (std::is_same_v<OtherCharType, Char32>)
+            if constexpr (std::is_same_v<OtherCharType, Char32> || std::is_same_v<OtherCharType, Char16> || std::is_same_v<OtherCharType, wchar_t>)
             {
                 const size_t len = utf::ToUtf8(_begin, _end, nullptr);
 
@@ -464,46 +464,10 @@ public:
                 buffer.Resize(len + 1);
                 utf::ToUtf8(_begin, _end, buffer.Data());
 
-                for (size_t i = 0; i < buffer.Size(); i++)
-                {
-                    Append(CharType(buffer[i]));
-                }
-            }
-            else if constexpr (std::is_same_v<OtherCharType, Char16>)
-            {
-                const size_t len = utf::ToUtf8(_begin, _end, nullptr);
+                // only the first len bytes are content; appending as a view also counts codepoints (not bytes) for m_length
+                const CharType* encodedBegin = reinterpret_cast<const CharType*>(buffer.Data());
 
-                if (len == 0)
-                {
-                    return;
-                }
-
-                Array<utf::Char8> buffer;
-                buffer.Resize(len + 1);
-                utf::ToUtf8(_begin, _end, buffer.Data());
-
-                for (size_t i = 0; i < buffer.Size(); i++)
-                {
-                    Append(CharType(buffer[i]));
-                }
-            }
-            else if constexpr (std::is_same_v<OtherCharType, wchar_t>)
-            {
-                const size_t len = utf::ToUtf8(_begin, _end, nullptr);
-
-                if (len == 0)
-                {
-                    return;
-                }
-
-                Array<utf::Char8> buffer;
-                buffer.Resize(len + 1);
-                utf::ToUtf8(_begin, _end, buffer.Data());
-
-                for (size_t i = 0; i < buffer.Size(); i++)
-                {
-                    Append(CharType(buffer[i]));
-                }
+                Append(utilities::StringView<TStringType>(encodedBegin, encodedBegin + len));
             }
             else
             {

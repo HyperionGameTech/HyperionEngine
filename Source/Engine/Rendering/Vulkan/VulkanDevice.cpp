@@ -292,27 +292,31 @@ RendererResult VulkanDevice::WaitIdle() const
 {
     RendererResult result = RendererResult {};
 
-    if (m_queueGraphics)
+    // queue types sharing a family share a VulkanDeviceQueue (and its mutex), so lock each distinct queue once
+    Array<VulkanDeviceQueue*, VulkanAllocator> deviceQueues;
+
+    for (VulkanDeviceQueue* deviceQueue : { m_queueGraphics, m_queueTransfer, m_queueCompute, m_queuePresent })
     {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueGraphics->queue), result);
+        if (deviceQueue != nullptr && !deviceQueues.Contains(deviceQueue))
+        {
+            deviceQueues.PushBack(deviceQueue);
+        }
     }
 
-    if (m_queueTransfer)
+    for (VulkanDeviceQueue* deviceQueue : deviceQueues)
     {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueTransfer->queue), result);
+        deviceQueue->mutex.Lock();
+
+        VULKAN_PASS_ERRORS(vkQueueWaitIdle(deviceQueue->queue), result);
     }
 
-    if (m_queueCompute)
-    {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queueCompute->queue), result);
-    }
-
-    if (m_queuePresent)
-    {
-        VULKAN_PASS_ERRORS(vkQueueWaitIdle(m_queuePresent->queue), result);
-    }
-
+    // vkDeviceWaitIdle requires every queue to be externally synchronized, so all queue locks are held here
     VULKAN_PASS_ERRORS(vkDeviceWaitIdle(m_device), result);
+
+    for (VulkanDeviceQueue* deviceQueue : deviceQueues)
+    {
+        deviceQueue->mutex.Unlock();
+    }
 
     return result;
 }
@@ -508,57 +512,43 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
 
     const bool needPresentation = surface != VK_NULL_HANDLE;
 
-    Array<VulkanDeviceQueue, VulkanAllocator> queues;
-    Array<VulkanDeviceQueue**, VulkanAllocator> queueMembers;
+    struct QueueRequest
+    {
+        VulkanDeviceQueueType type;
+        uint32 familyIndex;
+        VulkanDeviceQueue** ppDeviceQueue;
+    };
 
-    queues.PushBack({
-        .type = VulkanDeviceQueueType::GRAPHICS,
-        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
-    });
+    Array<QueueRequest, VulkanAllocator> queueRequests;
 
-    queueMembers.PushBack(&m_queueGraphics);
-
-    queues.PushBack({
-        .type = VulkanDeviceQueueType::TRANSFER,
-        .familyIndex = m_queueFamilyIndices.transferFamily.Get()
-    });
-
-    queueMembers.PushBack(&m_queueTransfer);
-
-    queues.PushBack({
-        .type = VulkanDeviceQueueType::COMPUTE,
-        .familyIndex = m_queueFamilyIndices.computeFamily.Get()
-    });
-
-    queueMembers.PushBack(&m_queueCompute);
+    queueRequests.PushBack({ VulkanDeviceQueueType::GRAPHICS, m_queueFamilyIndices.graphicsFamily.Get(), &m_queueGraphics });
+    queueRequests.PushBack({ VulkanDeviceQueueType::TRANSFER, m_queueFamilyIndices.transferFamily.Get(), &m_queueTransfer });
+    queueRequests.PushBack({ VulkanDeviceQueueType::COMPUTE, m_queueFamilyIndices.computeFamily.Get(), &m_queueCompute });
 
     if (needPresentation)
     {
-        queues.PushBack({
-            .type = VulkanDeviceQueueType::PRESENT,
-            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
-        });
-
-        queueMembers.PushBack(&m_queuePresent);
+        queueRequests.PushBack({ VulkanDeviceQueueType::PRESENT, m_queueFamilyIndices.presentFamily.Get(), &m_queuePresent });
     }
 
     Map<uint32, VulkanDeviceQueue*> mapFamilyIndexToDeviceQueue;
 
-    for (int i = 0; i < int(queues.Size()); i++)
+    for (const QueueRequest& queueRequest : queueRequests)
     {
-        VulkanDeviceQueue& deviceQueue = queues[i];
-        VulkanDeviceQueue** ppDeviceQueue = queueMembers[i];
+        VulkanDeviceQueue** ppDeviceQueue = queueRequest.ppDeviceQueue;
 
-        auto insertResult = mapFamilyIndexToDeviceQueue.Insert(deviceQueue.familyIndex, &deviceQueue);
+        auto insertResult = mapFamilyIndexToDeviceQueue.Insert(queueRequest.familyIndex, nullptr);
 
         if (insertResult.second)
         {
-            // is unique; set member
-            *ppDeviceQueue = HYP_POOL_NEW(g_vulkanPool, VulkanDeviceQueue, std::move(deviceQueue));
-            AssertDebug(*ppDeviceQueue != nullptr);
+            // is unique; set member (constructed in place - VulkanDeviceQueue holds a mutex, so it can't be moved)
+            VulkanDeviceQueue* deviceQueue = HYP_POOL_NEW(g_vulkanPool, VulkanDeviceQueue);
+            AssertDebug(deviceQueue != nullptr);
 
-            deviceQueue = **ppDeviceQueue; // swap out for the pooled one
-            insertResult.first->second = *ppDeviceQueue;
+            deviceQueue->type = queueRequest.type;
+            deviceQueue->familyIndex = queueRequest.familyIndex;
+
+            *ppDeviceQueue = deviceQueue;
+            insertResult.first->second = deviceQueue;
         }
         else
         {

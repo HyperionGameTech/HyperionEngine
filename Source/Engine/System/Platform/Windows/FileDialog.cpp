@@ -216,12 +216,12 @@ void ShowOpenFileDialog(
                 ofn.lStructSize = sizeof(ofn);
                 ofn.hwndOwner = nullptr;
                 ofn.lpstrFile = reinterpret_cast<wchar_t*>(fileNameBufferData.Data());
-                ofn.nMaxFile = (DWORD)fileNameBufferData.Size();
+                ofn.nMaxFile = (DWORD)(fileNameBufferData.Size() / sizeof(wchar_t));
                 ofn.lpstrFilter = reinterpret_cast<wchar_t*>(filterBufferWriter.GetBuffer().Data());
                 ofn.nFilterIndex = 1;
                 ofn.lpstrTitle = titleWide.Data();
                 ofn.lpstrInitialDir = baseDirWide.Data();
-                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
                 if (allowMultiple)
                 {
@@ -337,7 +337,7 @@ void ShowSaveFileDialog(
     ofn.nFilterIndex = 1;
     ofn.lpstrTitle = titleWide.Data();
     ofn.lpstrInitialDir = baseDirWide.Data();
-    ofn.Flags = OFN_OVERWRITEPROMPT;
+    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 
     // Set default extension if provided
     WideString defaultExtWide;

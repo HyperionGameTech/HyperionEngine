@@ -76,6 +76,7 @@ DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D SSAOResultTexture;
 #include "include/Gbuffer.hlsli"
 #include "include/Entity.hlsli"
 #include "include/Scene.hlsli"
+#include "include/Clouds.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/Material.hlsli"
@@ -108,11 +109,20 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     float4 cascadeOffsetX;
     float4 cascadeOffsetY;
     float4 cascadeOffsetZ;
+
+    CloudVolume cloudVolume;
+    CloudWeatherMap cloudWeatherMap;
+    CloudShadowMap cloudShadowMap;
 #else // !LIGHT_TYPE_DIRECTIONAL
     ShadowMap shadowMap;
 #endif // LIGHT_TYPE_DIRECTIONAL
 };
 #endif // !LIGHT_TYPE_CLUSTERED
+
+#ifdef LIGHT_TYPE_DIRECTIONAL
+DECLARE_SRV(DeferredPass, CloudWeatherMapTexture) Texture2DArray cloudWeatherMapTexture;
+DECLARE_SRV(DeferredPass, CloudShadowMapTexture) Texture2D cloudShadowMapTexture;
+#endif // LIGHT_TYPE_DIRECTIONAL
 
 #ifdef LIGHT_TYPE_AREA_RECT
 
@@ -144,6 +154,34 @@ DECLARE_SRV(DeferredPass, EnvProbesDepthTexture) TextureCubeArray<float2> envPro
 
 #include "include/LightSampling.hlsli"
 
+#ifdef LIGHT_TYPE_DIRECTIONAL
+
+float GetCascadeShadow(int cascadeIndex, float3 position, float3 N, float2 texcoord, float NdotL)
+{
+    // push the lookup out along the normal by the cascade's PCF footprint, so kernel taps on slopes don't
+    // land on the receiver's own surface. The cascade is picked from the unmoved position so this can't cross a split
+    const float cascadeWidth = 1.0 / max(abs(cascadeScaleX[cascadeIndex]), 0.000001);
+    const float normalOffset = GetCascadeNormalOffset(cascadeWidth, NdotL);
+
+    float4 offsetPositionLS = mul(shadowViewMat, float4(position + N * normalOffset, 1.0));
+    offsetPositionLS /= offsetPositionLS.w;
+
+    float4 shadowMapCoord;
+    shadowMapCoord.x = offsetPositionLS.x * cascadeScaleX[cascadeIndex] + cascadeOffsetX[cascadeIndex];
+    shadowMapCoord.y = offsetPositionLS.y * cascadeScaleY[cascadeIndex] + cascadeOffsetY[cascadeIndex];
+    shadowMapCoord.z = offsetPositionLS.z * cascadeScaleZ[cascadeIndex] + cascadeOffsetZ[cascadeIndex];
+    shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
+
+    const float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
+    const float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+
+    return GetShadowPCF(shadowMapCoord,
+        atlasUV, atlasScale,
+        position, texcoord, camera.dimensions.xy);
+}
+
+#endif // LIGHT_TYPE_DIRECTIONAL
+
 #ifdef LIGHT_TYPE_CLUSTERED
 
 DECLARE_SRV(DeferredPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> EnvProbesBuffer;
@@ -173,6 +211,15 @@ uint GetShadowMapIndexForLight(uint lightIndex)
 
 #endif // LIGHT_TYPE_CLUSTERED
 
+// how far light wraps past the terminator on thin two sided surfaces, and how tight the backlit lobe is
+#define FOLIAGE_WRAP 0.5
+#define FOLIAGE_TRANSMISSION_POWER 4.0
+
+float FoliageWrapDiffuse(float NdotL)
+{
+    return saturate((NdotL + FOLIAGE_WRAP) / ((1.0 + FOLIAGE_WRAP) * (1.0 + FOLIAGE_WRAP)));
+}
+
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
@@ -191,7 +238,8 @@ PSOutput PSMain(PSInput input)
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_NEAREST, GBufferDepthTexture, texcoord, 0).r;
 
-    float2 unjitteredTexcoord = texcoord - camera.jitter.xy * 0.5;
+    // texcoord y runs opposite to NDC y (see ReconstructViewSpacePositionFromDepth)
+    float2 unjitteredTexcoord = texcoord - float2(camera.jitter.x, -camera.jitter.y) * 0.5;
     float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, unjitteredTexcoord, depth);
 
     float4 position = mul(camera.invViewMat, positionVS);
@@ -208,6 +256,9 @@ PSOutput PSMain(PSInput input)
 
         return output;
     }
+
+    const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
+    const float transmission = isFoliage ? float(materialBits & 0xFFu) / 255.0 : 0.0;
 
     const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
     const float metalness = materialParams.metalness;
@@ -334,9 +385,16 @@ PSOutput PSMain(PSInput input)
         float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
         float4 diffuse = diffuse_lobe;
 
-        float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
+        const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-        result += float4((direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+        float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL;
+
+        if (isFoliage)
+        {
+            direct_component += diffuse * (pow(saturate(dot(V, -L)), FOLIAGE_TRANSMISSION_POWER) * transmission);
+        }
+
+        result += float4((direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
 
         lightHit = true;
     }
@@ -469,21 +527,39 @@ PSOutput PSMain(PSInput input)
         cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
         cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
         cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
-        
-        float4 shadowMapCoord;
-        shadowMapCoord.x = uvX[cascadeIndex];
-        shadowMapCoord.y = uvY[cascadeIndex];
-        shadowMapCoord.z = uvZ[cascadeIndex];
-        shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
 
-        float2 atlasUV = float2(atlasU[cascadeIndex], atlasV[cascadeIndex]);
-        float2 atlasScale = float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]);
+        int nextCascadeIndex = 4;
+        nextCascadeIndex = (insideMask.w > 0.5 && cascadeIndex < 3) ? 3 : nextCascadeIndex;
+        nextCascadeIndex = (insideMask.z > 0.5 && cascadeIndex < 2) ? 2 : nextCascadeIndex;
+        nextCascadeIndex = (insideMask.y > 0.5 && cascadeIndex < 1) ? 1 : nextCascadeIndex;
 
-        shadow = GetShadowPCF(shadowMapCoord,
-            atlasUV, atlasScale,
-            position.xyz, texcoord, camera.dimensions.xy, NdotL);
+        shadow = GetCascadeShadow(cascadeIndex, position.xyz, N, texcoord, NdotL);
+
+        // bias, normal offset and PCF footprint all scale with cascade width, so fade into the next cascade before the split
+        // rather than stepping at it (most visible on large receivers like terrain)
+        const float cascadeEdgeDistance = 0.5 - maxDist[cascadeIndex];
+        const float nextCascadeWeight = 1.0 - saturate(cascadeEdgeDistance / HYP_SHADOW_CASCADE_BLEND_SIZE);
+
+        [branch]
+        if (nextCascadeIndex < 4 && nextCascadeWeight > 0.0)
+        {
+            shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, position.xyz, N, texcoord, NdotL), nextCascadeWeight);
+        }
     }
-#endif // LIGHT_TYPE_POINT
+    
+    // cloud coverage
+    
+    const float cloudShadow = GetCloudShadow(cloudWeatherMapTexture, cloudShadowMapTexture, sampler_linear, cloudVolume, cloudWeatherMap, cloudShadowMap, position.xyz, L);
+    shadow *= cloudShadow;
+    
+    [branch]
+    if (cloudWeatherMap.debugShadows != 0)
+    {
+        output.output_color = float4((1.0 - cloudShadow) * float3(1.0, 0.0, 1.0), 1.0);
+
+        return output;
+    }
+#endif
 
     const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
     const float G = V_SmithGGXCorrelated(roughness * roughness, NdotV, NdotL);
@@ -517,9 +593,17 @@ PSOutput PSMain(PSInput input)
     float4 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
     float4 diffuse = diffuse_lobe;
 
-    float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);
+    // leaves and grass wrap light around and let some through from behind
+    const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-    result += direct_component * (light_color * NdotL * shadow * currentLight.position_intensity.w * attenuation);
+    float4 direct_component = diffuse * diffuseWeight + specular * float4(energy_compensation, 1.0) * NdotL;
+
+    if (isFoliage)
+    {
+        direct_component += diffuse * (pow(saturate(dot(V, -L)), FOLIAGE_TRANSMISSION_POWER) * transmission);
+    }
+
+    result += direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT

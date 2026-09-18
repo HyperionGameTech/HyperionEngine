@@ -117,6 +117,119 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasMoveToSceneTargets, value);
         }
 
+        private bool _canGenerateCollision;
+        public bool CanGenerateCollision
+        {
+            get => _canGenerateCollision;
+            private set => SetProperty(ref _canGenerateCollision, value);
+        }
+
+        private bool _canFitCollisionToMesh;
+        public bool CanFitCollisionToMesh
+        {
+            get => _canFitCollisionToMesh;
+            private set => SetProperty(ref _canFitCollisionToMesh, value);
+        }
+
+        /// <summary>
+        /// Whether either collision action applies to this node, so the submenu can hide entirely for
+        /// nodes that are not mesh entities.
+        /// </summary>
+        public bool HasCollisionActions => CanGenerateCollision || CanFitCollisionToMesh;
+
+        /// <summary>
+        /// Reads whether the collision actions apply to this node. The component lookups behind them have
+        /// to run on the sim thread, so the menu items start disabled and enable themselves a frame later.
+        /// </summary>
+        public void RefreshCollisionState()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            Node node = _node;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+                if (editorSubsystem == null)
+                {
+                    return;
+                }
+
+                bool canGenerate = editorSubsystem.CanGenerateConvexCollision(node);
+                bool canFit = editorSubsystem.CanFitPhysicsShapeToMesh(node);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    CanGenerateCollision = canGenerate;
+                    CanFitCollisionToMesh = canFit;
+
+                    OnPropertyChanged(nameof(HasCollisionActions));
+                });
+            });
+        }
+
+        public bool IsVolume => _node is VolumeBase;
+
+        private bool _isOutsideSelection;
+        /// <summary>
+        /// Whether the context menu was opened on this node without it being selected (right-clicking a volume
+        /// leaves the selection alone), in which case Copy and Delete act on this node rather than the selection.
+        /// </summary>
+        public bool IsOutsideSelection
+        {
+            get => _isOutsideSelection;
+            private set => SetProperty(ref _isOutsideSelection, value);
+        }
+
+        private bool _canFitVolumeToSelection;
+        public bool CanFitVolumeToSelection
+        {
+            get => _canFitVolumeToSelection;
+            private set => SetProperty(ref _canFitVolumeToSelection, value);
+        }
+
+        private string _fitVolumeToSelectionHeader = "Fit to Selected Node";
+        public string FitVolumeToSelectionHeader
+        {
+            get => _fitVolumeToSelectionHeader;
+            private set => SetProperty(ref _fitVolumeToSelectionHeader, value);
+        }
+
+        public void RefreshSelectionContext(IReadOnlyCollection<NodeViewModel> selectedNodes)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            IsOutsideSelection = !selectedNodes.Contains(this);
+
+            if (!IsVolume)
+            {
+                return;
+            }
+
+            int fitTargetCount = selectedNodes.Count(selectedNode => !ReferenceEquals(selectedNode, this));
+            FitVolumeToSelectionHeader = fitTargetCount > 1 ? $"Fit to {fitTargetCount} Selected Nodes" : "Fit to Selected Node";
+
+            // Bounds are read on the sim thread, so the item starts disabled and enables itself a frame later.
+            CanFitVolumeToSelection = false;
+
+            Node node = _node;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+                if (editorSubsystem == null)
+                {
+                    return;
+                }
+
+                bool canFit = editorSubsystem.CanFitVolumeToSelection(node);
+
+                Dispatcher.UIThread.Post(() => CanFitVolumeToSelection = canFit);
+            });
+        }
+
         public void RefreshActions()
         {
             Dispatcher.UIThread.VerifyAccess();
@@ -189,6 +302,10 @@ namespace Hyperion.Editor.ViewModels
         private readonly Action? _onChildrenChanged;
         private readonly NodeViewModelIndex? _index;
 
+        /// <summary>
+        /// Walks the node's subtree and binds its child handlers, so this must run on the thread that mutates the
+        /// hierarchy (the sim thread). Register the result with <see cref="NodeViewModelIndex.Add"/> on the UI thread.
+        /// </summary>
         public NodeViewModel(Node node, NodeViewModel? parent = null, Action? onChildrenChanged = null, NodeViewModelIndex? index = null)
         {
             _node = node;
@@ -196,11 +313,9 @@ namespace Hyperion.Editor.ViewModels
             _onChildrenChanged = onChildrenChanged;
             _index = index;
             _name = node.Name.ToString();
-            
+
             // Root nodes are expanded by default
             _isExpanded = parent == null;
-
-            _index?.Add(this);
 
             // Initialize existing children
             for (uint i = 0; i < node.NumChildren(); i++)
@@ -230,10 +345,12 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                // built inline on the thread attaching the child; its subtree may be mutated again before the UI gets to it
+                NodeViewModel childViewModel = new NodeViewModel(child, target, target!._onChildrenChanged, target!._index);
+
                 Dispatcher.UIThread.Post(() =>
                 {
-                    NodeViewModel childViewModel = new NodeViewModel(child, target, target!._onChildrenChanged, target!._index);
-
+                    target!._index?.Add(childViewModel);
                     target!._allChildren.Add(childViewModel);
                     target!.Children.Add(childViewModel);
 
@@ -343,6 +460,11 @@ namespace Hyperion.Editor.ViewModels
         public void Add(NodeViewModel nodeViewModel)
         {
             _nodeViewModelsByUUID[nodeViewModel.UUID] = nodeViewModel;
+
+            foreach (NodeViewModel child in nodeViewModel.AllChildren)
+            {
+                Add(child);
+            }
         }
 
         public void Remove(NodeViewModel nodeViewModel)

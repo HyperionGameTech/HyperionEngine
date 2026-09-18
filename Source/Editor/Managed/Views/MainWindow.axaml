@@ -13,6 +13,7 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
     Title="Hyperion Editor"
+    Icon="/Assets/Branding/hyperion-icon.ico"
     d:DesignHeight="720"
     d:DesignWidth="1280"
     x:CompileBindings="False"
@@ -487,7 +488,10 @@
 
                                             <Separator />
 
-                                            <MenuItem Command="{Binding AddNewLayerCommand, Source={x:Static vm:MainWindowViewModel.Instance}}" Header="Add New Layer..." />
+                                            <MenuItem
+                                                Command="{Binding AddNewLayerCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                Header="Add New Layer..."
+                                                IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                         </StackPanel>
                                     </Flyout>
                                 </DropDownButton.Flyout>
@@ -536,7 +540,10 @@
                                                 </ItemsControl>
 
                                                 <Separator />
-                                                <MenuItem Command="{Binding AddNewSwatchCommand, Source={x:Static vm:MainWindowViewModel.Instance}}" Header="New Swatch..." />
+                                                <MenuItem
+                                                    Command="{Binding AddNewSwatchCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                    Header="New Swatch..."
+                                                    IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                             </StackPanel>
                                         </Flyout>
                                     </DropDownButton.Flyout>
@@ -859,6 +866,49 @@
                                             <controls:Codicon Kind="AlignToNormal" Size="16" />
                                         </ToggleButton>
 
+                                        <Border Classes="mode-separator" IsVisible="{Binding MeshEditHasMultipleLods}" />
+
+                                        <DropDownButton
+                                            x:Name="MeshEditLodDropDown"
+                                            Classes="gizmo"
+                                            Click="OnDropDownClick"
+                                            IsVisible="{Binding MeshEditHasMultipleLods}"
+                                            ToolTip.Tip="LOD being edited">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock VerticalAlignment="Center" Text="{Binding MeshEditLodText}" />
+                                                <controls:Codicon Kind="ChevronDown" Size="10" />
+                                            </StackPanel>
+                                            <DropDownButton.ContextMenu>
+                                                <ContextMenu Placement="Bottom">
+                                                    <MenuItem
+                                                        Command="{Binding SetMeshEditLod}"
+                                                        CommandParameter="0"
+                                                        Header="LOD 0" />
+                                                    <MenuItem
+                                                        Command="{Binding SetMeshEditLod}"
+                                                        CommandParameter="1"
+                                                        Header="LOD 1" />
+                                                    <MenuItem
+                                                        Command="{Binding SetMeshEditLod}"
+                                                        CommandParameter="2"
+                                                        Header="LOD 2" />
+                                                    <MenuItem
+                                                        Command="{Binding SetMeshEditLod}"
+                                                        CommandParameter="3"
+                                                        Header="LOD 3" />
+                                                </ContextMenu>
+                                            </DropDownButton.ContextMenu>
+                                        </DropDownButton>
+
+                                        <Button
+                                            x:Name="RegenerateMeshEditLodsButton"
+                                            Classes="gizmo"
+                                            Command="{Binding RegenerateMeshEditLods}"
+                                            IsVisible="{Binding MeshEditLodsOutOfDate}"
+                                            ToolTip.Tip="LODs are out of date - regenerate them from LOD 0">
+                                            <controls:Codicon Kind="Refresh" Size="16" />
+                                        </Button>
+
                                         <Border Classes="mode-separator" />
 
                                         <Button
@@ -879,28 +929,42 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Classes="mode-separator" IsVisible="{Binding CanToggleTerrainSculptMode}"/>
+                                <Border Classes="mode-separator" />
 
-                                <ToggleButton
-                                    x:Name="ToggleTerrainSculptModeButton"
+                                <DropDownButton
+                                    x:Name="TerrainToolsDropDown"
                                     Classes="gizmo"
-                                    Command="{Binding ToggleTerrainSculptMode}"
-                                    IsChecked="{Binding IsSculptModeActive, Mode=OneWay}"
-                                    IsVisible="{Binding CanToggleTerrainSculptMode}"
-                                    ToolTip.Tip="Terrain Sculptor">
-                                    <controls:Codicon Kind="Landscape" Size="16" />
-                                </ToggleButton>
-
-                                <ToggleButton
-                                    x:Name="ToggleTerrainPaintModeButton"
-                                    Classes="gizmo"
-                                    Command="{Binding ToggleTerrainPaintMode}"
-                                    IsChecked="{Binding IsPaintModeActive, Mode=OneWay}"
-                                    IsVisible="{Binding CanToggleTerrainSculptMode}"
-                                    ToolTip.Tip="Terrain Painter">
-
-                                    <controls:Codicon Kind="Brush" Size="16" />
-                                </ToggleButton>
+                                    Click="OnDropDownClick"
+                                    ToolTip.Tip="Terrain Tools">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <controls:Codicon Kind="Landscape" Size="16" />
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    </StackPanel>
+                                    <DropDownButton.ContextMenu>
+                                        <ContextMenu Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding ToggleTerrainSculptMode}"
+                                                Header="Terrain Sculptor"
+                                                IsChecked="{Binding IsSculptModeActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle terrain sculpt mode" />
+                                            <MenuItem
+                                                Command="{Binding ToggleTerrainPaintMode}"
+                                                Header="Terrain Painter"
+                                                IsChecked="{Binding IsPaintModeActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle terrain paint mode" />
+                                            <Separator />
+                                            <MenuItem
+                                                Command="{Binding AddTerrainLayer}"
+                                                Header="Add Terrain Layer"
+                                                IsEnabled="{Binding CanAddTerrainLayer}"
+                                                ToolTip.Tip="Add a terrain layer to the selected entity" />
+                                        </ContextMenu>
+                                    </DropDownButton.ContextMenu>
+                                </DropDownButton>
 
                             </StackPanel>
                         </StackPanel>
@@ -930,6 +994,34 @@
                                               ToolTip.Tip="Manage settings for the game's world" />
                                   
                                     <Separator />
+                                    <MenuItem Header="{Binding ViewportLodText}" ToolTip.Tip="Mesh LOD shown in the viewport">
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="-1"
+                                            Header="Auto"
+                                            IsChecked="{Binding IsViewportLodAutomatic, Mode=OneWay}"
+                                            ToggleType="CheckBox"
+                                            ToolTip.Tip="Pick each mesh's LOD from its screen size" />
+                                        <Separator />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="0"
+                                            Header="Force LOD 0" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="1"
+                                            Header="Force LOD 1" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="2"
+                                            Header="Force LOD 2" />
+                                        <MenuItem
+                                            Command="{Binding SetViewportLod}"
+                                            CommandParameter="3"
+                                            Header="Force LOD 3" />
+                                    </MenuItem>
+
+                                    <Separator />
                                     <MenuItem Header="Layout">
                                         <MenuItem
                                             Click="OnResetLayoutClick"
@@ -952,11 +1044,43 @@
                                     Classes="Play"
                                     Command="{Binding SetGameModePlaying}"
                                     IsVisible="{Binding CanSetGameModePlaying}"
-                                    ToolTip.Tip="Play">
+                                    ToolTip.Tip="{Binding PlayTooltip}">
                                     <controls:Codicon
                                         Foreground="White"
                                         Kind="Play"
                                         Size="16" />
+                                </Button>
+                                <Button
+                                    Padding="2,0"
+                                    IsVisible="{Binding !IsSimulating}"
+                                    ToolTip.Tip="Play options">
+                                    <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    <Button.Flyout>
+                                        <MenuFlyout Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeStandalone}"
+                                                Header="Standalone"
+                                                IsChecked="{Binding IsPlayNetModeStandalone, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Play locally with no network connection" />
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeClient}"
+                                                Header="Play As Client"
+                                                IsChecked="{Binding IsPlayNetModeClient, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Connect to the server set in Network Settings once play starts" />
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeDedicatedServer}"
+                                                Header="Play As Dedicated Server"
+                                                IsChecked="{Binding IsPlayNetModeDedicatedServer, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Host the play session as a server on the port set in Network Settings" />
+                                            <Separator />
+                                            <MenuItem
+                                                Command="{Binding OpenNetworkSettings}"
+                                                Header="Network Settings..." />
+                                        </MenuFlyout>
+                                    </Button.Flyout>
                                 </Button>
                                 <Button
                                     Command="{Binding SetGameModePaused}"
@@ -1118,7 +1242,15 @@
                                                                         <MenuItem
                                                                             Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding CopyHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                        <!--  Right-clicking a volume leaves the selection alone, so Copy/Delete act on just the volume  -->
+                                                                        <MenuItem
+                                                                            Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="_Copy"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsOutsideSelection}" />
                                                                         <MenuItem
                                                                             Command="{Binding Paste, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding PasteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -1159,6 +1291,28 @@
                                                                                 </ControlTheme>
                                                                             </MenuItem.ItemContainerTheme>
                                                                         </MenuItem>
+                                                                        <Separator />
+                                                                        <MenuItem Header="Collision" IsEnabled="{Binding HasCollisionActions}">
+                                                                            <MenuItem
+                                                                                Command="{Binding GenerateConvexCollision, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                CommandParameter="{Binding UUID}"
+                                                                                Header="Generate Convex Collision"
+                                                                                IsEnabled="{Binding CanGenerateCollision}"
+                                                                                ToolTip.Tip="Decompose this entity's mesh into convex hulls and use them as its collision shape" />
+                                                                            <MenuItem
+                                                                                Command="{Binding FitCollisionToMesh, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                CommandParameter="{Binding UUID}"
+                                                                                Header="Fit Box To Mesh"
+                                                                                IsEnabled="{Binding CanFitCollisionToMesh}"
+                                                                                ToolTip.Tip="Resize this entity's box collision to match its mesh bounds" />
+                                                                        </MenuItem>
+                                                                        <MenuItem
+                                                                            Command="{Binding FitVolumeToSelection, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="{Binding FitVolumeToSelectionHeader}"
+                                                                            IsEnabled="{Binding CanFitVolumeToSelection}"
+                                                                            IsVisible="{Binding IsVolume}"
+                                                                            ToolTip.Tip="Resize this volume to the world-space bounds of the selected nodes" />
                                                                         <Separator IsVisible="{Binding HasActions}" />
                                                                         <MenuItem
                                                                             Header="Actions"
@@ -1180,7 +1334,14 @@
                                                                         <MenuItem
                                                                             Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding DeleteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                        <MenuItem
+                                                                            Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="_Delete"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsOutsideSelection}" />
                                                                     </ContextMenu>
                                                                 </Grid.ContextMenu>
                                                             </Grid>
@@ -1912,13 +2073,42 @@
                                                         Classes="panel-header"
                                                         DockPanel.Dock="Top">
                                                         <Grid VerticalAlignment="Center" ColumnDefinitions="*, Auto, Auto, Auto">
-                                                            <TextBlock
+                                                            <TextBox
                                                                 Grid.Column="0"
-                                                                Margin="6,0"
+                                                                MaxWidth="260"
+                                                                Margin="0,0,8,0"
+                                                                Padding="4,2"
+                                                                HorizontalAlignment="Left"
                                                                 VerticalAlignment="Center"
-                                                                Classes="header"
-                                                                FontSize="12"
-                                                                Text="Assets" />
+                                                                FontSize="11"
+                                                                Text="{Binding ContentBrowser.SearchText, Mode=TwoWay}"
+                                                                ToolTip.Tip="Filter the assets in this bucket by name"
+                                                                Watermark="Search assets...">
+                                                                <TextBox.InnerLeftContent>
+                                                                    <controls:Codicon
+                                                                        Margin="6,0,4,0"
+                                                                        VerticalAlignment="Center"
+                                                                        Foreground="{DynamicResource Brush.TextMuted}"
+                                                                        Kind="Search"
+                                                                        Size="12" />
+                                                                </TextBox.InnerLeftContent>
+                                                                <TextBox.InnerRightContent>
+                                                                    <Button
+                                                                        Margin="2,0"
+                                                                        Padding="3"
+                                                                        VerticalAlignment="Center"
+                                                                        Background="Transparent"
+                                                                        BorderThickness="0"
+                                                                        Command="{Binding ContentBrowser.ClearSearchCommand}"
+                                                                        IsVisible="{Binding ContentBrowser.HasSearchText}"
+                                                                        ToolTip.Tip="Clear search">
+                                                                        <controls:Codicon
+                                                                            Foreground="{DynamicResource Brush.TextMuted}"
+                                                                            Kind="Close"
+                                                                            Size="10" />
+                                                                    </Button>
+                                                                </TextBox.InnerRightContent>
+                                                            </TextBox>
                                                             <ComboBox
                                                                 Grid.Column="1"
                                                                 Margin="0,0,4,0"
@@ -1969,7 +2159,8 @@
                                                             Grid.Column="1"
                                                             ItemsSource="{Binding ContentBrowser.Assets}"
                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                            SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}">
+                                                            SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}"
+                                                            SelectionChanged="OnContentBrowserSelectionChanged">
                                                             <ListBox.ItemsPanel>
                                                                 <ItemsPanelTemplate>
                                                                     <WrapPanel />
@@ -1978,31 +2169,43 @@
                                                             <ListBox.ItemTemplate>
                                                                 <DataTemplate x:DataType="vm:AssetObjectViewModel">
                                                                     <Border
-                                                                        Width="64"
-                                                                        Height="64"
+                                                                        Width="84"
+                                                                        Height="84"
                                                                         Margin="3"
-                                                                        Padding="3"
+                                                                        Padding="4"
                                                                         Background="Transparent"
-                                                                        CornerRadius="{DynamicResource Radius.Small}">
-                                                                        <StackPanel
-                                                                            HorizontalAlignment="Center"
-                                                                            VerticalAlignment="Center"
-                                                                            Spacing="2">
-                                                                            <controls:Codicon
-                                                                                HorizontalAlignment="Center"
-                                                                                Foreground="{DynamicResource Brush.AccentHover}"
-                                                                                Kind="{Binding IconKind}"
-                                                                                Opacity="0.85"
-                                                                                Size="20" />
+                                                                        CornerRadius="{DynamicResource Radius.Small}"
+                                                                        ToolTip.Tip="{Binding DisplayName}">
+                                                                        <!--  Fixed rows rather than a centred stack, so every tile puts its icon at the same height however long the name is.  -->
+                                                                        <Grid RowDefinitions="*,Auto">
+                                                                            <Panel Grid.Row="0">
+                                                                                <controls:Codicon
+                                                                                    HorizontalAlignment="Center"
+                                                                                    VerticalAlignment="Center"
+                                                                                    Foreground="{DynamicResource Brush.AccentHover}"
+                                                                                    IsVisible="{Binding !HasThumbnail}"
+                                                                                    Kind="{Binding IconKind}"
+                                                                                    Opacity="0.85"
+                                                                                    Size="34" />
+                                                                                <Image
+                                                                                    Width="56"
+                                                                                    Height="56"
+                                                                                    HorizontalAlignment="Center"
+                                                                                    VerticalAlignment="Center"
+                                                                                    IsVisible="{Binding HasThumbnail}"
+                                                                                    Source="{Binding Thumbnail}"
+                                                                                    Stretch="Uniform" />
+                                                                            </Panel>
                                                                             <TextBlock
-                                                                                MaxWidth="58"
+                                                                                Grid.Row="1"
+                                                                                MaxWidth="76"
                                                                                 HorizontalAlignment="Center"
                                                                                 FontSize="10"
                                                                                 Text="{Binding DisplayName}"
                                                                                 TextAlignment="Center"
                                                                                 TextTrimming="CharacterEllipsis"
-                                                                                TextWrapping="Wrap" />
-                                                                        </StackPanel>
+                                                                                TextWrapping="NoWrap" />
+                                                                        </Grid>
                                                                         <Border.ContextMenu>
                                                                             <ContextMenu Opened="OnAssetContextMenuOpened">
                                                                                 <MenuItem
@@ -2046,6 +2249,15 @@
                                                                 </DataTemplate>
                                                             </ListBox.ItemTemplate>
                                                         </ListBox>
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            Margin="12"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Classes="muted"
+                                                            IsHitTestVisible="False"
+                                                            IsVisible="{Binding ContentBrowser.HasNoMatches}"
+                                                            Text="No assets match the search." />
                                                     </Grid>
                                                 </DockPanel>
                                             </ContentControl>

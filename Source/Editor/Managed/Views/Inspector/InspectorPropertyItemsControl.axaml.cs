@@ -15,6 +15,19 @@ namespace Hyperion.Editor.Views.Inspector
             set => SetValue(ItemsSourceProperty, value);
         }
 
+        /// <summary>
+        /// Show property descriptions as text under each row, instead of only as label tooltips.
+        /// Inherited, so nested struct / sub-object property lists follow the outermost setting.
+        /// </summary>
+        public static readonly StyledProperty<bool> ShowDescriptionsProperty =
+            AvaloniaProperty.Register<InspectorPropertyItemsControl, bool>(nameof(ShowDescriptions), defaultValue: false, inherits: true);
+
+        public bool ShowDescriptions
+        {
+            get => GetValue(ShowDescriptionsProperty);
+            set => SetValue(ShowDescriptionsProperty, value);
+        }
+
         public InspectorPropertyItemsControl()
         {
             InitializeComponent();

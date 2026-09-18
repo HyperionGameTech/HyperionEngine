@@ -227,6 +227,31 @@ struct CharacterGhostOverlapFilter final : btOverlapFilterCallback
     }
 };
 
+struct HullCollisionShape final : btCompoundShape
+{
+    Array<SharedPtr<btCollisionShape>> hullShapes;
+
+    HullCollisionShape() = default;
+
+    ~HullCollisionShape() override
+    {
+        for (const SharedPtr<btCollisionShape>& hullShape : hullShapes)
+        {
+            removeChildShape(hullShape.Get());
+        }
+    }
+
+    void AddHull(SharedPtr<btCollisionShape> hullShape)
+    {
+        btTransform childTransform;
+        childTransform.setIdentity();
+
+        addChildShape(childTransform, hullShape.Get());
+
+        hullShapes.PushBack(std::move(hullShape));
+    }
+};
+
 struct OffsetCollisionShape final : btCompoundShape
 {
     SharedPtr<btCollisionShape> childShape;
@@ -327,17 +352,43 @@ static SharedPtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physic
 
         AssertDebug(shapeCasted->NumVertices() > 0);
 
-        if (MathUtil::Abs(scale.x - 1.0f) > MathUtil::epsilonF
-            || MathUtil::Abs(scale.y - 1.0f) > MathUtil::epsilonF
-            || MathUtil::Abs(scale.z - 1.0f) > MathUtil::epsilonF)
-        {
-            HYP_LOG(Physics, Warning, "ConvexHull physics shape on a non-unit-scale entity; scale is not applied to convex hull collision shapes");
-        }
-
-        return MakeSharedWithAllocator<btConvexHullShape, PhysicsAllocator>(
+        SharedPtr<btCollisionShape> hullShape = MakeSharedWithAllocator<btConvexHullShape, PhysicsAllocator>(
             shapeCasted->GetVertexData(),
             shapeCasted->NumVertices(),
             sizeof(float) * 3);
+
+        hullShape->setLocalScaling(ToBtVector(scale));
+
+        return hullShape;
+    }
+    case PhysicsShapeType::Compound:
+    {
+        static_assert(sizeof(btScalar) == sizeof(float), "sizeof(btScalar) must be sizeof(float) for reinterpret_cast to be safe");
+
+        CompoundPhysicsShape* shapeCasted = static_cast<CompoundPhysicsShape*>(physicsShape);
+
+        TSharedResLock lock(*shapeCasted);
+
+        SharedPtr<HullCollisionShape> compoundShape = MakeSharedWithAllocator<HullCollisionShape, PhysicsAllocator>();
+
+        for (uint32 hullIndex = 0; hullIndex < shapeCasted->NumHulls(); hullIndex++)
+        {
+            const Span<const float> hullVertices = shapeCasted->GetHullVertices(hullIndex);
+
+            if (hullVertices.Size() < 4 * 3)
+            {
+                continue;
+            }
+
+            compoundShape->AddHull(MakeSharedWithAllocator<btConvexHullShape, PhysicsAllocator>(
+                hullVertices.Data(),
+                int(hullVertices.Size() / 3),
+                sizeof(float) * 3));
+        }
+
+        compoundShape->setLocalScaling(ToBtVector(scale));
+
+        return compoundShape;
     }
     default:
         HYP_UNREACHABLE();
@@ -1130,6 +1181,16 @@ void BulletPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandl
 
     outTranslation = FromBtVector(internalData->ghostObject->getWorldTransform().getOrigin());
     outIsOnGround = internalData->kcc->onGround();
+}
+
+// btKinematicCharacterController has no persistent horizontal momentum or jump timers, and its vertical velocity
+// already survives SetCharacterTranslation, so there's nothing to snapshot here
+void BulletPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState)
+{
+}
+
+void BulletPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState)
+{
 }
 
 void BulletPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)

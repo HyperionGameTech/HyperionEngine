@@ -3,6 +3,23 @@ Mesh TriangleDebugDrawShape {
         Min = (0, 0, 0)
         Max = (1, 1, 0)
     }
+    LodGeneration = {
+        NumLods = 4
+        TriangleRatios = [
+            1
+            0.5
+            0.25
+            0.125
+        ]
+        MaxRelativeError = 1
+        NormalWeight = 0.5
+        UV0Weight = 1
+        UV1Weight = 0.5
+        LockBorder = false
+        Prune = false
+        MaxScreenErrorPixels = 1
+        SourceDataHash = 0
+    }
     MeshDesc = {
         MeshAttributes = {
             InputLayout = {
@@ -15,18 +32,26 @@ Mesh TriangleDebugDrawShape {
             MeshLodDesc {
                 NumVertices = 3
                 NumIndices = 3
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
         ]
     }

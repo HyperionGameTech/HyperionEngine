@@ -15,6 +15,8 @@
 
 #include <Framework/Net/PlayerMove.hpp>
 
+#include <Physics/PhysicsAdapter.hpp>
+
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
 
@@ -110,6 +112,7 @@ struct ClientPredictionState
     {
         PlayerMove move;
         Vec3f resultTranslation; // predicted entity translation after applying this move
+        CharacterMotionState resultMotionState; // predicted velocity / jump timers after applying this move
     };
 
     struct PredictedBodyState

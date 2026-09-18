@@ -14,6 +14,8 @@ class Entity;
 class Scene;
 class Swatch;
 
+class SwatchOverrideSystem;
+
 struct CharacterControllerComponent;
 
 struct PlayerMove;
@@ -24,7 +26,13 @@ enum class NetConnectionId : uint32;
 
 namespace SceneHelpers {
 
-Camera* FindMainCamera(World& world);
+Camera* FindMainCamera(const World& world);
+
+#ifdef HYP_EDITOR
+Camera* GetEditorCamera(const World& world);
+#else
+inline Camera* GetEditorCamera(const World&) { return nullptr; }
+#endif // HYP_EDITOR
 
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId);
 
@@ -35,6 +43,8 @@ bool CanSimulateEntityPhysics(const Entity& entity);
 
 float GetCapsuleHeightOffset(const CharacterControllerComponent& component);
 void MoveCharacter(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
+
+SwatchOverrideSystem* GetSwatchOverrideSystemFor(const Entity& entity);
 
 } // namespace SceneHelpers
 

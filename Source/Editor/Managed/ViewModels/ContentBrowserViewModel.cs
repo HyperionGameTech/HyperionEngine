@@ -28,9 +28,15 @@ namespace Hyperion.Editor.ViewModels
         public static ContentBrowserViewModel? Instance { get; private set; }
 
         private readonly EditorSubsystem _editorSubsystem;
+        private readonly ThumbnailService _thumbnailService;
 
         public ObservableCollection<AssetBucketViewModel> Buckets { get; } = new ObservableCollection<AssetBucketViewModel>();
+
+        /// <summary>The assets shown in the browser: the current bucket's contents after the search filter and sort are applied.</summary>
         public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
+
+        /// <summary>Everything in the current bucket, unfiltered - <see cref="Assets"/> is rebuilt from this.</summary>
+        private readonly List<AssetObjectViewModel> _bucketAssets = new List<AssetObjectViewModel>();
 
         private AssetObjectViewModel? _selectedAsset;
         public AssetObjectViewModel? SelectedAsset
@@ -50,6 +56,28 @@ namespace Hyperion.Editor.ViewModels
         }
 
 
+        private string _searchText = string.Empty;
+
+        /// <summary>Substring the listed asset names are filtered by. Empty shows the whole bucket.</summary>
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                if (SetProperty(ref _searchText, value ?? string.Empty))
+                {
+                    OnPropertyChanged(nameof(HasSearchText));
+
+                    ApplyFilterAndSort();
+                }
+            }
+        }
+
+        public bool HasSearchText => _searchText.Length != 0;
+
+        /// <summary>True when a search is active and nothing in the bucket matches it, so the empty list can be explained.</summary>
+        public bool HasNoMatches => HasSearchText && Assets.Count == 0;
+
         public IReadOnlyList<string> SortModeLabels { get; } = new[] { "Name", "Date Modified", "Type" };
 
         private AssetSortMode _sortMode = AssetSortMode.Name;
@@ -63,7 +91,7 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _sortModeIndex, value))
                 {
                     _sortMode = (AssetSortMode)value;
-                    ApplySort();
+                    ApplyFilterAndSort();
                 }
             }
         }
@@ -79,6 +107,8 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand ImportCommand { get; }
 
+        public ICommand ClearSearchCommand { get; }
+
         public ICommand NewScriptCommand { get; }
         public ICommand NewMaterialCommand { get; }
         public ICommand NewWeaponCommand { get; }
@@ -89,11 +119,44 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand AddToSceneCommand { get; }
 
+        /// Simulation runs against a throwaway snapshot of the project, so anything authored while it
+        /// runs would be thrown away with the snapshot.
+        public bool CanCreateAssets => _editorSubsystem.CanCreateAssets();
+
+        /// Re-checked on the sim thread because the panels that create assets can outlive the click
+        /// that opened them, and simulation may have started in between.
+        private bool CanCreateAssetsOnSimThread(string assetDescription)
+        {
+            if (_editorSubsystem.CanCreateAssets())
+            {
+                return true;
+            }
+
+            Logger.Log(LogLevel.Warning, $"Cannot create a new {assetDescription} while simulation is active.");
+
+            return false;
+        }
+
+        public void RefreshCanCreateAssets()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            OnPropertyChanged(nameof(CanCreateAssets));
+
+            (NewScriptCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NewMaterialCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NewWeaponCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NewPhysicsShapeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
         {
             _editorSubsystem = editorSubsystem ?? throw new ArgumentNullException(nameof(editorSubsystem));
 
             ImportCommand = new EditorCommand("ImportContent");
+
+            ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
+
             DeleteAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
                 if (asset?.Bucket == null)
@@ -121,6 +184,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateAssetsOnSimThread("script"))
+                        {
+                            return;
+                        }
+
                         _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"), $"{languageArg} {name}");
 
                         Dispatcher.UIThread.Post(() => FocusAsset(AssetBucket.Scripts.Value, name));
@@ -128,7 +196,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => CanCreateAssets);
 
             NewWeaponCommand = new RelayCommand(() =>
             {
@@ -142,6 +210,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateAssetsOnSimThread("weapon"))
+                        {
+                            return;
+                        }
+
                         // EditorCommandNewWeapon takes the WeaponType as an integer
                         _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewWeapon"), Convert.ToString((int)weaponType.Value, CultureInfo.InvariantCulture));
 
@@ -150,28 +223,41 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => CanCreateAssets);
 
             NewMaterialCommand = new RelayCommand(() =>
             {
-                var panel = new NewMaterialPanelViewModel(confirmed =>
+                _ = EngineManager.PostToSimThread(() =>
                 {
-                    if (!confirmed)
+                    if (!CanCreateAssetsOnSimThread("material"))
                     {
-                        Logger.Log(LogLevel.Warning, "New material creation cancelled.");
                         return;
                     }
 
-                    _ = EngineManager.PostToSimThread(() =>
+                    AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+                    uint bucketIndex = AssetBucket.Materials.Value;
+
+                    // EditorCommandNewMaterial picks a unique name for the material itself and gives us
+                    // no way to ask for it, so diff the bucket to find out what it ended up being.
+                    var namesBefore = new HashSet<string>(
+                        registry.GetBucketAssetDescs(bucketIndex).Select(assetDesc => assetDesc.Name.ToString()),
+                        StringComparer.Ordinal);
+
+                    _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewMaterial"));
+
+                    string? createdName = registry.GetBucketAssetDescs(bucketIndex)
+                        .Select(assetDesc => assetDesc.Name.ToString())
+                        .FirstOrDefault(name => !namesBefore.Contains(name));
+
+                    if (createdName == null)
                     {
-                        _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewMaterial"));
+                        Logger.Log(LogLevel.Error, "New material creation failed; no new asset appeared in the materials bucket.");
+                        return;
+                    }
 
-                        Dispatcher.UIThread.Post(() => FocusAsset(AssetBucket.Materials.Value, "NewMaterial", openEditor: true));
-                    });
+                    Dispatcher.UIThread.Post(() => FocusAsset(bucketIndex, createdName, openEditor: true));
                 });
-
-                PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => CanCreateAssets);
 
             NewPhysicsShapeCommand = new RelayCommand(() =>
             {
@@ -185,6 +271,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateAssetsOnSimThread("physics shape"))
+                        {
+                            return;
+                        }
+
                         AssetRegistry? registry = EngineManager.EditorGame?.AssetRegistry;
                         Debug.Assert(registry != null);
 
@@ -195,7 +286,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => CanCreateAssets);
 
             AddToSceneCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
@@ -208,6 +299,8 @@ namespace Hyperion.Editor.ViewModels
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandAddAsset"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
             });
 
+            _thumbnailService = new ThumbnailService(editorSubsystem);
+
             Instance = this;
         }
 
@@ -218,6 +311,7 @@ namespace Hyperion.Editor.ViewModels
             Logger.Log(LogLevel.Verbose, "Loading content browser buckets...");
 
             Buckets.Clear();
+            _bucketAssets.Clear();
             Assets.Clear();
 
             foreach (AssetBucket bucket in AssetBucket.AllBuckets)
@@ -240,6 +334,10 @@ namespace Hyperion.Editor.ViewModels
                 {
                     if (_currentBucket?.BucketIndex == bucketIndex)
                     {
+                        // An asset in this bucket was added, removed or edited - the decoded images we
+                        // are holding may no longer match what is on disk.
+                        _thumbnailService.Clear();
+
                         RefreshAssets();
                     }
                 });
@@ -254,10 +352,14 @@ namespace Hyperion.Editor.ViewModels
             {
                 Dispatcher.UIThread.Post(() =>
                 {
+                    _thumbnailService.Clear();
+
+                    _bucketAssets.Clear();
                     Assets.Clear();
                     SelectedAsset = null;
 
                     OnPropertyChanged(nameof(Assets));
+                    OnPropertyChanged(nameof(HasNoMatches));
                 });
             });
         }
@@ -265,6 +367,12 @@ namespace Hyperion.Editor.ViewModels
         /// <summary>Reloads the asset list for the given bucket and resolves any pending focus/edit request. Must run on the UI thread.</summary>
         private void ReloadBucketAssets(uint bucketIndex)
         {
+            // Whatever was still queued, and whatever is subscribed, belongs to the asset set we are
+            // about to replace.
+            _thumbnailService.CancelPending();
+            _thumbnailService.ClearSubscribers();
+
+            _bucketAssets.Clear();
             Assets.Clear();
             SelectedAsset = null;
 
@@ -283,14 +391,15 @@ namespace Hyperion.Editor.ViewModels
                         string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".hmf");
 
                         DateTime? dateModified = null;
-                        string? typeName = null; // @TODO
+                        string? typeName = null;
 
                         if (File.Exists(manifestPath))
                         {
                             dateModified = File.GetLastWriteTime(manifestPath);
+                            typeName = ReadAssetTypeName(manifestPath);
                         }
 
-                        Assets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
+                        _bucketAssets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
                     }
 
                     _currentBucket = bucketVm;
@@ -305,7 +414,7 @@ namespace Hyperion.Editor.ViewModels
                 _currentBucket = null;
             }
 
-            ApplySort();
+            ApplyFilterAndSort();
 
             // Handle pending focus after asset creation
             if (_pendingFocusBucket == bucketIndex)
@@ -314,8 +423,12 @@ namespace Hyperion.Editor.ViewModels
 
                 if (_pendingFocusNameHint != null)
                 {
+                    // Prefer an exact match: unique asset names are generated by appending a suffix,
+                    // so a prefix match on "NewMaterial" would also hit "NewMaterial_1".
                     SelectedAsset = Assets.FirstOrDefault(a =>
-                        a.DisplayName.StartsWith(_pendingFocusNameHint, StringComparison.OrdinalIgnoreCase));
+                        string.Equals(a.DisplayName, _pendingFocusNameHint, StringComparison.OrdinalIgnoreCase))
+                        ?? Assets.FirstOrDefault(a =>
+                            a.DisplayName.StartsWith(_pendingFocusNameHint, StringComparison.OrdinalIgnoreCase));
                     _pendingFocusNameHint = null;
                 }
 
@@ -328,8 +441,53 @@ namespace Hyperion.Editor.ViewModels
                 }
             }
 
-            OnPropertyChanged(nameof(Assets));
             OnPropertyChanged(nameof(CurrentBucket));
+        }
+
+        /// <summary>
+        /// Reads an asset's concrete class name out of its .hmf manifest without deserializing it.
+        /// HMF is a text format whose first token is the class name, e.g. <c>Material "CubeMaterial" {</c>,
+        /// so a short read off the front is enough. Returns null if the file can't be read.
+        /// </summary>
+        private static string? ReadAssetTypeName(string manifestPath)
+        {
+            Span<char> buffer = stackalloc char[128];
+            int count;
+
+            try
+            {
+                using var reader = new StreamReader(manifestPath);
+
+                count = reader.Read(buffer);
+            }
+            catch (Exception)
+            {
+                // An unreadable manifest just means no type icon; the asset still lists.
+                return null;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                char c = buffer[i];
+
+                // The class name runs until the first separator - whitespace, the quoted asset name,
+                // or the opening brace when the asset is anonymous.
+                if (char.IsWhiteSpace(c) || c == '"' || c == '{')
+                {
+                    return i > 0 ? new string(buffer.Slice(0, i)) : null;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Requests preview images for the currently listed assets. Must run on the UI thread.</summary>
+        private void RequestThumbnails()
+        {
+            foreach (AssetObjectViewModel assetVm in Assets)
+            {
+                assetVm.RequestThumbnail();
+            }
         }
 
         /// <summary>Reloads the assets of the currently selected bucket, preserving the selection where possible. Must run on the UI thread.</summary>
@@ -353,35 +511,48 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private void ApplySort()
+        /// <summary>Rebuilds <see cref="Assets"/> from the current bucket's contents, honouring the search text and sort mode. Must run on the UI thread.</summary>
+        private void ApplyFilterAndSort()
         {
-            if (Assets.Count == 0)
-                return;
+            AssetObjectViewModel? preserved = SelectedAsset;
 
-            var preserved = SelectedAsset;
+            IEnumerable<AssetObjectViewModel> matching = _bucketAssets;
+
+            if (HasSearchText)
+            {
+                matching = matching.Where(a => a.DisplayName.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+            }
 
             List<AssetObjectViewModel> sorted = _sortMode switch
             {
                 AssetSortMode.DateModified =>
-                    Assets.OrderByDescending(a => a.DateModified ?? DateTime.MinValue).ToList(),
+                    matching.OrderByDescending(a => a.DateModified ?? DateTime.MinValue).ToList(),
                 AssetSortMode.Type =>
-                    Assets.OrderBy(a => a.TypeName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-                          .ThenBy(a => a.DisplayName, StringComparer.OrdinalIgnoreCase)
-                          .ToList(),
+                    matching.OrderBy(a => a.TypeName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(a => a.DisplayName, StringComparer.OrdinalIgnoreCase)
+                            .ToList(),
                 _ /* Name */ =>
-                    Assets.OrderBy(a => a.DisplayName, StringComparer.OrdinalIgnoreCase).ToList(),
+                    matching.OrderBy(a => a.DisplayName, StringComparer.OrdinalIgnoreCase).ToList(),
             };
 
             Assets.Clear();
-            foreach (var vm in sorted)
-                Assets.Add(vm);
+            foreach (AssetObjectViewModel assetVm in sorted)
+                Assets.Add(assetVm);
 
-            SelectedAsset = preserved;
+            // The filter may have just hidden whatever was selected.
+            SelectedAsset = preserved != null && Assets.Contains(preserved) ? preserved : null;
+
+            OnPropertyChanged(nameof(Assets));
+            OnPropertyChanged(nameof(HasNoMatches));
+
+            RequestThumbnails();
         }
 
 
         public void Dispose()
         {
+            _thumbnailService.Dispose();
+
             _onSelectedBucketChangedHandler?.Remove();
             _onSelectedBucketChangedHandler?.Dispose();
             _onAssetsChangedHandler?.Remove();
@@ -399,6 +570,9 @@ namespace Hyperion.Editor.ViewModels
 
             if (bucketIndex == 0)
                 return;
+
+            // An active search would hide the asset we are about to select.
+            SearchText = string.Empty;
 
             _pendingFocusBucket = bucketIndex;
             _pendingFocusNameHint = nameHint;

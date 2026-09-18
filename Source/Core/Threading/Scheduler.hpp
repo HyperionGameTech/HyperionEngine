@@ -118,7 +118,9 @@ protected:
     {
     }
 
-    void WaitForTasks(Mutex& mtx, bool* outStopRequested);
+    /*! \brief Blocks until tasks are enqueued or the scheduler is stopped. A nonzero \p timeoutMs returns early
+     *  (possibly with no tasks) once elapsed. */
+    void WaitForTasks(Mutex& mtx, bool* outStopRequested, uint32 timeoutMs = 0);
 
     uint32 m_idCounter = 0;
 
@@ -136,6 +138,7 @@ protected:
 class Scheduler : public SchedulerBase
 {
     friend class TaskThreadPool;
+    friend class BackgroundWorkerPool;
 
 public:
     struct ScheduledTask
@@ -371,8 +374,9 @@ public:
 
     /*! \brief Blocks the current thread until there are tasks to execute, or the scheduler is stopped.
      * @param outStopRequested Pointer to a boolean that will be set to true if the scheduler was stopped.
+     * @param timeoutMs If nonzero, return after this many milliseconds even if no tasks were enqueued.
      */
-    void WaitForTasks(bool* outStopRequested)
+    void WaitForTasks(bool* outStopRequested, uint32 timeoutMs = 0)
     {
         HYP_CORE_ASSERT(IsOnThread(m_ownerThread));
 
@@ -388,7 +392,7 @@ public:
 
         Mutex::Guard guard(m_mutex);
 
-        SchedulerBase::WaitForTasks(m_mutex, outStopRequested);
+        SchedulerBase::WaitForTasks(m_mutex, outStopRequested, timeoutMs);
     }
 
     /*! \brief Execute all scheduled tasks. May only be called from the creation thread. */

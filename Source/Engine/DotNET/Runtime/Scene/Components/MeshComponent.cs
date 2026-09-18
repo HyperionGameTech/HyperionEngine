@@ -9,15 +9,17 @@ namespace Hyperion
     {
         public static Class Class => Class.GetClass(typeof(MeshComponent));
 
+        // Field order must match the C++ MeshComponent struct exactly.
         private Handle<Mesh> _meshHandle;
         private Handle<Material> _materialHandle;
         private Handle<Skeleton> _skeletonHandle;
-        private uint _numInstances;
         private bool _enableAutoInstancing;
         private AssetReference _instanceData;
-
+        private uint _numInstances;
         private Mat4f _previousModelMatrix;
         private fixed byte _userData[32];
+        private byte _forcedLod;
+        private sbyte _lodBias;
 
         public void Dispose()
         {

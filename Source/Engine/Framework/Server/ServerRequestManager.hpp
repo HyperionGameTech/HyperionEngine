@@ -97,6 +97,12 @@ public:
         m_queue.PublishBatch();
     }
 
+    /// Drops requests left over from a previous run. The server thread must be stopped.
+    void Reset()
+    {
+        m_queue.Reset();
+    }
+
     template <class AllocatorType>
     void DrainPendingRequests(Array<ServerRequestBase*, AllocatorType>& outRequests)
     {

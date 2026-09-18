@@ -202,7 +202,7 @@ void IndirectDrawState::Create()
     AssertOnThread(g_renderThread);
 
     Array<IndirectDrawCommand, RHIAllocator> drawCommandsBuffer;
-    RI.PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
+    RI.PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, 0, drawCommandsBuffer);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -239,9 +239,15 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
 
     out.drawCommandIndex = drawCommandIndex;
 
+    const RenderProxyMesh* meshProxy = drawCalls.meshProxies[drawCallIndex];
+
+    // the LOD was picked for this view when the draw call was built
+    const uint8 lodIndex = uint8(drawCalls.ids[drawCallIndex].lodIndex);
+
     RI.PopulateIndirectDrawCommandsBuffer(
-        drawCalls.meshProxies[drawCallIndex]->mesh->GetVertexBuffer(),
-        drawCalls.meshProxies[drawCallIndex]->mesh->GetIndexBuffer(),
+        meshProxy->mesh->GetVertexBuffer(lodIndex),
+        meshProxy->mesh->GetIndexBuffer(lodIndex),
+        meshProxy->mesh->NumIndices(lodIndex),
         drawCommandIndex,
         m_drawCommandsBuffer);
 
@@ -269,9 +275,15 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
 
     out.drawCommandIndex = drawCommandIndex;
 
+    const RenderProxyMesh* meshProxy = drawCalls.meshProxies[drawCallIndex];
+
+    // the LOD was picked for this view when the draw call was built
+    const uint8 lodIndex = uint8(drawCalls.ids[drawCallIndex].lodIndex);
+
     RI.PopulateIndirectDrawCommandsBuffer(
-        drawCalls.meshProxies[drawCallIndex]->mesh->GetVertexBuffer(),
-        drawCalls.meshProxies[drawCallIndex]->mesh->GetIndexBuffer(),
+        meshProxy->mesh->GetVertexBuffer(lodIndex),
+        meshProxy->mesh->GetIndexBuffer(lodIndex),
+        meshProxy->mesh->NumIndices(lodIndex),
         drawCommandIndex,
         m_drawCommandsBuffer);
 

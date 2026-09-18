@@ -171,19 +171,14 @@ DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
     }
 
     // build a list of dynamic elements, paired by their element index so we can sort it after.
-    Array<Pair<Name, uint32>> dynamicElementsWithIndex;
+    FatArray<Pair<Name, uint32>, InlineAllocator<8>> dynamicElementsWithIndex;
 
     for (const Array<ShaderInput>& slot : m_decl->slots)
     {
         for (const ShaderInput& shaderInput : slot)
         {
-            // #ifdef HYP_VULKAN
             const uint32 binding = m_decl->CalculateFlatIndex(shaderInput.slot, shaderInput.name);
-            // #elif HYP_DX12
-            //             const uint32 binding = shaderInput.index;
-            // #endif
-
-            Assert(binding != ~0u);
+            AssertDebug(binding != ~0u);
 
             if (shaderInput.cond != nullptr && !shaderInput.cond())
             {

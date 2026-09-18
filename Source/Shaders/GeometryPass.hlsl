@@ -25,6 +25,7 @@ struct PSInput
     float4 previous_position_ndc : TEXCOORD5;
     nointerpolation uint object_index : TEXCOORD6;
     nointerpolation uint object_mask : TEXCOORD7;
+    bool is_front_face : SV_IsFrontFace;
 };
 
 struct PSOutput
@@ -102,6 +103,15 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
+
+    const bool isFoliage = (input.object_mask & OBJECT_MASK_FOLIAGE) != 0;
+
+    // foliage is drawn two sided, so back faces have to be lit as if they faced the viewer
+    if (isFoliage && !input.is_front_face)
+    {
+        input.normal = -input.normal;
+        input.bitangent = -input.bitangent;
+    }
 
     float3x3 tbn_matrix = float3x3(normalize(input.tangent), normalize(input.bitangent), normalize(input.normal));
 
@@ -343,6 +353,12 @@ PSOutput PSMain(PSInput input)
     }
 #endif // SHADING_TYPE_FORWARD
 
+#ifndef SHADING_TYPE_FORWARD
+    // gbuffer albedo alpha carries material ambient occlusion, which only attenuates indirect light.
+    // The deferred path never consumed the opacity that was written here.
+    output.gbuffer_albedo.a = ao;
+#endif // !SHADING_TYPE_FORWARD
+
 #ifdef DEBUG_RAW_REFLECTIONS
     roughness = 0.0001;
 #endif
@@ -372,7 +388,8 @@ PSOutput PSMain(PSInput input)
         | (((uint)round(input.texcoord1.y * 16384.0) & 0x3FFFu) << 14u);
 #else
     //Probe lighting - evaluate SH, store RGB8 in the upper 24 bits of gbuffer_material
-    output.gbuffer_material = 0;
+    // foliage keeps its transmission amount in the low 8 bits instead
+    output.gbuffer_material = isFoliage ? uint(saturate(transmission) * 255.0 + 0.5) : 0u;
 #endif
 
     // Mask is stored in the upper 4 bits of gbuffer_material

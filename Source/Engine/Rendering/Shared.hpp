@@ -44,6 +44,16 @@ class ObjectBase;
 class ByteWriter;
 class ByteReader;
 
+static constexpr uint8 MaxMeshLods = 4;
+
+static constexpr uint32 MeshLodIndexBits = 2;
+static constexpr uint32 MeshLodCountBits = 3;
+static constexpr uint32 MeshLodBiasBits = 4;
+
+static_assert(MaxMeshLods <= (1u << MeshLodIndexBits), "MaxMeshLods no longer fits in MeshLodIndexBits");
+static_assert(MaxMeshLods < (1u << MeshLodCountBits), "MaxMeshLods no longer fits in MeshLodCountBits");
+static_assert(int32(MaxMeshLods) <= (1 << (MeshLodBiasBits - 1)) - 1, "MaxMeshLods no longer fits in MeshLodBiasBits");
+
 namespace Resources {
 static constexpr uint32 InvalidBinding = ~0u;
 
@@ -941,16 +951,16 @@ struct StencilFunction
 {
     HYP_STRUCT_BODY(StencilFunction);
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "PassOp", Serialize)
     StencilOp passOp = StencilOp::Replace;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "FailOp", Serialize)
     StencilOp failOp = StencilOp::Keep;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "DepthFailOp", Serialize)
     StencilOp depthFailOp = StencilOp::Keep;
 
-    HYP_FIELD(Serialize)
+    HYP_FIELD(Property = "CompareOp", Serialize)
     StencilCompareOp compareOp = StencilCompareOp::Always;
 
     HYP_FORCE_INLINE bool operator==(const StencilFunction& other) const = default;

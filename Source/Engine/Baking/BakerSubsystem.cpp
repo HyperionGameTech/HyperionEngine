@@ -156,15 +156,20 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
     if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
     {
         UpdateEpoch(*lmv, bakeLayer);
-
+    }
+    else if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
+    {
+        UpdateEpoch(*envProbe, bakeLayer);
+    }
+    else
+    {
         return;
     }
 
-    if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
+    // bake layer epochs are saved on the World asset
+    if (World* world = GetWorld())
     {
-        UpdateEpoch(*envProbe, bakeLayer);
-
-        return;
+        world->MarkDirty();
     }
 }
 

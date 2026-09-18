@@ -426,9 +426,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
     {
         for (const auto& it : item.textures)
         {
-            const FilePath texturePath = FilePath::Join(
-                FilePath::Relative(FilePath(library.filepath).BasePath(), FilePath::Current()),
-                it.name);
+            const FilePath texturePath = ResolveReferencedFilepath(FilePath(library.filepath), it.name);
 
             textureNamesToPath[it.name] = texturePath;
 
@@ -461,9 +459,8 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
                 texturesBatch->Add(
                     it.first,
                     it.second,
-                    srgbTextures.Contains(it.first)
-                        ? AssetLoadHint::TextureLoader_LoadAsSRGB
-                        : AssetLoadHint::NoHint);
+                    (state.hint & ~AssetLoadHint::TextureSRGB) | (srgbTextures.Contains(it.first)
+                        ? AssetLoadHint::TextureSRGB : AssetLoadHint::NoHint));
 
                 if (pathsString.Any())
                 {

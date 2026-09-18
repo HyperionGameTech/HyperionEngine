@@ -210,7 +210,7 @@ public:
         return nullptr;
     }
 
-    HYP_FORCE_INLINE const Array<Name>& GetDynamicElements() const
+    HYP_FORCE_INLINE Span<const Name> GetDynamicElements() const
     {
         return m_dynamicElements;
     }
@@ -222,18 +222,19 @@ public:
 
 private:
     const ShaderInputSet* m_decl;
+    InputMap m_elements;
+    Array<Name, RHIAllocator> m_dynamicElements;
+    HashCode m_cachedHashCode;
+    
     bool m_isTemplate : 1 = false;  // is this descriptor set a template for other sets? (e.g material textures)
     bool m_isReference : 1 = false; // is this descriptor set a reference to a global set? (e.g global material textures)
-    InputMap m_elements;
-    Array<Name> m_dynamicElements;
-    HashCode m_cachedHashCode;
 };
 
 struct DescriptorSetElement
 {
     Range<uint32> dirtyRange;
     Array<ObjectBase*, RHIAllocator> values;
-    Bitset occupiedArrayElems;
+    TBitset<RHIAllocator> occupiedArrayElems;
     uint32 bufferStride = ~0u;
 
     HYP_FORCE_INLINE bool IsDirty() const
@@ -423,7 +424,7 @@ public:
         return m_decl;
     }
 
-    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef>, NumFramesInFlight>& GetSets() const
+    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef, RHIAllocator>, NumFramesInFlight>& GetSets() const
     {
         return m_sets;
     }
@@ -488,7 +489,7 @@ public:
 
 protected:
     const ShaderInputGroup* m_decl;
-    FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
+    FixedArray<Array<DescriptorSetRef, RHIAllocator>, NumFramesInFlight> m_sets;
 
 #ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;

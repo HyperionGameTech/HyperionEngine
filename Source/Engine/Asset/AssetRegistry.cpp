@@ -358,6 +358,9 @@ public:
 
     void SetAsset(AssetDesc& assetDesc, const Handle<AssetObject>& assetObject);
 
+    // expectedAsset: when set, only remove if the slot still holds this asset, to prevent deleting an asset that has since been replaced.
+    void RemoveAsset(StringHash name, const AssetObject* expectedAsset);
+
     /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
      *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
      *   \param comparator If provided, returning true from the comparator will indicate equality between assets,
@@ -801,6 +804,13 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     return assetObject;
 }
 
+bool AssetRegistry::HasAsset(const AssetBucket& bucket, StringHash name) const
+{
+    AssetDesc assetDesc;
+
+    return m_assetBucketData[bucket.GetIndex()].GetAssetDesc(name, assetDesc);
+}
+
 void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
 {
     if (assetObject.IsTransient())
@@ -831,6 +841,8 @@ void AssetRegistry::MarkAssetDirty(const AssetObject& assetObject)
     AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
 
     data.MarkDirty(assetObject.m_assetIndex);
+
+    OnAssetMarkedDirty(bucket.GetIndex(), assetObject.GetName());
 }
 
 void AssetRegistry::MarkAllDirty()
@@ -1353,26 +1365,34 @@ void AssetRegistry::RemoveAsset(const Handle<AssetObject>& asset)
         return;
     }
 
-    RemoveAsset(bucket, asset->GetName());
+    m_assetBucketData[bucket.GetIndex()].RemoveAsset(asset->GetName(), asset.Get());
 }
 
 void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
 {
-    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+    m_assetBucketData[bucket.GetIndex()].RemoveAsset(name, nullptr);
+}
 
-    TUniqueLock lock(data.mtx);
+void AssetBucketData::RemoveAsset(StringHash name, const AssetObject* expectedAsset)
+{
+    TUniqueLock lock(mtx);
 
-    auto it = data.assetDescs.Find(name);
-    if (it == data.assetDescs.End())
+    auto it = assetDescs.Find(name);
+    if (it == assetDescs.End())
     {
         return;
     }
 
-    Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(it->index);
+    Handle<AssetObject>* pAssetObject = assetObjectCache.TryGet(it->index);
 
     if (pAssetObject != nullptr && pAssetObject->IsValid())
     {
         Handle<AssetObject>& assetObject = *pAssetObject;
+
+        if (expectedAsset != nullptr && assetObject.Get() != expectedAsset)
+        {
+            return;
+        }
 
         assetObject->m_assetIndex = AssetDesc::InvalidIndex;
         assetObject->OnUnloaded();
@@ -1386,10 +1406,10 @@ void AssetRegistry::RemoveAsset(const AssetBucket& bucket, StringHash name)
         return;
     }
 
-    data.assetDescs.Erase(it);
-    data.usedIndices.Set(index, false);
-    data.dirtyIndices.Set(index, false);
-    data.assetObjectCache.EraseAt(index);
+    assetDescs.Erase(it);
+    usedIndices.Set(index, false);
+    dirtyIndices.Set(index, false);
+    assetObjectCache.EraseAt(index);
 }
 
 void AssetRegistry::SyncAssetName(const AssetBucket& bucket, Name oldName, Name newName)
@@ -1554,26 +1574,29 @@ void AssetRegistry::SaveDirtyAssets()
 
             TBitset<AssetAllocator> seenIndices;
 
-            Bitset::BitIndex index;
+            bool foundUnseenIndex = true;
 
-            do
+            while (foundUnseenIndex)
             {
-                index = data.dirtyIndices.NextSetBitIndex(1);
+                foundUnseenIndex = false;
 
-                if (index == Bitset::NotFound)
+                for (Bitset::BitIndex index = data.dirtyIndices.NextSetBitIndex(0);
+                     index != Bitset::NotFound;
+                     index = data.dirtyIndices.NextSetBitIndex(index + 1))
                 {
-                    break;
-                }
+                    if (seenIndices.Test(index))
+                    {
+                        continue;
+                    }
 
-                if (!seenIndices.Test(index))
-                {
+                    seenIndices.Set(index, true);
+                    foundUnseenIndex = true;
+
                     const Handle<AssetObject>* pAssetObject = data.assetObjectCache.TryGet(index);
 
                     if (!pAssetObject || !pAssetObject->IsValid() || (*pAssetObject)->IsTransient())
                     {
                         data.dirtyIndices.Set(index, false);
-
-                        seenIndices.Set(index, true);
 
                         continue;
                     }
@@ -1584,19 +1607,14 @@ void AssetRegistry::SaveDirtyAssets()
 
                     lock.Reset();
 
-                    // recursively register properties for this asset object
-                    PutAssetsDeep(*pAssetObject);
+                    // recursively register properties for this asset object.
+                    // may dirty assets at lower indices, which the next pass picks up.
+                    PutAssetsDeep(assetObject);
 
                     // relock
                     lock.Reset(data.mtx);
-
-                    seenIndices.Set(index, true);
                 }
-
-                // mark this asset as no longer dirty so we don't keep looping over the same index.
-                data.dirtyIndices.Set(index, false);
             }
-            while (index != Bitset::NotFound);
         }
 
         if (dirtyAssets.Empty())
@@ -1623,6 +1641,28 @@ void AssetRegistry::SaveDirtyAssets()
             // Is this causing more deadlocks?
             //auto writeScope = assetObject->GetWriteScope();
 
+            if (!assetObject->IsRegistered())
+            {
+                // removed from the registry since it was collected
+                continue;
+            }
+
+            // Pins the blob data so another thread releasing the last reader can't unpage it mid-write
+            //auto readScope = assetObject->GetReadScope();
+
+            const uint32 assetIndex = assetObject->GetAssetIndex();
+
+            if (assetIndex == AssetDesc::InvalidIndex)
+            {
+                continue;
+            }
+
+            // Cleared before writing so a MarkDirty() racing with the save isn't lost
+            {
+                TUniqueLock dirtyLock(data.mtx);
+                data.dirtyIndices.Set(assetIndex, false);
+            }
+
             const Name assetName = assetObject->GetName();
             AssertDebug(assetName.IsValid());
 
@@ -1637,6 +1677,9 @@ void AssetRegistry::SaveDirtyAssets()
             {
                 HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                         assetName, bucketName, saveBlobResult.GetError().GetMessage());
+
+                // Keep it dirty, otherwise releasing readScope would unpage blob data that was never written
+                data.MarkDirty(assetIndex);
                 continue;
             }
 
@@ -1646,6 +1689,8 @@ void AssetRegistry::SaveDirtyAssets()
                 if (!manifestWriter.IsOpen())
                 {
                     HYP_LOG(Assets, Warning, "Failed to open manifest file '{}' for writing", manifestPath);
+
+                    data.MarkDirty(assetIndex);
                     continue;
                 }
 
@@ -1653,6 +1698,8 @@ void AssetRegistry::SaveDirtyAssets()
                 {
                     HYP_LOG(Assets, Warning, "Failed to save manifest for asset '{}' in bucket '{}': {}",
                             assetName, bucketName, saveManifestResult.GetError().GetMessage());
+
+                    data.MarkDirty(assetIndex);
                     continue;
                 }
 
@@ -1772,6 +1819,35 @@ void AssetRegistry::RemoveCached(const AssetBucket& bucket)
             bucketData.assetObjectCache.EraseAt(desc.index);
         }
     }
+}
+
+void AssetRegistry::RemoveCached(const AssetBucket& bucket, StringHash name)
+{
+    AssetBucketData& bucketData = m_assetBucketData[bucket.GetIndex()];
+
+    TUniqueLock lock(bucketData.mtx);
+
+    auto it = bucketData.assetDescs.Find(name);
+
+    if (it == bucketData.assetDescs.End())
+    {
+        return;
+    }
+
+    const Handle<AssetObject>* pAssetObject = bucketData.assetObjectCache.TryGet(it->index);
+
+    if (pAssetObject == nullptr)
+    {
+        return;
+    }
+
+    if (const Handle<AssetObject>& assetObject = *pAssetObject; assetObject.IsValid())
+    {
+        assetObject->m_assetIndex = AssetDesc::InvalidIndex;
+        assetObject->OnUnloaded();
+    }
+
+    bucketData.assetObjectCache.EraseAt(it->index);
 }
 
 void AssetRegistry::Update()

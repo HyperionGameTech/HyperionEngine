@@ -616,6 +616,12 @@ namespace Hyperion.Editor
             {
                 nodeViewModel.RefreshActions();
                 nodeViewModel.RefreshMoveToSceneTargets();
+                nodeViewModel.RefreshCollisionState();
+
+                if (DataContext is MainWindowViewModel mvm)
+                {
+                    nodeViewModel.RefreshSelectionContext(mvm.SceneHierarchy.SelectedNodes);
+                }
             }
         }
 
@@ -625,6 +631,31 @@ namespace Hyperion.Editor
             {
                 assetViewModel.RefreshActions();
             }
+        }
+
+        /// <summary>
+        /// Brings the selected asset into view. The content browser selects assets programmatically -
+        /// a newly created one, for instance - and the selection is otherwise invisible if the item
+        /// sits below the scrolled region.
+        /// </summary>
+        private void OnContentBrowserSelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ListBox listBox || listBox.SelectedItem is not AssetObjectViewModel selected)
+            {
+                return;
+            }
+
+            // The list was likely just repopulated, so the containers are not laid out yet and there
+            // is nothing to scroll to until the next layout pass.
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (ReferenceEquals(listBox.SelectedItem, selected))
+                    {
+                        listBox.ScrollIntoView(selected);
+                    }
+                },
+                DispatcherPriority.Loaded);
         }
 
         private void OnRenameNodeMenuItemClick(object? sender, RoutedEventArgs e)
@@ -746,6 +777,14 @@ namespace Hyperion.Editor
                     && DataContext is MainWindowViewModel mvm
                     && !mvm.SceneHierarchy.SelectedNodes.Contains(nodeVm))
                 {
+                    // Volumes get right-clicked to fit them around the current selection, so keep that selection.
+                    // Handling the press stops the TreeViewItem selecting; the context menu opens on release regardless.
+                    if (nodeVm.IsVolume)
+                    {
+                        e.Handled = true;
+                        return;
+                    }
+
                     mvm.SelectSingleNodeExclusive(nodeVm);
 
                     _suppressTreeSelectionHandling = true;

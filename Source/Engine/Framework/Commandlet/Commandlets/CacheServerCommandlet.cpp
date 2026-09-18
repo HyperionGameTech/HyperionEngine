@@ -852,6 +852,12 @@ class CacheServerCommandlet final : public CommandletBase
             return;
         }
 
+        // Held across the reload so it can't interleave with a manifest build or /refresh on the same registry
+        TUniqueLock lock(state.lock);
+
+        // The cached object predates the change on disk, so its blob keys and sizes would be stale
+        registry->RemoveCached(bucket, assetName);
+
         Handle<AssetObject> assetObject = registry->GetAsset(bucket, assetName);
         if (!assetObject.IsValid() || assetObject->IsTransient())
         {
@@ -894,8 +900,6 @@ class CacheServerCommandlet final : public CommandletBase
 
             lookupEntries.EmplaceBack(key, uint64(ref->size), magic);
         }
-        
-        TUniqueLock lock(state.lock);
 
         ServerManifest& manifest = state.manifests[registryId];
         BlobLookupMap& blobLookup = state.blobLookups[registryId];
@@ -1136,6 +1140,7 @@ protected:
             return HYP_MAKE_ERROR(Error, "Failed to listen on port {}", port);
         }
 
+        // the editor waits for this line before sending requests
         HYP_LOG(Assets, Info, "CacheServer listening on port {}", port);
 
         using threading::TaskThreadPool;
@@ -1403,6 +1408,54 @@ protected:
 
                     send(clientSock, header, headerLen, 0);
                     send(clientSock, hmfText.Data(), int(hmfText.Size()), 0);
+                }
+                else if (path.StartsWith("/refresh"))
+                {
+                    // Rebuilds the manifest from what's on disk right now and only responds once that's done,
+                    // so a caller that just saved content can start a client without racing the file watcher
+                    if (!state.devServer)
+                    {
+                        const char* bad = "HTTP/1.0 400 Bad Request\r\n"
+                                          "Content-Length: 0\r\n\r\n";
+
+                        send(clientSock, bad, int(strlen(bad)), 0);
+                        CLOSE_SOCKET(clientSock);
+
+                        return;
+                    }
+
+                    uint64 manifestTimestamp = 0;
+                    size_t numAssets = 0;
+
+                    {
+                        TUniqueLock uniqueLock(state.lock);
+
+                        registry->LoadAssetDescs();
+                        registry->RemoveCached();
+
+                        ServerManifest& manifest = state.manifests[registryId];
+                        BlobLookupMap& blobLookup = state.blobLookups[registryId];
+
+                        InitializeManifest(state, manifest, blobLookup, registry, preloadAll);
+
+                        manifestTimestamp = manifest.timestamp;
+                        numAssets = manifest.assets.Size();
+                    }
+
+                    HYP_LOG(Assets, Info, "CacheServer: refreshed manifest for registry {} ({} assets)", uint32(registryId), numAssets);
+
+                    const String body = String::ToString(manifestTimestamp);
+
+                    char header[256];
+                    int headerLen = std::snprintf(header, sizeof(header),
+                        "HTTP/1.0 200 OK\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Content-Length: %zu\r\n"
+                        "\r\n",
+                        body.Size());
+
+                    send(clientSock, header, headerLen, 0);
+                    send(clientSock, body.Data(), int(body.Size()), 0);
                 }
                 else if (path.StartsWith("/hmf/"))
                 {

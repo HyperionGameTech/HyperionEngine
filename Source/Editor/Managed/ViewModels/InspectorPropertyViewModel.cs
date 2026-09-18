@@ -30,6 +30,7 @@ namespace Hyperion.Editor.ViewModels
 
         private string _value = string.Empty;
         private string _label = string.Empty;
+        private string _description = string.Empty;
 
         private int _refreshState;
         private int _applyingModelValue;
@@ -87,11 +88,37 @@ namespace Hyperion.Editor.ViewModels
             OverrideTooltip = swatchNames.Count > 0 ? $"Overridden in: {string.Join(", ", swatchNames)}" : null;
             IsOverriddenByCurrentSwatch = currentSwatchName != null && swatchNames.Contains(currentSwatchName);
             IsOverriddenByOtherSwatchOnly = IsOverridden && !IsOverriddenByCurrentSwatch;
+
+            OnPropertyChanged(nameof(LabelTooltip));
         }
 
         public Property Property => _property;
 
         public string Label => _label;
+
+        /// <summary>From the property's Description attribute; empty when it has none.</summary>
+        public string Description => _description;
+
+        public bool HasDescription => _description.Length != 0;
+
+        /// <summary>True for editors whose template places the description itself (e.g. under an expander header) rather than below the row.</summary>
+        public virtual bool ShowsDescriptionInOwnTemplate => false;
+
+        public bool ShowDescriptionBelowRow => HasDescription && !ShowsDescriptionInOwnTemplate;
+
+        /// <summary>Hover text for the label: the description, followed by which swatches override the value. Null when there's neither.</summary>
+        public string? LabelTooltip
+        {
+            get
+            {
+                if (!HasDescription)
+                {
+                    return OverrideTooltip;
+                }
+
+                return OverrideTooltip == null ? _description : $"{_description}\n\n{OverrideTooltip}";
+            }
+        }
 
         public string Value
         {
@@ -134,7 +161,7 @@ namespace Hyperion.Editor.ViewModels
             _property = property;
             _isReadOnly = isReadOnly;
 
-            InitializeLabel(property);
+            InitializeLabelAndDescription(property);
         }
 
         protected InspectorPropertyViewModelBase(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly = false)
@@ -145,7 +172,7 @@ namespace Hyperion.Editor.ViewModels
             _property = property;
             _isReadOnly = isReadOnly;
 
-            InitializeLabel(property);
+            InitializeLabelAndDescription(property);
         }
 
         /// <summary>Delegate-based constructor used when there is no backing Property (e.g. array elements).</summary>
@@ -160,7 +187,7 @@ namespace Hyperion.Editor.ViewModels
             _label = label;
         }
 
-        private void InitializeLabel(Property property)
+        private void InitializeLabelAndDescription(Property property)
         {
             ClassAttribute? attrLabel = property.GetAttribute("label");
 
@@ -172,6 +199,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 _label = property.Name.ToString();
             }
+
+            ClassAttribute? attrDescription = property.GetAttribute("description");
+
+            _description = attrDescription?.GetString() ?? string.Empty;
         }
 
         /// <summary>

@@ -76,7 +76,8 @@ const StringHash Material::s_textureNames[] = {
     "TerrainNormal0"_sh,
     "TerrainNormal1"_sh,
     "TerrainNormal2"_sh,
-    "TerrainNormal3"_sh
+    "TerrainNormal3"_sh,
+    "TerrainNormalMap"_sh
 };
 
 Material::Material()
@@ -397,6 +398,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             uint32 metalnessChannel : 2;
             uint32 aoChannel : 2;
             uint32 parallaxInverseHeight : 1;
+            uint32 foliage : 1;
         };
     } flags;
 
@@ -407,6 +409,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     flags.metalnessChannel = uint32(m_parameters.GetMetalnessChannel());
     flags.aoChannel = uint32(m_parameters.GetAmbientOcclusionChannel());
     flags.parallaxInverseHeight = uint32(m_parameters.IsParallaxInverseHeight());
+    flags.foliage = uint32(m_parameters.foliage);
 
     bufferData.packedParams.w = flags.bits;
 
@@ -447,14 +450,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
 
-            if (useBindlessTextures)
-            {
-                textureIndicesU32[slot] = texture->Id().ToIndex();
-            }
-            else
-            {
-                textureIndicesU32[slot] = idx;
-            }
+            textureIndicesU32[slot] = idx;
 
             bufferData.textureUsage |= (1u << slot);
             proxy->boundTextureIndices[slot] = idx;

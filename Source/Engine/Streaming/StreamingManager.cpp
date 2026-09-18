@@ -29,6 +29,9 @@
 #include <Framework/EngineMemory.hpp>
 #include <Framework/Threads/SimThread.hpp>
 
+#include <algorithm>
+#include <utility>
+
 #include <StreamingManager.generated.inl>
 
 namespace Hyperion {
@@ -56,6 +59,45 @@ static Vec2i WorldSpaceToCellCoord(const WorldGridLayerInfo& layerInfo, const Ve
     scaled = MathUtil::Floor(scaled);
 
     return { int(scaled.x), int(scaled.z) };
+}
+
+static bool GetVolumeCenterCoord(const WorldGridLayerInfo& layerInfo, const Handle<StreamingVolumeBase>& volume, Vec2f& outCenterCoord)
+{
+    BoundingBox aabb;
+
+    if (!volume->GetBoundingBox(aabb))
+    {
+        return false;
+    }
+
+    outCenterCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
+
+    return true;
+}
+
+static float DistanceSquaredToNearestCenter(const Array<Vec2f, StreamingTempAllocator>& centerCoords, const Vec2i& coord)
+{
+    float nearestDistanceSquared = MathUtil::MaxSafeValue<float>();
+
+    for (const Vec2f& centerCoord : centerCoords)
+    {
+        nearestDistanceSquared = MathUtil::Min(nearestDistanceSquared, Vec2f(coord).DistanceSquared(centerCoord));
+    }
+
+    return nearestDistanceSquared;
+}
+
+static bool IsCellCoordInRange(const WorldGridLayerInfo& layerInfo, const Vec2i& coord)
+{
+    if (layerInfo.infinite)
+    {
+        return true;
+    }
+
+    return coord.x >= layerInfo.range.x
+        && coord.x <= layerInfo.range.y
+        && coord.y >= layerInfo.range.x
+        && coord.y <= layerInfo.range.y;
 }
 
 #pragma endregion Helpers
@@ -104,6 +146,8 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
         Array<StreamingCellUpdate, StreamingAllocator> cellUpdateQueue;
         // highest bit == pending removal flag, so we don't need to add another atomic + padding to eliminate false sharing
         AtomicVar<uint32> lockCount { 0 };
+        // set from a scheduler task, consumed in DoWork; read by workers to wake the manager once the layer unlocks
+        AtomicVar<bool> refreshRequested { false };
 
         LayerData(const Handle<WorldGridLayer>& layer)
             : layer(layer)
@@ -116,10 +160,14 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
             lockCount.Increment(1, MemoryOrder::RELEASE);
         }
 
-        void Unlock()
+        /// returns true if this released the last lock
+        bool Unlock()
         {
-            uint32 value = lockCount.Decrement(1, MemoryOrder::RELEASE);
-            AssertDebug(value > 0, "Lock count cannot be negative!");
+            // Decrement returns the value before decrementing
+            uint32 previousValue = lockCount.Decrement(1, MemoryOrder::RELEASE);
+            AssertDebug((previousValue & LockCountMask) > 0, "Lock count cannot be negative!");
+
+            return (previousValue & LockCountMask) == 1;
         }
 
         bool IsLocked() const
@@ -135,6 +183,11 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
         bool IsPendingRemoval() const
         {
             return lockCount.Get(MemoryOrder::ACQUIRE) & PendingRemovalBit;
+        }
+
+        void ClearPendingRemoval()
+        {
+            lockCount.BitAnd(~PendingRemovalBit, MemoryOrder::RELEASE);
         }
     };
 
@@ -244,7 +297,19 @@ public:
                                                                    return data.layer == layer;
                                                                });
 
-                                     Assert(it == m_layers.End(), "WorldGridLayer already exists in streaming manager!");
+                                     if (it != m_layers.End())
+                                     {
+                                         if (it->IsPendingRemoval())
+                                         {
+                                             // removed and re-added before DoWork got to the removal (e.g. world shutdown + init)
+                                             it->ClearPendingRemoval();
+
+                                             return;
+                                         }
+
+                                         HYP_LOG(Streaming, Warning, "WorldGridLayer '{}' already exists in streaming manager!", layer->GetName());
+                                         return;
+                                     }
 
                                      m_layers.EmplaceBack(layer);
                                  },
@@ -282,20 +347,58 @@ public:
                                                                    return data.layer == layer;
                                                                });
 
-                                     Assert(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
+                                     AssertDebug(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
 
-                                     if (it->IsLocked())
+                                     if (it == m_layers.End())
                                      {
-                                         it->SetPendingRemoval();
                                          return;
                                      }
 
-                                     m_layers.Erase(it);
+                                     // always deferred to DoWork, which unloads the layer's cells (once unlocked) before erasing it
+                                     it->SetPendingRemoval();
                                  },
                                  TaskEnqueueFlags::FIRE_AND_FORGET);
 
             m_notifier.Signal();
         }
+    }
+
+    void RequestLayerRefresh(const WorldGridLayer* layer)
+    {
+        if (!IsRunning() || IsOnThread(Id()))
+        {
+            auto it = m_layers.FindIf([layer](const LayerData& data)
+                                      {
+                                          return data.layer == layer;
+                                      });
+
+            if (it == m_layers.End())
+            {
+                return;
+            }
+
+            it->refreshRequested.Set(true, MemoryOrder::RELEASE);
+        }
+        else
+        {
+            m_scheduler->Enqueue([this, layer]()
+                                 {
+                                     auto it = m_layers.FindIf([layer](const LayerData& data)
+                                                               {
+                                                                   return data.layer == layer;
+                                                               });
+
+                                     if (it == m_layers.End())
+                                     {
+                                         return;
+                                     }
+
+                                     it->refreshRequested.Set(true, MemoryOrder::RELEASE);
+                                 },
+                                 TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+
+        m_notifier.Signal();
     }
 
     void SinkUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
@@ -390,6 +493,15 @@ private:
         const Handle<StreamingVolumeBase>& volume,
         Set<Vec2i, StreamingTempAllocator>& outCellCoords) const;
 
+    void UnlockLayer(LayerData& layerData)
+    {
+        // DoWork skips locked layers, so any pass skipped meanwhile (a refresh, or the re-add pass after one) needs a wake-up
+        if (layerData.Unlock())
+        {
+            m_notifier.Signal();
+        }
+    }
+
     void PostCellUpdate(Handle<StreamingCell> cell, StreamingCellState state)
     {
         Mutex::Guard guard(m_futuresMutex);
@@ -472,6 +584,14 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         if (layerData.IsPendingRemoval())
         {
+            for (const StreamingCellRuntimeInfo& cellRuntimeInfo : layerData.cells)
+            {
+                if (cellRuntimeInfo.cell)
+                {
+                    PostCellUpdate(cellRuntimeInfo.cell, StreamingCellState::UNLOADED);
+                }
+            }
+
             it = m_layers.Erase(it);
 
             continue;
@@ -490,13 +610,25 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         StreamingCellCollection<StreamingAllocator>& cells = layerData.cells;
         Array<StreamingCellUpdate, StreamingAllocator>& cellUpdateQueue = layerData.cellUpdateQueue;
 
+        // a refresh unloads every live cell; the desired-cells diff below streams them
+        // back in with the layer's current info (e.g. a new terrain seed)
+        const bool refreshRequested = layerData.refreshRequested.Exchange(false, MemoryOrder::ACQUIRE_RELEASE);
+
         Set<Vec2i, StreamingTempAllocator> desiredCells;
+        Array<Vec2f, StreamingTempAllocator> volumeCenterCoords;
 
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
             if (!volume)
             {
                 continue;
+            }
+
+            Vec2f volumeCenterCoord;
+
+            if (GetVolumeCenterCoord(layer->GetLayerInfo(), volume, volumeCenterCoord))
+            {
+                volumeCenterCoords.PushBack(volumeCenterCoord);
             }
 
             GetDesiredCellsForLayer(layerData, volume, desiredCells);
@@ -508,26 +640,28 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         for (const StreamingCellRuntimeInfo& cellRuntimeInfo : cells)
         {
+            // Never re-add a coord that still has a cell in this pass - updates are processed back to front,
+            // so the WAITING would run before the UNLOADING, fail to add, and load an untracked duplicate.
+            // A refreshed cell streams back in on the next pass instead.
+            cellsToAdd.Erase(cellRuntimeInfo.coord);
+
             auto it = desiredCells.Find(cellRuntimeInfo.coord);
 
-            if (it == desiredCells.End())
+            if (it != desiredCells.End() && !refreshRequested)
             {
-                AssertDebug(cellRuntimeInfo.cell != nullptr);
-
-                // Lock so we can use it safely in the loop below for pushing to queue.
-                if (!cells.SetCellLockState(cellRuntimeInfo.coord, true))
-                {
-                    // Already locked, skip adding for removal
-                    continue;
-                }
-
-                cellsToRemove.PushBack(cellRuntimeInfo.cell);
+                continue;
             }
-            else
+
+            AssertDebug(cellRuntimeInfo.cell != nullptr);
+
+            // Lock so we can use it safely in the loop below for pushing to queue.
+            if (!cells.SetCellLockState(cellRuntimeInfo.coord, true))
             {
-                // Already have the cell
-                cellsToAdd.Erase(cellRuntimeInfo.coord);
+                // Already locked, skip adding for removal
+                continue;
             }
+
+            cellsToRemove.PushBack(cellRuntimeInfo.cell);
         }
 
         if (cellsToRemove.Any())
@@ -552,8 +686,19 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
 
         if (cellsToAdd.Any())
         {
-            for (const Vec2i& coord : cellsToAdd)
+            // nearest first, so cells show up around the viewer first and prefetch works in the same order as the loads
+            std::sort(cellsToAdd.Begin(), cellsToAdd.End(), [&volumeCenterCoords](const Vec2i& a, const Vec2i& b)
             {
+                return DistanceSquaredToNearestCenter(volumeCenterCoords, a) < DistanceSquaredToNearestCenter(volumeCenterCoords, b);
+            });
+
+            layer->StreamPrefetch(Span<const Vec2i>(cellsToAdd.Data(), cellsToAdd.Size()));
+
+            // the update queue is processed back to front - push the farthest cells first
+            for (size_t index = cellsToAdd.Size(); index > 0; index--)
+            {
+                const Vec2i& coord = cellsToAdd[index - 1];
+
                 AssertDebug(!cells.HasCell(coord), "StreamingCell with coord {} already exists!", coord);
 
                 cellUpdateQueue.PushBack(StreamingCellUpdate { coord, StreamingCellState::WAITING });
@@ -561,6 +706,14 @@ void StreamingManagerThread::DoWork(StreamingManager* streamingManager)
         }
 
         ProcessCellUpdatesForLayer(layerData);
+
+        if (refreshRequested)
+        {
+            // refreshed cells were removed from the collection by ProcessCellUpdatesForLayer - run another
+            // pass so they stream back in with the layer's new info. If the unload tasks still hold the
+            // layer lock by then, UnlockLayer() signals again once they finish.
+            m_notifier.Signal();
+        }
 
         ++it;
     }
@@ -588,6 +741,14 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
         case StreamingCellState::WAITING:
         {
             AssertDebug(!cells.HasCell(update.coord), "StreamingCell with coord {} already exists!", update.coord);
+
+            if (!IsCellCoordInRange(layerInfo, update.coord))
+            {
+                HYP_LOG(Streaming, Warning, "Skipping StreamingCell at coord {} out of of layer '{}' bounds [{}, {}]",
+                        update.coord, layerData.layer->GetName(), layerInfo.range.x, layerInfo.range.y);
+
+                continue;
+            }
 
             StreamingCellInfo cellInfo;
             cellInfo.coord = update.coord;
@@ -647,7 +808,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
                     PostCellUpdate(cell, StreamingCellState::LOADED);
 
-                    layerData.Unlock();
+                    UnlockLayer(layerData);
                 });
 
             break;
@@ -693,7 +854,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
                     PostCellUpdate(cell, StreamingCellState::UNLOADED);
 
-                    layerData.Unlock();
+                    UnlockLayer(layerData);
                 });
 
             break;
@@ -721,9 +882,9 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
 
     const WorldGridLayerInfo& layerInfo = layerData.layer->GetLayerInfo();
 
-    BoundingBox aabb;
+    Vec2f centerCoord;
 
-    if (!volume->GetBoundingBox(aabb))
+    if (!GetVolumeCenterCoord(layerInfo, volume, centerCoord))
     {
         return;
     }
@@ -732,8 +893,6 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
     queue.Reserve(64);
 
     Set<Vec2i, StreamingTempAllocator> visited;
-
-    const Vec2f centerCoord = Vec2f(WorldSpaceToCellCoord(layerInfo, aabb.GetCenter()));
 
     queue.PushBack(centerCoord);
     visited.Add(Vec2i(centerCoord));
@@ -747,18 +906,31 @@ void StreamingManagerThread::GetDesiredCellsForLayer(
         const Vec2f current = queue.PopBack();
 
         // euclidean distance check
-        if (Vec2f(current).DistanceSquared(centerCoord) > maxDistSq)
+        if (current.DistanceSquared(centerCoord) > maxDistSq)
         {
             continue;
         }
 
-        outCellCoords.Add(Vec2i(current));
+        const Vec2i currentCoord = Vec2i(current);
+
+        if (!IsCellCoordInRange(layerInfo, currentCoord))
+        {
+            continue;
+        }
+
+        outCellCoords.Add(currentCoord);
 
         for (const Vec2i dir : CellNeighborDirections)
         {
             const Vec2f neighbor = current + Vec2f(dir);
+            const Vec2i neighborCoord = Vec2i(neighbor);
 
-            if (visited.Insert(Vec2i(neighbor)).second)
+            if (!IsCellCoordInRange(layerInfo, neighborCoord))
+            {
+                continue;
+            }
+
+            if (visited.Insert(neighborCoord).second)
             {
                 queue.PushBack(neighbor);
             }
@@ -823,12 +995,24 @@ void StreamingManager::RemoveWorldGridLayer(WorldGridLayer* layer)
 {
     HYP_SCOPE;
 
-    if (!layer)
+    if (!layer || !m_thread)
     {
         return;
     }
 
     m_thread->RemoveWorldGridLayer(layer);
+}
+
+void StreamingManager::RequestLayerRefresh(WorldGridLayer* layer)
+{
+    HYP_SCOPE;
+
+    if (!layer)
+    {
+        return;
+    }
+
+    m_thread->RequestLayerRefresh(layer);
 }
 
 void StreamingManager::Start()
@@ -873,17 +1057,65 @@ void StreamingManager::Update(float delta)
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> updates;
     m_thread->SinkUpdates(updates);
 
-    if (updates.Empty())
+    if (updates.Any())
+    {
+        m_pendingCellUpdates.Concat(Span<const Pair<Handle<StreamingCell>, StreamingCellState>>(updates.Data(), updates.Size()));
+    }
+
+    if (m_pendingCellUpdates.Empty())
     {
         return;
     }
 
-    HYP_LOG(Streaming, Verbose, "Update StreamingManager, {} updates", updates.Size());
+    static constexpr uint32 MaxCellLoadsPerUpdate = 2;
+    static constexpr uint32 MaxCellUnloadsPerUpdate = 8;
 
-    for (Pair<Handle<StreamingCell>, StreamingCellState>& update : updates)
+    uint32 numLoadsApplied = 0;
+    uint32 numUnloadsApplied = 0;
+    size_t remainingSize = 0;
+
+    // Loads and unloads are throttled separately, so once a cell has an update deferred, every later
+    // update for that cell must be deferred too - otherwise its UNLOADED can run before its LOADED.
+    Array<const StreamingCell*> deferredCells;
+
+    for (size_t index = 0; index < m_pendingCellUpdates.Size(); index++)
     {
+        Pair<Handle<StreamingCell>, StreamingCellState> update = std::move(m_pendingCellUpdates[index]);
+
         Handle<StreamingCell> cell = std::move(update.first);
         Assert(cell.IsValid(), "StreamingCell is not valid!");
+
+        bool apply = !deferredCells.Contains(cell.Get());
+
+        if (apply)
+        {
+            switch (update.second)
+            {
+            case StreamingCellState::LOADED:
+                apply = numLoadsApplied < MaxCellLoadsPerUpdate;
+                numLoadsApplied += apply ? 1 : 0;
+                break;
+            case StreamingCellState::UNLOADED:
+                apply = numUnloadsApplied < MaxCellUnloadsPerUpdate;
+                numUnloadsApplied += apply ? 1 : 0;
+                break;
+            default:
+                break;
+            }
+        }
+
+        if (!apply)
+        {
+            if (!deferredCells.Contains(cell.Get()))
+            {
+                deferredCells.PushBack(cell.Get());
+            }
+
+            // keep for the next update
+            m_pendingCellUpdates[remainingSize++] = { std::move(cell), update.second };
+
+            continue;
+        }
 
         switch (update.second)
         {
@@ -896,6 +1128,15 @@ void StreamingManager::Update(float delta)
         default:
             break;
         }
+    }
+
+    m_pendingCellUpdates.Resize(remainingSize);
+
+    if (m_pendingCellUpdates.Any())
+    {
+        HYP_LOG(Streaming, Verbose, "StreamingManager: {} cells applied, {} updates deferred to next update",
+            numLoadsApplied + numUnloadsApplied,
+            m_pendingCellUpdates.Size());
     }
 }
 

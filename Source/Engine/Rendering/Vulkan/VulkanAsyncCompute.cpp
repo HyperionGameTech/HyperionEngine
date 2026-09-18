@@ -15,6 +15,8 @@
 #include <Rendering/Vulkan/VulkanGpuBuffer.hpp>
 #include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 
+#include <Rendering/Buffers.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 
 namespace Hyperion {
@@ -68,6 +70,11 @@ bool VulkanAsyncCompute::CheckStatus()
     if (result == VK_SUCCESS)
     {
         m_isSubmitted = false;
+
+        if (RI.stagingBufferPool != nullptr)
+        {
+            RI.stagingBufferPool->ReleaseForCommandBuffer(m_commandBuffer);
+        }
 
         return true;
     }

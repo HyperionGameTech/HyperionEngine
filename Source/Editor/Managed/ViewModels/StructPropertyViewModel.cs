@@ -38,6 +38,9 @@ namespace Hyperion.Editor.ViewModels
         // The struct spans both label and value columns.
         public override bool ShowInlineLabel => false;
 
+        // below the row would put it under the expanded fields
+        public override bool ShowsDescriptionInOwnTemplate => true;
+
         public StructPropertyViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)
             : base(target, property, isReadOnly)
         {

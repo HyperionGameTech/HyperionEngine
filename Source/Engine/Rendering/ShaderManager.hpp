@@ -45,14 +45,14 @@ public:
 
     void ExpireShaderEntries(const Shader* shader);
 
-    /// @NOTE callback is only valid for telling if the shader was actually loaded if \p blockingWait is true.
-    ///    otherwise, it'll just get called when the shader is enqueued to be compiled
+    /// @NOTE if \p blockingWait is true, \p callback reports progress as shaders finish loading.
+    ///    otherwise, it's only called once, after all shaders have been enqueued
     void PreloadShadersFromCacheFile(
         bool blockingWait = false,
         const ProcRef<void(uint64 current, uint64 total)>& callback = nullptr);
-    
-    /// @NOTE callback is only valid for telling if the shader was actually loaded if \p blockingWait is true.
-    ///    otherwise, it'll just get called when the shader is enqueued to be compiled
+
+    /// @NOTE if \p blockingWait is true, \p callback reports progress as shaders finish loading.
+    ///    otherwise, it's only called once, after all shaders have been enqueued
     void PreloadShaders(
         Span<const ShaderPreloadEntry> shadersToPreload,
         bool blockingWait = false,

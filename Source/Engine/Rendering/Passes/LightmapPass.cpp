@@ -223,8 +223,8 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             cr << CommitDrawState();
 
-            cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
-            cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+            cr << BindVertexBuffer(m_volumeMesh->GetVertexBuffer(0));
+            cr << BindIndexBuffer(m_volumeMesh->GetIndexBuffer(0));
             cr << DrawIndexed(36); // draw cube
         }
     }

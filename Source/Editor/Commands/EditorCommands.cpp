@@ -1973,7 +1973,7 @@ public:
 
                 for (const FilePath& file : result.GetValue())
                 {
-                    batch->Add(file.Basename(), (CoreApi::GetExecutablePath() / file.ToRelative(CoreApi::GetExecutablePath())).ToCanonical());
+                    batch->Add(file.Basename(), file);
                 }
 
                 batch->GetCallbacks().OnItemComplete
@@ -2575,6 +2575,105 @@ DEFINE_EDITOR_COMMAND(DeleteNode);
 
 #pragma region TeleportTo
 
+#pragma region Collision
+
+static Node* ResolveNodeUuidArgument(EditorSubsystem* subsystem, const String& nodeUuidArgument)
+{
+    if (nodeUuidArgument.Empty())
+    {
+        return nullptr;
+    }
+
+    const UUID nodeUuid = UUID(nodeUuidArgument.Data());
+
+    if (nodeUuid == UUID::Invalid())
+    {
+        HYP_LOG(Editor, Warning, "Editor command: invalid node UUID '{}'", nodeUuidArgument);
+
+        return nullptr;
+    }
+
+    return subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+}
+
+class EditorCommandGenerateConvexCollision final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandGenerateConvexCollision);
+
+public:
+    virtual ~EditorCommandGenerateConvexCollision() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Generate Convex Collision";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Node* node = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+
+        subsystem->GenerateConvexCollision(node);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(GenerateConvexCollision);
+
+class EditorCommandFitCollisionToMesh final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandFitCollisionToMesh);
+
+public:
+    virtual ~EditorCommandFitCollisionToMesh() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Fit Collision To Mesh";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Node* node = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+
+        subsystem->FitPhysicsShapeToMesh(node);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(FitCollisionToMesh);
+
+#pragma endregion Collision
+
+#pragma region Volume
+
+class EditorCommandFitVolumeToSelection final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandFitVolumeToSelection);
+
+public:
+    virtual ~EditorCommandFitVolumeToSelection() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Fit Volume to Selection";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Node* volume = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+
+        subsystem->FitVolumeToSelection(volume);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(FitVolumeToSelection);
+
+#pragma endregion Volume
+
 class EditorCommandTeleportTo final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandTeleportTo);
@@ -2718,6 +2817,102 @@ public:
 DEFINE_EDITOR_COMMAND(MoveToCamera);
 
 #pragma endregion MoveToCamera
+
+#pragma region MoveEditorCamera
+
+class EditorCommandMoveEditorCamera final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandMoveEditorCamera);
+
+public:
+    virtual ~EditorCommandMoveEditorCamera() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Move Editor Camera";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 3)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: expected <x> <y> <z> [<directionX> <directionY> <directionZ>]");
+
+            return;
+        }
+
+        Vec3f translation;
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (!StringUtil::Parse(GetArgument(i), &translation[i]))
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: invalid translation component '{}'", GetArgument(i));
+
+                return;
+            }
+        }
+
+        Vec3f direction;
+        bool hasDirection = false;
+
+        if (NumArguments() >= 6)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (!StringUtil::Parse(GetArgument(3 + i), &direction[i]))
+                {
+                    HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: invalid direction component '{}'", GetArgument(3 + i));
+
+                    return;
+                }
+            }
+
+            if (direction.LengthSquared() <= MathUtil::epsilonF)
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: direction cannot be zero length");
+
+                return;
+            }
+
+            direction.Normalize();
+
+            hasDirection = true;
+        }
+
+        Camera* camera = nullptr;
+
+        if (EditorViewport* activeViewport = subsystem->GetActiveViewport())
+        {
+            camera = activeViewport->GetCamera();
+        }
+
+        if (!camera && g_editorState.IsValid())
+        {
+            camera = g_editorState->GetEditorCamera();
+        }
+
+        if (!camera)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandMoveEditorCamera: no editor camera to move");
+
+            return;
+        }
+
+        camera->SetWorldTranslation(translation);
+
+        if (hasDirection)
+        {
+            camera->SetDirection(direction);
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(MoveEditorCamera);
+
+#pragma endregion MoveEditorCamera
 
 #pragma region Copy
 
@@ -3974,6 +4169,109 @@ DEFINE_EDITOR_COMMAND(AddCube);
 
 #pragma endregion AddCube
 
+#pragma region AddCylinder
+
+class EditorCommandAddCylinder final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddCylinder);
+
+public:
+    virtual ~EditorCommandAddCylinder() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add Cylinder";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot add cylinder!");
+
+            return;
+        }
+
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+
+        // Use mesh builder to create cylinder mesh
+
+        Handle<Mesh> cylinderMesh = MeshBuilder::Cylinder(0.5f, 1.0f, 32);
+        cylinderMesh->SetName(NAME("CylinderMesh"));
+
+        MaterialAttributes attributes;
+        attributes.shaderName = NAME("GeometryPass");
+
+        Handle<Material> material = MakeHandle<Material>(NAME("CylinderMaterial"), attributes);
+
+        Handle<Entity> entity = MakeHandle<Entity>();
+        entity->SetName(NAME("CylinderEntity"));
+
+        entity->SetWorldTranslation(insertionPoint);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [cylinderMesh, entity, material]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem* subsystem, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(cylinderMesh);
+                                GetCurrentAssetRegistry()->PutAssetUnique(material);
+
+                                // Make an entity, assign MeshComponent w/ Mesh and a base Material
+
+                                Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+                                if (activeScene.IsValid())
+                                {
+                                    activeScene->GetRoot()->AddChild(entity);
+
+                                    if (!entity->HasComponent<MeshComponent>())
+                                    {
+                                        // assign mesh component
+                                        MeshComponent meshComponent;
+                                        meshComponent.mesh = cylinderMesh;
+                                        meshComponent.material = material;
+                                        entity->AddComponent<MeshComponent>(meshComponent);
+                                    }
+                                    else // has component
+                                    {
+                                        // This can happen if going undo->redo
+
+                                        MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
+                                        meshComponent.mesh = cylinderMesh;
+                                        meshComponent.material = material;
+                                    }
+
+                                    entity->SetLocalBounds(cylinderMesh->GetAABB());
+                                    entity->SetNeedsRenderProxyUpdate();
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [&](EditorSubsystem*, EditorProject* project)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(cylinderMesh);
+                                GetCurrentAssetRegistry()->RemoveAsset(material);
+
+                                entity->Remove();
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddCylinder);
+
+#pragma endregion AddCylinder
+
 #pragma region AddWorldGridLayer
 
 class EditorCommandAddWorldGridLayer final : public EditorCommandBase
@@ -4067,14 +4365,6 @@ public:
         Handle<WorldGridLayer>& layer = instanceData.Get<Handle<WorldGridLayer>>();
         AssertDebug(layer != nullptr);
 
-        std::random_device randomDevice;
-
-        WorldGridLayerInfo layerInfo;
-        layerInfo.cellSize = 64;
-        layerInfo.maxDistance = 3.0f;
-        layerInfo.seed = randomDevice();
-
-        layer->SetLayerInfo(layerInfo);
         layer->SetName(CreateLayerName(layerClass));
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(

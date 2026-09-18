@@ -27,6 +27,7 @@
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/LightmapElementComponent.hpp>
 #include <Scene/Components/SwatchOverridesComponent.hpp>
+#include <Scene/Components/TerrainPatchComponent.hpp>
 
 #include <Scripting/EntityScripting.hpp>
 
@@ -57,8 +58,9 @@ Entity::Entity()
 {
 }
 
-Entity::Entity(Name name)
+Entity::Entity(Name name, const EntityInitInfo& initInfo)
     : Node(name),
+      m_entityInitInfo(initInfo),
       m_entityManager(nullptr),
       m_renderProxyVersion(0),
       m_transformChanged(false),
@@ -718,7 +720,18 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->mesh = meshComponent.mesh;
     proxy->material = meshComponent.material;
     proxy->skeleton = meshComponent.skeleton;
-    proxy->numIndices = meshComponent.mesh->NumIndices(proxy->currentLodIndex);
+
+    proxy->numLods = MathUtil::Max<uint8>(meshComponent.mesh->GetMeshDesc().GetNumLods(), 1);
+
+    // the proxy stores these packed, and a bias or forced LOD beyond the mesh's own LODs would mean the same thing anyway
+    proxy->forcedLod = MathUtil::Min<uint8>(meshComponent.forcedLod, MaxMeshLods);
+    proxy->lodBias = int8(MathUtil::Clamp(int32(meshComponent.lodBias), -int32(MaxMeshLods), int32(MaxMeshLods)));
+
+    // each view picks its own LOD at draw call collection time, except for these, which have no per-entity LOD to pick
+    proxy->selectsLod = proxy->numLods > 1
+        && meshComponent.numInstances == 0
+        && !TryGetComponent<TerrainPatchComponent>();
+
     proxy->numInstances = meshComponent.numInstances;
     proxy->enableAutoInstancing = meshComponent.enableAutoInstancing;
     proxy->attributes = RenderableAttributeSet(meshComponent.mesh->GetMeshAttributes(), meshComponent.material->GetAttributes());
@@ -778,6 +791,19 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->bufferData.previousModelMatrix = meshComponent.previousModelMatrix;
     proxy->bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
     proxy->bufferData.bucket = uint32(meshComponent.material->GetAttributes().bucket);
+
+    if (TerrainPatchComponent* terrainPatchComponent = TryGetComponent<TerrainPatchComponent>())
+    {
+        proxy->bufferData.lodMorphStart = terrainPatchComponent->lodMorphStart;
+        proxy->bufferData.lodMorphEnd = terrainPatchComponent->lodMorphEnd;
+        proxy->bufferData.lodMorphOrigin = Vec4f(terrainPatchComponent->lodMorphOrigin, terrainPatchComponent->lodRangeMultiplier);
+    }
+    else
+    {
+        proxy->bufferData.lodMorphStart = 0.0f;
+        proxy->bufferData.lodMorphEnd = 0.0f;
+        proxy->bufferData.lodMorphOrigin = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 }
 
 void Entity::LockTransform()

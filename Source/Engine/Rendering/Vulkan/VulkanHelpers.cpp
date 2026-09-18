@@ -15,6 +15,7 @@
 #include <Rendering/Vulkan/VulkanFeatures.hpp>
 
 #include <Rendering/CommandRecorder.hpp>
+#include <Rendering/Buffers.hpp>
 
 #include <Core/Reflection/Enum.hpp>
 
@@ -787,6 +788,8 @@ RendererResult VulkanSingleTimeCommands::Execute()
     CheckResultOrReturn(commandBuffer.Submit(queueGraphics, &fence, nullptr, nullptr));
 
     fence.Wait();
+
+    RI.stagingBufferPool->ReleaseForCommandBuffer(&commandBuffer);
 
     return {};
 }

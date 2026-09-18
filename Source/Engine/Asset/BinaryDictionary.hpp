@@ -140,6 +140,38 @@ public:
         return true;
     }
 
+    /*! \brief Number of IDs assigned so far. IDs are contiguous, starting at 0. Thread-safe. */
+    uint32 Count() const
+    {
+        TSharedLock lock(m_mutex);
+
+        return uint32(m_forwardMap.Size());
+    }
+
+    /*! \brief Combined hash of the values assigned to IDs [0, \p idCount). IDs are append-only, so this stays
+     *  the same as new values get interned. Thread-safe.
+     *  \return False if any ID in the range is unassigned. */
+    bool GetHashCodeForIds(uint32 idCount, HashCode& outHashCode) const
+    {
+        TSharedLock lock(m_mutex);
+
+        HashCode hashCode;
+
+        for (uint32 id = 0; id < idCount; id++)
+        {
+            if (!m_reverseMap.HasIndex(id))
+            {
+                return false;
+            }
+
+            hashCode.Add(HashCode::GetHashCode(m_reverseMap.Get(id)));
+        }
+
+        outHashCode = hashCode;
+
+        return true;
+    }
+
     /*! \brief Serialize the dictionary to a binary stream.
      *  The stream is written with a 64-byte reserved header followed by a flat array of fixed-size entries. */
     void Write(ByteWriter& stream) const

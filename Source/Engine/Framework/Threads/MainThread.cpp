@@ -156,7 +156,7 @@ void MainThread::Update()
     {
 
         // wait until render thread is finished initializing
-        // until we call Update() - otherwise, sim(main) thread will
+        // until we call Update() - otherwise, sim thread will
         // try to go into lockstep with RT, and that may be waiting on
         // the main thread to do stuff for Cocoa (dispatch_sync)
         static bool s_isRenderThreadInit = false;

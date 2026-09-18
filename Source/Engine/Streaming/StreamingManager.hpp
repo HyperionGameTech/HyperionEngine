@@ -15,6 +15,8 @@
 
 #include <Core/Containers/Array.hpp>
 
+#include <Core/Utilities/Pair.hpp>
+
 #include <Core/Functional/Proc.hpp>
 
 #include <Core/Threading/ThreadSignal.hpp>
@@ -22,6 +24,8 @@
 #include <Core/Logging/LoggerFwd.hpp>
 
 #include <Streaming/Streamable.hpp>
+
+#include <Streaming/StreamingCell.hpp>
 
 namespace Hyperion {
 
@@ -66,12 +70,18 @@ public:
     void AddWorldGridLayer(const Handle<WorldGridLayer>& layer);
     void RemoveWorldGridLayer(WorldGridLayer* layer);
 
+    /*! Unloads all live cells of \p layer and lets them stream back in - used to regenerate
+     *  procedurally generated layers (e.g. after a seed change). */
+    void RequestLayerRefresh(WorldGridLayer* layer);
+
     void Start();
     void Stop();
     void Update(float delta);
 
 private:
     UniquePtr<StreamingManagerThread> m_thread;
+
+    Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_pendingCellUpdates;
 };
 
 } // namespace Hyperion

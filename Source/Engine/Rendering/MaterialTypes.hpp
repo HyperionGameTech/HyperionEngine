@@ -46,7 +46,8 @@ enum class MaterialTextureKey : uint64
     TerrainNormal0 = 0x800,
     TerrainNormal1 = 0x1000,
     TerrainNormal2 = 0x2000,
-    TerrainNormal3 = 0x4000
+    TerrainNormal3 = 0x4000,
+    TerrainNormalMap = 0x8000
 };
 
 HYP_ENUM()
@@ -106,6 +107,10 @@ public:
 
     HYP_FIELD(Property = "Unlit", Editor, Serialize)
     bool unlit;
+
+    // two sided, wrapped lighting with light coming through from behind - leaves, grass, cloth
+    HYP_FIELD(Property = "Foliage", Editor, Serialize)
+    bool foliage;
 
     HYP_FIELD(Property = "Flags", Serialize, Editor = false)
     uint8 flags;

@@ -31,6 +31,7 @@ extern void OnBindingChanged_FogVolume(FogVolume* fogVolume, uint32 prev, uint32
 extern void OnBindingChanged_Sprite(Sprite* sprite, uint32 prev, uint32 next);
 
 extern void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next);
+extern void WriteBufferData_Material(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
@@ -77,6 +78,11 @@ static ResourceBinder<FogVolume, &OnBindingChanged_FogVolume> s_fogVolumeBinder 
 };
 ResourceBinderBase* g_fogVolumeBinder = &s_fogVolumeBinder;
 
+// Shared index allocator for all effect volume subclasses
+static ResourceBindingAllocator<MaxBoundEffectVolumes> s_effectVolumeBindingsAllocator;
+static ResourceBinder<EffectVolume> s_effectVolumeBinder { &s_effectVolumeBindingsAllocator };
+ResourceBinderBase* g_effectVolumeBinder = &s_effectVolumeBinder;
+
 static ResourceBindingAllocator<MaxBoundMaterials> s_materialBindingsAllocator;
 static ResourceBinder<Material, &OnBindingChanged_Material> s_materialBinder { &s_materialBindingsAllocator };
 ResourceBinderBase* g_materialBinder = &s_materialBinder;
@@ -101,6 +107,7 @@ static ResourceBinderBase* s_resourceBinders[] = {
     &s_lightmapVolumeBinder,
     &s_particleVolumeBinder,
     &s_fogVolumeBinder,
+    &s_effectVolumeBinder,
     &s_materialBinder,
     &s_textureBinder,
     &s_envProbeBinder,

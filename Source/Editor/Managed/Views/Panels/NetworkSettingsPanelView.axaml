@@ -1,0 +1,84 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.NetworkSettingsPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:NetworkSettingsPanelViewModel"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border
+            DockPanel.Dock="Bottom"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            Padding="12,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button
+                    Padding="20,6"
+                    Classes="Primary"
+                    Command="{Binding ConfirmCommand}"
+                    Content="Save" />
+
+                <Button
+                    Padding="20,6"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancel" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+            <StackPanel Margin="12,12,12,8" Spacing="12">
+                <TextBlock
+                    Foreground="{DynamicResource Brush.TextMuted}"
+                    Text="Play As Client connects to Host:Port. Play As Dedicated Server listens on Port."
+                    TextWrapping="Wrap" />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Host" />
+                    <TextBox
+                        Text="{Binding Host, Mode=TwoWay}"
+                        PlaceholderText="127.0.0.1" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Port" />
+                    <TextBox
+                        Text="{Binding Port, Mode=TwoWay}"
+                        PlaceholderText="9192" />
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Cache Server Port" />
+                    <TextBox
+                        Text="{Binding CachePort, Mode=TwoWay}"
+                        PlaceholderText="8081" />
+                </StackPanel>
+
+                <TextBlock
+                    Foreground="{DynamicResource Brush.TextMuted}"
+                    Text="The editor serves the saved project from a cache server on this port for Play As Dedicated Server and auto-launched servers. Standalone clients sync from it with --cacheserver=http://127.0.0.1:&lt;port&gt;."
+                    TextWrapping="Wrap" />
+
+                <CheckBox
+                    Content="Auto-launch local server"
+                    IsChecked="{Binding AutoLaunchServer, Mode=TwoWay}" />
+
+                <TextBlock
+                    Foreground="{DynamicResource Brush.TextMuted}"
+                    Text="When Play As Client targets 127.0.0.1 or localhost, start a headless server for the session."
+                    TextWrapping="Wrap" />
+
+
+                <TextBlock
+                    Foreground="{DynamicResource Brush.Danger}"
+                    IsVisible="{Binding HasError}"
+                    Text="{Binding ErrorText}"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

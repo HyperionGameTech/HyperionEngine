@@ -64,6 +64,8 @@ public:
 
     void Update(NetSocketUDP& socket, const NetAddress& destAddr);
 
+    void Reset();
+
 private:
     StreamState& GetOrCreateStream(NetStreamKey key);
 

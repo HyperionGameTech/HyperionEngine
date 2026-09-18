@@ -180,8 +180,25 @@ namespace Hyperion.Editor.ViewModels
         private bool _canToggleTerrainSculptMode = false;
         public bool CanToggleTerrainSculptMode
         {
-            get => _canToggleTerrainSculptMode;
+            get => _canToggleTerrainSculptMode && !IsSimulating;
             set => SetProperty(ref _canToggleTerrainSculptMode, value);
+        }
+
+        // The terrain tools need a terrain layer to work on; adding one is offered when there isn't one yet.
+        public bool CanAddTerrainLayer => !_canToggleTerrainSculptMode && !IsSimulating;
+
+        /// Re-checked on the sim thread because the panels that author new content can outlive the
+        /// click that opened them, and simulation may have started in between.
+        private static bool CanCreateInProject(string description)
+        {
+            if (EngineManager.CanCreateAssets)
+            {
+                return true;
+            }
+
+            Logger.Log(LogLevel.Warning, $"Cannot create a new {description} while simulation is active.");
+
+            return false;
         }
 
         private bool _isSculptModeActive = false;
@@ -242,27 +259,53 @@ namespace Hyperion.Editor.ViewModels
 
         private void RefreshTerrainToolState()
         {
-            _ = EngineManager.PostToSimThread(() =>
+            var action = () =>
             {
-                bool sculptActive = _editorSubsystem.EditorTerrainState?.IsSculptActive ?? false;
-                bool paintActive = _editorSubsystem.EditorTerrainState?.IsPaintActive ?? false;
-
-                Dispatcher.UIThread.Post(() =>
+                var updateOnUIThread = (bool shouldBeActive, bool sculptActive, bool paintActive) =>
                 {
-                    bool changed = _isSculptModeActive != sculptActive || _isPaintModeActive != paintActive;
-
-                    _isSculptModeActive = sculptActive;
-                    _isPaintModeActive = paintActive;
-
-                    if (changed)
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        OnPropertyChanged(nameof(IsSculptModeActive));
-                        OnPropertyChanged(nameof(IsPaintModeActive));
-                    }
+                        bool changed = shouldBeActive != _canToggleTerrainSculptMode
+                            || _isSculptModeActive != sculptActive
+                            || _isPaintModeActive != paintActive;
 
-                    UpdateTerrainToolPanels();
-                });
-            });
+                        if (changed)
+                        {
+                            _canToggleTerrainSculptMode = shouldBeActive;
+                            _isSculptModeActive = sculptActive;
+                            _isPaintModeActive = paintActive;
+
+                            OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
+                            OnPropertyChanged(nameof(IsSculptModeActive));
+                            OnPropertyChanged(nameof(IsPaintModeActive));
+
+                            UpdateTerrainToolPanels();
+                        }
+                    });
+                };
+
+                EditorTerrainState? ets = _editorSubsystem.EditorTerrainState;
+                if (ets == null)
+                {
+                    updateOnUIThread(false, false, false);
+
+                    return;
+                }
+
+                bool shouldBeActive = ets.CanSculptTerrainForWorld(EngineManager.CurrentProject?.World);
+                bool sculptActive = shouldBeActive && ets.IsSculptActive;
+                bool paintActive = shouldBeActive && ets.IsPaintActive;
+
+                updateOnUIThread(shouldBeActive, sculptActive, paintActive);
+            };
+
+            if (EngineManager.IsOnSimThread)
+            {
+                action();
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(action);
         }
 
         private void UpdateTerrainToolPanel<TPanel>(ref TPanel? field, bool shouldBeOpen, Func<TPanel> createPanel)
@@ -329,8 +372,29 @@ namespace Hyperion.Editor.ViewModels
         public ICommand TogglePhysicsDebugDraw { get; private set; }
         public bool IsPhysicsDebugDrawEnabled => _editorSubsystem?.IsPhysicsDebugDrawEnabled() ?? false;
 
-        public ICommand FitPhysicsShapeToMesh { get; private set; }
-        public bool CanFitPhysicsShapeToMesh => _canFitPhysicsShapeToMesh;
+        // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
+        // that was right-clicked rather than whatever happens to be focused.
+        public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
+        public EditorCommand FitCollisionToMesh => new EditorCommand("FitCollisionToMesh", GetSelectedNodeUuid);
+
+        // Takes the right-clicked volume's UUID; the bounds come from the engine-side selection.
+        public EditorCommand FitVolumeToSelection => new EditorCommand("FitVolumeToSelection");
+
+        public ICommand SetViewportLod { get; private set; }
+
+        /// <summary>-1 renders each mesh at the LOD chosen from its screen size.</summary>
+        public int ViewportForcedLod => _viewportForcedLod;
+        public bool IsViewportLodAutomatic => _viewportForcedLod < 0;
+        public string ViewportLodText => _viewportForcedLod < 0 ? "Viewport LOD: Auto" : $"Viewport LOD: {_viewportForcedLod}";
+
+        public ICommand SetMeshEditLod { get; private set; }
+        public int MeshEditLod => _meshEditState.LodIndex;
+        public int MeshEditNumLods => _meshEditState.NumLods;
+        public bool MeshEditHasMultipleLods => _meshEditState.NumLods > 1;
+        public bool MeshEditLodsOutOfDate => _meshEditState.LodsOutOfDate;
+        public string MeshEditLodText => $"LOD {_meshEditState.LodIndex} / {Math.Max(_meshEditState.NumLods - 1, 0)}";
+
+        public ICommand RegenerateMeshEditLods { get; private set; }
 
         // This is the text that's displayed in the main toolbar, dynamic dependent on game state
         public string GameStateText
@@ -353,6 +417,9 @@ namespace Hyperion.Editor.ViewModels
             public bool Simulating;
             public int LockedAxis = -1;
             public string TargetName = string.Empty;
+            public int LodIndex;
+            public int NumLods;
+            public bool LodsOutOfDate;
 
             public MeshEditStateSnapshot()
             {
@@ -361,7 +428,8 @@ namespace Hyperion.Editor.ViewModels
 
         private MeshEditStateSnapshot _meshEditState = new MeshEditStateSnapshot();
 
-        private bool _canFitPhysicsShapeToMesh;
+
+        private int _viewportForcedLod = -1;
 
         public ICommand ToggleMeshEditMode { get; private set; }
         public bool IsMeshEditModeEnabled => _meshEditState.Enabled;
@@ -407,7 +475,92 @@ namespace Hyperion.Editor.ViewModels
 
         public string StatusText
         {
-            get => "Ready";
+            get => _playNetState switch
+            {
+                EditorPlayNetState.Connecting => $"Connecting to {PlayNetAddress}...",
+                EditorPlayNetState.Connected => $"Connected to {PlayNetAddress}",
+                EditorPlayNetState.Failed => $"Could not connect to {PlayNetAddress} (see log)",
+                EditorPlayNetState.Disconnected => $"Lost connection to {PlayNetAddress}",
+                EditorPlayNetState.Hosting => $"Hosting dedicated server on port {_playNetPort}",
+                EditorPlayNetState.StartingServer => $"Starting local server on port {_playNetPort}...",
+                _ => "Ready"
+            };
+        }
+
+        private EditorPlayNetMode _playNetMode = EditorPlayNetMode.Standalone;
+        private EditorPlayNetState _playNetState = EditorPlayNetState.None;
+        private string _playNetHost = "127.0.0.1";
+        private uint _playNetPort = 9192;
+        private bool _playNetAutoLaunchServer = true;
+        private uint _playNetCachePort = 8081;
+
+        private string PlayNetAddress => $"{_playNetHost}:{_playNetPort}";
+
+        public bool IsPlayNetModeStandalone => _playNetMode == EditorPlayNetMode.Standalone;
+        public bool IsPlayNetModeClient => _playNetMode == EditorPlayNetMode.Client;
+        public bool IsPlayNetModeDedicatedServer => _playNetMode == EditorPlayNetMode.DedicatedServer;
+
+        private bool WillAutoLaunchServer => _playNetAutoLaunchServer
+            && (_playNetHost == "localhost" || _playNetHost == "::1" || _playNetHost.StartsWith("127."));
+
+        public string PlayTooltip => _playNetMode switch
+        {
+            EditorPlayNetMode.Client when WillAutoLaunchServer => $"Play As Client ({PlayNetAddress}, launches a local server)",
+            EditorPlayNetMode.Client => $"Play As Client ({PlayNetAddress})",
+            EditorPlayNetMode.DedicatedServer => $"Play As Dedicated Server (port {_playNetPort})",
+            _ => "Play"
+        };
+
+        public ICommand SetPlayNetModeStandalone { get; private set; }
+        public ICommand SetPlayNetModeClient { get; private set; }
+        public ICommand SetPlayNetModeDedicatedServer { get; private set; }
+        public ICommand OpenNetworkSettings { get; private set; }
+
+        private void RefreshPlayNetSettings()
+        {
+            var action = () =>
+            {
+                EditorPlayNetMode mode = _editorSubsystem.GetPlayNetMode();
+                EditorPlayNetState state = _editorSubsystem.GetPlayNetState();
+                string host = _editorSubsystem.GetPlayNetHost();
+                uint port = _editorSubsystem.GetPlayNetPort();
+                bool autoLaunchServer = _editorSubsystem.GetPlayNetAutoLaunchServer();
+                uint cachePort = _editorSubsystem.GetPlayNetCachePort();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    _playNetMode = mode;
+                    _playNetState = state;
+                    _playNetHost = host;
+                    _playNetPort = port;
+                    _playNetAutoLaunchServer = autoLaunchServer;
+                    _playNetCachePort = cachePort;
+
+                    OnPropertyChanged(nameof(IsPlayNetModeStandalone));
+                    OnPropertyChanged(nameof(IsPlayNetModeClient));
+                    OnPropertyChanged(nameof(IsPlayNetModeDedicatedServer));
+                    OnPropertyChanged(nameof(PlayTooltip));
+                    OnPropertyChanged(nameof(StatusText));
+                });
+            };
+
+            if (EngineManager.IsOnSimThread)
+            {
+                action();
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(action);
+        }
+
+        private void SetPlayNetMode(EditorPlayNetMode mode)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                _editorSubsystem.SetPlayNetMode(mode);
+
+                RefreshPlayNetSettings();
+            });
         }
 
         public bool IsSimulating => _editorSubsystem?.IsSimulating() ?? false;
@@ -446,6 +599,18 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(IsSimulating));
             OnPropertyChanged(nameof(GameStateText));
             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
+            OnPropertyChanged(nameof(CanAddTerrainLayer));
+
+            (ToggleTerrainSculptMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleTerrainPaintMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewLayerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+
+            ContentBrowser?.RefreshCanCreateAssets();
+
+            // Starting simulation turns the terrain tools off in the engine; mirror that in the tool panels.
+            RefreshTerrainToolState();
         }
 
         private DelegateHandler? _gameInstanceLaunchedHandler;
@@ -460,6 +625,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _meshEditStateChangedHandler;
         private DelegateHandler? _activeSwatchChangedHandler;
         private DelegateHandler? _activeLayersChangedHandler;
+        private DelegateHandler? _playNetStateChangedHandler;
 
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private int _isUpdatingFocusedNodeFromEngine = 0; // atomic
@@ -519,7 +685,6 @@ namespace Hyperion.Editor.ViewModels
             PanelService.Instance.ActivePanelChanged += OnActivePanelChanged;
 
             SceneHierarchy = new SceneHierarchyViewModel();
-            SceneHierarchy.SceneChildrenChanged += OnSceneChildrenChanged;
 
             Inspector = new InspectorViewModel();
             ForegroundTask = new ForegroundTaskViewModel();
@@ -557,7 +722,8 @@ namespace Hyperion.Editor.ViewModels
 
                         RefreshTerrainToolState();
                     });
-                });
+                },
+                () => CanToggleTerrainSculptMode);
 
             ToggleTerrainPaintMode = new RelayCommand(
                 () =>
@@ -568,23 +734,83 @@ namespace Hyperion.Editor.ViewModels
 
                         RefreshTerrainToolState();
                     });
-                });
-
-            FitPhysicsShapeToMesh = new RelayCommand(
-                () =>
-                {
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        _editorSubsystem.FitPhysicsShapeToMesh();
-
-                        RefreshMeshEditState();
-                    });
                 },
-                () => CanFitPhysicsShapeToMesh);
+                () => CanToggleTerrainSculptMode);
+
+            SetViewportLod = new RelayCommand<object?>(lodIndex =>
+            {
+                int lod = ParseCommandInt(lodIndex, -1);
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetViewportForcedLod(lod);
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _viewportForcedLod = Math.Clamp(lod, -1, 4);
+
+                        OnPropertyChanged(nameof(ViewportForcedLod));
+                        OnPropertyChanged(nameof(ViewportLodText));
+                        OnPropertyChanged(nameof(IsViewportLodAutomatic));
+                    });
+                });
+            });
+
+            SetMeshEditLod = new RelayCommand<object?>(lodIndex =>
+            {
+                int lod = ParseCommandInt(lodIndex, -1);
+
+                if (lod < 0)
+                {
+                    return;
+                }
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetMeshEditLod((byte)Math.Max(lod, 0));
+
+                    RefreshMeshEditState();
+                });
+            });
+
+            RegenerateMeshEditLods = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.RegenerateMeshEditLods();
+
+                    RefreshMeshEditState();
+                });
+            });
 
             SetGameModePlaying = new SetGameModeCommand(GameStateMode.Simulating);
             SetGameModePaused = new SetGameModeCommand(GameStateMode.Paused);
             SetGameModeStopped = new SetGameModeCommand(GameStateMode.Stopped);
+
+            SetPlayNetModeStandalone = new RelayCommand(() => SetPlayNetMode(EditorPlayNetMode.Standalone));
+            SetPlayNetModeClient = new RelayCommand(() => SetPlayNetMode(EditorPlayNetMode.Client));
+            SetPlayNetModeDedicatedServer = new RelayCommand(() => SetPlayNetMode(EditorPlayNetMode.DedicatedServer));
+
+            OpenNetworkSettings = new RelayCommand(() =>
+            {
+                var panel = new NetworkSettingsPanelViewModel(_playNetHost, _playNetPort, _playNetAutoLaunchServer, _playNetCachePort, result =>
+                {
+                    if (result == null)
+                        return;
+
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.SetPlayNetHost(result.Host);
+                        _editorSubsystem.SetPlayNetPort(result.Port);
+                        _editorSubsystem.SetPlayNetAutoLaunchServer(result.AutoLaunchServer);
+                        _editorSubsystem.SetPlayNetCachePort(result.CachePort);
+
+                        RefreshPlayNetSettings();
+                    });
+                });
+
+                PanelService.Instance.OpenPanel(panel);
+            });
 
             ToggleMeshEditMode = new RelayCommand(() =>
             {
@@ -684,6 +910,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateInProject("scene"))
+                        {
+                            return;
+                        }
+
                         try
                         {
                             Scene newScene = new Scene();
@@ -707,7 +938,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => !IsSimulating);
 
             SetActiveSwatchCommand = new RelayCommand<string>(swatchName =>
             {
@@ -744,6 +975,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateInProject("swatch"))
+                        {
+                            return;
+                        }
+
                         try
                         {
                             EditorProject? project = EngineManager.CurrentProject;
@@ -765,7 +1001,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => !IsSimulating);
 
             AddNewLayerCommand = new RelayCommand(() =>
             {
@@ -778,6 +1014,11 @@ namespace Hyperion.Editor.ViewModels
 
                     _ = EngineManager.PostToSimThread(() =>
                     {
+                        if (!CanCreateInProject("layer"))
+                        {
+                            return;
+                        }
+
                         try
                         {
                             World? world = EngineManager.CurrentProject?.GetWorld();
@@ -809,7 +1050,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            });
+            }, () => !IsSimulating);
 
             AddNormalizedCubeSphereCommand = new RelayCommand(() =>
             {
@@ -884,6 +1125,7 @@ namespace Hyperion.Editor.ViewModels
             BindFocusedNodeChanged();
             BindSelectionChanged();
             BindMeshEditStateChanged();
+            BindPlayNetStateChanged();
 
             EngineManager.TaskStarted += OnTaskStarted;
             EngineManager.TaskEnded += OnTaskEnded;
@@ -926,6 +1168,7 @@ namespace Hyperion.Editor.ViewModels
             _actionStackStateChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
+            _playNetStateChangedHandler?.Remove();
 
             if (isDisposing)
             {
@@ -935,50 +1178,11 @@ namespace Hyperion.Editor.ViewModels
                 EngineManager.TaskEnded -= OnTaskEnded;
                 EngineManager.TaskProgressUpdated -= OnTaskProgressUpdated;
 
-                SceneHierarchy.SceneChildrenChanged -= OnSceneChildrenChanged;
-
                 SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
                 SceneHierarchy.SelectionChanged -= OnSceneHierarchySelectionChanged;
                 
                 ContentBrowser.Dispose();
             }
-        }
-
-        private void OnSceneChildrenChanged(Scene scene)
-        {
-            Action checkItAndSetIt = () =>
-            {
-                // check it
-                bool canSculptTerrain = scene != null && (_editorSubsystem.EditorTerrainState?.CanSculptTerrainForScene(scene) ?? false);
-                bool sculptActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsSculptActive ?? false);
-                bool paintActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsPaintActive ?? false);
-
-                Logger.Log(LogLevel.Info, "Can sculpt terrain = {0}", canSculptTerrain);
-
-                // set it (on the ui thread of course)
-                Dispatcher.UIThread.Post(() =>
-                {
-                    _canToggleTerrainSculptMode = canSculptTerrain;
-                    _isSculptModeActive = sculptActive;
-                    _isPaintModeActive = paintActive;
-
-                    OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
-                    OnPropertyChanged(nameof(IsSculptModeActive));
-                    OnPropertyChanged(nameof(IsPaintModeActive));
-                    UpdateTerrainToolPanels();
-                });
-            };
-
-            if (EngineManager.IsOnSimThread)
-            {
-                // just do it
-                checkItAndSetIt();
-
-                return;
-            }
-
-            // make the sim thread do it for us
-            EngineManager.PostToSimThread(checkItAndSetIt);
         }
 
         private void OnTaskStarted(EditorTaskBase task, bool isForegroundTask)
@@ -1041,10 +1245,6 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleActiveSceneChanged(Scene? scene)
         {
-            bool canSculptTerrain = scene != null && (_editorSubsystem.EditorTerrainState?.CanSculptTerrainForScene(scene) ?? false);
-            bool sculptActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsSculptActive ?? false);
-            bool paintActive = scene != null && (_editorSubsystem.EditorTerrainState?.IsPaintActive ?? false);
-
             Dispatcher.UIThread.Post(() =>
             {
                 if (!_isReady)
@@ -1059,15 +1259,8 @@ namespace Hyperion.Editor.ViewModels
 
                     SceneHierarchy.AttachToScene(null);
 
-                    _isSculptModeActive = false;
-                    _isPaintModeActive = false;
-
                     OnPropertyChanged(nameof(ActiveScene));
                     OnPropertyChanged(nameof(CanAddToScene));
-                    OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
-                    OnPropertyChanged(nameof(IsSculptModeActive));
-                    OnPropertyChanged(nameof(IsPaintModeActive));
-                    UpdateTerrainToolPanels();
 
                     return;
                 }
@@ -1084,18 +1277,10 @@ namespace Hyperion.Editor.ViewModels
                     OnPropertyChanged(nameof(Scenes));
                 }
 
-                _canToggleTerrainSculptMode = canSculptTerrain;
-                _isSculptModeActive = sculptActive;
-                _isPaintModeActive = paintActive;
-
                 SceneHierarchy.AttachToScene(scene);
 
                 OnPropertyChanged(nameof(ActiveScene));
                 OnPropertyChanged(nameof(CanAddToScene));
-                OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
-                OnPropertyChanged(nameof(IsSculptModeActive));
-                OnPropertyChanged(nameof(IsPaintModeActive));
-                UpdateTerrainToolPanels();
             });
         }
 
@@ -1369,6 +1554,8 @@ namespace Hyperion.Editor.ViewModels
 
                 _ = EngineManager.PostToSimThread(RefreshSwatches);
                 _ = EngineManager.PostToSimThread(RefreshActiveLayerToggles);
+
+                RefreshTerrainToolState();
             });
         }
 
@@ -1590,17 +1777,21 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                foreach (SceneViewModel svm in Scenes)
+                foreach (SceneViewModel currSvm in Scenes)
                 {
-                    if (svm.Scene.Id == scene.Id)
+                    if (currSvm.Scene.Id == scene.Id)
                     {
                         return; // already exists
                     }
                 }
 
-                Scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+                SceneViewModel svm = new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id);
+                Scenes.Add(svm);
 
                 OnPropertyChanged(nameof(Scenes));
+
+                // a terrain layer being added (or a project world finishing load) attaches its scene - re-evaluate tool availability
+                RefreshTerrainToolState();
             };
 
             if (Dispatcher.UIThread.CheckAccess())
@@ -1625,9 +1816,12 @@ namespace Hyperion.Editor.ViewModels
 
                         OnPropertyChanged(nameof(Scenes));
 
-                        return;
+                        break;
                     }
                 }
+
+                // a terrain layer being removed detaches its scene - re-evaluate tool availability
+                RefreshTerrainToolState();
             };
 
             if (Dispatcher.UIThread.CheckAccess())
@@ -1769,6 +1963,25 @@ namespace Hyperion.Editor.ViewModels
                 });
         }
 
+        private void BindPlayNetStateChanged()
+        {
+            WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
+
+            _playNetStateChangedHandler?.Remove();
+            _playNetStateChangedHandler = _editorSubsystem.GetOnPlayNetStateChangedDelegate()
+                .Bind((EditorPlayNetState state) =>
+                {
+                    if (!weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        return;
+                    }
+
+                    target.RefreshPlayNetSettings();
+                });
+
+            RefreshPlayNetSettings();
+        }
+
         private void BindMeshEditStateChanged()
         {
             WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
@@ -1789,6 +2002,17 @@ namespace Hyperion.Editor.ViewModels
         /// <summary>
         /// Reads the engine's mesh edit state and publishes it to the UI thread.
         /// </summary>
+        /// XAML command parameters arrive as strings, engine-side callers pass ints.
+        private static int ParseCommandInt(object? parameter, int fallback)
+        {
+            return parameter switch
+            {
+                int value => value,
+                string text when int.TryParse(text, out int parsed) => parsed,
+                _ => fallback
+            };
+        }
+
         private void RefreshMeshEditState()
         {
             if (_editorSubsystem == null)
@@ -1798,7 +2022,7 @@ namespace Hyperion.Editor.ViewModels
 
             MeshEditStateSnapshot snapshot = new MeshEditStateSnapshot();
 
-            bool canFitPhysicsShapeToMesh = false;
+            int viewportForcedLod = -1;
 
             try
             {
@@ -1813,7 +2037,11 @@ namespace Hyperion.Editor.ViewModels
                 snapshot.LockedAxis = _editorSubsystem.GetMeshEditLockedAxis();
                 snapshot.TargetName = _editorSubsystem.GetMeshEditTargetNode()?.Name.ToString() ?? string.Empty;
 
-                canFitPhysicsShapeToMesh = _editorSubsystem.CanFitPhysicsShapeToMesh();
+                snapshot.LodIndex = _editorSubsystem.GetMeshEditLod();
+                snapshot.NumLods = _editorSubsystem.GetMeshEditNumLods();
+                snapshot.LodsOutOfDate = _editorSubsystem.AreMeshEditLodsOutOfDate();
+
+                viewportForcedLod = _editorSubsystem.GetViewportForcedLod();
             }
             catch (Exception ex)
             {
@@ -1826,7 +2054,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 _meshEditState = snapshot;
 
-                _canFitPhysicsShapeToMesh = canFitPhysicsShapeToMesh;
+                _viewportForcedLod = viewportForcedLod;
 
                 NotifyMeshEditStateChanged();
             });
@@ -1851,8 +2079,15 @@ namespace Hyperion.Editor.ViewModels
             (SaveMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
             (DiscardMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
 
-            OnPropertyChanged(nameof(CanFitPhysicsShapeToMesh));
-            (FitPhysicsShapeToMesh as RelayCommand)?.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(ViewportForcedLod));
+            OnPropertyChanged(nameof(ViewportLodText));
+            OnPropertyChanged(nameof(IsViewportLodAutomatic));
+
+            OnPropertyChanged(nameof(MeshEditLod));
+            OnPropertyChanged(nameof(MeshEditNumLods));
+            OnPropertyChanged(nameof(MeshEditHasMultipleLods));
+            OnPropertyChanged(nameof(MeshEditLodsOutOfDate));
+            OnPropertyChanged(nameof(MeshEditLodText));
         }
 
         private void HandleSelectionUpdate()

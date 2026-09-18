@@ -15,6 +15,7 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
@@ -52,7 +53,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
 
-// #define HYP_DISABLE_VISIBILITY_CHECK
+//#define HYP_DISABLE_VISIBILITY_CHECK
 // #define HYP_VISIBILITY_CHECK_DEBUG
 
 #include <View.generated.inl>
@@ -60,19 +61,10 @@
 namespace Hyperion {
 
 
-static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 100.0f);
+static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 500.0f);
 
-static CVar<float> s_cvCSMSplit0("Rendering.Shadows.CSMSplit0", 0.075f);
-static CVar<float> s_cvCSMSplit1("Rendering.Shadows.CSMSplit1", 0.15f);
-static CVar<float> s_cvCSMSplit2("Rendering.Shadows.CSMSplit2", 0.3f);
-static CVar<float> s_cvCSMSplit3("Rendering.Shadows.CSMSplit3", 1.0f);
-
-static CVar<float>* s_csmClipDistances[] = {
-    &s_cvCSMSplit0,
-    &s_cvCSMSplit1,
-    &s_cvCSMSplit2,
-    &s_cvCSMSplit3
-};
+// 0 = uniform splits, 1 = logarithmic. near cascades stay small as CSMMaxDistance grows the closer this is to 1
+static CVar<float> s_cvCSMSplitLambda("Rendering.Shadows.CSMSplitLambda", 0.95f);
 
 CVar<bool> g_cvCSMTimeSlicingEnabled("Rendering.Shadows.CSMTimeSlicingEnabled", true);
 CVar<int> g_cvCSMMaxUpdatesPerFrame("Rendering.Shadows.CSMMaxUpdatesPerFrame", 1);
@@ -348,9 +340,10 @@ void View::UpdateVisibility()
     //AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
-    if (!(flags & ViewFlags::SHADOW_VIEW))
+    if (!(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::SKY_VISIBILITY_VIEW)))
     {
-        // Shadow views update their own frustums and VP matrices (View::PrepareShadowViews())
+        // Shadow views update their own frustums and VP matrices (View::PrepareShadowViews()),
+        // as does the sky visibility view (DynamicSkySystem::UpdateSkyVisibilityView())
 
         // Cubemap face views do not automatically update the sub-frustum
         if (!(flags & ViewFlags::CUBEMAP_FACE_VIEW))
@@ -486,6 +479,9 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         Frustum csmMainCameraFrustum;
         Vec3f lightDir;
 
+        // cascade i spans [cascadeSplitRatios[i], cascadeSplitRatios[i + 1]] of csmMainCameraFrustum
+        FixedArray<float, MaxShadowMapCascades + 1> cascadeSplitRatios {};
+
         // Calculate total world bounds for CSM
         BoundingSphere worldBoundsSphere;
         bool isWorldBoundsSphereValid = false;
@@ -503,6 +499,20 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             const float mainCameraFarRatio = MathUtil::Clamp(s_cvCSMMaxDistance.Get() / m_camera->GetFarClip(), 0.0f, 1.0f);
             csmMainCameraFrustum = (mainCameraFarRatio >= 0.9999f ? mainCameraFrustum : mainCameraFrustum.SubFrustum(0.0f, mainCameraFarRatio));
+
+            // SubFrustum lerps between the near and far corners, so ratios are linear in view distance
+            const float csmNearDistance = m_camera->GetNearClip();
+            const float csmFarDistance = MathUtil::Lerp(csmNearDistance, m_camera->GetFarClip(), mainCameraFarRatio);
+
+            for (uint32 splitIndex = 0; splitIndex <= numCascades; splitIndex++)
+            {
+                cascadeSplitRatios[splitIndex] = ShadowCameraHelpers::CalculateCascadeSplitRatio(
+                    splitIndex,
+                    numCascades,
+                    csmNearDistance,
+                    csmFarDistance,
+                    s_cvCSMSplitLambda.Get());
+            }
 
             lightDir = light->GetWorldTranslation().Normalized();
         }
@@ -592,17 +602,25 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (isDirectional)
             {
-                const float nearRatio = (shadowViewIndex == 0) ? 0.0f : s_csmClipDistances[shadowViewIndex - 1]->Get();
-                const float farRatio = s_csmClipDistances[shadowViewIndex]->Get();
+                const float nearRatio = cascadeSplitRatios[shadowViewIndex];
+                const float farRatio = cascadeSplitRatios[shadowViewIndex + 1];
 
                 shadowViewBounds = ShadowCameraHelpers::CalculateCascadeBounds(
                     csmMainCameraFrustum,
-                    worldBoundsSphere,
                     shadowViewMatrix,
                     shadowMapDimensions,
                     nearRatio,
                     farRatio,
                     lightDir);
+
+                // previous bounds were fit in the old basis when it just changed, so they can't be reused
+                if (!csmInvalidated)
+                {
+                    if (View* previousCascadeView = RI.shadowMapCache->TryGetShadowView(this, light, shadowViewIndex, /* isStatic */ onlyStaticShadowMaps))
+                    {
+                        shadowViewBounds = ShadowCameraHelpers::StabilizeCascadeBounds(shadowViewBounds, previousCascadeView->cachedBounds);
+                    }
+                }
 
                 const Mat4f cascadeProjMatrix = Mat4f::Orthographic(
                     shadowViewBounds.min.x, shadowViewBounds.max.x,
@@ -612,7 +630,15 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                 shadowInvProjMatrix = cascadeProjMatrix.Inverse();
                 shadowViewProjMatrix = cascadeProjMatrix * shadowViewMatrix;
 
-                shadowViewFrustum.SetFromViewProjectionMatrix(shadowViewProjMatrix);
+                // the projection only spans the cascade; casters toward the light are culled against the scene and depth clamped when drawn
+                const BoundingBox cullingBounds = ShadowCameraHelpers::CalculateCascadeCullingBounds(shadowViewBounds, worldBoundsSphere, shadowViewMatrix);
+
+                const Mat4f cullingProjMatrix = Mat4f::Orthographic(
+                    cullingBounds.min.x, cullingBounds.max.x,
+                    cullingBounds.min.y, cullingBounds.max.y,
+                    cullingBounds.min.z, cullingBounds.max.z);
+
+                shadowViewFrustum.SetFromViewProjectionMatrix(cullingProjMatrix * shadowViewMatrix);
 
                 depthRange = shadowViewBounds.max.z - shadowViewBounds.min.z;
             }
@@ -768,13 +794,23 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     // this must be evaluated even when the cascade is not being updated this frame.
                     //
                     // otherwise static shadow maps would freeze while the camera is not moving, since their RPL diff would never refresh.
+                    //
+                    // the RPL holds raw pointers, so resource swaps on static entities (see Scene::MarkStaticRenderResourcesChanged)
+                    // must invalidate too, or the render side keeps binding resources that have since been destroyed.
                     ////////////////////
                     HashCode inputHash = HashCode::GetHashCode(*light->GetRenderProxyVersionPtr())
                         .Combine(committedViewProjMatrix.GetHashCode());
 
                     for (Scene* shadowViewScene : shadowViewScenes)
                     {
-                        if (!shadowViewScene || !(shadowViewScene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
+                        if (!shadowViewScene)
+                        {
+                            continue;
+                        }
+
+                        inputHash = inputHash.Combine(shadowViewScene->GetStaticRenderResourcesRevision());
+
+                        if (!(shadowViewScene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
                         {
                             continue;
                         }
@@ -870,6 +906,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectLightmapVolumes(rpl);
             CollectParticleVolumes(rpl);
             CollectFogVolumes(rpl);
+            CollectEffectVolumes(rpl);
             CollectEnvProbes(rpl);
             CollectSprites(rpl);
             CollectMeshEntities(rpl);
@@ -904,6 +941,20 @@ void View::CollectSync()
     taskBatch.ExecuteBlocking();
 
     EndAsyncCollection();
+}
+
+bool View::ShouldCollectLODs() const
+{
+    constexpr EnumFlags<ViewFlags> ExcludedFlags = ViewFlags::SHADOW_VIEW
+        | ViewFlags::ENV_PROBE_VIEW
+        | ViewFlags::UI_VIEW
+        | ViewFlags::BAKER_VIEW
+        | ViewFlags::RAY_TRACING
+        | ViewFlags::CUBEMAP_FACE_VIEW;
+
+    return (flags & ViewFlags::GBUFFER)
+        && !(flags & ExcludedFlags)
+        && m_camera != nullptr;
 }
 
 void View::SetPriority(int priority)
@@ -1593,6 +1644,54 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
             }
 
             rpl.GetFogVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
+        }
+    }
+}
+
+void View::CollectEffectVolumes(RenderProxyList& rpl)
+{
+    HYP_SCOPE;
+
+    if (flags & (ViewFlags::SKIP_EFFECT_VOLUMES | ViewFlags::SHADOW_VIEW))
+    {
+        return;
+    }
+
+    for (Scene* scene : m_scenes)
+    {
+        World* world = scene->GetWorld();
+        const LayersMask& activeLayers = world->GetActiveLayers();
+
+        for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<EffectVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!volume->HasNoLayers() && !volume->IsInAnyLayers(activeLayers))
+            {
+                continue;
+            }
+
+            const BoundingBox worldBounds = volume->GetWorldBounds();
+
+            if (!worldBounds.IsValid())
+            {
+                HYP_LOG(Scene, Warning, "EffectVolume {} has an invalid AABB in view {}", volume->Id(), Id());
+                continue;
+            }
+
+            // unbounded volumes (e.g. clouds) are never culled
+            if (worldBounds.IsFinite())
+            {
+                if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
+                {
+                    continue;
+                }
+
+                if (!(flags & ViewFlags::NO_FRUSTUM_CULLING) && !cachedFrustum.ContainsAABB(worldBounds))
+                {
+                    continue;
+                }
+            }
+
+            rpl.GetEffectVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
         }
     }
 }

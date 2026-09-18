@@ -45,6 +45,8 @@ MeshComponent& MeshComponent::operator=(const MeshComponent& other)
     skeleton = other.skeleton;
     enableAutoInstancing = other.enableAutoInstancing;
     numInstances = other.numInstances;
+    forcedLod = other.forcedLod;
+    lodBias = other.lodBias;
     instanceData = other.instanceData;
     previousModelMatrix = other.previousModelMatrix;
 
@@ -78,6 +80,8 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
     skeleton = std::move(other.skeleton);
     enableAutoInstancing = other.enableAutoInstancing;
     numInstances = other.numInstances;
+    forcedLod = other.forcedLod;
+    lodBias = other.lodBias;
     instanceData = std::move(other.instanceData);
     previousModelMatrix = std::move(other.previousModelMatrix);
 

@@ -721,6 +721,7 @@ public:
         VertexInputLayoutDesc inputLayout,
         Shader*& outShader);
 
+    bool HasShaderBundle(Name name) const;
     bool IsGraphicsShaderBundle(Name name) const;
 
 #if HYP_ENABLE_SHADER_RELOAD

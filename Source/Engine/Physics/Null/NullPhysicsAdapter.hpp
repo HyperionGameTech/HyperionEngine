@@ -41,6 +41,8 @@ public:
     void SetCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation);
     void NudgeCharacterTranslation(const SharedPtr<void>& physicsHandle, const Vec3f& translation);
     void GetCharacterState(const SharedPtr<void>& physicsHandle, Vec3f& outTranslation, bool& outIsOnGround);
+    void GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState);
+    void SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState);
     void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out);
 };
 

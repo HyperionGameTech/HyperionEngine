@@ -50,30 +50,6 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    /*! \brief Check if this framebuffer is currently capturing (deferred, see CommandRecorder).
-     */
-    HYP_FORCE_INLINE bool IsDeferredRecording() const
-    {
-        return m_isRecordingCount > 0;
-    }
-
-    /*! \brief Mark this framebuffer as being used for capturing via deferred commands (see CommandRecorder).
-     *  Since commands are deferred and dont actually build GPU command buffers until the end of the frame, we need to track whether or not we're recording
-     *  to avoid nested framebuffer begin/end calls.
-     */
-    HYP_FORCE_INLINE void SetIsDeferredRecording(bool value)
-    {
-        if (value)
-        {
-            m_isRecordingCount++;
-        }
-        else
-        {
-            HYP_CORE_ASSERT(m_isRecordingCount > 0);
-            m_isRecordingCount--;
-        }
-    }
-
 #ifdef HYP_RHI_DEBUG_NAMES
     Name GetDebugName() const
     {
@@ -111,13 +87,11 @@ public:
 
 protected:
     FramebufferBase(const FramebufferDesc& framebufferDesc)
-        : m_framebufferDesc(framebufferDesc),
-          m_isRecordingCount(0)
+        : m_framebufferDesc(framebufferDesc)
     {
     }
 
     FramebufferDesc m_framebufferDesc;
-    int m_isRecordingCount;
 
 #ifdef HYP_RHI_DEBUG_NAMES
     Name m_debugName;

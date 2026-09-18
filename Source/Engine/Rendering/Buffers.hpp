@@ -98,6 +98,8 @@ struct RayTracingConstants
     float maxDistance;
 };
 
+class CommandBufferBase;
+
 class StagingBufferPool
 {
 public:
@@ -107,6 +109,9 @@ public:
     void OnFrameEnd(uint32 prevFrameIndex);
 
     GpuBuffer* AcquireStagingBuffer(size_t bufferSize);
+
+    void RetainForCommandBuffer(const GpuBuffer* buffer, const CommandBufferBase* commandBuffer);
+    void ReleaseForCommandBuffer(const CommandBufferBase* commandBuffer);
 
 private:
     Pimpl<struct StagingBufferPoolImpl> m_impl;

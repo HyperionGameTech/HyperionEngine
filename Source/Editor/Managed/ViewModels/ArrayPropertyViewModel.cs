@@ -47,6 +47,8 @@ namespace Hyperion.Editor.ViewModels
 
         public override bool ShowInlineLabel => false;
 
+        public override bool ShowsDescriptionInOwnTemplate => true;
+
 
         public ArrayPropertyViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)
             : base(target, property, isReadOnly)

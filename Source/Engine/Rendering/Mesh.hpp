@@ -13,6 +13,7 @@
 
 #include <Core/Threading/DataRaceDetector.hpp>
 #include <Core/Threading/AtomicFlag.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 
@@ -46,8 +47,6 @@ enum class MeshFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(MeshFlags);
 
-static constexpr uint8 MaxMeshLods = 4;
-
 HYP_STRUCT()
 struct MeshLodDesc
 {
@@ -58,6 +57,75 @@ struct MeshLodDesc
 
     HYP_FIELD(Serialize)
     uint32 numIndices = 0;
+
+    ///max distance any vertex on this LOD was moved from its LOD 0 position, in local space.
+    ///used to size skirts so geomorphing (see Mesh LOD selection) never opens a gap at the LOD's own error bound.
+    HYP_FIELD(Serialize)
+    float geometricError = 0.0f;
+
+    ///projected size (bounding sphere diameter as a fraction of screen height) at which this LOD takes over.
+    ///ignored for LOD 0, which is always the closest LOD.
+    HYP_FIELD(Serialize)
+    float screenSize = 0.0f;
+};
+
+HYP_STRUCT()
+struct MeshLodGenerationSettings
+{
+    HYP_STRUCT_BODY(MeshLodGenerationSettings);
+
+    HYP_FIELD(Property = "NumLods", Serialize)
+    uint8 numLods = MaxMeshLods;
+
+    ///target triangle count of each LOD as a fraction of LOD 0
+    HYP_FIELD(Property = "TriangleRatios", Serialize)
+    FixedArray<float, MaxMeshLods> triangleRatios = { 1.0f, 0.5f, 0.25f, 0.125f };
+
+    ///upper bound on simplification error, relative to mesh size.
+    HYP_FIELD(Property = "MaxRelativeError", Serialize)
+    float maxRelativeError = 1.0f;
+
+    HYP_FIELD(Property = "NormalWeight", Serialize)
+    float normalWeight = 0.5f;
+
+    HYP_FIELD(Property = "UV0Weight", Serialize)
+    float uv0Weight = 1.0f;
+
+    HYP_FIELD(Property = "UV1Weight", Serialize)
+    float uv1Weight = 0.5f;
+
+    HYP_FIELD(Property = "LockBorder", Serialize)
+    bool lockBorder = false;
+
+    ///drop components that are too small to matter.
+    HYP_FIELD(Property = "Prune", Serialize)
+    bool prune = false;
+
+    ///error budget used to derive default screen sizes, in pixels at 1080p.
+    HYP_FIELD(Property = "MaxScreenErrorPixels", Serialize)
+    float maxScreenErrorPixels = 1.0f;
+
+    ///hash of the LOD 0 data the current LODs were generated from
+    HYP_FIELD(Property = "SourceDataHash", Serialize, Editor = false)
+    uint64 sourceDataHash = 0;
+};
+
+HYP_STRUCT()
+struct MeshLodInfo
+{
+    HYP_STRUCT_BODY(MeshLodInfo);
+
+    HYP_FIELD(Property = "NumVertices", Serialize)
+    uint32 numVertices = 0;
+
+    HYP_FIELD(Property = "NumTriangles", Serialize)
+    uint32 numTriangles = 0;
+
+    HYP_FIELD(Property = "GeometricError", Serialize)
+    float geometricError = 0.0f;
+
+    HYP_FIELD(Property = "ScreenSize", Serialize)
+    float screenSize = 0.0f;
 };
 
 HYP_STRUCT()
@@ -73,15 +141,19 @@ struct MeshDesc
 
     HYP_FORCE_INLINE uint8 GetNumLods() const
     {
+        uint8 numLods = 0;
+
         for (uint8 i = 0; i < MaxMeshLods; i++)
         {
             if (lods[i].numIndices == 0)
             {
-                return i + 1;
+                break;
             }
+
+            numLods = i + 1;
         }
 
-        return MaxMeshLods;
+        return numLods;
     }
 };
 
@@ -103,7 +175,6 @@ struct MeshDataView
     ConstByteView indices[MaxMeshLods];
 };
 
-/*! \brief Contains vertices and indices for all associated levels-of-detail of a section of a model */
 HYP_CLASS(AssetBucket = "Meshes")
 class ENGINE_API Mesh final : public AssetObject
 {
@@ -111,6 +182,20 @@ class ENGINE_API Mesh final : public AssetObject
 
 public:
     using Index = uint32;
+
+    static constexpr const char* GetVertexBufferBlobMagic(uint8 lodIndex)
+    {
+        constexpr const char* Magics[MaxMeshLods] = { "VB", "VB1", "VB2", "VB3" };
+
+        return Magics[lodIndex];
+    }
+
+    static constexpr const char* GetIndexBufferBlobMagic(uint8 lodIndex)
+    {
+        constexpr const char* Magics[MaxMeshLods] = { "IB", "IB1", "IB2", "IB3" };
+
+        return Magics[lodIndex];
+    }
 
     Mesh();
 
@@ -135,20 +220,38 @@ public:
         const MeshDesc& meshDesc,
         const MeshDataView& meshData);
 
+    /*! \brief Replace the data for a single LOD > 1 */
+    void SetLodData(
+        uint8 lodIndex,
+        const MeshLodDesc& lodDesc,
+        const VertexArrayView& vertices,
+        ConstByteView indices);
+
+    void ClearLods(uint8 firstLodIndex);
+
+    HYP_FORCE_INLINE uint32 GetLodDataVersion() const
+    {
+        return m_lodDataVersion.Get(MemoryOrder::ACQUIRE);
+    }
+
     HYP_METHOD()
     uint32 NumIndices(uint8 lodIndex) const
     {
         return m_meshDesc.lods[lodIndex].numIndices;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetVertexBuffer(uint8 lodIndex = UINT8_MAX) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetVertexBuffer(uint8 lodIndex) const
     {
-        return m_vertexBuffers[lodIndex < MaxMeshLods ? lodIndex : m_currentLodIndex];
+        AssertDebug(lodIndex < MaxMeshLods);
+
+        return m_vertexBuffers[lodIndex];
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetIndexBuffer(uint8 lodIndex = UINT8_MAX) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetIndexBuffer(uint8 lodIndex) const
     {
-        return m_indexBuffers[lodIndex < MaxMeshLods ? lodIndex : m_currentLodIndex];
+        AssertDebug(lodIndex < MaxMeshLods);
+
+        return m_indexBuffers[lodIndex];
     }
 
     HYP_FORCE_INLINE MeshAttributes GetMeshAttributes() const
@@ -182,6 +285,11 @@ public:
         return m_bvhData;
     }
 
+    HYP_FORCE_INLINE const MeshDesc& GetMeshDesc() const
+    {
+        return m_meshDesc;
+    }
+
     HYP_METHOD()
     bool IsDynamicMesh() const
     {
@@ -194,6 +302,8 @@ public:
     void UploadGpuData();
     void ReleaseGpuData();
 
+    bool UploadLod(uint8 lodIndex);
+
     ///Dynamic Mesh stuff
 
     /// Dynamically set vertices for the LOD \p lodIndex starting at \p firstVertex.
@@ -204,12 +314,20 @@ public:
     /// Must be a Dynamic Mesh (needs DynamicMesh flag on creation)
     void UpdateDynamicBVH();
 
-    ///\Dynamic Mesh stuff
+    ///LOD gen
 
-    HYP_FORCE_INLINE const MeshDesc& GetMeshDesc() const
+    HYP_FORCE_INLINE const MeshLodGenerationSettings& GetLodGenerationSettings() const
     {
-        return m_meshDesc;
+        return m_lodGenerationSettings;
     }
+
+    void SetLodGenerationSettings(const MeshLodGenerationSettings& settings);
+
+    bool AreLodsOutOfDate() const;
+
+    uint64 ComputeLod0DataHash() const;
+
+    ////////////////////
 
     VertexArrayView GetVertexData(uint8 lodIndex) const;
     void SetVertexData(uint8 lodIndex, const VertexArrayView& view);
@@ -232,7 +350,7 @@ public:
 
     void SetIndexData(uint8 lodIndex, Span<const ubyte> indexData);
 
-    BoundingBox CalculateAABB() const;
+    BoundingBox CalculateAABB(uint8 lodIndex = 0) const;
 
     template <class AllocatorType>
     void BuildVertexBuffer(
@@ -242,7 +360,9 @@ public:
 
     void CalculateNormals(bool weighted = false);
 
-    void BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
+    void BuildBVH(BVHNode& bvhNode, int maxDepth = 3, uint8 lodIndex = 0) const;
+
+    Handle<Mesh> Clone() const;
 
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Regenerate Normals")
@@ -253,6 +373,21 @@ public:
 
     HYP_METHOD(EditorOnly, EditorAction = "Recalculate Bounds")
     void RecalculateBounds();
+
+    HYP_METHOD(EditorOnly, EditorAction = "Generate LODs", EditCondition = "CanGenerateLods")
+    void GenerateLods();
+
+    HYP_METHOD(EditorOnly, EditorAction = "Clear LODs", EditCondition = "HasGeneratedLods")
+    void ClearGeneratedLods();
+
+    HYP_METHOD()
+    bool CanGenerateLods() const;
+
+    HYP_METHOD()
+    bool HasGeneratedLods() const
+    {
+        return m_meshDesc.GetNumLods() > 1;
+    }
 #endif // HYP_EDITOR
 
     AtomicFlag isUploaded;
@@ -267,12 +402,12 @@ protected:
         {
             if (m_lodData[lodIndex].vertexData.size != 0)
             {
-                outReferences.EmplaceBack("VB", 1, &m_lodData[lodIndex].vertexData);
+                outReferences.EmplaceBack(GetVertexBufferBlobMagic(lodIndex), 1, &m_lodData[lodIndex].vertexData);
             }
 
             if (m_lodData[lodIndex].indexData.size != 0)
             {
-                outReferences.EmplaceBack("IB", 1, &m_lodData[lodIndex].indexData);
+                outReferences.EmplaceBack(GetIndexBufferBlobMagic(lodIndex), 1, &m_lodData[lodIndex].indexData);
             }
         }
 
@@ -283,8 +418,14 @@ protected:
     }
 
 private:
+    /// Frees LOD data in place; callers hold the write scope and handle the version bump / MarkDirty.
+    void ClearLodData(uint8 firstLodIndex);
+
     HYP_FIELD(Serialize)
     MeshDesc m_meshDesc;
+
+    HYP_FIELD(Property = "LodGeneration", Serialize, Editor = false)
+    MeshLodGenerationSettings m_lodGenerationSettings;
 
     HYP_FIELD(Serialize)
     FixedArray<MeshLodData, MaxMeshLods> m_lodData;
@@ -301,10 +442,10 @@ private:
     HYP_FIELD()
     EnumFlags<MeshFlags> m_flags;
 
+    AtomicVar<uint32> m_lodDataVersion;
+
     FixedArray<GpuBufferRef, MaxMeshLods> m_vertexBuffers;
     FixedArray<GpuBufferRef, MaxMeshLods> m_indexBuffers;
-
-    uint8 m_currentLodIndex;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };

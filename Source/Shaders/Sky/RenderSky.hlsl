@@ -22,6 +22,9 @@ DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer enti
 DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define light current_light_buffer[0]
 
+DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
 #ifndef INSTANCING
@@ -41,35 +44,10 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
 
-#define PLANET_RADIUS 6371e3
-#define ATMOSPHERE_RADIUS 6471e3
-
-#define RAYLEIGH_SCATTER_COEFF float3(5.5e-6, 13.0e-6, 22.4e-6)
-#define RAYLEIGH_SCATTER_HEIGHT 8e3
-
-#define MIE_SCATTER_COEFF 21e-6
-#define MIE_SCATTER_HEIGHT 1.2e3
-#define MIE_SCATTER_DIRECTION 0.758
+#include "../include/Atmosphere.hlsli"
 
 #define NUM_STEPS_X 16
 #define NUM_STEPS_Y 16
-
-float2 RaySphereIntersection(float3 r0, float3 rd, float sr)
-{
-    float a = dot(rd, rd);
-    float b = 2.0 * dot(rd, r0);
-    float c = dot(r0, r0) - (sr * sr);
-    float d = (b * b) - 4.0 * a * c;
-
-    if (d < 0.0)
-    {
-        return float2(1e5, -1e5);
-    }
-
-    return float2(
-        (-b - sqrt(d)) / (2.0 * a),
-        (-b + sqrt(d)) / (2.0 * a));
-}
 
 float3 GetAtmosphere(float3 ray_direction, float3 light_direction, float sun_intensity)
 {
@@ -204,35 +182,45 @@ struct PSOutput
     float4 output_color : SV_Target0;
 };
 
-#define ATOMSPHERE_INTENSITY 30.0
+#define CLEAR_SKY_RADIANCE_PER_SUN_INTENSITY (30.0 / 18.0)
+#define OVERCAST_ZENITH_RADIANCE_PER_SUN_INTENSITY 0.08
+
+float3 GetOvercastSky(float3 rayDirection, float3 directionToSun, float sunIntensity)
+{
+    // dims toward dusk, gone once the sun is well below the horizon
+    const float sunElevationFactor = saturate(directionToSun.y * 5.0 + 1.0) * lerp(0.35, 1.0, saturate(directionToSun.y * 2.0));
+    const float zenithRadiance = sunIntensity * OVERCAST_ZENITH_RADIANCE_PER_SUN_INTENSITY * world_shader_data.sky_light_params.z * sunElevationFactor;
+
+    // CIE standard overcast sky, three times brighter at the zenith than at the horizon
+    float radiance = zenithRadiance * (1.0 + 2.0 * saturate(rayDirection.y)) / 3.0;
+
+    // below the horizon is ground bounce
+    radiance *= lerp(0.4, 1.0, saturate(rayDirection.y * 10.0 + 1.0));
+
+    return (float3)radiance;
+}
 
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    float4 sky_color = (float4)0.0;
+    const float3 directionToSun = normalize(light.position_intensity.xyz);
+    const float sunIntensity = light.position_intensity.w;
+    const float3 rayDirection = normalize(input.v_position);
 
-#ifdef CUTOFF
-    const float3 sky_color_bottom = (float3)0.0;
+    const float overcastWeight = smoothstep(0.5, 1.0, world_shader_data.sky_light_params.w);
 
-    sky_color = float4(sky_color_bottom, 1.0);
+    float3 skyRadiance = (float3)0.0;
 
-    if (input.v_position.y >= CUTOFF)
+    if (overcastWeight < 1.0)
     {
-#endif
-        float3 light_direction = normalize(light.position_intensity.xyz);
-        float3 ray_direction = normalize(input.v_position);
-
-        float3 atmosphere = GetAtmosphere(ray_direction, light_direction, ATOMSPHERE_INTENSITY);
-
-        sky_color = float4(atmosphere, 1.0);
-#ifdef CUTOFF
+        skyRadiance = GetAtmosphere(rayDirection, directionToSun, sunIntensity * CLEAR_SKY_RADIANCE_PER_SUN_INTENSITY);
     }
 
-    sky_color = lerp(sky_color, float4(sky_color_bottom, 1.0), 1.0 - smoothstep(CUTOFF, 0.0, input.v_position.y));
-#endif
+    skyRadiance = lerp(skyRadiance, GetOvercastSky(rayDirection, directionToSun, sunIntensity), overcastWeight);
+    skyRadiance *= world_shader_data.sky_tint_intensity.rgb * world_shader_data.sky_tint_intensity.w;
 
-    output.output_color = sky_color;
+    output.output_color = float4(skyRadiance, 1.0);
 
     return output;
 }

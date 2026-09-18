@@ -3,24 +3,21 @@
 
 PERMUTE(MODE, IRRADIANCE, DEPTH);
 
-STATIC(HYSTERESIS, 0.98);
-
 #define CACHE_SIZE 64
 #define EPS 0.00001
 #define ENERGY_CONSERVATION 0.95
-#define MAX_DISTANCE (ddgiConstants.probe_distance * 1.2)
 
 #if MODE_DEPTH
     #define DDGI_PROBE_SIDE_LENGTH DDGI_PROBE_SIDE_LENGTH_DEPTH
-    #define OUTPUT_IMAGE_DIMENSIONS (ddgiConstants.image_dimensions.zw)
+    #define OUTPUT_IMAGE_DIMENSIONS (ddgiConstants.imageDimensions.zw)
 #else
     #define DDGI_PROBE_SIDE_LENGTH DDGI_PROBE_SIDE_LENGTH_IRRADIANCE
-    #define OUTPUT_IMAGE_DIMENSIONS (ddgiConstants.image_dimensions.xy)
+    #define OUTPUT_IMAGE_DIMENSIONS (ddgiConstants.imageDimensions.xy)
 #endif
 
 #define GROUP_SIZE DDGI_PROBE_SIDE_LENGTH
 
-#define DDGI_PROBE_SIDE_LENGTH_BORDER (DDGI_PROBE_SIDE_LENGTH + ddgiConstants.probe_border.x)
+#define DDGI_PROBE_SIDE_LENGTH_BORDER int(DDGI_PROBE_SIDE_LENGTH + ddgiConstants.probeBorder.x)
 
 groupshared ProbeRayData ray_cache[CACHE_SIZE];
 
@@ -51,20 +48,17 @@ ProbeRayData GetProbeRayData(uint2 coord)
     return probe_rays[PROBE_RAY_DATA_INDEX(coord)];
 }
 
-void UpdateRayCache(int2 coord, uint offset, uint num_rays, uint groupIndex)
+void UpdateRayCache(uint probeIndex, uint offset, uint num_rays, uint groupIndex)
 {
     if (groupIndex >= num_rays)
     {
         return;
     }
 
-    int probes_per_side = int((OUTPUT_IMAGE_DIMENSIONS.x - 2) / DDGI_PROBE_SIDE_LENGTH_BORDER);
-    int probe_index = int(coord.x / DDGI_PROBE_SIDE_LENGTH_BORDER) + probes_per_side * int(coord.y / DDGI_PROBE_SIDE_LENGTH_BORDER);
-
-    ray_cache[groupIndex] = GetProbeRayData(uint2(probe_index, offset + groupIndex));
+    ray_cache[groupIndex] = GetProbeRayData(uint2(probeIndex, offset + groupIndex));
 }
 
-void GatherRays(int2 coord, uint num_rays, inout float3 result, inout float total_weight)
+void GatherRays(int2 coord, uint num_rays, float maxDistance, inout float3 result, inout float total_weight)
 {
     ProbeRayData ray;
 
@@ -72,11 +66,10 @@ void GatherRays(int2 coord, uint num_rays, inout float3 result, inout float tota
     {
         ray = ray_cache[i];
         float3 ray_direction = ray.direction_depth.xyz;
-        float3 ray_origin = ray.origin.xyz;
         float ray_depth = ray.direction_depth.w;
 
 #if MODE_DEPTH
-        float dist = ray_depth;
+        float dist = min(ray_depth, maxDistance);
 #else
         float4 radiance = ray.color;
         radiance.rgb *= ENERGY_CONSERVATION;
@@ -111,21 +104,38 @@ void CSMain(
 {
     int2 coord = int2(dispatchThreadID.xy) + (int2(groupID.xy) * int2(2, 2)) + int2(2, 2);
 
+    const int probesPerRow = int(OUTPUT_IMAGE_DIMENSIONS.x - 2) / DDGI_PROBE_SIDE_LENGTH_BORDER;
+    const uint probeIndex = uint((coord.x / DDGI_PROBE_SIDE_LENGTH_BORDER) + probesPerRow * (coord.y / DDGI_PROBE_SIDE_LENGTH_BORDER));
+
+    const uint probesPerCascade = DDGIProbesPerCascade();
+    const uint cascadeIndex = probeIndex / probesPerCascade;
+
+    // whole group maps to a single probe, so this is uniform across the group
+    if (cascadeIndex >= ddgiConstants.numCascades || !DDGIIsCascadeUpdating(cascadeIndex))
+    {
+        return;
+    }
+
+    const int3 storageCoord = DDGIStorageIndexToStorageCoord(probeIndex % probesPerCascade);
+    const int3 gridCoord = DDGIStorageCoordToGridCoord(cascadeIndex, storageCoord);
+
+    const float maxDistance = DDGIProbeSpacing(cascadeIndex).x * 1.5;
+
     float3 result = float3(0.0, 0.0, 0.0);
     float total_weight = 0.0;
 
-    uint remaining_rays = ddgiConstants.num_rays_per_probe;
+    uint remaining_rays = ddgiConstants.numRaysPerProbe;
     uint offset = 0;
 
     while (remaining_rays != 0)
     {
         uint num_rays = min(CACHE_SIZE, remaining_rays);
 
-        UpdateRayCache(coord, offset, num_rays, groupIndex);
+        UpdateRayCache(probeIndex, offset, num_rays, groupIndex);
 
         GroupMemoryBarrierWithGroupSync();
 
-        GatherRays(coord, num_rays, result, total_weight);
+        GatherRays(coord, num_rays, maxDistance, result, total_weight);
 
         GroupMemoryBarrierWithGroupSync();
 
@@ -138,17 +148,17 @@ void CSMain(
         result /= total_weight;
     }
 
-    const float alpha = clamp(1.0 - HYSTERESIS, 0.0, 1.0);
-    
+    // probes that scrolled into the volume hold radiance gathered somewhere else, so they replace rather than blend
+    const bool isStale = DDGIIsProbeStale(cascadeIndex, gridCoord);
+    const float alpha = isStale ? 1.0 : saturate(ddgiConstants.cascades[cascadeIndex].blendAlpha);
+
 #if MODE_DEPTH
     float2 existing = outputImage[coord].xy;
-    float2 blended = ddgiConstants.counter == 0 ? result.xy : lerp(existing, result.xy, alpha);
 
-    outputImage[coord] = blended;
+    outputImage[coord] = lerp(existing, result.xy, alpha);
 #else
     float3 existing = outputImage[coord].rgb;
-    float3 blended = ddgiConstants.counter == 0 ? result : lerp(existing, result, alpha);
 
-    outputImage[coord] = float4(blended, 1.0);
+    outputImage[coord] = float4(lerp(existing, result, alpha), 1.0);
 #endif
 }

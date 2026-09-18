@@ -11,6 +11,7 @@
 #include <Rendering/Passes/HBAOPass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 #include <Rendering/Passes/SSRPass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/DeferredPassShared.hpp>
 
 #include <Rendering/MaterialTextureCache.hpp>
@@ -36,6 +37,8 @@
 #include <Rendering/Shadows/ShadowMapAllocator.hpp>
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMap.hpp>
+
+#include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -393,7 +396,12 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 RI.cbufferAllocator->Write(&s_dummyEnvProbeData);
             }
 
+            SkyVisibilityPass* skyVisibilityPass = static_cast<SkyVisibilityPass*>(RI.namedPasses[NamedPass::SkyVisibility][0]);
+            skyVisibilityPass->WriteShaderData(*RI.cbufferAllocator);
+
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+            cr << SetShaderUniform(numShaderUniforms++, "SkyVisibilityTexture"_sh, skyVisibilityPass->GetDepthImageView());
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }
@@ -405,8 +413,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
         cr << DrawIndexed(6);
 
         return;
@@ -522,8 +530,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
         cr << DrawIndexed(6);
     }
 
@@ -613,6 +621,8 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         shadowMapViewsStatic,
                         shadowMaps,
                         numCascadesToWrite);
+
+                    dpd->cloudPass->WriteShaderData(*RI.cbufferAllocator);
                 }
                 else
                 {
@@ -644,6 +654,12 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             cr << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], Resources::GetBinding(light));
 
+            if (lightType == LightType::Directional)
+            {
+                cr << SetShaderUniform(localNumShaderUniforms++, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
+                cr << SetShaderUniform(localNumShaderUniforms++, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
+            }
+
             if (lightType == LightType::AreaRect)
             {
                 if (lightProxy != nullptr && lightProxy->lightMaterial != nullptr)
@@ -671,17 +687,21 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 cr << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
 
-                if (m_ltcMatrixTexture != nullptr)
+                if (m_ltcMatrixTexture.IsValid())
+                {
                     cr << SetShaderUniform(localNumShaderUniforms++, "LTCMatrixTexture"_sh, RI.textureViewCache->GetOrCreate(m_ltcMatrixTexture));
+                }
 
-                if (m_ltcBrdfTexture != nullptr)
+                if (m_ltcBrdfTexture.IsValid())
+                {
                     cr << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, RI.textureViewCache->GetOrCreate(m_ltcBrdfTexture));
+                }
             }
 
             cr << CommitDrawState();
 
-            cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-            cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+            cr << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer(0));
+            cr << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer(0));
             cr << DrawIndexed(6);
 
             prevLightType = lightType;

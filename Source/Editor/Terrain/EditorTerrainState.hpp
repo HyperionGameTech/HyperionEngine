@@ -19,6 +19,8 @@ namespace Hyperion {
 class EditorSubsystem;
 class DebugDrawCommandList;
 class Scene;
+class World;
+class WorldGrid;
 class TerrainWorldGridLayer;
 
 HYP_ENUM()
@@ -82,8 +84,13 @@ public:
     HYP_METHOD()
     void SetPaintLayer(int paintLayer);
 
+    /*! \brief Whether the sculpt/paint tools may be turned on right now, independent of what the
+     *  world contains. */
     HYP_METHOD()
-    bool CanSculptTerrainForScene(const Handle<Scene>& scene) const;
+    bool CanEnterTerrainTools() const;
+
+    HYP_METHOD()
+    bool CanSculptTerrainForWorld(const Handle<World>& world) const;
 
     void BeginStroke(const Vec2f& relativePos, bool invert);
     void UpdateStroke(const Vec2f& relativePos, bool invert);
@@ -102,7 +109,11 @@ public:
 
 private:
     bool TryGetTerrainHit(const Vec2f& relativePos, Handle<TerrainWorldGridLayer>& outLayer, Vec3f& outWorldPos) const;
+    void ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer, const Vec3f& worldPos, bool invert, float dt);
     bool TryApplyAtScreenPos(const Vec2f& relativePos, bool invert, float dt);
+
+    ///one dab of the held stroke, at the anchored position unless the cursor has moved since the last one
+    bool ApplyStroke(float dt);
 
     EditorSubsystem* m_subsystem = nullptr;
 
@@ -124,6 +135,12 @@ private:
     bool m_isStroking = false;
     bool m_strokeInvert = false;
     Vec2f m_strokeScreenPos;
+
+    ///a held stroke re-picks only when the cursor moves. Picking every frame would walk the brush along the pick ray,
+    ///because the surface it just raised comes up to meet the ray closer to the camera
+    bool m_strokeNeedsPick = true;
+    Vec3f m_strokeWorldPos;
+    WeakHandle<TerrainWorldGridLayer> m_strokeLayer;
 
     ClockTimer m_strokeTimer;
 };

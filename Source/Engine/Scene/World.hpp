@@ -25,6 +25,7 @@
 #include <Scripting/ScriptableDelegate.hpp>
 
 #include <Scene/Layer.hpp>
+#include <Scene/EnvironmentSettings.hpp>
 
 #include <Framework/EngineMemory.hpp>
 
@@ -43,6 +44,8 @@ class Swatch;
 class SystemExecutionGroup;
 
 struct GameState;
+struct WorldShaderData;
+struct LODViewData;
 
 namespace threading {
 class TaskBatch;
@@ -129,6 +132,14 @@ public:
     HYP_METHOD(Property = "WorldFlags", Serialize)
     void SetWorldFlags(EnumFlags<WorldFlags> flags);
 
+    /*! \brief True if this World replicates to clients, either because the process was launched with --server
+     *  or because it was flagged with SetIsServerWorld() (e.g. editor Play As Dedicated Server). */
+    HYP_METHOD()
+    bool IsServerWorld() const;
+
+    /*! \brief Must be called before Initialize(), which is when replication systems are chosen. Not serialized. */
+    void SetIsServerWorld(bool isServerWorld);
+
     HYP_METHOD()
     const Handle<WorldGrid>& GetWorldGrid() const
     {
@@ -137,6 +148,18 @@ public:
 
     HYP_METHOD()
     const GameState& GetGameState() const;
+
+    ///Environment Settings
+
+    /// Get EnvironmentSettings - only script bindings for Strata, C# does not have this struct
+    HYP_METHOD(Property = "EnvironmentSettings", Serialize, Editor, OnlyLanguages = "strata")
+    HYP_FORCE_INLINE const EnvironmentSettings& GetEnvironmentSettings() const
+    {
+        return m_environmentSettings;
+    }
+
+    HYP_METHOD(Property = "EnvironmentSettings", OnlyLanguages = "Strata")
+    void SetEnvironmentSettings(const EnvironmentSettings& environmentSettings);
 
     ///Subsystems
 
@@ -257,11 +280,18 @@ public:
     /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or sim thread. */
     Span<View* const> GetViews() const;
 
+    ///sim thread only - the live list AddView() / RemoveView() maintain, never holding a removed View
+    Span<View* const> GetSimThreadViews() const;
+
     /*! \brief Copy this frame's Views into render thread owned storage */
     void SnapshotViewsForRender();
 
     /*! \brief Adds a View for processing asynchronously for this frame. */
     void ProcessViewAsync(View* view);
+
+    /*! \brief Matches the Scenes of a View with the ALL_FOREGROUND_SCENES flag to this World's foreground Scenes.
+     *  Views added with AddView() are kept in sync already; this is for Views that are only processed via ProcessViewAsync(). Sim thread only. */
+    void SyncViewForegroundScenes(View* view) const;
 
     ///Systems
 
@@ -355,8 +385,12 @@ public:
     void CollectViews(Array<View*, SceneTempAllocator>& outViews);
     void CollectSubsystems(Array<Subsystem*, SceneTempAllocator>& outSubsystems);
 
+    void CollectLODViewDatas(Array<LODViewData, SceneTempAllocator>& outViewDatas);
+
     void BeginUpdate(TaskBatch& inBatch, float delta);
     void EndUpdate();
+
+    void FillWorldShaderData(WorldShaderData& outShaderData) const;
 
     HYP_FIELD()
     static ScriptableDelegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
@@ -370,11 +404,16 @@ public:
     HYP_FIELD()
     static ScriptableDelegate<void, LayersMask> OnActiveLayersChanged;
 
+    HYP_FIELD()
+    static ScriptableDelegate<void, const EnvironmentSettings&> OnEnvironmentSettingsChanged;
+
 private:
     void SyncPhysicsToEntities();
     void SyncPhysicsBodyKinematicStates();
 
     bool AddSystemToExecutionGroup(SystemBase* system);
+
+    void UpdateReplicationSystems();
 
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
     Handle<WorldGridLayer> GetStreamingLayer(Name streamingLayerName) const;
@@ -415,6 +454,9 @@ private:
     HYP_FIELD(Property = "WorldFlags", Serialize, LoadOrder = 0)
     EnumFlags<WorldFlags> m_worldFlags;
 
+    HYP_FIELD(Property = "Environment")
+    EnvironmentSettings m_environmentSettings;
+
     HYP_FIELD(Property = "Scenes", Transient)
     Array<Handle<Scene>> m_scenes;
 
@@ -429,7 +471,7 @@ private:
     HYP_FIELD(Property = "ActiveSwatchId", Transient)
     SwatchId m_activeSwatchId;
 
-    ///Laeyrs
+    ///Layers
 
     HYP_FIELD(Property = "Layers", Serialize, LoadOrder = 0)
     Array<Handle<Layer>> m_layers;
@@ -474,6 +516,7 @@ private:
     DelegateHandlerSet m_delegateHandlers;
 
     bool m_isInitialized;
+    bool m_isServerWorld;
 };
 
 } // namespace Hyperion

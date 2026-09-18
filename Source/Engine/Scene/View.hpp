@@ -40,6 +40,8 @@ class GBuffer;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 
+struct ThumbnailCaptureState;
+
 enum class GBufferPass : uint8;
 
 namespace threading {
@@ -75,6 +77,9 @@ enum class ViewFlags : uint32
     SKIP_FOG_VOLUMES = 0x400,       //!< If set, the view will not collect FogVolumes.
     SKIP_CAMERAS = 0x800,           //!< If set, the view will not collect Cameras.
     SKIP_SPRITES = 0x1000,          //!< If set, the view will not collect Sprites.
+    SKIP_EFFECT_VOLUMES = 0x10000,  //!< If set, the view will not collect EffectVolumes.
+
+    SKY_VISIBILITY_VIEW = 0x20000,  //!< Top-down depth capture of what blocks the sky. Sets its own matrices, like a shadow view.
 
     NOT_MULTI_BUFFERED = 0x2000,    //!< Disables double / triple buffering for the RenderProxyList this View writes to.
                                     //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
@@ -101,6 +106,8 @@ enum class ViewFlags : uint32
     NO_SHADOW_VIEWS = 0x20000000,   //!< No shadow view collection for this view will happen
 
     NO_ASYNC_SHADER_LOADING = 0x40000000,   //!< Draws for this view will block until shaders are loaded rather than skipping draws for async loading shaders.
+
+    THUMBNAIL_VIEW = 0x80000000,    //!< Offscreen asset thumbnail capture. Keeps its own fixed extent instead of matching the swapchain viewport, and is not composited to the screen.
 
     DEFAULT = ALL_FOREGROUND_SCENES | COLLECT_ALL_ENTITIES
 };
@@ -303,6 +310,8 @@ public:
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
 
+    bool ShouldCollectLODs() const;
+
     HYP_FORCE_INLINE bool ShouldCollectShadowViews() const
     {
         return desc.viewIndex == 0 && !(flags & (ViewFlags::NO_SHADOW_VIEWS | ViewFlags::SHADOW_VIEW | ViewFlags::BAKER_VIEW | ViewFlags::UI_VIEW));
@@ -313,6 +322,10 @@ public:
     Name name;
 
     EnumFlags<ViewFlags> flags;
+
+    //!< Set for ViewFlags::THUMBNAIL_VIEW - the offscreen target this View's output is copied into
+    //!< instead of being composited to the screen. Owned by whoever created the View.
+    ThumbnailCaptureState* thumbnailCaptureState = nullptr;
 
     CameraMatrices cachedMatrices;
     Frustum cachedFrustum;
@@ -330,6 +343,7 @@ protected:
     void CollectLightmapVolumes(RenderProxyList& rpl);
     void CollectParticleVolumes(RenderProxyList& rpl);
     void CollectFogVolumes(RenderProxyList& rpl);
+    void CollectEffectVolumes(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
     void CollectSprites(RenderProxyList& rpl);
     void CollectMeshEntities(RenderProxyList& rpl);

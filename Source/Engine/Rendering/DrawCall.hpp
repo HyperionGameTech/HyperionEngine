@@ -23,6 +23,7 @@
 #include <Rendering/RenderMemory.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderGroup.hpp>
+#include <Rendering/Shared.hpp>
 
 namespace Hyperion {
 
@@ -72,27 +73,43 @@ struct MeshEntityInstanceBatch : EntityInstanceBatch
 
 static_assert(sizeof(MeshEntityInstanceBatch) % 64 == 0);
 
-/*! \brief Unique identifier for a draw call based on Mesh Id and Material Id.
- *  \details This struct is used to uniquely identify a draw call in the rendering system.
- *  It combines the mesh Id and material Id into a single 64-bit value, where the lower 32 bits
- *  represent the mesh Id and the upper 32 bits represent the material Id. */
+/*! \brief Unique identifier for a draw call based on Mesh ID, Mesh LOD index and Material ID.
+ *  \details This struct is used to uniquely identify a draw call in the rendering system. */
 struct DrawCallID
 {
-    uint64 value;
+    union
+    {
+        uint64 value;
 
-    constexpr DrawCallID()
+        struct
+        {
+            uint32 meshIdValue : 29;
+            uint32 lodIndex : 3;
+            uint32 materialIdValue;
+        };
+    };
+
+    static_assert(MaxMeshLods <= (1u << 3), "MaxMeshLods no longer fits in DrawCallID's lodIndex field");
+
+    DrawCallID()
         : value(0)
     {
     }
 
-    constexpr DrawCallID(ObjId<Mesh> meshId)
-        : value(meshId.Value())
+    DrawCallID(ObjId<Mesh> meshId, uint8 lodIndex = 0)
+        : meshIdValue(meshId.Value()),
+          lodIndex(lodIndex),
+          materialIdValue(ObjId<Material>::invalid.Value())
     {
+        AssertDebug(meshId.Value() <= 0x1fffffffu);
     }
 
-    constexpr DrawCallID(ObjId<Mesh> meshId, ObjId<Material> materialId)
-        : value(uint64(meshId.Value()) | (uint64(materialId.Value()) << 32))
+    DrawCallID(ObjId<Mesh> meshId, ObjId<Material> materialId, uint8 lodIndex = 0)
+        : meshIdValue(meshId.Value()),
+          lodIndex(lodIndex),
+          materialIdValue(materialId.Value())
     {
+        AssertDebug(meshId.Value() <= 0x1fffffffu);
     }
 
     HYP_FORCE_INLINE constexpr operator uint64() const
@@ -112,7 +129,7 @@ struct DrawCallID
 
     HYP_FORCE_INLINE bool HasMaterial() const
     {
-        return bool(value & (uint64(~0u) << 32));
+        return materialIdValue != 0;
     }
 
     HYP_FORCE_INLINE constexpr uint64 Value() const

@@ -44,6 +44,8 @@
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -233,6 +235,60 @@ static JPH::MassProperties CreateMassProperties(const JPH::Shape* shape, float m
     return massProperties;
 }
 
+/// \p positions are tightly packed xyz floats.
+static JPH::RefConst<JPH::Shape> CreateJoltConvexHullShape(Span<const float> positions, Name shapeName)
+{
+    const size_t numPoints = positions.Size() / 3;
+
+    if (numPoints < 4)
+    {
+        HYP_LOG(Physics, Error, "Convex hull for physics shape '{}' has too few points ({})", shapeName, numPoints);
+
+        return nullptr;
+    }
+
+    JPH::Array<JPH::Vec3> points;
+    points.reserve(numPoints);
+
+    for (size_t pointIndex = 0; pointIndex < numPoints; pointIndex++)
+    {
+        points.push_back(JPH::Vec3(positions[pointIndex * 3], positions[pointIndex * 3 + 1], positions[pointIndex * 3 + 2]));
+    }
+
+    JPH::ConvexHullShapeSettings settings(points.data(), int(points.size()));
+
+    JPH::ShapeSettings::ShapeResult result = settings.Create();
+
+    if (!result.IsValid())
+    {
+        HYP_LOG(Physics, Error, "Failed to create convex hull for physics shape '{}': {}", shapeName, result.GetError().c_str());
+
+        return nullptr;
+    }
+
+    return result.Get();
+}
+
+static JPH::RefConst<JPH::Shape> ApplyScaleToJoltShape(const JPH::RefConst<JPH::Shape>& shape, const Vec3f& scale)
+{
+    if (MathUtil::Abs(scale.x - 1.0f) <= MathUtil::epsilonF
+        && MathUtil::Abs(scale.y - 1.0f) <= MathUtil::epsilonF
+        && MathUtil::Abs(scale.z - 1.0f) <= MathUtil::epsilonF)
+    {
+        return shape;
+    }
+
+    // ScaledShape asserts on a zero component
+    if (MathUtil::Abs(scale.x) <= MathUtil::epsilonF
+        || MathUtil::Abs(scale.y) <= MathUtil::epsilonF
+        || MathUtil::Abs(scale.z) <= MathUtil::epsilonF)
+    {
+        return shape;
+    }
+
+    return new JPH::ScaledShape(shape.GetPtr(), ToJPHVec(scale));
+}
+
 static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape, const Vec3f& scale)
 {
     Assert(physicsShape != nullptr);
@@ -243,6 +299,7 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
     {
         BoundingBox aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
 
+        // [AI]
         // Guards against e.g an entity's local bounds being infinite (directional lights) or a mesh AABB
         // that hasn't been computed yet — an unbounded shape here trips Jolt's broadphase assertions.
         // This runs on every shape rebuild (OnRigidBodyAdded and OnChangePhysicsShape), not just creation.
@@ -302,35 +359,68 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
 
         AssertDebug(shapeCasted->NumVertices() > 0);
 
-        if (MathUtil::Abs(scale.x - 1.0f) > MathUtil::epsilonF
-            || MathUtil::Abs(scale.y - 1.0f) > MathUtil::epsilonF
-            || MathUtil::Abs(scale.z - 1.0f) > MathUtil::epsilonF)
+        JPH::RefConst<JPH::Shape> hullShape = CreateJoltConvexHullShape(
+            Span<const float>(shapeCasted->GetVertexData(), shapeCasted->NumVertices() * 3),
+            physicsShape->GetName());
+
+        if (!hullShape)
         {
-            HYP_LOG(Physics, Warning, "ConvexHull physics shape on a non-unit-scale entity; scale is not applied to convex hull collision shapes");
+            return new JPH::SphereShape(0.05f);
         }
 
-        JPH::Array<JPH::Vec3> points;
-        points.reserve(shapeCasted->NumVertices());
+        return ApplyScaleToJoltShape(hullShape, scale);
+    }
+    case PhysicsShapeType::Compound:
+    {
+        CompoundPhysicsShape* shapeCasted = static_cast<CompoundPhysicsShape*>(physicsShape);
 
-        const float* vertexData = shapeCasted->GetVertexData();
+        TSharedResLock lock(*shapeCasted);
 
-        for (size_t i = 0; i < shapeCasted->NumVertices(); ++i)
+        JPH::Array<JPH::RefConst<JPH::Shape>> hullShapes;
+        hullShapes.reserve(shapeCasted->NumHulls());
+
+        for (uint32 hullIndex = 0; hullIndex < shapeCasted->NumHulls(); hullIndex++)
         {
-            points.push_back(JPH::Vec3(vertexData[i * 3], vertexData[i * 3 + 1], vertexData[i * 3 + 2]));
+            JPH::RefConst<JPH::Shape> hullShape = CreateJoltConvexHullShape(
+                shapeCasted->GetHullVertices(hullIndex),
+                physicsShape->GetName());
+
+            if (hullShape)
+            {
+                hullShapes.push_back(hullShape);
+            }
         }
 
-        JPH::ConvexHullShapeSettings settings(points.data(), int(points.size()));
+        if (hullShapes.empty())
+        {
+            HYP_LOG(Physics, Error, "CompoundPhysicsShape '{}' has no usable hulls", physicsShape->GetName());
+
+            return new JPH::SphereShape(0.05f);
+        }
+
+        // Jolt compounds need at least two sub-shapes
+        if (hullShapes.size() == 1)
+        {
+            return ApplyScaleToJoltShape(hullShapes.front(), scale);
+        }
+
+        JPH::StaticCompoundShapeSettings settings;
+
+        for (const JPH::RefConst<JPH::Shape>& hullShape : hullShapes)
+        {
+            settings.AddShape(JPH::Vec3::sZero(), JPH::Quat::sIdentity(), hullShape.GetPtr());
+        }
 
         JPH::ShapeSettings::ShapeResult result = settings.Create();
 
         if (!result.IsValid())
         {
-            HYP_LOG(Physics, Error, "Failed to create ConvexHull physics shape: {}", result.GetError().c_str());
+            HYP_LOG(Physics, Error, "Failed to create Compound physics shape: {}", result.GetError().c_str());
 
             return new JPH::SphereShape(0.05f);
         }
 
-        return result.Get();
+        return ApplyScaleToJoltShape(result.Get(), scale);
     }
     case PhysicsShapeType::HeightField:
     {
@@ -713,6 +803,7 @@ void JoltPhysicsAdapter::MoveRigidBodyKinematic(const Handle<RigidBody>& rigidBo
 
     JPH::BodyInterface& bodyInterface = m_physicsSystem->GetBodyInterface();
 
+    // [AI]
     // MoveKinematic derives the velocity needed to reach the target over deltaTime, so bodies in
     // contact with this one (e.g. a character standing on/pushing it) get a continuously-moving
     // surface to solve against instead of a teleport every time a network update arrives.
@@ -1103,8 +1194,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
     {
         const JPH::Vec3 currentVelocity = character->GetLinearVelocity();
 
-        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround
-            && !character->IsSlopeTooSteep(character->GetGroundNormal());
+        const bool isGrounded = character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
 
         JPH::Vec3 groundVelocity = character->GetGroundVelocity();
 
@@ -1247,6 +1337,8 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         updateSettings.mWalkStairsStepUp = JPH::Vec3(0.0f, internalData->stepHeight, 0.0f);
 
+        const JPH::RVec3 previousPosition = character->GetPosition();
+
         character->ExtendedUpdate(
             substepDelta,
             gravity,
@@ -1256,6 +1348,17 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             *m_characterBodyFilter,
             JPH::ShapeFilter(),
             *m_tempAllocator);
+
+        const float achievedVerticalSpeed = JPH::Vec3(character->GetPosition() - previousPosition).GetY() / substepDelta;
+
+        JPH::Vec3 resolvedVelocity = character->GetLinearVelocity();
+
+        if (resolvedVelocity.GetY() < 0.0f && achievedVerticalSpeed > resolvedVelocity.GetY())
+        {
+            resolvedVelocity.SetY(MathUtil::Min(achievedVerticalSpeed, 0.0f));
+
+            character->SetLinearVelocity(resolvedVelocity);
+        }
     }
 }
 
@@ -1273,12 +1376,6 @@ void JoltPhysicsAdapter::SetCharacterTranslation(const SharedPtr<void>& physicsH
     const Vec3f feetPosition = translation - Vec3f(0.0f, internalData->capsuleCenterOffset, 0.0f);
 
     character->SetPosition(ToJPHVec(feetPosition));
-
-    internalData->jumpBufferTimeRemaining = 0.0f;
-    internalData->coyoteTimeRemaining = 0.0f;
-    internalData->walkVelocity = Vec3f::Zero();
-    internalData->isRisingFromJump = false;
-    internalData->commandedHorizontalVelocity = JPH::Vec3::sZero();
 
     character->RefreshContacts(
         m_physicsSystem->GetDefaultBroadPhaseLayerFilter(JoltLayers::MOVING),
@@ -1317,6 +1414,39 @@ void JoltPhysicsAdapter::GetCharacterState(const SharedPtr<void>& physicsHandle,
 
     outTranslation = FromJPHVec(character->GetPosition()) + Vec3f(0.0f, internalData->capsuleCenterOffset, 0.0f);
     outIsOnGround = character->IsSupported();
+}
+
+void JoltPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsHandle, CharacterMotionState& outMotionState)
+{
+    JoltCharacterControllerInternalData* internalData = static_cast<JoltCharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    outMotionState.horizontalVelocity = FromJPHVec(internalData->commandedHorizontalVelocity);
+    outMotionState.verticalVelocity = internalData->character->GetLinearVelocity().GetY();
+    outMotionState.coyoteTimeRemaining = internalData->coyoteTimeRemaining;
+    outMotionState.jumpBufferTimeRemaining = internalData->jumpBufferTimeRemaining;
+    outMotionState.isRisingFromJump = internalData->isRisingFromJump;
+}
+
+void JoltPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState)
+{
+    JoltCharacterControllerInternalData* internalData = static_cast<JoltCharacterControllerInternalData*>(physicsHandle.GetVoid());
+
+    if (!internalData)
+    {
+        return;
+    }
+
+    internalData->commandedHorizontalVelocity = JPH::Vec3(motionState.horizontalVelocity.x, 0.0f, motionState.horizontalVelocity.z);
+    internalData->coyoteTimeRemaining = motionState.coyoteTimeRemaining;
+    internalData->jumpBufferTimeRemaining = motionState.jumpBufferTimeRemaining;
+    internalData->isRisingFromJump = motionState.isRisingFromJump;
+
+    internalData->character->SetLinearVelocity(JPH::Vec3(motionState.horizontalVelocity.x, motionState.verticalVelocity, motionState.horizontalVelocity.z));
 }
 
 void JoltPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)

@@ -60,6 +60,13 @@ struct ENGINE_API MeshComponent
     HYP_FIELD(NoScriptBindings, Transient)
     MeshComponentUserData userData;
 
+    ///0 == automatic lod selection, otherwise uses this minus one
+    HYP_FIELD(Property = "ForcedLod", Serialize)
+    uint8 forcedLod = 0;
+
+    HYP_FIELD(Property = "LodBias", Serialize)
+    int8 lodBias = 0;
+
     MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),
           material(material),

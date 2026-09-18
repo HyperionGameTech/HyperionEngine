@@ -30,6 +30,7 @@ struct VSOutput
 };
 
 #include "include/Entity.hlsli"
+#include "include/TerrainMorph.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -82,10 +83,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 #endif // INSTANCING
 
+#if defined(TERRAIN_MORPH) && defined(VT_UV1)
+    const float3 local_position = ApplyTerrainMorph(currentEntity, model_matrix, input.a_position, input.a_texcoord1);
+#else // !TERRAIN_MORPH || !VT_UV1
+    const float3 local_position = input.a_position;
+#endif // TERRAIN_MORPH && VT_UV1
+
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
-    position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+    position = mul(model_matrix, mul(skinning_matrix, float4(local_position, 1.0)));
 
 #ifdef INSTANCING
     float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
@@ -94,18 +101,18 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 previous_model_matrix = currentEntity.previous_model_matrix;
 #endif // INSTANCING
 
-    previous_position = mul(previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+    previous_position = mul(previous_model_matrix, mul(skinning_matrix, float4(local_position, 1.0)));
     normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
 #else // !SKINNING || !VT_Skeletal
-    position = mul(model_matrix, float4(input.a_position, 1.0));
+    position = mul(model_matrix, float4(local_position, 1.0));
 
 #ifdef INSTANCING
     const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
 
-    previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(input.a_position, 1.0));
+    previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(local_position, 1.0));
 #else // !INSTANCING
 
-    previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
+    previous_position = mul(currentEntity.previous_model_matrix, float4(local_position, 1.0));
 #endif // !SKINNING || !VT_Skeletal
 #endif // SKINNING && VT_Skeletal
 
@@ -146,7 +153,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // SHADING_TYPE_LIGHTMAPPED
 
     output.object_mask = lightmappedMask
-        | (min(1u, GET_MATERIAL_PARAM_BIT(material, 0)) * OBJECT_MASK_UNLIT);
+        | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_UNLIT)) * OBJECT_MASK_UNLIT)
+        | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_FOLIAGE)) * OBJECT_MASK_FOLIAGE);
 
 #ifndef INSTANCING
 #undef currentEntity

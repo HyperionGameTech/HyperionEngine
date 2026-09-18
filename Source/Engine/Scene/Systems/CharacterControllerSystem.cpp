@@ -253,6 +253,32 @@ static Vec3f GetPlayerViewDirection(const Entity& entity)
     return entity.GetWorldRotation().RotateVector(Vec3f::UnitZ());
 }
 
+static CharacterControllerConfig MakeCharacterControllerConfig(const CharacterControllerComponent& component)
+{
+    CharacterControllerConfig config;
+    config.shape = component.shape;
+    config.startTranslation = component.translation;
+    config.stepHeight = component.movement.stepHeight;
+    config.maxSlopeAngle = component.movement.maxSlopeAngle;
+    config.groundAcceleration = component.movement.groundAcceleration;
+    config.airAcceleration = component.movement.airAcceleration;
+    config.friction = component.movement.friction;
+    config.stopSpeed = component.movement.stopSpeed;
+    config.jumpSpeed = component.jump.speed;
+    config.fallSpeed = component.jump.fallSpeed;
+    config.jumpCutGravityMultiplier = component.jump.cutGravityMultiplier;
+    config.apexGravityMultiplier = component.jump.apexGravityMultiplier;
+    config.fallGravityMultiplier = component.jump.fallGravityMultiplier;
+    config.coyoteTime = component.jump.coyoteTime;
+    config.jumpBufferTime = component.jump.bufferTime;
+    config.shadowMaxSpeed = component.shadowBody.maxSpeed;
+    config.shadowTeleportDistance = component.shadowBody.teleportDistance;
+    config.pushMassLimit = component.push.massLimit;
+    config.minGroundSupportMass = component.push.minGroundSupportMass;
+
+    return config;
+}
+
 void CharacterControllerSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
@@ -272,28 +298,7 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
     component.translation = transformComponent.translation;
 
-    CharacterControllerConfig config;
-    config.shape = component.shape;
-    config.startTranslation = component.translation;
-    config.stepHeight = component.stepHeight;
-    config.maxSlopeAngle = component.maxSlopeAngle;
-    config.jumpSpeed = component.jumpSpeed;
-    config.fallSpeed = component.fallSpeed;
-    config.groundAcceleration = component.groundAcceleration;
-    config.airAcceleration = component.airAcceleration;
-    config.friction = component.friction;
-    config.stopSpeed = component.stopSpeed;
-    config.jumpCutGravityMultiplier = component.jumpCutGravityMultiplier;
-    config.apexGravityMultiplier = component.apexGravityMultiplier;
-    config.fallGravityMultiplier = component.fallGravityMultiplier;
-    config.coyoteTime = component.coyoteTime;
-    config.jumpBufferTime = component.jumpBufferTime;
-    config.shadowMaxSpeed = component.shadowMaxSpeed;
-    config.shadowTeleportDistance = component.shadowTeleportDistance;
-    config.pushMassLimit = component.pushMassLimit;
-    config.minGroundSupportMass = component.minGroundSupportMass;
-
-    entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
+    entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(MakeCharacterControllerConfig(component), component.physicsHandle);
 
     if (!component.physicsHandle)
     {
@@ -379,12 +384,14 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     }
 
     Optional<Vec3f> predictedResult;
+    CharacterMotionState predictedMotionState;
 
     for (const ClientPredictionState::BufferedMove& buffered : state.unacknowledgedMoves)
     {
         if (buffered.move.moveId == ack.ackedMoveId)
         {
             predictedResult = buffered.resultTranslation;
+            predictedMotionState = buffered.resultMotionState;
 
             break;
         }
@@ -450,6 +457,14 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
     const float heightOffset = SceneHelpers::GetCapsuleHeightOffset(component);
     const Vec3f authoritativeCapsuleCenter = ack.GetAuthTranslation() - Vec3f(0.0f, heightOffset, 0.0f);
 
+    // The server doesn't send velocity, so replay from the momentum we predicted at the acked move.
+    // Without that snapshot, keep the current motion state as the closest estimate
+    if (hasReference)
+    {
+        physicsWorld->SetCharacterMotionState(component.physicsHandle, predictedMotionState);
+    }
+
+    // Snap after restoring motion state, the contact refresh reads the character's velocity
     physicsWorld->SetCharacterTranslation(component.physicsHandle, authoritativeCapsuleCenter);
 
     component.translation = authoritativeCapsuleCenter;
@@ -461,6 +476,7 @@ static void ReconcileMoveAck(Entity* entity, CharacterControllerComponent& compo
         SceneHelpers::MoveCharacter(entity, component, buffered.move, resultTranslation);
 
         buffered.resultTranslation = resultTranslation;
+        physicsWorld->GetCharacterMotionState(component.physicsHandle, buffered.resultMotionState);
     }
 
     if (state.unacknowledgedMoves.Empty())
@@ -512,7 +528,7 @@ static void ProcessClientPredictionBodies(Entity* entity, CharacterControllerCom
     
     Array<Handle<RigidBody>, PhysicsAllocator> touched;
     
-    const float releaseDelay = MathUtil::Max(component.pushPredictionReleaseDelay, 0.0f);
+    const float releaseDelay = MathUtil::Max(component.push.predictionReleaseDelay, 0.0f);
 
     physicsWorld->GetCharacterTouchedRigidBodies(component.physicsHandle, touched);
 
@@ -611,28 +627,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
         component.translation = transformComponent.translation;
 
-        CharacterControllerConfig config;
-        config.shape = component.shape;
-        config.startTranslation = component.translation;
-        config.stepHeight = component.stepHeight;
-        config.maxSlopeAngle = component.maxSlopeAngle;
-        config.jumpSpeed = component.jumpSpeed;
-        config.fallSpeed = component.fallSpeed;
-        config.groundAcceleration = component.groundAcceleration;
-        config.airAcceleration = component.airAcceleration;
-        config.friction = component.friction;
-        config.stopSpeed = component.stopSpeed;
-        config.jumpCutGravityMultiplier = component.jumpCutGravityMultiplier;
-        config.apexGravityMultiplier = component.apexGravityMultiplier;
-        config.fallGravityMultiplier = component.fallGravityMultiplier;
-        config.coyoteTime = component.coyoteTime;
-        config.jumpBufferTime = component.jumpBufferTime;
-        config.shadowMaxSpeed = component.shadowMaxSpeed;
-        config.shadowTeleportDistance = component.shadowTeleportDistance;
-        config.pushMassLimit = component.pushMassLimit;
-        config.minGroundSupportMass = component.minGroundSupportMass;
-
-        entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(config, component.physicsHandle);
+        entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(MakeCharacterControllerConfig(component), component.physicsHandle);
 
         if (!component.physicsHandle)
         {
@@ -676,9 +671,12 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
     SceneHelpers::MoveCharacter(entity, component, move, resultTranslation);
 
+    CharacterMotionState resultMotionState;
+    entity->GetWorld()->GetPhysicsWorld()->GetCharacterMotionState(component.physicsHandle, resultMotionState);
+
     ProcessClientPredictionBodies(entity, component, state, delta);
 
-    state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation });
+    state.unacknowledgedMoves.PushBack(ClientPredictionState::BufferedMove { move, resultTranslation, resultMotionState });
 
     if (state.unacknowledgedMoves.Size() > ClientPredictionState::MaxBufferedMoves)
     {
@@ -736,12 +734,30 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, component] : scene->GetEntityManager()->GetEntitySet<CharacterControllerComponent>().GetScopedView(GetComponentInfos()))
         {
-            const bool isLocalPlayerEntity = SceneHelpers::IsLocalPlayerEntity(*entity);
+            const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
+
+            const bool isLocalPlayerEntity = playerComponent != nullptr && playerComponent->IsLocalPlayer();
+            const bool isRemotePlayerEntity = playerComponent != nullptr && !isLocalPlayerEntity;
+
+            if (isRemotePlayerEntity)
+            {
+                if (component.inputHandler)
+                {
+                    if (Game* game = GetWorld()->GetGame())
+                    {
+                        game->UnregisterInputHandler(component.inputHandler);
+                    }
+
+                    component.inputHandler.Reset();
+                }
+
+                continue;
+            }
 
             // Check needs initialization
             if (!component.inputHandler)
             {
-                if (!isLocalPlayerEntity && !EngineGlobals::HasAuthority())
+                if (!isLocalPlayerEntity && !hasAuthority)
                 {
                     continue;
                 }
@@ -765,14 +781,6 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (hasAuthority)
             {
-                // Remote-controlled players are simulated from their move queues by ReplicationSystem.
-                const PlayerComponent* playerComponent = entity->TryGetComponent<PlayerComponent>();
-
-                if (playerComponent != nullptr && !playerComponent->IsLocalPlayer())
-                {
-                    continue;
-                }
-
                 if (!component.physicsHandle)
                 {
                     HYP_LOG_ONCE(Scene, Warning, "physicsHandle is null for Entity {}'s character controller.", entity->GetName());

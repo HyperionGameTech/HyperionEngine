@@ -122,8 +122,8 @@ void DefaultGame::OnLaunch()
 {
     Game::OnLaunch();
 
-    // Should be set up by Game::OnLaunch()
-    Assert(m_camera.IsValid());
+    // Should be set up by Game::OnLaunch(). A headless server doesn't need one
+    Assert(m_camera.IsValid() || EngineGlobals::IsHeadless());
     
     if (UISubsystem* uiSubsystem = GetUISubsystem())
     {

@@ -87,6 +87,7 @@ const Name Game::s_nameTempUIWorld = NAME("TempUIWorld");
 Game::Game()
     : m_isInitialized(false),
       m_assetRegistryActive(false),
+      m_isServerGame(false),
       m_isLaunched(false)
 {
 }
@@ -291,7 +292,12 @@ void Game::SetWorld(const Handle<World>& world)
     {
         AssertDebug(m_world->GetGame() == nullptr || m_world->GetGame() == this);
         m_world->SetGame(this);
-        
+
+        if (m_isServerGame)
+        {
+            m_world->SetIsServerWorld(true);
+        }
+
         if (!EngineGlobals::IsHeadless())
         {
             m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>());
@@ -319,6 +325,12 @@ void Game::Launch()
     Game::OnLaunched.Fire(this);
 
     m_isInitialized = true;
+
+    if (EngineGlobals::IsServer())
+    {
+        // Processes that launch a server (editor loopback Play As Client) wait for this line before connecting.
+        HYP_LOG(Game, Info, "Game server ready");
+    }
 }
 
 void Game::SyncContentAndLaunch()

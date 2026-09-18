@@ -103,7 +103,29 @@ void WorldGrid::Shutdown()
         }
 
         layer->OnRemoved(this);
+
+        if (g_streamingManager)
+        {
+            g_streamingManager->RemoveWorldGridLayer(layer);
+        }
     }
+
+    // Restart() re-adds the layers; also keeps the destructor from shutting down twice
+    SetReady(false);
+}
+
+void WorldGrid::Restart()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    // a grid that was never initialized gets started by InitObject() instead
+    if (!IsInitCalled() || IsReady())
+    {
+        return;
+    }
+
+    Init();
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)
@@ -157,6 +179,27 @@ bool WorldGrid::RemoveLayer(WorldGridLayer* layer)
         m_layers.Erase(it);
 
         return true;
+    }
+
+    return false;
+}
+
+bool WorldGrid::IsCollisionPendingAt(const Vec3f& worldPosition) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!IsReady())
+    {
+        return false;
+    }
+
+    for (const Handle<WorldGridLayer>& layer : m_layers)
+    {
+        if (layer.IsValid() && layer->IsCollisionPendingAt(worldPosition))
+        {
+            return true;
+        }
     }
 
     return false;
@@ -249,10 +292,10 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
         layerDesc.layerName = layer->GetName();
         layerDesc.info = layer->GetLayerInfo();
 
-        for (const KeyValuePair<Vec2i, Array<AssetReference, DynamicAllocator>>& pair : layer->m_objectsByCoord)
+        for (const KeyValuePair<Vec2i, Array<AssetReference, StreamingAllocator>>& pair : layer->m_objectsByCoord)
         {
             const Vec2i& coord = pair.first;
-            const Array<AssetReference, DynamicAllocator>& assetReferences = pair.second;
+            const Array<AssetReference, StreamingAllocator>& assetReferences = pair.second;
 
             layerDesc.objects.Reserve(layerDesc.objects.Size() + assetReferences.Size());
 

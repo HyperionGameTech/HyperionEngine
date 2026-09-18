@@ -8,19 +8,61 @@ namespace Hyperion.Editor.ViewModels
     {
         public static List<InspectorActionViewModel> GetActions(ObjectBase? target, System.Action? onCompleted = null)
         {
-            List<InspectorActionViewModel> result = new List<InspectorActionViewModel>();
-
             if (target == null || !target.IsValid)
             {
-                return result;
+                return new List<InspectorActionViewModel>();
             }
 
-            Class targetClass = target.Class;
+            return GetActionsCore(target, new List<Class> { target.Class }, onCompleted);
+        }
 
-            var actions = targetClass.Methods
-                .Where(m => m.IsMemberFunction)
+        public static List<InspectorActionViewModel> GetActions(ObjectBase? target, Class instanceClass, System.Action? onCompleted = null)
+        {
+            if (target == null || !target.IsValid || !instanceClass.IsValid)
+            {
+                return new List<InspectorActionViewModel>();
+            }
+
+            var chain = new List<Class>();
+
+            for (Class? current = instanceClass; current.HasValue; current = current.Value.GetParent())
+            {
+                chain.Add(current.Value);
+            }
+
+            chain.Reverse();
+
+            return GetActionsCore(target, chain, onCompleted);
+        }
+
+        private static List<InspectorActionViewModel> GetActionsCore(ObjectBase target, List<Class> classes, System.Action? onCompleted)
+        {
+            var result = new List<InspectorActionViewModel>();
+
+            var methods = new List<Method>();
+            var indexByName = new Dictionary<string, int>();
+
+            foreach (Class targetClass in classes)
+            {
+                foreach (Method method in targetClass.Methods.Where(m => m.IsMemberFunction))
+                {
+                    string name = method.Name.ToString();
+
+                    if (indexByName.TryGetValue(name, out int index))
+                    {
+                        methods[index] = method;
+                    }
+                    else
+                    {
+                        indexByName[name] = methods.Count;
+                        methods.Add(method);
+                    }
+                }
+            }
+
+            var actions = methods
                 .Where(m => m.GetAttribute("editoraction") != null)
-                .Where(m => EvaluateEditCondition(target, targetClass, m.GetAttribute("editcondition"), m.Name.ToString()))
+                .Where(m => EvaluateEditCondition(target, classes, m.GetAttribute("editcondition"), m.Name.ToString()))
                 .OrderBy(m =>
                 {
                     ClassAttribute? attrEditOrder = m.GetAttribute("editororder");
@@ -66,7 +108,7 @@ namespace Hyperion.Editor.ViewModels
             return result;
         }
 
-        private static bool EvaluateEditCondition(ObjectBase target, Class targetClass, ClassAttribute? attrEditCondition, string memberName)
+        private static bool EvaluateEditCondition(ObjectBase target, List<Class> classes, ClassAttribute? attrEditCondition, string memberName)
         {
             if (!target.IsValid)
             {
@@ -81,7 +123,18 @@ namespace Hyperion.Editor.ViewModels
             if (attrEditCondition.Value.IsString)
             {
                 string methodName = attrEditCondition.Value.GetString();
-                Method? conditionMethod = targetClass.GetMethod(methodName);
+
+                Method? conditionMethod = null;
+
+                foreach (Class targetClass in classes)
+                {
+                    conditionMethod = targetClass.GetMethod(methodName);
+
+                    if (conditionMethod != null)
+                    {
+                        break;
+                    }
+                }
 
                 if (conditionMethod != null)
                 {

@@ -16,11 +16,15 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/Swatch.hpp>
 
+#include <Scene/WorldGrid/WorldGrid.hpp>
+
 #include <Scene/Camera/Camera.hpp>
 
 #include <Scene/Components/PlayerComponent.hpp>
 #include <Scene/Components/ReplicationStateComponent.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
+
+#include <Scene/Systems/SwatchOverrideSystem.hpp>
 
 #include <Physics/PhysicsWorld.hpp>
 #include <Physics/PhysicsShape.hpp>
@@ -30,7 +34,7 @@
 namespace Hyperion {
 namespace SceneHelpers {
 
-Camera* FindMainCamera(World& world)
+Camera* FindMainCamera(const World& world)
 {
     for (Scene* scene : world.GetScenes())
     {
@@ -55,6 +59,38 @@ Camera* FindMainCamera(World& world)
     
     return nullptr;
 }
+
+#ifdef HYP_EDITOR
+
+Camera* GetEditorCamera(const World& world)
+{
+    if (!EngineGlobals::IsEditor())
+    {
+        return nullptr;
+    }
+    
+    for (Scene* scene : world.GetScenes())
+    {
+        Assert(scene != nullptr);
+        
+        EntityManager* entityManager = scene->GetEntityManager();
+        Assert(entityManager != nullptr);
+
+        if (!entityManager)
+        {
+            continue;
+        }
+
+        for (auto [camera, _1] : entityManager->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::EditorCamera>>())
+        {
+            return camera;
+        }
+    }
+    
+    return nullptr;
+}
+
+#endif // HYP_EDITOR
 
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId)
 {
@@ -130,6 +166,18 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         return;
     }
 
+    if (const Handle<WorldGrid>& worldGrid = entity->GetWorld()->GetWorldGrid(); worldGrid.IsValid() && worldGrid->IsCollisionPendingAt(component.translation))
+    {
+        // hold the character in place until the ground under it has streamed in, otherwise it falls through
+        physicsWorld->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
+
+        outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
+
+        entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
+
+        return;
+    }
+
     // View direction is client-authoritative and carried per-move so both sides derive an identical walk direction
     const Vec3f viewDirection = move.GetViewDirection();
     const Vec2f movementInput = move.GetMovementInput();
@@ -156,8 +204,8 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         }
 
         const float wishSpeed = bool(move.sprintHeld)
-            ? MathUtil::Max(component.sprintSpeed, 0.0f)
-            : MathUtil::Max(component.moveSpeed, 0.0f);
+            ? MathUtil::Max(component.movement.sprintSpeed, 0.0f)
+            : MathUtil::Max(component.movement.moveSpeed, 0.0f);
 
         walkDirection = wishDirection * wishSpeed;
     }
@@ -172,6 +220,18 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
     outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
 
     entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
+}
+
+SwatchOverrideSystem* GetSwatchOverrideSystemFor(const Entity& entity)
+{
+    World* world = entity.GetWorld();
+
+    if (!world)
+    {
+        return nullptr;
+    }
+
+    return world->GetSystem<SwatchOverrideSystem>();
 }
 
 } // namespace SceneHelpers

@@ -40,6 +40,12 @@
 #include <android/log.h>
 #endif
 
+#if HYP_WINDOWS
+#include <io.h>
+#elif HYP_UNIX
+#include <unistd.h>
+#endif
+
 namespace Hyperion {
 
 CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
@@ -147,10 +153,27 @@ struct ThreadLocalRedirectSnapshot
 
 thread_local ThreadLocalRedirectSnapshot t_redirectSnapshot;
 
+static bool IsInteractiveStream(FILE* stream)
+{
+#if HYP_WINDOWS
+    const int descriptor = _fileno(stream);
+    return descriptor >= 0 && _isatty(descriptor) != 0;
+#elif HYP_UNIX
+    const int descriptor = fileno(stream);
+    return descriptor >= 0 && isatty(descriptor) != 0;
+#else
+    return false;
+#endif
+}
+
 struct LoggerState
 {
     FILE* m_output;
     FILE* m_outputError;
+
+    // piped or redirected streams are fully buffered, so they get flushed after every message
+    bool m_isOutputInteractive;
+    bool m_isOutputErrorInteractive;
 
     Mutex m_mutex;
     Map<int, LoggerRedirect> m_redirects;
@@ -163,6 +186,8 @@ struct LoggerState
     {
         m_output = stdout;
         m_outputError = stderr;
+        m_isOutputInteractive = IsInteractiveStream(m_output);
+        m_isOutputErrorInteractive = IsInteractiveStream(m_outputError);
         m_redirectSnapshot = nullptr;
         m_redirectIdCounter = -1;
 
@@ -302,8 +327,9 @@ static void Write(const LogChannel& channel, const LogMessage& message)
 
     if (allowDefaultOutput)
     {
-        FILE* file = isError ? s_loggerState.m_output : s_loggerState.m_outputError;
+        FILE* file = isError ? s_loggerState.m_outputError : s_loggerState.m_output;
         const bool isConsole = file == stdout || file == stderr;
+        const bool isInteractive = isError ? s_loggerState.m_isOutputErrorInteractive : s_loggerState.m_isOutputInteractive;
 
 #if HYP_ANDROID
         if (isConsole)
@@ -403,6 +429,11 @@ static void Write(const LogChannel& channel, const LogMessage& message)
                 std::fwrite(ResetCode.Data(), 1, ResetCode.Size(), file);
             }
 #endif
+
+            if (!isInteractive)
+            {
+                std::fflush(file);
+            }
         }
     }
 }

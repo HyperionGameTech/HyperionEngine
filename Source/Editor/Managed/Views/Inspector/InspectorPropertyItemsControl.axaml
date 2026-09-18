@@ -5,6 +5,17 @@
     xmlns:local="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root">
+    <UserControl.Resources>
+        <!--  Inline description, shown only when the host opts in via ShowDescriptions (otherwise it's just the label tooltip)  -->
+        <DataTemplate x:Key="PropertyDescriptionTemplate" x:DataType="vm:InspectorPropertyViewModelBase">
+            <Panel IsVisible="{Binding $parent[local:InspectorPropertyItemsControl].ShowDescriptions}">
+                <TextBlock
+                    Classes="inspector-description"
+                    IsVisible="{Binding HasDescription}"
+                    Text="{Binding Description}" />
+            </Panel>
+        </DataTemplate>
+    </UserControl.Resources>
     <ItemsControl
         HorizontalAlignment="Stretch"
         Grid.IsSharedSizeScope="True"
@@ -105,7 +116,11 @@
             <DataTemplate x:DataType="vm:BoolPropertyViewModel">
                 <StackPanel Orientation="Horizontal" Margin="4,0" Spacing="6">
                     <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" />
-                    <TextBlock Classes="inspector-name" Text="{Binding Label}" VerticalAlignment="Center" />
+                    <TextBlock
+                        Classes="inspector-name"
+                        Text="{Binding Label}"
+                        ToolTip.Tip="{Binding LabelTooltip}"
+                        VerticalAlignment="Center" />
                 </StackPanel>
             </DataTemplate>
             <DataTemplate x:DataType="vm:NumericPropertyViewModel">
@@ -115,7 +130,8 @@
                 <StackPanel Spacing="0">
                     <local:AssetObjectPropertyEditor IsVisible="{Binding IsAssetObject}" />
                     <StackPanel IsVisible="{Binding !IsAssetObject}" Margin="0,2,0,0" Spacing="0">
-                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" />
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13" Margin="4,0,0,2" ToolTip.Tip="{Binding LabelTooltip}" />
+                        <ContentControl Margin="4,0,0,2" Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
                         <local:SubclassPropertyEditor IsVisible="{Binding ShowSubclassPicker}" />
                         <local:InspectorPropertyItemsControl IsVisible="{Binding HasSubObject}" ItemsSource="{Binding SubObject.Properties}" />
                     </StackPanel>
@@ -125,9 +141,12 @@
                 <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                     <Expander.Header>
                         <Grid ColumnDefinitions="*,Auto">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
-                                <TextBlock Classes="inspector-name" Text="{Binding Label}" />
-                                <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                            <StackPanel Grid.Column="0" Spacing="0">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Classes="inspector-name" Text="{Binding Label}" ToolTip.Tip="{Binding LabelTooltip}" />
+                                    <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                                </StackPanel>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
                             </StackPanel>
                             <Button
                                 Grid.Column="1"
@@ -148,9 +167,12 @@
             <DataTemplate x:DataType="vm:MaterialTexturesPropertyViewModel">
                 <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                     <Expander.Header>
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Classes="inspector-name" Text="{Binding Label}" />
-                            <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                        <StackPanel Spacing="0">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Classes="inspector-name" Text="{Binding Label}" ToolTip.Tip="{Binding LabelTooltip}" />
+                                <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                            </StackPanel>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
                         </StackPanel>
                     </Expander.Header>
                     <ItemsControl IsVisible="{Binding HasSlots}" ItemsSource="{Binding Slots}">
@@ -168,12 +190,29 @@
                     </ItemsControl>
                 </Expander>
             </DataTemplate>
+            <DataTemplate x:DataType="vm:ShaderPropertySetViewModel">
+                <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <StackPanel Spacing="0">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Classes="inspector-name" Text="{Binding Label}" ToolTip.Tip="{Binding LabelTooltip}" />
+                                <TextBlock Opacity="0.55" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <local:ShaderPropertySetEditor DataContext="{Binding}" />
+                </Expander>
+            </DataTemplate>
             <DataTemplate x:DataType="vm:StructPropertyViewModel">
                 <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                     <Expander.Header>
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Classes="inspector-name" Text="{Binding Label}" />
-                            <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                        <StackPanel Spacing="0">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Classes="inspector-name" Text="{Binding Label}" ToolTip.Tip="{Binding LabelTooltip}" />
+                                <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                            </StackPanel>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
                         </StackPanel>
                     </Expander.Header>
                     <local:InspectorPropertyItemsControl IsVisible="{Binding HasSubProperties}" ItemsSource="{Binding SubProperties}" />
@@ -182,9 +221,12 @@
             <DataTemplate x:DataType="vm:ArrayPropertyViewModel">
                 <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                     <Expander.Header>
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Classes="inspector-name" Text="{Binding Label}" />
-                            <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                        <StackPanel Spacing="0">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Classes="inspector-name" Text="{Binding Label}" ToolTip.Tip="{Binding LabelTooltip}" />
+                                <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                            </StackPanel>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
                         </StackPanel>
                     </Expander.Header>
                     <StackPanel Spacing="2">
@@ -222,7 +264,7 @@
         </ItemsControl.DataTemplates>
         <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
-                <Grid Margin="6,2">
+                <Grid Margin="6,2" RowDefinitions="Auto,Auto">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" SharedSizeGroup="PropertyLabel" />
@@ -232,6 +274,7 @@
                     <!--  Override marker: accent for the active layer, muted when only other layers override  -->
                     <Panel
                         Grid.Column="0"
+                        Grid.RowSpan="2"
                         Width="6"
                         Background="Transparent"
                         ToolTip.Tip="{Binding OverrideTooltip}">
@@ -259,7 +302,7 @@
                         Classes="inspector-name"
                         IsVisible="{Binding ShowInlineLabel}"
                         Text="{Binding Label}"
-                        ToolTip.Tip="{Binding OverrideTooltip}" />
+                        ToolTip.Tip="{Binding LabelTooltip}" />
 
                     <ContentControl
                         Grid.Column="1"
@@ -288,6 +331,14 @@
                         </Button>
                         <ContentControl Content="{Binding}" />
                     </DockPanel>
+
+                    <ContentControl
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Grid.ColumnSpan="2"
+                        IsVisible="{Binding ShowDescriptionBelowRow}"
+                        Content="{Binding}"
+                        ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
                 </Grid>
             </DataTemplate>
         </ItemsControl.ItemTemplate>

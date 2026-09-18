@@ -332,42 +332,48 @@ void BackgroundWorkerPool::Stop()
     delete m_overseerThread;
     m_overseerThread = nullptr;
 
-    Mutex::Guard guard(m_threadCreationMutex);
+    Array<UniquePtr<ThreadBase>> threadsToJoin;
 
-    for (auto& thread : m_threads)
     {
-        if (thread != nullptr)
+        Mutex::Guard guard(m_threadCreationMutex);
+
+        for (auto& thread : m_threads)
         {
-            thread->Stop();
+            if (thread != nullptr)
+            {
+                thread->Stop();
+            }
         }
+
+        threadsToJoin = std::move(m_threads);
+
+        m_workerIndexAllocator.Reset();
+        m_threadMask = 0;
+        m_activeThreadCount.Set(0, MemoryOrder::RELEASE);
     }
 
-    for (auto& thread : m_threads)
+    // join outside of the lock - idle workers take it in TryStealTask
+    for (auto& thread : threadsToJoin)
     {
         if (thread != nullptr && thread->CanJoin())
         {
             thread->Join();
         }
     }
-
-    m_threads.Clear();
-    m_workerIndexAllocator.Reset();
-    m_threadMask = 0;
-    m_activeThreadCount.Set(0, MemoryOrder::RELEASE);
 }
 
 TaskThread* BackgroundWorkerPool::GetNextTaskThread()
 {
     Mutex::Guard guard(m_threadCreationMutex);
 
-    // look for a free running thread
+    // look for a free running thread - IsFree() lags until the worker pops, so a burst would otherwise pile onto one queue
     for (auto& thread : m_threads)
     {
         if (thread != nullptr)
         {
             TaskThread* taskThread = static_cast<TaskThread*>(thread.Get());
 
-            if (!taskThread->IsStopping() && taskThread->IsFree())
+            if (!taskThread->IsStopping() && taskThread->IsFree() && taskThread->GetScheduler().NumEnqueued() == 0)
             {
                 return taskThread;
             }
@@ -384,17 +390,68 @@ TaskThread* BackgroundWorkerPool::GetNextTaskThread()
         return CreateThread();
     }
 
-    TaskThread* taskThread = nullptr;
+    const ThreadId currentThreadId = CurrentThreadId();
 
-    uint32 seed = m_cycle.Increment(1, MemoryOrder::RELAXED);
+    TaskThread* leastLoadedThread = nullptr;
+    uint32 leastLoadedCount = MathUtil::MaxSafeValue<uint32>();
 
-    while (!taskThread)
+    for (auto& thread : m_threads)
     {
-        uint32 index = MathUtil::Floor(MathUtil::RandomFloat(seed) * float(activeCount - 1));
-        taskThread = static_cast<TaskThread*>(m_threads[index].Get());
+        if (thread == nullptr || thread->Id() == currentThreadId)
+        {
+            continue;
+        }
+
+        TaskThread* taskThread = static_cast<TaskThread*>(thread.Get());
+
+        if (taskThread->IsStopping())
+        {
+            continue;
+        }
+
+        const uint32 loadCount = taskThread->GetScheduler().NumEnqueued() + (taskThread->IsFree() ? 0 : 1);
+
+        if (loadCount < leastLoadedCount)
+        {
+            leastLoadedThread = taskThread;
+            leastLoadedCount = loadCount;
+        }
     }
 
-    return taskThread;
+    if (leastLoadedThread != nullptr)
+    {
+        return leastLoadedThread;
+    }
+
+    for (auto& thread : m_threads)
+    {
+        if (thread != nullptr)
+        {
+            return static_cast<TaskThread*>(thread.Get());
+        }
+    }
+
+    return nullptr;
+}
+
+bool BackgroundWorkerPool::TryStealTask(TaskThread* thief, Scheduler::ScheduledTask& outTask)
+{
+    Mutex::Guard guard(m_threadCreationMutex);
+
+    for (auto& thread : m_threads)
+    {
+        if (thread == nullptr || thread.Get() == thief)
+        {
+            continue;
+        }
+
+        if (static_cast<TaskThread*>(thread.Get())->GetScheduler().TryStealFrom(outTask))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 TaskThread* BackgroundWorkerPool::CreateThread()
@@ -403,8 +460,8 @@ TaskThread* BackgroundWorkerPool::CreateThread()
 
     ThreadId threadId = CreateTaskThreadId(m_baseName, threadIndex);
 
-    UniquePtr<ThreadBase> newThread = MakeUnique<TaskThread>(threadId, ThreadPriorityValue::LOW);
-    TaskThread* taskThread = static_cast<TaskThread*>(newThread.Get());
+    UniquePtr<TaskThread> taskThread = MakeUnique<TaskThread>(threadId, ThreadPriorityValue::LOW);
+    taskThread->SetOwnerPool(this);
 
     m_threadMask |= threadId.GetMask();
 
@@ -425,11 +482,13 @@ TaskThread* BackgroundWorkerPool::CreateThread()
     // expected to be null (nothing should exist in the new slot we allocated)
     Assert(m_threads[threadIndex] == nullptr);
 
-    m_threads[threadIndex] = std::move(newThread);
+    TaskThread* pTaskThread = taskThread.Get();
+
+    m_threads[threadIndex] = std::move(taskThread);
 
     m_activeThreadCount.Increment(1, MemoryOrder::RELEASE);
 
-    return taskThread;
+    return pTaskThread;
 }
 
 void BackgroundWorkerPool::CleanupIdleThreads()

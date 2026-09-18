@@ -32,6 +32,8 @@
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
+#include <Rendering/Clouds/CloudPass.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
@@ -43,6 +45,7 @@
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Framework/Resources/ResourceBinder.hpp>
 
@@ -51,8 +54,6 @@
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
-
-#include <Util/Img/Bitmap.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -68,6 +69,16 @@ static constexpr bool ShParallelReduce = false;
 static EngineStatGpuTimer s_statDrawEnvProbe("Rendering/GPU/DrawEnvProbe");
 static EngineStatGpuTimer s_statConvolveEnvProbe("Rendering/GPU/ConvolveEnvProbe");
 static EngineStatGpuTimer s_statComputeEnvProbeSH("Rendering/GPU/ComputeEnvProbeSH");
+
+extern CVar<float> g_cvCloudsSkyProbeRefreshSeconds;
+
+static constexpr float SkyLookRecaptureSeconds = 0.1f;
+
+// the parts of the world environment that are baked into the sky capture
+static Vec4f GetSkyLook(const WorldShaderData& worldShaderData)
+{
+    return Vec4f(worldShaderData.skyTintIntensity.GetXYZ() * worldShaderData.skyTintIntensity.w, worldShaderData.skyLightParams.z);
+}
 
 #pragma region EnvProbeHelpers
 
@@ -412,38 +423,82 @@ static void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetu
     ConvolveEnvProbeCubemap(MakeStrongRef(colorAttachment), captureState->texture, *envProbe);
 }
 
-void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& inColorTexture, Name swatchName)
+// Copies the fresh sky capture into the skybox cubemap, then composites clouds over the capture itself so the convolution
+// and spherical harmonics that follow pick them up. Returns whether clouds were composited
+static bool CaptureSkyProbeSky(const RenderSetup& renderSetup, SkyProbe* skyProbe)
 {
-    //// temp: dump exactly what the SH compute shader is about to read, so we can tell whether
-    //// bake-to-bake SH drift comes from the render output itself or from something in the SH pass.
+    AssertDebug(skyProbe);
+
+    const FramebufferRef& framebuffer = skyProbe->GetViewFramebuffer(0);
+    AssertDebug(framebuffer.IsValid());
+
+    AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
+    AssertDebug(colorAttachment != nullptr && colorAttachment->IsCreated());
+
+    const Handle<Texture>& skyboxTexture = skyProbe->GetSkyboxCubemap();
+
+    if (!skyboxTexture.IsValid())
     {
-        GpuBufferRef tempReadbackBuffer;
-        const_cast<Texture&>(inColorTexture).Readback(tempReadbackBuffer);
-
-        if (tempReadbackBuffer.IsValid())
-        {
-            const Vec3u extent = inColorTexture.GetExtent();
-
-            Bitmap_RGBA16F tempBitmap(extent.x, extent.y * 6);
-
-            const size_t faceByteSize = tempBitmap.GetByteSize() / 6;
-            AssertDebug(tempReadbackBuffer->Size() >= faceByteSize * 6);
-
-            ubyte* dst = tempBitmap.ToByteView().Data();
-
-            for (uint32 face = 0; face < 6; face++)
-            {
-                tempReadbackBuffer->Read(face * faceByteSize, faceByteSize, dst + face * faceByteSize);
-            }
-
-            FileByteWriter tempWriter(EngineGlobals::GetTempDirectory() / HYP_FORMAT("TempEnvProbeSHInput_{}.bmp", envProbe.GetName()));
-            tempBitmap.Write(&tempWriter);
-            tempWriter.Close();
-
-            EnqueueDeletion(std::move(tempReadbackBuffer));
-        }
+        return false;
     }
 
+    if (!skyboxTexture->IsCreated() && !Check(skyboxTexture->Create()))
+    {
+        return false;
+    }
+
+    {
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
+        HYP_DEFER({ cr.Done(); });
+
+        const ImageSubResource facesSubResource { .baseMipLevel = 0, .numLevels = 1, .baseArrayLayer = 0, .numLayers = 6 };
+
+        const Vec3u srcExtent = colorAttachment->GetTextureDesc().extent;
+        const Vec3u dstExtent = skyboxTexture->GetTextureDesc().extent;
+
+        cr << InsertBarrier(colorAttachment->GetGpuImage(), ResourceState::CopySrc, facesSubResource);
+        cr << InsertBarrier(skyboxTexture->GetGpuImage(), ResourceState::CopyDst, facesSubResource);
+
+        if (srcExtent == dstExtent && colorAttachment->GetTextureDesc().format == skyboxTexture->GetTextureDesc().format)
+        {
+            cr << CopyImage(colorAttachment->GetGpuImage(), skyboxTexture->GetGpuImage(), srcExtent);
+        }
+        else
+        {
+            cr << Blit(
+                colorAttachment,
+                skyboxTexture.Get(),
+                Rect<uint32> { 0, 0, srcExtent.x, srcExtent.y },
+                Rect<uint32> { 0, 0, dstExtent.x, dstExtent.y });
+        }
+
+        cr << InsertBarrier(skyboxTexture->GetGpuImage(), ResourceState::ShaderResource);
+        cr << InsertBarrier(colorAttachment->GetGpuImage(), ResourceState::ShaderResource);
+    }
+
+    DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
+
+    if (!cloudsPassData || !cloudsPassData->cloudPass->CanCompositeSkyProbe())
+    {
+        return false;
+    }
+
+    CloudPass* cloudPass = cloudsPassData->cloudPass.Get();
+
+    RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe));
+    AssertDebug(skyProbeProxy != nullptr);
+
+    RenderProxyLight* sunProxy = renderSetup.light
+        ? static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light))
+        : nullptr;
+
+    cloudPass->CompositeSkyProbe(skyboxTexture.Get(), colorAttachment, skyProbeProxy->bufferData, sunProxy ? &sunProxy->bufferData : nullptr);
+
+    return true;
+}
+
+void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& inColorTexture, Name swatchName)
+{
     static constexpr bool UseAsyncCompute = false;
 
     bool useAsyncCompute = UseAsyncCompute;
@@ -1209,9 +1264,6 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             {
                 needsRerender = true;
             }
-
-            // cache it to save on rendering later
-            pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
         }
         else
         {
@@ -1220,13 +1272,31 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             // set to NAN to always resolve to false for comparison, until a valid light is found
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
         }
+
+        // recapture as clouds move, and once when they appear or go away
+        // DeferredPass hands over the pass data of the first view with active clouds, if there is one
+        const DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
+        const bool cloudsReady = cloudsPassData && cloudsPassData->cloudPass->CanCompositeSkyProbe();
+
+        if (cloudsReady != pd->hasCompositedClouds
+            || (cloudsReady && pd->cloudRefreshTimer.Interval(ClockTimer::Now()) >= g_cvCloudsSkyProbeRefreshSeconds.Get()))
+        {
+            needsRerender = true;
+        }
+
+        // environment edits recapture, throttled so dragging a slider doesn't capture every frame
+        const WorldShaderData* worldShaderData = GetWorldBufferData();
+
+        if ((GetSkyLook(*worldShaderData) != pd->cachedSkyLook || worldShaderData->skyLightParams.w != pd->cachedCloudCoverage)
+            && pd->cloudRefreshTimer.Interval(ClockTimer::Now()) >= SkyLookRecaptureSeconds)
+        {
+            needsRerender = true;
+        }
     }
     else
     {
         needsRerender |= (pd->cachedProbeOrigin != envProbeProxy->bufferData.worldPosition.GetXYZ());
     }
-
-    pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
 
     const EnumFlags<EnvProbeFlags> envProbeFlags = EnvProbeHelpers::GetFlagsFromProxy(*envProbeProxy);
 
@@ -1270,12 +1340,47 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         return;
     }
 
+    if (envProbe->IsA<SkyProbe>())
+    {
+        if (renderSetup.light)
+        {
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
+
+            // cache it to save on rendering later
+            pd->cachedLightDirIntensity = lightProxy->bufferData.positionIntensity;
+        }
+
+        const WorldShaderData* worldShaderData = GetWorldBufferData();
+
+        pd->cachedSkyLook = GetSkyLook(*worldShaderData);
+        pd->cachedCloudCoverage = worldShaderData->skyLightParams.w;
+    }
+    else
+    {
+        pd->cachedProbeOrigin = envProbeProxy->bufferData.worldPosition.GetXYZ();
+    }
+
     if (!allViewsReady)
     {
         return;
     }
 
-    HYP_LOG(Rendering, Info, "Rendered {} views for EnvProbe {}", ByteUtil::BitCount(renderedViews), envProbe->GetName());
+    if (envProbe->IsA<SkyProbe>())
+    {
+        // clouds are composited over the faces in place, so a face that wasn't redrawn still has the last capture's clouds.
+        // redraw them all next frame rather than composite twice
+        if (renderedViews != 0x3F)
+        {
+            envProbe->needsRender.Store(true);
+
+            return;
+        }
+
+        pd->hasCompositedClouds = EnvProbeHelpers::CaptureSkyProbeSky(renderSetup, static_cast<SkyProbe*>(envProbe));
+        pd->cloudRefreshTimer.Reset();
+    }
+
+    HYP_LOG(Rendering, Debug, "Rendered {} views for EnvProbe {}", ByteUtil::BitCount(renderedViews), envProbe->GetName());
 
     if (envProbe->ShouldComputePrefilteredEnvMap())
     {

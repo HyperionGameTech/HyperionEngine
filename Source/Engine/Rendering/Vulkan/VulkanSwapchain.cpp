@@ -201,7 +201,14 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     presentInfo.pImageIndices = &m_acquiredImageIndex;
     presentInfo.pResults = nullptr;
 
-    VkResult result = vkQueuePresentKHR(queue->queue, &presentInfo);
+    VkResult result;
+
+    {
+        // the present queue is usually the graphics queue, which transient submits use from other threads
+        Mutex::Guard guard(queue->mutex);
+
+        result = vkQueuePresentKHR(queue->queue, &presentInfo);
+    }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {

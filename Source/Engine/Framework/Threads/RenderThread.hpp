@@ -13,6 +13,8 @@
 
 namespace Hyperion {
 
+struct SuppressIdleThrottlingContext;
+
 class RenderThread final : public Thread<Scheduler>
 {
 public:

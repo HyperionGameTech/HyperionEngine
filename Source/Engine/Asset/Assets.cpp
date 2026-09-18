@@ -383,7 +383,7 @@ HYP_NODISCARD AssetLoadResult AssetManager::Load(
     const TypeId& typeId,
     const String& path,
     const String& batchIdentifier,
-    AssetLoadHint hint)
+    EnumFlags<AssetLoadHint> hint)
 {
     const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, typeId);
 

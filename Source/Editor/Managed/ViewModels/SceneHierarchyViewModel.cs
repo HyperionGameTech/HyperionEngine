@@ -42,9 +42,13 @@ namespace Hyperion.Editor.ViewModels
 
         private readonly NodeViewModelIndex _nodeViewModelIndex = new NodeViewModelIndex();
 
+        private int _attachGeneration;
+
         public void AttachToScene(Scene? scene)
         {
             Dispatcher.UIThread.VerifyAccess();
+
+            int attachGeneration = ++_attachGeneration;
 
             _scene = scene;
             RootNodes.Clear();
@@ -60,36 +64,64 @@ namespace Hyperion.Editor.ViewModels
                 _suppressSelectionNotifications = false;
             }
 
+            _onSelectedNodeChanged?.Remove();
+            _onSelectedNodeChanged = null;
+
             if (scene == null)
             {
                 return;
             }
 
-            Node? root = scene.RootNode;
-            if (root != null)
+            // the tree is read and its handlers bound on the sim thread so nothing mutates it mid-walk
+            _ = EngineManager.PostToSimThread(() =>
             {
-                RootNodes.Add(new NodeViewModel(root, onChildrenChanged: HandleChildrenChanged, index: _nodeViewModelIndex));
+                Node? root = scene.RootNode;
+                NodeViewModel? rootViewModel = root != null ? new NodeViewModel(root, onChildrenChanged: HandleChildrenChanged, index: _nodeViewModelIndex) : null;
+
+                DelegateHandler onRootNodeChanged = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
+                {
+                    NodeViewModel? newRootViewModel = newRoot != null ? new NodeViewModel(newRoot, onChildrenChanged: HandleChildrenChanged, index: _nodeViewModelIndex) : null;
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (attachGeneration != _attachGeneration)
+                        {
+                            return;
+                        }
+
+                        SetRootViewModel(newRootViewModel);
+                    });
+                });
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (attachGeneration != _attachGeneration)
+                    {
+                        onRootNodeChanged.Remove();
+                        return;
+                    }
+
+                    _onSelectedNodeChanged = onRootNodeChanged;
+
+                    SetRootViewModel(rootViewModel);
+                });
+            });
+        }
+
+        private void SetRootViewModel(NodeViewModel? rootViewModel)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            RootNodes.Clear();
+            _nodeViewModelIndex.Clear();
+
+            if (rootViewModel != null)
+            {
+                _nodeViewModelIndex.Add(rootViewModel);
+                RootNodes.Add(rootViewModel);
             }
 
             RefreshFilter();
-            
-            _onSelectedNodeChanged?.Remove();
-            _onSelectedNodeChanged = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    _scene = scene;
-                    RootNodes.Clear();
-                    _nodeViewModelIndex.Clear();
-
-                    if (newRoot != null)
-                    {
-                        RootNodes.Add(new NodeViewModel(newRoot, onChildrenChanged: HandleChildrenChanged, index: _nodeViewModelIndex));
-                    }
-
-                    RefreshFilter();
-                });
-            });
         }
 
         private void HandleChildrenChanged()
@@ -203,6 +235,8 @@ namespace Hyperion.Editor.ViewModels
         void DetachFromScene()
         {
             Dispatcher.UIThread.VerifyAccess();
+
+            ++_attachGeneration;
 
             _scene = null;
             RootNodes.Clear();

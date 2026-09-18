@@ -89,8 +89,10 @@ void PlayerSystem::OnAddedToWorld(World* world)
     // We DO need something for single player
     // some way of checking if HasAuthority changes.. hmm
 
+    const bool isServerWorld = world->IsServerWorld();
+
     // Client delegates first
-    if (g_gameClient != nullptr)
+    if (g_gameClient != nullptr && !isServerWorld)
     {
         m_delegateHandlers.Add(
             NAME("OnConnected"),
@@ -114,7 +116,7 @@ void PlayerSystem::OnAddedToWorld(World* world)
         }
     }
 
-    if (!EngineGlobals::IsServer())
+    if (!isServerWorld)
     {
         return;
     }
@@ -142,12 +144,8 @@ void PlayerSystem::OnRemovedFromWorld(World* world)
 {
     m_delegateHandlers.Remove("OnConnected"_sh);
     m_delegateHandlers.Remove("OnDisconnected"_sh);
-
-    if (EngineGlobals::IsServer())
-    {
-        m_delegateHandlers.Remove("OnClientConnected"_sh);
-        m_delegateHandlers.Remove("OnClientDisconnected"_sh);
-    }
+    m_delegateHandlers.Remove("OnClientConnected"_sh);
+    m_delegateHandlers.Remove("OnClientDisconnected"_sh);
 
     SystemBase::OnRemovedFromWorld(world);
 }
@@ -199,21 +197,11 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
         return true;
     }
 
-    // Track the instance before attaching it to the scene so OnEntityAdded recognizes it as a
-    // spawned player rather than registering it as another template.
+    // Track the instance before attaching it to the scene so OnEntityAdded recognizes it as a spawned player rather than registering it as another template.
     m_connectionIdToPlayerEntity.Set(connectionId, clone);
 
-    Node* parent = templateEntity->GetParent();
-
-    if (parent)
-    {
-        parent->AddChild(clone);
-    }
-    else
-    {
-        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
-    }
-
+    // Must also be set up before attaching.
+    // if the template was already tagged Replicated, the clone joins ReplicationSystem during AddChild, which reads the owning connection then and isn't notified again
     if (PlayerComponent* existingPlayerComponent = clone->TryGetComponent<PlayerComponent>())
     {
         existingPlayerComponent->connectionId = connectionId;
@@ -226,6 +214,17 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
     if (!clone->HasTag<EntityTag::Replicated>())
     {
         clone->AddTag<EntityTag::Replicated>();
+    }
+
+    Node* parent = templateEntity->GetParent();
+
+    if (parent)
+    {
+        parent->AddChild(clone);
+    }
+    else
+    {
+        templateEntity->GetEntityManager()->GetScene()->GetRoot()->AddChild(clone);
     }
 
     const Vec3f worldTranslation = clone->GetWorldTranslation();

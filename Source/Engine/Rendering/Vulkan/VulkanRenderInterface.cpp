@@ -29,6 +29,7 @@
 
 #include <Rendering/RenderableAttributes.hpp>
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/Buffers.hpp>
 #include <Rendering/FinalPass.hpp>
 #include <Rendering/Bindless.hpp>
 #include <Rendering/CrashHandler.hpp>
@@ -642,6 +643,18 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
 #pragma endregion VulkanDescriptorSetManager
 
+#pragma region VulkanTransientCommandBuffer
+
+struct VulkanTransientCommandBuffer
+{
+    // Each entry owns its command pool - pools must be externally synchronized and entries are recorded on arbitrary threads
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VulkanCommandBuffer commandBuffer;
+    VulkanFence fence;
+};
+
+#pragma endregion VulkanTransientCommandBuffer
+
 #pragma region VulkanRenderInterface
 
 VulkanRenderInterface::VulkanRenderInterface()
@@ -700,14 +713,8 @@ RendererResult VulkanRenderInterface::Initialize()
 
     m_renderConfig->Initialize(this);
 
-    VulkanDeviceQueue* deviceQueue = GetDevice()->GetPresentQueue();
-
-    if (!deviceQueue)
-    {
-        // running in headless mode
-        deviceQueue = GetDevice()->GetGraphicsQueue();
-    }
-
+    // frame command buffers are submitted to the graphics queue (see PresentToSwapchain), so they must come from its pool
+    VulkanDeviceQueue* deviceQueue = GetDevice()->GetGraphicsQueue();
     Assert(deviceQueue != nullptr);
 
     // Create frames
@@ -758,8 +765,6 @@ void VulkanRenderInterface::Shutdown()
 {
     Check(m_instance->GetDevice()->WaitIdle());
 
-    const uint32 frameCounter = GetFrameCounter();
-
     for (VulkanFrameRef& frame : m_frames)
     {
         if (!frame)
@@ -807,35 +812,36 @@ void VulkanRenderInterface::Shutdown()
     RenderInterface::Shutdown();
 
     { // Flush transient submits
-        auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
-        for (auto it = fences.Begin(); it != fences.End(); ++it)
-        {
-            VulkanFence& fence = *it;
+        Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-            if (fence.isSubmitted)
+        AssertDebug(m_recordingTransientCommandBuffers.Empty(), "Transient command buffers are still being recorded at shutdown!");
+
+        for (VulkanTransientCommandBuffer* transientCommandBuffer : m_submittedTransientCommandBuffers)
+        {
+            if (transientCommandBuffer->fence.isSubmitted)
             {
-                fence.Wait(true);
-                fence.Reset();
+                transientCommandBuffer->fence.Wait(true);
             }
         }
 
-        fences.Clear();
+        Array<VkCommandPool, VulkanAllocator> commandPools;
+        commandPools.Reserve(m_transientCommandBufferStorage.Size());
 
-        Mutex::Guard guard(m_transientCommandBuffersMutex);
-
-        m_recycledTransientCommandBufferFences.Clear();
-        m_recycledTransientCommandBufferSemaphores.Clear();
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        for (VulkanTransientCommandBuffer& transientCommandBuffer : m_transientCommandBufferStorage)
         {
-            m_transientCommandBufferFences[frameIndex].Clear();
-            m_transientCommandBufferSemaphores[frameIndex].Clear();
+            commandPools.PushBack(transientCommandBuffer.commandPool);
+        }
 
-            for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-            {
-                m_transientCommandBuffers[threadIndex][frameIndex].Clear();
-                m_pendingTransientCommandBuffers[threadIndex][frameIndex].Clear();
-            }
+        m_freeTransientCommandBuffers.Clear();
+        m_recordingTransientCommandBuffers.Clear();
+        m_submittedTransientCommandBuffers.Clear();
+
+        // The deletion queue is shut down by now, so the command buffers are freed immediately - before their pools are destroyed
+        m_transientCommandBufferStorage.Clear();
+
+        for (VkCommandPool commandPool : commandPools)
+        {
+            vkDestroyCommandPool(m_instance->GetDevice()->GetDevice(), commandPool, nullptr);
         }
     }
 
@@ -895,6 +901,9 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
             frame->GetFence()->Wait(true);
         }
     }
+
+    // this frame's command buffer has finished executing, so staging buffers it copied from can be reused
+    stagingBufferPool->ReleaseForCommandBuffer(m_commandBuffers[m_currentFrameIndex].Get());
 
     // Read back GPU timestamps from the completed frame
     ResolveGpuFrameResults(frameCounter % NumFramesInFlight);
@@ -956,49 +965,7 @@ void VulkanRenderInterface::PrepareFrame(VulkanFrame* frame)
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        auto& fences = m_transientCommandBufferFences[frameCounter % NumFramesInFlight];
-        for (auto it = fences.Begin(); it != fences.End();)
-        {
-            VulkanFence& fence = *it;
-
-            if (vkGetFenceStatus(m_instance->GetDevice()->GetDevice(), fence.handle) != VK_SUCCESS)
-            {
-                if (fence.isSubmitted)
-                {
-                    ENGINE_STAT_SCOPE(&s_statVulkanFrameSync);
-                    ENGINE_STAT_SCOPE(&g_statTotalStallTime);
-
-                    fence.Wait(true);
-                }
-            }
-
-            fence.Reset();
-
-            m_recycledTransientCommandBufferFences.PushBack(std::move(fence));
-
-            it = fences.Erase(it);
-        }
-
-        // Semaphores are destroyed when cleared (destructor enqueues vkDestroySemaphore).
-        // No recycling needed: each transient submit creates a fresh semaphore.
-        m_transientCommandBufferSemaphores[frameCounter % NumFramesInFlight].Clear();
-
-        for (uint32 threadIndex = 0; threadIndex < NumRendererWorkerThreads + 1; threadIndex++)
-        {
-            // reset our transient command buffers
-            List<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-            List<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[threadIndex][frameCounter % NumFramesInFlight];
-
-            for (auto it = pendingList.Begin(); it != pendingList.End();)
-            {
-                VulkanCommandBuffer& commandBuffer = *it;
-                Assert(!commandBuffer.IsRecording());
-
-                freeList.EmplaceBack(std::move(*it));
-
-                it = pendingList.Erase(it);
-            }
-        }
+        ReclaimCompletedTransientCommandBuffers_Internal();
     }
 
     frame->OnFrameStart();
@@ -1029,21 +996,17 @@ void VulkanRenderInterface::PrepareSwapchain(VulkanSwapchain* swapchain)
 
 void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
 {
+    // The frame is submitted to the graphics queue - the same queue transient command buffers use - so any transient
+    // submitted before this point is guaranteed to execute first (a single queue executes submissions in order).
+    // Only the present itself goes to the present queue.
+    VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
+    Assert(graphicsQueue != nullptr);
+
     VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
 
     if (swapchain != nullptr)
     {
         AssertDebug(presentQueue != nullptr); // should never be null when presenting, not used in headless mode
-    }
-    else
-    {
-        if (!presentQueue)
-        {
-            VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
-            Assert(graphicsQueue != nullptr);
-
-            presentQueue = graphicsQueue;
-        }
     }
 
     VulkanCommandBuffer* commandBuffer = GetCurrentCommandBuffer();
@@ -1062,35 +1025,9 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         AssertDebug(waitSemaphore != nullptr && signalSemaphore != nullptr);
     }
 
-    VulkanSemaphore* transientSemaphore = nullptr;
-    
-    {
-        const uint32 transientFrameIndex = GetFrameCounter() % NumFramesInFlight;
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        Mutex::Guard guard(m_transientCommandBuffersMutex);
-
-        if (m_transientCommandBufferSemaphores[transientFrameIndex].Any())
-        {
-            transientSemaphore = &m_transientCommandBufferSemaphores[transientFrameIndex].Back();
-        }
-    }
-
-    VulkanSemaphore* waitSemaphoreCandidates[2] = { waitSemaphore, transientSemaphore };
-    VkPipelineStageFlags waitStageCandidates[2] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
-
-    VulkanSemaphore* waitSemaphoresCompact[2] = {};
-    VkPipelineStageFlags waitStagesCompact[2] = {};
-    uint32 numWaitSemaphores = 0;
-
-    for (uint32 i = 0; i < 2; i++)
-    {
-        if (waitSemaphoreCandidates[i] != nullptr)
-        {
-            waitSemaphoresCompact[numWaitSemaphores] = waitSemaphoreCandidates[i];
-            waitStagesCompact[numWaitSemaphores] = waitStageCandidates[i];
-            numWaitSemaphores++;
-        }
-    }
+    const uint32 numWaitSemaphores = waitSemaphore != nullptr ? 1 : 0;
 
     const bool useTimeline = frame->IsUsingTimelineSemaphore();
     VulkanFence* submitFence = useTimeline ? nullptr : frame->GetFence();
@@ -1113,22 +1050,22 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         signalCount++;
 
         commandBuffer->Submit(
-            presentQueue,
+            graphicsQueue,
             submitFence,
-            Span<VulkanSemaphore*>(waitSemaphoresCompact, numWaitSemaphores),
+            Span<VulkanSemaphore*>(&waitSemaphore, numWaitSemaphores),
             Span<VulkanSemaphore*>(signalSemaphores, signalCount),
             nullptr,
             signalValues,
-            Span<VkPipelineStageFlags>(waitStagesCompact, numWaitSemaphores));
+            Span<VkPipelineStageFlags>(&waitStage, numWaitSemaphores));
     }
     else
     {
         commandBuffer->Submit(
-            presentQueue,
+            graphicsQueue,
             submitFence,
-            Span<VulkanSemaphore*>(waitSemaphoresCompact, numWaitSemaphores),
+            Span<VulkanSemaphore*>(&waitSemaphore, numWaitSemaphores),
             Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0),
-            Span<VkPipelineStageFlags>(waitStagesCompact, numWaitSemaphores));
+            Span<VkPipelineStageFlags>(&waitStage, numWaitSemaphores));
     }
 
     if (swapchain != nullptr)
@@ -1147,47 +1084,57 @@ VulkanCommandBuffer* VulkanRenderInterface::GetCurrentCommandBuffer() const
 
 VulkanCommandBuffer& VulkanRenderInterface::GetTransientCommandBuffer()
 {
-    // usable from main render thread or renderer worker threads.
-    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    const uint32 frameCounter = GetFrameCounter();
-    const uint32 renderThreadIndex = CurrentRenderThreadIndex();
-
-    List<VulkanCommandBuffer, VulkanAllocator>& freeList = m_transientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
-    List<VulkanCommandBuffer, VulkanAllocator>& pendingList = m_pendingTransientCommandBuffers[renderThreadIndex][frameCounter % NumFramesInFlight];
-
-    VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
-    Assert(graphicsQueue != nullptr);
-
-    VkCommandPool pool = graphicsQueue->commandPools[renderThreadIndex];
-    Assert(pool != VK_NULL_HANDLE);
-
-    VulkanCommandBuffer* pCommandBuffer = nullptr;
+    // usable from any thread (e.g. textures created on the sim thread or loader threads)
+    VulkanTransientCommandBuffer* transientCommandBuffer = nullptr;
+    bool isNewCommandBuffer = false;
 
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        if (freeList.Empty())
+        if (m_freeTransientCommandBuffers.Empty())
         {
-            pCommandBuffer = &pendingList.EmplaceBack();
-            Check(pCommandBuffer->Create(pool));
+            ReclaimCompletedTransientCommandBuffers_Internal();
+        }
+
+        if (m_freeTransientCommandBuffers.Any())
+        {
+            transientCommandBuffer = m_freeTransientCommandBuffers.PopBack();
         }
         else
         {
-            pCommandBuffer = &pendingList.PushBack(freeList.PopFront());
+            transientCommandBuffer = &m_transientCommandBufferStorage.EmplaceBack();
+            isNewCommandBuffer = true;
         }
+
+        m_recordingTransientCommandBuffers.PushBack(transientCommandBuffer);
     }
 
-    pCommandBuffer->Begin();
+    // only this thread can reach the entry until it is submitted, so creation can happen outside the lock
+    if (isNewCommandBuffer)
+    {
+        VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
+        Assert(graphicsQueue != nullptr);
 
-    return *pCommandBuffer;
+        VkCommandPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        poolInfo.queueFamilyIndex = graphicsQueue->familyIndex;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+        VkResult result = vkCreateCommandPool(m_instance->GetDevice()->GetDevice(), &poolInfo, nullptr, &transientCommandBuffer->commandPool);
+        Assert(result == VK_SUCCESS, "Could not create transient command pool! VkResult: {}", result);
+
+        Check(transientCommandBuffer->commandBuffer.Create(transientCommandBuffer->commandPool));
+        transientCommandBuffer->fence.Create();
+    }
+
+    VulkanCommandBuffer& commandBuffer = transientCommandBuffer->commandBuffer;
+
+    commandBuffer.Begin();
+
+    return commandBuffer;
 }
 
 void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& commandBuffer)
 {
-    const uint32 frameCounter = GetFrameCounter();
-    const uint32 frameIndex = frameCounter % NumFramesInFlight;
-
     if (commandBuffer.IsRecording())
     {
         commandBuffer.End();
@@ -1196,46 +1143,59 @@ void VulkanRenderInterface::SubmitTransientCommandBuffer(VulkanCommandBuffer& co
     VulkanDeviceQueue* graphicsQueue = m_instance->GetDevice()->GetGraphicsQueue();
     Assert(graphicsQueue != nullptr);
 
-    // Previous transient command buffer semaphore, if applicable.
-    VulkanSemaphore* pWaitSemaphore = nullptr;
-    VulkanSemaphore* pSignalSemaphore = nullptr;
+    VulkanTransientCommandBuffer* transientCommandBuffer = nullptr;
 
     {
         Mutex::Guard guard(m_transientCommandBuffersMutex);
 
-        if (m_transientCommandBufferSemaphores[frameIndex].Any())
+        for (auto it = m_recordingTransientCommandBuffers.Begin(); it != m_recordingTransientCommandBuffers.End(); ++it)
         {
-            pWaitSemaphore = &m_transientCommandBufferSemaphores[frameIndex].Back();
+            if (&(*it)->commandBuffer == &commandBuffer)
+            {
+                transientCommandBuffer = *it;
+                m_recordingTransientCommandBuffers.Erase(it);
+
+                break;
+            }
+        }
+    }
+
+    Assert(transientCommandBuffer != nullptr, "Command buffer was not acquired via GetTransientCommandBuffer()");
+
+    // No semaphores needed: frames are submitted to the same graphics queue, which executes submissions in order
+    commandBuffer.Submit(graphicsQueue, &transientCommandBuffer->fence, nullptr, nullptr);
+
+    Mutex::Guard guard(m_transientCommandBuffersMutex);
+
+    m_submittedTransientCommandBuffers.PushBack(transientCommandBuffer);
+}
+
+void VulkanRenderInterface::ReclaimCompletedTransientCommandBuffers_Internal()
+{
+    for (auto it = m_submittedTransientCommandBuffers.Begin(); it != m_submittedTransientCommandBuffers.End();)
+    {
+        VulkanTransientCommandBuffer* transientCommandBuffer = *it;
+        VulkanFence& fence = transientCommandBuffer->fence;
+
+        // isSubmitted is already cleared if the fence was waited on directly
+        if (fence.isSubmitted && !fence.CheckStatus())
+        {
+            ++it;
+
+            continue;
         }
 
-        // Add signal semaphore
-        VulkanSemaphore& signalSemaphore = m_transientCommandBufferSemaphores[frameIndex].EmplaceBack();
-        pSignalSemaphore = &signalSemaphore;
+        // must be unsignaled before it can be passed to vkQueueSubmit again
+        fence.Reset();
 
-        Check(signalSemaphore.Create());
-
-        VulkanFence& fence = m_transientCommandBufferFences[frameIndex].EmplaceBack();
-
-        if (m_recycledTransientCommandBufferFences.Any())
+        if (stagingBufferPool != nullptr)
         {
-            fence = m_recycledTransientCommandBufferFences.PopFront();
-        }
-        else
-        {
-            fence.Create();
+            stagingBufferPool->ReleaseForCommandBuffer(&transientCommandBuffer->commandBuffer);
         }
 
-        Span<VulkanSemaphore*> waitSemaphoreSpan {};
-        if (pWaitSemaphore != nullptr)
-        {
-            waitSemaphoreSpan = { &pWaitSemaphore, 1 };
-        }
+        m_freeTransientCommandBuffers.PushBack(transientCommandBuffer);
 
-        commandBuffer.Submit(
-            graphicsQueue,
-            &fence,
-            waitSemaphoreSpan,
-            Span<VulkanSemaphore*> { &pSignalSemaphore, 1 });
+        it = m_submittedTransientCommandBuffers.Erase(it);
     }
 }
 
@@ -1456,6 +1416,7 @@ VulkanTopLevelASRef VulkanRenderInterface::MakeTLAS()
 void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
     const VulkanGpuBuffer* vertexBuffer,
     const VulkanGpuBuffer* indexBuffer,
+    uint32 numIndices,
     uint32 instanceOffset,
     Array<VkDrawIndexedIndirectCommand, VulkanAllocator>& outBuffer)
 {
@@ -1466,16 +1427,12 @@ void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
         outBuffer.ResizeUninitialized(requiredSize);
     }
 
-    uint32 numIndices = 0;
-
-    if (indexBuffer != nullptr)
-    {
-        numIndices = indexBuffer->Size() / sizeof(uint32);
-    }
+    AssertDebug(indexBuffer == nullptr || uint64(numIndices) * sizeof(uint32) <= indexBuffer->Size(),
+                "numIndices exceeds the bound index buffer's size");
 
     VkDrawIndexedIndirectCommand& command = outBuffer[instanceOffset];
     command = VkDrawIndexedIndirectCommand {};
-    command.indexCount = numIndices;
+    command.indexCount = indexBuffer != nullptr ? numIndices : 0;
     command.vertexOffset = 0;
     command.firstInstance = 0;
 }

@@ -136,8 +136,8 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
 
         cr << DrawIndexed(6);
     }

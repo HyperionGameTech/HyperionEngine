@@ -34,6 +34,7 @@
 #include <Asset/Assets.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/GameState.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
@@ -43,7 +44,7 @@ namespace Hyperion {
 
 extern uint32 GetFrameCounter();
 
-static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(1.0f); // update every second
+static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(0.33f);
 
 DynamicSkySystem::DynamicSkySystem()
     : m_updateTimer { DynamicSkyUpdateTimer },
@@ -88,7 +89,7 @@ void DynamicSkySystem::InitializeSky()
     { // skybox entity setup (renders the captured texture to a box)
         m_skyboxEntity = MakeHandle<Entity>();
         m_skyboxEntity->SetName(NAME("Skybox"));
-        m_skyboxEntity->Scale(150.0f);
+        m_skyboxEntity->Scale(350.0f);
         InitObject(m_skyboxEntity);
 
         if (VisibilityStateComponent* vis = m_skyboxEntity->TryGetComponent<VisibilityStateComponent>())
@@ -109,9 +110,11 @@ void DynamicSkySystem::InitializeSky()
         MaterialAttributes materialAttributes {};
         materialAttributes.shaderName = NAME("Skybox");
         materialAttributes.bucket = RenderBucket::Sky;
+
         // flip cull faces.
         materialAttributes.cullFaces = FaceCullMode::Front;
         materialAttributes.blendFunction = BlendFunction::None();
+
         // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
         materialAttributes.flags = MAF_DEPTH_TEST;
 
@@ -119,9 +122,11 @@ void DynamicSkySystem::InitializeSky()
         m_visScene->SetIsTransient(true); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
-        m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(
+        Handle<SkyProbe> skyProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(
             BoundingBox::Infinity(),
             SkyProbe::DefaultDimensions);
+
+        m_envProbe = skyProbe;
 
         m_envProbe->SetName(NAME("DynamicSkyProbe"));
         InitObject(m_envProbe);
@@ -131,7 +136,7 @@ void DynamicSkySystem::InitializeSky()
         m_envProbe->SetReceivesUpdate(false); // we will update manually, no automatic updates
 
         Handle<Material> skyboxMaterial = MakeHandle<Material>(NAME("SkyboxMaterial"), materialAttributes);
-        skyboxMaterial->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
+        skyboxMaterial->SetTexture(MaterialTextureKey::Diffuse, skyProbe->GetSkyboxCubemap());
         skyboxMaterial->SetIsTransient(true);
         InitObject(skyboxMaterial);
 
@@ -140,40 +145,121 @@ void DynamicSkySystem::InitializeSky()
         // add MeshComponent to skybox entity
         m_skyboxEntity->AddComponent<MeshComponent>(MeshComponent { mesh, skyboxMaterial });
 
-#if 0
-        // Sky Visibility view
-        m_topDownCamera = MakeHandle<Camera>();
-        m_topDownCamera->SetDimensions(Vec2i { 256, 256 });
-        m_topDownCamera->SetName(NAME("SkyVisbilityCamera"));
-        m_topDownCamera->AddCameraController(MakeHandle<OrthoCameraController>());
-        m_topDownCamera->SetDirection(Vec3f(0.0f, -1.0f, 0.0f));
-        m_visScene->GetRoot()->AddChild(m_topDownCamera);
+        m_cloudEffectVolume = MakeHandle<CloudEffectVolume>();
+        m_cloudEffectVolume->SetName(NAME("CloudEffectVolume"));
+        m_cloudEffectVolume->SetSettings(m_world->GetEnvironmentSettings().clouds);
+        InitObject(m_cloudEffectVolume);
 
-        ViewDesc topDownViewDesc {};
+        m_visScene->GetRoot()->AddChild(m_cloudEffectVolume);
 
-        topDownViewDesc.camera = m_topDownCamera;
-        topDownViewDesc.flags = ViewFlags::COLLECT_STATIC_ENTITIES
-            | ViewFlags::NO_SHADOW_VIEWS
-            | ViewFlags::ALL_FOREGROUND_SCENES
-            | ViewFlags::NO_ASYNC_SHADER_LOADING
-            | ViewFlags::NO_FRUSTUM_CULLING; // TEMP
+        {   // Top-down sky visibility capture. Its matrices are rebuilt every frame by UpdateSkyVisibilityView().
+            m_skyVisibilityCamera = MakeHandle<Camera>(int(SkyVisibilityMapDimensions), int(SkyVisibilityMapDimensions));
+            m_skyVisibilityCamera->SetName(NAME("SkyVisibilityCamera"));
+            m_skyVisibilityCamera->SetNearClip(0.0f);
+            m_skyVisibilityCamera->SetFarClip(SkyVisibilityDepthRange);
+            InitObject(m_skyVisibilityCamera);
 
-        FramebufferDesc& framebufferDesc = topDownViewDesc.framebufferDesc;
-        framebufferDesc.extent = Vec2u { 256, 256 };
+            ViewDesc skyVisibilityViewDesc {};
 
-        AttachmentDesc momentsAttachmentDesc {};
-        momentsAttachmentDesc.imageType = TextureType::Texture2D;
-        momentsAttachmentDesc.format = TextureFormat::RG16F;
-        framebufferDesc.attachments[framebufferDesc.numAttachments++] = momentsAttachmentDesc;
+            skyVisibilityViewDesc.flags = ViewFlags::SKY_VISIBILITY_VIEW
+                | ViewFlags::ALL_FOREGROUND_SCENES
+                | ViewFlags::COLLECT_ALL_ENTITIES
+                | ViewFlags::SKIP_LIGHTS
+                | ViewFlags::SKIP_CAMERAS
+                | ViewFlags::SKIP_ENV_PROBES
+                | ViewFlags::SKIP_LIGHTMAP_VOLUMES
+                | ViewFlags::SKIP_PARTICLE_VOLUMES
+                | ViewFlags::SKIP_FOG_VOLUMES
+                | ViewFlags::SKIP_SPRITES
+                | ViewFlags::SKIP_EFFECT_VOLUMES
+                | ViewFlags::NO_SHADOW_VIEWS
+                | ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION
+                | ViewFlags::NO_ASYNC_SHADER_LOADING;
 
-        AttachmentDesc depthAttachmentDesc {};
-        depthAttachmentDesc.imageType = TextureType::Texture2D;
-        depthAttachmentDesc.format = TextureFormat::D16;
-        framebufferDesc.attachments[framebufferDesc.numAttachments++] = depthAttachmentDesc;
+            skyVisibilityViewDesc.camera = m_skyVisibilityCamera;
 
-        m_topDownView = MakeHandle<View>(topDownViewDesc);
-#endif
+            FramebufferDesc& framebufferDesc = skyVisibilityViewDesc.framebufferDesc;
+            framebufferDesc.extent = Vec2u { SkyVisibilityMapDimensions, SkyVisibilityMapDimensions };
+
+            AttachmentDesc depthAttachmentDesc {};
+            depthAttachmentDesc.imageType = TextureType::Texture2D;
+            depthAttachmentDesc.format = TextureFormat::D16;
+            depthAttachmentDesc.loadOp = LoadOperation::Clear;
+            depthAttachmentDesc.storeOp = StoreOperation::Store;
+            framebufferDesc.attachments[framebufferDesc.numAttachments++] = depthAttachmentDesc;
+
+            // depth only, and two sided so canopy cards block the sky from either side
+            MaterialAttributes materialAttributes {};
+            materialAttributes.shaderName = NAME("DrawShadowMap");
+            materialAttributes.flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST;
+            materialAttributes.cullFaces = FaceCullMode::None;
+
+            skyVisibilityViewDesc.overrideAttributes = RenderableAttributeSet(MeshAttributes(), materialAttributes);
+
+            m_skyVisibilityView = MakeHandle<View>(skyVisibilityViewDesc);
+            m_skyVisibilityView->name = NAME("SkyVisibilityView");
+
+            UpdateSkyVisibilityView();
+        }
     }
+}
+
+void DynamicSkySystem::UpdateSkyVisibilityView()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_skyVisibilityView.IsValid() || !GetWorld())
+    {
+        return;
+    }
+
+    // follow the editor camera while stopped and the game camera while playing, like terrain LOD does
+    const bool preferEditorViews = GetWorld()->GetGameState().IsStopped();
+
+    Vec3f viewerPosition = Vec3f::Zero();
+    bool hasPreferredViewpoint = false;
+    bool hasViewpoint = false;
+
+    for (View* view : GetWorld()->GetSimThreadViews())
+    {
+        if (!view || !(view->GetFlags() & ViewFlags::GBUFFER) || !view->GetCamera())
+        {
+            continue;
+        }
+
+        const bool isPreferred = (bool(view->GetFlags() & ViewFlags::EDITOR_VIEW) == preferEditorViews);
+
+        if (hasViewpoint && (hasPreferredViewpoint || !isPreferred))
+        {
+            continue;
+        }
+
+        viewerPosition = view->GetCamera()->GetWorldTranslation();
+        hasPreferredViewpoint = isPreferred;
+        hasViewpoint = true;
+    }
+
+    // snapped to texels so the map doesn't shimmer as the viewer moves
+    const float texelWorldSize = SkyVisibilityWorldExtent / float(SkyVisibilityMapDimensions);
+
+    const Vec3f captureOrigin = Vec3f(
+        MathUtil::Floor(viewerPosition.x / texelWorldSize) * texelWorldSize,
+        viewerPosition.y + SkyVisibilityHeightAboveViewer,
+        MathUtil::Floor(viewerPosition.z / texelWorldSize) * texelWorldSize);
+
+    // looking straight down, so the up vector has to be along Z
+    const Mat4f viewMatrix = Mat4f::LookAt(captureOrigin, captureOrigin - Vec3f::UnitY(), Vec3f::UnitZ());
+
+    const float halfExtent = SkyVisibilityWorldExtent * 0.5f;
+    const Mat4f projectionMatrix = Mat4f::Orthographic(-halfExtent, halfExtent, -halfExtent, halfExtent, 0.0f, SkyVisibilityDepthRange);
+
+    m_skyVisibilityView->cachedMatrices.view = viewMatrix;
+    m_skyVisibilityView->cachedMatrices.viewProj = projectionMatrix * viewMatrix;
+    m_skyVisibilityView->cachedMatrices.invProj = projectionMatrix.Inverse();
+    m_skyVisibilityView->cachedFrustum.SetFromViewProjectionMatrix(m_skyVisibilityView->cachedMatrices.viewProj);
+
+    m_skyVisibilityCamera->SetWorldTranslation(captureOrigin);
 }
 
 void DynamicSkySystem::OnAddedToWorld(World* world)
@@ -188,9 +274,9 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);
 
-    if (m_topDownView.IsValid())
+    if (m_skyVisibilityView.IsValid())
     {
-        GetWorld()->AddView(m_topDownView);
+        GetWorld()->AddView(m_skyVisibilityView);
     }
 
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
@@ -202,11 +288,21 @@ void DynamicSkySystem::OnAddedToWorld(World* world)
             view->AddScene(m_renderScene);
         }
     }
+
+    m_onWorldEnvironmentSettingsChangedHandler = World::OnEnvironmentSettingsChanged.Bind(world, [this](const EnvironmentSettings& environmentSettings)
+    {
+        if (m_cloudEffectVolume.IsValid())
+        {
+            m_cloudEffectVolume->SetSettings(environmentSettings.clouds);
+        }
+    });
 }
 
 void DynamicSkySystem::OnRemovedFromWorld(World* world)
 {
     SystemBase::OnRemovedFromWorld(world);
+
+    m_onWorldEnvironmentSettingsChangedHandler.Reset();
 
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -218,9 +314,9 @@ void DynamicSkySystem::OnRemovedFromWorld(World* world)
         }
     }
 
-    if (m_topDownView.IsValid())
+    if (m_skyVisibilityView.IsValid())
     {
-        GetWorld()->RemoveView(m_topDownView);
+        GetWorld()->RemoveView(m_skyVisibilityView);
     }
 
     GetWorld()->RemoveScene(m_renderScene);
@@ -229,6 +325,14 @@ void DynamicSkySystem::OnRemovedFromWorld(World* world)
 
 void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
 {
+    // advances whether or not the game is simulating, so clouds move in the editor too
+    if (m_cloudEffectVolume.IsValid())
+    {
+        m_cloudEffectVolume->AdvanceClock(delta);
+    }
+
+    UpdateSkyVisibilityView();
+
     if (!m_envProbe)
     {
         return;

@@ -2,18 +2,14 @@
 #define HYP_TONEMAP
 
 #include "Shared.hlsli"
+#include "Scene.hlsli"
 
-#define HDR 1
-// #define HDR_TONEMAP_UNCHARTED 1
-// #define HDR_TONEMAP_FILMIC 1
-// #define HDR_TONEMAP_LOTTES 1
-// #define HDR_TONEMAP_UNREAL 1
-//#define HDR_TONEMAP_REINHARD 1
-#define HDR_TONEMAP_ACES 1
-
-#ifndef EXPOSURE
-#define EXPOSURE 1.25
-#endif
+// matches TonemapOperator in Scene/EnvironmentSettings.hpp
+#define TONEMAP_OPERATOR_AGX 0
+#define TONEMAP_OPERATOR_AGX_PUNCHY 1
+#define TONEMAP_OPERATOR_ACES 2
+#define TONEMAP_OPERATOR_PBR_NEUTRAL 3
+#define TONEMAP_OPERATOR_REINHARD 4
 
 // Source for some of these: https://dmnsgn.github.io/glsl-tone-map
 
@@ -48,8 +44,6 @@ float3 _TonemapFilmic(float3 x)
 
 float3 TonemapFilmic(float3 x)
 {
-    // x *= EXPOSURE;  // Hardcoded Exposure Adjustment
-
     // const float ExposureBias = 2.0;
     // x *= ExposureBias;
 
@@ -127,7 +121,6 @@ float3 _RRTAndODTFit(float3 color)
 // see https://github.com/KhronosGroup/glTF-Sample-Renderer/blob/main/source/Renderer/shaders/tonemapping.glsl
 float3 TonemapACES(float3 color)
 {
-    color *= EXPOSURE;
     color /= 0.6;
 #ifdef DX12
     // DX12 matrix layout with row_major packing results in transposed matrices
@@ -153,27 +146,114 @@ float3 ReverseTonemapReinhardSimple(float3 x)
     return x / (1.0 - x);
 }
 
-float3 Tonemap(float3 x)
+// Minimal AgX fit by Benjamin Wrensch, see https://iolite-engine.com/blog_posts/minimal_agx_implementation
+float3 AgXDefaultContrastApproximation(float3 x)
 {
-#if defined(HDR) && HDR
-#if HDR_TONEMAP_FILMIC
-    return TonemapFilmic(x);
-#elif HDR_TONEMAP_LOTTES
-    return TonemapLottes(x);
-#elif HDR_TONEMAP_UNREAL
-    return TonemapUnreal(x);
-#elif HDR_TONEMAP_UNCHARTED
-    return TonemapUncharted(x);
-#elif HDR_TONEMAP_REINHARD
-    return TonemapReinhard(x);
-#elif HDR_TONEMAP_ACES
-    return TonemapACES(x);
-#else
-    return TonemapReinhard(x);
-#endif
-#else
-    return x;
-#endif
+    const float3 x2 = x * x;
+    const float3 x4 = x2 * x2;
+
+    return 15.5 * x4 * x2
+        - 40.14 * x4 * x
+        + 31.96 * x4
+        - 6.868 * x2 * x
+        + 0.4298 * x2
+        + 0.1191 * x
+        - 0.00232;
+}
+
+float3 TonemapAgX(float3 color, bool punchy)
+{
+    static const float MinEv = -12.47393;
+    static const float MaxEv = 4.026069;
+
+    color = float3(
+        dot(float3(0.842479062253094, 0.0784335999999992, 0.0792237451477643), color),
+        dot(float3(0.0423282422610123, 0.878468636469772, 0.0791661274605434), color),
+        dot(float3(0.0423756549057051, 0.0784336, 0.879142973793104), color));
+
+    color = clamp(log2(max(color, (float3)1e-10)), MinEv, MaxEv);
+    color = (color - MinEv) / (MaxEv - MinEv);
+    color = AgXDefaultContrastApproximation(color);
+
+    if (punchy)
+    {
+        const float luminance = dot(color, float3(0.2126, 0.7152, 0.0722));
+
+        color = pow(max(color, (float3)0.0), (float3)1.35);
+        color = luminance + 1.4 * (color - luminance);
+    }
+
+    color = float3(
+        dot(float3(1.19687900512017, -0.0980208811401368, -0.0990297440797205), color),
+        dot(float3(-0.0528968517574562, 1.15190312990417, -0.0989611768448433), color),
+        dot(float3(-0.0529716355144438, -0.0980434501171241, 1.15107367264116), color));
+
+    // back to linear for the sRGB swapchain
+    return pow(max(color, (float3)0.0), (float3)2.2);
+}
+
+// Khronos PBR Neutral, see https://github.com/KhronosGroup/ToneMapping/tree/main/PBR_Neutral
+float3 TonemapPBRNeutral(float3 color)
+{
+    static const float StartCompression = 0.8 - 0.04;
+    static const float Desaturation = 0.15;
+
+    const float minChannel = min(color.r, min(color.g, color.b));
+    const float offset = minChannel < 0.08 ? minChannel - 6.25 * minChannel * minChannel : 0.04;
+    color -= offset;
+
+    const float peak = max(color.r, max(color.g, color.b));
+
+    if (peak < StartCompression)
+    {
+        return color;
+    }
+
+    const float compressionRange = 1.0 - StartCompression;
+    const float newPeak = 1.0 - compressionRange * compressionRange / (peak + compressionRange - StartCompression);
+    color *= newPeak / peak;
+
+    const float desaturationAmount = 1.0 - 1.0 / (Desaturation * (peak - newPeak) + 1.0);
+
+    return lerp(color, (float3)newPeak, desaturationAmount);
+}
+
+// exposure, white balance, then contrast around mid grey and saturation, all in scene linear before the tonemapper
+float3 ApplyColorGrading(float3 color, WorldShaderData worldShaderData)
+{
+    static const float MidGreyLog = -2.4739312; // log2(0.18)
+
+    color *= worldShaderData.exposure_grading.x;
+
+    color = float3(
+        dot(worldShaderData.white_balance_rows[0].xyz, color),
+        dot(worldShaderData.white_balance_rows[1].xyz, color),
+        dot(worldShaderData.white_balance_rows[2].xyz, color));
+
+    color = max(color, (float3)0.0);
+
+    color = pow((float3)2.0, (log2(max(color, (float3)1e-6)) - MidGreyLog) * worldShaderData.exposure_grading.y + MidGreyLog);
+
+    const float luminance = dot(color, float3(0.2126, 0.7152, 0.0722));
+
+    return max(lerp((float3)luminance, color, worldShaderData.exposure_grading.z), (float3)0.0);
+}
+
+float3 Tonemap(float3 color, uint tonemapOperator)
+{
+    switch (tonemapOperator)
+    {
+    case TONEMAP_OPERATOR_AGX_PUNCHY:
+        return TonemapAgX(color, true);
+    case TONEMAP_OPERATOR_ACES:
+        return TonemapACES(color);
+    case TONEMAP_OPERATOR_PBR_NEUTRAL:
+        return TonemapPBRNeutral(color);
+    case TONEMAP_OPERATOR_REINHARD:
+        return TonemapReinhard(color);
+    default:
+        return TonemapAgX(color, false);
+    }
 }
 
 static const float ST2084_m1 = 2610.0 / 16384.0;

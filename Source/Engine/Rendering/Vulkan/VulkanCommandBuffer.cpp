@@ -211,8 +211,7 @@ RendererResult VulkanCommandBuffer::Submit(
     const uint64* signalValues,
     Span<VkPipelineStageFlags> waitStages)
 {
-    AssertOnThread(g_renderThread);
-
+    // usable from any thread (transient command buffers); the queue itself is synchronized below
     AssertDebug(waitStages.Size() == 0 || waitStages.Size() == waitSemaphores.Size(),
         "must have one entry per wait semaphore when waitStages are present");
 
@@ -301,7 +300,15 @@ RendererResult VulkanCommandBuffer::Submit(
         fence->isSubmitted = true;
     }
 
-    VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence ? fence->GetVulkanHandle() : VK_NULL_HANDLE));
+    VkResult submitResult;
+
+    {
+        Mutex::Guard guard(queue->mutex);
+
+        submitResult = vkQueueSubmit(queue->queue, 1, &submitInfo, fence ? fence->GetVulkanHandle() : VK_NULL_HANDLE);
+    }
+
+    VULKAN_CHECK(submitResult);
 
     return {};
 }

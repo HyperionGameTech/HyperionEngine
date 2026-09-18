@@ -21,7 +21,7 @@ namespace Hyperion.Editor.ViewModels
         // Properties on MeshComponent that invalidate the render proxy when changed.
         protected static readonly HashSet<string> MeshComponentRenderProxyProperties = new()
         {
-            "Mesh", "Material", "Skeleton"
+            "Mesh", "Material", "Skeleton", "ForcedLod", "LodBias"
         };
 
         private bool _hasProperties;
@@ -214,11 +214,11 @@ namespace Hyperion.Editor.ViewModels
                                     entity.AddTag(EntityTag.UpdateRenderProxy);
                                 };
                             }
-                            else if (isRigidBodyComponent && (property.Name == "PhysicsShape" || property.Name == "PhysicsMaterial"))
+                            else if (isRigidBodyComponent && (property.Name == "CollisionShape" || property.Name == "PhysicsMaterial"))
                             {
                                 propertySpecificPostWrite = () =>
                                 {
-                                    if (property.Name == "PhysicsShape")
+                                    if (property.Name == "CollisionShape")
                                     {
                                         entity.AddTag(EntityTag.UpdatePhysicsShape);
                                     }

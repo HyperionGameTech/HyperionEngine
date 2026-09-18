@@ -10,6 +10,8 @@
 
 #include <Core/Math/Mat4f.hpp>
 
+#include <Core/Utilities/ClockTimer.hpp>
+
 #include <Rendering/Pass.hpp>
 #include <Rendering/RenderTypes.hpp>
 
@@ -31,6 +33,14 @@ public:
     // for sky
     Vec4f cachedLightDirIntensity;
     Vec3f cachedProbeOrigin;
+
+    // rgb = tint * intensity, a = overcast brightness
+    Vec4f cachedSkyLook;
+    float cachedCloudCoverage = 0.0f;
+
+    // whether the last sky capture had clouds composited in, and how long ago that was
+    bool hasCompositedClouds = false;
+    ClockTimer cloudRefreshTimer;
 };
 
 class EnvProbePassBase : public PassBase

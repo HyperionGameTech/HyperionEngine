@@ -34,6 +34,7 @@ class DX12DescriptorHeapManager;
 class DX12AsyncCompute;
 class DX12Fence;
 class DX12GpuTimerBackend;
+struct DX12TransientCommandBuffer;
 
 struct DX12QueueData
 {
@@ -148,6 +149,7 @@ public:
     void PopulateIndirectDrawCommandsBuffer(
         const DX12GpuBuffer* vertexBuffer,
         const DX12GpuBuffer* indexBuffer,
+        uint32 numIndices,
         uint32 instanceOffset,
         Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer) override;
 
@@ -178,6 +180,10 @@ private:
 
     void BindDescriptorHeaps(DX12CommandBuffer& commandBuffer);
 
+    /*! \brief Moves submitted transient command buffers whose fence has completed back to the free list.
+     *  m_transientCommandBuffersMutex must be held. */
+    void ReclaimCompletedTransientCommandBuffers_Internal();
+
     void PrepareFrame(DX12Frame* frame) override;
 
     Pimpl<DX12RenderConfig> m_renderConfig;
@@ -186,11 +192,13 @@ private:
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
 
-    List<DX12CommandBuffer, DX12Allocator> m_transientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-    List<DX12CommandBuffer, DX12Allocator> m_pendingTransientCommandBuffers[NumRendererWorkerThreads + 1][NumFramesInFlight];
-
-    List<DX12Fence, DX12Allocator> m_transientCommandBufferFences[NumFramesInFlight];
-    List<DX12Fence, DX12Allocator> m_recycledTransientCommandBufferFences;
+    // Transient command buffers may be recorded on any thread, so they are never tied to a frame slot:
+    // a buffer is only reused once its own fence reports the GPU has finished executing it.
+    // Storage owns every entry (stable addresses); the arrays below partition those entries by state.
+    List<DX12TransientCommandBuffer, DX12Allocator> m_transientCommandBufferStorage;
+    Array<DX12TransientCommandBuffer*, DX12Allocator> m_freeTransientCommandBuffers;
+    Array<DX12TransientCommandBuffer*, DX12Allocator> m_recordingTransientCommandBuffers;
+    Array<DX12TransientCommandBuffer*, DX12Allocator> m_submittedTransientCommandBuffers;
     Mutex m_transientCommandBuffersMutex;
 
     ComPtr<ID3D12Fence> m_transientSyncFence;

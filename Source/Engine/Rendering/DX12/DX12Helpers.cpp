@@ -695,7 +695,14 @@ D3D12_SAMPLER_DESC GetSamplerDesc(const DX12Sampler* sampler)
         }
         break;
     default:
-        desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        if (sampler->GetMinFilterMode() == TextureFilterMode::LinearMipmap)
+        {
+            desc.Filter = D3D12_FILTER_ANISOTROPIC;
+        }
+        else
+        {
+            desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        }
     }
 
     switch (sampler->GetWrapMode())
@@ -722,7 +729,7 @@ D3D12_SAMPLER_DESC GetSamplerDesc(const DX12Sampler* sampler)
     }
 
     desc.MipLODBias = 0.0f;
-    desc.MaxAnisotropy = 1;
+    desc.MaxAnisotropy = 8;
 
     const SamplerCompareOp compareOp = sampler->GetCompareOp();
     if (compareOp == SamplerCompareOp::None)

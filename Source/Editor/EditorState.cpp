@@ -8,6 +8,7 @@
 
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorProject.hpp>
+#include <Editor/EditorSubsystem.hpp>
 
 #include <Framework/Game.hpp>
 
@@ -16,6 +17,10 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
+
+#include <Scene/Scene.hpp>
+#include <Scene/EntityManager.hpp>
+#include <Scene/EntityTag.hpp>
 
 #include <EditorState.generated.inl>
 
@@ -66,6 +71,37 @@ Handle<EditorProject> EditorState::GetCurrentProject() const
     Mutex::Guard guard(m_mutex);
 
     return m_currentProject;
+}
+Camera* EditorState::GetEditorCamera() const
+{
+    AssertOnThread(g_simThread); // only callable on sim thread as we iterate nodes on the scene
+
+    Handle<EditorSubsystem> ess = GetEditorSubsystem();
+    if (!ess.IsValid())
+    {
+        return nullptr;
+    }
+
+    const Handle<Scene>& editorScene = ess->GetEditorScene();
+    if (!editorScene.IsValid())
+    {
+        return nullptr;
+    }
+
+    Assert(editorScene->GetEntityManager().IsValid());
+
+    if (!editorScene->GetEntityManager().IsValid())
+    {
+        return nullptr;
+    }
+
+    // Find a Camera entity with the EditorCamera tag
+    for (auto [camera, _] : editorScene->GetEntityManager()->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::EditorCamera>>().GetScopedView(DataAccessFlags::ACCESS_READ))
+    {
+        return camera;
+    }
+
+    return nullptr;
 }
 
 void EditorState::SetCurrentProject(const Handle<EditorProject>& project, bool isSimulationStateChange)

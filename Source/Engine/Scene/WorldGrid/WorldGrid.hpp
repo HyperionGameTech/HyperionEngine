@@ -121,7 +121,13 @@ public:
         return m_layers;
     }
 
+    ///true if any layer still has collision to stream in at \p worldPosition - sim thread only
+    bool IsCollisionPendingAt(const Vec3f& worldPosition) const;
+
     void Shutdown();
+
+    ///re-adds the layers to streaming after Shutdown() - sim thread only
+    void Restart();
 
 private:
     void Init() override;

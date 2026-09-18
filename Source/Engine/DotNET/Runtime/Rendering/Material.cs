@@ -42,6 +42,9 @@ namespace Hyperion
         [MarshalAs(UnmanagedType.I1)]
         bool unlit = false;
 
+        [MarshalAs(UnmanagedType.I1)]
+        bool foliage = false;
+
         byte flags = 0;
 
         public MaterialParameters()

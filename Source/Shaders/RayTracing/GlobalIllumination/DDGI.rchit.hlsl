@@ -49,6 +49,8 @@ DECLARE_SRV(DDGI, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
 DECLARE_SRV(BindlessResources1, Buffers) ByteAddressBuffer buffers[];
 
+#include "../../include/RayTracing/TerrainSurface.hlsli"
+
 [shader("closesthit")]
 void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attrib)
 {
@@ -97,7 +99,11 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-    if (HAS_TEXTURE(material, DiffuseMap))
+    if (IsTerrainMaterial(material))
+    {
+        material_color = float4(SampleTerrainAlbedo(material, position, normal, float2(texcoord.x, 1.0 - texcoord.y)), 1.0);
+    }
+    else if (HAS_TEXTURE(material, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_LOD(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y) * material.uv_scale, 0.0);
 

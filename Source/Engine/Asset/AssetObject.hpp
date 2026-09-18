@@ -180,6 +180,10 @@ protected:
 
     bool PageBlobDataFromStorage(BlobDataReference& reference);
 
+    /*! \brief Fallback for when blob storage has no data for \p reference: reads the local
+     *  "<Name>.<magic>.raw.blob" file that PersistBlobData() writes next to the manifest. */
+    bool PageBlobDataFromLocalFile(BlobDataReference& reference, const char* magic, size_t alignment = 16);
+
     void AllocateBlobData(BlobDataReference& reference, const void* inData, size_t count, size_t alignment = 16);
     void FreeBlobData(BlobDataReference& reference);
 

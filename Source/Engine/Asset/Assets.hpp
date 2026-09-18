@@ -173,7 +173,7 @@ public:
         const String& key,
         const String& path,
         AssetBatchCallbacks* callbacks,
-        AssetLoadHint hint);
+        EnumFlags<AssetLoadHint> hint);
 
     static constexpr bool assetCacheEnabled = false;
 
@@ -230,7 +230,7 @@ public:
             const String& key,
             const String& path,
             AssetBatchCallbacks* callbacksPtr,
-            AssetLoadHint hint) -> UniquePtr<ProcessAssetFunctorBase>
+            EnumFlags<AssetLoadHint> hint) -> UniquePtr<ProcessAssetFunctorBase>
             {
                 return MakeUnique<ProcessAssetFunctor<ResultType>>(batchIdentifier, key, path, callbacksPtr, hint);
             });
@@ -246,7 +246,7 @@ public:
         const TypeId& typeId,
         const String& path,
         const String& batchIdentifier = String::empty,
-        AssetLoadHint hint = AssetLoadHint::NoHint);
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint);
 
     /*! \brief Load a single asset synchronously
      *  \tparam T The type of asset to load
@@ -258,7 +258,7 @@ public:
     HYP_NODISCARD TAssetLoadResult<T> Load(
         const String& path,
         const String& batchIdentifier = String::empty,
-        AssetLoadHint hint = AssetLoadHint::NoHint)
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, TypeId::ForType<T>());
 
@@ -297,7 +297,7 @@ private:
         const String& key,
         const String& path,
         AssetBatchCallbacks* callbacksPtr,
-        AssetLoadHint hint = AssetLoadHint::NoHint);
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint);
 
     template <class Loader>
     UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(
@@ -305,7 +305,7 @@ private:
         const String& key,
         const String& path,
         AssetBatchCallbacks* callbacksPtr,
-        AssetLoadHint hint = AssetLoadHint::NoHint)
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint)
     {
         return CreateProcessAssetFunctor(TypeId::ForType<Loader>(), batchIdentifier, key, path, callbacksPtr, hint);
     }
@@ -315,7 +315,7 @@ private:
         const String& key,
         const String& path,
         AssetBatchCallbacks* callbacksPtr,
-        AssetLoadHint hint = AssetLoadHint::NoHint)
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path);
 

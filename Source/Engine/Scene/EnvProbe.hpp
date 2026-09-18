@@ -477,16 +477,20 @@ public:
     SkyProbe(const SkyProbe& other) = delete;
     SkyProbe& operator=(const SkyProbe& other) = delete;
 
-    ~SkyProbe() override = default;
+    ~SkyProbe() override;
 
+    /*! \brief The sky as captured, before clouds are composited in - what the skybox draws. The prefiltered env map and
+     *  spherical harmonics include the clouds. */
     HYP_METHOD()
     const Handle<Texture>& GetSkyboxCubemap() const
     {
-        return m_texture;
+        return m_skyboxTexture;
     }
 
 private:
     void CreateTexture();
+
+    Handle<Texture> m_skyboxTexture;
 };
 
 HYP_CLASS()

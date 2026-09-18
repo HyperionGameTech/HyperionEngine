@@ -196,9 +196,11 @@ void ReplicationSystem::OnEntityAdded(Entity* entity)
     Array<net::NetConnectionId, SceneTempAllocator> interestedConnections;
     CollectInterestedConnections(entity->GetWorldTranslation(), playerPositions, interestedConnections);
 
-    if (interestedConnections.Any())
+    ThreadBase* gameServerThread = GetGameServerThread();
+
+    if (interestedConnections.Any() && gameServerThread != nullptr)
     {
-        GetGameServerThread()->GetScheduler().Enqueue(
+        gameServerThread->GetScheduler().Enqueue(
             [netId,
              interestedConnections = Array<net::NetConnectionId, NetAllocator>(interestedConnections),
              payload = std::move(payload)]()
@@ -246,16 +248,20 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
     HYP_LOG(Replication, Info, "Entity {} removed from replication (netId={}), broadcasting EntityDespawn",
         entity->Id().Value(), uint32(netId));
 
-    GetGameServerThread()->GetScheduler().Enqueue(
-        [netId]()
-        {
-            g_gameServer->GetNetServer().Broadcast(
-                NetMessageId::EntityDespawn,
-                NetChannelMode::ReliableOrdered,
-                NetStreamKey(uint32(netId)),
-                ConstByteView());
-        },
-        TaskEnqueueFlags::FIRE_AND_FORGET);
+    // null once an editor-owned server has been stopped
+    if (ThreadBase* gameServerThread = GetGameServerThread())
+    {
+        gameServerThread->GetScheduler().Enqueue(
+            [netId]()
+            {
+                g_gameServer->GetNetServer().Broadcast(
+                    NetMessageId::EntityDespawn,
+                    NetChannelMode::ReliableOrdered,
+                    NetStreamKey(uint32(netId)),
+                    ConstByteView());
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 
     g_gameServer->FreeNetId(netId);
 }
@@ -304,6 +310,9 @@ void ReplicationSystem::ApplyPendingRequests()
 
             if (it == m_connectionIdToEntity.End())
             {
+                HYP_LOG_ONCE(Replication, Warning, "Dropping player moves from connection {}: no replicated entity is owned by it, so they will never be acked",
+                    uint32(requestPtr->connectionId));
+
                 break;
             }
 

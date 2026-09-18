@@ -23,6 +23,9 @@ namespace threading {
 static const double TaskThreadLagSpikeThreshold = 50.0;
 static const double TaskThreadSingleTaskLagSpikeThreshold = 10.0;
 
+// idle pool threads only get woken by their own queue; wake periodically to steal work queued behind a busy sibling
+static constexpr uint32 TaskThreadIdleStealIntervalMs = 100;
+
 extern void SetCurrentThreadIndex(uint32 threadIndex);
 
 // #define HYP_ENABLE_LAG_SPIKE_DETECTION
@@ -82,7 +85,7 @@ void TaskThread::operator()()
         if (!gotTask)
         {
             bool stopRequested = false;
-            m_scheduler->WaitForTasks(&stopRequested);
+            m_scheduler->WaitForTasks(&stopRequested, m_ownerPool != nullptr ? TaskThreadIdleStealIntervalMs : 0);
 
             if (stopRequested)
             {

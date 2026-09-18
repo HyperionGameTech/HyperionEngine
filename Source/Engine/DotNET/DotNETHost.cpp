@@ -69,18 +69,18 @@ public:
 
         Optional<FilePath> filepath = FindAssemblyFilePath(m_basePath, path);
 
-        auto it = m_assembliesByPath.Find(*filepath);
-
-        if (it != m_assembliesByPath.End())
-        {
-            return it->second;
-        }
-
         if (!filepath.HasValue())
         {
             HYP_LOG(DotNET, Error, "Failed to load assembly {}: Could not find assembly DLL (base path: {})", path, m_basePath);
 
             return nullptr;
+        }
+
+        auto it = m_assembliesByPath.Find(*filepath);
+
+        if (it != m_assembliesByPath.End())
+        {
+            return it->second;
         }
 
         SharedPtr<Assembly> assembly = MakeShared<Assembly>(EmptyGuid);
@@ -148,6 +148,14 @@ public:
         }
 
         return IsCoreAssembly(assembly->GetGuid());
+    }
+
+    void ReleaseAssemblies()
+    {
+        Map<FilePath, SharedPtr<Assembly>> assembliesByPath = std::move(m_assembliesByPath);
+        assembliesByPath.Clear();
+
+        m_coreAssemblies.Clear();
     }
 
     virtual void* GetDelegate(
@@ -509,8 +517,7 @@ private:
 
     bool ShutdownDotNetRuntime()
     {
-        m_assembliesByPath.Clear();
-        m_coreAssemblies.Clear();
+        ReleaseAssemblies();
 
         // can be nullptr if init from managed
         if (m_cxt != nullptr)
@@ -662,6 +669,8 @@ void DotNETHost::Shutdown()
     }
 
     m_globalFunctions = {};
+
+    m_impl->ReleaseAssemblies();
 
     delete m_impl;
     m_impl = nullptr;

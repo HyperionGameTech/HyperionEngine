@@ -15,6 +15,8 @@
 #include <Rendering/Passes/TonemapPass.hpp>
 #include <Rendering/Passes/LightmapPass.hpp>
 #include <Rendering/Passes/FogVolumePass.hpp>
+#include <Rendering/Passes/HeightFogPass.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 
 #ifdef HYP_EDITOR
@@ -32,6 +34,7 @@
 #include <Rendering/Passes/HBAOPass.hpp>
 #include <Rendering/Passes/BloomPass.hpp>
 #include <Rendering/DepthOfField.hpp>
+#include <Rendering/Frame.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Material.hpp>
@@ -41,6 +44,7 @@
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/TextureViewCache.hpp>
+#include <Rendering/ThumbnailCaptureState.hpp>
 #include <Rendering/BLASCache.hpp>
 #include <Rendering/AccelerationStructure.hpp>
 #include <Rendering/BLASBuilder.hpp>
@@ -62,8 +66,14 @@
 #include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
+
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
+
+#include <Scene/Sky/CloudEffectVolume.hpp>
+
+#include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Framework/CVarManager.hpp>
 
@@ -130,6 +140,11 @@ CVar<int> g_cvDeferredDebugVis { "Rendering.Deferred.DebugVis", 0 };
 
 CVar<bool> g_cvRayTracingEnabled { "Rendering.RayTracingEnabled", true };
 CVar<bool> g_cvDDGI { "Rendering.DDGI", false };
+CVar<int> g_cvDDGINumCascades { "Rendering.DDGI.NumCascades", 4 };
+CVar<float> g_cvDDGIProbeDistance { "Rendering.DDGI.ProbeDistance", 2.5f };
+CVar<int> g_cvDDGIProbeCountHorizontal { "Rendering.DDGI.ProbeCountHorizontal", 16 };
+CVar<int> g_cvDDGIProbeCountVertical { "Rendering.DDGI.ProbeCountVertical", 8 };
+CVar<int> g_cvDDGIRaysPerProbe { "Rendering.DDGI.RaysPerProbe", 16 };
 CVar<bool> g_cvRayTracedReflections { "Rendering.RayTracing.RayTracedReflections", false };
 CVar<bool> g_cvPathTracing { "Rendering.PathTracing", false };
 
@@ -140,10 +155,12 @@ CVar<bool> g_cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> g_cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
 CVar<bool> g_cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
 CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
-CVar<float> g_cvTonemapExposure { "Rendering.Tonemap.Exposure", 1.8f };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
+CVar<bool> g_cvDrawWireframe { "Rendering.DrawWireframe", false };
 CVar<bool> g_cvFogVolumes { "Rendering.FogVolumes", true };
 CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights", true };
+
+extern CVar<bool> g_cvClouds;
 
 #ifdef HYP_EDITOR
 CVar<bool> g_cvEditorGrid { "Editor.ShowGrid", true };
@@ -359,6 +376,19 @@ RayTracingPassData::~RayTracingPassData()
 #pragma endregion RayTracingPassData
 
 #pragma region DeferredPass
+
+static Viewport GetViewportForView(View* view, const RenderSetup& rs)
+{
+    if (!(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW))
+    {
+        return rs.viewport;
+    }
+
+    Viewport viewport {};
+    viewport.extent = view->GetViewDesc().framebufferDesc.extent;
+
+    return viewport;
+}
 
 static FramebufferRef CreateLightingFramebuffer(GBuffer* gbuffer)
 {
@@ -1080,6 +1110,12 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>(gbuffer->GetExtent(), gbuffer);
         passData.fogVolumePass->Create();
 
+        passData.heightFogPass = MakeUnique<HeightFogPass>();
+        passData.heightFogPass->Create();
+
+        passData.cloudPass = MakeUnique<CloudPass>(gbuffer->GetExtent());
+        passData.cloudPass->Create();
+
 #ifdef HYP_EDITOR
         passData.editorGridPass = MakeUnique<EditorGridPass>();
         passData.editorGridPass->Create();
@@ -1133,8 +1169,17 @@ void DeferredPass::CreateViewRayTracingPasses(View* view, DeferredPassData& pass
     passData.rayTracingReflections = MakeUnique<RayTracingReflections>(gbuffer);
     passData.rayTracingReflections->Create();
 
-    /// FIXME: Proper AABB for DDGI
-    passData.ddgi = MakeUnique<DDGI>(DDGIInfo { .aabb = { { -30.0f, -5.0f, -30.0f }, { 30.0f, 35.0f, 30.0f } } });
+    DDGIInfo ddgiInfo {};
+    ddgiInfo.probeCountsPerCascade = Vec3u {
+        uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2)),
+        uint32(MathUtil::Max(g_cvDDGIProbeCountVertical.Get(), 2)),
+        uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2))
+    };
+    ddgiInfo.probeDistance = g_cvDDGIProbeDistance.Get();
+    ddgiInfo.numCascades = uint32(MathUtil::Clamp(g_cvDDGINumCascades.Get(), 1, int(DDGI::MaxCascades)));
+    ddgiInfo.numRaysPerProbe = uint32(MathUtil::Max(g_cvDDGIRaysPerProbe.Get(), 1));
+
+    passData.ddgi = MakeUnique<DDGI>(std::move(ddgiInfo));
     passData.ddgi->Create();
 }
 
@@ -1288,6 +1333,9 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
     passData.fogVolumePass = MakeUnique<FogVolumePass>(newSize, gbuffer);
     passData.fogVolumePass->Create();
 
+    // resized rather than recreated, so the noise, weather map and shadow map survive
+    passData.cloudPass->Resize(newSize);
+
 #ifdef HYP_EDITOR
     passData.editorGridPass = MakeUnique<EditorGridPass>();
     passData.editorGridPass->Create();
@@ -1338,6 +1386,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     FixedArray<Set<Light*, RenderTempAllocator>, NumLightTypes> lights;
     Map<ShadowMapCacheKey, DrawShadowMapParams, RenderTempAllocator> lightsForShadow;
+
+    // the first view with active clouds; sky probes composite its clouds
+    DeferredPassData* skyProbeCloudsPassData = nullptr;
     // ---
 
     // init view pass data and collect global rendering resources
@@ -1355,7 +1406,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
 
-            if (!gbuffer || gbuffer->GetExtent() != rs.viewport.extent)
+            const Viewport viewViewport = GetViewportForView(view, rs);
+
+            if (!gbuffer || gbuffer->GetExtent() != viewViewport.extent)
             {
                 PassData* pd = FetchViewPassData(view);
                 Assert(pd != nullptr);
@@ -1365,11 +1418,35 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
                 pdCasted->priority = view->GetPriority();
 
-                if (gbuffer->GetExtent() != rs.viewport.extent)
+                if (gbuffer->GetExtent() != viewViewport.extent)
                 {
-                    ResizeView(rs.viewport, view, *pdCasted);
+                    ResizeView(viewViewport, view, *pdCasted);
                 }
             }
+
+            { // Clouds - before lighting, fog and the sky probe sample the view's weather and shadow maps
+                DeferredPassData* pd = DynamicCast<DeferredPassData>(FetchViewPassData(view));
+                AssertDebug(pd != nullptr);
+
+                RenderSetup cloudRS = rs.Fork();
+                cloudRS.view = view;
+                cloudRS.passData = pd;
+
+                pd->cloudPass->Update(frame, cloudRS);
+
+                if (!skyProbeCloudsPassData && pd->cloudPass->CanCompositeSkyProbe())
+                {
+                    skyProbeCloudsPassData = pd;
+                }
+            }
+        }
+        else if (view->GetFlags() & ViewFlags::SKY_VISIBILITY_VIEW)
+        {
+            // must run before lighting reads it for sky occlusion
+            RenderSetup skyVisibilityRS = rs.Fork();
+            skyVisibilityRS.view = view;
+
+            RI.namedPasses[NamedPass::SkyVisibility][0]->RenderFrame(frame, skyVisibilityRS);
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
         {
@@ -1468,6 +1545,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             envProbeSetup.light = lights[uint32(LightType::Directional)].Front();
         }
 
+        // probe views set their own pass data; this only carries the clouds to sky probe captures
+        envProbeSetup.passData = skyProbeCloudsPassData;
+
         if (envProbes.Any())
         {
             // check for dynamic probes to render
@@ -1526,6 +1606,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         RenderSetup currentViewSetup = rs.Fork();
         currentViewSetup.view = view;
         currentViewSetup.passData = pd;
+        currentViewSetup.viewport = GetViewportForView(view, rs);
 
         RenderFrameForView(frame, currentViewSetup);
 
@@ -1710,7 +1791,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         frame->cr << SetCurrentFramebuffer(translucentPassFramebuffer);
 
+        // sky is projected onto the far plane (depth == 1.0), so it must pass where depth is still at its cleared value
+        frame->cr << SetDepthCompareOp(DepthCompareOp::LessOrEqual);
+
         renderCollector.ExecuteDrawCalls(frame, rs, translucentPassFramebuffer, RenderBucketMask<RenderBucket::Sky>);
+
+        frame->cr << SetDepthCompareOp(DepthCompareOp::Less);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
@@ -1905,8 +1991,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << CommitDrawState();
 
-        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
 
         frame->cr << DrawIndexed(6);
 
@@ -1916,6 +2002,14 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentBlendFunction(BlendFunction::None());
 
         frame->cr << SetCurrentFramebuffer(nullptr);
+    }
+
+    if (debugVisMode == 0)
+    {
+        RenderSetup heightFogRS = lightingRS.Fork();
+        heightFogRS.framebuffer = passData.lightingFramebuffer;
+
+        passData.heightFogPass->Render(frame, heightFogRS);
     }
 
     { // Render the deferred lighting into the color target with a full screen quad.
@@ -1945,8 +2039,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << CommitDrawState();
 
-        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        frame->cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        frame->cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
 
         frame->cr << DrawIndexed(6);
 
@@ -1956,6 +2050,15 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetStencilTest(false);
 
         frame->cr << SetCurrentFramebuffer(nullptr);
+    }
+
+    if (g_cvClouds.Get())
+    {
+        // over the lit scene's sky pixels, before translucents so they draw in front of the clouds
+        RenderSetup cloudRS = rs.Fork();
+        cloudRS.framebuffer = effectPassFramebuffer;
+
+        passData.cloudPass->Render(frame, cloudRS);
     }
 
     frame->cr << SetAsyncShaderLoadingEnabled(true);
@@ -2058,6 +2161,25 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     GpuImageViewRef finalImageView = (passData.taaPass != nullptr && g_cvTAA.Get())
         ? RI.textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
+
+    if (view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
+    {
+        if (view->thumbnailCaptureState != nullptr)
+        {
+            const FramebufferRef& gbufferFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
+            
+            Attachment* albedoAttachment = gbufferFramebuffer.IsValid()
+                ? gbufferFramebuffer->GetAttachment(GBufferTarget::Color)
+                : nullptr;
+
+            if (albedoAttachment != nullptr)
+            {
+                view->thumbnailCaptureState->CaptureFrom(frame, finalImageView, albedoAttachment->GetImageView());
+            }
+        }
+
+        return;
+    }
 
     // Ordered by View priority
     auto outputsIt = std::lower_bound(
@@ -2333,8 +2455,8 @@ void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderC
             m_quadMesh->UploadGpuData();
         }
 
-        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_quadMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_quadMesh->GetIndexBuffer(0));
         cr << DrawIndexed(6);
 
         // End rendering to this mip

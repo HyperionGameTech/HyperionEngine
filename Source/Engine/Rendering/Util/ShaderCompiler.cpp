@@ -2160,11 +2160,7 @@ bool ShaderCompiler::CanCompileShaders(const ShaderCompileParams& params) const
     const bool needsDX12 = params.ShouldCompileDX12();
 
 #ifdef HYP_DXC
-    // DXC can compile HLSL for both Vulkan (SPIR-V) and DX12 (DXIL)
-    if (needsVulkan || needsDX12)
-    {
-        return true;
-    }
+    return true;
 #endif
 
     HYP_LOG(ShaderCompiler, Warning, "Not linked with DXC");
@@ -3164,6 +3160,20 @@ bool ShaderCompiler::CompileBundle(
     {
         permsToCompile.SetRequiredVertexAttributes(declaredPerms.GetRequiredVertexAttributes());
         permsToCompile.SetOptionalVertexAttributes(declaredPerms.GetOptionalVertexAttributes());
+
+        // permsToCompile was copied before the sources were scanned, so it is missing their STATIC() declarations.
+        // Without them a variant compiled with no shader request builds with those defines absent.
+        for (ShaderPropertyId propertyId : outBundle->staticProperties.ToArray())
+        {
+            ShaderProperty property;
+
+            if (!GetShaderPropertyById(propertyId, property))
+            {
+                continue;
+            }
+
+            MergeProperty(permsToCompile, property);
+        }
     }
 
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
@@ -3849,6 +3859,11 @@ bool ShaderCompiler::RequestShader(
 #endif
 
     return true;
+}
+
+bool ShaderCompiler::HasShaderBundle(Name name) const
+{
+    return m_definitions != nullptr && m_definitions->HasShader(name);
 }
 
 bool ShaderCompiler::IsGraphicsShaderBundle(Name name) const

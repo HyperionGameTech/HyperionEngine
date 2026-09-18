@@ -14,6 +14,8 @@
 #include <Rendering/DX12/DX12CommandBuffer.hpp>
 #include <Rendering/DX12/DX12Fence.hpp>
 
+#include <Rendering/Buffers.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 namespace Hyperion {
@@ -66,6 +68,11 @@ bool DX12AsyncCompute::CheckStatus()
     }
 
     m_isSubmitted = false;
+
+    if (RI.stagingBufferPool != nullptr)
+    {
+        RI.stagingBufferPool->ReleaseForCommandBuffer(m_commandBuffer);
+    }
 
     return true;
 }

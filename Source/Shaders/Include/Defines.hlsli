@@ -43,6 +43,7 @@
 // Sampling
 
 #define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#define SAMPLE_TEXTURE_2D_GRAD(samp, tex, texcoord, texcoord_ddx, texcoord_ddy) (tex).SampleGrad((samp), (texcoord), (texcoord_ddx), (texcoord_ddy))
 #ifdef PIXEL_SHADER
 #define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
 #else
@@ -114,6 +115,7 @@
 //                           meaning will change depending on context
 #define OBJECT_MASK_UNLIT (0x01u)
 #define OBJECT_MASK_LIGHTMAPPED (0x02u)
+#define OBJECT_MASK_FOLIAGE (0x04u)
 
 // Helper math utilities.
 #define HYP_FMATH_SQR(num) ((num) * (num))

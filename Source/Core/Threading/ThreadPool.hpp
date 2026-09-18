@@ -159,7 +159,7 @@ public:
     virtual TaskThread* GetNextTaskThread();
 
     /*! \brief Attempt to steal a task from any thread in the pool, excluding the thief. */
-    bool TryStealTask(TaskThread* thief, Scheduler::ScheduledTask& outTask);
+    virtual bool TryStealTask(TaskThread* thief, Scheduler::ScheduledTask& outTask);
 
     /*! \brief Enqueue a task to the pool with optional debug name and flags.
      *  \param debugName Debug name for profiling/logging
@@ -223,6 +223,8 @@ public:
     }
 
     TaskThread* GetNextTaskThread() override;
+
+    bool TryStealTask(TaskThread* thief, Scheduler::ScheduledTask& outTask) override;
 
 private:
     /*! \brief Create a new thread and add it to the pool. */

@@ -11,6 +11,7 @@
     x:DataType="vm:WorldSettingsPanelViewModel"
     mc:Ignorable="d"
     Title="World Settings"
+    Icon="/Assets/Branding/hyperion-icon.ico"
     Width="700"
     Height="720"
     MinWidth="560"
@@ -31,11 +32,9 @@
                     Orientation="Horizontal"
                     Spacing="8">
                     <Button
-                        Classes="Primary"
                         Click="OnCloseClick"
                         ToolTip.Tip="Close (Esc)">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <controls:Codicon Kind="Close" Size="14" />
                             <TextBlock Text="Close" />
                         </StackPanel>
                     </Button>
@@ -68,6 +67,50 @@
         <!--  Settings content  -->
         <ScrollViewer Padding="0">
             <StackPanel Margin="16,14" Spacing="14">
+                <!--  Environment  -->
+                <StackPanel IsVisible="{Binding HasEnvironment}" Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="section-label" Text="Environment" />
+                        <TextBlock
+                            Classes="muted"
+                            FontSize="11"
+                            Text="Sky look, sky light, exposure, color and height fog for the World."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border
+                        Padding="14,8,12,10"
+                        Background="{DynamicResource Brush.PanelRaised}"
+                        BorderBrush="{DynamicResource Brush.BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Medium}"
+                        DataContext="{Binding Environment}">
+                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
+                    </Border>
+                </StackPanel>
+
+                <!--  Sky and clouds  -->
+                <StackPanel IsVisible="{Binding HasSky}" Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="section-label" Text="Sky &amp; Clouds" />
+                        <TextBlock
+                            Classes="muted"
+                            FontSize="11"
+                            Text="Dynamic sky and cloud settings for the World."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border
+                        Padding="14,8,12,10"
+                        Background="{DynamicResource Brush.PanelRaised}"
+                        BorderBrush="{DynamicResource Brush.BorderLight}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Medium}"
+                        DataContext="{Binding Sky}">
+                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
+                    </Border>
+                </StackPanel>
+
                 <StackPanel Spacing="4">
                     <TextBlock Classes="section-label" Text="World Grid Layers" />
                     <TextBlock
@@ -164,8 +207,31 @@
                                         Margin="14,0,12,10"
                                         IsVisible="{Binding IsExpanded}"
                                         Spacing="2">
+                                        <!--  EditorActions on the layer class  -->
+                                        <ItemsControl
+                                            Margin="0,2,0,4"
+                                            IsVisible="{Binding HasActions}"
+                                            ItemsSource="{Binding Actions}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                    <Button
+                                                        Margin="0,2,6,2"
+                                                        Padding="10,4"
+                                                        Command="{Binding ExecuteActionCommand}"
+                                                        Content="{Binding Label}"
+                                                        IsEnabled="{Binding IsEnabled}"
+                                                        ToolTip.Tip="{Binding Label}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
                                         <Separator Margin="0,2,0,6" />
-                                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+                                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -180,9 +246,7 @@
                     Click="OnAddLayerDropDownClick"
                     ToolTip.Tip="Add a new layer to the world grid">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <controls:Codicon Kind="Add" Size="14" />
                         <TextBlock Text="Add Layer" />
-                        <controls:Codicon Kind="ChevronDown" Size="10" />
                     </StackPanel>
                     <DropDownButton.Flyout>
                       <Flyout Placement="Bottom">

@@ -8,6 +8,7 @@
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderConfig.hpp>
+#include <Rendering/Bindless.hpp>
 #include <Rendering/RenderProxyList.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/GBuffer.hpp>
@@ -446,8 +447,8 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(quadMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(quadMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(quadMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(quadMesh->GetIndexBuffer(0));
 
         cr << DrawIndexed(quadMesh->NumIndices(0), uint32(numToDraw));
 
@@ -509,16 +510,16 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferFront);
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_textQuadFrontMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_textQuadFrontMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_textQuadFrontMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_textQuadFrontMesh->GetIndexBuffer(0));
         cr << DrawIndexed(m_textQuadFrontMesh->NumIndices(0), charDataFront.Size());
 
         // Draw back face
         cr << SetShaderUniform(1, "TextSpriteInstanceBuffer"_sh, textInstanceBufferBack);
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(m_textQuadBackMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(m_textQuadBackMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(m_textQuadBackMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(m_textQuadBackMesh->GetIndexBuffer(0));
         cr << DrawIndexed(m_textQuadBackMesh->NumIndices(0), charDataBack.Size());
 
         // reset
@@ -600,7 +601,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             const float textSize = spriteProxy->bufferData.positionSize.w;
 
-            const uint32 textureIndex = spriteProxy->texture ? spriteProxy->texture->Id().ToIndex() : uint32(-1);
+            const uint32 textureIndex = GetBindlessTextureIndex(spriteProxy->texture);
 
             const TextMetrics metrics = MeasureText(*spriteProxy->fontAtlas, spriteProxy->text, textSize);
 

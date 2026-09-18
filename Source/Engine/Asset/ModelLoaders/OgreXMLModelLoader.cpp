@@ -292,7 +292,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     if (!model.skeletonName.Empty())
     {
-        const String skeletonPath = state.filepath.BasePath() + "/" + model.skeletonName + ".xml";
+        const FilePath skeletonPath = ResolveReferencedFilepath(state.filepath, model.skeletonName + ".xml");
 
         auto skeletonAsset = state.assetManager->Load<Skeleton>(skeletonPath);
 

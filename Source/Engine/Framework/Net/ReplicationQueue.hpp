@@ -59,6 +59,21 @@ public:
         }
     }
 
+    /// Discards everything queued. Only valid while neither the producer nor the consumer is running.
+    void Reset()
+    {
+        for (Buffer& buffer : m_buffers)
+        {
+            buffer.storage.SetSize(0);
+            buffer.startOffsets.Resize(0);
+            buffer.writeOffset = 0;
+        }
+
+        m_writeIndex = 0;
+        m_readIndex = 1;
+        m_readyIndex.Set(2, MemoryOrder::RELEASE);
+    }
+
     /// Pushes an element to the queue
     template <class T>
     void Push(const T& item)

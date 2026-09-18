@@ -20,6 +20,10 @@ class ENGINE_API TerrainCellData : public AssetObject
     HYP_OBJECT_BODY(TerrainCellData);
 
 public:
+    static constexpr const char* HeightsBlobMagic = "TCD";
+    static constexpr const char* SplatMapBlobMagic = "SPLT";
+    static constexpr const char* ErosionMasksBlobMagic = "EMSK";
+
     TerrainCellData();
     explicit TerrainCellData(Name name, const Vec2i& coord = Vec2i::Zero(), const Vec3u& extent = Vec3u::Zero());
 
@@ -37,14 +41,30 @@ public:
     HYP_FIELD(Property = "Extent", Serialize)
     Vec3u extent;
 
-    void SetSculptDelta(ConstByteView view);
+    ///fingerprint of the generator state the heights were produced with
+    HYP_FIELD(Property = "GeneratorFingerprint", Serialize)
+    uint64 generatorFingerprint = 0;
 
-    ByteView GetSculptDelta();
-    ConstByteView GetSculptDelta() const;
+    ///sculpted heights are kept even when the fingerprint no longer matches
+    HYP_FIELD(Property = "IsSculpted", Serialize)
+    bool isSculpted = false;
 
-    Span<const float> GetSculptDeltaFloat() const;
+    ///(cellSize + 2 * TerrainGenerator::CellPadding)^2 heights. True when the manifest has heights, without paging them in.
+    bool HasHeights() const
+    {
+        return m_heights.size != 0;
+    }
 
-    bool EnsureWritableSculptDelta(uint32 numVertices);
+    void SetHeights(Span<const float> paddedHeights);
+    void ClearHeights();
+
+    Span<const float> GetHeights() const;
+    Span<float> GetHeights();
+
+    ///pages the heights in and makes them a private writable copy; false if there are none to load
+    bool EnsureWritableHeights();
+
+    void ClearSplatMap();
 
     static constexpr uint32 NumSplatLayers = 4;
 
@@ -55,29 +75,38 @@ public:
 
     bool EnsureSplatMapAllocated(uint32 numVertices);
 
+    ///cellSize^2 TerrainErosionMasks saved with generated heights. Kept as generated when the heights are sculpted
+    bool HasErosionMasks() const
+    {
+        return m_erosionMasks.size != 0;
+    }
+
+    void SetErosionMasks(ConstByteView erosionMasks);
+
+    ConstByteView GetErosionMasks() const;
+
 protected:
     virtual void PageBlobData() override;
     virtual void UnpageBlobData() override;
 
-    /*! Reads a single blob file (<name>.<magic>.raw.blob) from \p directory into \p reference.
-     *  \returns true when data was paged in. */
     bool PageBlobDataFromFile(const FilePath& directory, const char* magic, BlobDataReference& reference);
 
     virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
     {
-        // terrain sculpt deltas
-        outReferences.EmplaceBack("TERA", 1, &m_sculptDelta);
-
-        // terrain splat map
-        outReferences.EmplaceBack("TSM", 1, &m_splatMap);
+        outReferences.EmplaceBack(HeightsBlobMagic, 1, &m_heights);
+        outReferences.EmplaceBack(SplatMapBlobMagic, 1, &m_splatMap);
+        outReferences.EmplaceBack(ErosionMasksBlobMagic, 1, &m_erosionMasks);
     }
 
 private:
-    HYP_FIELD(Property = "SculptDelta", Serialize)
-    BlobDataReference m_sculptDelta;
+    HYP_FIELD(Property = "Heights", Serialize)
+    BlobDataReference m_heights;
 
     HYP_FIELD(Property = "SplatMap", Serialize)
     BlobDataReference m_splatMap;
+
+    HYP_FIELD(Property = "ErosionMasks", Serialize)
+    BlobDataReference m_erosionMasks;
 };
 
 } // namespace Hyperion

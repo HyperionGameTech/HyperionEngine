@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <Scene/WorldGrid/Terrain/TerrainQuadtree.hpp>
+
 #include <Core/Containers/Array.hpp>
 #include <Core/Utilities/Span.hpp>
 
@@ -13,33 +15,60 @@
 
 namespace Hyperion {
 
-class NoiseCombinator;
-struct StreamingCellInfo;
+///positions are in tile grid space. UV1: U = height on the next coarser level's surface, V = two levels coarser
+///(both clamped to the tile's coarsest level)
+using TerrainVertex = TVertex<VT_Simple | VT_UV1>;
+
+namespace TerrainMeshHelpers {
+
+static constexpr uint32 CalculateGridVertexCount(uint32 gridDimension)
+{
+    return gridDimension * gridDimension;
+}
+
+static constexpr uint32 CalculateSkirtVertexCount(uint32 gridDimension)
+{
+    return 4u * gridDimension;
+}
+
+void BuildSkirtVertices(
+    uint32 gridDimension,
+    Span<const TerrainVertex> gridVertices,
+    Span<TerrainVertex> outSkirtVertices,
+    float skirtDepth);
+
+float SampleLodSurfaceHeight(
+    Span<const float> paddedHeights,
+    uint32 cellSize,
+    uint32 stride,
+    float gridX,
+    float gridZ);
+
+} // namespace TerrainMeshHelpers
+
+struct TerrainPatchMeshData
+{
+    ///grid vertices followed by skirt vertices
+    Array<TerrainVertex> vertices;
+    Array<uint32> indices;
+};
 
 class TerrainMeshBuilder
 {
 public:
-    struct CellMeshData
-    {
-        Array<SimpleVertex> vertices;
-        Array<uint32> indices;
-    };
-
-    explicit TerrainMeshBuilder(uint32 cellSize);
+    TerrainMeshBuilder(uint32 cellSize, const TerrainQuadtreeLayout& layout);
 
     TerrainMeshBuilder(const TerrainMeshBuilder& other) = delete;
     TerrainMeshBuilder(TerrainMeshBuilder&& other) noexcept = delete;
 
     ~TerrainMeshBuilder();
 
-    ///builds vertex/index data for one terrain cell from procedural noise, plus an optional sculpt delta view 
-    CellMeshData BuildCellVertexData(
-        const StreamingCellInfo& cellInfo,
-        const NoiseCombinator& noise,
-        Span<const float> sculptDelta) const;
+    ///paddedHeights is (cellSize + 2 * TerrainGenerator::CellPadding)^2
+    TerrainPatchMeshData BuildPatchMeshData(Span<const float> paddedHeights, uint32 patchIndex) const;
 
 private:
     uint32 m_cellSize;
+    TerrainQuadtreeLayout m_layout;
 };
 
 } // namespace Hyperion

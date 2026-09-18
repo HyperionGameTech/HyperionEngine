@@ -28,7 +28,7 @@
 namespace Hyperion {
 
 static CVar<float> s_cvEditorCameraMouseSensitivity { "Editor.Camera.MouseSensitivity", 50.0f };
-static CVar<float> s_cvEditorCameraMovementSpeed { "Editor.Camera.MouseSensitivity", 10.0f };
+static CVar<float> s_cvEditorCameraMovementSpeed { "Editor.Camera.MovementSpeed", 0.5f };
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Camera);
 
@@ -160,28 +160,31 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
 
     constexpr EnumFlags<MouseButtonState> ButtonsLR = MouseButtonState::LEFT | MouseButtonState::RIGHT;
 
-    if (isAltPressed || (evt.mouseButtons & ButtonsLR) == ButtonsLR)
+    ///ctrl can be used as RMB too
+    ///so trackpads can have the same effect
+
+    if (!isCtrlPressed && (isAltPressed || (evt.mouseButtons & ButtonsLR) == ButtonsLR))
     {
         if (!isMoveKeyPressed)
         {
             Vec3f translationDelta = (dirCrossY * float(mouseDeltaX)) + (camera->GetUpVector() * float(-mouseDeltaY));
-            camera->SetWorldTranslation(camera->GetWorldTranslation() + (translationDelta * moveMultiplier * float(m_deltaTime)));
+            camera->SetWorldTranslation(camera->GetWorldTranslation() + (translationDelta * moveMultiplier));
         }
     }
-    else if ((evt.mouseButtons & MouseButtonState::RIGHT))
+    else if (isCtrlPressed || (evt.mouseButtons & MouseButtonState::RIGHT))
     {
         Vec3f forward = camera->GetDirection();
         forward.y = 0.0f;
         forward.Normalize();
 
-        if (isCtrlPressed)
+        if (isCtrlPressed && (evt.mouseButtons & MouseButtonState::RIGHT))
         {
-            // rotate around the focal point
+            // TODO: rotate around the focal point
         }
         else if (!isMoveKeyPressed)
         {
             Vec3f translationDelta = (dirCrossY * float(mouseDeltaX)) + (forward * float(-mouseDeltaY));
-            camera->SetWorldTranslation(camera->GetWorldTranslation() + (translationDelta * moveMultiplier * float(m_deltaTime)));
+            camera->SetWorldTranslation(camera->GetWorldTranslation() + (translationDelta * moveMultiplier));
         }
     }
     else if (evt.mouseButtons & MouseButtonState::LEFT)

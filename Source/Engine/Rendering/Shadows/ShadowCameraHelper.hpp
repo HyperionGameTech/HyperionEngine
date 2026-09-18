@@ -22,14 +22,29 @@ Mat4f CalculateShadowViewMatrix(
     const BoundingSphere& sceneWorldBounds,
     const Vec3f& lightDir);
 
+float CalculateCascadeSplitRatio(
+    uint32 splitIndex,
+    uint32 numCascades,
+    float nearDistance,
+    float farDistance,
+    float lambda);
+
 BoundingBox CalculateCascadeBounds(
     const Frustum& mainCameraFrustum,
-    const BoundingSphere& sceneWorldBounds,
     const Mat4f& shadowViewMatrix,
     const Vec2u& shadowMapResolution,
     const float inNearRatio,
     const float inFarRatio,
     const Vec3f& lightDir);
+
+BoundingBox StabilizeCascadeBounds(
+    const BoundingBox& newBounds,
+    const BoundingBox& previousBounds);
+
+BoundingBox CalculateCascadeCullingBounds(
+    const BoundingBox& cascadeBounds,
+    const BoundingSphere& sceneWorldBounds,
+    const Mat4f& shadowViewMatrix);
 
 } // namespace ShadowCameraHelpers
 

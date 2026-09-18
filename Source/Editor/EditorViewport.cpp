@@ -38,7 +38,7 @@ void EditorViewport::Init()
     if (!m_camera)
     {
         m_camera = MakeHandle<Camera>();
-        m_camera->SetName(NAME("EditorViewportCamera"));
+        m_camera->SetName(NAME("EditorCamera"));
 
         m_camera->AddTag<EntityTag::EditorCamera>();
 
@@ -46,9 +46,9 @@ void EditorViewport::Init()
 
         m_camera->AddCameraController(MakeHandle<EditorCameraController>());
 
-        m_camera->SetFOV(60.0f);
+        m_camera->SetFOV(75.0f);
         m_camera->SetNearClip(0.1f);
-        m_camera->SetFarClip(1000.0f);
+        m_camera->SetFarClip(3000.0f);
     }
 
     InitObject(m_camera);

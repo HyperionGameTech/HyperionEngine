@@ -29,9 +29,6 @@
         <DataTemplate DataType="vm:NewWeaponPanelViewModel">
             <panels:NewWeaponPanelView />
         </DataTemplate>
-        <DataTemplate DataType="vm:NewMaterialPanelViewModel">
-            <panels:NewMaterialPanelView />
-        </DataTemplate>
         <DataTemplate DataType="vm:AddNormalizedCubeSpherePanelViewModel">
             <panels:AddNormalizedCubeSpherePanelView />
         </DataTemplate>
@@ -43,6 +40,9 @@
         </DataTemplate>
         <DataTemplate DataType="vm:TerrainPaintPanelViewModel">
             <panels:TerrainPaintPanelView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:NetworkSettingsPanelViewModel">
+            <panels:NetworkSettingsPanelView />
         </DataTemplate>
     </Application.DataTemplates>
 
@@ -285,6 +285,14 @@
             <Setter Property="Padding" Value="0,0" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <!--  Inspector property description (under the row when the property list has ShowDescriptions on)  -->
+        <Style Selector="TextBlock.inspector-description">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextFaint}" />
+            <Setter Property="Margin" Value="0,1,0,2" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <!--  Menu  -->

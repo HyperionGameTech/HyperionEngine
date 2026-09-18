@@ -333,14 +333,14 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
-        FilePath materialLibraryPath = FilePath::Relative(
-            (StringUtil::BasePath(state.filepath) + "/" + model.materialLibrary),
-            FilePath::Current());
+        String materialLibraryName = model.materialLibrary;
 
-        if (!materialLibraryPath.EndsWith(".mtl"))
+        if (!materialLibraryName.EndsWith(".mtl"))
         {
-            materialLibraryPath += ".mtl";
+            materialLibraryName += ".mtl";
         }
+
+        const FilePath materialLibraryPath = ResolveReferencedFilepath(state.filepath, materialLibraryName);
 
         materialLibrary = MTLMaterialLoader::ParseMtl(materialLibraryPath, *state.assetManager, state.batchIdentifier);
 
@@ -452,7 +452,14 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         // mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
-        GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+        if (state.hint & AssetLoadHint::Transient)
+        {
+            mesh->SetIsTransient(true);
+        }
+        else
+        {
+            GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+        }
 
         InitObject(mesh);
 

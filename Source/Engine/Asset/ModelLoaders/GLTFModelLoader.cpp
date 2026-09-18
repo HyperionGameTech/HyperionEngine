@@ -447,7 +447,7 @@ Handle<Texture> LoadEmbeddedTexture(GltfLoadContext& ctx, const cgltf_image& ima
     return {};
 }
 
-Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& textureView, bool srgb)
+Handle<Texture> AcquireTexture(LoaderState& state, GltfLoadContext& ctx, const cgltf_texture_view& textureView, bool srgb)
 {
     if (textureView.texture == nullptr)
     {
@@ -485,7 +485,7 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
     {
         const String texturePath = ResolveTexturePath(ctx, *image);
 
-        auto TryLoadTexture = [&](const String& candidate) -> Handle<Texture>
+        auto tryLoadTexture = [&](const String& candidate) -> Handle<Texture>
         {
             if (candidate.Empty())
             {
@@ -495,7 +495,8 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
             if (auto textureResult = ctx.state.assetManager->Load<Texture>(
                     candidate,
                     ctx.state.batchIdentifier,
-                    srgb ? AssetLoadHint::TextureLoader_LoadAsSRGB : AssetLoadHint::NoHint);
+                    (state.hint & ~AssetLoadHint::TextureSRGB) | (srgb ? AssetLoadHint::TextureSRGB : AssetLoadHint::NoHint));
+
                 textureResult.HasValue())
             {
                 const Handle<Texture>& texture = textureResult->Result();
@@ -507,11 +508,11 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
             return {};
         };
 
-        textureHandle = TryLoadTexture(texturePath);
+        textureHandle = tryLoadTexture(texturePath);
 
         if (!textureHandle)
         {
-            textureHandle = TryLoadTexture(String(image->uri));
+            textureHandle = tryLoadTexture(String(image->uri));
         }
 
         if (!textureHandle)
@@ -1098,7 +1099,7 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     return { metalnessTexture, roughnessTexture };
 }
 
-Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* gltfMaterial, const Handle<Mesh>& mesh)
+Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const cgltf_material* gltfMaterial, const Handle<Mesh>& mesh)
 {
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = NAME("GeometryPass");
@@ -1149,12 +1150,12 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* glt
         metallic = float(pbr.metallic_factor);
         roughness = float(pbr.roughness_factor);
 
-        if (Handle<Texture> baseColorTexture = AcquireTexture(ctx, pbr.base_color_texture, /* srgb */ true); baseColorTexture.IsValid())
+        if (Handle<Texture> baseColorTexture = AcquireTexture(state, ctx, pbr.base_color_texture, /* srgb */ true); baseColorTexture.IsValid())
         {
             textures[MaterialTextureKey::Diffuse] = baseColorTexture;
         }
 
-        if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false); metallicRoughnessTexture.IsValid())
+        if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(state, ctx, pbr.metallic_roughness_texture, false); metallicRoughnessTexture.IsValid())
         {
             if constexpr (SeparateMetalnessRoughnessTextures)
             {
@@ -1216,12 +1217,12 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* glt
         materialAttributes.cullFaces = FaceCullMode::None;
     }
 
-    if (Handle<Texture> normalTexture = AcquireTexture(ctx, gltfMaterial->normal_texture, false); normalTexture.IsValid())
+    if (Handle<Texture> normalTexture = AcquireTexture(state, ctx, gltfMaterial->normal_texture, false); normalTexture.IsValid())
     {
         textures[MaterialTextureKey::Normals] = normalTexture;
     }
 
-    if (Handle<Texture> occlusionTexture = AcquireTexture(ctx, gltfMaterial->occlusion_texture, false); occlusionTexture.IsValid())
+    if (Handle<Texture> occlusionTexture = AcquireTexture(state, ctx, gltfMaterial->occlusion_texture, false); occlusionTexture.IsValid())
     {
         textures[MaterialTextureKey::AmbientOcclusion] = occlusionTexture;
     }
@@ -1235,7 +1236,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* glt
 
     if (gltfMaterial->emissive_texture.texture != nullptr)
     {
-        if (Handle<Texture> emissiveTexture = AcquireTexture(ctx, gltfMaterial->emissive_texture, /* srgb */ true); emissiveTexture.IsValid())
+        if (Handle<Texture> emissiveTexture = AcquireTexture(state, ctx, gltfMaterial->emissive_texture, /* srgb */ true); emissiveTexture.IsValid())
         {
             if (!textures.Has(MaterialTextureKey::Diffuse))
             {
@@ -1771,7 +1772,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 continue;
             }
 
-            Handle<Material> material = AcquireMaterial(ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
+            Handle<Material> material = AcquireMaterial(state, ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
             InitObject(material);
 
             meshResource.primitives.PushBack(GltfPrimitiveResource {

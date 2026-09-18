@@ -36,6 +36,7 @@ class Light;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
+class EffectVolume;
 class Material;
 class Texture;
 class Skeleton;
@@ -48,6 +49,7 @@ struct RenderProxyLight;
 struct RenderProxyLightmapVolume;
 struct RenderProxyParticleVolume;
 struct RenderProxyFogVolume;
+struct RenderProxyEffectVolume;
 struct RenderProxyMaterial;
 struct RenderProxySkeleton;
 struct RenderProxySprite;
@@ -79,6 +81,7 @@ public:
         LightmapVolume,
         ParticleVolume,
         FogVolume,
+        EffectVolume,
         Material,
         Skeleton,
         Texture,
@@ -93,6 +96,7 @@ public:
         ResourceTracker<AllocatorType, ObjId<LightmapVolume>, LightmapVolume*, RenderProxyLightmapVolume>,
         ResourceTracker<AllocatorType, ObjId<ParticleVolume>, ParticleVolume*, RenderProxyParticleVolume>,
         ResourceTracker<AllocatorType, ObjId<FogVolume>, FogVolume*, RenderProxyFogVolume>,
+        ResourceTracker<AllocatorType, ObjId<EffectVolume>, EffectVolume*, RenderProxyEffectVolume>,
         ResourceTracker<AllocatorType, ObjId<Material>, Material*, RenderProxyMaterial>,
         ResourceTracker<AllocatorType, ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
         ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>,
@@ -175,6 +179,7 @@ public:
     DEF_RESOURCE_TRACKER_GETTER(LightmapVolumes, LightmapVolume);
     DEF_RESOURCE_TRACKER_GETTER(ParticleVolumes, ParticleVolume);
     DEF_RESOURCE_TRACKER_GETTER(FogVolumes, FogVolume);
+    DEF_RESOURCE_TRACKER_GETTER(EffectVolumes, EffectVolume);
     DEF_RESOURCE_TRACKER_GETTER(Materials, Material);
     DEF_RESOURCE_TRACKER_GETTER(Skeletons, Skeleton);
     DEF_RESOURCE_TRACKER_GETTER(Textures, Texture);

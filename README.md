@@ -1,4 +1,12 @@
-## About Hyperion
+
+<div align="center">
+  <img width="250" src="Documentation/Images/hyperion_light.png">
+</div>
+<div align="center">
+    <a href="https://hyperionengine.dev">Website</a> • <a href="https://discord.gg/Fv8PwMJEUb">Discord</a>
+</div>
+
+## About
 
 Hyperion started as a passion project in 2016 (forked from [apex-engine](https://github.com/ajmd17/apex-engine)), and is still worked on daily.
 
@@ -6,12 +14,13 @@ Our aim with Hyperion is to offer a high fidelity gaming experience even on low-
 
 That, and the editor shouldn't suck.
 
-[Website](https://hyperionengine.dev)
-[Discord](https://discord.gg/Fv8PwMJEUb)
-
----
-
-![Hyperion Engine Screenshot](/Documentation/Images/editor-scene.jpg)
+## Screenshots
+| | |
+|:---:|:---:|
+| ![Hyperion Engine - Baked lightmaps](/Documentation/Images/image.png) | ![Hyperion Engine - Multiplayer editing in the Editor](/Documentation/Images/multiplayer-editor-1.png) |
+| Baked lightmaps and reflections | Multiplayer, in play-in-editor mode |
+| ![Hyperion Engine - DDGI](/Documentation/Images/ddgi.gif) | ![Hyperion Engine - GPU particles](/Documentation/Images/particles.gif) |
+| DDGI - _(old capture, needs update)_ | GPU particles with depth buffer collisions |
 
 ## Some Features
 - Clustered deferred shading supporting a large number of dynamic lights while maintaining good frame times. Uses forward clustered shading for translucent materials.

@@ -253,7 +253,8 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     // An editor action mutates the object, so the panel has to re-read afterwards.
-                    Actions.Add(new InspectorActionViewModel(Target, method, label, isEnabled, OnActionCompleted));
+                    Actions.Add(new InspectorActionViewModel(
+                        Target, method, label, isEnabled, OnActionCompleted, OnActionCompletedSimThread));
                 }
                 catch (Exception ex)
                 {
@@ -262,6 +263,16 @@ namespace Hyperion.Editor.ViewModels
             }
 
             HasActions = Actions.Count > 0;
+        }
+
+        // Sim thread, before the panel re-reads. An action mutates the object just like a property write
+        // does, so the owner has to hear about it too - otherwise, say, regenerating a collision shape
+        // never re-registers the rigid body. This cannot run on the UI thread: the post-write reaches
+        // engine state that only the sim thread may touch, such as an entity's UpdateRenderProxy tag.
+        private void OnActionCompletedSimThread()
+        {
+            _postWriteCallback?.Invoke();
+            MarkTargetDirty();
         }
 
         private void OnActionCompleted()

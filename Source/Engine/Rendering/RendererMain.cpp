@@ -32,6 +32,7 @@
 #include <Rendering/Shadows/ShadowMap.hpp>
 
 #include <Rendering/Passes/DeferredPass.hpp>
+#include <Rendering/Passes/DeferredPassShared.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -41,6 +42,7 @@
 #include <Scene/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/EffectVolume.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
@@ -82,8 +84,12 @@ extern EngineStatTimer g_statTotalStallTime;
 static EngineStatTimer s_statProxyListReadWait("Rendering/CPU/ProxyListReadWait");
 
 extern CVar<bool> g_cvDepthPrepass;
+extern CVar<bool> g_cvDrawWireframe;
 extern CVar<bool> g_cvPathTracing;
 extern CVar<bool> g_cvEnableLightmapVolumes;
+
+///extra LOD bias for shadow views, which can usually afford coarser geometry than the view that sees it directly
+static CVar<int32> s_cvMeshLodShadowBias { "Rendering.MeshLod.ShadowBias", 0 };
 
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameForward = NAME("FORWARD");
@@ -184,9 +190,6 @@ ParallelRenderingState::~ParallelRenderingState()
 #pragma region GeometryPass
 
 namespace GeometryPass {
-
-static constexpr StringHash DefaultShaderName = "GeometryPass"_sh;
-
 namespace Props {
 
 /// Static property names
@@ -205,11 +208,15 @@ static const Name s_nameHasParallaxMap = NAME("HAS_PARALLAX_MAP");
 static const Name s_nameHasMetalnessMap = NAME("HAS_METALNESS_MAP");
 static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
 
+static const Name s_nameTerrainMorph = NAME("TERRAIN_MORPH");
+
 /// Property interning
 
 static StaticShaderPropertyId s_propInstancing { ShaderProperty(s_nameInstancing) };
 static StaticShaderPropertyId s_propAlphaDiscard { ShaderProperty(s_nameAlphaDiscard) };
 static StaticShaderPropertyId s_propSkinning { ShaderProperty(s_nameSkinning) };
+
+static StaticShaderPropertyId s_propTerrainMorph { ShaderProperty(s_nameTerrainMorph) };
 
 // shading mode
 static StaticShaderPropertyId s_propShadingTypeDeferred { ShaderProperty(s_nameShadingType, Name(s_nameDeferred)) };
@@ -255,11 +262,26 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     attributes = proxy.attributes;
 
+    // checked before the override is applied so passes like shadow maps still know they're drawing terrain
+    const StringHash sourceShaderNameHash = proxy.attributes.GetMaterialAttributes().shaderName;
+    const bool isTerrainMesh = (sourceShaderNameHash == "Terrain"_sh);
+
     if (overrideAttributes)
     {
+        const MaterialAttributes& sourceMaterialAttributes = attributes.GetMaterialAttributes();
+
         MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
         // do not override bucket!
-        newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
+        newMaterialAttributes.bucket = sourceMaterialAttributes.bucket;
+
+        // cutouts and two sided geometry have to stay that way in depth only passes, or foliage
+        // casts solid shadows and drops its back faces
+        newMaterialAttributes.flags |= (sourceMaterialAttributes.flags & MAF_ALPHA_DISCARD);
+
+        if (sourceMaterialAttributes.cullFaces == FaceCullMode::None)
+        {
+            newMaterialAttributes.cullFaces = FaceCullMode::None;
+        }
 
         attributes.SetMaterialAttributes(newMaterialAttributes);
     }
@@ -287,6 +309,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     // Shouldn't depend on the names of shaders to conditionally handle stuff!
     const bool isCubemap = IsCubemapShader(shaderNameHash);
     const bool isGeometryPassOrSimilar = IsGeometryPassFamily(shaderNameHash);
+    const bool supportsTerrainMorph = (shaderNameHash == "Terrain"_sh || shaderNameHash == "DrawShadowMap"_sh);
 
     uint8 stencilReferenceValue = 0;
 
@@ -316,6 +339,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     shaderProperties.Set(Props::s_propInstancing, hasInstancing);
     shaderProperties.Set(Props::s_propAlphaDiscard, hasAlphaDiscard);
     shaderProperties.Set(Props::s_propSkinning, hasSkinning);
+    shaderProperties.Set(Props::s_propTerrainMorph, isTerrainMesh && supportsTerrainMorph);
 
     if (isGeometryPassOrSimilar)
     {
@@ -748,7 +772,9 @@ static void SetForwardShadingConstants(
             LightShaderData lights[MaxBoundLightsForwardShading];
             ShadowMapData shadowMaps[MaxBoundLightsForwardShading];
             EnvProbeShaderData fallbackProbe; // always the scene's sky probe, or a zeroed EnvProbeShaderData if none
+            DirectionalLightCSMData directionalCSM;
             uint32 numBoundLights;
+            uint32 directionalCSMLightIndex; // index into lights of the directional light directionalCSM belongs to, ~0u if none
         };
 
         ForwardShadingConstants* forwardShadingConstants = (ForwardShadingConstants*)RI.cbufferAllocator->Allocate(
@@ -759,6 +785,8 @@ static void SetForwardShadingConstants(
 
         Assert(forwardShadingConstants != nullptr);
         Memory::Zero(forwardShadingConstants, sizeof(ForwardShadingConstants));
+
+        forwardShadingConstants->directionalCSMLightIndex = ~0u;
 
         // @TODO Sort by light dist
 
@@ -775,6 +803,48 @@ static void SetForwardShadingConstants(
             const uint32 lightIndex = forwardShadingConstants->numBoundLights++;
 
             forwardShadingConstants->lights[lightIndex] = lightProxy->bufferData;
+
+            if (light->GetLightType() == LightType::Directional)
+            {
+                if (forwardShadingConstants->directionalCSMLightIndex != ~0u)
+                {
+                    continue;
+                }
+
+                ShadowMap* cascadeShadowMaps[MaxShadowMapCascades] {};
+                View* cascadeViewsDynamic[MaxShadowMapCascades] {};
+                View* cascadeViewsStatic[MaxShadowMapCascades] {};
+
+                const uint32 numCascades = MathUtil::Clamp(lightProxy->numCascades, 1u, MaxShadowMapCascades);
+
+                bool anyCascadeBound = false;
+
+                for (uint32 cascadeIndex = 0; cascadeIndex < numCascades; cascadeIndex++)
+                {
+                    cascadeShadowMaps[cascadeIndex] = RI.shadowMapCache->GetShadowMap(
+                        light,
+                        renderSetup.view,
+                        cascadeIndex,
+                        cascadeViewsDynamic[cascadeIndex],
+                        cascadeViewsStatic[cascadeIndex]);
+
+                    anyCascadeBound |= cascadeShadowMaps[cascadeIndex] != nullptr;
+                }
+
+                if (anyCascadeBound)
+                {
+                    DeferredRendererHelpers::FillShadowMapDataCSM(
+                        &forwardShadingConstants->directionalCSM,
+                        cascadeViewsDynamic,
+                        cascadeViewsStatic,
+                        cascadeShadowMaps,
+                        numCascades);
+
+                    forwardShadingConstants->directionalCSMLightIndex = lightIndex;
+                }
+
+                continue;
+            }
 
             // Set shadow map
             ShadowMapData& currShadowMapData = forwardShadingConstants->shadowMaps[lightIndex];
@@ -1044,6 +1114,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     const bool useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
 
     Mesh* prevMesh = nullptr;
+    uint8 prevLodIndex = UINT8_MAX;
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferSize = 0;
@@ -1102,6 +1173,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         const RenderProxyMesh& meshProxy = *drawCalls.meshProxies[i];
 
+        // the LOD was picked for this view when the draw call was built
+        const uint8 lodIndex = uint8(drawCalls.ids[i].lodIndex);
+
         if (handleDepthPrepass(meshProxy))
         {
             continue;
@@ -1115,12 +1189,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
-        // Mesh GPU buffers upload asynchronously (Mesh::UploadGpuData); skip this draw call for
-        // now if it hasn't finished yet rather than binding a null buffer -- it'll pick up once ready.
-        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer().IsValid() || !meshProxy.mesh->GetIndexBuffer().IsValid()))
+        // Skip if upload isn't ready.
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(lodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(lodIndex).IsValid()))
         {
             continue;
         }
+
+        const uint32 numIndices = meshProxy.mesh->NumIndices(lodIndex);
 
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
@@ -1156,10 +1231,10 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         cr << CommitDrawState();
 
-        if (!prevMesh || prevMesh != meshProxy.mesh)
+        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != lodIndex)
         {
-            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer());
-            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer());
+            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(lodIndex));
+            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(lodIndex));
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(meshProxy.material != nullptr);
@@ -1179,15 +1254,16 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
         else
         {
-            cr << DrawIndexed(meshProxy.numIndices, 1);
+            cr << DrawIndexed(numIndices, 1);
         }
 
         prevMesh = meshProxy.mesh;
+        prevLodIndex = lodIndex;
 
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
         {
             g_statDrawCalls++;
-            g_statTriangles += meshProxy.numIndices / 3;
+            g_statTriangles += numIndices / 3;
         }
     }
 
@@ -1198,6 +1274,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         uint32 numDrawCallUniforms = numShaderUniforms;
 
         const RenderProxyMesh& meshProxy = *instancedDrawCalls.meshProxies[i];
+
+        // the LOD was picked for this view when the draw call was built
+        const uint8 lodIndex = uint8(instancedDrawCalls.ids[i].lodIndex);
 
         if (handleDepthPrepass(meshProxy))
         {
@@ -1212,12 +1291,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             continue;
         }
 
-        // Mesh GPU buffers upload asynchronously (Mesh::UploadGpuData); skip this draw call for
-        // now if it hasn't finished yet rather than binding a null buffer -- it'll pick up once ready.
-        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer().IsValid() || !meshProxy.mesh->GetIndexBuffer().IsValid()))
+        // Skip if upload isn't ready.
+        if (HYP_UNLIKELY(!meshProxy.mesh->GetVertexBuffer(lodIndex).IsValid() || !meshProxy.mesh->GetIndexBuffer(lodIndex).IsValid()))
         {
             continue;
         }
+
+        const uint32 numIndices = meshProxy.mesh->NumIndices(lodIndex);
 
         { // Write constants for the draw
             CBufferAllocator& cba = *RI.cbufferAllocator;
@@ -1263,14 +1343,14 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
         cr << CommitDrawState();
 
-        if (!prevMesh || prevMesh != meshProxy.mesh)
+        if (!prevMesh || prevMesh != meshProxy.mesh || prevLodIndex != lodIndex)
         {
-            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer());
-            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer());
+            cr << BindVertexBuffer(meshProxy.mesh->GetVertexBuffer(lodIndex));
+            cr << BindIndexBuffer(meshProxy.mesh->GetIndexBuffer(lodIndex));
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(meshProxy.material != nullptr);
-            
+
             if (!meshProxy.material->GetTexture(MaterialTextureKey::Diffuse))
             {
                 HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", meshProxy.material->GetName());
@@ -1286,16 +1366,17 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         }
         else
         {
-            cr << DrawIndexed(meshProxy.numIndices, entityInstanceBatch->numEntities);
+            cr << DrawIndexed(numIndices, entityInstanceBatch->numEntities);
         }
 
         prevMesh = meshProxy.mesh;
+        prevLodIndex = lodIndex;
 
         // @NOTE For indirect rendering we would need to read back the number of drawn instances from the GPU to get correct stats.
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
         {
             g_statInstancedDrawCalls += entityInstanceBatch->numEntities;
-            g_statTriangles += meshProxy.numIndices / 3;
+            g_statTriangles += numIndices / 3;
         }
     }
 }
@@ -1341,7 +1422,7 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
     cr << SetCurrentViewport(renderSetup.viewport);
 
     if (isNormalDrawingPass
-        && mas.shaderName == GeometryPass::DefaultShaderName
+        && mas.shaderName == "GeometryPass"_sh
         && mas.shaderProperties.Test(s_propShadingTypeForward)
         && dpd->gridTilesBuffer != nullptr)
     {
@@ -1357,7 +1438,10 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
         cr << SetCurrentShader(ShaderDesc(mas.shaderName, mas.shaderProperties), enableAsync);
     }
 
-    cr << SetFillMode(mas.fillMode);
+    // the depth prepass draws lines too, or it would leave depth behind where the geometry pass draws nothing
+    const bool drawWireframe = dpd != nullptr && g_cvDrawWireframe.Get();
+
+    cr << SetFillMode(drawWireframe ? FillMode::Line : mas.fillMode);
     cr << SetFaceCullMode(mas.cullFaces);
 
     cr << SetCurrentBlendFunction(mas.blendFunction);
@@ -1906,10 +1990,11 @@ void RenderCollector::ExecuteDrawCalls(
 
         if (mappings.Empty())
         {
-            // Still need to bind the framebuffer so its attachments are cleared, otherwise we're in garbage town
-            if (framebuffer)
+            // Still need to clear the framebuffer's attachments, otherwise we're in garbage town
+            if (framebuffer && framebuffer->IsCreated())
             {
                 frame->cr << SetCurrentFramebuffer(framebuffer);
+                frame->cr << ClearFramebuffer(framebuffer);
                 frame->cr << SetCurrentFramebuffer(nullptr);
             }
 
@@ -1933,10 +2018,11 @@ void RenderCollector::ExecuteDrawCalls(
 
         if (allEmpty)
         {
-            // Ditto
-            if (framebuffer)
+            // Ditto - clear attachments, see above
+            if (framebuffer && framebuffer->IsCreated())
             {
                 frame->cr << SetCurrentFramebuffer(framebuffer);
+                frame->cr << ClearFramebuffer(framebuffer);
                 frame->cr << SetCurrentFramebuffer(nullptr);
             }
 
@@ -2027,11 +2113,66 @@ void RenderCollector::ExecuteDrawCalls(
     }
 }
 
+uint8 RenderCollector::SelectLod(const RenderProxyMesh& meshProxy, const LODViewData& lodViewData, int32 viewLodBias)
+{
+    const ObjId<Entity> entityId = meshProxy.entity->Id();
+
+    const uint8 numLods = MathUtil::Max(meshProxy.numLods, uint8(1));
+
+    const uint8 overrideLod = GetMeshLodOverride(entityId);
+
+    if (overrideLod != uint8(~0))
+    {
+        return MathUtil::Min(overrideLod, uint8(numLods - 1));
+    }
+
+    MeshLodSelectionParams params;
+    params.numLods = numLods;
+    params.forcedLod = meshProxy.forcedLod;
+    params.lodBias = meshProxy.lodBias;
+
+    const BoundingSphere boundingSphere { BoundingBox(meshProxy.bufferData.worldAabbMin, meshProxy.bufferData.worldAabbMax) };
+
+    const float screenSize = lodViewData.ComputeScreenSize(boundingSphere);
+
+    const uint32 entityIndex = entityId.ToIndex();
+
+    const uint8* previousLod = previousLodIndices.TryGet(entityIndex);
+
+    const uint8 lodIndex = SelectMeshLod(meshProxy.mesh->GetMeshDesc(), params, screenSize, previousLod != nullptr ? *previousLod : 0, viewLodBias);
+
+    previousLodIndices.Set(entityIndex, lodIndex);
+
+    return lodIndex;
+}
+
 // Called at start of frame on render thread
-void RenderCollector::CollectRenderables(uint32 bucketBits)
+void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    // views without a camera have no vantage point to measure screen size from, so everything in them stays at LOD 0
+    LODViewData lodViewData;
+    bool canSelectLods = false;
+
+    // Shadow views select for themselves, so they can be biased coarser without touching what the camera sees.
+    const int32 viewLodBias = (view != nullptr && (view->GetFlags() & ViewFlags::SHADOW_VIEW))
+        ? s_cvMeshLodShadowBias.Get()
+        : 0;
+
+    if (view != nullptr && view->GetCamera() != nullptr)
+    {
+        if (const RenderProxyCamera* cameraProxy = static_cast<const RenderProxyCamera*>(GetRenderProxy(view->GetCamera())))
+        {
+            lodViewData = LODViewData(
+                cameraProxy->bufferData.projMat,
+                cameraProxy->bufferData.cameraPosition.GetXYZ(),
+                cameraProxy->bufferData.cameraNear);
+
+            canSelectLods = true;
+        }
+    }
 
     if (!batchAllocator)
     {
@@ -2083,13 +2224,17 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
         {
             AssertDebug(Resources::GetBinding(meshProxy->mesh) != Resources::InvalidBinding);
 
+            const uint8 lodIndex = (canSelectLods && meshProxy->selectsLod)
+                ? SelectLod(*meshProxy, lodViewData, viewLodBias)
+                : uint8(0);
+
             AssertDebug(meshProxy->mesh != nullptr
-                        && meshProxy->mesh->GetVertexBuffer() != nullptr
-                        && meshProxy->mesh->GetIndexBuffer() != nullptr);
+                        && meshProxy->mesh->GetVertexBuffer(lodIndex) != nullptr
+                        && meshProxy->mesh->GetIndexBuffer(lodIndex) != nullptr);
 
             AssertDebug(meshProxy->material != nullptr);
 
-            DrawCallID drawCallId { meshProxy->mesh->Id(), meshProxy->material->Id() };
+            DrawCallID drawCallId(meshProxy->mesh->Id(), meshProxy->material->Id(), lodIndex);
 
             if (!meshProxy->enableAutoInstancing && !meshProxy->numInstances)
             {
@@ -2108,10 +2253,8 @@ void RenderCollector::CollectRenderables(uint32 bucketBits)
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);
 
-                    // `batch` points to a BatchType instance (e.g. MeshEntityInstanceBatch) that is larger than
-                    // EntityInstanceBatch. Resetting via `*batch = EntityInstanceBatch { batchIndex }` only clears
-                    // the EntityInstanceBatch base subobject and leaves derived-only fields (e.g. previousTransforms)
-                    // stale from whatever draw call previously owned this recycled batch slot.
+                    // we need to zero it using GetStructSize() since the actual memory footprint of
+                    // the batch will potentially be bigger than sizeof(EntityInstanceBatch).
                     Memory::Zero(batch, prevDrawCallCollection.batchAllocator->GetStructSize());
                     batch->batchIndex = batchIndex;
                 }
@@ -2307,6 +2450,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             drawCallCollection.meshProxies.EraseAt(idx);
 
             previousAttributes.EraseAt(idx);
+
+            if (previousLodIndices.HasIndex(idx))
+            {
+                previousLodIndices.EraseAt(idx);
+            }
         }
     }
 

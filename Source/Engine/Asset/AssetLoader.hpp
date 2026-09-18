@@ -218,12 +218,13 @@ public:
         AssetManager& assetManager,
         const String& path,
         const String& batchIdentifier = String::empty,
-        AssetLoadHint hint = AssetLoadHint::NoHint) const;
+        EnumFlags<AssetLoadHint> hint = AssetLoadHint::NoHint) const;
 
 protected:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const = 0;
 
-    static FilePath GetRebasedFilepath(const FilePath& basePath, const FilePath& filepath);
+    static FilePath ResolveReferencedFilepath(const FilePath& referencingFilepath, const FilePath& referencedPath);
+
     Array<FilePath> GetTryFilepaths(const FilePath& originalFilepath) const;
 };
 

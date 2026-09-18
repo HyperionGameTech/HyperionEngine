@@ -210,8 +210,8 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(proxy != nullptr);
 
     if (!proxy->particleMesh
-        || !proxy->particleMesh->GetVertexBuffer().IsValid()
-        || !proxy->particleMesh->GetIndexBuffer().IsValid())
+        || !proxy->particleMesh->GetVertexBuffer(0).IsValid()
+        || !proxy->particleMesh->GetIndexBuffer(0).IsValid())
     {
         // Mesh may be tracked/bound this frame but not yet finished uploading (Mesh::UploadGpuData
         // runs off the binding-changed callback) -- skip for now, it'll be ready in a later frame.
@@ -226,8 +226,9 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     { // set buffer to cleared state
         Array<IndirectDrawCommand, RHIAllocator> indirectDrawCommandsBuffer;
         RI.PopulateIndirectDrawCommandsBuffer(
-            proxy->particleMesh->GetVertexBuffer(),
-            proxy->particleMesh->GetIndexBuffer(),
+            proxy->particleMesh->GetVertexBuffer(0),
+            proxy->particleMesh->GetIndexBuffer(0),
+            proxy->particleMesh->NumIndices(0),
             0, indirectDrawCommandsBuffer);
 
         stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(indirectDrawCommandsBuffer.ByteSize());
@@ -367,8 +368,8 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << CommitDrawState();
 
-        cr << BindVertexBuffer(proxy->particleMesh->GetVertexBuffer());
-        cr << BindIndexBuffer(proxy->particleMesh->GetIndexBuffer());
+        cr << BindVertexBuffer(proxy->particleMesh->GetVertexBuffer(0));
+        cr << BindIndexBuffer(proxy->particleMesh->GetIndexBuffer(0));
         cr << DrawIndexedIndirect(state.indirectBuffer, 0);
 
         // reset states

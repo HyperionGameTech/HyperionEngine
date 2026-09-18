@@ -6,22 +6,43 @@
 #define DDGI_PROBE_SIDE_LENGTH_IRRADIANCE 8
 #define DDGI_PROBE_SIDE_LENGTH_DEPTH 8
 
+// must match DDGIMaxCascades in Rendering/RenderProxy.hpp
+#define DDGI_MAX_CASCADES 6
+
+struct DDGICascadeData
+{
+    // lattice coord of the probe stored at local grid position (0, 0, 0); the grid scrolls over the lattice as the camera moves
+    ivec4 gridOffset;
+    ivec4 gridOffsetPrev;
+
+    vec4 probeSpacing;
+
+    float blendAlpha;
+    float rayMaxDistance;
+    float normalBias;
+    float padding;
+};
+
 struct DDGIConstants
 {
     mat4 rotationMatrix;
 
-    vec4 aabb_max;
-    vec4 aabb_min;
-    
-    uvec4 probe_border;
-    uvec4 probe_counts;
-    uvec4 grid_dimensions;
-    uvec4 image_dimensions;
+    uvec4 probeBorder;
+    uvec4 probeCounts;
+    uvec4 gridDimensions;
+    uvec4 imageDimensions;
 
-    float probe_distance;
-    uint num_rays_per_probe;
+    uint numCascades;
+    uint numRaysPerProbe;
     uint numBoundLights;
     uint counter;
+
+    uint cascadeUpdateMask;
+    uint cascadeResetMask;
+    float probeDistance;
+    float padding;
+
+    DDGICascadeData cascades[DDGI_MAX_CASCADES];
 };
 
 struct ProbeRayData
@@ -32,6 +53,6 @@ struct ProbeRayData
     vec4 color;
 };
 
-#define PROBE_RAY_DATA_INDEX(coord) (coord.x + ddgiConstants.grid_dimensions.x * coord.y)
+#define PROBE_RAY_DATA_INDEX(coord) (coord.x + ddgiConstants.gridDimensions.x * coord.y)
 
 #endif

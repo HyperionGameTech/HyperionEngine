@@ -685,6 +685,14 @@ void EnvProbe::CreateViewData()
         StoreOperation::Store
     });
 
+    EnumFlags<ImageUsage> colorUsage = ImageUsage::Sampled | ImageUsage::Attachment;
+
+    // clouds are composited into the sky capture by compute
+    if (IsSkyProbe())
+    {
+        colorUsage |= ImageUsage::Storage;
+    }
+
     attachmentImages.PushBack(RI.MakeImage(TextureDesc {
         colorDesc.imageType,
         colorDesc.format,
@@ -693,7 +701,7 @@ void EnvProbe::CreateViewData()
         TextureFilterMode::Linear,
         TextureWrapMode::ClampToEdge,
         1,
-        ImageUsage::Sampled | ImageUsage::Attachment }));
+        colorUsage }));
 
     // Visibility target
     // @FIXME: Needs to be created with HAS_VISIBILITY flag set for this to ever be created.
@@ -854,6 +862,12 @@ void EnvProbe::CreateViewData()
         Handle<View> view = MakeHandle<View>(viewDesc);
         view->SetName(NAME_FMT("{}_{}_View{}", InstanceClass()->GetName(), GetName(), viewIndex));
         InitObject(view);
+
+        // probe views are never added to the World, so ALL_FOREGROUND_SCENES doesn't give them any scenes on its own
+        if (World* world = GetWorld())
+        {
+            world->SyncViewForegroundScenes(view);
+        }
 
         m_views[viewIndex] = std::move(view);
     }
@@ -1186,6 +1200,8 @@ void EnvProbe::Update(float delta)
 
     FixedArray<Mat4f, 6> matrices = CreateCubemapMatrices(GetWorldTranslation());
 
+    World* world = GetWorld();
+
     Set<Scene*, SceneTempAllocator> allScenes;
     for (uint32 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
@@ -1195,6 +1211,12 @@ void EnvProbe::Update(float delta)
         if (!view)
         {
             continue;
+        }
+
+        // scenes removed from the World since the last update would be left dangling below
+        if (world != nullptr)
+        {
+            world->SyncViewForegroundScenes(view);
         }
 
         const Mat4f& viewMatrix = matrices[viewIndex];
@@ -1531,8 +1553,33 @@ void ReflectionProbe::BakeCubemap()
 
 #pragma region SkyProbe
 
+SkyProbe::~SkyProbe()
+{
+    if (m_skyboxTexture.IsValid())
+    {
+        EnqueueDeletion(std::move(m_skyboxTexture));
+    }
+}
+
 void SkyProbe::CreateTexture()
 {
+    if (!m_skyboxTexture.IsValid())
+    {
+        m_skyboxTexture = MakeHandle<Texture>(TextureDesc {
+            TextureType::Cubemap,
+            TextureFormat::RGBA16F,
+            Vec3u(Vec2u(uint32(m_dimensions)), 1),
+            TextureFilterMode::Linear,
+            TextureFilterMode::Linear,
+            TextureWrapMode::ClampToEdge,
+            1,
+            ImageUsage::Storage | ImageUsage::Sampled
+        });
+
+        m_skyboxTexture->SetName(NAME_FMT("{}_SkyboxMap", GetName()));
+        m_skyboxTexture->SetIsTransient(true);
+    }
+
     if (m_texture.IsValid())
     {
         return;

@@ -8,18 +8,15 @@
 
 #include "include/Defines.hlsli"
 
-// For intellisense to work
-#ifndef HYP_SHADER_COMPILER
-#define TILE_SIZE 32
-#define TILE_Z_BINS 16
-#endif // HYP_SHADER_COMPILER
-
+// Every shader that includes this declares STATIC(TILE_SIZE, 32) / STATIC(TILE_Z_BINS, 16), but a variant
+// compiled from a request that lost those statics would otherwise fail to build. The defaults have to match
+// the C++ cluster grid (Rendering/Passes/DeferredPass.cpp).
 #ifndef TILE_SIZE
-#error "TILE_SIZE must be defined before including ClusteredShading.hlsli"
+#define TILE_SIZE 32
 #endif // TILE_SIZE
 
 #ifndef TILE_Z_BINS
-#error "TILE_Z_BINS must be defined before including ClusteredShading.hlsli"
+#define TILE_Z_BINS 16
 #endif // TILE_Z_BINS
 
 uint Cluster_LoadUInt16(uint index)

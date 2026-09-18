@@ -277,8 +277,11 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                 continue;
             }
 
+            const float skyLightIntensity = GET_ENV_PROBE_TYPE(envProbes[envProbeIdx]) == EPT_SKY ? world_shader_data.sky_light_params.x : 1.0;
+
             environmentRadiance += EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, rayDirWorld, 6.0)
                 * ENVIRONMENT_INTENSITY
+                * skyLightIntensity
                 * (1.0 - environmentRadiance.a);
         }
 

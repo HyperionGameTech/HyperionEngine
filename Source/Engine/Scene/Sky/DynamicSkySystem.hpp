@@ -10,11 +10,17 @@
 #include <Scene/System.hpp>
 #include <Scene/EnvProbe.hpp>
 
+#include <Scene/Sky/CloudEffectVolume.hpp>
+
 #include <Scene/Camera/Camera.hpp>
 
 #include <Core/Utilities/ClockTimer.hpp>
 
+#include <Core/Functional/Delegate.hpp>
+
 namespace Hyperion {
+
+struct EnvironmentSettings;
 
 HYP_CLASS()
 class ENGINE_API DynamicSkySystem : public SystemBase
@@ -22,6 +28,14 @@ class ENGINE_API DynamicSkySystem : public SystemBase
     HYP_OBJECT_BODY(DynamicSkySystem);
 
 public:
+    // one texel of the sky visibility map covers SkyVisibilityWorldExtent / SkyVisibilityMapDimensions meters
+    static constexpr uint32 SkyVisibilityMapDimensions = 1024;
+    static constexpr float SkyVisibilityWorldExtent = 512.0f;
+
+    // how far above the viewer the capture starts, and how deep it reaches below that
+    static constexpr float SkyVisibilityHeightAboveViewer = 400.0f;
+    static constexpr float SkyVisibilityDepthRange = 1200.0f;
+
     DynamicSkySystem();
     virtual ~DynamicSkySystem() override;
 
@@ -33,6 +47,11 @@ public:
     HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbe() const
     {
         return m_envProbe;
+    }
+
+    HYP_FORCE_INLINE const Handle<CloudEffectVolume>& GetCloudEffectVolume() const
+    {
+        return m_cloudEffectVolume;
     }
 
     virtual void OnAddedToWorld(World* world) override;
@@ -48,6 +67,11 @@ public:
 private:
     void InitializeSky();
 
+    void HandleWorldEnvironmentSettingsChanged(const EnvironmentSettings& environmentSettings);
+
+    // Centers the top-down capture on the viewer and rebuilds its matrices. Sim thread only.
+    void UpdateSkyVisibilityView();
+
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return { };
@@ -60,16 +84,20 @@ private:
     Handle<Scene> m_renderScene;
     Handle<EnvProbe> m_envProbe;
 
-    // For rendering top down view of world for sky visibility map
-    Handle<Camera> m_topDownCamera;
-    Handle<View> m_topDownView;
+    // Top-down capture of what blocks the sky, used to occlude sky light under canopies
+    Handle<Camera> m_skyVisibilityCamera;
+    Handle<View> m_skyVisibilityView;
 
     // Stuff that gets added to world
     Handle<Entity> m_skyboxEntity;
     Handle<Scene> m_visScene;
 
+    Handle<CloudEffectVolume> m_cloudEffectVolume;
+
     ClockTimer m_updateTimer;
     uint32 m_lastFrame;
+
+    DelegateHandler m_onWorldEnvironmentSettingsChangedHandler;
 };
 
 } // namespace Hyperion

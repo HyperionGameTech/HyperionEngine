@@ -542,7 +542,6 @@ void Node::RemoveAllChildren(bool moveToDetached)
         }
 
         it = m_childNodes.Erase(it);
-        it->Reset();
     }
 
     UpdateWorldTransform();

@@ -15,6 +15,10 @@
 #include <Scene/SystemExecutionGroup.hpp>
 #include <Scene/Swatch.hpp>
 #include <Scene/Subsystem.hpp>
+#include <Scene/Light.hpp>
+#include <Scene/LOD.hpp>
+
+#include <Scene/Sky/DynamicSkySystem.hpp>
 
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
@@ -26,6 +30,7 @@
 #include <Scene/Systems/PlayerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/MeshSystem.hpp>
+#include <Scene/Systems/TerrainLodSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
@@ -78,6 +83,7 @@ ScriptableDelegate<void, World*, const Handle<Scene>&> World::OnSceneAdded;
 ScriptableDelegate<void, World*, Scene*> World::OnSceneRemoved;
 ScriptableDelegate<void, Name> World::OnActiveSwatchChanged;
 ScriptableDelegate<void, LayersMask> World::OnActiveLayersChanged;
+ScriptableDelegate<void, const EnvironmentSettings&> World::OnEnvironmentSettingsChanged;
 
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
@@ -105,10 +111,11 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
     : AssetObject(name),
       m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
-      m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr),
-      m_isInitialized(false),
+      m_rayTracingView(nullptr),
       m_activeSwatchId(InvalidSwatchId),
+      m_isInitialized(false),
+      m_isServerWorld(false),
       m_activeLayers {}
 {
     if (m_worldFlags & WorldFlags::AllStreamingLayerFlags)
@@ -127,6 +134,7 @@ World::~World()
     OnSceneRemoved.RemoveAllForTarget(this);
     OnActiveSwatchChanged.RemoveAllForTarget(this);
     OnActiveLayersChanged.RemoveAllForTarget(this);
+    OnEnvironmentSettingsChanged.RemoveAllForTarget(this);
 }
 
 void World::Initialize()
@@ -262,6 +270,9 @@ void World::Initialize()
     if (!HasSystem<MeshSystem>())
         AddSystem(MakeHandle<MeshSystem>());
 
+    if (!HasSystem<TerrainLodSystem>())
+        AddSystem(MakeHandle<TerrainLodSystem>());
+
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());
 
@@ -280,18 +291,7 @@ void World::Initialize()
             AddSystem(MakeHandle<PlayerSystem>());
     }
 
-    if (m_worldFlags & WorldFlags::IsReplicated)
-    {
-        if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
-        {
-            AddSystem(MakeHandle<ReplicationSystem>());
-        }
-
-        if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
-        {
-            AddSystem(MakeHandle<ReplicationApplySystem>());
-        }
-    }
+    UpdateReplicationSystems();
 
     if (m_activeSwatchId == Invalid<SwatchId>)
     {
@@ -496,30 +496,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
     // Same thing for replication
     if (changedFlags & uint32(WorldFlags::IsReplicated))
     {
-        if (m_worldFlags & WorldFlags::IsReplicated)
-        {
-            if (EngineGlobals::IsServer() && !HasSystem<ReplicationSystem>())
-            {
-                AddSystem(MakeHandle<ReplicationSystem>());
-            }
-
-            if (!EngineGlobals::IsServer() && !HasSystem<ReplicationApplySystem>())
-            {
-                AddSystem(MakeHandle<ReplicationApplySystem>());
-            }
-        }
-        else
-        {
-            if (HasSystem<ReplicationSystem>())
-            {
-                RemoveSystem(GetSystem<ReplicationSystem>());
-            }
-
-            if (HasSystem<ReplicationApplySystem>())
-            {
-                RemoveSystem(GetSystem<ReplicationApplySystem>());
-            }
-        }
+        UpdateReplicationSystems();
     }
 
     bool needToShutdownWorldGrid = false;
@@ -591,6 +568,18 @@ const GameState& World::GetGameState() const
     // fallback
     static GameState s_defaultGameState;
     return s_defaultGameState;
+}
+
+void World::SetEnvironmentSettings(const EnvironmentSettings& environmentSettings)
+{
+    if (memcmp(&m_environmentSettings, &environmentSettings, sizeof(EnvironmentSettings)) == 0)
+    {
+        return;
+    }
+
+    m_environmentSettings = environmentSettings;
+    
+    OnEnvironmentSettingsChanged.Fire(this, m_environmentSettings);
 }
 
 #pragma region Swatches
@@ -934,6 +923,43 @@ void World::ProcessViewAsync(View* view)
     m_processViews.PushBack(view);
 }
 
+void World::SyncViewForegroundScenes(View* view) const
+{
+    AssertOnThread(g_simThread);
+
+    if (!view || !(view->GetFlags() & ViewFlags::ALL_FOREGROUND_SCENES))
+    {
+        return;
+    }
+
+    const Array<Scene*>& viewScenes = view->GetScenes();
+
+    for (size_t index = viewScenes.Size(); index > 0; index--)
+    {
+        Scene* viewScene = viewScenes[index - 1];
+
+        // only compares pointers, the Scene may have been destroyed since it was removed from the World
+        const bool isInWorld = m_scenes.FindIf([viewScene](const Handle<Scene>& scene)
+                                   {
+                                       return scene.Get() == viewScene;
+                                   })
+            != m_scenes.End();
+
+        if (!isInWorld)
+        {
+            view->RemoveScene(viewScene);
+        }
+    }
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        if (scene && (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        {
+            view->AddScene(scene);
+        }
+    }
+}
+
 void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
@@ -1092,6 +1118,8 @@ void World::EndUpdate()
 #endif
 }
 
+extern PhysicsShape* GetDefaultPhysicsShape();
+
 void World::SyncPhysicsToEntities()
 {
     PhysicsWorld& physicsWorld = static_cast<PhysicsWorld&>(*m_physicsWorld);
@@ -1114,6 +1142,13 @@ void World::SyncPhysicsToEntities()
             {
                 continue;
             }
+
+            // The body caches a raw pointer to the shape it was created with, so a swap on the component
+            // (the inspector assigning a different shape, generated collision replacing it) has to be
+            // picked up here, otherwise the rebuild below uses the shape that was just replaced.
+            rigidBody->shape = rigidBodyComponent.shape.IsValid()
+                ? rigidBodyComponent.shape.Get()
+                : GetDefaultPhysicsShape();
 
             physicsWorld.GetAdapter().OnChangePhysicsShape(rigidBody.Get());
 
@@ -1236,6 +1271,9 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
         {
             View& view = *m_processViews[i];
 
+            // not in m_views, so AddScene() / RemoveScene() never updated its scenes
+            SyncViewForegroundScenes(&view);
+
             m_viewsPerFrame[slot][offset + i] = &view;
         }
     }
@@ -1272,6 +1310,71 @@ void World::CollectSubsystems(Array<Subsystem*, SceneTempAllocator>& outSubsyste
     for (size_t i = 0; i < m_subsystemsArray.Size(); i++)
     {
         outSubsystems[offset + i] = m_subsystemsArray[i];
+    }
+}
+
+void World::CollectLODViewDatas(Array<LODViewData, SceneTempAllocator>& outViewDatas)
+{
+    AssertOnThread(g_simThread);
+
+    const bool preferEditorViews = GetGameState().IsStopped();
+
+    for (View* view : GetSimThreadViews())
+    {
+        if (!view || !view->ShouldCollectLODs())
+        {
+            continue;
+        }
+
+        const bool isEditorView = bool(view->GetFlags() & ViewFlags::EDITOR_VIEW);
+
+        if (isEditorView == preferEditorViews)
+        {
+            outViewDatas.EmplaceBack(*view->GetCamera());
+        }
+    }
+
+    if (outViewDatas.Any())
+    {
+        return;
+    }
+
+    for (View* view : GetSimThreadViews())
+    {
+        if (view && view->ShouldCollectLODs())
+        {
+            outViewDatas.EmplaceBack(*view->GetCamera());
+        }
+    }
+
+    if (outViewDatas.Any())
+    {
+        return;
+    }
+
+    for (const Handle<Scene>& scene : GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        EntityManager* entityManager = scene->GetEntityManager();
+
+        if (!entityManager)
+        {
+            continue;
+        }
+
+        for (auto [camera] : entityManager->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!(camera->GetCameraFlags() & CameraFlags::HasStreamingVolume))
+            {
+                continue;
+            }
+
+            outViewDatas.EmplaceBack(*camera);
+        }
     }
 }
 
@@ -1676,6 +1779,13 @@ Span<View* const> World::GetViews() const
     return m_viewsPerFrame[GetRingIndex()].ToSpan();
 }
 
+Span<View* const> World::GetSimThreadViews() const
+{
+    AssertOnThread(g_simThread);
+
+    return Span<View* const>(m_views.Data(), m_views.Size());
+}
+
 void World::SnapshotViewsForRender()
 {
     AssertOnThread(g_renderThread);
@@ -1692,6 +1802,11 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
     for (Handle<Scene>& scene : m_scenes)
     {
+        if (!scene)
+        {
+            continue;
+        }
+
         if (m_worldFlags & WorldFlags::HasSceneStreamingLayer)
         {
             if (Handle<WorldGridLayer> scenesStreamingLayer = GetStreamingLayer(s_nameStreamingLayerScenes); scenesStreamingLayer)
@@ -1796,9 +1911,10 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
     set.Remove(&layer->OnStreamingObjectsUnloaded);
 
     set.Add(layer->OnStreamingObjectsLoaded.Bind(
-        [world](StreamingCell* cell, Array<const AssetObject*> objs)
+        [world](StreamingCell* cell, Span<const AssetObject*> objs)
         {
             AssertOnThread(g_simThread);
+
             for (const AssetObject* obj : objs)
             {
                 if (obj->IsA(Scene::StaticClass()))
@@ -1813,9 +1929,10 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
         }));
 
     set.Add(layer->OnStreamingObjectsUnloaded.Bind(
-        [world](StreamingCell* cell, Array<const AssetObject*> objs)
+        [world](StreamingCell* cell, Span<const AssetObject*> objs)
         {
             AssertOnThread(g_simThread);
+
             for (const AssetObject* obj : objs)
             {
                 if (obj->IsA(Scene::StaticClass()))
@@ -1935,6 +2052,74 @@ Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
     }
 
     return m_worldGrid->GetStreamingLayerDescs();
+}
+
+bool World::IsServerWorld() const
+{
+    return m_isServerWorld || EngineGlobals::IsServer();
+}
+
+void World::SetIsServerWorld(bool isServerWorld)
+{
+    if (m_isInitialized)
+    {
+        HYP_LOG(Scene, Error, "SetIsServerWorld() called on World {} after it was initialized; ignoring", m_name);
+
+        return;
+    }
+
+    m_isServerWorld = isServerWorld;
+}
+
+void World::UpdateReplicationSystems()
+{
+    const bool isReplicated = bool(m_worldFlags & WorldFlags::IsReplicated);
+    const bool isServerWorld = IsServerWorld();
+
+    // Saved worlds serialize whichever replication system the saving process had, so the wrong one can be present
+    const auto removeSystem = [this](SystemBase* system)
+    {
+        if (system == nullptr)
+        {
+            return;
+        }
+
+        if (m_isInitialized)
+        {
+            RemoveSystem(system);
+
+            return;
+        }
+
+        if (auto it = m_systems.Find(system); it != m_systems.End())
+        {
+            m_systems.Erase(it);
+        }
+    };
+
+    if (isReplicated && isServerWorld)
+    {
+        if (!HasSystem<ReplicationSystem>())
+        {
+            AddSystem(MakeHandle<ReplicationSystem>());
+        }
+    }
+    else
+    {
+        removeSystem(GetSystem<ReplicationSystem>());
+    }
+
+    if (isReplicated && !isServerWorld)
+    {
+        if (!HasSystem<ReplicationApplySystem>())
+        {
+            AddSystem(MakeHandle<ReplicationApplySystem>());
+        }
+    }
+    else
+    {
+        removeSystem(GetSystem<ReplicationApplySystem>());
+    }
 }
 
 void World::DeserializeSystems(const Array<Handle<SystemBase>>& systems)
@@ -2177,6 +2362,58 @@ bool World::AddSystemToExecutionGroup(SystemBase* system)
     }
 
     return wasAdded;
+}
+
+void World::FillWorldShaderData(WorldShaderData& outShaderData) const
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    outShaderData.gameTime = GetGameState().gameTime;
+
+    WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
+
+    bool hasSun = false;
+
+    for (Scene* scene : m_scenes)
+    {
+        if (hasSun)
+        {
+            break;
+        }
+
+        if (!(scene->GetSceneFlags() & SceneFlags::FOREGROUND))
+        {
+            continue;
+        }
+
+        for (auto [light] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (light->GetLightType() != LightType::Directional)
+            {
+                continue;
+            }
+
+            outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
+            outShaderData.sunColor = Vec4f(light->GetColor());
+            outShaderData.environmentFlags |= WEF_HAS_SUN;
+
+            hasSun = true;
+
+            break;
+        }
+    }
+
+    outShaderData.skyLightParams.w = 0.0f;
+
+    if (DynamicSkySystem* skySystem = GetSystem<DynamicSkySystem>())
+    {
+        if (CloudEffectVolume* cloudEffectVolume = skySystem->GetCloudEffectVolume();
+                cloudEffectVolume && cloudEffectVolume->GetSettings().enabled)
+        {
+            outShaderData.skyLightParams.w = MathUtil::Clamp(cloudEffectVolume->GetSettings().shape.coverage, 0.0f, 1.0f);
+        }
+    }
 }
 
 } // namespace Hyperion

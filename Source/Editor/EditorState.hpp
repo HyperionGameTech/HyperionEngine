@@ -28,6 +28,8 @@ class EditorProject;
 class EditorTaskBase;
 class EditorSubsystem;
 
+class Camera;
+
 namespace Baking {
 struct BakeLayer;
 } // namespace Baking
@@ -60,6 +62,9 @@ public:
 
     HYP_METHOD()
     Handle<EditorProject> GetCurrentProject() const;
+
+    HYP_METHOD()
+    Camera* GetEditorCamera() const;
 
     HYP_METHOD()
     void SetCurrentProject(const Handle<EditorProject>& project, bool isSimulationStateChange);

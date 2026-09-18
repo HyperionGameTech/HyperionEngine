@@ -5,6 +5,7 @@ PERMUTE(VSM);
 PERMUTE(INSTANCING);
 PERMUTE(SKINNING);
 PERMUTE(ALPHA_DISCARD);
+PERMUTE(TERRAIN_MORPH);
 
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
@@ -15,6 +16,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #include "Include/Scene.hlsli"
 #include "Include/Entity.hlsli"
+#include "Include/TerrainMorph.hlsli"
 #include "Include/Material.hlsli"
 #include "Include/Packing.hlsli"
 
@@ -97,17 +99,24 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 model_matrix = entity.model_matrix;
     output.object_index = ~0u;
 #endif
+    
+#if defined(TERRAIN_MORPH) && defined(VT_UV1)
+    const float3 local_position = ApplyTerrainMorph(entity, model_matrix, input.a_position, input.a_texcoord1);
+#else
+    const float3 local_position = input.a_position;
+#endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);
 
-    position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+    position = mul(model_matrix, mul(skinning_matrix, float4(local_position, 1.0)));
 #else
-    position = mul(model_matrix, float4(input.a_position, 1.0));
+    position = mul(model_matrix, float4(local_position, 1.0));
 #endif
 
     output.v_position = position.xyz / position.w;
-    output.v_texcoord0 = input.a_texcoord0 * CURRENT_MATERIAL.uv_scale;
+    // matches DefaultVertex.hlsl, which flips V
+    output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y) * CURRENT_MATERIAL.uv_scale;
 
     float4 position_ndc = mul(vpMatrix, position);
     position_ndc /= position_ndc.w;
@@ -142,7 +151,7 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.v_texcoord0);
-        clip(albedo_texture.a - MATERIAL_ALPHA_DISCARD);
+        clip(albedo_texture.a - GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD));
     }
 #endif
 

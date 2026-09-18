@@ -1110,8 +1110,8 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     Mesh* mesh = meshShape->GetMesh();
                     AssertDebug(mesh != nullptr);
 
-                    cr << BindVertexBuffer(mesh->GetVertexBuffer());
-                    cr << BindIndexBuffer(mesh->GetIndexBuffer());
+                    cr << BindVertexBuffer(mesh->GetVertexBuffer(0));
+                    cr << BindIndexBuffer(mesh->GetIndexBuffer(0));
 
                     cr << DrawIndexed(mesh->NumIndices(0), numToDraw);
 
