@@ -216,7 +216,7 @@ void ShowOpenFileDialog(
                 ofn.lStructSize = sizeof(ofn);
                 ofn.hwndOwner = nullptr;
                 ofn.lpstrFile = reinterpret_cast<wchar_t*>(fileNameBufferData.Data());
-                ofn.nMaxFile = (DWORD)fileNameBufferData.Size();
+                ofn.nMaxFile = (DWORD)(fileNameBufferData.Size() / sizeof(wchar_t));
                 ofn.lpstrFilter = reinterpret_cast<wchar_t*>(filterBufferWriter.GetBuffer().Data());
                 ofn.nFilterIndex = 1;
                 ofn.lpstrTitle = titleWide.Data();
