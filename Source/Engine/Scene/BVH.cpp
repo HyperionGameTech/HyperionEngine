@@ -175,7 +175,11 @@ bool BVHNode::OverlapsTriangle(
         }
     };
 
-    return box.OverlapsTriangle(tri);
+    // A triangle lying exactly on a face of the box passes or fails on float rounding of the box center/extent, and one
+    // that fails for every child is dropped from the tree entirely. Pad by a tolerance scaled to the coordinate magnitude.
+    const float coordinateMagnitude = MathUtil::Max(Vec3f::Abs(box.min).Max(), Vec3f::Abs(box.max).Max());
+
+    return box.Expand(Vec3f(coordinateMagnitude * 1e-5f)).OverlapsTriangle(tri);
 }
 
 void BVHNode::Split_Internal(

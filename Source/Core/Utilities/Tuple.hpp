@@ -241,6 +241,22 @@ struct FindTypeElementIndex<T, Tuple<Types...>>
 
 #pragma endregion FindTypeElementIndex
 
+#pragma region TupleContainsType
+
+template <class T, class TupleType>
+struct TupleContainsType;
+
+template <class T, class... Types>
+struct TupleContainsType<T, Tuple<Types...>>
+    : std::bool_constant<(std::is_same_v<T, Types> || ...)>
+{
+};
+
+template <class T, class TupleType>
+constexpr bool TupleContainsType_v = TupleContainsType<T, TupleType>::value;
+
+#pragma endregion TupleContainsType
+
 #pragma region Tuple_Compare
 
 // fwd decl of Tuple_Impl
@@ -682,6 +698,8 @@ struct IsTuple<utilities::Tuple<Types...>> : std::true_type
 
 using utilities::FindTypeElementIndex;
 using utilities::Tuple;
+using utilities::TupleContainsType;
+using utilities::TupleContainsType_v;
 using utilities::TupleElement;
 using utilities::TupleElement_Tuple;
 using utilities::TupleSize;

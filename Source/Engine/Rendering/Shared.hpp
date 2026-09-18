@@ -882,6 +882,17 @@ struct BlendFunction
         return BlendFunction(BlendModeFactor::SrcAlpha, BlendModeFactor::OneMinusSrcAlpha, BlendModeFactor::One, BlendModeFactor::Zero);
     }
 
+    HYP_FORCE_INLINE static constexpr BlendFunction PremultipliedAlpha()
+    {
+        return BlendFunction(BlendModeFactor::One, BlendModeFactor::OneMinusSrcAlpha, BlendModeFactor::One, BlendModeFactor::Zero);
+    }
+
+    // blends that don't weight the source by its own alpha need the shader to premultiply it
+    HYP_FORCE_INLINE constexpr bool ExpectsPremultipliedSource() const
+    {
+        return GetSrcColor() == BlendModeFactor::One && GetDstColor() != BlendModeFactor::Zero && GetDstColor() != BlendModeFactor::None;
+    }
+
     HYP_FORCE_INLINE static constexpr BlendFunction Additive()
     {
         return BlendFunction(BlendModeFactor::One, BlendModeFactor::One);

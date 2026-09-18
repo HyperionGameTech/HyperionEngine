@@ -351,6 +351,12 @@ PSOutput PSMain(PSInput input)
             output.gbuffer_albedo.rgb = indirect_lighting + direct_lighting;
         }
     }
+
+    // premultiplied and additive blends take the source as-is, so fade it by coverage here
+    if (GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_PREMULTIPLIED_ALPHA))
+    {
+        output.gbuffer_albedo.rgb *= output.gbuffer_albedo.a;
+    }
 #endif // SHADING_TYPE_FORWARD
 
 #ifndef SHADING_TYPE_FORWARD
