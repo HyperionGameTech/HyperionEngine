@@ -304,7 +304,13 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
                 break;
             }
 
-            addSharedAttachment(i);
+            Attachment* attachment = addSharedAttachment(i);
+
+            // translucent materials only blend lit color; the packed normals and velocity would be garbage if blended
+            if (pass == GBufferPass::Translucent && i != GBufferTarget::Color && i != GBufferTarget::Depth)
+            {
+                attachment->SetBlendFunction(BlendFunction::Default());
+            }
         }
     }
 

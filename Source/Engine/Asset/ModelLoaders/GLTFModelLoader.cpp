@@ -33,6 +33,7 @@
 #include <Scene/Components/AnimationComponent.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
+#include <Core/Utilities/Optional.hpp>
 
 #include <Core/DataProcessing/JSON/JSON.hpp>
 
@@ -1101,6 +1102,52 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     return { metalnessTexture, roughnessTexture };
 }
 
+static constexpr const char* BlendModeExtraKey = "hyperionBlendMode";
+
+// glTF only knows straight alpha blending, so other blend modes (or blending a MASK material) are asked for in the material's extras
+Optional<BlendFunction> ReadBlendModeOverride(const cgltf_material* gltfMaterial, Name materialName)
+{
+    if (gltfMaterial->extras.data == nullptr)
+    {
+        return {};
+    }
+
+    const JSON::ParseResult parseResult = JSON::Parse(UTF8StringView(gltfMaterial->extras.data));
+
+    if (!parseResult.ok)
+    {
+        return {};
+    }
+
+    const auto blendModeValue = parseResult.value[BlendModeExtraKey];
+
+    if (!blendModeValue.IsString())
+    {
+        return {};
+    }
+
+    const String blendMode = blendModeValue.AsString().ToLower();
+
+    if (blendMode == "alpha")
+    {
+        return BlendFunction::AlphaBlending();
+    }
+
+    if (blendMode == "premultiplied")
+    {
+        return BlendFunction::PremultipliedAlpha();
+    }
+
+    if (blendMode == "additive")
+    {
+        return BlendFunction::Additive();
+    }
+
+    HYP_LOG(Assets, Warning, "GLTF material {} has unknown {} '{}' (expected alpha, premultiplied or additive)", materialName, BlendModeExtraKey, blendMode);
+
+    return {};
+}
+
 Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const cgltf_material* gltfMaterial, const Handle<Mesh>& mesh)
 {
     MaterialAttributes materialAttributes {};
@@ -1201,17 +1248,32 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         parameters.alphaThreshold = float(gltfMaterial->alpha_cutoff);
     }
 
+    Optional<BlendFunction> translucentBlendFunction;
+
     switch (gltfMaterial->alpha_mode)
     {
     case cgltf_alpha_mode_blend:
-        materialAttributes.bucket = RenderBucket::Translucent;
-        materialAttributes.blendFunction = BlendFunction::AlphaBlending();
+        translucentBlendFunction = BlendFunction::AlphaBlending();
         break;
     case cgltf_alpha_mode_mask:
         materialAttributes.flags |= MAF_ALPHA_DISCARD;
         break;
     default:
         break;
+    }
+
+    if (Optional<BlendFunction> blendModeOverride = ReadBlendModeOverride(gltfMaterial, materialName); blendModeOverride.HasValue())
+    {
+        translucentBlendFunction = blendModeOverride;
+    }
+
+    if (translucentBlendFunction.HasValue())
+    {
+        materialAttributes.bucket = RenderBucket::Translucent;
+        materialAttributes.blendFunction = *translucentBlendFunction;
+
+        // blended surfaces aren't sorted, so writing depth would hide whatever translucent draws after them
+        materialAttributes.flags &= ~MAF_DEPTH_WRITE;
     }
 
     if (gltfMaterial->double_sided)
@@ -1990,10 +2052,9 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
 
             Handle<Material> material = AcquireMaterial(state, ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
 
-            if (output.tree)
             {
                 MaterialParameters parameters = material->GetParameters();
-                parameters.foliage |= output.foliage;
+                parameters.foliage = output.foliage;
                 parameters.windFrequency = output.windFrequency;
                 parameters.windTrunkFlexibility = output.windTrunkFlexibility;
                 parameters.windTreeHeight = output.windTreeHeight;

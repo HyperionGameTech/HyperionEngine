@@ -1643,8 +1643,6 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
         }
     }
 
-    EnqueueDeletion(std::move(strongScene));
-
     return true;
 }
 
@@ -1831,8 +1829,6 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
                 view->RemoveScene(scene);
             }
         }
-
-        EnqueueDeletion(std::move(scene));
     }
 
     m_scenes.Clear();
