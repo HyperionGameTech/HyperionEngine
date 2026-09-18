@@ -169,6 +169,67 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        public bool IsVolume => _node is VolumeBase;
+
+        private bool _isOutsideSelection;
+        /// <summary>
+        /// Whether the context menu was opened on this node without it being selected (right-clicking a volume
+        /// leaves the selection alone), in which case Copy and Delete act on this node rather than the selection.
+        /// </summary>
+        public bool IsOutsideSelection
+        {
+            get => _isOutsideSelection;
+            private set => SetProperty(ref _isOutsideSelection, value);
+        }
+
+        private bool _canFitVolumeToSelection;
+        public bool CanFitVolumeToSelection
+        {
+            get => _canFitVolumeToSelection;
+            private set => SetProperty(ref _canFitVolumeToSelection, value);
+        }
+
+        private string _fitVolumeToSelectionHeader = "Fit to Selected Node";
+        public string FitVolumeToSelectionHeader
+        {
+            get => _fitVolumeToSelectionHeader;
+            private set => SetProperty(ref _fitVolumeToSelectionHeader, value);
+        }
+
+        public void RefreshSelectionContext(IReadOnlyCollection<NodeViewModel> selectedNodes)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            IsOutsideSelection = !selectedNodes.Contains(this);
+
+            if (!IsVolume)
+            {
+                return;
+            }
+
+            int fitTargetCount = selectedNodes.Count(selectedNode => !ReferenceEquals(selectedNode, this));
+            FitVolumeToSelectionHeader = fitTargetCount > 1 ? $"Fit to {fitTargetCount} Selected Nodes" : "Fit to Selected Node";
+
+            // Bounds are read on the sim thread, so the item starts disabled and enables itself a frame later.
+            CanFitVolumeToSelection = false;
+
+            Node node = _node;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+                if (editorSubsystem == null)
+                {
+                    return;
+                }
+
+                bool canFit = editorSubsystem.CanFitVolumeToSelection(node);
+
+                Dispatcher.UIThread.Post(() => CanFitVolumeToSelection = canFit);
+            });
+        }
+
         public void RefreshActions()
         {
             Dispatcher.UIThread.VerifyAccess();

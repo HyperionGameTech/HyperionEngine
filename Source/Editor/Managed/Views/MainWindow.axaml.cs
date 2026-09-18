@@ -617,6 +617,11 @@ namespace Hyperion.Editor
                 nodeViewModel.RefreshActions();
                 nodeViewModel.RefreshMoveToSceneTargets();
                 nodeViewModel.RefreshCollisionState();
+
+                if (DataContext is MainWindowViewModel mvm)
+                {
+                    nodeViewModel.RefreshSelectionContext(mvm.SceneHierarchy.SelectedNodes);
+                }
             }
         }
 
@@ -772,6 +777,14 @@ namespace Hyperion.Editor
                     && DataContext is MainWindowViewModel mvm
                     && !mvm.SceneHierarchy.SelectedNodes.Contains(nodeVm))
                 {
+                    // Volumes get right-clicked to fit them around the current selection, so keep that selection.
+                    // Handling the press stops the TreeViewItem selecting; the context menu opens on release regardless.
+                    if (nodeVm.IsVolume)
+                    {
+                        e.Handled = true;
+                        return;
+                    }
+
                     mvm.SelectSingleNodeExclusive(nodeVm);
 
                     _suppressTreeSelectionHandling = true;

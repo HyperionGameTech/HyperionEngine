@@ -2484,6 +2484,119 @@ void EditorSubsystem::SetViewportForcedLod(int32 lodIndex)
     g_cvMeshLodForceLod.Set(MathUtil::Clamp(lodIndex, -1, int32(MaxMeshLods) - 1));
 }
 
+static VolumeBase* ResolveFittableVolume(Node* node)
+{
+    VolumeBase* volume = DynamicCast<VolumeBase>(node);
+
+    // unbounded volumes (e.g. sky probe) have no box to fit
+    if (volume == nullptr || !volume->GetLocalBounds().IsFinite())
+    {
+        return nullptr;
+    }
+
+    return volume;
+}
+
+static BoundingBox CalculateSelectionWorldBounds(const Array<Handle<Node>>& selectedNodes, const Node* excludedNode)
+{
+    BoundingBox selectionBounds = BoundingBox::Empty();
+
+    for (const Handle<Node>& node : selectedNodes)
+    {
+        if (!node.IsValid() || node.Get() == excludedNode)
+        {
+            continue;
+        }
+
+        const BoundingBox nodeBounds = node->GetWorldBounds();
+
+        if (nodeBounds.IsValid() && nodeBounds.IsFinite() && !nodeBounds.IsZero())
+        {
+            selectionBounds = selectionBounds.Union(nodeBounds);
+        }
+    }
+
+    return selectionBounds;
+}
+
+static void ApplyVolumeLocalBounds(EditorSubsystem* editorSubsystem, const Handle<VolumeBase>& volume, const BoundingBox& localBounds)
+{
+    if (!volume.IsValid())
+    {
+        return;
+    }
+
+    volume->SetLocalBounds(localBounds);
+
+    // the volume edit gizmo caches the face positions of the volume it's attached to
+    if (Handle<Node> focusedNode = editorSubsystem->GetFocusedNode(); focusedNode.Get() == volume.Get())
+    {
+        if (EditorGizmoBase* gizmo = editorSubsystem->GetSelectedGizmo())
+        {
+            gizmo->SetFocusedNode(focusedNode);
+        }
+    }
+}
+
+bool EditorSubsystem::CanFitVolumeToSelection(Node* volume) const
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_currentProject.IsValid() || IsSimulating() || ResolveFittableVolume(volume) == nullptr)
+    {
+        return false;
+    }
+
+    return CalculateSelectionWorldBounds(GetSelectedNodes(), volume).IsValid();
+}
+
+void EditorSubsystem::FitVolumeToSelection(Node* volume)
+{
+    AssertOnThread(g_simThread);
+
+    Handle<EditorProject> project = GetCurrentProject();
+
+    if (!project.IsValid() || IsSimulating())
+    {
+        return;
+    }
+
+    VolumeBase* fittableVolume = ResolveFittableVolume(volume);
+
+    if (fittableVolume == nullptr)
+    {
+        return;
+    }
+
+    const BoundingBox selectionBounds = CalculateSelectionWorldBounds(GetSelectedNodes(), fittableVolume);
+
+    if (!selectionBounds.IsValid())
+    {
+        HYP_LOG(Editor, Warning, "Fit volume to selection: no other selected node has finite bounds");
+
+        return;
+    }
+
+    const BoundingBox fittedLocalBounds = fittableVolume->GetWorldMatrix().Inverse() * selectionBounds;
+    const BoundingBox previousLocalBounds = fittableVolume->GetLocalBounds();
+
+    project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+        "Fit Volume to Selection",
+        [volumeRef = MakeStrongRef(fittableVolume), fittedLocalBounds, previousLocalBounds]() -> EditorActionFunctions
+        {
+            return {
+                [volumeRef, fittedLocalBounds](EditorSubsystem* editorSubsystem, EditorProject*)
+                {
+                    ApplyVolumeLocalBounds(editorSubsystem, volumeRef, fittedLocalBounds);
+                },
+                [volumeRef, previousLocalBounds](EditorSubsystem* editorSubsystem, EditorProject*)
+                {
+                    ApplyVolumeLocalBounds(editorSubsystem, volumeRef, previousLocalBounds);
+                }
+            };
+        }));
+}
+
 // Which LOD each mesh is rendering, without needing a shader path for it.
 void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandList)
 {

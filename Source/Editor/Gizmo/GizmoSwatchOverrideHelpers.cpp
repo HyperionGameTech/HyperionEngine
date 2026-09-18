@@ -6,9 +6,10 @@
 
 #include <EditorPch.hpp>
 
-#include <Editor/Gizmo/GizmoSwatchOverrideHelpers.hpp>
-
+/// Must be before
 #include <Scene/Entity.hpp>
+
+#include <Editor/Gizmo/GizmoSwatchOverrideHelpers.hpp>
 
 #include <Scene/Util/SceneHelpers.hpp>
 

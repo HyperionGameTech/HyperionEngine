@@ -492,6 +492,19 @@ public:
 
     ///
 
+    ///Volumes
+
+    /*! \brief True if \p volume is a bounded volume and the selection holds at least one other node with finite bounds. */
+    HYP_METHOD()
+    bool CanFitVolumeToSelection(Node* volume) const;
+
+    /*! \brief Set \p volume's bounds to the world-space bounds of the selected nodes. Leaves the selection and
+     *  focused node untouched, so it can be run on a volume that isn't selected. Undoable. */
+    HYP_METHOD()
+    void FitVolumeToSelection(Node* volume);
+
+    ///
+
     HYP_METHOD()
     void SetSelectedBucket(uint32 bucketIndex);
 

@@ -2577,7 +2577,7 @@ DEFINE_EDITOR_COMMAND(DeleteNode);
 
 #pragma region Collision
 
-static Node* ResolveCollisionCommandNode(EditorSubsystem* subsystem, const String& nodeUuidArgument)
+static Node* ResolveNodeUuidArgument(EditorSubsystem* subsystem, const String& nodeUuidArgument)
 {
     if (nodeUuidArgument.Empty())
     {
@@ -2588,7 +2588,7 @@ static Node* ResolveCollisionCommandNode(EditorSubsystem* subsystem, const Strin
 
     if (nodeUuid == UUID::Invalid())
     {
-        HYP_LOG(Editor, Warning, "Collision command: invalid UUID '{}'", nodeUuidArgument);
+        HYP_LOG(Editor, Warning, "Editor command: invalid node UUID '{}'", nodeUuidArgument);
 
         return nullptr;
     }
@@ -2612,7 +2612,7 @@ public:
     {
         AssertOnThread(g_simThread);
 
-        Node* node = ResolveCollisionCommandNode(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+        Node* node = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
 
         subsystem->GenerateConvexCollision(node);
     }
@@ -2636,7 +2636,7 @@ public:
     {
         AssertOnThread(g_simThread);
 
-        Node* node = ResolveCollisionCommandNode(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+        Node* node = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
 
         subsystem->FitPhysicsShapeToMesh(node);
     }
@@ -2645,6 +2645,34 @@ public:
 DEFINE_EDITOR_COMMAND(FitCollisionToMesh);
 
 #pragma endregion Collision
+
+#pragma region Volume
+
+class EditorCommandFitVolumeToSelection final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandFitVolumeToSelection);
+
+public:
+    virtual ~EditorCommandFitVolumeToSelection() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Fit Volume to Selection";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Node* volume = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+
+        subsystem->FitVolumeToSelection(volume);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(FitVolumeToSelection);
+
+#pragma endregion Volume
 
 class EditorCommandTeleportTo final : public EditorCommandBase
 {

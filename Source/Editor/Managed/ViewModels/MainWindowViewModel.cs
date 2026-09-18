@@ -377,6 +377,9 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
         public EditorCommand FitCollisionToMesh => new EditorCommand("FitCollisionToMesh", GetSelectedNodeUuid);
 
+        // Takes the right-clicked volume's UUID; the bounds come from the engine-side selection.
+        public EditorCommand FitVolumeToSelection => new EditorCommand("FitVolumeToSelection");
+
         public ICommand SetViewportLod { get; private set; }
 
         /// <summary>-1 renders each mesh at the LOD chosen from its screen size.</summary>

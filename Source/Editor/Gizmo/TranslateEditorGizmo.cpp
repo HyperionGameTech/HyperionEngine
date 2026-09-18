@@ -6,6 +6,9 @@
 
 #include <EditorPch.hpp>
 
+///Must be before
+#include <Scene/Entity.hpp>
+
 #include <Editor/Gizmo/TranslateEditorGizmo.hpp>
 #include <Editor/Gizmo/GizmoSwatchOverrideHelpers.hpp>
 
@@ -14,8 +17,6 @@
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/EditorAction.hpp>
 
-#include <Scene/Node.hpp>
-#include <Scene/Entity.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/EntityManager.hpp>
 

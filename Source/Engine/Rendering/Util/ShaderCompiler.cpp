@@ -2160,11 +2160,7 @@ bool ShaderCompiler::CanCompileShaders(const ShaderCompileParams& params) const
     const bool needsDX12 = params.ShouldCompileDX12();
 
 #ifdef HYP_DXC
-    // DXC can compile HLSL for both Vulkan (SPIR-V) and DX12 (DXIL)
-    if (needsVulkan || needsDX12)
-    {
-        return true;
-    }
+    return true;
 #endif
 
     HYP_LOG(ShaderCompiler, Warning, "Not linked with DXC");

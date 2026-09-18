@@ -13,6 +13,7 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
     Title="Hyperion Editor"
+    Icon="/Assets/Branding/hyperion-icon.ico"
     d:DesignHeight="720"
     d:DesignWidth="1280"
     x:CompileBindings="False"
@@ -1241,7 +1242,15 @@
                                                                         <MenuItem
                                                                             Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding CopyHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                        <!--  Right-clicking a volume leaves the selection alone, so Copy/Delete act on just the volume  -->
+                                                                        <MenuItem
+                                                                            Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="_Copy"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsOutsideSelection}" />
                                                                         <MenuItem
                                                                             Command="{Binding Paste, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding PasteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -1297,6 +1306,13 @@
                                                                                 IsEnabled="{Binding CanFitCollisionToMesh}"
                                                                                 ToolTip.Tip="Resize this entity's box collision to match its mesh bounds" />
                                                                         </MenuItem>
+                                                                        <MenuItem
+                                                                            Command="{Binding FitVolumeToSelection, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="{Binding FitVolumeToSelectionHeader}"
+                                                                            IsEnabled="{Binding CanFitVolumeToSelection}"
+                                                                            IsVisible="{Binding IsVolume}"
+                                                                            ToolTip.Tip="Resize this volume to the world-space bounds of the selected nodes" />
                                                                         <Separator IsVisible="{Binding HasActions}" />
                                                                         <MenuItem
                                                                             Header="Actions"
@@ -1318,7 +1334,14 @@
                                                                         <MenuItem
                                                                             Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding DeleteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                        <MenuItem
+                                                                            Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="_Delete"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsOutsideSelection}" />
                                                                     </ContextMenu>
                                                                 </Grid.ContextMenu>
                                                             </Grid>

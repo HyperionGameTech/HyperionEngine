@@ -329,9 +329,8 @@ public:
             }
             else
             {
-                HYP_LOG(Shader, Error, "Failed to compile shader '{}'", shaderName);
-
-                Assert(false, "Compiled shader '{}' is not a valid compiled shader", shaderName);
+                // not fatal here since preloads and reloads can recover - GetOrCreate() asserts when a real request gets no shader
+                HYP_LOG(Shader, Error, "Failed to compile shader '{}' {}", shaderName, properties.GetDebugString());
             }
         }
 
@@ -690,8 +689,8 @@ public:
                 continue;
             }
 
-            Assert(entry->shaderInstance.IsValid()
-                && !entry->shaderInstance->GetShader()->expired);
+            Assert(entry->shaderInstance.IsValid(), "Compiled shader '{}' is not a valid compiled shader", name);
+            Assert(!entry->shaderInstance->GetShader()->expired);
 
             if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))
             {
@@ -751,11 +750,54 @@ public:
         Array<ShaderMapEntry*, ShaderAllocator> issuedEntries;
         issuedEntries.Reserve(numShaders);
 
+        ShaderPropertySet globalProperties;
+        MergeGlobalShaderProperties(globalProperties);
+
+        Array<Name, ShaderAllocator> globalPropertyNames;
+
+        for (const ShaderPropertyId propertyId : globalProperties.ToArray())
+        {
+            ShaderProperty property;
+
+            if (GetShaderPropertyById(propertyId, property))
+            {
+                globalPropertyNames.PushBack(property.name);
+            }
+        }
+
+        // Entries are recorded with the global properties merged in, and Cache/ is shared between builds. Entries from a build with
+        // another backend or platform (e.g. BACKEND=VULKAN on a DX12 build) are left in the cache for that build, but not preloaded here.
+        const auto isRecordedForOtherTarget = [&](const ShaderPreloadEntry& preloadEntry) -> bool
+        {
+            for (const ShaderPropertyId propertyId : preloadEntry.properties.ToArray())
+            {
+                ShaderProperty property;
+
+                if (!globalProperties.Test(propertyId)
+                    && GetShaderPropertyById(propertyId, property)
+                    && globalPropertyNames.Contains(property.name))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        uint64 numOtherTargetEntries = 0;
+
         for (const ShaderPreloadEntry& preloadEntry : shadersToPreload)
         {
             if (!HasValidShaderName(preloadEntry))
             {
                 HYP_LOG(Shader, Warning, "Shader preload entry had a corrupt name string, skipping!");
+
+                continue;
+            }
+
+            if (isRecordedForOtherTarget(preloadEntry))
+            {
+                ++numOtherTargetEntries;
 
                 continue;
             }
@@ -778,6 +820,11 @@ public:
                 /* doLoadShader */ true);
 
             issuedEntries.PushBack(mapEntry);
+        }
+
+        if (numOtherTargetEntries != 0)
+        {
+            HYP_LOG(Shader, Info, "Skipped {} shader preload entries recorded with a different backend or platform", numOtherTargetEntries);
         }
 
         if (blockingWait)

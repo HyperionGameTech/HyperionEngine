@@ -67,9 +67,11 @@ extern EngineStatGpuTimer g_statGpuFrameTime;
 extern EngineStatTimer g_statTotalStallTime;
 extern EngineStatTimer g_statGpuWaitTime;
 
-// @TODO Make these flags configurable
-//#define HYP_DX12_ENABLE_DEBUG_LAYER
-//#define HYP_DX12_ENABLE_DRED
+#ifndef HYP_SHIPPING
+// @TODO: Use cvar!
+#define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DRED
+#endif // !HYP_SHIPPING
 
 #pragma region DX12RenderConfig
 

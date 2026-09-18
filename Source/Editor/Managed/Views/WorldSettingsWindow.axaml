@@ -11,6 +11,7 @@
     x:DataType="vm:WorldSettingsPanelViewModel"
     mc:Ignorable="d"
     Title="World Settings"
+    Icon="/Assets/Branding/hyperion-icon.ico"
     Width="700"
     Height="720"
     MinWidth="560"
