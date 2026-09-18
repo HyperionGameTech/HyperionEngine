@@ -1501,7 +1501,7 @@ struct FramebufferDesc
 /*! \brief Represents a set of vertex attributes used in mesh input.
  *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
  *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
-HYP_STRUCT(Serialize = "bitwise")
+HYP_STRUCT()
 struct VertexTypeMask
 {
     HYP_STRUCT_BODY(VertexTypeMask);

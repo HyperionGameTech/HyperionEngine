@@ -1,7 +1,3 @@
-[submodule "External/Submodules/libdatachannel"]
-	path = External/Submodules/libdatachannel
-	url = https://github.com/paullouisageneau/libdatachannel
-	commit = v0.19
 [submodule "External/Submodules/zlib"]
 	path = External/Submodules/zlib
 	url = https://github.com/madler/zlib

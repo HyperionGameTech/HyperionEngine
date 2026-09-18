@@ -432,7 +432,7 @@ struct TVertex
 using SimpleVertex = TVertex<VT_Simple>;
 using SkeletalVertex = TVertex<VT_Simple | VT_Skeletal>;
 
-HYP_STRUCT(Serialize = "bitwise")
+HYP_STRUCT()
 struct VertexInputLayoutDesc
 {
     HYP_STRUCT_BODY(VertexInputLayoutDesc);
