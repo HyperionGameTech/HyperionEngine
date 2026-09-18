@@ -351,15 +351,6 @@ elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
   add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
-# if(NOT IOS)
-#     link_directories(/usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
-
-#     find_package(PkgConfig)
-#     pkg_check_modules(GST gstreamer-1.0
-#                         gstreamer-video-1.0
-#                         gstreamer-app-1.0)
-# endif()
-
 find_package(Threads REQUIRED)
 
 # if Jolt submodule exists, use it
@@ -405,68 +396,8 @@ if(HYP_JOLT)
   add_definitions(-DHYP_JOLT=1)
 
   message(STATUS "Jolt Physics enabled")
-  message(STATUS "  Jolt submodule: ${JOLT_SUBMODULE_DIR}")
-  message(STATUS "Bullet physics backend disabled (HYP_JOLT is enabled)")
 else()
-  find_package(Bullet CONFIG QUIET)
-
-  # Fallback: try MODULE mode with hints for vcpkg Android installations
-  if(NOT Bullet_FOUND)
-    set(BULLET_ROOT_DIR_HINT "")
-
-    if(DEFINED ENV{VCPKG_ROOT} AND HYP_ANDROID)
-      set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/arm64-android")
-    elseif(DEFINED ENV{VCPKG_ROOT})
-      set(BULLET_ROOT_DIR_HINT "$ENV{VCPKG_ROOT}/installed/${VCPKG_DEFAULT_TRIPLET}")
-    endif()
-
-    if(BULLET_ROOT_DIR_HINT)
-      find_package(Bullet REQUIRED
-        HINTS "${BULLET_ROOT_DIR_HINT}"
-        PATH_SUFFIXES lib/cmake/bullet3 share/bullet3)
-    endif()
-  endif()
-endif()
-
-if(NOT HYP_JOLT AND Bullet_FOUND)
-  # Homebrew's BulletConfig.cmake ships BULLET_INCLUDE_DIRS / BULLET_LIBRARY_DIRS
-  # as paths relative to BULLET_ROOT_DIR rather than absolute paths, so resolve
-  # them here. Without this, BULLET_LIBRARIES (bare names like "Bullet3Common")
-  # get passed to the linker with no -L path pointing at the actual .dylib/.a files.
-  if(BULLET_ROOT_DIR)
-    set(_BULLET_RESOLVED_INCLUDE_DIRS "")
-    foreach(_bullet_dir ${BULLET_INCLUDE_DIRS})
-      if(IS_ABSOLUTE "${_bullet_dir}")
-        list(APPEND _BULLET_RESOLVED_INCLUDE_DIRS "${_bullet_dir}")
-      else()
-        list(APPEND _BULLET_RESOLVED_INCLUDE_DIRS "${BULLET_ROOT_DIR}/${_bullet_dir}")
-      endif()
-    endforeach()
-    set(BULLET_INCLUDE_DIRS ${_BULLET_RESOLVED_INCLUDE_DIRS})
-
-    foreach(_bullet_lib_dir ${BULLET_LIBRARY_DIRS})
-      if(IS_ABSOLUTE "${_bullet_lib_dir}")
-        link_directories("${_bullet_lib_dir}")
-      else()
-        link_directories("${BULLET_ROOT_DIR}/${_bullet_lib_dir}")
-      endif()
-    endforeach()
-  endif()
-
-  message(STATUS "Bullet found")
-  message(STATUS "  Bullet include: ${BULLET_INCLUDE_DIRS}")
-  message(STATUS "  Bullet libraries: ${BULLET_LIBRARIES}")
-
-  add_definitions(-DHYP_BULLET=1)
-
-  include_directories(SYSTEM ${BULLET_INCLUDE_DIRS})
-
-  set(COMMON_LIBRARIES
-        ${COMMON_LIBRARIES}
-        ${BULLET_LIBRARIES}
-    )
-elseif(NOT HYP_JOLT)
-  message(WARNING "Bullet not found, physics will be disabled!")
+  message(FATAL_ERROR "Jolt Physics submodule not found at ${JOLT_SUBMODULE_DIR}. Run: git submodule update --init --recursive")
 endif()
 
 find_package(OpenAL)
@@ -1043,63 +974,6 @@ if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
     )
 endif()
 
-set(ENABLE_LIBDATACHANNEL FALSE)
-
-if(ENABLE_LIBDATACHANNEL)
-    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "IOS" AND NOT HYP_ANDROID)
-      if(EXISTS "${SUBMODULES_DIR}/libdatachannel/CMakeLists.txt")
-        add_definitions(-DHYP_LIBDATACHANNEL=1)
-
-        # Build libdatachannel as external project (only for VS and Xcode)
-        if(HYP_MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
-          ExternalProject_Add(libdatachannel_external
-                    SOURCE_DIR ${SUBMODULES_DIR}/libdatachannel
-                    CMAKE_ARGS
-                        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
-                        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-                    BUILD_ALWAYS FALSE
-                    INSTALL_COMMAND ""
-                    EXCLUDE_FROM_ALL TRUE
-                )
-
-          # Create imported target
-          ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
-
-          add_library(datachannel-static STATIC IMPORTED)
-          add_dependencies(datachannel-static libdatachannel_external)
-
-          if(WIN32)
-            set_target_properties(datachannel-static PROPERTIES
-                        IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
-                    )
-          else()
-            set_target_properties(datachannel-static PROPERTIES
-                        IMPORTED_LOCATION ${BINARY_DIR}/libdatachannel-static.a
-                    )
-          endif()
-
-          include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
-
-          set(COMMON_LIBRARIES
-                    ${COMMON_LIBRARIES}
-                    datachannel-static
-                )
-        else()
-          # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
-          add_subdirectory(${SUBMODULES_DIR}/libdatachannel EXCLUDE_FROM_ALL)
-
-          include_directories(SYSTEM ${SUBMODULES_DIR}/libdatachannel/include)
-
-          set(COMMON_LIBRARIES
-                    ${COMMON_LIBRARIES}
-                    datachannel-static
-                )
-        endif()
-      endif()
-    endif()
-endif()
-
 # # if submodule 'oidn' exists , link with it
 # if(EXISTS "${SUBMODULES_DIR}/oidn/CMakeLists.txt")
 #     add_definitions(-DHYP_OIDN=1)
@@ -1115,25 +989,6 @@ endif()
 
 if(HYP_ANDROID)
   set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
-endif()
-
-if(NOT IOS)
-  # if(GST_FOUND)
-  #     add_definitions(-DHYP_GSTREAMER=1)
-  #     add_definitions(-DHYP_GSTREAMER_BIN_DIR="Z:/gstreamer/1.0/msvc_x86_64/bin")
-
-  #     include_directories(${GST_INCLUDE_DIRS})
-  #     link_directories(${GST_LIBRARY_DIRS})
-
-  #     # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
-
-  #     message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}\nInclude directories: ${GST_INCLUDE_DIRS}")
-
-  #     set(COMMON_LIBRARIES
-  #         ${COMMON_LIBRARIES}
-  #         ${GST_LIBRARIES}
-  #     )
-  # endif()
 endif()
 
 # set to empty list
@@ -1201,9 +1056,7 @@ set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
 
-if(HYP_JOLT)
-  target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
-endif()
+target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
 
 # add sublibraries as dependencies so any changes get picked up.
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
@@ -1246,9 +1099,6 @@ endif()
 
 # Add dependencies on external projects to ensure they're built before the main library
 
-if(TARGET libdatachannel_external)
-  add_dependencies(${BUILD_NAME} libdatachannel_external)
-endif()
 if(TARGET webgpu_external)
   add_dependencies(${BUILD_NAME} webgpu_external)
 endif()

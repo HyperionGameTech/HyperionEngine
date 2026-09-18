@@ -256,28 +256,8 @@ private:
 
 } // namespace Hyperion
 
-#if defined(HYP_JOLT) && HYP_JOLT
-
 #include <Physics/Jolt/JoltPhysicsAdapter.hpp>
 
 namespace Hyperion {
 using PhysicsWorld = TPhysicsWorld<JoltPhysicsAdapter>;
 } // namespace Hyperion
-
-#elif defined(HYP_BULLET) && HYP_BULLET
-
-#include <Physics/Bullet/BulletPhysicsAdapter.hpp>
-
-namespace Hyperion {
-using PhysicsWorld = TPhysicsWorld<BulletPhysicsAdapter>;
-} // namespace Hyperion
-
-#else // !HYP_BULLET_PHYSICS
-
-#include <Physics/Null/NullPhysicsAdapter.hpp>
-
-namespace Hyperion {
-using PhysicsWorld = TPhysicsWorld<NullPhysicsAdapter>;
-} // namespace Hyperion
-
-#endif // HYP_BULLET_PHYSICS

@@ -45,7 +45,7 @@ enum class RayTestFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(RayTestFlags);
 
-HYP_STRUCT(Size = 32, Serialize = "bitwise")
+HYP_STRUCT()
 struct CORE_API Ray
 {
     HYP_STRUCT_BODY(Ray);

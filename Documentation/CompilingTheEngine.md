@@ -16,7 +16,7 @@ Platform-specific prerequisites:
 |----------|------------------------|
 | **Windows (MSVC)** | `VCPKG_ROOT` environment variable must be set pointing to a vcpkg installation. vcpkg provides the C++ standard library toolchain. |
 | **Windows (Clang)** | Same as MSVC - `VCPKG_ROOT` must be set. The Clang toolchain comes with Visual Studio 2026. |
-| **macOS** | Install dependencies via Homebrew: `brew install bullet molten-vk` (or run `Tools/Scripts/InstallDependenciesMac.sh`). |
+| **macOS** | Install dependencies via Homebrew: `brew install molten-vk` (or run `Tools/Scripts/InstallDependenciesMac.sh`). |
 | **Android** | Android NDK (tested with NDK 29). Ninja build system on PATH. |
 
 ## Optional Dependencies
@@ -45,20 +45,15 @@ The engine supports C# scripting and the editor UI is built with Avalonia UI on 
 
 ### Git Submodule Dependencies
 
+* **JoltPhysics** - Physics simulation (required; the configure step fails if the submodule is missing).
 * **zlib** - Compression/decompression of serialized data.
 * **xatlas** - Lightmap UV generation (can be disabled if not needed).
 
 ### Manually Installed Dependencies
 
-* **Bullet Physics** - Physics simulation. Install via Homebrew (`brew install bullet`) on macOS, or ensure CMake can find it on other platforms.
 * **FreeType** - Text rendering in the editor and engine.
 * **OpenAL Soft** - Audio playback.
 * **Aftermath** (Windows only) - NVIDIA GPU crash dump analysis. If `GFSDK_Aftermath_Lib.x64.lib` exists in `External/ThirdParty/Binaries/Windows/{Debug|Release}/`, Hyperion links to it.
-
-### Experimental
-
-* **libdatachannel** (Git submodule) - WebRTC support.
-* **GStreamer** - Cloud streaming (for WebRTC streaming).
 
 ## Build Tool (CodeGen)
 
@@ -126,7 +121,7 @@ For this setup, we support using Clang for Windows as well as Android.
 
 ### macOS
 
-- Install dependencies: `brew install bullet molten-vk` or run `Tools/Scripts/InstallDependenciesMac.sh`.
+- Install dependencies: `brew install molten-vk` or run `Tools/Scripts/InstallDependenciesMac.sh`.
 - To generate Xcode projects, pass `Xcode` as an argument to the build script.
 - **Disable Metal API Validation** when debugging in Xcode: Open scheme settings -> Options tab -> uncheck "Enable Metal API Validation". Since Hyperion uses Vulkan (translated to Metal via MoltenVK), Metal API validation causes issues.
 

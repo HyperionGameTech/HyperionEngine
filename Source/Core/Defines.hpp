@@ -398,10 +398,6 @@
 #define HYP_NO_EDITOR
 #endif // !HYP_EDITOR
 
-#ifdef HYP_BULLET
-#define HYP_BULLET_PHYSICS 1
-#endif // HYP_BULLET
-
 #ifdef HYP_JOLT
 #define HYP_JOLT_PHYSICS 1
 #endif // HYP_JOLT
