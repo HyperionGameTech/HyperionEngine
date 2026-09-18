@@ -2369,7 +2369,13 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    outShaderData.gameTime = GetGameState().gameTime;
+    const GameState& gameState = GetGameState();
+
+    outShaderData.gameTime = gameState.gameTime;
+
+    // game time only moves while simulating
+    const float previousGameTime = gameState.IsSimulating() ? gameState.gameTime - gameState.deltaTime : gameState.gameTime;
+    outShaderData.windTimeParams = Vec4f(previousGameTime, 0.0f, 0.0f, 0.0f);
 
     WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
 

@@ -28,6 +28,9 @@ struct WorldShaderData
     float4 height_fog_params;
     float4 atmosphere_fog_params;
     float4 fog_phase_params;
+
+    float4 wind_params;
+    float4 wind_time_params;
 };
 
 struct Camera

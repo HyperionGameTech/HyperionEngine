@@ -31,7 +31,8 @@ struct Material
     float parallax_height;
     float2 uv_scale;
 
-    float4 _pad0;
+    // sway frequency, trunk flexibility, tree height, leaf flutter
+    float4 tree_wind;
 };
 
 // enum for packed params

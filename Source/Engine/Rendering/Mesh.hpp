@@ -94,6 +94,10 @@ struct MeshLodGenerationSettings
     HYP_FIELD(Property = "UV1Weight", Serialize)
     float uv1Weight = 0.5f;
 
+    ///keeps vertices of different branches or leaf cards of a swaying tree from being merged
+    HYP_FIELD(Property = "WindWeight", Serialize)
+    float windWeight = 1.0f;
+
     HYP_FIELD(Property = "LockBorder", Serialize)
     bool lockBorder = false;
 

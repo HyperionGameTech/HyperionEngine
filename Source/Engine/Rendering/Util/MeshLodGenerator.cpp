@@ -101,12 +101,16 @@ static void BuildSimplifierStreams(MeshLodSource& source, const MeshLodGeneratio
         VertexType vertexType;
         uint32 numComponents;
         float weight;
+        bool isHalf = false;
     };
 
     const AttributeStream candidates[] = {
         { VT_Normal, 3, settings.normalWeight },
         { VT_UV0, 2, settings.uv0Weight },
-        { VT_UV1, 2, settings.uv1Weight }
+        { VT_UV1, 2, settings.uv1Weight },
+        // branches differ by their sway pivots, leaf cards by their origins
+        { VT_Tree, NumTreeSwayOrders * 4, settings.windWeight, true },
+        { VT_Foliage, 3, settings.windWeight, true }
     };
 
     Array<AttributeStream> streams;
@@ -154,7 +158,9 @@ static void BuildSimplifierStreams(MeshLodSource& source, const MeshLodGeneratio
 
             for (uint32 component = 0; component < stream.numComponents; component++)
             {
-                source.attributes[destinationOffset++] = attribute[component];
+                source.attributes[destinationOffset++] = stream.isHalf
+                    ? float(reinterpret_cast<const Float16*>(attribute)[component])
+                    : attribute[component];
             }
         }
     }

@@ -132,7 +132,9 @@ static const Map<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes 
     { VT_Normal, { "a_normal" } },
     { VT_UV0, { "a_texcoord0" } },
     { VT_UV1, { "a_texcoord1" } },
-    { VT_Skeletal, { "a_bone_indices", "a_bone_weights" } }
+    { VT_Skeletal, { "a_bone_indices", "a_bone_weights" } },
+    { VT_Tree, { "a_tree_limb_branch", "a_tree_twig" } },
+    { VT_Foliage, { "a_foliage" } }
 };
 
 class PrecompileShadersWorkerPool : public TaskThreadPool
@@ -1081,6 +1083,12 @@ static VertexType FindVertexType(StringHash name)
     if (name == "Skeletal"_sh)
         return VT_Skeletal;
 
+    if (name == "Tree"_sh)
+        return VT_Tree;
+
+    if (name == "Foliage"_sh)
+        return VT_Foliage;
+
     return VT_Invalid;
 }
 
@@ -1113,6 +1121,18 @@ static bool FindVertexType(const UTF8StringView& str, VertexType& outType)
     if (str == "a_bone_indices" || str == "a_bone_weights")
     {
         outType = VT_Skeletal;
+        return true;
+    }
+
+    if (str == "a_tree_limb_branch" || str == "a_tree_twig")
+    {
+        outType = VT_Tree;
+        return true;
+    }
+
+    if (str == "a_foliage")
+    {
+        outType = VT_Foliage;
         return true;
     }
 

@@ -34,6 +34,8 @@
 
 #include <Core/Utilities/StringUtil.hpp>
 
+#include <Core/DataProcessing/JSON/JSON.hpp>
+
 #include <Core/Constants.hpp>
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Set.hpp>
@@ -1267,11 +1269,170 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
     return material;
 }
 
+using TreeVertex = TVertex<VT_Simple | VT_Tree>;
+using FoliageVertex = TVertex<VT_Simple | VT_Tree | VT_Foliage>;
+
+static constexpr const char* ArborTreeWindExtension = "ARBOR_tree_wind";
+static constexpr uint32 ArborBranchFloats = 8;
+
+struct ArborTreeWind
+{
+    Array<float> branches;
+    Array<float> leafOrigins;
+
+    // trunk, then each sway order
+    float flexibility[NumTreeSwayOrders + 1] {};
+    float frequency = 0.0f;
+    float flutter = 0.0f;
+    float height = 0.0f;
+};
+
+bool ReadArborTreeWind(const GltfLoadContext& ctx, const cgltf_primitive& primitive, ArborTreeWind& outWind)
+{
+    const cgltf_extension* extension = nullptr;
+
+    for (cgltf_size extensionIndex = 0; extensionIndex < primitive.extensions_count; ++extensionIndex)
+    {
+        const cgltf_extension& candidate = primitive.extensions[extensionIndex];
+
+        if (candidate.name != nullptr && candidate.data != nullptr && std::strcmp(candidate.name, ArborTreeWindExtension) == 0)
+        {
+            extension = &candidate;
+            break;
+        }
+    }
+
+    if (extension == nullptr)
+    {
+        return false;
+    }
+
+    const JSON::ParseResult parseResult = JSON::Parse(UTF8StringView(extension->data));
+
+    if (!parseResult.ok)
+    {
+        HYP_LOG(Assets, Warning, "GLTF {} extension could not be parsed: {}", ArborTreeWindExtension, parseResult.message);
+        return false;
+    }
+
+    const JSON::Value& json = parseResult.value;
+
+    const auto readFloat = [](const auto& value) -> float
+    {
+        return value.IsNumber() ? float(value.ToNumber()) : 0.0f;
+    };
+
+    const auto findAccessor = [&ctx](const auto& indexValue) -> const cgltf_accessor*
+    {
+        if (!indexValue.IsNumber())
+        {
+            return nullptr;
+        }
+
+        const cgltf_size accessorIndex = cgltf_size(indexValue.ToNumber());
+
+        return accessorIndex < ctx.data.accessors_count ? &ctx.data.accessors[accessorIndex] : nullptr;
+    };
+
+    if (UnpackAccessorFloats(findAccessor(json["branches"]), outWind.branches) < ArborBranchFloats)
+    {
+        HYP_LOG(Assets, Warning, "GLTF {} extension has no branch table; the mesh will not sway", ArborTreeWindExtension);
+        return false;
+    }
+
+    UnpackAccessorFloats(findAccessor(json["leafOrigins"]), outWind.leafOrigins);
+
+    if (const auto flexibility = json["flexibility"]; flexibility.IsArray())
+    {
+        const JSON::JArray& values = flexibility.AsArray();
+
+        for (uint32 orderIndex = 0; orderIndex < NumTreeSwayOrders + 1 && orderIndex < values.Size(); ++orderIndex)
+        {
+            outWind.flexibility[orderIndex] = values[orderIndex].ToFloat();
+        }
+    }
+
+    outWind.frequency = readFloat(json["frequency"]);
+    outWind.flutter = readFloat(json["flutter"]);
+    outWind.height = readFloat(json["height"]);
+
+    return true;
+}
+
+// Deflection along a cantilever under an even load: 0 at the fixed end, 1 at the free one
+float Cantilever(float x)
+{
+    x = x < 0.0f ? 0.0f : (x > 1.0f ? 1.0f : x);
+
+    return x * x * (6.0f - 4.0f * x + x * x) / 3.0f;
+}
+
+// Tree meshes keep the glTF origin at the tree's foot, so shaders take the trunk's sway from mesh space height
+template <uint8 TMask>
+void BuildTreeVertices(
+    const ArborTreeWind& wind,
+    const Array<FatVertex>& vertices,
+    const Array<float>& branchCoordinates,
+    Array<TVertex<TMask>>& outVertices)
+{
+    const uint32 numBranches = uint32(wind.branches.Size() / ArborBranchFloats);
+
+    // Same conversion the positions went through: right to left handed
+    const auto toMeshSpace = [](const float* gltfPoint) -> Vec3f
+    {
+        return Vec3f(gltfPoint[0], gltfPoint[1], -gltfPoint[2]);
+    };
+
+    outVertices.Resize(vertices.Size());
+
+    for (size_t vertexIndex = 0; vertexIndex < vertices.Size(); ++vertexIndex)
+    {
+        const FatVertex& source = vertices[vertexIndex];
+        TVertex<TMask>& vertex = outVertices[vertexIndex];
+
+        vertex.SetPosition(source.GetPosition());
+        vertex.SetNormal(source.GetNormal());
+        vertex.SetUV0(source.GetUV0());
+
+        uint32 branchIndex = uint32(branchCoordinates[vertexIndex * 2]);
+        float along = branchCoordinates[vertexIndex * 2 + 1];
+
+        // Walk from the vertex's own branch out to its limb, one order at a time
+        for (uint32 step = 0; step < NumTreeSwayOrders && branchIndex != 0 && branchIndex < numBranches; ++step)
+        {
+            const float* branch = &wind.branches[branchIndex * ArborBranchFloats];
+            const uint32 order = uint32(branch[6]);
+
+            if (order >= NumTreeSwayOrders)
+            {
+                break;
+            }
+
+            const float weight = branch[3] * Cantilever(along) * wind.flexibility[order + 1];
+            vertex.SetSwayOrder(order, Vec4f(toMeshSpace(branch), weight));
+
+            branchIndex = uint32(branch[4]);
+            along = branch[5];
+        }
+
+        if constexpr ((TMask & VT_Foliage) != 0)
+        {
+            vertex.SetFoliage(Vec4f(toMeshSpace(&wind.leafOrigins[vertexIndex * 3]), 1.0f));
+        }
+    }
+}
+
 struct PrimitiveBuildOutput
 {
     Handle<Mesh> mesh;
     Vec3f localTranslation = Vec3f::Zero();
     bool skinned = false;
+    bool tree = false;
+    bool foliage = false;
+    float windFrequency = 0.0f;
+    float windTrunkFlexibility = 0.0f;
+    float windTreeHeight = 0.0f;
+    float windFlutter = 0.0f;
 };
 
 bool BuildPrimitive(GltfLoadContext& ctx,
@@ -1449,7 +1610,15 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         vertices[vertexIndex] = vertex;
     }
 
-    if (bounds.IsValid() && bounds.IsFinite() && !bounds.IsZero())
+    ArborTreeWind wind;
+    const bool hasWind = hasTexcoord1
+        && texcoord1Data.Size() >= vertexCount * 2
+        && ReadArborTreeWind(ctx, primitive, wind);
+
+    const bool hasFoliage = hasWind && wind.leafOrigins.Size() >= vertexCount * 3;
+
+    // the wind needs a tree's foot at the origin, so trees are not centered
+    if (!hasWind && bounds.IsValid() && bounds.IsFinite() && !bounds.IsZero())
     {
         const Vec3f center = bounds.GetCenter();
 
@@ -1460,6 +1629,18 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         }
 
         out.localTranslation = center;
+    }
+
+    Array<TreeVertex> treeVertices;
+    Array<FoliageVertex> foliageVertices;
+
+    if (hasFoliage)
+    {
+        BuildTreeVertices(wind, vertices, texcoord1Data, foliageVertices);
+    }
+    else if (hasWind)
+    {
+        BuildTreeVertices(wind, vertices, texcoord1Data, treeVertices);
     }
 
     Array<uint32> indices;
@@ -1484,7 +1665,19 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_UV1 | VT_Skeletal };
+    if (hasFoliage)
+    {
+        meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_Tree | VT_Foliage };
+    }
+    else if (hasWind)
+    {
+        meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_Tree };
+    }
+    else
+    {
+        meshDesc.meshAttributes.inputLayout = VertexInputLayoutDesc { VT_Simple | VT_UV1 | VT_Skeletal };
+    }
+
     meshDesc.meshAttributes.topology = topology;
     meshDesc.meshAttributes.indexBufferElemType = GpuElemType::UnsignedInt;
     meshDesc.lods[0].numVertices = uint32(vertices.Size());
@@ -1496,7 +1689,20 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     mesh->SetName(assetName);
 
     VertexArrayView vertexArrayView {};
-    vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+
+    if (hasFoliage)
+    {
+        vertexArrayView.floatData = reinterpret_cast<const float*>(foliageVertices.Data());
+    }
+    else if (hasWind)
+    {
+        vertexArrayView.floatData = reinterpret_cast<const float*>(treeVertices.Data());
+    }
+    else
+    {
+        vertexArrayView.floatData = reinterpret_cast<const float*>(vertices.Data());
+    }
+
     vertexArrayView.vertexCount = vertices.Size();
     vertexArrayView.layoutDesc = meshDesc.meshAttributes.inputLayout;
 
@@ -1517,7 +1723,17 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     InitObject(mesh);
 
     out.mesh = mesh;
-    out.skinned = hasSkinning;
+    out.skinned = hasSkinning && !hasWind;
+    out.tree = hasWind;
+    out.foliage = hasFoliage;
+
+    if (hasWind)
+    {
+        out.windFrequency = wind.frequency;
+        out.windTrunkFlexibility = wind.flexibility[0];
+        out.windTreeHeight = wind.height;
+        out.windFlutter = wind.flutter;
+    }
 
     return true;
 }
@@ -1773,6 +1989,22 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
             }
 
             Handle<Material> material = AcquireMaterial(state, ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
+
+            if (output.tree)
+            {
+                MaterialParameters parameters = material->GetParameters();
+                parameters.foliage |= output.foliage;
+                parameters.windFrequency = output.windFrequency;
+                parameters.windTrunkFlexibility = output.windTrunkFlexibility;
+                parameters.windTreeHeight = output.windTreeHeight;
+                parameters.windFlutter = output.windFlutter;
+
+                if (parameters != material->GetParameters())
+                {
+                    material->SetParameters(parameters);
+                }
+            }
+
             InitObject(material);
 
             meshResource.primitives.PushBack(GltfPrimitiveResource {

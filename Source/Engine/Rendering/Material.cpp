@@ -416,6 +416,12 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     bufferData.uvScale = m_parameters.uvScale;
     bufferData.parallaxHeight = m_parameters.parallaxHeightScale;
 
+    bufferData.treeWind = Vec4f(
+        m_parameters.windFrequency,
+        m_parameters.windTrunkFlexibility,
+        m_parameters.windTreeHeight,
+        m_parameters.windFlutter);
+
     bufferData.textureUsage = 0;
 
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);

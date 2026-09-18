@@ -133,6 +133,15 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
         MathUtil::Clamp(heightFog.maxOpacity, 0.0f, 1.0f));
 
     outShaderData.fogPhaseParams = Vec4f(MathUtil::Clamp(heightFog.sunAnisotropy, 0.0f, 0.95f), 0.0f, 0.0f, 0.0f);
+
+    const WindSettings& wind = settings.wind;
+    const float windDirectionRadians = float(MathUtil::DegToRad(double(wind.directionDegrees)));
+
+    outShaderData.windParams = Vec4f(
+        float(MathUtil::Cos(double(windDirectionRadians))),
+        float(MathUtil::Sin(double(windDirectionRadians))),
+        MathUtil::Max(wind.strength, 0.0f),
+        MathUtil::Clamp(wind.gustiness, 0.0f, 1.0f));
 }
 
 } // namespace Hyperion

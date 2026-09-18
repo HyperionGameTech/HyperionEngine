@@ -10,6 +10,9 @@ struct VSInput
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
     HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
+    HYP_ATTRIBUTE_OPTIONAL uint4 a_tree_limb_branch : TEXCOORD2;
+    HYP_ATTRIBUTE_OPTIONAL uint2 a_tree_twig : TEXCOORD3;
+    HYP_ATTRIBUTE_OPTIONAL uint2 a_foliage : TEXCOORD4;
 };
 
 struct VSOutput
@@ -41,6 +44,12 @@ DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer Enti
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
 #include "include/Skinning.hlsli"
 #endif // SKINNING
+
+#if defined(VT_Tree) || defined(VT_Foliage)
+DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+#include "include/Wind.hlsli"
+#endif // VT_Tree || VT_Foliage
 
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
@@ -116,8 +125,30 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // !SKINNING || !VT_Skeletal
 #endif // SKINNING && VT_Skeletal
 
+    float3 world_normal = mul(normal_matrix, input.a_normal);
+
+#if defined(VT_Tree) || defined(VT_Foliage)
+    WindVertex wind = (WindVertex)0;
+    wind.local_position = local_position;
+#ifdef VT_Tree
+    wind.limb = UnpackWindHalves(input.a_tree_limb_branch.xy);
+    wind.branch = UnpackWindHalves(input.a_tree_limb_branch.zw);
+    wind.twig = UnpackWindHalves(input.a_tree_twig);
+#endif // VT_Tree
+#ifdef VT_Foliage
+    wind.foliage = UnpackWindHalves(input.a_foliage);
+#endif // VT_Foliage
+
+    // the previous frame sways from the same rest pose at its own time, so motion vectors see the sway
+    const float3 rest_position = position.xyz / position.w;
+    float3 previous_normal = world_normal;
+
+    position.xyz += WindDisplacement(world_shader_data, model_matrix, material.tree_wind, wind, rest_position, world_normal, world_shader_data.game_time, true) * position.w;
+    previous_position.xyz += WindDisplacement(world_shader_data, model_matrix, material.tree_wind, wind, rest_position, previous_normal, world_shader_data.wind_time_params.x, true) * previous_position.w;
+#endif // VT_Tree || VT_Foliage
+
     output.position = position.xyz / position.w;
-    output.normal = mul(normal_matrix, input.a_normal);
+    output.normal = world_normal;
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;
 
