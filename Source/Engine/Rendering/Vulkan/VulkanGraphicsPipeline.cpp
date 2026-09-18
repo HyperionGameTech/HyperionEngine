@@ -573,6 +573,58 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
             continue;
         }
 
+        // Tree and foliage data are halves packed into uints, read as integers so the bits arrive untouched
+        if (vertexType == VT_Tree)
+        {
+            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 6);
+
+            outVkVertexAttributes.Resize(outVkVertexAttributes.Size() + 1);
+
+            // Limb and branch sway:
+            outVkVertexAttributes[attrIndex] = VkVertexInputAttributeDescription {
+                .location = attrIndex,
+                .binding = binding,
+                .format = VK_FORMAT_R32G32B32A32_UINT,
+                .offset = bindingSizes[binding]
+            };
+
+            bindingSizes[binding] += sizeof(uint32) * 4;
+
+            ++attrIndex;
+
+            // Twig sway:
+            outVkVertexAttributes[attrIndex] = VkVertexInputAttributeDescription {
+                .location = attrIndex,
+                .binding = binding,
+                .format = VK_FORMAT_R32G32_UINT,
+                .offset = bindingSizes[binding]
+            };
+
+            bindingSizes[binding] += sizeof(uint32) * 2;
+
+            ++attrIndex;
+
+            continue;
+        }
+
+        if (vertexType == VT_Foliage)
+        {
+            static_assert(sizeof(TVertexPacket<VT_Foliage>) == sizeof(uint32) * 2);
+
+            outVkVertexAttributes[attrIndex] = VkVertexInputAttributeDescription {
+                .location = attrIndex,
+                .binding = binding,
+                .format = VK_FORMAT_R32G32_UINT,
+                .offset = bindingSizes[binding]
+            };
+
+            bindingSizes[binding] += sizeof(uint32) * 2;
+
+            ++attrIndex;
+
+            continue;
+        }
+
         size_t attributeSize = VertexUtils::PacketSize(vertexType);
         AssertDebug(attributeSize <= 16, "Attribute size too large for supported formats!");
 

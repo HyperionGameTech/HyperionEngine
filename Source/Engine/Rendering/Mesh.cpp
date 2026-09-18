@@ -267,6 +267,22 @@ private:
                 bs.vertexData.PushBack(0.0f);
                 bs.vertexData.PushBack(0.0f);
             }
+
+            if (layoutMask & VT_Tree)
+            {
+                for (size_t treeFloatIndex = 0; treeFloatIndex < sizeof(TVertexPacket<VT_Tree>) / sizeof(float); ++treeFloatIndex)
+                {
+                    bs.vertexData.PushBack(0.0f);
+                }
+            }
+
+            if (layoutMask & VT_Foliage)
+            {
+                for (size_t foliageFloatIndex = 0; foliageFloatIndex < sizeof(TVertexPacket<VT_Foliage>) / sizeof(float); ++foliageFloatIndex)
+                {
+                    bs.vertexData.PushBack(0.0f);
+                }
+            }
         }
 
         bs.indexData.Reserve(GetArrayCount(s_indices));
@@ -1134,6 +1150,49 @@ void Mesh::BuildVertexBuffer(
             }
             Memory::Copy(dstFloatBuffer, weights, sizeof(weights));
             dstFloatBuffer += sizeof(weights) / sizeof(float);
+        }
+        else if (dstMask & VT_Skeletal)
+        {
+            dstFloatBuffer += sizeof(TVertexPacket<VT_Skeletal>) / sizeof(float);
+        }
+        if (srcMask & VT_Skeletal)
+        {
+            srcFloatBuffer += sizeof(TVertexPacket<VT_Skeletal>) / sizeof(float);
+        }
+
+        // Zeroed tree and foliage data hold the mesh still
+        if (combinedMask & VT_Tree)
+        {
+            Memory::Copy(dstFloatBuffer, srcFloatBuffer, sizeof(TVertexPacket<VT_Tree>));
+        }
+        else if (dstMask & VT_Tree)
+        {
+            Memory::Zero(dstFloatBuffer, sizeof(TVertexPacket<VT_Tree>));
+        }
+        if (srcMask & VT_Tree)
+        {
+            srcFloatBuffer += sizeof(TVertexPacket<VT_Tree>) / sizeof(float);
+        }
+        if (dstMask & VT_Tree)
+        {
+            dstFloatBuffer += sizeof(TVertexPacket<VT_Tree>) / sizeof(float);
+        }
+
+        if (combinedMask & VT_Foliage)
+        {
+            Memory::Copy(dstFloatBuffer, srcFloatBuffer, sizeof(TVertexPacket<VT_Foliage>));
+        }
+        else if (dstMask & VT_Foliage)
+        {
+            Memory::Zero(dstFloatBuffer, sizeof(TVertexPacket<VT_Foliage>));
+        }
+        if (srcMask & VT_Foliage)
+        {
+            srcFloatBuffer += sizeof(TVertexPacket<VT_Foliage>) / sizeof(float);
+        }
+        if (dstMask & VT_Foliage)
+        {
+            dstFloatBuffer += sizeof(TVertexPacket<VT_Foliage>) / sizeof(float);
         }
     }
 }

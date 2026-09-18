@@ -63,6 +63,9 @@ struct VSInput
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
     HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
+    HYP_ATTRIBUTE_OPTIONAL uint4 a_tree_limb_branch : TEXCOORD2;
+    HYP_ATTRIBUTE_OPTIONAL uint2 a_tree_twig : TEXCOORD3;
+    HYP_ATTRIBUTE_OPTIONAL uint2 a_foliage : TEXCOORD4;
 };
 
 struct VSOutput
@@ -77,6 +80,12 @@ struct VSOutput
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<float4x4> SkeletonsBuffer;
 #include "Include/Skinning.hlsli"
 #endif // SKINNING
+
+#if defined(VT_Tree) || defined(VT_Foliage)
+DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+#include "Include/Wind.hlsli"
+#endif // VT_Tree || VT_Foliage
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -113,6 +122,23 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #else
     position = mul(model_matrix, float4(local_position, 1.0));
 #endif
+
+#if defined(VT_Tree) || defined(VT_Foliage)
+    WindVertex wind = (WindVertex)0;
+    wind.local_position = local_position;
+#ifdef VT_Tree
+    wind.limb = UnpackWindHalves(input.a_tree_limb_branch.xy);
+    wind.branch = UnpackWindHalves(input.a_tree_limb_branch.zw);
+    wind.twig = UnpackWindHalves(input.a_tree_twig);
+#endif // VT_Tree
+#ifdef VT_Foliage
+    wind.foliage = UnpackWindHalves(input.a_foliage);
+#endif // VT_Foliage
+
+    // leaf flutter is too small to show in a shadow, so it is left out here
+    float3 wind_normal = input.a_normal;
+    position.xyz += WindDisplacement(world_shader_data, model_matrix, CURRENT_MATERIAL.tree_wind, wind, position.xyz / position.w, wind_normal, world_shader_data.game_time, false) * position.w;
+#endif // VT_Tree || VT_Foliage
 
     output.v_position = position.xyz / position.w;
     // matches DefaultVertex.hlsl, which flips V

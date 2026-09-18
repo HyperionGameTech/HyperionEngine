@@ -211,6 +211,67 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
             continue;
         }
 
+        // Tree and foliage data are halves packed into uints, read as integers so the bits arrive untouched
+        if (vertexType == VT_Tree)
+        {
+            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 6);
+
+            outInputElementDescs.Resize(outInputElementDescs.Size() + 1);
+
+            // Limb and branch sway:
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 2,
+                .Format = DXGI_FORMAT_R32G32B32A32_UINT,
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
+
+            offset += sizeof(uint32) * 4;
+
+            ++attrIndex;
+
+            // Twig sway:
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 3,
+                .Format = DXGI_FORMAT_R32G32_UINT,
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
+
+            offset += sizeof(uint32) * 2;
+
+            ++attrIndex;
+
+            continue;
+        }
+
+        if (vertexType == VT_Foliage)
+        {
+            static_assert(sizeof(TVertexPacket<VT_Foliage>) == sizeof(uint32) * 2);
+
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 4,
+                .Format = DXGI_FORMAT_R32G32_UINT,
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
+
+            offset += sizeof(uint32) * 2;
+
+            ++attrIndex;
+
+            continue;
+        }
+
         size_t attributeSize = VertexUtils::PacketSize(vertexType);
         AssertDebug(attributeSize <= 16);
 

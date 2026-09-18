@@ -11,12 +11,14 @@
 #include <Core/Types.hpp>
 
 #include <Core/Utilities/ByteUtil.hpp>
+#include <Core/Utilities/Float16.hpp>
 
 #include <Core/Containers/FixedArray.hpp>
 #include <Core/Containers/String.hpp>
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 #include <Core/Math/Transform.hpp>
 
 namespace Hyperion {
@@ -36,8 +38,13 @@ enum VertexType : uint8
     VT_UV0 = 0x4,
     VT_UV1 = 0x8,
     VT_Simple = VT_Position | VT_Normal | VT_UV0,
-    VT_Skeletal = 0x10
+    VT_Skeletal = 0x10,
+    VT_Tree = 0x20,
+    VT_Foliage = 0x40
 };
+
+// Limb, branch and twig
+static constexpr uint32 NumTreeSwayOrders = 3;
 
 #pragma pack(push, 1)
 
@@ -290,6 +297,72 @@ template <> struct TVertexPacket<VT_Skeletal>
     }
 };
 
+// Per sway order (limb, branch, twig), in halves: the pivot it bends about (xyz, mesh space) and how far a point here swings (w, metres).
+// Shaders read these as packed uints, limb and branch in one uint4, twig in a uint2
+template <> struct TVertexPacket<VT_Tree>
+{
+    Float16 swayOrders[NumTreeSwayOrders * 4] {};
+
+    HYP_FORCE_INLINE Vec4f GetSwayOrder(uint32 order) const
+    {
+        const Float16* values = &swayOrders[order * 4];
+        return Vec4f(float(values[0]), float(values[1]), float(values[2]), float(values[3]));
+    }
+
+    HYP_FORCE_INLINE void SetSwayOrder(uint32 order, const Vec4f& pivotAndWeight)
+    {
+        Float16* values = &swayOrders[order * 4];
+        values[0] = Float16(pivotAndWeight.x);
+        values[1] = Float16(pivotAndWeight.y);
+        values[2] = Float16(pivotAndWeight.z);
+        values[3] = Float16(pivotAndWeight.w);
+    }
+
+    constexpr HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        for (const Float16& value : swayOrders)
+        {
+            hc = hc.Combine(HashCode::GetHashCode(value.Raw()));
+        }
+
+        return hc;
+    }
+};
+
+// A leaf card's origin, the twig point it hangs from and flutters about (xyz, mesh space), and how much it flutters (w, 0 to 1), in halves.
+// Shaders read this as a packed uint2
+template <> struct TVertexPacket<VT_Foliage>
+{
+    Float16 foliage[4] {};
+
+    HYP_FORCE_INLINE Vec4f GetFoliage() const
+    {
+        return Vec4f(float(foliage[0]), float(foliage[1]), float(foliage[2]), float(foliage[3]));
+    }
+
+    HYP_FORCE_INLINE void SetFoliage(const Vec4f& originAndFlutter)
+    {
+        foliage[0] = Float16(originAndFlutter.x);
+        foliage[1] = Float16(originAndFlutter.y);
+        foliage[2] = Float16(originAndFlutter.z);
+        foliage[3] = Float16(originAndFlutter.w);
+    }
+
+    constexpr HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        for (const Float16& value : foliage)
+        {
+            hc = hc.Combine(HashCode::GetHashCode(value.Raw()));
+        }
+
+        return hc;
+    }
+};
+
 namespace detail {
 
 template <uint8... TBits>
@@ -341,7 +414,9 @@ struct TVertex
         VT_Normal,
         VT_UV0,
         VT_UV1,
-        VT_Skeletal>
+        VT_Skeletal,
+        VT_Tree,
+        VT_Foliage>
 {
     HYP_FORCE_INLINE bool operator==(const TVertex& other) const
     {
@@ -419,6 +494,10 @@ static inline const char* ToString(VertexType vt)
         return "UV1";
     case VertexType::VT_Skeletal:
         return "Skeletal";
+    case VertexType::VT_Tree:
+        return "Tree";
+    case VertexType::VT_Foliage:
+        return "Foliage";
     }
 
     return "";
@@ -440,6 +519,10 @@ static constexpr inline size_t PacketSize(VertexType vt)
         return sizeof(TVertexPacket<VT_UV1>);
     case VertexType::VT_Skeletal:
         return sizeof(TVertexPacket<VT_Skeletal>);
+    case VertexType::VT_Tree:
+        return sizeof(TVertexPacket<VT_Tree>);
+    case VertexType::VT_Foliage:
+        return sizeof(TVertexPacket<VT_Foliage>);
     default:
         //HYP_UNREACHABLE();
         return 0;
@@ -466,7 +549,9 @@ static constexpr size_t TVertexSize = detail::TVertexSizeCalcExpander<
     VT_Normal,
     VT_UV0,
     VT_UV1,
-    VT_Skeletal>;
+    VT_Skeletal,
+    VT_Tree,
+    VT_Foliage>;
 
 } // namespace VertexUtils
 
