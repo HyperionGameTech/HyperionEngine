@@ -710,9 +710,12 @@ void JoltPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
     JPH::EMotionType motionType = isKinematic ? JPH::EMotionType::Kinematic
         : (mass > MathUtil::epsilonF ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static);
 
-    // Plane and HeightField shapes are world geometry - always static, regardless of mass.
-    if (rigidBody->shape->GetType() == PhysicsShapeType::Plane
-        || rigidBody->shape->GetType() == PhysicsShapeType::HeightField)
+    // Plane and HeightField shapes are world geometry - always static, regardless of mass, and never
+    // toggled to kinematic/dynamic at runtime.
+    const bool isWorldGeometry = rigidBody->shape->GetType() == PhysicsShapeType::Plane
+        || rigidBody->shape->GetType() == PhysicsShapeType::HeightField;
+
+    if (isWorldGeometry)
     {
         motionType = JPH::EMotionType::Static;
     }
@@ -728,7 +731,8 @@ void JoltPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
 
     creationSettings.mFriction = MathUtil::Max(rigidBody->physicsMaterial->friction, 0.0f);
     creationSettings.mRestitution = MathUtil::Clamp(rigidBody->physicsMaterial->restitution, 0.0f, 1.0f);
-    creationSettings.mAllowDynamicOrKinematic = true;
+
+    creationSettings.mAllowDynamicOrKinematic = !isWorldGeometry;
 
     internalData->isDynamic = motionType == JPH::EMotionType::Dynamic;
 

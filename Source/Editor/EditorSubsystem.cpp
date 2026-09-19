@@ -4390,6 +4390,7 @@ void EditorSubsystem::NewProject()
     camera->SetCameraFlags(CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
     camera->SetFarClip(3000.0f);
     camera->SetNearClip(0.1f);
+    camera->SetIsDynamic(true);
     camera->AddTag<EntityTag::PrimaryCamera>();
 
     Handle<FirstPersonCameraController> firstPersonController = MakeHandle<FirstPersonCameraController>();
