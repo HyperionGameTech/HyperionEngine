@@ -16,6 +16,9 @@
 
 #include <Core/IO/ByteReader.hpp>
 
+#include <Core/Threading/Thread.hpp>
+#include <Core/Threading/Threads.hpp>
+
 // needed for TypeInfo
 #include <Core/Reflection/BoxedValue.hpp>
 
@@ -995,6 +998,28 @@ const Object& Value::ToObject() const
     return s_emptyObject.AsObject();
 }
 
+thread_local containers::Set<const Value*>* t_serializedObjects = nullptr;
+
+static containers::Set<const Value*>& GetSerializedObjectsGuard()
+{
+    if (!t_serializedObjects)
+    {
+        t_serializedObjects = new containers::Set<const Value*>();
+
+        if (ThreadBase* currentThread = CurrentThreadObject())
+        {
+            currentThread->AddOnExitCallback(
+                []()
+                {
+                    delete t_serializedObjects;
+                    t_serializedObjects = nullptr;
+                });
+        }
+    }
+
+    return *t_serializedObjects;
+}
+
 JString Value::ToString(bool representation, uint32 depth) const
 {
     return ToString_Internal(representation, depth);
@@ -1002,16 +1027,16 @@ JString Value::ToString(bool representation, uint32 depth) const
 
 JString Value::ToString_Internal(bool representation, uint32 depth) const
 {
-    thread_local containers::Set<const Value*> t_serializedObjects;
+    containers::Set<const Value*>& serializedObjects = GetSerializedObjectsGuard();
 
-    if (!t_serializedObjects.Insert(this).second)
+    if (!serializedObjects.Insert(this).second)
     {
         // already serializing this object, circular reference detected
         return "<circular reference>";
     }
 
     HYP_DEFER({
-        t_serializedObjects.Erase(this);
+        serializedObjects.Erase(this);
     });
 
     if (IsString())

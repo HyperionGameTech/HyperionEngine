@@ -412,15 +412,14 @@ static void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetu
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
     AssertDebug(colorAttachment != nullptr && colorAttachment->IsCreated());
 
-    EnvProbeCaptureState* captureState = envProbe->GetCaptureState();
-    Assert(captureState != nullptr, "EnvProbe {} is rendering without a capture state", envProbe->Id());
+    Assert(envProbeProxy->captureTexture != nullptr, "EnvProbe {} is rendering without a capture texture", envProbe->Id());
 
-    if (!captureState)
+    if (!envProbeProxy->captureTexture)
     {
         return;
     }
 
-    ConvolveEnvProbeCubemap(MakeStrongRef(colorAttachment), captureState->texture, *envProbe);
+    ConvolveEnvProbeCubemap(MakeStrongRef(colorAttachment), MakeStrongRef(envProbeProxy->captureTexture), *envProbe);
 }
 
 // Copies the fresh sky capture into the skybox cubemap, then composites clouds over the capture itself so the convolution
@@ -963,15 +962,17 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
     Attachment* srcTexture = framebuffer->GetAttachment(1);
     AssertDebug(srcTexture != nullptr);
 
-    EnvProbeCaptureState* captureState = envProbe->GetCaptureState();
-    Assert(captureState != nullptr, "EnvProbe {} is rendering without a capture state", envProbe->Id());
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
 
-    if (!captureState)
+    Assert(envProbeProxy->captureVisibilityTexture != nullptr, "EnvProbe {} is rendering without a capture visibility texture", envProbe->Id());
+
+    if (!envProbeProxy->captureVisibilityTexture)
     {
         return;
     }
 
-    Handle<Texture> visibilityTexture = captureState->visibilityTexture;
+    Handle<Texture> visibilityTexture = MakeStrongRef(envProbeProxy->captureVisibilityTexture);
 
     Texture* dstTexture = visibilityTexture.Get();
     Assert(dstTexture != nullptr);

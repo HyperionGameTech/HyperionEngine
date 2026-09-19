@@ -41,6 +41,9 @@
 #include <Core/Logging/LogChannels.hpp>
 #include <Core/Logging/Logger.hpp>
 
+#include <Core/Threading/Thread.hpp>
+#include <Core/Threading/Threads.hpp>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -53,7 +56,27 @@ struct LoadAssetsFromReferencesContext
 };
 
 // used to prevent infinite recursion when serializing nested objects
-thread_local Set<Pair<TypeId, const void*>> t_serializedObjects;
+thread_local Set<Pair<TypeId, const void*>>* t_serializedObjects = nullptr;
+
+static Set<Pair<TypeId, const void*>>& GetSerializedObjectsGuard()
+{
+    if (!t_serializedObjects)
+    {
+        t_serializedObjects = new Set<Pair<TypeId, const void*>>();
+
+        if (ThreadBase* currentThread = CurrentThreadObject())
+        {
+            currentThread->AddOnExitCallback(
+                []()
+                {
+                    delete t_serializedObjects;
+                    t_serializedObjects = nullptr;
+                });
+        }
+    }
+
+    return *t_serializedObjects;
+}
 
 // If true, class names will always be written when serializing objects IF the type != the declared type.
 // For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
@@ -699,13 +722,15 @@ ENGINE_API Result BoxedToJSON(
     {
         Pair<TypeId, const void*> pair = { value.GetTypeId(), value.ToRef().GetPointer() };
 
-        if (!t_serializedObjects.Insert(pair).second)
+        Set<Pair<TypeId, const void*>>& serializedObjects = GetSerializedObjectsGuard();
+
+        if (!serializedObjects.Insert(pair).second)
         {
             return HYP_MAKE_ERROR(Error, "Detected circular reference when serializing BoxedValue to JSON");
         }
 
         HYP_DEFER({
-            t_serializedObjects.Erase(pair);
+            serializedObjects.Erase(pair);
         });
 
         JSON::Object jsonObject;

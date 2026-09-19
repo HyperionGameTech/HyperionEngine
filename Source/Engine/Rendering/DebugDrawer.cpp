@@ -927,13 +927,17 @@ void DebugDrawer::Update()
         it.m_bufferOffset = 0;
     }
 
-    std::swap(m_pendingIndex, m_readyIndex);
+    {
+        Mutex::Guard guard(m_readyIndexMutex);
+        std::swap(m_pendingIndex, m_readyIndex);
+    }
 }
 
 void DebugDrawer::AcquireRenderCommands()
 {
     AssertOnThread(g_renderThread);
 
+    Mutex::Guard guard(m_readyIndexMutex);
     std::swap(m_readyIndex, m_renderIndex);
 }
 

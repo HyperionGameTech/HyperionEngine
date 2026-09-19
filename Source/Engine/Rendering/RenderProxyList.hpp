@@ -196,6 +196,8 @@ public:
     FixedArray<HashCode, NumEntryHashes> cachedEntryHashes;
 
     SharedMutex m_lock;
+    
+    mutable AtomicVar<uint32> m_numActiveReaders { 0 };
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };

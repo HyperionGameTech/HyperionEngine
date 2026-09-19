@@ -38,6 +38,7 @@ EnvProbeCaptureState::~EnvProbeCaptureState()
     if (m_envProbe->GetCaptureState() == this)
     {
         m_envProbe->m_captureState = nullptr;
+        m_envProbe->SetNeedsRenderProxyUpdate();
     }
 }
 
@@ -62,6 +63,11 @@ void EnvProbeCaptureState::Begin()
 
     m_envProbe->InitCaptureData(this);
 
+    // InitCaptureData(captureState) doesn't mark the proxy dirty itself (SetDimensions() above
+    // only does so if the dimensions actually changed), so force a sync here - the render thread
+    // must pick up this capture's texture(s) via the proxy rather than reading captureState directly.
+    m_envProbe->SetNeedsRenderProxyUpdate();
+
     m_envProbe->needsRender.Store(true);
 }
 
@@ -77,6 +83,7 @@ void EnvProbeCaptureState::End(bool commitResult)
     if (m_envProbe->GetCaptureState() == this)
     {
         m_envProbe->m_captureState = nullptr;
+        m_envProbe->SetNeedsRenderProxyUpdate();
     }
 
     if (!commitResult)

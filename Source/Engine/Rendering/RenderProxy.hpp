@@ -209,6 +209,10 @@ struct RenderProxyEnvProbe : IRenderProxy
 
     Texture* texture = nullptr;           // baked cubemap texture or prefiltered env
     Texture* visibilityTexture = nullptr; // only relevant if envprobe has HAS_VISIBILITY flag set.
+
+    Texture* captureTexture = nullptr;
+    Texture* captureVisibilityTexture = nullptr;
+
     EnvProbeShaderData bufferData {};
 };
 

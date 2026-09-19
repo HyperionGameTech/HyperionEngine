@@ -697,6 +697,8 @@ void RenderProxyList::BeginRead()
     AssertDebug(state != CS_WRITING);
     state = CS_READING;
 
+    m_numActiveReaders.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+
 #ifdef HYP_ENABLE_MT_CHECK
     m_dataRaceDetector.AddAccess(ThreadId::Current(), DataAccessFlags::ACCESS_READ, { HYP_FUNCTION_NAME_LIT });
 #endif
@@ -710,12 +712,18 @@ void RenderProxyList::EndRead()
     m_dataRaceDetector.RemoveAccess(ThreadId::Current(), DataAccessFlags::ACCESS_READ);
 #endif
 
-    /// @NOTE: If BeginRead() is called on other thread between the check and setting state to CS_DONE,
-    /// we could set state to done when it isn't actually.
-    if (m_lock.UnlockReader() == 0)
+    /// @NOTE: We can't tell whether we're the last reader from SharedMutex::UnlockReader()'s return value,
+    /// since by the time it returns, the lock is already visibly free - a writer on another thread could win
+    /// LockWriter() and read `state` before we get a chance to set it to CS_DONE here, tripping the
+    /// AssertDebug(state != CS_READING) in BeginWrite(). So we track the last-reader transition ourselves and
+    /// commit `state = CS_DONE` *before* releasing the reader lock, mirroring how EndWrite() sets `state`
+    /// before UnlockWriter().
+    if (m_numActiveReaders.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1)
     {
         state = CS_DONE;
     }
+
+    m_lock.UnlockReader();
 }
 
 void RenderProxyList::ClearAll()

@@ -324,6 +324,9 @@ private:
     uint32 m_readyIndex = 1;
     uint32 m_renderIndex = 2;
 
+    // Guards m_readyIndex, which Update() (sim thread) and AcquireRenderCommands() (render thread) both swap
+    Mutex m_readyIndexMutex;
+
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer
     FixedArray<size_t, 10> m_bufferSizeHistory;
 

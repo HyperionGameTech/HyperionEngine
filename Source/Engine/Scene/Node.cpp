@@ -302,10 +302,17 @@ void Node::OnTransformUpdated()
 
 void Node::OnMobilityChanged(bool isStatic)
 {
+    constexpr EnumFlags<NodeFlags> ExplicitMobilityFlags = NodeFlags::MobilityStatic | NodeFlags::MobilityDynamic;
+
     if (isStatic)
     {
         for (Node* child : m_childNodes)
         {
+            if (child->GetNodeFlags() & ExplicitMobilityFlags)
+            {
+                continue;
+            }
+
             child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MobilityStaticByProxy);
         }
     }
@@ -313,6 +320,11 @@ void Node::OnMobilityChanged(bool isStatic)
     {
         for (Node* child : m_childNodes)
         {
+            if (child->GetNodeFlags() & ExplicitMobilityFlags)
+            {
+                continue;
+            }
+
             child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
         }
     }
@@ -325,6 +337,13 @@ void Node::OnAttachedToNode(Node* node)
     Assert(node != nullptr);
 
     m_parentNode = node;
+
+    constexpr EnumFlags<NodeFlags> ExplicitMobilityFlags = NodeFlags::MobilityStatic | NodeFlags::MobilityDynamic;
+
+    if (GetNodeFlags() & ExplicitMobilityFlags)
+    {
+        return;
+    }
 
     if (m_parentNode->IsStatic())
     {

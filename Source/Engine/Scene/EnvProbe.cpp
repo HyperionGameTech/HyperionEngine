@@ -1420,6 +1420,22 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
         }
     }
 
+    Texture* captureTexture = m_captureState ? m_captureState->texture.Get() : nullptr;
+
+    if (proxy->captureTexture != captureTexture)
+    {
+        proxy->forceRebind = true;
+        proxy->captureTexture = captureTexture;
+    }
+
+    Texture* captureVisibilityTexture = m_captureState ? m_captureState->visibilityTexture.Get() : nullptr;
+
+    if (proxy->captureVisibilityTexture != captureVisibilityTexture)
+    {
+        proxy->forceRebind = true;
+        proxy->captureVisibilityTexture = captureVisibilityTexture;
+    }
+
     const BoundingBox worldBounds = GetWorldBounds();
 
     const float diffuseContributionWeight = ShouldComputeSphericalHarmonics() ? m_diffuseStrength : 0;
