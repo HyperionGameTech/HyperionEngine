@@ -2933,8 +2933,10 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
 {
     if (!deep)
     {
-        // If not deep, iterate using the child UI objects list - more efficient this way
-        for (const Handle<UIObject>& child : m_childUiObjects)
+        // needs copy, not reference. the lambda may add/remove causing realloc
+        const Array<Handle<UIObject>> children = m_childUiObjects;
+
+        for (const Handle<UIObject>& child : children)
         {
             if (!child)
             {
@@ -2953,14 +2955,17 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
         return;
     }
 
-    Queue<const UIObject*> queue;
-    queue.Push(this);
+    Queue<Handle<UIObject>> queue;
+    queue.Push(HandleFromThis());
 
     while (queue.Any())
     {
-        const UIObject* parent = queue.Pop();
+        const Handle<UIObject> parent = queue.Pop();
 
-        for (const Handle<UIObject>& child : parent->m_childUiObjects)
+        // Snapshot for the same reason as above.
+        const Array<Handle<UIObject>> children = parent->m_childUiObjects;
+
+        for (const Handle<UIObject>& child : children)
         {
             const IterationResult iterationResult = lambda(child.Get());
 
@@ -2970,7 +2975,7 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
                 return;
             }
 
-            queue.Push(child.Get());
+            queue.Push(child);
         }
     }
 }

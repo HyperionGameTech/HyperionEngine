@@ -213,6 +213,9 @@ struct RenderProxyEnvProbe : IRenderProxy
     Texture* captureTexture = nullptr;
     Texture* captureVisibilityTexture = nullptr;
 
+    FixedArray<View*, 6> views {};
+    FixedArray<Framebuffer*, 6> viewFramebuffers {};
+
     EnvProbeShaderData bufferData {};
 };
 

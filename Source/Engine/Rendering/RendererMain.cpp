@@ -1034,15 +1034,22 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     Mat4f viewProjMat;
 
+    Camera* camera = nullptr;
     RenderProxyCamera* cameraProxy = nullptr;
+
     if (renderSetup.view != nullptr)
     {
         AssertDebug(drawCallCollection.renderProxyList != nullptr);
 
         viewProjMat = drawCallCollection.renderProxyList->cachedMatrices.viewProj;
 
-        Camera* camera = renderSetup.view->GetCamera();
-        cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+        // read once - the sim thread can null it out from under us (e.g EnvProbe tearing down its capture data)
+        camera = renderSetup.view->GetCamera();
+
+        if (camera != nullptr)
+        {
+            cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+        }
     }
 
     if constexpr (UseIndirectRendering)
@@ -1053,6 +1060,13 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
         // No draw calls to render
+        return;
+    }
+
+    if (HYP_UNLIKELY(!cameraProxy))
+    {
+        HYP_LOG_ONCE(Rendering, Warning, "No camera render proxy for View {}, skipping its draw calls", renderSetup.view ? *renderSetup.view->GetName() : "null");
+
         return;
     }
 
@@ -1069,7 +1083,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     const uint32 cbufferBinding = numShaderUniforms++;
 
-    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(camera));
 
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
 

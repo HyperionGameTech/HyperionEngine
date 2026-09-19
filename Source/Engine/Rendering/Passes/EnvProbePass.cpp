@@ -406,8 +406,8 @@ static void ComputePrefilteredEnvMap(Frame* frame, const RenderSetup& renderSetu
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
     AssertDebug(envProbeProxy != nullptr);
 
-    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
-    AssertDebug(framebuffer.IsValid());
+    Framebuffer* framebuffer = envProbeProxy->viewFramebuffers[0];
+    AssertDebug(framebuffer != nullptr);
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
     AssertDebug(colorAttachment != nullptr && colorAttachment->IsCreated());
@@ -428,8 +428,11 @@ static bool CaptureSkyProbeSky(const RenderSetup& renderSetup, SkyProbe* skyProb
 {
     AssertDebug(skyProbe);
 
-    const FramebufferRef& framebuffer = skyProbe->GetViewFramebuffer(0);
-    AssertDebug(framebuffer.IsValid());
+    RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe));
+    AssertDebug(skyProbeProxy != nullptr);
+
+    Framebuffer* framebuffer = skyProbeProxy->viewFramebuffers[0];
+    AssertDebug(framebuffer != nullptr);
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
     AssertDebug(colorAttachment != nullptr && colorAttachment->IsCreated());
@@ -483,9 +486,6 @@ static bool CaptureSkyProbeSky(const RenderSetup& renderSetup, SkyProbe* skyProb
     }
 
     CloudPass* cloudPass = cloudsPassData->cloudPass.Get();
-
-    RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe));
-    AssertDebug(skyProbeProxy != nullptr);
 
     RenderProxyLight* sunProxy = renderSetup.light
         ? static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light))
@@ -764,8 +764,11 @@ void ComputeEnvProbeSphericalHarmonics(const EnvProbe& envProbe, const Texture& 
 
 static void ComputeEnvProbeSphericalHarmonics(Frame* frame, EnvProbe* envProbe)
 {
-    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
-    AssertDebug(framebuffer.IsValid() && framebuffer->IsCreated());
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
+    Framebuffer* framebuffer = envProbeProxy->viewFramebuffers[0];
+    AssertDebug(framebuffer != nullptr && framebuffer->IsCreated());
 
     AttachmentBase* colorAttachment = framebuffer->GetAttachment(0);
     Assert(colorAttachment != nullptr && colorAttachment->IsCreated());
@@ -943,8 +946,11 @@ void ComputeEnvProbeHitMaskSH(EnvProbe& envProbe, const Texture& inHitMaskTextur
 /// For raster bake
 static void ComputeEnvProbeHitMaskSH(Frame* frame, EnvProbe* envProbe)
 {
-    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
-    AssertDebug(framebuffer.IsValid() && framebuffer->IsCreated());
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
+    Framebuffer* framebuffer = envProbeProxy->viewFramebuffers[0];
+    AssertDebug(framebuffer != nullptr && framebuffer->IsCreated());
 
     const uint32 hitMaskAttachmentIndex = GetEnvProbeHitMaskAttachmentIndex(envProbe->GetEnvProbeFlags());
 
@@ -956,14 +962,14 @@ static void ComputeEnvProbeHitMaskSH(Frame* frame, EnvProbe* envProbe)
 
 void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shouldReadback)
 {
-    const FramebufferRef& framebuffer = envProbe->GetViewFramebuffer(0);
-    AssertDebug(framebuffer.IsValid());
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
+    Framebuffer* framebuffer = envProbeProxy->viewFramebuffers[0];
+    AssertDebug(framebuffer != nullptr);
 
     Attachment* srcTexture = framebuffer->GetAttachment(1);
     AssertDebug(srcTexture != nullptr);
-
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
-    AssertDebug(envProbeProxy != nullptr);
 
     Assert(envProbeProxy->captureVisibilityTexture != nullptr, "EnvProbe {} is rendering without a capture visibility texture", envProbe->Id());
 
@@ -1225,7 +1231,10 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    View* firstView = envProbe->GetView(0);
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
+    View* firstView = envProbeProxy->views[0];
 
     if (!firstView)
     {
@@ -1243,9 +1252,6 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     EnvProbePassData* pd = static_cast<EnvProbePassData*>(FetchViewPassData(firstView));
     AssertDebug(pd != nullptr);
-
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(envProbe));
-    AssertDebug(envProbeProxy != nullptr);
 
     bool needsRerender = envProbe->needsRender.Load();
 
@@ -1309,11 +1315,12 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
         RenderSetup rs = renderSetup.Fork();
-        rs.view = envProbe->GetView(viewIndex);
-        rs.framebuffer = envProbe->GetViewFramebuffer(viewIndex);
+        rs.view = envProbeProxy->views[viewIndex];
+        rs.framebuffer = envProbeProxy->viewFramebuffers[viewIndex];
         rs.passData = pd;
 
-        if (GetRenderCollector(rs.view).isFallback)
+        // the sim thread tears down views + camera when a capture ends, which can land while we're still rendering it
+        if (!rs.view || !rs.view->GetCamera() || GetRenderCollector(rs.view).isFallback)
         {
             allViewsReady = false;
 
@@ -1436,7 +1443,10 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     IrradianceProbe* irradianceProbe = StaticCast<IrradianceProbe>(envProbe);
 
-    View* firstView = irradianceProbe->GetView(0);
+    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(irradianceProbe));
+    AssertDebug(envProbeProxy != nullptr);
+
+    View* firstView = envProbeProxy ? envProbeProxy->views[0] : nullptr;
 
     if (HYP_UNLIKELY(!firstView))
     {
@@ -1452,9 +1462,6 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     EnvProbePassData* pd = static_cast<EnvProbePassData*>(FetchViewPassData(firstView));
     AssertDebug(pd != nullptr);
-
-    RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(irradianceProbe));
-    AssertDebug(envProbeProxy != nullptr);
 
     if (HYP_UNLIKELY(!pd || !envProbeProxy))
     {
@@ -1472,11 +1479,12 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     for (uint8 viewIndex = 0; viewIndex < 6; viewIndex++)
     {
         RenderSetup rs = renderSetup.Fork();
-        rs.view = irradianceProbe->GetView(viewIndex);
-        rs.framebuffer = irradianceProbe->GetViewFramebuffer(viewIndex);
+        rs.view = envProbeProxy->views[viewIndex];
+        rs.framebuffer = envProbeProxy->viewFramebuffers[viewIndex];
         rs.passData = pd;
 
-        if (GetRenderCollector(rs.view).isFallback)
+        // see ReflectionProbePass::RenderProbe()
+        if (!rs.view || !rs.view->GetCamera() || GetRenderCollector(rs.view).isFallback)
         {
             allViewsReady = false;
 

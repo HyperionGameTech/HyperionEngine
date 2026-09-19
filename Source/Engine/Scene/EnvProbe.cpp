@@ -1436,6 +1436,12 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
         proxy->captureVisibilityTexture = captureVisibilityTexture;
     }
 
+    for (uint32 i = 0; i < 6; i++)
+    {
+        proxy->views[i] = m_views[i].Get();
+        proxy->viewFramebuffers[i] = m_framebuffers[i].Get();
+    }
+
     const BoundingBox worldBounds = GetWorldBounds();
 
     const float diffuseContributionWeight = ShouldComputeSphericalHarmonics() ? m_diffuseStrength : 0;
