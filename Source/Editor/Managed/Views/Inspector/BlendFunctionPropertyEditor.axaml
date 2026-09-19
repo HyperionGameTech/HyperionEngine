@@ -1,0 +1,112 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.BlendFunctionPropertyEditor"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:BlendFunctionPropertyViewModel"
+    mc:Ignorable="d">
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.blend-mode">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter
+                            Margin="{TemplateBinding Padding}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
+                            Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.blend-mode:checked">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+        <Style Selector="ToggleButton.blend-mode:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+        </Style>
+        <Style Selector="ToggleButton.blend-mode:checked:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentMuted}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel Spacing="6">
+        <Border
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource Radius.Small}">
+            <Grid ColumnDefinitions="*,*">
+                <ToggleButton
+                    Grid.Column="0"
+                    Classes="blend-mode"
+                    Margin="0"
+                    CornerRadius="4,0,0,4"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    Content="Presets"
+                    IsChecked="{Binding IsPresetMode, Mode=TwoWay}" />
+                <ToggleButton
+                    Grid.Column="1"
+                    Classes="blend-mode"
+                    Margin="0"
+                    CornerRadius="0,4,4,0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    Content="Advanced"
+                    IsChecked="{Binding IsAdvancedMode, Mode=TwoWay}" />
+            </Grid>
+        </Border>
+
+        <StackPanel IsVisible="{Binding IsPresetMode}" Spacing="4">
+            <ComboBox
+                MinWidth="140"
+                HorizontalAlignment="Stretch"
+                ItemsSource="{Binding PresetOptions}"
+                PlaceholderText="Custom"
+                SelectedItem="{Binding SelectedPreset, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BlendPreset">
+                        <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock
+                Classes="muted"
+                FontSize="11"
+                IsVisible="{Binding IsCustom}"
+                Text="Current factors don't match a preset. Pick one to replace them, or switch to Advanced to fine-tune."
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid IsVisible="{Binding IsAdvancedMode}" ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto">
+            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,4" VerticalAlignment="Center" Classes="inspector-name" Text="Src Color" />
+            <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" MinWidth="140" HorizontalAlignment="Stretch" ItemsSource="{Binding FactorOptionList}" SelectedItem="{Binding SrcColor, Mode=TwoWay}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,4" VerticalAlignment="Center" Classes="inspector-name" Text="Dst Color" />
+            <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4" MinWidth="140" HorizontalAlignment="Stretch" ItemsSource="{Binding FactorOptionList}" SelectedItem="{Binding DstColor, Mode=TwoWay}" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,4" VerticalAlignment="Center" Classes="inspector-name" Text="Src Alpha" />
+            <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,4" MinWidth="140" HorizontalAlignment="Stretch" ItemsSource="{Binding FactorOptionList}" SelectedItem="{Binding SrcAlpha, Mode=TwoWay}" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Classes="inspector-name" Text="Dst Alpha" />
+            <ComboBox Grid.Row="3" Grid.Column="1" MinWidth="140" HorizontalAlignment="Stretch" ItemsSource="{Binding FactorOptionList}" SelectedItem="{Binding DstAlpha, Mode=TwoWay}" />
+        </Grid>
+    </StackPanel>
+</UserControl>

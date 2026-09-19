@@ -2002,6 +2002,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentBlendFunction(BlendFunction::None());
 
         frame->cr << SetCurrentFramebuffer(nullptr);
+
+        {
+            const GpuImageRef& srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
+            GenerateMipChain(frame, rs, renderCollector, srcImage);
+        }
     }
 
     if (debugVisMode == 0)

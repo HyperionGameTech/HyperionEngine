@@ -15,6 +15,8 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Math/MathUtil.hpp>
+
 #include <Scene/Animation/Keyframe.hpp>
 
 #include <Asset/AssetObject.hpp>
@@ -108,7 +110,14 @@ public:
     HYP_METHOD(Property = "Length", Transient)
     float GetLength() const
     {
-        return m_tracks.Empty() ? 0.0f : m_tracks.Back()->GetLength();
+        float length = 0.0f;
+
+        for (const Handle<AnimationTrack>& track : m_tracks)
+        {
+            length = MathUtil::Max(length, track->GetLength());
+        }
+
+        return length;
     }
 
     HYP_METHOD()

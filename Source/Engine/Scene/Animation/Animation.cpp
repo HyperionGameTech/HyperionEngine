@@ -142,6 +142,12 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         return { time, Transform() };
     }
 
+    // hold the last pose once this track ends (tracks in one animation can have different lengths)
+    if (time >= keyframes[keyframes.Size() - 1].time)
+    {
+        return { time, keyframes[keyframes.Size() - 1].transform };
+    }
+
     for (int i = 0; i < int(keyframes.Size()) - 1; i++)
     {
         if (MathUtil::InRange(time, { keyframes[i].time, keyframes[i + 1].time }))
@@ -164,6 +170,7 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         const float delta = (time - current.time) / (next.time - current.time);
 
         transform.translation = transform.translation.Lerp(next.transform.translation, delta);
+        transform.scale = transform.scale.Lerp(next.transform.scale, delta);
         transform.rotation = transform.rotation.Slerp(next.transform.rotation, delta);
     }
 

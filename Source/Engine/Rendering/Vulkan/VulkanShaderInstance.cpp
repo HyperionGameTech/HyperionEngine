@@ -261,7 +261,10 @@ RendererResult VulkanShaderInstance::Create()
         return {};
     }
 
-    CheckResultOrReturn(AttachShaderModules());
+    if (RendererResult attachResult = AttachShaderModules(); attachResult.HasError())
+    {
+        return attachResult;
+    }
 
     bool isRayTracing = false;
 

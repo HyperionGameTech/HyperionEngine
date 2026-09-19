@@ -346,6 +346,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         shaderProperties.Set(Props::s_propShadingTypeDeferred, hasDeferredLighting);
         shaderProperties.Set(Props::s_propShadingTypeForward, hasForwardLighting);
         shaderProperties.Set(Props::s_propShadingTypeLightmapped, hasLightmaps);
+
+        // forward-lit buckets need their own bounded light list (incl. directional w/ CSM shadow),
+        // since they don't go through the deferred direct lighting pass
+        shaderProperties.Set(s_propForwardShading, hasForwardLighting);
     }
 }
 

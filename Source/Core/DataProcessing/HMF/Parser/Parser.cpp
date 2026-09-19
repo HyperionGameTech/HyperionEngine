@@ -1589,8 +1589,8 @@ void Parser::SkipValue()
         {
             const TokenClass tc = token.GetTokenClass();
 
-            // End of containing object or array
-            if (tc == TK_CLOSE_BRACE || tc == TK_CLOSE_BRACKET)
+            // End of containing object, array or tuple
+            if (tc == TK_CLOSE_BRACE || tc == TK_CLOSE_BRACKET || tc == TK_CLOSE_PARENTH)
             {
                 return;
             }
@@ -1608,14 +1608,14 @@ void Parser::SkipValue()
             }
         }
 
-        // Track nesting
+        // Track nesting; tuples like `(0, 1, 2)` contain commas that must not end the value
         const TokenClass tokenClass = token.GetTokenClass();
 
-        if (tokenClass == TK_OPEN_BRACE || tokenClass == TK_OPEN_BRACKET)
+        if (tokenClass == TK_OPEN_BRACE || tokenClass == TK_OPEN_BRACKET || tokenClass == TK_OPEN_PARENTH)
         {
             depth++;
         }
-        else if (tokenClass == TK_CLOSE_BRACE || tokenClass == TK_CLOSE_BRACKET)
+        else if (tokenClass == TK_CLOSE_BRACE || tokenClass == TK_CLOSE_BRACKET || tokenClass == TK_CLOSE_PARENTH)
         {
             if (depth == 0)
             {
