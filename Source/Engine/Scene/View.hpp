@@ -170,22 +170,27 @@ private:
 
 struct ViewCollectionState
 {
-    HashCode inputHash = HashCode(HashCode::ValueType(0));
-    uint32 frame = 0;
+    HashCode slotInputHashes[RingBufferDepth] {};
 
     bool skipNext = false;
 
-    void UpdateInputs(HashCode inInputHash, uint32 inFrame)
+    void UpdateInputs(HashCode inputHash, uint32 ringIndex)
     {
-        const bool sameHashAndFrame = inputHash.Value() != 0
-            && inputHash == inInputHash
-            && frame + 1 == inFrame;
+        HashCode& slotInputHash = slotInputHashes[ringIndex];
 
-        // Update state for new inputs.
-        inputHash = inInputHash;
-        frame = inFrame;
+        skipNext = inputHash.Value() != 0 && slotInputHash == inputHash;
 
-        skipNext = sameHashAndFrame;
+        slotInputHash = inputHash;
+    }
+
+    void Invalidate()
+    {
+        for (HashCode& slotInputHash : slotInputHashes)
+        {
+            slotInputHash = HashCode();
+        }
+
+        skipNext = false;
     }
 };
 

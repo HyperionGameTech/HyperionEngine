@@ -12,6 +12,7 @@
 #include <Baking/BakerThreadPool.hpp>
 
 #include <Baking/PathTracer/PathTracer.hpp>
+#include <Baking/PathTracer/PathTracerBVH.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderHelpers.hpp>
@@ -64,10 +65,10 @@
 #include <Rendering/Util/MeshBuilder.hpp>
 
 #include <System/AppContext.hpp>
-#include <System/MessageBox.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Baker.generated.inl>
 
@@ -107,8 +108,15 @@ static inline double GetEstimatedGPUMemUsageForJob(const BakerConfig& config)
     return usage;
 }
 
+static CVar<bool> s_cvForceComputeTracing { "Baking.ForceComputeTracing", false, "Baker.ForceComputeTracing" };
+
 static void EmptyViewCollectFunction(RenderProxyList&)
 {
+}
+
+static bool ShouldUseComputeTracing(const BakerConfig& config)
+{
+    return config.forceComputeTracing || !RI.GetRenderConfig().rayTracing;
 }
 
 #pragma region BakerBase
@@ -133,6 +141,8 @@ BakerBase::BakerBase(
       m_state(BakerState::Initialized)
 {
     Assert(m_source);
+
+    m_config.forceComputeTracing = s_cvForceComputeTracing.Get();
 }
 
 BakerBase::~BakerBase()
@@ -178,15 +188,11 @@ uint32 BakerBase::MaxTexelsPerFrame() const
 
 void BakerBase::Initialize()
 {
-    if (PerformsRayTracing())
+    if (PerformsRayTracing() && ShouldUseComputeTracing(m_config))
     {
-        if (!RI.GetRenderConfig().rayTracing)
-        {
-            SystemMessageBox(MessageBoxType::CRITICAL)
-                .Title("Ray tracing must be enabled")
-                .Text("This baking technique requires support for ray tracing which doesn't appear to be supported on this device (or it has been explicitly disabled via config).")
-                .Show();
-        }
+        HYP_LOG(Lightmap, Info, "{} will trace rays with compute shaders ({})",
+            InstanceClass()->GetName(),
+            m_config.forceComputeTracing ? "forced via Baking.ForceComputeTracing" : "hardware ray tracing unavailable");
     }
 
     { // Init view
@@ -335,14 +341,22 @@ UniquePtr<PathTracer> BakerBase::CreatePathTracer(PathTraceType shadingType, uin
         return nullptr;
     }
 
-    if (!RI.GetRenderConfig().rayTracing)
+    if (ShouldUseComputeTracing(m_config))
     {
-        HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device");
+        if (!m_computeBVH)
+        {
+            m_computeBVH = MakeShared<PathTracerBVH>();
+        }
 
-        return nullptr;
+        return MakeUnique<PathTracer>(this, m_scene, shadingType, maxTexelsPerFrame, m_computeBVH);
     }
 
-    return MakeUnique<PathTracer>(this, m_scene, shadingType, maxTexelsPerFrame);
+    if (!m_tlas)
+    {
+        m_tlas = MakeShared<PathTracerTLAS>();
+    }
+
+    return MakeUnique<PathTracer>(this, m_scene, shadingType, maxTexelsPerFrame, m_tlas);
 }
 
 void BakerBase::CreateLightmapRenderers()

@@ -38,10 +38,64 @@ namespace Hyperion
             value = ((uint)srcColor << 0) | ((uint)dstColor << 4) | ((uint)srcAlpha << 8) | ((uint)dstAlpha << 12);
         }
 
+        public BlendModeFactor SrcColor
+        {
+            get => (BlendModeFactor)(value & 0xF);
+            set => this.value = (this.value & ~0xFu) | ((uint)value & 0xF);
+        }
+
+        public BlendModeFactor DstColor
+        {
+            get => (BlendModeFactor)((value >> 4) & 0xF);
+            set => this.value = (this.value & ~(0xFu << 4)) | (((uint)value & 0xF) << 4);
+        }
+
+        public BlendModeFactor SrcAlpha
+        {
+            get => (BlendModeFactor)((value >> 8) & 0xF);
+            set => this.value = (this.value & ~(0xFu << 8)) | (((uint)value & 0xF) << 8);
+        }
+
+        public BlendModeFactor DstAlpha
+        {
+            get => (BlendModeFactor)((value >> 12) & 0xF);
+            set => this.value = (this.value & ~(0xFu << 12)) | (((uint)value & 0xF) << 12);
+        }
+
         public static BlendFunction None()
         {
             return new BlendFunction(BlendModeFactor.None, BlendModeFactor.None);
         }
+
+        public static BlendFunction Default()
+        {
+            return new BlendFunction(BlendModeFactor.One, BlendModeFactor.Zero);
+        }
+
+        public static BlendFunction AlphaBlending()
+        {
+            return new BlendFunction(BlendModeFactor.SrcAlpha, BlendModeFactor.OneMinusSrcAlpha, BlendModeFactor.One, BlendModeFactor.Zero);
+        }
+
+        public static BlendFunction PremultipliedAlpha()
+        {
+            return new BlendFunction(BlendModeFactor.One, BlendModeFactor.OneMinusSrcAlpha, BlendModeFactor.One, BlendModeFactor.Zero);
+        }
+
+        public static BlendFunction Additive()
+        {
+            return new BlendFunction(BlendModeFactor.One, BlendModeFactor.One);
+        }
+
+        public bool Equals(BlendFunction other) => value == other.value;
+
+        public override bool Equals(object? obj) => obj is BlendFunction other && Equals(other);
+
+        public override int GetHashCode() => (int)value;
+
+        public static bool operator ==(BlendFunction a, BlendFunction b) => a.value == b.value;
+
+        public static bool operator !=(BlendFunction a, BlendFunction b) => a.value != b.value;
     }
 
     [ClassBinding(Name = "RenderBucket")]

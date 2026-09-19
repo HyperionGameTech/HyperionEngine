@@ -51,10 +51,14 @@ Transform Transform::GetInverse() const
 
 Transform Transform::operator*(const Transform& other) const
 {
+    // Transform::rotation is stored inverted relative to the standard quaternion
+    // convention (see Mat4f::Rotation), so composing two transforms needs the
+    // rotation applied to the translation, and the quaternion product, reversed
+    // to stay consistent with GetMatrix().
     return {
-        translation + (rotation.RotateVector(scale * other.translation)),
+        translation + (rotation.Inverse().RotateVector(scale * other.translation)),
         scale * other.scale,
-        rotation * other.rotation
+        other.rotation * rotation
     };
 }
 

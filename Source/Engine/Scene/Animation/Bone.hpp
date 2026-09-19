@@ -33,9 +33,6 @@ public:
 
     virtual ~Bone() override;
 
-    Vec3f GetOffsetTranslation() const;
-    Quat4f GetOffsetRotation() const;
-
     const Keyframe& GetKeyframe() const
     {
         return m_keyframe;
@@ -70,13 +67,15 @@ public:
         return m_bindingTransform;
     }
 
+    // Snaps this bone (and all descendants) to their binding transform; call before StoreBindingPose.
     void SetToBindingPose();
+
+    // Caches the current world transform (set via SetToBindingPose) as the inverse bind matrix used
+    // for skinning; call after SetToBindingPose, before any pose is applied.
     void StoreBindingPose();
 
-    void CalculateBoneTranslation();
-    void CalculateBoneRotation();
-
-    void UpdateBoneTransform();
+protected:
+    virtual void OnTransformUpdated() override;
 
 private:
     void SetSkeleton(Skeleton* skeleton);
@@ -85,6 +84,8 @@ private:
     {
         return m_skeleton;
     }
+
+    void UpdateBoneTransform();
 
     HYP_FIELD(Transient)
     Skeleton* m_skeleton;
@@ -101,17 +102,8 @@ private:
     HYP_FIELD()
     Transform m_bindingTransform;
 
-    HYP_FIELD()
-    Transform m_poseTransform;
-
-    HYP_FIELD()
-    Vec3f m_worldBoneTranslation;
-
-    HYP_FIELD()
-    Quat4f m_worldBoneRotation;
-
-    HYP_FIELD()
-    Quat4f m_invBindingRotation;
+    HYP_FIELD(Transient)
+    Mat4f m_inverseBindMatrix;
 };
 
 } // namespace Hyperion

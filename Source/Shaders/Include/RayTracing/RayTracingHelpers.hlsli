@@ -10,6 +10,7 @@ struct RayTracingConstants
     
     int2 output_image_resolution;
     float maxDistance;
+    uint numRays; // for compute lightmapper
 };
 
 #if RAY_GEN_SHADER

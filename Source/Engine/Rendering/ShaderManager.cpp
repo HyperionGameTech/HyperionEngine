@@ -341,7 +341,18 @@ public:
 
         ShaderInstanceRef si = RI.MakeShader(entry->shader);
 
-        Check(si->Create());
+        if (RendererResult createResult = si->Create(); createResult.HasError())
+        {
+            // not fatal here since preloads and reloads can recover - GetOrCreate() asserts when a real request gets no shader
+            HYP_LOG(Shader, Error, "Failed to create shader instance for '{}' {}: {}",
+                    shaderName, properties.GetDebugString(), createResult.GetError().GetMessage());
+
+            RemoveFromPreloadCache(shaderName, properties, inputLayout);
+
+            entry->failedToLoad = true;
+
+            return ShaderInstanceRef::Null();
+        }
 
         entry->shaderInstance = si;
 

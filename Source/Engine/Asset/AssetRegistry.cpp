@@ -1647,7 +1647,13 @@ void AssetRegistry::SaveDirtyAssets()
                 continue;
             }
 
-            // Pins the blob data so another thread releasing the last reader can't unpage it mid-write
+            // Would pin the blob data so another thread releasing the last reader can't unpage it mid-write,
+            // but GetReadScope() can block waiting for another thread's in-progress teardown of the same
+            // asset to finish (AssetObject::LockReader's "another thread may be tearing down" wait). On the
+            // sim thread that deadlocks against the render thread when render's teardown can't complete
+            // until sim reaches its next lockstep sync point (see writeScope above for the same issue).
+            // The resulting race (a concurrent last-reader release freeing this asset's blob mid-persist) is
+            // handled non-fatally now - see AssertBlobDataPersisted / Shader::UnpageBlobData.
             //auto readScope = assetObject->GetReadScope();
 
             const uint32 assetIndex = assetObject->GetAssetIndex();

@@ -149,6 +149,10 @@ void Skeleton::SetRootBone(const Handle<Bone>& bone)
 
     m_rootBone = bone;
     m_rootBone->SetSkeleton(this);
+
+    // The inverse bind matrices are Transient, so a skeleton loaded from disk needs them rebuilt here
+    m_rootBone->SetToBindingPose();
+    m_rootBone->StoreBindingPose();
 }
 
 void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)

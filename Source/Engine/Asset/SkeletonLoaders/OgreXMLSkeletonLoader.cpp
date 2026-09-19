@@ -248,15 +248,19 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
     }
 
     Handle<Bone> rootBone;
+    Map<Name, Transform> bindingTransformsByBoneName;
 
     for (const auto& item : object.bones)
     {
         const Name boneName = item.name;
 
+        // Ogre rotations are standard quaternions; Transform stores rotations inverted (see Mat4f::Rotation)
         const Transform bindingTransform = Transform(
             item.bindingTranslation,
             Vec3f::One(),
-            item.bindingRotation);
+            item.bindingRotation.Inverse());
+
+        bindingTransformsByBoneName.Set(boneName, bindingTransform);
 
         Handle<Bone> bone = MakeHandle<Bone>(boneName);
         bone->SetBindingTransform(bindingTransform);
@@ -319,6 +323,13 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
                 NAME_FMT("{}_{}", animationIt.name, trackIt.boneName),
                 trackIt.boneName);
 
+            // Ogre keyframes are deltas from the binding pose (translation in parent space, rotation
+            // applied in the bone's local space); Bone::SetKeyframe expects an absolute local transform
+            const auto bindingIt = bindingTransformsByBoneName.Find(trackIt.boneName);
+            const Transform trackBindingTransform = bindingIt != bindingTransformsByBoneName.End()
+                ? bindingIt->second
+                : Transform();
+
             Array<Keyframe> keyframes;
             keyframes.Reserve(trackIt.keyframes.Size());
 
@@ -326,7 +337,10 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
             {
                 keyframes.EmplaceBack(
                     keyframeIt.time,
-                    Transform(keyframeIt.translation, Vector3::One(), keyframeIt.rotation));
+                    Transform(
+                        trackBindingTransform.GetTranslation() + keyframeIt.translation,
+                        trackBindingTransform.GetScale(),
+                        keyframeIt.rotation * trackBindingTransform.GetRotation()));
             }
 
             animationTrack->SetKeyframes(keyframes);
@@ -344,14 +358,8 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
     if (Bone* rootBone = skeleton->GetRootBone())
     {
         rootBone->SetToBindingPose();
-
-        rootBone->CalculateBoneRotation();
-        rootBone->CalculateBoneTranslation();
-
         rootBone->StoreBindingPose();
         rootBone->ClearPose();
-
-        rootBone->UpdateBoneTransform();
     }
 
     return LoadedAsset { skeleton };

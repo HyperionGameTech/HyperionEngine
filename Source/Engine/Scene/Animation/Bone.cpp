@@ -27,30 +27,19 @@ Bone::Bone(Name name)
 
 Bone::~Bone() = default;
 
-Vector3 Bone::GetOffsetTranslation() const
-{
-    return m_localTransform.GetTranslation() - m_bindingTransform.GetTranslation();
-}
-
-Quat4f Bone::GetOffsetRotation() const
-{
-    return m_localTransform.GetRotation() * Quat4f(m_bindingTransform.GetRotation()).Inverse();
-}
-
 void Bone::SetKeyframe(const Keyframe& keyframe)
 {
     m_keyframe = keyframe;
 
-    m_poseTransform = m_keyframe.transform;
-
-    UpdateBoneTransform();
+    SetLocalTransform(m_keyframe.transform);
 }
 
 void Bone::ClearPose()
 {
-    m_poseTransform = Transform();
+    // Animation::ApplyBlended blends from the previous keyframe, so reset it to the rest pose too
+    m_keyframe = Keyframe(0.0f, m_bindingTransform);
 
-    UpdateBoneTransform();
+    SetLocalTransform(m_bindingTransform);
 
     for (const Handle<Node>& child : m_childNodes)
     {
@@ -70,7 +59,12 @@ void Bone::ClearPose()
 
 void Bone::StoreBindingPose()
 {
-    m_invBindingRotation = Quat4f(m_worldBoneRotation).Inverse();
+    // At this point (after SetToBindingPose has run down the whole hierarchy) GetWorldMatrix() is the
+    // bone's world bind matrix; cache its inverse for skinning and recompute the bone matrix
+    // immediately, since ClearPose()/SetLocalTransform() may no-op below if nothing has changed yet.
+    m_inverseBindMatrix = GetWorldMatrix().Inverse();
+
+    UpdateBoneTransform();
 
     for (const Handle<Node>& child : m_childNodes)
     {
@@ -90,10 +84,9 @@ void Bone::StoreBindingPose()
 
 void Bone::SetToBindingPose()
 {
-    m_localTransform = m_bindingTransform;
-    m_poseTransform = m_bindingTransform;
+    m_keyframe = Keyframe(0.0f, m_bindingTransform);
 
-    UpdateBoneTransform();
+    SetLocalTransform(m_bindingTransform);
 
     for (const Handle<Node>& child : m_childNodes)
     {
@@ -111,74 +104,17 @@ void Bone::SetToBindingPose()
     }
 }
 
-void Bone::CalculateBoneTranslation()
+void Bone::OnTransformUpdated()
 {
-    m_worldBoneTranslation = m_bindingTransform.GetTranslation();
+    UpdateBoneTransform();
 
-    if (m_parentNode != nullptr && m_parentNode->IsA<Bone>())
-    {
-        const Bone* parentBone = static_cast<Bone*>(m_parentNode); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-
-        m_worldBoneTranslation = parentBone->m_worldBoneRotation.RotateVector(m_bindingTransform.GetTranslation());
-        m_worldBoneTranslation += parentBone->m_worldBoneTranslation;
-    }
-
-    for (const Handle<Node>& child : m_childNodes)
-    {
-        if (!child)
-        {
-            continue;
-        }
-
-        if (!child->IsA<Bone>())
-        {
-            continue;
-        }
-
-        static_cast<Bone&>(*child).CalculateBoneTranslation(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-    }
-}
-
-void Bone::CalculateBoneRotation()
-{
-    m_worldBoneRotation = m_bindingTransform.GetRotation();
-
-    if (m_parentNode != nullptr && m_parentNode->IsA<Bone>())
-    {
-        Bone* parentBone = static_cast<Bone*>(m_parentNode); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-
-        m_worldBoneRotation = parentBone->m_worldBoneRotation * m_bindingTransform.GetRotation();
-    }
-
-    for (const Handle<Node>& child : m_childNodes)
-    {
-        if (!child)
-        {
-            continue;
-        }
-
-        if (!child->IsA<Bone>())
-        {
-            continue;
-        }
-
-        static_cast<Bone&>(*child).CalculateBoneRotation(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-    }
+    Node::OnTransformUpdated();
 }
 
 void Bone::UpdateBoneTransform()
 {
-    m_boneMatrix = Mat4f::Translation(m_worldBoneTranslation * -1.0f);
-    m_boneMatrix = Mat4f::Rotation(m_worldBoneRotation * m_poseTransform.GetRotation() * GetOffsetRotation() * m_invBindingRotation) * m_boneMatrix;
-    m_boneMatrix = Mat4f::Translation(m_worldBoneTranslation + m_poseTransform.GetTranslation() + GetOffsetTranslation()) * m_boneMatrix;
-
-    if (m_parentNode != nullptr)
-    {
-        if (m_parentNode->IsA<Bone>())
-        {
-            m_boneMatrix = static_cast<Bone&>(*m_parentNode).GetBoneMatrix() * m_boneMatrix; // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-        }
-    }
+    // Standard skinning matrix: maps a bind-pose-space vertex to its currently posed world position.
+    m_boneMatrix = GetWorldMatrix() * m_inverseBindMatrix;
 
     if (m_skeleton != nullptr)
     {

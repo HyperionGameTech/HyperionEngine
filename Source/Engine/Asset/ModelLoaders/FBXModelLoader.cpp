@@ -2767,14 +2767,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         if (Bone* rootBone = skeleton->GetRootBone())
         {
             rootBone->SetToBindingPose();
-
-            rootBone->CalculateBoneRotation();
-            rootBone->CalculateBoneTranslation();
-
             rootBone->StoreBindingPose();
             rootBone->ClearPose();
-
-            rootBone->UpdateBoneTransform();
         }
     }
 

@@ -374,15 +374,15 @@ void Baker<LightmapVolume>::Build()
         }
 
         if (meshComponent.material->GetBucket() != RenderBucket::Opaque
-            && meshComponent.material->GetBucket() != RenderBucket::Lightmapped)
+            && meshComponent.material->GetBucket() != RenderBucket::Lightmapped
+            && meshComponent.material->GetBucket() != RenderBucket::Translucent)
         {
             continue;
         }
 
-        // Swaying meshes don't hold still for a lightmap, and rebuilding their vertices for UV1 would drop the wind data
         if (meshComponent.mesh->GetMeshAttributes().inputLayout.mask & (VT_Tree | VT_Foliage))
         {
-            continue;
+             continue;
         }
 
         const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;

@@ -30,7 +30,7 @@
     "VSync": true,
     "EnableGpuStats": true,
     "Vulkan": {
-      "DebugLayers": true,
+      "DebugLayers": false,
       "TimelineSemaphores": true
     }
   },
@@ -52,7 +52,8 @@
   "Baker": {
     "OnlyGenerateUVs": false,
     "NumSamples": 1,
-    "MaxTexelsPerFrame": 262144
+    "MaxTexelsPerFrame": 262144,
+    "ForceComputeTracing": false
   },
   "ShaderCompiler": {
     "CompileOnTheFly": true

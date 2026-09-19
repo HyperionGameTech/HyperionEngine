@@ -13,8 +13,6 @@
 #include <Scene/BVH.hpp>
 #include <Scene/DetachedScene.hpp>
 
-#include <Scene/Animation/Bone.hpp>
-
 #include <Scene/EntityManager.hpp>
 #include <Scene/ComponentInterface.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
@@ -955,11 +953,6 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
     if (IsTransformLocked())
     {
         return;
-    }
-
-    if (IsA<Bone>())
-    {
-        static_cast<Bone*>(this)->UpdateBoneTransform(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
     }
 
     const Mat4f prevWorldMatrix = m_worldMatrix;

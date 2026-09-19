@@ -204,6 +204,20 @@
                     <local:ShaderPropertySetEditor DataContext="{Binding}" />
                 </Expander>
             </DataTemplate>
+            <DataTemplate x:DataType="vm:BlendFunctionPropertyViewModel">
+                <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <StackPanel Spacing="0">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Classes="inspector-name" Text="{Binding Label}" ToolTip.Tip="{Binding LabelTooltip}" />
+                                <TextBlock Opacity="0.55" Text="{Binding Value}" />
+                            </StackPanel>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PropertyDescriptionTemplate}" />
+                        </StackPanel>
+                    </Expander.Header>
+                    <local:BlendFunctionPropertyEditor DataContext="{Binding}" />
+                </Expander>
+            </DataTemplate>
             <DataTemplate x:DataType="vm:StructPropertyViewModel">
                 <Expander Margin="0,1,0,1" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                     <Expander.Header>

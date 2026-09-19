@@ -16,6 +16,8 @@
 #include <Core/Threading/Semaphore.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
 
+#include <Core/Memory/SharedPtr.hpp>
+
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
@@ -69,6 +71,8 @@ struct BakeLayer;
 struct LightmapRay;
 
 class PathTracer;
+class PathTracerTLAS;
+class PathTracerBVH;
 
 HYP_ENUM()
 enum class PathTraceType : uint32
@@ -100,6 +104,9 @@ struct BakerConfig : public Config<BakerConfig>
 
     HYP_FIELD()
     float maxRayDistance = 1000.0f;
+
+    HYP_FIELD(Property = "ForceComputeTracing", Description = "Trace rays with a compute shader instead of hardware ray tracing. (used by default when HWRT is not an option)")
+    bool forceComputeTracing = false;
 
     virtual ~BakerConfig() override = default;
 
@@ -346,6 +353,10 @@ protected:
     BakerThreadPool* m_threadPool;
 
     Array<UniquePtr<PathTracer>, BakerAllocator> m_pathTracers;
+
+    // Shared by all PathTracers so the acceleration structure is only built once, and is ready for every shading type at once
+    SharedPtr<PathTracerTLAS> m_tlas;
+    SharedPtr<PathTracerBVH> m_computeBVH;
 
     ClockTimer m_updateTimer;
 
