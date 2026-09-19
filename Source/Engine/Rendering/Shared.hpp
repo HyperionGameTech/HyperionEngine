@@ -882,6 +882,17 @@ struct BlendFunction
         return BlendFunction(BlendModeFactor::SrcAlpha, BlendModeFactor::OneMinusSrcAlpha, BlendModeFactor::One, BlendModeFactor::Zero);
     }
 
+    HYP_FORCE_INLINE static constexpr BlendFunction PremultipliedAlpha()
+    {
+        return BlendFunction(BlendModeFactor::One, BlendModeFactor::OneMinusSrcAlpha, BlendModeFactor::One, BlendModeFactor::Zero);
+    }
+
+    // blends that don't weight the source by its own alpha need the shader to premultiply it
+    HYP_FORCE_INLINE constexpr bool ExpectsPremultipliedSource() const
+    {
+        return GetSrcColor() == BlendModeFactor::One && GetDstColor() != BlendModeFactor::Zero && GetDstColor() != BlendModeFactor::None;
+    }
+
     HYP_FORCE_INLINE static constexpr BlendFunction Additive()
     {
         return BlendFunction(BlendModeFactor::One, BlendModeFactor::One);
@@ -1490,7 +1501,7 @@ struct FramebufferDesc
 /*! \brief Represents a set of vertex attributes used in mesh input.
  *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
  *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
-HYP_STRUCT(Serialize = "bitwise")
+HYP_STRUCT()
 struct VertexTypeMask
 {
     HYP_STRUCT_BODY(VertexTypeMask);

@@ -790,28 +790,7 @@ void Class::Initialize()
 
     if (const ClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize))
     {
-        if (serializeAttribute.IsString())
-        {
-            m_serializationMode = ClassSerializationMode::NONE;
-
-            String stringValue = serializeAttribute.GetString();
-            stringValue = stringValue.ToLower();
-
-            if (stringValue == "bitwise")
-            {
-                if (!IsPodType())
-                {
-                    HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: {}", m_name);
-                }
-
-                m_serializationMode = ClassSerializationMode::BITWISE;
-            }
-            else
-            {
-                HYP_FAIL("Unknown serialization mode: {}", stringValue);
-            }
-        }
-        else if (!serializeAttribute.GetBool())
+        if (!serializeAttribute.GetBool())
         {
             m_serializationMode = ClassSerializationMode::NONE;
         }

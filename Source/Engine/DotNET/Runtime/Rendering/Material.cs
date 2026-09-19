@@ -36,6 +36,11 @@ namespace Hyperion
         float emissiveIntensity = 0.0f;
 
         Vec4f userParams = Vec4f.Zero;
+
+        public float windFrequency = 0.0f;
+        public float windTrunkFlexibility = 0.0f;
+        public float windTreeHeight = 0.0f;
+        public float windFlutter = 0.0f;
         
         Vec2f uvScale = Vec2f.One;
 

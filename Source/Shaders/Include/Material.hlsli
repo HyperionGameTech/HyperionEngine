@@ -31,7 +31,8 @@ struct Material
     float parallax_height;
     float2 uv_scale;
 
-    float4 _pad0;
+    // sway frequency, trunk flexibility, tree height, leaf flutter
+    float4 tree_wind;
 };
 
 // enum for packed params
@@ -83,6 +84,7 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 #define MATERIAL_CHANNEL_BIT_AO 6
 #define MATERIAL_FLAG_PARALLAX_INVERSE_HEIGHT 8
 #define MATERIAL_FLAG_FOLIAGE 9
+#define MATERIAL_FLAG_PREMULTIPLIED_ALPHA 10
 
 #define GET_MATERIAL_CHANNEL(mat, bitOffset) ((((mat).packed_params[3]) >> (bitOffset)) & 0x3u)
 

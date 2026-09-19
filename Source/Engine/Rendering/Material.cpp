@@ -399,6 +399,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             uint32 aoChannel : 2;
             uint32 parallaxInverseHeight : 1;
             uint32 foliage : 1;
+            uint32 premultipliedAlpha : 1;
         };
     } flags;
 
@@ -410,11 +411,18 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     flags.aoChannel = uint32(m_parameters.GetAmbientOcclusionChannel());
     flags.parallaxInverseHeight = uint32(m_parameters.IsParallaxInverseHeight());
     flags.foliage = uint32(m_parameters.foliage);
+    flags.premultipliedAlpha = uint32(proxy->attributes.blendFunction.ExpectsPremultipliedSource());
 
     bufferData.packedParams.w = flags.bits;
 
     bufferData.uvScale = m_parameters.uvScale;
     bufferData.parallaxHeight = m_parameters.parallaxHeightScale;
+
+    bufferData.treeWind = Vec4f(
+        m_parameters.windFrequency,
+        m_parameters.windTrunkFlexibility,
+        m_parameters.windTreeHeight,
+        m_parameters.windFlutter);
 
     bufferData.textureUsage = 0;
 

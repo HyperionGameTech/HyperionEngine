@@ -231,6 +231,23 @@ struct HeightFogSettings
 };
 
 HYP_STRUCT()
+struct WindSettings
+{
+    HYP_STRUCT_BODY(WindSettings);
+
+    // bearing the wind blows toward, in degrees, the same way round as the clouds' wind
+    HYP_FIELD(Property = "Direction", Serialize, Label = "Direction")
+    float directionDegrees = 45.0f;
+
+    // 1 is a full gale
+    HYP_FIELD(Property = "Strength", Serialize, Label = "Strength")
+    float strength = 0.3f;
+
+    HYP_FIELD(Property = "Gustiness", Serialize, Label = "Gustiness")
+    float gustiness = 0.5f;
+};
+
+HYP_STRUCT()
 struct EnvironmentSettings
 {
     HYP_STRUCT_BODY(EnvironmentSettings);
@@ -249,6 +266,9 @@ struct EnvironmentSettings
 
     HYP_FIELD(Property = "Clouds", Serialize, Label  = "Clouds")
     CloudSettings clouds;
+
+    HYP_FIELD(Property = "Wind", Serialize, Label = "Wind")
+    WindSettings wind;
 };
 
 void WriteEnvironmentShaderData(

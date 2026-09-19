@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(Size = 48, Serialize = "bitwise")
+HYP_STRUCT()
 struct alignas(16) CORE_API Transform
 {
     HYP_STRUCT_BODY(Transform);

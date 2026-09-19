@@ -211,6 +211,67 @@ void DX12GraphicsPipeline::BuildVertexAttributes(
             continue;
         }
 
+        // Tree and foliage data are halves packed into uints, read as integers so the bits arrive untouched
+        if (vertexType == VT_Tree)
+        {
+            static_assert(sizeof(TVertexPacket<VT_Tree>) == sizeof(uint32) * 6);
+
+            outInputElementDescs.Resize(outInputElementDescs.Size() + 1);
+
+            // Limb and branch sway:
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 2,
+                .Format = DXGI_FORMAT_R32G32B32A32_UINT,
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
+
+            offset += sizeof(uint32) * 4;
+
+            ++attrIndex;
+
+            // Twig sway:
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 3,
+                .Format = DXGI_FORMAT_R32G32_UINT,
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
+
+            offset += sizeof(uint32) * 2;
+
+            ++attrIndex;
+
+            continue;
+        }
+
+        if (vertexType == VT_Foliage)
+        {
+            static_assert(sizeof(TVertexPacket<VT_Foliage>) == sizeof(uint32) * 2);
+
+            outInputElementDescs[attrIndex] = {
+                .SemanticName = "TEXCOORD",
+                .SemanticIndex = 4,
+                .Format = DXGI_FORMAT_R32G32_UINT,
+                .InputSlot = 0,
+                .AlignedByteOffset = UINT(offset),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0
+            };
+
+            offset += sizeof(uint32) * 2;
+
+            ++attrIndex;
+
+            continue;
+        }
+
         size_t attributeSize = VertexUtils::PacketSize(vertexType);
         AssertDebug(attributeSize <= 16);
 
@@ -365,8 +426,6 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
     m_viewport = Viewport { m_framebufferDesc.extent, Vec2i::Zero() };
 
-    const bool enableBlend = m_blendFunction != BlendFunction::None();
-
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc {};
     psoDesc.pRootSignature = m_rootSignature.Get();
     psoDesc.PrimitiveTopologyType = ToDX12TopologyType(m_topology);
@@ -419,7 +478,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
     psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
-    psoDesc.BlendState.IndependentBlendEnable = enableBlend;
+    psoDesc.BlendState.IndependentBlendEnable = TRUE;
 
     bool hasDSV = false;
 
@@ -456,14 +515,19 @@ RendererResult DX12GraphicsPipeline::Rebuild()
 
             rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-            if (enableBlend && TextureUtils::FormatSupportsBlending(attachmentDesc.format))
+            // same as Vulkan: an attachment's own blend function overrides the pipeline's
+            const BlendFunction& attachmentBlendFunction = attachmentDesc.blendFunction != BlendFunction::None()
+                ? attachmentDesc.blendFunction
+                : m_blendFunction;
+
+            if (attachmentBlendFunction != BlendFunction::None() && TextureUtils::FormatSupportsBlending(attachmentDesc.format))
             {
                 rtBlend.BlendEnable = TRUE;
-                rtBlend.SrcBlend = ToDX12Blend(m_blendFunction.GetSrcColor());
-                rtBlend.DestBlend = ToDX12Blend(m_blendFunction.GetDstColor());
+                rtBlend.SrcBlend = ToDX12Blend(attachmentBlendFunction.GetSrcColor());
+                rtBlend.DestBlend = ToDX12Blend(attachmentBlendFunction.GetDstColor());
                 rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
-                rtBlend.SrcBlendAlpha = ToDX12Blend(m_blendFunction.GetSrcAlpha(), /* isAlpha */ true);
-                rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha(), /* isAlpha */ true);
+                rtBlend.SrcBlendAlpha = ToDX12Blend(attachmentBlendFunction.GetSrcAlpha(), /* isAlpha */ true);
+                rtBlend.DestBlendAlpha = ToDX12Blend(attachmentBlendFunction.GetDstAlpha(), /* isAlpha */ true);
                 rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
                 rtBlend.LogicOpEnable = FALSE;
             }

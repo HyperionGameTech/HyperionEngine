@@ -102,6 +102,21 @@ public:
     HYP_FIELD(Property = "UserParams", Editor, Serialize)
     Vec4f userParams;
 
+    // how a tree's wind data sways; its bark and leaves must match or the leaves drift off their twigs
+    HYP_FIELD(Property = "WindFrequency", Editor, Serialize)
+    float windFrequency;
+
+    // metres the top of the trunk swings per metre of tree height
+    HYP_FIELD(Property = "WindTrunkFlexibility", Editor, Serialize)
+    float windTrunkFlexibility;
+
+    HYP_FIELD(Property = "WindTreeHeight", Editor, Serialize)
+    float windTreeHeight;
+
+    // radians
+    HYP_FIELD(Property = "WindFlutter", Editor, Serialize)
+    float windFlutter;
+
     HYP_FIELD(Property = "UVScale", Editor, Serialize)
     Vec2f uvScale;
 
@@ -119,8 +134,7 @@ public:
 
     MaterialParameters()
     {
-        static const MaterialParameters s_defaults = Defaults();
-        memcpy(this, &s_defaults, sizeof(MaterialParameters));
+        memcpy(this, &Defaults(), sizeof(MaterialParameters));
     }
 
     explicit MaterialParameters(NoInitTag)
@@ -212,19 +226,7 @@ public:
             : uint8(flags & ~FlagBit_ParallaxInverseHeight);
     }
 
-    static MaterialParameters Defaults()
-    {
-        MaterialParameters defaults(NoInit);
-        memset(&defaults, 0, sizeof(MaterialParameters));
-
-        defaults.albedo = Vec4f::One();
-        defaults.roughness = 1.0f;
-        defaults.parallaxHeightScale = 0.02f;
-        defaults.ior = 1.5f;
-        defaults.uvScale = Vec2f::One();
-
-        return defaults;
-    }
+    static const MaterialParameters& Defaults();
 };
 
 static_assert(std::is_trivially_destructible_v<MaterialParameters> && std::is_trivially_copyable_v<MaterialParameters>);

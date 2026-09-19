@@ -106,9 +106,15 @@ struct WorldShaderData
 
     // x = sun anisotropy
     Vec4f fogPhaseParams;
+
+    // xy = direction the wind blows toward on the ground (x, z), z = strength (1 a full gale), w = gustiness
+    Vec4f windParams;
+
+    // x = game time last frame, so swaying geometry can write its own motion vectors
+    Vec4f windTimeParams;
 };
 
-static_assert(sizeof(WorldShaderData) == 208);
+static_assert(sizeof(WorldShaderData) == 240);
 
 struct EntityShaderData
 {
@@ -415,7 +421,8 @@ struct MaterialShaderData
     Vec2f uvScale;
 
     // =====
-    Vec4f _pad0;
+    // sway frequency, trunk flexibility, tree height, leaf flutter
+    Vec4f treeWind;
 };
 
 static_assert(sizeof(MaterialShaderData) % 64 == 0);

@@ -20,6 +20,7 @@
 #include <Core/Profiling/ProfileScope.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/Tuple.hpp>
 
 #include <Core/Threading/Mutex.hpp>
 
@@ -36,6 +37,12 @@
 #endif           // HYP_DX12
 
 namespace Hyperion {
+
+// some types that can't be deleted with this
+class Scene;
+class Node;
+class Entity;
+using NonDeletableTypes = Tuple<Scene, Node, Entity>;
 
 template <class T>
 class DeletionQueueElem;
@@ -404,129 +411,153 @@ private:
     bool m_isInitialized;
 };
 
-template <class TFunction>
-static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
-{
-    if (!func.func)
-    {
-        return;
-    }
 
-    DeletionQueue& instance = DeletionQueue::GetInstance();
-    if (!instance.IsInitialized())
-    {
-        // just destruct it
-        func();
+template <class T>
+struct EnqueueDeletionImpl;
 
-        return;
-    }
-
-    Mutex::Guard* pGuard = nullptr;
-
-    FunctionWrapper<TFunction>** ppPayload = instance.AllocCustom<FunctionWrapper<TFunction>*>(
-        [](void* ptr)
-        {
-            FunctionWrapper<TFunction>* pPayload = *reinterpret_cast<FunctionWrapper<TFunction>**>(ptr);
-            AssertDebug(pPayload != nullptr);
-
-            (*pPayload)();
-
-            delete pPayload;
-        },
-        &pGuard);
-
-    *ppPayload = new FunctionWrapper<TFunction>(std::move(func));
-
-    if (pGuard) // if locking was needed then we can delete the guard now to unlock.
-    {
-        delete pGuard;
-    }
-}
-
-/*! \brief Defers deletion of a resource until enough frames have passed that the renderer can finish using it.
- *   It is garanteed that the number of frames before deletion is at least the number of frames before the sim thread and render thread will sync,
- *   so calling this function on the sim thread for example will ensure that the resource is not deleted until the render thread has a chance to finish using it. */
 template <class T>
 static inline void EnqueueDeletion(T&& value)
 {
-    DeletionQueue& instance = DeletionQueue::GetInstance();
-    if (!instance.IsInitialized())
-    {
-        // just destruct it
-        DeletionQueueElem<T>(std::forward<T>(value));
-        return;
-    }
-
-    Mutex::Guard* pGuard = nullptr;
-    DeletionQueueElem<T>* ptr = instance.Alloc<T>(&pGuard);
-    new (ptr) DeletionQueueElem<T>(std::forward<T>(value));
-
-    if (pGuard) // if locking was needed then we can delete the guard now to unlock.
-    {
-        delete pGuard;
-    }
+    EnqueueDeletionImpl<NormalizedType<T>>()(std::forward<T>(value));
 }
+
+template <class TFunction>
+struct EnqueueDeletionImpl<FunctionWrapper<TFunction>>
+{
+    void operator()(FunctionWrapper<TFunction>&& func)
+    {
+        if (!func.func)
+        {
+            return;
+        }
+
+        DeletionQueue& instance = DeletionQueue::GetInstance();
+        if (!instance.IsInitialized())
+        {
+            // just destruct it
+            func();
+
+            return;
+        }
+
+        Mutex::Guard* pGuard = nullptr;
+
+        FunctionWrapper<TFunction>** ppPayload = instance.AllocCustom<FunctionWrapper<TFunction>*>(
+            [](void* ptr)
+            {
+                FunctionWrapper<TFunction>* pPayload = *reinterpret_cast<FunctionWrapper<TFunction>**>(ptr);
+                AssertDebug(pPayload != nullptr);
+
+                (*pPayload)();
+
+                delete pPayload;
+            },
+            &pGuard);
+
+        *ppPayload = new FunctionWrapper<TFunction>(std::move(func));
+
+        if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+        {
+            delete pGuard;
+        }
+    }
+};
 
 template <class T>
-static inline void EnqueueDeletion(T* value)
+struct EnqueueDeletionImpl<Handle<T>>
 {
-    DeletionQueue& instance = DeletionQueue::GetInstance();
-    if (!instance.IsInitialized())
+    void operator()(Handle<T>&& value)
     {
-        // just destruct it
-        DeletionQueueElem<std::remove_const_t<T>*> { value };
-        return;
+        static_assert(!TupleContainsType_v<T, NonDeletableTypes>, "T must not be deleted via the DeletionQueue");
+
+        DeletionQueue& instance = DeletionQueue::GetInstance();
+        if (!instance.IsInitialized())
+        {
+            // just destruct it
+            DeletionQueueElem<Handle<T>>(std::forward<Handle<T>>(value));
+            return;
+        }
+
+        Mutex::Guard* pGuard = nullptr;
+        DeletionQueueElem<Handle<T>>* ptr = instance.Alloc<Handle<T>>(&pGuard);
+        new (ptr) DeletionQueueElem<Handle<T>>(std::forward<Handle<T>>(value));
+
+        if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+        {
+            delete pGuard;
+        }
     }
+};
 
-    Mutex::Guard* pGuard = nullptr;
-    DeletionQueueElem<std::remove_const_t<T>*>* ptr = instance.Alloc<std::remove_const_t<T>*>(&pGuard);
-    new (ptr) DeletionQueueElem<std::remove_const_t<T>*>(value);
-
-    if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+template <class T>
+struct EnqueueDeletionImpl<T*>
+{
+    void operator()(T* value)
     {
-        delete pGuard;
-    }
-}
+        DeletionQueue& instance = DeletionQueue::GetInstance();
+        if (!instance.IsInitialized())
+        {
+            // just destruct it
+            DeletionQueueElem<std::remove_const_t<T>*> { value };
+            return;
+        }
 
-/*! \see EnqueueDeletion(T&& value) */
+        Mutex::Guard* pGuard = nullptr;
+        DeletionQueueElem<std::remove_const_t<T>*>* ptr = instance.Alloc<std::remove_const_t<T>*>(&pGuard);
+        new (ptr) DeletionQueueElem<std::remove_const_t<T>*>(value);
+
+        if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+        {
+            delete pGuard;
+        }
+    }
+};
+
 template <class T, class AllocatorType>
-static inline void EnqueueDeletion(Array<T, AllocatorType>&& value)
+struct EnqueueDeletionImpl<Array<T, AllocatorType>>
 {
-    if (value.Empty())
+    void operator()(Array<T, AllocatorType>&& value)
     {
-        return;
+        if (value.Empty())
+        {
+            return;
+        }
+
+        for (auto& item : value)
+        {
+            EnqueueDeletion(std::move(item));
+        }
+
+        value.Clear();
     }
+};
 
-    for (auto& item : value)
-    {
-        EnqueueDeletion(std::move(item));
-    }
-
-    value.Clear();
-}
-
-/*! \see EnqueueDeletion(T&& value) */
 template <class T, size_t Sz>
-static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
+struct EnqueueDeletionImpl<FixedArray<T, Sz>>
 {
-    for (auto& it : value)
+    void operator()(FixedArray<T, Sz>&& value)
     {
-        EnqueueDeletion(std::move(it));
+        for (auto& it : value)
+        {
+            EnqueueDeletion(std::move(it));
+        }
+
+        value = {};
     }
+};
 
-    value = {};
-}
-
-/*! \see EnqueueDeletion(T&& value) */
-template <class T>
-static inline void EnqueueDeletion(Set<T>&& value)
+template <class T, class AllocatorType>
+struct EnqueueDeletionImpl<Set<T, AllocatorType>>
 {
-    for (auto& it : value)
+    void operator()(Set<T, AllocatorType>&& value)
     {
-        EnqueueDeletion(std::move(it));
-    }
+        for (auto& it : value)
+        {
+            EnqueueDeletion(std::move(it));
+        }
 
-    value.Clear();
-}
+        value.Clear();
+    }
+};
 
 } // namespace Hyperion

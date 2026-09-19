@@ -15,6 +15,7 @@ Mesh TriangleDebugDrawShape {
         NormalWeight = 0.5
         UV0Weight = 1
         UV1Weight = 0.5
+        WindWeight = 1
         LockBorder = false
         Prune = false
         MaxScreenErrorPixels = 1
