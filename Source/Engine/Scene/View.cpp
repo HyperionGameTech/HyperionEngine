@@ -816,11 +816,11 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                         inputHash = inputHash.Combine(shadowViewScene->GetOctree().GetEntryListHash<EntityTag::MobStatic>());
                     }
 
-                    shadowView->collectionState.UpdateInputs(inputHash, GetFrameCounter());
+                    shadowView->collectionState.UpdateInputs(inputHash, GetRingIndex());
                 }
                 else
                 {
-                    shadowView->collectionState.skipNext = false;
+                    shadowView->collectionState.Invalidate();
                 }
 
                 ///mirror the parent view's scene list to prevent holding onto stale Scenes
