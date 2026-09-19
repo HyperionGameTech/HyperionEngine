@@ -677,10 +677,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             
             if (!firstShadowView)
             {
-                // failed to allocate shadow view - out of slots is most likely cause
-                // skip processing for this light.
-                HYP_LOG(Scene, Warning, "Failed to allocate shadow view for light {}, view: {} (id: {})", light->GetName(), GetName(), Id());
-
+                // failed to allocate shadow view - out of slots is most likely cause.
+                // skip processing, it will create lazily, succeeding when there is a slot available.
                 break;
             }
             

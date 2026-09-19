@@ -43,7 +43,6 @@ bool ShadowMapAtlas::AddElement(const Vec2u& elementDimensions, ShadowMapAtlasEl
 
     if (!AtlasPacker<ShadowMapAtlasElement>::AddElement(elementDimensions, outElement, elementIndex))
     {
-        HYP_LOG(Rendering, Warning, "Failed to add shadow map atlas element with dimensions {}x{}", elementDimensions.x, elementDimensions.y);
         return false;
     }
 
@@ -273,7 +272,8 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, co
         }
     }
 
-    HYP_LOG(Rendering, Warning, "Shadow map could not be fit into an atlas, dimensions = {}, num atlases = {}", dimensions, m_atlases.Size());
+    HYP_LOG(Rendering, Verbose, "Shadow map could not be fit into an atlas this frame, will try to lazily allocate later. dimensions = {}, num atlases = {}",
+        dimensions, m_atlases.Size());
 
     return nullptr;
 }
