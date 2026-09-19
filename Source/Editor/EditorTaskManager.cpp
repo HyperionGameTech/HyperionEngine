@@ -49,6 +49,17 @@ void EditorTaskManager::AddTask(const Handle<EditorTaskBase>& task)
 
     {
         Mutex::Guard guard(m_mutex);
+
+        auto it = m_tasks.FindIf([&task](const RunningEditorTask& runningTask)
+            {
+                return runningTask.GetTask() == task;
+            });
+
+        if (it != m_tasks.End())
+        {
+            return;
+        }
+
         m_tasks.EmplaceBack(task);
     }
 
@@ -64,9 +75,10 @@ void EditorTaskManager::Tick()
 
     m_timer.NextTick();
 
-    for (auto it = m_tasks.Begin(); it != m_tasks.End();)
+    for (size_t index = 0; index < m_tasks.Size();)
     {
-        const Handle<EditorTaskBase>& task = it->GetTask();
+        // Needs strong reference!
+        Handle<EditorTaskBase> task = m_tasks[index].GetTask();
         Assert(task.IsValid());
 
         if (task->IsCancellationRequested())
@@ -75,7 +87,7 @@ void EditorTaskManager::Tick()
 
             OnTaskRemoved(task);
 
-            it = m_tasks.Erase(it);
+            m_tasks.Erase(m_tasks.Begin() + index);
 
             continue;
         }
@@ -91,7 +103,7 @@ void EditorTaskManager::Tick()
         {
             if (tickableTask->GetTimer().Waiting())
             {
-                ++it;
+                ++index;
                 continue;
             }
 
@@ -114,12 +126,12 @@ void EditorTaskManager::Tick()
 
             OnTaskRemoved(task);
 
-            it = m_tasks.Erase(it);
+            m_tasks.Erase(m_tasks.Begin() + index);
 
             continue;
         }
 
-        ++it;
+        ++index;
     }
 }
 

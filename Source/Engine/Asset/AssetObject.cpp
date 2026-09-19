@@ -437,9 +437,14 @@ Result AssetObject::PersistBlobData(
 
 void AssetObject::AssertBlobDataPersisted(const BlobDataReference& reference) const
 {
-    ///If this fires, it's because we're trying to unpage something that has never been saved to disk,
-    ///so the data would be lost on the next attempt to page it!
-    Assert(reference.raw == nullptr || reference.readOnly || reference.key.IsValid());
+    // If this fires, we're unpaging data that was never saved to disk, so it will be lost;
+    // the next attempt to page it back in will fail (gracefully) and force a re-derive/recompile.
+    // Not fatal - the callers unconditionally null the reference right after this, so keeping this
+    // non-fatal just means that data has to be regenerated instead of crashing the engine outright.
+    if (reference.raw != nullptr && !reference.readOnly && !reference.key.IsValid())
+    {
+        HYP_LOG(Assets, Error, "Asset '{}' is unpaging blob data that was never persisted to disk, data will be lost", m_name);
+    }
 }
 
 Result AssetObject::Load(

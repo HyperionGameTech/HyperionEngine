@@ -57,6 +57,7 @@
 
 #include <Core/Memory/ByteBuffer.hpp>
 #include <Core/Containers/Map.hpp>
+
 #include <Core/Reflection/Handle.hpp>
 
 #include <Framework/EngineDriver.hpp>
@@ -69,6 +70,7 @@
 #include <stb_image.h>
 
 #include <cstring>
+#include <algorithm>
 
 #define CGLTF_IMPLEMENTATION
 #include <gltf/cgltf.h>
@@ -107,7 +109,8 @@ struct GltfSkinResource
 {
     Handle<Skeleton> skeleton;
     Array<uint32> jointToBoneIndex;
-    Map<const cgltf_node*, Transform> bindingTransforms;
+    Array<const cgltf_node*> orderedJointNodes;
+    Map<const cgltf_node*, Transform> restTransforms;
     Map<const cgltf_node*, Name> boneNames;
     Set<const cgltf_node*> jointNodes;
 };
@@ -647,44 +650,55 @@ Name MakeNodeName(GltfLoadContext& ctx, const cgltf_node& node)
     return NAME_FMT("Node{}", ctx.unnamedNodeCounter++);
 }
 
+// glTF matrices are column-major and right-handed; returns the engine-layout matrix mirrored across Z
+Mat4f ConvertGltfMatrix(const float* columnMajorValues)
+{
+    Mat4f matrix = Mat4f(columnMajorValues).Transpose();
+
+    // Conjugate with D = diag(1, 1, -1, 1) to mirror across Z: M' = D * M * D
+    matrix[0][2] *= -1.0f;
+    matrix[1][2] *= -1.0f;
+    matrix[2][0] *= -1.0f;
+    matrix[2][1] *= -1.0f;
+    matrix[2][3] *= -1.0f;
+    matrix[3][2] *= -1.0f;
+
+    return matrix;
+}
+
+Transform DecomposeMatrix(Mat4f matrix)
+{
+    const Vec3f translation = matrix.ExtractTranslation();
+
+    Vec3f scale = Vec3f(
+        Vec3f(matrix[0][0], matrix[1][0], matrix[2][0]).Length(),
+        Vec3f(matrix[0][1], matrix[1][1], matrix[2][1]).Length(),
+        Vec3f(matrix[0][2], matrix[1][2], matrix[2][2]).Length());
+
+    // A negative determinant means the matrix contains a reflection;
+    // fold the mirror into the X axis so a proper rotation can be extracted
+    if (matrix.Determinant() < 0.0f)
+    {
+        scale.x = -scale.x;
+
+        matrix[0][0] *= -1.0f;
+        matrix[1][0] *= -1.0f;
+        matrix[2][0] *= -1.0f;
+    }
+
+    // Mat4f::Rotation builds the transposed rotation matrix, so Transform stores
+    // rotations inverted relative to the standard quaternion convention
+    Quat4f rotation = matrix.ExtractRotation().Inverse();
+    rotation.Normalize();
+
+    return Transform(translation, scale, rotation);
+}
+
 Transform BuildTransformFromNode(const cgltf_node& node)
 {
     if (node.has_matrix)
     {
-        Mat4f matrix(node.matrix);
-        matrix = matrix.Transpose();
-
-        // Conjugate with D = diag(1, 1, -1, 1) to mirror across Z: M' = D * M * D
-        matrix[0][2] *= -1.0f;
-        matrix[1][2] *= -1.0f;
-        matrix[2][0] *= -1.0f;
-        matrix[2][1] *= -1.0f;
-        matrix[2][3] *= -1.0f;
-
-        const Vec3f translation = matrix.ExtractTranslation();
-
-        Vec3f scale = Vec3f(
-            Vec3f(matrix[0][0], matrix[1][0], matrix[2][0]).Length(),
-            Vec3f(matrix[0][1], matrix[1][1], matrix[2][1]).Length(),
-            Vec3f(matrix[0][2], matrix[1][2], matrix[2][2]).Length());
-
-        // A negative determinant means the matrix contains a reflection;
-        // fold the mirror into the X axis so a proper rotation can be extracted
-        if (matrix.Determinant() < 0.0f)
-        {
-            scale.x = -scale.x;
-
-            matrix[0][0] *= -1.0f;
-            matrix[1][0] *= -1.0f;
-            matrix[2][0] *= -1.0f;
-        }
-
-        // Mat4f::Rotation builds the transposed rotation matrix, so Transform stores
-        // rotations inverted relative to the standard quaternion convention
-        Quat4f rotation = matrix.ExtractRotation().Inverse();
-        rotation.Normalize();
-
-        return Transform(translation, scale, rotation);
+        return DecomposeMatrix(ConvertGltfMatrix(node.matrix));
     }
 
     Vec3f translation(0.0f);
@@ -722,6 +736,19 @@ Transform BuildTransformFromNode(const cgltf_node& node)
     return Transform(translation, scale, rotation);
 }
 
+// Matches the world matrix the node gets in the built hierarchy (the model root is identity)
+Mat4f BuildWorldMatrix(const cgltf_node* node)
+{
+    Mat4f matrix = Mat4f::Identity();
+
+    for (; node != nullptr; node = node->parent)
+    {
+        matrix = BuildTransformFromNode(*node).GetMatrix() * matrix;
+    }
+
+    return matrix;
+}
+
 GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
 {
     GltfSkinResource resource;
@@ -754,12 +781,114 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
         ? CreateNameFromDynamicString(skin.name)
         : NAME_FMT("Skin{}", ctx.skinResources.Size());
 
-    // Synthetic root bone so that multiple separate joint hierarchies can be represented by a single skeleton
+    // Skinned vertices are transformed by the mesh entity's world matrix after skinning, so the skeleton is
+    // built in the space of the mesh node using this skin (glTF itself ignores that node's transform)
+    const cgltf_node* skinnedMeshNode = nullptr;
+    Mat4f meshWorldMatrix = Mat4f::Identity();
+
+    for (cgltf_size nodeIndex = 0; nodeIndex < ctx.data.nodes_count; ++nodeIndex)
+    {
+        const cgltf_node& node = ctx.data.nodes[nodeIndex];
+
+        if (node.skin != &skin || node.mesh == nullptr)
+        {
+            continue;
+        }
+
+        const Mat4f nodeWorldMatrix = BuildWorldMatrix(&node);
+
+        if (skinnedMeshNode == nullptr)
+        {
+            skinnedMeshNode = &node;
+            meshWorldMatrix = nodeWorldMatrix;
+        }
+        else if (nodeWorldMatrix != meshWorldMatrix)
+        {
+            HYP_LOG(Assets, Warning, "GLTF skin '{}' is used by mesh nodes with different transforms; only '{}' will be skinned correctly",
+                    skinName, skinnedMeshNode->name ? skinnedMeshNode->name : "<unnamed>");
+
+            break;
+        }
+    }
+
+    const Mat4f inverseMeshWorldMatrix = meshWorldMatrix.Inverse();
+
+    // The bind pose comes from the inverse bind matrices, which often differ from the joints' node transforms
+    Array<float> inverseBindData;
+    const bool hasInverseBindMatrices = skin.inverse_bind_matrices != nullptr
+        && UnpackAccessorFloats(skin.inverse_bind_matrices, inverseBindData) >= skin.joints_count * 16;
+
+    if (skin.inverse_bind_matrices != nullptr && !hasInverseBindMatrices)
+    {
+        HYP_LOG(Assets, Warning, "GLTF skin '{}' has too few inverse bind matrices; treating them as identity", skinName);
+    }
+
+    Map<const cgltf_node*, Mat4f> bindMatrices; // joint bind pose in the mesh node's space
+
+    for (cgltf_size jointIndex = 0; jointIndex < skin.joints_count; ++jointIndex)
+    {
+        const cgltf_node* jointNode = skin.joints[jointIndex];
+
+        if (jointNode == nullptr || bindMatrices.Find(jointNode) != bindMatrices.End())
+        {
+            continue;
+        }
+
+        bindMatrices.Set(jointNode, hasInverseBindMatrices
+                ? ConvertGltfMatrix(inverseBindData.Data() + jointIndex * 16).Inverse()
+                : Mat4f::Identity());
+    }
+
+    Map<const cgltf_node*, const cgltf_node*> jointParents;
+    Set<const cgltf_node*> topLevelParentNodes;
+
+    for (const auto& bindIt : bindMatrices)
+    {
+        const cgltf_node* jointParent = nullptr;
+
+        for (const cgltf_node* parentNode = bindIt.first->parent; parentNode != nullptr; parentNode = parentNode->parent)
+        {
+            if (resource.jointNodes.Contains(parentNode))
+            {
+                jointParent = parentNode;
+
+                break;
+            }
+        }
+
+        jointParents.Set(bindIt.first, jointParent);
+
+        if (jointParent == nullptr)
+        {
+            topLevelParentNodes.Insert(bindIt.first->parent);
+        }
+    }
+
     Handle<Bone> rootBone = MakeHandle<Bone>(NAME_FMT("{}_Root", skinName));
+
+    Map<const cgltf_node*, Handle<Bone>> topLevelParentBones;
+    Map<const cgltf_node*, Mat4f> topLevelParentMatrices;
+
+    for (const cgltf_node* parentNode : topLevelParentNodes)
+    {
+        const Mat4f parentMatrix = inverseMeshWorldMatrix * BuildWorldMatrix(parentNode);
+
+        Handle<Bone> parentBone = rootBone;
+
+        if (topLevelParentNodes.Size() > 1)
+        {
+            parentBone = MakeHandle<Bone>(NAME_FMT("{}_Parent{}", skinName, topLevelParentBones.Size()));
+            rootBone->AddChild(parentBone);
+        }
+
+        parentBone->SetBindingTransform(DecomposeMatrix(parentMatrix));
+
+        topLevelParentBones.Set(parentNode, parentBone);
+        topLevelParentMatrices.Set(parentNode, parentMatrix);
+    }
 
     Array<Name> usedBoneNames;
     Map<const cgltf_node*, Handle<Bone>> bonesByNode;
-    Map<const cgltf_node*, const cgltf_node*> jointParents;
 
     uint32 unnamedJointCounter = 0;
 
@@ -772,21 +901,13 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
             continue;
         }
 
-        Transform bindingTransform = BuildTransformFromNode(*jointNode);
+        const cgltf_node* jointParent = jointParents.At(jointNode);
 
-        const cgltf_node* jointParent = nullptr;
+        const Mat4f& parentBindMatrix = jointParent != nullptr
+            ? bindMatrices.At(jointParent)
+            : topLevelParentMatrices.At(jointNode->parent);
 
-        for (const cgltf_node* parentNode = jointNode->parent; parentNode != nullptr; parentNode = parentNode->parent)
-        {
-            if (resource.jointNodes.Contains(parentNode))
-            {
-                jointParent = parentNode;
-
-                break;
-            }
-
-            bindingTransform = BuildTransformFromNode(*parentNode) * bindingTransform;
-        }
+        const Transform bindingTransform = DecomposeMatrix(parentBindMatrix.Inverse() * bindMatrices.At(jointNode));
 
         Name boneName = (jointNode->name && *jointNode->name)
             ? CreateNameFromDynamicString(jointNode->name)
@@ -812,22 +933,18 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
         bone->SetBindingTransform(bindingTransform);
 
         bonesByNode.Set(jointNode, bone);
-        jointParents.Set(jointNode, jointParent);
-        resource.bindingTransforms.Set(jointNode, bindingTransform);
+        resource.orderedJointNodes.PushBack(jointNode);
+        resource.restTransforms.Set(jointNode, BuildTransformFromNode(*jointNode));
         resource.boneNames.Set(jointNode, boneName);
     }
 
     for (const auto& boneIt : bonesByNode)
     {
-        Handle<Bone> parentBone = rootBone;
+        const cgltf_node* jointParent = jointParents.At(boneIt.first);
 
-        if (const cgltf_node* jointParent = jointParents.At(boneIt.first); jointParent != nullptr)
-        {
-            if (const auto parentIt = bonesByNode.Find(jointParent); parentIt != bonesByNode.End())
-            {
-                parentBone = parentIt->second;
-            }
-        }
+        const Handle<Bone>& parentBone = jointParent != nullptr
+            ? bonesByNode.At(jointParent)
+            : topLevelParentBones.At(boneIt.first->parent);
 
         parentBone->AddChild(boneIt.second);
     }
@@ -873,14 +990,8 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
     if (Bone* rootBonePtr = skeleton->GetRootBone())
     {
         rootBonePtr->SetToBindingPose();
-
-        rootBonePtr->CalculateBoneRotation();
-        rootBonePtr->CalculateBoneTranslation();
-
         rootBonePtr->StoreBindingPose();
         rootBonePtr->ClearPose();
-
-        rootBonePtr->UpdateBoneTransform();
     }
 
     GetCurrentAssetRegistry()->PutAssetUnique(skeleton);
@@ -891,6 +1002,100 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
     return resource;
 }
 
+struct GltfChannelSamples
+{
+    Array<float> times;
+    Array<float> values;
+    uint32 numComponents = 0;
+    cgltf_size stride = 0;
+    cgltf_size valueOffset = 0;
+    bool step = false;
+
+    bool Load(const cgltf_animation_sampler& sampler, uint32 components)
+    {
+        const bool cubic = sampler.interpolation == cgltf_interpolation_type_cubic_spline;
+
+        numComponents = components;
+        step = sampler.interpolation == cgltf_interpolation_type_step;
+
+        // Cubic spline samplers store an in-tangent, the value and an out-tangent per keyframe
+        stride = numComponents * (cubic ? 3 : 1);
+        valueOffset = cubic ? numComponents : 0;
+
+        if (UnpackAccessorFloats(sampler.input, times) == 0
+            || UnpackAccessorFloats(sampler.output, values) < times.Size() * stride)
+        {
+            times.Clear();
+            values.Clear();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool IsValid() const
+    {
+        return times.Any();
+    }
+
+    // Cubic spline tangents are ignored; spline values are interpolated linearly
+    void Sample(float time, float* out) const
+    {
+        const float* timesBegin = times.Data();
+        const cgltf_size nextIndex = cgltf_size(std::upper_bound(timesBegin, timesBegin + times.Size(), time) - timesBegin);
+
+        const auto valueAt = [this](cgltf_size keyIndex) -> const float*
+        {
+            return values.Data() + keyIndex * stride + valueOffset;
+        };
+
+        if (step || nextIndex == 0 || nextIndex >= times.Size())
+        {
+            const float* value = valueAt(nextIndex == 0 ? 0 : nextIndex - 1);
+
+            for (uint32 component = 0; component < numComponents; ++component)
+            {
+                out[component] = value[component];
+            }
+
+            return;
+        }
+
+        const cgltf_size previousIndex = nextIndex - 1;
+        const float alpha = (time - times[previousIndex]) / (times[nextIndex] - times[previousIndex]);
+
+        const float* from = valueAt(previousIndex);
+        const float* to = valueAt(nextIndex);
+
+        if (numComponents == 4)
+        {
+            Quat4f rotation(from[0], from[1], from[2], from[3]);
+            rotation.Slerp(Quat4f(to[0], to[1], to[2], to[3]), alpha);
+            rotation.Normalize();
+
+            out[0] = rotation.x;
+            out[1] = rotation.y;
+            out[2] = rotation.z;
+            out[3] = rotation.w;
+
+            return;
+        }
+
+        for (uint32 component = 0; component < numComponents; ++component)
+        {
+            out[component] = MathUtil::Lerp(from[component], to[component], alpha);
+        }
+    }
+};
+
+struct GltfJointChannels
+{
+    GltfChannelSamples translation;
+    GltfChannelSamples rotation;
+    GltfChannelSamples scale;
+};
+
 Handle<Animation> BuildAnimationForSkin(const cgltf_animation& animation, uint32 animationIndex, const GltfSkinResource& skinResource)
 {
     const Name animationName = (animation.name && *animation.name)
@@ -898,6 +1103,8 @@ Handle<Animation> BuildAnimationForSkin(const cgltf_animation& animation, uint32
         : NAME_FMT("Animation{}", animationIndex);
 
     Handle<Animation> result = MakeHandle<Animation>(animationName);
+
+    Map<const cgltf_node*, GltfJointChannels> channelsByJoint;
 
     for (cgltf_size channelIndex = 0; channelIndex < animation.channels_count; ++channelIndex)
     {
@@ -908,103 +1115,112 @@ Handle<Animation> BuildAnimationForSkin(const cgltf_animation& animation, uint32
             continue;
         }
 
-        switch (channel.target_path)
-        {
-        case cgltf_animation_path_type_translation:
-        case cgltf_animation_path_type_rotation:
-        case cgltf_animation_path_type_scale:
-            break;
-        default:
-            // Morph target weights are not supported; a warning is emitted when loading mesh data
-            continue;
-        }
-
         if (!skinResource.jointNodes.Contains(channel.target_node))
         {
             // Only bones can be animated; channels targeting other nodes are ignored
             continue;
         }
 
-        const cgltf_animation_sampler& sampler = *channel.sampler;
+        GltfJointChannels& jointChannels = channelsByJoint[channel.target_node];
 
-        Array<float> timesData;
+        GltfChannelSamples* samples = nullptr;
+        uint32 numComponents = 3;
 
-        if (UnpackAccessorFloats(sampler.input, timesData) == 0)
+        switch (channel.target_path)
         {
-            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has no usable time data; skipping channel",
-                    animationName, uint32(channelIndex));
-
+        case cgltf_animation_path_type_translation:
+            samples = &jointChannels.translation;
+            break;
+        case cgltf_animation_path_type_rotation:
+            samples = &jointChannels.rotation;
+            numComponents = 4;
+            break;
+        case cgltf_animation_path_type_scale:
+            samples = &jointChannels.scale;
+            break;
+        default:
+            // Morph target weights are not supported; a warning is emitted when loading mesh data
             continue;
         }
 
-        Array<float> valuesData;
-
-        if (UnpackAccessorFloats(sampler.output, valuesData) == 0)
+        if (!samples->Load(*channel.sampler, numComponents))
         {
-            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has no usable output data; skipping channel",
+            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has missing or insufficient keyframe data; skipping channel",
                     animationName, uint32(channelIndex));
+        }
+    }
 
-            continue;
+    for (const cgltf_node* jointNode : skinResource.orderedJointNodes)
+    {
+        const Transform& restTransform = skinResource.restTransforms.At(jointNode);
+        const GltfJointChannels* jointChannels = nullptr;
+
+        if (const auto channelsIt = channelsByJoint.Find(jointNode); channelsIt != channelsByJoint.End())
+        {
+            jointChannels = &channelsIt->second;
         }
 
-        const uint32 numComponents = channel.target_path == cgltf_animation_path_type_rotation ? 4 : 3;
+        Array<float> keyTimes;
 
-        // Cubic spline samplers store an in-tangent, the value and an out-tangent per keyframe;
-        // only the value (the middle element) is used, other interpolation types are treated as linear
-        const cgltf_size componentStride = numComponents * (sampler.interpolation == cgltf_interpolation_type_cubic_spline ? 3 : 1);
-
-        if (valuesData.Size() < timesData.Size() * componentStride)
+        if (jointChannels != nullptr)
         {
-            HYP_LOG(Assets, Warning, "GLTF animation '{}' channel {} has an insufficient number of output values; skipping channel",
-                    animationName, uint32(channelIndex));
-
-            continue;
+            for (const GltfChannelSamples* samples : { &jointChannels->translation, &jointChannels->rotation, &jointChannels->scale })
+            {
+                keyTimes.Concat(samples->times);
+            }
         }
 
-        const auto bindingIt = skinResource.bindingTransforms.Find(channel.target_node);
-        const Transform bindingTransform = bindingIt != skinResource.bindingTransforms.End()
-            ? bindingIt->second
-            : Transform();
+        std::sort(keyTimes.Begin(), keyTimes.End());
 
-        const auto boneNameIt = skinResource.boneNames.Find(channel.target_node);
-        const Name boneName = boneNameIt != skinResource.boneNames.End() ? boneNameIt->second : Name::Invalid();
+        Array<float> uniqueKeyTimes;
+        uniqueKeyTimes.Reserve(keyTimes.Size());
+
+        for (const float keyTime : keyTimes)
+        {
+            if (uniqueKeyTimes.Empty() || uniqueKeyTimes.Back() != keyTime)
+            {
+                uniqueKeyTimes.PushBack(keyTime);
+            }
+        }
+
+        if (uniqueKeyTimes.Empty())
+        {
+            uniqueKeyTimes.PushBack(0.0f);
+        }
 
         Array<Keyframe> keyframes;
-        keyframes.Resize(timesData.Size());
+        keyframes.Reserve(uniqueKeyTimes.Size());
 
-        for (cgltf_size keyframeIndex = 0; keyframeIndex < timesData.Size(); ++keyframeIndex)
+        for (const float keyTime : uniqueKeyTimes)
         {
-            // Non-animated components fall back to the bone's binding transform
-            Vec3f translation = bindingTransform.GetTranslation();
-            Vec3f scale = bindingTransform.GetScale();
-            Quat4f rotation = bindingTransform.GetRotation();
+            Transform transform = restTransform;
+            float value[4];
 
-            const cgltf_size base = keyframeIndex * componentStride
-                + (sampler.interpolation == cgltf_interpolation_type_cubic_spline ? numComponents : 0);
-
-            switch (channel.target_path)
+            if (jointChannels != nullptr && jointChannels->translation.IsValid())
             {
-            case cgltf_animation_path_type_translation:
-                translation = Vec3f(valuesData[base], valuesData[base + 1], -valuesData[base + 2]);
-                break;
-            case cgltf_animation_path_type_scale:
-                scale = Vec3f(valuesData[base], valuesData[base + 1], valuesData[base + 2]);
-                break;
-            case cgltf_animation_path_type_rotation:
-                rotation = Quat4f(
-                               -valuesData[base],
-                               -valuesData[base + 1],
-                               valuesData[base + 2],
-                               valuesData[base + 3])
-                               .Inverse();
-                rotation.Normalize();
-                break;
-            default:
-                break;
+                jointChannels->translation.Sample(keyTime, value);
+                transform.translation = Vec3f(value[0], value[1], -value[2]);
             }
 
-            keyframes[keyframeIndex] = Keyframe(timesData[keyframeIndex], Transform(translation, scale, rotation));
+            if (jointChannels != nullptr && jointChannels->scale.IsValid())
+            {
+                jointChannels->scale.Sample(keyTime, value);
+                transform.scale = Vec3f(value[0], value[1], value[2]);
+            }
+
+            if (jointChannels != nullptr && jointChannels->rotation.IsValid())
+            {
+                jointChannels->rotation.Sample(keyTime, value);
+
+                // mirror - we use LHS; inverted to match the transposed convention of Mat4f::Rotation
+                transform.rotation = Quat4f(-value[0], -value[1], value[2], value[3]).Inverse();
+                transform.rotation.Normalize();
+            }
+
+            keyframes.PushBack(Keyframe(keyTime, transform));
         }
+
+        const Name boneName = skinResource.boneNames.At(jointNode);
 
         Handle<AnimationTrack> track = MakeHandle<AnimationTrack>(
             NAME_FMT("{}_{}", animationName, boneName),
@@ -1679,8 +1895,9 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     const bool hasFoliage = hasWind && wind.leafOrigins.Size() >= vertexCount * 3;
 
-    // the wind needs a tree's foot at the origin, so trees are not centered
-    if (!hasWind && bounds.IsValid() && bounds.IsFinite() && !bounds.IsZero())
+    // the wind needs a tree's foot at the origin, so trees are not centered; skinned meshes aren't either,
+    // since bone matrices rotate vertices about the mesh node's origin
+    if (!hasWind && !hasSkinning && bounds.IsValid() && bounds.IsFinite() && !bounds.IsZero())
     {
         const Vec3f center = bounds.GetCenter();
 

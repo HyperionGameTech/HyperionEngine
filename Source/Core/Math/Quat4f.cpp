@@ -290,7 +290,14 @@ Quat4f& Quat4f::Slerp(const Quat4f& to, float amt)
     __m128 a_v = LoadQuatf(*this);
     __m128 b_v = LoadQuatf(to);
 
-    const float cosHalfTheta = _mm_cvtss_f32(_mm_dp_ps(a_v, b_v, 0xFF));
+    float cosHalfTheta = _mm_cvtss_f32(_mm_dp_ps(a_v, b_v, 0xFF));
+
+    // q and -q are the same rotation; interpolate along the shorter arc
+    if (cosHalfTheta < 0.0f)
+    {
+        b_v = _mm_sub_ps(_mm_setzero_ps(), b_v);
+        cosHalfTheta = -cosHalfTheta;
+    }
 
     if (abs(cosHalfTheta) >= 1.0f)
     {
@@ -300,9 +307,10 @@ Quat4f& Quat4f::Slerp(const Quat4f& to, float amt)
     const float halfTheta = acos(cosHalfTheta);
     const float sinHalfTheta = sqrt(1.0f - cosHalfTheta * cosHalfTheta);
 
+    // nearly identical rotations: interpolate linearly by amt (sin(halfTheta) is too small to divide by)
     if (abs(sinHalfTheta) < 0.001f)
     {
-        *this = StoreQuatf(_mm_add_ps(_mm_mul_ps(a_v, _mm_set1_ps(0.5f)), _mm_mul_ps(b_v, _mm_set1_ps(0.5f))));
+        *this = StoreQuatf(_mm_add_ps(_mm_mul_ps(a_v, _mm_set1_ps(1.0f - amt)), _mm_mul_ps(b_v, _mm_set1_ps(amt))));
         return *this;
     }
 
@@ -313,7 +321,15 @@ Quat4f& Quat4f::Slerp(const Quat4f& to, float amt)
     *this = StoreQuatf(_mm_add_ps(_mm_mul_ps(a_v, _mm_set1_ps(ratioA)), _mm_mul_ps(b_v, _mm_set1_ps(ratioB))));
     return *this;
 #else
-    float cosHalfTheta = w * to.w + x * to.x + y * to.y + z * to.z;
+    Quat4f target = to;
+    float cosHalfTheta = w * target.w + x * target.x + y * target.y + z * target.z;
+
+    // q and -q are the same rotation; interpolate along the shorter arc
+    if (cosHalfTheta < 0.0f)
+    {
+        target = Quat4f(-target.x, -target.y, -target.z, -target.w);
+        cosHalfTheta = -cosHalfTheta;
+    }
 
     if (abs(cosHalfTheta) >= 1.0f)
     {
@@ -323,22 +339,23 @@ Quat4f& Quat4f::Slerp(const Quat4f& to, float amt)
     float halfTheta = acos(cosHalfTheta);
     float sinHalfTheta = sqrt(1.0f - cosHalfTheta * cosHalfTheta);
 
+    // nearly identical rotations: interpolate linearly by amt (sin(halfTheta) is too small to divide by)
     if (abs(sinHalfTheta) < 0.001f)
     {
-        w = w * 0.5f + to.w * 0.5f;
-        x = x * 0.5f + to.x * 0.5f;
-        y = y * 0.5f + to.y * 0.5f;
-        z = z * 0.5f + to.z * 0.5f;
+        w = w * (1.0f - amt) + target.w * amt;
+        x = x * (1.0f - amt) + target.x * amt;
+        y = y * (1.0f - amt) + target.y * amt;
+        z = z * (1.0f - amt) + target.z * amt;
         return *this;
     }
 
     float ratioA = sin((1.0f - amt) * halfTheta) / sinHalfTheta;
     float ratioB = sin(amt * halfTheta) / sinHalfTheta;
 
-    w = w * ratioA + to.w * ratioB;
-    x = x * ratioA + to.x * ratioB;
-    y = y * ratioA + to.y * ratioB;
-    z = z * ratioA + to.z * ratioB;
+    w = w * ratioA + target.w * ratioB;
+    x = x * ratioA + target.x * ratioB;
+    y = y * ratioA + target.y * ratioB;
+    z = z * ratioA + target.z * ratioB;
     return *this;
 #endif
 }

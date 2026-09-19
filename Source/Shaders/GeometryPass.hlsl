@@ -10,6 +10,9 @@ PERMUTE(FORWARD_CLUSTERED);
 STATIC(TILE_Z_BINS, 16);
 STATIC(TILE_SIZE, 32);
 
+PERMUTE(FORWARD_SHADING);
+STATIC(MAX_LIGHTS, 4)
+
 struct PSInput
 {
     float4 position_cs : SV_POSITION;
@@ -90,6 +93,80 @@ DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/DeferredLighting.hlsli"
 #include "include/Shadows.hlsli"
+
+#ifdef FORWARD_SHADING
+
+DECLARE_BUFFER_DYNAMIC(Default, ForwardShadingConstants) cbuffer ForwardShadingConstants
+{
+    Light lights[MAX_LIGHTS];
+    ShadowMap shadowMaps[MAX_LIGHTS];
+    EnvProbe fallbackProbe; // always the scene's sky probe, or a zeroed EnvProbe if none
+
+    // CSM of the first directional light (matches DirectionalLightCSMData)
+    float4x4 shadowViewMat;
+
+    float4 atlasU;
+    float4 atlasV;
+    float4 atlasScaleX;
+    float4 atlasScaleY;
+
+    uint4 atlasSlice;
+
+    float4 cascadeScaleX;
+    float4 cascadeScaleY;
+    float4 cascadeScaleZ;
+
+    float4 cascadeOffsetX;
+    float4 cascadeOffsetY;
+    float4 cascadeOffsetZ;
+
+    uint numBoundLights;
+    uint directionalCSMLightIndex; // ~0u if none
+};
+
+// cascades follow the main camera, so a point outside all of them is treated as lit
+float GetDirectionalCSMShadow(float3 position, float3 N, float NdotL)
+{
+    float4 positionLS = mul(shadowViewMat, float4(position, 1.0));
+    positionLS /= positionLS.w;
+
+    const float4 uvX = positionLS.x * cascadeScaleX + cascadeOffsetX;
+    const float4 uvY = positionLS.y * cascadeScaleY + cascadeOffsetY;
+    const float4 uvZ = positionLS.z * cascadeScaleZ + cascadeOffsetZ;
+
+    const float4 maxDist = max(abs(uvX - 0.5), max(abs(uvY - 0.5), abs(uvZ - 0.5)));
+    const float4 insideMask = step(maxDist, (float4)0.5);
+
+    [branch]
+    if (dot(insideMask, (float4)1.0) < 0.5)
+    {
+        return 1.0;
+    }
+
+    int cascadeIndex = 3;
+    cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
+    cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
+    cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
+
+    const float cascadeWidth = 1.0 / max(abs(cascadeScaleX[cascadeIndex]), 0.000001);
+    const float normalOffset = GetCascadeNormalOffset(cascadeWidth, NdotL);
+
+    float4 offsetPositionLS = mul(shadowViewMat, float4(position + N * normalOffset, 1.0));
+    offsetPositionLS /= offsetPositionLS.w;
+
+    float4 shadowMapCoord;
+    shadowMapCoord.x = offsetPositionLS.x * cascadeScaleX[cascadeIndex] + cascadeOffsetX[cascadeIndex];
+    shadowMapCoord.y = offsetPositionLS.y * cascadeScaleY[cascadeIndex] + cascadeOffsetY[cascadeIndex];
+    shadowMapCoord.z = offsetPositionLS.z * cascadeScaleZ[cascadeIndex] + cascadeOffsetZ[cascadeIndex];
+    shadowMapCoord.w = (float)atlasSlice[cascadeIndex];
+
+    return GetShadowCSM(shadowMapCoord,
+        float2(atlasU[cascadeIndex], atlasV[cascadeIndex]),
+        float2(atlasScaleX[cascadeIndex], atlasScaleY[cascadeIndex]));
+}
+
+#endif // FORWARD_SHADING
+
 #endif // SHADING_TYPE_FORWARD
 
 #ifndef CURRENT_MATERIAL
@@ -216,10 +293,15 @@ PSOutput PSMain(PSInput input)
 
             const float3 energy_compensation = CalculateEnergyCompensation(F0.rgb, dfg.rgb);
 
-            { // Indirect part.
-                float4 irradiance = (float4)0;
-                float4 reflections = (float4)0;
+#ifdef FORWARD_CLUSTERED
+            // this pixel's screen-space UV, needed to index the cluster grid (input.texcoord0 is the mesh's own UV0, not screen position)
+            const float2 screenUV = (input.position_ndc.xy / input.position_ndc.w) * 0.5 + 0.5;
 
+            float4 positionVS = mul(camera.view, float4(P, 1.0));
+            positionVS /= positionVS.w;
+#endif // FORWARD_CLUSTERED
+
+            { // Indirect part.
                 float3 Ft = CalculateRefraction(
                     camera.dimensions.xy,
                     P, N, V,
@@ -230,15 +312,33 @@ PSOutput PSMain(PSInput input)
                     output.gbuffer_albedo,
                     float3(ao, ao, ao));
 
-                // @TODO
-                // Select env probes - add reflection + irradiance using EvaluateEnvProbes
-                // Calc Fr + Fd
-                // Bada bing badaboom
-
                 float3 Fr = (float3)0;
                 float3 Fd = (float3)0;
 
-                // @TODO Fd and Fr.
+#ifdef FORWARD_CLUSTERED
+                {
+                    float4 reflections = (float4)0;
+                    float4 irradiance = (float4)0;
+
+                    EvaluateEnvProbes(
+                        positionVS.xyz, P,
+                        N, V, R,
+                        camera.near, camera.far,
+                        roughness, perceptualRoughness,
+                        screenUV, camera.dimensions.xy,
+                        input.object_mask,
+                        /* inout */ reflections,
+                        /* inout */ irradiance);
+
+                    reflections.a = saturate(reflections.a);
+                    irradiance.a = saturate(irradiance.a);
+
+                    Fd = diffuseColor * irradiance.rgb * (1.0 - E) * ao;
+
+                    const float3 specular_ao = (float3) SpecularAO_Lagarde(NdotV, ao, perceptualRoughness);
+                    Fr = E * (reflections.rgb * specular_ao * energy_compensation) * reflections.a;
+                }
+#endif // FORWARD_CLUSTERED
 
                 Ft *= transmission;
                 Fd *= (1.0 - transmission);
@@ -247,11 +347,7 @@ PSOutput PSMain(PSInput input)
             }
 
     #ifdef FORWARD_CLUSTERED
-            const uint2 pixelCoord = uint2(input.texcoord0 * max(0, int2(camera.dimensions.xy) - 1));
-
-            // @TODO!!! This is poopy; just reconstruct view space position in the shader and use that for cluster indexing instead of reconstructing world space position and then transforming to view space
-            float4 positionVS = mul(camera.view, float4(P, 1.0));
-            positionVS /= positionVS.w;
+            const uint2 pixelCoord = uint2(screenUV * max(0, int2(camera.dimensions.xy) - 1));
 
             const float viewSpaceZ = positionVS.z;
 
@@ -347,6 +443,45 @@ PSOutput PSMain(PSInput input)
                 direct_lighting += (direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb;
             }
     #endif // CLUSTERED
+
+    #ifdef FORWARD_SHADING
+            // Bounded light list from ForwardShadingConstants; only directional lights are consumed here,
+            // point/spot are already covered (unbounded, tile-culled) by the cluster loop above.
+            for (uint fsLightIdx = 0; fsLightIdx < min(numBoundLights, MAX_LIGHTS); fsLightIdx++)
+            {
+                Light currentLight = lights[fsLightIdx];
+
+                if (currentLight.type != HYP_LIGHT_TYPE_DIRECTIONAL)
+                {
+                    continue;
+                }
+
+                const float3 L = normalize(currentLight.position_intensity.xyz);
+                const float3 H = normalize(L + V);
+
+                const float NdotL = max(0.000001, dot(N, L));
+                const float LdotH = max(0.000001, dot(L, H));
+                const float NdotH = max(0.000001, dot(N, H));
+
+                float shadow = 1.0;
+
+                if ((currentLight.flags & LF_SHADOW_CASTER) != 0 && fsLightIdx == directionalCSMLightIndex)
+                {
+                    shadow = GetDirectionalCSMShadow(P, N, NdotL);
+                }
+
+                const float D = CalculateDistributionTerm(perceptualRoughness, NdotH);
+                const float G = V_SmithGGXCorrelated(roughness * roughness, NdotV, NdotL);
+                const float3 F = CalculateFresnelTerm(F0, LdotH);
+
+                const float3 specular_lobe = D * G * F;
+                const float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
+
+                const float3 direct_component = diffuse_lobe + specular_lobe * energy_compensation;
+
+                direct_lighting += direct_component * (currentLight.color.rgb * ao * NdotL * shadow * currentLight.position_intensity.w);
+            }
+    #endif // FORWARD_SHADING
 
             output.gbuffer_albedo.rgb = indirect_lighting + direct_lighting;
         }
