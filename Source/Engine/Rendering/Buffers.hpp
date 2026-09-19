@@ -96,7 +96,10 @@ struct RayTracingConstants
 
     Vec2i outputImageResolution;
     float maxDistance;
+    uint32 numRays; // for compute lightmapper
 };
+
+static_assert(sizeof(RayTracingConstants) == 32);
 
 class CommandBufferBase;
 

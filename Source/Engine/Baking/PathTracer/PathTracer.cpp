@@ -1,6 +1,7 @@
 #include <HyperionPch.hpp>
 
 #include <Baking/PathTracer/PathTracer.hpp>
+#include <Baking/PathTracer/PathTracerBVH.hpp>
 
 #include <Baking/LightmapTexel.hpp>
 
@@ -79,105 +80,22 @@ static StaticShaderPropertyId s_propMaxEnvProbes { ShaderProperty(NAME("MAX_ENV_
 
 namespace Baking {
 
-#pragma region PathTracer
+#pragma region PathTracerTLAS
 
-static StaticShaderPropertyId s_pathTraceTypeProps[uint32(PathTraceType::Max)] = {
-    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("LIGHTMAP")) },      
-    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("RADIANCE")) },
-    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")) },
-    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("MOMENTS")) },
-    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("BENT_NORMALS")) }
-};
-
-static ShaderDesc GetShaderDesc(PathTraceType shadingType)
-{
-    ShaderPropertySet shaderProperties;
-    shaderProperties.Add(s_propMaxLights);
-    shaderProperties.Add(s_propMaxEnvProbes);
-    shaderProperties.Add(s_pathTraceTypeProps[uint32(shadingType)]);
-
-    return ShaderDesc(NAME("LightmapPathTracer"), shaderProperties);
-}
-
-PathTracer::PathTracer(
-    BakerBase* baker,
-    const Handle<Scene>& scene,
-    PathTraceType shadingType,
-    uint32 maxTexelsPerFrame)
-    : m_baker(baker),
-      m_scene(scene),
-      m_shadingType(shadingType),
-      m_maxTexelsPerFrame(maxTexelsPerFrame)
-{
-    Assert(m_baker != nullptr);
-    m_readyNotification = MakeShared<GpuLightmapperReadyNotification>();
-}
-
-PathTracer::~PathTracer()
+PathTracerTLAS::~PathTracerTLAS()
 {
     EnqueueDeletion(std::move(m_tlas));
-
-    m_jobData.Clear();
 }
 
-void PathTracer::CreateBuffers(BakeJobBase* job)
+bool PathTracerTLAS::IsCreated() const
 {
-    JobData& jd = m_jobData[job];
-    Assert(!jd.isCreated);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        GpuBufferRef& raysBuffer = jd.raysBuffers[frameIndex];
-        AssertDebug(raysBuffer == nullptr);
-
-        raysBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
-        raysBuffer->SetIsCpuAccessible(true);
-        Check(raysBuffer->Create());
-
-        GpuBufferRef& cbuffer = jd.cbuffers[frameIndex];
-        AssertDebug(cbuffer == nullptr);
-
-        cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, 8192);
-        Check(cbuffer->Create());
-    }
-
-    jd.hitsBufferGpu = RWStructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
-    jd.hitsBufferGpu.Initialize();
+    return m_tlas && m_tlas->IsCreated();
 }
 
-void PathTracer::Create()
+bool PathTracerTLAS::Create(RenderProxyList& rpl)
 {
-    m_readyNotification->Signal();
-}
+    AssertOnThread(g_renderThread);
 
-void PathTracer::CleanJobData(BakeJobBase* job)
-{
-    if (!job)
-    {
-        return;
-    }
-
-    auto jobDataIt = m_jobData.Find(job);
-    AssertDebug(jobDataIt != m_jobData.End());
-
-    if (jobDataIt == m_jobData.End())
-    {
-        return;
-    }
-
-    // @NOTE this was commented out due to a gross crash, we need to re-enable it,
-    // but with proper care
-    // m_jobData.Erase(jobDataIt);
-}
-
-bool PathTracer::CanRender() const
-{
-    return m_readyNotification != nullptr
-        && m_readyNotification->IsSignalled();
-}
-
-bool PathTracer::CreateAccelerationStructures()
-{
     if (!m_tlas)
     {
         /// Create acceleration structure
@@ -190,15 +108,7 @@ bool PathTracer::CreateAccelerationStructures()
 
     bool hasBlas = false;
 
-    const Handle<View>& view = m_baker->GetView();
-    Assert(view != nullptr);
-
-    RenderProxyList& rpl = *view->GetRenderProxyList(GetRingIndex());
     AssertDebug(rpl.isShared);
-
-    rpl.BeginRead();
-    HYP_DEFER({ rpl.EndRead(); });
-
     AssertDebug(rpl.GetMeshEntities().NumCurrent() != 0);
 
     for (Entity* entity : rpl.GetMeshEntities())
@@ -259,6 +169,129 @@ bool PathTracer::CreateAccelerationStructures()
     Check(m_tlas->Create());
 
     return m_tlas->IsCreated();
+}
+
+#pragma endregion PathTracerTLAS
+
+#pragma region PathTracer
+
+static StaticShaderPropertyId s_pathTraceTypeProps[uint32(PathTraceType::Max)] = {
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("LIGHTMAP")) },      
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("RADIANCE")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("MOMENTS")) },
+    StaticShaderPropertyId { ShaderProperty(NAME("MODE"), NAME("BENT_NORMALS")) }
+};
+
+static ShaderDesc GetShaderDesc(PathTraceType shadingType, bool useCompute)
+{
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Add(s_propMaxLights);
+    shaderProperties.Add(s_propMaxEnvProbes);
+    shaderProperties.Add(s_pathTraceTypeProps[uint32(shadingType)]);
+
+    return ShaderDesc(useCompute ? NAME("LightmapPathTracerCompute") : NAME("LightmapPathTracer"), shaderProperties);
+}
+
+PathTracer::PathTracer(
+    BakerBase* baker,
+    const Handle<Scene>& scene,
+    PathTraceType shadingType,
+    uint32 maxTexelsPerFrame,
+    const SharedPtr<PathTracerTLAS>& tlas)
+    : PathTracer(baker, scene, shadingType, maxTexelsPerFrame, tlas, nullptr)
+{
+}
+
+PathTracer::PathTracer(
+    BakerBase* baker,
+    const Handle<Scene>& scene,
+    PathTraceType shadingType,
+    uint32 maxTexelsPerFrame,
+    const SharedPtr<PathTracerBVH>& computeBVH)
+    : PathTracer(baker, scene, shadingType, maxTexelsPerFrame, nullptr, computeBVH)
+{
+}
+
+PathTracer::PathTracer(
+    BakerBase* baker,
+    const Handle<Scene>& scene,
+    PathTraceType shadingType,
+    uint32 maxTexelsPerFrame,
+    const SharedPtr<PathTracerTLAS>& tlas,
+    const SharedPtr<PathTracerBVH>& computeBVH)
+    : m_baker(baker),
+      m_scene(scene),
+      m_shadingType(shadingType),
+      m_maxTexelsPerFrame(maxTexelsPerFrame),
+      m_tlas(tlas),
+      m_computeBVH(computeBVH)
+{
+    Assert(m_baker != nullptr);
+    Assert(bool(m_tlas) != bool(m_computeBVH));
+
+    m_readyNotification = MakeShared<GpuLightmapperReadyNotification>();
+}
+
+PathTracer::~PathTracer()
+{
+    m_jobData.Clear();
+}
+
+void PathTracer::CreateBuffers(BakeJobBase* job)
+{
+    JobData& jd = m_jobData[job];
+    Assert(!jd.isCreated);
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        GpuBufferRef& raysBuffer = jd.raysBuffers[frameIndex];
+        AssertDebug(raysBuffer == nullptr);
+
+        raysBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+        raysBuffer->SetIsCpuAccessible(true);
+        Check(raysBuffer->Create());
+
+        GpuBufferRef& cbuffer = jd.cbuffers[frameIndex];
+        AssertDebug(cbuffer == nullptr);
+
+        cbuffer = RI.MakeGpuBuffer(GpuBufferType::ConstantBuffer, 8192);
+        Check(cbuffer->Create());
+    }
+
+    jd.hitsBufferGpu = RWStructuredBuffer(m_maxTexelsPerFrame, sizeof(LightmapHit));
+    jd.hitsBufferGpu.Initialize();
+}
+
+void PathTracer::Create()
+{
+    m_readyNotification->Signal();
+}
+
+void PathTracer::CleanJobData(BakeJobBase* job)
+{
+    if (!job)
+    {
+        return;
+    }
+
+    auto jobDataIt = m_jobData.Find(job);
+    AssertDebug(jobDataIt != m_jobData.End());
+
+    if (jobDataIt == m_jobData.End())
+    {
+        return;
+    }
+
+    // @NOTE this was commented out due to a gross crash, we need to re-enable it,
+    // but with proper care
+    // m_jobData.Erase(jobDataIt);
+}
+
+bool PathTracer::CanRender() const
+{
+    return m_readyNotification != nullptr
+        && m_readyNotification->IsSignalled();
 }
 
 void PathTracer::UpdatePipelineState(Frame* frame, BakeJobBase* job)
@@ -402,19 +435,38 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
 
     AssertDebug(rpl.isShared);
 
-    const bool builtAccelerationStructures = CreateAccelerationStructures();
-
-    if (!m_tlas || !m_tlas->IsCreated())
+    if (m_computeBVH)
     {
-        // no BottomLevelAS to process if TLAS not created
-        HYP_LOG(Lightmap, Error, "No top level acceleration structure created, cannot bake lightmap");
+        const PathTracerBVHState bvhState = m_computeBVH->Prepare(rpl);
 
-        return PathTraceResult::Failed;
+        if (bvhState == PathTracerBVHState::Failed)
+        {
+            HYP_LOG(Lightmap, Error, "No compute path tracing BVH created, cannot bake lightmap");
+
+            return PathTraceResult::Failed;
+        }
+
+        if (bvhState != PathTracerBVHState::Ready)
+        {
+            return PathTraceResult::Deferred;
+        }
     }
-
-    if (builtAccelerationStructures)
+    else
     {
-        return PathTraceResult::Deferred;
+        const bool builtAccelerationStructures = m_tlas->Create(rpl);
+
+        if (!m_tlas->IsCreated())
+        {
+            // no BottomLevelAS to process if TLAS not created
+            HYP_LOG(Lightmap, Error, "No top level acceleration structure created, cannot bake lightmap");
+
+            return PathTraceResult::Failed;
+        }
+
+        if (builtAccelerationStructures)
+        {
+            return PathTraceResult::Deferred;
+        }
     }
 
     UpdatePipelineState(frame, job);
@@ -428,6 +480,7 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
         RayTracingConstants constants {};
         constants.rayOffset = rayOffset;
         constants.maxDistance = m_baker->GetConfig().maxRayDistance;
+        constants.numRays = uint32(rays.Size());
 
         Array<Pair<Light*, LightShaderData*>, RenderTempAllocator> tempLights;
         Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderTempAllocator> tempEnvProbes;
@@ -606,7 +659,7 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
             envProbeFingerprint);
     }
 
-    Assert(m_tlas && m_tlas->IsCreated());
+    Assert(m_computeBVH || m_tlas->IsCreated());
 
     GpuBufferRef& raysBuffer = jd.raysBuffers[GetFrameCounter() % NumFramesInFlight];
     Assert(raysBuffer != nullptr && raysBuffer->IsCreated());
@@ -630,10 +683,22 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
-    cr << SetCurrentShader(GetShaderDesc(m_shadingType));
+    cr << SetCurrentShader(GetShaderDesc(m_shadingType, m_computeBVH != nullptr));
 
-    cr << SetShaderUniform(0, "TLAS"_sh, m_tlas);
-    cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
+    if (m_computeBVH)
+    {
+        cr << SetShaderUniform(0, "BVHNodesBuffer"_sh, m_computeBVH->GetNodesBuffer(), ShaderDataOffset(0, sizeof(PathTracerBVHNode)));
+        cr << SetShaderUniform(1, "BVHTrianglesBuffer"_sh, m_computeBVH->GetTrianglesBuffer(), ShaderDataOffset(0, sizeof(PathTracerTriangle)));
+        cr << SetShaderUniform(4, "BVHTriangleAttributesBuffer"_sh, m_computeBVH->GetTriangleAttributesBuffer(), ShaderDataOffset(0, sizeof(PathTracerTriangleAttributes)));
+    }
+    else
+    {
+        const TopLevelASRef& tlas = m_tlas->GetTLAS();
+
+        cr << SetShaderUniform(0, "TLAS"_sh, tlas);
+        cr << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, tlas->GetMeshDescriptionsBuffer());
+    }
+
     cr << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu.gpuBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
     cr << SetShaderUniform(3, "RaysBuffer"_sh, raysBuffer, ShaderDataOffset(0, sizeof(Vec4f)));
     cr << SetShaderUniform(5, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
@@ -653,8 +718,20 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
     Assert(jd.hitsBufferGpu.gpuBuffer->Size() >= rays.Size() * sizeof(LightmapHit));
     Assert(raysBuffer->Size() >= rays.Size() * 2 * sizeof(Vec4f));
 
-    cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, ResourceState::UnorderedAccess);
-    cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
+    if (m_computeBVH)
+    {
+        AssertDebug(rays.Size() <= MaxComputeRaysPerBatch);
+
+        const uint32 numThreadGroups = (uint32(rays.Size()) + ComputeThreadGroupSize - 1) / ComputeThreadGroupSize;
+
+        cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << DispatchCompute(Vec3u { numThreadGroups, 1, 1 });
+    }
+    else
+    {
+        cr << InsertBarrier(jd.hitsBufferGpu.gpuBuffer, ResourceState::UnorderedAccess);
+        cr << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
+    }
 
     cr.Done();
 

@@ -165,6 +165,9 @@ ShaderDefinitions "ShaderDefinitions" {
             CHS = "RayTracing/Lightmapper/LightmapPathTracer.rchit.hlsl"
             MS = "RayTracing/Lightmapper/LightmapPathTracer.rmiss.hlsl"
         }
+        ShaderDefinition "LightmapPathTracerCompute" {
+            CS = "RayTracing/Lightmapper/LightmapPathTracerCompute.hlsl"
+        }
         ShaderDefinition "DDGI" {
             RGS = "RayTracing/GlobalIllumination/DDGI.hlsl"
             CHS = "RayTracing/GlobalIllumination/DDGI.rchit.hlsl"

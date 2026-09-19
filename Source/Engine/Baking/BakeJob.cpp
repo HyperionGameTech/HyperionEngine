@@ -156,6 +156,9 @@ public:
 
                 if (renderResult == PathTraceResult::Deferred)
                 {
+                    AssertDebug(numNotDispatched == numRenderers, "PathTracer for shading type {} deferred after other renderers dispatched",
+                        uint32(pathTracer->GetShadingType()));
+
                     break;
                 }
 

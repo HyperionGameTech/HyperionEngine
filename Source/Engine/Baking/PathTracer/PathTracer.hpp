@@ -23,6 +23,8 @@ struct GpuLightmapperReadyNotification;
 
 namespace Baking {
 
+class PathTracerBVH;
+
 enum class PathTraceResult : uint8
 {
     Dispatched = 0, //!< Read back pending
@@ -30,16 +32,56 @@ enum class PathTraceResult : uint8
     Failed          //!< RIP
 };
 
+class PathTracerTLAS final
+{
+public:
+    PathTracerTLAS() = default;
+
+    PathTracerTLAS(const PathTracerTLAS& other) = delete;
+    PathTracerTLAS& operator=(const PathTracerTLAS& other) = delete;
+
+    PathTracerTLAS(PathTracerTLAS&& other) noexcept = delete;
+    PathTracerTLAS& operator=(PathTracerTLAS&& other) noexcept = delete;
+
+    ~PathTracerTLAS();
+
+    HYP_FORCE_INLINE const TopLevelASRef& GetTLAS() const
+    {
+        return m_tlas;
+    }
+
+    bool IsCreated() const;
+
+    bool Create(RenderProxyList& rpl);
+
+private:
+    // Only ever released through EnqueueDeletion, its destructor frees bindless storage on the render thread
+    TopLevelASRef m_tlas;
+};
+
 class PathTracer final
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_bakerPool);
 
+    static constexpr uint32 ComputeThreadGroupSize = 64;
+    static constexpr uint32 MaxComputeRaysPerBatch = 64 * 1024;
+
+    /*! \brief Traces rays against \p tlas with hardware ray tracing */
     PathTracer(
         BakerBase* baker,
         const Handle<Scene>& scene,
         PathTraceType shadingType,
-        uint32 maxTexelsPerFrame);
+        uint32 maxTexelsPerFrame,
+        const SharedPtr<PathTracerTLAS>& tlas);
+
+    /*! \brief Traces rays against \p computeBVH with a compute shader */
+    PathTracer(
+        BakerBase* baker,
+        const Handle<Scene>& scene,
+        PathTraceType shadingType,
+        uint32 maxTexelsPerFrame,
+        const SharedPtr<PathTracerBVH>& computeBVH);
     
     PathTracer(const PathTracer& other) = delete;
     PathTracer& operator=(const PathTracer& other) = delete;
@@ -51,7 +93,7 @@ public:
 
     uint32 MaxTexelsPerFrame() const
     {
-        return UINT32_MAX;
+        return m_computeBVH ? MaxComputeRaysPerBatch : UINT32_MAX;
     }
 
     PathTraceType GetShadingType() const
@@ -76,12 +118,16 @@ private:
         bool isCreated = false;
     };
 
+    PathTracer(
+        BakerBase* baker,
+        const Handle<Scene>& scene,
+        PathTraceType shadingType,
+        uint32 maxTexelsPerFrame,
+        const SharedPtr<PathTracerTLAS>& tlas,
+        const SharedPtr<PathTracerBVH>& computeBVH);
+
     void UpdatePipelineState(Frame* frame, BakeJobBase* job);
     void CreateBuffers(BakeJobBase* job);
-
-    /*! \brief Build the acceleration structures if they don't exist yet.
-     *  \return true if they were built by this call, false if they already existed. */
-    bool CreateAccelerationStructures();
 
     BakerBase* m_baker;
 
@@ -93,7 +139,9 @@ private:
 
     SharedPtr<GpuLightmapperReadyNotification> m_readyNotification;
 
-    TopLevelASRef m_tlas;
+    // Exactly one of these is set, shared with the baker's other PathTracers
+    SharedPtr<PathTracerTLAS> m_tlas;
+    SharedPtr<PathTracerBVH> m_computeBVH;
 };
 
 } // namespace Baking
