@@ -365,8 +365,6 @@ public:
      *  \returns An iterator to the next element after the erased element. */
     Iterator Erase(ConstIterator iter);
 
-    ValueType& SpliceBack(List& other, Iterator iter);
-
 #if 0
     //! \brief Erase an element by value. A Find() is performed, and if the result is not equal to End(),
     //  the element is removed.
@@ -734,56 +732,6 @@ auto List<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
     --m_size;
 
     return Iterator { next };
-}
-
-template <class T, class AllocatorType>
-auto List<T, AllocatorType>::SpliceBack(List& other, Iterator iter) -> ValueType&
-{
-    Node* node = iter.node;
-
-    Node* prev = node->previous;
-
-    if (prev)
-    {
-        prev->next = node->next;
-    }
-
-    Node* next = node->next;
-
-    if (next)
-    {
-        next->previous = prev;
-    }
-
-    if (node == other.m_head)
-    {
-        other.m_head = next;
-    }
-
-    if (node == other.m_tail)
-    {
-        other.m_tail = prev;
-    }
-
-    --other.m_size;
-
-    node->previous = m_tail;
-    node->next = nullptr;
-
-    if (m_size == 0)
-    {
-        m_head = node;
-        m_tail = m_head;
-    }
-    else
-    {
-        m_tail->next = node;
-        m_tail = node;
-    }
-
-    ++m_size;
-
-    return node->value.Get();
 }
 
 template <class T, class AllocatorType>
