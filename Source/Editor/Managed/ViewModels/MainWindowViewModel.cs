@@ -1442,10 +1442,10 @@ namespace Hyperion.Editor.ViewModels
                 _activeLayersChangedHandler = layerWorld.GetOnActiveLayersChangedDelegate()
                     .Bind((LayersMask activeLayers) =>
                     {
+                        _ = EngineManager.PostToSimThread(RefreshActiveLayerToggles);
+
                         Dispatcher.UIThread.Post(() =>
                         {
-                            RefreshActiveLayerToggles();
-
                             SceneHierarchy.RefreshFilter();
                         });
                     });

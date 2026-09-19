@@ -142,7 +142,7 @@ constexpr auto TypeName()
     constexpr auto substr = containers::helpers::Substr<name, 31, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #elif defined(HYP_GCC)
     // constexpr auto Hyperion::TypeName() [with T = Hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
+    constexpr auto substr = containers::helpers::Substr<name, 46, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #endif
 #elif defined(HYP_MSVC)
     //  auto __cdecl Hyperion::TypeName<class Hyperion::Task<int,int>>(void)
@@ -172,7 +172,7 @@ constexpr auto TypeNameWithoutNamespace()
     constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #elif defined(HYP_GCC)
     // constexpr auto Hyperion::TypeNameWithoutNamespace() [with T = Hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr<name, 63, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
+    constexpr auto substr = containers::helpers::Substr<name, 62, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
 #endif
 #elif defined(HYP_MSVC)
     //  auto __cdecl Hyperion::TypeNameWithoutNamespace<class Hyperion::Task<int,int>>(void)

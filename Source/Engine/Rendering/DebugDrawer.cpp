@@ -850,6 +850,17 @@ void DebugDrawer::Update()
     auto& buffer = m_buffers[idx];
     uint32& bufferOffset = m_bufferOffsets[idx];
 
+    for (DebugDrawCommandHeader& header : m_headers[idx])
+    {
+        if (header.destructFn)
+        {
+            header.destructFn(reinterpret_cast<void*>(buffer.Data() + header.offset));
+        }
+    }
+
+    m_headers[idx].Resize(0);
+    bufferOffset = 0;
+
     for (DebugDrawCommandList& it : m_commandLists[idx])
     {
         if (it.m_bufferOffset == 0)

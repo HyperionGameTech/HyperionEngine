@@ -186,15 +186,9 @@ void SimThread::Update()
         }
     }
 
-    if (m_gameInstance != nullptr)
+    if (m_gameInstance != nullptr && m_gameInstance->m_gameState.IsSimulating())
     {
-        // game instance should be null if not launched yet
-        AssertDebug(m_gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED));
-
-        if (m_gameInstance->m_gameState.IsSimulating())
-        {
-            m_gameInstance->m_gameState.deltaTime = m_counter.delta;
-        }
+        m_gameInstance->m_gameState.deltaTime = m_counter.delta;
     }
 
     if (g_appContext.IsValid())

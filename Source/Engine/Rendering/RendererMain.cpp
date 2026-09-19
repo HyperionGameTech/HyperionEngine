@@ -1887,6 +1887,12 @@ bool RenderCollector::BeginRecordDrawCalls(
                 continue;
             }
 
+            if (drawCallCollection.drawCalls.Empty() && drawCallCollection.instancedDrawCalls.Empty())
+            {
+                //nada
+                continue;
+            }
+
             AssertDebug(drawCallCollection.parallelRenderingState == nullptr);
 
             if (!parallelRenderingState)
@@ -2064,9 +2070,11 @@ void RenderCollector::ExecuteDrawCalls(
 
             AssertDebug(drawCallCollection.isInit);
 
+            const bool hasDrawCalls = drawCallCollection.drawCalls.Any() || drawCallCollection.instancedDrawCalls.Any();
+
             bool shouldExecuteSynchronously = true;
 
-            if (drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION)
+            if (hasDrawCalls && (drawCallCollection.flags & RenderGroupFlags::PARALLEL_COLLECTION))
             {
                 if (drawCallCollection.parallelRenderingState != nullptr)
                 {
