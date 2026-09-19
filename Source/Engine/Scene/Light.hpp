@@ -277,7 +277,7 @@ public:
     HYP_METHOD(EditorOnly)
     bool CanBakeStaticShadows() const;
 #else
-    static constexpr NoOpFunction<bool> CanBakeStaticShadows;
+    static constexpr NoOpFunction<bool> CanBakeStaticShadows{};
 #endif
 
     bool forceRedrawShadows;

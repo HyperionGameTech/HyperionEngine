@@ -21,6 +21,8 @@
 #undef HYP_DX12_DEBUG_RESOURCE_STATES
 #endif
 
+#include <Core/Util.hpp>
+
 namespace Hyperion {
 
 class DX12GraphicsPipeline;
@@ -117,7 +119,7 @@ public:
         bool onlyDepth = false,
         bool onlyStencil = false) const;
 #else
-    static constexpr NoOpFunction<void> AssertResourceState;
+    static constexpr NoOpFunction<void> AssertResourceState{};
 #endif
 
     HYP_FORCE_INLINE ID3D12DescriptorHeap* GetBoundViewHeap() const

@@ -920,7 +920,7 @@ public:
     HYP_METHOD(EditorOnly)
     void MarkDirty();
 #else  // !HYP_EDITOR
-    static constexpr NoOpFunction<void> MarkDirty;
+    static constexpr NoOpFunction<void> MarkDirty{};
 #endif // HYP_EDITOR
 
     HYP_FIELD()

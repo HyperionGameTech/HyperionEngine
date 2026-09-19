@@ -689,6 +689,10 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
   if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/CMakeLists.txt")
     add_subdirectory(${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/ThirdParty/D3D12MemoryAllocator_build)
 
+    if(HYP_CLANG_OR_GCC)
+      target_compile_options(D3D12MemoryAllocator PRIVATE -Wno-error=non-virtual-dtor)
+    endif()
+
     include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/include)
 
     set(RENDERER_LIBRARIES

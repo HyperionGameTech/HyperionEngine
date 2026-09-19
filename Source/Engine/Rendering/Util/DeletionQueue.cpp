@@ -84,12 +84,9 @@ void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
 
         if (count == 0)
         {
-            // we increment weak reference to prevent weak refs to this from causing Release() upon calling their destructors.
-            header->IncRefWeak();
-
             ptr->~ObjectBase();
 
-            // this will free the slot if no other weak references remain
+            // drop the weak ref held by the strong refs. this will free the slot if no other weak references remain
             header->DecRefWeak();
         }
         else

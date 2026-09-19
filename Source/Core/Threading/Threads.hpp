@@ -36,7 +36,7 @@ CORE_API void AssertOnThread(const ThreadId& threadId, const char* message = nul
 
 #else // !HYP_DEBUG_MODE
 
-static constexpr NoOpFunction<void> AssertOnThread;
+static constexpr NoOpFunction<void> AssertOnThread{};
 
 #endif // HYP_DEBUG_MODE
 

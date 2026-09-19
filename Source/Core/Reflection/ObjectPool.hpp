@@ -235,7 +235,8 @@ public:
         header->cls = m_class;
         header->generation = m_generation.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
         header->refCountStrong = 1;
-        header->refCountWeak = 0;
+        // strong refs collectively hold 1 weak ref, released once the object is destructed
+        header->refCountWeak = 1;
 
         m_headers.Emplace(header->index, header);
 
@@ -270,6 +271,9 @@ public:
         HYP_CORE_ASSERT(index != AtomicIndexAllocator::InvalidIndex, "Invalid index");
 
         m_indexAllocator.Free(index);
+
+        // mark invalid before freeing - the memory may be handed to another thread's allocation as soon as it's back in the pool
+        header->index = AtomicIndexAllocator::InvalidIndex;
 
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
 

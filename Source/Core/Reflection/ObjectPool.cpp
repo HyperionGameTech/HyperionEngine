@@ -78,16 +78,12 @@ int32 ObjectHeader::DecRefStrong()
 
     if ((count = AtomicDecrement(&refCountStrong)) == 0)
     {
-        // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause the item to be removed from the pool
-        AtomicIncrement(&refCountWeak);
-
-        // call virtual destructor of ObjectBase
+        // call virtual destructor of ObjectBase.
+        // the weak ref held by the strong refs keeps the header alive through the destructor (e.g for WeakHandleFromThis())
         DestructThisObject(this);
 
-        if (AtomicDecrement(&refCountWeak) == 0)
-        {
-            ReleaseObject(this);
-        }
+        // drop the weak ref held by the strong refs; releases the object if no other weak refs remain
+        DecRefWeak();
 
         return 0;
     }
@@ -110,10 +106,8 @@ int32 ObjectHeader::DecRefWeak()
 
     if ((count = AtomicDecrement(&refCountWeak)) == 0)
     {
-        if (AtomicAdd(&refCountStrong, 0) == 0)
-        {
-            ReleaseObject(this);
-        }
+        // weak count can only hit zero after the strong refs have released their weak ref, so the object is already destructed
+        ReleaseObject(this);
 
         return 0;
     }
@@ -133,10 +127,8 @@ CORE_API void ReleaseObject(ObjectHeader* header)
     ObjectContainerBase* container = cls->GetObjectContainer();
     AssertDebug(container != nullptr, "Class has no ObjectContainer");
 
+    // header memory is freed after this call, don't touch it
     container->Release(header);
-
-    // mark invalid
-    header->index = UINT32_MAX;
 
     if (cls->IsDynamic())
     {

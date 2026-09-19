@@ -58,7 +58,7 @@ public:
         m_debugName = name;
     }
 #else
-    static constexpr NoOpFunction<Name> GetDebugName;
+    static constexpr NoOpFunction<Name> GetDebugName{};
 #endif
 
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const

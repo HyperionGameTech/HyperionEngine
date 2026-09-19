@@ -75,13 +75,13 @@ namespace EngineGlobals {
 #ifdef HYP_EDITOR
 ENGINE_API bool IsEditor();
 #else  // !HYP_EDITOR
-static constexpr NoOpFunction<bool> IsEditor;
+static constexpr NoOpFunction<bool> IsEditor{};
 #endif // HYP_EDITOR
 
 #ifndef HYP_SHIPPING
 ENGINE_API bool IsCooking();
 #else   // HYP_SHIPPING
-static constexpr NoOpFunction<bool> IsCooking;
+static constexpr NoOpFunction<bool> IsCooking{};
 #endif  // !HYP_SHIPPING
 
 ENGINE_API bool IsCacheServer();
