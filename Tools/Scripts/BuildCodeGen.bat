@@ -5,9 +5,14 @@ echo "Running BuildCodeGen.bat from %CD%"
 mkdir .\Build\CodeGen
 pushd .\Build\CodeGen
 
+set "HYP_CODEGEN_CMAKE_GEN_ARGS="
+if "%HYP_MINGW%"=="1" (
+    set "HYP_CODEGEN_CMAKE_GEN_ARGS=-G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
+)
+
 choice /C YN /T 3 /D N /M "Regenerate CMake? (will continue without regenerating in 3s)"
 if %errorlevel%==1 (
-    cmake ..\..\Tools\CodeGen
+    cmake ..\..\Tools\CodeGen %HYP_CODEGEN_CMAKE_GEN_ARGS%
 )
 
 cmake --build . --target hyperion-codegen --parallel 4
@@ -20,6 +25,7 @@ set MOVED_DLL=0
 
 if exist hyperion-codegen.exe (
     echo Found hyperion-codegen.exe in current directory
+    move /Y hyperion-codegen.exe .. >nul
     set MOVED_EXE=1
 ) else (
     if exist Debug\hyperion-codegen.exe (

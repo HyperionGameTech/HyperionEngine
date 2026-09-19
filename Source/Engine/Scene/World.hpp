@@ -476,7 +476,8 @@ private:
     HYP_FIELD(Property = "Layers", Serialize, LoadOrder = 0)
     Array<Handle<Layer>> m_layers;
 
-    HYP_FIELD(Property = "ActiveLayers", Serialize)
+    // Don't map it to the Property; it'll fail because it returns a different type
+    HYP_FIELD()
     LayersMask m_activeLayers;
 
     ///Systems

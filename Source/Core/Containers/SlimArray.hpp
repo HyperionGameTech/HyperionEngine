@@ -394,7 +394,7 @@ public:
     void Clear();
 
     template <class TOtherAllocator>
-    HYP_FORCE_INLINE bool operator==(const SlimArray<TElemType, TOtherAllocator>& other) const
+    bool operator==(const SlimArray<TElemType, TOtherAllocator>& other) const
     {
         if (this == &other)
         {
@@ -427,7 +427,7 @@ public:
     }
 
     template <class TOtherAllocator>
-    HYP_FORCE_INLINE bool operator!=(const SlimArray<TElemType, TOtherAllocator>& other) const
+    bool operator!=(const SlimArray<TElemType, TOtherAllocator>& other) const
     {
         if (this == &other)
         {

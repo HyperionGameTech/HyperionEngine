@@ -177,11 +177,11 @@ uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
 
 uint64 ByteUtil::BitCount(uint64 value)
 {
-#if HYP_WINDOWS
-    return __popcnt64(value);
-#elif HYP_UNIX
+#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
     // @TODO profile profile profile versus the bithacks one
     return __builtin_popcountll(value);
+#elif defined(HYP_MSVC) && HYP_MSVC
+    return __popcnt64(value);
 #else
     // https://graphics.stanford.edu/~seander/bithacks.html
     value = value - ((value >> 1) & (uint64) ~(uint64)0 / 3);

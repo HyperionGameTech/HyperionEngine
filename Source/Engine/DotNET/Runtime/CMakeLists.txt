@@ -34,6 +34,11 @@ include_directories(
 
 add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
 
+# See the matching comment in Engine/DotNET/Shared/CMakeLists.txt: this static library is
+# always linked directly into the main "hyperion" target, so ENGINE_API calls need to resolve
+# as same-binary references rather than dllimport.
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
+
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()

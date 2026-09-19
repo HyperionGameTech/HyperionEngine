@@ -26,6 +26,8 @@ CORE_API ObjectContainerBase* GetObjectContainerForClass(const Class* cls)
 
 #pragma region Handle < ObjectBase>
 
+/// @TODO: Remove AnyHandle
+
 const AnyHandle AnyHandle::empty = {};
 
 AnyHandle::AnyHandle(ObjectBase* obj)

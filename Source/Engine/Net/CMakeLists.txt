@@ -51,3 +51,9 @@ endif()
 add_dependencies(${BUILD_NAME} hyperion-core)
 
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
+
+if(HYP_WINDOWS)
+  # NetAddress.cpp has #pragma comment(lib, "ws2_32.lib") for MSVC's auto-link,
+  # but that pragma is silently ignored by GCC/MinGW, so link it explicitly here.
+  target_link_libraries(${BUILD_NAME} PRIVATE ws2_32)
+endif()

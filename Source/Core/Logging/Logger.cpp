@@ -515,6 +515,29 @@ LogChannel::LogChannel(Name name, LogChannel* parentChannel)
 
 #pragma region LogChannelRegistrar
 
+LogChannelRegistrar& LogChannelRegistrar::GetInstance()
+{
+    static LogChannelRegistrar s_instance;
+
+    return s_instance;
+}
+
+void LogChannelRegistrar::Register(LogChannel* channel)
+{
+    AssertDebug(channel);
+
+    m_channels.PushBack(channel);
+}
+
+void LogChannelRegistrar::Register(LogChannel* channel, LogChannel* parentChannel)
+{
+    AssertDebug(channel);
+
+    channel->parentChannel = parentChannel;
+
+    m_channels.PushBack(channel);
+}
+
 void LogChannelRegistrar::RegisterAll()
 {
     if (s_registerAllCalled)

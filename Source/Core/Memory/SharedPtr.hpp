@@ -142,7 +142,7 @@ template <class CountType>
 class WeakPtrBase;
 
 template <class CountType>
-class SharedPtrBase
+class CORE_API SharedPtrBase
 {
     friend class WeakPtrBase<CountType>;
 
@@ -181,7 +181,7 @@ private:
 };
 
 template <class CountType>
-class WeakPtrBase
+class CORE_API WeakPtrBase
 {
     friend class SharedPtrBase<CountType>;
 

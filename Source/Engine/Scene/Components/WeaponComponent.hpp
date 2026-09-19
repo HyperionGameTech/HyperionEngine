@@ -16,7 +16,8 @@ namespace Hyperion {
 
 class Weapon;
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component,
+    Label = "Weapon Component")
 struct WeaponComponent
 {
     HYP_STRUCT_BODY(WeaponComponent);

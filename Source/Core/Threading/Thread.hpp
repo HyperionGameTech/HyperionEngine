@@ -138,20 +138,11 @@ public:
 
     virtual ~Thread() override;
 
-    virtual TScheduler& GetScheduler() override final
-    {
-        return *m_scheduler;
-    }
+    virtual TScheduler& GetScheduler() override final;
 
-    bool IsRunning() const override
-    {
-        return m_isRunning.Load();
-    }
+    bool IsRunning() const override;
 
-    bool IsStopping() const
-    {
-        return m_stopRequested.Load();
-    }
+    bool IsStopping() const;
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(TArgs... args);
@@ -274,12 +265,26 @@ bool Thread<TScheduler, TArgs...>::CanJoin() const
     return m_thread->joinable();
 }
 
+template <class TScheduler, class... TArgs>
+TScheduler& Thread<TScheduler, TArgs...>::GetScheduler()
+{
+    return *m_scheduler;
+}
+
+template <class TScheduler, class... TArgs>
+bool Thread<TScheduler, TArgs...>::IsRunning() const
+{
+    return m_isRunning.Load();
+}
+
+template <class TScheduler, class... TArgs>
+bool Thread<TScheduler, TArgs...>::IsStopping() const
+{
+    return m_stopRequested.Load();
+}
+
 #ifndef HYP_BUILD_CORE
-#ifdef HYP_MSVC
 extern template class HYP_IMPORT Thread<Scheduler>;
-#else
-extern template class Thread<Scheduler>;
-#endif
 #endif
 
 } // namespace threading

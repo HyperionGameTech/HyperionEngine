@@ -27,8 +27,7 @@ bool ComputePipelineBase::MatchesSignature(const ShaderDesc& shaderDesc) const
 
     const Shader& shader = *m_shaderInstance->GetShader();
 
-    if (shaderDesc.name != shader.baseName
-        || shader.properties != shaderDesc.properties) //  ((shader.properties & shaderDesc.properties) != shader.properties))
+    if (shaderDesc.name != shader.baseName || shader.properties != shaderDesc.properties)
     {
         return false;
     }

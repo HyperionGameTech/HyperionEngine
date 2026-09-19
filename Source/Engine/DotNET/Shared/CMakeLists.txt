@@ -34,6 +34,15 @@ include_directories(
 
 add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
 
+# This static library is always linked directly into the main "hyperion" target, never
+# consumed as a standalone DLL, so any ENGINE_API symbol it calls (e.g. Assembly, which is
+# part of hyperion's own sources) should resolve as a same-binary reference. Without this,
+# ENGINE_API resolves to dllimport here, and GCC/MinGW (unlike MSVC's linker, which silently
+# retargets same-binary dllimport calls to the local definition) requires an actual DLL
+# import thunk that doesn't exist, since there's no separate DLL -- "undefined reference to
+# __imp_...".
+target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
+
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()

@@ -71,19 +71,18 @@ public:
     constexpr TypeId(const TypeId& other) = default;
     TypeId& operator=(const TypeId& other) = default;
 
-    constexpr TypeId(TypeId&& other) noexcept
-        : m_value(other.m_value)
-    {
-        other.m_value = VoidValue;
-    }
-
-    constexpr TypeId& operator=(TypeId&& other) noexcept
-    {
-        m_value = other.m_value;
-        other.m_value = VoidValue;
-
-        return *this;
-    }
+    // Deliberately = default (not a hand-written body that resets the moved-from value to
+    // VoidValue, as this used to do): a user-provided move constructor/assignment makes the
+    // whole type not trivially copyable, and under the Windows x64 ABI a non-trivially-copyable
+    // struct must be passed by hidden reference rather than in a register, regardless of size.
+    // .NET's P/Invoke marshaler only sees a plain blittable uint32 wrapper from the C# side (no
+    // concept of C++ move semantics) and always passes a struct this small by value in a
+    // register, so this mismatch corrupted every parameter after a TypeId argument at the
+    // native interop boundary (e.g. ManagedClass_Create) under GCC, which -- unlike this
+    // codebase apparently assumed -- does treat a non-trivial move as disqualifying. No code in
+    // this codebase relies on a moved-from TypeId reading back as Void.
+    constexpr TypeId(TypeId&& other) noexcept = default;
+    constexpr TypeId& operator=(TypeId&& other) noexcept = default;
 
     constexpr TypeId& operator=(ValueType id)
     {

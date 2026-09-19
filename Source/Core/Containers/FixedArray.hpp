@@ -45,7 +45,7 @@ public:
     using ValueType = T;
 
     template <class OtherType, size_t OtherSize>
-    HYP_FORCE_INLINE constexpr bool operator==(const FixedArray<OtherType, OtherSize>& other) const
+    constexpr bool operator==(const FixedArray<OtherType, OtherSize>& other) const
     {
         if constexpr (Sz != OtherSize)
         {
@@ -73,7 +73,7 @@ public:
     }
 
     template <class OtherType, size_t OtherSize>
-    HYP_FORCE_INLINE constexpr bool operator!=(const FixedArray<OtherType, OtherSize>& other) const
+    constexpr bool operator!=(const FixedArray<OtherType, OtherSize>& other) const
     {
         if constexpr (Sz != OtherSize)
         {

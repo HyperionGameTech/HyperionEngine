@@ -279,6 +279,14 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
   endif()
 
+  if(HYP_GCC)
+    # Unlike Clang, GCC's warn_unused_result (what HYP_NODISCARD expands to) is not
+    # silenced by a (void) cast -- this codebase's established idiom for intentionally
+    # discarding a HYP_NODISCARD return value. Keep it a warning rather than a hard
+    # error under GCC so that idiom keeps working instead of erroring at every call site.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-result")
+  endif()
+
   if(HYP_CLANG_WINDOWS)
     # clang-cl (Clang on Windows with the MSVC-compatible driver) only accepts
     # MSVC-style flags, so map the GCC-style flags above to their clang-cl equivalents.
@@ -321,6 +329,31 @@ else()
 
   # # address sanitizer -- uncomment to enable
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+
+  if(HYP_GCC)
+    # GNU ld resolves static archives in a single left-to-right pass (unlike MSVC's linker),
+    # so a sub-library whose symbols are needed by one listed earlier in the link line (e.g.
+    # hyperion-net needed by hyperion-scene, or hyperion-vulkan -- pulled in transitively via
+    # hyperion-rendering's own target_link_libraries -- needed by things linked before it)
+    # fails with "undefined reference". --start-group makes ld re-scan archives until
+    # everything resolves; deliberately left unclosed (no --end-group) so it covers every
+    # library CMake appends afterwards, including ones added via transitive dependencies from
+    # other CMakeLists.txt files that aren't visible at this target_link_libraries call site.
+    # GNU ld tolerates an unmatched --start-group by implicitly closing it at end of input.
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--start-group")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--start-group")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--start-group")
+
+    if(HYP_WINDOWS)
+      # CMake's GCC/MinGW toolchain defaults DLL output names to the Unix "lib<name>.dll"
+      # convention, but the C# interop layer's [DllImport("hyperion")] attributes (and Windows
+      # convention in general) expect "hyperion.dll" with no prefix -- the same name MSVC
+      # produces by default. Without this, the C# editor and any C# scripting can't find the
+      # native library at all, even though the plain C++ executables link fine (they reference
+      # it by its actual import library, not by this DllImport-style name lookup).
+      set(CMAKE_SHARED_LIBRARY_PREFIX "")
+    endif()
+  endif()
 
   # ClangCL on Windows uses link.exe, so it supports /DEBUG and /NATVIS
   if(HYP_CLANG_WINDOWS)
@@ -528,8 +561,15 @@ if (HYP_STRATA)
         # include_directories("${SUBMODULES_DIR}/stratac/include/strata")
         include_directories("${STRATA_SUBMODULE_DIR}/include")
 
-        set(HYP_STRATA_JIT 1)
-        add_definitions(-DHYP_STRATA_JIT=1)
+        # Strata only builds its LLVM JIT/AOT backend when STRATA_ENABLE_LLVM is on
+        # (see External/Submodules/stratac/CMakeLists.txt) -- only define HYP_STRATA_JIT
+        # when that backend actually exists to be called into.
+        if(STRATA_ENABLE_LLVM)
+          set(HYP_STRATA_JIT 1)
+          add_definitions(-DHYP_STRATA_JIT=1)
+        else()
+          message(STATUS "Strata LLVM backend disabled (STRATA_ENABLE_LLVM=OFF) - HYP_STRATA_JIT will not be defined")
+        endif()
     else()
         # @TODO Link the obj files
     endif()
@@ -744,6 +784,11 @@ if(WIN32)
   else()
     message(WARNING "Aftermath lib not found at ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
   endif()
+
+  # Several sources (Platform/Windows, Framework, and DX12RenderInterface.cpp -- compiled
+  # regardless of the active RENDERING_BACKEND) rely on MSVC's #pragma comment(lib, ...)
+  # auto-link, which GCC/MinGW silently ignores, so link these explicitly for all compilers.
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ws2_32 winmm d3d12 dxgi)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
@@ -1093,7 +1138,25 @@ elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
     endif()
   endforeach()
 else()
-  target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
+  # GNU ld's equivalent of the /WHOLEARCHIVE (MSVC) / -force_load (Apple) handling above: an
+  # object's dllexport directives (its embedded .drectve "-export:..." entries, or plain
+  # default-visibility symbols on non-Windows) are only honored if the linker actually pulls
+  # that object out of the static archive, which only happens if something else in the link
+  # references one of its symbols. The C# P/Invoke bindings in hyperion-dotnet-* are called
+  # exclusively from managed code -- nothing in this C++ link references them -- so without
+  # forcing the whole archive in, they're silently dropped and P/Invoke fails at runtime with
+  # "Unable to find an entry point named ... in DLL 'hyperion'" despite compiling cleanly.
+  foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+    if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
+      if(HYP_BUILD_STATIC)
+        target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+      else()
+        target_link_libraries(${BUILD_NAME} PRIVATE -Wl,--whole-archive $<TARGET_FILE:${SUB_LIBRARY}> -Wl,--no-whole-archive)
+      endif()
+    else()
+      target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+    endif()
+  endforeach()
 endif()
 
 

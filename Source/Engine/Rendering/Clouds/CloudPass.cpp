@@ -271,8 +271,8 @@ void CloudPass::WriteShaderData(CBufferAllocator& cbufferAllocator) const
     else
     {
         // zeroed params read as disabled, so shaders skip clouds
-        const EffectVolumeShaderData disabledCloudVolume {};
-        cbufferAllocator.Write(&disabledCloudVolume);
+        static const EffectVolumeShaderData s_disabledCloudVolume {};
+        cbufferAllocator.Write(&s_disabledCloudVolume);
     }
 
     cbufferAllocator.Write(&m_weatherMapShaderData);
@@ -297,7 +297,8 @@ void CloudPass::CreateNoiseTextures()
             TextureFilterMode::Linear,
             TextureWrapMode::Repeat,
             1,
-            ImageUsage::Storage | ImageUsage::Sampled });
+            ImageUsage::Storage | ImageUsage::Sampled
+        });
 
         noiseTexture->SetIsTransient(true);
         noiseTexture->SetName(name);
@@ -473,7 +474,8 @@ void CloudPass::UpdateWeatherMap(Frame* frame, const RenderProxyEffectVolume& cl
             TextureFilterMode::Linear,
             TextureWrapMode::ClampToEdge,
             NumWeatherKeyframes,
-            ImageUsage::Storage | ImageUsage::Sampled });
+            ImageUsage::Storage | ImageUsage::Sampled
+        });
 
         m_weatherMap->SetIsTransient(true);
         m_weatherMap->SetName(NAME("CloudWeatherMap"));
@@ -654,7 +656,8 @@ void CloudPass::UpdateShadowMap(Frame* frame, const RenderProxyEffectVolume& clo
             TextureFilterMode::Linear,
             TextureWrapMode::ClampToEdge,
             1,
-            ImageUsage::Storage | ImageUsage::Sampled });
+            ImageUsage::Storage | ImageUsage::Sampled
+        });
 
         m_shadowMap->SetIsTransient(true);
         m_shadowMap->SetName(NAME("CloudShadowMap"));
@@ -836,7 +839,8 @@ void CloudPass::CreateTraceTextures()
             TextureFilterMode::Linear,
             TextureWrapMode::ClampToEdge,
             1,
-            ImageUsage::Storage | ImageUsage::Sampled });
+            ImageUsage::Storage | ImageUsage::Sampled
+        });
 
         texture->SetIsTransient(true);
         texture->SetName(name);

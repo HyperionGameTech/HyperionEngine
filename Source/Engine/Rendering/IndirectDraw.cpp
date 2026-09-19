@@ -36,7 +36,7 @@
 
 namespace Hyperion {
 
-struct alignas(16) ComputeVisibilityConstants
+struct ComputeVisibilityConstants
 {
     Mat4f viewProj;
 

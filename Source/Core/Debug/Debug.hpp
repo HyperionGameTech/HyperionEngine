@@ -79,7 +79,13 @@ CORE_API extern void LogAssert(const char* str);
 #        define HYP_DEBUG_LINE (__LINE__)
 #        define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
 
-#        define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#        if defined(HYP_CLANG) && HYP_CLANG
+#            define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_debugtrap(), true))
+#        elif defined(__i386__) || defined(__x86_64__)
+#            define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (({ __asm__ __volatile__("int3"); }), true))
+#        else
+#            define HYP_BREAKPOINT (debug::IsDebuggerAttached() && (__builtin_trap(), true))
+#        endif
 #    elif defined(HYP_MSVC) && HYP_MSVC
 
 #        define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)

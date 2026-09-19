@@ -92,7 +92,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE bool operator==(const Map& other) const
+    bool operator==(const Map& other) const
     {
         if (Base::m_size != other.Base::m_size)
         {
@@ -120,7 +120,7 @@ public:
         return true;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const Map& other) const
+    bool operator!=(const Map& other) const
     {
         if (Base::m_size != other.Base::m_size)
         {

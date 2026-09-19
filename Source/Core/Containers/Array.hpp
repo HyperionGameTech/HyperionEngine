@@ -534,7 +534,7 @@ public:
     void Clear();
 
     template <class OtherAllocatorType>
-    HYP_FORCE_INLINE bool operator==(const FatArray<T, OtherAllocatorType>& other) const
+    bool operator==(const FatArray<T, OtherAllocatorType>& other) const
     {
         if (this == &other)
         {
@@ -568,7 +568,7 @@ public:
     }
 
     template <class OtherAllocatorType>
-    HYP_FORCE_INLINE bool operator!=(const FatArray<T, OtherAllocatorType>& other) const
+    bool operator!=(const FatArray<T, OtherAllocatorType>& other) const
     {
         if (this == &other)
         {

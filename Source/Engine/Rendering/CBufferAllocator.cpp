@@ -17,14 +17,12 @@ static constexpr size_t CBufferSize = 65536;
 
 struct CBufferAllocatorBlock
 {
-    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
-
-    GpuBuffer* buffer;
+    GpuBuffer buffer;
     size_t offset;
     uint32 lastUsedFrame;
 
     CBufferAllocatorBlock()
-        : buffer(new GpuBuffer { GpuBufferType::ConstantBuffer, CBufferSize, 256 }),
+        : buffer(GpuBufferType::ConstantBuffer, CBufferSize, 256),
           offset(0),
           lastUsedFrame(UINT32_MAX)
     {
@@ -32,37 +30,8 @@ struct CBufferAllocatorBlock
 
     CBufferAllocatorBlock(const CBufferAllocatorBlock&) = delete;
     CBufferAllocatorBlock& operator=(const CBufferAllocatorBlock&) = delete;
-
-    CBufferAllocatorBlock(CBufferAllocatorBlock&& other) noexcept
-        : buffer(other.buffer),
-          offset(0),
-          lastUsedFrame(other.lastUsedFrame)
-    {
-        other.buffer = nullptr;
-        other.lastUsedFrame = UINT32_MAX;
-        other.offset = 0;
-    }
-
-    CBufferAllocatorBlock& operator=(CBufferAllocatorBlock&& other) noexcept
-    {
-        delete buffer;
-
-        buffer = other.buffer;
-        other.buffer = nullptr;
-
-        offset = other.offset;
-        other.offset = 0;
-
-        lastUsedFrame = other.lastUsedFrame;
-        other.lastUsedFrame = UINT32_MAX;
-
-        return *this;
-    }
-
-    ~CBufferAllocatorBlock()
-    {
-        delete buffer;
-    }
+    CBufferAllocatorBlock(CBufferAllocatorBlock&&) noexcept = delete;
+    CBufferAllocatorBlock& operator=(CBufferAllocatorBlock&&) noexcept = delete;
 };
 
 CBufferAllocator::CBufferAllocator()
@@ -113,21 +82,26 @@ void CBufferAllocator::OnFrameEnd(uint32 prevFrameIndex)
         // @NOTE: use SetSize(0) to clear the buffer without freeing memory
         m_scratch[idx].SetSize(0);
 
-        for (Block& block : m_currentFrameBlocks[idx])
+        for (auto it = m_currentFrameBlocks[idx].Begin(); it != m_currentFrameBlocks[idx].End();)
         {
+            Block& block = *it;
+
             size_t flushSize = MathUtil::Min(block.offset, CBufferSize);
 
             if (flushSize != 0)
             {
-                block.buffer->Flush(0, flushSize);
+                block.buffer.Flush(0, flushSize);
             }
 
             block.offset = 0;
 
-            m_blocks.PushBack(std::move(block));
-        }
+            auto next = it;
+            ++next;
 
-        m_currentFrameBlocks[idx].Clear();
+            m_blocks.SpliceBack(m_currentFrameBlocks[idx], it);
+
+            it = next;
+        }
     }
 }
 
@@ -202,9 +176,9 @@ HYP_NODISCARD void* CBufferAllocator::Allocate(size_t count, size_t alignment, G
 
         if (offset + count <= CBufferSize)
         {
-            void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock.buffer->Map()) + offset);
+            void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock.buffer.Map()) + offset);
 
-            outBuffer = lastBlock.buffer;
+            outBuffer = &lastBlock.buffer;
             outStartOffset = offset;
 
             lastBlock.offset = offset + count;
@@ -223,10 +197,10 @@ HYP_NODISCARD void* CBufferAllocator::Allocate(size_t count, size_t alignment, G
 
     Assert(count <= CBufferSize && newBlock->offset == 0);
 
-    outBuffer = newBlock->buffer;
+    outBuffer = &newBlock->buffer;
     outStartOffset = 0;
 
-    void* ptr = newBlock->buffer->Map();
+    void* ptr = newBlock->buffer.Map();
     Assert(ptr != nullptr);
 
     newBlock->offset += count;
@@ -242,7 +216,7 @@ CBufferAllocator::Block* CBufferAllocator::NewBlock(uint32 currentFrameCounter)
     newBlock.lastUsedFrame = currentFrameCounter;
     newBlock.offset = 0;
 
-    Check(newBlock.buffer->Create());
+    Check(newBlock.buffer.Create());
 
     return &newBlock;
 }
@@ -264,9 +238,7 @@ CBufferAllocator::Block* CBufferAllocator::TryGetRecycledBlock(uint32 currentFra
             block.offset = 0;
             block.lastUsedFrame = currentFrameCounter;
 
-            Block& newBlock = m_currentFrameBlocks[idx].PushBack(std::move(block));
-
-            it = m_blocks.Erase(it);
+            Block& newBlock = m_currentFrameBlocks[idx].SpliceBack(m_blocks, it);
 
             return &newBlock;
         }

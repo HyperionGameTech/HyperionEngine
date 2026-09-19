@@ -1829,7 +1829,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             dsStates[setIndex] |= DSS_BufferOffsetChanged;
         }
 
-        uniformMappings[uniformIndex] = { setIndex, decl->slot };
+        uniformMappings[uniformIndex].setIndex = setIndex;
+        uniformMappings[uniformIndex].reg = decl->slot;
 
         dsIndices |= uint8(1u << setIndex);
 

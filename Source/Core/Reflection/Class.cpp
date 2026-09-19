@@ -47,36 +47,36 @@ CORE_API extern const Class* g_clsObjectBase;
 
 namespace Attributes {
 
-CORE_API const Name g_attrSerialize = NAME("serialize");
-CORE_API const Name g_attrDeserialize = NAME("deserialize");
-CORE_API const Name g_attrTransient = NAME("transient");
-CORE_API const Name g_attrComponent = NAME("component");
-CORE_API const Name g_attrSize = NAME("size");
-CORE_API const Name g_attrPostLoad = NAME("postload");
-CORE_API const Name g_attrNoScriptBindings = NAME("noscriptbindings");
-CORE_API const Name g_attrOnlyLanguages = NAME("onlylanguages");
-CORE_API const Name g_attrManagedName = NAME("managedname");
-CORE_API const Name g_attrCommand = NAME("command");
-CORE_API const Name g_attrAbstract = NAME("abstract");
-CORE_API const Name g_attrCompressed = NAME("compressed");
-CORE_API const Name g_attrProperty = NAME("property");
-CORE_API const Name g_attrLoadOrder = NAME("loadorder");
-CORE_API const Name g_attrJsonPath = NAME("jsonpath");
-CORE_API const Name g_attrJsonIgnore = NAME("jsonignore");
-CORE_API const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
-CORE_API const Name g_attrFollowAssetPath = NAME("followassetpath");
-CORE_API const Name g_attrSaveAsReference = NAME("saveasreference");
-CORE_API const Name g_attrReplicated = NAME("replicated");
-CORE_API const Name g_attrNoSwatchOverride = NAME("noswatchoverride");
+CORE_API extern const Name g_attrSerialize = NAME("serialize");
+CORE_API extern const Name g_attrDeserialize = NAME("deserialize");
+CORE_API extern const Name g_attrTransient = NAME("transient");
+CORE_API extern const Name g_attrComponent = NAME("component");
+CORE_API extern const Name g_attrSize = NAME("size");
+CORE_API extern const Name g_attrPostLoad = NAME("postload");
+CORE_API extern const Name g_attrNoScriptBindings = NAME("noscriptbindings");
+CORE_API extern const Name g_attrOnlyLanguages = NAME("onlylanguages");
+CORE_API extern const Name g_attrManagedName = NAME("managedname");
+CORE_API extern const Name g_attrCommand = NAME("command");
+CORE_API extern const Name g_attrAbstract = NAME("abstract");
+CORE_API extern const Name g_attrCompressed = NAME("compressed");
+CORE_API extern const Name g_attrProperty = NAME("property");
+CORE_API extern const Name g_attrLoadOrder = NAME("loadorder");
+CORE_API extern const Name g_attrJsonPath = NAME("jsonpath");
+CORE_API extern const Name g_attrJsonIgnore = NAME("jsonignore");
+CORE_API extern const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
+CORE_API extern const Name g_attrFollowAssetPath = NAME("followassetpath");
+CORE_API extern const Name g_attrSaveAsReference = NAME("saveasreference");
+CORE_API extern const Name g_attrReplicated = NAME("replicated");
+CORE_API extern const Name g_attrNoSwatchOverride = NAME("noswatchoverride");
 
-CORE_API const Name g_attrEditor = NAME("editor");
-CORE_API const Name g_attrEditorOnly = NAME("editoronly");
-CORE_API const Name g_attrEditOrder = NAME("editororder");
-CORE_API const Name g_attrEditEnabled = NAME("editenabled");
-CORE_API const Name g_attrLabel = NAME("label");
-CORE_API const Name g_attrDescription = NAME("description");
-CORE_API const Name g_attrEditorAction = NAME("editoraction");
-CORE_API const Name g_attrEditCondition = NAME("editcondition");
+CORE_API extern const Name g_attrEditor = NAME("editor");
+CORE_API extern const Name g_attrEditorOnly = NAME("editoronly");
+CORE_API extern const Name g_attrEditOrder = NAME("editororder");
+CORE_API extern const Name g_attrEditEnabled = NAME("editenabled");
+CORE_API extern const Name g_attrLabel = NAME("label");
+CORE_API extern const Name g_attrDescription = NAME("description");
+CORE_API extern const Name g_attrEditorAction = NAME("editoraction");
+CORE_API extern const Name g_attrEditCondition = NAME("editcondition");
 
 } // namespace Attributes
 

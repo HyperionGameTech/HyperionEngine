@@ -43,7 +43,9 @@ endif()
 
 # if Win32, link with DbgHelp
 if(HYP_PLATFORM_NAME STREQUAL "Windows")
-  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi)
+  # Socket.cpp relies on MSVC's #pragma comment(lib, "ws2_32.lib") auto-link, which
+  # GCC/MinGW silently ignores, so link it explicitly here for all compilers.
+  set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi ws2_32)
 elseif(HYP_ANDROID)
   set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
 endif()

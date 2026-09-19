@@ -387,28 +387,10 @@ inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fi
 class CORE_API LogChannelRegistrar
 {
 public:
-    static LogChannelRegistrar& GetInstance()
-    {
-        static LogChannelRegistrar s_instance;
+    static LogChannelRegistrar& GetInstance();
 
-        return s_instance;
-    }
-
-    void Register(LogChannel* channel)
-    {
-        AssertDebug(channel);
-
-        m_channels.PushBack(channel);
-    }
-
-    void Register(LogChannel* channel, LogChannel* parentChannel)
-    {
-        AssertDebug(channel);
-
-        channel->parentChannel = parentChannel;
-
-        m_channels.PushBack(channel);
-    }
+    void Register(LogChannel* channel);
+    void Register(LogChannel* channel, LogChannel* parentChannel);
 
     void RegisterAll();
 

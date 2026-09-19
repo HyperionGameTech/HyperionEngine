@@ -120,7 +120,7 @@ constexpr uint32 TempAllocatorSize = 16 * 1024; // 16KiB per frame ought to be e
 VisThread::VisThread()
     : TaskThread(g_visThread),
       m_tempAllocator(TempAllocatorSize),
-      m_simSemaphore(1),
+      m_simSemaphore(0),
       m_visSemaphore(0),
       m_frameCounter(0)
 {

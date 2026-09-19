@@ -333,8 +333,8 @@ struct ShaderStruct
 
         return {};
     }
-
-    HYP_FORCE_INLINE bool operator<(const ShaderStruct& other) const
+    
+    bool operator<(const ShaderStruct& other) const
     {
         if (size != other.size)
         {
@@ -357,7 +357,7 @@ struct ShaderStruct
         return false;
     }
 
-    HYP_FORCE_INLINE bool operator==(const ShaderStruct& other) const
+    bool operator==(const ShaderStruct& other) const
     {
         return name == other.name
             && size == other.size
@@ -365,7 +365,7 @@ struct ShaderStruct
             && fieldTypes == other.fieldTypes;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const ShaderStruct& other) const
+    bool operator!=(const ShaderStruct& other) const
     {
         return name != other.name
             || size != other.size

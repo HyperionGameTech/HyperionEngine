@@ -122,7 +122,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 }
 
                 auto* cmd = static_cast<DrawIndexedIndirect*>(cmdDataPtr);
-#if HYP_VULKAN
+#ifdef HYP_VULKAN
                 AssertDebug(cmd->m_bufferOffset + 20 <= cmd->m_buffer->Size());
 #endif
                 commandBuffer->DrawIndexedIndirect(cmd->m_buffer, cmd->m_bufferOffset);

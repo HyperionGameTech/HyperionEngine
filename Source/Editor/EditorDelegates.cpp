@@ -89,7 +89,7 @@ void EditorDelegates::OnNodeUpdate(Node* node, const Property* property)
     Assert(node != nullptr);
     Assert(property != nullptr);
 
-    auto Impl = [this, nodeWeak = MakeWeakRef(node), property]()
+    auto impl = [this, nodeWeak = MakeWeakRef(node), property]()
     {
         HYP_SCOPE;
 
@@ -132,13 +132,13 @@ void EditorDelegates::OnNodeUpdate(Node* node, const Property* property)
 
     if (IsOnThread(g_simThread))
     {
-        Impl();
+        impl();
     }
     else
     {
         m_scheduler.Enqueue(
             HYP_STATIC_MESSAGE(HYP_FUNCTION_NAME_LIT),
-            std::move(Impl),
+            std::move(impl),
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }

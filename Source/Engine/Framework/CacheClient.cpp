@@ -65,8 +65,11 @@ HYP_DEFINE_LOG_SUBCHANNEL(CacheClient, Engine);
 
 namespace {
 
+/// We use ANSIString not ANSIStringView for \p host \p path params, because we need to pass them as
+/// raw char* to C/posix/Winsock functions and need to be sure a NUL terminator exists at the end of the string.
 Result HttpGetBytes(
-    const ANSIString& host, uint16 port,
+    const ANSIString& host,
+    uint16 port,
     const ANSIString& path,
     ByteWriter& writer,
     bool* outShouldRetry = nullptr)
