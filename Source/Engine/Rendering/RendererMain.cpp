@@ -376,7 +376,8 @@ static inline Stage GetStage(const RenderSetup& renderSetup, bool isDepthPrepass
 
     if (!renderSetup.passData
         || renderSetup.passData->Id().GetTypeId().Value() != PassDataTypeId
-        || !g_cvDepthPrepass.Get())
+        || !g_cvDepthPrepass.Get()
+        || !RI.GetRenderConfig().indirectRendering)
     {
         return DPP_NotActive;
     }

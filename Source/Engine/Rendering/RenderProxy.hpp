@@ -64,12 +64,14 @@ struct NullProxy final
 };
 
 // matches the WORLD_ENVIRONMENT_FLAG_* defines in Shaders/Include/Scene.hlsli
-enum WorldEnvironmentFlags : uint32
+enum class WorldEnvironmentFlags : uint32
 {
-    WEF_NONE = 0x0,
-    WEF_HAS_SUN = 0x1,
-    WEF_SUN_DISK = 0x2,
-    WEF_HEIGHT_FOG = 0x4
+    None = 0x0,
+    HasSun = 0x1,
+    SunDisk = 0x2,
+    HeightFog = 0x4,
+    DDGI = 0x8,
+    RayTracedReflections = 0x10
 };
 
 struct WorldShaderData

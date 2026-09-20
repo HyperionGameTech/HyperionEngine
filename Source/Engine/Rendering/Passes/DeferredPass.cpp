@@ -1726,11 +1726,15 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     Framebuffer* effectPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Effect);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Debug);
 
+    const uint32 worldEnvironmentFlags = GetWorldBufferData()->environmentFlags;
+
     const bool useRayTracingReflections = (g_cvPathTracing.Get() || g_cvRayTracedReflections.Get())
+        && (worldEnvironmentFlags & uint32(WorldEnvironmentFlags::RayTracedReflections))
         && view->GetRayTracingView().IsValid()
         && passData.rayTracingReflections != nullptr;
 
     const bool useRayTracingGlobalIllumination = g_cvDDGI.Get()
+        && (worldEnvironmentFlags & uint32(WorldEnvironmentFlags::DDGI))
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 

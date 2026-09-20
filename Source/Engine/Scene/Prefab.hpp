@@ -11,6 +11,7 @@
 #include <Asset/AssetObject.hpp>
 
 #include <Core/Name/Name.hpp>
+#include <Core/Containers/String.hpp>
 
 namespace Hyperion {
 
@@ -40,6 +41,9 @@ public:
 
     HYP_METHOD()
     Handle<Node> Spawn() const;
+
+    HYP_METHOD()
+    static Handle<Prefab> Find(const ANSIStringView& nameStr);
 
     static UUID GetSourcePrefabUUID(const Node* node);
 

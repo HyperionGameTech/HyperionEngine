@@ -391,6 +391,12 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleShowStats { get; private set; }
         public bool IsShowStatsEnabled => _editorSubsystem?.IsShowStatsEnabled() ?? false;
 
+        public void RefreshDebugOverlayToggleStates()
+        {
+            OnPropertyChanged(nameof(IsShowStatsEnabled));
+            OnPropertyChanged(nameof(IsGhostModeEnabled));
+        }
+
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
         // that was right-clicked rather than whatever happens to be focused.
         public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
@@ -1456,6 +1462,10 @@ namespace Hyperion.Editor.ViewModels
         private void HandleCurrentProjectChanged(EditorProject? project, bool isSimulationStateChange)
         {
             Dispatcher.UIThread.Post(() => PanelService.Instance.ClosePanel());
+
+            // Prefabs already on disk when a project is opened never fire OnAssetsChanged (nothing was
+            // added/removed, just loaded), so the "Add to Prefab" list needs an explicit refresh here too.
+            RefreshAddToPrefabTargets();
 
             // In simulation mode, when project changes we also want to update the play/pause/stop buttons
             _gameModeChangedHandler?.Remove();

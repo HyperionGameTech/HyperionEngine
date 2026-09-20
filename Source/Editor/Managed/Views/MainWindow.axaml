@@ -915,7 +915,7 @@
                                 <controls:Codicon Kind="ChevronDown" Size="10" />
                             </StackPanel>
                             <DropDownButton.ContextMenu>
-                                <ContextMenu Placement="Bottom">
+                                <ContextMenu Placement="Bottom" Opened="OnToolSettingsMenuOpened">
                                     <MenuItem Header="World Settings"
                                               Click="OnWorldSettingsClick"
                                               ToolTip.Tip="Manage settings for the game's world" />
@@ -1295,8 +1295,7 @@
                                                                         <!--  Always acts on the current selection; the specific right-clicked node isn't threaded through this dynamic list  -->
                                                                         <MenuItem
                                                                             Header="Add to Prefab"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding HasAddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsEnabled="{Binding HasAddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             ItemsSource="{Binding AddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}">
                                                                             <MenuItem.ItemContainerTheme>
                                                                                 <ControlTheme

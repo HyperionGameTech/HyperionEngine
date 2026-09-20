@@ -728,6 +728,14 @@ namespace Hyperion.Editor
             }
         }
 
+        private void OnToolSettingsMenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.RefreshDebugOverlayToggleStates();
+            }
+        }
+
         /// <summary>
         /// Brings the selected asset into view. The content browser selects assets programmatically -
         /// a newly created one, for instance - and the selection is otherwise invisible if the item

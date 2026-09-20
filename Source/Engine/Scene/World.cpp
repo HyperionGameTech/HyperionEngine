@@ -2407,7 +2407,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
             outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
             outShaderData.sunColor = Vec4f(light->GetColor());
-            outShaderData.environmentFlags |= WEF_HAS_SUN;
+            outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::HasSun);
 
             hasSun = true;
 

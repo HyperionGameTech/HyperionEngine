@@ -106,7 +106,7 @@ namespace Hyperion
                     Object_IncRef(_classPtr, _nativeAddress, false);
                 }
 
-                Logger.Log(LogLevel.Verbose, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                //Logger.Log(LogLevel.Verbose, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
             }
             finally
             {
@@ -145,7 +145,7 @@ namespace Hyperion
 
                         Object_DecRef(_classPtr, _nativeAddress, false);
 
-                        Logger.Log(LogLevel.Verbose, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                        //Logger.Log(LogLevel.Verbose, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
                     }
                 }
                 finally

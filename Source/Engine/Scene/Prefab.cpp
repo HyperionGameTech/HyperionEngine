@@ -10,6 +10,8 @@
 #include <Scene/Node.hpp>
 #include <Scene/DetachedScene.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Framework/EngineGlobals.hpp>
 
 #include <Prefab.generated.inl>
@@ -82,6 +84,11 @@ Handle<Node> Prefab::Spawn() const
     node->AddTag(NodeTag(s_namePrefabSource, GetUUID()));
 
     return node;
+}
+
+Handle<Prefab> Prefab::Find(const ANSIStringView& nameStr)
+{
+    return GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, StringHash(nameStr));
 }
 
 UUID Prefab::GetSourcePrefabUUID(const Node* node)

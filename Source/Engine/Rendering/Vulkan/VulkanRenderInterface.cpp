@@ -36,6 +36,7 @@
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/BLASCache.hpp>
 
+#include <Framework/CVarManager.hpp>
 #include <Framework/Config/EngineConfig.hpp>
 #include <Framework/EngineGlobals.hpp>
 
@@ -65,6 +66,9 @@
     while (0)
 
 namespace Hyperion {
+
+extern CVar<bool> g_cvIndirectRendering;
+extern CVar<bool> g_cvParallelRendering;
 
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 256;
@@ -110,8 +114,8 @@ public:
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
-        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = cfg.Get("Rendering.ParallelRendering").ToBool(/* defaultValue */ true);
+        indirectRendering = g_cvIndirectRendering.Get();
+        parallelRendering = g_cvParallelRendering.Get();
     }
 };
 

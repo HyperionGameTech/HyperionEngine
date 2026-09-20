@@ -4,9 +4,6 @@ using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
-    /// <summary>
-    /// Sky &amp; Clouds section of the World Settings window, editing the world's DynamicSkySystem.
-    /// </summary>
     public class SkySettingsViewModel : ViewModelBase
     {
         internal readonly World World;

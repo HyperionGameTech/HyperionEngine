@@ -152,6 +152,8 @@ ENGINE_API Pool* g_dx12Pool;
 
 CVar<bool> g_cvEnableVSync("Rendering.VSync", true);
 CVar<bool> g_cvEnableGpuStats("Rendering.EnableGpuStats", true);
+CVar<bool> g_cvIndirectRendering("Rendering.IndirectRendering", true);
+CVar<bool> g_cvParallelRendering("Rendering.ParallelRendering", true);
 
 namespace Framework {
 

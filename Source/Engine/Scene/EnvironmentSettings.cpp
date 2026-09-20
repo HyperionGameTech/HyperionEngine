@@ -109,14 +109,14 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
 
     if (sky.showSunDisk)
     {
-        outShaderData.environmentFlags |= WEF_SUN_DISK;
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::SunDisk);
     }
 
     const HeightFogSettings& heightFog = settings.heightFog;
 
     if (heightFog.enabled && heightFog.maxOpacity > 0.0f)
     {
-        outShaderData.environmentFlags |= WEF_HEIGHT_FOG;
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::HeightFog);
     }
 
     outShaderData.heightFogParams = Vec4f(
@@ -133,6 +133,18 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
         MathUtil::Clamp(heightFog.maxOpacity, 0.0f, 1.0f));
 
     outShaderData.fogPhaseParams = Vec4f(MathUtil::Clamp(heightFog.sunAnisotropy, 0.0f, 0.95f), 0.0f, 0.0f, 0.0f);
+
+    const GlobalIlluminationSettings& globalIllumination = settings.globalIllumination;
+
+    if (globalIllumination.ddgiEnabled)
+    {
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::DDGI);
+    }
+
+    if (globalIllumination.rayTracedReflectionsEnabled)
+    {
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::RayTracedReflections);
+    }
 
     const WindSettings& wind = settings.wind;
     const float windDirectionRadians = float(MathUtil::DegToRad(double(wind.directionDegrees)));
