@@ -30,6 +30,17 @@ extern VulkanRenderInterface RI;
 
 #pragma region Helpers
 
+static VkPipelineStageFlags GetBufferDstStageMask(GpuBufferType type, ResourceState newState, VkPipelineStageFlags baseMask)
+{
+    if (newState == ResourceState::ShaderResource
+        && (GetVkUsageFlags(type) & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR))
+    {
+        baseMask |= VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+    }
+
+    return baseMask;
+}
+
 static uint32 FindMemoryType(uint32 vkTypeFilter, VkMemoryPropertyFlags vkMemoryPropertyFlags)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -303,7 +314,7 @@ void VulkanGpuBuffer::InsertBarrier(
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
         GetVkShaderStageMask(m_resourceState, true, false),
-        GetVkShaderStageMask(newState, false, false),
+        GetBufferDstStageMask(m_type, newState, GetVkShaderStageMask(newState, false, false)),
         0,
         0, nullptr,
         1, &barrier,
@@ -338,7 +349,7 @@ void VulkanGpuBuffer::InsertBarrier(
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
         GetVkShaderStageMask(m_resourceState, true, false, shaderType),
-        GetVkShaderStageMask(newState, false, false, shaderType),
+        GetBufferDstStageMask(m_type, newState, GetVkShaderStageMask(newState, false, false, shaderType)),
         0,
         0, nullptr,
         1, &barrier,

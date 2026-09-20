@@ -74,9 +74,6 @@ static RendererResult AcquireNextImage(
         return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vkResult));
     }
 
-    // After vkAcquireNextImageKHR, the acquired image is in VK_IMAGE_LAYOUT_UNDEFINED.
-    // Reset the tracked state so subsequent barriers use the correct oldLayout.
-    swapchain->GetImages()[*index]->SetResourceState(ResourceState::Undefined);
 
     return {};
 }
