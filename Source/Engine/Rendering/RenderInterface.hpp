@@ -328,6 +328,12 @@ public:
     virtual void BeginFrame(AtomicFlag* pCancelFlag);
     virtual void EndFrame();
 
+    /*! \brief Checks whether the GPU device has been lost */
+    virtual bool CheckDeviceRemoved() const
+    {
+        return false;
+    }
+
     virtual void WriteCommandBuffer();
 
     virtual void RecordStartTimestamp(CommandBuffer* cmd, EngineStatGpuTimer* timer) = 0;

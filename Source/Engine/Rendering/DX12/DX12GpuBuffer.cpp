@@ -201,6 +201,10 @@ RendererResult DX12GpuBuffer::Create()
 
     if (FAILED(hr))
     {
+        // gpu crashes happen for us here, this isn't the culprit (from what i've seen)
+        // but they tend to 'bubble' to here.
+        // caller should call CrashHandler::Dump() on failure to create.
+
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MA buffer", hr);
     }
 

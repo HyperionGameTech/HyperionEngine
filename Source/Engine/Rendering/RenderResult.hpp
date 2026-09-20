@@ -14,6 +14,8 @@
 
 namespace Hyperion {
 
+ENGINE_API void HandlePossibleDeviceLossErrorCode(int errorCode);
+
 class RendererError final : public Error
 {
 public:
@@ -35,6 +37,7 @@ public:
         : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<HYP_STATIC_STRING("[Code:{}] ").template Concat<MessageString>()>(), errorCode, std::forward<Args>(args)...),
           m_errorCode(errorCode)
     {
+        HandlePossibleDeviceLossErrorCode(errorCode);
     }
 
     ~RendererError() = default;

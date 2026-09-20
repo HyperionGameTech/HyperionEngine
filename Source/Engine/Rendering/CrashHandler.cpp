@@ -7,10 +7,14 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/CrashHandler.hpp>
+#include <Rendering/RenderInterface.hpp>
+
+#include <Framework/EngineGlobals.hpp>
 
 #include <Core/Debug/Debug.hpp>
 
 #include <Core/Threading/Threads.hpp>
+#include <Core/Threading/AtomicVar.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
 
@@ -41,6 +45,23 @@ static Mutex g_savedDumpFilesPerThreadMutex;
 static Array<Array<FilePath>*> g_savedDumpFilesPerThread {};
 
 bool CrashHandler::s_isInitialized = false;
+
+static AtomicVar<bool> g_isHandlingDeviceLoss { false };
+
+void HandlePossibleDeviceLossErrorCode(int errorCode)
+{
+    if (!RI.CheckDeviceRemoved())
+    {
+        return;
+    }
+
+    if (g_isHandlingDeviceLoss.Exchange(true, MemoryOrder::ACQUIRE_RELEASE))
+    {
+        return;
+    }
+
+    CrashHandler::Dump();
+}
 
 void CrashHandler::Initialize()
 {

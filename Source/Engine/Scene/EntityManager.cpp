@@ -13,6 +13,8 @@
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 
+#include <Scene/Components/VisibilityStateComponent.hpp>
+
 #include <Core/Threading/TaskSystem.hpp>
 
 #include <Core/Utilities/Format.hpp>
@@ -416,13 +418,18 @@ void EntityManager::Shutdown()
 
             if (m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
             {
-                auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
-                if (removeFromOctreeResult.HasError())
+                VisibilityStateComponent* visibilityStateComponent = TryGetComponent<VisibilityStateComponent>(entity);
+
+                if (!visibilityStateComponent || visibilityStateComponent->octantId != OctantId::Invalid())
                 {
-                    HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
-                            entity->GetName(),
-                            m_scene->GetName(),
-                            removeFromOctreeResult.GetError().GetMessage());
+                    auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
+                    if (removeFromOctreeResult.HasError())
+                    {
+                        HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
+                                entity->GetName(),
+                                m_scene->GetName(),
+                                removeFromOctreeResult.GetError().GetMessage());
+                    }
                 }
             }
 
@@ -935,18 +942,6 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         if (m_world)
         {
             entity->OnRemovedFromWorld(m_world);
-        }
-
-        if ((m_scene->GetSceneFlags() & SceneFlags::HAS_OCTREE))
-        {
-            auto removeFromOctreeResult = m_scene->GetOctree().Remove(entity, /* allowRebuild */ false);
-            if (removeFromOctreeResult.HasError())
-            {
-                HYP_LOG(Entity, Warning, "Failed to remove Entity {} from Scene {}'s octree: {}",
-                        entity->GetName(),
-                        m_scene->GetName(),
-                        removeFromOctreeResult.GetError().GetMessage());
-            }
         }
 
         entity->OnRemovedFromScene(m_scene);
