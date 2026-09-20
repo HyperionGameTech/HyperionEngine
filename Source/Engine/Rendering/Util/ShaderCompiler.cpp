@@ -73,7 +73,7 @@ namespace Hyperion {
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
 // #define HYP_SHADER_COMPILER_LOGGING
-#define HYP_ENABLE_SHADER_DEBUGGING
+// #define HYP_ENABLE_SHADER_DEBUGGING
 
 CVar<bool> g_cvCompileOnTheFly { "ShaderCompiler.CompileOnTheFly", true };
 

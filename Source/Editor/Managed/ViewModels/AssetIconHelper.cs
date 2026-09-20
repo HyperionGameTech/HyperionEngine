@@ -7,7 +7,7 @@ namespace Hyperion.Editor.ViewModels
         public static string FromTypeName(string? typeName) => typeName switch
         {
             "Mesh"                              => "Package",
-            "Material"                          => "SymbolColor",
+            "Material"                          => "Material",
             "Texture"                           => "FileMedia",
             "DirectionalLight"                  => "Lightbulb",
             "PointLight"                        => "Lightbulb",
