@@ -64,14 +64,11 @@ float4 DDGISampleCascadeIrradiance(uint cascadeIndex, float3 P, float3 N, float3
         // trilinear
         weight *= trilinear.x * trilinear.y * trilinear.z;
 
-        irradiance = sqrt(irradiance);
-
         totalIrradiance += irradiance * weight;
         totalWeight += weight;
     }
 
     float3 netIrradiance = totalIrradiance / max(totalWeight, 0.001);
-    netIrradiance = HYP_FMATH_SQR(netIrradiance);
 
     return float4(netIrradiance, 1.0);
 }

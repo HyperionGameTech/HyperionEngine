@@ -3,6 +3,7 @@
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/Light.hpp>
 #include <Scene/World.hpp>
 #include <Scene/Swatch.hpp>
 
@@ -46,9 +47,10 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
 
         if (!source->IsA(LightmapVolume::StaticClass())
             && !source->IsA(EnvProbe::StaticClass())
-            && !source->IsA(FogVolume::StaticClass()))
+            && !source->IsA(FogVolume::StaticClass())
+            && !source->IsA(Light::StaticClass()))
         {
-            HYP_LOG(Editor, Error, "GenerateLightmapsEditorTask source is not a LightmapVolume or EnvProbe: \"{}\"", source->InstanceClass()->GetName());
+            HYP_LOG(Editor, Error, "GenerateLightmapsEditorTask source is not a LightmapVolume, EnvProbe, FogVolume, or Light: \"{}\"", source->InstanceClass()->GetName());
             it = m_sources.Erase(it);
 
             continue;
@@ -115,6 +117,10 @@ void GenerateLightmapsEditorTask::Start()
         else if (source->IsA<FogVolume>())
         {
             task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, StaticCast<FogVolume>(source));
+        }
+        else if (source->IsA<Light>())
+        {
+            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, StaticCast<Light>(source));
         }
 
         if (task.IsValid())

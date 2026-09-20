@@ -59,6 +59,7 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand SelectNone => new EditorCommand("SelectNone");
 
         public EditorCommand BuildLightmaps => new EditorCommand("BuildLightmaps");
+        public EditorCommand BuildStaticShadows => new EditorCommand("BuildStaticShadows");
         public EditorCommand BuildReflectionProbes => new EditorCommand("BuildReflectionProbes");
         public EditorCommand BuildIrradianceProbes => new EditorCommand("BuildIrradianceProbes");
 
@@ -606,9 +607,11 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(GameStateText));
             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
             OnPropertyChanged(nameof(CanAddTerrainLayer));
+            OnPropertyChanged(nameof(IsGhostModeEnabled));
 
             (ToggleTerrainSculptMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleTerrainPaintMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleGhostMode as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewLayerCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -721,15 +724,17 @@ namespace Hyperion.Editor.ViewModels
                 });
             });
 
-            ToggleGhostMode = new RelayCommand(() =>
-            {
-                _ = EngineManager.PostToSimThread(() =>
+            ToggleGhostMode = new RelayCommand(
+                () =>
                 {
-                    _editorSubsystem.SetGhostModeEnabled(!_editorSubsystem.IsGhostModeEnabled());
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.SetGhostModeEnabled(!_editorSubsystem.IsGhostModeEnabled());
 
-                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsGhostModeEnabled)));
-                });
-            });
+                        Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsGhostModeEnabled)));
+                    });
+                },
+                () => IsSimulating);
 
             ToggleShowStats = new RelayCommand(() =>
             {

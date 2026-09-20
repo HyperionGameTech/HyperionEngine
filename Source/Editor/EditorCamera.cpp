@@ -16,12 +16,14 @@
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
 
-#include <System/AppContext.hpp>
-
 #include <Core/Profiling/ProfileScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+
+#include <Scene/Camera/CameraUtils.hpp>
+
+#include <System/AppContext.hpp>
 
 #include <EditorCamera.generated.inl>
 
@@ -190,12 +192,7 @@ bool EditorCameraInputHandler::OnMouseDrag(const MouseEvent& evt)
     else if (evt.mouseButtons & MouseButtonState::LEFT)
     {
         camera->Rotate(Vec3f::UnitY(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier));
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDeltaY * lookMultiplier));
-
-        if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
-        {
-            camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDeltaY * lookMultiplier));
-        }
+        camera->Rotate(dirCrossY, CameraUtils::ClampPitchDelta(*camera, MathUtil::DegToRad(mouseDeltaY * lookMultiplier), 0.98f));
     }
 
     return true;

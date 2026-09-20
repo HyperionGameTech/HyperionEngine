@@ -245,9 +245,6 @@ static ViewDesc GetViewDesc(
         viewDesc.flags |= ViewFlags::COLLECT_ALL_ENTITIES;
     }
 
-    // No parallel draw call collection for shadow maps
-    viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
-
     if (!isOmni || !s_cvAsyncOmniShadowShaderLoading.Get())
     {
         viewDesc.flags |= ViewFlags::NO_ASYNC_SHADER_LOADING;

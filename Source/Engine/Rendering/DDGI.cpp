@@ -40,7 +40,7 @@
 
 namespace Hyperion {
 
-static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
+static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA16F;
 static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
 static constexpr uint32 DDGIMaxBoundLights = 4;
 

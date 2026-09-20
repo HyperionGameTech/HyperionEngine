@@ -28,7 +28,7 @@ namespace Hyperion {
 #endif
 
 /// Use a ring buffer for writing proxy data from simulation thread which the render thread reads after N frames.
-static constexpr bool UseRingBuffer = true;
+static constexpr bool UseRingBuffer = false;
 static constexpr uint32 RingBufferDepth = UseRingBuffer ? 3 : 1;
 
 static constexpr uint8 EngineVersionMajor = HYP_VERSION_MAJOR;

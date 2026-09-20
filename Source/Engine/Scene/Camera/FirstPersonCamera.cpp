@@ -8,6 +8,8 @@
 
 #include <Scene/Camera/FirstPersonCamera.hpp>
 
+#include <Scene/Camera/CameraUtils.hpp>
+
 #include <Framework/Game.hpp>
 
 #include <Scene/World.hpp>
@@ -88,12 +90,7 @@ bool FirstPersonCameraInputHandler::OnMouseMove(const MouseEvent& evt)
     const Vec3f dirCrossY = camera->GetSideVector();
 
     camera->Rotate(Vec3f::UnitY(), MathUtil::DegToRad(mouseDelta.x));
-    camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDelta.y));
-
-    if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
-    {
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDelta.y));
-    }
+    camera->Rotate(dirCrossY, CameraUtils::ClampPitchDelta(*camera, MathUtil::DegToRad(mouseDelta.y), 0.98f));
 
     return true;
 }
@@ -145,12 +142,7 @@ bool FirstPersonCameraInputHandler::OnTouchMove(const TouchEvent& evt)
     const Vec3f dirCrossY = camera->GetSideVector();
 
     camera->Rotate(Vec3f::UnitY(), MathUtil::DegToRad(touchDelta.x));
-    camera->Rotate(dirCrossY, MathUtil::DegToRad(touchDelta.y));
-
-    if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
-    {
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(-touchDelta.y));
-    }
+    camera->Rotate(dirCrossY, CameraUtils::ClampPitchDelta(*camera, MathUtil::DegToRad(touchDelta.y), 0.98f));
 
     return true;
 }
@@ -318,12 +310,7 @@ void FirstPersonCameraController::UpdateLogic(double delta)
 
         const Vec3f lookDirCrossY = m_camera->GetSideVector();
         m_camera->Rotate(Vec3f::UnitY(), MathUtil::DegToRad(lookDelta.x));
-        m_camera->Rotate(lookDirCrossY, MathUtil::DegToRad(lookDelta.y));
-
-        if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f)
-        {
-            m_camera->Rotate(lookDirCrossY, MathUtil::DegToRad(-lookDelta.y));
-        }
+        m_camera->Rotate(lookDirCrossY, CameraUtils::ClampPitchDelta(*m_camera, MathUtil::DegToRad(lookDelta.y), 0.98f));
     }
 
     Vec3f translation = m_camera->GetWorldTranslation();

@@ -50,6 +50,9 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
 
+/// # frames until we free up a shadow map slot
+static constexpr uint32 MaxFramesBeforeDiscard = 300;
+
 EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
 CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
 
@@ -207,7 +210,6 @@ void ShadowsPassBase::OnFrameEnd(uint32 prevFrameIndex)
     {
         CachedShadowMapData& value = it->second;
 
-        static constexpr uint32 MaxFramesBeforeDiscard = 16;
         if (int64(prevFrameIndex) - int64(value.lastUsedFrame) >= MaxFramesBeforeDiscard)
         {
             HYP_LOG(Rendering, Verbose, "Removing cached shadow map as it has not been used in {} frames", int64(prevFrameIndex) - int64(value.lastUsedFrame));
@@ -280,6 +282,81 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             renderProxyLists[i]->EndRead();
         }
     });
+
+    struct PendingShadowDraw
+    {
+        bool active;
+        RenderSetup rs;
+        RenderCollector* renderCollector;
+        bool hasRenderGroups;
+        GpuImage* resultImage;
+        ImageSubResource targetSubResource;
+        bool shouldCacheAfterRender;
+        Texture* cachedShadowMapTexture;
+        ShadowMapAtlasElement atlasElement;
+        bool isOmni;
+        uint32 viewIndex;
+    };
+
+    PendingShadowDraw pendingDraw {};
+
+    auto flushPendingDraw = [&]()
+    {
+        if (!pendingDraw.active)
+        {
+            return;
+        }
+
+        if (pendingDraw.hasRenderGroups)
+        {
+            pendingDraw.renderCollector->ExecuteDrawCalls(frame, pendingDraw.rs, BucketMask);
+        }
+
+        if (pendingDraw.shouldCacheAfterRender)
+        {
+            AssertDebug(pendingDraw.cachedShadowMapTexture != nullptr);
+
+            // Save rendered result to cache texture
+            ImageSubResource srcImageSubResource;
+            srcImageSubResource.baseArrayLayer = pendingDraw.atlasElement.layerIndex;
+            srcImageSubResource.numLayers = 1;
+            srcImageSubResource.baseMipLevel = 0;
+            srcImageSubResource.numLevels = 1;
+
+            ImageSubResource dstImageSubResource;
+            dstImageSubResource.baseArrayLayer = 0;
+            dstImageSubResource.numLayers = 1;
+            dstImageSubResource.baseMipLevel = 0;
+            dstImageSubResource.numLevels = 1;
+
+            // if omni, copy current face
+            if (pendingDraw.isOmni)
+            {
+                srcImageSubResource.baseArrayLayer = (pendingDraw.atlasElement.layerIndex * 6) + pendingDraw.viewIndex;
+                dstImageSubResource.baseArrayLayer = pendingDraw.viewIndex;
+            }
+
+            // need to transition atlas section to COPY_SRC
+            frame->cr << InsertBarrier(pendingDraw.resultImage, ResourceState::CopySrc, srcImageSubResource);
+
+            // and our cache texture should be COPY_DST
+            frame->cr << InsertBarrier(pendingDraw.cachedShadowMapTexture->GetGpuImage(), ResourceState::CopyDst, dstImageSubResource);
+
+            frame->cr << CopyImage(
+                pendingDraw.resultImage,
+                pendingDraw.cachedShadowMapTexture->GetGpuImage(),
+                Vec3u(pendingDraw.atlasElement.offsetCoords.x, pendingDraw.atlasElement.offsetCoords.y, 0),
+                Vec3u::Zero(),
+                Vec3u(pendingDraw.atlasElement.dimensions.x, pendingDraw.atlasElement.dimensions.y, 1),
+                srcImageSubResource,
+                dstImageSubResource);
+        }
+
+        // transition atlas section back to shader read
+        frame->cr << InsertBarrier(pendingDraw.resultImage, ResourceState::ShaderResource, pendingDraw.targetSubResource);
+
+        pendingDraw = PendingShadowDraw {};
+    };
 
     RenderProxyCamera* shadowCameraProxy = nullptr;
 
@@ -478,6 +555,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         for (uint32 viewIndex = cascadeIndex; viewIndex < numViewsToIterate; viewIndex++)
         {
+            flushPendingDraw();
+
             if (isOmni && !cachedData->omniFaceEverRendered.Test(viewIndex))
             {
                 const bool isAtOrAfterCursor = (viewIndex >= cachedData->nextOmniFaceToWarm);
@@ -787,6 +866,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
                 AssertDebug(shadowView->GetViewDesc().flags & ViewFlags::SHADOW_VIEW);
 
+                flushPendingDraw();
+
                 const bool isStaticShadowMap = (shadowStage == ShadowStage_Static);
                 const bool shouldCacheAfterRender = isStaticShadowMap && cacheStaticShadowMaps;
 
@@ -823,56 +904,29 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
                 RenderCollector& renderCollector = GetRenderCollector(shadowView);
 
-                if (HasRenderGroups(renderCollector, BucketMask))
+                const bool hasRenderGroups = HasRenderGroups(renderCollector, BucketMask);
+
+                if (hasRenderGroups)
                 {
-                    renderCollector.ExecuteDrawCalls(frame, rs, BucketMask);
+                    renderCollector.BeginRecordDrawCalls(frame, rs, BucketMask);
                 }
 
-                if (shouldCacheAfterRender)
-                {
-                    Assert(cachedShadowMapTexture.IsValid());
-
-                    // Save rendered result to cache texture
-                    ImageSubResource srcImageSubResource;
-                    srcImageSubResource.baseArrayLayer = atlasElement.layerIndex;
-                    srcImageSubResource.numLayers = 1;
-                    srcImageSubResource.baseMipLevel = 0;
-                    srcImageSubResource.numLevels = 1;
-
-                    ImageSubResource dstImageSubResource;
-                    dstImageSubResource.baseArrayLayer = 0;
-                    dstImageSubResource.numLayers = 1;
-                    dstImageSubResource.baseMipLevel = 0;
-                    dstImageSubResource.numLevels = 1;
-
-                    // if omni, copy current face
-                    if (isOmni)
-                    {
-                        srcImageSubResource.baseArrayLayer = (atlasElement.layerIndex * 6) + viewIndex;
-                        dstImageSubResource.baseArrayLayer = viewIndex;
-                    }
-
-                    // need to transition atlas section to COPY_SRC
-                    frame->cr << InsertBarrier(resultImage, ResourceState::CopySrc, srcImageSubResource);
-
-                    // and our cache texture should be COPY_DST
-                    frame->cr << InsertBarrier(cachedShadowMapTexture->GetGpuImage(), ResourceState::CopyDst, dstImageSubResource);
-
-                    frame->cr << CopyImage(
-                        resultImage,
-                        cachedShadowMapTexture->GetGpuImage(),
-                        Vec3u(atlasElement.offsetCoords.x, atlasElement.offsetCoords.y, 0),
-                        Vec3u::Zero(),
-                        Vec3u(atlasElement.dimensions.x, atlasElement.dimensions.y, 1),
-                        srcImageSubResource,
-                        dstImageSubResource);
-                }
-
-                // transition atlas section back to shader read
-                frame->cr << InsertBarrier(resultImage, ResourceState::ShaderResource, target->GetImageView()->GetImageSubResource());
+                pendingDraw.active = true;
+                pendingDraw.rs = rs;
+                pendingDraw.renderCollector = &renderCollector;
+                pendingDraw.hasRenderGroups = hasRenderGroups;
+                pendingDraw.resultImage = resultImage;
+                pendingDraw.targetSubResource = target->GetImageView()->GetImageSubResource();
+                pendingDraw.shouldCacheAfterRender = shouldCacheAfterRender;
+                pendingDraw.cachedShadowMapTexture = cachedShadowMapTexture.Get();
+                pendingDraw.atlasElement = atlasElement;
+                pendingDraw.isOmni = isOmni;
+                pendingDraw.viewIndex = viewIndex;
             }
         }
     }
+
+    flushPendingDraw();
 
     // if nothing was drawn from the budget this frame, wrap the cursor so that
     // pending cascades before it are not starved of dirty redraws.

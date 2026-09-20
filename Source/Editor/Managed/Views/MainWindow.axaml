@@ -351,7 +351,9 @@
                     <Separator />
                     <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
                     <Separator />
-                  
+                    <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
+                    <Separator />
+
                     <!-- Same as elsewhere. We don't actually USE BN in the engine yet. Commenting out for now to prevent any confusion. -->
                     <!-- <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" />
                     <Separator /> -->
@@ -951,8 +953,9 @@
                                         Command="{Binding ToggleGhostMode}"
                                         Header="Ghost Mode"
                                         IsChecked="{Binding IsGhostModeEnabled, Mode=OneWay}"
+                                        IsEnabled="{Binding IsSimulating}"
                                         ToggleType="CheckBox"
-                                        ToolTip.Tip="Free-fly through the world with no collision (WASD + Space/Ctrl to fly up/down)" />
+                                        ToolTip.Tip="Free-fly through the world with no collision (WASD + Space/Ctrl to fly up/down). Only available while playing." />
 
                                     <MenuItem
                                         Command="{Binding ToggleShowStats}"

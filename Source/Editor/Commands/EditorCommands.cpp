@@ -828,6 +828,95 @@ DEFINE_EDITOR_COMMAND(BuildLightmaps);
 
 #pragma endregion BuildLightmaps
 
+#pragma region BuildStaticShadows
+
+class EditorCommandBuildStaticShadows final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildStaticShadows);
+
+public:
+    virtual ~EditorCommandBuildStaticShadows() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Static Shadows";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot bake static shadows!");
+
+            return;
+        }
+
+        Handle<EditorProject> project = subsystem->GetCurrentProject();
+        if (!project.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active project");
+
+            return;
+        }
+
+        Array<Handle<ObjectBase>> lights;
+
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (!node->IsA<Light>())
+                {
+                    continue;
+                }
+
+                if (!node->IsStatic())
+                {
+                    continue;
+                }
+
+                Light* light = StaticCast<Light>(node);
+
+                if (!light->CanBakeStaticShadows())
+                {
+                    continue;
+                }
+
+                lights.PushBack(MakeStrongRef(node));
+            }
+        }
+
+        if (lights.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No static Lights in the active scene. Cannot bake.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Static Shadows")
+                .Text("No Lights marked as Static in the scene to bake shadow maps for. Mark a Light as Static (Directional Lights do not support baked shadows) and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(lights);
+        editorTask->SetIsForegroundTask(true);
+        InitObject(editorTask);
+
+        editorTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = subsystem->GetProjectWorld();
+        editorTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(editorTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildStaticShadows);
+
+#pragma endregion BuildStaticShadows
+
 #pragma region BuildBentNormals
 
 class EditorCommandBuildBentNormals final : public EditorCommandBase

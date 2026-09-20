@@ -3258,6 +3258,8 @@ bool EditorSubsystem::StopSimulation()
 
         Assert(IsSimulating());
 
+        SceneHelpers::SetGhostModeEnabled(false);
+
         {
             EditorTaskScope taskScope(
                 TickableEditorTask::StaticClass(),

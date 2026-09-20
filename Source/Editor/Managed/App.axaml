@@ -54,16 +54,17 @@
             <Color x:Key="Color.PanelRaised">#FF0E0F12</Color>
             <Color x:Key="Color.Border">#FF121416</Color>
             <Color x:Key="Color.BorderLight">#FF1A1C1F</Color>
-            <Color x:Key="Color.Accent">#FF81BBB6</Color>
-            <Color x:Key="Color.AccentHover">#FF9CC9C6</Color>
-            <Color x:Key="Color.AccentMuted">#FF49837E</Color>
-            <Color x:Key="Color.AccentSubtle">#1481BBB6</Color>
-            <Color x:Key="Color.AccentSelection">#3D81BBB6</Color>
+            <Color x:Key="Color.Accent">#FF3D7EFF</Color>
+            <Color x:Key="Color.AccentHover">#FF5C93FF</Color>
+            <Color x:Key="Color.AccentMuted">#FF2E5FC2</Color>
+            <Color x:Key="Color.AccentSubtle">#143D7EFF</Color>
+            <Color x:Key="Color.AccentSelection">#3D3D7EFF</Color>
             <Color x:Key="Color.Primary">#FF3D7EFF</Color>
             <Color x:Key="Color.PrimaryHover">#FF5C93FF</Color>
             <Color x:Key="Color.PrimaryMuted">#FF2E5FC2</Color>
-            <Color x:Key="Color.Evergreen">#FF1E2A24</Color>
-            <Color x:Key="Color.EvergreenBorder">#FF2F4438</Color>
+            <Color x:Key="Color.Play">#FF16A34A</Color>
+            <Color x:Key="Color.PlayHover">#FF22C55E</Color>
+            <Color x:Key="Color.PlayMuted">#FF15803D</Color>
             <Color x:Key="Color.Text">#FFD0D3D9</Color>
             <Color x:Key="Color.TextMuted">#FF72777E</Color>
             <Color x:Key="Color.TextFaint">#FF4A4E54</Color>
@@ -89,8 +90,9 @@
             <SolidColorBrush x:Key="Brush.Primary" Color="{StaticResource Color.Primary}" />
             <SolidColorBrush x:Key="Brush.PrimaryHover" Color="{StaticResource Color.PrimaryHover}" />
             <SolidColorBrush x:Key="Brush.PrimaryMuted" Color="{StaticResource Color.PrimaryMuted}" />
-            <SolidColorBrush x:Key="Brush.Evergreen" Color="{StaticResource Color.Evergreen}" />
-            <SolidColorBrush x:Key="Brush.EvergreenBorder" Color="{StaticResource Color.EvergreenBorder}" />
+            <SolidColorBrush x:Key="Brush.Play" Color="{StaticResource Color.Play}" />
+            <SolidColorBrush x:Key="Brush.PlayHover" Color="{StaticResource Color.PlayHover}" />
+            <SolidColorBrush x:Key="Brush.PlayMuted" Color="{StaticResource Color.PlayMuted}" />
             <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />
             <SolidColorBrush x:Key="Brush.TextMuted" Color="{StaticResource Color.TextMuted}" />
             <SolidColorBrush x:Key="Brush.TextFaint" Color="{StaticResource Color.TextFaint}" />
@@ -111,14 +113,14 @@
             <SolidColorBrush x:Key="DockThemeBorderLowBrush" Color="#FF121416" />
             <SolidColorBrush x:Key="DockThemeBorderMidBrush" Color="#FF1A1C1F" />
             <SolidColorBrush x:Key="DockThemeBorderHighBrush" Color="#FF282C32" />
-            <SolidColorBrush x:Key="DockThemeAccentBrush" Color="#FF81BBB6" />
+            <SolidColorBrush x:Key="DockThemeAccentBrush" Color="#FF3D7EFF" />
             <SolidColorBrush x:Key="DockThemeForegroundBrush" Color="#FFD0D3D9" />
             <SolidColorBrush x:Key="DockThemeForegroundLowBrush" Color="#FF72777E" />
             <SolidColorBrush x:Key="DockToolChromeIconBrush" Color="#FF72777E" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushLow" Color="#1481BBB6" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushMed" Color="#FF9CC9C6" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushHigh" Color="#FF81BBB6" />
-            <SolidColorBrush x:Key="DockApplicationAccentBrushIndicator" Color="#FF81BBB6" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushLow" Color="#143D7EFF" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushMed" Color="#FF5C93FF" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushHigh" Color="#FF3D7EFF" />
+            <SolidColorBrush x:Key="DockApplicationAccentBrushIndicator" Color="#FF3D7EFF" />
             <SolidColorBrush x:Key="DockApplicationAccentForegroundBrush" Color="#FFD0D3D9" />
 
             <SolidColorBrush x:Key="DockSurfaceWorkbenchBrush" Color="#FF020304" />
@@ -132,16 +134,16 @@
             <SolidColorBrush x:Key="DockSeparatorBrush" Color="#FF121416" />
             <SolidColorBrush x:Key="DockSplitterIdleBrush" Color="#FF121416" />
             <SolidColorBrush x:Key="DockSplitterHoverBrush" Color="#FF282C32" />
-            <SolidColorBrush x:Key="DockSplitterDragBrush" Color="#FF81BBB6" />
+            <SolidColorBrush x:Key="DockSplitterDragBrush" Color="#FF3D7EFF" />
             <SolidColorBrush x:Key="DockTabBackgroundBrush" Color="#00000000" />
             <SolidColorBrush x:Key="DockTabHoverBackgroundBrush" Color="#FF141618" />
             <SolidColorBrush x:Key="DockTabActiveBackgroundBrush" Color="#FF0A0B0D" />
-            <SolidColorBrush x:Key="DockTabActiveIndicatorBrush" Color="#FF81BBB6" />
+            <SolidColorBrush x:Key="DockTabActiveIndicatorBrush" Color="#FF3D7EFF" />
             <SolidColorBrush x:Key="DockTabForegroundBrush" Color="#FF72777E" />
             <SolidColorBrush x:Key="DockTabSelectedForegroundBrush" Color="#FFD0D3D9" />
             <SolidColorBrush x:Key="DockTabActiveForegroundBrush" Color="#FFD0D3D9" />
             <SolidColorBrush x:Key="DockTabCloseHoverBackgroundBrush" Color="#FF282C32" />
-            <SolidColorBrush x:Key="DockTargetIndicatorBrush" Color="#FF81BBB6" />
+            <SolidColorBrush x:Key="DockTargetIndicatorBrush" Color="#FF3D7EFF" />
             <SolidColorBrush x:Key="DockChromeButtonForegroundBrush" Color="#FF72777E" />
             <SolidColorBrush x:Key="DockChromeButtonHoverBackgroundBrush" Color="#FF141618" />
             <SolidColorBrush x:Key="DockChromeButtonPressedBackgroundBrush" Color="#FF282C32" />
@@ -516,17 +518,21 @@
             <Setter Property="Foreground" Value="White" />
         </Style>
         
+        <!--  Start simulation button - a vivid "GO" green so it reads as the primary action  -->
         <Style Selector="Button.Play">
-           <!-- start simulation button. evergreen to match the ribbon headings -->
-
-            <Setter Property="Background" Value="{DynamicResource Brush.Evergreen}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.EvergreenBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Play}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Play}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
 
+        <Style Selector="Button.Play:over">
+            <Setter Property="Background" Value="{DynamicResource Brush.PlayHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.PlayHover}" />
+        </Style>
+
         <Style Selector="Button.Play:pressed">
-            <Setter Property="Background" Value="{DynamicResource Brush.EvergreenBorder}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.EvergreenBorder}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PlayMuted}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.PlayMuted}" />
         </Style>
 
         <Style Selector="Button.reset-icon">

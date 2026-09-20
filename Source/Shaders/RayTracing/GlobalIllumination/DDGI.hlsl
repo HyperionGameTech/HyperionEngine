@@ -46,7 +46,7 @@ DECLARE_SRV(DDGI, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer
 
 DECLARE_SRV(DDGI, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
-#define RAY_OFFSET 0.0005
+#define RAY_OFFSET 0.05
 #define NUM_SAMPLES 1
 #define ENVIRONMENT_INTENSITY 1.0
 
