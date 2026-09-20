@@ -139,8 +139,8 @@ template <class T>
 struct SArray
 {
     T* data;
-    uint64 length;
-    uint64 cap;
+    uint32 length;
+    uint32 cap;
 };
 
 using SString = SArray<char>;
