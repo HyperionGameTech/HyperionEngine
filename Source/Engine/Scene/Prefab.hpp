@@ -10,6 +10,8 @@
 
 #include <Asset/AssetObject.hpp>
 
+#include <Core/Name/Name.hpp>
+
 namespace Hyperion {
 
 class Node;
@@ -35,6 +37,11 @@ public:
 
     HYP_METHOD()
     void SetRoot(const Handle<Node>& root);
+
+    HYP_METHOD()
+    Handle<Node> Spawn() const;
+
+    static UUID GetSourcePrefabUUID(const Node* node);
 
 private:
     HYP_FIELD(Property = "Root", Serialize)

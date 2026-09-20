@@ -493,8 +493,6 @@ IRenderProxy* GetRenderProxy(const void* resource)
 
     if (!subtypeData.proxies.HasIndex(resourceId.ToIndex()))
     {
-        HYP_LOG(Rendering, Warning, "No render proxy found for resource: {}", resourceId);
-
         return nullptr; // no proxy for this resource
     }
 

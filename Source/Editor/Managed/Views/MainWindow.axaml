@@ -1281,6 +1281,35 @@
                                                                         </MenuItem>
                                                                         <Separator />
                                                                         <MenuItem
+                                                                            Command="{Binding MakePrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Header="{Binding MakePrefabHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                        <!--  Right-clicking outside the selection acts on just that node  -->
+                                                                        <MenuItem
+                                                                            Command="{Binding MakePrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="Make Prefab"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsOutsideSelection}" />
+                                                                        <!--  Always acts on the current selection; the specific right-clicked node isn't threaded through this dynamic list  -->
+                                                                        <MenuItem
+                                                                            Header="Add to Prefab"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding HasAddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            ItemsSource="{Binding AddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.ItemContainerTheme>
+                                                                                <ControlTheme
+                                                                                    x:DataType="vm:AddToPrefabTargetViewModel"
+                                                                                    BasedOn="{StaticResource {x:Type MenuItem}}"
+                                                                                    TargetType="MenuItem">
+                                                                                    <Setter Property="Header" Value="{Binding PrefabName}" />
+                                                                                    <Setter Property="Command" Value="{Binding AddToPrefabCommand}" />
+                                                                                </ControlTheme>
+                                                                            </MenuItem.ItemContainerTheme>
+                                                                        </MenuItem>
+                                                                        <Separator />
+                                                                        <MenuItem
                                                                             Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding DeleteHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -2087,6 +2116,7 @@
                                                                         <MenuItem Command="{Binding ContentBrowser.NewMaterialCommand}" Header="Material" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewWeaponCommand}" Header="Weapon" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="Script" />
+                                                                        <MenuItem Command="{Binding ContentBrowser.NewPrefabCommand}" Header="Prefab" />
                                                                     </MenuFlyout>
                                                                 </Button.Flyout>
                                                             </Button>

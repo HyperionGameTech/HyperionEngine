@@ -98,6 +98,18 @@ AssetObject::~AssetObject()
 #endif // HYP_ASSET_OBJECT_THREAD_SAFE
 }
 
+void AssetObject::SetUUID(const UUID& uuid)
+{
+    if (uuid == m_uuid)
+    {
+        return;
+    }
+
+    m_uuid = uuid;
+
+    MarkDirty();
+}
+
 void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 {
     if (m_flags != flags)

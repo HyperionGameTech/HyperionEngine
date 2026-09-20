@@ -132,6 +132,17 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _deleteHeader, value);
         }
 
+        private string _makePrefabHeader = "Make Prefab";
+        public string MakePrefabHeader
+        {
+            get => _makePrefabHeader;
+            set => SetProperty(ref _makePrefabHeader, value);
+        }
+
+        public ObservableCollection<AddToPrefabTargetViewModel> AddToPrefabTargets { get; } = new ObservableCollection<AddToPrefabTargetViewModel>();
+
+        public bool HasAddToPrefabTargets => AddToPrefabTargets.Count > 0;
+
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
         private EditorCommand _addInstance;
@@ -348,6 +359,7 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand DeleteNode => new EditorCommand("DeleteNode");
         public EditorCommand Delete => new EditorCommand("DeleteNode");
+        public EditorCommand MakePrefab => new EditorCommand("MakePrefab");
         public EditorCommand TeleportToNode => new EditorCommand("TeleportTo", GetSelectedNodeUuid);
         public EditorCommand MoveToCameraNode => new EditorCommand("MoveToCamera", GetSelectedNodeUuid);
         public EditorCommand Copy => new EditorCommand("Copy");
@@ -630,6 +642,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _clipboardChangedHandler;
         private DelegateHandler? _selectedGizmoChangedHandler;
         private DelegateHandler? _activeSceneChangedHandler;
+        private DelegateHandler? _prefabAssetsChangedHandler;
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
         private DelegateHandler? _activeSwatchChangedHandler;
@@ -1149,6 +1162,17 @@ namespace Hyperion.Editor.ViewModels
             _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()
                 .Bind(HandleActiveSceneChanged);
 
+            _prefabAssetsChangedHandler?.Remove();
+            _prefabAssetsChangedHandler = _editorSubsystem.GetOnAssetsChangedDelegate().Bind((uint bucketIndex) =>
+            {
+                if (bucketIndex == AssetBucket.Prefabs.Value)
+                {
+                    RefreshAddToPrefabTargets();
+                }
+            });
+
+            RefreshAddToPrefabTargets();
+
             SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;
             SceneHierarchy.SelectionChanged += OnSceneHierarchySelectionChanged;
 
@@ -1198,6 +1222,7 @@ namespace Hyperion.Editor.ViewModels
             _clipboardChangedHandler?.Remove();
             _selectedGizmoChangedHandler?.Remove();
             _activeSceneChangedHandler?.Remove();
+            _prefabAssetsChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
@@ -1390,7 +1415,37 @@ namespace Hyperion.Editor.ViewModels
             int count = SceneHierarchy.SelectedNodes.Count;
             CopyHeader = count > 1 ? $"_Copy {count} Nodes" : "_Copy";
             DeleteHeader = count > 1 ? $"_Delete {count} Nodes" : "_Delete";
+            MakePrefabHeader = count > 1 ? $"Make Prefab from {count} Nodes" : "Make Prefab";
             CanCopy = count > 0;
+        }
+
+        private void RefreshAddToPrefabTargets()
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                AssetRegistry? registry = EngineManager.EditorGame?.AssetRegistry;
+                if (registry == null)
+                {
+                    return;
+                }
+
+                var names = registry.GetBucketAssetDescs(AssetBucket.Prefabs.Value)
+                    .Select(assetDesc => assetDesc.Name.ToString())
+                    .OrderBy(name => name, StringComparer.Ordinal)
+                    .ToList();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    AddToPrefabTargets.Clear();
+
+                    foreach (string name in names)
+                    {
+                        AddToPrefabTargets.Add(new AddToPrefabTargetViewModel(name));
+                    }
+
+                    OnPropertyChanged(nameof(HasAddToPrefabTargets));
+                });
+            });
         }
 
         private void OnClipboardChanged()
