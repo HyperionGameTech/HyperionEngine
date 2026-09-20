@@ -51,7 +51,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Rendering);
 static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
 
 /// # frames until we free up a shadow map slot
-static constexpr uint32 MaxFramesBeforeDiscard = 300;
+static constexpr uint32 MaxFramesBeforeDiscard = MathUtil::Max(NumFramesInFlight, RingBufferDepth);
 
 EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
 CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);

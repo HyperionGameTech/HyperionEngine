@@ -228,6 +228,12 @@
         <Style Selector="DropDownButton.gizmo-wide.Primary">
             <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
             <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
         </Style>
 
         <Style Selector="DropDownButton.gizmo-wide.Primary:pointerover">
@@ -666,6 +672,10 @@
                                   VerticalAlignment="Center"
                                   FontSize="11"
                                   Text="Add" />
+                              <controls:Codicon
+                                  VerticalAlignment="Center"
+                                  Kind="ChevronDown"
+                                  Size="10" />
                             </StackPanel>
 
                             <!--  Populated from MainWindow.BuildAddSceneMenuEntries so this list isn't duplicated between here and the scene hierarchy's "Add" submenu  -->

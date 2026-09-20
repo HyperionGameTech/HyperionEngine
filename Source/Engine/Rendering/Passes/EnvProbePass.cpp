@@ -1305,6 +1305,13 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
             // set to NAN to always resolve to false for comparison, until a valid light is found
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
+
+            // Don't capture without a sun bound -- whatever atmosphere/sky result that produces would
+            // get cached as this probe's irradiance and stay in effect (wrong) until something else
+            // happens to trigger another recapture. Skip this frame; envProbe->needsRender is untouched
+            // (only cleared on a fully successful capture below), so a later frame retries once the
+            // light is collected again.
+            return;
         }
 
         // recapture as clouds move, and once when they appear or go away
