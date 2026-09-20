@@ -35,8 +35,11 @@ namespace Hyperion {
 CVar<float> g_cvShadowDepthBias("Rendering.ShadowDepthBias", 0.05f);
 CVar<float> g_cvShadowDepthBiasDirectional("Rendering.ShadowDepthBiasDirectional", 0.05f);
 
+extern CVar<bool> g_cvCacheShadowMaps;
+
 static CVar<float> s_cvCSMDepthBiasTexels("Rendering.Shadows.CSMDepthBiasTexels", 1.0f);
 static CVar<bool> s_cvAsyncOmniShadowShaderLoading("Rendering.Shadows.AsyncOmniShaderLoading", true);
+static CVar<bool> s_cvShadowsParallelDrawCallCollection("Rendering.Shadows.ParallelDrawCallCollection", true);
 
 // Set to true to create camera-specific shadow maps for CSM
 // Will cause more shadow maps to be allocated, and specifically other non-main cameras
@@ -185,7 +188,7 @@ static ViewDesc GetViewDesc(
 
     const bool hasBakedStaticShadows = (light->GetLightFlags() & LightFlags::BakeStaticShadows)
         && light->GetBakedShadowMap().IsValid();
-    const bool cacheStaticShadowMaps = !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
+    const bool cacheStaticShadowMaps = g_cvCacheShadowMaps.Get() && !hasBakedStaticShadows && (light->GetLightFlags() & LightFlags::CacheStaticShadowMaps);
     const bool onlyStaticShadowMaps = (light->GetLightFlags() & LightFlags::OnlyDrawStaticShadowMaps);
 
     const bool splitStaticAndDynamic = cacheStaticShadowMaps || hasBakedStaticShadows || onlyStaticShadowMaps;
@@ -248,6 +251,11 @@ static ViewDesc GetViewDesc(
     if (!isOmni || !s_cvAsyncOmniShadowShaderLoading.Get())
     {
         viewDesc.flags |= ViewFlags::NO_ASYNC_SHADER_LOADING;
+    }
+
+    if (!s_cvShadowsParallelDrawCallCollection.Get())
+    {
+        viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
     }
 
     return viewDesc;

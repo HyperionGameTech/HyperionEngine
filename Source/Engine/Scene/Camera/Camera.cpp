@@ -705,6 +705,8 @@ void Camera::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
+    m_prevViewProjMat = m_viewProjMat;
+
     if (HasActiveCameraController())
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
@@ -858,9 +860,6 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.cameraFov = m_fov;
 
     bufferData.jitter = m_jitter;
-
-    // Save current view-projection as previous for next frame's velocity
-    m_prevViewProjMat = m_viewProjMat;
 }
 
 #pragma endregion Camera

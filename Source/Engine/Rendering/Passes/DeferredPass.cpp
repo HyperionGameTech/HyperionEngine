@@ -1654,17 +1654,17 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     DeferredPassData& passData = *passDataCasted;
 
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    if ((g_cvSkipRendering.Get() != 0) || rs.viewport.extent.Volume() == 0)
-    {
-        return;
-    }
+    const uint32 frameIndex = GetFrameCounter();
 
     if (m_renderedViewOutputs.frameIndex != frameIndex)
     {
         m_renderedViewOutputs.frameIndex = frameIndex;
         m_renderedViewOutputs.items.Resize(0);
+    }
+
+    if ((g_cvSkipRendering.Get() != 0) || rs.viewport.extent.Volume() == 0)
+    {
+        return;
     }
 
     // Assign lights and envprobes to tiles.
