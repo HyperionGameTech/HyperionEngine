@@ -2,11 +2,11 @@
 <div align="center">
   <img width="250" src="Documentation/Images/hyperion_light.png">
 </div>
-<div align="center">
+<p align="center">
     <a href="https://hyperionengine.dev">Website</a> • <a href="https://discord.gg/Fv8PwMJEUb">Discord</a>
-</div>
+</p>
 
-<div align="center" style="margin-top: 50px">
+<div align="center">
   <img width="700" src="Documentation/Images/terrain.png">
 </div>
 
