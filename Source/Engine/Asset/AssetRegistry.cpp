@@ -1677,7 +1677,7 @@ void AssetRegistry::SaveDirtyAssets()
                 continue;
             }
 
-            const FilePath manifestPath = GetManifestPath(assetObject->GetPath());
+            const FilePath manifestPath = bucketDir / (assetName.ToString() + ".hmf");
 
             if (Result saveBlobResult = assetObject->PersistBlobData(nullptr, bucketDir); saveBlobResult.HasError())
             {

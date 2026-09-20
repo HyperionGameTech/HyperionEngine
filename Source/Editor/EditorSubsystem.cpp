@@ -2495,6 +2495,25 @@ void EditorSubsystem::GenerateConvexCollision(Node* node)
         TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
+String EditorSubsystem::GetSourcePrefabName(Node* node) const
+{
+    const UUID prefabUUID = Prefab::GetSourcePrefabUUID(node);
+
+    if (prefabUUID == UUID::Invalid())
+    {
+        return String::empty;
+    }
+
+    Handle<Prefab> prefab = Prefab::FindByUUID(prefabUUID);
+
+    if (!prefab.IsValid())
+    {
+        return String::empty;
+    }
+
+    return prefab->GetName().ToString();
+}
+
 int32 EditorSubsystem::GetViewportForcedLod() const
 {
     return g_cvMeshLodForceLod.Get();

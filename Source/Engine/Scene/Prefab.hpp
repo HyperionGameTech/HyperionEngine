@@ -45,7 +45,13 @@ public:
     HYP_METHOD()
     static Handle<Prefab> Find(const ANSIStringView& nameStr);
 
+    /*! \brief Look up a registered Prefab asset by its UUID */
+    static Handle<Prefab> FindByUUID(const UUID& uuid);
+
     static UUID GetSourcePrefabUUID(const Node* node);
+
+    static void TagAsPrefabInstance(Node* node, const UUID& prefabUUID);
+    static void UntagAsPrefabInstance(Node* node);
 
 private:
     HYP_FIELD(Property = "Root", Serialize)

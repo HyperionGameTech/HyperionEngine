@@ -495,6 +495,10 @@ public:
     HYP_METHOD()
     void GenerateConvexCollision(Node* node);
 
+    /*! \brief The name of the Prefab \p node was spawned from */
+    HYP_METHOD()
+    String GetSourcePrefabName(Node* node) const;
+
     /*! \brief LOD every mesh renders at in the viewport: -1 selects automatically, otherwise the LOD index. */
     HYP_METHOD()
     int32 GetViewportForcedLod() const;

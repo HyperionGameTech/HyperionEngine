@@ -3955,8 +3955,6 @@ static bool ResolvePrefabSourceNodes(EditorSubsystem* subsystem, Scene* activeSc
     return outValidNodes.Any();
 }
 
-// Scene Hierarchy context menu action: always creates a brand-new Prefab asset from the selection (or
-// the right-clicked node), grouping a multi-node selection under a new node in the live scene first.
 class EditorCommandMakePrefab final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandMakePrefab);
@@ -3966,12 +3964,21 @@ public:
 
     virtual String GetText() const override
     {
-        return "Make Prefab";
+        return "Save as Prefab";
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandMakePrefab: missing required prefab name argument");
+            return;
+        }
+
+        const ANSIString prefabNameStr = GetArgument(0);
+        const Name prefabName = Name(prefabNameStr);
 
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
         if (!currentProject.IsValid())
@@ -3988,7 +3995,7 @@ public:
         }
 
         Array<Handle<Node>> validNodes;
-        if (!ResolvePrefabSourceNodes(subsystem, activeScene.Get(), NumArguments() >= 1 ? GetArgument(0) : String::empty, validNodes))
+        if (!ResolvePrefabSourceNodes(subsystem, activeScene.Get(), NumArguments() >= 2 ? GetArgument(1) : String::empty, validNodes))
         {
             HYP_LOG(Editor, Warning, "EditorCommandMakePrefab: no valid nodes to make a prefab from");
             return;
@@ -4016,8 +4023,6 @@ public:
         centroid /= float(records.Size());
 
         const bool isMultiGroup = records.Size() > 1;
-
-        const Name prefabName = NAME("NewPrefab");
 
         Handle<Node> groupNode;
         Handle<Node> parentForGroup;
@@ -4122,6 +4127,12 @@ public:
 
                                     editorSubsystem->SetSelectedNodes({ groupNode });
                                     editorSubsystem->SetFocusedNode(groupNode, true);
+
+                                    Prefab::TagAsPrefabInstance(groupNode.Get(), prefab->GetUUID());
+                                }
+                                else
+                                {
+                                    Prefab::TagAsPrefabInstance(records[0].node.Get(), prefab->GetUUID());
                                 }
 
                                 GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
@@ -4150,6 +4161,10 @@ public:
                                     }
 
                                     groupNode->Remove();
+                                }
+                                else
+                                {
+                                    Prefab::UntagAsPrefabInstance(records[0].node.Get());
                                 }
 
                                 editorSubsystem->SetSelectedNodes(previousSelectedNodes);
@@ -4349,6 +4364,96 @@ public:
 };
 
 DEFINE_EDITOR_COMMAND(NewPrefab);
+
+class EditorCommandSavePrefab final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSavePrefab);
+
+public:
+    virtual ~EditorCommandSavePrefab() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Save Prefab";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefab: no project loaded");
+            return;
+        }
+
+        Node* rawNode = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String::empty);
+        Handle<Node> node = rawNode ? MakeStrongRef(rawNode) : subsystem->GetFocusedNode();
+
+        if (!node.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefab: no node to save");
+            return;
+        }
+
+        const UUID prefabUUID = Prefab::GetSourcePrefabUUID(node.Get());
+
+        if (prefabUUID == UUID::Invalid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefab: node '{}' is not a Prefab instance", node->GetName());
+            return;
+        }
+
+        Handle<Prefab> prefab = Prefab::FindByUUID(prefabUUID);
+
+        if (!prefab.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefab: could not find source Prefab for node '{}'", node->GetName());
+            return;
+        }
+
+        Handle<Node> newRoot = node->Clone();
+
+        if (!newRoot.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefab: failed to clone node '{}'", node->GetName());
+            return;
+        }
+
+        // Author at local origin
+        Transform rootLocalTransform = newRoot->GetLocalTransform();
+        rootLocalTransform.SetTranslation(Vec3f::Zero());
+        newRoot->SetLocalTransform(rootLocalTransform);
+
+        Handle<Node> previousRoot = prefab->GetRoot();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Save Prefab {}", prefab->GetName()),
+            Proc<EditorActionFunctions()>(
+                [prefab, newRoot, previousRoot]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab, newRoot](EditorSubsystem*, EditorProject*)
+                            {
+                                prefab->SetRoot(newRoot);
+                                GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab, previousRoot](EditorSubsystem*, EditorProject*)
+                            {
+                                prefab->SetRoot(previousRoot);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SavePrefab);
 
 #pragma endregion Prefab
 

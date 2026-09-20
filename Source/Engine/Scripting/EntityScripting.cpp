@@ -89,6 +89,7 @@ struct FunctionPointerCache
     using ModuleMap = Map<StringHash, FunctionMap>;
 
     ModuleMap modules;
+    ModuleMap warnedMissing;
 
     void* TryGet(StringHash moduleHash, StringHash functionHash) const
     {
@@ -117,9 +118,24 @@ struct FunctionPointerCache
         modules[moduleHash][functionHash] = fnPtr;
     }
 
+    bool ShouldWarnMissing(StringHash moduleHash, StringHash functionHash)
+    {
+        FunctionMap& fnMap = warnedMissing[moduleHash];
+
+        if (fnMap.Find(functionHash) != fnMap.End())
+        {
+            return false;
+        }
+
+        fnMap[functionHash] = (void*)1;
+
+        return true;
+    }
+
     void ClearModule(StringHash moduleHash)
     {
         modules.Erase(moduleHash);
+        warnedMissing.Erase(moduleHash);
     }
 };
 
@@ -192,6 +208,16 @@ static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* n
     if (fn == nullptr)
     {
         fn = ResolveSymbolFromHost(name);
+    }
+
+    if (fn == nullptr)
+    {
+        if (t_fnPtrCache->ShouldWarnMissing(data->moduleHash, functionHash))
+        {
+            HYP_LOG(Scripting, Warning, "Strata: function '{}' not found", name);
+        }
+
+        return nullptr;
     }
 
     t_fnPtrCache->Put(data->moduleHash, functionHash, fn);
@@ -610,6 +636,10 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         HYP_LOG(Scripting, Warning, "Strata source '{}' not found; assuming AOT-linked symbols.",
                                 scriptDesc.path.Data());
                     }
+#    else
+                    HYP_LOG(Scripting, Warning, "This build has no LLVM JIT backend, so '{}' will only run "
+                                                 "if it was AOT-compiled with stratac. Scripts created or edited after the build will not execute!",
+                            scriptAsset->GetName());
 #    endif // HYP_STRATA_JIT
                 }
 

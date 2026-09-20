@@ -9,7 +9,6 @@
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:local="clr-namespace:Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:views="clr-namespace:Hyperion.Editor.Views;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
     Title="Hyperion Editor"
@@ -1180,6 +1179,16 @@
                                                                         IsVisible="{Binding IsEditingName}"
                                                                         Text="{Binding EditingName, Mode=TwoWay}" />
                                                                 </StackPanel>
+                                                                <!--  Right-hand indicator: this node was spawned from a Prefab  -->
+                                                                <controls:Codicon
+                                                                    Margin="0,0,6,0"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Center"
+                                                                    Kind="Prefab"
+                                                                    Opacity="0.6"
+                                                                    IsVisible="{Binding IsPrefabInstance}"
+                                                                    Size="12"
+                                                                    ToolTip.Tip="{Binding PrefabInstanceTooltip}" />
                                                                 <Grid.ContextMenu>
                                                                     <ContextMenu Opened="OnNodeContextMenuOpened">
                                                                         <!--  Submenu populated from MainWindow.BuildAddSceneMenuEntries - the same list the toolbar's Add dropdown uses  -->
@@ -1281,21 +1290,22 @@
                                                                         </MenuItem>
                                                                         <Separator />
                                                                         <MenuItem
-                                                                            Command="{Binding MakePrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Command="{Binding SaveAsPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding MakePrefabHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsVisible="{Binding !IsOutsideSelection}" />
                                                                         <!--  Right-clicking outside the selection acts on just that node  -->
                                                                         <MenuItem
-                                                                            Command="{Binding MakePrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Command="{Binding SaveAsPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
-                                                                            Header="Make Prefab"
+                                                                            Header="Save as Prefab..."
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsVisible="{Binding IsOutsideSelection}" />
                                                                         <!--  Always acts on the current selection; the specific right-clicked node isn't threaded through this dynamic list  -->
                                                                         <MenuItem
                                                                             Header="Add to Prefab"
                                                                             IsEnabled="{Binding HasAddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsPrefabInstance}"
                                                                             ItemsSource="{Binding AddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}">
                                                                             <MenuItem.ItemContainerTheme>
                                                                                 <ControlTheme
@@ -1307,6 +1317,12 @@
                                                                                 </ControlTheme>
                                                                             </MenuItem.ItemContainerTheme>
                                                                         </MenuItem>
+                                                                        <MenuItem
+                                                                            Command="{Binding SavePrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="{Binding SavePrefabHeader}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsPrefabInstance}" />
                                                                         <Separator />
                                                                         <MenuItem
                                                                             Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -2310,8 +2326,5 @@
                 </Border>
             </Grid>
         </DockPanel>
-
-        <!--  Foreground task overlay  -->
-        <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
     </Grid>
 </Window>

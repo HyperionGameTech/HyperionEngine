@@ -44,6 +44,9 @@
         <DataTemplate DataType="vm:NetworkSettingsPanelViewModel">
             <panels:NetworkSettingsPanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:SaveAsPrefabPanelViewModel">
+            <panels:SaveAsPrefabPanelView />
+        </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Resources>

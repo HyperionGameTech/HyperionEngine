@@ -21,6 +21,7 @@ namespace Hyperion.Editor.ViewModels
             "Animation" or "AnimationTrack"     => "FileMedia",
             "Scene" or "World"                  => "Globe",
             "LightmapVolume"                    => "Package",
+            "Prefab"                            => "Prefab",
             "FogVolume"                         => "Cloud",
             "Entity"                            => "CircleLarge",
             "Node"                              => "Circle",

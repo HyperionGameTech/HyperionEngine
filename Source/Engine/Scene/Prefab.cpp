@@ -80,8 +80,7 @@ Handle<Node> Prefab::Spawn() const
     }
 
     // Clone() carries the template's tags over, so drop any inherited source tag before applying ours
-    node->RemoveTag(s_namePrefabSource);
-    node->AddTag(NodeTag(s_namePrefabSource, GetUUID()));
+    TagAsPrefabInstance(node.Get(), GetUUID());
 
     return node;
 }
@@ -89,6 +88,32 @@ Handle<Node> Prefab::Spawn() const
 Handle<Prefab> Prefab::Find(const ANSIStringView& nameStr)
 {
     return GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, StringHash(nameStr));
+}
+
+/// @TODO: Create an AssetRegistry method for this, and roll into that.
+Handle<Prefab> Prefab::FindByUUID(const UUID& uuid)
+{
+    if (uuid == UUID::Invalid())
+    {
+        return Handle<Prefab>::Null();
+    }
+
+    Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+
+    Array<AssetDesc> descs;
+    registry->GetBucketAssetDescs(AssetBuckets::Prefabs.GetIndex(), descs);
+
+    for (const AssetDesc& desc : descs)
+    {
+        Handle<Prefab> prefab = registry->GetAsset<Prefab>(AssetBuckets::Prefabs, desc.name);
+
+        if (prefab.IsValid() && prefab->GetUUID() == uuid)
+        {
+            return prefab;
+        }
+    }
+
+    return Handle<Prefab>::Null();
 }
 
 UUID Prefab::GetSourcePrefabUUID(const Node* node)
@@ -104,6 +129,29 @@ UUID Prefab::GetSourcePrefabUUID(const Node* node)
     }
 
     return UUID::Invalid();
+}
+
+void Prefab::TagAsPrefabInstance(Node* node, const UUID& prefabUUID)
+{
+    if (!node)
+    {
+        return;
+    }
+
+    // A node may already carry a source tag (e.g. it was cloned from another instance), so
+    // replace it outright rather than stacking tags.
+    node->RemoveTag(s_namePrefabSource);
+    node->AddTag(NodeTag(s_namePrefabSource, prefabUUID));
+}
+
+void Prefab::UntagAsPrefabInstance(Node* node)
+{
+    if (!node)
+    {
+        return;
+    }
+
+    node->RemoveTag(s_namePrefabSource);
 }
 
 #pragma endregion Prefab

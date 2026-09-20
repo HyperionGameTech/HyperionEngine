@@ -93,6 +93,25 @@ namespace Hyperion.Editor.ViewModels
             _                   => "Circle",
         };
 
+        private string _sourcePrefabName;
+
+        public bool IsPrefabInstance => _sourcePrefabName.Length != 0;
+        public string SourcePrefabName => _sourcePrefabName;
+        public string SavePrefabHeader => $"Save Prefab '{_sourcePrefabName}'";
+        public string PrefabInstanceTooltip => $"Prefab instance: {_sourcePrefabName}";
+
+        public void RefreshSourcePrefab()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            _sourcePrefabName = EngineManager.EditorGame?.EditorSubsystem?.GetSourcePrefabName(_node) ?? string.Empty;
+
+            OnPropertyChanged(nameof(IsPrefabInstance));
+            OnPropertyChanged(nameof(SourcePrefabName));
+            OnPropertyChanged(nameof(SavePrefabHeader));
+            OnPropertyChanged(nameof(PrefabInstanceTooltip));
+        }
+
         private readonly List<NodeViewModel> _allChildren = new List<NodeViewModel>();
 
         public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
@@ -313,6 +332,8 @@ namespace Hyperion.Editor.ViewModels
             _onChildrenChanged = onChildrenChanged;
             _index = index;
             _name = node.Name.ToString();
+
+            _sourcePrefabName = EngineManager.EditorGame?.EditorSubsystem?.GetSourcePrefabName(node) ?? string.Empty;
 
             // Root nodes are expanded by default
             _isExpanded = parent == null;

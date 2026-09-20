@@ -67,6 +67,7 @@ namespace Hyperion.Editor
         private EditorViewportControl? _editorViewport;
         private WorldSettingsWindow? _worldSettingsWindow;
         private IDock? _dynamicPanelsDock;
+        private ForegroundTaskWindow? _foregroundTaskWindow;
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
         private int _frameCounter;
         private bool _viewportNativeHidden;
@@ -101,6 +102,7 @@ namespace Hyperion.Editor
             AddHandler(InputElement.KeyDownEvent, OnNodeRenameTextBoxKeyDown, RoutingStrategies.Bubble);
 
             Opened += OnWindowOpened;
+            Closed += (_, _) => _foregroundTaskWindow?.Close();
         }
 
         private void OnWindowOpened(object? sender, EventArgs e)
@@ -110,6 +112,12 @@ namespace Hyperion.Editor
                 var topLevel = TopLevel.GetTopLevel(this);
                 topLevel?.RequestAnimationFrame(OnFrame);
             }
+
+            _foregroundTaskWindow = new ForegroundTaskWindow
+            {
+                DataContext = (DataContext as MainWindowViewModel)?.ForegroundTask
+            };
+            _foregroundTaskWindow.AttachTo(this);
 
             // The dock layout hosts the panel content inside its own template namescope, so the
             // named controls are not reachable via FindControl from the window. Locate them by
@@ -703,6 +711,7 @@ namespace Hyperion.Editor
                 nodeViewModel.RefreshActions();
                 nodeViewModel.RefreshMoveToSceneTargets();
                 nodeViewModel.RefreshCollisionState();
+                nodeViewModel.RefreshSourcePrefab();
 
                 if (DataContext is MainWindowViewModel mvm)
                 {

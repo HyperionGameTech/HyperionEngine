@@ -132,7 +132,7 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _deleteHeader, value);
         }
 
-        private string _makePrefabHeader = "Make Prefab";
+        private string _makePrefabHeader = "Save as Prefab...";
         public string MakePrefabHeader
         {
             get => _makePrefabHeader;
@@ -359,7 +359,8 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand DeleteNode => new EditorCommand("DeleteNode");
         public EditorCommand Delete => new EditorCommand("DeleteNode");
-        public EditorCommand MakePrefab => new EditorCommand("MakePrefab");
+        public ICommand SaveAsPrefab { get; private set; }
+        public EditorCommand SavePrefab => new EditorCommand("SavePrefab");
         public EditorCommand TeleportToNode => new EditorCommand("TeleportTo", GetSelectedNodeUuid);
         public EditorCommand MoveToCameraNode => new EditorCommand("MoveToCamera", GetSelectedNodeUuid);
         public EditorCommand Copy => new EditorCommand("Copy");
@@ -1055,6 +1056,25 @@ namespace Hyperion.Editor.ViewModels
                 PanelService.Instance.OpenPanel(panel);
             }, () => !IsSimulating);
 
+            SaveAsPrefab = new RelayCommand<object?>(target =>
+            {
+                string? uuidArg = target is UUID uuid ? uuid.ToString() : null;
+
+                var panel = new SaveAsPrefabPanelViewModel(prefabName =>
+                {
+                    if (string.IsNullOrEmpty(prefabName))
+                    {
+                        return;
+                    }
+
+                    string argument = string.IsNullOrEmpty(uuidArg) ? prefabName : $"{prefabName} {uuidArg}";
+
+                    EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommandMakePrefab"), argument);
+                });
+
+                PanelService.Instance.OpenPanel(panel);
+            }, _ => !IsSimulating);
+
             AddNewLayerCommand = new RelayCommand(() =>
             {
                 var panel = new AddNewLayerPanelViewModel(result =>
@@ -1421,7 +1441,7 @@ namespace Hyperion.Editor.ViewModels
             int count = SceneHierarchy.SelectedNodes.Count;
             CopyHeader = count > 1 ? $"_Copy {count} Nodes" : "_Copy";
             DeleteHeader = count > 1 ? $"_Delete {count} Nodes" : "_Delete";
-            MakePrefabHeader = count > 1 ? $"Make Prefab from {count} Nodes" : "Make Prefab";
+            MakePrefabHeader = count > 1 ? $"Save {count} Nodes as Prefab..." : "Save as Prefab...";
             CanCopy = count > 0;
         }
 

@@ -42,7 +42,7 @@ public:
 
     ~ScriptAsset();
     
-    HYP_METHOD(Property = "ScriptAsset", Serialize)
+    HYP_METHOD()
     HYP_FORCE_INLINE ScriptDesc& GetScriptDesc()
     {
         return m_scriptDesc;
