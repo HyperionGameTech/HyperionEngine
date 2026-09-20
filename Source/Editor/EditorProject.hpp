@@ -109,6 +109,18 @@ public:
     }
 
     HYP_METHOD()
+    HYP_FORCE_INLINE const Vec3f& GetEditorCameraPosition() const
+    {
+        return m_editorCameraPosition;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Vec3f& GetEditorCameraDirection() const
+    {
+        return m_editorCameraDirection;
+    }
+
+    HYP_METHOD()
     void AddScene(const Handle<Scene>& scene);
 
     HYP_METHOD()

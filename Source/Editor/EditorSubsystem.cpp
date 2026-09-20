@@ -4552,6 +4552,29 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     OnProjectOpened(m_currentProject);
 
     g_editorState->SetCurrentProject(m_currentProject, isSimulationStateChange);
+
+    const Vec3f editorCameraDirection = project->GetEditorCameraDirection();
+
+    if (!MathUtil::ApproxEqual(editorCameraDirection, Vec3f::Zero()))
+    {
+        Camera* editorCamera = nullptr;
+
+        if (EditorViewport* activeViewport = GetActiveViewport())
+        {
+            editorCamera = activeViewport->GetCamera();
+        }
+
+        if (!editorCamera)
+        {
+            editorCamera = g_editorState->GetEditorCamera();
+        }
+
+        if (editorCamera)
+        {
+            editorCamera->SetWorldTranslation(project->GetEditorCameraPosition());
+            editorCamera->SetDirection(editorCameraDirection);
+        }
+    }
 }
 
 void EditorSubsystem::ShowImportContentDialog()
