@@ -18,8 +18,6 @@
 
 #include <Scene/Prefab.hpp>
 #include <Scene/EntityManager.hpp>
-#include <Scene/EnvProbe.hpp>
-#include <Scene/LightmapVolume.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -252,7 +250,6 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
-    // @TODO we should show a "Commit" ui button, and when clicked, that will actually set the
 
     if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
@@ -263,22 +260,13 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                 const BoundingBox finalBounds = m_currentBounds;
                 const BoundingBox originalBounds = m_dragData->originalBounds;
 
-                // EnvProbes and LightmapVolumes should always be centered on their AABB -
-                // recenter the node's world transform to the new bounds' center whenever the shape is edited.
-                const bool shouldRecenterTransform = focusedNode->IsA<EnvProbe>() || focusedNode->IsA<LightmapVolume>();
-
                 project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
                     "Edit Volume Shape",
-                    [manipulationMode = GetManipulationMode(), focusedNode, finalBounds, originalBounds, shouldRecenterTransform]() -> EditorActionFunctions
+                    [manipulationMode = GetManipulationMode(), focusedNode, finalBounds, originalBounds]() -> EditorActionFunctions
                     {
                         return {
-                            [focusedNode, finalBounds, manipulationMode, shouldRecenterTransform](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [focusedNode, finalBounds, manipulationMode](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
-                                if (shouldRecenterTransform)
-                                {
-                                    focusedNode->SetWorldTranslation(finalBounds.GetCenter());
-                                }
-
                                 BoundingBox finalBoundsLocal = finalBounds;
                                 finalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * finalBoundsLocal;
 
@@ -287,13 +275,8 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                                 editorSubsystem->SetSelectedManipulationMode(manipulationMode);
                                 editorSubsystem->SetFocusedNode(focusedNode, true);
                             },
-                            [focusedNode, originalBounds, manipulationMode, shouldRecenterTransform](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [focusedNode, originalBounds, manipulationMode](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
-                                if (shouldRecenterTransform)
-                                {
-                                    focusedNode->SetWorldTranslation(originalBounds.GetCenter());
-                                }
-
                                 BoundingBox originalBoundsLocal = originalBounds;
                                 originalBoundsLocal = focusedNode->GetWorldMatrix().Inverse() * originalBoundsLocal;
 
