@@ -104,10 +104,10 @@ RendererResult DX12RayTracingPipeline::Create()
     }
 
     // Build export names as wide strings for the DXIL library
-    Array<D3D12_EXPORT_DESC, InlineAllocator<5, DX12Allocator>> exports;
+    FatArray<D3D12_EXPORT_DESC, InlineAllocator<5, DX12Allocator>> exports;
     exports.Reserve(rtModules.Size());
 
-    Array<D3D12_DXIL_LIBRARY_DESC, InlineAllocator<5, DX12Allocator>> dxilLibraries;
+    FatArray<D3D12_DXIL_LIBRARY_DESC, InlineAllocator<5, DX12Allocator>> dxilLibraries;
     dxilLibraries.Reserve(rtModules.Size());
 
     for (const RayTracingModule& mod : rtModules)
@@ -216,7 +216,7 @@ RendererResult DX12RayTracingPipeline::Create()
     *pPipelineConfig = pipelineConfig;
 
     // Build subobjects array
-    Array<D3D12_STATE_SUBOBJECT, InlineAllocator<9, DX12Allocator>> subobjects;
+    FatArray<D3D12_STATE_SUBOBJECT, InlineAllocator<9, DX12Allocator>> subobjects;
     subobjects.Reserve(dxilLibraries.Size() + int(hasHitGroup) + 3);
 
     for (uint32 i = 0; i < uint32(dxilLibraries.Size()); i++)

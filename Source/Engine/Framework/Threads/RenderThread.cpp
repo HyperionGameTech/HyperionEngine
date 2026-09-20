@@ -19,6 +19,7 @@
 
 #include <Rendering/PostFX.hpp>
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/CrashHandler.hpp>
 #include <Rendering/GBuffer.hpp>
 #include <Rendering/FinalPass.hpp>
 #include <Rendering/ShaderManager.hpp>
@@ -131,6 +132,13 @@ void RenderThread::Update()
 
     if (HYP_UNLIKELY(m_stopRequested.LoadVolatile()))
     {
+        return;
+    }
+
+    if (HYP_UNLIKELY(RI.CheckDeviceRemoved()))
+    {
+        CrashHandler::Dump();
+
         return;
     }
 

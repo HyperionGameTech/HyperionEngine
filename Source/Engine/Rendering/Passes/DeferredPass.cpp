@@ -2257,6 +2257,11 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
+            if (!pd->rayTracingTlases[frameIndex]->ContainsBLAS(key))
+            {
+                continue;
+            }
+
             const bool removed = pd->rayTracingTlases[frameIndex]->RemoveBLAS(key);
 
             if (!removed)
@@ -2309,6 +2314,14 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
+                // The TLAS may have been torn down and rebuilt from scratch since oldKey was added
+                // (e.g. the view had zero ray traced mesh entities for a frame), in which case it
+                // never held this BLAS to begin with - that's expected, not an error.
+                if (!pd->rayTracingTlases[frameIndex]->ContainsBLAS(oldKey))
+                {
+                    continue;
+                }
+
                 const bool removed = pd->rayTracingTlases[frameIndex]->RemoveBLAS(oldKey);
                 AssertDebug(removed);
 

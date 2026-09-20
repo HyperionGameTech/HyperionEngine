@@ -117,9 +117,12 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const Handle<Text
 
     if (!bakedTexture->IsCreated())
     {
-        if (!Check(bakedTexture->Create()))
+        RendererResult bakedTextureCreateResult = bakedTexture->Create();
+
+        if (bakedTextureCreateResult.HasError())
         {
-            HYP_LOG(Rendering, Error, "Failed to create prefiltered env map for EnvProbe {}, cannot convolve", envProbe.Id());
+            HYP_LOG(Rendering, Error, "Failed to create prefiltered env map for EnvProbe {}, cannot convolve: {}",
+                envProbe.Id(), bakedTextureCreateResult.GetError().GetMessage());
 
             return;
         }
@@ -132,6 +135,13 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const Handle<Text
         TextureType::Cubemap,
         bakedTexture->GetFormat(),
         bakedTexture->GetExtent());
+
+    if (!dstTexture.IsValid())
+    {
+        HYP_LOG(Rendering, Error, "Failed to acquire scratch image for EnvProbe {}, cannot convolve", envProbe.Id());
+
+        return;
+    }
 
     cr << InsertBarrier(dstTexture->GetGpuImage(), ResourceState::ShaderResource);
 
@@ -150,6 +160,13 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const Handle<Text
             TextureType::Cubemap,
             bakedTexture->GetFormat(),
             inTexture->GetExtent());
+
+        if (!srcTexture.IsValid())
+        {
+            HYP_LOG(Rendering, Error, "Failed to acquire scratch image for EnvProbe {}, cannot convolve", envProbe.Id());
+
+            return;
+        }
 
         cr << InsertBarrier(srcTexture->GetGpuImage(), ResourceState::ShaderResource);
     }
@@ -985,9 +1002,12 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
 
     if (!dstTexture->IsCreated())
     {
-        if (!Check(dstTexture->Create()))
+        RendererResult dstTextureCreateResult = dstTexture->Create();
+
+        if (dstTextureCreateResult.HasError())
         {
-            HYP_LOG(Rendering, Error, "Failed to create visibility texture for EnvProbe {}, cannot update", envProbe->Id());
+            HYP_LOG(Rendering, Error, "Failed to create visibility texture for EnvProbe {}, cannot update: {}",
+                envProbe->Id(), dstTextureCreateResult.GetError().GetMessage());
 
             return;
         }
@@ -1018,6 +1038,13 @@ void UpdateEnvProbeVisibilityTexture(Frame* frame, EnvProbe* envProbe, bool shou
         TextureType::Cubemap,
         dstTexture->GetFormat(),
         dstExtent);
+
+    if (!scratchTexture.IsValid())
+    {
+        HYP_LOG(Rendering, Error, "Failed to acquire scratch image for EnvProbe {}, cannot update visibility texture", envProbe->Id());
+
+        return;
+    }
 
     // Blit framebuffer -> scratch
     cr << InsertBarrier(srcTexture->GetGpuImage(), ResourceState::CopySrc);

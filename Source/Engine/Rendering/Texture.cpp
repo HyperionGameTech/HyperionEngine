@@ -115,7 +115,12 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         g_renderInitSignal.Wait();
     }
 
-    CheckResultOrReturn(image.Create());
+    RendererResult imageCreateResult = image.Create();
+
+    if (imageCreateResult.HasError())
+    {
+        return imageCreateResult;
+    }
 
     CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder();
 
@@ -450,7 +455,12 @@ RendererResult Texture::Create()
         }
 #endif
 
-        CheckResultOrReturn(CreateGpuImage(*this, *gpuImage, ResourceState::ShaderResource, shouldUploadTextureData));
+        RendererResult createGpuImageResult = CreateGpuImage(*this, *gpuImage, ResourceState::ShaderResource, shouldUploadTextureData);
+
+        if (createGpuImageResult.HasError())
+        {
+            return createGpuImageResult;
+        }
 
         // done with image data
         readScope.Reset();
@@ -472,7 +482,12 @@ RendererResult Texture::Create()
     // Do that now!
     if (!m_gpuImage->IsCreated())
     {
-        CheckResultOrReturn(m_gpuImage->Create());
+        RendererResult gpuImageCreateResult = m_gpuImage->Create();
+
+        if (gpuImageCreateResult.HasError())
+        {
+            return gpuImageCreateResult;
+        }
     }
 
     isUploaded.Store(true);

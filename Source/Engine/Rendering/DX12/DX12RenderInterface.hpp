@@ -96,7 +96,7 @@ public:
 
     /*! \brief Checks if the D3D12 device has been removed and logs the reason.
      *  \return true if the device has been removed, false otherwise. */
-    bool CheckDeviceRemoved() const;
+    bool CheckDeviceRemoved() const override;
 
     DX12CommandBuffer& GetTransientCommandBuffer() override;
     void SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer) override;

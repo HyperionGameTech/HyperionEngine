@@ -147,12 +147,13 @@ struct StagingBufferPoolImpl
         newBuffer.buffer->SetDebugName(NAME("StagingBufferPoolTempBuffer"));
 #endif
 
-        Check(newBuffer.buffer->Create());
+        if (Check(newBuffer.buffer->Create()))
+        {
+            void* dataPtr = newBuffer.buffer->Map();
+            Assert(dataPtr != nullptr);
 
-        void* dataPtr = newBuffer.buffer->Map();
-        Assert(dataPtr != nullptr);
-
-        Memory::Zero(dataPtr, bufferSize);
+            Memory::Zero(dataPtr, bufferSize);
+        }
 
         return usedBuffers.PushBack(std::move(newBuffer)).buffer.Get();
     }

@@ -608,7 +608,16 @@ const IRenderConfig& DX12RenderInterface::GetRenderConfig() const
 
 bool DX12RenderInterface::CheckDeviceRemoved() const
 {
-    return CheckDeviceRemovedReason(m_device.Get()) != nullptr;
+    const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
+
+    if (!deviceRemovedReason)
+    {
+        return false;
+    }
+
+    HYP_LOG(RenderingBackend, Error, "Device removed: {}", deviceRemovedReason);
+
+    return true;
 }
 
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const

@@ -610,12 +610,7 @@ static inline bool Check(const TResultType& result)
 {
     static constexpr const char* NoMessageText = "<no message>";
 
-#if HYP_DEBUG_MODE
     Assert(result, "Result check failed: {}", result.HasError() ? result.GetError().GetMessage() : NoMessageText);
-#else
-    if (HYP_UNLIKELY(!result))
-        HYP_FAIL("Result check failed: {}", result.HasError() ? result.GetError().GetMessage() : NoMessageText);
-#endif
 
     return bool(result);
 }
