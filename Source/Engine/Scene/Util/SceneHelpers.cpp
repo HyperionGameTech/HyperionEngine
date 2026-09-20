@@ -30,9 +30,24 @@
 #include <Physics/PhysicsShape.hpp>
 
 #include <Framework/Client/GameClient.hpp>
+#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 namespace SceneHelpers {
+
+static constexpr float GhostModeSpeedMultiplier = 2.5f;
+
+static CVar<bool> s_cvGhostMode { "Player.GhostMode", false };
+
+bool IsGhostModeEnabled()
+{
+    return s_cvGhostMode.Get();
+}
+
+void SetGhostModeEnabled(bool enabled)
+{
+    s_cvGhostMode.Set(enabled);
+}
 
 Camera* FindMainCamera(const World& world)
 {
@@ -163,6 +178,72 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
 
     if (!component.physicsHandle)
     {
+        return;
+    }
+
+    if (s_cvGhostMode.Get())
+    {
+        const Vec3f viewDirection = move.GetViewDirection();
+        const Vec2f movementInput = move.GetMovementInput();
+
+        const Vec3f horizontalView = { viewDirection.x, 0.0f, viewDirection.z };
+
+        if (horizontalView.LengthSquared() > 0.0001f)
+        {
+            component.viewDirection = viewDirection;
+        }
+
+        Vec3f flyDirection = Vec3f::Zero();
+
+        if (movementInput.LengthSquared() > 0.0001f || bool(move.jumpHeld) || bool(move.descendHeld))
+        {
+            Vec3f forward = component.viewDirection;
+
+            if (forward.LengthSquared() > 0.0001f)
+            {
+                forward.Normalize();
+            }
+
+            Vec3f flatForward = { forward.x, 0.0f, forward.z };
+            Vec3f right = Vec3f::UnitX();
+
+            if (flatForward.LengthSquared() > 0.0001f)
+            {
+                right = Vec3f::UnitY().Cross(flatForward.Normalize());
+            }
+
+            flyDirection = forward * movementInput.y + right * movementInput.x;
+
+            if (bool(move.jumpHeld))
+            {
+                flyDirection += Vec3f::UnitY();
+            }
+
+            if (bool(move.descendHeld))
+            {
+                flyDirection -= Vec3f::UnitY();
+            }
+
+            if (flyDirection.LengthSquared() > 1.0f)
+            {
+                flyDirection.Normalize();
+            }
+        }
+
+        const float flySpeed = (bool(move.sprintHeld)
+                                        ? MathUtil::Max(component.movement.sprintSpeed, 0.0f)
+                                        : MathUtil::Max(component.movement.moveSpeed, 0.0f))
+            * GhostModeSpeedMultiplier;
+
+        component.translation += flyDirection * flySpeed * move.deltaTime;
+        component.isOnGround = false;
+
+        physicsWorld->SetCharacterTranslation(component.physicsHandle, component.translation);
+
+        outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
+
+        entity->SetWorldTranslation(outResultTranslation, TransformChangeType::Simulation);
+
         return;
     }
 

@@ -17,6 +17,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>
+#include <Rendering/GraphicsPipeline.hpp>
 
 #include <Core/Constants.hpp>
 
@@ -117,8 +118,22 @@ private:
         uint8 stencilWriteMask,
         uint8 stencilCompareMask);
 
+    bool TryFinishAsyncCreate(const PSOCacheKey& key, GraphicsPipelineCacheHandle& outCacheHandle);
+
+    void EnsureAsyncCreateStarted(
+        const PSOCacheKey& key,
+        const ShaderInstanceRef& shader,
+        const FramebufferDesc& framebufferDesc,
+        const RenderableAttributeSet& attributes,
+        uint8 stencilWriteMask,
+        uint8 stencilCompareMask);
+
     CachedPipelinesMap* m_cachedPipelines;
     SharedMutex m_mutex;
+
+    // Pipelines currently being created on a background thread (see EnsureAsyncCreateStarted / TryFinishAsyncCreate).
+    // Guarded by m_mutex, same as m_cachedPipelines.
+    Map<PSOCacheKey, Task<GraphicsPipelineRef>> m_pendingPipelines;
 };
 
 } // namespace Hyperion

@@ -102,6 +102,7 @@ void CharacterControllerInputHandler::Update()
     m_isJumpHeld = jumpKeyDown;
 
     m_isSprintHeld = IsKeyDown(KeyCode::KEY_LSHIFT) || IsKeyDown(KeyCode::KEY_RSHIFT);
+    m_isDescendHeld = IsKeyDown(KeyCode::KEY_LCTRL) || IsKeyDown(KeyCode::KEY_RCTRL);
 }
 
 bool CharacterControllerInputHandler::OnKeyDown(const KeyboardEvent& evt)
@@ -664,6 +665,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
     move.jumpRequested = uint8(inputHandler->IsJumpPressed());
     move.sprintHeld = uint8(inputHandler->IsSprintHeld());
     move.jumpHeld = uint8(inputHandler->IsJumpHeld());
+    move.descendHeld = uint8(inputHandler->IsDescendHeld());
 
     inputHandler->ConsumeJumpRequest();
 
@@ -800,6 +802,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 move.jumpRequested = uint8(inputHandler->IsJumpPressed());
                 move.sprintHeld = uint8(inputHandler->IsSprintHeld());
                 move.jumpHeld = uint8(inputHandler->IsJumpHeld());
+                move.descendHeld = uint8(inputHandler->IsDescendHeld());
 
                 inputHandler->ConsumeJumpRequest();
 

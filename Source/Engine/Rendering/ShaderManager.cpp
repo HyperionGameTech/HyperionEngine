@@ -407,31 +407,32 @@ public:
             TaskThreadPoolName::THREAD_POOL_BACKGROUND);
     }
 
-    // Counts the compile and updates the editor task. The OnComplete callback is registered last so it
-    // can't run before the counters were incremented, even if the compile already finished.
     void TrackShaderCompile(ShaderMapEntry* entry, Name shaderName)
     {
         Assert(entry != nullptr && entry->compileTask.IsValid());
-
-        m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
-        m_totalNumCompilingShadersForTask.Increment(1, MemoryOrder::RELAXED);
 
 #ifdef HYP_EDITOR
         {
             Mutex::Guard guard(m_compilingShadersMutex);
 
+            m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
+            m_totalNumCompilingShadersForTask.Increment(1, MemoryOrder::RELAXED);
+
             ++m_compilingShaderNames[shaderName];
 
             UpdateEditorTask_Locked();
         }
+#else
+        m_numCompilingShaders.Increment(1, MemoryOrder::RELAXED);
+        m_totalNumCompilingShadersForTask.Increment(1, MemoryOrder::RELAXED);
 #endif
 
         entry->compileTask.OnComplete([this, shaderName](ShaderInstanceRef&)
             {
-                m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
-
 #ifdef HYP_EDITOR
                 Mutex::Guard guard(m_compilingShadersMutex);
+
+                m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
 
                 auto it = m_compilingShaderNames.Find(shaderName);
 
@@ -444,6 +445,8 @@ public:
                 }
 
                 UpdateEditorTask_Locked();
+#else
+                m_numCompilingShaders.Decrement(1, MemoryOrder::RELAXED);
 #endif
             });
     }

@@ -37,10 +37,14 @@
 #include <Rendering/BLASCache.hpp>
 
 #include <Framework/Config/EngineConfig.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Framework/EngineStats.hpp>
 
 #include <Core/Containers/SparsePagedArray.hpp>
+
+#include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <Rendering/Texture.hpp>
 
@@ -711,6 +715,8 @@ RendererResult VulkanRenderInterface::Initialize()
     m_instance = new VulkanInstance;
     CheckResultOrReturn(m_instance->Initialize(enableDebugLayers));
 
+    LoadPipelineCache();
+
     m_renderConfig->Initialize(this);
 
     // frame command buffers are submitted to the graphics queue (see PresentToSwapchain), so they must come from its pool
@@ -850,8 +856,78 @@ void VulkanRenderInterface::Shutdown()
     delete m_descriptorSetManager;
     m_descriptorSetManager = nullptr;
 
+    SavePipelineCache();
+
     delete m_instance;
     m_instance = nullptr;
+}
+
+void VulkanRenderInterface::LoadPipelineCache()
+{
+    Mutex::Guard guard(m_pipelineCacheMutex);
+
+    const FilePath cacheFilePath = EngineGlobals::GetCacheDirectory() / "vkpipelinecache.bin";
+
+    ByteBuffer initialData;
+
+    if (cacheFilePath.Exists())
+    {
+        FileByteReader reader { cacheFilePath };
+        initialData = reader.Read();
+        reader.Close();
+    }
+
+    VkPipelineCacheCreateInfo cacheCreateInfo { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
+    cacheCreateInfo.initialDataSize = initialData.Size();
+    cacheCreateInfo.pInitialData = initialData.Size() > 0 ? initialData.Data() : nullptr;
+
+    if (vkCreatePipelineCache(GetDevice()->GetDevice(), &cacheCreateInfo, nullptr, &m_pipelineCache) != VK_SUCCESS)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Failed to create Vulkan pipeline cache (will continue)");
+
+        m_pipelineCache = VK_NULL_HANDLE;
+    }
+}
+
+void VulkanRenderInterface::SavePipelineCache()
+{
+    Mutex::Guard guard(m_pipelineCacheMutex);
+
+    if (m_pipelineCache == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
+    VkDevice device = m_instance->GetDevice()->GetDevice();
+
+    size_t dataSize = 0;
+    vkGetPipelineCacheData(device, m_pipelineCache, &dataSize, nullptr);
+
+    if (dataSize > 0)
+    {
+        ByteBuffer data(dataSize, /* zeroize */ false);
+
+        if (vkGetPipelineCacheData(device, m_pipelineCache, &dataSize, data.Data()) == VK_SUCCESS)
+        {
+            const FilePath cacheDir = EngineGlobals::GetCacheDirectory();
+
+            if (!cacheDir.Exists())
+            {
+                cacheDir.MkDir();
+            }
+
+            FileByteWriter writer { cacheDir / "vkpipelinecache.bin" };
+            writer.Write(data.Data(), data.Size());
+            writer.Close();
+        }
+        else
+        {
+            HYP_LOG(RenderingBackend, Warning, "Failed to read back Vulkan pipeline cache data; not saving to disk");
+        }
+    }
+
+    vkDestroyPipelineCache(device, m_pipelineCache, nullptr);
+    m_pipelineCache = VK_NULL_HANDLE;
 }
 
 void VulkanRenderInterface::BeginFrame(AtomicFlag* pCancelFlag)

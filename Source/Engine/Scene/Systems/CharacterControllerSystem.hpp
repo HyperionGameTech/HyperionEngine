@@ -36,7 +36,8 @@ public:
           m_isJumpRequested(false),
           m_wasJumpKeyDown(false),
           m_isJumpHeld(false),
-          m_isSprintHeld(false)
+          m_isSprintHeld(false),
+          m_isDescendHeld(false)
     {
     }
 
@@ -47,7 +48,8 @@ public:
           m_isJumpRequested(false),
           m_wasJumpKeyDown(false),
           m_isJumpHeld(false),
-          m_isSprintHeld(false)
+          m_isSprintHeld(false),
+          m_isDescendHeld(false)
     {
     }
 
@@ -78,6 +80,11 @@ public:
         return m_isSprintHeld;
     }
 
+    HYP_FORCE_INLINE bool IsDescendHeld() const
+    {
+        return m_isDescendHeld;
+    }
+
     // Clears the latched jump request. Must be called once the request has been
     // consumed into a move, otherwise it would be re-sent on the next tick.
     HYP_FORCE_INLINE void ConsumeJumpRequest()
@@ -104,6 +111,7 @@ private:
     bool m_wasJumpKeyDown;
     bool m_isJumpHeld;
     bool m_isSprintHeld;
+    bool m_isDescendHeld;
 };
 
 struct ClientPredictionState

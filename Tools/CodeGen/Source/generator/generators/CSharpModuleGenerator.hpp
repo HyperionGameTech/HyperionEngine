@@ -17,9 +17,9 @@ class CSharpModuleGenerator : public GeneratorBase
 public:
     virtual ~CSharpModuleGenerator() override = default;
 
-    HYP_FORCE_INLINE Result Generate(const Analyzer& analyzer, const Module& mod) const
+    HYP_FORCE_INLINE Result Generate(const Analyzer& analyzer, const Module& mod, bool* outWasWritten = nullptr) const
     {
-        return GeneratorBase::Generate(analyzer, mod);
+        return GeneratorBase::Generate(analyzer, mod, outWasWritten);
     }
 
     virtual Result Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const override;

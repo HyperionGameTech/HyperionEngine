@@ -2124,6 +2124,16 @@ void EditorSubsystem::SetPhysicsDebugDrawEnabled(bool enabled)
     s_cvDebugDrawPhysics.Set(enabled);
 }
 
+bool EditorSubsystem::IsGhostModeEnabled() const
+{
+    return SceneHelpers::IsGhostModeEnabled();
+}
+
+void EditorSubsystem::SetGhostModeEnabled(bool enabled)
+{
+    SceneHelpers::SetGhostModeEnabled(enabled);
+}
+
 // Deep-copy a PhysicsShape asset (there is no reflection-based clone, so switch on the concrete type).
 static Handle<PhysicsShape> ClonePhysicsShape(const Handle<PhysicsShape>& source)
 {

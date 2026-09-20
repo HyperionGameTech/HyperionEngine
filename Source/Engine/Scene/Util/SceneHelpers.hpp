@@ -44,6 +44,9 @@ bool CanSimulateEntityPhysics(const Entity& entity);
 float GetCapsuleHeightOffset(const CharacterControllerComponent& component);
 void MoveCharacter(Entity* entity, CharacterControllerComponent& component, const PlayerMove& move, Vec3f& outResultTranslation);
 
+bool IsGhostModeEnabled();
+void SetGhostModeEnabled(bool enabled);
+
 SwatchOverrideSystem* GetSwatchOverrideSystemFor(const Entity& entity);
 
 } // namespace SceneHelpers

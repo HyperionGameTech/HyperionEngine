@@ -372,6 +372,9 @@ namespace Hyperion.Editor.ViewModels
         public ICommand TogglePhysicsDebugDraw { get; private set; }
         public bool IsPhysicsDebugDrawEnabled => _editorSubsystem?.IsPhysicsDebugDrawEnabled() ?? false;
 
+        public ICommand ToggleGhostMode { get; private set; }
+        public bool IsGhostModeEnabled => _editorSubsystem?.IsGhostModeEnabled() ?? false;
+
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
         // that was right-clicked rather than whatever happens to be focused.
         public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
@@ -710,6 +713,16 @@ namespace Hyperion.Editor.ViewModels
                     _editorSubsystem.SetPhysicsDebugDrawEnabled(!_editorSubsystem.IsPhysicsDebugDrawEnabled());
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsPhysicsDebugDrawEnabled)));
+                });
+            });
+
+            ToggleGhostMode = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetGhostModeEnabled(!_editorSubsystem.IsGhostModeEnabled());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsGhostModeEnabled)));
                 });
             });
 

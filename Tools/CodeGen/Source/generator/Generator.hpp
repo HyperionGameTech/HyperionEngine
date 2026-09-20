@@ -27,7 +27,7 @@ class GeneratorBase
 public:
     virtual ~GeneratorBase() = default;
 
-    Result Generate(const Analyzer& analyzer, const Module& mod) const;
+    Result Generate(const Analyzer& analyzer, const Module& mod, bool* outWasWritten = nullptr) const;
 
     virtual Result Generate(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const = 0;
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const = 0;

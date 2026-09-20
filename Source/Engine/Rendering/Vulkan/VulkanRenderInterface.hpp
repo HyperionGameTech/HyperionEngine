@@ -203,10 +203,23 @@ public:
 
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
+    HYP_FORCE_INLINE VkPipelineCache GetVkPipelineCache() const
+    {
+        return m_pipelineCache;
+    }
+
+    HYP_FORCE_INLINE Mutex& GetPipelineCacheMutex()
+    {
+        return m_pipelineCacheMutex;
+    }
+
     VulkanDynamicFunctions dynamicFunctions;
 
 private:
     void InitDeviceDetails(DeviceDetails& deviceDetails) override;
+
+    void LoadPipelineCache();
+    void SavePipelineCache();
 
     void ReleaseTransientMemory() override;
 
@@ -240,6 +253,9 @@ private:
     Array<VulkanAsyncCompute*, VulkanAllocator> m_asyncComputePool;
     Array<VulkanAsyncCompute*, VulkanAllocator> m_submittedAsyncComputes;
     Mutex m_asyncComputesMutex;
+
+    VkPipelineCache m_pipelineCache = VK_NULL_HANDLE;
+    Mutex m_pipelineCacheMutex;
 };
 
 } // namespace Hyperion

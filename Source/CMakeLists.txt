@@ -362,9 +362,9 @@ else()
   endif()
 endif()
 
-set(HYP_VERSION_MAJOR 1)
-set(HYP_VERSION_MINOR 4)
-set(HYP_VERSION_PATCH 0)
+set(HYP_VERSION_MAJOR 0)
+set(HYP_VERSION_MINOR 5)
+set(HYP_VERSION_PATCH 1)
 
 link_directories(${THIRD_PARTY_LIBRARY_DIR})
 

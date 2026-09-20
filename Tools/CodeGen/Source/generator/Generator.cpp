@@ -18,8 +18,13 @@ namespace CodeGen {
 
 HYP_DECLARE_LOG_CHANNEL(Tool);
 
-Result GeneratorBase::Generate(const Analyzer& analyzer, const Module& mod) const
+Result GeneratorBase::Generate(const Analyzer& analyzer, const Module& mod, bool* outWasWritten) const
 {
+    if (outWasWritten)
+    {
+        *outWasWritten = false;
+    }
+
     const FilePath outputFilePath = GetOutputFilePath(analyzer, mod);
 
     if (outputFilePath.Empty())
@@ -49,6 +54,11 @@ Result GeneratorBase::Generate(const Analyzer& analyzer, const Module& mod) cons
     {
         FileByteWriter fileWriter { outputFilePath };
         fileWriter.Write(memoryWriter.GetBuffer());
+
+        if (outWasWritten)
+        {
+            *outWasWritten = true;
+        }
     }
 
     return res;

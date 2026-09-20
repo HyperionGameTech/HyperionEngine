@@ -474,6 +474,20 @@ static Result LoadStrataBodies(const FilePath& filePath, const Set<String>& allD
     return {};
 }
 
+static FilePath NormalizeGeneratedFilePath(const FilePath& path)
+{
+    String normalized = String(path).ReplaceAll("/", HYP_FILESYSTEM_SEPARATOR).ReplaceAll("\\", HYP_FILESYSTEM_SEPARATOR);
+
+    const String doubledSeparator = String(HYP_FILESYSTEM_SEPARATOR) + HYP_FILESYSTEM_SEPARATOR;
+
+    while (normalized.Contains(doubledSeparator))
+    {
+        normalized = normalized.ReplaceAll(doubledSeparator, HYP_FILESYSTEM_SEPARATOR);
+    }
+
+    return FilePath(normalized);
+}
+
 } // namespace
 
 class WorkerThread : public TaskThread
@@ -567,6 +581,8 @@ public:
 
             return HYP_MAKE_ERROR(Error, "CodeGen failed with {} error(s)", m_analyzer.GetState().errors.Size());
         }
+
+        CleanStaleGeneratedFiles();
 
         // finally, add CodeGenOutput.inc to the output directory
         FilePath outputFilePath = m_analyzer.GetCXXOutputDirectory() / "CodeGenOutput.inc";
@@ -971,9 +987,16 @@ private:
                 // generate builtins first
                 batch->AddTask([this, builtinsModule]()
                     {
-                        if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, *builtinsModule); res.HasError())
+                        bool wasWritten = false;
+
+                        if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, *builtinsModule, &wasWritten); res.HasError())
                         {
                             m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
+                        }
+                        else if (wasWritten)
+                        {
+                            Mutex::Guard guard(m_writtenCSharpFilesMutex);
+                            m_writtenCSharpFiles.Insert(NormalizeGeneratedFilePath(s_csharpModuleGenerator.GetOutputFilePath(m_analyzer, *builtinsModule)));
                         }
                     });
             }
@@ -988,9 +1011,16 @@ private:
                 // csharp modules can be processed async from C++ modules
                 batch->AddTask([this, &mod = *mod]()
                     {
-                        if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, mod); res.HasError())
+                        bool wasWritten = false;
+
+                        if (Result res = s_csharpModuleGenerator.Generate(m_analyzer, mod, &wasWritten); res.HasError())
                         {
                             m_analyzer.AddError(AnalyzerError(res.GetError(), mod.GetPath()));
+                        }
+                        else if (wasWritten)
+                        {
+                            Mutex::Guard guard(m_writtenCSharpFilesMutex);
+                            m_writtenCSharpFiles.Insert(NormalizeGeneratedFilePath(s_csharpModuleGenerator.GetOutputFilePath(m_analyzer, mod)));
                         }
                     });
             }
@@ -1348,6 +1378,8 @@ private:
                 }
 
                 ReplaceFileIfDifferent(tmpInlPath, inlPath);
+
+                m_writtenCXXGeneratedFiles.Insert(NormalizeGeneratedFilePath(inlPath));
             }
 
             TaskSystem::GetInstance().EnqueueBatch(batch);
@@ -1481,6 +1513,63 @@ private:
         return task;
     }
 
+    void CleanStaleGeneratedFiles()
+    {
+        Proc<void(const FilePath&, Array<FilePath>&)> collectFilesRecursive;
+        collectFilesRecursive = [&](const FilePath& dir, Array<FilePath>& outFiles)
+        {
+            for (const FilePath& file : dir.GetAllFilesInDirectory())
+            {
+                outFiles.PushBack(file);
+            }
+
+            for (const FilePath& subdirectory : dir.GetSubdirectories())
+            {
+                collectFilesRecursive(subdirectory, outFiles);
+            }
+        };
+
+        auto removeIfStale = [](const FilePath& file, const Set<FilePath>& writtenFiles)
+        {
+            if (writtenFiles.Contains(NormalizeGeneratedFilePath(file)))
+            {
+                return;
+            }
+
+            HYP_LOG(Tool, Info, "Removing stale generated file (no matching source found): {}", file);
+
+            if (!file.Remove())
+            {
+                HYP_LOG(Tool, Warning, "Failed to remove stale generated file: {}", file);
+            }
+        };
+
+        Array<FilePath> cxxFiles;
+        collectFilesRecursive(m_analyzer.GetCXXOutputDirectory(), cxxFiles);
+
+        for (const FilePath& file : cxxFiles)
+        {
+            if (file.EndsWith(".generated.inl") || file.EndsWith(".generated.cpp"))
+            {
+                removeIfStale(file, m_writtenCXXGeneratedFiles);
+            }
+        }
+
+        if (m_analyzer.GetCSharpOutputDirectory().Any() && m_analyzer.GetCSharpOutputDirectory().IsDirectory())
+        {
+            Array<FilePath> csharpFiles;
+            collectFilesRecursive(m_analyzer.GetCSharpOutputDirectory(), csharpFiles);
+
+            for (const FilePath& file : csharpFiles)
+            {
+                if (file.EndsWith(".cs"))
+                {
+                    removeIfStale(file, m_writtenCSharpFiles);
+                }
+            }
+        }
+    }
+
     // Compute the exact include line used for inline includes so insertion/removal share one source of truth
     String ComputeInlineIncludeLine(const FilePath& inlPath) const
     {
@@ -1549,7 +1638,14 @@ private:
             writer.WriteString(HYP_FORMAT("#include <{}>\n", relInlPathForGen.Basename()));
             writer.Close();
 
-            return ReplaceFileIfDifferent(tmpGenCxxPath, genCxxPath);
+            Result replaceRes = ReplaceFileIfDifferent(tmpGenCxxPath, genCxxPath);
+
+            if (!replaceRes.HasError())
+            {
+                m_writtenCXXGeneratedFiles.Insert(NormalizeGeneratedFilePath(genCxxPath));
+            }
+
+            return replaceRes;
         }
 
         // Compute include path relative to generated include root (single source of truth)
@@ -2370,6 +2466,10 @@ private:
     CXXGenerationMode m_cxxMode = CXXGenerationMode::INL;
 
     FilePath m_strataBodiesFile;
+
+    Set<FilePath> m_writtenCXXGeneratedFiles;
+    Set<FilePath> m_writtenCSharpFiles;
+    Mutex m_writtenCSharpFilesMutex;
 };
 
 } // namespace CodeGen

@@ -1022,6 +1022,14 @@
                                     </MenuItem>
 
                                     <Separator />
+                                    <MenuItem
+                                        Command="{Binding ToggleGhostMode}"
+                                        Header="Ghost Mode"
+                                        IsChecked="{Binding IsGhostModeEnabled, Mode=OneWay}"
+                                        ToggleType="CheckBox"
+                                        ToolTip.Tip="Free-fly through the world with no collision (WASD + Space/Ctrl to fly up/down)" />
+
+                                    <Separator />
                                     <MenuItem Header="Layout">
                                         <MenuItem
                                             Click="OnResetLayoutClick"

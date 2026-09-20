@@ -6,7 +6,6 @@ using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
-    /// <summary>A Photoshop-style blend mode backed by an exact BlendFunction factor combination.</summary>
     public sealed class BlendPreset
     {
         public BlendPreset(string name, string description, BlendFunction value)
@@ -23,41 +22,33 @@ namespace Hyperion.Editor.ViewModels
         public BlendFunction Value { get; }
     }
 
-    /// <summary>
-    /// Dedicated editor for BlendFunction: a "Presets" mode offering common Photoshop-style layer
-    /// blends (the subset that a single ADD-equation src/dst factor pair can actually reproduce),
-    /// and an "Advanced" mode exposing the raw SrcColor/DstColor/SrcAlpha/DstAlpha factors.
-    /// </summary>
     public class BlendFunctionPropertyViewModel : InspectorPropertyViewModelBase
     {
-        // Only blend modes reachable via factor selection alone (blend equation is fixed to Add - see
-        // VulkanGraphicsPipeline.cpp) are offered here. Modes like Darken/Lighten/Overlay need a
-        // different equation (Min/Max) or per-pixel math and can't be represented as a BlendFunction.
         public static readonly IReadOnlyList<BlendPreset> Presets = new List<BlendPreset>
         {
             new BlendPreset(
                 "Opaque",
-                "No blending - the source fully replaces the destination.",
+                "No blending",
                 BlendFunction.None()),
             new BlendPreset(
                 "Normal",
-                "Standard alpha compositing - the source is blended over the destination by its alpha.",
+                "The source is blended over the destination by its alpha",
                 BlendFunction.AlphaBlending()),
             new BlendPreset(
                 "Premultiplied Alpha",
-                "For sources whose color channels are already multiplied by their own alpha.",
+                "For sources whose color channels are already multiplied by their own alpha",
                 BlendFunction.PremultipliedAlpha()),
             new BlendPreset(
                 "Additive (Linear Dodge)",
-                "Adds the source on top of the destination - useful for glows, fire, and particles.",
+                "Adds the source on top of the destination",
                 BlendFunction.Additive()),
             new BlendPreset(
                 "Multiply",
-                "Multiplies source and destination - always darkens, like a Multiply layer.",
+                "Multiplies source and destination (darkens)",
                 new BlendFunction(BlendModeFactor.DstColor, BlendModeFactor.Zero, BlendModeFactor.DstAlpha, BlendModeFactor.Zero)),
             new BlendPreset(
                 "Screen",
-                "Inverse of Multiply - always lightens, like a Screen layer.",
+                "Multiplies the inverse of the pixel values of the source and the destination (lightens)",
                 new BlendFunction(BlendModeFactor.One, BlendModeFactor.OneMinusSrcColor, BlendModeFactor.One, BlendModeFactor.OneMinusSrcAlpha)),
         };
 
@@ -125,8 +116,6 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        // Mutually exclusive pill switch, mirroring MobilityPropertyViewModel's toggle-button guard:
-        // clicking the already-active segment must not uncheck it.
         public bool IsPresetMode
         {
             get => _isPresetMode;
@@ -282,8 +271,6 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(SrcAlpha));
             OnPropertyChanged(nameof(DstAlpha));
 
-            // Land on whichever mode makes sense for the value we loaded, but only the first time -
-            // afterwards the pill switch is entirely up to the user.
             if (!_modeInitialized)
             {
                 _modeInitialized = true;

@@ -22,6 +22,8 @@
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Math/Transform.hpp>
 
+#include <Core/Threading/Mutex.hpp>
+
 #include <Framework/EngineDriver.hpp>
 
 #include <VulkanRayTracingPipeline.generated.inl>
@@ -122,14 +124,19 @@ RendererResult VulkanRayTracingPipeline::Create()
     // we DON'T use recursion in ray tracing shaders, we just loop when we need multiple rays traced.
     pipelineInfo.maxPipelineRayRecursionDepth = 1;
 
-    VULKAN_CHECK(RI.dynamicFunctions.vkCreateRayTracingPipelinesKHR(
-        RI.GetDevice()->GetDevice(),
-        VK_NULL_HANDLE,
-        VK_NULL_HANDLE,
-        1,
-        &pipelineInfo,
-        VK_NULL_HANDLE,
-        &m_handle));
+    {
+        // Vulkan requires host access to a shared VkPipelineCache to be externally synchronized.
+        Mutex::Guard pipelineCacheGuard(RI.GetPipelineCacheMutex());
+
+        VULKAN_CHECK(RI.dynamicFunctions.vkCreateRayTracingPipelinesKHR(
+            RI.GetDevice()->GetDevice(),
+            VK_NULL_HANDLE,
+            RI.GetVkPipelineCache(),
+            1,
+            &pipelineInfo,
+            VK_NULL_HANDLE,
+            &m_handle));
+    }
         
 #ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())

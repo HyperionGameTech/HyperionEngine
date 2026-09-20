@@ -33,8 +33,7 @@ struct PlayerMove
     uint8 jumpRequested;
     uint8 sprintHeld;   // sprint button held this move
     uint8 jumpHeld;     // jump button held this move
-
-    uint8 padBytes[1];
+    uint8 descendHeld;  // descend button held this move
 
     PlayerMove() = default;
 

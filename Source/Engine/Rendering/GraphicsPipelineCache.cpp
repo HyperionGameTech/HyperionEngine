@@ -24,6 +24,7 @@
 
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/Task.hpp>
+#include <Core/Threading/TaskSystem.hpp>
 
 #include <Core/Containers/SparsePagedArray.hpp>
 
@@ -355,6 +356,13 @@ GraphicsPipelineCache::GraphicsPipelineCache()
 
 GraphicsPipelineCache::~GraphicsPipelineCache()
 {
+    for (auto it = m_pendingPipelines.Begin(); it != m_pendingPipelines.End(); ++it)
+    {
+        it->second.Await();
+    }
+
+    m_pendingPipelines.Clear();
+
     for (GraphicsPipelineRef& pipeline : *m_cachedPipelines)
     {
         EnqueueDeletion(std::move(pipeline));
@@ -395,6 +403,18 @@ void GraphicsPipelineCache::GetOrCreate(
     Assert(framebufferDesc.numAttachments > 0,
            "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
+    const PSOCacheKey key { inOutAttributes, framebufferDesc };
+
+    if (enableAsync)
+    {
+        if (TryFinishAsyncCreate(key, cacheHandle))
+        {
+            outCacheHandle = std::move(cacheHandle);
+
+            return;
+        }
+    }
+
     ShaderInstanceRef shader = g_shaderManager->GetOrCreate(
         inOutAttributes.GetMaterialAttributes().shaderName,
         inOutAttributes.GetMaterialAttributes().shaderProperties,
@@ -416,6 +436,15 @@ void GraphicsPipelineCache::GetOrCreate(
     // // Shader may have additional static properties.
     // // See: ShaderBundle, staticProperties and its usage in ShaderCompiler.cpp.
     // inOutAttributes.GetMaterialAttributes().shaderProperties = shader->GetShader()->properties;
+
+    if (enableAsync)
+    {
+        EnsureAsyncCreateStarted(key, shader, framebufferDesc, inOutAttributes, stencilWriteMask, stencilCompareMask);
+
+        outCacheHandle = {};
+
+        return;
+    }
 
     size_t slot = SIZE_MAX;
 
@@ -465,10 +494,92 @@ void GraphicsPipelineCache::GetOrCreate(
     HYP_LOG(Rendering, Verbose, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), inOutAttributes.GetHashCode().Value());
 #endif
     // cache it now that it's been created so it can be reused
-    PSOCacheKey key { inOutAttributes, framebufferDesc };
     m_cachedPipelines->Add(key, slot);
 
     return;
+}
+
+bool GraphicsPipelineCache::TryFinishAsyncCreate(const PSOCacheKey& key, GraphicsPipelineCacheHandle& outCacheHandle)
+{
+    HYP_SCOPE;
+
+    TUniqueLock guard(m_mutex);
+
+    auto it = m_pendingPipelines.Find(key);
+
+    if (it == m_pendingPipelines.End())
+    {
+        return false;
+    }
+
+    if (!it->second.IsCompleted())
+    {
+        // not ready
+        return false;
+    }
+
+    GraphicsPipelineRef graphicsPipeline = std::move(it->second).Await();
+
+    m_pendingPipelines.Erase(it);
+
+    if (!graphicsPipeline.IsValid())
+    {
+        // background creation failed
+        return false;
+    }
+
+    graphicsPipeline->lastFrame = GetFrameCounter();
+
+    size_t slot = SIZE_MAX;
+    GraphicsPipelineCacheHandle newHandle = m_cachedPipelines->Alloc(slot);
+    Assert(newHandle.m_ptr != nullptr && slot != SIZE_MAX);
+
+    *newHandle.m_ptr = std::move(graphicsPipeline);
+    m_cachedPipelines->Add(key, slot);
+
+    outCacheHandle = std::move(newHandle);
+
+    return true;
+}
+
+void GraphicsPipelineCache::EnsureAsyncCreateStarted(
+    const PSOCacheKey& key,
+    const ShaderInstanceRef& shader,
+    const FramebufferDesc& framebufferDesc,
+    const RenderableAttributeSet& attributes,
+    uint8 stencilWriteMask,
+    uint8 stencilCompareMask)
+{
+    HYP_SCOPE;
+
+    TUniqueLock guard(m_mutex);
+
+    if (m_pendingPipelines.Contains(key))
+    {
+        // already compiling
+        return;
+    }
+
+    Task<GraphicsPipelineRef> task = TaskSystem::GetInstance().Enqueue(
+        [shader, framebufferDesc, attributes, stencilWriteMask, stencilCompareMask]() -> GraphicsPipelineRef
+        {
+            GraphicsPipelineRef graphicsPipeline = RI.MakeGraphicsPipeline(
+                shader,
+                framebufferDesc,
+                attributes,
+                stencilWriteMask,
+                stencilCompareMask);
+
+            if (!Check(graphicsPipeline->Create()))
+            {
+                return GraphicsPipelineRef::Null();
+            }
+
+            return graphicsPipeline;
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+
+    m_pendingPipelines[key] = std::move(task);
 }
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(

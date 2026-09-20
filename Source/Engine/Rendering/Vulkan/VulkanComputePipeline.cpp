@@ -23,6 +23,8 @@
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Math/Transform.hpp>
 
+#include <Core/Threading/Mutex.hpp>
+
 #include <cstring>
 
 #include <VulkanComputePipeline.generated.inl>
@@ -156,9 +158,14 @@ RendererResult VulkanComputePipeline::Create()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VULKAN_CHECK_MSG(
-        vkCreateComputePipelines(RI.GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
-        "Failed to create compute pipeline");
+    {
+        // Vulkan requires host access to a shared VkPipelineCache to be externally synchronized.
+        Mutex::Guard pipelineCacheGuard(RI.GetPipelineCacheMutex());
+
+        VULKAN_CHECK_MSG(
+            vkCreateComputePipelines(RI.GetDevice()->GetDevice(), RI.GetVkPipelineCache(), 1, &pipelineInfo, nullptr, &m_handle),
+            "Failed to create compute pipeline");
+    }
 
 #ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
