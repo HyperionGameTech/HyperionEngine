@@ -169,12 +169,11 @@ class ResourceBinder : public ResourceBinderBase
 
                 if (it != bindings.End())
                 {
-                    T* object = it->first.GetUnsafe();
                     const uint32 binding = it->second;
 
-                    if (OnBindingChanged != nullptr)
+                    if (OnBindingChanged != nullptr && !it->first.Expired())
                     {
-                        OnBindingChanged(object, binding, InvalidBinding);
+                        OnBindingChanged(it->first.GetUnsafe(), binding, InvalidBinding);
                     }
 
                     allocator->FreeIndex(binding);
@@ -262,14 +261,11 @@ class ResourceBinder : public ResourceBinderBase
 
                 for (KeyValuePair<WeakHandle<T>, uint32>& it : removedElements)
                 {
-                    T* object = it.first.GetUnsafe();
-                    AssertDebug(object != nullptr);
-
                     const uint32 binding = it.second;
 
-                    if (OnBindingChanged != nullptr)
+                    if (OnBindingChanged != nullptr && !it.first.Expired())
                     {
-                        OnBindingChanged(object, binding, InvalidBinding);
+                        OnBindingChanged(it.first.GetUnsafe(), binding, InvalidBinding);
                     }
 
                     allocator->FreeIndex(binding);
@@ -326,11 +322,12 @@ class ResourceBinder : public ResourceBinderBase
 
                     if (it != bindings.End())
                     {
-                        T* object = it->first.GetUnsafe();
                         const uint32 binding = it->second;
 
-                        if (OnBindingChanged != nullptr)
+                        if (OnBindingChanged != nullptr && !it->first.Expired())
                         {
+                            T* object = it->first.GetUnsafe();
+
                             OnBindingChanged(object, binding, InvalidBinding);
                             OnBindingChanged(object, InvalidBinding, binding);
                         }

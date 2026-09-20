@@ -9,6 +9,7 @@
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:local="clr-namespace:Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="clr-namespace:Hyperion.Editor.Views;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
     Title="Hyperion Editor"
@@ -2326,5 +2327,8 @@
                 </Border>
             </Grid>
         </DockPanel>
+
+        <!--  Foreground task overlay  -->
+        <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
     </Grid>
 </Window>
