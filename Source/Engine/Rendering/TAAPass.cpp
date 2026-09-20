@@ -93,6 +93,21 @@ void TAAPass::CreateTextures()
 
     m_historyTexture->SetName(NAME("TAA_HistoryTexture"));
     Check(m_historyTexture->Create());
+
+    // Clear the textures
+    {
+        CommandRecorder& cr = RI.commandRecorderAllocator.GetCommandRecorder(CommandRecorderQueue::PreRender);
+
+        cr << InsertBarrier(m_resultTexture->GetGpuImage(), ResourceState::CopyDst);
+        cr << FillImage(m_resultTexture->GetGpuImage(), 0.0f, ImageSubResource {});
+        cr << InsertBarrier(m_resultTexture->GetGpuImage(), ResourceState::ShaderResource);
+
+        cr << InsertBarrier(m_historyTexture->GetGpuImage(), ResourceState::CopyDst);
+        cr << FillImage(m_historyTexture->GetGpuImage(), 0.0f, ImageSubResource {});
+        cr << InsertBarrier(m_historyTexture->GetGpuImage(), ResourceState::ShaderResource);
+
+        cr.Done();
+    }
 }
 
 void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)

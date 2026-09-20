@@ -199,10 +199,6 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
 
 RendererResult VulkanGraphicsPipeline::Rebuild()
 {
-    // Callable from the render thread (synchronous creation) or a background task thread (async creation via
-    // GraphicsPipelineCache::EnsureAsyncCreateStarted) - everything it touches (descriptor set layout cache,
-    // pipeline layout/pipeline creation) is safe to call off the render thread.
-
     Array<VkVertexInputAttributeDescription, VulkanAllocator> vkVertexAttributes;
     Array<VkVertexInputBindingDescription, VulkanAllocator> vkVertexBindingDescriptions;
 

@@ -1531,11 +1531,6 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!cachedFrustum.ContainsAABB(worldBounds))
-            {
-                continue;
-            }
-
             rpl.GetLightmapVolumes().Track(lightmapVolume->Id(), lightmapVolume, GET_RESOURCE_VERSION(lightmapVolume));
         }
     }

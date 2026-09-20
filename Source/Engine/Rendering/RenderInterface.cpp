@@ -114,7 +114,7 @@ namespace Hyperion {
 
 using namespace Resources;
 
-static constexpr uint32 MaxFramesBeforeDiscard = NumFramesInFlight;
+static constexpr uint32 MaxFramesBeforeDiscardViews = 16;
 
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
@@ -1409,7 +1409,7 @@ void RenderInterface::CleanupUnusedResources(uint32 frameIndex)
             viewData->renderCollector.RemoveEmptyRenderGroups();
 
             // Clear out data for views that haven't been written to for a while
-            if (int64(frameIndex) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscard)
+            if (int64(frameIndex) - int64(viewData->lastUsedFrame) >= MaxFramesBeforeDiscardViews)
             {
                 // Decrement ref count on the ViewData,
                 // if we hit zero there are no more BufferedViewData holding refs to the ViewData so we delete it
@@ -1911,7 +1911,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
                 if (psoType == PSO_Graphics && state.boundFramebuffer != nullptr)
                 {
-                    // HYP_LOG_TEMP("Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
+                    HYP_LOG(Rendering, Warning, "Breaking framebuffer {} (bound to shader {})", state.boundFramebuffer->GetDebugName(), state.attributes.GetShaderName());
 
                     // have to end render pass if we are going to insert a barrier
                     state.boundFramebuffer->EndCapture(commandBuffer);

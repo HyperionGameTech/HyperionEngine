@@ -30,6 +30,8 @@
 
 #include <Rendering/GpuTimerBackend.hpp>
 
+#include <Framework/CVarManager.hpp>
+
 #include <Core/Reflection/Enum.hpp>
 
 #include <Scene/View.hpp>
@@ -37,6 +39,8 @@
 #include <Rendering/Util/MeshBuilder.hpp>
 
 namespace Hyperion {
+
+CVar<bool> g_cvAsyncShaderLoading("Rendering.AsyncShaderLoading", true);
 
 static Handle<Mesh> g_quadMesh;
 
@@ -48,6 +52,7 @@ static inline void EndCurrentPass(CommandBuffer* commandBuffer)
     /// If Submit() is called on that, we don't want to doom the world ending the RP!!!
     if (state.boundFramebuffer != nullptr && commandBuffer == RI.GetCurrentCommandBuffer())
     {
+        //HYP_LOG(Rendering, Warning, "Ending render pass on framebuffer {} for command buffer {} !!!", (void*)state.boundFramebuffer, (void*)commandBuffer);
         state.boundFramebuffer->EndCapture(commandBuffer);
         state.boundFramebuffer = nullptr;
     }
@@ -824,7 +829,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 RenderInterface::State& state = RI.state;
 
-                state.shaderAsyncLoadState = cmd->enabled
+                state.shaderAsyncLoadState = cmd->enabled && g_cvAsyncShaderLoading.Get()
                     ? ShaderAsyncLoadState::Enabled
                     : ShaderAsyncLoadState::ForceDisabled;
 
