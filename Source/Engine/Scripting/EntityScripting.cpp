@@ -185,9 +185,11 @@ static void* ResolveSymbolFromHost(const char* name)
 #    endif
 }
 
-static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
+void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
 {
     Assert(data != nullptr);
+
+    InitializeCache();
 
     const StringHash functionHash(name);
 
@@ -358,21 +360,37 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         auto* data = sor->GetScriptObjectData_Strata();
         Assert(data != nullptr);
 
-        Strata::InitializeCache();
-
         if (void* fnPtrRaw = Strata::ResolveFunctionPointer(data, methodName))
         {
-            auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
-
-            if constexpr (!std::is_void_v<ReturnType>)
+            if (data->context != nullptr)
             {
-                AssertDebug(outReturnValue != nullptr);
+                auto fnPtrCasted = (ReturnType (*)(void*, ArgTypes...))fnPtrRaw;
 
-                new (outReturnValue) ReturnType(fnPtrCasted(args...));
+                if constexpr (!std::is_void_v<ReturnType>)
+                {
+                    AssertDebug(outReturnValue != nullptr);
+
+                    new (outReturnValue) ReturnType(fnPtrCasted(data->context, args...));
+                }
+                else
+                {
+                    fnPtrCasted(data->context, args...);
+                }
             }
             else
             {
-                fnPtrCasted(args...);
+                auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
+
+                if constexpr (!std::is_void_v<ReturnType>)
+                {
+                    AssertDebug(outReturnValue != nullptr);
+
+                    new (outReturnValue) ReturnType(fnPtrCasted(args...));
+                }
+                else
+                {
+                    fnPtrCasted(args...);
+                }
             }
         }
     }
@@ -641,6 +659,11 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                                                  "if it was AOT-compiled with stratac. Scripts created or edited after the build will not execute!",
                             scriptAsset->GetName());
 #    endif // HYP_STRATA_JIT
+                    if (void* createFnRaw = Strata::ResolveFunctionPointer(strataData, "__strata_context_create"))
+                    {
+                        auto createFn = (void* (*)(void))createFnRaw;
+                        strataData->context = createFn();
+                    }
                 }
 
                 if (!gameState.IsStopped())

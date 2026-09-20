@@ -58,6 +58,8 @@ struct ScriptObjectData_Strata final
 #ifdef HYP_STRATA_JIT
     StrataJit* jit = nullptr;
 #endif // HYP_STRATA_JIT
+
+    void* context = nullptr;
 };
 
 struct ScriptObjectData_Native final
