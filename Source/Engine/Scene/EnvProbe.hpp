@@ -366,12 +366,7 @@ protected:
     void InitCaptureData(EnvProbeCaptureState* captureState = nullptr);
     void DestroyCaptureData();
 
-    /*! \brief Create the owned capture state if missing and alias its targets to the live
-     *  textures. No-op for probes that don't own their capture state. */
     void SyncOwnedCaptureState();
-
-    /*! \brief Delete the owned capture state. Never touches a bake job's attached capture state,
-     *  as those belong to probes that don't own their capture state. */
     void DestroyOwnedCaptureState();
 
     void CreateCamera();

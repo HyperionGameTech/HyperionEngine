@@ -14,6 +14,7 @@
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Utilities/Result.hpp>
+#include <Core/Utilities/Uuid.hpp>
 
 #include <Core/FileSystem/FilePath.hpp>
 
@@ -61,6 +62,15 @@ public:
     AssetObject& operator=(AssetObject&& other) noexcept = delete;
 
     virtual ~AssetObject();
+
+    HYP_METHOD(Property = "UUID")
+    const UUID& GetUUID() const
+    {
+        return m_uuid;
+    }
+
+    HYP_METHOD(Property = "UUID")
+    void SetUUID(const UUID& uuid);
 
     HYP_METHOD(Property = "Name", Serialize, EditorOrder = 1)
     Name GetName() const
@@ -204,6 +214,9 @@ protected:
         const Optional<FilePath>& localBlobDirectory = {});
 
     void AssertBlobDataPersisted(const BlobDataReference& reference) const;
+
+    HYP_FIELD(Property = "UUID", Serialize, Editor, EditorOrder = 2, EditEnabled = false)
+    UUID m_uuid;
 
     HYP_FIELD(Property = "Name")
     Name m_name;

@@ -113,6 +113,7 @@ namespace Hyperion.Editor.ViewModels
         public ICommand NewMaterialCommand { get; }
         public ICommand NewWeaponCommand { get; }
         public ICommand NewPhysicsShapeCommand { get; }
+        public ICommand NewPrefabCommand { get; }
 
         public ICommand DeleteAssetCommand { get; }
         public ICommand EditAssetCommand { get; }
@@ -147,6 +148,7 @@ namespace Hyperion.Editor.ViewModels
             (NewMaterialCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewWeaponCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewPhysicsShapeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NewPrefabCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
@@ -286,6 +288,35 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
+            }, () => CanCreateAssets);
+
+            NewPrefabCommand = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    if (!CanCreateAssetsOnSimThread("prefab"))
+                    {
+                        return;
+                    }
+
+                    AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+                    uint bucketIndex = AssetBucket.Prefabs.Value;
+
+                    /// @TODO: Use same technique for naming the other types.
+                    var existingNames = new HashSet<string>(
+                        registry.GetBucketAssetDescs(bucketIndex).Select(assetDesc => assetDesc.Name.ToString()),
+                        StringComparer.Ordinal);
+
+                    string name = "NewPrefab";
+                    for (int suffix = 1; existingNames.Contains(name); suffix++)
+                    {
+                        name = $"NewPrefab_{suffix}";
+                    }
+
+                    _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewPrefab"), name);
+
+                    Dispatcher.UIThread.Post(() => FocusAsset(bucketIndex, name));
+                });
             }, () => CanCreateAssets);
 
             AddToSceneCommand = new RelayCommand<AssetObjectViewModel>(asset =>

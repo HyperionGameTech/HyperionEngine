@@ -250,7 +250,6 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
-    // @TODO we should show a "Commit" ui button, and when clicked, that will actually set the
 
     if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {

@@ -131,15 +131,19 @@ void GetDeferredShaderProperties(
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && g_cvRayTracedReflections.Get());
+        const uint32 worldEnvironmentFlags = GetWorldBufferData()->environmentFlags;
+        const bool rayTracedReflectionsEnabled = g_cvRayTracedReflections.Get() && (worldEnvironmentFlags & uint32(WorldEnvironmentFlags::RayTracedReflections));
+        const bool ddgiEnabled = g_cvDDGI.Get() && (worldEnvironmentFlags & uint32(WorldEnvironmentFlags::DDGI));
 
-        if (s_renderConfig.rayTracing && g_cvDDGI.Get())
+        outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && rayTracedReflectionsEnabled);
+
+        if (s_renderConfig.rayTracing && ddgiEnabled)
         {
             outShaderProperties.Add(s_propRayTracingGlobalIllumination);
         }
 
         outShaderProperties.Set(s_propSSGIEnabled, g_cvSSGI.Get());
-        outShaderProperties.Set(s_propSSREnabled, g_cvSSR.Get() && !g_cvRayTracedReflections.Get());
+        outShaderProperties.Set(s_propSSREnabled, g_cvSSR.Get() && !rayTracedReflectionsEnabled);
     }
     else
     {

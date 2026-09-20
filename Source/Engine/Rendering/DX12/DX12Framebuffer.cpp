@@ -439,6 +439,9 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
             FALSE,
             nullptr
         );
+
+        const Vec4f clearColor = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+        commandList->ClearRenderTargetView(m_rtvDescriptorHandle.cpuHandle, clearColor.values, 0, nullptr);
     }
 
     m_hasBeenCleared = true;

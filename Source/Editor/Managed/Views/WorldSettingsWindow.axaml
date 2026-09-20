@@ -89,27 +89,6 @@
                     </Border>
                 </StackPanel>
 
-                <!--  Sky and clouds  -->
-                <StackPanel IsVisible="{Binding HasSky}" Spacing="14">
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="section-label" Text="Sky &amp; Clouds" />
-                        <TextBlock
-                            Classes="muted"
-                            FontSize="11"
-                            Text="Dynamic sky and cloud settings for the World."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <Border
-                        Padding="14,8,12,10"
-                        Background="{DynamicResource Brush.PanelRaised}"
-                        BorderBrush="{DynamicResource Brush.BorderLight}"
-                        BorderThickness="1"
-                        CornerRadius="{DynamicResource Radius.Medium}"
-                        DataContext="{Binding Sky}">
-                        <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" ShowDescriptions="True" />
-                    </Border>
-                </StackPanel>
 
                 <StackPanel Spacing="4">
                     <TextBlock Classes="section-label" Text="World Grid Layers" />

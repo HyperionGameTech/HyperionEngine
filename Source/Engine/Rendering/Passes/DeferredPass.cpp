@@ -1654,17 +1654,17 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     DeferredPassData& passData = *passDataCasted;
 
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    if ((g_cvSkipRendering.Get() != 0) || rs.viewport.extent.Volume() == 0)
-    {
-        return;
-    }
+    const uint32 frameIndex = GetFrameCounter();
 
     if (m_renderedViewOutputs.frameIndex != frameIndex)
     {
         m_renderedViewOutputs.frameIndex = frameIndex;
         m_renderedViewOutputs.items.Resize(0);
+    }
+
+    if ((g_cvSkipRendering.Get() != 0) || rs.viewport.extent.Volume() == 0)
+    {
+        return;
     }
 
     // Assign lights and envprobes to tiles.
@@ -1726,11 +1726,15 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     Framebuffer* effectPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Effect);
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Debug);
 
+    const uint32 worldEnvironmentFlags = GetWorldBufferData()->environmentFlags;
+
     const bool useRayTracingReflections = (g_cvPathTracing.Get() || g_cvRayTracedReflections.Get())
+        && (worldEnvironmentFlags & uint32(WorldEnvironmentFlags::RayTracedReflections))
         && view->GetRayTracingView().IsValid()
         && passData.rayTracingReflections != nullptr;
 
     const bool useRayTracingGlobalIllumination = g_cvDDGI.Get()
+        && (worldEnvironmentFlags & uint32(WorldEnvironmentFlags::DDGI))
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 

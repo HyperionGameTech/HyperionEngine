@@ -114,7 +114,7 @@ namespace Hyperion {
 
 using namespace Resources;
 
-static constexpr uint32 MaxFramesBeforeDiscard = RingBufferDepth; // number of frames before ViewData is discarded if not written to
+static constexpr uint32 MaxFramesBeforeDiscard = NumFramesInFlight;
 
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
@@ -152,6 +152,8 @@ ENGINE_API Pool* g_dx12Pool;
 
 CVar<bool> g_cvEnableVSync("Rendering.VSync", true);
 CVar<bool> g_cvEnableGpuStats("Rendering.EnableGpuStats", true);
+CVar<bool> g_cvIndirectRendering("Rendering.IndirectRendering", true);
+CVar<bool> g_cvParallelRendering("Rendering.ParallelRendering", true);
 
 namespace Framework {
 
@@ -493,8 +495,6 @@ IRenderProxy* GetRenderProxy(const void* resource)
 
     if (!subtypeData.proxies.HasIndex(resourceId.ToIndex()))
     {
-        HYP_LOG(Rendering, Warning, "No render proxy found for resource: {}", resourceId);
-
         return nullptr; // no proxy for this resource
     }
 

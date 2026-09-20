@@ -3772,17 +3772,10 @@ public:
             return;
         }
 
-        Handle<Node> node = prefab->GetRoot();
-        if (!node.IsValid())
-        {
-            HYP_LOG(Editor, Warning, "EditorCommandAddAsset: Prefab has invalid node: {}", prefab->GetName());
-            return;
-        }
-
-        Handle<Node> clonedNode = node->Clone();
+        Handle<Node> clonedNode = prefab->Spawn();
         if (!clonedNode.IsValid())
         {
-            HYP_LOG(Editor, Error, "EditorCommandAddAsset: failed to clone asset '{}'", assetName);
+            HYP_LOG(Editor, Error, "EditorCommandAddAsset: failed to spawn asset '{}'", assetName);
             return;
         }
 
@@ -3861,6 +3854,608 @@ public:
 DEFINE_EDITOR_COMMAND(AddAsset);
 
 #pragma endregion AddAsset
+
+#pragma region Prefab
+
+struct MakePrefabNodeRecord
+{
+    Handle<Node> node;
+    WeakHandle<Node> originalParent;
+    Transform originalLocalTransform;
+    Vec3f worldTranslation;
+    Vec3f worldScale;
+    Quat4f worldRotation;
+};
+
+// Resolves the nodes an "make/add to prefab" command should operate on: a specific node (right-click
+// outside the selection) if nodeUuidArg is non-empty, otherwise the current selection (falling back to
+// the focused node). Filters out nodes whose parent is also in the set, the scene root, parentless
+// nodes, and transform-locked nodes. Returns false (having logged why) if nothing valid remains.
+static bool ResolvePrefabSourceNodes(EditorSubsystem* subsystem, Scene* activeScene, const String& nodeUuidArg, Array<Handle<Node>>& outValidNodes)
+{
+    Array<Handle<Node>> sourceNodes;
+
+    if (!nodeUuidArg.Empty())
+    {
+        Node* node = ResolveNodeUuidArgument(subsystem, nodeUuidArg);
+
+        if (!node)
+        {
+            HYP_LOG(Editor, Warning, "Prefab command: could not find node with UUID '{}'", nodeUuidArg);
+            return false;
+        }
+
+        sourceNodes.PushBack(MakeStrongRef(node));
+    }
+    else
+    {
+        sourceNodes = subsystem->GetSelectedNodes();
+
+        if (sourceNodes.Empty())
+        {
+            Handle<Node> focusedNode = subsystem->GetFocusedNode();
+
+            if (focusedNode.IsValid())
+            {
+                sourceNodes.PushBack(focusedNode);
+            }
+        }
+    }
+
+    // Filter: skip nodes whose parent is also in the source set (they'll be regrouped implicitly)
+    Array<Handle<Node>> topLevelNodes;
+    for (const Handle<Node>& node : sourceNodes)
+    {
+        if (!node.IsValid())
+        {
+            continue;
+        }
+
+        bool hasAncestorInSet = false;
+        for (Node* p = node->GetParent(); p; p = p->GetParent())
+        {
+            for (const Handle<Node>& other : sourceNodes)
+            {
+                if (other.Get() == p)
+                {
+                    hasAncestorInSet = true;
+                    break;
+                }
+            }
+            if (hasAncestorInSet)
+            {
+                break;
+            }
+        }
+
+        if (!hasAncestorInSet)
+        {
+            topLevelNodes.PushBack(node);
+        }
+    }
+
+    // Exclude nodes that cannot be regrouped: the scene root, a parentless node, or one with a locked transform
+    for (const Handle<Node>& node : topLevelNodes)
+    {
+        if (!node->GetParent() || node.Get() == activeScene->GetRoot().Get())
+        {
+            HYP_LOG(Editor, Warning, "Prefab command: skipping scene root or parentless node '{}'", node->GetName());
+            continue;
+        }
+
+        if (node->IsTransformLocked())
+        {
+            HYP_LOG(Editor, Warning, "Prefab command: skipping transform-locked node '{}'", node->GetName());
+            continue;
+        }
+
+        outValidNodes.PushBack(node);
+    }
+
+    return outValidNodes.Any();
+}
+
+class EditorCommandMakePrefab final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandMakePrefab);
+
+public:
+    virtual ~EditorCommandMakePrefab() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Save as Prefab";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandMakePrefab: missing required prefab name argument");
+            return;
+        }
+
+        const ANSIString prefabNameStr = GetArgument(0);
+        const Name prefabName = Name(prefabNameStr);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandMakePrefab: no project loaded");
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandMakePrefab: no active scene");
+            return;
+        }
+
+        Array<Handle<Node>> validNodes;
+        if (!ResolvePrefabSourceNodes(subsystem, activeScene.Get(), NumArguments() >= 2 ? GetArgument(1) : String::empty, validNodes))
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandMakePrefab: no valid nodes to make a prefab from");
+            return;
+        }
+
+        // Capture per-node undo data and world transforms before anything is mutated
+        Array<MakePrefabNodeRecord> records;
+        Vec3f centroid = Vec3f::Zero();
+
+        for (const Handle<Node>& node : validNodes)
+        {
+            MakePrefabNodeRecord record;
+            record.node = node;
+            record.originalParent = MakeWeakRef(node->GetParent());
+            record.originalLocalTransform = node->GetLocalTransform();
+            record.worldTranslation = node->GetWorldTranslation();
+            record.worldScale = node->GetWorldScale();
+            record.worldRotation = node->GetWorldRotation();
+
+            centroid += record.worldTranslation;
+
+            records.PushBack(record);
+        }
+
+        centroid /= float(records.Size());
+
+        const bool isMultiGroup = records.Size() > 1;
+
+        Handle<Node> groupNode;
+        Handle<Node> parentForGroup;
+
+        if (isMultiGroup)
+        {
+            Node* commonParent = records[0].originalParent.Lock().Get();
+            bool allSameParent = commonParent != nullptr;
+
+            if (allSameParent)
+            {
+                for (const MakePrefabNodeRecord& record : records)
+                {
+                    if (record.originalParent.Lock().Get() != commonParent)
+                    {
+                        allSameParent = false;
+                        break;
+                    }
+                }
+            }
+
+            parentForGroup = allSameParent ? MakeStrongRef(commonParent) : activeScene->GetRoot();
+
+            groupNode = MakeHandle<Node>();
+            groupNode->SetName(prefabName);
+            InitObject(groupNode);
+        }
+
+        // Build the detached object that backs the asset - never the live scene nodes themselves,
+        // matching every other Prefab in the engine (its root is always a template, never simultaneously live)
+        Handle<Node> prefabRoot;
+
+        if (records.Size() == 1)
+        {
+            prefabRoot = records[0].node->Clone();
+
+            if (!prefabRoot.IsValid())
+            {
+                HYP_LOG(Editor, Error, "EditorCommandMakePrefab: failed to clone node '{}'", records[0].node->GetName());
+                return;
+            }
+
+            Transform rootLocalTransform = prefabRoot->GetLocalTransform();
+            rootLocalTransform.SetTranslation(Vec3f::Zero());
+            prefabRoot->SetLocalTransform(rootLocalTransform);
+        }
+        else
+        {
+            prefabRoot = MakeHandle<Node>();
+            prefabRoot->SetName(prefabName);
+            InitObject(prefabRoot);
+
+            for (const MakePrefabNodeRecord& record : records)
+            {
+                Handle<Node> clonedChild = record.node->Clone();
+
+                if (!clonedChild.IsValid())
+                {
+                    HYP_LOG(Editor, Error, "EditorCommandMakePrefab: failed to clone node '{}'", record.node->GetName());
+                    continue;
+                }
+
+                prefabRoot->AddChild(clonedChild);
+                clonedChild->SetWorldScale(record.worldScale);
+                clonedChild->SetWorldRotation(record.worldRotation);
+                clonedChild->SetWorldTranslation(record.worldTranslation - centroid);
+            }
+        }
+
+        Handle<Prefab> prefab = MakeHandle<Prefab>(prefabName, prefabRoot);
+        InitObject(prefab);
+
+        Array<Handle<Node>> previousSelectedNodes = subsystem->GetSelectedNodes();
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [isMultiGroup, records, groupNode, centroid, parentForGroup, prefab,
+                    previousSelectedNodes, previousFocusedNode]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [isMultiGroup, records, groupNode, centroid, parentForGroup, prefab](
+                                EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                if (isMultiGroup)
+                                {
+                                    parentForGroup->AddChild(groupNode);
+                                    groupNode->SetWorldScale(Vec3f::One());
+                                    groupNode->SetWorldRotation(Quat4f::Identity());
+                                    groupNode->SetWorldTranslation(centroid);
+
+                                    for (const MakePrefabNodeRecord& record : records)
+                                    {
+                                        record.node->Remove();
+                                        groupNode->AddChild(record.node);
+                                        record.node->SetWorldScale(record.worldScale);
+                                        record.node->SetWorldRotation(record.worldRotation);
+                                        record.node->SetWorldTranslation(record.worldTranslation);
+                                    }
+
+                                    editorSubsystem->SetSelectedNodes({ groupNode });
+                                    editorSubsystem->SetFocusedNode(groupNode, true);
+
+                                    Prefab::TagAsPrefabInstance(groupNode.Get(), prefab->GetUUID());
+                                }
+                                else
+                                {
+                                    Prefab::TagAsPrefabInstance(records[0].node.Get(), prefab->GetUUID());
+                                }
+
+                                GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [isMultiGroup, records, groupNode, prefab,
+                                previousSelectedNodes, previousFocusedNode](
+                                EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(prefab);
+
+                                if (isMultiGroup)
+                                {
+                                    for (int i = records.Size() - 1; i >= 0; --i)
+                                    {
+                                        const MakePrefabNodeRecord& record = records[i];
+
+                                        record.node->Remove();
+
+                                        Handle<Node> originalParent = record.originalParent.Lock();
+                                        if (originalParent.IsValid())
+                                        {
+                                            originalParent->AddChild(record.node);
+                                            record.node->SetLocalTransform(record.originalLocalTransform);
+                                        }
+                                    }
+
+                                    groupNode->Remove();
+                                }
+                                else
+                                {
+                                    Prefab::UntagAsPrefabInstance(records[0].node.Get());
+                                }
+
+                                editorSubsystem->SetSelectedNodes(previousSelectedNodes);
+
+                                if (Handle<Node> focusedNode = previousFocusedNode.Lock(); focusedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(MakePrefab);
+
+// Scene Hierarchy context menu action: clones the current selection (or the right-clicked node) and
+// appends the clones as new children of an already-existing Prefab's root. Never touches the live scene.
+class EditorCommandAddToPrefab final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddToPrefab);
+
+public:
+    virtual ~EditorCommandAddToPrefab() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Add to Prefab";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAddToPrefab requires a prefab name argument");
+            return;
+        }
+
+        const ANSIString prefabNameArg = GetArgument(0);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAddToPrefab: no project loaded");
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAddToPrefab: no active scene");
+            return;
+        }
+
+        Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, Name(prefabNameArg));
+
+        if (!prefab.IsValid() || !prefab->GetRoot().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAddToPrefab: could not find existing prefab '{}'", prefabNameArg);
+            return;
+        }
+
+        Array<Handle<Node>> validNodes;
+        if (!ResolvePrefabSourceNodes(subsystem, activeScene.Get(), String::empty, validNodes))
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAddToPrefab: no valid nodes to add to prefab '{}'", prefabNameArg);
+            return;
+        }
+
+        Array<Handle<Node>> appendedClones;
+
+        for (const Handle<Node>& node : validNodes)
+        {
+            Handle<Node> clonedChild = node->Clone();
+
+            if (!clonedChild.IsValid())
+            {
+                HYP_LOG(Editor, Error, "EditorCommandAddToPrefab: failed to clone node '{}'", node->GetName());
+                continue;
+            }
+
+            appendedClones.PushBack(clonedChild);
+        }
+
+        if (appendedClones.Empty())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAddToPrefab: nothing was cloned to append to prefab '{}'", prefabNameArg);
+            return;
+        }
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Add to Prefab {}", prefabNameArg),
+            Proc<EditorActionFunctions()>(
+                [prefab, appendedClones]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab, appendedClones](EditorSubsystem*, EditorProject*)
+                            {
+                                Handle<Node> existingRoot = prefab->GetRoot();
+
+                                for (const Handle<Node>& clonedChild : appendedClones)
+                                {
+                                    existingRoot->AddChild(clonedChild);
+                                }
+
+                                GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
+                                prefab->MarkDirty();
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab, appendedClones](EditorSubsystem*, EditorProject*)
+                            {
+                                for (const Handle<Node>& clonedChild : appendedClones)
+                                {
+                                    clonedChild->Remove();
+                                }
+
+                                prefab->MarkDirty();
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddToPrefab);
+
+// Content Browser "New" action: creates a blank Prefab with an empty root node. Deliberately ignores
+// scene selection entirely (the Content Browser has no notion of selected scene nodes), unlike
+// EditorCommandMakePrefab above.
+class EditorCommandNewPrefab final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandNewPrefab);
+
+public:
+    virtual ~EditorCommandNewPrefab() override = default;
+
+    virtual String GetText() const override
+    {
+        return "New Prefab";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot create prefab asset!");
+            return;
+        }
+
+        ANSIString prefabNameStr = "NewPrefab";
+
+        if (NumArguments() >= 1 && !GetArgument(0).Empty())
+        {
+            prefabNameStr = GetArgument(0);
+        }
+
+        const Name prefabName = Name(prefabNameStr);
+
+        Handle<Node> root = MakeHandle<Node>();
+        root->SetName(prefabName);
+        InitObject(root);
+
+        Handle<Prefab> prefab = MakeHandle<Prefab>(prefabName, root);
+        InitObject(prefab);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [prefab]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(prefab);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(prefab);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(NewPrefab);
+
+class EditorCommandSavePrefab final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSavePrefab);
+
+public:
+    virtual ~EditorCommandSavePrefab() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Save Prefab";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefab: no project loaded");
+            return;
+        }
+
+        Node* rawNode = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String::empty);
+        Handle<Node> node = rawNode ? MakeStrongRef(rawNode) : subsystem->GetFocusedNode();
+
+        if (!node.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefab: no node to save");
+            return;
+        }
+
+        const UUID prefabUUID = Prefab::GetSourcePrefabUUID(node.Get());
+
+        if (prefabUUID == UUID::Invalid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefab: node '{}' is not a Prefab instance", node->GetName());
+            return;
+        }
+
+        Handle<Prefab> prefab = Prefab::FindByUUID(prefabUUID);
+
+        if (!prefab.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefab: could not find source Prefab for node '{}'", node->GetName());
+            return;
+        }
+
+        Handle<Node> newRoot = node->Clone();
+
+        if (!newRoot.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefab: failed to clone node '{}'", node->GetName());
+            return;
+        }
+
+        // Author at local origin
+        Transform rootLocalTransform = newRoot->GetLocalTransform();
+        rootLocalTransform.SetTranslation(Vec3f::Zero());
+        newRoot->SetLocalTransform(rootLocalTransform);
+
+        Handle<Node> previousRoot = prefab->GetRoot();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Save Prefab {}", prefab->GetName()),
+            Proc<EditorActionFunctions()>(
+                [prefab, newRoot, previousRoot]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab, newRoot](EditorSubsystem*, EditorProject*)
+                            {
+                                prefab->SetRoot(newRoot);
+                                GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [prefab, previousRoot](EditorSubsystem*, EditorProject*)
+                            {
+                                prefab->SetRoot(previousRoot);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SavePrefab);
+
+#pragma endregion Prefab
 
 #pragma region DeleteAsset
 

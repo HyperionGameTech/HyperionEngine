@@ -248,6 +248,18 @@ struct WindSettings
 };
 
 HYP_STRUCT()
+struct GlobalIlluminationSettings
+{
+    HYP_STRUCT_BODY(GlobalIlluminationSettings);
+
+    HYP_FIELD(Property = "DDGIEnabled", Serialize, Label = "Dynamic Diffuse GI (DDGI)")
+    bool ddgiEnabled = true;
+
+    HYP_FIELD(Property = "RayTracedReflectionsEnabled", Serialize, Label = "Ray Traced Reflections")
+    bool rayTracedReflectionsEnabled = true;
+};
+
+HYP_STRUCT()
 struct EnvironmentSettings
 {
     HYP_STRUCT_BODY(EnvironmentSettings);
@@ -269,6 +281,9 @@ struct EnvironmentSettings
 
     HYP_FIELD(Property = "Wind", Serialize, Label = "Wind")
     WindSettings wind;
+
+    HYP_FIELD(Property = "GlobalIllumination", Serialize, Label = "Global Illumination & Reflections")
+    GlobalIlluminationSettings globalIllumination;
 };
 
 void WriteEnvironmentShaderData(

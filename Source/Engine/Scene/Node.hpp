@@ -88,15 +88,16 @@ struct NodeTag
 {
     HYP_STRUCT_BODY(NodeTag);
 
+    // UUID is before String intentionally, so it doesn't get binned as a String when reading the literal from HMF
     using VariantType = Variant<
         int,
         float,
         Vec2f, Vec3f, Vec4f,
         Vec2i, Vec3i, Vec4i,
         Vec2u, Vec3u, Vec4u,
+        UUID,
         String,
-        Name,
-        UUID>;
+        Name>;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;

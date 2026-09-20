@@ -16,9 +16,13 @@ struct GameState;
 struct StringHash;
 
 #ifdef HYP_STRATA
+struct ScriptObjectData_Strata;
+
 namespace Strata {
 
 void ClearFunctionPointerCacheForModule(StringHash moduleHash);
+
+void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name);
 
 } // namespace Strata
 #endif // HYP_STRATA

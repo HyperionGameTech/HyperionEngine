@@ -44,6 +44,7 @@
 
 #include <Core/Utilities/Optional.hpp>
 
+#include <Framework/CVarManager.hpp>
 #include <Framework/Config/EngineConfig.hpp>
 #include <Framework/EngineStats.hpp>
 
@@ -61,6 +62,9 @@
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
+
+extern CVar<bool> g_cvIndirectRendering;
+extern CVar<bool> g_cvParallelRendering;
 
 extern EngineStatGpuTimer g_statGpuFrameTime;
 
@@ -80,13 +84,10 @@ class DX12RenderConfig final : public IRenderConfig
 public:
     DX12RenderConfig()
     {
-        EngineConfig cfg;
-        cfg.Load();
-
         bindlessTextures = false;
         rayTracing = false;
-        indirectRendering = cfg.Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
-        parallelRendering = cfg.Get("Rendering.ParallelRendering").ToBool(/* defaultValue */ true);
+        indirectRendering = g_cvIndirectRendering.Get();
+        parallelRendering = g_cvParallelRendering.Get();
         dynamicDescriptorIndexing = true;
     }
 

@@ -65,7 +65,7 @@ void HeightFogPass::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     AssertDebug(renderSetup.view != nullptr && renderSetup.framebuffer != nullptr);
 
-    if (!(GetWorldBufferData()->environmentFlags & WEF_HEIGHT_FOG))
+    if (!(GetWorldBufferData()->environmentFlags & uint32(WorldEnvironmentFlags::HeightFog)))
     {
         return;
     }

@@ -89,6 +89,7 @@ struct FunctionPointerCache
     using ModuleMap = Map<StringHash, FunctionMap>;
 
     ModuleMap modules;
+    ModuleMap warnedMissing;
 
     void* TryGet(StringHash moduleHash, StringHash functionHash) const
     {
@@ -117,9 +118,24 @@ struct FunctionPointerCache
         modules[moduleHash][functionHash] = fnPtr;
     }
 
+    bool ShouldWarnMissing(StringHash moduleHash, StringHash functionHash)
+    {
+        FunctionMap& fnMap = warnedMissing[moduleHash];
+
+        if (fnMap.Find(functionHash) != fnMap.End())
+        {
+            return false;
+        }
+
+        fnMap[functionHash] = (void*)1;
+
+        return true;
+    }
+
     void ClearModule(StringHash moduleHash)
     {
         modules.Erase(moduleHash);
+        warnedMissing.Erase(moduleHash);
     }
 };
 
@@ -169,9 +185,11 @@ static void* ResolveSymbolFromHost(const char* name)
 #    endif
 }
 
-static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
+void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* name)
 {
     Assert(data != nullptr);
+
+    InitializeCache();
 
     const StringHash functionHash(name);
 
@@ -192,6 +210,16 @@ static void* ResolveFunctionPointer(ScriptObjectData_Strata* data, const char* n
     if (fn == nullptr)
     {
         fn = ResolveSymbolFromHost(name);
+    }
+
+    if (fn == nullptr)
+    {
+        if (t_fnPtrCache->ShouldWarnMissing(data->moduleHash, functionHash))
+        {
+            HYP_LOG(Scripting, Warning, "Strata: function '{}' not found", name);
+        }
+
+        return nullptr;
     }
 
     t_fnPtrCache->Put(data->moduleHash, functionHash, fn);
@@ -332,21 +360,37 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         auto* data = sor->GetScriptObjectData_Strata();
         Assert(data != nullptr);
 
-        Strata::InitializeCache();
-
         if (void* fnPtrRaw = Strata::ResolveFunctionPointer(data, methodName))
         {
-            auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
-
-            if constexpr (!std::is_void_v<ReturnType>)
+            if (data->context != nullptr)
             {
-                AssertDebug(outReturnValue != nullptr);
+                auto fnPtrCasted = (ReturnType (*)(void*, ArgTypes...))fnPtrRaw;
 
-                new (outReturnValue) ReturnType(fnPtrCasted(args...));
+                if constexpr (!std::is_void_v<ReturnType>)
+                {
+                    AssertDebug(outReturnValue != nullptr);
+
+                    new (outReturnValue) ReturnType(fnPtrCasted(data->context, args...));
+                }
+                else
+                {
+                    fnPtrCasted(data->context, args...);
+                }
             }
             else
             {
-                fnPtrCasted(args...);
+                auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
+
+                if constexpr (!std::is_void_v<ReturnType>)
+                {
+                    AssertDebug(outReturnValue != nullptr);
+
+                    new (outReturnValue) ReturnType(fnPtrCasted(args...));
+                }
+                else
+                {
+                    fnPtrCasted(args...);
+                }
             }
         }
     }
@@ -610,7 +654,16 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         HYP_LOG(Scripting, Warning, "Strata source '{}' not found; assuming AOT-linked symbols.",
                                 scriptDesc.path.Data());
                     }
+#    else
+                    HYP_LOG(Scripting, Warning, "This build has no LLVM JIT backend, so '{}' will only run "
+                                                 "if it was AOT-compiled with stratac. Scripts created or edited after the build will not execute!",
+                            scriptAsset->GetName());
 #    endif // HYP_STRATA_JIT
+                    if (void* createFnRaw = Strata::ResolveFunctionPointer(strataData, "__strata_context_create"))
+                    {
+                        auto createFn = (void* (*)(void))createFnRaw;
+                        strataData->context = createFn();
+                    }
                 }
 
                 if (!gameState.IsStopped())

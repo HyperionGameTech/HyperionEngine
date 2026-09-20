@@ -103,7 +103,10 @@ void ReflectionsPass::CreateFramebuffer()
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    return g_cvSSR.Get() && !g_cvRayTracedReflections.Get();
+    const bool rayTracedReflectionsEnabled = g_cvRayTracedReflections.Get()
+        && (GetWorldBufferData()->environmentFlags & uint32(WorldEnvironmentFlags::RayTracedReflections));
+
+    return g_cvSSR.Get() && !rayTracedReflectionsEnabled;
 }
 
 void ReflectionsPass::CreateSSRPass()

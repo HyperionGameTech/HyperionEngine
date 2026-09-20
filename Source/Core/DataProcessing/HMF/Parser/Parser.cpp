@@ -732,6 +732,13 @@ bool Parser::ParseStringValue(const TypeInfo& typeInfo, BoxedValue& out)
     }
     else if (typeInfo.id == TypeId::ForType<UUID>())
     {
+        if (text.Size() != 36)
+        {
+            Error(MSG_INVALID_LITERAL_FOR_TYPE, token.GetLocation(), text, typeInfo.name.LookupString());
+
+            return false;
+        }
+
         out = BoxedValue(UUID(text.Data()));
     }
     else

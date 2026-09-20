@@ -69,11 +69,10 @@ void DynamicSkySystem::InitializeSky()
 
         Handle<Prefab> domePrefab = GetEngineAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "InvSphere"_sh);
 
-        if (domePrefab.IsValid() && domePrefab->GetRoot().IsValid())
-        {
-            Handle<Node> domeNode = domePrefab->GetRoot()->Clone();
-            Assert(domeNode.IsValid());
+        Handle<Node> domeNode = domePrefab.IsValid() ? domePrefab->Spawn() : Handle<Node>::Null();
 
+        if (domeNode.IsValid())
+        {
             domeNode->Scale(Vec3f(10.0f));
             domeNode->LockTransform();
 

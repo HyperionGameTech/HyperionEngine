@@ -55,6 +55,9 @@ static constexpr uint32 MaxFramesBeforeDiscard = 300;
 
 EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
 CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
+CVar<bool> g_cvShadowsEnabled("Rendering.Shadows.Enabled", true);
+static CVar<bool> s_cvShadowsAsyncDrawCalls("Rendering.Shadows.AsyncDrawCalls", true);
+static CVar<bool> s_cvShadowsForceStaticRedraw("Rendering.Shadows.ForceStaticRedraw", false);
 
 extern CVar<bool> g_cvCSMTimeSlicingEnabled;
 extern CVar<int> g_cvCSMMaxUpdatesPerFrame;
@@ -232,6 +235,11 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     AssertOnThread(g_renderThread);
 
     AssertDebug(renderSetup.world && renderSetup.light);
+
+    if (!g_cvShadowsEnabled.Get())
+    {
+        return;
+    }
 
     ENGINE_STAT_GPU_SCOPE(&g_statShadowMaps);
 
@@ -778,7 +786,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     dynamicRpl.EndRead();
                 }
 
-                if (!isMatrixDirty
+                if (!s_cvShadowsForceStaticRedraw.Get()
+                    && !isMatrixDirty
                     && !isStaticCacheLatchedDirty
                     && !isDesyncedFromDynamic
                     && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
@@ -922,6 +931,11 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 pendingDraw.atlasElement = atlasElement;
                 pendingDraw.isOmni = isOmni;
                 pendingDraw.viewIndex = viewIndex;
+
+                if (!s_cvShadowsAsyncDrawCalls.Get())
+                {
+                    flushPendingDraw();
+                }
             }
         }
     }
