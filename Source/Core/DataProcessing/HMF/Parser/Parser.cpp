@@ -1328,6 +1328,13 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
 
 bool Parser::ParseTupleValue(const TypeInfo& typeInfo, BoxedValue& out)
 {
+    // Backward compatibility. we changed Color to be written out as a Tuple, read it as an object
+    // for older saves to continue working
+    if (Peek().GetTokenClass() == TK_OPEN_BRACE && (typeInfo.IsClass() || typeInfo.IsStruct()))
+    {
+        return ParseObjectValue(typeInfo, out);
+    }
+
     auto* handler = static_cast<ITypeInfoTupleHandler*>(typeInfo.extendedInfo.handler);
 
     if (!handler)

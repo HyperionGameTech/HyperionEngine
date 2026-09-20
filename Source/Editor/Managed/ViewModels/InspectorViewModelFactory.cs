@@ -21,6 +21,7 @@ namespace Hyperion.Editor.ViewModels
         private const string MaterialTexturesName = "MaterialTextures";
         private const string ShaderPropertySetName = "ShaderPropertySet";
         private const string BlendFunctionName = "BlendFunction";
+        private const string ColorName = "Color";
         private const string BoolName = "bool";
 
         public static InspectorPropertyViewModelBase Create(
@@ -117,6 +118,10 @@ namespace Hyperion.Editor.ViewModels
             else if (typeInfo.Class?.Name == BlendFunctionName)
             {
                 vm = new BlendFunctionPropertyViewModel(target, property, isReadOnly, depth);
+            }
+            else if (typeInfo.Class?.Name == ColorName)
+            {
+                vm = new ColorViewModel(target, property, isReadOnly);
             }
             else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == BoolName)
             {
@@ -239,6 +244,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 vm = new BlendFunctionPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
             }
+            else if (typeInfo.Class?.Name == ColorName)
+            {
+                vm = new ColorViewModel(classAddress, targetAddressResolver, property, isReadOnly);
+            }
             else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == BoolName)
             {
                 vm = new BoolPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly);
@@ -353,6 +362,10 @@ namespace Hyperion.Editor.ViewModels
             else if (typeInfo.Class?.Name == BlendFunctionName)
             {
                 vm = new BlendFunctionPropertyViewModel(label, typeInfo, getter, setter, isReadOnly, depth);
+            }
+            else if (typeInfo.Class?.Name == ColorName)
+            {
+                vm = new ColorViewModel(label, typeInfo, getter, setter, isReadOnly);
             }
             else if (typeInfo.IsFundamental && typeInfo.IsIntegral && typeInfo.Name == BoolName)
             {

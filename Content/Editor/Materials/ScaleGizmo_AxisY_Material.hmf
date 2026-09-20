@@ -8,12 +8,7 @@ Material "ScaleGizmo_AxisY_Material" {
         ParallaxHeightScale = 0.02
         Transmission = 0
         IOR = 1.5
-        EmissiveColor = {
-            Red = 0
-            Green = 0
-            Blue = 0
-            Alpha = 0
-        }
+        EmissiveColor = (0, 0, 0, 0)
         EmissiveIntensity = 0
         UserParams = (0, 0, 0, 0)
         Unlit = true

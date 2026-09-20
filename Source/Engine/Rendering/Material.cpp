@@ -372,7 +372,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     MaterialShaderData& bufferData = proxy->bufferData;
     bufferData = {};
 
-    bufferData.albedo = m_parameters.albedo;
+    bufferData.albedo = Vec4f(m_parameters.albedo);
     bufferData.packedParams = Vec4u(
         ByteUtil::PackVec4f(Vec4f {
             m_parameters.roughness,

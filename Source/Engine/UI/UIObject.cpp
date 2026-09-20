@@ -1929,7 +1929,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 MaterialParameters UIObject::GetMaterialParameters() const
 {
     MaterialParameters parameters;
-    parameters.albedo = Vec4f(GetBackgroundColor());
+    parameters.albedo = GetBackgroundColor();
 
     return parameters;
 }

@@ -364,7 +364,7 @@ MaterialParameters UIMenuItem::GetMaterialParameters() const
     }
 
     MaterialParameters parameters;
-    parameters.albedo = Vec4f(color);
+    parameters.albedo = color;
 
     return parameters;
 }

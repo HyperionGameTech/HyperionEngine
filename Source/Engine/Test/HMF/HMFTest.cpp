@@ -1641,12 +1641,7 @@ CameraOrthoRect {
     ParallaxHeightScale = 0.05
     Transmission = 0.5
     IOR = 1.52
-    EmissiveColor = {
-        Red = 1
-        Green = 0.5
-        Blue = 0.1
-        Alpha = 1
-    }
+    EmissiveColor = (1, 0.5, 0.1, 1)
     EmissiveIntensity = 10
     UserParams = (1, 2, 3, 4)
     Unlit = false

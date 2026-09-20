@@ -119,6 +119,8 @@ struct Vec4;
 struct Mat3f;
 struct Mat4f;
 
+class Color;
+
 namespace utilities {
 
 template <class... Types>
@@ -612,6 +614,12 @@ struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat3f>>>
 
 template <class T, class TBoxed>
 struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>
+{
+    void operator()(TypeInfo& result) const;
+};
+
+template <class T, class TBoxed>
+struct TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Color>>>
 {
     void operator()(TypeInfo& result) const;
 };
@@ -2637,6 +2645,96 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Mat4f>>>::operat
     };
 
     static Mat4fHandler s_handler;
+    result.extendedInfo.handler = &s_handler;
+}
+
+template <class T, class TBoxed>
+void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, Color>>>::operator()(TypeInfo& result) const
+{
+    using ColorType = T;
+
+    result.flags |= TypeInfoFlags::TUPLE_TYPE;
+    result.extendedInfo.data.typeInfo = &TypeInfo::ForType<float>();
+    result.extendedInfo.dataType = TypeInfoEx::DT_TYPE_INFO;
+
+    // set handler
+    class ColorHandler final : public ITypeInfoTupleHandler
+    {
+    public:
+        virtual bool CreateInstance(TBoxed& outInstance) const override
+        {
+            outInstance = BoxedValue(ColorType {});
+            return true;
+        }
+
+        virtual int GetNumElements() const override
+        {
+            return 4;
+        }
+
+        virtual const TypeInfo* GetElementTypeInfoAtIndex(int index) const override
+        {
+            if (index < 0 || index >= 4)
+            {
+                return nullptr;
+            }
+
+            return &TypeInfo::ForType<float>();
+        }
+
+        virtual AnyRef GetElement(const TBoxed& instance, int index) const override
+        {
+            ColorType& color = instance.template Get<ColorType>();
+
+            static thread_local float s_value;
+
+            switch (index)
+            {
+            case 0:
+                s_value = color.GetRed();
+                break;
+            case 1:
+                s_value = color.GetGreen();
+                break;
+            case 2:
+                s_value = color.GetBlue();
+                break;
+            case 3:
+                s_value = color.GetAlpha();
+                break;
+            default:
+                return AnyRef();
+            }
+
+            return AnyRef(&s_value);
+        }
+
+        virtual bool SetElement(const TBoxed& instance, int index, const TBoxed& value) const override
+        {
+            ColorType& color = instance.template Get<ColorType>();
+            const float floatValue = value.template Get<float>();
+
+            switch (index)
+            {
+            case 0:
+                color.SetRed(floatValue);
+                return true;
+            case 1:
+                color.SetGreen(floatValue);
+                return true;
+            case 2:
+                color.SetBlue(floatValue);
+                return true;
+            case 3:
+                color.SetAlpha(floatValue);
+                return true;
+            default:
+                return false;
+            }
+        }
+    };
+
+    static ColorHandler s_handler;
     result.extendedInfo.handler = &s_handler;
 }
 

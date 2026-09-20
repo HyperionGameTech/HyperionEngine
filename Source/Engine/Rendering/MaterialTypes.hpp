@@ -73,7 +73,7 @@ public:
     static constexpr uint8 FlagBit_ParallaxInverseHeight = 0x80u;
 
     HYP_FIELD(Property = "Albedo", Editor, Serialize)
-    Vec4f albedo;
+    Color albedo;
 
     HYP_FIELD(Property = "Metalness", Editor, Serialize)
     float metalness;

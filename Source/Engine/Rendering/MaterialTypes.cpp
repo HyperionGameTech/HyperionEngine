@@ -21,7 +21,7 @@ const MaterialParameters& MaterialParameters::Defaults()
                     {
                         memset(&s_defaults, 0, sizeof(MaterialParameters));
 
-                        s_defaults.albedo = Vec4f::One();
+                        s_defaults.albedo = Color::White();
                         s_defaults.roughness = 1.0f;
                         s_defaults.parallaxHeightScale = 0.02f;
                         s_defaults.ior = 1.5f;

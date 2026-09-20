@@ -549,7 +549,7 @@ MaterialParameters UIText::GetMaterialParameters() const
     }
 
     MaterialParameters parameters;
-    parameters.albedo = Vec4f(color);
+    parameters.albedo = color;
     parameters.userParams.x = 1.0f; // text param
 
     return parameters;

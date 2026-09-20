@@ -307,7 +307,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
             const float dissolve = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex]), 0.0f, 1.0f);
 
             auto& material = LastMaterial(library);
-            material.parameters.albedo.w = dissolve;
+            material.parameters.albedo.SetAlpha(dissolve);
 
             continue;
         }
@@ -339,7 +339,7 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
             const float dissolve = 1.0f - transparency;
 
             auto& material = LastMaterial(library);
-            material.parameters.albedo.w = dissolve;
+            material.parameters.albedo.SetAlpha(dissolve);
 
             continue;
         }

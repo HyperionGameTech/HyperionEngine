@@ -54,6 +54,23 @@
                     <TextBox Grid.Column="3" HorizontalAlignment="Stretch" Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>
             </DataTemplate>
+            <DataTemplate x:DataType="vm:ColorViewModel">
+                <Grid ColumnDefinitions="20,*,*,*,*" ColumnSpacing="4">
+                    <Border
+                        Grid.Column="0"
+                        Width="16"
+                        Height="16"
+                        VerticalAlignment="Center"
+                        Background="{Binding SwatchBrush}"
+                        BorderBrush="{DynamicResource Brush.Border}"
+                        BorderThickness="1"
+                        CornerRadius="3" />
+                    <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Text="{Binding R, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Grid.Column="2" HorizontalAlignment="Stretch" Text="{Binding G, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Grid.Column="3" HorizontalAlignment="Stretch" Text="{Binding B, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Grid.Column="4" HorizontalAlignment="Stretch" Text="{Binding A, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+            </DataTemplate>
             <DataTemplate x:DataType="vm:Vec2iViewModel">
                 <Grid ColumnDefinitions="*,*">
                     <TextBox Grid.Column="0" Margin="0,0,4,0" HorizontalAlignment="Stretch" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />

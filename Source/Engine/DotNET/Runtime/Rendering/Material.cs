@@ -21,8 +21,8 @@ namespace Hyperion
         const byte FlagMask_Channel = 0x3;
         const byte FlagBit_ParallaxInverseHeight = 0x80;
 
-        public Vec4f albedo = Vec4f.One;
-        
+        public Color albedo = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+
         public float metalness = 0.0f;
         public float roughness = 1.0f;
         

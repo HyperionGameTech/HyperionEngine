@@ -427,7 +427,7 @@ MaterialParameters UITextbox::GetMaterialParameters() const
 
     if (IsEnabled())
     {
-        params.albedo = Vec4f(GetBackgroundColor());
+        params.albedo = GetBackgroundColor();
     }
     else
     {
@@ -436,7 +436,7 @@ MaterialParameters UITextbox::GetMaterialParameters() const
         disabledColor.SetGreen(disabledColor.GetGreen() * 0.5f);
         disabledColor.SetBlue(disabledColor.GetBlue() * 0.5f);
 
-        params.albedo = Vec4f(disabledColor);
+        params.albedo = disabledColor;
     }
 
     return params;
