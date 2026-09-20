@@ -6,8 +6,8 @@
     <a href="https://hyperionengine.dev">Website</a> • <a href="https://discord.gg/Fv8PwMJEUb">Discord</a>
 </div>
 
-<div align="center" style="margin-top: 20px">
-  <img width="500" src="Documentation/Images/terrain.png">
+<div align="center" style="margin-top: 50px">
+  <img width="700" src="Documentation/Images/terrain.png">
 </div>
 
 ## About
