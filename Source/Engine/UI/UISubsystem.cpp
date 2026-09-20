@@ -73,6 +73,11 @@ CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", true);
 CVar<bool> g_cvShowDebugUI("Debug.ShowDebugUI", false);
 #endif // HYP_DEBUG_MODE || HYP_EDITOR
 
+static bool IsDebugOverlayVisible(const Handle<OverlayBase>& debugOverlay, bool sharedDebugUIVisible)
+{
+    return debugOverlay->IsEnabled() && (debugOverlay->IgnoresSharedDebugUIVisibility() || sharedDebugUIVisible);
+}
+
 static TResult<Handle<FontAtlas>> CreateFontAtlas()
 {
     // we check if it exists in the registry before creating.
@@ -121,7 +126,6 @@ UISubsystem::UISubsystem(const Handle<UIStage>& uiStage)
     : m_uiStage(uiStage),
       m_uiRenderer(nullptr),
       m_wasProcessedLastFrame(false),
-      m_wasDebugUIEnabled(false),
       m_debugOverlaysSuppressed(false)
 {
     if (!m_uiStage.IsValid())
@@ -230,22 +234,20 @@ void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
 
-    const bool enableDebugUI = g_cvShowDebugUI.Get() && !m_debugOverlaysSuppressed;
+    const bool sharedDebugUIVisible = g_cvShowDebugUI.Get() && !m_debugOverlaysSuppressed;
 
-    if (enableDebugUI != m_wasDebugUIEnabled)
+    bool anyDebugOverlayVisible = false;
+
+    for (const Handle<OverlayBase>& debugOverlay : m_debugOverlays)
     {
-        for (auto& container : m_debugOverlayContainers)
+        if (IsDebugOverlayVisible(debugOverlay, sharedDebugUIVisible))
         {
-            container->SetIsVisible(enableDebugUI);
+            anyDebugOverlayVisible = true;
+            break;
         }
-        
-        m_wasDebugUIEnabled = enableDebugUI;
     }
-    
-    if (enableDebugUI)
-    {
-        UpdateDebugOverlays();
-    }
+
+    UpdateDebugOverlays(sharedDebugUIVisible);
 
     m_uiStage->Update(delta);
 
@@ -253,7 +255,7 @@ void UISubsystem::Update(float delta)
 
     // render UI if there are non-debug overlay objects in the stage,
     // or if there are debug overlays we have to draw.
-    if (hasOtherChildUIObjects || (enableDebugUI && m_debugOverlays.Any()))
+    if (hasOtherChildUIObjects || anyDebugOverlayVisible)
     {
         m_view->SetOverrideCollectFunctor(ProcRef<void(RenderProxyList&)>(*this, ValueWrapper<&UISubsystem::RenderCollect>()));
 
@@ -367,7 +369,7 @@ void UISubsystem::InitDebugOverlays()
         debugOverlayContainer->SetParentAlignment(Alignments[i]);
         debugOverlayContainer->SetOriginAlignment(Alignments[i]);
         debugOverlayContainer->SetAcceptsFocus(false); // so we dlon't steal focus from the viewport
-        debugOverlayContainer->SetIsVisible(m_wasDebugUIEnabled);
+        debugOverlayContainer->SetIsVisible(true); // per-overlay visibility is handled in UpdateDebugOverlays
 
         debugOverlayContainer->OnClick.RemoveAllDetached();
         debugOverlayContainer->OnKeyDown.RemoveAllDetached();
@@ -402,13 +404,20 @@ void UISubsystem::InitDebugOverlays()
     }
 }
 
-void UISubsystem::UpdateDebugOverlays()
+void UISubsystem::UpdateDebugOverlays(bool sharedDebugUIVisible)
 {
     HYP_SCOPE;
 
     for (const Handle<OverlayBase>& debugOverlay : m_debugOverlays)
     {
-        if (!debugOverlay->IsEnabled())
+        const bool isVisible = IsDebugOverlayVisible(debugOverlay, sharedDebugUIVisible);
+
+        if (const Handle<UIObject>& uiObject = debugOverlay->GetUIObject())
+        {
+            uiObject->SetIsVisible(isVisible);
+        }
+
+        if (!isVisible)
         {
             continue;
         }

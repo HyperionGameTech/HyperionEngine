@@ -35,6 +35,9 @@ public:
     StatsOverlay();
     virtual ~StatsOverlay() override;
 
+    static bool IsStatsOverlayEnabled();
+    static void SetStatsOverlayEnabled(bool enabled);
+
 protected:
     virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override;
 
@@ -46,6 +49,11 @@ protected:
     virtual void Update(float delta) override;
 
     virtual bool IsEnabled() const override
+    {
+        return IsStatsOverlayEnabled();
+    }
+
+    virtual bool IgnoresSharedDebugUIVisibility() const override
     {
         return true;
     }

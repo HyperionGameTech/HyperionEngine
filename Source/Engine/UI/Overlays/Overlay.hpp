@@ -61,6 +61,11 @@ public:
         return true;
     }
 
+    virtual bool IgnoresSharedDebugUIVisibility() const
+    {
+        return false;
+    }
+
 protected:
     Handle<UIObject> m_uiObject;
     ClockTimer m_timer;

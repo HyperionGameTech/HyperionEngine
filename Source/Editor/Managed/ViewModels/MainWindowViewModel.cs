@@ -133,7 +133,7 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
-        private EditorCommand _addInstance = new EditorCommand("AddInstance");
+        private EditorCommand _addInstance;
         public EditorCommand AddInstance => _addInstance;
 
         private bool _canAddInstance = false;
@@ -374,6 +374,9 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand ToggleGhostMode { get; private set; }
         public bool IsGhostModeEnabled => _editorSubsystem?.IsGhostModeEnabled() ?? false;
+
+        public ICommand ToggleShowStats { get; private set; }
+        public bool IsShowStatsEnabled => _editorSubsystem?.IsShowStatsEnabled() ?? false;
 
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
         // that was right-clicked rather than whatever happens to be focused.
@@ -685,6 +688,8 @@ namespace Hyperion.Editor.ViewModels
 
         public MainWindowViewModel()
         {
+            _addInstance = new EditorCommand("AddInstance", canExecute: () => CanAddInstance);
+
             PanelService.Instance.ActivePanelChanged += OnActivePanelChanged;
 
             SceneHierarchy = new SceneHierarchyViewModel();
@@ -723,6 +728,16 @@ namespace Hyperion.Editor.ViewModels
                     _editorSubsystem.SetGhostModeEnabled(!_editorSubsystem.IsGhostModeEnabled());
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsGhostModeEnabled)));
+                });
+            });
+
+            ToggleShowStats = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetShowStatsEnabled(!_editorSubsystem.IsShowStatsEnabled());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsShowStatsEnabled)));
                 });
             });
 

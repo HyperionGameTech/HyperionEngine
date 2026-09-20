@@ -1169,18 +1169,22 @@ void DeferredPass::CreateViewRayTracingPasses(View* view, DeferredPassData& pass
     passData.rayTracingReflections = MakeUnique<RayTracingReflections>(gbuffer);
     passData.rayTracingReflections->Create();
 
-    DDGIInfo ddgiInfo {};
-    ddgiInfo.probeCountsPerCascade = Vec3u {
-        uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2)),
-        uint32(MathUtil::Max(g_cvDDGIProbeCountVertical.Get(), 2)),
-        uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2))
-    };
-    ddgiInfo.probeDistance = g_cvDDGIProbeDistance.Get();
-    ddgiInfo.numCascades = uint32(MathUtil::Clamp(g_cvDDGINumCascades.Get(), 1, int(DDGI::MaxCascades)));
-    ddgiInfo.numRaysPerProbe = uint32(MathUtil::Max(g_cvDDGIRaysPerProbe.Get(), 1));
+    // ddgi need not be recreated on resize - it is a world-space grid
+    if (!passData.ddgi)
+    {
+        DDGIInfo ddgiInfo {};
+        ddgiInfo.probeCountsPerCascade = Vec3u {
+            uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2)),
+            uint32(MathUtil::Max(g_cvDDGIProbeCountVertical.Get(), 2)),
+            uint32(MathUtil::Max(g_cvDDGIProbeCountHorizontal.Get(), 2))
+        };
+        ddgiInfo.probeDistance = g_cvDDGIProbeDistance.Get();
+        ddgiInfo.numCascades = uint32(MathUtil::Clamp(g_cvDDGINumCascades.Get(), 1, int(DDGI::MaxCascades)));
+        ddgiInfo.numRaysPerProbe = uint32(MathUtil::Max(g_cvDDGIRaysPerProbe.Get(), 1));
 
-    passData.ddgi = MakeUnique<DDGI>(std::move(ddgiInfo));
-    passData.ddgi->Create();
+        passData.ddgi = MakeUnique<DDGI>(std::move(ddgiInfo));
+        passData.ddgi->Create();
+    }
 }
 
 void DeferredPass::CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData)

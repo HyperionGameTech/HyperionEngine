@@ -972,10 +972,9 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 
             // Clients simulate their non-replicated entities locally. Replicated entities are owned
             // by the server, so keep their bodies kinematic (driven by replication) before stepping.
-            if (!EngineGlobals::HasAuthority())
-            {
-                SyncPhysicsBodyKinematicStates();
-            }
+            // Also holds non-static bodies in place while the ground beneath them hasn't streamed in
+            // yet, so this has to run regardless of authority.
+            SyncPhysicsBodyKinematicStates();
 
             m_physicsWorld->Tick(delta);
 
@@ -1201,6 +1200,8 @@ void World::SyncPhysicsToEntities()
 
 void World::SyncPhysicsBodyKinematicStates()
 {
+    const Handle<WorldGrid>& worldGrid = GetWorldGrid();
+
     for (Scene* scene : m_scenes)
     {
         for (auto [entity, rigidBodyComponent, transformComponent] : scene->GetEntityManager()->GetEntitySet<RigidBodyComponent, TransformComponent>())
@@ -1212,9 +1213,17 @@ void World::SyncPhysicsBodyKinematicStates()
                 continue;
             }
 
-            const bool shouldBeKinematic = (!SceneHelpers::CanSimulateEntityPhysics(*entity)
-                || entity->HasComponent<TerrainCellComponent>())
+            const bool isTerrainCell = entity->HasComponent<TerrainCellComponent>();
+
+            bool shouldBeKinematic = (!SceneHelpers::CanSimulateEntityPhysics(*entity) || isTerrainCell)
                 && !rigidBody->IsLocallyPredicted();
+
+            // Hold non-static bodies in place until the ground underneath them has streamed in
+            if (!shouldBeKinematic && !isTerrainCell
+                && worldGrid.IsValid() && worldGrid->IsCollisionPendingAt(rigidBody->GetTransform().GetTranslation()))
+            {
+                shouldBeKinematic = true;
+            }
 
             if (rigidBody->IsKinematic() != shouldBeKinematic)
             {

@@ -465,6 +465,12 @@ public:
     HYP_METHOD()
     void SetGhostModeEnabled(bool enabled);
 
+    HYP_METHOD()
+    bool IsShowStatsEnabled() const;
+
+    HYP_METHOD()
+    void SetShowStatsEnabled(bool enabled);
+
     /*! \brief True if \p node (or the focused node when null) has a mesh and a BoxPhysicsShape whose
      *  AABB can be fitted to the mesh via \ref FitPhysicsShapeToMesh. */
     HYP_METHOD()

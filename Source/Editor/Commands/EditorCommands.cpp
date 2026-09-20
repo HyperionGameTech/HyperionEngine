@@ -2810,6 +2810,22 @@ public:
             return;
         }
 
+        // volumes are positioned by their local bounds rather than the node origin
+        if (VolumeBase* volume = DynamicCast<VolumeBase>(node.Get()))
+        {
+            const BoundingBox& localBounds = volume->GetLocalBounds();
+
+            if (localBounds.IsValid() && localBounds.IsFinite())
+            {
+                const Vec3f center = localBounds.GetCenter();
+
+                if (!MathUtil::ApproxEqual(center, Vec3f::Zero()))
+                {
+                    volume->SetLocalBounds(localBounds + (-center));
+                }
+            }
+        }
+
         node->SetWorldTranslation(camera->GetWorldTranslation());
     }
 };

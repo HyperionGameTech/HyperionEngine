@@ -10,6 +10,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <CommCtrl.h>
+#include <windowsx.h>
 
 #include <System/AppContext.hpp>
 #include <System/Platform/Windows/Win32Helpers.hpp>
@@ -259,8 +260,7 @@ bool HandleWindowEvent(
     case WM_INPUT:
         window->ProcessRawInput((void*)lParam);
 
-        DefWindowProcW(hWnd, msg, wParam, lParam);
-
+        // Not handled - let the caller fall through to DefWindowProcW so it isn't called twice.
         return false;
     case WM_KEYDOWN:
         event = Event(EventType::KEYDOWN, window, platformEvent);
@@ -282,8 +282,8 @@ bool HandleWindowEvent(
         event = Event(EventType::MOUSEMOTION, window, platformEvent);
 
         POINT pt;
-        pt.x = LOWORD(lParam);
-        pt.y = HIWORD(lParam);
+        pt.x = GET_X_LPARAM(lParam);
+        pt.y = GET_Y_LPARAM(lParam);
 
         event.GetEventData().Set(MotionData { Vec2f(float(pt.x), float(pt.y)), Vec2f::Zero(), /* isAbsolute */ true });
 

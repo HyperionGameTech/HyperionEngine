@@ -16,6 +16,7 @@
 #include <Scene/World.hpp>
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Profiling/ProfileScope.hpp>
 #include <Core/Core.hpp>
@@ -25,6 +26,18 @@
 namespace Hyperion {
 
 #pragma region StatsOverlay
+
+static CVar<bool> g_cvShowStatsOverlay { "Editor.ShowStats", false };
+
+bool StatsOverlay::IsStatsOverlayEnabled()
+{
+    return g_cvShowStatsOverlay.Get();
+}
+
+void StatsOverlay::SetStatsOverlayEnabled(bool enabled)
+{
+    g_cvShowStatsOverlay.Set(enabled);
+}
 
 StatsOverlay::StatsOverlay()
     : OverlayBase()

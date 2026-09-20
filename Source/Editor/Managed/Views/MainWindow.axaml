@@ -182,9 +182,9 @@
 
 
         <Style Selector="Button.gizmo-wide">
-          <Setter Property="Height" Value="30" />
+          <Setter Property="MinHeight" Value="30" />
           <Setter Property="MinWidth" Value="30" />
-          <Setter Property="Padding" Value="6,4" />
+          <Setter Property="Padding" Value="8,10" />
           <Setter Property="Background" Value="Transparent" />
           <Setter Property="BorderThickness" Value="0" />
           <Setter Property="Transitions">
@@ -193,9 +193,9 @@
         </Style>
 
         <Style Selector="DropDownButton.gizmo-wide">
-            <Setter Property="Height" Value="30" />
+            <Setter Property="MinHeight" Value="30" />
             <Setter Property="MinWidth" Value="30" />
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Padding" Value="8,10" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Transitions">
@@ -203,7 +203,10 @@
             </Setter>
             <Setter Property="Template">
                 <ControlTemplate>
-                    <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.Small}">
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{DynamicResource Radius.Small}"
+                        Padding="{TemplateBinding Padding}">
                         <ContentPresenter
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
@@ -220,6 +223,20 @@
         <Style Selector="DropDownButton.gizmo-wide:pressed">
             <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+
+        <Style Selector="DropDownButton.gizmo-wide.Primary">
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="DropDownButton.gizmo-wide.Primary:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}" />
+        </Style>
+
+        <Style Selector="DropDownButton.gizmo-wide.Primary:pressed">
+            <Setter Property="Background" Value="{DynamicResource Brush.PrimaryMuted}" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
 
         <Style Selector="Border.mode-strip">
@@ -591,7 +608,6 @@
                                 VerticalAlignment="Center"
                                 Classes="gizmo-wide"
                                 IsEnabled="{Binding !IsSimulating}"
-                                Padding="0,8"
                                 ToolTip.Tip="Bake">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <controls:Codicon
@@ -635,9 +651,8 @@
                               HorizontalAlignment="Right"
                               VerticalAlignment="Center"
                               IsEnabled="{Binding !IsSimulating}"
-                              Classes="gizmo"
+                              Classes="gizmo-wide Primary"
                               Click="OnDropDownClick"
-                              Padding="0,8"
                               ToolTip.Tip="Add to the active scene">
 
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -651,99 +666,9 @@
                                   Text="Add" />
                             </StackPanel>
 
+                            <!--  Populated from MainWindow.BuildAddSceneMenuEntries so this list isn't duplicated between here and the scene hierarchy's "Add" submenu  -->
                             <DropDownButton.ContextMenu>
-                              <ContextMenu Placement="Bottom">
-                                <MenuItem
-                                    Margin="0,2"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="#808080"
-                                    Header="Node"
-                                    IsEnabled="False" />
-                                <MenuItem Command="{Binding AddEmptyNode}" Header="Base Node" />
-                                <Separator />
-                                <MenuItem Command="{Binding AddEntity}" Header="Entity" />
-                                <MenuItem Command="{Binding AddCamera}" Header="Camera" />
-                                <Separator />
-                                <MenuItem
-                                    Margin="0,2"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="#808080"
-                                    Header="Rendering"
-                                    IsEnabled="False" />
-                                <MenuItem
-                                    Command="{Binding AddInstance}"
-                                    Header="Instanced Mesh"
-                                    IsEnabled="{Binding CanAddInstance}" />
-                                <Separator />
-                                <MenuItem
-                                    Margin="0,2"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="#808080"
-                                    Header="2D"
-                                    IsEnabled="False" />
-                                <MenuItem Command="{Binding AddSprite}" Header="Sprite" />
-                                <MenuItem Command="{Binding AddTextSprite}" Header="Text Sprite" />
-                                <Separator />
-                                <MenuItem
-                                    Margin="0,2"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="#808080"
-                                    Header="Lighting"
-                                    IsEnabled="False" />
-                                <MenuItem Command="{Binding AddDirectionalLight}" Header="Directional Light" />
-                                <MenuItem Command="{Binding AddPointLight}" Header="Point Light" />
-                                <MenuItem Command="{Binding AddSpotLight}" Header="Spot Light" />
-                                <MenuItem Command="{Binding AddAreaRectLight}" Header="Rectangular Area Light" />
-                                <Separator />
-                                <MenuItem Command="{Binding AddReflectionProbe}" Header="Reflection Probe" />
-                                <MenuItem Command="{Binding AddIrradianceProbe}" Header="Irradiance Probe" />
-                                <MenuItem Command="{Binding AddLightmapVolume}" Header="Lightmap Volume" />
-                                <Separator />
-                                <MenuItem
-                                    Margin="0,2"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="#808080"
-                                    Header="FX"
-                                    IsEnabled="False" />
-                                <MenuItem Command="{Binding AddParticleVolume}" Header="Particle Volume" />
-                                <MenuItem Command="{Binding AddFogVolume}" Header="Fog Volume" />
-
-                                <Separator />
-
-                                <!-- Misc -->
-
-                                <MenuItem
-                                    Margin="0,2"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="#808080"
-                                    Header="Misc"
-                                    IsEnabled="False" />
-
-                                <MenuItem Command="{Binding AddTerrainLayer}" Header="Terrain" />
-
-                                <MenuItem Header="Shapes">
-                                  <MenuItem Command="{Binding AddPlane}" Header="Plane" />
-                                  <MenuItem Command="{Binding AddCube}" Header="Cube" />
-                                  <MenuItem Command="{Binding AddNormalizedCubeSphereCommand}" Header="Sphere" />
-                                  <MenuItem Command="{Binding AddCylinder}" Header="Cylinder" />
-                                </MenuItem>
-
-                                <MenuItem Header="Templates">
-                                  <MenuItem Command="{Binding AddPlayerEntity}" Header="Player Entity" />
-                                </MenuItem>
-                              </ContextMenu>
+                              <ContextMenu x:Name="AddSceneContextMenu" Placement="Bottom" />
                             </DropDownButton.ContextMenu>
                           </DropDownButton>
                         </StackPanel>
@@ -1029,6 +954,13 @@
                                         ToggleType="CheckBox"
                                         ToolTip.Tip="Free-fly through the world with no collision (WASD + Space/Ctrl to fly up/down)" />
 
+                                    <MenuItem
+                                        Command="{Binding ToggleShowStats}"
+                                        Header="Show Stats"
+                                        IsChecked="{Binding IsShowStatsEnabled, Mode=OneWay}"
+                                        ToggleType="CheckBox"
+                                        ToolTip.Tip="Show the engine stats overlay, in both editor and simulation mode" />
+
                                     <Separator />
                                     <MenuItem Header="Layout">
                                         <MenuItem
@@ -1247,6 +1179,12 @@
                                                                 </StackPanel>
                                                                 <Grid.ContextMenu>
                                                                     <ContextMenu Opened="OnNodeContextMenuOpened">
+                                                                        <!--  Submenu populated from MainWindow.BuildAddSceneMenuEntries - the same list the toolbar's Add dropdown uses  -->
+                                                                        <MenuItem
+                                                                            Header="Add"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Tag="AddSceneMenu" />
+                                                                        <Separator />
                                                                         <MenuItem
                                                                             Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding CopyHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"

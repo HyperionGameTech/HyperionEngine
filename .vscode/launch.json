@@ -2,6 +2,7 @@
   "version": "0.2.0",
   "configurations": [
 
+
     {
       "name": "Launch Editor (macOS Debug)",
       "type": "cppdbg",
@@ -50,12 +51,6 @@
       "console": "internalConsole",
       "MIMode": "lldb",
     },
-
-    // --- Windows: MSVC (default `BuildHyperion.bat` toolchain, no flag) ---
-    // MSVC's own cl.exe emits PDB debug info, so this uses cppvsdbg (VS's native debugger,
-    // not the MI/gdb-based cppdbg below). Builds to the same Binaries/Windows/<Config> output
-    // as the Clang and MinGW/GCC variants below, so only one of the three toolchains' binaries
-    // is debuggable at a time -- whichever you built most recently.
     {
       "name": "Launch Editor (Windows Debug - MSVC)",
       "type": "cppvsdbg",
@@ -100,11 +95,6 @@
       "environment": [],
       "console": "internalConsole",
     },
-
-    // --- Windows: Clang (`BuildHyperion.bat ... clang` or `... ninja`, both use clang-cl) ---
-    // clang-cl targets the MSVC ABI and emits PDB debug info like cl.exe does, so this also
-    // uses cppvsdbg rather than gdb. Same output path as MSVC above -- build with `clang` (or
-    // `ninja`) last and this is the config that has fresh symbols.
     {
       "name": "Launch Editor (Windows Debug - Clang)",
       "type": "cppvsdbg",
@@ -149,19 +139,6 @@
       "environment": [],
       "console": "internalConsole",
     },
-
-    // --- Windows: MinGW/GCC (`BuildHyperion.bat ... mingw`) ---
-    // cppdbg + gdb, not cppvsdbg: cppvsdbg only reads MSVC-style PDB debug info, but MinGW/GCC
-    // emits DWARF instead -- cppvsdbg would silently show no symbols/call stack for it. gdb (from
-    // the MinGW-w64 toolchain) understands DWARF, matching the lldb configs used for macOS above.
-    //
-    // miDebuggerPath below reads the HYP_MINGW_BIN environment variable instead of a hardcoded
-    // per-user path (MIEngine's own PATH search for a bare "gdb.exe" isn't reliable on Windows --
-    // that's what previously produced "unable to begin debugging, please specify MIDebuggerPath").
-    // Set HYP_MINGW_BIN once to your MinGW-w64 toolchain's bin directory (the same one that has
-    // gcc.exe/g++.exe on PATH for BuildHyperion.bat), e.g. in PowerShell:
-    //   setx HYP_MINGW_BIN "C:\path\to\your\mingw64\bin"
-    // then restart VS Code so it picks up the new environment variable.
     {
       "name": "Launch Editor (Windows Debug - MinGW/GCC)",
       "type": "cppdbg",

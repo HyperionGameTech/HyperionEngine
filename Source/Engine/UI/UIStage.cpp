@@ -775,11 +775,15 @@ UIEventHandlerResult UIStage::OnInputEvent(const Event& event)
     {
         const EnumFlags<MouseButtonState> mouseButtons = inputManager->GetButtonStates();
 
-        const Vec2f mousePosition = ToLogicalCoords(event.IsAbsoluteMousePosition()
-            ? event.GetMousePosition()
-            : event.GetMousePositionDeltas() + previousMousePosition);
+        const Vec2f mousePosition = event.IsAbsoluteMousePosition()
+            ? ToLogicalCoords(event.GetMousePosition())
+            : ToLogicalCoords(Vec2f(inputManager->GetVirtualMousePosition()));
 
-        eventHandlerResult |= HandlePointerMove(event, mousePosition, previousMousePosition, mouseButtons);
+        const Vec2f mousePrevPosition = event.IsAbsoluteMousePosition()
+            ? previousMousePosition
+            : mousePosition - ToLogicalCoords(event.GetMousePositionDeltas());
+
+        eventHandlerResult |= HandlePointerMove(event, mousePosition, mousePrevPosition, mouseButtons);
 
         break;
     }

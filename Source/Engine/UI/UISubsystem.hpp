@@ -100,7 +100,7 @@ private:
     void InitFont();
 
     void InitDebugOverlays();
-    void UpdateDebugOverlays();
+    void UpdateDebugOverlays(bool sharedDebugUIVisible);
 
     Handle<UIStage> m_uiStage;
 
@@ -117,7 +117,6 @@ private:
     DelegateHandler m_onCurrentWindowChangedHandle;
 
     bool m_wasProcessedLastFrame;
-    bool m_wasDebugUIEnabled;
     bool m_debugOverlaysSuppressed;
 };
 

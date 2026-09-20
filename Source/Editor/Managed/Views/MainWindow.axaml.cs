@@ -4,6 +4,7 @@ using Avalonia.Controls.Platform;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -13,6 +14,7 @@ using Dock.Model.Controls;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Input;
 using Hyperion;
 using Hyperion.Editor.Views;
 using Hyperion.Editor.ViewModels;
@@ -79,6 +81,11 @@ namespace Hyperion.Editor
             DataContext = viewModel;
 
             InitializeComponent();
+
+            foreach (Control entry in BuildAddSceneMenuEntries(viewModel))
+            {
+                AddSceneContextMenu.Items.Add(entry);
+            }
 
             PanelService.Instance.ActivePanelChanged += OnPanelServiceActivePanelChanged;
 
@@ -153,6 +160,80 @@ namespace Hyperion.Editor
             {
                 menu.Open();
             }
+        }
+
+        private static IEnumerable<Control> BuildAddSceneMenuEntries(MainWindowViewModel viewModel)
+        {
+            static MenuItem GroupHeader(string text) => new MenuItem
+            {
+                Margin = new Thickness(0, 2),
+                Padding = new Thickness(8, 4),
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                FontSize = 12,
+                Foreground = Brush.Parse("#808080"),
+                Header = text,
+                IsEnabled = false,
+            };
+
+            static MenuItem Entry(string header, ICommand command) => new MenuItem
+            {
+                Header = header,
+                Command = command,
+            };
+
+            static MenuItem Submenu(string header, params MenuItem[] children)
+            {
+                var item = new MenuItem { Header = header };
+                foreach (MenuItem child in children)
+                {
+                    item.Items.Add(child);
+                }
+                return item;
+            }
+
+            yield return GroupHeader("Node");
+            yield return Entry("Base Node", viewModel.AddEmptyNode);
+            yield return new Separator();
+            yield return Entry("Entity", viewModel.AddEntity);
+            yield return Entry("Camera", viewModel.AddCamera);
+            yield return new Separator();
+
+            yield return GroupHeader("Rendering");
+            yield return Entry("Instanced Mesh", viewModel.AddInstance);
+            yield return new Separator();
+
+            yield return GroupHeader("2D");
+            yield return Entry("Sprite", viewModel.AddSprite);
+            yield return Entry("Text Sprite", viewModel.AddTextSprite);
+            yield return new Separator();
+
+            yield return GroupHeader("Lighting");
+            yield return Entry("Directional Light", viewModel.AddDirectionalLight);
+            yield return Entry("Point Light", viewModel.AddPointLight);
+            yield return Entry("Spot Light", viewModel.AddSpotLight);
+            yield return Entry("Rectangular Area Light", viewModel.AddAreaRectLight);
+            yield return new Separator();
+            yield return Entry("Reflection Probe", viewModel.AddReflectionProbe);
+            yield return Entry("Irradiance Probe", viewModel.AddIrradianceProbe);
+            yield return Entry("Lightmap Volume", viewModel.AddLightmapVolume);
+            yield return new Separator();
+
+            yield return GroupHeader("FX");
+            yield return Entry("Particle Volume", viewModel.AddParticleVolume);
+            yield return Entry("Fog Volume", viewModel.AddFogVolume);
+            yield return new Separator();
+
+            yield return GroupHeader("Misc");
+            yield return Entry("Terrain", viewModel.AddTerrainLayer);
+            yield return Submenu(
+                "Shapes",
+                new MenuItem { Header = "Plane", Command = viewModel.AddPlane },
+                new MenuItem { Header = "Cube", Command = viewModel.AddCube },
+                new MenuItem { Header = "Sphere", Command = viewModel.AddNormalizedCubeSphereCommand },
+                new MenuItem { Header = "Cylinder", Command = viewModel.AddCylinder });
+            yield return Submenu(
+                "Templates",
+                new MenuItem { Header = "Player Entity", Command = viewModel.AddPlayerEntity });
         }
 
         /// <summary>
@@ -612,7 +693,12 @@ namespace Hyperion.Editor
 
         private void OnNodeContextMenuOpened(object? sender, RoutedEventArgs e)
         {
-            if ((sender as ContextMenu)?.DataContext is NodeViewModel nodeViewModel)
+            if (sender is not ContextMenu contextMenu)
+            {
+                return;
+            }
+
+            if (contextMenu.DataContext is NodeViewModel nodeViewModel)
             {
                 nodeViewModel.RefreshActions();
                 nodeViewModel.RefreshMoveToSceneTargets();
@@ -621,6 +707,15 @@ namespace Hyperion.Editor
                 if (DataContext is MainWindowViewModel mvm)
                 {
                     nodeViewModel.RefreshSelectionContext(mvm.SceneHierarchy.SelectedNodes);
+                }
+            }
+
+            if (contextMenu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag as string == "AddSceneMenu") is { Items.Count: 0 } addMenuItem
+                && MainWindowViewModel.Instance is { } mainViewModel)
+            {
+                foreach (Control entry in BuildAddSceneMenuEntries(mainViewModel))
+                {
+                    addMenuItem.Items.Add(entry);
                 }
             }
         }

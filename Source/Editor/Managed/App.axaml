@@ -59,6 +59,9 @@
             <Color x:Key="Color.AccentMuted">#FF49837E</Color>
             <Color x:Key="Color.AccentSubtle">#1481BBB6</Color>
             <Color x:Key="Color.AccentSelection">#3D81BBB6</Color>
+            <Color x:Key="Color.Primary">#FF3D7EFF</Color>
+            <Color x:Key="Color.PrimaryHover">#FF5C93FF</Color>
+            <Color x:Key="Color.PrimaryMuted">#FF2E5FC2</Color>
             <Color x:Key="Color.Evergreen">#FF1E2A24</Color>
             <Color x:Key="Color.EvergreenBorder">#FF2F4438</Color>
             <Color x:Key="Color.Text">#FFD0D3D9</Color>
@@ -83,6 +86,9 @@
             <SolidColorBrush x:Key="Brush.AccentMuted" Color="{StaticResource Color.AccentMuted}" />
             <SolidColorBrush x:Key="Brush.AccentSubtle" Color="{StaticResource Color.AccentSubtle}" />
             <SolidColorBrush x:Key="Brush.AccentSelection" Color="{StaticResource Color.AccentSelection}" />
+            <SolidColorBrush x:Key="Brush.Primary" Color="{StaticResource Color.Primary}" />
+            <SolidColorBrush x:Key="Brush.PrimaryHover" Color="{StaticResource Color.PrimaryHover}" />
+            <SolidColorBrush x:Key="Brush.PrimaryMuted" Color="{StaticResource Color.PrimaryMuted}" />
             <SolidColorBrush x:Key="Brush.Evergreen" Color="{StaticResource Color.Evergreen}" />
             <SolidColorBrush x:Key="Brush.EvergreenBorder" Color="{StaticResource Color.EvergreenBorder}" />
             <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />
@@ -495,18 +501,18 @@
 
         <!--  Primary (accent-filled) button, used for confirm/create actions  -->
         <Style Selector="Button.Primary">
-            <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
-            <Setter Property="Foreground" Value="#FF0A0B0D" />
+            <Setter Property="Background" Value="{StaticResource Brush.Primary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Primary}" />
+            <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style Selector="Button.Primary:over">
-            <Setter Property="Background" Value="{StaticResource Brush.AccentHover}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentHover}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PrimaryHover}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryHover}" />
         </Style>
         <Style Selector="Button.Primary:pressed">
-            <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Brush.AccentMuted}" />
+            <Setter Property="Background" Value="{StaticResource Brush.PrimaryMuted}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryMuted}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
         

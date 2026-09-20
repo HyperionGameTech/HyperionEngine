@@ -44,6 +44,7 @@
 
 #include <Core/DataProcessing/HMF/HMF.hpp>
 
+#include <Core/Reflection/Class.hpp>
 #include <Core/Reflection/Property.hpp>
 #include <Core/Reflection/Field.hpp>
 
@@ -208,6 +209,51 @@ Handle<Node> Entity::Clone() const
     }
 
     cloned->m_entityInitInfo = m_entityInitInfo;
+
+    // Copy fields/properties declared on this entity's own class hierarchy, between its
+    // most-derived class and Entity (exclusive)
+    {
+        BoxedValue srcBoxed(HandleFromThis());
+        BoxedValue dstBoxed(cloned);
+
+        for (const Class* cls = InstanceClass(); cls != nullptr && cls != Entity::StaticClass(); cls = cls->GetParent())
+        {
+            for (const IMember& member : cls->GetMembers(MemberType::Field | MemberType::Property, /* deep */ false))
+            {
+                if (member.GetMemberType() != MemberType::Property && member.GetAttribute(Attributes::g_attrProperty).IsValid())
+                {
+                    // skip fields that are mirrored by a Property with getter/setter methods,
+                    // otherwise they'd be copied twice
+                    continue;
+                }
+
+                if (const ClassAttributeValue& transientAttr = member.GetAttribute(Attributes::g_attrTransient); transientAttr.IsValid() && transientAttr.GetBool())
+                {
+                    continue;
+                }
+
+                switch (member.GetMemberType())
+                {
+                case MemberType::Field:
+                    static_cast<const Field&>(member).Set(dstBoxed, static_cast<const Field&>(member).Get(srcBoxed));
+                    break;
+                case MemberType::Property:
+                {
+                    const Property& property = static_cast<const Property&>(member);
+
+                    if (property.CanGet() && property.CanSet())
+                    {
+                        property.Set(dstBoxed, property.Get(srcBoxed));
+                    }
+
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+        }
+    }
 
     InitObject(cloned);
 

@@ -1552,6 +1552,8 @@ bool UIObject::IsOrHasParent(const UIObject* other) const
 
 void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
 {
+    AssertOnThread(g_simThread);
+
     if (!uiObject)
     {
         return;
@@ -1589,6 +1591,8 @@ void UIObject::AddChildUIObject(const Handle<UIObject>& uiObject)
 
 bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 {
+    AssertOnThread(g_simThread);
+
     if (!uiObject)
     {
         return false;

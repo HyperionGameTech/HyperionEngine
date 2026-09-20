@@ -94,9 +94,12 @@ private:
         FixedArray<Mat4f, MaxShadowMapCascades> lastRenderedViewProj;
         FixedArray<uint32, MaxShadowMapCascades> lastRenderedFrame {};
         FixedArray<HashCode, MaxShadowMapCascades> lastRenderedEntryListHashes {};
-        FixedArray<bool, MaxShadowMapCascades> pendingListRedraw {};
+        BitField<MaxShadowMapCascades> pendingListRedraw {};
 
         uint32 nextDirtyDrawCascade = 0;
+
+        BitField<6> omniFaceEverRendered {};
+        uint32 nextOmniFaceToWarm = 0;
 
         uint32 lastUsedFrame;
     };

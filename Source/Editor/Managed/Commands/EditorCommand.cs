@@ -11,15 +11,18 @@ namespace Hyperion.Editor.Commands
     {
         private string _name;
         private Func<string?>? _argumentProvider;
+        private Func<bool>? _canExecute;
 
-        public EditorCommand(string name, Func<string?>? argumentProvider = null)
+        public EditorCommand(string name, Func<string?>? argumentProvider = null, Func<bool>? canExecute = null)
         {
             _name = name;
             _argumentProvider = argumentProvider;
+            _canExecute = canExecute;
         }
 
         public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name)
-            && EngineManager.EditorGame?.EditorSubsystem?.IsSimulating() != true;
+            && EngineManager.EditorGame?.EditorSubsystem?.IsSimulating() != true
+            && (_canExecute?.Invoke() ?? true);
         public void Execute(object? parameter)
         {
             string? argument = parameter as string;

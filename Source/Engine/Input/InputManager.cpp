@@ -312,14 +312,13 @@ void InputManager::UpdateMousePosition(Event& event)
             ? event.GetMousePosition() - Vec2f(m_previousMousePosition)
             : event.GetMousePositionDeltas();
 
-        // if locked, only update the virtual position
+        // if locked, only update the virtual position.
+        // Clamp the accumulator itself (not the rounded result) so slow, sub-pixel
+        // deltas aren't discarded every event
         m_virtualMousePositionAccum += deltas;
+        m_virtualMousePositionAccum = MathUtil::Clamp(m_virtualMousePositionAccum, Vec2f::Zero(), Vec2f(m_ownerWindow->GetDimensions() - 1));
 
-        Vec2i newVirtualMousePosition = Vec2i(MathUtil::Round(m_virtualMousePositionAccum));
-        newVirtualMousePosition = MathUtil::Clamp(newVirtualMousePosition, Vec2i::Zero(), m_ownerWindow->GetDimensions() - 1);
-
-        m_virtualMousePosition = newVirtualMousePosition;
-        m_virtualMousePositionAccum = Vec2f(newVirtualMousePosition);
+        m_virtualMousePosition = Vec2i(MathUtil::Round(m_virtualMousePositionAccum));
 
         return;
     }

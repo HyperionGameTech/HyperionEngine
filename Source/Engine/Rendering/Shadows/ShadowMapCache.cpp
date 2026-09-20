@@ -36,6 +36,7 @@ CVar<float> g_cvShadowDepthBias("Rendering.ShadowDepthBias", 0.05f);
 CVar<float> g_cvShadowDepthBiasDirectional("Rendering.ShadowDepthBiasDirectional", 0.05f);
 
 static CVar<float> s_cvCSMDepthBiasTexels("Rendering.Shadows.CSMDepthBiasTexels", 1.0f);
+static CVar<bool> s_cvAsyncOmniShadowShaderLoading("Rendering.Shadows.AsyncOmniShaderLoading", true);
 
 // Set to true to create camera-specific shadow maps for CSM
 // Will cause more shadow maps to be allocated, and specifically other non-main cameras
@@ -245,8 +246,12 @@ static ViewDesc GetViewDesc(
     }
 
     // No parallel draw call collection for shadow maps
-    viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION
-                    | ViewFlags::NO_ASYNC_SHADER_LOADING;
+    viewDesc.flags |= ViewFlags::NO_PARALLEL_DRAW_CALL_COLLECTION;
+
+    if (!isOmni || !s_cvAsyncOmniShadowShaderLoading.Get())
+    {
+        viewDesc.flags |= ViewFlags::NO_ASYNC_SHADER_LOADING;
+    }
 
     return viewDesc;
 }

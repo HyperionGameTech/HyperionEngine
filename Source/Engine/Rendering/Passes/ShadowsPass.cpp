@@ -59,6 +59,7 @@ extern CVar<int> g_cvCSMMaxStaleFrames;
 extern CVar<int> g_cvCSMPriorityCascades;
 
 static CVar<bool> s_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
+static CVar<int> s_cvOmniShadowMaxNewFacesPerFrame("Rendering.Shadows.OmniMaxNewFacesPerFrame", 1);
 
 static bool HasRenderGroups(const RenderCollector& renderCollector, uint32 bucketBits)
 {
@@ -286,6 +287,10 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     uint32 numDirtyListDraws = 0;
     const uint32 maxDirtyListDraws = uint32(MathUtil::Max(g_cvCSMMaxUpdatesPerFrame.Get(), 0));
 
+    // # of never-before-rendered omni cube faces allowed to warm up this frame
+    uint32 numOmniFacesWarmedThisFrame = 0;
+    const uint32 maxOmniFacesWarmedPerFrame = uint32(MathUtil::Max(s_cvOmniShadowMaxNewFacesPerFrame.Get(), 1));
+
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
         View* shadowViewDynamic;
@@ -416,10 +421,10 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             ////////////////////
             if (isRplDirty || isStaticRplDirty)
             {
-                cachedData->pendingListRedraw[cascadeIndex] = true;
+                cachedData->pendingListRedraw.Set(cascadeIndex, true);
             }
 
-            if (!dirty && cachedData->pendingListRedraw[cascadeIndex])
+            if (!dirty && cachedData->pendingListRedraw.Test(cascadeIndex))
             {
                 if (cascadeIndex < uint32(MathUtil::Max(g_cvCSMPriorityCascades.Get(), 0)))
                 {
@@ -450,7 +455,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                     isListDirty,
                     isRplDirty,
                     isStaticRplDirty,
-                    cachedData->pendingListRedraw[cascadeIndex],
+                    cachedData->pendingListRedraw.Test(cascadeIndex),
                     numDirtyListDraws,
                     maxDirtyListDraws,
                     entryListHash.Value(),
@@ -463,7 +468,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            cachedData->pendingListRedraw[cascadeIndex] = false;
+            cachedData->pendingListRedraw.Set(cascadeIndex, false);
             cachedData->lastRenderedEntryListHashes[cascadeIndex] = entryListHash;
             cachedData->lastRenderedViewProj[cascadeIndex] = cascadeViewProj;
             cachedData->lastRenderedFrame[cascadeIndex] = GetFrameCounter();
@@ -473,6 +478,21 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         for (uint32 viewIndex = cascadeIndex; viewIndex < numViewsToIterate; viewIndex++)
         {
+            if (isOmni && !cachedData->omniFaceEverRendered.Test(viewIndex))
+            {
+                const bool isAtOrAfterCursor = (viewIndex >= cachedData->nextOmniFaceToWarm);
+                const bool canWarmThisFace = isAtOrAfterCursor && numOmniFacesWarmedThisFrame < maxOmniFacesWarmedPerFrame;
+
+                if (!canWarmThisFace)
+                {
+                    continue;
+                }
+
+                ++numOmniFacesWarmedThisFrame;
+                cachedData->nextOmniFaceToWarm = (viewIndex + 1) % 6;
+                cachedData->omniFaceEverRendered.Set(viewIndex, true);
+            }
+
             if (isOmni)
             {
                 // This would occur only for omni shadow maps upon first initialization.

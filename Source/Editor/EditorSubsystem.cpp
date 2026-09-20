@@ -120,6 +120,7 @@
 #include <Baking/BakeLayer.hpp>
 
 #include <UI/Overlays/MessagesOverlay.hpp>
+#include <UI/Overlays/StatsOverlay.hpp>
 
 // for EnumToString
 #include <Core/Reflection/Enum.hpp>
@@ -2134,6 +2135,16 @@ void EditorSubsystem::SetGhostModeEnabled(bool enabled)
     SceneHelpers::SetGhostModeEnabled(enabled);
 }
 
+bool EditorSubsystem::IsShowStatsEnabled() const
+{
+    return StatsOverlay::IsStatsOverlayEnabled();
+}
+
+void EditorSubsystem::SetShowStatsEnabled(bool enabled)
+{
+    StatsOverlay::SetStatsOverlayEnabled(enabled);
+}
+
 // Deep-copy a PhysicsShape asset (there is no reflection-based clone, so switch on the concrete type).
 static Handle<PhysicsShape> ClonePhysicsShape(const Handle<PhysicsShape>& source)
 {
@@ -3247,7 +3258,15 @@ bool EditorSubsystem::StopSimulation()
 
         Assert(IsSimulating());
 
-        OpenProject(m_preSimulationProject);
+        {
+            EditorTaskScope taskScope(
+                TickableEditorTask::StaticClass(),
+                "Stopping Simulation",
+                "Please wait for the world to finish unloading",
+                /* isForegroundTask */ true);
+
+            OpenProject(m_preSimulationProject);
+        }
 
         m_preSimulationProject.Reset();
 

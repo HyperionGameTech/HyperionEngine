@@ -36,6 +36,7 @@
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/LightmapElementComponent.hpp>
+#include <Scene/Components/TerrainPatchComponent.hpp>
 
 #include <Core/Threading/TaskSystem.hpp>
 #include <Core/Threading/TaskThread.hpp>
@@ -383,6 +384,12 @@ void Baker<LightmapVolume>::Build()
         if (meshComponent.mesh->GetMeshAttributes().inputLayout.mask & (VT_Tree | VT_Foliage))
         {
              continue;
+        }
+        
+        //terrain cannot be lightmapped as the meshes are dynamically built based on height data
+        if (mgr.HasComponent<TerrainPatchComponent>(entity))
+        {
+            continue;
         }
 
         const BoundingBox& worldAabb = boundingBoxComponent.worldAabb;
