@@ -391,17 +391,17 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
             {
                 if (transitionDepth)
                 {
-                    image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::Pixel, /* onlyDepth */ true, /* onlyStencil */ false);
+                    image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::None, /* onlyDepth */ true, /* onlyStencil */ false);
                 }
 
                 if (transitionStencil)
                 {
-                    image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::Pixel, /* onlyDepth */ false, /* onlyStencil */ true);
+                    image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::None, /* onlyDepth */ false, /* onlyStencil */ true);
                 }
             }
             else if (transitionDepth && transitionStencil)
             {
-                image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::Pixel);
+                image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::None);
             }
 
             continue;
@@ -409,11 +409,11 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
 
         if (fullSubResource)
         {
-            image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::Pixel);
+            image->InsertBarrier(cmd, ResourceState::RenderTarget, ShaderModuleType::None);
         }
         else if (image->GetSubResourceState(subResource) != ResourceState::RenderTarget)
         {
-            image->InsertBarrier(cmd, subResource, ResourceState::RenderTarget, ShaderModuleType::Pixel);
+            image->InsertBarrier(cmd, subResource, ResourceState::RenderTarget, ShaderModuleType::None);
         }
     }
 
