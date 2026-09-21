@@ -394,7 +394,7 @@ void AssetPreviewScene::HideSubjectEntity()
 {
     if (m_entity.IsValid() && m_entity->HasComponent<MeshComponent>())
     {
-        m_entity->GetEntityManager()->RemoveComponent(TypeId::ForType<MeshComponent>(), m_entity.Get());
+        m_entity->RemoveComponent<MeshComponent>();
     }
 }
 

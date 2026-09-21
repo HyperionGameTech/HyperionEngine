@@ -1305,6 +1305,9 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         return false;
     }
 
+    // Systems and the Entity's own callbacks below may drop the last reference to it
+    Handle<Entity> entityHandle = MakeStrongRef(entity);
+
     HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
     EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
@@ -1314,25 +1317,31 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         return false;
     }
 
-    auto componentIt = entityData->FindComponent(componentTypeId);
-    if (componentIt == entityData->components.End())
+    const ComponentId componentId = entityData->GetComponentId(componentTypeId);
+
+    if (componentId == Invalid<ComponentId>)
     {
         return false;
     }
-
-    const ComponentId componentId = componentIt->second;
-
-    // Notify systems that entity is being removed from them
-    ComponentMap removedComponents;
-    removedComponents.Set(componentTypeId, componentId);
-
-    NotifySystemsOfEntityRemoved(entity, removedComponents);
 
     ComponentContainerBase* container = TryGetContainer(componentTypeId);
 
     if (!container)
     {
         return false;
+    }
+
+    ComponentMap removedComponents;
+    removedComponents.Set(componentTypeId, componentId);
+
+    NotifySystemsOfEntityRemoved(entity, removedComponents);
+
+    // A system may have removed the component itself from OnEntityRemoved() in which case doing everything below would be redundant
+    entityData = m_entities.TryGetEntityData(entity->Id());
+
+    if (!entityData || entityData->GetComponentId(componentTypeId) != componentId)
+    {
+        return true;
     }
 
     AnyRef componentRef = container->TryGetComponent(componentId);
@@ -1354,12 +1363,20 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         entity->OnComponentRemoved(componentRef);
     }
 
-    // Remove the component from the entity's component map and update any EntitySets
-    // referencing this entity *before* the component data is erased from the
-    // ComponentContainer below. EntitySets cache each entity's ComponentIds and only refresh
-    // them here via OnEntityUpdated() - doing this first ensures no EntitySet can hand a stale
-    // ComponentId to a concurrent reader (e.g. a System::Process() running on a task thread)
-    // once the underlying component storage is actually gone.
+    entityData = m_entities.TryGetEntityData(entity->Id());
+
+    if (!entityData)
+    {
+        return true;
+    }
+
+    auto componentIt = entityData->FindComponent(componentTypeId);
+
+    if (componentIt == entityData->components.End() || componentIt->second != componentId)
+    {
+        return true;
+    }
+
     entityData->components.Erase(componentIt);
 
     auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);

@@ -581,70 +581,10 @@ public:
             return false;
         }
 
-        Handle<Entity> entityHandle = MakeStrongRef(entity);
-        Assert(entityHandle.IsValid());
-
         Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
-        ComponentMap removedComponents;
-
-        EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
-
-        if (!entityData)
-        {
-            return false;
-        }
-
-        auto componentIt = entityData->FindComponent<Component>();
-        if (componentIt == entityData->components.End())
-        {
-            return false;
-        }
-
-        const TypeId componentTypeId = componentIt->first;
-        const ComponentId componentId = componentIt->second;
-
-        // Notify systems that entity is being removed from them
-        removedComponents.Set(componentTypeId, componentId);
-
-        entityData->components.Erase(componentIt);
-
-        {
-            auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
-
-            if (componentEntitySetsIt != m_componentEntitySets.End())
-            {
-                for (EntitySetId entitySetId : componentEntitySetsIt->second)
-                {
-                    EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
-
-                    entitySet.OnEntityUpdated(entityHandle);
-                }
-            }
-        }
-
-        BoxedValue componentBoxed;
-
-        const bool removedFromContainer = GetContainer<Component>().RemoveComponent(componentId, componentBoxed);
-        Assert(removedFromContainer, "Component of type `{}` with ID {} was present in the Entity's component map but not found in the ComponentContainer", TypeNameWithoutNamespace<Component>().Data(), componentId);
-
-        NotifySystemsOfEntityRemoved(entity, removedComponents);
-
-        EntityTag tag = EntityTag::None;
-        if (IsEntityTagComponent(componentTypeId, tag))
-        {
-            // If the component is an TagComponent, remove the tag from the entity
-            entity->OnTagRemoved(tag);
-        }
-        else
-        {
-            // Notify the entity that a component was removed
-            entity->OnComponentRemoved(componentBoxed.ToRef());
-        }
-
-        componentBoxed.Reset();
-
-        return true;
+        // The TypeId overload notifies systems before the component is erased, which their OnEntityRemoved() relies on
+        return RemoveComponent(TypeId::ForType<Component>(), entity);
     }
 
     /*! \brief Gets an entity set with the specified components, creating it if it doesn't exist.
