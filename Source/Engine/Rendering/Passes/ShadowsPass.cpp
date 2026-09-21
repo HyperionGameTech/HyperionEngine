@@ -54,18 +54,20 @@ static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, Rend
 static constexpr uint32 MaxFramesBeforeDiscard = MathUtil::Max(NumFramesInFlight, RingBufferDepth);
 
 EngineStatGpuTimer g_statShadowMaps("Rendering/GPU/ShadowMaps");
+
 CVar<bool> g_cvCacheShadowMaps("Rendering.CacheShadowMaps", true);
 CVar<bool> g_cvShadowsEnabled("Rendering.Shadows.Enabled", true);
+
 static CVar<bool> s_cvShadowsAsyncDrawCalls("Rendering.Shadows.AsyncDrawCalls", true);
 static CVar<bool> s_cvShadowsForceStaticRedraw("Rendering.Shadows.ForceStaticRedraw", false);
+static CVar<bool> s_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
+static CVar<int> s_cvOmniShadowMaxNewFacesPerFrame("Rendering.Shadows.OmniMaxNewFacesPerFrame", 1);
 
 extern CVar<bool> g_cvCSMTimeSlicingEnabled;
 extern CVar<int> g_cvCSMMaxUpdatesPerFrame;
 extern CVar<int> g_cvCSMMaxStaleFrames;
+extern CVar<float> g_cvCSMStaleFramesBackoff;
 extern CVar<int> g_cvCSMPriorityCascades;
-
-static CVar<bool> s_cvDebugCSMUpdates("Rendering.Shadows.DebugCSMUpdates", false);
-static CVar<int> s_cvOmniShadowMaxNewFacesPerFrame("Rendering.Shadows.OmniMaxNewFacesPerFrame", 1);
 
 static bool HasRenderGroups(const RenderCollector& renderCollector, uint32 bucketBits)
 {
@@ -433,9 +435,8 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             const uint32 framesSinceRendered = GetFrameCounter() - cachedData->lastRenderedFrame[cascadeIndex];
 
-            // Stagger the deadline per cascade, matching View's sim side scheduling, so the cascades
-            // do not all fall due on the same frame and collapse the time slicing into a periodic spike.
-            const uint32 staleFrames = uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1)) + cascadeIndex;
+            const float staleFramesBackoff = MathUtil::Max(g_cvCSMStaleFramesBackoff.Get(), 1.0f);
+            const uint32 staleFrames = uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1) * MathUtil::Pow(staleFramesBackoff, float(cascadeIndex)));
             const bool isStale = (framesSinceRendered >= staleFrames);
 
             bool dirty = isStale;

@@ -40,7 +40,7 @@
 
 namespace Hyperion {
 
-CVar<bool> g_cvAsyncShaderLoading("Rendering.AsyncShaderLoading", true);
+CVar<bool> g_cvAsyncShaderLoading("Rendering.AsyncShaderLoading", false);
 
 static Handle<Mesh> g_quadMesh;
 
@@ -874,7 +874,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 if (state.shaderAsyncLoadState != ShaderAsyncLoadState::ForceDisabled)
                 {
-                    state.shaderAsyncLoadState = cmd->async
+                    state.shaderAsyncLoadState = (cmd->async && g_cvAsyncShaderLoading.Get())
                         ? ShaderAsyncLoadState::Enabled
                         : ShaderAsyncLoadState::DisabledForShader;
                 }

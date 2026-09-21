@@ -29,12 +29,14 @@
 #include <Rendering/Material.hpp>
 
 #include <Core/Threading/Scheduler.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/GameState.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
@@ -45,6 +47,13 @@ namespace Hyperion {
 extern uint32 GetFrameCounter();
 
 static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(0.33f);
+
+static CVar<int> s_cvSkyVisibilityMapDimensions("Rendering.SkyVisibility.MapDimensions", 256);
+
+uint32 DynamicSkySystem::GetSkyVisibilityMapDimensions()
+{
+    return uint32(MathUtil::Clamp(s_cvSkyVisibilityMapDimensions.Get(), 64, 2048));
+}
 
 DynamicSkySystem::DynamicSkySystem()
     : m_updateTimer { DynamicSkyUpdateTimer },
@@ -152,7 +161,9 @@ void DynamicSkySystem::InitializeSky()
         m_visScene->GetRoot()->AddChild(m_cloudEffectVolume);
 
         {   // Top-down sky visibility capture. Its matrices are rebuilt every frame by UpdateSkyVisibilityView().
-            m_skyVisibilityCamera = MakeHandle<Camera>(int(SkyVisibilityMapDimensions), int(SkyVisibilityMapDimensions));
+            const uint32 skyVisibilityMapDimensions = GetSkyVisibilityMapDimensions();
+
+            m_skyVisibilityCamera = MakeHandle<Camera>(int(skyVisibilityMapDimensions), int(skyVisibilityMapDimensions));
             m_skyVisibilityCamera->SetName(NAME("SkyVisibilityCamera"));
             m_skyVisibilityCamera->SetNearClip(0.0f);
             m_skyVisibilityCamera->SetFarClip(SkyVisibilityDepthRange);
@@ -178,7 +189,7 @@ void DynamicSkySystem::InitializeSky()
             skyVisibilityViewDesc.camera = m_skyVisibilityCamera;
 
             FramebufferDesc& framebufferDesc = skyVisibilityViewDesc.framebufferDesc;
-            framebufferDesc.extent = Vec2u { SkyVisibilityMapDimensions, SkyVisibilityMapDimensions };
+            framebufferDesc.extent = Vec2u { skyVisibilityMapDimensions, skyVisibilityMapDimensions };
 
             AttachmentDesc depthAttachmentDesc {};
             depthAttachmentDesc.imageType = TextureType::Texture2D;
@@ -240,11 +251,11 @@ void DynamicSkySystem::UpdateSkyVisibilityView()
     }
 
     // snapped to texels so the map doesn't shimmer as the viewer moves
-    const float texelWorldSize = SkyVisibilityWorldExtent / float(SkyVisibilityMapDimensions);
+    const float texelWorldSize = SkyVisibilityWorldExtent / float(GetSkyVisibilityMapDimensions());
 
     const Vec3f captureOrigin = Vec3f(
         MathUtil::Floor(viewerPosition.x / texelWorldSize) * texelWorldSize,
-        viewerPosition.y + SkyVisibilityHeightAboveViewer,
+        MathUtil::Floor((viewerPosition.y + SkyVisibilityHeightAboveViewer) / texelWorldSize) * texelWorldSize,
         MathUtil::Floor(viewerPosition.z / texelWorldSize) * texelWorldSize);
 
     // looking straight down, so the up vector has to be along Z

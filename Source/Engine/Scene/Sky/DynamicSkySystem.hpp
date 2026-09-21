@@ -28,8 +28,8 @@ class ENGINE_API DynamicSkySystem : public SystemBase
     HYP_OBJECT_BODY(DynamicSkySystem);
 
 public:
-    // one texel of the sky visibility map covers SkyVisibilityWorldExtent / SkyVisibilityMapDimensions meters
-    static constexpr uint32 SkyVisibilityMapDimensions = 1024;
+    static uint32 GetSkyVisibilityMapDimensions();
+
     static constexpr float SkyVisibilityWorldExtent = 512.0f;
 
     // how far above the viewer the capture starts, and how deep it reaches below that

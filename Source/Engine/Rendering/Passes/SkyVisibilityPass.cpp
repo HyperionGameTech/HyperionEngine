@@ -27,8 +27,10 @@
 #include <Scene/Camera/Camera.hpp>
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <SkyVisibilityPass.generated.inl>
 
@@ -38,9 +40,13 @@ static EngineStatGpuTimer s_statSkyVisibility("Rendering/GPU/SkyVisibility");
 
 static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Lightmapped, RenderBucket::Translucent>;
 
+static CVar<bool> s_cvSkyVisibilityTimeSlicingEnabled("Rendering.SkyVisibility.TimeSlicingEnabled", true);
+static CVar<int> s_cvSkyVisibilityMaxStaleFrames("Rendering.SkyVisibility.MaxStaleFrames", 30);
+
 SkyVisibilityPass::SkyVisibilityPass()
     : m_viewProjectionMatrix(Mat4f::Identity()),
-      m_isValid(false)
+      m_isValid(false),
+      m_lastRenderedFrame(0)
 {
 }
 
@@ -96,11 +102,10 @@ void SkyVisibilityPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup
     View* view = renderSetup.view;
     AssertDebug(view != nullptr && (view->GetFlags() & ViewFlags::SKY_VISIBILITY_VIEW));
 
-    m_isValid = false;
-
     // nothing samples the map when the world turns sky occlusion off, so don't pay for the capture
     if (GetWorldBufferData()->skyOcclusionParams.x <= 0.0f)
     {
+        m_isValid = false;
         return;
     }
 
@@ -127,6 +132,19 @@ void SkyVisibilityPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup
         return;
     }
 
+    if (m_isValid && s_cvSkyVisibilityTimeSlicingEnabled.Get())
+    {
+        const bool viewProjChanged = rpl.cachedMatrices.viewProj != m_viewProjectionMatrix;
+        const bool contentDirty = rpl.GetMeshEntities().GetDiff().NeedsUpdate() || rpl.GetSkeletons().GetDiff().NeedsUpdate();
+        const uint32 maxStaleFrames = uint32(MathUtil::Max(s_cvSkyVisibilityMaxStaleFrames.Get(), 1));
+        const bool isStale = (GetFrameCounter() - m_lastRenderedFrame) >= maxStaleFrames;
+
+        if (!viewProjChanged && !contentDirty && !isStale)
+        {
+            return;
+        }
+    }
+
     ENGINE_STAT_GPU_SCOPE(&s_statSkyVisibility);
 
     Attachment* depthAttachment = framebuffer->GetAttachment(0);
@@ -150,6 +168,7 @@ void SkyVisibilityPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup
     m_viewProjectionMatrix = rpl.cachedMatrices.viewProj;
     m_depthImageView = depthAttachment->GetImageView();
     m_isValid = true;
+    m_lastRenderedFrame = GetFrameCounter();
 }
 
 } // namespace Hyperion

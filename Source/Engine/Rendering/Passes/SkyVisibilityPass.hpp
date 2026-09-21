@@ -71,6 +71,7 @@ private:
     Mat4f m_viewProjectionMatrix;
     GpuImageViewRef m_depthImageView;
     bool m_isValid;
+    uint32 m_lastRenderedFrame;
 };
 
 } // namespace Hyperion
