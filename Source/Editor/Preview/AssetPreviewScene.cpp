@@ -392,10 +392,9 @@ MeshComponent* AssetPreviewScene::ShowSubjectEntity()
 
 void AssetPreviewScene::HideSubjectEntity()
 {
-    // The View skips entities without a MeshComponent, so dropping it takes the subject out of the image.
     if (m_entity.IsValid() && m_entity->HasComponent<MeshComponent>())
     {
-        m_entity->RemoveComponent<MeshComponent>();
+        m_entity->GetEntityManager()->RemoveComponent(TypeId::ForType<MeshComponent>(), m_entity.Get());
     }
 }
 
