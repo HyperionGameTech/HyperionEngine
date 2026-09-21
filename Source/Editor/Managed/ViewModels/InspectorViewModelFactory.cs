@@ -31,7 +31,8 @@ namespace Hyperion.Editor.ViewModels
             int depth = 0,
             Action? preWriteCallback = null,
             Action? postWriteCallback = null,
-            Action? valueChangedCallback = null)
+            Action? valueChangedCallback = null,
+            bool initialize = true)
         {
             if (target == null)
             {
@@ -147,7 +148,7 @@ namespace Hyperion.Editor.ViewModels
 
             AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
-            return Initialize(vm);
+            return initialize ? Initialize(vm) : vm;
         }
 
         // initialize: pass false when the caller will call RefreshValue() manually later

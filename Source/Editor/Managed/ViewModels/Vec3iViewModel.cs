@@ -44,9 +44,9 @@ namespace Hyperion.Editor.ViewModels
         {
         }
 
-        // For delegated use (eg. transform subcomponents)
+        // For a vector within a larger value (eg. transform subcomponents)
         public Vec3iViewModel(ObjectBase target, Property property, bool isReadOnly,
-            System.Func<Vec3i> readOverride, System.Action<Vec3i> writeOverride)
+            Func<BoxedValue, Vec3i> extract, Func<BoxedValue, Vec3i, object?> inject)
             : base(target, property, isReadOnly, 3,
                   (v, i) => i switch
                   {
@@ -62,14 +62,14 @@ namespace Hyperion.Editor.ViewModels
                       2 => new Vec3i(v.x, v.y, (int)val),
                       _ => v
                   },
-                  readOverride,
-                  writeOverride)
+                  extract,
+                  inject)
         {
         }
 
-        // For delegated use with component targets
+        // For a vector within a larger value, with component targets
         public Vec3iViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly,
-            System.Func<Vec3i> readOverride, System.Action<Vec3i> writeOverride)
+            Func<BoxedValue, Vec3i> extract, Func<BoxedValue, Vec3i, object?> inject)
             : base(classAddress, targetAddressResolver, property, isReadOnly, 3,
                   (v, i) => i switch
                   {
@@ -85,8 +85,8 @@ namespace Hyperion.Editor.ViewModels
                       2 => new Vec3i(v.x, v.y, (int)val),
                       _ => v
                   },
-                  readOverride,
-                  writeOverride)
+                  extract,
+                  inject)
         {
         }
 

@@ -31,11 +31,11 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 object? rawValue;
+                bool isShared;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    object? raw = boxed.GetValue();
+                    isShared = TryReadSharedValue(out object? raw);
 
                     rawValue = raw is Hyperion.UUID uuid ? uuid.ToString() : raw;
                 }
@@ -52,7 +52,11 @@ namespace Hyperion.Editor.ViewModels
                 {
                     try
                     {
-                        ApplyModelValue(() => Value = FormatValue(rawValue));
+                        ApplyModelValue(() =>
+                        {
+                            Value = isShared ? FormatValue(rawValue) : string.Empty;
+                            HasMixedValues = !isShared;
+                        });
                     }
                     finally
                     {

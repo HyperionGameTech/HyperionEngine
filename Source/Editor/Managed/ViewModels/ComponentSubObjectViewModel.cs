@@ -18,6 +18,9 @@ namespace Hyperion.Editor.ViewModels
         private readonly Action? _postWriteCallback;
         private readonly Action? _valueChangedCallback;
 
+        // Other selected objects' instances edited alongside Target, each with its owner's post-write.
+        private readonly IReadOnlyList<(ObjectBase Target, Action? PostWrite)> _peers;
+
         // Some object types (eg AudioSource) can be mutated out-of-band - by the deserializer,
         // not through this VM's own CommitPropertyChange path - so RefreshProperties() never gets
         // triggered by the usual write flow. Bind to the object's own change delegate (if it has
@@ -44,16 +47,24 @@ namespace Hyperion.Editor.ViewModels
             int depth = 0,
             Action? preWriteCallback = null,
             Action? postWriteCallback = null,
-            Action? valueChangedCallback = null)
+            Action? valueChangedCallback = null,
+            IReadOnlyList<(ObjectBase Target, Action? PostWrite)>? peers = null)
         {
             Label = label;
             Target = target ?? throw new ArgumentNullException(nameof(target));
             _preWriteCallback = preWriteCallback;
             _postWriteCallback = postWriteCallback;
             _valueChangedCallback = valueChangedCallback;
+            _peers = peers ?? Array.Empty<(ObjectBase, Action?)>();
 
             PopulateProperties(depth);
-            PopulateActions();
+
+            // Actions run on one object; not offered across a multi-selection.
+            if (_peers.Count == 0)
+            {
+                PopulateActions();
+            }
+
             HookChangeNotifications();
         }
 
@@ -184,7 +195,20 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     InspectorPropertyViewModelBase vm = InspectorViewModelFactory.Create(
-                        Target, property, isReadOnly, depth, _preWriteCallback, onPostWrite, onValueChanged);
+                        Target, property, isReadOnly, depth, _preWriteCallback, onPostWrite, onValueChanged,
+                        initialize: _peers.Count == 0);
+
+                    if (_peers.Count != 0)
+                    {
+                        List<PropertyTarget>? peerTargets = CreatePeerTargets(property);
+
+                        if (peerTargets == null || !vm.AttachPeers(peerTargets))
+                        {
+                            continue;
+                        }
+
+                        vm.RefreshValue();
+                    }
 
                     Properties.Add(vm);
                 }
@@ -195,6 +219,32 @@ namespace Hyperion.Editor.ViewModels
             }
 
             HasProperties = Properties.Count > 0;
+        }
+
+        // Null when a peer's class doesn't have the property.
+        private List<PropertyTarget>? CreatePeerTargets(Property property)
+        {
+            List<PropertyTarget> targets = new List<PropertyTarget>(_peers.Count);
+
+            foreach ((ObjectBase peer, Action? peerPostWrite) in _peers)
+            {
+                Property? peerProperty = peer.Class.GetProperty(property.Name);
+
+                if (peerProperty == null)
+                {
+                    return null;
+                }
+
+                ObjectBase capturedPeer = peer;
+
+                targets.Add(PropertyTarget.ForObject(peer, peerProperty.Value, () =>
+                {
+                    peerPostWrite?.Invoke();
+                    MarkDirty(capturedPeer);
+                }));
+            }
+
+            return targets;
         }
 
         // Same idea as Inspector actions.
@@ -284,7 +334,12 @@ namespace Hyperion.Editor.ViewModels
         // Sim thread. Records that the asset has unsaved changes.
         private void MarkTargetDirty()
         {
-            if (Target is not AssetObject assetObject || !assetObject.IsValid)
+            MarkDirty(Target);
+        }
+
+        private void MarkDirty(ObjectBase target)
+        {
+            if (target is not AssetObject assetObject || !assetObject.IsValid)
             {
                 return;
             }

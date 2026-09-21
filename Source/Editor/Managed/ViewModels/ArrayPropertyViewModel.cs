@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -19,6 +20,9 @@ namespace Hyperion.Editor.ViewModels
 
         // Sim-thread-owned copy of the current array value.
         private BoxedValue? _currentArrayValue;
+
+        // The same, per multi-selection peer (indexed like Peers).
+        private BoxedValue?[] _peerArrayValues = Array.Empty<BoxedValue?>();
 
         // Virtual element not yet committed to the real array.
         private ObjectPropertyViewModel? _pendingElement;
@@ -171,12 +175,80 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private void ReplacePeerArrayValue(int peerIndex, BoxedValue? newValue)
+        {
+            BoxedValue? previous = Interlocked.Exchange(ref _peerArrayValues[peerIndex], newValue);
 
-        private InspectorPropertyViewModelBase CreateElementViewModel(int index)
+            if (previous != null && !ReferenceEquals(previous, newValue))
+            {
+                previous.Dispose();
+            }
+        }
+
+        private BoxedValue RequirePeerArrayValue(int peerIndex)
+        {
+            return Volatile.Read(ref _peerArrayValues[peerIndex])
+                ?? throw new InvalidOperationException($"Array value for '{Label}' of a selected object not yet loaded");
+        }
+
+        private void ReloadPeerArrayFromParent(int peerIndex)
+        {
+            PropertyTarget peer = Peers[peerIndex];
+
+            peer.PreWrite?.Invoke();
+
+            try
+            {
+                ReplacePeerArrayValue(peerIndex, peer.Get());
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: failed to re-read array '{Label}' of a selected object: {ex.Message}");
+            }
+        }
+
+        private void WritePeerArrayToParent(int peerIndex)
+        {
+            BoxedValue? current = Volatile.Read(ref _peerArrayValues[peerIndex]);
+
+            if (current == null)
+                return;
+
+            PropertyTarget peer = Peers[peerIndex];
+
+            peer.Set(current);
+            peer.PostWrite?.Invoke();
+        }
+
+        protected override bool OnPeersAttached()
+        {
+            _peerArrayValues = new BoxedValue?[Peers.Count];
+
+            return true;
+        }
+
+        // Sim thread. Applies an in-place change to this row's own array and to every peer's,
+        // each re-read first and written back after.
+        private void ModifyEveryArray(Action<BoxedValue> modify)
+        {
+            ReloadArrayFromParent();
+            modify(RequireArrayValue());
+            WriteArrayToParent();
+
+            for (int i = 0; i < Peers.Count; i++)
+            {
+                ReloadPeerArrayFromParent(i);
+                modify(RequirePeerArrayValue(i));
+                WritePeerArrayToParent(i);
+            }
+        }
+
+
+        private InspectorPropertyViewModelBase? CreateElementViewModel(int index)
         {
             int capturedIndex = index;
 
-            return InspectorViewModelFactory.CreateForValue(
+            InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForValue(
                 $"[{capturedIndex}]",
                 _elementTypeInfo,
                 getter: () => GetElementValue(capturedIndex),
@@ -187,6 +259,22 @@ namespace Hyperion.Editor.ViewModels
                 preWriteCallback: ReloadArrayFromParent,
                 postWriteCallback: WriteArrayToParent,
                 valueChangedCallback: () => ValueChangedCallback?.Invoke());
+
+            // Element N edits element N of every selected object's array (only shown when the lengths match).
+            List<PropertyTarget> elementPeers = new List<PropertyTarget>(Peers.Count);
+
+            for (int i = 0; i < Peers.Count; i++)
+            {
+                int peerIndex = i;
+
+                elementPeers.Add(new PropertyTarget(
+                    () => RequirePeerArrayValue(peerIndex).GetArrayElement(capturedIndex),
+                    v => RequirePeerArrayValue(peerIndex).SetArrayElement(capturedIndex, v),
+                    preWrite: () => ReloadPeerArrayFromParent(peerIndex),
+                    postWrite: () => WritePeerArrayToParent(peerIndex)));
+            }
+
+            return vm.AttachPeers(elementPeers) ? vm : null;
         }
 
 
@@ -223,12 +311,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    ReloadArrayFromParent();
-
-                    BoxedValue current = RequireArrayValue();
-                    current.ResizeArray(current.GetArraySize() + 1);
-
-                    WriteArrayToParent();
+                    ModifyEveryArray(array => array.ResizeArray(array.GetArraySize() + 1));
                 }
                 catch (Exception ex)
                 {
@@ -250,26 +333,23 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    // Create the instance.
-                    BoxedValueInternal result;
-
-                    unsafe
+                    // Each selected object gets its own instance.
+                    ModifyEveryArray(array =>
                     {
-                        if (!Hyp_CreateInstanceOfClass(className, &result))
+                        BoxedValueInternal result;
+
+                        unsafe
                         {
-                            Logger.Log(LogLevel.Warning, $"Failed to create instance of '{className}'");
-                            return;
+                            if (!Hyp_CreateInstanceOfClass(className, &result))
+                            {
+                                Logger.Log(LogLevel.Warning, $"Failed to create instance of '{className}'");
+                                return;
+                            }
                         }
-                    }
 
-                    ReloadArrayFromParent();
-
-                    using (BoxedValue instance = BoxedValue.FromBuffer(result))
-                    {
-                        RequireArrayValue().PushBackArrayElement(instance);
-                    }
-
-                    WriteArrayToParent();
+                        using BoxedValue instance = BoxedValue.FromBuffer(result);
+                        array.PushBackArrayElement(instance);
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -307,11 +387,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    ReloadArrayFromParent();
-
-                    RequireArrayValue().RemoveArrayElement(capturedIndex);
-
-                    WriteArrayToParent();
+                    ModifyEveryArray(array => array.RemoveArrayElement(capturedIndex));
                 }
                 catch (Exception ex)
                 {
@@ -333,7 +409,12 @@ namespace Hyperion.Editor.ViewModels
 
             for (int i = 0; i < count; i++)
             {
-                Elements.Add(CreateElementViewModel(i));
+                InspectorPropertyViewModelBase? element = CreateElementViewModel(i);
+
+                if (element != null)
+                {
+                    Elements.Add(element);
+                }
             }
 
             int displayCount = count;
@@ -357,6 +438,7 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 int count;
+                bool isSharedLength = true;
 
                 try
                 {
@@ -364,6 +446,22 @@ namespace Hyperion.Editor.ViewModels
                     ReplaceArrayValue(newArrayValue);
 
                     count = _depth < MaxDepth ? newArrayValue.GetArraySize() : 0;
+
+                    IReadOnlyList<PropertyTarget> peers = Peers;
+
+                    for (int i = 0; i < peers.Count; i++)
+                    {
+                        BoxedValue peerArrayValue = peers[i].Get();
+                        ReplacePeerArrayValue(i, peerArrayValue);
+
+                        isSharedLength &= peerArrayValue.GetArraySize() == newArrayValue.GetArraySize();
+                    }
+
+                    // Elements are only edited together when every selected object has the same number.
+                    if (!isSharedLength)
+                    {
+                        count = 0;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -386,6 +484,17 @@ namespace Hyperion.Editor.ViewModels
                         if (existingCount != count)
                         {
                             RebuildElementVMs(count);
+                        }
+
+                        HasMixedValues = !isSharedLength;
+
+                        if (!isSharedLength)
+                        {
+                            Value = string.Empty;
+                        }
+                        else if (existingCount == count)
+                        {
+                            Value = $"(array, {Elements.Count} elem{(Elements.Count != 1 ? "s" : "")})";
                         }
 
                         foreach (InspectorPropertyViewModelBase vm in Elements)

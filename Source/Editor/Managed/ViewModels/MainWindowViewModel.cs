@@ -8,7 +8,9 @@ using Hyperion.Editor.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +20,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase, IDisposable
     {
-        private string _title = "Hyperion Editor";
+        private string _title = "Hyperion";
         public string Title
         {
             get => _title;
@@ -658,6 +660,8 @@ namespace Hyperion.Editor.ViewModels
 
         private int _isUpdatingSelectionFromEngine = 0; // atomic
         private int _isUpdatingFocusedNodeFromEngine = 0; // atomic
+
+        private bool _isInspectorSelectionSyncPending; // UI thread
         private bool _isReady = false;
 
         private EditorSubsystem _editorSubsystem;
@@ -1201,6 +1205,7 @@ namespace Hyperion.Editor.ViewModels
 
             SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;
             SceneHierarchy.SelectionChanged += OnSceneHierarchySelectionChanged;
+            SceneHierarchy.SelectedNodes.CollectionChanged += OnSceneHierarchySelectedNodesChanged;
 
             EngineManager.SceneAdded += OnSceneAdded;
             EngineManager.SceneRemoved += OnSceneRemoved;
@@ -1264,7 +1269,8 @@ namespace Hyperion.Editor.ViewModels
 
                 SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
                 SceneHierarchy.SelectionChanged -= OnSceneHierarchySelectionChanged;
-                
+                SceneHierarchy.SelectedNodes.CollectionChanged -= OnSceneHierarchySelectedNodesChanged;
+
                 ContentBrowser.Dispose();
             }
         }
@@ -1649,6 +1655,10 @@ namespace Hyperion.Editor.ViewModels
 
                 weakProjectForUI.TryGetTarget(out EditorProject? p);
 
+                Title = p != null && !string.IsNullOrEmpty(p.FilePath)
+                    ? $"{Path.GetFileNameWithoutExtension(p.FilePath)} - Hyperion"
+                    : "Hyperion";
+
                 if (p != null)
                 {
                     World? world = p.World;
@@ -1789,6 +1799,63 @@ namespace Hyperion.Editor.ViewModels
                     }
                 }
             });
+        }
+
+        private void OnSceneHierarchySelectedNodesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            ScheduleInspectorSelectionSync();
+        }
+
+        // Selection updates arrive as several Clear/Add steps (and alongside focus changes), so the
+        // inspector is synced once they've all landed.
+        private void ScheduleInspectorSelectionSync()
+        {
+            if (_isInspectorSelectionSyncPending)
+            {
+                return;
+            }
+
+            _isInspectorSelectionSyncPending = true;
+
+            Dispatcher.UIThread.Post(SyncInspectorWithSelection);
+        }
+
+        /// <summary>
+        /// Shows every selected node in the inspector when several are selected. A single selection
+        /// is left to the existing focus/click paths, except when leaving a multi-selection.
+        /// </summary>
+        private void SyncInspectorWithSelection()
+        {
+            _isInspectorSelectionSyncPending = false;
+
+            if (!_isReady)
+            {
+                return;
+            }
+
+            List<Node> nodes = SceneHierarchy.SelectedNodes
+                .Select(vm => vm.Node)
+                .Where(n => n != null && n.IsValid)
+                .ToList();
+
+            if (nodes.Count > 1)
+            {
+                // Keep the focused node as the one the inspector is built from.
+                Node? primaryNode = nodes.FirstOrDefault(n => n.NativeAddress == SceneHierarchy.SelectedNode?.Node?.NativeAddress)
+                    ?? nodes.FirstOrDefault(n => n.NativeAddress == Inspector.SelectedNode?.NativeAddress)
+                    ?? nodes[0];
+
+                if (!Inspector.IsShowingSelection(nodes, primaryNode))
+                {
+                    Inspector.SetSelectedNodes(nodes, primaryNode, SceneHierarchy.Scene);
+                }
+            }
+            else if (Inspector.IsMultiSelection)
+            {
+                Node? node = nodes.FirstOrDefault();
+
+                Inspector.SetSelectedNode(node, SceneHierarchy.Scene, SceneHierarchy.IsRootNode(node));
+            }
         }
 
         private void OnSceneHierarchyNodeSelected(Node? node)
@@ -1989,10 +2056,21 @@ namespace Hyperion.Editor.ViewModels
                 {
                     Node? validNode = node != null && node.IsValid ? node : null;
 
-                    bool isRootNode = SceneHierarchy.IsRootNode(validNode);
-                    Inspector.SetSelectedNode(validNode, SceneHierarchy.Scene, isRootNode);
+                    // Focusing one node of a multi-selection keeps showing the whole selection.
+                    bool isInMultiSelection = validNode != null
+                        && SceneHierarchy.SelectedNodes.Count > 1
+                        && SceneHierarchy.SelectedNodes.Any(vm => vm.Node?.NativeAddress == validNode.NativeAddress);
+
+                    if (!isInMultiSelection)
+                    {
+                        bool isRootNode = SceneHierarchy.IsRootNode(validNode);
+                        Inspector.SetSelectedNode(validNode, SceneHierarchy.Scene, isRootNode);
+                    }
+
                     SceneHierarchy.SelectNodeFromEngine(validNode);
                     UpdateCopyDeleteHeaders();
+
+                    ScheduleInspectorSelectionSync();
 
                     // can ONLY add Instanced Mesh Proxy child objects instances to entities that have a MeshComponent.
                     // Note that for now the most derived class MUST be EQUAL to Entity (not just derived from it)

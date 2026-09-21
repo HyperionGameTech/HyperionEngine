@@ -44,6 +44,9 @@ namespace Hyperion.Editor.ViewModels
             Label = label;
         }
 
+        /// <summary>Other selected entities (all having this component) whose copy is edited alongside the target's. Set before PopulateProperties.</summary>
+        public IReadOnlyList<Entity> PeerEntities { get; set; } = Array.Empty<Entity>();
+
         public virtual bool IsEditorVisible => true;
 
         public virtual void PopulateProperties()
@@ -124,6 +127,7 @@ namespace Hyperion.Editor.ViewModels
             Class cls = _componentClass.Value;
             IntPtr classAddress = cls.Address;
             TypeId componentTypeId = cls.TypeId;
+            IReadOnlyList<Entity> peerEntities = PeerEntities;
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -146,17 +150,19 @@ namespace Hyperion.Editor.ViewModels
 
                     // Resolver: each time we need to read/write a component property, re-acquire the pointer
                     // to handle potential archetype relocation
-                    Func<IntPtr> targetAddressResolver = () =>
+                    Func<IntPtr> CreateTargetAddressResolver(Entity entity) => () =>
                     {
-                        EntityManager? m = _target.EntityManager;
+                        EntityManager? m = entity.EntityManager;
 
                         if (m == null)
                         {
                             return IntPtr.Zero;
                         }
 
-                        return m.GetComponentPtr(_target, componentTypeId);
+                        return m.GetComponentPtr(entity, componentTypeId);
                     };
+
+                    Func<IntPtr> targetAddressResolver = CreateTargetAddressResolver(_target);
 
                     List<Property> componentProperties = cls.Properties
                         .Where(p =>
@@ -203,45 +209,54 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly = true;
                             }
 
-                            Entity entity = _target;
-
-                            Action? propertySpecificPostWrite = null;
+                            EntityTag? postWriteTag = null;
 
                             if (isMeshComponent && MeshComponentRenderProxyProperties.Contains(property.Name.ToString()))
                             {
-                                propertySpecificPostWrite = () =>
-                                {
-                                    entity.AddTag(EntityTag.UpdateRenderProxy);
-                                };
+                                postWriteTag = EntityTag.UpdateRenderProxy;
                             }
-                            else if (isRigidBodyComponent && (property.Name == "CollisionShape" || property.Name == "PhysicsMaterial"))
+                            else if (isRigidBodyComponent && property.Name == "CollisionShape")
                             {
-                                propertySpecificPostWrite = () =>
-                                {
-                                    if (property.Name == "CollisionShape")
-                                    {
-                                        entity.AddTag(EntityTag.UpdatePhysicsShape);
-                                    }
-                                    else
-                                    {
-                                        entity.AddTag(EntityTag.UpdatePhysicsMaterial);
-                                    }
-                                };
+                                postWriteTag = EntityTag.UpdatePhysicsShape;
+                            }
+                            else if (isRigidBodyComponent && property.Name == "PhysicsMaterial")
+                            {
+                                postWriteTag = EntityTag.UpdatePhysicsMaterial;
                             }
 
-                            void postWrite()
+                            Action CreatePostWrite(Entity entity) => () =>
                             {
                                 entity.MarkDirty();
-                                propertySpecificPostWrite?.Invoke();
-                            }
+
+                                if (postWriteTag.HasValue)
+                                {
+                                    entity.AddTag(postWriteTag.Value);
+                                }
+                            };
 
                             InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForComponent(
                                 classAddress,
                                 targetAddressResolver,
                                 property,
                                 isReadOnly,
-                                postWriteCallback: postWrite,
+                                initialize: false,
+                                postWriteCallback: CreatePostWrite(_target),
                                 valueChangedCallback: RefreshProperties);
+
+                            List<PropertyTarget> peers = peerEntities
+                                .Select(peer => PropertyTarget.ForAddress(
+                                    classAddress,
+                                    CreateTargetAddressResolver(peer),
+                                    property,
+                                    postWrite: CreatePostWrite(peer)))
+                                .ToList();
+
+                            if (!vm.AttachPeers(peers))
+                            {
+                                continue;
+                            }
+
+                            vm.RefreshValue();
 
                             vms.Add(vm);
                         }

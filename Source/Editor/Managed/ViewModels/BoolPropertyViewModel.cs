@@ -6,7 +6,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public class BoolPropertyViewModel : InspectorPropertyViewModelBase
     {
-        private bool _isChecked;
+        private bool? _isChecked;
 
         public BoolPropertyViewModel(ObjectBase target, Property property, bool isReadOnly)
             : base(target, property, isReadOnly)
@@ -25,14 +25,15 @@ namespace Hyperion.Editor.ViewModels
 
         public override bool ShowInlineLabel => false;
 
-        public bool IsChecked
+        // Null (indeterminate) when the selected objects disagree.
+        public bool? IsChecked
         {
             get => _isChecked;
             set
             {
-                if (SetProperty(ref _isChecked, value) && !IsApplyingModelValue)
+                if (SetProperty(ref _isChecked, value) && !IsApplyingModelValue && value.HasValue)
                 {
-                    CommitBoolValue(value);
+                    CommitBoolValue(value.Value);
                 }
             }
         }
@@ -46,12 +47,13 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                bool boolValue;
+                bool? boolValue;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    boolValue = Convert.ToBoolean(boxed.GetValue() ?? false);
+                    boolValue = TryReadSharedValue(out object? sharedValue)
+                        ? Convert.ToBoolean(sharedValue ?? false)
+                        : null;
                 }
                 catch (Exception ex)
                 {
@@ -68,7 +70,8 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
-                            Value = boolValue ? "True" : "False";
+                            Value = boolValue.HasValue ? (boolValue.Value ? "True" : "False") : string.Empty;
+                            HasMixedValues = !boolValue.HasValue;
                             IsChecked = boolValue;
                         });
                     }

@@ -309,6 +309,33 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     return {};
 }
 
+Handle<AssetObject> AssetObject::CloneAsset() const
+{
+    Array<Tuple<const char*, uint16, BlobDataReference*>> blobReferences;
+    const_cast<AssetObject*>(this)->CollectBlobDataReferences(blobReferences);
+
+    if (blobReferences.Any())
+    {
+        HYP_LOG(Assets, Warning, "no generic implementation for type '{}' because it owns blob data; that type must override CloneAsset()",
+                InstanceClass()->GetName());
+
+        return {};
+    }
+
+    BoxedValue src(HandleFromThis());
+    BoxedValue dst;
+
+    if (!CloneWithoutTransientMembers(src, dst))
+    {
+        return {};
+    }
+
+    Handle<AssetObject> clone = dst.Get<Handle<AssetObject>>();
+    clone->SetUUID(UUID());
+
+    return clone;
+}
+
 Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     String text;
@@ -878,7 +905,7 @@ void AssetObject::UnlockReader()
             }
         }
     }
-#else !HYP_ASSET_OBJECT_THREAD_SAFE
+#else // !HYP_ASSET_OBJECT_THREAD_SAFE
     if (--m_numReaders == 0)
     {
         if (!m_flags[AssetObjectFlags::Persistent])

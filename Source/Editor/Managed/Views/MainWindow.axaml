@@ -12,7 +12,7 @@
     xmlns:views="clr-namespace:Hyperion.Editor.Views;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
-    Title="Hyperion Editor"
+    Title="{Binding Title}"
     Icon="/Assets/Branding/hyperion-icon.ico"
     d:DesignHeight="720"
     d:DesignWidth="1280"
@@ -1371,6 +1371,13 @@
                                         <ContentControl DataContext="{Binding Source={x:Static vm:MainWindowViewModel.Instance}}">
                                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                                 <StackPanel Spacing="8">
+                                                    <!--  Multi-selection: values shown only where every selected object agrees; edits apply to all  -->
+                                                    <TextBlock
+                                                        Margin="12,8,12,0"
+                                                        FontWeight="SemiBold"
+                                                        IsVisible="{Binding Inspector.IsMultiSelection}"
+                                                        Text="{Binding Inspector.SelectionSummary}" />
+
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
@@ -1452,6 +1459,7 @@
                                                                                     Padding="4,2"
                                                                                     Command="{Binding Inspector.RemoveComponentCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     CommandParameter="{Binding}"
+                                                                                    IsVisible="{Binding !Inspector.IsMultiSelection, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     ToolTip.Tip="Remove component">
                                                                                     <controls:Codicon Kind="Trash" Size="14" />
                                                                                 </Button>
@@ -1484,7 +1492,7 @@
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
-                                                        IsVisible="{Binding IsEntity}"
+                                                        IsVisible="{Binding IsSingleEntity}"
                                                         RowDefinitions="Auto, Auto, Auto">
 
                                                         <Border Grid.Row="0" Classes="panel-header">
@@ -1572,7 +1580,7 @@
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
-                                                        IsVisible="{Binding IsEntity}"
+                                                        IsVisible="{Binding IsSingleEntity}"
                                                         RowDefinitions="Auto, Auto, Auto">
 
                                                         <Border Grid.Row="0" Classes="panel-header">
@@ -1858,7 +1866,7 @@
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
-                                                        IsVisible="{Binding IsEntity}"
+                                                        IsVisible="{Binding IsSingleEntity}"
                                                         RowDefinitions="Auto, Auto">
                                                         <Border Grid.Row="0" Classes="panel-header">
                                                             <Grid ColumnDefinitions="*,Auto">

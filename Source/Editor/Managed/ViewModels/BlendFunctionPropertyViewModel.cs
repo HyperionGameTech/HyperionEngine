@@ -68,6 +68,9 @@ namespace Hyperion.Editor.ViewModels
 
         public override bool ShowInlineLabel => false;
 
+        // Only reached through a material; a material shared by the selection is edited once, as a single object.
+        public override bool SupportsMultipleTargets => false;
+
         public override bool ShowsDescriptionInOwnTemplate => true;
 
         private bool _isExpanded = true;

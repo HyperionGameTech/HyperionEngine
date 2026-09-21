@@ -46,11 +46,12 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 string text;
+                bool isShared;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    text = FormatNumber(boxed.GetValue());
+                    isShared = TryReadSharedValue(out object? sharedValue);
+                    text = isShared ? FormatNumber(sharedValue) : string.Empty;
                 }
                 catch (Exception ex)
                 {
@@ -68,6 +69,7 @@ namespace Hyperion.Editor.ViewModels
                         ApplyModelValue(() =>
                         {
                             Value = text;
+                            HasMixedValues = !isShared;
 
                             // Don't stomp on a partially typed number.
                             if (!IsEditing)

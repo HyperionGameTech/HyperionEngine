@@ -42,6 +42,9 @@ namespace Hyperion.Editor.ViewModels
         // The property spans both label and value columns, like the other container editors.
         public override bool ShowInlineLabel => false;
 
+        // Only reached through a material; a material shared by the selection is edited once, as a single object.
+        public override bool SupportsMultipleTargets => false;
+
         public override bool ShowsDescriptionInOwnTemplate => true;
 
         public ShaderPropertySetViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)

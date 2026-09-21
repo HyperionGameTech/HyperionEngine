@@ -361,6 +361,11 @@ Handle<Material> Material::Clone() const
     return clone;
 }
 
+Handle<AssetObject> Material::CloneAsset() const
+{
+    return Clone();
+}
+
 void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {
     const bool useBindlessTextures = RI.GetRenderConfig().bindlessTextures;
