@@ -162,19 +162,21 @@ private:
     }
 
     template <class C, bool IsConst>
-    static HYP_FORCE_INLINE auto GetComponentSlot(EntitySet<Components...>& set, ComponentId componentId)
+    static HYP_FORCE_INLINE auto GetComponentSlot(ComponentContainer* container, ComponentId componentId)
     {
-        if constexpr (EntityTypeTagInfo<std::remove_const_t<C>>::IsEntityTypeTag)
+        using UnqualifiedComponent = std::remove_const_t<C>;
+
+        if constexpr (EntityTypeTagInfo<UnqualifiedComponent>::IsEntityTypeTag)
         {
             return Tuple<>();
         }
         else if constexpr (IsConst)
         {
-            return Tuple<const C&>(set.m_componentContainers.template GetElement<ComponentContainer<C>*>()->GetComponent(componentId));
+            return Tuple<const UnqualifiedComponent&>(container->template GetComponent<UnqualifiedComponent>(componentId));
         }
         else
         {
-            return Tuple<C&>(set.m_componentContainers.template GetElement<ComponentContainer<C>*>()->GetComponent(componentId));
+            return Tuple<C&>(container->template GetComponent<UnqualifiedComponent>(componentId));
         }
     }
 
@@ -187,7 +189,7 @@ private:
         }
         else
         {
-            return ConcatTuplesV(GetComponentSlot<Components, IsConst>(set, componentIds[Indices])...);
+            return ConcatTuplesV(GetComponentSlot<Components, IsConst>(set.m_componentContainers[Indices], componentIds[Indices])...);
         }
     }
 };
@@ -249,10 +251,16 @@ public:
     {
     }
 
-    EntitySet(EntityContainer& entities, ComponentContainer<Components>&... componentContainers)
+    EntitySet(EntityContainer& entities, const FixedArray<ComponentContainer*, sizeof...(Components)>& componentContainers)
         : m_entities(entities),
-          m_componentContainers(std::addressof(componentContainers)...)
+          m_componentContainers(componentContainers)
     {
+        for (size_t i = 0; i < m_componentContainers.Size(); i++)
+        {
+            AssertDebug(m_componentContainers[i] != nullptr);
+            AssertDebug(m_componentContainers[i]->GetComponentTypeId() == GetComponentTypeIds()[i]);
+        }
+
         for (auto& subtypeData : m_entities.GetSubtypeData())
         {
             for (auto it = subtypeData.data.Begin(); it != subtypeData.data.End(); ++it)
@@ -412,7 +420,7 @@ private:
     Array<Element, SceneAllocator> m_elements;
 
     EntityContainer& m_entities;
-    Tuple<ComponentContainer<Components>*...> m_componentContainers;
+    FixedArray<ComponentContainer*, sizeof...(Components)> m_componentContainers;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
@@ -433,7 +441,7 @@ struct EntitySetView
 #ifdef HYP_ENABLE_MT_CHECK
     EntitySetView(EntitySet<Components...>& entitySet, EnumFlags<DataAccessFlags> dataAccessFlags, ANSIStringView currentFunction = "", ANSIStringView message = "")
         : entitySet(entitySet),
-          m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetDataRaceDetector()... }
+          m_componentDataRaceDetectors {}
     {
         if constexpr (sizeof...(Components) != 0)
         {
@@ -441,6 +449,8 @@ struct EntitySetView
 
             for (size_t i = 0; i < m_componentDataRaceDetectors.Size(); i++)
             {
+                m_componentDataRaceDetectors[i] = &entitySet.m_componentContainers[i]->GetDataRaceDetector();
+
                 new (m_componentDataAccessScopes.GetPointer() + i) DataRaceDetector::DataAccessScope(dataAccessFlags, *m_componentDataRaceDetectors[i], DataRaceDetector::DataAccessState { currentFunction, message.Length() != 0 ? message : ANSIStringView(componentNames[i]) });
             }
         }
@@ -448,7 +458,7 @@ struct EntitySetView
 
     EntitySetView(EntitySet<Components...>& entitySet, Span<const ComponentInfo> componentInfos, ANSIStringView currentFunction = "", ANSIStringView message = "")
         : entitySet(entitySet),
-          m_componentDataRaceDetectors { &entitySet.m_componentContainers.template GetElement<ComponentContainer<Components>*>()->GetDataRaceDetector()... }
+          m_componentDataRaceDetectors {}
     {
 
         if constexpr (sizeof...(Components) != 0)
@@ -458,6 +468,8 @@ struct EntitySetView
 
             for (size_t i = 0; i < m_componentDataRaceDetectors.Size(); i++)
             {
+                m_componentDataRaceDetectors[i] = &entitySet.m_componentContainers[i]->GetDataRaceDetector();
+
                 auto componentInfosIt = std::find_if(componentInfos.Begin(), componentInfos.End(), [typeId = componentTypeIds[i]](const ComponentInfo& info)
                     {
                         return info.typeId == typeId;

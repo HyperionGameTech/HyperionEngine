@@ -36,8 +36,7 @@
 
 #include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/Light.hpp>
-#include <Scene/View.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/LightmapVolume.hpp>
 
@@ -65,6 +64,7 @@
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 

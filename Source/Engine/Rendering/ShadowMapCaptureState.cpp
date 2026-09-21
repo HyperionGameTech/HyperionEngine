@@ -17,9 +17,8 @@
 
 #include <Core/IO/ByteWriter.hpp>
 
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/Scene.hpp>
-#include <Scene/View.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/Camera/PerspectiveCamera.hpp>
@@ -28,6 +27,7 @@
 
 #include <Framework/CVarManager.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 

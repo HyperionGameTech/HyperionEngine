@@ -1,12 +1,33 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Hyperion;
 
 namespace Hyperion.Editor.ViewModels
 {
     public static class InspectorActionsHelper
     {
-        public static List<InspectorActionViewModel> GetActions(ObjectBase? target, System.Action? onCompleted = null)
+        public static Task<List<InspectorActionViewModel>> GetActionsAsync(ObjectBase? target, System.Action? onCompleted = null)
+        {
+            if (target == null || !target.IsValid)
+            {
+                return Task.FromResult(new List<InspectorActionViewModel>());
+            }
+
+            return EngineManager.PostToSimThread(() => GetActionsOnSimThread(target, onCompleted));
+        }
+
+        public static Task<List<InspectorActionViewModel>> GetActionsAsync(ObjectBase? target, Class instanceClass, System.Action? onCompleted = null)
+        {
+            if (target == null || !target.IsValid || !instanceClass.IsValid)
+            {
+                return Task.FromResult(new List<InspectorActionViewModel>());
+            }
+
+            return EngineManager.PostToSimThread(() => GetActionsOnSimThread(target, instanceClass, onCompleted));
+        }
+
+        public static List<InspectorActionViewModel> GetActionsOnSimThread(ObjectBase? target, System.Action? onCompleted = null)
         {
             if (target == null || !target.IsValid)
             {
@@ -16,7 +37,7 @@ namespace Hyperion.Editor.ViewModels
             return GetActionsCore(target, new List<Class> { target.Class }, onCompleted);
         }
 
-        public static List<InspectorActionViewModel> GetActions(ObjectBase? target, Class instanceClass, System.Action? onCompleted = null)
+        public static List<InspectorActionViewModel> GetActionsOnSimThread(ObjectBase? target, Class instanceClass, System.Action? onCompleted = null)
         {
             if (target == null || !target.IsValid || !instanceClass.IsValid)
             {

@@ -9,7 +9,7 @@
 #include <Baking/ShadowMap/ShadowMapBaker.hpp>
 #include <Baking/ShadowMap/ShadowMapBakeJob.hpp>
 
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 
 namespace Hyperion {
 

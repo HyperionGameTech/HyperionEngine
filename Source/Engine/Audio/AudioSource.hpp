@@ -75,7 +75,7 @@ public:
     void Pause();
     void Stop();
 
-    /*! \brief Opaque handle owned by the active AudioAdapter */
+    ///Opaque handle owned by the active AudioAdapter
     HYP_FORCE_INLINE void* GetInternalData() const
     {
         return m_internalData.Get();
@@ -86,16 +86,13 @@ public:
         m_internalData = std::move(internalData);
     }
 
-    /*! \brief Set a callback to be invoked whenever a property on this AudioSource changes */
+    ///Set a callback to be invoked whenever a property on this AudioSource changes
     HYP_FORCE_INLINE void SetOnChanged(Proc<void()>&& onChanged)
     {
         m_onChanged = std::move(onChanged);
     }
 
-    /*! \brief Fired whenever a property on this AudioSource changes (eg. SetSound, SetPosition, ...),
-     *  including changes made out-of-band (eg. by the deserializer, not through script/UI code).
-     *  Bind per-instance via OnChanged.Bind(this, ...); mirrors Node::TransformUpdated. Used by the
-     *  editor to know when to refresh a cached property view for this object. */
+    //Invoked whenever a property on this AudioSource changes
     HYP_FIELD()
     static ScriptableDelegate<void, AudioSource*> OnChanged;
 

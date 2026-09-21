@@ -37,15 +37,15 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 
 #include <Rendering/EnvProbeCaptureState.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Framework/Resources/ResourceBinder.hpp>
 

@@ -37,6 +37,16 @@ public:
 
     ~StridedBuffer() = default;
 
+    HYP_FORCE_INLINE size_t GetBlockSize() const
+    {
+        return m_allocator.GetBlockSize();
+    }
+
+    HYP_FORCE_INLINE size_t GetAlignment() const
+    {
+        return m_allocator.GetAlignment();
+    }
+
     template <class T>
     HYP_FORCE_INLINE const T* GetElement(size_t index) const
     {
@@ -50,6 +60,12 @@ public:
         return reinterpret_cast<const T*>(m_blocks[index]);
     }
 
+    template <class T>
+    HYP_FORCE_INLINE T* GetElement(size_t index)
+    {
+        return const_cast<T*>(const_cast<const StridedBuffer*>(this)->template GetElement<T>(index));
+    }
+
     HYP_FORCE_INLINE const ubyte* GetElementRaw(size_t index) const
     {
         if (index >= m_blocks.Size())
@@ -58,6 +74,59 @@ public:
         }
 
         return m_blocks[index];
+    }
+
+    HYP_FORCE_INLINE ubyte* GetElementRaw(size_t index)
+    {
+        if (index >= m_blocks.Size())
+        {
+            return nullptr;
+        }
+
+        return m_blocks[index];
+    }
+
+    ubyte* AllocateElementRaw(size_t index)
+    {
+        AssertDebug(index < size_t(UINT32_MAX), "Invalid element index");
+
+        if (index >= m_blocks.Size())
+        {
+            m_blocks.Resize(index + 1);
+        }
+
+        AssertDebug(m_blocks[index] == nullptr, "Element at index {} is already allocated", index);
+
+        m_blocks[index] = static_cast<ubyte*>(m_allocator.Allocate());
+        AssertDebug(m_blocks[index] != nullptr);
+
+        return m_blocks[index];
+    }
+
+    void FreeElementRaw(size_t index)
+    {
+        AssertDebug(index < m_blocks.Size());
+
+        if (!m_blocks[index])
+        {
+            return;
+        }
+
+        m_allocator.Free(m_blocks[index]);
+        m_blocks[index] = nullptr;
+    }
+
+    /*! \brief Calls \p function(index, element) for each allocated element. */
+    template <class Function>
+    void ForEachElementRaw(Function&& function)
+    {
+        for (size_t i = 0; i < m_blocks.Size(); i++)
+        {
+            if (m_blocks[i] != nullptr)
+            {
+                function(i, m_blocks[i]);
+            }
+        }
     }
 
     template <class T>
@@ -153,6 +222,13 @@ public:
         }
 
         m_blocks.Clear();
+    }
+
+    /*! \brief Drops every element and releases all slabs without calling destructors. */
+    void Reset()
+    {
+        m_blocks.Clear();
+        m_allocator.Reset();
     }
 
     HYP_FORCE_INLINE size_t NumActiveAllocations() const

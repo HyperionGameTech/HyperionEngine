@@ -30,10 +30,9 @@
 
 #include <Scene/BVH.hpp>
 #include <Scene/World.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
-#include <Scene/View.hpp>
 #include <Scene/LightmapVolume.hpp>
 
 #include <Scene/Util/VoxelOctree.hpp>
@@ -69,6 +68,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Baker.generated.inl>
 

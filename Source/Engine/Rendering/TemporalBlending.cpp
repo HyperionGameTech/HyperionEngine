@@ -24,7 +24,7 @@
 
 #include <Rendering/Texture.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Threading/Threads.hpp>
 

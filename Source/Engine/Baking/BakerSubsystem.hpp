@@ -58,20 +58,14 @@ public:
 
     virtual void Update(float delta) override;
 
-    /*! \brief Queue up a task to start baking lightmaps or other baked data for the given object.
-     *   The returned Task can be used to track the completion state of the lightmap generation job.
-     * 
-     *   If a lightmap generation task is already in progress for the given volume, the existing task will be returned instead.
-     *   \param shadingTypesMaskOverride If nonzero, restricts the bake to this subset of shading types instead of the
-     *   baker's default mask (e.g. baking bent normals only, without recomputing irradiance/radiance). */
+    /// Queue up a task to start baking lightmaps or other baked data for the given object
     template <Baking::Bakeable T>
     Task<void> EnqueueBake(Baking::BakeLayer& bakeLayer, const Handle<T>& source, uint32 shadingTypesMaskOverride = 0);
 
-    /*! \brief Cancel an in-progress bake for the given source, if one exists. Tears down the
-     *  associated baker immediately and resolves its Task<void>. Must be called on the sim thread. */
+    /// Cancel an in-progress bake for the given source, if one exists - sim thread only
     void CancelBake(ObjectBase* source);
 
-    /*! \brief Get the progress (in the range [0, 1]) of an in-progress bake for the given source  */
+    /// Get the progress in the range [0, 1] of a bake task for the source */
     float GetBakeProgress(ObjectBase* source) const;
 
 private:
@@ -96,7 +90,6 @@ private:
         uint32 shadingTypesMaskOverride,
         Args&&... args);
 
-    // Added in the order they are enqueued; we only update one at a given time.
     Array<ObjectBakeState, Baking::BakerAllocator> m_bakes;
 };
 

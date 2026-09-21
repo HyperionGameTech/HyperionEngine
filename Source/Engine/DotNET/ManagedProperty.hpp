@@ -60,13 +60,17 @@ public:
     ReturnType InvokeGetter(const ManagedObject* pManagedObject)
     {
         BoxedValue returnValue;
-        InvokeGetter_Internal(pManagedObject, &returnValue);
+
+        if (!InvokeGetter_Internal(pManagedObject, &returnValue) || returnValue.IsNull())
+        {
+            return ReturnType();
+        }
 
         return std::move(returnValue.Get<ReturnType>());
     }
 
     template <class T>
-    void InvokeSetter(const ManagedObject* pManagedObject, T&& value)
+    bool InvokeSetter(const ManagedObject* pManagedObject, T&& value)
     {
         BoxedValue returnValue(std::forward<T>(value));
         const BoxedValue* returnValuePtr = &returnValue;
@@ -75,8 +79,8 @@ public:
     }
 
 private:
-    void InvokeGetter_Internal(const ManagedObject* pManagedObject, BoxedValue* outBoxed);
-    void InvokeSetter_Internal(const ManagedObject* pManagedObject, const BoxedValue** boxedValue);
+    bool InvokeGetter_Internal(const ManagedObject* pManagedObject, BoxedValue* outBoxed);
+    bool InvokeSetter_Internal(const ManagedObject* pManagedObject, const BoxedValue** boxedValue);
 
     ManagedGuid m_guid;
     ManagedAttributeSet m_attributes;

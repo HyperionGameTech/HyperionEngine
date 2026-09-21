@@ -126,12 +126,10 @@ namespace Hyperion
 
                 NativeInterop_AddObjectToCache(objectWrapperPtr, out pClass, objectReferencePtr, isWeak: true);
 
-#if DEBUG
                 if (!objectReference.IsValid)
                 {
                     throw new Exception("Failed to add object to cache");
                 }
-#endif
 
                 IntPtr targetPtr = (_target is ObjectBase objBase) ? objBase.NativeAddress : IntPtr.Zero;
                 IntPtr delegateHandlerPtr = ScriptableDelegate_Bind(_ptr, targetPtr, pClass, objectReferencePtr);

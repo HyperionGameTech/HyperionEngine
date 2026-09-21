@@ -110,6 +110,20 @@ public:
             callbackSelfPtr);
     }
 
+    void InitializeCompiler(const FilePath& sourceDirectory, const FilePath& intermediateDirectory, const FilePath& binaryOutputDirectory)
+    {
+        if (!object || !object->IsValid())
+        {
+            return;
+        }
+
+        object->InvokeMethodByName<void>(
+            "InitializeCompiler",
+            sourceDirectory,
+            intermediateDirectory,
+            binaryOutputDirectory);
+    }
+
     void UpdateSourceDirectories(const Array<FilePath>& sourceDirectories)
     {
         if (!object || !object->IsValid())
@@ -120,6 +134,19 @@ public:
         object->InvokeMethodByName<void>(
             "UpdateSourceDirectories",
             sourceDirectories);
+    }
+
+    bool ResolveAssembly(const FilePath& scriptPath, ScriptDesc& scriptDesc)
+    {
+        if (!object || !object->IsValid())
+        {
+            return false;
+        }
+
+        return object->InvokeMethodByName<bool>(
+            "ResolveAssembly",
+            scriptPath,
+            reinterpret_cast<void*>(&scriptDesc));
     }
 
     void InvokeUpdate()
@@ -355,6 +382,112 @@ void ScriptSystem::RefreshScriptSourceDirectories()
     m_scriptTracker->UpdateSourceDirectories(CollectScriptSourceDirectories());
 }
 
+void ScriptSystem::PreloadProjectScripts(const Handle<AssetRegistry>& registry)
+{
+#ifdef HYP_DOTNET
+    if (!registry.IsValid() || !DotNETHost::GetInstance().IsInitialized())
+    {
+        return;
+    }
+
+    if (!EnableScriptReloading())
+    {
+        Array<AssetDesc> scriptAssetDescs;
+        registry->GetBucketAssetDescs(AssetBuckets::Scripts.GetIndex(), scriptAssetDescs);
+
+        Array<ANSIString> loadedAssemblyPaths;
+
+        for (const AssetDesc& scriptAssetDesc : scriptAssetDescs)
+        {
+            Handle<ScriptAsset> scriptAsset = registry->GetAsset<ScriptAsset>(AssetBuckets::Scripts, scriptAssetDesc.name);
+
+            if (!scriptAsset.IsValid())
+            {
+                continue;
+            }
+
+            auto readScope = scriptAsset->GetReadScope();
+
+            const ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
+
+            if (scriptDesc.language != ScriptLanguage::CSharp || scriptDesc.assemblyPath[0] == '\0')
+            {
+                continue;
+            }
+
+            // several scripts share a module
+            const ANSIString assemblyPath = EntityScripting::GetCSharpAssemblyLoadPath(scriptDesc);
+
+            if (loadedAssemblyPaths.Contains(assemblyPath))
+            {
+                continue;
+            }
+
+            loadedAssemblyPaths.PushBack(assemblyPath);
+
+            if (!DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
+            {
+                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to load C# script module '{}'", assemblyPath.Data());
+            }
+        }
+
+        return;
+    }
+
+    const FilePath scriptsDirectory = registry->GetRootPath() / AssetBuckets::Scripts.GetName();
+
+    if (!scriptsDirectory.IsDirectory())
+    {
+        return;
+    }
+
+    // same compiler settings as the tracker in OnAddedToWorld(), so modules resolve to the same names and outputs
+    ScriptTracker scriptTracker;
+    scriptTracker.InitializeCompiler(GetScriptsSourceDirectory(), EngineGlobals::GetTempDirectory() / "ScriptProjects", CoreApi::GetExecutablePath());
+
+    Array<FilePath> pendingDirectories;
+    pendingDirectories.PushBack(scriptsDirectory);
+
+    while (pendingDirectories.Any())
+    {
+        const FilePath directory = pendingDirectories.PopBack();
+
+        for (const FilePath& subdirectory : directory.GetSubdirectories())
+        {
+            pendingDirectories.PushBack(subdirectory);
+        }
+
+        // every C# source in a directory builds into the same module, so resolving one of them loads all of them
+        for (const FilePath& file : directory.GetAllFilesInDirectory())
+        {
+            if (!file.EndsWith(".cs"))
+            {
+                continue;
+            }
+
+            ScriptDesc scriptDesc;
+            scriptDesc.language = ScriptLanguage::CSharp;
+
+            if (!scriptTracker.ResolveAssembly(file, scriptDesc))
+            {
+                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to build C# scripts in {}; components they define won't be available until they build", directory);
+
+                break;
+            }
+
+            const ANSIString assemblyPath = EntityScripting::GetCSharpAssemblyLoadPath(scriptDesc);
+
+            if (!DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
+            {
+                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to load C# script module '{}'", assemblyPath.Data());
+            }
+
+            break;
+        }
+    }
+#endif // HYP_DOTNET
+}
+
 void ScriptSystem::OnRemovedFromWorld(World* world)
 {
     SystemBase::OnRemovedFromWorld(world);
@@ -387,6 +520,8 @@ void ScriptSystem::OnEntityAdded(Entity* entity)
 
     if (!gameState.IsStopped())
     {
+        ResolveScriptAssembly(scriptComponent);
+
         EntityScripting::InitializeEntityScript(entity, scriptComponent, gameState);
     }
 }
@@ -441,12 +576,64 @@ void ScriptSystem::HandleGameStateChanged(GameStateMode gameStateMode, GameState
 
     if (previousGameStateMode == GameStateMode::STOPPED)
     {
-        EntityScripting::QueryScriptedEntities(*world, [&gameState](Entity* entity, ScriptComponent& scriptComponent)
+        EntityScripting::QueryScriptedEntities(*world, [this, &gameState](Entity* entity, ScriptComponent& scriptComponent)
                                                {
+                                                   ResolveScriptAssembly(scriptComponent);
+
                                                    EntityScripting::InitializeEntityScript(entity, scriptComponent, gameState);
                                                });
 
         return;
+    }
+}
+
+void ScriptSystem::ResolveScriptAssembly(ScriptComponent& scriptComponent)
+{
+    if (!EnableScriptReloading() || !m_scriptTracker || scriptComponent.assembly)
+    {
+        return;
+    }
+
+    const Handle<ScriptAsset>& scriptAsset = scriptComponent.script;
+
+    if (!scriptAsset || scriptAsset->GetScriptDesc().language != ScriptLanguage::CSharp || !scriptAsset->IsRegistered())
+    {
+        return;
+    }
+
+    Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry();
+
+    if (!registry.IsValid())
+    {
+        return;
+    }
+
+    const FilePath sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".cs");
+
+    if (!sourcePath.Exists())
+    {
+        return;
+    }
+
+    auto writeScope = scriptAsset->GetWriteScope();
+
+    ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
+
+    const String previousAssemblyPath = scriptDesc.SerializeAssemblyPath();
+
+    if (!m_scriptTracker->ResolveAssembly(sourcePath, scriptDesc))
+    {
+        HYP_LOG(Scripting, Error, "ScriptSystem: Failed to build C# script '{}' from {}", scriptAsset->GetName(), sourcePath);
+
+        return;
+    }
+
+    if (scriptDesc.SerializeAssemblyPath() != previousAssemblyPath)
+    {
+        writeScope.Reset();
+
+        // persist it so builds without the script compiler can find the assembly
+        scriptAsset->MarkDirty();
     }
 }
 

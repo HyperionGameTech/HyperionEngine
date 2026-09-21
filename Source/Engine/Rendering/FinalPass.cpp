@@ -30,7 +30,6 @@
 #include <Rendering/Texture.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
@@ -38,6 +37,7 @@
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 

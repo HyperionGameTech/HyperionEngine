@@ -28,7 +28,8 @@ enum class ScriptComponentFlags : uint32
     INITIALIZED = 0x1,
     RELOADING = 0x2,
     INITIALIZATION_STARTED = 0x4,
-    ACTIVATED = 0x8
+    ACTIVATED = 0x8,
+    ERRORED = 0x10 //!< a lifecycle method threw an exception
 };
 
 HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);

@@ -19,8 +19,7 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/Light.hpp>
-#include <Scene/View.hpp>
+#include <Scene/Light/Light.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 
@@ -28,6 +27,7 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#include <Framework/View.hpp>
 #include <Framework/EngineGlobals.hpp>
 
 #include <ShadowMap.generated.inl>

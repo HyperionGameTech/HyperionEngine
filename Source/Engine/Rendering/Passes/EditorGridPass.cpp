@@ -16,8 +16,8 @@
 #include <Rendering/RenderSetup.hpp>
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/Camera/Camera.hpp>
 
 namespace Hyperion {

@@ -31,10 +31,11 @@
 #include <Framework/EngineStats.hpp>
 #include <Framework/CVarManager.hpp>
 
-#include <Scene/Light.hpp>
-#include <Scene/View.hpp>
+#include <Scene/Light/Light.hpp>
 
 #include <Scene/Camera/Camera.hpp>
+
+#include <Framework/View.hpp>
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Math/MathUtil.hpp>

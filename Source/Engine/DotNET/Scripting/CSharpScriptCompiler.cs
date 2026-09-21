@@ -12,6 +12,8 @@ namespace Hyperion
 {
     public class CSharpScriptCompiler : ScriptCompilerBase
     {
+        private Dictionary<string, string> resolvedModuleNames = [];
+
         public CSharpScriptCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)
             : base(sourceDirectory, intermediateDirectory, binaryOutputDirectory)
         {
@@ -36,6 +38,8 @@ namespace Hyperion
                     Logger.Log(logChannel, LogLevel.Error, "Failed to delete symlink: {0}", e.Message);
                 }
             }
+
+            DeleteOldHotReloadVersions();
 
             string[] directories = System.IO.Directory.GetDirectories(sourceDirectory, "*", System.IO.SearchOption.AllDirectories)
                 .Append(sourceDirectory)
@@ -320,6 +324,9 @@ namespace Hyperion
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.CreateNoWindow = true;
 
+            // prevents a stale MSBuildSdksPath (left behind by an uninstalled SDK) from breaking resolution of Microsoft.NET.Sdk
+            process.StartInfo.Environment.Remove("MSBuildSdksPath");
+
 #if !HYP_MACOS
             process.OutputDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
             {
@@ -391,149 +398,184 @@ namespace Hyperion
 
             // Grep all DLLs in the output directory
             string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectOutputDirectory, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
-            List<string> outputDlls = new List<string>();
 
-            for (int i = 0; i < dlls.Length; i++)
+            return CopyOutputAssemblies(dlls, out hotReloadVersion);
+        }
+
+        // A loaded assembly can't be overwritten on Windows, not even when it was loaded through a symlink, and loaded
+        // script assemblies stay loaded for the whole session. So each build gets its own real Module.N.dll which hot reload
+        // loads, and the unversioned Module.dll is only refreshed when nothing has it loaded.
+        private bool CopyOutputAssemblies(string[] dlls, out int hotReloadVersion)
+        {
+            hotReloadVersion = 1;
+
+            foreach (int version in GetHotReloadVersions().Values.SelectMany(versions => versions))
             {
-                // Copy the DLL to the output directory
-                string outputDllPath = System.IO.Path.Combine(binaryOutputDirectory, System.IO.Path.GetFileName(dlls[i]));
+                hotReloadVersion = Math.Max(hotReloadVersion, version + 1);
+            }
 
-                Logger.Log(logChannel, LogLevel.Info, "Copying output script assembly {0} to {1}", dlls[i], outputDllPath);
+            foreach (string dll in dlls)
+            {
+                string moduleFileName = System.IO.Path.GetFileNameWithoutExtension(dll);
+                string versionedDllPath = System.IO.Path.Combine(binaryOutputDirectory, $"{moduleFileName}.{hotReloadVersion}.dll");
+
+                Logger.Log(logChannel, LogLevel.Info, "Copying output script assembly {0} to {1}", dll, versionedDllPath);
 
                 try
                 {
-                    System.IO.File.Copy(dlls[i], outputDllPath, true);
+                    System.IO.File.Copy(dll, versionedDllPath, true);
                 }
                 catch (Exception e)
                 {
                     Logger.Log(logChannel, LogLevel.Error, "Failed to copy script assembly: {0}", e.Message);
 
-                    continue;
+                    return false;
                 }
 
-                outputDlls.Add(outputDllPath);
-            }
-
-            return CreateSymLinks(outputDlls.ToArray(), out hotReloadVersion);
-        }
-
-        private bool CreateSymLinks(string[] dlls, out int hotReloadVersion)
-        {
-            // For each dll file, find the highest foo.X.dll file and create a symlink foo.(X+1).dll to the newly compiled DLL
-            // This is to ensure that the game always loads the latest version of the DLL
-
-            hotReloadVersion = 0;
-
-            HashSet<string> directories = new();
-
-            foreach (string dll in dlls)
-            {
-                if (dll == null)
-                {
-                    continue;
-                }
-
-                string? directoryName = System.IO.Path.GetDirectoryName(dll);
-
-                if (directoryName == null)
-                {
-                    Logger.Log(logChannel, LogLevel.Error, "Failed to get directory name for DLL {0}", dll);
-
-                    continue;
-                }
-
-                directories.Add(directoryName);
-            }
-
-            HashSet<string> files = new();
-
-            foreach (string directory in directories)
-            {
-                string[] directoryFiles = System.IO.Directory.GetFiles(directory, "*.*.dll");
-
-                foreach (string file in directoryFiles)
-                {
-                    files.Add(file);
-                }
-            }
-
-            foreach (string file in files)
-            {
-                string[] splitParts = System.IO.Path.GetFileNameWithoutExtension(file).Split('.');
-                string versionString = splitParts[splitParts.Length - 1];
-
-                if (int.TryParse(versionString, out int version))
-                {
-                    if (version > hotReloadVersion)
-                    {
-                        hotReloadVersion = version;
-                    }
-                }
-            }
-
-            hotReloadVersion += 1;
-
-            foreach (string dll in dlls)
-            {
-                if (dll == null)
-                {
-                    continue;
-                }
-
-                string fileName = System.IO.Path.GetFileName(dll);
-                string directory = dll.Substring(0, dll.Length - fileName.Length);
-
-                string newFileName = $"{System.IO.Path.GetFileNameWithoutExtension(fileName)}.{hotReloadVersion}.dll";
-                string newFilePath = System.IO.Path.Combine(directory, newFileName);
+                string dllPath = System.IO.Path.Combine(binaryOutputDirectory, $"{moduleFileName}.dll");
 
                 try
                 {
-                    if (System.IO.File.Exists(newFilePath))
-                    {
-                        System.IO.File.Delete(newFilePath);
-                    }
-
-                    System.IO.File.CreateSymbolicLink(newFilePath, dll);
+                    System.IO.File.Copy(dll, dllPath, true);
                 }
-                catch (Exception e)
+                catch (IOException)
                 {
-                    Logger.Log(logChannel, LogLevel.Error, "Failed to create symlink from {0} to {1}: {2}", dll, newFilePath, e.Message);
-
-                    return false;
+                    Logger.Log(logChannel, LogLevel.Info, "{0} is in use, hot reload will load {1} instead", dllPath, versionedDllPath);
                 }
             }
 
             return true;
         }
 
-        public override bool Compile(ref ScriptDesc scriptDesc)
+        // Module.N.dll copies in the output directory, keyed by the Module.dll they are a version of
+        private Dictionary<string, List<int>> GetHotReloadVersions()
         {
-            string moduleName;
-            int hotReloadVersion;
+            Dictionary<string, List<int>> versionsByDllPath = new(StringComparer.OrdinalIgnoreCase);
 
-            string? scriptDirectory = System.IO.Path.GetDirectoryName(scriptDesc.Path);
-
-            if (scriptDirectory == null)
+            foreach (string file in System.IO.Directory.GetFiles(binaryOutputDirectory, "*.*.dll"))
             {
-                Logger.Log(logChannel, LogLevel.Error, "Failed to get script directory for script {0}", scriptDesc.Path);
+                string fileNameWithoutExtension = System.IO.Path.GetFileNameWithoutExtension(file);
+                int lastDotIndex = fileNameWithoutExtension.LastIndexOf('.');
 
-                return false;
+                if (lastDotIndex <= 0 || !int.TryParse(fileNameWithoutExtension.Substring(lastDotIndex + 1), out int version))
+                {
+                    continue;
+                }
+
+                string dllPath = System.IO.Path.Combine(binaryOutputDirectory, fileNameWithoutExtension.Substring(0, lastDotIndex) + ".dll");
+
+                if (!System.IO.File.Exists(dllPath))
+                {
+                    continue;
+                }
+
+                if (!versionsByDllPath.TryGetValue(dllPath, out List<int>? versions))
+                {
+                    versions = [];
+                    versionsByDllPath.Add(dllPath, versions);
+                }
+
+                versions.Add(version);
             }
 
-            if (BuildProject(
-                scriptDirectory: (string)scriptDirectory,
-                forceRebuild: true,
-                moduleName: out moduleName,
-                hotReloadVersion: out hotReloadVersion
-            ))
+            return versionsByDllPath;
+        }
+
+        private void DeleteOldHotReloadVersions()
+        {
+            foreach (KeyValuePair<string, List<int>> entry in GetHotReloadVersions())
+            {
+                int latestVersion = entry.Value.Max();
+                string dllPathWithoutExtension = entry.Key.Substring(0, entry.Key.Length - ".dll".Length);
+
+                foreach (int version in entry.Value)
+                {
+                    if (version == latestVersion)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        System.IO.File.Delete($"{dllPathWithoutExtension}.{version}.dll");
+                    }
+                    catch (Exception)
+                    {
+                        // still loaded by another world, it gets cleaned up next session
+                    }
+                }
+            }
+        }
+
+        // The newest Module.N.dll is always the freshest build, the unversioned Module.dll may be stale if it was in use when copying
+        private void UseLatestHotReloadVersion(string moduleName, ref ScriptDesc scriptDesc)
+        {
+            string dllPath = System.IO.Path.Combine(binaryOutputDirectory, $"{moduleName}.dll");
+
+            scriptDesc.HotReloadVersion = GetHotReloadVersions().TryGetValue(dllPath, out List<int>? versions)
+                ? versions.Max()
+                : 0;
+        }
+
+        public override bool Compile(ref ScriptDesc scriptDesc)
+        {
+            return BuildProjectForScript(scriptDesc.Path, forceRebuild: true, ref scriptDesc);
+        }
+
+        public bool ResolveAssembly(string scriptPath, ref ScriptDesc scriptDesc)
+        {
+            string? scriptDirectory = System.IO.Path.GetDirectoryName(scriptPath);
+
+            if (scriptDirectory != null && resolvedModuleNames.TryGetValue(scriptDirectory, out string? moduleName))
             {
                 scriptDesc.AssemblyPath = GetAssemblyPath(moduleName, relative: true);
-                scriptDesc.HotReloadVersion = hotReloadVersion;
+                UseLatestHotReloadVersion(moduleName, ref scriptDesc);
 
                 return true;
             }
 
-            return false;
+            return BuildProjectForScript(scriptPath, forceRebuild: false, ref scriptDesc);
+        }
+
+        private bool BuildProjectForScript(string scriptPath, bool forceRebuild, ref ScriptDesc scriptDesc)
+        {
+            string moduleName;
+            int hotReloadVersion;
+
+            string? scriptDirectory = System.IO.Path.GetDirectoryName(scriptPath);
+
+            if (scriptDirectory == null)
+            {
+                Logger.Log(logChannel, LogLevel.Error, "Failed to get script directory for script {0}", scriptPath);
+
+                return false;
+            }
+
+            if (!BuildProject(
+                scriptDirectory: scriptDirectory,
+                forceRebuild: forceRebuild,
+                moduleName: out moduleName,
+                hotReloadVersion: out hotReloadVersion
+            ))
+            {
+                return false;
+            }
+
+            resolvedModuleNames[scriptDirectory] = moduleName;
+
+            scriptDesc.AssemblyPath = GetAssemblyPath(moduleName, relative: true);
+
+            // -1 means the existing build was up to date
+            if (hotReloadVersion >= 0)
+            {
+                scriptDesc.HotReloadVersion = hotReloadVersion;
+            }
+            else
+            {
+                UseLatestHotReloadVersion(moduleName, ref scriptDesc);
+            }
+
+            return true;
         }
     }
 }

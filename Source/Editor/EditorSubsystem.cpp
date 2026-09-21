@@ -26,8 +26,7 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/EntityManager.hpp>
@@ -99,6 +98,7 @@
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
+#include <Framework/View.hpp>
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 

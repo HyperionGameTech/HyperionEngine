@@ -35,7 +35,6 @@
 #include <Rendering/Util/MeshBuilder.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/FogVolume.hpp>
 
 #include <Core/Math/MathUtil.hpp>
@@ -44,6 +43,7 @@
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 

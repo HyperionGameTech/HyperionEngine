@@ -15,10 +15,11 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/EntityManager.hpp>
+
+#include <Framework/View.hpp>
 
 #include <EditorViewport.generated.inl>
 

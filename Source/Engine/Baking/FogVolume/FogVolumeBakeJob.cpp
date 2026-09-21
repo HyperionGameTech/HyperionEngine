@@ -10,7 +10,7 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/FogVolume.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 
 #include <Scene/Util/VoxelOctree.hpp>

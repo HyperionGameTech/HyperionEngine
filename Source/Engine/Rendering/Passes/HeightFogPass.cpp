@@ -27,11 +27,11 @@
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
-#include <Scene/View.hpp>
-#include <Scene/Light.hpp>
-#include <Scene/EnvProbe.hpp>
-
+#include <Framework/View.hpp>
 #include <Framework/EngineStats.hpp>
+
+#include <Scene/Light/Light.hpp>
+#include <Scene/EnvProbe.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 

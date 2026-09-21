@@ -74,7 +74,6 @@ namespace Hyperion
 
                         NativeInterop_AddObjectToCache(objectWrapperPtr, out pClass, objectReferencePtr, isWeak: true);
 
-#if DEBUG
                         if (pClass == IntPtr.Zero)
                         {
                             gcHandle.Free();
@@ -86,7 +85,6 @@ namespace Hyperion
                             gcHandle.Free();
                             throw new Exception("Failed to add object to cache -- objectReference is invalid");
                         }
-#endif
 
                         _classPtr = cls.Address;
 

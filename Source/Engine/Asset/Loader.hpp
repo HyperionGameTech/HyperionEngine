@@ -19,9 +19,9 @@ class AssetRegistry;
 enum class AssetLoadHint : uint32
 {
     NoHint = 0,
-    Transient = 0x1,                  //<! Not registered with the registry
+    Transient = 0x1,                  //!< Not registered with the registry
 
-    TextureSRGB = 0x2                 //<! Hint to the texture loader that this is sRGB format
+    TextureSRGB = 0x2                 //!< Hint to the texture loader that this is sRGB format
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetLoadHint);

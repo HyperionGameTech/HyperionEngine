@@ -76,20 +76,28 @@ public:
         if (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
         {
             dotnet::ManagedObject* object = scriptObjectResource->GetManagedObject();
-            HYP_CORE_ASSERT(object != nullptr, "Managed object is null!");
-            HYP_CORE_ASSERT(object->IsValid(), "Managed object is invalid!");
 
-            if (object->GetMethod(methodName))
+            if (!object || !object->IsValid())
+            {
+                return false;
+            }
+
+            if (const dotnet::ManagedMethod* managedMethod = object->GetMethod(methodName))
             {
                 if constexpr (std::is_void_v<ReturnType>)
                 {
-                    object->InvokeMethodByName<void>(methodName, std::forward<Args>(args)...);
-
-                    return true;
+                    return object->TryInvokeMethod<void>(managedMethod, nullptr, std::forward<Args>(args)...);
                 }
                 else
                 {
-                    new (outReturn) ReturnType(object->InvokeMethodByName<ReturnType>(methodName, std::forward<Args>(args)...));
+                    ReturnType returnValue {};
+
+                    if (!object->TryInvokeMethod<ReturnType>(managedMethod, &returnValue, std::forward<Args>(args)...))
+                    {
+                        return false;
+                    }
+
+                    new (outReturn) ReturnType(std::move(returnValue));
 
                     return true;
                 }

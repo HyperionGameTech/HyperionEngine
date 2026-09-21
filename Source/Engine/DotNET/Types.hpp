@@ -20,10 +20,12 @@ struct ObjectReference;
 
 using Delegate = std::add_pointer_t<void()>;
 
-using InvokeMethodFunction = void (*)(ObjectReference*, const BoxedValue**, BoxedValue*);
+///Returns false if the managed method threw an exception
+using InvokeMethodFunction = bool (*)(ObjectReference*, const BoxedValue**, BoxedValue*);
 
-using InvokeGetterFunction = void (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
-using InvokeSetterFunction = void (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
+///Returns false if the property accessor threw an exception
+using InvokeGetterFunction = bool (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
+using InvokeSetterFunction = bool (*)(ManagedGuid, ObjectReference*, const BoxedValue**, BoxedValue*);
 
 } // namespace dotnet
 } // namespace Hyperion

@@ -20,6 +20,7 @@ namespace Hyperion {
 
 class ScriptingService;
 class ScriptTracker;
+class AssetRegistry;
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
 class ScriptSystem final : public SystemBase
@@ -44,6 +45,8 @@ public:
 
     void RefreshScriptSourceDirectories();
 
+    static void PreloadProjectScripts(const Handle<AssetRegistry>& registry);
+
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
@@ -55,6 +58,9 @@ private:
     Array<FilePath> CollectScriptSourceDirectories() const;
 
     void HandleGameStateChanged(GameStateMode gameStateMode, GameStateMode previousGameStateMode);
+
+    // Editor only: builds the C# module for a script if needed and points its asset at the assembly
+    void ResolveScriptAssembly(ScriptComponent& scriptComponent);
 
     UniquePtr<ScriptingService> m_scriptingService;
     UniquePtr<ScriptTracker> m_scriptTracker;
