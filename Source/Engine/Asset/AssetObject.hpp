@@ -141,6 +141,9 @@ public:
 
     HYP_METHOD()
     Result SaveAs(const FilePath& manifestPath);
+    
+    HYP_METHOD()
+    virtual Handle<AssetObject> CloneAsset() const;
 
     HYP_NODISCARD TUniqueResLock<AssetObject> GetWriteScope() const;
     HYP_NODISCARD TSharedResLock<AssetObject> GetReadScope() const;

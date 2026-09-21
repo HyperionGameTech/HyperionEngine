@@ -417,6 +417,8 @@ namespace Hyperion.Editor.ViewModels
                     AssetRegistry registry = mgr.AssetRegistry;
                     string rootPath = registry.GetRootPath();
 
+                    List<AssetObjectViewModel> unsavedAssets = [];
+
                     foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
                     {
                         string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".hmf");
@@ -424,13 +426,26 @@ namespace Hyperion.Editor.ViewModels
                         DateTime? dateModified = null;
                         string? typeName = null;
 
-                        if (File.Exists(manifestPath))
+                        bool hasManifest = File.Exists(manifestPath);
+
+                        if (hasManifest)
                         {
                             dateModified = File.GetLastWriteTime(manifestPath);
                             typeName = ReadAssetTypeName(manifestPath);
                         }
 
-                        _bucketAssets.Add(new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified));
+                        AssetObjectViewModel assetVm = new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified);
+                        _bucketAssets.Add(assetVm);
+
+                        if (!hasManifest)
+                        {
+                            unsavedAssets.Add(assetVm);
+                        }
+                    }
+
+                    if (unsavedAssets.Count > 0)
+                    {
+                        ResolveUnsavedAssetTypeNames(bucketIndex, unsavedAssets);
                     }
 
                     _currentBucket = bucketVm;
@@ -473,6 +488,43 @@ namespace Hyperion.Editor.ViewModels
             }
 
             OnPropertyChanged(nameof(CurrentBucket));
+        }
+
+        /// <summary>
+        /// Assets created this session but not yet saved have no manifest to read a type from, so the type
+        /// comes from the live object in the registry instead.
+        /// </summary>
+        private static void ResolveUnsavedAssetTypeNames(uint bucketIndex, List<AssetObjectViewModel> assetVms)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+
+                List<(AssetObjectViewModel AssetVm, string TypeName)> resolved = new List<(AssetObjectViewModel, string)>();
+
+                foreach (AssetObjectViewModel assetVm in assetVms)
+                {
+                    AssetObject? obj = registry.GetAsset(bucketIndex, assetVm.AssetDesc.Name);
+
+                    if (obj != null && obj.IsValid)
+                    {
+                        resolved.Add((assetVm, obj.Class.Name.ToString()));
+                    }
+                }
+
+                if (resolved.Count == 0)
+                {
+                    return;
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    foreach ((AssetObjectViewModel assetVm, string typeName) in resolved)
+                    {
+                        assetVm.SetTypeName(typeName);
+                    }
+                });
+            });
         }
 
         /// <summary>

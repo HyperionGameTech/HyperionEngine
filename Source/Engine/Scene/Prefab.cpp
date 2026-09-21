@@ -28,6 +28,9 @@ void Prefab_OnPostLoad(Prefab& prefab)
 
         if (root.IsValid())
         {
+            // Older prefabs may have a root named differently from the asset (e.g. a suffixed name on save)
+            prefab.SyncRootName();
+
             root->SetScene(&GetDetachedSceneForThread(g_simThread));
         }
     }
@@ -45,6 +48,16 @@ Prefab::Prefab(Name name, const Handle<Node>& root)
       m_root(root)
 {
 }
+
+Result Prefab::Rename(Name name)
+{
+    Result result = AssetObject::Rename(name);
+
+    SyncRootName();
+
+    return result;
+}
+
 const Handle<Node>& Prefab::GetRoot() const
 {
     return m_root;
@@ -58,7 +71,19 @@ void Prefab::SetRoot(const Handle<Node>& root)
     }
 
     m_root = root;
+    SyncRootName();
+
     MarkDirty();
+}
+
+void Prefab::SyncRootName()
+{
+    const Name name = GetName();
+
+    if (m_root.IsValid() && name.IsValid() && m_root->GetName() != name)
+    {
+        m_root->SetName(name);
+    }
 }
 
 Handle<Node> Prefab::Spawn() const
@@ -81,6 +106,11 @@ Handle<Node> Prefab::Spawn() const
 
     // Clone() carries the template's tags over, so drop any inherited source tag before applying ours
     TagAsPrefabInstance(node.Get(), GetUUID());
+
+    if (GetName().IsValid())
+    {
+        node->SetName(GetName());
+    }
 
     return node;
 }

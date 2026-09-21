@@ -153,6 +153,9 @@ public:
     HYP_METHOD(NotNullReturn)
     Handle<Material> Clone() const;
 
+    HYP_METHOD()
+    virtual Handle<AssetObject> CloneAsset() const override;
+
     HashCode GetHashCode() const;
 
 private:

@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
@@ -10,11 +11,21 @@
     mc:Ignorable="d">
     <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
         <StackPanel Margin="0,12,0,8" Spacing="0">
-            <TextBlock
-                Margin="8,0,8,2"
-                Classes="header"
-                FontSize="14"
-                Text="{Binding Heading}" />
+            <Grid Margin="8,0,8,2" ColumnDefinitions="*,Auto">
+                <TextBlock
+                    Grid.Column="0"
+                    Classes="header"
+                    FontSize="14"
+                    Text="{Binding Heading}" />
+                <Button
+                    Grid.Column="1"
+                    Classes="gizmo"
+                    Command="{Binding CloneCommand}"
+                    IsEnabled="{Binding CanClone}"
+                    ToolTip.Tip="Clone this asset and assign the clone">
+                    <controls:Codicon Kind="Copy" Size="14" />
+                </Button>
+            </Grid>
             <TextBlock
                 Classes="muted"
                 IsVisible="{Binding HasSubHeading}"

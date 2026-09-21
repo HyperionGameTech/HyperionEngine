@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Avalonia.Threading;
 using Hyperion;
@@ -21,14 +22,9 @@ namespace Hyperion.Editor.ViewModels
 
         private uint _mobilityValue = 0;
 
-        private readonly Node _node;
-        private readonly Property _flagsProperty;
-
         public MobilityPropertyViewModel(Node node, Property flagsProperty)
-            : base("Mobility", flagsProperty.TypeInfo, null, null, false)
+            : base("Mobility", flagsProperty.TypeInfo, () => flagsProperty.Get(node), value => flagsProperty.Set(node, value), false)
         {
-            _node = node;
-            _flagsProperty = flagsProperty;
         }
 
         public bool IsInherit
@@ -113,13 +109,15 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                ulong currentValue;
+                List<ulong> mobilityFields;
 
                 try
                 {
-                    using BoxedValue boxed = _flagsProperty.Get(_node);
-                    object? rawValue = boxed.GetValue();
-                    currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
+                    mobilityFields = ReadAllTargets(boxed =>
+                    {
+                        object? rawValue = boxed.GetValue();
+                        return (rawValue != null ? Convert.ToUInt64(rawValue) : 0ul) & MobilityMask;
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -136,13 +134,18 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
-                            ulong mobilityField = currentValue & MobilityMask;
+                            ulong mobilityField = mobilityFields[0];
+
+                            // No option is shown selected when the selected nodes disagree.
+                            bool isShared = mobilityFields.TrueForAll(field => field == mobilityField);
 
                             _mobilityValue = (uint)mobilityField;
 
-                            _isStatic = mobilityField == MobilityStatic;
-                            _isDynamic = mobilityField == MobilityDynamic;
-                            _isInherit = !_isStatic && !_isDynamic;
+                            _isStatic = isShared && mobilityField == MobilityStatic;
+                            _isDynamic = isShared && mobilityField == MobilityDynamic;
+                            _isInherit = isShared && !_isStatic && !_isDynamic;
+
+                            HasMixedValues = !isShared;
 
                             OnPropertyChanged(nameof(IsInherit));
                             OnPropertyChanged(nameof(IsStatic));
@@ -164,63 +167,18 @@ namespace Hyperion.Editor.ViewModels
             if (IsApplyingModelValue)
                 return;
 
-            Node capturedNode = _node;
-            Property capturedProperty = _flagsProperty;
-
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
-                    // Read current flags
-                    using BoxedValue currentBoxed = capturedProperty.Get(capturedNode);
-                    object? currentRaw = currentBoxed.GetValue();
-                    ulong currentFlags = currentRaw != null ? Convert.ToUInt64(currentRaw) : 0ul;
-
-                    ulong newValue = (currentFlags & ~MobilityMask) | mobilityValue;
-                    ulong oldValue = currentFlags;
-
-                    if (newValue == oldValue)
+                    // Only the mobility bits change; each node keeps the rest of its flags.
+                    CommitPropertyChange("Set Mobility", current =>
                     {
-                        Dispatcher.UIThread.Post(RefreshValue);
-                        return;
-                    }
+                        object? currentRaw = current.GetValue();
+                        ulong currentFlags = currentRaw != null ? Convert.ToUInt64(currentRaw) : 0ul;
 
-                    EditorProject? project = EngineManager.CurrentProject;
-
-                    void ApplyValue(ulong value)
-                    {
-                        try
-                        {
-                            using BoxedValue bv = new BoxedValue(value);
-                            capturedProperty.Set(capturedNode, bv);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Log(LogLevel.Warning, $"Inspector failed to set mobility: {ex.Message}");
-                        }
-
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            RefreshValue();
-                            ValueChangedCallback?.Invoke();
-                        });
-                    }
-
-                    EditorAction action = new EditorAction(
-                        "Set Mobility",
-                        execute: (_, _) => ApplyValue(newValue),
-                        revert: (_, _) => ApplyValue(oldValue)
-                    );
-
-                    if (project != null)
-                    {
-                        // PushAction executes the action, so don't apply it a second time here.
-                        project.ActionStack.PushAction(action);
-                    }
-                    else
-                    {
-                        ApplyValue(newValue);
-                    }
+                        return ToIntegralTypeOf((currentFlags & ~MobilityMask) | mobilityValue, currentRaw);
+                    });
                 }
                 catch (Exception ex)
                 {

@@ -41,6 +41,29 @@ namespace Hyperion.Editor.ViewModels
 
         private static long MakeObjectKey(ObjIdBase id) => ((long)id.TypeId.Value << 32) | id.Value;
 
+        private static long MakeObjectsKey(List<ObjectBase> objects)
+        {
+            long key = 17;
+
+            foreach (ObjectBase obj in objects)
+            {
+                key = unchecked(key * 31 + MakeObjectKey(obj.Id));
+            }
+
+            return key == NoSubObjectKey ? 1 : key;
+        }
+
+        // Sim thread.
+        private void RunAllOwnersPostWrite()
+        {
+            PostWriteCallback?.Invoke();
+
+            foreach (PropertyTarget peer in Peers)
+            {
+                peer.PostWrite?.Invoke();
+            }
+        }
+
         private ComponentSubObjectViewModel? _subObject;
         public ComponentSubObjectViewModel? SubObject
         {
@@ -56,6 +79,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SetProperty(ref _hasSubObject, value))
                     OnPropertyChanged(nameof(ShowSubclassPicker));
+
+                UpdateCanClone();
             }
         }
 
@@ -121,6 +146,14 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SelectCommand { get; }
         public ICommand ClearCommand { get; }
         public ICommand NewCommand { get; }
+        public ICommand CloneCommand { get; }
+
+        private bool _canClone;
+        public bool CanClone
+        {
+            get => _canClone && EngineManager.CanCreateAssets;
+            private set => SetProperty(ref _canClone, value);
+        }
 
 
         public ObservableCollection<string> AvailableSubclasses { get; } = new();
@@ -171,10 +204,12 @@ namespace Hyperion.Editor.ViewModels
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
             NewCommand = new RelayCommand(OnNew);
+            CloneCommand = new RelayCommand(OnClone);
 
             HookContentBrowser();
             PopulateSubclasses();
             UpdateCanCreateNew();
+            UpdateCanClone();
         }
 
         public ObjectPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
@@ -188,10 +223,12 @@ namespace Hyperion.Editor.ViewModels
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
             NewCommand = new RelayCommand(OnNew);
+            CloneCommand = new RelayCommand(OnClone);
 
             HookContentBrowser();
             PopulateSubclasses();
             UpdateCanCreateNew();
+            UpdateCanClone();
         }
 
         public ObjectPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0)
@@ -205,10 +242,12 @@ namespace Hyperion.Editor.ViewModels
             SelectCommand = new RelayCommand(OnSelect);
             ClearCommand = new RelayCommand(OnClear);
             NewCommand = new RelayCommand(OnNew);
+            CloneCommand = new RelayCommand(OnClone);
 
             HookContentBrowser();
             PopulateSubclasses();
             UpdateCanCreateNew();
+            UpdateCanClone();
         }
 
         public override bool ShowInlineLabel => false;
@@ -225,6 +264,11 @@ namespace Hyperion.Editor.ViewModels
             CanCreateNew = CreatableClasses.Count > 0;
 
             OnPropertyChanged(nameof(HasCreatableClassChoice));
+        }
+
+        private void UpdateCanClone()
+        {
+            CanClone = _isAssetObjectType && !_isReadOnly && HasSubObject;
         }
 
         private void PopulateCreatableClasses()
@@ -330,27 +374,43 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                // One instance per selected object - they must not end up sharing one. Held until the
+                // commit has written them.
+                List<BoxedValue> instances = new List<BoxedValue>();
+
                 try
                 {
-                    BoxedValueInternal result;
-
-                    unsafe
+                    for (int i = 0; i < 1 + Peers.Count; i++)
                     {
-                        if (!Hyp_CreateInstanceOfClass(className, &result))
+                        BoxedValueInternal result;
+
+                        unsafe
                         {
-                            Logger.Log(LogLevel.Warning, $"Failed to create instance of class '{className}'");
-                            return;
+                            if (!Hyp_CreateInstanceOfClass(className, &result))
+                            {
+                                Logger.Log(LogLevel.Warning, $"Failed to create instance of class '{className}'");
+                                return;
+                            }
                         }
+
+                        instances.Add(BoxedValue.FromBuffer(result));
                     }
 
-                    using BoxedValue boxed = BoxedValue.FromBuffer(result);
-                    CommitPropertyChange($"Set {Label} type", boxed);
+                    int nextInstance = 0;
+                    CommitPropertyChange($"Set {Label} type", _ => instances[nextInstance++].GetValue());
                 }
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"Failed to create subclass instance '{className}': {ex.Message}");
 
                     Dispatcher.UIThread.Post(RefreshValue);
+                }
+                finally
+                {
+                    foreach (BoxedValue instance in instances)
+                    {
+                        instance.Dispose();
+                    }
                 }
             });
         }
@@ -565,6 +625,63 @@ namespace Hyperion.Editor.ViewModels
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"Failed to create new asset for property '{Label}': {ex.Message}");
+
+                    Dispatcher.UIThread.Post(RefreshValue);
+                }
+            });
+        }
+
+        /// <summary>Duplicates the currently assigned asset and reassigns this property to the clone.</summary>
+        private void OnClone()
+        {
+            if (!CanClone || _isReadOnly)
+            {
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                if (!EngineManager.CanCreateAssets)
+                {
+                    Logger.Log(LogLevel.Warning, $"Cannot clone asset for property '{Label}' while simulation is active.");
+
+                    return;
+                }
+
+                try
+                {
+                    using BoxedValue currentBoxed = GetPropertyValue();
+
+                    if (currentBoxed.GetValue() is not AssetObject currentAssetObj || !currentAssetObj.IsValid)
+                    {
+                        return;
+                    }
+
+                    AssetObject? clonedAssetObj = currentAssetObj.InvokeNativeMethod<AssetObject>("CloneAsset");
+
+                    if (clonedAssetObj == null || !clonedAssetObj.IsValid)
+                    {
+                        Logger.Log(LogLevel.Warning, $"Failed to clone asset for property '{Label}'");
+                        return;
+                    }
+
+                    try
+                    {
+                        AssetManager.Instance.AssetRegistry.PutAssetUnique(clonedAssetObj);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Warning, $"Failed to register cloned asset '{Label}': {ex.Message}");
+                        return;
+                    }
+
+                    using BoxedValue boxed = new BoxedValue(clonedAssetObj);
+                    CommitPropertyChange($"Clone {Label}", boxed);
+                    Dispatcher.UIThread.Post(() => IsEditorExpanded = true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Failed to clone asset for property '{Label}': {ex.Message}");
 
                     Dispatcher.UIThread.Post(RefreshValue);
                 }
@@ -842,13 +959,54 @@ namespace Hyperion.Editor.ViewModels
                 string pickerName = string.Empty;
                 string iconKind = AssetIconHelper.FromTypeName(expectedTypeName);
                 ComponentSubObjectViewModel? newSubObject = null;
+                bool isShared;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    object? val = boxed.GetValue();
+                    List<object?> values = ReadAllTargets(boxed => boxed.GetValue());
+                    object? val = values[0];
 
-                    if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
+                    isShared = values.TrueForAll(v => ValuesEqual(v, val));
+
+                    if (!isShared)
+                    {
+                        assetPathDisplay = string.Empty;
+                        displayName = string.Empty;
+
+                        List<ObjectBase> objects = values.OfType<ObjectBase>().Where(o => o.IsValid).ToList();
+
+                        // Each selected object has its own instance of the same class (e.g. a collision
+                        // shape per entity): edit those instances together. Differing assets are left blank.
+                        if (!_isAssetObjectType
+                            && _depth < MaxDepth
+                            && objects.Count == values.Count
+                            && objects.TrueForAll(o => o.Class == objects[0].Class))
+                        {
+                            displayName = objects[0].Class.Name.ToString();
+                            iconKind = AssetIconHelper.FromTypeName(displayName);
+                            resolvedKey = MakeObjectsKey(objects);
+
+                            if (resolvedKey != Volatile.Read(ref _subObjectKey))
+                            {
+                                List<(ObjectBase Target, Action? PostWrite)> peerObjects = new List<(ObjectBase, Action?)>();
+
+                                for (int i = 1; i < objects.Count; i++)
+                                {
+                                    peerObjects.Add((objects[i], Peers[i - 1].PostWrite));
+                                }
+
+                                newSubObject = new ComponentSubObjectViewModel(
+                                    Label,
+                                    objects[0],
+                                    _depth + 1,
+                                    preWriteCallback: null,
+                                    postWriteCallback: () => PostWriteCallback?.Invoke(),
+                                    valueChangedCallback: () => ValueChangedCallback?.Invoke(),
+                                    peers: peerObjects);
+                            }
+                        }
+                    }
+                    else if (val is ObjectBase obj && obj.IsValid && _depth < MaxDepth)
                     {
                         resolvedKey = MakeObjectKey(obj.Id);
                         displayName = obj.Class.Name.ToString();
@@ -874,13 +1032,14 @@ namespace Hyperion.Editor.ViewModels
                         if (resolvedKey != Volatile.Read(ref _subObjectKey))
                         {
                             // Editing a field on the sub-object (e.g. a collision shape's bounds) has to run the
-                            // owning property's post-write too, or the owner never learns that it changed.
+                            // owning property's post-write too, or the owner never learns that it changed. With a
+                            // multi-selection sharing one object (e.g. the same material), that's every owner.
                             newSubObject = new ComponentSubObjectViewModel(
                                 Label,
                                 obj,
                                 _depth + 1,
                                 preWriteCallback: null,
-                                postWriteCallback: () => PostWriteCallback?.Invoke(),
+                                postWriteCallback: RunAllOwnersPostWrite,
                                 valueChangedCallback: () => ValueChangedCallback?.Invoke());
                         }
                     }
@@ -894,6 +1053,7 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                bool capturedIsShared = isShared;
                 string capturedDisplayName = displayName;
                 string capturedAssetPath = assetPathDisplay;
                 string capturedPickerName = pickerName;
@@ -909,6 +1069,7 @@ namespace Hyperion.Editor.ViewModels
                         {
                             UpdateSubObject(capturedSubObject, capturedResolvedKey);
 
+                            HasMixedValues = !capturedIsShared;
                             Value = capturedDisplayName;
                             AssetPathDisplay = capturedAssetPath;
                             IconKind = capturedIconKind;

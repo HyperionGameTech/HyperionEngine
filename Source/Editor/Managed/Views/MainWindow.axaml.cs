@@ -44,6 +44,8 @@ namespace Hyperion.Editor
         private Point _dragStartPoint;
         private bool _isDragging;
         private bool _suppressTreeSelectionHandling;
+        private bool _syncingTreeSelection;
+        private NodeViewModel? _pendingSingleSelect;
 
         // Content browser drag tracking
         private ListBox? _contentBrowserAssetList;
@@ -782,7 +784,7 @@ namespace Hyperion.Editor
                 return;
 
             var vm = DataContext as MainWindowViewModel;
-            vm?.SceneHierarchy.ReparentNode(nodeViewModel, grandparent);
+            vm?.SceneHierarchy.ReparentNodes(new[] { nodeViewModel }, grandparent);
         }
 
         private void FocusNodeRenameTextBox(NodeViewModel nodeViewModel)
@@ -862,6 +864,11 @@ namespace Hyperion.Editor
 
             _sceneTree.SelectionChanged += OnSceneTreeSelectionChanged;
 
+            if (DataContext is MainWindowViewModel mvm)
+            {
+                mvm.SceneHierarchy.PropertyChanged += OnSceneHierarchyPropertyChanged;
+            }
+
             // Lazily find the internal ScrollViewer once the template is applied.
             _sceneTree.TemplateApplied += (_, _) =>
             {
@@ -932,6 +939,18 @@ namespace Hyperion.Editor
                 _dragPressedArgs = e;
                 _dragStartPoint = e.GetPosition(sender as Visual);
                 _isDragging = false;
+
+                // Keep a multi-selection intact on press so it can be dragged as a group; a plain click
+                // collapses it to the pressed item on release instead.
+                if (_dragCandidate != null
+                    && (keyModifiers & KeyModifiers.Control) == 0
+                    && DataContext is MainWindowViewModel selectionVm
+                    && selectionVm.SceneHierarchy.SelectedNodes.Count > 1
+                    && selectionVm.SceneHierarchy.SelectedNodes.Contains(_dragCandidate))
+                {
+                    _pendingSingleSelect = _dragCandidate;
+                    e.Handled = true;
+                }
             }
         }
 
@@ -991,6 +1010,12 @@ namespace Hyperion.Editor
         {
             if (!_isDragging)
             {
+                if (_pendingSingleSelect != null && _sceneTree != null)
+                {
+                    _sceneTree.SelectedItem = _pendingSingleSelect;
+                }
+
+                _pendingSingleSelect = null;
                 _dragCandidate = null;
                 _dragPressedArgs = null;
             }
@@ -1021,8 +1046,7 @@ namespace Hyperion.Editor
 
             bool valid = dragged != null
                 && target != null
-                && target != dragged
-                && !SceneHierarchyViewModel.IsAncestorOf(dragged, target);
+                && GetDraggedNodes(dragged).All(node => node != target && !SceneHierarchyViewModel.IsAncestorOf(node, target));
 
             e.DragEffects = valid ? DragDropEffects.Move : DragDropEffects.None;
 
@@ -1074,9 +1098,20 @@ namespace Hyperion.Editor
                 return;
 
             var vm_node = DataContext as MainWindowViewModel;
-            vm_node?.SceneHierarchy.ReparentNode(dragged, target);
+            vm_node?.SceneHierarchy.ReparentNodes(GetDraggedNodes(dragged), target);
 
             e.Handled = true;
+        }
+
+        // Dragging any node of the current selection drags the whole selection.
+        private List<NodeViewModel> GetDraggedNodes(NodeViewModel dragged)
+        {
+            if (DataContext is MainWindowViewModel mvm && mvm.SceneHierarchy.SelectedNodes.Contains(dragged))
+            {
+                return mvm.SceneHierarchy.SelectedNodes.ToList();
+            }
+
+            return new List<NodeViewModel> { dragged };
         }
 
         private void EndDrag()
@@ -1086,6 +1121,7 @@ namespace Hyperion.Editor
             _isDragging = false;
             _dragCandidate = null;
             _dragPressedArgs = null;
+            _pendingSingleSelect = null;
 
             var vm = DataContext as MainWindowViewModel;
             vm?.SceneHierarchy.SetDropTarget(null);
@@ -1097,7 +1133,7 @@ namespace Hyperion.Editor
         private void OnSceneTreeSelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
             var mvm = DataContext as MainWindowViewModel;
-            if (mvm == null)
+            if (mvm == null || _syncingTreeSelection)
                 return;
 
             if (_suppressTreeSelectionHandling)
@@ -1108,11 +1144,65 @@ namespace Hyperion.Editor
 
             var added = e.AddedItems.OfType<NodeViewModel>().ToList();
             var removed = e.RemovedItems.OfType<NodeViewModel>().ToList();
+            var current = _sceneTree.SelectedItems.OfType<NodeViewModel>().ToList();
 
             // Un-suppress after SelectedItem binding fired (suppressed)
             mvm.SceneHierarchy.SetSuppressSelectionNotifications(false);
 
-            mvm.HandleTreeSelectionChanged(added, removed);
+            mvm.HandleTreeSelectionChanged(added, removed, current);
+        }
+
+        private void OnSceneHierarchyPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SceneHierarchyViewModel.SelectedNodes))
+            {
+                SyncTreeSelectionFromViewModel();
+            }
+        }
+
+        // The tree's highlight follows SceneHierarchy.SelectedNodes, which also changes from the engine
+        // side (viewport picking, undo, etc.) without the tree being clicked.
+        private void SyncTreeSelectionFromViewModel()
+        {
+            if (_sceneTree == null || DataContext is not MainWindowViewModel mvm)
+                return;
+
+            var target = mvm.SceneHierarchy.SelectedNodes;
+            var selected = _sceneTree.SelectedItems;
+
+            if (selected.Count == target.Count && target.All(selected.Contains))
+                return;
+
+            _syncingTreeSelection = true;
+            mvm.SceneHierarchy.SetSuppressSelectionNotifications(true);
+
+            try
+            {
+                if (target.Count == 1)
+                {
+                    // Goes through the single-select path, which also scrolls the item into view.
+                    _sceneTree.SelectedItem = target[0];
+                }
+                else
+                {
+                    foreach (NodeViewModel vm in target)
+                    {
+                        if (!selected.Contains(vm))
+                            selected.Add(vm);
+                    }
+
+                    for (int i = selected.Count - 1; i >= 0; i--)
+                    {
+                        if (selected[i] is not NodeViewModel vm || !target.Contains(vm))
+                            selected.RemoveAt(i);
+                    }
+                }
+            }
+            finally
+            {
+                mvm.SceneHierarchy.SetSuppressSelectionNotifications(false);
+                _syncingTreeSelection = false;
+            }
         }
 
         private void UpdateAutoScroll(Point posRelativeToTree)
@@ -1503,7 +1593,7 @@ namespace Hyperion.Editor
                     break;
 
                 case Key.A:
-                    vm.SelectAll.Execute(null);
+                    (shift ? vm.SelectNone : vm.SelectAll).Execute(null);
                     e.Handled = true;
                     break;
 
@@ -1511,6 +1601,22 @@ namespace Hyperion.Editor
                     if (!vm.IsSimulating)
                     {
                         (shift ? vm.SaveProjectAs : vm.SaveProject).Execute(null);
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.N:
+                    if (!vm.IsSimulating)
+                    {
+                        vm.NewProject.Execute(null);
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.O:
+                    if (!vm.IsSimulating)
+                    {
+                        vm.OpenProject.Execute(null);
                         e.Handled = true;
                     }
                     break;

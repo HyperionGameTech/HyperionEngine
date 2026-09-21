@@ -34,10 +34,17 @@ public:
     ~Prefab() override = default;
 
     HYP_METHOD()
+    virtual Result Rename(Name name) override;
+
+    HYP_METHOD()
     const Handle<Node>& GetRoot() const;
 
     HYP_METHOD()
     void SetRoot(const Handle<Node>& root);
+
+    /*! \brief Renames the root node to match this Prefab's name. Call after the asset registry may have
+     *  given the Prefab a unique name (e.g. NewPrefab -> NewPrefab_6) without going through Rename() */
+    void SyncRootName();
 
     HYP_METHOD()
     Handle<Node> Spawn() const;

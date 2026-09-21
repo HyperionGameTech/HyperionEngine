@@ -116,10 +116,17 @@ namespace Hyperion.Editor.ViewModels
         }
 
         private bool _isEntity;
+        /// <summary>True when the selected node is an entity - with a multi-selection, when every selected node is.</summary>
         public bool IsEntity
         {
             get => _isEntity;
-            private set => SetProperty(ref _isEntity, value);
+            private set
+            {
+                if (SetProperty(ref _isEntity, value))
+                {
+                    OnPropertyChanged(nameof(IsSingleEntity));
+                }
+            }
         }
 
         private bool _isRootNode;
@@ -224,13 +231,40 @@ namespace Hyperion.Editor.ViewModels
         }
 
         private Node? _selectedNode;
+        /// <summary>The node the inspector is built from; with a multi-selection, the primary (focused) one.</summary>
         public Node? SelectedNode
         {
             get => _selectedNode;
             private set => SetProperty(ref _selectedNode, value);
         }
 
-        private DelegateHandler? _transformUpdatedHandler;
+        // Every node shown, SelectedNode first.
+        private IReadOnlyList<Node> _selectedNodes = Array.Empty<Node>();
+        public IReadOnlyList<Node> SelectedNodes => _selectedNodes;
+
+        private bool _isMultiSelection;
+        /// <summary>True when several nodes are selected: only what they have in common is shown, and edits apply to all of them.</summary>
+        public bool IsMultiSelection
+        {
+            get => _isMultiSelection;
+            private set
+            {
+                if (SetProperty(ref _isMultiSelection, value))
+                {
+                    OnPropertyChanged(nameof(IsSingleEntity));
+                }
+            }
+        }
+
+        /// <summary>For sections that only make sense for one entity (tags, layers, swatch overrides).</summary>
+        public bool IsSingleEntity => IsEntity && !IsMultiSelection;
+
+        public string SelectionSummary => $"{_selectedNodes.Count} objects selected";
+
+        private readonly List<DelegateHandler> _transformUpdatedHandlers = new List<DelegateHandler>();
+
+        // Bumped on every rebuild so results read for a previous selection are dropped.
+        private int _refreshGeneration;
 
         private Scene? _currentScene;
         public Scene? CurrentScene
@@ -249,39 +283,94 @@ namespace Hyperion.Editor.ViewModels
 
         ~InspectorViewModel()
         {
-            _transformUpdatedHandler?.Remove();
+            UnbindTransformUpdated();
         }
 
         public void SetSelectedNode(Node? node, Scene? scene = null, bool isRootNode = false)
         {
+            SetSelection(node != null ? new[] { node } : Array.Empty<Node>(), node, scene, isRootNode);
+        }
+
+        /// <summary>
+        /// Shows several nodes at once: the properties and components they all have, with a value
+        /// shown only where they agree, and edits applied to every one of them.
+        /// </summary>
+        public void SetSelectedNodes(IReadOnlyList<Node> nodes, Node? primaryNode, Scene? scene = null)
+        {
+            SetSelection(nodes, primaryNode, scene, isRootNode: false);
+        }
+
+        /// <summary>True when the inspector already shows exactly these nodes (in any order).</summary>
+        public bool IsShowingSelection(IReadOnlyList<Node> nodes)
+        {
+            if (_selectedNodes.Count != nodes.Count)
+            {
+                return false;
+            }
+
+            HashSet<IntPtr> shown = _selectedNodes.Select(n => n.NativeAddress).ToHashSet();
+
+            return nodes.All(n => shown.Contains(n.NativeAddress));
+        }
+
+        private void SetSelection(IReadOnlyList<Node> nodes, Node? primaryNode, Scene? scene, bool isRootNode)
+        {
             Dispatcher.UIThread.VerifyAccess();
 
-            // Unbind from previous node's TransformUpdated delegate
-            _transformUpdatedHandler?.Remove();
-            _transformUpdatedHandler = null;
+            UnbindTransformUpdated();
 
-            SelectedNode = node;
-            CurrentScene = scene;
-            IsRootNode = isRootNode;
+            List<Node> ordered = nodes
+                .Where(n => n != null && n.IsValid)
+                .GroupBy(n => n.NativeAddress)
+                .Select(g => g.First())
+                .ToList();
 
-            // Bind to the new node's TransformUpdated delegate
-            if (SelectedNode != null)
+            primaryNode ??= ordered.FirstOrDefault();
+
+            if (primaryNode != null)
             {
-                _transformUpdatedHandler = SelectedNode.GetTransformUpdatedDelegate().Bind((Node updatedNode) =>
+                ordered.RemoveAll(n => n.NativeAddress == primaryNode.NativeAddress);
+                ordered.Insert(0, primaryNode);
+            }
+
+            _selectedNodes = ordered;
+            OnPropertyChanged(nameof(SelectedNodes));
+            OnPropertyChanged(nameof(SelectionSummary));
+
+            SelectedNode = primaryNode;
+            CurrentScene = scene;
+            IsRootNode = isRootNode && ordered.Count <= 1;
+            IsMultiSelection = ordered.Count > 1;
+
+            foreach (Node node in ordered.Where(n => n.IsValid))
+            {
+                _transformUpdatedHandlers.Add(node.GetTransformUpdatedDelegate().Bind((Node updatedNode) =>
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
                         RefreshTransformProperties();
                     });
-                });
+                }));
             }
 
             RefreshProperties();
         }
 
+        private void UnbindTransformUpdated()
+        {
+            foreach (DelegateHandler handler in _transformUpdatedHandlers)
+            {
+                handler.Remove();
+            }
+
+            _transformUpdatedHandlers.Clear();
+        }
+
         private void RefreshProperties()
         {
             Dispatcher.UIThread.VerifyAccess();
+
+            int refreshGeneration = ++_refreshGeneration;
 
             Properties.Clear();
             Actions.Clear();
@@ -314,25 +403,33 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            Node primaryNode = SelectedNode;
+            List<Node> peerNodes = _selectedNodes.Skip(1).Where(n => n.IsValid).ToList();
+            bool isMultiSelection = peerNodes.Count > 0;
+
             // If this is the root node, show scene properties
             if (IsRootNode && CurrentScene != null && CurrentScene.IsValid)
             {
                 RefreshSceneProperties();
             }
 
-            Class nodeClass = SelectedNode.Class;
+            Class nodeClass = primaryNode.Class;
 
+            // With a multi-selection, only properties every selected node has are shown.
             // sort by editororder attribute (if present), then by name
-            List<Property> properties = nodeClass.Properties
+            List<(Property Property, List<Property> PeerProperties)> properties = nodeClass.Properties
                 .Where(p =>
                 {
                     ClassAttribute? attrEditCondition = p.GetAttribute("editcondition");
 
-                    return EvaluateEditCondition(nodeClass, attrEditCondition, p.Name.ToString());
+                    return EvaluateEditCondition(primaryNode, nodeClass, attrEditCondition, p.Name.ToString());
                 })
-                .OrderBy(p =>
+                .Select(p => (Property: p, PeerProperties: FindPeerProperties(peerNodes, p)))
+                .Where(entry => entry.PeerProperties != null)
+                .Select(entry => (entry.Property, entry.PeerProperties!))
+                .OrderBy(entry =>
                 {
-                    ClassAttribute? attrEditOrder = p.GetAttribute("editororder");
+                    ClassAttribute? attrEditOrder = entry.Property.GetAttribute("editororder");
 
                     if (attrEditOrder != null)
                     {
@@ -341,7 +438,7 @@ namespace Hyperion.Editor.ViewModels
 
                     return int.MaxValue;
                 })
-                .ThenBy(p => p.Name.ToString())
+                .ThenBy(entry => entry.Property.Name.ToString())
                 .ToList();
 
             bool hasAddedMobility = false;
@@ -350,7 +447,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    var mobilityVm = new MobilityPropertyViewModel(SelectedNode, Class.GetClass<Node>().GetProperty("NodeFlags") ?? throw new Exception("Failed to get NodeFlags property"));
+                    Property flagsProperty = Class.GetClass<Node>().GetProperty("NodeFlags") ?? throw new Exception("Failed to get NodeFlags property");
+
+                    var mobilityVm = new MobilityPropertyViewModel(primaryNode, flagsProperty);
+                    mobilityVm.AttachPeers(peerNodes.Select(peer => PropertyTarget.ForObject(peer, flagsProperty)).ToList());
                     mobilityVm.RefreshValue();
 
                     Properties.Add(mobilityVm);
@@ -363,7 +463,7 @@ namespace Hyperion.Editor.ViewModels
                 }
             };
 
-            foreach (Property property in properties)
+            foreach ((Property property, List<Property> peerProperties) in properties)
             {
                 try
                 {
@@ -393,22 +493,27 @@ namespace Hyperion.Editor.ViewModels
                         isReadOnly = true;
                     }
 
-                    Action? postWriteCallback = null;
+                    InspectorPropertyViewModelBase vm = InspectorViewModelFactory.Create(
+                        primaryNode, property, isReadOnly, 0, null, CreateNodePostWrite(primaryNode, property), OnPropertyValueChanged,
+                        initialize: !isMultiSelection);
 
-                    if (property.Name == "LocalBounds" && SelectedNode is Entity localBoundsEntity)
+                    if (isMultiSelection)
                     {
-                        postWriteCallback = () =>
+                        List<PropertyTarget> peers = peerNodes
+                            .Select((peer, i) => PropertyTarget.ForObject(peer, peerProperties[i], CreateNodePostWrite(peer, peerProperties[i])))
+                            .ToList();
+
+                        if (!vm.AttachPeers(peers))
                         {
-                            EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
-                                new Name("EditorCommandSyncPhysicsShapeToLocalBounds"),
-                                localBoundsEntity.NativeAddress.ToString());
-                        };
+                            continue;
+                        }
+
+                        vm.RefreshValue();
                     }
 
-                    Properties.Add(InspectorViewModelFactory.Create(
-                        SelectedNode, property, isReadOnly, 0, null, postWriteCallback, OnPropertyValueChanged));
+                    Properties.Add(vm);
 
-                    if (Properties[Properties.Count - 1] is FlagsPropertyViewModel flagsVm)
+                    if (vm is FlagsPropertyViewModel flagsVm)
                     {
                         flagsVm.ValueCommitted += RefreshActions;
 
@@ -430,30 +535,43 @@ namespace Hyperion.Editor.ViewModels
                 addMobility();
             }
 
-            // collect actions (methods with editoraction attribute)
-            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode, OnPropertyValueChanged))
+            // collect actions (methods with editoraction attribute) - they run on one node, so not for a multi-selection
+            if (!isMultiSelection)
             {
-                Actions.Add(actionVm);
-            }
+                foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(primaryNode, OnPropertyValueChanged))
+                {
+                    Actions.Add(actionVm);
+                }
 
-            Logger.Log(LogLevel.Debug, $"Inspector found {Actions.Count} actions for node '{SelectedNode.Name}'");
+                Logger.Log(LogLevel.Debug, $"Inspector found {Actions.Count} actions for node '{primaryNode.Name}'");
+            }
 
             HasActions = Actions.Count > 0;
 
-            // collect components
-            if (SelectedNode is Entity entity)
+            // collect components - with a multi-selection, the ones every selected entity has
+            if (primaryNode is Entity entity && peerNodes.All(n => n is Entity))
             {
                 IsEntity = true;
 
-                AttachedScript = new AttachedScriptViewModel(entity);
-                HasAttachedScript = true;
-                EntityTags = new EntityTagsViewModel(entity);
-                EntityLayers = new EntityLayersViewModel(entity);
+                List<Entity> peerEntities = peerNodes.Cast<Entity>().ToList();
 
-                SwatchOverrideEditContext.CurrentEntity = entity;
+                if (!isMultiSelection)
+                {
+                    AttachedScript = new AttachedScriptViewModel(entity);
+                    HasAttachedScript = true;
+                    EntityTags = new EntityTagsViewModel(entity);
+                    EntityLayers = new EntityLayersViewModel(entity);
 
+                    SwatchOverrideEditContext.CurrentEntity = entity;
+                }
+
+                // Also puts the active swatch back in the edit context, which multi-selection edits are routed by too.
                 _ = RefreshActiveSwatchInfoAsync();
-                _ = RefreshOverrideSignifiersAsync();
+
+                if (!isMultiSelection)
+                {
+                    _ = RefreshOverrideSignifiersAsync();
+                }
 
                 _ = EngineManager.PostToSimThread(() =>
                 {
@@ -467,8 +585,22 @@ namespace Hyperion.Editor.ViewModels
 
                     List<TypeId> componentTypeIds = mgr.GetComponentTypeIds(entity).ToList();
 
+                    foreach (Entity peerEntity in peerEntities)
+                    {
+                        EntityManager? peerMgr = peerEntity.EntityManager;
+                        HashSet<TypeId> peerTypeIds = peerMgr != null ? peerMgr.GetComponentTypeIds(peerEntity).ToHashSet() : new HashSet<TypeId>();
+
+                        componentTypeIds.RemoveAll(typeId => !peerTypeIds.Contains(typeId));
+                    }
+
                     Dispatcher.UIThread.Post(() =>
                     {
+                        // The selection changed while the component list was being read.
+                        if (refreshGeneration != _refreshGeneration)
+                        {
+                            return;
+                        }
+
                         Components.Clear();
 
                         foreach (TypeId typeId in componentTypeIds)
@@ -485,6 +617,8 @@ namespace Hyperion.Editor.ViewModels
 
                             if (componentVm != null && componentVm.IsEditorVisible)
                             {
+                                componentVm.PeerEntities = peerEntities;
+
                                 Components.Add(componentVm);
                                 componentVm.PopulateProperties();
                             }
@@ -492,7 +626,11 @@ namespace Hyperion.Editor.ViewModels
 
                         HasComponents = Components.Count > 0;
 
-                        UpdateAddableComponents(componentTypeIds);
+                        // Adding a component is offered for a single entity only.
+                        if (!isMultiSelection)
+                        {
+                            UpdateAddableComponents(componentTypeIds);
+                        }
                     });
                 });
             }
@@ -506,11 +644,52 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        // The matching property of each peer node, or null when any of them lacks it (or its editcondition fails).
+        private List<Property>? FindPeerProperties(List<Node> peerNodes, Property property)
+        {
+            List<Property> peerProperties = new List<Property>(peerNodes.Count);
+
+            foreach (Node peer in peerNodes)
+            {
+                Class peerClass = peer.Class;
+                Property? peerProperty = peerClass.GetProperty(property.Name);
+
+                if (peerProperty == null || peerProperty.Value.TypeInfo.Name != property.TypeInfo.Name)
+                {
+                    return null;
+                }
+
+                if (!EvaluateEditCondition(peer, peerClass, peerProperty.Value.GetAttribute("editcondition"), property.Name.ToString()))
+                {
+                    return null;
+                }
+
+                peerProperties.Add(peerProperty.Value);
+            }
+
+            return peerProperties;
+        }
+
+        private static Action? CreateNodePostWrite(Node node, Property property)
+        {
+            if (property.Name == "LocalBounds" && node is Entity localBoundsEntity)
+            {
+                return () =>
+                {
+                    EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
+                        new Name("EditorCommandSyncPhysicsShapeToLocalBounds"),
+                        localBoundsEntity.NativeAddress.ToString());
+                };
+            }
+
+            return null;
+        }
+
         private void RefreshActions()
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            if (SelectedNode == null || !SelectedNode.IsValid)
+            if (SelectedNode == null || !SelectedNode.IsValid || IsMultiSelection)
                 return;
 
             Actions.Clear();
@@ -610,7 +789,8 @@ namespace Hyperion.Editor.ViewModels
         /// </summary>
         public async Task RefreshOverrideSignifiersAsync()
         {
-            if (SelectedNode is not Entity entity || !entity.IsValid)
+            // Override markers describe one entity's swatch overrides.
+            if (IsMultiSelection || SelectedNode is not Entity entity || !entity.IsValid)
             {
                 return;
             }
@@ -1082,7 +1262,7 @@ namespace Hyperion.Editor.ViewModels
 
         private bool CanAddComponent(object? parameter)
         {
-            return parameter is AddComponentOptionViewModel option && option.IsEnabled && SelectedNode is Entity;
+            return parameter is AddComponentOptionViewModel option && option.IsEnabled && SelectedNode is Entity && !IsMultiSelection;
         }
 
         private async Task AddComponentAsync(object? parameter)
@@ -1134,7 +1314,7 @@ namespace Hyperion.Editor.ViewModels
 
         private bool CanRemoveComponent(object? parameter)
         {
-            return parameter is InspectorComponentViewModelBase && SelectedNode is Entity;
+            return parameter is InspectorComponentViewModelBase && SelectedNode is Entity && !IsMultiSelection;
         }
 
         private void RemoveComponent(object? parameter)
@@ -1181,9 +1361,9 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private bool EvaluateEditCondition(Class nodeClass, ClassAttribute? attrEditCondition, string memberName)
+        private bool EvaluateEditCondition(Node node, Class nodeClass, ClassAttribute? attrEditCondition, string memberName)
         {
-            if (SelectedNode == null || !SelectedNode.IsValid)
+            if (!node.IsValid)
             {
                 return false;
             }
@@ -1200,7 +1380,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (conditionMethod != null)
                 {
-                    using BoxedValue resultData = conditionMethod.Value.Invoke(SelectedNode);
+                    using BoxedValue resultData = conditionMethod.Value.Invoke(node);
                     object? result = resultData.GetValue();
 
                     if (result is bool boolResult)

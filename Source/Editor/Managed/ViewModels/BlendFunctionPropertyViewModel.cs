@@ -67,7 +67,7 @@ namespace Hyperion.Editor.ViewModels
         private bool _modeInitialized;
 
         public override bool ShowInlineLabel => false;
-
+        public override bool SupportsMultipleTargets => false;
         public override bool ShowsDescriptionInOwnTemplate => true;
 
         private bool _isExpanded = true;

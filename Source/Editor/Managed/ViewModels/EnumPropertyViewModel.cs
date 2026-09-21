@@ -63,11 +63,11 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 object? rawValue;
+                bool isShared;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    rawValue = boxed.GetValue();
+                    isShared = TryReadSharedValue(out rawValue);
                 }
                 catch (Exception ex)
                 {
@@ -84,8 +84,9 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
-                            Value = FormatValue(rawValue);
-                            SelectedEnumValue = MatchEntryValue(rawValue);
+                            Value = isShared ? FormatValue(rawValue) : string.Empty;
+                            HasMixedValues = !isShared;
+                            SelectedEnumValue = isShared ? MatchEntryValue(rawValue) : null;
                         });
                     }
                     finally

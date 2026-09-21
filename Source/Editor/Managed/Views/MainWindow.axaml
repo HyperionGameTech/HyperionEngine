@@ -12,7 +12,7 @@
     xmlns:views="clr-namespace:Hyperion.Editor.Views;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
-    Title="Hyperion Editor"
+    Title="{Binding Title}"
     Icon="/Assets/Branding/hyperion-icon.ico"
     d:DesignHeight="720"
     d:DesignWidth="1280"
@@ -1103,10 +1103,6 @@
                                                             Background="Transparent"
                                                             BorderThickness="0">
                                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                <controls:Codicon
-                                                                    Foreground="{StaticResource Brush.TextMuted}"
-                                                                    Kind="ListTree"
-                                                                    Size="14" />
                                                                 <TextBlock
                                                                     VerticalAlignment="Center"
                                                                     Classes="header"
@@ -1142,7 +1138,7 @@
                                                     x:Name="SceneHierarchyTreeView"
                                                     Grid.Row="1"
                                                     ItemsSource="{Binding SceneHierarchy.RootNodes}"
-                                                    SelectedItem="{Binding SceneHierarchy.SelectedNode}"
+                                                    SelectedItem="{Binding SceneHierarchy.SelectedNode, Mode=OneWayToSource}"
                                                     SelectionMode="Multiple">
                                                     <TreeView.ItemContainerTheme>
                                                         <ControlTheme
@@ -1303,15 +1299,27 @@
                                                                         <MenuItem
                                                                             Command="{Binding SaveAsPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding MakePrefabHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="!IsOutsideSelection" />
+                                                                                    <Binding Path="!IsPrefabInstance" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
+                                                                        </MenuItem>
                                                                         <!--  Right-clicking outside the selection acts on just that node  -->
                                                                         <MenuItem
                                                                             Command="{Binding SaveAsPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
                                                                             Header="Save as Prefab..."
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding IsOutsideSelection}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="IsOutsideSelection" />
+                                                                                    <Binding Path="!IsPrefabInstance" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
+                                                                        </MenuItem>
                                                                         <!--  Always acts on the current selection; the specific right-clicked node isn't threaded through this dynamic list  -->
                                                                         <MenuItem
                                                                             Header="Add to Prefab"
@@ -1371,6 +1379,13 @@
                                         <ContentControl DataContext="{Binding Source={x:Static vm:MainWindowViewModel.Instance}}">
                                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                                 <StackPanel Spacing="8">
+                                                    <!--  Multi-selection: values shown only where every selected object agrees; edits apply to all  -->
+                                                    <TextBlock
+                                                        Margin="12,8,12,0"
+                                                        FontWeight="SemiBold"
+                                                        IsVisible="{Binding Inspector.IsMultiSelection}"
+                                                        Text="{Binding Inspector.SelectionSummary}" />
+
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
@@ -1452,6 +1467,7 @@
                                                                                     Padding="4,2"
                                                                                     Command="{Binding Inspector.RemoveComponentCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     CommandParameter="{Binding}"
+                                                                                    IsVisible="{Binding !Inspector.IsMultiSelection, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     ToolTip.Tip="Remove component">
                                                                                     <controls:Codicon Kind="Trash" Size="14" />
                                                                                 </Button>
@@ -1484,7 +1500,7 @@
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
-                                                        IsVisible="{Binding IsEntity}"
+                                                        IsVisible="{Binding IsSingleEntity}"
                                                         RowDefinitions="Auto, Auto, Auto">
 
                                                         <Border Grid.Row="0" Classes="panel-header">
@@ -1572,7 +1588,7 @@
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
-                                                        IsVisible="{Binding IsEntity}"
+                                                        IsVisible="{Binding IsSingleEntity}"
                                                         RowDefinitions="Auto, Auto, Auto">
 
                                                         <Border Grid.Row="0" Classes="panel-header">
@@ -1858,7 +1874,7 @@
                                                     <Grid
                                                         Margin="0"
                                                         DataContext="{Binding Inspector}"
-                                                        IsVisible="{Binding IsEntity}"
+                                                        IsVisible="{Binding IsSingleEntity}"
                                                         RowDefinitions="Auto, Auto">
                                                         <Border Grid.Row="0" Classes="panel-header">
                                                             <Grid ColumnDefinitions="*,Auto">
