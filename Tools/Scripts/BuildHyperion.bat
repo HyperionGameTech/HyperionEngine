@@ -9,6 +9,8 @@ set "HYP_REGENERATE=0"
 set "HYP_NOWAIT=0"
 set "HYP_SHIPPING=0"
 set "HYP_BUILD_TYPE=Release"
+set "HYP_ARM64=0"
+set "HYP_BACKEND="
 
 :PARSE_ARGS
 IF "%~1"=="" GOTO END_PARSE_ARGS
@@ -20,6 +22,9 @@ IF /I "%~1"=="android" set "HYP_ANDROID=1"
 IF /I "%~1"=="clang" set "HYP_CLANG=1"
 IF /I "%~1"=="ninja" set "HYP_NINJA=1"
 IF /I "%~1"=="mingw" set "HYP_MINGW=1"
+IF /I "%~1"=="arm64" set "HYP_ARM64=1"
+IF /I "%~1"=="dx12" set "HYP_BACKEND=DX12"
+IF /I "%~1"=="vulkan" set "HYP_BACKEND=VULKAN"
 IF /I "%~1"=="regenerate" set "HYP_REGENERATE=1"
 IF /I "%~1"=="nowait" set "HYP_NOWAIT=1"
 SHIFT
@@ -45,6 +50,9 @@ if "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFI
 if "%HYP_ANDROID%"=="1" (
     if not exist Build\Android\%HYP_BUILD_DIR% mkdir Build\Android\%HYP_BUILD_DIR%
     pushd Build\Android\%HYP_BUILD_DIR%
+) else if "%HYP_ARM64%"=="1" (
+    if not exist Build\Windows-ARM64\%HYP_BUILD_DIR% mkdir Build\Windows-ARM64\%HYP_BUILD_DIR%
+    pushd Build\Windows-ARM64\%HYP_BUILD_DIR%
 ) else if "%HYP_MINGW%"=="1" (
     if not exist Build\Windows-MinGW\%HYP_BUILD_DIR% mkdir Build\Windows-MinGW\%HYP_BUILD_DIR%
     pushd Build\Windows-MinGW\%HYP_BUILD_DIR%
@@ -75,6 +83,7 @@ set "HYP_ROOT_DIR=%HYP_ROOT_DIR:\=/%"
 
 
 if "%HYP_ANDROID%"=="1" GOTO CMAKE_ANDROID
+if "%HYP_ARM64%"=="1" GOTO CMAKE_WINDOWS_ARM64
 if "%HYP_MINGW%"=="1" GOTO CMAKE_WINDOWS_MINGW
 if "%HYP_NINJA%"=="1" GOTO CMAKE_WINDOWS_NINJA
 if "%HYP_CLANG%"=="1" GOTO CMAKE_WINDOWS_CLANG
@@ -140,6 +149,51 @@ if errorlevel 1 (
     exit /b 1
 )
 
+
+GOTO SKIP_CMAKE_GENERATION
+:CMAKE_WINDOWS_ARM64
+IF NOT DEFINED VCPKG_ROOT (
+    echo VCPKG_ROOT environment variable is not set. Please set it to the path of your vcpkg installation.
+    exit /b 1
+)
+
+REM Locate the Visual Studio installation (needs the VC toolchain with the ClangCL toolset)
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+set "VS_INSTALL_DIR="
+if exist "%VSWHERE%" (
+    for /f "usebackq delims=" %%I in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VS_INSTALL_DIR=%%I"
+)
+
+if not defined VS_INSTALL_DIR (
+    echo ERROR: Could not locate a Visual Studio installation via vswhere. Install the "Desktop development with C++" workload.
+    exit /b 1
+)
+
+REM Pick the generator name from the VS version folder (2022 => VS 17, 2026 => VS 18)
+for %%V in ("%VS_INSTALL_DIR%") do set "HYP_VS_VERSION=%%~nxV"
+set "HYP_VS_GENERATOR=Visual Studio 17 2022"
+if "%HYP_VS_VERSION%"=="2026" set "HYP_VS_GENERATOR=Visual Studio 18 2026"
+
+REM Ensure the ClangCL toolset is available for the ARM64 host
+set "HYP_CLANGCL_HOST=%VS_INSTALL_DIR%\VC\Tools\Llvm\ARM64\bin\clang-cl.exe"
+set "HYP_CLANGCL_CROSS=%VS_INSTALL_DIR%\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+if not exist "%HYP_CLANGCL_HOST%" if not exist "%HYP_CLANGCL_CROSS%" (
+    echo ERROR: ClangCL toolset not found in Visual Studio. Install the "C++ Clang tools for Windows" component.
+    exit /b 1
+)
+
+echo Using generator: %HYP_VS_GENERATOR% -A ARM64 -T ClangCL
+
+REM ARM64 defaults to the DX12 rendering backend unless "vulkan" is passed
+set "HYP_BACKEND_CMAKE=-DENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND=1"
+if "%HYP_BACKEND%"=="VULKAN" set "HYP_BACKEND_CMAKE="
+
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=arm64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "%HYP_VS_GENERATOR%" -A ARM64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_OUTPUT_SUFFIX_ARG% %HYP_BACKEND_CMAKE%
+if errorlevel 1 (
+    echo CMake generation failed. Aborting build.
+    popd
+    exit /b 1
+)
 
 GOTO SKIP_CMAKE_GENERATION
 :CMAKE_WINDOWS_MINGW

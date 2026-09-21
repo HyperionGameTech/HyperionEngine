@@ -11,6 +11,8 @@
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 #include <immintrin.h>
+#elif defined(_M_ARM64) || defined(_M_ARM64EC)
+#include <intrin.h>
 #endif
 
 #ifdef _WIN32
@@ -123,8 +125,12 @@ void FrameLimiter::Wait()
     {
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
         _mm_pause();
-#elif defined(__aarch64__) || defined(_M_ARM64)
+#elif defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
+    #if defined(__clang__)
         __asm__ volatile("yield");
+    #else
+        __yield();
+    #endif
 #endif
     }
 

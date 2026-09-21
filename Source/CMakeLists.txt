@@ -37,6 +37,24 @@ endif()
 
 message(STATUS "Platform name: ${HYP_PLATFORM_NAME}")
 
+set(HYP_ARCH "x64")
+set(HYP_ARCH_DIRECTORY_SUFFIX "")
+if(DEFINED CMAKE_VS_PLATFORM_NAME AND CMAKE_VS_PLATFORM_NAME MATCHES "ARM64")
+  set(HYP_ARCH "ARM64")
+elseif(DEFINED CMAKE_GENERATOR_PLATFORM AND CMAKE_GENERATOR_PLATFORM MATCHES "ARM64")
+  set(HYP_ARCH "ARM64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(ARM64|aarch64|arm64)" AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64")
+  set(HYP_ARCH "ARM64")
+elseif(CMAKE_CXX_COMPILER_ARCHITECTURE_ID MATCHES "ARM64" AND NOT CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "")
+  set(HYP_ARCH "ARM64")
+endif()
+
+if(HYP_ARCH STREQUAL "ARM64")
+  set(HYP_ARCH_DIRECTORY_SUFFIX "-ARM64")
+  add_definitions(-DHYP_ARCH_ARM64=1)
+  message(STATUS "Target architecture: ARM64")
+endif()
+
 # use params passed in
 if(NOT DEFINED HYP_OUTPUT_DIRECTORY_SUFFIX)
   set(HYP_OUTPUT_DIRECTORY_SUFFIX ${CMAKE_BUILD_TYPE})
@@ -46,15 +64,15 @@ if(NOT DEFINED HYP_LIBRARY_OUTPUT_DIRECTORY)
   set(HYP_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../Binaries)
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY ${HYP_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${CMAKE_BUILD_TYPE})
+set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY ${HYP_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}/${CMAKE_BUILD_TYPE})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_RELEASE ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_DEBUG ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
@@ -250,10 +268,19 @@ if(HYP_MSVC)
   # C4715: not all control paths return a value -- treat as an error
   add_compile_options(/we4715)
 
+  # /arch:AVX2 is x86-specific -- MSVC rejects it when targeting ARM64
   if (HYP_SHIPPING)
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
+    if(HYP_ARCH STREQUAL "ARM64")
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /fp:fast")
+    else()
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
+    endif()
   else()
-    set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /d2Zi+ /MP4 /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
+    if(HYP_ARCH STREQUAL "ARM64")
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP4 /constexpr:depth1024 /bigobj /fp:fast")
+    else()
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /d2Zi+ /MP4 /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
+    endif()
 
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /INCREMENTAL /OPT:REF /OPT:ICF")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
@@ -555,9 +582,33 @@ if (HYP_STRATA)
         set(STRATA_ENABLE_TCC OFF CACHE BOOL "Build strata with TCC backend")
         set(STRATA_ENABLE_LLVM ON CACHE BOOL "Build strata with LLVM backend")
 
+        # Locate the LLVM-C distribution for the JIT backend.
+        # stratac links against LLVM-C.lib and loads LLVM-C.dll at runtime
+        # (see LLVM_C_DIR in the stratac CMakeLists.txt). The architecture of
+        # LLVM-C.dll must match the target (ARM64 build needs an ARM64 LLVM-C.dll).
+        if(WIN32 AND NOT DEFINED LLVM_C_DIR)
+          if(DEFINED ENV{LLVM_DIR} AND EXISTS "$ENV{LLVM_DIR}/lib/LLVM-C.lib")
+            set(LLVM_C_DIR "$ENV{LLVM_DIR}" CACHE PATH "Directory of the LLVM distribution (lib/LLVM-C.lib, bin/LLVM-C.dll)")
+          elseif(EXISTS "C:/Program Files/LLVM/lib/LLVM-C.lib")
+            set(LLVM_C_DIR "C:/Program Files/LLVM" CACHE PATH "Directory of the LLVM distribution (lib/LLVM-C.lib, bin/LLVM-C.dll)")
+          endif()
+        endif()
+
         add_subdirectory(${STRATA_SUBMODULE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/stratac EXCLUDE_FROM_ALL)
 
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
+
+        # Copy the LLVM-C.dll runtime dependency next to strata.dll so the
+        # JIT backend can load it at runtime. The architecture of LLVM-C.dll
+        # must match the target (an ARM64 build needs an ARM64 LLVM-C.dll).
+        if(TARGET strata AND WIN32 AND DEFINED STRATA_LLVM_DLL)
+          if(EXISTS "${STRATA_LLVM_DLL}")
+            file(COPY "${STRATA_LLVM_DLL}" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+            message(STATUS "Strata JIT: LLVM-C runtime found at ${STRATA_LLVM_DLL}")
+          else()
+            message(WARNING "Strata JIT: LLVM-C.dll not found at ${STRATA_LLVM_DLL}, JIT scripts will fail to load at runtime")
+          endif()
+        endif()
 
         # add include.
         # include_directories("${SUBMODULES_DIR}/stratac/include/strata")

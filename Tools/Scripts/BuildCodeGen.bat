@@ -10,6 +10,11 @@ if "%HYP_MINGW%"=="1" (
     set "HYP_CODEGEN_CMAKE_GEN_ARGS=-G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
 )
 
+REM On ARM64 devices (Windows on ARM), the Visual Studio generator defaults
+REM to the x64 platform which would build the codegen tool for emulated x64.
+REM Force the native ARM64 platform when running natively on an ARM64 host.
+if /I "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "HYP_CODEGEN_CMAKE_GEN_ARGS=%HYP_CODEGEN_CMAKE_GEN_ARGS% -A ARM64"
+
 choice /C YN /T 3 /D N /M "Regenerate CMake? (will continue without regenerating in 3s)"
 if %errorlevel%==1 (
     cmake ..\..\Tools\CodeGen %HYP_CODEGEN_CMAKE_GEN_ARGS%

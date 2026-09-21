@@ -79,7 +79,7 @@
 #define HYP_FILESYSTEM_SEPARATOR "/"
 #endif
 
-#if defined(__arm__) || defined(__aarch64__) || defined(__ARM_ARCH)
+#if defined(__arm__) || defined(__aarch64__) || defined(__ARM_ARCH) || defined(_M_ARM64) || defined(_M_ARM64EC)
 
 #if !defined(HYP_ARM) || !HYP_ARM
 #ifdef HYP_ARM
@@ -327,6 +327,8 @@
 #elif defined(HYP_CLANG_OR_GCC)
 #if defined(__x86_64__) || defined(__i386__)
 #define HYP_WAIT_IDLE() asm volatile("pause" ::: "memory")
+#elif defined(__aarch64__)
+#define HYP_WAIT_IDLE() asm volatile("yield" ::: "memory")
 #else
 #define HYP_WAIT_IDLE() asm volatile("nop" ::: "memory")
 #endif
