@@ -11,6 +11,8 @@
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Reflection/BoxedValue.hpp>
 
+#include <Core/DataProcessing/HMF/HMF.hpp>
+
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Set.hpp>
 
@@ -76,6 +78,12 @@ public:
     HYP_FORCE_INLINE EntityManager* GetEntityManager() const
     {
         return m_entityManager;
+    }
+
+    /*! \brief Does this entity hold saved components whose class isn't registered (yet)? */
+    HYP_FORCE_INLINE bool HasUnresolvedComponents() const
+    {
+        return m_unresolvedComponents.Any();
     }
 
     ///Component/Tags
@@ -246,9 +254,18 @@ private:
     HYP_METHOD(Property = "Layers", NoScriptBindings, LoadOrder = 1002)
     void DeserializeLayers(const Array<Name>& layerNames);
 
+    /*! \brief Re-adds stored unresolved components whose class has since been registered.
+     *  Must be called on the EntityManager's owner thread while it is unlocked.
+     *  \return True if unresolved components remain. */
+    bool ResolveUnresolvedComponents();
+
     ///Transient properties
 
     EntityManager* m_entityManager;
+
+    // Components read from disk whose class wasn't registered yet (eg a script that hasn't loaded); kept so they are written
+    // back unchanged, and re-added once the class is registered
+    Array<HMF::UnresolvedObject> m_unresolvedComponents;
 
     int m_renderProxyVersion;
 

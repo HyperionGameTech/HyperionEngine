@@ -1272,6 +1272,21 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
 
         if (!actualClass)
         {
+            // Generic slots (eg an entity's component list) keep the object as text, so data for a class that isn't
+            // registered yet, like a component from a script that hasn't loaded, survives a load/save round trip
+            if (typeInfo.id == TypeId::ForType<BoxedValue>())
+            {
+                Warning(MSG_CLASS_NOT_FOUND, classToken.GetLocation(), runtimeClassName);
+
+                UnresolvedObject unresolvedObject;
+                unresolvedObject.className = runtimeClassName;
+                unresolvedObject.source = CaptureObjectSource(runtimeClassName);
+
+                out = BoxedValue(std::move(unresolvedObject));
+
+                return true;
+            }
+
             Error(MSG_CLASS_NOT_FOUND, classToken.GetLocation(), runtimeClassName);
 
             return false;
@@ -1644,6 +1659,107 @@ void Parser::SkipValue()
 
         consumedAny = true;
     }
+}
+
+static void AppendQuotedString(String& outSource, const String& value)
+{
+    outSource += "\"";
+
+    for (size_t i = 0; i < value.Size(); i++)
+    {
+        const char c = value[i];
+
+        switch (c)
+        {
+        case '"':
+            outSource += "\\\"";
+            break;
+        case '\\':
+            outSource += "\\\\";
+            break;
+        case '\n':
+            outSource += "\\n";
+            break;
+        case '\t':
+            outSource += "\\t";
+            break;
+        case '\r':
+            outSource += "\\r";
+            break;
+        case '\b':
+            outSource += "\\b";
+            break;
+        case '\f':
+            outSource += "\\f";
+            break;
+        default:
+            outSource += c;
+            break;
+        }
+    }
+
+    outSource += "\"";
+}
+
+static void AppendTokenSource(String& outSource, const Token& token)
+{
+    outSource += " ";
+
+    switch (token.GetTokenClass())
+    {
+    case TK_STRING:
+        AppendQuotedString(outSource, token.GetValue());
+        break;
+    case TK_AT_STRING:
+        outSource += "@";
+        AppendQuotedString(outSource, token.GetValue());
+        break;
+    case TK_INTEGER:
+    case TK_FLOAT:
+        outSource += token.GetValue();
+
+        // numeric suffix (u, f, i)
+        if (token.GetFlags()[0] != '\0')
+        {
+            outSource += token.GetFlags()[0];
+        }
+
+        break;
+    default:
+        outSource += token.GetValue();
+        break;
+    }
+}
+
+String Parser::CaptureObjectSource(const String& className)
+{
+    String source = className;
+
+    // optional object name before the body
+    if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
+    {
+        AppendTokenSource(source, Next());
+    }
+
+    int depth = 0;
+
+    while (Peek().GetTokenClass() != TK_EMPTY)
+    {
+        const Token token = Next();
+
+        AppendTokenSource(source, token);
+
+        if (token.GetTokenClass() == TK_OPEN_BRACE)
+        {
+            depth++;
+        }
+        else if (token.GetTokenClass() == TK_CLOSE_BRACE && --depth <= 0)
+        {
+            break;
+        }
+    }
+
+    return source;
 }
 
 void Parser::SkipBracedBlock()

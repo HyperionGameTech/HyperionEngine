@@ -70,6 +70,9 @@ private:
     void SkipBracedBlock();
     void SkipBracketedBlock();
 
+    /*! \brief Consumes the rest of an object value (after its class name) and renders it back to HMF source text. */
+    String CaptureObjectSource(const String& className);
+
     bool ResolveEnumName(const Class* enumClass, const String& name, BoxedValue& outValue);
 
     bool Match(TokenClass tokenClass);

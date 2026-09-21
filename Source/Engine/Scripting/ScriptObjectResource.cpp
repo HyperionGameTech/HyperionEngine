@@ -100,7 +100,10 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotn
                 data.objectPtr = managedClass->NewObject(m_ptr->InstanceClass(), m_ptr);
             }
 
-            Assert(data.objectPtr != nullptr);
+            if (!data.objectPtr)
+            {
+                HYP_LOG(Object, Error, "Failed to create managed object for Class {}, it will have no .NET counterpart", m_ptr->InstanceClass()->GetName());
+            }
         }
     }
 }
@@ -261,7 +264,7 @@ void ScriptObjectResource::Initialize()
 
             if (!newManagedObject)
             {
-                HYP_FAIL("Failed to recreate managed object for Class %s", cls->GetName().LookupString());
+                HYP_LOG(Object, Error, "Failed to recreate managed object for Class {}, it will have no .NET counterpart", cls->GetName());
             }
 
             delete dotNetData->objectPtr;

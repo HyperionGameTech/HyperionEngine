@@ -37,6 +37,11 @@ Optional<ReturnType> TryInvokeManagedOverride(const ObjectBase* obj, const char*
             TResourceGuard<ScriptObjectResource> resourceGuard(*managedObjectResource);
             dotnet::ManagedObject* managedObject = managedObjectResource->GetManagedObject();
 
+            if (!managedObject || !managedObject->IsValid())
+            {
+                return {};
+            }
+
             return managedObject->InvokeMethod<ReturnType>(methodPtr, std::forward<Args>(args)...);
         }
     }
@@ -57,6 +62,11 @@ bool TryInvokeManagedOverrideVoid(const ObjectBase* obj, const char* methodName,
         {
             TResourceGuard<ScriptObjectResource> resourceGuard(*managedObjectResource);
             dotnet::ManagedObject* managedObject = managedObjectResource->GetManagedObject();
+
+            if (!managedObject || !managedObject->IsValid())
+            {
+                return false;
+            }
 
             managedObject->InvokeMethod<void>(methodPtr, std::forward<Args>(args)...);
 

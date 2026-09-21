@@ -8,11 +8,14 @@ using System.Diagnostics;
 
 namespace Hyperion
 {
-    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
-    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
-    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    [return: MarshalAs(UnmanagedType.I1)]
+    public delegate bool InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    [return: MarshalAs(UnmanagedType.I1)]
+    public delegate bool InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    [return: MarshalAs(UnmanagedType.I1)]
+    public delegate bool InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
-    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
+    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, [MarshalAs(UnmanagedType.I1)] bool weak);
     public delegate bool SetKeepAliveDelegate(IntPtr objectReferencePtr, bool keepAlive);
     public delegate void TriggerGCDelegate();
     public delegate bool GetAssemblyPointerDelegate(IntPtr assemblyObjectReferencePtr, IntPtr outAssemblyPtr);
@@ -603,24 +606,20 @@ namespace Hyperion
                                 throw new InvalidOperationException("Failed to get object reference for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType?.Name);
                         }
 
-                        if (methodInfo.ReturnType == typeof(void))
-                        {
-                            methodInfo.Invoke(thisObject, parameters);
-                            return;
-                        }
+                        object? returnValue = methodInfo.Invoke(thisObject, BindingFlags.DoNotWrapExceptions, null, parameters, null);
 
-                        object? returnValue = methodInfo.Invoke(thisObject, parameters);
-
-                        if (retPtr != IntPtr.Zero)
+                        if (methodInfo.ReturnType != typeof(void) && retPtr != IntPtr.Zero)
                         {
                             ((BoxedValueInternal*)retPtr)->SetValue(returnValue);
                         }
+
+                        return true;
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogLevel.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType?.Name, ex);
+                        Logger.Log(LogLevel.Error, "Exception thrown invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType?.Name, ex);
 
-                        throw;
+                        return false;
                     }
                 };
 
@@ -649,46 +648,53 @@ namespace Hyperion
             // Add new object, free object delegates
             managedClassDesc.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr pClass, IntPtr nativeAddress, IntPtr pCtx, IntPtr pCallback) =>
             {
-                // Allocate the object
-                object obj = RuntimeHelpers.GetUninitializedObject(type);
-                Debug.Assert(obj != null);
+                object? obj = null;
 
-                // Call the constructor
-                ConstructorInfo? constructorInfo;
-                object[]? parameters = null;
+                FieldInfo? classPtrField = null;
+                FieldInfo? nativeAddressField = null;
 
-                if (pClass != IntPtr.Zero)
-                {
-                    if (nativeAddress == IntPtr.Zero)
-                        throw new ArgumentNullException(nameof(nativeAddress));
-
-                    Type? objType = obj.GetType();
-
-                    if (objType == null)
-                        throw new InvalidOperationException("Failed to get object type for object of type: " + type.Name);
-
-                    FieldInfo? classPtrField = objType.GetField(ClassPtrFieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
-                    FieldInfo? nativeAddressField = objType.GetField(NativeAddressFieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
-
-                    if (classPtrField == null || nativeAddressField == null)
-                        throw new InvalidOperationException("Could not find classPtr or nativeAddress field on class " + type.Name);
-
-                    classPtrField.SetValue(obj, pClass);
-                    nativeAddressField.SetValue(obj, nativeAddress);
-                }
-
-                constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
-
-                if (constructorInfo == null)
-                    throw new InvalidOperationException("Failed to find empty constructor for type: " + type.Name);
-
-                constructorInfo.Invoke(obj, parameters);
-
-                GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
+                GCHandle? gcHandleWeak = null;
                 GCHandle? gcHandleStrong = null;
 
                 try
                 {
+                    // Allocate the object
+                    obj = RuntimeHelpers.GetUninitializedObject(type);
+                    Debug.Assert(obj != null);
+
+                    // Call the constructor
+                    ConstructorInfo? constructorInfo;
+                    object[]? parameters = null;
+
+                    if (pClass != IntPtr.Zero)
+                    {
+                        if (nativeAddress == IntPtr.Zero)
+                            throw new ArgumentNullException(nameof(nativeAddress));
+
+                        Type? objType = obj.GetType();
+
+                        if (objType == null)
+                            throw new InvalidOperationException("Failed to get object type for object of type: " + type.Name);
+
+                        classPtrField = objType.GetField(ClassPtrFieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+                        nativeAddressField = objType.GetField(NativeAddressFieldName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+
+                        if (classPtrField == null || nativeAddressField == null)
+                            throw new InvalidOperationException("Could not find classPtr or nativeAddress field on class " + type.Name);
+
+                        classPtrField.SetValue(obj, pClass);
+                        nativeAddressField.SetValue(obj, nativeAddress);
+                    }
+
+                    constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+
+                    if (constructorInfo == null)
+                        throw new InvalidOperationException("Failed to find empty constructor for type: " + type.Name);
+
+                    constructorInfo.Invoke(obj, BindingFlags.DoNotWrapExceptions, null, parameters, null);
+
+                    gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
+
                     if (pCallback != IntPtr.Zero)
                     {
                         if (!type.IsValueType)
@@ -709,55 +715,69 @@ namespace Hyperion
                     {
                         gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
                     }
+
+                    return new ObjectReference
+                    {
+                        WeakHandle = GCHandle.ToIntPtr((GCHandle)gcHandleWeak),
+                        StrongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr((GCHandle)gcHandleStrong) : IntPtr.Zero
+                    };
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Free the GCHandles in case of an exception to prevent memory leaks.
+                    Logger.Log(LogLevel.Error, "Exception thrown constructing object of type {0}: {1}", type.Name, ex);
 
                     if (gcHandleStrong.HasValue)
-                    {
                         ((GCHandle)gcHandleStrong).Free();
-                        gcHandleStrong = null;
+
+                    if (gcHandleWeak.HasValue)
+                        ((GCHandle)gcHandleWeak).Free();
+
+                    // Derived field initializers run before ObjectBase takes its native ref, so the finalizer must not release one
+                    if (obj != null && classPtrField != null && nativeAddressField != null)
+                    {
+                        classPtrField.SetValue(obj, IntPtr.Zero);
+                        nativeAddressField.SetValue(obj, IntPtr.Zero);
                     }
 
-                    ((GCHandle)gcHandleWeak).Free();
-
-                    throw;
+                    return default;
                 }
-
-                return new ObjectReference
-                {
-                    WeakHandle = GCHandle.ToIntPtr(gcHandleWeak),
-                    StrongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr((GCHandle)gcHandleStrong) : IntPtr.Zero
-                };
             }));
 
             managedClassDesc.SetMarshalObjectFunction(assemblyGuid, new MarshalObjectDelegate((IntPtr ptr, uint size) =>
             {
+                try
+                {
 #if DEBUG
-                if (ptr == IntPtr.Zero)
-                    throw new ArgumentNullException(nameof(ptr));
+                    if (ptr == IntPtr.Zero)
+                        throw new ArgumentNullException(nameof(ptr));
 
-                if (size != Marshal.SizeOf(type))
-                    throw new ArgumentException("Size does not match type size", nameof(size));
+                    if (size != Marshal.SizeOf(type))
+                        throw new ArgumentException("Size does not match type size", nameof(size));
 #endif
-                // Cannot create boxed byref-like values
-                if (type.IsByRefLike)
-                {
-                    throw new InvalidOperationException($"Cannot marshal byref-like type {type.Name} from pointer.");
+                    // Cannot create boxed byref-like values
+                    if (type.IsByRefLike)
+                    {
+                        throw new InvalidOperationException($"Cannot marshal byref-like type {type.Name} from pointer.");
+                    }
+
+                    // Marshal object from pointer
+                    object? obj = Marshal.PtrToStructure(ptr, type);
+                    Debug.Assert(obj != null, "Failed to marshal object from pointer");
+
+                    // Freshly boxed value has no other referrer, so it must be held by a strong
+                    // handle until the caller reads it back
+                    return new ObjectReference
+                    {
+                        WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal)),
+                        StrongHandle = IntPtr.Zero
+                    };
                 }
-
-                // Marshal object from pointer
-                object? obj = Marshal.PtrToStructure(ptr, type);
-                Debug.Assert(obj != null, "Failed to marshal object from pointer");
-
-                // Freshly boxed value has no other referrer, so it must be held by a strong
-                // handle until the caller reads it back
-                return new ObjectReference
+                catch (Exception ex)
                 {
-                    WeakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal)),
-                    StrongHandle = IntPtr.Zero
-                };
+                    Logger.Log(LogLevel.Error, "Exception thrown marshalling object of type {0}: {1}", type.Name, ex);
+
+                    return default;
+                }
             }));
 
             return managedClassDesc.ClassObjectPtr;
@@ -852,95 +872,118 @@ namespace Hyperion
             }
         }
 
-        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
+        public static unsafe bool InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
         {
-            PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
+            PropertyInfo? propertyInfo = null;
 
-            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
+            try
+            {
+                propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
-            object? thisObject = objectReferenceRef.LoadObject();
-            object? returnValue = propertyInfo.GetValue((object?)thisObject);
+                ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
-            ((BoxedValueInternal*)outBoxed)->SetValue(returnValue);
+                object? thisObject = objectReferenceRef.LoadObject();
+                object? returnValue = propertyInfo.GetValue((object?)thisObject, BindingFlags.DoNotWrapExceptions, null, null, null);
+
+                ((BoxedValueInternal*)outBoxed)->SetValue(returnValue);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "Exception thrown getting property {0} on type {1}: {2}", propertyInfo?.Name, propertyInfo?.DeclaringType?.Name, ex);
+
+                return false;
+            }
         }
 
-        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
+        public static unsafe bool InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
         {
-            PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
+            PropertyInfo? propertyInfo = null;
 
-            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
+            try
+            {
+                propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
-            object? thisObject = objectReferenceRef.LoadObject();
-            object? value = (*(BoxedValueInternal**)argsBoxedPtr)->GetValue();
+                ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
-            propertyInfo.SetValue((object?)thisObject, value);
+                object? thisObject = objectReferenceRef.LoadObject();
+                object? value = (*(BoxedValueInternal**)argsBoxedPtr)->GetValue();
+
+                propertyInfo.SetValue((object?)thisObject, value, BindingFlags.DoNotWrapExceptions, null, null, null);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "Exception thrown setting property {0} on type {1}: {2}", propertyInfo?.Name, propertyInfo?.DeclaringType?.Name, ex);
+
+                return false;
+            }
         }
 
         public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak)
         {
-            ref ObjectWrapper objectWrapperRef = ref Unsafe.AsRef<ObjectWrapper>((void*)objectWrapperPtr);
-            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)outObjectReferencePtr);
-
-            object obj = objectWrapperRef.obj;
-
-            if (obj == null)
-                throw new ArgumentNullException(nameof(obj));
-
-            Type type = obj.GetType();
-
-            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
-
-            if (assemblyInstance == null)
-            {
-                throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
-            }
-
-            Guid assemblyGuid = assemblyInstance.Guid;
-            IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
-
-            if (assemblyPtr == IntPtr.Zero)
-            {
-                throw new Exception("Assembly pointer is null for assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
-            }
-
-            // ManagedClass must be registered for the given object's type.
-            IntPtr pClass;
-            if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out pClass))
-            {
-                throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
-            }
-
-            s_liveObjectCounts.AddOrUpdate(pClass, 1, (_, count) => count + 1);
-
-            Marshal.WriteIntPtr(outClassObjectPtr, pClass);
-
-            GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
-            GCHandle? gcHandleStrong = null;
-
-            if (!weak)
-                gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
-
-#if DEBUG
             try
             {
-                Debug.Assert(objectReferenceRef.WeakHandle == IntPtr.Zero && objectReferenceRef.StrongHandle == IntPtr.Zero, "ObjectReference already has handles assigned");
+                Marshal.WriteIntPtr(outClassObjectPtr, IntPtr.Zero);
+
+                ref ObjectWrapper objectWrapperRef = ref Unsafe.AsRef<ObjectWrapper>((void*)objectWrapperPtr);
+                ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)outObjectReferencePtr);
+
+                object obj = objectWrapperRef.obj;
+
+                if (obj == null)
+                    throw new ArgumentNullException(nameof(obj));
+
+                if (objectReferenceRef.WeakHandle != IntPtr.Zero || objectReferenceRef.StrongHandle != IntPtr.Zero)
+                    throw new InvalidOperationException("ObjectReference already has handles assigned");
+
+                Type type = obj.GetType();
+
+                AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
+
+                if (assemblyInstance == null)
+                {
+                    throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+                }
+
+                Guid assemblyGuid = assemblyInstance.Guid;
+                IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
+
+                if (assemblyPtr == IntPtr.Zero)
+                {
+                    throw new Exception("Assembly pointer is null for assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+                }
+
+                // ManagedClass must be registered for the given object's type.
+                IntPtr pClass;
+                if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out pClass))
+                {
+                    throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
+                }
+
+                GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
+                GCHandle? gcHandleStrong = null;
+
+                if (!weak)
+                    gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
+
+                s_liveObjectCounts.AddOrUpdate(pClass, 1, (_, count) => count + 1);
+
+                Marshal.WriteIntPtr(outClassObjectPtr, pClass);
+
+                // @NOTE: reassign ref
+                objectReferenceRef = new ObjectReference
+                {
+                    WeakHandle = GCHandle.ToIntPtr(gcHandleWeak),
+                    StrongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
+                };
             }
             catch (Exception ex)
             {
-                gcHandleWeak.Free();
-                if (gcHandleStrong.HasValue)
-                    ((GCHandle)gcHandleStrong).Free();
-
-                throw;
+                Logger.Log(LogLevel.Error, "Exception thrown adding object to cache: {0}", ex);
             }
-#endif
-
-            // @NOTE: reassign ref
-            objectReferenceRef = new ObjectReference
-            {
-                WeakHandle = GCHandle.ToIntPtr(gcHandleWeak),
-                StrongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
-            };
         }
 
         [UnmanagedCallersOnly]

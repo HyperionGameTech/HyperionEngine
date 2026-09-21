@@ -163,6 +163,11 @@ public:
         return m_isInitialized;
     }
 
+    HYP_FORCE_INLINE uint32 GetRuntimeRegistrationGeneration() const
+    {
+        return m_runtimeRegistrationGeneration.Get(MemoryOrder::ACQUIRE);
+    }
+
     void Register(TypeId typeId, UniquePtr<ComponentInterface> (*createFunction)());
 
     const ComponentInterface* RegisterRuntimeComponent(
@@ -196,6 +201,7 @@ private:
     // Every table ever published stays alive until the registry is destroyed; readers never lock
     Array<UniquePtr<LookupTable>> m_lookupTables;
     AtomicVar<const LookupTable*> m_lookupTable;
+    AtomicVar<uint32> m_runtimeRegistrationGeneration;
 
     Mutex m_writeMutex;
 

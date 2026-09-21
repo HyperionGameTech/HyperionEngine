@@ -1273,6 +1273,12 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
             resultArray.PushBack(std::move(componentData));
             serializedComponents.Insert(componentTypeId);
         }
+
+        // written back unchanged so they survive until their class is registered
+        for (const HMF::UnresolvedObject& unresolvedComponent : m_unresolvedComponents)
+        {
+            resultArray.PushBack(BoxedValue(unresolvedComponent));
+        }
     };
 
     if (IsOnThread(entityManager->GetOwnerThreadId()))
@@ -1305,6 +1311,28 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
 
     for (const BoxedValue& componentData : components)
     {
+        // a component whose class isn't registered yet (eg its script hasn't loaded): keep it until it is
+        if (componentData.Is<HMF::UnresolvedObject>())
+        {
+            const HMF::UnresolvedObject& unresolvedComponent = componentData.Get<HMF::UnresolvedObject>();
+
+            auto existingIt = m_unresolvedComponents.FindIf([&unresolvedComponent](const HMF::UnresolvedObject& existing)
+                {
+                    return existing.className == unresolvedComponent.className;
+                });
+
+            if (existingIt != m_unresolvedComponents.End())
+            {
+                *existingIt = unresolvedComponent;
+            }
+            else
+            {
+                m_unresolvedComponents.PushBack(unresolvedComponent);
+            }
+
+            continue;
+        }
+
         const TypeInfo& componentTypeInfo = *componentData.GetTypeInfo();
 
         if (!m_entityManager->IsValidComponentType(componentTypeInfo.id))
@@ -1352,6 +1380,63 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
 
         m_entityManager->AddComponent(this, componentData);
     }
+
+    // the class may have been registered since the data was read
+    if (ResolveUnresolvedComponents())
+    {
+        m_entityManager->MarkUnresolvedComponents();
+    }
+}
+
+bool Entity::ResolveUnresolvedComponents()
+{
+    if (m_unresolvedComponents.Empty() || !m_entityManager)
+    {
+        return m_unresolvedComponents.Any();
+    }
+
+    for (size_t index = 0; index < m_unresolvedComponents.Size();)
+    {
+        const HMF::UnresolvedObject& unresolvedComponent = m_unresolvedComponents[index];
+
+        const Class* componentClass = Hyperion::GetClass(StringHash(unresolvedComponent.className));
+
+        if (!componentClass || !m_entityManager->IsValidComponentType(componentClass->GetTypeId()))
+        {
+            index++;
+
+            continue;
+        }
+
+        if (m_entityManager->HasComponent(componentClass->GetTypeId(), this))
+        {
+            HYP_LOG(Entity, Warning, "Entity already has a {} component; dropping the one saved before its class was registered", unresolvedComponent.className);
+
+            m_unresolvedComponents.EraseAt(index);
+
+            continue;
+        }
+
+        HMF::ParseResult parseResult = HMF::Parse(unresolvedComponent.source);
+
+        if (parseResult.HasError())
+        {
+            // keep it, so the saved data isn't lost
+            HYP_LOG(Entity, Error, "Failed to read saved {} component: {}", unresolvedComponent.className, parseResult.GetError().GetMessage());
+
+            index++;
+
+            continue;
+        }
+
+        BoxedValue componentData = std::move(parseResult.GetValue());
+
+        m_unresolvedComponents.EraseAt(index);
+
+        m_entityManager->AddComponent(this, std::move(componentData));
+    }
+
+    return m_unresolvedComponents.Any();
 }
 
 #pragma endregion Entity

@@ -44,6 +44,8 @@ public:
 
     void RefreshScriptSourceDirectories();
 
+    static void PreloadProjectScripts(const FilePath& projectRootPath);
+
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override
     {

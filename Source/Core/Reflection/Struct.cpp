@@ -7,6 +7,8 @@
 #include <Core/Reflection/Struct.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Field.hpp>
+#include <Core/Reflection/Property.hpp>
+#include <Core/Reflection/MemberVariant.hpp>
 
 #include <Core/Reflection/TypeInfo.hpp>
 
@@ -75,6 +77,171 @@ static void* StructBox_CopyBlock(void* context, const void* sourceBlock)
         source->objAlign
     };
 }
+
+#pragma region DynamicStructFields
+
+template <class T>
+static bool MakeArithmeticFieldProperty(const DynamicStructFieldDesc& fieldDesc, Span<const ClassAttribute> attributes, MemberVariant& outMember)
+{
+    if (fieldDesc.size != sizeof(T))
+    {
+        HYP_LOG(Object, Warning, "Field '{}' is {} bytes but its type needs {}; it won't be reflected", fieldDesc.name, fieldDesc.size, sizeof(T));
+
+        return false;
+    }
+
+    const uint32 offset = fieldDesc.offset;
+
+    // values are copied rather than accessed in place: fields of script-defined structs can be less aligned than T requires
+    PropertyGetter getter;
+    getter.getProc = Proc<BoxedValue(const BoxedValue&)>([offset](const BoxedValue& target) -> BoxedValue
+        {
+            T value;
+            Memory::Copy(&value, static_cast<const ubyte*>(target.ToRef().GetPointer()) + offset, sizeof(T));
+
+            return BoxedValue(value);
+        });
+    getter.typeInfo.valueTypeInfo = &TypeOf<T>();
+
+    PropertySetter setter;
+    setter.setProc = Proc<void(BoxedValue&, const BoxedValue&)>([offset](BoxedValue& target, const BoxedValue& value) -> void
+        {
+            const T typedValue = value.IsNull() ? T {} : T(value.Get<T>());
+            Memory::Copy(static_cast<ubyte*>(target.ToRef().GetPointer()) + offset, &typedValue, sizeof(T));
+        });
+    setter.typeInfo.valueTypeInfo = &TypeOf<T>();
+
+    outMember = MemberVariant(Property(fieldDesc.name, std::move(getter), std::move(setter), attributes));
+
+    return true;
+}
+
+template <class T>
+static bool TryMakeArithmeticFieldProperty(const DynamicStructFieldDesc& fieldDesc, Span<const ClassAttribute> attributes, MemberVariant& outMember, bool& outCreated)
+{
+    if constexpr (std::is_arithmetic_v<T>)
+    {
+        if (fieldDesc.typeInfo->id == TypeId::ForType<T>())
+        {
+            outCreated = MakeArithmeticFieldProperty<T>(fieldDesc, attributes, outMember);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template <class... Types>
+static bool MakeArithmeticFieldPropertyForStorage(const DynamicStructFieldDesc& fieldDesc, Span<const ClassAttribute> attributes, MemberVariant& outMember, const Variant<Types...>*)
+{
+    bool created = false;
+
+    if (!(TryMakeArithmeticFieldProperty<Types>(fieldDesc, attributes, outMember, created) || ...))
+    {
+        HYP_LOG(Object, Warning, "Field '{}' has type {}, which BoxedValue can't hold; it won't be reflected", fieldDesc.name, fieldDesc.typeInfo->name);
+    }
+
+    return created;
+}
+
+static bool MakeStructFieldProperty(const DynamicStructFieldDesc& fieldDesc, const Struct* fieldStruct, Span<const ClassAttribute> attributes, MemberVariant& outMember)
+{
+    if (fieldDesc.size != fieldStruct->GetSize())
+    {
+        HYP_LOG(Object, Warning, "Field '{}' is {} bytes but {} needs {}; it won't be reflected", fieldDesc.name, fieldDesc.size, fieldStruct->GetName(), fieldStruct->GetSize());
+
+        return false;
+    }
+
+    // the owning struct is copied and destroyed as raw bytes, so its fields can't have copy or destroy logic of their own
+    if (!fieldStruct->IsTriviallyCopyable() || !fieldStruct->CanConstructInPlace())
+    {
+        HYP_LOG(Object, Warning, "Field '{}' has type {}, which isn't trivially copyable; it won't be reflected", fieldDesc.name, fieldStruct->GetName());
+
+        return false;
+    }
+
+    // the property holds on to the field type, and a dynamic one could be destroyed before it
+    if (fieldStruct->IsDynamic())
+    {
+        HYP_LOG(Object, Warning, "Field '{}' has runtime-defined type {}, which can't be nested yet; it won't be reflected", fieldDesc.name, fieldStruct->GetName());
+
+        return false;
+    }
+
+    const uint32 offset = fieldDesc.offset;
+    const uint32 size = fieldDesc.size;
+
+    // values go through a box of the field type rather than being accessed in place, for the same alignment reason as arithmetic fields
+    PropertyGetter getter;
+    getter.getProc = Proc<BoxedValue(const BoxedValue&)>([fieldStruct, offset, size](const BoxedValue& target) -> BoxedValue
+        {
+            BoxedValue value;
+            fieldStruct->ConstructBoxed(value);
+            Memory::Copy(value.ToRef().GetPointer(), static_cast<const ubyte*>(target.ToRef().GetPointer()) + offset, size);
+
+            return value;
+        });
+    getter.typeInfo.valueTypeInfo = fieldDesc.typeInfo;
+
+    PropertySetter setter;
+    setter.setProc = Proc<void(BoxedValue&, const BoxedValue&)>([fieldStruct, offset, size](BoxedValue& target, const BoxedValue& value) -> void
+        {
+            ubyte* fieldAddress = static_cast<ubyte*>(target.ToRef().GetPointer()) + offset;
+
+            if (value.IsNull())
+            {
+                BoxedValue defaultValue;
+                fieldStruct->ConstructBoxed(defaultValue);
+                Memory::Copy(fieldAddress, defaultValue.ToRef().GetPointer(), size);
+
+                return;
+            }
+
+            const AnyRef valueRef = value.ToRef();
+
+            if (valueRef.GetTypeId() != fieldStruct->GetTypeId())
+            {
+                HYP_LOG(Object, Warning, "Cannot set a {} field from a value of a different type", fieldStruct->GetName());
+
+                return;
+            }
+
+            Memory::Copy(fieldAddress, valueRef.GetPointer(), size);
+        });
+    setter.typeInfo.valueTypeInfo = fieldDesc.typeInfo;
+
+    outMember = MemberVariant(Property(fieldDesc.name, std::move(getter), std::move(setter), attributes));
+
+    return true;
+}
+
+bool MakeDynamicStructProperty(const DynamicStructFieldDesc& fieldDesc, int editorOrder, MemberVariant& outMember)
+{
+    if (!fieldDesc.typeInfo)
+    {
+        return false;
+    }
+
+    const ClassAttribute attributes[] = { ClassAttribute("editororder", editorOrder) };
+
+    if (fieldDesc.typeInfo->IsFundamental())
+    {
+        return MakeArithmeticFieldPropertyForStorage(fieldDesc, attributes, outMember, static_cast<const BoxedValue::VariantType*>(nullptr));
+    }
+
+    if (const Struct* fieldStruct = GetStructFromClass(fieldDesc.typeInfo->GetClass()))
+    {
+        return MakeStructFieldProperty(fieldDesc, fieldStruct, attributes, outMember);
+    }
+
+    HYP_LOG(Object, Warning, "Field '{}' has type {}, which isn't a reflected struct! Cannot reflect this field", fieldDesc.name, fieldDesc.typeInfo->name);
+
+    return false;
+}
+
+#pragma endregion DynamicStructFields
 
 #pragma region Struct
 
@@ -186,7 +353,7 @@ bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, c
                 Memory::Copy(objectPtr, context.ptr, context.size);
             }, &outObjectReference);
 
-        return true;
+        return outObjectReference.weakHandle != nullptr;
     }
 #endif
 

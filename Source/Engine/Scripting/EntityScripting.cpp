@@ -465,11 +465,13 @@ void ClearFunctionPointerCacheForModule(StringHash moduleHash)
 namespace EntityScripting {
 
 template <class ReturnType, class... ArgTypes>
-static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, const ArgTypes&... args)
+static bool InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, const ArgTypes&... args)
 {
     Assert(sor != nullptr);
 
     const uint32 mask = sor->GetScriptLanguageMask();
+
+    bool succeeded = true;
 
 #ifdef HYP_DOTNET
     if (mask & (1u << uint32(ScriptLanguage::CSharp)))
@@ -488,11 +490,13 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
                     {
                         AssertDebug(outReturnValue != nullptr);
 
-                        new (outReturnValue) ReturnType(sor->GetManagedObject()->InvokeMethod<ReturnType>(managedMethod, args...));
+                        new (outReturnValue) ReturnType();
+
+                        succeeded = sor->GetManagedObject()->TryInvokeMethod<ReturnType>(managedMethod, outReturnValue, args...);
                     }
                     else
                     {
-                        sor->GetManagedObject()->InvokeMethod<void>(managedMethod, args...);
+                        succeeded = sor->GetManagedObject()->TryInvokeMethod<void>(managedMethod, nullptr, args...);
                     }
                 }
             }
@@ -563,11 +567,62 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
             }
         }
     }
+
+    return succeeded;
 }
 
-static HYP_FORCE_INLINE void InvokeScriptMethod(UTF8StringView methodName, ScriptComponent& target)
+static HYP_FORCE_INLINE bool InvokeScriptMethod(UTF8StringView methodName, ScriptComponent& target)
 {
-    InvokeScriptMethodT<void>(nullptr, target.scriptObjectResource, *methodName);
+    return InvokeScriptMethodT<void>(nullptr, target.scriptObjectResource, *methodName);
+}
+
+static void MarkEntityScriptErrored(Entity* entity, ScriptComponent& scriptComponent, const char* methodName)
+{
+    HYP_LOG(Scripting, Error, "Script on entity {} threw an exception in {}", entity->Id(), methodName);
+
+    scriptComponent.flags |= ScriptComponentFlags::ERRORED;
+}
+
+static void ActivateEntityScript(Entity* entity, ScriptComponent& scriptComponent, World* world, Scene* scene)
+{
+    if (scriptComponent.flags & ScriptComponentFlags::ACTIVATED)
+    {
+        return;
+    }
+
+    if (!InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "BeforeAdded", world, scene))
+    {
+        MarkEntityScriptErrored(entity, scriptComponent, "BeforeAdded");
+    }
+    else if (!InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "OnAdded", entity))
+    {
+        MarkEntityScriptErrored(entity, scriptComponent, "OnAdded");
+    }
+
+    scriptComponent.flags |= ScriptComponentFlags::ACTIVATED;
+}
+
+ANSIString GetCSharpAssemblyLoadPath(const ScriptDesc& scriptDesc)
+{
+    ANSIString assemblyPath(scriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data() + scriptDesc.assemblyPath.Size());
+
+    if (scriptDesc.hotReloadVersion <= 0)
+    {
+        return assemblyPath;
+    }
+
+    const size_t extensionIndex = assemblyPath.FindLastIndex(".dll");
+
+    if (extensionIndex != ANSIString::NotFound)
+    {
+        return assemblyPath.Substr(0, extensionIndex)
+            + "." + ANSIString::ToString(scriptDesc.hotReloadVersion)
+            + ".dll";
+    }
+
+    return assemblyPath
+        + "." + ANSIString::ToString(scriptDesc.hotReloadVersion)
+        + ".dll";
 }
 
 void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, const GameState& gameState)
@@ -597,13 +652,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
         if (!gameState.IsStopped())
         {
-            if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
-            {
-                InvokeScriptMethodT<void>(nullptr, sor, "BeforeAdded", world, scene);
-                InvokeScriptMethodT<void>(nullptr, sor, "OnAdded", entity);
-
-                scriptComponent.flags |= ScriptComponentFlags::ACTIVATED;
-            }
+            ActivateEntityScript(entity, scriptComponent, world, scene);
         }
     }
     else // external script object (C# or Strata)
@@ -633,25 +682,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 if (!scriptComponent.assembly)
                 {
-                    ANSIString assemblyPath(scriptDesc.assemblyPath.Data(), scriptDesc.assemblyPath.Data() + scriptDesc.assemblyPath.Size());
-
-                    if (scriptDesc.hotReloadVersion > 0)
-                    {
-                        const size_t extensionIndex = assemblyPath.FindLastIndex(".dll");
-
-                        if (extensionIndex != ANSIString::NotFound)
-                        {
-                            assemblyPath = assemblyPath.Substr(0, extensionIndex)
-                                + "." + ANSIString::ToString(scriptDesc.hotReloadVersion)
-                                + ".dll";
-                        }
-                        else
-                        {
-                            assemblyPath = assemblyPath
-                                + "." + ANSIString::ToString(scriptDesc.hotReloadVersion)
-                                + ".dll";
-                        }
-                    }
+                    const ANSIString assemblyPath = GetCSharpAssemblyLoadPath(scriptDesc);
 
                     if (SharedPtr<dotnet::Assembly> assembly = DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
                     {
@@ -680,31 +711,18 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         return;
                     }
 
-                    dotnet::ManagedObject* object = classPtr->NewObject();
-                    Assert(object != nullptr);
-
-                    sor = new ScriptObjectResource(object, classPtr);
-                    sor->AddReader();
-
-                    if (!gameState.IsStopped())
+                    if (dotnet::ManagedObject* object = classPtr->NewObject())
                     {
-                        if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
+                        sor = new ScriptObjectResource(object, classPtr);
+                        sor->AddReader();
+
+                        if (!gameState.IsStopped())
                         {
-                            if (dotnet::ManagedMethod* beforeInitMethodPtr = classPtr->GetMethod("BeforeAdded"))
-                            {
-                                object->InvokeMethod<void>(beforeInitMethodPtr, world, scene);
-                            }
-
-                            if (dotnet::ManagedMethod* initMethodPtr = classPtr->GetMethod("OnAdded"))
-                            {
-                                object->InvokeMethod<void>(initMethodPtr, entity);
-                            }
-
-                            scriptComponent.flags |= ScriptComponentFlags::ACTIVATED;
+                            ActivateEntityScript(entity, scriptComponent, world, scene);
                         }
-                    }
 
-                    HYP_LOG(Scripting, Verbose, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
+                        HYP_LOG(Scripting, Verbose, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
+                    }
                 }
 #    if HYP_DEBUG_MODE
                 else
@@ -818,13 +836,7 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                 if (!gameState.IsStopped())
                 {
-                    if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
-                    {
-                        InvokeScriptMethodT<void>(nullptr, sor, "BeforeAdded", world, scene);
-                        InvokeScriptMethodT<void>(nullptr, sor, "OnAdded", entity);
-
-                        scriptComponent.flags |= ScriptComponentFlags::ACTIVATED;
-                    }
+                    ActivateEntityScript(entity, scriptComponent, world, scene);
                 }
             }
 
@@ -864,17 +876,20 @@ void ShutdownEntityScript(Entity* entity, ScriptComponent& scriptComponent, cons
     }
 
 
-    scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::ACTIVATED);
+    scriptComponent.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::ACTIVATED | ScriptComponentFlags::ERRORED);
 }
 
 void UpdateScriptedEntities(World& world, float delta)
 {
     QueryScriptedEntities(world, [delta](Entity* entity, ScriptComponent& scriptComponent)
                           {
-                              if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED))
+                              if (!(scriptComponent.flags & ScriptComponentFlags::ACTIVATED) || (scriptComponent.flags & ScriptComponentFlags::ERRORED))
                                   return;
 
-                              InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", delta);
+                              if (!InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "Update", delta))
+                              {
+                                  MarkEntityScriptErrored(entity, scriptComponent, "Update");
+                              }
                           });
 }
 

@@ -27,6 +27,11 @@ namespace Hyperion
     {
         public const ComponentFlags DefaultFlags = ComponentFlags.Serialize | ComponentFlags.ShowInEditor;
 
+        /// <summary>
+        /// Raised after a component type is registered or unregistered, from whichever thread did it (eg while a script assembly loads).
+        /// </summary>
+        public static event Action? ComponentTypesChanged;
+
         public static bool RegisterDeclaredComponent(Type type)
         {
             if (!type.IsValueType || type.IsEnum)
@@ -71,6 +76,8 @@ namespace Hyperion
                 throw new Exception("Failed to register component type " + type.FullName);
             }
 
+            ComponentTypesChanged?.Invoke();
+
             return dynamicStruct.Class;
         }
 
@@ -81,7 +88,14 @@ namespace Hyperion
                 return false;
             }
 
-            return ComponentInterfaceRegistry_UnregisterRuntimeComponent(dynamicStruct.Class.TypeId);
+            if (!ComponentInterfaceRegistry_UnregisterRuntimeComponent(dynamicStruct.Class.TypeId))
+            {
+                return false;
+            }
+
+            ComponentTypesChanged?.Invoke();
+
+            return true;
         }
 
         private static bool IsBlittable(Type type)

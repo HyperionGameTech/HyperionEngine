@@ -90,7 +90,7 @@ void ManagedObject::Reset()
     m_keepAlive.Set(false, MemoryOrder::RELEASE);
 }
 
-void ManagedObject::InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** ppArgs, BoxedValue* pOutReturn)
+bool ManagedObject::InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** ppArgs, BoxedValue* pOutReturn)
 {
     Assert(IsValid());
 
@@ -104,7 +104,7 @@ void ManagedObject::InvokeMethod_Internal(const ManagedMethod* pMethod, const Bo
 
     ENGINE_STAT_SCOPE(&s_statCallManagedMethod);
 
-    pMethod->Invoke(&m_objectReference, ppArgs, pOutReturn);
+    return pMethod->Invoke(&m_objectReference, ppArgs, pOutReturn);
 }
 
 const ManagedMethod* ManagedObject::GetMethod(ANSIStringView methodName) const

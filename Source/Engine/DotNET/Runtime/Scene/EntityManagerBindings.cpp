@@ -23,6 +23,9 @@
 
 #include <Core/Reflection/Struct.hpp>
 
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+
 using namespace Hyperion;
 
 extern "C"
@@ -100,7 +103,8 @@ extern "C"
     }
 
     /// Adds component, if pComponent is null it will create a new instance.
-    HYP_EXPORT void EntityManager_AddComponent(EntityManager* pManager, Entity* pEntity, uint32 componentTypeIdValue, void* pComponent)
+    /// Returns false without adding anything when the entity already has the component.
+    HYP_EXPORT int8 EntityManager_AddComponent(EntityManager* pManager, Entity* pEntity, uint32 componentTypeIdValue, void* pComponent)
     {
         Assert(pManager != nullptr);
         Assert(pEntity != nullptr);
@@ -112,7 +116,15 @@ extern "C"
 
         if (!pComponentInterface)
         {
-            return;
+            return false;
+        }
+
+        if (!pComponentInterface->IsEntityTag() && pManager->HasComponent(componentTypeId, pEntity))
+        {
+            HYP_LOG(Scene, Warning, "Entity #{} already has a '{}' component; keeping the existing one. Check HasComponent before adding.",
+                pEntity->Id(), *EntityManager::GetComponentTypeName(componentTypeId));
+
+            return false;
         }
 
         if (pComponent != nullptr)
@@ -124,6 +136,8 @@ extern "C"
             // Make instance if pComponent is null
             pManager->AddDefaultComponent(pEntity, componentTypeId);
         }
+
+        return true;
     }
 
     HYP_EXPORT int8 EntityManager_RemoveComponent(EntityManager* pManager, uint32 componentTypeIdValue, Entity* pEntity)

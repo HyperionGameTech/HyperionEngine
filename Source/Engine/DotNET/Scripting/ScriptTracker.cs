@@ -55,6 +55,16 @@ namespace Hyperion
             CreateWatchers();
         }
 
+        // Just the C# compiler, without file watchers or building every module: for one-off assembly resolution, eg loading a
+        // project's script modules before its scenes are read
+        public void InitializeCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)
+        {
+            this.intermediateDirectory = intermediateDirectory;
+            this.binaryOutputDirectory = binaryOutputDirectory;
+
+            csharpCompiler = new CSharpScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
+        }
+
         public void UpdateSourceDirectories(Array sourceDirectoriesArray)
         {
             Logger.Log(logChannel, LogLevel.Info, "Updating script source directories...");

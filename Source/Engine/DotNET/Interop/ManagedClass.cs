@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
-    public delegate ObjectReference NewObjectDelegate(bool keepAlive, IntPtr pManagedClass, IntPtr nativeAddress, IntPtr pCtx, IntPtr pCallback);
+    public delegate ObjectReference NewObjectDelegate([MarshalAs(UnmanagedType.I1)] bool keepAlive, IntPtr pManagedClass, IntPtr nativeAddress, IntPtr pCtx, IntPtr pCallback);
     public delegate void FreeObjectDelegate(ObjectReference obj);
     public delegate ObjectReference MarshalObjectDelegate(IntPtr ptr, uint size);
 

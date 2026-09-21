@@ -48,6 +48,8 @@ public:
     virtual void MoveConstructInPlace(void* destination, void* source) const = 0;
     virtual void DestructInPlace(void* target) const = 0;
 
+    virtual bool IsTriviallyCopyable() const = 0;
+
     bool ConstructBoxed(BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo = nullptr) const;
     bool CopyConstructBoxed(const void* source, BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo = nullptr) const;
     bool MoveConstructBoxed(void* source, BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo = nullptr) const;
@@ -221,6 +223,11 @@ public:
         }
     }
 
+    virtual bool IsTriviallyCopyable() const override
+    {
+        return std::is_trivially_copyable_v<T>;
+    }
+
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
     {
@@ -292,6 +299,16 @@ struct DynamicStructInstanceFunctions
     void* context = nullptr;
 };
 
+struct DynamicStructFieldDesc
+{
+    Name name;
+    uint32 offset = 0;
+    uint32 size = 0;
+    const TypeInfo* typeInfo = nullptr;
+};
+
+CORE_API bool MakeDynamicStructProperty(const DynamicStructFieldDesc& fieldDesc, int editorOrder, MemberVariant& outMember);
+
 class CORE_API DynamicStructInstance final : public Struct
 {
 public:
@@ -348,6 +365,11 @@ public:
     virtual void CopyConstructInPlace(void* destination, const void* source) const override;
     virtual void MoveConstructInPlace(void* destination, void* source) const override;
     virtual void DestructInPlace(void* target) const override;
+
+    virtual bool IsTriviallyCopyable() const override
+    {
+        return !m_functions.copyConstruct && !m_functions.moveConstruct && !m_functions.destruct;
+    }
 
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override

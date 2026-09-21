@@ -990,6 +990,9 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     {
         scene->Update(delta);
 
+        // saved components whose class registered since they were read (eg a script loaded); no-op otherwise
+        scene->GetEntityManager()->ResolveUnresolvedComponents();
+
         scene->GetEntityManager()->Lock();
     }
 

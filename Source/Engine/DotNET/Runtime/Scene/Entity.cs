@@ -49,7 +49,7 @@ namespace Hyperion
             return entityManager.HasComponent<T>(this);
         }
 
-        public void AddComponent<T>(ref T component) where T : IComponent, allows ref struct
+        public bool AddComponent<T>(ref T component) where T : IComponent, allows ref struct
         {
             EntityManager? entityManager = this.GetEntityManager();
             
@@ -58,15 +58,15 @@ namespace Hyperion
                 throw new Exception("Entity does not have an EntityManager");
             }
 
-            entityManager.AddComponent<T>(this, ref component);
+            return entityManager.AddComponent<T>(this, ref component);
         }
 
-        public void AddComponent<T>(T component) where T : IComponent, allows ref struct
+        public bool AddComponent<T>(T component) where T : IComponent, allows ref struct
         {
-            AddComponent<T>(ref component);
+            return AddComponent<T>(ref component);
         }
 
-        public void AddComponent<T>() where T : IComponent, allows ref struct
+        public bool AddComponent<T>() where T : IComponent, allows ref struct
         {
             EntityManager? entityManager = this.GetEntityManager();
 
@@ -75,7 +75,7 @@ namespace Hyperion
                 throw new Exception("Entity does not have an EntityManager");
             }
 
-            entityManager.AddComponent<T>(this);
+            return entityManager.AddComponent<T>(this);
         }
 
         public void AddTag(EntityTag tag)

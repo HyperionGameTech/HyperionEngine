@@ -711,6 +711,10 @@ public:
 
     void UpdateEntities(float delta);
 
+    /*! \brief Re-adds saved components whose class was registered after they were read (eg a script that loaded later).
+     *  Cheap when there is nothing to do; call on the owner thread while unlocked. */
+    void ResolveUnresolvedComponents();
+
     void AddPendingEntitySets();
 
     template <class Component>
@@ -766,6 +770,13 @@ private:
     ComponentContainer* GetOrCreateContainer(const ComponentInterface& componentInterface);
 
     void AddComponent_Internal(Entity* entity, const ComponentInterface& componentInterface, ComponentConstructMode constructMode, void* source);
+
+    // An entity here holds unresolved components; forces a resolve attempt on the next ResolveUnresolvedComponents()
+    HYP_FORCE_INLINE void MarkUnresolvedComponents()
+    {
+        m_hasUnresolvedComponents = true;
+        m_resolvedRegistrationGeneration = ~0u;
+    }
 
     template <class Component>
     static void EnsureValidComponentType()
@@ -878,6 +889,9 @@ private:
     mutable SharedMutex m_systemEntityMapMutex;
 
     mutable AtomicFlag m_detachedSceneLocked;
+
+    uint32 m_resolvedRegistrationGeneration = 0;
+    bool m_hasUnresolvedComponents = false;
 
     bool m_isInitialized : 1;
     bool m_isLocked : 1;

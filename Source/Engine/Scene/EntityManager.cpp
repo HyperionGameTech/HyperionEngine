@@ -1104,6 +1104,11 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             componentIds = entityData->components;
         }
 
+        if (entity->HasUnresolvedComponents())
+        {
+            other->MarkUnresolvedComponents();
+        }
+
         // Notify systems that entity is being added to them
         other->NotifySystemsOfEntityAdded(entity, componentIds);
 
@@ -1128,6 +1133,43 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         Task<void> task = GetThreadById(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(addToOtherEntityManager));
         task.Await();
     }
+}
+
+void EntityManager::ResolveUnresolvedComponents()
+{
+    if (!m_hasUnresolvedComponents || IsLocked() || !IsOnThread(m_ownerThreadId))
+    {
+        return;
+    }
+
+    const uint32 registrationGeneration = ComponentInterfaceRegistry::GetInstance().GetRuntimeRegistrationGeneration();
+
+    if (registrationGeneration == m_resolvedRegistrationGeneration)
+    {
+        return;
+    }
+
+    m_resolvedRegistrationGeneration = registrationGeneration;
+
+    // collected first: resolving adds components, which must not happen while walking entity storage
+    Array<Handle<Entity>> pendingEntities;
+
+    ForEachEntity([&pendingEntities](Entity* entity)
+        {
+            if (entity->HasUnresolvedComponents())
+            {
+                pendingEntities.PushBack(MakeStrongRef(entity));
+            }
+        });
+
+    bool anyRemaining = false;
+
+    for (const Handle<Entity>& entity : pendingEntities)
+    {
+        anyRemaining |= entity->ResolveUnresolvedComponents();
+    }
+
+    m_hasUnresolvedComponents = anyRemaining;
 }
 
 ComponentContainer* EntityManager::GetOrCreateContainer(const ComponentInterface& componentInterface)
@@ -1205,7 +1247,9 @@ void EntityManager::AddComponent_Internal(Entity* entity, const ComponentInterfa
             return;
         }
 
-        HYP_FAIL("Cannot add duplicate component of type '{}'", *GetComponentTypeName(componentTypeId));
+        HYP_LOG(Entity, Error, "Cannot add duplicate component of type '{}' to entity {}", *GetComponentTypeName(componentTypeId), entity->GetName());
+
+        return;
     }
 
     ComponentContainer* container = GetOrCreateContainer(componentInterface);

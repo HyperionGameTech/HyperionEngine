@@ -31,6 +31,16 @@ namespace Hyperion
         }
     }
 
+    // Layout matches ManagedDynamicStructField in StructBindings.cpp
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct DynamicStructField
+    {
+        public IntPtr Name;
+        public uint Offset;
+        public uint Size;
+        public IntPtr TypeInfo;
+    }
+
     public class DynamicStruct : IDisposable
     {
         private static readonly Dictionary<Type, DynamicStruct> cache = new Dictionary<Type, DynamicStruct>();
@@ -74,14 +84,12 @@ namespace Hyperion
 
                     return;
                 }
-
-                // Add this to cache
-                typeIdCache[typeId] = this;
             }
 
             Logger.Log(LogLevel.Verbose, "Creating dynamic Struct for type: " + type.Name);
 
             IntPtr defaultValuePtr = CreateDefaultValue(type);
+            DynamicStructField[] fields = GetReflectedFields(type);
             IntPtr classPtr;
 
             try
@@ -90,7 +98,9 @@ namespace Hyperion
                     ref typeId,
                     type.Name,
                     (uint)Marshal.SizeOf(type),
-                    defaultValuePtr);
+                    defaultValuePtr,
+                    fields,
+                    (uint)fields.Length);
             }
             finally
             {
@@ -98,6 +108,11 @@ namespace Hyperion
                 {
                     Marshal.DestroyStructure(defaultValuePtr, type);
                     Marshal.FreeHGlobal(defaultValuePtr);
+                }
+
+                foreach (DynamicStructField field in fields)
+                {
+                    Marshal.FreeHGlobal(field.Name);
                 }
             }
 
@@ -108,6 +123,12 @@ namespace Hyperion
 
             cls = new Class(classPtr);
             ownsClass = true;
+
+            // only cached once the native Struct exists, so a failed creation isn't reused by later loads
+            lock (typeIdCacheLock)
+            {
+                typeIdCache[typeId] = this;
+            }
 
             lock (cacheLock)
             {
@@ -224,6 +245,53 @@ namespace Hyperion
             return defaultValuePtr;
         }
 
+        private static DynamicStructField[] GetReflectedFields(Type type)
+        {
+            List<DynamicStructField> fields = new List<DynamicStructField>();
+
+            foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (field.IsNotSerialized)
+                {
+                    continue;
+                }
+
+                Type fieldType = field.FieldType.IsEnum ? Enum.GetUnderlyingType(field.FieldType) : field.FieldType;
+                TypeInfo nativeTypeInfo = GetNativeTypeInfo(fieldType);
+
+                if (nativeTypeInfo.IsNull)
+                {
+                    Logger.Log(LogLevel.Warning, "Field {0}.{1} of type {2} has no native equivalent; it won't be saved or shown in the editor", type.Name, field.Name, field.FieldType.Name);
+
+                    continue;
+                }
+
+                fields.Add(new DynamicStructField
+                {
+                    Name = Marshal.StringToHGlobalAnsi(field.Name),
+                    Offset = (uint)Marshal.OffsetOf(type, field.Name).ToInt32(),
+                    Size = (uint)Marshal.SizeOf(fieldType),
+                    TypeInfo = nativeTypeInfo.Address
+                });
+            }
+
+            return fields.ToArray();
+        }
+
+        private static TypeInfo GetNativeTypeInfo(Type fieldType)
+        {
+            try
+            {
+                using BoxedValue boxed = new BoxedValue(Activator.CreateInstance(fieldType));
+
+                return boxed.TypeInfo;
+            }
+            catch (Exception)
+            {
+                return new TypeInfo();
+            }
+        }
+
         private static string GetLayoutSignature(Type type)
         {
             FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -255,7 +323,9 @@ namespace Hyperion
             [In] ref TypeId typeId,
             [MarshalAs(UnmanagedType.LPStr)] string typeName,
             uint size,
-            IntPtr defaultValue);
+            IntPtr defaultValue,
+            [In] DynamicStructField[] fields,
+            uint numFields);
 
         [DllImport("hyperion", EntryPoint = "Struct_DestroyDynamicStruct")]
         private static extern void Struct_DestroyDynamicStruct([In] IntPtr classPtr);

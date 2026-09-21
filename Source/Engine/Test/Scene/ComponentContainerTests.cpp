@@ -11,6 +11,8 @@
 #include <Core/Containers/String.hpp>
 
 #include <Core/Reflection/Struct.hpp>
+#include <Core/Reflection/Property.hpp>
+#include <Core/Reflection/MemberVariant.hpp>
 #include <Core/Reflection/TypeInfo.hpp>
 #include <Core/Reflection/TypeId.hpp>
 
@@ -23,11 +25,17 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Math/Vector3.hpp>
+
 #include <Scene/Scene.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/ComponentInterface.hpp>
 #include <Scene/Components/TransformComponent.hpp>
+
+#include <Asset/SerializationUtils.hpp>
+
+#include <Core/DataProcessing/HMF/HMF.hpp>
 
 #include <cstring>
 
@@ -278,6 +286,82 @@ void TestDynamicStructDefaultValue()
     dynamicStruct->Release();
 }
 
+void TestDynamicStructFields()
+{
+    // a float followed by a Vec3f at offset 4, less aligned than Vec3f normally is, as C# lays it out
+    static constexpr uint32 structSize = sizeof(float) + sizeof(Vec3f);
+
+    DynamicStructFieldDesc speedField;
+    speedField.name = NAME("Speed");
+    speedField.offset = 0;
+    speedField.size = sizeof(float);
+    speedField.typeInfo = &TypeOf<float>();
+
+    DynamicStructFieldDesc directionField;
+    directionField.name = NAME("Direction");
+    directionField.offset = sizeof(float);
+    directionField.size = sizeof(Vec3f);
+    directionField.typeInfo = &TypeOf<Vec3f>();
+
+    DynamicStructFieldDesc mismatchedField;
+    mismatchedField.name = NAME("Mismatched");
+    mismatchedField.offset = 0;
+    mismatchedField.size = 2;
+    mismatchedField.typeInfo = &TypeOf<float>();
+
+    DynamicStructFieldDesc unsupportedField;
+    unsupportedField.name = NAME("Unsupported");
+    unsupportedField.offset = 0;
+    unsupportedField.size = sizeof(String);
+    unsupportedField.typeInfo = &TypeOf<String>();
+
+    MemberVariant members[2];
+
+    Check("DynamicStruct fields: supported fields become properties",
+        MakeDynamicStructProperty(speedField, 0, members[0]) && MakeDynamicStructProperty(directionField, 1, members[1]));
+
+    MemberVariant rejectedMember;
+    Check("DynamicStruct fields: size mismatch is rejected", !MakeDynamicStructProperty(mismatchedField, 2, rejectedMember));
+    Check("DynamicStruct fields: types without a trivially copyable Struct are rejected", !MakeDynamicStructProperty(unsupportedField, 2, rejectedMember));
+
+    DynamicStructInstance* dynamicStruct = new DynamicStructInstance(
+        TypeId::ForManagedType("TestFieldsStruct"),
+        NAME("TestFieldsStruct"),
+        structSize,
+        alignof(float),
+        Span<const ClassAttribute>(),
+        ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
+        Span<MemberVariant>(members, 2),
+        DynamicStructInstanceFunctions {});
+
+    {
+        const Property* speedProperty = dynamicStruct->GetProperty("Speed"_sh);
+        const Property* directionProperty = dynamicStruct->GetProperty("Direction"_sh);
+
+        Check("DynamicStruct fields: properties are found by name", speedProperty != nullptr && directionProperty != nullptr);
+
+        BoxedValue instance;
+
+        if (speedProperty && directionProperty && dynamicStruct->ConstructBoxed(instance))
+        {
+            speedProperty->Set(instance, BoxedValue(2.5f));
+            directionProperty->Set(instance, BoxedValue(Vec3f(1.0f, 2.0f, 3.0f)));
+
+            Check("DynamicStruct fields: values round trip through the properties",
+                speedProperty->Get(instance).Get<float>() == 2.5f
+                    && directionProperty->Get(instance).Get<Vec3f>() == Vec3f(1.0f, 2.0f, 3.0f));
+
+            const float expectedDirection[] = { 1.0f, 2.0f, 3.0f };
+            const ubyte* bytes = static_cast<const ubyte*>(instance.ToRef().GetPointer());
+
+            Check("DynamicStruct fields: values are stored at their offsets",
+                std::memcmp(bytes + sizeof(float), expectedDirection, sizeof(expectedDirection)) == 0);
+        }
+    }
+
+    dynamicStruct->Release();
+}
+
 void TestNativeAndTagComponents(EntityManager* entityManagerA, const Handle<EntityManager>& entityManagerB)
 {
     Handle<Entity> entity = entityManagerA->AddEntity();
@@ -373,18 +457,23 @@ void TestRuntimeComponent(EntityManager* entityManagerA, const Handle<EntityMana
                 && ReadSerial(copiedRef.GetPointer()) == ReadSerial(createdInstance.ToRef().GetPointer()));
         }
 
-        // clone through the serialization path Entity::Clone uses
+        // clone through the reflected Components property, the path saving, loading and Entity::Clone use
         {
-            // @FIXME
+            const Property* componentsProperty = entity->InstanceClass()->GetProperty("Components"_sh);
+            Check("Runtime: entity exposes its Components property", componentsProperty != nullptr);
 
-            //Array<BoxedValue, DynamicAllocator> serializedComponents = entity->SerializeComponents();
+            if (componentsProperty)
+            {
+                const BoxedValue serializedComponents = componentsProperty->Get(BoxedValue(entity));
 
-            //Handle<Entity> cloneTarget = entityManagerA->AddEntity();
-            //cloneTarget->DeserializeComponents(serializedComponents);
+                Handle<Entity> cloneTarget = entityManagerA->AddEntity();
+                BoxedValue cloneTargetBoxed(cloneTarget);
+                componentsProperty->Set(cloneTargetBoxed, serializedComponents);
 
-            //AnyRef clonedRef = entityManagerA->TryGetComponent(runtimeTypeId, cloneTarget.Get());
-           // Check("Runtime: serialize/deserialize keeps component bytes", clonedRef.HasValue()
-            //    && std::memcmp(clonedRef.GetPointer(), componentRef.GetPointer(), g_runtimeComponentSize) == 0);
+                AnyRef clonedRef = entityManagerA->TryGetComponent(runtimeTypeId, cloneTarget.Get());
+                Check("Runtime: serialize/deserialize keeps component bytes", clonedRef.HasValue()
+                    && std::memcmp(clonedRef.GetPointer(), componentRef.GetPointer(), g_runtimeComponentSize) == 0);
+            }
         }
 
         // enough entities to span several slabs; remove every other component and add them back
@@ -488,6 +577,66 @@ void TestRuntimeComponent(EntityManager* entityManagerA, const Handle<EntityMana
     runtimeStruct->Release();
 }
 
+// A saved component whose class isn't registered yet (eg its script hasn't loaded) is kept, written back, and restored later
+void TestUnresolvedComponents(EntityManager* entityManager)
+{
+    Handle<Entity> entity = entityManager->AddEntity();
+    BoxedValue entityBoxed(entity);
+
+    HMF::ParseResult parseResult = HMF::Parse(String("Entity { Components = [ TestUnresolvedComponent { Value = 2.5 } ] }"), nullptr, &entityBoxed);
+
+    Check("Unresolved: entity with an unknown component class still parses", !parseResult.HasError(),
+        parseResult.HasError() ? parseResult.GetError().GetMessage() : String());
+    Check("Unresolved: the component is kept", entity->HasUnresolvedComponents());
+
+    String savedText;
+    ObjectToHMF(entity->InstanceClass(), BoxedValue(entity), savedText);
+
+    Check("Unresolved: the component is written back when saving",
+        savedText.Contains("TestUnresolvedComponent") && savedText.Contains("2.5"), savedText);
+
+    DynamicStructFieldDesc valueField;
+    valueField.name = NAME("Value");
+    valueField.offset = 0;
+    valueField.size = sizeof(float);
+    valueField.typeInfo = &TypeOf<float>();
+
+    MemberVariant members[1];
+    MakeDynamicStructProperty(valueField, 0, members[0]);
+
+    const TypeId typeId = TypeId::ForManagedType("TestUnresolvedComponent");
+
+    DynamicStructInstance* dynamicStruct = new DynamicStructInstance(
+        typeId,
+        NAME("TestUnresolvedComponent"),
+        sizeof(float),
+        alignof(float),
+        Span<const ClassAttribute>(),
+        ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
+        Span<MemberVariant>(members, 1),
+        DynamicStructInstanceFunctions {});
+
+    Check("Unresolved: registering its class", ComponentInterfaceRegistry::GetInstance().RegisterRuntimeComponent(dynamicStruct) != nullptr);
+
+    entityManager->ResolveUnresolvedComponents();
+
+    AnyRef componentRef = entityManager->TryGetComponent(typeId, entity.Get());
+
+    float restoredValue = 0.0f;
+
+    if (componentRef.HasValue())
+    {
+        std::memcpy(&restoredValue, componentRef.GetPointer(), sizeof(float));
+    }
+
+    Check("Unresolved: component restored once its class registers", componentRef.HasValue() && !entity->HasUnresolvedComponents());
+    Check("Unresolved: restored component keeps its saved value", restoredValue == 2.5f);
+
+    entityManager->RemoveComponent(typeId, entity.Get());
+    ComponentInterfaceRegistry::GetInstance().UnregisterRuntimeComponent(typeId);
+    dynamicStruct->Release();
+}
+
 } // namespace
 
 ENGINE_API void RunComponentContainerTests()
@@ -497,6 +646,7 @@ ENGINE_API void RunComponentContainerTests()
 
     TestStridedBuffer();
     TestDynamicStructDefaultValue();
+    TestDynamicStructFields();
 
     {
         Handle<Scene> sceneA = MakeHandle<Scene>(NAME("ComponentContainerTestSceneA"), ThreadId::Current(), SceneFlags::NONE);
@@ -507,6 +657,7 @@ ENGINE_API void RunComponentContainerTests()
 
         TestNativeAndTagComponents(sceneA->GetEntityManager().Get(), sceneB->GetEntityManager());
         TestRuntimeComponent(sceneA->GetEntityManager().Get(), sceneB->GetEntityManager());
+        TestUnresolvedComponents(sceneA->GetEntityManager().Get());
     }
 
     Check("Runtime: every construct/copy/move is matched by a destruct once the scenes are gone",

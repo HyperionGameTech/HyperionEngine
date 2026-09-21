@@ -607,7 +607,7 @@ namespace Hyperion.Editor.ViewModels
                         {
                             InspectorComponentViewModelBase? componentVm = null;
 
-                            ComponentTypeDescriptor? descriptor = s_registeredComponents.Value
+                            ComponentTypeDescriptor? descriptor = RegisteredComponents
                                 .FirstOrDefault(d => d.TypeId == typeId);
 
                             if (descriptor != null)
@@ -1205,7 +1205,7 @@ namespace Hyperion.Editor.ViewModels
         }
 
         private static IEnumerable<(string Label, TypeId TypeId)> GetSupportedComponentTypes()
-            => s_registeredComponents.Value
+            => RegisteredComponents
                 .Where(d => d.IsEditorEnabled)
                 .Select(d => (d.Label, d.TypeId));
 
@@ -1248,17 +1248,49 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private static readonly Lazy<ComponentTypeDescriptor[]> s_registeredComponents = new(() =>
-            AppDomain.CurrentDomain.GetAssemblies()
+        private static readonly object s_registeredComponentsLock = new();
+        private static ComponentTypeDescriptor[]? s_registeredComponents;
+        private static bool s_listeningForComponentTypeChanges;
+
+        // Rebuilt after component types are registered, eg when a script assembly loads or hot reloads
+        private static ComponentTypeDescriptor[] RegisteredComponents
+        {
+            get
+            {
+                lock (s_registeredComponentsLock)
+                {
+                    if (!s_listeningForComponentTypeChanges)
+                    {
+                        ComponentRegistry.ComponentTypesChanged += () =>
+                        {
+                            lock (s_registeredComponentsLock)
+                            {
+                                s_registeredComponents = null;
+                            }
+                        };
+
+                        s_listeningForComponentTypeChanges = true;
+                    }
+
+                    return s_registeredComponents ??= BuildRegisteredComponents();
+                }
+            }
+        }
+
+        private static ComponentTypeDescriptor[] BuildRegisteredComponents()
+            => AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a =>
                 {
                     try { return a.GetTypes(); }
                     catch { return Array.Empty<Type>(); }
                 })
                 .Where(t => t.IsValueType && t.GetInterfaces().Contains(typeof(IComponent)))
+                // hot reloading a script assembly leaves the older copies of its types loaded; keep the newest
+                .GroupBy(t => t.FullName)
+                .Select(group => group.Last())
                 .Select(BuildDescriptor)
                 .OfType<ComponentTypeDescriptor>()
-                .ToArray());
+                .ToArray();
 
         private bool CanAddComponent(object? parameter)
         {
@@ -1292,7 +1324,7 @@ namespace Hyperion.Editor.ViewModels
 
                     try
                     {
-                        ComponentTypeDescriptor? descriptor = s_registeredComponents.Value
+                        ComponentTypeDescriptor? descriptor = RegisteredComponents
                             .FirstOrDefault(d => d.TypeId == option.TypeId);
 
                         if (descriptor != null)

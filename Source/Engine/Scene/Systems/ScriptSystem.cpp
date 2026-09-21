@@ -110,6 +110,20 @@ public:
             callbackSelfPtr);
     }
 
+    void InitializeCompiler(const FilePath& sourceDirectory, const FilePath& intermediateDirectory, const FilePath& binaryOutputDirectory)
+    {
+        if (!object || !object->IsValid())
+        {
+            return;
+        }
+
+        object->InvokeMethodByName<void>(
+            "InitializeCompiler",
+            sourceDirectory,
+            intermediateDirectory,
+            binaryOutputDirectory);
+    }
+
     void UpdateSourceDirectories(const Array<FilePath>& sourceDirectories)
     {
         if (!object || !object->IsValid())
@@ -366,6 +380,68 @@ void ScriptSystem::RefreshScriptSourceDirectories()
 
     // Update the source dirs, may have changed, for example "Save As" project or first save going from temp dir -> actual concrete dir
     m_scriptTracker->UpdateSourceDirectories(CollectScriptSourceDirectories());
+}
+
+void ScriptSystem::PreloadProjectScripts(const FilePath& projectRootPath)
+{
+#ifdef HYP_DOTNET
+    if (!EnableScriptReloading() || !DotNETHost::GetInstance().IsInitialized())
+    {
+        return;
+    }
+
+    const FilePath scriptsDirectory = projectRootPath / AssetBuckets::Scripts.GetName();
+
+    if (!scriptsDirectory.IsDirectory())
+    {
+        return;
+    }
+
+    // same compiler settings as the tracker in OnAddedToWorld(), so modules resolve to the same names and outputs
+    ScriptTracker scriptTracker;
+    scriptTracker.InitializeCompiler(GetScriptsSourceDirectory(), EngineGlobals::GetTempDirectory() / "ScriptProjects", CoreApi::GetExecutablePath());
+
+    Array<FilePath> pendingDirectories;
+    pendingDirectories.PushBack(scriptsDirectory);
+
+    while (pendingDirectories.Any())
+    {
+        const FilePath directory = pendingDirectories.PopBack();
+
+        for (const FilePath& subdirectory : directory.GetSubdirectories())
+        {
+            pendingDirectories.PushBack(subdirectory);
+        }
+
+        // every C# source in a directory builds into the same module, so resolving one of them loads all of them
+        for (const FilePath& file : directory.GetAllFilesInDirectory())
+        {
+            if (!file.EndsWith(".cs"))
+            {
+                continue;
+            }
+
+            ScriptDesc scriptDesc;
+            scriptDesc.language = ScriptLanguage::CSharp;
+
+            if (!scriptTracker.ResolveAssembly(file, scriptDesc))
+            {
+                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to build C# scripts in {}; components they define won't be available until they build", directory);
+
+                break;
+            }
+
+            const ANSIString assemblyPath = EntityScripting::GetCSharpAssemblyLoadPath(scriptDesc);
+
+            if (!DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
+            {
+                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to load C# script module '{}'", assemblyPath.Data());
+            }
+
+            break;
+        }
+    }
+#endif // HYP_DOTNET
 }
 
 void ScriptSystem::OnRemovedFromWorld(World* world)

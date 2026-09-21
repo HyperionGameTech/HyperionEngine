@@ -109,6 +109,17 @@ ENGINE_API Result BoxedToJSON(
         return {};
     }
 
+    // only HMF can carry an object whose class wasn't registered when it was read
+    if (value.Is<HMF::UnresolvedObject>())
+    {
+        HYP_LOG(Core, Warning, "Cannot write unresolved object of class '{}' to JSON; it is dropped from the JSON output",
+            value.Get<HMF::UnresolvedObject>().className);
+
+        outJson = JSON::JSNull();
+
+        return {};
+    }
+
     const TypeInfo& typeInfo = *value.GetTypeInfo();
 
     AssetReference assetReference;
@@ -2325,8 +2336,8 @@ ENGINE_API bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& 
         return true;
     }
 
-    // Runtime-defined structs with no reflected members can only be cloned as a whole
-    if (cls->IsDynamic() && cls->GetFields().Empty() && cls->GetProperties().Empty())
+    // Runtime-defined structs are plain data and may have fields that aren't reflected, so clone them as a whole
+    if (cls->IsDynamic() && cls->IsStructType())
     {
         if (const Struct* dynamicStruct = GetStructFromClass(cls))
         {
@@ -2488,6 +2499,13 @@ Result BoxedToHMFImpl(
     if (value.IsNull())
     {
         outText += "null";
+        return {};
+    }
+
+    // an object whose class wasn't registered when it was read (eg a script component); written back exactly as it was read
+    if (value.Is<HMF::UnresolvedObject>())
+    {
+        outText += value.Get<HMF::UnresolvedObject>().source;
         return {};
     }
 

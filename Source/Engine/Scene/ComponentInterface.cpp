@@ -182,6 +182,7 @@ ComponentInterfaceRegistry& ComponentInterfaceRegistry::GetInstance()
 
 ComponentInterfaceRegistry::ComponentInterfaceRegistry()
     : m_lookupTable(nullptr),
+      m_runtimeRegistrationGeneration(0),
       m_isInitialized(false)
 {
 }
@@ -313,6 +314,8 @@ const ComponentInterface* ComponentInterfaceRegistry::RegisterRuntimeComponent(c
     m_ownedInterfaces.PushBack(std::move(componentInterface));
 
     PublishLookupTable(std::move(lookupTable));
+
+    m_runtimeRegistrationGeneration.Increment(1, MemoryOrder::RELEASE);
 
     return result;
 }
