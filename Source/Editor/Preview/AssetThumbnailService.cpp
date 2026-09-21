@@ -21,6 +21,7 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
 
+#include <Scene/Prefab.hpp>
 #include <Scene/World.hpp>
 
 #include <stb_image_write.h>
@@ -146,7 +147,7 @@ void AssetThumbnailService::DrainInvalidations()
     {
         // Only assets that have actually been thumbnailed are worth re-rendering. Without this, loading
         // or touching a project would queue a render for every asset in it and make them all resident.
-        if (!GetThumbnailPath(key).Exists())
+        if (!GetThumbnailPath(key).Exists() && !m_undrawableKeys.Contains(key))
         {
             continue;
         }
@@ -173,6 +174,7 @@ void AssetThumbnailService::Shutdown()
     }
 
     m_forcedKeys.Clear();
+    m_undrawableKeys.Clear();
     m_queue.Clear();
     m_current = {};
     m_stage = CaptureStage::Idle;
@@ -280,6 +282,7 @@ void AssetThumbnailService::CancelPending()
     AssertOnThread(g_simThread);
 
     m_queue.Clear();
+    m_undrawableKeys.Clear();
 }
 
 void AssetThumbnailService::Update()
@@ -394,8 +397,15 @@ void AssetThumbnailService::BeginNextRequest()
 
     if (!PoseSubject(key))
     {
+        if (!m_undrawableKeys.Contains(key))
+        {
+            m_undrawableKeys.PushBack(key);
+        }
+
         return;
     }
+
+    m_undrawableKeys.Erase(key);
 
     m_current = key;
     m_stage = CaptureStage::Settling;
@@ -455,6 +465,11 @@ bool AssetThumbnailService::PoseSubject(const PreviewAssetKey& key)
         m_previewScene->ShowMesh(mesh);
 
         return true;
+    }
+
+    if (Prefab* prefab = DynamicCast<Prefab>(asset.Get()))
+    {
+        return m_previewScene->ShowPrefab(prefab);
     }
 
     // Nothing meaningful to render for this asset type.
