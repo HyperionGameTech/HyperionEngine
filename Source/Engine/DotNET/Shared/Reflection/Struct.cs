@@ -81,10 +81,25 @@ namespace Hyperion
 
             Logger.Log(LogLevel.Verbose, "Creating dynamic Struct for type: " + type.Name);
 
-            IntPtr classPtr = Struct_CreateDynamicStruct(
-                ref typeId,
-                type.Name,
-                (uint)Marshal.SizeOf(type));
+            IntPtr defaultValuePtr = CreateDefaultValue(type);
+            IntPtr classPtr;
+
+            try
+            {
+                classPtr = Struct_CreateDynamicStruct(
+                    ref typeId,
+                    type.Name,
+                    (uint)Marshal.SizeOf(type),
+                    defaultValuePtr);
+            }
+            finally
+            {
+                if (defaultValuePtr != IntPtr.Zero)
+                {
+                    Marshal.DestroyStructure(defaultValuePtr, type);
+                    Marshal.FreeHGlobal(defaultValuePtr);
+                }
+            }
 
             if (classPtr == IntPtr.Zero)
             {
@@ -171,6 +186,44 @@ namespace Hyperion
             }
         }
 
+        private static IntPtr CreateDefaultValue(Type type)
+        {
+            object? defaultInstance;
+
+            try
+            {
+                defaultInstance = Activator.CreateInstance(type);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, "Could not create a default {0}; instances will be zero-initialized: {1}", type.Name, ex.Message);
+
+                return IntPtr.Zero;
+            }
+
+            if (defaultInstance == null)
+            {
+                return IntPtr.Zero;
+            }
+
+            IntPtr defaultValuePtr = Marshal.AllocHGlobal(Marshal.SizeOf(type));
+
+            try
+            {
+                Marshal.StructureToPtr(defaultInstance, defaultValuePtr, false);
+            }
+            catch (Exception ex)
+            {
+                Marshal.FreeHGlobal(defaultValuePtr);
+
+                Logger.Log(LogLevel.Warning, "Could not marshal a default {0}; instances will be zero-initialized: {1}", type.Name, ex.Message);
+
+                return IntPtr.Zero;
+            }
+
+            return defaultValuePtr;
+        }
+
         private static string GetLayoutSignature(Type type)
         {
             FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -201,7 +254,8 @@ namespace Hyperion
         private static extern IntPtr Struct_CreateDynamicStruct(
             [In] ref TypeId typeId,
             [MarshalAs(UnmanagedType.LPStr)] string typeName,
-            uint size);
+            uint size,
+            IntPtr defaultValue);
 
         [DllImport("hyperion", EntryPoint = "Struct_DestroyDynamicStruct")]
         private static extern void Struct_DestroyDynamicStruct([In] IntPtr classPtr);

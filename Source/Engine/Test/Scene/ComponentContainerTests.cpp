@@ -244,6 +244,40 @@ void TestStridedBuffer()
     Check("StridedBuffer: Reset clears everything", !buffer.HasIndex(0) && buffer.NumActiveAllocations() == 0);
 }
 
+void TestDynamicStructDefaultValue()
+{
+    struct DefaultValueLayout
+    {
+        uint32 first;
+        float second;
+        uint64 third;
+    };
+
+    const DefaultValueLayout defaultValue { 7, 1.5f, 0x1122334455667788ull };
+
+    DynamicStructInstance* dynamicStruct = new DynamicStructInstance(
+        TypeId::ForManagedType("TestDefaultValueStruct"),
+        NAME("TestDefaultValueStruct"),
+        sizeof(DefaultValueLayout),
+        alignof(DefaultValueLayout),
+        Span<const ClassAttribute>(),
+        ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
+        Span<MemberVariant>(),
+        DynamicStructInstanceFunctions {});
+
+    dynamicStruct->SetDefaultValue(&defaultValue);
+
+    {
+        BoxedValue constructed;
+        const bool didConstruct = dynamicStruct->ConstructBoxed(constructed);
+
+        Check("DynamicStruct: default construction copies the default value template",
+            didConstruct && std::memcmp(constructed.ToRef().GetPointer(), &defaultValue, sizeof(DefaultValueLayout)) == 0);
+    }
+
+    dynamicStruct->Release();
+}
+
 void TestNativeAndTagComponents(EntityManager* entityManagerA, const Handle<EntityManager>& entityManagerB)
 {
     Handle<Entity> entity = entityManagerA->AddEntity();
@@ -462,6 +496,7 @@ ENGINE_API void RunComponentContainerTests()
     g_failCount = 0;
 
     TestStridedBuffer();
+    TestDynamicStructDefaultValue();
 
     {
         Handle<Scene> sceneA = MakeHandle<Scene>(NAME("ComponentContainerTestSceneA"), ThreadId::Current(), SceneFlags::NONE);

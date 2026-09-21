@@ -264,11 +264,30 @@ bool DynamicStructInstance::CreateInstance_Internal(BoxedValue& out) const
     return ConstructBoxed(out);
 }
 
+void DynamicStructInstance::SetDefaultValue(const void* defaultValue)
+{
+    if (!defaultValue)
+    {
+        m_defaultValue = ByteBuffer();
+
+        return;
+    }
+
+    m_defaultValue = ByteBuffer(m_size, defaultValue);
+}
+
 void DynamicStructInstance::ConstructInPlace(void* destination) const
 {
     if (m_functions.construct != nullptr)
     {
         m_functions.construct(GetFunctionContext(), destination);
+
+        return;
+    }
+
+    if (m_defaultValue.Any())
+    {
+        Memory::Copy(destination, m_defaultValue.Data(), m_size);
 
         return;
     }

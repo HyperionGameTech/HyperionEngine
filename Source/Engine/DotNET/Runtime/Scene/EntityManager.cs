@@ -160,6 +160,16 @@ namespace Hyperion
             AddComponent<T>(entity, componentClass, ref component);
         }
 
+        public void AddComponent<T>(Entity entity, T component) where T : IComponent, allows ref struct
+        {
+            AddComponent<T>(entity, ref component);
+        }
+
+        public void AddComponent<T>(Entity entity) where T : IComponent, allows ref struct
+        {
+            AddDefaultComponent(entity, Class.GetClass(typeof(T)));
+        }
+
         private unsafe void AddComponent<T>(Entity entity, Class componentClass, ref T component) where T : IComponent, allows ref struct
         {
             fixed (T* pComponent = &component)

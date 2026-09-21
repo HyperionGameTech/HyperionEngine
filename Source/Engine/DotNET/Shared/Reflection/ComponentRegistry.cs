@@ -15,28 +15,49 @@ namespace Hyperion
     }
 
     /// <summary>
-    /// Registers the struct as an ECS component type when its assembly is loaded (and again, harmlessly, on hot reload).
+    /// Optional on an IComponent struct: overrides the flags it is registered with.
     /// </summary>
     [AttributeUsage(AttributeTargets.Struct, Inherited = false)]
     public class Component : Attribute
     {
-        public ComponentFlags Flags { get; set; } = ComponentFlags.Serialize | ComponentFlags.ShowInEditor;
-
-        // Called by NativeInterop through the attribute instance, so registration runs against the same Hyperion.NET.Shared the script uses
-        public Class Register(Type type)
-        {
-            return ComponentRegistry.RegisterComponent(type, Flags);
-        }
+        public ComponentFlags Flags { get; set; } = ComponentRegistry.DefaultFlags;
     }
 
     public static class ComponentRegistry
     {
-        public static Class RegisterComponent<T>(ComponentFlags flags = ComponentFlags.Serialize | ComponentFlags.ShowInEditor) where T : unmanaged
+        public const ComponentFlags DefaultFlags = ComponentFlags.Serialize | ComponentFlags.ShowInEditor;
+
+        public static bool RegisterDeclaredComponent(Type type)
+        {
+            if (!type.IsValueType || type.IsEnum)
+            {
+                return false;
+            }
+
+            Component? componentAttribute = type.GetCustomAttribute<Component>(inherit: false);
+
+            if (componentAttribute == null && !typeof(IComponent).IsAssignableFrom(type))
+            {
+                return false;
+            }
+
+            // [ClassBinding] == already exists natively
+            if (type.GetCustomAttribute<ClassBinding>(inherit: false) != null)
+            {
+                return false;
+            }
+
+            RegisterComponent(type, componentAttribute?.Flags ?? DefaultFlags);
+
+            return true;
+        }
+
+        public static Class RegisterComponent<T>(ComponentFlags flags = DefaultFlags) where T : unmanaged
         {
             return RegisterComponent(typeof(T), flags);
         }
 
-        public static Class RegisterComponent(Type type, ComponentFlags flags = ComponentFlags.Serialize | ComponentFlags.ShowInEditor)
+        public static Class RegisterComponent(Type type, ComponentFlags flags = DefaultFlags)
         {
             if (!IsBlittable(type))
             {

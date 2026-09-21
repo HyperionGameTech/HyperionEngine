@@ -321,6 +321,9 @@ public:
         return m_functions;
     }
 
+    /*! \brief Sets template for default construction copies when no construct function is given, from raw bytes  */
+    void SetDefaultValue(const void* defaultValue);
+
     void AddRef();
     void Release();
 
@@ -360,6 +363,7 @@ protected:
     }
 
     DynamicStructInstanceFunctions m_functions;
+    ByteBuffer m_defaultValue;
 
     volatile int32 m_refCount;
 };
