@@ -677,7 +677,7 @@ namespace Hyperion.Editor.ViewModels
 
                     using BoxedValue boxed = new BoxedValue(clonedAssetObj);
                     CommitPropertyChange($"Clone {Label}", boxed);
-                    Dispatcher.UIThread.Post(() => IsEditorExpanded = true);
+                    //Dispatcher.UIThread.Post(() => IsEditorExpanded = true);
                 }
                 catch (Exception ex)
                 {

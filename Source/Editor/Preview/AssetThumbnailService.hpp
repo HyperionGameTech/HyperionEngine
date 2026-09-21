@@ -117,6 +117,9 @@ private:
     //!< Assets whose cached thumbnail is known to be out of date, so Request() ignores the cache for them.
     Array<PreviewAssetKey> m_forcedKeys;
 
+    //!< Requested but had nothing to render
+    Array<PreviewAssetKey> m_undrawableKeys;
+
     //!< Written from whichever thread changed an asset, drained on the sim thread in Update().
     Mutex m_invalidationMutex;
     Array<PreviewAssetKey> m_pendingInvalidations;

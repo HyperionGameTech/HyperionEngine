@@ -21,11 +21,14 @@ namespace Hyperion {
 class World;
 class Scene;
 class Camera;
+class Node;
 class Entity;
 class DirectionalLight;
 class View;
 class Mesh;
 class Material;
+class Prefab;
+struct MeshComponent;
 
 class AssetPreviewScene final
 {
@@ -48,23 +51,21 @@ public:
     {
         return m_extent;
     }
+    
+    ////////////////////
 
     void ShowMaterial(Material* material);
-
     void ShowMesh(Mesh* mesh);
+    bool ShowPrefab(Prefab* prefab);
+
+    ///Key light
 
     void SetKeyLightDirection(const Vec3f& direction);
-
-    /*! \brief Aims the key light with angles relative to the preview camera - zero yaw and pitch puts
-     *  the light behind the viewer, positive yaw swings it to the right of the image and positive
-     *  pitch raises it. */
     void SetKeyLightViewAngles(float yaw, float pitch);
 
-    /*! \brief Register the View for rendering this frame. ProcessViewAsync only lasts one frame, so this
-     *  has to be called every sim tick for as long as the preview needs to render. */
+    //////////////////
+    
     void Submit();
-
-    /*! \brief Arm the capture; \p callback receives linear RGBA16F pixels on the render thread. */
     void RequestCapture(ThumbnailCaptureState::Callback&& callback);
 
     HYP_FORCE_INLINE bool IsCaptureRequested() const
@@ -73,6 +74,11 @@ public:
     }
 
 private:
+    MeshComponent* ShowSubjectEntity();
+    void HideSubjectEntity();
+
+    void ClearPrefab();
+
     void FrameCameraToBounds(const BoundingBox& bounds);
 
     Name m_name;
@@ -83,6 +89,7 @@ private:
     Handle<Scene> m_scene;
     Handle<Camera> m_camera;
     Handle<Entity> m_entity;
+    Handle<Node> m_prefabRoot;
     Handle<DirectionalLight> m_keyLight;
     Handle<DirectionalLight> m_fillLight;
     Handle<View> m_view;
