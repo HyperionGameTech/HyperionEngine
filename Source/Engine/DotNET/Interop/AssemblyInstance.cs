@@ -491,8 +491,32 @@ namespace Hyperion
             return null;
         }
 
+        // Hot reloaded script versions share a name, only the exact Assembly object tells them apart
+        public AssemblyInstance? GetByReference(Assembly assembly)
+        {
+            lock (lockObject)
+            {
+                foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
+                {
+                    if (ReferenceEquals(kvp.Value.Assembly, assembly))
+                    {
+                        return kvp.Value;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         public AssemblyInstance? Get(Assembly assembly)
         {
+            AssemblyInstance? assemblyInstance = GetByReference(assembly);
+
+            if (assemblyInstance != null)
+            {
+                return assemblyInstance;
+            }
+
             string assemblyPath = assembly.Location;
 
             lock (lockObject)

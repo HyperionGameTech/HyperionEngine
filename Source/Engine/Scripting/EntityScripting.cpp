@@ -27,6 +27,8 @@
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Method.hpp>
 
+#include <Core/IO/ByteReader.hpp>
+
 #include <Framework/Game.hpp>
 #include <Framework/EngineGlobals.hpp>
 
@@ -301,6 +303,150 @@ void BindExterns(StrataJit* jit)
         HYP_LOG(Scripting, Error, "Strata: no host binding for extern '{}'. Any call to this function will result in a crash!", name);
     }
 }
+
+static FilePath CanonicalizeModulePath(const FilePath& path)
+{
+#        if HYP_WINDOWS
+    char buffer[4096];
+
+    if (_fullpath(buffer, path.Data(), sizeof(buffer)) != nullptr)
+    {
+        return FilePath(buffer);
+    }
+#        elif HYP_UNIX
+    if (char* resolvedPath = realpath(path.Data(), nullptr))
+    {
+        FilePath result(resolvedPath);
+        free(resolvedPath);
+
+        return result;
+    }
+#        endif
+
+    return path;
+}
+
+static const Array<FilePath>& GetEngineModuleDirectories()
+{
+    static const Array<FilePath> directories = []()
+    {
+        Array<FilePath> result;
+
+#        ifdef HYP_ROOT_DIR
+        // CodeGen writes Engine.strata into the source tree
+        result.PushBack(FilePath(HYP_ROOT_DIR) / "Data" / "Scripts" / "Strata");
+#        endif
+
+        result.PushBack(CoreApi::GetExecutablePath() / "Data" / "Scripts" / "Strata");
+
+        return result;
+    }();
+
+    return directories;
+}
+
+class ImportResolver
+{
+public:
+    ImportResolver(StrataCompiler* compiler, const FilePath& projectScriptsDirectory)
+        : m_compiler(compiler),
+          m_projectScriptsDirectory(projectScriptsDirectory)
+    {
+        strataSetImportResolver(m_compiler, &ImportResolver::Resolve, this);
+    }
+
+    ImportResolver(const ImportResolver& other) = delete;
+    ImportResolver& operator=(const ImportResolver& other) = delete;
+
+    ~ImportResolver()
+    {
+        strataSetImportResolver(m_compiler, nullptr, nullptr);
+    }
+
+private:
+    struct LoadedModule
+    {
+        FilePath path;
+        ByteBuffer source;
+    };
+
+    static int Resolve(void* userData, const char* importerName, const char* importPath, StrataResolvedModule* out)
+    {
+        ImportResolver* resolver = static_cast<ImportResolver*>(userData);
+        AssertDebug(resolver != nullptr);
+
+        String moduleFilename(importPath);
+
+        if (!moduleFilename.EndsWith(".strata"))
+        {
+            moduleFilename += ".strata";
+        }
+
+        // ./x and ../x only make sense relative to the importing module
+        const bool isRelativeImport = importPath[0] == '.';
+
+        Array<FilePath> searchDirectories;
+
+        if (!isRelativeImport)
+        {
+            // Engine modules come first so a stale project copy of Engine.strata can't shadow the bindings this build exposes
+            searchDirectories.Concat(GetEngineModuleDirectories());
+        }
+
+        searchDirectories.PushBack(FilePath(importerName).BasePath());
+
+        if (!isRelativeImport)
+        {
+            searchDirectories.PushBack(resolver->m_projectScriptsDirectory);
+        }
+
+        for (const FilePath& directory : searchDirectories)
+        {
+            if (directory.Empty())
+            {
+                continue;
+            }
+
+            const FilePath candidatePath = directory / moduleFilename;
+
+            if (!candidatePath.Exists() || candidatePath.IsDirectory() || !candidatePath.CanRead())
+            {
+                continue;
+            }
+
+            const LoadedModule& loadedModule = resolver->Load(CanonicalizeModulePath(candidatePath));
+
+            out->text = loadedModule.source.Any() ? reinterpret_cast<const char*>(loadedModule.source.Data()) : "";
+            out->length = loadedModule.source.Size();
+            out->name = loadedModule.path.Data();
+
+            return 1;
+        }
+
+        HYP_LOG(Scripting, Warning, "Strata: could not resolve import '{}' from '{}'", importPath, importerName);
+
+        return 0;
+    }
+
+    const LoadedModule& Load(const FilePath& modulePath)
+    {
+        for (const LoadedModule& loadedModule : m_loadedModules)
+        {
+            if (loadedModule.path == modulePath)
+            {
+                return loadedModule;
+            }
+        }
+
+        FileByteReader stream { modulePath };
+
+        return m_loadedModules.PushBack(LoadedModule { modulePath, stream.Read() });
+    }
+
+    StrataCompiler* m_compiler;
+    FilePath m_projectScriptsDirectory;
+    Array<LoadedModule> m_loadedModules;
+};
 
 #    endif // HYP_STRATA_JIT
 
@@ -613,11 +759,13 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     // Compile the source at runtime. Shipped builds have no knowledge of the language, symbols are linked to the exe
                     Strata::InitializeCompiler();
 
+                    FilePath projectScriptsDirectory;
                     FilePath sourcePath;
 
                     if (Handle<AssetRegistry> registry = scriptAsset->GetAssetRegistry(); registry.IsValid())
                     {
-                        sourcePath = registry->GetRootPath() / AssetBuckets::Scripts.GetName() / (scriptAsset->GetName().ToString() + ".strata");
+                        projectScriptsDirectory = registry->GetRootPath() / AssetBuckets::Scripts.GetName();
+                        sourcePath = projectScriptsDirectory / (scriptAsset->GetName().ToString() + ".strata");
                     }
 
                     if (!sourcePath.Exists() || !sourcePath.CanRead())
@@ -628,6 +776,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
 
                     if (sourcePath.Exists() && sourcePath.CanRead())
                     {
+                        Strata::ImportResolver importResolver(Strata::t_strataCompiler, projectScriptsDirectory);
+
                         const char* err = nullptr;
                         StrataJit* jit = strataJitCompileFile(Strata::t_strataCompiler, sourcePath.Data(), &err);
 

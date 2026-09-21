@@ -68,8 +68,7 @@ namespace Hyperion
             {
                 fixed (byte* p = path)
                 {
-                    byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
-                    Marshal.Copy(bytes, 0, (IntPtr)p, bytes.Length);
+                    WriteString(p, 1024, value);
                 }
             }
         }
@@ -88,8 +87,7 @@ namespace Hyperion
             {
                 fixed (byte* p = assemblyPath)
                 {
-                    byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
-                    Marshal.Copy(bytes, 0, (IntPtr)p, bytes.Length);
+                    WriteString(p, 1024, value);
                 }
             }
         }
@@ -108,8 +106,7 @@ namespace Hyperion
             {
                 fixed (byte* p = className)
                 {
-                    byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
-                    Marshal.Copy(bytes, 0, (IntPtr)p, bytes.Length);
+                    WriteString(p, 128, value);
                 }
             }
         }
@@ -136,6 +133,16 @@ namespace Hyperion
         {
             get => lastModifiedTimestamp;
             set => lastModifiedTimestamp = value;
+        }
+
+        //writes NUL terminated string.
+        private static void WriteString(byte* destination, int capacity, string value)
+        {
+            byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
+            int length = Math.Min(bytes.Length, capacity - 1);
+
+            Marshal.Copy(bytes, 0, (IntPtr)destination, length);
+            destination[length] = 0;
         }
     }
 

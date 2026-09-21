@@ -49,7 +49,14 @@ namespace Hyperion
         private static bool IsHyperionAssembly(Assembly assembly)
         {
             string assemblyName = assembly.GetName().Name ?? string.Empty;
-            return assemblyName.StartsWith("Hyperion.");
+
+            if (assemblyName.StartsWith("Hyperion."))
+            {
+                return true;
+            }
+
+            // script modules are named after their project (e.g Projects.MyGame.Scripts) but still build against the engine
+            return Array.Exists(assembly.GetReferencedAssemblies(), referencedAssemblyName => referencedAssemblyName.Name == "Hyperion.NET.Runtime");
         }
 
         private static void InitializeHyperionAssembly(Assembly assembly, bool isCoreAssembly)
@@ -370,7 +377,8 @@ namespace Hyperion
                 return IntPtr.Zero;
             }
 
-            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly.GetName());
+            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.GetByReference(type.Assembly)
+                ?? AssemblyCache.Instance.Get(type.Assembly.GetName());
 
             if (assemblyInstance == null)
             {

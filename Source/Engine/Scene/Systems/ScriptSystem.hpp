@@ -56,6 +56,9 @@ private:
 
     void HandleGameStateChanged(GameStateMode gameStateMode, GameStateMode previousGameStateMode);
 
+    // Editor only: builds the C# module for a script if needed and points its asset at the assembly
+    void ResolveScriptAssembly(ScriptComponent& scriptComponent);
+
     UniquePtr<ScriptingService> m_scriptingService;
     UniquePtr<ScriptTracker> m_scriptTracker;
 };

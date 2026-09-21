@@ -232,6 +232,28 @@ namespace Hyperion
             }
         }
 
+        public bool ResolveAssembly(string scriptPath, IntPtr scriptDescPtr)
+        {
+            if (csharpCompiler == null || scriptDescPtr == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            try
+            {
+                unsafe
+                {
+                    return csharpCompiler.ResolveAssembly(scriptPath, ref *(ScriptDesc*)scriptDescPtr);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(logChannel, LogLevel.Error, "Error resolving assembly for script {0}: {1}", scriptPath, e.Message);
+
+                return false;
+            }
+        }
+
         private void OnCsFileChanged(object source, FileSystemEventArgs e)
         {
             Logger.Log(logChannel, LogLevel.Info, "ScriptTracker: C# file changed: {0} {1}", e.FullPath, e.ChangeType);

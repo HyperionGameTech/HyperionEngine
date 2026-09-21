@@ -27,6 +27,9 @@ namespace Hyperion.Editor.ViewModels
     {
         public static ContentBrowserViewModel? Instance { get; private set; }
 
+        /// <summary>Raised whenever a newly-created asset is about to be focused, so the view can bring the content browser's dock tab to the front even if it's tabbed behind another panel.</summary>
+        public static event Action? BringToFrontRequested;
+
         private readonly EditorSubsystem _editorSubsystem;
         private readonly ThumbnailService _thumbnailService;
 
@@ -653,6 +656,8 @@ namespace Hyperion.Editor.ViewModels
 
             if (bucketIndex == 0)
                 return;
+
+            BringToFrontRequested?.Invoke();
 
             // An active search would hide the asset we are about to select.
             SearchText = string.Empty;
