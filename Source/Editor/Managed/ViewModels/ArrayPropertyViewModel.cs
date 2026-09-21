@@ -24,6 +24,9 @@ namespace Hyperion.Editor.ViewModels
         // The same, per multi-selection peer (indexed like Peers).
         private BoxedValue?[] _peerArrayValues = Array.Empty<BoxedValue?>();
 
+        // Set when the element editor can't edit several objects at once, so no elements are shown.
+        private volatile bool _cannotEditElementsTogether;
+
         // Virtual element not yet committed to the real array.
         private ObjectPropertyViewModel? _pendingElement;
 
@@ -216,7 +219,11 @@ namespace Hyperion.Editor.ViewModels
 
             PropertyTarget peer = Peers[peerIndex];
 
-            peer.Set(current);
+            if (!TryWritePeerContainerValueToSwatchOverride(peer, current))
+            {
+                peer.Set(current);
+            }
+
             peer.PostWrite?.Invoke();
         }
 
@@ -411,10 +418,14 @@ namespace Hyperion.Editor.ViewModels
             {
                 InspectorPropertyViewModelBase? element = CreateElementViewModel(i);
 
-                if (element != null)
+                if (element == null)
                 {
-                    Elements.Add(element);
+                    _cannotEditElementsTogether = true;
+                    Elements.Clear();
+                    break;
                 }
+
+                Elements.Add(element);
             }
 
             int displayCount = count;
@@ -458,6 +469,11 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     // Elements are only edited together when every selected object has the same number.
+                    if (_cannotEditElementsTogether)
+                    {
+                        isSharedLength = false;
+                    }
+
                     if (!isSharedLength)
                     {
                         count = 0;
@@ -486,9 +502,11 @@ namespace Hyperion.Editor.ViewModels
                             RebuildElementVMs(count);
                         }
 
-                        HasMixedValues = !isSharedLength;
+                        bool showsElements = isSharedLength && !_cannotEditElementsTogether;
 
-                        if (!isSharedLength)
+                        HasMixedValues = !showsElements;
+
+                        if (!showsElements)
                         {
                             Value = string.Empty;
                         }

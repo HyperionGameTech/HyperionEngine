@@ -1103,10 +1103,6 @@
                                                             Background="Transparent"
                                                             BorderThickness="0">
                                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                <controls:Codicon
-                                                                    Foreground="{StaticResource Brush.TextMuted}"
-                                                                    Kind="ListTree"
-                                                                    Size="14" />
                                                                 <TextBlock
                                                                     VerticalAlignment="Center"
                                                                     Classes="header"
@@ -1142,7 +1138,7 @@
                                                     x:Name="SceneHierarchyTreeView"
                                                     Grid.Row="1"
                                                     ItemsSource="{Binding SceneHierarchy.RootNodes}"
-                                                    SelectedItem="{Binding SceneHierarchy.SelectedNode}"
+                                                    SelectedItem="{Binding SceneHierarchy.SelectedNode, Mode=OneWayToSource}"
                                                     SelectionMode="Multiple">
                                                     <TreeView.ItemContainerTheme>
                                                         <ControlTheme
@@ -1303,15 +1299,27 @@
                                                                         <MenuItem
                                                                             Command="{Binding SaveAsPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding MakePrefabHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding !IsOutsideSelection}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="!IsOutsideSelection" />
+                                                                                    <Binding Path="!IsPrefabInstance" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
+                                                                        </MenuItem>
                                                                         <!--  Right-clicking outside the selection acts on just that node  -->
                                                                         <MenuItem
                                                                             Command="{Binding SaveAsPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
                                                                             Header="Save as Prefab..."
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding IsOutsideSelection}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="IsOutsideSelection" />
+                                                                                    <Binding Path="!IsPrefabInstance" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
+                                                                        </MenuItem>
                                                                         <!--  Always acts on the current selection; the specific right-clicked node isn't threaded through this dynamic list  -->
                                                                         <MenuItem
                                                                             Header="Add to Prefab"

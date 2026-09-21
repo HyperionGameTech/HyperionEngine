@@ -948,6 +948,7 @@ Handle<Mesh> Mesh::Clone() const
     }
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
+    mesh->SetName(GetName()); // will be unique'd
     mesh->SetMeshData(meshDesc, meshData);
     mesh->SetFlags(m_flags);
     mesh->SetAABB(m_aabb);

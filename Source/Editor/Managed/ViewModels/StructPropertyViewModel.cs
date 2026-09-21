@@ -173,7 +173,11 @@ namespace Hyperion.Editor.ViewModels
 
             PropertyTarget peer = Peers[peerIndex];
 
-            peer.Set(current);
+            if (!TryWritePeerContainerValueToSwatchOverride(peer, current))
+            {
+                peer.Set(current);
+            }
+
             peer.PostWrite?.Invoke();
         }
 

@@ -118,7 +118,10 @@ namespace Hyperion.Editor.ViewModels
 
                     BuildEnumFlagEntryTitleAndDescription(staticField, out title, out description);
 
-                    _enumFlagEntries.Add(new EnumFlagEntry(title, description, flagValue, OnFlagEntryChanged));
+                    EnumFlagEntry? entry = null;
+                    entry = new EnumFlagEntry(title, description, flagValue, () => OnFlagEntryChanged(entry!));
+
+                    _enumFlagEntries.Add(entry);
                 }
                 catch (Exception ex)
                 {
@@ -127,14 +130,14 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private void OnFlagEntryChanged()
+        private void OnFlagEntryChanged(EnumFlagEntry changedEntry)
         {
             if (IsApplyingModelValue)
             {
                 return;
             }
 
-            CommitEnumFlagsValue();
+            CommitEnumFlagsValue(changedEntry);
         }
 
         // An entry is indeterminate (null) when the selected objects disagree on it.
@@ -168,27 +171,22 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private void CommitEnumFlagsValue()
+        private void CommitEnumFlagsValue(EnumFlagEntry changedEntry)
         {
             ulong combined = 0ul;
-            ulong decidedMask = 0ul;
 
             foreach (EnumFlagEntry entry in _enumFlagEntries)
             {
-                if (entry.IsSelected == null || entry.Value == null)
+                if (entry.IsSelected != true || entry.Value == null)
                 {
                     continue;
                 }
 
-                ulong flagValue = Convert.ToUInt64(entry.Value);
-
-                decidedMask |= flagValue;
-
-                if (entry.IsSelected == true)
-                {
-                    combined |= flagValue;
-                }
+                combined |= Convert.ToUInt64(entry.Value);
             }
+
+            ulong changedFlag = changedEntry.Value != null ? Convert.ToUInt64(changedEntry.Value) : 0ul;
+            bool isChangedFlagSet = changedEntry.IsSelected == true;
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -196,13 +194,13 @@ namespace Hyperion.Editor.ViewModels
                 {
                     if (IsMultiTarget)
                     {
-                        // Flags left indeterminate keep each object's own bits.
+                        // Only the toggled flag changes; every other bit stays as each object has it.
                         CommitPropertyChange($"Set {Label}", current =>
                         {
                             object? raw = current.GetValue();
                             ulong currentValue = raw != null ? Convert.ToUInt64(raw) : 0ul;
 
-                            return ToIntegralTypeOf((currentValue & ~decidedMask) | combined, raw);
+                            return ToIntegralTypeOf(isChangedFlagSet ? currentValue | changedFlag : currentValue & ~changedFlag, raw);
                         });
                     }
                     else

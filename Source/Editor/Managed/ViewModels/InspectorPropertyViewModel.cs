@@ -515,19 +515,41 @@ namespace Hyperion.Editor.ViewModels
 
         protected bool TryWriteContainerValueToSwatchOverride(BoxedValue value)
         {
-            if (IsMultiTarget || _valueSetter != null || _componentTargetResolver != null || _target is not Entity)
+            if (_valueSetter != null || _componentTargetResolver != null || _target is not Entity ownEntity)
             {
                 return false;
             }
 
+            // A multi-selection has no single edit-context entity; each entity is routed on its own.
+            if (!IsMultiTarget
+                && (SwatchOverrideEditContext.CurrentEntity is not Entity contextEntity
+                    || contextEntity.NativeAddress != ownEntity.NativeAddress))
+            {
+                return false;
+            }
+
+            return TryWriteToSwatchOverride(ownEntity, value);
+        }
+
+        /// <summary>The same, for a multi-selection peer's copy of a container value.</summary>
+        protected bool TryWritePeerContainerValueToSwatchOverride(PropertyTarget peer, BoxedValue value)
+        {
+            if (_valueSetter != null || _componentTargetResolver != null || peer.Owner is not Entity peerEntity)
+            {
+                return false;
+            }
+
+            return TryWriteToSwatchOverride(peerEntity, value);
+        }
+
+        private bool TryWriteToSwatchOverride(Entity overrideEntity, BoxedValue value)
+        {
             if (_property.Name == new Name("Name", weak: true))
             {
                 return false;
             }
 
-            if (SwatchOverrideEditContext.CurrentEntity is not Entity overrideEntity
-                || !overrideEntity.IsValid
-                || _target.NativeAddress != overrideEntity.NativeAddress
+            if (!overrideEntity.IsValid
                 || SwatchOverrideEditContext.ActiveSwatchName is not string contextSwatch)
             {
                 return false;

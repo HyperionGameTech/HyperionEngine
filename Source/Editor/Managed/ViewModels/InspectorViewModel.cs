@@ -300,10 +300,10 @@ namespace Hyperion.Editor.ViewModels
             SetSelection(nodes, primaryNode, scene, isRootNode: false);
         }
 
-        /// <summary>True when the inspector already shows exactly these nodes with this primary node.</summary>
-        public bool IsShowingSelection(IReadOnlyList<Node> nodes, Node? primaryNode)
+        /// <summary>True when the inspector already shows exactly these nodes (in any order).</summary>
+        public bool IsShowingSelection(IReadOnlyList<Node> nodes)
         {
-            if (SelectedNode?.NativeAddress != primaryNode?.NativeAddress || _selectedNodes.Count != nodes.Count)
+            if (_selectedNodes.Count != nodes.Count)
             {
                 return false;
             }
@@ -370,6 +370,8 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.VerifyAccess();
 
+            int refreshGeneration = ++_refreshGeneration;
+
             Properties.Clear();
             Actions.Clear();
             Components.Clear();
@@ -400,8 +402,6 @@ namespace Hyperion.Editor.ViewModels
             {
                 return;
             }
-
-            int refreshGeneration = ++_refreshGeneration;
 
             Node primaryNode = SelectedNode;
             List<Node> peerNodes = _selectedNodes.Skip(1).Where(n => n.IsValid).ToList();

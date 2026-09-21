@@ -12,7 +12,7 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly AssetDesc _assetDesc;
         private readonly AssetBucketViewModel? _bucket;
-        private readonly string? _typeName;
+        private string? _typeName;
         private readonly DateTime? _dateModified;
 
         public AssetDesc AssetDesc => _assetDesc;
@@ -30,6 +30,17 @@ namespace Hyperion.Editor.ViewModels
         public string IconKind => _typeName != null
             ? AssetIconHelper.FromTypeName(_typeName)
             : "File";
+
+        /// <summary>Fills in the type for an asset that has no manifest on disk yet (created but not saved).</summary>
+        public void SetTypeName(string typeName)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            _typeName = typeName;
+
+            OnPropertyChanged(nameof(TypeName));
+            OnPropertyChanged(nameof(IconKind));
+        }
 
         private IImage? _thumbnail;
 

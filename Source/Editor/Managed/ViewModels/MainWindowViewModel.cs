@@ -1840,15 +1840,18 @@ namespace Hyperion.Editor.ViewModels
 
             if (nodes.Count > 1)
             {
-                // Keep the focused node as the one the inspector is built from.
-                Node? primaryNode = nodes.FirstOrDefault(n => n.NativeAddress == SceneHierarchy.SelectedNode?.Node?.NativeAddress)
-                    ?? nodes.FirstOrDefault(n => n.NativeAddress == Inspector.SelectedNode?.NativeAddress)
+                // Values and edits are the same whichever node leads, so moving focus within the
+                // selection doesn't rebuild the inspector.
+                if (Inspector.IsShowingSelection(nodes))
+                {
+                    return;
+                }
+
+                // Build from the focused node.
+                Node primaryNode = nodes.FirstOrDefault(n => n.NativeAddress == SceneHierarchy.SelectedNode?.Node?.NativeAddress)
                     ?? nodes[0];
 
-                if (!Inspector.IsShowingSelection(nodes, primaryNode))
-                {
-                    Inspector.SetSelectedNodes(nodes, primaryNode, SceneHierarchy.Scene);
-                }
+                Inspector.SetSelectedNodes(nodes, primaryNode, SceneHierarchy.Scene);
             }
             else if (Inspector.IsMultiSelection)
             {
@@ -2342,7 +2345,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public void HandleTreeSelectionChanged(List<NodeViewModel> added, List<NodeViewModel> removed)
+        public void HandleTreeSelectionChanged(List<NodeViewModel> added, List<NodeViewModel> removed, List<NodeViewModel> currentSelection)
         {
             Dispatcher.UIThread.VerifyAccess();
 
@@ -2352,109 +2355,51 @@ namespace Hyperion.Editor.ViewModels
             // Nothing changed
             if (added.Count == 0 && removed.Count == 0)
                 return;
+                
+            SceneHierarchy.SelectedNodes.Clear();
 
-            bool isReplace = removed.Count > 0 && added.Count == 1;
-            bool isToggleAdd = removed.Count == 0 && added.Count == 1;
-            bool isToggleRemove = removed.Count >= 1 && added.Count == 0;
-
-            if (isReplace)
+            foreach (NodeViewModel vm in currentSelection)
             {
-                // Normal click: replace selection with the single clicked node
-                SelectSingleNodeExclusive(added[0]);
+                SceneHierarchy.SelectedNodes.Add(vm);
             }
-            else if (isToggleAdd)
+
+            SceneHierarchy.NotifySelectedNodesChanged();
+            UpdateCopyDeleteHeaders();
+
+            List<Node> nodes = currentSelection
+                .Select(vm => vm.Node)
+                .Where(n => n != null && n.IsValid)
+                .ToList();
+
+            NodeViewModel? focusTarget = added.Count > 0 ? added[added.Count - 1] : currentSelection.LastOrDefault();
+            Node? focusNode = focusTarget?.Node;
+
+            bool isMultiSelection = nodes.Count > 1;
+
+            if (!isMultiSelection)
             {
-                // Ctrl+Click: add to selection
-                NodeViewModel toggled = added[0];
-                Node? toggledNode = toggled.Node;
+                bool isRootNode = SceneHierarchy.IsRootNode(focusNode);
+                Inspector.SetSelectedNode(focusNode, SceneHierarchy.Scene, isRootNode);
+            }
 
-                if (!SceneHierarchy.SelectedNodes.Contains(toggled))
+            CanAddInstance = focusNode is Entity;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                try
                 {
-                    SceneHierarchy.SelectedNodes.Add(toggled);
-                    SceneHierarchy.NotifySelectedNodesChanged();
-                    UpdateCopyDeleteHeaders();
+                    _editorSubsystem.SetSelectedNodes(nodes.ToArray());
 
-                    if (toggledNode != null)
+                    if (focusNode != null)
                     {
-                        _ = EngineManager.PostToSimThread(() =>
-                        {
-                            try
-                            {
-                                _editorSubsystem.AddToSelection(toggledNode);
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.Log(LogLevel.Warning, $"Failed to add to selection: {ex.Message}");
-                            }
-                        });
+                        _editorSubsystem.SetFocusedNode(focusNode, false);
                     }
                 }
-            }
-            else if (isToggleRemove)
-            {
-                // Ctrl+Click or deselect: remove from selection
-                foreach (NodeViewModel vm in removed)
+                catch (Exception ex)
                 {
-                    SceneHierarchy.SelectedNodes.Remove(vm);
-
-                    Node? node = vm.Node;
-                    if (node != null)
-                    {
-                        _ = EngineManager.PostToSimThread(() =>
-                        {
-                            try
-                            {
-                                _editorSubsystem.RemoveFromSelection(node);
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.Log(LogLevel.Warning, $"Failed to remove from selection: {ex.Message}");
-                            }
-                        });
-                    }
+                    Logger.Log(LogLevel.Warning, $"Failed to update selection on engine: {ex.Message}");
                 }
-
-                SceneHierarchy.NotifySelectedNodesChanged();
-                UpdateCopyDeleteHeaders();
-            }
-            else
-            {
-                SceneHierarchy.SelectedNodes.Clear();
-                
-                foreach (NodeViewModel vm in added)
-                {
-                    SceneHierarchy.SelectedNodes.Add(vm);
-                }
-                
-                SceneHierarchy.NotifySelectedNodesChanged();
-                
-                UpdateCopyDeleteHeaders();
-
-                // Sync to engine
-                List<Node> nodes = added
-                    .Select(vm => vm.Node)
-                    .Where(n => n != null && n.IsValid)
-                    .ToList();
-
-                if (nodes.Count > 0 && added.Count > 0)
-                {
-                    Node? first = nodes[0];
-
-                    _ = EngineManager.PostToSimThread(() =>
-                    {
-                        _editorSubsystem.ClearSelection();
-                        if (first != null)
-                        {
-                            _editorSubsystem.SetSelectedNodes(new Node[] { first });
-                            _editorSubsystem.SetFocusedNode(first, false);
-                        }
-                        else
-                        {
-                            _editorSubsystem.ClearSelection();
-                        }
-                    });
-                }
-            }
+            });
         }
 
         public void AddAssetToScene(uint bucketIndex, Name assetName)
