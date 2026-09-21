@@ -11,9 +11,9 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineMemory.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
 #include <Scene/Entity.hpp>
-#include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/SceneOctree.hpp>
 #include <Scene/EntityManager.hpp>

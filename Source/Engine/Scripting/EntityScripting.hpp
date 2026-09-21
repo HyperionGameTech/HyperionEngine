@@ -6,12 +6,15 @@
 
 #pragma once
 
+#include <Core/Containers/String.hpp>
+
 namespace Hyperion {
 
 class Entity;
 class World;
 
 struct ScriptComponent;
+struct ScriptDesc;
 struct GameState;
 struct StringHash;
 
@@ -43,6 +46,8 @@ static void QueryScriptedEntities(TWorld& world, T&& function)
 
 void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, const GameState& gameState);
 void ShutdownEntityScript(Entity* entity, ScriptComponent& scriptComponent, const GameState& gameState);
+
+ANSIString GetCSharpAssemblyLoadPath(const ScriptDesc& scriptDesc);
 
 void UpdateScriptedEntities(World& world, float delta);
 

@@ -50,6 +50,14 @@ struct SchemaSectionEntry
     Array<Pair<Name, BoxedValue>> values;
 };
 
+/*! \brief An object whose class wasn't registered when it was parsed into a generic (BoxedValue) slot, eg a component defined by a
+ *  script that hasn't loaded yet. Kept as HMF source text so it can be written back unchanged, or parsed again once the class exists. */
+struct UnresolvedObject
+{
+    String className;
+    String source;
+};
+
 using ParseSchemaSectionFn = bool (*)(BoxedValue& owner, Array<SchemaSectionEntry>&& entries);
 
 CORE_API void SetParseSchemaSectionFn(const ANSIStringView& sectionName, ParseSchemaSectionFn fn);

@@ -11,7 +11,7 @@
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Containers/Array.hpp>
-#include <Core/Containers/TypeMap.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Name/Name.hpp>
 
@@ -19,25 +19,32 @@
 #include <Core/Reflection/ObjectFwd.hpp>
 #include <Core/Reflection/ClassAttribute.hpp>
 
-#include <Scene/ComponentFactory.hpp>
-#include <Scene/ComponentContainer.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/AtomicVar.hpp>
+
+#include <Core/Utilities/EnumFlags.hpp>
+
 #include <Scene/EntityTag.hpp>
+
+#include <type_traits>
 
 namespace Hyperion {
 
 class ComponentInterfaceRegistry;
-class ComponentContainerFactoryBase;
+class Struct;
+class ObjectBase;
 
 template <EntityTag Tag>
 struct TagComponent;
 
-extern "C" ENGINE_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed);
-extern "C" ENGINE_API const ClassAttribute* Class_GetAttribute(const Class* cls, const Name* name);
-
 enum class ComponentInterfaceFlags : uint32
 {
     NONE = 0x0,
-    ENTITY_TAG = 0x1
+    ENTITY_TAG = 0x1,
+    SERIALIZE = 0x2,
+    REPLICATED = 0x4,
+    SHOW_IN_EDITOR = 0x8,
+    RUNTIME = 0x10
 };
 
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
@@ -47,42 +54,59 @@ CORE_API extern const Name g_attrSerialize;
 CORE_API extern const Name g_attrReplicated;
 } // namespace Attributes
 
-// Not really an interface, but the name stays for now
-class ENGINE_API IComponentInterface
+class ENGINE_API ComponentInterface
 {
-protected:
-    IComponentInterface()
+public:
+    ComponentInterface(const TypeInfo* typeInfo, const Struct* componentStruct, EnumFlags<ComponentInterfaceFlags> flags, EntityTag entityTag = EntityTag(~0ull));
+
+    ComponentInterface(const ComponentInterface&) = delete;
+    ComponentInterface& operator=(const ComponentInterface&) = delete;
+    ComponentInterface(ComponentInterface&&) noexcept = delete;
+    ComponentInterface& operator=(ComponentInterface&&) noexcept = delete;
+
+    ~ComponentInterface();
+
+    static UniquePtr<ComponentInterface> CreateForStruct(const TypeInfo* typeInfo, size_t expectedSize, size_t expectedAlignment, bool shouldSerialize);
+    static UniquePtr<ComponentInterface> CreateForEntityTag(const TypeInfo* typeInfo, size_t expectedSize, size_t expectedAlignment, EntityTag entityTag, bool shouldSerialize, bool showInEditor);
+
+    HYP_FORCE_INLINE const TypeInfo& GetTypeInfo() const
     {
-        m_shouldSerialize = false;
-        m_isReplicated = false;
-        m_isEntityTag = false;
-        m_showInEditor = true;
-        m_entityTag = (EntityTag)-1;
+        return *m_typeInfo;
     }
 
-public:
-    virtual ~IComponentInterface() = default;
+    HYP_FORCE_INLINE TypeId GetTypeId() const
+    {
+        return m_typeId;
+    }
 
     const Class* GetClass() const;
 
-    virtual const TypeInfo& GetTypeInfo() const = 0;
-    virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const = 0;
+    HYP_FORCE_INLINE const Struct* GetStruct() const
+    {
+        return m_struct;
+    }
 
-    virtual bool CreateInstance(BoxedValue& out) const = 0;
+    size_t GetComponentSize() const;
+    size_t GetComponentAlignment() const;
+
+    HYP_FORCE_INLINE EnumFlags<ComponentInterfaceFlags> GetFlags() const
+    {
+        return m_flags;
+    }
 
     HYP_FORCE_INLINE bool GetShouldSerialize() const
     {
-        return m_shouldSerialize;
+        return m_flags & ComponentInterfaceFlags::SERIALIZE;
     }
 
     HYP_FORCE_INLINE bool ShouldShowInEditor() const
     {
-        return m_showInEditor;
+        return m_flags & ComponentInterfaceFlags::SHOW_IN_EDITOR;
     }
 
     HYP_FORCE_INLINE bool IsEntityTag() const
     {
-        return m_isEntityTag;
+        return m_flags & ComponentInterfaceFlags::ENTITY_TAG;
     }
 
     HYP_FORCE_INLINE EntityTag GetEntityTag() const
@@ -92,179 +116,94 @@ public:
 
     HYP_FORCE_INLINE bool IsReplicated() const
     {
-        return m_isReplicated;
+        return m_flags & ComponentInterfaceFlags::REPLICATED;
     }
 
-protected:
-    UniquePtr<IComponentFactory> m_componentFactory;
-    ComponentContainerFactoryBase* m_componentContainerFactory;
+    HYP_FORCE_INLINE bool IsRuntimeComponent() const
+    {
+        return m_flags & ComponentInterfaceFlags::RUNTIME;
+    }
 
-    bool m_shouldSerialize : 1;
-    bool m_isReplicated : 1;
-    bool m_isEntityTag : 1;
-    bool m_showInEditor : 1;
+    void ConstructComponent(void* destination) const;
+    void CopyConstructComponent(void* destination, const void* source) const;
+    void MoveConstructComponent(void* destination, void* source) const;
+    void DestructComponent(void* target) const;
 
+    bool CreateInstance(BoxedValue& out) const;
+
+private:
+    friend class ComponentInterfaceRegistry;
+
+    void ReleaseStructReference();
+
+    const TypeInfo* m_typeInfo;
+    TypeId m_typeId;
+    const Struct* m_struct;
+    ClassRef m_structReference;
     EntityTag m_entityTag;
+    EnumFlags<ComponentInterfaceFlags> m_flags;
 };
 
-template <class Component, bool ShouldSerialize = true>
-class ComponentInterface final : public IComponentInterface
-{
-public:
-    ComponentInterface()
-    {
-        const auto getClassAttributeValue = [cls = GetClass()](const Name& name) -> const ClassAttributeValue&
-        {
-            const ClassAttribute* attr = Class_GetAttribute(cls, &name);
-            if (!attr)
-            {
-                return ClassAttributeValue::empty;
-            }
-
-            return attr->GetValue();
-        };
-
-        m_shouldSerialize = (ShouldSerialize && getClassAttributeValue(Attributes::g_attrSerialize) != false);
-        m_showInEditor = m_shouldSerialize;
-        m_isReplicated = (getClassAttributeValue(Attributes::g_attrReplicated) != false);
-        m_isEntityTag = false;
-    }
-
-    ComponentInterface(UniquePtr<IComponentFactory>&& componentFactory, ComponentContainerFactoryBase* componentContainerFactory)
-        : ComponentInterface()
-    {
-        m_componentFactory = std::move(componentFactory);
-        m_componentContainerFactory = std::move(componentContainerFactory);
-    }
-
-    ComponentInterface(const ComponentInterface&) = delete;
-    ComponentInterface& operator=(const ComponentInterface&) = delete;
-
-    ComponentInterface(ComponentInterface&& other) noexcept = delete;
-    ComponentInterface& operator=(ComponentInterface&& other) noexcept = delete;
-
-    ~ComponentInterface() override = default;
-
-    virtual const TypeInfo& GetTypeInfo() const override
-    {
-        return TypeOf<Component>();
-    }
-
-    virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
-    {
-        return m_componentContainerFactory;
-    }
-
-    virtual bool CreateInstance(BoxedValue& out) const override
-    {
-        return ComponentInterface_CreateInstance(GetClass(), out);
-    }
-};
-
-template <class ComponentT, EntityTag Tag, bool ShouldSerialize = true, bool ShowInEditor = true>
-class EntityTagComponentInterface final : public IComponentInterface
-{
-public:
-    EntityTagComponentInterface()
-    {
-        m_shouldSerialize = ShouldSerialize;
-        m_showInEditor = ShouldSerialize && ShowInEditor;
-        m_isReplicated = ShouldSerialize;
-        m_isEntityTag = true;
-        m_entityTag = Tag;
-    }
-
-    EntityTagComponentInterface(UniquePtr<IComponentFactory>&& componentFactory, ComponentContainerFactoryBase* componentContainerFactory)
-        : EntityTagComponentInterface()
-    {
-        m_componentFactory = std::move(componentFactory);
-        m_componentContainerFactory = std::move(componentContainerFactory);
-    }
-
-    EntityTagComponentInterface(const EntityTagComponentInterface&) = delete;
-    EntityTagComponentInterface& operator=(const EntityTagComponentInterface&) = delete;
-
-    virtual ~EntityTagComponentInterface() override = default;
-
-    virtual const TypeInfo& GetTypeInfo() const override
-    {
-        return TypeOf<ComponentT>();
-    }
-
-    virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
-    {
-        return m_componentContainerFactory;
-    }
-
-    virtual bool CreateInstance(BoxedValue& out) const override
-    {
-        out = BoxedValue(ComponentT {});
-
-        return true;
-    }
-};
-
-class ComponentInterfaceRegistry
+class ENGINE_API ComponentInterfaceRegistry
 {
 public:
     static ComponentInterfaceRegistry& GetInstance();
 
     ComponentInterfaceRegistry();
+    ~ComponentInterfaceRegistry();
+
+    ComponentInterfaceRegistry(const ComponentInterfaceRegistry&) = delete;
+    ComponentInterfaceRegistry& operator=(const ComponentInterfaceRegistry&) = delete;
 
     void Initialize();
     void Shutdown();
 
-    void Register(TypeId typeId, UniquePtr<IComponentInterface> (*fptr)());
-
-    const IComponentInterface* GetComponentInterface(TypeId typeId) const
+    HYP_FORCE_INLINE bool IsInitialized() const
     {
-        Assert(m_isInitialized, "Component interface registry not initialized!");
-
-        auto it = m_interfaces.Find(typeId);
-
-        if (it == m_interfaces.End())
-        {
-            return nullptr;
-        }
-
-        return it->second.Get();
+        return m_isInitialized;
     }
 
-    Array<const IComponentInterface*> GetComponentInterfaces() const
+    HYP_FORCE_INLINE uint32 GetRuntimeRegistrationGeneration() const
     {
-        Assert(m_isInitialized, "Component interface registry not initialized!");
-
-        Array<const IComponentInterface*> interfaces;
-        interfaces.Resize(m_interfaces.Size());
-
-        uint32 interfaceIndex = 0;
-
-        for (auto it = m_interfaces.Begin(); it != m_interfaces.End(); ++it, ++interfaceIndex)
-        {
-            interfaces[interfaceIndex] = it->second.Get();
-        }
-
-        return interfaces;
+        return m_runtimeRegistrationGeneration.Get(MemoryOrder::ACQUIRE);
     }
 
-    const IComponentInterface* GetEntityTagComponentInterface(EntityTag tag) const
-    {
-        Assert(m_isInitialized, "Component interface registry not initialized!");
+    void Register(TypeId typeId, UniquePtr<ComponentInterface> (*createFunction)());
 
-        for (auto it = m_interfaces.Begin(); it != m_interfaces.End(); ++it)
-        {
-            if (it->second->IsEntityTag() && it->second->GetEntityTag() == tag)
-            {
-                return it->second.Get();
-            }
-        }
+    const ComponentInterface* RegisterRuntimeComponent(
+        const Struct* componentStruct,
+        EnumFlags<ComponentInterfaceFlags> flags = ComponentInterfaceFlags::SERIALIZE | ComponentInterfaceFlags::SHOW_IN_EDITOR);
 
-        return nullptr;
-    }
+    bool UnregisterRuntimeComponent(TypeId typeId);
+
+    const ComponentInterface* GetComponentInterface(TypeId typeId) const;
+    const ComponentInterface* GetEntityTagComponentInterface(EntityTag tag) const;
+    Array<const ComponentInterface*> GetComponentInterfaces() const;
 
 private:
-    Map<TypeId, UniquePtr<IComponentInterface> (*)()> m_factories;
-    Map<TypeId, UniquePtr<IComponentInterface>> m_interfaces;
+    struct LookupTable
+    {
+        Map<TypeId, const ComponentInterface*> interfacesByTypeId;
+        Map<uint64, const ComponentInterface*> interfacesByEntityTag;
+    };
+
+    const LookupTable& GetLookupTable() const;
+
+    UniquePtr<LookupTable> CopyLookupTable() const;
+    void PublishLookupTable(UniquePtr<LookupTable>&& lookupTable);
+    static void AddToLookupTable(LookupTable& lookupTable, const ComponentInterface* componentInterface);
+
+    Map<TypeId, UniquePtr<ComponentInterface> (*)()> m_nativeCreateFunctions;
+
+    // Interfaces are never destroyed before the registry itself, so containers referencing them never dangle
+    Array<UniquePtr<ComponentInterface>> m_ownedInterfaces;
+
+    // Every table ever published stays alive until the registry is destroyed; readers never lock
+    Array<UniquePtr<LookupTable>> m_lookupTables;
+    AtomicVar<const LookupTable*> m_lookupTable;
+    AtomicVar<uint32> m_runtimeRegistrationGeneration;
+
+    Mutex m_writeMutex;
 
     bool m_isInitialized;
 };
@@ -272,15 +211,15 @@ private:
 template <class ComponentType, bool ShouldSerialize = true, bool ShowInEditor = true>
 struct ComponentInterfaceRegistration
 {
+    static_assert(!std::is_base_of_v<ObjectBase, ComponentType>, "Components must be HYP_STRUCT types");
+
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
             TypeId::ForType<ComponentType>(),
-            []() -> UniquePtr<IComponentInterface>
+            []() -> UniquePtr<ComponentInterface>
             {
-                return MakeUnique<ComponentInterface<ComponentType, ShouldSerialize>>(
-                    MakeUnique<ComponentFactory<ComponentType>>(),
-                    ComponentContainer<ComponentType>::GetFactory());
+                return ComponentInterface::CreateForStruct(&TypeOf<ComponentType>(), sizeof(ComponentType), alignof(ComponentType), ShouldSerialize);
             });
     }
 };
@@ -288,15 +227,17 @@ struct ComponentInterfaceRegistration
 template <EntityTag Tag, bool ShouldSerialize, bool ShowInEditor>
 struct ComponentInterfaceRegistration<TagComponent<Tag>, ShouldSerialize, ShowInEditor>
 {
+    static_assert(std::is_base_of_v<TagComponentBase, TagComponent<Tag>>);
+    static_assert(sizeof(TagComponent<Tag>) == sizeof(TagComponentBase) && alignof(TagComponent<Tag>) == alignof(TagComponentBase),
+        "TagComponent must be layout-identical to TagComponentBase, as it shares its Struct");
+
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
             TypeId::ForType<TagComponent<Tag>>(),
-            []() -> UniquePtr<IComponentInterface>
+            []() -> UniquePtr<ComponentInterface>
             {
-                return MakeUnique<EntityTagComponentInterface<TagComponent<Tag>, Tag, ShouldSerialize, ShowInEditor>>(
-                    MakeUnique<ComponentFactory<TagComponent<Tag>>>(),
-                    ComponentContainer<TagComponent<Tag>>::GetFactory());
+                return ComponentInterface::CreateForEntityTag(&TypeOf<TagComponent<Tag>>(), sizeof(TagComponent<Tag>), alignof(TagComponent<Tag>), Tag, ShouldSerialize, ShowInEditor);
             });
     }
 };
@@ -306,15 +247,17 @@ struct ComponentInterfaceRegistration<EntityTypeTag<T>, ShouldSerialize, ShowInE
 {
     static constexpr EntityTag Tag = EntityType_Impl<T>::value;
 
+    static_assert(std::is_base_of_v<TagComponentBase, EntityTypeTag<T>>);
+    static_assert(sizeof(EntityTypeTag<T>) == sizeof(TagComponentBase) && alignof(EntityTypeTag<T>) == alignof(TagComponentBase),
+        "EntityTypeTag must be layout-identical to TagComponentBase, as it shares its Struct");
+
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
             TypeId::ForType<EntityTypeTag<T>>(),
-            []() -> UniquePtr<IComponentInterface>
+            []() -> UniquePtr<ComponentInterface>
             {
-                return MakeUnique<EntityTagComponentInterface<EntityTypeTag<T>, Tag, ShouldSerialize, ShowInEditor>>(
-                    MakeUnique<ComponentFactory<EntityTypeTag<T>>>(),
-                    ComponentContainer<EntityTypeTag<T>>::GetFactory());
+                return ComponentInterface::CreateForEntityTag(&TypeOf<EntityTypeTag<T>>(), sizeof(EntityTypeTag<T>), alignof(EntityTypeTag<T>), Tag, ShouldSerialize, ShowInEditor);
             });
     }
 };

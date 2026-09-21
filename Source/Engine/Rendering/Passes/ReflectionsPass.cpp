@@ -24,7 +24,8 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
+
 #include <Scene/EnvProbe.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>

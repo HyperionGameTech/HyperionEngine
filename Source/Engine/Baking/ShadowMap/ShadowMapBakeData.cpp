@@ -8,7 +8,7 @@
 
 #include <Baking/ShadowMap/ShadowMapBakeData.hpp>
 
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 
 namespace Hyperion {
 

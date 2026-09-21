@@ -582,10 +582,7 @@ if (HYP_STRATA)
         set(STRATA_ENABLE_TCC OFF CACHE BOOL "Build strata with TCC backend")
         set(STRATA_ENABLE_LLVM ON CACHE BOOL "Build strata with LLVM backend")
 
-        # Locate the LLVM-C distribution for the JIT backend.
-        # stratac links against LLVM-C.lib and loads LLVM-C.dll at runtime
-        # (see LLVM_C_DIR in the stratac CMakeLists.txt). The architecture of
-        # LLVM-C.dll must match the target (ARM64 build needs an ARM64 LLVM-C.dll).
+        # Locate the LLVM-C distribution for the JIT backend
         if(WIN32 AND NOT DEFINED LLVM_C_DIR)
           if(DEFINED ENV{LLVM_DIR} AND EXISTS "$ENV{LLVM_DIR}/lib/LLVM-C.lib")
             set(LLVM_C_DIR "$ENV{LLVM_DIR}" CACHE PATH "Directory of the LLVM distribution (lib/LLVM-C.lib, bin/LLVM-C.dll)")
@@ -598,9 +595,7 @@ if (HYP_STRATA)
 
         set(COMMON_LIBRARIES ${COMMON_LIBRARIES} strata)
 
-        # Copy the LLVM-C.dll runtime dependency next to strata.dll so the
-        # JIT backend can load it at runtime. The architecture of LLVM-C.dll
-        # must match the target (an ARM64 build needs an ARM64 LLVM-C.dll).
+        # Copy the LLVM-C.dll runtime dependency next to strata.dll so the JIT backend can load it at runtime
         if(TARGET strata AND WIN32 AND DEFINED STRATA_LLVM_DLL)
           if(EXISTS "${STRATA_LLVM_DLL}")
             file(COPY "${STRATA_LLVM_DLL}" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

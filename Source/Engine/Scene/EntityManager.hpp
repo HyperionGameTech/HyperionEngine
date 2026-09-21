@@ -36,6 +36,7 @@
 #include <Scene/EntitySet.hpp>
 #include <Scene/EntityContainer.hpp>
 #include <Scene/ComponentContainer.hpp>
+#include <Scene/ComponentInterface.hpp>
 #include <Scene/System.hpp>
 #include <Scene/EntityTag.hpp>
 #include <Scene/SystemExecutionGroup.hpp>
@@ -342,7 +343,7 @@ public:
 
         HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
 
-        return static_cast<ComponentContainer<Component>&>(*componentContainerIt->second).GetComponent(*componentIdOpt);
+        return componentContainerIt->second->template GetComponent<Component>(*componentIdOpt);
     }
 
     template <class Component>
@@ -395,7 +396,7 @@ public:
 
         HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
 
-        return &static_cast<ComponentContainer<Component>&>(*componentContainerIt->second).GetComponent(*componentIdOpt);
+        return &componentContainerIt->second->template GetComponent<Component>(*componentIdOpt);
     }
 
     template <class Component>
@@ -441,6 +442,12 @@ public:
 
         auto componentContainerIt = m_containers.Find(componentTypeId);
         Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
+
+        // a runtime component whose type was just redefined can't be read as the new type until its container is migrated
+        if (!EnsureCurrentComponentLayout(*componentContainerIt->second))
+        {
+            return AnyRef::Empty();
+        }
 
         return componentContainerIt->second->TryGetComponent(*componentIdOpt);
     }
@@ -506,6 +513,8 @@ public:
     void AddComponent(Entity* entity, const BoxedValue& componentData);
     void AddComponent(Entity* entity, BoxedValue&& componentData);
 
+    void AddDefaultComponent(Entity* entity, TypeId componentTypeId);
+
     bool RemoveComponent(TypeId componentTypeId, Entity* entity);
 
     template <class Component, class U = Component>
@@ -531,7 +540,7 @@ public:
 
         static constexpr TypeId ComponentTypeId = TypeId::ForType<Component>();
 
-        const Pair<ComponentId, Component&> componentInsertResult = GetContainer<Component>().AddComponent(std::move(component));
+        const Pair<ComponentId, Component&> componentInsertResult = GetContainer<Component>().template AddComponent<Component>(std::move(component));
 
         entityData->components[ComponentTypeId] = componentInsertResult.first;
 
@@ -581,70 +590,10 @@ public:
             return false;
         }
 
-        Handle<Entity> entityHandle = MakeStrongRef(entity);
-        Assert(entityHandle.IsValid());
-
         Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
-        ComponentMap removedComponents;
-
-        EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
-
-        if (!entityData)
-        {
-            return false;
-        }
-
-        auto componentIt = entityData->FindComponent<Component>();
-        if (componentIt == entityData->components.End())
-        {
-            return false;
-        }
-
-        const TypeId componentTypeId = componentIt->first;
-        const ComponentId componentId = componentIt->second;
-
-        // Notify systems that entity is being removed from them
-        removedComponents.Set(componentTypeId, componentId);
-
-        entityData->components.Erase(componentIt);
-
-        {
-            auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
-
-            if (componentEntitySetsIt != m_componentEntitySets.End())
-            {
-                for (EntitySetId entitySetId : componentEntitySetsIt->second)
-                {
-                    EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
-
-                    entitySet.OnEntityUpdated(entityHandle);
-                }
-            }
-        }
-
-        BoxedValue componentBoxed;
-
-        const bool removedFromContainer = GetContainer<Component>().RemoveComponent(componentId, componentBoxed);
-        Assert(removedFromContainer, "Component of type `{}` with ID {} was present in the Entity's component map but not found in the ComponentContainer", TypeNameWithoutNamespace<Component>().Data(), componentId);
-
-        NotifySystemsOfEntityRemoved(entity, removedComponents);
-
-        EntityTag tag = EntityTag::None;
-        if (IsEntityTagComponent(componentTypeId, tag))
-        {
-            // If the component is an TagComponent, remove the tag from the entity
-            entity->OnTagRemoved(tag);
-        }
-        else
-        {
-            // Notify the entity that a component was removed
-            entity->OnComponentRemoved(componentBoxed.ToRef());
-        }
-
-        componentBoxed.Reset();
-
-        return true;
+        // The TypeId overload notifies systems before the component is erased, which their OnEntityRemoved() relies on
+        return RemoveComponent(TypeId::ForType<Component>(), entity);
     }
 
     /*! \brief Gets an entity set with the specified components, creating it if it doesn't exist.
@@ -675,7 +624,7 @@ public:
 
             auto entitySetsInsertResult = m_entitySets.Set(
                 entitySetId,
-                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainer<Components>()...));
+                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainers<Components...>()));
 
             Assert(entitySetsInsertResult.second); // Make sure the element was inserted (it shouldn't already exist)
 
@@ -768,26 +717,25 @@ public:
 
     void UpdateEntities(float delta);
 
+    void ResolveUnresolvedComponents();
+    void SyncRuntimeComponentTypes();
+
     void AddPendingEntitySets();
 
     template <class Component>
-    ComponentContainer<Component>& GetContainer()
+    ComponentContainer& GetContainer()
     {
         EnsureValidComponentType<Component>();
 
-        TUniqueLock lock(m_componentContainersMtx);
+        TSharedLock lock(m_componentContainersMtx);
 
         auto it = m_containers.Find(TypeId::ForType<Component>());
+        Assert(it != m_containers.End(), "No component container for `{}`; is the component type registered?", TypeNameWithoutNamespace<Component>().Data());
 
-        if (it == m_containers.End())
-        {
-            it = m_containers.Set(TypeId::ForType<Component>(), MakeUniqueWithAllocator<ComponentContainer<Component>, SceneAllocator>()).first;
-        }
-
-        return static_cast<ComponentContainer<Component>&>(*it->second);
+        return *it->second;
     }
 
-    ComponentContainerBase* TryGetContainer(TypeId componentTypeId)
+    ComponentContainer* TryGetContainer(TypeId componentTypeId)
     {
         EnsureValidComponentType(componentTypeId);
 
@@ -804,12 +752,38 @@ public:
     }
 
 private:
+    enum class ComponentConstructMode : uint8
+    {
+        DEFAULT,
+        COPY,
+        MOVE
+    };
+
     HYP_METHOD()
     Handle<Entity> AddBasicEntity();
 
     void AddExistingEntity_Internal(const Handle<Entity>& entity);
 
     void ClearEntities_Internal();
+
+    template <class... Components>
+    FixedArray<ComponentContainer*, sizeof...(Components)> GetContainers()
+    {
+        return FixedArray<ComponentContainer*, sizeof...(Components)> { &GetContainer<Components>()... };
+    }
+
+    ComponentContainer* GetOrCreateContainer(const ComponentInterface& componentInterface);
+
+    void AddComponent_Internal(Entity* entity, const ComponentInterface& componentInterface, ComponentConstructMode constructMode, void* source);
+
+    void MigrateStaleComponentContainers();
+    bool EnsureCurrentComponentLayout(ComponentContainer& container);
+
+    HYP_FORCE_INLINE void MarkUnresolvedComponents()
+    {
+        m_hasUnresolvedComponents = true;
+        m_resolvedRegistrationGeneration = ~0u;
+    }
 
     template <class Component>
     static void EnsureValidComponentType()
@@ -875,7 +849,7 @@ private:
         {
             auto insertResult = m_pendingEntitySets.Insert(
                 entitySetId,
-                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainer<Components>()...));
+                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainers<Components...>()));
 
             Assert(insertResult.second);
 
@@ -904,7 +878,7 @@ private:
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
 
-    Map<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
+    Map<TypeId, UniquePtr<ComponentContainer, SceneAllocator>, SceneAllocator> m_containers;
     mutable SharedMutex m_componentContainersMtx;
 
     EntityContainer m_entities;
@@ -922,6 +896,10 @@ private:
     mutable SharedMutex m_systemEntityMapMutex;
 
     mutable AtomicFlag m_detachedSceneLocked;
+
+    uint32 m_resolvedRegistrationGeneration = 0;
+    uint32 m_migratedRegistrationGeneration = 0;
+    bool m_hasUnresolvedComponents = false;
 
     bool m_isInitialized : 1;
     bool m_isLocked : 1;

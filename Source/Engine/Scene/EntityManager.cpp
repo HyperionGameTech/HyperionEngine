@@ -35,22 +35,18 @@ namespace Hyperion {
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
-/// \todo : Move to ComponentContainer.cpp
-#pragma region ComponentContainer
-
-bool ComponentContainerBase::TryGetComponent(ComponentId id, BoxedValue& outComponent)
+static bool IsComponentDataCurrent(const ComponentInterface& componentInterface, const BoxedValue& componentData)
 {
-    if (AnyRef ref = TryGetComponent(id))
+    if (!componentInterface.IsRuntimeComponent() || componentData.GetTypeInfo() == &componentInterface.GetTypeInfo())
     {
-        outComponent = BoxedValue(ref);
-
         return true;
     }
 
+    HYP_LOG(Entity, Error, "A '{}' component read before its type was redefined can't be added; it no longer matches the component's layout",
+        componentInterface.GetTypeInfo().name);
+
     return false;
 }
-
-#pragma endregion ComponentContainer
 
 #pragma region EntityManager
 
@@ -61,7 +57,7 @@ bool EntityManager::IsValidComponentType(TypeId componentTypeId)
 
 bool EntityManager::IsEntityTagComponent(TypeId componentTypeId)
 {
-    const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
 
     if (!componentInterface)
     {
@@ -73,7 +69,7 @@ bool EntityManager::IsEntityTagComponent(TypeId componentTypeId)
 
 bool EntityManager::IsEntityTagComponent(TypeId componentTypeId, EntityTag& outTag)
 {
-    const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
 
     if (!componentInterface)
     {
@@ -91,7 +87,7 @@ bool EntityManager::IsEntityTagComponent(TypeId componentTypeId, EntityTag& outT
 
 ANSIStringView EntityManager::GetComponentTypeName(TypeId componentTypeId)
 {
-    const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
 
     if (!componentInterface)
     {
@@ -117,18 +113,12 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
         m_flags |= EntityManagerFlags::DETACHED_SCENE;
     }
 
-    // add initial component containers
-    for (const IComponentInterface* componentInterface : ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces())
+    // add initial component containers - types registered at runtime after this point get theirs from GetOrCreateContainer()
+    for (const ComponentInterface* componentInterface : ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces())
     {
         Assert(componentInterface != nullptr);
 
-        ComponentContainerFactoryBase* componentContainerFactory = componentInterface->GetComponentContainerFactory();
-        Assert(componentContainerFactory != nullptr);
-
-        UniquePtr<ComponentContainerBase, SceneAllocator> componentContainer = componentContainerFactory->Create();
-        Assert(componentContainer != nullptr);
-
-        m_containers.Set(componentInterface->GetTypeInfo().id, std::move(componentContainer));
+        m_containers.Set(componentInterface->GetTypeId(), MakeUniqueWithAllocator<ComponentContainer, SceneAllocator>(*componentInterface));
     }
 }
 
@@ -688,7 +678,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const Class* cls)
         EntityTag entityTypeTag = MakeEntityTypeTag(cls->GetTypeId());
         AssertDebug((uint64(entityTypeTag) & uint64(EntityTag::EntityTypeSentinel)) != 0);
 
-        const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
+        const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
         AssertDebug(componentInterface);
 
         AddTag(entity, entityTypeTag);
@@ -772,7 +762,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
         EntityTag entityTypeTag = MakeEntityTypeTag(cls->GetTypeId());
         AssertDebug((uint64(entityTypeTag) & uint64(EntityTag::EntityTypeSentinel)) != 0);
 
-        const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
+        const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entityTypeTag);
         AssertDebug(componentInterface);
 
         AddTag(entity, entityTypeTag);
@@ -822,8 +812,15 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
 
     const ObjId<Entity> entityId = entity->Id();
 
-    // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
-    Map<TypeId, BoxedValue> components;
+    struct RemovedComponent
+    {
+        TypeId typeId;
+        ComponentContainer* container;
+        ComponentId id;
+    };
+
+    // Components are destroyed once the entity is fully removed, matching when the boxed copies used to be destroyed
+    FatArray<RemovedComponent, InlineAllocator<16>> removedComponents;
 
     EntityData* entityData = m_entities.TryGetEntityData(entityId);
     Assert(entityData != nullptr, "Entity does not exist");
@@ -854,12 +851,10 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
         {
             // Notify the entity that the component is being removed
             // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-            EntityTag tag = EntityTag::None;
-
-            if (IsEntityTagComponent(componentTypeId, tag))
+            if (componentContainerIt->second->GetComponentInterface().IsEntityTag())
             {
                 // Remove the tag from the entity
-                entity->OnTagRemoved(tag);
+                entity->OnTagRemoved(componentContainerIt->second->GetComponentInterface().GetEntityTag());
             }
             else
             {
@@ -867,34 +862,24 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
             }
         }
 
-        BoxedValue component;
-        if (!componentContainerIt->second->RemoveComponent(componentId, component))
-        {
-            HYP_FAIL("Failed to get component of type '{}' as BoxedValue when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
-        }
-
-        components[componentTypeId] = std::move(component);
+        removedComponents.PushBack(RemovedComponent { componentTypeId, componentContainerIt->second.Get(), componentId });
 
         // Update iterator, erase the component from the entity's component map
         componentInfoPairIt = entityData->components.Erase(componentInfoPairIt);
     }
 
+    for (const RemovedComponent& removedComponent : removedComponents)
     {
-        for (KeyValuePair<TypeId, BoxedValue>& pair : components)
+        // Update our entity sets to reflect the change
+        auto componentEntitySetsIt = m_componentEntitySets.Find(removedComponent.typeId);
+
+        if (componentEntitySetsIt != m_componentEntitySets.End())
         {
-            const TypeId componentTypeId = pair.first;
-
-            // Update our entity sets to reflect the change
-            auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
-
-            if (componentEntitySetsIt != m_componentEntitySets.End())
+            for (EntitySetId entitySetId : componentEntitySetsIt->second)
             {
-                for (EntitySetId entitySetId : componentEntitySetsIt->second)
-                {
-                    EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
+                EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
 
-                    entitySet.RemoveEntity(entity);
-                }
+                entitySet.RemoveEntity(entity);
             }
         }
     }
@@ -905,6 +890,14 @@ bool EntityManager::RemoveEntity(Entity* entity, bool calledFromEntityDestructor
     }
 
     m_entities.Remove(entityId);
+
+    for (const RemovedComponent& removedComponent : removedComponents)
+    {
+        if (!removedComponent.container->RemoveComponent(removedComponent.id))
+        {
+            HYP_FAIL("Failed to remove component of type '{}' with id {} from its component container", *GetComponentTypeName(removedComponent.typeId), removedComponent.id);
+        }
+    }
 
     return true;
 }
@@ -930,8 +923,14 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         lock.Reset(m_detachedSceneLocked);
     }
 
-    // Components generically stored as BoxedValue by TypeId - to add to other EntityManager
-    Array<BoxedValue> components;
+    struct MovedComponent
+    {
+        const ComponentInterface* componentInterface;
+        BoxedValue value;
+    };
+
+    // Components generically stored as BoxedValue - to add to other EntityManager
+    Array<MovedComponent> components;
 
     { // Remove components and entity from this and store them to be added to the other EntityManager
         HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
@@ -957,15 +956,19 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
             Assert(componentContainerIt->second->HasComponent(componentId), "Component does not exist in component container");
 
+            // the other EntityManager only accepts a redefined runtime component in its current layout
+            EnsureCurrentComponentLayout(*componentContainerIt->second);
+
             AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
             Assert(componentRef.HasValue(), "Component of type '{}' with id {} does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
 
+            const ComponentInterface& componentInterface = componentContainerIt->second->GetComponentInterface();
+
             // Notify the entity that the component is being removed
             // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-            EntityTag tag = EntityTag::None;
-            if (IsEntityTagComponent(componentTypeId, tag))
+            if (componentInterface.IsEntityTag())
             {
-                entity->OnTagRemoved(tag, /* refreshDependentTags */ false);
+                entity->OnTagRemoved(componentInterface.GetEntityTag(), /* refreshDependentTags */ false);
             }
             else
             {
@@ -978,17 +981,16 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                 HYP_FAIL("Failed to get component of type '{}' as BoxedValue when moving between EntityManagers", *GetComponentTypeName(componentTypeId));
             }
 
-            components.PushBack(std::move(component));
+            components.PushBack(MovedComponent { &componentInterface, std::move(component) });
 
             // Update iterator, erase the component from the entity's component map
             componentInfoPairIt = entityData->components.Erase(componentInfoPairIt);
         }
 
         {
-            for (const BoxedValue& component : components)
+            for (const MovedComponent& component : components)
             {
-                const TypeId componentTypeId = component.GetTypeId();
-                EnsureValidComponentType(componentTypeId);
+                const TypeId componentTypeId = component.componentInterface->GetTypeId();
 
                 // Update our entity sets to reflect the change
                 auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
@@ -1049,17 +1051,17 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
         ComponentMap componentIds;
 
-        for (BoxedValue& component : components)
+        for (MovedComponent& component : components)
         {
-            const TypeId componentTypeId = component.GetTypeId();
-            EnsureValidComponentType(componentTypeId);
+            const ComponentInterface& componentInterface = *component.componentInterface;
+            const TypeId componentTypeId = componentInterface.GetTypeId();
 
             // Update the EntityData
             auto componentIt = entityData->FindComponent(componentTypeId);
 
             if (componentIt != entityData->components.End())
             {
-                if (IsEntityTagComponent(componentTypeId))
+                if (componentInterface.IsEntityTag())
                 {
                     // Duplicate of the same tag, don't worry about it
 
@@ -1070,10 +1072,15 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                 continue;
             }
 
-            ComponentContainerBase* container = other->TryGetContainer(componentTypeId);
-            Assert(container != nullptr, "Component container does not exist for component of type '{}'", *GetComponentTypeName(componentTypeId));
+            ComponentContainer* container = other->GetOrCreateContainer(componentInterface);
 
-            const ComponentId componentId = container->AddComponent(std::move(component));
+            if (!container)
+            {
+                HYP_LOG(Entity, Error, "No component container available for component of type '{}'; component dropped while moving entity", *GetComponentTypeName(componentTypeId));
+                continue;
+            }
+
+            const ComponentId componentId = container->AddComponent(std::move(component.value));
 
             componentIds.Set(componentTypeId, componentId);
 
@@ -1082,10 +1089,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             AnyRef componentRef = container->TryGetComponent(componentId);
             Assert(componentRef.HasValue(), "Failed to get component of type '{}' with id {} from component container", *GetComponentTypeName(componentTypeId), componentId);
 
-            EntityTag tag = EntityTag::None;
-            if (IsEntityTagComponent(componentTypeId, tag))
+            if (componentInterface.IsEntityTag())
             {
-                entity->OnTagAdded(tag);
+                entity->OnTagAdded(componentInterface.GetEntityTag());
             }
             else
             {
@@ -1114,6 +1120,11 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             componentIds = entityData->components;
         }
 
+        if (entity->HasUnresolvedComponents())
+        {
+            other->MarkUnresolvedComponents();
+        }
+
         // Notify systems that entity is being added to them
         other->NotifySystemsOfEntityAdded(entity, componentIds);
 
@@ -1140,10 +1151,149 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     }
 }
 
-void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData)
+void EntityManager::ResolveUnresolvedComponents()
 {
-    AssertDebug(!componentData.IsNull());
+    if (!m_hasUnresolvedComponents || IsLocked() || !IsOnThread(m_ownerThreadId))
+    {
+        return;
+    }
 
+    const uint32 registrationGeneration = ComponentInterfaceRegistry::GetInstance().GetRuntimeRegistrationGeneration();
+
+    if (registrationGeneration == m_resolvedRegistrationGeneration)
+    {
+        return;
+    }
+
+    m_resolvedRegistrationGeneration = registrationGeneration;
+
+    // collected first: resolving adds components, which must not happen while walking entity storage
+    Array<Handle<Entity>> pendingEntities;
+
+    ForEachEntity([&pendingEntities](Entity* entity)
+        {
+            if (entity->HasUnresolvedComponents())
+            {
+                pendingEntities.PushBack(MakeStrongRef(entity));
+            }
+        });
+
+    bool anyRemaining = false;
+
+    for (const Handle<Entity>& entity : pendingEntities)
+    {
+        anyRemaining |= entity->ResolveUnresolvedComponents();
+    }
+
+    m_hasUnresolvedComponents = anyRemaining;
+}
+
+void EntityManager::SyncRuntimeComponentTypes()
+{
+    if (!IsOnThread(m_ownerThreadId))
+    {
+        return;
+    }
+
+    MigrateStaleComponentContainers();
+    ResolveUnresolvedComponents();
+}
+
+void EntityManager::MigrateStaleComponentContainers()
+{
+    const ComponentInterfaceRegistry& registry = ComponentInterfaceRegistry::GetInstance();
+    const uint32 registrationGeneration = registry.GetRuntimeRegistrationGeneration();
+
+    if (registrationGeneration == m_migratedRegistrationGeneration)
+    {
+        return;
+    }
+
+    // containers are migrated in place, so m_containers itself doesn't change and pointers to the containers stay valid
+    for (auto& it : m_containers)
+    {
+        EnsureCurrentComponentLayout(*it.second);
+    }
+
+    m_migratedRegistrationGeneration = registrationGeneration;
+}
+
+bool EntityManager::EnsureCurrentComponentLayout(ComponentContainer& container)
+{
+    const ComponentInterface& containerInterface = container.GetComponentInterface();
+
+    if (!containerInterface.IsRuntimeComponent())
+    {
+        return true;
+    }
+
+    const ComponentInterface* currentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(container.GetComponentTypeId());
+
+    if (!currentInterface || currentInterface == &containerInterface)
+    {
+        return true;
+    }
+
+    // no system reads runtime component containers, so the owner thread may migrate even while locked
+    if (!IsOnThread(m_ownerThreadId))
+    {
+        return false;
+    }
+
+    container.MigrateTo(*currentInterface);
+
+    return true;
+}
+
+ComponentContainer* EntityManager::GetOrCreateContainer(const ComponentInterface& componentInterface)
+{
+    const TypeId componentTypeId = componentInterface.GetTypeId();
+
+    {
+        TSharedLock lock(m_componentContainersMtx);
+
+        auto it = m_containers.Find(componentTypeId);
+
+        if (it != m_containers.End() && &it->second->GetComponentInterface() == &componentInterface)
+        {
+            return it->second.Get();
+        }
+    }
+
+    Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedScene()), "Component containers can only be created on the owner thread while the EntityManager is unlocked");
+
+    TUniqueLock lock(m_componentContainersMtx);
+
+    auto it = m_containers.Find(componentTypeId);
+
+    if (it != m_containers.End())
+    {
+        if (&it->second->GetComponentInterface() == &componentInterface)
+        {
+            return it->second.Get();
+        }
+
+        // the container predates a redefinition of its type
+        // it can only move forward to the current registration
+        if (ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId) != &componentInterface)
+        {
+            HYP_LOG(Entity, Error, "Component type '{}' was redefined; a component of its previous definition can't be added", componentInterface.GetTypeInfo().name);
+
+            return nullptr;
+        }
+
+        it->second->MigrateTo(componentInterface);
+
+        return it->second.Get();
+    }
+
+    it = m_containers.Set(componentTypeId, MakeUniqueWithAllocator<ComponentContainer, SceneAllocator>(componentInterface)).first;
+
+    return it->second.Get();
+}
+
+void EntityManager::AddComponent_Internal(Entity* entity, const ComponentInterface& componentInterface, ComponentConstructMode constructMode, void* source)
+{
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
     Assert(entity, "Invalid entity");
@@ -1154,8 +1304,7 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
     EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
     Assert(entityData != nullptr, "Entity with id {} does not exist", entity->Id());
 
-    const TypeId componentTypeId = componentData.GetTypeId();
-    EnsureValidComponentType(componentTypeId);
+    const TypeId componentTypeId = componentInterface.GetTypeId();
 
     ComponentMap componentIds;
 
@@ -1164,20 +1313,37 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
 
     if (componentIt != entityData->components.End())
     {
-        if (IsEntityTagComponent(componentTypeId))
+        if (componentInterface.IsEntityTag())
         {
             // Duplicate of the same tag, don't worry about it
 
             return;
         }
 
-        HYP_FAIL("Cannot add duplicate component of type '{}'", *GetComponentTypeName(componentTypeId));
+        HYP_LOG(Entity, Error, "Cannot add duplicate component of type '{}' to entity {}", *GetComponentTypeName(componentTypeId), entity->GetName());
+
+        return;
     }
 
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
+    ComponentContainer* container = GetOrCreateContainer(componentInterface);
     Assert(container != nullptr, "Component container does not exist for component of type '{}'", *GetComponentTypeName(componentTypeId));
 
-    const ComponentId componentId = container->AddComponent(componentData);
+    ComponentId componentId = Invalid<ComponentId>;
+
+    switch (constructMode)
+    {
+    case ComponentConstructMode::DEFAULT:
+        componentId = container->AddDefaultComponent();
+        break;
+    case ComponentConstructMode::COPY:
+        componentId = container->AddComponentCopy(source);
+        break;
+    case ComponentConstructMode::MOVE:
+        componentId = container->AddComponentMove(source);
+        break;
+    default:
+        HYP_UNREACHABLE();
+    }
 
     entityData->components.Set(componentTypeId, componentId);
 
@@ -1201,12 +1367,9 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
     AnyRef componentRef = container->TryGetComponent(componentId);
     Assert(componentRef.HasValue(), "Failed to get component of type '{}' with id {} from component container", *GetComponentTypeName(componentTypeId), componentId);
 
-    // Note: Call before notifying systems as they are able to remove components!
-
-    EntityTag tag = EntityTag::None;
-    if (IsEntityTagComponent(componentTypeId, tag))
+    if (componentInterface.IsEntityTag())
     {
-        entity->OnTagAdded(tag);
+        entity->OnTagAdded(componentInterface.GetEntityTag());
     }
     else
     {
@@ -1218,80 +1381,50 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
     NotifySystemsOfEntityAdded(entityHandle, componentIds);
 }
 
-void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
+void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData)
 {
     AssertDebug(!componentData.IsNull());
-
-    Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
-
-    Assert(entity, "Invalid entity");
-
-    Handle<Entity> entityHandle = MakeStrongRef(entity);
-    Assert(entityHandle.IsValid());
-
-    EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
-    Assert(entityData != nullptr, "Entity with id {} does not exist", entity->Id());
 
     const TypeId componentTypeId = componentData.GetTypeId();
     EnsureValidComponentType(componentTypeId);
 
-    ComponentMap componentIds;
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+    Assert(componentInterface != nullptr, "Component container does not exist for component of type TypeId({})", componentTypeId.Value());
 
-    // Update the EntityData
-    auto componentIt = entityData->FindComponent(componentTypeId);
-
-    if (componentIt != entityData->components.End())
+    if (!IsComponentDataCurrent(*componentInterface, componentData))
     {
-        if (IsEntityTagComponent(componentTypeId))
-        {
-            // Duplicate of the same tag, don't worry about it
-
-            return;
-        }
-
-        HYP_FAIL("Cannot add duplicate component of type '{}'", *GetComponentTypeName(componentTypeId));
+        return;
     }
 
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
-    Assert(container != nullptr, "Component container does not exist for component of type '{}'", *GetComponentTypeName(componentTypeId));
+    AddComponent_Internal(entity, *componentInterface, ComponentConstructMode::COPY, componentData.ToRef().GetPointer());
+}
 
-    const ComponentId componentId = container->AddComponent(std::move(componentData));
+void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
+{
+    AssertDebug(!componentData.IsNull());
 
-    entityData->components.Set(componentTypeId, componentId);
+    const TypeId componentTypeId = componentData.GetTypeId();
+    EnsureValidComponentType(componentTypeId);
 
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+    Assert(componentInterface != nullptr, "Component container does not exist for component of type TypeId({})", componentTypeId.Value());
+
+    if (!IsComponentDataCurrent(*componentInterface, componentData))
     {
-        // Update entity sets
-        auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
-
-        if (componentEntitySetsIt != m_componentEntitySets.End())
-        {
-            for (EntitySetId entitySetId : componentEntitySetsIt->second)
-            {
-                EntitySetBase& entitySet = *m_entitySets.At(entitySetId);
-
-                entitySet.OnEntityUpdated(entity);
-            }
-        }
-
-        componentIds = entityData->components;
+        return;
     }
 
-    AnyRef componentRef = container->TryGetComponent(componentId);
-    Assert(componentRef.HasValue(), "Failed to get component of type '{}' with id {} from component container", *GetComponentTypeName(componentTypeId), componentId);
+    AddComponent_Internal(entity, *componentInterface, ComponentConstructMode::MOVE, componentData.ToRef().GetPointer());
+}
 
-    EntityTag tag = EntityTag::None;
-    if (IsEntityTagComponent(componentTypeId, tag))
-    {
-        entity->OnTagAdded(tag);
-    }
-    else
-    {
-        // Note: Call before notifying systems as they are able to remove components!
-        entity->OnComponentAdded(componentRef);
-    }
+void EntityManager::AddDefaultComponent(Entity* entity, TypeId componentTypeId)
+{
+    EnsureValidComponentType(componentTypeId);
 
-    // Notify systems that entity is being added to them
-    NotifySystemsOfEntityAdded(entityHandle, componentIds);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+    Assert(componentInterface != nullptr, "Component container does not exist for component of type TypeId({})", componentTypeId.Value());
+
+    AddComponent_Internal(entity, *componentInterface, ComponentConstructMode::DEFAULT, nullptr);
 }
 
 bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
@@ -1305,6 +1438,9 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         return false;
     }
 
+    // Systems and the Entity's own callbacks below may drop the last reference to it
+    Handle<Entity> entityHandle = MakeStrongRef(entity);
+
     HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
     EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
@@ -1314,26 +1450,35 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         return false;
     }
 
-    auto componentIt = entityData->FindComponent(componentTypeId);
-    if (componentIt == entityData->components.End())
+    const ComponentId componentId = entityData->GetComponentId(componentTypeId);
+
+    if (componentId == Invalid<ComponentId>)
     {
         return false;
     }
 
-    const ComponentId componentId = componentIt->second;
-
-    // Notify systems that entity is being removed from them
-    ComponentMap removedComponents;
-    removedComponents.Set(componentTypeId, componentId);
-
-    NotifySystemsOfEntityRemoved(entity, removedComponents);
-
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
+    auto* container = TryGetContainer(componentTypeId);
 
     if (!container)
     {
         return false;
     }
+
+    ComponentMap removedComponents;
+    removedComponents.Set(componentTypeId, componentId);
+
+    NotifySystemsOfEntityRemoved(entity, removedComponents);
+
+    // A system may have removed the component itself from OnEntityRemoved() in which case doing everything below would be redundant
+    entityData = m_entities.TryGetEntityData(entity->Id());
+
+    if (!entityData || entityData->GetComponentId(componentTypeId) != componentId)
+    {
+        return true;
+    }
+
+    // removal callbacks get the component as its current type
+    EnsureCurrentComponentLayout(*container);
 
     AnyRef componentRef = container->TryGetComponent(componentId);
 
@@ -1354,12 +1499,20 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         entity->OnComponentRemoved(componentRef);
     }
 
-    // Remove the component from the entity's component map and update any EntitySets
-    // referencing this entity *before* the component data is erased from the
-    // ComponentContainer below. EntitySets cache each entity's ComponentIds and only refresh
-    // them here via OnEntityUpdated() - doing this first ensures no EntitySet can hand a stale
-    // ComponentId to a concurrent reader (e.g. a System::Process() running on a task thread)
-    // once the underlying component storage is actually gone.
+    entityData = m_entities.TryGetEntityData(entity->Id());
+
+    if (!entityData)
+    {
+        return true;
+    }
+
+    auto componentIt = entityData->FindComponent(componentTypeId);
+
+    if (componentIt == entityData->components.End() || componentIt->second != componentId)
+    {
+        return true;
+    }
+
     entityData->components.Erase(componentIt);
 
     auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
@@ -1403,7 +1556,7 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
         return GetTypeIdFromEntityTag(tag) == entityData->entityWeak.GetTypeId();
     }
 
-    const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
 
     if (!componentInterface)
     {
@@ -1429,7 +1582,7 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
     Handle<Entity> entityHandle = MakeStrongRef(entity);
     Assert(entityHandle.IsValid());
 
-    const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
 
     if (!componentInterface)
     {
@@ -1438,26 +1591,12 @@ void EntityManager::AddTag(Entity* entity, EntityTag tag)
         return;
     }
 
-    const TypeInfo& componentTypeInfo = componentInterface->GetTypeInfo();
-
-    if (HasComponent(componentTypeInfo.id, entity))
+    if (HasComponent(componentInterface->GetTypeId(), entity))
     {
         return;
     }
 
-    ComponentContainerBase* container = TryGetContainer(componentTypeInfo.id);
-    Assert(container != nullptr, "Component container does not exist for component type {}", componentTypeInfo.name);
-
-    BoxedValue component;
-
-    if (!componentInterface->CreateInstance(component))
-    {
-        HYP_LOG(Entity, Error, "Failed to create TagComponent for EntityTag {}", tag.value);
-
-        return;
-    }
-
-    AddComponent(entity, std::move(component));
+    AddComponent_Internal(entity, *componentInterface, ComponentConstructMode::DEFAULT, nullptr);
 }
 
 bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
@@ -1471,7 +1610,7 @@ bool EntityManager::RemoveTag(Entity* entity, EntityTag tag)
 
     Assert(!IsLocked() && (IsOnThread(m_ownerThreadId) || IsDetachedSceneLocked()));
 
-    const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
+    const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);
 
     if (!componentInterface)
     {

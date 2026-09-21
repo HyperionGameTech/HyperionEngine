@@ -29,15 +29,15 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
 #include <Scene/ParticleVolume.hpp>
-#include <Scene/View.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
-#include <Rendering/Util/MeshBuilder.hpp>
 #include <Util/NoiseFactory.hpp>
 
 #include <Core/Math/MathUtil.hpp>

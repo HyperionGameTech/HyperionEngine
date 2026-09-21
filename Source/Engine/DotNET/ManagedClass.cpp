@@ -35,6 +35,11 @@ ManagedObject* ManagedClass::NewObject()
 
     ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, nullptr, nullptr, nullptr, nullptr);
 
+    if (objectReference.weakHandle == nullptr)
+    {
+        return nullptr;
+    }
+
     return new ManagedObject(SharedThis(), objectReference);
 }
 
@@ -46,6 +51,11 @@ ManagedObject* ManagedClass::NewObject(const Class* cls, void* owner)
     Assert(m_newObjectFptr != nullptr, "New object function pointer not set for managed class {}", m_name);
 
     ObjectReference objectReference = m_newObjectFptr(/* keepAlive */ true, cls, owner, nullptr, nullptr);
+
+    if (objectReference.weakHandle == nullptr)
+    {
+        return nullptr;
+    }
 
     return new ManagedObject(SharedThis(), objectReference);
 }

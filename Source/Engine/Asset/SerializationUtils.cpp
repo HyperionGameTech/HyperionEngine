@@ -20,6 +20,7 @@
 #include <Core/Config/Config.hpp>
 
 #include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/Struct.hpp>
 #include <Core/Reflection/Property.hpp>
 #include <Core/Reflection/Field.hpp>
 #include <Core/Reflection/StaticField.hpp>
@@ -103,6 +104,17 @@ ENGINE_API Result BoxedToJSON(
 
     if (value.IsNull())
     {
+        outJson = JSON::JSNull();
+
+        return {};
+    }
+
+    // only HMF can carry an object whose class wasn't registered when it was read
+    if (value.Is<HMF::UnresolvedObject>())
+    {
+        HYP_LOG(Core, Warning, "Cannot write unresolved object of class '{}' to JSON; it is dropped from the JSON output",
+            value.Get<HMF::UnresolvedObject>().className);
+
         outJson = JSON::JSNull();
 
         return {};
@@ -2324,6 +2336,14 @@ ENGINE_API bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& 
         return true;
     }
 
+    if (cls->IsDynamic() && cls->IsStructType())
+    {
+        if (const Struct* dynamicStruct = GetStructFromClass(cls))
+        {
+            return dynamicStruct->CopyConstructBoxed(src.ToRef().GetPointer(), outDst, &typeInfo);
+        }
+    }
+
     if (!cls->CreateInstance(outDst))
     {
         return false;
@@ -2478,6 +2498,13 @@ Result BoxedToHMFImpl(
     if (value.IsNull())
     {
         outText += "null";
+        return {};
+    }
+
+    // an object whose class wasn't registered when it was read (eg a script component); written back exactly as it was read
+    if (value.Is<HMF::UnresolvedObject>())
+    {
+        outText += value.Get<HMF::UnresolvedObject>().source;
         return {};
     }
 

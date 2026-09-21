@@ -20,12 +20,13 @@
 #include <Scene/Camera/PerspectiveCamera.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/Scene.hpp>
-#include <Scene/View.hpp>
 #include <Scene/World.hpp>
+
+#include <Framework/View.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 
@@ -392,7 +393,6 @@ MeshComponent* AssetPreviewScene::ShowSubjectEntity()
 
 void AssetPreviewScene::HideSubjectEntity()
 {
-    // The View skips entities without a MeshComponent, so dropping it takes the subject out of the image.
     if (m_entity.IsValid() && m_entity->HasComponent<MeshComponent>())
     {
         m_entity->RemoveComponent<MeshComponent>();

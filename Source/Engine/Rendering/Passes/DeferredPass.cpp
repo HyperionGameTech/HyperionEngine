@@ -63,7 +63,6 @@
 #include <Rendering/DebugDrawer.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/EffectVolume.hpp>
@@ -76,6 +75,7 @@
 #include <Rendering/Clouds/CloudPass.hpp>
 
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #ifdef HYP_EDITOR
 #include <Framework/GameState.hpp>

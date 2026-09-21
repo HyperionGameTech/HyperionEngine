@@ -6,10 +6,13 @@
 
 #include <ScenePch.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/CVarManager.hpp>
+
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
@@ -49,9 +52,6 @@
 #include <Core/Math/Mat3f.hpp>
 
 #include <Core/Threading/Task.hpp>
-
-#include <Framework/EngineDriver.hpp>
-#include <Framework/CVarManager.hpp>
 
 //#define HYP_DISABLE_VISIBILITY_CHECK
 // #define HYP_VISIBILITY_CHECK_DEBUG

@@ -38,8 +38,7 @@
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Scene/Scene.hpp>
-#include <Scene/View.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/EffectVolume.hpp>
@@ -61,6 +60,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Framework/Threads/RenderWorkerThread.hpp>
 

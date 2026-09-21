@@ -90,6 +90,7 @@ namespace Hyperion.Editor
             }
 
             PanelService.Instance.ActivePanelChanged += OnPanelServiceActivePanelChanged;
+            ContentBrowserViewModel.BringToFrontRequested += OnContentBrowserBringToFrontRequested;
 
             // Detect a dynamic panel's tab being closed via its own [x] button so the
             // matching view model's OnClosed callback still runs.
@@ -436,6 +437,26 @@ namespace Hyperion.Editor
             finally
             {
                 _suppressPanelSync = false;
+            }
+        }
+
+        private void OnContentBrowserBringToFrontRequested()
+        {
+            if (DockControl.Layout is not { } layout || DockControl.Factory is not FactoryBase factory)
+            {
+                return;
+            }
+
+            if (FindDockableById(layout, "ContentBrowser") is not { } contentBrowserTool)
+            {
+                return;
+            }
+
+            factory.SetActiveDockable(contentBrowserTool);
+
+            if (contentBrowserTool.Owner is IDock ownerDock)
+            {
+                factory.SetFocusedDockable(ownerDock, contentBrowserTool);
             }
         }
 

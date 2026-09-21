@@ -29,14 +29,14 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
+#include <Framework/CVarManager.hpp>
+
 #include <Scene/LightmapVolume.hpp>
 
 #include <Core/Math/Mat4f.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
-
-#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 

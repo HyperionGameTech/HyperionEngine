@@ -55,6 +55,16 @@ namespace Hyperion
             CreateWatchers();
         }
 
+        // Just the C# compiler, without file watchers or building every module: for one-off assembly resolution, eg loading a
+        // project's script modules before its scenes are read
+        public void InitializeCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)
+        {
+            this.intermediateDirectory = intermediateDirectory;
+            this.binaryOutputDirectory = binaryOutputDirectory;
+
+            csharpCompiler = new CSharpScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
+        }
+
         public void UpdateSourceDirectories(Array sourceDirectoriesArray)
         {
             Logger.Log(logChannel, LogLevel.Info, "Updating script source directories...");
@@ -229,6 +239,28 @@ namespace Hyperion
                 }
 
                 Debug.Assert(removedFromProcessing);
+            }
+        }
+
+        public bool ResolveAssembly(string scriptPath, IntPtr scriptDescPtr)
+        {
+            if (csharpCompiler == null || scriptDescPtr == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            try
+            {
+                unsafe
+                {
+                    return csharpCompiler.ResolveAssembly(scriptPath, ref *(ScriptDesc*)scriptDescPtr);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(logChannel, LogLevel.Error, "Error resolving assembly for script {0}: {1}", scriptPath, e.Message);
+
+                return false;
             }
         }
 

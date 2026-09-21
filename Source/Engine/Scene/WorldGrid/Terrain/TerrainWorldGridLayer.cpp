@@ -1508,9 +1508,7 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
 
                                 if (newValue != oldValue)
                                 {
-                                    // Pull the other layers down so the total stays at 255 - a fully
-                                    // painted layer needs to reach full weight, otherwise its normal
-                                    // map blends away into the other layers.
+                                    // Pull the other layers down so the total stays at 255
                                     int32 othersTotal = 0;
 
                                     for (uint32 layer = 0; layer < TerrainCellData::NumSplatLayers; layer++)

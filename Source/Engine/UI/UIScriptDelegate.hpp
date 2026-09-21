@@ -116,7 +116,12 @@ public:
                     //     return defaultResult;
                     // }
 
-                    UIEventHandlerResult result = managedObject->InvokeMethod<UIEventHandlerResult>(managedMethod, std::forward<Args>(args)...);
+                    UIEventHandlerResult result;
+
+                    if (!managedObject->TryInvokeMethod<UIEventHandlerResult>(managedMethod, &result, std::forward<Args>(args)...))
+                    {
+                        return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Script method threw an exception"));
+                    }
 
                     if (result == UIEventHandlerResult::OK)
                     {

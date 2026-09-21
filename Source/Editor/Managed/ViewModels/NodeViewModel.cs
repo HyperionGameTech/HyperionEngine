@@ -9,6 +9,7 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly Node _node;
         private readonly NodeViewModel? _parent;
+        private int _actionsRefreshGeneration;
 
         public Node Node => _node;
         public NodeViewModel? Parent => _parent;
@@ -249,13 +250,22 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        public void RefreshActions()
+        public async void RefreshActions()
         {
             Dispatcher.UIThread.VerifyAccess();
 
+            int refreshGeneration = ++_actionsRefreshGeneration;
+
+            List<InspectorActionViewModel> actionVms = await InspectorActionsHelper.GetActionsAsync(_node);
+
+            if (refreshGeneration != _actionsRefreshGeneration)
+            {
+                return;
+            }
+
             Actions.Clear();
 
-            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(_node))
+            foreach (InspectorActionViewModel actionVm in actionVms)
             {
                 Actions.Add(actionVm);
             }

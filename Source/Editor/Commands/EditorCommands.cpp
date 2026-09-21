@@ -12,7 +12,7 @@
 #include <Scene/World.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/InstancedMeshProxy.hpp>
@@ -3551,12 +3551,7 @@ public:
 
         const String relativeScriptFilePath = scriptFilePath.ToRelative(rootDir).ToCanonical();
 
-        size_t numCopied = Memory::CopyString(
-            desc.path.Data(),
-            relativeScriptFilePath.Data(),
-            MathUtil::Min(desc.path.Size(), relativeScriptFilePath.Size()));
-
-        if (numCopied < relativeScriptFilePath.Size())
+        if (relativeScriptFilePath.Size() >= desc.path.Size())
         {
             HYP_LOG(Editor, Warning, "Relative file path is too long, will not fit into script desc! Path: {}", relativeScriptFilePath);
 
@@ -3565,7 +3560,7 @@ public:
         }
         else
         {
-            desc.path.Data()[desc.path.Size() - 1] = '\0';
+            desc.DeserializePath(relativeScriptFilePath);
         }
 
         FileByteWriter writer { scriptFilePath };

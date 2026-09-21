@@ -43,7 +43,7 @@
 #include <Rendering/RenderableAttributes.hpp>
 
 #include <Scene/Camera/Camera.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>

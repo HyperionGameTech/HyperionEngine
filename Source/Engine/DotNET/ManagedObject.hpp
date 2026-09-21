@@ -110,7 +110,55 @@ public:
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod(const ManagedMethod* pMethod, Args&&... args)
     {
-        return InvokeMethod_CheckArgs<ReturnType>(pMethod, std::forward<Args>(args)...);
+        if constexpr (std::is_void_v<ReturnType>)
+        {
+            InvokeMethod_BoxArgs(pMethod, nullptr, std::forward<Args>(args)...);
+        }
+        else
+        {
+            BoxedValue boxed;
+
+            if (!InvokeMethod_BoxArgs(pMethod, &boxed, std::forward<Args>(args)...) || boxed.IsNull())
+            {
+                return ReturnType();
+            }
+
+            return std::move(boxed.Get<ReturnType>());
+        }
+    }
+
+    template <class ReturnType, class... Args>
+    bool TryInvokeMethod(const ManagedMethod* pMethod, ReturnType* outReturn, Args&&... args)
+    {
+        if constexpr (std::is_void_v<ReturnType>)
+        {
+            return InvokeMethod_BoxArgs(pMethod, nullptr, std::forward<Args>(args)...);
+        }
+        else
+        {
+            BoxedValue boxed;
+
+            if (!InvokeMethod_BoxArgs(pMethod, &boxed, std::forward<Args>(args)...))
+            {
+                return false;
+            }
+
+            if (outReturn == nullptr)
+            {
+                return true;
+            }
+
+            if (boxed.IsNull())
+            {
+                *outReturn = ReturnType();
+            }
+            else
+            {
+                *outReturn = std::move(boxed.Get<ReturnType>());
+            }
+
+            return true;
+        }
     }
 
     template <class ReturnType, class... Args>
@@ -121,7 +169,7 @@ public:
         const ManagedMethod* pMethod = GetMethod(methodName);
         Assert(pMethod != nullptr, "Method {} not found", methodName);
 
-        return InvokeMethod_CheckArgs<ReturnType>(pMethod, std::forward<Args>(args)...);
+        return InvokeMethod<ReturnType>(pMethod, std::forward<Args>(args)...);
     }
 
 private:
@@ -130,10 +178,10 @@ private:
      * */
     void Reset();
 
-    void InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsBoxed, BoxedValue* outBoxed);
+    bool InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsBoxed, BoxedValue* outBoxed);
 
-    template <class ReturnType, class... Args>
-    ReturnType InvokeMethod_CheckArgs(const ManagedMethod* pMethod, Args&&... args)
+    template <class... Args>
+    bool InvokeMethod_BoxArgs(const ManagedMethod* pMethod, BoxedValue* outBoxed, Args&&... args)
     {
         if constexpr (sizeof...(args) != 0)
         {
@@ -150,43 +198,13 @@ private:
                 }
             });
 
-            if constexpr (std::is_void_v<ReturnType>)
-            {
-                InvokeMethod_Internal(pMethod, argsArrayPtr, nullptr);
-            }
-            else
-            {
-                BoxedValue boxed;
-                InvokeMethod_Internal(pMethod, argsArrayPtr, &boxed);
-
-                if (boxed.IsNull())
-                {
-                    return ReturnType();
-                }
-
-                return std::move(boxed.Get<ReturnType>());
-            }
+            return InvokeMethod_Internal(pMethod, argsArrayPtr, outBoxed);
         }
         else
         {
             const BoxedValue* argsArrayPtr[] = { nullptr };
 
-            if constexpr (std::is_void_v<ReturnType>)
-            {
-                InvokeMethod_Internal(pMethod, argsArrayPtr, nullptr);
-            }
-            else
-            {
-                BoxedValue boxed;
-                InvokeMethod_Internal(pMethod, argsArrayPtr, &boxed);
-
-                if (boxed.IsNull())
-                {
-                    return ReturnType();
-                }
-
-                return std::move(boxed.Get<ReturnType>());
-            }
+            return InvokeMethod_Internal(pMethod, argsArrayPtr, outBoxed);
         }
     }
 

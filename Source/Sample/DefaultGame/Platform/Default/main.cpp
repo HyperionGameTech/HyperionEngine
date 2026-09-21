@@ -12,6 +12,12 @@ namespace Hyperion::tests::script {
 }
 #endif
 
+#if defined(HYP_TESTS)
+namespace Hyperion::tests::scene {
+    ENGINE_API void RunComponentContainerTests();
+}
+#endif
+
 int main(int argc, char** argv)
 {
     if (!Hyp_Initialize(argc, argv))
@@ -21,6 +27,10 @@ int main(int argc, char** argv)
 
 #if defined(HYP_TESTS) && defined(HYP_STRATA) && defined(HYP_STRATA_JIT)
     ///Hyperion::tests::script::RunScriptBenchmark();
+#endif
+
+#if defined(HYP_TESTS)
+    ///Hyperion::tests::scene::RunComponentContainerTests();
 #endif
 
     Handle<Game> defaultGame = Game::CreateGame("DefaultGame"_sh);

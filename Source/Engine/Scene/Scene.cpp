@@ -8,7 +8,7 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 
 #include <Scene/EntityManager.hpp>
 

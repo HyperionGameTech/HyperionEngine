@@ -482,7 +482,7 @@ extern "C"
 
             *pOutObjectReference = managedClass->GetMarshalObjectFunction()(ref.GetPointer(), uint32(cls->GetSize()));
 
-            return true;
+            return pOutObjectReference->weakHandle != nullptr;
         }
 
         return false;

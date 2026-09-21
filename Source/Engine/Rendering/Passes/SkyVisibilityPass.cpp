@@ -22,12 +22,12 @@
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/Frame.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/Sky/DynamicSkySystem.hpp>
 #include <Scene/Camera/Camera.hpp>
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Math/MathUtil.hpp>

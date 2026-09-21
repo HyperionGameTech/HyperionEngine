@@ -31,7 +31,6 @@
 
 #include <Rendering/Util/MeshBuilder.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/Sprite.hpp>
 #include <Scene/TextSprite.hpp>
 #include <Scene/Camera/Camera.hpp>
@@ -43,8 +42,9 @@
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
-#include <Framework/CVarManager.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <SpritePass.generated.inl>
 

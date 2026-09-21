@@ -10,7 +10,7 @@
 #include <Scene/Entity.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/BVH.hpp>
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/VisibilityStateComponent.hpp>

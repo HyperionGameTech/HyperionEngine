@@ -28,11 +28,10 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Math/MathUtil.hpp>
-
-#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 

@@ -26,8 +26,6 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/View.hpp>
-
 #include <System/AppContext.hpp>
 
 #include <Core/Math/Vector2.hpp>
@@ -36,6 +34,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 

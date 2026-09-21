@@ -412,7 +412,12 @@ namespace Hyperion
                 currentType = currentType.BaseType;
 
                 if (currentType == null)
+                {
+                    if (DynamicStruct.TryGet(type, out DynamicStruct? dynamicStruct))
+                        return dynamicStruct.Class;
+
                     return null;
+                }
             }
             
             Assembly assembly = currentType.Assembly;

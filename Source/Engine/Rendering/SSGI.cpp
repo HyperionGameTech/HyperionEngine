@@ -34,14 +34,14 @@
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Core/Threading/Threads.hpp>
 
 #include <Scene/EnvProbe.hpp>
-#include <Scene/Light.hpp>
-#include <Scene/View.hpp>
+#include <Scene/Light/Light.hpp>
 
 namespace Hyperion {
 

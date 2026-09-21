@@ -21,6 +21,11 @@
 
 #include <Scene/Animation/Skeleton.hpp>
 
+#include <Core/Reflection/Struct.hpp>
+
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+
 using namespace Hyperion;
 
 extern "C"
@@ -98,46 +103,41 @@ extern "C"
     }
 
     /// Adds component, if pComponent is null it will create a new instance.
-    HYP_EXPORT void EntityManager_AddComponent(EntityManager* pManager, Entity* pEntity, uint32 componentTypeIdValue, void* pComponent)
+    /// Returns false without adding anything when the entity already has the component.
+    HYP_EXPORT int8 EntityManager_AddComponent(EntityManager* pManager, Entity* pEntity, uint32 componentTypeIdValue, void* pComponent)
     {
         Assert(pManager != nullptr);
         Assert(pEntity != nullptr);
 
         const TypeId componentTypeId { componentTypeIdValue };
 
-        ComponentContainerBase* pContainer = pManager->TryGetContainer(componentTypeId);
-        Assert(pContainer != nullptr, "Invalid component type!");
+        const ComponentInterface* pComponentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+        Assert(pComponentInterface != nullptr, "Invalid component type!");
 
-        const TypeInfo& typeInfo = pContainer->GetComponentTypeInfo();
+        if (!pComponentInterface)
+        {
+            return false;
+        }
+
+        if (!pComponentInterface->IsEntityTag() && pManager->HasComponent(componentTypeId, pEntity))
+        {
+            HYP_LOG(Scene, Warning, "Entity #{} already has a '{}' component; keeping the existing one. Check HasComponent before adding.",
+                pEntity->Id(), *EntityManager::GetComponentTypeName(componentTypeId));
+
+            return false;
+        }
 
         if (pComponent != nullptr)
         {
-            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&typeInfo, pComponent)));
+            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&pComponentInterface->GetTypeInfo(), pComponent)));
         }
         else
         {
             // Make instance if pComponent is null
-
-            const Class* cls = typeInfo.GetClass();
-            Assert(cls != nullptr, "No Class for component: {}", typeInfo.name);
-
-            if (!cls)
-            {
-                return;
-            }
-
-            BoxedValue boxed;
-            bool created = cls->CreateInstance(boxed);
-            
-            Assert(created, "Failed to create instance of {}!", cls->GetName());
-
-            if (!created)
-            {
-                return;
-            }
-
-            pManager->AddComponent(pEntity, std::move(boxed));
+            pManager->AddDefaultComponent(pEntity, componentTypeId);
         }
+
+        return true;
     }
 
     HYP_EXPORT int8 EntityManager_RemoveComponent(EntityManager* pManager, uint32 componentTypeIdValue, Entity* pEntity)
@@ -200,11 +200,11 @@ extern "C"
 
     HYP_EXPORT uint32 EntityTag_GetEditorFriendlyTags(uint64* pOutTags)
     {
-        const Array<const IComponentInterface*> componentInterfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
+        const Array<const ComponentInterface*> componentInterfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
 
         uint32 numTags = 0;
 
-        for (const IComponentInterface* componentInterface : componentInterfaces)
+        for (const ComponentInterface* componentInterface : componentInterfaces)
         {
             if (!componentInterface->IsEntityTag() || !componentInterface->ShouldShowInEditor())
             {
@@ -220,6 +220,23 @@ extern "C"
         }
 
         return numTags;
+    }
+
+    HYP_EXPORT int8 ComponentInterfaceRegistry_RegisterRuntimeComponent(const Class* pClass, uint32 flags)
+    {
+        const Struct* pStruct = GetStructFromClass(pClass);
+
+        if (!pStruct)
+        {
+            return false;
+        }
+
+        return ComponentInterfaceRegistry::GetInstance().RegisterRuntimeComponent(pStruct, EnumFlags<ComponentInterfaceFlags>(static_cast<ComponentInterfaceFlags>(flags))) != nullptr;
+    }
+
+    HYP_EXPORT int8 ComponentInterfaceRegistry_UnregisterRuntimeComponent(uint32 componentTypeIdValue)
+    {
+        return ComponentInterfaceRegistry::GetInstance().UnregisterRuntimeComponent(TypeId { componentTypeIdValue });
     }
 
 

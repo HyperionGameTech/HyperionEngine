@@ -324,7 +324,7 @@ public:
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
      *  The returned object will hold a reference to this class instance, so it will need to remain valid for the lifetime of the object.
      *
-     *  \return The new managed object.
+     *  \return The new managed object, or nullptr if its constructor threw.
      */
     HYP_NODISCARD ManagedObject* NewObject();
 
@@ -332,14 +332,14 @@ public:
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
      *  The returned object will hold a reference to this class instance, so it will need to remain valid for the lifetime of the object.
      *
-     *  \return The new managed object.
+     *  \return The new managed object, or nullptr if its constructor threw.
      */
     HYP_NODISCARD ManagedObject* NewObject(const Class* cls, void* owner);
 
     /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
      *  A struct containing the object's GUID and .NET object address will be returned.
      *
-     *  \return A struct containing the object's GUID and .NET object address
+     *  \return A struct containing the object's GUID and .NET object address, with null handles if its constructor threw
      */
     HYP_NODISCARD ObjectReference NewManagedObject(void* contextPtr = nullptr, InitializeObjectCallbackFunction callback = nullptr);
 

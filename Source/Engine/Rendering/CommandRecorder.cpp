@@ -31,10 +31,9 @@
 #include <Rendering/GpuTimerBackend.hpp>
 
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Reflection/Enum.hpp>
-
-#include <Scene/View.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 

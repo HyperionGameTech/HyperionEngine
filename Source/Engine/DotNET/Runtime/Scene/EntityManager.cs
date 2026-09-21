@@ -148,7 +148,7 @@ namespace Hyperion
             return EntityManager_HasComponent(NativeAddress, componentClass.TypeId, entity.NativeAddress);
         }
 
-        public void AddComponent<T>(Entity entity, ref T component) where T : IComponent, allows ref struct
+        public bool AddComponent<T>(Entity entity, ref T component) where T : IComponent, allows ref struct
         {
             Class componentClass = Class.GetClass(typeof(T));
 
@@ -157,26 +157,82 @@ namespace Hyperion
             //     throw new Exception("Component size mismatch: " + componentClass.Size + " != " + Marshal.SizeOf<T>());
             // }
 
-            AddComponent<T>(entity, componentClass, ref component);
+            return AddComponent<T>(entity, componentClass, ref component);
         }
 
-        private unsafe void AddComponent<T>(Entity entity, Class componentClass, ref T component) where T : IComponent, allows ref struct
+        public bool AddComponent<T>(Entity entity, T component) where T : IComponent, allows ref struct
+        {
+            return AddComponent<T>(entity, ref component);
+        }
+
+        public bool AddComponent<T>(Entity entity) where T : IComponent, allows ref struct
+        {
+            return AddDefaultComponent(entity, Class.GetClass(typeof(T)));
+        }
+
+        private unsafe bool AddComponent<T>(Entity entity, Class componentClass, ref T component) where T : IComponent, allows ref struct
         {
             fixed (T* pComponent = &component)
             {
-                EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, (IntPtr)pComponent);
+                return EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, (IntPtr)pComponent);
             }
         }
 
-        public unsafe void AddDefaultComponent(Entity entity, Class componentClass)
+        public unsafe bool AddDefaultComponent(Entity entity, Class componentClass)
         {
             // Pass 0 (NULL) - will create new instance from managed code.
-            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, 0);
+            return EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentClass.TypeId, 0);
         }
 
         public bool RemoveComponent(Entity entity, TypeId componentTypeId)
         {
             return EntityManager_RemoveComponent(NativeAddress, componentTypeId, entity.NativeAddress);
+        }
+
+        public bool RemoveComponent<T>(Entity entity) where T : IComponent, allows ref struct
+        {
+            return RemoveComponent(entity, Class.GetClass(typeof(T)).TypeId);
+        }
+
+        public bool TryGetComponent<T>(Entity entity, out T component) where T : IComponent, allows ref struct
+        {
+            Class componentClass = Class.GetClass(typeof(T));
+
+            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentClass.TypeId, entity.NativeAddress);
+
+            if (componentPtr == IntPtr.Zero)
+            {
+                component = default;
+
+                return false;
+            }
+
+            unsafe
+            {
+                component = System.Runtime.CompilerServices.Unsafe.AsRef<T>(componentPtr.ToPointer());
+            }
+
+            return true;
+        }
+
+        public ref T GetOrAddComponent<T>(Entity entity) where T : IComponent, allows ref struct
+        {
+            if (!HasComponent<T>(entity))
+            {
+                AddComponent<T>(entity);
+            }
+
+            return ref GetComponent<T>(entity);
+        }
+
+        public ref T GetOrAddComponent<T>(Entity entity, T component) where T : IComponent, allows ref struct
+        {
+            if (!HasComponent<T>(entity))
+            {
+                AddComponent<T>(entity, ref component);
+            }
+
+            return ref GetComponent<T>(entity);
         }
 
         public ref T GetComponent<T>(Entity entity) where T : IComponent, allows ref struct
@@ -254,6 +310,7 @@ namespace Hyperion
         // }
 
         [DllImport("hyperion", EntryPoint = "EntityManager_HasComponent")]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool EntityManager_HasComponent(IntPtr pManager, TypeId componentTypeId, IntPtr pEntity);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_GetComponent")]
@@ -263,7 +320,8 @@ namespace Hyperion
         private static extern uint EntityManager_GetComponentTypeIds(IntPtr pManager, IntPtr pEntity, [Out] IntPtr pOutTypeIds);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
-        private static extern void EntityManager_AddComponent(IntPtr pManager, IntPtr pEntity, TypeId componentTypeId, IntPtr pComponent);
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool EntityManager_AddComponent(IntPtr pManager, IntPtr pEntity, TypeId componentTypeId, IntPtr pComponent);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_RemoveComponent")]
         [return: MarshalAs(UnmanagedType.I1)]

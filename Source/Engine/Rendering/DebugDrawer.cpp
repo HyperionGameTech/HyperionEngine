@@ -38,8 +38,8 @@
 #include <Framework/EngineStats.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EnvProbe.hpp>
 
