@@ -49,6 +49,7 @@
 #include <Framework/EngineStats.hpp>
 
 #include <dxgi1_6.h>
+#include <dxgidebug.h>
 
 #include <algorithm>
 
@@ -229,7 +230,16 @@ RendererResult DX12RenderInterface::Initialize()
 
     uint32 createFactoryFlags = 0;
 #ifdef HYP_RHI_DEBUG_NAMES
-    createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+    // DXGI_CREATE_FACTORY_DEBUG requires the D3D debug layer (DXGIDebug.dll) to be
+    // installed on the system; otherwise CreateDXGIFactory2 fails with
+    // DXGI_ERROR_INVALID_CALL (e.g. on systems without the optional "Graphics Tools"
+    // feature). Probe for the debug interface first, mirroring the official D3D12
+    // samples, so the factory creation still succeeds without the debug layer.
+    ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
+    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiInfoQueue))))
+    {
+        createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+    }
 #endif
 
     HRESULT res = CreateDXGIFactory2(createFactoryFlags, __uuidof(IDXGIFactory4), &dxgiFactory);

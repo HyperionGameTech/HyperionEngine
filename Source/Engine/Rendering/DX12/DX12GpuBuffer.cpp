@@ -175,7 +175,9 @@ RendererResult DX12GpuBuffer::Create()
 
     D3D12_RESOURCE_DESC bufferDesc {};
     bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    bufferDesc.Alignment = (m_alignment > 0) ? D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT : 0;
+    // Buffers must always use Alignment == 0 per the D3D12 spec; nonzero alignment
+    // triggers DXGI_ERROR_DEVICE_REMOVED on Qualcomm Adreno drivers (Windows on ARM).
+    bufferDesc.Alignment = 0;
     bufferDesc.Width = finalSize;
     bufferDesc.Height = 1;
     bufferDesc.DepthOrArraySize = 1;
@@ -201,9 +203,11 @@ RendererResult DX12GpuBuffer::Create()
 
     if (FAILED(hr))
     {
-        // gpu crashes happen for us here, this isn't the culprit (from what i've seen)
-        // but they tend to 'bubble' to here.
-        // caller should call CrashHandler::Dump() on failure to create.
+        if (hr == DXGI_ERROR_DEVICE_REMOVED)
+        {
+            HYP_LOG(RenderingBackend, Error, "Failed to create D3D12MA buffer of size {} (type {}): device was removed. Reason: {}",
+                finalSize, int(m_type), CheckDeviceRemovedReason(RI.GetDevice()));
+        }
 
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MA buffer", hr);
     }

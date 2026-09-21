@@ -129,14 +129,17 @@ static void CaptureRawStackFrames(Array<void*>& rawFrames, uint32 depth, uint32 
     stackFrame.AddrPC.Mode = AddrModeFlat;
     stackFrame.AddrFrame.Mode = AddrModeFlat;
     stackFrame.AddrStack.Mode = AddrModeFlat;
+
+#ifdef HYP_ARM
+    DWORD machineType = IMAGE_FILE_MACHINE_ARM64;
+    stackFrame.AddrPC.Offset = context.Pc;
+    stackFrame.AddrFrame.Offset = context.Fp;
+    stackFrame.AddrStack.Offset = context.Sp;
+#else
+    DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
     stackFrame.AddrPC.Offset = context.Rip;
     stackFrame.AddrFrame.Offset = context.Rbp;
     stackFrame.AddrStack.Offset = context.Rsp;
-
-#if HYP_ARM
-    DWORD machineType = IMAGE_FILE_MACHINE_ARM64;
-#else
-    DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
 #endif
 
     uint32 index = 0;

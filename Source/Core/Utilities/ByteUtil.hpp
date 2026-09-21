@@ -13,11 +13,12 @@
 #include <Core/Defines.hpp>
 
 #include <climits>
+#include <bit>
 
-#if HYP_WINDOWS
+#ifdef HYP_MSVC
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse64)
-#endif // HYP_WINDOWS
+#endif // HYP_MSVC
 
 namespace Hyperion {
 namespace utilities {
@@ -177,18 +178,8 @@ uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
 
 uint64 ByteUtil::BitCount(uint64 value)
 {
-#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
-    // @TODO profile profile profile versus the bithacks one
-    return __builtin_popcountll(value);
-#elif defined(HYP_MSVC) && HYP_MSVC
-    return __popcnt64(value);
-#else
-    // https://graphics.stanford.edu/~seander/bithacks.html
-    value = value - ((value >> 1) & (uint64) ~(uint64)0 / 3);
-    value = (value & (uint64) ~(uint64)0 / 15 * 3) + ((value >> 2) & (uint64) ~(uint64)0 / 15 * 3);
-    value = (value + (value >> 4)) & (uint64) ~(uint64)0 / 255 * 15;
-    return (uint64)(value * ((uint64) ~(uint64)0 / 255)) >> (sizeof(uint64) - 1) * CHAR_BIT;
-#endif
+    // std::popcount lowers to POPCNT on x86/x64 and CNT (or FMOV-based fallback) on ARM64
+    return (uint64)std::popcount(value);
 }
 
 /*! \brief Converts a value of type \ref To to a value of type \ref From.
