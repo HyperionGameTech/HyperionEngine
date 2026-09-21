@@ -382,15 +382,59 @@ void ScriptSystem::RefreshScriptSourceDirectories()
     m_scriptTracker->UpdateSourceDirectories(CollectScriptSourceDirectories());
 }
 
-void ScriptSystem::PreloadProjectScripts(const FilePath& projectRootPath)
+void ScriptSystem::PreloadProjectScripts(const Handle<AssetRegistry>& registry)
 {
 #ifdef HYP_DOTNET
-    if (!EnableScriptReloading() || !DotNETHost::GetInstance().IsInitialized())
+    if (!registry.IsValid() || !DotNETHost::GetInstance().IsInitialized())
     {
         return;
     }
 
-    const FilePath scriptsDirectory = projectRootPath / AssetBuckets::Scripts.GetName();
+    if (!EnableScriptReloading())
+    {
+        Array<AssetDesc> scriptAssetDescs;
+        registry->GetBucketAssetDescs(AssetBuckets::Scripts.GetIndex(), scriptAssetDescs);
+
+        Array<ANSIString> loadedAssemblyPaths;
+
+        for (const AssetDesc& scriptAssetDesc : scriptAssetDescs)
+        {
+            Handle<ScriptAsset> scriptAsset = registry->GetAsset<ScriptAsset>(AssetBuckets::Scripts, scriptAssetDesc.name);
+
+            if (!scriptAsset.IsValid())
+            {
+                continue;
+            }
+
+            auto readScope = scriptAsset->GetReadScope();
+
+            const ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
+
+            if (scriptDesc.language != ScriptLanguage::CSharp || scriptDesc.assemblyPath[0] == '\0')
+            {
+                continue;
+            }
+
+            // several scripts share a module
+            const ANSIString assemblyPath = EntityScripting::GetCSharpAssemblyLoadPath(scriptDesc);
+
+            if (loadedAssemblyPaths.Contains(assemblyPath))
+            {
+                continue;
+            }
+
+            loadedAssemblyPaths.PushBack(assemblyPath);
+
+            if (!DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
+            {
+                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to load C# script module '{}'", assemblyPath.Data());
+            }
+        }
+
+        return;
+    }
+
+    const FilePath scriptsDirectory = registry->GetRootPath() / AssetBuckets::Scripts.GetName();
 
     if (!scriptsDirectory.IsDirectory())
     {

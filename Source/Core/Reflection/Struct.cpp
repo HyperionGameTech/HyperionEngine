@@ -395,6 +395,12 @@ DynamicStructInstance::DynamicStructInstance(
     pTypeInfo->size = uint16(size);
     pTypeInfo->alignment = uint16(alignment);
 
+    // a newer definition (eg a script reload changed the layout) takes over the TypeId; the previous one stays alive while referenced
+    if (const Class* previousDefinition = ClassRegistry::GetInstance().GetClass(typeId); previousDefinition && previousDefinition->IsStructType())
+    {
+        ClassRegistry::GetInstance().Unregister(previousDefinition);
+    }
+
     /// \todo Register the ManagedClass (dotnet::ManagedClass) for this. We need the assembly.
     ClassRegistry::GetInstance().Register(typeId, this);
 }
@@ -510,7 +516,8 @@ void DynamicStructInstance::Release()
 {
     if (AtomicDecrement(&m_refCount) <= 0)
     {
-        if (!ClassRegistry::GetInstance().Unregister(this))
+        // a struct replaced by a newer definition with the same TypeId is no longer registered
+        if (ClassRegistry::GetInstance().GetClass(GetTypeId()) == this && !ClassRegistry::GetInstance().Unregister(this))
         {
             HYP_LOG(Object, Warning, "Failed to unregister dynamic Struct \"{}\"", GetName());
         }

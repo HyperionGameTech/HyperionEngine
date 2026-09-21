@@ -443,6 +443,12 @@ public:
         auto componentContainerIt = m_containers.Find(componentTypeId);
         Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
 
+        // a runtime component whose type was just redefined can't be read as the new type until its container is migrated
+        if (!EnsureCurrentComponentLayout(*componentContainerIt->second))
+        {
+            return AnyRef::Empty();
+        }
+
         return componentContainerIt->second->TryGetComponent(*componentIdOpt);
     }
 
@@ -715,6 +721,10 @@ public:
      *  Cheap when there is nothing to do; call on the owner thread while unlocked. */
     void ResolveUnresolvedComponents();
 
+    /*! \brief Catches up with runtime component registrations: migrates containers of component types that were redefined (eg a script
+     *  reload changed a component's layout), then re-adds unresolved saved components. Cheap when nothing changed; call on the owner thread. */
+    void SyncRuntimeComponentTypes();
+
     void AddPendingEntitySets();
 
     template <class Component>
@@ -770,6 +780,12 @@ private:
     ComponentContainer* GetOrCreateContainer(const ComponentInterface& componentInterface);
 
     void AddComponent_Internal(Entity* entity, const ComponentInterface& componentInterface, ComponentConstructMode constructMode, void* source);
+
+    void MigrateStaleComponentContainers();
+
+    // Migrates a runtime component's container that still holds a previous definition of its type.
+    // False when that can't happen from this thread; its components can't be read as the current type until it does.
+    bool EnsureCurrentComponentLayout(ComponentContainer& container);
 
     // An entity here holds unresolved components; forces a resolve attempt on the next ResolveUnresolvedComponents()
     HYP_FORCE_INLINE void MarkUnresolvedComponents()
@@ -891,6 +907,7 @@ private:
     mutable AtomicFlag m_detachedSceneLocked;
 
     uint32 m_resolvedRegistrationGeneration = 0;
+    uint32 m_migratedRegistrationGeneration = 0;
     bool m_hasUnresolvedComponents = false;
 
     bool m_isInitialized : 1;

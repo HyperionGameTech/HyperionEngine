@@ -590,6 +590,11 @@ static void ActivateEntityScript(Entity* entity, ScriptComponent& scriptComponen
         return;
     }
 
+    if (EntityManager* entityManager = entity->GetEntityManager())
+    {
+        entityManager->SyncRuntimeComponentTypes();
+    }
+
     if (!InvokeScriptMethodT<void>(nullptr, scriptComponent.scriptObjectResource, "BeforeAdded", world, scene))
     {
         MarkEntityScriptErrored(entity, scriptComponent, "BeforeAdded");

@@ -11,6 +11,7 @@
 #include <Core/Containers/String.hpp>
 
 #include <Core/Reflection/Struct.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Property.hpp>
 #include <Core/Reflection/MemberVariant.hpp>
 #include <Core/Reflection/TypeInfo.hpp>
@@ -38,6 +39,7 @@
 #include <Core/DataProcessing/HMF/HMF.hpp>
 
 #include <cstring>
+#include <cstddef>
 
 namespace Hyperion {
 namespace tests {
@@ -637,6 +639,123 @@ void TestUnresolvedComponents(EntityManager* entityManager)
     dynamicStruct->Release();
 }
 
+static DynamicStructFieldDesc MakeFieldDesc(Name name, uint32 offset, uint32 size, const TypeInfo* typeInfo)
+{
+    DynamicStructFieldDesc fieldDesc;
+    fieldDesc.name = name;
+    fieldDesc.offset = offset;
+    fieldDesc.size = size;
+    fieldDesc.typeInfo = typeInfo;
+
+    return fieldDesc;
+}
+
+// A runtime component redefined with a new layout (eg a script reload) migrates its live components, keeping same-named fields
+void TestRuntimeComponentRedefinition(EntityManager* entityManager)
+{
+    ComponentInterfaceRegistry& registry = ComponentInterfaceRegistry::GetInstance();
+
+    const TypeId typeId = TypeId::ForManagedType("TestRedefinedComponent");
+
+    // first definition: { float Speed; int32 Count; int32 Mode; }
+    MemberVariant firstMembers[3];
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Speed"), 0, sizeof(float), &TypeOf<float>()), 0, firstMembers[0]);
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Count"), 4, sizeof(int32), &TypeOf<int32>()), 1, firstMembers[1]);
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Mode"), 8, sizeof(int32), &TypeOf<int32>()), 2, firstMembers[2]);
+
+    DynamicStructInstance* firstStruct = new DynamicStructInstance(
+        typeId,
+        NAME("TestRedefinedComponent"),
+        12,
+        alignof(float),
+        Span<const ClassAttribute>(),
+        ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
+        Span<MemberVariant>(firstMembers, 3),
+        DynamicStructInstanceFunctions {});
+
+    Check("Redefinition: first definition registers", registry.RegisterRuntimeComponent(firstStruct) != nullptr);
+
+    Handle<Entity> entity = entityManager->AddEntity();
+    entityManager->AddDefaultComponent(entity.Get(), typeId);
+
+    BoxedValue staleComponent;
+
+    {
+        BoxedValue component(entityManager->TryGetComponent(typeId, entity.Get()));
+
+        firstStruct->GetProperty("Speed"_sh)->Set(component, BoxedValue(2.5f));
+        firstStruct->GetProperty("Count"_sh)->Set(component, BoxedValue(int32(7)));
+        firstStruct->GetProperty("Mode"_sh)->Set(component, BoxedValue(int32(5)));
+
+        firstStruct->CopyConstructBoxed(component.ToRef().GetPointer(), staleComponent);
+    }
+
+    // second definition: fields reordered, Extra added, Mode changed from int32 to float
+    struct SecondLayout
+    {
+        int32 count;
+        float speed;
+        float extra;
+        float mode;
+    };
+
+    MemberVariant secondMembers[4];
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Count"), offsetof(SecondLayout, count), sizeof(int32), &TypeOf<int32>()), 0, secondMembers[0]);
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Speed"), offsetof(SecondLayout, speed), sizeof(float), &TypeOf<float>()), 1, secondMembers[1]);
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Extra"), offsetof(SecondLayout, extra), sizeof(float), &TypeOf<float>()), 2, secondMembers[2]);
+    MakeDynamicStructProperty(MakeFieldDesc(NAME("Mode"), offsetof(SecondLayout, mode), sizeof(float), &TypeOf<float>()), 3, secondMembers[3]);
+
+    DynamicStructInstance* secondStruct = new DynamicStructInstance(
+        typeId,
+        NAME("TestRedefinedComponent"),
+        sizeof(SecondLayout),
+        alignof(SecondLayout),
+        Span<const ClassAttribute>(),
+        ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
+        Span<MemberVariant>(secondMembers, 4),
+        DynamicStructInstanceFunctions {});
+
+    const SecondLayout secondDefaults { 0, 0.0f, 1.0f, 3.0f };
+    secondStruct->SetDefaultValue(&secondDefaults);
+
+    const ComponentInterface* secondInterface = registry.RegisterRuntimeComponent(secondStruct);
+
+    Check("Redefinition: second definition replaces the first", secondInterface != nullptr && registry.GetComponentInterface(typeId) == secondInterface);
+    Check("Redefinition: class lookups find the new definition", ClassRegistry::GetInstance().GetClass(typeId) == secondStruct);
+
+    entityManager->SyncRuntimeComponentTypes();
+
+    AnyRef componentRef = entityManager->TryGetComponent(typeId, entity.Get());
+
+    SecondLayout migrated {};
+
+    if (componentRef.HasValue())
+    {
+        std::memcpy(&migrated, componentRef.GetPointer(), sizeof(SecondLayout));
+    }
+
+    Check("Redefinition: component now has the new layout", componentRef.HasValue() && componentRef.GetTypeInfo() == secondStruct->GetTypeInfo());
+    Check("Redefinition: same-named fields keep their values", migrated.count == 7 && migrated.speed == 2.5f,
+        HYP_FORMAT("count={} speed={}", migrated.count, migrated.speed));
+    Check("Redefinition: new fields start at the new defaults", migrated.extra == 1.0f);
+    Check("Redefinition: fields whose type changed start at the new defaults", migrated.mode == 3.0f);
+
+    {
+        Handle<Entity> otherEntity = entityManager->AddEntity();
+        entityManager->AddComponent(otherEntity.Get(), staleComponent);
+
+        Check("Redefinition: a value read before the redefinition isn't added", !entityManager->HasComponent(typeId, otherEntity.Get()));
+    }
+
+    staleComponent = BoxedValue();
+
+    entityManager->RemoveComponent(typeId, entity.Get());
+    registry.UnregisterRuntimeComponent(typeId);
+
+    firstStruct->Release();
+    secondStruct->Release();
+}
+
 } // namespace
 
 ENGINE_API void RunComponentContainerTests()
@@ -658,6 +777,7 @@ ENGINE_API void RunComponentContainerTests()
         TestNativeAndTagComponents(sceneA->GetEntityManager().Get(), sceneB->GetEntityManager());
         TestRuntimeComponent(sceneA->GetEntityManager().Get(), sceneB->GetEntityManager());
         TestUnresolvedComponents(sceneA->GetEntityManager().Get());
+        TestRuntimeComponentRedefinition(sceneA->GetEntityManager().Get());
     }
 
     Check("Runtime: every construct/copy/move is matched by a destruct once the scenes are gone",

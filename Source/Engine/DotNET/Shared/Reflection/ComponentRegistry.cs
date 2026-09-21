@@ -64,9 +64,9 @@ namespace Hyperion
 
         public static Class RegisterComponent(Type type, ComponentFlags flags = DefaultFlags)
         {
-            if (!IsBlittable(type))
+            if (!ManagedLayout.IsUnmanagedStruct(type))
             {
-                throw new ArgumentException("Component type " + type.FullName + " must be a struct with no references, bool or char fields");
+                throw new ArgumentException("Component type " + type.FullName + " must be a struct without reference-type fields (classes, strings, arrays)");
             }
 
             DynamicStruct dynamicStruct = DynamicStruct.GetOrCreate(type);
@@ -96,26 +96,6 @@ namespace Hyperion
             ComponentTypesChanged?.Invoke();
 
             return true;
-        }
-
-        private static bool IsBlittable(Type type)
-        {
-            if (!type.IsValueType || type.IsEnum || type.ContainsGenericParameters)
-            {
-                return false;
-            }
-
-            MethodInfo containsReferencesMethod = typeof(RuntimeHelpers).GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences))!.MakeGenericMethod(type);
-
-            if ((bool)containsReferencesMethod.Invoke(null, null)!)
-            {
-                return false;
-            }
-
-            // The native side sizes the struct with Marshal.SizeOf; bool/char marshal to a different size than they occupy
-            MethodInfo sizeOfMethod = typeof(Unsafe).GetMethod(nameof(Unsafe.SizeOf))!.MakeGenericMethod(type);
-
-            return Marshal.SizeOf(type) == (int)sizeOfMethod.Invoke(null, null)!;
         }
 
         [DllImport("hyperion", EntryPoint = "ComponentInterfaceRegistry_RegisterRuntimeComponent")]

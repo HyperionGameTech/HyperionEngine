@@ -10,6 +10,7 @@
 #include <Scene/ComponentInterface.hpp>
 
 #include <Core/Reflection/Struct.hpp>
+#include <Core/Reflection/Property.hpp>
 #include <Core/Reflection/TypeInfo.hpp>
 
 #include <Core/Utilities/ByteUtil.hpp>
@@ -30,6 +31,26 @@ static size_t CalculateComponentBlocksPerSlab(size_t componentSize, size_t compo
     const size_t blocksPerSlab = g_componentSlabTargetSize / blockSize;
 
     return blocksPerSlab != 0 ? blocksPerSlab : 1;
+}
+
+static void CopyMatchingProperties(const Struct& sourceStruct, const BoxedValue& source, const Struct& targetStruct, BoxedValue& target)
+{
+    for (const Property* sourceProperty : sourceStruct.GetProperties())
+    {
+        if (!sourceProperty->CanGet())
+        {
+            continue;
+        }
+
+        const Property* targetProperty = targetStruct.GetProperty(sourceProperty->GetName(), /* deep */ false);
+
+        if (!targetProperty || !targetProperty->CanSet() || targetProperty->GetTypeInfo().id != sourceProperty->GetTypeInfo().id)
+        {
+            continue;
+        }
+
+        targetProperty->Set(target, sourceProperty->Get(source));
+    }
 }
 
 ComponentContainer::ComponentContainer(const ComponentInterface& componentInterface)
@@ -178,6 +199,64 @@ bool ComponentContainer::RemoveComponent(ComponentId id, BoxedValue& outBoxed)
     FreeComponentSlot(id);
 
     return true;
+}
+
+void ComponentContainer::MigrateTo(const ComponentInterface& componentInterface)
+{
+    HYP_MT_CHECK_RW(m_dataRaceDetector);
+
+    Assert(componentInterface.GetTypeId() == m_typeId, "Cannot migrate components of type {} to type {}", m_typeId.Value(), componentInterface.GetTypeId().Value());
+    Assert(componentInterface.GetComponentSize() != 0 && componentInterface.GetComponentSize() <= g_maxComponentSize,
+        "Component type {} has an invalid size ({} bytes)", m_typeId.Value(), componentInterface.GetComponentSize());
+
+    if (&componentInterface == m_componentInterface)
+    {
+        return;
+    }
+
+    const Struct* previousStruct = m_componentInterface->GetStruct();
+    const Struct* currentStruct = componentInterface.GetStruct();
+
+    // the old values leave the storage first so it can be rebuilt at the new size.
+    // each box keeps the old Struct alive until its values are copied
+    Array<Pair<ComponentId, BoxedValue>> previousComponents;
+    previousComponents.Reserve(m_numComponents);
+
+    m_components.ForEachElementRaw([&](size_t index, ubyte* component)
+        {
+            BoxedValue previousComponent;
+
+            const bool boxed = previousStruct->MoveConstructBoxed(component, previousComponent);
+            Assert(boxed, "Failed to move component of type {} into a BoxedValue", m_typeId.Value());
+
+            m_componentInterface->DestructComponent(component);
+
+            previousComponents.EmplaceBack(ComponentId(index), std::move(previousComponent));
+        });
+
+    using ComponentStorage = StridedBuffer<SceneAllocator>;
+
+    m_components.Reset();
+    m_components.~ComponentStorage();
+
+    new (&m_components) ComponentStorage(
+        componentInterface.GetComponentSize(),
+        componentInterface.GetComponentAlignment(),
+        CalculateComponentBlocksPerSlab(componentInterface.GetComponentSize(), componentInterface.GetComponentAlignment()));
+
+    m_componentInterface = &componentInterface;
+    m_typeInfo = &componentInterface.GetTypeInfo();
+    m_structReference = ClassRef(currentStruct);
+
+    for (Pair<ComponentId, BoxedValue>& previousComponent : previousComponents)
+    {
+        void* component = m_components.AllocateElementRaw(uint32(previousComponent.first));
+
+        m_componentInterface->ConstructComponent(component);
+
+        BoxedValue target(AnyRef(m_typeInfo, component));
+        CopyMatchingProperties(*previousStruct, previousComponent.second, *currentStruct, target);
+    }
 }
 
 } // namespace Hyperion

@@ -20,6 +20,7 @@ namespace Hyperion {
 
 class ScriptingService;
 class ScriptTracker;
+class AssetRegistry;
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
 class ScriptSystem final : public SystemBase
@@ -44,7 +45,7 @@ public:
 
     void RefreshScriptSourceDirectories();
 
-    static void PreloadProjectScripts(const FilePath& projectRootPath);
+    static void PreloadProjectScripts(const Handle<AssetRegistry>& registry);
 
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override

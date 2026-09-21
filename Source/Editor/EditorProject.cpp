@@ -540,7 +540,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     }
 
     // Components defined by the project's scripts have to be registered before its scenes are read
-    ScriptSystem::PreloadProjectScripts(registryDir);
+    ScriptSystem::PreloadProjectScripts(registry);
 
     Handle<EditorProject> project;
 

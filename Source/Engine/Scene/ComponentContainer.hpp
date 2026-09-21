@@ -270,6 +270,9 @@ public:
      *  \return True if the component was removed, false otherwise. */
     bool RemoveComponent(ComponentId id, BoxedValue& outBoxed);
 
+    /*! \brief Rebuilds every component for \p componentInterface */
+    void MigrateTo(const ComponentInterface& componentInterface);
+
 private:
     void* AllocateComponentSlot(ComponentId& outId);
     void FreeComponentSlot(ComponentId id);

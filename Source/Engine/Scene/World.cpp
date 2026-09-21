@@ -964,16 +964,20 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
 
+    // runtime component types registered or redefined since last frame (eg a script assembly loaded or reloaded): migrate and
+    // restore their components before scripts run, so scripts see them. No-op otherwise
+    for (Scene* scene : m_scenes)
+    {
+        scene->GetEntityManager()->SyncRuntimeComponentTypes();
+    }
+
     if (GetGameState().IsSimulating())
     {
         if (m_physicsWorld != nullptr)
         {
             ENGINE_STAT_SCOPE(&s_statPhysicsUpdate);
 
-            // Clients simulate their non-replicated entities locally. Replicated entities are owned
-            // by the server, so keep their bodies kinematic (driven by replication) before stepping.
-            // Also holds non-static bodies in place while the ground beneath them hasn't streamed in
-            // yet, so this has to run regardless of authority.
+            // This needs to run regardless of authority because clients simulate non-replicated entities locally
             SyncPhysicsBodyKinematicStates();
 
             m_physicsWorld->Tick(delta);
@@ -989,9 +993,6 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     for (Scene* scene : m_scenes)
     {
         scene->Update(delta);
-
-        // saved components whose class registered since they were read (eg a script loaded); no-op otherwise
-        scene->GetEntityManager()->ResolveUnresolvedComponents();
 
         scene->GetEntityManager()->Lock();
     }

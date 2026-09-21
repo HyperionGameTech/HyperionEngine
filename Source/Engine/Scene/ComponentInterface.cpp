@@ -290,6 +290,8 @@ const ComponentInterface* ComponentInterfaceRegistry::RegisterRuntimeComponent(c
         return nullptr;
     }
 
+    ComponentInterface* replacedInterface = nullptr;
+
     auto existingIt = GetLookupTable().interfacesByTypeId.Find(typeId);
 
     if (existingIt != GetLookupTable().interfacesByTypeId.End())
@@ -300,9 +302,19 @@ const ComponentInterface* ComponentInterfaceRegistry::RegisterRuntimeComponent(c
             return existingIt->second;
         }
 
-        HYP_LOG(Entity, Error, "Cannot register runtime component '{}': a different component with TypeId {} is already registered", componentStruct->GetName(), typeId.Value());
+        if (!existingIt->second->IsRuntimeComponent())
+        {
+            HYP_LOG(Entity, Error, "Cannot register runtime component '{}': native component '{}' already uses TypeId {}",
+                componentStruct->GetName(), existingIt->second->GetTypeInfo().name, typeId.Value());
 
-        return nullptr;
+            return nullptr;
+        }
+
+        // the component was redefined (eg a script reload changed its layout)
+        //  - EntityManagers migrate their containers to the new registration
+        replacedInterface = const_cast<ComponentInterface*>(existingIt->second);
+
+        HYP_LOG(Entity, Info, "Runtime component '{}' was redefined; existing components will be migrated to its new layout", componentStruct->GetName());
     }
 
     UniquePtr<ComponentInterface> componentInterface = MakeUnique<ComponentInterface>(typeInfo, componentStruct, flags);
@@ -314,6 +326,12 @@ const ComponentInterface* ComponentInterfaceRegistry::RegisterRuntimeComponent(c
     m_ownedInterfaces.PushBack(std::move(componentInterface));
 
     PublishLookupTable(std::move(lookupTable));
+
+    if (replacedInterface)
+    {
+        // containers not yet migrated hold their own reference to the old Struct
+        replacedInterface->ReleaseStructReference();
+    }
 
     m_runtimeRegistrationGeneration.Increment(1, MemoryOrder::RELEASE);
 

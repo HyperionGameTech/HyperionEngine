@@ -35,6 +35,19 @@ namespace Hyperion {
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
+static bool IsComponentDataCurrent(const ComponentInterface& componentInterface, const BoxedValue& componentData)
+{
+    if (!componentInterface.IsRuntimeComponent() || componentData.GetTypeInfo() == &componentInterface.GetTypeInfo())
+    {
+        return true;
+    }
+
+    HYP_LOG(Entity, Error, "A '{}' component read before its type was redefined can't be added; it no longer matches the component's layout",
+        componentInterface.GetTypeInfo().name);
+
+    return false;
+}
+
 #pragma region EntityManager
 
 bool EntityManager::IsValidComponentType(TypeId componentTypeId)
@@ -943,6 +956,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
             Assert(componentContainerIt->second->HasComponent(componentId), "Component does not exist in component container");
 
+            // the other EntityManager only accepts a redefined runtime component in its current layout
+            EnsureCurrentComponentLayout(*componentContainerIt->second);
+
             AnyRef componentRef = componentContainerIt->second->TryGetComponent(componentId);
             Assert(componentRef.HasValue(), "Component of type '{}' with id {} does not exist in component container", *GetComponentTypeName(componentTypeId), componentId);
 
@@ -1172,6 +1188,63 @@ void EntityManager::ResolveUnresolvedComponents()
     m_hasUnresolvedComponents = anyRemaining;
 }
 
+void EntityManager::SyncRuntimeComponentTypes()
+{
+    if (!IsOnThread(m_ownerThreadId))
+    {
+        return;
+    }
+
+    MigrateStaleComponentContainers();
+    ResolveUnresolvedComponents();
+}
+
+void EntityManager::MigrateStaleComponentContainers()
+{
+    const ComponentInterfaceRegistry& registry = ComponentInterfaceRegistry::GetInstance();
+    const uint32 registrationGeneration = registry.GetRuntimeRegistrationGeneration();
+
+    if (registrationGeneration == m_migratedRegistrationGeneration)
+    {
+        return;
+    }
+
+    // containers are migrated in place, so m_containers itself doesn't change and pointers to the containers stay valid
+    for (auto& it : m_containers)
+    {
+        EnsureCurrentComponentLayout(*it.second);
+    }
+
+    m_migratedRegistrationGeneration = registrationGeneration;
+}
+
+bool EntityManager::EnsureCurrentComponentLayout(ComponentContainer& container)
+{
+    const ComponentInterface& containerInterface = container.GetComponentInterface();
+
+    if (!containerInterface.IsRuntimeComponent())
+    {
+        return true;
+    }
+
+    const ComponentInterface* currentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(container.GetComponentTypeId());
+
+    if (!currentInterface || currentInterface == &containerInterface)
+    {
+        return true;
+    }
+
+    // no system reads runtime component containers, so the owner thread may migrate even while locked
+    if (!IsOnThread(m_ownerThreadId))
+    {
+        return false;
+    }
+
+    container.MigrateTo(*currentInterface);
+
+    return true;
+}
+
 ComponentContainer* EntityManager::GetOrCreateContainer(const ComponentInterface& componentInterface)
 {
     const TypeId componentTypeId = componentInterface.GetTypeId();
@@ -1200,16 +1273,16 @@ ComponentContainer* EntityManager::GetOrCreateContainer(const ComponentInterface
             return it->second.Get();
         }
 
-        // The runtime type was unregistered and registered again; its old container can only be replaced once empty
-        if (!it->second->IsEmpty())
+        // the container predates a redefinition of its type
+        // it can only move forward to the current registration
+        if (ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId) != &componentInterface)
         {
-            HYP_LOG(Entity, Error, "Component type '{}' was registered again while {} components of its previous registration are still alive",
-                componentInterface.GetTypeInfo().name, it->second->GetNumComponents());
+            HYP_LOG(Entity, Error, "Component type '{}' was redefined; a component of its previous definition can't be added", componentInterface.GetTypeInfo().name);
 
             return nullptr;
         }
 
-        it->second = MakeUniqueWithAllocator<ComponentContainer, SceneAllocator>(componentInterface);
+        it->second->MigrateTo(componentInterface);
 
         return it->second.Get();
     }
@@ -1318,6 +1391,11 @@ void EntityManager::AddComponent(Entity* entity, const BoxedValue& componentData
     const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
     Assert(componentInterface != nullptr, "Component container does not exist for component of type TypeId({})", componentTypeId.Value());
 
+    if (!IsComponentDataCurrent(*componentInterface, componentData))
+    {
+        return;
+    }
+
     AddComponent_Internal(entity, *componentInterface, ComponentConstructMode::COPY, componentData.ToRef().GetPointer());
 }
 
@@ -1330,6 +1408,11 @@ void EntityManager::AddComponent(Entity* entity, BoxedValue&& componentData)
 
     const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
     Assert(componentInterface != nullptr, "Component container does not exist for component of type TypeId({})", componentTypeId.Value());
+
+    if (!IsComponentDataCurrent(*componentInterface, componentData))
+    {
+        return;
+    }
 
     AddComponent_Internal(entity, *componentInterface, ComponentConstructMode::MOVE, componentData.ToRef().GetPointer());
 }
@@ -1393,6 +1476,9 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
     {
         return true;
     }
+
+    // removal callbacks get the component as its current type
+    EnsureCurrentComponentLayout(*container);
 
     AnyRef componentRef = container->TryGetComponent(componentId);
 

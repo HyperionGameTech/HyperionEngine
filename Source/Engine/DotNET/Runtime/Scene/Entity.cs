@@ -37,6 +37,51 @@ namespace Hyperion
             return ref entityManager.GetComponent<T>(this);
         }
 
+        public bool TryGetComponent<T>(out T component) where T : IComponent, allows ref struct
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+
+            if (entityManager == null)
+            {
+                component = default;
+
+                return false;
+            }
+
+            return entityManager.TryGetComponent<T>(this, out component);
+        }
+
+        public ref T GetOrAddComponent<T>() where T : IComponent, allows ref struct
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+
+            if (entityManager == null)
+            {
+                throw new Exception("Entity does not have an EntityManager");
+            }
+
+            return ref entityManager.GetOrAddComponent<T>(this);
+        }
+
+        public ref T GetOrAddComponent<T>(T component) where T : IComponent, allows ref struct
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+
+            if (entityManager == null)
+            {
+                throw new Exception("Entity does not have an EntityManager");
+            }
+
+            return ref entityManager.GetOrAddComponent<T>(this, component);
+        }
+
+        public bool RemoveComponent<T>() where T : IComponent, allows ref struct
+        {
+            EntityManager? entityManager = this.GetEntityManager();
+
+            return entityManager?.RemoveComponent<T>(this) ?? false;
+        }
+
         public bool HasComponent<T>() where T : IComponent, allows ref struct
         {
             EntityManager? entityManager = this.GetEntityManager();

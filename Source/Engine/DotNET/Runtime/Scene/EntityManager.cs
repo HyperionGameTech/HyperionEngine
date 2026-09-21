@@ -189,6 +189,52 @@ namespace Hyperion
             return EntityManager_RemoveComponent(NativeAddress, componentTypeId, entity.NativeAddress);
         }
 
+        public bool RemoveComponent<T>(Entity entity) where T : IComponent, allows ref struct
+        {
+            return RemoveComponent(entity, Class.GetClass(typeof(T)).TypeId);
+        }
+
+        public bool TryGetComponent<T>(Entity entity, out T component) where T : IComponent, allows ref struct
+        {
+            Class componentClass = Class.GetClass(typeof(T));
+
+            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentClass.TypeId, entity.NativeAddress);
+
+            if (componentPtr == IntPtr.Zero)
+            {
+                component = default;
+
+                return false;
+            }
+
+            unsafe
+            {
+                component = System.Runtime.CompilerServices.Unsafe.AsRef<T>(componentPtr.ToPointer());
+            }
+
+            return true;
+        }
+
+        public ref T GetOrAddComponent<T>(Entity entity) where T : IComponent, allows ref struct
+        {
+            if (!HasComponent<T>(entity))
+            {
+                AddComponent<T>(entity);
+            }
+
+            return ref GetComponent<T>(entity);
+        }
+
+        public ref T GetOrAddComponent<T>(Entity entity, T component) where T : IComponent, allows ref struct
+        {
+            if (!HasComponent<T>(entity))
+            {
+                AddComponent<T>(entity, ref component);
+            }
+
+            return ref GetComponent<T>(entity);
+        }
+
         public ref T GetComponent<T>(Entity entity) where T : IComponent, allows ref struct
         {
             Class componentClass = Class.GetClass(typeof(T));

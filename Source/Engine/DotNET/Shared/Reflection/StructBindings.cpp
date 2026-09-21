@@ -81,6 +81,14 @@ extern "C"
             }
         }
 
+        // a struct may replace an earlier definition of itself, but not an unrelated class
+        if (const Class* existingClass = ClassRegistry::GetInstance().GetClass(*pTypeId); existingClass && !existingClass->IsStructType())
+        {
+            HYP_LOG(Object, Error, "Cannot create dynamic Struct {}: TypeId {} is already used by {}", pTypeName, pTypeId->Value(), existingClass->GetName());
+
+            return nullptr;
+        }
+
         DynamicStructInstance* pStruct = new DynamicStructInstance(
             *pTypeId,
             CreateNameFromDynamicString(pTypeName),
