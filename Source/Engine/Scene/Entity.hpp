@@ -95,6 +95,10 @@ public:
     template <class Component, class EntityManagerPtr = EntityManager*>
     bool RemoveComponent();
 
+    /*! \brief Check whether this Entity has a MeshComponent. */
+    HYP_METHOD()
+    bool IsMeshEntity() const;
+
     template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
     void AddTag();
 
@@ -161,6 +165,11 @@ public:
     ///Bounds
 
     virtual void SetLocalBounds(const BoundingBox& aabb) override;
+
+#ifdef HYP_EDITOR
+    HYP_METHOD(EditorOnly, EditorAction = "Fit Bounds to Mesh", EditCondition = "IsMeshEntity")
+    void FitBoundsToMesh();
+#endif
 
     ///RenderProxy
 

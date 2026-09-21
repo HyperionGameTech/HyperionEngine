@@ -110,6 +110,13 @@
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
+                    <Button
+                        Classes="gizmo"
+                        Command="{Binding CloneCommand}"
+                        IsEnabled="{Binding CanClone}"
+                        ToolTip.Tip="Clone and assign">
+                        <controls:Codicon Kind="Copy" Size="14" />
+                    </Button>
                     <ToggleButton
                         Classes="gizmo"
                         IsChecked="{Binding IsEditorExpanded, Mode=TwoWay}"

@@ -39,9 +39,8 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isExpanded, value);
         }
 
-        // The property spans both label and value columns, like the other container editors.
         public override bool ShowInlineLabel => false;
-
+        public override bool SupportsMultipleTargets => false;
         public override bool ShowsDescriptionInOwnTemplate => true;
 
         public ShaderPropertySetViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)

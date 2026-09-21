@@ -51,12 +51,11 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                object? rawValue;
+                List<object?> rawValues;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    rawValue = boxed.GetValue();
+                    rawValues = ReadAllTargets(boxed => boxed.GetValue());
                 }
                 catch (Exception ex)
                 {
@@ -73,9 +72,12 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
-                            Value = FormatValue(rawValue);
+                            bool isShared = rawValues.TrueForAll(rawValue => ValuesEqual(rawValue, rawValues[0]));
 
-                            UpdateFlagSelectionsFromValue(rawValue);
+                            Value = isShared ? FormatValue(rawValues[0]) : string.Empty;
+                            HasMixedValues = !isShared;
+
+                            UpdateFlagSelectionsFromValues(rawValues);
                         });
                     }
                     finally
@@ -116,7 +118,10 @@ namespace Hyperion.Editor.ViewModels
 
                     BuildEnumFlagEntryTitleAndDescription(staticField, out title, out description);
 
-                    _enumFlagEntries.Add(new EnumFlagEntry(title, description, flagValue, OnFlagEntryChanged));
+                    EnumFlagEntry? entry = null;
+                    entry = new EnumFlagEntry(title, description, flagValue, () => OnFlagEntryChanged(entry!));
+
+                    _enumFlagEntries.Add(entry);
                 }
                 catch (Exception ex)
                 {
@@ -125,42 +130,54 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private void OnFlagEntryChanged()
+        private void OnFlagEntryChanged(EnumFlagEntry changedEntry)
         {
             if (IsApplyingModelValue)
             {
                 return;
             }
 
-            CommitEnumFlagsValue();
+            CommitEnumFlagsValue(changedEntry);
         }
 
-        private void UpdateFlagSelectionsFromValue(object? rawValue)
+        // An entry is indeterminate (null) when the selected objects disagree on it.
+        private void UpdateFlagSelectionsFromValues(List<object?> rawValues)
         {
-            ulong currentValue = rawValue != null ? Convert.ToUInt64(rawValue) : 0ul;
-
             foreach (EnumFlagEntry entry in _enumFlagEntries)
             {
                 ulong flagValue = entry.Value != null ? Convert.ToUInt64(entry.Value) : 0ul;
-                entry.IsSelected = ((currentValue & flagValue) == flagValue) && flagValue != 0;
-            }
 
-            foreach (EnumFlagEntry entry in _enumFlagEntries)
-            {
-                if ((entry.Value == null || Convert.ToUInt64(entry.Value) == 0ul) && currentValue == 0ul)
+                bool? isSelected = null;
+
+                for (int i = 0; i < rawValues.Count; i++)
                 {
-                    entry.IsSelected = true;
+                    ulong currentValue = rawValues[i] != null ? Convert.ToUInt64(rawValues[i]) : 0ul;
+
+                    // A zero-valued entry (e.g. None) is selected only when no flags are set.
+                    bool isSet = flagValue != 0 ? (currentValue & flagValue) == flagValue : currentValue == 0ul;
+
+                    if (i == 0)
+                    {
+                        isSelected = isSet;
+                    }
+                    else if (isSelected != isSet)
+                    {
+                        isSelected = null;
+                        break;
+                    }
                 }
+
+                entry.IsSelected = isSelected;
             }
         }
 
-        private void CommitEnumFlagsValue()
+        private void CommitEnumFlagsValue(EnumFlagEntry changedEntry)
         {
             ulong combined = 0ul;
 
             foreach (EnumFlagEntry entry in _enumFlagEntries)
             {
-                if (!entry.IsSelected || entry.Value == null)
+                if (entry.IsSelected != true || entry.Value == null)
                 {
                     continue;
                 }
@@ -168,12 +185,29 @@ namespace Hyperion.Editor.ViewModels
                 combined |= Convert.ToUInt64(entry.Value);
             }
 
+            ulong changedFlag = changedEntry.Value != null ? Convert.ToUInt64(changedEntry.Value) : 0ul;
+            bool isChangedFlagSet = changedEntry.IsSelected == true;
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 try
                 {
-                    using BoxedValue boxed = new BoxedValue(combined);
-                    CommitPropertyChange($"Set {Label}", boxed);
+                    if (IsMultiTarget)
+                    {
+                        // Only the toggled flag changes; every other bit stays as each object has it.
+                        CommitPropertyChange($"Set {Label}", current =>
+                        {
+                            object? raw = current.GetValue();
+                            ulong currentValue = raw != null ? Convert.ToUInt64(raw) : 0ul;
+
+                            return ToIntegralTypeOf(isChangedFlagSet ? currentValue | changedFlag : currentValue & ~changedFlag, raw);
+                        });
+                    }
+                    else
+                    {
+                        using BoxedValue boxed = new BoxedValue(combined);
+                        CommitPropertyChange($"Set {Label}", boxed);
+                    }
 
                     Dispatcher.UIThread.Post(() => ValueCommitted?.Invoke());
                 }
@@ -189,7 +223,7 @@ namespace Hyperion.Editor.ViewModels
         public sealed class EnumFlagEntry : ViewModelBase
         {
             private readonly Action _onChanged;
-            private bool _isSelected;
+            private bool? _isSelected;
 
             public EnumFlagEntry(string title, string? description, object? value, Action onChanged)
             {
@@ -204,7 +238,7 @@ namespace Hyperion.Editor.ViewModels
 
             public object? Value { get; }
 
-            public bool IsSelected
+            public bool? IsSelected
             {
                 get => _isSelected;
                 set

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Windows.Input;
 using Hyperion;
 using Hyperion.Editor.Services;
 
@@ -13,6 +14,10 @@ namespace Hyperion.Editor.ViewModels
         private readonly ObjectPropertyViewModel _source;
 
         public string Heading { get; }
+
+        /// <summary>Duplicates the edited asset and reassigns the source property to point to the clone.</summary>
+        public ICommand CloneCommand => _source.CloneCommand;
+        public bool CanClone => _source.CanClone;
 
         private ComponentSubObjectViewModel? _subObject;
         public ComponentSubObjectViewModel? SubObject
@@ -91,6 +96,12 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnSourcePropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(ObjectPropertyViewModel.CanClone))
+            {
+                OnPropertyChanged(nameof(CanClone));
+                return;
+            }
+
             if (e.PropertyName != nameof(ObjectPropertyViewModel.SubObject)
                 && e.PropertyName != nameof(ObjectPropertyViewModel.AssetPathDisplay))
             {

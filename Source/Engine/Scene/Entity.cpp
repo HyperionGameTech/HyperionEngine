@@ -131,6 +131,11 @@ void Entity::RemoveFromLayer(LayerId layerId)
     MarkDirty();
 }
 
+bool Entity::IsMeshEntity() const
+{
+    return HasComponent<MeshComponent>();
+}
+
 bool Entity::IsInLayerByName(Name layerName) const
 {
     World* world = GetWorld();
@@ -887,6 +892,25 @@ void Entity::SetLocalBounds(const BoundingBox& aabb)
             EntityTag::UpdateReplication>(this);
     }
 }
+
+#ifdef HYP_EDITOR
+void Entity::FitBoundsToMesh()
+{
+    if (!IsMeshEntity())
+    {
+        return;
+    }
+
+    MeshComponent& meshComponent = GetComponent<MeshComponent>();
+
+    if (!meshComponent.mesh.IsValid())
+    {
+        return;
+    }
+
+    SetLocalBounds(meshComponent.mesh->GetAABB());
+}
+#endif // HYP_EDITOR
 
 void Entity::OnTransformUpdated()
 {

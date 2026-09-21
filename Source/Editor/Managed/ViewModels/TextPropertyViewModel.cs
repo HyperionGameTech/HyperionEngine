@@ -49,11 +49,11 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 object? rawValue;
+                bool isShared;
 
                 try
                 {
-                    using BoxedValue boxed = GetPropertyValue();
-                    rawValue = boxed.GetValue();
+                    isShared = TryReadSharedValue(out rawValue);
                 }
                 catch (Exception ex)
                 {
@@ -70,12 +70,13 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
-                            Value = FormatValue(rawValue);
+                            Value = isShared ? FormatValue(rawValue) : string.Empty;
+                            HasMixedValues = !isShared;
 
                             // Don't stomp on text the user is part-way through typing.
                             if (!IsEditing)
                             {
-                                EditableValue = rawValue?.ToString() ?? string.Empty;
+                                EditableValue = isShared ? rawValue?.ToString() ?? string.Empty : string.Empty;
                             }
                         });
                     }
@@ -95,6 +96,12 @@ namespace Hyperion.Editor.ViewModels
         private void CommitEditableText(string value)
         {
             string captured = value ?? string.Empty;
+
+            // Leaving a blank multiple-values field untouched must not blank every selected object.
+            if (HasMixedValues && captured.Length == 0)
+            {
+                return;
+            }
 
             _ = EngineManager.PostToSimThread(() =>
             {

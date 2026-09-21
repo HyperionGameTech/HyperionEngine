@@ -10,6 +10,43 @@ using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
+    /// <summary>One object a property row reads from and writes to. A multi-selection row has one per selected object.</summary>
+    public sealed class PropertyTarget
+    {
+        public PropertyTarget(Func<BoxedValue> get, Action<BoxedValue> set, Action? preWrite = null, Action? postWrite = null, ObjectBase? owner = null)
+        {
+            Get = get;
+            Set = set;
+            PreWrite = preWrite;
+            PostWrite = postWrite;
+            Owner = owner;
+        }
+
+        // The object the property is read directly from, when there is one (entity-level rows) - used
+        // to route edits into that entity's swatch overrides.
+        public ObjectBase? Owner { get; }
+
+        public Func<BoxedValue> Get { get; }
+
+        public Action<BoxedValue> Set { get; }
+
+        // Sim thread. Re-reads any cached copy of the containing value before it is read for a write.
+        public Action? PreWrite { get; }
+
+        // Sim thread. Runs after each write, e.g. to mark the owning entity dirty.
+        public Action? PostWrite { get; }
+
+        public static PropertyTarget ForObject(ObjectBase target, Property property, Action? postWrite = null)
+            => new PropertyTarget(() => property.Get(target), value => property.Set(target, value), null, postWrite, target);
+
+        public static PropertyTarget ForAddress(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, Action? preWrite = null, Action? postWrite = null)
+            => new PropertyTarget(
+                () => property.Get(classAddress, targetAddressResolver()),
+                value => property.Set(classAddress, targetAddressResolver(), value),
+                preWrite,
+                postWrite);
+    }
+
     public abstract class InspectorPropertyViewModelBase : ViewModelBase
     {
         private const int RefreshIdle = 0;
@@ -36,6 +73,18 @@ namespace Hyperion.Editor.ViewModels
         private int _applyingModelValue;
 
         private bool _isEditing;
+
+        // The other selected objects this row also edits. Written once on the UI thread before the
+        // first refresh, read on the sim thread.
+        private IReadOnlyList<PropertyTarget> _peers = Array.Empty<PropertyTarget>();
+
+        private bool _hasMixedValues;
+        /// <summary>True when the selected objects don't all hold the same value; the editor shows it blank. UI thread.</summary>
+        public bool HasMixedValues
+        {
+            get => _hasMixedValues;
+            protected set => SetProperty(ref _hasMixedValues, value);
+        }
 
         private bool _isOverridden;
         /// <summary>True when at least one swatch's override set contains this property.</summary>
@@ -79,6 +128,39 @@ namespace Hyperion.Editor.ViewModels
 
         /// <summary>True for rows backed by a real object + Property (entity-level rows), i.e. the rows that support per-swatch overrides.</summary>
         public bool IsEntityLevelRow => _valueGetter == null && _componentTargetResolver == null;
+
+        protected IReadOnlyList<PropertyTarget> Peers => Volatile.Read(ref _peers);
+
+        /// <summary>True when this row edits several selected objects at once.</summary>
+        public bool IsMultiTarget => Peers.Count > 0;
+
+        /// <summary>False for editors that can't yet apply one edit across several objects; multi-selection leaves those rows out.</summary>
+        public virtual bool SupportsMultipleTargets => true;
+
+        /// <summary>
+        /// Makes this row also read from and write to the given objects, alongside its own target.
+        /// UI thread, before the row is shown. Returns false (attaching nothing) when the editor
+        /// can't edit several objects at once.
+        /// </summary>
+        internal bool AttachPeers(IReadOnlyList<PropertyTarget> peers)
+        {
+            if (peers.Count == 0)
+            {
+                return true;
+            }
+
+            if (!SupportsMultipleTargets)
+            {
+                return false;
+            }
+
+            Volatile.Write(ref _peers, peers);
+
+            return OnPeersAttached();
+        }
+
+        // Containers pass the peers on to the rows they own. Returning false drops this row too.
+        protected virtual bool OnPeersAttached() => true;
 
         /// <summary>Called by the owning inspector after querying which swatches override this property.</summary>
         internal void SetOverrideInfo(List<string> swatchNames, string? currentSwatchName = null)
@@ -269,14 +351,21 @@ namespace Hyperion.Editor.ViewModels
 
         protected void SetPropertyValue(BoxedValue value)
         {
+            WritePropertyValue(value);
+            PostWriteCallback?.Invoke();
+        }
+
+        private void WritePropertyValue(BoxedValue value)
+        {
             if (_valueSetter != null)
             {
                 _valueSetter(value);
-                PostWriteCallback?.Invoke();
-                return;
             }
-
-            if (_componentTargetResolver != null)
+            else if (_valueGetter != null)
+            {
+                throw new InvalidOperationException($"'{Label}' has no setter");
+            }
+            else if (_componentTargetResolver != null)
             {
                 _property.Set(_componentClassAddress, _componentTargetResolver(), value);
             }
@@ -284,8 +373,94 @@ namespace Hyperion.Editor.ViewModels
             {
                 _property.Set(_target!, value);
             }
+        }
 
-            PostWriteCallback?.Invoke();
+        // Built per commit so it picks up the current callbacks.
+        private PropertyTarget CreateOwnTarget()
+        {
+            return new PropertyTarget(GetPropertyValue, WritePropertyValue, PreWriteCallback, PostWriteCallback, IsEntityLevelRow ? _target : null);
+        }
+
+        /// <summary>Reads the value of this row's own target, then of each peer. Sim thread.</summary>
+        protected List<T> ReadAllTargets<T>(Func<BoxedValue, T> read)
+        {
+            IReadOnlyList<PropertyTarget> peers = Peers;
+            List<T> results = new List<T>(1 + peers.Count);
+
+            using (BoxedValue own = GetPropertyValue())
+            {
+                results.Add(read(own));
+            }
+
+            foreach (PropertyTarget peer in peers)
+            {
+                using BoxedValue value = peer.Get();
+                results.Add(read(value));
+            }
+
+            return results;
+        }
+
+        /// <summary>Reads every target's value; false when they don't all agree. Sim thread.</summary>
+        protected bool TryReadSharedValue(out object? value)
+        {
+            List<object?> values = ReadAllTargets(boxed => boxed.GetValue());
+
+            value = values[0];
+
+            for (int i = 1; i < values.Count; i++)
+            {
+                if (!ValuesEqual(values[i], values[0]))
+                {
+                    value = null;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Bitmask edits are computed as ulong; returning the property's own integral type lets
+        // objects whose value didn't change compare equal and be left alone.
+        protected static object ToIntegralTypeOf(ulong value, object? existing) => existing switch
+        {
+            uint => (uint)value,
+            int => (int)value,
+            ushort => (ushort)value,
+            short => (short)value,
+            byte => (byte)value,
+            sbyte => (sbyte)value,
+            long => (long)value,
+            _ => value
+        };
+
+        // Arrays come back from BoxedValue as fresh object[]/byte[] instances, so compare them by content.
+        internal static bool ValuesEqual(object? a, object? b)
+        {
+            if (a is object?[] arrayA && b is object?[] arrayB)
+            {
+                if (arrayA.Length != arrayB.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < arrayA.Length; i++)
+                {
+                    if (!ValuesEqual(arrayA[i], arrayB[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            if (a is byte[] bytesA && b is byte[] bytesB)
+            {
+                return bytesA.AsSpan().SequenceEqual(bytesB);
+            }
+
+            return Equals(a, b);
         }
 
         protected bool HasObjectContext => _valueGetter == null;
@@ -340,19 +515,41 @@ namespace Hyperion.Editor.ViewModels
 
         protected bool TryWriteContainerValueToSwatchOverride(BoxedValue value)
         {
-            if (_valueSetter != null || _componentTargetResolver != null || _target is not Entity)
+            if (_valueSetter != null || _componentTargetResolver != null || _target is not Entity ownEntity)
             {
                 return false;
             }
 
+            // A multi-selection has no single edit-context entity; each entity is routed on its own.
+            if (!IsMultiTarget
+                && (SwatchOverrideEditContext.CurrentEntity is not Entity contextEntity
+                    || contextEntity.NativeAddress != ownEntity.NativeAddress))
+            {
+                return false;
+            }
+
+            return TryWriteToSwatchOverride(ownEntity, value);
+        }
+
+        /// <summary>The same, for a multi-selection peer's copy of a container value.</summary>
+        protected bool TryWritePeerContainerValueToSwatchOverride(PropertyTarget peer, BoxedValue value)
+        {
+            if (_valueSetter != null || _componentTargetResolver != null || peer.Owner is not Entity peerEntity)
+            {
+                return false;
+            }
+
+            return TryWriteToSwatchOverride(peerEntity, value);
+        }
+
+        private bool TryWriteToSwatchOverride(Entity overrideEntity, BoxedValue value)
+        {
             if (_property.Name == new Name("Name", weak: true))
             {
                 return false;
             }
 
-            if (SwatchOverrideEditContext.CurrentEntity is not Entity overrideEntity
-                || !overrideEntity.IsValid
-                || _target.NativeAddress != overrideEntity.NativeAddress
+            if (!overrideEntity.IsValid
                 || SwatchOverrideEditContext.ActiveSwatchName is not string contextSwatch)
             {
                 return false;
@@ -382,36 +579,78 @@ namespace Hyperion.Editor.ViewModels
         }
 
         /// <summary>
-        /// Writes a new value through the project's action stack. Must be called on the sim thread.
+        /// Writes a new value to every target through the project's action stack. Must be called on the sim thread.
         /// </summary>
         protected void CommitPropertyChange(string actionText, BoxedValue newValue)
+        {
+            object? newValueObj = newValue.GetValue();
+
+            CommitChange(actionText, _ => newValueObj);
+        }
+
+        /// <summary>
+        /// Writes a value computed from each target's current value, so an edit to part of a value
+        /// (one vector component, one flag) keeps the rest of every selected object's own value.
+        /// Must be called on the sim thread.
+        /// </summary>
+        protected void CommitPropertyChange(string actionText, Func<BoxedValue, object?> computeNewValue)
+        {
+            CommitChange(actionText, current => current != null
+                ? computeNewValue(current)
+                : throw new InvalidOperationException($"Failed to read '{Label}'"));
+        }
+
+        private void CommitChange(string actionText, Func<BoxedValue?, object?> computeNewValue)
         {
             if (_isReadOnly)
             {
                 return;
             }
 
-            // Bring any cached copy of the containing value up to date before reading the old value,
-            // otherwise both the equality check below and the write itself use a stale snapshot.
-            PreWriteCallback?.Invoke();
+            List<PropertyTarget> targets = [CreateOwnTarget(), .. Peers];
+            List<(PropertyTarget Target, object? OldValue, bool HasOldValue, object? NewValue)> changes = new();
 
-            object? oldValueObj = null;
-            bool oldValueCaptured = false;
-
-            try
+            foreach (PropertyTarget target in targets)
             {
-                using BoxedValue old = GetPropertyValue();
-                oldValueObj = old.GetValue();
-                oldValueCaptured = true;
-            }
-            catch
-            {
-                /* If we can't read the old value, undo will be a no-op */
+                // Bring any cached copy of the containing value up to date before reading the old value,
+                // otherwise both the equality check below and the write itself use a stale snapshot.
+                target.PreWrite?.Invoke();
+
+                BoxedValue? current = null;
+                object? oldValueObj = null;
+                bool oldValueCaptured = false;
+
+                try
+                {
+                    current = target.Get();
+                    oldValueObj = current.GetValue();
+                    oldValueCaptured = true;
+                }
+                catch
+                {
+                    /* If we can't read the old value, undo will be a no-op */
+                }
+
+                object? newValueObj;
+
+                try
+                {
+                    newValueObj = computeNewValue(current);
+                }
+                finally
+                {
+                    current?.Dispose();
+                }
+
+                if (oldValueCaptured && ValuesEqual(oldValueObj, newValueObj))
+                {
+                    continue;
+                }
+
+                changes.Add((target, oldValueObj, oldValueCaptured, newValueObj));
             }
 
-            object? newValueObj = newValue.GetValue();
-
-            if (oldValueCaptured && Equals(oldValueObj, newValueObj))
+            if (changes.Count == 0)
             {
                 // Nothing changed, but the UI may be showing an unparsed/optimistic value - put it back in sync.
                 Dispatcher.UIThread.Post(RefreshValue);
@@ -421,67 +660,105 @@ namespace Hyperion.Editor.ViewModels
             EditorProject? project = EngineManager.CurrentProject;
             Debug.Assert(project != null, "No active project found when committing property change");
 
-            // Capture all members we need so we don't need to actually capture 'this'
-            IntPtr capturedClassAddress = _componentClassAddress;
-            Func<IntPtr>? capturedResolver = _componentTargetResolver;
-            ObjectBase? capturedTarget = _target;
-            Property capturedProperty = _property;
-            Action<BoxedValue>? capturedSetter = _valueSetter;
-            InspectorPropertyViewModelBase capturedThis = this;
-
             ///Swatch override routing
-            if (capturedSetter == null && capturedResolver == null
-                && capturedProperty.Name != new Name("Name", weak: true)
+            if (!IsMultiTarget
+                && _valueSetter == null && _componentTargetResolver == null
+                && _property.Name != new Name("Name", weak: true)
                 && SwatchOverrideEditContext.CurrentEntity is Entity overrideEntity
                 && overrideEntity.IsValid
-                && capturedTarget != null
-                && capturedTarget.NativeAddress == overrideEntity.NativeAddress
+                && _target != null
+                && _target.NativeAddress == overrideEntity.NativeAddress
                 && SwatchOverrideEditContext.ActiveSwatchName is string contextSwatch)
             {
                 // Edits target the active swatch's override when override mode is enabled, or
                 // when the property is ALREADY overridden by that swatch (editing the existing
                 // override directly). Otherwise the edit writes the base value.
                 if (SwatchOverrideEditContext.OverrideModeActive
-                    || EntitySwatchOverrides.IsPropertyOverridden(overrideEntity, new Name(contextSwatch), capturedProperty.Name))
+                    || EntitySwatchOverrides.IsPropertyOverridden(overrideEntity, new Name(contextSwatch), _property.Name))
                 {
-                    CommitSwatchOverrideChange(overrideEntity, contextSwatch, actionText, newValueObj);
+                    CommitSwatchOverrideChange(overrideEntity, contextSwatch, actionText, changes[0].NewValue);
                     return;
                 }
             }
 
-            void ApplyValue(object? valueObj, bool hasValue)
+            // The same routing for a multi-selection, decided per entity: each selected entity's edit
+            // goes into its own override set where a single-selection edit to it would.
+            List<(PropertyTarget Target, object? OldValue, bool HasOldValue, object? NewValue, SwatchOverrideEdit? SwatchEdit)> edits = new();
+
+            Name? activeSwatch = IsMultiTarget
+                && IsEntityLevelRow
+                && _property.Name != new Name("Name", weak: true)
+                && SwatchOverrideEditContext.ActiveSwatchName is string activeSwatchName
+                    ? new Name(activeSwatchName)
+                    : (Name?)null;
+
+            foreach ((PropertyTarget target, object? oldValueObj, bool hasOldValue, object? newValueObj) in changes)
             {
-                if (!hasValue)
+                SwatchOverrideEdit? swatchEdit = null;
+
+                if (activeSwatch.HasValue
+                    && target.Owner is Entity ownerEntity
+                    && ownerEntity.IsValid
+                    && (SwatchOverrideEditContext.OverrideModeActive
+                        || EntitySwatchOverrides.IsPropertyOverridden(ownerEntity, activeSwatch.Value, _property.Name)))
                 {
-                    return;
+                    swatchEdit = PrepareSwatchOverrideEdit(ownerEntity, activeSwatch.Value, newValueObj);
+
+                    if (swatchEdit == null)
+                    {
+                        continue;
+                    }
                 }
 
-                try
+                edits.Add((target, oldValueObj, hasOldValue, newValueObj, swatchEdit));
+            }
+
+            if (edits.Count == 0)
+            {
+                Dispatcher.UIThread.Post(RefreshValue);
+                return;
+            }
+
+            InspectorPropertyViewModelBase capturedThis = this;
+
+            void ApplyValues(bool revert)
+            {
+                foreach ((PropertyTarget target, object? oldValueObj, bool hasOldValue, object? newValueObj, SwatchOverrideEdit? swatchEdit) in edits)
                 {
-                    // Undo/redo runs long after the original edit, so the cached copy has to be
-                    // re-read here too.
-                    capturedThis.PreWriteCallback?.Invoke();
-
-                    using BoxedValue bv = new BoxedValue(valueObj);
-
-                    if (capturedSetter != null)
+                    try
                     {
-                        capturedSetter(bv);
-                    }
-                    else if (capturedResolver != null)
-                    {
-                        capturedProperty.Set(capturedClassAddress, capturedResolver(), bv);
-                    }
-                    else
-                    {
-                        capturedProperty.Set(capturedTarget!, bv);
-                    }
+                        if (swatchEdit != null)
+                        {
+                            if (revert)
+                            {
+                                swatchEdit.Revert();
+                            }
+                            else
+                            {
+                                swatchEdit.Apply();
+                            }
 
-                    capturedThis.PostWriteCallback?.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"Editor action failed for property '{capturedThis.Label}': {ex.Message}");
+                            continue;
+                        }
+
+                        if (revert && !hasOldValue)
+                        {
+                            continue;
+                        }
+
+                        // Undo/redo runs long after the original edit, so the cached copy has to be
+                        // re-read here too.
+                        target.PreWrite?.Invoke();
+
+                        using BoxedValue bv = new BoxedValue(revert ? oldValueObj : newValueObj);
+                        target.Set(bv);
+
+                        target.PostWrite?.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Warning, $"Editor action failed for property '{capturedThis.Label}': {ex.Message}");
+                    }
                 }
 
                 Dispatcher.UIThread.Post(() =>
@@ -493,8 +770,8 @@ namespace Hyperion.Editor.ViewModels
 
             EditorAction action = new EditorAction(
                 actionText,
-                execute: (_, _) => ApplyValue(newValueObj, hasValue: true),
-                revert:  (_, _) => ApplyValue(oldValueObj, hasValue: oldValueCaptured)
+                execute: (_, _) => ApplyValues(revert: false),
+                revert: (_, _) => ApplyValues(revert: true)
             );
 
             if (project != null)
@@ -504,7 +781,7 @@ namespace Hyperion.Editor.ViewModels
             else
             {
                 // No project to record undo against - still apply the edit.
-                ApplyValue(newValueObj, hasValue: true);
+                ApplyValues(revert: false);
             }
         }
 
@@ -519,7 +796,45 @@ namespace Hyperion.Editor.ViewModels
         /// </summary>
         private void CommitSwatchOverrideChange(Entity entity, string swatchName, string actionText, object? newValueObj)
         {
-            Name swatch = new Name(swatchName);
+            SwatchOverrideEdit? edit = PrepareSwatchOverrideEdit(entity, new Name(swatchName), newValueObj);
+
+            if (edit == null)
+            {
+                return;
+            }
+
+            EditorAction action = new EditorAction(
+                edit.RemovesOverride ? $"Revert Override ({swatchName}): {Label}" : $"Override ({swatchName}): {Label}",
+                execute: (_, _) => edit.Apply(),
+                revert: (_, _) => edit.Revert());
+
+            EditorProject? overrideProject = EngineManager.CurrentProject;
+
+            if (overrideProject != null)
+            {
+                overrideProject.ActionStack.PushAction(action);
+            }
+            else
+            {
+                // No project to record undo against - still apply the edit.
+                edit.Apply();
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                RefreshValue();
+                ValueChangedCallback?.Invoke();
+            });
+        }
+
+        private sealed record SwatchOverrideEdit(bool RemovesOverride, Action Apply, Action Revert);
+
+        /// <summary>
+        /// Works out how writing newValueObj into the entity's override set for the swatch changes it
+        /// (auto-creating and applying the set if needed). Null when it changes nothing. Sim thread.
+        /// </summary>
+        private SwatchOverrideEdit? PrepareSwatchOverrideEdit(Entity entity, Name swatch, object? newValueObj)
+        {
             Name propertyName = _property.Name;
 
             // Ensure the set exists for the active swatch and is applied, so the edit is visible
@@ -581,12 +896,12 @@ namespace Hyperion.Editor.ViewModels
             // Writing the base value (or the exact current override) is a no-op
             if (!wasOverridden && hasBaseValue && Equals(baseValueObj, newValueObj))
             {
-                return;
+                return null;
             }
 
             if (wasOverridden && hadPreviousOverride && Equals(previousOverrideObj, newValueObj) && !Equals(baseValueObj, newValueObj))
             {
-                return;
+                return null;
             }
 
             // Writing the base value over an existing override removes (prunes) the override
@@ -614,10 +929,10 @@ namespace Hyperion.Editor.ViewModels
                 }
             }
 
-            EditorAction action = new EditorAction(
-                removeOverride ? $"Revert Override ({swatchName}): {Label}" : $"Override ({swatchName}): {Label}",
-                execute: (_, _) => ApplyOverrideState(!removeOverride, newValueObj, true),
-                revert: (_, _) =>
+            return new SwatchOverrideEdit(
+                removeOverride,
+                Apply: () => ApplyOverrideState(!removeOverride, newValueObj, true),
+                Revert: () =>
                 {
                     if (wasOverridden && hadPreviousOverride)
                     {
@@ -628,24 +943,6 @@ namespace Hyperion.Editor.ViewModels
                         ApplyOverrideState(false, null, false);
                     }
                 });
-
-            EditorProject? overrideProject = EngineManager.CurrentProject;
-
-            if (overrideProject != null)
-            {
-                overrideProject.ActionStack.PushAction(action);
-            }
-            else
-            {
-                // No project to record undo against - still apply the edit.
-                ApplyOverrideState(!removeOverride, newValueObj, true);
-            }
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                RefreshValue();
-                ValueChangedCallback?.Invoke();
-            });
         }
 
         private ICommand? _revertOverrideCommand;

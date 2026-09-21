@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Avalonia.Media;
@@ -102,11 +103,11 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                Color color;
+                List<Color> colors;
 
                 try
                 {
-                    color = ReadColorFromProperty();
+                    colors = ReadAllTargets(ReadColor);
                 }
                 catch (Exception ex)
                 {
@@ -117,10 +118,22 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                string r = FormatComponent(color.Red);
-                string g = FormatComponent(color.Green);
-                string b = FormatComponent(color.Blue);
-                string a = FormatComponent(color.Alpha);
+                Color color = colors[0];
+
+                // A channel the selected objects disagree on is left blank.
+                string SharedComponent(Func<Color, float> channel)
+                {
+                    string formatted = FormatComponent(channel(color));
+
+                    return colors.TrueForAll(c => FormatComponent(channel(c)) == formatted) ? formatted : string.Empty;
+                }
+
+                string r = SharedComponent(c => c.Red);
+                string g = SharedComponent(c => c.Green);
+                string b = SharedComponent(c => c.Blue);
+                string a = SharedComponent(c => c.Alpha);
+
+                bool hasMixedValues = r.Length == 0 || g.Length == 0 || b.Length == 0 || a.Length == 0;
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -129,6 +142,7 @@ namespace Hyperion.Editor.ViewModels
                         ApplyModelValue(() =>
                         {
                             Value = $"({r}, {g}, {b}, {a})";
+                            HasMixedValues = hasMixedValues;
 
                             // Leave the text boxes alone while the user is typing in them.
                             if (!IsEditing)
@@ -145,7 +159,7 @@ namespace Hyperion.Editor.ViewModels
                             }
 
                             // Avalonia UI objects (Brush/Color) must be created on the UI thread.
-                            SwatchBrush = ToBrush(color);
+                            SwatchBrush = hasMixedValues ? Brushes.Transparent : ToBrush(color);
                         });
                     }
                     finally
@@ -172,19 +186,18 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    // Refresh any cached copy of the containing value before reading, so the
-                    // components we don't touch are carried over from the current value.
-                    PreWriteCallback?.Invoke();
+                    // Channels left blank (or unparsable) keep each object's own value.
+                    CommitPropertyChange($"Set {Label}", boxed =>
+                    {
+                        Color current = ReadColor(boxed);
 
-                    Color current = ReadColorFromProperty();
+                        float r = TryParseComponent(capturedR, out float parsedR) ? parsedR : current.Red;
+                        float g = TryParseComponent(capturedG, out float parsedG) ? parsedG : current.Green;
+                        float b = TryParseComponent(capturedB, out float parsedB) ? parsedB : current.Blue;
+                        float a = TryParseComponent(capturedA, out float parsedA) ? parsedA : current.Alpha;
 
-                    float r = TryParseComponent(capturedR, out float parsedR) ? parsedR : current.Red;
-                    float g = TryParseComponent(capturedG, out float parsedG) ? parsedG : current.Green;
-                    float b = TryParseComponent(capturedB, out float parsedB) ? parsedB : current.Blue;
-                    float a = TryParseComponent(capturedA, out float parsedA) ? parsedA : current.Alpha;
-
-                    using BoxedValue boxed = new BoxedValue(new Color(r, g, b, a));
-                    CommitPropertyChange($"Set {Label}", boxed);
+                        return new Color(r, g, b, a);
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -216,10 +229,8 @@ namespace Hyperion.Editor.ViewModels
         }
 
         // Sim thread only.
-        private Color ReadColorFromProperty()
+        private Color ReadColor(BoxedValue boxed)
         {
-            using BoxedValue boxed = GetPropertyValue();
-
             IntPtr ptr = boxed.Pointer;
 
             if (ptr == IntPtr.Zero)

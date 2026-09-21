@@ -368,6 +368,9 @@ public:
 
     Handle<Mesh> Clone() const;
 
+    HYP_METHOD()
+    virtual Handle<AssetObject> CloneAsset() const override;
+
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Regenerate Normals")
     void RegenerateNormals();

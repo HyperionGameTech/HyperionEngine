@@ -53,7 +53,7 @@ namespace Hyperion.Editor.ViewModels
 
             foreach (var entry in FlagEntries)
             {
-                if (entry.IsSelected && entry.Value != null)
+                if (entry.IsSelected == true && entry.Value != null)
                 {
                     combined |= Convert.ToUInt64(entry.Value);
                 }

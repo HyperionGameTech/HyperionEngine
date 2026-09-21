@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Avalonia.Threading;
@@ -12,9 +13,10 @@ namespace Hyperion.Editor.ViewModels
         private readonly Func<TStruct, int, float> _getComponent;
         private readonly Func<TStruct, int, float, TStruct> _withComponent;
 
-        // Both run on the sim thread.
-        private readonly Func<TStruct> _readStruct;
-        private readonly Action<TStruct>? _writeStruct;
+        // Where the vector lives within the property's value - the whole value by default, or e.g. a
+        // transform's translation. Both run on the sim thread, once per selected object.
+        private readonly Func<BoxedValue, TStruct> _extract;
+        private readonly Func<BoxedValue, TStruct, object?> _inject;
 
         private readonly string[] _components;
 
@@ -25,15 +27,15 @@ namespace Hyperion.Editor.ViewModels
             int componentCount,
             Func<TStruct, int, float> getComponent,
             Func<TStruct, int, float, TStruct> withComponent,
-            Func<TStruct>? readOverride = null,
-            Action<TStruct>? writeOverride = null)
+            Func<BoxedValue, TStruct>? extract = null,
+            Func<BoxedValue, TStruct, object?>? inject = null)
             : base(target, property, isReadOnly)
         {
             _componentCount = componentCount;
             _getComponent = getComponent;
             _withComponent = withComponent;
-            _readStruct = readOverride ?? ReadStructFromProperty;
-            _writeStruct = writeOverride;
+            _extract = extract ?? ReadStruct;
+            _inject = inject ?? ((_, vector) => vector);
             _components = CreateComponentStrings(componentCount);
         }
 
@@ -45,15 +47,15 @@ namespace Hyperion.Editor.ViewModels
             int componentCount,
             Func<TStruct, int, float> getComponent,
             Func<TStruct, int, float, TStruct> withComponent,
-            Func<TStruct>? readOverride = null,
-            Action<TStruct>? writeOverride = null)
+            Func<BoxedValue, TStruct>? extract = null,
+            Func<BoxedValue, TStruct, object?>? inject = null)
             : base(classAddress, targetAddressResolver, property, isReadOnly)
         {
             _componentCount = componentCount;
             _getComponent = getComponent;
             _withComponent = withComponent;
-            _readStruct = readOverride ?? ReadStructFromProperty;
-            _writeStruct = writeOverride;
+            _extract = extract ?? ReadStruct;
+            _inject = inject ?? ((_, vector) => vector);
             _components = CreateComponentStrings(componentCount);
         }
 
@@ -71,8 +73,8 @@ namespace Hyperion.Editor.ViewModels
             _componentCount = componentCount;
             _getComponent = getComponent;
             _withComponent = withComponent;
-            _readStruct = ReadStructFromProperty;
-            _writeStruct = null;
+            _extract = ReadStruct;
+            _inject = (_, vector) => vector;
             _components = CreateComponentStrings(componentCount);
         }
 
@@ -139,11 +141,11 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                TStruct vector;
+                List<TStruct> vectors;
 
                 try
                 {
-                    vector = _readStruct();
+                    vectors = ReadAllTargets(_extract);
                 }
                 catch (Exception ex)
                 {
@@ -154,11 +156,24 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
+                // A component the selected objects disagree on is left blank. Compared as displayed,
+                // since that's the value an edit writes back.
                 string[] formatted = new string[_componentCount];
+                bool hasMixedValues = false;
 
                 for (int i = 0; i < _componentCount; i++)
                 {
-                    formatted[i] = FormatComponent(_getComponent(vector, i));
+                    formatted[i] = FormatComponent(_getComponent(vectors[0], i));
+
+                    for (int j = 1; j < vectors.Count; j++)
+                    {
+                        if (FormatComponent(_getComponent(vectors[j], i)) != formatted[i])
+                        {
+                            formatted[i] = string.Empty;
+                            hasMixedValues = true;
+                            break;
+                        }
+                    }
                 }
 
                 Dispatcher.UIThread.Post(() =>
@@ -168,6 +183,7 @@ namespace Hyperion.Editor.ViewModels
                         ApplyModelValue(() =>
                         {
                             Value = BuildDisplayString(formatted);
+                            HasMixedValues = hasMixedValues;
 
                             // Leave the text boxes alone while the user is typing in them.
                             if (!IsEditing)
@@ -208,35 +224,21 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    // Refresh any cached copy of the containing value before reading, so the
-                    // components we don't touch are carried over from the current value.
-                    PreWriteCallback?.Invoke();
-
-                    TStruct updated = _readStruct();
-
-                    for (int i = 0; i < _componentCount; i++)
+                    // Blank (multiple values) components are left as each object has them.
+                    CommitPropertyChange($"Set {Label}", current =>
                     {
-                        if (TryParseComponent(captured[i], out float parsed))
+                        TStruct updated = _extract(current);
+
+                        for (int i = 0; i < _componentCount; i++)
                         {
-                            updated = _withComponent(updated, i, parsed);
+                            if (TryParseComponent(captured[i], out float parsed))
+                            {
+                                updated = _withComponent(updated, i, parsed);
+                            }
                         }
-                    }
 
-                    if (_writeStruct != null)
-                    {
-                        _writeStruct(updated);
-
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            RefreshValue();
-                            ValueChangedCallback?.Invoke();
-                        });
-                    }
-                    else
-                    {
-                        using BoxedValue boxed = new BoxedValue(updated);
-                        CommitPropertyChange($"Set {Label}", boxed);
-                    }
+                        return _inject(current, updated);
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -272,10 +274,8 @@ namespace Hyperion.Editor.ViewModels
         }
 
         // Sim thread only.
-        private TStruct ReadStructFromProperty()
+        private TStruct ReadStruct(BoxedValue boxed)
         {
-            using BoxedValue boxed = GetPropertyValue();
-
             IntPtr ptr = boxed.Pointer;
 
             if (ptr == IntPtr.Zero)

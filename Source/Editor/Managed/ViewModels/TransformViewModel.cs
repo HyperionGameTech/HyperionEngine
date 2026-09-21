@@ -29,9 +29,9 @@ namespace Hyperion.Editor.ViewModels
             _scale = new Vec3fViewModel(classAddress, targetAddressResolver, property, isReadOnly, ReadScale, WriteScale);
         }
 
-        // The three vector editors read and write through this view model's own property, so they
-        // share its container hooks instead of talking to the containing struct/object themselves.
-        // PostWriteCallback stays on this view model - SetPropertyValue here already invokes it.
+        // The three vector editors read and write this view model's own property (and selected
+        // objects), so they share its container hooks instead of talking to the containing
+        // struct/object themselves.
         public override Action? PreWriteCallback
         {
             get => base.PreWriteCallback;
@@ -43,6 +43,26 @@ namespace Hyperion.Editor.ViewModels
                 _rotationEuler.PreWriteCallback = value;
                 _scale.PreWriteCallback = value;
             }
+        }
+
+        public override Action? PostWriteCallback
+        {
+            get => base.PostWriteCallback;
+            set
+            {
+                base.PostWriteCallback = value;
+
+                _translation.PostWriteCallback = value;
+                _rotationEuler.PostWriteCallback = value;
+                _scale.PostWriteCallback = value;
+            }
+        }
+
+        protected override bool OnPeersAttached()
+        {
+            return _translation.AttachPeers(Peers)
+                && _rotationEuler.AttachPeers(Peers)
+                && _scale.AttachPeers(Peers);
         }
 
         public override Action? ValueChangedCallback
@@ -78,10 +98,12 @@ namespace Hyperion.Editor.ViewModels
             _ = EngineManager.PostToSimThread(() =>
             {
                 Transform transform;
+                bool isShared;
 
                 try
                 {
-                    transform = ReadTransform();
+                    isShared = TryReadSharedValue(out object? sharedValue);
+                    transform = sharedValue is Transform t ? t : Transform.Identity;
                 }
                 catch (Exception ex)
                 {
@@ -98,7 +120,10 @@ namespace Hyperion.Editor.ViewModels
                     {
                         ApplyModelValue(() =>
                         {
-                            Value = $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}";
+                            Value = isShared
+                                ? $"T:{FormatVec3(transform.Translation)} R:{FormatQuat(transform.Rotation)} S:{FormatVec3(transform.Scale)}"
+                                : string.Empty;
+                            HasMixedValues = !isShared;
                         });
 
                         _translation.RefreshValue();
@@ -114,48 +139,34 @@ namespace Hyperion.Editor.ViewModels
         }
 
         // Sim thread only.
-        private Transform ReadTransform()
+        private static Transform ReadTransform(BoxedValue boxed)
         {
-            using BoxedValue boxed = GetPropertyValue();
-            object? raw = boxed.GetValue();
-
-            return raw is Transform t ? t : Transform.Identity;
+            return boxed.GetValue() is Transform t ? t : Transform.Identity;
         }
 
-        // Sim thread only.
-        private void WriteTransform(Transform transform)
-        {
-            using BoxedValue boxed = new BoxedValue(transform);
-            CommitPropertyChange($"Set {Label}", boxed);
-        }
+        private static Vec3f ReadTranslation(BoxedValue boxed) => ReadTransform(boxed).Translation;
+        private static Vec3f ReadScale(BoxedValue boxed) => ReadTransform(boxed).Scale;
+        private static Vec3f ReadRotationEuler(BoxedValue boxed) => QuaternionToEulerDegrees(ReadTransform(boxed).Rotation);
 
-        private Vec3f ReadTranslation() => ReadTransform().Translation;
-        private Vec3f ReadScale() => ReadTransform().Scale;
-        private Vec3f ReadRotationEuler()
+        private static object? WriteTranslation(BoxedValue boxed, Vec3f value)
         {
-            Quat4f q = ReadTransform().Rotation;
-            return QuaternionToEulerDegrees(q);
-        }
-
-        private void WriteTranslation(Vec3f value)
-        {
-            Transform t = ReadTransform();
+            Transform t = ReadTransform(boxed);
             t.Translation = value;
-            WriteTransform(t);
+            return t;
         }
 
-        private void WriteScale(Vec3f value)
+        private static object? WriteScale(BoxedValue boxed, Vec3f value)
         {
-            Transform t = ReadTransform();
+            Transform t = ReadTransform(boxed);
             t.Scale = value;
-            WriteTransform(t);
+            return t;
         }
 
-        private void WriteRotationEuler(Vec3f eulerDegrees)
+        private static object? WriteRotationEuler(BoxedValue boxed, Vec3f eulerDegrees)
         {
-            Transform t = ReadTransform();
+            Transform t = ReadTransform(boxed);
             t.Rotation = EulerDegreesToQuaternion(eulerDegrees);
-            WriteTransform(t);
+            return t;
         }
 
         private static string FormatVec3(Vec3f v)

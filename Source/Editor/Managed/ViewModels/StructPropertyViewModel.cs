@@ -19,6 +19,9 @@ namespace Hyperion.Editor.ViewModels
         // copy and then it is written back to the parent as a whole.
         private BoxedValue? _currentStructValue;
 
+        // The same, per multi-selection peer (indexed like Peers).
+        private BoxedValue?[] _peerStructValues = Array.Empty<BoxedValue?>();
+
         public ObservableCollection<InspectorPropertyViewModelBase> SubProperties { get; } = new();
 
         private bool _hasSubProperties;
@@ -128,6 +131,91 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private void ReplacePeerStructValue(int peerIndex, BoxedValue? newValue)
+        {
+            BoxedValue? previous = Interlocked.Exchange(ref _peerStructValues[peerIndex], newValue);
+
+            if (previous != null && !ReferenceEquals(previous, newValue))
+            {
+                previous.Dispose();
+            }
+        }
+
+        private IntPtr GetPeerStructPointer(int peerIndex)
+        {
+            return Volatile.Read(ref _peerStructValues[peerIndex])?.Pointer ?? IntPtr.Zero;
+        }
+
+        private void ReloadPeerStructFromParent(int peerIndex)
+        {
+            PropertyTarget peer = Peers[peerIndex];
+
+            peer.PreWrite?.Invoke();
+
+            try
+            {
+                ReplacePeerStructValue(peerIndex, peer.Get());
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"StructPropertyViewModel: failed to re-read struct '{Label}' of a selected object: {ex.Message}");
+            }
+        }
+
+        private void WritePeerStructToParent(int peerIndex)
+        {
+            BoxedValue? current = Volatile.Read(ref _peerStructValues[peerIndex]);
+
+            if (current == null)
+            {
+                return;
+            }
+
+            PropertyTarget peer = Peers[peerIndex];
+
+            if (!TryWritePeerContainerValueToSwatchOverride(peer, current))
+            {
+                peer.Set(current);
+            }
+
+            peer.PostWrite?.Invoke();
+        }
+
+        // Each field edits the same field of every selected object's own copy of the struct.
+        protected override bool OnPeersAttached()
+        {
+            IReadOnlyList<PropertyTarget> peers = Peers;
+
+            _peerStructValues = new BoxedValue?[peers.Count];
+
+            foreach (InspectorPropertyViewModelBase vm in SubProperties.ToList())
+            {
+                Property fieldProperty = vm.Property;
+                List<PropertyTarget> fieldPeers = new List<PropertyTarget>(peers.Count);
+
+                for (int i = 0; i < peers.Count; i++)
+                {
+                    int peerIndex = i;
+
+                    fieldPeers.Add(PropertyTarget.ForAddress(
+                        _structClass.Address,
+                        () => GetPeerStructPointer(peerIndex),
+                        fieldProperty,
+                        preWrite: () => ReloadPeerStructFromParent(peerIndex),
+                        postWrite: () => WritePeerStructToParent(peerIndex)));
+                }
+
+                if (!vm.AttachPeers(fieldPeers))
+                {
+                    SubProperties.Remove(vm);
+                }
+            }
+
+            HasSubProperties = SubProperties.Count > 0;
+
+            return true;
+        }
+
         private void InitializeSubProperties()
         {
             if (_depth >= MaxDepth)
@@ -206,6 +294,13 @@ namespace Hyperion.Editor.ViewModels
                 try
                 {
                     ReplaceStructValue(GetPropertyValue());
+
+                    IReadOnlyList<PropertyTarget> peers = Peers;
+
+                    for (int i = 0; i < peers.Count; i++)
+                    {
+                        ReplacePeerStructValue(i, peers[i].Get());
+                    }
                 }
                 catch (Exception ex)
                 {

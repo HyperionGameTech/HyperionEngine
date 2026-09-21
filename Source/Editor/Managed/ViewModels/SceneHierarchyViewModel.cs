@@ -398,20 +398,19 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public bool ReparentNode(NodeViewModel dragged, NodeViewModel newParent)
+        public void ReparentNodes(IReadOnlyList<NodeViewModel> nodes, NodeViewModel newParent)
         {
-            if (dragged == null || newParent == null)
-                return false;
+            if (nodes.Count == 0 || newParent == null)
+                return;
 
-            Node draggedNode = dragged.Node;
-            Node newParentNode = newParent.Node;
+            string[] arguments = nodes
+                .Select(vm => vm.Node.NativeAddress.ToString())
+                .Append(newParent.Node.NativeAddress.ToString())
+                .ToArray();
 
             EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
                 new Name("EditorCommandReparentNode"),
-                draggedNode.NativeAddress.ToString(),
-                newParentNode.NativeAddress.ToString());
-
-            return true;
+                arguments);
         }
 
         public void SetDropTarget(NodeViewModel? target)
