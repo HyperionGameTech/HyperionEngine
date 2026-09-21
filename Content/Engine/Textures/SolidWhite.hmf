@@ -31,5 +31,5 @@ Texture SolidWhite {
         Key = "Engine://Textures/SolidWhite.TEX"
         Size = 4
     }
-    UUID = "beff7c63-ea1b-45d1-9768-f8ed09c3fb81"
+    UUID = "854e8d13-6f1a-467d-be98-1bedc1022ab4"
 }

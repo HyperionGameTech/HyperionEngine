@@ -118,9 +118,6 @@ using namespace Resources;
 
 static constexpr uint32 MaxFramesBeforeDiscardViews = MathUtil::Max(NumFramesInFlight, RingBufferDepth);
 
-// iterations per frame for cleaning up unused resources for passes
-static constexpr int FrameCleanupBudget = 16;
-
 EngineStatTimer g_statRenderThreadSync("Rendering/CPU/RenderThreadSync");
 EngineStatTimer g_statSimThreadSync("Rendering/CPU/SimThreadSync");
 

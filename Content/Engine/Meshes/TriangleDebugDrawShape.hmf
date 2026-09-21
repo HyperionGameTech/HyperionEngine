@@ -103,5 +103,5 @@ Mesh TriangleDebugDrawShape {
         Size = 0
     }
     Flags = ViewIndependent
-    UUID = "b7d3e6f4-8ba2-495f-a747-c52c96010e9d"
+    UUID = "aa5a566f-bd1f-495e-acbc-f561d65c4d2e"
 }

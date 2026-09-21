@@ -69,6 +69,7 @@ static CVar<float> s_cvCSMSplitLambda("Rendering.Shadows.CSMSplitLambda", 0.95f)
 CVar<bool> g_cvCSMTimeSlicingEnabled("Rendering.Shadows.CSMTimeSlicingEnabled", true);
 CVar<int> g_cvCSMMaxUpdatesPerFrame("Rendering.Shadows.CSMMaxUpdatesPerFrame", 1);
 CVar<int> g_cvCSMMaxStaleFrames("Rendering.Shadows.CSMMaxStaleFrames", 8);
+CVar<float> g_cvCSMStaleFramesBackoff("Rendering.Shadows.CSMStaleFramesBackoff", 1.5f);
 CVar<int> g_cvCSMPriorityCascades("Rendering.Shadows.CSMPriorityCascades", 1);
 CVar<float> g_cvCSMBasisAngleThresholdDegrees("Rendering.Shadows.CSMBasisAngleThresholdDegrees", 0.05f);
 CVar<float> g_cvCSMBasisPositionThreshold("Rendering.Shadows.CSMBasisPositionThreshold", 1.0f);
@@ -707,8 +708,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     const bool boundsChanged = shadowViewBounds != currentCascadeView->cachedBounds;
                     const uint32 framesSinceUpdate = GetFrameCounter() - csmState.lastCommittedFrame[shadowViewIndex];
 
-                    // stagger updates for cascades so they don't all fall on the same frame
-                    const uint32 staleFrames = uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1)) + shadowViewIndex;
+                    const float staleFramesBackoff = MathUtil::Max(g_cvCSMStaleFramesBackoff.Get(), 1.0f);
+                    const uint32 staleFrames = uint32(MathUtil::Max(g_cvCSMMaxStaleFrames.Get(), 1) * MathUtil::Pow(staleFramesBackoff, float(shadowViewIndex)));
                     const bool isStale = framesSinceUpdate >= staleFrames;
 
                     const bool isPriorityCascade = (shadowViewIndex < uint32(MathUtil::Max(g_cvCSMPriorityCascades.Get(), 0)));
