@@ -84,6 +84,31 @@ namespace Hyperion
                 {
                     InitManagedClass(type, isCoreAssembly);
                 }
+
+                if (type.IsValueType && !type.IsEnum)
+                {
+                    RegisterComponentType(type);
+                }
+            }
+        }
+
+        private static void RegisterComponentType(Type type)
+        {
+            // Use dynamic since the attribute comes from the script's view of Hyperion.NET.Shared
+            dynamic? componentAttribute = TryGetAttributeByName(type, "Component");
+
+            if (componentAttribute == null)
+            {
+                return;
+            }
+
+            try
+            {
+                componentAttribute.Register(type);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "Failed to register component type {0}: {1}", type.FullName, ex);
             }
         }
 

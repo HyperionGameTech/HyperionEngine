@@ -36,6 +36,7 @@
 #include <Scene/EntitySet.hpp>
 #include <Scene/EntityContainer.hpp>
 #include <Scene/ComponentContainer.hpp>
+#include <Scene/ComponentInterface.hpp>
 #include <Scene/System.hpp>
 #include <Scene/EntityTag.hpp>
 #include <Scene/SystemExecutionGroup.hpp>
@@ -342,7 +343,7 @@ public:
 
         HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
 
-        return static_cast<ComponentContainer<Component>&>(*componentContainerIt->second).GetComponent(*componentIdOpt);
+        return componentContainerIt->second->template GetComponent<Component>(*componentIdOpt);
     }
 
     template <class Component>
@@ -395,7 +396,7 @@ public:
 
         HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
 
-        return &static_cast<ComponentContainer<Component>&>(*componentContainerIt->second).GetComponent(*componentIdOpt);
+        return &componentContainerIt->second->template GetComponent<Component>(*componentIdOpt);
     }
 
     template <class Component>
@@ -506,6 +507,8 @@ public:
     void AddComponent(Entity* entity, const BoxedValue& componentData);
     void AddComponent(Entity* entity, BoxedValue&& componentData);
 
+    void AddDefaultComponent(Entity* entity, TypeId componentTypeId);
+
     bool RemoveComponent(TypeId componentTypeId, Entity* entity);
 
     template <class Component, class U = Component>
@@ -531,7 +534,7 @@ public:
 
         static constexpr TypeId ComponentTypeId = TypeId::ForType<Component>();
 
-        const Pair<ComponentId, Component&> componentInsertResult = GetContainer<Component>().AddComponent(std::move(component));
+        const Pair<ComponentId, Component&> componentInsertResult = GetContainer<Component>().template AddComponent<Component>(std::move(component));
 
         entityData->components[ComponentTypeId] = componentInsertResult.first;
 
@@ -615,7 +618,7 @@ public:
 
             auto entitySetsInsertResult = m_entitySets.Set(
                 entitySetId,
-                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainer<Components>()...));
+                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainers<Components...>()));
 
             Assert(entitySetsInsertResult.second); // Make sure the element was inserted (it shouldn't already exist)
 
@@ -711,23 +714,19 @@ public:
     void AddPendingEntitySets();
 
     template <class Component>
-    ComponentContainer<Component>& GetContainer()
+    ComponentContainer& GetContainer()
     {
         EnsureValidComponentType<Component>();
 
-        TUniqueLock lock(m_componentContainersMtx);
+        TSharedLock lock(m_componentContainersMtx);
 
         auto it = m_containers.Find(TypeId::ForType<Component>());
+        Assert(it != m_containers.End(), "No component container for `{}`; is the component type registered?", TypeNameWithoutNamespace<Component>().Data());
 
-        if (it == m_containers.End())
-        {
-            it = m_containers.Set(TypeId::ForType<Component>(), MakeUniqueWithAllocator<ComponentContainer<Component>, SceneAllocator>()).first;
-        }
-
-        return static_cast<ComponentContainer<Component>&>(*it->second);
+        return *it->second;
     }
 
-    ComponentContainerBase* TryGetContainer(TypeId componentTypeId)
+    ComponentContainer* TryGetContainer(TypeId componentTypeId)
     {
         EnsureValidComponentType(componentTypeId);
 
@@ -744,12 +743,29 @@ public:
     }
 
 private:
+    enum class ComponentConstructMode : uint8
+    {
+        DEFAULT,
+        COPY,
+        MOVE
+    };
+
     HYP_METHOD()
     Handle<Entity> AddBasicEntity();
 
     void AddExistingEntity_Internal(const Handle<Entity>& entity);
 
     void ClearEntities_Internal();
+
+    template <class... Components>
+    FixedArray<ComponentContainer*, sizeof...(Components)> GetContainers()
+    {
+        return FixedArray<ComponentContainer*, sizeof...(Components)> { &GetContainer<Components>()... };
+    }
+
+    ComponentContainer* GetOrCreateContainer(const ComponentInterface& componentInterface);
+
+    void AddComponent_Internal(Entity* entity, const ComponentInterface& componentInterface, ComponentConstructMode constructMode, void* source);
 
     template <class Component>
     static void EnsureValidComponentType()
@@ -815,7 +831,7 @@ private:
         {
             auto insertResult = m_pendingEntitySets.Insert(
                 entitySetId,
-                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainer<Components>()...));
+                MakeUniqueWithAllocator<EntitySet<Components...>, SceneAllocator>(m_entities, GetContainers<Components...>()));
 
             Assert(insertResult.second);
 
@@ -844,7 +860,7 @@ private:
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
 
-    Map<TypeId, UniquePtr<ComponentContainerBase, SceneAllocator>, SceneAllocator> m_containers;
+    Map<TypeId, UniquePtr<ComponentContainer, SceneAllocator>, SceneAllocator> m_containers;
     mutable SharedMutex m_componentContainersMtx;
 
     EntityContainer m_entities;

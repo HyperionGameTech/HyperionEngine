@@ -22,14 +22,10 @@ extern "C"
     HYP_EXPORT Struct* Struct_CreateDynamicStruct(
         const TypeId* pTypeId,
         const char* pTypeName,
-        uint32 size,
-        decltype(DynamicStructInstanceFunctions::copy) copyFunction,
-        decltype(DynamicStructInstanceFunctions::destruct) destructFunction)
+        uint32 size)
     {
         Assert(pTypeId != nullptr);
         Assert(pTypeName != nullptr);
-        Assert(copyFunction != nullptr);
-        Assert(destructFunction != nullptr);
 
         if (size == 0)
         {
@@ -38,15 +34,15 @@ extern "C"
             return nullptr;
         }
 
+        // C# dynamic structs are blittable, so the defaults (zero-fill construct, memcpy copy/move, no-op destruct) are exact.
+        // No managed callbacks means nothing dangles if the native Struct outlives the managed DynamicStruct.
         DynamicStructInstanceFunctions functions {};
-        functions.construct = nullptr; // not needed when initializing from C#.
-        functions.copy = copyFunction;
-        functions.destruct = destructFunction;
 
         return new DynamicStructInstance(
             *pTypeId,
             CreateNameFromDynamicString(pTypeName),
             size,
+            uint32(alignof(void*)),
             Span<const ClassAttribute>(),
             ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
             Span<MemberVariant>(),

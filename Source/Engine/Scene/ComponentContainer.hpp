@@ -8,10 +8,12 @@
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
-#include <Core/Containers/SparseArray2.hpp>
+#include <Core/Containers/StridedBuffer.hpp>
 
 #include <Core/Utilities/EnumFlags.hpp>
 #include <Core/Utilities/Optional.hpp>
+#include <Core/Utilities/Pair.hpp>
+#include <Core/Utilities/IndexAllocator.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/AnyRef.hpp>
@@ -19,6 +21,7 @@
 #include <Core/Threading/DataRaceDetector.hpp>
 
 #include <Core/Reflection/BoxedValue.hpp>
+#include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Core/Reflection/ObjId.hpp>
 #include <Core/Util.hpp>
@@ -28,6 +31,7 @@
 namespace Hyperion {
 
 class Entity;
+class ComponentInterface;
 
 enum class ComponentId : uint32;
 
@@ -88,26 +92,45 @@ struct ComponentInfo
     }
 };
 
-class ComponentContainerFactoryBase;
-
-class ENGINE_API ComponentContainerBase
+/*! \brief Storage for every component of one type within an EntityManager.
+ *  Components are stored as raw bytes with stable addresses; construction, copying, moving and destruction go through the
+ *  type's ComponentInterface, so types registered at runtime are stored the same way as native ones. */
+class ENGINE_API ComponentContainer
 {
 public:
-    ComponentContainerBase(ComponentContainerFactoryBase* factory)
-        : m_factory(factory)
+    explicit ComponentContainer(const ComponentInterface& componentInterface);
+
+    ComponentContainer(const ComponentContainer&) = delete;
+    ComponentContainer& operator=(const ComponentContainer&) = delete;
+    ComponentContainer(ComponentContainer&&) noexcept = delete;
+    ComponentContainer& operator=(ComponentContainer&&) noexcept = delete;
+
+    ~ComponentContainer();
+
+    HYP_FORCE_INLINE const ComponentInterface& GetComponentInterface() const
     {
+        return *m_componentInterface;
     }
 
-    ComponentContainerBase(const ComponentContainerBase&) = delete;
-    ComponentContainerBase& operator=(const ComponentContainerBase&) = delete;
-    ComponentContainerBase(ComponentContainerBase&&) noexcept = delete;
-    ComponentContainerBase& operator=(ComponentContainerBase&&) noexcept = delete;
-
-    virtual ~ComponentContainerBase() = default;
-
-    HYP_FORCE_INLINE ComponentContainerFactoryBase* GetFactory() const
+    /*! \brief Gets the TypeInfo of the component type stored in this component container. */
+    HYP_FORCE_INLINE const TypeInfo& GetComponentTypeInfo() const
     {
-        return m_factory;
+        return *m_typeInfo;
+    }
+
+    HYP_FORCE_INLINE TypeId GetComponentTypeId() const
+    {
+        return m_typeId;
+    }
+
+    HYP_FORCE_INLINE uint32 GetNumComponents() const
+    {
+        return m_numComponents;
+    }
+
+    HYP_FORCE_INLINE bool IsEmpty() const
+    {
+        return m_numComponents == 0;
     }
 
 #ifdef HYP_ENABLE_MT_CHECK
@@ -122,184 +145,65 @@ public:
     }
 #endif
 
-    /*! \brief Gets the TypeInfo of the component type stored in this component container. */
-    virtual const TypeInfo& GetComponentTypeInfo() const = 0;
-
-    /*! \brief Tries to get the component with the given Id from the component container.
-     *
-     *  \param id The Id of the component to get.
-     *
-     *  \return A pointer to the component if the component container has a component with the given Id, nullptr otherwise.
-     */
-    virtual AnyRef TryGetComponent(ComponentId id) = 0;
-
-    /*! \brief Tries to get the component with the given Id from the component container.
-     *
-     *  \param id The Id of the component to get.
-     *
-     *  \return A pointer to the component if the component container has a component with the given Id, nullptr otherwise.
-     */
-    virtual ConstAnyRef TryGetComponent(ComponentId id) const = 0;
-
-    /*! \brief Tries to get the component with the given Id from the component container.
-     *
-     *  \param id The Id of the component to get.
-     *  \param outBoxed The value to store a reference to the component in
-     *
-     *  \return True if the component was found, false otherwise
-     */
-    bool TryGetComponent(ComponentId id, BoxedValue& outBoxed);
-
-    /*! \brief Checks if the component container has a component with the given Id.
-     *
-     *  \param id The Id of the component to check.
-     *
-     *  \return True if the component container has a component with the given Id, false otherwise.
-     */
-    virtual bool HasComponent(ComponentId id) const = 0;
-
-    /*! \brief Adds a component to the component container, using BoxedValue to store the component data generically.
-     *
-     *  \param componentData The BoxedValue containing the component data to add.
-     *
-     *  \return The Id of the added component.
-     */
-    virtual ComponentId AddComponent(const BoxedValue& componentData) = 0;
-
-    /*! \brief Adds a component to the component container, using BoxedValue to store the component data generically.
-     *
-     *  \param componentData The BoxedValue containing the component data to add.
-     *
-     *  \return The Id of the added component.
-     */
-    virtual ComponentId AddComponent(BoxedValue&& componentData) = 0;
-
-    /*! \brief Removes the component with the given Id from the component container.
-     *
-     *  \param id The Id of the component to remove.
-     *
-     *  \return True if the component was removed, false otherwise.
-     */
-    virtual bool RemoveComponent(ComponentId id) = 0;
-
-    /*! \brief Removes the component with the given Id from the component container and stores the component object in BoxedValue
-     *
-     *  \param id The Id of the component to remove.
-     *  \param outBoxed Out reference to store the component data in
-     *
-     *  \return True if the component was removed, false otherwise.
-     */
-    virtual bool RemoveComponent(ComponentId id, BoxedValue& outBoxed) = 0;
-
-    /*! \brief Moves the component with the given Id from this component container to the given component container.
-     *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
-     *
-     *  \param id The Id of the component to move.
-     *  \param other The component container to move the component to.
-     *
-     *  \return An optional containing the Id of the component in the given component container if the component was moved, an empty optional otherwise.
-     */
-    virtual Optional<ComponentId> MoveComponent(ComponentId id, ComponentContainerBase& other) = 0;
-
-protected:
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
-
-private:
-    ComponentContainerFactoryBase* m_factory;
-};
-
-class ComponentContainerFactoryBase
-{
-protected:
-    ComponentContainerFactoryBase()
-        : m_createFn(nullptr)
-    {
-    }
-
-public:
-    HYP_FORCE_INLINE UniquePtr<ComponentContainerBase, SceneAllocator> Create() const
-    {
-        return m_createFn();
-    }
-
-protected:
-    UniquePtr<ComponentContainerBase, SceneAllocator> (*m_createFn)(void);
-};
-
-template <class Component>
-class ComponentContainer final : public ComponentContainerBase
-{
-    static class FactoryInstance final : public ComponentContainerFactoryBase
-    {
-    public:
-        FactoryInstance(UniquePtr<ComponentContainerBase, SceneAllocator> (*createFn)(void))
-        {
-            m_createFn = createFn;
-        }
-    } s_factoryInstance;
-
-public:
-    static ComponentContainerFactoryBase* GetFactory()
-    {
-        return &s_factoryInstance;
-    }
-
-    ComponentContainer()
-        : ComponentContainerBase(&s_factoryInstance)
-    {
-    }
-
-    ComponentContainer(const ComponentContainer&) = delete;
-    ComponentContainer& operator=(const ComponentContainer&) = delete;
-
-    ComponentContainer(ComponentContainer&&) noexcept = delete;
-    ComponentContainer& operator=(ComponentContainer&&) noexcept = delete;
-
-    virtual ~ComponentContainer() override = default;
-
-    virtual const TypeInfo& GetComponentTypeInfo() const override
-    {
-        return TypeOf<Component>();
-    }
-
-    virtual bool HasComponent(ComponentId id) const override
+    HYP_FORCE_INLINE bool HasComponent(ComponentId id) const
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
         return m_components.HasIndex(uint32(id));
     }
 
-    virtual AnyRef TryGetComponent(ComponentId id) override
+    HYP_FORCE_INLINE void* TryGetComponentRaw(ComponentId id)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        if (!m_components.HasIndex(uint32(id)))
+        return m_components.GetElementRaw(uint32(id));
+    }
+
+    HYP_FORCE_INLINE const void* TryGetComponentRaw(ComponentId id) const
+    {
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
+        return m_components.GetElementRaw(uint32(id));
+    }
+
+    /*! \brief Tries to get the component with the given Id from the component container.
+     *  \return A reference to the component if the component container has a component with the given Id, an empty reference otherwise. */
+    HYP_FORCE_INLINE AnyRef TryGetComponent(ComponentId id)
+    {
+        void* component = TryGetComponentRaw(id);
+
+        if (!component)
         {
             return AnyRef::Empty();
         }
 
-        return AnyRef(&m_components.GetUnchecked(uint32(id)));
+        return AnyRef(m_typeInfo, component);
     }
 
-    virtual ConstAnyRef TryGetComponent(ComponentId id) const override
+    HYP_FORCE_INLINE ConstAnyRef TryGetComponent(ComponentId id) const
     {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
+        const void* component = TryGetComponentRaw(id);
 
-        if (!m_components.HasIndex(uint32(id)))
+        if (!component)
         {
             return ConstAnyRef::Empty();
         }
 
-        return ConstAnyRef(&m_components.GetUnchecked(uint32(id)));
+        return ConstAnyRef(m_typeInfo, component);
     }
 
+    template <class Component>
     HYP_FORCE_INLINE Component& GetComponent(ComponentId id)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        AssertDebug(m_components.HasIndex(uint32(id)), "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
+        AssertDebug(m_typeId == TypeId::ForType<Component>(), "Component container holds TypeId {}, not `{}`", m_typeId.Value(), TypeNameWithoutNamespace<Component>().Data());
 
-        if (HYP_UNLIKELY(!m_components.HasIndex(uint32(id))))
+        void* component = m_components.GetElementRaw(uint32(id));
+
+        AssertDebug(component != nullptr, "Component of type `{}` with ID {} does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
+
+        if (HYP_UNLIKELY(component == nullptr))
         {
             // Fall back to reference to static - since we return a reference
             // we need this and can't return null. But this should not happen!
@@ -308,154 +212,80 @@ public:
             return s_fallbackDefaultComponent;
         }
 
-        return m_components.GetUnchecked(uint32(id));
+        return *static_cast<Component*>(component);
     }
 
+    template <class Component>
     HYP_FORCE_INLINE const Component& GetComponent(ComponentId id) const
     {
-        return const_cast<ComponentContainer*>(this)->GetComponent(id);
+        return const_cast<ComponentContainer*>(this)->GetComponent<Component>(id);
     }
 
+    template <class Component>
     HYP_FORCE_INLINE Pair<ComponentId, Component&> AddComponent(const Component& component)
     {
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
-        
-        ComponentId id = AllocComponentId();
+        AssertDebug(m_typeId == TypeId::ForType<Component>(), "Component container holds TypeId {}, not `{}`", m_typeId.Value(), TypeNameWithoutNamespace<Component>().Data());
 
-        m_components.Set(uint32(id), component);
+        ComponentId id;
+        void* memory = AllocateComponentSlot(id);
 
-        return Pair<ComponentId, Component&> { id, m_components.GetUnchecked(uint32(id)) };
+        Component* result = new (memory) Component(component);
+
+        return Pair<ComponentId, Component&> { id, *result };
     }
 
+    template <class Component, typename = std::enable_if_t<!std::is_reference_v<Component>>>
     HYP_FORCE_INLINE Pair<ComponentId, Component&> AddComponent(Component&& component)
     {
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
+        AssertDebug(m_typeId == TypeId::ForType<Component>(), "Component container holds TypeId {}, not `{}`", m_typeId.Value(), TypeNameWithoutNamespace<Component>().Data());
 
-        ComponentId id = AllocComponentId();
+        ComponentId id;
+        void* memory = AllocateComponentSlot(id);
 
-        m_components.Set(uint32(id), std::move(component));
+        Component* result = new (memory) Component(std::move(component));
 
-        return Pair<ComponentId, Component&> { id, m_components.GetUnchecked(uint32(id)) };
+        return Pair<ComponentId, Component&> { id, *result };
     }
 
-    virtual ComponentId AddComponent(const BoxedValue& componentData) override
-    {
-        Assert(componentData.IsValid(), "Cannot add an invalid component");
-        Assert(componentData.Is<Component>(), "Component data is not of the correct type");
+    /*! \brief Adds a default constructed component. */
+    ComponentId AddDefaultComponent();
 
-        return AddComponent(componentData.Get<Component>()).first;
-    }
+    /*! \brief Adds a component copy constructed from \p source, which must point to an instance of this container's component type. */
+    ComponentId AddComponentCopy(const void* source);
 
-    virtual ComponentId AddComponent(BoxedValue&& componentData) override
-    {
-        Assert(componentData.IsValid(), "Cannot add an invalid component");
-        Assert(componentData.Is<Component>(), "Component is not of the correct type");
+    /*! \brief Adds a component move constructed from \p source, which must point to an instance of this container's component type. */
+    ComponentId AddComponentMove(void* source);
 
-        return AddComponent(std::move(componentData.Get<Component>())).first;
-    }
+    /*! \brief Adds a component copied from a BoxedValue holding (or referencing) this container's component type. */
+    ComponentId AddComponent(const BoxedValue& componentData);
 
-    virtual bool RemoveComponent(ComponentId id) override
-    {
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
+    /*! \brief Adds a component moved out of a BoxedValue holding (or referencing) this container's component type. */
+    ComponentId AddComponent(BoxedValue&& componentData);
 
-        if (id == Invalid<ComponentId>)
-        {
-            return false;
-        }
+    /*! \brief Destroys the component with the given Id.
+     *  \return True if the component was removed, false otherwise. */
+    bool RemoveComponent(ComponentId id);
 
-        if (m_components.HasIndex(uint32(id)))
-        {
-            m_components.Delete(uint32(id));
-
-            FreeComponentId(id);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    virtual bool RemoveComponent(ComponentId id, BoxedValue& outBoxed) override
-    {
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
-
-        if (id == Invalid<ComponentId>)
-        {
-            return false;
-        }
-
-        if (m_components.HasIndex(uint32(id)))
-        {
-            outBoxed = BoxedValue(std::move(m_components.GetUnchecked(uint32(id))));
-
-            m_components.Delete(uint32(id));
-
-            FreeComponentId(id);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    virtual Optional<ComponentId> MoveComponent(ComponentId id, ComponentContainerBase& other) override
-    {
-        AssertDebug(other.GetComponentTypeInfo() == GetComponentTypeInfo(), "Component container is not of the same type");
-
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
-
-        if (id == Invalid<ComponentId>)
-        {
-            return {};
-        }
-
-        if (m_components.HasIndex(uint32(id)))
-        {
-            Component& component = m_components.GetUnchecked(uint32(id));
-
-            const ComponentId newComponentId = static_cast<ComponentContainer<Component>&>(other).AddComponent(std::move(component)).first;
-
-            m_components.Delete(uint32(id));
-
-            FreeComponentId(id);
-
-            return newComponentId;
-        }
-
-        return {};
-    }
+    /*! \brief Moves the component with the given Id into \p outBoxed, then removes it from the container.
+     *  \return True if the component was removed, false otherwise. */
+    bool RemoveComponent(ComponentId id, BoxedValue& outBoxed);
 
 private:
-    static constexpr size_t ComponentsMapDesiredPageSize = 64 * 1024; // 64 KiB
-    static constexpr size_t ComponentsMapNumElementsPerPage = ((ComponentsMapDesiredPageSize + sizeof(Component) - 1) / sizeof(Component));
+    void* AllocateComponentSlot(ComponentId& outId);
+    void FreeComponentSlot(ComponentId id);
 
-    using ComponentsMap = SparseArray<Component, SceneAllocator, ComponentsMapNumElementsPerPage>;
+    const ComponentInterface* m_componentInterface;
+    const TypeInfo* m_typeInfo;
+    TypeId m_typeId;
 
-    HYP_NODISCARD ComponentId AllocComponentId()
-    {
-        return ComponentId(m_componentIdAllocator.Allocate());
-    }
+    // keeps a runtime-defined component Struct alive for as long as its components are
+    ClassRef m_structReference;
 
-    void FreeComponentId(ComponentId componentId)
-    {
-        if (componentId == Invalid<ComponentId>)
-        {
-            return;
-        }
-
-        m_componentIdAllocator.Free(uint32(componentId));
-    }
-
-    ComponentsMap m_components;
+    StridedBuffer<SceneAllocator> m_components;
     IndexAllocator m_componentIdAllocator;
-};
+    uint32 m_numComponents;
 
-template <class Component>
-typename ComponentContainer<Component>::FactoryInstance ComponentContainer<Component>::s_factoryInstance {
-    []() -> UniquePtr<ComponentContainerBase, SceneAllocator>
-    {
-        return MakeUniqueWithAllocator<ComponentContainer<Component>, SceneAllocator>();
-    }
+    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };
 
 } // namespace Hyperion

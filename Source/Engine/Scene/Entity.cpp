@@ -1051,7 +1051,7 @@ Array<Name> Entity::SerializeTags() const
 
         for (const auto& it : *allComponentsOpt)
         {
-            const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
+            const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
 
             if (!componentInterface || !componentInterface->IsEntityTag() || !componentInterface->GetShouldSerialize())
             {
@@ -1236,7 +1236,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
         {
             const TypeId componentTypeId = it.first;
 
-            const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+            const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
 
             if (!componentInterface)
             {
@@ -1314,7 +1314,7 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
             continue;
         }
 
-        const IComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeInfo.id);
+        const ComponentInterface* componentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeInfo.id);
 
         if (!componentInterface)
         {

@@ -39,6 +39,19 @@ public:
 
     virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override = 0;
 
+    virtual bool CanConstructInPlace() const = 0;
+    virtual bool CanCopyConstructInPlace() const = 0;
+    virtual bool CanMoveConstructInPlace() const = 0;
+
+    virtual void ConstructInPlace(void* destination) const = 0;
+    virtual void CopyConstructInPlace(void* destination, const void* source) const = 0;
+    virtual void MoveConstructInPlace(void* destination, void* source) const = 0;
+    virtual void DestructInPlace(void* target) const = 0;
+
+    bool ConstructBoxed(BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo = nullptr) const;
+    bool CopyConstructBoxed(const void* source, BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo = nullptr) const;
+    bool MoveConstructBoxed(void* source, BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo = nullptr) const;
+
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
     {
@@ -48,7 +61,21 @@ protected:
     virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override = 0;
 
     bool CreateStructInstance(dotnet::ObjectReference& outObjectReference, const void* objectPtr, size_t size) const;
+
+private:
+    void* AllocateBoxedObject() const;
+    void MakeBoxFromObject(void* object, BoxedValue& outBoxed, const TypeInfo* boxedTypeInfo) const;
 };
+
+HYP_FORCE_INLINE const Struct* GetStructFromClass(const Class* cls)
+{
+    if (!cls || !cls->IsStructType())
+    {
+        return nullptr;
+    }
+
+    return static_cast<const Struct*>(cls);
+}
 
 template <class T>
 class StructInstance final : public Struct
@@ -131,6 +158,69 @@ public:
         }
     }
 
+    virtual bool CanConstructInPlace() const override
+    {
+        return std::is_default_constructible_v<T> && !std::is_abstract_v<T>;
+    }
+
+    virtual bool CanCopyConstructInPlace() const override
+    {
+        return std::is_copy_constructible_v<T> && !std::is_abstract_v<T>;
+    }
+
+    virtual bool CanMoveConstructInPlace() const override
+    {
+        return (std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>) && !std::is_abstract_v<T>;
+    }
+
+    virtual void ConstructInPlace(void* destination) const override
+    {
+        if constexpr (std::is_default_constructible_v<T> && !std::is_abstract_v<T>)
+        {
+            new (destination) T();
+        }
+        else
+        {
+            HYP_CORE_ASSERT(false, "Struct type cannot be default constructed in place");
+        }
+    }
+
+    virtual void CopyConstructInPlace(void* destination, const void* source) const override
+    {
+        if constexpr (std::is_copy_constructible_v<T> && !std::is_abstract_v<T>)
+        {
+            new (destination) T(*static_cast<const T*>(source));
+        }
+        else
+        {
+            HYP_CORE_ASSERT(false, "Struct type cannot be copy constructed in place");
+        }
+    }
+
+    virtual void MoveConstructInPlace(void* destination, void* source) const override
+    {
+        if constexpr (std::is_move_constructible_v<T> && !std::is_abstract_v<T>)
+        {
+            new (destination) T(std::move(*static_cast<T*>(source)));
+        }
+        else if constexpr (std::is_copy_constructible_v<T> && !std::is_abstract_v<T>)
+        {
+            new (destination) T(*static_cast<const T*>(source));
+        }
+        else
+        {
+            HYP_CORE_ASSERT(false, "Struct type cannot be move constructed in place");
+        }
+    }
+
+    virtual void DestructInPlace(void* target) const override
+    {
+        if constexpr (!std::is_trivially_destructible_v<T> && !std::is_abstract_v<T>)
+        {
+            static_cast<T*>(target)->~T();
+        }
+    }
+
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
     {
@@ -196,8 +286,10 @@ class DynamicStructInstance;
 struct DynamicStructInstanceFunctions
 {
     void (*construct)(void* ctx, void* dest);
-    void* (*copy)(void* ctx, const void* src);
     void (*destruct)(void* ctx, void* ptr);
+    void (*copyConstruct)(void* ctx, void* dest, const void* src) = nullptr;
+    void (*moveConstruct)(void* ctx, void* dest, void* src) = nullptr;
+    void* context = nullptr;
 };
 
 class CORE_API DynamicStructInstance final : public Struct
@@ -207,6 +299,7 @@ public:
         TypeId typeId,
         Name name,
         uint32 size,
+        uint32 alignment,
         Span<const ClassAttribute> attributes,
         EnumFlags<ClassFlags> flags,
         Span<MemberVariant> members,
@@ -233,6 +326,26 @@ public:
 
     virtual bool ToBoxed(ByteView memory, BoxedValue& out) const override;
 
+    virtual bool CanConstructInPlace() const override
+    {
+        return true;
+    }
+
+    virtual bool CanCopyConstructInPlace() const override
+    {
+        return true;
+    }
+
+    virtual bool CanMoveConstructInPlace() const override
+    {
+        return true;
+    }
+
+    virtual void ConstructInPlace(void* destination) const override;
+    virtual void CopyConstructInPlace(void* destination, const void* source) const override;
+    virtual void MoveConstructInPlace(void* destination, void* source) const override;
+    virtual void DestructInPlace(void* target) const override;
+
 protected:
     virtual void PostLoad_Internal(void* objectPtr) const override
     {
@@ -240,6 +353,11 @@ protected:
 
     virtual bool CreateInstance_Internal(BoxedValue& out) const override;
     virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override;
+
+    HYP_FORCE_INLINE void* GetFunctionContext() const
+    {
+        return m_functions.context != nullptr ? m_functions.context : const_cast<void*>(static_cast<const void*>(this));
+    }
 
     DynamicStructInstanceFunctions m_functions;
 

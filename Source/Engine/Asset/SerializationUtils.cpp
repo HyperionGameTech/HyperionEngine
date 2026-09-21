@@ -20,6 +20,7 @@
 #include <Core/Config/Config.hpp>
 
 #include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/Struct.hpp>
 #include <Core/Reflection/Property.hpp>
 #include <Core/Reflection/Field.hpp>
 #include <Core/Reflection/StaticField.hpp>
@@ -2322,6 +2323,15 @@ ENGINE_API bool CloneWithoutTransientMembers(const BoxedValue& src, BoxedValue& 
     {
         outDst = src;
         return true;
+    }
+
+    // Runtime-defined structs with no reflected members can only be cloned as a whole
+    if (cls->IsDynamic() && cls->GetFields().Empty() && cls->GetProperties().Empty())
+    {
+        if (const Struct* dynamicStruct = GetStructFromClass(cls))
+        {
+            return dynamicStruct->CopyConstructBoxed(src.ToRef().GetPointer(), outDst, &typeInfo);
+        }
     }
 
     if (!cls->CreateInstance(outDst))

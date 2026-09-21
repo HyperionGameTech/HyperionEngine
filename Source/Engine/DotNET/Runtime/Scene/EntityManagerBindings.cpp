@@ -21,6 +21,8 @@
 
 #include <Scene/Animation/Skeleton.hpp>
 
+#include <Core/Reflection/Struct.hpp>
+
 using namespace Hyperion;
 
 extern "C"
@@ -105,38 +107,22 @@ extern "C"
 
         const TypeId componentTypeId { componentTypeIdValue };
 
-        ComponentContainerBase* pContainer = pManager->TryGetContainer(componentTypeId);
-        Assert(pContainer != nullptr, "Invalid component type!");
+        const ComponentInterface* pComponentInterface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(componentTypeId);
+        Assert(pComponentInterface != nullptr, "Invalid component type!");
 
-        const TypeInfo& typeInfo = pContainer->GetComponentTypeInfo();
+        if (!pComponentInterface)
+        {
+            return;
+        }
 
         if (pComponent != nullptr)
         {
-            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&typeInfo, pComponent)));
+            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&pComponentInterface->GetTypeInfo(), pComponent)));
         }
         else
         {
             // Make instance if pComponent is null
-
-            const Class* cls = typeInfo.GetClass();
-            Assert(cls != nullptr, "No Class for component: {}", typeInfo.name);
-
-            if (!cls)
-            {
-                return;
-            }
-
-            BoxedValue boxed;
-            bool created = cls->CreateInstance(boxed);
-            
-            Assert(created, "Failed to create instance of {}!", cls->GetName());
-
-            if (!created)
-            {
-                return;
-            }
-
-            pManager->AddComponent(pEntity, std::move(boxed));
+            pManager->AddDefaultComponent(pEntity, componentTypeId);
         }
     }
 
@@ -200,11 +186,11 @@ extern "C"
 
     HYP_EXPORT uint32 EntityTag_GetEditorFriendlyTags(uint64* pOutTags)
     {
-        const Array<const IComponentInterface*> componentInterfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
+        const Array<const ComponentInterface*> componentInterfaces = ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces();
 
         uint32 numTags = 0;
 
-        for (const IComponentInterface* componentInterface : componentInterfaces)
+        for (const ComponentInterface* componentInterface : componentInterfaces)
         {
             if (!componentInterface->IsEntityTag() || !componentInterface->ShouldShowInEditor())
             {
@@ -220,6 +206,23 @@ extern "C"
         }
 
         return numTags;
+    }
+
+    HYP_EXPORT int8 ComponentInterfaceRegistry_RegisterRuntimeComponent(const Class* pClass, uint32 flags)
+    {
+        const Struct* pStruct = GetStructFromClass(pClass);
+
+        if (!pStruct)
+        {
+            return false;
+        }
+
+        return ComponentInterfaceRegistry::GetInstance().RegisterRuntimeComponent(pStruct, EnumFlags<ComponentInterfaceFlags>(static_cast<ComponentInterfaceFlags>(flags))) != nullptr;
+    }
+
+    HYP_EXPORT int8 ComponentInterfaceRegistry_UnregisterRuntimeComponent(uint32 componentTypeIdValue)
+    {
+        return ComponentInterfaceRegistry::GetInstance().UnregisterRuntimeComponent(TypeId { componentTypeIdValue });
     }
 
 

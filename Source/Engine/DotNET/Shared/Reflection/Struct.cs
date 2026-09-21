@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
@@ -30,9 +31,6 @@ namespace Hyperion
         }
     }
 
-    public delegate IntPtr CopyDynamicStructDelegate(IntPtr ctx, IntPtr ptr);
-    public delegate void DestructDynamicStructDelegate(IntPtr ctx, IntPtr ptr);
-
     public class DynamicStruct : IDisposable
     {
         private static readonly Dictionary<Type, DynamicStruct> cache = new Dictionary<Type, DynamicStruct>();
@@ -42,8 +40,6 @@ namespace Hyperion
 
         private Class cls;
         private Type type;
-        private GCHandle? copyFunctionHandle;
-        private GCHandle? destructFunctionHandle;
         private bool ownsClass;
 
         // Must be a blittable type
@@ -55,13 +51,26 @@ namespace Hyperion
 
             lock (typeIdCacheLock)
             {
-                if (typeIdCache.ContainsKey(typeId))
+                if (typeIdCache.TryGetValue(typeId, out DynamicStruct? existingDynamicStruct))
                 {
-                    DynamicStruct existingDynamicStruct = typeIdCache[typeId];
-                    Debug.Assert(existingDynamicStruct.type == type, "TypeId already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicStruct.type.Name + " (hashcode: " + existingDynamicStruct.type.GetHashCode() + ")");
+                    // A reloaded script assembly brings a new Type with the same name; it can share the native Struct only if the layout is unchanged
+                    if (existingDynamicStruct.type.FullName != type.FullName)
+                    {
+                        throw new Exception("TypeId for " + type.FullName + " collides with " + existingDynamicStruct.type.FullName);
+                    }
+
+                    if (GetLayoutSignature(existingDynamicStruct.type) != GetLayoutSignature(type))
+                    {
+                        throw new Exception("Layout of " + type.FullName + " changed since it was first loaded; restart to apply the new layout");
+                    }
 
                     cls = existingDynamicStruct.cls;
                     ownsClass = false;
+
+                    lock (cacheLock)
+                    {
+                        cache[type] = this;
+                    }
 
                     return;
                 }
@@ -70,20 +79,12 @@ namespace Hyperion
                 typeIdCache[typeId] = this;
             }
 
-            CopyDynamicStructDelegate copyFunction = GetCopyFunction(type);
-            copyFunctionHandle = GCHandle.Alloc(copyFunction);
-
-            DestructDynamicStructDelegate destructFunction = GetDestructFunction(type);
-            destructFunctionHandle = GCHandle.Alloc(destructFunction);
-
             Logger.Log(LogLevel.Verbose, "Creating dynamic Struct for type: " + type.Name);
 
             IntPtr classPtr = Struct_CreateDynamicStruct(
                 ref typeId,
                 type.Name,
-                (uint)Marshal.SizeOf(type),
-                Marshal.GetFunctionPointerForDelegate(copyFunction),
-                Marshal.GetFunctionPointerForDelegate(destructFunction));
+                (uint)Marshal.SizeOf(type));
 
             if (classPtr == IntPtr.Zero)
             {
@@ -105,8 +106,6 @@ namespace Hyperion
             {
                 Struct_DestroyDynamicStruct(cls.Address);
             }
-
-            destructFunctionHandle?.Free();
         }
 
         public void Dispose()
@@ -117,9 +116,6 @@ namespace Hyperion
 
                 ownsClass = false;
             }
-
-            destructFunctionHandle?.Free();
-            destructFunctionHandle = null;
 
             GC.SuppressFinalize(this);
         }
@@ -175,6 +171,21 @@ namespace Hyperion
             }
         }
 
+        private static string GetLayoutSignature(Type type)
+        {
+            FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            return Marshal.SizeOf(type) + ":" + string.Join(";", fields.Select(field => field.FieldType.FullName + " " + field.Name + "@" + Marshal.OffsetOf(type, field.Name)));
+        }
+
+        public static bool TryGet(Type type, [NotNullWhen(true)] out DynamicStruct? dynamicStruct)
+        {
+            lock (cacheLock)
+            {
+                return cache.TryGetValue(type, out dynamicStruct);
+            }
+        }
+
         public static bool TryGet(TypeId typeId, [NotNullWhen(true)] out DynamicStruct? dynamicStruct)
         {
             dynamicStruct = null;
@@ -186,45 +197,11 @@ namespace Hyperion
             return false;
         }
 
-        private static unsafe DestructDynamicStructDelegate GetDestructFunction(Type type)
-        {
-            return (ctx, ptr) =>
-            {
-                // IntPtr to an instance of the type
-
-                // @TODO
-
-                throw new NotImplementedException();
-
-                Marshal.FreeHGlobal(ptr);
-            };
-        }
-
-        public static unsafe CopyDynamicStructDelegate GetCopyFunction(Type type)
-        {
-            return (ctx, ptr) =>
-            {
-                IntPtr newPtr = Marshal.AllocHGlobal(Marshal.SizeOf(type));
-
-                if (newPtr == IntPtr.Zero)
-                {
-                    throw new Exception("Failed to allocate memory for copy of dynamic Struct");
-                }
-
-                // Copy memory
-                Buffer.MemoryCopy((void*)ptr, (void*)newPtr, Marshal.SizeOf(type), Marshal.SizeOf(type));
-
-                return newPtr;
-            };
-        }
-
         [DllImport("hyperion", EntryPoint = "Struct_CreateDynamicStruct")]
         private static extern IntPtr Struct_CreateDynamicStruct(
             [In] ref TypeId typeId,
             [MarshalAs(UnmanagedType.LPStr)] string typeName,
-            uint size,
-            IntPtr copyFunction,
-            IntPtr destructFunction);
+            uint size);
 
         [DllImport("hyperion", EntryPoint = "Struct_DestroyDynamicStruct")]
         private static extern void Struct_DestroyDynamicStruct([In] IntPtr classPtr);

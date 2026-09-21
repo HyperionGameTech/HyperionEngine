@@ -64,6 +64,7 @@ public:
           m_alignment(0),
           m_blocksPerSlab(blocksPerSlab),
           m_slabs(),
+          m_firstSlabWithFreeBlocks(0),
           m_activeAllocations(0),
           m_flags(flags),
           m_ownerThreadId(ownerThreadId)
@@ -91,6 +92,21 @@ public:
         Reset();
     }
 
+    HYP_FORCE_INLINE size_t GetBlockSize() const
+    {
+        return m_blockSize;
+    }
+
+    HYP_FORCE_INLINE size_t GetAlignment() const
+    {
+        return m_alignment;
+    }
+
+    HYP_FORCE_INLINE uint32 GetBlocksPerSlab() const
+    {
+        return m_blocksPerSlab;
+    }
+
     void* Allocate()
     {
         if (m_flags & AF_THREAD_SAFE)
@@ -102,13 +118,15 @@ public:
             AssertOnThread(m_ownerThreadId, "TSlabAllocator allocation from wrong thread!");
         }
 
-        for (uint32 i = 0; i < m_slabs.Size(); ++i)
+        // every slab before m_firstSlabWithFreeBlocks is full
+        for (uint32 i = m_firstSlabWithFreeBlocks; i < m_slabs.Size(); ++i)
         {
             Slab& slab = m_slabs[i];
             if (slab.freeCount != 0)
             {
                 if (void* p = PopFromSlab(slab))
                 {
+                    m_firstSlabWithFreeBlocks = i;
                     ++m_activeAllocations;
 
                     if (m_flags & AF_THREAD_SAFE)
@@ -120,6 +138,8 @@ public:
                 }
             }
         }
+
+        m_firstSlabWithFreeBlocks = uint32(m_slabs.Size());
 
         if (!CreateSlab())
         {
@@ -200,9 +220,9 @@ public:
             AssertOnThread(m_ownerThreadId, "TSlabAllocator free from wrong thread!");
         }
 
-        Slab* slab = FindOwningSlab(ptr);
-        HYP_CORE_ASSERT(slab != nullptr);
-        if (HYP_UNLIKELY(!slab))
+        const uint32 slabIndex = FindOwningSlabIndex(ptr);
+        HYP_CORE_ASSERT(slabIndex != InvalidIndex());
+        if (HYP_UNLIKELY(slabIndex == InvalidIndex()))
         {
             if (m_flags & AF_THREAD_SAFE)
             {
@@ -211,6 +231,8 @@ public:
 
             return;
         }
+
+        Slab* slab = &m_slabs[slabIndex];
 
         const ubyte* base = static_cast<const ubyte*>(slab->base);
         const ubyte* p = static_cast<const ubyte*>(ptr);
@@ -276,6 +298,11 @@ public:
         slab->freeHead = blockIndex;
         ++slab->freeCount;
 
+        if (slabIndex < m_firstSlabWithFreeBlocks)
+        {
+            m_firstSlabWithFreeBlocks = slabIndex;
+        }
+
         if (m_activeAllocations > 0)
         {
             --m_activeAllocations;
@@ -309,6 +336,7 @@ public:
             m_slabs[i].freeCount = 0;
         }
         m_slabs.Clear();
+        m_firstSlabWithFreeBlocks = 0;
         m_activeAllocations = 0;
 
         if (m_flags & AF_THREAD_SAFE)
@@ -430,7 +458,7 @@ private:
         return block;
     }
 
-    Slab* FindOwningSlab(void* ptr)
+    uint32 FindOwningSlabIndex(void* ptr) const
     {
         const ubyte* p = static_cast<const ubyte*>(ptr);
         const size_t slabBytes = TotalSlabBytes();
@@ -441,11 +469,11 @@ private:
             const ubyte* end = base + slabBytes; // uniform slab size
             if (p >= base && p < end)
             {
-                return &m_slabs[i];
+                return i;
             }
         }
 
-        return nullptr;
+        return InvalidIndex();
     }
 
 private:
@@ -454,6 +482,7 @@ private:
     size_t m_alignment;
     uint32 m_blocksPerSlab;
     Array<Slab> m_slabs;
+    uint32 m_firstSlabWithFreeBlocks;
     uint64 m_activeAllocations;
     EnumFlags<AllocatorFlags> m_flags;
     ThreadId m_ownerThreadId;
