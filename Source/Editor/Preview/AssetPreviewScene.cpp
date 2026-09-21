@@ -22,6 +22,7 @@
 #include <Scene/Entity.hpp>
 #include <Scene/Light.hpp>
 #include <Scene/Node.hpp>
+#include <Scene/Prefab.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/View.hpp>
 #include <Scene/World.hpp>
@@ -47,6 +48,86 @@ static Vec3f ViewRelativeLightDirection(float yaw, float pitch)
         + up * MathUtil::Sin(pitch)
         - ViewDirection * (MathUtil::Cos(yaw) * cosPitch))
         .Normalized();
+}
+
+static const MeshComponent* GetDrawableMeshComponent(const Node* node)
+{
+    const Entity* entity = DynamicCast<Entity>(node);
+
+    if (!entity || !entity->GetEntityManager())
+    {
+        return nullptr;
+    }
+
+    const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    return meshComponent && meshComponent->mesh.IsValid() ? meshComponent : nullptr;
+}
+
+static bool ContainsDrawableMesh(const Node* node)
+{
+    if (GetDrawableMeshComponent(node))
+    {
+        return true;
+    }
+
+    for (Node* child : node->GetChildren())
+    {
+        if (child && ContainsDrawableMesh(child))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void MirrorDrawableNodes(const Node* source, const Handle<Node>& mirrorParent, const Handle<Material>& fallbackMaterial)
+{
+    const MeshComponent* sourceMeshComponent = GetDrawableMeshComponent(source);
+
+    Handle<Entity> mirrorEntity;
+    Handle<Node> mirror;
+
+    if (sourceMeshComponent)
+    {
+        mirrorEntity = MakeHandle<Entity>();
+        mirror = mirrorEntity;
+    }
+    else
+    {
+        mirror = MakeHandle<Node>();
+    }
+
+    mirror->SetName(source->GetName());
+    mirror->SetNodeFlags(source->GetNodeFlags());
+    mirror->SetLocalTransform(source->GetLocalTransform());
+
+    mirrorParent->AddChild(mirror);
+
+    if (mirrorEntity.IsValid())
+    {
+        const Handle<Mesh>& mesh = sourceMeshComponent->mesh;
+
+        if (!mesh->isUploaded.Load())
+        {
+            mesh->UploadGpuData();
+        }
+
+        MeshComponent meshComponent;
+        meshComponent.mesh = mesh;
+        meshComponent.material = sourceMeshComponent->material.IsValid() ? sourceMeshComponent->material : fallbackMaterial;
+        mirrorEntity->AddComponent<MeshComponent>(meshComponent);
+        mirrorEntity->SetLocalBounds(mesh->GetAABB());
+    }
+
+    for (Node* child : source->GetChildren())
+    {
+        if (child && ContainsDrawableMesh(child))
+        {
+            MirrorDrawableNodes(child, mirror, fallbackMaterial);
+        }
+    }
 }
 
 AssetPreviewScene::AssetPreviewScene(Name name, Vec2u extent)
@@ -196,6 +277,7 @@ void AssetPreviewScene::Shutdown()
     }
 
     m_entity.Reset();
+    m_prefabRoot.Reset();
     m_keyLight.Reset();
     m_fillLight.Reset();
     m_camera.Reset();
@@ -219,12 +301,7 @@ void AssetPreviewScene::ShowMaterial(Material* material)
 {
     AssertOnThread(g_simThread);
 
-    if (!m_entity.IsValid())
-    {
-        return;
-    }
-
-    MeshComponent* meshComponent = m_entity->TryGetComponent<MeshComponent>();
+    MeshComponent* meshComponent = ShowSubjectEntity();
 
     if (!meshComponent)
     {
@@ -244,12 +321,12 @@ void AssetPreviewScene::ShowMesh(Mesh* mesh)
 {
     AssertOnThread(g_simThread);
 
-    if (!m_entity.IsValid() || !mesh)
+    if (!mesh)
     {
         return;
     }
 
-    MeshComponent* meshComponent = m_entity->TryGetComponent<MeshComponent>();
+    MeshComponent* meshComponent = ShowSubjectEntity();
 
     if (!meshComponent)
     {
@@ -265,6 +342,72 @@ void AssetPreviewScene::ShowMesh(Mesh* mesh)
     m_entity->SetLocalBounds(meshComponent->mesh->GetAABB());
 
     FrameCameraToBounds(m_entity->GetLocalBounds());
+}
+
+bool AssetPreviewScene::ShowPrefab(Prefab* prefab)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_scene.IsValid() || !prefab)
+    {
+        return false;
+    }
+
+    const Handle<Node>& sourceRoot = prefab->GetRoot();
+
+    if (!sourceRoot.IsValid() || !ContainsDrawableMesh(sourceRoot.Get()))
+    {
+        return false;
+    }
+
+    ClearPrefab();
+    HideSubjectEntity();
+
+    m_prefabRoot = MakeHandle<Node>(NAME_FMT("{}Prefab", m_name));
+    m_scene->GetRoot()->AddChild(m_prefabRoot);
+
+    MirrorDrawableNodes(sourceRoot.Get(), m_prefabRoot, m_defaultMaterial);
+
+    FrameCameraToBounds(m_prefabRoot->GetWorldBounds());
+
+    return true;
+}
+
+MeshComponent* AssetPreviewScene::ShowSubjectEntity()
+{
+    if (!m_entity.IsValid())
+    {
+        return nullptr;
+    }
+
+    ClearPrefab();
+
+    if (MeshComponent* meshComponent = m_entity->TryGetComponent<MeshComponent>())
+    {
+        return meshComponent;
+    }
+
+    return &m_entity->AddComponent<MeshComponent>(MeshComponent { m_sphereMesh, m_defaultMaterial });
+}
+
+void AssetPreviewScene::HideSubjectEntity()
+{
+    // The View skips entities without a MeshComponent, so dropping it takes the subject out of the image.
+    if (m_entity.IsValid() && m_entity->HasComponent<MeshComponent>())
+    {
+        m_entity->RemoveComponent<MeshComponent>();
+    }
+}
+
+void AssetPreviewScene::ClearPrefab()
+{
+    if (!m_prefabRoot.IsValid())
+    {
+        return;
+    }
+
+    m_prefabRoot->Remove(/* moveToDetached */ false);
+    m_prefabRoot.Reset();
 }
 
 void AssetPreviewScene::SetKeyLightDirection(const Vec3f& direction)
