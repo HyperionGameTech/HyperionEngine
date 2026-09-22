@@ -1279,7 +1279,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
                 Warning(MSG_CLASS_NOT_FOUND, classToken.GetLocation(), runtimeClassName);
 
                 UnresolvedObject unresolvedObject;
-                unresolvedObject.className = runtimeClassName;
+                unresolvedObject.className = Name(runtimeClassName.ToAnsi());
                 unresolvedObject.source = CaptureObjectSource(runtimeClassName);
 
                 out = BoxedValue(std::move(unresolvedObject));

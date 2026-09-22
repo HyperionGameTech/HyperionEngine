@@ -18,8 +18,8 @@ namespace Hyperion
         DedicatedServer
     }
 
-    [ClassBinding(Name = "EditorPlayNetState")]
-    public enum EditorPlayNetState : byte
+    [ClassBinding(Name = "EditorPlayNetStatus")]
+    public enum EditorPlayNetStatus : byte
     {
         None = 0,
         Connecting,

@@ -54,7 +54,7 @@ struct SchemaSectionEntry
  *  script that hasn't loaded yet. Kept as HMF source text so it can be written back unchanged, or parsed again once the class exists. */
 struct UnresolvedObject
 {
-    String className;
+    Name className;
     String source;
 };
 

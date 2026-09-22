@@ -503,20 +503,20 @@ namespace Hyperion.Editor.ViewModels
 
         public string StatusText
         {
-            get => _playNetState switch
+            get => _playNetStatus switch
             {
-                EditorPlayNetState.Connecting => $"Connecting to {PlayNetAddress}...",
-                EditorPlayNetState.Connected => $"Connected to {PlayNetAddress}",
-                EditorPlayNetState.Failed => $"Could not connect to {PlayNetAddress} (see log)",
-                EditorPlayNetState.Disconnected => $"Lost connection to {PlayNetAddress}",
-                EditorPlayNetState.Hosting => $"Hosting dedicated server on port {_playNetPort}",
-                EditorPlayNetState.StartingServer => $"Starting local server on port {_playNetPort}...",
+                EditorPlayNetStatus.Connecting => $"Connecting to {PlayNetAddress}...",
+                EditorPlayNetStatus.Connected => $"Connected to {PlayNetAddress}",
+                EditorPlayNetStatus.Failed => $"Could not connect to {PlayNetAddress} (see log)",
+                EditorPlayNetStatus.Disconnected => $"Lost connection to {PlayNetAddress}",
+                EditorPlayNetStatus.Hosting => $"Hosting dedicated server on port {_playNetPort}",
+                EditorPlayNetStatus.StartingServer => $"Starting local server on port {_playNetPort}...",
                 _ => "Ready"
             };
         }
 
         private EditorPlayNetMode _playNetMode = EditorPlayNetMode.Standalone;
-        private EditorPlayNetState _playNetState = EditorPlayNetState.None;
+        private EditorPlayNetStatus _playNetStatus = EditorPlayNetStatus.None;
         private string _playNetHost = "127.0.0.1";
         private uint _playNetPort = 9192;
         private bool _playNetAutoLaunchServer = true;
@@ -528,14 +528,14 @@ namespace Hyperion.Editor.ViewModels
         public bool IsPlayNetModeClient => _playNetMode == EditorPlayNetMode.Client;
         public bool IsPlayNetModeDedicatedServer => _playNetMode == EditorPlayNetMode.DedicatedServer;
 
-        private bool WillAutoLaunchServer => _playNetAutoLaunchServer
+        private bool PlayAsClientIsLocalhost => _playNetAutoLaunchServer
             && (_playNetHost == "localhost" || _playNetHost == "::1" || _playNetHost.StartsWith("127."));
 
         public string PlayTooltip => _playNetMode switch
         {
-            EditorPlayNetMode.Client when WillAutoLaunchServer => $"Play As Client ({PlayNetAddress}, launches a local server)",
-            EditorPlayNetMode.Client => $"Play As Client ({PlayNetAddress})",
-            EditorPlayNetMode.DedicatedServer => $"Play As Dedicated Server (port {_playNetPort})",
+            EditorPlayNetMode.Client when PlayAsClientIsLocalhost => $"Connect as a client, locally",
+            EditorPlayNetMode.Client => $"Connect as a client to {PlayNetAddress}",
+            EditorPlayNetMode.DedicatedServer => $"Launch server and play (port {_playNetPort})",
             _ => "Play"
         };
 
@@ -549,7 +549,7 @@ namespace Hyperion.Editor.ViewModels
             var action = () =>
             {
                 EditorPlayNetMode mode = _editorSubsystem.GetPlayNetMode();
-                EditorPlayNetState state = _editorSubsystem.GetPlayNetState();
+                EditorPlayNetStatus status = _editorSubsystem.GetPlayNetStatus();
                 string host = _editorSubsystem.GetPlayNetHost();
                 uint port = _editorSubsystem.GetPlayNetPort();
                 bool autoLaunchServer = _editorSubsystem.GetPlayNetAutoLaunchServer();
@@ -558,7 +558,7 @@ namespace Hyperion.Editor.ViewModels
                 Dispatcher.UIThread.Post(() =>
                 {
                     _playNetMode = mode;
-                    _playNetState = state;
+                    _playNetStatus = status;
                     _playNetHost = host;
                     _playNetPort = port;
                     _playNetAutoLaunchServer = autoLaunchServer;
@@ -2167,8 +2167,8 @@ namespace Hyperion.Editor.ViewModels
             WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
 
             _playNetStateChangedHandler?.Remove();
-            _playNetStateChangedHandler = _editorSubsystem.GetOnPlayNetStateChangedDelegate()
-                .Bind((EditorPlayNetState state) =>
+            _playNetStateChangedHandler = _editorSubsystem.GetOnPlayNetStatusChangedDelegate()
+                .Bind((EditorPlayNetStatus status) =>
                 {
                     if (!weakThis.TryGetTarget(out MainWindowViewModel? target))
                     {

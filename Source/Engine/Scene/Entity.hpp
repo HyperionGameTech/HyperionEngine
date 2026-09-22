@@ -40,14 +40,17 @@ struct RenderProxyMesh;
 
 enum class LayerId : uint32;
 
+using EntityUnresolvedComponents = Array<HMF::UnresolvedObject, SceneAllocator>;
+using EntitySwatchOverrideSets = Array<EntitySwatchOverrideSet, SceneAllocator>;
+
 struct EntityInitInfo
 {
     // Initial tags to add to the Entity when it is created
-    FatArray<EntityTag, InlineAllocator<4, SceneAllocator>> initialTags;
-    FatArray<Name, InlineAllocator<4, SceneAllocator>> layerNames;
+    Array<EntityTag, SceneAllocator> initialTags;
+    Array<Name, SceneAllocator> layerNames;
 
-    // @TODO: Can we remove? Just use component..?
-    Array<EntitySwatchOverrideSet, SceneAllocator> pendingSwatchOverrides;
+    EntitySwatchOverrideSets* pendingSwatchOverrides = nullptr;
+    EntityUnresolvedComponents* unresolvedComponents = nullptr;
     
     bool receivesUpdate = false;
     bool canEverUpdate = true;
@@ -83,7 +86,8 @@ public:
     /*! \brief Does this entity hold saved components whose class isn't registered (yet)? */
     HYP_FORCE_INLINE bool HasUnresolvedComponents() const
     {
-        return m_unresolvedComponents.Any();
+        return m_entityInitInfo.unresolvedComponents
+            && m_entityInitInfo.unresolvedComponents->Any();
     }
 
     ///Component/Tags
@@ -254,6 +258,8 @@ private:
     HYP_METHOD(Property = "Layers", NoScriptBindings, LoadOrder = 1002)
     void DeserializeLayers(const Array<Name>& layerNames);
 
+    ////////////////////
+
     /*! \brief Re-adds stored unresolved components whose class has since been registered.
      *  Must be called on the EntityManager's owner thread while it is unlocked.
      *  \return True if unresolved components remain. */
@@ -262,10 +268,6 @@ private:
     ///Transient properties
 
     EntityManager* m_entityManager;
-
-    // Components read from disk whose class wasn't registered yet (eg a script that hasn't loaded); kept so they are written
-    // back unchanged, and re-added once the class is registered
-    Array<HMF::UnresolvedObject> m_unresolvedComponents;
 
     int m_renderProxyVersion;
 
