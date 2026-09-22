@@ -86,7 +86,7 @@ static EngineStatTimer s_statProxyListReadWait("Rendering/CPU/ProxyListReadWait"
 extern CVar<bool> g_cvDepthPrepass;
 extern CVar<bool> g_cvDrawWireframe;
 extern CVar<bool> g_cvPathTracing;
-extern CVar<bool> g_cvEnableLightmapVolumes;
+extern CVar<bool> g_cvLightmapVolumes;
 
 ///extra LOD bias for shadow views, which can usually afford coarser geometry than the view that sees it directly
 static CVar<int32> s_cvMeshLodShadowBias { "Rendering.MeshLod.ShadowBias", 0 };
@@ -293,7 +293,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const RenderBucket bucket = mas.bucket;
 
     const bool hasForwardLighting = (bucket == RenderBucket::Translucent || bucket == RenderBucket::Sky || bucket == RenderBucket::Debug);
-    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvEnableLightmapVolumes.Get();
+    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvLightmapVolumes.Get();
     const bool isSky = (bucket == RenderBucket::Sky);
     const bool isDebug = (bucket == RenderBucket::Debug);
 

@@ -59,12 +59,18 @@ static StaticShaderPropertyId s_propHasPhysics { ShaderProperty(NAME("HAS_PHYSIC
 static EngineStatGpuTimer s_statComputeParticles("Rendering/GPU/ComputeParticles");
 static EngineStatGpuTimer s_statDrawParticles("Rendering/GPU/DrawParticles");
 
-ParticlesPass::VolumeState::~VolumeState()
+#pragma region ParticleVolumeDrawState
+
+ParticleVolumeDrawState::~ParticleVolumeDrawState()
 {
     EnqueueDeletion(std::move(particleBuffer));
     EnqueueDeletion(std::move(indirectBuffer));
     EnqueueDeletion(std::move(noiseMap));
 }
+
+#pragma endregion ParticleVolumeDrawState
+
+#pragma region ParticlesPass
 
 ParticlesPass::ParticlesPass() = default;
 ParticlesPass::~ParticlesPass() = default;
@@ -75,7 +81,7 @@ void ParticlesPass::Initialize()
 
 void ParticlesPass::Shutdown()
 {
-    m_volumeStates.Clear();
+    m_volumeDrawStates.Clear();
 }
 
 PassData* ParticlesPass::CreateViewPassData(View* view, PassDataExt&)
@@ -137,16 +143,16 @@ static void ZeroizeBuffer(CommandRecorder& cr, GpuBuffer* dstBuffer)
     cr << InsertBarrier(dstBuffer, ResourceState::UnorderedAccess);
 }
 
-ParticlesPass::VolumeState& ParticlesPass::EnsureVolumeState(RenderProxyParticleVolume* proxy, CommandRecorder& cr)
+ParticleVolumeDrawState& ParticlesPass::GetOrCreateVolumeDrawState(RenderProxyParticleVolume* proxy, CommandRecorder& cr)
 {
-    auto it = m_volumeStates.Find(proxy->particleVolume);
+    auto it = m_volumeDrawStates.Find(proxy->particleVolume);
 
-    if (it != m_volumeStates.End())
+    if (it != m_volumeDrawStates.End())
     {
         return it->second;
     }
 
-    VolumeState& state = m_volumeStates.Emplace(proxy->particleVolume).first->second;
+    auto& state = m_volumeDrawStates.Emplace(proxy->particleVolume).first->second;
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
@@ -213,9 +219,8 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         || !proxy->particleMesh->GetVertexBuffer(0).IsValid()
         || !proxy->particleMesh->GetIndexBuffer(0).IsValid())
     {
-        // Mesh may be tracked/bound this frame but not yet finished uploading (Mesh::UploadGpuData
-        // runs off the binding-changed callback) -- skip for now, it'll be ready in a later frame.
         HYP_LOG_ONCE(Rendering, Warning, "No mesh (or mesh not yet uploaded) on particle volume proxy, skipping render of particle volume {}", particleVolume->GetName());
+     
         return;
     }
 
@@ -241,7 +246,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     // Reset zero staging buffer state
     preflightCommands << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
 
-    VolumeState& state = EnsureVolumeState(proxy, preflightCommands);
+    auto& state = GetOrCreateVolumeDrawState(proxy, preflightCommands);
 
     // zero indirect arguments (instance count)
     Assert(state.indirectBuffer->Size() == sizeof(IndirectDrawCommand));
@@ -384,15 +389,15 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
 void ParticlesPass::OnFrameEnd(uint32 prevFrameIndex)
 {
-    for (auto it = m_volumeStates.Begin(); it != m_volumeStates.End();)
+    for (auto it = m_volumeDrawStates.Begin(); it != m_volumeDrawStates.End();)
     {
-        VolumeState& state = it->second;
+        auto& state = it->second;
 
         const int64 frameDiff = int64(prevFrameIndex) - int64(state.lastFrame);
 
         if (frameDiff >= DiscardFrames)
         {
-            it = m_volumeStates.Erase(it);
+            it = m_volumeDrawStates.Erase(it);
 
             continue;
         }
@@ -400,5 +405,7 @@ void ParticlesPass::OnFrameEnd(uint32 prevFrameIndex)
         ++it;
     }
 }
+
+#pragma endregion ParticlesPass
 
 } // namespace Hyperion

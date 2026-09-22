@@ -465,6 +465,8 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                             size_t blitCBufferSize = 0;
                             RI.cbufferAllocator->Commit(blitCBuffer, blitCBufferOffset, blitCBufferSize);
 
+                            // CLEAN THIS UP!
+
                             state.shaderUniforms[0] = ShaderUniform("InputTexture"_sh, inputView.Get());
                             state.dirtyUniforms |= 1u << 0;
 

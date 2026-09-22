@@ -153,7 +153,8 @@ CVar<bool> g_cvSSR { "Rendering.SSR", true, "Rendering.SSR.Enabled" };
 CVar<bool> g_cvTAA { "Rendering.TAA", true };
 CVar<bool> g_cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> g_cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
-CVar<bool> g_cvEnableLightmapVolumes { "Rendering.LightmapVolumes", true };
+CVar<bool> g_cvLightmapVolumes { "Rendering.LightmapVolumes", true };
+CVar<bool> g_cvDecals { "Rendering.Decals", true };
 CVar<bool> g_cvClusteredShading { "Rendering.ClusteredShading", true };
 CVar<bool> g_cvDepthPrepass { "Rendering.DepthPrepass", true };
 CVar<bool> g_cvDrawWireframe { "Rendering.DrawWireframe", false };
@@ -1450,7 +1451,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             RenderSetup skyVisibilityRS = rs.Fork();
             skyVisibilityRS.view = view;
 
-            RI.namedPasses[NamedPass::SkyVisibility][0]->RenderFrame(frame, skyVisibilityRS);
+            RI.GetPass(NamedPass::SkyVisibility)->RenderFrame(frame, skyVisibilityRS);
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
         {
@@ -1523,10 +1524,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             View* view = params.view;
 
             const uint32 lightTypeIndex = uint32(light->GetLightType());
+            AssertDebug(RI.HasPass(NamedPass::ShadowMap, lightTypeIndex));
 
-            AssertDebug(lightTypeIndex < RI.namedPasses[NamedPass::ShadowMap].Size());
-
-            PassBase* shadowRenderer = RI.namedPasses[NamedPass::ShadowMap][lightTypeIndex];
+            PassBase* shadowRenderer = RI.GetPass(NamedPass::ShadowMap, lightTypeIndex);
 
             if (!shadowRenderer)
             {
@@ -1562,8 +1562,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                     continue;
                 }
 
-                PassBase* pass = RI.namedPasses[NamedPass::EnvProbe][envProbeType];
-                AssertDebug(pass != nullptr);
+                AssertDebug(RI.HasPass(NamedPass::EnvProbe, envProbeType));
+
+                PassBase* pass = RI.GetPass(NamedPass::EnvProbe, envProbeType);
 
                 for (EnvProbe* envProbe : envProbes[envProbeType])
                 {
@@ -1741,35 +1742,41 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // render opaque objects into separate framebuffer
     frame->cr << SetCurrentFramebuffer(opaquePassFramebuffer);
 
+    // set LessOrEqual for DPP
     if (performDepthPrepass)
     {
         frame->cr << SetDepthCompareOp(DepthCompareOp::LessOrEqual);
     }
 
+    // Clear color target of opaque FB
     frame->cr << ClearFramebuffer(opaquePassFramebuffer, 0x1);
 
     if (renderCollector.HasDrawCalls(RenderBucket::Opaque)
-        || (!g_cvEnableLightmapVolumes.Get() && renderCollector.HasDrawCalls(RenderBucket::Lightmapped)))
+        || (!g_cvLightmapVolumes.Get() && renderCollector.HasDrawCalls(RenderBucket::Lightmapped)))
     {
         ENGINE_STAT_GPU_SCOPE(&s_statFillOpaque);
 
         renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Opaque>);
 
-        if (!g_cvEnableLightmapVolumes.Get())
+        if (!g_cvLightmapVolumes.Get())
         {
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Lightmapped>);
         }
     }
 
+    // back to previous depth comp state after DPP
     if (performDepthPrepass)
     {
         frame->cr << SetDepthCompareOp(DepthCompareOp::Less);
     }
 
+    // Draw decals after setting back the compare op
+
+
     // unset opaque target
     frame->cr << SetCurrentFramebuffer(nullptr);
 
-    if (g_cvEnableLightmapVolumes.Get())
+    if (g_cvLightmapVolumes.Get())
     {
         // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
@@ -1896,12 +1903,13 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(passData.lightingFramebuffer);
 
-        // attachment 0's load op is LOAD (see CreateLightingFramebuffer) since this framebuffer gets
-        // bound a second time later for the reflections composite pass - clear explicitly here instead.
+        // attachment 0's load op is LOAD
+        // since this framebuffer gets bound a second time later for the reflections composite pass - clear explicitly here instead.
         frame->cr << ClearFramebuffer(passData.lightingFramebuffer, 0x1);
 
         // We need to use NONE because we draw lightmap volumes as boxes, not quads,
         // and we need the camera to be able to see the inside of the box.
+        // --
         // Changing cull mode during lightmap volume drawing will break the render pass.
         frame->cr << SetFaceCullMode(FaceCullMode::None);
         frame->cr << SetCurrentBlendFunction(BlendFunction::Additive());
@@ -1910,9 +1918,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         passData.indirectLightingPass->RenderToFramebuffer(frame, lightingRS, passData.lightingFramebuffer);
 
-        // Baked lightmap contribution is its own light source - only show it when not in a debug
-        // vis mode, or when specifically visualizing raw baked lighting (mode 2).
-        if (g_cvEnableLightmapVolumes.Get() && rpl.GetLightmapVolumes().NumCurrent() != 0 && !isPathTracer
+        if (g_cvLightmapVolumes.Get() && rpl.GetLightmapVolumes().NumCurrent() != 0 && !isPathTracer
             && (debugVisMode == 0 || debugVisMode == 2))
         {
             // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
@@ -1939,7 +1945,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
-    if (passData.reflectionsPass->ShouldRenderSSR() && (debugVisMode == 0 || debugVisMode == 1))
+    if (passData.reflectionsPass->ShouldRenderSSR() && (debugVisMode & (-1 << 1)) == 0)
     {
         ENGINE_STAT_GPU_SCOPE(&s_statReflections);
 
@@ -1988,9 +1994,13 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, opaquePassFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
 
         if (passData.hbao != nullptr && g_cvHBAO.Get())
+        {
             frame->cr << SetShaderUniform(uniformIndex++, "SSAOResultTexture"_sh, passData.hbao->GetFinalImageView());
+        }
         else
+        {
             frame->cr << SetShaderUniform(uniformIndex++, "SSAOResultTexture"_sh, RI.textureViewCache->GetOrCreate(RI.placeholderData->textureSolidWhite));
+        }
 
         frame->cr << SetShaderUniform(uniformIndex++, "ReflectionsResultTexture"_sh, reflectionsResultView);
 
@@ -2114,12 +2124,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 RenderSetup particleVolumeRS = rs.Fork();
                 particleVolumeRS.volume = particleVolume;
 
-                RI.namedPasses[NamedPass::ParticleVolume][0]->RenderFrame(frame, particleVolumeRS);
+                RI.GetPass(NamedPass::ParticleVolume)->RenderFrame(frame, particleVolumeRS);
             }
         }
 
         { // draw sprites
-            SpritePass* spriteRenderer = static_cast<SpritePass*>(RI.namedPasses[NamedPass::Sprite][0]);
+            SpritePass* spriteRenderer = static_cast<SpritePass*>(RI.GetPass(NamedPass::Sprite));
 
             if (spriteRenderer != nullptr)
             {

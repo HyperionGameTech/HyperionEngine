@@ -140,7 +140,7 @@ Span<World*> GetActiveWorlds();
 
 struct NamedPass
 {
-    enum Name : uint8
+    enum : uint8
     {
         Invalid = UINT8_MAX,
 
@@ -149,6 +149,7 @@ struct NamedPass
         EnvProbe,
         ShadowMap,
         ParticleVolume,
+        Decal,
         Sprite,
         SSAO,
         SkyVisibility,
@@ -162,22 +163,24 @@ struct NamedPass
         "EnvProbe",
         "ShadowMap",
         "ParticleVolume",
+        "Decal",
         "Sprite",
         "SSAO",
         "SkyVisibility",
     };
 
-    NamedPass(Name value)
+    /// NOTE intentionally not explicit ctor
+    NamedPass(uint8 value)
         : value(value)
     {
     }
 
     operator uint8() const
     {
-        return uint8(value);
+        return value;
     }
 
-    Name value;
+    uint8 value;
 };
 
 static constexpr uint8 NumNamedPasses = uint8(NamedPass::Max);
@@ -311,6 +314,17 @@ public:
 
     void AddPass(NamedPass passName, PassBase* pass);
     void RemovePass(NamedPass passName, PassBase* pass);
+
+    HYP_FORCE_INLINE bool HasPass(NamedPass passName, uint32 index = 0)
+    {
+        return index < namedPasses[passName].Size()
+            && namedPasses[passName][index] != nullptr;
+    }
+
+    HYP_FORCE_INLINE PassBase* GetPass(NamedPass passName, uint32 index = 0)
+    {
+        return namedPasses[passName][index];
+    }
 
     void FlushStructuredBuffers();
 
