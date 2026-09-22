@@ -10,6 +10,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CacheClient.hpp>
+#include <Framework/View.hpp>
 
 #include <Framework/Client/GameClient.hpp>
 
@@ -27,7 +28,6 @@
 #include <Core/Core.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 

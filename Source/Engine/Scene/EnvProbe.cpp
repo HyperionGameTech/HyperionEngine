@@ -8,10 +8,10 @@
 
 #include <Scene/EnvProbe.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Swatch.hpp>
 

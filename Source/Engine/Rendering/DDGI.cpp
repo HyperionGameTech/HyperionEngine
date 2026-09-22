@@ -31,12 +31,12 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 

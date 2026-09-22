@@ -12,7 +12,7 @@
 #include <Scene/World.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/InstancedMeshProxy.hpp>

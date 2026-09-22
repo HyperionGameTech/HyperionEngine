@@ -23,8 +23,9 @@ namespace Baking {
 class BakeDataBase
 {
 public:
-    // Map from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
-    using MeshToUVIndicesMap = Map<ObjId<Mesh>, Array<uint32, BakerAllocator>, BakerAllocator>;
+    /// Map from mesh id to an array of UV indices.
+    /// No pooling, in order to reduce number of moves needed when adding or removing elements.
+    using MeshToUVIndicesMap = Map<ObjId<Mesh>, Array<uint32, BakerAllocator>, BakerAllocator, HashTablePolicy::NotPooled>;
 
     struct TexelRange
     {
@@ -32,7 +33,7 @@ public:
         uint32 count = 0; // number of consecutive texels
     };
 
-    using MeshToTexelRangesMap = Map<ObjId<Mesh>, Array<TexelRange, BakerAllocator>, BakerAllocator>;
+    using MeshToTexelRangesMap = Map<ObjId<Mesh>, Array<TexelRange, BakerAllocator>, BakerAllocator, HashTablePolicy::NotPooled>;
 
     /// Texels in UV space
     Array<LightmapTexel, BakerAllocator> texels;

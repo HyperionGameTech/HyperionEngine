@@ -12,9 +12,10 @@
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 
 #include <Scene/Camera/Camera.hpp>
+
+#include <Framework/View.hpp>
 
 #include <Rendering/Mesh.hpp>
 

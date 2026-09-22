@@ -535,18 +535,7 @@ namespace Hyperion.Editor.ViewModels
                 addMobility();
             }
 
-            // collect actions (methods with editoraction attribute) - they run on one node, so not for a multi-selection
-            if (!isMultiSelection)
-            {
-                foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(primaryNode, OnPropertyValueChanged))
-                {
-                    Actions.Add(actionVm);
-                }
-
-                Logger.Log(LogLevel.Debug, $"Inspector found {Actions.Count} actions for node '{primaryNode.Name}'");
-            }
-
-            HasActions = Actions.Count > 0;
+            RefreshActions();
 
             // collect components - with a multi-selection, the ones every selected entity has
             if (primaryNode is Entity entity && peerNodes.All(n => n is Entity))
@@ -685,16 +674,26 @@ namespace Hyperion.Editor.ViewModels
             return null;
         }
 
-        private void RefreshActions()
+        private async void RefreshActions()
         {
             Dispatcher.UIThread.VerifyAccess();
 
             if (SelectedNode == null || !SelectedNode.IsValid || IsMultiSelection)
                 return;
 
+            Node node = SelectedNode;
+            int refreshGeneration = _refreshGeneration;
+
+            List<InspectorActionViewModel> actionVms = await InspectorActionsHelper.GetActionsAsync(node, OnPropertyValueChanged);
+
+            if (refreshGeneration != _refreshGeneration)
+            {
+                return;
+            }
+
             Actions.Clear();
 
-            foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(SelectedNode, OnPropertyValueChanged))
+            foreach (InspectorActionViewModel actionVm in actionVms)
             {
                 Actions.Add(actionVm);
             }

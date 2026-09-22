@@ -130,13 +130,15 @@ namespace Hyperion.Editor.ViewModels
             {
                 AssetObject? obj = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
 
+                List<InspectorActionViewModel> actionVms = InspectorActionsHelper.GetActionsOnSimThread(obj);
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     _isRefreshingActions = 0;
 
                     Actions.Clear();
 
-                    foreach (InspectorActionViewModel actionVm in InspectorActionsHelper.GetActions(obj))
+                    foreach (InspectorActionViewModel actionVm in actionVms)
                     {
                         Actions.Add(actionVm);
                     }

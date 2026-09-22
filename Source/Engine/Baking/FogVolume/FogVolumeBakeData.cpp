@@ -9,7 +9,7 @@
 #include <Baking/FogVolume/FogVolumeBakeData.hpp>
 
 #include <Scene/FogVolume.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>

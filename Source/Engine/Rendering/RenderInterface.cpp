@@ -64,10 +64,10 @@
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 #include <Rendering/Util/ShaderCompiler.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
 #include <Scene/World.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/EffectVolume.hpp>

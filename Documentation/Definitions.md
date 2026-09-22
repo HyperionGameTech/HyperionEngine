@@ -21,6 +21,11 @@ A [`Handle`](../Source/Core/Reflection/Handle.hpp) is a strong reference to an `
 
 To create a new `Handle`, use `MakeHandle<T>()` where `T` is the type of the object you want to create. This will return a `Handle<T>` that can be used to access the object. The object will be automatically destroyed when the last handle to it is released.
 
+### View
+A [`View`](../Source/Engine/Framework/View.hpp) can be thought of as a slice of a `Scene` that is rendered from a specific camera's perspective. A `View` is used to collect entities and other objects that are visible from the camera's point of view. It contains the camera, the scene(s) to render, and any additional settings for rendering.
+
+Views are the bridge between the scene and the rendering system, allowing for multiple cameras to render different parts of the scene simultaneously. For example, you can have a main `View` for the game's main camera and a separate `View` for shadows.
+
 ## II. Threading
 Hyperion splits its work across several dedicated threads, each identified by a global `StaticThreadId` declared in [`Threads.hpp`](../Source/Core/Threading/Threads.hpp). Many objects are owned by a specific thread and will assert when used from a different one. You can use `IsOnThread()` and `AssertOnThread()` to check which thread you are running on, e.g. `AssertOnThread(g_simThread)`.
 
@@ -74,16 +79,11 @@ A `Component` is data that can be attached to an `Entity`. Components can be use
 ### System
 A [`System`](../Source/Engine/Scene/System.hpp) can process entities in a scene in parallel during simulation, based on the components they have attached. Systems are responsible for updating the state of entities and performing various operations, such as physics simulation, AI, audio, etc.
 
-### View
-A [`View`](../Source/Engine/Scene/View.hpp) can be thought of as a slice of a `Scene` that is rendered from a specific camera's perspective. A `View` is used to collect entities and other objects that are visible from the camera's point of view. It contains the camera, the scene(s) to render, and any additional settings for rendering.
-
-Views are the bridge between the scene and the rendering system, allowing for multiple cameras to render different parts of the scene simultaneously. For example, you can have a main `View` for the game's main camera and a separate `View` for shadows.
-
 ### Camera
 A [`Camera`](../Source/Engine/Scene/Camera/Camera.hpp) is a subclass of `Entity` that provides a viewpoint for rendering the scene. They can have one or many `CameraController`s attached to which process user input and provide camera functionality.
 
 ### Light
-A [`Light`](../Source/Engine/Scene/Light.hpp) is a subclass of `Entity` that defines a light source in the scene. Just like other types of entities, a `Light` can also be attached to a `Node` in the scene hierarchy, allowing it to inherit transformations from its parent node. Lights can have different types (e.g., directional, point, spot) and properties (e.g., color, intensity) that affect how they illuminate the scene.
+A [`Light`](../Source/Engine/Scene/Light/Light.hpp) is a subclass of `Entity` that defines a light source in the scene. Just like other types of entities, a `Light` can also be attached to a `Node` in the scene hierarchy, allowing it to inherit transformations from its parent node. Lights can have different types (e.g., directional, point, spot) and properties (e.g., color, intensity) that affect how they illuminate the scene.
 
 ### Subsystem
 A [`Subsystem`](../Source/Engine/Scene/Subsystem.hpp) is a world-level system that can be added to a `World` to provide additional functionality. Subsystems are not localized to any `Scene` or `View` on the world. Subsystems have an `Update(delta)` method that is called every frame on the sim thread allowing them to perform necessary updates.

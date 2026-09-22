@@ -21,6 +21,8 @@
 
 #include <Scene/Entity.hpp>
 
+#include <Scene/Light/LightTypes.hpp>
+
 namespace Hyperion {
 
 class Camera;
@@ -31,41 +33,6 @@ struct RenderProxyLight;
 struct ShadowMapCaptureState;
 
 enum ShadowMapFilter : uint32;
-
-HYP_ENUM()
-enum class LightType : uint32
-{
-    Directional = 0,
-    Point,
-    Spot,
-    AreaRect,
-
-    Max
-};
-
-static constexpr LightType InvalidLightType = LightType(~0u);
-static constexpr uint32 NumLightTypes = uint32(LightType::Max);
-
-// clang-format off
-
-HYP_ENUM()
-enum class LightFlags : uint32
-{
-    None = 0x0,                                     //!< @editor=false
-
-    ShadowCaster = 0x1,                             //!< @title="Render shadows"
-
-    CacheStaticShadowMaps = 0x10,                   //!< @title="Cache shadow maps for static objects"
-    BakeStaticShadows = 0x20,                       //!< @editor=false
-
-    OnlyDrawStaticShadowMaps = 0x40,                //!< @title="Only render shadows for static objects"
-
-    Default = ShadowCaster | CacheStaticShadowMaps  //!< @editor=false
-};
-
-// clang-format on
-
-HYP_MAKE_ENUM_FLAGS(LightFlags);
 
 HYP_CLASS()
 class ENGINE_API Light : public Entity
@@ -330,27 +297,6 @@ class ENGINE_API DirectionalLight final : public Light
     HYP_OBJECT_BODY(DirectionalLight);
 
 public:
-    struct CSMState
-    {
-        // Per-cascade last committed FC value
-        FixedArray<uint32, MaxShadowMapCascades> lastCommittedFrame {};
-        FixedArray<HashCode, MaxShadowMapCascades> lastComittedEntryListHashes {};
-
-        // The light space basis every cascade's bounds are currently fit in. All cascades share a
-        // single view matrix on the GPU, so this is only allowed to change on a frame where every
-        // cascade is being recommitted.
-        Mat4f committedViewMatrix = Mat4f::Identity();
-
-        Vec3f lastCommittedLightDir;
-        BoundingSphere lastCommittedWorldBounds;
-
-        // Cascade the time sliced update budget starts scanning from, so a near cascade that changes
-        // every frame cannot keep spending the whole budget and starve the far ones.
-        uint32 nextUpdateCascade = 0;
-
-        bool basisInitialized = false;
-    };
-
     DirectionalLight();
     DirectionalLight(const Vec3f& direction, const Color& color, float intensity);
 
@@ -368,7 +314,7 @@ public:
         Light::SetLocalTranslation(direction.Normalized());
     }
 
-    CSMState csmState;
+    LightCSMState csmState;
 };
 
 HYP_CLASS()

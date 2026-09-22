@@ -24,9 +24,9 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Pass.hpp>
+#include <Rendering/DebugDrawer.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
@@ -40,7 +40,7 @@
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/EngineDriver.hpp>
-#include <Rendering/DebugDrawer.hpp>
+#include <Framework/View.hpp>
 
 namespace Hyperion {
 
@@ -100,14 +100,10 @@ public:
 
             if (numNotDispatched == numRenderers && canRequeue)
             {
-                // Nothing was traced and the batch is still viable, so put the texels back rather
-                // than leaving a permanently untraced hole in the bake - one skipped batch is a
-                // whole cubemap face for an env probe.
+                // Nothing was traced and the batch is still viable, so put the texels back
                 job->RequeueTexels(numTexels);
             }
 
-            // Signal on behalf of the renderers that have no readback pending, otherwise the job
-            // waits forever for a completion count it can never reach.
             job->tracingCompleteSignal.Signal(numNotDispatched);
         });
 
@@ -351,7 +347,6 @@ void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
         {
         case PathTraceType::Moments:
             // Distance moments (dist, dist^2) are accumulated into color1
-            // so they don't conflict with FULL-mode color in color0.
             texel.color1 += hit.color;
             break;
         case PathTraceType::BentNormals:

@@ -26,8 +26,6 @@
 
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
-
 #include <UI/Font/FontAtlas.hpp>
 
 #include <UI/UIStage.hpp>
@@ -36,9 +34,10 @@
 
 #include <Core/FileSystem/FsUtil.hpp>
 
-#include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
 #include <UIPass.generated.inl>
 

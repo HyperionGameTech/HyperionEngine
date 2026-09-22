@@ -43,14 +43,13 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Utilities/Float16.hpp>
-
-#include <Framework/CVarManager.hpp>
 
 #include <Asset/AssetRegistry.hpp> // For now, for PutAsset()
 

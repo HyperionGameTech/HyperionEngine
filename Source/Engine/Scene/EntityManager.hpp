@@ -717,12 +717,7 @@ public:
 
     void UpdateEntities(float delta);
 
-    /*! \brief Re-adds saved components whose class was registered after they were read (eg a script that loaded later).
-     *  Cheap when there is nothing to do; call on the owner thread while unlocked. */
     void ResolveUnresolvedComponents();
-
-    /*! \brief Catches up with runtime component registrations: migrates containers of component types that were redefined (eg a script
-     *  reload changed a component's layout), then re-adds unresolved saved components. Cheap when nothing changed; call on the owner thread. */
     void SyncRuntimeComponentTypes();
 
     void AddPendingEntitySets();
@@ -782,12 +777,8 @@ private:
     void AddComponent_Internal(Entity* entity, const ComponentInterface& componentInterface, ComponentConstructMode constructMode, void* source);
 
     void MigrateStaleComponentContainers();
-
-    // Migrates a runtime component's container that still holds a previous definition of its type.
-    // False when that can't happen from this thread; its components can't be read as the current type until it does.
     bool EnsureCurrentComponentLayout(ComponentContainer& container);
 
-    // An entity here holds unresolved components; forces a resolve attempt on the next ResolveUnresolvedComponents()
     HYP_FORCE_INLINE void MarkUnresolvedComponents()
     {
         m_hasUnresolvedComponents = true;

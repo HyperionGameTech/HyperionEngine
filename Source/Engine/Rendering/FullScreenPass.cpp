@@ -28,12 +28,11 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
+#include <Rendering/Util/MeshBuilder.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Math/MathUtil.hpp>
-
-#include <Rendering/Util/MeshBuilder.hpp>
 
 namespace Hyperion {
 

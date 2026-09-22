@@ -13,6 +13,7 @@
 #include <Framework/CVarManager.hpp>
 #include <Framework/CacheClient.hpp>
 #include <Framework/Game.hpp>
+#include <Framework/View.hpp>
 
 #include <Framework/Threads/SimThread.hpp>
 #include <Framework/Threads/MainThread.hpp>
@@ -42,7 +43,6 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Subsystem.hpp>

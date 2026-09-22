@@ -8,14 +8,13 @@
 
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
-#include <Scene/View.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/EntityTag.hpp>
 #include <Scene/SystemExecutionGroup.hpp>
 #include <Scene/Swatch.hpp>
 #include <Scene/Subsystem.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/LOD.hpp>
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
@@ -68,6 +67,7 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/EngineStats.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetObject.hpp>

@@ -30,13 +30,13 @@
 #include <Rendering/Util/MeshBuilder.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/Sky/CloudEffectVolume.hpp>
 
 #include <Framework/CVarManager.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 

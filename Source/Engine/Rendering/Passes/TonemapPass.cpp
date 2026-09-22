@@ -23,11 +23,10 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
-#include <Scene/View.hpp>
+#include <Framework/View.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
-
-#include <Framework/CVarManager.hpp>
 
 namespace Hyperion {
 

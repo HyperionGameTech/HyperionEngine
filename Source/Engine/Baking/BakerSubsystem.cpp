@@ -22,9 +22,8 @@
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -37,6 +36,7 @@
 #include <System/AppContext.hpp>
 
 #include <Framework/EngineDriver.hpp>
+#include <Framework/View.hpp>
 
 #include <BakerSubsystem.generated.inl>
 

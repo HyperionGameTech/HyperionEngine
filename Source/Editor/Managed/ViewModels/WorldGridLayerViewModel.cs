@@ -74,9 +74,16 @@ namespace Hyperion.Editor.ViewModels
 
         private void BuildActionViewModels()
         {
+            _ = LoadActionViewModelsAsync();
+        }
+
+        private async Task LoadActionViewModelsAsync()
+        {
             Class? instanceClass = Class.TryGetClass(TypeName);
 
-            foreach (InspectorActionViewModel action in InspectorActionsHelper.GetActions(Layer, instanceClass ?? Layer.Class))
+            List<InspectorActionViewModel> actionVms = await InspectorActionsHelper.GetActionsAsync(Layer, instanceClass ?? Layer.Class);
+
+            foreach (InspectorActionViewModel action in actionVms)
             {
                 Actions.Add(action);
             }
@@ -84,7 +91,7 @@ namespace Hyperion.Editor.ViewModels
             HasActions = Actions.Count > 0;
         }
 
-        private void RefreshActions()
+        private async void RefreshActions()
         {
             if (Actions.Count == 0)
             {
@@ -93,7 +100,7 @@ namespace Hyperion.Editor.ViewModels
 
             Class? instanceClass = Class.TryGetClass(TypeName);
 
-            List<InspectorActionViewModel> refreshed = InspectorActionsHelper.GetActions(Layer, instanceClass ?? Layer.Class);
+            List<InspectorActionViewModel> refreshed = await InspectorActionsHelper.GetActionsAsync(Layer, instanceClass ?? Layer.Class);
 
             foreach (InspectorActionViewModel existing in Actions)
             {

@@ -22,8 +22,9 @@
 
 #include <Asset/AssetRegistry.hpp>
 
-#include <Scene/Light.hpp>
-#include <Scene/View.hpp>
+#include <Scene/Light/Light.hpp>
+
+#include <Framework/View.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
 

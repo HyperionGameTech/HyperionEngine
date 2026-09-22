@@ -12,7 +12,6 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 #include <Scene/LOD.hpp>
 
 #include <Scene/Camera/Camera.hpp>
@@ -25,6 +24,7 @@
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/GameState.hpp>
+#include <Framework/View.hpp>
 
 #include <TerrainLodSystem.generated.inl>
 

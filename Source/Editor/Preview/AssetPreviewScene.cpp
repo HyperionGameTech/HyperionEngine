@@ -20,12 +20,13 @@
 #include <Scene/Camera/PerspectiveCamera.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/Scene.hpp>
-#include <Scene/View.hpp>
 #include <Scene/World.hpp>
+
+#include <Framework/View.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 

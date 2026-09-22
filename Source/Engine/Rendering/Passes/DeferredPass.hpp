@@ -18,7 +18,7 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
-#include <Scene/Light.hpp> // For LightType
+#include <Scene/Light/Light.hpp> // For LightType
 
 namespace Hyperion {
 

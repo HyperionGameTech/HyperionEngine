@@ -9,7 +9,6 @@
 #include <Scene/Sky/DynamicSkySystem.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/View.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/Prefab.hpp>
@@ -37,6 +36,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/GameState.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <Rendering/Util/MeshBuilder.hpp>
 

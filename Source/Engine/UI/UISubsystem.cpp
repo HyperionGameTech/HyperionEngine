@@ -15,11 +15,10 @@
 #include <Scene/World.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Scene.hpp>
-#include <Scene/View.hpp>
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/EnvProbe.hpp>
-#include <Scene/Light.hpp>
+#include <Scene/Light/Light.hpp>
 #include <Scene/LightmapVolume.hpp>
 
 #include <Scene/Animation/Skeleton.hpp>
@@ -52,6 +51,7 @@
 
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/View.hpp>
 
 #include <UISubsystem.generated.inl>
 

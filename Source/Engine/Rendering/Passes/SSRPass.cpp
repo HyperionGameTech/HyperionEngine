@@ -32,8 +32,8 @@
 
 #include <Framework/CVarManager.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/View.hpp>
 
-#include <Scene/View.hpp>
 #include <Scene/EnvProbe.hpp>
 
 #include <Scene/Camera/Camera.hpp>

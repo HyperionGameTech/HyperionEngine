@@ -20,8 +20,8 @@
 
 #include <Core/Threading/SharedMutex.hpp>
 
-#include <Scene/Light.hpp>
-#include <Scene/View.hpp>
+#include <Scene/Light/Light.hpp>
+#include <Framework/View.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/Camera/PerspectiveCamera.hpp>

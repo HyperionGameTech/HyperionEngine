@@ -1457,7 +1457,7 @@ bool EntityManager::RemoveComponent(TypeId componentTypeId, Entity* entity)
         return false;
     }
 
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
+    auto* container = TryGetContainer(componentTypeId);
 
     if (!container)
     {

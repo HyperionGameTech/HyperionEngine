@@ -26,8 +26,7 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
-#include <Scene/View.hpp>
-
+#include <Framework/View.hpp>
 #include <Framework/EngineStats.hpp>
 
 #include <Core/Math/MathUtil.hpp>
