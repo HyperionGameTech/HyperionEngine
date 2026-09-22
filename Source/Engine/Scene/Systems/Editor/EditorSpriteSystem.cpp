@@ -22,288 +22,16 @@
 
 #include <Rendering/Texture.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Core/Math/Ray.hpp>
 #include <Core/Math/MathUtil.hpp>
-
-#include <Core/Memory/ByteBuffer.hpp>
 
 #include <cmath>
 
 #include <EditorSpriteSystem.generated.inl>
 
 namespace Hyperion {
-
-#pragma region Icon rasterization
-
-static constexpr uint32 g_iconSize = 128;
-static constexpr float g_iconOutlineWidth = 0.09f;
-static constexpr float g_iconOutlineOpacity = 0.85f;
-static constexpr float g_iconOutlineShade = 0.08f;
-
-static float SdCircle(float x, float y, float centerX, float centerY, float radius)
-{
-    return std::sqrt((x - centerX) * (x - centerX) + (y - centerY) * (y - centerY)) - radius;
-}
-
-static float SdRing(float x, float y, float centerX, float centerY, float radius, float halfWidth)
-{
-    return MathUtil::Abs(SdCircle(x, y, centerX, centerY, radius)) - halfWidth;
-}
-
-static float SdEllipseRing(float x, float y, float radiusX, float radiusY, float halfWidth)
-{
-    const float scaledLength = std::sqrt((x / radiusX) * (x / radiusX) + (y / radiusY) * (y / radiusY));
-
-    if (scaledLength < 1e-5f)
-    {
-        return MathUtil::Min(radiusX, radiusY) - halfWidth;
-    }
-
-    // first order distance estimate: implicit value over its gradient length
-    const float gradientX = x / (radiusX * radiusX);
-    const float gradientY = y / (radiusY * radiusY);
-    const float gradientLength = std::sqrt(gradientX * gradientX + gradientY * gradientY) / scaledLength;
-
-    return MathUtil::Abs(scaledLength - 1.0f) / gradientLength - halfWidth;
-}
-
-static float SdRoundedBox(float x, float y, float centerX, float centerY, float halfWidth, float halfHeight, float cornerRadius)
-{
-    const float qx = MathUtil::Abs(x - centerX) - halfWidth + cornerRadius;
-    const float qy = MathUtil::Abs(y - centerY) - halfHeight + cornerRadius;
-
-    const float outsideX = MathUtil::Max(qx, 0.0f);
-    const float outsideY = MathUtil::Max(qy, 0.0f);
-
-    return std::sqrt(outsideX * outsideX + outsideY * outsideY) + MathUtil::Min(MathUtil::Max(qx, qy), 0.0f) - cornerRadius;
-}
-
-static float SdSegment(float x, float y, float startX, float startY, float endX, float endY, float radius)
-{
-    const float toPointX = x - startX;
-    const float toPointY = y - startY;
-    const float segmentX = endX - startX;
-    const float segmentY = endY - startY;
-
-    const float t = MathUtil::Clamp((toPointX * segmentX + toPointY * segmentY) / (segmentX * segmentX + segmentY * segmentY), 0.0f, 1.0f);
-
-    const float deltaX = toPointX - segmentX * t;
-    const float deltaY = toPointY - segmentY * t;
-
-    return std::sqrt(deltaX * deltaX + deltaY * deltaY) - radius;
-}
-
-static float SdConvexPolygon(float x, float y, Span<const Vec2f> points)
-{
-    float signedArea = 0.0f;
-
-    for (size_t i = 0; i < points.Size(); i++)
-    {
-        const Vec2f& a = points[i];
-        const Vec2f& b = points[(i + 1) % points.Size()];
-
-        signedArea += a.x * b.y - b.x * a.y;
-    }
-
-    const float windingSign = signedArea > 0.0f ? 1.0f : -1.0f;
-
-    float distance = -MathUtil::Infinity<float>();
-
-    for (size_t i = 0; i < points.Size(); i++)
-    {
-        const Vec2f& a = points[i];
-        const Vec2f& b = points[(i + 1) % points.Size()];
-
-        const float edgeX = b.x - a.x;
-        const float edgeY = b.y - a.y;
-        const float edgeLength = std::sqrt(edgeX * edgeX + edgeY * edgeY);
-
-        const float normalX = windingSign * edgeY / edgeLength;
-        const float normalY = windingSign * -edgeX / edgeLength;
-
-        distance = MathUtil::Max(distance, (x - a.x) * normalX + (y - a.y) * normalY);
-    }
-
-    return distance;
-}
-
-static float SdPointLightIcon(float x, float y)
-{
-    static const Vec2f s_neck[] = { Vec2f(-0.3f, -0.05f), Vec2f(0.3f, -0.05f), Vec2f(0.2f, -0.42f), Vec2f(-0.2f, -0.42f) };
-
-    float distance = SdCircle(x, y, 0.0f, 0.25f, 0.5f);
-    distance = MathUtil::Min(distance, SdConvexPolygon(x, y, s_neck));
-    distance = MathUtil::Min(distance, SdSegment(x, y, -0.18f, -0.56f, 0.18f, -0.56f, 0.07f));
-    distance = MathUtil::Min(distance, SdSegment(x, y, -0.1f, -0.73f, 0.1f, -0.73f, 0.07f));
-
-    return distance;
-}
-
-static float SdSpotLightIcon(float x, float y)
-{
-    static const Vec2f s_housing[] = { Vec2f(-0.2f, 0.82f), Vec2f(0.2f, 0.82f), Vec2f(0.46f, 0.22f), Vec2f(-0.46f, 0.22f) };
-
-    float distance = SdConvexPolygon(x, y, s_housing);
-    distance = MathUtil::Min(distance, SdSegment(x, y, -0.34f, -0.02f, -0.6f, -0.55f, 0.07f));
-    distance = MathUtil::Min(distance, SdSegment(x, y, 0.0f, -0.06f, 0.0f, -0.62f, 0.07f));
-    distance = MathUtil::Min(distance, SdSegment(x, y, 0.34f, -0.02f, 0.6f, -0.55f, 0.07f));
-
-    return distance;
-}
-
-static float SdDirectionalLightIcon(float x, float y)
-{
-    float distance = SdCircle(x, y, 0.0f, 0.0f, 0.34f);
-
-    for (int rayIndex = 0; rayIndex < 8; rayIndex++)
-    {
-        const float angle = float(rayIndex) * MathUtil::pi<float> * 0.25f;
-        const float directionX = std::cos(angle);
-        const float directionY = std::sin(angle);
-
-        distance = MathUtil::Min(distance, SdSegment(x, y, directionX * 0.52f, directionY * 0.52f, directionX * 0.8f, directionY * 0.8f, 0.07f));
-    }
-
-    return distance;
-}
-
-static float SdAreaLightIcon(float x, float y)
-{
-    float distance = SdRoundedBox(x, y, 0.0f, 0.4f, 0.78f, 0.22f, 0.06f);
-
-    for (float rayX : { -0.5f, 0.0f, 0.5f })
-    {
-        distance = MathUtil::Min(distance, SdSegment(x, y, rayX, -0.04f, rayX, -0.55f, 0.07f));
-    }
-
-    return distance;
-}
-
-static float SdCameraIcon(float x, float y)
-{
-    static const Vec2f s_lens[] = { Vec2f(0.3f, -0.08f), Vec2f(0.88f, 0.18f), Vec2f(0.88f, -0.58f), Vec2f(0.3f, -0.32f) };
-
-    float distance = SdRoundedBox(x, y, -0.18f, -0.2f, 0.52f, 0.34f, 0.08f);
-    distance = MathUtil::Min(distance, SdConvexPolygon(x, y, s_lens));
-    distance = MathUtil::Min(distance, SdCircle(x, y, -0.45f, 0.42f, 0.22f));
-    distance = MathUtil::Min(distance, SdCircle(x, y, 0.08f, 0.42f, 0.22f));
-
-    return distance;
-}
-
-static float SdEnvProbeIcon(float x, float y)
-{
-    float distance = SdRing(x, y, 0.0f, 0.0f, 0.72f, 0.07f);
-    distance = MathUtil::Min(distance, SdEllipseRing(x, y, 0.72f, 0.26f, 0.055f));
-    distance = MathUtil::Min(distance, SdEllipseRing(x, y, 0.26f, 0.72f, 0.055f));
-
-    return distance;
-}
-
-static float SdLightmapVolumeIcon(float x, float y)
-{
-    static const Vec2f s_front[] = { Vec2f(-0.62f, -0.7f), Vec2f(0.28f, -0.7f), Vec2f(0.28f, 0.2f), Vec2f(-0.62f, 0.2f) };
-    static const Vec2f s_backOffset = Vec2f(0.34f, 0.42f);
-
-    static constexpr float s_edgeRadius = 0.055f;
-
-    float distance = MathUtil::Infinity<float>();
-
-    for (int cornerIndex = 0; cornerIndex < 4; cornerIndex++)
-    {
-        const Vec2f& front = s_front[cornerIndex];
-        const Vec2f& frontNext = s_front[(cornerIndex + 1) % 4];
-
-        const Vec2f back = front + s_backOffset;
-        const Vec2f backNext = frontNext + s_backOffset;
-
-        distance = MathUtil::Min(distance, SdSegment(x, y, front.x, front.y, frontNext.x, frontNext.y, s_edgeRadius));
-        distance = MathUtil::Min(distance, SdSegment(x, y, back.x, back.y, backNext.x, backNext.y, s_edgeRadius));
-        distance = MathUtil::Min(distance, SdSegment(x, y, front.x, front.y, back.x, back.y, s_edgeRadius));
-    }
-
-    return distance;
-}
-
-static float SdIcon(EditorSpriteIcon icon, float x, float y)
-{
-    switch (icon)
-    {
-    case EditorSpriteIcon::PointLight:
-        return SdPointLightIcon(x, y);
-    case EditorSpriteIcon::SpotLight:
-        return SdSpotLightIcon(x, y);
-    case EditorSpriteIcon::DirectionalLight:
-        return SdDirectionalLightIcon(x, y);
-    case EditorSpriteIcon::AreaLight:
-        return SdAreaLightIcon(x, y);
-    case EditorSpriteIcon::Camera:
-        return SdCameraIcon(x, y);
-    case EditorSpriteIcon::EnvProbe:
-        return SdEnvProbeIcon(x, y);
-    case EditorSpriteIcon::LightmapVolume:
-        return SdLightmapVolumeIcon(x, y);
-    default:
-        return MathUtil::Infinity<float>();
-    }
-}
-
-static Handle<Texture> CreateIconTexture(EditorSpriteIcon icon)
-{
-    ByteBuffer imageBytes(size_t(g_iconSize) * size_t(g_iconSize) * 4u);
-    ubyte* pixels = imageBytes.Data();
-
-    const float pixelWidth = 2.0f / float(g_iconSize);
-
-    for (uint32 row = 0; row < g_iconSize; row++)
-    {
-        const float y = 1.0f - (float(row) + 0.5f) * pixelWidth;
-
-        for (uint32 column = 0; column < g_iconSize; column++)
-        {
-            const float x = (float(column) + 0.5f) * pixelWidth - 1.0f;
-
-            const float distance = SdIcon(icon, x, y);
-
-            const float fill = MathUtil::Clamp(0.5f - distance / pixelWidth, 0.0f, 1.0f);
-            const float outline = MathUtil::Clamp(0.5f - (distance - g_iconOutlineWidth) / pixelWidth, 0.0f, 1.0f) * g_iconOutlineOpacity;
-
-            const float outlineContribution = outline * (1.0f - fill);
-            const float alpha = fill + outlineContribution;
-
-            // transparent texels take the outline shade so mip filtering doesn't bleed white into the edge
-            const float shade = alpha > 0.0f
-                ? (fill + outlineContribution * g_iconOutlineShade) / alpha
-                : g_iconOutlineShade;
-
-            ubyte* pixel = pixels + (size_t(row) * g_iconSize + column) * 4u;
-            pixel[0] = ubyte(shade * 255.0f + 0.5f);
-            pixel[1] = ubyte(shade * 255.0f + 0.5f);
-            pixel[2] = ubyte(shade * 255.0f + 0.5f);
-            pixel[3] = ubyte(alpha * 255.0f + 0.5f);
-        }
-    }
-
-    TextureDesc textureDesc {
-        TextureType::Texture2D,
-        TextureFormat::RGBA8_SRGB,
-        Vec3u { g_iconSize, g_iconSize, 1 },
-        TextureFilterMode::LinearMipmap,
-        TextureFilterMode::Linear,
-        TextureWrapMode::ClampToEdge
-    };
-
-    Texture::GenerateMipmaps(textureDesc, imageBytes);
-
-    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, imageBytes.ToByteView());
-    texture->SetName(NAME_FMT("EditorSpriteIcon_{}", uint32(icon)));
-    texture->SetIsTransient(true);
-    InitObject(texture);
-
-    return texture;
-}
-
-#pragma endregion Icon rasterization
 
 #pragma region EditorSpriteSystem
 
@@ -514,7 +242,8 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
         return;
     }
 
-    EditorSpriteIcon icon = EditorSpriteIcon::Max;
+    EditorIcons::Icon icon;
+
     SpriteType spriteType = SpriteType::None;
     Color spriteColor = Color::White();
 
@@ -527,16 +256,16 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
         switch (light->GetLightType())
         {
         case LightType::Directional:
-            icon = EditorSpriteIcon::DirectionalLight;
+            icon = EditorIcons::Icon::DirectionalLight;
             break;
         case LightType::Point:
-            icon = EditorSpriteIcon::PointLight;
+            icon = EditorIcons::Icon::PointLight;
             break;
         case LightType::Spot:
-            icon = EditorSpriteIcon::SpotLight;
+            icon = EditorIcons::Icon::SpotLight;
             break;
         case LightType::AreaRect:
-            icon = EditorSpriteIcon::AreaLight;
+            icon = EditorIcons::Icon::AreaLight;
             break;
         default:
             return;
@@ -555,7 +284,7 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
             return;
         }
 
-        icon = EditorSpriteIcon::Camera;
+        icon = EditorIcons::Icon::Camera;
         spriteType = SpriteType::Editor_Camera;
     }
     else if (EnvProbe* envProbe = DynamicCast<EnvProbe>(entity))
@@ -565,13 +294,13 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
             return;
         }
 
-        icon = EditorSpriteIcon::EnvProbe;
+        icon = EditorIcons::Icon::EnvProbe;
         spriteType = SpriteType::Editor_EnvProbe;
         spriteColor = Color(0.6f, 1.0f, 1.0f, 1.0f);
     }
     else if (DynamicCast<LightmapVolume>(entity))
     {
-        icon = EditorSpriteIcon::LightmapVolume;
+        icon = EditorIcons::Icon::LightmapVolume;
         spriteType = SpriteType::Editor_LightmapVolume;
         spriteColor = Color(1.0f, 0.6f, 1.0f, 1.0f);
     }
@@ -585,7 +314,7 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
     sprite->color = spriteColor;
     sprite->opacity = 1.0f;
     sprite->alwaysFaceCamera = true;
-    sprite->texture = GetIconTexture(icon);
+    sprite->texture = GetIconTexture(icon, EditorIcons::SpriteTextureSize);
     sprite->SetNodeFlags(sprite->GetNodeFlags() | NodeFlags::HideInSceneOutline);
     InitObject(sprite);
 
@@ -622,13 +351,30 @@ void EditorSpriteSystem::RemoveAllSprites()
     m_spriteMappings.Clear();
 }
 
-const Handle<Texture>& EditorSpriteSystem::GetIconTexture(EditorSpriteIcon icon)
+const Handle<Texture>& EditorSpriteSystem::GetIconTexture(EditorIcons::Icon icon, uint32 textureSize)
 {
+    Assert(uint32(icon) < m_iconTextures.Size());
+
     Handle<Texture>& iconTexture = m_iconTextures[uint32(icon)];
+
+    if (iconTexture.IsValid())
+    {
+        return iconTexture;
+    }
+
+    if (Handle<AssetRegistry> editorRegistry = GetEditorAssetRegistry(); editorRegistry.IsValid())
+    {
+        iconTexture = DynamicCast<Texture>(editorRegistry->GetAsset(AssetBuckets::Textures, EditorIcons::GetSpriteTextureName(icon)));
+    }
 
     if (!iconTexture.IsValid())
     {
-        iconTexture = CreateIconTexture(icon);
+        HYP_LOG(Scene, Warning, "Editor icon '{}' not baked, will be rasterized at runtime.", EditorIcons::GetSpriteTextureName(icon));
+
+        iconTexture = EditorIcons::CreateSpriteTexture(icon, textureSize);
+        iconTexture->SetIsTransient(true);
+
+        InitObject(iconTexture);
     }
 
     return iconTexture;

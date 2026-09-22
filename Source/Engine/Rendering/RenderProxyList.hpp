@@ -36,6 +36,7 @@ class Light;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
+class DecalProxy;
 class EffectVolume;
 class Material;
 class Texture;
@@ -49,6 +50,7 @@ struct RenderProxyLight;
 struct RenderProxyLightmapVolume;
 struct RenderProxyParticleVolume;
 struct RenderProxyFogVolume;
+struct RenderProxyDecalProxy;
 struct RenderProxyEffectVolume;
 struct RenderProxyMaterial;
 struct RenderProxySkeleton;
@@ -85,7 +87,8 @@ public:
         Material,
         Skeleton,
         Texture,
-        Sprite>;
+        Sprite,
+        DecalProxy>;
 
     using ResourceTrackerTypes = Tuple<
         ResourceTracker<AllocatorType, ObjId<Entity>, Entity*, RenderProxyMesh>,
@@ -100,7 +103,8 @@ public:
         ResourceTracker<AllocatorType, ObjId<Material>, Material*, RenderProxyMaterial>,
         ResourceTracker<AllocatorType, ObjId<Skeleton>, Skeleton*, RenderProxySkeleton>,
         ResourceTracker<AllocatorType, ObjId<Texture>, Texture*>,
-        ResourceTracker<AllocatorType, ObjId<Sprite>, Sprite*, RenderProxySprite>>;
+        ResourceTracker<AllocatorType, ObjId<Sprite>, Sprite*, RenderProxySprite>,
+        ResourceTracker<AllocatorType, ObjId<DecalProxy>, DecalProxy*, RenderProxyDecalProxy>>;
 
     static_assert(TupleSize<ResourceTrackerTypes>::value == TupleSize<TrackedResourceTypes>::value, "Tuple sizes must match");
 
@@ -179,6 +183,7 @@ public:
     DEF_RESOURCE_TRACKER_GETTER(LightmapVolumes, LightmapVolume);
     DEF_RESOURCE_TRACKER_GETTER(ParticleVolumes, ParticleVolume);
     DEF_RESOURCE_TRACKER_GETTER(FogVolumes, FogVolume);
+    DEF_RESOURCE_TRACKER_GETTER(DecalProxies, DecalProxy);
     DEF_RESOURCE_TRACKER_GETTER(EffectVolumes, EffectVolume);
     DEF_RESOURCE_TRACKER_GETTER(Materials, Material);
     DEF_RESOURCE_TRACKER_GETTER(Skeletons, Skeleton);

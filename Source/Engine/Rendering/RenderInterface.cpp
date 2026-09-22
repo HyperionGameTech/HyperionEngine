@@ -55,6 +55,7 @@
 #include <Rendering/Passes/ShadowsPass.hpp>
 #include <Rendering/Passes/ParticlesPass.hpp>
 #include <Rendering/Passes/SpritePass.hpp>
+#include <Rendering/Passes/DecalPass.hpp>
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/UIPass.hpp>
 
@@ -70,6 +71,7 @@
 #include <Scene/Light/Light.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/Decal/DecalProxy.hpp>
 #include <Scene/EffectVolume.hpp>
 #include <Scene/Sky/CloudEffectVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
@@ -843,6 +845,10 @@ RendererResult RenderInterface::Initialize()
     namedPasses[NamedPass::Sprite].ResizeZeroed(1);
     namedPasses[NamedPass::Sprite][0] = new SpritePass;
     namedPasses[NamedPass::Sprite][0]->Initialize();
+
+    namedPasses[NamedPass::Decal].ResizeZeroed(1);
+    namedPasses[NamedPass::Decal][0] = new DecalPass;
+    namedPasses[NamedPass::Decal][0]->Initialize();
 
     namedPasses[NamedPass::SkyVisibility].ResizeZeroed(1);
     namedPasses[NamedPass::SkyVisibility][0] = new SkyVisibilityPass;
@@ -2371,6 +2377,7 @@ DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, NamedBu
 
 DECLARE_RENDER_DATA_CONTAINER(ParticleVolume, RenderProxyParticleVolume, NamedBuffer::Invalid, nullptr, &s_particleVolumeBinder);
 DECLARE_RENDER_DATA_CONTAINER(FogVolume, RenderProxyFogVolume, NamedBuffer::Invalid, nullptr, &s_fogVolumeBinder);
+DECLARE_RENDER_DATA_CONTAINER(DecalProxy, RenderProxyDecalProxy, NamedBuffer::Invalid, nullptr, &s_decalProxyBinder);
 DECLARE_RENDER_DATA_CONTAINER(CloudEffectVolume, RenderProxyEffectVolume, NamedBuffer::Invalid, nullptr, &s_effectVolumeBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(Sprite, RenderProxySprite, NamedBuffer::Invalid, nullptr, &s_spriteBinder);

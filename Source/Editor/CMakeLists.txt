@@ -159,6 +159,8 @@ if(DOTNET_EXECUTABLE)
     file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/managed" "${ICON_FILE}")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <AvaloniaResource Include=\"${ICON_FILE}\" Link=\"${REL_PATH}\" />\n")
   endforeach()
+  # written by BuildEditorIconsCommandlet, so glob at build time rather than configure time
+  file(APPEND ${EDITOR_CSPROJ_PATH} "    <AvaloniaResource Include=\"${CMAKE_CURRENT_SOURCE_DIR}/managed/Assets/Icons/Generated/*.png\" Link=\"Assets/Icons/Generated/%(Filename)%(Extension)\" />\n")
   file(APPEND ${EDITOR_CSPROJ_PATH} "  </ItemGroup>\n")
 
   file(APPEND ${EDITOR_CSPROJ_PATH} "</Project>\n")

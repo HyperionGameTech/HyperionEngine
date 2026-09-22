@@ -68,7 +68,7 @@
                 </Grid>
             </Border>
 
-            <Grid ColumnDefinitions="*,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
                     <Button
                         Classes="gizmo"
@@ -83,40 +83,6 @@
                         ToolTip.Tip="Clear">
                         <controls:Codicon Kind="Close" Size="14" />
                     </Button>
-                    <Button
-                        Classes="gizmo"
-                        Command="{Binding NewCommand}"
-                        IsEnabled="{Binding CanCreateNew}"
-                        IsVisible="{Binding !HasCreatableClassChoice}"
-                        ToolTip.Tip="Create new">
-                        <controls:Codicon Kind="Add" Size="14" />
-                    </Button>
-                    <Button
-                        Classes="gizmo"
-                        IsEnabled="{Binding CanCreateNew}"
-                        IsVisible="{Binding HasCreatableClassChoice}"
-                        ToolTip.Tip="Create new...">
-                        <StackPanel Orientation="Horizontal" Spacing="1">
-                            <controls:Codicon Kind="Add" Size="14" />
-                            <controls:Codicon Kind="ChevronDown" Size="8" />
-                        </StackPanel>
-                        <Button.Flyout>
-                            <MenuFlyout ItemsSource="{Binding CreatableClasses}">
-                                <MenuFlyout.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:CreatableClassViewModel">
-                                        <MenuItem Command="{Binding CreateCommand}" Header="{Binding ClassName}" />
-                                    </DataTemplate>
-                                </MenuFlyout.ItemTemplate>
-                            </MenuFlyout>
-                        </Button.Flyout>
-                    </Button>
-                    <Button
-                        Classes="gizmo"
-                        Command="{Binding CloneCommand}"
-                        IsEnabled="{Binding CanClone}"
-                        ToolTip.Tip="Clone and assign">
-                        <controls:Codicon Kind="Copy" Size="14" />
-                    </Button>
                     <ToggleButton
                         Classes="gizmo"
                         IsChecked="{Binding IsEditorExpanded, Mode=TwoWay}"
@@ -126,26 +92,58 @@
                     </ToggleButton>
                 </StackPanel>
 
-                <Border
+                <Button
                     Grid.Column="1"
-                    Width="1"
-                    Margin="6,5"
-                    Background="{DynamicResource Brush.Border}" />
-
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-                    <Button
-                        x:Name="PART_CopyButton"
-                        Classes="gizmo"
-                        ToolTip.Tip="Copy asset path to clipboard">
-                        <controls:Codicon Kind="Copy" Size="14" />
-                    </Button>
-                    <Button
-                        x:Name="PART_PasteButton"
-                        Classes="gizmo"
-                        ToolTip.Tip="Paste asset path from clipboard">
-                        <controls:Codicon Kind="Clippy" Size="14" />
-                    </Button>
-                </StackPanel>
+                    Classes="gizmo"
+                    ToolTip.Tip="More actions">
+                    <controls:Codicon Kind="KebabVertical" Size="14" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuItem
+                                Command="{Binding NewCommand}"
+                                Header="Create New"
+                                IsEnabled="{Binding CanCreateNew}"
+                                IsVisible="{Binding !HasCreatableClassChoice}">
+                                <MenuItem.Icon>
+                                    <controls:Codicon Kind="Add" Size="14" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem
+                                Header="Create New"
+                                IsEnabled="{Binding CanCreateNew}"
+                                IsVisible="{Binding HasCreatableClassChoice}"
+                                ItemsSource="{Binding CreatableClasses}">
+                                <MenuItem.Icon>
+                                    <controls:Codicon Kind="Add" Size="14" />
+                                </MenuItem.Icon>
+                                <MenuItem.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CreatableClassViewModel">
+                                        <MenuItem Command="{Binding CreateCommand}" Header="{Binding ClassName}" />
+                                    </DataTemplate>
+                                </MenuItem.ItemTemplate>
+                            </MenuItem>
+                            <MenuItem
+                                Command="{Binding CloneCommand}"
+                                Header="Clone and Assign"
+                                IsEnabled="{Binding CanClone}">
+                                <MenuItem.Icon>
+                                    <controls:Codicon Kind="Copy" Size="14" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem x:Name="PART_CopyMenuItem" Header="Copy Asset Path">
+                                <MenuItem.Icon>
+                                    <controls:Codicon Kind="Copy" Size="14" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="PART_PasteMenuItem" Header="Paste Asset Path">
+                                <MenuItem.Icon>
+                                    <controls:Codicon Kind="Clippy" Size="14" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
             </Grid>
         </StackPanel>
     </Grid>

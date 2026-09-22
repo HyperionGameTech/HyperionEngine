@@ -9,6 +9,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 
 namespace Hyperion.Editor.Controls
@@ -58,6 +59,9 @@ namespace Hyperion.Editor.Controls
 
         private static readonly Dictionary<string, IReadOnlyList<IconShape>?> ShapeCache = new();
 
+        // baked by BuildEditorIconsCommandlet; white-on-transparent so they can be tinted by Foreground
+        private static readonly Dictionary<string, IBrush?> GeneratedIconCache = new();
+
         protected override Size MeasureOverride(Size availableSize)
         {
             double width = double.IsNaN(Width) ? Size : Width;
@@ -70,6 +74,13 @@ namespace Hyperion.Editor.Controls
             string kind = Kind;
             if (string.IsNullOrEmpty(kind))
             {
+                return;
+            }
+
+            IBrush? generatedIcon = ResolveGeneratedIcon(kind);
+            if (generatedIcon is not null)
+            {
+                RenderGeneratedIcon(context, generatedIcon);
                 return;
             }
 
@@ -137,6 +148,62 @@ namespace Hyperion.Editor.Controls
                         context.DrawGeometry(null, pen, shape.Geometry);
                     }
                 }
+            }
+        }
+
+        private void RenderGeneratedIcon(DrawingContext context, IBrush iconMask)
+        {
+            double targetWidth = double.IsNaN(Width) ? Size : Width;
+            double targetHeight = double.IsNaN(Height) ? Size : Height;
+            double extent = Math.Min(targetWidth, targetHeight);
+
+            Rect iconRect = new Rect(
+                (Bounds.Width - extent) * 0.5,
+                (Bounds.Height - extent) * 0.5,
+                extent,
+                extent);
+
+            using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.HighQuality }))
+            using (context.PushOpacityMask(iconMask, iconRect))
+            {
+                context.FillRectangle(Foreground ?? Brushes.White, iconRect);
+            }
+        }
+
+        private static IBrush? ResolveGeneratedIcon(string kind)
+        {
+            lock (GeneratedIconCache)
+            {
+                string fileName = NormalizeKind(kind);
+                if (GeneratedIconCache.TryGetValue(fileName, out IBrush? cached))
+                {
+                    return cached;
+                }
+
+                IBrush? iconMask = LoadGeneratedIcon(fileName);
+                GeneratedIconCache[fileName] = iconMask;
+                return iconMask;
+            }
+        }
+
+        private static IBrush? LoadGeneratedIcon(string fileName)
+        {
+            try
+            {
+                Uri uri = new($"avares://Hyperion.Editor/Assets/Icons/Generated/{fileName}.png");
+                if (!AssetLoader.Exists(uri))
+                {
+                    return null;
+                }
+
+                using Stream stream = AssetLoader.Open(uri);
+                Bitmap bitmap = new Bitmap(stream);
+
+                return new ImageBrush(bitmap) { Stretch = Stretch.Uniform }.ToImmutable();
+            }
+            catch
+            {
+                return null;
             }
         }
 

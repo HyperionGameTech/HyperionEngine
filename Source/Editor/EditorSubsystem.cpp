@@ -19,6 +19,7 @@
 #include <Editor/EditorConfig.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
+#include <Editor/Decal/EditorDecalPainterState.hpp>
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 
@@ -203,6 +204,19 @@ Handle<EditorTerrainState> EditorSubsystem::GetTerrainState()
     }
 
     return m_terrainSculpting;
+}
+
+Handle<EditorDecalPainterState> EditorSubsystem::GetDecalPainterState()
+{
+    if (!m_decalPainter.IsValid())
+    {
+        m_decalPainter = MakeHandle<EditorDecalPainterState>();
+        InitObject(m_decalPainter);
+
+        m_decalPainter->Initialize(this);
+    }
+
+    return m_decalPainter;
 }
 
 #pragma endregion Terrain
@@ -1974,6 +1988,7 @@ EditorSubsystem::EditorSubsystem()
 
     // Create eagerly so the managed side can always fetch it, regardless of the calling thread.
     GetTerrainState();
+    GetDecalPainterState();
 
     m_bakeStatusUpdateTimer = ClockTimer { 0.5f };
 
@@ -2902,6 +2917,7 @@ void EditorSubsystem::Update(float delta)
     UpdateGizmoProximityVisibility();
 
     GetTerrainState()->Update();
+    GetDecalPainterState()->Update();
     UpdateBakeStatus();
     UpdatePlayNetState();
 
@@ -2921,6 +2937,7 @@ void EditorSubsystem::Update(float delta)
     DebugDrawPhysicsShapes(dbg);
     DebugDrawMeshLods(dbg);
     GetTerrainState()->DebugDrawCursor(dbg);
+    GetDecalPainterState()->DebugDrawCursor(dbg);
 
     if (m_currentProject.IsValid())
     {
@@ -3029,6 +3046,11 @@ bool EditorSubsystem::StartSimulation()
     if (m_terrainSculpting.IsValid())
     {
         m_terrainSculpting->SetEnabled(false);
+    }
+
+    if (m_decalPainter.IsValid())
+    {
+        m_decalPainter->SetEnabled(false);
     }
 
     const GameState& gameState = m_currentProject->GetGame()->GetGameState();
@@ -3583,7 +3605,7 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
-            if (GetTerrainState()->IsEnabled())
+            if (GetTerrainState()->IsEnabled() || GetDecalPainterState()->IsEnabled())
             {
                 // Strokes are applied from OnMouseDown / OnMouseDrag / the per-frame update;
                 // clicking just shouldn't fall through to scene picking.
@@ -3738,6 +3760,15 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            if (GetDecalPainterState()->IsEnabled() && event.mouseButtons[MouseButtonState::LEFT])
+            {
+                InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
+
+                GetDecalPainterState()->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             if (IsMeshEditDragActive())
             {
                 UpdateMeshEditDrag(activeViewport->GetCamera(), event);
@@ -3791,6 +3822,25 @@ void EditorSubsystem::InitViewport()
             if (!activeViewport)
             {
                 return UIEventHandlerResult::OK;
+            }
+
+            if (GetDecalPainterState()->IsEnabled())
+            {
+                GetDecalPainterState()->UpdateHover(event.relativePos);
+
+                if (GetDecalPainterState()->IsStroking() && event.mouseButtons[MouseButtonState::LEFT])
+                {
+                    InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
+
+                    GetDecalPainterState()->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+
+                if (!event.mouseButtons[MouseButtonState::LEFT])
+                {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
             }
 
             if (GetTerrainState()->IsEnabled())
@@ -3902,6 +3952,15 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            if (GetDecalPainterState()->IsEnabled())
+            {
+                InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
+
+                GetDecalPainterState()->BeginStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             if (m_meshEditState.enabled && m_meshEditState.selectedFace)
             {
                 StartMeshEditDrag(activeViewport->GetCamera(), event);
@@ -3966,6 +4025,11 @@ void EditorSubsystem::InitViewport()
             if (GetTerrainState()->IsEnabled())
             {
                 GetTerrainState()->EndStroke();
+            }
+
+            if (GetDecalPainterState()->IsEnabled())
+            {
+                GetDecalPainterState()->EndStroke();
             }
 
             CameraController* controller = activeViewport->GetCamera()->GetCameraController();

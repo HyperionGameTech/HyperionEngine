@@ -118,6 +118,7 @@ static EngineStatGpuTimer s_statDeferredPass("Rendering/GPU/DeferredPass");
 static EngineStatGpuTimer s_statDepthPrepass("Rendering/GPU/DepthPrepass");
 static EngineStatGpuTimer s_statBuildHiZ("Rendering/GPU/BuildHiZ");
 static EngineStatGpuTimer s_statFillOpaque("Rendering/GPU/FillOpaque");
+static EngineStatGpuTimer s_statDecals("Rendering/GPU/Decals");
 static EngineStatGpuTimer s_statFillTranslucent("Rendering/GPU/FillTranslucent");
 static EngineStatGpuTimer s_statFillDebug("Rendering/GPU/FillDebug");
 static EngineStatGpuTimer s_statOcclusionCulling("Rendering/GPU/OcclusionCulling");
@@ -1770,9 +1771,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetDepthCompareOp(DepthCompareOp::Less);
     }
 
-    // Draw decals after setting back the compare op
-
-
     // unset opaque target
     frame->cr << SetCurrentFramebuffer(nullptr);
 
@@ -1800,6 +1798,14 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->cr << SetCurrentFramebuffer(nullptr);
         }
+    }
+
+    // decals project onto opaque + lightmapped surfaces; they sample depth so they can't draw inside the opaque pass
+    if (g_cvDecals.Get() && RI.HasPass(NamedPass::Decal))
+    {
+        ENGINE_STAT_GPU_SCOPE(&s_statDecals);
+
+        RI.GetPass(NamedPass::Decal)->RenderFrame(frame, rs);
     }
 
     if (renderCollector.HasDrawCalls(RenderBucket::Sky))

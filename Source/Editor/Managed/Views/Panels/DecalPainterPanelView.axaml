@@ -1,0 +1,82 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.DecalPainterPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
+    x:DataType="vm:DecalPainterPanelViewModel"
+    mc:Ignorable="d">
+    <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+        <StackPanel Margin="12,12,12,8" Spacing="12">
+
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="section-label" Text="Decal" />
+                    <Button
+                        Grid.Column="1"
+                        Command="{Binding NewDecalCommand}"
+                        Content="New Decal" />
+                </Grid>
+                <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+            </StackPanel>
+
+            <Separator />
+
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="section-label" Text="Scale" />
+                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding ScaleText}" />
+                </Grid>
+                <Slider
+                    Maximum="10"
+                    Minimum="0.1"
+                    Value="{Binding Scale}" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <CheckBox Content="Align to surface" IsChecked="{Binding AlignToSurface}" />
+            </StackPanel>
+            <StackPanel Spacing="6">
+                <CheckBox Content="Random rotation" IsChecked="{Binding RandomRotation}" />
+                <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding !RandomRotation}">
+                    <TextBlock Classes="section-label" Text="Rotation" />
+                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding RotationText}" />
+                </Grid>
+                <Slider
+                    IsEnabled="{Binding !RandomRotation}"
+                    Maximum="360"
+                    Minimum="0"
+                    Value="{Binding RotationDegrees}" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="section-label" Text="Stroke Spacing" />
+                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding SpacingText}" />
+                </Grid>
+                <Slider
+                    Maximum="10"
+                    Minimum="0"
+                    Value="{Binding Spacing}" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="section-label" Text="Erase Radius" />
+                    <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding EraseRadiusText}" />
+                </Grid>
+                <Slider
+                    Maximum="10"
+                    Minimum="0.1"
+                    Value="{Binding EraseRadius}" />
+            </StackPanel>
+
+            <TextBlock
+                Classes="hint-text"
+                Text="Paint: Drag LMB&#x0a;Erase: Shift+Drag LMB" />
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

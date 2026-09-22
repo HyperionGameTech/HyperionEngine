@@ -41,6 +41,9 @@
         <DataTemplate DataType="vm:TerrainPaintPanelViewModel">
             <panels:TerrainPaintPanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:DecalPainterPanelViewModel">
+            <panels:DecalPainterPanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:NetworkSettingsPanelViewModel">
             <panels:NetworkSettingsPanelView />
         </DataTemplate>

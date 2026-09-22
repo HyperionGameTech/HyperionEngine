@@ -7,6 +7,7 @@
 #include <EditorPch.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
+#include <Editor/Decal/EditorDecalPainterState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
 
@@ -80,6 +81,12 @@ void EditorTerrainState::SetEnabled(bool enabled)
         if (!enabled && m_isStroking)
         {
             EndStroke();
+        }
+
+        // the terrain brush and the decal painter both own left-drag in the viewport
+        if (enabled)
+        {
+            m_subsystem->GetDecalPainterState()->SetEnabled(false);
         }
 
         m_enabled = enabled;

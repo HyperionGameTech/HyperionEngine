@@ -8,6 +8,7 @@
 
 #include <Scene/System.hpp>
 #include <Scene/Sprite.hpp>
+#include <Scene/Systems/Editor/EditorIcons.hpp>
 
 #include <Scene/Components/TransformComponent.hpp>
 
@@ -21,19 +22,6 @@ class Texture;
 class Scene;
 struct Ray;
 class RayTestResults;
-
-enum class EditorSpriteIcon : uint32
-{
-    PointLight = 0,
-    SpotLight,
-    DirectionalLight,
-    AreaLight,
-    Camera,
-    EnvProbe,
-    LightmapVolume,
-
-    Max
-};
 
 HYP_CLASS(EditorOnly, NoScriptBindings, Serialize = false)
 class ENGINE_API EditorSpriteSystem final : public SystemBase
@@ -62,7 +50,6 @@ public:
 
     void Process(float delta, Span<Handle<Scene>> scenes) override;
 
-    /*! \brief Tests the ray against each sprite, adding a hit for the entity the sprite represents. Must be called on the sim thread. */
     bool TestRay(const Ray& ray, RayTestResults& outResults) const;
 
 private:
@@ -93,12 +80,12 @@ private:
     void RemoveSprite(Entity* entity);
     void RemoveAllSprites();
 
-    const Handle<Texture>& GetIconTexture(EditorSpriteIcon icon);
+    const Handle<Texture>& GetIconTexture(EditorIcons::Icon icon, uint32 textureSize);
 
     Handle<Scene> m_spriteScene;
 
     Array<SpriteMapping, SceneAllocator> m_spriteMappings;
-    FixedArray<Handle<Texture>, uint32(EditorSpriteIcon::Max)> m_iconTextures;
+    FixedArray<Handle<Texture>, EditorIcons::NumIcons> m_iconTextures;
 
     // entity add/remove notifications can come from any thread; sprites are only touched on the sim thread
     Mutex m_pendingEventsMutex;

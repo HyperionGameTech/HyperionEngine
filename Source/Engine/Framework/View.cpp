@@ -19,6 +19,8 @@
 #include <Scene/EntityTag.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/Decal/DecalProxy.hpp>
+#include <Scene/Decal/Decal.hpp>
 #include <Scene/EffectVolume.hpp>
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
@@ -906,6 +908,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             CollectLightmapVolumes(rpl);
             CollectParticleVolumes(rpl);
             CollectFogVolumes(rpl);
+            CollectDecalProxies(rpl);
             CollectEffectVolumes(rpl);
             CollectEnvProbes(rpl);
             CollectSprites(rpl);
@@ -1639,6 +1642,73 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
             }
 
             rpl.GetFogVolumes().Track(volume->Id(), volume, GET_RESOURCE_VERSION(volume));
+        }
+    }
+}
+
+void View::CollectDecalProxies(RenderProxyList& rpl)
+{
+    HYP_SCOPE;
+
+    if (!(flags & ViewFlags::GBUFFER) || (flags & ViewFlags::SKIP_DECALS))
+    {
+        return;
+    }
+
+    for (Scene* scene : m_scenes)
+    {
+        World* world = scene->GetWorld();
+        const LayersMask& activeLayers = world->GetActiveLayers();
+
+        for (auto [decalProxy] : scene->GetEntityManager()->GetEntitySet<EntityType<DecalProxy>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!decalProxy->HasNoLayers() && !decalProxy->IsInAnyLayers(activeLayers))
+            {
+                continue;
+            }
+
+            if (decalProxy->NumDecals() == 0)
+            {
+                continue;
+            }
+
+            const BoundingBox& worldBounds = decalProxy->GetDecalBounds();
+
+            if (!worldBounds.IsValid() || !worldBounds.IsFinite())
+            {
+                continue;
+            }
+
+            if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
+            {
+                continue;
+            }
+
+            if (!(flags & ViewFlags::NO_FRUSTUM_CULLING))
+            {
+                if (!cachedFrustum.ContainsAABB(worldBounds))
+                {
+                    continue;
+                }
+            }
+
+            rpl.GetDecalProxies().Track(decalProxy->Id(), decalProxy, GET_RESOURCE_VERSION(decalProxy));
+
+            // the render proxy holds raw texture pointers - tracking them keeps them alive and uploaded
+            const Handle<Decal>& decal = decalProxy->GetDecal();
+
+            if (decal.IsValid() && decal->GetMaterial().IsValid())
+            {
+                for (Texture* texture : decal->GetMaterial()->GetTextures())
+                {
+                    if (!texture)
+                    {
+                        continue;
+                    }
+
+                    rpl.GetTextures().Track(texture->Id(), texture);
+                }
+            }
         }
     }
 }

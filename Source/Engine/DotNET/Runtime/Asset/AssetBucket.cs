@@ -46,13 +46,14 @@ namespace Hyperion
         public static readonly AssetBucket Sounds            = new(17);
         public static readonly AssetBucket Terrain           = new(18);
         public static readonly AssetBucket Weapons           = new(19);
+        public static readonly AssetBucket Decals            = new(20);
 
         public static readonly AssetBucket[] AllBuckets =
         [
             Meshes, Textures, Materials, InstancedMeshData,
             Animations, AnimationTracks, Skeletons, Worlds, Scenes,
             Shaders, ShaderBundles, FontAtlases, PhysicsShapes,
-            Scripts, RawData, Prefabs, Sounds, Terrain, Weapons
+            Scripts, RawData, Prefabs, Sounds, Terrain, Weapons, Decals
         ];
 
         public static readonly uint MaxAssetBuckets = (uint)AllBuckets.Length;

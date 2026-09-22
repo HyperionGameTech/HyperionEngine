@@ -235,12 +235,19 @@ const MaterialAttributes& Material::GetAttributes() const
 
 void Material::SetAttributes(const MaterialAttributes& attributes)
 {
-    if (attributes == m_attributes)
+    MaterialAttributes newAttributes = attributes;
+
+    if (!newAttributes.shaderName)
+    {
+        newAttributes.shaderName = s_defaultShaderName;
+    }
+
+    if (newAttributes == m_attributes)
     {
         return;
     }
 
-    m_attributes = attributes;
+    m_attributes = newAttributes;
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();

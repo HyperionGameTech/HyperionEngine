@@ -78,6 +78,7 @@ enum class ViewFlags : uint32
     SKIP_CAMERAS = 0x800,           //!< If set, the view will not collect Cameras.
     SKIP_SPRITES = 0x1000,          //!< If set, the view will not collect Sprites.
     SKIP_EFFECT_VOLUMES = 0x10000,  //!< If set, the view will not collect EffectVolumes.
+    SKIP_DECALS = 0x40000,          //!< If set, the view will not collect DecalProxies.
 
     SKY_VISIBILITY_VIEW = 0x20000,  //!< Top-down depth capture of what blocks the sky. Sets its own matrices, like a shadow view.
 
@@ -348,6 +349,7 @@ protected:
     void CollectLightmapVolumes(RenderProxyList& rpl);
     void CollectParticleVolumes(RenderProxyList& rpl);
     void CollectFogVolumes(RenderProxyList& rpl);
+    void CollectDecalProxies(RenderProxyList& rpl);
     void CollectEffectVolumes(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
     void CollectSprites(RenderProxyList& rpl);

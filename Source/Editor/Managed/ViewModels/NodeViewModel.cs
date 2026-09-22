@@ -80,18 +80,23 @@ namespace Hyperion.Editor.ViewModels
 
         public string IconKind => _node switch
         {
-            DirectionalLight    => "Lightbulb",
-            PointLight          => "Lightbulb",
-            SpotLight           => "Lightbulb",
-            AreaRectLight       => "HorizontalRule",
-            Camera              => "DeviceCamera",
-            ReflectionProbe     => "Globe",
-            ParticleVolume      => "Sparkle",
+            DirectionalLight    => "DirectionalLight",
+            PointLight          => "PointLight",
+            SpotLight           => "SpotLight",
+            AreaRectLight       => "AreaLight",
+            Camera              => "Camera",
+            EnvProbe            => "EnvProbe",
+            LightmapVolume      => "LightmapVolume",
+            ParticleVolume      => "ParticleVolume",
+            FogVolume           => "FogVolume",
+            DecalProxy          => "Decal",
             InstancedMeshProxy  => "Combine",
             Bone                => "GitBranch",
             VolumeBase          => "Package",
-            Entity              => "CircleLarge",
-            _                   => "Circle",
+            TextSprite          => "TextSprite",
+            Sprite              => "Sprite",
+            Entity              => "Entity",
+            _                   => "Node",
         };
 
         private string _sourcePrefabName;

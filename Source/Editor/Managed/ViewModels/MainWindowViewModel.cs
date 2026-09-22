@@ -71,7 +71,7 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand CookGameContent => new EditorCommand("CookGameContent");
 
-        private string _undoHeader = "_Undo";
+        private string _undoHeader = "Undo";
         public string UndoHeader
         {
             get => _undoHeader;
@@ -85,7 +85,7 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _canUndo, value);
         }
 
-        private string _redoHeader = "_Redo";
+        private string _redoHeader = "Redo";
         public string RedoHeader
         {
             get => _redoHeader;
@@ -99,7 +99,7 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _canRedo, value);
         }
 
-        private string _pasteHeader = "_Paste";
+        private string _pasteHeader = "Paste";
         public string PasteHeader
         {
             get => _pasteHeader;
@@ -113,7 +113,7 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _canPaste, value);
         }
 
-        private string _copyHeader = "_Copy";
+        private string _copyHeader = "Copy";
         public string CopyHeader
         {
             get => _copyHeader;
@@ -127,7 +127,7 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _canCopy, value);
         }
 
-        private string _deleteHeader = "_Delete";
+        private string _deleteHeader = "Delete";
         public string DeleteHeader
         {
             get => _deleteHeader;
@@ -190,6 +190,19 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddTerrainLayer => new EditorCommand("AddWorldGridLayer", () => "TerrainWorldGridLayer");
         public ICommand ToggleTerrainSculptMode { get; private set; }
         public ICommand ToggleTerrainPaintMode { get; private set; }
+
+        // Decals
+        public ICommand ToggleDecalPainterMode { get; private set; }
+
+        public bool CanToggleDecalPainterMode => !IsSimulating;
+
+        private bool _isDecalPainterActive = false;
+        public bool IsDecalPainterActive
+        {
+            get => _isDecalPainterActive;
+        }
+
+        private DecalPainterPanelViewModel? _decalPainterPanel;
 
         private bool _canToggleTerrainSculptMode = false;
         public bool CanToggleTerrainSculptMode
@@ -311,6 +324,63 @@ namespace Hyperion.Editor.ViewModels
                 bool paintActive = shouldBeActive && ets.IsPaintActive;
 
                 updateOnUIThread(shouldBeActive, sculptActive, paintActive);
+            };
+
+            if (EngineManager.IsOnSimThread)
+            {
+                action();
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(action);
+        }
+
+        private void DisableDecalPainter()
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                _editorSubsystem.EditorDecalPainterState?.SetEnabled(false);
+
+                RefreshDecalPainterState();
+            });
+        }
+
+        private void RefreshDecalPainterState()
+        {
+            var action = () =>
+            {
+                bool active = _editorSubsystem.EditorDecalPainterState?.IsEnabled ?? false;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_isDecalPainterActive == active)
+                    {
+                        return;
+                    }
+
+                    _isDecalPainterActive = active;
+
+                    OnPropertyChanged(nameof(IsDecalPainterActive));
+
+                    if (active)
+                    {
+                        EditorDecalPainterState? painterState = _editorSubsystem.EditorDecalPainterState;
+
+                        if (_decalPainterPanel == null && painterState != null)
+                        {
+                            _decalPainterPanel = new DecalPainterPanelViewModel(_editorSubsystem, painterState, ContentBrowser.NewDecalCommand, DisableDecalPainter);
+
+                            PanelService.Instance.OpenPanel(_decalPainterPanel);
+                        }
+                    }
+                    else if (_decalPainterPanel != null)
+                    {
+                        DecalPainterPanelViewModel panel = _decalPainterPanel;
+                        _decalPainterPanel = null;
+
+                        PanelService.Instance.RemovePanel(panel);
+                    }
+                });
             };
 
             if (EngineManager.IsOnSimThread)
@@ -624,6 +694,7 @@ namespace Hyperion.Editor.ViewModels
 
             (ToggleTerrainSculptMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleTerrainPaintMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleDecalPainterMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleGhostMode as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -633,6 +704,9 @@ namespace Hyperion.Editor.ViewModels
 
             // Starting simulation turns the terrain tools off in the engine; mirror that in the tool panels.
             RefreshTerrainToolState();
+            RefreshDecalPainterState();
+
+            OnPropertyChanged(nameof(CanToggleDecalPainterMode));
         }
 
         private DelegateHandler? _gameInstanceLaunchedHandler;
@@ -770,6 +844,7 @@ namespace Hyperion.Editor.ViewModels
                         _editorSubsystem.EditorTerrainState?.ActivateSculpt();
 
                         RefreshTerrainToolState();
+                        RefreshDecalPainterState();
                     });
                 },
                 () => CanToggleTerrainSculptMode);
@@ -782,9 +857,24 @@ namespace Hyperion.Editor.ViewModels
                         _editorSubsystem.EditorTerrainState?.ActivatePaint();
 
                         RefreshTerrainToolState();
+                        RefreshDecalPainterState();
                     });
                 },
                 () => CanToggleTerrainSculptMode);
+
+            ToggleDecalPainterMode = new RelayCommand(
+                () =>
+                {
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.EditorDecalPainterState?.Toggle();
+
+                        // enabling the painter turns the terrain tools off
+                        RefreshTerrainToolState();
+                        RefreshDecalPainterState();
+                    });
+                },
+                () => CanToggleDecalPainterMode);
 
             SetViewportLod = new RelayCommand<object?>(lodIndex =>
             {
@@ -1369,8 +1459,8 @@ namespace Hyperion.Editor.ViewModels
         {
             if (project == null)
             {
-                UndoHeader = "_Undo";
-                RedoHeader = "_Redo";
+                UndoHeader = "Undo";
+                RedoHeader = "Redo";
                 CanUndo = false;
                 CanRedo = false;
                 return;
@@ -1392,8 +1482,8 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    UndoHeader = string.IsNullOrEmpty(undoName) ? "_Undo" : $"_Undo {undoName}";
-                    RedoHeader = string.IsNullOrEmpty(redoName) ? "_Redo" : $"_Redo {redoName}";
+                    UndoHeader = string.IsNullOrEmpty(undoName) ? "Undo" : $"Undo {undoName}";
+                    RedoHeader = string.IsNullOrEmpty(redoName) ? "Redo" : $"Redo {redoName}";
                     CanUndo = hasUndo;
                     CanRedo = hasRedo;
                 });

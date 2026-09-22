@@ -115,6 +115,7 @@ namespace Hyperion.Editor.ViewModels
         public ICommand NewScriptCommand { get; }
         public ICommand NewMaterialCommand { get; }
         public ICommand NewWeaponCommand { get; }
+        public ICommand NewDecalCommand { get; }
         public ICommand NewPhysicsShapeCommand { get; }
         public ICommand NewPrefabCommand { get; }
 
@@ -150,6 +151,7 @@ namespace Hyperion.Editor.ViewModels
             (NewScriptCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewMaterialCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewWeaponCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NewDecalCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewPhysicsShapeCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewPrefabCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
@@ -228,6 +230,39 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
+            }, () => CanCreateAssets);
+
+            NewDecalCommand = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    if (!CanCreateAssetsOnSimThread("decal"))
+                    {
+                        return;
+                    }
+
+                    AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+                    uint bucketIndex = AssetBucket.Decals.Value;
+
+                    // the command picks a unique name, diff the bucket to find it
+                    var namesBefore = new HashSet<string>(
+                        registry.GetBucketAssetDescs(bucketIndex).Select(assetDesc => assetDesc.Name.ToString()),
+                        StringComparer.Ordinal);
+
+                    _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewDecal"));
+
+                    string? createdName = registry.GetBucketAssetDescs(bucketIndex)
+                        .Select(assetDesc => assetDesc.Name.ToString())
+                        .FirstOrDefault(name => !namesBefore.Contains(name));
+
+                    if (createdName == null)
+                    {
+                        Logger.Log(LogLevel.Error, "New decal creation failed; no new asset appeared in the decals bucket.");
+                        return;
+                    }
+
+                    Dispatcher.UIThread.Post(() => FocusAsset(bucketIndex, createdName, openEditor: true));
+                });
             }, () => CanCreateAssets);
 
             NewMaterialCommand = new RelayCommand(() =>

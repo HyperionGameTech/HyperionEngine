@@ -21,6 +21,7 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
 
+#include <Scene/Decal/Decal.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/World.hpp>
 
@@ -458,6 +459,18 @@ bool AssetThumbnailService::PoseSubject(const PreviewAssetKey& key)
         m_previewScene->ShowMaterial(material);
 
         return true;
+    }
+
+    if (Decal* decal = DynamicCast<Decal>(asset.Get()))
+    {
+        if (Material* decalMaterial = decal->GetMaterial().Get())
+        {
+            m_previewScene->ShowMaterial(decalMaterial);
+
+            return true;
+        }
+
+        return false;
     }
 
     if (Mesh* mesh = DynamicCast<Mesh>(asset.Get()))

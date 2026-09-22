@@ -36,7 +36,8 @@ class Class;
     X(Prefabs, 16)                   \
     X(Sounds, 17)                    \
     X(Terrain, 18)                   \
-    X(Weapons, 19)
+    X(Weapons, 19)                   \
+    X(Decals, 20)
 
 // clang-format on
 

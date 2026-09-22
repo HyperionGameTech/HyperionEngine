@@ -23,8 +23,8 @@ namespace Hyperion.Editor.Views.Inspector
         {
             InitializeComponent();
 
-            PART_CopyButton.Click += OnCopyClicked;
-            PART_PasteButton.Click += OnPasteClicked;
+            PART_CopyMenuItem.Click += OnCopyClicked;
+            PART_PasteMenuItem.Click += OnPasteClicked;
 
             DataContextChanged += OnDataContextChanged;
 
@@ -163,7 +163,7 @@ namespace Hyperion.Editor.Views.Inspector
 
         private void UpdateCopyEnabled()
         {
-            PART_CopyButton.IsEnabled = (DataContext as ObjectPropertyViewModel)?.GetCopyText() != null;
+            PART_CopyMenuItem.IsEnabled = (DataContext as ObjectPropertyViewModel)?.GetCopyText() != null;
         }
 
         private async void OnCopyClicked(object? sender, RoutedEventArgs e)

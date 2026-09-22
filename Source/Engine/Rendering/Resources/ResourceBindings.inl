@@ -78,6 +78,10 @@ static ResourceBinder<FogVolume, &OnBindingChanged_FogVolume> s_fogVolumeBinder 
 };
 ResourceBinderBase* g_fogVolumeBinder = &s_fogVolumeBinder;
 
+static ResourceBindingAllocator<MaxBoundDecalProxies> s_decalProxyBindingsAllocator;
+static ResourceBinder<DecalProxy> s_decalProxyBinder { &s_decalProxyBindingsAllocator };
+ResourceBinderBase* g_decalProxyBinder = &s_decalProxyBinder;
+
 // Shared index allocator for all effect volume subclasses
 static ResourceBindingAllocator<MaxBoundEffectVolumes> s_effectVolumeBindingsAllocator;
 static ResourceBinder<EffectVolume> s_effectVolumeBinder { &s_effectVolumeBindingsAllocator };
@@ -107,6 +111,7 @@ static ResourceBinderBase* s_resourceBinders[] = {
     &s_lightmapVolumeBinder,
     &s_particleVolumeBinder,
     &s_fogVolumeBinder,
+    &s_decalProxyBinder,
     &s_effectVolumeBinder,
     &s_materialBinder,
     &s_textureBinder,
