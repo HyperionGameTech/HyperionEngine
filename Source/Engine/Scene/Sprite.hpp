@@ -15,10 +15,6 @@
 namespace Hyperion {
 
 class Texture;
-class Scene;
-class EnvProbe;
-class LightmapVolume;
-class Camera;
 
 HYP_ENUM()
 enum class SpriteType : uint32
@@ -31,6 +27,7 @@ enum class SpriteType : uint32
     Editor_EnvProbe,
     Editor_LightmapVolume,
     Editor_Camera,
+    Editor_Light,
     ////////////////////
 
     Max
@@ -52,10 +49,6 @@ public:
 
     virtual void UpdateRenderProxy(struct RenderProxySprite* proxy);
 
-    static Handle<Sprite> CreateEnvProbeSprite(Scene* scene, EnvProbe* envProbe);
-    static Handle<Sprite> CreateLightmapVolumeSprite(Scene* scene, LightmapVolume* lightmapVolume);
-    static Handle<Sprite> CreateCameraSprite(Scene* scene, Camera* camera);
-
     HYP_FIELD(Property = "SpriteType", Serialize = false, EditEnabled = false)
     SpriteType spriteType = SpriteType::None;
     
@@ -72,11 +65,6 @@ public:
     bool alwaysFaceCamera = true;
     
     Handle<Texture> texture;
-
-    // @TODO Move to EditorSprite class? Use Handle<ObjectBase> to reduce memory usage
-    Handle<EnvProbe> m_envProbe;
-    Handle<LightmapVolume> m_lightmapVolume;
-    Handle<Camera> m_camera;
 };
 
 } // namespace Hyperion

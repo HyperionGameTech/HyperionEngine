@@ -5,6 +5,13 @@
 #include "../include/Scene.hlsli"
 #include "./Sprite.hlsli"
 
+struct SpriteInstanceData
+{
+    float4 positionSize;
+    float4 color;
+    uint4 flags; // x = alwaysFaceCamera, y = bindless texture index (~0u = untextured)
+};
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -19,18 +26,12 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
+    nointerpolation uint textureIndex : TEXCOORD2;
 };
 
 DECLARE_BUFFER_DYNAMIC(Sprite, CBuffer) cbuffer CBuffer
 {
     Camera camera;
-};
-
-struct SpriteInstanceData
-{
-    float4 positionSize;
-    float4 color;
-    uint4 flags; // x = alwaysFaceCamera
 };
 
 DECLARE_SRV(Sprite, SpriteInstanceBuffer) StructuredBuffer<SpriteInstanceData> SpriteInstanceBuffer;
@@ -64,6 +65,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.position_cs = mul(camera.viewProjMat, float4(worldPos, 1.0));
     output.texcoord0 = input.a_texcoord0;
     output.color = instance.color;
+    output.textureIndex = instance.flags.y;
 
     return output;
 }
@@ -72,11 +74,20 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
 #ifdef PIXEL_SHADER
 
+DECLARE_SAMPLER(Sprite, SamplerLinear) SamplerState sampler_linear;
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+DECLARE_SRV(BindlessResources0, Textures) Texture2D<float4> spriteTextures[];
+#else
+DECLARE_SRV(Sprite, SpriteTexture) Texture2D<float4> SpriteTexture;
+#endif
+
 struct PSInput
 {
     float4 position_cs : SV_POSITION;
     float2 texcoord0 : TEXCOORD0;
     float4 color : TEXCOORD1;
+    nointerpolation uint textureIndex : TEXCOORD2;
 };
 
 struct PSOutput
@@ -91,7 +102,28 @@ PSOutput PSMain(PSInput input)
 {
     PSOutput output;
 
-    output.gbuffer_albedo = input.color;
+    float4 color = input.color;
+
+    const float2 uv = input.texcoord0;
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+    if (input.textureIndex != ~0u)
+    {
+        color *= spriteTextures[NonUniformResourceIndex(input.textureIndex)].Sample(sampler_linear, uv);
+    }
+#else
+    if (input.textureIndex != ~0u)
+    {
+        color *= SpriteTexture.Sample(sampler_linear, uv);
+    }
+#endif
+
+    if (color.a < 0.01f)
+    {
+        discard;
+    }
+
+    output.gbuffer_albedo = color;
     output.gbuffer_normals = GBufferPackNormal(float3(0.5f, 0.5f, 1.0f));
     output.gbuffer_material = 0;
     output.gbuffer_velocity = (float2)0;
