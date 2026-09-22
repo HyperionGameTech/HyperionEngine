@@ -16,11 +16,6 @@ namespace Hyperion.Editor.Services
         Cancelled
     }
 
-    /// <summary>
-    /// Runs the processes behind networked play sessions: a dev cache server serving the project directory
-    /// (kept alive across sessions, used by Play As Dedicated Server and loopback Play As Client) and, for
-    /// loopback Play As Client, a headless hyperion-sample server that syncs from it (one per session).
-    /// </summary>
     public sealed class PlayInEditorServerService : IDisposable
     {
         public static PlayInEditorServerService Instance { get; } = new PlayInEditorServerService();
@@ -56,7 +51,7 @@ namespace Hyperion.Editor.Services
 
         public async Task<LocalServerLaunchResult> LaunchGameServerAsync(string projectDirectory, uint gamePort, uint cachePort)
         {
-            CancellationTokenSource launchCancellation = new CancellationTokenSource();
+            CancellationTokenSource launchCancellation = new();
             Process? previousGameServer;
 
             lock (_lock)

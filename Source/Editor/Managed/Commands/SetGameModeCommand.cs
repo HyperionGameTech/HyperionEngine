@@ -71,7 +71,7 @@ namespace Hyperion.Editor.Commands
                                     shouldLaunchLocalServer = editorSubsystem.IsPlayNetServerAutoLaunched();
 
                                     // Editor-hosted server: external clients still need somewhere to sync the project's content from
-                                    shouldStartCacheServer = editorSubsystem.GetPlayNetState() == EditorPlayNetState.Hosting;
+                                    shouldStartCacheServer = (editorSubsystem.GetPlayNetStatus() == EditorPlayNetStatus.Hosting);
 
                                     if (shouldLaunchLocalServer || shouldStartCacheServer)
                                     {

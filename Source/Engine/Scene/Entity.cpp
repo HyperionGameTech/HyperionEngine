@@ -72,22 +72,34 @@ Entity::Entity(Name name, const EntityInitInfo& initInfo)
 Entity::~Entity()
 {
     EntityManager* entityManager = GetEntityManager();
-    if (entityManager == nullptr)
+
+    if (entityManager != nullptr)
     {
-        return;
+        // Can only be destroyed if no EM exists, or we are on the EM's owner thread.
+        Assert(entityManager->IsDetachedScene() || IsOnThread(entityManager->GetOwnerThreadId()), "Destroying Entity {} from wrong thread while still attached to EntityManager!", GetName());
+
+        HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", GetName());
+
+        if (!entityManager->RemoveEntity(this, /* calledFromEntityDestructor */ true))
+        {
+            HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", GetName());
+        }
+
+        SetEntityManagerRaw_Internal(nullptr);
     }
 
-    // Can only be destroyed if no EM exists, or we are on the EM's owner thread.
-    Assert(entityManager->IsDetachedScene() || IsOnThread(entityManager->GetOwnerThreadId()), "Destroying Entity {} from wrong thread while still attached to EntityManager!", GetName());
-
-    HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", GetName());
-
-    if (!entityManager->RemoveEntity(this, /* calledFromEntityDestructor */ true))
+    // Free remaining init info
+    if (m_entityInitInfo.unresolvedComponents)
     {
-        HYP_LOG(Entity, Error, "Failed to remove Entity {} from EntityManager", GetName());
+        m_entityInitInfo.unresolvedComponents->~EntityUnresolvedComponents();
+        g_scenePool->Free(m_entityInitInfo.unresolvedComponents);
     }
-
-    SetEntityManagerRaw_Internal(nullptr);
+    
+    if (m_entityInitInfo.pendingSwatchOverrides)
+    {
+        m_entityInitInfo.pendingSwatchOverrides->~EntitySwatchOverrideSets();
+        g_scenePool->Free(m_entityInitInfo.pendingSwatchOverrides);
+    }
 }
 
 void Entity::SetEntityManagerRaw_Internal(EntityManager* entityManager)
@@ -202,8 +214,7 @@ Handle<Node> Entity::Clone() const
         return Handle<Node>::Null();
     }
 
-    // baseClone would be an Entity because it uses InstanceClass()
-    // to create an instance based on the runtime type of this
+    // baseClone would be an Entity because it uses InstanceClass() to create an instance based on the runtime type of this
     Handle<Entity> cloned = DynamicCast<Entity>(baseClone);
     AssertDebug(cloned.IsValid());
 
@@ -213,10 +224,37 @@ Handle<Node> Entity::Clone() const
         return baseClone;
     }
 
+    EntityUnresolvedComponents* clonedUnresolvedComponents = cloned->m_entityInitInfo.unresolvedComponents;
+    EntitySwatchOverrideSets* clonedPendingSwatchOverrides = cloned->m_entityInitInfo.pendingSwatchOverrides;
+
     cloned->m_entityInitInfo = m_entityInitInfo;
 
-    // Copy fields/properties declared on this entity's own class hierarchy, between its
-    // most-derived class and Entity (exclusive)
+    cloned->m_entityInitInfo.unresolvedComponents = clonedUnresolvedComponents;
+    cloned->m_entityInitInfo.pendingSwatchOverrides = clonedPendingSwatchOverrides;
+
+    if (m_entityInitInfo.unresolvedComponents)
+    {
+        if (!cloned->m_entityInitInfo.unresolvedComponents)
+        {
+            cloned->m_entityInitInfo.unresolvedComponents = g_scenePool->Allocate<EntityUnresolvedComponents>();
+            new (cloned->m_entityInitInfo.unresolvedComponents) EntityUnresolvedComponents;
+        }
+
+        *cloned->m_entityInitInfo.unresolvedComponents = *m_entityInitInfo.unresolvedComponents;
+    }
+
+    if (m_entityInitInfo.pendingSwatchOverrides)
+    {
+        if (!cloned->m_entityInitInfo.pendingSwatchOverrides)
+        {
+            cloned->m_entityInitInfo.pendingSwatchOverrides = g_scenePool->Allocate<EntitySwatchOverrideSets>();
+            new (cloned->m_entityInitInfo.pendingSwatchOverrides) EntitySwatchOverrideSets;
+        }
+
+        *cloned->m_entityInitInfo.pendingSwatchOverrides = *m_entityInitInfo.pendingSwatchOverrides;
+    }
+
+    // Copy fields/properties declared on this entity's own class hierarchy
     {
         BoxedValue srcBoxed(HandleFromThis());
         BoxedValue dstBoxed(cloned);
@@ -304,12 +342,21 @@ void Entity::Init()
 
 void Entity::SetPendingSwatchOverrides(Array<EntitySwatchOverrideSet>&& sets)
 {
-    auto& pendingSets = m_entityInitInfo.pendingSwatchOverrides;
+    EntitySwatchOverrideSets*& pendingSets = m_entityInitInfo.pendingSwatchOverrides;
 
-    if (pendingSets.Empty())
+    if (!pendingSets)
     {
-        pendingSets.Reserve(sets.Size());
+        if (sets.Empty())
+        {
+            // dont need it anyway
+            return;
+        }
+
+        pendingSets = g_scenePool->Allocate<EntitySwatchOverrideSets>();
+        new (pendingSets) EntitySwatchOverrideSets;
     }
+
+    pendingSets->Reserve(pendingSets->Size() + sets.Size());
 
     for (EntitySwatchOverrideSet& set : sets)
     {
@@ -318,15 +365,15 @@ void Entity::SetPendingSwatchOverrides(Array<EntitySwatchOverrideSet>&& sets)
             continue;
         }
 
-        pendingSets.PushBack(std::move(set));
+        pendingSets->PushBack(std::move(set));
     }
 }
 
 void Entity::FlushPendingSwatchOverrides()
 {
-    auto& pendingSets = m_entityInitInfo.pendingSwatchOverrides;
+    EntitySwatchOverrideSets*& pendingSets = m_entityInitInfo.pendingSwatchOverrides;
 
-    if (pendingSets.Empty())
+    if (!pendingSets || pendingSets->Empty())
     {
         return;
     }
@@ -343,7 +390,7 @@ void Entity::FlushPendingSwatchOverrides()
     {
         existing->sets.Clear();
 
-        for (EntitySwatchOverrideSet& set : pendingSets)
+        for (EntitySwatchOverrideSet& set : *pendingSets)
         {
             existing->sets.PushBack(std::move(set));
         }
@@ -354,9 +401,9 @@ void Entity::FlushPendingSwatchOverrides()
     else
     {
         SwatchOverridesComponent component;
-        component.sets.Reserve(pendingSets.Size());
+        component.sets.Reserve(pendingSets->Size());
 
-        for (EntitySwatchOverrideSet& set : pendingSets)
+        for (EntitySwatchOverrideSet& set : *pendingSets)
         {
             component.sets.PushBack(std::move(set));
         }
@@ -364,8 +411,10 @@ void Entity::FlushPendingSwatchOverrides()
         entityManager->AddComponent<SwatchOverridesComponent>(this, std::move(component));
     }
 
-    // Stashed values have been consumed; release the memory they held.
-    pendingSets.Clear();
+    pendingSets->~EntitySwatchOverrideSets();
+    g_scenePool->Free(pendingSets);
+
+    pendingSets = nullptr;
 }
 
 bool Entity::ReceivesUpdate() const
@@ -1040,7 +1089,7 @@ Array<Name> Entity::SerializeTags() const
 
     Array<Name> resultTags;
 
-    auto SerializeEntityTags = [this, entityManager, &resultTags]()
+    auto serializeEntityTags = [this, entityManager, &resultTags]()
     {
         Optional<const ComponentMap&> allComponentsOpt = entityManager->GetAllComponents(this);
 
@@ -1080,16 +1129,14 @@ Array<Name> Entity::SerializeTags() const
 
     if (IsOnThread(entityManager->GetOwnerThreadId()))
     {
-        SerializeEntityTags();
+        serializeEntityTags();
     }
     else
     {
         HYP_NAMED_SCOPE("Awaiting async entity tag serialization");
 
-        Task<void> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity Tags"), [&SerializeEntityTags]()
-                                                                                                   {
-                                                                                                       SerializeEntityTags();
-                                                                                                   });
+        Task<void> task = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler()
+            .Enqueue(std::move(serializeEntityTags));
 
         task.Await();
     }
@@ -1275,9 +1322,12 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
         }
 
         // written back unchanged so they survive until their class is registered
-        for (const HMF::UnresolvedObject& unresolvedComponent : m_unresolvedComponents)
+        if (HasUnresolvedComponents())
         {
-            resultArray.PushBack(BoxedValue(unresolvedComponent));
+            for (const HMF::UnresolvedObject& unresolvedComponent : *m_entityInitInfo.unresolvedComponents)
+            {
+                resultArray.PushBack(BoxedValue(unresolvedComponent));
+            }
         }
     };
 
@@ -1316,19 +1366,29 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
         {
             const HMF::UnresolvedObject& unresolvedComponent = componentData.Get<HMF::UnresolvedObject>();
 
-            auto existingIt = m_unresolvedComponents.FindIf([&unresolvedComponent](const HMF::UnresolvedObject& existing)
-                {
-                    return existing.className == unresolvedComponent.className;
-                });
+            if (HasUnresolvedComponents())
+            {
+                auto existingIt = m_entityInitInfo.unresolvedComponents->FindIf(
+                    [&unresolvedComponent](const HMF::UnresolvedObject& existing)
+                    {
+                        return existing.className == unresolvedComponent.className;
+                    });
 
-            if (existingIt != m_unresolvedComponents.End())
-            {
-                *existingIt = unresolvedComponent;
+                if (existingIt != m_entityInitInfo.unresolvedComponents->End())
+                {
+                    *existingIt = unresolvedComponent;
+
+                    continue;
+                }
             }
-            else
+            else if (!m_entityInitInfo.unresolvedComponents)
             {
-                m_unresolvedComponents.PushBack(unresolvedComponent);
+                m_entityInitInfo.unresolvedComponents = g_scenePool->Allocate<EntityUnresolvedComponents>();
+
+                new (m_entityInitInfo.unresolvedComponents) EntityUnresolvedComponents;
             }
+
+            m_entityInitInfo.unresolvedComponents->PushBack(unresolvedComponent);
 
             continue;
         }
@@ -1390,16 +1450,16 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
 
 bool Entity::ResolveUnresolvedComponents()
 {
-    if (m_unresolvedComponents.Empty() || !m_entityManager)
+    if (!m_entityInitInfo.unresolvedComponents || m_entityInitInfo.unresolvedComponents->Empty() || !m_entityManager)
     {
-        return m_unresolvedComponents.Any();
+        return m_entityInitInfo.unresolvedComponents && m_entityInitInfo.unresolvedComponents->Any();
     }
 
-    for (size_t index = 0; index < m_unresolvedComponents.Size();)
+    for (size_t index = 0; index < m_entityInitInfo.unresolvedComponents->Size();)
     {
-        const HMF::UnresolvedObject& unresolvedComponent = m_unresolvedComponents[index];
+        const HMF::UnresolvedObject& unresolvedComponent = (*m_entityInitInfo.unresolvedComponents)[index];
 
-        const Class* componentClass = Hyperion::GetClass(StringHash(unresolvedComponent.className));
+        const Class* componentClass = Hyperion::GetClass(unresolvedComponent.className);
 
         if (!componentClass || !m_entityManager->IsValidComponentType(componentClass->GetTypeId()))
         {
@@ -1412,7 +1472,7 @@ bool Entity::ResolveUnresolvedComponents()
         {
             HYP_LOG(Entity, Warning, "Entity already has a {} component; dropping the one saved before its class was registered", unresolvedComponent.className);
 
-            m_unresolvedComponents.EraseAt(index);
+            m_entityInitInfo.unresolvedComponents->EraseAt(index);
 
             continue;
         }
@@ -1431,12 +1491,24 @@ bool Entity::ResolveUnresolvedComponents()
 
         BoxedValue componentData = std::move(parseResult.GetValue());
 
-        m_unresolvedComponents.EraseAt(index);
+        m_entityInitInfo.unresolvedComponents->EraseAt(index);
 
         m_entityManager->AddComponent(this, std::move(componentData));
     }
 
-    return m_unresolvedComponents.Any();
+    const bool anyLeft = m_entityInitInfo.unresolvedComponents->Any();
+
+    if (!anyLeft)
+    {
+        // we pawned all the components off, so free the mem used only for initialization.
+
+        m_entityInitInfo.unresolvedComponents->~EntityUnresolvedComponents();
+        g_scenePool->Free(m_entityInitInfo.unresolvedComponents);
+
+        m_entityInitInfo.unresolvedComponents = nullptr;
+    }
+
+    return anyLeft;
 }
 
 #pragma endregion Entity

@@ -16,6 +16,8 @@
 #include <Editor/Preview/AssetThumbnailService.hpp>
 #include <Editor/Preview/MaterialPreviewRenderer.hpp>
 
+#include <Editor/Net/EditorPlayNetState.hpp>
+
 #include <Scene/Subsystem.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
@@ -73,26 +75,6 @@ enum class MeshEditFaceMode : uint8
 {
     Triangle = 0,
     Quad
-};
-
-HYP_ENUM()
-enum class EditorPlayNetMode : uint8
-{
-    Standalone = 0,
-    Client,
-    DedicatedServer
-};
-
-HYP_ENUM()
-enum class EditorPlayNetState : uint8
-{
-    None = 0,
-    Connecting,
-    Connected,
-    Failed,
-    Disconnected,
-    Hosting,
-    StartingServer
 };
 
 struct MeshEditFaceSelection
@@ -186,12 +168,12 @@ public:
     HYP_METHOD()
     bool CanCreateAssets() const;
 
-    ///Play net mode
+    ///PIE net state
 
     HYP_METHOD()
     EditorPlayNetMode GetPlayNetMode() const
     {
-        return m_playNetMode;
+        return m_playNetState.m_playNetMode;
     }
 
     HYP_METHOD()
@@ -200,7 +182,7 @@ public:
     HYP_METHOD()
     String GetPlayNetHost() const
     {
-        return m_playNetHost;
+        return m_playNetState.m_playNetHost;
     }
 
     HYP_METHOD()
@@ -209,7 +191,7 @@ public:
     HYP_METHOD()
     uint32 GetPlayNetPort() const
     {
-        return m_playNetPort;
+        return m_playNetState.m_playNetPort;
     }
 
     HYP_METHOD()
@@ -218,7 +200,7 @@ public:
     HYP_METHOD()
     bool GetPlayNetAutoLaunchServer() const
     {
-        return m_playNetAutoLaunchServer;
+        return m_playNetState.m_playNetAutoLaunchServer;
     }
 
     HYP_METHOD()
@@ -227,22 +209,22 @@ public:
     HYP_METHOD()
     uint32 GetPlayNetCachePort() const
     {
-        return m_playNetCachePort;
+        return m_playNetState.m_playNetCachePort;
     }
 
     HYP_METHOD()
     void SetPlayNetCachePort(uint32 port);
 
     HYP_METHOD()
-    EditorPlayNetState GetPlayNetState() const
+    EditorPlayNetStatus GetPlayNetStatus() const
     {
-        return m_playNetState;
+        return m_playNetState.status;
     }
 
     HYP_METHOD()
     bool IsPlayNetServerAutoLaunched() const
     {
-        return m_activeAutoLaunchServer;
+        return m_playNetState.m_activeAutoLaunchServer;
     }
 
     HYP_METHOD()
@@ -253,6 +235,8 @@ public:
 
     HYP_METHOD()
     void OnPlayNetServerFailed();
+
+    ////////////////////
 
     HYP_METHOD()
     bool ExecuteCommand(const Handle<EditorCommandBase>& command);
@@ -641,7 +625,7 @@ public:
     ScriptableDelegate<void> OnMeshEditStateChanged;
 
     HYP_FIELD()
-    ScriptableDelegate<void, EditorPlayNetState> OnPlayNetStateChanged;
+    ScriptableDelegate<void, EditorPlayNetStatus> OnPlayNetStatusChanged;
 
 private:
     void InitViewport();
@@ -651,7 +635,7 @@ private:
 
     void ConnectPlayNetClient();
     void UpdatePlayNetState();
-    void SetPlayNetState(EditorPlayNetState state);
+    void SetPlayNetStatus(EditorPlayNetStatus status);
 
     void InitializeProjectWorld(const Handle<EditorProject>& project, bool isStartSimulation = false);
     void ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld = true);
@@ -812,15 +796,6 @@ private:
     Handle<View> m_simulationView;
     FilePath m_simulationSnapshotPath;
 
-    EditorPlayNetMode m_playNetMode;
-    String m_playNetHost;
-    uint32 m_playNetPort;
-    bool m_playNetAutoLaunchServer;
-    uint32 m_playNetCachePort;
-
-    // latched from the settings above when a simulation starts
-    EditorPlayNetMode m_activeNetMode;
-    bool m_activeAutoLaunchServer;
     EditorPlayNetState m_playNetState;
 
     Handle<Entity> m_meshPreviewEntity;

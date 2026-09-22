@@ -8,6 +8,7 @@
 
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
+#include <Core/Util.hpp>
 
 #include <Core/Containers/FixedArray.hpp>
 
@@ -28,7 +29,7 @@ enum class LightType : uint32
     Max
 };
 
-static constexpr LightType InvalidLightType = LightType(~0u);
+static constexpr LightType InvalidLightType = Invalid<LightType>;
 static constexpr uint32 NumLightTypes = uint32(LightType::Max);
 
 // clang-format off
