@@ -329,7 +329,7 @@ void Game::Launch()
 
     if (EngineGlobals::IsServer())
     {
-        // Processes that launch a server (editor loopback Play As Client) wait for this line before connecting.
+        // Scripts that launch a server can wait for this line before connecting.
         HYP_LOG(Game, Info, "Game server ready");
     }
 }

@@ -152,20 +152,11 @@ static CVar<bool> s_cvDebugDrawProbes { "Editor.DebugDrawProbes", false };
 static constexpr const char* PlayNetModeConfigKey = "PlayInEditor.NetMode";
 static constexpr const char* PlayNetHostConfigKey = "PlayInEditor.Host";
 static constexpr const char* PlayNetPortConfigKey = "PlayInEditor.Port";
-static constexpr const char* PlayNetAutoLaunchServerConfigKey = "PlayInEditor.AutoLaunchServer";
 static constexpr const char* PlayNetCachePortConfigKey = "PlayInEditor.CachePort";
 
 struct SuppressIdleThrottlingContext {};
 
 #pragma region Helpers
-
-static bool IsLoopbackHost(const UTF8StringView& host)
-{
-    return host == "localhost"
-        || host == "::1"
-        || host.FindFirstIndex("127.") == 0;
-}
-
 
 static RenderableAttributeSet PhysicsWireframeAttributes()
 {
@@ -3215,9 +3206,6 @@ bool EditorSubsystem::StartSimulation()
         TaskEnqueueFlags::FIRE_AND_FORGET);
 
     m_playNetState.m_activeNetMode = netMode;
-    m_playNetState.m_activeAutoLaunchServer = netMode == EditorPlayNetMode::Client
-        && m_playNetState.m_playNetAutoLaunchServer
-        && IsLoopbackHost(m_playNetState.m_playNetHost);
 
     isSimulationStarted = true;
 
@@ -3227,17 +3215,9 @@ bool EditorSubsystem::StartSimulation()
         HYP_LOG(Editor, Warning, "World '{}' is not flagged IsReplicated, so nothing will be replicated in this session", m_currentProject->GetWorld()->GetName());
     }
 
-    if (m_playNetState.m_activeNetMode == EditorPlayNetMode::Client && m_playNetState.m_activeAutoLaunchServer)
+    if (m_playNetState.m_activeNetMode == EditorPlayNetMode::Client)
     {
-        // The editor launches the server process now that the snapshot is saved, then calls OnPlayNetServerReady()
-        HYP_LOG(Editor, Info, "Play As Client: waiting for local server on port {}", m_playNetState.m_playNetPort);
-
-        SetPlayNetStatus(EditorPlayNetStatus::StartingServer);
-    }
-    else if (m_playNetState.m_activeNetMode == EditorPlayNetMode::Client)
-    {
-        // Connect only after the snapshot world has launched. Game::ConnectToServer isn't usable here:
-        // before launch it swaps in a temp loading world, and after launch its connected state re-runs Launch().
+        // Connects to an already running server
         ConnectPlayNetClient();
     }
     else if (m_playNetState.m_activeNetMode == EditorPlayNetMode::DedicatedServer)
@@ -3298,7 +3278,6 @@ bool EditorSubsystem::StopSimulation()
         }
 
         m_playNetState.m_activeNetMode = EditorPlayNetMode::Standalone;
-        m_playNetState.m_activeAutoLaunchServer = false;
 
         SetPlayNetStatus(EditorPlayNetStatus::None);
 
@@ -3378,11 +3357,6 @@ void EditorSubsystem::LoadPlayNetSettings()
         }
     }
 
-    if (const ConfigValue& autoLaunchValue = config.Get(PlayNetAutoLaunchServerConfigKey); autoLaunchValue.IsBool())
-    {
-        m_playNetState.m_playNetAutoLaunchServer = autoLaunchValue.ToBool();
-    }
-
     if (const ConfigValue& cachePortValue = config.Get(PlayNetCachePortConfigKey); cachePortValue.IsNumber())
     {
         const uint32 port = cachePortValue.ToUInt32();
@@ -3416,7 +3390,6 @@ void EditorSubsystem::SavePlayNetSettings()
     config.Set(PlayNetModeConfigKey, ConfigValue(String(modeString)));
     config.Set(PlayNetHostConfigKey, ConfigValue(m_playNetState.m_playNetHost));
     config.Set(PlayNetPortConfigKey, ConfigValue(m_playNetState.m_playNetPort));
-    config.Set(PlayNetAutoLaunchServerConfigKey, ConfigValue(m_playNetState.m_playNetAutoLaunchServer));
     config.Set(PlayNetCachePortConfigKey, ConfigValue(m_playNetState.m_playNetCachePort));
 
     if (!config.Save())
@@ -3470,18 +3443,6 @@ void EditorSubsystem::SetPlayNetPort(uint32 port)
     SavePlayNetSettings();
 }
 
-void EditorSubsystem::SetPlayNetAutoLaunchServer(bool autoLaunchServer)
-{
-    if (autoLaunchServer == m_playNetState.m_playNetAutoLaunchServer)
-    {
-        return;
-    }
-
-    m_playNetState.m_playNetAutoLaunchServer = autoLaunchServer;
-
-    SavePlayNetSettings();
-}
-
 void EditorSubsystem::SetPlayNetCachePort(uint32 port)
 {
     if (port == 0 || port > MathUtil::MaxSafeValue<uint16>())
@@ -3509,26 +3470,6 @@ String EditorSubsystem::GetPlayNetProjectDirectory() const
     }
 
     return m_preSimulationProject->GetFilePath().BasePath();
-}
-
-void EditorSubsystem::OnPlayNetServerReady()
-{
-    if (m_playNetState.m_activeNetMode != EditorPlayNetMode::Client || m_playNetState.status != EditorPlayNetStatus::StartingServer)
-    {
-        return;
-    }
-
-    ConnectPlayNetClient();
-}
-
-void EditorSubsystem::OnPlayNetServerFailed()
-{
-    if (m_playNetState.m_activeNetMode != EditorPlayNetMode::Client || m_playNetState.status != EditorPlayNetStatus::StartingServer)
-    {
-        return;
-    }
-
-    SetPlayNetStatus(EditorPlayNetStatus::Failed);
 }
 
 void EditorSubsystem::ConnectPlayNetClient()

@@ -9,14 +9,12 @@ namespace Hyperion.Editor.ViewModels
     {
         public string Host { get; }
         public uint Port { get; }
-        public bool AutoLaunchServer { get; }
         public uint CachePort { get; }
 
-        public NetworkSettingsResult(string host, uint port, bool autoLaunchServer, uint cachePort)
+        public NetworkSettingsResult(string host, uint port, uint cachePort)
         {
             Host = host;
             Port = port;
-            AutoLaunchServer = autoLaunchServer;
             CachePort = cachePort;
         }
     }
@@ -51,13 +49,6 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        private bool _autoLaunchServer;
-        public bool AutoLaunchServer
-        {
-            get => _autoLaunchServer;
-            set => SetProperty(ref _autoLaunchServer, value);
-        }
-
         private string _cachePort;
         public string CachePort
         {
@@ -89,14 +80,13 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
 
-        public NetworkSettingsPanelViewModel(string host, uint port, bool autoLaunchServer, uint cachePort, Action<NetworkSettingsResult?> onCompleted)
+        public NetworkSettingsPanelViewModel(string host, uint port, uint cachePort, Action<NetworkSettingsResult?> onCompleted)
             : base("Network Settings")
         {
             _onCompleted = onCompleted ?? throw new ArgumentNullException(nameof(onCompleted));
 
             _host = host;
             _port = port.ToString();
-            _autoLaunchServer = autoLaunchServer;
             _cachePort = cachePort.ToString();
 
             ConfirmCommand = new RelayCommand(OnConfirm, () => !HasError);
@@ -143,7 +133,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            _onCompleted(new NetworkSettingsResult(_host.Trim(), port, _autoLaunchServer, cachePort));
+            _onCompleted(new NetworkSettingsResult(_host.Trim(), port, cachePort));
             PanelService.Instance.RemovePanel(this);
         }
 

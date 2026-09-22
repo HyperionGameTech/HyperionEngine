@@ -18,10 +18,8 @@ EditorPlayNetState::EditorPlayNetState()
     : m_playNetMode(EditorPlayNetMode::Standalone),
       m_playNetHost("127.0.0.1"),
       m_playNetPort(NetGlobals::GetGameServerPort()),
-      m_playNetAutoLaunchServer(true),
       m_playNetCachePort(8081),
       m_activeNetMode(EditorPlayNetMode::Standalone),
-      m_activeAutoLaunchServer(false),
       status(EditorPlayNetStatus::None)
 {
 

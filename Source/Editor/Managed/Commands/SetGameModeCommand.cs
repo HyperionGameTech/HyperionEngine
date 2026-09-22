@@ -49,10 +49,8 @@ namespace Hyperion.Editor.Commands
                                 Game? innerGameInstance = null;
                                 EditorSubsystem? editorSubsystem = null;
 
-                                bool shouldLaunchLocalServer = false;
                                 bool shouldStartCacheServer = false;
                                 string projectDirectory = string.Empty;
-                                uint gamePort = 0;
                                 uint cachePort = 0;
 
                                 try
@@ -68,15 +66,12 @@ namespace Hyperion.Editor.Commands
                                     innerGameInstance = editorSubsystem.CurrentProject?.GameInstance;
                                     Debug.Assert(innerGameInstance != null);
 
-                                    shouldLaunchLocalServer = editorSubsystem.IsPlayNetServerAutoLaunched();
-
                                     // Editor-hosted server: external clients still need somewhere to sync the project's content from
                                     shouldStartCacheServer = (editorSubsystem.GetPlayNetStatus() == EditorPlayNetStatus.Hosting);
 
-                                    if (shouldLaunchLocalServer || shouldStartCacheServer)
+                                    if (shouldStartCacheServer)
                                     {
                                         projectDirectory = editorSubsystem.GetPlayNetProjectDirectory();
-                                        gamePort = editorSubsystem.GetPlayNetPort();
                                         cachePort = editorSubsystem.GetPlayNetCachePort();
                                     }
                                 }
@@ -98,11 +93,7 @@ namespace Hyperion.Editor.Commands
                                         Interlocked.Exchange(ref _isChangingGameMode, 0);
                                     }
 
-                                    if (shouldLaunchLocalServer)
-                                    {
-                                        _ = LaunchLocalServerAsync(editorSubsystem!, projectDirectory, gamePort, cachePort);
-                                    }
-                                    else if (shouldStartCacheServer)
+                                    if (shouldStartCacheServer)
                                     {
                                         // A failure only affects external clients, the editor-hosted session keeps running
                                         _ = PlayInEditorServerService.Instance.StartCacheServerAsync(projectDirectory, cachePort);
@@ -186,8 +177,7 @@ namespace Hyperion.Editor.Commands
                                     throw new Exception("Failed to stop simulating!");
                                 }
 
-                                // after StopSimulation() so the client has already disconnected
-                                PlayInEditorServerService.Instance.StopGameServer();
+                                PlayInEditorServerService.Instance.CancelPendingLaunch();
 
                                 foreach (IDisposable o in deferredDisposeObjects)
                                 {
@@ -229,29 +219,6 @@ namespace Hyperion.Editor.Commands
                 Interlocked.Exchange(ref _isChangingGameMode, 0);
                 throw;
             }
-        }
-
-        private static async Task LaunchLocalServerAsync(EditorSubsystem editorSubsystem, string projectDirectory, uint gamePort, uint cachePort)
-        {
-            LocalServerLaunchResult result = await PlayInEditorServerService.Instance.LaunchGameServerAsync(projectDirectory, gamePort, cachePort);
-
-            if (result == LocalServerLaunchResult.Cancelled)
-            {
-                return;
-            }
-
-            // The subsystem ignores these if the session has since been stopped
-            await EngineManager.PostToSimThread(() =>
-            {
-                if (result == LocalServerLaunchResult.Ready)
-                {
-                    editorSubsystem.OnPlayNetServerReady();
-                }
-                else
-                {
-                    editorSubsystem.OnPlayNetServerFailed();
-                }
-            });
         }
 
         public event EventHandler? CanExecuteChanged;
