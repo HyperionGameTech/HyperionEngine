@@ -1,0 +1,35 @@
+Texture "EditorIcon_lightmap-volume" {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (256, 256, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            262144
+            327680
+            344064
+            348160
+            349184
+            349440
+            349504
+            349520
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Editor://Textures/EditorIcon_lightmap-volume.TEX"
+        Size = 349524
+    }
+    UUID = "5a72e084-98e8-49d6-afdd-683ff4e53c17"
+}

@@ -46,6 +46,8 @@
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/Sprite.hpp>
 
+#include <Scene/Decal/DecalProxy.hpp>
+
 #include <Scene/Camera/Camera.hpp>
 
 #include <Scene/Animation/Skeleton.hpp>

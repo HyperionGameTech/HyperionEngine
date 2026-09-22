@@ -62,6 +62,7 @@ class TerrainWorldGridLayer;
 class WorldGridLayer;
 class DynamicSkySystem;
 class EditorTerrainState;
+class EditorDecalPainterState;
 class AppContextBase;
 class BVHNode;
 
@@ -294,6 +295,11 @@ public:
 
     HYP_METHOD()
     Handle<EditorTerrainState> GetTerrainState();
+
+    ///Decals
+
+    HYP_METHOD()
+    Handle<EditorDecalPainterState> GetDecalPainterState();
 
     ///Mesh edits
 
@@ -743,6 +749,8 @@ private:
     ////////////////////
 
     Handle<EditorTerrainState> m_terrainSculpting;
+
+    Handle<EditorDecalPainterState> m_decalPainter;
 
     ////////////////////
 

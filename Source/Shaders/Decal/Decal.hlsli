@@ -1,0 +1,8 @@
+#ifndef HYP_DECAL_HLSLI
+#define HYP_DECAL_HLSLI
+
+#define DECAL_FLAG_HAS_ALBEDO_MAP (0x1u)
+#define DECAL_FLAG_HAS_NORMAL_MAP (0x2u)
+#define DECAL_FLAG_NORMAL_MAP_FLIP_Y (0x4u)
+
+#endif

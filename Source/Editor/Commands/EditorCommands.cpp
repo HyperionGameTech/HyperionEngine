@@ -73,6 +73,8 @@
 
 #include <Framework/Gameplay/Weapon.hpp>
 
+#include <Scene/Decal/Decal.hpp>
+
 #include <System/OpenFileDialog.hpp>
 #include <System/SaveFileDialog.hpp>
 #include <System/SelectFolderDialog.hpp>
@@ -3719,6 +3721,66 @@ public:
 DEFINE_EDITOR_COMMAND(NewWeapon);
 
 #pragma endregion NewWeapon
+
+#pragma region NewDecal
+
+class EditorCommandNewDecal final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandNewDecal);
+
+public:
+    virtual ~EditorCommandNewDecal() override = default;
+
+    virtual String GetText() const override
+    {
+        return "New Decal";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot create decal asset!");
+
+            return;
+        }
+
+        Handle<Decal> decal = MakeHandle<Decal>(Name::Unique("NewDecal"), DecalDesc {});
+        InitObject(decal);
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [decal]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [decal](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(decal);
+
+                                editorSubsystem->OnAssetsChanged(AssetBuckets::Decals.GetIndex());
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [decal](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->RemoveAsset(decal);
+
+                                editorSubsystem->OnAssetsChanged(AssetBuckets::Decals.GetIndex());
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(NewDecal);
+
+#pragma endregion NewDecal
 
 #pragma region NewMaterial
 

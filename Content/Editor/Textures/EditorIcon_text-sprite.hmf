@@ -1,0 +1,35 @@
+Texture "EditorIcon_text-sprite" {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (256, 256, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            262144
+            327680
+            344064
+            348160
+            349184
+            349440
+            349504
+            349520
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Editor://Textures/EditorIcon_text-sprite.TEX"
+        Size = 349524
+    }
+    UUID = "0df0175e-0642-40cc-bbcf-af055f35a5cf"
+}

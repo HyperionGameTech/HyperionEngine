@@ -930,8 +930,12 @@ void Entity::SetLocalBounds(const BoundingBox& aabb)
 
     if (EntityManager* entityManager = GetEntityManager())
     {
-        BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
-        boundingBoxComponent.worldAabb = GetWorldBounds();
+        BoundingBoxComponent* boundingBoxComponent = entityManager->TryGetComponent<BoundingBoxComponent>(this);
+
+        if (boundingBoxComponent != nullptr)
+        {
+            boundingBoxComponent->worldAabb = GetWorldBounds();
+        }
 
         SetNeedsRenderProxyUpdate();
 

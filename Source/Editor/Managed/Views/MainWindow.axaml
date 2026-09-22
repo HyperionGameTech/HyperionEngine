@@ -903,6 +903,18 @@
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>
 
+                                <Border Classes="mode-separator" />
+
+                                <ToggleButton
+                                    x:Name="DecalPainterToggle"
+                                    Classes="gizmo"
+                                    Command="{Binding ToggleDecalPainterMode}"
+                                    IsChecked="{Binding IsDecalPainterActive, Mode=OneWay}"
+                                    IsEnabled="{Binding CanToggleDecalPainterMode}"
+                                    ToolTip.Tip="Decal Painter">
+                                    <controls:Codicon Kind="Decal" Size="16" />
+                                </ToggleButton>
+
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -1213,7 +1225,7 @@
                                                                         <MenuItem
                                                                             Command="{Binding Copy, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
-                                                                            Header="_Copy"
+                                                                            Header="Copy"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsVisible="{Binding IsOutsideSelection}" />
                                                                         <MenuItem
@@ -1739,7 +1751,7 @@
                                                                             TextTrimming="CharacterEllipsis" />
                                                                     </Border>
 
-                                                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                                                    <Grid ColumnDefinitions="*,Auto">
                                                                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
                                                                             <Button
                                                                                 Classes="gizmo"
@@ -1757,12 +1769,6 @@
                                                                             </Button>
                                                                             <Button
                                                                                 Classes="gizmo"
-                                                                                Command="{Binding NewCommand}"
-                                                                                ToolTip.Tip="Create new script">
-                                                                                <controls:Codicon Kind="Add" Size="14" />
-                                                                            </Button>
-                                                                            <Button
-                                                                                Classes="gizmo"
                                                                                 Command="{Binding EditCommand}"
                                                                                 IsEnabled="{Binding HasScript}"
                                                                                 ToolTip.Tip="Open in code editor">
@@ -1770,27 +1776,35 @@
                                                                             </Button>
                                                                         </StackPanel>
 
-                                                                        <Border
+                                                                        <Button
                                                                             Grid.Column="1"
-                                                                            Width="1"
-                                                                            Margin="6,5"
-                                                                            Background="{DynamicResource Brush.Border}" />
-
-                                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-                                                                            <Button
-                                                                                Classes="gizmo"
-                                                                                Command="{Binding CopyCommand}"
-                                                                                IsEnabled="{Binding CanCopy}"
-                                                                                ToolTip.Tip="Copy asset path to clipboard">
-                                                                                <controls:Codicon Kind="Copy" Size="14" />
-                                                                            </Button>
-                                                                            <Button
-                                                                                Classes="gizmo"
-                                                                                Command="{Binding PasteCommand}"
-                                                                                ToolTip.Tip="Paste asset path from clipboard">
-                                                                                <controls:Codicon Kind="Clippy" Size="14" />
-                                                                            </Button>
-                                                                        </StackPanel>
+                                                                            Classes="gizmo"
+                                                                            ToolTip.Tip="More actions">
+                                                                            <controls:Codicon Kind="KebabVertical" Size="14" />
+                                                                            <Button.Flyout>
+                                                                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                                                                    <MenuItem Command="{Binding NewCommand}" Header="Create New Script">
+                                                                                        <MenuItem.Icon>
+                                                                                            <controls:Codicon Kind="Add" Size="14" />
+                                                                                        </MenuItem.Icon>
+                                                                                    </MenuItem>
+                                                                                    <Separator />
+                                                                                    <MenuItem
+                                                                                        Command="{Binding CopyCommand}"
+                                                                                        Header="Copy Asset Path"
+                                                                                        IsEnabled="{Binding CanCopy}">
+                                                                                        <MenuItem.Icon>
+                                                                                            <controls:Codicon Kind="Copy" Size="14" />
+                                                                                        </MenuItem.Icon>
+                                                                                    </MenuItem>
+                                                                                    <MenuItem Command="{Binding PasteCommand}" Header="Paste Asset Path">
+                                                                                        <MenuItem.Icon>
+                                                                                            <controls:Codicon Kind="Clippy" Size="14" />
+                                                                                        </MenuItem.Icon>
+                                                                                    </MenuItem>
+                                                                                </MenuFlyout>
+                                                                            </Button.Flyout>
+                                                                        </Button>
                                                                     </Grid>
                                                                 </StackPanel>
                                                             </Grid>
@@ -2157,6 +2171,7 @@
                                                                         <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewMaterialCommand}" Header="Material" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewWeaponCommand}" Header="Weapon" />
+                                                                        <MenuItem Command="{Binding ContentBrowser.NewDecalCommand}" Header="Decal" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="Script" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewPrefabCommand}" Header="Prefab" />
                                                                     </MenuFlyout>

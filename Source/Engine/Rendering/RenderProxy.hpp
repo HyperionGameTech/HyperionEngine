@@ -33,6 +33,7 @@ class Texture;
 class LightmapVolume;
 class ParticleVolume;
 class FogVolume;
+class DecalProxy;
 class EffectVolume;
 class Material;
 class Skeleton;
@@ -339,6 +340,47 @@ struct RenderProxyFogVolume : IRenderProxy
     Texture* noiseTexture = nullptr;
     BoundingBox worldAabb;
     FogVolumeShaderData bufferData {};
+};
+
+// keep in sync with Decal.hlsli
+enum DecalTypeFlags : uint32
+{
+    DTF_NONE = 0x0,
+    DTF_HAS_ALBEDO_MAP = 0x1,
+    DTF_HAS_NORMAL_MAP = 0x2,
+    DTF_NORMAL_MAP_FLIP_Y = 0x4
+};
+
+struct alignas(16) DecalInstanceShaderData
+{
+    Mat4f worldToDecal;
+};
+
+struct alignas(16) DecalTypeShaderData
+{
+    Vec4f tint;
+    float opacity;
+    float normalStrength;
+    float angleFadeStart;
+    float angleFadeEnd;
+    uint32 excludeMask;
+    uint32 flags;
+    uint32 firstInstance;
+    uint32 _pad0;
+};
+
+static_assert(sizeof(DecalTypeShaderData) == 48);
+
+struct RenderProxyDecalProxy : IRenderProxy
+{
+    DecalProxy* decalProxy = nullptr;
+    // tracked in the view's proxy list alongside the proxy, which keeps them alive and uploaded
+    Texture* albedoTexture = nullptr;
+    Texture* normalTexture = nullptr;
+    int32 sortOrder = 0;
+    BoundingBox worldAabb;
+    DecalTypeShaderData bufferData {};
+    Array<DecalInstanceShaderData> instances;
 };
 
 struct EffectVolumeShaderData

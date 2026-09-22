@@ -35,6 +35,14 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Sprite/Sprite.hlsl"
             PS = "Sprite/Sprite.hlsl"
         }
+        ShaderDefinition "Decal" {
+            VS = "Decal/Decal.hlsl"
+            PS = "Decal/Decal.hlsl"
+        }
+        ShaderDefinition "DecalResolve" {
+            VS = "Decal/DecalResolve.hlsl"
+            PS = "Decal/DecalResolve.hlsl"
+        }
         ShaderDefinition "TextSprite" {
             VS = "Sprite/TextSprite.hlsl"
             PS = "Sprite/TextSprite.hlsl"

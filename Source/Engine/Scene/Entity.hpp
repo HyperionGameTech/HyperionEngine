@@ -269,13 +269,13 @@ private:
 
     EntityManager* m_entityManager;
 
+    HYP_FIELD(Transient)
+    LayersMask m_layersMask;
+
     int m_renderProxyVersion;
 
     // has the transform been updated since the Node's transform has been unlocked?
     bool m_transformChanged : 1;
-
-    HYP_FIELD(Transient)
-    LayersMask m_layersMask;
 
     ////////////////////
 };
