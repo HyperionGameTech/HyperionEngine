@@ -19,6 +19,23 @@ class Mesh;
 class ParticleVolume;
 struct RenderProxyParticleVolume;
 
+struct ParticleVolumeDrawState
+{
+    GpuBufferRef particleBuffer; // RWStructuredBuffer of ParticleShaderData
+    GpuBufferRef indirectBuffer; // struct IndirectDrawCommand
+    Handle<Texture> noiseMap;    // 128x128
+
+    RenderableAttributeSet renderableAttributes;
+
+    size_t maxParticles = 0;
+    bool enableCollision = false;
+
+    // last frame this volume was used for rendering
+    uint32 lastFrame = UINT32_MAX;
+
+    ~ParticleVolumeDrawState();
+};
+
 class ParticlesPass : public PassBase
 {
 public:
@@ -36,26 +53,9 @@ protected:
     PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
 
 private:
-    struct VolumeState
-    {
-        GpuBufferRef particleBuffer; // RWStructuredBuffer of ParticleShaderData
-        GpuBufferRef indirectBuffer; // struct IndirectDrawCommand
-        Handle<Texture> noiseMap;    // 128x128
+    ParticleVolumeDrawState& GetOrCreateVolumeDrawState(RenderProxyParticleVolume* proxy, CommandRecorder& cr);
 
-        RenderableAttributeSet renderableAttributes;
-
-        size_t maxParticles = 0;
-        bool enableCollision = false;
-
-        // last frame this volume was used for rendering
-        uint32 lastFrame = UINT32_MAX;
-
-        ~VolumeState();
-    };
-
-    VolumeState& EnsureVolumeState(RenderProxyParticleVolume* proxy, CommandRecorder& cr);
-
-    Map<ParticleVolume*, VolumeState, RenderAllocator> m_volumeStates;
+    Map<ParticleVolume*, ParticleVolumeDrawState, RenderAllocator> m_volumeDrawStates;
 
     uint32 m_counter = 0u;
 };
