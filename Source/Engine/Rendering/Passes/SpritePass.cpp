@@ -54,7 +54,13 @@ struct SpriteInstanceData
 {
     Vec4f positionSize;
     Vec4f color;
-    Vec4u flags; // x = alwaysFaceCamera
+    Vec4u flags; // x = alwaysFaceCamera, y = bindless texture index (~0u = untextured)
+};
+
+struct SpriteDrawEntry
+{
+    SpriteInstanceData instanceData;
+    Texture* texture = nullptr;
 };
 
 struct alignas(16) TextSpriteInstanceData
@@ -422,14 +428,23 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     size_t numToDraw = 0;
 
-    auto FlushDraws = [&](const StructuredBuffer& instanceBuffer)
+    auto drawSpriteBatch = [&](Span<const SpriteDrawEntry> entries)
     {
-        if (numToDraw == 0)
+        if (entries.Size() == 0)
         {
             return;
         }
 
-        AssertDebug(instanceBuffer.gpuBuffer->Size() >= numToDraw * sizeof(SpriteInstanceData));
+        StructuredBuffer& instanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(entries.Size(), sizeof(SpriteInstanceData));
+
+        size_t offset = 0;
+        for (const SpriteDrawEntry& entry : entries)
+        {
+            instanceBuffer.Write(offset, sizeof(SpriteInstanceData), &entry.instanceData);
+            offset += sizeof(SpriteInstanceData);
+        }
+
+        instanceBuffer.FlushBatched();
 
         ShaderDesc shaderDesc;
         shaderDesc.name = NAME("Sprite");
@@ -439,6 +454,13 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(0, "SamplerLinear"_sh, sampler);
         cr << SetShaderUniform(1, "SpriteInstanceBuffer"_sh, instanceBuffer);
         cr << SetShaderUniform(2, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+
+        if (!s_isBindlessSupported)
+        {
+            Texture* texture = entries[0].texture ? entries[0].texture : RI.placeholderData->textureSolidWhite.Get();
+
+            cr << SetShaderUniform(3, "SpriteTexture"_sh, RI.textureViewCache->GetOrCreate(texture));
+        }
 
         cr << SetCurrentBlendFunction(BlendFunction::AlphaBlending());
         cr << SetDepthTest(true);
@@ -450,12 +472,10 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         cr << BindVertexBuffer(quadMesh->GetVertexBuffer(0));
         cr << BindIndexBuffer(quadMesh->GetIndexBuffer(0));
 
-        cr << DrawIndexed(quadMesh->NumIndices(0), uint32(numToDraw));
-
-        numToDraw = 0;
+        cr << DrawIndexed(quadMesh->NumIndices(0), uint32(entries.Size()));
     };
 
-    auto FlushDrawsText = [&](
+    auto flushDrawsText = [&](
         Texture* fontTexture,
         Span<TextSpriteInstanceData> charDataFront,
         Span<TextSpriteInstanceData> charDataBack)
@@ -530,11 +550,8 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (numSprites > 0)
     {
-        StructuredBuffer& instanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(numSprites, sizeof(SpriteInstanceData));
-
-        size_t offset = 0;
-
-        Texture* lastTexture = nullptr;
+        Array<SpriteDrawEntry, RenderTempAllocator> drawEntries;
+        drawEntries.Reserve(numSprites);
 
         for (Sprite* sprite : rpl.GetSprites())
         {
@@ -549,26 +566,42 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            SpriteInstanceData data {};
-            data.positionSize = Vec4f(sprite->GetWorldTranslation(), sprite->size);
-            data.color = Vec4f(sprite->color);
-            data.flags = Vec4u(spriteProxy->bufferData.alwaysFaceCamera, 0u, 0u, 0u);
-
-            instanceBuffer.Write(offset, sizeof(SpriteInstanceData), &data);
-            offset += sizeof(SpriteInstanceData);
-
-            if (!s_isBindlessSupported && spriteProxy->texture != lastTexture && numToDraw != 0)
-            {
-                FlushDraws(instanceBuffer);
-            }
-
-            lastTexture = spriteProxy->texture;
-            ++numToDraw;
+            SpriteDrawEntry& entry = drawEntries.EmplaceBack();
+            entry.texture = spriteProxy->texture;
+            entry.instanceData.positionSize = Vec4f(sprite->GetWorldTranslation(), sprite->size);
+            entry.instanceData.color = Vec4f(sprite->color);
+            entry.instanceData.color.w *= sprite->opacity;
+            entry.instanceData.flags = Vec4u(
+                spriteProxy->bufferData.alwaysFaceCamera,
+                !spriteProxy->texture ? ~0u : (s_isBindlessSupported ? GetBindlessTextureIndex(spriteProxy->texture) : 0u),
+                0u,
+                0u);
         }
 
-        instanceBuffer.FlushBatched();
+        if (s_isBindlessSupported)
+        {
+            drawSpriteBatch(drawEntries.ToSpan());
+        }
+        else
+        {
+            // one texture per draw without bindless, so group by texture
+            std::sort(drawEntries.Begin(), drawEntries.End(), [](const SpriteDrawEntry& lhs, const SpriteDrawEntry& rhs)
+                {
+                    return lhs.texture < rhs.texture;
+                });
 
-        FlushDraws(instanceBuffer);
+            size_t batchStart = 0;
+
+            for (size_t entryIndex = 1; entryIndex <= drawEntries.Size(); entryIndex++)
+            {
+                if (entryIndex == drawEntries.Size() || drawEntries[entryIndex].texture != drawEntries[batchStart].texture)
+                {
+                    drawSpriteBatch(drawEntries.ToSpan().Slice(batchStart, entryIndex - batchStart));
+                    
+                    batchStart = entryIndex;
+                }
+            }
+        }
     }
 
     if (numTextCharacters > 0)
@@ -672,7 +705,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
             if (!s_isBindlessSupported && lastTexture != spriteProxy->texture && numToDraw != 0)
             {
-                FlushDrawsText(lastTexture, charDataFront, charDataBack);
+                flushDrawsText(lastTexture, charDataFront, charDataBack);
 
                 charDataBack.Resize(0);
                 charDataFront.Resize(0);
@@ -682,7 +715,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             ++numToDraw;
         }
 
-        FlushDrawsText(lastTexture, charDataFront, charDataBack);
+        flushDrawsText(lastTexture, charDataFront, charDataBack);
     }
 }
 

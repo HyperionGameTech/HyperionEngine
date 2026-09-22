@@ -1793,6 +1793,10 @@ void View::CollectSprites(RenderProxyList& rpl)
                     rpl.GetTextures().Track(fontAtlasTexture->Id(), fontAtlasTexture);
                 }
             }
+            else if (Texture* spriteTexture = sprite->texture.Get())
+            {
+                rpl.GetTextures().Track(spriteTexture->Id(), spriteTexture);
+            }
         }
     }
 }

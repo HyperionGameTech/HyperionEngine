@@ -27,10 +27,10 @@ struct CharacterMovementSettings
     HYP_STRUCT_BODY(CharacterMovementSettings);
 
     HYP_FIELD(Property = "MoveSpeed", Serialize, Title = "Move Speed", Description = "Target ground speed in m/s")
-    float moveSpeed = 5.0f;
+    float moveSpeed = 15.0f;
 
     HYP_FIELD(Property = "SprintSpeed", Serialize, Title = "Sprint Speed", Description = "Target ground speed while sprinting (hold Shift)")
-    float sprintSpeed = 7.5f;
+    float sprintSpeed = 25.0f;
 
     HYP_FIELD(Property = "GroundAcceleration", Serialize, Title = "Ground Acceleration", Description = "How quickly ground speed ramps toward the target (higher = snappier)")
     float groundAcceleration = 12.0f;

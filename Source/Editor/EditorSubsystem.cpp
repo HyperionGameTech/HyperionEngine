@@ -147,6 +147,7 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
 static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
+static CVar<bool> s_cvDebugDrawProbes { "Editor.DebugDrawProbes", false };
 
 static constexpr const char* PlayNetModeConfigKey = "PlayInEditor.NetMode";
 static constexpr const char* PlayNetHostConfigKey = "PlayInEditor.Host";
@@ -2053,8 +2054,6 @@ void EditorSubsystem::OnAddedToWorld()
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
     }
 
-    world->AddSystemT<EditorSpriteSystem>();
-
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     m_editorScene->SetIsTransient(true);
     world->AddScene(m_editorScene);
@@ -2091,11 +2090,6 @@ void EditorSubsystem::OnRemovedFromWorld()
     }
     
     World* world = Subsystem::GetWorld();
-
-    if (EditorSpriteSystem* spriteSystem = world->GetSystem<EditorSpriteSystem>())
-    {
-        world->RemoveSystem(spriteSystem);
-    }
 
     world->RemoveScene(m_editorScene);
 
@@ -2942,9 +2936,8 @@ void EditorSubsystem::Update(float delta)
         const Handle<World>& world = m_currentProject->GetWorld();
 
         // World might be invalid if simulation is starting and the project is loading.
-        if (world.IsValid())
+        if (world.IsValid() && s_cvDebugDrawProbes.Get())
         {
-            // Debug draw probes
             for (Scene* scene : world->GetScenes())
             {
                 for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
@@ -3689,6 +3682,14 @@ void EditorSubsystem::InitViewport()
                 if (vp->GetView()->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
                 {
                     hasHits = true;
+                }
+            }
+
+            if (const Handle<World>& projectWorld = GetProjectWorld(); projectWorld.IsValid())
+            {
+                if (EditorSpriteSystem* spriteSystem = projectWorld->GetSystem<EditorSpriteSystem>())
+                {
+                    hasHits |= spriteSystem->TestRay(ray, results);
                 }
             }
 
@@ -5235,6 +5236,9 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
     if (!isStartSimulation)
     {
+        // sprites go in the editor scene (not saved), and only exist for the edit world so they're hidden while simulating
+        world->AddSystem(MakeHandle<EditorSpriteSystem>(m_editorScene));
+
         // restarts the grid shut down for the simulation - see ShutdownProjectWorld()
         if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid(); worldGrid.IsValid())
         {
@@ -5581,6 +5585,11 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project,
         {
             worldGrid->Shutdown();
         }
+    }
+
+    if (EditorSpriteSystem* spriteSystem = world->GetSystem<EditorSpriteSystem>())
+    {
+        world->RemoveSystem(spriteSystem);
     }
 
     g_engineDriver->RemoveWorld(world, shutdownWorld);

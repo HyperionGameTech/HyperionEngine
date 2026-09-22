@@ -28,7 +28,11 @@ Mat4f CalculateShadowViewMatrix(
     // world space as the camera moves. This is what lets texel snapping actually stop the swim.
     const Vec3f center = sceneWorldBounds.GetCenter();
 
-    return Mat4f::LookAt(center, center - lightDir * ZPullback, Vec3f::UnitY());
+    const Vec3f up = MathUtil::Abs(lightDir.Normalized().Dot(Vec3f::UnitY())) > 0.999f
+        ? Vec3f::UnitZ()
+        : Vec3f::UnitY();
+
+    return Mat4f::LookAt(center, center - lightDir * ZPullback, up);
 }
 
 
