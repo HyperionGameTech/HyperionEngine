@@ -198,15 +198,6 @@ public:
     void SetPlayNetPort(uint32 port);
 
     HYP_METHOD()
-    bool GetPlayNetAutoLaunchServer() const
-    {
-        return m_playNetState.m_playNetAutoLaunchServer;
-    }
-
-    HYP_METHOD()
-    void SetPlayNetAutoLaunchServer(bool autoLaunchServer);
-
-    HYP_METHOD()
     uint32 GetPlayNetCachePort() const
     {
         return m_playNetState.m_playNetCachePort;
@@ -222,19 +213,7 @@ public:
     }
 
     HYP_METHOD()
-    bool IsPlayNetServerAutoLaunched() const
-    {
-        return m_playNetState.m_activeAutoLaunchServer;
-    }
-
-    HYP_METHOD()
     String GetPlayNetProjectDirectory() const;
-
-    HYP_METHOD()
-    void OnPlayNetServerReady();
-
-    HYP_METHOD()
-    void OnPlayNetServerFailed();
 
     ////////////////////
 

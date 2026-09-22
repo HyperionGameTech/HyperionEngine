@@ -28,8 +28,7 @@ enum class EditorPlayNetStatus : uint8
     Connected,
     Failed,
     Disconnected,
-    Hosting,
-    StartingServer
+    Hosting
 };
 
 struct EditorPlayNetState
@@ -37,12 +36,10 @@ struct EditorPlayNetState
     EditorPlayNetMode m_playNetMode;
     String m_playNetHost;
     uint32 m_playNetPort;
-    bool m_playNetAutoLaunchServer;
     uint32 m_playNetCachePort;
 
     // latched from the settings above when a simulation starts
     EditorPlayNetMode m_activeNetMode;
-    bool m_activeAutoLaunchServer;
     EditorPlayNetStatus status;
 
     EditorPlayNetState();

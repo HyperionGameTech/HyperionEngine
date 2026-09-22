@@ -21,19 +21,15 @@ namespace Hyperion.Editor.Services
         public static PlayInEditorServerService Instance { get; } = new PlayInEditorServerService();
 
         private const string CacheServerExecutableName = "CacheServerCommandlet";
-        private const string GameServerExecutableName = "hyperion-sample";
 
         private const string CacheServerReadyMarker = "CacheServer listening on port";
-        private const string GameServerReadyMarker = "Game server ready";
 
         private static readonly TimeSpan CacheServerStartTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan CacheServerRefreshTimeout = TimeSpan.FromMinutes(10);
-        private static readonly TimeSpan GameServerStartTimeout = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan ProcessExitTimeout = TimeSpan.FromSeconds(5);
 
         private static readonly HttpClient CacheServerHttpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
 
-        private static readonly LogChannel GameServerLogChannel = LogChannel.ByName("LocalGameServer");
         private static readonly LogChannel CacheServerLogChannel = LogChannel.ByName("LocalCacheServer");
 
         private readonly Lock _lock = new();
@@ -42,126 +38,10 @@ namespace Hyperion.Editor.Services
         private string? _cacheServerProjectDirectory;
         private uint _cacheServerPort;
 
-        private Process? _gameServerProcess;
         private CancellationTokenSource? _launchCancellation;
 
         private PlayInEditorServerService()
         {
-        }
-
-        public async Task<LocalServerLaunchResult> LaunchGameServerAsync(string projectDirectory, uint gamePort, uint cachePort)
-        {
-            CancellationTokenSource launchCancellation = new();
-            Process? previousGameServer;
-
-            lock (_lock)
-            {
-                _launchCancellation?.Cancel();
-                _launchCancellation = launchCancellation;
-
-                previousGameServer = _gameServerProcess;
-                _gameServerProcess = null;
-            }
-
-            CancellationToken cancellationToken = launchCancellation.Token;
-
-            try
-            {
-                if (previousGameServer != null)
-                {
-                    // The old server still holds the game port until it has fully exited
-                    await KillAndWaitAsync(previousGameServer).ConfigureAwait(false);
-                }
-
-                if (string.IsNullOrEmpty(projectDirectory) || !Directory.Exists(projectDirectory))
-                {
-                    Logger.Log(GameServerLogChannel, LogLevel.Error, "Cannot launch local server: project directory '{0}' does not exist", projectDirectory);
-
-                    return LocalServerLaunchResult.Failed;
-                }
-
-                await EnsureCacheServerAsync(projectDirectory, cachePort, cancellationToken).ConfigureAwait(false);
-                await RefreshCacheServerAsync(projectDirectory, cachePort, cancellationToken).ConfigureAwait(false);
-
-                string stagingDirectory = GetStagingDirectory(projectDirectory);
-                string contentDirectory = Path.Combine(stagingDirectory, "Content");
-                string cacheDirectory = Path.Combine(stagingDirectory, "Cache");
-
-                Directory.CreateDirectory(contentDirectory);
-                Directory.CreateDirectory(cacheDirectory);
-
-                TaskCompletionSource<bool> gameServerReady = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                Process gameServer = StartProcess(
-                    GameServerExecutableName,
-                    [
-                        "--server",
-                        $"--gameport={gamePort}",
-                        $"--cacheserver=http://127.0.0.1:{cachePort}",
-                        $"--contentdir={contentDirectory}",
-                        $"--cachedir={cacheDirectory}"
-                    ],
-                    GameServerLogChannel,
-                    LogLevel.Info,
-                    line =>
-                    {
-                        if (line.Contains(GameServerReadyMarker, StringComparison.Ordinal))
-                        {
-                            gameServerReady.TrySetResult(true);
-                        }
-                    },
-                    () => gameServerReady.TrySetResult(false));
-
-                lock (_lock)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        _ = KillAndWaitAsync(gameServer);
-
-                        return LocalServerLaunchResult.Cancelled;
-                    }
-
-                    _gameServerProcess = gameServer;
-                }
-
-                Logger.Log(GameServerLogChannel, LogLevel.Info, "Waiting for local server on port {0} to sync content and load its world...", gamePort);
-
-                bool isReady;
-
-                try
-                {
-                    isReady = await gameServerReady.Task.WaitAsync(GameServerStartTimeout, cancellationToken).ConfigureAwait(false);
-                }
-                catch (TimeoutException)
-                {
-                    Logger.Log(GameServerLogChannel, LogLevel.Error, "Local server was not ready within {0} minutes", GameServerStartTimeout.TotalMinutes);
-
-                    isReady = false;
-                }
-
-                if (!isReady)
-                {
-                    Logger.Log(GameServerLogChannel, LogLevel.Error, "Local server failed to start (exit code {0})", SafeExitCode(gameServer));
-
-                    StopGameServerProcess(gameServer);
-
-                    return LocalServerLaunchResult.Failed;
-                }
-
-                Logger.Log(GameServerLogChannel, LogLevel.Info, "Local server is ready on port {0}", gamePort);
-
-                return LocalServerLaunchResult.Ready;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                return LocalServerLaunchResult.Cancelled;
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(GameServerLogChannel, LogLevel.Error, "Failed to launch local server: {0}", ex.Message);
-
-                return LocalServerLaunchResult.Failed;
-            }
         }
 
         /// <summary>
@@ -225,44 +105,20 @@ namespace Hyperion.Editor.Services
             }
         }
 
-        private void StopGameServerProcess(Process gameServer)
-        {
-            lock (_lock)
-            {
-                if (ReferenceEquals(_gameServerProcess, gameServer))
-                {
-                    _gameServerProcess = null;
-                }
-            }
-
-            _ = KillAndWaitAsync(gameServer);
-        }
-
         /// <summary>
-        /// Cancels a launch or refresh in progress and kills the session's server, if any. The cache server is left running for the next Play.
+        /// Cancels a cache server start or refresh in progress. The cache server is left running for the next Play.
         /// </summary>
-        public void StopGameServer()
+        public void CancelPendingLaunch()
         {
-            Process? gameServer;
-
             lock (_lock)
             {
                 _launchCancellation?.Cancel();
                 _launchCancellation = null;
-
-                gameServer = _gameServerProcess;
-                _gameServerProcess = null;
-            }
-
-            if (gameServer != null)
-            {
-                _ = KillAndWaitAsync(gameServer);
             }
         }
 
         public void Dispose()
         {
-            Process? gameServer;
             Process? cacheServer;
 
             lock (_lock)
@@ -270,15 +126,12 @@ namespace Hyperion.Editor.Services
                 _launchCancellation?.Cancel();
                 _launchCancellation = null;
 
-                gameServer = _gameServerProcess;
                 cacheServer = _cacheServerProcess;
 
-                _gameServerProcess = null;
                 _cacheServerProcess = null;
                 _cacheServerProjectDirectory = null;
             }
 
-            KillNow(gameServer);
             KillNow(cacheServer);
         }
 
@@ -508,22 +361,6 @@ namespace Hyperion.Editor.Services
             {
                 return "unknown";
             }
-        }
-
-        // Stable per project so repeat launches only sync what changed
-        private static string GetStagingDirectory(string projectDirectory)
-        {
-            string fullProjectDirectory = Path.GetFullPath(projectDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            string binariesDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
-
-            uint hash = 2166136261;
-
-            foreach (char character in fullProjectDirectory.ToLowerInvariant())
-            {
-                hash = (hash ^ character) * 16777619;
-            }
-
-            return Path.Combine(binariesDirectory, "PlayInEditorServer", $"{Path.GetFileName(fullProjectDirectory)}_{hash:x8}");
         }
 
         /// <summary>

@@ -26,8 +26,7 @@ namespace Hyperion
         Connected,
         Failed,
         Disconnected,
-        Hosting,
-        StartingServer
+        Hosting
     }
 
     [ClassBinding(Name = "EditorSubsystem")]
