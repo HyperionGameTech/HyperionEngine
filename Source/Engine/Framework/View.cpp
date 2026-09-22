@@ -4,11 +4,12 @@
  *  @licence MIT
  */
 
-#include <ScenePch.hpp>
+#include <HyperionPch.hpp>
 
 #include <Framework/View.hpp>
-#include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/EngineDriver.hpp>
+#include <Framework/EngineGlobals.hpp>
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
@@ -567,7 +568,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         // Shared CSM view matrix, anchored to the scene bounds so it is stable as the camera moves.
         if (isDirectional && isWorldBoundsSphereValid)
         {
-            DirectionalLight::CSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
+            LightCSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
 
             bool basisChanged = !csmState.basisInitialized;
             !basisChanged && (basisChanged |= (csmState.lastCommittedLightDir.Dot(lightDir) < MathUtil::Cos(MathUtil::DegToRad(g_cvCSMBasisAngleThresholdDegrees.Get()))));
@@ -691,7 +692,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (isDirectional)
             {
-                DirectionalLight::CSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
+                LightCSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
 
                 View* currentCascadeView = shadowViewsDynamic[shadowViewIndex]
                     ? shadowViewsDynamic[shadowViewIndex]
