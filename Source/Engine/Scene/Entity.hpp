@@ -238,6 +238,8 @@ private:
     void SetEntityManager(const Handle<EntityManager>& entityManager);
     void SetEntityManagerRaw_Internal(EntityManager* entityManager);
 
+    void SetSceneRaw_Internal(Scene* scene);
+
     ///Serialization
 
     HYP_METHOD(Property = "Tags", NoScriptBindings)

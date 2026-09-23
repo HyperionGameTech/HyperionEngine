@@ -117,6 +117,11 @@ void Entity::SetEntityManagerRaw_Internal(EntityManager* entityManager)
     m_entityManager = entityManager;
 }
 
+void Entity::SetSceneRaw_Internal(Scene* scene)
+{
+    m_scene = scene;
+}
+
 void Entity::AddToLayer(LayerId layerId)
 {
     if (uint32(layerId) >= MaxLayersPerWorld)
