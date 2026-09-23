@@ -1656,11 +1656,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     DeferredPassData& passData = *passDataCasted;
 
-    const uint32 frameIndex = GetFrameCounter();
+    const uint32 frameCounter = GetFrameCounter();
 
-    if (m_renderedViewOutputs.frameIndex != frameIndex)
+    if (m_renderedViewOutputs.frameIndex != frameCounter)
     {
-        m_renderedViewOutputs.frameIndex = frameIndex;
+        m_renderedViewOutputs.frameIndex = frameCounter;
         m_renderedViewOutputs.items.Resize(0);
     }
 
@@ -1831,7 +1831,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             RayTracingPassData* rayTracingPassData = DynamicCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
             Assert(rayTracingPassData != nullptr);
 
-            const TopLevelASRef& tlas = rayTracingPassData->rayTracingTlases[frameIndex];
+            const TopLevelASRef& tlas = rayTracingPassData->rayTracingTlases[frame->GetFrameIndex()];
 
             if (tlas && tlas->IsCreated())
             {
