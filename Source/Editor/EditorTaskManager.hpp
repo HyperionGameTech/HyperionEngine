@@ -66,6 +66,8 @@ public:
 
     uint32 NumRunningTasks() const
     {
+        Mutex::Guard guard(m_mutex);
+
         return uint32(m_tasks.Size());
     }
 

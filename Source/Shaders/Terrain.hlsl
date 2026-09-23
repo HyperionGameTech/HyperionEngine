@@ -682,9 +682,7 @@ PSOutput PSMain(PSInput input)
 
     roughness = roughness * roughness;
 
-    float2 velocity = float2(
-        ((input.position_ndc.xy / input.position_ndc.w) * 0.5 + 0.5)
-            - ((input.previous_position_ndc.xy / input.previous_position_ndc.w) * 0.5 + 0.5));
+    float2 velocity = ((input.position_ndc.xy / input.position_ndc.w) - (input.previous_position_ndc.xy / input.previous_position_ndc.w)) * float2(0.5, -0.5);
 
     uint mask = input.object_mask;
 

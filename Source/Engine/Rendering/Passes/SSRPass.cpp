@@ -43,7 +43,7 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = false;
-static constexpr TextureFormat SSRColorFormat = TextureFormat::R10G10B10A2;
+static constexpr TextureFormat SSRColorFormat = TextureFormat::RGBA16F;
 static constexpr TextureFormat SSRTraceFormat = TextureFormat::R32; // packed
 
 static EngineStatGpuTimer s_statSSRTracePass("Rendering/GPU/SSRTrace");
@@ -300,7 +300,7 @@ void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         {
             m_temporalBlending = MakeUnique<TemporalBlending>(
                 m_extent,
-                TextureFormat::RGBA8,
+                SSRColorFormat,
                 TemporalBlendTechnique::TECHNIQUE_1,
                 0.9,
                 RI.textureViewCache->GetOrCreate(m_sampledResultTexture),

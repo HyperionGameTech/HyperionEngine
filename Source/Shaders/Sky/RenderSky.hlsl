@@ -54,12 +54,16 @@ float3 GetAtmosphere(float3 ray_direction, float3 light_direction, float sun_int
     const float3 ray_origin = float3(0.0, 6372e3, 0.0);
 
     float2 p = RaySphereIntersection(ray_origin, ray_direction, ATMOSPHERE_RADIUS);
-    if (p.x > p.y)
+    if (p.y <= 0.0)
     {
         return (float3)0.0;
     }
 
-    p.y = min(p.y, RaySphereIntersection(ray_origin, ray_direction, PLANET_RADIUS).x);
+    // the march starts at the origin, which is inside the atmosphere, and stops at the ground if it's in front
+    p.x = max(p.x, 0.0);
+
+    const float planetHit = RaySphereIntersection(ray_origin, ray_direction, PLANET_RADIUS).x;
+    p.y = (planetHit > 0.0) ? min(p.y, planetHit) : p.y;
 
     float2 step_size = float2((p.y - p.x) / float(NUM_STEPS_X), 0.0);
 

@@ -296,6 +296,12 @@ RendererResult DX12GpuImage::Resize(const Vec3u& extent)
             return HYP_MAKE_ERROR(RendererError, "Cannot resize non-owned image");
         }
 
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = std::move(m_allocation), resource = std::move(m_resource)]() mutable
+            {
+                allocation.Reset();
+                resource.Reset();
+            }));
+
         m_resource.Reset();
         m_allocation.Reset();
 
@@ -504,7 +510,9 @@ void DX12GpuImage::InsertBarrier(
 
             if (state == ResourceState::ShaderResource)
             {
-                return D3D12_RESOURCE_STATE_DEPTH_READ;
+                return D3D12_RESOURCE_STATE_DEPTH_READ
+                    | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+                    | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
             }
         }
 
@@ -544,6 +552,10 @@ void DX12GpuImage::InsertBarrier(
 
             commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
         }
+        else if (stateAfter == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        {
+            InsertUAVBarrier(commandBuffer);
+        }
 
         // Always update state tracking regardless of whether a barrier was issued.
         if (onlyStencil)
@@ -562,6 +574,8 @@ void DX12GpuImage::InsertBarrier(
 
         return;
     }
+
+    bool uavBarrierInserted = false;
 
     for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
     {
@@ -602,6 +616,11 @@ void DX12GpuImage::InsertBarrier(
                 barrier.Transition.StateAfter = stateAfter;
 
                 commandBuffer->GetCommandList()->ResourceBarrier(1, &barrier);
+            }
+            else if (stateAfter == D3D12_RESOURCE_STATE_UNORDERED_ACCESS && !uavBarrierInserted)
+            {
+                InsertUAVBarrier(commandBuffer);
+                uavBarrierInserted = true;
             }
 
             // Update state tracking
@@ -964,6 +983,10 @@ void DX12GpuImage::CopyFromBuffer(
     const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
     const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
     const size_t requiredBufferSize = static_cast<size_t>(srcBufferOffset) + (static_cast<size_t>(mipExtent.y) * mipExtent.z * alignedRowPitch);
+    const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+
+    AssertDebug(srcBufferOffset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT == 0,
+        "Source buffer offset {} is not {} byte aligned", srcBufferOffset, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
     AssertDebug(srcBuffer->Size() >= requiredBufferSize,
         "Source buffer size ({}) is too small for copy operation. Required: {} bytes from offset {}",
@@ -988,7 +1011,7 @@ void DX12GpuImage::CopyFromBuffer(
         const uint16 actualLayer = (dstArrayLayer == UINT16_MAX) ? layerIdx : dstArrayLayer;
 
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedFootprint {};
-        placedFootprint.Offset = srcBufferOffset + uint64(layerIdx) * mipExtent.y * mipExtent.z * alignedRowPitch;
+        placedFootprint.Offset = srcBufferOffset + uint64(layerIdx) * layerStep;
         placedFootprint.Footprint.Depth = mipExtent.z;
         placedFootprint.Footprint.Height = mipExtent.y;
         placedFootprint.Footprint.Width = mipExtent.x;
@@ -1076,7 +1099,7 @@ void DX12GpuImage::CopyToBuffer(
         const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIndex);
         const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
         const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-        const size_t layerStep = static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z;
+        const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
         for (uint16 layerIndex = newSubResource.baseArrayLayer; layerIndex < newSubResource.baseArrayLayer + newSubResource.numLayers; layerIndex++)
         {
@@ -1384,10 +1407,20 @@ void DX12GpuImage::Fill(
 
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
 
+    // storage-only images (no ALLOW_RENDER_TARGET) can't take an RTV, clear them as a UAV instead
+    const D3D12_RESOURCE_FLAGS resourceFlags = m_resource->GetDesc().Flags;
+    const bool useUavClear = !isDepthStencil
+        && !(resourceFlags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        && (resourceFlags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
     // Transition to appropriate state for clearing
     if (isDepthStencil)
     {
         InsertBarrier(commandBuffer, subResource, ResourceState::DepthStencil, ShaderModuleType::None);
+    }
+    else if (useUavClear)
+    {
+        InsertBarrier(commandBuffer, subResource, ResourceState::UnorderedAccess, ShaderModuleType::None);
     }
     else
     {
@@ -1407,7 +1440,75 @@ void DX12GpuImage::Fill(
         ? uint16(NumArrayLayers() - subResource.baseArrayLayer)
         : subResource.numLayers;
 
-    if (isDepthStencil)
+    if (useUavClear)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC cpuHeapDesc {};
+        cpuHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        cpuHeapDesc.NumDescriptors = numLevels;
+        cpuHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+        ComPtr<ID3D12DescriptorHeap> cpuHeap;
+        HRESULT hr = device->CreateDescriptorHeap(&cpuHeapDesc, IID_PPV_ARGS(&cpuHeap));
+
+        DX12DescriptorHandle uavHandle = RI.descriptorHeapManager->Allocate(DX12DescriptorHeapType::CBV_SRV_UAV, numLevels);
+
+        if (FAILED(hr) || !uavHandle.IsValid())
+        {
+            HYP_LOG(RenderingBackend, Error, "Failed to allocate UAV descriptors to fill image {}", GetDebugName());
+
+            if (uavHandle.IsValid())
+            {
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(uavHandle));
+            }
+
+            return;
+        }
+
+        const uint32 incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        const D3D12_CPU_DESCRIPTOR_HANDLE cpuHeapStart = cpuHeap->GetCPUDescriptorHandleForHeapStart();
+
+        // R16..RGBA32 are UINT formats, a float clear is invalid for those
+        const bool isIntegerFormat = m_textureDesc.format >= TextureFormat::R16 && m_textureDesc.format <= TextureFormat::RGBA32;
+
+        const float clearValueFloat[4] = { value, value, value, value };
+        const UINT clearValueUint[4] = { UINT(value), UINT(value), UINT(value), UINT(value) };
+
+        for (uint8 levelIndex = 0; levelIndex < numLevels; levelIndex++)
+        {
+            const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
+                this,
+                subResource.baseMipLevel + levelIndex, 1,
+                subResource.baseArrayLayer, numLayers);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE cpuOnlyHandle = cpuHeapStart;
+            cpuOnlyHandle.ptr += SIZE_T(incrementSize) * levelIndex;
+
+            D3D12_CPU_DESCRIPTOR_HANDLE shaderVisibleCpuHandle = uavHandle.cpuHandle;
+            shaderVisibleCpuHandle.ptr += SIZE_T(incrementSize) * levelIndex;
+
+            D3D12_GPU_DESCRIPTOR_HANDLE shaderVisibleGpuHandle = uavHandle.gpuHandle;
+            shaderVisibleGpuHandle.ptr += UINT64(incrementSize) * levelIndex;
+
+            device->CreateUnorderedAccessView(m_resource.Get(), nullptr, &uavDesc, cpuOnlyHandle);
+            device->CreateUnorderedAccessView(m_resource.Get(), nullptr, &uavDesc, shaderVisibleCpuHandle);
+
+            if (isIntegerFormat)
+            {
+                commandList->ClearUnorderedAccessViewUint(shaderVisibleGpuHandle, cpuOnlyHandle, m_resource.Get(), clearValueUint, 0, nullptr);
+            }
+            else
+            {
+                commandList->ClearUnorderedAccessViewFloat(shaderVisibleGpuHandle, cpuOnlyHandle, m_resource.Get(), clearValueFloat, 0, nullptr);
+            }
+        }
+
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([uavHandle = std::move(uavHandle), cpuHeap = std::move(cpuHeap)]() mutable
+            {
+                RI.descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(uavHandle));
+                cpuHeap.Reset();
+            }));
+    }
+    else if (isDepthStencil)
     {
         // For depth/stencil, create a temporary DSV and clear it
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};

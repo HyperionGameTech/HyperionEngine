@@ -92,33 +92,33 @@ constexpr inline bool IsAlphabetical(Char32 ch)
     return (ch >= 0xC0) || ((ch >= Char32('A') && ch <= Char32('Z')) || (ch >= Char32('a') && ch <= Char32('z')));
 }
 
-constexpr inline size_t StringLength(const Char8* first, const Char8* last)
+// Byte width of the utf-8 sequence starting with lead, or 0 if lead is not a valid lead byte
+constexpr inline size_t Utf8SequenceWidth(Char8 lead)
 {
-    if (first == last)
+    if (lead >= 0 && lead <= 127)
+        return 1;
+    else if ((lead & 0xE0) == 0xC0)
+        return 2;
+    else if ((lead & 0xF0) == 0xE0)
+        return 3;
+    else if ((lead & 0xF8) == 0xF0)
+        return 4;
+
+    return 0;
+}
+
+// True if none of the continuation bytes of the sequence at str hit the null terminator
+constexpr inline bool IsUtf8SequenceComplete(const Char8* str, size_t width)
+{
+    for (size_t i = 1; i < width; i++)
     {
-        return 0;
+        if (str[i] == '\0')
+        {
+            return false;
+        }
     }
 
-    size_t count = 0;
-    size_t codepoints = 0;
-
-    for (; first[codepoints] != '\0' && (first + codepoints) != last; count++)
-    {
-        const Char8 c = first[codepoints];
-
-        if (c >= 0 && c <= 127)
-            codepoints += 1;
-        else if ((c & 0xE0) == 0xC0)
-            codepoints += 2;
-        else if ((c & 0xF0) == 0xE0)
-            codepoints += 3;
-        else if ((c & 0xF8) == 0xF0)
-            codepoints += 4;
-        else
-            return InvalidUTF8; // invalid utf8
-    }
-
-    return count;
+    return true;
 }
 
 constexpr inline size_t StringLength(const Char8* first, const Char8* last, size_t& outCodepoints)
@@ -135,23 +135,33 @@ constexpr inline size_t StringLength(const Char8* first, const Char8* last, size
 
     for (; first[codepoints] != '\0' && (first + codepoints) != last; count++)
     {
-        const Char8 c = first[codepoints];
+        const Char8* position = first + codepoints;
+        const size_t width = Utf8SequenceWidth(*position);
 
-        if (c >= 0 && c <= 127)
-            codepoints += 1;
-        else if ((c & 0xE0) == 0xC0)
-            codepoints += 2;
-        else if ((c & 0xF0) == 0xE0)
-            codepoints += 3;
-        else if ((c & 0xF8) == 0xF0)
-            codepoints += 4;
-        else
+        if (width == 0)
+        {
             return InvalidUTF8; // invalid utf8
+        }
+
+        // truncated sequence - treat as the end of the string
+        if (size_t(last - position) < width || !IsUtf8SequenceComplete(position, width))
+        {
+            break;
+        }
+
+        codepoints += width;
     }
 
     outCodepoints = codepoints;
 
     return count;
+}
+
+constexpr inline size_t StringLength(const Char8* first, const Char8* last)
+{
+    size_t codepoints = 0;
+
+    return StringLength(first, last, codepoints);
 }
 
 constexpr inline size_t StringLength(const Char8* str, size_t& outCodepoints)
@@ -161,18 +171,20 @@ constexpr inline size_t StringLength(const Char8* str, size_t& outCodepoints)
 
     for (; str[codepoints] != '\0'; count++)
     {
-        const Char8 c = str[codepoints];
+        const size_t width = Utf8SequenceWidth(str[codepoints]);
 
-        if (c >= 0 && c <= 127)
-            codepoints += 1;
-        else if ((c & 0xE0) == 0xC0)
-            codepoints += 2;
-        else if ((c & 0xF0) == 0xE0)
-            codepoints += 3;
-        else if ((c & 0xF8) == 0xF0)
-            codepoints += 4;
-        else
+        if (width == 0)
+        {
             return InvalidUTF8; // invalid utf8
+        }
+
+        // truncated sequence - treat as the end of the string
+        if (!IsUtf8SequenceComplete(str + codepoints, width))
+        {
+            break;
+        }
+
+        codepoints += width;
     }
 
     outCodepoints = codepoints;

@@ -65,6 +65,67 @@ HYP_DEFINE_LOG_SUBCHANNEL(CacheClient, Engine);
 
 namespace {
 
+/// \p headerBuf must be NUL terminated, \p headerEnd points at the "\r\n\r\n" inside it.
+/// \p outContentLength is -1 when the response has no Content-Length.
+Result ParseResponseHeaders(const char* headerBuf, const char* headerEnd, int64& outContentLength)
+{
+    outContentLength = -1;
+
+    const char* statusStart = strchr(headerBuf, ' ');
+
+    if (statusStart == nullptr || statusStart >= headerEnd)
+    {
+        return HYP_MAKE_ERROR(Error, "Invalid HTTP response");
+    }
+
+    const int statusCode = atoi(statusStart + 1);
+
+    if (statusCode != 200)
+    {
+        return HYP_MAKE_ERROR(Error, "Server returned HTTP {}", statusCode);
+    }
+
+    const char* contentLengthField = strstr(headerBuf, "Content-Length:");
+
+    if (contentLengthField != nullptr && contentLengthField < headerEnd)
+    {
+        const char* valueStart = contentLengthField + 15;
+        char* valueEnd = nullptr;
+
+        const long long contentLength = strtoll(valueStart, &valueEnd, 10);
+
+        if (valueEnd == valueStart || contentLength < 0)
+        {
+            return HYP_MAKE_ERROR(Error, "Invalid Content-Length in HTTP response");
+        }
+
+        outContentLength = int64(contentLength);
+    }
+
+    return {};
+}
+
+// server supplied names end up in local file paths, only allow a plain file name
+bool IsSafePathComponent(const String& component)
+{
+    if (component.Empty() || component.Contains(".."))
+    {
+        return false;
+    }
+
+    for (size_t index = 0; index < component.Size(); index++)
+    {
+        const char character = component.Data()[index];
+
+        if (character == '/' || character == '\\' || character == ':' || character == '\0')
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 /// We use ANSIString not ANSIStringView for \p host \p path params, because we need to pass them as
 /// raw char* to C/posix/Winsock functions and need to be sure a NUL terminator exists at the end of the string.
 Result HttpGetBytes(
@@ -143,6 +204,12 @@ Result HttpGetBytes(
         return HYP_MAKE_ERROR(Error, "Failed to connect");
     }
 
+    // every return from here on has to close the socket and balance WSAStartup
+    HYP_DEFER({
+        closesocket(sock);
+        WSACleanup();
+    });
+
     DWORD timeout = 10000;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
 
@@ -154,19 +221,22 @@ Result HttpGetBytes(
         "\r\n",
          path.Data(), host.Data(), uint32(port));
 
+    if (reqLen < 0 || size_t(reqLen) >= sizeof(request))
+    {
+        return HYP_MAKE_ERROR(Error, "Request path too long");
+    }
+
     if (send(sock, request, reqLen, 0) == SOCKET_ERROR)
     {
-        closesocket(sock);
-        WSACleanup();
-
         return HYP_MAKE_ERROR(Error, "Failed to send request");
     }
 
-    char headerBuf[8192];
+    // one extra byte so the received headers can always be NUL terminated for strstr
+    char headerBuf[8192 + 1] = {};
     size_t headerLen = 0;
 
     bool headersDone = false;
-    
+
     size_t expectedBodySize = 0;
     size_t receivedBodySize = 0;
 
@@ -177,39 +247,32 @@ Result HttpGetBytes(
     {
         if (!headersDone)
         {
-            if (headerLen + size_t(n) > sizeof(headerBuf))
+            if (headerLen + size_t(n) >= sizeof(headerBuf))
             {
                 return HYP_MAKE_ERROR(Error, "Response headers too large");
             }
 
             Memory::Copy(headerBuf + headerLen, recvBuf, size_t(n));
             headerLen += size_t(n);
+            headerBuf[headerLen] = '\0';
 
-            const char* bodyEnd = strstr(headerBuf, "\r\n\r\n");
-            if (bodyEnd != nullptr)
+            const char* headerEnd = strstr(headerBuf, "\r\n\r\n");
+            if (headerEnd != nullptr)
             {
-                const char* statusStart = strchr(headerBuf, ' ');
-                if (!statusStart)
+                int64 contentLength = -1;
+
+                if (Result parseResult = ParseResponseHeaders(headerBuf, headerEnd, contentLength); parseResult.HasError())
                 {
-                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response");
+                    return parseResult;
                 }
 
-                int statusCode = atoi(statusStart + 1);
-                if (statusCode != 200)
+                if (contentLength >= 0)
                 {
-                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {}", statusCode);
+                    expectedBodySize = size_t(contentLength);
                 }
 
-                // Parse Content-Length
-                const char* cl = strstr(headerBuf, "Content-Length:");
-                
-                if (cl != nullptr && cl < bodyEnd)
-                {
-                    expectedBodySize = size_t(atoi(cl + 15));
-                }
+                const char* bodyStart = headerEnd + 4;
 
-                const char* bodyStart = bodyEnd + 4;
-                
                 size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
                 if (bodyBytesInHeader > 0)
                 {
@@ -226,9 +289,6 @@ Result HttpGetBytes(
             receivedBodySize += size_t(n);
         }
     }
-
-    closesocket(sock);
-    WSACleanup();
 
     if (n < 0)
     {
@@ -296,6 +356,9 @@ Result HttpGetBytes(
         return HYP_MAKE_ERROR(Error, "Failed to connect");
     }
 
+    // every return from here on has to close the socket
+    HYP_DEFER({ close(sock); });
+
     struct timeval tv = { 10, 0 };
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
@@ -307,16 +370,26 @@ Result HttpGetBytes(
         "\r\n",
          path.Data(), host.Data(), uint32(port));
 
-    if (send(sock, request, size_t(reqLen), 0) < 0)
+    if (reqLen < 0 || size_t(reqLen) >= sizeof(request))
     {
-        close(sock);
+        return HYP_MAKE_ERROR(Error, "Request path too long");
+    }
 
+#ifdef MSG_NOSIGNAL
+    const int sendFlags = MSG_NOSIGNAL;
+#else
+    const int sendFlags = 0;
+#endif
+
+    if (send(sock, request, size_t(reqLen), sendFlags) < 0)
+    {
         return HYP_MAKE_ERROR(Error, "Failed to send request");
     }
 
-    char headerBuf[8192];
+    // one extra byte so the received headers can always be NUL terminated for strstr
+    char headerBuf[8192 + 1] = {};
     size_t headerLen = 0;
-    
+
     bool headersDone = false;
 
     size_t expectedBodySize = 0;
@@ -329,38 +402,32 @@ Result HttpGetBytes(
     {
         if (!headersDone)
         {
-            if (headerLen + size_t(n) > sizeof(headerBuf))
+            if (headerLen + size_t(n) >= sizeof(headerBuf))
             {
                 return HYP_MAKE_ERROR(Error, "Response headers too large");
             }
 
             Memory::Copy(headerBuf + headerLen, recvBuf, size_t(n));
             headerLen += size_t(n);
+            headerBuf[headerLen] = '\0';
 
-            const char* bodyEnd = strstr(headerBuf, "\r\n\r\n");
+            const char* headerEnd = strstr(headerBuf, "\r\n\r\n");
 
-            if (bodyEnd != nullptr)
+            if (headerEnd != nullptr)
             {
-                const char* statusStart = strchr(headerBuf, ' ');
-                if (!statusStart)
+                int64 contentLength = -1;
+
+                if (Result parseResult = ParseResponseHeaders(headerBuf, headerEnd, contentLength); parseResult.HasError())
                 {
-                    return HYP_MAKE_ERROR(Error, "Invalid HTTP response");
+                    return parseResult;
                 }
 
-                int statusCode = atoi(statusStart + 1);
-                if (statusCode != 200)
+                if (contentLength >= 0)
                 {
-                    return HYP_MAKE_ERROR(Error, "Server returned HTTP {}", statusCode);
+                    expectedBodySize = size_t(contentLength);
                 }
 
-                // Parse Content-Length
-                const char* cl = strstr(headerBuf, "Content-Length:");
-                if (cl != nullptr && cl < bodyEnd)
-                {
-                    expectedBodySize = size_t(atoi(cl + 15));
-                }
-
-                const char* bodyStart = bodyEnd + 4;
+                const char* bodyStart = headerEnd + 4;
 
                 size_t bodyBytesInHeader = size_t(headerBuf + headerLen - bodyStart);
                 if (bodyBytesInHeader > 0)
@@ -378,8 +445,6 @@ Result HttpGetBytes(
             receivedBodySize += size_t(n);
         }
     }
-
-    close(sock);
 
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
     {
@@ -479,6 +544,20 @@ Result DownloadCacheFromHost(
 
     HYP_LOG(CacheClient, Verbose, "CacheSync timestamp={}, {} assets",
         serverManifest.timestamp, serverManifest.assets.Size());
+
+    // bucket indices index local arrays and names become file paths, don't trust either
+    for (const AssetEntry& entry : serverManifest.assets)
+    {
+        if (entry.path.bucketIndex == 0 || entry.path.bucketIndex >= MaxAssetBuckets)
+        {
+            return HYP_MAKE_ERROR(Error, "CacheSync server manifest has an invalid bucket index {}", uint32(entry.path.bucketIndex));
+        }
+
+        if (!IsSafePathComponent(entry.path.assetName.ToString()))
+        {
+            return HYP_MAKE_ERROR(Error, "CacheSync server manifest has an unsafe asset name '{}'", entry.path.assetName);
+        }
+    }
 
     // Compare with local manifest
     uint64 localTimestamp = 0;
@@ -650,16 +729,39 @@ Result DownloadCacheFromHost(
 
                 if (!hmfUpToDate)
                 {
-                    FileByteWriter hmfWriter { hmfFilePath };
+                    // download next to the real file and swap it in, a failed download must not leave a truncated .hmf behind
+                    const FilePath hmfDownloadPath = hmfFilePath + ".download";
+
+                    FileByteWriter hmfWriter { hmfDownloadPath };
 
                     if (hmfWriter.IsOpen())
                     {
-                        if (Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter); res.HasError())
-                        {
-                            HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.path.ToString(), res.GetError().GetMessage());
-                        }
+                        Result res = HttpGetBytes(host, port, hmfPathBuf, hmfWriter);
 
                         hmfWriter.Close();
+
+                        if (res.HasError())
+                        {
+                            HYP_LOG(CacheClient, Warning, "Failed to download HMF for {}: {}", entry.path.ToString(), res.GetError().GetMessage());
+
+                            hmfDownloadPath.Remove();
+
+                            entryFailed = true;
+                        }
+                        else if (!hmfDownloadPath.Rename(hmfFilePath))
+                        {
+                            HYP_LOG(CacheClient, Warning, "Failed to move downloaded HMF into place at {}", hmfFilePath);
+
+                            hmfDownloadPath.Remove();
+
+                            entryFailed = true;
+                        }
+                    }
+                    else
+                    {
+                        HYP_LOG(CacheClient, Warning, "Failed to open {} for writing", hmfDownloadPath);
+
+                        entryFailed = true;
                     }
                 }
             }
@@ -764,10 +866,10 @@ Result DownloadCacheFromHost(
     // next run reads it back, treats the assets that failed as up to date, and never retries them.
     if (const int32 numFailures = failureCount.Get(MemoryOrder::RELAXED); numFailures != 0)
     {
-        HYP_LOG(CacheClient, Warning, "CacheSync failed to fetch {} of {} assets",
+        HYP_LOG(CacheClient, Warning, "CacheSync failed to fetch {} of {} assets; not recording the manifest so they're retried next sync",
             numFailures, serverManifest.assets.Size());
     }
-
+    else
     {
         localManifestPath.Remove();
 

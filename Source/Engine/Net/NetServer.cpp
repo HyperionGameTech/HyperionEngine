@@ -13,10 +13,21 @@
 
 #include <Core/Utilities/Time.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
 namespace Hyperion {
 namespace net {
 
 static constexpr TimeDiff ConnectionTimeout = TimeDiff(25000);
+
+static constexpr uint32 MaxConnections = 64;
+
+// Each connection spawns a player entity, so throttle how fast unknown addresses can open new ones
+static constexpr uint32 MaxNewConnectionsPerWindow = 8;
+static constexpr TimeDiff NewConnectionWindow = TimeDiff(1000);
+
+// Clients only ever open a couple of streams to the server; stops a peer allocating state for every 32-bit key
+static constexpr uint32 MaxIncomingStreamsPerChannel = 64;
 
 #pragma region NetConnection
 
@@ -27,8 +38,8 @@ public:
         : m_id(id),
           m_address(address),
           m_lastActivityTime(Time::Now()),
-          m_reliableChannel(NetChannelMode::ReliableOrdered),
-          m_unreliableChannel(NetChannelMode::UnreliableOrdered)
+          m_reliableChannel(NetChannelMode::ReliableOrdered, MaxIncomingStreamsPerChannel),
+          m_unreliableChannel(NetChannelMode::UnreliableOrdered, MaxIncomingStreamsPerChannel)
     {
     }
 
@@ -85,7 +96,9 @@ static NetMessageHandler GetNoOpHandler()
 }
 
 NetServer::NetServer()
-    : m_nextConnectionId(1)
+    : m_nextConnectionId(1),
+      m_newConnectionWindowStart(Time::Now()),
+      m_numNewConnectionsInWindow(0)
 {
     m_dispatcher.RegisterHandler(NetMessageId::ConnectRequest, GetNoOpHandler());
 
@@ -178,12 +191,29 @@ void NetServer::Update()
 
         if (addrIt == m_addrToConnectionId.End())
         {
+            if (datagram.Size() < sizeof(NetMessageHeader))
+            {
+                continue;
+            }
+
             MemoryByteReader reader(datagram);
 
-            NetMessageHeader header;
+            NetMessageHeader header {};
             header.Deserialize(reader);
 
             if (header.protocolVersion != CurrentProtocolVersion || header.messageId != NetMessageId::ConnectRequest)
+            {
+                continue;
+            }
+
+            if (m_connections.Size() >= MaxConnections)
+            {
+                HYP_LOG_ONCE(Net, Warning, "Rejecting connection from {}: server is full ({} connections)", senderAddress.ToString(), MaxConnections);
+
+                continue;
+            }
+
+            if (!TryAcceptNewConnection())
             {
                 continue;
             }
@@ -247,6 +277,26 @@ void NetServer::Update()
 
         ++it;
     }
+}
+
+bool NetServer::TryAcceptNewConnection()
+{
+    const Time now = Time::Now();
+
+    if (now - m_newConnectionWindowStart >= NewConnectionWindow)
+    {
+        m_newConnectionWindowStart = now;
+        m_numNewConnectionsInWindow = 0;
+    }
+
+    if (m_numNewConnectionsInWindow >= MaxNewConnectionsPerWindow)
+    {
+        return false;
+    }
+
+    m_numNewConnectionsInWindow++;
+
+    return true;
 }
 
 #pragma endregion NetServer

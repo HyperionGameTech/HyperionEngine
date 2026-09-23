@@ -14,6 +14,7 @@
 #   endif
 #else
 #   include <sys/socket.h>
+#   include <sys/uio.h>
 #   include <netinet/in.h>
 #   include <arpa/inet.h>
 #   include <unistd.h>
@@ -154,45 +155,85 @@ Result NetSocketUDP::RecvFrom(NetAddress& outSender, NetBuffer& outData)
 
     sockaddr_in senderAddr {};
 
-#ifdef HYP_WINDOWS
-    int addrLen = sizeof(senderAddr);
-#else
-    socklen_t addrLen = sizeof(senderAddr);
-#endif
-
-    const int received = recvfrom(
-        m_handle,
-        reinterpret_cast<char*>(buffer),
-        int(MaxDatagramSize),
-        0,
-        reinterpret_cast<sockaddr*>(&senderAddr),
-        &addrLen);
-
-    if (received <= 0)
+    for (;;)
     {
-#ifdef HYP_WINDOWS
-        const int lastError = WSAGetLastError();
+        senderAddr = {};
 
-        if (lastError != WSAEWOULDBLOCK)
+#ifdef HYP_WINDOWS
+        int addrLen = sizeof(senderAddr);
+
+        const int received = recvfrom(
+            m_handle,
+            reinterpret_cast<char*>(buffer),
+            int(MaxDatagramSize),
+            0,
+            reinterpret_cast<sockaddr*>(&senderAddr),
+            &addrLen);
+
+        if (received < 0)
         {
-            HYP_LOG(Net, Warning, "recvfrom() failed with error code {}", lastError);
+            const int lastError = WSAGetLastError();
+
+            if (lastError == WSAEMSGSIZE)
+            {
+                // oversized datagram, windows already discarded the rest of it. skip it and keep draining
+                continue;
+            }
+
+            if (lastError != WSAEWOULDBLOCK)
+            {
+                HYP_LOG(Net, Warning, "recvfrom() failed with error code {}", lastError);
+            }
+
+            return HYP_MAKE_ERROR(Error, "Failed to receive UDP packet");
         }
 #else
-        if (errno != EWOULDBLOCK && errno != EAGAIN)
+        iovec bufferVector {};
+        bufferVector.iov_base = buffer;
+        bufferVector.iov_len = MaxDatagramSize;
+
+        msghdr message {};
+        message.msg_name = &senderAddr;
+        message.msg_namelen = sizeof(senderAddr);
+        message.msg_iov = &bufferVector;
+        message.msg_iovlen = 1;
+
+        const ssize_t received = recvmsg(m_handle, &message, 0);
+
+        if (received < 0)
         {
-            HYP_LOG(Net, Warning, "recvfrom() failed with error code {}", errno);
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            if (errno != EWOULDBLOCK && errno != EAGAIN)
+            {
+                HYP_LOG(Net, Warning, "recvfrom() failed with error code {}", errno);
+            }
+
+            return HYP_MAKE_ERROR(Error, "Failed to receive UDP packet");
+        }
+
+        if ((message.msg_flags & MSG_TRUNC) != 0)
+        {
+            // oversized datagram got truncated, drop it
+            continue;
         }
 #endif
 
-        return HYP_MAKE_ERROR(Error, "Failed to receive UDP packet");
+        if (received == 0)
+        {
+            continue;
+        }
+
+        outSender = NetAddress(senderAddr);
+
+        outData.SetSize(size_t(received));
+        Memory::Copy(outData.Data(), buffer, size_t(received));
+
+        return {};
     }
-
-    outSender = NetAddress(senderAddr);
-
-    outData.SetSize(received);
-    Memory::Copy(outData.Data(), buffer, received);
-
-    return {};
 }
 
 } // namespace net

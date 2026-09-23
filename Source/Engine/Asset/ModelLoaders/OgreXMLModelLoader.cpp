@@ -315,6 +315,15 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             continue;
         }
 
+        const uint32 vertexCount = uint32(model.positions.Size());
+
+        if (subMesh.indices.FindIf([vertexCount](uint32 index) { return index >= vertexCount; }) != subMesh.indices.End())
+        {
+            HYP_LOG(Assets, Warning, "Ogre XML parser: Skipping submesh '{}' with face indices out of range of {} vertices", subMesh.name, vertexCount);
+
+            continue;
+        }
+
         // Reverse triangle winding: convert right-handed CCW to left-handed CW
         for (uint32 i = 0; i + 2 < subMesh.indices.Size(); i += 3)
         {

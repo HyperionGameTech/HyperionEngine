@@ -17,11 +17,12 @@ STATIC(MAX_ENV_PROBES, 4)
     #elif defined(OUTPUT_RGBA32F)
         #define OUTPUT_FORMAT rgba32f
     #else
-        #define OUTPUT_FORMAT rgba8
+        #define OUTPUT_FORMAT rgba16f
     #endif
 #endif
 
-#if defined(OUTPUT_RGBA8) || (!defined(OUTPUT_RGBA16F) && !defined(OUTPUT_RGBA32F))
+// OUTPUT isn't PERMUTE'd so nothing is usually defined; default to float (SSGI.cpp output is RGBA16F)
+#if defined(OUTPUT_RGBA8)
     #define OUTPUT_UAV_TYPE unorm float4
 #else
     #define OUTPUT_UAV_TYPE float4
@@ -240,7 +241,9 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         const uint sampleIndex = temporalSampleIndex * numRaySamples + rayIndex;
 
-        const float2 rnd = (float2)SampleBlueNoise(int(coord.x), int(coord.y), sampleIndex, numSamplesTotal);
+        const float2 rnd = float2(
+            SampleBlueNoise(int(coord.x), int(coord.y), int(sampleIndex), 0),
+            SampleBlueNoise(int(coord.x), int(coord.y), int(sampleIndex), 1));
 
         const float3 d = SampleCosineWeightedHemisphere(rnd);
 

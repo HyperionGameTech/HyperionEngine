@@ -210,8 +210,6 @@ Result BakeData<LightmapVolume>::BuildFromExistingUVs()
 
         const uint32 atlasIndex = MathUtil::Min(m_meshAtlasIndices[meshIndex], atlasCount - 1);
 
-        const Mat4f normalMatrix = bakeMesh.transformMatrix.Inverse().Transpose();
-
         MeshIndexArray& currentUvIndices = meshToUvIndices[bakeMesh.mesh->Id()];
 
         const MeshIndexArray& indices = m_meshIndices[meshIndex];
@@ -317,7 +315,8 @@ Result BakeData<LightmapVolume>::BuildFromExistingUVs()
                         + vertexNormals[1] * barycentricCoords.y
                         + vertexNormals[2] * barycentricCoords.z;
 
-                    const Vec3f normal = (normalMatrix.TransformVector(Vec4f(interpolatedNormal, 0.0f))).GetXYZ().Normalize();
+                    // stored normals are already world space
+                    const Vec3f normal = interpolatedNormal.Normalized();
 
                     const uint32 texelIdx = uint32(point.x) + uint32(point.y) * atlasDimensions.x + atlasIndex * texelsPerAtlas;
 
@@ -436,11 +435,6 @@ Result BakeData<LightmapVolume>::Build()
     {
         BakeMeshData& bakeMesh = m_meshData[meshIndex];
 
-        const Mat4f& transform = bakeMesh.transformMatrix;
-        const Mat4f inverseTransform = transform.Inverse();
-        const Mat4f normalMatrix = transform.Inverse().Transpose();
-        const Mat4f inverseNormalMatrix = normalMatrix.Inverse();
-
         MeshIndexArray& currentUvIndices = meshToUvIndices[bakeMesh.mesh->Id()];
 
         const xatlas::Mesh& atlasMesh = atlas->meshes[meshIndex];
@@ -529,16 +523,17 @@ Result BakeData<LightmapVolume>::Build()
                     };
 
                     const Vec3f vertexNormals[3] = {
-                        (inverseNormalMatrix.TransformVector(Vec4f(Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[0] * 3], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 2]), 0.0f))).GetXYZ(),
-                        (inverseNormalMatrix.TransformVector(Vec4f(Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[0] * 3], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 2]), 0.0f))).GetXYZ(),
-                        (inverseNormalMatrix.TransformVector(Vec4f(Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[0] * 3], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 2]), 0.0f))).GetXYZ(),
+                        Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[0] * 3], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 2]),
+                        Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[1] * 3], m_meshVertexNormals[meshIndex][triangleIndices[1] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[1] * 3 + 2]),
+                        Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[2] * 3], m_meshVertexNormals[meshIndex][triangleIndices[2] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[2] * 3 + 2])
                     };
 
                     const Vec3f position = vertexPositions[0] * barycentricCoords.x
                         + vertexPositions[1] * barycentricCoords.y
                         + vertexPositions[2] * barycentricCoords.z;
 
-                    const Vec3f normal = (normalMatrix.TransformVector(Vec4f((vertexNormals[0] * barycentricCoords.x + vertexNormals[1] * barycentricCoords.y + vertexNormals[2] * barycentricCoords.z), 0.0f))).GetXYZ().Normalize();
+                    // stored normals are already world space
+                    const Vec3f normal = (vertexNormals[0] * barycentricCoords.x + vertexNormals[1] * barycentricCoords.y + vertexNormals[2] * barycentricCoords.z).Normalized();
 
                     const uint32 texelIdx = ((point.x + atlas->width) % atlas->width
                         + (point.y + atlas->height) % atlas->height * atlas->width)

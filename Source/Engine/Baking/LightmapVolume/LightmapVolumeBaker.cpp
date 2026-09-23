@@ -631,6 +631,15 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
+        // entity may have been deleted or moved to another scene mid-bake; don't rewrite/save its mesh
+        if (!bakeEntity.entity.IsValid() || bakeEntity.entity->GetEntityManager() != m_scene->GetEntityManager().Get())
+        {
+            HYP_LOG(Lightmap, Warning, "Skipping baked entity {}: removed from the scene during the bake",
+                bakeEntity.entity.IsValid() ? bakeEntity.entity->Id() : ObjIdBase());
+
+            continue;
+        }
+
         const BakeMeshData& bakeMeshForAtlasCount = m_bakeData.GetMeshData()[bakeEntityIndex];
 
         // Determine the dominant atlas index for this entity (for the element component assignment,
@@ -830,6 +839,12 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             }
 
             const Handle<Entity>& entity = bakeEntity.entity;
+
+            // could have been deleted or moved to another scene between the bake finishing and this running
+            if (!entity.IsValid() || entity->GetEntityManager() != entityManager.Get() || !entityManager->HasEntity(entity->Id()))
+            {
+                return;
+            }
 
             if (entityManager->HasComponent<MeshComponent>(entity))
             {

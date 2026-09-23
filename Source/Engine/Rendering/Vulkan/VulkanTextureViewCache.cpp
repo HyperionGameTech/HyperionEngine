@@ -105,37 +105,38 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
     Assert(texture != nullptr);
 
     const size_t idx = texture->Id().ToIndex();
-
-    TSharedLock sharedLock(mutex);
+    const uint64 key = CalculateImageViewHash(subResource, viewTextureType);
 
     SubtypeData& subtypeData = GetSubtypeData(texture->Id());
 
-    if (!subtypeData.imageViews.HasIndex(idx))
     {
-        sharedLock.Reset();
+        TSharedLock sharedLock(mutex);
 
-        // try again, this time with exclusive access.
-        TUniqueLock uniqueLock(mutex);
-
-        if (!subtypeData.imageViews.HasIndex(idx))
+        if (subtypeData.imageViews.HasIndex(idx))
         {
-            subtypeData.imageViews.Emplace(idx);
-            subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
+            TextureImageViewMap& textureImageViews = subtypeData.imageViews.Get(idx);
+
+            auto it = textureImageViews.Find(key);
+
+            if (it != textureImageViews.End())
+            {
+                Assert(it->second.IsValid());
+
+                return it->second;
+            }
         }
-
-        uniqueLock.Reset();
-
-        // back to shared access.
-        sharedLock.Reset(mutex);
     }
 
-    auto& textureImageViews = subtypeData.imageViews.Get(idx);
+    // re-check everything under the exclusive lock, another thread may have inserted or removed in between
+    TUniqueLock uniqueLock(mutex);
 
-    ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
-    bool isLockUnique = false;
-    HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
+    if (!subtypeData.imageViews.HasIndex(idx))
+    {
+        subtypeData.imageViews.Emplace(idx);
+        subtypeData.weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
+    }
 
-    const uint64 key = CalculateImageViewHash(subResource, viewTextureType);
+    TextureImageViewMap& textureImageViews = subtypeData.imageViews.Get(idx);
 
     auto it = textureImageViews.Find(key);
 
@@ -148,12 +149,6 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
 #endif
 
         Assert(imageView->Create());
-
-        sharedLock.Reset();
-
-        uniqueLockStorage.Construct(mutex);
-
-        isLockUnique = true;
 
         it = textureImageViews.Set(key, imageView).first;
     }

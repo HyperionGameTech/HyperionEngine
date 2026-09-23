@@ -616,12 +616,18 @@ static void ApplyMeshEditVertexPositions(
     uint8 lodIndex,
     const Array<uint32, EditorAllocator>& vertexIndices,
     const Array<Vec3f, EditorAllocator>& localPositions,
+    uint32 expectedVertexCount,
     bool recomputeDerivedData)
 {
     Entity* entity = DynamicCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !meshComponent->mesh.IsValid())
+    {
+        return;
+    }
+
+    if (vertexIndices.Size() != localPositions.Size())
     {
         return;
     }
@@ -634,6 +640,7 @@ static void ApplyMeshEditVertexPositions(
 
         size_t vertexSizeInFloats;
         VertexInputLayoutDesc layoutDesc;
+        uint32 vertexCount;
 
         { // read scope needed to access the data.
             auto readScope = mesh->GetReadScope();
@@ -642,12 +649,33 @@ static void ApplyMeshEditVertexPositions(
 
             layoutDesc = vertexView.layoutDesc;
             vertexSizeInFloats = vertexView.layoutDesc.VertexSize() / sizeof(float);
+            vertexCount = uint32(vertexView.vertexCount);
+
+            // the LOD was regenerated or swapped since these edits were captured
+            if (vertexCount != expectedVertexCount)
+            {
+                HYP_LOG(Editor, Warning, "Mesh {} LOD {} has {} vertices but the edit expected {}; skipping stale mesh edit",
+                    mesh->GetName(), lodIndex, vertexCount, expectedVertexCount);
+
+                return;
+            }
 
             mutableVertexData = Array<float, EditorAllocator>(vertexView.floatData, vertexView.vertexCount * vertexSizeInFloats);
             indexData = mesh->GetIndexData(lodIndex);
         }
 
         Assert(vertexSizeInFloats != 0);
+
+        for (uint32 vertexIndex : vertexIndices)
+        {
+            if (vertexIndex >= vertexCount)
+            {
+                HYP_LOG(Editor, Warning, "Mesh edit vertex index {} out of range for mesh {} LOD {} ({} vertices); skipping",
+                    vertexIndex, mesh->GetName(), lodIndex, vertexCount);
+
+                return;
+            }
+        }
 
         auto writeScope = mesh->GetWriteScope();
 
@@ -747,7 +775,7 @@ static void WriteAllMeshVertexPositions(
         vertexIndices.PushBack(i);
     }
 
-    ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, positions, /* recomputeDerivedData */ true);
+    ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, positions, uint32(positions.Size()), /* recomputeDerivedData */ true);
 }
 
 void EditorSubsystem::EnterMeshEditMode()
@@ -976,6 +1004,12 @@ void EditorSubsystem::SetMeshEditLod(uint8 lodIndex)
 
     if (m_meshEditState.lodIndex != clampedLodIndex)
     {
+        // baseline + undo entries index into the old LOD's vertex buffer, so settle them before switching
+        EndMeshEditDrag(/* saveEdits */ true);
+        CommitMeshEdits();
+
+        m_meshEditState.actionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
+
         SetSelectedMeshEditFace({});
         m_meshEditState.hoveredFace.Unset();
     }
@@ -1028,6 +1062,18 @@ void EditorSubsystem::RegenerateMeshEditLods()
     if (!ResolveMeshEditTarget(&meshComponent) || meshComponent == nullptr || !meshComponent->mesh.IsValid())
     {
         return;
+    }
+
+    // LOD 0 is the source and survives regeneration; anything captured against a coarser LOD doesn't
+    if (m_meshEditState.lodIndex != 0)
+    {
+        EndMeshEditDrag(/* saveEdits */ true);
+        CommitMeshEdits();
+
+        m_meshEditState.actionStack = MakeHandle<EditorActionStack>(m_currentProject.ToWeak());
+
+        SetSelectedMeshEditFace({});
+        m_meshEditState.hoveredFace.Unset();
     }
 
     meshComponent->mesh->GenerateLods();
@@ -1860,25 +1906,33 @@ void EditorSubsystem::EndMeshEditDrag(bool saveEdits)
         Array<uint32, EditorAllocator> vertexIndices = m_meshEditState.dragData->affectedVertexIndices;
         Array<Vec3f, EditorAllocator> originalPositions = m_meshEditState.dragData->vertexOriginalPositions;
 
+        uint32 vertexCount;
+
+        {
+            auto readScope = meshComponent->mesh->GetReadScope();
+
+            vertexCount = uint32(meshComponent->mesh->GetVertexData(lodIndex).vertexCount);
+        }
+
         m_meshEditState.actionStack->PushAction(MakeHandle<FunctionalEditorAction>(
             "Move Face",
-            [nodeWeak = node.ToWeak(), lodIndex, vertexIndices, originalPositions, updatedLocalPositions]() -> EditorActionFunctions
+            [nodeWeak = node.ToWeak(), lodIndex, vertexCount, vertexIndices, originalPositions, updatedLocalPositions]() -> EditorActionFunctions
             {
                 return {
-                    [nodeWeak, lodIndex, vertexIndices, updatedLocalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                    [nodeWeak, lodIndex, vertexCount, vertexIndices, updatedLocalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                     {
                         if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                         {
-                            ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, updatedLocalPositions, /* recomputeDerivedData */ true);
+                            ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, updatedLocalPositions, vertexCount, /* recomputeDerivedData */ true);
 
                             editorSubsystem->m_meshEditState.lodPickBvhDirty = true;
                         }
                     },
-                    [nodeWeak, lodIndex, vertexIndices, originalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
+                    [nodeWeak, lodIndex, vertexCount, vertexIndices, originalPositions](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
                     {
                         if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                         {
-                            ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, originalPositions, /* recomputeDerivedData */ true);
+                            ApplyMeshEditVertexPositions(node, lodIndex, vertexIndices, originalPositions, vertexCount, /* recomputeDerivedData */ true);
 
                             editorSubsystem->m_meshEditState.lodPickBvhDirty = true;
                         }
@@ -3129,6 +3183,10 @@ bool EditorSubsystem::StartSimulation()
     if (loadResult.HasError())
     {
         HYP_LOG(Editor, Error, "Failed to load project when starting simulation!! Error was: {}", loadResult.GetError().GetMessage());
+
+        // reopen the editing project, otherwise IsSimulating() stays true with no project and Stop can never run
+        OpenProject(m_preSimulationProject);
+        m_preSimulationProject.Reset();
 
         return false;
     }

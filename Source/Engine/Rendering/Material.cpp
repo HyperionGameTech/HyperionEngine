@@ -46,14 +46,18 @@ static HashCode GetMaterialHashCode(
 
     hc.Add(parameters.GetHashCode());
 
-    for (Texture* tex : textures)
+    // texture identity + slot, path-less runtime textures would all hash the same otherwise
+    for (uint32 textureIndex = 0; textureIndex < MaterialTextures::MaxTextures; textureIndex++)
     {
-        if (!tex)
+        const Handle<Texture>& texture = textures.AtIndex(textureIndex);
+
+        if (!texture)
         {
             continue;
         }
 
-        hc.Add(tex->GetPath().GetHashCode());
+        hc.Add(textureIndex);
+        hc.Add(texture.GetHashCode());
     }
 
     return hc;
@@ -566,10 +570,17 @@ Handle<Material> MaterialCache::GetOrCreate(
         {
             strongRef = MakeStrongRef(it->second);
 
-            if (strongRef != nullptr)
+            // hash match isn't equality (collisions, or the cached material got edited after creation)
+            if (strongRef != nullptr
+                && !strongRef->GetBaseMaterial()
+                && strongRef->GetAttributes() == *attributesPtr
+                && strongRef->GetParameters() == parameters
+                && strongRef->GetTextures() == textures)
             {
                 return strongRef;
             }
+
+            strongRef = Handle<Material>::Null();
         }
 
         if (!name.IsValid())

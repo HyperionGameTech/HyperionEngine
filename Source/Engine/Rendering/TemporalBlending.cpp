@@ -71,6 +71,7 @@ TemporalBlending::TemporalBlending(
       m_inputFramebuffer(inputFramebuffer),
       m_gbuffer(gbuffer),
       m_blendingFrameCounter(0),
+      m_isOddFrame(false),
       m_isInitialized(false)
 {
 }
@@ -89,6 +90,7 @@ TemporalBlending::TemporalBlending(
       m_inputImageView(inputImageView),
       m_gbuffer(gbuffer),
       m_blendingFrameCounter(0),
+      m_isOddFrame(false),
       m_isInitialized(false)
 {
 }
@@ -218,7 +220,8 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.world && renderSetup.view);
 
-    const bool isEvenFrame = frame->GetFrameIndex() % 2 == 0;
+    const bool isEvenFrame = !m_isOddFrame;
+    m_isOddFrame = !m_isOddFrame;
 
     // Get active image and extent
     const Handle<Texture>& activeTexture = isEvenFrame

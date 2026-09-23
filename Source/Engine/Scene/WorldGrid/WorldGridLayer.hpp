@@ -17,6 +17,8 @@
 
 #include <Core/Utilities/Span.hpp>
 
+#include <Core/Threading/Mutex.hpp>
+
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
@@ -159,8 +161,12 @@ public:
     Delegate<void, StreamingCell*, Span<const AssetObject*>> OnStreamingObjectsUnloaded;
 
 protected:
+    Array<AssetReference, StreamingAllocator> GetStreamingObjectsAt(const Vec2i& coord) const;
+
     Name m_name;
     WorldGridLayerInfo m_layerInfo;
+
+    mutable Mutex m_objectsByCoordMutex;
     FlatMap<Vec2i, Array<AssetReference, StreamingAllocator>, StreamingAllocator> m_objectsByCoord;
 };
 

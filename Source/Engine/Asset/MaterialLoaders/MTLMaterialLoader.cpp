@@ -526,6 +526,13 @@ Map<String, Handle<Material>> MTLMaterialLoader::ParseMtl_Internal(LoaderState& 
 
             Handle<Texture> texture = loadedTextures[it.name].ExtractAs<Texture>();
 
+            if (!texture.IsValid())
+            {
+                HYP_LOG(Assets, Warning, "OBJ material loader: Texture {} could not be used because the loaded asset is not a texture!", it.name);
+
+                continue;
+            }
+
             if (it.name.Any())
             {
                 texture->SetName(CreateNameFromDynamicString(ANSIString(StringUtil::StripExtension(it.name.Split('/', '\\').Back()))));

@@ -589,8 +589,6 @@ extern "C"
                 }
             }
 
-            String cliString = commandletNameStr + ' ' + String::Join(commandletArgsRaw, " ");
-
             CommandLineArgumentDefinitions argumentDefinitions {};
 
             // check for static method GetArgumentDefinitions() on commandlet class to override.
@@ -608,7 +606,8 @@ extern "C"
             }
 
             CommandLineParser parser { &argumentDefinitions };
-            TResult<CommandLineArguments> parseResult = parser.Parse(cliString);
+
+            TResult<CommandLineArguments> parseResult = parser.Parse(commandletName, commandletArgsRaw);
 
             if (parseResult.HasError())
             {

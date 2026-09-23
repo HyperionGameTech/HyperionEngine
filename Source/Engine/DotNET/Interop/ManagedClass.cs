@@ -99,7 +99,7 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential)]
     public struct ManagedClassDesc
     {
-        internal int typeHash;
+        internal long typeHash;
         internal IntPtr pClass;
         internal Guid assemblyGuid;
         internal Guid newObjectGuid;
@@ -120,7 +120,7 @@ namespace Hyperion
 
         public void AddMethod(string methodName, Guid guid, IntPtr functionPointer, ref ManagedAttributeHolder managedAttributeHolder)
         {
-            IntPtr methodNamePtr = Marshal.StringToHGlobalAnsi(methodName);
+            IntPtr methodNamePtr = Marshal.StringToCoTaskMemUTF8(methodName);
             
             unsafe
             {
@@ -130,12 +130,12 @@ namespace Hyperion
                 }
             }
 
-            Marshal.FreeHGlobal(methodNamePtr);
+            Marshal.FreeCoTaskMem(methodNamePtr);
         }
 
         public void AddProperty(string propertyName, Guid guid, ref ManagedAttributeHolder managedAttributeHolder)
         {
-            IntPtr propertyNamePtr = Marshal.StringToHGlobalAnsi(propertyName);
+            IntPtr propertyNamePtr = Marshal.StringToCoTaskMemUTF8(propertyName);
             
             unsafe
             {
@@ -145,7 +145,7 @@ namespace Hyperion
                 }
             }
 
-            Marshal.FreeHGlobal(propertyNamePtr);
+            Marshal.FreeCoTaskMem(propertyNamePtr);
         }
 
         /// <summary>

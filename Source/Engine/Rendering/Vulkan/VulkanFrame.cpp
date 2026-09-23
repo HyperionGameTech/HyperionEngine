@@ -137,10 +137,10 @@ void VulkanFrame::WriteCommandBuffer(VulkanCommandBuffer* commandBuffer)
 
     for (auto& it : m_swapchainData)
     {
-        const VulkanSwapchain* swapchain = it.first;
-        AssertDebug(swapchain != nullptr);
+        // the raw key may point at a destroyed swapchain, only touch it through the weak ref
+        VulkanSwapchainRef swapchain = it.second.swapchainWeak.Lock();
 
-        if (!swapchain->HasAcquiredImage())
+        if (!swapchain.IsValid() || !swapchain->HasAcquiredImage())
         {
             continue;
         }
@@ -210,6 +210,7 @@ VulkanSemaphore* VulkanFrame::GetImageAvailableSemaphore(const VulkanSwapchain* 
         }
 
         it = m_swapchainData.Emplace(swapchain).first;
+        it->second.swapchainWeak = MakeWeakRef(swapchain);
         InitVulkanSwapchainData(it->second);
     }
 
@@ -248,10 +249,8 @@ void VulkanFrame::ResetTransientStates()
     // remove invalid swapchain data
     for (auto it = m_swapchainData.Begin(); it != m_swapchainData.End();)
     {
-        const VulkanSwapchain* swapchain = it->first;
-        AssertDebug(swapchain != nullptr);
-
-        if (swapchain->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
+        // don't deref the raw key, it may already be freed
+        if (it->second.swapchainWeak.Expired())
         {
             // swapchain is destroyed, remove semaphores
             delete it->second.imageAvailableSemaphore;

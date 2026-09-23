@@ -57,7 +57,10 @@ void DX12Swapchain::Destroy()
 
     for (ID3D12Resource* backBuffer : m_backBuffers)
     {
-        backBuffer->Release();
+        if (backBuffer != nullptr)
+        {
+            backBuffer->Release();
+        }
     }
 
     m_backBuffers.Clear();
@@ -272,7 +275,8 @@ void DX12Swapchain::SetExtent(Vec2u newExtent)
 
 void DX12Swapchain::Recreate()
 {
-    if (!IsCreated())
+    // not created + still flagged means a previous recreate failed, so retry it
+    if (!IsCreated() && !m_needsRecreate)
     {
         return;
     }
@@ -289,7 +293,17 @@ void DX12Swapchain::Recreate()
     Destroy();
 
     // Now recreate
-    Create();
+    RendererResult result = Create();
+
+    if (!result)
+    {
+        HYP_LOG(RenderingBackend, Error, "Failed to recreate DX12 swapchain: {}", result.GetError().GetMessage());
+
+        // drop any half-created state, keep m_needsRecreate set so the next frame retries
+        Destroy();
+
+        return;
+    }
 
     m_needsRecreate = false;
 }
@@ -298,6 +312,12 @@ void DX12Swapchain::FlushGPU()
 {
     const DX12QueueData* queueData = RI.GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     if (!queueData || !queueData->commandQueue)
+    {
+        return;
+    }
+
+    // Create() may have failed before the flush fence was made
+    if (!m_flushFence || m_flushEvent == nullptr)
     {
         return;
     }
@@ -344,6 +364,11 @@ void DX12Swapchain::PrepareForFrame(DX12Frame* frame)
     if (m_needsRecreate)
     {
         Recreate();
+    }
+
+    if (!IsCreated())
+    {
+        return;
     }
 
 #ifdef HYP_DX12_USE_FRAME_LATENCY_WAITABLE

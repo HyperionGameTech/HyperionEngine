@@ -237,7 +237,24 @@ RendererResult VulkanSwapchain::Create()
 
     CheckResultOrReturn(ChooseSurfaceFormat());
 
-    m_presentMode = g_cvEnableVSync.Get() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    // FIFO is the only mode the spec guarantees, so fall back to it
+    m_presentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    if (!g_cvEnableVSync.Get())
+    {
+        if (m_supportDetails.presentModes.Contains(VK_PRESENT_MODE_IMMEDIATE_KHR))
+        {
+            m_presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+        else if (m_supportDetails.presentModes.Contains(VK_PRESENT_MODE_MAILBOX_KHR))
+        {
+            m_presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+        else
+        {
+            HYP_LOG(RenderingBackend, Warning, "VSync is disabled but neither IMMEDIATE nor MAILBOX present modes are supported, falling back to FIFO");
+        }
+    }
 
     HYP_LOG(RenderingBackend, Verbose, "Vulkan swapchain m_extent = {}", m_extent);
 

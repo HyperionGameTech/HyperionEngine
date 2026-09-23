@@ -489,6 +489,9 @@ private:
     Array<SystemExecutionGroup*> m_systemExecutionGroups;
     SystemExecutionGroup* m_rootSynchronousExecutionGroup;
 
+    // copy of m_scenes that system tasks read between BeginUpdate() and EndUpdate(), AddScene/RemoveScene can run in between
+    Array<Handle<Scene>> m_processingScenes;
+
     ///Views
 
     /// Sim thread owned views list

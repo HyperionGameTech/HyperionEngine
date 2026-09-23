@@ -117,15 +117,30 @@ bool VulkanFence::CheckStatus()
     return false;
 }
 
-void VulkanFence::Wait(bool timeoutLoop)
+VkResult VulkanFence::Wait(bool timeoutLoop)
 {
     Assert(handle != VK_NULL_HANDLE);
+
+    // unsignaled and never submitted (e.g. the submit failed after a reset), nothing will ever signal it
+    if (!isSubmitted && vkGetFenceStatus(RI.GetDevice()->GetDevice(), handle) == VK_NOT_READY)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Attempted to wait on a Vulkan fence that was never submitted, skipping wait");
+
+        lastFrameResult = VK_NOT_READY;
+
+        return VK_NOT_READY;
+    }
 
     VkResult result = VK_SUCCESS;
 
     do
     {
         result = vkWaitForFences(RI.GetDevice()->GetDevice(), 1, &handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+
+        if (result == VK_TIMEOUT && timeoutLoop)
+        {
+            HYP_LOG(RenderingBackend, Warning, "Timed out waiting for Vulkan fence, waiting again...");
+        }
     }
     while (result == VK_TIMEOUT && timeoutLoop);
 
@@ -134,11 +149,12 @@ void VulkanFence::Wait(bool timeoutLoop)
 
     if (HYP_UNLIKELY(result != VK_SUCCESS))
     {
-        CrashHandler::Dump();
-        return;
+        HYP_LOG(RenderingBackend, Error, "Failed to wait for Vulkan fence, VkResult: {}", int(result));
 
-        HYP_FAIL("Failed to wait for Vulkan fence, VkResult: {}", result);
+        CrashHandler::Dump();
     }
+
+    return result;
 }
 
 void VulkanFence::Reset()

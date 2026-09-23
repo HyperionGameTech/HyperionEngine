@@ -12,66 +12,94 @@
 
 #include <Core/Memory/ByteBuffer.hpp>
 
-#include <Core/Threading/AtomicVar.hpp>
+#include <Core/Threading/Mutex.hpp>
 
 #include <Core/Utilities/ByteUtil.hpp>
 
 #include <Net/NetMemory.hpp>
 
 #include <type_traits>
+#include <utility>
 
 namespace Hyperion {
 
+// Single producer / single consumer. The producer Push()es into a private buffer and PublishBatch() appends it
+// to the shared pending buffer, so batches are never reordered or lost no matter how often each side runs.
 template <class BaseType>
 class ReplicationQueue
 {
+    // matches ByteBuffer's default storage alignment
+    static constexpr size_t ItemAlignment = 16;
+
 public:
-    ReplicationQueue()
-        : m_writeIndex(0),
-          m_readIndex(1),
-          m_readyIndex(2)
-    {
-    }
+    ReplicationQueue() = default;
 
     void PublishBatch()
     {
-        m_writeIndex = m_readyIndex.Exchange(m_writeIndex, MemoryOrder::ACQUIRE_RELEASE);
+        if (m_writeBuffer.startOffsets.Empty())
+        {
+            return;
+        }
+
+        Mutex::Guard guard(m_pendingMutex);
+
+        if (m_pendingBuffer.startOffsets.Empty())
+        {
+            std::swap(m_writeBuffer, m_pendingBuffer);
+        }
+        else
+        {
+            const size_t baseOffset = ByteUtil::AlignAs(m_pendingBuffer.writeOffset, ItemAlignment);
+            const size_t requiredSize = baseOffset + m_writeBuffer.writeOffset;
+
+            if (m_pendingBuffer.storage.Size() < requiredSize)
+            {
+                m_pendingBuffer.storage.SetSize(MathUtil::NextPowerOf2(requiredSize));
+            }
+
+            Memory::Copy(m_pendingBuffer.storage.Data() + baseOffset, m_writeBuffer.storage.Data(), m_writeBuffer.writeOffset);
+
+            m_pendingBuffer.startOffsets.Reserve(m_pendingBuffer.startOffsets.Size() + m_writeBuffer.startOffsets.Size());
+
+            for (size_t startOffset : m_writeBuffer.startOffsets)
+            {
+                m_pendingBuffer.startOffsets.PushBack(baseOffset + startOffset);
+            }
+
+            m_pendingBuffer.writeOffset = requiredSize;
+        }
+
+        ClearBuffer(m_writeBuffer);
     }
 
-    /// Drains all elements and flips buffer
+    /// Drains everything published so far. Returned pointers stay valid until the next DrainPending() or Reset().
     template <class AllocatorType>
     void DrainPending(Array<BaseType*, AllocatorType>& outItems)
     {
-        Buffer& previous = m_buffers[m_readIndex];
-        previous.storage.SetSize(0);
-        previous.startOffsets.Resize(0);
-        previous.writeOffset = 0;
+        ClearBuffer(m_readBuffer);
 
-        m_readIndex = m_readyIndex.Exchange(m_readIndex, MemoryOrder::ACQUIRE_RELEASE);
-
-        Buffer& buffer = m_buffers[m_readIndex];
-
-        outItems.Reserve(outItems.Size() + buffer.startOffsets.Size());
-
-        for (size_t startOffset : buffer.startOffsets)
         {
-            outItems.PushBack(reinterpret_cast<BaseType*>(buffer.storage.Data() + startOffset));
+            Mutex::Guard guard(m_pendingMutex);
+
+            std::swap(m_readBuffer, m_pendingBuffer);
+        }
+
+        outItems.Reserve(outItems.Size() + m_readBuffer.startOffsets.Size());
+
+        for (size_t startOffset : m_readBuffer.startOffsets)
+        {
+            outItems.PushBack(reinterpret_cast<BaseType*>(m_readBuffer.storage.Data() + startOffset));
         }
     }
 
     /// Discards everything queued. Only valid while neither the producer nor the consumer is running.
     void Reset()
     {
-        for (Buffer& buffer : m_buffers)
-        {
-            buffer.storage.SetSize(0);
-            buffer.startOffsets.Resize(0);
-            buffer.writeOffset = 0;
-        }
+        Mutex::Guard guard(m_pendingMutex);
 
-        m_writeIndex = 0;
-        m_readIndex = 1;
-        m_readyIndex.Set(2, MemoryOrder::RELEASE);
+        ClearBuffer(m_writeBuffer);
+        ClearBuffer(m_pendingBuffer);
+        ClearBuffer(m_readBuffer);
     }
 
     /// Pushes an element to the queue
@@ -79,8 +107,9 @@ public:
     void Push(const T& item)
     {
         static_assert(std::is_base_of_v<BaseType, T> && std::is_trivially_destructible_v<T>);
+        static_assert(alignof(T) <= ItemAlignment, "PublishBatch() only preserves alignment up to ItemAlignment");
 
-        Buffer& buffer = m_buffers[m_writeIndex];
+        Buffer& buffer = m_writeBuffer;
 
         const size_t alignedOffset = ByteUtil::AlignAs(buffer.writeOffset, alignof(T));
 
@@ -106,11 +135,17 @@ private:
         size_t writeOffset = 0;
     };
 
-    Buffer m_buffers[3];
+    static void ClearBuffer(Buffer& buffer)
+    {
+        buffer.storage.SetSize(0);
+        buffer.startOffsets.Resize(0);
+        buffer.writeOffset = 0;
+    }
 
-    uint32 m_writeIndex; // producer-owned
-    uint32 m_readIndex;  // consumer-owned
-    AtomicVar<uint32> m_readyIndex; // shared
+    Buffer m_writeBuffer;   // producer-owned
+    Buffer m_readBuffer;    // consumer-owned
+    Buffer m_pendingBuffer; // guarded by m_pendingMutex
+    Mutex m_pendingMutex;
 };
 
 } // namespace Hyperion

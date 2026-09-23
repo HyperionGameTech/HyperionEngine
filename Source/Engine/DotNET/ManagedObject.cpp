@@ -83,6 +83,17 @@ void ManagedObject::Reset()
         }
     }
 
+    // we own the handles in m_objectReference, release them so they don't leak
+    if (IsValid())
+    {
+        auto freeObjectReferenceFunction = DotNETHost::GetInstance().GetGlobalFunctions().freeObjectReferenceFptr;
+
+        if (freeObjectReferenceFunction != nullptr)
+        {
+            freeObjectReferenceFunction(&m_objectReference);
+        }
+    }
+
     m_managedClass.Reset();
     m_assembly.Reset();
     m_objectReference = ObjectReference { nullptr, nullptr };

@@ -262,9 +262,13 @@ void WorldGrid::SetStreamingLayersFromDescs(Span<const WGLayerDesc> descs)
 
         layer->m_layerInfo = layerDesc.info;
 
-        for (const WGObject& object : layerDesc.objects)
         {
-            layer->m_objectsByCoord[object.coords].PushBack(AssetReference(object.path));
+            Mutex::Guard guard(layer->m_objectsByCoordMutex);
+
+            for (const WGObject& object : layerDesc.objects)
+            {
+                layer->m_objectsByCoord[object.coords].PushBack(AssetReference(object.path));
+            }
         }
 
         if (isReady)
@@ -291,6 +295,8 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
         layerDesc.className = layer->InstanceClass()->GetName();
         layerDesc.layerName = layer->GetName();
         layerDesc.info = layer->GetLayerInfo();
+
+        Mutex::Guard guard(layer->m_objectsByCoordMutex);
 
         for (const KeyValuePair<Vec2i, Array<AssetReference, StreamingAllocator>>& pair : layer->m_objectsByCoord)
         {

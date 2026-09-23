@@ -32,6 +32,7 @@ using TriggerGCFunction = void (*)(void);
 using GetAssemblyPointerFunction = void (*)(dotnet::ObjectReference* assemblyObjectReference, dotnet::Assembly** pOutAssembly);
 using CleanupOnShutdownFunction = void (*)(void);
 using RemoveObjectFromCacheFunction = void (*)(void* classPtr);
+using FreeObjectReferenceFunction = void (*)(dotnet::ObjectReference* objectReference);
 using QueryManagedObjectCountsFunction = int (*)(void** outPairs, int maxPairs);
 using GetTotalMemoryFunction = int64 (*)(void);
 
@@ -67,6 +68,7 @@ public:
         GetAssemblyPointerFunction getAssemblyPointerFunction = nullptr;
         CleanupOnShutdownFunction cleanupOnShutdownFunction = nullptr;
         RemoveObjectFromCacheFunction removeObjectFromCacheFptr = nullptr;
+        FreeObjectReferenceFunction freeObjectReferenceFptr = nullptr;
         QueryManagedObjectCountsFunction queryManagedObjectCountsFptr = nullptr;
         GetTotalMemoryFunction getTotalMemoryFptr = nullptr;
     };

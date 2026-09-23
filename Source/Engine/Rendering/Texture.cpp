@@ -221,16 +221,18 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
 
             uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
             uint32 unalignedRowPitch = mipWidth * bytesPerPixel;
-            uint32 numRows = mipHeight * mipDepth * numArrayLayers;
 
             // Align row pitch to 256 bytes
             uint32 paddedRowPitch = AlignUp(unalignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+
+            // every layer has to start on a 512 byte boundary too, not just every mip
+            uint32 paddedLayerStride = AlignUp(paddedRowPitch * mipHeight * mipDepth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
             // Record offset for this mip, ensuring 512-byte alignment
             paddedMipOffsets[mipIndex] = AlignUp(paddedTotalSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
             // Advance total size by the padded size of this mip
-            paddedTotalSize = paddedMipOffsets[mipIndex] + (paddedRowPitch * numRows);
+            paddedTotalSize = paddedMipOffsets[mipIndex] + (paddedLayerStride * numArrayLayers);
         }
 
         ByteBuffer paddedByteBuffer;
@@ -245,7 +247,8 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
             uint32 unalignedRowPitch = mipWidth * bytesPerPixel;
             uint32 paddedRowPitch = AlignUp(unalignedRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-            uint32 numRows = mipHeight * mipDepth * numArrayLayers;
+            uint32 numRowsPerLayer = mipHeight * mipDepth;
+            uint32 paddedLayerStride = AlignUp(paddedRowPitch * numRowsPerLayer, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
             // Get tightly packed source offset
             uint32 srcMipOffset = (mipIndex == 0) ? 0 : mipOffsets[mipIndex - 1];
@@ -254,13 +257,19 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             // Get padded destination offset
             uint8* pDstMipData = paddedByteBuffer.Data() + paddedMipOffsets[mipIndex];
 
-            for (uint32 row = 0; row < numRows; ++row)
+            for (uint32 layerIndex = 0; layerIndex < numArrayLayers; ++layerIndex)
             {
-                Memory::Copy(
-                    pDstMipData + (row * paddedRowPitch),
-                    pSrcMipData + (row * unalignedRowPitch),
-                    unalignedRowPitch // Only copy the valid unaligned bytes!
-                );
+                const uint8* pSrcLayerData = pSrcMipData + (size_t(layerIndex) * numRowsPerLayer * unalignedRowPitch);
+                uint8* pDstLayerData = pDstMipData + (size_t(layerIndex) * paddedLayerStride);
+
+                for (uint32 row = 0; row < numRowsPerLayer; ++row)
+                {
+                    Memory::Copy(
+                        pDstLayerData + (row * paddedRowPitch),
+                        pSrcLayerData + (row * unalignedRowPitch),
+                        unalignedRowPitch // Only copy the valid unaligned bytes!
+                    );
+                }
             }
         }
 
@@ -299,7 +308,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
                 const uint32 mipDepth = MathUtil::Max(1u, textureDesc.extent.z >> mipIndex);
                 const uint32 bytesPerPixel = TextureUtils::NumComponents(textureDesc.format) * TextureUtils::BytesPerComponent(textureDesc.format);
                 const uint32 paddedRowPitch = AlignUp(mipWidth * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-                const size_t paddedLayerStride = size_t(paddedRowPitch) * mipHeight * mipDepth;
+                const size_t paddedLayerStride = AlignUp(paddedRowPitch * mipHeight * mipDepth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 #else
                 size_t mipBlockStart = 0;
 
@@ -836,7 +845,8 @@ static size_t GetDX12ReadbackSize(const TextureDesc& desc, bool allMips)
         const Vec3u mipExtent = desc.GetMipExtent(mipIndex);
         const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(desc.format) * TextureUtils::NumComponents(desc.format);
         const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-        totalSize += static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z * numArrayLayers;
+        const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+        totalSize += layerStep * numArrayLayers;
     }
 
     return totalSize;
@@ -856,7 +866,8 @@ static void UnpadDX12ReadbackData(const TextureDesc& desc, const ubyte* paddedDa
         const uint32 tightRowPitch = mipExtent.x * bytesPerPixel;
         const uint32 alignedRowPitch = ByteUtil::AlignAs(tightRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
         const uint32 numRows = mipExtent.y * mipExtent.z;
-        const size_t layerStep = static_cast<size_t>(alignedRowPitch) * numRows;
+        // must match DX12GpuImage::CopyToBuffer: each layer starts on a 512 byte boundary
+        const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * numRows, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
         for (uint16 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
         {

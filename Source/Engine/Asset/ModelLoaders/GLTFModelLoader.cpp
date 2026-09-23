@@ -579,9 +579,37 @@ const cgltf_accessor* FindAttribute(const cgltf_primitive& primitive, cgltf_attr
 // https://github.com/zhaijialong/RealEngine/blob/99fee10bf802767d4236b1bc12145b3708c65c9f/source/world/gltf_loader.cpp#L378
 // https://github.com/BredaUniversityGames/DXX-Raytracer/blob/2bb9246292cd4c2e39b8553f6c3104540d493ee0/RT/Renderer/Backend/DX12/src/GLTFLoader.cpp#L26
 
+// cgltf_validate's size check can overflow on a huge count, and accessors without a buffer view aren't bounded at all
+static bool IsAccessorCountSane(const cgltf_accessor* accessor)
+{
+    static constexpr cgltf_size MaxElementsWithoutBufferView = cgltf_size(1) << 24;
+
+    if (accessor->count == 0)
+    {
+        return true;
+    }
+
+    const cgltf_buffer_view* bufferView = accessor->buffer_view;
+
+    if (bufferView == nullptr)
+    {
+        return accessor->count <= MaxElementsWithoutBufferView;
+    }
+
+    const cgltf_size elementSize = cgltf_calc_size(accessor->type, accessor->component_type);
+    const cgltf_size stride = accessor->stride != 0 ? accessor->stride : elementSize;
+
+    if (elementSize == 0 || accessor->offset > bufferView->size || bufferView->size - accessor->offset < elementSize)
+    {
+        return false;
+    }
+
+    return accessor->count - 1 <= (bufferView->size - accessor->offset - elementSize) / stride;
+}
+
 cgltf_size UnpackAccessorFloats(const cgltf_accessor* accessor, Array<float>& outFloats)
 {
-    if (!accessor)
+    if (!accessor || !IsAccessorCountSane(accessor))
     {
         return 0;
     }
@@ -602,7 +630,7 @@ cgltf_size UnpackAccessorFloats(const cgltf_accessor* accessor, Array<float>& ou
 
 cgltf_size UnpackAccessorIndices(const cgltf_accessor* accessor, Array<uint32>& outIndices)
 {
-    if (!accessor)
+    if (!accessor || !IsAccessorCountSane(accessor))
     {
         return 0;
     }
@@ -1767,8 +1795,15 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         HYP_LOG(Assets, Warning, "GLTF morph targets are not currently supported and will be ignored");
     }
 
+    if (positionsAccessor->type != cgltf_type_vec3)
+    {
+        HYP_LOG(Assets, Warning, "GLTF primitive skipped: POSITION attribute is not VEC3 on mesh '{}'",
+                gltfMesh.name ? gltfMesh.name : "<unnamed>");
+        return false;
+    }
+
     Array<float> positionsData;
-    if (UnpackAccessorFloats(positionsAccessor, positionsData) == 0)
+    if (UnpackAccessorFloats(positionsAccessor, positionsData) < vertexCount * 3)
     {
         HYP_LOG(Assets, Warning, "Failed to unpack POSITION data from buffer view for mesh '{}'",
                 gltfMesh.name ? gltfMesh.name : "<unnamed>");
@@ -1776,13 +1811,17 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     }
 
     Array<float> normalsData;
-    const bool hasNormals = normalsAccessor != nullptr && UnpackAccessorFloats(normalsAccessor, normalsData) != 0;
+    const bool hasNormals = normalsAccessor != nullptr
+        && normalsAccessor->type == cgltf_type_vec3
+        && UnpackAccessorFloats(normalsAccessor, normalsData) >= vertexCount * 3;
 
     Array<float> tangentsData;
     const bool hasTangents = tangentAccessor != nullptr && UnpackAccessorFloats(tangentAccessor, tangentsData) != 0;
 
     Array<float> texcoord0Data;
-    const bool hasTexcoord0 = texcoord0Accessor != nullptr && UnpackAccessorFloats(texcoord0Accessor, texcoord0Data) != 0;
+    const bool hasTexcoord0 = texcoord0Accessor != nullptr
+        && texcoord0Accessor->type == cgltf_type_vec2
+        && UnpackAccessorFloats(texcoord0Accessor, texcoord0Data) >= vertexCount * 2;
 
     Array<float> texcoord1Data;
     const bool hasTexcoord1 = texcoord1Accessor != nullptr && UnpackAccessorFloats(texcoord1Accessor, texcoord1Data) != 0;
@@ -1791,8 +1830,10 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     Array<float> weightsData;
 
     const bool hasSkinning = jointsAccessor != nullptr && weightsAccessor != nullptr
-        && UnpackAccessorFloats(jointsAccessor, jointsFloatData) != 0
-        && UnpackAccessorFloats(weightsAccessor, weightsData) != 0;
+        && jointsAccessor->type == cgltf_type_vec4
+        && weightsAccessor->type == cgltf_type_vec4
+        && UnpackAccessorFloats(jointsAccessor, jointsFloatData) >= vertexCount * 4
+        && UnpackAccessorFloats(weightsAccessor, weightsData) >= vertexCount * 4;
 
     Array<FatVertex> vertices;
     vertices.Resize(vertexCount);
@@ -1931,6 +1972,16 @@ bool BuildPrimitive(GltfLoadContext& ctx,
             HYP_LOG(Assets, Warning, "Failed to unpack index data from buffer view for mesh '{}'",
                     gltfMesh.name ? gltfMesh.name : "<unnamed>");
             return false;
+        }
+
+        for (uint32 index : indices)
+        {
+            if (index >= vertexCount)
+            {
+                HYP_LOG(Assets, Warning, "GLTF primitive skipped: index {} out of range of {} vertices on mesh '{}'",
+                        index, vertexCount, gltfMesh.name ? gltfMesh.name : "<unnamed>");
+                return false;
+            }
         }
     }
     else

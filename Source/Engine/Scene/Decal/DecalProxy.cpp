@@ -188,11 +188,9 @@ void DecalProxy::UpdateDecalBounds()
         m_decalBounds = m_decalBounds.Union(instance.transform.GetMatrix() * s_unitDecalBox);
     }
 
-    // the proxy sits at the origin with a locked transform, so local bounds are world bounds (editor picking + octree)
-    if (m_decalBounds.IsValid())
-    {
-        SetLocalBounds(m_decalBounds);
-    }
+    // the proxy sits at the origin with a locked transform, so local bounds are world bounds (editor picking + octree).
+    // zero box rather than Empty() when there are no decals: VisThread drops invalid bounds without leaving the octree, so re-inserting later would fail
+    SetLocalBounds(m_decalBounds.IsValid() ? m_decalBounds : BoundingBox::Zero());
 
     SetNeedsRenderProxyUpdate();
 }

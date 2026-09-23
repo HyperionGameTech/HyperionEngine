@@ -175,6 +175,39 @@ float GetDirectionalCSMShadow(float3 position, float3 N, float NdotL)
 
 #include "include/Parallax.hlsli"
 
+// @TODO!!! Replace with vertex tangents.
+bool ComputeUVTangentFrame(float3 N, float3 P, float2 uv, out float3 tangent, out float3 bitangent)
+{
+    const float3 dpdx = ddx(P);
+    const float3 dpdy = ddy(P);
+    const float2 duvdx = ddx(uv);
+    const float2 duvdy = ddy(uv);
+
+    const float3 dpdyPerp = cross(dpdy, N);
+    const float3 dpdxPerp = cross(N, dpdx);
+    
+    const float handedness = dot(dpdx, dpdyPerp) < 0.0 ? -1.0 : 1.0;
+
+    tangent = (dpdyPerp * duvdx.x + dpdxPerp * duvdy.x) * handedness;
+    bitangent = (dpdyPerp * duvdx.y + dpdxPerp * duvdy.y) * -handedness;
+
+    const float tangentLengthSq = dot(tangent, tangent);
+    const float bitangentLengthSq = dot(bitangent, bitangent);
+
+    if (min(tangentLengthSq, bitangentLengthSq) <= 1e-12 * max(tangentLengthSq, bitangentLengthSq))
+    {
+        tangent = (float3)0.0;
+        bitangent = (float3)0.0;
+
+        return false;
+    }
+
+    tangent *= rsqrt(tangentLengthSq);
+    bitangent *= rsqrt(bitangentLengthSq);
+
+    return true;
+}
+
 // #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
@@ -206,6 +239,18 @@ PSOutput PSMain(PSInput input)
     const float alpha_threshold = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD);
 
     float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
+
+    // derivatives need uniform control flow, so this goes before any branch or clip. degenerate UVs keep the old basis
+    float3 uvTangent;
+    float3 uvBitangent;
+
+    if (ComputeUVTangentFrame(N, P, texcoord, uvTangent, uvBitangent))
+    {
+        // flipped foliage back faces mirror the whole perturbation, like the underside of a thin sheet
+        const float backFaceSign = (isFoliage && !input.is_front_face) ? -1.0 : 1.0;
+
+        tbn_matrix = float3x3(uvTangent * backFaceSign, uvBitangent * backFaceSign, N);
+    }
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, ParallaxMap))
     {
@@ -506,7 +551,8 @@ PSOutput PSMain(PSInput input)
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/
     // see: "Motion Vectors" section
-    float2 velocity = float2(((input.position_ndc.xy / input.position_ndc.w) * 0.5 + 0.5) - ((input.previous_position_ndc.xy / input.previous_position_ndc.w) * 0.5 + 0.5));
+    // uv y runs opposite to ndc y, and consumers reproject with uv - velocity
+    float2 velocity = ((input.position_ndc.xy / input.position_ndc.w) - (input.previous_position_ndc.xy / input.previous_position_ndc.w)) * float2(0.5, -0.5);
 
     uint mask = input.object_mask;
 

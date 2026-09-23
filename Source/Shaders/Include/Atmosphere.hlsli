@@ -13,6 +13,7 @@
 #define MIE_SCATTER_HEIGHT 1.2e3
 #define MIE_SCATTER_DIRECTION 0.758
 
+// Near and far hit distances. A miss returns (-1, -1), i.e. the sphere is treated as entirely behind the origin
 float2 RaySphereIntersection(float3 r0, float3 rd, float sr)
 {
     float a = dot(rd, rd);
@@ -22,7 +23,7 @@ float2 RaySphereIntersection(float3 r0, float3 rd, float sr)
 
     if (d < 0.0)
     {
-        return float2(1e5, -1e5);
+        return float2(-1.0, -1.0);
     }
 
     return float2(
@@ -43,7 +44,7 @@ float3 GetSunTransmittance(float altitude, float3 directionToSun)
         return (float3)0.0;
     }
 
-    const float pathLength = RaySphereIntersection(origin, directionToSun, ATMOSPHERE_RADIUS).y;
+    const float pathLength = max(RaySphereIntersection(origin, directionToSun, ATMOSPHERE_RADIUS).y, 0.0);
     const float stepLength = pathLength / float(NumSteps);
 
     float rayleighDepth = 0.0;

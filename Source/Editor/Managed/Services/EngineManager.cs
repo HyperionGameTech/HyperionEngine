@@ -78,7 +78,7 @@ namespace Hyperion.Editor
             {
                 for (int i = 0; i < argc; i++)
                 {
-                    argsPtrs[i] = Marshal.StringToHGlobalAnsi(args[i]);
+                    argsPtrs[i] = Marshal.StringToCoTaskMemUTF8(args[i]);
                 }
 
                 argv = Marshal.AllocHGlobal(IntPtr.Size * argc);
@@ -105,7 +105,7 @@ namespace Hyperion.Editor
                 {
                     if (argsPtrs[i] != IntPtr.Zero)
                     {
-                        Marshal.FreeHGlobal(argsPtrs[i]);
+                        Marshal.FreeCoTaskMem(argsPtrs[i]);
                     }
                 }
 
@@ -306,11 +306,11 @@ namespace Hyperion.Editor
                 foreach (string assemblyName in CoreAssemblyNames)
                 {
                     string assemblyPath = Path.Combine(AppContext.BaseDirectory, assemblyName);
-                    assemblyPathPtr = Marshal.StringToHGlobalAnsi(assemblyPath);
+                    assemblyPathPtr = Marshal.StringToCoTaskMemUTF8(assemblyPath);
 
                     res = NativeInterop.InitializeAssemblyManaged(assemblyGuidPtr, IntPtr.Zero, assemblyPathPtr, /* isCoreAssembly */ 1);
 
-                    Marshal.FreeHGlobal(assemblyPathPtr);
+                    Marshal.FreeCoTaskMem(assemblyPathPtr);
                     assemblyPathPtr = IntPtr.Zero;
 
                     if (res != (int)LoadAssemblyResult.Ok)
@@ -327,7 +327,7 @@ namespace Hyperion.Editor
             {
                 if (assemblyPathPtr != IntPtr.Zero)
                 {
-                    Marshal.FreeHGlobal(assemblyPathPtr);
+                    Marshal.FreeCoTaskMem(assemblyPathPtr);
                 }
 
                 if (assemblyGuidPtr != IntPtr.Zero)

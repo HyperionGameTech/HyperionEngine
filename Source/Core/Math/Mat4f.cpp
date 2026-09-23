@@ -557,11 +557,24 @@ Vec3f Mat4f::ExtractTranslation() const
 
 Vec3f Mat4f::ExtractScale() const
 {
-    return {
-        rows[0][0],
-        rows[1][1],
-        rows[2][2]
+    // basis vectors are the columns (translation lives in column 3)
+    Vec3f scale {
+        Vec3f(rows[0][0], rows[1][0], rows[2][0]).Length(),
+        Vec3f(rows[0][1], rows[1][1], rows[2][1]).Length(),
+        Vec3f(rows[0][2], rows[1][2], rows[2][2]).Length()
     };
+
+    const float basisDeterminant = rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1])
+        - rows[0][1] * (rows[1][0] * rows[2][2] - rows[1][2] * rows[2][0])
+        + rows[0][2] * (rows[1][0] * rows[2][1] - rows[1][1] * rows[2][0]);
+
+    // mirrored basis - put the flip on x
+    if (basisDeterminant < 0.0f)
+    {
+        scale.x = -scale.x;
+    }
+
+    return scale;
 }
 
 Quat4f Mat4f::ExtractRotation() const

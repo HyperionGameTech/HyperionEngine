@@ -118,9 +118,9 @@ void AudioSystem::Process(float delta, Span<Handle<Scene>> scenes)
                         audioComponent.playbackState.currentTime = 0.0f;
 
                         audioComponent.audioSource->Stop();
-                    }
 
-                    continue;
+                        continue;
+                    }
 
                     break;
                 case AudioLoopMode::Repeat:

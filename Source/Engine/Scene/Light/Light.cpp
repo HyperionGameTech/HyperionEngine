@@ -486,9 +486,15 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
         bufferData.areaNormal = m_normal;
         break;
     case LightType::Spot:
-        bufferData.areaSize = m_spotAngles;
+    {
+        // angles are degrees (x = outer, y = inner); shaders want cosines, inner kept strictly above outer so the falloff never divides by zero
+        const float cosOuter = MathUtil::Cos(MathUtil::DegToRad(m_spotAngles.x));
+        const float cosInner = MathUtil::Max(MathUtil::Cos(MathUtil::DegToRad(m_spotAngles.y)), cosOuter + 0.0001f);
+
+        bufferData.areaSize = Vec2f(cosOuter, cosInner);
         bufferData.spotLightDir = m_normal;
         break;
+    }
     case LightType::Point:
         break;
     default:
@@ -578,13 +584,14 @@ PointLight::PointLight(const Vec3f& position, const Color& color, float intensit
 #pragma region SpotLight
 
 SpotLight::SpotLight()
-    : Light(LightType::Spot, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
+    : SpotLight(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
 {
 }
 
 SpotLight::SpotLight(const Vec3f& position, const Vec3f& direction, const Vec2f& angles, const Color& color, float intensity, float radius)
-    : Light(LightType::Spot, position, direction, angles, color, intensity, radius)
+    : Light(LightType::Spot, position, direction, Vec2f::Zero(), color, intensity, radius)
 {
+    m_spotAngles = angles;
 }
 
 #pragma endregion SpotLight

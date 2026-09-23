@@ -127,10 +127,16 @@ public:
         SetTransformUpdateFlag();
     }
 
+    // bumped on transform/material changes; each TLAS holding this compares against the version it last consumed
+    HYP_FORCE_INLINE uint32 GetUpdateVersion() const
+    {
+        return m_updateVersion;
+    }
+
 protected:
     HYP_FORCE_INLINE void SetTransformUpdateFlag()
     {
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
+        ++m_updateVersion;
     }
 
     HYP_FORCE_INLINE void SetNeedsRebuildFlag()
@@ -143,6 +149,7 @@ protected:
     List<DX12AccelerationGeometry, DX12Allocator> m_geometries;
     Mat4f m_transform;
     AccelerationStructureFlags m_flags;
+    uint32 m_updateVersion;
 };
 
 using DX12AccelerationStructureRef = Handle<DX12ASBase>;
@@ -222,6 +229,8 @@ private:
 
     Array<DX12BottomLevelAS*, DX12Allocator> m_blases;
     Array<uint64, DX12Allocator> m_keys;
+    // parallel to m_blases: the BLAS update version last written into this TLAS
+    Array<uint32, DX12Allocator> m_blasUpdateVersions;
 
     Map<uint64, Pair<DX12BottomLevelAS*, uint32>, DX12Allocator> m_keyToBlasAndStorageId;
 

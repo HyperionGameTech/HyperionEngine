@@ -629,7 +629,7 @@ static uint8 PrimitiveSize(uint8 primitiveType)
 
 static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
 {
-    uint8 type;
+    uint8 type = 0;
     reader.Read(&type);
 
     if (type < 'Z')
@@ -647,14 +647,31 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
 
         const uint8 arrayHeldType = type - ('a' - 'A');
 
-        uint32 numElements;
+        uint32 numElements = 0;
         reader.Read(&numElements);
 
-        uint32 encoding;
+        uint32 encoding = 0;
         reader.Read(&encoding);
 
-        uint32 length;
+        uint32 length = 0;
         reader.Read(&length);
+
+        // 64-bit so a bogus element count can't wrap; Archive sizes are unsigned long, so keep well under 4GB
+        static constexpr uint64 MaxArrayBytes = uint64(1) << 30;
+
+        const uint64 elementSize = PrimitiveSize(arrayHeldType);
+        const uint64 arrayBytes = elementSize * uint64(numElements);
+        const uint64 remainingBytes = reader.Max() - MathUtil::Min(reader.Position(), reader.Max());
+
+        if (elementSize == 0)
+        {
+            return HYP_MAKE_ERROR(Error, "Invalid FBX array element type '{}'", int(arrayHeldType));
+        }
+
+        if (arrayBytes > MaxArrayBytes)
+        {
+            return HYP_MAKE_ERROR(Error, "FBX array property too large ({} elements)", numElements);
+        }
 
         if (encoding != 0)
         {
@@ -663,12 +680,14 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
                 return HYP_MAKE_ERROR(Error, "FBX array property compression requested, but Archive is not enabled");
             }
 
+            if (length > remainingBytes)
+            {
+                return HYP_MAKE_ERROR(Error, "FBX compressed array length {} exceeds remaining data", length);
+            }
+
             ByteBuffer compressedBuffer = reader.Read(length);
 
-            unsigned long compressedSize(length);
-            unsigned long decompressedSize(PrimitiveSize(arrayHeldType) * numElements);
-
-            Archive archive(std::move(compressedBuffer), decompressedSize);
+            Archive archive(std::move(compressedBuffer), size_t(arrayBytes));
 
             ByteBuffer decompressedBuffer;
             if (Result decompressResult = archive.Decompress(decompressedBuffer); decompressResult.HasError())
@@ -694,6 +713,11 @@ static Result ReadFBXProperty(ByteReader& reader, FBXProperty& outProperty)
         }
         else
         {
+            if (arrayBytes > remainingBytes)
+            {
+                return HYP_MAKE_ERROR(Error, "FBX array property ({} elements) exceeds remaining data", numElements);
+            }
+
             for (uint32 index = 0; index < numElements; ++index)
             {
                 FBXPropertyValue value;
@@ -717,14 +741,14 @@ static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
 {
     if (version >= 7500)
     {
-        uint64 value;
+        uint64 value = 0;
         reader.Read(&value);
 
         return value;
     }
     else
     {
-        uint32 value;
+        uint32 value = 0;
         reader.Read(&value);
 
         return uint64(value);
@@ -733,19 +757,25 @@ static uint64 ReadFBXOffset(ByteReader& reader, FBXVersion version)
 
 static Result ReadFBXNode(ByteReader& reader, FBXVersion version, FBXObject*& out)
 {
+    out = nullptr;
+
     uint64 endPosition = ReadFBXOffset(reader, version);
     uint64 numProperties = ReadFBXOffset(reader, version);
     uint64 propertyListLength = ReadFBXOffset(reader, version);
 
-    uint8 nameLength;
+    uint8 nameLength = 0;
     reader.Read(&nameLength);
 
     if (endPosition == 0 && numProperties == 0 && propertyListLength == 0 && nameLength == 0)
     {
         // Null record terminating the parent's list of children -- not an actual node
-        out = nullptr;
-
         return {};
+    }
+
+    // every property is at least one byte, and a node must end past its header and inside the file
+    if (endPosition > reader.Max() || endPosition < reader.Position() + nameLength || numProperties > endPosition - reader.Position())
+    {
+        return HYP_MAKE_ERROR(Error, "Invalid FBX node record (end offset {}, {} properties) at position {}", endPosition, numProperties, reader.Position());
     }
 
     out = (FBXObject*)t_fbxMemory->objectAllocator->Allocate();
@@ -2028,7 +2058,12 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         {
             if (auto* leftNode = leftIt->second.data.TryGet<FBXNode>())
             {
-                leftNode->parentId = 0;
+                // keep parentId in sync with childIds, the cycle check below walks parentId
+                if (leftNode->parentId)
+                {
+                    INVALID_NODE_CONNECTION("Left fbx_node already has a parent, cannot also attach it to the root");
+                }
+
                 rootFbxNode.childIds.Insert(leftIt->first);
 
                 continue;
@@ -2058,9 +2093,24 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         {
             if (auto* rightNode = rightIt->second.data.TryGet<FBXNode>())
             {
+                // parenting to itself or one of its own descendants would make the node builders recurse forever
+                bool createsCycle = leftIt->first == rightIt->first;
+
+                for (FBXObjectID ancestorId = rightNode->parentId; ancestorId != 0 && !createsCycle;)
+                {
+                    FBXNode* ancestorNode;
+
+                    createsCycle = ancestorId == leftIt->first;
+                    ancestorId = getFbxObject(ancestorId, ancestorNode) ? ancestorNode->parentId : 0;
+                }
+
                 if (leftNode->parentId)
                 {
                     HYP_LOG(Assets, Warning, "Left fbx_node already has parent, cannot add to right fbx_node");
+                }
+                else if (createsCycle)
+                {
+                    HYP_LOG(Assets, Warning, "FBX node connection {} -> {} would create a cycle, skipping", leftIt->first, rightIt->first);
                 }
                 else
                 {

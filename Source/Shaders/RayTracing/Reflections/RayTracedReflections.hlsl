@@ -16,7 +16,7 @@ DECLARE_SAMPLER(RTReflections, SamplerLinear) SamplerState sampler_linear;
 #define HYP_SAMPLER_LINEAR sampler_linear
 
 DECLARE_SRV(RTReflections, TLAS) RaytracingAccelerationStructure tlas;
-DECLARE_UAV(RTReflections, OutputImage) RWTexture2D<unorm float4> image;
+DECLARE_UAV(RTReflections, OutputImage) RWTexture2D<float4> image;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -144,7 +144,7 @@ void RayGenMain()
         color += payload.color;
     }
 
-    color = clamp(color, float4(0.0, 0.0, 0.0, 0.0), float4(1.0, 1.0, 1.0, 1.0));
+    color = max(color, (float4)0.0);
 
 #if defined(USE_MIN_ROUGHNESS) && USE_MIN_ROUGHNESS
     // interpolate alpha based on roughness compared to minimum roughness needed for reflection

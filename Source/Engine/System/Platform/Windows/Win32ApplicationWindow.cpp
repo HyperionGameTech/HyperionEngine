@@ -177,6 +177,12 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     }
     case VK_CAPITAL:
         return KeyCode::KEY_CAPSLOCK;
+    case VK_RETURN:
+        return KeyCode::KEY_RETURN;
+    case VK_BACK:
+        return KeyCode::KEY_BACKSPACE;
+    case VK_ESCAPE:
+        return KeyCode::KEY_ESCAPE;
     case VK_SPACE:
         return KeyCode::KEY_SPACE;
     case VK_LEFT:
@@ -223,10 +229,6 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     {
         return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'A'));
     }
-    else if (wParam >= 'a' && wParam <= 'z')
-    {
-        return KeyCode(uint16(KeyCode::KEY_A) + (wParam - 'a'));
-    }
     else if (wParam >= '0' && wParam <= '9')
     {
         return KeyCode(wParam);
@@ -234,11 +236,6 @@ static KeyCode MapWin32VirtualKeyToKeyCode(LPARAM lParam, WPARAM wParam)
     else if (wParam >= VK_F1 && wParam <= VK_F12)
     {
         return KeyCode(uint32(KeyCode::KEY_F1) + (wParam - VK_F1));
-    }
-
-    if (wParam < 256)
-    {
-        return KeyCode(wParam);
     }
 
     return KeyCode::KEY_UNKNOWN;
@@ -263,11 +260,13 @@ bool HandleWindowEvent(
         // Not handled - let the caller fall through to DefWindowProcW so it isn't called twice.
         return false;
     case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
         event = Event(EventType::KEYDOWN, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
 
         return true;
     case WM_KEYUP:
+    case WM_SYSKEYUP:
         event = Event(EventType::KEYUP, window, platformEvent);
         event.GetEventData().Set(MapWin32VirtualKeyToKeyCode(lParam, wParam));
 
@@ -376,6 +375,11 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
         if (eventType != EventType::INVALID)
         {
             windowHandle->GetInputManager()->ProcessEvent(std::move(event));
+        }
+
+        if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP)
+        {
+            return DefWindowProcW(hWnd, msg, wParam, lParam);
         }
 
         return 0;

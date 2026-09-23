@@ -1112,6 +1112,8 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     const bool useTimeline = frame->IsUsingTimelineSemaphore();
     VulkanFence* submitFence = useTimeline ? nullptr : frame->GetFence();
 
+    RendererResult submitResult;
+
     if (useTimeline && frame->GetFrameCompleteValue() > 0)
     {
         VulkanSemaphore* signalSemaphores[2] = { nullptr, nullptr };
@@ -1129,7 +1131,7 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
         signalValues[signalCount] = frame->GetFrameCompleteValue();
         signalCount++;
 
-        commandBuffer->Submit(
+        submitResult = commandBuffer->Submit(
             graphicsQueue,
             submitFence,
             Span<VulkanSemaphore*>(&waitSemaphore, numWaitSemaphores),
@@ -1140,12 +1142,20 @@ void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
     }
     else
     {
-        commandBuffer->Submit(
+        submitResult = commandBuffer->Submit(
             graphicsQueue,
             submitFence,
             Span<VulkanSemaphore*>(&waitSemaphore, numWaitSemaphores),
             Span<VulkanSemaphore*>(&signalSemaphore, signalSemaphore ? 1 : 0),
             Span<VkPipelineStageFlags>(&waitStage, numWaitSemaphores));
+    }
+
+    if (!submitResult)
+    {
+        // Submit() already un-marks the fence; the timeline value would never be signaled either
+        HYP_LOG(RenderingBackend, Error, "Failed to submit frame command buffer: {}", submitResult.GetError().GetMessage());
+
+        frame->ClearFrameCompleteValue();
     }
 
     if (swapchain != nullptr)

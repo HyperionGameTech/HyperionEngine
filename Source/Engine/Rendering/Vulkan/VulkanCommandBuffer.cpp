@@ -189,7 +189,7 @@ void VulkanCommandBuffer::Reset()
     m_boundComputePipeline = nullptr;
     m_boundRayTracingPipeline = nullptr;
 
-    Assert(vkResetCommandBuffer(m_handle, 0), "Failed to reset command buffer");
+    Assert(vkResetCommandBuffer(m_handle, 0) == VK_SUCCESS, "Failed to reset command buffer");
 }
 
 RendererResult VulkanCommandBuffer::Submit(
@@ -306,6 +306,12 @@ RendererResult VulkanCommandBuffer::Submit(
         Mutex::Guard guard(queue->mutex);
 
         submitResult = vkQueueSubmit(queue->queue, 1, &submitInfo, fence ? fence->GetVulkanHandle() : VK_NULL_HANDLE);
+    }
+
+    if (submitResult != VK_SUCCESS && fence != nullptr)
+    {
+        // the fence never made it to the queue, so waiting on it would never return
+        fence->isSubmitted = false;
     }
 
     VULKAN_CHECK(submitResult);

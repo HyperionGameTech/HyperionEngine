@@ -169,8 +169,6 @@ public:
 
     void BeginFrame(AtomicFlag* pCancelFlag) override;
 
-    void InsertTransientSyncBarrier();
-
     ComPtr<IDXGIFactory4> dxgiFactory;
 
     DX12DescriptorHeapManager* descriptorHeapManager;
@@ -200,9 +198,6 @@ private:
     Array<DX12TransientCommandBuffer*, DX12Allocator> m_recordingTransientCommandBuffers;
     Array<DX12TransientCommandBuffer*, DX12Allocator> m_submittedTransientCommandBuffers;
     Mutex m_transientCommandBuffersMutex;
-
-    ComPtr<ID3D12Fence> m_transientSyncFence;
-    AtomicVar<uint64> m_transientSyncValues[NumFramesInFlight];
 
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 

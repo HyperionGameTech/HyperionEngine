@@ -250,7 +250,7 @@ public:
         m_detachedHandlers.Clear();
 
         // should always end back on our first list
-        AssertDebug(m_activeIdx % 2 == 0);
+        AssertDebug((m_activeIdx & 1) == 0);
         AssertDebug(m_lists[1].Empty());
 
         for (DelegateHandlerEntry<ProcType>* entry : m_lists[0])
@@ -349,6 +349,14 @@ public:
 
             // set write mask, loop until we have exclusive access.
             uint64 state = current->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE);
+
+            if (state & ExclusiveAccessFlag)
+            {
+                // Remove() holds exclusive access - leave the entry for a later pass
+                ++it;
+                continue;
+            }
+
             while (state & SharedAccessMask)
             {
                 state = current->mask.Get(MemoryOrder::ACQUIRE);
@@ -440,7 +448,16 @@ public:
             uint16 numSpins = 0;
 
             // set write mask, loop until we have exclusive access.
-            uint64 localState = current->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE) | ExclusiveAccessFlag;
+            const uint64 previousState = current->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE);
+
+            if (previousState & ExclusiveAccessFlag)
+            {
+                // Remove() holds exclusive access (entry is already marked for removal) - leave it for a later pass
+                ++it;
+                continue;
+            }
+
+            uint64 localState = previousState | ExclusiveAccessFlag;
 
             bool hasExclusiveAccess = true;
             bool hasSharedAccess = false;
@@ -510,12 +527,14 @@ public:
                     current->mask.Decrement(2, MemoryOrder::RELEASE);
 
                     // skip broadcast
+                    ++it;
                     continue;
                 }
             }
             else
             {
                 // no access - skip broadcast (read access already released due to failing to acquire read access)
+                ++it;
                 continue;
             }
 
@@ -690,7 +709,8 @@ protected:
 
     ProcList& LockActiveList()
     {
-        const int32 i = AtomicAdd(&m_activeIdx, 0) % 2;
+        // & 1 rather than % 2 so the index stays valid once the counter wraps negative
+        const int32 i = AtomicAdd(&m_activeIdx, 0) & 1;
         m_listMtx[i].Lock();
 
         return m_lists[i];

@@ -504,6 +504,7 @@ public:
 protected:
     void UpdateMatchWindowSize();
     void UpdateStreamingVolume();
+    void UnregisterStreamingVolume();
 
     void OnTransformUpdated() override;
 
@@ -554,7 +555,7 @@ private:
     InputMouseLockScope m_mouseLockScope;
 
     Handle<CameraStreamingVolume> m_streamingVolume;
-    bool m_streamingVolumeAdded;
+    bool m_streamingVolumeAdded = false;
 
     DelegateHandler m_onMainWindowChangedHandle;
     DelegateHandler m_onWindowResizedHandle;

@@ -74,7 +74,8 @@ float4 ConvolveProbe(uint2 local_coord, uint face)
             float NdotH = saturate(dot(N, H));
             float HdotV = saturate(dot(H, V));
 
-            float pdf = GGX_PDF(NdotH, HdotV, roughness);
+            // SampleGGX squares roughness internally, GGX_PDF takes alpha directly
+            float pdf = GGX_PDF(NdotH, HdotV, roughness * roughness);
             float omegaS = 1.0 / (float(num_samples) * max(pdf, 0.0001));
             float mipLevel = roughness == 0.0 ? 0.0 : max(0.5 * log2(omegaS / omegaP), 0.0);
 

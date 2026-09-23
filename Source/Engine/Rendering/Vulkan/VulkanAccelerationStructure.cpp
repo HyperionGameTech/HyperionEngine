@@ -154,7 +154,8 @@ VulkanASBase::VulkanASBase(const Mat4f& transform)
     : m_transform(transform),
       m_accelerationStructure(VK_NULL_HANDLE),
       m_deviceAddress(0),
-      m_flags(ACCELERATION_STRUCTURE_FLAGS_NONE)
+      m_flags(ACCELERATION_STRUCTURE_FLAGS_NONE),
+      m_updateVersion(0)
 {
 }
 
@@ -602,6 +603,7 @@ void VulkanTopLevelAS::AddBLAS(uint64 key, VulkanBottomLevelAS* blas)
 
     m_blases.PushBack(blas);
     m_keys.PushBack(key);
+    m_blasUpdateVersions.PushBack(blas->GetUpdateVersion());
 
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
@@ -632,6 +634,7 @@ bool VulkanTopLevelAS::RemoveBLAS(uint64 key)
     AssertDebug(dist < m_keys.Size());
 
     m_keys.Erase(m_keys.Begin() + dist);
+    m_blasUpdateVersions.Erase(m_blasUpdateVersions.Begin() + dist);
     m_blases.Erase(blasesIt);
 
     m_keyToBlasAndStorageId.Erase(it);
@@ -716,6 +719,9 @@ RendererResult VulkanTopLevelAS::BuildInstancesBuffer(uint32 first, uint32 last)
         desc.instanceShaderBindingTableRecordOffset = 0;
         desc.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         desc.accelerationStructureReference = blas->GetDeviceAddress();
+
+        // mesh descriptions (material binding) are always rebuilt over the same range alongside this
+        m_blasUpdateVersions[i] = blas->GetUpdateVersion();
     }
 
     Assert(m_instancesBuffer != nullptr);
@@ -809,7 +815,7 @@ RendererResult VulkanTopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateSt
         RTUpdateStateFlags blasUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
         CheckResultOrReturn(blas->UpdateStructure(blasUpdateStateFlags));
 
-        if (blasUpdateStateFlags)
+        if (blasUpdateStateFlags || blas->GetUpdateVersion() != m_blasUpdateVersions[i])
         {
             dirtyRange |= Range { i, i + 1 };
         }
@@ -817,6 +823,7 @@ RendererResult VulkanTopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateSt
 
     if (dirtyRange)
     {
+        // updates m_blasUpdateVersions for the dirty range
         CheckResultOrReturn(BuildInstancesBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
         CheckResultOrReturn(BuildMeshDescriptionsBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
 
@@ -955,20 +962,6 @@ RendererResult VulkanBottomLevelAS::Create()
 RendererResult VulkanBottomLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
-
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE)
-    {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MATERIAL;
-
-        ClearFlag(ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
-    }
-
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE)
-    {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM;
-
-        ClearFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
-    }
 
     if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING)
     {

@@ -459,16 +459,6 @@ RendererResult DX12RenderInterface::Initialize()
         return HYP_MAKE_ERROR(RendererError, "Failed to create frame fence event");
     }
 
-    // Create transient sync fence for GPU-side synchronization between
-    // transient command buffer submissions and the main frame submission.
-    // Each transient submission signals this fence with an incremented value,
-    // and the main frame GPU-waits on it before executing its command buffer.
-    hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_transientSyncFence));
-    if (FAILED(hr))
-    {
-        return HYP_MAKE_ERROR(RendererError, "Failed to create transient sync fence", hr);
-    }
-
     const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     Assert(queueData != nullptr);
 
@@ -568,7 +558,6 @@ void DX12RenderInterface::Shutdown()
         m_frameFenceEvent = nullptr;
     }
     m_frameFence.Reset();
-    m_transientSyncFence.Reset();
 
     m_queueData = {};
 
@@ -757,8 +746,6 @@ void DX12RenderInterface::PrepareFrame(DX12Frame* frame)
     }
 
     frame->OnFrameStart();
-
-    m_transientSyncValues[frameIndex].Set(0, MemoryOrder::RELEASE);
 }
 
 DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window, const Vec2u& extent)
@@ -793,8 +780,7 @@ void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
     const uint32 frameCounter = GetFrameCounter();
     const uint32 frameIndex = frameCounter % NumFramesInFlight;
 
-    RI.InsertTransientSyncBarrier();
-
+    // transient command buffers go to this same in-order direct queue, so no cross-submit wait is needed
     const uint64 signalValue = uint64(frameCounter) + 1;
     commandBuffer->Submit(m_frameFence.Get(), signalValue);
 
@@ -865,8 +851,6 @@ DX12CommandBuffer& DX12RenderInterface::GetTransientCommandBuffer()
 
 void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& commandBuffer)
 {
-    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
-
     if (commandBuffer.IsRecording())
     {
         commandBuffer.End();
@@ -911,25 +895,6 @@ void DX12RenderInterface::SubmitTransientCommandBuffer(DX12CommandBuffer& comman
         if (deviceRemovedReason)
         {
             HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
-        }
-    }
-
-    // Signal the transient sync fence
-    {
-        const uint64 syncValue = m_transientSyncValues[frameIndex].Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
-
-        hr = commandQueue->Signal(m_transientSyncFence.Get(), syncValue);
-        if (FAILED(hr))
-        {
-            HYP_LOG(RenderingBackend, Error, "Failed to signal transient sync fence! Error: {}", hr);
-
-            CrashHandler::Dump();
-
-            const char* deviceRemovedReason = CheckDeviceRemovedReason(m_device.Get());
-            if (deviceRemovedReason)
-            {
-                HYP_LOG(RenderingBackend, Fatal, "Device removed: {}", deviceRemovedReason);
-            }
         }
     }
 
@@ -1200,7 +1165,8 @@ void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
     D3D12_DRAW_INDEXED_ARGUMENTS& command = outBuffer[instanceOffset];
     command = D3D12_DRAW_INDEXED_ARGUMENTS {};
     command.IndexCountPerInstance = indexBuffer != nullptr ? numIndices : 0;
-    command.InstanceCount = 1;
+    // culling / particle update compute shaders InterlockedAdd the instance count
+    command.InstanceCount = 0;
     command.StartIndexLocation = 0;
     command.BaseVertexLocation = 0;
     command.StartInstanceLocation = 0;
@@ -1322,22 +1288,15 @@ void DX12RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 {
     RenderInterface::BeginFrame(pCancelFlag);
 
-    // Rebind descriptor heaps after command buffer reset in BeginFrame()
-    BindDescriptorHeaps(*GetCurrentCommandBuffer());
-}
+    DX12CommandBuffer* commandBuffer = GetCurrentCommandBuffer();
 
-void DX12RenderInterface::InsertTransientSyncBarrier()
-{
-    const uint32 frameIndex = GetFrameCounter() % NumFramesInFlight;
-    const uint64 syncValue = m_transientSyncValues[frameIndex].Get(MemoryOrder::ACQUIRE);
-
-    if (syncValue > 0 && m_transientSyncFence != nullptr)
+    if (commandBuffer == nullptr || !commandBuffer->IsRecording())
     {
-        const DX12QueueData* queueData = GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
-        Assert(queueData != nullptr);
-
-        queueData->commandQueue->Wait(m_transientSyncFence.Get(), syncValue);
+        return;
     }
+
+    // Rebind descriptor heaps after command buffer reset
+    BindDescriptorHeaps(*commandBuffer);
 }
 
 #pragma endregion DX12RenderInterface

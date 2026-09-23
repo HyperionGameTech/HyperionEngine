@@ -360,6 +360,8 @@ void World::Shutdown()
 
     m_isInitialized = false;
 
+    m_processingScenes.Clear();
+
     Array<Handle<Scene>> scenes = std::move(m_scenes);
 
     for (const Handle<Scene>& scene : scenes)
@@ -999,6 +1001,8 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
 
     m_rootSynchronousExecutionGroup = nullptr;
 
+    m_processingScenes = m_scenes;
+
     TaskBatch* firstTaskBatch = nullptr;
     TaskBatch* lastTaskBatch = nullptr;
 
@@ -1019,7 +1023,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
         currentTaskBatch->ResetState();
 
         // Add tasks to batches before kickoff
-        systemExecutionGroup.StartProcessing(delta, m_scenes.ToSpan());
+        systemExecutionGroup.StartProcessing(delta, m_processingScenes.ToSpan());
 
         if (currentTaskBatch->executors.Empty())
         {
@@ -1098,6 +1102,8 @@ void World::EndUpdate()
 
         m_rootSynchronousExecutionGroup = nullptr;
     }
+
+    m_processingScenes.Clear();
 
 #if defined(HYP_DEBUG_MODE) && (defined(HYP_SYSTEM_LOG_PERFORMANCE) || defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION))
     for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
@@ -1580,6 +1586,8 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
 
     scene->SetWorld(this);
 
+    m_scenes.PushBack(scene);
+
     if (m_isInitialized)
     {
         scene->Initialize();
@@ -1611,8 +1619,6 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
             scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
         }
     }
-
-    m_scenes.PushBack(scene);
 }
 
 bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
@@ -1811,7 +1817,10 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 {
     // no thread assertion if not yet init since this is used for deserialization mainly
 
-    for (Handle<Scene>& scene : m_scenes)
+    Array<Handle<Scene>> previousScenes = std::move(m_scenes);
+    m_scenes.Clear();
+
+    for (Handle<Scene>& scene : previousScenes)
     {
         if (!scene)
         {
@@ -1860,6 +1869,8 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
         scene->SetWorld(this);
 
+        m_scenes.PushBack(scene);
+
         if (m_isInitialized)
         {
             scene->Initialize();
@@ -1884,8 +1895,6 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
                 }
             }
         }
-
-        m_scenes.PushBack(scene);
     }
 }
 

@@ -199,7 +199,7 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
             return JSON::Value(value.ToInt32());
         }
 
-        if (!StringUtil::Parse(value.ToString(), &valueInt))
+        if (StringUtil::Parse(value.ToString(), &valueInt))
         {
             return JSON::Value(valueInt);
         }
@@ -215,7 +215,7 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
             return JSON::Value(value.ToDouble());
         }
 
-        if (!StringUtil::Parse(value.ToString(), &valueDouble))
+        if (StringUtil::Parse(value.ToString(), &valueDouble))
         {
             return JSON::Value(valueDouble);
         }
@@ -493,7 +493,8 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine
     {
         uint32 currentChar = commandLine.GetChar(charIndex);
 
-        if (std::isspace(int(currentChar)))
+        // std::isspace is UB outside unsigned char range
+        if (currentChar <= 0xFFu && std::isspace(int(currentChar)))
         {
             addCurrentString();
 

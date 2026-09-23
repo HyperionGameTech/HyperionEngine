@@ -35,6 +35,11 @@ namespace Hyperion
 
         private static readonly ConcurrentDictionary<IntPtr, int> s_liveObjectCounts = new ConcurrentDictionary<IntPtr, int>();
 
+        // native keeps these function pointers around, so the delegates must stay rooted
+        private static readonly AddObjectToCacheDelegate s_addObjectToCacheDelegate = AddObjectToCache;
+        private static readonly InvokeGetterDelegate s_invokeGetterDelegate = InvokeGetter;
+        private static readonly InvokeSetterDelegate s_invokeSetterDelegate = InvokeSetter;
+
         private static bool VerifyEngineVersion(string versionString, bool major, bool minor, bool patch)
         {
             var versionParts = versionString.Split('.');
@@ -138,12 +143,13 @@ namespace Hyperion
 
                 currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
 
-                NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
+                NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(s_addObjectToCacheDelegate));
                 NativeInterop_SetSetKeepAliveFunction((delegate* unmanaged<IntPtr, int*, void>)&SetKeepAlive);
                 NativeInterop_SetTriggerGCFunction((delegate* unmanaged<void>)&TriggerGC);
                 NativeInterop_SetGetAssemblyPointerFunction((delegate* unmanaged<IntPtr, IntPtr, void>)&GetAssemblyPointer);
                 NativeInterop_SetCleanupOnShutdownFunction((delegate* unmanaged<void>)&CleanupOnShutdown);
                 NativeInterop_SetRemoveObjectFromCacheFunction((delegate* unmanaged<IntPtr, void>)&RemoveObjectFromCache);
+                NativeInterop_SetFreeObjectReferenceFunction((delegate* unmanaged<IntPtr, void>)&FreeObjectReference);
                 NativeInterop_SetQueryManagedObjectCountsFunction((delegate* unmanaged<IntPtr*, int, int>)&QueryManagedObjectCounts);
                 NativeInterop_SetGetTotalMemoryFunction((delegate* unmanaged<long>)&GetTotalMemory);
             }
@@ -168,7 +174,7 @@ namespace Hyperion
             try
             {
                 // Create a managed string from the pointer
-                string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr) ?? string.Empty;
+                string assemblyPath = Marshal.PtrToStringUTF8(assemblyPathStringPtr) ?? string.Empty;
 
                 if (isCoreAssembly != 0)
                 {
@@ -229,8 +235,8 @@ namespace Hyperion
 
                 if (assemblyPtr != IntPtr.Zero)
                 {
-                    NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeGetterDelegate>(InvokeGetter));
-                    NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
+                    NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeGetterDelegate>(s_invokeGetterDelegate));
+                    NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(s_invokeSetterDelegate));
                 }
 
                 if (IsHyperionAssembly(assembly))
@@ -435,7 +441,7 @@ namespace Hyperion
             IntPtr foundClassObjectPtr = IntPtr.Zero;
 
             // Check if class has already been initialized
-            if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
+            if (ManagedClass_FindByTypeHash(assemblyPtr, type.TypeHandle.Value.ToInt64(), out foundClassObjectPtr))
             {
                 return foundClassObjectPtr;
             }
@@ -450,7 +456,7 @@ namespace Hyperion
             }
 
             // Check if initializing parent class has caused this class to be initialized
-            if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
+            if (ManagedClass_FindByTypeHash(assemblyPtr, type.TypeHandle.Value.ToInt64(), out foundClassObjectPtr))
             {
                 return foundClassObjectPtr;
             }
@@ -458,7 +464,7 @@ namespace Hyperion
             ManagedClassDesc managedClassDesc = new ManagedClassDesc();
 
             string typeName = type.Name;
-            IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
+            IntPtr typeNamePtr = Marshal.StringToCoTaskMemUTF8(typeName);
 
             string? className = null;
             IntPtr classPtr = IntPtr.Zero;
@@ -562,9 +568,9 @@ namespace Hyperion
                 managedClassFlags |= ManagedClassFlags.Abstract;
             }
 
-            ManagedClass_Create(ref assemblyGuid, assemblyPtr, classPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClassDesc);
+            ManagedClass_Create(ref assemblyGuid, assemblyPtr, classPtr, type.TypeHandle.Value.ToInt64(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClassDesc);
 
-            Marshal.FreeHGlobal(typeNamePtr);
+            Marshal.FreeCoTaskMem(typeNamePtr);
 
             ManagedAttributeHolder managedAttributeHolder = AllocAttributeHolder(assemblyGuid, assemblyPtr, type.GetCustomAttributes().ToArray());
             managedClassDesc.SetAttributes(ref managedAttributeHolder);
@@ -958,7 +964,7 @@ namespace Hyperion
 
                 // ManagedClass must be registered for the given object's type.
                 IntPtr pClass;
-                if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out pClass))
+                if (!ManagedClass_FindByTypeHash(assemblyPtr, type.TypeHandle.Value.ToInt64(), out pClass))
                 {
                     throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
                 }
@@ -1087,6 +1093,23 @@ namespace Hyperion
         }
 
         [UnmanagedCallersOnly]
+        public static unsafe void FreeObjectReference(IntPtr objectReferencePtr)
+        {
+            if (objectReferencePtr == IntPtr.Zero)
+                return;
+
+            try
+            {
+                ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
+                objectReference.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, "Exception thrown freeing object reference: {0}", ex);
+            }
+        }
+
+        [UnmanagedCallersOnly]
         public static long GetTotalMemory()
         {
             return GC.GetTotalMemory(false);
@@ -1130,11 +1153,11 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr classPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClassDesc outDesc);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr classPtr, long typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClassDesc outDesc);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool ManagedClass_FindByTypeHash([In] IntPtr assemblyPtr, int typeHash, [Out] out IntPtr outManagedClassObjectPtr);
+        private static extern bool ManagedClass_FindByTypeHash([In] IntPtr assemblyPtr, long typeHash, [Out] out IntPtr outManagedClassObjectPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetClassByName")]
         private static extern IntPtr Class_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
@@ -1175,6 +1198,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetRemoveObjectFromCacheFunction")]
         private static extern unsafe void NativeInterop_SetRemoveObjectFromCacheFunction(void* removeObjectFromCacheFunction);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetFreeObjectReferenceFunction")]
+        private static extern unsafe void NativeInterop_SetFreeObjectReferenceFunction(void* freeObjectReferenceFunction);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetQueryManagedObjectCountsFunction")]
         private static extern unsafe void NativeInterop_SetQueryManagedObjectCountsFunction(void* queryManagedObjectCountsFunction);

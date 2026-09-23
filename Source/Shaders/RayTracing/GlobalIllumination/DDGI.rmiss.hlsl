@@ -4,18 +4,8 @@
 #include "../../include/Shared.hlsli"
 #include "../../include/RayTracing/Payload.hlsli"
 
-struct PayloadData
-{
-    float4 throughput;
-    float4 color;
-    float4 emissive;
-    float distance;
-    float3 normal;
-    float roughness;
-};
-
 [shader("miss")]
-void MissMain(inout PayloadData payload)
+void MissMain(inout RayPayload payload)
 {
     payload.throughput = float4(0.0, 0.0, 0.0, 0.0);
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);

@@ -73,12 +73,14 @@ static Name GetUniqueProjectName()
     return Name(candidateName);
 }
 
-static void CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& targetDir)
+static bool CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& targetDir)
 {
     if (!sourceDir.Exists() || !sourceDir.IsDirectory())
     {
-        return;
+        return true;
     }
+
+    bool allCopied = true;
 
     for (const FilePath& subdir : sourceDir.GetSubdirectories())
     {
@@ -88,10 +90,15 @@ static void CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& tar
         {
             HYP_LOG(Editor, Warning, "Failed to create directory '{}' while migrating project files", targetSubdir);
 
+            allCopied = false;
+
             continue;
         }
 
-        CopyLooseProjectFiles(subdir, targetSubdir);
+        if (!CopyLooseProjectFiles(subdir, targetSubdir))
+        {
+            allCopied = false;
+        }
     }
 
     for (const FilePath& file : sourceDir.GetAllFilesInDirectory())
@@ -113,9 +120,12 @@ static void CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& tar
 
         FileByteReader reader { file };
 
-        if (reader.Eof())
+        // empty files read as Eof too, those are fine to copy
+        if (reader.Eof() && file.FileSize() != 0)
         {
             HYP_LOG(Editor, Warning, "Failed to read file '{}' while migrating project files", file);
+
+            allCopied = false;
 
             continue;
         }
@@ -128,12 +138,16 @@ static void CopyLooseProjectFiles(const FilePath& sourceDir, const FilePath& tar
         {
             HYP_LOG(Editor, Warning, "Failed to open file '{}' for writing while migrating project files", targetFile);
 
+            allCopied = false;
+
             continue;
         }
 
         writer.Write(fileContents.Data(), fileContents.Size());
         writer.Close();
     }
+
+    return allCopied;
 }
 
 EditorProject::EditorProject()
@@ -370,6 +384,11 @@ Result EditorProject::SaveAs(FilePath filepath)
     FileByteWriter wri { filepath };
     HYP_DEFER({ wri.Close(); });
 
+    if (!wri.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open project file '{}' for writing", filepath);
+    }
+
     wri.WriteString(projectHmf);
     wri.Close();
 
@@ -388,6 +407,9 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     registry.SaveDirtyAssets();
 
+    // failed assets stay dirty; their data may still only live in the temp dir
+    const bool allAssetsSaved = !registry.HasDirtyAssets();
+
     // Re-apply the active swatch's overrides now that all assets have been saved
     if (m_editWorld.IsValid())
     {
@@ -399,9 +421,11 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     // Move files not managed by the registry (eg. script sources in Scripts/) from the old location
     // (eg. the temporary directory of an unsaved project) to the new one.
+    bool looseFilesCopied = true;
+
     if (rootPathChanged)
     {
-        CopyLooseProjectFiles(oldRootPath, dir);
+        looseFilesCopied = CopyLooseProjectFiles(oldRootPath, dir);
 
         // Re-point script file watchers at the new project directory
         if (m_editWorld.IsValid())
@@ -413,8 +437,18 @@ Result EditorProject::SaveAs(FilePath filepath)
         }
     }
 
+    if (!looseFilesCopied)
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to copy some project files from '{}' to '{}'; the old directory was kept", oldRootPath, dir);
+    }
+
+    if (!allAssetsSaved && !m_tempDirectory.Empty())
+    {
+        HYP_LOG(Editor, Warning, "Some assets failed to save; keeping temporary project directory '{}'", m_tempDirectory);
+    }
+
     // Moved from temp; remove old dir
-    if (!m_tempDirectory.Empty())
+    if (!m_tempDirectory.Empty() && allAssetsSaved)
     {
         if (!m_tempDirectory.RemoveRecursively())
         {

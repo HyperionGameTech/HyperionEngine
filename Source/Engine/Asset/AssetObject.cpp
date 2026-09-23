@@ -810,25 +810,15 @@ void AssetObject::LockReader()
         }
     };
 
-    // first pass: optimistic read
-    if ((m_rwState & 0x1) == 0)
-    {
-        state = AtomicAdd(&m_rwState, 2);
-
-        if ((state & 0x1) == 0)
-        {
-            MaybeInitialize(state);
-
-            return;
-        }
-
-        AtomicSub(&m_rwState, 2);
-    }
-
+    // CAS instead of add-then-undo, so the reader count never includes readers that will back out
+    // (a transient count made a real first reader think it wasn't first and wait on m_isInit forever)
     while (true)
     {
-        // failed, wait for writer to release
-        if (m_rwState & 0x1)
+        // volatile read
+        state = m_rwState;
+
+        // wait for writer (or a last reader tearing down) to release
+        if (state & 0x1)
         {
             if (numSpins++ < 16)
             {
@@ -842,16 +832,14 @@ void AssetObject::LockReader()
             continue;
         }
 
-        state = AtomicAdd(&m_rwState, 2);
+        int64 expected = state;
 
-        if ((state & 0x1) == 0)
+        if (AtomicCompareExchange(&m_rwState, expected, state + 2))
         {
             MaybeInitialize(state);
 
             return;
         }
-
-        AtomicSub(&m_rwState, 2);
     }
 #else // !HYP_ASSET_OBJECT_THREAD_SAFE
     if (++m_numReaders == 1)
@@ -869,41 +857,65 @@ void AssetObject::LockReader()
 void AssetObject::UnlockReader()
 {
 #ifdef HYP_ASSET_OBJECT_THREAD_SAFE
-    if (AtomicSub(&m_rwState, 2) == 2)
+    int64 state = m_rwState;
+
+    while (true)
     {
-        bool expected = true;
+        int64 expected = state;
 
-        if (m_isInit.CompareExchangeStrong(expected, false, MemoryOrder::ACQUIRE_RELEASE))
+        // last reader swaps its read for the writer bit, so no reader/writer can get in mid-teardown
+        const int64 desired = state == 2 ? 1 : state - 2;
+
+        if (AtomicCompareExchange(&m_rwState, expected, desired))
         {
-            if (!m_flags[AssetObjectFlags::Persistent])
+            break;
+        }
+
+        state = expected;
+    }
+
+    if (state != 2)
+    {
+        return;
+    }
+
+    bool expectedInit = true;
+
+    const bool isTearingDown = m_isInit.CompareExchangeStrong(expectedInit, false, MemoryOrder::ACQUIRE_RELEASE)
+        && !m_flags[AssetObjectFlags::Persistent];
+
+    if (isTearingDown)
+    {
+        if (IsDirty())
+        {
+            // Modified blob data only exists in memory, so it has to be kept resident until
+            // it has been persisted by SaveDirtyAssets(); otherwise it would be lost and the
+            // saved manifest would no longer match the local blob data files on disk.
+            if (ShouldUseBlobStorage())
             {
-                if (IsDirty())
-                {
-                    // Modified blob data only exists in memory, so it has to be kept resident until
-                    // it has been persisted by SaveDirtyAssets(); otherwise it would be lost and the
-                    // saved manifest would no longer match the local blob data files on disk.
-                    if (ShouldUseBlobStorage())
-                    {
-                        // We keep the data, but we cannot hold on to storage-mapped (read-only)
-                        // memory after dropping the blob storage reader lock.
-                        SetBlobDataResident(true);
-                    }
-                }
-                else
-                {
-                    UnpageBlobData();
-                }
-
-                // Drop reader for blob storage
-                if (ShouldUseBlobStorage())
-                {
-                    EngineGlobals::GetBlobStorage()->Unlock();
-                }
-
-                m_isBlobLoaded.Exchange(false, MemoryOrder::RELEASE);
-                m_isBlobLoaded.NotifyAll();
+                // We keep the data, but we cannot hold on to storage-mapped (read-only)
+                // memory after dropping the blob storage reader lock.
+                SetBlobDataResident(true);
             }
         }
+        else
+        {
+            UnpageBlobData();
+        }
+    }
+
+    UnlockWriter();
+
+    if (isTearingDown)
+    {
+        // Outside the writer bit; a new first reader waits on m_isBlobLoaded for this to finish
+        if (ShouldUseBlobStorage())
+        {
+            EngineGlobals::GetBlobStorage()->Unlock();
+        }
+
+        m_isBlobLoaded.Exchange(false, MemoryOrder::RELEASE);
+        m_isBlobLoaded.NotifyAll();
     }
 #else // !HYP_ASSET_OBJECT_THREAD_SAFE
     if (--m_numReaders == 0)

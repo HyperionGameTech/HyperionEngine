@@ -63,9 +63,9 @@ public:
         return m_flags;
     }
 
-    SharedPtr<ManagedClass> NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
+    SharedPtr<ManagedClass> NewClass(const Class* cls, int64 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags);
     SharedPtr<ManagedClass> FindClassByName(const char* typeName);
-    SharedPtr<ManagedClass> FindClassByTypeHash(int32 typeHash);
+    SharedPtr<ManagedClass> FindClassByTypeHash(int64 typeHash);
 
     HYP_FORCE_INLINE InvokeGetterFunction GetInvokeGetterFunction() const
     {
@@ -99,7 +99,7 @@ private:
 
     ManagedGuid m_guid;
 
-    Map<int32, SharedPtr<ManagedClass>> m_classObjects;
+    Map<int64, SharedPtr<ManagedClass>> m_classObjects;
 
     // Function pointer to invoke a managed method
     InvokeGetterFunction m_invokeGetterFptr;

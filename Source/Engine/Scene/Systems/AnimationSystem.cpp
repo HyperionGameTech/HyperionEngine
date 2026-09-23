@@ -21,6 +21,8 @@
 
 #include <Framework/GameState.hpp>
 
+#include <cmath>
+
 #include <AnimationSystem.generated.inl>
 
 namespace Hyperion {
@@ -39,7 +41,8 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 
     if (meshComponent.skeleton.IsValid())
     {
-        auto& locks = m_resourceHandles[meshComponent.skeleton.Get()];
+        auto& locks = m_resourceHandles[entity];
+        locks.Clear();
 
         for (const Handle<Animation>& anim : meshComponent.skeleton->GetAnimations())
         {
@@ -65,16 +68,11 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    const AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);
-    const MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
+    auto it = m_resourceHandles.Find(entity);
 
-    if (meshComponent.skeleton.IsValid())
+    if (it != m_resourceHandles.End())
     {
-        auto it = m_resourceHandles.Find(meshComponent.skeleton.Get());
-        if (it != m_resourceHandles.End())
-        {
-            m_resourceHandles.Erase(it);
-        }
+        m_resourceHandles.Erase(it);
     }
 }
 
@@ -124,14 +122,21 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 playbackState.currentTime += delta * playbackState.speed;
 
-                if (playbackState.currentTime > animation->GetLength())
-                {
-                    playbackState.currentTime = 0.0f;
+                const float animationLength = animation->GetLength();
 
+                if (playbackState.currentTime > animationLength)
+                {
                     if (playbackState.loopMode == AnimationLoopMode::ONCE)
                     {
+                        // hold the last frame instead of snapping back to frame 0
                         playbackState.status = AnimationPlaybackStatus::STOPPED;
-                        playbackState.currentTime = 0.0f;
+                        playbackState.currentTime = animationLength;
+                    }
+                    else
+                    {
+                        playbackState.currentTime = animationLength > 0.0f
+                            ? std::fmod(playbackState.currentTime, animationLength)
+                            : 0.0f;
                     }
                 }
 

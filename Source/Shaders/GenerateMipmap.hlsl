@@ -21,7 +21,11 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (any(dst_coord >= dst_dimensions))
         return;
 
-    const float2 uv = (float2(dst_coord) + 0.5) / float2(dst_dimensions);
+    // input may be a larger scratch image - only the top-left src_dimensions texels are valid
+    uint2 input_dimensions;
+    mip_input.GetDimensions(input_dimensions.x, input_dimensions.y);
+
+    const float2 uv = (float2(dst_coord) + 0.5) / float2(dst_dimensions) * (float2(src_dimensions) / float2(input_dimensions));
 
     const float4 result = mip_input.SampleLevel(SamplerLinear, uv, 0.0);
 

@@ -15,6 +15,7 @@
 #include <Core/Memory/UniquePtr.hpp>
 
 #include <Core/Utilities/Result.hpp>
+#include <Core/Utilities/Time.hpp>
 
 #include <Core/Containers/Map.hpp>
 
@@ -58,10 +59,14 @@ public:
     Delegate<void, NetServerConnectionStateChangedData> OnClientDisconnected;
 
 private:
+    bool TryAcceptNewConnection();
+
     NetSocketUDP m_socket;
     Map<NetAddress, NetConnectionId, NetAllocator> m_addrToConnectionId;
     Map<NetConnectionId, UniquePtr<NetConnection, NetAllocator>, NetAllocator> m_connections;
     uint32 m_nextConnectionId;
+    Time m_newConnectionWindowStart;
+    uint32 m_numNewConnectionsInWindow;
     NetMessageDispatcher m_dispatcher;
 };
 

@@ -16,6 +16,11 @@
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
+
+#include <Core/Math/Vector3.hpp>
+
+#include <Core/Utilities/Tuple.hpp>
 
 namespace Hyperion {
 
@@ -56,18 +61,25 @@ private:
     {
         static constexpr uint32 MaxQueuedMoves = 128;
 
+        // Seconds of move time a connection can bank. Refilled with real server time, spent by applied moves.
+        static constexpr float MaxTimeBudget = 0.5f;
+
         Array<PlayerMove, SceneAllocator> moves;
         uint32 lastQueuedMoveId = 0;
+        float timeBudget = MaxTimeBudget;
     };
 
     void ApplyPendingRequests();
-    void ProcessPlayerMoves();
-    void ProcessPendingCatchUp(Span<const Handle<Scene>> scenes);
+    void ProcessPlayerMoves(float delta);
+    void ProcessInterestSpawns(Span<const Handle<Scene>> scenes, const Array<Tuple<net::NetConnectionId, Vec3f>, SceneTempAllocator>& playerPositions);
 
     Map<NetId, Handle<Entity>, SceneAllocator> m_netIdToEntity;
     Map<net::NetConnectionId, Entity*, SceneAllocator> m_connectionIdToEntity;
     Map<net::NetConnectionId, PlayerMoveQueueState, SceneAllocator> m_playerMoveQueues;
-    Array<net::NetConnectionId, SceneAllocator> m_pendingCatchUpConnections;
+
+    // NetIds each connection has been sent an EntitySpawn for. They stay known after leaving range, since a
+    // despawn would make the client Remove() level entities it resolved by UUID.
+    Map<net::NetConnectionId, Set<NetId, SceneAllocator>, SceneAllocator> m_knownEntities;
 }; // class ReplicationSystem
 
 } // namespace Hyperion

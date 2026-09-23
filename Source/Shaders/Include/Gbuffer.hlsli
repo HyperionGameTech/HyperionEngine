@@ -29,7 +29,9 @@ struct GBufferMaterialParams
 void GBufferPackMaterialParams(GBufferMaterialParams params, out float roughnessAndMetalPacked, out uint mask)
 {
     // max. 10 bits for roughness / metal packed - stored in normals target (r10g10b10a2)
-    roughnessAndMetalPacked = float(HYP_QUANTIZE(params.roughness, 6) | (HYP_QUANTIZE(params.metalness, 4) << 6)) / 1023.0;
+    // params.roughness is alpha (perceptual squared); stored as perceptual so the 6 bits aren't all spent on rough values
+    const float perceptualRoughness = sqrt(saturate(params.roughness));
+    roughnessAndMetalPacked = float(HYP_QUANTIZE(perceptualRoughness, 6) | (HYP_QUANTIZE(params.metalness, 4) << 6)) / 1023.0;
     // mask: 4 bits
     mask = params.mask & 0xFu;
 }
@@ -38,7 +40,8 @@ void GBufferUnpackMaterialParams(float roughnessAndMetalPacked, uint mask, out G
 {
     uint roughnessAndMetalU32 = uint(round(roughnessAndMetalPacked * 1023.0));
 
-    params.roughness = HYP_UNQUANTIZE(roughnessAndMetalU32 & 0x3Fu, 6);
+    const float perceptualRoughness = HYP_UNQUANTIZE(roughnessAndMetalU32 & 0x3Fu, 6);
+    params.roughness = perceptualRoughness * perceptualRoughness;
     params.metalness = HYP_UNQUANTIZE((roughnessAndMetalU32 >> 6) & 0xFu, 4);
     
     params.mask = mask & 0xFu;

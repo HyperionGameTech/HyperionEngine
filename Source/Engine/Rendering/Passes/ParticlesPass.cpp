@@ -329,10 +329,15 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetShaderUniform(11, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
+        // last frame's vertex shader read the particles, and the indirect args were just copied in
+        cr << InsertBarrier(state.particleBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(state.indirectBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
         const size_t maxParticles = proxy->bufferData.maxParticles;
         cr << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
 
         cr << InsertBarrier(state.indirectBuffer, ResourceState::IndirectArg);
+        cr << InsertBarrier(state.particleBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Vertex);
     }
 
     state.lastFrame = GetFrameCounter();

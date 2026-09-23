@@ -75,10 +75,38 @@ void EditorTaskManager::Tick()
 
     m_timer.NextTick();
 
-    for (size_t index = 0; index < m_tasks.Size();)
+    // AddTask can come from worker threads; snapshot under the lock and run task callbacks unlocked
+    // so a callback that calls AddTask doesn't deadlock
+    Array<Handle<EditorTaskBase>, EditorAllocator> tasks;
+
     {
-        // Needs strong reference!
-        Handle<EditorTaskBase> task = m_tasks[index].GetTask();
+        Mutex::Guard guard(m_mutex);
+
+        tasks.Reserve(m_tasks.Size());
+
+        for (const RunningEditorTask& runningTask : m_tasks)
+        {
+            tasks.PushBack(runningTask.GetTask());
+        }
+    }
+
+    auto removeRunningTask = [this](const Handle<EditorTaskBase>& task)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        auto it = m_tasks.FindIf([&task](const RunningEditorTask& runningTask)
+            {
+                return runningTask.GetTask() == task;
+            });
+
+        if (it != m_tasks.End())
+        {
+            m_tasks.Erase(it);
+        }
+    };
+
+    for (const Handle<EditorTaskBase>& task : tasks)
+    {
         Assert(task.IsValid());
 
         if (task->IsCancellationRequested())
@@ -87,7 +115,7 @@ void EditorTaskManager::Tick()
 
             OnTaskRemoved(task);
 
-            m_tasks.Erase(m_tasks.Begin() + index);
+            removeRunningTask(task);
 
             continue;
         }
@@ -103,7 +131,6 @@ void EditorTaskManager::Tick()
         {
             if (tickableTask->GetTimer().Waiting())
             {
-                ++index;
                 continue;
             }
 
@@ -126,12 +153,10 @@ void EditorTaskManager::Tick()
 
             OnTaskRemoved(task);
 
-            m_tasks.Erase(m_tasks.Begin() + index);
+            removeRunningTask(task);
 
             continue;
         }
-
-        ++index;
     }
 }
 

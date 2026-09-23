@@ -496,6 +496,12 @@ RendererResult DX12GraphicsPipeline::Rebuild()
                 psoDesc.DSVFormat = ToDXGIFormat(attachmentDesc.format, DX12ViewType::RTV_DSV);
                 hasDSV = true;
 
+                // stencil-only attachments get a read-only depth DSV
+                if (attachmentDesc.onlyStencil)
+                {
+                    psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+                }
+
                 continue;
             }
 

@@ -2188,7 +2188,8 @@ struct BoxedValueHelper<T*, std::enable_if_t<std::is_base_of_v<ObjectBase, T> &&
 
     HYP_FORCE_INLINE bool Is(ObjectBase* value) const
     {
-        return !value && value->IsA<T>();
+        // null converts to any T*, same as the Handle / SharedPtr overloads
+        return !value || value->IsA<T>();
     }
 
     HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const

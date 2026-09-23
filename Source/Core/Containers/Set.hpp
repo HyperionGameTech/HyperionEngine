@@ -443,7 +443,9 @@ struct PooledNodeAllocator
 
         void Swap(Impl& other, Span<Bucket> buckets)
         {
-            std::swap(m_freeNodesHead, other.m_freeNodesHead);
+            // Takes over other's pool; our old free list points into the pool being replaced, so it can't go to other
+            m_freeNodesHead = other.m_freeNodesHead;
+            other.m_freeNodesHead = nullptr;
 
             Node* previousBase = other.m_pool.Data();
 

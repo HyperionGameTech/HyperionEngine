@@ -106,7 +106,8 @@ PSOutput PSMain(PSInput input)
 
     const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
 
-    const float ao = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSAOResultTexture, texcoord, 0).r;
+    // gbuffer albedo alpha is material AO
+    const float ao = albedo.a * SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSAOResultTexture, texcoord, 0).r;
 
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
     const float3 dfg = CalculateDFG(perceptualRoughness, NdotV);

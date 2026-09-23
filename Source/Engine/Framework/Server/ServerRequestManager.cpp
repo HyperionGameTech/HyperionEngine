@@ -10,17 +10,50 @@
 
 #include <Core/IO/ByteReader.hpp>
 
+#include <cmath>
+
 namespace Hyperion {
 
 using net::NetAllocator;
 using net::NetMessageContext;
 using net::NetMessageId;
 
+static constexpr float MinRequestedScale = 1e-4f;
+static constexpr float MaxRequestedScale = 1e4f;
+
+static bool IsRequestedTransformValid(const Vec3f& translation, const Quat4f& rotation, const Vec3f& scale)
+{
+    for (float value : { translation.x, translation.y, translation.z, rotation.x, rotation.y, rotation.z, rotation.w })
+    {
+        if (!std::isfinite(value))
+        {
+            return false;
+        }
+    }
+
+    for (float value : { scale.x, scale.y, scale.z })
+    {
+        if (!std::isfinite(value) || std::fabs(value) < MinRequestedScale || std::fabs(value) > MaxRequestedScale)
+        {
+            return false;
+        }
+    }
+
+    const float rotationLengthSquared = rotation.LengthSquared();
+
+    return rotationLengthSquared > 0.5f && rotationLengthSquared < 1.5f;
+}
+
 void ServerRequestManager::RegisterHandlers(net::NetServer& netServer)
 {
     netServer.RegisterHandler(NetMessageId::EntityTransformRequest,
         [this](const NetMessageContext& context, ConstByteView payload)
         {
+            if (payload.Size() < sizeof(Vec3f) + sizeof(Quat4f) + sizeof(Vec3f))
+            {
+                return;
+            }
+
             MemoryByteReader reader { payload };
 
             Vec3f translation;
@@ -31,6 +64,14 @@ void ServerRequestManager::RegisterHandlers(net::NetServer& netServer)
             reader.Read(&rotation, sizeof(Quat4f));
             reader.Read(&scale, sizeof(Vec3f));
 
+            if (!IsRequestedTransformValid(translation, rotation, scale))
+            {
+                return;
+            }
+
+            rotation.Normalize();
+
+            // ownership of the NetId is checked on the sim thread (ReplicationSystem::ApplyPendingRequests)
             PushRequest(ServerRequest<ServerRequestType::TransformEntity>(
                 context.connectionId,
                 NetId(uint32(context.key)),

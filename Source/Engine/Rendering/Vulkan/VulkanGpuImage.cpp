@@ -691,7 +691,8 @@ void VulkanGpuImage::InsertBarrier(
 
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
-        GetVkShaderStageMask(currResourceState, true, isDepthStencil, shaderModuleType),
+        // shaderModuleType describes the consumer, the previous writer could've been any stage
+        GetVkShaderStageMask(currResourceState, true, isDepthStencil, ShaderModuleType::None),
         GetVkShaderStageMask(newState, false, isDepthStencil, shaderModuleType),
         0,
         0, nullptr,

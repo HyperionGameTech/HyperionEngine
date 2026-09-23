@@ -91,8 +91,9 @@ public:
     template <typename T>
     void Peek(T* ptr, size_t size = sizeof(T))
     {
-        Read(ptr, size);
-        Rewind(size);
+        // only rewind by what was actually read, in case we hit the end
+        const size_t numRead = Read(static_cast<void*>(ptr), size);
+        Rewind(numRead);
     }
 
     virtual size_t Position() const = 0;
@@ -127,17 +128,17 @@ public:
 
     void Skip(size_t amount) override
     {
-        m_pos += amount;
+        m_pos = amount > Max() - m_pos ? Max() : m_pos + amount;
     }
 
     void Rewind(size_t amount) override
     {
-        m_pos -= amount;
+        m_pos = amount > m_pos ? 0 : m_pos - amount;
     }
 
     void Seek(size_t whereTo) override
     {
-        m_pos = whereTo;
+        m_pos = MathUtil::Min(whereTo, Max());
     }
 
     size_t Read(void* ptr, size_t size) override;

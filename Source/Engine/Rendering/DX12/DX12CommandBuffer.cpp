@@ -421,8 +421,8 @@ void DX12CommandBuffer::AssertResourceState(
         newSubResource.baseMipLevel,
         newSubResource.baseArrayLayer,
         planeSlice,
-        newSubResource.numLevels,
-        newSubResource.numLevels);
+        image.NumMips(),
+        image.NumArrayLayers());
 
     BOOL succeeded = debugCommandList->AssertResourceState(
         image.GetResource(),

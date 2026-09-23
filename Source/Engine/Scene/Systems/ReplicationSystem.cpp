@@ -60,6 +60,9 @@ using net::NetStreamKey;
 static constexpr float ReplicationInterestRadius = 50.0f;
 static constexpr float ReplicationInterestRadiusSq = ReplicationInterestRadius * ReplicationInterestRadius;
 
+// Clients may simulate this much faster than real time before moves get dropped (clock drift, jitter)
+static constexpr float PlayerMoveTimeBudgetSlack = 1.05f;
+
 using PlayerPosition = Tuple<net::NetConnectionId, Vec3f>;
 
 static ThreadBase* GetGameServerThread()
@@ -200,6 +203,11 @@ void ReplicationSystem::OnEntityAdded(Entity* entity)
 
     if (interestedConnections.Any() && gameServerThread != nullptr)
     {
+        for (net::NetConnectionId connectionId : interestedConnections)
+        {
+            m_knownEntities[connectionId].Insert(netId);
+        }
+
         gameServerThread->GetScheduler().Enqueue(
             [netId,
              interestedConnections = Array<net::NetConnectionId, NetAllocator>(interestedConnections),
@@ -240,9 +248,16 @@ void ReplicationSystem::OnEntityRemoved(Entity* entity)
         }
 
         m_playerMoveQueues.Erase(it->first);
+        m_knownEntities.Erase(it->first);
         m_connectionIdToEntity.Erase(it);
 
         break;
+    }
+
+    // NetIds get recycled, so a stale entry would stop the next entity with this id from being spawned
+    for (auto knownIt = m_knownEntities.Begin(); knownIt != m_knownEntities.End(); ++knownIt)
+    {
+        knownIt->second.Erase(netId);
     }
 
     HYP_LOG(Replication, Info, "Entity {} removed from replication (netId={}), broadcasting EntityDespawn",
@@ -298,7 +313,25 @@ void ReplicationSystem::ApplyPendingRequests()
 
             const ServerRequest<ServerRequestType::TransformEntity>& request = static_cast<const ServerRequest<ServerRequestType::TransformEntity>&>(*requestPtr);
 
-            it->second->SetLocalTransform(request.transform);
+            Entity* entity = it->second.Get();
+
+            auto ownerIt = m_connectionIdToEntity.Find(requestPtr->connectionId);
+
+            if (ownerIt == m_connectionIdToEntity.End() || ownerIt->second != entity)
+            {
+                HYP_LOG_ONCE(Replication, Warning, "Dropping transform request from connection {} for netId {}: connection does not own it",
+                    uint32(requestPtr->connectionId), uint32(requestPtr->netId));
+
+                break;
+            }
+
+            // character movement has to go through PlayerMoves, a raw transform would skip the move time budget
+            if (entity->HasComponent<CharacterControllerComponent>())
+            {
+                break;
+            }
+
+            entity->SetLocalTransform(request.transform);
 
             break;
         }
@@ -346,7 +379,7 @@ void ReplicationSystem::ApplyPendingRequests()
     }
 }
 
-void ReplicationSystem::ProcessPlayerMoves()
+void ReplicationSystem::ProcessPlayerMoves(float delta)
 {
     if (m_playerMoveQueues.Empty())
     {
@@ -365,6 +398,8 @@ void ReplicationSystem::ProcessPlayerMoves()
     for (auto it = m_playerMoveQueues.Begin(); it != m_playerMoveQueues.End(); ++it)
     {
         PlayerMoveQueueState& queue = it->second;
+
+        queue.timeBudget = MathUtil::Min(queue.timeBudget + MathUtil::Max(delta, 0.0f) * PlayerMoveTimeBudgetSlack, PlayerMoveQueueState::MaxTimeBudget);
 
         if (queue.moves.Empty())
         {
@@ -393,16 +428,36 @@ void ReplicationSystem::ProcessPlayerMoves()
 
         const uint32 numToProcess = uint32(queue.moves.Size());
 
-        Vec3f resultTranslation = Vec3f(0.0f);
+        // MoveCharacter leaves the entity at its result, so this is the right answer if every move gets dropped
+        Vec3f resultTranslation = entity->GetWorldTranslation();
         uint32 lastProcessedMoveId = 0;
+        uint32 numDroppedMoves = 0;
 
         for (uint32 i = 0; i < numToProcess; ++i)
         {
             const PlayerMove& move = queue.moves[i];
 
-            SceneHelpers::MoveCharacter(entity, *component, move, resultTranslation);
-
+            // dropped moves still get acked, the client reconciles against the unmoved position
             lastProcessedMoveId = move.moveId;
+
+            const float moveCost = MathUtil::Clamp(move.deltaTime, 0.0f, MaxPlayerMoveDeltaTime);
+
+            if (moveCost > queue.timeBudget)
+            {
+                numDroppedMoves++;
+
+                continue;
+            }
+
+            queue.timeBudget -= moveCost;
+
+            SceneHelpers::MoveCharacter(entity, *component, move, resultTranslation);
+        }
+
+        if (numDroppedMoves != 0)
+        {
+            HYP_LOG(Replication, Debug, "Dropped {} player moves from connection {}: move time budget exceeded",
+                numDroppedMoves, uint32(it->first));
         }
 
         queue.moves.Erase(queue.moves.Begin(), queue.moves.Begin() + numToProcess);
@@ -442,26 +497,23 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     ApplyPendingRequests();
 
-    ProcessPlayerMoves();
+    ProcessPlayerMoves(delta);
 
     Array<net::NetConnectionId, SceneTempAllocator> newConnections;
     g_gameServer->DrainNewConnections(newConnections);
 
-    if (newConnections.Any())
+    for (net::NetConnectionId connectionId : newConnections)
     {
-        for (net::NetConnectionId connectionId : newConnections)
-        {
-            m_pendingCatchUpConnections.PushBack(connectionId);
-        }
+        // a fresh client knows nothing, everything in range gets spawned for it below
+        m_knownEntities.Erase(connectionId);
     }
 
-    ProcessPendingCatchUp(scenes);
+    Array<PlayerPosition, SceneTempAllocator> playerPositions = CollectPlayerPositions(scenes, this);
+
+    ProcessInterestSpawns(scenes, playerPositions);
 
     Array<Entity*, SceneTempAllocator> updatedEntities;
     Array<TargetedSnapshot, SceneTempAllocator> targetedSnapshots;
-
-    Array<PlayerPosition, SceneTempAllocator> playerPositions;
-    bool playerPositionsComputed = false;
 
     for (Scene* scene : scenes)
     {
@@ -526,12 +578,6 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             replicationState.isSleepingReplicated = uint8(isSleeping);
 
-            if (!playerPositionsComputed)
-            {
-                playerPositions = CollectPlayerPositions(scenes, this);
-                playerPositionsComputed = true;
-            }
-
             Array<net::NetConnectionId, SceneTempAllocator> interestedConnections;
             CollectInterestedConnections(entity->GetWorldTranslation(), playerPositions, interestedConnections);
 
@@ -576,88 +622,100 @@ void ReplicationSystem::Process(float delta, Span<Handle<Scene>> scenes)
     }
 }
 
-void ReplicationSystem::ProcessPendingCatchUp(Span<const Handle<Scene>> scenes)
+void ReplicationSystem::ProcessInterestSpawns(Span<const Handle<Scene>> scenes, const Array<PlayerPosition, SceneTempAllocator>& playerPositions)
 {
-    if (m_pendingCatchUpConnections.Empty())
+    ThreadBase* gameServerThread = GetGameServerThread();
+
+    // nothing can be sent without the server thread, so don't mark anything as known either
+    if (playerPositions.Empty() || gameServerThread == nullptr)
     {
         return;
     }
 
-    Array<PlayerPosition, SceneTempAllocator> playerPositions = CollectPlayerPositions(scenes, this);
-
-    for (size_t i = 0; i < m_pendingCatchUpConnections.Size();)
+    struct TargetedSpawn
     {
-        const net::NetConnectionId connectionId = m_pendingCatchUpConnections[i];
+        net::NetConnectionId connectionId;
+        ReplicationSnapshot spawn;
+    };
 
-        Optional<Vec3f> playerPosOpt;
+    // insert every set up front so the pointers stay put while we scan
+    for (const auto& [connectionId, playerPosition] : playerPositions)
+    {
+        m_knownEntities[connectionId];
+    }
 
-        for (const auto& [netId, pos] : playerPositions)
+    Array<Set<NetId, SceneAllocator>*, SceneTempAllocator> knownSets;
+    knownSets.Reserve(playerPositions.Size());
+
+    for (const auto& [connectionId, playerPosition] : playerPositions)
+    {
+        knownSets.PushBack(&m_knownEntities[connectionId]);
+    }
+
+    Array<TargetedSpawn, SceneTempAllocator> targetedSpawns;
+
+    for (Scene* scene : scenes)
+    {
+        if (!ShouldProcessScene(scene))
         {
-            if (netId == connectionId)
-            {
-                playerPosOpt = pos;
-
-                break;
-            }
-        }
-
-        if (!playerPosOpt.HasValue())
-        {
-            // This connection's player entity hasn't been created/positioned yet -- retry next tick.
-            ++i;
-
             continue;
         }
 
-        const Vec3f playerPos = playerPosOpt.GetUnchecked();
+        EntityManager* entityManager = scene->GetEntityManager();
 
-        Array<ReplicationSnapshot, SceneTempAllocator> catchUpSpawns;
-
-        for (Scene* scene : scenes)
+        for (auto [entity, replicationState] : entityManager->GetEntitySet<ReplicationStateComponent>())
         {
-            if (!ShouldProcessScene(scene))
-            {
-                continue;
-            }
+            const Vec3f entityPosition = entity->GetWorldTranslation();
 
-            EntityManager* entityManager = scene->GetEntityManager();
+            Optional<net::NetBuffer> spawnPayload;
 
-            for (auto [entity, replicationState] : entityManager->GetEntitySet<ReplicationStateComponent>())
+            for (size_t i = 0; i < playerPositions.Size(); ++i)
             {
-                if (entity->GetWorldTranslation().DistanceSquared(playerPos) > ReplicationInterestRadiusSq)
+                const auto& [connectionId, playerPosition] = playerPositions[i];
+
+                if (entityPosition.DistanceSquared(playerPosition) > ReplicationInterestRadiusSq)
                 {
                     continue;
                 }
 
-                catchUpSpawns.PushBack(ReplicationSnapshot { replicationState.netId, SerializeEntitySpawnPayload(entity) });
+                if (!knownSets[i]->Insert(replicationState.netId).second)
+                {
+                    continue;
+                }
+
+                if (!spawnPayload.HasValue())
+                {
+                    spawnPayload = SerializeEntitySpawnPayload(entity);
+                }
+
+                targetedSpawns.PushBack(TargetedSpawn { connectionId, ReplicationSnapshot { replicationState.netId, *spawnPayload } });
             }
         }
-
-        if (catchUpSpawns.Any())
-        {
-            HYP_LOG(Replication, Info, "Sending catch-up EntitySpawn for {} entities to connection {}",
-                catchUpSpawns.Size(), uint32(connectionId));
-
-            GetGameServerThread()->GetScheduler().Enqueue(
-                [connectionId, catchUpSpawns = Array<ReplicationSnapshot, NetAllocator>(catchUpSpawns)]()
-                {
-                    net::NetServer& netServer = g_gameServer->GetNetServer();
-
-                    for (const ReplicationSnapshot& spawn : catchUpSpawns)
-                    {
-                        netServer.SendMessageTo(
-                            connectionId,
-                            NetMessageId::EntitySpawn,
-                            NetChannelMode::ReliableOrdered,
-                            NetStreamKey(uint32(spawn.netId)),
-                            spawn.payload.ToByteView());
-                    }
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
-
-        m_pendingCatchUpConnections.EraseAt(i);
     }
+
+    if (!targetedSpawns.Any())
+    {
+        return;
+    }
+
+    HYP_LOG(Replication, Debug, "Sending EntitySpawn for {} (connection, entity) pairs entering interest range", targetedSpawns.Size());
+
+    gameServerThread->GetScheduler().Enqueue(
+        [targetedSpawns = Array<TargetedSpawn, NetAllocator>(targetedSpawns)]()
+        {
+            net::NetServer& netServer = g_gameServer->GetNetServer();
+
+            for (const TargetedSpawn& targeted : targetedSpawns)
+            {
+                netServer.SendMessageTo(
+                    targeted.connectionId,
+                    NetMessageId::EntitySpawn,
+                    NetChannelMode::ReliableOrdered,
+                    NetStreamKey(uint32(targeted.spawn.netId)),
+                    targeted.spawn.payload.ToByteView());
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 } // namespace Hyperion

@@ -628,6 +628,8 @@ void BeginSimRenderSyncBlock(AtomicFlag* pCancelFlag)
 
     Framework::RenderingData& bufferedData = Framework::s_renderingData[ringIndex];
     bufferedData.threadSyncStates[Framework::TT_FrameDataProducer] = 1;
+
+    DeletionQueue::GetInstance().SetSimThreadSynced(true);
 }
 
 void EndSimRenderSyncBlock()
@@ -637,6 +639,8 @@ void EndSimRenderSyncBlock()
     const uint8 ringIndex = Framework::s_ringIndex[Framework::TT_FrameDataProducer];
 
     s_statSimCommitWindow.RecordElapsedMs(static_cast<float>(Framework::s_simCommitWindowStart.ElapsedMs()), /* accum */ false);
+
+    DeletionQueue::GetInstance().SetSimThreadSynced(false);
 
     Framework::RenderingData& bufferedData = Framework::s_renderingData[ringIndex];
     bufferedData.threadSyncStates[Framework::TT_FrameDataProducer] = 0;
