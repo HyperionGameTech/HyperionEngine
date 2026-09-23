@@ -37,6 +37,32 @@ namespace Hyperion {
 
 extern DX12RenderInterface RI;
 
+static uint32 GetDynamicElementOffset(const Name& elementName, const DescriptorSetElement& element, const DX12GpuBuffer& buffer, const DescriptorSetOffsetMap& offsets)
+{
+    uint32 offset = 0;
+
+    for (uint32 j = 0; j < offsets.count; j++)
+    {
+        if (offsets.keys[j] == StringHash(elementName))
+        {
+            offset = offsets.values[j];
+            break;
+        }
+    }
+
+    const uint64 readSize = (element.bufferStride != ~0u && element.bufferStride != 0) ? element.bufferStride : 1;
+
+    if (uint64(offset) + readSize > buffer.Size())
+    {
+        HYP_LOG_ONCE(RenderingBackend, Error, "Dynamic buffer offset {} (+{} bytes) for '{}' is out of range for buffer size {}, binding offset 0 instead. Likely an unbound resource index.",
+            offset, readSize, elementName, buffer.Size());
+
+        return 0;
+    }
+
+    return offset;
+}
+
 #pragma region DX12DescriptorSet
 
 DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
@@ -761,32 +787,16 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
         }
 
         auto elementIt = m_elements.Find(elementName);
-        if (elementIt == m_elements.End())
-        {
-            continue;
-        }
+        Assert(elementIt != m_elements.End() && elementIt->second.values.Any(),
+            "Dynamic buffer '{}' in descriptor set '{}' was never bound", elementName, m_layout.GetName());
 
         const DescriptorSetElement& element = elementIt->second;
-        if (element.values.Empty())
-        {
-            continue;
-        }
 
         DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
-        if (buffer == nullptr || !buffer->IsCreated())
-        {
-            continue;
-        }
+        Assert(buffer != nullptr && buffer->IsCreated(),
+            "Dynamic buffer '{}' in descriptor set '{}' is null or not created", elementName, m_layout.GetName());
 
-        uint32 offset = 0;
-        for (uint32 j = 0; j < offsets.count; j++)
-        {
-            if (offsets.keys[j] == StringHash(elementName))
-            {
-                offset = offsets.values[j];
-                break;
-            }
-        }
+        const uint32 offset = GetDynamicElementOffset(elementName, element, *buffer, offsets);
 
         const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicElementIndex];
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
@@ -876,32 +886,16 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
         }
 
         auto elementIt = m_elements.Find(elementName);
-        if (elementIt == m_elements.End())
-        {
-            continue;
-        }
+        Assert(elementIt != m_elements.End() && elementIt->second.values.Any(),
+            "Dynamic buffer '{}' in descriptor set '{}' was never bound", elementName, m_layout.GetName());
 
         const DescriptorSetElement& element = elementIt->second;
-        if (element.values.Empty())
-        {
-            continue;
-        }
 
         DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
-        if (buffer == nullptr || !buffer->IsCreated())
-        {
-            continue;
-        }
+        Assert(buffer != nullptr && buffer->IsCreated(),
+            "Dynamic buffer '{}' in descriptor set '{}' is null or not created", elementName, m_layout.GetName());
 
-        uint32 offset = 0;
-        for (uint32 j = 0; j < offsets.count; j++)
-        {
-            if (offsets.keys[j] == StringHash(elementName))
-            {
-                offset = offsets.values[j];
-                break;
-            }
-        }
+        const uint32 offset = GetDynamicElementOffset(elementName, element, *buffer, offsets);
 
         const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicElementIndex];
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
@@ -991,32 +985,16 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
         }
 
         auto elementIt = m_elements.Find(elementName);
-        if (elementIt == m_elements.End())
-        {
-            continue;
-        }
+        Assert(elementIt != m_elements.End() && elementIt->second.values.Any(),
+            "Dynamic buffer '{}' in descriptor set '{}' was never bound", elementName, m_layout.GetName());
 
         const DescriptorSetElement& element = elementIt->second;
-        if (element.values.Empty())
-        {
-            continue;
-        }
 
         DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
-        if (buffer == nullptr || !buffer->IsCreated())
-        {
-            continue;
-        }
+        Assert(buffer != nullptr && buffer->IsCreated(),
+            "Dynamic buffer '{}' in descriptor set '{}' is null or not created", elementName, m_layout.GetName());
 
-        uint32 offset = 0;
-        for (uint32 j = 0; j < offsets.count; j++)
-        {
-            if (offsets.keys[j] == StringHash(elementName))
-            {
-                offset = offsets.values[j];
-                break;
-            }
-        }
+        const uint32 offset = GetDynamicElementOffset(elementName, element, *buffer, offsets);
 
         const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicElementIndex];
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
