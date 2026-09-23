@@ -331,7 +331,7 @@ ByteBuffer FileByteReader::Read(size_t size)
     }
 
     ByteBuffer byteBuffer;
-    byteBuffer.SetSize(toRead);
+    byteBuffer.SetSize(toRead, /* zeroize */ false);
 
 #ifdef HYP_ANDROID
     if (m_asset != nullptr)
@@ -343,7 +343,7 @@ ByteBuffer FileByteReader::Read(size_t size)
             m_pos += size_t(readBytes);
             m_filePos = m_pos;
 
-            byteBuffer.SetSize(size_t(readBytes));
+            byteBuffer.SetSize(size_t(readBytes), /* zeroize */ false);
         }
         else
         {
@@ -356,22 +356,20 @@ ByteBuffer FileByteReader::Read(size_t size)
     }
 #endif
 
-    if (!m_file)
+    if (m_file)
     {
-        return ByteBuffer();
+        const size_t readBytes = std::fread(byteBuffer.Data(), 1, toRead, m_file);
+
+        m_pos += readBytes;
+        m_filePos = m_pos;
+
+        if (readBytes != toRead)
+        {
+            byteBuffer.SetSize(readBytes, /* zeroize */ false);
+        }
     }
 
-    const size_t readBytes = std::fread(byteBuffer.Data(), 1, toRead, m_file);
-
-    m_pos += readBytes;
-    m_filePos = m_pos;
-
-    if (readBytes == toRead)
-    {
-        return byteBuffer;
-    }
-
-    return ByteBuffer(readBytes, byteBuffer.Data());
+    return byteBuffer;
 }
 
 void FileByteReader::Close()
