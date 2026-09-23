@@ -74,7 +74,7 @@ extern EngineStatTimer g_statGpuWaitTime;
 
 #ifndef HYP_SHIPPING
 // @TODO: Use cvar!
-#define HYP_DX12_ENABLE_DEBUG_LAYER
+// #define HYP_DX12_ENABLE_DEBUG_LAYER
 // #define HYP_DX12_ENABLE_DRED
 #endif // !HYP_SHIPPING
 
