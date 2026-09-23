@@ -7,9 +7,11 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Commands;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -90,6 +92,29 @@ namespace Hyperion.Editor.ViewModels
             get => _iconKind;
             private set => SetProperty(ref _iconKind, value);
         }
+
+        private IImage? _thumbnail;
+
+        /// <summary>The assigned asset's content browser thumbnail, for asset types the thumbnail renderer can draw.</summary>
+        public IImage? Thumbnail
+        {
+            get => _thumbnail;
+            private set
+            {
+                if (SetProperty(ref _thumbnail, value))
+                {
+                    OnPropertyChanged(nameof(HasThumbnail));
+                }
+            }
+        }
+
+        public bool HasThumbnail => _thumbnail != null;
+
+        // the asset the thumbnail subscription is for, so it can be dropped when the property points elsewhere
+        private string? _thumbnailAssetKey;
+        private uint _thumbnailBucketIndex;
+        private Name _thumbnailAssetName;
+        private Action<IImage>? _thumbnailCallback;
 
         private bool _canCreateNew;
         public bool CanCreateNew
@@ -958,6 +983,9 @@ namespace Hyperion.Editor.ViewModels
                 string displayName = "(None)";
                 string pickerName = string.Empty;
                 string iconKind = AssetIconHelper.FromTypeName(expectedTypeName);
+                bool hasThumbnailAsset = false;
+                uint thumbnailBucketIndex = 0;
+                Name thumbnailAssetName = default;
                 ComponentSubObjectViewModel? newSubObject = null;
                 bool isShared;
 
@@ -1016,8 +1044,14 @@ namespace Hyperion.Editor.ViewModels
                         {
                             if (assetObj.IsRegistered())
                             {
-                                assetPathDisplay = assetObj.Path.ToString();
+                                AssetPath assetPath = assetObj.Path;
+
+                                assetPathDisplay = assetPath.ToString();
                                 pickerName = assetObj.Name.ToString();
+
+                                hasThumbnailAsset = true;
+                                thumbnailBucketIndex = assetPath.BucketIndex;
+                                thumbnailAssetName = assetObj.Name;
                             }
                             else
                             {
@@ -1060,6 +1094,9 @@ namespace Hyperion.Editor.ViewModels
                 string capturedIconKind = iconKind;
                 long capturedResolvedKey = resolvedKey;
                 ComponentSubObjectViewModel? capturedSubObject = newSubObject;
+                bool capturedHasThumbnailAsset = hasThumbnailAsset;
+                uint capturedThumbnailBucketIndex = thumbnailBucketIndex;
+                Name capturedThumbnailAssetName = thumbnailAssetName;
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -1090,6 +1127,7 @@ namespace Hyperion.Editor.ViewModels
                         if (_isAssetObjectType)
                         {
                             OnContentBrowserSelectionChanged();
+                            UpdateThumbnail(capturedHasThumbnailAsset, capturedThumbnailBucketIndex, capturedThumbnailAssetName);
                         }
                     }
                     finally
@@ -1098,6 +1136,52 @@ namespace Hyperion.Editor.ViewModels
                     }
                 });
             });
+        }
+
+        private void UpdateThumbnail(bool hasAsset, uint bucketIndex, Name assetName)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            string? assetKey = hasAsset ? $"{bucketIndex}/{assetName}" : null;
+
+            if (assetKey == _thumbnailAssetKey)
+            {
+                return;
+            }
+
+            if (_thumbnailCallback != null)
+            {
+                ThumbnailService.Instance?.Unsubscribe(_thumbnailBucketIndex, _thumbnailAssetName, _thumbnailCallback);
+            }
+
+            _thumbnailAssetKey = assetKey;
+            _thumbnailCallback = null;
+            Thumbnail = null;
+
+            ThumbnailService? thumbnailService = ThumbnailService.Instance;
+
+            if (assetKey == null || thumbnailService == null)
+            {
+                return;
+            }
+
+            _thumbnailBucketIndex = bucketIndex;
+            _thumbnailAssetName = assetName;
+
+            Action<IImage>? callback = null;
+            callback = image =>
+            {
+                // an image for an asset this property no longer points at
+                if (_thumbnailCallback == callback)
+                {
+                    Thumbnail = image;
+                }
+            };
+
+            _thumbnailCallback = callback;
+
+            // asset types the renderer can't draw never call back, and keep showing the type icon
+            thumbnailService.Request(bucketIndex, assetName, callback);
         }
 
         private void UpdateSubObject(ComponentSubObjectViewModel? newSubObject, long resolvedKey)

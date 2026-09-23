@@ -15,7 +15,6 @@ namespace Hyperion.Editor.ViewModels
 
         private DelegateHandler? _onAssetsChangedHandler;
 
-        // sim thread only - the Decals bucket as it was when New Decal was clicked here, so the created asset can be picked out and made active
         private HashSet<string>? _decalNamesBeforeCreate;
 
         private readonly InspectorPropertyViewModelBase? _activeDecalProperty;

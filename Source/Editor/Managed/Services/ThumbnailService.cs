@@ -140,6 +140,26 @@ namespace Hyperion.Editor.Services
             }
         }
 
+        /// <summary>Stops <paramref name="onReady"/> receiving images for an asset, e.g. when a picker switches to a different one.</summary>
+        public void Unsubscribe(uint bucketIndex, Name assetName, Action<IImage> onReady)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            string key = MakeKey(bucketIndex, assetName.ToString());
+
+            if (!_subscribers.TryGetValue(key, out List<Action<IImage>>? subscribers))
+            {
+                return;
+            }
+
+            subscribers.Remove(onReady);
+
+            if (subscribers.Count == 0)
+            {
+                _subscribers.Remove(key);
+            }
+        }
+
         /// <summary>
         /// Drops the subscriptions held for the tiles currently on screen. Called when the displayed
         /// asset set is replaced - those view models are about to be discarded, and their callbacks would

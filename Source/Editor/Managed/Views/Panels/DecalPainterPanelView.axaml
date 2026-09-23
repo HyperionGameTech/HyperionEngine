@@ -12,14 +12,8 @@
         <StackPanel Margin="12,12,12,8" Spacing="12">
 
             <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Classes="section-label" Text="Decal" />
-                    <Button
-                        Grid.Column="1"
-                        Command="{Binding NewDecalCommand}"
-                        Content="New Decal" />
-                </Grid>
-                <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+              <TextBlock Classes="section-label" Text="Decal" />
+              <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
             </StackPanel>
 
             <Separator />

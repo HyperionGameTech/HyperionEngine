@@ -41,6 +41,7 @@
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
+#include <Scene/Components/SwatchOverridesComponent.hpp>
 
 #include <Streaming/StreamingCell.hpp>
 
@@ -1213,6 +1214,24 @@ void AssetRegistry::WalkAssetDeep(const BoxedValue& target, const ProcRef<void(c
                         }
 
                         iterate(BoxedValue(componentRef));
+                    }
+                }
+
+                // Swatch overrides are transient, so the member walk skips them; their values (and the base values
+                // held while a swatch is applied) may be the only reference to an asset
+                if (const SwatchOverridesComponent* swatchOverridesComponent = entityManager->TryGetComponent<SwatchOverridesComponent>(&entity))
+                {
+                    for (const EntitySwatchOverrideSet& set : swatchOverridesComponent->sets)
+                    {
+                        for (const SwatchPropertyOverride& overrideEntry : set.propertyOverrides)
+                        {
+                            iterate(overrideEntry.value);
+                        }
+                    }
+
+                    for (const Pair<Name, BoxedValue>& snapshot : swatchOverridesComponent->baseSnapshot)
+                    {
+                        iterate(snapshot.second);
                     }
                 }
             }
