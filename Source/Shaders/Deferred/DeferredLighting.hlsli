@@ -188,7 +188,7 @@ void EvaluateSingleProbe(
     float perceptualRoughness,
     float lightmappedWeight,
     in EnvProbe inProbe,
-    inout float3 reflectionsSum, inout float reflectionsWeightSum,
+    inout float3 reflectionsSum, inout float reflectionsWeightSum, inout float reflectionsDomainSum,
     inout float3 irradianceSum, inout float irradianceWeightSum)
 {
 #define CURRENT_ENV_PROBE inProbe
@@ -266,11 +266,14 @@ void EvaluateSingleProbe(
     // Sky probes are unbounded
     const float boundsWeight = select(isSkyProbe, 1.0, CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor));
     
-    const float reflectionsWeight = saturate(hitMask * boundsWeight * visibility * (1.0 - irradianceOnlyWeight) * currentReflections.a);
+    const float reflectionsDomainWeight = saturate(boundsWeight * visibility * (1.0 - irradianceOnlyWeight));
+    
+    // irradiance has hitmask
     const float irradianceWeight = saturate(hitMask * boundsWeight * visibility * diffuseContributionWeight * currentIrradiance.a);
 
-    reflectionsSum += currentReflections.rgb * reflectionsWeight;
-    reflectionsWeightSum += reflectionsWeight;
+    reflectionsSum += currentReflections.rgb * reflectionsDomainWeight;
+    reflectionsWeightSum += currentReflections.a * reflectionsDomainWeight;
+    reflectionsDomainSum += reflectionsDomainWeight;
 
     irradianceSum += currentIrradiance.rgb * irradianceWeight;
     irradianceWeightSum += irradianceWeight;
@@ -309,6 +312,7 @@ void EvaluateEnvProbes(
 
     float3 reflectionsSum = (float3) 0.0;
     float reflectionsWeightSum = 0.0;
+    float reflectionsDomainSum = 0.0;
 
     float3 irradianceSum = (float3) 0.0;
     float irradianceWeightSum = 0.0;
@@ -323,11 +327,17 @@ void EvaluateEnvProbes(
             perceptualRoughness,
             lightmappedWeight,
             EnvProbesBuffer[envProbeIndex],
-            reflectionsSum, reflectionsWeightSum,
+            reflectionsSum, reflectionsWeightSum, reflectionsDomainSum,
             irradianceSum, irradianceWeightSum);
     }
-    
-    reflectionsWeightSum = saturate(reflectionsWeightSum);
+
+    // overlapping reflection probes blend against each other rather than stacking
+    const float reflectionsNormalization = max(reflectionsDomainSum, 1.0);
+    reflectionsSum /= reflectionsNormalization;
+    reflectionsWeightSum /= reflectionsNormalization;
+
+    const float reflectionsDomain = saturate(reflectionsDomainSum);
+
     irradianceWeightSum = saturate(irradianceWeightSum);
 
     // to get that good intellisense
@@ -344,6 +354,7 @@ void EvaluateEnvProbes(
     {
         float3 skyReflectionsSum = (float3) 0.0;
         float skyReflectionsWeightSum = 0.0;
+        float skyReflectionsDomainSum = 0.0;
 
         float3 skyIrradianceSum = (float3) 0.0;
         float skyIrradianceWeightSum = 0.0;
@@ -354,19 +365,22 @@ void EvaluateEnvProbes(
             perceptualRoughness,
             lightmappedWeight,
             skyProbe,
-            skyReflectionsSum, skyReflectionsWeightSum,
+            skyReflectionsSum, skyReflectionsWeightSum, skyReflectionsDomainSum,
             skyIrradianceSum, skyIrradianceWeightSum);
 
-        // Sky only fills in where no env probes cover
-        const float reflectionsResidual = 1.0 - smoothstep(0.01, 0.1, saturate(reflectionsWeightSum));
+        const float reflectionsMissedWeight = saturate(reflectionsDomain - reflectionsWeightSum);
+        const float reflectionsUncoveredWeight = (1.0 - reflectionsDomain) * (1.0 - smoothstep(0.01, 0.1, reflectionsDomain));
         const float irradianceResidual = 1.0 - irradianceWeightSum;
-        
-        const float skyReflectionsIntensity = world_shader_data.sky_light_params.y * g_skyVisibility;
+
         const float skyIrradianceIntensity = world_shader_data.sky_light_params.x * g_skyVisibility;
 
-        const float skyReflectionsEffectiveWeight = min(skyReflectionsWeightSum, reflectionsResidual);
-        reflectionsSum += (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * skyReflectionsEffectiveWeight * skyReflectionsIntensity;
-        reflectionsWeightSum += skyReflectionsEffectiveWeight;
+        const float3 skyReflectionsColor = (skyReflectionsSum / max(skyReflectionsWeightSum, HYP_FMATH_EPSILON)) * world_shader_data.sky_light_params.y;
+
+        const float skyReflectionsMissedWeight = min(skyReflectionsWeightSum, reflectionsMissedWeight);
+        const float skyReflectionsUncoveredWeight = min(skyReflectionsWeightSum, reflectionsUncoveredWeight);
+
+        reflectionsSum += skyReflectionsColor * (skyReflectionsMissedWeight + skyReflectionsUncoveredWeight * g_skyVisibility);
+        reflectionsWeightSum += skyReflectionsMissedWeight + skyReflectionsUncoveredWeight;
 
         const float skyIrradianceEffectiveWeight = min(skyIrradianceWeightSum, irradianceResidual);
         irradianceSum += (skyIrradianceSum / max(skyIrradianceWeightSum, HYP_FMATH_EPSILON)) * skyIrradianceEffectiveWeight * skyIrradianceIntensity;

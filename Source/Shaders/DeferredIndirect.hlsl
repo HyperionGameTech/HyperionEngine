@@ -170,7 +170,7 @@ float EvaluateSkyVisibility(float3 positionWS, float3 N, float2 texcoord)
     const float baseBias = world_shader_data.sky_occlusion_params.z;
 
     // a sloped surface rises by this much across the filter, and would otherwise shadow itself
-    const float slopeTangent = min(sqrt(saturate(1.0 - N.y * N.y)) / max(abs(N.y), 0.15), 4.0);
+    const float slopeTangent = min(sqrt(saturate(1.0 - N.y * N.y)) / max(N.y, 0.15), 1.0) * saturate(N.y);
 
     const float3 samplePosition = positionWS + N * (baseBias + filterRadius * slopeTangent * 0.5);
 
@@ -195,6 +195,12 @@ float EvaluateSkyVisibility(float3 positionWS, float3 N, float2 texcoord)
 
     const float2x2 rotationMatrix = float2x2(rotationCos, -rotationSin, rotationSin, rotationCos);
 
+    uint2 captureDimensions;
+    SkyVisibilityTexture.GetDimensions(captureDimensions.x, captureDimensions.y);
+
+    // occluders fade in over this distance above the reference instead of flipping on a hard depth test
+    const float softnessDepth = max(baseBias, 0.25) / depthRange;
+
     float openSum = 0.0;
 
     [unroll]
@@ -202,8 +208,14 @@ float EvaluateSkyVisibility(float3 positionWS, float3 N, float2 texcoord)
     {
         const float2 offset = mul(s_skyVisibilityKernel[i], rotationMatrix) * sampleRadius;
 
-        // hardware comparison sampling, so each tap is bilinear rather than a hard in/out test
-        openSum += SkyVisibilityTexture.SampleCmpLevelZero(SamplerShadow, captureUv + offset, referenceDepth);
+        const float2 texelPosition = (captureUv + offset) * float2(captureDimensions) - 0.5;
+        const float2 texelFraction = frac(texelPosition);
+        const float2 gatherUv = (floor(texelPosition) + 1.0) / float2(captureDimensions);
+
+        const float4 occluderDepths = SkyVisibilityTexture.GatherRed(sampler_nearest, gatherUv);
+        const float4 open = saturate((occluderDepths - referenceDepth) / softnessDepth + 1.0);
+        
+        openSum += lerp(lerp(open.w, open.z, texelFraction.x), lerp(open.x, open.y, texelFraction.x), texelFraction.y);
     }
 
     // fade out at the edge of the capture so occlusion doesn't stop dead where the map ends

@@ -8,23 +8,31 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:DataType="vm:ObjectPropertyViewModel"
     mc:Ignorable="d">
-    <Grid ColumnDefinitions="40,*" Margin="2,2,2,4">
+    <Grid ColumnDefinitions="56,*" Margin="2,2,2,4">
         <Border
-            Width="32"
-            Height="32"
+            Width="48"
+            Height="48"
             Margin="0,0,8,0"
             VerticalAlignment="Top"
             Background="{DynamicResource Brush.PanelRaised}"
             BorderBrush="{DynamicResource Brush.BorderLight}"
             BorderThickness="1"
+            ClipToBounds="True"
             CornerRadius="{DynamicResource Radius.Medium}">
-            <controls:Codicon
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Foreground="{DynamicResource Brush.AccentHover}"
-                Kind="{Binding IconKind}"
-                Opacity="0.85"
-                Size="14" />
+            <Panel>
+                <controls:Codicon
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource Brush.AccentHover}"
+                    IsVisible="{Binding !HasThumbnail}"
+                    Kind="{Binding IconKind}"
+                    Opacity="0.85"
+                    Size="18" />
+                <Image
+                    IsVisible="{Binding HasThumbnail}"
+                    Source="{Binding Thumbnail}"
+                    Stretch="UniformToFill" />
+            </Panel>
         </Border>
 
         <StackPanel Grid.Column="1" Spacing="4">

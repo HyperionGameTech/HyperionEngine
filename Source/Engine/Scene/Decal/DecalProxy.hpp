@@ -92,10 +92,11 @@ private:
     void OnDecalsChanged();
     void UpdateDecalBounds();
 
-    HYP_FIELD(Property = "Instances", Serialize)
+    ///Needs to be Editor=false or we'll have performance issues when a large number of decal instances are present
+    HYP_FIELD(Property = "Instances", Serialize, Editor = false)
     Array<DecalInstance> m_instances;
 
-    HYP_FIELD(Property = "NextDecalId", Serialize)
+    HYP_FIELD(Property = "NextDecalId", Serialize, Editor = false)
     uint32 m_nextDecalId;
 
     Handle<Decal> m_decal;
