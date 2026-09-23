@@ -320,17 +320,23 @@ void CharacterControllerSystem::OnEntityRemoved(Entity* entity)
 
     CharacterControllerComponent& component = entity->GetComponent<CharacterControllerComponent>();
 
-    if (component.inputHandler)
+    World* world = GetWorld();
+
+    if (component.inputHandler && world != nullptr)
     {
-        if (Game* game = GetWorld()->GetGame())
+        if (Game* game = world->GetGame())
         {
             game->UnregisterInputHandler(component.inputHandler);
         }
     }
 
-    if (component.physicsHandle)
+    // entity->GetWorld() is already null here when the scene is leaving its world
+    if (component.physicsHandle && world != nullptr)
     {
-        entity->GetWorld()->GetPhysicsWorld()->RemoveCharacterController(component.physicsHandle);
+        if (PhysicsWorldBase* physicsWorld = world->GetPhysicsWorld())
+        {
+            physicsWorld->RemoveCharacterController(component.physicsHandle);
+        }
     }
 }
 

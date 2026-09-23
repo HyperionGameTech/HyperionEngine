@@ -289,6 +289,23 @@ static JPH::RefConst<JPH::Shape> ApplyScaleToJoltShape(const JPH::RefConst<JPH::
     return new JPH::ScaledShape(shape.GetPtr(), ToJPHVec(scale));
 }
 
+// static bodies live on NON_MOVING, which doesn't collide with itself, so the layer has to follow the motion type
+static void SetJoltBodyMotionType(JPH::BodyInterface& bodyInterface, const JPH::BodyID& bodyID, JPH::EMotionType motionType)
+{
+    bodyInterface.SetMotionType(
+        bodyID,
+        motionType,
+        motionType == JPH::EMotionType::Dynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
+
+    bodyInterface.SetObjectLayer(bodyID, motionType == JPH::EMotionType::Static ? JoltLayers::NON_MOVING : JoltLayers::MOVING);
+}
+
+static bool IsWorldGeometryShape(const PhysicsShape* physicsShape)
+{
+    return physicsShape != nullptr
+        && (physicsShape->GetType() == PhysicsShapeType::Plane || physicsShape->GetType() == PhysicsShapeType::HeightField);
+}
+
 static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape, const Vec3f& scale)
 {
     Assert(physicsShape != nullptr);
@@ -310,7 +327,7 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
             aabb = BoundingBox(Vec3f(-0.5f), Vec3f(0.5f));
         }
 
-        const Vec3f halfExtent = aabb.GetExtent() * 0.5f * scale;
+        const Vec3f halfExtent = aabb.GetExtent() * 0.5f * MathUtil::Abs(scale);
 
         JPH::Ref<JPH::BoxShape> boxShape = new JPH::BoxShape(ToJPHVec(halfExtent));
 
@@ -358,6 +375,14 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
         TSharedResLock lock(*shapeCasted);
 
         AssertDebug(shapeCasted->NumVertices() > 0);
+
+        // size comes from the manifest, so it can be non-zero even when paging the blob failed
+        if (shapeCasted->GetVertexData() == nullptr)
+        {
+            HYP_LOG(Physics, Error, "ConvexHullPhysicsShape '{}' has no vertex data loaded", physicsShape->GetName());
+
+            return new JPH::SphereShape(0.05f);
+        }
 
         JPH::RefConst<JPH::Shape> hullShape = CreateJoltConvexHullShape(
             Span<const float>(shapeCasted->GetVertexData(), shapeCasted->NumVertices() * 3),
@@ -849,7 +874,7 @@ void JoltPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBod
     {
         bodyInterface.SetLinearAndAngularVelocity(internalData->bodyID, JPH::Vec3::sZero(), JPH::Vec3::sZero());
 
-        bodyInterface.SetMotionType(internalData->bodyID, JPH::EMotionType::Kinematic, JPH::EActivation::DontActivate);
+        SetJoltBodyMotionType(bodyInterface, internalData->bodyID, JPH::EMotionType::Kinematic);
     }
     else
     {
@@ -870,10 +895,7 @@ void JoltPhysicsAdapter::SetRigidBodyKinematic(const Handle<RigidBody>& rigidBod
             }
         }
 
-        bodyInterface.SetMotionType(
-            internalData->bodyID,
-            isDynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static,
-            isDynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
+        SetJoltBodyMotionType(bodyInterface, internalData->bodyID, isDynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static);
     }
 
     internalData->isDynamic = !isKinematic && rigidBody->physicsMaterial->mass > MathUtil::epsilonF;
@@ -966,9 +988,12 @@ void JoltPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
     JPH::BodyInterface& bodyInterface = m_physicsSystem->GetBodyInterface();
 
     const bool isKinematic = rigidBody->IsKinematic();
+    const bool isWorldGeometry = IsWorldGeometryShape(rigidBody->shape);
     const float mass = isKinematic ? 0.0f : rigidBody->physicsMaterial->mass;
 
-    internalData->isDynamic = !isKinematic && mass > MathUtil::epsilonF;
+    const bool wasDynamic = internalData->isDynamic;
+
+    internalData->isDynamic = !isKinematic && !isWorldGeometry && mass > MathUtil::epsilonF;
 
     if (internalData->isDynamic)
     {
@@ -982,6 +1007,11 @@ void JoltPhysicsAdapter::OnChangePhysicsMaterial(RigidBody* rigidBody)
                 JPH::EAllowedDOFs::All,
                 CreateMassProperties(body.GetShape(), mass));
         }
+    }
+
+    if (!isKinematic && !isWorldGeometry && wasDynamic != internalData->isDynamic)
+    {
+        SetJoltBodyMotionType(bodyInterface, internalData->bodyID, internalData->isDynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static);
     }
 
     bodyInterface.SetFriction(internalData->bodyID, MathUtil::Max(rigidBody->physicsMaterial->friction, 0.0f));

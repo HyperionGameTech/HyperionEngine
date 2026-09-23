@@ -43,7 +43,7 @@ namespace Hyperion
         Num8,
         Num9,
 
-        F1 = 0x3A,
+        F1 = 0x122,
         F2,
         F3,
         F4,

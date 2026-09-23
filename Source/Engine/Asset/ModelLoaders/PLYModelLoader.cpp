@@ -23,6 +23,8 @@
 
 namespace Hyperion {
 
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
+
 constexpr bool ShouldCreateIndices = true;
 constexpr bool ShouldCreateNewMeshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
 constexpr bool ShouldLoadMaterials = true;
@@ -90,25 +92,33 @@ size_t PLYModelLoader::PLYTypeSize(PLYType type)
     return TypeSizeMap[type];
 }
 
-static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, size_t count, void* outPtr);
+static bool ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, size_t count, void* outPtr);
 
 template <class T>
-static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, void* outPtr)
+static bool ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, void* outPtr)
 {
-    ReadPropertyValue(buffer, model, rowOffset, propertyName, sizeof(T), outPtr);
+    return ReadPropertyValue(buffer, model, rowOffset, propertyName, sizeof(T), outPtr);
 }
 
-static void ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, size_t count, void* outPtr)
+static bool ReadPropertyValue(ByteBuffer& buffer, PLYModelLoader::PLYModel& model, size_t rowOffset, const String& propertyName, size_t count, void* outPtr)
 {
     const auto it = model.propertyTypes.Find(propertyName);
 
-    Assert(it != model.propertyTypes.End(), "Property with name %s not found", propertyName.Data());
+    if (it == model.propertyTypes.End())
+    {
+        return false;
+    }
 
     const size_t offset = it->second.offset + rowOffset;
-    Assert(offset < buffer.Size(), "Offset out of bounds (%u > %u)", offset, buffer.Size());
-    Assert(offset + count <= buffer.Size(), "Offset + Size out of bounds (%u + %llu > %u)", offset, count, buffer.Size());
+
+    if (offset >= buffer.Size() || count > buffer.Size() - offset)
+    {
+        return false;
+    }
 
     buffer.Read(offset, count, static_cast<ubyte*>(outPtr));
+
+    return true;
 }
 
 PLYModel PLYModelLoader::LoadModel(LoaderState& state)
@@ -136,7 +146,12 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
         if (split[0] == "property")
         {
-            Assert(split.Size() >= 3, "Invalid model header -- property declaration should have at least 3 elements");
+            if (split.Size() < 3)
+            {
+                HYP_LOG(Assets, Warning, "Invalid PLY header -- property declaration should have at least 3 elements");
+
+                continue;
+            }
 
             const String propertyTypeString = split[1];
             const String propertyName = split[2];
@@ -149,7 +164,12 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
         }
         else if (split[0] == "element")
         {
-            Assert(split.Size() >= 3, "Invalid model header -- `element` declaration should have at least 3 elements");
+            if (split.Size() < 3)
+            {
+                HYP_LOG(Assets, Warning, "Invalid PLY header -- `element` declaration should have at least 3 elements");
+
+                continue;
+            }
 
             if (split[1] == "vertex")
             {
@@ -208,9 +228,16 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
 
         Vector3 position(NAN, NAN, NAN);
 
-        ReadPropertyValue<float>(buffer, model, rowOffset, "x", &position.x);
-        ReadPropertyValue<float>(buffer, model, rowOffset, "y", &position.y);
-        ReadPropertyValue<float>(buffer, model, rowOffset, "z", &position.z);
+        if (!ReadPropertyValue<float>(buffer, model, rowOffset, "x", &position.x)
+            || !ReadPropertyValue<float>(buffer, model, rowOffset, "y", &position.y)
+            || !ReadPropertyValue<float>(buffer, model, rowOffset, "z", &position.z))
+        {
+            HYP_LOG(Assets, Warning, "PLY vertex {} is missing position data or is out of bounds", index);
+
+            model.vertices.Clear();
+
+            break;
+        }
 
         SimpleVertex vertex {};
         vertex.SetPosition(Vector3(position.x, position.y, position.z));
@@ -229,13 +256,16 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
             const size_t dataTypeSize = PLYTypeSize(it.second.type);
             const size_t offset = index * dataTypeSize;
 
-            ReadPropertyValue(
-                buffer,
-                model,
-                rowOffset,
-                it.first,
-                dataTypeSize,
-                customDataIt->second.Data() + offset);
+            if (!ReadPropertyValue(
+                    buffer,
+                    model,
+                    rowOffset,
+                    it.first,
+                    dataTypeSize,
+                    customDataIt->second.Data() + offset))
+            {
+                HYP_LOG(Assets, Warning, "PLY property '{}' out of bounds for vertex {}", it.first, index);
+            }
         }
     }
 

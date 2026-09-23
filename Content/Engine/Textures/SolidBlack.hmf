@@ -31,5 +31,5 @@ Texture SolidBlack {
         Key = "Engine://Textures/SolidBlack.TEX"
         Size = 256
     }
-    UUID = "06b7e5c0-c3a9-48cc-b628-7cceab1021b6"
+    UUID = "d1de2d3b-8cf3-4f93-ae46-1b74221ca6a1"
 }

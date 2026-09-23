@@ -95,7 +95,7 @@ extern "C"
         return managedClass->GetClass();
     }
 
-    HYP_EXPORT const Class* Class_GetClassByTypeHash(dotnet::Assembly* assembly, int32 typeHash)
+    HYP_EXPORT const Class* Class_GetClassByTypeHash(dotnet::Assembly* assembly, int64 typeHash)
     {
         Assert(assembly != nullptr);
 

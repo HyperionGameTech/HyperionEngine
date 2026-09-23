@@ -174,7 +174,7 @@ void VulkanGraphicsPipeline::UpdateDynamicStates(VulkanCommandBuffer* commandBuf
 
     if (m_dynamicStates.Contains(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE))
     {
-        if (!onlyChanged || bool(RI.state.attributes.GetMaterialAttributes().flags) != m_depthWrite)
+        if (!onlyChanged || bool(RI.state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE) != m_depthWrite)
         {
             RI.dynamicFunctions.vkCmdSetDepthWriteEnableEXT(
                 commandBuffer->GetVulkanHandle(),

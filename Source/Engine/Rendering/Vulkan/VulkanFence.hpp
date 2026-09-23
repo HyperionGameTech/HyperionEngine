@@ -52,7 +52,7 @@ public:
     bool CheckStatus();
 
     void Create(bool createSignaled = false);
-    void Wait(bool timeoutLoop = false);
+    VkResult Wait(bool timeoutLoop = false);
     void Reset();
 
 #ifdef HYP_RHI_DEBUG_NAMES

@@ -59,7 +59,8 @@ enum class KeyCode : uint16
     KEY_8,
     KEY_9,
 
-    KEY_F1 = 58,
+    // kept clear of the ASCII range, 58-69 collided with KEY_SEMICOLON/KEY_EQUALS
+    KEY_F1 = 290,
     KEY_F2,
     KEY_F3,
     KEY_F4,

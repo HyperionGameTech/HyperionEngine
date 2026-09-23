@@ -18,6 +18,10 @@ static constexpr uint32 MaxBackoffShift = 4; // 150 << 4 == 2400
 
 static constexpr uint32 ResendWarnThreshold = 10;
 
+// ReliableOrdered messages further ahead than this are dropped (the sender resends them once we catch up)
+static constexpr uint32 MaxOutOfOrderWindow = 256;
+static constexpr uint32 MaxBufferedMessagesPerChannel = 1024;
+
 namespace {
 
 struct PendingReliableMessage
@@ -59,9 +63,12 @@ struct StreamStateMap : Map<NetStreamKey, UniquePtr<StreamState, NetAllocator>, 
 {
 };
 
-NetChannel::NetChannel(NetChannelMode mode)
+NetChannel::NetChannel(NetChannelMode mode, uint32 maxIncomingStreams)
     : m_mode(mode),
-      m_streams(MakePimplWithAllocator<StreamStateMap, NetAllocator>())
+      m_streams(MakePimplWithAllocator<StreamStateMap, NetAllocator>()),
+      m_maxIncomingStreams(maxIncomingStreams),
+      m_numIncomingStreams(0),
+      m_numBufferedMessages(0)
 {
 }
 
@@ -113,7 +120,22 @@ void NetChannel::HandleIncoming(
 {
     Assert(dispatch);
 
-    StreamState& stream = GetOrCreateStream(header.key);
+    auto streamIt = m_streams->Find(header.key);
+
+    if (streamIt == m_streams->End())
+    {
+        if (m_maxIncomingStreams != 0 && m_numIncomingStreams >= m_maxIncomingStreams)
+        {
+            HYP_LOG_ONCE(Net, Warning, "Dropping message on new stream {}: incoming stream limit ({}) reached", header.key, m_maxIncomingStreams);
+
+            return;
+        }
+
+        streamIt = m_streams->Set(header.key, MakeUniqueWithAllocator<StreamState, NetAllocator>()).first;
+        m_numIncomingStreams++;
+    }
+
+    StreamState& stream = *streamIt->second;
 
     const NetMessageId messageId = NetMessageId(header.messageId);
 
@@ -155,8 +177,17 @@ void NetChannel::HandleIncoming(
 
         if (header.sequence > stream.incoming.nextExpectedSequence)
         {
-            stream.incoming.outOfOrderBuffer.Set(header.sequence,
-                BufferedMessage { messageId, NetBuffer(payload.Size(), payload.Data()) });
+            const uint32 distance = header.sequence - stream.incoming.nextExpectedSequence;
+
+            if (distance < MaxOutOfOrderWindow
+                && m_numBufferedMessages < MaxBufferedMessagesPerChannel
+                && stream.incoming.outOfOrderBuffer.Find(header.sequence) == stream.incoming.outOfOrderBuffer.End())
+            {
+                stream.incoming.outOfOrderBuffer.Insert(header.sequence,
+                    BufferedMessage { messageId, NetBuffer(payload.Size(), payload.Data()) });
+
+                m_numBufferedMessages++;
+            }
 
             SendAck(socket, srcAddr, header.key, stream.incoming.nextExpectedSequence - 1);
 
@@ -177,6 +208,8 @@ void NetChannel::HandleIncoming(
 
             BufferedMessage buffered = std::move(it->second);
             stream.incoming.outOfOrderBuffer.Erase(it);
+
+            m_numBufferedMessages--;
 
             stream.incoming.nextExpectedSequence++;
             dispatch(buffered.messageId, buffered.payload.ToByteView());
@@ -250,6 +283,9 @@ void NetChannel::OnAck(NetStreamKey key, uint32 sequence)
 void NetChannel::Reset()
 {
     m_streams->Clear();
+
+    m_numIncomingStreams = 0;
+    m_numBufferedMessages = 0;
 }
 
 StreamState& NetChannel::GetOrCreateStream(NetStreamKey key)

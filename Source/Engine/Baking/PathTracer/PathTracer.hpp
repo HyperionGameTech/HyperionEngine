@@ -13,6 +13,8 @@
 #include <Rendering/RawBuffer.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
+#include <Core/Threading/Mutex.hpp>
+#include <Core/Containers/Array.hpp>
 
 namespace Hyperion {
 
@@ -128,6 +130,9 @@ private:
 
     void UpdatePipelineState(Frame* frame, BakeJobBase* job);
     void CreateBuffers(BakeJobBase* job);
+    void ProcessPendingJobDataCleanup();
+
+    static void ReleaseJobData(JobData& jd);
 
     BakerBase* m_baker;
 
@@ -135,7 +140,12 @@ private:
     PathTraceType m_shadingType;
     uint32 m_maxTexelsPerFrame;
 
+    // only touched on the render thread
     Map<BakeJobBase*, JobData> m_jobData;
+
+    // completed jobs queued from the sim thread, erased from m_jobData on the render thread
+    Mutex m_pendingCleanupMutex;
+    Array<BakeJobBase*> m_pendingCleanupJobs;
 
     SharedPtr<GpuLightmapperReadyNotification> m_readyNotification;
 

@@ -70,7 +70,7 @@ public:
 
     Name RegisterName(NameID id, const ANSIStringView& str, bool lock);
     Name RegisterUniqueName(const ANSIString& str, bool lock);
-    const CharBuffer& LookupStringForName(Name name) const;
+    const char* LookupStringForName(Name name) const;
 
 private:
     MapType m_nameMap;
@@ -170,13 +170,11 @@ Name NameRegistry::RegisterUniqueName(const ANSIString& str, bool lock)
     return name;
 }
 
-const NameRegistry::CharBuffer& NameRegistry::LookupStringForName(Name name) const
+const char* NameRegistry::LookupStringForName(Name name) const
 {
-    static const CharBuffer s_emptyString { '\0' };
-
     if (!name.IsValid())
     {
-        return s_emptyString;
+        return "";
     }
 
     bool locked = false;
@@ -198,10 +196,12 @@ const NameRegistry::CharBuffer& NameRegistry::LookupStringForName(Name name) con
 
     if (it == m_nameMap.End())
     {
-        return s_emptyString;
+        return "";
     }
 
-    return it->second.first;
+    // Grab the pointer while still locked - the node itself can be relocated by a concurrent insert,
+    // but the heap buffer it points to is stable (names are never removed)
+    return it->second.first.Data();
 }
 
 Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock)
@@ -214,7 +214,7 @@ bool ShouldLockNameRegistry()
     return s_isNameRegistryInitialized;
 }
 
-const NameRegistry::CharBuffer& LookupStringForName(const NameRegistry* nameRegistry, Name name)
+const char* LookupStringForName(const NameRegistry* nameRegistry, Name name)
 {
     return nameRegistry->LookupStringForName(name);
 }
@@ -260,7 +260,7 @@ Name Name::Unique(const ANSIStringView& prefix)
 
 const char* Name::LookupString() const
 {
-    return GetRegistry()->LookupStringForName(*this).Data();
+    return GetRegistry()->LookupStringForName(*this);
 }
 
 Name Name::FromString(const char* str)

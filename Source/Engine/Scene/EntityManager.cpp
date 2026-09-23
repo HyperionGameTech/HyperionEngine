@@ -1714,7 +1714,18 @@ void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const Component
 
             for (const TypeId key : keys)
             {
-                if (systemIt.second->HasComponentTypeId(key, /* includeReadOnly */ false))
+                if (!systemIt.second->HasComponentTypeId(key, /* includeReadOnly */ true))
+                {
+                    continue;
+                }
+
+                const ComponentInfo& componentInfo = systemIt.second->GetComponentInfo(key);
+
+                // writable components, plus read-only ones that gate OnEntityAdded()
+                const bool isWritable = !!(componentInfo.access & ComponentAccess::WRITE);
+                const bool isEventComponent = !!(componentInfo.access & ComponentAccess::READ_WRITE) && componentInfo.receivesEvents;
+
+                if (isWritable || isEventComponent)
                 {
                     systemAffected = true;
 

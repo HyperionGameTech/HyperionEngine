@@ -271,6 +271,18 @@ void DX12GpuBuffer::InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceStat
 
     if (srcState == dstState)
     {
+        if (dstState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        {
+            D3D12_RESOURCE_BARRIER uavBarrier {};
+            uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            uavBarrier.UAV.pResource = m_resource.Get();
+
+            commandBuffer->GetCommandList()->ResourceBarrier(1, &uavBarrier);
+        }
+
+        m_resourceState = newState;
+
         return;
     }
 
@@ -378,6 +390,11 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
 
     if (shouldCreate)
     {
+        if (m_mapping != nullptr)
+        {
+            Unmap();
+        }
+
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([allocation = std::move(m_allocation), resource = std::move(m_resource)]() mutable
             {
                 allocation.Reset();

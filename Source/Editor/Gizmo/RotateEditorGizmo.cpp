@@ -161,6 +161,14 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 {
     EditorGizmoBase::OnDragEnd(camera, mouseEvent);
 
+    // OnDragStart can bail before setting drag data; pushing a junk action would wipe redo
+    if (!m_dragData)
+    {
+        m_selectedNodes.Clear();
+
+        return;
+    }
+
     if (Handle<EditorProject> project = GetCurrentProject(); project.IsValid())
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())

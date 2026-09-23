@@ -235,7 +235,32 @@ PathTracer::PathTracer(
 
 PathTracer::~PathTracer()
 {
+    for (auto& it : m_jobData)
+    {
+        ReleaseJobData(it.second);
+    }
+
     m_jobData.Clear();
+}
+
+void PathTracer::ReleaseJobData(JobData& jd)
+{
+    // GPU work for these may still be in flight, so defer them through the deletion queue
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        EnqueueDeletion(std::move(jd.raysBuffers[frameIndex]));
+        EnqueueDeletion(std::move(jd.cbuffers[frameIndex]));
+    }
+
+    if (jd.hitsBufferGpu.gpuBuffer != nullptr)
+    {
+        GpuBuffer* hitsGpuBuffer = jd.hitsBufferGpu.gpuBuffer;
+        jd.hitsBufferGpu.gpuBuffer = nullptr;
+
+        EnqueueDeletion(hitsGpuBuffer);
+    }
+
+    jd.isCreated = false;
 }
 
 void PathTracer::CreateBuffers(BakeJobBase* job)
@@ -275,17 +300,44 @@ void PathTracer::CleanJobData(BakeJobBase* job)
         return;
     }
 
-    auto jobDataIt = m_jobData.Find(job);
-    AssertDebug(jobDataIt != m_jobData.End());
+    // Called on the sim thread while the render thread reads/inserts m_jobData, so the erase is handed off
+    // to the render thread instead of done here (erasing here + immediate buffer deletion was the old crash)
+    Mutex::Guard guard(m_pendingCleanupMutex);
 
-    if (jobDataIt == m_jobData.End())
+    m_pendingCleanupJobs.PushBack(job);
+}
+
+void PathTracer::ProcessPendingJobDataCleanup()
+{
+    AssertOnThread(g_renderThread);
+
+    Array<BakeJobBase*> jobsToClean;
+
     {
-        return;
+        Mutex::Guard guard(m_pendingCleanupMutex);
+
+        if (m_pendingCleanupJobs.Empty())
+        {
+            return;
+        }
+
+        jobsToClean = std::move(m_pendingCleanupJobs);
+        m_pendingCleanupJobs.Clear();
     }
 
-    // @NOTE this was commented out due to a gross crash, we need to re-enable it,
-    // but with proper care
-    // m_jobData.Erase(jobDataIt);
+    for (BakeJobBase* job : jobsToClean)
+    {
+        auto jobDataIt = m_jobData.Find(job);
+
+        if (jobDataIt == m_jobData.End())
+        {
+            continue;
+        }
+
+        ReleaseJobData(jobDataIt->second);
+
+        m_jobData.Erase(jobDataIt);
+    }
 }
 
 bool PathTracer::CanRender() const
@@ -419,6 +471,9 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
 {
     AssertOnThread(g_renderThread);
 
+    // before any lookup, so a new job reusing a freed job's address doesn't pick up its stale entry
+    ProcessPendingJobDataCleanup();
+
     if (rays.Size() == 0)
     {
         return PathTraceResult::Failed;
@@ -512,13 +567,17 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
             ++numBoundLights;
         }
 
+        // keep a slot free for the sky probe, otherwise enough ambient probes would push it out
+        const bool bindSkyProbe = renderSetup.envProbe != nullptr && renderSetup.envProbe != m_baker->GetSource();
+        const uint32 maxBoundAmbientProbes = LightmapVolumeMaxBoundEnvProbes - (bindSkyProbe ? 1u : 0u);
+
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
         {
             const bool contributesDiffuseLighting = (envProbe->IsAmbientProbe() && envProbe->GetDiffuseStrength() > 0.0f);
 
-            if (envProbe != m_baker->GetSource() && contributesDiffuseLighting) // we don't want to bind a probe if it is being baked!
+            if (envProbe != m_baker->GetSource() && envProbe != renderSetup.envProbe && contributesDiffuseLighting) // we don't want to bind a probe if it is being baked!
             {
-                if (numBoundEnvProbes >= LightmapVolumeMaxBoundEnvProbes)
+                if (numBoundEnvProbes >= maxBoundAmbientProbes)
                 {
                     break;
                 }
@@ -532,9 +591,7 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
             }
         }
 
-        if (renderSetup.envProbe != nullptr
-            && renderSetup.envProbe != m_baker->GetSource()
-            && numBoundEnvProbes < LightmapVolumeMaxBoundEnvProbes)
+        if (bindSkyProbe && numBoundEnvProbes < LightmapVolumeMaxBoundEnvProbes)
         {
             auto it = tempEnvProbes.FindIf(
                 [envProbe = renderSetup.envProbe](const auto& pair)

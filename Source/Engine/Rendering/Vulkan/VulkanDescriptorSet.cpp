@@ -98,6 +98,10 @@ static inline void PopulateDynamicOffsets(
 {
     outNumDynamicOffsets = uint32(layout.GetDynamicElements().Size());
 
+    // clamping would bind with the wrong dynamic offset count, so this has to be fatal
+    Assert(outNumDynamicOffsets <= MaxVulkanDynamicOffsets,
+        "Descriptor set layout has {} dynamic elements, max supported is {}", outNumDynamicOffsets, MaxVulkanDynamicOffsets);
+
     for (size_t i = 0; i < layout.GetDynamicElements().Size(); i++)
     {
         const StringHash dynamicElementName = layout.GetDynamicElements()[i];

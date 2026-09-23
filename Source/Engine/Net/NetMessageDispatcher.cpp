@@ -28,9 +28,14 @@ void NetMessageDispatcher::Dispatch(
     NetChannel& unreliableChannel,
     ConstByteView datagram)
 {
+    if (datagram.Size() < sizeof(NetMessageHeader))
+    {
+        return;
+    }
+
     MemoryByteReader reader { datagram };
 
-    NetMessageHeader header;
+    NetMessageHeader header {};
     header.Deserialize(reader);
 
     if (header.protocolVersion != CurrentProtocolVersion)

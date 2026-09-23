@@ -363,6 +363,18 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 
     m_pendingPipelines.Clear();
 
+    for (Task<GraphicsPipelineRef>& task : m_expiredPendingPipelines)
+    {
+        GraphicsPipelineRef graphicsPipeline = std::move(task).Await();
+
+        if (graphicsPipeline.IsValid())
+        {
+            EnqueueDeletion(std::move(graphicsPipeline));
+        }
+    }
+
+    m_expiredPendingPipelines.Clear();
+
     for (GraphicsPipelineRef& pipeline : *m_cachedPipelines)
     {
         EnqueueDeletion(std::move(pipeline));
@@ -528,6 +540,14 @@ bool GraphicsPipelineCache::TryFinishAsyncCreate(const PSOCacheKey& key, Graphic
         return false;
     }
 
+    if (graphicsPipeline->GetShader()->GetShader()->expired)
+    {
+        // shader was replaced while we compiled, caller will kick off a new create with the new shader
+        EnqueueDeletion(std::move(graphicsPipeline));
+
+        return false;
+    }
+
     graphicsPipeline->lastFrame = GetFrameCounter();
 
     size_t slot = SIZE_MAX;
@@ -651,8 +671,10 @@ void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
         {
             auto& pipelines = it->second;
 
-            for (GraphicsPipelineRef* const pPipeline : pipelines)
+            // walk back to front - Remove() erases from this same array
+            for (size_t pipelineIndex = pipelines.Size(); pipelineIndex > 0; pipelineIndex--)
             {
+                GraphicsPipelineRef* const pPipeline = pipelines[pipelineIndex - 1];
                 Assert(pPipeline != nullptr);
 
                 // Unset so we don't trip over a destroyed pipeline!
@@ -675,11 +697,47 @@ void GraphicsPipelineCache::ExpirePipelinesForShader(const Shader* shader)
 
         ++it;
     }
+
+    // in-flight async creates were built with the old shader, don't let them land in the cache
+    for (auto it = m_pendingPipelines.Begin(); it != m_pendingPipelines.End();)
+    {
+        const PSOCacheKey& key = it->first;
+
+        if (key.shaderName == shader->baseName && (shader->properties & key.shaderProperties) == shader->properties)
+        {
+            m_expiredPendingPipelines.PushBack(std::move(it->second));
+
+            it = m_pendingPipelines.Erase(it);
+
+            continue;
+        }
+
+        ++it;
+    }
 }
 
 void GraphicsPipelineCache::OnFrameEnd(uint32 prevFrameIndex)
 {
     TUniqueLock guard(m_mutex);
+
+    for (size_t taskIndex = m_expiredPendingPipelines.Size(); taskIndex > 0; taskIndex--)
+    {
+        Task<GraphicsPipelineRef>& task = m_expiredPendingPipelines[taskIndex - 1];
+
+        if (!task.IsCompleted())
+        {
+            continue;
+        }
+
+        GraphicsPipelineRef graphicsPipeline = std::move(task).Await();
+
+        if (graphicsPipeline.IsValid())
+        {
+            EnqueueDeletion(std::move(graphicsPipeline));
+        }
+
+        m_expiredPendingPipelines.EraseAt(taskIndex - 1);
+    }
 
     m_cachedPipelines->cleanupIterator = typename CachedPipelinesMap::Iterator(
         m_cachedPipelines,

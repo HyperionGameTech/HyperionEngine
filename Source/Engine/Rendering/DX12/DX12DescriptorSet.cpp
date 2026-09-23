@@ -739,11 +739,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
     // Compute dynamic buffer addresses and apply via root descriptors
-    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries];
-    uint32 dynamicEntryCount = 0;
+    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries] = {};
 
-    for (const Name& elementName : m_layout.GetDynamicElements())
+    // root params are laid out by position in GetDynamicElements(), so skipped entries still take a slot
+    const Span<const Name> dynamicElements = m_layout.GetDynamicElements();
+    const uint32 numDynamicElements = uint32(dynamicElements.Size());
+    const uint32 dynamicEntryCount = numDynamicElements < rootIndices.dynamicEntryCount ? numDynamicElements : rootIndices.dynamicEntryCount;
+
+    for (uint32 dynamicElementIndex = 0; dynamicElementIndex < dynamicEntryCount; dynamicElementIndex++)
     {
+        const Name& elementName = dynamicElements[dynamicElementIndex];
+
         const ShaderInput* shaderInput = m_layout.GetElement(elementName);
         Assert(shaderInput != nullptr);
 
@@ -782,25 +788,21 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
             }
         }
 
-        if (dynamicEntryCount < rootIndices.dynamicEntryCount)
-        {
-            const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicEntryCount];
-            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
-            dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
+        const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicElementIndex];
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
+        dynamicEntryAddresses[dynamicElementIndex] = gpuAddress;
 
-            switch (shaderInput->type)
-            {
-            case ShaderInputType::CBV_Dynamic:
-                commandList->SetGraphicsRootConstantBufferView(rootParamIndex, gpuAddress);
-                break;
-            case ShaderInputType::SRV_Dynamic:
-                commandList->SetGraphicsRootShaderResourceView(rootParamIndex, gpuAddress);
-                break;
-            case ShaderInputType::UAV_Dynamic:
-                commandList->SetGraphicsRootUnorderedAccessView(rootParamIndex, gpuAddress);
-                break;
-            }
-            dynamicEntryCount++;
+        switch (shaderInput->type)
+        {
+        case ShaderInputType::CBV_Dynamic:
+            commandList->SetGraphicsRootConstantBufferView(rootParamIndex, gpuAddress);
+            break;
+        case ShaderInputType::SRV_Dynamic:
+            commandList->SetGraphicsRootShaderResourceView(rootParamIndex, gpuAddress);
+            break;
+        case ShaderInputType::UAV_Dynamic:
+            commandList->SetGraphicsRootUnorderedAccessView(rootParamIndex, gpuAddress);
+            break;
         }
     }
 
@@ -852,11 +854,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
     // Compute dynamic buffer addresses and apply via root descriptors
-    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries];
-    uint32 dynamicEntryCount = 0;
+    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries] = {};
 
-    for (const Name& elementName : m_layout.GetDynamicElements())
+    // root params are laid out by position in GetDynamicElements(), so skipped entries still take a slot
+    const Span<const Name> dynamicElements = m_layout.GetDynamicElements();
+    const uint32 numDynamicElements = uint32(dynamicElements.Size());
+    const uint32 dynamicEntryCount = numDynamicElements < rootIndices.dynamicEntryCount ? numDynamicElements : rootIndices.dynamicEntryCount;
+
+    for (uint32 dynamicElementIndex = 0; dynamicElementIndex < dynamicEntryCount; dynamicElementIndex++)
     {
+        const Name& elementName = dynamicElements[dynamicElementIndex];
+
         const ShaderInput* shaderInput = m_layout.GetElement(elementName);
         Assert(shaderInput != nullptr);
 
@@ -895,25 +903,21 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
             }
         }
 
-        if (dynamicEntryCount < rootIndices.dynamicEntryCount)
-        {
-            const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicEntryCount];
-            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
-            dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
+        const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicElementIndex];
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
+        dynamicEntryAddresses[dynamicElementIndex] = gpuAddress;
 
-            switch (shaderInput->type)
-            {
-            case ShaderInputType::CBV_Dynamic:
-                commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
-                break;
-            case ShaderInputType::SRV_Dynamic:
-                commandList->SetComputeRootShaderResourceView(rootParamIndex, gpuAddress);
-                break;
-            case ShaderInputType::UAV_Dynamic:
-                commandList->SetComputeRootUnorderedAccessView(rootParamIndex, gpuAddress);
-                break;
-            }
-            dynamicEntryCount++;
+        switch (shaderInput->type)
+        {
+        case ShaderInputType::CBV_Dynamic:
+            commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
+            break;
+        case ShaderInputType::SRV_Dynamic:
+            commandList->SetComputeRootShaderResourceView(rootParamIndex, gpuAddress);
+            break;
+        case ShaderInputType::UAV_Dynamic:
+            commandList->SetComputeRootUnorderedAccessView(rootParamIndex, gpuAddress);
+            break;
         }
     }
 
@@ -965,11 +969,17 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
     ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
 
     // Compute dynamic buffer addresses and apply via root descriptors
-    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries];
-    uint32 dynamicEntryCount = 0;
+    UINT64 dynamicEntryAddresses[DescriptorSetRootIndices::MaxDynamicEntries] = {};
 
-    for (const Name& elementName : m_layout.GetDynamicElements())
+    // root params are laid out by position in GetDynamicElements(), so skipped entries still take a slot
+    const Span<const Name> dynamicElements = m_layout.GetDynamicElements();
+    const uint32 numDynamicElements = uint32(dynamicElements.Size());
+    const uint32 dynamicEntryCount = numDynamicElements < rootIndices.dynamicEntryCount ? numDynamicElements : rootIndices.dynamicEntryCount;
+
+    for (uint32 dynamicElementIndex = 0; dynamicElementIndex < dynamicEntryCount; dynamicElementIndex++)
     {
+        const Name& elementName = dynamicElements[dynamicElementIndex];
+
         const ShaderInput* shaderInput = m_layout.GetElement(elementName);
         Assert(shaderInput != nullptr);
 
@@ -1008,25 +1018,21 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
             }
         }
 
-        if (dynamicEntryCount < rootIndices.dynamicEntryCount)
-        {
-            const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicEntryCount];
-            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
-            dynamicEntryAddresses[dynamicEntryCount] = gpuAddress;
+        const uint32 rootParamIndex = rootIndices.dynamicEntryRootParamIndices[dynamicElementIndex];
+        D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = buffer->GetResource()->GetGPUVirtualAddress() + offset;
+        dynamicEntryAddresses[dynamicElementIndex] = gpuAddress;
 
-            switch (shaderInput->type)
-            {
-            case ShaderInputType::CBV_Dynamic:
-                commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
-                break;
-            case ShaderInputType::SRV_Dynamic:
-                commandList->SetComputeRootShaderResourceView(rootParamIndex, gpuAddress);
-                break;
-            case ShaderInputType::UAV_Dynamic:
-                commandList->SetComputeRootUnorderedAccessView(rootParamIndex, gpuAddress);
-                break;
-            }
-            dynamicEntryCount++;
+        switch (shaderInput->type)
+        {
+        case ShaderInputType::CBV_Dynamic:
+            commandList->SetComputeRootConstantBufferView(rootParamIndex, gpuAddress);
+            break;
+        case ShaderInputType::SRV_Dynamic:
+            commandList->SetComputeRootShaderResourceView(rootParamIndex, gpuAddress);
+            break;
+        case ShaderInputType::UAV_Dynamic:
+            commandList->SetComputeRootUnorderedAccessView(rootParamIndex, gpuAddress);
+            break;
         }
     }
 

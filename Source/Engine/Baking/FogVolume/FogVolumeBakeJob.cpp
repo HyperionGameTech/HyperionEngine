@@ -275,7 +275,13 @@ void BakeJob<FogVolume>::DispatchOcclusionBake()
         if (lightType == LightType::Spot)
         {
             direction = light->GetNormal();
-            spotAngles = light->GetSpotAngles();
+
+            // same packing as Light::UpdateRenderProxy - degrees in, cosines out
+            const Vec2f spotAnglesDegrees = light->GetSpotAngles();
+            const float cosOuter = MathUtil::Cos(MathUtil::DegToRad(spotAnglesDegrees.x));
+            const float cosInner = MathUtil::Max(MathUtil::Cos(MathUtil::DegToRad(spotAnglesDegrees.y)), cosOuter + 0.0001f);
+
+            spotAngles = Vec2f(cosOuter, cosInner);
         }
 
         const Color& color = light->GetColor();

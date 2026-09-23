@@ -18,6 +18,7 @@
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
+#include <Rendering/RenderMemory.hpp>
 
 #include <Core/Constants.hpp>
 
@@ -133,7 +134,10 @@ private:
 
     // Pipelines currently being created on a background thread (see EnsureAsyncCreateStarted / TryFinishAsyncCreate).
     // Guarded by m_mutex, same as m_cachedPipelines.
-    Map<PSOCacheKey, Task<GraphicsPipelineRef>> m_pendingPipelines;
+    Map<PSOCacheKey, Task<GraphicsPipelineRef>, RenderAllocator> m_pendingPipelines;
+
+    // Pending creates whose shader got expired - results are discarded once they finish. Guarded by m_mutex.
+    Array<Task<GraphicsPipelineRef>, RenderAllocator> m_expiredPendingPipelines;
 };
 
 } // namespace Hyperion

@@ -147,6 +147,16 @@ void PlayerSystem::OnRemovedFromWorld(World* world)
     m_delegateHandlers.Remove("OnClientConnected"_sh);
     m_delegateHandlers.Remove("OnClientDisconnected"_sh);
 
+    if (g_streamingManager.IsValid())
+    {
+        for (auto& [connectionId, volume] : m_connectionIdToStreamingVolume)
+        {
+            g_streamingManager->RemoveStreamingVolume(volume);
+        }
+    }
+
+    m_connectionIdToStreamingVolume.Clear();
+
     SystemBase::OnRemovedFromWorld(world);
 }
 

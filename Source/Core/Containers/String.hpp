@@ -1715,7 +1715,7 @@ auto String<TStringType, TAllocator>::PopFront() -> typename Base::ValueType
 template <int TStringType, class TAllocator>
 auto String<TStringType, TAllocator>::PopBack() -> typename Base::ValueType
 {
-    HYP_CORE_ASSERT(!Base::Empty() > 1, "Cannot pop back from an empty string");
+    HYP_CORE_ASSERT(Base::Size() > 1, "Cannot pop back from an empty string"); // > 1 to account for the null terminator
 
     CharType lastChar = 0;
     std::swap(Base::Data()[Base::Size() - 2], lastChar); // -2 because we want the last character before the null terminator

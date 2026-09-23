@@ -108,7 +108,8 @@ DeletionQueue::DeletionQueue()
     : m_entryLists { nullptr },
       m_tempEntryListCount(0),
       m_counterValue(0),
-      m_isInitialized(false)
+      m_isInitialized(false),
+      m_isSimThreadSynced(false)
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
@@ -460,6 +461,13 @@ void DeletionQueue::UpdateEntryListQueue()
     }
 }
 
+void DeletionQueue::SetSimThreadSynced(bool isSynced)
+{
+    AssertOnThread(g_simThread);
+
+    m_isSimThreadSynced = isSynced;
+}
+
 #pragma endregion DeletionQueue
 
 #pragma region DeletionQueue::EntryList
@@ -469,7 +477,7 @@ DeletionQueue::EntryListBase& DeletionQueue::GetCurrentEntryList(Mutex::Guard** 
     AssertDebug(ppGuard != nullptr);
     *ppGuard = nullptr;
 
-    if (IsOnThread(g_renderThread) || (UseRingBuffer && IsOnThread(g_simThread)))
+    if (IsOnThread(g_renderThread) || (UseRingBuffer && IsOnThread(g_simThread) && m_isSimThreadSynced))
     {
         uint32 bufferIndex = GetRingIndex();
         AssertDebug(bufferIndex < m_entryLists.Size());

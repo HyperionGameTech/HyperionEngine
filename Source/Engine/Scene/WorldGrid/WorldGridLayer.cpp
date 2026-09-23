@@ -35,13 +35,10 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell(const StreamingCellInf
     HYP_SCOPE;
     Handle<StreamingCell> cell = MakeHandle<StreamingCell>(cellInfo);
 
-    auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
-    if (objectsByCoordIt != m_objectsByCoord.End())
+    // runs on a streaming thread
+    for (const AssetReference& assetReference : GetStreamingObjectsAt(cellInfo.coord))
     {
-        for (const AssetReference& assetReference : objectsByCoordIt->second)
-        {
-            cell->AddAssetReference(assetReference, /* shouldLoad */ false);
-        }
+        cell->AddAssetReference(assetReference, /* shouldLoad */ false);
     }
 
     cell->OnCellLoaded
@@ -120,13 +117,31 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
     if (assetObject->IsTransient())
     {
         // transient assets must be kept in memory as their path may change if they are saved
+        Mutex::Guard guard(m_objectsByCoordMutex);
+
         m_objectsByCoord[coord].EmplaceBack(MakeStrongRef(assetObject));
 
         return;
     }
 
     // don't keep transient assets in memory; store path instead.
+    Mutex::Guard guard(m_objectsByCoordMutex);
+
     m_objectsByCoord[coord].EmplaceBack(assetObject->GetPath());
+}
+
+Array<AssetReference, StreamingAllocator> WorldGridLayer::GetStreamingObjectsAt(const Vec2i& coord) const
+{
+    Mutex::Guard guard(m_objectsByCoordMutex);
+
+    auto objectsByCoordIt = m_objectsByCoord.Find(coord);
+
+    if (objectsByCoordIt == m_objectsByCoord.End())
+    {
+        return Array<AssetReference, StreamingAllocator>();
+    }
+
+    return objectsByCoordIt->second;
 }
 
 void WorldGridLayer::EnsureStreamingObjectsRegistered()
@@ -140,16 +155,25 @@ void WorldGridLayer::EnsureStreamingObjectsRegistered()
         return;
     }
 
-    for (auto& pair : m_objectsByCoord)
-    {
-        for (const AssetReference& assetReference : pair.second)
-        {
-            Handle<AssetObject> assetObject = assetReference.Resolve();
+    // resolved outside the lock, Resolve() can load the manifest from disk
+    Array<AssetReference, StreamingAllocator> assetReferences;
 
-            if (assetObject.IsValid() && !assetObject->IsRegistered())
-            {
-                registry->PutAssetUnique(assetObject);
-            }
+    {
+        Mutex::Guard guard(m_objectsByCoordMutex);
+
+        for (const auto& pair : m_objectsByCoord)
+        {
+            assetReferences.Concat(pair.second);
+        }
+    }
+
+    for (const AssetReference& assetReference : assetReferences)
+    {
+        Handle<AssetObject> assetObject = assetReference.Resolve();
+
+        if (assetObject.IsValid() && !assetObject->IsRegistered())
+        {
+            registry->PutAssetUnique(assetObject);
         }
     }
 }
@@ -165,22 +189,26 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
         return;
     }
 
-    for (auto objectsIt = m_objectsByCoord.Begin(); objectsIt != m_objectsByCoord.End(); ++objectsIt)
     {
-        Array<AssetReference, StreamingAllocator>& assetsAtCoord = objectsIt->second;
+        Mutex::Guard guard(m_objectsByCoordMutex);
 
-        for (size_t i = 0; i < assetsAtCoord.Size(); ++i)
+        for (auto objectsIt = m_objectsByCoord.Begin(); objectsIt != m_objectsByCoord.End(); ++objectsIt)
         {
-            if (assetsAtCoord[i].GetAssetPath() == assetObject->GetPath())
+            Array<AssetReference, StreamingAllocator>& assetsAtCoord = objectsIt->second;
+
+            for (size_t i = 0; i < assetsAtCoord.Size(); ++i)
             {
-                assetsAtCoord.EraseAt(i);
-
-                if (assetsAtCoord.Empty())
+                if (assetsAtCoord[i].GetAssetPath() == assetObject->GetPath())
                 {
-                    m_objectsByCoord.Erase(objectsIt);
-                }
+                    assetsAtCoord.EraseAt(i);
 
-                return;
+                    if (assetsAtCoord.Empty())
+                    {
+                        m_objectsByCoord.Erase(objectsIt);
+                    }
+
+                    return;
+                }
             }
         }
     }

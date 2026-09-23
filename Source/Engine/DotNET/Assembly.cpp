@@ -72,7 +72,7 @@ bool Assembly::Unload()
 #endif
 }
 
-SharedPtr<ManagedClass> Assembly::NewClass(const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
+SharedPtr<ManagedClass> Assembly::NewClass(const Class* cls, int64 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);
@@ -114,7 +114,7 @@ SharedPtr<ManagedClass> Assembly::FindClassByName(const char* typeName)
 #endif
 }
 
-SharedPtr<ManagedClass> Assembly::FindClassByTypeHash(int32 typeHash)
+SharedPtr<ManagedClass> Assembly::FindClassByTypeHash(int64 typeHash)
 {
 #ifdef HYP_DOTNET
     auto it = m_classObjects.Find(typeHash);

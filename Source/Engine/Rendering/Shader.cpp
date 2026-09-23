@@ -16,6 +16,8 @@
 
 #include <Framework/EngineGlobals.hpp>
 
+#include <Core/Utilities/DeferredScope.hpp>
+
 #include <Shader.generated.inl>
 
 namespace Hyperion
@@ -37,9 +39,10 @@ void Shader::AddShaderModule(
     UTF8StringView entryPointName,
     ConstByteView blobData)
 {
-    MarkDirty();
-
     auto writeScope = GetWriteScope();
+
+    // dirty after mutating, so a racing save can't clear the bit before the new blob exists
+    HYP_DEFER({ MarkDirty(); });
 
     auto it = moduleTypes.Find(moduleType);
 

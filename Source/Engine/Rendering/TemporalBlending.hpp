@@ -108,6 +108,9 @@ private:
 
     uint16 m_blendingFrameCounter;
 
+    // flipped every Render() to ping-pong between result and history textures
+    bool m_isOddFrame;
+
     FixedArray<GpuBufferRef, NumFramesInFlight> m_cbuffers;
 
     GpuImageViewRef m_inputImageView;

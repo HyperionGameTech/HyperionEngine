@@ -224,6 +224,8 @@ Camera::~Camera()
     m_onWindowResizedHandle.Reset();
     m_onMainWindowChangedHandle.Reset();
 
+    UnregisterStreamingVolume();
+
     while (HasActiveCameraController())
     {
         const Handle<CameraController> cameraController = m_cameraControllers.PopBack();
@@ -692,11 +694,23 @@ void Camera::UpdateStreamingVolume()
     }
     else
     {
-        if (m_streamingVolumeAdded)
-        {
-            m_streamingVolumeAdded = false;
-            g_streamingManager->RemoveStreamingVolume(m_streamingVolume);
-        }
+        UnregisterStreamingVolume();
+    }
+}
+
+void Camera::UnregisterStreamingVolume()
+{
+    if (!m_streamingVolumeAdded)
+    {
+        return;
+    }
+
+    m_streamingVolumeAdded = false;
+
+    // null during engine shutdown
+    if (g_streamingManager.IsValid())
+    {
+        g_streamingManager->RemoveStreamingVolume(m_streamingVolume);
     }
 }
 
@@ -825,7 +839,7 @@ void Camera::OnAddedToWorld(World* world)
 
 void Camera::OnRemovedFromWorld(World* world)
 {
-    UpdateStreamingVolume();
+    UnregisterStreamingVolume();
 
     Entity::OnRemovedFromWorld(world);
 }

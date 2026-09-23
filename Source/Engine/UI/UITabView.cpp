@@ -68,7 +68,7 @@ void UITab::AddChildUIObject(const Handle<UIObject>& uiObject)
 
 bool UITab::RemoveChildUIObject(UIObject* uiObject)
 {
-    if (m_contents != nullptr)
+    if (m_contents != nullptr && uiObject != nullptr && uiObject->GetParentUIObject() != this)
     {
         return m_contents->RemoveChildUIObject(uiObject);
     }
@@ -161,7 +161,7 @@ void UITabView::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     tab->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
 
-    tab->OnClick.RemoveAllDetached();
+    OnClick.RemoveAllForTarget(tab.Get());
     OnClick.Bind(tab, [this, name = tab->GetName()](const MouseEvent& data) -> UIEventHandlerResult
         {
             if (data.mouseButtons == MouseButtonState::LEFT)
@@ -347,22 +347,35 @@ bool UITabView::RemoveTab(Name name)
         return false;
     }
 
-    const bool removed = RemoveChildUIObject(*it);
+    const size_t index = it - m_tabs.Begin();
+
+    const bool removed = UIPanel::RemoveChildUIObject(*it);
 
     if (!removed)
     {
         return false;
     }
 
-    const size_t index = it - m_tabs.Begin();
-
-    m_tabs.Erase(it);
+    m_tabs.Erase(m_tabs.Begin() + index);
 
     UpdateTabSizes();
 
     if (m_selectedTabIndex == index)
     {
-        SetSelectedTabIndex(m_tabs.Any() ? m_tabs.Size() - 1 : ~0u);
+        if (m_tabs.Any())
+        {
+            m_selectedTabIndex = ~0u;
+
+            SetSelectedTabIndex(uint32(m_tabs.Size() - 1));
+        }
+        else
+        {
+            SetSelectedTabIndex(~0u);
+        }
+    }
+    else if (m_selectedTabIndex != ~0u && m_selectedTabIndex > index)
+    {
+        --m_selectedTabIndex;
     }
 
     return true;

@@ -60,7 +60,7 @@ static const stbi_io_callbacks s_callbacks {
 
 AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 {
-    LoadedTextureData data;
+    LoadedTextureData data {};
 
     unsigned char* imageBytes = stbi_load_from_callbacks(
         &s_callbacks,
@@ -69,6 +69,13 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         &data.height,
         &data.numComponents,
         0);
+
+    if (imageBytes == nullptr)
+    {
+        const char* failureReason = stbi_failure_reason();
+
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to decode image: {}", failureReason ? failureReason : "unknown error");
+    }
 
     switch (data.numComponents)
     {
@@ -85,6 +92,8 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         data.format = TextureFormat::R8;
         break;
     default:
+        stbi_image_free(imageBytes);
+
         return HYP_MAKE_ERROR(AssetLoadError, "Invalid format -- invalid number of components returned");
     }
 

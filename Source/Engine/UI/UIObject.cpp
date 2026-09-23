@@ -247,6 +247,7 @@ UIObject::~UIObject()
     OnRightClick.RemoveAllForTarget(this);
     OnKeyDown.RemoveAllForTarget(this);
     OnKeyUp.RemoveAllForTarget(this);
+    OnTextInput.RemoveAllForTarget(this);
     OnTextChange.RemoveAllForTarget(this);
     OnSizeChange.RemoveAllForTarget(this);
     OnComputedVisibilityChange.RemoveAllForTarget(this);

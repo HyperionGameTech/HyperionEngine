@@ -348,7 +348,8 @@ void VulkanGpuBuffer::InsertBarrier(
 
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
-        GetVkShaderStageMask(m_resourceState, true, false, shaderType),
+        // shaderType describes the consumer, the previous writer could've been any stage
+        GetVkShaderStageMask(m_resourceState, true, false, ShaderModuleType::None),
         GetBufferDstStageMask(m_type, newState, GetVkShaderStageMask(newState, false, false, shaderType)),
         0,
         0, nullptr,

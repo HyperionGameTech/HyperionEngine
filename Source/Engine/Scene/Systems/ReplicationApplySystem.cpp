@@ -77,6 +77,17 @@ void ReplicationApplySystem::OnRemovedFromWorld(World* world)
 {
     m_delegateHandlers.Remove("OnSceneAdded"_sh);
 
+    if (m_playerStreamingVolume.IsValid())
+    {
+        // null during engine shutdown
+        if (g_streamingManager.IsValid())
+        {
+            g_streamingManager->RemoveStreamingVolume(m_playerStreamingVolume);
+        }
+
+        m_playerStreamingVolume.Reset();
+    }
+
     SystemBase::OnRemovedFromWorld(world);
 }
 

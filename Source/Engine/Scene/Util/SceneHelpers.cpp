@@ -31,6 +31,7 @@
 
 #include <Framework/Client/GameClient.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/Net/PlayerMove.hpp>
 
 namespace Hyperion {
 namespace SceneHelpers {
@@ -181,6 +182,14 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         return;
     }
 
+    // NaN/Inf input would poison the character (and its physics body) for good, so treat it as a no-op move
+    if (!IsPlayerMoveValid(move))
+    {
+        outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
+
+        return;
+    }
+
     if (s_cvGhostMode.Get())
     {
         const Vec3f viewDirection = move.GetViewDirection();
@@ -235,7 +244,9 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
                                         : MathUtil::Max(component.movement.moveSpeed, 0.0f))
             * GhostModeSpeedMultiplier;
 
-        component.translation += flyDirection * flySpeed * move.deltaTime;
+        const float deltaTime = MathUtil::Clamp(move.deltaTime, 0.0f, MaxPlayerMoveDeltaTime);
+
+        component.translation += flyDirection * flySpeed * deltaTime;
         component.isOnGround = false;
 
         physicsWorld->SetCharacterTranslation(component.physicsHandle, component.translation);

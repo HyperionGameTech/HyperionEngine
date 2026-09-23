@@ -188,7 +188,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
             }
         }
 
-        direct_lighting += material_color * local_light;
+        direct_lighting += material_color * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI * local_light;
     }
 
     payload.color = indirect_lighting + direct_lighting;

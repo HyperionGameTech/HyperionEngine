@@ -154,6 +154,11 @@ bool UIMenuItem::RemoveChildUIObject(UIObject* uiObject)
         return true;
     }
 
+    if (uiObject->GetParentUIObject() == this || m_dropDownMenu == nullptr)
+    {
+        return UIObject::RemoveChildUIObject(uiObject);
+    }
+
     return m_dropDownMenu->RemoveChildUIObject(uiObject);
 }
 
@@ -266,7 +271,7 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
 
     m_subItemsDropDownMenu->SetIsVisible(true);
 
-    OnClick.RemoveAllDetached();
+    OnClick.RemoveAllForTarget(m_subItemsDropDownMenu.Get());
     OnClick.Bind(m_subItemsDropDownMenu, [weakThis = WeakHandleFromThis()](const MouseEvent& data) -> UIEventHandlerResult
         {
             Handle<UIMenuItem> menuItem = weakThis.Lock();
@@ -573,7 +578,7 @@ void UIMenuBar::AddChildUIObject(const Handle<UIObject>& uiObject)
         const Name name = menuItem->GetName();
 
         // Mouse hover: set selected menu item index if this menu bar has focus
-        menuItem->OnMouseHover.RemoveAllDetached();
+        OnMouseHover.RemoveAllForTarget(menuItem);
         OnMouseHover.Bind(menuItem, [this, name](const MouseEvent& data) -> UIEventHandlerResult
             {
                 if (m_container->HasFocus(true))

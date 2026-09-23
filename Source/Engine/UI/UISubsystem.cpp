@@ -371,8 +371,8 @@ void UISubsystem::InitDebugOverlays()
         debugOverlayContainer->SetAcceptsFocus(false); // so we dlon't steal focus from the viewport
         debugOverlayContainer->SetIsVisible(true); // per-overlay visibility is handled in UpdateDebugOverlays
 
-        debugOverlayContainer->OnClick.RemoveAllDetached();
-        debugOverlayContainer->OnKeyDown.RemoveAllDetached();
+        UIObject::OnClick.RemoveAllForTarget(debugOverlayContainer.Get());
+        UIObject::OnKeyDown.RemoveAllForTarget(debugOverlayContainer.Get());
     }
 
     for (const Handle<OverlayBase>& debugOverlay : m_debugOverlays)

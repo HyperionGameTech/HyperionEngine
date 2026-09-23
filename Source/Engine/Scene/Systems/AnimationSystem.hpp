@@ -48,7 +48,8 @@ private:
         };
     }
 
-    Map<Skeleton*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;
+    // keyed per entity since clones share a Skeleton
+    Map<Entity*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;
 };
 
 } // namespace Hyperion

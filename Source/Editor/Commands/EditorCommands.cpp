@@ -2593,7 +2593,8 @@ public:
                 return;
             }
 
-            Node* node = subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+            const Handle<Scene> activeScene = subsystem->GetActiveScene();
+            Node* node = activeScene.IsValid() ? activeScene->FindNodeByUUID(nodeUuid) : nullptr;
 
             if (!node)
             {
@@ -2754,7 +2755,9 @@ static Node* ResolveNodeUuidArgument(EditorSubsystem* subsystem, const String& n
         return nullptr;
     }
 
-    return subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+    const Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+    return activeScene.IsValid() ? activeScene->FindNodeByUUID(nodeUuid) : nullptr;
 }
 
 class EditorCommandGenerateConvexCollision final : public EditorCommandBase
@@ -2863,7 +2866,8 @@ public:
                 return;
             }
 
-            Node* foundNode = subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+            const Handle<Scene> activeScene = subsystem->GetActiveScene();
+            Node* foundNode = activeScene.IsValid() ? activeScene->FindNodeByUUID(nodeUuid) : nullptr;
 
             if (!foundNode)
             {
@@ -2936,7 +2940,8 @@ public:
                 return;
             }
 
-            Node* foundNode = subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+            const Handle<Scene> activeScene = subsystem->GetActiveScene();
+            Node* foundNode = activeScene.IsValid() ? activeScene->FindNodeByUUID(nodeUuid) : nullptr;
 
             if (!foundNode)
             {
@@ -3116,7 +3121,8 @@ public:
                 return;
             }
 
-            Node* node = subsystem->GetActiveScene()->FindNodeByUUID(nodeUuid);
+            const Handle<Scene> activeScene = subsystem->GetActiveScene();
+            Node* node = activeScene.IsValid() ? activeScene->FindNodeByUUID(nodeUuid) : nullptr;
 
             if (node)
             {
@@ -3495,6 +3501,29 @@ public:
         return "New Script";
     }
 
+    static bool IsValidScriptName(const ANSIString& name)
+    {
+        if (name.Empty())
+        {
+            return false;
+        }
+
+        for (size_t index = 0; index < name.Size(); index++)
+        {
+            const char character = name.Data()[index];
+
+            const bool isLetter = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') || character == '_';
+            const bool isDigit = character >= '0' && character <= '9';
+
+            if (!isLetter && !(isDigit && index != 0))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     static void CreateScriptFile(EditorProject& project, ScriptAsset& scriptAsset, const String& extension, const String& templateCode)
     {
         ScriptDesc& desc = scriptAsset.GetScriptDesc();
@@ -3586,6 +3615,14 @@ public:
         const ANSIString assetName = nameArg.Any()
             ? ANSIString(nameArg.Data(), nameArg.Data() + nameArg.Size())
             : "NewScript";
+
+        // name becomes both a file name and a class name, so it has to be a plain identifier
+        if (!IsValidScriptName(assetName))
+        {
+            HYP_LOG(Editor, Error, "Invalid script name '{}'; use letters, digits and underscores only, not starting with a digit", assetName);
+
+            return;
+        }
 
         ScriptDesc scriptDesc;
         scriptDesc.language = ScriptLanguage::Strata;

@@ -336,6 +336,10 @@ public:
     // copy from temp entry list to sim thread / render thread queue
     void UpdateEntryListQueue();
 
+    /*! \brief Sim thread only. Call on entering / leaving the sim/render sync block. Outside of it the sim thread's ring slot
+     *  can be the one the render thread is working on, so deletions go through the locked temp lists instead. */
+    void SetSimThreadSynced(bool isSynced);
+
     /*! \brief Allocate storage for a safe deleter of type T. The instance will need to be constructed using placement new by the caller.
         \param ppGuard Pointer-to-pointer of a mutex guard that will be set if locking is required. The caller is responsible for deleting the guard if set. */
     template <class T>
@@ -409,6 +413,9 @@ private:
     mutable volatile int64 m_counterValue;
 
     bool m_isInitialized;
+
+    // only read/written on the sim thread
+    bool m_isSimThreadSynced;
 };
 
 

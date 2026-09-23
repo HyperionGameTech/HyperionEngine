@@ -218,6 +218,10 @@ struct AtomicSemaphoreImpl
     {
         return ShouldSignal<CounterType, Direction>(GetValue());
     }
+
+    void Synchronize() const
+    {
+    }
 };
 
 template <class T, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
@@ -415,6 +419,12 @@ struct ConditionVarSemaphoreImpl
     {
         return ShouldSignal<CounterType, Direction>(GetValue());
     }
+
+    // Waits out any Release()/Produce() still holding the lock after changing the value
+    void Synchronize() const
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+    }
 };
 
 class SemaphoreBase
@@ -523,6 +533,13 @@ public:
     HYP_FORCE_INLINE bool IsInSignalState() const
     {
         return m_impl.IsInSignalState();
+    }
+
+    /*! \brief Blocks until no other thread is inside Release()/Produce(), so the semaphore can be destroyed
+     *  safely after observing its signal state from outside the lock. */
+    HYP_FORCE_INLINE void Synchronize() const
+    {
+        m_impl.Synchronize();
     }
 
 private:

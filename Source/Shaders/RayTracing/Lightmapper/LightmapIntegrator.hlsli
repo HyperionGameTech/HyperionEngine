@@ -311,42 +311,6 @@ float4 IntegrateLightmapRay(uint ray_index)
     } // end samples
 
     float4 finalColor = float4(accumRadiance.rgb / float(NUM_SAMPLES), 1.0);
-#elif defined(MODE_RADIANCE)
-    // direct shading
-
-    const float3 N = firstRayDirection;
-
-    float3 radiance = float3(0.0, 0.0, 0.0);
-
-    for (uint light_index = 0; light_index < min(rayTracingConstants.numBoundLights, 16); light_index++)
-    {
-        if (lights[light_index].type == HYP_LIGHT_TYPE_DIRECTIONAL)
-        {
-            float3 light_direction = normalize(lights[light_index].position_intensity.xyz);
-            float3 L = light_direction;
-
-            // shadow check
-            float shadow = 1.0 - CheckInShadow(ray.origin, N, L);
-
-            float NdotL = max(dot(N, L), 0.0);
-            radiance += lights[light_index].color.rgb * lights[light_index].position_intensity.w * NdotL * shadow;
-        }
-        else if (lights[light_index].type == HYP_LIGHT_TYPE_POINT)
-        {
-            float3 L = normalize(lights[light_index].position_intensity.xyz - ray.origin);
-            float d = length(lights[light_index].position_intensity.xyz - ray.origin);
-            float attenuation = 1.0 / (d * d);
-
-            float NdotL = max(dot(N, L), 0.0);
-            radiance += lights[light_index].color.rgb * lights[light_index].position_intensity.w * NdotL * attenuation;
-        }
-        else
-        {
-            /// ... TODO
-        }
-    }
-
-    float4 finalColor = float4(radiance, 1.0);
 #elif defined(MODE_RADIANCE) || defined(MODE_IRRADIANCE)
     // path traced diffuse-only light.
     float4 accumRadiance = (float4)0.0;

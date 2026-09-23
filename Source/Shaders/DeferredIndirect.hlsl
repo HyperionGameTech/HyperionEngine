@@ -320,10 +320,13 @@ PSOutput PSMain(PSInput input)
 
     irradiance.a = saturate(irradiance.a);
 
+    // lightmapped pixels get diffuse GI from the lightmap pass, same masking as the probes
+    const float lightmappedWeight = min(1.0, float(mask & OBJECT_MASK_LIGHTMAPPED));
+
 #ifdef SSGI_ENABLED
     // Blend ssgi result into irradiance - if no hit, alpha will be zero or close to it so we can lerp it
     float4 ssgi = SAMPLE_TEXTURE_2D_LOD(sampler_linear, SSGIResultTexture, texcoord, 0);
-    irradiance = lerp(irradiance, ssgi, ssgi.a);
+    irradiance = lerp(irradiance, ssgi, ssgi.a * (1.0 - lightmappedWeight));
 #else
     float4 ssgi = (float4)0.0;
 #endif
@@ -333,7 +336,7 @@ PSOutput PSMain(PSInput input)
     ddgi.rgb *= DDGI_MULTIPLIER;
     // lerp to ddgi based on 1.0-ssgi alpha, so that if ssgi has a hit, it will be used, otherwise ddgi will be used.
     // ddgi alpha fades out past the last cascade, falling back to env probe irradiance.
-    irradiance = lerp(irradiance, ddgi, (1.0 - ssgi.a) * ddgi.a);
+    irradiance = lerp(irradiance, ddgi, (1.0 - ssgi.a) * ddgi.a * (1.0 - lightmappedWeight));
 #endif
 
     const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));

@@ -440,7 +440,7 @@ namespace Hyperion
                 if (assemblyPtr == null)
                     return null;
 
-                classPtr = Class_GetClassByTypeHash((IntPtr)assemblyPtr, currentType.GetHashCode());
+                classPtr = Class_GetClassByTypeHash((IntPtr)assemblyPtr, currentType.TypeHandle.Value.ToInt64());
             }
 
             if (classPtr == IntPtr.Zero)
@@ -498,7 +498,7 @@ namespace Hyperion
         private static extern IntPtr Class_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
 
         [DllImport("hyperion", EntryPoint = "Class_GetClassByTypeHash")]
-        private static extern IntPtr Class_GetClassByTypeHash([In] IntPtr assemblyPtr, int typeHash);
+        private static extern IntPtr Class_GetClassByTypeHash([In] IntPtr assemblyPtr, long typeHash);
         
         [DllImport("hyperion", EntryPoint = "Class_GetName")]
         private static extern void Class_GetName([In] IntPtr classPtr, [Out] out Name name);

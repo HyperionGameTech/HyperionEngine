@@ -39,7 +39,8 @@ struct StreamStateMap;
 class NET_API NetChannel final
 {
 public:
-    explicit NetChannel(NetChannelMode mode);
+    /// \param maxIncomingStreams cap on streams a remote peer can create by sending to new keys (0 = unlimited)
+    explicit NetChannel(NetChannelMode mode, uint32 maxIncomingStreams = 0);
 
     NetChannel(const NetChannel&) = delete;
     NetChannel& operator=(const NetChannel&) = delete;
@@ -73,6 +74,10 @@ private:
 
     const NetChannelMode m_mode;
     Pimpl<StreamStateMap> m_streams;
+
+    uint32 m_maxIncomingStreams;
+    uint32 m_numIncomingStreams;
+    uint32 m_numBufferedMessages; // ReliableOrdered out-of-order messages held across all streams
 
     // Temp memory stream used for writing the unreliable payloads.
     NetBuffer m_tempBuffer;

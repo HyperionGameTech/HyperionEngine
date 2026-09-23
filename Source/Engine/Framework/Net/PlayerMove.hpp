@@ -17,12 +17,19 @@
 
 #include <Core/Types.hpp>
 
+#include <cmath>
 #include <type_traits>
 
 namespace Hyperion {
 
 // Maximum number of moves that fits in a single PlayerMovesRequest datagram.
 static constexpr uint32 MaxPlayerMovesPerRequest = 16;
+
+// Longest step a single move may simulate, matches the character controller's substep clamp (3 x 1/60).
+static constexpr float MaxPlayerMoveDeltaTime = 3.0f / 60.0f;
+
+// Input/view components are ~[-1, 1]; anything way past that is garbage and can overflow Normalize()
+static constexpr float MaxPlayerMoveAxisMagnitude = 4.0f;
 
 struct PlayerMove
 {
@@ -50,6 +57,26 @@ struct PlayerMove
 
 static_assert(std::is_trivially_copyable_v<PlayerMove>);
 static_assert(std::is_trivially_destructible_v<PlayerMove>);
+
+HYP_FORCE_INLINE bool IsPlayerMoveAxisValid(float value)
+{
+    return std::isfinite(value) && std::fabs(value) <= MaxPlayerMoveAxisMagnitude;
+}
+
+// Rejects moves a legit client can't produce (NaN/Inf, negative time, absurd input vectors)
+HYP_FORCE_INLINE bool IsPlayerMoveValid(const PlayerMove& move)
+{
+    if (!std::isfinite(move.deltaTime) || move.deltaTime < 0.0f)
+    {
+        return false;
+    }
+
+    return IsPlayerMoveAxisValid(move.movementInput[0])
+        && IsPlayerMoveAxisValid(move.movementInput[1])
+        && IsPlayerMoveAxisValid(move.viewDirection[0])
+        && IsPlayerMoveAxisValid(move.viewDirection[1])
+        && IsPlayerMoveAxisValid(move.viewDirection[2]);
+}
 
 struct PlayerMoveAck
 {
@@ -80,18 +107,40 @@ HYP_FORCE_INLINE void SerializePlayerMoves(ByteWriter& writer, uint32 lastAckedM
     writer.Write(moves, sizeof(PlayerMove) * numMoves);
 }
 
-// Deserializes a batch of moves. Returns the number of moves read (clamped to maxMoves).
+// Deserializes a batch of moves. Returns the number of valid moves written to outMoves (clamped to maxMoves and to
+// what the payload actually holds). Invalid moves are skipped.
 HYP_FORCE_INLINE uint32 DeserializePlayerMoves(ByteReader& reader, uint32& outLastAckedMoveId, PlayerMove* outMoves, uint32 maxMoves)
 {
     uint8 numMoves = 0;
+    outLastAckedMoveId = 0;
+
+    if (reader.Position() + sizeof(uint32) + sizeof(uint8) > reader.Max())
+    {
+        return 0;
+    }
 
     reader.Read(&outLastAckedMoveId, sizeof(uint32));
     reader.Read(&numMoves, sizeof(uint8));
 
-    const uint32 count = MathUtil::Min(uint32(numMoves), maxMoves);
-    reader.Read(outMoves, sizeof(PlayerMove) * count);
+    const uint32 numMovesInPayload = uint32((reader.Max() - reader.Position()) / sizeof(PlayerMove));
+    const uint32 count = MathUtil::Min(MathUtil::Min(uint32(numMoves), maxMoves), numMovesInPayload);
 
-    return count;
+    uint32 numValidMoves = 0;
+
+    for (uint32 i = 0; i < count; ++i)
+    {
+        PlayerMove move;
+        reader.Read(&move, sizeof(PlayerMove));
+
+        if (!IsPlayerMoveValid(move))
+        {
+            continue;
+        }
+
+        outMoves[numValidMoves++] = move;
+    }
+
+    return numValidMoves;
 }
 
 HYP_FORCE_INLINE void SerializePlayerMoveAck(ByteWriter& writer, const PlayerMoveAck& ack)
@@ -101,7 +150,7 @@ HYP_FORCE_INLINE void SerializePlayerMoveAck(ByteWriter& writer, const PlayerMov
 
 HYP_FORCE_INLINE PlayerMoveAck DeserializePlayerMoveAck(ByteReader& reader)
 {
-    PlayerMoveAck ack;
+    PlayerMoveAck ack {};
     reader.Read(&ack, sizeof(ack));
 
     return ack;

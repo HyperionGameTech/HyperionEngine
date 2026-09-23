@@ -394,10 +394,26 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state,
             return VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
         case ShaderModuleType::None:
         {
-            VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            const VulkanFeatures& features = RI.GetDevice()->GetFeatures();
+            const VkPhysicalDeviceFeatures& enabledFeatures = features.GetPhysicalDeviceFeatures2().features;
+
+            VkPipelineStageFlags bits = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+                | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            if (RI.GetDevice()->GetFeatures().IsRayTracingSupported())
+            // stage bits for optional shader stages are only valid when the feature is enabled on the device
+            if (enabledFeatures.geometryShader)
+            {
+                bits |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+            }
+
+            if (enabledFeatures.tessellationShader)
+            {
+                bits |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT
+                    | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+            }
+
+            if (features.IsRayTracingSupported())
             {
                 bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }

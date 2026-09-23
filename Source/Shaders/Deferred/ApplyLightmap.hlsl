@@ -16,6 +16,7 @@ struct VSOutput
     float4 position_cs : SV_POSITION;
     float3 position : POSITION;
     float4 positionNdc : TEXCOORD0;
+    float3 faceNormal : TEXCOORD1;
 };
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -36,6 +37,7 @@ VSOutput VSMain(VSInput input)
 
     float4 worldPosition = mul(transformMatrix, float4(input.a_position, 1.0));
     output.position = worldPosition.xyz / worldPosition.w;
+    output.faceNormal = mul(transformMatrix, float4(input.a_normal, 0.0)).xyz;
     
     float4x4 jitterMat = {
         1, 0, 0, 0,
@@ -64,6 +66,7 @@ struct PSInput
     float4 position_cs : SV_POSITION;
     float3 position : POSITION;
     float4 positionNdc : TEXCOORD0;
+    float3 faceNormal : TEXCOORD1;
 };
 
 struct PSOutput
@@ -124,6 +127,12 @@ DECLARE_BUFFER_DYNAMIC(LightmapPass, CBuffer) cbuffer CBuffer
 PSOutput PSMain(PSInput input)
 {
     PSOutput output;
+
+    // culling is off (changing it mid-pass isn't safe), so only shade back faces or the box adds light twice from outside
+    if (dot(input.faceNormal, input.position - camera.position.xyz) <= 0.0)
+    {
+        discard;
+    }
 
     float2 texcoord = (input.positionNdc.xy / input.positionNdc.w) * 0.5 + 0.5;
     texcoord.y = 1.0 - texcoord.y;

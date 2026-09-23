@@ -300,6 +300,16 @@ void BLASCache::OnFrameEnd(uint32 prevFrameIndex)
 
         if (int64(prevFrameIndex) - entry.lastUsedFrame > 100)
         {
+            // a TLAS still holds it (AddRef in AddBLAS) - evicting would leave that TLAS with a stale
+            // BLAS that a rebuild under the same key never replaces, so wait until it's removed
+            if (entry.blas != nullptr
+                && entry.blas->GetObjectHeader_Internal() != nullptr
+                && entry.blas->GetObjectHeader_Internal()->GetRefCountStrong() > 1)
+            {
+                ++it;
+                continue;
+            }
+
             EnqueueDeletion(entry.blas);
 
             m_impl->entryMap.Erase(key);

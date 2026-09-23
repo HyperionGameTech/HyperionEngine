@@ -447,8 +447,16 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                                 .numLayers = 1
                             };
 
+                            // the scratch image is a single layer, we render into its mip 0 and copy that into the dst mip/layer
+                            const ImageSubResource tempViewSubResource {
+                                .baseMipLevel = 0,
+                                .numLevels = 1,
+                                .baseArrayLayer = 0,
+                                .numLayers = 1
+                            };
+
                             const GpuImageViewRef& inputView = RI.textureViewCache->GetOrCreate(src, srcViewSubResource, TextureType::Texture2D);
-                            const GpuImageViewRef& outputView = RI.textureViewCache->GetOrCreate(tempImage, dstViewSubResource, TextureType::Texture2D);
+                            const GpuImageViewRef& outputView = RI.textureViewCache->GetOrCreate(tempImage, tempViewSubResource, TextureType::Texture2D);
 
                             src->GetGpuImage()->InsertBarrier(commandBuffer, srcViewSubResource, ResourceState::ShaderResource, ShaderModuleType::None);
                             tempImage->GetGpuImage()->InsertBarrier(commandBuffer, ResourceState::UnorderedAccess, ShaderModuleType::None);
@@ -503,7 +511,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                             dst->GetGpuImage()->CopyFrom(commandBuffer, tempImage->GetGpuImage().Get(),
                                                          Vec3u::Zero(), Vec3u::Zero(), dstExtent,
-                                                         ImageSubResource { 0, 1, 0, 1 }, dstViewSubResource);
+                                                         tempViewSubResource, dstViewSubResource);
 
                             dst->GetGpuImage()->InsertBarrier(commandBuffer, dstViewSubResource, ResourceState::ShaderResource, ShaderModuleType::None);
                         }
@@ -1255,20 +1263,15 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 template <>
 void TCommandRecorder<RenderAllocator>::Submit()
 {
-    Done();
+    Assert(writeCount == 1);
 
-    Assert(writeCount == 0);
+    // stay writable so the allocator's drain skips us; Execute() releases the flag last, after which
+    // a temp recorder can be erased by the render thread at any time, so don't touch `this` after it
+    CommandBuffer& commandBuffer = RI.GetTransientCommandBuffer();
 
-    { // Submit to transient command buffer
-        CommandBuffer& commandBuffer = RI.GetTransientCommandBuffer();
+    Execute(&commandBuffer);
 
-        Execute(&commandBuffer);
-
-        RI.SubmitTransientCommandBuffer(commandBuffer);
-    }
-
-    // Reset offset and header count
-    Reset(/* freeMemory */ false);
+    RI.SubmitTransientCommandBuffer(commandBuffer);
 }
 
 #pragma endregion TCommandRecorder

@@ -413,22 +413,30 @@ void TerrainWorldGridLayer::DiscardAllCellData()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (m_objectsByCoord.Empty())
+    // taken out under the lock, the file deletes below don't need to hold it
+    FlatMap<Vec2i, Array<AssetReference, StreamingAllocator>, StreamingAllocator> objectsByCoord;
+
+    {
+        Mutex::Guard guard(m_objectsByCoordMutex);
+
+        objectsByCoord = std::move(m_objectsByCoord);
+        m_objectsByCoord.Clear();
+    }
+
+    if (objectsByCoord.Empty())
     {
         return;
     }
 
     m_heightsSampleCache.Invalidate();
 
-    for (const KeyValuePair<Vec2i, Array<AssetReference, StreamingAllocator>>& pair : m_objectsByCoord)
+    for (const KeyValuePair<Vec2i, Array<AssetReference, StreamingAllocator>>& pair : objectsByCoord)
     {
         for (const AssetReference& assetReference : pair.second)
         {
             DeletePersistedCellData(assetReference.GetAssetPath());
         }
     }
-
-    m_objectsByCoord.Clear();
 }
 
 void TerrainWorldGridLayer::DeletePersistedCellData(const AssetPath& assetPath)
@@ -476,9 +484,13 @@ void TerrainWorldGridLayer::AddCellData(const Vec2i& coord, const Handle<Terrain
     AssertOnThread(g_simThread);
 
     // left in place, they'd be retried (and fail) ahead of the new cell data on every lookup
-    if (auto objectsByCoordIt = m_objectsByCoord.Find(coord); objectsByCoordIt != m_objectsByCoord.End())
     {
-        objectsByCoordIt->second.Clear();
+        Mutex::Guard guard(m_objectsByCoordMutex);
+
+        if (auto objectsByCoordIt = m_objectsByCoord.Find(coord); objectsByCoordIt != m_objectsByCoord.End())
+        {
+            objectsByCoordIt->second.Clear();
+        }
     }
 
     AddStreamingObject(cellData.Get(), coord);
@@ -497,6 +509,8 @@ bool TerrainWorldGridLayer::RemoveUnregisteredCellData()
     }
 
     uint32 numRemoved = 0;
+
+    Mutex::Guard guard(m_objectsByCoordMutex);
 
     for (auto objectsByCoordIt = m_objectsByCoord.Begin(); objectsByCoordIt != m_objectsByCoord.End();)
     {
@@ -1026,19 +1040,74 @@ uint64 TerrainWorldGridLayer::ComputeCellFingerprint(const TerrainGenerator& gen
 
 Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) const
 {
-    auto objectsByCoordIt = m_objectsByCoord.Find(coord);
+    // also runs on streaming threads. loaded references are read under the lock; unloaded ones are copied out since
+    // Resolve() can load the manifest from disk, then the resolved handle is cached back like an in-place Resolve()
+    Array<AssetReference, StreamingAllocator> unloadedReferences;
 
-    if (objectsByCoordIt == m_objectsByCoord.End())
     {
-        return Handle<TerrainCellData>();
+        Mutex::Guard guard(m_objectsByCoordMutex);
+
+        auto objectsByCoordIt = m_objectsByCoord.Find(coord);
+
+        if (objectsByCoordIt == m_objectsByCoord.End())
+        {
+            return Handle<TerrainCellData>();
+        }
+
+        const Array<AssetReference, StreamingAllocator>& assetReferences = objectsByCoordIt->second;
+
+        for (size_t index = 0; index < assetReferences.Size(); index++)
+        {
+            const AssetReference& assetReference = assetReferences[index];
+
+            if (!assetReference.IsLoaded())
+            {
+                // keep the rest in order so the first reference that resolves still wins
+                for (size_t remainingIndex = index; remainingIndex < assetReferences.Size(); remainingIndex++)
+                {
+                    unloadedReferences.PushBack(assetReferences[remainingIndex]);
+                }
+
+                break;
+            }
+
+            if (Handle<TerrainCellData> cellData = DynamicCast<TerrainCellData>(assetReference.Resolve()); cellData.IsValid())
+            {
+                return cellData;
+            }
+        }
     }
 
-    for (const AssetReference& assetReference : objectsByCoordIt->second)
+    for (const AssetReference& assetReference : unloadedReferences)
     {
-        if (Handle<TerrainCellData> cellData = DynamicCast<TerrainCellData>(assetReference.Resolve()); cellData.IsValid())
+        const AssetPath assetPath = assetReference.GetAssetPath();
+
+        Handle<TerrainCellData> cellData = DynamicCast<TerrainCellData>(assetReference.Resolve());
+
+        if (!cellData.IsValid())
         {
-            return cellData;
+            continue;
         }
+
+        Mutex::Guard guard(m_objectsByCoordMutex);
+
+        // const_cast: same logically-const caching Resolve() does through its mutable data
+        auto& objectsByCoord = const_cast<FlatMap<Vec2i, Array<AssetReference, StreamingAllocator>, StreamingAllocator>&>(m_objectsByCoord);
+
+        if (auto objectsByCoordIt = objectsByCoord.Find(coord); objectsByCoordIt != objectsByCoord.End())
+        {
+            for (AssetReference& existingReference : objectsByCoordIt->second)
+            {
+                if (!existingReference.IsLoaded() && existingReference.GetAssetPath() == assetPath)
+                {
+                    existingReference = assetReference;
+
+                    break;
+                }
+            }
+        }
+
+        return cellData;
     }
 
     return Handle<TerrainCellData>();

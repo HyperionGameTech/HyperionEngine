@@ -226,7 +226,8 @@ PSOutput PSMain(PSInput input)
 
     float3 normal = normalize(input.normal);
 
-    float2 velocity = float2(((input.position_ndc.xy / input.position_ndc.w) * 0.5 + 0.5) - ((input.previous_position_ndc.xy / input.previous_position_ndc.w) * 0.5 + 0.5));
+    // uv y runs opposite to ndc y, and consumers reproject with uv - velocity
+    float2 velocity = ((input.position_ndc.xy / input.position_ndc.w) - (input.previous_position_ndc.xy / input.previous_position_ndc.w)) * float2(0.5, -0.5);
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = 0.0;

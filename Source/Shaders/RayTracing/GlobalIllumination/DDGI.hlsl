@@ -183,7 +183,7 @@ void RayGenMain()
                         float LdotH = max(dot(L, H), 0.0);
                         float NdotV = max(dot(N, -localDirection), 0.0);
 
-                        radiance += light_color * shadow * NdotL * diffuseColor * light.position_intensity.w;
+                        radiance += light_color * shadow * NdotL * diffuseColor * HYP_FMATH_ONE_OVER_PI * light.position_intensity.w;
                     }
                 }
             }
@@ -199,14 +199,15 @@ void RayGenMain()
 
                 if (shadow > 0.0 && NdotL > 0.0)
                 {
-                    float attenuation = 1.0 / d2;
+                    const float radius = f16tof32(light.radiusFalloffPacked);
+                    float attenuation = GetSquareFalloffAttenuation(hitPos, light.position_intensity.xyz, radius);
 
                     float3 H = normalize(-localDirection + L);
                     float NdotH = max(dot(N, H), 0.0);
                     float LdotH = max(dot(L, H), 0.0);
                     float NdotV = max(dot(N, -localDirection), 0.0);
 
-                    radiance += light_color * attenuation * shadow * NdotL * diffuseColor * light.position_intensity.w;
+                    radiance += light_color * attenuation * shadow * NdotL * diffuseColor * HYP_FMATH_ONE_OVER_PI * light.position_intensity.w;
                 }
             }
         }

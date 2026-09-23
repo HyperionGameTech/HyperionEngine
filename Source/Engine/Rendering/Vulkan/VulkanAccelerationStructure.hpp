@@ -163,7 +163,7 @@ public:
     {
         if (m_transform == transform)
         {
-            // same transforms, don't set the flag
+            // same transforms, don't bump the version
             return;
         }
 
@@ -171,12 +171,18 @@ public:
         SetTransformUpdateFlag();
     }
 
+    // bumped on transform/material changes; each TLAS holding this compares against the version it last consumed
+    HYP_FORCE_INLINE uint32 GetUpdateVersion() const
+    {
+        return m_updateVersion;
+    }
+
 protected:
     void SetDebugName(Name name);
 
     HYP_FORCE_INLINE void SetTransformUpdateFlag()
     {
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
+        ++m_updateVersion;
     }
 
     HYP_FORCE_INLINE void SetNeedsRebuildFlag()
@@ -200,6 +206,7 @@ protected:
     VkAccelerationStructureKHR m_accelerationStructure;
     uint64 m_deviceAddress;
     AccelerationStructureFlags m_flags;
+    uint32 m_updateVersion;
 
     Name m_debugName;
 };
@@ -247,7 +254,7 @@ public:
             return;
         }
 
-        m_flags |= ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE;
+        ++m_updateVersion;
     }
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
@@ -310,6 +317,8 @@ private:
 
     Array<VulkanBottomLevelAS*, VulkanAllocator> m_blases;
     Array<uint64, VulkanAllocator> m_keys;
+    // parallel to m_blases: the BLAS update version last written into this TLAS
+    Array<uint32, VulkanAllocator> m_blasUpdateVersions;
 
     FlatMap<uint64, Pair<VulkanBottomLevelAS*, uint32>, VulkanAllocator> m_keyToBlasAndStorageId;
 

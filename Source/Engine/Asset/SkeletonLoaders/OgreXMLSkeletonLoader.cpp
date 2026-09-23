@@ -213,6 +213,13 @@ public:
 
     virtual void End(const String& name) override
     {
+        if (m_elementTags.Empty())
+        {
+            HYP_LOG(Assets, Warning, "Ogre XML skeleton loader: Unmatched closing tag '{}'", name);
+
+            return;
+        }
+
         m_elementTags.Pop();
     }
 

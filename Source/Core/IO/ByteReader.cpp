@@ -20,7 +20,13 @@ size_t MemoryByteReader::Read(void* ptr, size_t size)
         return 0;
     }
 
-    size_t toRead = MathUtil::Min(m_byteView.Size() - m_pos, size);
+    const size_t remaining = m_byteView.Size() > m_pos ? (m_byteView.Size() - m_pos) : 0;
+    const size_t toRead = MathUtil::Min(remaining, size);
+
+    if (toRead == 0)
+    {
+        return 0;
+    }
 
     Memory::Copy(ptr, m_byteView.Data() + m_pos, toRead);
     m_pos += toRead;
@@ -35,10 +41,18 @@ ByteBuffer MemoryByteReader::Read(size_t size)
         return ByteBuffer();
     }
 
-    const size_t previousOffset = m_pos;
-    m_pos += size;
+    const size_t remaining = m_byteView.Size() > m_pos ? (m_byteView.Size() - m_pos) : 0;
+    const size_t toRead = MathUtil::Min(remaining, size);
 
-    return ByteBuffer(size, m_byteView.Data() + previousOffset);
+    if (toRead == 0)
+    {
+        return ByteBuffer();
+    }
+
+    const size_t previousOffset = m_pos;
+    m_pos += toRead;
+
+    return ByteBuffer(toRead, m_byteView.Data() + previousOffset);
 }
 
 void MemoryByteReader::Close()

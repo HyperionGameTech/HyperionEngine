@@ -131,6 +131,11 @@ extern "C"
         DotNETHost::GetInstance().GetGlobalFunctions().removeObjectFromCacheFptr = removeObjectFromCacheFptr;
     }
 
+    HYP_EXPORT void NativeInterop_SetFreeObjectReferenceFunction(FreeObjectReferenceFunction freeObjectReferenceFptr)
+    {
+        DotNETHost::GetInstance().GetGlobalFunctions().freeObjectReferenceFptr = freeObjectReferenceFptr;
+    }
+
     HYP_EXPORT void NativeInterop_SetQueryManagedObjectCountsFunction(QueryManagedObjectCountsFunction queryManagedObjectCountsFptr)
     {
         DotNETHost::GetInstance().GetGlobalFunctions().queryManagedObjectCountsFptr = queryManagedObjectCountsFptr;
@@ -183,7 +188,7 @@ extern "C"
         memory::detail::ReleaseStrong(assemblyWeak.GetBlock_Internal()); // release the strong reference created by NewAssembly
     }
 
-    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* pAssembly, const Class* cls, int32 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
+    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assemblyGuid, Assembly* pAssembly, const Class* cls, int64 typeHash, const char* typeName, uint32 typeSize, TypeId typeId, ManagedClass* parentClass, uint32 flags, ManagedClassDesc* outDesc)
     {
 #ifdef HYP_DOTNET
         Assert(assemblyGuid != nullptr);
@@ -219,7 +224,7 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly* pAssembly, int32 typeHash, ManagedClass** outClass)
+    HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly* pAssembly, int64 typeHash, ManagedClass** outClass)
     {
         Assert(pAssembly != nullptr);
 

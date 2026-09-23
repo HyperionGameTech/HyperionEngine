@@ -60,19 +60,18 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
 
         if (moveFn != nullptr)
         {
+            // moveFn hands deleteFn over itself
             moveFn(&other, this);
         }
         else
         {
             ptr = other.ptr;
+            deleteFn = other.deleteFn;
         }
 
         invokeFn = other.invokeFn;
         other.invokeFn = nullptr;
-        
-        deleteFn = other.deleteFn;
         other.deleteFn = nullptr;
-
         other.ptr = nullptr;
     }
 
@@ -100,14 +99,12 @@ struct Proc_Impl<ReturnType(Args...), MemoryType>
         else
         {
             ptr = other.ptr;
+            deleteFn = other.deleteFn;
         }
 
         invokeFn = other.invokeFn;
         other.invokeFn = nullptr;
-        
-        deleteFn = other.deleteFn;
         other.deleteFn = nullptr;
-
         other.ptr = nullptr;
 
         return *this;

@@ -76,6 +76,12 @@ public:
         return m_frameCompleteValue;
     }
 
+    // called when the frame's submit failed, so the next wait on this frame doesn't block on a value that never gets signaled
+    HYP_FORCE_INLINE void ClearFrameCompleteValue()
+    {
+        m_frameCompleteValue = 0;
+    }
+
     VulkanSemaphore* GetImageAvailableSemaphore(const VulkanSwapchain* swapchain, bool createIfNotExist = true);
 
     void RecreateFence();

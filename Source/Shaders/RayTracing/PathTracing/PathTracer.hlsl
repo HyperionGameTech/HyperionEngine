@@ -301,10 +301,8 @@ void RayGenMain()
 
             float3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
 
-            if (bounceIndex > 0)
-            {
-                radiance += beta * EvaluateDirectLighting(hitPos, N, -direction, hitAlbedo, hitRoughness, hitMetalness);
-            }
+            // primary surface direct light is added outside the loop, every traced hit is a secondary surface
+            radiance += beta * EvaluateDirectLighting(hitPos, N, -direction, hitAlbedo, hitRoughness, hitMetalness);
 
             // RR
             if (bounceIndex >= 2)

@@ -311,21 +311,30 @@ const ThreadId& CurrentThreadId()
     if (!t_currentThreadId.IsValid())
     {
 #if HYP_WINDOWS
-        PWCHAR threadName[256];
-        HRESULT result = GetThreadDescription(GetCurrentThread(), &threadName[0]);
+        PWSTR threadName = nullptr;
+        const HRESULT result = GetThreadDescription(GetCurrentThread(), &threadName);
 
-        char threadNameMb[256];
-        WideCharToMultiByte(
-            CP_ACP,
-            0,
-            threadName[0],
-            -1,
-            threadNameMb,
-            sizeof(threadNameMb),
-            nullptr,
-            nullptr);
+        char threadNameMb[256] = {};
+        bool hasThreadName = false;
 
-        if (SUCCEEDED(result))
+        if (SUCCEEDED(result) && threadName != nullptr)
+        {
+            const int numConverted = WideCharToMultiByte(
+                CP_ACP,
+                0,
+                threadName,
+                -1,
+                threadNameMb,
+                sizeof(threadNameMb),
+                nullptr,
+                nullptr);
+
+            hasThreadName = numConverted > 0;
+
+            LocalFree(threadName);
+        }
+
+        if (hasThreadName)
         {
             t_currentThreadId = ThreadId(Name(&threadNameMb[0]), /* forceUnique */ true);
         }

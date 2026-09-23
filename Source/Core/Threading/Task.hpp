@@ -292,7 +292,15 @@ public:
 
     virtual bool IsCompleted() const override final
     {
-        return m_notifier.IsInSignalState();
+        if (!m_notifier.IsInSignalState())
+        {
+            return false;
+        }
+
+        // the completing thread may still be inside the notifier's Release() - wait it out so callers can delete us
+        m_notifier.Synchronize();
+
+        return true;
     }
 
     virtual void Execute() = 0;

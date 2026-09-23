@@ -143,7 +143,8 @@ RendererResult DX12AccelerationGeometry::Create()
 
 DX12ASBase::DX12ASBase(const Mat4f& transform)
     : m_transform(transform),
-      m_flags(ACCELERATION_STRUCTURE_FLAGS_NONE)
+      m_flags(ACCELERATION_STRUCTURE_FLAGS_NONE),
+      m_updateVersion(0)
 {
 }
 
@@ -229,27 +230,14 @@ void DX12BottomLevelAS::SetMaterialBinding(uint32 materialBinding)
         return;
     }
 
-    m_flags |= ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE;
+    ++m_updateVersion;
 }
 
 RendererResult DX12BottomLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE)
-    {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MATERIAL;
-
-        ClearFlag(ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
-    }
-
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE)
-    {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM;
-
-        ClearFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
-    }
-
+    // transform/material changes are tracked via m_updateVersion, compared per TLAS
     if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING)
     {
         return Rebuild(outUpdateStateFlags);
@@ -445,6 +433,7 @@ void DX12TopLevelAS::AddBLAS(uint64 key, DX12BottomLevelAS* blas)
 
     m_blases.PushBack(blas);
     m_keys.PushBack(key);
+    m_blasUpdateVersions.PushBack(blas->GetUpdateVersion());
 
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
@@ -468,8 +457,9 @@ bool DX12TopLevelAS::RemoveBLAS(uint64 key)
 
     blas->Release();
 
-    auto keysIt = m_keys.Begin() + std::distance(m_blases.Begin(), blasesIt);
-    m_keys.Erase(keysIt);
+    const auto blasIndex = std::distance(m_blases.Begin(), blasesIt);
+    m_keys.Erase(m_keys.Begin() + blasIndex);
+    m_blasUpdateVersions.Erase(m_blasUpdateVersions.Begin() + blasIndex);
 
     m_blases.Erase(blasesIt);
 
@@ -590,7 +580,8 @@ RendererResult DX12TopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStat
         RTUpdateStateFlags blasUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
         CheckResultOrReturn(blas->UpdateStructure(blasUpdateStateFlags));
 
-        if (blasUpdateStateFlags)
+        // BLASes are shared between the per-frame TLASes, so compare versions instead of consuming a flag
+        if (blasUpdateStateFlags || blas->GetUpdateVersion() != m_blasUpdateVersions[i])
         {
             dirtyRange |= Range { i, i + 1 };
         }
@@ -598,6 +589,7 @@ RendererResult DX12TopLevelAS::UpdateStructure(RTUpdateStateFlags& outUpdateStat
 
     if (dirtyRange)
     {
+        // updates m_blasUpdateVersions for the dirty range
         CheckResultOrReturn(BuildInstancesBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
         CheckResultOrReturn(BuildMeshDescriptionsBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
 
@@ -798,11 +790,14 @@ RendererResult DX12TopLevelAS::BuildInstancesBuffer(uint32 first, uint32 last)
         desc = {};
         desc.InstanceMask = 0xFFu;
         desc.InstanceID = i;
-        desc.InstanceContributionToHitGroupIndex = blas->GetMaterialBinding();
+        desc.InstanceContributionToHitGroupIndex = 0;
         desc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
         StoreDX12Transform(blas->GetTransform(), desc.Transform);
 
         desc.AccelerationStructure = blas->GetBuffer()->GetResource()->GetGPUVirtualAddress();
+
+        // mesh descriptions (material binding) are always rebuilt over the same range alongside this
+        m_blasUpdateVersions[i] = blas->GetUpdateVersion();
     }
 
     Assert(m_instancesBuffer != nullptr);

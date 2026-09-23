@@ -558,17 +558,19 @@ void BakerBase::Update(float delta)
         return;
     }
 
-    if (PerformsRayTracing())
+    // count for every baker type, the completed-job decrement below relies on it
+    for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
     {
-        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
-        {
-            BakeJobBase* job = it->Get();
+        BakeJobBase* job = it->Get();
 
-            if (job->IsRunning() || job->IsCompleted())
+        if (job->IsRunning() || job->IsCompleted())
+        {
+            if (PerformsRayTracing())
             {
                 currentGpuMemUsageMB += gpuMemUsagePerJobMB;
-                numRunningJobs++;
             }
+
+            numRunningJobs++;
         }
     }
 
@@ -591,7 +593,8 @@ void BakerBase::Update(float delta)
 
             it = m_queue.Erase(it);
 
-            --numRunningJobs;
+            AssertDebug(numRunningJobs > 0);
+            numRunningJobs = numRunningJobs > 0 ? numRunningJobs - 1 : 0;
 
             if (m_queue.Empty())
             {
@@ -652,6 +655,12 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
         --m_numJobs;
     });
 
+    // failed jobs still own per-job GPU buffers; cleanup is deferred to the render thread so order doesn't matter
+    for (UniquePtr<PathTracer>& pathTracer : m_pathTracers)
+    {
+        pathTracer->CleanJobData(job);
+    }
+
     if (job->GetResult().HasError())
     {
         HYP_LOG(Lightmap, Error, "Lightmap job {} failed with error: {}", job->GetUUID(), job->GetResult().GetError().GetMessage());
@@ -660,11 +669,6 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
     }
 
     HandleCompletedJob_Internal(job);
-
-    for (UniquePtr<PathTracer>& pathTracer : m_pathTracers)
-    {
-        pathTracer->CleanJobData(job);
-    }
 
     const double progressPercent = double(m_initialNumJobs - m_numJobs) / double(m_initialNumJobs) * 100.0;
     const int percentage = MathUtil::Floor(progressPercent);

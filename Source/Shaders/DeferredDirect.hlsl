@@ -472,13 +472,15 @@ PSOutput PSMain(PSInput input)
 
     const float3 pts[4] = { p0, p1, p2, p3 };
 
-    float4 area_light_diffuse = CalculateAreaLightRadiance(currentLight, (float3x3)1.0, pts, position.xyz, N, V);
-    area_light_diffuse *= diffuseColor * (1.0 / HYP_FMATH_PI);
+    // LTC form factor already includes the 1/pi of the cosine lobe
+    float4 area_light_diffuse = CalculateAreaLightRadiance(currentLight, float3x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0), pts, position.xyz, N, V);
+    area_light_diffuse *= diffuseColor;
 
     float4 area_light_specular = CalculateAreaLightRadiance(currentLight, Minv, pts, position.xyz, N, V);
 
-    area_light_specular *= diffuseColor * t2.x + (float4(1.0, 1.0, 1.0, 1.0) - diffuseColor) * t2.y;
+    area_light_specular *= F0 * t2.x + (float4(1.0, 1.0, 1.0, 1.0) - F0) * t2.y;
     area_light_radiance = area_light_specular + area_light_diffuse;
+    area_light_radiance.rgb *= currentLight.color.rgb * currentLight.position_intensity.w;
 
     const float NdotL = 0.0;
     const float LdotH = 0.0;
@@ -517,33 +519,32 @@ PSOutput PSMain(PSInput input)
         float4 maxDist = max(distX, max(distY, distZ));
         
         float4 insideMask = step(maxDist, (float4)0.5);
-
-        // Pick the tightest (smallest-index) cascade that actually contains the
-        // point. Cascade AABBs are fit independently per sub-frustum and are not
-        // guaranteed to nest strictly inside one another, so counting set bits
-        // (old approach) could select a cascade whose insideMask bit was false,
-        // pulling an out-of-[0,1] extrapolated UV and producing a seam at splits.
-        int cascadeIndex = 3;
-        cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
-        cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
-        cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
-
-        int nextCascadeIndex = 4;
-        nextCascadeIndex = (insideMask.w > 0.5 && cascadeIndex < 3) ? 3 : nextCascadeIndex;
-        nextCascadeIndex = (insideMask.z > 0.5 && cascadeIndex < 2) ? 2 : nextCascadeIndex;
-        nextCascadeIndex = (insideMask.y > 0.5 && cascadeIndex < 1) ? 1 : nextCascadeIndex;
-
-        shadow = GetCascadeShadow(cascadeIndex, position.xyz, N, texcoord, NdotL);
-
-        // bias, normal offset and PCF footprint all scale with cascade width, so fade into the next cascade before the split
-        // rather than stepping at it (most visible on large receivers like terrain)
-        const float cascadeEdgeDistance = 0.5 - maxDist[cascadeIndex];
-        const float nextCascadeWeight = 1.0 - saturate(cascadeEdgeDistance / HYP_SHADOW_CASCADE_BLEND_SIZE);
-
+    
         [branch]
-        if (nextCascadeIndex < 4 && nextCascadeWeight > 0.0)
+        if (dot(insideMask, (float4)1.0) > 0.5)
         {
-            shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, position.xyz, N, texcoord, NdotL), nextCascadeWeight);
+            int cascadeIndex = 3;
+            cascadeIndex = (insideMask.z > 0.5) ? 2 : cascadeIndex;
+            cascadeIndex = (insideMask.y > 0.5) ? 1 : cascadeIndex;
+            cascadeIndex = (insideMask.x > 0.5) ? 0 : cascadeIndex;
+
+            int nextCascadeIndex = 4;
+            nextCascadeIndex = (insideMask.w > 0.5 && cascadeIndex < 3) ? 3 : nextCascadeIndex;
+            nextCascadeIndex = (insideMask.z > 0.5 && cascadeIndex < 2) ? 2 : nextCascadeIndex;
+            nextCascadeIndex = (insideMask.y > 0.5 && cascadeIndex < 1) ? 1 : nextCascadeIndex;
+
+            shadow = GetCascadeShadow(cascadeIndex, position.xyz, N, texcoord, NdotL);
+
+            // bias, normal offset and PCF footprint all scale with cascade width, so fade into the next cascade before the split
+            // rather than stepping at it (most visible on large receivers like terrain)
+            const float cascadeEdgeDistance = 0.5 - maxDist[cascadeIndex];
+            const float nextCascadeWeight = 1.0 - saturate(cascadeEdgeDistance / HYP_SHADOW_CASCADE_BLEND_SIZE);
+
+            [branch]
+            if (nextCascadeIndex < 4 && nextCascadeWeight > 0.0)
+            {
+                shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, position.xyz, N, texcoord, NdotL), nextCascadeWeight);
+            }
         }
     }
     

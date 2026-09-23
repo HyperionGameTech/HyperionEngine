@@ -66,6 +66,10 @@ void CommandRecorderAllocator::Flush(bool isShuttingDown)
 
     rootPreRender.Submit();
     root.Submit();
+
+    // Submit() leaves the recorder non-writable
+    rootPreRender.Reset(/* freeMemory */ false);
+    root.Reset(/* freeMemory */ false);
 }
 
 void CommandRecorderAllocator::UpdateQueue()

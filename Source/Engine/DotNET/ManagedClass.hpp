@@ -50,7 +50,7 @@ class Assembly;
 
 struct ManagedClassDesc
 {
-    int32 typeHash;
+    int64 typeHash;
     ManagedClass* pClass;
     ManagedGuid assemblyGuid;
     ManagedGuid newObjectGuid;

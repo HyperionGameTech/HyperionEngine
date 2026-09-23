@@ -184,7 +184,10 @@ RendererResult DX12Framebuffer::Create()
                 HYP_UNREACHABLE();
             }
 
-            dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+            // stencil-only: depth stays readable as an SRV while bound
+            dsvDesc.Flags = attachment->GetAttachmentDesc().onlyStencil
+                ? D3D12_DSV_FLAG_READ_ONLY_DEPTH
+                : D3D12_DSV_FLAG_NONE;
 
             device->CreateDepthStencilView(image->GetResource(), &dsvDesc, m_dsvDescriptorHandle.cpuHandle);
         }
@@ -305,6 +308,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
     bool hasDSV = false;
     LoadOperation depthLoadOp = LoadOperation::Undefined;
+    D3D12_CLEAR_FLAGS depthClearFlags = D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL;
 
     uint32 colorAttachmentIndex = 0;
     for (auto& it : m_attachmentMap)
@@ -318,6 +322,12 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
             dsvHandle = m_dsvDescriptorHandle.cpuHandle;
             hasDSV = true;
             depthLoadOp = attachment->GetLoadOperation();
+
+            // read-only depth DSV, depth can't be cleared through it
+            if (attachmentDesc.onlyStencil)
+            {
+                depthClearFlags = D3D12_CLEAR_FLAG_STENCIL;
+            }
         }
         else
         {
@@ -397,7 +407,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
 
         if (hasDSV && depthLoadOp == LoadOperation::Clear)
         {
-            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+            commandList->ClearDepthStencilView(dsvHandle, depthClearFlags, 1.0f, 0, 0, nullptr);
         }
     }
     else if (hasDSV)
@@ -407,7 +417,7 @@ void DX12Framebuffer::BeginCapture(DX12CommandBuffer* commandBuffer)
 
         if (depthLoadOp == LoadOperation::Clear)
         {
-            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+            commandList->ClearDepthStencilView(dsvHandle, depthClearFlags, 1.0f, 0, 0, nullptr);
         }
     }
     else if (m_rtvDescriptorHandle.IsValid() && m_attachmentMap.Size() == 0)
@@ -526,13 +536,21 @@ void DX12Framebuffer::Clear(
     for (const auto& it : m_attachmentMap)
     {
         const uint32 binding = it.first;
+        DX12Attachment* attachment = it.second;
+
+        // RTV slots are laid out for every color attachment, masked or not
+        const uint32 rtvSlot = colorAttachmentIndex;
+
+        if (attachment != nullptr && !attachment->IsDepthAttachment())
+        {
+            colorAttachmentIndex++;
+        }
 
         if (attachmentsMask != uint8(-1) && !(attachmentsMask & (1u << binding)))
         {
             continue;
         }
 
-        DX12Attachment* attachment = it.second;
         Assert(attachment != nullptr && attachment->IsCreated());
 
         DX12GpuImage* image = attachment->GetGpuImage();
@@ -544,13 +562,18 @@ void DX12Framebuffer::Clear(
             clearValue.DepthStencil.Depth = 1.0f;
             clearValue.DepthStencil.Stencil = 0;
 
+            // read-only depth DSV, depth can't be cleared through it
+            const D3D12_CLEAR_FLAGS clearFlags = attachment->GetAttachmentDesc().onlyStencil
+                ? D3D12_CLEAR_FLAG_STENCIL
+                : D3D12_CLEAR_FLAG_DEPTH;
+
             D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_dsvDescriptorHandle.cpuHandle;
-            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, numRects, rects);
+            commandList->ClearDepthStencilView(dsvHandle, clearFlags, 1.0f, 0, numRects, rects);
         }
         else
         {
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
-            rtvHandle.ptr += colorAttachmentIndex * rtvIncrement;
+            rtvHandle.ptr += rtvSlot * rtvIncrement;
 
             Vec4f clearColor = attachment->GetClearColor();
 
@@ -562,8 +585,6 @@ void DX12Framebuffer::Clear(
             clearValue.Color[3] = clearColor.w;
 
             commandList->ClearRenderTargetView(rtvHandle, clearColor.values, numRects, rects);
-
-            colorAttachmentIndex++;
         }
     }
 }
