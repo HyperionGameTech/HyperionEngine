@@ -222,7 +222,12 @@ void ConvolveEnvProbeCubemap(const Handle<Texture>& inTexture, const Handle<Text
 
     GpuImageViewRef srcImageView = RI.textureViewCache->GetOrCreate(srcTexture);
 
-    for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
+    const uint8 numMipsToConvolve = uint8(MathUtil::Min(
+        uint32(numMips),
+        uint32(bakedTexture->GetTextureDesc().NumMips()),
+        uint32(dstTexture->GetTextureDesc().NumMips())));
+
+    for (uint8 mipIndex = 0; mipIndex < numMipsToConvolve; mipIndex++)
     {
         const float roughness = float(mipIndex) / float(numMips - 1);
 
@@ -1290,9 +1295,13 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
             RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(renderSetup.light));
             AssertDebug(lightProxy != nullptr);
 
-#if HYP_DEBUG_MODE
-            AssertDebug(Resources::GetBinding(renderSetup.light) != ~0u);
-#endif
+            // an unbound sun would be read through a bogus CurrentLight offset; retry once it's bound, same as having no sun
+            if (!lightProxy || Resources::GetBinding(renderSetup.light) == ~0u)
+            {
+                pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
+
+                return;
+            }
 
             if (lightProxy->bufferData.positionIntensity != pd->cachedLightDirIntensity)
             {

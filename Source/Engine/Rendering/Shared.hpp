@@ -1356,6 +1356,15 @@ struct DescriptorSetOffsetMap
 
     HYP_FORCE_INLINE void Add(StringHash key, uint32 value)
     {
+        for (uint32 existingIndex = 0; existingIndex < count; existingIndex++)
+        {
+            if (keys[existingIndex] == key)
+            {
+                values[existingIndex] = value;
+                return;
+            }
+        }
+
         uint32 idx = count++;
         AssertDebug(idx < MaxOffsets, "too many offsets!");
 
