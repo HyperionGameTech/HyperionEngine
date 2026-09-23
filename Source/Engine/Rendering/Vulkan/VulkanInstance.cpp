@@ -103,23 +103,18 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         }
     }
 
-    if (validDevices.Any())
+    if (validDevices.Any() && cfgSelectedGpuIndex.IsNumber())
     {
-        if (cfgSelectedGpuIndex.IsNumber() && cfgSelectedGpuIndex.AsNumber() >= double(validDevices.Size()))
+        const double configuredIndex = cfgSelectedGpuIndex.AsNumber();
+
+        if (!(configuredIndex >= 0.0 && configuredIndex < double(validDevices.Size())))
         {
-            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid device(s); resetting to 0",
-                cfgSelectedGpuIndex.ToUInt32(), validDevices.Size());
-
-            cfg.Set("System.SelectedGpu.Index", JSON::Number(0));
-
-            if (!cfg.Save())
-            {
-                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
-            }
+            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid device(s); falling back to automatic selection",
+                configuredIndex, validDevices.Size());
         }
-        else if (cfgSelectedGpuIndex.IsNumber())
+        else
         {
-            const uint32 selectedIndex = cfgSelectedGpuIndex.ToUInt32();
+            const uint32 selectedIndex = uint32(configuredIndex);
 
             deviceFeatures.SetPhysicalDevice(validDevices[selectedIndex]);
 

@@ -306,21 +306,16 @@ RendererResult DX12RenderInterface::Initialize()
 
     if (cfgSelectedGpuIndex.IsNumber())
     {
-        targetGpuIndex = cfgSelectedGpuIndex.ToInt32();
+        const double configuredIndex = cfgSelectedGpuIndex.AsNumber();
 
-        if (targetGpuIndex < 0 || uint32(targetGpuIndex) >= uint32(candidates.Size()))
+        if (!(configuredIndex >= 0.0 && configuredIndex < double(candidates.Size())))
         {
-            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid adapter(s); resetting to 0",
-                targetGpuIndex, candidates.Size());
-
-            targetGpuIndex = -1;
-
-            cfg.Set("System.SelectedGpu.Index", JSON::Number(0));
-
-            if (!cfg.Save())
-            {
-                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
-            }
+            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid adapter(s); falling back to automatic selection",
+                configuredIndex, candidates.Size());
+        }
+        else
+        {
+            targetGpuIndex = int(configuredIndex);
         }
     }
 
@@ -332,14 +327,18 @@ RendererResult DX12RenderInterface::Initialize()
     }
     else
     {
-        std::sort(candidates.Begin(), candidates.End(), [](const AdapterCandidate& a, const AdapterCandidate& b)
-            {
-                return a.score > b.score;
-            });
-
+        // pick the best candidate without reordering, so the saved index matches enumeration order on the next launch
         selectedIndex = 0;
 
-        cfg.Set("System.SelectedGpu.Index", JSON::Number(0));
+        for (UINT candidateIndex = 1; candidateIndex < UINT(candidates.Size()); candidateIndex++)
+        {
+            if (candidates[candidateIndex].score > candidates[selectedIndex].score)
+            {
+                selectedIndex = candidateIndex;
+            }
+        }
+
+        cfg.Set("System.SelectedGpu.Index", JSON::Number(selectedIndex));
 
         if (!cfg.Save())
         {
