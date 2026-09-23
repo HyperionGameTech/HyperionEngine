@@ -353,7 +353,8 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                 if (shaderInput->category == ShaderResourceCategory::Buffer)
                 {
-                    AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>(), "Invalid buffer descriptor: {}", name);
+                    Assert(ptr != nullptr, "Buffer never bound for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                    AssertDebug(ptr->IsA<DX12GpuBuffer>(), "Invalid buffer descriptor: {}", name);
                     AssertDebug(StaticCast<DX12GpuBuffer>(ptr)->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();

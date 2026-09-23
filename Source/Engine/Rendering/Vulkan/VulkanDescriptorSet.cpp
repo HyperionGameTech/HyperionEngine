@@ -273,8 +273,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(ptr, "Invalid buffer descriptor: {}, current shader: {}",
-                            name, RI.state.boundShaderDesc.name);
+                Assert(ptr != nullptr, "Descriptor never bound for descriptor set element: {}.{}[{}], current shader: {}",
+                       m_layout.GetName(), name, index, RI.state.boundShaderDesc.name);
 
                 if (isBufferBinding)
                 {

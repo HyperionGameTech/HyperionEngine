@@ -412,6 +412,11 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         ShaderPropertySet shaderProperties;
         DeferredRendererHelpers::GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
 
+        if (!dpd->ddgi)
+        {
+            shaderProperties.Set(s_propRayTracingGlobalIllumination, false);
+        }
+
         cr << SetCurrentShader(ShaderDesc(NAME("DeferredIndirect"), shaderProperties));
 
         cr << CommitDrawState();
