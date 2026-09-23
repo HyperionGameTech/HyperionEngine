@@ -316,7 +316,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         if (cachedElementValues.Size() != element.values.Size())
         {
-            cachedElementValues.ResizeZeroed(element.values.Size());
+            cachedElementValues.Resize(element.values.Size());
         }
     }
 
@@ -349,56 +349,36 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
         {
             for (uint32 index : element.occupiedArrayElems)
             {
-                ObjectBase* ptr = element.values[index];
+                [[maybe_unused]] ObjectBase* ptr = element.values[index];
 
                 if (shaderInput->category == ShaderResourceCategory::Buffer)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>(), "Invalid buffer descriptor: {}", name);
-
-                    DX12GpuBuffer* ref = StaticCast<DX12GpuBuffer>(ptr);
-                    AssertDebug(ref != nullptr);
+                    AssertDebug(StaticCast<DX12GpuBuffer>(ptr)->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                    Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
                     descriptor.binding = shaderInput->binding;
                     descriptor.index = index;
                     descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-                    AssertDebug(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
-
-                    descriptor.objectPtr = ref;
                 }
                 else if (shaderInput->category == ShaderResourceCategory::Image)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12GpuImageView>(), "Invalid image descriptor: {}", name);
-
-                    DX12GpuImageView* ref = StaticCast<DX12GpuImageView>(ptr);
-                    AssertDebug(ref != nullptr);
+                    AssertDebug(StaticCast<DX12GpuImageView>(ptr)->IsCreated(), "Image view not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                    Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
                     descriptor.binding = shaderInput->binding;
                     descriptor.index = index;
                     descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-                    AssertDebug(ref->IsCreated(), "Image view not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
-
-                    descriptor.objectPtr = ref;
                 }
                 else if (shaderInput->category == ShaderResourceCategory::AccelerationStructure)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12TopLevelAS>(), "Invalid TLAS descriptor: {}", name);
 
-                    DX12TopLevelAS* ref = StaticCast<DX12TopLevelAS>(ptr);
-                    AssertDebug(ref != nullptr);
-
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                    Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
                     descriptor.binding = shaderInput->binding;
                     descriptor.index = index;
                     descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-                    descriptor.objectPtr = ref;
                 }
                 else
                 {
@@ -412,22 +392,15 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
         {
             for (uint32 index : element.occupiedArrayElems)
             {
-                ObjectBase* ptr = element.values[index];
+                [[maybe_unused]] ObjectBase* ptr = element.values[index];
 
                 AssertDebug(ptr && ptr->IsA<DX12Sampler>(), "Invalid sampler descriptor: {}", name);
-
-                DX12Sampler* ref = StaticCast<DX12Sampler>(ptr);
-                AssertDebug(ref != nullptr);
+                AssertDebug(StaticCast<DX12Sampler>(ptr)->IsCreated(), "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::Fill(&descriptor, 0, sizeof(DX12CachedDescriptor));
                 descriptor.binding = shaderInput->binding;
                 descriptor.index = index;
                 descriptor.heapType = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-
-                AssertDebug(ref->IsCreated(), "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
-
-                descriptor.objectPtr = ref;
             }
 
             break;
@@ -440,7 +413,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         for (size_t i = 0; i < localDescriptors.Size(); i++)
         {
-            if (localDescriptors[i] != cachedValues[i])
+            if (!cachedValues[i].Matches(localDescriptors[i], element.values[localDescriptors[i].index]))
             {
                 localDirtyRange |= { uint32(i), uint32(i + 1) };
             }
@@ -451,7 +424,13 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
             AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
             AssertDebug(localDirtyRange.GetEnd() <= localDescriptors.Size());
 
-            Memory::Copy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(DX12CachedDescriptor) * size_t(localDirtyRange.Distance()));
+            for (uint32 i = localDirtyRange.GetStart(); i < localDirtyRange.GetEnd(); i++)
+            {
+                cachedValues[i].binding = localDescriptors[i].binding;
+                cachedValues[i].heapType = localDescriptors[i].heapType;
+                cachedValues[i].index = localDescriptors[i].index;
+                cachedValues[i].object = MakeWeakRef(element.values[localDescriptors[i].index]);
+            }
 
             // mark the element as dirty
             element.dirtyRange |= localDirtyRange;

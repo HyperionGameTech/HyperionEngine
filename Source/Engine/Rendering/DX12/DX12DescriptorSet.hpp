@@ -17,6 +17,7 @@
 #include <Core/Name/Name.hpp>
 #include <Core/Utilities/Optional.hpp>
 #include <Core/Containers/ArrayMap.hpp>
+#include <Core/Reflection/Handle.hpp>
 #include <Core/Defines.hpp>
 
 #include <Rendering/RenderTypes.hpp>
@@ -27,31 +28,21 @@ namespace Hyperion {
 
 struct DX12CachedDescriptor
 {
-    uint32 binding;
-    uint32 index;
-    D3D12_DESCRIPTOR_HEAP_TYPE heapType;
+    ////////////////////
+    uint32 binding = 0;
+    uint32 index = 0;
+    D3D12_DESCRIPTOR_HEAP_TYPE heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    ////////////////////
 
-    union
+    // DX12Image, DX12Buffer, or DX12TopLevelAS
+    WeakHandle<ObjectBase> object;
+
+    HYP_FORCE_INLINE bool Matches(const DX12CachedDescriptor& other, const ObjectBase* otherObject) const
     {
-        ObjectBase* objectPtr;
-        uint64 deviceAddress;
-    };
-
-    bool operator==(const DX12CachedDescriptor& other) const
-    {
-        if (binding != other.binding
-            || index != other.index
-            || heapType != other.heapType)
-        {
-            return false;
-        }
-
-        return objectPtr == other.objectPtr;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DX12CachedDescriptor& other) const
-    {
-        return !(*this == other);
+        return binding == other.binding
+            && index == other.index
+            && heapType == other.heapType
+            && object.GetUnsafe() == otherObject;
     }
 };
 
