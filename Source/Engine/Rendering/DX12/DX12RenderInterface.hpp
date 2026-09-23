@@ -151,7 +151,7 @@ public:
         const DX12GpuBuffer* indexBuffer,
         uint32 numIndices,
         uint32 instanceOffset,
-        Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer) override;
+        Array<IndirectDrawCommand, DX12Allocator>& outBuffer) override;
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;

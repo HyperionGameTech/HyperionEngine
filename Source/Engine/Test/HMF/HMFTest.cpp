@@ -295,6 +295,10 @@ bool ClassNameIs(const BoxedValue& value, const char* expected)
 
 } // anonymous namespace
 
+#ifdef HYP_MSVC
+#pragma optimize("", off)
+#endif
+
 HYP_EXPORT void RunHMFTest()
 {
 
@@ -2315,6 +2319,10 @@ CameraOrthoRect {
         HYP_LOG(Engine, Error, "!!! HMF TEST HAD FAILURES !!!");
     }
 }
+
+#ifdef HYP_MSVC
+#pragma optimize("", on)
+#endif
 
 } // namespace hmf
 } // namespace tests

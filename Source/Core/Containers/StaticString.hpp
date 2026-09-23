@@ -127,76 +127,70 @@ struct StaticString
     template <typename IntegerSequence, int Index = 0>
     constexpr size_t FindFirst() const
     {
-        constexpr auto thisSize = Sz - 1;                       // -1 to account for null terminator
-        constexpr auto otherSize = IntegerSequence::Size() - 1; // -1 to account for null terminator
+        constexpr size_t thisSize = Sz - 1;                       // -1 to account for null terminator
+        constexpr size_t otherSize = IntegerSequence::Size() - 1; // -1 to account for null terminator
 
         if constexpr (thisSize < otherSize)
         {
             return -1;
         }
-        else if constexpr (Index > thisSize - otherSize)
-        {
-            return -1;
-        }
         else
         {
-            bool found = true;
-
-            for (size_t j = 0; j < otherSize && j < thisSize; ++j)
+            for (size_t start = size_t(Index); start <= thisSize - otherSize; ++start)
             {
-                if (data[Index + j] != IntegerSequence {}.Data()[j])
+                bool found = true;
+
+                for (size_t j = 0; j < otherSize; ++j)
                 {
-                    found = false;
-                    break;
+                    if (data[start + j] != IntegerSequence::Data()[j])
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+
+                if (found)
+                {
+                    return start;
                 }
             }
 
-            if (found)
-            {
-                return Index;
-            }
-            else
-            {
-                return FindFirst<IntegerSequence, Index + 1>();
-            }
+            return -1;
         }
     }
 
     template <typename IntegerSequence, int Index = (int(Sz) - int(IntegerSequence::Size()))>
     constexpr size_t FindLast() const
     {
-        constexpr auto thisSize = Sz - 1;                       // -1 to account for null terminator
-        constexpr auto otherSize = IntegerSequence::Size() - 1; // -1 to account for null terminator
+        constexpr size_t thisSize = Sz - 1;                       // -1 to account for null terminator
+        constexpr size_t otherSize = IntegerSequence::Size() - 1; // -1 to account for null terminator
 
         if constexpr (thisSize < otherSize)
         {
             return -1;
         }
-        else if constexpr (Index < 0)
-        {
-            return -1;
-        }
         else
         {
-            bool found = true;
-
-            for (size_t j = 0; j < otherSize; ++j)
+            for (int start = Index; start >= 0; --start)
             {
-                if (data[Index + j] != IntegerSequence {}.Data()[j])
+                bool found = true;
+
+                for (size_t j = 0; j < otherSize; ++j)
                 {
-                    found = false;
-                    break;
+                    if (data[size_t(start) + j] != IntegerSequence::Data()[j])
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+
+                if (found)
+                {
+                    return size_t(start);
                 }
             }
 
-            if (found)
-            {
-                return Index;
-            }
-            else
-            {
-                return FindLast<IntegerSequence, Index - 1>();
-            }
+            return -1;
         }
     }
 
@@ -371,15 +365,6 @@ struct IntegerSequenceFromString
     using StaticStringType = decltype(StaticString);
     using CharType = typename StaticStringType::CharType;
 
-private:
-    constexpr static auto value = makeSeq<CharType>([]
-        {
-            return std::string_view { StaticString.data };
-        });
-
-public:
-    using Type = decltype(value);
-
     static constexpr const CharType* Data()
     {
         return &StaticString.data[0];
@@ -407,33 +392,15 @@ struct BasicStaticStringTransformer
 
 #pragma region Substr
 
-template <auto String, size_t Start, size_t End, bool PastEnd>
-struct Substr_Impl;
-
-template <auto String, size_t Start, size_t End>
-struct Substr_Impl<String, Start, End, false>
-{
-    template <size_t... Indices>
-    constexpr auto operator()(std::index_sequence<Indices...>) const
-    {
-        return StaticString { { String.data[Indices]..., '\0' } };
-    }
-};
-
-template <auto String, size_t Start, size_t End>
-struct Substr_Impl<String, Start, End, true>
-{
-    template <size_t... Indices>
-    constexpr auto operator()(std::index_sequence<Indices...>) const
-    {
-        return StaticString { { '\0' } };
-    }
-};
-
 template <auto String, size_t Start, size_t End>
 struct Substr
 {
-    static constexpr auto value = Substr_Impl<String, Start, End, Start >= (End >= String.size ? String.size - 1 : End)>()(containers::OffsetSequence<(End >= String.size ? String.size - 1 : End) - Start, Start>());
+    static constexpr size_t clampedEnd = End >= String.size ? String.size - 1 : End;
+    static constexpr size_t length = Start >= clampedEnd ? 0 : clampedEnd - Start;
+    static constexpr size_t begin = length != 0 ? Start : 0;
+
+    // copies with a loop rather than expanding a pack of every character
+    static constexpr auto value = StaticString<length + 1>(String.data + begin, String.data + begin + length);
 };
 
 /*template <auto String, size_t Start>

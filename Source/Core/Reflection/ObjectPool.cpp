@@ -298,6 +298,83 @@ void ObjectContainerBase::LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int fla
 #endif
 }
 
+ObjectHeader* ObjectContainerBase::AllocateObjectHeader(size_t size)
+{
+    // allocation would be the header size + object size, aligned to the object alignment
+    const size_t totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
+
+    TLockGuard<AtomicFlag> guard;
+    LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
+
+    void* mem = m_pool->Allocate(totalSize, MaxObjectAlignment);
+
+    // header needs to have padding in front of it so we can get the header from the object pointer
+    constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) - sizeof(ObjectHeader);
+
+    ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
+    header->index = m_indexAllocator.Allocate();
+    header->cls = m_class;
+    header->generation = m_generation.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
+    header->refCountStrong = 1;
+    // strong refs collectively hold 1 weak ref, released once the object is destructed
+    header->refCountWeak = 1;
+
+    m_headers.Emplace(header->index, header);
+
+    return header;
+}
+
+ObjectHeader* ObjectContainerBase::GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard)
+{
+    if (index == AtomicIndexAllocator::InvalidIndex)
+    {
+        return nullptr;
+    }
+
+    LockIfNeeded(outGuard, PF_NONE);
+
+    if (!m_headers.HasIndex(index))
+    {
+        return nullptr;
+    }
+
+    return m_headers[index];
+}
+
+void ObjectContainerBase::Release(ObjectHeader* header)
+{
+    HYP_CORE_ASSERT(header != nullptr);
+
+    TLockGuard<AtomicFlag> guard;
+    LockIfNeeded(guard, PF_WRITER | PF_FREE);
+
+    const uint32 index = header->index;
+    HYP_CORE_ASSERT(index != AtomicIndexAllocator::InvalidIndex, "Invalid index");
+
+    m_indexAllocator.Free(index);
+
+    // mark invalid before freeing - the memory may be handed to another thread's allocation as soon as it's back in the pool
+    header->index = AtomicIndexAllocator::InvalidIndex;
+
+    constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
+
+    void* mem = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(header) - HeaderOffset);
+    m_pool->Free(mem);
+
+    m_headers.EraseAt(index);
+}
+
+void ObjectContainerBase::ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback)
+{
+    for (auto& header_ptr : m_headers)
+    {
+        if (header_ptr != nullptr)
+        {
+            callback(header_ptr);
+        }
+    }
+}
+
 #pragma endregion ObjectContainerBase
 
 } // namespace Hyperion

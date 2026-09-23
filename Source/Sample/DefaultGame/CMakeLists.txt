@@ -45,7 +45,18 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/../
     ${CMAKE_SOURCE_DIR}/../Engine
 )
-add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
+
+if(HYP_USE_OBJECT_LIBRARIES)
+  set(OBJECTS_TARGET_NAME ${BUILD_NAME}-objects)
+
+  add_library(${OBJECTS_TARGET_NAME} OBJECT ${SOURCES} ${HEADERS})
+  target_link_libraries(${OBJECTS_TARGET_NAME} PRIVATE $<COMPILE_ONLY:hyperion> $<COMPILE_ONLY:hyperion-core>)
+  target_precompile_headers(${OBJECTS_TARGET_NAME} PRIVATE ${HYP_PCH})
+
+  add_executable(${BUILD_NAME} $<TARGET_OBJECTS:${OBJECTS_TARGET_NAME}>)
+else()
+  add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
+endif()
 
 if(MSVC)
   set (CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations" FORCE)

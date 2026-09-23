@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.27)
 
 set(BUILD_NAME hyperion)
 
@@ -83,6 +83,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(${BUILD_NAME} CXX)
+
+set(CMAKE_OPTIMIZE_DEPENDENCIES ON)
+
+if(CMAKE_GENERATOR MATCHES "^Visual Studio")
+  set(CMAKE_VS_GLOBALS "UseMultiToolTask=true" "EnforceProcessCountAcrossBuilds=true")
+
+  set(HYP_USE_OBJECT_LIBRARIES TRUE)
+endif()
+
+function(hyp_link_core_library target)
+  if(HYP_USE_OBJECT_LIBRARIES)
+    target_link_libraries(${target} PRIVATE $<COMPILE_ONLY:hyperion-core>)
+  else()
+    target_link_libraries(${target} PRIVATE hyperion-core)
+  endif()
+endfunction()
 
 # platform and compiler definitions
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -271,15 +287,15 @@ if(HYP_MSVC)
   # /arch:AVX2 is x86-specific -- MSVC rejects it when targeting ARM64
   if (HYP_SHIPPING)
     if(HYP_ARCH STREQUAL "ARM64")
-      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /fp:fast")
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /fp:fast")
     else()
-      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /MP4 /arch:AVX2 /fp:fast")
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
     endif()
   else()
     if(HYP_ARCH STREQUAL "ARM64")
-      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /MP4 /constexpr:depth1024 /bigobj /fp:fast")
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /constexpr:depth1024 /bigobj /fp:fast")
     else()
-      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /d2Zi+ /MP4 /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
+      set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /d2Zi+ /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
     endif()
 
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /INCREMENTAL /OPT:REF /OPT:ICF")
@@ -641,7 +657,7 @@ endif()
 set(RENDERING_BACKEND "Vulkan")
 
 if(WIN32)
-  # set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
+  set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
 
   if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND)
     set(RENDERING_BACKEND "DX12")
@@ -1115,13 +1131,22 @@ set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
 # disable precompiled headers for third-party sources
 set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
-if(HYP_BUILD_STATIC)
-  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS} ${STRATA_OBJECT_FILES})
+if(HYP_USE_OBJECT_LIBRARIES)
+  set(ENGINE_OBJECTS_NAME ${BUILD_NAME}-objects)
+  add_library(${ENGINE_OBJECTS_NAME} OBJECT ${SOURCES} ${HEADERS})
+  set(ENGINE_LIBRARY_SOURCES $<TARGET_OBJECTS:${ENGINE_OBJECTS_NAME}>)
 else()
-  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS} ${STRATA_OBJECT_FILES})
+  set(ENGINE_OBJECTS_NAME ${BUILD_NAME})
+  set(ENGINE_LIBRARY_SOURCES ${SOURCES} ${HEADERS})
 endif()
 
-target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
+if(HYP_BUILD_STATIC)
+  add_library(${BUILD_NAME} STATIC ${ENGINE_LIBRARY_SOURCES} ${STRATA_OBJECT_FILES})
+else()
+  add_library(${BUILD_NAME} SHARED ${ENGINE_LIBRARY_SOURCES} ${STRATA_OBJECT_FILES})
+endif()
+
+target_compile_definitions(${ENGINE_OBJECTS_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
 # if(HYP_ANDROID)
 #     # add hyperion-android module
@@ -1131,12 +1156,12 @@ target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 # PCHs
 # debugging android build intellisense errors:
 if(NOT HYP_ANDROID)
-  target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
+  target_precompile_headers(${ENGINE_OBJECTS_NAME} PRIVATE ${HYP_PCH})
 endif()
 
 # if XCode: set the PCH file for the target
 if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
-  set_target_properties(${BUILD_NAME} PROPERTIES
+  set_target_properties(${ENGINE_OBJECTS_NAME} PROPERTIES
         XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
         XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"
     )
@@ -1154,6 +1179,18 @@ target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
 
 target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
+
+if(HYP_USE_OBJECT_LIBRARIES)
+  target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
+
+  foreach(ENGINE_DEPENDENCY ${COMMON_LIBRARIES} ${RENDERER_LIBRARIES} Jolt::Jolt ${SUB_LIBRARIES})
+    target_link_libraries(${ENGINE_OBJECTS_NAME} PRIVATE $<COMPILE_ONLY:${ENGINE_DEPENDENCY}>)
+  endforeach()
+
+  if(TARGET glslang_build)
+    add_dependencies(${ENGINE_OBJECTS_NAME} glslang_build)
+  endif()
+endif()
 
 # add sublibraries as dependencies so any changes get picked up.
 foreach(SUB_LIBRARY ${SUB_LIBRARIES})
@@ -1227,6 +1264,10 @@ if(NOT HYP_SHIPPING AND NOT HYP_ANDROID AND NOT HYP_IOS)
 endif()
 
 if(HYP_EDITOR)
+  if(NOT HYP_ANDROID)
+    set(hyperion-editor_PCH "${CMAKE_SOURCE_DIR}/Editor/EditorPch.hpp")
+  endif()
+
   add_subdirectory(Editor)
 
   add_dependencies(${BUILD_NAME} hyperion-editor)

@@ -35,7 +35,7 @@ find_package(Threads REQUIRED)
 find_package(ZLIB)
 
 if(MSVC)
-  set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP /Zc:__cplusplus")
+  set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Z7 /Zc:__cplusplus")
   add_definitions("/DNOMINMAX")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fpermissive")
@@ -43,8 +43,6 @@ endif()
 
 # if Win32, link with DbgHelp
 if(HYP_PLATFORM_NAME STREQUAL "Windows")
-  # Socket.cpp relies on MSVC's #pragma comment(lib, "ws2_32.lib") auto-link, which
-  # GCC/MinGW silently ignores, so link it explicitly here for all compilers.
   set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp dwmapi ws2_32)
 elseif(HYP_ANDROID)
   set(COMMON_LIBRARIES ${COMMON_LIBRARIES} android log)
@@ -131,12 +129,32 @@ if(HYP_BUILD_STATIC)
   set(HYP_BUILD_CORE_LIBRARY_STATIC 1)
 endif()
 
-if(HYP_BUILD_CORE_LIBRARY_STATIC)
-  add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+if(HYP_USE_OBJECT_LIBRARIES)
+  set(CORE_OBJECTS_NAME ${BUILD_NAME}-objects)
+  add_library(${CORE_OBJECTS_NAME} OBJECT ${SOURCES} ${HEADERS})
+  set(CORE_LIBRARY_SOURCES $<TARGET_OBJECTS:${CORE_OBJECTS_NAME}>)
 else()
-  add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+  set(CORE_OBJECTS_NAME ${BUILD_NAME})
+  set(CORE_LIBRARY_SOURCES ${SOURCES} ${HEADERS})
 endif()
 
-target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_CORE=1)
+if(HYP_BUILD_CORE_LIBRARY_STATIC)
+  add_library(${BUILD_NAME} STATIC ${CORE_LIBRARY_SOURCES})
+else()
+  add_library(${BUILD_NAME} SHARED ${CORE_LIBRARY_SOURCES})
+endif()
+
+target_compile_definitions(${CORE_OBJECTS_NAME} PRIVATE HYP_BUILD_CORE=1)
+
+if(NOT HYP_ANDROID)
+  target_precompile_headers(${CORE_OBJECTS_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/CorePch.hpp")
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
+
+if(HYP_USE_OBJECT_LIBRARIES)
+  foreach(CORE_DEPENDENCY ${COMMON_LIBRARIES})
+    target_link_libraries(${CORE_OBJECTS_NAME} PRIVATE $<COMPILE_ONLY:${CORE_DEPENDENCY}>)
+  endforeach()
+endif()

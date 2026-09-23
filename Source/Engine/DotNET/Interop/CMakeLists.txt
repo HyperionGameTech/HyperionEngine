@@ -12,10 +12,6 @@ link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
-set(COMMON_LIBRARIES
-    hyperion-core
-)
-
 file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${SOURCES} ${HEADERS})
@@ -43,7 +39,7 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
-target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
+hyp_link_core_library(${BUILD_NAME})
 
 if(HYP_DOTNET)
   file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/**.cs")
@@ -151,6 +147,6 @@ if(HYP_DOTNET)
       add_dependencies(Hyperion.NET.Interop hyperion-dotnet-shared)
     endif()
 
-    add_dependencies(${BUILD_NAME} Hyperion.NET.Interop hyperion-core)
+    add_dependencies(${BUILD_NAME} Hyperion.NET.Interop)
   endif()
 endif()

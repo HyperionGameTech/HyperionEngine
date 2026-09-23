@@ -73,11 +73,11 @@ public:
 
     virtual void Initialize() = 0;
 
-    virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) = 0;
+    virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard);
 
-    virtual void Release(ObjectHeader* header) = 0;
+    virtual void Release(ObjectHeader* header);
 
-    virtual void ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback) = 0;
+    virtual void ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback);
 
 protected:
     enum PoolFlags : uint8
@@ -88,7 +88,12 @@ protected:
         PF_FREE = 0x4
     };
 
+    static constexpr uint32 MaxObjectAlignment = 16;
+
     ObjectContainerBase(TypeId typeId, const Class* cls);
+
+    /*! \brief Allocates memory for the header plus an object of \p size bytes and initializes the header. */
+    ObjectHeader* AllocateObjectHeader(size_t size);
 
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
@@ -213,85 +218,11 @@ public:
 
     HYP_NODISCARD ObjectHeader* AllocateObject(size_t size)
     {
-        static constexpr uint32 MaxObjectAlignment = 16;
-
         static_assert(alignof(T) <= MaxObjectAlignment, "Invalid alignment for object type T, must be <= MaxObjectAlignment");
 
         HYP_CORE_ASSERT(size >= sizeof(T), "size param value (%zu) must be >= sizeof(T) (%zu)", size, sizeof(T));
 
-        // allocation would be the header size + object size, aligned to the object alignment
-        const size_t totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
-
-        TLockGuard<AtomicFlag> guard;
-        LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
-
-        void* mem = m_pool->Allocate(totalSize, MaxObjectAlignment);
-
-        // header needs to have padding in front of it so we can get the header from the object pointer
-        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) - sizeof(ObjectHeader);
-
-        ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(mem) + HeaderOffset);
-        header->index = m_indexAllocator.Allocate();
-        header->cls = m_class;
-        header->generation = m_generation.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
-        header->refCountStrong = 1;
-        // strong refs collectively hold 1 weak ref, released once the object is destructed
-        header->refCountWeak = 1;
-
-        m_headers.Emplace(header->index, header);
-
-        return header;
-    }
-
-    virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) override
-    {
-        if (index == AtomicIndexAllocator::InvalidIndex)
-        {
-            return nullptr;
-        }
-
-        LockIfNeeded(outGuard, PF_NONE);
-
-        if (!m_headers.HasIndex(index))
-        {
-            return nullptr;
-        }
-
-        return m_headers[index];
-    }
-
-    virtual void Release(ObjectHeader* header) override
-    {
-        HYP_CORE_ASSERT(header != nullptr);
-
-        TLockGuard<AtomicFlag> guard;
-        LockIfNeeded(guard, PF_WRITER | PF_FREE);
-
-        const uint32 index = header->index;
-        HYP_CORE_ASSERT(index != AtomicIndexAllocator::InvalidIndex, "Invalid index");
-
-        m_indexAllocator.Free(index);
-
-        // mark invalid before freeing - the memory may be handed to another thread's allocation as soon as it's back in the pool
-        header->index = AtomicIndexAllocator::InvalidIndex;
-
-        constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
-
-        void* mem = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(header) - HeaderOffset);
-        m_pool->Free(mem);
-
-        m_headers.EraseAt(index);
-    }
-
-    virtual void ForEachHeader(const ProcRef<void(const ObjectHeader*)>& callback) override
-    {
-        for (auto& header_ptr : m_headers)
-        {
-            if (header_ptr != nullptr)
-            {
-                callback(header_ptr);
-            }
-        }
+        return AllocateObjectHeader(size);
     }
 
     // To match allocator interface

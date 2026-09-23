@@ -24,104 +24,264 @@ class Tuple;
 
 using utilities::Tuple;
 
-template <auto Str, bool ShouldStripNamespace>
-constexpr auto ParseTypeName();
+#pragma region TypeNameParser
 
-// strip "class " or "struct " from beginning StaticString
-template <auto Str>
-constexpr auto StripClassOrStruct()
+namespace detail {
+
+struct TypeNameStringView
 {
-    constexpr auto classIndex = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("class ")>>();
-    constexpr auto structIndex = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("struct ")>>();
+    const char* data;
+    size_t size;
+};
 
-    if constexpr (classIndex != -1 && (structIndex == -1 || classIndex <= structIndex))
+template <size_t Capacity>
+struct TypeNameParseResult
+{
+    char data[Capacity] {};
+    size_t size = 0;
+
+    constexpr void Append(const char* str, size_t count)
     {
-        return containers::helpers::Substr<Str, classIndex + 6, Str.Size()>::value; // 6 = length of "class "
+        for (size_t i = 0; i < count; ++i)
+        {
+            data[size++] = str[i];
+        }
     }
-    else if constexpr (structIndex != -1 && (classIndex == -1 || structIndex <= classIndex))
-    {
-        return containers::helpers::Substr<Str, structIndex + 7, Str.Size()>::value; // 7 = length of "struct "
-    }
-    else
-    {
-        return Str;
-    }
+};
+
+void TypeNameParseFailed_LeftArrowAfterRightArrow();
+
+constexpr bool IsTypeNameWhitespace(char ch)
+{
+    return ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t' || ch == '\f' || ch == '\v';
 }
 
-#pragma region TypeNameStringTransformer
-
-// constexpr functions to strip namespaces from StaticString
-
-template <bool ShouldStripNamespace>
-struct TypeNameStringTransformer
+constexpr size_t FindFirstInTypeName(TypeNameStringView str, const char* needle, size_t needleSize)
 {
-    static constexpr char delimiter = ',';
-
-    static constexpr uint32 balanceBracketOptions = containers::helpers::BALANCE_BRACKETS_ANGLE;
-
-    template <auto String>
-    static constexpr auto Transform()
+    if (str.size < needleSize)
     {
-        constexpr size_t lastIndex = ShouldStripNamespace
-            ? containers::helpers::Trim<String>::value.template FindLast<containers::IntegerSequenceFromString<StaticString("::")>>()
-            : size_t(-1);
+        return size_t(-1);
+    }
 
-        if constexpr (lastIndex == -1)
+    for (size_t start = 0; start + needleSize <= str.size; ++start)
+    {
+        bool found = true;
+
+        for (size_t j = 0; j < needleSize; ++j)
         {
-            return StripClassOrStruct<containers::helpers::Trim<String>::value>();
+            if (str.data[start + j] != needle[j])
+            {
+                found = false;
+                break;
+            }
+        }
+
+        if (found)
+        {
+            return start;
+        }
+    }
+
+    return size_t(-1);
+}
+
+constexpr size_t FindLastInTypeName(TypeNameStringView str, const char* needle, size_t needleSize)
+{
+    if (str.size < needleSize)
+    {
+        return size_t(-1);
+    }
+
+    for (size_t start = str.size - needleSize + 1; start-- > 0;)
+    {
+        bool found = true;
+
+        for (size_t j = 0; j < needleSize; ++j)
+        {
+            if (str.data[start + j] != needle[j])
+            {
+                found = false;
+                break;
+            }
+        }
+
+        if (found)
+        {
+            return start;
+        }
+    }
+
+    return size_t(-1);
+}
+
+constexpr TypeNameStringView SubstrTypeName(TypeNameStringView str, size_t start, size_t end)
+{
+    if (end > str.size)
+    {
+        end = str.size;
+    }
+
+    if (start >= end)
+    {
+        return { str.data, 0 };
+    }
+
+    return { str.data + start, end - start };
+}
+
+constexpr TypeNameStringView TrimTypeName(TypeNameStringView str)
+{
+    size_t start = 0;
+
+    while (start < str.size && IsTypeNameWhitespace(str.data[start]))
+    {
+        ++start;
+    }
+
+    size_t end = str.size;
+
+    while (end > start && IsTypeNameWhitespace(str.data[end - 1]))
+    {
+        --end;
+    }
+
+    return { str.data + start, end - start };
+}
+
+constexpr TypeNameStringView StripTypeNameClassOrStruct(TypeNameStringView str)
+{
+    const size_t classIndex = FindFirstInTypeName(str, "class ", 6);
+    const size_t structIndex = FindFirstInTypeName(str, "struct ", 7);
+
+    if (classIndex != size_t(-1) && (structIndex == size_t(-1) || classIndex <= structIndex))
+    {
+        return SubstrTypeName(str, classIndex + 6, str.size);
+    }
+
+    if (structIndex != size_t(-1) && (classIndex == size_t(-1) || structIndex <= classIndex))
+    {
+        return SubstrTypeName(str, structIndex + 7, str.size);
+    }
+
+    return str;
+}
+
+constexpr TypeNameStringView TransformTypeNameLeaf(TypeNameStringView str, bool shouldStripNamespace)
+{
+    const TypeNameStringView trimmed = TrimTypeName(str);
+
+    const size_t lastIndex = shouldStripNamespace
+        ? FindLastInTypeName(trimmed, "::", 2)
+        : size_t(-1);
+
+    if (lastIndex == size_t(-1))
+    {
+        return StripTypeNameClassOrStruct(trimmed);
+    }
+
+    return StripTypeNameClassOrStruct(SubstrTypeName(trimmed, lastIndex + 2, trimmed.size));
+}
+
+template <size_t Capacity>
+constexpr void ParseTypeNameInto(TypeNameParseResult<Capacity>& result, TypeNameStringView str, bool shouldStripNamespace);
+
+template <size_t Capacity>
+constexpr void TransformSplitTypeName(TypeNameParseResult<Capacity>& result, TypeNameStringView str, bool shouldStripNamespace, bool parseParts)
+{
+    bool anyPartWritten = false;
+    int angleBracketDepth = 0;
+    size_t partStart = 0;
+
+    for (size_t index = 0; index <= str.size; ++index)
+    {
+        if (index < str.size)
+        {
+            const char ch = str.data[index];
+
+            if (ch == '<')
+            {
+                ++angleBracketDepth;
+            }
+            else if (ch == '>')
+            {
+                --angleBracketDepth;
+            }
+
+            if (ch != ',' || angleBracketDepth > 0)
+            {
+                continue;
+            }
+        }
+
+        const TypeNameStringView part = SubstrTypeName(str, partStart, index);
+        partStart = index + 1;
+
+        const size_t separatorPosition = result.size;
+
+        if (anyPartWritten)
+        {
+            result.Append(",", 1);
+        }
+
+        const size_t partPosition = result.size;
+
+        if (parseParts)
+        {
+            ParseTypeNameInto(result, part, shouldStripNamespace);
         }
         else
         {
-            return StripClassOrStruct<containers::helpers::Substr<containers::helpers::Trim<String>::value, lastIndex + 2, size_t(-1)>::value>();
+            const TypeNameStringView transformed = TransformTypeNameLeaf(part, shouldStripNamespace);
+            result.Append(transformed.data, transformed.size);
         }
-    }
-};
 
-#pragma endregion TypeNameStringTransformer
-
-#pragma region TypeNameStringTransformer2
-
-template <bool ShouldStripNamespace>
-struct TypeNameStringTransformer2
-{
-    static constexpr char delimiter = ',';
-
-    static constexpr uint32 balanceBracketOptions = containers::helpers::BALANCE_BRACKETS_ANGLE;
-
-    template <auto String>
-    static constexpr auto Transform()
-    {
-        return ParseTypeName<String, ShouldStripNamespace>();
-    }
-};
-
-#pragma endregion TypeNameStringTransformer2
-
-#pragma region ParseTypeName
-
-template <auto Str, bool ShouldStripNamespace>
-constexpr auto ParseTypeName()
-{
-    constexpr auto leftArrowIndex = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
-    constexpr auto rightArrowIndex = Str.template FindLast<containers::IntegerSequenceFromString<StaticString(">")>>();
-
-    if constexpr (leftArrowIndex != size_t(-1) && rightArrowIndex != size_t(-1))
-    {
-        static_assert(leftArrowIndex < rightArrowIndex, "Left arrow index must be less than right arrow index or parsing will fail!");
-
-        return containers::helpers::Concat<
-            containers::helpers::TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, 0, leftArrowIndex>::value>::value,
-            StaticString("<"),
-            containers::helpers::TransformSplit<TypeNameStringTransformer2<ShouldStripNamespace>, containers::helpers::Substr<Str, leftArrowIndex + 1, rightArrowIndex>::value>::value,
-            StaticString(">")>::value;
-    }
-    else
-    {
-        return containers::helpers::TransformSplit<TypeNameStringTransformer<ShouldStripNamespace>, Str>::value;
+        if (result.size == partPosition)
+        {
+            result.size = separatorPosition;
+        }
+        else
+        {
+            anyPartWritten = true;
+        }
     }
 }
 
-#pragma endregion ParseTypeName
+template <size_t Capacity>
+constexpr void ParseTypeNameInto(TypeNameParseResult<Capacity>& result, TypeNameStringView str, bool shouldStripNamespace)
+{
+    const size_t leftArrowIndex = FindFirstInTypeName(str, "<", 1);
+    const size_t rightArrowIndex = FindLastInTypeName(str, ">", 1);
+
+    if (leftArrowIndex != size_t(-1) && rightArrowIndex != size_t(-1))
+    {
+        if (leftArrowIndex >= rightArrowIndex)
+        {
+            TypeNameParseFailed_LeftArrowAfterRightArrow();
+        }
+
+        TransformSplitTypeName(result, SubstrTypeName(str, 0, leftArrowIndex), shouldStripNamespace, true);
+        result.Append("<", 1);
+        TransformSplitTypeName(result, SubstrTypeName(str, leftArrowIndex + 1, rightArrowIndex), shouldStripNamespace, true);
+        result.Append(">", 1);
+    }
+    else
+    {
+        TransformSplitTypeName(result, str, shouldStripNamespace, false);
+    }
+}
+
+template <size_t Capacity>
+constexpr TypeNameParseResult<Capacity> ParseTypeNameFromSignature(const char (&signature)[Capacity], size_t begin, size_t end, bool shouldStripNamespace)
+{
+    TypeNameParseResult<Capacity> result {};
+    ParseTypeNameInto(result, SubstrTypeName({ signature, Capacity - 1 }, begin, end), shouldStripNamespace);
+
+    return result;
+}
+
+} // namespace detail
+
+#pragma endregion TypeNameParser
 
 #pragma region TypeName
 
@@ -132,27 +292,24 @@ constexpr auto ParseTypeName()
  *  \return The name of the type T as a StaticString.
  */
 template <class T>
-constexpr auto TypeName()
+HYP_CONSTEVAL auto TypeName()
 {
-    constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
-
 #ifdef HYP_CLANG_OR_GCC
 #ifdef HYP_CLANG
     // auto Hyperion::TypeName() [T = Hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr<name, 31, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
+    constexpr auto parsed = detail::ParseTypeNameFromSignature(HYP_FUNCTION_NAME_LIT, 31, sizeof(HYP_FUNCTION_NAME_LIT) - 2, false);
 #elif defined(HYP_GCC)
     // constexpr auto Hyperion::TypeName() [with T = Hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr<name, 46, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
+    constexpr auto parsed = detail::ParseTypeNameFromSignature(HYP_FUNCTION_NAME_LIT, 46, sizeof(HYP_FUNCTION_NAME_LIT) - 2, false);
 #endif
 #elif defined(HYP_MSVC)
     //  auto __cdecl Hyperion::TypeName<class Hyperion::Task<int,int>>(void)
-    constexpr auto substr = containers::helpers::Substr<name, 32, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
-
+    constexpr auto parsed = detail::ParseTypeNameFromSignature(HYP_FUNCTION_NAME_LIT, 32, sizeof(HYP_FUNCTION_NAME_LIT) - 8, false);
 #else
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif
 
-    return ParseTypeName<substr, false>();
+    return StaticString<parsed.size + 1>(parsed.data, parsed.data + parsed.size);
 }
 
 /*! \brief Returns the name of the type T as a StaticString. Removes the namespace from the name (e.g. Hyperion::Task<int, int> -> Task<int, int>).
@@ -162,26 +319,24 @@ constexpr auto TypeName()
  *  \return The name of the type T as a StaticString.
  */
 template <class T>
-constexpr auto TypeNameWithoutNamespace()
+HYP_CONSTEVAL auto TypeNameWithoutNamespace()
 {
-    constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
 #ifdef HYP_CLANG_OR_GCC
 #ifdef HYP_CLANG
-
     // auto Hyperion::TypeNameWithoutNamespace() [T = Hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
+    constexpr auto parsed = detail::ParseTypeNameFromSignature(HYP_FUNCTION_NAME_LIT, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2, true);
 #elif defined(HYP_GCC)
     // constexpr auto Hyperion::TypeNameWithoutNamespace() [with T = Hyperion::Task<int, int>]
-    constexpr auto substr = containers::helpers::Substr<name, 62, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
+    constexpr auto parsed = detail::ParseTypeNameFromSignature(HYP_FUNCTION_NAME_LIT, 62, sizeof(HYP_FUNCTION_NAME_LIT) - 2, true);
 #endif
 #elif defined(HYP_MSVC)
     //  auto __cdecl Hyperion::TypeNameWithoutNamespace<class Hyperion::Task<int,int>>(void)
-    constexpr auto substr = containers::helpers::Substr<name, 48, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
+    constexpr auto parsed = detail::ParseTypeNameFromSignature(HYP_FUNCTION_NAME_LIT, 48, sizeof(HYP_FUNCTION_NAME_LIT) - 8, true);
 #else
     static_assert(false, "Unsupported compiler");
 #endif
 
-    return ParseTypeName<substr, true>();
+    return StaticString<parsed.size + 1>(parsed.data, parsed.data + parsed.size);
 }
 
 #pragma endregion TypeName

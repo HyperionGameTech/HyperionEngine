@@ -42,7 +42,8 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-scene hyperion-rendering hyperion-asset hyperion-ui hyperion-input hyperion-baking hyperion-plugins)
+hyp_link_core_library(${BUILD_NAME})
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-scene hyperion-rendering hyperion-asset hyperion-ui hyperion-input hyperion-baking hyperion-plugins)
 
 if(NOT DEFINED CSHARP_PROJECTS_DIR)
   message(FATAL_ERROR "CSHARP_PROJECTS_DIR is not defined. Please define it in the CMakeLists.txt located in src/")

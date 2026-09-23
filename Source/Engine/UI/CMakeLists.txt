@@ -58,6 +58,6 @@ target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
-add_dependencies(${BUILD_NAME} hyperion-core hyperion-scene hyperion-rendering hyperion-asset)
 
-target_link_libraries(${BUILD_NAME} PRIVATE ${UI_LIBRARIES} hyperion-core hyperion-scene hyperion-rendering hyperion-asset)
+hyp_link_core_library(${BUILD_NAME})
+target_link_libraries(${BUILD_NAME} PRIVATE ${UI_LIBRARIES} hyperion-scene hyperion-rendering hyperion-asset)

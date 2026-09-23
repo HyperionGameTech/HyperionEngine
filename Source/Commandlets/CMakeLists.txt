@@ -13,20 +13,35 @@ function(add_commandlet_target COMMANDLET_NAME)
     set(COMMANDLET_SOURCE "")
   endif()
 
-  add_executable(${TARGET_NAME} ${COMMANDLET_MAIN_CPP} ${COMMANDLET_SOURCE})
+  if(HYP_USE_OBJECT_LIBRARIES)
+    set(OBJECTS_TARGET_NAME "${TARGET_NAME}-objects")
 
-  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME "${COMMANDLET_NAME}")
+    add_library(${OBJECTS_TARGET_NAME} OBJECT ${COMMANDLET_MAIN_CPP} ${COMMANDLET_SOURCE})
+    target_link_libraries(${OBJECTS_TARGET_NAME} PRIVATE $<COMPILE_ONLY:hyperion> $<COMPILE_ONLY:hyperion-core>)
 
-  target_compile_definitions(${TARGET_NAME} PRIVATE
+    add_executable(${TARGET_NAME} $<TARGET_OBJECTS:${OBJECTS_TARGET_NAME}>)
+  else()
+    set(OBJECTS_TARGET_NAME "${TARGET_NAME}")
+
+    add_executable(${TARGET_NAME} ${COMMANDLET_MAIN_CPP} ${COMMANDLET_SOURCE})
+  endif()
+
+  target_compile_definitions(${OBJECTS_TARGET_NAME} PRIVATE
         HYP_COMMANDLET_NAME=${COMMANDLET_NAME}
         HYP_COMMANDLET=1
     )
 
-  target_include_directories(${TARGET_NAME} PRIVATE
+  target_include_directories(${OBJECTS_TARGET_NAME} PRIVATE
         ${HYP_GENERATED_DIR}
         ${CMAKE_SOURCE_DIR}/../
         ${CMAKE_SOURCE_DIR}/../Engine
     )
+
+  if(NOT HYP_ANDROID AND NOT CMAKE_GENERATOR STREQUAL "Xcode")
+    target_precompile_headers(${OBJECTS_TARGET_NAME} PRIVATE ${HYP_PCH})
+  endif()
+
+  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME "${COMMANDLET_NAME}")
 
   add_dependencies(${TARGET_NAME} hyperion hyperion-core)
   target_link_libraries(${TARGET_NAME} hyperion hyperion-core)
