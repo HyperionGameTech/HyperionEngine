@@ -30,16 +30,19 @@ static EngineStatTimer s_statVisUpdate("Vis/Update");
 
 EngineStatCounter<uint32> g_statViews("Rendering/Views");
 
+HYP_FORCE_INLINE static bool SceneMaintainsOctree(const Scene* scene)
+{
+    return (scene->GetSceneFlags() & (SceneFlags::HAS_OCTREE | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::HAS_OCTREE;
+}
+
 static bool ProcessEntity(
+    Scene* scene,
     Entity* entity,
     VisibilityStateComponent& visibilityStateComponent)
 {
     const bool visibilityStateInvalidated = visibilityStateComponent.flags & VisibilityStateFlags::INVALIDATED;
 
     visibilityStateComponent.flags &= ~VisibilityStateFlags::INVALIDATED;
-
-    Scene* scene = entity->GetScene();
-    AssertDebug(scene != nullptr);
 
     SceneOctree& octree = scene->GetOctree();
 
@@ -206,9 +209,14 @@ void VisThread::Process()
 
             scenesVisited.PushBack(scene);
 
+            if (!SceneMaintainsOctree(scene))
+            {
+                continue;
+            }
+
             for (auto [entity, visibilityStateComponent, _] : scene->GetEntityManager()->GetEntitySet<VisibilityStateComponent, TagComponent<EntityTag::UpdateVisibility>>().GetScopedView(DataAccessFlags::ACCESS_RW))
             {
-                if (ProcessEntity(entity, visibilityStateComponent))
+                if (ProcessEntity(scene, entity, visibilityStateComponent))
                 {
                     m_processedEntities.PushBack(entity);
                 }

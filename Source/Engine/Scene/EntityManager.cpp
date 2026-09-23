@@ -426,6 +426,7 @@ void EntityManager::Shutdown()
             entity->OnRemovedFromScene(m_scene);
 
             entity->SetEntityManagerRaw_Internal(nullptr);
+            entity->SetSceneRaw_Internal(nullptr);
         }
     }
 
@@ -456,6 +457,7 @@ void EntityManager::ClearEntities_Internal()
             entity->OnRemovedFromWorld(m_world);
 
             entity->SetEntityManagerRaw_Internal(nullptr);
+            entity->SetSceneRaw_Internal(nullptr);
         }
 
         subtypeData.data.Clear();
