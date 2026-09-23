@@ -967,10 +967,7 @@ Handle<Mesh> Mesh::Clone() const
 
 Handle<AssetObject> Mesh::CloneAsset() const
 {
-    Handle<Mesh> clone = Clone();
-    clone->UploadGpuData();
-
-    return clone;
+    return Clone();
 }
 
 void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
