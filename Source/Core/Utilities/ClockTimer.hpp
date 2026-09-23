@@ -9,17 +9,14 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <chrono>
-
 namespace Hyperion {
 
 struct ClockTimer
 {
-    using Clock = std::chrono::high_resolution_clock;
-
     using TickUnit = float;
     using TickUnitHighPrec = double;
-    using TimePoint = Clock::time_point;
+
+    using TimePoint = int64;
 
     TimePoint lastTimePoint = Now();
     TickUnit delta {};
@@ -35,10 +32,7 @@ struct ClockTimer
     {
     }
 
-    HYP_FORCE_INLINE static TimePoint Now()
-    {
-        return Clock::now();
-    }
+    CORE_API static TimePoint Now();
 
     HYP_FORCE_INLINE void NextTick()
     {
@@ -54,15 +48,9 @@ struct ClockTimer
         delta = TickUnit(0.0);
     }
 
-    HYP_FORCE_INLINE TickUnit Interval(TimePoint endTimePoint) const
-    {
-        return std::chrono::duration_cast<std::chrono::duration<TickUnit, std::ratio<1>>>(endTimePoint - lastTimePoint).count();
-    }
+    CORE_API TickUnit Interval(TimePoint endTimePoint) const;
 
-    HYP_FORCE_INLINE TickUnitHighPrec IntervalHighPrec(TimePoint endTimePoint) const
-    {
-        return std::chrono::duration_cast<std::chrono::duration<TickUnitHighPrec, std::ratio<1>>>(endTimePoint - lastTimePoint).count();
-    }
+    CORE_API TickUnitHighPrec IntervalHighPrec(TimePoint endTimePoint) const;
 
     HYP_FORCE_INLINE bool Waiting() const
     {

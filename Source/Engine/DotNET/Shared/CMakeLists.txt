@@ -12,10 +12,6 @@ link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
-set(COMMON_LIBRARIES
-    hyperion-core
-)
-
 file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "${BUILD_NAME} Code" FILES ${SOURCES} ${HEADERS})
@@ -34,20 +30,13 @@ include_directories(
 
 add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
 
-# This static library is always linked directly into the main "hyperion" target, never
-# consumed as a standalone DLL, so any ENGINE_API symbol it calls (e.g. Assembly, which is
-# part of hyperion's own sources) should resolve as a same-binary reference. Without this,
-# ENGINE_API resolves to dllimport here, and GCC/MinGW (unlike MSVC's linker, which silently
-# retargets same-binary dllimport calls to the local definition) requires an actual DLL
-# import thunk that doesn't exist, since there's no separate DLL -- "undefined reference to
-# __imp_...".
 target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
-target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
+hyp_link_core_library(${BUILD_NAME})
 
 if(HYP_DOTNET)
   file(GLOB_RECURSE CSHARP_SHARED_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/**.cs")
@@ -143,6 +132,6 @@ if(HYP_DOTNET)
             )
     endif()
 
-    add_dependencies(${BUILD_NAME} Hyperion.NET.Shared hyperion-core)
+    add_dependencies(${BUILD_NAME} Hyperion.NET.Shared)
   endif()
 endif()

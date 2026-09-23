@@ -96,7 +96,7 @@ public:
     }
 
     template <class ThisType, class FieldType>
-    Field(Name name, FieldType ThisType::*member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
+    HYP_NOINLINE Field(Name name, FieldType ThisType::*member, uint32 offset, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<FieldType>()),
           m_targetTypeInfo(&TypeOf<ThisType>()),

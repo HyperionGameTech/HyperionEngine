@@ -44,7 +44,7 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType> && !std::is_pointer_v<ConstantType>>>
-    StaticField(Name name, ConstantType value, Span<const ClassAttribute> attributes = {})
+    HYP_NOINLINE StaticField(Name name, ConstantType value, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
@@ -57,7 +57,7 @@ public:
     }
 
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
-    StaticField(Name name, const ConstantType* pValue, Span<const ClassAttribute> attributes = {})
+    HYP_NOINLINE StaticField(Name name, const ConstantType* pValue, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_typeInfo(&TypeOf<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),

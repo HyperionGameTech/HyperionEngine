@@ -1145,12 +1145,19 @@ DX12TopLevelASRef DX12RenderInterface::MakeTLAS()
     return MakeHandle<DX12TopLevelAS>(callbacks);
 }
 
+static_assert(sizeof(IndirectDrawCommand) == sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
+static_assert(offsetof(IndirectDrawCommand, IndexCountPerInstance) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, IndexCountPerInstance));
+static_assert(offsetof(IndirectDrawCommand, InstanceCount) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, InstanceCount));
+static_assert(offsetof(IndirectDrawCommand, StartIndexLocation) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, StartIndexLocation));
+static_assert(offsetof(IndirectDrawCommand, BaseVertexLocation) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, BaseVertexLocation));
+static_assert(offsetof(IndirectDrawCommand, StartInstanceLocation) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, StartInstanceLocation));
+
 void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
     const DX12GpuBuffer* vertexBuffer,
     const DX12GpuBuffer* indexBuffer,
     uint32 numIndices,
     uint32 instanceOffset,
-    Array<D3D12_DRAW_INDEXED_ARGUMENTS, DX12Allocator>& outBuffer)
+    Array<IndirectDrawCommand, DX12Allocator>& outBuffer)
 {
     const size_t requiredSize = (size_t(instanceOffset) + 1);
 
@@ -1162,8 +1169,8 @@ void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(
     AssertDebug(indexBuffer == nullptr || uint64(numIndices) * sizeof(uint32) <= indexBuffer->Size(),
                 "numIndices exceeds the bound index buffer's size");
 
-    D3D12_DRAW_INDEXED_ARGUMENTS& command = outBuffer[instanceOffset];
-    command = D3D12_DRAW_INDEXED_ARGUMENTS {};
+    IndirectDrawCommand& command = outBuffer[instanceOffset];
+    command = IndirectDrawCommand {};
     command.IndexCountPerInstance = indexBuffer != nullptr ? numIndices : 0;
     // culling / particle update compute shaders InterlockedAdd the instance count
     command.InstanceCount = 0;

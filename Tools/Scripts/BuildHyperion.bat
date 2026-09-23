@@ -322,7 +322,7 @@ if errorlevel 1 (
 
 :SKIP_CMAKE_GENERATION
 
-cmake --build . --parallel 8 --config %HYP_BUILD_TYPE%
+cmake --build . --parallel %NUMBER_OF_PROCESSORS% --config %HYP_BUILD_TYPE%
 if errorlevel 1 (
     popd
     exit /b 1

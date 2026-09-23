@@ -108,9 +108,9 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
   set(RENDERER_LIBRARIES hyperion-dx12)
 endif()
 
-add_dependencies(${BUILD_NAME} hyperion-core hyperion-asset)
 
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-asset ${RENDERER_LIBRARIES})
+hyp_link_core_library(${BUILD_NAME})
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-asset ${RENDERER_LIBRARIES})
 
 if(HYP_GLSLANG)
   message(STATUS "Enabling GLSLANG support in rendering module")

@@ -31,5 +31,5 @@ Texture LTC_Matrix {
         Key = "Engine://Textures/LTC_Matrix.TEX"
         Size = 32768
     }
-    UUID = "4e24b5da-1a20-484e-88ff-7df3fa2d7758"
+    UUID = "8271dbf7-e19c-4757-b818-519a4d040103"
 }

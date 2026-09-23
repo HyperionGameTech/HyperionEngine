@@ -40,9 +40,9 @@ target_compile_definitions(${BUILD_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
-add_dependencies(${BUILD_NAME} hyperion-core hyperion-input hyperion-rendering)
 
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-input hyperion-rendering)
+hyp_link_core_library(${BUILD_NAME})
+target_link_libraries(${BUILD_NAME} PRIVATE hyperion-input hyperion-rendering)
 
 if(WIN32)
     target_link_libraries(${BUILD_NAME} PUBLIC comctl32)

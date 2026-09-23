@@ -27,6 +27,8 @@ CORE_API extern Name CreateNameFromDynamicString(const ANSIStringView& str);
 CORE_API extern StringHash CreateStringHashFromDynamicString(const ANSIStringView& str);
 
 CORE_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, bool lock);
+CORE_API extern Name RegisterName(NameRegistry* nameRegistry, NameID id, const char* str, bool lock);
+
 CORE_API extern bool ShouldLockNameRegistry();
 
 CORE_API void InitNameRegistry();

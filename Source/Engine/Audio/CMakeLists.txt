@@ -55,5 +55,5 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
   target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
-add_dependencies(${BUILD_NAME} hyperion-core)
-target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core ${hyperion-audio_LIBRARIES})
+hyp_link_core_library(${BUILD_NAME})
+target_link_libraries(${BUILD_NAME} PRIVATE ${hyperion-audio_LIBRARIES})

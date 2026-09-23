@@ -97,6 +97,7 @@ compile_commands.json
 
 Tools/*/build/**/*
 
-# Ignore Data stuff. it's ont used anymore except for staging assets
+# Ignore Data stuff. it's not used anymore except for staging assets
 Data/**/*
 .vscode/c_cpp_properties.json
+.opencode

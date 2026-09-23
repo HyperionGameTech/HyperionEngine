@@ -259,7 +259,7 @@ public:
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
-    Property(Name name, ValueType TargetType::*member, const Span<const ClassAttribute>& attributes = {})
+    HYP_NOINLINE Property(Name name, ValueType TargetType::*member, const Span<const ClassAttribute>& attributes = {})
         : m_name(name),
           m_attributes(attributes),
           m_getter(PropertyGetter(member)),

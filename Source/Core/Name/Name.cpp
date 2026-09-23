@@ -209,6 +209,11 @@ Name RegisterName(NameRegistry* nameRegistry, NameID id, const ANSIString& str, 
     return nameRegistry->RegisterName(id, str, lock);
 }
 
+Name RegisterName(NameRegistry* nameRegistry, NameID id, const char* str, bool lock)
+{
+    return nameRegistry->RegisterName(id, ANSIStringView(str), lock);
+}
+
 bool ShouldLockNameRegistry()
 {
     return s_isNameRegistryInitialized;

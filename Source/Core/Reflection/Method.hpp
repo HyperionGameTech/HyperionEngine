@@ -163,7 +163,7 @@ public:
 
 
     template <class ReturnType, class TargetType, class... ArgTypes>
-    Method(Name name, ReturnType (TargetType::*memFn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
+    HYP_NOINLINE Method(Name name, ReturnType (TargetType::*memFn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_flags(MethodFlags::MEMBER),
           m_attributes(attributes),
@@ -194,7 +194,7 @@ public:
     }
 
     template <class ReturnType, class TargetType, class... ArgTypes>
-    Method(Name name, ReturnType (TargetType::*memFn)(ArgTypes...) const, Span<const ClassAttribute> attributes = {})
+    HYP_NOINLINE Method(Name name, ReturnType (TargetType::*memFn)(ArgTypes...) const, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_flags(MethodFlags::MEMBER),
           m_attributes(attributes),
@@ -227,7 +227,7 @@ public:
 
     // Static method or free function
     template <class ReturnType, class... ArgTypes>
-    Method(Name name, ReturnType (*fn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
+    HYP_NOINLINE Method(Name name, ReturnType (*fn)(ArgTypes...), Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_flags(MethodFlags::STATIC),
           m_attributes(attributes),
