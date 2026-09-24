@@ -80,6 +80,11 @@ struct LightmapElement
         outAtlasIndex = uint16((uint32(elementId) >> 16) & 0xFFFFu);
         outElementIndex = uint16(uint32(elementId) & 0xFFFFu);
     }
+
+    static constexpr inline LightmapElementId MakeId(uint16 atlasIndex, uint16 elementIndex)
+    {
+        return LightmapElementId((uint32(atlasIndex) << 16) | uint32(elementIndex));
+    }
 };
 
 HYP_STRUCT()
@@ -113,6 +118,10 @@ class ENGINE_API LightmapVolume final : public VolumeBase
 public:
     static constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
     static constexpr LightmapVolumeId InvalidId = InvalidLightmapVolumeId;
+
+    // Entity rects are packed into 12 bits per axis for EntityShaderData, see GetEntityLightmapRect()
+    static_assert(DefaultAtlasDimensions.x <= 4096 && DefaultAtlasDimensions.y <= 4096);
+    static_assert(MathUtil::IsPowerOfTwo(DefaultAtlasDimensions.x) && MathUtil::IsPowerOfTwo(DefaultAtlasDimensions.y));
 
     enum AtlasTextureType : uint8
     {
@@ -187,23 +196,63 @@ public:
         return m_atlases.ToSpan();
     }
 
-    HYP_FORCE_INLINE uint64 GetPackingHash() const
+    /*! \brief Lightmap texels per world unit that a bake aims for. Scaled down when the owned entities don't fit the atlases. */
+    HYP_METHOD(Property = "TexelsPerUnit", Serialize = true, Editor = true, NoSwatchOverride)
+    float GetTexelsPerUnit() const
     {
-        return m_packingHash;
+        return m_texelsPerUnit;
     }
 
-    HYP_FORCE_INLINE void SetPackingHash(uint64 packingHash)
+    HYP_METHOD(Property = "TexelsPerUnit", Serialize = true, Editor = true, NoSwatchOverride)
+    void SetTexelsPerUnit(float texelsPerUnit);
+
+    /*! \brief TexelsPerUnit the current packing was built with; a different value forces the next bake to repack. */
+    HYP_FORCE_INLINE float GetPackedTexelsPerUnit() const
     {
-        m_packingHash = packingHash;
+        return m_packedTexelsPerUnit;
     }
+
+    /*! \brief World space bounds of everything this volume lights: its own bounds and those of the entities it owns. */
+    BoundingBox GetLightingBounds() const;
+
+    HYP_FORCE_INLINE const BoundingBox& GetCoverageBounds() const
+    {
+        return m_coverageBounds;
+    }
+
+    void SetCoverageBounds(const BoundingBox& coverageBounds);
+
+    /*! \brief First stencil value of this volume's atlas pages, 0 if none could be assigned. Assigned by LightmapSystem. */
+    HYP_FORCE_INLINE uint8 GetStencilBase() const
+    {
+        return m_stencilBase;
+    }
+
+    void SetStencilBase(uint8 stencilBase);
+
+    /*! \brief Stencil value lightmapped pixels in \p atlasIndex write, which LightmapPass tests to route them to this volume's atlas. */
+    HYP_FORCE_INLINE uint8 GetStencilValue(uint16 atlasIndex) const
+    {
+        return m_stencilBase != 0 ? uint8(m_stencilBase + atlasIndex) : 0;
+    }
+
+    /*! \brief Pages that have at least one element packed into them. */
+    uint32 NumUsedAtlases() const;
 
     /*! \brief Add a LightmapElement to this volume. */
     bool AddElement(Vec2u dimensions, LightmapElement*& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
 
+    /*! \brief Pack an entity's rect for EntityShaderData: texel offset + slot in \p outRectOffset, uv scale in texels + atlas size in \p outRectSize.
+     *  Returns false if the element doesn't exist or can't be routed (no stencil value). */
+    bool GetEntityLightmapRect(LightmapElementId elementId, uint32& outRectOffset, uint32& outRectSize, uint8& outStencilValue) const;
+
     /*! \brief Remove all lightmap elements from this volume, except for those which are of types that the \p preserveTextureTypesMask bitmask includes (where each bit = 1<<type) */
     void RemoveAllElements(uint32 preserveTextureTypesMask = 0);
+
+    /*! \brief Replace the packing with one built off the sim thread. Textures must be rebuilt for it afterwards. */
+    void SetPacking(Array<LightmapVolumeAtlas>&& atlases, float packedTexelsPerUnit);
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
@@ -248,11 +297,18 @@ private:
     HYP_FIELD(Property = "Atlases", Serialize, Editor = false, NoSwatchOverride)
     Array<LightmapVolumeAtlas> m_atlases;
 
-    HYP_FIELD(Property = "PackingHash", Serialize, Editor = false, NoSwatchOverride)
-    uint64 m_packingHash = 0;
+    HYP_FIELD(Property = "PackedTexelsPerUnit", Serialize, Editor = false, NoSwatchOverride)
+    float m_packedTexelsPerUnit = 0.0f;
+
+    HYP_FIELD(Property = "CoverageBounds", Serialize, Editor = false, NoSwatchOverride)
+    BoundingBox m_coverageBounds;
 
     HYP_FIELD(Property = "LightmapVolumeId", Editor = false, Serialize, NoSwatchOverride)
     LightmapVolumeId m_id;
+
+    float m_texelsPerUnit = 8.0f;
+
+    uint8 m_stencilBase = 0;
 };
 
 } // namespace Hyperion

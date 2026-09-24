@@ -144,17 +144,14 @@ ScriptObjectResource::~ScriptObjectResource()
 #ifdef HYP_STRATA
     if (strataData.HasValue())
     {
-        if (strataData->context != nullptr)
+        // must resolve/run before the jit is destroyed; destroying a null context is a no-op
+        if (void* destroyFnRaw = Strata::ResolveFunctionPointer(strataData.TryGet(), "__strata_context_destroy"))
         {
-            // must resolve/run before the jit is destroyed
-            if (void* destroyFnRaw = Strata::ResolveFunctionPointer(strataData.TryGet(), "__strata_context_destroy"))
-            {
-                auto destroyFn = (void (*)(void*))destroyFnRaw;
-                destroyFn(strataData->context);
-            }
-
-            strataData->context = nullptr;
+            auto destroyFn = (void (*)(void*))destroyFnRaw;
+            destroyFn(strataData->context);
         }
+
+        strataData->context = nullptr;
 
 #ifdef HYP_STRATA_JIT
         if (strataData->jit)

@@ -35,7 +35,7 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<EnvProbe>&
 {
 }
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources)
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(Span<const Handle<ObjectBase>> sources)
     : TickableEditorTask(),
       m_sources(sources)
 {

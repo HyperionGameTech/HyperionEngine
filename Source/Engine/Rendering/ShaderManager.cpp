@@ -1081,7 +1081,7 @@ public:
 
                 if (entry->shader->IsSaved())
                 {
-                    if (!g_shaderCompiler->IsShaderBundleOutdated(entry->name))
+                    if (!g_shaderCompiler->IsShaderOutdated(*entry->shader))
                     {
                         continue;
                     }
@@ -1139,7 +1139,7 @@ public:
 
             if (!item.newEntry->failedToLoad && item.newEntry->shader->IsSaved())
             {
-                AssertDebug(!g_shaderCompiler->IsShaderBundleOutdated(item.newEntry->name));
+                AssertDebug(!g_shaderCompiler->IsShaderOutdated(*item.newEntry->shader));
             }
         }
 

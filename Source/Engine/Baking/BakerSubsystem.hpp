@@ -74,6 +74,9 @@ private:
         Handle<ObjectBase> obj;
         Baking::BakeLayer* bakeLayer;
         Handle<Baking::BakerBase> baker;
+
+        // bakers gather their scene state when they start, after earlier bakes in the queue have written theirs
+        bool started = false;
     };
 
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override

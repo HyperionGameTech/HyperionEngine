@@ -14,7 +14,11 @@
 #include <Scene/Entity.hpp>
 #include <Scene/LightmapVolume.hpp>
 
+#include <Rendering/StencilMasks.hpp>
+
 #include <Core/Memory/Allocator/ThreadAllocator.hpp>
+
+#include <algorithm>
 
 #include <LightmapSystem.generated.inl>
 
@@ -62,8 +66,16 @@ void LightmapSystem::OnAddedToWorld(World* world)
                 {
                     lmv->SetLightmapVolumeId(AllocateLightmapVolumeId());
                 }
+
+                RegisterVolume(lmv);
             }
         }
+    }
+
+    if (m_volumes.Any())
+    {
+        ResolveVolumeAssignments();
+        AssignStencilValues();
     }
 }
 
@@ -73,12 +85,10 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
 
     LightmapElementComponent& lightmapElementComponent = entity->GetComponent<LightmapElementComponent>();
 
-    Scene* scene = entity->GetScene();
-    Assert(scene != nullptr);
-
-    if (!ResolveVolumeForEntity(*scene, *entity, lightmapElementComponent))
+    // the owning volume may not have entered the world yet; it claims its entities when it does
+    if (!ResolveVolumeForEntity(*entity, lightmapElementComponent))
     {
-        HYP_LOG(Lightmap, Warning, "LightmapElementComponent for Entity {} could not be associated at runtime",
+        HYP_LOG(Lightmap, Debug, "LightmapElementComponent for Entity {} has no lightmap volume to resolve to yet",
                 entity->GetName());
     }
 }
@@ -104,48 +114,67 @@ void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
 }
 
-LightmapVolume* LightmapSystem::ResolveVolume(
-    const Array<LightmapVolume*>& candidateVolumes,
-    const LightmapElementComponent& lightmapElementComponent) const
+void LightmapSystem::RegisterVolume(LightmapVolume* volume)
 {
-    // Assignments are kept sorted by how much of the entity each volume covers, so the first usable one wins.
-    const uint32 numAssignments = lightmapElementComponent.NumLightmapVolumeAssignments();
+    AssertDebug(volume != nullptr);
 
-    for (uint32 i = 0; i < numAssignments; i++)
+    if (!m_volumes.Contains(volume))
     {
-        const LightmapVolumeId lightmapVolumeId = lightmapElementComponent.lightmapVolumeAssignments[i];
+        m_volumes.PushBack(volume);
+    }
+}
 
-        if (!IsIdForAliveLightmapVolume(lightmapVolumeId))
+void LightmapSystem::UnregisterVolume(LightmapVolume* volume)
+{
+    auto it = m_volumes.Find(volume);
+
+    if (it != m_volumes.End())
+    {
+        m_volumes.Erase(it);
+    }
+}
+
+LightmapVolume* LightmapSystem::FindVolume(LightmapVolumeId id) const
+{
+    if (id == InvalidLightmapVolumeId)
+    {
+        return nullptr;
+    }
+
+    for (LightmapVolume* volume : m_volumes)
+    {
+        if (volume->GetLightmapVolumeId() == id)
         {
-            continue;
-        }
-
-        for (LightmapVolume* lightmapVolume : candidateVolumes)
-        {
-            if (lightmapVolume->GetLightmapVolumeId() != lightmapVolumeId)
-            {
-                continue;
-            }
-
-            const LightmapElement* lightmapElement = lightmapVolume->GetElement(lightmapElementComponent.lightmapElementId);
-
-            if (!lightmapElement)
-            {
-                continue;
-            }
-
-            // GetAtlasTexture reads whatever the applied layer put in the field, so a volume with no bake for
-            // the current layer is passed over in favour of the next assignment.
-            if (!lightmapVolume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LightmapVolume::IrradianceTexture).IsValid())
-            {
-                continue;
-            }
-
-            return lightmapVolume;
+            return volume;
         }
     }
 
     return nullptr;
+}
+
+LightmapVolume* LightmapSystem::ResolveVolume(const LightmapElementComponent& lightmapElementComponent) const
+{
+    LightmapVolume* lightmapVolume = FindVolume(lightmapElementComponent.lightmapVolumeId);
+
+    if (!lightmapVolume)
+    {
+        return nullptr;
+    }
+
+    const LightmapElement* lightmapElement = lightmapVolume->GetElement(lightmapElementComponent.lightmapElementId);
+
+    if (!lightmapElement)
+    {
+        return nullptr;
+    }
+
+    // GetAtlasTexture reads whatever the applied layer put in the field, so a layer with no bake falls back to probe lighting.
+    if (!lightmapVolume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LightmapVolume::IrradianceTexture).IsValid())
+    {
+        return nullptr;
+    }
+
+    return lightmapVolume;
 }
 
 bool LightmapSystem::ApplyResolvedVolume(
@@ -170,30 +199,114 @@ bool LightmapSystem::ApplyResolvedVolume(
     return resolvedVolume != nullptr;
 }
 
-Array<LightmapVolume*> LightmapSystem::CollectVolumes(Scene& scene)
+void LightmapSystem::AssignStencilValues()
 {
-    Array<LightmapVolume*> volumes;
+    World* world = GetWorld();
 
-    EntityManager* mgr = scene.GetEntityManager();
-
-    if (!mgr)
+    if (!world)
     {
-        return volumes;
+        return;
     }
 
-    for (auto [lightmapVolume] : mgr->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
+    Array<LightmapVolume*> volumes = m_volumes;
+
+    // ordered by id so the assignment is deterministic
+    std::sort(volumes.Begin(), volumes.End(), [](const LightmapVolume* lhs, const LightmapVolume* rhs)
+        {
+            return uint32(lhs->GetLightmapVolumeId()) < uint32(rhs->GetLightmapVolumeId());
+        });
+
+    struct AssignedRange
     {
-        volumes.PushBack(lightmapVolume);
+        BoundingBox bounds;
+        uint32 first;
+        uint32 count;
+    };
+
+    Array<AssignedRange> assignedRanges;
+    Array<LightmapVolume*> changedVolumes;
+
+    for (LightmapVolume* volume : volumes)
+    {
+        const uint32 numPages = MathUtil::Max(volume->NumUsedAtlases(), 1u);
+        const BoundingBox bounds = volume->GetLightingBounds();
+
+        uint32 stencilBase = 0;
+
+        // only volumes that can shade the same pixels need distinct values
+        for (uint32 candidate = 1; candidate + numPages - 1 <= uint32(LightmapStencilMask); candidate++)
+        {
+            bool collides = false;
+
+            for (const AssignedRange& range : assignedRanges)
+            {
+                if (!bounds.IsValid() || !range.bounds.IsValid() || !bounds.Overlaps(range.bounds))
+                {
+                    continue;
+                }
+
+                if (candidate < range.first + range.count && range.first < candidate + numPages)
+                {
+                    collides = true;
+
+                    break;
+                }
+            }
+
+            if (!collides)
+            {
+                stencilBase = candidate;
+
+                break;
+            }
+        }
+
+        if (stencilBase == 0)
+        {
+            HYP_LOG(Lightmap, Warning, "LightmapVolume '{}' overlaps too many other lightmap volumes to get a stencil value; its entities fall back to probe lighting",
+                volume->GetName());
+        }
+        else
+        {
+            assignedRanges.PushBack(AssignedRange { bounds, stencilBase, numPages });
+        }
+
+        if (volume->GetStencilBase() != uint8(stencilBase))
+        {
+            volume->SetStencilBase(uint8(stencilBase));
+
+            changedVolumes.PushBack(volume);
+        }
     }
 
-    return volumes;
+    if (changedVolumes.Empty())
+    {
+        return;
+    }
+
+    // entities carry their stencil value in their render proxy
+    for (Scene* scene : world->GetScenes())
+    {
+        EntityManager* mgr = scene->GetEntityManager();
+
+        if (!mgr)
+        {
+            continue;
+        }
+
+        for (auto [entity, lightmapElementComponent] : mgr->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
+        {
+            if (changedVolumes.Contains(lightmapElementComponent.lightmapVolume.GetUnsafe()))
+            {
+                entity->SetNeedsRenderProxyUpdate();
+            }
+        }
+    }
 }
 
-bool LightmapSystem::ResolveVolumeForEntity(Scene& scene, Entity& srcEntity, LightmapElementComponent& lightmapElementComponent)
+bool LightmapSystem::ResolveVolumeForEntity(Entity& srcEntity, LightmapElementComponent& lightmapElementComponent)
 {
-    const Array<LightmapVolume*> volumes = CollectVolumes(scene);
-
-    return ApplyResolvedVolume(srcEntity, lightmapElementComponent, ResolveVolume(volumes, lightmapElementComponent));
+    return ApplyResolvedVolume(srcEntity, lightmapElementComponent, ResolveVolume(lightmapElementComponent));
 }
 
 void LightmapSystem::ResolveVolumeAssignments()
@@ -214,12 +327,9 @@ void LightmapSystem::ResolveVolumeAssignments()
             continue;
         }
 
-        // Collected up front so the LightmapVolume entity set isn't scoped while walking the component set.
-        const Array<LightmapVolume*> volumes = CollectVolumes(*scene);
-
         for (auto [entity, lightmapElementComponent] : mgr->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
-            ApplyResolvedVolume(*entity, lightmapElementComponent, ResolveVolume(volumes, lightmapElementComponent));
+            ApplyResolvedVolume(*entity, lightmapElementComponent, ResolveVolume(lightmapElementComponent));
         }
     }
 }

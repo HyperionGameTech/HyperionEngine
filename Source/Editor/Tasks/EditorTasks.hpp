@@ -22,7 +22,7 @@ public:
 
     explicit GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume);
     explicit GenerateLightmapsEditorTask(const Handle<EnvProbe>& probe);
-    explicit GenerateLightmapsEditorTask(const Array<Handle<ObjectBase>>& sources);
+    explicit GenerateLightmapsEditorTask(Span<const Handle<ObjectBase>> sources);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const

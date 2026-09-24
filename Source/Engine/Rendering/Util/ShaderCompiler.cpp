@@ -1857,6 +1857,8 @@ bool ShaderCompiler::HandleBundle(
         return CompileBundle(decl, shaderRequest, inOutBundle);
     }
 
+    Time maxSourceFileLastModified = Time(0);
+
     if (CanCompileShaders())
     {
         // Check that each version specified is present in the ShaderBundle.
@@ -1864,7 +1866,7 @@ bool ShaderCompiler::HandleBundle(
         // since the object file was compiled.
         // if not, we need to recompile those versions.
 
-        const Time maxSourceFileLastModified = GetTransitiveSourcesLastModifiedTimestamp(decl);
+        maxSourceFileLastModified = GetTransitiveSourcesLastModifiedTimestamp(decl);
 
         if (maxSourceFileLastModified > lastSavedTimestamp)
         {
@@ -1878,29 +1880,41 @@ bool ShaderCompiler::HandleBundle(
     }
 
     bool requestedFound = false;
+    bool requestedStale = false;
 
     if (shaderRequest.HasValue())
     {
         {
             Mutex::Guard guard(m_compiledShadersMutex);
 
-            auto requestedIt = inOutBundle->compiledShaders.FindIf(
-                [&](const Handle<Shader>& shader)
+            for (const Handle<Shader>& shader : inOutBundle->compiledShaders)
+            {
+                if (!shader.IsValid() || !SatisfiesRequested(shaderRequest->properties, shaderRequest->inputLayout, *shader, /* matchAllProperties */ true))
                 {
-                    if (!shader.IsValid())
-                    {
-                        return false;
-                    }
+                    continue;
+                }
 
-                    return SatisfiesRequested(
-                        shaderRequest->properties,
-                        shaderRequest->inputLayout,
-                        *shader,
-                        true);
-                    // /* matchAllProperties */ CanCompileShaders());
-                });
+                if (CanCompileShaders() && Time(shader->sourcesTimestamp) < maxSourceFileLastModified)
+                {
+                    requestedStale = true;
 
-            requestedFound = requestedIt != inOutBundle->compiledShaders.End();
+                    continue;
+                }
+
+                requestedFound = true;
+
+                break;
+            }
+        }
+
+        if (!requestedFound && requestedStale)
+        {
+            HYP_LOG(ShaderCompiler, Verbose,
+                    "Variant of bundle {} was compiled from older sources, recompiling. Properties: {}",
+                    *decl.name,
+                    shaderRequest->properties.GetDebugString());
+
+            return CompileBundle(decl, shaderRequest, inOutBundle);
         }
 
         if (!requestedFound)
@@ -2808,6 +2822,8 @@ bool ShaderCompiler::CompileBundle(
         outBundle = MakeHandle<ShaderBundle>(decl.name);
     }
 
+    const uint64 sourcesTimestamp = uint64(GetTransitiveSourcesLastModifiedTimestamp(decl));
+
     Array<LoadedSourceFile> loadedSourceFiles;
     loadedSourceFiles.Resize(decl.sources.Size());
 
@@ -3367,6 +3383,7 @@ bool ShaderCompiler::CompileBundle(
         // Create unique name for base name / permuation hash
         Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, permHashCode.Value()));
         shader->baseName = decl.name;
+        shader->sourcesTimestamp = sourcesTimestamp;
 
         shader->inputLayout = { perm.GetRequiredVertexAttributes().flagMask };
 
@@ -3613,31 +3630,24 @@ bool ShaderCompiler::CompileBundle(
 
             newShaders.Add(shader);
 
-            auto existingIt = outBundle->compiledShaders.FindIf(
-                [name = shader->GetName()](const Handle<Shader>& existing)
+            // Replace every older build of this permutation, not just the one with the same name: the registry
+            // renames a re-created shader (X_1, X_2...) while the old one is still registered, so copies pile up.
+            for (auto existingIt = outBundle->compiledShaders.Begin(); existingIt != outBundle->compiledShaders.End();)
+            {
+                if (existingIt->IsValid()
+                    && ((*existingIt)->GetName() == shader->GetName()
+                        || SatisfiesRequested(shader->properties, shader->inputLayout, **existingIt, /* matchAllProperties */ true)))
                 {
-                    if (!existing.IsValid())
-                    {
-                        return false;
-                    }
+                    existingShadersToRemove.PushBack(std::move(*existingIt));
+                    existingIt = outBundle->compiledShaders.Erase(existingIt);
 
-                    if (existing->GetName() == name)
-                    {
-                        return true;
-                    }
+                    continue;
+                }
 
-                    return false;
-                });
-
-            if (existingIt != outBundle->compiledShaders.End())
-            {
-                existingShadersToRemove.PushBack(std::move(*existingIt));
-                *existingIt = std::move(shader);
+                ++existingIt;
             }
-            else
-            {
-                outBundle->compiledShaders.PushBack(std::move(shader));
-            }
+
+            outBundle->compiledShaders.PushBack(std::move(shader));
         }
     };
 
@@ -3772,17 +3782,15 @@ bool ShaderCompiler::CompileBundle(
                     return true;
                 }
 
-                if (ByteUtil::BitCount(a->inputLayout.mask) < ByteUtil::BitCount(b->inputLayout.mask))
+                const uint32 aBitCount = ByteUtil::BitCount(a->inputLayout.mask);
+                const uint32 bBitCount = ByteUtil::BitCount(b->inputLayout.mask);
+
+                if (aBitCount != bBitCount)
                 {
-                    return false;
+                    return aBitCount > bBitCount;
                 }
 
-                if (std::strcmp(a->GetName().LookupString(), b->GetName().LookupString()) < 0)
-                {
-                    return false;
-                }
-
-                return true;
+                return std::strcmp(a->GetName().LookupString(), b->GetName().LookupString()) > 0;
             });
     }
 
@@ -3831,21 +3839,33 @@ bool ShaderCompiler::RequestShader(
         // prevent derefing a bad Shader
         bundle->compiledShaders = Filter(bundle->compiledShaders, &Handle<Shader>::IsValid);
 
-        auto it = bundle->compiledShaders.FindIf(
-            [&properties, &inputLayout](const Handle<Shader>& shader) -> bool
+        auto findNewest = [&bundle, &properties, &inputLayout](bool matchAllProperties)
+        {
+            auto newestIt = bundle->compiledShaders.End();
+
+            for (auto it = bundle->compiledShaders.Begin(); it != bundle->compiledShaders.End(); ++it)
             {
-                return SatisfiesRequested(properties, inputLayout, *shader, /* matchAllProperties */ true);
-            });
+                if (!SatisfiesRequested(properties, inputLayout, **it, matchAllProperties))
+                {
+                    continue;
+                }
+
+                if (newestIt == bundle->compiledShaders.End() || (*it)->sourcesTimestamp > (*newestIt)->sourcesTimestamp)
+                {
+                    newestIt = it;
+                }
+            }
+
+            return newestIt;
+        };
+
+        auto it = findNewest(/* matchAllProperties */ true);
 
         if (it == bundle->compiledShaders.End()
             && (!CanCompileShaders() && !m_isPrecompilingShaders))
         {
             // try again but this time only match the required properties, not all properties
-            it = bundle->compiledShaders.FindIf(
-                [&properties, &inputLayout](const Handle<Shader>& shader) -> bool
-                {
-                    return SatisfiesRequested(properties, inputLayout, *shader, /* matchAllProperties */ false);
-                });
+            it = findNewest(/* matchAllProperties */ false);
         }
 
         if (it == bundle->compiledShaders.End())
@@ -3937,6 +3957,24 @@ bool ShaderCompiler::IsShaderBundleOutdated(Name name) const
     const Time sourceFileModifiedTimestamp = GetTransitiveSourcesLastModifiedTimestamp(*foundDecl);
 
     return sourceFileModifiedTimestamp > bundleManifestModifiedTimestamp;
+}
+
+bool ShaderCompiler::IsShaderOutdated(const Shader& shader) const
+{
+    if (!CanCompileShaders())
+    {
+        return false;
+    }
+
+    for (const ShaderBundleDecl& decl : m_shaderBundleDecls)
+    {
+        if (decl.name == shader.baseName)
+        {
+            return Time(shader.sourcesTimestamp) < GetTransitiveSourcesLastModifiedTimestamp(decl);
+        }
+    }
+
+    return false;
 }
 
 bool ShaderCompiler::RecompileOutdatedShaderBundles()

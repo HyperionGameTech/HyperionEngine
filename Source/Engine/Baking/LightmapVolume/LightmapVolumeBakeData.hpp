@@ -9,9 +9,9 @@
 #include <Baking/BakeData.hpp>
 #include <Baking/BakerMemory.hpp>
 
-namespace Hyperion {
+#include <Scene/LightmapVolume.hpp>
 
-class LightmapVolume;
+namespace Hyperion {
 
 namespace Baking {
 
@@ -22,15 +22,45 @@ public:
     using ColorBitmap = Bitmap_R11G11B10F;
     using BentNormalBitmap = Bitmap_RGBA8;
 
-    using MeshFloatDataArray = Array<float, BakerAllocator>;
-    using MeshIndexArray = Array<uint32, BakerAllocator>;
+    struct MeshSnapshot
+    {
+        Handle<Mesh> mesh;
+
+        VertexInputLayoutDesc layout;
+        Array<float, BakerAllocator> vertices;
+        Array<uint32, BakerAllocator> indices;
+
+        bool needsUnwrap = false;
+        bool unwrapped = false;
+        bool valid = true;
+
+        Array<uint32, BakerAllocator> triangleCharts;
+        uint32 numCharts = 0;
+
+        Vec2f uvExtent;
+        float uvArea = 0.0f;
+    };
+
+    struct EntityRect
+    {
+        bool valid = false;
+
+        uint16 atlasIndex = 0;
+        uint16 elementIndex = 0;
+
+        Vec2u offsetCoords;
+        Vec2u dimensions;
+
+        Vec2f offsetUV;
+        Vec2f scale;
+    };
 
     BakeData()
-        : m_volume(nullptr)
+        : m_texelsPerUnit(0.0f)
     {
     }
 
-    BakeData(Span<const BakeEntity> bakeEntities, LightmapVolume* volume, bool reuseExistingPacking = false);
+    BakeData(Span<const BakeEntity> bakeEntities, float texelsPerUnit);
 
     BakeData(const BakeData& other) = default;
     BakeData(BakeData&& other) noexcept = default;
@@ -40,26 +70,41 @@ public:
 
     ~BakeData() override = default;
 
-    HYP_FORCE_INLINE Span<BakeMeshData> GetMeshData()
-    {
-        return m_meshData;
-    }
-
-    HYP_FORCE_INLINE Span<const BakeMeshData> GetMeshData() const
-    {
-        return m_meshData;
-    }
-
-    virtual Result Build() override;
+    void UseExistingPacking(const LightmapVolume& volume, Array<EntityRect, BakerAllocator>&& entityRects);
 
     HYP_FORCE_INLINE bool IsReusingExistingPacking() const
     {
         return m_reuseExistingPacking;
     }
 
+    bool AnyMeshNeedsUnwrap() const;
+
+    virtual Result Build() override;
+
     HYP_FORCE_INLINE uint32 GetAtlasCount() const
     {
-        return atlasCount;
+        return m_atlasCount;
+    }
+
+    HYP_FORCE_INLINE Span<const MeshSnapshot> GetMeshSnapshots() const
+    {
+        return m_meshes;
+    }
+
+    HYP_FORCE_INLINE const MeshSnapshot& GetMeshSnapshotForEntity(uint32 entityIndex) const
+    {
+        return m_meshes[m_entityMeshIndices[entityIndex]];
+    }
+
+    HYP_FORCE_INLINE Span<const EntityRect> GetEntityRects() const
+    {
+        return m_entityRects;
+    }
+
+    /*! \brief The packing built by Build() when not reusing the existing one. */
+    HYP_FORCE_INLINE Array<LightmapVolumeAtlas>& GetPackedAtlases()
+    {
+        return m_packedAtlases;
     }
 
     void Blur();
@@ -69,30 +114,27 @@ public:
     BentNormalBitmap ToBitmapBentNormal(uint32 atlasIndex) const;
 
 private:
-    LightmapVolume* m_volume;
+    Result UnwrapMesh(MeshSnapshot& meshSnapshot) const;
+    void ComputeMeshCharts(MeshSnapshot& meshSnapshot) const;
 
-    Array<BakeMeshData, BakerAllocator> m_meshData;
+    Result PackEntities();
+
+    void RasterizeEntity(uint32 entityIndex, uint32 chartBase);
+
+    Array<MeshSnapshot, BakerAllocator> m_meshes;
+    Array<uint32, BakerAllocator> m_entityMeshIndices;
+
+    Array<EntityRect, BakerAllocator> m_entityRects;
+    Array<LightmapVolumeAtlas> m_packedAtlases;
 
     Array<LightmapRay, BakerAllocator> m_rays;
 
-    // Per element mesh data used for building the UV map
-    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexPositions;
-    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexNormals;
-    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexUvs;
-    Array<MeshFloatDataArray, BakerAllocator> m_meshVertexLightmapUvs;
-    Array<MeshIndexArray, BakerAllocator> m_meshIndices;
-    Array<uint32, BakerAllocator> m_meshAtlasIndices;
+    float m_texelsPerUnit;
 
-    // Rebake onto the packing and UV1 the meshes already carry, rather than unwrapping and repacking.
     bool m_reuseExistingPacking = false;
 
-    // Snapshotted on the sim thread so Build() doesn't have to read the volume off the task thread.
-    Vec2u m_existingAtlasDimensions {};
-    uint32 m_numExistingAtlases = 0;
-
-    Result BuildFromExistingUVs();
-
-    uint32 atlasCount = 1;
+    Vec2u m_atlasDimensions = LightmapVolume::DefaultAtlasDimensions;
+    uint32 m_atlasCount = 0;
 };
 
 } // namespace Baking

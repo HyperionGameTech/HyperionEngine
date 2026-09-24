@@ -38,15 +38,18 @@ public:
 
     void Wait(int32 waitForValue = 1)
     {
+        Mutex::Guard guard(m_mutex);
+
         while (AtomicAdd(&m_value, 0) < waitForValue)
         {
-            Mutex::Guard guard(m_mutex);
             m_conditionVariable.Wait(m_mutex);
         }
     }
 
     void WaitAndReset(int32 minValue = 1)
     {
+        Mutex::Guard guard(m_mutex);
+
         while (true)
         {
             int32 currentValue = AtomicAdd(&m_value, 0);
@@ -56,9 +59,10 @@ public:
                 {
                     return;
                 }
+
+                continue;
             }
 
-            Mutex::Guard guard(m_mutex);
             m_conditionVariable.Wait(m_mutex);
         }
     }

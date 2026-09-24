@@ -567,35 +567,18 @@ static bool InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
 
         if (void* fnPtrRaw = Strata::ResolveFunctionPointer(data, methodName))
         {
-            if (data->context != nullptr)
+            // every Strata function takes the module context first (null when the script has no globals)
+            auto fnPtrCasted = (ReturnType (*)(void*, ArgTypes...))fnPtrRaw;
+
+            if constexpr (!std::is_void_v<ReturnType>)
             {
-                auto fnPtrCasted = (ReturnType (*)(void*, ArgTypes...))fnPtrRaw;
+                AssertDebug(outReturnValue != nullptr);
 
-                if constexpr (!std::is_void_v<ReturnType>)
-                {
-                    AssertDebug(outReturnValue != nullptr);
-
-                    new (outReturnValue) ReturnType(fnPtrCasted(data->context, args...));
-                }
-                else
-                {
-                    fnPtrCasted(data->context, args...);
-                }
+                new (outReturnValue) ReturnType(fnPtrCasted(data->context, args...));
             }
             else
             {
-                auto fnPtrCasted = (ReturnType (*)(ArgTypes...))fnPtrRaw;
-
-                if constexpr (!std::is_void_v<ReturnType>)
-                {
-                    AssertDebug(outReturnValue != nullptr);
-
-                    new (outReturnValue) ReturnType(fnPtrCasted(args...));
-                }
-                else
-                {
-                    fnPtrCasted(args...);
-                }
+                fnPtrCasted(data->context, args...);
             }
         }
     }

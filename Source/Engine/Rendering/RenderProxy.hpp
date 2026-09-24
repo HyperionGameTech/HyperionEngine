@@ -129,12 +129,12 @@ struct EntityShaderData
     Vec3f worldAabbMin;
 
     uint32 entityIndex = ~0u;
-    uint32 lightmapVolumeIndex = ~0u;
+    uint32 lightmapRectOffset = 0;
     uint32 materialIndex = ~0u;
     uint32 skeletonIndex = ~0u;
 
     uint32 bucket;
-    uint32 flags;
+    uint32 lightmapRectSize = 0;
 
     float lodMorphStart = 0.0f;
     float lodMorphEnd = 0.0f;
@@ -169,7 +169,7 @@ struct RenderProxyMesh final : IRenderProxy
     uint32 numInstances = 0;
 
     LightmapVolume* lightmapVolume = nullptr;
-    LightmapElementId lightmapElementId = LightmapElementId(~0u);
+    uint8 lightmapStencilValue = 0;
 
     RenderableAttributeSet attributes;
 
@@ -292,6 +292,7 @@ struct RenderProxyLightmapVolume : IRenderProxy
     FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasIrradianceTextures {};
     FixedArray<Texture*, MaxAtlasesPerLightmapVolume> atlasBentNormalTextures {};
     uint32 numAtlases = 0;
+    uint8 stencilBase = 0;
 
     Mat4f transformMatrix;
     BoundingBox worldAabb;

@@ -137,11 +137,16 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     cr << SetCurrentBlendFunction(BlendFunction::Additive());
 
+    cr << SetStencilTest(true);
+    cr << SetStencilFunction(StencilFunction { StencilOp::Keep, StencilOp::Keep, StencilOp::Keep, StencilCompareOp::Equal });
+
     HYP_DEFER({
         // reset states
         cr << SetCurrentBlendFunction(BlendFunction::None());
         cr << SetDepthWrite(true);
         cr << SetDepthTest(true);
+        cr << SetStencilState(0, 0xFF, 0x0);
+        cr << SetStencilTest(false);
     });
 
     uint32 numShaderUniforms = 0;
@@ -189,16 +194,21 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(lmv));
         Assert(proxy != nullptr);
 
-        if (proxy->numAtlases == 0)
+        if (proxy->numAtlases == 0 || proxy->stencilBase == 0 || !proxy->worldAabb.IsValid())
         {
             continue; // nothing to do
         }
 
-        LightmapVolumePassData& data = GetLightmapVolumePassData(lmv);
-
         for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
         {
             Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
+
+            if (!irradianceTexture)
+            {
+                continue;
+            }
+
+            cr << SetStencilState(uint8(proxy->stencilBase + atlasIndex), LightmapStencilMask, 0x0);
 
             LightmapVolumeUniforms uniforms {};
             uniforms.transformMatrix = proxy->transformMatrix;
@@ -228,9 +238,6 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             cr << DrawIndexed(36); // draw cube
         }
     }
-
-    // reset stencil state back to default
-    cr << SetStencilState(0, 0xFF, 0x0);
 
     m_isFirstFrame = false;
 }

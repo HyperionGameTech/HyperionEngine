@@ -2,8 +2,80 @@
 
 #include <Core/Threading/Threads.hpp>
 
+#include <Core/Utilities/ByteUtil.hpp>
+
+#include <Core/Math/MathUtil.hpp>
+
+#ifdef HYP_WINDOWS
+#include <Windows.h>
+#endif
+
 namespace Hyperion {
 namespace memory {
+
+#pragma region Guard pages
+
+#ifdef HYP_WINDOWS
+
+static size_t GetPageSize()
+{
+    static const size_t pageSize = []()
+    {
+        SYSTEM_INFO systemInfo;
+        GetSystemInfo(&systemInfo);
+
+        return size_t(systemInfo.dwPageSize);
+    }();
+
+    return pageSize;
+}
+
+static void* AllocateWithGuardPage(size_t size, size_t alignment)
+{
+    const size_t pageSize = GetPageSize();
+
+    alignment = MathUtil::Max(alignment, size_t(1));
+    Assert(alignment <= pageSize, "Guard page allocations cannot be aligned to more than a page ({} > {})", alignment, pageSize);
+
+    const size_t alignedSize = ByteUtil::AlignAs(MathUtil::Max(size, size_t(1)), uint32(alignment));
+    const size_t dataSize = ByteUtil::AlignAs(alignedSize, uint32(pageSize));
+
+    ubyte* base = static_cast<ubyte*>(VirtualAlloc(nullptr, dataSize + pageSize, MEM_RESERVE, PAGE_NOACCESS));
+    Assert(base != nullptr, "Failed to reserve {} bytes for a guard page allocation", dataSize + pageSize);
+
+    void* committed = VirtualAlloc(base, dataSize, MEM_COMMIT, PAGE_READWRITE);
+    Assert(committed != nullptr, "Failed to commit {} bytes for a guard page allocation", dataSize);
+
+    return base + dataSize - alignedSize;
+}
+
+static void FreeWithGuardPage(void* ptr)
+{
+    MEMORY_BASIC_INFORMATION memoryInfo;
+
+    if (VirtualQuery(ptr, &memoryInfo, sizeof(memoryInfo)) == 0)
+    {
+        return;
+    }
+
+    VirtualFree(memoryInfo.AllocationBase, 0, MEM_DECOMMIT);
+}
+
+#else
+
+static void* AllocateWithGuardPage(size_t size, size_t alignment)
+{
+    return Memory::AllocateAligned(size, alignment);
+}
+
+static void FreeWithGuardPage(void* ptr)
+{
+    Memory::FreeAligned(ptr);
+}
+
+#endif
+
+#pragma endregion Guard pages
 
 #pragma region Block
 
@@ -38,7 +110,13 @@ HYP_NODISCARD void* Pool::Allocate(size_t size, size_t alignment)
     
     void* p = nullptr;
 
-    if ((m_flags & PF_FALLBACK) && size > m_blockSize)
+    if (m_flags & PF_DEBUG_GUARD_PAGES)
+    {
+        p = AllocateWithGuardPage(size, alignment);
+
+        m_fallbackAllocations.Insert(p, size);
+    }
+    else if ((m_flags & PF_FALLBACK) && size > m_blockSize)
     {
         p = Memory::AllocateAligned(size, alignment);
         Assert(p != nullptr, "Failed to allocate {} bytes from the system allocator (fallback)", size);
@@ -100,7 +178,14 @@ void Pool::Free(void* ptr)
         AssertOnThread(m_ownerThreadId, "Freeing from wrong thread!");
     }
 
-    if ((m_flags & PF_FALLBACK) && m_fallbackAllocations.Erase(ptr))
+    if (m_flags & PF_DEBUG_GUARD_PAGES)
+    {
+        const bool wasAllocated = m_fallbackAllocations.Erase(ptr);
+        Assert(wasAllocated, "Freeing a pointer which was not allocated by this pool, or was already freed");
+
+        FreeWithGuardPage(ptr);
+    }
+    else if ((m_flags & PF_FALLBACK) && m_fallbackAllocations.Erase(ptr))
     {
         Memory::FreeAligned(ptr);
     }
@@ -135,7 +220,14 @@ void Pool::Reset()
 
     for (const auto& it : m_fallbackAllocations)
     {
-        Memory::FreeAligned(it.first);
+        if (m_flags & PF_DEBUG_GUARD_PAGES)
+        {
+            FreeWithGuardPage(it.first);
+        }
+        else
+        {
+            Memory::FreeAligned(it.first);
+        }
     }
 
     m_fallbackAllocations.Clear();

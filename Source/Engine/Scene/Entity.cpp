@@ -15,6 +15,7 @@
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/EntityTag.hpp>
+#include <Scene/LightmapVolume.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 
 #include <Core/Utilities/GlobalContext.hpp>
@@ -841,15 +842,28 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->enableAutoInstancing = meshComponent.enableAutoInstancing;
     proxy->attributes = RenderableAttributeSet(meshComponent.mesh->GetMeshAttributes(), meshComponent.material->GetAttributes());
 
+    proxy->lightmapVolume = nullptr;
+    proxy->lightmapStencilValue = 0;
+    proxy->bufferData.lightmapRectOffset = 0;
+    proxy->bufferData.lightmapRectSize = 0;
+
     if (lightmapElementComponent != nullptr)
     {
-        proxy->lightmapVolume = lightmapElementComponent->lightmapVolume.GetUnsafe();
-        proxy->lightmapElementId = lightmapElementComponent->lightmapElementId;
-    }
-    else
-    {
-        proxy->lightmapVolume = nullptr;
-        proxy->lightmapElementId = Invalid<LightmapElementId>;
+        const Handle<LightmapVolume> lightmapVolume = lightmapElementComponent->lightmapVolume.Lock();
+
+        if (lightmapVolume.IsValid()
+            && meshComponent.mesh->GetLightmapUVDataHash() != 0
+            && meshComponent.mesh->GetLightmapUVDataHash() == lightmapElementComponent->meshLightmapUVHash
+            && (meshComponent.mesh->GetMeshAttributes().inputLayout.mask & VT_UV1))
+        {
+            uint8 stencilValue = 0;
+
+            if (lightmapVolume->GetEntityLightmapRect(lightmapElementComponent->lightmapElementId, proxy->bufferData.lightmapRectOffset, proxy->bufferData.lightmapRectSize, stencilValue))
+            {
+                proxy->lightmapVolume = lightmapVolume.Get();
+                proxy->lightmapStencilValue = stencilValue;
+            }
+        }
     }
 
     Mat4f transformMatrix = transformComponent.GetMatrix();

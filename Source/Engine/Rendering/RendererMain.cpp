@@ -234,25 +234,6 @@ static StaticShaderPropertyId s_propHasRoughnessMap { ShaderProperty(s_nameHasRo
 
 } // namespace Props
 
-// Get the stencil reference value to set for a lightmapped object,
-// based on its associated atlas index.
-static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmapElementId)
-{
-    if (lightmapElementId == InvalidLightmapElementId)
-    {
-        return 0; // invalid element
-    }
-
-    uint16 atlasIndex = 0;
-    uint16 elementIndex = 0;
-    LightmapElement::GetAtlasAndElementIndex(lightmapElementId, atlasIndex, elementIndex);
-
-    uint8 value = 0;
-    value |= ((atlasIndex + 1) & LightmapStencilMask);
-
-    return value;
-}
-
 /// Set attributes, used to decide what shader variant + pipeline to use for rendering the given proxy.
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
@@ -295,7 +276,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const RenderBucket bucket = mas.bucket;
 
     const bool hasForwardLighting = (bucket == RenderBucket::Translucent || bucket == RenderBucket::Sky || bucket == RenderBucket::Debug);
-    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvLightmapVolumes.Get();
+    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvLightmapVolumes.Get() && proxy.lightmapStencilValue != 0;
     const bool isSky = (bucket == RenderBucket::Sky);
     const bool isDebug = (bucket == RenderBucket::Debug);
 
@@ -331,8 +312,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     }
     else if (hasLightmaps && !isPathTracer)
     {
-        // if lightmap volume is set we need stencil testing
-        stencilReferenceValue = GetLightmapStencilValue(proxy.lightmapElementId) & LightmapStencilMask;
+        stencilReferenceValue = proxy.lightmapStencilValue & LightmapStencilMask;
     }
     else if (mas.stencilReference & LightmapStencilMask)
     {
@@ -948,18 +928,22 @@ static void SetForwardShadingConstants(
 
     if (shaderProperties.Test(s_propApplyLightmaps))
     {
-        struct LightmapVolumeData
+        static constexpr uint32 MaxCaptureLightmapPages = 4;
+
+        struct LightmapPageData
         {
-            Vec4f aabbMin;
-            Vec4f aabbMax;
+            uint32 stencilValue;
+            uint32 _pad0;
+            uint32 _pad1;
+            uint32 _pad2;
         };
 
         struct ApplyLightmapsConstants
         {
-            LightmapVolumeData lightmapVolumes[MaxLightmapVolumeAssignments];
-            uint32 numLightmapVolumes;
+            LightmapPageData lightmapPages[MaxCaptureLightmapPages];
+            uint32 numLightmapPages;
         };
-        
+
         ApplyLightmapsConstants* applyLightmapsConstants = (ApplyLightmapsConstants*)RI.cbufferAllocator->Allocate(
             sizeof(ApplyLightmapsConstants),
             alignof(ApplyLightmapsConstants),
@@ -969,30 +953,36 @@ static void SetForwardShadingConstants(
         Assert(applyLightmapsConstants != nullptr);
         Memory::Zero(applyLightmapsConstants, sizeof(ApplyLightmapsConstants));
 
-        Texture* lightmapVolumeIrradianceTextures[MaxLightmapVolumeAssignments] = {};
+        Texture* lightmapVolumeIrradianceTextures[MaxCaptureLightmapPages] = {};
 
         for (LightmapVolume* lmv : rpl.GetLightmapVolumes())
         {
-            if (applyLightmapsConstants->numLightmapVolumes >= MaxLightmapVolumeAssignments)
-            {
-                break;
-            }
-
             RenderProxyLightmapVolume* lmvProxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(lmv));
             Assert(lmvProxy != nullptr);
 
-            if (lmvProxy->numAtlases == 0 || lmvProxy->atlasIrradianceTextures[0] == nullptr)
+            if (lmvProxy->stencilBase == 0)
             {
                 continue;
             }
 
-            const uint32 volumeIndex = applyLightmapsConstants->numLightmapVolumes++;
+            for (uint32 atlasIndex = 0; atlasIndex < lmvProxy->numAtlases; atlasIndex++)
+            {
+                if (applyLightmapsConstants->numLightmapPages >= MaxCaptureLightmapPages)
+                {
+                    break;
+                }
 
-            LightmapVolumeData& volumeData = applyLightmapsConstants->lightmapVolumes[volumeIndex];
-            volumeData.aabbMin = Vec4f(lmvProxy->worldAabb.min, 1.0f);
-            volumeData.aabbMax = Vec4f(lmvProxy->worldAabb.max, 1.0f);
+                if (lmvProxy->atlasIrradianceTextures[atlasIndex] == nullptr)
+                {
+                    continue;
+                }
 
-            lightmapVolumeIrradianceTextures[volumeIndex] = lmvProxy->atlasIrradianceTextures[0];
+                const uint32 pageIndex = applyLightmapsConstants->numLightmapPages++;
+
+                applyLightmapsConstants->lightmapPages[pageIndex].stencilValue = uint32(lmvProxy->stencilBase) + atlasIndex;
+
+                lightmapVolumeIrradianceTextures[pageIndex] = lmvProxy->atlasIrradianceTextures[atlasIndex];
+            }
         }
 
         cr << SetShaderUniform(

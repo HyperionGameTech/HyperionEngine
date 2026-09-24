@@ -29,7 +29,8 @@ enum PoolFlags : uint32
 {
     PF_NONE = AF_NONE,
     PF_THREAD_SAFE = AF_THREAD_SAFE,
-    PF_FALLBACK = 2, //!< Fallback to system memory allocator if an allocation fails (larger than block size)
+    PF_FALLBACK = 2,            //!< Fallback to system memory allocator if an allocation fails (larger than block size)
+    PF_DEBUG_GUARD_PAGES = 4,   //!< Debug only
 
     PF_DEFAULT = PF_THREAD_SAFE
 };

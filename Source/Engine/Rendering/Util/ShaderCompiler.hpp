@@ -727,10 +727,9 @@ public:
 #if HYP_ENABLE_SHADER_RELOAD
     bool IsShaderBundleOutdated(Name name) const;
 
-    /*! \brief Check all shader bundles for outdated sources (including transitively
-        #included files) and recompile them with precompile semantics (all enabled
-        target platforms / backends, no render-thread interaction).
-        \return True if all outdated bundles were compiled successfully. */
+    bool IsShaderOutdated(const Shader& shader) const;
+
+    /*! \brief Check all shader bundles for outdated sources and recompile them */
     bool RecompileOutdatedShaderBundles();
 #endif
 

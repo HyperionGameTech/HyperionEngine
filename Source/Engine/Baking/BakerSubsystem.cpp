@@ -105,7 +105,21 @@ void BakerSubsystem::Update(float delta)
         BakeLayer& bakeLayer = *bs.bakeLayer;
         BakerBase* baker = bs.baker;
 
-        baker->Update(delta);
+        bool justStarted = false;
+
+        if (!bs.started)
+        {
+            // e.g. which volume owns an entity, and the mesh data another volume's bake just rewrote
+            bs.started = true;
+            justStarted = true;
+
+            baker->Initialize();
+        }
+
+        if (!justStarted)
+        {
+            baker->Update(delta);
+        }
 
         if (baker->IsComplete())
         {
@@ -239,10 +253,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(
     baker->OnComplete.Bind(fulfillPromise).Detach();
     baker->OnCancelled.Bind(fulfillPromise).Detach();
 
-    baker->Initialize();
-    
-    GetWorld()->ProcessViewAsync(baker->GetView());
-
+    // Initialize() waits until the bake reaches the front of the queue, see Update()
     m_bakes.PushBack(ObjectBakeState { source, &bakeLayer, std::move(baker) });
 
     return task;

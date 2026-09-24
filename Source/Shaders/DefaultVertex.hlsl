@@ -153,7 +153,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.camera_position = camera.position.xyz;
 
 #ifdef VT_UV1
-    output.texcoord1 = float2(input.a_texcoord1.x, 1.0 - input.a_texcoord1.y);
+    output.texcoord1 = GetLightmapAtlasUV(currentEntity, input.a_texcoord1);
 #else // !VT_UV1
     output.texcoord1 = float2(0.0, 0.0);
 #endif // VT_UV1

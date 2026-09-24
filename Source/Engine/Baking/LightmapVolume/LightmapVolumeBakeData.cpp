@@ -2,7 +2,7 @@
  *  @author: The Hyperion Contributors
  *  @date 2016-2026
  *  @licence MIT
- */
+*/
 
 #include <HyperionPch.hpp>
 
@@ -13,6 +13,11 @@
 
 #include <Scene/LightmapVolume.hpp>
 
+#include <Core/Utilities/DeferredScope.hpp>
+
+#include <algorithm>
+#include <cmath>
+
 #ifdef HYP_XATLAS
 #include <xatlas.h>
 #endif
@@ -21,626 +26,812 @@ namespace Hyperion {
 
 namespace Baking {
 
-BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, LightmapVolume* volume, bool reuseExistingPacking)
-    : BakeDataBase(bakeEntities),
-      m_volume(volume),
-      m_meshVertexPositions(bakeEntities.Size()),
-      m_meshVertexNormals(bakeEntities.Size()),
-      m_meshVertexUvs(bakeEntities.Size()),
-      m_meshVertexLightmapUvs(bakeEntities.Size()),
-      m_meshIndices(bakeEntities.Size()),
-      m_meshAtlasIndices(bakeEntities.Size()),
-      m_reuseExistingPacking(reuseExistingPacking)
+static constexpr float UnwrapNominalResolution = 128.0f;
+static constexpr uint32 UnwrapPadding = 2;
+
+static constexpr uint32 RectGutter = 1;
+
+static constexpr float MinRectScaleTexels = 4.0f;
+
+static constexpr float TargetAtlasOccupancy = 0.8f;
+
+static constexpr uint32 MaxPackAttempts = 24;
+
+static constexpr uint32 InvalidChartId = ~0u;
+
+static size_t GetPacketOffset(VertexInputLayoutDesc layout, uint8 packetType)
 {
-    if (m_reuseExistingPacking && volume)
+    size_t offset = 0;
+
+    FOR_EACH_BIT(layout.mask, bit)
     {
-        Span<LightmapVolumeAtlas> atlases = volume->GetAtlases();
+        const uint8 type = uint8(1u << bit);
 
-        m_numExistingAtlases = uint32(atlases.Size());
-
-        if (m_numExistingAtlases > 0)
+        if (type == packetType)
         {
-            m_existingAtlasDimensions = atlases[0].atlasDimensions;
+            return offset;
         }
+
+        offset += VertexUtils::PacketSize(VertexType(type));
     }
 
-    // Output mesh data - this will be where we output the computed UVs to be used for tracing
-    m_meshData.Resize(bakeEntities.Size());
+    return ~size_t(0);
+}
 
-    for (size_t i = 0; i < bakeEntities.Size(); i++)
+// Copies every packet the two layouts share and zeroes the rest, so unwrapping keeps skinning data and the like
+static void ConvertVertex(const ubyte* src, VertexInputLayoutDesc srcLayout, ubyte* dst, VertexInputLayoutDesc dstLayout)
+{
+    size_t dstOffset = 0;
+
+    FOR_EACH_BIT(dstLayout.mask, bit)
     {
-        const BakeEntity& bakeEntity = bakeEntities[i];
+        const uint8 type = uint8(1u << bit);
+        const size_t packetSize = VertexUtils::PacketSize(VertexType(type));
 
-        BakeMeshData& bakeMesh = m_meshData[i];
-
-        if (!bakeEntity.mesh)
+        if (srcLayout.mask & type)
         {
-            HYP_LOG(Lightmap, Warning, "Sub-element {} has no mesh, skipping", i);
+            Memory::Copy(dst + dstOffset, src + GetPacketOffset(srcLayout, type), packetSize);
+        }
+        else
+        {
+            Memory::Zero(dst + dstOffset, packetSize);
+        }
+
+        dstOffset += packetSize;
+    }
+}
+
+static Vec3f ReadPosition(const ubyte* vertexBytes, size_t vertexSize, size_t positionOffset, uint32 vertexIndex)
+{
+    return reinterpret_cast<const TVertexPacket<VT_Position>*>(vertexBytes + vertexIndex * vertexSize + positionOffset)->GetPosition();
+}
+
+static Vec2f ReadUV1(const ubyte* vertexBytes, size_t vertexSize, size_t uv1Offset, uint32 vertexIndex)
+{
+    return reinterpret_cast<const TVertexPacket<VT_UV1>*>(vertexBytes + vertexIndex * vertexSize + uv1Offset)->GetUV1();
+}
+
+#pragma region BakeData<LightmapVolume>
+
+BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, float texelsPerUnit)
+    : BakeDataBase(bakeEntities),
+      m_texelsPerUnit(texelsPerUnit)
+{
+    m_entityMeshIndices.Resize(bakeEntities.Size());
+    m_entityRects.Resize(bakeEntities.Size());
+
+    Map<ObjId<Mesh>, uint32> meshSnapshotIndices;
+
+    for (size_t entityIndex = 0; entityIndex < bakeEntities.Size(); entityIndex++)
+    {
+        const Handle<Mesh>& mesh = bakeEntities[entityIndex].mesh;
+        Assert(mesh.IsValid());
+
+        auto meshSnapshotIt = meshSnapshotIndices.Find(mesh->Id());
+
+        if (meshSnapshotIt != meshSnapshotIndices.End())
+        {
+            m_entityMeshIndices[entityIndex] = meshSnapshotIt->second;
 
             continue;
         }
 
-        const Handle<Mesh>& mesh = bakeEntity.mesh;
+        const uint32 meshSnapshotIndex = uint32(m_meshes.Size());
 
-        auto resGuard = mesh->GetReadScope();
+        meshSnapshotIndices.Set(mesh->Id(), meshSnapshotIndex);
+        m_entityMeshIndices[entityIndex] = meshSnapshotIndex;
 
-        if (!resGuard)
+        MeshSnapshot& meshSnapshot = m_meshes.EmplaceBack();
+        meshSnapshot.mesh = mesh;
+
+        auto readScope = mesh->GetReadScope();
+
+        if (!readScope)
         {
-            return;
-        }
+            meshSnapshot.valid = false;
 
-        const MeshDesc& meshDesc = mesh->GetMeshDesc();
+            continue;
+        }
 
         const VertexArrayView vertexData = mesh->GetVertexData(0);
         const Span<const ubyte> indexData = mesh->GetIndexData(0);
 
-        bakeMesh.mesh = bakeEntity.mesh;
-        bakeMesh.material = bakeEntity.material;
-        bakeMesh.transformMatrix = bakeEntity.transformMatrix;
+        const size_t indexSize = GpuElemTypeSize(mesh->GetMeshAttributes().indexBufferElemType);
 
-        m_meshVertexPositions[i].Resize(vertexData.vertexCount * 3);
-        m_meshVertexNormals[i].Resize(vertexData.vertexCount * 3);
-        m_meshVertexUvs[i].Resize(vertexData.vertexCount * 2);
-
-        m_meshAtlasIndices[i] = bakeEntity.lightmapAtlasIndex;
-
-        const bool hasLightmapUvs = (vertexData.layoutDesc.mask & VT_UV1) != 0;
-
-        if (m_reuseExistingPacking)
+        if (!vertexData.floatData || vertexData.vertexCount == 0 || indexData.Size() == 0 || indexSize == 0 || indexSize > sizeof(uint32))
         {
-            if (!hasLightmapUvs)
-            {
-                HYP_LOG(Lightmap, Warning, "Mesh '{}' has no lightmap UVs; it cannot be rebaked onto an existing packing", mesh->GetName());
+            HYP_LOG(Lightmap, Warning, "Mesh '{}' has no usable LOD 0 data; skipping it for lightmapping", mesh->GetName());
 
-                continue;
-            }
+            meshSnapshot.valid = false;
 
-            m_meshVertexLightmapUvs[i].Resize(vertexData.vertexCount * 2);
-        }
-
-        const size_t indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
-        const size_t numIndices = indexData.Size() / indexSize;
-
-        m_meshIndices[i].Resize(numIndices);
-
-        if (indexSize == sizeof(uint32))
-        {
-            Memory::Copy(m_meshIndices[i].Data(), indexData.Data(), m_meshIndices[i].ByteSize());
-        }
-        else
-        {
-            for (size_t j = 0; j < numIndices * indexSize; j += indexSize)
-            {
-                Memory::Copy(&m_meshIndices[i][j / indexSize], indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
-            }
-        }
-
-        const Mat4f modelMatrix = bakeEntity.transformMatrix;
-        const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
-
-        const size_t vertexSizeInFloats = vertexData.layoutDesc.VertexSize() / sizeof(float);
-
-        for (size_t vertexIndex = 0; vertexIndex < vertexData.vertexCount; vertexIndex++)
-        {
-            const float* srcVertexOffset = vertexData.floatData + (vertexIndex * vertexSizeInFloats);
-
-            size_t offset = 0;
-
-            Vec3f position;
-            Vec3f normal;
-            Vec2f uv0;
-
-            if (vertexData.layoutDesc.mask & VT_Position)
-            {
-                const TVertexPacket<VT_Position>* packet = reinterpret_cast<const TVertexPacket<VT_Position>*>(srcVertexOffset + offset);
-                position = modelMatrix.TransformVector(packet->GetPosition());
-
-                offset += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
-            }
-
-            if (vertexData.layoutDesc.mask & VT_Normal)
-            {
-                const TVertexPacket<VT_Normal>* packet = reinterpret_cast<const TVertexPacket<VT_Normal>*>(srcVertexOffset + offset);
-                normal = (normalMatrix.TransformVector(Vec4f(packet->GetNormal(), 0.0f))).GetXYZ().Normalize();
-
-                offset += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
-            }
-
-            if (vertexData.layoutDesc.mask & VT_UV0)
-            {
-                const TVertexPacket<VT_UV0>* packet = reinterpret_cast<const TVertexPacket<VT_UV0>*>(srcVertexOffset + offset);
-                uv0 = packet->GetUV0();
-
-                offset += sizeof(TVertexPacket<VT_UV0>) / sizeof(float);
-            }
-
-            if (m_reuseExistingPacking && hasLightmapUvs)
-            {
-                const TVertexPacket<VT_UV1>* packet = reinterpret_cast<const TVertexPacket<VT_UV1>*>(srcVertexOffset + offset);
-                const Vec2f uv1 = packet->GetUV1();
-
-                m_meshVertexLightmapUvs[i][vertexIndex * 2] = uv1.x;
-                m_meshVertexLightmapUvs[i][vertexIndex * 2 + 1] = uv1.y;
-            }
-
-            m_meshVertexPositions[i][vertexIndex * 3] = position.x;
-            m_meshVertexPositions[i][vertexIndex * 3 + 1] = position.y;
-            m_meshVertexPositions[i][vertexIndex * 3 + 2] = position.z;
-
-            m_meshVertexNormals[i][vertexIndex * 3] = normal.x;
-            m_meshVertexNormals[i][vertexIndex * 3 + 1] = normal.y;
-            m_meshVertexNormals[i][vertexIndex * 3 + 2] = normal.z;
-
-            m_meshVertexUvs[i][vertexIndex * 2] = uv0.x;
-            m_meshVertexUvs[i][vertexIndex * 2 + 1] = uv0.y;
-        }
-    }
-}
-
-Result BakeData<LightmapVolume>::BuildFromExistingUVs()
-{
-    if (m_numExistingAtlases == 0 || m_existingAtlasDimensions.x == 0 || m_existingAtlasDimensions.y == 0)
-    {
-        return HYP_MAKE_ERROR(Error, "Volume has no packing to rebake onto");
-    }
-
-    const Vec2u atlasDimensions = m_existingAtlasDimensions;
-
-    atlasCount = m_numExistingAtlases;
-
-    dimensions.x = atlasDimensions.x;
-    dimensions.y = atlasDimensions.y;
-    dimensions.z = 1;
-
-    const uint32 texelsPerAtlas = atlasDimensions.x * atlasDimensions.y;
-
-    texels.Resize(atlasCount * texelsPerAtlas);
-    m_rays.Resize(atlasCount * texelsPerAtlas);
-
-    const Vec2i clamp { int(atlasDimensions.x - 1), int(atlasDimensions.y - 1) };
-
-    for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
-    {
-        BakeMeshData& bakeMesh = m_meshData[meshIndex];
-
-        if (!bakeMesh.mesh || m_meshVertexLightmapUvs[meshIndex].Empty())
-        {
             continue;
         }
 
-        const uint32 atlasIndex = MathUtil::Min(m_meshAtlasIndices[meshIndex], atlasCount - 1);
+        meshSnapshot.layout = vertexData.layoutDesc;
 
-        MeshIndexArray& currentUvIndices = meshToUvIndices[bakeMesh.mesh->Id()];
+        const size_t vertexDataSize = vertexData.layoutDesc.VertexSize() * vertexData.vertexCount;
+        AssertDebug(vertexDataSize % sizeof(float) == 0);
 
-        const MeshIndexArray& indices = m_meshIndices[meshIndex];
-        const MeshFloatDataArray& positions = m_meshVertexPositions[meshIndex];
-        const MeshFloatDataArray& normals = m_meshVertexNormals[meshIndex];
-        const MeshFloatDataArray& lightmapUvs = m_meshVertexLightmapUvs[meshIndex];
+        meshSnapshot.vertices.Resize(vertexDataSize / sizeof(float));
+        Memory::Copy(meshSnapshot.vertices.Data(), vertexData.floatData, vertexDataSize);
 
-        // Unwrapping split the mesh along its UV seams, so triangles sharing a vertex index also share a
-        // chart. Union-find over the index buffer recovers the chart ids that dilation needs.
-        const uint32 numVertices = uint32(lightmapUvs.Size() / 2);
+        const size_t numIndices = indexData.Size() / indexSize;
+        meshSnapshot.indices.Resize(numIndices);
 
-        Array<uint32, BakerAllocator> chartRoots;
-        chartRoots.Resize(numVertices);
-
-        for (uint32 i = 0; i < numVertices; i++)
+        for (size_t index = 0; index < numIndices; index++)
         {
-            chartRoots[i] = i;
+            uint32 value = 0;
+            Memory::Copy(&value, indexData.Data() + index * indexSize, indexSize);
+
+            meshSnapshot.indices[index] = value;
         }
 
-        auto findRoot = [&chartRoots](uint32 index) -> uint32
+        meshSnapshot.needsUnwrap = !mesh->HasValidLightmapUVs();
+    }
+}
+
+void BakeData<LightmapVolume>::UseExistingPacking(const LightmapVolume& volume, Array<EntityRect, BakerAllocator>&& entityRects)
+{
+    Assert(entityRects.Size() == m_entityRects.Size());
+    Assert(volume.GetAtlases().Size() > 0);
+
+    m_reuseExistingPacking = true;
+    m_entityRects = std::move(entityRects);
+
+    m_atlasCount = volume.NumUsedAtlases();
+    m_atlasDimensions = volume.GetAtlases()[0].atlasDimensions;
+}
+
+bool BakeData<LightmapVolume>::AnyMeshNeedsUnwrap() const
+{
+    for (const MeshSnapshot& meshSnapshot : m_meshes)
+    {
+        if (meshSnapshot.valid && meshSnapshot.needsUnwrap)
         {
-            while (chartRoots[index] != index)
-            {
-                chartRoots[index] = chartRoots[chartRoots[index]];
-                index = chartRoots[index];
-            }
-
-            return index;
-        };
-
-        for (uint32 i = 0; i + 2 < uint32(indices.Size()); i += 3)
-        {
-            const uint32 rootA = findRoot(indices[i]);
-            const uint32 rootB = findRoot(indices[i + 1]);
-            const uint32 rootC = findRoot(indices[i + 2]);
-
-            chartRoots[rootB] = rootA;
-            chartRoots[rootC] = rootA;
+            return true;
         }
-
-        for (uint32 i = 0; i + 2 < uint32(indices.Size()); i += 3)
-        {
-            const uint32 triangleIndices[3] = { indices[i], indices[i + 1], indices[i + 2] };
-
-            const uint32 chartId = (uint32(meshIndex) << 20) | (atlasIndex << 16) | (findRoot(triangleIndices[0]) & 0xFFFFu);
-
-            Vec2i pts[3];
-
-            for (uint32 j = 0; j < 3; j++)
-            {
-                const Vec2f uv {
-                    lightmapUvs[triangleIndices[j] * 2],
-                    lightmapUvs[triangleIndices[j] * 2 + 1]
-                };
-
-                pts[j] = Vec2i(int(uv.x * float(atlasDimensions.x)), int(uv.y * float(atlasDimensions.y)));
-            }
-
-            Vec2i bboxmin { clamp.x, clamp.y };
-            Vec2i bboxmax { 0, 0 };
-
-            for (int j = 0; j < 3; j++)
-            {
-                bboxmin.x = MathUtil::Max(0, MathUtil::Min(bboxmin.x, pts[j].x));
-                bboxmin.y = MathUtil::Max(0, MathUtil::Min(bboxmin.y, pts[j].y));
-
-                bboxmax.x = MathUtil::Min(clamp.x, MathUtil::Max(bboxmax.x, pts[j].x));
-                bboxmax.y = MathUtil::Min(clamp.y, MathUtil::Max(bboxmax.y, pts[j].y));
-            }
-
-            currentUvIndices.Reserve(currentUvIndices.Size() + (bboxmax.x - bboxmin.x + 1) * (bboxmax.y - bboxmin.y + 1));
-
-            const Vec3f vertexPositions[3] = {
-                Vec3f(positions[triangleIndices[0] * 3], positions[triangleIndices[0] * 3 + 1], positions[triangleIndices[0] * 3 + 2]),
-                Vec3f(positions[triangleIndices[1] * 3], positions[triangleIndices[1] * 3 + 1], positions[triangleIndices[1] * 3 + 2]),
-                Vec3f(positions[triangleIndices[2] * 3], positions[triangleIndices[2] * 3 + 1], positions[triangleIndices[2] * 3 + 2])
-            };
-
-            const Vec3f vertexNormals[3] = {
-                Vec3f(normals[triangleIndices[0] * 3], normals[triangleIndices[0] * 3 + 1], normals[triangleIndices[0] * 3 + 2]),
-                Vec3f(normals[triangleIndices[1] * 3], normals[triangleIndices[1] * 3 + 1], normals[triangleIndices[1] * 3 + 2]),
-                Vec3f(normals[triangleIndices[2] * 3], normals[triangleIndices[2] * 3 + 1], normals[triangleIndices[2] * 3 + 2])
-            };
-
-            Vec2i point;
-
-            for (point.x = bboxmin.x; point.x <= bboxmax.x; point.x++)
-            {
-                for (point.y = bboxmin.y; point.y <= bboxmax.y; point.y++)
-                {
-                    const Vec3f barycentricCoords = MathUtil::CalculateBarycentricCoordinates(Vec2f(pts[0]), Vec2f(pts[1]), Vec2f(pts[2]), Vec2f(point));
-
-                    if (barycentricCoords.x < 0 || barycentricCoords.y < 0 || barycentricCoords.z < 0)
-                    {
-                        continue;
-                    }
-
-                    const Vec3f position = vertexPositions[0] * barycentricCoords.x
-                        + vertexPositions[1] * barycentricCoords.y
-                        + vertexPositions[2] * barycentricCoords.z;
-
-                    const Vec3f interpolatedNormal = vertexNormals[0] * barycentricCoords.x
-                        + vertexNormals[1] * barycentricCoords.y
-                        + vertexNormals[2] * barycentricCoords.z;
-
-                    // stored normals are already world space
-                    const Vec3f normal = interpolatedNormal.Normalized();
-
-                    const uint32 texelIdx = uint32(point.x) + uint32(point.y) * atlasDimensions.x + atlasIndex * texelsPerAtlas;
-
-                    LightmapRay& ray = m_rays[texelIdx];
-                    ray = LightmapRay {
-                        Ray { position, normal },
-                        bakeMesh.mesh->Id(),
-                        i / 3,
-                        texelIdx
-                    };
-
-                    LightmapTexel& texel = texels[texelIdx];
-                    texel.pRay = &ray;
-                    texel.chartId = chartId;
-
-                    currentUvIndices.PushBack(texelIdx);
-                }
-            }
-        }
-
-        m_meshVertexPositions[meshIndex].Clear();
-        m_meshVertexNormals[meshIndex].Clear();
-        m_meshVertexUvs[meshIndex].Clear();
-        m_meshVertexLightmapUvs[meshIndex].Clear();
-        m_meshIndices[meshIndex].Clear();
     }
 
-    return {};
+    return false;
 }
 
 Result BakeData<LightmapVolume>::Build()
 {
-    if (m_meshData.Empty())
+    if (m_meshes.Empty())
     {
         return HYP_MAKE_ERROR(Error, "No mesh data to build lightmap UVs from");
     }
 
-    if (m_reuseExistingPacking)
+    for (MeshSnapshot& meshSnapshot : m_meshes)
     {
-        return BuildFromExistingUVs();
-    }
-
-#ifdef HYP_XATLAS
-    xatlas::Atlas* atlas = xatlas::Create();
-    // xatlas::SetPrint([](const char* str, ...) -> int
-    //     {
-    //         va_list args;
-    //         va_start(args, str);
-
-    //        char buffer[1024] {};
-    //        int sprintfResult = snprintf(buffer, 1024, str, args);
-
-    //        HYP_LOG(Lightmap, Debug, "{}", buffer);
-    //
-    //        va_end(args);
-
-    //        return sprintfResult;
-    //    },
-    //    true);
-
-    for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
-    {
-        Assert(meshIndex < m_meshIndices.Size());
-
-        xatlas::MeshDecl meshDecl;
-        meshDecl.indexData = m_meshIndices[meshIndex].Data();
-        meshDecl.indexFormat = xatlas::IndexFormat::UInt32;
-        meshDecl.indexCount = uint32(m_meshIndices[meshIndex].Size());
-        meshDecl.vertexCount = uint32(m_meshVertexPositions[meshIndex].Size() / 3);
-        meshDecl.vertexPositionData = m_meshVertexPositions[meshIndex].Data();
-        meshDecl.vertexPositionStride = sizeof(float) * 3;
-        meshDecl.vertexNormalData = m_meshVertexNormals[meshIndex].Data();
-        meshDecl.vertexNormalStride = sizeof(float) * 3;
-        meshDecl.vertexUvData = m_meshVertexUvs[meshIndex].Data();
-        meshDecl.vertexUvStride = sizeof(float) * 2;
-
-        xatlas::AddMeshError error = xatlas::AddMesh(atlas, meshDecl);
-
-        if (error != xatlas::AddMeshError::Success)
+        if (!meshSnapshot.valid)
         {
-            xatlas::Destroy(atlas);
-
-            return HYP_MAKE_ERROR(Error, "Error adding mesh: {}", 0, xatlas::StringForEnum(error));
+            continue;
         }
 
-        xatlas::AddMeshJoin(atlas);
-    }
-
-    xatlas::PackOptions packOptions {};
-    packOptions.resolution = 2048;
-    packOptions.padding = 4;
-    packOptions.bilinear = true;
-    // packOptions.maxChartSize = 256;
-    // packOptions.texelsPerUnit = 8.0f;
-    // packOptions.padding = 4;
-    // //packOptions.resolution = 512;
-    // packOptions.bilinear = true;
-
-    xatlas::ComputeCharts(atlas);
-    xatlas::PackCharts(atlas, packOptions);
-
-    const uint32 numAtlases = MathUtil::Max(1u, atlas->atlasCount);
-    atlasCount = numAtlases;
-
-    // write lightmap data
-    dimensions.x = atlas->width;
-    dimensions.y = atlas->height;
-    dimensions.z = 1;
-
-    const uint32 texelsPerAtlas = atlas->width * atlas->height;
-
-    texels.Resize(numAtlases * texelsPerAtlas);
-    m_rays.Resize(numAtlases * texelsPerAtlas);
-
-    for (uint32 meshIndex = 0; meshIndex < atlas->meshCount; meshIndex++)
-    {
-        BakeMeshData& bakeMesh = m_meshData[meshIndex];
-
-        MeshIndexArray& currentUvIndices = meshToUvIndices[bakeMesh.mesh->Id()];
-
-        const xatlas::Mesh& atlasMesh = atlas->meshes[meshIndex];
-
-        Assert(m_meshIndices[meshIndex].Size() == atlasMesh.indexCount,
-               "Mesh index size does not match atlas mesh index count! Mesh index count: {}, Atlas index count: {}",
-               m_meshIndices[meshIndex].Size(), atlasMesh.indexCount);
-
-        for (uint32 i = 0; i < atlasMesh.indexCount; i += 3)
+        if (meshSnapshot.needsUnwrap)
         {
-            bool skip = false;
-            
-            int atlasIndex = -1;
-            int chartIndex = -1;
+            // an existing packing is only reused when every mesh's UV1 is still valid
+            AssertDebug(!m_reuseExistingPacking);
 
-            FixedArray<Pair<uint32, Vec2i>, 3> verts;
-
-            for (uint32 j = 0; j < 3; j++)
+            if (Result unwrapResult = UnwrapMesh(meshSnapshot); unwrapResult.HasError())
             {
-                // Get UV coordinates for each edge
-                const xatlas::Vertex& v = atlasMesh.vertexArray[atlasMesh.indexArray[i + j]];
+                HYP_LOG(Lightmap, Warning, "Could not generate lightmap UVs for mesh '{}': {}", meshSnapshot.mesh->GetName(), unwrapResult.GetError().GetMessage());
 
-                if (v.atlasIndex == -1)
-                {
-                    skip = true;
+                meshSnapshot.valid = false;
 
-                    break;
-                }
-
-                atlasIndex = v.atlasIndex;
-                chartIndex = v.chartIndex;
-
-                verts[j] = { v.xref, { int(v.uv[0]), int(v.uv[1]) } };
-            }
-
-            const uint32 chartId = (uint32(meshIndex) << 20) | (uint32(atlasIndex) << 16) | (uint32(chartIndex) & 0xFFFFu);
-
-            if (skip)
-            {
                 continue;
             }
 
-            const Vec2i pts[3] = { verts[0].second, verts[1].second, verts[2].second };
-
-            const Vec2i clamp { int(dimensions.x - 1), int(dimensions.y - 1) };
-
-            Vec2i bboxmin { int(dimensions.x - 1), int(dimensions.y - 1) };
-            Vec2i bboxmax { 0, 0 };
-
-            for (int j = 0; j < 3; j++)
-            {
-                bboxmin.x = MathUtil::Max(0, MathUtil::Min(bboxmin.x, pts[j].x));
-                bboxmin.y = MathUtil::Max(0, MathUtil::Min(bboxmin.y, pts[j].y));
-
-                bboxmax.x = MathUtil::Min(clamp.x, MathUtil::Max(bboxmax.x, pts[j].x));
-                bboxmax.y = MathUtil::Min(clamp.y, MathUtil::Max(bboxmax.y, pts[j].y));
-            }
-
-            currentUvIndices.Reserve(currentUvIndices.Size() + (bboxmax.x - bboxmin.x + 1) * (bboxmax.y - bboxmin.y + 1));
-
-            Vec2i point;
-
-            for (point.x = bboxmin.x; point.x <= bboxmax.x; point.x++)
-            {
-                for (point.y = bboxmin.y; point.y <= bboxmax.y; point.y++)
-                {
-                    const Vec3f barycentricCoords = MathUtil::CalculateBarycentricCoordinates(Vec2f(pts[0]), Vec2f(pts[1]), Vec2f(pts[2]), Vec2f(point));
-
-                    if (barycentricCoords.x < 0 || barycentricCoords.y < 0 || barycentricCoords.z < 0)
-                    {
-                        continue;
-                    }
-
-                    const uint32 triangleIndex = i / 3;
-
-                    const uint32 triangleIndices[3] = {
-                        m_meshIndices[meshIndex][triangleIndex * 3 + 0],
-                        m_meshIndices[meshIndex][triangleIndex * 3 + 1],
-                        m_meshIndices[meshIndex][triangleIndex * 3 + 2]
-                    };
-
-                    const Vec3f vertexPositions[3] = {
-                        Vec3f(m_meshVertexPositions[meshIndex][triangleIndices[0] * 3], m_meshVertexPositions[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexPositions[meshIndex][triangleIndices[0] * 3 + 2]),
-                        Vec3f(m_meshVertexPositions[meshIndex][triangleIndices[1] * 3], m_meshVertexPositions[meshIndex][triangleIndices[1] * 3 + 1], m_meshVertexPositions[meshIndex][triangleIndices[1] * 3 + 2]),
-                        Vec3f(m_meshVertexPositions[meshIndex][triangleIndices[2] * 3], m_meshVertexPositions[meshIndex][triangleIndices[2] * 3 + 1], m_meshVertexPositions[meshIndex][triangleIndices[2] * 3 + 2])
-                    };
-
-                    const Vec3f vertexNormals[3] = {
-                        Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[0] * 3], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[0] * 3 + 2]),
-                        Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[1] * 3], m_meshVertexNormals[meshIndex][triangleIndices[1] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[1] * 3 + 2]),
-                        Vec3f(m_meshVertexNormals[meshIndex][triangleIndices[2] * 3], m_meshVertexNormals[meshIndex][triangleIndices[2] * 3 + 1], m_meshVertexNormals[meshIndex][triangleIndices[2] * 3 + 2])
-                    };
-
-                    const Vec3f position = vertexPositions[0] * barycentricCoords.x
-                        + vertexPositions[1] * barycentricCoords.y
-                        + vertexPositions[2] * barycentricCoords.z;
-
-                    // stored normals are already world space
-                    const Vec3f normal = (vertexNormals[0] * barycentricCoords.x + vertexNormals[1] * barycentricCoords.y + vertexNormals[2] * barycentricCoords.z).Normalized();
-
-                    const uint32 texelIdx = ((point.x + atlas->width) % atlas->width
-                        + (point.y + atlas->height) % atlas->height * atlas->width)
-                        + uint32(atlasIndex) * texelsPerAtlas;
-
-                    LightmapRay& ray = m_rays[texelIdx];
-                    ray = LightmapRay {
-                        Ray { position, normal },
-                        bakeMesh.mesh->Id(),
-                        triangleIndex,
-                        texelIdx
-                    };
-
-                    LightmapTexel& texel = texels[texelIdx];
-                    texel.pRay = &ray;
-                    texel.chartId = chartId;
-
-                    currentUvIndices.PushBack(texelIdx);
-                }
-            }
+            meshSnapshot.unwrapped = true;
         }
+
+        ComputeMeshCharts(meshSnapshot);
     }
 
-    for (size_t meshIndex = 0; meshIndex < m_meshData.Size(); meshIndex++)
+    if (!m_reuseExistingPacking)
     {
-        BakeMeshData& bakeMesh = m_meshData[meshIndex];
-
-        const VertexInputLayoutDesc prevInputLayout = bakeMesh.mesh->GetMeshDesc().meshAttributes.inputLayout;
-        VertexInputLayoutDesc newInputLayout { uint8(prevInputLayout.mask | VT_UV1) };
-
-        const size_t prevVertexStrideFloats = prevInputLayout.VertexSize() / sizeof(float);
-        const size_t newVertexStrideFloats = newInputLayout.VertexSize() / sizeof(float);
-
-        bakeMesh.vertices.Resize(atlas->meshes[meshIndex].vertexCount * newVertexStrideFloats);
-        bakeMesh.indices.Resize(atlas->meshes[meshIndex].indexCount);
-        bakeMesh.vertexAtlasIndices.Resize(atlas->meshes[meshIndex].vertexCount);
-
-        for (uint32 v = 0; v < atlas->meshes[meshIndex].vertexCount; v++)
+        if (Result packResult = PackEntities(); packResult.HasError())
         {
-            bakeMesh.vertexAtlasIndices[v] = atlas->meshes[meshIndex].vertexArray[v].atlasIndex;
+            return packResult;
         }
-
-        const Mat4f inverseTransform = bakeMesh.transformMatrix.Inverse();
-        const Mat4f normalMatrix = bakeMesh.transformMatrix.Inverse().Transpose();
-        const Mat4f inverseNormalMatrix = normalMatrix.Inverse();
-
-        for (uint32 j = 0; j < atlas->meshes[meshIndex].indexCount; j++)
-        {
-            bakeMesh.indices[j] = atlas->meshes[meshIndex].indexArray[j];
-
-            const uint32 vertexIndex = atlas->meshes[meshIndex].vertexArray[atlas->meshes[meshIndex].indexArray[j]].xref;
-            const Vec2f uv = {
-                atlas->meshes[meshIndex].vertexArray[atlas->meshes[meshIndex].indexArray[j]].uv[0],
-                atlas->meshes[meshIndex].vertexArray[atlas->meshes[meshIndex].indexArray[j]].uv[1]
-            };
-
-            const size_t vertexDataOffsetFloats = bakeMesh.indices[j] * newVertexStrideFloats;
-
-            float* vertexDataFloat = bakeMesh.vertices.Data() + vertexDataOffsetFloats;
-
-            if (prevInputLayout.mask & VT_Position)
-            {
-                TVertexPacket<VT_Position>* packet = reinterpret_cast<TVertexPacket<VT_Position>*>(vertexDataFloat);
-                packet->SetPosition(inverseTransform.TransformVector(Vec3f(m_meshVertexPositions[meshIndex][vertexIndex * 3], m_meshVertexPositions[meshIndex][vertexIndex * 3 + 1], m_meshVertexPositions[meshIndex][vertexIndex * 3 + 2])));
-
-                vertexDataFloat += sizeof(TVertexPacket<VT_Position>) / sizeof(float);
-            }
-
-            if (prevInputLayout.mask & VT_Normal)
-            {
-                TVertexPacket<VT_Normal>* packet = reinterpret_cast<TVertexPacket<VT_Normal>*>(vertexDataFloat);
-                packet->SetNormal((inverseNormalMatrix.TransformVector(Vec4f(m_meshVertexNormals[meshIndex][vertexIndex * 3], m_meshVertexNormals[meshIndex][vertexIndex * 3 + 1], m_meshVertexNormals[meshIndex][vertexIndex * 3 + 2], 0.0f))).GetXYZ());
-
-                vertexDataFloat += sizeof(TVertexPacket<VT_Normal>) / sizeof(float);
-            }
-
-            if (prevInputLayout.mask & VT_UV0)
-            {
-                TVertexPacket<VT_UV0>* packet = reinterpret_cast<TVertexPacket<VT_UV0>*>(vertexDataFloat);
-                packet->SetUV0(Vec2f(m_meshVertexUvs[meshIndex][vertexIndex * 2], m_meshVertexUvs[meshIndex][vertexIndex * 2 + 1]));
-
-                vertexDataFloat += sizeof(TVertexPacket<VT_UV0>) / sizeof(float);
-            }
-
-            { // UV1
-                TVertexPacket<VT_UV1>* packet = reinterpret_cast<TVertexPacket<VT_UV1>*>(vertexDataFloat);
-                packet->SetUV1(uv / (Vec2f { float(atlas->width), float(atlas->height) } + Vec2f(0.5f)));
-
-                vertexDataFloat += sizeof(TVertexPacket<VT_UV1>) / sizeof(float);
-            }
-
-            // @TODO Handle other vertex data fields -- may need to read from the prev mesh data again in order to do that
-        }
-
-        // Deallocate memory for data that is no longer needed.
-        m_meshVertexPositions[meshIndex].Clear();
-        m_meshVertexNormals[meshIndex].Clear();
-        m_meshVertexUvs[meshIndex].Clear();
-        m_meshIndices[meshIndex].Clear();
     }
 
-    xatlas::Destroy(atlas);
+    if (m_atlasCount == 0)
+    {
+        return HYP_MAKE_ERROR(Error, "No entities could be packed into the lightmap atlas");
+    }
+
+    dimensions = Vec3u { m_atlasDimensions.x, m_atlasDimensions.y, 1 };
+
+    const uint32 texelsPerAtlas = m_atlasDimensions.x * m_atlasDimensions.y;
+
+    texels.Resize(m_atlasCount * texelsPerAtlas);
+    m_rays.Resize(m_atlasCount * texelsPerAtlas);
+
+    // chart ids stay unique across entities so dilation never mixes two entities' texels
+    uint32 chartBase = 0;
+
+    for (uint32 entityIndex = 0; entityIndex < uint32(m_entityRects.Size()); entityIndex++)
+    {
+        const MeshSnapshot& meshSnapshot = GetMeshSnapshotForEntity(entityIndex);
+
+        if (!m_entityRects[entityIndex].valid || !meshSnapshot.valid)
+        {
+            continue;
+        }
+
+        RasterizeEntity(entityIndex, chartBase);
+
+        chartBase += meshSnapshot.numCharts;
+    }
+
+    return {};
+}
+
+Result BakeData<LightmapVolume>::UnwrapMesh(MeshSnapshot& meshSnapshot) const
+{
+#ifdef HYP_XATLAS
+    const size_t vertexSize = meshSnapshot.layout.VertexSize();
+    const uint32 numVertices = uint32(meshSnapshot.vertices.ByteSize() / vertexSize);
+
+    const size_t positionOffset = GetPacketOffset(meshSnapshot.layout, VT_Position);
+    const size_t normalOffset = GetPacketOffset(meshSnapshot.layout, VT_Normal);
+    const size_t uv0Offset = GetPacketOffset(meshSnapshot.layout, VT_UV0);
+
+    if (positionOffset == ~size_t(0))
+    {
+        return HYP_MAKE_ERROR(Error, "Mesh has no positions");
+    }
+
+    if (meshSnapshot.indices.Size() % 3 != 0)
+    {
+        return HYP_MAKE_ERROR(Error, "Mesh is not a triangle list");
+    }
+
+    const ubyte* vertexBytes = reinterpret_cast<const ubyte*>(meshSnapshot.vertices.Data());
+
+    float surfaceArea = 0.0f;
+
+    for (size_t index = 0; index + 2 < meshSnapshot.indices.Size(); index += 3)
+    {
+        if (meshSnapshot.indices[index] >= numVertices || meshSnapshot.indices[index + 1] >= numVertices || meshSnapshot.indices[index + 2] >= numVertices)
+        {
+            return HYP_MAKE_ERROR(Error, "Mesh has out of range indices");
+        }
+
+        const Vec3f p0 = ReadPosition(vertexBytes, vertexSize, positionOffset, meshSnapshot.indices[index]);
+        const Vec3f p1 = ReadPosition(vertexBytes, vertexSize, positionOffset, meshSnapshot.indices[index + 1]);
+        const Vec3f p2 = ReadPosition(vertexBytes, vertexSize, positionOffset, meshSnapshot.indices[index + 2]);
+
+        surfaceArea += (p1 - p0).Cross(p2 - p0).Length() * 0.5f;
+    }
+
+    if (!(surfaceArea > 1e-12f))
+    {
+        return HYP_MAKE_ERROR(Error, "Mesh has no surface area");
+    }
+
+    xatlas::MeshDecl meshDecl;
+    meshDecl.vertexCount = numVertices;
+    meshDecl.vertexPositionData = vertexBytes + positionOffset;
+    meshDecl.vertexPositionStride = uint32(vertexSize);
+
+    if (normalOffset != ~size_t(0))
+    {
+        meshDecl.vertexNormalData = vertexBytes + normalOffset;
+        meshDecl.vertexNormalStride = uint32(vertexSize);
+    }
+
+    if (uv0Offset != ~size_t(0))
+    {
+        meshDecl.vertexUvData = vertexBytes + uv0Offset;
+        meshDecl.vertexUvStride = uint32(vertexSize);
+    }
+
+    meshDecl.indexData = meshSnapshot.indices.Data();
+    meshDecl.indexCount = uint32(meshSnapshot.indices.Size());
+    meshDecl.indexFormat = xatlas::IndexFormat::UInt32;
+
+    xatlas::Atlas* atlas = xatlas::Create();
+
+    HYP_DEFER({ xatlas::Destroy(atlas); });
+
+    if (xatlas::AddMesh(atlas, meshDecl) != xatlas::AddMeshError::Success)
+    {
+        return HYP_MAKE_ERROR(Error, "xatlas rejected the mesh");
+    }
+
+    xatlas::ComputeCharts(atlas);
+
+    // unwrapped in the mesh's own space and sized off its own area, so every entity using it shares the same UV1
+    xatlas::PackOptions packOptions {};
+    packOptions.padding = UnwrapPadding;
+    packOptions.bilinear = true;
+    packOptions.resolution = 0;
+    packOptions.texelsPerUnit = UnwrapNominalResolution / MathUtil::Sqrt(surfaceArea);
+
+    xatlas::PackCharts(atlas, packOptions);
+
+    if (atlas->meshCount != 1 || atlas->atlasCount != 1 || atlas->width == 0 || atlas->height == 0)
+    {
+        return HYP_MAKE_ERROR(Error, "xatlas did not produce a single atlas");
+    }
+
+    const xatlas::Mesh& atlasMesh = atlas->meshes[0];
+
+    // square-normalized so a uniform scale maps UV1 into a rect without stretching texels
+    const float uvNormalizeFactor = 1.0f / float(MathUtil::Max(atlas->width, atlas->height));
+
+    const VertexInputLayoutDesc newLayout { uint8(meshSnapshot.layout.mask | VT_UV1) };
+    const size_t newVertexSize = newLayout.VertexSize();
+    const size_t uv1Offset = GetPacketOffset(newLayout, VT_UV1);
+
+    Array<float, BakerAllocator> newVertices;
+    newVertices.Resize(atlasMesh.vertexCount * newVertexSize / sizeof(float));
+
+    ubyte* newVertexBytes = reinterpret_cast<ubyte*>(newVertices.Data());
+
+    for (uint32 vertexIndex = 0; vertexIndex < atlasMesh.vertexCount; vertexIndex++)
+    {
+        const xatlas::Vertex& atlasVertex = atlasMesh.vertexArray[vertexIndex];
+        ubyte* dst = newVertexBytes + vertexIndex * newVertexSize;
+
+        ConvertVertex(vertexBytes + atlasVertex.xref * vertexSize, meshSnapshot.layout, dst, newLayout);
+
+        reinterpret_cast<TVertexPacket<VT_UV1>*>(dst + uv1Offset)->SetUV1(Vec2f(atlasVertex.uv[0], atlasVertex.uv[1]) * uvNormalizeFactor);
+    }
+
+    Array<uint32, BakerAllocator> newIndices;
+    newIndices.Resize(atlasMesh.indexCount);
+
+    Memory::Copy(newIndices.Data(), atlasMesh.indexArray, atlasMesh.indexCount * sizeof(uint32));
+
+    meshSnapshot.layout = newLayout;
+    meshSnapshot.vertices = std::move(newVertices);
+    meshSnapshot.indices = std::move(newIndices);
 
     return {};
 #else
-    return HYP_MAKE_ERROR(Error, "No method to build lightmap");
+    return HYP_MAKE_ERROR(Error, "Built without xatlas");
 #endif
+}
+
+void BakeData<LightmapVolume>::ComputeMeshCharts(MeshSnapshot& meshSnapshot) const
+{
+    const size_t vertexSize = meshSnapshot.layout.VertexSize();
+    const uint32 numVertices = uint32(meshSnapshot.vertices.ByteSize() / vertexSize);
+    const uint32 numTriangles = uint32(meshSnapshot.indices.Size() / 3);
+
+    const size_t uv1Offset = GetPacketOffset(meshSnapshot.layout, VT_UV1);
+
+    if (uv1Offset == ~size_t(0) || numTriangles == 0)
+    {
+        meshSnapshot.valid = false;
+
+        return;
+    }
+
+    const ubyte* vertexBytes = reinterpret_cast<const ubyte*>(meshSnapshot.vertices.Data());
+
+    Array<uint32, BakerAllocator> chartRoots;
+    chartRoots.Resize(numVertices);
+
+    for (uint32 vertexIndex = 0; vertexIndex < numVertices; vertexIndex++)
+    {
+        chartRoots[vertexIndex] = vertexIndex;
+    }
+
+    auto findRoot = [&chartRoots](uint32 index) -> uint32
+    {
+        while (chartRoots[index] != index)
+        {
+            chartRoots[index] = chartRoots[chartRoots[index]];
+            index = chartRoots[index];
+        }
+
+        return index;
+    };
+
+    // unwrapping split vertices along chart seams, so triangles sharing a vertex share a chart
+    for (uint32 triangleIndex = 0; triangleIndex < numTriangles; triangleIndex++)
+    {
+        const uint32* triangle = &meshSnapshot.indices[triangleIndex * 3];
+
+        if (triangle[0] >= numVertices || triangle[1] >= numVertices || triangle[2] >= numVertices)
+        {
+            meshSnapshot.valid = false;
+
+            return;
+        }
+
+        const uint32 rootA = findRoot(triangle[0]);
+
+        chartRoots[findRoot(triangle[1])] = rootA;
+        chartRoots[findRoot(triangle[2])] = rootA;
+    }
+
+    Array<uint32, BakerAllocator> rootCharts;
+    rootCharts.Resize(numVertices);
+
+    for (uint32 vertexIndex = 0; vertexIndex < numVertices; vertexIndex++)
+    {
+        rootCharts[vertexIndex] = InvalidChartId;
+    }
+
+    meshSnapshot.triangleCharts.Resize(numTriangles);
+    meshSnapshot.numCharts = 0;
+
+    Vec2f uvExtent = Vec2f::Zero();
+    float uvArea = 0.0f;
+
+    for (uint32 triangleIndex = 0; triangleIndex < numTriangles; triangleIndex++)
+    {
+        const uint32* triangle = &meshSnapshot.indices[triangleIndex * 3];
+
+        const uint32 root = findRoot(triangle[0]);
+
+        if (rootCharts[root] == InvalidChartId)
+        {
+            rootCharts[root] = meshSnapshot.numCharts++;
+        }
+
+        meshSnapshot.triangleCharts[triangleIndex] = rootCharts[root];
+
+        const Vec2f uv0 = ReadUV1(vertexBytes, vertexSize, uv1Offset, triangle[0]);
+        const Vec2f uv1 = ReadUV1(vertexBytes, vertexSize, uv1Offset, triangle[1]);
+        const Vec2f uv2 = ReadUV1(vertexBytes, vertexSize, uv1Offset, triangle[2]);
+
+        uvExtent = Vec2f::Max(uvExtent, Vec2f::Max(uv0, Vec2f::Max(uv1, uv2)));
+
+        const Vec2f edgeA = uv1 - uv0;
+        const Vec2f edgeB = uv2 - uv0;
+
+        uvArea += MathUtil::Abs(edgeA.x * edgeB.y - edgeA.y * edgeB.x) * 0.5f;
+    }
+
+    meshSnapshot.uvExtent = Vec2f(MathUtil::Min(uvExtent.x, 1.0f), MathUtil::Min(uvExtent.y, 1.0f));
+    meshSnapshot.uvArea = uvArea;
+
+    if (!(meshSnapshot.uvArea > 0.0f) || meshSnapshot.uvExtent.x <= 0.0f || meshSnapshot.uvExtent.y <= 0.0f)
+    {
+        HYP_LOG(Lightmap, Warning, "Mesh '{}' has empty lightmap UVs; skipping it", meshSnapshot.mesh->GetName());
+
+        meshSnapshot.valid = false;
+    }
+}
+
+Result BakeData<LightmapVolume>::PackEntities()
+{
+    const uint32 numEntities = uint32(bakeEntities.Size());
+
+    // texels per UV1 unit each entity would need to hit the volume's texel density
+    Array<float, BakerAllocator> desiredScales;
+    desiredScales.Resize(numEntities);
+
+    Array<uint32, BakerAllocator> packOrder;
+
+    for (uint32 entityIndex = 0; entityIndex < numEntities; entityIndex++)
+    {
+        desiredScales[entityIndex] = 0.0f;
+
+        const MeshSnapshot& meshSnapshot = GetMeshSnapshotForEntity(entityIndex);
+
+        if (!meshSnapshot.valid)
+        {
+            continue;
+        }
+
+        const size_t vertexSize = meshSnapshot.layout.VertexSize();
+        const size_t positionOffset = GetPacketOffset(meshSnapshot.layout, VT_Position);
+        const ubyte* vertexBytes = reinterpret_cast<const ubyte*>(meshSnapshot.vertices.Data());
+
+        const Mat4f& modelMatrix = bakeEntities[entityIndex].transformMatrix;
+
+        float worldArea = 0.0f;
+
+        for (size_t index = 0; index + 2 < meshSnapshot.indices.Size(); index += 3)
+        {
+            const Vec3f p0 = modelMatrix.TransformVector(ReadPosition(vertexBytes, vertexSize, positionOffset, meshSnapshot.indices[index]));
+            const Vec3f p1 = modelMatrix.TransformVector(ReadPosition(vertexBytes, vertexSize, positionOffset, meshSnapshot.indices[index + 1]));
+            const Vec3f p2 = modelMatrix.TransformVector(ReadPosition(vertexBytes, vertexSize, positionOffset, meshSnapshot.indices[index + 2]));
+
+            worldArea += (p1 - p0).Cross(p2 - p0).Length() * 0.5f;
+        }
+
+        if (!(worldArea > 0.0f))
+        {
+            continue;
+        }
+
+        desiredScales[entityIndex] = MathUtil::Sqrt(worldArea / meshSnapshot.uvArea) * m_texelsPerUnit;
+
+        packOrder.PushBack(entityIndex);
+    }
+
+    if (packOrder.Empty())
+    {
+        return HYP_MAKE_ERROR(Error, "No entities with usable lightmap UVs");
+    }
+
+    const float maxRectSide = float(MathUtil::Min(m_atlasDimensions.x, m_atlasDimensions.y) - 2 * RectGutter);
+
+    Array<float, BakerAllocator> scales;
+    scales.Resize(numEntities);
+
+    Array<Vec2u, BakerAllocator> rectDimensions;
+    rectDimensions.Resize(numEntities);
+
+    auto computeRects = [&](float densityFactor) -> double
+    {
+        double totalArea = 0.0;
+
+        for (uint32 entityIndex : packOrder)
+        {
+            const MeshSnapshot& meshSnapshot = GetMeshSnapshotForEntity(entityIndex);
+
+            const float maxExtent = MathUtil::Max(meshSnapshot.uvExtent.x, meshSnapshot.uvExtent.y);
+
+            // whole texels, since that's what EntityShaderData carries - a fractional scale would drift up to half a texel at the rect's far edge
+            const float scale = std::floor(MathUtil::Clamp(desiredScales[entityIndex] * densityFactor, MinRectScaleTexels, maxRectSide / maxExtent));
+
+            scales[entityIndex] = scale;
+            rectDimensions[entityIndex] = Vec2u {
+                uint32(std::ceil(meshSnapshot.uvExtent.x * scale)) + 2 * RectGutter,
+                uint32(std::ceil(meshSnapshot.uvExtent.y * scale)) + 2 * RectGutter
+            };
+
+            totalArea += double(rectDimensions[entityIndex].x) * double(rectDimensions[entityIndex].y);
+        }
+
+        return totalArea;
+    };
+
+    const double capacity = double(m_atlasDimensions.x) * double(m_atlasDimensions.y) * double(MaxAtlasesPerLightmapVolume) * double(TargetAtlasOccupancy);
+
+    // everything is scaled down together when it doesn't fit, so relative texel density holds across the volume
+    float densityFactor = 1.0f;
+
+    if (const double totalArea = computeRects(densityFactor); totalArea > capacity)
+    {
+        densityFactor = float(std::sqrt(capacity / totalArea));
+
+        HYP_LOG(Lightmap, Info, "Lightmap rects need {} texels but the volume holds about {}; scaling texel density by {}",
+            totalArea, capacity, densityFactor);
+    }
+
+    for (uint32 attempt = 0; attempt < MaxPackAttempts; attempt++, densityFactor *= 0.85f)
+    {
+        computeRects(densityFactor);
+
+        // tallest first packs a skyline best
+        std::sort(packOrder.Begin(), packOrder.End(), [&rectDimensions](uint32 lhs, uint32 rhs)
+            {
+                if (rectDimensions[lhs].y != rectDimensions[rhs].y)
+                {
+                    return rectDimensions[lhs].y > rectDimensions[rhs].y;
+                }
+
+                if (rectDimensions[lhs].x != rectDimensions[rhs].x)
+                {
+                    return rectDimensions[lhs].x > rectDimensions[rhs].x;
+                }
+
+                return lhs < rhs;
+            });
+
+        Array<LightmapVolumeAtlas> atlases;
+        Array<EntityRect, BakerAllocator> entityRects;
+        entityRects.Resize(numEntities);
+
+        bool allPlaced = true;
+
+        for (uint32 entityIndex : packOrder)
+        {
+            bool placed = false;
+
+            for (uint32 atlasIndex = 0; atlasIndex < MaxAtlasesPerLightmapVolume && !placed; atlasIndex++)
+            {
+                if (atlasIndex >= atlases.Size())
+                {
+                    atlases.EmplaceBack(m_atlasDimensions);
+                }
+
+                LightmapElement* element = nullptr;
+                uint32 elementIndex = ~0u;
+
+                if (!atlases[atlasIndex].AddElement(rectDimensions[entityIndex], element, elementIndex, /* shrinkToFit */ false))
+                {
+                    continue;
+                }
+
+                AssertDebug(elementIndex < UINT16_MAX);
+
+                element->id = LightmapElement::MakeId(uint16(atlasIndex), uint16(elementIndex));
+                element->offsetUV = Vec2f(element->offsetCoords + Vec2u(RectGutter)) / Vec2f(m_atlasDimensions);
+                element->scale = Vec2f(scales[entityIndex]) / Vec2f(m_atlasDimensions);
+
+                EntityRect& entityRect = entityRects[entityIndex];
+                entityRect.valid = true;
+                entityRect.atlasIndex = uint16(atlasIndex);
+                entityRect.elementIndex = uint16(elementIndex);
+                entityRect.offsetCoords = element->offsetCoords;
+                entityRect.dimensions = element->dimensions;
+                entityRect.offsetUV = element->offsetUV;
+                entityRect.scale = element->scale;
+
+                placed = true;
+            }
+
+            if (!placed)
+            {
+                allPlaced = false;
+
+                break;
+            }
+        }
+
+        if (!allPlaced)
+        {
+            continue;
+        }
+
+        m_atlasCount = uint32(atlases.Size());
+        m_packedAtlases = std::move(atlases);
+        m_entityRects = std::move(entityRects);
+
+        return {};
+    }
+
+    return HYP_MAKE_ERROR(Error, "Could not fit the volume's entities into its lightmap atlases");
+}
+
+void BakeData<LightmapVolume>::RasterizeEntity(uint32 entityIndex, uint32 chartBase)
+{
+    const EntityRect& entityRect = m_entityRects[entityIndex];
+    const MeshSnapshot& meshSnapshot = GetMeshSnapshotForEntity(entityIndex);
+
+    if (entityRect.atlasIndex >= m_atlasCount)
+    {
+        return;
+    }
+
+    const size_t vertexSize = meshSnapshot.layout.VertexSize();
+    const uint32 numVertices = uint32(meshSnapshot.vertices.ByteSize() / vertexSize);
+    const uint32 numTriangles = uint32(meshSnapshot.indices.Size() / 3);
+
+    const size_t positionOffset = GetPacketOffset(meshSnapshot.layout, VT_Position);
+    const size_t normalOffset = GetPacketOffset(meshSnapshot.layout, VT_Normal);
+    const size_t uv1Offset = GetPacketOffset(meshSnapshot.layout, VT_UV1);
+
+    const ubyte* vertexBytes = reinterpret_cast<const ubyte*>(meshSnapshot.vertices.Data());
+
+    const Mat4f& modelMatrix = bakeEntities[entityIndex].transformMatrix;
+    const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
+
+    const Vec2f atlasDimensions { float(m_atlasDimensions.x), float(m_atlasDimensions.y) };
+    const Vec2f offsetTexels = entityRect.offsetUV * atlasDimensions;
+    const Vec2f scaleTexels = entityRect.scale * atlasDimensions;
+
+    Array<Vec3f, BakerAllocator> worldPositions;
+    Array<Vec3f, BakerAllocator> worldNormals;
+    Array<Vec2f, BakerAllocator> texelCoords;
+
+    worldPositions.Resize(numVertices);
+    worldNormals.Resize(numVertices);
+    texelCoords.Resize(numVertices);
+
+    for (uint32 vertexIndex = 0; vertexIndex < numVertices; vertexIndex++)
+    {
+        worldPositions[vertexIndex] = modelMatrix.TransformVector(ReadPosition(vertexBytes, vertexSize, positionOffset, vertexIndex));
+
+        if (normalOffset != ~size_t(0))
+        {
+            const Vec3f localNormal = reinterpret_cast<const TVertexPacket<VT_Normal>*>(vertexBytes + vertexIndex * vertexSize + normalOffset)->GetNormal();
+
+            worldNormals[vertexIndex] = normalMatrix.TransformVector(Vec4f(localNormal, 0.0f)).GetXYZ();
+        }
+        else
+        {
+            worldNormals[vertexIndex] = Vec3f::Zero();
+        }
+
+        texelCoords[vertexIndex] = offsetTexels + ReadUV1(vertexBytes, vertexSize, uv1Offset, vertexIndex) * scaleTexels;
+    }
+
+    // never write outside the rect, even if UV1 strays past [0, 1]
+    const int32 rectMinX = int32(entityRect.offsetCoords.x);
+    const int32 rectMinY = int32(entityRect.offsetCoords.y);
+    const int32 rectMaxX = int32(entityRect.offsetCoords.x + entityRect.dimensions.x) - 1;
+    const int32 rectMaxY = int32(entityRect.offsetCoords.y + entityRect.dimensions.y) - 1;
+
+    const uint32 atlasWidth = m_atlasDimensions.x;
+    const uint32 atlasTexelOffset = uint32(entityRect.atlasIndex) * m_atlasDimensions.x * m_atlasDimensions.y;
+
+    const ObjId<Mesh> meshId = meshSnapshot.mesh->Id();
+
+    for (uint32 triangleIndex = 0; triangleIndex < numTriangles; triangleIndex++)
+    {
+        const uint32 i0 = meshSnapshot.indices[triangleIndex * 3];
+        const uint32 i1 = meshSnapshot.indices[triangleIndex * 3 + 1];
+        const uint32 i2 = meshSnapshot.indices[triangleIndex * 3 + 2];
+
+        const Vec2f a = texelCoords[i0];
+        const Vec2f b = texelCoords[i1];
+        const Vec2f c = texelCoords[i2];
+
+        const float denominator = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
+
+        if (MathUtil::Abs(denominator) < 1e-10f)
+        {
+            continue;
+        }
+
+        const float rcpDenominator = 1.0f / denominator;
+
+        const int32 minX = MathUtil::Max(rectMinX, int32(std::floor(MathUtil::Min(a.x, MathUtil::Min(b.x, c.x)))));
+        const int32 minY = MathUtil::Max(rectMinY, int32(std::floor(MathUtil::Min(a.y, MathUtil::Min(b.y, c.y)))));
+        const int32 maxX = MathUtil::Min(rectMaxX, int32(std::ceil(MathUtil::Max(a.x, MathUtil::Max(b.x, c.x)))));
+        const int32 maxY = MathUtil::Min(rectMaxY, int32(std::ceil(MathUtil::Max(a.y, MathUtil::Max(b.y, c.y)))));
+
+        if (minX > maxX || minY > maxY)
+        {
+            continue;
+        }
+
+        const Vec3f& p0 = worldPositions[i0];
+        const Vec3f& p1 = worldPositions[i1];
+        const Vec3f& p2 = worldPositions[i2];
+
+        const Vec3f faceNormal = (p1 - p0).Cross(p2 - p0).Normalized();
+
+        const uint32 chartId = chartBase + meshSnapshot.triangleCharts[triangleIndex];
+
+        for (int32 y = minY; y <= maxY; y++)
+        {
+            for (int32 x = minX; x <= maxX; x++)
+            {
+                // sampled at the texel center, which is where the shader's bilinear fetch lands
+                const Vec2f point { float(x) + 0.5f, float(y) + 0.5f };
+
+                const float w0 = ((b.y - c.y) * (point.x - c.x) + (c.x - b.x) * (point.y - c.y)) * rcpDenominator;
+                const float w1 = ((c.y - a.y) * (point.x - c.x) + (a.x - c.x) * (point.y - c.y)) * rcpDenominator;
+                const float w2 = 1.0f - w0 - w1;
+
+                if (w0 < 0.0f || w1 < 0.0f || w2 < 0.0f)
+                {
+                    continue;
+                }
+
+                const Vec3f position = p0 * w0 + p1 * w1 + p2 * w2;
+
+                Vec3f normal = worldNormals[i0] * w0 + worldNormals[i1] * w1 + worldNormals[i2] * w2;
+
+                if (normal.LengthSquared() < 1e-12f)
+                {
+                    normal = faceNormal;
+                }
+                else
+                {
+                    normal = normal.Normalized();
+                }
+
+                const uint32 texelIndex = atlasTexelOffset + uint32(x) + uint32(y) * atlasWidth;
+
+                LightmapRay& ray = m_rays[texelIndex];
+                ray = LightmapRay {
+                    Ray { position, normal },
+                    meshId,
+                    triangleIndex,
+                    texelIndex
+                };
+
+                LightmapTexel& texel = texels[texelIndex];
+                texel.pRay = &ray;
+                texel.chartId = chartId;
+            }
+        }
+    }
 }
 
 void BakeData<LightmapVolume>::Blur()
@@ -663,7 +854,7 @@ void BakeData<LightmapVolume>::Blur()
 
     const uint32 numTexels = width * height;
 
-    for (uint32 atlasIndex = 0; atlasIndex < atlasCount; atlasIndex++)
+    for (uint32 atlasIndex = 0; atlasIndex < m_atlasCount; atlasIndex++)
     {
         const uint32 baseOffset = atlasIndex * numTexels;
 
@@ -707,6 +898,7 @@ void BakeData<LightmapVolume>::Blur()
 
                 const Vec3f centerPos = texels[baseOffset + centerIdx].pRay->ray.position;
                 const Vec3f centerNrm = texels[baseOffset + centerIdx].pRay->ray.direction;
+                const uint32 centerChartId = texels[baseOffset + centerIdx].chartId;
 
                 Vec4f accum0 = Vec4f::Zero();
                 Vec4f accum1 = Vec4f::Zero();
@@ -723,7 +915,8 @@ void BakeData<LightmapVolume>::Blur()
                     {
                         const uint32 nbIdx = uint32(nx) + uint32(ny) * width;
 
-                        if (!texels[baseOffset + nbIdx].pRay)
+                        // neighbours in the atlas are only neighbours on the surface within the same chart
+                        if (!texels[baseOffset + nbIdx].pRay || texels[baseOffset + nbIdx].chartId != centerChartId)
                         {
                             continue;
                         }
@@ -785,18 +978,16 @@ void BakeData<LightmapVolume>::Dilate()
         { -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 }
     };
 
-    static constexpr uint32 InvalidChartId = ~0u;
-    
     // Allocate upfront
     Array<Vec4f> curr0(numTexels);
     Array<Vec4f> curr1(numTexels);
     Array<uint32> currChartId(numTexels);
-        
+
     Array<Vec4f> next0(numTexels);
     Array<Vec4f> next1(numTexels);
     Array<uint32> nextChartId(numTexels);
 
-    for (uint32 atlasIndex = 0; atlasIndex < atlasCount; atlasIndex++)
+    for (uint32 atlasIndex = 0; atlasIndex < m_atlasCount; atlasIndex++)
     {
         const uint32 baseOffset = atlasIndex * numTexels;
 
@@ -900,10 +1091,6 @@ void BakeData<LightmapVolume>::Dilate()
                 }
             }
 
-            //curr0 = std::move(next0);
-            //curr1 = std::move(next1);
-            //currChartId = std::move(nextChartId);
-
             Memory::Copy(curr0.Data(), next0.Data(), next0.ByteSize());
             Memory::Copy(curr1.Data(), next1.Data(), next1.ByteSize());
             Memory::Copy(currChartId.Data(), nextChartId.Data(), nextChartId.ByteSize());
@@ -928,8 +1115,8 @@ void BakeData<LightmapVolume>::Dilate()
 
 auto BakeData<LightmapVolume>::ToBitmapIrradiance(uint32 atlasIndex) const -> ColorBitmap
 {
-    Assert(atlasIndex < atlasCount, "Atlas index out of bounds");
-    Assert(texels.Size() >= dimensions.x * dimensions.y * atlasCount, "Invalid UV map size");
+    Assert(atlasIndex < m_atlasCount, "Atlas index out of bounds");
+    Assert(texels.Size() >= dimensions.x * dimensions.y * m_atlasCount, "Invalid UV map size");
 
     const uint32 baseOffset = atlasIndex * dimensions.x * dimensions.y;
 
@@ -961,8 +1148,8 @@ auto BakeData<LightmapVolume>::ToBitmapIrradiance(uint32 atlasIndex) const -> Co
 
 auto BakeData<LightmapVolume>::ToBitmapBentNormal(uint32 atlasIndex) const -> BentNormalBitmap
 {
-    Assert(atlasIndex < atlasCount, "Atlas index out of bounds");
-    Assert(texels.Size() >= dimensions.x * dimensions.y * atlasCount, "Invalid UV map size");
+    Assert(atlasIndex < m_atlasCount, "Atlas index out of bounds");
+    Assert(texels.Size() >= dimensions.x * dimensions.y * m_atlasCount, "Invalid UV map size");
 
     const uint32 baseOffset = atlasIndex * dimensions.x * dimensions.y;
 
@@ -994,6 +1181,8 @@ auto BakeData<LightmapVolume>::ToBitmapBentNormal(uint32 atlasIndex) const -> Be
 
     return bitmap;
 }
+
+#pragma endregion BakeData<LightmapVolume>
 
 } // namespace Baking
 
