@@ -33,26 +33,6 @@ static size_t CalculateComponentBlocksPerSlab(size_t componentSize, size_t compo
     return blocksPerSlab != 0 ? blocksPerSlab : 1;
 }
 
-static void CopyMatchingProperties(const Struct& sourceStruct, const BoxedValue& source, const Struct& targetStruct, BoxedValue& target)
-{
-    for (const Property* sourceProperty : sourceStruct.GetProperties())
-    {
-        if (!sourceProperty->CanGet())
-        {
-            continue;
-        }
-
-        const Property* targetProperty = targetStruct.GetProperty(sourceProperty->GetName(), /* deep */ false);
-
-        if (!targetProperty || !targetProperty->CanSet() || targetProperty->GetTypeInfo().id != sourceProperty->GetTypeInfo().id)
-        {
-            continue;
-        }
-
-        targetProperty->Set(target, sourceProperty->Get(source));
-    }
-}
-
 ComponentContainer::ComponentContainer(const ComponentInterface& componentInterface)
     : m_componentInterface(&componentInterface),
       m_typeInfo(&componentInterface.GetTypeInfo()),

@@ -42,11 +42,11 @@ public:
     // signatures. These become `struct Name;` forward declarations.
     Set<String> CollectForwardStructNames(const Analyzer& analyzer) const;
 
-    // Resolve the base handle a class should `extends`, or an empty string if it
+    // Resolve the base handle a class derives from, or an empty string if it
     // has none.
     String ResolveHandleBase(const Analyzer& analyzer, const ClassDefinition& cls, const Set<String>& allHandleNames) const;
 
-    // Emits `handle <Name>;` (or `handle <Name> extends <Base>;`) for each
+    // Emits `handle <Name>;` (or `handle <Name> : <Base>;`) for each
     // scriptable class/struct in this module.
     Result EmitHandles(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const;
 

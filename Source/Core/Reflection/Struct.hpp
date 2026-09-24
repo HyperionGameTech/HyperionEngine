@@ -303,11 +303,28 @@ struct DynamicStructFieldDesc
 {
     Name name;
     uint32 offset = 0;
-    uint32 size = 0;
-    const TypeInfo* typeInfo = nullptr;
+    uint32 size = 0;                    // every element of an array included
+    const TypeInfo* typeInfo = nullptr; // the element type for arrays
+    uint32 arrayLength = 0;             // > 0: a fixed-size inline array, reflected as an Array<BoxedValue> that can't be resized
+    bool isTransient = false;           // kept across layout changes, but never serialized or shown in the editor
 };
 
 CORE_API bool MakeDynamicStructProperty(const DynamicStructFieldDesc& fieldDesc, int editorOrder, MemberVariant& outMember);
+
+struct DynamicStructDesc
+{
+    TypeId typeId;
+    Name name;
+    uint32 size = 0;
+    uint32 alignment = alignof(void*);
+    const void* defaultValue = nullptr; // `size` bytes; nullptr = zero-filled
+    Span<const DynamicStructFieldDesc> fields;
+};
+
+CORE_API DynamicStructInstance* CreateDynamicStruct(const DynamicStructDesc& desc);
+CORE_API const Struct* GetBoxingStruct(const BoxedValue& value);
+CORE_API bool AssignStructValue(const Struct& targetStruct, void* destination, const BoxedValue& value);
+CORE_API void CopyMatchingProperties(const Struct& sourceStruct, const BoxedValue& source, const Struct& targetStruct, BoxedValue& target);
 
 class CORE_API DynamicStructInstance final : public Struct
 {

@@ -315,6 +315,10 @@ HashCode TypeInfoEx::GetHashCode() const
             hc.Add(data.typeInfo->GetHashCode());
         }
         break;
+    case DT_CLASS:
+        // two definitions of a dynamic type share its TypeId but not its layout
+        hc.Add(uintptr_t(data.cls));
+        break;
     default:
         break;
     }
@@ -451,6 +455,10 @@ TypeInfo* TypeInfo::ForDynamicClass(const Class* cls)
     pTypeInfo->size = uint16(cls->GetSize());
     pTypeInfo->alignment = uint16(cls->GetAlignment());
     pTypeInfo->flags = TypeInfoFlags::NONE;
+
+    // a redefinition takes over the TypeId, so the definition a value was made with is only known from here
+    pTypeInfo->extendedInfo.data.cls = cls;
+    pTypeInfo->extendedInfo.dataType = TypeInfoEx::DT_CLASS;
 
     AssertDebug(pTypeInfo->name.IsValid());
 

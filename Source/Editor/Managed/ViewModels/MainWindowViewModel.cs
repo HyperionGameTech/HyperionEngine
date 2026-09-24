@@ -829,6 +829,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _prefabAssetsChangedHandler;
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
+        private DelegateHandler? _scriptReloadedHandler;
         private DelegateHandler? _activeSwatchChangedHandler;
         private DelegateHandler? _activeLayersChangedHandler;
         private DelegateHandler? _playNetStateChangedHandler;
@@ -1420,6 +1421,7 @@ namespace Hyperion.Editor.ViewModels
             BindFocusedNodeChanged();
             BindSelectionChanged();
             BindMeshEditStateChanged();
+            BindScriptReloaded();
             BindPlayNetStateChanged();
 
             EngineManager.TaskStarted += OnTaskStarted;
@@ -2406,6 +2408,24 @@ namespace Hyperion.Editor.ViewModels
                 });
         }
 
+        // A reloaded script can add, remove or redefine components on the entities shown
+        private void BindScriptReloaded()
+        {
+            WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
+
+            _scriptReloadedHandler?.Remove();
+            _scriptReloadedHandler = _editorSubsystem.GetOnScriptReloadedDelegate()
+                .Bind(() =>
+                {
+                    if (!weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        return;
+                    }
+
+                    Dispatcher.UIThread.Post(() => target.Inspector.RefreshSelection());
+                });
+        }
+
         /// <summary>
         /// Reads the engine's mesh edit state and publishes it to the UI thread.
         /// </summary>
@@ -2610,7 +2630,8 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        public void AddAssetToScene(uint bucketIndex, Name assetName)
+        // Script assets get attached to the node they were dropped on; anything else is spawned into the scene.
+        public void DropAssetOnSceneHierarchy(uint bucketIndex, Name assetName, UUID? targetNodeUuid)
         {
             if (!_isReady)
                 return;
@@ -2619,18 +2640,35 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
+                    if (IsScriptAsset(bucketIndex, assetName))
+                    {
+                        if (targetNodeUuid is not UUID uuid)
+                        {
+                            Logger.Log(LogLevel.Info, $"Drop script '{assetName}' onto an entity to attach it.");
+                            return;
+                        }
+
+                        _editorSubsystem.ExecuteCommandByName(
+                            new Name("EditorCommandAssignScript"),
+                            $"{bucketIndex} {assetName} {uuid}");
+
+                        Dispatcher.UIThread.Post(() => Inspector.RefreshSelection());
+
+                        return;
+                    }
+
                     _editorSubsystem.ExecuteCommandByName(
                         new Name("EditorCommandAddAsset"),
                         $"{bucketIndex} {assetName}");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Failed to add asset to scene: {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Failed to drop asset on scene hierarchy: {ex.Message}");
                 }
             });
         }
 
-        public void AddAssetToSceneAtViewport(uint bucketIndex, Name assetName, float nx, float ny)
+        public void DropAssetOnViewport(uint bucketIndex, Name assetName, float nx, float ny)
         {
             if (!_isReady)
                 return;
@@ -2639,15 +2677,33 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
+                    if (IsScriptAsset(bucketIndex, assetName))
+                    {
+                        _editorSubsystem.ExecuteCommandByName(
+                            new Name("EditorCommandAssignScript"),
+                            $"{bucketIndex} {assetName} {nx} {ny}");
+
+                        Dispatcher.UIThread.Post(() => Inspector.RefreshSelection());
+
+                        return;
+                    }
+
                     _editorSubsystem.ExecuteCommandByName(
                         new Name("EditorCommandAddAsset"),
                         $"{bucketIndex} {assetName} {nx} {ny}");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Failed to add asset to scene at viewport: {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Failed to drop asset on viewport: {ex.Message}");
                 }
             });
+        }
+
+        private static bool IsScriptAsset(uint bucketIndex, Name assetName)
+        {
+            AssetObject? asset = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
+
+            return asset is ScriptAsset scriptAsset && scriptAsset.IsValid;
         }
 
         private void OnSceneMenuItemClick(object? sender, EventArgs e)

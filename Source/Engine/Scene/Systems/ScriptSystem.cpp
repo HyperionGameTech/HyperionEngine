@@ -27,6 +27,7 @@
 
 #include <Scripting/ScriptingService.hpp>
 #include <Scripting/EntityScripting.hpp>
+#include <Scripting/StrataTypes.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetBucket.hpp>
@@ -246,7 +247,25 @@ void ScriptSystem::OnAddedToWorld(World* world)
                         }
                         break;
                     case ScriptLanguage::Strata:
+                    {
+#ifdef HYP_STRATA
+                        // a module that only defines components has no entity script to reload, so re-register its types directly
+                        const FilePath sourcePath(inScriptDesc.path.Data());
+                        FilePath scriptsDirectory = sourcePath.BasePath();
+
+                        for (FilePath directory = scriptsDirectory; !directory.Empty() && directory.BasePath() != directory; directory = directory.BasePath())
+                        {
+                            if (directory.Basename() == AssetBuckets::Scripts.GetName())
+                            {
+                                scriptsDirectory = directory;
+                                break;
+                            }
+                        }
+
+                        Strata::ReloadTypes(sourcePath, scriptsDirectory);
+#endif // HYP_STRATA
                         break;
+                    }
                     default:
                         break;
                     }
@@ -335,6 +354,8 @@ void ScriptSystem::OnAddedToWorld(World* world)
                             }
                         }
                     }
+
+                    OnScriptReloaded();
                 }));
 
         m_scriptTracker = MakeUnique<ScriptTracker>();
@@ -371,6 +392,8 @@ Array<FilePath> ScriptSystem::CollectScriptSourceDirectories() const
     return scriptSourceDirectories;
 }
 
+Delegate<void> ScriptSystem::OnScriptReloaded;
+
 void ScriptSystem::RefreshScriptSourceDirectories()
 {
     if (!EnableScriptReloading() || !m_scriptTracker)
@@ -380,112 +403,6 @@ void ScriptSystem::RefreshScriptSourceDirectories()
 
     // Update the source dirs, may have changed, for example "Save As" project or first save going from temp dir -> actual concrete dir
     m_scriptTracker->UpdateSourceDirectories(CollectScriptSourceDirectories());
-}
-
-void ScriptSystem::PreloadProjectScripts(const Handle<AssetRegistry>& registry)
-{
-#ifdef HYP_DOTNET
-    if (!registry.IsValid() || !DotNETHost::GetInstance().IsInitialized())
-    {
-        return;
-    }
-
-    if (!EnableScriptReloading())
-    {
-        Array<AssetDesc> scriptAssetDescs;
-        registry->GetBucketAssetDescs(AssetBuckets::Scripts.GetIndex(), scriptAssetDescs);
-
-        Array<ANSIString> loadedAssemblyPaths;
-
-        for (const AssetDesc& scriptAssetDesc : scriptAssetDescs)
-        {
-            Handle<ScriptAsset> scriptAsset = registry->GetAsset<ScriptAsset>(AssetBuckets::Scripts, scriptAssetDesc.name);
-
-            if (!scriptAsset.IsValid())
-            {
-                continue;
-            }
-
-            auto readScope = scriptAsset->GetReadScope();
-
-            const ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
-
-            if (scriptDesc.language != ScriptLanguage::CSharp || scriptDesc.assemblyPath[0] == '\0')
-            {
-                continue;
-            }
-
-            // several scripts share a module
-            const ANSIString assemblyPath = EntityScripting::GetCSharpAssemblyLoadPath(scriptDesc);
-
-            if (loadedAssemblyPaths.Contains(assemblyPath))
-            {
-                continue;
-            }
-
-            loadedAssemblyPaths.PushBack(assemblyPath);
-
-            if (!DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
-            {
-                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to load C# script module '{}'", assemblyPath.Data());
-            }
-        }
-
-        return;
-    }
-
-    const FilePath scriptsDirectory = registry->GetRootPath() / AssetBuckets::Scripts.GetName();
-
-    if (!scriptsDirectory.IsDirectory())
-    {
-        return;
-    }
-
-    // same compiler settings as the tracker in OnAddedToWorld(), so modules resolve to the same names and outputs
-    ScriptTracker scriptTracker;
-    scriptTracker.InitializeCompiler(GetScriptsSourceDirectory(), EngineGlobals::GetTempDirectory() / "ScriptProjects", CoreApi::GetExecutablePath());
-
-    Array<FilePath> pendingDirectories;
-    pendingDirectories.PushBack(scriptsDirectory);
-
-    while (pendingDirectories.Any())
-    {
-        const FilePath directory = pendingDirectories.PopBack();
-
-        for (const FilePath& subdirectory : directory.GetSubdirectories())
-        {
-            pendingDirectories.PushBack(subdirectory);
-        }
-
-        // every C# source in a directory builds into the same module, so resolving one of them loads all of them
-        for (const FilePath& file : directory.GetAllFilesInDirectory())
-        {
-            if (!file.EndsWith(".cs"))
-            {
-                continue;
-            }
-
-            ScriptDesc scriptDesc;
-            scriptDesc.language = ScriptLanguage::CSharp;
-
-            if (!scriptTracker.ResolveAssembly(file, scriptDesc))
-            {
-                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to build C# scripts in {}; components they define won't be available until they build", directory);
-
-                break;
-            }
-
-            const ANSIString assemblyPath = EntityScripting::GetCSharpAssemblyLoadPath(scriptDesc);
-
-            if (!DotNETHost::GetInstance().LoadAssembly(assemblyPath.Data()))
-            {
-                HYP_LOG(Scripting, Error, "ScriptSystem: Failed to load C# script module '{}'", assemblyPath.Data());
-            }
-
-            break;
-        }
-    }
-#endif // HYP_DOTNET
 }
 
 void ScriptSystem::OnRemovedFromWorld(World* world)

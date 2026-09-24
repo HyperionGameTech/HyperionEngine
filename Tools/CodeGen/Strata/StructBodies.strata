@@ -8,13 +8,18 @@
 extern struct Name
 {
     ulong hashCode;
-};
+}
 
 struct StringHash = ulong;
 
 extern struct Color
 {
     uint color32;
-};
+}
+
+extern<T> bool GetComponent(Entity entity, ref T value);
+extern<T> void SetComponent(Entity entity, const ref T value);
+extern<T> bool HasComponent(Entity entity);
+extern<T> bool RemoveComponent(Entity entity);
 
 /// --------------------------------------------------------------------

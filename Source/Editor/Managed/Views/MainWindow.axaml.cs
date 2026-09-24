@@ -39,6 +39,9 @@ namespace Hyperion.Editor
             DataFormat.CreateInProcessFormat<NodeViewModel>("hyperion-nodeviewmodel");
         private static readonly DataFormat<string> AssetDragFormat =
             DataFormat.CreateStringApplicationFormat("hyperion-asset");
+        // Only a drag-over hint; the drop itself checks the asset's real class on the sim thread.
+        private static readonly DataFormat<string> ScriptAssetDragFormat =
+            DataFormat.CreateStringApplicationFormat("hyperion-script-asset");
         private NodeViewModel? _dragCandidate;
         private PointerPressedEventArgs? _dragPressedArgs;
         private Point _dragStartPoint;
@@ -1131,10 +1134,22 @@ namespace Hyperion.Editor
         {
             if (e.DataTransfer.Contains(AssetDragFormat))
             {
-                e.DragEffects = DragDropEffects.Copy;
-
                 var vm = DataContext as MainWindowViewModel;
-                vm?.SceneHierarchy.SetDropTarget(null);
+
+                if (e.DataTransfer.Contains(ScriptAssetDragFormat))
+                {
+                    var scriptTarget = FindNodeViewModelInEventSource(e.Source);
+                    bool isEntityTarget = scriptTarget?.Node is Entity;
+
+                    e.DragEffects = isEntityTarget ? DragDropEffects.Copy : DragDropEffects.None;
+                    vm?.SceneHierarchy.SetDropTarget(isEntityTarget ? scriptTarget : null);
+                }
+                else
+                {
+                    e.DragEffects = DragDropEffects.Copy;
+                    vm?.SceneHierarchy.SetDropTarget(null);
+                }
+
                 UpdateAutoScroll(e.GetPosition(_sceneTree));
                 e.Handled = true;
                 return;
@@ -1172,6 +1187,8 @@ namespace Hyperion.Editor
         {
             if (e.DataTransfer.Contains(AssetDragFormat))
             {
+                var assetTarget = FindNodeViewModelInEventSource(e.Source);
+
                 EndDrag();
 
                 var vm = DataContext as MainWindowViewModel;
@@ -1183,7 +1200,7 @@ namespace Hyperion.Editor
                         var parts = assetData.Split('|');
                         if (parts.Length == 2 && uint.TryParse(parts[0], out uint bucketIndex))
                         {
-                            vm.AddAssetToScene(bucketIndex, new Name(parts[1]));
+                            vm.DropAssetOnSceneHierarchy(bucketIndex, new Name(parts[1]), assetTarget?.UUID);
                         }
                     }
                 }
@@ -1444,6 +1461,11 @@ namespace Hyperion.Editor
             var data = new DataTransfer();
             data.Add(DataTransferItem.Create(AssetDragFormat, $"{candidate.Bucket?.BucketIndex ?? 0}|{candidate.AssetDesc.Name}"));
 
+            if (candidate.TypeName is "Script" or "ScriptAsset")
+            {
+                data.Add(DataTransferItem.Create(ScriptAssetDragFormat, candidate.AssetDesc.Name.ToString()));
+            }
+
             try
             {
                 await DragDrop.DoDragDropAsync(_assetDragPressedArgs, data, DragDropEffects.Copy);
@@ -1514,7 +1536,7 @@ namespace Hyperion.Editor
             double ny = Math.Clamp(pos.Y / _viewportDropTarget.Bounds.Height, 0.0, 1.0);
 
             var vm = DataContext as MainWindowViewModel;
-            vm?.AddAssetToSceneAtViewport(bucketIndex, new Name(parts[1]), (float)nx, (float)ny);
+            vm?.DropAssetOnViewport(bucketIndex, new Name(parts[1]), (float)nx, (float)ny);
 
             e.Handled = true;
         }

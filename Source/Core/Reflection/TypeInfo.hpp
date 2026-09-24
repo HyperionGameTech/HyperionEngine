@@ -457,18 +457,22 @@ struct CORE_API TypeInfoEx
     enum DataType
     {
         DT_NONE = 0,
-        DT_TYPE_INFO = 1
+        DT_TYPE_INFO = 1,
+        DT_CLASS = 2
     };
 
     /*! \brief Tagged union holding either:
      *  - const TypeInfo* for container element types (single type)
-     *  - const Class* for types with Class reflection info */
+     *  - const Class* for a dynamic class's own TypeInfo: the definition it belongs to, which TypeInfo::GetClass
+     *    can't give once a newer definition has taken over the TypeId */
     union
     {
         const TypeInfo* typeInfo;
+        const Class* cls;
     } data;
 
-    DataType dataType : 2;
+    // 3 bits: enum bitfields are signed on MSVC, so 2 bits can't hold DT_CLASS
+    DataType dataType : 3;
 
     ITypeInfoHandler* handler = nullptr;
     TypeInfoEx* next = nullptr;
@@ -493,6 +497,17 @@ struct CORE_API TypeInfoEx
         if (dataType == DT_TYPE_INFO)
         {
             return data.typeInfo;
+        }
+
+        return nullptr;
+    }
+
+    /*! \brief The class definition this TypeInfo belongs to, for dynamic classes only */
+    HYP_FORCE_INLINE const Class* GetOwnerClass() const
+    {
+        if (dataType == DT_CLASS)
+        {
+            return data.cls;
         }
 
         return nullptr;

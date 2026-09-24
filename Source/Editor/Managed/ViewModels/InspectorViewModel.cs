@@ -300,6 +300,12 @@ namespace Hyperion.Editor.ViewModels
             SetSelection(nodes, primaryNode, scene, isRootNode: false);
         }
 
+        /// <summary>Rebuilds the inspector for the nodes it already shows, e.g. after a command changed their components.</summary>
+        public void RefreshSelection()
+        {
+            SetSelection(_selectedNodes.ToList(), SelectedNode, CurrentScene, IsRootNode);
+        }
+
         /// <summary>True when the inspector already shows exactly these nodes (in any order).</summary>
         public bool IsShowingSelection(IReadOnlyList<Node> nodes)
         {
@@ -600,9 +606,18 @@ namespace Hyperion.Editor.ViewModels
                                 .FirstOrDefault(d => d.TypeId == typeId);
 
                             if (descriptor != null)
+                            {
                                 componentVm = descriptor.CreateViewModel(entity);
+                            }
+                            else if (Class.TryGetClass(typeId) is Class runtimeClass && runtimeClass.IsValid && runtimeClass.IsDynamic)
+                            {
+                                // a script-defined component (C# or Strata), registered when its script loaded
+                                componentVm = new InspectorComponentViewModel(entity, runtimeClass);
+                            }
                             else
+                            {
                                 Logger.Log(LogLevel.Debug, $"Inspector has no view model for component type '{typeId}'");
+                            }
 
                             if (componentVm != null && componentVm.IsEditorVisible)
                             {
@@ -1225,19 +1240,18 @@ namespace Hyperion.Editor.ViewModels
             {
                 Class? cls = Class.TryGetClass(componentType);
 
-                if (cls == null || !cls.Value.IsValid)
+                // script-defined (dynamic) component types are shown when an entity has one, but never offered to add
+                if (cls == null || !cls.Value.IsValid || cls.Value.IsDynamic)
                     return null;
 
                 Class componentClass = cls.Value;
                 ClassAttribute? attrLabel = componentClass.GetAttribute("label");
                 string label = attrLabel.HasValue ? attrLabel.Value.GetString() : componentClass.Name.ToString();
 
-                Type vmType = typeof(InspectorComponentViewModel<>).MakeGenericType(componentType);
-
                 return new ComponentTypeDescriptor(
                     label,
                     () => componentClass.TypeId,
-                    entity => (InspectorComponentViewModelBase)Activator.CreateInstance(vmType, entity)!,
+                    entity => new InspectorComponentViewModel(entity, componentClass),
                     (mgr, entity) => mgr.AddDefaultComponent(entity, componentClass));
             }
             catch (Exception ex)
@@ -1249,28 +1263,14 @@ namespace Hyperion.Editor.ViewModels
 
         private static readonly object s_registeredComponentsLock = new();
         private static ComponentTypeDescriptor[]? s_registeredComponents;
-        private static bool s_listeningForComponentTypeChanges;
 
-        // Rebuilt after component types are registered, eg when a script assembly loads or hot reloads
+        // Engine component types only, so script assemblies loading or reloading never change the list
         private static ComponentTypeDescriptor[] RegisteredComponents
         {
             get
             {
                 lock (s_registeredComponentsLock)
                 {
-                    if (!s_listeningForComponentTypeChanges)
-                    {
-                        ComponentRegistry.ComponentTypesChanged += () =>
-                        {
-                            lock (s_registeredComponentsLock)
-                            {
-                                s_registeredComponents = null;
-                            }
-                        };
-
-                        s_listeningForComponentTypeChanges = true;
-                    }
-
                     return s_registeredComponents ??= BuildRegisteredComponents();
                 }
             }
@@ -1284,9 +1284,6 @@ namespace Hyperion.Editor.ViewModels
                     catch { return Array.Empty<Type>(); }
                 })
                 .Where(t => t.IsValueType && t.GetInterfaces().Contains(typeof(IComponent)))
-                // hot reloading a script assembly leaves the older copies of its types loaded; keep the newest
-                .GroupBy(t => t.FullName)
-                .Select(group => group.Last())
                 .Select(BuildDescriptor)
                 .OfType<ComponentTypeDescriptor>()
                 .ToArray();

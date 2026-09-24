@@ -65,6 +65,7 @@ class EditorTerrainState;
 class EditorDecalPainterState;
 class AppContextBase;
 class BVHNode;
+class RayTestResults;
 
 struct Ray;
 struct MouseEvent;
@@ -570,6 +571,10 @@ public:
     HYP_METHOD()
     Vec3f CalculateSceneInsertionPoint(float desiredDistance = 5.0f, float offsetFromSurface = 0.5f) const;
 
+    /*! \brief Ray test against everything the editor lets you click-select in the viewports (scene geometry and editor sprites).
+     *  \return True if anything was hit. Hits are not guaranteed to have a node. */
+    bool TestPickRay(const Ray& ray, RayTestResults& outResults);
+
     /*! \brief Create or update an in-progress, non-undoable preview entity showing a normalized cube sphere
      *  with the given number of subdivisions. Used to live-preview a shape while a creation dialog is open.
      *  Call \ref{CommitMeshPreview} to turn the preview into a permanent, undoable scene entity, or
@@ -637,6 +642,10 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void, EditorPlayNetStatus> OnPlayNetStatusChanged;
+
+    /*! \brief Fired on the sim thread after a changed script was reloaded, which can add, remove or redefine components. */
+    HYP_FIELD()
+    ScriptableDelegate<void> OnScriptReloaded;
 
 private:
     void InitViewport();
