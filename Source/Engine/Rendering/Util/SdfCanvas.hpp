@@ -39,6 +39,10 @@ public:
     /// Shapes added after this are smooth-unioned with everything before them, filleting the joins over roughly \p radius. 0 is a hard union.
     SdfCanvas& Blend(float radius);
 
+    /// Shapes added after this are cut out of everything before them, until Union() is called.
+    SdfCanvas& Subtract();
+    SdfCanvas& Union();
+
     float Distance(const Vec2f& point) const;
 
     Bitmap_RGBA8 Rasterize(uint32 size, const SdfRasterStyle& style = {}) const;
@@ -64,6 +68,7 @@ private:
         uint32 firstEdge = 0;
         uint32 numEdges = 0;
         float blend = 0.0f;
+        bool subtract = false;
     };
 
     struct PolygonEdge
@@ -80,6 +85,7 @@ private:
     Array<PolygonEdge> m_polygonEdges;
 
     float m_blend = 0.0f;
+    bool m_subtract = false;
 };
 
 } // namespace Hyperion

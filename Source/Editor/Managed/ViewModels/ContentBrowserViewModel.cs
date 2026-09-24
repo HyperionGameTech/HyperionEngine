@@ -38,8 +38,11 @@ namespace Hyperion.Editor.ViewModels
         /// <summary>The assets shown in the browser: the current bucket's contents after the search filter and sort are applied.</summary>
         public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
 
-        /// <summary>Everything in the current bucket, unfiltered - <see cref="Assets"/> is rebuilt from this.</summary>
+        /// <summary>Everything in the current bucket (or every bucket, when searching from the root), unfiltered - <see cref="Assets"/> is rebuilt from this.</summary>
         private readonly List<AssetObjectViewModel> _bucketAssets = new List<AssetObjectViewModel>();
+
+        /// <summary>Set once <see cref="_bucketAssets"/> holds every bucket's assets, so a root search only loads them on its first keystroke.</summary>
+        private bool _allBucketsLoaded;
 
         private AssetObjectViewModel? _selectedAsset;
         public AssetObjectViewModel? SelectedAsset
@@ -49,6 +52,8 @@ namespace Hyperion.Editor.ViewModels
         }
 
         private AssetBucketViewModel? _currentBucket;
+
+        /// <summary>The bucket being browsed, or null when showing the root page of buckets.</summary>
         public AssetBucketViewModel? CurrentBucket
         {
             get => _currentBucket;
@@ -58,10 +63,28 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
+        private AssetBucketViewModel? _selectedBucket;
+
+        /// <summary>The highlighted tile on the root page. Opening it is a separate step, like a folder.</summary>
+        public AssetBucketViewModel? SelectedBucket
+        {
+            get => _selectedBucket;
+            set => SetProperty(ref _selectedBucket, value);
+        }
+
+        public bool IsAtRoot => _currentBucket == null;
+
+        public bool IsShowingBuckets => IsAtRoot && !HasSearchText;
+
+        public bool IsShowingAssets => !IsShowingBuckets;
+
+        public string SearchWatermark => _currentBucket != null
+            ? $"Search {_currentBucket.Name}..."
+            : "Search all assets...";
 
         private string _searchText = string.Empty;
 
-        /// <summary>Substring the listed asset names are filtered by. Empty shows the whole bucket.</summary>
+        /// <summary>Substring the listed asset names are filtered by. Filters the current bucket, or every bucket from the root page.</summary>
         public string SearchText
         {
             get => _searchText;
@@ -70,6 +93,24 @@ namespace Hyperion.Editor.ViewModels
                 if (SetProperty(ref _searchText, value ?? string.Empty))
                 {
                     OnPropertyChanged(nameof(HasSearchText));
+                    OnPropertyChanged(nameof(IsShowingBuckets));
+                    OnPropertyChanged(nameof(IsShowingAssets));
+
+                    if (IsAtRoot)
+                    {
+                        if (!HasSearchText)
+                        {
+                            _thumbnailService.CancelPending();
+                            _thumbnailService.ClearSubscribers();
+
+                            _bucketAssets.Clear();
+                            _allBucketsLoaded = false;
+                        }
+                        else if (!_allBucketsLoaded)
+                        {
+                            LoadAllBucketAssets();
+                        }
+                    }
 
                     ApplyFilterAndSort();
                 }
@@ -78,8 +119,10 @@ namespace Hyperion.Editor.ViewModels
 
         public bool HasSearchText => _searchText.Length != 0;
 
-        /// <summary>True when a search is active and nothing in the bucket matches it, so the empty list can be explained.</summary>
+        /// <summary>True when a search is active and nothing matches it, so the empty list can be explained.</summary>
         public bool HasNoMatches => HasSearchText && Assets.Count == 0;
+
+        public bool IsBucketEmpty => !IsAtRoot && !HasSearchText && Assets.Count == 0;
 
         public IReadOnlyList<string> SortModeLabels { get; } = new[] { "Name", "Date Modified", "Type" };
 
@@ -112,6 +155,9 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand ClearSearchCommand { get; }
 
+        public ICommand GoBackCommand { get; }
+        public ICommand OpenBucketCommand { get; }
+
         public ICommand NewScriptCommand { get; }
         public ICommand NewMaterialCommand { get; }
         public ICommand NewWeaponCommand { get; }
@@ -123,6 +169,21 @@ namespace Hyperion.Editor.ViewModels
         public ICommand EditAssetCommand { get; }
 
         public ICommand AddToSceneCommand { get; }
+
+        /// <summary>Asset type name and create command for each bucket the browser can create into, keyed by bucket index.</summary>
+        private readonly Dictionary<uint, (string TypeName, ICommand Command)> _newAssetActions;
+
+        private (string TypeName, ICommand Command)? CurrentBucketNewAction =>
+            _currentBucket != null && _newAssetActions.TryGetValue(_currentBucket.BucketIndex, out var newAction)
+                ? newAction
+                : null;
+
+        /// <summary>Creates an asset of the open bucket's type. Null at the root, or for buckets whose assets are only made by importing.</summary>
+        public ICommand? NewInBucketCommand => CurrentBucketNewAction?.Command;
+
+        public string NewInBucketLabel => CurrentBucketNewAction is { } newAction ? $"New {newAction.TypeName}" : string.Empty;
+
+        public bool HasNewInBucket => CurrentBucketNewAction != null;
 
         /// Simulation runs against a throwaway snapshot of the project, so anything authored while it
         /// runs would be thrown away with the snapshot.
@@ -163,6 +224,16 @@ namespace Hyperion.Editor.ViewModels
             ImportCommand = new EditorCommand("ImportContent");
 
             ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
+
+            GoBackCommand = new RelayCommand(GoBack, () => !IsAtRoot);
+
+            OpenBucketCommand = new RelayCommand<AssetBucketViewModel>(bucketVm =>
+            {
+                if (bucketVm != null)
+                {
+                    CurrentBucket = bucketVm;
+                }
+            });
 
             DeleteAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
@@ -357,6 +428,16 @@ namespace Hyperion.Editor.ViewModels
                 });
             }, () => CanCreateAssets);
 
+            _newAssetActions = new Dictionary<uint, (string TypeName, ICommand Command)>
+            {
+                [AssetBucket.PhysicsShapes.Value] = ("Physics Shape", NewPhysicsShapeCommand),
+                [AssetBucket.Materials.Value] = ("Material", NewMaterialCommand),
+                [AssetBucket.Weapons.Value] = ("Weapon", NewWeaponCommand),
+                [AssetBucket.Decals.Value] = ("Decal", NewDecalCommand),
+                [AssetBucket.Scripts.Value] = ("Script", NewScriptCommand),
+                [AssetBucket.Prefabs.Value] = ("Prefab", NewPrefabCommand),
+            };
+
             AddToSceneCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
                 if (asset?.Bucket == null)
@@ -390,6 +471,8 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(Buckets));
 
+            RefreshBucketCounts();
+
             _onSelectedBucketChangedHandler = _editorSubsystem.GetOnSelectedBucketChangedDelegate().Bind((uint bucketIndex) =>
             {
                 Logger.Log(LogLevel.Verbose, "Selected bucket changed: {0}", AssetBucket.GetAssetBucketName(bucketIndex));
@@ -401,7 +484,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (_currentBucket?.BucketIndex == bucketIndex)
+                    RefreshBucketCount(bucketIndex);
+
+                    // a root search lists every bucket, so any change may touch it
+                    if (_currentBucket?.BucketIndex == bucketIndex || (IsAtRoot && HasSearchText))
                     {
                         // An asset in this bucket was added, removed or edited - the decoded images we
                         // are holding may no longer match what is on disk.
@@ -414,7 +500,11 @@ namespace Hyperion.Editor.ViewModels
 
             _onProjectOpenedHandler = _editorSubsystem.GetOnProjectOpenedDelegate().Bind((EditorProject project) =>
             {
-                Dispatcher.UIThread.Post(RefreshAssets);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    RefreshBucketCounts();
+                    RefreshAssets();
+                });
             });
 
             _onProjectClosingHandler = _editorSubsystem.GetOnProjectClosingDelegate().Bind((EditorProject project) =>
@@ -424,13 +514,52 @@ namespace Hyperion.Editor.ViewModels
                     _thumbnailService.Clear();
 
                     _bucketAssets.Clear();
+                    _allBucketsLoaded = false;
                     Assets.Clear();
                     SelectedAsset = null;
 
+                    foreach (AssetBucketViewModel bucketVm in Buckets)
+                    {
+                        bucketVm.AssetCount = 0;
+                    }
+
                     OnPropertyChanged(nameof(Assets));
                     OnPropertyChanged(nameof(HasNoMatches));
+                    OnPropertyChanged(nameof(IsBucketEmpty));
                 });
             });
+        }
+
+        private void RefreshBucketCounts()
+        {
+            foreach (AssetBucketViewModel bucketVm in Buckets)
+            {
+                RefreshBucketCount(bucketVm.BucketIndex);
+            }
+        }
+
+        private void RefreshBucketCount(uint bucketIndex)
+        {
+            AssetBucketViewModel? bucketVm = Buckets.FirstOrDefault(bvm => bvm.BucketIndex == bucketIndex);
+
+            if (bucketVm != null)
+            {
+                bucketVm.AssetCount = (int)AssetManager.Instance.AssetRegistry.GetBucketAssetCount(bucketIndex);
+            }
+        }
+
+        /// <summary>Returns to the root page of buckets, keeping the search so it widens to every bucket.</summary>
+        private void GoBack()
+        {
+            if (IsAtRoot)
+            {
+                return;
+            }
+
+            // lets the bucket just left stay highlighted on the root page
+            SelectedBucket = _currentBucket;
+
+            CurrentBucket = null;
         }
 
         /// <summary>Reloads the asset list for the given bucket and resolves any pending focus/edit request. Must run on the UI thread.</summary>
@@ -442,66 +571,27 @@ namespace Hyperion.Editor.ViewModels
             _thumbnailService.ClearSubscribers();
 
             _bucketAssets.Clear();
+            _allBucketsLoaded = false;
             Assets.Clear();
             SelectedAsset = null;
 
-            if (bucketIndex != 0)
+            _currentBucket = bucketIndex != 0
+                ? Buckets.FirstOrDefault(bvm => bvm.BucketIndex == bucketIndex)
+                : null;
+
+            if (_currentBucket != null)
             {
-                AssetBucketViewModel? bucketVm = Buckets.FirstOrDefault(bvm => bvm.BucketIndex == bucketIndex);
-
-                if (bucketVm != null)
-                {
-                    AssetManager mgr = AssetManager.Instance;
-                    AssetRegistry registry = mgr.AssetRegistry;
-                    string rootPath = registry.GetRootPath();
-
-                    List<AssetObjectViewModel> unsavedAssets = [];
-
-                    foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketIndex))
-                    {
-                        string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".hmf");
-
-                        DateTime? dateModified = null;
-                        string? typeName = null;
-
-                        bool hasManifest = File.Exists(manifestPath);
-
-                        if (hasManifest)
-                        {
-                            dateModified = File.GetLastWriteTime(manifestPath);
-                            typeName = ReadAssetTypeName(manifestPath);
-                        }
-
-                        AssetObjectViewModel assetVm = new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified);
-                        _bucketAssets.Add(assetVm);
-
-                        if (!hasManifest)
-                        {
-                            unsavedAssets.Add(assetVm);
-                        }
-                    }
-
-                    if (unsavedAssets.Count > 0)
-                    {
-                        ResolveUnsavedAssetTypeNames(bucketIndex, unsavedAssets);
-                    }
-
-                    _currentBucket = bucketVm;
-                }
-                else
-                {
-                    _currentBucket = null;
-                }
+                LoadBucketAssets(_currentBucket);
             }
-            else
+            else if (HasSearchText)
             {
-                _currentBucket = null;
+                LoadAllBucketAssets();
             }
 
             ApplyFilterAndSort();
 
             // Handle pending focus after asset creation
-            if (_pendingFocusBucket == bucketIndex)
+            if (bucketIndex != 0 && _pendingFocusBucket == bucketIndex)
             {
                 _pendingFocusBucket = 0;
 
@@ -526,6 +616,68 @@ namespace Hyperion.Editor.ViewModels
             }
 
             OnPropertyChanged(nameof(CurrentBucket));
+            OnPropertyChanged(nameof(IsAtRoot));
+            OnPropertyChanged(nameof(IsShowingBuckets));
+            OnPropertyChanged(nameof(IsShowingAssets));
+            OnPropertyChanged(nameof(IsBucketEmpty));
+            OnPropertyChanged(nameof(SearchWatermark));
+            OnPropertyChanged(nameof(NewInBucketCommand));
+            OnPropertyChanged(nameof(NewInBucketLabel));
+            OnPropertyChanged(nameof(HasNewInBucket));
+
+            (GoBackCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+
+        /// <summary>Appends the given bucket's assets to <see cref="_bucketAssets"/>. Must run on the UI thread.</summary>
+        private void LoadBucketAssets(AssetBucketViewModel bucketVm)
+        {
+            AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+            string rootPath = registry.GetRootPath();
+
+            List<AssetObjectViewModel> unsavedAssets = [];
+            int assetCount = 0;
+
+            foreach (AssetDesc assetDesc in registry.GetBucketAssetDescs(bucketVm.BucketIndex))
+            {
+                string manifestPath = Path.Combine(rootPath, bucketVm.Name, assetDesc.Name.ToString() + ".hmf");
+
+                DateTime? dateModified = null;
+                string? typeName = null;
+
+                bool hasManifest = File.Exists(manifestPath);
+
+                if (hasManifest)
+                {
+                    dateModified = File.GetLastWriteTime(manifestPath);
+                    typeName = ReadAssetTypeName(manifestPath);
+                }
+
+                AssetObjectViewModel assetVm = new AssetObjectViewModel(assetDesc, bucketVm, typeName, dateModified);
+                _bucketAssets.Add(assetVm);
+                assetCount++;
+
+                if (!hasManifest)
+                {
+                    unsavedAssets.Add(assetVm);
+                }
+            }
+
+            bucketVm.AssetCount = assetCount;
+
+            if (unsavedAssets.Count > 0)
+            {
+                ResolveUnsavedAssetTypeNames(bucketVm.BucketIndex, unsavedAssets);
+            }
+        }
+
+        private void LoadAllBucketAssets()
+        {
+            foreach (AssetBucketViewModel bucketVm in Buckets)
+            {
+                LoadBucketAssets(bucketVm);
+            }
+
+            _allBucketsLoaded = true;
         }
 
         /// <summary>
@@ -611,24 +763,24 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        /// <summary>Reloads the assets of the currently selected bucket, preserving the selection where possible. Must run on the UI thread.</summary>
+        /// <summary>Reloads the listed assets (the current bucket, or every bucket for a root search), preserving the selection where possible. Must run on the UI thread.</summary>
         private void RefreshAssets()
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            uint bucketIndex = _currentBucket?.BucketIndex ?? 0;
-
-            if (bucketIndex == 0)
+            if (IsShowingBuckets)
             {
                 return;
             }
 
             Name selectedName = SelectedAsset?.AssetDesc.Name ?? Name.Invalid;
-            ReloadBucketAssets(bucketIndex);
+            uint selectedBucketIndex = SelectedAsset?.Bucket?.BucketIndex ?? 0;
+
+            ReloadBucketAssets(_currentBucket?.BucketIndex ?? 0);
 
             if (selectedName.Valid)
             {
-                SelectedAsset = Assets.FirstOrDefault(a => a.AssetDesc.Name == selectedName);
+                SelectedAsset = Assets.FirstOrDefault(a => a.AssetDesc.Name == selectedName && a.Bucket?.BucketIndex == selectedBucketIndex);
             }
         }
 
@@ -637,7 +789,9 @@ namespace Hyperion.Editor.ViewModels
         {
             AssetObjectViewModel? preserved = SelectedAsset;
 
-            IEnumerable<AssetObjectViewModel> matching = _bucketAssets;
+            IEnumerable<AssetObjectViewModel> matching = IsShowingBuckets
+                ? Enumerable.Empty<AssetObjectViewModel>()
+                : _bucketAssets;
 
             if (HasSearchText)
             {
@@ -665,6 +819,7 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(Assets));
             OnPropertyChanged(nameof(HasNoMatches));
+            OnPropertyChanged(nameof(IsBucketEmpty));
 
             RequestThumbnails();
         }

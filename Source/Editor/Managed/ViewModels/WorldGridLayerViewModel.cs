@@ -20,7 +20,7 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsTerrain { get; }
 
-        public string IconKind => IsTerrain ? "Landscape" : "Layers";
+        public string IconKind => IsTerrain ? "AssetTerrain" : "Layers";
 
         public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
 

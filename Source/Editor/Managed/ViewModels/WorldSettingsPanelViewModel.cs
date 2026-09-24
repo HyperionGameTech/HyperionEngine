@@ -457,7 +457,7 @@ namespace Hyperion.Editor.ViewModels
                 ? ClassName[..^suffix.Length]
                 : ClassName;
 
-            IconKind = DisplayName.Contains("Terrain", StringComparison.OrdinalIgnoreCase) ? "Landscape" : "Layers";
+            IconKind = DisplayName.Contains("Terrain", StringComparison.OrdinalIgnoreCase) ? "AssetTerrain" : "Layers";
         }
     }
 }

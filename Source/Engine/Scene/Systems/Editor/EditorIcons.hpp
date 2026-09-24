@@ -38,10 +38,36 @@ enum class Icon : uint32
     FogVolume,
     Decal,
 
+    // icons below are only shown in the editor UI
+    AssetMesh,
+    AssetTexture,
+    AssetMaterial,
+    AssetInstancedMesh,
+    AssetAnimation,
+    AssetAnimationTrack,
+    AssetSkeleton,
+    AssetWorld,
+    AssetScene,
+    AssetShader,
+    AssetShaderBundle,
+    AssetFontAtlas,
+    AssetPhysicsShape,
+    AssetScript,
+    AssetRawData,
+    AssetPrefab,
+    AssetSound,
+    AssetTerrain,
+    AssetWeapon,
+
+    MeshEditMode,
+
     Max
 };
 
 static constexpr uint32 NumIcons = uint32(Icon::Max);
+
+/// Icons below this also get a sprite texture baked for the viewport
+static constexpr uint32 NumSpriteIcons = uint32(Icon::AssetMesh);
 
 static constexpr uint32 SpriteTextureSize = 256;
 static constexpr uint32 UIImageSize = 64;

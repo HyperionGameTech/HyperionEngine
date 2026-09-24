@@ -2630,7 +2630,7 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        // Script assets get attached to the node they were dropped on; anything else is spawned into the scene.
+        // Scripts, materials and textures get applied to the entity they were dropped on; anything else is spawned into the scene.
         public void DropAssetOnSceneHierarchy(uint bucketIndex, Name assetName, UUID? targetNodeUuid)
         {
             if (!_isReady)
@@ -2640,16 +2640,18 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    if (IsScriptAsset(bucketIndex, assetName))
+                    _editorSubsystem.ClearAssetDropTarget();
+
+                    if (_editorSubsystem.IsEntityTargetedAsset(bucketIndex, assetName))
                     {
                         if (targetNodeUuid is not UUID uuid)
                         {
-                            Logger.Log(LogLevel.Info, $"Drop script '{assetName}' onto an entity to attach it.");
+                            Logger.Log(LogLevel.Info, $"Drop '{assetName}' onto an entity to apply it.");
                             return;
                         }
 
                         _editorSubsystem.ExecuteCommandByName(
-                            new Name("EditorCommandAssignScript"),
+                            new Name("EditorCommandDropAssetOnEntity"),
                             $"{bucketIndex} {assetName} {uuid}");
 
                         Dispatcher.UIThread.Post(() => Inspector.RefreshSelection());
@@ -2677,10 +2679,12 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    if (IsScriptAsset(bucketIndex, assetName))
+                    _editorSubsystem.ClearAssetDropTarget();
+
+                    if (_editorSubsystem.IsEntityTargetedAsset(bucketIndex, assetName))
                     {
                         _editorSubsystem.ExecuteCommandByName(
-                            new Name("EditorCommandAssignScript"),
+                            new Name("EditorCommandDropAssetOnEntity"),
                             $"{bucketIndex} {assetName} {nx} {ny}");
 
                         Dispatcher.UIThread.Post(() => Inspector.RefreshSelection());
@@ -2699,11 +2703,79 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        private static bool IsScriptAsset(uint bucketIndex, Name assetName)
-        {
-            AssetObject? asset = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
+        private sealed record AssetDropHover(uint BucketIndex, Name AssetName, float ScreenX, float ScreenY, Node? TargetNode);
 
-            return asset is ScriptAsset scriptAsset && scriptAsset.IsValid;
+        private readonly object _assetDropHoverLock = new object();
+        private AssetDropHover? _pendingAssetDropHover;
+        private bool _isAssetDropHoverPosted;
+
+        public void UpdateViewportAssetDropTarget(uint bucketIndex, Name assetName, float nx, float ny)
+        {
+            PostAssetDropHover(new AssetDropHover(bucketIndex, assetName, nx, ny, null));
+        }
+
+        public void UpdateSceneHierarchyAssetDropTarget(uint bucketIndex, Name assetName, NodeViewModel? target)
+        {
+            if (target?.Node is not Node node)
+            {
+                ClearAssetDropTarget();
+                return;
+            }
+
+            PostAssetDropHover(new AssetDropHover(bucketIndex, assetName, 0.0f, 0.0f, node));
+        }
+
+        public void ClearAssetDropTarget()
+        {
+            PostAssetDropHover(null);
+        }
+
+        // DragOver fires on every mouse move; only the latest hover (or clear) is sent to the sim thread
+        private void PostAssetDropHover(AssetDropHover? hover)
+        {
+            if (!_isReady)
+                return;
+
+            lock (_assetDropHoverLock)
+            {
+                _pendingAssetDropHover = hover;
+
+                if (_isAssetDropHoverPosted)
+                    return;
+
+                _isAssetDropHoverPosted = true;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                AssetDropHover? latest;
+
+                lock (_assetDropHoverLock)
+                {
+                    latest = _pendingAssetDropHover;
+                    _isAssetDropHoverPosted = false;
+                }
+
+                try
+                {
+                    if (latest == null)
+                    {
+                        _editorSubsystem.ClearAssetDropTarget();
+                    }
+                    else if (latest.TargetNode != null)
+                    {
+                        _editorSubsystem.UpdateNodeAssetDropTarget(latest.BucketIndex, latest.AssetName, latest.TargetNode);
+                    }
+                    else
+                    {
+                        _editorSubsystem.UpdateViewportAssetDropTarget(latest.BucketIndex, latest.AssetName, latest.ScreenX, latest.ScreenY);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Failed to update asset drop target: {ex.Message}");
+                }
+            });
         }
 
         private void OnSceneMenuItemClick(object? sender, EventArgs e)

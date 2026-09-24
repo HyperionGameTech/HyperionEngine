@@ -1,4 +1,5 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
+#include <Editor/EditorAssetDrop.hpp>
 
 #include <Scene/Components/ScriptComponent.hpp>
 
@@ -536,45 +537,18 @@ DEFINE_EDITOR_COMMAND(AddAsset);
 
 #pragma endregion AddAsset
 
-#pragma region AssignScript
+#pragma region DropAssetOnEntity
 
-class EditorCommandAssignScript final : public EditorCommandBase
+class EditorCommandDropAssetOnEntity final : public EditorCommandBase
 {
-    HYP_OBJECT_BODY(EditorCommandAssignScript);
+    HYP_OBJECT_BODY(EditorCommandDropAssetOnEntity);
 
 public:
-    virtual ~EditorCommandAssignScript() override = default;
+    virtual ~EditorCommandDropAssetOnEntity() override = default;
 
     virtual String GetText() const override
     {
-        return "Assign Script";
-    }
-
-    static Node* PickNodeAtViewport(EditorSubsystem* subsystem, const Vec2f& screenPosition)
-    {
-        EditorViewport* activeViewport = subsystem->GetActiveViewport();
-        if (!activeViewport || !activeViewport->GetCamera())
-        {
-            return nullptr;
-        }
-
-        const Ray ray = activeViewport->GetCamera()->GetPickRay(screenPosition);
-
-        RayTestResults results;
-        if (!subsystem->TestPickRay(ray, results))
-        {
-            return nullptr;
-        }
-
-        for (const RayHit& hit : results)
-        {
-            if (hit.node != nullptr)
-            {
-                return hit.node;
-            }
-        }
-
-        return nullptr;
+        return "Drop Asset On Entity";
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -583,14 +557,14 @@ public:
 
         if (NumArguments() < 3)
         {
-            HYP_LOG(Editor, Warning, "EditorCommandAssignScript requires bucket index, asset name and either a node UUID or viewport coordinates");
+            HYP_LOG(Editor, Warning, "EditorCommandDropAssetOnEntity requires bucket index, asset name and either a node UUID or viewport coordinates");
             return;
         }
 
         uint32 bucketIndex = 0;
         if (!StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
         {
-            HYP_LOG(Editor, Warning, "EditorCommandAssignScript: invalid bucket index '{}'", GetArgument(0));
+            HYP_LOG(Editor, Warning, "EditorCommandDropAssetOnEntity: invalid bucket index '{}'", GetArgument(0));
             return;
         }
 
@@ -599,23 +573,22 @@ public:
         const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
         if (!currentProject.IsValid())
         {
-            HYP_LOG(Editor, Error, "EditorCommandAssignScript: no project loaded");
+            HYP_LOG(Editor, Error, "EditorCommandDropAssetOnEntity: no project loaded");
             return;
         }
 
         Handle<Scene> activeScene = subsystem->GetActiveScene();
         if (!activeScene.IsValid())
         {
-            HYP_LOG(Editor, Error, "EditorCommandAssignScript: no active scene");
+            HYP_LOG(Editor, Error, "EditorCommandDropAssetOnEntity: no active scene");
             return;
         }
 
         Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
 
-        Handle<ScriptAsset> scriptAsset = DynamicCast<ScriptAsset>(asset);
-        if (!scriptAsset.IsValid())
+        if (!EditorEntityAssetDrop::TargetsEntity(asset.Get()))
         {
-            HYP_LOG(Editor, Warning, "EditorCommandAssignScript: asset '{}' in bucket {} is not a valid script asset", assetName, GetAssetBucketName(bucketIndex));
+            HYP_LOG(Editor, Warning, "EditorCommandDropAssetOnEntity: asset '{}' in bucket {} can't be applied to an entity", assetName, GetAssetBucketName(bucketIndex));
             return;
         }
 
@@ -628,7 +601,7 @@ public:
             StringUtil::Parse(GetArgument(2), &screenX);
             StringUtil::Parse(GetArgument(3), &screenY);
 
-            targetNode = PickNodeAtViewport(subsystem, Vec2f(screenX, screenY));
+            targetNode = subsystem->PickNodeAtViewport(Vec2f(screenX, screenY));
         }
         else
         {
@@ -637,102 +610,26 @@ public:
 
         Entity* targetEntity = DynamicCast<Entity>(targetNode);
 
-        if (!targetEntity || targetEntity->GetScene() != activeScene.Get())
+        if (!targetEntity || targetEntity->GetScene() != activeScene.Get() || !EditorEntityAssetDrop::CanApplyToEntity(asset.Get(), targetEntity))
         {
-            HYP_LOG(Editor, Info, "EditorCommandAssignScript: no entity in the active scene under the drop position for script '{}'", assetName);
+            HYP_LOG(Editor, Info, "EditorCommandDropAssetOnEntity: no entity in the active scene under the drop position accepts '{}'", assetName);
             return;
         }
 
-        Handle<Entity> entity = MakeStrongRef(targetEntity);
+        Handle<EditorActionBase> action = EditorEntityAssetDrop::CreateApplyAction(subsystem, asset, MakeStrongRef(targetEntity));
 
-        const bool hadScriptComponent = entity->HasComponent<ScriptComponent>();
-        const Handle<ScriptAsset> previousScriptAsset = hadScriptComponent ? entity->GetComponent<ScriptComponent>().script : Handle<ScriptAsset>::empty;
-
-        if (previousScriptAsset == scriptAsset)
+        if (!action.IsValid())
         {
-            HYP_LOG(Editor, Info, "EditorCommandAssignScript: '{}' already has script '{}'", entity->GetName(), assetName);
             return;
         }
 
-        if (previousScriptAsset.IsValid())
-        {
-            bool shouldReplace = false;
-
-            SystemMessageBox(MessageBoxType::WARNING)
-                .Title("Replace Script")
-                .Text(HYP_FORMAT("'{}' already has the script '{}' attached. Do you want to replace it with '{}'?",
-                    entity->GetName(), previousScriptAsset->GetName(), scriptAsset->GetName()))
-                .Button("Replace", [&shouldReplace]()
-                    {
-                        shouldReplace = true;
-                    })
-                .Button("Cancel", []()
-                    {
-                    })
-                .Show();
-
-            if (!shouldReplace)
-            {
-                return;
-            }
-        }
-
-        Array<Handle<Node>> previousSelectedNodes = subsystem->GetSelectedNodes();
-        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
-
-        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            HYP_FORMAT("Assign Script {}", assetName),
-            Proc<EditorActionFunctions()>(
-                [entity, scriptAsset, previousScriptAsset, hadScriptComponent, previousSelectedNodes, previousFocusedNode]() -> EditorActionFunctions
-                {
-                    return EditorActionFunctions {
-                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [entity, scriptAsset](EditorSubsystem* editorSubsystem, EditorProject*)
-                            {
-                                if (ScriptComponent* scriptComponent = entity->TryGetComponent<ScriptComponent>())
-                                {
-                                    scriptComponent->script = scriptAsset;
-                                }
-                                else
-                                {
-                                    ScriptComponent newScriptComponent;
-                                    newScriptComponent.script = scriptAsset;
-                                    entity->AddComponent<ScriptComponent>(std::move(newScriptComponent));
-                                }
-
-                                editorSubsystem->SetSelectedNodes({ entity });
-                                editorSubsystem->SetFocusedNode(entity, true);
-                            }),
-                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [entity, previousScriptAsset, hadScriptComponent, previousSelectedNodes, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject*)
-                            {
-                                if (!hadScriptComponent)
-                                {
-                                    entity->RemoveComponent<ScriptComponent>();
-                                }
-                                else if (ScriptComponent* scriptComponent = entity->TryGetComponent<ScriptComponent>())
-                                {
-                                    scriptComponent->script = previousScriptAsset;
-                                }
-
-                                editorSubsystem->SetSelectedNodes(previousSelectedNodes);
-
-                                if (Handle<Node> focusedNode = previousFocusedNode.Lock(); focusedNode.IsValid())
-                                {
-                                    editorSubsystem->SetFocusedNode(focusedNode, true);
-                                }
-                            })
-                    };
-                }));
-
-        InitObject(action);
         currentProject->GetActionStack()->PushAction(action);
     }
 };
 
-DEFINE_EDITOR_COMMAND(AssignScript);
+DEFINE_EDITOR_COMMAND(DropAssetOnEntity);
 
-#pragma endregion AssignScript
+#pragma endregion DropAssetOnEntity
 
 #pragma region Prefab
 
@@ -746,10 +643,6 @@ struct MakePrefabNodeRecord
     Quat4f worldRotation;
 };
 
-// Resolves the nodes an "make/add to prefab" command should operate on: a specific node (right-click
-// outside the selection) if nodeUuidArg is non-empty, otherwise the current selection (falling back to
-// the focused node). Filters out nodes whose parent is also in the set, the scene root, parentless
-// nodes, and transform-locked nodes. Returns false (having logged why) if nothing valid remains.
 static bool ResolvePrefabSourceNodes(EditorSubsystem* subsystem, Scene* activeScene, const String& nodeUuidArg, Array<Handle<Node>>& outValidNodes)
 {
     Array<Handle<Node>> sourceNodes;
@@ -1427,7 +1320,7 @@ public:
 
     virtual String GetText() const override
     {
-        return "Save Prefab";
+        return "Sync Prefab";
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -1482,7 +1375,7 @@ public:
         Handle<Node> previousRoot = prefab->GetRoot();
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-            HYP_FORMAT("Save Prefab {}", prefab->GetName()),
+            HYP_FORMAT("Sync Prefab {}", prefab->GetName()),
             Proc<EditorActionFunctions()>(
                 [prefab, newRoot, previousRoot]() -> EditorActionFunctions
                 {

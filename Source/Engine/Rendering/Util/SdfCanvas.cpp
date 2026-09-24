@@ -59,6 +59,7 @@ static float SdSegment(const Vec2f& point, const Vec2f& start, const Vec2f& end,
 void SdfCanvas::AddPrimitive(Primitive primitive)
 {
     primitive.blend = m_blend;
+    primitive.subtract = m_subtract;
 
     m_primitives.PushBack(primitive);
 }
@@ -66,6 +67,20 @@ void SdfCanvas::AddPrimitive(Primitive primitive)
 SdfCanvas& SdfCanvas::Blend(float radius)
 {
     m_blend = MathUtil::Max(radius, 0.0f);
+
+    return *this;
+}
+
+SdfCanvas& SdfCanvas::Subtract()
+{
+    m_subtract = true;
+
+    return *this;
+}
+
+SdfCanvas& SdfCanvas::Union()
+{
+    m_subtract = false;
 
     return *this;
 }
@@ -185,6 +200,13 @@ float SdfCanvas::Distance(const Vec2f& point) const
     for (const Primitive& primitive : m_primitives)
     {
         const float primitiveDistance = PrimitiveDistance(primitive, point);
+
+        if (primitive.subtract)
+        {
+            distance = MathUtil::Max(distance, -primitiveDistance);
+
+            continue;
+        }
 
         if (primitive.blend <= 0.0f)
         {
