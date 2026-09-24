@@ -85,7 +85,7 @@ private:
     Handle<Scene> m_spriteScene;
 
     Array<SpriteMapping, SceneAllocator> m_spriteMappings;
-    FixedArray<Handle<Texture>, EditorIcons::NumIcons> m_iconTextures;
+    FixedArray<Handle<Texture>, EditorIcons::NumSpriteIcons> m_iconTextures;
 
     // entity add/remove notifications can come from any thread; sprites are only touched on the sim thread
     Mutex m_pendingEventsMutex;

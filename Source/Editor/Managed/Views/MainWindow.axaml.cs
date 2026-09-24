@@ -39,9 +39,11 @@ namespace Hyperion.Editor
             DataFormat.CreateInProcessFormat<NodeViewModel>("hyperion-nodeviewmodel");
         private static readonly DataFormat<string> AssetDragFormat =
             DataFormat.CreateStringApplicationFormat("hyperion-asset");
-        // Only a drag-over hint; the drop itself checks the asset's real class on the sim thread.
-        private static readonly DataFormat<string> ScriptAssetDragFormat =
-            DataFormat.CreateStringApplicationFormat("hyperion-script-asset");
+        // Only a drag-over hint for assets applied to an entity (scripts, materials, textures); the drop itself
+        // checks the asset's real class on the sim thread.
+        private static readonly DataFormat<string> EntityAssetDragFormat =
+            DataFormat.CreateStringApplicationFormat("hyperion-entity-asset");
+        private static readonly HashSet<string> EntityAssetTypeNames = new HashSet<string> { "Script", "ScriptAsset", "Material", "Texture" };
         private NodeViewModel? _dragCandidate;
         private PointerPressedEventArgs? _dragPressedArgs;
         private Point _dragStartPoint;
@@ -59,6 +61,7 @@ namespace Hyperion.Editor
 
         // Viewport drop tracking
         private Border? _viewportDropTarget;
+        private NodeViewModel? _sceneTreeAssetDropTarget;
 
         // Drop-indicator tracking and auto-scroll
         private TreeView? _sceneTree;
@@ -873,6 +876,55 @@ namespace Hyperion.Editor
                 DispatcherPriority.Loaded);
         }
 
+        private void OnContentBrowserBucketDoubleTapped(object? sender, TappedEventArgs e)
+        {
+            if ((e.Source as StyledElement)?.DataContext is not AssetBucketViewModel bucketVm)
+            {
+                return;
+            }
+
+            MainWindowViewModel.Instance?.ContentBrowser.OpenBucketCommand.Execute(bucketVm);
+
+            e.Handled = true;
+        }
+
+        private void OnContentBrowserKeyDown(object? sender, KeyEventArgs e)
+        {
+            ContentBrowserViewModel? contentBrowser = MainWindowViewModel.Instance?.ContentBrowser;
+
+            if (contentBrowser == null || e.Source is TextBox)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter && contentBrowser.IsShowingBuckets && contentBrowser.SelectedBucket != null)
+            {
+                contentBrowser.OpenBucketCommand.Execute(contentBrowser.SelectedBucket);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Back && contentBrowser.GoBackCommand.CanExecute(null))
+            {
+                contentBrowser.GoBackCommand.Execute(null);
+                e.Handled = true;
+            }
+        }
+
+        private void OnContentBrowserPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (e.InitialPressMouseButton != MouseButton.XButton1)
+            {
+                return;
+            }
+
+            ICommand? goBackCommand = MainWindowViewModel.Instance?.ContentBrowser.GoBackCommand;
+
+            if (goBackCommand?.CanExecute(null) == true)
+            {
+                goBackCommand.Execute(null);
+                e.Handled = true;
+            }
+        }
+
         private void OnRenameNodeMenuItemClick(object? sender, RoutedEventArgs e)
         {
             if ((sender as MenuItem)?.DataContext is not NodeViewModel nodeViewModel)
@@ -1136,13 +1188,15 @@ namespace Hyperion.Editor
             {
                 var vm = DataContext as MainWindowViewModel;
 
-                if (e.DataTransfer.Contains(ScriptAssetDragFormat))
+                if (e.DataTransfer.Contains(EntityAssetDragFormat))
                 {
-                    var scriptTarget = FindNodeViewModelInEventSource(e.Source);
-                    bool isEntityTarget = scriptTarget?.Node is Entity;
+                    var entityTarget = FindNodeViewModelInEventSource(e.Source);
+                    bool isEntityTarget = entityTarget?.Node is Entity;
 
                     e.DragEffects = isEntityTarget ? DragDropEffects.Copy : DragDropEffects.None;
-                    vm?.SceneHierarchy.SetDropTarget(isEntityTarget ? scriptTarget : null);
+                    vm?.SceneHierarchy.SetDropTarget(isEntityTarget ? entityTarget : null);
+
+                    UpdateSceneTreeAssetDropTarget(e, isEntityTarget ? entityTarget : null);
                 }
                 else
                 {
@@ -1192,17 +1246,9 @@ namespace Hyperion.Editor
                 EndDrag();
 
                 var vm = DataContext as MainWindowViewModel;
-                if (vm != null)
+                if (vm != null && TryGetDraggedAsset(e, out uint bucketIndex, out Name assetName))
                 {
-                    var assetData = e.DataTransfer.TryGetValue(AssetDragFormat);
-                    if (!string.IsNullOrEmpty(assetData))
-                    {
-                        var parts = assetData.Split('|');
-                        if (parts.Length == 2 && uint.TryParse(parts[0], out uint bucketIndex))
-                        {
-                            vm.DropAssetOnSceneHierarchy(bucketIndex, new Name(parts[1]), assetTarget?.UUID);
-                        }
-                    }
+                    vm.DropAssetOnSceneHierarchy(bucketIndex, assetName, assetTarget?.UUID);
                 }
 
                 e.Handled = true;
@@ -1248,6 +1294,12 @@ namespace Hyperion.Editor
 
             var vm = DataContext as MainWindowViewModel;
             vm?.SceneHierarchy.SetDropTarget(null);
+
+            if (_sceneTreeAssetDropTarget != null)
+            {
+                _sceneTreeAssetDropTarget = null;
+                vm?.ClearAssetDropTarget();
+            }
 
             _autoScrollDelta = 0;
             _autoScrollTimer?.Stop();
@@ -1461,9 +1513,9 @@ namespace Hyperion.Editor
             var data = new DataTransfer();
             data.Add(DataTransferItem.Create(AssetDragFormat, $"{candidate.Bucket?.BucketIndex ?? 0}|{candidate.AssetDesc.Name}"));
 
-            if (candidate.TypeName is "Script" or "ScriptAsset")
+            if (candidate.TypeName != null && EntityAssetTypeNames.Contains(candidate.TypeName))
             {
-                data.Add(DataTransferItem.Create(ScriptAssetDragFormat, candidate.AssetDesc.Name.ToString()));
+                data.Add(DataTransferItem.Create(EntityAssetDragFormat, candidate.AssetDesc.Name.ToString()));
             }
 
             try
@@ -1478,6 +1530,9 @@ namespace Hyperion.Editor
                 _isDraggingAsset = false;
                 _assetDragCandidate = null;
                 _assetDragPressedArgs = null;
+
+                // DragLeave isn't guaranteed when the drag is cancelled, so don't leave a target highlighted
+                (DataContext as MainWindowViewModel)?.ClearAssetDropTarget();
             }
         }
 
@@ -1504,41 +1559,101 @@ namespace Hyperion.Editor
 
             DragDrop.SetAllowDrop(_viewportDropTarget, true);
             _viewportDropTarget.AddHandler(DragDrop.DragOverEvent, OnViewportDragOver);
+            _viewportDropTarget.AddHandler(DragDrop.DragLeaveEvent, OnViewportDragLeave);
             _viewportDropTarget.AddHandler(DragDrop.DropEvent, OnViewportDrop);
             return true;
         }
 
         private void OnViewportDragOver(object? sender, DragEventArgs e)
         {
-            if (e.DataTransfer.Contains(AssetDragFormat))
+            if (!e.DataTransfer.Contains(AssetDragFormat))
+                return;
+
+            e.DragEffects = DragDropEffects.Copy;
+            e.Handled = true;
+
+            if (!e.DataTransfer.Contains(EntityAssetDragFormat)
+                || !TryGetDraggedAsset(e, out uint bucketIndex, out Name assetName))
             {
-                e.DragEffects = DragDropEffects.Copy;
-                e.Handled = true;
+                return;
             }
+
+            var (nx, ny) = GetNormalizedViewportPosition(e);
+
+            var vm = DataContext as MainWindowViewModel;
+            vm?.UpdateViewportAssetDropTarget(bucketIndex, assetName, nx, ny);
+        }
+
+        private void OnViewportDragLeave(object? sender, DragEventArgs e)
+        {
+            var vm = DataContext as MainWindowViewModel;
+            vm?.ClearAssetDropTarget();
         }
 
         private void OnViewportDrop(object? sender, DragEventArgs e)
         {
-            if (!e.DataTransfer.Contains(AssetDragFormat))
+            if (!TryGetDraggedAsset(e, out uint bucketIndex, out Name assetName))
                 return;
 
-            var assetData = e.DataTransfer.TryGetValue(AssetDragFormat);
-            if (string.IsNullOrEmpty(assetData))
-                return;
+            var (nx, ny) = GetNormalizedViewportPosition(e);
 
-            var parts = assetData.Split('|');
-            if (parts.Length != 2 || !uint.TryParse(parts[0], out uint bucketIndex))
-                return;
+            var vm = DataContext as MainWindowViewModel;
+            vm?.DropAssetOnViewport(bucketIndex, assetName, nx, ny);
 
-            // Calculate normalized drop position within the viewport
+            e.Handled = true;
+        }
+
+        private (float X, float Y) GetNormalizedViewportPosition(DragEventArgs e)
+        {
+            if (_viewportDropTarget == null)
+                return (0.5f, 0.5f);
+
             var pos = e.GetPosition(_viewportDropTarget);
             double nx = Math.Clamp(pos.X / _viewportDropTarget.Bounds.Width, 0.0, 1.0);
             double ny = Math.Clamp(pos.Y / _viewportDropTarget.Bounds.Height, 0.0, 1.0);
 
-            var vm = DataContext as MainWindowViewModel;
-            vm?.DropAssetOnViewport(bucketIndex, new Name(parts[1]), (float)nx, (float)ny);
+            return ((float)nx, (float)ny);
+        }
 
-            e.Handled = true;
+        private static bool TryGetDraggedAsset(DragEventArgs e, out uint bucketIndex, out Name assetName)
+        {
+            bucketIndex = 0;
+            assetName = default;
+
+            if (!e.DataTransfer.Contains(AssetDragFormat))
+                return false;
+
+            var assetData = e.DataTransfer.TryGetValue(AssetDragFormat);
+            if (string.IsNullOrEmpty(assetData))
+                return false;
+
+            var parts = assetData.Split('|');
+            if (parts.Length != 2 || !uint.TryParse(parts[0], out bucketIndex))
+                return false;
+
+            assetName = new Name(parts[1]);
+            return true;
+        }
+
+        // Mirror the hovered hierarchy row in the viewport; only re-sent when the hovered row changes
+        private void UpdateSceneTreeAssetDropTarget(DragEventArgs e, NodeViewModel? target)
+        {
+            if (target == _sceneTreeAssetDropTarget)
+                return;
+
+            _sceneTreeAssetDropTarget = target;
+
+            var vm = DataContext as MainWindowViewModel;
+            if (vm == null)
+                return;
+
+            if (target == null || !TryGetDraggedAsset(e, out uint bucketIndex, out Name assetName))
+            {
+                vm.ClearAssetDropTarget();
+                return;
+            }
+
+            vm.UpdateSceneHierarchyAssetDropTarget(bucketIndex, assetName, target);
         }
 
         protected override void OnClosing(WindowClosingEventArgs e)

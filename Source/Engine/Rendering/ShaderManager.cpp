@@ -704,6 +704,12 @@ public:
             }
 
             Assert(entry->shaderInstance.IsValid(), "Compiled shader '{}' is not a valid compiled shader", name);
+
+            if (!entry->shaderInstance.IsValid())
+            {
+                return ShaderInstanceRef::Null();
+            }
+
             Assert(!entry->shaderInstance->GetShader()->expired);
 
             if (!ensureMatch(properties, inputLayout, *entry->shaderInstance->GetShader()))

@@ -21,6 +21,7 @@
 #include <Scene/Subsystem.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Vector2.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 #include <Core/Containers/Set.hpp>
@@ -40,6 +41,7 @@ class Entity;
 class Mesh;
 class Material;
 class Texture;
+class AssetObject;
 class EnvProbe;
 class PhysicsShape;
 class InputManager;
@@ -575,6 +577,20 @@ public:
      *  \return True if anything was hit. Hits are not guaranteed to have a node. */
     bool TestPickRay(const Ray& ray, RayTestResults& outResults);
 
+    Node* PickNodeAtViewport(const Vec2f& screenPosition);
+
+    HYP_METHOD()
+    bool IsEntityTargetedAsset(uint32 bucketIndex, Name assetName);
+
+    HYP_METHOD()
+    bool UpdateViewportAssetDropTarget(uint32 bucketIndex, Name assetName, float screenX, float screenY);
+
+    HYP_METHOD()
+    bool UpdateNodeAssetDropTarget(uint32 bucketIndex, Name assetName, const Handle<Node>& node);
+
+    HYP_METHOD()
+    void ClearAssetDropTarget();
+
     /*! \brief Create or update an in-progress, non-undoable preview entity showing a normalized cube sphere
      *  with the given number of subdivisions. Used to live-preview a shape while a creation dialog is open.
      *  Call \ref{CommitMeshPreview} to turn the preview into a permanent, undoable scene entity, or
@@ -739,6 +755,10 @@ private:
     void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
 
     void DebugDrawMeshLods(class DebugDrawCommandList& debugDrawCommandList);
+
+    bool SetAssetDropTargetNode(uint32 bucketIndex, Name assetName, Node* node);
+    void DebugDrawAssetDropTarget(class DebugDrawCommandList& debugDrawCommandList);
+
     /*! \brief If the focused entity's physics shape is referenced by any other entity, clone it and
      *  assign the clone to this entity, so the shape can be mutated */
     Handle<PhysicsShape> EnsureUniquePhysicsShape(Entity* entity);
@@ -807,6 +827,15 @@ private:
     Handle<Node> m_highlightNode;
 
     Set<Handle<Node>, EditorAllocator> m_selectedNodes;
+
+    // Asset being dragged from the content browser and the entity it would be applied to
+    struct AssetDropState
+    {
+        uint32 bucketIndex = 0;
+        Name assetName;
+        Handle<AssetObject> asset;
+        WeakHandle<Node> targetNode;
+    } m_assetDropState;
 
     EditorDelegates* m_editorDelegates;
 

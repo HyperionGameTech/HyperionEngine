@@ -10,6 +10,11 @@ namespace Hyperion
         {
         }
 
+        public uint GetBucketAssetCount(uint bucketIndex)
+        {
+            return AssetRegistry_GetBucketAssetDescs(NativeAddress, bucketIndex, IntPtr.Zero, 0);
+        }
+
         public IEnumerable<AssetDesc> GetBucketAssetDescs(uint bucketIndex)
         {
             uint count = AssetRegistry_GetBucketAssetDescs(NativeAddress, bucketIndex, IntPtr.Zero, 0);

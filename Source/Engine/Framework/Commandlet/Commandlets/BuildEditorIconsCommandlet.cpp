@@ -67,7 +67,7 @@ static void BakeSpriteTextures(const Handle<AssetRegistry>& editorRegistry)
 {
     GlobalContextScope assetRegistryScope { AssetRegistryContext { editorRegistry } };
 
-    for (uint32 iconIndex = 0; iconIndex < EditorIcons::NumIcons; iconIndex++)
+    for (uint32 iconIndex = 0; iconIndex < EditorIcons::NumSpriteIcons; iconIndex++)
     {
         Handle<Texture> texture = EditorIcons::CreateSpriteTexture(EditorIcons::Icon(iconIndex), EditorIcons::SpriteTextureSize);
 

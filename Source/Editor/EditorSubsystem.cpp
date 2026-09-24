@@ -17,6 +17,7 @@
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorConfig.hpp>
+#include <Editor/EditorAssetDrop.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/Decal/EditorDecalPainterState.hpp>
@@ -3104,6 +3105,8 @@ void EditorSubsystem::Update(float delta)
         }
     }
 
+    DebugDrawAssetDropTarget(dbg);
+
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
@@ -5078,6 +5081,113 @@ bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
     return hasHits;
 }
 
+Node* EditorSubsystem::PickNodeAtViewport(const Vec2f& screenPosition)
+{
+    EditorViewport* activeViewport = GetActiveViewport();
+    if (!activeViewport || !activeViewport->GetCamera())
+    {
+        return nullptr;
+    }
+
+    const Ray ray = activeViewport->GetCamera()->GetPickRay(screenPosition);
+
+    RayTestResults results;
+    if (!TestPickRay(ray, results))
+    {
+        return nullptr;
+    }
+
+    for (const RayHit& hit : results)
+    {
+        if (hit.node != nullptr)
+        {
+            return hit.node;
+        }
+    }
+
+    return nullptr;
+}
+
+bool EditorSubsystem::IsEntityTargetedAsset(uint32 bucketIndex, Name assetName)
+{
+    if (bucketIndex == AssetBuckets::None.GetIndex() || bucketIndex >= MaxAssetBuckets)
+    {
+        return false;
+    }
+
+    Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], assetName);
+
+    return EditorEntityAssetDrop::TargetsEntity(asset.Get());
+}
+
+bool EditorSubsystem::UpdateViewportAssetDropTarget(uint32 bucketIndex, Name assetName, float screenX, float screenY)
+{
+    AssertOnThread(g_simThread);
+
+    return SetAssetDropTargetNode(bucketIndex, assetName, PickNodeAtViewport(Vec2f(screenX, screenY)));
+}
+
+bool EditorSubsystem::UpdateNodeAssetDropTarget(uint32 bucketIndex, Name assetName, const Handle<Node>& node)
+{
+    AssertOnThread(g_simThread);
+
+    return SetAssetDropTargetNode(bucketIndex, assetName, node.Get());
+}
+
+void EditorSubsystem::ClearAssetDropTarget()
+{
+    m_assetDropState = AssetDropState {};
+}
+
+bool EditorSubsystem::SetAssetDropTargetNode(uint32 bucketIndex, Name assetName, Node* node)
+{
+    if (m_assetDropState.bucketIndex != bucketIndex || m_assetDropState.assetName != assetName)
+    {
+        m_assetDropState.bucketIndex = bucketIndex;
+        m_assetDropState.assetName = assetName;
+        m_assetDropState.asset.Reset();
+
+        if (bucketIndex != AssetBuckets::None.GetIndex() && bucketIndex < MaxAssetBuckets)
+        {
+            m_assetDropState.asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], assetName);
+        }
+    }
+
+    Entity* entity = DynamicCast<Entity>(node);
+    Handle<Scene> activeScene = GetActiveScene();
+
+    if (entity != nullptr
+        && activeScene.IsValid()
+        && entity->GetScene() == activeScene.Get()
+        && EditorEntityAssetDrop::CanApplyToEntity(m_assetDropState.asset.Get(), entity))
+    {
+        m_assetDropState.targetNode = MakeWeakRef(node);
+
+        return true;
+    }
+
+    m_assetDropState.targetNode.Reset();
+
+    return false;
+}
+
+void EditorSubsystem::DebugDrawAssetDropTarget(DebugDrawCommandList& debugDrawCommandList)
+{
+    Handle<Node> targetNode = m_assetDropState.targetNode.Lock();
+
+    if (!targetNode.IsValid())
+    {
+        return;
+    }
+
+    const BoundingBox worldBounds = targetNode->GetWorldBounds();
+
+    if (worldBounds.IsFinite())
+    {
+        debugDrawCommandList.box(worldBounds.GetCenter(), worldBounds.GetExtent() * 0.5f * 1.02f + Vec3f(0.01f), Color::Yellow());
+    }
+}
+
 void EditorSubsystem::UpdateNormalizedCubeSpherePreview(uint32 numDivisions)
 {
     AssertOnThread(g_simThread);
@@ -5703,6 +5813,8 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project,
 
     m_focusedNode.Reset();
     m_selectedNodes.Clear();
+
+    ClearAssetDropTarget();
 
     if (m_highlightNode.IsValid())
     {

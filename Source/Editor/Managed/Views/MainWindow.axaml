@@ -151,6 +151,31 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
+        <Style Selector="Button.nav-back:disabled">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+
+        <Style Selector="Button.breadcrumb">
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Small}" />
+        </Style>
+
+        <Style Selector="Button.breadcrumb:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
+        <Style Selector="TextBlock.breadcrumb-current">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+        </Style>
+
         <Style Selector="DropDownButton.gizmo">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
@@ -214,11 +239,6 @@
                     </Border>
                 </ControlTemplate>
             </Setter>
-        </Style>
-
-        <Style Selector="DropDownButton.gizmo-wide.snap-active">
-            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
         <Style Selector="DropDownButton.gizmo-wide:pointerover">
@@ -476,30 +496,29 @@
                                     ToolTip.Tip="{Binding PasteHeader}">
                                     <controls:Codicon Kind="Clippy" Size="16" />
                                 </Button>
-                                <DropDownButton
-                                    VerticalAlignment="Center"
-                                    Classes="gizmo-wide"
-                                    ToolTip.Tip="Select">
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <controls:Codicon
-                                            VerticalAlignment="Center"
-                                            Kind="Select"
-                                            Size="16" />
-                                        <controls:Codicon
-                                            VerticalAlignment="Center"
-                                            Kind="ChevronDown"
-                                            Size="10" />
-                                    </StackPanel>
-                                    <DropDownButton.Flyout>
-                                        <Flyout Placement="Bottom">
-                                            <StackPanel MinWidth="150">
-                                                <MenuItem Command="{Binding SelectAll}" Header="Select All" />
-                                                <MenuItem Command="{Binding SelectAllInViewport}" Header="Select All in Viewport" />
-                                                <MenuItem Command="{Binding SelectNone}" Header="Select None" />
-                                            </StackPanel>
-                                        </Flyout>
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Button
+                                        Classes="gizmo"
+                                        Command="{Binding SelectAll}"
+                                        ToolTip.Tip="Select All">
+                                        <controls:Codicon Kind="Select" Size="16" />
+                                    </Button>
+                                    <DropDownButton
+                                        Width="16"
+                                        Classes="gizmo"
+                                        ToolTip.Tip="Select">
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                        <DropDownButton.Flyout>
+                                            <Flyout Placement="Bottom">
+                                                <StackPanel MinWidth="150">
+                                                    <MenuItem Command="{Binding SelectAll}" Header="Select All" />
+                                                    <MenuItem Command="{Binding SelectAllInViewport}" Header="Select All in Viewport" />
+                                                    <MenuItem Command="{Binding SelectNone}" Header="Select None" />
+                                                </StackPanel>
+                                            </Flyout>
+                                        </DropDownButton.Flyout>
+                                    </DropDownButton>
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
 
@@ -770,80 +789,80 @@
                                 VerticalAlignment="Center"
                                 Orientation="Horizontal"
                                 Spacing="6">
-                                <DropDownButton
-                                    x:Name="GridSettingsDropDown"
-                                    VerticalAlignment="Center"
-                                    Classes="gizmo-wide"
-                                    Classes.snap-active="{Binding IsSnapToGridEnabled}"
-                                    ToolTip.Tip="Grid Settings">
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <controls:Codicon
-                                            VerticalAlignment="Center"
-                                            Kind="Magnet"
-                                            Size="16" />
-                                        <controls:Codicon
-                                            VerticalAlignment="Center"
-                                            Kind="ChevronDown"
-                                            Size="10" />
-                                    </StackPanel>
-                                    <DropDownButton.Flyout>
-                                        <Flyout Placement="Bottom">
-                                            <StackPanel MinWidth="240" Spacing="8">
-                                                <CheckBox
-                                                    Command="{Binding ToggleSnapToGrid}"
-                                                    Content="Snap movement to grid"
-                                                    IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}" />
-                                                <CheckBox
-                                                    Command="{Binding ToggleGridVisible}"
-                                                    Content="Show grid"
-                                                    IsChecked="{Binding IsGridVisible, Mode=OneWay}" />
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <ToggleButton
+                                        x:Name="SnapToGridToggle"
+                                        Classes="gizmo"
+                                        Command="{Binding ToggleSnapToGrid}"
+                                        IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}"
+                                        ToolTip.Tip="Snap to Grid">
+                                        <controls:Codicon Kind="Magnet" Size="16" />
+                                    </ToggleButton>
+                                    <DropDownButton
+                                        x:Name="GridSettingsDropDown"
+                                        Width="16"
+                                        Classes="gizmo"
+                                        ToolTip.Tip="Grid Settings">
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                        <DropDownButton.Flyout>
+                                            <Flyout Placement="Bottom">
+                                                <StackPanel MinWidth="240" Spacing="8">
+                                                    <CheckBox
+                                                        Command="{Binding ToggleSnapToGrid}"
+                                                        Content="Snap movement to grid"
+                                                        IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}" />
+                                                    <CheckBox
+                                                        Command="{Binding ToggleGridVisible}"
+                                                        Content="Show grid"
+                                                        IsChecked="{Binding IsGridVisible, Mode=OneWay}" />
 
-                                                <Separator />
+                                                    <Separator />
 
-                                                <Grid
-                                                    ColumnDefinitions="Auto,*"
-                                                    ColumnSpacing="8"
-                                                    RowDefinitions="Auto,Auto"
-                                                    RowSpacing="6">
-                                                    <TextBlock
-                                                        Grid.Row="0"
-                                                        Grid.Column="0"
-                                                        VerticalAlignment="Center"
-                                                        Text="Snap size" />
-                                                    <TextBox
-                                                        Grid.Row="0"
-                                                        Grid.Column="1"
-                                                        Text="{Binding GridSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                        ToolTip.Tip="Grid line spacing, also the snapping increment" />
-
-                                                    <TextBlock
-                                                        Grid.Row="1"
-                                                        Grid.Column="0"
-                                                        VerticalAlignment="Center"
-                                                        Text="Offset" />
                                                     <Grid
-                                                        Grid.Row="1"
-                                                        Grid.Column="1"
-                                                        ColumnDefinitions="*,*,*"
-                                                        ColumnSpacing="4">
-                                                        <TextBox
+                                                        ColumnDefinitions="Auto,*"
+                                                        ColumnSpacing="8"
+                                                        RowDefinitions="Auto,Auto"
+                                                        RowSpacing="6">
+                                                        <TextBlock
+                                                            Grid.Row="0"
                                                             Grid.Column="0"
-                                                            Text="{Binding GridOffsetX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            ToolTip.Tip="X" />
+                                                            VerticalAlignment="Center"
+                                                            Text="Snap size" />
                                                         <TextBox
+                                                            Grid.Row="0"
                                                             Grid.Column="1"
-                                                            Text="{Binding GridOffsetY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            ToolTip.Tip="Y (grid height)" />
-                                                        <TextBox
-                                                            Grid.Column="2"
-                                                            Text="{Binding GridOffsetZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            ToolTip.Tip="Z" />
+                                                            Text="{Binding GridSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            ToolTip.Tip="Grid line spacing, also the snapping increment" />
+
+                                                        <TextBlock
+                                                            Grid.Row="1"
+                                                            Grid.Column="0"
+                                                            VerticalAlignment="Center"
+                                                            Text="Offset" />
+                                                        <Grid
+                                                            Grid.Row="1"
+                                                            Grid.Column="1"
+                                                            ColumnDefinitions="*,*,*"
+                                                            ColumnSpacing="4">
+                                                            <TextBox
+                                                                Grid.Column="0"
+                                                                Text="{Binding GridOffsetX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                ToolTip.Tip="X" />
+                                                            <TextBox
+                                                                Grid.Column="1"
+                                                                Text="{Binding GridOffsetY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                ToolTip.Tip="Y (grid height)" />
+                                                            <TextBox
+                                                                Grid.Column="2"
+                                                                Text="{Binding GridOffsetZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                ToolTip.Tip="Z" />
+                                                        </Grid>
                                                     </Grid>
-                                                </Grid>
-                                            </StackPanel>
-                                        </Flyout>
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
+                                                </StackPanel>
+                                            </Flyout>
+                                        </DropDownButton.Flyout>
+                                    </DropDownButton>
+                                </StackPanel>
 
                                 <Border Classes="mode-separator" />
 
@@ -854,7 +873,7 @@
                                     IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
                                     IsEnabled="{Binding CanEnableMeshEditMode}"
                                     ToolTip.Tip="{Binding MeshEditModeTooltip}">
-                                    <controls:Codicon Kind="MeshEditMode" Size="16" />
+                                    <controls:Codicon Kind="MeshEdit" Size="16" />
                                 </ToggleButton>
 
                                 <Border Classes="mode-strip" IsVisible="{Binding IsMeshEditModeEnabled}">
@@ -971,7 +990,7 @@
                                     Click="OnDropDownClick"
                                     ToolTip.Tip="Terrain Tools">
                                     <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <controls:Codicon Kind="Landscape" Size="16" />
+                                        <controls:Codicon Kind="AssetTerrain" Size="16" />
                                         <controls:Codicon Kind="ChevronDown" Size="10" />
                                     </StackPanel>
                                     <DropDownButton.ContextMenu>
@@ -1300,7 +1319,7 @@
                                                                     Margin="0,0,6,0"
                                                                     HorizontalAlignment="Right"
                                                                     VerticalAlignment="Center"
-                                                                    Kind="Prefab"
+                                                                    Kind="AssetPrefab"
                                                                     Opacity="0.6"
                                                                     IsVisible="{Binding IsPrefabInstance}"
                                                                     Size="12"
@@ -1825,7 +1844,7 @@
                                                                         HorizontalAlignment="Center"
                                                                         VerticalAlignment="Center"
                                                                         Foreground="{DynamicResource Brush.AccentHover}"
-                                                                        Kind="FileCode"
+                                                                        Kind="AssetScript"
                                                                         Opacity="0.85"
                                                                         Size="28" />
                                                                 </Border>
@@ -2198,23 +2217,87 @@
                                             Title="Assets"
                                             Id="ContentBrowser">
                                             <ContentControl DataContext="{Binding Source={x:Static vm:MainWindowViewModel.Instance}}">
-                                                <DockPanel>
+                                                <DockPanel KeyDown="OnContentBrowserKeyDown" PointerReleased="OnContentBrowserPointerReleased">
                                                     <Border
                                                         Height="36"
                                                         Classes="panel-header"
                                                         DockPanel.Dock="Top">
-                                                        <Grid VerticalAlignment="Center" ColumnDefinitions="*, Auto, Auto, Auto">
-                                                            <TextBox
+                                                        <Grid VerticalAlignment="Center" ColumnDefinitions="Auto, *, Auto, Auto, Auto, Auto">
+                                                            <Button
                                                                 Grid.Column="0"
-                                                                MaxWidth="260"
+                                                                Width="24"
+                                                                Height="24"
+                                                                Margin="0,0,4,0"
+                                                                Classes="gizmo nav-back"
+                                                                Command="{Binding ContentBrowser.GoBackCommand}"
+                                                                ToolTip.Tip="Back">
+                                                                <controls:Codicon Kind="ChevronLeft" Size="14" />
+                                                            </Button>
+                                                            <StackPanel
+                                                                Grid.Column="1"
+                                                                Margin="0,0,8,0"
+                                                                VerticalAlignment="Center"
+                                                                Orientation="Horizontal">
+                                                                <Button
+                                                                    Classes="breadcrumb"
+                                                                    Command="{Binding ContentBrowser.GoBackCommand}"
+                                                                    IsVisible="{Binding !ContentBrowser.IsAtRoot}">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                        <controls:Codicon
+                                                                            VerticalAlignment="Center"
+                                                                            Kind="FolderOpened"
+                                                                            Size="12" />
+                                                                        <TextBlock VerticalAlignment="Center" Text="Assets" />
+                                                                    </StackPanel>
+                                                                </Button>
+                                                                <StackPanel
+                                                                    Margin="6,0"
+                                                                    VerticalAlignment="Center"
+                                                                    IsVisible="{Binding ContentBrowser.IsAtRoot}"
+                                                                    Orientation="Horizontal"
+                                                                    Spacing="5">
+                                                                    <controls:Codicon
+                                                                        VerticalAlignment="Center"
+                                                                        Foreground="{DynamicResource Brush.Text}"
+                                                                        Kind="FolderOpened"
+                                                                        Size="12" />
+                                                                    <TextBlock
+                                                                        Classes="breadcrumb-current"
+                                                                        Text="Assets" />
+                                                                </StackPanel>
+                                                                <controls:Codicon
+                                                                    Margin="2,0"
+                                                                    VerticalAlignment="Center"
+                                                                    Foreground="{DynamicResource Brush.TextFaint}"
+                                                                    IsVisible="{Binding !ContentBrowser.IsAtRoot}"
+                                                                    Kind="ChevronRight"
+                                                                    Size="12" />
+                                                                <StackPanel
+                                                                    Margin="6,0"
+                                                                    VerticalAlignment="Center"
+                                                                    IsVisible="{Binding !ContentBrowser.IsAtRoot}"
+                                                                    Orientation="Horizontal"
+                                                                    Spacing="5">
+                                                                    <controls:Codicon
+                                                                        VerticalAlignment="Center"
+                                                                        Foreground="{DynamicResource Brush.AccentHover}"
+                                                                        Kind="{Binding ContentBrowser.CurrentBucket.IconKind, FallbackValue=File}"
+                                                                        Size="12" />
+                                                                    <TextBlock
+                                                                        Classes="breadcrumb-current"
+                                                                        Text="{Binding ContentBrowser.CurrentBucket.Name}" />
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                            <TextBox
+                                                                Grid.Column="2"
+                                                                Width="220"
                                                                 Margin="0,0,8,0"
                                                                 Padding="4,2"
-                                                                HorizontalAlignment="Left"
                                                                 VerticalAlignment="Center"
                                                                 FontSize="11"
                                                                 Text="{Binding ContentBrowser.SearchText, Mode=TwoWay}"
-                                                                ToolTip.Tip="Filter the assets in this bucket by name"
-                                                                Watermark="Search assets...">
+                                                                ToolTip.Tip="Filter assets by name. Searches the open bucket, or every bucket from the top level."
+                                                                Watermark="{Binding ContentBrowser.SearchWatermark}">
                                                                 <TextBox.InnerLeftContent>
                                                                     <controls:Codicon
                                                                         Margin="6,0,4,0"
@@ -2241,16 +2324,18 @@
                                                                 </TextBox.InnerRightContent>
                                                             </TextBox>
                                                             <ComboBox
-                                                                Grid.Column="1"
+                                                                Grid.Column="3"
                                                                 Margin="0,0,4,0"
                                                                 Padding="6,2"
                                                                 VerticalAlignment="Center"
                                                                 FontSize="11"
+                                                                IsVisible="{Binding ContentBrowser.IsShowingAssets}"
                                                                 ItemsSource="{Binding ContentBrowser.SortModeLabels}"
                                                                 SelectedIndex="{Binding ContentBrowser.SortModeIndex, Mode=TwoWay}"
                                                                 ToolTip.Tip="Sort order" />
                                                             <Button
-                                                                Grid.Column="2"
+                                                                Grid.Column="4"
+                                                                Margin="0,0,4,0"
                                                                 Padding="8,2"
                                                                 VerticalAlignment="Center"
                                                                 Command="{Binding ContentBrowser.ImportCommand}"
@@ -2258,11 +2343,12 @@
                                                                 IsEnabled="{Binding !IsSimulating}"
                                                                 ToolTip.Tip="Import external content into the asset registry." />
                                                             <Button
-                                                                Grid.Column="3"
+                                                                Grid.Column="5"
                                                                 Padding="8,2"
                                                                 VerticalAlignment="Center"
                                                                 Content="New..."
-                                                                IsEnabled="{Binding !IsSimulating}">
+                                                                IsEnabled="{Binding !IsSimulating}"
+                                                                IsVisible="{Binding ContentBrowser.IsAtRoot}">
                                                                 <Button.Flyout>
                                                                     <MenuFlyout>
                                                                         <MenuItem Command="{Binding ContentBrowser.NewPhysicsShapeCommand}" Header="Physics Shape" />
@@ -2274,22 +2360,72 @@
                                                                     </MenuFlyout>
                                                                 </Button.Flyout>
                                                             </Button>
+                                                            <Button
+                                                                Grid.Column="5"
+                                                                Padding="8,2"
+                                                                VerticalAlignment="Center"
+                                                                Classes="Primary"
+                                                                Command="{Binding ContentBrowser.NewInBucketCommand}"
+                                                                Content="{Binding ContentBrowser.NewInBucketLabel}"
+                                                                IsEnabled="{Binding !IsSimulating}"
+                                                                IsVisible="{Binding ContentBrowser.HasNewInBucket}" />
                                                         </Grid>
                                                     </Border>
-                                                    <Grid ColumnDefinitions="220, *">
+                                                    <Grid>
                                                         <ListBox
-                                                            Grid.Column="0"
+                                                            x:Name="ContentBrowserBucketList"
+                                                            DoubleTapped="OnContentBrowserBucketDoubleTapped"
+                                                            IsVisible="{Binding ContentBrowser.IsShowingBuckets}"
                                                             ItemsSource="{Binding ContentBrowser.Buckets}"
-                                                            SelectedItem="{Binding ContentBrowser.CurrentBucket, Mode=TwoWay}">
+                                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                            SelectedItem="{Binding ContentBrowser.SelectedBucket, Mode=TwoWay}">
+                                                            <ListBox.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <WrapPanel />
+                                                                </ItemsPanelTemplate>
+                                                            </ListBox.ItemsPanel>
                                                             <ListBox.ItemTemplate>
                                                                 <DataTemplate x:DataType="vm:AssetBucketViewModel">
-                                                                    <TextBlock Text="{Binding Name}" />
+                                                                    <Border
+                                                                        Width="96"
+                                                                        Height="96"
+                                                                        Margin="3"
+                                                                        Padding="4"
+                                                                        Background="Transparent"
+                                                                        CornerRadius="{DynamicResource Radius.Small}"
+                                                                        ToolTip.Tip="{Binding Name}">
+                                                                        <Grid RowDefinitions="*,Auto,Auto">
+                                                                            <controls:Codicon
+                                                                                Grid.Row="0"
+                                                                                HorizontalAlignment="Center"
+                                                                                VerticalAlignment="Center"
+                                                                                Foreground="{DynamicResource Brush.AccentHover}"
+                                                                                Kind="{Binding IconKind}"
+                                                                                Opacity="0.85"
+                                                                                Size="36" />
+                                                                            <TextBlock
+                                                                                Grid.Row="1"
+                                                                                MaxWidth="88"
+                                                                                HorizontalAlignment="Center"
+                                                                                FontSize="11"
+                                                                                Text="{Binding Name}"
+                                                                                TextAlignment="Center"
+                                                                                TextTrimming="CharacterEllipsis"
+                                                                                TextWrapping="NoWrap" />
+                                                                            <TextBlock
+                                                                                Grid.Row="2"
+                                                                                HorizontalAlignment="Center"
+                                                                                FontSize="10"
+                                                                                Foreground="{DynamicResource Brush.TextMuted}"
+                                                                                Text="{Binding AssetCountText}" />
+                                                                        </Grid>
+                                                                    </Border>
                                                                 </DataTemplate>
                                                             </ListBox.ItemTemplate>
                                                         </ListBox>
                                                         <ListBox
                                                             x:Name="ContentBrowserAssetList"
-                                                            Grid.Column="1"
+                                                            IsVisible="{Binding ContentBrowser.IsShowingAssets}"
                                                             ItemsSource="{Binding ContentBrowser.Assets}"
                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                                             SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}"
@@ -2308,7 +2444,7 @@
                                                                         Padding="4"
                                                                         Background="Transparent"
                                                                         CornerRadius="{DynamicResource Radius.Small}"
-                                                                        ToolTip.Tip="{Binding DisplayName}">
+                                                                        ToolTip.Tip="{Binding ToolTipText}">
                                                                         <!--  Fixed rows rather than a centred stack, so every tile puts its icon at the same height however long the name is.  -->
                                                                         <Grid RowDefinitions="*,Auto">
                                                                             <Panel Grid.Row="0">
@@ -2383,7 +2519,6 @@
                                                             </ListBox.ItemTemplate>
                                                         </ListBox>
                                                         <TextBlock
-                                                            Grid.Column="1"
                                                             Margin="12"
                                                             HorizontalAlignment="Center"
                                                             VerticalAlignment="Center"
@@ -2391,6 +2526,14 @@
                                                             IsHitTestVisible="False"
                                                             IsVisible="{Binding ContentBrowser.HasNoMatches}"
                                                             Text="No assets match the search." />
+                                                        <TextBlock
+                                                            Margin="12"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Classes="muted"
+                                                            IsHitTestVisible="False"
+                                                            IsVisible="{Binding ContentBrowser.IsBucketEmpty}"
+                                                            Text="This bucket is empty." />
                                                     </Grid>
                                                 </DockPanel>
                                             </ContentControl>

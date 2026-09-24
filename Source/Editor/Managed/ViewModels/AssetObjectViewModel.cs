@@ -20,6 +20,10 @@ namespace Hyperion.Editor.ViewModels
 
         public string DisplayName => _assetDesc.Name.ToString();
 
+        public string ToolTipText => _bucket != null
+            ? $"{DisplayName}\n{_bucket.Name}"
+            : DisplayName;
+
         /// <summary>Asset class name extracted from the manifest (e.g. "MeshAsset"), or null if unavailable.</summary>
         public string? TypeName => _typeName;
 

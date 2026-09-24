@@ -90,8 +90,8 @@ namespace Hyperion.Editor.ViewModels
             ParticleVolume      => "ParticleVolume",
             FogVolume           => "FogVolume",
             DecalProxy          => "Decal",
-            InstancedMeshProxy  => "Combine",
-            Bone                => "GitBranch",
+            InstancedMeshProxy  => "AssetInstancedMesh",
+            Bone                => "AssetSkeleton",
             VolumeBase          => "Package",
             TextSprite          => "TextSprite",
             Sprite              => "Sprite",
@@ -103,7 +103,7 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsPrefabInstance => _sourcePrefabName.Length != 0;
         public string SourcePrefabName => _sourcePrefabName;
-        public string SavePrefabHeader => $"Save Prefab '{_sourcePrefabName}'";
+        public string SavePrefabHeader => $"Sync Prefab '{_sourcePrefabName}'";
         public string PrefabInstanceTooltip => $"Prefab instance: {_sourcePrefabName}";
 
         public void RefreshSourcePrefab()
