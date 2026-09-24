@@ -160,6 +160,7 @@ void DynamicSkySystem::InitializeSky()
 
         m_visScene->GetRoot()->AddChild(m_cloudEffectVolume);
 
+        if (!EngineGlobals::IsHeadless())
         {   // Top-down sky visibility capture. Its matrices are rebuilt every frame by UpdateSkyVisibilityView().
             const uint32 skyVisibilityMapDimensions = GetSkyVisibilityMapDimensions();
 

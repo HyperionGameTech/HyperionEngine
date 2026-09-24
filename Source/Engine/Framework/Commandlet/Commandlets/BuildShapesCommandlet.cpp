@@ -59,6 +59,55 @@ static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
     HYP_LOG(Engine, Info, "InvSphere shape built and registered successfully.");
 }
 
+static constexpr float ThirdPersonCharacterHeight = 1.8f;
+
+static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry)
+{
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
+
+    auto characterPrefabResult = g_assetManager->Load<Prefab>("Models/Mannequin/Mannequin.glb");
+
+    if (!characterPrefabResult.HasValue())
+    {
+        HYP_LOG(Engine, Error, "Failed to load source Models/Mannequin/Mannequin.glb to build the ThirdPersonCharacter prefab");
+
+        return;
+    }
+
+    Handle<Prefab> prefab = characterPrefabResult->Result();
+    Assert(prefab.IsValid());
+
+    prefab->SetName(NAME("ThirdPersonCharacter"));
+
+    const Handle<Node>& root = prefab->GetRoot();
+
+    BoundingBox modelBounds;
+
+    for (Node* descendant : root->GetDescendants())
+    {
+        if (!descendant->IsA<Entity>())
+        {
+            continue;
+        }
+
+        if (const MeshComponent* meshComponent = static_cast<Entity*>(descendant)->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh)
+        {
+            modelBounds = modelBounds.Union(meshComponent->mesh->GetAABB());
+        }
+    }
+
+    const float modelHeight = modelBounds.GetExtent().y;
+
+    if (modelHeight > 0.0f)
+    {
+        root->SetLocalScale(Vec3f(ThirdPersonCharacterHeight / modelHeight));
+    }
+
+    engineRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
+
+    HYP_LOG(Engine, Info, "ThirdPersonCharacter prefab built and registered successfully (model height {}, scale {}).", modelHeight, root->GetLocalScale().x);
+}
+
 
 class BuildShapesCommandlet : public CommandletBase
 {
@@ -88,6 +137,7 @@ protected:
         Assert(engineRegistry.IsValid());
 
         BuildInvSphere(engineRegistry);
+        BuildThirdPersonCharacter(engineRegistry);
 
         GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
         GetCurrentAssetRegistry()->SaveDirtyAssets();

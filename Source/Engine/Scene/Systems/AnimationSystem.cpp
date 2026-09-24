@@ -139,6 +139,21 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                             : 0.0f;
                     }
                 }
+                else if (playbackState.currentTime < 0.0f)
+                {
+                    // playing in reverse
+                    if (playbackState.loopMode == AnimationLoopMode::ONCE)
+                    {
+                        playbackState.status = AnimationPlaybackStatus::STOPPED;
+                        playbackState.currentTime = 0.0f;
+                    }
+                    else
+                    {
+                        playbackState.currentTime = animationLength > 0.0f
+                            ? animationLength + std::fmod(playbackState.currentTime, animationLength)
+                            : 0.0f;
+                    }
+                }
 
                 animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
 

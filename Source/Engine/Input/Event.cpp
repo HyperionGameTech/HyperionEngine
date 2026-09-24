@@ -74,6 +74,11 @@ MouseEvent Event::ToMouseEvent(const Vec2f& offsetMousePos, const Vec2f& surface
         break;
     }
 
+    if (m_eventType == EventType::MOUSESCROLL)
+    {
+        me.wheel = GetMouseWheel();
+    }
+
     me.relativePos = me.absolutePos;
     me.relativePrevPos = me.absolutePrevPos;
 

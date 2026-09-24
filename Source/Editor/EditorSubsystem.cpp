@@ -18,6 +18,7 @@
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorConfig.hpp>
 #include <Editor/EditorAssetDrop.hpp>
+#include <Editor/EditorPlayerSetup.hpp>
 
 #include <Editor/Tasks/EditorTasks.hpp>
 
@@ -94,6 +95,7 @@
 #include <Core/Threading/TaskSystem.hpp>
 
 #include <Core/Utilities/DeferredScope.hpp>
+#include <Core/Utilities/GlobalContext.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
 
@@ -4557,42 +4559,24 @@ void EditorSubsystem::NewProject()
 
     mainScene->GetRoot()->AddChild(sun);
 
-    // Add player entity
-    Handle<Entity> playerEntity = MakeHandle<Entity>();
-    playerEntity->SetName(NAME("Player"));
-    playerEntity->SetWorldTranslation(Vec3f(0.0f, 1.0f, -5.0f));
-    playerEntity->SetIsDynamic(true);
-    InitObject(playerEntity);
+    {
+        // The new project isn't open yet, so point asset registration at its registry explicitly
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { project->GetGame()->GetAssetRegistry() } };
 
-    Handle<CapsulePhysicsShape> capsuleShape = MakeHandle<CapsulePhysicsShape>();
-    capsuleShape->SetName(NAME_FMT("{}CapsuleShape", playerEntity->GetName()));
-    InitObject(capsuleShape);
-    GetCurrentAssetRegistry()->PutAssetUnique(capsuleShape);
+        EditorPlayerSetup::AddGround(mainScene->GetRoot(), NAME("Ground"));
 
-    Handle<Camera> camera = MakeHandle<Camera>();
-    camera->SetDimensions(Vec2i(1920, 1080));
-    camera->SetName(NAME("Camera"));
-    camera->SetLocalTranslation(Vec3f(0.0f, 1.6f, 0.0f));
-    camera->SetCameraFlags(CameraFlags::MatchWindowSize | CameraFlags::HasStreamingVolume);
-    camera->SetFarClip(3000.0f);
-    camera->SetNearClip(0.1f);
-    camera->SetIsDynamic(true);
-    camera->AddTag<EntityTag::PrimaryCamera>();
+        EditorThirdPersonPlayer player = EditorPlayerSetup::CreateThirdPersonPlayer(NAME("Player"), NAME("Camera"));
+        GetCurrentAssetRegistry()->PutAssetUnique(player.capsuleShape);
 
-    Handle<FirstPersonCameraController> firstPersonController = MakeHandle<FirstPersonCameraController>();
-    camera->AddCameraController(firstPersonController);
+        // In edit mode the player's origin is the capsule center, so this rests the capsule on the ground
+        player.playerEntity->SetWorldTranslation(Vec3f(0.0f, player.capsuleShape->GetHeight() * 0.5f + player.capsuleShape->GetRadius(), 0.0f));
 
-    InitObject(camera);
+        mainScene->GetRoot()->AddChild(player.playerEntity);
 
-    mainScene->GetRoot()->AddChild(playerEntity);
+        EditorPlayerSetup::AttachToScene(player);
 
-    CharacterControllerComponent characterControllerComponent;
-    characterControllerComponent.shape = capsuleShape;
-    playerEntity->AddComponent<CharacterControllerComponent>(characterControllerComponent);
-
-    playerEntity->AddTag<EntityTag::Player>();
-
-    playerEntity->AddChild(camera);
+        player.playerEntity->AddTag<EntityTag::Player>();
+    }
 
     // Handle<Scene> streamedScene = MakeHandle<Scene>();
     // streamedScene->SetName(NAME("StreamedScene"));
@@ -5015,11 +4999,11 @@ bool EditorSubsystem::IsNodeSelected(const Handle<Node>& node) const
     return m_selectedNodes.Find(node) != m_selectedNodes.End();
 }
 
-void EditorSubsystem::SetSelectedNodes(Span<const Handle<Node>> nodes)
+void EditorSubsystem::SetSelectedNodes(const Array<Handle<Node>>& nodes)
 {
     AssertOnThread(g_simThread);
 
-    if (nodes.Size() == 0)
+    if (nodes.Empty())
     {
         ClearSelection();
 
