@@ -24,6 +24,34 @@ namespace Hyperion {
 
 static const BoundingBox s_unitDecalBox = BoundingBox(Vec3f(-1.0f), Vec3f(1.0f));
 
+static bool DecalProjectionBoxIntersectsSphere(const Transform& transform, const BoundingSphere& sphere)
+{
+    const Mat4f matrix = transform.GetMatrix();
+
+    const Vec3f boxCenter = matrix.ExtractTranslation();
+    const Vec3f offset = sphere.center - boxCenter;
+
+    Vec3f closestPoint = boxCenter;
+
+    for (uint32 axisIndex = 0; axisIndex < 3; axisIndex++)
+    {
+        // columns hold the rotated axes scaled by the half extent
+        const Vec3f axis = matrix.GetColumn(axisIndex).GetXYZ();
+        const float axisLengthSquared = axis.LengthSquared();
+
+        if (axisLengthSquared <= MathUtil::epsilonF)
+        {
+            continue;
+        }
+
+        const float projection = MathUtil::Clamp(offset.Dot(axis) / axisLengthSquared, -1.0f, 1.0f);
+
+        closestPoint += axis * projection;
+    }
+
+    return closestPoint.DistanceSquared(sphere.center) <= sphere.radius * sphere.radius;
+}
+
 DecalProxy::DecalProxy()
     : m_nextDecalId(0),
       m_decalBounds(BoundingBox::Empty()),
@@ -134,11 +162,9 @@ void DecalProxy::RemoveDecalsInSphere(
 {
     uint32 numRemoved = 0;
 
-    const float radiusSquared = bounds.radius * bounds.radius;
-
     for (auto it = m_instances.Begin(); it != m_instances.End();)
     {
-        if (it->transform.GetTranslation().DistanceSquared(bounds.center) > radiusSquared)
+        if (!DecalProjectionBoxIntersectsSphere(it->transform, bounds))
         {
             ++it;
 

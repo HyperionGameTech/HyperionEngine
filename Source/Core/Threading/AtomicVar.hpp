@@ -135,6 +135,36 @@ public:
         m_value.wait(oldValue, ToCxxMemoryOrder(order));
     }
 
+    /*! \brief Blocks until \p bit is set.
+        Returns the value that had it set. */
+    HYP_FORCE_INLINE T WaitForBit(T bit, MemoryOrder order) const
+    {
+        T value = m_value.load(ToCxxMemoryOrder(order));
+
+        while (!(value & bit))
+        {
+            m_value.wait(value, ToCxxMemoryOrder(order));
+            value = m_value.load(ToCxxMemoryOrder(order));
+        }
+
+        return value;
+    }
+
+    /*! \brief Blocks until \p bit is zero
+        Returns the value that had it set.*/
+    HYP_FORCE_INLINE T WaitForBitClear(T bit, MemoryOrder order) const
+    {
+        T value = m_value.load(ToCxxMemoryOrder(order));
+
+        while (value & bit)
+        {
+            m_value.wait(value, ToCxxMemoryOrder(order));
+            value = m_value.load(ToCxxMemoryOrder(order));
+        }
+
+        return value;
+    }
+
     HYP_FORCE_INLINE void NotifyOne()
     {
         m_value.notify_one();

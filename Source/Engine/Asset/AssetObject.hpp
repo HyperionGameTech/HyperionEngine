@@ -236,8 +236,7 @@ protected:
 #ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     mutable volatile int64 m_rwState;
 
-    AtomicVar<bool> m_isInit;
-    AtomicVar<bool> m_isBlobLoaded;
+    AtomicVar<uint32> m_blobState;
 #else
     uint32 m_numReaders;
 #endif // HYP_ASSET_OBJECT_THREAD_SAFE

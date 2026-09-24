@@ -18,6 +18,9 @@ namespace Hyperion.Editor.ViewModels
         private readonly TypeInfo _elementTypeInfo;
         private readonly bool _isPolymorphic;
 
+        // Array<BoxedValue>: each element row is built for the type the element actually holds.
+        private readonly bool _isTypeErased;
+
         // Sim-thread-owned copy of the current array value.
         private BoxedValue? _currentArrayValue;
 
@@ -29,6 +32,9 @@ namespace Hyperion.Editor.ViewModels
 
         // Virtual element not yet committed to the real array.
         private ObjectPropertyViewModel? _pendingElement;
+
+        // UI thread. The type each committed element row was built for.
+        private List<TypeInfo> _elementRowTypes = new();
 
         public ICommand AddElementCommand { get; }
         public ICommand RemoveElementCommand { get; }
@@ -49,8 +55,20 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isExpanded, value);
         }
 
-        public bool CanAddElement { get; }
-        public bool CanRemoveElement { get; }
+        // Both come from the array itself on refresh, so fixed-size arrays never offer them.
+        private bool _canAddElement;
+        public bool CanAddElement
+        {
+            get => _canAddElement;
+            private set => SetProperty(ref _canAddElement, value);
+        }
+
+        private bool _canRemoveElement;
+        public bool CanRemoveElement
+        {
+            get => _canRemoveElement;
+            private set => SetProperty(ref _canRemoveElement, value);
+        }
 
         public override bool ShowInlineLabel => false;
 
@@ -63,12 +81,9 @@ namespace Hyperion.Editor.ViewModels
             _depth = depth;
             _elementTypeInfo = property.TypeInfo.GetElementTypeInfo();
             _isPolymorphic = DetectPolymorphic();
+            _isTypeErased = IsTypeErasedElementType(_elementTypeInfo);
 
             Value = property.TypeInfo.Name.ToString();
-
-            bool isFixedArray = property.TypeInfo.Name.ToString().Contains("FixedArray");
-            CanAddElement = !isReadOnly && !isFixedArray;
-            CanRemoveElement = !isReadOnly && !isFixedArray;
 
             AddElementCommand = new RelayCommand(AddElement, () => !_isReadOnly);
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
@@ -80,12 +95,9 @@ namespace Hyperion.Editor.ViewModels
             _depth = depth;
             _elementTypeInfo = property.TypeInfo.GetElementTypeInfo();
             _isPolymorphic = DetectPolymorphic();
+            _isTypeErased = IsTypeErasedElementType(_elementTypeInfo);
 
             Value = property.TypeInfo.Name.ToString();
-
-            bool isFixedArray = property.TypeInfo.Name.ToString().Contains("FixedArray");
-            CanAddElement = !isReadOnly && !isFixedArray;
-            CanRemoveElement = !isReadOnly && !isFixedArray;
 
             AddElementCommand = new RelayCommand(AddElement, () => !_isReadOnly);
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
@@ -97,11 +109,9 @@ namespace Hyperion.Editor.ViewModels
             _depth = depth;
             _elementTypeInfo = typeInfoHint.GetElementTypeInfo();
             _isPolymorphic = DetectPolymorphic();
+            _isTypeErased = IsTypeErasedElementType(_elementTypeInfo);
 
             Value = _elementTypeInfo.Name.ToString();
-
-            CanAddElement = !isReadOnly;
-            CanRemoveElement = !isReadOnly;
 
             AddElementCommand = new RelayCommand(AddElement, () => !_isReadOnly);
             RemoveElementCommand = new RelayCommand<InspectorPropertyViewModelBase>(vm => RemoveElementAt(Elements.IndexOf(vm!)));
@@ -119,6 +129,11 @@ namespace Hyperion.Editor.ViewModels
             NameCallbackDelegate cb = (_, _) => found = true;
             NativeBindings.Hyp_GetAllDerivedClassNames(className, cb, IntPtr.Zero);
             return found;
+        }
+
+        private static bool IsTypeErasedElementType(TypeInfo typeInfo)
+        {
+            return !typeInfo.IsNull && typeInfo.Name == "Hyperion::BoxedValue";
         }
 
         // Replaces the cached copy and disposes the previous one on the calling (sim) thread, rather
@@ -234,30 +249,91 @@ namespace Hyperion.Editor.ViewModels
             return true;
         }
 
-        // Sim thread. Applies an in-place change to this row's own array and to every peer's,
-        // each re-read first and written back after.
-        private void ModifyEveryArray(Action<BoxedValue> modify)
+        // Sim thread. Applies an in-place change to this row's own array (target 0) and to every peer's
+        // (target i + 1), each re-read first and written back after. A target that fails is left alone.
+        private void ModifyEveryArray(Action<int, BoxedValue> modify)
         {
-            ReloadArrayFromParent();
-            modify(RequireArrayValue());
-            WriteArrayToParent();
+            try
+            {
+                ReloadArrayFromParent();
+                modify(0, RequireArrayValue());
+                WriteArrayToParent();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: failed to modify array '{Label}': {ex.Message}");
+            }
 
             for (int i = 0; i < Peers.Count; i++)
             {
-                ReloadPeerArrayFromParent(i);
-                modify(RequirePeerArrayValue(i));
-                WritePeerArrayToParent(i);
+                try
+                {
+                    ReloadPeerArrayFromParent(i);
+                    modify(i + 1, RequirePeerArrayValue(i));
+                    WritePeerArrayToParent(i);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: failed to modify array '{Label}' of a selected object: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sim thread. Adds and removes go through the action stack like element edits do: an element
+        /// edit's undo is bound to its index, so an unrecorded add/remove would make it land on the wrong element.
+        /// </summary>
+        private void PushArrayAction(string actionText, Action<int, BoxedValue> execute, Action<int, BoxedValue> revert)
+        {
+            bool[] applied = new bool[1 + Peers.Count];
+
+            void Apply(Action<int, BoxedValue> modify)
+            {
+                ModifyEveryArray(modify);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    RefreshValue();
+                    ValueChangedCallback?.Invoke();
+                });
+            }
+
+            EditorAction action = new EditorAction(
+                actionText,
+                execute: (_, _) => Apply((target, array) =>
+                {
+                    applied[target] = false;
+                    execute(target, array);
+                    applied[target] = true;
+                }),
+                revert: (_, _) => Apply((target, array) =>
+                {
+                    if (applied[target])
+                    {
+                        revert(target, array);
+                    }
+                }));
+
+            EditorProject? project = EngineManager.CurrentProject;
+
+            if (project != null)
+            {
+                project.ActionStack.PushAction(action);
+            }
+            else
+            {
+                action.Execute(null!, null!);
             }
         }
 
 
-        private InspectorPropertyViewModelBase? CreateElementViewModel(int index)
+        private InspectorPropertyViewModelBase? CreateElementViewModel(int index, TypeInfo rowType)
         {
             int capturedIndex = index;
 
             InspectorPropertyViewModelBase vm = InspectorViewModelFactory.CreateForValue(
                 $"[{capturedIndex}]",
-                _elementTypeInfo,
+                rowType,
                 getter: () => GetElementValue(capturedIndex),
                 setter: v => SetElementValue(capturedIndex, v),
                 isReadOnly: _isReadOnly,
@@ -287,7 +363,7 @@ namespace Hyperion.Editor.ViewModels
 
         public void AddElement()
         {
-            if (_depth >= MaxDepth || _isReadOnly)
+            if (!CanAddElement)
                 return;
 
             if (_isPolymorphic)
@@ -311,66 +387,38 @@ namespace Hyperion.Editor.ViewModels
                 Elements.Add(vm);
 
                 HasElements = Elements.Count > 0;
+                UpdateSummary();
                 return;
             }
 
-            _ = EngineManager.PostToSimThread(() =>
-            {
-                try
-                {
-                    ModifyEveryArray(array => array.ResizeArray(array.GetArraySize() + 1));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: AddElement failed: {ex.Message}");
-                }
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    RefreshValue();
-                    ValueChangedCallback?.Invoke();
-                });
-            });
+            _ = EngineManager.PostToSimThread(() => PushArrayAction(
+                $"Add element to {Label}",
+                execute: (_, array) => array.ResizeArray(array.GetArraySize() + 1),
+                revert: (_, array) => RemoveLastElement(array)));
         }
 
 
+        // UI thread. The pending row is dropped here so the refresh after the add rebuilds the rows,
+        // rather than leaving the dead pending row standing in for the new element.
         private void CommitPendingElement(string className)
         {
-            _ = EngineManager.PostToSimThread(() =>
+            if (_pendingElement != null)
             {
-                try
+                Elements.Remove(_pendingElement);
+                _pendingElement = null;
+
+                HasElements = Elements.Count > 0;
+            }
+
+            _ = EngineManager.PostToSimThread(() => PushArrayAction(
+                $"Add {className} to {Label}",
+                execute: (_, array) =>
                 {
                     // Each selected object gets its own instance.
-                    ModifyEveryArray(array =>
-                    {
-                        BoxedValueInternal result;
-
-                        unsafe
-                        {
-                            if (!Hyp_CreateInstanceOfClass(className, &result))
-                            {
-                                Logger.Log(LogLevel.Warning, $"Failed to create instance of '{className}'");
-                                return;
-                            }
-                        }
-
-                        using BoxedValue instance = BoxedValue.FromBuffer(result);
-                        array.PushBackArrayElement(instance);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Warning, $"CommitPendingElement('{className}') failed: {ex.Message}");
-                }
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    _pendingElement = null;
-
-                    RefreshValue();
-                    ValueChangedCallback?.Invoke();
-                });
-            });
+                    using BoxedValue instance = CreateInstanceOfClass(className);
+                    array.PushBackArrayElement(instance);
+                },
+                revert: (_, array) => RemoveLastElement(array)));
         }
 
 
@@ -385,60 +433,170 @@ namespace Hyperion.Editor.ViewModels
                 Elements.RemoveAt(index);
                 _pendingElement = null;
                 HasElements = Elements.Count > 0;
+                UpdateSummary();
                 return;
             }
 
+            if (!CanRemoveElement)
+                return;
+
             int capturedIndex = index;
 
-            _ = EngineManager.PostToSimThread(() =>
+            // Each target's removed element, for undo.
+            object?[] removedValues = new object?[1 + Peers.Count];
+            bool[] hasRemovedValue = new bool[1 + Peers.Count];
+
+            _ = EngineManager.PostToSimThread(() => PushArrayAction(
+                $"Remove element from {Label}",
+                execute: (target, array) =>
+                {
+                    hasRemovedValue[target] = TryReadElementValue(array, capturedIndex, out removedValues[target]);
+                    array.RemoveArrayElement(capturedIndex);
+                },
+                revert: (target, array) => InsertElement(array, capturedIndex, removedValues[target], hasRemovedValue[target])));
+        }
+
+        private static void RemoveLastElement(BoxedValue array)
+        {
+            int size = array.GetArraySize();
+
+            if (size > 0)
+            {
+                array.RemoveArrayElement(size - 1);
+            }
+        }
+
+        private static bool TryReadElementValue(BoxedValue array, int index, out object? value)
+        {
+            try
+            {
+                using BoxedValue element = array.GetArrayElement(index);
+                value = element.GetValue();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: element {index} can't be kept for undo, undoing its removal restores a default value: {ex.Message}");
+                value = null;
+
+                return false;
+            }
+        }
+
+        // Sim thread. Shifts the elements from index onwards up by one and puts the value back at index,
+        // or a default element when the value couldn't be kept.
+        private static void InsertElement(BoxedValue array, int index, object? value, bool hasValue)
+        {
+            int size = array.GetArraySize();
+            int insertIndex = Math.Min(index, size);
+
+            array.ResizeArray(size + 1);
+
+            using BoxedValue defaultElement = array.GetArrayElement(size);
+
+            for (int i = size; i > insertIndex; i--)
+            {
+                using BoxedValue shifted = array.GetArrayElement(i - 1);
+                array.SetArrayElement(i, shifted);
+            }
+
+            if (hasValue)
             {
                 try
                 {
-                    ModifyEveryArray(array => array.RemoveArrayElement(capturedIndex));
+                    using BoxedValue restored = new BoxedValue(value);
+                    array.SetArrayElement(insertIndex, restored);
+
+                    return;
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: RemoveElementAt({capturedIndex}) failed: {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"ArrayPropertyViewModel: couldn't restore element {insertIndex}, using a default value: {ex.Message}");
                 }
+            }
 
-                Dispatcher.UIThread.Post(() =>
-                {
-                    RefreshValue();
-                    ValueChangedCallback?.Invoke();
-                });
-            });
+            array.SetArrayElement(insertIndex, defaultElement);
+        }
+
+        private static unsafe BoxedValue CreateInstanceOfClass(string className)
+        {
+            BoxedValueInternal result;
+
+            if (!Hyp_CreateInstanceOfClass(className, &result))
+                throw new InvalidOperationException($"Failed to create instance of '{className}'");
+
+            return BoxedValue.FromBuffer(result);
         }
 
 
-        private void RebuildElementVMs(int count)
+        private List<TypeInfo> ReadElementRowTypes(BoxedValue array, int count)
         {
-            Elements.Clear();
+            List<TypeInfo> rowTypes = new List<TypeInfo>(count);
 
             for (int i = 0; i < count; i++)
             {
-                InspectorPropertyViewModelBase? element = CreateElementViewModel(i);
+                if (!_isTypeErased)
+                {
+                    rowTypes.Add(_elementTypeInfo);
+                    continue;
+                }
+
+                using BoxedValue element = array.GetArrayElement(i);
+                TypeInfo elementType = element.TypeInfo;
+
+                rowTypes.Add(elementType.IsNull ? _elementTypeInfo : elementType);
+            }
+
+            return rowTypes;
+        }
+
+        private static bool SameRowTypes(List<TypeInfo> first, List<TypeInfo> second)
+        {
+            if (first.Count != second.Count)
+                return false;
+
+            for (int i = 0; i < first.Count; i++)
+            {
+                if (first[i].Address != second[i].Address)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private void RebuildElementVMs(List<TypeInfo> rowTypes)
+        {
+            Elements.Clear();
+            _elementRowTypes = rowTypes;
+
+            for (int i = 0; i < rowTypes.Count; i++)
+            {
+                InspectorPropertyViewModelBase? element = CreateElementViewModel(i, rowTypes[i]);
 
                 if (element == null)
                 {
                     _cannotEditElementsTogether = true;
                     Elements.Clear();
+                    _elementRowTypes = new List<TypeInfo>();
                     break;
                 }
 
                 Elements.Add(element);
             }
 
-            int displayCount = count;
-
             // Re-attach the pending element if it still exists.
             if (_pendingElement != null)
             {
                 Elements.Add(_pendingElement);
-                displayCount++; // show it in the summary
             }
 
             HasElements = Elements.Count > 0;
-            Value = $"(array, {displayCount} elem{(displayCount != 1 ? "s" : "")})";
+        }
+
+        private void UpdateSummary()
+        {
+            Value = $"(array, {Elements.Count} elem{(Elements.Count != 1 ? "s" : "")})";
         }
 
         public override void RefreshValue()
@@ -448,35 +606,49 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                int count;
-                bool isSharedLength = true;
+                bool isShared = true;
+                bool canResize;
+                bool canPushBack;
+                List<TypeInfo> rowTypes;
 
                 try
                 {
                     BoxedValue newArrayValue = GetPropertyValue();
                     ReplaceArrayValue(newArrayValue);
 
-                    count = _depth < MaxDepth ? newArrayValue.GetArraySize() : 0;
+                    canResize = newArrayValue.CanResizeArray;
+                    canPushBack = newArrayValue.CanPushBackArray;
+
+                    int count = _depth < MaxDepth ? newArrayValue.GetArraySize() : 0;
 
                     IReadOnlyList<PropertyTarget> peers = Peers;
+                    List<BoxedValue> peerArrayValues = new List<BoxedValue>(peers.Count);
 
                     for (int i = 0; i < peers.Count; i++)
                     {
                         BoxedValue peerArrayValue = peers[i].Get();
                         ReplacePeerArrayValue(i, peerArrayValue);
+                        peerArrayValues.Add(peerArrayValue);
 
-                        isSharedLength &= peerArrayValue.GetArraySize() == newArrayValue.GetArraySize();
+                        isShared &= peerArrayValue.GetArraySize() == newArrayValue.GetArraySize();
                     }
 
-                    // Elements are only edited together when every selected object has the same number.
-                    if (_cannotEditElementsTogether)
+                    rowTypes = ReadElementRowTypes(newArrayValue, isShared ? count : 0);
+
+                    // Elements are only edited together when every selected object has the same number,
+                    // and, for a type-erased array, the same type at each index.
+                    if (isShared && _isTypeErased)
                     {
-                        isSharedLength = false;
+                        foreach (BoxedValue peerArrayValue in peerArrayValues)
+                        {
+                            isShared &= SameRowTypes(rowTypes, ReadElementRowTypes(peerArrayValue, count));
+                        }
                     }
 
-                    if (!isSharedLength)
+                    if (_cannotEditElementsTogether || !isShared)
                     {
-                        count = 0;
+                        isShared = false;
+                        rowTypes = new List<TypeInfo>();
                     }
                 }
                 catch (Exception ex)
@@ -492,27 +664,27 @@ namespace Hyperion.Editor.ViewModels
                 {
                     try
                     {
-                        // Element view models are bound to an index, so they only need rebuilding
-                        // when the element count changes. Rebuilding on every refresh would drop
-                        // any expanded/edited state in nested editors.
-                        int existingCount = _pendingElement != null ? Elements.Count - 1 : Elements.Count;
+                        CanAddElement = !_isReadOnly && _depth < MaxDepth && (_isPolymorphic ? canPushBack : canResize);
+                        CanRemoveElement = !_isReadOnly && canResize;
 
-                        if (existingCount != count)
+                        // Element view models are bound to an index, so they only need rebuilding when the
+                        // rows change. Rebuilding on every refresh would drop expanded/edited state in nested editors.
+                        if (!SameRowTypes(_elementRowTypes, rowTypes))
                         {
-                            RebuildElementVMs(count);
+                            RebuildElementVMs(rowTypes);
                         }
 
-                        bool showsElements = isSharedLength && !_cannotEditElementsTogether;
+                        bool showsElements = isShared && !_cannotEditElementsTogether;
 
                         HasMixedValues = !showsElements;
 
-                        if (!showsElements)
+                        if (showsElements)
+                        {
+                            UpdateSummary();
+                        }
+                        else
                         {
                             Value = string.Empty;
-                        }
-                        else if (existingCount == count)
-                        {
-                            Value = $"(array, {Elements.Count} elem{(Elements.Count != 1 ? "s" : "")})";
                         }
 
                         foreach (InspectorPropertyViewModelBase vm in Elements)

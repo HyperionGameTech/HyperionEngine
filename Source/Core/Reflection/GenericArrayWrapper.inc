@@ -21,7 +21,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         }
         else
         {
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(arr.PushBack(std::move(*element)));
         }
     };
 
@@ -66,7 +73,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
         }
         else
         {
-            arr[index] = value.Get<T>();
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -111,7 +125,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         }
         else
         {
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(arr.PushBack(std::move(*element)));
         }
     };
 
@@ -156,7 +177,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
         }
         else
         {
-            arr[index] = value.Get<T>();
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -201,7 +229,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         }
         else
         {
-            return AnyRef(arr.PushBack(std::move(value.Get<T>())));
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(arr.PushBack(std::move(*element)));
         }
     };
 
@@ -246,7 +281,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
         }
         else
         {
-            arr[index] = value.Get<T>();
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -320,7 +362,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
         }
         else
         {
-            arr[index] = value.Get<T>();
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -388,7 +437,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
         }
         else
         {
-            arr[index] = value.Get<T>();
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -456,7 +512,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
         }
         else
         {
-            arr[index] = value.Get<T>();
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -735,7 +798,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, List<T>& list)
         }
         else
         {
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(list.PushBack(std::move(*element)));
         }
     };
 
@@ -770,7 +840,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const List<T>& list)
         }
         else
         {
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(list.PushBack(std::move(*element)));
         }
     };
 
@@ -805,7 +882,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, List<T>&& list)
         }
         else
         {
-            return AnyRef(list.PushBack(std::move(value.Get<T>())));
+            auto element = value.TryGet<T>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(list.PushBack(std::move(*element)));
         }
     };
 
@@ -841,7 +925,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, SlimArray<TElemType, TA
         }
         else
         {
-            return AnyRef(arr.PushBack(std::move(value.Get<TElemType>())));
+            auto element = value.TryGet<TElemType>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(arr.PushBack(std::move(*element)));
         }
     };
 
@@ -886,7 +977,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, SlimArray<TElemType, TA
         }
         else
         {
-            arr[index] = value.Get<TElemType>();
+            auto element = value.TryGet<TElemType>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -931,7 +1029,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const SlimArray<TElemType, T
         }
         else
         {
-            return AnyRef(arr.PushBack(std::move(value.Get<TElemType>())));
+            auto element = value.TryGet<TElemType>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(arr.PushBack(std::move(*element)));
         }
     };
 
@@ -976,7 +1081,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const SlimArray<TElemType, T
         }
         else
         {
-            arr[index] = value.Get<TElemType>();
+            auto element = value.TryGet<TElemType>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;
@@ -1021,7 +1133,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, SlimArray<TElemType, TAlloca
         }
         else
         {
-            return AnyRef(arr.PushBack(std::move(value.Get<TElemType>())));
+            auto element = value.TryGet<TElemType>();
+
+            if (!element.HasValue())
+            {
+                return AnyRef();
+            }
+
+            return AnyRef(arr.PushBack(std::move(*element)));
         }
     };
 
@@ -1066,7 +1185,14 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, SlimArray<TElemType, TAlloca
         }
         else
         {
-            arr[index] = value.Get<TElemType>();
+            auto element = value.TryGet<TElemType>();
+
+            if (!element.HasValue())
+            {
+                return false;
+            }
+
+            arr[index] = *element;
         }
 
         return true;

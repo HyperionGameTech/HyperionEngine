@@ -358,28 +358,28 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
         return true;
     }
 
-    const bool snapToGrid = GetEditorSubsystem() && GetEditorSubsystem()->IsSnapToGridEnabled();
+    const EditorGizmoController* snapController = GetEditorSubsystem() && GetEditorSubsystem()->IsSnapToGridEnabled()
+        ? GetEditorSubsystem()->GetGizmoController()
+        : nullptr;
 
     Vec3f translation;
 
     if (m_dragData->axisDirection == Vec3f::Zero())
     {
-        Vec3f delta = planeRayHit.hitpoint - m_dragData->hitpointOrigin;
+        translation = m_dragData->nodeOrigin + (planeRayHit.hitpoint - m_dragData->hitpointOrigin);
 
-        if (snapToGrid)
+        if (snapController)
         {
-        delta = MathUtil::Round(delta);
+            translation = snapController->SnapToGrid(translation);
         }
-
-        translation = m_dragData->nodeOrigin + delta;
     }
     else
     {
         float t = (planeRayHit.hitpoint - m_dragData->hitpointOrigin).Dot(m_dragData->axisDirection);
 
-        if (snapToGrid)
+        if (snapController)
         {
-            t = MathUtil::Round(t);
+            t = snapController->SnapToGridAlongAxis(m_dragData->nodeOrigin, m_dragData->axisDirection, t);
         }
 
         translation = m_dragData->nodeOrigin + (m_dragData->axisDirection * t);

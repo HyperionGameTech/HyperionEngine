@@ -258,10 +258,10 @@ void EvaluateSingleProbe(
     const float irradianceOnlyWeight = (float) isIrradianceProbe;
     const float diffuseContributionWeight = (1.0 - lightmappedWeight) * diffuseStrength;
 
-    // @TODO Make configurable.
-    static const float kIrradianceProbeBlendFactor = 0.2;
-    static const float kReflectionsProbeBlendFactor = 0.2;
-    const float blendFactor = lerp(kReflectionsProbeBlendFactor, kIrradianceProbeBlendFactor, irradianceOnlyWeight);
+    static const float s_irradianceProbeBlendFactor = 0.2;
+    static const float s_reflectionsProbeBlendFactor = 0.2;
+
+    const float blendFactor = lerp(s_reflectionsProbeBlendFactor, s_irradianceProbeBlendFactor, irradianceOnlyWeight);
 
     // Sky probes are unbounded
     const float boundsWeight = select(isSkyProbe, 1.0, CalculateEnvProbeWeight(positionWS, aabbMin.xyz, aabbMax.xyz, blendFactor));

@@ -59,13 +59,18 @@ static Name GetUniqueName(Name baseName, T&& elements)
 
 #pragma region AssetObject
 
+#ifdef HYP_ASSET_OBJECT_THREAD_SAFE
+static constexpr uint32 BlobStateInit = 0x1;
+static constexpr uint32 BlobStateLoaded = 0x2;
+static constexpr uint32 BlobStateLoadedPersistent = 0x4;
+#endif // HYP_ASSET_OBJECT_THREAD_SAFE
+
 AssetObject::AssetObject()
     : m_flags(AssetObjectFlags::None),
       m_assetIndex(AssetDesc::InvalidIndex),
 #ifdef HYP_ASSET_OBJECT_THREAD_SAFE
       m_rwState(0),
-      m_isInit(false),
-      m_isBlobLoaded(false)
+      m_blobState(0)
 #else // !HYP_ASSET_OBJECT_THREAD_SAFE
       m_numReaders(0)
 #endif // HYP_ASSET_OBJECT_THREAD_SAFE
@@ -78,8 +83,7 @@ AssetObject::AssetObject(Name name)
       m_assetIndex(AssetDesc::InvalidIndex),
 #ifdef HYP_ASSET_OBJECT_THREAD_SAFE
       m_rwState(0),
-      m_isInit(false),
-      m_isBlobLoaded(false)
+      m_blobState(0)
 #else // !HYP_ASSET_OBJECT_THREAD_SAFE
       m_numReaders(0)
 #endif // HYP_ASSET_OBJECT_THREAD_SAFE
@@ -763,18 +767,33 @@ void AssetObject::LockReader()
     {
         if (state == 0)
         {
-            if (!m_flags[AssetObjectFlags::Persistent] || !m_isBlobLoaded.Get(MemoryOrder::ACQUIRE))
-            {
-                // Wait for m_isBlobLoaded to be false.
-                // Another thread may be tearing down.
+            const bool isPersistent = m_flags[AssetObjectFlags::Persistent];
 
-                while (m_isBlobLoaded.Get(MemoryOrder::ACQUIRE))
+            const uint32 blobState = m_blobState.Get(MemoryOrder::ACQUIRE);
+
+            // a persistent load is never torn down, so it is still loaded if the flag has since been cleared
+            if ((blobState & BlobStateLoaded) && (blobState & BlobStateLoadedPersistent))
+            {
+                if (!isPersistent)
                 {
-                    m_isBlobLoaded.Wait(true, MemoryOrder::ACQUIRE);
+                    // hand the resident copy over to the non-persistent lifecycle, so the last reader tears it down.
+                    // take the blob storage reader that teardown releases.
+                    if (ShouldUseBlobStorage())
+                    {
+                        EngineGlobals::GetBlobStorage()->Lock(EngineGlobals::GetCacheDirectory(), /* readOnly */ true);
+                    }
+
+                    m_blobState.BitAnd(~BlobStateLoadedPersistent, MemoryOrder::RELEASE);
                 }
+            }
+            else
+            {
+                // wait for BlobStateLoaded to be cleared.
+                // another thread may be tearing down.
+                m_blobState.WaitForBitClear(BlobStateLoaded, MemoryOrder::ACQUIRE);
 
                 // We're the initializing thread.
-                m_isBlobLoaded.Exchange(true, MemoryOrder::RELEASE);
+                m_blobState.BitOr(isPersistent ? (BlobStateLoaded | BlobStateLoadedPersistent) : BlobStateLoaded, MemoryOrder::RELEASE);
 
                 // Add reader for blob storage
                 if (ShouldUseBlobStorage())
@@ -784,10 +803,10 @@ void AssetObject::LockReader()
 
                 PageBlobData();
 
-                if (m_flags[AssetObjectFlags::Persistent])
+                if (isPersistent)
                 {
                     SetBlobDataResident(true);
-                    
+
                     // We don't need the lock anyymore; we have our own copy.
                     if (ShouldUseBlobStorage())
                     {
@@ -796,22 +815,18 @@ void AssetObject::LockReader()
                 }
             }
 
-            m_isInit.Set(true, MemoryOrder::RELEASE);
-            m_isInit.NotifyAll();
+            m_blobState.BitOr(BlobStateInit, MemoryOrder::RELEASE);
+            m_blobState.NotifyAll();
         }
         else
         {
             // Wait for another thread to initialize.
-
-            while (!m_isInit.Get(MemoryOrder::ACQUIRE))
-            {
-                m_isInit.Wait(false, MemoryOrder::ACQUIRE);
-            }
+            m_blobState.WaitForBit(BlobStateInit, MemoryOrder::ACQUIRE);
         }
     };
 
     // CAS instead of add-then-undo, so the reader count never includes readers that will back out
-    // (a transient count made a real first reader think it wasn't first and wait on m_isInit forever)
+    // (a transient count made a real first reader think it wasn't first and wait on BlobStateInit forever)
     while (true)
     {
         // volatile read
@@ -879,10 +894,10 @@ void AssetObject::UnlockReader()
         return;
     }
 
-    bool expectedInit = true;
+    const uint32 previousBlobState = m_blobState.BitAnd(~BlobStateInit, MemoryOrder::ACQUIRE_RELEASE);
 
-    const bool isTearingDown = m_isInit.CompareExchangeStrong(expectedInit, false, MemoryOrder::ACQUIRE_RELEASE)
-        && !m_flags[AssetObjectFlags::Persistent];
+    const bool isTearingDown = (previousBlobState & BlobStateInit)
+        && !(previousBlobState & BlobStateLoadedPersistent);
 
     if (isTearingDown)
     {
@@ -907,14 +922,14 @@ void AssetObject::UnlockReader()
 
     if (isTearingDown)
     {
-        // Outside the writer bit; a new first reader waits on m_isBlobLoaded for this to finish
+        // Outside the writer bit; a new first reader waits on BlobStateLoaded for this to finish
         if (ShouldUseBlobStorage())
         {
             EngineGlobals::GetBlobStorage()->Unlock();
         }
 
-        m_isBlobLoaded.Exchange(false, MemoryOrder::RELEASE);
-        m_isBlobLoaded.NotifyAll();
+        m_blobState.BitAnd(~BlobStateLoaded, MemoryOrder::RELEASE);
+        m_blobState.NotifyAll();
     }
 #else // !HYP_ASSET_OBJECT_THREAD_SAFE
     if (--m_numReaders == 0)

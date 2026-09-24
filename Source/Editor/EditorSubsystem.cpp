@@ -111,6 +111,7 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/DebugDrawer.hpp>
+#include <Rendering/Passes/EditorGridPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -345,6 +346,38 @@ bool EditorSubsystem::IsSnapToGridEnabled() const
 void EditorSubsystem::SetSnapToGridEnabled(bool snapToGrid)
 {
     m_gizmoController->SetSnapToGridEnabled(snapToGrid);
+}
+
+bool EditorSubsystem::IsGridVisible() const
+{
+    return g_cvEditorGrid.Get();
+}
+
+void EditorSubsystem::SetGridVisible(bool visible)
+{
+    g_cvEditorGrid.Set(visible);
+}
+
+float EditorSubsystem::GetGridSize() const
+{
+    return g_cvEditorGridSize.Get();
+}
+
+void EditorSubsystem::SetGridSize(float gridSize)
+{
+    g_cvEditorGridSize.Set(MathUtil::Max(gridSize, 0.001f));
+}
+
+Vec3f EditorSubsystem::GetGridOffset() const
+{
+    return Vec3f(g_cvEditorGridOffsetX.Get(), g_cvEditorGridOffsetY.Get(), g_cvEditorGridOffsetZ.Get());
+}
+
+void EditorSubsystem::SetGridOffset(Vec3f gridOffset)
+{
+    g_cvEditorGridOffsetX.Set(gridOffset.x);
+    g_cvEditorGridOffsetY.Set(gridOffset.y);
+    g_cvEditorGridOffsetZ.Set(gridOffset.z);
 }
 
 #pragma region Entity Swatch Overrides
@@ -1825,7 +1858,9 @@ void EditorSubsystem::UpdateMeshEditDrag(const Handle<Camera>& camera, const Mou
 
         if (m_gizmoController->IsSnapToGridEnabled())
         {
-            worldDelta = MathUtil::Round(worldDelta);
+            const Vec3f centroidOrigin = m_meshEditState.dragData->faceCentroidWorldOrigin;
+
+            worldDelta = m_gizmoController->SnapToGrid(centroidOrigin + worldDelta) - centroidOrigin;
         }
     }
     else
@@ -1834,7 +1869,7 @@ void EditorSubsystem::UpdateMeshEditDrag(const Handle<Camera>& camera, const Mou
 
         if (m_gizmoController->IsSnapToGridEnabled())
         {
-            t = MathUtil::Round(t);
+            t = m_gizmoController->SnapToGridAlongAxis(m_meshEditState.dragData->faceCentroidWorldOrigin, m_meshEditState.dragData->axisDirection, t);
         }
 
         worldDelta = m_meshEditState.dragData->axisDirection * t;

@@ -375,6 +375,29 @@ public:
     HYP_METHOD()
     void SetSnapToGridEnabled(bool snapToGrid);
 
+    HYP_METHOD()
+    bool IsGridVisible() const;
+
+    HYP_METHOD()
+    void SetGridVisible(bool visible);
+
+    HYP_METHOD()
+    float GetGridSize() const;
+
+    HYP_METHOD()
+    void SetGridSize(float gridSize);
+
+    HYP_METHOD()
+    Vec3f GetGridOffset() const;
+
+    HYP_METHOD()
+    void SetGridOffset(Vec3f gridOffset);
+
+    HYP_FORCE_INLINE const EditorGizmoController* GetGizmoController() const
+    {
+        return m_gizmoController.Get();
+    }
+
     ///Swatch overrides
 
 

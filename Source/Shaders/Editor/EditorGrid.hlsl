@@ -45,6 +45,11 @@ struct PSOutput
 DECLARE_SRV_DYNAMIC(EditorGrid, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
+DECLARE_BUFFER_DYNAMIC(EditorGrid, EditorGridConstants) cbuffer EditorGridConstants
+{
+    float4 gridOffsetAndSize;
+};
+
 float3 UnprojectPoint(float2 ndc, float z)
 {
     float4 viewSpace = mul(camera.invProjMat, float4(ndc, z, 1.0));
@@ -81,7 +86,10 @@ PSOutput PSMain(PSInput i)
         discard;
     }
 
-    float t = -rayOrigin.y / rayDir.y;
+    const float3 gridOffset = gridOffsetAndSize.xyz;
+    const float gridSize = gridOffsetAndSize.w;
+
+    float t = (gridOffset.y - rayOrigin.y) / rayDir.y;
 
     if (t <= 0.0 || t >= 1.0)
     {
@@ -98,8 +106,10 @@ PSOutput PSMain(PSInput i)
         discard;
     }
 
-    float4 minorGrid = GridColor(hitPos.xz, 1.0, 1.0, float3(0.5, 0.5, 0.5));
-    float4 majorGrid = GridColor(hitPos.xz, 10.0, 1.5, float3(0.75, 0.75, 0.75));
+    float2 gridCoord = hitPos.xz - gridOffset.xz;
+
+    float4 minorGrid = GridColor(gridCoord, gridSize, 1.0, float3(0.5, 0.5, 0.5));
+    float4 majorGrid = GridColor(gridCoord, gridSize * 10.0, 1.5, float3(0.75, 0.75, 0.75));
 
     float4 gridColor = lerp(minorGrid, majorGrid, majorGrid.a);
     gridColor.a *= fade * fade;

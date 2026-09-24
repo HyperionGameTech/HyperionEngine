@@ -49,6 +49,7 @@ struct PSOutput
 
 DECLARE_SRV(Tonemap, DeferredResult) Texture2D DeferredResult;
 DECLARE_SRV(Tonemap, BloomResultTexture) Texture2D BloomResultTexture;
+DECLARE_SRV(Tonemap, DebugOverlayTexture) Texture2D DebugOverlayTexture;
 
 DECLARE_SAMPLER(Tonemap, SamplerNearest) SamplerState sampler_nearest;
 DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
@@ -70,6 +71,10 @@ float4 PSMain(PSInput input) : SV_Target0
     const float3 graded_color = ApplyColorGrading(color_with_bloom.rgb, world_shader_data);
 
     float4 color_output = float4(Tonemap(graded_color, world_shader_data.tonemap_operator), 1.0);
+
+    // debug draws are premultiplied over a transparent clear, alpha being how much of the scene they cover
+    const float4 debug_overlay = SAMPLE_TEXTURE_2D(sampler_nearest, DebugOverlayTexture, texcoord);
+    color_output.rgb = saturate(debug_overlay.rgb) + color_output.rgb * (1.0 - saturate(debug_overlay.a));
 
 #ifdef OUTPUT_PQ_HDR
     const float peakNits = 1000.0;

@@ -21,6 +21,8 @@
 
 #include <Input/Event.hpp>
 
+#include <Rendering/Passes/EditorGridPass.hpp>
+
 #include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
@@ -231,6 +233,37 @@ void EditorGizmoController::UpdateGizmoProximityVisibility()
     {
         editorScene->GetRoot()->AddChild(gizmoNode);
     }
+}
+
+static float SnapToGridLine(float value, float gridOffset, float gridSize)
+{
+    return MathUtil::Round((value - gridOffset) / gridSize) * gridSize + gridOffset;
+}
+
+Vec3f EditorGizmoController::SnapToGrid(const Vec3f& position) const
+{
+    const float gridSize = MathUtil::Max(g_cvEditorGridSize.Get(), MathUtil::epsilonF);
+    const Vec3f gridOffset(g_cvEditorGridOffsetX.Get(), g_cvEditorGridOffsetY.Get(), g_cvEditorGridOffsetZ.Get());
+
+    return Vec3f(
+        SnapToGridLine(position.x, gridOffset.x, gridSize),
+        SnapToGridLine(position.y, gridOffset.y, gridSize),
+        SnapToGridLine(position.z, gridOffset.z, gridSize));
+}
+
+float EditorGizmoController::SnapToGridAlongAxis(const Vec3f& origin, const Vec3f& axisDirection, float distance) const
+{
+    const float gridSize = MathUtil::Max(g_cvEditorGridSize.Get(), MathUtil::epsilonF);
+
+    if (MathUtil::Abs(axisDirection).Max() < 1.0f - 1e-4f)
+    {
+        return MathUtil::Round(distance / gridSize) * gridSize;
+    }
+
+    const Vec3f gridOffset(g_cvEditorGridOffsetX.Get(), g_cvEditorGridOffsetY.Get(), g_cvEditorGridOffsetZ.Get());
+    const float originAlongAxis = origin.Dot(axisDirection);
+
+    return SnapToGridLine(originAlongAxis + distance, gridOffset.Dot(axisDirection), gridSize) - originAlongAxis;
 }
 
 } // namespace Hyperion

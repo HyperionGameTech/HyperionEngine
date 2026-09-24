@@ -322,6 +322,12 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     else if (isDebug)
     {
         // stencilReferenceValue = DebugStencilMask;
+
+        // debug overlay alpha is how much of the scene the tonemap composite hides; additive draws must leave it untouched
+        if (mas.blendFunction == BlendFunction::Additive())
+        {
+            mas.blendFunction = BlendFunction(BlendModeFactor::One, BlendModeFactor::One, BlendModeFactor::Zero, BlendModeFactor::One);
+        }
     }
     else if (hasLightmaps && !isPathTracer)
     {
