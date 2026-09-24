@@ -261,6 +261,8 @@ void View::Init()
 
     if (!(flags & ViewFlags::EXTERNAL_RENDERTARGET))
     {
+        Assert(!EngineGlobals::IsHeadless(), "Cannot create View with a render target in HEADLESS!");
+
         if (flags & ViewFlags::GBUFFER)
         {
             AssertDebug(desc.framebufferDesc.numAttachments == 0,

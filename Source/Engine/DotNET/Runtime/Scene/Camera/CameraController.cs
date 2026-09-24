@@ -58,6 +58,14 @@ namespace Hyperion
         }
     }
 
+    [ClassBinding(Name = "ThirdPersonCameraController")]
+    public class ThirdPersonCameraController : PerspectiveCameraController
+    {
+        public ThirdPersonCameraController()
+        {
+        }
+    }
+
     [ClassBinding(Name = "CameraTrackController")]
     public class CameraTrackController : PerspectiveCameraController
     {

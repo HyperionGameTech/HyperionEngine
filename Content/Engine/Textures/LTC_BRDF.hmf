@@ -31,5 +31,5 @@ Texture LTC_BRDF {
         Key = "Engine://Textures/LTC_BRDF.TEX"
         Size = 32768
     }
-    UUID = "714b6462-2920-4574-aa00-ae722432b2bd"
+    UUID = "ec26854a-3957-4444-ad3d-adc429169b39"
 }

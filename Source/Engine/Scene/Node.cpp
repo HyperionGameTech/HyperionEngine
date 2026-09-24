@@ -1017,31 +1017,18 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
     if (m_parentNode != nullptr)
     {
-        transformMatrix = m_parentNode->GetWorldMatrix() * transformMatrix;
-
-        if (m_nodeFlags & NodeFlags::IgnoreParentTransform)
+        if (m_nodeFlags & (NodeFlags::IgnoreParentTranslation | NodeFlags::IgnoreParentRotation))
         {
-            if (m_nodeFlags & NodeFlags::IgnoreParentTranslation)
-            {
-                transformMatrix[3][0] = prevWorldMatrix[3][0];
-                transformMatrix[3][1] = prevWorldMatrix[3][1];
-                transformMatrix[3][2] = prevWorldMatrix[3][2];
-                transformMatrix[3][3] = 1.0f;
-            }
+            // Compose per component so the matrix agrees with GetWorldTranslation() / SetWorldRotation() etc.
+            const Quat4f worldRotation = (m_nodeFlags & NodeFlags::IgnoreParentRotation)
+                ? m_localTransform.GetRotation()
+                : m_parentNode->GetWorldRotation() * m_localTransform.GetRotation();
 
-            if (m_nodeFlags & NodeFlags::IgnoreParentRotation)
-            {
-                const Mat4f curr = transformMatrix;
-
-                transformMatrix = prevWorldMatrix;
-
-                transformMatrix[3][0] = curr[3][0];
-                transformMatrix[3][1] = curr[3][1];
-                transformMatrix[3][2] = curr[3][2];
-                transformMatrix[3][3] = curr[3][3];
-
-                transformMatrix.Orthonormalize();
-            }
+            transformMatrix = Transform(GetWorldTranslation(), GetWorldScale(), worldRotation).GetMatrix();
+        }
+        else
+        {
+            transformMatrix = m_parentNode->GetWorldMatrix() * transformMatrix;
 
             if (m_nodeFlags & NodeFlags::IgnoreParentScale)
             {

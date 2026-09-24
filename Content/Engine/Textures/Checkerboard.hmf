@@ -31,5 +31,5 @@ Texture Checkerboard {
         Key = "Engine://Textures/Checkerboard.TEX"
         Size = 256
     }
-    UUID = "56896268-bd5c-4bf6-a0f4-f13b9ab28fba"
+    UUID = "e30486ed-62c3-4fbd-bf36-0430f9d02b52"
 }

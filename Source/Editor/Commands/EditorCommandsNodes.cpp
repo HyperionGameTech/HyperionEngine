@@ -1,4 +1,5 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
+#include <Editor/EditorPlayerSetup.hpp>
 
 namespace Hyperion {
 
@@ -296,53 +297,32 @@ public:
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
-        Handle<Entity> playerEntity = MakeHandle<Entity>();
-        playerEntity->SetName(activeScene->GetUniqueNodeName("Player"));
-        playerEntity->SetWorldTranslation(insertionPoint);
-        playerEntity->SetIsDynamic(true);
-        InitObject(playerEntity);
+        const EditorThirdPersonPlayer player = EditorPlayerSetup::CreateThirdPersonPlayer(
+            activeScene->GetUniqueNodeName("Player"),
+            activeScene->GetUniqueNodeNameT<Camera>());
 
-        Handle<CapsulePhysicsShape> capsuleShape = MakeHandle<CapsulePhysicsShape>();
-        capsuleShape->SetName(NAME_FMT("{}CapsuleShape", playerEntity->GetName()));
-        InitObject(capsuleShape);
+        const Handle<Entity>& playerEntity = player.playerEntity;
+        const Handle<CapsulePhysicsShape>& capsuleShape = player.capsuleShape;
 
-        Handle<Camera> camera = MakeHandle<Camera>();
-        camera->SetName(activeScene->GetUniqueNodeNameT<Camera>());
-        camera->SetLocalTranslation(Vec3f(0.0f, 1.6f, 0.0f));
-        camera->AddTag<EntityTag::PrimaryCamera>();
-
-        Handle<FirstPersonCameraController> firstPersonCameraController = MakeHandle<FirstPersonCameraController>();
-        camera->AddCameraController(firstPersonCameraController);
-
-        InitObject(camera);
+        // Edit mode treats the player's origin as the capsule center, so lift it to rest on the insertion point
+        playerEntity->SetWorldTranslation(insertionPoint + Vec3f(0.0f, capsuleShape->GetHeight() * 0.5f + capsuleShape->GetRadius(), 0.0f));
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
             Proc<EditorActionFunctions()>(
-                [playerEntity, capsuleShape, camera, previousFocusedNode, activeScene]() -> EditorActionFunctions
+                [player, playerEntity, capsuleShape, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [playerEntity, capsuleShape, camera, activeScene](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [player, playerEntity, capsuleShape, activeScene](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
                                 GetCurrentAssetRegistry()->PutAssetUnique(capsuleShape);
 
                                 activeScene->GetRoot()->AddChild(playerEntity);
 
-                                if (!playerEntity->HasComponent<CharacterControllerComponent>())
-                                {
-                                    CharacterControllerComponent characterControllerComponent;
-                                    characterControllerComponent.shape = capsuleShape;
-                                    playerEntity->AddComponent<CharacterControllerComponent>(characterControllerComponent);
-                                }
-                                else // has component (can happen if going undo->redo)
-                                {
-                                    playerEntity->GetComponent<CharacterControllerComponent>().shape = capsuleShape;
-                                }
-
-                                playerEntity->AddChild(camera);
+                                EditorPlayerSetup::AttachToScene(player);
 
                                 editorSubsystem->SetSelectedNodes({ playerEntity });
                                 editorSubsystem->SetFocusedNode(playerEntity, true);

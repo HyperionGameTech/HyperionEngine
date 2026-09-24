@@ -26,10 +26,13 @@
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>
+#include <Rendering/Texture.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
 #include <Framework/EngineDriver.hpp>
+
+#include <Core/IO/ByteReader.hpp>
 
 #include <Util/XML/SAXParser.hpp>
 
@@ -44,6 +47,84 @@ using FatVertex = TVertex<VT_Simple | VT_Skeletal>;
 using OgreXMLModel = OgreXMLModelLoader::OgreXMLModel;
 using BoneAssignment = OgreXMLModelLoader::OgreXMLModel::BoneAssignment;
 using SubMesh = OgreXMLModelLoader::OgreXMLModel::SubMesh;
+
+struct OgreMaterialScript
+{
+    Vec4f diffuse = Vec4f::One();
+    Array<String> textureNames;
+    bool isAlphaBlended = false;
+};
+
+using OgreMaterialScriptMap = FlatMap<String, OgreMaterialScript>;
+
+static void ParseOgreMaterialScript(const FilePath& filepath, OgreMaterialScriptMap& outMaterials)
+{
+    FileByteReader reader { filepath };
+
+    if (reader.Eof())
+    {
+        return;
+    }
+
+    const String fileContents = String(reader.Read().ToByteView());
+
+    OgreMaterialScript* currentMaterial = nullptr;
+
+    for (const String& line : fileContents.Split('\n'))
+    {
+        const String trimmedLine = line.Trimmed();
+
+        if (trimmedLine.Empty() || trimmedLine.StartsWith("//"))
+        {
+            continue;
+        }
+
+        Array<String> tokens;
+
+        for (String& token : trimmedLine.Split(' ', '\t', '\r'))
+        {
+            if (token.Any())
+            {
+                tokens.PushBack(std::move(token));
+            }
+        }
+
+        if (tokens.Empty())
+        {
+            continue;
+        }
+
+        if (tokens[0] == "material" && tokens.Size() >= 2)
+        {
+            currentMaterial = &outMaterials[tokens[1]];
+        }
+        else if (currentMaterial == nullptr)
+        {
+            continue;
+        }
+        else if (tokens[0] == "diffuse" && tokens.Size() >= 4)
+        {
+            currentMaterial->diffuse = Vec4f(
+                StringUtil::Parse<float>(tokens[1]),
+                StringUtil::Parse<float>(tokens[2]),
+                StringUtil::Parse<float>(tokens[3]),
+                1.0f);
+        }
+        else if (tokens[0] == "texture" && tokens.Size() >= 2)
+        {
+            currentMaterial->textureNames.PushBack(tokens[1]);
+        }
+        else if (tokens[0] == "scene_blend" && tokens.Size() >= 2 && tokens[1] == "alpha_blend")
+        {
+            currentMaterial->isAlphaBlended = true;
+        }
+    }
+}
+
+static String MakeSafeAssetName(const String& name)
+{
+    return name.ReplaceAll(":", "_");
+}
 
 class OgreXMLSAXHandler : public xml::SAXHandler
 {
@@ -236,7 +317,8 @@ void BuildVertices(OgreXMLModel& model)
         }
 
         vertices[i].SetPosition(position);
-        vertices[i].SetUV0(texcoord);
+        // Ogre texture coordinates have their origin at the top left
+        vertices[i].SetUV0(Vec2f(texcoord.x, 1.0f - texcoord.y));
         vertices[i].SetNormal(normal);
         vertices[i].boneIndices = UINT32_MAX;
         Memory::Zero(vertices[i].boneWeights, sizeof(vertices[i].boneWeights));
@@ -306,6 +388,85 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         }
     }
 
+    OgreMaterialScriptMap materialScripts;
+    Array<String> parsedMaterialScriptFiles;
+
+    // Exporters write either one .material file per material (':' replaced with '_') or one for the whole mesh
+    auto FindMaterialScript = [&](const String& materialName) -> const OgreMaterialScript*
+    {
+        const String candidateFilenames[] = {
+            MakeSafeAssetName(materialName) + ".material",
+            String(StringUtil::StripExtension(StringUtil::Basename(state.filepath.StripExtension()))) + ".material"
+        };
+
+        for (const String& candidateFilename : candidateFilenames)
+        {
+            if (auto it = materialScripts.Find(materialName); it != materialScripts.End())
+            {
+                return &it->second;
+            }
+
+            if (parsedMaterialScriptFiles.Contains(candidateFilename))
+            {
+                continue;
+            }
+
+            parsedMaterialScriptFiles.PushBack(candidateFilename);
+
+            const FilePath materialScriptPath = ResolveReferencedFilepath(state.filepath, candidateFilename);
+
+            if (materialScriptPath.Exists())
+            {
+                ParseOgreMaterialScript(materialScriptPath, materialScripts);
+            }
+        }
+
+        if (auto it = materialScripts.Find(materialName); it != materialScripts.End())
+        {
+            return &it->second;
+        }
+
+        return nullptr;
+    };
+
+    FlatMap<String, Handle<Texture>> loadedTextures;
+
+    auto LoadTexture = [&](const String& textureName) -> Handle<Texture>
+    {
+        if (auto it = loadedTextures.Find(textureName); it != loadedTextures.End())
+        {
+            return it->second;
+        }
+
+        Handle<Texture> texture;
+
+        const FilePath texturePath = ResolveReferencedFilepath(state.filepath, textureName);
+
+        if (auto textureResult = state.assetManager->Load<Texture>(texturePath, state.batchIdentifier, state.hint | AssetLoadHint::TextureSRGB);
+            textureResult.HasValue())
+        {
+            texture = textureResult->Result();
+
+            TextureDesc textureDesc = texture->GetTextureDesc();
+            textureDesc.filterModeMin = TextureFilterMode::LinearMipmap;
+            textureDesc.filterModeMag = TextureFilterMode::Linear;
+            textureDesc.wrapMode = TextureWrapMode::Repeat;
+            texture->SetTextureDesc(textureDesc);
+
+            texture->SetName(CreateNameFromDynamicString(ANSIString(StringUtil::Basename(texturePath.StripExtension()))));
+
+            GetCurrentAssetRegistry()->PutAssetUnique(texture);
+        }
+        else
+        {
+            HYP_LOG(Assets, Warning, "Ogre XML parser: Could not load texture at {}", texturePath);
+        }
+
+        loadedTextures.Set(textureName, texture);
+
+        return texture;
+    };
+
     for (SubMesh& subMesh : model.submeshes)
     {
         if (subMesh.indices.Empty())
@@ -334,7 +495,8 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         const Handle<Entity> entity = scene.GetEntityManager()->AddEntity();
 
-        Name assetName = subMesh.name;
+        const String materialScriptName(subMesh.name.LookupString());
+        const Name assetName = CreateNameFromDynamicString(ANSIString(MakeSafeAssetName(materialScriptName)));
 
         AssertDebug(model.vertexData.ByteSize() % sizeof(FatVertex) == 0);
 
@@ -362,18 +524,43 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         GetCurrentAssetRegistry()->PutAsset(mesh);
 
+        const OgreMaterialScript* materialScript = FindMaterialScript(materialScriptName);
+
         MaterialAttributes attributes {};
-        attributes.bucket = RenderBucket::Translucent;
-        attributes.blendFunction = BlendFunction::AlphaBlending();
+        attributes.bucket = RenderBucket::Opaque;
         attributes.shaderName = NAME("GeometryPass");
         attributes.shaderProperties = {};
 
         MaterialParameters parameters;
-        parameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
-        parameters.transmission = 0.9f;
-        parameters.roughness = 0.2f;
+        parameters.albedo = materialScript != nullptr ? materialScript->diffuse : Vec4f::One();
+        parameters.metalness = 0.0f;
+        parameters.roughness = 0.65f;
 
-        Handle<Material> material = MakeHandle<Material>(subMesh.name, attributes, parameters, MaterialTextures {});
+        MaterialTextures textures;
+
+        if (materialScript != nullptr)
+        {
+            if (materialScript->isAlphaBlended)
+            {
+                attributes.bucket = RenderBucket::Translucent;
+                attributes.blendFunction = BlendFunction::AlphaBlending();
+            }
+
+            // Only the diffuse map is used; this loader doesn't generate the tangents a normal map needs
+            if (materialScript->textureNames.Any())
+            {
+                if (Handle<Texture> diffuseTexture = LoadTexture(materialScript->textureNames[0]))
+                {
+                    textures[MaterialTextureKey::Diffuse] = std::move(diffuseTexture);
+                }
+            }
+        }
+        else
+        {
+            HYP_LOG(Assets, Warning, "Ogre XML parser: No material script found for '{}', using a default material", materialScriptName);
+        }
+
+        Handle<Material> material = MakeHandle<Material>(assetName, attributes, parameters, textures);
         GetCurrentAssetRegistry()->PutAsset(material);
 
         InitObject(material);
@@ -383,7 +570,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         scene.GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
         Handle<Node> node = MakeHandle<Node>();
-        node->SetName(subMesh.name);
+        node->SetName(assetName);
         node->AddChild(entity);
 
         if (skeleton.IsValid())

@@ -15,6 +15,7 @@
 #include <Scene/World.hpp>
 
 #include <Scene/Camera/Camera.hpp>
+#include <Scene/Camera/ThirdPersonCamera.hpp>
 
 #include <Scene/Util/SceneHelpers.hpp>
 
@@ -238,6 +239,11 @@ static Vec3f GetPlayerViewDirection(const Entity& entity)
     const Handle<Camera>& cameraChild = GetCameraChild(entity);
     if (cameraChild.IsValid())
     {
+        if (const ThirdPersonCameraController* thirdPersonController = DynamicCast<ThirdPersonCameraController>(cameraChild->GetCameraController().Get()))
+        {
+            return thirdPersonController->GetViewDirection();
+        }
+
 #ifdef HYP_EDITOR
         const Vec3f& localTranslation = cameraChild->GetLocalTranslation();
         if (!MathUtil::ApproxEqual(Vec2f(localTranslation.x, localTranslation.z), Vec2f::Zero()))
@@ -782,7 +788,9 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
             CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
             inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
 
-            if (isLocalPlayerEntity && !EngineGlobals::IsHeadless())
+            // Poll every tick: key events only refresh state for the keys the handler consumes, so Shift/Ctrl would otherwise go stale.
+            // Remote players were skipped above, so this is either the local player or a single player/authority character.
+            if (!EngineGlobals::IsHeadless())
             {
                 inputHandler->Update();
             }

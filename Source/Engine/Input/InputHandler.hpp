@@ -108,6 +108,11 @@ public:
         return false;
     }
 
+    virtual bool OnMouseScroll(const MouseEvent& evt)
+    {
+        return false;
+    }
+
     virtual bool OnMouseLeave(const MouseEvent& evt)
     {
         return false;

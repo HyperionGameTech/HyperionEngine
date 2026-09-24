@@ -575,6 +575,22 @@ bool Game::OnInputEvent(const Event& event)
             
             break;
         }
+        case EventType::MOUSESCROLL:
+        {
+            MouseEvent me = event.ToMouseEvent();
+
+            for (size_t i = m_inputHandlers.Size(); i != 0; i--)
+            {
+                InputHandlerBase* inputHandler = m_inputHandlers[i - 1];
+
+                if (inputHandler->OnMouseScroll(me))
+                {
+                    return true;
+                }
+            }
+
+            break;
+        }
         case EventType::TOUCH_DOWN:
         {
             TouchEvent te = event.ToTouchEvent();

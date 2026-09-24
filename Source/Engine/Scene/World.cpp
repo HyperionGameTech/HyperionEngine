@@ -22,6 +22,7 @@
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
 #include <Scene/Systems/AnimationSystem.hpp>
+#include <Scene/Systems/CharacterModelSystem.hpp>
 #include <Scene/Systems/AudioSystem.hpp>
 #include <Scene/Systems/PhysicsSystem.hpp>
 #include <Scene/Systems/CameraSystem.hpp>
@@ -257,6 +258,9 @@ void World::Initialize()
 
     if (!HasSystem<LightmapSystem>())
         AddSystem(MakeHandle<LightmapSystem>());
+
+    if (!HasSystem<CharacterModelSystem>())
+        AddSystem(MakeHandle<CharacterModelSystem>());
 
     if (!HasSystem<AnimationSystem>())
         AddSystem(MakeHandle<AnimationSystem>());
