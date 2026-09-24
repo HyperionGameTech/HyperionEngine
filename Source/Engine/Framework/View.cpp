@@ -1522,7 +1522,8 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            const BoundingBox worldBounds = lightmapVolume->GetWorldBounds();
+            // includes the entities it owns that stick out of it
+            const BoundingBox worldBounds = lightmapVolume->GetLightingBounds();
 
             if (!worldBounds.IsValid() || !worldBounds.IsFinite())
             {
@@ -1820,7 +1821,9 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                     continue;
                 }
 
-                if (!(flags & ViewFlags::NO_FRUSTUM_CULLING) && !cachedFrustum.ContainsAABB(worldBounds))
+                if (!(flags & ViewFlags::NO_FRUSTUM_CULLING)
+                    && !(!probe->IsBaked() && probe->needsRender.Load()) // Don't cull offline bake pending render
+                    && !cachedFrustum.ContainsAABB(worldBounds))
                 {
                     continue;
                 }

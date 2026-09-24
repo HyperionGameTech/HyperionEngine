@@ -208,7 +208,7 @@ bool ComputeUVTangentFrame(float3 N, float3 P, float2 uv, out float3 tangent, ou
     return true;
 }
 
-#define DEBUG_RAW_REFLECTIONS
+// #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {
@@ -570,9 +570,9 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_normals.x = roughnessAndMetalPacked;
 
 #ifdef SHADING_TYPE_LIGHTMAPPED
-    // 14 bits per channel (0-16383)
-    output.gbuffer_material = ((uint)round(input.texcoord1.x * 16384.0) & 0x3FFFu)
-        | (((uint)round(input.texcoord1.y * 16384.0) & 0x3FFFu) << 14u);
+    // atlas UV, 14 bits per channel (0-16383)
+    output.gbuffer_material = min((uint)round(saturate(input.texcoord1.x) * 16384.0), 16383u)
+        | (min((uint)round(saturate(input.texcoord1.y) * 16384.0), 16383u) << 14u);
 #else
     //Probe lighting - evaluate SH, store RGB8 in the upper 24 bits of gbuffer_material
     // foliage keeps its transmission amount in the low 8 bits instead

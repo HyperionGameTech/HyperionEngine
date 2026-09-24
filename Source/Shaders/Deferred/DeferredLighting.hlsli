@@ -364,7 +364,7 @@ void EvaluateEnvProbes(
             skyIrradianceSum, skyIrradianceWeightSum);
 
         const float reflectionsMissedWeight = saturate(reflectionsDomain - reflectionsWeightSum);
-        const float reflectionsUncoveredWeight = (1.0 - reflectionsDomain) * (1.0 - smoothstep(0.01, 0.1, reflectionsDomain));
+        const float reflectionsUncoveredWeight = 1.0 - reflectionsDomain;
         const float irradianceResidual = 1.0 - irradianceWeightSum;
 
         const float skyIrradianceIntensity = world_shader_data.sky_light_params.x * g_skyVisibility;

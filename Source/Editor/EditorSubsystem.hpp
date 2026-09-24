@@ -680,6 +680,12 @@ private:
 
     void UpdateBakeStatus();
 
+    /*! \brief Record where newly seen baked probes are, before a gizmo drag or action can move them. */
+    void TrackBakedEnvProbePlacements();
+
+    /*! \brief Rebake any baked probe whose placement differs from the last committed one. */
+    void RebakeMovedEnvProbes();
+
     ///Gizmos
 
     void InitializeGizmos();
@@ -841,6 +847,16 @@ private:
 
     ClockTimer m_bakeStatusUpdateTimer;
     Handle<MessagesOverlay> m_messagesOverlay;
+
+    // Baked probe placements as of the last editor action, so probes moved or resized by an action get rebaked
+    struct EnvProbePlacement
+    {
+        WeakHandle<EnvProbe> probe;
+        Vec3f worldTranslation;
+        BoundingBox worldBounds;
+    };
+
+    Array<EnvProbePlacement, EditorAllocator> m_committedEnvProbePlacements;
 
     uint32 m_selectedBucketIndex;
 

@@ -142,13 +142,8 @@ PSOutput PSMain(PSInput input)
 
     const float depth = SAMPLE_TEXTURE_2D_LOD(SamplerNearest, GBufferDepthTexture, texcoord, 0).r;
     const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
-    
-    // Ensure the pixel is in the volume
-    const float3 d = max(aabbMin.xyz - P, P - aabbMax.xyz);
-    if (max(d.x, max(d.y, d.z)) > 0.0)
-    {
-        discard;
-    }
+
+    // no bounds test: the stencil test already limits this draw to pixels baked into this atlas page
 
     uint2 gbufferDimensions;
     GBufferAlbedoTexture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
@@ -176,7 +171,7 @@ PSOutput PSMain(PSInput input)
     float ao = 1.0;
 
     float3 N = GBufferUnpackNormal(normalSample);
-    float2 UV1 = (float2((float)(materialData & 0x3FFFu), 1.0 - (float)((materialData >> 14) & 0x3FFFu)) + 0.5) / 16384.0;
+    float2 UV1 = float2((float)(materialData & 0x3FFFu), (float)((materialData >> 14) & 0x3FFFu)) / 16384.0;
 
     const float3 V = normalize(camera.position.xyz - P);
     // const float3 R = normalize(reflect(-V, N));

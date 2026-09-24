@@ -243,7 +243,7 @@ struct Workload
     const char* name;
     int32 arg;
     int64 (*hostFn)(int32);
-    int64 (*strataFn)(int32);
+    int64 (*strataFn)(void*, int32);
     const char* strataFnName;
 };
 
@@ -286,6 +286,8 @@ HYP_EXPORT void RunScriptBenchmark()
 {
     StrataCompiler* compiler = nullptr;
     StrataJit* jit = nullptr;
+    void* context = nullptr;
+    void (*destroyContext)(void*) = nullptr;
 
     // ---- Strata: JIT compile the module and resolve entry points -----------
     compiler = strataCompilerCreate();
@@ -315,9 +317,17 @@ HYP_EXPORT void RunScriptBenchmark()
         }
         else
         {
+            auto createContext = reinterpret_cast<void* (*)(void)>(strataJitGetFunction(jit, "__strata_context_create"));
+            destroyContext = reinterpret_cast<void (*)(void*)>(strataJitGetFunction(jit, "__strata_context_destroy"));
+
+            if (createContext != nullptr)
+            {
+                context = createContext();
+            }
+
             for (uint32 i = 0; i < kWorkloadCount; ++i)
             {
-                s_workloads[i].strataFn = reinterpret_cast<int64 (*)(int32)>(strataJitGetFunction(jit, s_workloads[i].strataFnName));
+                s_workloads[i].strataFn = reinterpret_cast<int64 (*)(void*, int32)>(strataJitGetFunction(jit, s_workloads[i].strataFnName));
             }
         }
     }
@@ -346,7 +356,7 @@ HYP_EXPORT void RunScriptBenchmark()
 
         if (w.strataFn != nullptr)
         {
-            strataMs = RunTimed([&] { return w.strataFn(w.arg); }, strataResult);
+            strataMs = RunTimed([&] { return w.strataFn(context, w.arg); }, strataResult);
         }
 
         const bool strataOk = strataMs >= 0.0 && strataResult == cppResult;
@@ -377,6 +387,11 @@ HYP_EXPORT void RunScriptBenchmark()
     HYP_LOG(Engine, Info, "======================================");
 
     // ---- Cleanup ------------------------------------------------------------
+    if (destroyContext != nullptr)
+    {
+        destroyContext(context);
+    }
+
     if (jit != nullptr)
     {
         strataJitDestroy(jit);

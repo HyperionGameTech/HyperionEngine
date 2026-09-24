@@ -1352,6 +1352,11 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     const bool isRealtime = bool(envProbeFlags & EPF_REALTIME);
 
+    if (envProbe->needsRender.Load() && !isRealtime && (envProbeFlags & EPF_VISIBILITY) && envProbeProxy->captureVisibilityTexture == nullptr)
+    {
+        return;
+    }
+
     uint8 renderedViews = 0;
     bool allViewsReady = true;
 
@@ -1443,7 +1448,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(frame, envProbe);
     }
 
-    if (envProbe->GetEnvProbeFlags() & EPF_VISIBILITY)
+    if ((envProbe->GetEnvProbeFlags() & EPF_VISIBILITY) && envProbeProxy->captureVisibilityTexture != nullptr)
     {
         EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, envProbe, /* shouldReadback */ !isRealtime);
     }
@@ -1516,6 +1521,12 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
     const bool isRealtime = bool(envProbeFlags & EPF_REALTIME);
 
     bool needsRerender = irradianceProbe->needsRender.Load();
+
+    if (needsRerender && !isRealtime && (envProbeFlags & EPF_VISIBILITY) && envProbeProxy->captureVisibilityTexture == nullptr)
+    {
+        return;
+    }
+
     uint8 renderedViews = 0;
     bool allViewsReady = true;
 
@@ -1558,11 +1569,9 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
         return;
     }
 
-    // SH readback lands on the capture targets during a raster bake (committed by the
-    // capture on completion), otherwise on the live (applied) values.
     EnvProbeHelpers::ComputeEnvProbeSphericalHarmonics(frame, irradianceProbe);
 
-    if (irradianceProbe->GetEnvProbeFlags() & EPF_VISIBILITY)
+    if ((irradianceProbe->GetEnvProbeFlags() & EPF_VISIBILITY) && envProbeProxy->captureVisibilityTexture != nullptr)
     {
         EnvProbeHelpers::UpdateEnvProbeVisibilityTexture(frame, irradianceProbe, /* shouldReadback */ !isRealtime);
     }

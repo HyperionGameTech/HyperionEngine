@@ -98,31 +98,6 @@ uint64 ComputeEpoch(const LightmapVolume& volume, BakeLayer& bakeLayer)
         .Value();
 }
 
-uint64 ComputePackingHash(const LightmapVolume& volume, BakeLayer& bakeLayer)
-{
-    Scene* scene = volume.GetScene();
-
-    if (!scene)
-    {
-        return 0;
-    }
-
-    BakeLayerHashes& hashes = bakeLayer.sceneHashes[scene->GetUUID()];
-    ComputeSceneHashes(*scene, hashes);
-
-    ////////////////////
-    // this is for checking if we need to rebuild UV1s so we only include static mesh entities hash
-    // --
-    // We DONT want transforms included in here for that reason!!!
-    // otherwise, everytime we switch layers, if a layer has a static mesh entity with a different transform,
-    // it'll force invalidation of EVERY lightmap-layer-texture-thiggy
-    ////////////////////
-
-    return HashCode(hashes.uuidHashes[BakeLayerHashes::StaticMeshEntities])
-        .Combine(volume.GetWorldBounds())
-        .Value();
-}
-
 uint64 ComputeEpoch(const EnvProbe& probe, BakeLayer& bakeLayer)
 {
     Scene* scene = probe.GetScene();

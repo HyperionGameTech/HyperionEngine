@@ -212,7 +212,7 @@ void BakerBase::Initialize()
 
         if (OnlyOverlappingElements())
         {
-            bounds = m_aabb;
+            bounds = GetTraceBounds();
 
             if (!bounds.IsValid() && m_source->IsA(VolumeBase::StaticClass()))
             {
@@ -235,6 +235,11 @@ void BakerBase::Initialize()
             .camera = m_camera.Get(),
             .bounds = bounds
         };
+
+        if (!PerformsRayTracing())
+        {
+            viewDesc.flags |= ViewFlags::SKIP_ENV_PROBES;
+        }
 
         const Array<Handle<Scene>>& scenes = m_scene->GetWorld()->GetScenes();
 

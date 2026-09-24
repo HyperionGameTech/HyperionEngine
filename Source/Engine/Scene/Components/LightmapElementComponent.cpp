@@ -9,13 +9,9 @@
 namespace Hyperion {
 
 LightmapElementComponent::LightmapElementComponent()
-    : lightmapElementId(Invalid<LightmapElementId>),
-      lightmapVolumeAssignmentWeights {}
+    : lightmapElementId(InvalidLightmapElementId),
+      lightmapVolumeId(InvalidLightmapVolumeId)
 {
-    std::fill(
-        lightmapVolumeAssignments.Begin(),
-        lightmapVolumeAssignments.End(),
-        InvalidLightmapVolumeId);
 }
 
 } // namespace Hyperion

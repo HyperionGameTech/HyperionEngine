@@ -67,13 +67,23 @@ public:
 
     bool IsIdForAliveLightmapVolume(LightmapVolumeId id) const
     {
-        return id != Invalid<LightmapVolumeId>
-            && !m_freedLightmapVolumeIds.Contains(uint32(id));
+        return FindVolume(id) != nullptr;
     }
 
-    /*! \brief Re-pick the volume lighting each entity. A volume only counts if it has a baked atlas
-     *  texture in the layer that is currently applied, so this has to run again on every layer change. */
+    void RegisterVolume(LightmapVolume* volume);
+    void UnregisterVolume(LightmapVolume* volume);
+
+    LightmapVolume* FindVolume(LightmapVolumeId id) const;
+
+    /*! \brief Point the entity at its owning volume if that volume is in the world and has a bake for the applied layer, otherwise clear it */
+    bool ResolveVolumeForEntity(Entity& srcEntity, LightmapElementComponent& lightmapElementComponent);
+
+    /*! \brief Re-resolve the volume lighting each entity */
     void ResolveVolumeAssignments();
+
+    /*! \brief Give every volume a range of stencil values (one per atlas page) that doesn't collide with any volume whose
+     *  lighting bounds overlap it, so LightmapPass can route each pixel to the page it was baked into  */
+    void AssignStencilValues();
 
 private:
     void OnAddedToWorld(World* world) override;
@@ -90,19 +100,17 @@ private:
         };
     }
 
-    Array<LightmapVolume*> CollectVolumes(Scene& scene);
-
-    LightmapVolume* ResolveVolume(const Array<LightmapVolume*>& candidateVolumes, const LightmapElementComponent& lightmapElementComponent) const;
+    LightmapVolume* ResolveVolume(const LightmapElementComponent& lightmapElementComponent) const;
 
     bool ApplyResolvedVolume(Entity& srcEntity, LightmapElementComponent& lightmapElementComponent, LightmapVolume* resolvedVolume);
-
-    bool ResolveVolumeForEntity(Scene& scene, Entity& srcEntity, LightmapElementComponent& lightmapElementComponent);
 
     HYP_FIELD(Property = "NextLightmapVolumeId", Serialize)
     uint32 m_nextLightmapVolumeId;
 
     HYP_FIELD(Property = "FreedLightmapVolumeIds", Serialize)
     Array<uint32> m_freedLightmapVolumeIds;
+
+    Array<LightmapVolume*> m_volumes;
 };
 
 } // namespace Hyperion

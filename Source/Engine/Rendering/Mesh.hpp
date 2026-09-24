@@ -331,6 +331,17 @@ public:
 
     uint64 ComputeLod0DataHash() const;
 
+    ///Lightmap UVs
+
+    HYP_FORCE_INLINE uint64 GetLightmapUVDataHash() const
+    {
+        return m_lightmapUvDataHash;
+    }
+
+    void SetLightmapUVDataHash(uint64 lightmapUvDataHash);
+
+    bool HasValidLightmapUVs() const;
+
     ////////////////////
 
     VertexArrayView GetVertexData(uint8 lodIndex) const;
@@ -439,6 +450,9 @@ private:
 
     HYP_FIELD(Serialize)
     BlobDataReference m_bvhData;
+
+    HYP_FIELD(Property = "LightmapUVDataHash", Serialize, Editor = false)
+    uint64 m_lightmapUvDataHash = 0;
 
     HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;

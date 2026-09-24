@@ -228,6 +228,11 @@ public:
         return true;
     }
 
+    virtual BoundingBox GetTraceBounds() const
+    {
+        return m_aabb;
+    }
+
     virtual bool PerformsRayTracing() const
     {
         return true;

@@ -157,7 +157,7 @@ bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement*& outElement, 
         {
             AssertDebug(elementIndex < UINT16_MAX);
 
-            outElement->id = LightmapElementId(uint32((atlasIndex << 16) | elementIndex));
+            outElement->id = LightmapElement::MakeId(uint16(atlasIndex), uint16(elementIndex));
 
             if (isNewAtlas)
             {
@@ -193,6 +193,147 @@ const LightmapElement* LightmapVolume::GetElement(LightmapElementId elementId) c
     }
 
     return &m_atlases[atlasIndex].elements[elementIndex];
+}
+
+bool LightmapVolume::GetEntityLightmapRect(LightmapElementId elementId, uint32& outRectOffset, uint32& outRectSize, uint8& outStencilValue) const
+{
+    outRectOffset = 0;
+    outRectSize = 0;
+    outStencilValue = 0;
+
+    const LightmapElement* element = GetElement(elementId);
+
+    if (!element || !element->IsValid())
+    {
+        return false;
+    }
+
+    const uint16 atlasIndex = element->GetAtlasIndex();
+    const Vec2u atlasDimensions = m_atlases[atlasIndex].atlasDimensions;
+
+    if (!MathUtil::IsPowerOfTwo(atlasDimensions.x) || !MathUtil::IsPowerOfTwo(atlasDimensions.y)
+        || atlasDimensions.x > 4096 || atlasDimensions.y > 4096)
+    {
+        HYP_LOG_ONCE(Lightmap, Error, "LightmapVolume '{}' has an atlas of {}x{}; entity rects need power of two atlases no larger than 4096",
+            m_name, atlasDimensions.x, atlasDimensions.y);
+
+        return false;
+    }
+
+    const uint8 stencilValue = GetStencilValue(atlasIndex);
+
+    if (stencilValue == 0)
+    {
+        return false;
+    }
+
+    // atlasUV = uv1 * scale + offsetUV. The offset sits inside the rect's gutter, and since UV1 is square-normalized
+    // the scale can reach past the rect on its shorter axis (UV1 never does)
+    const Vec2u offsetTexels {
+        MathUtil::Min(uint32(MathUtil::Round(element->offsetUV.x * float(atlasDimensions.x))), 4095u),
+        MathUtil::Min(uint32(MathUtil::Round(element->offsetUV.y * float(atlasDimensions.y))), 4095u)
+    };
+
+    const Vec2u scaleTexels {
+        MathUtil::Clamp(uint32(MathUtil::Round(element->scale.x * float(atlasDimensions.x))), 1u, 4096u),
+        MathUtil::Clamp(uint32(MathUtil::Round(element->scale.y * float(atlasDimensions.y))), 1u, 4096u)
+    };
+
+    outRectOffset = offsetTexels.x
+        | (offsetTexels.y << 12u)
+        | (uint32(stencilValue) << 24u);
+
+    outRectSize = ((scaleTexels.x - 1u) & 0xFFFu)
+        | (((scaleTexels.y - 1u) & 0xFFFu) << 12u)
+        | (uint32(MathUtil::FastLog2(atlasDimensions.x)) << 24u)
+        | (uint32(MathUtil::FastLog2(atlasDimensions.y)) << 28u);
+
+    outStencilValue = stencilValue;
+
+    return true;
+}
+
+uint32 LightmapVolume::NumUsedAtlases() const
+{
+    uint32 numUsedAtlases = 0;
+
+    for (uint32 atlasIndex = 0; atlasIndex < uint32(m_atlases.Size()); atlasIndex++)
+    {
+        if (m_atlases[atlasIndex].elements.Any())
+        {
+            numUsedAtlases = atlasIndex + 1;
+        }
+    }
+
+    return numUsedAtlases;
+}
+
+void LightmapVolume::SetTexelsPerUnit(float texelsPerUnit)
+{
+    texelsPerUnit = MathUtil::Max(texelsPerUnit, 0.01f);
+
+    if (m_texelsPerUnit == texelsPerUnit)
+    {
+        return;
+    }
+
+    m_texelsPerUnit = texelsPerUnit;
+
+    MarkDirty();
+}
+
+BoundingBox LightmapVolume::GetLightingBounds() const
+{
+    BoundingBox lightingBounds = GetWorldBounds();
+
+    if (m_coverageBounds.IsValid())
+    {
+        lightingBounds = lightingBounds.IsValid() ? lightingBounds.Union(m_coverageBounds) : m_coverageBounds;
+    }
+
+    return lightingBounds;
+}
+
+void LightmapVolume::SetCoverageBounds(const BoundingBox& coverageBounds)
+{
+    if (m_coverageBounds == coverageBounds)
+    {
+        return;
+    }
+
+    m_coverageBounds = coverageBounds;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void LightmapVolume::SetStencilBase(uint8 stencilBase)
+{
+    if (m_stencilBase == stencilBase)
+    {
+        return;
+    }
+
+    m_stencilBase = stencilBase;
+
+    SetNeedsRenderProxyUpdate();
+}
+
+void LightmapVolume::SetPacking(Array<LightmapVolumeAtlas>&& atlases, float packedTexelsPerUnit)
+{
+    Assert(atlases.Size() <= MaxAtlasesPerLightmapVolume);
+
+    m_atlases = std::move(atlases);
+
+    if (m_atlases.Empty())
+    {
+        m_atlases.EmplaceBack(DefaultAtlasDimensions);
+    }
+
+    m_packedTexelsPerUnit = packedTexelsPerUnit;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
 }
 
 void LightmapVolume::RemoveAllElements(uint32 preserveTextureTypesMask)
@@ -247,7 +388,8 @@ void LightmapVolume::RemoveAllElements(uint32 preserveTextureTypesMask)
     m_atlases.EmplaceBack(DefaultAtlasDimensions);
 
     // The packing is gone - the next bake has to generate a new one.
-    m_packingHash = 0;
+    m_packedTexelsPerUnit = 0.0f;
+    m_coverageBounds = BoundingBox::Empty();
 
     MarkDirty();
     SetNeedsRenderProxyUpdate();
@@ -459,75 +601,48 @@ void LightmapVolume::OnAddedToWorld(World* world)
 {
     VolumeBase::OnAddedToWorld(world);
     
-    if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
+    LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>();
+
+    if (!lightmapSystem)
     {
-        if (m_id == InvalidId)
-        {
-            SetLightmapVolumeId(lightmapSystem->AllocateLightmapVolumeId());
-        }
-        else
-        {
-        
-            lightmapSystem->MarkLightmapVolumeIdUsed(m_id);
-        }
+        return;
     }
 
-    // Claim directly rather than going through LightmapSystem::ResolveVolumeAssignments, since this volume
-    // may not be enumerable in the entity set yet.
+    if (m_id == InvalidId)
+    {
+        SetLightmapVolumeId(lightmapSystem->AllocateLightmapVolumeId());
+    }
+    else
+    {
+        lightmapSystem->MarkLightmapVolumeIdUsed(m_id);
+    }
+
+    lightmapSystem->RegisterVolume(this);
+
+    // entities that entered the world before this volume couldn't resolve to it then
     for (Scene* scene : world->GetScenes())
     {
         for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
-            if (lightmapElementComponent.lightmapVolume.IsValid())
+            if (lightmapElementComponent.lightmapVolumeId == m_id)
             {
-                continue;
+                lightmapSystem->ResolveVolumeForEntity(*entity, lightmapElementComponent);
             }
-
-            bool isAssigned = false;
-
-            for (uint32 i = 0; i < lightmapElementComponent.NumLightmapVolumeAssignments(); i++)
-            {
-                if (lightmapElementComponent.lightmapVolumeAssignments[i] == m_id)
-                {
-                    isAssigned = true;
-
-                    break;
-                }
-            }
-
-            if (!isAssigned)
-            {
-                continue;
-            }
-
-            const LightmapElement* lightmapElement = GetElement(lightmapElementComponent.lightmapElementId);
-
-            if (!lightmapElement)
-            {
-                HYP_LOG(Lightmap, Warning, "Lightmap element with ID {} does not exist in lightmap volume", lightmapElementComponent.lightmapElementId);
-
-                continue;
-            }
-
-            if (!GetAtlasTexture(lightmapElement->GetAtlasIndex(), IrradianceTexture).IsValid())
-            {
-                continue;
-            }
-
-            lightmapElementComponent.lightmapVolume = MakeWeakRef(this);
-
-            entity->SetNeedsRenderProxyUpdate();
         }
     }
+
+    lightmapSystem->AssignStencilValues();
 }
 
 void LightmapVolume::OnRemovedFromWorld(World* world)
 {
     VolumeBase::OnRemovedFromWorld(world);
 
-    if (m_id != InvalidId)
+    if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
     {
-        if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
+        lightmapSystem->UnregisterVolume(this);
+
+        if (m_id != InvalidId)
         {
             // Doesn't actually free it to be re-used; as we might want to undo removal from the world.
             lightmapSystem->MarkLightmapVolumeIdFreed(m_id);
@@ -547,10 +662,12 @@ void LightmapVolume::OnRemovedFromWorld(World* world)
         }
     }
 
-    // Entities that were relying on this volume may still have another assignment to fall back to.
+    m_stencilBase = 0;
+
+    // frees this volume's stencil values for the ones it overlapped
     if (LightmapSystem* lightmapSystem = world->GetSystem<LightmapSystem>())
     {
-        lightmapSystem->ResolveVolumeAssignments();
+        lightmapSystem->AssignStencilValues();
     }
 }
 
@@ -587,16 +704,16 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
     }
 
     proxy->numAtlases = uint32(m_atlases.Size());
+    proxy->stencilBase = m_stencilBase;
 
-    const BoundingBox worldAabb = m_localBounds.IsValid()
-        ? (GetWorldMatrix() * m_localBounds)
-        : BoundingBox::Empty();
+    // owned entities can stick out of the volume, so the lighting box covers them too; the stencil test does the per-pixel routing
+    const BoundingBox worldAabb = GetLightingBounds();
 
     proxy->worldAabb = worldAabb;
 
-    proxy->transformMatrix = GetWorldMatrix()
-        * Mat4f::Translation(m_localBounds.GetCenter())
-        * Mat4f::Scaling(m_localBounds.GetExtent() * 0.5f);
+    proxy->transformMatrix = worldAabb.IsValid()
+        ? Mat4f::Translation(worldAabb.GetCenter()) * Mat4f::Scaling(worldAabb.GetExtent() * 0.5f)
+        : Mat4f::Identity();
 
     proxy->bufferData.aabbMax = Vec4f(worldAabb.max, 1.0f);
     proxy->bufferData.aabbMin = Vec4f(worldAabb.min, 1.0f);

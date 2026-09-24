@@ -4,8 +4,8 @@
 
 STATIC(MAX_LIGHTS, 4)
 
-// Match MaxLightmapVolumeAssignment
-STATIC(MAX_LIGHTMAP_VOLUMES, 4)
+// Match MaxCaptureLightmapPages in RendererMain.cpp
+STATIC(MAX_LIGHTMAP_PAGES, 4)
 
 PERMUTE(MODE_SHADOWS)
 PERMUTE(WRITE_NORMALS)
@@ -42,6 +42,7 @@ struct VSOutput
     nointerpolation float3 camera_position : TEXCOORD2;
     nointerpolation uint object_index : TEXCOORD3;
     nointerpolation uint bucket : TEXCOORD4;
+    nointerpolation uint lightmap_stencil_value : TEXCOORD5;
 };
 
 #include "include/Entity.hlsli"
@@ -136,10 +137,12 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // HYP_ATTRIBUTE_a_texcoord0
 
 #ifdef HYP_ATTRIBUTE_a_texcoord1
-    output.texcoord1 = float2(input.a_texcoord1.x, input.a_texcoord1.y);
+    output.texcoord1 = GetLightmapAtlasUV(currentEntity, input.a_texcoord1);
 #else
     output.texcoord1 = float2(0.0, 0.0);
 #endif // HYP_ATTRIBUTE_a_texcoord1
+
+    output.lightmap_stencil_value = GetLightmapStencilValue(currentEntity);
 
     output.camera_position = camera.position.xyz;
 
@@ -162,6 +165,7 @@ struct PSInput
     nointerpolation float3 camera_position : TEXCOORD2;
     nointerpolation uint object_index : TEXCOORD3;
     nointerpolation uint bucket : TEXCOORD4;
+    nointerpolation uint lightmap_stencil_value : TEXCOORD5;
 };
 
 struct PSOutput
@@ -231,12 +235,6 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 };
 
 #ifdef FORWARD_SHADING
-
-struct LightmapVolumeData
-{
-    float4 aabbMin;
-    float4 aabbMax;
-};
 
 DECLARE_BUFFER_DYNAMIC(Default, ForwardShadingConstants) cbuffer ForwardShadingConstants
 {
@@ -316,10 +314,18 @@ float GetDirectionalCSMShadow(float3 position, float3 N, float NdotL)
 
 #ifdef APPLY_LIGHTMAPS
 
+struct LightmapPageData
+{
+    uint stencilValue;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
+};
+
 DECLARE_BUFFER_DYNAMIC(Default, ApplyLightmapsConstants) cbuffer ApplyLightmapsConstants
 {
-    LightmapVolumeData lightmapVolumes[MAX_LIGHTMAP_VOLUMES];
-    uint numLightmapVolumes;
+    LightmapPageData lightmapPages[MAX_LIGHTMAP_PAGES];
+    uint numLightmapPages;
 };
 
 DECLARE_SRV(Default, LightmapVolumeIrradianceTexture0) Texture2D LightmapVolumeIrradianceTexture0;
@@ -328,17 +334,13 @@ DECLARE_SRV(Default, LightmapVolumeIrradianceTexture2) Texture2D LightmapVolumeI
 DECLARE_SRV(Default, LightmapVolumeIrradianceTexture3) Texture2D LightmapVolumeIrradianceTexture3;
 
 // clang-format off
-#define APPLY_LIGHTMAP_VOLUME(idx, tex)                                                       \
-    if (!hasLightmapContribution && idx < numLightmapVolumes)                                     \
-    {                                                                                              \
-        LightmapVolumeData lmv = lightmapVolumes[idx];                                             \
-        const float3 d = max(lmv.aabbMin.xyz - input.position, input.position - lmv.aabbMax.xyz);  \
-        if (max(d.x, max(d.y, d.z)) <= 0.0)                                                        \
-        {                                                                                           \
-            const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, tex, input.texcoord1, 0); \
-            indirectLight = diffuseColor * irradiance.rgb;                                         \
-            hasLightmapContribution = true;                                                        \
-        }                                                                                            \
+#define APPLY_LIGHTMAP_VOLUME(idx, tex)                                                                   \
+    if (!hasLightmapContribution && idx < numLightmapPages                                                 \
+        && input.lightmap_stencil_value != 0 && input.lightmap_stencil_value == lightmapPages[idx].stencilValue) \
+    {                                                                                                      \
+        const float4 irradiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, tex, input.texcoord1, 0);          \
+        indirectLight = diffuseColor * irradiance.rgb;                                                     \
+        hasLightmapContribution = true;                                                                    \
     }
 // clang-format on
 

@@ -85,6 +85,9 @@ public:
     HYP_FIELD(Property = "PropertySetHashCode")
     HashCode propertySetHashCode;
 
+    HYP_FIELD(Property = "SourcesTimestamp")
+    uint64 sourcesTimestamp = 0;
+
     HYP_FIELD(Transient = true)
     ShaderPropertySet properties; // dependent on cache; so we serialize the actual properties (below)
 

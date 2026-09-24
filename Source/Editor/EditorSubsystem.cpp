@@ -19,6 +19,8 @@
 #include <Editor/EditorConfig.hpp>
 #include <Editor/EditorAssetDrop.hpp>
 
+#include <Editor/Tasks/EditorTasks.hpp>
+
 #include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/Decal/EditorDecalPainterState.hpp>
 
@@ -2648,7 +2650,7 @@ static VolumeBase* ResolveFittableVolume(Node* node)
     return volume;
 }
 
-static BoundingBox CalculateSelectionWorldBounds(const Array<Handle<Node>>& selectedNodes, const Node* excludedNode)
+static BoundingBox CalculateSelectionWorldBounds(Span<const Handle<Node>> selectedNodes, const Node* excludedNode)
 {
     BoundingBox selectionBounds = BoundingBox::Empty();
 
@@ -4087,6 +4089,8 @@ void EditorSubsystem::InitViewport()
                     {
                         for (const RayHit& rayHit : results)
                         {
+                            TrackBakedEnvProbePlacements();
+
                             gizmo->OnDragStart(activeViewport->GetCamera(), event, node, rayHit.hitpoint);
 
                             return UIEventHandlerResult::STOP_BUBBLING;
@@ -4624,6 +4628,17 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
         OnProjectClosing(m_currentProject);
 
         m_currentProject->OnProjectSaved.RemoveAllFromSet(m_delegateHandlers);
+
+        if (const Handle<EditorActionStack>& actionStack = m_currentProject->GetActionStack(); actionStack.IsValid())
+        {
+            actionStack->OnBeforeActionPush.RemoveAllFromSet(m_delegateHandlers);
+            actionStack->OnBeforeActionPop.RemoveAllFromSet(m_delegateHandlers);
+            actionStack->OnAfterActionPush.RemoveAllFromSet(m_delegateHandlers);
+            actionStack->OnAfterActionPop.RemoveAllFromSet(m_delegateHandlers);
+        }
+
+        m_committedEnvProbePlacements.Clear();
+
         m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
         m_currentProject->Close(/* shutdownWorld */ shutdownWorld);
 
@@ -4668,6 +4683,24 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
         {
             g_editorState->AddRecentProject(savedProject->GetFilePath());
         }));
+
+    if (const Handle<EditorActionStack>& actionStack = m_currentProject->GetActionStack(); actionStack.IsValid())
+    {
+        auto captureBeforeAction = [this](EditorActionBase*)
+        {
+            TrackBakedEnvProbePlacements();
+        };
+
+        auto rebakeAfterAction = [this](EditorActionBase*)
+        {
+            RebakeMovedEnvProbes();
+        };
+
+        m_delegateHandlers.Add(actionStack->OnBeforeActionPush.Bind(actionStack.Get(), captureBeforeAction));
+        m_delegateHandlers.Add(actionStack->OnBeforeActionPop.Bind(actionStack.Get(), captureBeforeAction));
+        m_delegateHandlers.Add(actionStack->OnAfterActionPush.Bind(actionStack.Get(), rebakeAfterAction));
+        m_delegateHandlers.Add(actionStack->OnAfterActionPop.Bind(actionStack.Get(), rebakeAfterAction));
+    }
 
     InitializeProjectWorld(m_currentProject, isStartSimulation);
 
@@ -4982,11 +5015,11 @@ bool EditorSubsystem::IsNodeSelected(const Handle<Node>& node) const
     return m_selectedNodes.Find(node) != m_selectedNodes.End();
 }
 
-void EditorSubsystem::SetSelectedNodes(const Array<Handle<Node>>& nodes)
+void EditorSubsystem::SetSelectedNodes(Span<const Handle<Node>> nodes)
 {
     AssertOnThread(g_simThread);
 
-    if (nodes.Empty())
+    if (nodes.Size() == 0)
     {
         ClearSelection();
 
@@ -5794,6 +5827,116 @@ void EditorSubsystem::UpdateBakeStatus()
         text,
         Color(1.0f, 0.7f, 0.1f, 1.0f)
     });
+}
+
+template <class Function>
+static void ForEachBakedEnvProbe(World* world, Function&& function)
+{
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (!scene)
+        {
+            continue;
+        }
+
+        for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            // realtime probes rerender on their own
+            if (probe->IsBaked())
+            {
+                function(probe);
+            }
+        }
+    }
+}
+
+void EditorSubsystem::TrackBakedEnvProbePlacements()
+{
+    AssertOnThread(g_simThread);
+
+    const Handle<World>& world = GetProjectWorld();
+
+    if (IsSimulating() || !world.IsValid())
+    {
+        return;
+    }
+
+    ForEachBakedEnvProbe(world.Get(), [this](EnvProbe* probe)
+        {
+            auto committedIt = m_committedEnvProbePlacements.FindIf([probe](const EnvProbePlacement& placement)
+                {
+                    return placement.probe.GetUnsafe() == probe;
+                });
+
+            if (committedIt == m_committedEnvProbePlacements.End())
+            {
+                m_committedEnvProbePlacements.PushBack(EnvProbePlacement { MakeWeakRef(probe), probe->GetWorldTranslation(), probe->GetWorldBounds() });
+            }
+        });
+}
+
+void EditorSubsystem::RebakeMovedEnvProbes()
+{
+    AssertOnThread(g_simThread);
+
+    const Handle<World>& world = GetProjectWorld();
+
+    if (IsSimulating() || !world.IsValid())
+    {
+        return;
+    }
+
+    Array<EnvProbePlacement, EditorAllocator> currentPlacements;
+    Array<Handle<ObjectBase>, EditorAllocator> movedProbes;
+
+    ForEachBakedEnvProbe(world.Get(), [&](EnvProbe* probe)
+        {
+            const EnvProbePlacement currentPlacement { MakeWeakRef(probe), probe->GetWorldTranslation(), probe->GetWorldBounds() };
+
+            auto committedIt = m_committedEnvProbePlacements.FindIf([probe](const EnvProbePlacement& placement)
+                {
+                    return placement.probe.GetUnsafe() == probe;
+                });
+
+            if (committedIt != m_committedEnvProbePlacements.End()
+                && (committedIt->worldTranslation != currentPlacement.worldTranslation || committedIt->worldBounds != currentPlacement.worldBounds))
+            {
+                movedProbes.PushBack(MakeStrongRef(probe));
+            }
+
+            currentPlacements.PushBack(currentPlacement);
+        });
+
+    m_committedEnvProbePlacements = std::move(currentPlacements);
+
+    if (movedProbes.Empty())
+    {
+        return;
+    }
+
+    const Handle<Scene> activeScene = GetActiveScene();
+
+    if (!activeScene.IsValid())
+    {
+        return;
+    }
+
+    if (BakerSubsystem* bakerSubsystem = world->GetSubsystem<BakerSubsystem>())
+    {
+        for (const Handle<ObjectBase>& probe : movedProbes)
+        {
+            bakerSubsystem->CancelBake(probe.Get());
+        }
+    }
+
+    Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(movedProbes);
+    editorTask->SetIsForegroundTask(true);
+    InitObject(editorTask);
+
+    editorTask->SetScene(activeScene);
+    editorTask->SetWorld(world);
+
+    g_editorState->AddTask(editorTask);
 }
 
 void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld)

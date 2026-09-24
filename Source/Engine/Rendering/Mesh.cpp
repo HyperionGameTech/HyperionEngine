@@ -828,6 +828,28 @@ uint64 Mesh::ComputeLod0DataHash() const
     return uint64(hashCode.Value());
 }
 
+void Mesh::SetLightmapUVDataHash(uint64 lightmapUvDataHash)
+{
+    if (m_lightmapUvDataHash == lightmapUvDataHash)
+    {
+        return;
+    }
+
+    m_lightmapUvDataHash = lightmapUvDataHash;
+
+    MarkDirty();
+}
+
+bool Mesh::HasValidLightmapUVs() const
+{
+    if (m_lightmapUvDataHash == 0 || !(m_meshDesc.meshAttributes.inputLayout.mask & VT_UV1))
+    {
+        return false;
+    }
+
+    return ComputeLod0DataHash() == m_lightmapUvDataHash;
+}
+
 bool Mesh::AreLodsOutOfDate() const
 {
     if (m_meshDesc.GetNumLods() <= 1 || m_lodGenerationSettings.sourceDataHash == 0)
@@ -953,6 +975,7 @@ Handle<Mesh> Mesh::Clone() const
     mesh->SetFlags(m_flags);
     mesh->SetAABB(m_aabb);
     mesh->SetLodGenerationSettings(m_lodGenerationSettings);
+    mesh->SetLightmapUVDataHash(m_lightmapUvDataHash);
 
     if (m_bvh.IsValid())
     {

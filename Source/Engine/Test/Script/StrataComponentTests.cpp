@@ -189,24 +189,28 @@ void TestRegistrationAndAccess(EntityManager* entityManager)
 
     Handle<Entity> entity = entityManager->AddEntity();
 
-    auto damage = (float (*)(Entity*, float))strataJitGetFunction(jit, "damage");
-    auto has = (bool (*)(Entity*))strataJitGetFunction(jit, "has");
+    auto createContext = (void* (*)(void))strataJitGetFunction(jit, "__strata_context_create");
+    auto destroyContext = (void (*)(void*))strataJitGetFunction(jit, "__strata_context_destroy");
+    auto damage = (float (*)(void*, Entity*, float))strataJitGetFunction(jit, "damage");
+    auto has = (bool (*)(void*, Entity*))strataJitGetFunction(jit, "has");
 
-    Check("Strata: script functions resolve", damage != nullptr && has != nullptr);
+    Check("Strata: script functions resolve", createContext != nullptr && destroyContext != nullptr && damage != nullptr && has != nullptr);
 
-    if (!damage || !has || !healthStruct || !statsStruct)
+    if (!createContext || !destroyContext || !damage || !has || !healthStruct || !statsStruct)
     {
         strataJitDestroy(jit);
         strataCompilerDestroy(compiler);
         return;
     }
 
-    Check("Strata: HasComponent is false before the script adds it", !has(entity.Get()));
+    void* context = createContext();
 
-    const float afterDamage = damage(entity.Get(), 10.0f);
+    Check("Strata: HasComponent is false before the script adds it", !has(context, entity.Get()));
+
+    const float afterDamage = damage(context, entity.Get(), 10.0f);
 
     Check("Strata: SetComponent adds the component, starting from its defaults", afterDamage == 90.0f, HYP_FORMAT("{}", afterDamage));
-    Check("Strata: HasComponent sees the added component", has(entity.Get()));
+    Check("Strata: HasComponent sees the added component", has(context, entity.Get()));
 
     BoxedValue component(entityManager->TryGetComponent(healthTypeId, entity.Get()));
 
@@ -305,11 +309,12 @@ void TestRegistrationAndAccess(EntityManager* entityManager)
     }
 
     // the old script was compiled against the old layout, so the engine refuses its component access
-    Check("Strata: a script compiled against an old layout is refused", !has(entity.Get()));
+    Check("Strata: a script compiled against an old layout is refused", !has(context, entity.Get()));
 
     entityManager->RemoveComponent(healthTypeId, entity.Get());
     entityManager->RemoveComponent(healthTypeId, loadedEntity.Get());
 
+    destroyContext(context);
     strataJitDestroy(jit);
     strataCompilerDestroy(compiler);
 }
