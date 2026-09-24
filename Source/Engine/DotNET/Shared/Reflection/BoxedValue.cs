@@ -1146,6 +1146,14 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool BoxedValue_RemoveArrayElement([In] ref BoxedValueInternal boxed, int index);
 
+        [DllImport("hyperion", EntryPoint = "BoxedValue_CanResizeArray")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool BoxedValue_CanResizeArray([In] ref BoxedValueInternal boxed);
+
+        [DllImport("hyperion", EntryPoint = "BoxedValue_CanPushBackArray")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool BoxedValue_CanPushBackArray([In] ref BoxedValueInternal boxed);
+
         [DllImport("hyperion", EntryPoint = "BoxedValue_SetString")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool BoxedValue_SetString([In] ref BoxedValueInternal boxed, [In] IntPtr stringPtr);
@@ -1283,6 +1291,9 @@ namespace Hyperion
         }
 
         public bool IsArray => BoxedValueInternal.BoxedValue_IsArray(ref _data);
+
+        public bool CanResizeArray => BoxedValueInternal.BoxedValue_CanResizeArray(ref _data);
+        public bool CanPushBackArray => BoxedValueInternal.BoxedValue_CanPushBackArray(ref _data);
 
         public int GetArraySize()
         {

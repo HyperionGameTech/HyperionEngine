@@ -192,6 +192,7 @@ DECLARE_SRV(DebugDrawerDescriptorSet, WorldsBuffer) StructuredBuffer<WorldShader
 #define world_shader_data _worlds_buffer[0]
 
 #include "include/BRDF.hlsli"
+#include "include/Tonemap.hlsli"
 
 #ifndef IMMEDIATE_MODE
 #ifdef INSTANCING
@@ -261,17 +262,20 @@ PSOutput PSMain(PSInput input)
                 lod,
                 ibl);
 
-            output.gbuffer_albedo = ibl;
+            output.gbuffer_albedo.rgb = ibl.rgb;
         }
         else
         {
             float shBands[9];
             ProjectSHBands(normal, shBands);
-    
+
             const float3 shColor = EnvProbeSH(env_probes[input.env_probe_index], shBands);
 
             output.gbuffer_albedo.rgb = shColor;
         }
+
+        // debug draws skip the scene's tonemapping, but probe radiance is HDR and needs it to be comparable to the scene
+        output.gbuffer_albedo.rgb = Tonemap(ApplyColorGrading(output.gbuffer_albedo.rgb, world_shader_data), world_shader_data.tonemap_operator);
     }
 #endif // IMMEDIATE_MODE
 

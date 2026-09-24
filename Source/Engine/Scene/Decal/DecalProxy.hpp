@@ -55,7 +55,7 @@ public:
     /// returns false if the Decal was not removed
     bool RemoveDecal(DecalId id);
 
-    /// Removes every decal whose origin lies within the sphere.
+    /// Removes every decal whose projection box overlaps the sphere.
     /// DecalInstances that were removed are placed into \p outRemovedDecalInstances
     void RemoveDecalsInSphere(
         const BoundingSphere& bounds,

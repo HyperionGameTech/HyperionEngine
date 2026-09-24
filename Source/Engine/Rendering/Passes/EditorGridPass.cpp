@@ -14,6 +14,7 @@
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/GpuBuffer.hpp>
 #include <Rendering/RenderSetup.hpp>
+#include <Rendering/CBufferAllocator.hpp>
 
 #include <Framework/EngineStats.hpp>
 #include <Framework/View.hpp>
@@ -23,6 +24,18 @@
 namespace Hyperion {
 
 static EngineStatGpuTimer s_statDrawEditorGrid("Rendering/GPU/EditorGrid");
+
+CVar<bool> g_cvEditorGrid { "Editor.ShowGrid", true };
+CVar<float> g_cvEditorGridSize { "Editor.Grid.Size", 1.0f };
+CVar<float> g_cvEditorGridOffsetX { "Editor.Grid.OffsetX", 0.0f };
+CVar<float> g_cvEditorGridOffsetY { "Editor.Grid.OffsetY", 0.0f };
+CVar<float> g_cvEditorGridOffsetZ { "Editor.Grid.OffsetZ", 0.0f };
+
+// matches EditorGridConstants in Shaders/Editor/EditorGrid.hlsl
+struct EditorGridConstants
+{
+    Vec4f gridOffsetAndSize;
+};
 
 #pragma region EditorGridPass
 
@@ -58,6 +71,20 @@ void EditorGridPass::Render(Frame* frame, const RenderSetup& renderSetup)
         return;
     }
 
+    EditorGridConstants constants {};
+    constants.gridOffsetAndSize = Vec4f(
+        g_cvEditorGridOffsetX.Get(),
+        g_cvEditorGridOffsetY.Get(),
+        g_cvEditorGridOffsetZ.Get(),
+        MathUtil::Max(g_cvEditorGridSize.Get(), MathUtil::epsilonF));
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    RI.cbufferAllocator->Write(&constants);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
     CommandRecorder& cr = frame->cr;
 
     ENGINE_STAT_GPU_SCOPE(&s_statDrawEditorGrid, &cr);
@@ -77,6 +104,7 @@ void EditorGridPass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetCurrentShader(m_shaderDesc);
 
     cr << SetShaderUniform(0, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
+    cr << SetShaderUniform(1, "EditorGridConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
     RenderFullScreenQuad(frame, renderSetup);
 

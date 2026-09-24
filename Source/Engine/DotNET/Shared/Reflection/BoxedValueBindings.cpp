@@ -236,7 +236,8 @@ extern "C"
 
     HYP_EXPORT int8 BoxedValue_SetArray(BoxedValue* pBoxed, const Class* pClass, BoxedValue* pElements, uint32 size)
     {
-        if (!pBoxed || !pClass || !pElements)
+        // an empty managed array pins to a null pointer, which is still a valid (empty) array
+        if (!pBoxed || !pClass || (!pElements && size != 0))
         {
             return false;
         }
@@ -584,7 +585,8 @@ extern "C"
 
         GenericArrayWrapper& arrayWrapper = pBoxed->Get<GenericArrayWrapper>();
 
-        return arrayWrapper.SetElementAt(size_t(index), std::move(*pElem)) ? 1 : 0;
+        // copied, not moved: the managed side still owns pElem (e.g. a struct editor's cached copy)
+        return arrayWrapper.SetElementAt(size_t(index), BoxedValue(*pElem)) ? 1 : 0;
     }
 
     HYP_EXPORT int8 BoxedValue_PushBackArrayElem(BoxedValue* pBoxed, BoxedValue* pElem)
@@ -606,9 +608,27 @@ extern "C"
             return false;
         }
 
-        arrayWrapper.PushBack(std::move(*pElem));
+        return arrayWrapper.PushBack(BoxedValue(*pElem)).HasValue() ? 1 : 0;
+    }
 
-        return true;
+    HYP_EXPORT int8 BoxedValue_CanResizeArray(const BoxedValue* pBoxed)
+    {
+        if (!pBoxed || !pBoxed->IsArray())
+        {
+            return false;
+        }
+
+        return pBoxed->Get<GenericArrayWrapper>().CanResize();
+    }
+
+    HYP_EXPORT int8 BoxedValue_CanPushBackArray(const BoxedValue* pBoxed)
+    {
+        if (!pBoxed || !pBoxed->IsArray())
+        {
+            return false;
+        }
+
+        return pBoxed->Get<GenericArrayWrapper>().CanPushBack();
     }
 
     HYP_EXPORT int8 BoxedValue_ResizeArray(BoxedValue* pBoxed, int32 newSize)
@@ -642,7 +662,7 @@ extern "C"
 
         const size_t size = arrayWrapper.Size();
 
-        if (size_t(index) >= size)
+        if (size_t(index) >= size || !arrayWrapper.CanResize())
             return false;
 
         // Shift elements left to fill the gap, then shrink.
@@ -650,16 +670,13 @@ extern "C"
         {
             BoxedValue elem;
 
-            if (arrayWrapper.GetElementAt(i + 1, elem))
+            if (!arrayWrapper.GetElementAt(i + 1, elem) || !arrayWrapper.SetElementAt(i, std::move(elem)))
             {
-                arrayWrapper.SetElementAt(i, std::move(elem));
+                return false;
             }
         }
 
-        if (arrayWrapper.CanResize())
-            return arrayWrapper.Resize(size - 1) ? 1 : 0;
-
-        return false;
+        return arrayWrapper.Resize(size - 1) ? 1 : 0;
     }
 
 } // extern "C"

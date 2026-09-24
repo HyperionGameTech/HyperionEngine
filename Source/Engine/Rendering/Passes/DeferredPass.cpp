@@ -164,10 +164,6 @@ CVar<bool> g_cvFogVolumesClusteredLights { "Rendering.FogVolumesClusteredLights"
 
 extern CVar<bool> g_cvClouds;
 
-#ifdef HYP_EDITOR
-CVar<bool> g_cvEditorGrid { "Editor.ShowGrid", true };
-#endif // HYP_EDITOR
-
 extern CVar<int> g_cvSkipRendering;
 
 namespace DeferredRendererHelpers {
@@ -2145,7 +2141,9 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         frame->cr << SetCurrentFramebuffer(nullptr);
     }
-    
+
+    bool renderedDebugOverlay = false;
+
 #ifdef HYP_EDITOR
     if (rs.view && (rs.view->GetFlags() & ViewFlags::EDITOR_VIEW))
     {
@@ -2162,9 +2160,19 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             DebugDrawer::GetInstance().Render(frame, rs);
 
             frame->cr << SetCurrentFramebuffer(nullptr);
+
+            renderedDebugOverlay = true;
         }
     }
 #endif // HYP_EDITOR
+
+    if (!renderedDebugOverlay)
+    {
+        // the tonemap pass composites the debug overlay every frame, so it can't be left holding a previous frame's draws
+        frame->cr << SetCurrentFramebuffer(debugPassFramebuffer);
+        frame->cr << ClearFramebuffer(debugPassFramebuffer, 0x1);
+        frame->cr << SetCurrentFramebuffer(nullptr);
+    }
 
     frame->cr << SetAsyncShaderLoadingEnabled(false);
 

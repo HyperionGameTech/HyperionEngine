@@ -279,9 +279,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
                 break;
             case GBufferPass::Debug:
-                if (i == GBufferTarget::Depth)
+                // debug bucket creates its own depth attachment, and its own color attachment (cleared to transparent) so the
+                // tonemap pass can composite it over the final image without bloom or tonemapping being applied to it
+                if (i == GBufferTarget::Depth || i == GBufferTarget::Color)
                 {
-                    // debug bucket creates its own depth attachment
                     const TextureFormat format = GetImageFormat(GBufferTarget::TargetName(i));
                     addOwnedAttachment(i, format);
 

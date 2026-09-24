@@ -865,7 +865,15 @@ const Handle<Layer>& World::GetOrCreateLayer(Name layerName)
     // New layer created, need to save it on the World
     MarkDirty();
 
-    return m_layers.PushBack(MakeHandle<Layer>(layerName, LayerId(freeId)));
+    const Handle<Layer>& layer = m_layers.PushBack(MakeHandle<Layer>(layerName, LayerId(freeId)));
+
+    // New layers start active - otherwise any entity assigned to one right after creation is hidden
+    // from the view and filtered out of the editor's scene hierarchy (dropping its selection).
+    m_activeLayers.Set(uint32(freeId), true);
+
+    OnActiveLayersChanged.Fire(this, m_activeLayers);
+
+    return layer;
 }
 
 bool World::IsLayerActive(Name layerName) const

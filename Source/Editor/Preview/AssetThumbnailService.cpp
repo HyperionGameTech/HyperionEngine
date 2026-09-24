@@ -507,10 +507,12 @@ bool AssetThumbnailService::CaptureTextureDirectly(const PreviewAssetKey& key)
         return false;
     }
 
+    // Needed here!!! Otherwise the readscope will be acquired in Sample2D() and will cause a file read EACH sample!
+    // YIKES!
+    auto readScope = texture->GetReadScope();
+
     const TextureDesc& desc = texture->GetTextureDesc();
 
-    // Texture::Sample only decodes 8-bit-per-component formats, and only a 2D image has a sensible flat
-    // preview. Anything else keeps its type icon rather than getting a black tile.
     if (desc.type != TextureType::Texture2D || TextureUtils::BytesPerComponent(desc.format) != 1)
     {
         return false;

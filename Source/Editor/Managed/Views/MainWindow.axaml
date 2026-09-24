@@ -216,6 +216,11 @@
             </Setter>
         </Style>
 
+        <Style Selector="DropDownButton.gizmo-wide.snap-active">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+
         <Style Selector="DropDownButton.gizmo-wide:pointerover">
             <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
         </Style>
@@ -739,14 +744,80 @@
                                 VerticalAlignment="Center"
                                 Orientation="Horizontal"
                                 Spacing="6">
-                                <ToggleButton
-                                    x:Name="SnapToGridToggle"
-                                    Classes="gizmo"
-                                    Command="{Binding ToggleSnapToGrid}"
-                                    IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}"
-                                    ToolTip.Tip="Snap Movement To Grid (1 Unit)">
-                                    <controls:Codicon Kind="Magnet" Size="16" />
-                                </ToggleButton>
+                                <DropDownButton
+                                    x:Name="GridSettingsDropDown"
+                                    VerticalAlignment="Center"
+                                    Classes="gizmo-wide"
+                                    Classes.snap-active="{Binding IsSnapToGridEnabled}"
+                                    ToolTip.Tip="Grid Settings">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <controls:Codicon
+                                            VerticalAlignment="Center"
+                                            Kind="Magnet"
+                                            Size="16" />
+                                        <controls:Codicon
+                                            VerticalAlignment="Center"
+                                            Kind="ChevronDown"
+                                            Size="10" />
+                                    </StackPanel>
+                                    <DropDownButton.Flyout>
+                                        <Flyout Placement="Bottom">
+                                            <StackPanel MinWidth="240" Spacing="8">
+                                                <CheckBox
+                                                    Command="{Binding ToggleSnapToGrid}"
+                                                    Content="Snap movement to grid"
+                                                    IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}" />
+                                                <CheckBox
+                                                    Command="{Binding ToggleGridVisible}"
+                                                    Content="Show grid"
+                                                    IsChecked="{Binding IsGridVisible, Mode=OneWay}" />
+
+                                                <Separator />
+
+                                                <Grid
+                                                    ColumnDefinitions="Auto,*"
+                                                    ColumnSpacing="8"
+                                                    RowDefinitions="Auto,Auto"
+                                                    RowSpacing="6">
+                                                    <TextBlock
+                                                        Grid.Row="0"
+                                                        Grid.Column="0"
+                                                        VerticalAlignment="Center"
+                                                        Text="Snap size" />
+                                                    <TextBox
+                                                        Grid.Row="0"
+                                                        Grid.Column="1"
+                                                        Text="{Binding GridSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        ToolTip.Tip="Grid line spacing, also the snapping increment" />
+
+                                                    <TextBlock
+                                                        Grid.Row="1"
+                                                        Grid.Column="0"
+                                                        VerticalAlignment="Center"
+                                                        Text="Offset" />
+                                                    <Grid
+                                                        Grid.Row="1"
+                                                        Grid.Column="1"
+                                                        ColumnDefinitions="*,*,*"
+                                                        ColumnSpacing="4">
+                                                        <TextBox
+                                                            Grid.Column="0"
+                                                            Text="{Binding GridOffsetX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            ToolTip.Tip="X" />
+                                                        <TextBox
+                                                            Grid.Column="1"
+                                                            Text="{Binding GridOffsetY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            ToolTip.Tip="Y (grid height)" />
+                                                        <TextBox
+                                                            Grid.Column="2"
+                                                            Text="{Binding GridOffsetZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            ToolTip.Tip="Z" />
+                                                    </Grid>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Flyout>
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
 
                                 <Border Classes="mode-separator" />
 

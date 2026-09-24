@@ -77,6 +77,13 @@ public:
         m_snapToGridEnabled = snapToGrid;
     }
 
+    /*! \brief Snaps a world position onto the nearest grid intersection (grid size and offset come from the Editor.Grid cvars). */
+    Vec3f SnapToGrid(const Vec3f& position) const;
+
+    /*! \brief Snaps a drag of \p distance along the unit \p axisDirection starting at \p origin.
+     *  World-aligned axes land on grid lines; any other axis moves in whole grid-size steps instead. */
+    float SnapToGridAlongAxis(const Vec3f& origin, const Vec3f& axisDirection, float distance) const;
+
 private:
     EditorSubsystem* m_subsystem = nullptr;
 

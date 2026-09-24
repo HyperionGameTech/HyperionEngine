@@ -455,6 +455,102 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleSnapToGrid { get; private set; }
         public bool IsSnapToGridEnabled => _editorSubsystem?.IsSnapToGridEnabled() ?? false;
 
+        // Grid settings live in cvars that only publish once per frame, so reading them straight back
+        // after a set returns the old value; the UI keeps its own copy and pushes changes to the sim thread.
+        private bool _isGridVisible = true;
+        private float _gridSize = 1.0f;
+        private float _gridOffsetX = 0.0f;
+        private float _gridOffsetY = 0.0f;
+        private float _gridOffsetZ = 0.0f;
+
+        public ICommand ToggleGridVisible { get; private set; }
+        public bool IsGridVisible => _isGridVisible;
+
+        public float GridSize
+        {
+            get => _gridSize;
+            set
+            {
+                if (value <= 0.0f || !SetProperty(ref _gridSize, value))
+                {
+                    return;
+                }
+
+                _ = EngineManager.PostToSimThread(() => _editorSubsystem?.SetGridSize(value));
+            }
+        }
+
+        public float GridOffsetX
+        {
+            get => _gridOffsetX;
+            set
+            {
+                if (SetProperty(ref _gridOffsetX, value))
+                {
+                    PushGridOffset();
+                }
+            }
+        }
+
+        public float GridOffsetY
+        {
+            get => _gridOffsetY;
+            set
+            {
+                if (SetProperty(ref _gridOffsetY, value))
+                {
+                    PushGridOffset();
+                }
+            }
+        }
+
+        public float GridOffsetZ
+        {
+            get => _gridOffsetZ;
+            set
+            {
+                if (SetProperty(ref _gridOffsetZ, value))
+                {
+                    PushGridOffset();
+                }
+            }
+        }
+
+        private void PushGridOffset()
+        {
+            Vec3f gridOffset = new Vec3f(_gridOffsetX, _gridOffsetY, _gridOffsetZ);
+
+            _ = EngineManager.PostToSimThread(() => _editorSubsystem?.SetGridOffset(gridOffset));
+        }
+
+        // Call on the sim thread
+        private void RefreshGridSettings()
+        {
+            if (_editorSubsystem == null)
+            {
+                return;
+            }
+
+            bool isGridVisible = _editorSubsystem.IsGridVisible();
+            float gridSize = _editorSubsystem.GetGridSize();
+            Vec3f gridOffset = _editorSubsystem.GetGridOffset();
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                _isGridVisible = isGridVisible;
+                _gridSize = gridSize;
+                _gridOffsetX = gridOffset.X;
+                _gridOffsetY = gridOffset.Y;
+                _gridOffsetZ = gridOffset.Z;
+
+                OnPropertyChanged(nameof(IsGridVisible));
+                OnPropertyChanged(nameof(GridSize));
+                OnPropertyChanged(nameof(GridOffsetX));
+                OnPropertyChanged(nameof(GridOffsetY));
+                OnPropertyChanged(nameof(GridOffsetZ));
+            });
+        }
+
         public ICommand TogglePhysicsDebugDraw { get; private set; }
         public bool IsPhysicsDebugDrawEnabled => _editorSubsystem?.IsPhysicsDebugDrawEnabled() ?? false;
 
@@ -802,6 +898,16 @@ namespace Hyperion.Editor.ViewModels
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsSnapToGridEnabled)));
                 });
+            });
+
+            ToggleGridVisible = new RelayCommand(() =>
+            {
+                _isGridVisible = !_isGridVisible;
+                OnPropertyChanged(nameof(IsGridVisible));
+
+                bool isGridVisible = _isGridVisible;
+
+                _ = EngineManager.PostToSimThread(() => _editorSubsystem?.SetGridVisible(isGridVisible));
             });
 
             TogglePhysicsDebugDraw = new RelayCommand(() =>
@@ -1730,6 +1836,7 @@ namespace Hyperion.Editor.ViewModels
                 OnPropertyChanged(nameof(IsSnapToGridEnabled));
 
                 _ = EngineManager.PostToSimThread(RefreshMeshEditState);
+                _ = EngineManager.PostToSimThread(RefreshGridSettings);
 
                 // Update scenes list
                 Scenes.Clear();

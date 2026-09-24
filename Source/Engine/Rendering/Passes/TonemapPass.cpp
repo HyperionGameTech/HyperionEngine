@@ -16,7 +16,6 @@
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/ShaderManager.hpp>
-#include <Rendering/StencilMasks.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 
@@ -57,11 +56,6 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     CommandRecorder& cr = frame->cr;
 
-    // Filter out Debug draws! We don't want them tonemapped or with bloom applied.
-    cr << SetStencilTest(true);
-    cr << SetStencilFunction(StencilFunction { StencilOp::Keep, StencilOp::Keep, StencilOp::Keep, StencilCompareOp::Equal });
-    cr << SetStencilState(0, DebugStencilMask, 0x0);
-
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
@@ -79,6 +73,12 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     AssertDebug(translucentPassFramebuffer != nullptr);
 
     cr << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GBufferTarget::Color)->GetImageView());
+
+    // Debug draws are composited over the tonemapped result - we don't want them tonemapped or with bloom applied.
+    Framebuffer* debugPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Debug);
+    AssertDebug(debugPassFramebuffer != nullptr);
+
+    cr << SetShaderUniform(numShaderUniforms++, "DebugOverlayTexture"_sh, debugPassFramebuffer->GetAttachment(GBufferTarget::Color)->GetImageView());
 
     cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
 
@@ -113,8 +113,6 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     RenderFullScreenQuad(frame, rs);
-
-    cr << SetStencilTest(false);
 
     End(frame, rs);
 }
