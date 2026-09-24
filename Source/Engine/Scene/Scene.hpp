@@ -43,7 +43,7 @@ enum class SceneFlags : uint32
 {
     NONE = 0x0,             //!< @editor=false
 
-    FOREGROUND = 0x1,       //!< @title="Is foreground scene" @description="Scene is a foreground scene (i.e., it is rendered normally)."
+    FOREGROUND = 0x1,       //!< @editor=false
     BACKDROP = 0x2,         //!< @title="Is backdrop" @description="Scene contains backdrop nodes (e.g skybox). (Not mutually exclusive with Foreground)"
     
     /// These below are reserved for internal usage and not surfaced in-editor

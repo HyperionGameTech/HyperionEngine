@@ -11,6 +11,9 @@ namespace Hyperion.Editor
     {
         public static bool AlreadyInitialized { get; set; } = false;
 
+        // On hold for now
+        private static readonly bool IsStartScreenEnabled = false;
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
@@ -40,7 +43,7 @@ namespace Hyperion.Editor
 
             InitializeEngine();
 
-            if (!RecentProjectsService.Instance.WillOpenLastProjectOnStartup)
+            if (IsStartScreenEnabled && !RecentProjectsService.Instance.WillOpenLastProjectOnStartup)
             {
                 ShowStartScreen(desktop, splashWindow);
 

@@ -7,7 +7,7 @@
 </p>
 
 <div align="center">
-  <img width="700" src="Documentation/Images/terrain.png">
+  <img width="700" src="Documentation/Images/terrain-agx.jpg">
 </div>
 
 ## About

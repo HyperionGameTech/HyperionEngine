@@ -760,39 +760,57 @@ namespace Hyperion.Editor
             }
         }
 
+        private static readonly object RecentProjectEntryTag = new object();
+
         private void OnOpenProjectMenuOpened(object? sender, RoutedEventArgs e)
         {
-            if (sender is ContextMenu menu && menu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Name == "ToolbarOpenRecentMenuItem") is { } openRecentMenuItem)
+            if (sender is not ContextMenu menu || DataContext is not MainWindowViewModel viewModel)
             {
-                PopulateOpenRecentMenu(openRecentMenuItem);
+                return;
+            }
+
+            // Recent entries sit directly in the dropdown, above the static items declared in XAML
+            foreach (Control staleEntry in menu.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, RecentProjectEntryTag)).ToList())
+            {
+                menu.Items.Remove(staleEntry);
+            }
+
+            List<Control> entries = BuildRecentProjectMenuEntries(viewModel);
+
+            for (int index = 0; index < entries.Count; index++)
+            {
+                entries[index].Tag = RecentProjectEntryTag;
+                menu.Items.Insert(index, entries[index]);
             }
         }
 
         private void OnFileMenuSubmenuOpened(object? sender, RoutedEventArgs e)
         {
             // SubmenuOpened bubbles up from nested submenus too, and those must not be rebuilt while opening
-            if (ReferenceEquals(e.Source, sender))
-            {
-                PopulateOpenRecentMenu(FileOpenRecentMenuItem);
-            }
-        }
-
-        private void PopulateOpenRecentMenu(MenuItem openRecentMenuItem)
-        {
-            if (DataContext is not MainWindowViewModel viewModel)
+            if (!ReferenceEquals(e.Source, sender) || DataContext is not MainWindowViewModel viewModel)
             {
                 return;
             }
 
-            openRecentMenuItem.Items.Clear();
+            FileOpenRecentMenuItem.Items.Clear();
+
+            foreach (Control entry in BuildRecentProjectMenuEntries(viewModel))
+            {
+                FileOpenRecentMenuItem.Items.Add(entry);
+            }
+        }
+
+        private static List<Control> BuildRecentProjectMenuEntries(MainWindowViewModel viewModel)
+        {
+            List<Control> entries = new List<Control>();
 
             IReadOnlyList<string> recentProjects = RecentProjectsService.Instance.RecentProjects;
 
             if (recentProjects.Count == 0)
             {
-                openRecentMenuItem.Items.Add(new MenuItem { Header = "No Recent Projects", IsEnabled = false });
+                entries.Add(new MenuItem { Header = "No Recent Projects", IsEnabled = false });
 
-                return;
+                return entries;
             }
 
             string? currentProjectFilepath = EngineManager.CurrentProject?.FilePath;
@@ -814,15 +832,17 @@ namespace Hyperion.Editor
 
                 ToolTip.SetTip(projectMenuItem, projectFilepath);
 
-                openRecentMenuItem.Items.Add(projectMenuItem);
+                entries.Add(projectMenuItem);
             }
 
-            openRecentMenuItem.Items.Add(new Separator());
-            openRecentMenuItem.Items.Add(new MenuItem
+            entries.Add(new Separator());
+            entries.Add(new MenuItem
             {
                 Header = "Clear Recent Projects",
                 Command = viewModel.ClearRecentProjects,
             });
+
+            return entries;
         }
 
         /// <summary>

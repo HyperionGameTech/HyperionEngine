@@ -23,14 +23,16 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorActionStack::EditorActionStack()
     : m_undoDepth(-1),
-      m_currentState(EditorActionStackState::NONE)
+      m_currentState(EditorActionStackState::NONE),
+      m_everTouched(false)
 {
 }
 
 EditorActionStack::EditorActionStack(const WeakHandle<EditorProject>& editorProject)
     : m_editorProject(editorProject),
       m_undoDepth(-1),
-      m_currentState(EditorActionStackState::NONE)
+      m_currentState(EditorActionStackState::NONE),
+      m_everTouched(false)
 {
 }
 
@@ -38,7 +40,8 @@ EditorActionStack::EditorActionStack(EditorActionStack&& other) noexcept
     : m_editorProject(std::move(other.m_editorProject)),
       m_actions(std::move(other.m_actions)),
       m_undoDepth(other.m_undoDepth),
-      m_currentState(other.m_currentState)
+      m_currentState(other.m_currentState),
+      m_everTouched(false)
 {
     other.m_undoDepth = -1;
     other.m_currentState = EditorActionStackState::NONE;
@@ -56,9 +59,11 @@ EditorActionStack& EditorActionStack::operator=(EditorActionStack&& other) noexc
     m_actions = std::move(other.m_actions);
     m_undoDepth = other.m_undoDepth;
     m_currentState = other.m_currentState;
+    m_everTouched = other.m_everTouched;
 
     other.m_undoDepth = -1;
     other.m_currentState = EditorActionStackState::NONE;
+    other.m_everTouched = false;
 
     return *this;
 }
@@ -78,6 +83,8 @@ bool EditorActionStack::CanRedo() const
 bool EditorActionStack::PushAction(const Handle<EditorActionBase>& action)
 {
     Assert(action.IsValid());
+
+    m_everTouched = true;
 
     Handle<EditorProject> editorProject = m_editorProject.Lock();
     Assert(editorProject.IsValid());

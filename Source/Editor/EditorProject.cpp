@@ -47,9 +47,7 @@
 
 namespace Hyperion {
 
-struct EditorProjectSaveContext
-{
-};
+struct EditorProjectSaveContext {};
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
@@ -467,6 +465,11 @@ Result EditorProject::SaveAs(FilePath filepath)
 
 bool EditorProject::IsDirty() const
 {
+    if (!IsSaved() && !m_actionStack->EverTouched())
+    {
+        return false;
+    }
+
     AssertDebug(m_gameInstance.IsValid());
 
     if (!m_gameInstance.IsValid())

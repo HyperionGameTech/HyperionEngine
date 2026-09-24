@@ -5,7 +5,7 @@ namespace Hyperion
 {
     [ClassBinding(Name = "EditorActionStackState")]
     [Flags]
-    public enum EditorActionStackState : uint
+    public enum EditorActionStackState : byte
     {
         None = 0,
         CanUndo = 0x1,

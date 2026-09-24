@@ -9,8 +9,6 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Editor/EditorAction.hpp>
-
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/List.hpp>
 
@@ -21,17 +19,20 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Editor/EditorAction.hpp>
+#include <Editor/EditorMemory.hpp>
+
 namespace Hyperion {
 
 HYP_ENUM()
-enum class EditorActionStackState : uint32
+enum class EditorActionStackState : uint8
 {
     NONE = 0x0,
     CAN_UNDO = 0x1,
     CAN_REDO = 0x2
 };
 
-HYP_MAKE_ENUM_FLAGS(EditorActionStackState)
+HYP_MAKE_ENUM_FLAGS(EditorActionStackState);
 
 HYP_CLASS()
 class EDITOR_API EditorActionStack : public ObjectBase
@@ -41,7 +42,7 @@ class EDITOR_API EditorActionStack : public ObjectBase
 public:
     EditorActionStack();
 
-    EditorActionStack(const WeakHandle<EditorProject>& editorProject);
+    explicit EditorActionStack(const WeakHandle<EditorProject>& editorProject);
 
     EditorActionStack(const EditorActionStack& other) = delete;
     EditorActionStack& operator=(const EditorActionStack& other) = delete;
@@ -50,6 +51,12 @@ public:
     EditorActionStack& operator=(EditorActionStack&& other) noexcept;
 
     virtual ~EditorActionStack() override;
+
+    HYP_METHOD()
+    bool EverTouched() const
+    {
+        return m_everTouched;
+    }
 
     HYP_METHOD()
     bool PushAction(const Handle<EditorActionBase>& action);
@@ -92,10 +99,11 @@ private:
 
     WeakHandle<EditorProject> m_editorProject;
 
-    Array<Handle<EditorActionBase>> m_actions;
+    Array<Handle<EditorActionBase>, EditorAllocator> m_actions;
     int m_undoDepth;
 
     EnumFlags<EditorActionStackState> m_currentState;
+    bool m_everTouched;
 };
 
 } // namespace Hyperion

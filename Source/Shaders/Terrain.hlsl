@@ -74,6 +74,11 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 #define TERRAIN_MACRO_TILING_FADE_START 150.0
 #define TERRAIN_MACRO_TILING_FADE_END 700.0
 #define TERRAIN_MACRO_TILING_MAX 0.75
+#define TERRAIN_MACRO_TILING_CONTRAST 0.3
+#define TERRAIN_MACRO_TILING_NORMAL_STRENGTH 0.3
+#define TERRAIN_MACRO_ANTITILE_MASK_SCALE 0.0045
+// clamps to the 1x1 mip, i.e. the texture's mean
+#define TERRAIN_MEAN_COLOR_LOD 16.0
 
 struct PSInput
 {
@@ -322,6 +327,7 @@ struct TerrainLayerContext
     float3 blending;
     float3 normal_blending;
     float antitile_mask;
+    float macro_antitile_mask;
 };
 
 struct TerrainLayerAccumulator
@@ -358,12 +364,15 @@ void AccumulateTerrainLayer(
 
     if (farBlend > 0.001)
     {
-        const float4 far_sample = SampleTriplanarGrad(
+        const float4 far_sample = SampleTriplanarAntiTile(
             albedoTexture,
             MakeTerrainTriplanarCoords(context.detail_position, context.position_ddx, context.position_ddy, scale * TERRAIN_MACRO_TILING_RATIO),
-            context.blending);
+            context.blending,
+            context.macro_antitile_mask);
 
-        layer_sample = lerp(layer_sample, far_sample, farBlend);
+        const float4 mean_sample = SAMPLE_TEXTURE_2D_LOD(texture_sampler, albedoTexture, float2(0.5, 0.5), TERRAIN_MEAN_COLOR_LOD);
+
+        layer_sample = lerp(layer_sample, lerp(mean_sample, far_sample, TERRAIN_MACRO_TILING_CONTRAST), farBlend);
     }
 
     accumulator.albedo += weight * layer_sample.rgb * tint;
@@ -386,7 +395,8 @@ void AccumulateTerrainLayer(
         float far_ao;
         const float3 far_normal = SampleTerrainNormalTriplanar(
             normalTexture, context.detail_position, context.position_ddx, context.position_ddy,
-            context.geometric_normal, context.normal_blending, context.blending, scale * TERRAIN_MACRO_TILING_RATIO, context.normal_strength, far_ao);
+            context.geometric_normal, context.normal_blending, context.blending, scale * TERRAIN_MACRO_TILING_RATIO,
+            context.normal_strength * TERRAIN_MACRO_TILING_NORMAL_STRENGTH, far_ao);
 
         layer_normal = normalize(lerp(layer_normal, far_normal, farBlend));
         layer_ao = lerp(layer_ao, far_ao, farBlend);
@@ -516,6 +526,7 @@ PSOutput PSMain(PSInput input)
     const float macro_noise = TerrainFbm(P.xz * TERRAIN_MACRO_NOISE_SCALE);
     const float far_noise = TerrainFbm(P.xz * TERRAIN_FAR_NOISE_SCALE + 117.3);
     const float antitile_mask = smoothstep(0.35, 0.65, TerrainFbm(P.xz * TERRAIN_ANTITILE_MASK_SCALE + 43.7));
+    const float macro_antitile_mask = smoothstep(0.35, 0.65, TerrainFbm(P.xz * TERRAIN_MACRO_ANTITILE_MASK_SCALE + 91.3));
 
     const float slope = saturate(1.0 - N.y);
 
@@ -631,6 +642,7 @@ PSOutput PSMain(PSInput input)
         context.blending = blending;
         context.normal_blending = normal_blending;
         context.antitile_mask = antitile_mask;
+        context.macro_antitile_mask = macro_antitile_mask;
 
         ACCUMULATE_TERRAIN_LAYER(0, weights.x, dominant_layer, macro_tiling_fade, context, accumulator);
         ACCUMULATE_TERRAIN_LAYER(1, weights.y, dominant_layer, macro_tiling_fade, context, accumulator);

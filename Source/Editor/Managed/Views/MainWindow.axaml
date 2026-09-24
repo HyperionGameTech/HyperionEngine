@@ -418,8 +418,7 @@
                                         <controls:Codicon Kind="ChevronDown" Size="10" />
                                         <DropDownButton.ContextMenu>
                                             <ContextMenu Opened="OnOpenProjectMenuOpened" Placement="Bottom">
-                                                <MenuItem Command="{Binding OpenProject}" Header="Open Project..." />
-                                                <MenuItem x:Name="ToolbarOpenRecentMenuItem" Header="Open Recent" />
+                                                <!--  Recent projects are inserted above this separator when the menu opens  -->
                                                 <Separator />
                                                 <MenuItem
                                                     Command="{Binding ToggleAlwaysOpenLastProject}"

@@ -16,6 +16,8 @@
 #include <Core/Utilities/Result.hpp>
 #include <Core/Utilities/Time.hpp>
 
+#include <Core/Threading/AtomicVar.hpp>
+
 #include <Core/Name/Name.hpp>
 
 #include <Scripting/ScriptableDelegate.hpp>
