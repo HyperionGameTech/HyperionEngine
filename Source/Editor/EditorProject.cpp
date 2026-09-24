@@ -576,9 +576,6 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return HYP_MAKE_ERROR(Error, "Failed to load asset descs for registry! Does the path exists at {} ?", registryDir);
     }
 
-    // Components defined by the project's scripts have to be registered before its scenes are read
-    ScriptSystem::PreloadProjectScripts(registry);
-
     Handle<EditorProject> project;
 
     { // load project and all its assets into the registry we just created.

@@ -41,68 +41,31 @@ extern "C"
         Assert(pTypeName != nullptr);
         Assert(pFields != nullptr || numFields == 0);
 
-        if (size == 0)
-        {
-            HYP_LOG(Object, Error, "Cannot create Struct with size 0");
-
-            return nullptr;
-        }
-
-        // C# dynamic structs are blittable, so the defaults (template or zero-fill construct, memcpy copy/move, no-op destruct) are exact.
-        // No managed callbacks means nothing dangles if the native Struct outlives the managed DynamicStruct.
-        DynamicStructInstanceFunctions functions {};
-
-        // reflected fields make the struct visible to serialization and the editor
-        Array<MemberVariant> members;
-        members.Reserve(numFields);
+        Array<DynamicStructFieldDesc> fields;
+        fields.Reserve(numFields);
 
         for (uint32 fieldIndex = 0; fieldIndex < numFields; fieldIndex++)
         {
             const ManagedDynamicStructField& field = pFields[fieldIndex];
 
-            if (!field.name || uint64(field.offset) + uint64(field.size) > uint64(size))
-            {
-                HYP_LOG(Object, Warning, "Skipping invalid field {} of dynamic Struct {}", fieldIndex, pTypeName);
-
-                continue;
-            }
-
             DynamicStructFieldDesc fieldDesc;
-            fieldDesc.name = CreateNameFromDynamicString(field.name);
+            fieldDesc.name = field.name ? CreateNameFromDynamicString(field.name) : Name::Invalid();
             fieldDesc.offset = field.offset;
             fieldDesc.size = field.size;
             fieldDesc.typeInfo = field.typeInfo;
-
-            MemberVariant member;
-
-            if (MakeDynamicStructProperty(fieldDesc, int(fieldIndex), member))
-            {
-                members.PushBack(std::move(member));
-            }
+            fields.PushBack(fieldDesc);
         }
 
-        // a struct may replace an earlier definition of itself, but not an unrelated class
-        if (const Class* existingClass = ClassRegistry::GetInstance().GetClass(*pTypeId); existingClass && !existingClass->IsStructType())
-        {
-            HYP_LOG(Object, Error, "Cannot create dynamic Struct {}: TypeId {} is already used by {}", pTypeName, pTypeId->Value(), existingClass->GetName());
-
-            return nullptr;
-        }
-
-        DynamicStructInstance* pStruct = new DynamicStructInstance(
-            *pTypeId,
-            CreateNameFromDynamicString(pTypeName),
-            size,
-            uint32(alignof(void*)),
-            Span<const ClassAttribute>(),
-            ClassFlags::STRUCT_TYPE | ClassFlags::DYNAMIC,
-            members.ToSpan(),
-            functions);
-
+        DynamicStructDesc desc;
+        desc.typeId = *pTypeId;
+        desc.name = CreateNameFromDynamicString(pTypeName);
+        desc.size = size;
+        desc.alignment = uint32(alignof(void*));
         // the managed default instance (constructor + field initializers) becomes the template for default construction
-        pStruct->SetDefaultValue(pDefaultValue);
+        desc.defaultValue = pDefaultValue;
+        desc.fields = fields.ToSpan();
 
-        return pStruct;
+        return CreateDynamicStruct(desc);
     }
 
     HYP_EXPORT void Struct_DestroyDynamicStruct(Struct* pStruct)

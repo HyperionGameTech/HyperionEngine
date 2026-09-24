@@ -1074,13 +1074,13 @@ private:
                 {
                     const ClassDefinition* handleClass = m_analyzer.FindClassDefinition(handleName);
 
-                    const String extendsBase = handleClass != nullptr
+                    const String baseHandle = handleClass != nullptr
                         ? strataModuleGenerator.ResolveHandleBase(m_analyzer, *handleClass, allHandleNames)
                         : String::empty;
 
-                    if (extendsBase.Any())
+                    if (baseHandle.Any())
                     {
-                        strataWriter.WriteString(HYP_FORMAT("handle {} extends {};\n", handleName, extendsBase));
+                        strataWriter.WriteString(HYP_FORMAT("handle {} : {};\n", handleName, baseHandle));
                     }
                     else
                     {

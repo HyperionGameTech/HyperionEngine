@@ -39,6 +39,12 @@
 
 #ifdef HYP_STRATA
 #    include <Core/Scripting/Strata/StrataMarshal.hpp>
+
+#    include <Scripting/StrataTypes.hpp>
+
+#    include <strata/strata_types.h>
+
+#    include <mutex>
 #endif // HYP_STRATA
 
 #ifdef HYP_STRATA_JIT
@@ -450,6 +456,55 @@ private:
 
 #    endif // HYP_STRATA_JIT
 
+void ReloadTypes(const FilePath& sourcePath, const FilePath& scriptsDirectory)
+{
+#    ifdef HYP_STRATA_JIT
+    InitializeCompiler();
+
+    ImportResolver importResolver(t_strataCompiler, scriptsDirectory);
+
+    void* metadata = nullptr;
+    size_t metadataSize = 0;
+    const char* err = nullptr;
+
+    if (!strataCompileTypeMetadata(t_strataCompiler, sourcePath.Data(), &metadata, &metadataSize, &err))
+    {
+        HYP_LOG(Scripting, Warning, "failed to load types for {}: {}",
+            sourcePath, err ? err : "(no message)");
+
+        if (err != nullptr)
+        {
+            strataFree(const_cast<char*>(err));
+        }
+
+        return;
+    }
+
+    if (metadata != nullptr)
+    {
+        RegisterTypeMetadata(metadata, metadataSize, sourcePath);
+        strataFreeTypeMetadata(metadata);
+    }
+#    endif // HYP_STRATA_JIT
+}
+
+void RegisterLinkedTypes()
+{
+#    ifndef HYP_STRATA_JIT
+    static std::once_flag s_registeredLinkedTypes;
+
+    std::call_once(s_registeredLinkedTypes, []()
+        {
+            if (const ubyte* metadata = static_cast<const ubyte*>(ResolveSymbolFromHost(STRATA_TYPES_SYMBOL)))
+            {
+                const uint32 metadataSize = uint32(metadata[8]) | (uint32(metadata[9]) << 8) | (uint32(metadata[10]) << 16) | (uint32(metadata[11]) << 24);
+
+                RegisterTypeMetadata(metadata, metadataSize, CoreApi::GetExecutablePath());
+            }
+        });
+#    endif // !HYP_STRATA_JIT
+}
+
 void ClearFunctionPointerCacheForModule(StringHash moduleHash)
 {
     if (t_fnPtrCache != nullptr)
@@ -808,6 +863,14 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                         {
                             Strata::BindExterns(jit);
 
+                            // the script's own component types are registered before it runs (ActivateEntityScript syncs containers)
+                            size_t metadataSize = 0;
+
+                            if (const void* metadata = strataJitGetTypeMetadata(jit, &metadataSize))
+                            {
+                                Strata::RegisterTypeMetadata(metadata, metadataSize, sourcePath);
+                            }
+
                             strataData->jit = jit;
                         }
                         else
@@ -831,6 +894,8 @@ void InitializeEntityScript(Entity* entity, ScriptComponent& scriptComponent, co
                     HYP_LOG(Scripting, Warning, "This build has no LLVM JIT backend, so '{}' will only run "
                                                  "if it was AOT-compiled with stratac. Scripts created or edited after the build will not execute!",
                             scriptAsset->GetName());
+
+                    Strata::RegisterLinkedTypes();
 #    endif // HYP_STRATA_JIT
                     if (void* createFnRaw = Strata::ResolveFunctionPointer(strataData, "__strata_context_create"))
                     {

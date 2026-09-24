@@ -1,5 +1,7 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 
+#include <Scene/Components/ScriptComponent.hpp>
+
 namespace Hyperion {
 
 #pragma region NewScript
@@ -533,6 +535,204 @@ public:
 DEFINE_EDITOR_COMMAND(AddAsset);
 
 #pragma endregion AddAsset
+
+#pragma region AssignScript
+
+class EditorCommandAssignScript final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAssignScript);
+
+public:
+    virtual ~EditorCommandAssignScript() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Assign Script";
+    }
+
+    static Node* PickNodeAtViewport(EditorSubsystem* subsystem, const Vec2f& screenPosition)
+    {
+        EditorViewport* activeViewport = subsystem->GetActiveViewport();
+        if (!activeViewport || !activeViewport->GetCamera())
+        {
+            return nullptr;
+        }
+
+        const Ray ray = activeViewport->GetCamera()->GetPickRay(screenPosition);
+
+        RayTestResults results;
+        if (!subsystem->TestPickRay(ray, results))
+        {
+            return nullptr;
+        }
+
+        for (const RayHit& hit : results)
+        {
+            if (hit.node != nullptr)
+            {
+                return hit.node;
+            }
+        }
+
+        return nullptr;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 3)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAssignScript requires bucket index, asset name and either a node UUID or viewport coordinates");
+            return;
+        }
+
+        uint32 bucketIndex = 0;
+        if (!StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAssignScript: invalid bucket index '{}'", GetArgument(0));
+            return;
+        }
+
+        const ANSIString assetName = GetArgument(1);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAssignScript: no project loaded");
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAssignScript: no active scene");
+            return;
+        }
+
+        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
+
+        Handle<ScriptAsset> scriptAsset = DynamicCast<ScriptAsset>(asset);
+        if (!scriptAsset.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAssignScript: asset '{}' in bucket {} is not a valid script asset", assetName, GetAssetBucketName(bucketIndex));
+            return;
+        }
+
+        Node* targetNode = nullptr;
+
+        if (NumArguments() >= 4)
+        {
+            float screenX = 0.5f;
+            float screenY = 0.5f;
+            StringUtil::Parse(GetArgument(2), &screenX);
+            StringUtil::Parse(GetArgument(3), &screenY);
+
+            targetNode = PickNodeAtViewport(subsystem, Vec2f(screenX, screenY));
+        }
+        else
+        {
+            targetNode = ResolveNodeUuidArgument(subsystem, GetArgument(2));
+        }
+
+        Entity* targetEntity = DynamicCast<Entity>(targetNode);
+
+        if (!targetEntity || targetEntity->GetScene() != activeScene.Get())
+        {
+            HYP_LOG(Editor, Info, "EditorCommandAssignScript: no entity in the active scene under the drop position for script '{}'", assetName);
+            return;
+        }
+
+        Handle<Entity> entity = MakeStrongRef(targetEntity);
+
+        const bool hadScriptComponent = entity->HasComponent<ScriptComponent>();
+        const Handle<ScriptAsset> previousScriptAsset = hadScriptComponent ? entity->GetComponent<ScriptComponent>().script : Handle<ScriptAsset>::empty;
+
+        if (previousScriptAsset == scriptAsset)
+        {
+            HYP_LOG(Editor, Info, "EditorCommandAssignScript: '{}' already has script '{}'", entity->GetName(), assetName);
+            return;
+        }
+
+        if (previousScriptAsset.IsValid())
+        {
+            bool shouldReplace = false;
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Replace Script")
+                .Text(HYP_FORMAT("'{}' already has the script '{}' attached. Do you want to replace it with '{}'?",
+                    entity->GetName(), previousScriptAsset->GetName(), scriptAsset->GetName()))
+                .Button("Replace", [&shouldReplace]()
+                    {
+                        shouldReplace = true;
+                    })
+                .Button("Cancel", []()
+                    {
+                    })
+                .Show();
+
+            if (!shouldReplace)
+            {
+                return;
+            }
+        }
+
+        Array<Handle<Node>> previousSelectedNodes = subsystem->GetSelectedNodes();
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Assign Script {}", assetName),
+            Proc<EditorActionFunctions()>(
+                [entity, scriptAsset, previousScriptAsset, hadScriptComponent, previousSelectedNodes, previousFocusedNode]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [entity, scriptAsset](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                if (ScriptComponent* scriptComponent = entity->TryGetComponent<ScriptComponent>())
+                                {
+                                    scriptComponent->script = scriptAsset;
+                                }
+                                else
+                                {
+                                    ScriptComponent newScriptComponent;
+                                    newScriptComponent.script = scriptAsset;
+                                    entity->AddComponent<ScriptComponent>(std::move(newScriptComponent));
+                                }
+
+                                editorSubsystem->SetSelectedNodes({ entity });
+                                editorSubsystem->SetFocusedNode(entity, true);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [entity, previousScriptAsset, hadScriptComponent, previousSelectedNodes, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                if (!hadScriptComponent)
+                                {
+                                    entity->RemoveComponent<ScriptComponent>();
+                                }
+                                else if (ScriptComponent* scriptComponent = entity->TryGetComponent<ScriptComponent>())
+                                {
+                                    scriptComponent->script = previousScriptAsset;
+                                }
+
+                                editorSubsystem->SetSelectedNodes(previousSelectedNodes);
+
+                                if (Handle<Node> focusedNode = previousFocusedNode.Lock(); focusedNode.IsValid())
+                                {
+                                    editorSubsystem->SetFocusedNode(focusedNode, true);
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AssignScript);
+
+#pragma endregion AssignScript
 
 #pragma region Prefab
 

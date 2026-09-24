@@ -93,12 +93,11 @@ String ResolveManagedName(const MemberDef& member)
     return member.friendlyName;
 }
 
-// Strata struct parameters are references; write `const` for a read-only view.
 String StructParamModifier(const ASTType* paramType)
 {
     if (paramType == nullptr)
     {
-        return "const ";
+        return "const ref ";
     }
 
     bool isConst = true;
@@ -112,7 +111,18 @@ String StructParamModifier(const ASTType* paramType)
         isConst = paramType->refTo && paramType->refTo->isConst;
     }
 
-    return isConst ? "const " : String::empty;
+    return isConst ? "const ref " : "ref ";
+}
+
+// Instance methods receive their object first: a handle by value, a struct by reference.
+String SelfParamDecl(const ClassDefinition& cls, bool isConstMethod)
+{
+    if (cls.type != ClassDefinitionType::Struct)
+    {
+        return HYP_FORMAT("{} self", cls.name);
+    }
+
+    return HYP_FORMAT("{}{} self", isConstMethod ? "const ref " : "ref ", cls.name);
 }
 
 // A property resolved to its Strata representation, with accessor symbols
@@ -850,7 +860,7 @@ String StrataModuleGenerator::ResolveHandleBase(const Analyzer& analyzer, const 
         return String::empty;
     }
 
-    // Nearest declared base handle (e.g. Camera extends Entity).
+    // Nearest declared base handle (e.g. `handle Camera : Entity`).
     for (const String& baseName : cls.baseClassNames)
     {
         if (allHandleNames.Contains(baseName))
@@ -1104,11 +1114,11 @@ Result StrataModuleGenerator::EmitHandles(const Analyzer& analyzer, const Module
             continue;
         }
 
-        const String extendsBase = ResolveHandleBase(analyzer, cls, allHandleNames);
+        const String baseHandle = ResolveHandleBase(analyzer, cls, allHandleNames);
 
-        if (extendsBase.Any())
+        if (baseHandle.Any())
         {
-            writer.WriteString(HYP_FORMAT("handle {} extends {};\n", cls.name, extendsBase));
+            writer.WriteString(HYP_FORMAT("handle {} : {};\n", cls.name, baseHandle));
         }
         else
         {
@@ -1222,8 +1232,7 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
 
             if (!isStatic)
             {
-                // Instance methods receive their object as the first handle param.
-                paramDecls.PushBack(HYP_FORMAT("{} self", cls.name));
+                paramDecls.PushBack(SelfParamDecl(cls, functionType->isConstMethod));
             }
 
             bool paramsOk = true;
@@ -1353,8 +1362,8 @@ Result StrataModuleGenerator::EmitMethods(const Analyzer& analyzer, const Module
                     // (the compiler bans direct string returns).
                     if (binding.getterSynthesized && prop.mapping.isString)
                     {
-                        classOutput += HYP_FORMAT("    extern void {}_Get_{}({} self, return {} outReturn);\n",
-                            cls.name, prop.name, cls.name, prop.mapping.typeName);
+                        classOutput += HYP_FORMAT("    extern void {}_Get_{}({}, return {} outReturn);\n",
+                            cls.name, prop.name, SelfParamDecl(cls, true), prop.mapping.typeName);
                     }
 
                     accessors += HYP_FORMAT("get = {};", binding.getterSymbol);

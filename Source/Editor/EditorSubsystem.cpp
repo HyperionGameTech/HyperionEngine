@@ -2174,6 +2174,11 @@ void EditorSubsystem::OnAddedToWorld()
               })
         .Detach();
 
+    m_delegateHandlers.Add(NAME("OnScriptReloaded"), ScriptSystem::OnScriptReloaded.Bind([this]()
+        {
+            OnScriptReloaded();
+        }));
+
     if (const String startupProjectPath = g_editorState->GetStartupProjectPath(); startupProjectPath.Any())
     {
         TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(FilePath(startupProjectPath));
@@ -2195,6 +2200,8 @@ void EditorSubsystem::OnAddedToWorld()
 
 void EditorSubsystem::OnRemovedFromWorld()
 {
+    m_delegateHandlers.Remove("OnScriptReloaded"_sh);
+
     for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
         vp->OnSceneRemoved(m_editorScene);
@@ -3750,24 +3757,7 @@ void EditorSubsystem::InitViewport()
 
             RayTestResults results;
 
-            bool hasHits = false;
-            for (const Handle<EditorViewport>& vp : m_editorViewports)
-            {
-                if (vp->GetView()->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
-                {
-                    hasHits = true;
-                }
-            }
-
-            if (const Handle<World>& projectWorld = GetProjectWorld(); projectWorld.IsValid())
-            {
-                if (EditorSpriteSystem* spriteSystem = projectWorld->GetSystem<EditorSpriteSystem>())
-                {
-                    hasHits |= spriteSystem->TestRay(ray, results);
-                }
-            }
-
-            if (hasHits)
+            if (TestPickRay(ray, results))
             {
                 for (const RayHit& hit : results)
                 {
@@ -5063,6 +5053,29 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
     }
 
     return insertionPoint;
+}
+
+bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
+{
+    bool hasHits = false;
+
+    for (const Handle<EditorViewport>& vp : m_editorViewports)
+    {
+        if (vp->GetView()->TestRay(ray, outResults, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
+        {
+            hasHits = true;
+        }
+    }
+
+    if (const Handle<World>& projectWorld = GetProjectWorld(); projectWorld.IsValid())
+    {
+        if (EditorSpriteSystem* spriteSystem = projectWorld->GetSystem<EditorSpriteSystem>())
+        {
+            hasHits |= spriteSystem->TestRay(ray, outResults);
+        }
+    }
+
+    return hasHits;
 }
 
 void EditorSubsystem::UpdateNormalizedCubeSpherePreview(uint32 numDivisions)

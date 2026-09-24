@@ -68,63 +68,47 @@ namespace Hyperion.Editor.ViewModels
         }
     }
 
-    public class InspectorComponentViewModel<T> : InspectorComponentViewModelBase where T : IComponent, allows ref struct
+    public class InspectorComponentViewModel : InspectorComponentViewModelBase
     {
-        private static readonly Class? _componentClass = Class.GetClass(typeof(T));
+        private static readonly TypeId? s_meshComponentTypeId = Class.TryGetClass<MeshComponent>()?.TypeId;
+        private static readonly TypeId? s_rigidBodyComponentTypeId = Class.TryGetClass<RigidBodyComponent>()?.TypeId;
 
-        private static readonly bool _isEditorVisible = ComputeIsEditorVisible();
+        private readonly Class _componentClass;
 
-        private static bool ComputeIsEditorVisible()
+        public override bool IsEditorVisible
         {
-            if (_componentClass == null)
+            get
             {
-                return true;
+                ClassAttribute? attrEditor = _componentClass.GetAttribute("editor");
+
+                return attrEditor == null || attrEditor.Value.GetBool();
             }
-
-            ClassAttribute? attrEditor = _componentClass.Value.GetAttribute("editor");
-
-            return attrEditor == null || attrEditor.Value.GetBool();
         }
 
-        public override bool IsEditorVisible => _isEditorVisible;
+        public override TypeId TypeId => _componentClass.TypeId;
 
-        public override TypeId TypeId => _componentClass?.TypeId ?? default;
-
-        public InspectorComponentViewModel(Entity? target)
-            : base(target, GetLabel())
+        public InspectorComponentViewModel(Entity? target, Class componentClass)
+            : base(target, GetLabel(componentClass))
         {
+            _componentClass = componentClass;
         }
 
-        private static string GetLabel()
+        private static string GetLabel(Class componentClass)
         {
-            if (_componentClass != null)
+            ClassAttribute? attrLabel = componentClass.GetAttribute("label");
+
+            if (attrLabel != null)
             {
-                // Use the Label attribute if present
-                ClassAttribute? attrLabel = _componentClass.Value.GetAttribute("label");
-
-                if (attrLabel != null)
-                {
-                    return attrLabel.Value.GetString();
-                }
-
-                return _componentClass.Value.Name.ToString();
+                return attrLabel.Value.GetString();
             }
 
-            string typeName = typeof(T).Name;
-
-            return typeName.EndsWith("Component", StringComparison.Ordinal)
-                ? typeName
-                : typeName + " Component";
+            return componentClass.Name.ToString();
         }
 
         public override void PopulateProperties()
         {
-            if (_componentClass == null)
-            {
-                return;
-            }
-
-            Class cls = _componentClass.Value;
+            Class cls = _componentClass;
+            string className = cls.Name.ToString();
             IntPtr classAddress = cls.Address;
             TypeId componentTypeId = cls.TypeId;
             IReadOnlyList<Entity> peerEntities = PeerEntities;
@@ -144,7 +128,7 @@ namespace Hyperion.Editor.ViewModels
 
                     if (componentPtr == IntPtr.Zero)
                     {
-                        Logger.Log(LogLevel.Warning, $"Inspector failed to get component pointer for '{typeof(T).Name}' on entity '{_target.Name}'");
+                        Logger.Log(LogLevel.Warning, $"Inspector failed to get component pointer for '{className}' on entity '{_target.Name}'");
                         return;
                     }
 
@@ -192,8 +176,8 @@ namespace Hyperion.Editor.ViewModels
 
                     List<InspectorPropertyViewModelBase> vms = new();
 
-                    bool isMeshComponent = typeof(T) == typeof(MeshComponent);
-                    bool isRigidBodyComponent = typeof(T) == typeof(RigidBodyComponent);
+                    bool isMeshComponent = componentTypeId == s_meshComponentTypeId;
+                    bool isRigidBodyComponent = componentTypeId == s_rigidBodyComponentTypeId;
 
                     foreach (Property property in componentProperties)
                     {
@@ -282,7 +266,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogLevel.Warning, $"Inspector failed to populate component properties for '{typeof(T).Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to populate component properties for '{className}': {ex.Message}");
                 }
             });
         }
