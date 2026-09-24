@@ -78,6 +78,32 @@ public:
     HYP_METHOD()
     void SetClipboardNodes(const Array<Handle<Node>>& nodes);
 
+    /*! \brief Recently opened project files, most recent first. Persisted to EditorConfig. */
+    HYP_METHOD()
+    int32 GetNumRecentProjects() const;
+
+    HYP_METHOD()
+    String GetRecentProject(int32 index) const;
+
+    HYP_METHOD()
+    void AddRecentProject(const String& projectFilepath);
+
+    HYP_METHOD()
+    void RemoveRecentProject(const String& projectFilepath);
+
+    HYP_METHOD()
+    void ClearRecentProjects();
+
+    HYP_METHOD()
+    bool GetAlwaysOpenLastProject() const;
+
+    HYP_METHOD()
+    void SetAlwaysOpenLastProject(bool alwaysOpenLastProject);
+
+    /*! \brief The project to open at startup in place of a new one, or empty when the start screen should be shown instead. */
+    HYP_METHOD()
+    String GetStartupProjectPath() const;
+
     void Initialize();
 
     void Update(float delta);
@@ -97,7 +123,13 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void> OnClipboardChanged;
 
+    HYP_FIELD()
+    ScriptableDelegate<void> OnRecentProjectsChanged;
+
 private:
+    void LoadRecentProjects();
+    void SaveRecentProjects() const;
+
     Handle<EditorProject> m_currentProject;
 
     EditorTaskManager m_taskManager;
@@ -105,6 +137,10 @@ private:
     EditorPickCache m_pickCache;
 
     Array<Handle<Node>> m_clipboardNodes;
+
+    Array<String> m_recentProjects;
+    bool m_alwaysOpenLastProject;
+    mutable Mutex m_recentProjectsMutex;
 
     mutable Mutex m_mutex;
 };

@@ -1,0 +1,290 @@
+<Window
+    x:Class="Hyperion.Editor.Views.StartScreenWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:CompileBindings="False"
+    x:DataType="vm:StartScreenViewModel"
+    mc:Ignorable="d"
+    Title="Hyperion Editor"
+    Icon="/Assets/Branding/hyperion-icon.ico"
+    Width="880"
+    Height="560"
+    MinWidth="720"
+    MinHeight="440"
+    WindowStartupLocation="CenterScreen"
+    Background="{DynamicResource Brush.Background}">
+
+    <Window.Styles>
+        <Style Selector="Button.start-action">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Medium}" />
+        </Style>
+
+        <Style Selector="Button.start-action:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.HoverBorder}" />
+        </Style>
+
+        <Style Selector="Button.start-action.primary">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.AccentMuted}" />
+        </Style>
+
+        <Style Selector="Button.recent-row">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Small}" />
+        </Style>
+
+        <Style Selector="Button.recent-row:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+        </Style>
+
+        <Style Selector="Button.recent-remove">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Small}" />
+        </Style>
+
+        <Style Selector="Grid.recent-item:pointerover Button.recent-remove">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <Style Selector="Button.recent-remove:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <Grid ColumnDefinitions="280,*">
+            <!--  Actions  -->
+            <Border
+                Grid.Column="0"
+                Padding="20,22"
+                Background="{DynamicResource Brush.Panel}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <Image
+                        Height="54"
+                        Margin="0,0,0,24"
+                        HorizontalAlignment="Left"
+                        DockPanel.Dock="Top"
+                        RenderOptions.BitmapInterpolationMode="HighQuality"
+                        Source="/Assets/Branding/hyperion_light.png"
+                        Stretch="Uniform" />
+
+                    <CheckBox
+                        Margin="0,16,0,0"
+                        DockPanel.Dock="Bottom"
+                        IsChecked="{Binding AlwaysOpenLastProject, Mode=TwoWay}"
+                        ToolTip.Tip="Skip this screen and reopen the most recent project when the editor starts. Can be turned off again from the Open menu in the toolbar.">
+                        <TextBlock
+                            FontSize="12"
+                            Text="Always open the most recent project on startup"
+                            TextWrapping="Wrap" />
+                    </CheckBox>
+
+                    <StackPanel Spacing="8">
+                        <Button
+                            Classes="start-action primary"
+                            Command="{Binding OpenLastProjectCommand}"
+                            IsVisible="{Binding HasLastProject}"
+                            ToolTip.Tip="{Binding LastProject.FilePath}">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <controls:Codicon
+                                    Grid.Column="0"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Center"
+                                    Kind="Play"
+                                    Size="18" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock FontWeight="SemiBold" Text="Open Last Project" />
+                                    <TextBlock
+                                        Classes="muted"
+                                        FontSize="11"
+                                        Text="{Binding LastProject.Name}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Classes="start-action"
+                            Command="{Binding NewProjectCommand}"
+                            ToolTip.Tip="Start with a new, untitled project">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <controls:Codicon
+                                    Grid.Column="0"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Center"
+                                    Kind="Add"
+                                    Size="18" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock FontWeight="SemiBold" Text="New Project" />
+                                    <TextBlock
+                                        Classes="muted"
+                                        FontSize="11"
+                                        Text="Start from an empty scene" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Classes="start-action"
+                            Command="{Binding BrowseCommand}"
+                            ToolTip.Tip="Open a .hypproject file or project folder">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <controls:Codicon
+                                    Grid.Column="0"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Center"
+                                    Kind="FolderOpened"
+                                    Size="18" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock FontWeight="SemiBold" Text="Browse..." />
+                                    <TextBlock
+                                        Classes="muted"
+                                        FontSize="11"
+                                        Text="Open a project from disk" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!--  Recent projects  -->
+            <DockPanel Grid.Column="1" Margin="20,22,20,16">
+                <TextBlock
+                    Margin="4,0,0,10"
+                    Classes="section-label"
+                    DockPanel.Dock="Top"
+                    Text="Recent Projects" />
+
+                <Panel>
+                    <StackPanel
+                        Margin="4,8,0,0"
+                        IsVisible="{Binding !HasRecentProjects}"
+                        Spacing="4">
+                        <TextBlock FontSize="13" Text="No recent projects yet." />
+                        <TextBlock
+                            Classes="muted"
+                            FontSize="11.5"
+                            Text="Projects you open or save will show up here."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <ScrollViewer IsVisible="{Binding HasRecentProjects}">
+                        <ItemsControl ItemsSource="{Binding RecentProjects}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RecentProjectItemViewModel">
+                                    <Grid Classes="recent-item" ColumnDefinitions="*,Auto">
+                                        <Button
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Classes="recent-row"
+                                            Command="{Binding $parent[ItemsControl].DataContext.OpenRecentProjectCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{Binding FilePath}">
+                                            <Grid Margin="0,0,30,0" ColumnDefinitions="Auto,*,Auto">
+                                                <controls:Codicon
+                                                    Grid.Column="0"
+                                                    Margin="0,0,12,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{DynamicResource Brush.TextMuted}"
+                                                    Kind="Package"
+                                                    Size="20" />
+                                                <StackPanel
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    Spacing="2">
+                                                    <TextBlock
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding Name}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Classes="muted"
+                                                        FontSize="11"
+                                                        Text="{Binding Directory}"
+                                                        TextTrimming="PrefixCharacterEllipsis" />
+                                                </StackPanel>
+                                                <StackPanel
+                                                    Grid.Column="2"
+                                                    Margin="12,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6">
+                                                    <controls:Codicon
+                                                        VerticalAlignment="Center"
+                                                        Foreground="{DynamicResource Brush.Warning}"
+                                                        IsVisible="{Binding !Exists}"
+                                                        Kind="Warning"
+                                                        Size="13" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        Classes="muted"
+                                                        FontSize="11"
+                                                        Text="{Binding LastModifiedText}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Button>
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Margin="0,0,6,0"
+                                            VerticalAlignment="Center"
+                                            Classes="recent-remove"
+                                            Command="{Binding $parent[ItemsControl].DataContext.RemoveRecentProjectCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="Remove from recent projects (the project stays on disk)">
+                                            <controls:Codicon Kind="Close" Size="13" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Panel>
+            </DockPanel>
+        </Grid>
+
+        <!--  Opening a project  -->
+        <Border Background="#B0000000" IsVisible="{Binding IsBusy}">
+            <Border
+                Padding="24,18"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="{DynamicResource Brush.PanelRaised}"
+                BorderBrush="{DynamicResource Brush.BorderLight}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Radius.Medium}">
+                <StackPanel Width="280" Spacing="12">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Text="{Binding BusyText}"
+                        TextTrimming="CharacterEllipsis" />
+                    <ProgressBar IsIndeterminate="True" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</Window>

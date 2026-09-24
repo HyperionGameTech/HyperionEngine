@@ -300,7 +300,7 @@
         <DockPanel Background="{DynamicResource Brush.Background}">
             <!--  Fallback in-window menu for non-macOS platforms (hidden: actions live in the toolbar)  -->
             <Menu DockPanel.Dock="Top" IsVisible="False">
-                <MenuItem Header="_File">
+                <MenuItem Header="_File" SubmenuOpened="OnFileMenuSubmenuOpened">
                     <MenuItem
                         Command="{Binding NewProject}"
                         Header="_New Project..."
@@ -308,6 +308,10 @@
                     <MenuItem
                         Command="{Binding OpenProject}"
                         Header="_Open Project..."
+                        IsEnabled="{Binding !IsSimulating}" />
+                    <MenuItem
+                        x:Name="FileOpenRecentMenuItem"
+                        Header="Open _Recent"
                         IsEnabled="{Binding !IsSimulating}" />
                     <Separator />
                     <MenuItem
@@ -397,13 +401,36 @@
                                     ToolTip.Tip="New Project">
                                     <controls:Codicon Kind="File" Size="16" />
                                 </Button>
-                                <Button
-                                    Classes="gizmo"
-                                    Command="{Binding OpenProject}"
-                                    IsEnabled="{Binding !IsSimulating}"
-                                    ToolTip.Tip="Open">
-                                    <controls:Codicon Kind="FolderOpened" Size="16" />
-                                </Button>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Classes="gizmo"
+                                        Command="{Binding OpenProject}"
+                                        IsEnabled="{Binding !IsSimulating}"
+                                        ToolTip.Tip="Open">
+                                        <controls:Codicon Kind="FolderOpened" Size="16" />
+                                    </Button>
+                                    <DropDownButton
+                                        Width="16"
+                                        Classes="gizmo"
+                                        Click="OnDropDownClick"
+                                        IsEnabled="{Binding !IsSimulating}"
+                                        ToolTip.Tip="Open Recent">
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                        <DropDownButton.ContextMenu>
+                                            <ContextMenu Opened="OnOpenProjectMenuOpened" Placement="Bottom">
+                                                <MenuItem Command="{Binding OpenProject}" Header="Open Project..." />
+                                                <MenuItem x:Name="ToolbarOpenRecentMenuItem" Header="Open Recent" />
+                                                <Separator />
+                                                <MenuItem
+                                                    Command="{Binding ToggleAlwaysOpenLastProject}"
+                                                    Header="Always Open Most Recent Project on Startup"
+                                                    IsChecked="{Binding AlwaysOpenLastProject, Mode=OneWay}"
+                                                    ToggleType="CheckBox"
+                                                    ToolTip.Tip="Skip the start screen and reopen the most recent project when the editor starts" />
+                                            </ContextMenu>
+                                        </DropDownButton.ContextMenu>
+                                    </DropDownButton>
+                                </StackPanel>
                                 <Button
                                     Classes="gizmo"
                                     Command="{Binding SaveProject}"

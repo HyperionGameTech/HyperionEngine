@@ -2,6 +2,44 @@
 
 namespace Hyperion {
 
+static bool ConfirmCloseCurrentProject(EditorSubsystem* subsystem)
+{
+    Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+
+    if (!currentProject.IsValid() || !currentProject->IsDirty())
+    {
+        return true;
+    }
+
+    bool cancel = false;
+
+    SystemMessageBox(MessageBoxType::INFO)
+        .Title("Save changes?")
+        .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
+        .Button("Save", [currentProject, &cancel]
+        {
+            Result saveResult = currentProject->Save();
+            if (saveResult.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+
+                SystemMessageBox(MessageBoxType::CRITICAL)
+                            .Title("Project could not be saved")
+                            .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                                + "\nThe operation will be aborted to prevent loss of data")
+                            .Button("OK", NoOpFunction<void> {})
+                            .Show();
+
+                cancel = true;
+            }
+        })
+        .Button("Discard", NoOpFunction<void> {})
+        .Button("Cancel", [&cancel] { cancel = true; })
+        .Show();
+
+    return !cancel;
+}
+
 #pragma region Undo
 
 class EditorCommandUndo final : public EditorCommandBase
@@ -57,41 +95,9 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        if (!ConfirmCloseCurrentProject(subsystem))
         {
-            if (currentProject->IsDirty())
-            {
-                bool cancel = false;
-
-                SystemMessageBox(MessageBoxType::INFO)
-                    .Title("Save changes?")
-                    .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
-                    .Button("Save", [currentProject, &cancel]
-                    {
-                        Result saveResult = currentProject->Save();
-                        if (saveResult.HasError())
-                        {
-                            HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
-
-                            SystemMessageBox(MessageBoxType::CRITICAL)
-                                        .Title("Project could not be saved")
-                                        .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                            + "\nThe operation will be aborted to prevent loss of data")
-                                        .Button("OK", NoOpFunction<void> {})
-                                        .Show();
-
-                            cancel = true;
-                        }
-                    })
-                    .Button("Discard", NoOpFunction<void> {})
-                    .Button("Cancel", [&cancel] { cancel = true; })
-                    .Show();
-
-                if (cancel)
-                {
-                    return;
-                }
-            }
+            return;
         }
 
         subsystem->NewProject();
@@ -113,41 +119,9 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        if (!ConfirmCloseCurrentProject(subsystem))
         {
-            if (currentProject->IsDirty())
-            {
-                bool cancel = false;
-
-                SystemMessageBox(MessageBoxType::INFO)
-                    .Title("Save changes?")
-                    .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
-                    .Button("Save", [currentProject, &cancel]
-                    {
-                        Result saveResult = currentProject->Save();
-                        if (saveResult.HasError())
-                        {
-                            HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
-
-                            SystemMessageBox(MessageBoxType::CRITICAL)
-                                        .Title("Project could not be saved")
-                                        .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                            + "\nThe operation will be aborted to prevent loss of data")
-                                        .Button("OK", NoOpFunction<void> {})
-                                        .Show();
-
-                            cancel = true;
-                        }
-                    })
-                    .Button("Discard", NoOpFunction<void> {})
-                    .Button("Cancel", [&cancel] { cancel = true; })
-                    .Show();
-
-                if (cancel)
-                {
-                    return;
-                }
-            }
+            return;
         }
 
         const FilePath& dir = EngineGlobals::GetProjectsDirectory();
@@ -214,6 +188,80 @@ public:
 DEFINE_EDITOR_COMMAND(OpenProject);
 
 #pragma endregion OpenProject
+
+#pragma region OpenProjectAtPath
+
+class EditorCommandOpenProjectAtPath final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandOpenProjectAtPath);
+
+public:
+    virtual ~EditorCommandOpenProjectAtPath() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const FilePath projectFilepath = FilePath(GetArgument(0));
+
+        if (projectFilepath.Empty())
+        {
+            HYP_LOG(Editor, Warning, "OpenProjectAtPath: no project path given");
+            return;
+        }
+
+        if (!projectFilepath.Exists())
+        {
+            HYP_LOG(Editor, Error, "Project file does not exist: {}", projectFilepath);
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Project not found")
+                .Text(String("The project could not be found at:\n") + projectFilepath + "\n\nIt has been removed from the recent projects list.")
+                .Button("OK", NoOpFunction<void> {})
+                .Show();
+
+            g_editorState->RemoveRecentProject(projectFilepath);
+
+            return;
+        }
+
+        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid() && currentProject->GetFilePath() == projectFilepath)
+        {
+            return;
+        }
+
+        if (!ConfirmCloseCurrentProject(subsystem))
+        {
+            return;
+        }
+
+        subsystem->CloseProject();
+
+        TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
+
+        if (loadProjectResult.HasError() || !loadProjectResult.GetValue().IsValid())
+        {
+            const String errorMessage = loadProjectResult.HasError() ? String(loadProjectResult.GetError().GetMessage()) : String("Loaded project is invalid.");
+
+            HYP_LOG(Editor, Error, "Failed to load project '{}': {}", projectFilepath, errorMessage);
+
+            SystemMessageBox(MessageBoxType::CRITICAL)
+                .Title("Project could not be opened")
+                .Text(String("The project could not be opened: ") + errorMessage)
+                .Button("OK", NoOpFunction<void> {})
+                .Show();
+
+            // Don't leave the editor without a project
+            subsystem->NewProject();
+
+            return;
+        }
+
+        subsystem->OpenProject(loadProjectResult.GetValue());
+    }
+};
+
+DEFINE_EDITOR_COMMAND(OpenProjectAtPath);
+
+#pragma endregion OpenProjectAtPath
 
 #pragma region SaveProject
 
@@ -350,41 +398,9 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        if (!ConfirmCloseCurrentProject(subsystem))
         {
-            if (currentProject->IsDirty())
-            {
-                bool cancel = false;
-
-                SystemMessageBox(MessageBoxType::INFO)
-                    .Title("Save changes?")
-                    .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
-                    .Button("Save", [currentProject, &cancel]
-                    {
-                        Result saveResult = currentProject->Save();
-                        if (saveResult.HasError())
-                        {
-                            HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
-
-                            SystemMessageBox(MessageBoxType::CRITICAL)
-                                        .Title("Project could not be saved")
-                                        .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                            + "\nThe operation will be aborted to prevent loss of data")
-                                        .Button("OK", NoOpFunction<void> {})
-                                        .Show();
-
-                            cancel = true;
-                        }
-                    })
-                    .Button("Discard", NoOpFunction<void> {})
-                    .Button("Cancel", [&cancel] { cancel = true; })
-                    .Show();
-
-                if (cancel)
-                {
-                    return;
-                }
-            }
+            return;
         }
 
         subsystem->CloseProject();

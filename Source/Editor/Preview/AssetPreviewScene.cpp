@@ -159,6 +159,7 @@ bool AssetPreviewScene::Initialize(World* world)
     m_world = world;
 
     m_scene = MakeHandle<Scene>(NAME_FMT("{}Scene", m_name), SceneFlags::EDITOR | SceneFlags::HAS_OCTREE);
+    m_scene->SetIsTransient(true);
     InitObject(m_scene);
 
     m_world->AddScene(m_scene, /* addToStreamingLayer */ false);

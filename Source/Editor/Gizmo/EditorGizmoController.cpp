@@ -205,9 +205,10 @@ void EditorGizmoController::UpdateGizmoProximityVisibility()
 
     const float cameraDistance = (activeViewport->GetCamera()->GetWorldTranslation() - gizmoNode->GetWorldTranslation()).Length();
 
-    const bool shouldHide = m_gizmosHiddenByProximity
-        ? cameraDistance < showDistance
-        : cameraDistance < hideDistance;
+    const float distanceToCheck = m_gizmosHiddenByProximity ? showDistance : hideDistance;
+
+    const bool shouldHide = !gizmo->IsScreenSpaceSized()
+        && cameraDistance < distanceToCheck;
 
     if (shouldHide == m_gizmosHiddenByProximity)
     {
@@ -233,6 +234,27 @@ void EditorGizmoController::UpdateGizmoProximityVisibility()
     {
         editorScene->GetRoot()->AddChild(gizmoNode);
     }
+}
+
+void EditorGizmoController::UpdateGizmoScreenSize()
+{
+    AssertOnThread(g_simThread);
+
+    EditorGizmoBase* gizmo = GetSelectedGizmo();
+
+    if (gizmo == nullptr || gizmo->GetManipulationMode() == EditorManipulationMode::None)
+    {
+        return;
+    }
+
+    EditorViewport* activeViewport = m_subsystem->GetActiveViewport();
+
+    if (activeViewport == nullptr)
+    {
+        return;
+    }
+
+    gizmo->UpdateScreenSpaceSize(activeViewport->GetCamera());
 }
 
 static float SnapToGridLine(float value, float gridOffset, float gridSize)

@@ -2174,6 +2174,22 @@ void EditorSubsystem::OnAddedToWorld()
               })
         .Detach();
 
+    if (const String startupProjectPath = g_editorState->GetStartupProjectPath(); startupProjectPath.Any())
+    {
+        TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(FilePath(startupProjectPath));
+
+        if (loadProjectResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "Failed to open last project '{}': {}", startupProjectPath, loadProjectResult.GetError().GetMessage());
+        }
+        else if (loadProjectResult.GetValue().IsValid())
+        {
+            OpenProject(loadProjectResult.GetValue());
+
+            return;
+        }
+    }
+
     NewProject();
 }
 
@@ -3002,6 +3018,8 @@ void EditorSubsystem::Update(float delta)
             }
         }
     }
+
+    m_gizmoController->UpdateGizmoScreenSize();
 
     UpdateGizmoProximityVisibility();
 
@@ -4460,9 +4478,23 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
 
 bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
 {
-    if (!name.IsValid())
+    Handle<EditorCommandBase> command = CreateCommandByName(name);
+
+    if (!command)
     {
         return false;
+    }
+
+    command->SetArguments(args.Split(' '));
+
+    return ExecuteCommand(command);
+}
+
+Handle<EditorCommandBase> EditorSubsystem::CreateCommandByName(Name name) const
+{
+    if (!name.IsValid())
+    {
+        return Handle<EditorCommandBase>::Null();
     }
 
     const Class* commandClass = ClassRegistry::GetInstance().GetClass(name);
@@ -4479,7 +4511,7 @@ bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
         if (!commandClass || !commandClass->IsDerivedFrom(EditorCommandBase::StaticClass()))
         {
             HYP_LOG(Editor, Error, "Invalid command class: {}", name);
-            return false;
+            return Handle<EditorCommandBase>::Null();
         }
     }
 
@@ -4487,15 +4519,27 @@ bool EditorSubsystem::ExecuteCommandByName(Name name, const String& args)
     if (!commandClass->CreateInstance(instanceData))
     {
         HYP_LOG(Editor, Error, "Failed to construct command instance: {}", name);
-        return false;
+        return Handle<EditorCommandBase>::Null();
     }
 
-    Handle<EditorCommandBase>& command = instanceData.Get<Handle<EditorCommandBase>>();
+    Handle<EditorCommandBase> command = instanceData.Get<Handle<EditorCommandBase>>();
     AssertDebug(command != nullptr);
 
-    command->SetArguments(args.Split(' '));
+    return command;
+}
 
-    return ExecuteCommand(command);
+void EditorSubsystem::OpenProjectAtPath(const String& projectFilepath)
+{
+    Handle<EditorCommandBase> command = CreateCommandByName(NAME("EditorCommandOpenProjectAtPath"));
+
+    if (!command)
+    {
+        return;
+    }
+
+    command->SetArguments({ projectFilepath });
+
+    ExecuteCommand(command);
 }
 
 void EditorSubsystem::NewProject()
@@ -4586,6 +4630,7 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
         ShutdownProjectWorld(m_currentProject, /* shutdownWorld */ shutdownWorld);
         OnProjectClosing(m_currentProject);
 
+        m_currentProject->OnProjectSaved.RemoveAllFromSet(m_delegateHandlers);
         m_currentProject->SetEditorSubsystem(WeakHandle<EditorSubsystem>::Null());
         m_currentProject->Close(/* shutdownWorld */ shutdownWorld);
 
@@ -4624,6 +4669,13 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     m_currentProject = project;
 
+    m_delegateHandlers.Add(m_currentProject->OnProjectSaved.Bind(
+        m_currentProject.Get(),
+        [](const Handle<EditorProject>& savedProject)
+        {
+            g_editorState->AddRecentProject(savedProject->GetFilePath());
+        }));
+
     InitializeProjectWorld(m_currentProject, isStartSimulation);
 
     m_thumbnailService = MakeUnique<AssetThumbnailService>();
@@ -4647,6 +4699,11 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     OnProjectOpened(m_currentProject);
 
     g_editorState->SetCurrentProject(m_currentProject, isSimulationStateChange);
+
+    if (!isSimulationStateChange && m_currentProject->IsSaved())
+    {
+        g_editorState->AddRecentProject(m_currentProject->GetFilePath());
+    }
 
     const Vec3f editorCameraDirection = project->GetEditorCameraDirection();
 

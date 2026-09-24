@@ -634,8 +634,14 @@ public:
             candidates.PushBack(std::move(node));
         }
 
-        // Each entry is a moved node paired with its previous parent.
-        Array<Pair<Handle<Node>, Handle<Node>>> moves;
+        struct ReparentMove
+        {
+            Handle<Node> node;
+            Handle<Node> previousParent;
+            Transform previousLocalTransform;
+        };
+
+        Array<ReparentMove> moves;
 
         for (const Handle<Node>& node : candidates)
         {
@@ -672,7 +678,7 @@ public:
                 continue;
             }
 
-            moves.PushBack({ node, MakeStrongRef(previousParent) });
+            moves.PushBack({ node, MakeStrongRef(previousParent), node->GetLocalTransform() });
         }
 
         if (moves.Empty())
@@ -688,7 +694,7 @@ public:
         }
 
         m_text = moves.Size() == 1
-            ? HYP_FORMAT("Attach '{}' to '{}'", moves[0].first->GetName(), newParent->GetName())
+            ? HYP_FORMAT("Attach '{}' to '{}'", moves[0].node->GetName(), newParent->GetName())
             : HYP_FORMAT("Attach {} nodes to '{}'", moves.Size(), newParent->GetName());
 
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
@@ -700,10 +706,9 @@ public:
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [moves, newParent](EditorSubsystem*, EditorProject*)
                             {
-                                for (const auto& move : moves)
+                                for (const ReparentMove& move : moves)
                                 {
-                                    move.first->Remove();
-                                    newParent->AddChild(move.first);
+                                    newParent->AddChildKeepWorldTransform(move.node);
                                 }
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
@@ -711,8 +716,9 @@ public:
                             {
                                 for (int i = int(moves.Size()) - 1; i >= 0; --i)
                                 {
-                                    moves[i].first->Remove();
-                                    moves[i].second->AddChild(moves[i].first);
+                                    moves[i].node->Remove();
+                                    moves[i].previousParent->AddChild(moves[i].node);
+                                    moves[i].node->SetLocalTransform(moves[i].previousLocalTransform);
                                 }
                             })
                     };
@@ -835,20 +841,20 @@ public:
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             GetText(),
             Proc<EditorActionFunctions()>(
-                [node, targetRoot, previousParent = MakeStrongRef(previousParent)]() -> EditorActionFunctions
+                [node, targetRoot, previousParent = MakeStrongRef(previousParent), previousLocalTransform = node->GetLocalTransform()]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [node, targetRoot](EditorSubsystem*, EditorProject*)
                             {
-                                node->Remove();
-                                targetRoot->AddChild(node);
+                                targetRoot->AddChildKeepWorldTransform(node);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [node, previousParent](EditorSubsystem*, EditorProject*)
+                            [node, previousParent, previousLocalTransform](EditorSubsystem*, EditorProject*)
                             {
                                 node->Remove();
                                 previousParent->AddChild(node);
+                                node->SetLocalTransform(previousLocalTransform);
                             })
                     };
                 }));

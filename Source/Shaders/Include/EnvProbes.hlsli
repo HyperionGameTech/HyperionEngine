@@ -55,16 +55,18 @@ float4 EnvProbeSample(
     return color;
 }
 
+// match with EnvProbeBoundsBlendFactor in DeferredPass.cpp
+#define ENV_PROBE_BOUNDS_BLEND_FACTOR 0.1
+
 float CalculateEnvProbeWeight(float3 positionWS, float3 aabbMin, float3 aabbMax, float blendFactor)
 {
     const float3 aabbExtent = aabbMax - aabbMin;
 
     const float3 blend = max(aabbExtent * blendFactor, (float3) HYP_FMATH_EPSILON);
-    const float3 distToMin = (positionWS.xyz - aabbMin) / blend;
-    const float3 distToMax = (aabbMax - positionWS.xyz) / blend;
-    const float minBlend = min(distToMin.x, min(distToMin.y, min(distToMin.z, min(distToMax.x, min(distToMax.y, distToMax.z)))));
-    
-    return smoothstep(0.0, 1.0, saturate(minBlend));
+    const float3 distOutside = max(max(aabbMin - positionWS.xyz, positionWS.xyz - aabbMax), (float3) 0.0) / blend;
+    const float maxDistOutside = max(distOutside.x, max(distOutside.y, distOutside.z));
+
+    return 1.0 - smoothstep(0.0, 1.0, saturate(maxDistOutside));
 }
 
 float3 EnvProbeCoordParallaxCorrected(
@@ -72,6 +74,8 @@ float3 EnvProbeCoordParallaxCorrected(
     float3 aabb_min, float3 aabb_max,
     float3 P, float3 R)
 {
+    P = clamp(P, aabb_min, aabb_max);
+
     float3 rbmax = (aabb_max - P) / R;
     float3 rbmin = (aabb_min - P) / R;
     float3 rbminmax = max(rbmax, rbmin);
@@ -94,6 +98,8 @@ float4 EnvProbeSampleParallaxCorrected(
     {
         return (float4)0.0;
     }
+
+    world = clamp(world, envProbe.aabb_min.xyz, envProbe.aabb_max.xyz);
 
     float3 rbmax = (envProbe.aabb_max.xyz - world) / R;
     float3 rbmin = (envProbe.aabb_min.xyz - world) / R;

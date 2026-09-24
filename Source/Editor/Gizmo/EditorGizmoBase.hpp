@@ -85,6 +85,13 @@ public:
     HYP_METHOD()
     virtual String GetMenuText() const = 0;
 
+    virtual bool IsScreenSpaceSized() const
+    {
+        return true;
+    }
+
+    void UpdateScreenSpaceSize(const Handle<Camera>& camera);
+
     virtual void SetFocusedNode(const Handle<Node>& focusedNode);
 
     virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint);
@@ -121,6 +128,8 @@ protected:
     {
         return m_editorSubsystem;
     }
+
+    void UpdateScreenSpaceSizeForActiveViewport();
 
     WeakHandle<Node> m_focusedNode;
     Handle<Node> m_node;

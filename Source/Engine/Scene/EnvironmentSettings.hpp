@@ -176,22 +176,22 @@ struct ExposureSettings
     HYP_STRUCT_BODY(ExposureSettings);
 
     HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation")
-    float exposureCompensation = 1.0f;
+    float exposureCompensation = 1.6f;
 
     HYP_FIELD(Property = "TonemapOperator", Serialize, Label = "Tonemapper")
-    TonemapOperator tonemapOperator = TonemapOperator::ACES;
+    TonemapOperator tonemapOperator = TonemapOperator::AgX;
 
     HYP_FIELD(Property = "WhiteBalanceTemperature", Serialize, Label = "Temperature")
-    float whiteBalanceTemperature = -0.1f;
+    float whiteBalanceTemperature = 0.0f;
 
     HYP_FIELD(Property = "WhiteBalanceTint", Serialize, Label = "Tint")
     float whiteBalanceTint = 0.0f;
 
     HYP_FIELD(Property = "Saturation", Serialize, Label = "Saturation")
-    float saturation = 0.95f;
+    float saturation = 1.05f;
 
     HYP_FIELD(Property = "Contrast", Serialize, Label = "Contrast")
-    float contrast = 0.9f;
+    float contrast = 1.05f;
 };
 
 HYP_STRUCT()

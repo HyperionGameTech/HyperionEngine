@@ -208,7 +208,7 @@ bool ComputeUVTangentFrame(float3 N, float3 P, float2 uv, out float3 tangent, ou
     return true;
 }
 
-// #define DEBUG_RAW_REFLECTIONS
+#define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
 {

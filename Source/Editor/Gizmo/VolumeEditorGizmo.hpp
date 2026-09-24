@@ -41,6 +41,11 @@ public:
         return 0;
     }
 
+    virtual bool IsScreenSpaceSized() const override
+    {
+        return false;
+    }
+
     virtual void SetFocusedNode(const Handle<Node>& focusedNode) override;
 
     virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;

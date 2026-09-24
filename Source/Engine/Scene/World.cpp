@@ -862,14 +862,14 @@ const Handle<Layer>& World::GetOrCreateLayer(Name layerName)
         return Handle<Layer>::Null();
     }
 
-    // New layer created, need to save it on the World
+    const LayerId layerId = LayerId(freeId);
+    
+    m_activeLayers.Set(freeId, true);
+
+    // New layer created, mark the world as dirtied so it gets saved on next save.
     MarkDirty();
 
-    const Handle<Layer>& layer = m_layers.PushBack(MakeHandle<Layer>(layerName, LayerId(freeId)));
-
-    // New layers start active - otherwise any entity assigned to one right after creation is hidden
-    // from the view and filtered out of the editor's scene hierarchy (dropping its selection).
-    m_activeLayers.Set(uint32(freeId), true);
+    const Handle<Layer>& layer = m_layers.PushBack(MakeHandle<Layer>(layerName, layerId));
 
     OnActiveLayersChanged.Fire(this, m_activeLayers);
 
@@ -1875,6 +1875,13 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
             continue; // prevent double add
         }
 
+        if (scene->GetSceneFlags() & SceneFlags::EDITOR)
+        {
+            HYP_LOG(Scene, Warning, "Dropping editor scene {} from world {} NonStreamingScenes", scene->GetName(), GetName());
+
+            continue;
+        }
+
         scene->SetWorld(this);
 
         m_scenes.PushBack(scene);
@@ -1919,6 +1926,12 @@ Array<Handle<Scene>> World::SerializeNonStreamingScenes() const
         }
 
         if (scene->GetAssetFlags() & AssetObjectFlags::Transient)
+        {
+            continue;
+        }
+
+        // editor-owned scenes (gizmos, asset previews) belong to the editor session, never to the world asset
+        if (scene->GetSceneFlags() & SceneFlags::EDITOR)
         {
             continue;
         }

@@ -633,6 +633,12 @@ public:
     HYP_METHOD()
     Handle<Node> AddChild(const Handle<Node>& node = {});
 
+    /*! \brief Add the Node as a child of this object, adjusting its local transform so that its world transform is unchanged.
+     *  If the Node is already attached to another parent, it is detached from that parent first.
+     *  \param node The Node to be added as a child of this Node
+     *  \returns The added Node */
+    Handle<Node> AddChildKeepWorldTransform(const Handle<Node>& node);
+
     /*! \brief Remove a child from this Node's child list.
      *  \param node The child Node to remove from this Node's child list.
      *  \param moveToDetached if true, will move the node to a detached scene, otherwise will set its Scene to nullptr.
@@ -947,6 +953,8 @@ protected:
     virtual void OnMobilityChanged(bool isStatic);
 
     virtual void SetScene_Internal(Scene* scene, bool moveToDetached);
+
+    Handle<Node> AddChild_Internal(const Handle<Node>& node, bool keepWorldTransform);
 
     ///Serialization
 

@@ -8,6 +8,7 @@
 
 #include <Editor/Gizmo/EditorGizmoBase.hpp>
 #include <Editor/EditorSubsystem.hpp>
+#include <Editor/EditorViewport.hpp>
 
 #include <Scene/Node.hpp>
 #include <Scene/Camera/Camera.hpp>
@@ -18,6 +19,10 @@
 
 #include <System/AppContext.hpp>
 
+#include <Framework/CVarManager.hpp>
+
+#include <Core/Math/MathUtil.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <EditorGizmoBase.generated.inl>
@@ -25,6 +30,9 @@
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
+
+// Size of one gizmo-local unit (roughly one axis length) as a fraction of the viewport height
+static CVar<float> s_cvEditorGizmoScreenSize { "Editor.Gizmo.ScreenSize", 0.12f };
 
 EditorGizmoBase::EditorGizmoBase()
     : m_isDragging(false),
@@ -78,6 +86,56 @@ void EditorGizmoBase::Shutdown()
     m_focusedNode.Reset();
 }
 
+void EditorGizmoBase::UpdateScreenSpaceSize(const Handle<Camera>& camera)
+{
+    if (!m_node.IsValid() || !camera.IsValid() || !IsScreenSpaceSized())
+    {
+        return;
+    }
+
+    const Mat4f& projection = camera->GetProjectionMatrix();
+
+    if (projection[1][1] <= MathUtil::epsilonF)
+    {
+        return;
+    }
+
+    // [3][3] is 0 for perspective projections and 1 for orthographic ones
+    const bool isPerspective = projection[3][3] == 0.0f;
+
+    float viewDepth = 1.0f;
+
+    if (isPerspective)
+    {
+        const Vec3f cameraToGizmo = m_node->GetWorldTranslation() - camera->GetWorldTranslation();
+
+        viewDepth = MathUtil::Max(cameraToGizmo.Dot(camera->GetDirection()), camera->GetNearClip());
+    }
+
+    const float viewHeightAtDepth = 2.0f * viewDepth / projection[1][1];
+    const float scale = MathUtil::Max(viewHeightAtDepth * s_cvEditorGizmoScreenSize.Get(), MathUtil::epsilonF);
+
+    if (m_node->GetWorldScale() == Vec3f(scale))
+    {
+        return;
+    }
+
+    m_node->SetWorldScale(Vec3f(scale));
+}
+
+void EditorGizmoBase::UpdateScreenSpaceSizeForActiveViewport()
+{
+    if (m_editorSubsystem == nullptr)
+    {
+        return;
+    }
+
+    if (EditorViewport* activeViewport = m_editorSubsystem->GetActiveViewport())
+    {
+        UpdateScreenSpaceSize(activeViewport->GetCamera());
+    }
+}
+
 void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
 {
     // Stop tracking the previously focused node's transform
@@ -99,17 +157,18 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
     }
 
     m_node->SetWorldTranslation(focusedNode->GetWorldTranslation());
+    UpdateScreenSpaceSizeForActiveViewport();
 
     // Keep the gizmo in sync when the focused node's transform changes externally
     // (e.g. swatch overrides applied on active-swatch switch, undo/redo from other paths).
+    // The handler is owned by this gizmo and reset before it is destroyed, so capturing this is safe.
     const WeakHandle<Node> weakFocused = focusedNode;
-    const Handle<Node> gizmoNode = m_node;
 
     m_focusedNodeTransformHandler = Node::TransformUpdated.Bind(
         focusedNode.Get(),
-        [weakFocused, gizmoNode](Node* updatedNode) -> void
+        [this, weakFocused](Node* updatedNode) -> void
         {
-            if (!gizmoNode.IsValid())
+            if (!m_node.IsValid())
             {
                 return;
             }
@@ -121,7 +180,8 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
                 return;
             }
 
-            gizmoNode->SetWorldTranslation(focused->GetWorldTranslation());
+            m_node->SetWorldTranslation(focused->GetWorldTranslation());
+            UpdateScreenSpaceSizeForActiveViewport();
         });
 }
 

@@ -231,6 +231,9 @@ public:
     void OpenProject(const Handle<EditorProject>& project);
 
     HYP_METHOD()
+    void OpenProjectAtPath(const String& projectFilepath);
+
+    HYP_METHOD()
     void CloseProject(bool shutdownWorld = true);
 
     HYP_METHOD()
@@ -637,6 +640,8 @@ public:
 
 private:
     void InitViewport();
+
+    Handle<EditorCommandBase> CreateCommandByName(Name name) const;
 
     void LoadPlayNetSettings();
     void SavePlayNetSettings();

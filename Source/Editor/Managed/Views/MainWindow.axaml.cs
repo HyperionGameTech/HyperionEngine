@@ -760,6 +760,71 @@ namespace Hyperion.Editor
             }
         }
 
+        private void OnOpenProjectMenuOpened(object? sender, RoutedEventArgs e)
+        {
+            if (sender is ContextMenu menu && menu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Name == "ToolbarOpenRecentMenuItem") is { } openRecentMenuItem)
+            {
+                PopulateOpenRecentMenu(openRecentMenuItem);
+            }
+        }
+
+        private void OnFileMenuSubmenuOpened(object? sender, RoutedEventArgs e)
+        {
+            // SubmenuOpened bubbles up from nested submenus too, and those must not be rebuilt while opening
+            if (ReferenceEquals(e.Source, sender))
+            {
+                PopulateOpenRecentMenu(FileOpenRecentMenuItem);
+            }
+        }
+
+        private void PopulateOpenRecentMenu(MenuItem openRecentMenuItem)
+        {
+            if (DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            openRecentMenuItem.Items.Clear();
+
+            IReadOnlyList<string> recentProjects = RecentProjectsService.Instance.RecentProjects;
+
+            if (recentProjects.Count == 0)
+            {
+                openRecentMenuItem.Items.Add(new MenuItem { Header = "No Recent Projects", IsEnabled = false });
+
+                return;
+            }
+
+            string? currentProjectFilepath = EngineManager.CurrentProject?.FilePath;
+
+            for (int index = 0; index < recentProjects.Count; index++)
+            {
+                string projectFilepath = recentProjects[index];
+
+                // Numbered access keys for the first nine entries; underscores in the name are escaped so they aren't read as access keys
+                string accessKey = index < 9 ? $"_{index + 1}  " : "    ";
+
+                MenuItem projectMenuItem = new MenuItem
+                {
+                    Header = $"{accessKey}{RecentProjectsService.GetProjectName(projectFilepath).Replace("_", "__")}",
+                    Command = viewModel.OpenRecentProject,
+                    CommandParameter = projectFilepath,
+                    IsEnabled = !RecentProjectsService.IsSameProject(projectFilepath, currentProjectFilepath),
+                };
+
+                ToolTip.SetTip(projectMenuItem, projectFilepath);
+
+                openRecentMenuItem.Items.Add(projectMenuItem);
+            }
+
+            openRecentMenuItem.Items.Add(new Separator());
+            openRecentMenuItem.Items.Add(new MenuItem
+            {
+                Header = "Clear Recent Projects",
+                Command = viewModel.ClearRecentProjects,
+            });
+        }
+
         /// <summary>
         /// Brings the selected asset into view. The content browser selects assets programmatically -
         /// a newly created one, for instance - and the selection is otherwise invisible if the item

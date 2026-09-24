@@ -474,6 +474,8 @@ public:
     static constexpr uint32 MaxEnvProbesPerTile = 16;
     static constexpr uint32 MaxLightsPerTile = 16;
 
+    static constexpr float EnvProbeBoundsBlendFactor = 0.1f;
+
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
     struct TileGridData
@@ -843,8 +845,10 @@ public:
             const EnvProbeShaderData& envProbeData = *tup.GetElement<1>();
             const uint32 envProbeBindingIndex = tup.GetElement<2>();
 
-            const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ();
-            const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ();
+            const Vec3f blendMargin = (envProbeData.aabbMax - envProbeData.aabbMin).GetXYZ() * EnvProbeBoundsBlendFactor;
+
+            const Vec3f aabbMinWS = envProbeData.aabbMin.GetXYZ() - blendMargin;
+            const Vec3f aabbMaxWS = envProbeData.aabbMax.GetXYZ() + blendMargin;
 
             uint32 tileMinX;
             uint32 tileMinY;

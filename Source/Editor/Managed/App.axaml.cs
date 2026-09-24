@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Hyperion.Editor.Services;
+using Hyperion.Editor.ViewModels;
 using Hyperion.Editor.Views;
 
 namespace Hyperion.Editor
@@ -38,15 +40,60 @@ namespace Hyperion.Editor
 
             InitializeEngine();
 
+            if (!RecentProjectsService.Instance.WillOpenLastProjectOnStartup)
+            {
+                ShowStartScreen(desktop, splashWindow);
+
+                return;
+            }
+
             splashWindow.SetStatus("Loading editor...");
             await splashWindow.WaitForNextFrameAsync();
 
-            MainWindow mainWindow = new MainWindow();
-            desktop.MainWindow = mainWindow;
-            mainWindow.Show();
+            ShowMainWindow(desktop);
 
             // Main window must be open before the splash closes, otherwise the lifetime sees the last window close and shuts down
             splashWindow.Close();
+        }
+
+        private static void ShowStartScreen(IClassicDesktopStyleApplicationLifetime desktop, SplashWindow splashWindow)
+        {
+            StartScreenViewModel startScreenViewModel = new StartScreenViewModel();
+            StartScreenWindow startScreenWindow = new StartScreenWindow { DataContext = startScreenViewModel };
+
+            bool mainWindowShown = false;
+
+            // Same rule as the splash: the main window has to be open before the start screen closes, including via its close button
+            void ContinueToEditor()
+            {
+                if (mainWindowShown)
+                {
+                    return;
+                }
+
+                mainWindowShown = true;
+
+                ShowMainWindow(desktop);
+            }
+
+            startScreenViewModel.Finished += () =>
+            {
+                ContinueToEditor();
+                startScreenWindow.Close();
+            };
+
+            startScreenWindow.Closing += (_, _) => ContinueToEditor();
+
+            startScreenWindow.Show();
+            splashWindow.Close();
+            startScreenWindow.Activate();
+        }
+
+        private static void ShowMainWindow(IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            MainWindow mainWindow = new MainWindow();
+            desktop.MainWindow = mainWindow;
+            mainWindow.Show();
             mainWindow.Activate();
         }
 

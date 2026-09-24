@@ -62,6 +62,9 @@ public:
 
     void UpdateGizmoProximityVisibility();
 
+    /*! \brief Rescales the selected gizmo so it keeps a constant on-screen size in the active viewport. */
+    void UpdateGizmoScreenSize();
+
     HYP_FORCE_INLINE bool AreGizmosHiddenByProximity() const
     {
         return m_gizmosHiddenByProximity;

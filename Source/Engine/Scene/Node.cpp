@@ -382,11 +382,45 @@ void Node::SetChildren(const NodeList& children)
     }
 }
 
+static Transform TransformFromMatrix(const Mat4f& matrix)
+{
+    const Vec3f scale = matrix.ExtractScale();
+
+    // Divide the signed scale out of the basis columns so a mirrored basis still yields a proper rotation
+    Mat4f rotationMatrix = matrix;
+
+    for (int column = 0; column < 3; column++)
+    {
+        if (scale[column] == 0.0f)
+        {
+            continue;
+        }
+
+        for (uint32 row = 0; row < 3; row++)
+        {
+            rotationMatrix[row][column] /= scale[column];
+        }
+    }
+
+    // Mat4f::Rotation(q) builds the matrix of q's inverse, so the quaternion read back from the matrix is inverted
+    return Transform(matrix.ExtractTranslation(), scale, Quat4f(rotationMatrix).Inverse());
+}
+
 Handle<Node> Node::AddChild(const Handle<Node>& node)
+{
+    return AddChild_Internal(node, /* keepWorldTransform */ false);
+}
+
+Handle<Node> Node::AddChildKeepWorldTransform(const Handle<Node>& node)
+{
+    return AddChild_Internal(node, /* keepWorldTransform */ true);
+}
+
+Handle<Node> Node::AddChild_Internal(const Handle<Node>& node, bool keepWorldTransform)
 {
     if (!node.IsValid())
     {
-        return AddChild(Handle<Node>(MakeHandle<Node>()));
+        return AddChild_Internal(Handle<Node>(MakeHandle<Node>()), keepWorldTransform);
     }
 
     if (node.Get() == this || node->GetParent() == this)
@@ -394,10 +428,16 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
         return node;
     }
 
+    // Captured before detaching, since detaching recomputes the world matrix without the old parent
+    const Mat4f previousWorldMatrix = node->GetWorldMatrix();
+
     if (node->GetParent() != nullptr)
     {
-        HYP_LOG(Node, Warning, "Attaching node {} to {} when it already has a parent node ({}). Node will be detached from parent.",
-                node->GetName(), GetName(), node->GetParent()->GetName());
+        if (!keepWorldTransform)
+        {
+            HYP_LOG(Node, Warning, "Attaching node {} to {} when it already has a parent node ({}). Node will be detached from parent.",
+                    node->GetName(), GetName(), node->GetParent()->GetName());
+        }
 
         node->Remove();
     }
@@ -421,6 +461,22 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
     node->SetScene(m_scene);
     node->OnAttachedToNode(this);
+
+    if (keepWorldTransform)
+    {
+        const Mat4f parentWorldMatrix = GetWorldMatrix();
+
+        if (parentWorldMatrix.Determinant() != 0.0f)
+        {
+            node->SetLocalTransform(TransformFromMatrix(parentWorldMatrix.Inverse() * previousWorldMatrix));
+        }
+        else
+        {
+            HYP_LOG(Node, Warning, "Cannot keep world transform of node {} when attaching to {}: parent world matrix is not invertible",
+                    node->GetName(), GetName());
+        }
+    }
+
     node->UpdateWorldTransform();
 
     if (wasTransformLocked)

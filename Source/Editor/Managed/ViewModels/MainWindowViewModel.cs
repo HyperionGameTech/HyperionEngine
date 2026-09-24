@@ -46,6 +46,19 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand SaveProjectAs => new EditorCommand("SaveProjectAs");
         public EditorCommand CloseProject => new EditorCommand("CloseProject");
 
+        public ICommand OpenRecentProject { get; } = new RelayCommand<string>(projectFilepath =>
+        {
+            if (!string.IsNullOrEmpty(projectFilepath))
+            {
+                RecentProjectsService.Instance.OpenProject(projectFilepath);
+            }
+        });
+
+        public ICommand ClearRecentProjects { get; } = new RelayCommand(() => RecentProjectsService.Instance.Clear());
+
+        public ICommand ToggleAlwaysOpenLastProject { get; private set; }
+        public bool AlwaysOpenLastProject => RecentProjectsService.Instance.AlwaysOpenLastProject;
+
         public ICommand Exit { get; } = new RelayCommand(() =>
         {
             if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime)
@@ -931,6 +944,13 @@ namespace Hyperion.Editor.ViewModels
                     });
                 },
                 () => IsSimulating);
+
+            ToggleAlwaysOpenLastProject = new RelayCommand(() =>
+            {
+                RecentProjectsService.Instance.AlwaysOpenLastProject = !RecentProjectsService.Instance.AlwaysOpenLastProject;
+
+                OnPropertyChanged(nameof(AlwaysOpenLastProject));
+            });
 
             ToggleShowStats = new RelayCommand(() =>
             {
