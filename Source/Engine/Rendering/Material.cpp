@@ -416,6 +416,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             uint32 parallaxInverseHeight : 1;
             uint32 foliage : 1;
             uint32 premultipliedAlpha : 1;
+            uint32 doubleSided : 1;
         };
     } flags;
 
@@ -428,6 +429,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     flags.parallaxInverseHeight = uint32(m_parameters.IsParallaxInverseHeight());
     flags.foliage = uint32(m_parameters.foliage);
     flags.premultipliedAlpha = uint32(proxy->attributes.blendFunction.ExpectsPremultipliedSource());
+    flags.doubleSided = uint32(proxy->attributes.cullFaces == FaceCullMode::None || m_parameters.foliage);
 
     bufferData.packedParams.w = flags.bits;
 

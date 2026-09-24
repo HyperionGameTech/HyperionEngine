@@ -47,6 +47,8 @@ struct BakeEntity
 struct LightmapRay
 {
     Ray ray;
+    Vec3f faceNormal = Vec3f::Zero();
+    float texelWorldSize = 0.0f;
     ObjId<Mesh> meshId;
     uint32 triangleIndex;
     uint32 texelIndex;
@@ -54,6 +56,8 @@ struct LightmapRay
     HYP_FORCE_INLINE bool operator==(const LightmapRay& other) const
     {
         return ray == other.ray
+            && faceNormal == other.faceNormal
+            && texelWorldSize == other.texelWorldSize
             && meshId == other.meshId
             && triangleIndex == other.triangleIndex
             && texelIndex == other.texelIndex;

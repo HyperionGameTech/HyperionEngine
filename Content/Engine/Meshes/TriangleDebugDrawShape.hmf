@@ -21,6 +21,7 @@ Mesh TriangleDebugDrawShape {
         MaxScreenErrorPixels = 1
         SourceDataHash = 0
     }
+    LightmapUVDataHash = 0
     MeshDesc = {
         MeshAttributes = {
             InputLayout = {
@@ -103,5 +104,5 @@ Mesh TriangleDebugDrawShape {
         Size = 0
     }
     Flags = ViewIndependent
-    UUID = "9b359db1-54dd-449c-b421-ebdd7f054d07"
+    UUID = "dc4f1802-91ae-45ec-aee1-8f555e2baa02"
 }

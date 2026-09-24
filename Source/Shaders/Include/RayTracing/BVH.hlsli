@@ -38,9 +38,7 @@ struct BVHHit
 
 float3 UnpackBVHNormal(uint packedNormal)
 {
-    const float2 octahedralCoord = clamp(float2(int(packedNormal << 16) >> 16, int(packedNormal) >> 16) / 32767.0, -1.0, 1.0);
-
-    return DecodeOctahedralCoord(octahedralCoord);
+    return UnpackOctahedralSnorm16x2(packedNormal);
 }
 
 #endif

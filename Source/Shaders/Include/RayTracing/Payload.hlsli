@@ -15,6 +15,7 @@ struct RayPayload
 #endif
 #ifdef LIGHTMAPPER
 	float3 barycentric_coords;
+	uint backFace;
 #endif
 };
 

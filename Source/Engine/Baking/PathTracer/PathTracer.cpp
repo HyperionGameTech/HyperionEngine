@@ -729,8 +729,13 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
 
         for (size_t i = 0; i < rays.Size(); i++)
         {
-            rayData[i * 2] = Vec4f(rays[i].ray.position, 1.0f);
+            const Vec3f faceNormal = rays[i].faceNormal.LengthSquared() > 0.0f ? rays[i].faceNormal : rays[i].ray.direction;
+            const uint32 packedFaceNormal = PackNormalOctahedral(faceNormal);
+
+            rayData[i * 2] = Vec4f(rays[i].ray.position, rays[i].texelWorldSize);
             rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, 0.0f);
+
+            Memory::Copy(&rayData[i * 2 + 1].w, &packedFaceNormal, sizeof(uint32));
         }
 
         Assert(raysBuffer->Size() >= rayData.ByteSize());
