@@ -30,4 +30,11 @@ float3 DecodeOctahedralCoord(float2 coord)
     return normalize(vec);
 }
 
+float3 UnpackOctahedralSnorm16x2(uint packedNormal)
+{
+    const float2 octahedralCoord = clamp(float2(int(packedNormal << 16) >> 16, int(packedNormal) >> 16) / 32767.0, -1.0, 1.0);
+
+    return DecodeOctahedralCoord(octahedralCoord);
+}
+
 #endif

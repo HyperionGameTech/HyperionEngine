@@ -11,6 +11,8 @@ struct LightmapRay
 
 #define RAY_OFFSET 0.01
 
+#define LIGHTMAP_BACKFACE_TOLERANCE 0.1
+
 #define VSM_DEPTH_BIAS_CONSTANT 0.2
 #define VSM_DEPTH_BIAS_SLOPE_SCALE 0.02
 #define VSM_DEPTH_BIAS_SLOPE_MAX 8.0
@@ -181,11 +183,59 @@ float4 SampleEnvironment(float3 origin, float3 direction)
     return environmentRadiance;
 }
 
+float3 KeepAboveFace(float3 direction, float3 faceNormal)
+{
+    const float faceDot = dot(direction, faceNormal);
+
+    return faceDot < 0.0 ? direction - faceNormal * (2.0 * faceDot) : direction;
+}
+
+#define LIGHTMAP_PUSH_OUT_DIRECTIONS 8
+
+// A texel centre inside an occluder (e.g. floor under a wall) moves to the nearest exit within one texel
+float3 PushOutOfGeometry(float3 origin, float3 faceNormal, float searchRadius, inout RayPayload payload)
+{
+    if (searchRadius <= 0.0)
+    {
+        return origin;
+    }
+
+    float3 tangent;
+    float3 bitangent;
+    ComputeOrthonormalBasis(faceNormal, tangent, bitangent);
+
+    float nearestDistance = searchRadius;
+    float3 nearestExit = origin;
+    bool isInside = false;
+
+    for (uint directionIndex = 0; directionIndex < LIGHTMAP_PUSH_OUT_DIRECTIONS; directionIndex++)
+    {
+        const float angle = float(directionIndex) * (2.0 * HYP_FMATH_PI / float(LIGHTMAP_PUSH_OUT_DIRECTIONS));
+        const float3 direction = tangent * cos(angle) + bitangent * sin(angle);
+
+        payload.distance = -1.0;
+
+        TraceScene(origin, direction, 0.0, searchRadius, payload);
+
+        if (payload.distance >= 0.0 && payload.distance < nearestDistance)
+        {
+            nearestDistance = payload.distance;
+            nearestExit = origin + direction * (payload.distance + RAY_OFFSET);
+            isInside = payload.backFace != 0;
+        }
+    }
+
+    return isInside ? nearestExit : origin;
+}
+
 float4 IntegrateLightmapRay(uint ray_index)
 {
     LightmapRay ray;
     ray.origin = ray_data[ray_index * 2].xyz;
     ray.direction = ray_data[ray_index * 2 + 1].xyz;
+
+    const float3 faceNormal = UnpackOctahedralSnorm16x2(asuint(ray_data[ray_index * 2 + 1].w));
+    const float texelWorldSize = ray_data[ray_index * 2].w;
 
     const float tmin = RAY_OFFSET;
     const float tmax = rayTracingConstants.maxDistance;
@@ -202,14 +252,17 @@ float4 IntegrateLightmapRay(uint ray_index)
 #ifdef MODE_LIGHTMAP
     float4 accumRadiance = float4(0.0, 0.0, 0.0, 0.0);
 
+    uint numBackFaceSamples = 0;
+
+    const float3 surfaceOrigin = PushOutOfGeometry(ray.origin + faceNormal * RAY_OFFSET, faceNormal, texelWorldSize, payload);
+
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
-        float3 direction = SampleCosineDir(rnd, firstRayDirection);
-        direction = normalize(direction);
+        float3 direction = normalize(KeepAboveFace(SampleCosineDir(rnd, firstRayDirection), faceNormal));
 
-        float3 origin = ray.origin + firstRayDirection * RAY_OFFSET;
+        float3 origin = surfaceOrigin;
 
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 beta = float3(1.0, 1.0, 1.0);
@@ -270,6 +323,16 @@ float4 IntegrateLightmapRay(uint ray_index)
                 break;
             }
 
+            if (payload.backFace != 0)
+            {
+                if (bounceIndex == 0)
+                {
+                    numBackFaceSamples++;
+                }
+
+                break;
+            }
+
             float3 albedo = clamp(payload.throughput.rgb, float3(0.0, 0.0, 0.0), float3(1.0, 1.0, 1.0));
             float metalness = clamp(payload.throughput.a, 0.0, 1.0);
 
@@ -310,7 +373,12 @@ float4 IntegrateLightmapRay(uint ray_index)
         accumRadiance.rgb += radiance;
     } // end samples
 
-    float4 finalColor = float4(accumRadiance.rgb / float(NUM_SAMPLES), 1.0);
+    float4 finalColor = float4(0.0, 0.0, 0.0, 0.0);
+
+    if (float(numBackFaceSamples) <= float(NUM_SAMPLES) * LIGHTMAP_BACKFACE_TOLERANCE)
+    {
+        finalColor = float4(accumRadiance.rgb / float(NUM_SAMPLES - numBackFaceSamples), 1.0);
+    }
 #elif defined(MODE_RADIANCE) || defined(MODE_IRRADIANCE)
     // path traced diffuse-only light.
     float4 accumRadiance = (float4)0.0;
@@ -431,7 +499,7 @@ float4 IntegrateLightmapRay(uint ray_index)
     }
 #elif defined(MODE_BENT_NORMALS)
     const float3 N = firstRayDirection;
-    const float3 origin = ray.origin + N * RAY_OFFSET;
+    const float3 origin = PushOutOfGeometry(ray.origin + faceNormal * RAY_OFFSET, faceNormal, texelWorldSize, payload);
 
     float3 accumDirection = float3(0.0, 0.0, 0.0);
     uint numUnoccluded = 0;
@@ -439,7 +507,7 @@ float4 IntegrateLightmapRay(uint ray_index)
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
         float2 rnd = float2(RandomFloat(ray_seed), RandomFloat(ray_seed));
-        float3 direction = normalize(SampleCosineDir(rnd, N));
+        float3 direction = normalize(KeepAboveFace(SampleCosineDir(rnd, N), faceNormal));
 
         payload.distance = -1.0;
 

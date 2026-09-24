@@ -103,7 +103,6 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     const float3 barycentric_coords = float3(1.0 - attrib.barycentrics.x - attrib.barycentrics.y, attrib.barycentrics.x, attrib.barycentrics.y);
 
     float3 normal = normalize(mul(ObjectToWorld3x4(), float4(v0.normal * barycentric_coords.x + v1.normal * barycentric_coords.y + v2.normal * barycentric_coords.z, 0.0)).xyz);
-    if (dot(normal, -WorldRayDirection()) < 0.0) normal = -normal;
 
     float2 texcoord = v0.texcoord0 * barycentric_coords.x + v1.texcoord0 * barycentric_coords.y + v2.texcoord0 * barycentric_coords.z;
     const float3 position = mul(ObjectToWorld3x4(), float4(v0.position * barycentric_coords.x + v1.position * barycentric_coords.y + v2.position * barycentric_coords.z, 1.0)).xyz;
@@ -111,6 +110,13 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     v0.position = mul(ObjectToWorld3x4(), float4(v0.position, 1.0)).xyz;
     v1.position = mul(ObjectToWorld3x4(), float4(v1.position, 1.0)).xyz;
     v2.position = mul(ObjectToWorld3x4(), float4(v2.position, 1.0)).xyz;
+
+    float3 geometricNormal = cross(v1.position - v0.position, v2.position - v0.position);
+    if (dot(geometricNormal, normal) < 0.0) geometricNormal = -geometricNormal;
+
+    const bool hitFromBehind = dot(geometricNormal, WorldRayDirection()) > 0.0;
+
+    if (dot(normal, -WorldRayDirection()) < 0.0) normal = -normal;
 
     const float3 hit_position = (WorldRayOrigin() + RayTCurrent() * WorldRayDirection()).xyz;
 
@@ -158,6 +164,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_COLOR), 1.0) * GET_MATERIAL_PARAM(material, MATERIAL_PARAM_EMISSIVE_INTENSITY);
     payload.throughput = float4(material_color.rgb, metalness); // metalness is stored in the alpha channel
     payload.barycentric_coords = barycentric_coords;
+    payload.backFace = (hitFromBehind && !GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_DOUBLE_SIDED)) ? 1u : 0u;
     payload.distance = RayTCurrent();
     payload.normal = normal;
     payload.roughness = roughness;

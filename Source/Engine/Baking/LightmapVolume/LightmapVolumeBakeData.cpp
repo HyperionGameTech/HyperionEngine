@@ -39,7 +39,10 @@ static constexpr uint32 MaxPackAttempts = 24;
 
 static constexpr uint32 InvalidChartId = ~0u;
 
-static size_t GetPacketOffset(VertexInputLayoutDesc layout, uint8 packetType)
+///Helpers
+namespace {
+
+size_t GetPacketOffset(VertexInputLayoutDesc layout, uint8 packetType)
 {
     size_t offset = 0;
 
@@ -58,8 +61,7 @@ static size_t GetPacketOffset(VertexInputLayoutDesc layout, uint8 packetType)
     return ~size_t(0);
 }
 
-// Copies every packet the two layouts share and zeroes the rest, so unwrapping keeps skinning data and the like
-static void ConvertVertex(const ubyte* src, VertexInputLayoutDesc srcLayout, ubyte* dst, VertexInputLayoutDesc dstLayout)
+void ConvertVertex(const ubyte* src, VertexInputLayoutDesc srcLayout, ubyte* dst, VertexInputLayoutDesc dstLayout)
 {
     size_t dstOffset = 0;
 
@@ -81,15 +83,44 @@ static void ConvertVertex(const ubyte* src, VertexInputLayoutDesc srcLayout, uby
     }
 }
 
-static Vec3f ReadPosition(const ubyte* vertexBytes, size_t vertexSize, size_t positionOffset, uint32 vertexIndex)
+HYP_FORCE_INLINE Vec3f ReadPosition(const ubyte* vertexBytes, size_t vertexSize, size_t positionOffset, uint32 vertexIndex)
 {
     return reinterpret_cast<const TVertexPacket<VT_Position>*>(vertexBytes + vertexIndex * vertexSize + positionOffset)->GetPosition();
 }
 
-static Vec2f ReadUV1(const ubyte* vertexBytes, size_t vertexSize, size_t uv1Offset, uint32 vertexIndex)
+HYP_FORCE_INLINE Vec2f ReadUV1(const ubyte* vertexBytes, size_t vertexSize, size_t uv1Offset, uint32 vertexIndex)
 {
     return reinterpret_cast<const TVertexPacket<VT_UV1>*>(vertexBytes + vertexIndex * vertexSize + uv1Offset)->GetUV1();
 }
+
+HYP_FORCE_INLINE bool IsTexelLit(const LightmapTexel& texel)
+{
+    return texel.pRay != nullptr && texel.color0.w > 0.0f;
+}
+
+///a wall resting on a chart leaves a band of unlit texels in it
+///and light from one side must not be blurred across to the other
+bool IsBlurPathClear(const LightmapTexel* atlasTexels, uint32 width, int fromX, int fromY, int toX, int toY)
+{
+    const int deltaX = toX - fromX;
+    const int deltaY = toY - fromY;
+    const int numSteps = MathUtil::Max(MathUtil::Abs(deltaX), MathUtil::Abs(deltaY));
+
+    for (int step = 1; step < numSteps; step++)
+    {
+        const int x = fromX + MathUtil::Round<float, int>(float(deltaX * step) / float(numSteps));
+        const int y = fromY + MathUtil::Round<float, int>(float(deltaY * step) / float(numSteps));
+
+        if (!IsTexelLit(atlasTexels[uint32(x) + uint32(y) * width]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+} // namespace anonymous
 
 #pragma region BakeData<LightmapVolume>
 
@@ -785,6 +816,8 @@ void BakeData<LightmapVolume>::RasterizeEntity(uint32 entityIndex, uint32 chartB
 
         const Vec3f faceNormal = (p1 - p0).Cross(p2 - p0).Normalized();
 
+        const float texelWorldSize = MathUtil::Sqrt((p1 - p0).Cross(p2 - p0).Length() / MathUtil::Abs(denominator));
+
         const uint32 chartId = chartBase + meshSnapshot.triangleCharts[triangleIndex];
 
         for (int32 y = minY; y <= maxY; y++)
@@ -819,11 +852,13 @@ void BakeData<LightmapVolume>::RasterizeEntity(uint32 entityIndex, uint32 chartB
                 const uint32 texelIndex = atlasTexelOffset + uint32(x) + uint32(y) * atlasWidth;
 
                 LightmapRay& ray = m_rays[texelIndex];
-                ray = LightmapRay {
-                    Ray { position, normal },
-                    meshId,
-                    triangleIndex,
-                    texelIndex
+                ray = {
+                    .ray = Ray { position, normal },
+                    .faceNormal = faceNormal.Dot(normal) < 0.0f ? -faceNormal : faceNormal,
+                    .texelWorldSize = texelWorldSize,
+                    .meshId = meshId,
+                    .triangleIndex = triangleIndex,
+                    .texelIndex = texelIndex
                 };
 
                 LightmapTexel& texel = texels[texelIndex];
@@ -837,8 +872,8 @@ void BakeData<LightmapVolume>::RasterizeEntity(uint32 entityIndex, uint32 chartB
 void BakeData<LightmapVolume>::Blur()
 {
     static constexpr int KernelRadius = 3;
-    static constexpr float SigmaPosition = 0.5f;
     static constexpr float SigmaNormal = 0.25f;
+    static constexpr float SigmaLuminance = 0.3f;
 
     const uint32 width = dimensions.x;
     const uint32 height = dimensions.y;
@@ -848,15 +883,22 @@ void BakeData<LightmapVolume>::Blur()
         return;
     }
 
+    const float texelWorldSize = m_texelsPerUnit > 0.0f ? 1.0f / m_texelsPerUnit : 0.5f;
+    const float sigmaPosition = texelWorldSize * float(KernelRadius);
+
     const float sigmaSpRcp = 1.0f / (2.0f * float(KernelRadius) * float(KernelRadius));
-    const float sigmaPosRcp = 1.0f / (2.0f * SigmaPosition * SigmaPosition);
+    const float sigmaPosRcp = 1.0f / (2.0f * sigmaPosition * sigmaPosition);
     const float sigmaNrmRcp = 1.0f / (2.0f * SigmaNormal * SigmaNormal);
+    const float sigmaLumRcp = 1.0f / (2.0f * SigmaLuminance * SigmaLuminance);
+
+    const Vec3f luminanceWeights { 0.2126f, 0.7152f, 0.0722f };
 
     const uint32 numTexels = width * height;
 
     for (uint32 atlasIndex = 0; atlasIndex < m_atlasCount; atlasIndex++)
     {
         const uint32 baseOffset = atlasIndex * numTexels;
+        const LightmapTexel* atlasTexels = texels.Data() + baseOffset;
 
         // Note: Don't use temp allocators here, we're allocating a crapload and it will be too much for the arena.
         Array<Vec4f> norm0(numTexels);
@@ -864,20 +906,17 @@ void BakeData<LightmapVolume>::Blur()
 
         for (uint32 i = 0; i < numTexels; i++)
         {
-            if (!texels[baseOffset + i].pRay)
+            if (!IsTexelLit(atlasTexels[i]))
             {
                 continue;
             }
 
-            if (texels[baseOffset + i].color0.w > 0.0f)
-            {
-                norm0[i] = texels[baseOffset + i].color0 / texels[baseOffset + i].color0.w;
-                norm0[i].w = 1.0f;
-            }
+            norm0[i] = atlasTexels[i].color0 / atlasTexels[i].color0.w;
+            norm0[i].w = 1.0f;
 
-            if (texels[baseOffset + i].color1.w > 0.0f)
+            if (atlasTexels[i].color1.w > 0.0f)
             {
-                norm1[i] = texels[baseOffset + i].color1 / texels[baseOffset + i].color1.w;
+                norm1[i] = atlasTexels[i].color1 / atlasTexels[i].color1.w;
                 norm1[i].w = 1.0f;
             }
         }
@@ -891,14 +930,15 @@ void BakeData<LightmapVolume>::Blur()
             {
                 const uint32 centerIdx = cx + cy * width;
 
-                if (!texels[baseOffset + centerIdx].pRay)
+                if (!IsTexelLit(atlasTexels[centerIdx]))
                 {
                     continue;
                 }
 
-                const Vec3f centerPos = texels[baseOffset + centerIdx].pRay->ray.position;
-                const Vec3f centerNrm = texels[baseOffset + centerIdx].pRay->ray.direction;
-                const uint32 centerChartId = texels[baseOffset + centerIdx].chartId;
+                const Vec3f centerPos = atlasTexels[centerIdx].pRay->ray.position;
+                const Vec3f centerNrm = atlasTexels[centerIdx].pRay->ray.direction;
+                const uint32 centerChartId = atlasTexels[centerIdx].chartId;
+                const float centerLum = norm0[centerIdx].GetXYZ().Dot(luminanceWeights);
 
                 Vec4f accum0 = Vec4f::Zero();
                 Vec4f accum1 = Vec4f::Zero();
@@ -916,7 +956,12 @@ void BakeData<LightmapVolume>::Blur()
                         const uint32 nbIdx = uint32(nx) + uint32(ny) * width;
 
                         // neighbours in the atlas are only neighbours on the surface within the same chart
-                        if (!texels[baseOffset + nbIdx].pRay || texels[baseOffset + nbIdx].chartId != centerChartId)
+                        if (!IsTexelLit(atlasTexels[nbIdx]) || atlasTexels[nbIdx].chartId != centerChartId)
+                        {
+                            continue;
+                        }
+
+                        if (!IsBlurPathClear(atlasTexels, width, int(cx), int(cy), nx, ny))
                         {
                             continue;
                         }
@@ -925,13 +970,18 @@ void BakeData<LightmapVolume>::Blur()
                         const float dy = float(ny - int(cy));
                         const float wSpatial = MathUtil::Exp(-(dx * dx + dy * dy) * sigmaSpRcp);
 
-                        const Vec3f posDiff = texels[baseOffset + nbIdx].pRay->ray.position - centerPos;
+                        const Vec3f posDiff = atlasTexels[nbIdx].pRay->ray.position - centerPos;
                         const float wPos = MathUtil::Exp(-posDiff.Dot(posDiff) * sigmaPosRcp);
 
-                        const float nDot = MathUtil::Clamp(centerNrm.Dot(texels[baseOffset + nbIdx].pRay->ray.direction), -1.0f, 1.0f);
+                        const float nDot = MathUtil::Clamp(centerNrm.Dot(atlasTexels[nbIdx].pRay->ray.direction), -1.0f, 1.0f);
                         const float wNrm = MathUtil::Exp(-(1.0f - nDot) * sigmaNrmRcp);
 
-                        const float w = wSpatial * wPos * wNrm;
+                        // texels pushed out to opposite sides of a thin wall sit side by side in the chart
+                        const float nbLum = norm0[nbIdx].GetXYZ().Dot(luminanceWeights);
+                        const float lumDiff = MathUtil::Abs(nbLum - centerLum) / MathUtil::Max(MathUtil::Max(nbLum, centerLum), 1e-4f);
+                        const float wLum = MathUtil::Exp(-lumDiff * lumDiff * sigmaLumRcp);
+
+                        const float w = wSpatial * wPos * wNrm * wLum;
 
                         accum0 += norm0[nbIdx] * w;
                         accum1 += norm1[nbIdx] * w;
@@ -949,7 +999,7 @@ void BakeData<LightmapVolume>::Blur()
 
         for (uint32 i = 0; i < numTexels; i++)
         {
-            if (!texels[baseOffset + i].pRay)
+            if (!IsTexelLit(texels[baseOffset + i]))
             {
                 continue;
             }
@@ -1015,19 +1065,16 @@ void BakeData<LightmapVolume>::Dilate()
                 {
                     const uint32 idx = cx + cy * width;
 
-                    if (texels[baseOffset + idx].pRay != nullptr)
-                    {
-                        continue;
-                    }
-
+                    // gutter texels and texels the integrator rejected as being inside geometry
                     if (curr0[idx].w > 0.0f)
                     {
                         continue;
                     }
 
-                    uint32 targetChartId = InvalidChartId;
+                    // a rejected texel belongs to a chart already, and only takes light from that chart
+                    uint32 targetChartId = texels[baseOffset + idx].pRay != nullptr ? currChartId[idx] : InvalidChartId;
 
-                    for (int k = 0; k < 8; k++)
+                    for (int k = 0; k < 8 && targetChartId == InvalidChartId; k++)
                     {
                         const int nx = int(cx) + offsets[k][0];
                         const int ny = int(cy) + offsets[k][1];
@@ -1103,7 +1150,7 @@ void BakeData<LightmapVolume>::Dilate()
 
         for (uint32 i = 0; i < numTexels; i++)
         {
-            if (texels[baseOffset + i].pRay == nullptr)
+            if (texels[baseOffset + i].color0.w <= 0.0f)
             {
                 texels[baseOffset + i].color0 = curr0[i];
                 texels[baseOffset + i].color1 = curr1[i];

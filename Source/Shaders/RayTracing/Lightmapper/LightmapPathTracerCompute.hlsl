@@ -78,6 +78,17 @@ void ShadeBVHHit(float3 direction, BVHHit hit, inout RayPayload payload)
         + UnpackBVHNormal(attributes.packedNormalsMaterialIndex.y) * barycentric_coords.y
         + UnpackBVHNormal(attributes.packedNormalsMaterialIndex.z) * barycentric_coords.z);
 
+    const BVHTriangle bvhTriangle = bvhTriangles[hit.triangleIndex];
+
+    float3 geometricNormal = cross(bvhTriangle.edge1.xyz, bvhTriangle.edge2.xyz);
+
+    if (dot(geometricNormal, normal) < 0.0)
+    {
+        geometricNormal = -geometricNormal;
+    }
+
+    const bool hitFromBehind = dot(geometricNormal, direction) > 0.0;
+
     if (dot(normal, -direction) < 0.0)
     {
         normal = -normal;
@@ -123,6 +134,7 @@ void ShadeBVHHit(float3 direction, BVHHit hit, inout RayPayload payload)
     payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_COLOR), 1.0) * GET_MATERIAL_PARAM(material, MATERIAL_PARAM_EMISSIVE_INTENSITY);
     payload.throughput = float4(material_color.rgb, metalness); // metalness is stored in the alpha channel
     payload.barycentric_coords = barycentric_coords;
+    payload.backFace = (hitFromBehind && !GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_DOUBLE_SIDED)) ? 1u : 0u;
     payload.distance = hit.distance;
     payload.normal = normal;
     payload.roughness = roughness;
@@ -143,6 +155,7 @@ void TraceScene(float3 origin, float3 direction, float tMin, float tMax, inout R
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     payload.throughput = float4(0.0, 0.0, 0.0, 0.0);
     payload.barycentric_coords = float3(0.0, 0.0, 0.0);
+    payload.backFace = 0;
     payload.distance = -1000.0;
     payload.normal = float3(0.0, 0.0, 0.0);
     payload.roughness = 0.0;

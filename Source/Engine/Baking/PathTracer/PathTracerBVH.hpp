@@ -61,6 +61,8 @@ struct PathTracerTriangleAttributes
 
 static_assert(sizeof(PathTracerTriangleAttributes) == 48);
 
+uint32 PackNormalOctahedral(const Vec3f& normal);
+
 class PathTracerBVHBuilder
 {
 public:

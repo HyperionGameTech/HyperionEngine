@@ -51,11 +51,11 @@ Result BakeData<EnvProbe>::Build()
                 const Vec3f dir = (forward + right * u + up * v).Normalize();
 
                 LightmapRay& ray = m_rays[texelIdx];
-                ray = LightmapRay {
-                    Ray { origin, dir },
-                    /* meshId */ ObjId<Mesh>::invalid,
-                    /* triangleIndex */ ~0u,
-                    /* texelIndex */ texelIdx
+                ray = {
+                    .ray = Ray { origin, dir },
+                    .meshId = ObjId<Mesh>::invalid,
+                    .triangleIndex = ~0u,
+                    .texelIndex = texelIdx
                 };
 
                 LightmapTexel& texel = texels[texelIdx];
