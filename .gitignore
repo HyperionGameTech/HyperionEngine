@@ -101,3 +101,9 @@ Tools/*/build/**/*
 Data/**/*
 .vscode/c_cpp_properties.json
 .opencode
+
+# Ignore my stupid testing stuff
+Content/Engine/**/hazmat
+Content/Engine/**/survivor
+Content/Engine/**/mutant
+Source/Engine/Framework/Commandlet/Commandlets/BuildShapesCommandlet.cpp
