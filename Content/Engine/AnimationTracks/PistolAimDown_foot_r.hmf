@@ -1,0 +1,8 @@
+AnimationTrack PistolAimDown_foot_r {
+    BoneName = foot_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimDown_foot_r.KEYF"
+        Size = 384
+    }
+    UUID = "facad454-9335-46a2-8d2e-c39716d11852"
+}

@@ -348,7 +348,7 @@ bool TraceRays(
     out float num_iterations)
 {
     ray_direction = normalize(ray_direction);
-    float3 currStep = ssrConstants.ray_step * ray_direction;
+    float3 currStep = (float3)0.0;
     float3 currPosition = ray_origin;
 
     const int max_iterations = int(ssrConstants.num_iterations);
@@ -360,6 +360,10 @@ bool TraceRays(
     int i = 0;
     for (; i < max_iterations; i++)
     {
+        // adjust step length
+        const float step_length = max(ssrConstants.ray_step, abs(currPosition.z) * ssrConstants.ray_step_depth_scale);
+
+        currStep = ray_direction * step_length;
         currPosition += currStep;
 
         hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);

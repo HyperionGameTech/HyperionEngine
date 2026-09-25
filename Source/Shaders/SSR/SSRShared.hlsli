@@ -33,4 +33,5 @@ struct SSRConstants
     float screenEdgeFadeStart;
     float screenEdgeFadeEnd;
     float thickness;
+    float ray_step_depth_scale;
 };

@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_neck.KEYF"
+        Size = 384
+    }
+    UUID = "028fc38a-24ea-40a9-b7a2-5f684a396fa0"
+}

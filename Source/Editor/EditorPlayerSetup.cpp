@@ -43,7 +43,7 @@ namespace /* Constants */ {
 static constexpr float PlayerCapsuleRadius = 0.3f;
 static constexpr float PlayerCapsuleHeight = 1.2f;
 
-static constexpr float PlayerWalkSpeed = 4.0f;
+static constexpr float PlayerWalkSpeed = 1.35f;
 static constexpr float PlayerSprintSpeed = 7.5f;
 
 static constexpr float CameraPivotHeight = 1.8f;
@@ -169,11 +169,15 @@ Handle<Entity> EditorPlayerSetup::AddGround(const Handle<Node>& parent, Name nam
     materialAttributes.bucket = RenderBucket::Opaque;
 
     MaterialParameters materialParameters;
-    materialParameters.albedo = Vec4f(0.45f, 0.45f, 0.45f, 1.0f);
-    materialParameters.roughness = 0.9f;
+    materialParameters.albedo = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+    materialParameters.roughness = 0.08f;
     materialParameters.metalness = 0.0f;
 
-    Handle<Material> groundMaterial = MakeHandle<Material>(NAME_FMT("{}Material", name), materialAttributes, materialParameters, MaterialTextures {});
+    MaterialTextures materialTextures;
+    // @TODO Checkerboard texture. But don't get from RI.placeholderData -- if headless, RI will not be initialized.
+    ///materialTextures[MaterialTextureKey::Diffuse] = 
+
+    Handle<Material> groundMaterial = MakeHandle<Material>(NAME_FMT("{}Material", name), materialAttributes, materialParameters, materialTextures);    
     InitObject(groundMaterial);
     GetCurrentAssetRegistry()->PutAssetUnique(groundMaterial);
 
@@ -189,7 +193,7 @@ Handle<Entity> EditorPlayerSetup::AddGround(const Handle<Node>& parent, Name nam
     Handle<Entity> groundEntity = MakeHandle<Entity>();
     groundEntity->SetName(name);
     groundEntity->SetLocalScale(groundScale);
-    groundEntity->SetLocalTranslation(Vec3f(0.0f, -meshBounds.GetMax().y * groundScale.y, 0.0f));
+    groundEntity->SetLocalTranslation(Vec3f(0.0f, -meshBounds.GetMax().y * groundScale.y - 0.01f /* padding to prevent z-fight with grid */, 0.0f));
     InitObject(groundEntity);
 
     parent->AddChild(groundEntity);

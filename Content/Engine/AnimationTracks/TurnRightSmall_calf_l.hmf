@@ -1,0 +1,8 @@
+AnimationTrack TurnRightSmall_calf_l {
+    BoneName = calf_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnRightSmall_calf_l.KEYF"
+        Size = 960
+    }
+    UUID = "b4cb5fad-87d6-4efb-8513-e0f89bba54ad"
+}

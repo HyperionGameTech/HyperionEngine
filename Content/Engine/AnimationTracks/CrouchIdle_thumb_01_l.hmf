@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_thumb_01_l {
+    BoneName = thumb_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_thumb_01_l.KEYF"
+        Size = 5696
+    }
+    UUID = "ef71ad63-a120-461f-80ef-b8a22d94741e"
+}

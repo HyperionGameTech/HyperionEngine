@@ -1,0 +1,8 @@
+AnimationTrack Death_pinky_01_r {
+    BoneName = pinky_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_pinky_01_r.KEYF"
+        Size = 4672
+    }
+    UUID = "d8cc12b2-9545-4e1d-901b-aaf5fe8a140e"
+}

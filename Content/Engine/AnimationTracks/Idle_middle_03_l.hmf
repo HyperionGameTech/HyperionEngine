@@ -1,0 +1,8 @@
+AnimationTrack Idle_middle_03_l {
+    BoneName = middle_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_middle_03_l.KEYF"
+        Size = 4864
+    }
+    UUID = "4ae615b4-8782-498c-b074-7d1a175a45e6"
+}

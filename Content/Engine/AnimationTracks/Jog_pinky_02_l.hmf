@@ -1,0 +1,8 @@
+AnimationTrack Jog_pinky_02_l {
+    BoneName = pinky_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_pinky_02_l.KEYF"
+        Size = 1856
+    }
+    UUID = "720cfdf1-6ba2-45f2-8402-9550f7b8bfb9"
+}

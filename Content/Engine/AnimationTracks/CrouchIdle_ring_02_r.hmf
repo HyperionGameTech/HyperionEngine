@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_ring_02_r {
+    BoneName = ring_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_ring_02_r.KEYF"
+        Size = 5696
+    }
+    UUID = "5cc0d267-ef82-46b2-8379-9ab9c66c24d8"
+}

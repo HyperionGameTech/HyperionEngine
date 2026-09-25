@@ -630,12 +630,16 @@ static SdfCanvas BuildAssetShaderBundle()
 
 static SdfCanvas BuildAssetFontAtlas()
 {
+    static const Vec2f s_thickStroke[] = { Vec2f(-0.1f, 0.8f), Vec2f(0.1f, 0.8f), Vec2f(0.6f, -0.62f), Vec2f(0.32f, -0.62f) };
+
+    static constexpr float s_thinRadius = 0.05f;
+
     SdfCanvas canvas;
-    canvas.Segment(Vec2f(-0.8f, -0.62f), Vec2f(-0.34f, 0.66f), 0.09f)
-        .Segment(Vec2f(-0.34f, 0.66f), Vec2f(0.12f, -0.62f), 0.09f)
-        .Segment(Vec2f(-0.6f, -0.16f), Vec2f(-0.08f, -0.16f), 0.08f)
-        .Ring(Vec2f(0.5f, -0.3f), 0.26f, 0.075f)
-        .Segment(Vec2f(0.76f, 0.0f), Vec2f(0.76f, -0.62f), 0.075f);
+    canvas.Segment(Vec2f(-0.5f, -0.62f), Vec2f(-0.04f, 0.74f), s_thinRadius)
+        .ConvexPolygon(s_thickStroke)
+        .Segment(Vec2f(-0.32f, -0.1f), Vec2f(0.38f, -0.1f), 0.045f)
+        .Segment(Vec2f(-0.72f, -0.66f), Vec2f(-0.3f, -0.66f), s_thinRadius)
+        .Segment(Vec2f(0.2f, -0.66f), Vec2f(0.76f, -0.66f), s_thinRadius);
 
     return canvas;
 }

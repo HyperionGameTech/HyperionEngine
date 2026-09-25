@@ -1,0 +1,8 @@
+AnimationTrack PickUp_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_neck.KEYF"
+        Size = 1664
+    }
+    UUID = "283ed5a0-6276-4cc8-885d-7177b8140d12"
+}

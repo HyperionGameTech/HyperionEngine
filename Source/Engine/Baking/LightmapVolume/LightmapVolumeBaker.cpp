@@ -624,6 +624,8 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         return;
     }
 
+    m_bakeData.LogUnlitTexels();
+
     m_bakeData.Blur();
     m_bakeData.Dilate();
 

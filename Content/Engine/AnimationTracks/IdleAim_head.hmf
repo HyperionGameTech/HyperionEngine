@@ -1,0 +1,8 @@
+AnimationTrack IdleAim_head {
+    BoneName = head
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/IdleAim_head.KEYF"
+        Size = 1600
+    }
+    UUID = "0dfdc118-bb51-4a00-a7b5-8cf794fb1abb"
+}

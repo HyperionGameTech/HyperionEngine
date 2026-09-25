@@ -1,0 +1,8 @@
+AnimationTrack Land_lowerarm_l {
+    BoneName = lowerarm_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_lowerarm_l.KEYF"
+        Size = 2496
+    }
+    UUID = "351d9ff9-03b3-4ac3-b819-25aa7edf7aea"
+}

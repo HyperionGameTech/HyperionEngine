@@ -41,7 +41,6 @@ struct Material
 #define MATERIAL_PARAM_TRANSMISSION 2
 #define MATERIAL_PARAM_ALPHA_THRESHOLD 3
 #define MATERIAL_PARAM_EMISSIVE_COLOR 4 // r,g,b
-#define MATERIAL_PARAM_EMISSIVE_INTENSITY 7
 #define MATERIAL_PARAM_UI_BACKGROUND_COLOR 15
 
 float UnpackMaterialParamFloat(uint4 uValue, uint index)
@@ -73,6 +72,9 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 #define GET_MATERIAL_PARAM_FLOAT2(mat, index) UnpackMaterialParamFloat2((mat).packed_params, index)
 #define GET_MATERIAL_PARAM_FLOAT3(mat, index) UnpackMaterialParamFloat3((mat).packed_params, index)
 #define GET_MATERIAL_PARAM_FLOAT4(mat, index) UnpackMaterialParamFloat4((mat).packed_params, index)
+
+// emissive color is unorm packed, but intensity is a raw float in packed_params.z so it can go above 1
+#define GET_MATERIAL_EMISSIVE(mat) (GET_MATERIAL_PARAM_FLOAT3(mat, MATERIAL_PARAM_EMISSIVE_COLOR) * asfloat(((mat).packed_params)[2]))
 
 // Individual bits are stored in the last vector.
 #define GET_MATERIAL_PARAM_BIT(mat, bitIndex) ((((mat).packed_params)[3]) & (1u << (bitIndex & 31)))

@@ -1,0 +1,8 @@
+AnimationTrack TurnLeft_middle_01_l {
+    BoneName = middle_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeft_middle_01_l.KEYF"
+        Size = 1216
+    }
+    UUID = "22447199-95fa-4d13-bf59-e1e65ae23526"
+}

@@ -53,9 +53,7 @@ DECLARE_SRV(BloomDownsample, InputTexture) Texture2D InTexture;
 struct DownsampleConstants
 {
     uint2 srcDimension;
-    uint2 dstDimension;
     float2 invDimension;
-    float2 padding;
 };
 
 DECLARE_BUFFER_DYNAMIC(BloomDownsample, CBuffer) cbuffer CBuffer
@@ -63,64 +61,61 @@ DECLARE_BUFFER_DYNAMIC(BloomDownsample, CBuffer) cbuffer CBuffer
     DownsampleConstants constants;
 };
 
+
+static const float2 s_offsets[13] =
+{
+    float2(0.0f, 0.0f),
+    float2(-1.0f, 0.0f),
+    float2(1.0f, 0.0f),
+    float2(0.0f, -1.0f),
+    float2(0.0f, 1.0f),
+    float2(-1.0f, -1.0f),
+    float2(1.0f, -1.0f),
+    float2(-1.0f, 1.0f),
+    float2(1.0f, 1.0f),
+    float2(-2.0f, 0.0f),
+    float2(2.0f, 0.0f),
+    float2(0.0f, -2.0f),
+    float2(0.0f, 2.0f)
+};
+
+static const float s_weights[13] =
+{
+    0.5f,
+    0.125f,
+    0.125f,
+    0.125f,
+    0.125f,
+    0.0625f,
+    0.0625f,
+    0.0625f,
+    0.0625f,
+    0.0625f,
+    0.0625f,
+    0.0625f,
+    0.0625f
+};
+
 float4 PSMain(PSInput input) : SV_Target0
 {
-    float2 srcTexelSize = 1.0f / float2(constants.srcDimension);
-    float2 dstTexelSize = 1.0f / float2(constants.dstDimension);
-
-    float2 srcPixelPos = input.texcoord * float2(constants.srcDimension);
+    const float2 srcTexelSize = constants.invDimension;
+    const float2 srcPixelPos = input.texcoord * float2(constants.srcDimension);
+    
+    const float2 maxDim = max((float2) constants.srcDimension - 1, (float2) 0);
 
     float4 colorSum = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float weightSum = 0.0f;
 
-    float2 offsets[13] =
-    {
-        float2(0.0f, 0.0f),
-        float2(-1.0f, 0.0f),
-        float2(1.0f, 0.0f),
-        float2(0.0f, -1.0f),
-        float2(0.0f, 1.0f),
-        float2(-1.0f, -1.0f),
-        float2(1.0f, -1.0f),
-        float2(-1.0f, 1.0f),
-        float2(1.0f, 1.0f),
-        float2(-2.0f, 0.0f),
-        float2(2.0f, 0.0f),
-        float2(0.0f, -2.0f),
-        float2(0.0f, 2.0f)
-    };
-
-    float weights[13] =
-    {
-        0.5f,
-        0.125f,
-        0.125f,
-        0.125f,
-        0.125f,
-        0.0625f,
-        0.0625f,
-        0.0625f,
-        0.0625f,
-        0.0625f,
-        0.0625f,
-        0.0625f,
-        0.0625f
-    };
-
+    [unroll]
     for (int i = 0; i < 13; ++i)
     {
-        float2 samplePixel = srcPixelPos + offsets[i];
+        float2 samplePixel = clamp(srcPixelPos + s_offsets[i], (float2) 0, maxDim);
+        
+        float2 sampleUV = samplePixel * constants.invDimension;
+        float4 sampleColor = SAMPLE_TEXTURE_2D_LOD(sampler_linear, InTexture, sampleUV, 0);
 
-        if (any(samplePixel < float2(0.0f, 0.0f)) || any(samplePixel >= float2(constants.srcDimension)))
-        {
-            continue;
-        }
-
-        float2 sampleUV = (samplePixel + 0.5f) / float2(constants.srcDimension);
-        float4 sampleColor = SAMPLE_TEXTURE_2D(sampler_linear, InTexture, sampleUV);
-
-        colorSum += sampleColor * weights[i];
-        weightSum += weights[i];
+        colorSum += sampleColor * s_weights[i];
+        weightSum += s_weights[i];
     }
 
     return colorSum / max(weightSum, 0.001f);

@@ -1,0 +1,8 @@
+AnimationTrack Push_middle_01_l {
+    BoneName = middle_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_middle_01_l.KEYF"
+        Size = 5184
+    }
+    UUID = "bd35713a-06b5-4fa8-bbc1-59e026f2d107"
+}

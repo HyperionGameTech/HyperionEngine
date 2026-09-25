@@ -1,0 +1,8 @@
+AnimationTrack HitChest_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_pelvis.KEYF"
+        Size = 704
+    }
+    UUID = "b052b245-5849-4b35-b637-a154db71d5b1"
+}

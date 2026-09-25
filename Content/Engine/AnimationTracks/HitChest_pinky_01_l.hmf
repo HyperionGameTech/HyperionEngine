@@ -1,0 +1,8 @@
+AnimationTrack HitChest_pinky_01_l {
+    BoneName = pinky_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_pinky_01_l.KEYF"
+        Size = 704
+    }
+    UUID = "64c8018d-a9b5-4702-bf76-5131fe285af9"
+}

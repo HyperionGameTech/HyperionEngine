@@ -107,6 +107,8 @@ public:
         return m_packedAtlases;
     }
 
+    void LogUnlitTexels() const;
+
     void Blur();
     void Dilate();
 

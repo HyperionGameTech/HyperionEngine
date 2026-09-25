@@ -869,6 +869,60 @@ void BakeData<LightmapVolume>::RasterizeEntity(uint32 entityIndex, uint32 chartB
     }
 }
 
+void BakeData<LightmapVolume>::LogUnlitTexels() const
+{
+    for (uint32 entityIndex = 0; entityIndex < uint32(m_entityRects.Size()); entityIndex++)
+    {
+        const EntityRect& entityRect = m_entityRects[entityIndex];
+
+        if (!entityRect.valid || entityRect.atlasIndex >= m_atlasCount)
+        {
+            continue;
+        }
+
+        const uint32 atlasTexelOffset = uint32(entityRect.atlasIndex) * m_atlasDimensions.x * m_atlasDimensions.y;
+
+        uint32 numTraced = 0;
+        uint32 numUnlit = 0;
+        const LightmapRay* sampleRay = nullptr;
+
+        for (uint32 y = entityRect.offsetCoords.y; y < entityRect.offsetCoords.y + entityRect.dimensions.y; y++)
+        {
+            for (uint32 x = entityRect.offsetCoords.x; x < entityRect.offsetCoords.x + entityRect.dimensions.x; x++)
+            {
+                const LightmapTexel& texel = texels[atlasTexelOffset + x + y * m_atlasDimensions.x];
+
+                if (!texel.pRay)
+                {
+                    continue;
+                }
+
+                numTraced++;
+
+                if (!IsTexelLit(texel))
+                {
+                    numUnlit++;
+
+                    if (!sampleRay || (numUnlit % 97) == 0)
+                    {
+                        sampleRay = texel.pRay;
+                    }
+                }
+            }
+        }
+
+        if (numUnlit == 0)
+        {
+            continue;
+        }
+
+        HYP_LOG(Lightmap, Info, "Lightmap: entity '{}' has {} / {} texels inside geometry. Sample: position {}, normal {}, face normal {}, texel size {}",
+            bakeEntities[entityIndex].entity->GetName(),
+            numUnlit, numTraced,
+            sampleRay->ray.position, sampleRay->ray.direction, sampleRay->faceNormal, sampleRay->texelWorldSize);
+    }
+}
+
 void BakeData<LightmapVolume>::Blur()
 {
     static constexpr int KernelRadius = 3;

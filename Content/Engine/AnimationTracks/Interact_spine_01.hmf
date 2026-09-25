@@ -1,0 +1,8 @@
+AnimationTrack Interact_spine_01 {
+    BoneName = spine_01
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_spine_01.KEYF"
+        Size = 3904
+    }
+    UUID = "b810494f-8cea-4889-8a2c-857ae78c6a7c"
+}

@@ -1,0 +1,8 @@
+AnimationTrack TurnRight_thumb_02_r {
+    BoneName = thumb_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnRight_thumb_02_r.KEYF"
+        Size = 1216
+    }
+    UUID = "14edebaa-f106-42d3-9e1d-8b41ebf819a5"
+}

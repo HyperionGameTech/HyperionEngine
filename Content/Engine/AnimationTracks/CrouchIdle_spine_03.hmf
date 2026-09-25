@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_spine_03 {
+    BoneName = spine_03
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_spine_03.KEYF"
+        Size = 5696
+    }
+    UUID = "6c8d3306-a1f9-41db-b7b4-2d7cbd623e4b"
+}

@@ -1,0 +1,8 @@
+AnimationTrack TurnLeftSmall_ring_03_r {
+    BoneName = ring_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeftSmall_ring_03_r.KEYF"
+        Size = 960
+    }
+    UUID = "519d7c6a-4042-419e-92b1-86e86b2a7ad5"
+}

@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_thigh_r {
+    BoneName = thigh_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_thigh_r.KEYF"
+        Size = 5696
+    }
+    UUID = "893a973b-85a6-4b80-bffc-f2b47f76606b"
+}

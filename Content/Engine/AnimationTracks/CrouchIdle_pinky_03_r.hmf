@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_pinky_03_r {
+    BoneName = pinky_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_pinky_03_r.KEYF"
+        Size = 5696
+    }
+    UUID = "7da41e79-a75e-4875-b19c-51330ac83a98"
+}

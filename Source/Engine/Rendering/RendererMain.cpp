@@ -275,8 +275,14 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     const RenderBucket bucket = mas.bucket;
 
+    const MaterialParameters& materialParameters = material->GetParameters();
+
+    // lightmapped pixels spend the gbuffer bits emissive is packed into on their atlas UV, so glowing surfaces get deferred lit instead
+    const bool isEmissive = materialParameters.emissiveIntensity > 0.0f
+        && (materialParameters.emissiveColor.GetRed() > 0.0f || materialParameters.emissiveColor.GetGreen() > 0.0f || materialParameters.emissiveColor.GetBlue() > 0.0f);
+
     const bool hasForwardLighting = (bucket == RenderBucket::Translucent || bucket == RenderBucket::Sky || bucket == RenderBucket::Debug);
-    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvLightmapVolumes.Get() && proxy.lightmapStencilValue != 0;
+    const bool hasLightmaps = (bucket == RenderBucket::Lightmapped) && g_cvLightmapVolumes.Get() && proxy.lightmapStencilValue != 0 && !isEmissive;
     const bool isSky = (bucket == RenderBucket::Sky);
     const bool isDebug = (bucket == RenderBucket::Debug);
 
@@ -429,7 +435,9 @@ static void InitDrawCallCollection(
 
     if (RenderBucketMask<RenderBucket::Translucent, RenderBucket::Sky, RenderBucket::Debug> & (1u << uint32(rb)))
     {
-        renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
+        // blended groups must record in a fixed order - parallel recorders get concatenated by worker thread index,
+        // which reshuffles which group draws on top every frame
+        renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::PARALLEL_COLLECTION);
     }
 
     drawCallCollection.attributes = attributes;
