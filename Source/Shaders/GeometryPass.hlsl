@@ -29,6 +29,7 @@ struct PSInput
     float4 previous_position_ndc : TEXCOORD5;
     nointerpolation uint object_index : TEXCOORD6;
     nointerpolation uint object_mask : TEXCOORD7;
+    nointerpolation uint cutout_seed : TEXCOORD8;
     bool is_front_face : SV_IsFrontFace;
 };
 
@@ -55,6 +56,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Gbuffer.hlsli"
 #include "include/Entity.hlsli"
 #include "include/Noise.hlsli"
+#include "include/AlphaCutout.hlsli"
 
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -240,19 +242,6 @@ bool ComputeUVTangentFrame(float3 N, float3 P, float2 uv, out float3 tangent, ou
     return true;
 }
 
-#ifdef ALPHA_DISCARD
-#define ALPHA_CUTOUT_HARD_MIP 1.3
-
-bool ShouldDiscardCutout(float alpha, float alphaThreshold, float mipLevel, float2 pixelPosition)
-{
-    const float softCoverage = saturate((alpha - alphaThreshold) / max(fwidth(alpha), 1e-4) + 0.5);
-    const float hardCoverage = step(alphaThreshold, alpha);
-    const float coverage = lerp(softCoverage, hardCoverage, saturate((mipLevel - ALPHA_CUTOUT_HARD_MIP) * 0.5));
-
-    return coverage <= InterleavedGradientNoiseAnimated(pixelPosition, world_shader_data.frame_counter % 64u);
-}
-#endif // ALPHA_DISCARD
-
 // #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
@@ -341,8 +330,10 @@ PSOutput PSMain(PSInput input)
 
 #ifdef ALPHA_DISCARD
         const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, texcoord);
+        const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, alpha_threshold, diffuseMipLevel);
+        const float cutoutNoise = InterleavedGradientNoiseAnimated(input.position_cs.xy, world_shader_data.frame_counter % 64u);
 
-        if (ShouldDiscardCutout(albedo_texture.a, alpha_threshold, diffuseMipLevel, input.position_cs.xy))
+        if (ShouldDiscardCutout(cutoutCoverage, cutoutNoise, input.cutout_seed))
         {
             discard;
         }
@@ -656,6 +647,10 @@ PSOutput PSMain(PSInput input)
     float2 velocity = ((input.position_ndc.xy / input.position_ndc.w) - (input.previous_position_ndc.xy / input.previous_position_ndc.w)) * float2(0.5, -0.5);
 
     uint mask = input.object_mask;
+
+#ifdef ALPHA_DISCARD
+    mask |= OBJECT_MASK_CUTOUT;
+#endif // ALPHA_DISCARD
 
     GBufferMaterialParams materialParams;
     materialParams.roughness = roughness;

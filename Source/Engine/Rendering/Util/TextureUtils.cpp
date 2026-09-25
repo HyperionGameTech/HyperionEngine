@@ -8,44 +8,19 @@
 
 #include <Rendering/Util/TextureUtils.hpp>
 
-#include <algorithm>
+#include <Core/Containers/Array.hpp>
+
+#include <utility>
 
 namespace Hyperion {
 
 namespace TextureUtils {
 
-namespace {
-
-void BuildAlphaHistogram(const ubyte* rgba, size_t numPixels, uint32 (&outHistogram)[256])
+void BuildAlphaCoverageMips(const TextureDesc& desc, ByteBuffer& imageData, float alphaCutoff)
 {
-    std::fill(std::begin(outHistogram), std::end(outHistogram), 0u);
-
-    for (size_t pixelIndex = 0; pixelIndex < numPixels; pixelIndex++)
-    {
-        outHistogram[rgba[pixelIndex * 4 + 3]]++;
-    }
-}
-
-uint32 CountAlphaAtOrAbove(const uint32 (&histogram)[256], uint32 alphaByte)
-{
-    uint32 count = 0;
-
-    for (uint32 value = alphaByte; value < 256; value++)
-    {
-        count += histogram[value];
-    }
-
-    return count;
-}
-} // namespace
-
-void PreserveAlphaCoverage(const TextureDesc& desc, ByteBuffer& imageData, float alphaCutoff)
-{
-    static constexpr float Tolerance = 0.03f;
-
     const bool isRgba8 = desc.format == TextureFormat::RGBA8 || desc.format == TextureFormat::RGBA8_SRGB;
 
-    if (!isRgba8 || !desc.HasStoredMips() || alphaCutoff <= 0.0f || alphaCutoff >= 1.0f)
+    if (!isRgba8 || !desc.HasStoredMips() || desc.GetMipExtent(0).z != 1 || alphaCutoff <= 0.0f || alphaCutoff > 1.0f)
     {
         return;
     }
@@ -56,61 +31,59 @@ void PreserveAlphaCoverage(const TextureDesc& desc, ByteBuffer& imageData, float
     const uint32 numArrayLayers = desc.NumArrayLayers();
     const uint32 cutoffByte = MathUtil::Clamp(uint32(MathUtil::Ceil(alphaCutoff * 255.0f)), 1u, 255u);
 
-    uint32 histogram[256];
+    const Vec3u baseExtent = desc.GetMipExtent(0);
+    const size_t baseLayerSize = desc.GetMipByteSize(0);
+
+    Array<float> coverage;
+    Array<float> nextCoverage;
 
     for (uint32 layer = 0; layer < numArrayLayers; layer++)
     {
-        const size_t baseLayerSize = desc.GetMipByteSize(0);
-        const size_t baseNumPixels = baseLayerSize / 4;
+        const ubyte* baseLayerData = imageData.Data() + layer * baseLayerSize;
 
-        BuildAlphaHistogram(imageData.Data() + layer * baseLayerSize, baseNumPixels, histogram);
+        uint32 width = baseExtent.x;
+        uint32 height = baseExtent.y;
 
-        const float targetCoverage = float(CountAlphaAtOrAbove(histogram, cutoffByte)) / float(baseNumPixels);
+        coverage.ResizeUninitialized(size_t(width) * size_t(height));
 
-        if (targetCoverage <= 0.0f)
+        for (size_t pixelIndex = 0; pixelIndex < coverage.Size(); pixelIndex++)
         {
-            continue;
+            coverage[pixelIndex] = baseLayerData[pixelIndex * 4 + 3] >= cutoffByte ? 1.0f : 0.0f;
         }
 
         for (uint32 mip = 1; mip < numMipLevels; mip++)
         {
+            const Vec3u mipExtent = desc.GetMipExtent(uint8(mip));
             const size_t mipLayerSize = desc.GetMipByteSize(uint8(mip));
-            const size_t numPixels = mipLayerSize / 4;
 
             ubyte* mipLayerData = imageData.Data() + desc.mipOffsets[mip - 1] + layer * mipLayerSize;
 
-            BuildAlphaHistogram(mipLayerData, numPixels, histogram);
+            nextCoverage.ResizeUninitialized(size_t(mipExtent.x) * size_t(mipExtent.y));
 
-            const float coverage = float(CountAlphaAtOrAbove(histogram, cutoffByte)) / float(numPixels);
-
-            if (MathUtil::Abs(coverage - targetCoverage) <= Tolerance)
+            for (uint32 y = 0; y < mipExtent.y; y++)
             {
-                continue;
-            }
+                const uint32 sourceRow0 = MathUtil::Min(y * 2, height - 1) * width;
+                const uint32 sourceRow1 = MathUtil::Min(y * 2 + 1, height - 1) * width;
 
-            const uint32 targetCount = MathUtil::Max(uint32(MathUtil::Ceil(targetCoverage * float(numPixels))), 1u);
-
-            uint32 thresholdByte = 1;
-            uint32 passingCount = 0;
-
-            for (uint32 alphaByte = 255; alphaByte >= 1; alphaByte--)
-            {
-                passingCount += histogram[alphaByte];
-
-                if (passingCount >= targetCount)
+                for (uint32 x = 0; x < mipExtent.x; x++)
                 {
-                    thresholdByte = alphaByte;
-                    break;
+                    const uint32 sourceColumn0 = MathUtil::Min(x * 2, width - 1);
+                    const uint32 sourceColumn1 = MathUtil::Min(x * 2 + 1, width - 1);
+
+                    const float value = 0.25f * (coverage[sourceRow0 + sourceColumn0] + coverage[sourceRow0 + sourceColumn1]
+                        + coverage[sourceRow1 + sourceColumn0] + coverage[sourceRow1 + sourceColumn1]);
+
+                    const size_t pixelIndex = size_t(y) * mipExtent.x + x;
+
+                    nextCoverage[pixelIndex] = value;
+                    mipLayerData[pixelIndex * 4 + 3] = ubyte(value * 255.0f + 0.5f);
                 }
             }
 
-            const float alphaScale = (float(cutoffByte) + 0.25f) / float(thresholdByte);
+            std::swap(coverage, nextCoverage);
 
-            for (size_t pixelIndex = 0; pixelIndex < numPixels; pixelIndex++)
-            {
-                ubyte& alpha = mipLayerData[pixelIndex * 4 + 3];
-                alpha = ubyte(MathUtil::Min(float(alpha) * alphaScale + 0.5f, 255.0f));
-            }
+            width = mipExtent.x;
+            height = mipExtent.y;
         }
     }
 }

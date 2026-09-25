@@ -30,10 +30,12 @@ struct VSOutput
     float4 previous_position_ndc : TEXCOORD5;
     nointerpolation uint object_index : TEXCOORD6;
     nointerpolation uint object_mask : TEXCOORD7;
+    nointerpolation uint cutout_seed : TEXCOORD8;
 };
 
 #include "include/Entity.hlsli"
 #include "include/TerrainMorph.hlsli"
+#include "include/AlphaCutout.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -64,7 +66,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 
 #include "include/Instancing.hlsli"
 
-VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
+VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : SV_VertexID)
 {
     VSOutput output;
 
@@ -186,6 +188,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.object_mask = lightmappedMask
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_UNLIT)) * OBJECT_MASK_UNLIT)
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_FOLIAGE)) * OBJECT_MASK_FOLIAGE);
+
+    output.cutout_seed = AlphaCutoutSeed(model_matrix, vertexId);
 
 #ifndef INSTANCING
 #undef currentEntity

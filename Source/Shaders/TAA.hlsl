@@ -6,6 +6,7 @@ DECLARE_SRV(TAA, InColorTexture) Texture2D color_texture;
 DECLARE_SRV(TAA, InPrevColorTexture) Texture2D prev_color_texture;
 DECLARE_SRV(TAA, InVelocityTexture) Texture2D velocity_texture;
 DECLARE_SRV(TAA, InDepthTexture) Texture2D depth_texture;
+DECLARE_SRV(TAA, InMaterialTexture) Texture2D<uint> material_texture;
 
 DECLARE_SAMPLER(TAA, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(TAA, SamplerNearest) SamplerState sampler_nearest;
@@ -18,9 +19,14 @@ DECLARE_BUFFER_DYNAMIC(TAA, TAAConstants) cbuffer TAAConstants
     float4 jitter;
     float2 nearFarClip;
     float feedback; // Rendering.TAA.Feedback
+    float cutoutFeedback; // Rendering.TAA.CutoutFeedback
 };
 
 #define FEEDBACK feedback
+
+// history is dropped entirely at this much motion (pixels per frame); dithered cutouts need it for longer
+#define VELOCITY_REJECTION_PIXELS 1.5
+#define CUTOUT_VELOCITY_REJECTION_PIXELS 4.0
 
 // #define ADJUST_COLOR_HDR
 
@@ -59,13 +65,19 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         velocity,
         view_space_depth);
 
+    // the closest fragment is the nearest surface around the pixel, so dithered leaves still count where this pixel was discarded
+    const uint2 closestTexel = min(uint2(closest_fragment.xy * float2(depthDimensions)), depthDimensions - 1);
+    const bool isCutout = ((material_texture.Load(int3(closestTexel, 0)) >> 28u) & OBJECT_MASK_CUTOUT) != 0;
+
     float4 result = TemporalBlendVarying(
         color_texture,
         prev_color_texture,
         uv,
         velocity,
         texel_size,
-        view_space_depth);
+        view_space_depth,
+        isCutout ? cutoutFeedback : feedback,
+        isCutout ? CUTOUT_VELOCITY_REJECTION_PIXELS : VELOCITY_REJECTION_PIXELS);
 
     const uint2 clamped_coord = clamp(pixel_coord, uint2(0, 0), colorDimensions - uint2(1, 1));
 

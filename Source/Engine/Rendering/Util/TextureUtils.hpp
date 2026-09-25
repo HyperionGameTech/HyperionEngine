@@ -15,8 +15,9 @@ namespace Hyperion {
 // format helpers live with TextureDesc in Shared.hpp
 namespace TextureUtils {
 
-/// Rescales alpha in each generated mip so the share of texels passing \p alphaCutoff matches mip 0
-void PreserveAlphaCoverage(const TextureDesc& desc, ByteBuffer& imageData, float alphaCutoff);
+/// Replaces alpha in every mip past 0 with the fraction of mip 0 texels at or above \p alphaCutoff that it covers.
+/// Cutout shaders dither minified samples on that fraction instead of testing it against the cutoff.
+void BuildAlphaCoverageMips(const TextureDesc& desc, ByteBuffer& imageData, float alphaCutoff);
 
 } // namespace TextureUtils
 
