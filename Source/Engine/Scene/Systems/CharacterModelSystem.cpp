@@ -36,6 +36,7 @@
 
 namespace Hyperion {
 
+/// @TODO Refactor, too many fields all over the place
 struct LocomotionClips
 {
     uint32 idleIndex = ~0u;
@@ -79,6 +80,13 @@ struct LocomotionClips
     float strafeRightLength = 0.0f;
     float walkBackwardLength = 0.0f;
 
+    uint32 runJumpIndex = ~0u;
+    uint32 runFallIndex = ~0u;
+    uint32 runLandIndex = ~0u;
+    float runJumpLength = 0.0f;
+    float runFallLength = 0.0f;
+    float runLandLength = 0.0f;
+
     float walkReferenceSpeed = 0.0f;
     float runReferenceSpeed = 0.0f;
 
@@ -90,6 +98,11 @@ struct LocomotionClips
     bool HasDirectionalWalks() const
     {
         return strafeLeftIndex != ~0u && strafeRightIndex != ~0u && walkBackwardIndex != ~0u;
+    }
+
+    bool HasRunningJump() const
+    {
+        return runJumpIndex != ~0u && runFallIndex != ~0u && runLandIndex != ~0u;
     }
 
     float GetWalkClipLength(uint32 index) const
@@ -154,6 +167,9 @@ static constexpr float JumpWindupHoldTime = 0.1f;
 static constexpr float JumpWindupBlendOutTime = 0.05f;
 
 static constexpr float MovingLandFraction = 0.35f;
+
+// Leaving the ground faster than this (m/s) is a running jump
+static constexpr float RunningJumpSpeed = 3.0f;
 
 static constexpr float StandingSpeedFraction = 0.3f;
 
@@ -297,6 +313,13 @@ void FindLocomotionClips(
     clips.strafeLeftLength = GetAnimationLength(skeleton, clips.strafeLeftIndex);
     clips.strafeRightLength = GetAnimationLength(skeleton, clips.strafeRightIndex);
     clips.walkBackwardLength = GetAnimationLength(skeleton, clips.walkBackwardIndex);
+
+    clips.runJumpIndex = FindAnimationIndex(skeleton, animations.runJumpAnimation);
+    clips.runFallIndex = FindAnimationIndex(skeleton, animations.runFallAnimation);
+    clips.runLandIndex = FindAnimationIndex(skeleton, animations.runLandAnimation);
+    clips.runJumpLength = GetAnimationLength(skeleton, clips.runJumpIndex);
+    clips.runFallLength = GetAnimationLength(skeleton, clips.runFallIndex);
+    clips.runLandLength = GetAnimationLength(skeleton, clips.runLandIndex);
 
     clips.jumpWindupIndex = FindAnimationIndex(skeleton, animations.jumpWindupAnimation);
     clips.jumpIndex = FindAnimationIndex(skeleton, animations.jumpAnimation);
@@ -656,6 +679,7 @@ void UpdateAirborneState(
             // A wound-up takeoff is a jump even when the capsule hasn't moved since the last update, otherwise the
             // first airborne frame drops back to the locomotion pose
             component.isJumping = component.verticalSpeed > JumpTakeoffSpeed || component.isJumpWoundUp;
+            component.isRunningJump = component.smoothedSpeed > RunningJumpSpeed;
             component.airTime = 0.0f;
         }
         else
@@ -771,7 +795,20 @@ bool ApplyAirbornePose(
     playbackState.secondLayerAnimationIndex = ~0u;
     playbackState.secondLayerWeight = 0.0f;
 
-    if (!component.isAirborne && component.isJumpWoundUp && clips.jumpWindupIndex != ~0u)
+    const bool isRunningWindup = clips.HasRunningJump() && component.smoothedSpeed > RunningJumpSpeed;
+    const bool isRunning = component.isRunningJump && clips.HasRunningJump();
+    const bool isWoundUp = component.isJumpWoundUp && !isRunning;
+
+    const uint32 jumpIndex = isRunning ? clips.runJumpIndex : clips.jumpIndex;
+    const float jumpLength = isRunning ? clips.runJumpLength : clips.jumpLength;
+    
+    const uint32 fallIndex = isRunning ? clips.runFallIndex : clips.fallIndex;
+    const float fallLength = isRunning ? clips.runFallLength : clips.fallLength;
+    
+    const uint32 landIndex = isRunning ? clips.runLandIndex : clips.landIndex;
+    const float landLength = isRunning ? clips.runLandLength : clips.landLength;
+
+    if (!component.isAirborne && component.isJumpWoundUp && clips.jumpWindupIndex != ~0u && !isRunningWindup)
     {
         const float windup = component.jumpWindup >= 0.0f ? component.jumpWindup : 1.0f;
         float locomotionTime = 0.0f;
@@ -789,18 +826,18 @@ bool ApplyAirbornePose(
             return false;
         }
 
-        if (component.isJumping && clips.jumpIndex != ~0u)
+        if (component.isJumping && jumpIndex != ~0u)
         {
-            playbackState.animationIndex = clips.jumpIndex;
-            playbackState.currentTime = MathUtil::Min(component.airTime, clips.jumpLength);
+            playbackState.animationIndex = jumpIndex;
+            playbackState.currentTime = MathUtil::Min(component.airTime, jumpLength);
 
-            if (component.isJumpWoundUp && clips.jumpWindupIndex != ~0u && component.airTime < JumpWindupBlendOutTime)
+            if (isWoundUp && clips.jumpWindupIndex != ~0u && component.airTime < JumpWindupBlendOutTime)
             {
                 playbackState.layerAnimationIndex = clips.jumpWindupIndex;
                 playbackState.layerTime = clips.jumpWindupLength;
                 playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, JumpWindupBlendOutTime, component.airTime);
             }
-            else if (component.airTime < JumpBlendInTime && !component.isJumpWoundUp)
+            else if (component.airTime < JumpBlendInTime && !isWoundUp)
             {
                 float locomotionTime = 0.0f;
 
@@ -810,19 +847,19 @@ bool ApplyAirbornePose(
             }
             else
             {
-                playbackState.layerAnimationIndex = clips.fallIndex;
-                playbackState.layerTime = WrapTime(MathUtil::Max(component.airTime - clips.jumpLength, 0.0f), clips.fallLength);
-                playbackState.layerWeight = clips.fallIndex != ~0u
-                    ? MathUtil::SmoothStep(clips.jumpLength * 0.6f, clips.jumpLength, component.airTime)
+                playbackState.layerAnimationIndex = fallIndex;
+                playbackState.layerTime = WrapTime(MathUtil::Max(component.airTime - jumpLength, 0.0f), fallLength);
+                playbackState.layerWeight = fallIndex != ~0u
+                    ? MathUtil::SmoothStep(jumpLength * 0.6f, jumpLength, component.airTime)
                     : 0.0f;
             }
         }
-        else if (clips.fallIndex != ~0u)
+        else if (fallIndex != ~0u)
         {
             float locomotionTime = 0.0f;
 
-            playbackState.animationIndex = clips.fallIndex;
-            playbackState.currentTime = WrapTime(component.airTime, clips.fallLength);
+            playbackState.animationIndex = fallIndex;
+            playbackState.currentTime = WrapTime(component.airTime, fallLength);
             playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
             playbackState.layerTime = locomotionTime;
             playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(FallGraceTime, FallGraceTime + FallBlendInTime, component.airTime);
@@ -834,13 +871,13 @@ bool ApplyAirbornePose(
     }
     else
     {
-        if (component.landTime < 0.0f || clips.landIndex == ~0u)
+        if (component.landTime < 0.0f || landIndex == ~0u)
         {
             return false;
         }
 
         const bool isMoving = component.smoothedSpeed > clips.walkReferenceSpeed * 0.5f;
-        const float landDuration = clips.landLength * (isMoving ? MovingLandFraction : 1.0f);
+        const float landDuration = landLength * (isMoving ? MovingLandFraction : 1.0f);
 
         if (component.landTime >= landDuration)
         {
@@ -851,7 +888,7 @@ bool ApplyAirbornePose(
 
         float locomotionTime = 0.0f;
 
-        playbackState.animationIndex = clips.landIndex;
+        playbackState.animationIndex = landIndex;
         playbackState.currentTime = component.landTime;
         playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
         playbackState.layerTime = locomotionTime;

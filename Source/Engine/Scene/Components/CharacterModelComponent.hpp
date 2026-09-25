@@ -58,6 +58,15 @@ struct CharacterModelAnimations
     HYP_FIELD(Property = "LandAnimation", Serialize, Editor, Title = "Land Animation")
     Name landAnimation = NAME("Land");
 
+    HYP_FIELD(Property = "RunJumpAnimation", Serialize, Editor, Title = "Run Jump Animation")
+    Name runJumpAnimation = NAME("RunJump");
+
+    HYP_FIELD(Property = "RunFallAnimation", Serialize, Editor, Title = "Run Fall Animation")
+    Name runFallAnimation = NAME("RunFall");
+
+    HYP_FIELD(Property = "RunLandAnimation", Serialize, Editor, Title = "Run Land Animation")
+    Name runLandAnimation = NAME("RunLand");
+
     HYP_FIELD(Property = "AimTwistRootBone", Serialize, Editor, Title = "Aim Twist Root Bone")
     Name aimTwistRootBone = NAME("spine_01");
 
@@ -159,6 +168,10 @@ struct CharacterModelComponent
     // Took off with upward speed (plays Jump), as opposed to walking off a ledge (straight into Fall)
     HYP_FIELD(Transient)
     bool isJumping = false;
+
+    // Left the ground at a run (plays RunJump/RunFall and lands with RunLand); kept through the landing
+    HYP_FIELD(Transient)
+    bool isRunningJump = false;
 
     HYP_FIELD(Transient)
     float airTime = 0.0f;

@@ -115,9 +115,12 @@ struct WorldShaderData
 
     // x = game time last frame, so swaying geometry can write its own motion vectors
     Vec4f windTimeParams;
+
+    // x = how much of the alpha cutout test is per-pixel noise rather than a per-triangle threshold. controlled by Rendering.Cutout.DitherAmount
+    Vec4f cutoutParams;
 };
 
-static_assert(sizeof(WorldShaderData) == 240);
+static_assert(sizeof(WorldShaderData) == 256);
 
 struct EntityShaderData
 {

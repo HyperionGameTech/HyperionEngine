@@ -331,7 +331,7 @@ PSOutput PSMain(PSInput input)
 #ifdef ALPHA_DISCARD
         const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, texcoord);
         const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, alpha_threshold, diffuseMipLevel);
-        const float cutoutNoise = InterleavedGradientNoiseAnimated(input.position_cs.xy, world_shader_data.frame_counter % 64u);
+        const float cutoutNoise = world_shader_data.cutout_params.x * InterleavedGradientNoiseAnimated(input.position_cs.xy, world_shader_data.frame_counter % 64u);
 
         if (ShouldDiscardCutout(cutoutCoverage, cutoutNoise, input.cutout_seed))
         {
