@@ -67,13 +67,13 @@ static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry)
 {
     GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
 
-    auto characterPrefabResult = g_assetManager->Load<Prefab>("Models/Mutant/Mutant.glb",
+    auto characterPrefabResult = g_assetManager->Load<Prefab>("Models/Mannequin/Mannequin.glb",
         String::empty,
         AssetLoadHint::Transient);
 
     if (!characterPrefabResult.HasValue())
     {
-        HYP_LOG(Engine, Error, "Failed to load source Models/Mutant/Mutant.glb to build the ThirdPersonCharacter prefab");
+        HYP_LOG(Engine, Error, "Failed to load source Models/Mannequin/Mannequin.glb to build the ThirdPersonCharacter prefab");
 
         return;
     }
