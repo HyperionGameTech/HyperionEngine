@@ -248,6 +248,7 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
 
         component.translation += flyDirection * flySpeed * deltaTime;
         component.isOnGround = false;
+        component.jumpWindupRemaining = 0.0f;
 
         physicsWorld->SetCharacterTranslation(component.physicsHandle, component.translation);
 
@@ -308,6 +309,10 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
 
     physicsWorld->StepCharacterController(component.physicsHandle, move.deltaTime);
     physicsWorld->GetCharacterState(component.physicsHandle, component.translation, component.isOnGround);
+
+    CharacterMotionState motionState;
+    physicsWorld->GetCharacterMotionState(component.physicsHandle, motionState);
+    component.jumpWindupRemaining = motionState.jumpWindupRemaining;
 
     outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
 

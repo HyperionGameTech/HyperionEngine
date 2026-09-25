@@ -88,6 +88,9 @@ struct CharacterJumpSettings
 
     HYP_FIELD(Property = "BufferTime", Serialize, Title = "Buffer Time")
     float bufferTime = 0.15f;
+
+    HYP_FIELD(Property = "WindupTime", Serialize, Title = "Windup Time", Description = "Time spent crouching into a jump before leaving the ground")
+    float windupTime = 0.1f;
 };
 
 HYP_STRUCT()
@@ -160,6 +163,9 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Transient)
     bool isOnGround = false;
+
+    HYP_FIELD(Transient)
+    float jumpWindupRemaining = 0.0f;
 };
 
 } // namespace Hyperion

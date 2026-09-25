@@ -154,6 +154,13 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _makePrefabHeader, value);
         }
 
+        private string _makeTemplateHeader = "Save as Template...";
+        public string MakeTemplateHeader
+        {
+            get => _makeTemplateHeader;
+            set => SetProperty(ref _makeTemplateHeader, value);
+        }
+
         public ObservableCollection<AddToPrefabTargetViewModel> AddToPrefabTargets { get; } = new ObservableCollection<AddToPrefabTargetViewModel>();
 
         public bool HasAddToPrefabTargets => AddToPrefabTargets.Count > 0;
@@ -439,6 +446,27 @@ namespace Hyperion.Editor.ViewModels
 
         // Templates
         public EditorCommand AddPlayerEntity => new EditorCommand("AddPlayerEntity");
+        // CommandParameter is the template name
+        public EditorCommand AddTemplate => new EditorCommand("AddTemplate");
+        public ICommand SaveAsTemplate { get; private set; }
+        public ICommand SavePrefabAsTemplate { get; private set; }
+        public ICommand OpenTemplatesFolder { get; private set; }
+
+        public List<string> GetTemplateNames()
+        {
+            EditorSubsystem? editorSubsystem = EngineManager.EditorGame?.EditorSubsystem;
+
+            if (editorSubsystem == null)
+            {
+                return new List<string>();
+            }
+
+            // GetTemplateNames() returns untyped Array, we need to use Cast<Name>() to get an IEnumberable for Name
+            return editorSubsystem.GetTemplateNames().Cast<Name>()
+                .Select(templateName => templateName.ToString())
+                .OrderBy(templateName => templateName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
 
         private string GetSelectedNodeUuid() => SceneHierarchy.SelectedNode?.UUID.ToString() ?? string.Empty;
 
@@ -1287,6 +1315,73 @@ namespace Hyperion.Editor.ViewModels
                 PanelService.Instance.OpenPanel(panel);
             }, _ => !IsSimulating);
 
+            SaveAsTemplate = new RelayCommand<object?>(target =>
+            {
+                string? uuidArg = target is UUID uuid ? uuid.ToString() : null;
+                string defaultName = SceneHierarchy.SelectedNodes.Count == 1 ? SceneHierarchy.SelectedNodes[0].Name : "NewTemplate";
+
+                var panel = new SaveAsTemplatePanelViewModel(defaultName, templateName =>
+                {
+                    if (string.IsNullOrEmpty(templateName))
+                    {
+                        return;
+                    }
+
+                    string argument = string.IsNullOrEmpty(uuidArg) ? templateName : $"{templateName} {uuidArg}";
+
+                    EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommandSaveAsTemplate"), argument);
+                });
+
+                PanelService.Instance.OpenPanel(panel);
+            }, _ => !IsSimulating);
+
+            SavePrefabAsTemplate = new RelayCommand<object?>(target =>
+            {
+                if (target is not AssetObjectViewModel { IsPrefab: true } prefabViewModel)
+                {
+                    return;
+                }
+
+                string prefabName = prefabViewModel.DisplayName;
+
+                var panel = new SaveAsTemplatePanelViewModel(prefabName, templateName =>
+                {
+                    if (string.IsNullOrEmpty(templateName))
+                    {
+                        return;
+                    }
+
+                    EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(new Name("EditorCommandSavePrefabAsTemplate"), $"{templateName} {prefabName}");
+                });
+
+                PanelService.Instance.OpenPanel(panel);
+            }, _ => !IsSimulating);
+
+            OpenTemplatesFolder = new RelayCommand(() =>
+            {
+                string? templatesDirectory = EngineManager.EditorGame?.EditorSubsystem?.GetTemplatesDirectory();
+
+                if (string.IsNullOrEmpty(templatesDirectory))
+                {
+                    return;
+                }
+
+                try
+                {
+                    Directory.CreateDirectory(templatesDirectory);
+
+                    using Process? process = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = templatesDirectory,
+                        UseShellExecute = true,
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Warning, $"Failed to open templates folder '{templatesDirectory}': {ex.Message}");
+                }
+            });
+
             AddNewLayerCommand = new RelayCommand(() =>
             {
                 var panel = new AddNewLayerPanelViewModel(result =>
@@ -1657,6 +1752,7 @@ namespace Hyperion.Editor.ViewModels
             CopyHeader = count > 1 ? $"_Copy {count} Nodes" : "_Copy";
             DeleteHeader = count > 1 ? $"_Delete {count} Nodes" : "_Delete";
             MakePrefabHeader = count > 1 ? $"Save {count} Nodes as Prefab..." : "Save as Prefab...";
+            MakeTemplateHeader = count > 1 ? $"Save {count} Nodes as Template..." : "Save as Template...";
             CanCopy = count > 0;
         }
 

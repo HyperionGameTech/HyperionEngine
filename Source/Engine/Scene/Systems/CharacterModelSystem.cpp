@@ -41,6 +41,7 @@ struct LocomotionClips
     uint32 idleIndex = ~0u;
     uint32 walkIndex = ~0u;
     uint32 runIndex = ~0u;
+    uint32 jumpWindupIndex = ~0u;
     uint32 jumpIndex = ~0u;
     uint32 fallIndex = ~0u;
     uint32 landIndex = ~0u;
@@ -48,6 +49,7 @@ struct LocomotionClips
     float idleLength = 0.0f;
     float walkLength = 0.0f;
     float runLength = 0.0f;
+    float jumpWindupLength = 0.0f;
     float jumpLength = 0.0f;
     float fallLength = 0.0f;
     float landLength = 0.0f;
@@ -110,6 +112,10 @@ static constexpr float FallGraceTime = 0.12f;
 static constexpr float RemoteAirborneVerticalSpeed = 1.5f;
 
 static constexpr float FallBlendInTime = 0.2f;
+
+static constexpr float JumpBlendInTime = 0.25f;
+
+static constexpr float JumpWindupHoldTime = 0.1f;
 
 static constexpr float MovingLandFraction = 0.35f;
 
@@ -243,6 +249,7 @@ void FindLocomotionClips(const CharacterModelAnimations& animations, const Skele
         clips.runIndex = clips.walkIndex;
     }
 
+    clips.jumpWindupIndex = FindAnimationIndex(skeleton, animations.jumpWindupAnimation);
     clips.jumpIndex = FindAnimationIndex(skeleton, animations.jumpAnimation);
     clips.fallIndex = FindAnimationIndex(skeleton, animations.fallAnimation);
     clips.landIndex = FindAnimationIndex(skeleton, animations.landAnimation);
@@ -250,6 +257,7 @@ void FindLocomotionClips(const CharacterModelAnimations& animations, const Skele
     clips.idleLength = GetAnimationLength(skeleton, clips.idleIndex);
     clips.walkLength = GetAnimationLength(skeleton, clips.walkIndex);
     clips.runLength = GetAnimationLength(skeleton, clips.runIndex);
+    clips.jumpWindupLength = GetAnimationLength(skeleton, clips.jumpWindupIndex);
     clips.jumpLength = GetAnimationLength(skeleton, clips.jumpIndex);
     clips.fallLength = GetAnimationLength(skeleton, clips.fallIndex);
     clips.landLength = GetAnimationLength(skeleton, clips.landIndex);
@@ -448,14 +456,13 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
     {
         const float twist = GetStandingTwist(component);
         const float absTwist = MathUtil::Abs(twist);
-
-        // A view held still (or barely drifting) for a moment lets the feet square up with a settling step
-        const float viewTurnRate = delta > 0.0f ? MathUtil::Abs(float(std::remainder(component.facingYaw - component.lastFacingYaw, 2.0f * MathUtil::pi<float>))) / delta : 0.0f;
+        const float viewTurnRate = delta > 0.0f
+            ? MathUtil::Abs(float(std::remainder(component.facingYaw - component.lastFacingYaw, 2.0f * MathUtil::pi<float>))) / delta
+            : 0.0f;
 
         component.viewStillTime = viewTurnRate < SettleMaxViewTurnRate ? component.viewStillTime + delta : 0.0f;
 
-        // A step that has just finished with twist still left over carries straight on into the next one
-        const bool isFinishingStep = component.turnStepWeight > 0.5f;
+        const bool isFinishingStep = (component.turnStepWeight > 0.5f);
 
         const bool shouldTurn = absTwist > clips->turnStepStartAngle;
         const bool shouldSettle = clips->HasSmallTurnSteps() && absTwist > clips->settleAngle
@@ -467,13 +474,14 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
             component.isTurnStepLeft = twist < 0.0f;
             component.turnStepFromYaw = component.bodyYaw;
 
-            // Use whichever step clip is closest to the twist, and catch up the whole twist while staying close enough
-            // to that clip's own angle that the planted foot barely pivots; anything left over triggers another step
-            const float stepAngle = clips->HasSmallTurnSteps() && absTwist < (clips->turnStepSmallAngle + clips->turnStepAngle) * 0.5f
-                ? clips->turnStepSmallAngle
-                : clips->turnStepAngle;
+            component.isTurnStepSmall = (clips->HasSmallTurnSteps() && absTwist < (clips->turnStepSmallAngle + clips->turnStepAngle) * 0.5f);
+            
+            float stepAngle = clips->turnStepAngle;
+            if (component.isTurnStepSmall)
+            {
+                stepAngle = clips->turnStepSmallAngle;
+            }
 
-            component.isTurnStepSmall = stepAngle != clips->turnStepAngle;
             // Full steps turn exactly their clip's angle, so the recorded feet stay planted; the smaller everyday steps
             // catch up the actual twist, staying close to their clip's angle
             component.turnStepSize = component.isTurnStepSmall ? MathUtil::Clamp(absTwist, stepAngle * 0.5f, stepAngle * 1.25f) : stepAngle;
@@ -532,6 +540,11 @@ void UpdateAirborneState(CharacterModelComponent& component, bool isOnGround, fl
         else
         {
             component.airTime += delta;
+
+            if (!component.isJumping && component.airTime < FallGraceTime && component.verticalSpeed > JumpTakeoffSpeed)
+            {
+                component.isJumping = true;
+            }
         }
 
         return;
@@ -540,6 +553,7 @@ void UpdateAirborneState(CharacterModelComponent& component, bool isOnGround, fl
     if (component.isAirborne)
     {
         component.isAirborne = false;
+        component.isJumpWoundUp = false;
 
         // A step down that never left the locomotion pose doesn't need a landing
         component.landTime = (component.isJumping || component.airTime > FallGraceTime) ? 0.0f : -1.0f;
@@ -547,6 +561,44 @@ void UpdateAirborneState(CharacterModelComponent& component, bool isOnGround, fl
     else if (component.landTime >= 0.0f)
     {
         component.landTime += delta;
+    }
+}
+
+void UpdateJumpWindup(CharacterModelComponent& component, const CharacterControllerComponent* characterController, float delta)
+{
+    const float windupTime = characterController != nullptr ? characterController->jump.windupTime : 0.0f;
+
+    if (windupTime > 0.0f && characterController->jumpWindupRemaining > 0.0f)
+    {
+        component.jumpWindup = MathUtil::Clamp(1.0f - characterController->jumpWindupRemaining / windupTime, 0.0f, 1.0f);
+        component.isJumpWoundUp = true;
+        component.jumpWindupHoldTime = 0.0f;
+
+        return;
+    }
+
+    component.jumpWindup = -1.0f;
+
+    if (!component.isJumpWoundUp)
+    {
+        return;
+    }
+
+    if (component.isAirborne)
+    {
+        if (!component.isJumping && component.airTime >= FallGraceTime)
+        {
+            component.isJumpWoundUp = false;
+        }
+
+        return;
+    }
+
+    component.jumpWindupHoldTime += delta;
+
+    if (component.jumpWindupHoldTime > JumpWindupHoldTime)
+    {
+        component.isJumpWoundUp = false;
     }
 }
 
@@ -578,7 +630,18 @@ bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips
     AnimationPlaybackState& playbackState = animationComponent.playbackState;
     playbackState.layerExcludedBone = Name::Invalid();
 
-    if (component.isAirborne)
+    if (!component.isAirborne && component.isJumpWoundUp && clips.jumpWindupIndex != ~0u)
+    {
+        const float windup = component.jumpWindup >= 0.0f ? component.jumpWindup : 1.0f;
+        float locomotionTime = 0.0f;
+
+        playbackState.animationIndex = clips.jumpWindupIndex;
+        playbackState.currentTime = windup * clips.jumpWindupLength;
+        playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
+        playbackState.layerTime = locomotionTime;
+        playbackState.layerWeight = 1.0f - SmoothStep(windup);
+    }
+    else if (component.isAirborne)
     {
         if (!component.isJumping && component.airTime < FallGraceTime)
         {
@@ -590,16 +653,25 @@ bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips
             playbackState.animationIndex = clips.jumpIndex;
             playbackState.currentTime = MathUtil::Min(component.airTime, clips.jumpLength);
 
-            // The jump clip ends in the pose the fall loop starts from, so crossfade over its tail
-            playbackState.layerAnimationIndex = clips.fallIndex;
-            playbackState.layerTime = WrapTime(MathUtil::Max(component.airTime - clips.jumpLength, 0.0f), clips.fallLength);
-            playbackState.layerWeight = clips.fallIndex != ~0u
-                ? SmoothStep((component.airTime - clips.jumpLength * 0.6f) / MathUtil::Max(clips.jumpLength * 0.4f, 0.001f))
-                : 0.0f;
+            if (component.airTime < JumpBlendInTime && !component.isJumpWoundUp)
+            {
+                float locomotionTime = 0.0f;
+
+                playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
+                playbackState.layerTime = locomotionTime;
+                playbackState.layerWeight = 1.0f - SmoothStep(component.airTime / JumpBlendInTime);
+            }
+            else
+            {
+                playbackState.layerAnimationIndex = clips.fallIndex;
+                playbackState.layerTime = WrapTime(MathUtil::Max(component.airTime - clips.jumpLength, 0.0f), clips.fallLength);
+                playbackState.layerWeight = clips.fallIndex != ~0u
+                    ? SmoothStep((component.airTime - clips.jumpLength * 0.6f) / MathUtil::Max(clips.jumpLength * 0.4f, 0.001f))
+                    : 0.0f;
+            }
         }
         else if (clips.fallIndex != ~0u)
         {
-            // Stepped off a ledge: ease out of the locomotion pose into the fall loop
             float locomotionTime = 0.0f;
 
             playbackState.animationIndex = clips.fallIndex;
@@ -775,6 +847,7 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     : characterController->isOnGround;
 
                 UpdateAirborneState(component, isOnGround, delta);
+                UpdateJumpWindup(component, isRemotePlayer ? nullptr : characterController, delta);
             }
 
             switch (component.facingMode)

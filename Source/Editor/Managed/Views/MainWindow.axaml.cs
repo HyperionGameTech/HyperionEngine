@@ -240,9 +240,58 @@ namespace Hyperion.Editor
                 new MenuItem { Header = "Cube", Command = viewModel.AddCube },
                 new MenuItem { Header = "Sphere", Command = viewModel.AddNormalizedCubeSphereCommand },
                 new MenuItem { Header = "Cylinder", Command = viewModel.AddCylinder });
-            yield return Submenu(
-                "Templates",
-                new MenuItem { Header = "Player Entity", Command = viewModel.AddPlayerEntity });
+            yield return BuildTemplatesSubmenu(viewModel);
+        }
+
+        private static readonly object UserTemplateEntryTag = new object();
+
+        private static MenuItem BuildTemplatesSubmenu(MainWindowViewModel viewModel)
+        {
+            var templatesMenuItem = new MenuItem { Header = "Templates" };
+
+            templatesMenuItem.Items.Add(new MenuItem { Header = "Player Entity", Command = viewModel.AddPlayerEntity });
+            templatesMenuItem.Items.Add(new Separator());
+            templatesMenuItem.Items.Add(new MenuItem { Header = "Open Templates Folder", Command = viewModel.OpenTemplatesFolder });
+
+            templatesMenuItem.SubmenuOpened += (sender, e) =>
+            {
+                if (ReferenceEquals(e.Source, sender))
+                {
+                    RefreshUserTemplateEntries(templatesMenuItem, viewModel);
+                }
+            };
+
+            return templatesMenuItem;
+        }
+
+        private static void RefreshUserTemplateEntries(MenuItem templatesMenuItem, MainWindowViewModel viewModel)
+        {
+            foreach (Control staleEntry in templatesMenuItem.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, UserTemplateEntryTag)).ToList())
+            {
+                templatesMenuItem.Items.Remove(staleEntry);
+            }
+
+            List<string> templateNames = viewModel.GetTemplateNames();
+
+            if (templateNames.Count == 0)
+            {
+                return;
+            }
+
+            int insertIndex = 1;
+
+            templatesMenuItem.Items.Insert(insertIndex++, new Separator { Tag = UserTemplateEntryTag });
+
+            foreach (string templateName in templateNames)
+            {
+                templatesMenuItem.Items.Insert(insertIndex++, new MenuItem
+                {
+                    Header = templateName.Replace("_", "__"),
+                    Command = viewModel.AddTemplate,
+                    CommandParameter = templateName,
+                    Tag = UserTemplateEntryTag,
+                });
+            }
         }
 
         /// <summary>

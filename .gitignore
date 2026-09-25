@@ -86,6 +86,7 @@ Binaries/**/*
 Build/**/*
 
 Projects/**/*
+Templates/**/*
 PackagedBuilds/**/*
 
 Source/Generated/**/*

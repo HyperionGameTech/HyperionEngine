@@ -497,11 +497,13 @@ struct JoltCharacterControllerInternalData
 
     float coyoteTime = 0.15f;
     float jumpBufferTime = 0.15f;
+    float jumpWindupTime = 0.0f;
 
     float minGroundSupportMass = 20.0f;
 
     float coyoteTimeRemaining = 0.0f;
     float jumpBufferTimeRemaining = 0.0f;
+    float jumpWindupRemaining = 0.0f;
 
     bool jumpHeld = false;
     bool isRisingFromJump = false;
@@ -1129,6 +1131,7 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     internalData->fallGravityMultiplier = config.fallGravityMultiplier;
     internalData->coyoteTime = config.coyoteTime;
     internalData->jumpBufferTime = config.jumpBufferTime;
+    internalData->jumpWindupTime = config.jumpWindupTime;
     internalData->minGroundSupportMass = config.minGroundSupportMass;
 
     m_characterVsCharacterCollision->Add(internalData->character.GetPtr());
@@ -1398,17 +1401,38 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         const bool canJump = internalData->jumpBufferTimeRemaining > 0.0f && (isGrounded || internalData->coyoteTimeRemaining > 0.0f);
 
-        if (canJump && movingTowardsGround)
-        {
-            newVelocity += JPH::Vec3(0.0f, internalData->jumpSpeed, 0.0f);
+        bool isTakingOff = false;
 
+        if (internalData->jumpWindupRemaining > 0.0f)
+        {
+            internalData->jumpWindupRemaining = MathUtil::Max(0.0f, internalData->jumpWindupRemaining - substepDelta);
+
+            isTakingOff = internalData->jumpWindupRemaining <= 0.0f && (isGrounded || internalData->coyoteTimeRemaining > 0.0f);
+        }
+        else if (canJump && movingTowardsGround)
+        {
             internalData->jumpBufferTimeRemaining = 0.0f;
-            internalData->coyoteTimeRemaining = 0.0f;
-            internalData->isRisingFromJump = true;
+
+            if (internalData->jumpWindupTime > 0.0f)
+            {
+                internalData->jumpWindupRemaining = internalData->jumpWindupTime;
+            }
+            else
+            {
+                isTakingOff = true;
+            }
         }
         else
         {
             internalData->jumpBufferTimeRemaining = MathUtil::Max(0.0f, internalData->jumpBufferTimeRemaining - substepDelta);
+        }
+
+        if (isTakingOff)
+        {
+            newVelocity += JPH::Vec3(0.0f, internalData->jumpSpeed, 0.0f);
+
+            internalData->coyoteTimeRemaining = 0.0f;
+            internalData->isRisingFromJump = true;
         }
 
         float gravityScale = 1.0f;
@@ -1554,6 +1578,7 @@ void JoltPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsH
     outMotionState.verticalVelocity = internalData->character->GetLinearVelocity().GetY();
     outMotionState.coyoteTimeRemaining = internalData->coyoteTimeRemaining;
     outMotionState.jumpBufferTimeRemaining = internalData->jumpBufferTimeRemaining;
+    outMotionState.jumpWindupRemaining = internalData->jumpWindupRemaining;
     outMotionState.isRisingFromJump = internalData->isRisingFromJump;
 }
 
@@ -1569,6 +1594,7 @@ void JoltPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsH
     internalData->commandedHorizontalVelocity = JPH::Vec3(motionState.horizontalVelocity.x, 0.0f, motionState.horizontalVelocity.z);
     internalData->coyoteTimeRemaining = motionState.coyoteTimeRemaining;
     internalData->jumpBufferTimeRemaining = motionState.jumpBufferTimeRemaining;
+    internalData->jumpWindupRemaining = motionState.jumpWindupRemaining;
     internalData->isRisingFromJump = motionState.isRisingFromJump;
 
     internalData->character->SetLinearVelocity(JPH::Vec3(motionState.horizontalVelocity.x, motionState.verticalVelocity, motionState.horizontalVelocity.z));

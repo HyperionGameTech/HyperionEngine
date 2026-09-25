@@ -36,6 +36,9 @@ struct CharacterModelAnimations
     HYP_FIELD(Property = "RunAnimation", Serialize, Editor, Title = "Run Animation")
     Name runAnimation = NAME("Run");
 
+    HYP_FIELD(Property = "JumpWindupAnimation", Serialize, Editor, Title = "Jump Windup Animation")
+    Name jumpWindupAnimation = NAME("JumpWindup");
+
     HYP_FIELD(Property = "JumpAnimation", Serialize, Editor, Title = "Jump Animation")
     Name jumpAnimation = NAME("Jump");
 
@@ -143,6 +146,17 @@ struct CharacterModelComponent
 
     HYP_FIELD(Transient)
     float airTime = 0.0f;
+
+    // 0..1 through the crouch before a jump leaves the ground; negative when not winding up
+    HYP_FIELD(Transient)
+    float jumpWindup = -1.0f;
+
+    // The current jump started with a wind-up, so takeoff continues from its crouch
+    HYP_FIELD(Transient)
+    bool isJumpWoundUp = false;
+
+    HYP_FIELD(Transient)
+    float jumpWindupHoldTime = 0.0f;
 
     // Time since touchdown; negative while no landing is playing
     HYP_FIELD(Transient)

@@ -1,5 +1,6 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 #include <Editor/EditorAssetDrop.hpp>
+#include <Editor/EditorTemplateLibrary.hpp>
 
 #include <Scene/Components/ScriptComponent.hpp>
 
@@ -1402,6 +1403,157 @@ public:
 DEFINE_EDITOR_COMMAND(SavePrefab);
 
 #pragma endregion Prefab
+
+#pragma region Template
+
+class EditorCommandSaveAsTemplate final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSaveAsTemplate);
+
+public:
+    virtual ~EditorCommandSaveAsTemplate() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Save as Template";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSaveAsTemplate: missing required template name argument");
+            return;
+        }
+
+        const Name templateName = Name(GetArgument(0).ToAnsi());
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSaveAsTemplate: no active scene");
+            return;
+        }
+
+        Array<Handle<Node>> validNodes;
+        if (!ResolvePrefabSourceNodes(subsystem, activeScene.Get(), NumArguments() >= 2 ? GetArgument(1) : String::empty, validNodes))
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSaveAsTemplate: no valid nodes to make a template from");
+            return;
+        }
+
+        Handle<Node> templateRoot;
+
+        if (validNodes.Size() == 1)
+        {
+            const Handle<Node>& node = validNodes[0];
+
+            templateRoot = node->Clone();
+
+            if (!templateRoot.IsValid())
+            {
+                HYP_LOG(Editor, Error, "EditorCommandSaveAsTemplate: failed to clone node '{}'", node->GetName());
+                return;
+            }
+
+            templateRoot->SetWorldScale(node->GetWorldScale());
+            templateRoot->SetWorldRotation(node->GetWorldRotation());
+            templateRoot->SetWorldTranslation(Vec3f::Zero());
+        }
+        else
+        {
+            Vec3f centroid = Vec3f::Zero();
+
+            for (const Handle<Node>& node : validNodes)
+            {
+                centroid += node->GetWorldTranslation();
+            }
+
+            centroid /= float(validNodes.Size());
+
+            templateRoot = MakeHandle<Node>();
+            templateRoot->SetName(templateName);
+            InitObject(templateRoot);
+
+            for (const Handle<Node>& node : validNodes)
+            {
+                Handle<Node> clonedChild = node->Clone();
+
+                if (!clonedChild.IsValid())
+                {
+                    HYP_LOG(Editor, Error, "EditorCommandSaveAsTemplate: failed to clone node '{}'", node->GetName());
+                    continue;
+                }
+
+                templateRoot->AddChild(clonedChild);
+                clonedChild->SetWorldScale(node->GetWorldScale());
+                clonedChild->SetWorldRotation(node->GetWorldRotation());
+                clonedChild->SetWorldTranslation(node->GetWorldTranslation() - centroid);
+            }
+        }
+
+        if (Result saveResult = EditorTemplateLibrary::SaveTemplate(templateName, templateRoot); saveResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSaveAsTemplate: {}", saveResult.GetError().GetMessage());
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SaveAsTemplate);
+
+class EditorCommandSavePrefabAsTemplate final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSavePrefabAsTemplate);
+
+public:
+    virtual ~EditorCommandSavePrefabAsTemplate() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Save Prefab as Template";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 2 || GetArgument(0).Empty() || GetArgument(1).Empty())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefabAsTemplate: expected a template name and a prefab name");
+            return;
+        }
+
+        const Name templateName = Name(GetArgument(0).ToAnsi());
+        const ANSIString prefabNameArg = GetArgument(1);
+
+        Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, Name(prefabNameArg));
+
+        if (!prefab.IsValid() || !prefab->GetRoot().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSavePrefabAsTemplate: could not find prefab '{}'", prefabNameArg);
+            return;
+        }
+
+        Handle<Node> templateRoot = prefab->GetRoot()->Clone();
+
+        if (!templateRoot.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefabAsTemplate: failed to clone the root of prefab '{}'", prefabNameArg);
+            return;
+        }
+
+        if (Result saveResult = EditorTemplateLibrary::SaveTemplate(templateName, templateRoot); saveResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandSavePrefabAsTemplate: {}", saveResult.GetError().GetMessage());
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SavePrefabAsTemplate);
+
+#pragma endregion Template
 
 #pragma region DeleteAsset
 

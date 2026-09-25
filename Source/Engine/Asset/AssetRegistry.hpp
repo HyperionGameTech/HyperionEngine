@@ -147,6 +147,10 @@ public:
     void RemoveAsset(const Handle<AssetObject>& asset);
     void RemoveAsset(const AssetBucket& bucket, StringHash name);
 
+    void ReleaseAsset(const Handle<AssetObject>& asset);
+
+    void SetRedirect(const AssetBucket& bucket, Name name, const Handle<AssetObject>& target);
+
     void SyncAssetName(const AssetBucket& bucket, Name oldName, Name newName);
 
     bool LoadAssetDescs();

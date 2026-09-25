@@ -373,7 +373,7 @@ public:
 
     EditorActionStack* GetActiveActionStack() const;
 
-    //- Snappy
+    ///Snapple
 
     HYP_METHOD()
     bool IsSnapToGridEnabled() const;
@@ -404,8 +404,7 @@ public:
         return m_gizmoController.Get();
     }
 
-    ///Swatch overrides
-
+    ///Swatch override state
 
     HYP_METHOD()
     bool IsSwatchOverrideModeEnabled() const
@@ -449,7 +448,7 @@ public:
     HYP_METHOD()
     void EntityRevertSwatchOverrides(Entity* entity) const;
 
-    ///Phys
+    ///Physics/Collision
 
     HYP_METHOD()
     bool IsPhysicsDebugDrawEnabled() const;
@@ -493,9 +492,24 @@ public:
     HYP_METHOD()
     void GenerateConvexCollision(Node* node);
 
+    ///Prefabs
+
     /*! \brief The name of the Prefab \p node was spawned from */
     HYP_METHOD()
     String GetSourcePrefabName(Node* node) const;
+
+    ///Templates
+
+    HYP_METHOD()
+    Array<Name> GetTemplateNames() const;
+
+    HYP_METHOD()
+    bool HasTemplate(Name templateName) const;
+
+    HYP_METHOD()
+    String GetTemplatesDirectory() const;
+    
+    ///LOD
 
     /*! \brief LOD every mesh renders at in the viewport: -1 selects automatically, otherwise the LOD index. */
     HYP_METHOD()
@@ -503,8 +517,6 @@ public:
 
     HYP_METHOD()
     void SetViewportForcedLod(int32 lodIndex);
-
-    ///
 
     ///Volumes
 
@@ -522,6 +534,8 @@ public:
     HYP_METHOD()
     void SetSelectedBucket(uint32 bucketIndex);
 
+    ///Thumbnails
+
     /*! \brief Queue a content browser thumbnail render for an asset. Returns immediately; OnThumbnailReady
      *  fires once the image is on disk. When a current thumbnail is already cached it fires right away. */
     HYP_METHOD()
@@ -536,6 +550,8 @@ public:
      *  different bucket and the queued assets are no longer on screen. */
     HYP_METHOD()
     void CancelPendingAssetThumbnails();
+
+    ///Material preview
 
     /*! \brief Start rendering a live preview of a material for the asset editing panel. Pass an invalid
      *  name to stop. Frames are pulled with EditorSubsystem_CopyMaterialPreviewFrame once
@@ -561,19 +577,20 @@ public:
         return m_materialPreviewRenderer.Get();
     }
 
-    /*! \brief Calculate an appropriate position for inserting a new object into the scene.
-     *  Uses raycasting from the camera to find a suitable location that doesn't intersect with existing geometry.
+    ///Picking
+
+    /*! \brief Calculate an appropriate position for inserting a new object into the scene to ensure placement doesn't overlap with existing geometry
      *
      *  \param desiredDistance The preferred distance from the camera. If no geometry is hit within this range,
-     *                         the position will be placed at this distance. Default is 5.0 units.
+     *  the position will be placed at this distance.
      *  \param offsetFromSurface If geometry is hit, the object will be placed this distance in front of the surface
-     *                           to prevent clipping through. Default is 0.5 units.
-     *  \return The calculated world position for object insertion.
+     *   to prevent clipping through.
+     *  \return The calculated position to place the object.
      */
     HYP_METHOD()
     Vec3f CalculateSceneInsertionPoint(float desiredDistance = 5.0f, float offsetFromSurface = 0.5f) const;
 
-    /*! \brief Ray test against everything the editor lets you click-select in the viewports (scene geometry and editor sprites).
+    /*! \brief Trace from the given \p ray in viewport, placing results into \p outResults
      *  \return True if anything was hit. Hits are not guaranteed to have a node. */
     bool TestPickRay(const Ray& ray, RayTestResults& outResults);
 
@@ -591,8 +608,11 @@ public:
     HYP_METHOD()
     void ClearAssetDropTarget();
 
-    /*! \brief Create or update an in-progress, non-undoable preview entity showing a normalized cube sphere
-     *  with the given number of subdivisions. Used to live-preview a shape while a creation dialog is open.
+    ///Mesh edit/preview
+
+    /*! \brief Create or update an in-progress preview entity showing a normalized cube sphere
+     *  with the given number of subdivisions. Used to live-preview a shape.
+     * 
      *  Call \ref{CommitMeshPreview} to turn the preview into a permanent, undoable scene entity, or
      *  \ref{CancelMeshPreview} to discard it. */
     HYP_METHOD()
@@ -606,6 +626,8 @@ public:
     /*! \brief Discard the current mesh preview entity (if any), removing it from the scene. */
     HYP_METHOD()
     void CancelMeshPreview();
+
+    ///
 
     HYP_FORCE_INLINE EditorDelegates* GetEditorDelegates()
     {

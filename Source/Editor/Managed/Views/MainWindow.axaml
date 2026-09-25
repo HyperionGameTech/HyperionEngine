@@ -1470,6 +1470,19 @@
                                                                             Header="{Binding SavePrefabHeader}"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsVisible="{Binding IsPrefabInstance}" />
+                                                                        <MenuItem
+                                                                            Command="{Binding SaveAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            Header="{Binding MakeTemplateHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding !IsOutsideSelection}"
+                                                                            ToolTip.Tip="Save to template library" />
+                                                                        <MenuItem
+                                                                            Command="{Binding SaveAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding UUID}"
+                                                                            Header="Save as Template..."
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            IsVisible="{Binding IsOutsideSelection}"
+                                                                            ToolTip.Tip="Save to template library" />
                                                                         <Separator />
                                                                         <MenuItem
                                                                             Command="{Binding DeleteNode, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -2498,6 +2511,13 @@
                                                                                     CommandParameter="{Binding}"
                                                                                     Header="_Edit"
                                                                                     IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                                <MenuItem
+                                                                                    Command="{Binding SavePrefabAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                    CommandParameter="{Binding}"
+                                                                                    Header="Save as Template..."
+                                                                                    IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                    IsVisible="{Binding IsPrefab}"
+                                                                                    ToolTip.Tip="Save to template library" />
                                                                                 <Separator IsVisible="{Binding HasActions}" />
                                                                                 <MenuItem
                                                                                     Header="Actions"

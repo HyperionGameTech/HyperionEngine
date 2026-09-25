@@ -284,6 +284,7 @@ static CharacterControllerConfig MakeCharacterControllerConfig(const CharacterCo
     config.fallGravityMultiplier = component.jump.fallGravityMultiplier;
     config.coyoteTime = component.jump.coyoteTime;
     config.jumpBufferTime = component.jump.bufferTime;
+    config.jumpWindupTime = component.jump.windupTime;
     config.shadowMaxSpeed = component.shadowBody.maxSpeed;
     config.shadowTeleportDistance = component.shadowBody.teleportDistance;
     config.pushMassLimit = component.push.massLimit;
