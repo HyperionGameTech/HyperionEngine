@@ -67,11 +67,17 @@ public:
 
     HYP_FORCE_INLINE Vec4f GetClearColor() const
     {
+        if (m_attachmentDesc.clearColorIsF16)
+        {
+            return Vec4f(float(m_attachmentDesc.clearColorF16[0]), float(m_attachmentDesc.clearColorF16[1]), 0.0f, 0.0f);
+        }
+
         return Vec4f(m_attachmentDesc.clearColor);
     }
 
     HYP_FORCE_INLINE void SetClearColor(const Vec4f& clearColor)
     {
+        m_attachmentDesc.clearColorIsF16 = false;
         m_attachmentDesc.clearColor = Color(clearColor);
     }
 
