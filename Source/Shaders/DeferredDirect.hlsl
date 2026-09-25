@@ -211,14 +211,7 @@ uint GetShadowMapIndexForLight(uint lightIndex)
 
 #endif // LIGHT_TYPE_CLUSTERED
 
-// how far light wraps past the terminator on thin two sided surfaces, and how tight the backlit lobe is
-#define FOLIAGE_WRAP 0.5
-#define FOLIAGE_TRANSMISSION_POWER 4.0
-
-float FoliageWrapDiffuse(float NdotL)
-{
-    return saturate((NdotL + FOLIAGE_WRAP) / ((1.0 + FOLIAGE_WRAP) * (1.0 + FOLIAGE_WRAP)));
-}
+#include "include/FoliageLighting.hlsli"
 
 PSOutput PSMain(PSInput input)
 {
@@ -391,7 +384,7 @@ PSOutput PSMain(PSInput input)
 
         if (isFoliage)
         {
-            direct_component += diffuse * (pow(saturate(dot(V, -L)), FOLIAGE_TRANSMISSION_POWER) * transmission);
+            direct_component += diffuse * FoliageTransmission(V, L, transmission);
         }
 
         result += float4((direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
@@ -601,7 +594,7 @@ PSOutput PSMain(PSInput input)
 
     if (isFoliage)
     {
-        direct_component += diffuse * (pow(saturate(dot(V, -L)), FOLIAGE_TRANSMISSION_POWER) * transmission);
+        direct_component += diffuse * FoliageTransmission(V, L, transmission);
     }
 
     result += direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation);

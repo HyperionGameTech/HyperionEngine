@@ -7,6 +7,7 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 
 // Used in FORWARD_CLUSTERED only
 PERMUTE(FORWARD_CLUSTERED);
+PERMUTE(RT_GI);
 STATIC(TILE_Z_BINS, 16);
 STATIC(TILE_SIZE, 32);
 
@@ -53,6 +54,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/EnvProbes.hlsli"
 #include "include/Gbuffer.hlsli"
 #include "include/Entity.hlsli"
+#include "include/Noise.hlsli"
 
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -80,6 +82,7 @@ DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "include/BRDF.hlsli"
+#include "include/FoliageLighting.hlsli"
 
 #ifdef FORWARD_CLUSTERED
 
@@ -89,9 +92,38 @@ DECLARE_SRV(Default, ClusterGridBuffer) ByteAddressBuffer ClusterGridBuffer;
 DECLARE_SRV(Default, ClusterIndexBuffer) ByteAddressBuffer ClusterIndexBuffer;
 
 #include "deferred/ClusteredShading.hlsli"
+
+#include "include/SkyVisibility.hlsli"
+
+DECLARE_BUFFER_DYNAMIC(Default, ForwardIndirectConstants) cbuffer ForwardIndirectConstants
+{
+    EnvProbe skyProbe;
+    SkyVisibilityCapture skyVisibilityCapture;
+};
+
+DECLARE_SRV(Default, SkyVisibilityTexture) Texture2D SkyVisibilityTexture;
+
+#ifdef RT_GI
+DECLARE_SRV(Default, DDGIIrradianceTexture) Texture2D probe_irradiance;
+DECLARE_SRV(Default, DDGIDepthTexture) Texture2D probe_depth;
+
+#include "include/RayTracing/GlobalIllumination/ProbeUniforms.hlsli"
+
+DECLARE_BUFFER(Default, DDGIConstants) cbuffer DDGI
+{
+    DDGIConstants ddgiConstants;
+};
+
+#include "include/RayTracing/GlobalIllumination/SampleDDGI.hlsli"
+#endif // RT_GI
+
+#define DEFERRED_LIGHTING_HAS_SKY
 #endif // FORWARD_CLUSTERED
 
 #include "deferred/DeferredLighting.hlsli"
+
+#undef DEFERRED_LIGHTING_HAS_SKY
+
 #include "include/Shadows.hlsli"
 
 #ifdef FORWARD_SHADING
@@ -208,6 +240,19 @@ bool ComputeUVTangentFrame(float3 N, float3 P, float2 uv, out float3 tangent, ou
     return true;
 }
 
+#ifdef ALPHA_DISCARD
+#define ALPHA_CUTOUT_HARD_MIP 1.3
+
+bool ShouldDiscardCutout(float alpha, float alphaThreshold, float mipLevel, float2 pixelPosition)
+{
+    const float softCoverage = saturate((alpha - alphaThreshold) / max(fwidth(alpha), 1e-4) + 0.5);
+    const float hardCoverage = step(alphaThreshold, alpha);
+    const float coverage = lerp(softCoverage, hardCoverage, saturate((mipLevel - ALPHA_CUTOUT_HARD_MIP) * 0.5));
+
+    return coverage <= InterleavedGradientNoiseAnimated(pixelPosition, world_shader_data.frame_counter % 64u);
+}
+#endif // ALPHA_DISCARD
+
 // #define DEBUG_RAW_REFLECTIONS
 
 PSOutput PSMain(PSInput input)
@@ -216,11 +261,34 @@ PSOutput PSMain(PSInput input)
 
     const bool isFoliage = (input.object_mask & OBJECT_MASK_FOLIAGE) != 0;
 
-    // foliage is drawn two sided, so back faces have to be lit as if they faced the viewer
-    if (isFoliage && !input.is_front_face)
+    /// @TODO: Move to new Foliage custom shader!!!
+    if (isFoliage)
     {
-        input.normal = -input.normal;
-        input.bitangent = -input.bitangent;
+        const float3 faceCross = cross(ddx(input.position.xyz), ddy(input.position.xyz));
+        const float faceCrossLengthSq = dot(faceCross, faceCross);
+
+        if (!input.is_front_face)
+        {
+            const float normalBlend = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_FOLIAGE_NORMAL_BLEND);
+            const float backfaceVolume = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_FOLIAGE_BACKFACE_VOLUME);
+
+            const float3 vertexNormal = normalize(input.normal);
+            float3 turnedNormal = -vertexNormal;
+
+            if (backfaceVolume > 0.0 && faceCrossLengthSq > 1e-20)
+            {
+                const float3 faceNormal = faceCross * rsqrt(faceCrossLengthSq);
+                const float3 keptNormal = normalize(vertexNormal - 2.0 * (1.0 - normalBlend) * dot(vertexNormal, faceNormal) * faceNormal);
+
+                const float3 blendedNormal = lerp(-vertexNormal, keptNormal, backfaceVolume);
+                const float blendedLengthSq = dot(blendedNormal, blendedNormal);
+
+                turnedNormal = blendedLengthSq > 1e-8 ? blendedNormal * rsqrt(blendedLengthSq) : keptNormal;
+            }
+
+            input.normal = turnedNormal;
+            input.bitangent = -input.bitangent;
+        }
     }
 
     float3x3 tbn_matrix = float3x3(normalize(input.tangent), normalize(input.bitangent), normalize(input.normal));
@@ -272,7 +340,12 @@ PSOutput PSMain(PSInput input)
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
 #ifdef ALPHA_DISCARD
-        clip(albedo_texture.a - alpha_threshold);
+        const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, texcoord);
+
+        if (ShouldDiscardCutout(albedo_texture.a, alpha_threshold, diffuseMipLevel, input.position_cs.xy))
+        {
+            discard;
+        }
 #endif
         output.gbuffer_albedo *= albedo_texture;
     }
@@ -324,6 +397,10 @@ PSOutput PSMain(PSInput input)
     {
         float3 diffuseColor = CalculateDiffuseColor(albedo, metalness);
 
+        // transmission on foliage == light going through the leaf. not refraction
+        const float refractionTransmission = isFoliage ? 0.0 : transmission;
+        const float foliageTransmission = isFoliage ? transmission : 0.0;
+
         {
             float3 indirect_lighting = 0;
             float3 direct_lighting = 0;
@@ -352,7 +429,7 @@ PSOutput PSMain(PSInput input)
                     P, N, V,
                     texcoord,
                     F0, E,
-                    transmission, perceptualRoughness,
+                    refractionTransmission, perceptualRoughness,
                     float4(0.0, 0.0, 0.0, 0.0),
                     output.gbuffer_albedo,
                     float3(ao, ao, ao));
@@ -364,6 +441,8 @@ PSOutput PSMain(PSInput input)
                 {
                     float4 reflections = (float4)0;
                     float4 irradiance = (float4)0;
+
+                    g_skyVisibility = EvaluateSkyVisibility(skyVisibilityCapture, SkyVisibilityTexture, P, N, input.position_cs.xy - 0.5);
 
                     EvaluateEnvProbes(
                         positionVS.xyz, P,
@@ -378,6 +457,12 @@ PSOutput PSMain(PSInput input)
                     reflections.a = saturate(reflections.a);
                     irradiance.a = saturate(irradiance.a);
 
+#ifdef RT_GI
+                    // ddgi alpha fades out past the last cascade, falling back to probe and sky irradiance
+                    const float4 ddgiIrradiance = DDGISampleIrradiance(P, N, V);
+                    irradiance = lerp(irradiance, ddgiIrradiance, ddgiIrradiance.a);
+#endif // RT_GI
+
                     Fd = diffuseColor * irradiance.rgb * (1.0 - E) * ao;
 
                     const float3 specular_ao = (float3) SpecularAO_Lagarde(NdotV, ao, perceptualRoughness);
@@ -385,8 +470,8 @@ PSOutput PSMain(PSInput input)
                 }
 #endif // FORWARD_CLUSTERED
 
-                Ft *= transmission;
-                Fd *= (1.0 - transmission);
+                Ft *= refractionTransmission;
+                Fd *= (1.0 - refractionTransmission);
 
                 indirect_lighting = Ft + Fd + Fr;
             }
@@ -483,9 +568,16 @@ PSOutput PSMain(PSInput input)
                 float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
                 float3 diffuse = diffuse_lobe;
 
-                float3 direct_component = diffuse + specular * energy_compensation;
+                const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-                direct_lighting += (direct_component * (light_color * ao * NdotL * shadow * currentLight.position_intensity.w * attenuation)).rgb;
+                float3 direct_component = diffuse * diffuseWeight + specular * energy_compensation * NdotL;
+
+                if (isFoliage)
+                {
+                    direct_component += diffuse * FoliageTransmission(V, L, foliageTransmission);
+                }
+
+                direct_lighting += direct_component * (light_color * ao * shadow * currentLight.position_intensity.w * attenuation);
             }
     #endif // CLUSTERED
 
@@ -522,9 +614,16 @@ PSOutput PSMain(PSInput input)
                 const float3 specular_lobe = D * G * F;
                 const float3 diffuse_lobe = diffuseColor * HYP_FMATH_ONE_OVER_PI;
 
-                const float3 direct_component = diffuse_lobe + specular_lobe * energy_compensation;
+                const float diffuseWeight = isFoliage ? FoliageWrapDiffuse(dot(N, L)) : NdotL;
 
-                direct_lighting += direct_component * (currentLight.color.rgb * ao * NdotL * shadow * currentLight.position_intensity.w);
+                float3 direct_component = diffuse_lobe * diffuseWeight + specular_lobe * energy_compensation * NdotL;
+
+                if (isFoliage)
+                {
+                    direct_component += diffuse_lobe * FoliageTransmission(V, L, foliageTransmission);
+                }
+
+                direct_lighting += direct_component * (currentLight.color.rgb * ao * shadow * currentLight.position_intensity.w);
             }
     #endif // FORWARD_SHADING
 

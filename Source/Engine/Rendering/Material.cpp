@@ -399,7 +399,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             m_parameters.emissiveColor.GetRed(),
             m_parameters.emissiveColor.GetGreen(),
             m_parameters.emissiveColor.GetBlue(),
-            0.0f }),
+            m_parameters.foliageBackfaceVolume }),
         // intensity is HDR (glTF emissive strength etc.), so it can't go through the 8 bit unorm packing
         ByteUtil::PackFloat(m_parameters.emissiveIntensity > 0.0f ? m_parameters.emissiveIntensity : 0.0f),
         0);
@@ -433,7 +433,10 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     flags.premultipliedAlpha = uint32(proxy->attributes.blendFunction.ExpectsPremultipliedSource());
     flags.doubleSided = uint32(proxy->attributes.cullFaces == FaceCullMode::None || m_parameters.foliage);
 
-    bufferData.packedParams.w = flags.bits;
+    // normal blend sits in the upper half of the flags word
+    const uint32 foliageNormalBlendByte = MathUtil::Round<float, uint8>(MathUtil::Clamp(m_parameters.foliageNormalBlend, 0.0f, 1.0f) * 255.0f);
+
+    bufferData.packedParams.w = flags.bits | (foliageNormalBlendByte << 16);
 
     bufferData.uvScale = m_parameters.uvScale;
     bufferData.parallaxHeight = m_parameters.parallaxHeightScale;

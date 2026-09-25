@@ -67,21 +67,10 @@ struct LocomotionClips
     float turnStepSmallAngle = 0.0f;
     float settleAngle = 0.0f;
 
-    bool HasSmallTurnSteps() const
-    {
-        return turnLeftSmallIndex != ~0u && turnRightSmallIndex != ~0u && turnStepSmallAngle > 0.0f;
-    }
-
     float turnLeftLength = 0.0f;
     float turnRightLength = 0.0f;
     float turnStepAngle = 0.0f;
     float turnStepStartAngle = 0.0f;
-
-    bool CanStandAndAim() const
-    {
-        return aimTwistRootBone.IsValid() && aimTwistEndBone.IsValid() && aimRange > 0.0f
-            && turnLeftIndex != ~0u && turnRightIndex != ~0u && turnStepAngle > 0.0f;
-    }
 
     float walkReferenceSpeed = 0.0f;
     float runReferenceSpeed = 0.0f;
@@ -90,6 +79,19 @@ struct LocomotionClips
     {
         return walkIndex != ~0u;
     }
+
+    bool HasSmallTurnSteps() const
+    {
+        return (turnLeftSmallIndex != ~0u && turnRightSmallIndex != ~0u && turnStepSmallAngle > 0.0f);
+    }
+
+
+    bool CanStandAndAim() const
+    {
+        return (aimTwistRootBone.IsValid() && aimTwistEndBone.IsValid() && aimRange > 0.0f)
+            && (turnLeftIndex != ~0u && turnRightIndex != ~0u && turnStepAngle > 0.0f);
+    }
+
 };
 
 struct LocomotionAnimatedEntity
@@ -117,7 +119,7 @@ static constexpr float JumpBlendInTime = 0.25f;
 
 static constexpr float JumpWindupHoldTime = 0.1f;
 
-static constexpr float JumpWindupBlendOutTime = 0.15f;
+static constexpr float JumpWindupBlendOutTime = 0.05f;
 
 static constexpr float MovingLandFraction = 0.35f;
 
@@ -136,7 +138,6 @@ static constexpr float TurnStepInterruptBlendOutTime = 0.04f;
 
 // How tightly the upper body's twist follows the view (1/s); about a tenth of a second behind
 static constexpr float AimTwistSharpness = 10.0f;
-
 
 // The view counts as settling below this turn rate (radians/s); the settling step follows almost at once
 static constexpr float SettleMaxViewTurnRate = MathUtil::DegToRad(30.0f);
@@ -159,7 +160,9 @@ Entity* FindParentCharacterEntity(const Entity& entity)
     return nullptr;
 }
 
-Vec3f GetCharacterViewDirection(const Entity& characterEntity, const CharacterControllerComponent& characterController)
+Vec3f GetCharacterViewDirection(
+    const Entity& characterEntity,
+    const CharacterControllerComponent& characterController)
 {
     // Read the camera directly so the model turns on the same frame the view does
     for (const Handle<Node>& child : characterEntity.GetChildren())
@@ -178,7 +181,9 @@ Vec3f GetCharacterViewDirection(const Entity& characterEntity, const CharacterCo
     return characterController.viewDirection;
 }
 
-float GetCapsuleFeetOffset(const CharacterControllerComponent& characterController, bool isPlaying)
+float GetCapsuleFeetOffset(
+    const CharacterControllerComponent& characterController,
+    bool isPlaying)
 {
     const CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(characterController.shape.Get());
 
@@ -231,7 +236,10 @@ float GetAnimationLength(const Skeleton& skeleton, uint32 animationIndex)
     return animation != nullptr ? animation->GetLength() : 0.0f;
 }
 
-void FindLocomotionClips(const CharacterModelAnimations& animations, const Skeleton& skeleton, LocomotionClips& outClips)
+void FindLocomotionClips(
+    const CharacterModelAnimations& animations,
+    const Skeleton& skeleton,
+    LocomotionClips& outClips)
 {
     LocomotionClips& clips = outClips;
 
@@ -298,7 +306,11 @@ float WrapTime(float time, float length)
     return time < 0.0f ? time + length : time;
 }
 
-void UpdateLocomotionPhase(CharacterModelComponent& component, const LocomotionClips& clips, bool isMovingBackward, float delta)
+void UpdateLocomotionPhase(
+    CharacterModelComponent& component,
+    const LocomotionClips& clips,
+    bool isMovingBackward,
+    float delta)
 {
     const float runWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, component.smoothedSpeed);
 
@@ -324,7 +336,10 @@ float GetStandingTwist(const CharacterModelComponent& component)
 }
 
 ///Turns the upper body the rest of the way from the feet to the view
-void ApplyAimTwist(const CharacterModelComponent& component, const LocomotionClips& clips, AnimationComponent& animationComponent)
+void ApplyAimTwist(
+    const CharacterModelComponent& component,
+    const LocomotionClips& clips,
+    AnimationComponent& animationComponent)
 {
     AnimationPlaybackState& playbackState = animationComponent.playbackState;
 
@@ -340,7 +355,10 @@ void ApplyAimTwist(const CharacterModelComponent& component, const LocomotionCli
     playbackState.twistEndBone = clips.aimTwistEndBone;
 }
 
-void ApplyLocomotionPose(const CharacterModelComponent& component, const LocomotionClips& clips, AnimationComponent& animationComponent)
+void ApplyLocomotionPose(
+    const CharacterModelComponent& component,
+    const LocomotionClips& clips,
+    AnimationComponent& animationComponent)
 {
     const float speed = component.smoothedSpeed;
 
@@ -505,9 +523,21 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
     }
 
     const float targetWeight = component.isTurnStepping ? 1.0f : 0.0f;
-    const float blendTime = targetWeight > component.turnStepWeight ? TurnStepBlendInTime
-        : isStanding                                                 ? TurnStepBlendOutTime
-                                                                     : TurnStepInterruptBlendOutTime;
+
+    float blendTime;
+
+    if (targetWeight > component.turnStepWeight)
+    {
+        blendTime = TurnStepBlendInTime;
+    }
+    else if (isStanding)
+    {
+        blendTime = TurnStepBlendOutTime;
+    }
+    else
+    {
+        blendTime = TurnStepInterruptBlendOutTime;
+    }
 
     component.turnStepWeight = MathUtil::Lerp(component.turnStepWeight, targetWeight, MathUtil::Clamp(1.0f - MathUtil::Exp(-delta / blendTime), 0.0f, 1.0f));
 
@@ -519,14 +549,19 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
     component.lastFacingYaw = component.facingYaw;
 }
 
-void UpdateAirborneState(CharacterModelComponent& component, bool isOnGround, float delta)
+void UpdateAirborneState(
+    CharacterModelComponent& component,
+    bool isOnGround,
+    float delta)
 {
     if (!isOnGround)
     {
         if (!component.isAirborne)
         {
             component.isAirborne = true;
-            component.isJumping = component.verticalSpeed > JumpTakeoffSpeed;
+            // A wound-up takeoff is a jump even when the capsule hasn't moved since the last update, otherwise the
+            // first airborne frame drops back to the locomotion pose
+            component.isJumping = component.verticalSpeed > JumpTakeoffSpeed || component.isJumpWoundUp;
             component.airTime = 0.0f;
         }
         else
@@ -556,7 +591,10 @@ void UpdateAirborneState(CharacterModelComponent& component, bool isOnGround, fl
     }
 }
 
-void UpdateJumpWindup(CharacterModelComponent& component, const CharacterControllerComponent* characterController, float delta)
+void UpdateJumpWindup(
+    CharacterModelComponent& component,
+    const CharacterControllerComponent* characterController,
+    float delta)
 {
     const float windupTime = characterController != nullptr ? characterController->jump.windupTime : 0.0f;
 
@@ -594,7 +632,10 @@ void UpdateJumpWindup(CharacterModelComponent& component, const CharacterControl
     }
 }
 
-uint32 GetDominantLocomotionClip(const CharacterModelComponent& component, const LocomotionClips& clips, float& outTime)
+uint32 GetDominantLocomotionClip(
+    const CharacterModelComponent& component,
+    const LocomotionClips& clips,
+    float& outTime)
 {
     const float speed = component.smoothedSpeed;
 
@@ -617,7 +658,10 @@ uint32 GetDominantLocomotionClip(const CharacterModelComponent& component, const
     return clips.runIndex;
 }
 
-bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips& clips, AnimationComponent& animationComponent)
+bool ApplyAirbornePose(
+    CharacterModelComponent& component,
+    const LocomotionClips& clips,
+    AnimationComponent& animationComponent)
 {
     AnimationPlaybackState& playbackState = animationComponent.playbackState;
     playbackState.layerExcludedBone = Name::Invalid();
