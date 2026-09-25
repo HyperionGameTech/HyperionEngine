@@ -106,4 +106,4 @@ Data/**/*
 Content/Engine/**/hazmat
 Content/Engine/**/survivor
 Content/Engine/**/mutant
-Source/Engine/Framework/Commandlet/Commandlets/BuildShapesCommandlet.cpp
+Source/Engine/**/BuildShapesCommandlet.cpp
