@@ -396,7 +396,7 @@ Handle<Texture> LoadTextureFromEncodedBytes(const cgltf_image& image, Span<const
 
     if (alphaCoverageCutoff > 0.0f)
     {
-        TextureUtils::PreserveAlphaCoverage(textureDesc, baseMipData, alphaCoverageCutoff);
+        TextureUtils::BuildAlphaCoverageMips(textureDesc, baseMipData, alphaCoverageCutoff);
     }
 
     return MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());

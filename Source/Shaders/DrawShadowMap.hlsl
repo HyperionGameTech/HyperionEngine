@@ -18,6 +18,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "Include/Entity.hlsli"
 #include "Include/TerrainMorph.hlsli"
 #include "Include/Material.hlsli"
+#include "Include/AlphaCutout.hlsli"
 #include "Include/Packing.hlsli"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -74,6 +75,7 @@ struct VSOutput
     float3 v_position : TEXCOORD0;
     float2 v_texcoord0 : TEXCOORD1;
     nointerpolation uint object_index : TEXCOORD2;
+    nointerpolation uint cutout_seed : TEXCOORD3;
 };
 
 #ifdef SKINNING
@@ -87,7 +89,7 @@ DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buf
 #include "Include/Wind.hlsli"
 #endif // VT_Tree || VT_Foliage
 
-VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
+VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : SV_VertexID)
 {
     VSOutput output;
 
@@ -143,6 +145,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.v_position = position.xyz / position.w;
     // matches DefaultVertex.hlsl, which flips V
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y) * CURRENT_MATERIAL.uv_scale;
+    output.cutout_seed = AlphaCutoutSeed(model_matrix, vertexId);
 
     float4 position_ndc = mul(vpMatrix, position);
     position_ndc /= position_ndc.w;
@@ -162,6 +165,7 @@ struct PSInput
     float3 v_position : TEXCOORD0;
     float2 v_texcoord0 : TEXCOORD1;
     nointerpolation uint object_index : TEXCOORD2;
+    nointerpolation uint cutout_seed : TEXCOORD3;
 };
 
 struct PSOutput
@@ -177,7 +181,14 @@ PSOutput PSMain(PSInput input)
     if (HAS_TEXTURE(CURRENT_MATERIAL, DiffuseMap))
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.v_texcoord0);
-        clip(albedo_texture.a - GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD));
+
+        const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, input.v_texcoord0);
+        const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD), diffuseMipLevel);
+    
+        if (ShouldDiscardCutout(cutoutCoverage, InterleavedGradientNoise(input.position_cs.xy), input.cutout_seed))
+        {
+            discard;
+        }
     }
 #endif
 

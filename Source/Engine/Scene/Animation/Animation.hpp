@@ -25,6 +25,22 @@ namespace Hyperion {
 
 class Bone;
 class Skeleton;
+class Animation;
+
+struct ApplyAnimParams
+{
+    float time = 0.0f;
+    const Animation* layerAnimation = nullptr;
+    float layerTime = 0.0f;
+    float layerWeight = 1.0f;
+    float blend = 0.5f;
+    Name layerExcludedBone;
+
+    // optional stuff below
+    const Animation* secondLayerAnimation = nullptr;
+    float secondLayerTime = 0.0f;
+    float secondLayerWeight = 0.0f;
+};
 
 HYP_CLASS(AssetBucket = "AnimationTracks")
 class ENGINE_API AnimationTrack final : public AssetObject
@@ -153,13 +169,7 @@ public:
     HYP_METHOD()
     AnimationTrack* FindTrack(Name boneName) const;
 
-    /*! \brief Samples this animation at \p time and \p layerAnimation at \p layerTime, mixes them by \p layerWeight
-     *  (0 = only this animation), then blends the skeleton's current pose toward the result by \p blend.
-     *  If \p layerExcludedBone is valid, that bone and its descendants take only this animation.
-     *  If \p secondLayerAnimation is set, it is mixed on top of that mix by \p secondLayerWeight (the excluded bone
-     *  doesn't apply to it). */
-    void ApplyLayered(Skeleton* skeleton, float time, const Animation& layerAnimation, float layerTime, float layerWeight, float blend, Name layerExcludedBone = Name::Invalid(),
-        const Animation* secondLayerAnimation = nullptr, float secondLayerTime = 0.0f, float secondLayerWeight = 0.0f);
+    void ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params);
 
 private:
     HYP_FIELD(Property = "Tracks")

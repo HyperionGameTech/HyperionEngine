@@ -591,7 +591,9 @@ float4 TemporalBlendVarying(
     float2 uv,
     float2 velocity,
     float2 texel_size,
-    float view_space_depth)
+    float view_space_depth,
+    float feedback_max,
+    float velocity_rejection_pixels)
 {
     // Read and prepare current and previous pixels: gamma -> HDR/log -> YCoCg
     float4 color_rgb = ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv));
@@ -634,10 +636,10 @@ float4 TemporalBlendVarying(
     // ClipAABB and TemporalLuminanceResolve operate in YCoCg+adjusted space
     const float4 clipped = ClipAABB(cmin, cmax, clamp(cavg, cmin, cmax), previous_color);
 
-    float4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped, FEEDBACK);
-    
+    float4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped, feedback_max);
+
     const float pixel_velocity = length(texel_vel);
-    const float velocity_factor = saturate(pixel_velocity / 1.5);
+    const float velocity_factor = saturate(pixel_velocity / velocity_rejection_pixels);
     resolved_yc = lerp(resolved_yc, color, velocity_factor);
 
     float4 resolved_rgb = YCoCgToRGB(resolved_yc);

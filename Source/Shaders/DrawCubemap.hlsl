@@ -15,6 +15,7 @@ PERMUTE(FORWARD_SHADING)
 PERMUTE(APPLY_LIGHTMAPS)
 PERMUTE(INSTANCING)
 PERMUTE(SKINNING)
+PERMUTE(ALPHA_DISCARD)
 
 #ifdef VERTEX_SHADER
 
@@ -43,10 +44,12 @@ struct VSOutput
     nointerpolation uint object_index : TEXCOORD3;
     nointerpolation uint bucket : TEXCOORD4;
     nointerpolation uint lightmap_stencil_value : TEXCOORD5;
+    nointerpolation uint cutout_seed : TEXCOORD6;
 };
 
 #include "include/Entity.hlsli"
 #include "include/Material.hlsli"
+#include "include/AlphaCutout.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -85,7 +88,7 @@ float4x4 LookAt(float3 pos, float3 target, float3 up)
     );
 }
 
-VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
+VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : SV_VertexID)
 {
     VSOutput output;
 
@@ -143,6 +146,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif // HYP_ATTRIBUTE_a_texcoord1
 
     output.lightmap_stencil_value = GetLightmapStencilValue(currentEntity);
+    output.cutout_seed = AlphaCutoutSeed(model_matrix, vertexId);
 
     output.camera_position = camera.position.xyz;
 
@@ -166,6 +170,7 @@ struct PSInput
     nointerpolation uint object_index : TEXCOORD3;
     nointerpolation uint bucket : TEXCOORD4;
     nointerpolation uint lightmap_stencil_value : TEXCOORD5;
+    nointerpolation uint cutout_seed : TEXCOORD6;
 };
 
 struct PSOutput
@@ -210,6 +215,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #define texture_sampler sampler_linear
 
 #include "include/Material.hlsli"
+#include "include/AlphaCutout.hlsli"
 #include "include/Gbuffer.hlsli"
 #include "include/EnvProbes.hlsli"
 #include "include/Octahedron.hlsli"
@@ -366,8 +372,15 @@ PSOutput PSMain(PSInput input)
         float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
-        // @TODO: Conditional upon ALPHA_DISCARD (see GeometryPass.hlsl)
-        clip(albedo_texture.a - 0.2);
+#ifdef ALPHA_DISCARD
+        const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, texcoord);
+        const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD), diffuseMipLevel);
+
+        if (ShouldDiscardCutout(cutoutCoverage, InterleavedGradientNoise(input.position_cs.xy), input.cutout_seed))
+        {
+            discard;
+        }
+#endif // ALPHA_DISCARD
 
         albedo *= albedo_texture;
     }

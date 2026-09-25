@@ -45,7 +45,7 @@ struct DecalDesc
     HYP_FIELD(Property = "AngleFadeEnd", Serialize, Editor, Title = "Angle Fade End", Description = "Cosine of the angle at which the decal is fully faded out")
     float angleFadeEnd = 0.2f;
 
-    HYP_FIELD(Property = "ExcludeMask", Serialize, Editor, Title = "Exclude Mask", Description = "Object mask bits of surfaces the decal skips (unlit = 1, lightmapped = 2, foliage = 4)")
+    HYP_FIELD(Property = "ExcludeMask", Serialize, Editor, Title = "Exclude Mask", Description = "Object mask bits of surfaces the decal skips (unlit = 1, lightmapped = 2, foliage = 4, alpha cutout = 8)")
     uint8 excludeMask = 0;
 
     HYP_FIELD(Property = "SortOrder", Serialize, Editor, Title = "Sort Order", Description = "Decals with a higher sort order are drawn on top")

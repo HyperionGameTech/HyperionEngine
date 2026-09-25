@@ -37,6 +37,7 @@
 namespace Hyperion {
 
 extern CVar<float> g_cvTAAFeedback;
+extern CVar<float> g_cvTAACutoutFeedback;
 
 static EngineStatGpuTimer s_statTAA("Rendering/GPU/TAA");
 
@@ -137,6 +138,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
             Vec4f jitter;
             Vec2f nearFarClip;
             float feedback;
+            float cutoutFeedback;
         };
 
         TAAConstants constants {};
@@ -144,6 +146,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
         constants.jitter = cameraProxy->bufferData.jitter;
         constants.nearFarClip = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
         constants.feedback = MathUtil::Clamp(g_cvTAAFeedback.Get(), 0.1f, 0.98f);
+        constants.cutoutFeedback = MathUtil::Clamp(g_cvTAACutoutFeedback.Get(), 0.1f, 0.98f);
 
         RI.cbufferAllocator->Write(&constants);
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
@@ -168,6 +171,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->cr << SetShaderUniform(5, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
     frame->cr << SetShaderUniform(6, "OutColorImage"_sh, RI.textureViewCache->GetOrCreate(activeTexture));
     frame->cr << SetShaderUniform(7, "TAAConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    frame->cr << SetShaderUniform(8, "InMaterialTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::MatData)->GetImageView());
 
     frame->cr << DispatchCompute(Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
     frame->cr << InsertBarrier(activeTexture->GetGpuImage(), ResourceState::ShaderResource);
