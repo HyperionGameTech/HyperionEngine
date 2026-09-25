@@ -1,8 +1,0 @@
-AnimationTrack PickUp_thigh_l {
-    BoneName = thigh_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PickUp_thigh_l.KEYF"
-        Size = 1664
-    }
-    UUID = "71d213bf-3f68-4391-8d9a-d746c166a896"
-}

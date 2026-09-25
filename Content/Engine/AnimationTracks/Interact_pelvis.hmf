@@ -1,8 +1,0 @@
-AnimationTrack Interact_pelvis {
-    BoneName = pelvis
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Interact_pelvis.KEYF"
-        Size = 3904
-    }
-    UUID = "27e0142b-a2fc-4bf8-b28b-1a748e7cccad"
-}

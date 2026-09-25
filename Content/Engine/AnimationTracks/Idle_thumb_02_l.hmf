@@ -1,8 +1,0 @@
-AnimationTrack Idle_thumb_02_l {
-    BoneName = thumb_02_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Idle_thumb_02_l.KEYF"
-        Size = 4864
-    }
-    UUID = "22cda205-92f7-46ab-8317-759cf180b78d"
-}

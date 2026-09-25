@@ -1,8 +1,0 @@
-AnimationTrack Roll_thumb_03_l {
-    BoneName = thumb_03_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Roll_thumb_03_l.KEYF"
-        Size = 2880
-    }
-    UUID = "0cd62865-69a9-415f-89c5-e89d14049d27"
-}

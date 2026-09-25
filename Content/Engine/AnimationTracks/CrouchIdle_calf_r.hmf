@@ -1,8 +1,0 @@
-AnimationTrack CrouchIdle_calf_r {
-    BoneName = calf_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/CrouchIdle_calf_r.KEYF"
-        Size = 5696
-    }
-    UUID = "6d9457e8-02d3-4811-8dba-295086f0df20"
-}

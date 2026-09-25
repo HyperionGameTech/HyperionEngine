@@ -1,8 +1,0 @@
-AnimationTrack Run_hand_r {
-    BoneName = hand_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Run_hand_r.KEYF"
-        Size = 1344
-    }
-    UUID = "6cab3565-862a-4dbb-8800-fe4848867041"
-}

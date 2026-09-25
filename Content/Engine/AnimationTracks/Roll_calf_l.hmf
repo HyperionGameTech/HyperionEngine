@@ -1,8 +1,0 @@
-AnimationTrack Roll_calf_l {
-    BoneName = calf_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Roll_calf_l.KEYF"
-        Size = 2880
-    }
-    UUID = "d690ea97-4bb7-4110-8e75-8a6979db75d0"
-}

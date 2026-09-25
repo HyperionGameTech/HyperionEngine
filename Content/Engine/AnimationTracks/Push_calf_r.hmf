@@ -1,8 +1,0 @@
-AnimationTrack Push_calf_r {
-    BoneName = calf_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Push_calf_r.KEYF"
-        Size = 5184
-    }
-    UUID = "569b24be-0969-4e03-91b2-fad9cbea0204"
-}

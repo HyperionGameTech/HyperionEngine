@@ -1,8 +1,0 @@
-AnimationTrack Roll_head {
-    BoneName = head
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Roll_head.KEYF"
-        Size = 2880
-    }
-    UUID = "56f681f2-43a1-4a84-b5c1-bccf647d97ca"
-}

@@ -1,8 +1,0 @@
-AnimationTrack CrouchWalk_pinky_02_r {
-    BoneName = pinky_02_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/CrouchWalk_pinky_02_r.KEYF"
-        Size = 3904
-    }
-    UUID = "def8dee8-bea6-4ebb-b4d4-7b2e2bf2dbed"
-}

@@ -1,8 +1,0 @@
-AnimationTrack Push_thumb_03_l {
-    BoneName = thumb_03_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Push_thumb_03_l.KEYF"
-        Size = 5184
-    }
-    UUID = "2dc6307f-46f7-4c23-8dda-25e5a720d99c"
-}

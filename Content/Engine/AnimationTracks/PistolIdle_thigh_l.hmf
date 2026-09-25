@@ -1,8 +1,0 @@
-AnimationTrack PistolIdle_thigh_l {
-    BoneName = thigh_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolIdle_thigh_l.KEYF"
-        Size = 3264
-    }
-    UUID = "2f1e2d69-e4c3-4b27-bdc6-ccc05213c26e"
-}

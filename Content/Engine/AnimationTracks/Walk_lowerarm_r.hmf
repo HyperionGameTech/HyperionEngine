@@ -1,8 +1,0 @@
-AnimationTrack Walk_lowerarm_r {
-    BoneName = lowerarm_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Walk_lowerarm_r.KEYF"
-        Size = 2624
-    }
-    UUID = "372bae4a-fbae-4eec-a1ad-3b32922b639a"
-}

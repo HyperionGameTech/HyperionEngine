@@ -1,8 +1,0 @@
-AnimationTrack Land_index_03_r {
-    BoneName = index_03_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Land_index_03_r.KEYF"
-        Size = 2496
-    }
-    UUID = "3932ec06-3d52-4834-9fe7-8097d65cc0d4"
-}

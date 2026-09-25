@@ -1,8 +1,0 @@
-AnimationTrack PistolAimUp_foot_l {
-    BoneName = foot_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolAimUp_foot_l.KEYF"
-        Size = 384
-    }
-    UUID = "bbca0af0-ef96-48dd-9b01-dfcdc6ccdf52"
-}

@@ -1,8 +1,0 @@
-AnimationTrack Idle_foot_r {
-    BoneName = foot_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Idle_foot_r.KEYF"
-        Size = 4864
-    }
-    UUID = "79ae75a5-bc9e-47cd-beb6-be5743738784"
-}

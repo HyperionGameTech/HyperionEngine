@@ -1,8 +1,0 @@
-AnimationTrack HitChest_neck {
-    BoneName = neck
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/HitChest_neck.KEYF"
-        Size = 704
-    }
-    UUID = "d196cd91-0574-48ab-bc58-1050317e7a20"
-}

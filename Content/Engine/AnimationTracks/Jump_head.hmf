@@ -1,8 +1,0 @@
-AnimationTrack Jump_head {
-    BoneName = head
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jump_head.KEYF"
-        Size = 2432
-    }
-    UUID = "73cf7f50-5c9d-46b6-8b7f-9a0cf1183ecc"
-}

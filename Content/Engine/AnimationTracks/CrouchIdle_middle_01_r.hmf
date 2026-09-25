@@ -1,8 +1,0 @@
-AnimationTrack CrouchIdle_middle_01_r {
-    BoneName = middle_01_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/CrouchIdle_middle_01_r.KEYF"
-        Size = 5696
-    }
-    UUID = "45b85f29-5628-4ebf-a59e-7b0d994f7181"
-}

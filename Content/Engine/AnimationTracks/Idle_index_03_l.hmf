@@ -1,8 +1,0 @@
-AnimationTrack Idle_index_03_l {
-    BoneName = index_03_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Idle_index_03_l.KEYF"
-        Size = 4864
-    }
-    UUID = "36d1f06f-0161-41b0-b725-0f28f8131477"
-}

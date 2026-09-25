@@ -1,8 +1,0 @@
-AnimationTrack Land_ball_r {
-    BoneName = ball_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Land_ball_r.KEYF"
-        Size = 2496
-    }
-    UUID = "47cd4817-793d-45c4-be51-2519ba6d3146"
-}

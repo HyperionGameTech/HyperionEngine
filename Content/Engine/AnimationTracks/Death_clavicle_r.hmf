@@ -1,8 +1,0 @@
-AnimationTrack Death_clavicle_r {
-    BoneName = clavicle_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Death_clavicle_r.KEYF"
-        Size = 4672
-    }
-    UUID = "989ef32e-9b5c-480d-947c-02fe57a45b06"
-}

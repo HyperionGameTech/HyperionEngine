@@ -1,8 +1,0 @@
-AnimationTrack PistolIdle_upperarm_l {
-    BoneName = upperarm_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolIdle_upperarm_l.KEYF"
-        Size = 3264
-    }
-    UUID = "39c76391-65ea-4856-bc90-a95c2107fad5"
-}

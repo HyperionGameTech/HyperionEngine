@@ -1,8 +1,0 @@
-AnimationTrack Jump_thigh_l {
-    BoneName = thigh_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jump_thigh_l.KEYF"
-        Size = 2432
-    }
-    UUID = "0ffb889b-807d-4e68-8603-6ce650e050e0"
-}

@@ -1,8 +1,0 @@
-AnimationTrack Land_root {
-    BoneName = root
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Land_root.KEYF"
-        Size = 2496
-    }
-    UUID = "bc72b624-cd12-407d-97b8-9bb4280a181e"
-}

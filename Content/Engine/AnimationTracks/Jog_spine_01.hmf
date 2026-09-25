@@ -1,8 +1,0 @@
-AnimationTrack Jog_spine_01 {
-    BoneName = spine_01
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jog_spine_01.KEYF"
-        Size = 1856
-    }
-    UUID = "71c07812-4126-4136-8604-0c032c687dfa"
-}

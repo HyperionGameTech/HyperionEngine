@@ -1,8 +1,0 @@
-AnimationTrack PickUp_ball_r {
-    BoneName = ball_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PickUp_ball_r.KEYF"
-        Size = 1664
-    }
-    UUID = "dc65ca0f-b33f-4638-9fc9-42d2aa19b3b9"
-}

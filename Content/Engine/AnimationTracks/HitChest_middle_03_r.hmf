@@ -1,8 +1,0 @@
-AnimationTrack HitChest_middle_03_r {
-    BoneName = middle_03_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/HitChest_middle_03_r.KEYF"
-        Size = 704
-    }
-    UUID = "d108abb7-9bd3-43dc-8a63-6baaaa85a4b2"
-}

@@ -1,8 +1,0 @@
-AnimationTrack PistolReload_clavicle_r {
-    BoneName = clavicle_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolReload_clavicle_r.KEYF"
-        Size = 3264
-    }
-    UUID = "430046d6-3fb8-424a-8e75-cb99c6064e2c"
-}

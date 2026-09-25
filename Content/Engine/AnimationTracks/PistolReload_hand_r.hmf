@@ -1,8 +1,0 @@
-AnimationTrack PistolReload_hand_r {
-    BoneName = hand_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolReload_hand_r.KEYF"
-        Size = 3264
-    }
-    UUID = "9427069c-e28b-47a7-bb06-728c88b81287"
-}
