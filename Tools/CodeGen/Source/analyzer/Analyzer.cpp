@@ -338,7 +338,7 @@ static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(co
                 continue;
             }
 
-            if (std::isdigit(c) && !inQuotes)
+            if (std::isdigit(static_cast<unsigned char>(c)) && !inQuotes)
             {
                 if (!isNumeric)
                 {

@@ -13,6 +13,8 @@
 
 namespace Hyperion {
 
+// Welcome to the BONE ZONE
+
 Bone::Bone()
     : Bone(Name::Invalid())
 {
@@ -36,7 +38,6 @@ void Bone::SetKeyframe(const Keyframe& keyframe)
 
 void Bone::ClearPose()
 {
-    // Animation::ApplyBlended blends from the previous keyframe, so reset it to the rest pose too
     m_keyframe = Keyframe(0.0f, m_bindingTransform);
 
     SetLocalTransform(m_bindingTransform);
@@ -59,9 +60,8 @@ void Bone::ClearPose()
 
 void Bone::StoreBindingPose()
 {
-    // At this point (after SetToBindingPose has run down the whole hierarchy) GetWorldMatrix() is the
-    // bone's world bind matrix; cache its inverse for skinning and recompute the bone matrix
-    // immediately, since ClearPose()/SetLocalTransform() may no-op below if nothing has changed yet.
+    // cache inverse for skinning and recompute the bone matrix immediately,
+    // since ClearPose()/SetLocalTransform() may no-op below if nothing has changed yet.
     m_inverseBindMatrix = GetWorldMatrix().Inverse();
 
     UpdateBoneTransform();
@@ -113,7 +113,6 @@ void Bone::OnTransformUpdated()
 
 void Bone::UpdateBoneTransform()
 {
-    // Standard skinning matrix: maps a bind-pose-space vertex to its currently posed world position.
     m_boneMatrix = GetWorldMatrix() * m_inverseBindMatrix;
 
     if (m_skeleton != nullptr)

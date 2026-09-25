@@ -256,6 +256,86 @@ void Animation::ApplyBlended(Skeleton* skeleton, float time, float blend)
     }
 }
 
+AnimationTrack* Animation::FindTrack(Name boneName) const
+{
+    for (const Handle<AnimationTrack>& track : m_tracks)
+    {
+        if (track.IsValid() && track->GetBoneName() == boneName)
+        {
+            return track.Get();
+        }
+    }
+
+    return nullptr;
+}
+
+static bool IsBoneWithin(Bone& bone, Name rootBoneName)
+{
+    for (Node* node = &bone; node != nullptr; node = node->GetParent())
+    {
+        const Bone* ancestor = DynamicCast<Bone>(node);
+
+        if (!ancestor)
+        {
+            break;
+        }
+
+        if (ancestor->GetBoneName() == rootBoneName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Animation::ApplyLayered(Skeleton* skeleton, float time, const Animation& layerAnimation, float layerTime, float layerWeight, float blend, Name layerExcludedBone)
+{
+    HYP_SCOPE;
+    Assert(skeleton != nullptr);
+
+    layerWeight = MathUtil::Clamp(layerWeight, 0.0f, 1.0f);
+    blend = MathUtil::Clamp(blend, 0.0f, 1.0f);
+
+    for (const Handle<AnimationTrack>& track : m_tracks)
+    {
+        Bone* bone = skeleton->FindBone(track->GetBoneName());
+        if (!bone)
+        {
+            continue;
+        }
+
+        Keyframe frame = track->GetKeyframe(time);
+
+        if (const AnimationTrack* layerTrack = layerAnimation.FindTrack(track->GetBoneName()))
+        {
+            if (!layerExcludedBone.IsValid() || !IsBoneWithin(*bone, layerExcludedBone))
+            {
+                frame = frame.Blend(layerTrack->GetKeyframe(layerTime), layerWeight);
+            }
+        }
+
+        bone->SetKeyframe(bone->GetKeyframe().Blend(frame, blend));
+    }
+
+    // Bones only the layer animates
+    for (const Handle<AnimationTrack>& layerTrack : layerAnimation.GetTracks())
+    {
+        if (FindTrack(layerTrack->GetBoneName()) != nullptr)
+        {
+            continue;
+        }
+
+        Bone* bone = skeleton->FindBone(layerTrack->GetBoneName());
+        if (!bone || (layerExcludedBone.IsValid() && IsBoneWithin(*bone, layerExcludedBone)))
+        {
+            continue;
+        }
+
+        bone->SetKeyframe(bone->GetKeyframe().Blend(layerTrack->GetKeyframe(layerTime), blend * layerWeight));
+    }
+}
+
 #pragma endregion Animation
 
 } // namespace Hyperion

@@ -50,52 +50,14 @@
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+#include <cmath>
 #include <cstring>
 #include <thread>
 
 namespace Hyperion {
 
-static inline JPH::Vec3 ToJPHVec(const Vec3f& vec)
-{
-    return JPH::Vec3(vec.x, vec.y, vec.z);
-}
+namespace /* Constants */ {
 
-class CharacterImmovableContactListener final : public JPH::CharacterContactListener
-{
-private:
-    static void ApplyContactSettings(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings)
-    {
-        ioSettings.mCanPushCharacter = !inCharacter->IsSlopeTooSteep(inContact.mContactNormal);
-    }
-
-public:
-    void OnContactAdded(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override
-    {
-        ApplyContactSettings(inCharacter, inContact, ioSettings);
-    }
-
-    void OnContactPersisted(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override
-    {
-        ApplyContactSettings(inCharacter, inContact, ioSettings);
-    }
-};
-
-static CharacterImmovableContactListener s_characterImmovableContactListener;
-
-static inline Vec3f FromJPHVec(const JPH::Vec3& vec)
-{
-    return Vec3f(vec.GetX(), vec.GetY(), vec.GetZ());
-}
-
-static inline JPH::Quat ToJPHQuat(const Quat4f& quat)
-{
-    return JPH::Quat(quat.x, quat.y, quat.z, quat.w);
-}
-
-static inline Quat4f FromJPHQuat(const JPH::Quat& quat)
-{
-    return Quat4f(quat.GetX(), quat.GetY(), quat.GetZ(), quat.GetW());
-}
 
 namespace JoltLayers {
 
@@ -103,130 +65,46 @@ static constexpr JPH::ObjectLayer NON_MOVING = 0;
 static constexpr JPH::ObjectLayer MOVING = 1;
 static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
 
-}
+} // namespace JoltLayers
+
+static constexpr float CharacterSteerMinSpeed = 0.5f;
+static constexpr float CharacterWalkTurnRate = MathUtil::DegToRad(1080.0f);
+static constexpr float CharacterReverseAngle = MathUtil::DegToRad(120.0f);
+static constexpr float CharacterBrakeMinSpeedFraction = 0.5f;
 
 static constexpr JPH::BroadPhaseLayer JoltBroadPhaseNON_MOVING(0);
 static constexpr JPH::BroadPhaseLayer JoltBroadPhaseMOVING(1);
 
 static constexpr float CharacterApexVerticalSpeed = 1.0f;
 
-class JoltBroadPhaseLayerInterface final : public JPH::BroadPhaseLayerInterface
+} // namespace
+
+
+
+namespace /* Helpers */ {
+
+HYP_FORCE_INLINE JPH::Vec3 ToJPHVec(const Vec3f& vec)
 {
-public:
-    virtual JPH::uint GetNumBroadPhaseLayers() const override
-    {
-        return 2;
-    }
+    return JPH::Vec3(vec.x, vec.y, vec.z);
+}
 
-    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer layer) const override
-    {
-        JPH_ASSERT(layer < JoltLayers::NUM_LAYERS);
-
-        return layer == JoltLayers::MOVING ? JoltBroadPhaseMOVING : JoltBroadPhaseNON_MOVING;
-    }
-
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer layer) const override
-    {
-        switch (static_cast<JPH::BroadPhaseLayer::Type>(layer))
-        {
-        case static_cast<JPH::BroadPhaseLayer::Type>(JoltBroadPhaseNON_MOVING): return "NON_MOVING";
-        case static_cast<JPH::BroadPhaseLayer::Type>(JoltBroadPhaseMOVING): return "MOVING";
-        default: return "INVALID";
-        }
-    }
-#endif
-};
-
-class JoltObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
+HYP_FORCE_INLINE Vec3f FromJPHVec(const JPH::Vec3& vec)
 {
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer object1, JPH::ObjectLayer object2) const override
-    {
-        switch (object1)
-        {
-        case JoltLayers::NON_MOVING:
-            return object2 == JoltLayers::MOVING;
-        case JoltLayers::MOVING:
-            return true;
-        default:
-            JPH_ASSERT(false);
-            return false;
-        }
-    }
-};
+    return Vec3f(vec.GetX(), vec.GetY(), vec.GetZ());
+}
 
-class JoltObjectVsBroadPhaseLayerFilter final : public JPH::ObjectVsBroadPhaseLayerFilter
+HYP_FORCE_INLINE JPH::Quat ToJPHQuat(const Quat4f& quat)
 {
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer layer, JPH::BroadPhaseLayer broadPhaseLayer) const override
-    {
-        switch (layer)
-        {
-        case JoltLayers::NON_MOVING:
-            return broadPhaseLayer == JoltBroadPhaseMOVING;
-        case JoltLayers::MOVING:
-            return true;
-        default:
-            JPH_ASSERT(false);
-            return false;
-        }
-    }
-};
+    return JPH::Quat(quat.x, quat.y, quat.z, quat.w);
+}
 
-class JoltCharacterBodyFilter final : public JPH::BodyFilter
+HYP_FORCE_INLINE Quat4f FromJPHQuat(const JPH::Quat& quat)
 {
-public:
-    const Set<uint32, PhysicsAllocator>* ghostNonCollidableBodyIds = nullptr;
+    return Quat4f(quat.GetX(), quat.GetY(), quat.GetZ(), quat.GetW());
+}
 
-    virtual bool ShouldCollide(const JPH::BodyID& bodyID) const override
-    {
-        return !ghostNonCollidableBodyIds->Contains(bodyID.GetIndexAndSequenceNumber());
-    }
-};
 
-struct JoltRigidBodyInternalData
-{
-    JPH::BodyID bodyID;
-    JPH::RefConst<JPH::Shape> shape;
-    bool isDynamic = false;
-};
-
-struct JoltCharacterControllerInternalData
-{
-    JPH::Ref<JPH::CharacterVirtual> character;
-
-    Vec3f walkVelocity;
-
-    JPH::Vec3 commandedHorizontalVelocity = JPH::Vec3::sZero();
-
-    float capsuleCenterOffset = 0.0f;
-    float stepHeight = 0.35f;
-    float jumpSpeed = 4.9f;
-    float fallSpeed = 55.0f;
-
-    float groundAcceleration = 12.0f;
-    float airAcceleration = 3.0f;
-    float friction = 8.0f;
-    float stopSpeed = 2.5f;
-
-    float jumpCutGravityMultiplier = 2.2f;
-    float apexGravityMultiplier = 0.85f;
-    float fallGravityMultiplier = 1.8f;
-
-    float coyoteTime = 0.15f;
-    float jumpBufferTime = 0.15f;
-
-    float minGroundSupportMass = 20.0f;
-
-    float coyoteTimeRemaining = 0.0f;
-    float jumpBufferTimeRemaining = 0.0f;
-
-    bool jumpHeld = false;
-    bool isRisingFromJump = false;
-};
-
-static JPH::MassProperties CreateMassProperties(const JPH::Shape* shape, float mass)
+JPH::MassProperties CreateMassProperties(const JPH::Shape* shape, float mass)
 {
     JPH::MassProperties massProperties = shape->GetMassProperties();
 
@@ -236,7 +114,7 @@ static JPH::MassProperties CreateMassProperties(const JPH::Shape* shape, float m
 }
 
 /// \p positions are tightly packed xyz floats.
-static JPH::RefConst<JPH::Shape> CreateJoltConvexHullShape(Span<const float> positions, Name shapeName)
+JPH::RefConst<JPH::Shape> CreateJoltConvexHullShape(Span<const float> positions, Name shapeName)
 {
     const size_t numPoints = positions.Size() / 3;
 
@@ -269,7 +147,7 @@ static JPH::RefConst<JPH::Shape> CreateJoltConvexHullShape(Span<const float> pos
     return result.Get();
 }
 
-static JPH::RefConst<JPH::Shape> ApplyScaleToJoltShape(const JPH::RefConst<JPH::Shape>& shape, const Vec3f& scale)
+JPH::RefConst<JPH::Shape> ApplyScaleToJoltShape(const JPH::RefConst<JPH::Shape>& shape, const Vec3f& scale)
 {
     if (MathUtil::Abs(scale.x - 1.0f) <= MathUtil::epsilonF
         && MathUtil::Abs(scale.y - 1.0f) <= MathUtil::epsilonF
@@ -290,7 +168,7 @@ static JPH::RefConst<JPH::Shape> ApplyScaleToJoltShape(const JPH::RefConst<JPH::
 }
 
 // static bodies live on NON_MOVING, which doesn't collide with itself, so the layer has to follow the motion type
-static void SetJoltBodyMotionType(JPH::BodyInterface& bodyInterface, const JPH::BodyID& bodyID, JPH::EMotionType motionType)
+void SetJoltBodyMotionType(JPH::BodyInterface& bodyInterface, const JPH::BodyID& bodyID, JPH::EMotionType motionType)
 {
     bodyInterface.SetMotionType(
         bodyID,
@@ -300,13 +178,13 @@ static void SetJoltBodyMotionType(JPH::BodyInterface& bodyInterface, const JPH::
     bodyInterface.SetObjectLayer(bodyID, motionType == JPH::EMotionType::Static ? JoltLayers::NON_MOVING : JoltLayers::MOVING);
 }
 
-static bool IsWorldGeometryShape(const PhysicsShape* physicsShape)
+bool IsWorldGeometryShape(const PhysicsShape* physicsShape)
 {
     return physicsShape != nullptr
         && (physicsShape->GetType() == PhysicsShapeType::Plane || physicsShape->GetType() == PhysicsShapeType::HeightField);
 }
 
-static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape, const Vec3f& scale)
+JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape, const Vec3f& scale)
 {
     Assert(physicsShape != nullptr);
 
@@ -316,10 +194,7 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
     {
         BoundingBox aabb = static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB();
 
-        // [AI]
-        // Guards against e.g an entity's local bounds being infinite (directional lights) or a mesh AABB
-        // that hasn't been computed yet — an unbounded shape here trips Jolt's broadphase assertions.
-        // This runs on every shape rebuild (OnRigidBodyAdded and OnChangePhysicsShape), not just creation.
+        // Guards against e.g an entity's local bounds being infinite or otherwise invalid
         if (!aabb.IsValid() || !aabb.IsFinite())
         {
             HYP_LOG(Physics, Warning, "BoxPhysicsShape '{}' has invalid or non-finite bounds; falling back to a unit box", physicsShape->GetName());
@@ -484,6 +359,153 @@ static JPH::RefConst<JPH::Shape> CreatePhysicsShapeHandle(PhysicsShape* physicsS
         HYP_UNREACHABLE();
     }
 }
+
+} // namespace
+
+class CharacterImmovableContactListener final : public JPH::CharacterContactListener
+{
+private:
+    static void ApplyContactSettings(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings)
+    {
+        ioSettings.mCanPushCharacter = !inCharacter->IsSlopeTooSteep(inContact.mContactNormal);
+    }
+
+public:
+    void OnContactAdded(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override
+    {
+        ApplyContactSettings(inCharacter, inContact, ioSettings);
+    }
+
+    void OnContactPersisted(const JPH::CharacterVirtual* inCharacter, const JPH::CharacterContact& inContact, JPH::CharacterContactSettings& ioSettings) override
+    {
+        ApplyContactSettings(inCharacter, inContact, ioSettings);
+    }
+};
+
+static CharacterImmovableContactListener s_characterImmovableContactListener;
+
+class JoltBroadPhaseLayerInterface final : public JPH::BroadPhaseLayerInterface
+{
+public:
+    virtual JPH::uint GetNumBroadPhaseLayers() const override
+    {
+        return 2;
+    }
+
+    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer layer) const override
+    {
+        JPH_ASSERT(layer < JoltLayers::NUM_LAYERS);
+
+        return layer == JoltLayers::MOVING ? JoltBroadPhaseMOVING : JoltBroadPhaseNON_MOVING;
+    }
+
+#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
+    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer layer) const override
+    {
+        switch (static_cast<JPH::BroadPhaseLayer::Type>(layer))
+        {
+        case static_cast<JPH::BroadPhaseLayer::Type>(JoltBroadPhaseNON_MOVING): return "NON_MOVING";
+        case static_cast<JPH::BroadPhaseLayer::Type>(JoltBroadPhaseMOVING): return "MOVING";
+        default: return "INVALID";
+        }
+    }
+#endif
+};
+
+class JoltObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
+{
+public:
+    virtual bool ShouldCollide(JPH::ObjectLayer object1, JPH::ObjectLayer object2) const override
+    {
+        switch (object1)
+        {
+        case JoltLayers::NON_MOVING:
+            return object2 == JoltLayers::MOVING;
+        case JoltLayers::MOVING:
+            return true;
+        default:
+            JPH_ASSERT(false);
+            return false;
+        }
+    }
+};
+
+class JoltObjectVsBroadPhaseLayerFilter final : public JPH::ObjectVsBroadPhaseLayerFilter
+{
+public:
+    virtual bool ShouldCollide(JPH::ObjectLayer layer, JPH::BroadPhaseLayer broadPhaseLayer) const override
+    {
+        switch (layer)
+        {
+        case JoltLayers::NON_MOVING:
+            return broadPhaseLayer == JoltBroadPhaseMOVING;
+        case JoltLayers::MOVING:
+            return true;
+        default:
+            JPH_ASSERT(false);
+            return false;
+        }
+    }
+};
+
+class JoltCharacterBodyFilter final : public JPH::BodyFilter
+{
+public:
+    const Set<uint32, PhysicsAllocator>* ghostNonCollidableBodyIds = nullptr;
+
+    virtual bool ShouldCollide(const JPH::BodyID& bodyID) const override
+    {
+        return !ghostNonCollidableBodyIds->Contains(bodyID.GetIndexAndSequenceNumber());
+    }
+};
+
+struct JoltRigidBodyInternalData
+{
+    JPH::BodyID bodyID;
+    JPH::RefConst<JPH::Shape> shape;
+    bool isDynamic = false;
+};
+
+struct JoltCharacterControllerInternalData
+{
+    JPH::Ref<JPH::CharacterVirtual> character;
+
+    Vec3f walkVelocity;
+
+    JPH::Vec3 commandedHorizontalVelocity = JPH::Vec3::sZero();
+
+    float capsuleCenterOffset = 0.0f;
+    float stepHeight = 0.35f;
+    float jumpSpeed = 4.9f;
+    float fallSpeed = 55.0f;
+
+    float groundAcceleration = 12.0f;
+    float airAcceleration = 3.0f;
+    float friction = 8.0f;
+    float stopSpeed = 2.5f;
+
+    float moveSpeed = 4.0f;
+    float sprintSpeed = 7.5f;
+    float sprintAcceleration = 7.0f;
+    float sprintTurnRate = MathUtil::DegToRad(140.0f);
+    float turnSpeedLoss = 1.5f;
+    float brakeDeceleration = 22.0f;
+
+    float jumpCutGravityMultiplier = 2.2f;
+    float apexGravityMultiplier = 0.85f;
+    float fallGravityMultiplier = 1.8f;
+
+    float coyoteTime = 0.15f;
+    float jumpBufferTime = 0.15f;
+
+    float minGroundSupportMass = 20.0f;
+
+    float coyoteTimeRemaining = 0.0f;
+    float jumpBufferTimeRemaining = 0.0f;
+
+    bool jumpHeld = false;
+    bool isRisingFromJump = false;
+};
 
 static uint32 s_joltReferenceCount = 0;
 
@@ -1096,6 +1118,12 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     internalData->airAcceleration = config.airAcceleration;
     internalData->friction = config.friction;
     internalData->stopSpeed = config.stopSpeed;
+    internalData->moveSpeed = config.moveSpeed;
+    internalData->sprintSpeed = config.sprintSpeed;
+    internalData->sprintAcceleration = config.sprintAcceleration;
+    internalData->sprintTurnRate = config.sprintTurnRate;
+    internalData->turnSpeedLoss = config.turnSpeedLoss;
+    internalData->brakeDeceleration = config.brakeDeceleration;
     internalData->jumpCutGravityMultiplier = config.jumpCutGravityMultiplier;
     internalData->apexGravityMultiplier = config.apexGravityMultiplier;
     internalData->fallGravityMultiplier = config.fallGravityMultiplier;
@@ -1180,6 +1208,67 @@ static JPH::Vec3 ApplyCharacterGroundFriction(JPH::Vec3 horizontalVelocity, floa
     const float newSpeed = MathUtil::Max(speed - drop, 0.0f);
 
     return horizontalVelocity * (newSpeed / speed);
+}
+
+static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH::Vec3& wishDirection, float wishSpeed, const JoltCharacterControllerInternalData& data, float deltaTime)
+{
+    if (wishSpeed <= MathUtil::epsilonF)
+    {
+        return horizontalVelocity;
+    }
+
+    float speed = horizontalVelocity.Length();
+    JPH::Vec3 direction = speed > CharacterSteerMinSpeed ? horizontalVelocity * (1.0f / speed) : wishDirection;
+
+    const float sprintRange = MathUtil::Max(data.sprintSpeed - data.moveSpeed, 0.01f);
+    const float sprintFactor = MathUtil::Clamp((speed - data.moveSpeed) / sprintRange, 0.0f, 1.0f);
+
+    const float angle = std::acos(MathUtil::Clamp(direction.Dot(wishDirection), -1.0f, 1.0f));
+
+    if (angle > CharacterReverseAngle && speed > data.moveSpeed * CharacterBrakeMinSpeedFraction)
+    {
+        speed = MathUtil::Max(speed - data.brakeDeceleration * deltaTime, 0.0f);
+
+        return direction * speed;
+    }
+
+    const float turnRate = MathUtil::Lerp(CharacterWalkTurnRate, data.sprintTurnRate, sprintFactor);
+    const float turn = MathUtil::Min(angle, turnRate * deltaTime);
+
+    if (turn > MathUtil::epsilonF)
+    {
+        // Rotate about the up axis, toward whichever side the input is on
+        const float side = direction.Cross(wishDirection).GetY() >= 0.0f ? 1.0f : -1.0f;
+
+        direction = (JPH::Quat::sRotation(JPH::Vec3::sAxisY(), side * turn) * direction).Normalized();
+
+        // Cornering at a sprint costs the speed above move speed
+        if (speed > data.moveSpeed)
+        {
+            speed = data.moveSpeed + (speed - data.moveSpeed) * std::exp(-data.turnSpeedLoss * turn * sprintFactor);
+        }
+    }
+
+    // Speed only builds while roughly facing where the input points
+    const float targetSpeed = wishSpeed * MathUtil::Max(std::cos(angle - turn), 0.0f);
+
+    if (speed < targetSpeed)
+    {
+        const float acceleration = speed < data.moveSpeed
+            ? data.groundAcceleration * wishSpeed
+            : MathUtil::Min(data.groundAcceleration * wishSpeed, data.sprintAcceleration);
+
+        speed = MathUtil::Min(speed + acceleration * deltaTime, targetSpeed);
+    }
+    else if (speed > wishSpeed)
+    {
+        // Eased off from a sprint: slow to the new target speed the way friction would
+        const float drop = MathUtil::Max(speed, data.stopSpeed) * data.friction * deltaTime;
+
+        speed = MathUtil::Max(speed - drop, wishSpeed);
+    }
+
+    return direction * speed;
 }
 
 static JPH::Vec3 AccelerateCharacterHorizontal(JPH::Vec3 horizontalVelocity, const JPH::Vec3& wishDirection, float wishSpeed, float acceleration, float deltaTime)
@@ -1284,8 +1373,10 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
 
         if (isGrounded)
         {
-            horizontalVelocity = ApplyCharacterGroundFriction(horizontalVelocity, internalData->friction, internalData->stopSpeed, substepDelta);
-            horizontalVelocity = AccelerateCharacterHorizontal(horizontalVelocity, wishDirection, wishSpeed, internalData->groundAcceleration, substepDelta);
+            // Friction only brings the character to a stop once input is released; while moving, steering handles speed
+            horizontalVelocity = wishSpeed > MathUtil::epsilonF
+                ? SteerCharacterOnGround(horizontalVelocity, wishDirection, wishSpeed, *internalData, substepDelta)
+                : ApplyCharacterGroundFriction(horizontalVelocity, internalData->friction, internalData->stopSpeed, substepDelta);
         }
         else
         {

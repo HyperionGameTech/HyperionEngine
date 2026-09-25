@@ -30,7 +30,9 @@ static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
 {
     GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
 
-    auto domePrefabResult = g_assetManager->Load<Prefab>("Models/inv_sphere.obj");
+    auto domePrefabResult = g_assetManager->Load<Prefab>("Models/inv_sphere.obj",
+        String::empty,
+        AssetLoadHint::Transient);
 
     if (!domePrefabResult.HasValue())
     {
@@ -65,7 +67,9 @@ static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry)
 {
     GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
 
-    auto characterPrefabResult = g_assetManager->Load<Prefab>("Models/Mannequin/Mannequin.glb");
+    auto characterPrefabResult = g_assetManager->Load<Prefab>("Models/Mannequin/Mannequin.glb",
+        String::empty,
+        AssetLoadHint::Transient);
 
     if (!characterPrefabResult.HasValue())
     {
@@ -134,7 +138,17 @@ protected:
     static void RunStatic()
     {
         Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
-        Assert(engineRegistry.IsValid());
+
+        if (!engineRegistry.IsValid())
+        {
+            engineRegistry = MakeHandle<AssetRegistry>(
+                AssetRegistryId::Engine,
+                EngineGlobals::GetContentDirectory<HYP_STATIC_STRING("Engine")>());
+
+            engineRegistry->Initialize(nullptr);
+
+            SetEngineAssetRegistry(engineRegistry);
+        }
 
         BuildInvSphere(engineRegistry);
         BuildThirdPersonCharacter(engineRegistry);

@@ -15,6 +15,10 @@ namespace Hyperion
         public float StopSpeed;
         public float StepHeight;
         public float MaxSlopeAngle;
+        public float SprintAcceleration;
+        public float SprintTurnRate;
+        public float TurnSpeedLoss;
+        public float BrakeDeceleration;
     }
 
     [ClassBinding(Name="CharacterJumpSettings")]

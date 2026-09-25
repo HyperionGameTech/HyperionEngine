@@ -49,6 +49,18 @@ struct CharacterMovementSettings
 
     HYP_FIELD(Property = "MaxSlopeAngle", Serialize, Title = "Max Slope Angle")
     float maxSlopeAngle = 45.0f;
+
+    HYP_FIELD(Property = "SprintAcceleration", Serialize, Title = "Sprint Acceleration")
+    float sprintAcceleration = 7.0f;
+
+    HYP_FIELD(Property = "SprintTurnRate", Serialize, Title = "Sprint Turn Rate")
+    float sprintTurnRate = 140.0f;
+
+    HYP_FIELD(Property = "TurnSpeedLoss", Serialize, Title = "Turn Speed Loss")
+    float turnSpeedLoss = 1.5f;
+
+    HYP_FIELD(Property = "BrakeDeceleration", Serialize, Title = "Brake Deceleration")
+    float brakeDeceleration = 22.0f;
 };
 
 HYP_STRUCT()
