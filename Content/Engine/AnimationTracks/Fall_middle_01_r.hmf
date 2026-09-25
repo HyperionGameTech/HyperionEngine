@@ -1,8 +1,0 @@
-AnimationTrack Fall_middle_01_r {
-    BoneName = middle_01_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Fall_middle_01_r.KEYF"
-        Size = 4864
-    }
-    UUID = "eda131b3-7323-4079-b13d-18d12711df11"
-}

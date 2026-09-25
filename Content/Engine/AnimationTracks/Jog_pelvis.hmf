@@ -1,8 +1,0 @@
-AnimationTrack Jog_pelvis {
-    BoneName = pelvis
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jog_pelvis.KEYF"
-        Size = 1856
-    }
-    UUID = "ded1a2e1-9995-4663-94f5-7e4bd31fc8ce"
-}

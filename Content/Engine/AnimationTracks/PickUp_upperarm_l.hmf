@@ -1,8 +1,0 @@
-AnimationTrack PickUp_upperarm_l {
-    BoneName = upperarm_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PickUp_upperarm_l.KEYF"
-        Size = 1664
-    }
-    UUID = "46ce1572-c9be-4999-916e-c72a6ecc222a"
-}

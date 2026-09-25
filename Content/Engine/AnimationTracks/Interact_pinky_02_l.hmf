@@ -1,8 +1,0 @@
-AnimationTrack Interact_pinky_02_l {
-    BoneName = pinky_02_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Interact_pinky_02_l.KEYF"
-        Size = 3904
-    }
-    UUID = "5f983b67-b9b0-466b-a9e0-2bfccf32e0c2"
-}

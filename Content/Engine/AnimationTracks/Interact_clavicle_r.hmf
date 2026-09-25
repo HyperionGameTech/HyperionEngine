@@ -1,8 +1,0 @@
-AnimationTrack Interact_clavicle_r {
-    BoneName = clavicle_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Interact_clavicle_r.KEYF"
-        Size = 3904
-    }
-    UUID = "dcfa28e6-c7c5-44c3-a9ae-a51dc3f78824"
-}

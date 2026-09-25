@@ -1,8 +1,0 @@
-AnimationTrack Interact_index_01_r {
-    BoneName = index_01_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Interact_index_01_r.KEYF"
-        Size = 3904
-    }
-    UUID = "c5cdbe21-b3ee-4bf2-ab43-93bdce20f342"
-}

@@ -1,8 +1,0 @@
-AnimationTrack PistolShoot_thumb_02_r {
-    BoneName = thumb_02_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolShoot_thumb_02_r.KEYF"
-        Size = 1280
-    }
-    UUID = "8c439b4e-a8f2-422e-aa42-1860da9de059"
-}

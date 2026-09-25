@@ -1,8 +1,0 @@
-AnimationTrack PistolIdle_pinky_03_r {
-    BoneName = pinky_03_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolIdle_pinky_03_r.KEYF"
-        Size = 3264
-    }
-    UUID = "6fad3b99-c6ce-461f-8b43-218a6d47352b"
-}

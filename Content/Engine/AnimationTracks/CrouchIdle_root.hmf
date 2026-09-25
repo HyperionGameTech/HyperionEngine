@@ -1,8 +1,0 @@
-AnimationTrack CrouchIdle_root {
-    BoneName = root
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/CrouchIdle_root.KEYF"
-        Size = 5696
-    }
-    UUID = "29397248-e67b-4b53-905b-1d24d900f512"
-}

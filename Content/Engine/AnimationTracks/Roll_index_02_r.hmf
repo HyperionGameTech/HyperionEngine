@@ -1,8 +1,0 @@
-AnimationTrack Roll_index_02_r {
-    BoneName = index_02_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Roll_index_02_r.KEYF"
-        Size = 2880
-    }
-    UUID = "8fd6c903-1ec0-4df8-8edc-319f25ee9db4"
-}

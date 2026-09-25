@@ -1,8 +1,0 @@
-AnimationTrack Roll_lowerarm_l {
-    BoneName = lowerarm_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Roll_lowerarm_l.KEYF"
-        Size = 2880
-    }
-    UUID = "a05cc717-8834-4a0b-a2b3-9672591f50f9"
-}

@@ -1,8 +1,0 @@
-AnimationTrack CrouchIdle_ball_l {
-    BoneName = ball_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/CrouchIdle_ball_l.KEYF"
-        Size = 5696
-    }
-    UUID = "2b21750d-ee8f-446b-bc32-81c6121098ce"
-}

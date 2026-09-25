@@ -1,8 +1,0 @@
-AnimationTrack IdleAim_ring_02_r {
-    BoneName = ring_02_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/IdleAim_ring_02_r.KEYF"
-        Size = 1600
-    }
-    UUID = "0e78e282-e67d-41e2-9053-a14ca4b1597b"
-}

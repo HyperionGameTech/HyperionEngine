@@ -1,8 +1,0 @@
-AnimationTrack PistolAimDown_calf_r {
-    BoneName = calf_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolAimDown_calf_r.KEYF"
-        Size = 384
-    }
-    UUID = "f9b1a77a-1616-437f-a9cb-a99b5aa539e0"
-}

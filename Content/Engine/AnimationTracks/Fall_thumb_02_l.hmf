@@ -1,8 +1,0 @@
-AnimationTrack Fall_thumb_02_l {
-    BoneName = thumb_02_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Fall_thumb_02_l.KEYF"
-        Size = 4864
-    }
-    UUID = "bdcee0f6-37f2-4667-a269-2cf008e645ce"
-}

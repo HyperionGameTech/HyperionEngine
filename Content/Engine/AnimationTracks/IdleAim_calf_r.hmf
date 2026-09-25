@@ -1,8 +1,0 @@
-AnimationTrack IdleAim_calf_r {
-    BoneName = calf_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/IdleAim_calf_r.KEYF"
-        Size = 1600
-    }
-    UUID = "09909c6d-de77-4f66-b988-69a0e98226f2"
-}

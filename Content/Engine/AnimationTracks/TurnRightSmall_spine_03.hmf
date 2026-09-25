@@ -1,8 +1,0 @@
-AnimationTrack TurnRightSmall_spine_03 {
-    BoneName = spine_03
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/TurnRightSmall_spine_03.KEYF"
-        Size = 960
-    }
-    UUID = "0536f71d-e5a1-4db6-97bc-9243b9e3344d"
-}

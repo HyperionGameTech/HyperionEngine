@@ -1,8 +1,0 @@
-AnimationTrack Run_spine_01 {
-    BoneName = spine_01
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Run_spine_01.KEYF"
-        Size = 1344
-    }
-    UUID = "9bfa52b3-ddb8-40d3-beca-6db5c361203f"
-}

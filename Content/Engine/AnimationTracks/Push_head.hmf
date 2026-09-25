@@ -1,8 +1,0 @@
-AnimationTrack Push_head {
-    BoneName = head
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Push_head.KEYF"
-        Size = 5184
-    }
-    UUID = "f54a8a91-4545-478d-981e-7a26a83ac6b1"
-}

@@ -1,8 +1,0 @@
-AnimationTrack IdleAim_ball_l {
-    BoneName = ball_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/IdleAim_ball_l.KEYF"
-        Size = 1600
-    }
-    UUID = "32dcdcfe-ab86-4724-a661-15087d201bfa"
-}

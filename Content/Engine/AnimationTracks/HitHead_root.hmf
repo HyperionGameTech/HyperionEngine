@@ -1,8 +1,0 @@
-AnimationTrack HitHead_root {
-    BoneName = root
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/HitHead_root.KEYF"
-        Size = 896
-    }
-    UUID = "ad54b18a-62a5-4ba4-a8bb-3ab1ae9ad638"
-}

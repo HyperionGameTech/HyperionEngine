@@ -1,8 +1,0 @@
-AnimationTrack PistolAimDown_pinky_02_r {
-    BoneName = pinky_02_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolAimDown_pinky_02_r.KEYF"
-        Size = 384
-    }
-    UUID = "9f922e2e-b837-4d44-a073-6cb2a230a102"
-}

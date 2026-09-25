@@ -1,8 +1,0 @@
-AnimationTrack Land_pinky_01_r {
-    BoneName = pinky_01_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Land_pinky_01_r.KEYF"
-        Size = 2496
-    }
-    UUID = "a3e04a17-2635-4856-ae79-931977a149bb"
-}

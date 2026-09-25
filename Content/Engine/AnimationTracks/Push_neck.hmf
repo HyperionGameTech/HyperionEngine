@@ -1,8 +1,0 @@
-AnimationTrack Push_neck {
-    BoneName = neck
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Push_neck.KEYF"
-        Size = 5184
-    }
-    UUID = "b5f2824f-f646-4398-97d1-f1b1864cf87f"
-}

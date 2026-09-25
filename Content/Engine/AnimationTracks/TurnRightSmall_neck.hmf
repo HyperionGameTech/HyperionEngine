@@ -1,8 +1,0 @@
-AnimationTrack TurnRightSmall_neck {
-    BoneName = neck
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/TurnRightSmall_neck.KEYF"
-        Size = 960
-    }
-    UUID = "56db2819-5e16-4e5f-8caf-5ce106dda883"
-}

@@ -1,8 +1,0 @@
-AnimationTrack Jump_ring_02_r {
-    BoneName = ring_02_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jump_ring_02_r.KEYF"
-        Size = 2432
-    }
-    UUID = "ed39e042-87f1-4a5b-a66c-ca043c4cdd37"
-}

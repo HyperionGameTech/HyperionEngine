@@ -1,8 +1,0 @@
-AnimationTrack Idle_pelvis {
-    BoneName = pelvis
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Idle_pelvis.KEYF"
-        Size = 4864
-    }
-    UUID = "f52142e7-c2e7-4446-918d-2a7f96b988da"
-}

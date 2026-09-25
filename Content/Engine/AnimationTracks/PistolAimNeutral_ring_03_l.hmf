@@ -1,8 +1,0 @@
-AnimationTrack PistolAimNeutral_ring_03_l {
-    BoneName = ring_03_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/PistolAimNeutral_ring_03_l.KEYF"
-        Size = 384
-    }
-    UUID = "9576123f-7cff-44ad-a1ba-6fc00072d9ef"
-}
