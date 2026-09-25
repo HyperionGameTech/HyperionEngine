@@ -73,6 +73,28 @@ void ApplyTwist(Skeleton& skeleton, Name rootBoneName, Name endBoneName, float a
         bone->SetWorldRotation(shareRotation * bone->GetWorldRotation());
     }
 }
+
+float AdvanceLayerTime(float time, float step, float length)
+{
+    time += step;
+
+    if (length <= 0.0f)
+    {
+        return 0.0f;
+    }
+
+    if (time > length)
+    {
+        return std::fmod(time, length);
+    }
+
+    if (time < 0.0f)
+    {
+        return length + std::fmod(time, length);
+    }
+
+    return time;
+}
 } // namespace
 
 bool AnimationSystem::ShouldProcessScene(Scene* scene) const
@@ -207,20 +229,47 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     ? meshComponent.skeleton->GetAnimation(playbackState.layerAnimationIndex).Get()
                     : nullptr;
 
+                const Animation* secondLayerAnimation = playbackState.secondLayerWeight > 0.0f && playbackState.secondLayerAnimationIndex != ~0u
+                    ? meshComponent.skeleton->GetAnimation(playbackState.secondLayerAnimationIndex).Get()
+                    : nullptr;
+
                 if (layerAnimation != nullptr)
                 {
-                    const float layerLength = layerAnimation->GetLength();
+                    playbackState.layerTime = AdvanceLayerTime(playbackState.layerTime, delta * playbackState.speed, layerAnimation->GetLength());
+                }
 
-                    playbackState.layerTime = layerLength > 0.0f
-                        ? std::fmod(playbackState.layerTime + delta * playbackState.speed, layerLength)
-                        : 0.0f;
+                if (secondLayerAnimation != nullptr)
+                {
+                    playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
+                }
 
-                    if (playbackState.layerTime < 0.0f)
-                    {
-                        playbackState.layerTime += layerLength;
-                    }
+                if (layerAnimation != nullptr)
+                {
+                    ApplyAnimParams params {};
+                    params.time = playbackState.currentTime;
+                    params.layerAnimation = layerAnimation;
+                    params.layerTime = playbackState.layerTime;
+                    params.layerWeight = playbackState.layerWeight;
+                    params.blend = 0.5f;
 
-                    animation->ApplyLayered(meshComponent.skeleton, playbackState.currentTime, *layerAnimation, playbackState.layerTime, playbackState.layerWeight, 0.5f, playbackState.layerExcludedBone);
+                    params.layerExcludedBone = playbackState.layerExcludedBone;
+                    
+                    params.secondLayerAnimation = secondLayerAnimation;
+                    params.secondLayerTime = playbackState.secondLayerTime;
+                    params.secondLayerWeight = playbackState.secondLayerWeight;
+
+                    animation->ApplyLayered(*meshComponent.skeleton, params);
+                }
+                else if (secondLayerAnimation != nullptr)
+                {
+                    ApplyAnimParams params {};
+                    params.time = playbackState.currentTime;
+                    params.layerAnimation = secondLayerAnimation;
+                    params.layerTime = playbackState.secondLayerTime;
+                    params.layerWeight = playbackState.secondLayerWeight;
+                    params.blend = 0.5f;
+
+                    animation->ApplyLayered(*meshComponent.skeleton, params);
                 }
                 else
                 {

@@ -8,6 +8,7 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
 #include <Core/Reflection/ObjectMacros.hpp>
@@ -35,6 +36,15 @@ struct CharacterModelAnimations
 
     HYP_FIELD(Property = "RunAnimation", Serialize, Editor, Title = "Run Animation")
     Name runAnimation = NAME("Run");
+
+    HYP_FIELD(Property = "StrafeLeftAnimation", Serialize, Editor, Title = "Strafe Left Animation")
+    Name strafeLeftAnimation = NAME("StrafeLeft");
+
+    HYP_FIELD(Property = "StrafeRightAnimation", Serialize, Editor, Title = "Strafe Right Animation")
+    Name strafeRightAnimation = NAME("StrafeRight");
+
+    HYP_FIELD(Property = "WalkBackwardAnimation", Serialize, Editor, Title = "Walk Backward Animation")
+    Name walkBackwardAnimation = NAME("WalkBackward");
 
     HYP_FIELD(Property = "JumpWindupAnimation", Serialize, Editor, Title = "Jump Windup Animation")
     Name jumpWindupAnimation = NAME("JumpWindup");
@@ -124,6 +134,12 @@ struct CharacterModelComponent
 
     HYP_FIELD(Transient)
     float smoothedSpeed = 0.0f;
+
+    HYP_FIELD(Transient)
+    Vec2f smoothedLocalVelocity = Vec2f::Zero();
+
+    HYP_FIELD(Transient)
+    float moveAngle = 0.0f;
 
     HYP_FIELD(Transient)
     float facingYaw = 0.0f;

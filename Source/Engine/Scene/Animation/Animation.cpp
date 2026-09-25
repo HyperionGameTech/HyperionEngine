@@ -289,13 +289,29 @@ static bool IsBoneWithin(Bone& bone, Name rootBoneName)
     return false;
 }
 
-void Animation::ApplyLayered(Skeleton* skeleton, float time, const Animation& layerAnimation, float layerTime, float layerWeight, float blend, Name layerExcludedBone)
+void Animation::ApplyLayered(
+    Skeleton* skeleton,
+    float time,
+    const Animation& layerAnimation,
+    float layerTime,
+    float layerWeight,
+    float blend,
+    Name layerExcludedBone,
+    const Animation* secondLayerAnimation,
+    float secondLayerTime,
+    float secondLayerWeight)
 {
     HYP_SCOPE;
     Assert(skeleton != nullptr);
 
     layerWeight = MathUtil::Clamp(layerWeight, 0.0f, 1.0f);
     blend = MathUtil::Clamp(blend, 0.0f, 1.0f);
+    secondLayerWeight = MathUtil::Clamp(secondLayerWeight, 0.0f, 1.0f);
+
+    if (secondLayerWeight <= 0.0f)
+    {
+        secondLayerAnimation = nullptr;
+    }
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
@@ -312,6 +328,14 @@ void Animation::ApplyLayered(Skeleton* skeleton, float time, const Animation& la
             if (!layerExcludedBone.IsValid() || !IsBoneWithin(*bone, layerExcludedBone))
             {
                 frame = frame.Blend(layerTrack->GetKeyframe(layerTime), layerWeight);
+            }
+        }
+
+        if (secondLayerAnimation != nullptr)
+        {
+            if (const AnimationTrack* secondLayerTrack = secondLayerAnimation->FindTrack(track->GetBoneName()))
+            {
+                frame = frame.Blend(secondLayerTrack->GetKeyframe(secondLayerTime), secondLayerWeight);
             }
         }
 

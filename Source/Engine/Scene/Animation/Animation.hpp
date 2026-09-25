@@ -155,8 +155,11 @@ public:
 
     /*! \brief Samples this animation at \p time and \p layerAnimation at \p layerTime, mixes them by \p layerWeight
      *  (0 = only this animation), then blends the skeleton's current pose toward the result by \p blend.
-     *  If \p layerExcludedBone is valid, that bone and its descendants take only this animation. */
-    void ApplyLayered(Skeleton* skeleton, float time, const Animation& layerAnimation, float layerTime, float layerWeight, float blend, Name layerExcludedBone = Name::Invalid());
+     *  If \p layerExcludedBone is valid, that bone and its descendants take only this animation.
+     *  If \p secondLayerAnimation is set, it is mixed on top of that mix by \p secondLayerWeight (the excluded bone
+     *  doesn't apply to it). */
+    void ApplyLayered(Skeleton* skeleton, float time, const Animation& layerAnimation, float layerTime, float layerWeight, float blend, Name layerExcludedBone = Name::Invalid(),
+        const Animation* secondLayerAnimation = nullptr, float secondLayerTime = 0.0f, float secondLayerWeight = 0.0f);
 
 private:
     HYP_FIELD(Property = "Tracks")
