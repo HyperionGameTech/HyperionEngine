@@ -1,8 +1,0 @@
-AnimationTrack Walk_thumb_01_l {
-    BoneName = thumb_01_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Walk_thumb_01_l.KEYF"
-        Size = 1408
-    }
-    UUID = "3ea95c26-7b2c-4e1d-a520-3d5cd5f6f839"
-}

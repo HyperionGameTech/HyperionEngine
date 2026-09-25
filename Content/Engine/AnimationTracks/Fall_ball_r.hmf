@@ -1,8 +1,0 @@
-AnimationTrack Fall_ball_r {
-    BoneName = ball_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Fall_ball_r.KEYF"
-        Size = 1600
-    }
-    UUID = "e0143e69-97aa-4445-8ec2-b8be009a3582"
-}

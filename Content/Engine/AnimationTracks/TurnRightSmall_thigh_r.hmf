@@ -1,8 +1,0 @@
-AnimationTrack TurnRightSmall_thigh_r {
-    BoneName = thigh_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/TurnRightSmall_thigh_r.KEYF"
-        Size = 1728
-    }
-    UUID = "2c872f6f-02b4-417d-ba40-d029492675bc"
-}

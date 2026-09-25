@@ -1,8 +1,0 @@
-AnimationTrack Walk_head {
-    BoneName = head
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Walk_head.KEYF"
-        Size = 1408
-    }
-    UUID = "91d81793-aeb5-4a77-8614-4be6e68817d1"
-}

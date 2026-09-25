@@ -1,8 +1,0 @@
-AnimationTrack Run_neck {
-    BoneName = neck
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Run_neck.KEYF"
-        Size = 1280
-    }
-    UUID = "c24c0fcc-fa5c-42e6-80c6-e752e34fbe42"
-}

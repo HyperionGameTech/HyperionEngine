@@ -1,8 +1,0 @@
-AnimationTrack Land_head {
-    BoneName = head
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Land_head.KEYF"
-        Size = 832
-    }
-    UUID = "21dc7f05-0342-476a-b029-80f5bfa1b54e"
-}

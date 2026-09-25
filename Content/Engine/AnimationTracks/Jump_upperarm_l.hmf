@@ -1,8 +1,0 @@
-AnimationTrack Jump_upperarm_l {
-    BoneName = upperarm_l
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jump_upperarm_l.KEYF"
-        Size = 704
-    }
-    UUID = "2696c68d-3ebd-48cc-b4cd-dcc4430afdc2"
-}
