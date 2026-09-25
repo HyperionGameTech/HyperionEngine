@@ -1,7 +1,7 @@
 #ifndef HYP_SKINNING
 #define HYP_SKINNING
 
-#define HYP_MAX_BONES 64
+#define HYP_MAX_BONES 128
 
 // SkeletonsBuffer is presumed to exist and be a StructuredBuffer<float4x4>.
 
