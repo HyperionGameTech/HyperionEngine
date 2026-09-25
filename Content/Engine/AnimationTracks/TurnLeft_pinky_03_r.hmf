@@ -1,8 +1,0 @@
-AnimationTrack TurnLeft_pinky_03_r {
-    BoneName = pinky_03_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/TurnLeft_pinky_03_r.KEYF"
-        Size = 2176
-    }
-    UUID = "dfca9308-9187-48c9-85db-36e4d029d32c"
-}

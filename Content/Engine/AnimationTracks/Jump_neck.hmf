@@ -1,8 +1,0 @@
-AnimationTrack Jump_neck {
-    BoneName = neck
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Jump_neck.KEYF"
-        Size = 704
-    }
-    UUID = "b6a4a4e4-5c6d-4b85-9191-05f7876fe23b"
-}

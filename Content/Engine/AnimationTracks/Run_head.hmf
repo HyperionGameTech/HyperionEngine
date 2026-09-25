@@ -1,8 +1,0 @@
-AnimationTrack Run_head {
-    BoneName = head
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/Run_head.KEYF"
-        Size = 1280
-    }
-    UUID = "e3109276-49f9-4499-b60b-79ad0c5d6cd4"
-}

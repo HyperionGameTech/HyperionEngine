@@ -1,8 +1,0 @@
-AnimationTrack TurnRight_foot_r {
-    BoneName = foot_r
-    KeyframeData = {
-        Key = "Engine://AnimationTracks/TurnRight_foot_r.KEYF"
-        Size = 2176
-    }
-    UUID = "027510b2-d872-48d4-aae7-db4b28ba54ef"
-}
