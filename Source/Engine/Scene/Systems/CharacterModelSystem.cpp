@@ -72,12 +72,44 @@ struct LocomotionClips
     float turnStepAngle = 0.0f;
     float turnStepStartAngle = 0.0f;
 
+    uint32 strafeLeftIndex = ~0u;
+    uint32 strafeRightIndex = ~0u;
+    uint32 walkBackwardIndex = ~0u;
+    float strafeLeftLength = 0.0f;
+    float strafeRightLength = 0.0f;
+    float walkBackwardLength = 0.0f;
+
     float walkReferenceSpeed = 0.0f;
     float runReferenceSpeed = 0.0f;
 
     bool IsValid() const
     {
         return walkIndex != ~0u;
+    }
+
+    bool HasDirectionalWalks() const
+    {
+        return strafeLeftIndex != ~0u && strafeRightIndex != ~0u && walkBackwardIndex != ~0u;
+    }
+
+    float GetWalkClipLength(uint32 index) const
+    {
+        if (index == strafeLeftIndex)
+        {
+            return strafeLeftLength;
+        }
+
+        if (index == strafeRightIndex)
+        {
+            return strafeRightLength;
+        }
+
+        if (index == walkBackwardIndex)
+        {
+            return walkBackwardLength;
+        }
+
+        return walkLength;
     }
 
     bool HasSmallTurnSteps() const
@@ -259,6 +291,13 @@ void FindLocomotionClips(
         clips.runIndex = clips.walkIndex;
     }
 
+    clips.strafeLeftIndex = FindAnimationIndex(skeleton, animations.strafeLeftAnimation);
+    clips.strafeRightIndex = FindAnimationIndex(skeleton, animations.strafeRightAnimation);
+    clips.walkBackwardIndex = FindAnimationIndex(skeleton, animations.walkBackwardAnimation);
+    clips.strafeLeftLength = GetAnimationLength(skeleton, clips.strafeLeftIndex);
+    clips.strafeRightLength = GetAnimationLength(skeleton, clips.strafeRightIndex);
+    clips.walkBackwardLength = GetAnimationLength(skeleton, clips.walkBackwardIndex);
+
     clips.jumpWindupIndex = FindAnimationIndex(skeleton, animations.jumpWindupAnimation);
     clips.jumpIndex = FindAnimationIndex(skeleton, animations.jumpAnimation);
     clips.fallIndex = FindAnimationIndex(skeleton, animations.fallAnimation);
@@ -321,7 +360,8 @@ void UpdateLocomotionPhase(
 
     if (stride > 0.0f)
     {
-        const float direction = isMovingBackward ? -1.0f : 1.0f;
+        // With a backward walk of its own the cycle always runs forward; otherwise Walk plays in reverse
+        const float direction = isMovingBackward && !clips.HasDirectionalWalks() ? -1.0f : 1.0f;
 
         component.locomotionPhase = WrapTime(component.locomotionPhase + direction * component.smoothedSpeed * delta / stride, 1.0f);
     }
@@ -355,6 +395,58 @@ void ApplyAimTwist(
     playbackState.twistEndBone = clips.aimTwistEndBone;
 }
 
+struct DirectionalWalk
+{
+    uint32 fromIndex = ~0u;
+    float fromTime = 0.0f;
+    uint32 toIndex = ~0u;
+    float toTime = 0.0f;
+    float toWeight = 0.0f;
+};
+
+DirectionalWalk GetDirectionalWalk(const CharacterModelComponent& component, const LocomotionClips& clips)
+{
+    DirectionalWalk walk;
+    walk.fromIndex = clips.walkIndex;
+
+    if (clips.HasDirectionalWalks())
+    {
+        const float quarterTurn = MathUtil::pi<float> * 0.5f;
+        const float angle = MathUtil::Abs(component.moveAngle);
+        const uint32 sideIndex = component.moveAngle >= 0.0f ? clips.strafeRightIndex : clips.strafeLeftIndex;
+
+        if (angle <= quarterTurn)
+        {
+            walk.toIndex = sideIndex;
+            walk.toWeight = angle / quarterTurn;
+        }
+        else
+        {
+            walk.fromIndex = sideIndex;
+            walk.toIndex = clips.walkBackwardIndex;
+            walk.toWeight = MathUtil::Min((angle - quarterTurn) / quarterTurn, 1.0f);
+        }
+    }
+
+    walk.fromTime = component.locomotionPhase * clips.GetWalkClipLength(walk.fromIndex);
+    walk.toTime = component.locomotionPhase * clips.GetWalkClipLength(walk.toIndex);
+
+    return walk;
+}
+
+void LayerDirectionalWalk(const DirectionalWalk& walk, float walkWeight, AnimationPlaybackState& playbackState)
+{
+    const float toWeight = walk.toIndex != ~0u ? walkWeight * walk.toWeight : 0.0f;
+
+    playbackState.layerAnimationIndex = walk.fromIndex;
+    playbackState.layerTime = walk.fromTime;
+    playbackState.layerWeight = toWeight < 1.0f ? (walkWeight - toWeight) / (1.0f - toWeight) : 0.0f;
+
+    playbackState.secondLayerAnimationIndex = walk.toIndex;
+    playbackState.secondLayerTime = walk.toTime;
+    playbackState.secondLayerWeight = toWeight;
+}
+
 void ApplyLocomotionPose(
     const CharacterModelComponent& component,
     const LocomotionClips& clips,
@@ -369,8 +461,10 @@ void ApplyLocomotionPose(
     // Times are driven from here, so AnimationSystem shouldn't advance them
     playbackState.speed = 0.0f;
     playbackState.layerExcludedBone = Name::Invalid();
+    playbackState.secondLayerAnimationIndex = ~0u;
+    playbackState.secondLayerWeight = 0.0f;
 
-    const float walkTime = component.locomotionPhase * clips.walkLength;
+    const DirectionalWalk walk = GetDirectionalWalk(component, clips);
 
     if (speed < clips.walkReferenceSpeed && clips.CanStandAndAim())
     {
@@ -406,9 +500,7 @@ void ApplyLocomotionPose(
         }
         else
         {
-            playbackState.layerAnimationIndex = clips.walkIndex;
-            playbackState.layerTime = walkTime;
-            playbackState.layerWeight = walkWeight;
+            LayerDirectionalWalk(walk, walkWeight, playbackState);
         }
     }
     else if (speed < clips.walkReferenceSpeed)
@@ -424,18 +516,20 @@ void ApplyLocomotionPose(
             playbackState.currentTime = 0.0f;
         }
 
-        playbackState.layerAnimationIndex = clips.walkIndex;
-        playbackState.layerTime = walkTime;
-        playbackState.layerWeight = MathUtil::SmoothStep(0.0f, clips.walkReferenceSpeed, speed);
+        LayerDirectionalWalk(walk, MathUtil::SmoothStep(0.0f, clips.walkReferenceSpeed, speed), playbackState);
     }
     else
     {
-        playbackState.animationIndex = clips.walkIndex;
-        playbackState.currentTime = walkTime;
+        playbackState.animationIndex = walk.fromIndex;
+        playbackState.currentTime = walk.fromTime;
 
-        playbackState.layerAnimationIndex = clips.runIndex;
-        playbackState.layerTime = component.locomotionPhase * clips.runLength;
-        playbackState.layerWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, speed);
+        playbackState.layerAnimationIndex = walk.toIndex;
+        playbackState.layerTime = walk.toTime;
+        playbackState.layerWeight = walk.toWeight;
+
+        playbackState.secondLayerAnimationIndex = clips.runIndex;
+        playbackState.secondLayerTime = component.locomotionPhase * clips.runLength;
+        playbackState.secondLayerWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, speed);
     }
 }
 
@@ -648,9 +742,18 @@ uint32 GetDominantLocomotionClip(
 
     if (speed < (clips.walkReferenceSpeed + clips.runReferenceSpeed) * 0.5f)
     {
-        outTime = component.locomotionPhase * clips.walkLength;
+        const DirectionalWalk walk = GetDirectionalWalk(component, clips);
 
-        return clips.walkIndex;
+        if (walk.toIndex != ~0u && walk.toWeight > 0.5f)
+        {
+            outTime = walk.toTime;
+
+            return walk.toIndex;
+        }
+
+        outTime = walk.fromTime;
+
+        return walk.fromIndex;
     }
 
     outTime = component.locomotionPhase * clips.runLength;
@@ -665,6 +768,8 @@ bool ApplyAirbornePose(
 {
     AnimationPlaybackState& playbackState = animationComponent.playbackState;
     playbackState.layerExcludedBone = Name::Invalid();
+    playbackState.secondLayerAnimationIndex = ~0u;
+    playbackState.secondLayerWeight = 0.0f;
 
     if (!component.isAirborne && component.isJumpWoundUp && clips.jumpWindupIndex != ~0u)
     {
@@ -954,6 +1059,19 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
             {
                 UpdateBodyYaw(component, phaseClips.IsValid() ? &phaseClips : nullptr, delta);
                 ApplyBodyRotation(*entity, component);
+            }
+
+            {
+                const Vec3f bodyForward = Vec3f(std::sin(component.bodyYaw), 0.0f, std::cos(component.bodyYaw));
+                const Vec3f bodyRight = Vec3f::UnitY().Cross(bodyForward);
+                const Vec2f localVelocity = Vec2f(horizontalVelocity.Dot(bodyRight), horizontalVelocity.Dot(bodyForward));
+
+                component.smoothedLocalVelocity += (localVelocity - component.smoothedLocalVelocity) * MathUtil::Clamp(speedAlpha, 0.0f, 1.0f);
+
+                if (component.smoothedLocalVelocity.Length() > IdleSpeedThreshold * 0.5f)
+                {
+                    component.moveAngle = std::atan2(component.smoothedLocalVelocity.x, component.smoothedLocalVelocity.y);
+                }
             }
 
             if (!phaseClips.IsValid())

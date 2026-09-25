@@ -37,6 +37,7 @@ namespace Hyperion {
 namespace SceneHelpers {
 
 static constexpr float GhostModeSpeedMultiplier = 2.5f;
+static constexpr float SprintMinForwardFraction = 0.64f;
 
 static CVar<bool> s_cvGhostMode { "Player.GhostMode", false };
 
@@ -296,7 +297,10 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
             wishDirection.Normalize();
         }
 
-        const float wishSpeed = bool(move.sprintHeld)
+        const bool isSprinting = bool(move.sprintHeld)
+            && movementInput.y >= SprintMinForwardFraction * movementInput.Length();
+
+        const float wishSpeed = isSprinting
             ? MathUtil::Max(component.movement.sprintSpeed, 0.0f)
             : MathUtil::Max(component.movement.moveSpeed, 0.0f);
 

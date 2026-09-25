@@ -64,6 +64,15 @@ struct AnimationPlaybackState
     HYP_FIELD(Property = "LayerExcludedBone", Editor = true)
     Name layerExcludedBone;
 
+    HYP_FIELD(Property = "SecondLayerAnimationIndex", Editor = true)
+    uint32 secondLayerAnimationIndex = ~0u;
+
+    HYP_FIELD(Property = "SecondLayerTime", Editor = true)
+    float secondLayerTime = 0.0f;
+
+    HYP_FIELD(Property = "SecondLayerWeight", Editor = true)
+    float secondLayerWeight = 0.0f;
+
     /// radians of twist about the skeleton's up axis, added on top of the sampled pose and spread evenly over the
     /// bones from twistRootBone up to twistEndBone (e.g. turning the upper body toward where a character aims)
     HYP_FIELD(Property = "TwistAngle", Editor = true)
@@ -88,6 +97,9 @@ struct AnimationPlaybackState
         hc.Add(layerTime);
         hc.Add(layerWeight);
         hc.Add(layerExcludedBone);
+        hc.Add(secondLayerAnimationIndex);
+        hc.Add(secondLayerTime);
+        hc.Add(secondLayerWeight);
         hc.Add(twistAngle);
         hc.Add(twistRootBone);
         hc.Add(twistEndBone);
