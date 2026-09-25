@@ -83,6 +83,8 @@ DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
 #define MAX_ROUGHNESS 0.4
 
+#define LINEAR_TRACE_REFINE_STEPS 6
+
 #if 0
 #define HIZ_STOP_LEVEL 0.0
 
@@ -336,7 +338,52 @@ bool TraceRays(
 }
 #endif
 
-#define LINEAR_TRACE_DEPTH_THICKNESS_RATIO 0.01
+bool RefineLinearHit(
+    float3 frontPosition,
+    float3 behindPosition,
+    float2 behindPixel,
+    float3 behindSurface,
+    out float2 hit_pixel,
+    out float3 hit_point)
+{
+    for (int j = 0; j < LINEAR_TRACE_REFINE_STEPS; j++)
+    {
+        const float3 midpoint = (frontPosition + behindPosition) * 0.5;
+
+        const float2 midpointPixel = GetProjectedPositionFromView(camera.projection, midpoint);
+        const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, midpointPixel, 0).r;
+        const float3 midpointSurface = ReconstructViewSpacePositionFromDepth(camera.invProjMat, midpointPixel, depth).xyz;
+
+        const float midpointDelta = midpoint.z - midpointSurface.z;
+
+        if (abs(midpointDelta) < ssrConstants.distance_bias)
+        {
+            hit_pixel = midpointPixel;
+            hit_point = midpointSurface;
+
+            return true;
+        }
+
+        if (midpointDelta > 0.0)
+        {
+            behindPosition = midpoint;
+            behindPixel = midpointPixel;
+            behindSurface = midpointSurface;
+        }
+        else
+        {
+            frontPosition = midpoint;
+        }
+    }
+
+    const float behindDelta = behindPosition.z - behindSurface.z;
+    const float tolerance = max(ssrConstants.thickness, ssrConstants.distance_bias) + abs(behindPosition.z - frontPosition.z);
+
+    hit_pixel = behindPixel;
+    hit_point = behindSurface;
+
+    return behindDelta <= tolerance;
+}
 
 bool TraceRays(
     float3 ray_origin,
@@ -348,8 +395,9 @@ bool TraceRays(
     out float num_iterations)
 {
     ray_direction = normalize(ray_direction);
-    float3 currStep = (float3)0.0;
+    float3 prevPosition = ray_origin;
     float3 currPosition = ray_origin;
+    bool prevInFront = true;
 
     const int max_iterations = int(ssrConstants.num_iterations);
 
@@ -363,8 +411,8 @@ bool TraceRays(
         // adjust step length
         const float step_length = max(ssrConstants.ray_step, abs(currPosition.z) * ssrConstants.ray_step_depth_scale);
 
-        currStep = ray_direction * step_length;
-        currPosition += currStep;
+        prevPosition = currPosition;
+        currPosition += ray_direction * step_length;
 
         hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
 
@@ -374,10 +422,10 @@ bool TraceRays(
         }
 
         // @TODO Make use of the hi z bricks to skip empty spaces!
-        float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
-        float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
+        const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
+        const float3 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth).xyz;
 
-        float step_delta = currPosition.z - view_space_position.z;
+        const float step_delta = currPosition.z - view_space_position.z;
         num_iterations += 1.0;
 
         if (ssrConstants.max_ray_distance > 0.0)
@@ -389,37 +437,32 @@ bool TraceRays(
             }
         }
 
-        if (step_delta > 0.0)
+        if (step_delta <= 0.0)
         {
-            const float effective_thickness = max(ssrConstants.thickness, abs(currStep.z) + abs(currPosition.z) * LINEAR_TRACE_DEPTH_THICKNESS_RATIO);
+            prevInFront = true;
+            continue;
+        }
 
-            if (step_delta > effective_thickness)
-            {
-                continue;
-            }
+        if (min(prevPosition.z, currPosition.z) > view_space_position.z + ssrConstants.thickness)
+        {
+            prevInFront = false;
+            continue;
+        }
 
-            for (int j = 0; j < 4; j++)
-            {
-                currStep *= 0.5;
-                currPosition -= currStep * sign(step_delta);
-
-                hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
-                depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
-                view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
-
-                step_delta = currPosition.z - view_space_position.z;
-
-                if (abs(step_delta) < ssrConstants.distance_bias)
-                {
-                    hit_point = view_space_position.xyz;
-                    return true;
-                }
-            }
-
-            hit_point = view_space_position.xyz;
-
+        if (!prevInFront)
+        {
+            hit_point = view_space_position;
             return true;
         }
+
+        const float2 currPixel = hit_pixel;
+
+        if (RefineLinearHit(prevPosition, currPosition, currPixel, view_space_position, hit_pixel, hit_point))
+        {
+            return true;
+        }
+
+        prevInFront = false;
     }
 
     return false;

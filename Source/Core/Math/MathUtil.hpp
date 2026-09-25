@@ -384,6 +384,14 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Max(const T& a, const
     return result;
 }
 
+template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+static HYP_FORCE_INLINE constexpr T SmoothStep(T edge0, T edge1, T value)
+{
+    const T t = Clamp((value - edge0) / Max(edge1 - edge0, T(1e-6)), T(0.0), T(1.0));
+
+    return t * t * (T(3.0) - T(2.0) * t);
+}
+
 template <class T, class IntegralType = int>
 static HYP_FORCE_INLINE constexpr HYP_ENABLE_IF(!isMathVectorV<T>, IntegralType) Sign(T value)
 {
