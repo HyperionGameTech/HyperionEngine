@@ -96,6 +96,8 @@ ScriptableDelegate<void, const EnvironmentSettings&> World::OnEnvironmentSetting
 static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
 
 extern CVar<bool> g_cvRayTracingEnabled;
+extern CVar<float> g_cvCutoutDitherAmount;
+extern CVar<bool> g_cvTAA;
 
 EngineStatTimer g_statScriptUpdate("Script/Update");
 static EngineStatTimer s_statPhysicsUpdate("Physics/Update");
@@ -2419,6 +2421,9 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
     // game time only moves while simulating
     const float previousGameTime = gameState.IsSimulating() ? gameState.gameTime - gameState.deltaTime : gameState.gameTime;
     outShaderData.windTimeParams = Vec4f(previousGameTime, 0.0f, 0.0f, 0.0f);
+
+    const float cutoutDitherAmount = g_cvTAA.Get() ? MathUtil::Clamp(g_cvCutoutDitherAmount.Get(), 0.0f, 1.0f) : 0.0f;
+    outShaderData.cutoutParams = Vec4f(cutoutDitherAmount, 0.0f, 0.0f, 0.0f);
 
     WriteEnvironmentShaderData(m_environmentSettings, outShaderData);
 

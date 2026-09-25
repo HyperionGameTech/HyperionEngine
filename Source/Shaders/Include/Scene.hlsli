@@ -31,6 +31,8 @@ struct WorldShaderData
 
     float4 wind_params;
     float4 wind_time_params;
+
+    float4 cutout_params;
 };
 
 struct Camera

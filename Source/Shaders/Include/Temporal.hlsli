@@ -591,9 +591,7 @@ float4 TemporalBlendVarying(
     float2 uv,
     float2 velocity,
     float2 texel_size,
-    float view_space_depth,
-    float feedback_max,
-    float velocity_rejection_pixels)
+    float view_space_depth)
 {
     // Read and prepare current and previous pixels: gamma -> HDR/log -> YCoCg
     float4 color_rgb = ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv));
@@ -636,15 +634,62 @@ float4 TemporalBlendVarying(
     // ClipAABB and TemporalLuminanceResolve operate in YCoCg+adjusted space
     const float4 clipped = ClipAABB(cmin, cmax, clamp(cavg, cmin, cmax), previous_color);
 
-    float4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped, feedback_max);
+    float4 resolved_yc = TemporalLuminanceResolveYCoCg(color, clipped, FEEDBACK);
 
     const float pixel_velocity = length(texel_vel);
-    const float velocity_factor = saturate(pixel_velocity / velocity_rejection_pixels);
+    const float velocity_factor = saturate(pixel_velocity / 1.5);
     resolved_yc = lerp(resolved_yc, color, velocity_factor);
 
     float4 resolved_rgb = YCoCgToRGB(resolved_yc);
     float4 out_rgb = ADJUST_COLOR_OUT(resolved_rgb);
     return ADJUST_COLOR_GAMMA_OUT(out_rgb);
+}
+
+float4 TemporalBlendDithered(
+    in Texture2D input_texture,
+    in Texture2D prev_input_texture,
+    float2 uv,
+    float2 velocity,
+    float2 texel_size,
+    float feedback,
+    float velocity_rejection_pixels)
+{
+    const float4 color = RGBToYCoCg(ADJUST_COLOR_IN(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, input_texture, uv, 0.0))));
+    const float4 previous_color = RGBToYCoCg(ADJUST_COLOR_IN(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, prev_input_texture, uv - velocity))));
+
+    float4 first_moment = (float4)0.0;
+    float4 second_moment = (float4)0.0;
+
+    for (int y = -1; y <= 1; y++)
+    {
+        for (int x = -1; x <= 1; x++)
+        {
+            const float4 neighbor = RGBToYCoCg(ADJUST_COLOR_IN(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D_LOD(sampler_nearest, input_texture, uv + float2(x, y) * texel_size, 0.0))));
+
+            first_moment += neighbor;
+            second_moment += neighbor * neighbor;
+        }
+    }
+
+    const float4 mean = first_moment / 9.0;
+    const float4 standard_deviation = sqrt(max(second_moment / 9.0 - mean * mean, 0.0));
+
+    const float variance_gamma = 1.25;
+
+    float4 box_center = mean;
+    box_center.w = previous_color.w;
+
+    float4 box_extent = standard_deviation * variance_gamma;
+    box_extent.w = 0.0;
+
+    const float4 clipped = ClipAABB(box_center - box_extent, box_center + box_extent, box_center, previous_color);
+
+    float4 resolved_yc = lerp(color, clipped, feedback);
+
+    const float pixel_velocity = length(velocity / max(float2(HYP_FMATH_EPSILON, HYP_FMATH_EPSILON), texel_size));
+    resolved_yc = lerp(resolved_yc, color, saturate(pixel_velocity / velocity_rejection_pixels));
+
+    return ADJUST_COLOR_GAMMA_OUT(ADJUST_COLOR_OUT(YCoCgToRGB(resolved_yc)));
 }
 
 #endif

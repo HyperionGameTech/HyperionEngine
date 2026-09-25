@@ -158,6 +158,8 @@ CVar<float> g_cvTAAJitterRadius { "Rendering.TAA.JitterRadius", 0.5f };
 CVar<float> g_cvTAAFeedback { "Rendering.TAA.Feedback", 0.85f };
 // used instead of Rendering.TAA.Feedback on dithered alpha cutouts, which need a longer history to resolve
 CVar<float> g_cvTAACutoutFeedback { "Rendering.TAA.CutoutFeedback", 0.95f };
+// 1 dithers alpha cutouts per pixel, 0 gives each triangle one random threshold instead
+CVar<float> g_cvCutoutDitherAmount { "Rendering.Cutout.DitherAmount", 0.5f };
 CVar<bool> g_cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> g_cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
 CVar<bool> g_cvLightmapVolumes { "Rendering.LightmapVolumes", true };
