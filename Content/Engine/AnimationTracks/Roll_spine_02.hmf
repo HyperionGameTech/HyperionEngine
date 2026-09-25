@@ -1,0 +1,8 @@
+AnimationTrack Roll_spine_02 {
+    BoneName = spine_02
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Roll_spine_02.KEYF"
+        Size = 2880
+    }
+    UUID = "2b7b2f15-1408-432a-8b4f-8d48bf7e7609"
+}

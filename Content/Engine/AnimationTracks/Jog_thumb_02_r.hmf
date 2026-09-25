@@ -1,0 +1,8 @@
+AnimationTrack Jog_thumb_02_r {
+    BoneName = thumb_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_thumb_02_r.KEYF"
+        Size = 1856
+    }
+    UUID = "1d9aa754-fc91-4fd1-936e-58d504ac2e6a"
+}

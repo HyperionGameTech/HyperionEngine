@@ -161,7 +161,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     }
 #endif // HYP_FEATURES_BINDLESS_TEXTURES
 
-    payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_COLOR), 1.0) * GET_MATERIAL_PARAM(material, MATERIAL_PARAM_EMISSIVE_INTENSITY);
+    payload.emissive = float4(GET_MATERIAL_EMISSIVE(material), 1.0);
     payload.throughput = float4(material_color.rgb, metalness); // metalness is stored in the alpha channel
     payload.barycentric_coords = barycentric_coords;
     payload.backFace = (hitFromBehind && !GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_DOUBLE_SIDED)) ? 1u : 0u;

@@ -53,9 +53,10 @@ CVar<bool> cvSSRConeTracing { "Rendering.SSR.ConeTracing", true };
 CVar<bool> cvSSRRoughnessScattering { "Rendering.SSR.RoughnessScattering", false };
 CVar<bool> cvSSRCheckerboardTrace { "Rendering.SSR.CheckerboardTrace", true };
 
-CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
+CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.025f };
+CVar<float> cvSSRRayStepDepthScale { "Rendering.SSR.RayStepDepthScale", 0.015f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.025f };
-CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.15f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.2f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
 
 /// Unused currently as we are using stencil testing which needs the same dimensions as viewport
@@ -77,6 +78,7 @@ struct SSRConstants
     float screenEdgeFadeStart;
     float screenEdgeFadeEnd;
     float thickness;
+    float rayStepDepthScale;
 };
 
 #pragma region SSRPass
@@ -337,6 +339,7 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         // dimensions.z doubles as a runtime checkerboard-trace enable flag for SSRWriteUVs.hlsl
         constants->dimensions = Vec4u(m_extent, cvSSRCheckerboardTrace.Get() ? 1u : 0u, 0);
         constants->rayStep = cvSSRRayStep.Get();
+        constants->rayStepDepthScale = cvSSRRayStepDepthScale.Get();
         constants->numIterations = cvSSRMaxIterations.Get();
         constants->maxRayDistance = cvSSRMaxDistance.Get();
         constants->distanceBias = cvSSRDistanceBias.Get();

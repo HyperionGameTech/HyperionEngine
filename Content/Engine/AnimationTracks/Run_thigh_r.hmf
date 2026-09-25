@@ -1,0 +1,8 @@
+AnimationTrack Run_thigh_r {
+    BoneName = thigh_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Run_thigh_r.KEYF"
+        Size = 1344
+    }
+    UUID = "315c6ebd-08ba-40f4-a617-94d6c77ee7e7"
+}

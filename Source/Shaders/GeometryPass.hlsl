@@ -532,6 +532,8 @@ PSOutput PSMain(PSInput input)
         }
     }
 
+    output.gbuffer_albedo.rgb += GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL);
+
     // premultiplied and additive blends take the source as-is, so fade it by coverage here
     if (GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_PREMULTIPLIED_ALPHA))
     {
@@ -574,9 +576,12 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_material = min((uint)round(saturate(input.texcoord1.x) * 16384.0), 16383u)
         | (min((uint)round(saturate(input.texcoord1.y) * 16384.0), 16383u) << 14u);
 #else
-    //Probe lighting - evaluate SH, store RGB8 in the upper 24 bits of gbuffer_material
-    // foliage keeps its transmission amount in the low 8 bits instead
+    // foliage keeps its transmission amount in the low 8 bits
     output.gbuffer_material = isFoliage ? uint(saturate(transmission) * 255.0 + 0.5) : 0u;
+
+#ifndef SHADING_TYPE_FORWARD
+    output.gbuffer_material |= GBufferPackEmissive(GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL));
+#endif // !SHADING_TYPE_FORWARD
 #endif
 
     // Mask is stored in the upper 4 bits of gbuffer_material

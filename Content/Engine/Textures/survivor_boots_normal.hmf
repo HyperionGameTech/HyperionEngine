@@ -1,0 +1,35 @@
+Texture survivor_boots_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8
+        Extent = (1024, 1024, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            4194304
+            5242880
+            5505024
+            5570560
+            5586944
+            5591040
+            5592064
+            5592320
+            5592384
+            5592400
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/survivor_boots_normal.TEX"
+        Size = 5592404
+    }
+    UUID = "5d911e23-0920-4fa1-ad5d-df1dafcc3f5a"
+}

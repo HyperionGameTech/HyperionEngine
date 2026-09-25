@@ -119,7 +119,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 #endif // HYP_FEATURES_BINDLESS_TEXTURES
 
     payload.throughput = float4(material_color.rgb, metalness);
-    payload.emissive = float4(GET_MATERIAL_PARAM_FLOAT3(material, MATERIAL_PARAM_EMISSIVE_COLOR), 1.0) * GET_MATERIAL_PARAM(material, MATERIAL_PARAM_EMISSIVE_INTENSITY);
+    payload.emissive = float4(GET_MATERIAL_EMISSIVE(material), 1.0);
     payload.distance = RayTCurrent();
     payload.normal = normal;
     payload.roughness = 1.0;

@@ -1,0 +1,8 @@
+AnimationTrack PickUp_ring_02_l {
+    BoneName = ring_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_ring_02_l.KEYF"
+        Size = 1664
+    }
+    UUID = "d6f20182-41a8-48d9-b640-07be4b09f4d8"
+}

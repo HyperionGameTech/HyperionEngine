@@ -1,0 +1,8 @@
+AnimationTrack Fall_pinky_03_r {
+    BoneName = pinky_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Fall_pinky_03_r.KEYF"
+        Size = 4864
+    }
+    UUID = "0f11ef05-568b-4b22-923e-f68d2ebacf97"
+}

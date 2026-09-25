@@ -1,0 +1,35 @@
+Texture survivor_hair_diffuse {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (1024, 1024, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = Repeat
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            4194304
+            5242880
+            5505024
+            5570560
+            5586944
+            5591040
+            5592064
+            5592320
+            5592384
+            5592400
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/survivor_hair_diffuse.TEX"
+        Size = 5592404
+    }
+    UUID = "33f404e4-f67b-4006-9bdf-e3686a969e54"
+}

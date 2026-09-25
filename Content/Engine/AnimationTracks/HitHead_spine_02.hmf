@@ -1,0 +1,8 @@
+AnimationTrack HitHead_spine_02 {
+    BoneName = spine_02
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_spine_02.KEYF"
+        Size = 896
+    }
+    UUID = "a28d5589-fe3c-4024-8f32-a297c1872d54"
+}

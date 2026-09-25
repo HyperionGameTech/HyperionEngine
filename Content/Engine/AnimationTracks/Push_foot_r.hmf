@@ -1,0 +1,8 @@
+AnimationTrack Push_foot_r {
+    BoneName = foot_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_foot_r.KEYF"
+        Size = 5184
+    }
+    UUID = "d97e9221-a2dc-475b-8bf1-3b05904db796"
+}

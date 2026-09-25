@@ -183,6 +183,13 @@ float4 SampleEnvironment(float3 origin, float3 direction)
     return environmentRadiance;
 }
 
+float3 UnpackFaceNormalFromFloat(float packedFaceNormal)
+{
+    const uint bits = uint(packedFaceNormal);
+
+    return DecodeOctahedralCoord(float2(bits & 0xFFFu, bits >> 12) / 4095.0 * 2.0 - 1.0);
+}
+
 float3 KeepAboveFace(float3 direction, float3 faceNormal)
 {
     const float faceDot = dot(direction, faceNormal);
@@ -234,7 +241,7 @@ float4 IntegrateLightmapRay(uint ray_index)
     ray.origin = ray_data[ray_index * 2].xyz;
     ray.direction = ray_data[ray_index * 2 + 1].xyz;
 
-    const float3 faceNormal = UnpackOctahedralSnorm16x2(asuint(ray_data[ray_index * 2 + 1].w));
+    const float3 faceNormal = UnpackFaceNormalFromFloat(ray_data[ray_index * 2 + 1].w);
     const float texelWorldSize = ray_data[ray_index * 2].w;
 
     const float tmin = RAY_OFFSET;

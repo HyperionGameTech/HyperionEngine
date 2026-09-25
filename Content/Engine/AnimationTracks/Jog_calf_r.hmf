@@ -1,0 +1,8 @@
+AnimationTrack Jog_calf_r {
+    BoneName = calf_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_calf_r.KEYF"
+        Size = 1856
+    }
+    UUID = "104255cc-7155-4f03-961f-6bbe30e8ec73"
+}

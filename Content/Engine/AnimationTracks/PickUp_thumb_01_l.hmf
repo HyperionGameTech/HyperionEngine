@@ -1,0 +1,8 @@
+AnimationTrack PickUp_thumb_01_l {
+    BoneName = thumb_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_thumb_01_l.KEYF"
+        Size = 1664
+    }
+    UUID = "75be8fa6-d5c1-4665-b92c-d3e2a842b4f0"
+}

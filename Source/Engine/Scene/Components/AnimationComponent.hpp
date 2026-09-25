@@ -64,6 +64,17 @@ struct AnimationPlaybackState
     HYP_FIELD(Property = "LayerExcludedBone", Editor = true)
     Name layerExcludedBone;
 
+    /// radians of twist about the skeleton's up axis, added on top of the sampled pose and spread evenly over the
+    /// bones from twistRootBone up to twistEndBone (e.g. turning the upper body toward where a character aims)
+    HYP_FIELD(Property = "TwistAngle", Editor = true)
+    float twistAngle = 0.0f;
+
+    HYP_FIELD(Property = "TwistRootBone", Editor = true)
+    Name twistRootBone;
+
+    HYP_FIELD(Property = "TwistEndBone", Editor = true)
+    Name twistEndBone;
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
@@ -77,6 +88,9 @@ struct AnimationPlaybackState
         hc.Add(layerTime);
         hc.Add(layerWeight);
         hc.Add(layerExcludedBone);
+        hc.Add(twistAngle);
+        hc.Add(twistRootBone);
+        hc.Add(twistEndBone);
 
         return hc;
     }

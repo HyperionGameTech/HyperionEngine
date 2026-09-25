@@ -1581,10 +1581,18 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         }
     }
 
-    if (emissiveFactor != Vec3f::Zero() && !useEmissiveTextureAsDiffuse)
+    // there's no emissive map slot, so a factor that the map was meant to mask would light up the whole surface
+    const bool hasUnusableEmissiveTexture = gltfMaterial->emissive_texture.texture != nullptr && !useEmissiveTextureAsDiffuse;
+
+    if (emissiveFactor != Vec3f::Zero() && !useEmissiveTextureAsDiffuse && !hasUnusableEmissiveTexture)
     {
+        const float emissiveStrength = gltfMaterial->has_emissive_strength
+            ? float(gltfMaterial->emissive_strength.emissive_strength)
+            : 1.0f;
+
         parameters.emissiveIntensity = emissiveFactor.Length();
         parameters.emissiveColor = Color(Vec4f(emissiveFactor / parameters.emissiveIntensity, 1.0f));
+        parameters.emissiveIntensity *= emissiveStrength;
     }
 
     Handle<Material> material = MakeHandle<Material>(

@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_calf_r {
+    BoneName = calf_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_calf_r.KEYF"
+        Size = 384
+    }
+    UUID = "32d608e5-c1a4-4e0e-85ff-1af129932c96"
+}

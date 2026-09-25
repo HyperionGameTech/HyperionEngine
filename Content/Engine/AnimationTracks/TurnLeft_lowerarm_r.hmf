@@ -1,0 +1,8 @@
+AnimationTrack TurnLeft_lowerarm_r {
+    BoneName = lowerarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeft_lowerarm_r.KEYF"
+        Size = 1216
+    }
+    UUID = "6d4d6cf4-7bba-46e6-a07c-646b97ffaec4"
+}

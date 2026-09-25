@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_middle_03_r {
+    BoneName = middle_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_middle_03_r.KEYF"
+        Size = 384
+    }
+    UUID = "c9b84a99-0fa1-4e38-ae79-bef8d6a717a1"
+}

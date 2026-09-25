@@ -276,12 +276,15 @@ PSOutput PSMain(PSInput input)
     const float metalness = materialParams.metalness;
     const uint mask = materialParams.mask;
 
+    // lightmapped pixels hold their atlas UV in these bits
+    const float3 emissive = select((mask & OBJECT_MASK_LIGHTMAPPED) != 0, (float3) 0.0, GBufferUnpackEmissive(materialBits));
+
     if ((mask & OBJECT_MASK_UNLIT) != 0)
     {
 #ifdef REFLECTIONS_ONLY
         output.output_color = (float4)0.0;
 #else
-        output.output_color = float4(albedo.rgb, 1.0);
+        output.output_color = float4(albedo.rgb + emissive, 1.0);
 #endif
 
         return output;
@@ -373,6 +376,9 @@ PSOutput PSMain(PSInput input)
 
     result = Fd + Fr;
 #endif // SSR_ENABLED
+
+    // indirect runs exactly once per pixel, so it's where self-emission goes into the lighting buffer
+    result += emissive;
 
 #ifdef PATHTRACER
     result = CalculatePathTracing(texcoord).rgb;

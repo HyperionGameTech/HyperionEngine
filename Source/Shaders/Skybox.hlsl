@@ -97,6 +97,9 @@ struct PSInput
 struct PSOutput
 {
     float4 gbuffer_albedo : SV_Target0;
+    float4 gbuffer_normals : SV_Target1;
+    uint gbuffer_material : SV_Target2;
+    float2 gbuffer_velocity : SV_Target3;
 };
 
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
@@ -154,6 +157,9 @@ PSOutput PSMain(PSInput input)
     const float3 skyRadiance = SAMPLE_MATERIAL_TEXTURE_CUBE(material, DiffuseMap, input.position).rgb;
 
     output.gbuffer_albedo = float4(skyRadiance + GetSunDisk(rayDirection), 1.0);
+    output.gbuffer_normals = GBufferPackNormal(-rayDirection);
+    output.gbuffer_material = OBJECT_MASK_UNLIT << 28u;
+    output.gbuffer_velocity = (float2)0.0;
 
     return output;
 }

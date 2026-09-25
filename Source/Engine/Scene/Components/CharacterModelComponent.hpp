@@ -36,53 +36,53 @@ struct CharacterModelAnimations
     HYP_FIELD(Property = "RunAnimation", Serialize, Editor, Title = "Run Animation")
     Name runAnimation = NAME("Run");
 
-    HYP_FIELD(Property = "JumpAnimation", Serialize, Editor, Title = "Jump Animation", Description = "Played once on takeoff, then blends into the fall animation")
+    HYP_FIELD(Property = "JumpAnimation", Serialize, Editor, Title = "Jump Animation")
     Name jumpAnimation = NAME("Jump");
 
-    HYP_FIELD(Property = "FallAnimation", Serialize, Editor, Title = "Fall Animation", Description = "Looped while airborne")
+    HYP_FIELD(Property = "FallAnimation", Serialize, Editor, Title = "Fall Animation")
     Name fallAnimation = NAME("Fall");
 
-    HYP_FIELD(Property = "LandAnimation", Serialize, Editor, Title = "Land Animation", Description = "Played once on touchdown, blending back into locomotion")
+    HYP_FIELD(Property = "LandAnimation", Serialize, Editor, Title = "Land Animation")
     Name landAnimation = NAME("Land");
 
-    HYP_FIELD(Property = "AimAnimation", Serialize, Editor, Title = "Aim Animation", Description = "Standing pose with the upper body twisted from Aim Range right (start) to Aim Range left (end) of the feet")
-    Name aimAnimation = NAME("IdleAim");
+    HYP_FIELD(Property = "AimTwistRootBone", Serialize, Editor, Title = "Aim Twist Root Bone")
+    Name aimTwistRootBone = NAME("spine_01");
 
-    HYP_FIELD(Property = "AimRange", Serialize, Editor, Title = "Aim Range", Description = "Degrees of twist at either end of the aim animation")
-    float aimRange = 90.0f;
+    HYP_FIELD(Property = "AimTwistEndBone", Serialize, Editor, Title = "Aim Twist End Bone")
+    Name aimTwistEndBone = NAME("spine_03");
 
-    HYP_FIELD(Property = "TurnLeftAnimation", Serialize, Editor, Title = "Turn Left Animation", Description = "One step turning the feet Turn Step Angle to the left")
+    HYP_FIELD(Property = "AimRange", Serialize, Editor, Title = "Aim Range")
+    float aimRange = 60.0f;
+
+    HYP_FIELD(Property = "TurnLeftAnimation", Serialize, Editor, Title = "Turn Left Animation")
     Name turnLeftAnimation = NAME("TurnLeft");
 
-    HYP_FIELD(Property = "TurnRightAnimation", Serialize, Editor, Title = "Turn Right Animation", Description = "One step turning the feet Turn Step Angle to the right")
+    HYP_FIELD(Property = "TurnRightAnimation", Serialize, Editor, Title = "Turn Right Animation")
     Name turnRightAnimation = NAME("TurnRight");
 
-    HYP_FIELD(Property = "TurnStepAngle", Serialize, Editor, Title = "Turn Step Angle", Description = "Degrees the turn step animations turn the feet; a step covers the twist it catches up, within a quarter either way of this")
-    float turnStepAngle = 50.0f;
+    HYP_FIELD(Property = "TurnStepAngle", Serialize, Editor, Title = "Turn Step Angle")
+    float turnStepAngle = 90.0f;
 
-    HYP_FIELD(Property = "TurnStepStartAngle", Serialize, Editor, Title = "Turn Step Start Angle", Description = "How far the view can twist the upper body away from the feet before they step round")
-    float turnStepStartAngle = 40.0f;
+    HYP_FIELD(Property = "TurnStepStartAngle", Serialize, Editor, Title = "Turn Step Start Angle")
+    float turnStepStartAngle = 45.0f;
 
-    HYP_FIELD(Property = "TurnLeftSmallAnimation", Serialize, Editor, Title = "Turn Left Small Animation", Description = "Short settling step turning the feet Turn Step Small Angle to the left")
+    HYP_FIELD(Property = "TurnLeftSmallAnimation", Serialize, Editor, Title = "Turn Left Small Animation")
     Name turnLeftSmallAnimation = NAME("TurnLeftSmall");
 
-    HYP_FIELD(Property = "TurnRightSmallAnimation", Serialize, Editor, Title = "Turn Right Small Animation", Description = "Short settling step turning the feet Turn Step Small Angle to the right")
+    HYP_FIELD(Property = "TurnRightSmallAnimation", Serialize, Editor, Title = "Turn Right Small Animation")
     Name turnRightSmallAnimation = NAME("TurnRightSmall");
 
-    HYP_FIELD(Property = "TurnStepSmallAngle", Serialize, Editor, Title = "Turn Step Small Angle", Description = "Degrees the small turn step animations turn the feet")
-    float turnStepSmallAngle = 25.0f;
+    HYP_FIELD(Property = "TurnStepSmallAngle", Serialize, Editor, Title = "Turn Step Small Angle")
+    float turnStepSmallAngle = 45.0f;
 
-    HYP_FIELD(Property = "SettleAngle", Serialize, Editor, Title = "Settle Angle", Description = "Once the view stops turning, any twist beyond this many degrees is squared up with a settling step")
-    float settleAngle = 15.0f;
+    HYP_FIELD(Property = "SettleAngle", Serialize, Editor, Title = "Settle Angle")
+    float settleAngle = 25.0f;
 
-    HYP_FIELD(Property = "UpperBodyBone", Serialize, Editor, Title = "Upper Body Bone", Description = "Turn steps only move the legs and hips; this bone and everything above it keep following the view")
-    Name upperBodyBone = NAME("spine_01");
+    HYP_FIELD(Property = "WalkReferenceSpeed", Serialize, Editor, Title = "Walk Reference Speed")
+    float walkReferenceSpeed = 1.02f;
 
-    HYP_FIELD(Property = "WalkReferenceSpeed", Serialize, Editor, Title = "Walk Reference Speed", Description = "Speed in m/s the walk animation was authored for")
-    float walkReferenceSpeed = 4.0f;
-
-    HYP_FIELD(Property = "RunReferenceSpeed", Serialize, Editor, Title = "Run Reference Speed", Description = "Speed in m/s the run animation was authored for")
-    float runReferenceSpeed = 7.5f;
+    HYP_FIELD(Property = "RunReferenceSpeed", Serialize, Editor, Title = "Run Reference Speed")
+    float runReferenceSpeed = 8.6f;
 };
 
 HYP_STRUCT(Component,
@@ -192,6 +192,11 @@ struct CharacterModelComponent
 
     HYP_FIELD(Transient)
     float turnStepWeight = 0.0f;
+
+    // The upper body's twist toward the view, following it with a slight lag so the shoulders go a little with the body
+    // when it turns instead of staying locked on the view
+    HYP_FIELD(Transient)
+    float aimTwist = 0.0f;
 };
 
 } // namespace Hyperion

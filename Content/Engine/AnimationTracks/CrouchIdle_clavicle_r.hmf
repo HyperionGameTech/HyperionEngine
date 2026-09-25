@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_clavicle_r {
+    BoneName = clavicle_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_clavicle_r.KEYF"
+        Size = 5696
+    }
+    UUID = "67aed9fd-9031-4d0d-88fa-ee1d1e52b950"
+}

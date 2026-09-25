@@ -391,7 +391,7 @@ void PathTracerBVHBuilder::Build(Span<const PathTracerTriangle> triangles, Array
 // VT_Simple: position, normal, texcoord0
 static constexpr uint32 PackedVertexSizeInFloats = 8;
 
-uint32 PackNormalOctahedral(const Vec3f& normal)
+static uint32 PackNormalOctahedral(const Vec3f& normal)
 {
     const Vec2f octahedralCoord = MathUtil::EncodeOctahedralCoord(normal);
 

@@ -1,0 +1,8 @@
+AnimationTrack HitChest_clavicle_r {
+    BoneName = clavicle_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_clavicle_r.KEYF"
+        Size = 704
+    }
+    UUID = "b28c4460-9370-4885-96c1-8c21918868ff"
+}

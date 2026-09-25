@@ -1,0 +1,8 @@
+AnimationTrack Fall_root {
+    BoneName = root
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Fall_root.KEYF"
+        Size = 4864
+    }
+    UUID = "3558e2ca-e85d-4bf0-9787-5fb79ec057d8"
+}

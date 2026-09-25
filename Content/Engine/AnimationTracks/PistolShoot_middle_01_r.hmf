@@ -1,0 +1,8 @@
+AnimationTrack PistolShoot_middle_01_r {
+    BoneName = middle_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolShoot_middle_01_r.KEYF"
+        Size = 1280
+    }
+    UUID = "60ebc043-cd43-4743-ade2-cf1b11ff2882"
+}

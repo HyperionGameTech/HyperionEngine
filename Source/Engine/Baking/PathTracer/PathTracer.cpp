@@ -80,6 +80,17 @@ static StaticShaderPropertyId s_propMaxEnvProbes { ShaderProperty(NAME("MAX_ENV_
 
 namespace Baking {
 
+// Octahedral 12+12 bits as an integer-valued float
+static float PackFaceNormalAsFloat(const Vec3f& normal)
+{
+    const Vec2f octahedralCoord = MathUtil::EncodeOctahedralCoord(normal.Normalized());
+
+    const uint32 x = uint32(MathUtil::Round(MathUtil::Clamp(octahedralCoord.x * 0.5f + 0.5f, 0.0f, 1.0f) * 4095.0f));
+    const uint32 y = uint32(MathUtil::Round(MathUtil::Clamp(octahedralCoord.y * 0.5f + 0.5f, 0.0f, 1.0f) * 4095.0f));
+
+    return float(x | (y << 12));
+}
+
 #pragma region PathTracerTLAS
 
 PathTracerTLAS::~PathTracerTLAS()
@@ -730,12 +741,9 @@ PathTraceResult PathTracer::Render(Frame* frame, const RenderSetup& renderSetup,
         for (size_t i = 0; i < rays.Size(); i++)
         {
             const Vec3f faceNormal = rays[i].faceNormal.LengthSquared() > 0.0f ? rays[i].faceNormal : rays[i].ray.direction;
-            const uint32 packedFaceNormal = PackNormalOctahedral(faceNormal);
 
             rayData[i * 2] = Vec4f(rays[i].ray.position, rays[i].texelWorldSize);
-            rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, 0.0f);
-
-            Memory::Copy(&rayData[i * 2 + 1].w, &packedFaceNormal, sizeof(uint32));
+            rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, PackFaceNormalAsFloat(faceNormal));
         }
 
         Assert(raysBuffer->Size() >= rayData.ByteSize());

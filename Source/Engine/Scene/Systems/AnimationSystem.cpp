@@ -16,6 +16,7 @@
 
 #include <Scene/Animation/Animation.hpp>
 #include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/Bone.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -26,6 +27,53 @@
 #include <AnimationSystem.generated.inl>
 
 namespace Hyperion {
+
+namespace /* Helpers */ {
+
+void ApplyTwist(Skeleton& skeleton, Name rootBoneName, Name endBoneName, float angle)
+{
+    Bone* endBone = skeleton.FindBone(endBoneName);
+
+    if (!endBone)
+    {
+        return;
+    }
+
+    Array<Bone*> chain;
+
+    for (Node* node = endBone; node != nullptr; node = node->GetParent())
+    {
+        Bone* bone = DynamicCast<Bone>(node);
+
+        if (!bone)
+        {
+            return;
+        }
+
+        chain.PushBack(bone);
+
+        if (bone->GetBoneName() == rootBoneName)
+        {
+            break;
+        }
+    }
+
+    if (chain.Empty() || chain.Back()->GetBoneName() != rootBoneName)
+    {
+        return;
+    }
+
+    // an even share per bone, root first; each bone's children follow it, so every bone only adds its own share
+    const Quat4f shareRotation(Vec3f::UnitY(), -angle / float(chain.Size()));
+
+    for (size_t index = chain.Size(); index > 0; --index)
+    {
+        Bone* bone = chain[index - 1];
+
+        bone->SetWorldRotation(shareRotation * bone->GetWorldRotation());
+    }
+}
+} // namespace
 
 bool AnimationSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -177,6 +225,11 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 else
                 {
                     animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
+                }
+
+                if (playbackState.twistAngle != 0.0f && playbackState.twistRootBone.IsValid() && playbackState.twistEndBone.IsValid())
+                {
+                    ApplyTwist(*meshComponent.skeleton, playbackState.twistRootBone, playbackState.twistEndBone, playbackState.twistAngle);
                 }
 
                 meshComponent.skeleton->SetNeedsRenderProxyUpdate();
