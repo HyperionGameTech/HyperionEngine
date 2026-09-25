@@ -1,0 +1,8 @@
+AnimationTrack TurnLeft_foot_l {
+    BoneName = foot_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeft_foot_l.KEYF"
+        Size = 2176
+    }
+    UUID = "b3c3657e-63ef-4cf0-8a5d-def012c3b603"
+}

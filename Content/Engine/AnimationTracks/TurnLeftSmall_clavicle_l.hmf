@@ -1,0 +1,8 @@
+AnimationTrack TurnLeftSmall_clavicle_l {
+    BoneName = clavicle_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeftSmall_clavicle_l.KEYF"
+        Size = 1728
+    }
+    UUID = "a94b26d1-1b65-44fc-a8a5-eb0b63b46c4f"
+}

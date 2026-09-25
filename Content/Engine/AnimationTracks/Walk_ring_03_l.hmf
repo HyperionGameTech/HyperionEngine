@@ -1,0 +1,8 @@
+AnimationTrack Walk_ring_03_l {
+    BoneName = ring_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Walk_ring_03_l.KEYF"
+        Size = 1408
+    }
+    UUID = "ea3110fe-bd87-40e4-b94f-b934dac1cd0d"
+}

@@ -1,0 +1,8 @@
+AnimationTrack TurnRightSmall_hand_l {
+    BoneName = hand_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnRightSmall_hand_l.KEYF"
+        Size = 1728
+    }
+    UUID = "71956e70-3f65-44c8-b258-d0a341a8ee8a"
+}

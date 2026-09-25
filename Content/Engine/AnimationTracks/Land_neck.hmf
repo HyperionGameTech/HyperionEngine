@@ -1,0 +1,8 @@
+AnimationTrack Land_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_neck.KEYF"
+        Size = 832
+    }
+    UUID = "62fe6a10-b7cc-45a7-8032-83923009edcd"
+}
