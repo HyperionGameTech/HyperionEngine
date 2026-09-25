@@ -40,13 +40,6 @@ HYP_FORCE_INLINE uint32 TerrainHashOctaveSeed(uint32 seed, uint32 octave, uint32
     return TerrainHashU32(seed + (octave + 1u) * 0x9E3779B9u + salt * 0x85EBCA77u);
 }
 
-HYP_FORCE_INLINE float TerrainSmoothStep(float edge0, float edge1, float value)
-{
-    const float t = MathUtil::Clamp((value - edge0) / MathUtil::Max(edge1 - edge0, 1e-6f), 0.0f, 1.0f);
-
-    return t * t * (3.0f - 2.0f * t);
-}
-
 float TerrainSimplex2D(uint32 seed, float x, float y);
 float TerrainFbm2D(uint32 seed, float x, float y, uint32 octaves, float lacunarity = 2.0f, float gain = 0.5f);
 float TerrainRidged2D(uint32 seed, float x, float y, uint32 octaves, float lacunarity = 2.02f, float gain = 0.5f);

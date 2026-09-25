@@ -59,14 +59,14 @@ static ErosionAxisBlend ComputeErosionAxisBlend(float sampleCoord, const Erosion
 
     if (offset < halfBlend)
     {
-        const float fade = TerrainSmoothStep(-halfBlend, halfBlend, offset);
+        const float fade = MathUtil::SmoothStep(-halfBlend, halfBlend, offset);
 
         return ErosionAxisBlend { { region - 1, region }, { 1.0f - fade, fade } };
     }
 
     if (offset > float(layout.stride) - halfBlend)
     {
-        const float fade = TerrainSmoothStep(-halfBlend, halfBlend, offset - float(layout.stride));
+        const float fade = MathUtil::SmoothStep(-halfBlend, halfBlend, offset - float(layout.stride));
 
         return ErosionAxisBlend { { region, region + 1 }, { 1.0f - fade, fade } };
     }
@@ -242,7 +242,7 @@ float TerrainGenerator::SampleBaseHeight(const Vec2f& worldXZ) const
 
     const float region = TerrainFbm2D(params.seed ^ 0x77E1D2A4u, worldXZ.x * params.mountainRegionFrequency, worldXZ.y * params.mountainRegionFrequency, 3) * 0.5f + 0.5f;
 
-    const float mountainMask = TerrainSmoothStep(
+    const float mountainMask = MathUtil::SmoothStep(
         params.mountainRegionThreshold,
         params.mountainRegionThreshold + params.mountainRegionFalloff,
         region);
@@ -274,7 +274,7 @@ float TerrainGenerator::SampleBaseHeight(const Vec2f& worldXZ) const
         2.02f,
         0.4f);
 
-    const float mountains = MathUtil::Pow(TerrainSmoothStep(0.2f, 0.85f, massif), params.mountainSharpness)
+    const float mountains = MathUtil::Pow(MathUtil::SmoothStep(0.2f, 0.85f, massif), params.mountainSharpness)
         * params.mountainAmplitude
         * (1.0f - params.mountainRidgeWeight + params.mountainRidgeWeight * ridge);
 
@@ -740,21 +740,21 @@ void TerrainGenerator::SynthesizeSplatWeights(
 
             // bare rock takes over on steep slopes, with a noisy boundary
             const float rockStart = 0.30f + breakup * 0.15f;
-            const float steepRock = TerrainSmoothStep(rockStart, rockStart + 0.2f, slope);
+            const float steepRock = MathUtil::SmoothStep(rockStart, rockStart + 0.2f, slope);
 
             // water keeps drainage channels down to dirt, in proportion to how much flow they carry -
             // a trunk gets bare bed, a headwater capillary barely shows
-            const float channel = TerrainSmoothStep(
+            const float channel = MathUtil::SmoothStep(
                 params.channelFlowLog2,
                 params.channelFlowLog2 + MathUtil::Max(params.channelFlowRange, 0.01f),
                 flowLog2);
 
             // scree on the banks erosion cut into, and rubble piled up in hollows and at the foot of slopes
-            const float incisionRubble = TerrainSmoothStep(params.rubbleIncisionDepth * 0.5f, params.rubbleIncisionDepth * 1.5f, incisionDepth)
-                * TerrainSmoothStep(0.03f, 0.15f, slope);
+            const float incisionRubble = MathUtil::SmoothStep(params.rubbleIncisionDepth * 0.5f, params.rubbleIncisionDepth * 1.5f, incisionDepth)
+                * MathUtil::SmoothStep(0.03f, 0.15f, slope);
 
-            const float depositionRubble = TerrainSmoothStep(params.rubbleDepositionDepth * 0.5f, params.rubbleDepositionDepth * 1.5f, depositionDepth)
-                * TerrainSmoothStep(0.0f, 0.08f, concavity);
+            const float depositionRubble = MathUtil::SmoothStep(params.rubbleDepositionDepth * 0.5f, params.rubbleDepositionDepth * 1.5f, depositionDepth)
+                * MathUtil::SmoothStep(0.0f, 0.08f, concavity);
 
             const float rawRubble = MathUtil::Max(incisionRubble, depositionRubble)
                 * (0.6f + 0.4f * patches)
@@ -764,18 +764,18 @@ void TerrainGenerator::SynthesizeSplatWeights(
             // 0.2-0.4 over wide areas. Terrain.hlsl's height blend is a switch: a layer left at that weight
             // shows only where its height map pokes through, which reads as grey specks rather than scree.
             // Clear the low end so rubble is either a patch or absent.
-            const float rubble = TerrainSmoothStep(0.30f, 0.60f, rawRubble);
+            const float rubble = MathUtil::SmoothStep(0.30f, 0.60f, rawRubble);
 
             const float rock = MathUtil::Max(steepRock, rubble);
 
             // snow caps on high ground that isn't too steep to hold snow.
-            // TerrainSmoothStep can't take reversed edges - its denominator clamps - so the slope falloff is inverted explicitly.
+            // MathUtil::SmoothStep can't take reversed edges - its denominator clamps - so the slope falloff is inverted explicitly.
             const float snowLineJittered = snowLine * (0.85f + breakup * 0.3f);
-            const float snow = TerrainSmoothStep(snowLineJittered - snowLine * 0.12f, snowLineJittered + snowLine * 0.12f, height)
-                * (1.0f - TerrainSmoothStep(0.35f, 0.55f, slope));
+            const float snow = MathUtil::SmoothStep(snowLineJittered - snowLine * 0.12f, snowLineJittered + snowLine * 0.12f, height)
+                * (1.0f - MathUtil::SmoothStep(0.35f, 0.55f, slope));
 
             // dirt in channels and in sparse noisy patches on shallow ground - grass keeps the convex, dry ground that's left
-            const float patchDirt = TerrainSmoothStep(0.65f, 0.8f, patches) * 0.5f * (1.0f - rock);
+            const float patchDirt = MathUtil::SmoothStep(0.65f, 0.8f, patches) * 0.5f * (1.0f - rock);
 
             const float dirt = MathUtil::Max(channel * (1.0f - steepRock), patchDirt)
                 * (1.0f - snow);

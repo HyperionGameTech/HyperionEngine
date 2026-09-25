@@ -110,7 +110,6 @@ struct GltfSkinResource
     Handle<Skeleton> skeleton;
     Array<uint32> jointToBoneIndex;
     Array<const cgltf_node*> orderedJointNodes;
-    Map<const cgltf_node*, Transform> bindLocalTransforms;
     Map<const cgltf_node*, Name> boneNames;
     Set<const cgltf_node*> jointNodes;
 };
@@ -974,7 +973,6 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
 
         bonesByNode.Set(jointNode, bone);
         resource.orderedJointNodes.PushBack(jointNode);
-        resource.bindLocalTransforms.Set(jointNode, bindingTransform);
         resource.boneNames.Set(jointNode, boneName);
     }
 
@@ -1196,7 +1194,7 @@ Handle<Animation> BuildAnimationForSkin(const LoaderState& state, const cgltf_an
 
     for (const cgltf_node* jointNode : skinResource.orderedJointNodes)
     {
-        const Transform& bindLocalTransform = skinResource.bindLocalTransforms.At(jointNode);
+        const Transform restLocalTransform = BuildTransformFromNode(*jointNode);
         const GltfJointChannels* jointChannels = nullptr;
 
         if (const auto channelsIt = channelsByJoint.Find(jointNode); channelsIt != channelsByJoint.End())
@@ -1237,7 +1235,7 @@ Handle<Animation> BuildAnimationForSkin(const LoaderState& state, const cgltf_an
 
         for (const float keyTime : uniqueKeyTimes)
         {
-            Transform transform = bindLocalTransform;
+            Transform transform = restLocalTransform;
             float value[4];
 
             if (jointChannels != nullptr && jointChannels->translation.IsValid())

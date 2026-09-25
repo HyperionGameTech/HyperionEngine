@@ -117,6 +117,8 @@ static constexpr float JumpBlendInTime = 0.25f;
 
 static constexpr float JumpWindupHoldTime = 0.1f;
 
+static constexpr float JumpWindupBlendOutTime = 0.15f;
+
 static constexpr float MovingLandFraction = 0.35f;
 
 static constexpr float StandingSpeedFraction = 0.3f;
@@ -284,13 +286,6 @@ void FindLocomotionClips(const CharacterModelAnimations& animations, const Skele
     clips.runReferenceSpeed = MathUtil::Max(animations.runReferenceSpeed, clips.walkReferenceSpeed + 0.01f);
 }
 
-float SmoothStep(float value)
-{
-    value = MathUtil::Clamp(value, 0.0f, 1.0f);
-
-    return value * value * (3.0f - 2.0f * value);
-}
-
 float WrapTime(float time, float length)
 {
     if (length <= 0.0f)
@@ -303,11 +298,9 @@ float WrapTime(float time, float length)
     return time < 0.0f ? time + length : time;
 }
 
-/*! \brief 1D blend space over speed: idle -> walk up to the walk reference speed, walk -> run up to the run reference speed.
- *  Walk and run share one cycle phase so feet stay in step while they're mixed. */
 void UpdateLocomotionPhase(CharacterModelComponent& component, const LocomotionClips& clips, bool isMovingBackward, float delta)
 {
-    const float runWeight = SmoothStep((component.smoothedSpeed - clips.walkReferenceSpeed) / (clips.runReferenceSpeed - clips.walkReferenceSpeed));
+    const float runWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, component.smoothedSpeed);
 
     // Distance covered by one full cycle of each clip at its reference speed
     const float walkStride = clips.walkReferenceSpeed * clips.walkLength;
@@ -330,8 +323,7 @@ float GetStandingTwist(const CharacterModelComponent& component)
     return float(std::remainder(component.facingYaw - component.bodyYaw, 2.0f * MathUtil::pi<float>));
 }
 
-/*! \brief Turns the upper body the rest of the way from the feet to the view, on top of whatever animation is playing.
- *  The twist is always the live difference, so nothing the clips do can leave the upper body pointing somewhere else. */
+///Turns the upper body the rest of the way from the feet to the view
 void ApplyAimTwist(const CharacterModelComponent& component, const LocomotionClips& clips, AnimationComponent& animationComponent)
 {
     AnimationPlaybackState& playbackState = animationComponent.playbackState;
@@ -376,7 +368,7 @@ void ApplyLocomotionPose(const CharacterModelComponent& component, const Locomot
             playbackState.currentTime = 0.0f;
         }
 
-        const float walkWeight = SmoothStep(speed / clips.walkReferenceSpeed);
+        const float walkWeight = MathUtil::SmoothStep(0.0f, clips.walkReferenceSpeed, speed);
 
         // A step still fading out gives way as soon as walking outweighs it
         if (component.turnStepWeight > 0.001f && component.turnStepWeight >= walkWeight)
@@ -416,7 +408,7 @@ void ApplyLocomotionPose(const CharacterModelComponent& component, const Locomot
 
         playbackState.layerAnimationIndex = clips.walkIndex;
         playbackState.layerTime = walkTime;
-        playbackState.layerWeight = SmoothStep(speed / clips.walkReferenceSpeed);
+        playbackState.layerWeight = MathUtil::SmoothStep(0.0f, clips.walkReferenceSpeed, speed);
     }
     else
     {
@@ -425,7 +417,7 @@ void ApplyLocomotionPose(const CharacterModelComponent& component, const Locomot
 
         playbackState.layerAnimationIndex = clips.runIndex;
         playbackState.layerTime = component.locomotionPhase * clips.runLength;
-        playbackState.layerWeight = SmoothStep((speed - clips.walkReferenceSpeed) / (clips.runReferenceSpeed - clips.walkReferenceSpeed));
+        playbackState.layerWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, speed);
     }
 }
 
@@ -639,7 +631,7 @@ bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips
         playbackState.currentTime = windup * clips.jumpWindupLength;
         playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
         playbackState.layerTime = locomotionTime;
-        playbackState.layerWeight = 1.0f - SmoothStep(windup);
+        playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, 1.0f, windup);
     }
     else if (component.isAirborne)
     {
@@ -653,20 +645,26 @@ bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips
             playbackState.animationIndex = clips.jumpIndex;
             playbackState.currentTime = MathUtil::Min(component.airTime, clips.jumpLength);
 
-            if (component.airTime < JumpBlendInTime && !component.isJumpWoundUp)
+            if (component.isJumpWoundUp && clips.jumpWindupIndex != ~0u && component.airTime < JumpWindupBlendOutTime)
+            {
+                playbackState.layerAnimationIndex = clips.jumpWindupIndex;
+                playbackState.layerTime = clips.jumpWindupLength;
+                playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, JumpWindupBlendOutTime, component.airTime);
+            }
+            else if (component.airTime < JumpBlendInTime && !component.isJumpWoundUp)
             {
                 float locomotionTime = 0.0f;
 
                 playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
                 playbackState.layerTime = locomotionTime;
-                playbackState.layerWeight = 1.0f - SmoothStep(component.airTime / JumpBlendInTime);
+                playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, JumpBlendInTime, component.airTime);
             }
             else
             {
                 playbackState.layerAnimationIndex = clips.fallIndex;
                 playbackState.layerTime = WrapTime(MathUtil::Max(component.airTime - clips.jumpLength, 0.0f), clips.fallLength);
                 playbackState.layerWeight = clips.fallIndex != ~0u
-                    ? SmoothStep((component.airTime - clips.jumpLength * 0.6f) / MathUtil::Max(clips.jumpLength * 0.4f, 0.001f))
+                    ? MathUtil::SmoothStep(clips.jumpLength * 0.6f, clips.jumpLength, component.airTime)
                     : 0.0f;
             }
         }
@@ -678,7 +676,7 @@ bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips
             playbackState.currentTime = WrapTime(component.airTime, clips.fallLength);
             playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
             playbackState.layerTime = locomotionTime;
-            playbackState.layerWeight = 1.0f - SmoothStep((component.airTime - FallGraceTime) / FallBlendInTime);
+            playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(FallGraceTime, FallGraceTime + FallBlendInTime, component.airTime);
         }
         else
         {
@@ -708,7 +706,7 @@ bool ApplyAirbornePose(CharacterModelComponent& component, const LocomotionClips
         playbackState.currentTime = component.landTime;
         playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
         playbackState.layerTime = locomotionTime;
-        playbackState.layerWeight = SmoothStep(component.landTime / MathUtil::Max(landDuration, 0.001f));
+        playbackState.layerWeight = MathUtil::SmoothStep(0.0f, landDuration, component.landTime);
     }
 
     playbackState.status = AnimationPlaybackStatus::PLAYING;
