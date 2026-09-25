@@ -55,7 +55,7 @@ CVar<bool> cvSSRCheckerboardTrace { "Rendering.SSR.CheckerboardTrace", true };
 
 CVar<float> cvSSRRayStep { "Rendering.SSR.RayStep", 0.2f };
 CVar<float> cvSSRDistanceBias { "Rendering.SSR.DistanceBias", 0.025f };
-CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 1.0f };
+CVar<float> cvSSRThickness { "Rendering.SSR.Thickness", 0.15f };
 CVar<float> cvSSRMaxDistance { "Rendering.SSR.MaxDistance", 1000.0f };
 
 /// Unused currently as we are using stencil testing which needs the same dimensions as viewport

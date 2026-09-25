@@ -74,7 +74,6 @@ struct LocomotionClips
     float turnRightLength = 0.0f;
     float turnStepAngle = 0.0f;
     float turnStepStartAngle = 0.0f;
-    Name upperBodyBone;
 
     bool CanStandAndAim() const
     {
@@ -117,17 +116,17 @@ static constexpr float StandingSpeedFraction = 0.3f;
 
 static constexpr float BodyCatchUpSharpness = 14.0f;
 
-static constexpr float TurnStepDuration = 0.6f;
-static constexpr float TurnStepFastDuration = 0.4f;
+// A step plays over its clip's length, sped up by this factor when the view has already swung past the aim range
+static constexpr float TurnStepFastSpeed = 1.4f;
 
-static constexpr float TurnStepBlendInTime = 0.04f;
+static constexpr float TurnStepBlendInTime = 0.08f;
 static constexpr float TurnStepBlendOutTime = 0.12f;
+
+// A step cut short by starting to move gets out of the way quickly
+static constexpr float TurnStepInterruptBlendOutTime = 0.04f;
 
 static constexpr float IdleBreathingFadeAngle = MathUtil::DegToRad(40.0f);
 static constexpr float IdleBreathingMaxSpeedFraction = 0.15f;
-
-// Seconds a small settling step takes
-static constexpr float TurnStepSmallDuration = 0.45f;
 
 // The view counts as settling below this turn rate (radians/s); the settling step follows almost at once
 static constexpr float SettleMaxViewTurnRate = MathUtil::DegToRad(30.0f);
@@ -269,7 +268,6 @@ void FindLocomotionClips(const CharacterModelAnimations& animations, const Skele
     clips.settleAngle = MathUtil::DegToRad(animations.settleAngle);
     clips.turnStepAngle = MathUtil::DegToRad(animations.turnStepAngle);
     clips.turnStepStartAngle = MathUtil::DegToRad(animations.turnStepStartAngle);
-    clips.upperBodyBone = animations.upperBodyBone;
 
     // Keep run strictly above walk so the walk -> run blend never divides by zero
     clips.walkReferenceSpeed = MathUtil::Max(animations.walkReferenceSpeed, 0.01f);
@@ -348,9 +346,12 @@ void ApplyLocomotionPose(const CharacterModelComponent& component, const Locomot
         const float breathingWeight = (1.0f - SmoothStep(MathUtil::Abs(twist) / IdleBreathingFadeAngle))
             * (1.0f - SmoothStep(speed / (clips.walkReferenceSpeed * IdleBreathingMaxSpeedFraction)));
 
-        if (component.turnStepWeight > 0.001f)
+        const float walkWeight = SmoothStep(speed / clips.walkReferenceSpeed);
+
+        // A step still fading out gives way as soon as walking outweighs it
+        if (component.turnStepWeight > 0.001f && component.turnStepWeight >= walkWeight)
         {
-            // The step moves the legs and hips only; the upper body stays on the aim pose, which follows the view
+            // Full-body step; its upper body starts twisted toward the view like the aim pose and unwinds as the feet come round
             if (component.isTurnStepSmall)
             {
                 playbackState.layerAnimationIndex = component.isTurnStepLeft ? clips.turnLeftSmallIndex : clips.turnRightSmallIndex;
@@ -363,7 +364,6 @@ void ApplyLocomotionPose(const CharacterModelComponent& component, const Locomot
             }
 
             playbackState.layerWeight = component.turnStepWeight;
-            playbackState.layerExcludedBone = clips.upperBodyBone;
         }
         else if (clips.idleIndex != ~0u && breathingWeight > 0.01f)
         {
@@ -465,12 +465,15 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
 
         if (component.isTurnStepping)
         {
-            const float duration = absTwist > clips->aimRange ? TurnStepFastDuration
-                : component.isTurnStepSmall                   ? TurnStepSmallDuration
-                                                              : TurnStepDuration;
+            const float clipLength = component.isTurnStepSmall
+                ? (component.isTurnStepLeft ? clips->turnLeftSmallLength : clips->turnRightSmallLength)
+                : (component.isTurnStepLeft ? clips->turnLeftLength : clips->turnRightLength);
+
+            const float duration = MathUtil::Max(clipLength, 0.1f) / (absTwist > clips->aimRange ? TurnStepFastSpeed : 1.0f);
 
             component.turnStepTime = MathUtil::Min(component.turnStepTime + delta / duration, 1.0f);
-            component.turnStepProgress = SmoothStep(component.turnStepTime);
+            // The clips are authored against a body turning at a steady rate, so the feet only stay planted if it does
+            component.turnStepProgress = component.turnStepTime;
 
             const float direction = component.isTurnStepLeft ? -1.0f : 1.0f;
 
@@ -484,7 +487,9 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
     }
 
     const float targetWeight = component.isTurnStepping ? 1.0f : 0.0f;
-    const float blendTime = targetWeight > component.turnStepWeight ? TurnStepBlendInTime : TurnStepBlendOutTime;
+    const float blendTime = targetWeight > component.turnStepWeight ? TurnStepBlendInTime
+        : isStanding                                                 ? TurnStepBlendOutTime
+                                                                     : TurnStepInterruptBlendOutTime;
 
     component.turnStepWeight = MathUtil::Lerp(component.turnStepWeight, targetWeight, MathUtil::Clamp(1.0f - MathUtil::Exp(-delta / blendTime), 0.0f, 1.0f));
 
