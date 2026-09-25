@@ -1,0 +1,8 @@
+AnimationTrack Land_foot_l {
+    BoneName = foot_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_foot_l.KEYF"
+        Size = 1344
+    }
+    UUID = "f1f93700-09e9-4da9-b1de-75f5109d513c"
+}

@@ -1,0 +1,8 @@
+AnimationTrack HitChest_ball_l {
+    BoneName = ball_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_ball_l.KEYF"
+        Size = 704
+    }
+    UUID = "e4955313-6d76-43ff-aa21-81be926d481b"
+}

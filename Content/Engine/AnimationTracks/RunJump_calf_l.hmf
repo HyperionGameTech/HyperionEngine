@@ -1,0 +1,8 @@
+AnimationTrack RunJump_calf_l {
+    BoneName = calf_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunJump_calf_l.KEYF"
+        Size = 1600
+    }
+    UUID = "cee9e4a2-eb5c-4d53-89f8-948133948f31"
+}

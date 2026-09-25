@@ -1,0 +1,8 @@
+AnimationTrack Land_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_pelvis.KEYF"
+        Size = 1344
+    }
+    UUID = "107682ab-9921-4b47-a9b1-38bb81fee011"
+}

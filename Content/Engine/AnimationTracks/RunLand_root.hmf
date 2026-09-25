@@ -1,0 +1,8 @@
+AnimationTrack RunLand_root {
+    BoneName = root
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunLand_root.KEYF"
+        Size = 1152
+    }
+    UUID = "2417fdb1-efd9-4c04-b923-013cfd1f7fba"
+}

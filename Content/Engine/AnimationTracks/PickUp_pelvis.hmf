@@ -1,0 +1,8 @@
+AnimationTrack PickUp_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_pelvis.KEYF"
+        Size = 1664
+    }
+    UUID = "a1fb722b-e9e1-4416-bd68-f60aa6b10fa7"
+}

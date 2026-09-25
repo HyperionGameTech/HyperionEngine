@@ -1,0 +1,8 @@
+AnimationTrack Roll_ball_r {
+    BoneName = ball_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Roll_ball_r.KEYF"
+        Size = 2880
+    }
+    UUID = "3ab2eee4-85a6-439b-9896-bb27cdf3b345"
+}

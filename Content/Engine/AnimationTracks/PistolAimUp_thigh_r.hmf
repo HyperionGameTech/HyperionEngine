@@ -1,0 +1,8 @@
+AnimationTrack PistolAimUp_thigh_r {
+    BoneName = thigh_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimUp_thigh_r.KEYF"
+        Size = 384
+    }
+    UUID = "7c45970e-c32e-4434-861f-250260dc87ad"
+}

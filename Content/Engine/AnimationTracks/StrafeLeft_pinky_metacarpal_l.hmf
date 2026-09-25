@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "d6d1b85c-79db-4843-b01b-7c59a72dee53"
+}

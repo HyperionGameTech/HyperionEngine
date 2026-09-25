@@ -1,0 +1,8 @@
+AnimationTrack Push_upperarm_twist_01_l {
+    BoneName = upperarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_upperarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "01935dac-8476-466d-9a95-49d63d4e8fd3"
+}

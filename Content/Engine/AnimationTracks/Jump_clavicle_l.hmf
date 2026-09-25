@@ -1,0 +1,8 @@
+AnimationTrack Jump_clavicle_l {
+    BoneName = clavicle_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jump_clavicle_l.KEYF"
+        Size = 1600
+    }
+    UUID = "80b9888c-078f-4bd8-bb89-4caa72db4bca"
+}

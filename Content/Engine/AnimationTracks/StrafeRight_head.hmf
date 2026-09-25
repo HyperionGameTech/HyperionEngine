@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_head {
+    BoneName = head
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_head.KEYF"
+        Size = 2624
+    }
+    UUID = "85d0acd5-e439-49eb-ae65-fac4aadd2432"
+}

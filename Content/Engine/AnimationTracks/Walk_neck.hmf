@@ -1,0 +1,8 @@
+AnimationTrack Walk_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Walk_neck.KEYF"
+        Size = 2624
+    }
+    UUID = "32d4cfae-9bd9-4ac8-a9b2-4453a7c293c8"
+}

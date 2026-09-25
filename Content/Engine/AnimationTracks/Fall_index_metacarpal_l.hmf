@@ -1,0 +1,8 @@
+AnimationTrack Fall_index_metacarpal_l {
+    BoneName = index_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Fall_index_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "1ecb9b6b-17da-4f36-8c7e-f020a1380484"
+}

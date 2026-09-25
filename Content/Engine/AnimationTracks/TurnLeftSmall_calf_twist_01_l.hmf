@@ -1,0 +1,8 @@
+AnimationTrack TurnLeftSmall_calf_twist_01_l {
+    BoneName = calf_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeftSmall_calf_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "eae4e57a-fd70-4a3f-a9d1-2eebbfa94f1b"
+}

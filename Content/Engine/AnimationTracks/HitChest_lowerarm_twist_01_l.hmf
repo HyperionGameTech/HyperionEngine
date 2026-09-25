@@ -1,0 +1,8 @@
+AnimationTrack HitChest_lowerarm_twist_01_l {
+    BoneName = lowerarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_lowerarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "8cb5514f-3dba-4b46-be88-a0c7f3299581"
+}

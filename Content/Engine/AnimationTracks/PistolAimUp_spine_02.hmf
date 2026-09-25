@@ -1,0 +1,8 @@
+AnimationTrack PistolAimUp_spine_02 {
+    BoneName = spine_02
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimUp_spine_02.KEYF"
+        Size = 384
+    }
+    UUID = "95b2e6ef-9a6f-44a2-8259-40f322fc5005"
+}

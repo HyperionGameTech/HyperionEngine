@@ -1,0 +1,8 @@
+AnimationTrack Push_middle_metacarpal_r {
+    BoneName = middle_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_middle_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "f2b13e2f-efbb-47ea-b587-2a27aebb76a6"
+}

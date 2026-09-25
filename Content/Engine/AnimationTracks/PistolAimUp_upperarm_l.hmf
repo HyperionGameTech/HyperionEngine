@@ -1,0 +1,8 @@
+AnimationTrack PistolAimUp_upperarm_l {
+    BoneName = upperarm_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimUp_upperarm_l.KEYF"
+        Size = 384
+    }
+    UUID = "ca8b68aa-f82b-49f9-b0ba-acef37310dfa"
+}

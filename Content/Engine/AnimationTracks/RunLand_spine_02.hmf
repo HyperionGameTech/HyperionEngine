@@ -1,0 +1,8 @@
+AnimationTrack RunLand_spine_02 {
+    BoneName = spine_02
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunLand_spine_02.KEYF"
+        Size = 1152
+    }
+    UUID = "0f68b04f-2fd4-4be4-a58a-d407f35cb3a8"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Push_spine_03 {
+    BoneName = spine_03
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_spine_03.KEYF"
+        Size = 5184
+    }
+    UUID = "3cde58cc-0b12-49c0-b75e-f90f01af9efd"
+}

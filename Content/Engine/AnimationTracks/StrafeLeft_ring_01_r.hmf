@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_ring_01_r {
+    BoneName = ring_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_ring_01_r.KEYF"
+        Size = 2624
+    }
+    UUID = "4199a54c-c7d3-4216-8956-ffbc5b3243f6"
+}

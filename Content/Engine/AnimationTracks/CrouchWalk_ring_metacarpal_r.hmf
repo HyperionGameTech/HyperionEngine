@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "3d0cb33b-96e6-49db-835c-3fed50d234d6"
+}

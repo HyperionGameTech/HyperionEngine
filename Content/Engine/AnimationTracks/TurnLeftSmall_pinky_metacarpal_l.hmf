@@ -1,0 +1,8 @@
+AnimationTrack TurnLeftSmall_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeftSmall_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "c5128cea-1729-498f-a4a7-6cf0b683b467"
+}

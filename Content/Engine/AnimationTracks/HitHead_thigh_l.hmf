@@ -1,0 +1,8 @@
+AnimationTrack HitHead_thigh_l {
+    BoneName = thigh_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_thigh_l.KEYF"
+        Size = 896
+    }
+    UUID = "39642797-1927-4c0d-8057-92050a2327db"
+}

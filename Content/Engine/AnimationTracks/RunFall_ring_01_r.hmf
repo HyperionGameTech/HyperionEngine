@@ -1,0 +1,8 @@
+AnimationTrack RunFall_ring_01_r {
+    BoneName = ring_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunFall_ring_01_r.KEYF"
+        Size = 1984
+    }
+    UUID = "822b7c61-4ba1-4f62-be82-e15f7a9fd2fd"
+}

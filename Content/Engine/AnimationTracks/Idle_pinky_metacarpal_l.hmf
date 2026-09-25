@@ -1,0 +1,8 @@
+AnimationTrack Idle_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "39010be2-f826-4527-a96e-fd2a26bbf79f"
+}

@@ -1,0 +1,8 @@
+AnimationTrack PickUp_middle_03_r {
+    BoneName = middle_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_middle_03_r.KEYF"
+        Size = 1664
+    }
+    UUID = "f951deae-6a90-49c9-b52c-90cc816c09a8"
+}

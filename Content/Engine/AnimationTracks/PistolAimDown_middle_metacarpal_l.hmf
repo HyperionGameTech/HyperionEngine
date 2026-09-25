@@ -1,0 +1,8 @@
+AnimationTrack PistolAimDown_middle_metacarpal_l {
+    BoneName = middle_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimDown_middle_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "79725014-0a97-4b0b-aabf-20e46408a5f2"
+}

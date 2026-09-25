@@ -148,7 +148,7 @@ void EditorPlayerSetup::AttachToScene(const EditorThirdPersonPlayer& player)
         if (!player.characterModel->HasComponent<CharacterModelComponent>())
         {
             CharacterModelComponent characterModelComponent;
-            characterModelComponent.facingMode = CharacterFacingMode::ViewDirection;
+            characterModelComponent.facingMode = CharacterFacingMode::MovementDirection;
             characterModelComponent.turnSharpness = 20.0f;
 
             player.characterModel->AddComponent<CharacterModelComponent>(characterModelComponent);

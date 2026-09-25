@@ -1,0 +1,8 @@
+AnimationTrack JumpWindup_calf_r {
+    BoneName = calf_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/JumpWindup_calf_r.KEYF"
+        Size = 320
+    }
+    UUID = "17be1068-6416-4cc3-9e08-7d7838591751"
+}

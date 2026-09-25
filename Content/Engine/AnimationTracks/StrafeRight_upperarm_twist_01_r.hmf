@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_upperarm_twist_01_r {
+    BoneName = upperarm_twist_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_upperarm_twist_01_r.KEYF"
+        Size = 128
+    }
+    UUID = "b92ff17f-45ed-4186-b96e-a55b01d039dc"
+}

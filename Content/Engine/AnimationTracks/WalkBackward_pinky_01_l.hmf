@@ -1,0 +1,8 @@
+AnimationTrack WalkBackward_pinky_01_l {
+    BoneName = pinky_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/WalkBackward_pinky_01_l.KEYF"
+        Size = 2624
+    }
+    UUID = "3f6c4909-09c6-4a5b-82a8-a046499f62a1"
+}

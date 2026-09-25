@@ -36,18 +36,16 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physical)
 
 VulkanDevice::~VulkanDevice()
 {
-    Set<VulkanDeviceQueue*> queuesToDestroy;
-    queuesToDestroy.Add(m_queueGraphics);
-    queuesToDestroy.Add(m_queueTransfer);
-    queuesToDestroy.Add(m_queuePresent);
-    queuesToDestroy.Add(m_queueCompute);
+    FatArray<VulkanDeviceQueue*, InlineAllocator<4>> seenQueues;
 
-    for (VulkanDeviceQueue* queue : queuesToDestroy)
+    for (VulkanDeviceQueue* queue : { m_queueGraphics, m_queueTransfer, m_queuePresent, m_queueCompute })
     {
-        if (!queue)
+        if (!queue || seenQueues.Contains(queue))
         {
             continue;
         }
+
+        seenQueues.PushBack(queue);
 
         for (VkCommandPool commandPool : queue->commandPools)
         {

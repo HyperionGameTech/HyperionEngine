@@ -1,0 +1,8 @@
+AnimationTrack WalkBackward_ball_l {
+    BoneName = ball_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/WalkBackward_ball_l.KEYF"
+        Size = 2624
+    }
+    UUID = "837e0199-3a49-4dbc-998b-e15275aeb471"
+}

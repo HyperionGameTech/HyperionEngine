@@ -1,0 +1,8 @@
+AnimationTrack PistolAimUp_ring_03_r {
+    BoneName = ring_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimUp_ring_03_r.KEYF"
+        Size = 384
+    }
+    UUID = "137d8532-a8f3-4a5b-94bf-1e0964714e15"
+}

@@ -1,0 +1,8 @@
+AnimationTrack RunFall_upperarm_l {
+    BoneName = upperarm_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunFall_upperarm_l.KEYF"
+        Size = 1984
+    }
+    UUID = "911e7780-c326-4716-b8f5-8cda8d1ed298"
+}

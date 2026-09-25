@@ -1,0 +1,8 @@
+AnimationTrack Idle_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_neck.KEYF"
+        Size = 11584
+    }
+    UUID = "491ac002-a4bf-492c-9990-084228f47db5"
+}

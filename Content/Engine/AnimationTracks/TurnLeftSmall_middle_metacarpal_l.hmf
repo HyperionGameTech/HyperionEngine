@@ -1,0 +1,8 @@
+AnimationTrack TurnLeftSmall_middle_metacarpal_l {
+    BoneName = middle_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeftSmall_middle_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "10619579-f8f7-49f8-94bf-66b026d36a4e"
+}

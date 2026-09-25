@@ -656,7 +656,7 @@ endif()
 
 set(RENDERING_BACKEND "Vulkan")
 
-if(WIN32)
+if(WIN32 AND NOT HYP_GCC)
   set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
 
   if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND)
@@ -665,13 +665,18 @@ if(WIN32)
 endif()
 
 if (NOT DEFINED RENDERING_BACKEND)
-  if (WIN32)
+  if (WIN32 AND NOT HYP_GCC)
     set(RENDERING_BACKEND "DX12")
   elseif((APPLE) OR (UNIX))
     set(RENDERING_BACKEND "Vulkan")
   else()
     message(FATAL_ERROR "No rendering backend defined and unable to select default for platform!")
   endif()
+endif()
+
+if (HYP_GCC AND RENDERING_BACKEND STREQUAL "DX12")
+  message(STATUS "DX12 rendering backend is not supported when building with GCC/MinGW - forcing Vulkan")
+  set(RENDERING_BACKEND "Vulkan")
 endif()
 
 if (RENDERING_BACKEND STREQUAL "Vulkan")

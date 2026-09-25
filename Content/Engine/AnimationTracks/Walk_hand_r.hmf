@@ -1,0 +1,8 @@
+AnimationTrack Walk_hand_r {
+    BoneName = hand_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Walk_hand_r.KEYF"
+        Size = 2624
+    }
+    UUID = "220d45fe-a01b-494c-9ed5-67ca463559ea"
+}

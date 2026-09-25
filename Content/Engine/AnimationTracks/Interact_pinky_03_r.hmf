@@ -1,0 +1,8 @@
+AnimationTrack Interact_pinky_03_r {
+    BoneName = pinky_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_pinky_03_r.KEYF"
+        Size = 3904
+    }
+    UUID = "7ab7557a-16a4-4db4-b781-18e7b4a39a6a"
+}

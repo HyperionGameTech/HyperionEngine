@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_thigh_twist_01_r {
+    BoneName = thigh_twist_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_thigh_twist_01_r.KEYF"
+        Size = 128
+    }
+    UUID = "0e3256f3-fba9-44ec-bc7b-467d48e9394e"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Walk_middle_01_r {
+    BoneName = middle_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Walk_middle_01_r.KEYF"
+        Size = 2624
+    }
+    UUID = "f1da3916-1463-4896-a67f-3ddfcda1fe28"
+}

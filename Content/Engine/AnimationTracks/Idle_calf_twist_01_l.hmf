@@ -1,0 +1,8 @@
+AnimationTrack Idle_calf_twist_01_l {
+    BoneName = calf_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_calf_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "2e9d27cf-e4ba-45b5-ab4e-9e8dcf1ae803"
+}

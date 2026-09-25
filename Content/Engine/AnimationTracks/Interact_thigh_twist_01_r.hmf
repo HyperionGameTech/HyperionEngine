@@ -1,0 +1,8 @@
+AnimationTrack Interact_thigh_twist_01_r {
+    BoneName = thigh_twist_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_thigh_twist_01_r.KEYF"
+        Size = 128
+    }
+    UUID = "410e7145-0cd3-4148-974e-e84a541c5c89"
+}

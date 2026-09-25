@@ -1,0 +1,8 @@
+AnimationTrack Roll_foot_r {
+    BoneName = foot_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Roll_foot_r.KEYF"
+        Size = 2880
+    }
+    UUID = "256b51f7-0749-4bdc-a6d5-b034cb55c123"
+}

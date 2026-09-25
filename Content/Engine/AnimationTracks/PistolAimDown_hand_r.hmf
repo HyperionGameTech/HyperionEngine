@@ -1,0 +1,8 @@
+AnimationTrack PistolAimDown_hand_r {
+    BoneName = hand_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimDown_hand_r.KEYF"
+        Size = 384
+    }
+    UUID = "7d723f27-3d9c-4bee-9cfc-f8ba5a4780dc"
+}

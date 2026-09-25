@@ -1,0 +1,8 @@
+AnimationTrack Idle_ring_02_l {
+    BoneName = ring_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_ring_02_l.KEYF"
+        Size = 11584
+    }
+    UUID = "ae0946ff-e590-4134-b397-8dc31ca599c3"
+}

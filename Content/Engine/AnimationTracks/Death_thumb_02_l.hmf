@@ -1,0 +1,8 @@
+AnimationTrack Death_thumb_02_l {
+    BoneName = thumb_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_thumb_02_l.KEYF"
+        Size = 4672
+    }
+    UUID = "6a574043-1259-4403-b20b-be1b0254e436"
+}

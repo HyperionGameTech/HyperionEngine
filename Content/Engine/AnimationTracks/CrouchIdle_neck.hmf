@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_neck.KEYF"
+        Size = 5696
+    }
+    UUID = "0474f27e-b2e8-4d8f-a792-b70fcb1f2c19"
+}

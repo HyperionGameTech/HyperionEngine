@@ -1,0 +1,8 @@
+AnimationTrack PickUp_middle_metacarpal_r {
+    BoneName = middle_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_middle_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "3ef9e5b0-f498-4563-a660-96b59bcc948b"
+}

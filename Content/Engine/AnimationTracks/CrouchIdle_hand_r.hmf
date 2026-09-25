@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_hand_r {
+    BoneName = hand_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_hand_r.KEYF"
+        Size = 5696
+    }
+    UUID = "f355ab10-f27e-415e-a87e-cbacd003ebba"
+}

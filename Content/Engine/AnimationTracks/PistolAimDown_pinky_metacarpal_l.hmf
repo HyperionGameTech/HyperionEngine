@@ -1,0 +1,8 @@
+AnimationTrack PistolAimDown_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimDown_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "16b09327-87f4-4ae7-942a-8c88a432301d"
+}

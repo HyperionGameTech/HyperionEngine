@@ -1,0 +1,8 @@
+AnimationTrack Idle_pinky_03_l {
+    BoneName = pinky_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_pinky_03_l.KEYF"
+        Size = 11584
+    }
+    UUID = "89f7d7b4-a39a-42b8-915e-8eb62abe8a30"
+}

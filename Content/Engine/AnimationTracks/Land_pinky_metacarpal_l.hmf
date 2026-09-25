@@ -1,0 +1,8 @@
+AnimationTrack Land_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "2ff5981a-f232-4fed-a85e-6503409711ae"
+}

@@ -1,0 +1,8 @@
+AnimationTrack TurnRightSmall_index_02_l {
+    BoneName = index_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnRightSmall_index_02_l.KEYF"
+        Size = 960
+    }
+    UUID = "561c0918-2340-43e9-aacd-e6c392d84a10"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Jump_ball_r {
+    BoneName = ball_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jump_ball_r.KEYF"
+        Size = 1600
+    }
+    UUID = "59d55848-9bef-400c-b005-5f69aa566d9b"
+}

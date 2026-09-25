@@ -1,0 +1,8 @@
+AnimationTrack PistolAimDown_index_01_r {
+    BoneName = index_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimDown_index_01_r.KEYF"
+        Size = 384
+    }
+    UUID = "af8addce-5d2b-42bf-a57d-bf6d4f071bc8"
+}

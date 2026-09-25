@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_index_metacarpal_r {
+    BoneName = index_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_index_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "80df8057-46e9-46d4-9a74-116661af8945"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Fall_head {
+    BoneName = head
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Fall_head.KEYF"
+        Size = 1984
+    }
+    UUID = "f9252d23-f321-4b81-9f38-b3df7c48ffd4"
+}

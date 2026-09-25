@@ -1,0 +1,8 @@
+AnimationTrack RunFall_hand_l {
+    BoneName = hand_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunFall_hand_l.KEYF"
+        Size = 1984
+    }
+    UUID = "4395beac-cfa2-4f77-97dd-31a6aa80d0a9"
+}

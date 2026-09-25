@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_pelvis.KEYF"
+        Size = 5696
+    }
+    UUID = "b61086c5-8143-4b08-8bff-e378ab3a5b1d"
+}

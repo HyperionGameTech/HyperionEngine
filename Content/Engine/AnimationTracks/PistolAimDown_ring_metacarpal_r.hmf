@@ -1,0 +1,8 @@
+AnimationTrack PistolAimDown_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimDown_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "1b2b2c40-322c-4f72-a0b5-785521633ebf"
+}

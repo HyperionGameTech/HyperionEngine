@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_upperarm_r {
+    BoneName = upperarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_upperarm_r.KEYF"
+        Size = 3904
+    }
+    UUID = "8f02953a-6194-4d65-ad9f-395b58f19fc9"
+}

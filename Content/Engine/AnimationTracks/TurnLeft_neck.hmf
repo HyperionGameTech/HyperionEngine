@@ -1,0 +1,8 @@
+AnimationTrack TurnLeft_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeft_neck.KEYF"
+        Size = 1216
+    }
+    UUID = "5e5fd0e4-fb49-42ac-99ea-6efe8d0ec987"
+}

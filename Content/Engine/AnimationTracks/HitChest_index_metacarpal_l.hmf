@@ -1,0 +1,8 @@
+AnimationTrack HitChest_index_metacarpal_l {
+    BoneName = index_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_index_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "2af95656-4194-422e-b8b8-1dfc43f62345"
+}

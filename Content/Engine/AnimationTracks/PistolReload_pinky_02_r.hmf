@@ -1,0 +1,8 @@
+AnimationTrack PistolReload_pinky_02_r {
+    BoneName = pinky_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolReload_pinky_02_r.KEYF"
+        Size = 3264
+    }
+    UUID = "985fc2f4-299e-4bf3-87f2-cfc04f9233e8"
+}

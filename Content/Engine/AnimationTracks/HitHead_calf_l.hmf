@@ -1,0 +1,8 @@
+AnimationTrack HitHead_calf_l {
+    BoneName = calf_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_calf_l.KEYF"
+        Size = 896
+    }
+    UUID = "e40a1577-749b-44e9-8c9e-337598256491"
+}

@@ -1,0 +1,8 @@
+AnimationTrack HitChest_thumb_01_r {
+    BoneName = thumb_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_thumb_01_r.KEYF"
+        Size = 704
+    }
+    UUID = "8f66a779-a416-475c-85b9-9811169e3d15"
+}

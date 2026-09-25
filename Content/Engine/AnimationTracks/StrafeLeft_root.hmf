@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_root {
+    BoneName = root
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_root.KEYF"
+        Size = 2624
+    }
+    UUID = "a6723073-6a83-44bf-bd25-8208fa01be29"
+}

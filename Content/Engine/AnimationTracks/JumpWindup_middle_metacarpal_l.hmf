@@ -1,0 +1,8 @@
+AnimationTrack JumpWindup_middle_metacarpal_l {
+    BoneName = middle_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/JumpWindup_middle_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "cd7fc3f3-f6ef-4216-bccf-44ea56206683"
+}

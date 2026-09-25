@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_root {
+    BoneName = root
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_root.KEYF"
+        Size = 384
+    }
+    UUID = "e19e3df9-57f4-474b-bd06-c0935ca3b03f"
+}

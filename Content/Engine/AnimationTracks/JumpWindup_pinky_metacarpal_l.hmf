@@ -1,0 +1,8 @@
+AnimationTrack JumpWindup_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/JumpWindup_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "1396b69a-b67d-4f46-9ba8-c8f3e916c574"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Jump_upperarm_twist_01_l {
+    BoneName = upperarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jump_upperarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "b9f25d92-c8da-4434-95d8-797bd1172f95"
+}

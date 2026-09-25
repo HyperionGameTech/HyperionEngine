@@ -1,0 +1,8 @@
+AnimationTrack Land_upperarm_twist_01_l {
+    BoneName = upperarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_upperarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "06f796a8-1778-459f-8503-5961374db0c7"
+}

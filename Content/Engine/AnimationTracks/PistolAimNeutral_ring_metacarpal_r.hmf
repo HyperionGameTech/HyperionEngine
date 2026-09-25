@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "35f99bdc-82a4-4bd5-9b43-8425101027fa"
+}

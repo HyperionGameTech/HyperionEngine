@@ -1,0 +1,8 @@
+AnimationTrack HitHead_lowerarm_r {
+    BoneName = lowerarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_lowerarm_r.KEYF"
+        Size = 896
+    }
+    UUID = "9de0a839-6d3f-470d-9fcb-5ce453860b4c"
+}

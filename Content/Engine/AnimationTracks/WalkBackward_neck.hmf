@@ -1,0 +1,8 @@
+AnimationTrack WalkBackward_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/WalkBackward_neck.KEYF"
+        Size = 2624
+    }
+    UUID = "4f04b682-7f82-4f0e-a9d5-d8a3f23ba27e"
+}

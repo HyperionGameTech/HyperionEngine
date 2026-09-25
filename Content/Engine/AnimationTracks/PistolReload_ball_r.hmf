@@ -1,0 +1,8 @@
+AnimationTrack PistolReload_ball_r {
+    BoneName = ball_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolReload_ball_r.KEYF"
+        Size = 3264
+    }
+    UUID = "e9904469-567a-4878-aec7-28c26ab9fedd"
+}

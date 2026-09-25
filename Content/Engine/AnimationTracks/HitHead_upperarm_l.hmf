@@ -1,0 +1,8 @@
+AnimationTrack HitHead_upperarm_l {
+    BoneName = upperarm_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_upperarm_l.KEYF"
+        Size = 896
+    }
+    UUID = "1a2007d9-a714-4d6e-8278-ff3233a30205"
+}

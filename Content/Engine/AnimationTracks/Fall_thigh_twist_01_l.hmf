@@ -1,0 +1,8 @@
+AnimationTrack Fall_thigh_twist_01_l {
+    BoneName = thigh_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Fall_thigh_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "f85e22a3-fc0c-4ae7-be2e-69c511611d49"
+}

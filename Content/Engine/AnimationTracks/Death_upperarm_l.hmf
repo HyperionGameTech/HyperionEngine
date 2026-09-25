@@ -1,0 +1,8 @@
+AnimationTrack Death_upperarm_l {
+    BoneName = upperarm_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_upperarm_l.KEYF"
+        Size = 4672
+    }
+    UUID = "ae1efa63-c202-4f71-b10b-c98c1819cc67"
+}

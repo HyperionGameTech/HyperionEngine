@@ -1,0 +1,8 @@
+AnimationTrack Run_pinky_metacarpal_r {
+    BoneName = pinky_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Run_pinky_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "67b6f600-c820-437f-a2de-98686c3919ac"
+}

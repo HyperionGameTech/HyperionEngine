@@ -1,0 +1,8 @@
+AnimationTrack PistolIdle_index_metacarpal_r {
+    BoneName = index_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolIdle_index_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "8ea9417f-4440-425a-a3dc-0d6b09367da3"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Death_calf_twist_01_r {
+    BoneName = calf_twist_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_calf_twist_01_r.KEYF"
+        Size = 128
+    }
+    UUID = "598be6f2-8984-4f9f-befe-4ef60e913f19"
+}

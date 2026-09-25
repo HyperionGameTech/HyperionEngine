@@ -1,0 +1,8 @@
+AnimationTrack Death_middle_metacarpal_l {
+    BoneName = middle_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_middle_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "df5867ad-f416-450c-a5b3-67c474b19224"
+}

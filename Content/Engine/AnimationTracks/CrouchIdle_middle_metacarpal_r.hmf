@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_middle_metacarpal_r {
+    BoneName = middle_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_middle_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "2b8da718-01af-4f04-bfac-5fc27800299f"
+}

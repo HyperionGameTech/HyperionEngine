@@ -1,0 +1,8 @@
+AnimationTrack Death_foot_l {
+    BoneName = foot_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_foot_l.KEYF"
+        Size = 4672
+    }
+    UUID = "04efbe28-db1b-4f8f-90b2-28d62de7490c"
+}

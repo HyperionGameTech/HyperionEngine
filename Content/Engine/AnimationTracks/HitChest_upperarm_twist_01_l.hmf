@@ -1,0 +1,8 @@
+AnimationTrack HitChest_upperarm_twist_01_l {
+    BoneName = upperarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_upperarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "c65ad954-4358-43f2-b4e2-17f060345aad"
+}

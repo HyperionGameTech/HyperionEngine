@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_thigh_twist_01_l {
+    BoneName = thigh_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_thigh_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "efb503aa-e08f-4545-b6f6-45cb0c6aa5e2"
+}

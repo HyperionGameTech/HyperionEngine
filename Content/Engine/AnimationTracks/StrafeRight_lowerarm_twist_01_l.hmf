@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_lowerarm_twist_01_l {
+    BoneName = lowerarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_lowerarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "37d8b660-9d96-4a26-b556-3ce4afef1538"
+}

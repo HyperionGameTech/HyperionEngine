@@ -1,0 +1,8 @@
+AnimationTrack CrouchIdle_lowerarm_twist_01_l {
+    BoneName = lowerarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchIdle_lowerarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "559738f3-41dc-4961-a320-913ea061c17e"
+}

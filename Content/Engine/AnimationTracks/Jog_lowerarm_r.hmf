@@ -1,0 +1,8 @@
+AnimationTrack Jog_lowerarm_r {
+    BoneName = lowerarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_lowerarm_r.KEYF"
+        Size = 1856
+    }
+    UUID = "6ff7099e-f352-4ddb-938c-4e3f12393cd3"
+}

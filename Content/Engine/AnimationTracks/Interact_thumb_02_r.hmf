@@ -1,0 +1,8 @@
+AnimationTrack Interact_thumb_02_r {
+    BoneName = thumb_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_thumb_02_r.KEYF"
+        Size = 3904
+    }
+    UUID = "c4cc7ea2-f323-49ec-b424-4cf56eec8cdf"
+}

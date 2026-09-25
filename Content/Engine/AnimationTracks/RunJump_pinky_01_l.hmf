@@ -1,0 +1,8 @@
+AnimationTrack RunJump_pinky_01_l {
+    BoneName = pinky_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunJump_pinky_01_l.KEYF"
+        Size = 1600
+    }
+    UUID = "a48b70cd-93fc-4502-a94d-4aa7978a440e"
+}

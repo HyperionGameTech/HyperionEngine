@@ -1,0 +1,8 @@
+AnimationTrack TurnRightSmall_ball_l {
+    BoneName = ball_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnRightSmall_ball_l.KEYF"
+        Size = 960
+    }
+    UUID = "ca459aa1-96ea-42d6-8386-a103e50fda1e"
+}

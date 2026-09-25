@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_clavicle_l {
+    BoneName = clavicle_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_clavicle_l.KEYF"
+        Size = 2624
+    }
+    UUID = "ed6715ee-d6b8-45db-8e0d-e3777bfdd26a"
+}

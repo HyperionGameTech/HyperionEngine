@@ -49,12 +49,14 @@ Material M_SuitGlow {
         Transmission = 0
         IOR = 1.5
         EmissiveColor = (0.91764706, 0.38431373, 0.05490196, 1)
-        EmissiveIntensity = 1.0862781
+        EmissiveIntensity = 10
         UserParams = (0, 0, 0, 0)
         WindFrequency = 0
         WindTrunkFlexibility = 0
         WindTreeHeight = 0
         WindFlutter = 0
+        FoliageNormalBlend = 0
+        FoliageBackfaceVolume = 0
         UVScale = (1, 1)
         Unlit = false
         Foliage = false
@@ -81,5 +83,5 @@ Material M_SuitGlow {
         ]
     }
     IsDynamic = false
-    UUID = "2ed5c77e-0f4f-46df-8b0e-838da1b2d35c"
+    UUID = "92d56788-fa28-41ba-b0e3-dcc87dcc87fe"
 }

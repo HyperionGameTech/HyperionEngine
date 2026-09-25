@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_pelvis.KEYF"
+        Size = 2624
+    }
+    UUID = "82269a6d-902a-48c0-83f4-9a486ebbab01"
+}

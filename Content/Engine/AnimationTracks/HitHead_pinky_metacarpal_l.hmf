@@ -1,0 +1,8 @@
+AnimationTrack HitHead_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "bad927a6-ed93-4e14-8788-4dedcce9bb41"
+}

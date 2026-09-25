@@ -1,0 +1,8 @@
+AnimationTrack HitChest_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "a1c34f15-fefb-4c62-a049-c727d10d3f62"
+}

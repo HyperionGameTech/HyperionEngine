@@ -1,0 +1,8 @@
+AnimationTrack PistolShoot_pinky_01_l {
+    BoneName = pinky_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolShoot_pinky_01_l.KEYF"
+        Size = 1280
+    }
+    UUID = "c99106fd-5c84-443d-aee3-9b4abf01d0eb"
+}

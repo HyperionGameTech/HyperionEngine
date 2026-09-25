@@ -1,0 +1,8 @@
+AnimationTrack Push_clavicle_l {
+    BoneName = clavicle_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_clavicle_l.KEYF"
+        Size = 5184
+    }
+    UUID = "6fc86ac7-dc09-46d8-9e53-a3e130b93fbc"
+}

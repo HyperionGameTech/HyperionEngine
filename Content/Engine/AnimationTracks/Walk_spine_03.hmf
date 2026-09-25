@@ -1,0 +1,8 @@
+AnimationTrack Walk_spine_03 {
+    BoneName = spine_03
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Walk_spine_03.KEYF"
+        Size = 2624
+    }
+    UUID = "2d61e921-3a0a-4eac-b317-06b3ddeeda8f"
+}

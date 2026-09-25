@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_upperarm_twist_01_l {
+    BoneName = upperarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_upperarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "35bbd228-2e85-4fb7-aca2-dc6526af81ad"
+}

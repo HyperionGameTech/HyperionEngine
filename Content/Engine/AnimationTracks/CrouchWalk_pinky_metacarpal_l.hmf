@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "99d2df28-fdbe-453b-bf1d-c54b545132ca"
+}

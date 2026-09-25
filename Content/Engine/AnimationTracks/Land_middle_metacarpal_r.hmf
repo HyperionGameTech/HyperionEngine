@@ -1,0 +1,8 @@
+AnimationTrack Land_middle_metacarpal_r {
+    BoneName = middle_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_middle_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "890b9765-d9c3-45f8-9ecf-d5ff2439f240"
+}

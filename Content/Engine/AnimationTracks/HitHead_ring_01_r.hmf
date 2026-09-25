@@ -1,0 +1,8 @@
+AnimationTrack HitHead_ring_01_r {
+    BoneName = ring_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_ring_01_r.KEYF"
+        Size = 896
+    }
+    UUID = "3bd37824-859f-4447-aaeb-70e55f049875"
+}

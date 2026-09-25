@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_ball_l {
+    BoneName = ball_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_ball_l.KEYF"
+        Size = 2624
+    }
+    UUID = "67a17d6d-6d37-4db2-9f9e-4ba062481d7e"
+}

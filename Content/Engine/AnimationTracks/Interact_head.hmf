@@ -1,0 +1,8 @@
+AnimationTrack Interact_head {
+    BoneName = head
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_head.KEYF"
+        Size = 3904
+    }
+    UUID = "dcd0ddca-d58e-44a7-af4c-40faafc6f21f"
+}

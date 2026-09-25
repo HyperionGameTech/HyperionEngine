@@ -1,0 +1,8 @@
+AnimationTrack PickUp_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "5c1632b4-1e57-42d8-ab1a-1ea3f9361b7a"
+}

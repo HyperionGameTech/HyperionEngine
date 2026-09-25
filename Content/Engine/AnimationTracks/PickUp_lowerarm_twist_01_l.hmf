@@ -1,0 +1,8 @@
+AnimationTrack PickUp_lowerarm_twist_01_l {
+    BoneName = lowerarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_lowerarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "9a4a9ff1-6b91-418a-b3d3-aec4a36cd18e"
+}

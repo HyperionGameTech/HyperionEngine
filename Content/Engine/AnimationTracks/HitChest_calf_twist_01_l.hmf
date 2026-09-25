@@ -1,0 +1,8 @@
+AnimationTrack HitChest_calf_twist_01_l {
+    BoneName = calf_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitChest_calf_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "387dd97b-7251-4f17-8a1a-d13bc9b1fece"
+}

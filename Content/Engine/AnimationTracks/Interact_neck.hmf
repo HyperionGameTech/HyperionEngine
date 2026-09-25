@@ -1,0 +1,8 @@
+AnimationTrack Interact_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_neck.KEYF"
+        Size = 3904
+    }
+    UUID = "b1fce4d9-9c71-4442-9eb3-2d81ee536084"
+}

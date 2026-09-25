@@ -1,0 +1,8 @@
+AnimationTrack Push_ball_l {
+    BoneName = ball_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_ball_l.KEYF"
+        Size = 5184
+    }
+    UUID = "a994f354-d203-4835-ac8a-058f1687b8f3"
+}

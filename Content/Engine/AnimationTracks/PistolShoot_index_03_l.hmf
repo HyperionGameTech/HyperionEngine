@@ -1,0 +1,8 @@
+AnimationTrack PistolShoot_index_03_l {
+    BoneName = index_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolShoot_index_03_l.KEYF"
+        Size = 1280
+    }
+    UUID = "e1de66bf-4fdb-44ea-bf53-32ba03322ea7"
+}

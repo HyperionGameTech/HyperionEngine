@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_middle_02_r {
+    BoneName = middle_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_middle_02_r.KEYF"
+        Size = 2624
+    }
+    UUID = "a05e532e-b1a1-4b9f-8c7d-3fec5f43a02a"
+}

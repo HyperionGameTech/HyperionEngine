@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_index_metacarpal_l {
+    BoneName = index_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_index_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "1c7fd6c1-9444-4425-9de1-14485acec423"
+}

@@ -1,0 +1,8 @@
+AnimationTrack Death_upperarm_twist_01_l {
+    BoneName = upperarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_upperarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "a4f81866-c149-4953-b485-02eb8e992f2f"
+}

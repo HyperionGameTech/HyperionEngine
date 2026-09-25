@@ -1,0 +1,8 @@
+AnimationTrack JumpWindup_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/JumpWindup_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "7ffd9fab-d85c-4a41-80db-fe17f5d6aaaa"
+}

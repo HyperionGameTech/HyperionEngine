@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_index_03_l {
+    BoneName = index_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_index_03_l.KEYF"
+        Size = 2624
+    }
+    UUID = "c6435c47-f6b4-44c0-bbe3-9ebb6b9f77f5"
+}

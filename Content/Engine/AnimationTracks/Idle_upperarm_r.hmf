@@ -1,0 +1,8 @@
+AnimationTrack Idle_upperarm_r {
+    BoneName = upperarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_upperarm_r.KEYF"
+        Size = 11584
+    }
+    UUID = "e15bfa4b-d677-4dca-9068-34f02ecdd039"
+}

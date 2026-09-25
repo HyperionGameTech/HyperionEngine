@@ -1,0 +1,8 @@
+AnimationTrack Jump_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jump_pelvis.KEYF"
+        Size = 1600
+    }
+    UUID = "d2b6bfe4-ed80-44fa-a19a-7ce45caab42b"
+}

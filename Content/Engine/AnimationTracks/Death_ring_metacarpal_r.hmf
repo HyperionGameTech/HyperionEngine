@@ -1,0 +1,8 @@
+AnimationTrack Death_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "d9413129-3a8b-497b-b0a7-c8725b4f6d81"
+}

@@ -1,0 +1,8 @@
+AnimationTrack RunLand_lowerarm_r {
+    BoneName = lowerarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunLand_lowerarm_r.KEYF"
+        Size = 1152
+    }
+    UUID = "132803da-64ad-4c10-ae02-5c2e315aa5fa"
+}

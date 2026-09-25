@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_thigh_twist_01_l {
+    BoneName = thigh_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_thigh_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "dfdb4fe6-dacd-46d4-85ec-3727316b110b"
+}

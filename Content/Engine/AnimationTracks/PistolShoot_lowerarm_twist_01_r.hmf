@@ -1,0 +1,8 @@
+AnimationTrack PistolShoot_lowerarm_twist_01_r {
+    BoneName = lowerarm_twist_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolShoot_lowerarm_twist_01_r.KEYF"
+        Size = 128
+    }
+    UUID = "7ef509d5-2088-4454-a672-1d5defd54cac"
+}

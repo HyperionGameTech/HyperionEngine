@@ -1,0 +1,8 @@
+AnimationTrack CrouchWalk_calf_r {
+    BoneName = calf_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/CrouchWalk_calf_r.KEYF"
+        Size = 3904
+    }
+    UUID = "4ef6ea7b-52ba-4c67-a8fc-75746804d98f"
+}

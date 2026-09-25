@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_neck {
+    BoneName = neck
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_neck.KEYF"
+        Size = 2624
+    }
+    UUID = "4094bdc3-4442-47eb-8c2a-137295d08e84"
+}

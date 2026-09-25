@@ -1,0 +1,8 @@
+AnimationTrack Idle_spine_03 {
+    BoneName = spine_03
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_spine_03.KEYF"
+        Size = 11584
+    }
+    UUID = "087a369f-7f30-43ca-92cc-442838fca640"
+}

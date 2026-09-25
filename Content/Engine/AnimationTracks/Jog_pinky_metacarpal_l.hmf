@@ -1,0 +1,8 @@
+AnimationTrack Jog_pinky_metacarpal_l {
+    BoneName = pinky_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_pinky_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "44245824-0d19-4005-a826-d5c7b90da761"
+}

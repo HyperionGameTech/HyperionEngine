@@ -1,0 +1,8 @@
+AnimationTrack HitHead_middle_01_r {
+    BoneName = middle_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HitHead_middle_01_r.KEYF"
+        Size = 896
+    }
+    UUID = "f83853e4-052a-4a10-9d14-29fac51c3f73"
+}

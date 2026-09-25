@@ -1,0 +1,8 @@
+AnimationTrack PistolReload_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolReload_pelvis.KEYF"
+        Size = 3264
+    }
+    UUID = "cddb36e1-aa33-4aac-853d-0bdf2bcd3de3"
+}

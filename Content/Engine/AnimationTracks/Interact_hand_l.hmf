@@ -1,0 +1,8 @@
+AnimationTrack Interact_hand_l {
+    BoneName = hand_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_hand_l.KEYF"
+        Size = 3904
+    }
+    UUID = "70a3a42f-22fc-4f81-a792-d0e2434b0e7e"
+}

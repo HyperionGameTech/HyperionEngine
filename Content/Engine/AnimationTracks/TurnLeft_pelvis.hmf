@@ -1,0 +1,8 @@
+AnimationTrack TurnLeft_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeft_pelvis.KEYF"
+        Size = 1216
+    }
+    UUID = "41fcf2c6-f998-4d5d-8946-756033382626"
+}

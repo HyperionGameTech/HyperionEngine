@@ -1,0 +1,8 @@
+AnimationTrack Death_middle_01_r {
+    BoneName = middle_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_middle_01_r.KEYF"
+        Size = 4672
+    }
+    UUID = "b50b71c2-2010-4b03-9f3f-a6196e79e9e1"
+}

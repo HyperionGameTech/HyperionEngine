@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_foot_l {
+    BoneName = foot_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_foot_l.KEYF"
+        Size = 2624
+    }
+    UUID = "7305d5ec-2712-4396-b11c-d419e7b9f85a"
+}

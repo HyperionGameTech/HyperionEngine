@@ -1,0 +1,8 @@
+AnimationTrack PistolIdle_calf_twist_01_l {
+    BoneName = calf_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolIdle_calf_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "ff437a82-fd7e-42e9-a2bd-b6a9eb7916ac"
+}

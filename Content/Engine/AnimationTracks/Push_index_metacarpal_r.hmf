@@ -1,0 +1,8 @@
+AnimationTrack Push_index_metacarpal_r {
+    BoneName = index_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_index_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "05aab45e-ce77-4afd-87ec-a3b423a71af3"
+}

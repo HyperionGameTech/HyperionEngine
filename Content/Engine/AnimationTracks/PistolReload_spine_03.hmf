@@ -1,0 +1,8 @@
+AnimationTrack PistolReload_spine_03 {
+    BoneName = spine_03
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolReload_spine_03.KEYF"
+        Size = 3264
+    }
+    UUID = "51f6747f-df6b-4e73-bda8-7841e1fda7c7"
+}

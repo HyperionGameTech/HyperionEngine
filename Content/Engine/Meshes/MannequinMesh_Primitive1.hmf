@@ -104,5 +104,5 @@ Mesh MannequinMesh_Primitive1 {
         Size = 123664
     }
     Flags = None
-    UUID = "3fcaaade-b375-41d4-9eb0-03af0d2ce265"
+    UUID = "64c05e9d-f88c-4b6f-a7ab-977d34003408"
 }

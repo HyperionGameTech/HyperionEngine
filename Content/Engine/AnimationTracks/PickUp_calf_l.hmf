@@ -1,0 +1,8 @@
+AnimationTrack PickUp_calf_l {
+    BoneName = calf_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_calf_l.KEYF"
+        Size = 1664
+    }
+    UUID = "6cb4e56b-9b20-4493-b1cc-f6ad7d293871"
+}

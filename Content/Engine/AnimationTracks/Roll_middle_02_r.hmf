@@ -1,0 +1,8 @@
+AnimationTrack Roll_middle_02_r {
+    BoneName = middle_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Roll_middle_02_r.KEYF"
+        Size = 2880
+    }
+    UUID = "f7d899a2-81ba-4c4d-ace6-1dbd033b0e96"
+}

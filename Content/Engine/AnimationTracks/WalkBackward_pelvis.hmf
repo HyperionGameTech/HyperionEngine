@@ -1,0 +1,8 @@
+AnimationTrack WalkBackward_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/WalkBackward_pelvis.KEYF"
+        Size = 2624
+    }
+    UUID = "56ea996b-8dfc-4cd7-8378-5dd65e7b0cf4"
+}

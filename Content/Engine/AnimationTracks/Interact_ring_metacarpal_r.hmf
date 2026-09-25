@@ -1,0 +1,8 @@
+AnimationTrack Interact_ring_metacarpal_r {
+    BoneName = ring_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_ring_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "92c27bb3-4746-4ec5-9f07-03b3d46dcd23"
+}

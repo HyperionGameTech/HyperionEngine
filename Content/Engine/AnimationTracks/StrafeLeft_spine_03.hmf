@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_spine_03 {
+    BoneName = spine_03
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_spine_03.KEYF"
+        Size = 2624
+    }
+    UUID = "8409c550-4953-4fd7-bf18-8a06527a5c38"
+}

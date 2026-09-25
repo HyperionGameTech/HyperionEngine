@@ -1,0 +1,8 @@
+AnimationTrack PickUp_root {
+    BoneName = root
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PickUp_root.KEYF"
+        Size = 1664
+    }
+    UUID = "6b9f9c6c-dbe2-40e4-be12-d9dc0cffce8b"
+}

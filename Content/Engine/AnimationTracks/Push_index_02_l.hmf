@@ -1,0 +1,8 @@
+AnimationTrack Push_index_02_l {
+    BoneName = index_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Push_index_02_l.KEYF"
+        Size = 5184
+    }
+    UUID = "0f37511b-0864-4e74-acba-1c3e82fad2e1"
+}

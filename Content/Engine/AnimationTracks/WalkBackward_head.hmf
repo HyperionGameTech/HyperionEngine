@@ -1,0 +1,8 @@
+AnimationTrack WalkBackward_head {
+    BoneName = head
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/WalkBackward_head.KEYF"
+        Size = 2624
+    }
+    UUID = "6e3b9812-6d41-47d9-81ba-8183e866cc19"
+}

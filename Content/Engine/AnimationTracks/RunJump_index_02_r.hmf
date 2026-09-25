@@ -1,0 +1,8 @@
+AnimationTrack RunJump_index_02_r {
+    BoneName = index_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunJump_index_02_r.KEYF"
+        Size = 1600
+    }
+    UUID = "5993913a-f113-4072-b1dd-920d2dbb4128"
+}

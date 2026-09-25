@@ -1,0 +1,8 @@
+AnimationTrack Land_calf_l {
+    BoneName = calf_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_calf_l.KEYF"
+        Size = 1344
+    }
+    UUID = "4bbcb689-7319-4e95-ba34-c6808049c57c"
+}

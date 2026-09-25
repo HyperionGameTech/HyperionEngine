@@ -1,0 +1,8 @@
+AnimationTrack Jog_index_metacarpal_l {
+    BoneName = index_metacarpal_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_index_metacarpal_l.KEYF"
+        Size = 128
+    }
+    UUID = "ad90aae3-99a9-4d02-8ef0-3e22346e3d8f"
+}

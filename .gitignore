@@ -107,6 +107,4 @@ Data/**/*
 Content/Engine/**/Hazmat*
 Content/Engine/**/survivor*
 Content/Engine/**/mutant
-Content/Engine/Animations/*
-Content/Engine/AnimationTracks/*
 Content/Engine/Materials/M_Hazmat*

@@ -1,0 +1,8 @@
+AnimationTrack Land_clavicle_r {
+    BoneName = clavicle_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_clavicle_r.KEYF"
+        Size = 1344
+    }
+    UUID = "1b69baa7-221b-462b-912a-54afbb304928"
+}

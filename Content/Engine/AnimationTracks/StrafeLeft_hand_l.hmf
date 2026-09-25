@@ -1,0 +1,8 @@
+AnimationTrack StrafeLeft_hand_l {
+    BoneName = hand_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeLeft_hand_l.KEYF"
+        Size = 2624
+    }
+    UUID = "5744a8e7-f63f-44c2-bc17-21da0d21265d"
+}

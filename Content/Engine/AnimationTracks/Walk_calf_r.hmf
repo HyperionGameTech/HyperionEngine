@@ -1,0 +1,8 @@
+AnimationTrack Walk_calf_r {
+    BoneName = calf_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Walk_calf_r.KEYF"
+        Size = 2624
+    }
+    UUID = "d0192911-5f7e-496a-a03a-64c9c1b8eaa4"
+}

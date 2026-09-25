@@ -1,0 +1,8 @@
+AnimationTrack Idle_upperarm_twist_01_r {
+    BoneName = upperarm_twist_01_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Idle_upperarm_twist_01_r.KEYF"
+        Size = 128
+    }
+    UUID = "f905503f-a18f-4e6a-977a-a829d0cace19"
+}

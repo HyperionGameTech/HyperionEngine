@@ -1,0 +1,8 @@
+AnimationTrack Interact_root {
+    BoneName = root
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Interact_root.KEYF"
+        Size = 3904
+    }
+    UUID = "d7ce6417-69cc-4d5c-acfc-a1021361c7d1"
+}

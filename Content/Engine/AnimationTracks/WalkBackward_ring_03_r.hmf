@@ -1,0 +1,8 @@
+AnimationTrack WalkBackward_ring_03_r {
+    BoneName = ring_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/WalkBackward_ring_03_r.KEYF"
+        Size = 2624
+    }
+    UUID = "38740bbf-aeab-4f57-96a4-558be6831144"
+}

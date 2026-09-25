@@ -1,0 +1,8 @@
+AnimationTrack PistolAimNeutral_index_02_l {
+    BoneName = index_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/PistolAimNeutral_index_02_l.KEYF"
+        Size = 384
+    }
+    UUID = "6cc41f48-936d-4d0e-a43e-6e0022e66236"
+}

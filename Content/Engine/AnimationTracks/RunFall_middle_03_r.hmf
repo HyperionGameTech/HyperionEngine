@@ -1,0 +1,8 @@
+AnimationTrack RunFall_middle_03_r {
+    BoneName = middle_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunFall_middle_03_r.KEYF"
+        Size = 1984
+    }
+    UUID = "6f13c1dd-d0ce-487b-9f35-b1451e181b14"
+}

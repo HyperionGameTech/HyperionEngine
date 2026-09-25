@@ -1,0 +1,8 @@
+AnimationTrack StrafeRight_pinky_03_l {
+    BoneName = pinky_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/StrafeRight_pinky_03_l.KEYF"
+        Size = 2624
+    }
+    UUID = "450f4100-fa42-4495-9bb7-771a909f5be2"
+}

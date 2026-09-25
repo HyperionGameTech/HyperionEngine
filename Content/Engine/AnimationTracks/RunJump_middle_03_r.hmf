@@ -1,0 +1,8 @@
+AnimationTrack RunJump_middle_03_r {
+    BoneName = middle_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/RunJump_middle_03_r.KEYF"
+        Size = 1600
+    }
+    UUID = "a9f9d4c8-d15a-4a1e-ba18-da6f1f57bbfa"
+}

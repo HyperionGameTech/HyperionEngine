@@ -1,0 +1,8 @@
+AnimationTrack JumpWindup_spine_01 {
+    BoneName = spine_01
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/JumpWindup_spine_01.KEYF"
+        Size = 320
+    }
+    UUID = "69b9a3c6-9d61-4080-8279-4c4837cfc0d4"
+}

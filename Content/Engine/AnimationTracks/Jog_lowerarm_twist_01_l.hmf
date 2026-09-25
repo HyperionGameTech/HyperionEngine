@@ -1,0 +1,8 @@
+AnimationTrack Jog_lowerarm_twist_01_l {
+    BoneName = lowerarm_twist_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Jog_lowerarm_twist_01_l.KEYF"
+        Size = 128
+    }
+    UUID = "9f710614-cbce-425c-a87f-28b00ef2e43d"
+}

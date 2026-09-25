@@ -1,0 +1,8 @@
+AnimationTrack TurnLeftSmall_head {
+    BoneName = head
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/TurnLeftSmall_head.KEYF"
+        Size = 960
+    }
+    UUID = "c63b28a9-7665-49ea-a932-604b23d2dbbe"
+}

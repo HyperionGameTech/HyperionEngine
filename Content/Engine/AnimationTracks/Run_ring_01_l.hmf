@@ -1,0 +1,8 @@
+AnimationTrack Run_ring_01_l {
+    BoneName = ring_01_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Run_ring_01_l.KEYF"
+        Size = 1344
+    }
+    UUID = "41978ff8-9d89-4367-a350-4b5df9b41e9e"
+}

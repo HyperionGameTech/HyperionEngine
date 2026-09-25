@@ -17,7 +17,7 @@ Skeleton MannequinRig {
                 W = 1
             }
         }
-        UUID = "5259ef00-7f00-4256-ab55-174e3f3b9d4a"
+        UUID = "87816cd6-d892-4a07-962f-1c43159942e8"
         Name = MannequinRig_Root
         NodeFlags = MobilityStatic
         LocalBounds = {
@@ -53,7 +53,7 @@ Skeleton MannequinRig {
                         W = 7.54979e-08
                     }
                 }
-                UUID = "7c27b996-9116-4e41-bb52-2cbc4ba3b55f"
+                UUID = "bc62e075-5cae-41c8-9278-12226de528b1"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -88,7 +88,7 @@ Skeleton MannequinRig {
                                 W = -7.430789e-08
                             }
                         }
-                        UUID = "3c12e8b5-bf89-420b-aa51-aa8958e2634c"
+                        UUID = "1843a671-ce76-43c1-a18e-f3ec26f643d8"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -105,165 +105,6 @@ Skeleton MannequinRig {
                             }
                         }
                         Children = [
-                            Bone thigh_r {
-                                BoneName = thigh_r
-                                BoneMatrix = [
-                                    [1.0000001, 3.7252903e-09, 0, 0]
-                                    [-5.5879354e-09, 1, 0, 0]
-                                    [0, 0, 1.0000001, 1.2572855e-08]
-                                    [0, 0, 0, 1]
-                                ]
-                                BindingTransform = {
-                                    Translation = (0.10853511, -0.0016545057, -0.0118278265)
-                                    Scale = (0.99999964, 0.9999998, 0.9999966)
-                                    Rotation = {
-                                        X = -0.98894006
-                                        Y = -0.051980026
-                                        Z = 0.036146063
-                                        W = -0.13412395
-                                    }
-                                }
-                                UUID = "2eb5971b-3d56-4adc-a731-2b30fa5e3537"
-                                NodeFlags = MobilityStatic
-                                LocalBounds = {
-                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                }
-                                LocalTransform = {
-                                    Translation = (0.10853511, -0.0016545057, -0.0118278265)
-                                    Scale = (0.99999964, 0.9999998, 0.9999966)
-                                    Rotation = {
-                                        X = -0.98894006
-                                        Y = -0.051980026
-                                        Z = 0.036146063
-                                        W = -0.13412395
-                                    }
-                                }
-                                Children = [
-                                    Bone calf_r {
-                                        BoneName = calf_r
-                                        BoneMatrix = [
-                                            [1, 1.1641532e-10, 7.450581e-09, 1.4901161e-08]
-                                            [-4.5401976e-09, 1, 2.7939677e-09, -5.9604645e-08]
-                                            [0, 9.313226e-10, 1, -1.8626451e-09]
-                                            [0, 0, 0, 1]
-                                        ]
-                                        BindingTransform = {
-                                            Translation = (0, 0.419859, 0)
-                                            Scale = (1.0000001, 0.99999994, 0.99999994)
-                                            Rotation = {
-                                                X = -0.053069513
-                                                Y = 0.010366276
-                                                Z = 0.016277876
-                                                W = 0.9984044
-                                            }
-                                        }
-                                        UUID = "20f7b3ea-cbcd-4804-ba41-2b4a94d7223a"
-                                        NodeFlags = MobilityStatic
-                                        LocalBounds = {
-                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                        }
-                                        LocalTransform = {
-                                            Translation = (0, 0.419859, 0)
-                                            Scale = (1.0000001, 0.99999994, 0.99999994)
-                                            Rotation = {
-                                                X = -0.053069513
-                                                Y = 0.010366276
-                                                Z = 0.016277876
-                                                W = 0.9984044
-                                            }
-                                        }
-                                        Children = [
-                                            Bone foot_r {
-                                                BoneName = foot_r
-                                                BoneMatrix = [
-                                                    [1, 0, 2.7939677e-09, 1.4901161e-08]
-                                                    [9.313226e-10, 1, 2.9802322e-08, 0]
-                                                    [-2.3283064e-09, 0, 1, -9.313226e-10]
-                                                    [0, 0, 0, 1]
-                                                ]
-                                                BindingTransform = {
-                                                    Translation = (0, 0.44117004, -7.450581e-09)
-                                                    Scale = (1.0000001, 1.0000002, 1.0000001)
-                                                    Rotation = {
-                                                        X = 0.53124934
-                                                        Y = -0.008592891
-                                                        Z = -0.06972959
-                                                        W = 0.84429735
-                                                    }
-                                                }
-                                                UUID = "9ca7712e-9215-4516-97cb-b67e11892cab"
-                                                NodeFlags = MobilityStatic
-                                                LocalBounds = {
-                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                }
-                                                LocalTransform = {
-                                                    Translation = (0, 0.44117004, -7.450581e-09)
-                                                    Scale = (1.0000001, 1.0000002, 1.0000001)
-                                                    Rotation = {
-                                                        X = 0.53124934
-                                                        Y = -0.008592891
-                                                        Z = -0.06972959
-                                                        W = 0.84429735
-                                                    }
-                                                }
-                                                Children = [
-                                                    Bone ball_r {
-                                                        BoneName = ball_r
-                                                        BoneMatrix = [
-                                                            [1.0000001, 2.3283064e-10, 3.4197e-09, -1.4901161e-08]
-                                                            [4.656613e-10, 1, -7.450581e-09, 0]
-                                                            [1.9208528e-09, 0, 1, 0]
-                                                            [0, 0, 0, 1]
-                                                        ]
-                                                        BindingTransform = {
-                                                            Translation = (1.4901161e-08, 0.14054038, 0)
-                                                            Scale = (1.0000001, 1, 1.0000002)
-                                                            Rotation = {
-                                                                X = 0.26911312
-                                                                Y = -0.006321767
-                                                                Z = -0.04360028
-                                                                W = 0.9621005
-                                                            }
-                                                        }
-                                                        UUID = "ce7fceed-a7f5-456b-a730-27b11397a7bb"
-                                                        NodeFlags = MobilityStatic
-                                                        LocalBounds = {
-                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                        }
-                                                        LocalTransform = {
-                                                            Translation = (1.4901161e-08, 0.14054038, 0)
-                                                            Scale = (1.0000001, 1, 1.0000002)
-                                                            Rotation = {
-                                                                X = 0.26911312
-                                                                Y = -0.006321767
-                                                                Z = -0.04360028
-                                                                W = 0.9621005
-                                                            }
-                                                        }
-                                                        Children = []
-                                                        NodeTags = {
-                                                            Values = []
-                                                        }
-                                                    }
-                                                ]
-                                                NodeTags = {
-                                                    Values = []
-                                                }
-                                            }
-                                        ]
-                                        NodeTags = {
-                                            Values = []
-                                        }
-                                    }
-                                ]
-                                NodeTags = {
-                                    Values = []
-                                }
-                            }
                             Bone spine_01 {
                                 BoneName = spine_01
                                 BoneMatrix = [
@@ -282,7 +123,7 @@ Skeleton MannequinRig {
                                         W = 0.9686921
                                     }
                                 }
-                                UUID = "ca5df133-db7a-467f-8b7b-d27a56ec8f83"
+                                UUID = "e2e0819c-dafa-4519-a5f4-37357dfcf176"
                                 NodeFlags = MobilityStatic
                                 LocalBounds = {
                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -317,7 +158,7 @@ Skeleton MannequinRig {
                                                 W = 0.98997533
                                             }
                                         }
-                                        UUID = "04e5474e-0397-4f83-af5d-3dc9b184ad96"
+                                        UUID = "957c65fd-5181-429c-9a47-c3bb359a97e7"
                                         NodeFlags = MobilityStatic
                                         LocalBounds = {
                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -352,7 +193,7 @@ Skeleton MannequinRig {
                                                         W = 0.99993914
                                                     }
                                                 }
-                                                UUID = "96aa5c3e-da9c-4027-850f-24b353d59f3c"
+                                                UUID = "cdefae07-8eb6-4b2c-96d0-61b8d7a0e993"
                                                 NodeFlags = MobilityStatic
                                                 LocalBounds = {
                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -369,6 +210,85 @@ Skeleton MannequinRig {
                                                     }
                                                 }
                                                 Children = [
+                                                    Bone neck {
+                                                        BoneName = neck
+                                                        BoneMatrix = [
+                                                            [1, 0, 0, 1.6940659e-21]
+                                                            [2.1175824e-22, 1.0000001, 0, 0]
+                                                            [0, 0, 1.0000001, -7.450581e-09]
+                                                            [0, 0, 0, 1]
+                                                        ]
+                                                        BindingTransform = {
+                                                            Translation = (-2.1175824e-22, 0.3317181, 0.092716336)
+                                                            Scale = (1, 1, 0.99999994)
+                                                            Rotation = {
+                                                                X = -0.2527026
+                                                                Y = -0
+                                                                Z = -1.915039e-22
+                                                                W = 0.967544
+                                                            }
+                                                        }
+                                                        UUID = "4cbb13d2-96cc-44d3-899d-a84e34532301"
+                                                        NodeFlags = MobilityStatic
+                                                        LocalBounds = {
+                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                        }
+                                                        LocalTransform = {
+                                                            Translation = (-2.1175824e-22, 0.3317181, 0.092716336)
+                                                            Scale = (1, 1, 0.99999994)
+                                                            Rotation = {
+                                                                X = -0.2527026
+                                                                Y = -0
+                                                                Z = -1.915039e-22
+                                                                W = 0.967544
+                                                            }
+                                                        }
+                                                        Children = [
+                                                            Bone head {
+                                                                BoneName = head
+                                                                BoneMatrix = [
+                                                                    [1, -1.0587912e-22, -3.3881318e-21, 0]
+                                                                    [0, 1, 0, 0]
+                                                                    [-4.2351647e-22, 3.7252903e-09, 1, 3.7252903e-09]
+                                                                    [0, 0, 0, 1]
+                                                                ]
+                                                                BindingTransform = {
+                                                                    Translation = (-4.2351647e-22, 0.10318446, 2.9802322e-08)
+                                                                    Scale = (1, 1, 1)
+                                                                    Rotation = {
+                                                                        X = 0.19559474
+                                                                        Y = 1.0796448e-22
+                                                                        Z = -4.318579e-22
+                                                                        W = 0.9806848
+                                                                    }
+                                                                }
+                                                                UUID = "4b4e0121-34ce-4463-8905-4efbc27e072d"
+                                                                NodeFlags = MobilityStatic
+                                                                LocalBounds = {
+                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                }
+                                                                LocalTransform = {
+                                                                    Translation = (-4.2351647e-22, 0.10318446, 2.9802322e-08)
+                                                                    Scale = (1, 1, 1)
+                                                                    Rotation = {
+                                                                        X = 0.19559474
+                                                                        Y = 1.0796448e-22
+                                                                        Z = -4.318579e-22
+                                                                        W = 0.9806848
+                                                                    }
+                                                                }
+                                                                Children = []
+                                                                NodeTags = {
+                                                                    Values = []
+                                                                }
+                                                            }
+                                                        ]
+                                                        NodeTags = {
+                                                            Values = []
+                                                        }
+                                                    }
                                                     Bone clavicle_l {
                                                         BoneName = clavicle_l
                                                         BoneMatrix = [
@@ -387,7 +307,7 @@ Skeleton MannequinRig {
                                                                 W = 0.3655314
                                                             }
                                                         }
-                                                        UUID = "ba6c20e8-bd3c-484e-a7b3-799d3f203d83"
+                                                        UUID = "127622cc-c673-4ef0-8a6c-676435ff3f59"
                                                         NodeFlags = MobilityStatic
                                                         LocalBounds = {
                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -422,7 +342,7 @@ Skeleton MannequinRig {
                                                                         W = 0.88187397
                                                                     }
                                                                 }
-                                                                UUID = "bef045b4-dc06-47a3-948e-dd917639c0b8"
+                                                                UUID = "249a2631-aa1f-439e-87ce-bf439ed86a4c"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -457,7 +377,7 @@ Skeleton MannequinRig {
                                                                                 W = 0.9179255
                                                                             }
                                                                         }
-                                                                        UUID = "36b7bc3d-d38f-47d5-af59-43a590506a07"
+                                                                        UUID = "2c4c7139-8b37-4212-bb4e-6fb84786cf4c"
                                                                         NodeFlags = MobilityStatic
                                                                         LocalBounds = {
                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -492,7 +412,7 @@ Skeleton MannequinRig {
                                                                                         W = 0.9988656
                                                                                     }
                                                                                 }
-                                                                                UUID = "1bd19f88-e45b-4bbb-8b39-595e8982bfca"
+                                                                                UUID = "67670e7c-eddf-4e3d-8d6d-552adf8ca429"
                                                                                 NodeFlags = MobilityStatic
                                                                                 LocalBounds = {
                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -509,244 +429,6 @@ Skeleton MannequinRig {
                                                                                     }
                                                                                 }
                                                                                 Children = [
-                                                                                    Bone index_01_l {
-                                                                                        BoneName = index_01_l
-                                                                                        BoneMatrix = [
-                                                                                            [0.99999994, 0, 7.450581e-09, 0]
-                                                                                            [3.7252903e-09, 0.9999999, 5.9604645e-08, 0]
-                                                                                            [0, 0, 0.9999999, 2.9802322e-08]
-                                                                                            [0, 0, 0, 0.99999994]
-                                                                                        ]
-                                                                                        BindingTransform = {
-                                                                                            Translation = (0.022521734, 0.112854555, -0.018064857)
-                                                                                            Scale = (1, 0.99999994, 1)
-                                                                                            Rotation = {
-                                                                                                X = -0.029902522
-                                                                                                Y = 0.04852141
-                                                                                                Z = 0.15313955
-                                                                                                W = 0.9865596
-                                                                                            }
-                                                                                        }
-                                                                                        UUID = "b49938ed-26c2-4710-b53f-06b5f88b083f"
-                                                                                        NodeFlags = MobilityStatic
-                                                                                        LocalBounds = {
-                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                        }
-                                                                                        LocalTransform = {
-                                                                                            Translation = (0.022521734, 0.112854555, -0.018064857)
-                                                                                            Scale = (1, 0.99999994, 1)
-                                                                                            Rotation = {
-                                                                                                X = -0.029902522
-                                                                                                Y = 0.04852141
-                                                                                                Z = 0.15313955
-                                                                                                W = 0.9865596
-                                                                                            }
-                                                                                        }
-                                                                                        Children = [
-                                                                                            Bone index_02_l {
-                                                                                                BoneName = index_02_l
-                                                                                                BoneMatrix = [
-                                                                                                    [1, 4.656613e-10, -9.313226e-10, 5.9604645e-08]
-                                                                                                    [-9.313226e-10, 1, 0, 0]
-                                                                                                    [4.656613e-10, 2.9802322e-08, 1, -2.9802322e-08]
-                                                                                                    [0, 0, 0, 1]
-                                                                                                ]
-                                                                                                BindingTransform = {
-                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
-                                                                                                    Scale = (1, 1.0000001, 1.0000001)
-                                                                                                    Rotation = {
-                                                                                                        X = -0.07683188
-                                                                                                        Y = 0.027742919
-                                                                                                        Z = 0.07371237
-                                                                                                        W = 0.99392843
-                                                                                                    }
-                                                                                                }
-                                                                                                UUID = "0f0e36cb-a96e-4e26-8592-2d733b733acf"
-                                                                                                NodeFlags = MobilityStatic
-                                                                                                LocalBounds = {
-                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                                }
-                                                                                                LocalTransform = {
-                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
-                                                                                                    Scale = (1, 1.0000001, 1.0000001)
-                                                                                                    Rotation = {
-                                                                                                        X = -0.07683188
-                                                                                                        Y = 0.027742919
-                                                                                                        Z = 0.07371237
-                                                                                                        W = 0.99392843
-                                                                                                    }
-                                                                                                }
-                                                                                                Children = [
-                                                                                                    Bone index_03_l {
-                                                                                                        BoneName = index_03_l
-                                                                                                        BoneMatrix = [
-                                                                                                            [0.99999994, 0, 1.1175871e-08, 0]
-                                                                                                            [0, 1, -5.9604645e-08, -5.9604645e-08]
-                                                                                                            [-7.450581e-09, 0, 1, -2.9802322e-08]
-                                                                                                            [0, 0, 0, 1]
-                                                                                                        ]
-                                                                                                        BindingTransform = {
-                                                                                                            Translation = (5.9604645e-08, 0.025366575, 5.9604645e-08)
-                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
-                                                                                                            Rotation = {
-                                                                                                                X = -0.0325477
-                                                                                                                Y = 0.020572495
-                                                                                                                Z = 0.053871553
-                                                                                                                W = 0.9978053
-                                                                                                            }
-                                                                                                        }
-                                                                                                        UUID = "9d300d29-9f02-444d-968b-531fc2c49732"
-                                                                                                        NodeFlags = MobilityStatic
-                                                                                                        LocalBounds = {
-                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                                        }
-                                                                                                        LocalTransform = {
-                                                                                                            Translation = (5.9604645e-08, 0.025366575, 5.9604645e-08)
-                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
-                                                                                                            Rotation = {
-                                                                                                                X = -0.0325477
-                                                                                                                Y = 0.020572495
-                                                                                                                Z = 0.053871553
-                                                                                                                W = 0.9978053
-                                                                                                            }
-                                                                                                        }
-                                                                                                        Children = []
-                                                                                                        NodeTags = {
-                                                                                                            Values = []
-                                                                                                        }
-                                                                                                    }
-                                                                                                ]
-                                                                                                NodeTags = {
-                                                                                                    Values = []
-                                                                                                }
-                                                                                            }
-                                                                                        ]
-                                                                                        NodeTags = {
-                                                                                            Values = []
-                                                                                        }
-                                                                                    }
-                                                                                    Bone middle_01_l {
-                                                                                        BoneName = middle_01_l
-                                                                                        BoneMatrix = [
-                                                                                            [0.99999994, 0, 7.450581e-09, 0]
-                                                                                            [7.450581e-09, 0.99999994, 2.9802322e-08, 1.1920929e-07]
-                                                                                            [0, -2.9802322e-08, 1, 5.9604645e-08]
-                                                                                            [0, 0, 0, 1]
-                                                                                        ]
-                                                                                        BindingTransform = {
-                                                                                            Translation = (8.940697e-08, 0.11218986, 1.1920929e-07)
-                                                                                            Scale = (1.0000001, 1.0000001, 1.0000001)
-                                                                                            Rotation = {
-                                                                                                X = -0.15743701
-                                                                                                Y = 0.06277988
-                                                                                                Z = 0.09215772
-                                                                                                W = 0.98121315
-                                                                                            }
-                                                                                        }
-                                                                                        UUID = "2952e19b-ab66-4b01-b1ff-9b13590204a7"
-                                                                                        NodeFlags = MobilityStatic
-                                                                                        LocalBounds = {
-                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                        }
-                                                                                        LocalTransform = {
-                                                                                            Translation = (8.940697e-08, 0.11218986, 1.1920929e-07)
-                                                                                            Scale = (1.0000001, 1.0000001, 1.0000001)
-                                                                                            Rotation = {
-                                                                                                X = -0.15743701
-                                                                                                Y = 0.06277988
-                                                                                                Z = 0.09215772
-                                                                                                W = 0.98121315
-                                                                                            }
-                                                                                        }
-                                                                                        Children = [
-                                                                                            Bone middle_02_l {
-                                                                                                BoneName = middle_02_l
-                                                                                                BoneMatrix = [
-                                                                                                    [0.99999994, -3.7252903e-09, 0, 0]
-                                                                                                    [-3.7252903e-09, 0.9999999, -2.9802322e-08, -5.9604645e-08]
-                                                                                                    [-3.7252903e-09, 0, 0.9999999, 0]
-                                                                                                    [0, 0, 0, 0.99999994]
-                                                                                                ]
-                                                                                                BindingTransform = {
-                                                                                                    Translation = (5.9604645e-08, 0.03686011, -5.9604645e-08)
-                                                                                                    Scale = (0.99999994, 0.9999997, 1)
-                                                                                                    Rotation = {
-                                                                                                        X = -0.0016482953
-                                                                                                        Y = 0.027311618
-                                                                                                        Z = 0.059534304
-                                                                                                        W = 0.9978512
-                                                                                                    }
-                                                                                                }
-                                                                                                UUID = "cc027944-6008-4776-b6e6-8e23763e61ab"
-                                                                                                NodeFlags = MobilityStatic
-                                                                                                LocalBounds = {
-                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                                }
-                                                                                                LocalTransform = {
-                                                                                                    Translation = (5.9604645e-08, 0.03686011, -5.9604645e-08)
-                                                                                                    Scale = (0.99999994, 0.9999997, 1)
-                                                                                                    Rotation = {
-                                                                                                        X = -0.0016482953
-                                                                                                        Y = 0.027311618
-                                                                                                        Z = 0.059534304
-                                                                                                        W = 0.9978512
-                                                                                                    }
-                                                                                                }
-                                                                                                Children = [
-                                                                                                    Bone middle_03_l {
-                                                                                                        BoneName = middle_03_l
-                                                                                                        BoneMatrix = [
-                                                                                                            [1, -1.1641532e-10, 0, 1.1920929e-07]
-                                                                                                            [-1.1641532e-10, 1, 0, -5.9604645e-08]
-                                                                                                            [2.3283064e-10, -5.9604645e-08, 1, 2.9802322e-08]
-                                                                                                            [0, 0, 0, 1]
-                                                                                                        ]
-                                                                                                        BindingTransform = {
-                                                                                                            Translation = (1.1920929e-07, 0.029987037, 1.7881393e-07)
-                                                                                                            Scale = (0.99999994, 0.9999999, 0.99999994)
-                                                                                                            Rotation = {
-                                                                                                                X = -0.045771755
-                                                                                                                Y = 0.025748054
-                                                                                                                Z = 0.0503389
-                                                                                                                W = 0.9973505
-                                                                                                            }
-                                                                                                        }
-                                                                                                        UUID = "334a491d-0337-4171-973b-26f012a85b87"
-                                                                                                        NodeFlags = MobilityStatic
-                                                                                                        LocalBounds = {
-                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                                        }
-                                                                                                        LocalTransform = {
-                                                                                                            Translation = (1.1920929e-07, 0.029987037, 1.7881393e-07)
-                                                                                                            Scale = (0.99999994, 0.9999999, 0.99999994)
-                                                                                                            Rotation = {
-                                                                                                                X = -0.045771755
-                                                                                                                Y = 0.025748054
-                                                                                                                Z = 0.0503389
-                                                                                                                W = 0.9973505
-                                                                                                            }
-                                                                                                        }
-                                                                                                        Children = []
-                                                                                                        NodeTags = {
-                                                                                                            Values = []
-                                                                                                        }
-                                                                                                    }
-                                                                                                ]
-                                                                                                NodeTags = {
-                                                                                                    Values = []
-                                                                                                }
-                                                                                            }
-                                                                                        ]
-                                                                                        NodeTags = {
-                                                                                            Values = []
-                                                                                        }
-                                                                                    }
                                                                                     Bone pinky_01_l {
                                                                                         BoneName = pinky_01_l
                                                                                         BoneMatrix = [
@@ -765,7 +447,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.95533437
                                                                                             }
                                                                                         }
-                                                                                        UUID = "37c196f3-28ad-4002-bfb4-6efa26fa97c5"
+                                                                                        UUID = "56a97e4c-8bf0-423b-8772-b7a9efd62b57"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -785,22 +467,22 @@ Skeleton MannequinRig {
                                                                                             Bone pinky_02_l {
                                                                                                 BoneName = pinky_02_l
                                                                                                 BoneMatrix = [
-                                                                                                    [1, -1.8626451e-09, 0, 5.9604645e-08]
-                                                                                                    [-1.8626451e-09, 1, -2.9802322e-08, -1.1920929e-07]
-                                                                                                    [7.450581e-09, 0, 1, 0]
+                                                                                                    [1.0000001, 7.450581e-09, 0, -1.1920929e-07]
+                                                                                                    [1.8626451e-09, 1, 2.9802322e-08, 0]
+                                                                                                    [0, -2.9802322e-08, 1.0000001, -2.9802322e-08]
                                                                                                     [0, 0, 0, 1]
                                                                                                 ]
                                                                                                 BindingTransform = {
                                                                                                     Translation = (0, 0.023309767, -5.9604645e-08)
                                                                                                     Scale = (1.0000001, 1.0000002, 1.0000001)
                                                                                                     Rotation = {
-                                                                                                        X = -0.013529143
-                                                                                                        Y = 0.05588169
-                                                                                                        Z = 0.08418768
-                                                                                                        W = 0.9947897
+                                                                                                        X = -0.013529145
+                                                                                                        Y = 0.055881698
+                                                                                                        Z = 0.08418769
+                                                                                                        W = 0.99478984
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "02bca5e1-31ae-47c7-9ab0-921d7932ba07"
+                                                                                                UUID = "be908357-8127-4f3e-b893-8288ca521d29"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -810,19 +492,19 @@ Skeleton MannequinRig {
                                                                                                     Translation = (0, 0.023309767, -5.9604645e-08)
                                                                                                     Scale = (1.0000001, 1.0000002, 1.0000001)
                                                                                                     Rotation = {
-                                                                                                        X = -0.013529143
-                                                                                                        Y = 0.05588169
-                                                                                                        Z = 0.08418768
-                                                                                                        W = 0.9947897
+                                                                                                        X = -0.013529145
+                                                                                                        Y = 0.055881698
+                                                                                                        Z = 0.08418769
+                                                                                                        W = 0.99478984
                                                                                                     }
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Bone pinky_03_l {
                                                                                                         BoneName = pinky_03_l
                                                                                                         BoneMatrix = [
-                                                                                                            [1, -7.450581e-09, -1.4901161e-08, 0]
-                                                                                                            [1.1175871e-08, 1, -2.9802322e-08, 5.9604645e-08]
-                                                                                                            [-7.450581e-09, 5.9604645e-08, 1, 0]
+                                                                                                            [1, 3.7252903e-09, -1.4901161e-08, 0]
+                                                                                                            [1.1175871e-08, 1, 0, -5.9604645e-08]
+                                                                                                            [0, 2.9802322e-08, 1, 0]
                                                                                                             [0, 0, 0, 1]
                                                                                                         ]
                                                                                                         BindingTransform = {
@@ -835,7 +517,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.9999188
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "c90c7d90-2271-426f-b32b-55278c8d831d"
+                                                                                                        UUID = "10a95849-f7b6-4ad4-a0a4-ef8524ecbf94"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -884,7 +566,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.9742056
                                                                                             }
                                                                                         }
-                                                                                        UUID = "7c90ea74-8841-4b78-83b9-0b39959a4c01"
+                                                                                        UUID = "66cd027a-63ed-4433-b87c-3f7f8e775966"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -919,7 +601,7 @@ Skeleton MannequinRig {
                                                                                                         W = 0.996603
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "c8e1f8e2-b832-4eef-9d85-a153310e353b"
+                                                                                                UUID = "0c06d9a7-951d-432a-adde-1a40d11e255d"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -954,7 +636,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.99706215
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "d12ec111-c6ce-45cd-9270-1de0925947b5"
+                                                                                                        UUID = "9181ed87-97dc-4dda-8e05-eaf18becf7f0"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1003,7 +685,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.81810373
                                                                                             }
                                                                                         }
-                                                                                        UUID = "7f7b78a8-7aff-4eba-92ea-7ec21dc17d3c"
+                                                                                        UUID = "478b251d-bbaf-43bf-b9c7-9401cccdedb2"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1023,22 +705,22 @@ Skeleton MannequinRig {
                                                                                             Bone thumb_02_l {
                                                                                                 BoneName = thumb_02_l
                                                                                                 BoneMatrix = [
-                                                                                                    [1, -1.4901161e-08, -1.3038516e-08, 2.9802322e-08]
+                                                                                                    [1.0000001, -1.1175871e-08, -1.4901161e-08, -2.9802322e-08]
                                                                                                     [3.7252903e-09, 1, 0, 0]
-                                                                                                    [-1.8626451e-09, -2.9802322e-08, 1, 2.9802322e-08]
+                                                                                                    [7.450581e-09, -2.9802322e-08, 1, -2.9802322e-08]
                                                                                                     [0, 0, 0, 1]
                                                                                                 ]
                                                                                                 BindingTransform = {
                                                                                                     Translation = (-1.1920929e-07, 0.033530027, -2.3841858e-07)
                                                                                                     Scale = (1.0000002, 1.0000001, 1.0000002)
                                                                                                     Rotation = {
-                                                                                                        X = -0.03388268
-                                                                                                        Y = -0.041912336
-                                                                                                        Z = -0.190972
-                                                                                                        W = 0.9801149
+                                                                                                        X = -0.033882678
+                                                                                                        Y = -0.041912332
+                                                                                                        Z = -0.19097197
+                                                                                                        W = 0.98011476
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "ec98ff81-70e4-4bf8-aa1c-c0ece99f0b4a"
+                                                                                                UUID = "863660ec-0a58-4997-81de-aee56ced10bc"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1048,19 +730,19 @@ Skeleton MannequinRig {
                                                                                                     Translation = (-1.1920929e-07, 0.033530027, -2.3841858e-07)
                                                                                                     Scale = (1.0000002, 1.0000001, 1.0000002)
                                                                                                     Rotation = {
-                                                                                                        X = -0.03388268
-                                                                                                        Y = -0.041912336
-                                                                                                        Z = -0.190972
-                                                                                                        W = 0.9801149
+                                                                                                        X = -0.033882678
+                                                                                                        Y = -0.041912332
+                                                                                                        Z = -0.19097197
+                                                                                                        W = 0.98011476
                                                                                                     }
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Bone thumb_03_l {
                                                                                                         BoneName = thumb_03_l
                                                                                                         BoneMatrix = [
-                                                                                                            [1, 0, 0, 5.9604645e-08]
-                                                                                                            [-3.7252903e-09, 1, 0, -1.1920929e-07]
-                                                                                                            [-3.7252903e-09, -2.9802322e-08, 1, 0]
+                                                                                                            [1, 7.450581e-09, -7.450581e-09, 0]
+                                                                                                            [-7.450581e-09, 1, 0, 0]
+                                                                                                            [-1.4901161e-08, 0, 1, 5.9604645e-08]
                                                                                                             [0, 0, 0, 1]
                                                                                                         ]
                                                                                                         BindingTransform = {
@@ -1073,7 +755,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.98844314
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "0dded232-f185-4167-b866-a5b76fbb597e"
+                                                                                                        UUID = "1e55d747-06f9-4ec7-9599-6484d6de7aba"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1087,6 +769,244 @@ Skeleton MannequinRig {
                                                                                                                 Y = -0.036131296
                                                                                                                 Z = -0.064134896
                                                                                                                 W = 0.98844314
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = []
+                                                                                                        NodeTags = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                NodeTags = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                        ]
+                                                                                        NodeTags = {
+                                                                                            Values = []
+                                                                                        }
+                                                                                    }
+                                                                                    Bone index_01_l {
+                                                                                        BoneName = index_01_l
+                                                                                        BoneMatrix = [
+                                                                                            [0.99999994, 0, 7.450581e-09, 0]
+                                                                                            [3.7252903e-09, 0.9999999, 5.9604645e-08, 0]
+                                                                                            [0, 0, 0.9999999, 2.9802322e-08]
+                                                                                            [0, 0, 0, 0.99999994]
+                                                                                        ]
+                                                                                        BindingTransform = {
+                                                                                            Translation = (0.022521734, 0.112854555, -0.018064857)
+                                                                                            Scale = (1, 0.99999994, 1)
+                                                                                            Rotation = {
+                                                                                                X = -0.029902522
+                                                                                                Y = 0.04852141
+                                                                                                Z = 0.15313955
+                                                                                                W = 0.9865596
+                                                                                            }
+                                                                                        }
+                                                                                        UUID = "4082b900-9bc1-4534-a2c4-dece1f6f1627"
+                                                                                        NodeFlags = MobilityStatic
+                                                                                        LocalBounds = {
+                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                        }
+                                                                                        LocalTransform = {
+                                                                                            Translation = (0.022521734, 0.112854555, -0.018064857)
+                                                                                            Scale = (1, 0.99999994, 1)
+                                                                                            Rotation = {
+                                                                                                X = -0.029902522
+                                                                                                Y = 0.04852141
+                                                                                                Z = 0.15313955
+                                                                                                W = 0.9865596
+                                                                                            }
+                                                                                        }
+                                                                                        Children = [
+                                                                                            Bone index_02_l {
+                                                                                                BoneName = index_02_l
+                                                                                                BoneMatrix = [
+                                                                                                    [1, 4.656613e-10, -9.313226e-10, 5.9604645e-08]
+                                                                                                    [-9.313226e-10, 1, 0, 0]
+                                                                                                    [4.656613e-10, 2.9802322e-08, 1, -2.9802322e-08]
+                                                                                                    [0, 0, 0, 1]
+                                                                                                ]
+                                                                                                BindingTransform = {
+                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
+                                                                                                    Scale = (1, 1.0000001, 1.0000001)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.07683188
+                                                                                                        Y = 0.027742919
+                                                                                                        Z = 0.07371237
+                                                                                                        W = 0.99392843
+                                                                                                    }
+                                                                                                }
+                                                                                                UUID = "6890aad6-ce4b-4278-b0c8-5384c4c1fd6b"
+                                                                                                NodeFlags = MobilityStatic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
+                                                                                                    Scale = (1, 1.0000001, 1.0000001)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.07683188
+                                                                                                        Y = 0.027742919
+                                                                                                        Z = 0.07371237
+                                                                                                        W = 0.99392843
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Bone index_03_l {
+                                                                                                        BoneName = index_03_l
+                                                                                                        BoneMatrix = [
+                                                                                                            [0.99999994, 0, 1.1175871e-08, 0]
+                                                                                                            [0, 1, -5.9604645e-08, -5.9604645e-08]
+                                                                                                            [-7.450581e-09, 0, 1, -2.9802322e-08]
+                                                                                                            [0, 0, 0, 1]
+                                                                                                        ]
+                                                                                                        BindingTransform = {
+                                                                                                            Translation = (5.9604645e-08, 0.025366575, 5.9604645e-08)
+                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.0325477
+                                                                                                                Y = 0.020572495
+                                                                                                                Z = 0.053871553
+                                                                                                                W = 0.9978053
+                                                                                                            }
+                                                                                                        }
+                                                                                                        UUID = "57cd4b72-906a-4c6b-a402-91eed286580c"
+                                                                                                        NodeFlags = MobilityStatic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (5.9604645e-08, 0.025366575, 5.9604645e-08)
+                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.0325477
+                                                                                                                Y = 0.020572495
+                                                                                                                Z = 0.053871553
+                                                                                                                W = 0.9978053
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = []
+                                                                                                        NodeTags = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                NodeTags = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                        ]
+                                                                                        NodeTags = {
+                                                                                            Values = []
+                                                                                        }
+                                                                                    }
+                                                                                    Bone middle_01_l {
+                                                                                        BoneName = middle_01_l
+                                                                                        BoneMatrix = [
+                                                                                            [0.99999994, 0, 7.450581e-09, 0]
+                                                                                            [7.450581e-09, 0.99999994, 2.9802322e-08, 1.1920929e-07]
+                                                                                            [0, -2.9802322e-08, 1, 5.9604645e-08]
+                                                                                            [0, 0, 0, 1]
+                                                                                        ]
+                                                                                        BindingTransform = {
+                                                                                            Translation = (8.940697e-08, 0.11218986, 1.1920929e-07)
+                                                                                            Scale = (1.0000001, 1.0000001, 1.0000001)
+                                                                                            Rotation = {
+                                                                                                X = -0.15743701
+                                                                                                Y = 0.06277988
+                                                                                                Z = 0.09215772
+                                                                                                W = 0.98121315
+                                                                                            }
+                                                                                        }
+                                                                                        UUID = "8e852fbc-c45c-48b7-add5-5638dc7743f6"
+                                                                                        NodeFlags = MobilityStatic
+                                                                                        LocalBounds = {
+                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                        }
+                                                                                        LocalTransform = {
+                                                                                            Translation = (8.940697e-08, 0.11218986, 1.1920929e-07)
+                                                                                            Scale = (1.0000001, 1.0000001, 1.0000001)
+                                                                                            Rotation = {
+                                                                                                X = -0.15743701
+                                                                                                Y = 0.06277988
+                                                                                                Z = 0.09215772
+                                                                                                W = 0.98121315
+                                                                                            }
+                                                                                        }
+                                                                                        Children = [
+                                                                                            Bone middle_02_l {
+                                                                                                BoneName = middle_02_l
+                                                                                                BoneMatrix = [
+                                                                                                    [0.99999994, -3.7252903e-09, 0, 0]
+                                                                                                    [-3.7252903e-09, 0.9999999, -2.9802322e-08, -5.9604645e-08]
+                                                                                                    [-3.7252903e-09, 0, 0.9999999, 0]
+                                                                                                    [0, 0, 0, 0.99999994]
+                                                                                                ]
+                                                                                                BindingTransform = {
+                                                                                                    Translation = (5.9604645e-08, 0.03686011, -5.9604645e-08)
+                                                                                                    Scale = (0.99999994, 0.9999997, 1)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.0016482953
+                                                                                                        Y = 0.027311618
+                                                                                                        Z = 0.059534304
+                                                                                                        W = 0.9978512
+                                                                                                    }
+                                                                                                }
+                                                                                                UUID = "2d85b49a-60e6-4807-abe4-5f3adcc440d6"
+                                                                                                NodeFlags = MobilityStatic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (5.9604645e-08, 0.03686011, -5.9604645e-08)
+                                                                                                    Scale = (0.99999994, 0.9999997, 1)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.0016482953
+                                                                                                        Y = 0.027311618
+                                                                                                        Z = 0.059534304
+                                                                                                        W = 0.9978512
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Bone middle_03_l {
+                                                                                                        BoneName = middle_03_l
+                                                                                                        BoneMatrix = [
+                                                                                                            [1, -1.1641532e-10, 0, 1.1920929e-07]
+                                                                                                            [-1.1641532e-10, 1, 0, -5.9604645e-08]
+                                                                                                            [2.3283064e-10, -5.9604645e-08, 1, 2.9802322e-08]
+                                                                                                            [0, 0, 0, 1]
+                                                                                                        ]
+                                                                                                        BindingTransform = {
+                                                                                                            Translation = (1.1920929e-07, 0.029987037, 1.7881393e-07)
+                                                                                                            Scale = (0.99999994, 0.9999999, 0.99999994)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.045771755
+                                                                                                                Y = 0.025748054
+                                                                                                                Z = 0.0503389
+                                                                                                                W = 0.9973505
+                                                                                                            }
+                                                                                                        }
+                                                                                                        UUID = "910e9c24-5a87-45e3-9242-87a51b55930a"
+                                                                                                        NodeFlags = MobilityStatic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (1.1920929e-07, 0.029987037, 1.7881393e-07)
+                                                                                                            Scale = (0.99999994, 0.9999999, 0.99999994)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.045771755
+                                                                                                                Y = 0.025748054
+                                                                                                                Z = 0.0503389
+                                                                                                                W = 0.9973505
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
@@ -1142,7 +1062,7 @@ Skeleton MannequinRig {
                                                                 W = 0.3655314
                                                             }
                                                         }
-                                                        UUID = "2dfc6d1a-ce66-4362-af66-e92f343875b8"
+                                                        UUID = "8960be32-6cbb-45b3-a1b2-4d416fe426bd"
                                                         NodeFlags = MobilityStatic
                                                         LocalBounds = {
                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1177,7 +1097,7 @@ Skeleton MannequinRig {
                                                                         W = 0.88187397
                                                                     }
                                                                 }
-                                                                UUID = "61272b84-ddc8-42a7-8de2-c1c4c6aca97d"
+                                                                UUID = "3f516322-60cb-4b0d-9995-bfee7ba1dfed"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1212,7 +1132,7 @@ Skeleton MannequinRig {
                                                                                 W = 0.9179255
                                                                             }
                                                                         }
-                                                                        UUID = "52c36449-51c8-49bb-ac46-c8225c743ef6"
+                                                                        UUID = "7f80fbe2-a1a1-48d1-a3b5-66199f392bf3"
                                                                         NodeFlags = MobilityStatic
                                                                         LocalBounds = {
                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1247,7 +1167,7 @@ Skeleton MannequinRig {
                                                                                         W = 0.9988656
                                                                                     }
                                                                                 }
-                                                                                UUID = "ffa551bf-7585-437c-a73d-6fcb1f8ef74a"
+                                                                                UUID = "d3dfcf34-c072-4032-9293-bc4b8c8c6311"
                                                                                 NodeFlags = MobilityStatic
                                                                                 LocalBounds = {
                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1264,125 +1184,6 @@ Skeleton MannequinRig {
                                                                                     }
                                                                                 }
                                                                                 Children = [
-                                                                                    Bone index_01_r {
-                                                                                        BoneName = index_01_r
-                                                                                        BoneMatrix = [
-                                                                                            [0.99999994, 0, -7.450581e-09, 0]
-                                                                                            [-3.7252903e-09, 0.9999999, 5.9604645e-08, 0]
-                                                                                            [0, 0, 0.9999999, 2.9802322e-08]
-                                                                                            [0, 0, 0, 0.99999994]
-                                                                                        ]
-                                                                                        BindingTransform = {
-                                                                                            Translation = (-0.022521734, 0.112854555, -0.018064857)
-                                                                                            Scale = (1, 0.99999994, 1)
-                                                                                            Rotation = {
-                                                                                                X = -0.029902522
-                                                                                                Y = -0.04852141
-                                                                                                Z = -0.15313955
-                                                                                                W = 0.9865596
-                                                                                            }
-                                                                                        }
-                                                                                        UUID = "b283bc78-f73c-428a-8f98-0c686bfc99b7"
-                                                                                        NodeFlags = MobilityStatic
-                                                                                        LocalBounds = {
-                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                        }
-                                                                                        LocalTransform = {
-                                                                                            Translation = (-0.022521734, 0.112854555, -0.018064857)
-                                                                                            Scale = (1, 0.99999994, 1)
-                                                                                            Rotation = {
-                                                                                                X = -0.029902522
-                                                                                                Y = -0.04852141
-                                                                                                Z = -0.15313955
-                                                                                                W = 0.9865596
-                                                                                            }
-                                                                                        }
-                                                                                        Children = [
-                                                                                            Bone index_02_r {
-                                                                                                BoneName = index_02_r
-                                                                                                BoneMatrix = [
-                                                                                                    [1, -4.656613e-10, 9.313226e-10, -5.9604645e-08]
-                                                                                                    [9.313226e-10, 1, 0, 0]
-                                                                                                    [-4.656613e-10, 2.9802322e-08, 1, -2.9802322e-08]
-                                                                                                    [0, 0, 0, 1]
-                                                                                                ]
-                                                                                                BindingTransform = {
-                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
-                                                                                                    Scale = (1, 1.0000001, 1.0000001)
-                                                                                                    Rotation = {
-                                                                                                        X = -0.07683188
-                                                                                                        Y = -0.027742919
-                                                                                                        Z = -0.07371237
-                                                                                                        W = 0.99392843
-                                                                                                    }
-                                                                                                }
-                                                                                                UUID = "51e4f8cf-8350-40f1-8c9f-8ed67ce759db"
-                                                                                                NodeFlags = MobilityStatic
-                                                                                                LocalBounds = {
-                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                                }
-                                                                                                LocalTransform = {
-                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
-                                                                                                    Scale = (1, 1.0000001, 1.0000001)
-                                                                                                    Rotation = {
-                                                                                                        X = -0.07683188
-                                                                                                        Y = -0.027742919
-                                                                                                        Z = -0.07371237
-                                                                                                        W = 0.99392843
-                                                                                                    }
-                                                                                                }
-                                                                                                Children = [
-                                                                                                    Bone index_03_r {
-                                                                                                        BoneName = index_03_r
-                                                                                                        BoneMatrix = [
-                                                                                                            [0.99999994, 0, -1.1175871e-08, 0]
-                                                                                                            [0, 1, -5.9604645e-08, -5.9604645e-08]
-                                                                                                            [7.450581e-09, 0, 1, -2.9802322e-08]
-                                                                                                            [0, 0, 0, 1]
-                                                                                                        ]
-                                                                                                        BindingTransform = {
-                                                                                                            Translation = (-5.9604645e-08, 0.025366575, 5.9604645e-08)
-                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
-                                                                                                            Rotation = {
-                                                                                                                X = -0.0325477
-                                                                                                                Y = -0.020572495
-                                                                                                                Z = -0.053871553
-                                                                                                                W = 0.9978053
-                                                                                                            }
-                                                                                                        }
-                                                                                                        UUID = "23671bf4-a6cc-46f3-86ec-d0eb3b869bb7"
-                                                                                                        NodeFlags = MobilityStatic
-                                                                                                        LocalBounds = {
-                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                                                        }
-                                                                                                        LocalTransform = {
-                                                                                                            Translation = (-5.9604645e-08, 0.025366575, 5.9604645e-08)
-                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
-                                                                                                            Rotation = {
-                                                                                                                X = -0.0325477
-                                                                                                                Y = -0.020572495
-                                                                                                                Z = -0.053871553
-                                                                                                                W = 0.9978053
-                                                                                                            }
-                                                                                                        }
-                                                                                                        Children = []
-                                                                                                        NodeTags = {
-                                                                                                            Values = []
-                                                                                                        }
-                                                                                                    }
-                                                                                                ]
-                                                                                                NodeTags = {
-                                                                                                    Values = []
-                                                                                                }
-                                                                                            }
-                                                                                        ]
-                                                                                        NodeTags = {
-                                                                                            Values = []
-                                                                                        }
-                                                                                    }
                                                                                     Bone middle_01_r {
                                                                                         BoneName = middle_01_r
                                                                                         BoneMatrix = [
@@ -1401,7 +1202,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.98121315
                                                                                             }
                                                                                         }
-                                                                                        UUID = "633d10a5-5b38-48e5-9188-4db4151aaa84"
+                                                                                        UUID = "0feffb2f-26e6-4052-a916-620ddb7f735d"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1436,7 +1237,7 @@ Skeleton MannequinRig {
                                                                                                         W = 0.9978512
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "f956a0dd-1e5a-40d4-841c-afceef005b6b"
+                                                                                                UUID = "28004138-622e-4c1b-924f-af93783c6af6"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1471,7 +1272,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.9973505
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "32a3b049-ee51-4f64-ad8f-7f249ee481b0"
+                                                                                                        UUID = "9c08457f-5314-4515-93b5-b75d2eb0cfd3"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1520,7 +1321,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.95533437
                                                                                             }
                                                                                         }
-                                                                                        UUID = "9f02e9a7-ec6c-42fe-ba3a-50ba71fe5735"
+                                                                                        UUID = "bf126220-0b84-4238-91fb-50d88be6ee40"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1540,22 +1341,22 @@ Skeleton MannequinRig {
                                                                                             Bone pinky_02_r {
                                                                                                 BoneName = pinky_02_r
                                                                                                 BoneMatrix = [
-                                                                                                    [1, 1.8626451e-09, 0, -5.9604645e-08]
-                                                                                                    [1.8626451e-09, 1, -2.9802322e-08, -1.1920929e-07]
-                                                                                                    [-7.450581e-09, 0, 1, 0]
+                                                                                                    [1.0000001, -7.450581e-09, 0, 1.1920929e-07]
+                                                                                                    [-1.8626451e-09, 1, 2.9802322e-08, 0]
+                                                                                                    [0, -2.9802322e-08, 1.0000001, -2.9802322e-08]
                                                                                                     [0, 0, 0, 1]
                                                                                                 ]
                                                                                                 BindingTransform = {
                                                                                                     Translation = (0, 0.023309767, -5.9604645e-08)
                                                                                                     Scale = (1.0000001, 1.0000002, 1.0000001)
                                                                                                     Rotation = {
-                                                                                                        X = -0.013529143
-                                                                                                        Y = -0.05588169
-                                                                                                        Z = -0.08418768
-                                                                                                        W = 0.9947897
+                                                                                                        X = -0.013529145
+                                                                                                        Y = -0.055881698
+                                                                                                        Z = -0.08418769
+                                                                                                        W = 0.99478984
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "5ec12baf-f6ee-46dc-9ea8-2d48610ea1fb"
+                                                                                                UUID = "5e22f480-d161-4463-bc9c-3b0fe7f4a12f"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1565,19 +1366,19 @@ Skeleton MannequinRig {
                                                                                                     Translation = (0, 0.023309767, -5.9604645e-08)
                                                                                                     Scale = (1.0000001, 1.0000002, 1.0000001)
                                                                                                     Rotation = {
-                                                                                                        X = -0.013529143
-                                                                                                        Y = -0.05588169
-                                                                                                        Z = -0.08418768
-                                                                                                        W = 0.9947897
+                                                                                                        X = -0.013529145
+                                                                                                        Y = -0.055881698
+                                                                                                        Z = -0.08418769
+                                                                                                        W = 0.99478984
                                                                                                     }
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Bone pinky_03_r {
                                                                                                         BoneName = pinky_03_r
                                                                                                         BoneMatrix = [
-                                                                                                            [1, 7.450581e-09, 1.4901161e-08, 0]
-                                                                                                            [-1.1175871e-08, 1, -2.9802322e-08, 5.9604645e-08]
-                                                                                                            [7.450581e-09, 5.9604645e-08, 1, 0]
+                                                                                                            [1, -3.7252903e-09, 1.4901161e-08, 0]
+                                                                                                            [-1.1175871e-08, 1, 0, -5.9604645e-08]
+                                                                                                            [0, 2.9802322e-08, 1, 0]
                                                                                                             [0, 0, 0, 1]
                                                                                                         ]
                                                                                                         BindingTransform = {
@@ -1590,7 +1391,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.9999188
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "eedb24c2-0f47-4688-9cb1-2ab0717eb8a9"
+                                                                                                        UUID = "83612cbd-8461-471d-a1be-46bc96750559"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1639,7 +1440,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.9742056
                                                                                             }
                                                                                         }
-                                                                                        UUID = "6cbb8553-ab4c-44f6-8e78-fe265fcc2e28"
+                                                                                        UUID = "f1a53e9a-2a39-4711-bc0a-b3a16340db8e"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1674,7 +1475,7 @@ Skeleton MannequinRig {
                                                                                                         W = 0.996603
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "fad0c8dc-c195-4477-8a02-06ce9d3710ff"
+                                                                                                UUID = "9443a86c-1918-4d59-8255-03dcbd747041"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1709,7 +1510,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.99706215
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "2fc48208-a12e-43ca-909a-a6a85782a045"
+                                                                                                        UUID = "7322c2b5-3c46-46a3-8c6e-3d87a5336c06"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1758,7 +1559,7 @@ Skeleton MannequinRig {
                                                                                                 W = 0.81810373
                                                                                             }
                                                                                         }
-                                                                                        UUID = "e96162cb-e803-4832-8080-0ffc74bf679a"
+                                                                                        UUID = "9c1ebfc8-3d53-4f0e-bf25-07c15bebbd89"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1778,22 +1579,22 @@ Skeleton MannequinRig {
                                                                                             Bone thumb_02_r {
                                                                                                 BoneName = thumb_02_r
                                                                                                 BoneMatrix = [
-                                                                                                    [1, 1.4901161e-08, 1.3038516e-08, -2.9802322e-08]
+                                                                                                    [1.0000001, 1.1175871e-08, 1.4901161e-08, 2.9802322e-08]
                                                                                                     [-3.7252903e-09, 1, 0, 0]
-                                                                                                    [1.8626451e-09, -2.9802322e-08, 1, 2.9802322e-08]
+                                                                                                    [-7.450581e-09, -2.9802322e-08, 1, -2.9802322e-08]
                                                                                                     [0, 0, 0, 1]
                                                                                                 ]
                                                                                                 BindingTransform = {
                                                                                                     Translation = (1.1920929e-07, 0.033530027, -2.3841858e-07)
                                                                                                     Scale = (1.0000002, 1.0000001, 1.0000002)
                                                                                                     Rotation = {
-                                                                                                        X = -0.03388268
-                                                                                                        Y = 0.041912336
-                                                                                                        Z = 0.190972
-                                                                                                        W = 0.9801149
+                                                                                                        X = -0.033882678
+                                                                                                        Y = 0.041912332
+                                                                                                        Z = 0.19097197
+                                                                                                        W = 0.98011476
                                                                                                     }
                                                                                                 }
-                                                                                                UUID = "27058c29-ea89-474c-908a-8d6f81b3aab0"
+                                                                                                UUID = "be0008cf-985d-4948-ba0a-4114ca3c6f19"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1803,19 +1604,19 @@ Skeleton MannequinRig {
                                                                                                     Translation = (1.1920929e-07, 0.033530027, -2.3841858e-07)
                                                                                                     Scale = (1.0000002, 1.0000001, 1.0000002)
                                                                                                     Rotation = {
-                                                                                                        X = -0.03388268
-                                                                                                        Y = 0.041912336
-                                                                                                        Z = 0.190972
-                                                                                                        W = 0.9801149
+                                                                                                        X = -0.033882678
+                                                                                                        Y = 0.041912332
+                                                                                                        Z = 0.19097197
+                                                                                                        W = 0.98011476
                                                                                                     }
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Bone thumb_03_r {
                                                                                                         BoneName = thumb_03_r
                                                                                                         BoneMatrix = [
-                                                                                                            [1, 0, 0, -5.9604645e-08]
-                                                                                                            [3.7252903e-09, 1, 0, -1.1920929e-07]
-                                                                                                            [3.7252903e-09, -2.9802322e-08, 1, 0]
+                                                                                                            [1, -7.450581e-09, 7.450581e-09, 0]
+                                                                                                            [7.450581e-09, 1, 0, 0]
+                                                                                                            [1.4901161e-08, 0, 1, 5.9604645e-08]
                                                                                                             [0, 0, 0, 1]
                                                                                                         ]
                                                                                                         BindingTransform = {
@@ -1828,7 +1629,7 @@ Skeleton MannequinRig {
                                                                                                                 W = 0.98844314
                                                                                                             }
                                                                                                         }
-                                                                                                        UUID = "5c959671-f257-406f-b817-8701cbbf371f"
+                                                                                                        UUID = "9511dab9-b352-404a-88e8-80d145d29e65"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1859,6 +1660,125 @@ Skeleton MannequinRig {
                                                                                             Values = []
                                                                                         }
                                                                                     }
+                                                                                    Bone index_01_r {
+                                                                                        BoneName = index_01_r
+                                                                                        BoneMatrix = [
+                                                                                            [0.99999994, 0, -7.450581e-09, 0]
+                                                                                            [-3.7252903e-09, 0.9999999, 5.9604645e-08, 0]
+                                                                                            [0, 0, 0.9999999, 2.9802322e-08]
+                                                                                            [0, 0, 0, 0.99999994]
+                                                                                        ]
+                                                                                        BindingTransform = {
+                                                                                            Translation = (-0.022521734, 0.112854555, -0.018064857)
+                                                                                            Scale = (1, 0.99999994, 1)
+                                                                                            Rotation = {
+                                                                                                X = -0.029902522
+                                                                                                Y = -0.04852141
+                                                                                                Z = -0.15313955
+                                                                                                W = 0.9865596
+                                                                                            }
+                                                                                        }
+                                                                                        UUID = "d09658df-c9d2-458c-a226-f534a7f12232"
+                                                                                        NodeFlags = MobilityStatic
+                                                                                        LocalBounds = {
+                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                        }
+                                                                                        LocalTransform = {
+                                                                                            Translation = (-0.022521734, 0.112854555, -0.018064857)
+                                                                                            Scale = (1, 0.99999994, 1)
+                                                                                            Rotation = {
+                                                                                                X = -0.029902522
+                                                                                                Y = -0.04852141
+                                                                                                Z = -0.15313955
+                                                                                                W = 0.9865596
+                                                                                            }
+                                                                                        }
+                                                                                        Children = [
+                                                                                            Bone index_02_r {
+                                                                                                BoneName = index_02_r
+                                                                                                BoneMatrix = [
+                                                                                                    [1, -4.656613e-10, 9.313226e-10, -5.9604645e-08]
+                                                                                                    [9.313226e-10, 1, 0, 0]
+                                                                                                    [-4.656613e-10, 2.9802322e-08, 1, -2.9802322e-08]
+                                                                                                    [0, 0, 0, 1]
+                                                                                                ]
+                                                                                                BindingTransform = {
+                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
+                                                                                                    Scale = (1, 1.0000001, 1.0000001)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.07683188
+                                                                                                        Y = -0.027742919
+                                                                                                        Z = -0.07371237
+                                                                                                        W = 0.99392843
+                                                                                                    }
+                                                                                                }
+                                                                                                UUID = "2e33f3c4-7566-4105-9c1a-8700b035bade"
+                                                                                                NodeFlags = MobilityStatic
+                                                                                                LocalBounds = {
+                                                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                }
+                                                                                                LocalTransform = {
+                                                                                                    Translation = (0, 0.028309107, 1.1920929e-07)
+                                                                                                    Scale = (1, 1.0000001, 1.0000001)
+                                                                                                    Rotation = {
+                                                                                                        X = -0.07683188
+                                                                                                        Y = -0.027742919
+                                                                                                        Z = -0.07371237
+                                                                                                        W = 0.99392843
+                                                                                                    }
+                                                                                                }
+                                                                                                Children = [
+                                                                                                    Bone index_03_r {
+                                                                                                        BoneName = index_03_r
+                                                                                                        BoneMatrix = [
+                                                                                                            [0.99999994, 0, -1.1175871e-08, 0]
+                                                                                                            [0, 1, -5.9604645e-08, -5.9604645e-08]
+                                                                                                            [7.450581e-09, 0, 1, -2.9802322e-08]
+                                                                                                            [0, 0, 0, 1]
+                                                                                                        ]
+                                                                                                        BindingTransform = {
+                                                                                                            Translation = (-5.9604645e-08, 0.025366575, 5.9604645e-08)
+                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.0325477
+                                                                                                                Y = -0.020572495
+                                                                                                                Z = -0.053871553
+                                                                                                                W = 0.9978053
+                                                                                                            }
+                                                                                                        }
+                                                                                                        UUID = "22f4f88e-9907-44c4-8446-4f7d6a363d54"
+                                                                                                        NodeFlags = MobilityStatic
+                                                                                                        LocalBounds = {
+                                                                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                                                                        }
+                                                                                                        LocalTransform = {
+                                                                                                            Translation = (-5.9604645e-08, 0.025366575, 5.9604645e-08)
+                                                                                                            Scale = (0.99999994, 0.9999999, 0.9999998)
+                                                                                                            Rotation = {
+                                                                                                                X = -0.0325477
+                                                                                                                Y = -0.020572495
+                                                                                                                Z = -0.053871553
+                                                                                                                W = 0.9978053
+                                                                                                            }
+                                                                                                        }
+                                                                                                        Children = []
+                                                                                                        NodeTags = {
+                                                                                                            Values = []
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                                NodeTags = {
+                                                                                                    Values = []
+                                                                                                }
+                                                                                            }
+                                                                                        ]
+                                                                                        NodeTags = {
+                                                                                            Values = []
+                                                                                        }
+                                                                                    }
                                                                                 ]
                                                                                 NodeTags = {
                                                                                     Values = []
@@ -1870,85 +1790,6 @@ Skeleton MannequinRig {
                                                                         }
                                                                     }
                                                                 ]
-                                                                NodeTags = {
-                                                                    Values = []
-                                                                }
-                                                            }
-                                                        ]
-                                                        NodeTags = {
-                                                            Values = []
-                                                        }
-                                                    }
-                                                    Bone neck {
-                                                        BoneName = neck
-                                                        BoneMatrix = [
-                                                            [1, 0, 0, 1.6940659e-21]
-                                                            [2.1175824e-22, 1.0000001, 0, 0]
-                                                            [0, 0, 1.0000001, -7.450581e-09]
-                                                            [0, 0, 0, 1]
-                                                        ]
-                                                        BindingTransform = {
-                                                            Translation = (-2.1175824e-22, 0.3317181, 0.092716336)
-                                                            Scale = (1, 1, 0.99999994)
-                                                            Rotation = {
-                                                                X = -0.2527026
-                                                                Y = -0
-                                                                Z = -1.915039e-22
-                                                                W = 0.967544
-                                                            }
-                                                        }
-                                                        UUID = "96ff0820-2259-4167-839c-09009e780830"
-                                                        NodeFlags = MobilityStatic
-                                                        LocalBounds = {
-                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                        }
-                                                        LocalTransform = {
-                                                            Translation = (-2.1175824e-22, 0.3317181, 0.092716336)
-                                                            Scale = (1, 1, 0.99999994)
-                                                            Rotation = {
-                                                                X = -0.2527026
-                                                                Y = -0
-                                                                Z = -1.915039e-22
-                                                                W = 0.967544
-                                                            }
-                                                        }
-                                                        Children = [
-                                                            Bone head {
-                                                                BoneName = head
-                                                                BoneMatrix = [
-                                                                    [1, -1.0587912e-22, -3.3881318e-21, 0]
-                                                                    [0, 1, 0, 0]
-                                                                    [-4.2351647e-22, 3.7252903e-09, 1, 3.7252903e-09]
-                                                                    [0, 0, 0, 1]
-                                                                ]
-                                                                BindingTransform = {
-                                                                    Translation = (-4.2351647e-22, 0.10318446, 2.9802322e-08)
-                                                                    Scale = (1, 1, 1)
-                                                                    Rotation = {
-                                                                        X = 0.19559474
-                                                                        Y = 1.0796448e-22
-                                                                        Z = -4.318579e-22
-                                                                        W = 0.9806848
-                                                                    }
-                                                                }
-                                                                UUID = "2c2c1236-4ff2-46a8-8886-8a5b9753422d"
-                                                                NodeFlags = MobilityStatic
-                                                                LocalBounds = {
-                                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
-                                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
-                                                                }
-                                                                LocalTransform = {
-                                                                    Translation = (-4.2351647e-22, 0.10318446, 2.9802322e-08)
-                                                                    Scale = (1, 1, 1)
-                                                                    Rotation = {
-                                                                        X = 0.19559474
-                                                                        Y = 1.0796448e-22
-                                                                        Z = -4.318579e-22
-                                                                        W = 0.9806848
-                                                                    }
-                                                                }
-                                                                Children = []
                                                                 NodeTags = {
                                                                     Values = []
                                                                 }
@@ -1991,7 +1832,7 @@ Skeleton MannequinRig {
                                         W = -0.13412395
                                     }
                                 }
-                                UUID = "709c2a51-d7b4-410a-a7a2-4ebd11c2fdec"
+                                UUID = "d76666c5-aeb5-4163-bf51-2e56d360622c"
                                 NodeFlags = MobilityStatic
                                 LocalBounds = {
                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -2026,7 +1867,7 @@ Skeleton MannequinRig {
                                                 W = 0.9984044
                                             }
                                         }
-                                        UUID = "33c03007-ea83-4a1b-9f2d-041ce9dd7e64"
+                                        UUID = "cfc93451-3c97-48c4-b785-47677078558d"
                                         NodeFlags = MobilityStatic
                                         LocalBounds = {
                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -2061,7 +1902,7 @@ Skeleton MannequinRig {
                                                         W = 0.84429735
                                                     }
                                                 }
-                                                UUID = "ee855ff9-c7b7-4e90-bca1-4ffc6d7406e4"
+                                                UUID = "98192cde-8c91-463b-9629-e9fb713f9509"
                                                 NodeFlags = MobilityStatic
                                                 LocalBounds = {
                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -2096,7 +1937,7 @@ Skeleton MannequinRig {
                                                                 W = 0.9621005
                                                             }
                                                         }
-                                                        UUID = "b44cb396-08f8-4d7c-abd7-a2db1c018689"
+                                                        UUID = "62b43980-00e3-4778-90dd-b8eec5e06679"
                                                         NodeFlags = MobilityStatic
                                                         LocalBounds = {
                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -2109,6 +1950,165 @@ Skeleton MannequinRig {
                                                                 X = 0.26911312
                                                                 Y = 0.006321767
                                                                 Z = 0.04360028
+                                                                W = 0.9621005
+                                                            }
+                                                        }
+                                                        Children = []
+                                                        NodeTags = {
+                                                            Values = []
+                                                        }
+                                                    }
+                                                ]
+                                                NodeTags = {
+                                                    Values = []
+                                                }
+                                            }
+                                        ]
+                                        NodeTags = {
+                                            Values = []
+                                        }
+                                    }
+                                ]
+                                NodeTags = {
+                                    Values = []
+                                }
+                            }
+                            Bone thigh_r {
+                                BoneName = thigh_r
+                                BoneMatrix = [
+                                    [1.0000001, 3.7252903e-09, 0, 0]
+                                    [-5.5879354e-09, 1, 0, 0]
+                                    [0, 0, 1.0000001, 1.2572855e-08]
+                                    [0, 0, 0, 1]
+                                ]
+                                BindingTransform = {
+                                    Translation = (0.10853511, -0.0016545057, -0.0118278265)
+                                    Scale = (0.99999964, 0.9999998, 0.9999966)
+                                    Rotation = {
+                                        X = -0.98894006
+                                        Y = -0.051980026
+                                        Z = 0.036146063
+                                        W = -0.13412395
+                                    }
+                                }
+                                UUID = "6135838e-b438-4889-b77d-8bfa71859885"
+                                NodeFlags = MobilityStatic
+                                LocalBounds = {
+                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                }
+                                LocalTransform = {
+                                    Translation = (0.10853511, -0.0016545057, -0.0118278265)
+                                    Scale = (0.99999964, 0.9999998, 0.9999966)
+                                    Rotation = {
+                                        X = -0.98894006
+                                        Y = -0.051980026
+                                        Z = 0.036146063
+                                        W = -0.13412395
+                                    }
+                                }
+                                Children = [
+                                    Bone calf_r {
+                                        BoneName = calf_r
+                                        BoneMatrix = [
+                                            [1, 1.1641532e-10, 7.450581e-09, 1.4901161e-08]
+                                            [-4.5401976e-09, 1, 2.7939677e-09, -5.9604645e-08]
+                                            [0, 9.313226e-10, 1, -1.8626451e-09]
+                                            [0, 0, 0, 1]
+                                        ]
+                                        BindingTransform = {
+                                            Translation = (0, 0.419859, 0)
+                                            Scale = (1.0000001, 0.99999994, 0.99999994)
+                                            Rotation = {
+                                                X = -0.053069513
+                                                Y = 0.010366276
+                                                Z = 0.016277876
+                                                W = 0.9984044
+                                            }
+                                        }
+                                        UUID = "325fcdaa-35a5-46ea-ae8d-52d753cb5c28"
+                                        NodeFlags = MobilityStatic
+                                        LocalBounds = {
+                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                        }
+                                        LocalTransform = {
+                                            Translation = (0, 0.419859, 0)
+                                            Scale = (1.0000001, 0.99999994, 0.99999994)
+                                            Rotation = {
+                                                X = -0.053069513
+                                                Y = 0.010366276
+                                                Z = 0.016277876
+                                                W = 0.9984044
+                                            }
+                                        }
+                                        Children = [
+                                            Bone foot_r {
+                                                BoneName = foot_r
+                                                BoneMatrix = [
+                                                    [1, 0, 2.7939677e-09, 1.4901161e-08]
+                                                    [9.313226e-10, 1, 2.9802322e-08, 0]
+                                                    [-2.3283064e-09, 0, 1, -9.313226e-10]
+                                                    [0, 0, 0, 1]
+                                                ]
+                                                BindingTransform = {
+                                                    Translation = (0, 0.44117004, -7.450581e-09)
+                                                    Scale = (1.0000001, 1.0000002, 1.0000001)
+                                                    Rotation = {
+                                                        X = 0.53124934
+                                                        Y = -0.008592891
+                                                        Z = -0.06972959
+                                                        W = 0.84429735
+                                                    }
+                                                }
+                                                UUID = "f44d8a50-a381-475d-a333-1fbc969708bb"
+                                                NodeFlags = MobilityStatic
+                                                LocalBounds = {
+                                                    Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                    Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                }
+                                                LocalTransform = {
+                                                    Translation = (0, 0.44117004, -7.450581e-09)
+                                                    Scale = (1.0000001, 1.0000002, 1.0000001)
+                                                    Rotation = {
+                                                        X = 0.53124934
+                                                        Y = -0.008592891
+                                                        Z = -0.06972959
+                                                        W = 0.84429735
+                                                    }
+                                                }
+                                                Children = [
+                                                    Bone ball_r {
+                                                        BoneName = ball_r
+                                                        BoneMatrix = [
+                                                            [1.0000001, 2.3283064e-10, 3.4197e-09, -1.4901161e-08]
+                                                            [4.656613e-10, 1, -7.450581e-09, 0]
+                                                            [1.9208528e-09, 0, 1, 0]
+                                                            [0, 0, 0, 1]
+                                                        ]
+                                                        BindingTransform = {
+                                                            Translation = (1.4901161e-08, 0.14054038, 0)
+                                                            Scale = (1.0000001, 1, 1.0000002)
+                                                            Rotation = {
+                                                                X = 0.26911312
+                                                                Y = -0.006321767
+                                                                Z = -0.04360028
+                                                                W = 0.9621005
+                                                            }
+                                                        }
+                                                        UUID = "35b02d9e-61d4-4593-8413-1f16994da646"
+                                                        NodeFlags = MobilityStatic
+                                                        LocalBounds = {
+                                                            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+                                                            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
+                                                        }
+                                                        LocalTransform = {
+                                                            Translation = (1.4901161e-08, 0.14054038, 0)
+                                                            Scale = (1.0000001, 1, 1.0000002)
+                                                            Rotation = {
+                                                                X = 0.26911312
+                                                                Y = -0.006321767
+                                                                Z = -0.04360028
                                                                 W = 0.9621005
                                                             }
                                                         }
@@ -2148,16 +2148,39 @@ Skeleton MannequinRig {
         }
     }
     Animations = [
+        @"Engine://Animations/CrouchIdle"
+        @"Engine://Animations/CrouchWalk"
+        @"Engine://Animations/Death"
         @"Engine://Animations/Fall"
+        @"Engine://Animations/HitChest"
+        @"Engine://Animations/HitHead"
         @"Engine://Animations/Idle"
+        @"Engine://Animations/Interact"
+        @"Engine://Animations/Jog"
         @"Engine://Animations/Jump"
+        @"Engine://Animations/JumpWindup"
         @"Engine://Animations/Land"
+        @"Engine://Animations/PickUp"
+        @"Engine://Animations/PistolAimDown"
+        @"Engine://Animations/PistolAimNeutral"
+        @"Engine://Animations/PistolAimUp"
+        @"Engine://Animations/PistolIdle"
+        @"Engine://Animations/PistolReload"
+        @"Engine://Animations/PistolShoot"
+        @"Engine://Animations/Push"
+        @"Engine://Animations/Roll"
         @"Engine://Animations/Run"
+        @"Engine://Animations/RunFall"
+        @"Engine://Animations/RunJump"
+        @"Engine://Animations/RunLand"
+        @"Engine://Animations/StrafeLeft"
+        @"Engine://Animations/StrafeRight"
         @"Engine://Animations/TurnLeft"
         @"Engine://Animations/TurnLeftSmall"
         @"Engine://Animations/TurnRight"
         @"Engine://Animations/TurnRightSmall"
         @"Engine://Animations/Walk"
+        @"Engine://Animations/WalkBackward"
     ]
-    UUID = "e33dd36e-dc4b-49b5-93f0-52a6c01ea5a0"
+    UUID = "5f23a9e4-413c-42c6-88bf-ec6c204490ca"
 }

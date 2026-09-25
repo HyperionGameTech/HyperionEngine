@@ -1,0 +1,8 @@
+AnimationTrack Death_pinky_metacarpal_r {
+    BoneName = pinky_metacarpal_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Death_pinky_metacarpal_r.KEYF"
+        Size = 128
+    }
+    UUID = "df098f22-2629-4234-9da4-2f3deb514d43"
+}
