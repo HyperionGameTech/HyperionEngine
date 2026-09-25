@@ -141,7 +141,9 @@ public:
 
     HYP_METHOD()
     Result SaveAs(const FilePath& manifestPath);
-    
+
+    Result ExportFiles(const FilePath& directory) const;
+
     HYP_METHOD()
     virtual Handle<AssetObject> CloneAsset() const;
 

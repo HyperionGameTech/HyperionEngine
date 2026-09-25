@@ -1,5 +1,6 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
+#include <Editor/EditorTemplateLibrary.hpp>
 
 namespace Hyperion {
 
@@ -358,6 +359,131 @@ public:
 DEFINE_EDITOR_COMMAND(AddPlayerEntity);
 
 #pragma endregion EditorCommandAddPlayerEntity
+
+#pragma region EditorCommandAddTemplate
+
+class EditorCommandAddTemplate final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandAddTemplate);
+
+public:
+    virtual ~EditorCommandAddTemplate() override = default;
+
+    virtual String GetText() const override
+    {
+        return m_text.Length() ? m_text : "Add Template";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAddTemplate: missing required template name argument");
+            return;
+        }
+
+        const Name templateName = Name(GetArgument(0).ToAnsi());
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAddTemplate: no project loaded");
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAddTemplate: no active scene");
+            return;
+        }
+
+        Array<Handle<AssetObject>> importedAssets;
+        TResult<Handle<Node>> instantiateResult = EditorTemplateLibrary::InstantiateTemplate(templateName, &importedAssets);
+
+        if (instantiateResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandAddTemplate: {}", instantiateResult.GetError().GetMessage());
+            return;
+        }
+
+        Set<uint32> changedBuckets;
+
+        for (const Handle<AssetObject>& importedAsset : importedAssets)
+        {
+            changedBuckets.Insert(importedAsset->GetPath().GetBucket().GetIndex());
+        }
+
+        for (uint32 bucketIndex : changedBuckets)
+        {
+            subsystem->OnAssetsChanged(bucketIndex);
+        }
+
+        Handle<Node> templateNode = instantiateResult.GetValue();
+        templateNode->SetName(activeScene->GetUniqueNodeName(*templateName));
+
+        // Rest the template's lowest point on the insertion point, rather than burying half of it
+        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+
+        templateNode->SetWorldTranslation(insertionPoint);
+
+        const BoundingBox templateBounds = templateNode->GetWorldBounds();
+
+        if (templateBounds.IsValid() && templateBounds.IsFinite())
+        {
+            templateNode->SetWorldTranslation(insertionPoint + Vec3f(0.0f, insertionPoint.y - templateBounds.GetMin().y, 0.0f));
+        }
+
+        m_text = HYP_FORMAT("Add Template {}", templateName);
+
+        WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [templateNode, activeScene, previousFocusedNode]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [templateNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                activeScene->GetRoot()->AddChild(templateNode);
+
+                                editorSubsystem->SetSelectedNodes({ templateNode });
+                                editorSubsystem->SetFocusedNode(templateNode, true);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [templateNode, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject*)
+                            {
+                                templateNode->Remove();
+
+                                if (editorSubsystem->GetFocusedNode() == templateNode)
+                                {
+                                    editorSubsystem->SetFocusedNode(nullptr, true);
+
+                                    if (Handle<Node> focusedNode = previousFocusedNode.Lock(); focusedNode.IsValid())
+                                    {
+                                        editorSubsystem->SetFocusedNode(focusedNode, true);
+                                    }
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+
+private:
+    String m_text;
+};
+
+DEFINE_EDITOR_COMMAND(AddTemplate);
+
+#pragma endregion EditorCommandAddTemplate
 
 #pragma region EditorCommandImportContent
 

@@ -313,6 +313,63 @@ Result AssetObject::SaveAs(const FilePath& manifestPath)
     return {};
 }
 
+Result AssetObject::ExportFiles(const FilePath& directory) const
+{
+    auto readScope = GetReadScope();
+
+    if (!directory.MkDir())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to create directory '{}' to export asset '{}' into", directory, m_name);
+    }
+
+    Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
+    const_cast<AssetObject*>(this)->CollectBlobDataReferences(blobDataReferences);
+
+    for (auto& tup : blobDataReferences)
+    {
+        const char* magic = tup.GetElement<0>();
+        const BlobDataReference* reference = tup.GetElement<2>();
+
+        if (!reference || reference->size == 0)
+        {
+            continue;
+        }
+
+        if (!reference->raw)
+        {
+            HYP_LOG(Assets, Warning, "Blob data '{}' of asset '{}' could not be paged in, the exported copy will be missing it", magic, m_name);
+
+            continue;
+        }
+
+        FileByteWriter blobWriter { directory / (String(*m_name) + "." + magic + ".raw.blob") };
+
+        if (!blobWriter.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to write blob data '{}' of asset '{}' to '{}'", magic, m_name, blobWriter.GetFilePath());
+        }
+
+        blobWriter.Write(reference->raw, reference->size);
+        blobWriter.Close();
+    }
+
+    FileByteWriter manifestWriter { directory / (String(*m_name) + ".hmf") };
+
+    if (!manifestWriter.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for asset '{}', errno: {}", m_name, std::strerror(errno));
+    }
+
+    if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to export manifest for asset '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
+    }
+
+    manifestWriter.Close();
+
+    return {};
+}
+
 Handle<AssetObject> AssetObject::CloneAsset() const
 {
     Array<Tuple<const char*, uint16, BlobDataReference*>> blobReferences;

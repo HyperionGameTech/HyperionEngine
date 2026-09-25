@@ -50,6 +50,9 @@
         <DataTemplate DataType="vm:SaveAsPrefabPanelViewModel">
             <panels:SaveAsPrefabPanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:SaveAsTemplatePanelViewModel">
+            <panels:SaveAsTemplatePanelView />
+        </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Resources>

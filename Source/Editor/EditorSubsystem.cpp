@@ -19,6 +19,7 @@
 #include <Editor/EditorConfig.hpp>
 #include <Editor/EditorAssetDrop.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
+#include <Editor/EditorTemplateLibrary.hpp>
 
 #include <Editor/Tasks/EditorTasks.hpp>
 
@@ -2627,6 +2628,21 @@ String EditorSubsystem::GetSourcePrefabName(Node* node) const
     }
 
     return prefab->GetName().ToString();
+}
+
+Array<Name> EditorSubsystem::GetTemplateNames() const
+{
+    return EditorTemplateLibrary::GetTemplateNames();
+}
+
+bool EditorSubsystem::HasTemplate(Name templateName) const
+{
+    return EditorTemplateLibrary::HasTemplate(templateName);
+}
+
+String EditorSubsystem::GetTemplatesDirectory() const
+{
+    return EditorTemplateLibrary::GetDirectory();
 }
 
 int32 EditorSubsystem::GetViewportForcedLod() const

@@ -20,6 +20,8 @@ namespace Hyperion.Editor.ViewModels
 
         public string DisplayName => _assetDesc.Name.ToString();
 
+        public bool IsPrefab => _bucket?.BucketIndex == AssetBucket.Prefabs.Value;
+
         public string ToolTipText => _bucket != null
             ? $"{DisplayName}\n{_bucket.Name}"
             : DisplayName;

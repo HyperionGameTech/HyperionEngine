@@ -15,6 +15,8 @@
 #include <Asset/BlobStorageViews.hpp>
 #include <Asset/SerializationUtils.hpp>
 
+#include <Core/Containers/Map.hpp>
+
 #include <Core/Utilities/DeferredScope.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
 
@@ -334,6 +336,8 @@ public:
     AssetDescSet assetDescs;
     AssetObjectCache assetObjectCache;
 
+    Map<Name, Handle<AssetObject>> redirects;
+
     TBitset<AssetAllocator> dirtyIndices;
     TBitset<AssetAllocator> usedIndices;
 
@@ -361,6 +365,8 @@ public:
 
     // expectedAsset: when set, only remove if the slot still holds this asset, to prevent deleting an asset that has since been replaced.
     void RemoveAsset(StringHash name, const AssetObject* expectedAsset);
+
+    void ReleaseAsset(AssetObject& assetObject);
 
     /*! \brief Get a unique asset name within this bucket by appending an incrementing number to the base name until an unused name is found.
      *   The returned AssetDesc has info about the allocated index/slot + the unique name that was generated.
@@ -717,6 +723,11 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
     AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
 
     TSharedLock lock(data.mtx);
+
+    if (auto redirectIt = data.redirects.Find(Name(name)); redirectIt != data.redirects.End())
+    {
+        return redirectIt->second;
+    }
 
     auto it = data.assetDescs.Find(name);
     if (it == data.assetDescs.End())
@@ -1429,6 +1440,65 @@ void AssetBucketData::RemoveAsset(StringHash name, const AssetObject* expectedAs
     usedIndices.Set(index, false);
     dirtyIndices.Set(index, false);
     assetObjectCache.EraseAt(index);
+}
+
+void AssetBucketData::ReleaseAsset(AssetObject& assetObject)
+{
+    TUniqueLock lock(mtx);
+
+    auto it = assetDescs.Find(assetObject.GetName());
+    if (it == assetDescs.End())
+    {
+        return;
+    }
+
+    const uint32 index = it->index;
+
+    const Handle<AssetObject>* pAssetObject = assetObjectCache.TryGet(index);
+
+    if (pAssetObject == nullptr || pAssetObject->Get() != &assetObject)
+    {
+        return;
+    }
+
+    assetObject.m_assetIndex = AssetDesc::InvalidIndex;
+    assetObject.m_assetPath = AssetPath();
+
+    assetDescs.Erase(it);
+    usedIndices.Set(index, false);
+    dirtyIndices.Set(index, false);
+    assetObjectCache.EraseAt(index);
+}
+
+void AssetRegistry::ReleaseAsset(const Handle<AssetObject>& asset)
+{
+    if (!asset.IsValid() || !asset->IsRegistered())
+    {
+        return;
+    }
+
+    if (asset->GetPath().registryId != m_registryId)
+    {
+        return;
+    }
+
+    m_assetBucketData[asset->GetPath().bucketIndex].ReleaseAsset(*asset);
+}
+
+void AssetRegistry::SetRedirect(const AssetBucket& bucket, Name name, const Handle<AssetObject>& target)
+{
+    AssetBucketData& data = m_assetBucketData[bucket.GetIndex()];
+
+    TUniqueLock lock(data.mtx);
+
+    if (target.IsValid())
+    {
+        data.redirects.Set(name, target);
+    }
+    else
+    {
+        data.redirects.Erase(name);
+    }
 }
 
 void AssetRegistry::SyncAssetName(const AssetBucket& bucket, Name oldName, Name newName)

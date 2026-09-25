@@ -54,6 +54,8 @@ struct CharacterControllerConfig
     // Grace period during which a jump requested before landing is still honored.
     float jumpBufferTime = 0.15f;
 
+    float jumpWindupTime = 0.0f;
+
     // Max. follow speed for shadow body
     float shadowMaxSpeed = 60.0f;
     // Instead of following, shadow body will teleport at this distance.
@@ -74,6 +76,7 @@ struct CharacterMotionState
     float verticalVelocity = 0.0f;
     float coyoteTimeRemaining = 0.0f;
     float jumpBufferTimeRemaining = 0.0f;
+    float jumpWindupRemaining = 0.0f;
     bool isRisingFromJump = false;
 };
 
