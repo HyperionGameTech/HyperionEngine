@@ -156,7 +156,7 @@ auto BakeData<EnvProbe>::ToVisibilityBitmap() const -> VisibilityBitmapType
     const float fFar = MathUtil::Max(m_envProbe->GetWorldBounds().GetRadius(), MathUtil::epsilonF);
     const float invFar = 1.0f / fFar;
 
-    static constexpr float MissDistNorm = 2.0f;
+    static constexpr float MissDistNorm = EnvProbe::VisibilityMissDistance;
 
     for (uint32 face = 0; face < 6; face++)
     {

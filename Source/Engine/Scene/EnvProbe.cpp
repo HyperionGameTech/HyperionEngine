@@ -715,6 +715,10 @@ void EnvProbe::CreateViewData()
             StoreOperation::Store
         });
 
+        visibilityDesc.clearColorIsF16 = true;
+        visibilityDesc.clearColorF16[0] = Float16(VisibilityMissDistance);
+        visibilityDesc.clearColorF16[1] = Float16(VisibilityMissDistance * VisibilityMissDistance);
+
         attachmentImages.PushBack(RI.MakeImage(TextureDesc {
             visibilityDesc.imageType,
             visibilityDesc.format,

@@ -84,6 +84,7 @@ class ENGINE_API EnvProbe : public VolumeBase
 
 public:
     static constexpr uint32 VisibilityTextureDimensions = 64;
+    static constexpr float VisibilityMissDistance = 2.0f;
     static constexpr EnvProbeDimensions DefaultDimensions = EnvProbeDimensions::Dim128;
 
     static EnvProbeDimensions GetDefaultDimensions(EnvProbeType envProbeType);
