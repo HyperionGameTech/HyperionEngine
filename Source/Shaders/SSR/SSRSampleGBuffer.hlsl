@@ -146,50 +146,38 @@ PSOutput PSMain(PSInput input)
         // calc max mip level
         max_mip_level = log2(max((float)gbufferDimensions.x, (float)gbufferDimensions.y));
         
-        const float2 delta_p = saturate(hitUV - texcoord);
+        const float2 delta_p = hitUV - texcoord;
 
         float adjacent_length = length(delta_p);
-        float2 adjacent_unit = adjacent_length > HYP_FMATH_EPSILON ? (delta_p / adjacent_length) : float2(0.0, 0.0);
-
-        float remaining_alpha = 1.0;
-        float gloss_multiplier = gloss;
-
-        float4 accum_color = float4(0.0, 0.0, 0.0, 0.0);
 
         float2 velocity = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferVelocityTexture, hitUV, 0).xy;
 
+        float3 accum_color = float3(0.0, 0.0, 0.0);
+
 #ifdef CONE_TRACING
+        float remaining_weight = 1.0;
+        float total_weight = 0.0;
+        float gloss_multiplier = gloss;
+
         for (int i = 0; i < 14; i++)
         {
             const float opposite_length = IsoscelesTriangleOpposite(adjacent_length, cone_angle);
             const float incircle_size = IsoscelesTriangleInRadius(opposite_length, adjacent_length);
-            const float2 sample_position = texcoord + adjacent_unit * (adjacent_length - incircle_size);
 
             const float mip_level = clamp(log2(incircle_size * (float)max(gbufferDimensions.x, gbufferDimensions.y)), 0.0, max_mip_level);
 
-            float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level);
-            current_reflection_sample = any(isnan(current_reflection_sample)) ? float4(0.0, 0.0, 1.0, 1.0) : current_reflection_sample;
-#else
-        const float current_radius = length((hitUV - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
-        const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
+            float3 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level).rgb;
 
-        float4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level);
-#endif
+            const bool is_valid_sample = !any(isnan(current_reflection_sample));
+            current_reflection_sample = is_valid_sample ? current_reflection_sample : float3(0.0, 0.0, 0.0);
 
-#ifdef CONE_TRACING
-            current_reflection_sample.rgb *= gloss_multiplier;
-            current_reflection_sample.a = gloss_multiplier;
+            const float weight = is_valid_sample ? min(gloss_multiplier, remaining_weight) : 0.0;
 
-            remaining_alpha -= current_reflection_sample.a;
+            accum_color += current_reflection_sample * weight;
+            total_weight += weight;
+            remaining_weight -= weight;
 
-            if (remaining_alpha < 0.0)
-            {
-                current_reflection_sample.rgb *= (1.0 - abs(remaining_alpha));
-            }
-
-            accum_color += current_reflection_sample;
-
-            if (accum_color.a >= 1.0)
+            if (remaining_weight <= HYP_FMATH_EPSILON)
             {
                 break;
             }
@@ -197,15 +185,16 @@ PSOutput PSMain(PSInput input)
             adjacent_length = IsoscelesTriangleNextAdjacent(adjacent_length, incircle_size);
             gloss_multiplier *= gloss;
         }
+
+        accum_color = total_weight > HYP_FMATH_EPSILON ? accum_color / total_weight : float3(0.0, 0.0, 0.0);
 #else
-        accum_color = current_reflection_sample;
+        const float current_radius = length((hitUV - texcoord) * float2(ssrConstants.dimension.xy)) * tan(cone_angle);
+        const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
+
+        accum_color = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level).rgb;
 #endif
-
-        ///reflection_sample.a = min(accum_color.a, 1.0);
-        ///reflection_sample = any(isnan(accum_color)) ? float4(0.0, 0.0, 0.0, 1.0) : accum_color;
-
-        reflection_sample = accum_color;
-        reflection_sample.a *= alpha;
+        
+        reflection_sample = float4(max(accum_color, (float3)0.0), saturate(alpha));
     }
 
     output.out_color = reflection_sample;

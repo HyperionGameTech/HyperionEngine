@@ -336,6 +336,8 @@ bool TraceRays(
 }
 #endif
 
+#define LINEAR_TRACE_DEPTH_THICKNESS_RATIO 0.01
+
 bool TraceRays(
     float3 ray_origin,
     float3 ray_direction,
@@ -385,24 +387,28 @@ bool TraceRays(
 
         if (step_delta > 0.0)
         {
-            if (step_delta < ssrConstants.thickness)
+            const float effective_thickness = max(ssrConstants.thickness, abs(currStep.z) + abs(currPosition.z) * LINEAR_TRACE_DEPTH_THICKNESS_RATIO);
+
+            if (step_delta > effective_thickness)
             {
-                for (int j = 0; j < 4; j++)
+                continue;
+            }
+
+            for (int j = 0; j < 4; j++)
+            {
+                currStep *= 0.5;
+                currPosition -= currStep * sign(step_delta);
+
+                hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
+                depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
+                view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
+
+                step_delta = currPosition.z - view_space_position.z;
+
+                if (abs(step_delta) < ssrConstants.distance_bias)
                 {
-                    currStep *= 0.5;
-                    currPosition -= currStep * sign(step_delta);
-
-                    hit_pixel = GetProjectedPositionFromView(camera.projection, currPosition);
-                    depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, HiZTexture, hit_pixel, 0).r;
-                    view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, hit_pixel, depth);
-
-                    step_delta = currPosition.z - view_space_position.z;
-
-                    if (abs(step_delta) < ssrConstants.distance_bias)
-                    {
-                        hit_point = view_space_position.xyz;
-                        return true;
-                    }
+                    hit_point = view_space_position.xyz;
+                    return true;
                 }
             }
 
