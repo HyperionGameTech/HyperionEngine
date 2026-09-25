@@ -1,0 +1,8 @@
+AnimationTrack Land_pinky_03_l {
+    BoneName = pinky_03_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_pinky_03_l.KEYF"
+        Size = 832
+    }
+    UUID = "9ac1135a-dcc0-43df-8269-dff941178aff"
+}

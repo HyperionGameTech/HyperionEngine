@@ -1,0 +1,8 @@
+AnimationTrack Land_upperarm_r {
+    BoneName = upperarm_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/Land_upperarm_r.KEYF"
+        Size = 832
+    }
+    UUID = "95a03b6d-618d-4406-a1c6-b8288b691001"
+}
