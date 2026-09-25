@@ -117,6 +117,12 @@ public:
     HYP_FIELD(Property = "WindFlutter", Editor, Serialize)
     float windFlutter;
 
+    HYP_FIELD(Property = "FoliageNormalBlend", Editor, Serialize)
+    float foliageNormalBlend;
+
+    HYP_FIELD(Property = "FoliageBackfaceVolume", Editor, Serialize)
+    float foliageBackfaceVolume;
+
     HYP_FIELD(Property = "UVScale", Editor, Serialize)
     Vec2f uvScale;
 

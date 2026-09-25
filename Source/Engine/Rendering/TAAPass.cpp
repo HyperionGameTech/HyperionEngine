@@ -28,12 +28,15 @@
 
 #include <Framework/View.hpp>
 #include <Framework/EngineStats.hpp>
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
 #include <Core/Threading/Threads.hpp>
 
 namespace Hyperion {
+
+extern CVar<float> g_cvTAAFeedback;
 
 static EngineStatGpuTimer s_statTAA("Rendering/GPU/TAA");
 
@@ -133,12 +136,14 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
             Vec4u dimensions;
             Vec4f jitter;
             Vec2f nearFarClip;
+            float feedback;
         };
 
         TAAConstants constants {};
         constants.dimensions = Vec4u { m_extent, depthTextureDimensions.GetXY() };
         constants.jitter = cameraProxy->bufferData.jitter;
         constants.nearFarClip = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
+        constants.feedback = MathUtil::Clamp(g_cvTAAFeedback.Get(), 0.1f, 0.98f);
 
         RI.cbufferAllocator->Write(&constants);
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);

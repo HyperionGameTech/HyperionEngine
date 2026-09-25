@@ -26,6 +26,7 @@
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/CBufferAllocator.hpp>
+#include <Rendering/DDGI.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
 #include <Rendering/Shadows/ShadowMapAllocator.hpp>
@@ -33,6 +34,7 @@
 
 #include <Rendering/Passes/DeferredPass.hpp>
 #include <Rendering/Passes/DeferredPassShared.hpp>
+#include <Rendering/Passes/SkyVisibilityPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -89,6 +91,7 @@ extern CVar<bool> g_cvDepthPrepass;
 extern CVar<bool> g_cvDrawWireframe;
 extern CVar<bool> g_cvPathTracing;
 extern CVar<bool> g_cvLightmapVolumes;
+extern CVar<bool> g_cvDDGI;
 
 ///extra LOD bias for shadow views, which can usually afford coarser geometry than the view that sees it directly
 static CVar<int32> s_cvMeshLodShadowBias { "Rendering.MeshLod.ShadowBias", 0 };
@@ -100,6 +103,7 @@ static StaticShaderPropertyId s_propShadingTypeForward { ShaderProperty(s_nameSh
 
 static StaticShaderPropertyId s_propForwardClustered { ShaderProperty(NAME("FORWARD_CLUSTERED")) };
 static StaticShaderPropertyId s_propForwardShading { ShaderProperty(NAME("FORWARD_SHADING")) };
+static StaticShaderPropertyId s_propRayTracingGlobalIllumination { ShaderProperty(NAME("RT_GI")) };
 static StaticShaderPropertyId s_propApplyLightmaps { ShaderProperty(NAME("APPLY_LIGHTMAPS")) };
 
 static HYP_FORCE_INLINE bool IsCubemapShader(StringHash shaderNameHash)
@@ -1032,6 +1036,69 @@ static void SetForwardShadingConstants(
     }
 }
 
+// forward surfaces take their GI from the same DDGI volume DeferredIndirect samples
+static bool UseForwardDDGI(const DeferredPassData* dpd)
+{
+    static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
+
+    return dpd != nullptr
+        && dpd->ddgi != nullptr
+        && s_renderConfig.rayTracing
+        && g_cvDDGI.Get()
+        && (GetWorldBufferData()->environmentFlags & uint32(WorldEnvironmentFlags::DDGI)) != 0;
+}
+
+/// Clustered forward: the sky probe, sky occlusion and DDGI that DeferredIndirect gives opaque surfaces
+template <class TCommandRecorder>
+static void SetForwardIndirectUniforms(
+    Frame* frame,
+    const RenderSetup& renderSetup,
+    const DeferredPassData* dpd,
+    TCommandRecorder& cr,
+    uint32& numShaderUniforms)
+{
+    SkyVisibilityPass* skyVisibilityPass = static_cast<SkyVisibilityPass*>(RI.namedPasses[NamedPass::SkyVisibility][0]);
+    AssertDebug(skyVisibilityPass != nullptr);
+
+    // default constructed, so textureIndices are ~0u and the shader skips the sky
+    EnvProbeShaderData skyProbeData {};
+
+    {
+        RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
+        rpl.BeginRead();
+        HYP_DEFER({ rpl.EndRead(); });
+
+        if (const auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>(); skyProbes.Any())
+        {
+            if (RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(*skyProbes.Begin())))
+            {
+                skyProbeData = envProbeProxy->bufferData;
+            }
+        }
+    }
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    RI.cbufferAllocator->Write(&skyProbeData);
+    skyVisibilityPass->WriteShaderData(*RI.cbufferAllocator);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    cr << SetShaderUniform(numShaderUniforms++, "ForwardIndirectConstants"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    cr << SetShaderUniform(numShaderUniforms++, "SkyVisibilityTexture"_sh, skyVisibilityPass->GetDepthImageView());
+
+    // bound whenever the volume exists, so an RT_GI variant can never be missing them
+    if (dpd->ddgi != nullptr)
+    {
+        const uint32 frameIndex = frame->GetFrameIndex();
+
+        cr << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
+        cr << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetIrradianceTexture()));
+        cr << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, RI.textureViewCache->GetOrCreate(dpd->ddgi->GetVisibilityTexture()));
+    }
+}
+
 template <bool UseIndirectRendering, class TCommandRecorder>
 static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecorder>& payload)
 {
@@ -1136,6 +1203,8 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
             // set cluster grid / index buffers for forward shading pass.
             cr << SetShaderUniform(numShaderUniforms++, "ClusterGridBuffer"_sh, *dpd->gridTilesBuffer);
             cr << SetShaderUniform(numShaderUniforms++, "ClusterIndexBuffer"_sh, *dpd->gridIndexBuffer);
+
+            SetForwardIndirectUniforms(frame, renderSetup, dpd, cr, numShaderUniforms);
         }
     }
 
@@ -1463,6 +1532,7 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
         // Therefore we need to set FORWARD_CLUSTERED prop to true to choose the correct variant.
         ShaderPropertySet shaderProperties = mas.shaderProperties;
         shaderProperties.Add(s_propForwardClustered);
+        shaderProperties.Set(s_propRayTracingGlobalIllumination, UseForwardDDGI(dpd));
 
         cr << SetCurrentShader(ShaderDesc(mas.shaderName, shaderProperties), enableAsync);
     }

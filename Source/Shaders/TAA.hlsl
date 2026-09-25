@@ -2,8 +2,6 @@
 #include "include/Shared.hlsli"
 #include "include/Scene.hlsli"
 
-STATIC(FEEDBACK, 0.65)
-
 DECLARE_SRV(TAA, InColorTexture) Texture2D color_texture;
 DECLARE_SRV(TAA, InPrevColorTexture) Texture2D prev_color_texture;
 DECLARE_SRV(TAA, InVelocityTexture) Texture2D velocity_texture;
@@ -19,7 +17,10 @@ DECLARE_BUFFER_DYNAMIC(TAA, TAAConstants) cbuffer TAAConstants
     uint4 dimensions; // zw = depth
     float4 jitter;
     float2 nearFarClip;
+    float feedback; // Rendering.TAA.Feedback
 };
+
+#define FEEDBACK feedback
 
 // #define ADJUST_COLOR_HDR
 

@@ -41,6 +41,8 @@ struct Material
 #define MATERIAL_PARAM_TRANSMISSION 2
 #define MATERIAL_PARAM_ALPHA_THRESHOLD 3
 #define MATERIAL_PARAM_EMISSIVE_COLOR 4 // r,g,b
+#define MATERIAL_PARAM_FOLIAGE_BACKFACE_VOLUME 7
+#define MATERIAL_PARAM_FOLIAGE_NORMAL_BLEND 14 // upper half of the flags word
 #define MATERIAL_PARAM_UI_BACKGROUND_COLOR 15
 
 float UnpackMaterialParamFloat(uint4 uValue, uint index)

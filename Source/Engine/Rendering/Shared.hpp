@@ -229,6 +229,7 @@ enum class ResourceState : uint8
     Predication
 };
 
+/// TODO: Move it all into TextureUtils.hpp
 namespace TextureUtils {
 
 static inline constexpr uint32 NumComponents(TextureFormat fmt)

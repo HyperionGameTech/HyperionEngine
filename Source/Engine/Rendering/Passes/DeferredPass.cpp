@@ -152,6 +152,10 @@ CVar<bool> g_cvPathTracing { "Rendering.PathTracing", false };
 CVar<bool> g_cvSSGI { "Rendering.SSGI", true };
 CVar<bool> g_cvSSR { "Rendering.SSR", true, "Rendering.SSR.Enabled" };
 CVar<bool> g_cvTAA { "Rendering.TAA", true };
+// max sub-pixel camera offset, in pixels. dithered alpha cutouts rely on it to resolve into soft edges
+CVar<float> g_cvTAAJitterRadius { "Rendering.TAA.JitterRadius", 0.5f };
+// most of the history kept per frame; the resolve drops up to 0.1 below this where luminance disagrees
+CVar<float> g_cvTAAFeedback { "Rendering.TAA.Feedback", 0.85f };
 CVar<bool> g_cvHBAO { "Rendering.HBAO", true, "Rendering.HBAO.Enabled" };
 CVar<bool> g_cvBloom { "Rendering.Bloom", true, "Rendering.Bloom.Enabled" };
 CVar<bool> g_cvLightmapVolumes { "Rendering.LightmapVolumes", true };

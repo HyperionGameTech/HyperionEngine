@@ -18,6 +18,8 @@
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Texture.hpp>
 
+#include <Rendering/Util/TextureUtils.hpp>
+
 #include <Scene/World.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Scene.hpp>
@@ -277,7 +279,7 @@ String ResolveTexturePath(GltfLoadContext& ctx, const cgltf_image& image)
     return String(image.uri ? image.uri : "");
 }
 
-Handle<Texture> LoadTextureFromEncodedBytes(const cgltf_image& image, Span<const ubyte> encodedBytes, bool srgb)
+Handle<Texture> LoadTextureFromEncodedBytes(const cgltf_image& image, Span<const ubyte> encodedBytes, bool srgb, float alphaCoverageCutoff)
 {
     const char* debugName = (image.name && *image.name) ? image.name : "<unnamed>";
 
@@ -392,10 +394,15 @@ Handle<Texture> LoadTextureFromEncodedBytes(const cgltf_image& image, Span<const
 
     Texture::GenerateMipmaps(textureDesc, baseMipData);
 
+    if (alphaCoverageCutoff > 0.0f)
+    {
+        TextureUtils::PreserveAlphaCoverage(textureDesc, baseMipData, alphaCoverageCutoff);
+    }
+
     return MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());
 }
 
-Handle<Texture> LoadEmbeddedTexture(GltfLoadContext& ctx, const cgltf_image& image, bool srgb)
+Handle<Texture> LoadEmbeddedTexture(GltfLoadContext& ctx, const cgltf_image& image, bool srgb, float alphaCoverageCutoff)
 {
     if (image.buffer_view != nullptr)
     {
@@ -407,7 +414,7 @@ Handle<Texture> LoadEmbeddedTexture(GltfLoadContext& ctx, const cgltf_image& ima
             return {};
         }
 
-        return LoadTextureFromEncodedBytes(image, Span<const ubyte>(bufferViewData, size_t(image.buffer_view->size)), srgb);
+        return LoadTextureFromEncodedBytes(image, Span<const ubyte>(bufferViewData, size_t(image.buffer_view->size)), srgb, alphaCoverageCutoff);
     }
 
     if (image.uri != nullptr && String(image.uri).StartsWith("data:"))
@@ -451,13 +458,13 @@ Handle<Texture> LoadEmbeddedTexture(GltfLoadContext& ctx, const cgltf_image& ima
             freeFunc(ctx.data.memory.user_data, decodedData);
         });
 
-        return LoadTextureFromEncodedBytes(image, Span<const ubyte>(static_cast<const ubyte*>(decodedData), size_t(decodedSize)), srgb);
+        return LoadTextureFromEncodedBytes(image, Span<const ubyte>(static_cast<const ubyte*>(decodedData), size_t(decodedSize)), srgb, alphaCoverageCutoff);
     }
 
     return {};
 }
 
-Handle<Texture> AcquireTexture(LoaderState& state, GltfLoadContext& ctx, const cgltf_texture_view& textureView, bool srgb)
+Handle<Texture> AcquireTexture(LoaderState& state, GltfLoadContext& ctx, const cgltf_texture_view& textureView, bool srgb, float alphaCoverageCutoff = 0.0f)
 {
     if (textureView.texture == nullptr)
     {
@@ -483,7 +490,7 @@ Handle<Texture> AcquireTexture(LoaderState& state, GltfLoadContext& ctx, const c
 
     if (image->buffer_view != nullptr || (image->uri != nullptr && String(image->uri).StartsWith("data:")))
     {
-        textureHandle = LoadEmbeddedTexture(ctx, *image, srgb);
+        textureHandle = LoadEmbeddedTexture(ctx, *image, srgb, alphaCoverageCutoff);
 
         if (!textureHandle)
         {
@@ -1467,7 +1474,9 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         metallic = float(pbr.metallic_factor);
         roughness = float(pbr.roughness_factor);
 
-        if (Handle<Texture> baseColorTexture = AcquireTexture(state, ctx, pbr.base_color_texture, /* srgb */ true); baseColorTexture.IsValid())
+        const float alphaCoverageCutoff = gltfMaterial->alpha_mode == cgltf_alpha_mode_mask ? float(gltfMaterial->alpha_cutoff) : 0.0f;
+
+        if (Handle<Texture> baseColorTexture = AcquireTexture(state, ctx, pbr.base_color_texture, /* srgb */ true, alphaCoverageCutoff); baseColorTexture.IsValid())
         {
             textures[MaterialTextureKey::Diffuse] = baseColorTexture;
         }
@@ -1627,6 +1636,10 @@ struct ArborTreeWind
     float frequency = 0.0f;
     float flutter = 0.0f;
     float height = 0.0f;
+
+    // leaves only
+    float normalBlend = 0.0f;
+    float backfaceVolume = 0.0f;
 };
 
 bool ReadArborTreeWind(const GltfLoadContext& ctx, const cgltf_primitive& primitive, ArborTreeWind& outWind)
@@ -1697,6 +1710,8 @@ bool ReadArborTreeWind(const GltfLoadContext& ctx, const cgltf_primitive& primit
     outWind.frequency = readFloat(json["frequency"]);
     outWind.flutter = readFloat(json["flutter"]);
     outWind.height = readFloat(json["height"]);
+    outWind.normalBlend = MathUtil::Clamp(readFloat(json["normalBlend"]), 0.0f, 1.0f);
+    outWind.backfaceVolume = MathUtil::Clamp(readFloat(json["backfaceVolume"]), 0.0f, 1.0f);
 
     return true;
 }
@@ -1775,6 +1790,8 @@ struct PrimitiveBuildOutput
     float windTrunkFlexibility = 0.0f;
     float windTreeHeight = 0.0f;
     float windFlutter = 0.0f;
+    float foliageNormalBlend = 0.0f;
+    float foliageBackfaceVolume = 0.0f;
 };
 
 bool BuildPrimitive(GltfLoadContext& ctx,
@@ -2104,6 +2121,12 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         out.windFlutter = wind.flutter;
     }
 
+    if (hasFoliage)
+    {
+        out.foliageNormalBlend = wind.normalBlend;
+        out.foliageBackfaceVolume = wind.backfaceVolume;
+    }
+
     return true;
 }
 
@@ -2369,6 +2392,8 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 parameters.windTrunkFlexibility = output.windTrunkFlexibility;
                 parameters.windTreeHeight = output.windTreeHeight;
                 parameters.windFlutter = output.windFlutter;
+                parameters.foliageNormalBlend = output.foliageNormalBlend;
+                parameters.foliageBackfaceVolume = output.foliageBackfaceVolume;
 
                 if (parameters != material->GetParameters())
                 {
