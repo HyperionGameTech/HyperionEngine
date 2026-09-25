@@ -38,17 +38,19 @@ namespace Hyperion {
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 
+namespace /* Constants */ {
+
 static constexpr float PlayerCapsuleRadius = 0.3f;
 static constexpr float PlayerCapsuleHeight = 1.2f;
 
 static constexpr float PlayerWalkSpeed = 4.0f;
 static constexpr float PlayerSprintSpeed = 7.5f;
 
-// Height above the character's feet that the camera orbits around; just above the shoulder for a close over-the-shoulder view
-static constexpr float CameraPivotHeight = 1.6f;
+static constexpr float CameraPivotHeight = 1.8f;
 
 static constexpr float GroundHalfExtent = 100.0f;
 static constexpr float GroundHalfThickness = 0.5f;
+} // namespace
 
 EditorThirdPersonPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerName, Name cameraName)
 {
@@ -148,8 +150,6 @@ void EditorPlayerSetup::AttachToScene(const EditorThirdPersonPlayer& player)
             CharacterModelComponent characterModelComponent;
             characterModelComponent.facingMode = CharacterFacingMode::ViewDirection;
             characterModelComponent.turnSharpness = 20.0f;
-            characterModelComponent.walkReferenceSpeed = PlayerWalkSpeed;
-            characterModelComponent.runReferenceSpeed = PlayerSprintSpeed;
 
             player.characterModel->AddComponent<CharacterModelComponent>(characterModelComponent);
         }

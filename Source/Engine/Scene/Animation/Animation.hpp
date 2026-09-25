@@ -150,6 +150,14 @@ public:
     HYP_METHOD()
     void ApplyBlended(Skeleton* skeleton, float time, float blend);
 
+    HYP_METHOD()
+    AnimationTrack* FindTrack(Name boneName) const;
+
+    /*! \brief Samples this animation at \p time and \p layerAnimation at \p layerTime, mixes them by \p layerWeight
+     *  (0 = only this animation), then blends the skeleton's current pose toward the result by \p blend.
+     *  If \p layerExcludedBone is valid, that bone and its descendants take only this animation. */
+    void ApplyLayered(Skeleton* skeleton, float time, const Animation& layerAnimation, float layerTime, float layerWeight, float blend, Name layerExcludedBone = Name::Invalid());
+
 private:
     HYP_FIELD(Property = "Tracks")
     Array<Handle<AnimationTrack>> m_tracks;

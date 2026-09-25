@@ -9,6 +9,7 @@
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Transform.hpp>
+#include <Core/Math/MathUtil.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Array.hpp>
@@ -35,6 +36,14 @@ struct CharacterControllerConfig
     float friction = 8.0f;
     float stopSpeed = 2.5f;
 
+    // sprint handling
+    float moveSpeed = 4.0f;
+    float sprintSpeed = 7.5f;
+    float sprintAcceleration = 7.0f;
+    float sprintTurnRate = MathUtil::DegToRad(140.0f);
+    float turnSpeedLoss = 1.5f;
+    float brakeDeceleration = 22.0f;
+
     float jumpCutGravityMultiplier = 2.2f;
     float apexGravityMultiplier = 0.85f;
     float fallGravityMultiplier = 1.8f;
@@ -55,7 +64,6 @@ struct CharacterControllerConfig
     float pushSpeedScale = 1.0f;
 
     // Dynamic bodies lighter than this aren't trusted as moving-platform footing
-    // (Jolt only) - see JoltPhysicsAdapter::StepCharacterController.
     float minGroundSupportMass = 20.0f;
 };
 

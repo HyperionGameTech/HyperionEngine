@@ -160,11 +160,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     texture->SetName(assetName);
     //texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
     
-    if (state.hint & AssetLoadHint::Transient)
-    {
-        texture->SetIsTransient(true);
-    }
-    else
+    if (!(state.hint & AssetLoadHint::Transient))
     {
         GetCurrentAssetRegistry()->PutAssetUnique(texture);
     }

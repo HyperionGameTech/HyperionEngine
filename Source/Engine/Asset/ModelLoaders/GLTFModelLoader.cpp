@@ -132,6 +132,11 @@ struct GltfLoadContext
     bool loggedSkinnedPrimitiveWithoutInfluencesWarning = false;
 };
 
+static bool ShouldRegisterAssets(const LoaderState& state)
+{
+    return !bool(state.hint & AssetLoadHint::Transient);
+}
+
 const char* ToString(cgltf_result result)
 {
     switch (result)
@@ -506,7 +511,11 @@ Handle<Texture> AcquireTexture(LoaderState& state, GltfLoadContext& ctx, const c
                 textureResult.HasValue())
             {
                 const Handle<Texture>& texture = textureResult->Result();
-                GetCurrentAssetRegistry()->PutAssetUnique(texture);
+
+                if (ShouldRegisterAssets(ctx.state))
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(texture);
+                }
 
                 return texture;
             }
@@ -553,7 +562,10 @@ Handle<Texture> AcquireTexture(LoaderState& state, GltfLoadContext& ctx, const c
         textureHandle->SetName(CreateNameFromDynamicString(image->name));
     }
 
-    GetCurrentAssetRegistry()->PutAssetUnique(textureHandle);
+    if (ShouldRegisterAssets(ctx.state))
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(textureHandle);
+    }
 
     ctx.textureCache.Set(textureView.texture, textureHandle);
 
@@ -1022,7 +1034,11 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
         rootBonePtr->ClearPose();
     }
 
-    GetCurrentAssetRegistry()->PutAssetUnique(skeleton);
+    if (ShouldRegisterAssets(ctx.state))
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(skeleton);
+    }
+
     InitObject(skeleton);
 
     resource.skeleton = skeleton;
@@ -1124,7 +1140,7 @@ struct GltfJointChannels
     GltfChannelSamples scale;
 };
 
-Handle<Animation> BuildAnimationForSkin(const cgltf_animation& animation, uint32 animationIndex, const GltfSkinResource& skinResource)
+Handle<Animation> BuildAnimationForSkin(const LoaderState& state, const cgltf_animation& animation, uint32 animationIndex, const GltfSkinResource& skinResource)
 {
     const Name animationName = (animation.name && *animation.name)
         ? CreateNameFromDynamicString(animation.name)
@@ -1256,7 +1272,10 @@ Handle<Animation> BuildAnimationForSkin(const cgltf_animation& animation, uint32
 
         track->SetKeyframes(keyframes);
 
-        GetCurrentAssetRegistry()->PutAssetUnique(track);
+        if (ShouldRegisterAssets(state))
+        {
+            GetCurrentAssetRegistry()->PutAssetUnique(track);
+        }
 
         result->AddTrack(track);
     }
@@ -1337,11 +1356,15 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
 
     Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
     roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
-    GetCurrentAssetRegistry()->PutAssetUnique(roughnessTexture);
 
     Handle<Texture> metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
     metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
-    GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
+
+    if (ShouldRegisterAssets(ctx.state))
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(roughnessTexture);
+        GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
+    }
 
     return { metalnessTexture, roughnessTexture };
 }
@@ -1409,7 +1432,10 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
         InitObject(fallbackMaterial);
 
-        GetCurrentAssetRegistry()->PutAsset(fallbackMaterial);
+        if (ShouldRegisterAssets(state))
+        {
+            GetCurrentAssetRegistry()->PutAsset(fallbackMaterial);
+        }
 
         return fallbackMaterial;
     }
@@ -1567,7 +1593,11 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         parameters,
         textures);
 
-    GetCurrentAssetRegistry()->PutAsset(material);
+    if (ShouldRegisterAssets(state))
+    {
+        GetCurrentAssetRegistry()->PutAsset(material);
+    }
+
     InitObject(material);
 
     ctx.materialCache.Set(gltfMaterial, material);
@@ -2047,7 +2077,10 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         mesh->CalculateNormals();
     }
 
-    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+    if (ShouldRegisterAssets(ctx.state))
+    {
+        GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+    }
 
     // mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
     InitObject(mesh);
@@ -2261,11 +2294,14 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 continue;
             }
 
-            Handle<Animation> animation = BuildAnimationForSkin(gltfAnimation, uint32(animationIndex), skinIt->second);
+            Handle<Animation> animation = BuildAnimationForSkin(state, gltfAnimation, uint32(animationIndex), skinIt->second);
 
             if (animation.IsValid() && animation->NumTracks() > 0)
             {
-                GetCurrentAssetRegistry()->PutAssetUnique(animation);
+                if (ShouldRegisterAssets(state))
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(animation);
+                }
 
                 animationsBySkin[targetSkin].PushBack(animation);
             }

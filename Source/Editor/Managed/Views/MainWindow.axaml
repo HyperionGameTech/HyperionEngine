@@ -2379,6 +2379,11 @@
                                                             ItemsSource="{Binding ContentBrowser.Buckets}"
                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                                             SelectedItem="{Binding ContentBrowser.SelectedBucket, Mode=TwoWay}">
+                                                            <ListBox.Styles>
+                                                                <Style Selector="ListBoxItem">
+                                                                    <Setter Property="Padding" Value="2" />
+                                                                </Style>
+                                                            </ListBox.Styles>
                                                             <ListBox.ItemsPanel>
                                                                 <ItemsPanelTemplate>
                                                                     <WrapPanel />
@@ -2387,10 +2392,10 @@
                                                             <ListBox.ItemTemplate>
                                                                 <DataTemplate x:DataType="vm:AssetBucketViewModel">
                                                                     <Border
-                                                                        Width="96"
-                                                                        Height="96"
-                                                                        Margin="3"
-                                                                        Padding="4"
+                                                                        Width="72"
+                                                                        Height="72"
+                                                                        Margin="1"
+                                                                        Padding="3"
                                                                         Background="Transparent"
                                                                         CornerRadius="{DynamicResource Radius.Small}"
                                                                         ToolTip.Tip="{Binding Name}">
@@ -2402,12 +2407,12 @@
                                                                                 Foreground="{DynamicResource Brush.AccentHover}"
                                                                                 Kind="{Binding IconKind}"
                                                                                 Opacity="0.85"
-                                                                                Size="36" />
+                                                                                Size="26" />
                                                                             <TextBlock
                                                                                 Grid.Row="1"
-                                                                                MaxWidth="88"
+                                                                                MaxWidth="66"
                                                                                 HorizontalAlignment="Center"
-                                                                                FontSize="11"
+                                                                                FontSize="10"
                                                                                 Text="{Binding Name}"
                                                                                 TextAlignment="Center"
                                                                                 TextTrimming="CharacterEllipsis"
@@ -2430,6 +2435,11 @@
                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                                             SelectedItem="{Binding ContentBrowser.SelectedAsset, Mode=TwoWay}"
                                                             SelectionChanged="OnContentBrowserSelectionChanged">
+                                                            <ListBox.Styles>
+                                                                <Style Selector="ListBoxItem">
+                                                                    <Setter Property="Padding" Value="2" />
+                                                                </Style>
+                                                            </ListBox.Styles>
                                                             <ListBox.ItemsPanel>
                                                                 <ItemsPanelTemplate>
                                                                     <WrapPanel />
@@ -2440,7 +2450,7 @@
                                                                     <Border
                                                                         Width="84"
                                                                         Height="84"
-                                                                        Margin="3"
+                                                                        Margin="1"
                                                                         Padding="4"
                                                                         Background="Transparent"
                                                                         CornerRadius="{DynamicResource Radius.Small}"

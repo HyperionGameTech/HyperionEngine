@@ -271,6 +271,12 @@ static CharacterControllerConfig MakeCharacterControllerConfig(const CharacterCo
     config.airAcceleration = component.movement.airAcceleration;
     config.friction = component.movement.friction;
     config.stopSpeed = component.movement.stopSpeed;
+    config.moveSpeed = component.movement.moveSpeed;
+    config.sprintSpeed = component.movement.sprintSpeed;
+    config.sprintAcceleration = component.movement.sprintAcceleration;
+    config.sprintTurnRate = MathUtil::DegToRad(component.movement.sprintTurnRate);
+    config.turnSpeedLoss = component.movement.turnSpeedLoss;
+    config.brakeDeceleration = component.movement.brakeDeceleration;
     config.jumpSpeed = component.jump.speed;
     config.fallSpeed = component.jump.fallSpeed;
     config.jumpCutGravityMultiplier = component.jump.cutGravityMultiplier;

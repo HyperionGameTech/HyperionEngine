@@ -116,25 +116,25 @@ protected:
     virtual void OnRemoved() override;
 
     HYP_FIELD(Property = "PivotOffset", Serialize, Editor, Title = "Pivot Offset", Description = "Offset from the parent node's origin that the camera orbits around")
-    Vec3f m_pivotOffset = Vec3f(0.0f, 1.6f, 0.0f);
+    Vec3f m_pivotOffset = Vec3f(0.0f, 1.8f, 0.0f);
 
     HYP_FIELD(Property = "ShoulderOffset", Serialize, Editor, Title = "Shoulder Offset", Description = "Sideways offset of the orbit pivot, for an over-the-shoulder view")
-    float m_shoulderOffset = 0.55f;
+    float m_shoulderOffset = 0.6f;
 
     HYP_FIELD(Property = "Distance", Serialize, Editor, Title = "Distance")
-    float m_distance = 2.1f;
+    float m_distance = 1.6f;
 
     HYP_FIELD(Property = "MinDistance", Serialize, Editor, Title = "Min Distance")
-    float m_minDistance = 1.2f;
+    float m_minDistance = 1.0f;
 
     HYP_FIELD(Property = "MaxDistance", Serialize, Editor, Title = "Max Distance")
-    float m_maxDistance = 4.5f;
+    float m_maxDistance = 3.0f;
 
     HYP_FIELD(Property = "Yaw", Serialize, Editor, Title = "Yaw", Description = "Orbit yaw in degrees; 0 looks down +Z")
     float m_yaw = 0.0f;
 
     HYP_FIELD(Property = "Pitch", Serialize, Editor, Title = "Pitch", Description = "Orbit pitch in degrees; positive looks down at the pivot")
-    float m_pitch = 8.0f;
+    float m_pitch = 4.0f;
 
     HYP_FIELD(Property = "MinPitch", Serialize, Editor, Title = "Min Pitch")
     float m_minPitch = -40.0f;
@@ -143,7 +143,7 @@ protected:
     float m_maxPitch = 70.0f;
 
     HYP_FIELD(Property = "MinEyeHeight", Serialize, Editor, Title = "Min Eye Height", Description = "Lowest the camera may sit relative to the pivot; looking up pulls the camera in instead of dipping below this")
-    float m_minEyeHeight = -1.3f;
+    float m_minEyeHeight = -1.4f;
 
     HYP_FIELD(Property = "FollowSharpness", Serialize, Editor, Title = "Follow Sharpness", Description = "How tightly the camera tracks the pivot; 0 disables smoothing")
     float m_followSharpness = 25.0f;
@@ -163,7 +163,7 @@ private:
     Vec3f m_smoothedPivot;
     bool m_hasSmoothedPivot = false;
 
-    float m_currentDistance = 2.1f;
+    float m_currentDistance = 1.6f;
 
     bool m_addedIgnoreParentTransform = false;
 };

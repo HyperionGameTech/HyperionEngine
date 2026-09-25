@@ -155,7 +155,29 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     }
                 }
 
-                animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
+                const Animation* layerAnimation = playbackState.layerWeight > 0.0f && playbackState.layerAnimationIndex != ~0u
+                    ? meshComponent.skeleton->GetAnimation(playbackState.layerAnimationIndex).Get()
+                    : nullptr;
+
+                if (layerAnimation != nullptr)
+                {
+                    const float layerLength = layerAnimation->GetLength();
+
+                    playbackState.layerTime = layerLength > 0.0f
+                        ? std::fmod(playbackState.layerTime + delta * playbackState.speed, layerLength)
+                        : 0.0f;
+
+                    if (playbackState.layerTime < 0.0f)
+                    {
+                        playbackState.layerTime += layerLength;
+                    }
+
+                    animation->ApplyLayered(meshComponent.skeleton, playbackState.currentTime, *layerAnimation, playbackState.layerTime, playbackState.layerWeight, 0.5f, playbackState.layerExcludedBone);
+                }
+                else
+                {
+                    animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
+                }
 
                 meshComponent.skeleton->SetNeedsRenderProxyUpdate();
             }

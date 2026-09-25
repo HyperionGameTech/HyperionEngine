@@ -452,11 +452,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         // mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
-        if (state.hint & AssetLoadHint::Transient)
-        {
-            mesh->SetIsTransient(true);
-        }
-        else
+        if (!(state.hint & AssetLoadHint::Transient))
         {
             GetCurrentAssetRegistry()->PutAssetUnique(mesh);
         }
