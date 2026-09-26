@@ -52,3 +52,4 @@ We expect contributors to be honest and upfront about the usage of AI generated 
 - [meshoptimizer](https://github.com/zeux/meshoptimizer)
 - [V-HACD](https://github.com/kmammou/v-hacd)
 - [xatlas](https://github.com/jpcy/xatlas)
+- [manifold](https://github.com/elalish/manifold)
