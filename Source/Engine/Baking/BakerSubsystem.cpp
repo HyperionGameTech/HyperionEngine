@@ -42,10 +42,12 @@
 
 namespace Hyperion {
 
+namespace /* Helpers */ {
+
 using namespace Baking;
 using Cat = BakeLayerCategory;
 
-static void UpdateEpoch(const LightmapVolume& lmv, BakeLayer& bakeLayer)
+void UpdateEpoch(const LightmapVolume& lmv, BakeLayer& bakeLayer)
 {
     uint64 epoch = BakeEpoch::ComputeEpoch(lmv, bakeLayer);
 
@@ -55,19 +57,21 @@ static void UpdateEpoch(const LightmapVolume& lmv, BakeLayer& bakeLayer)
     bakeLayer.BumpEpochRev(Cat::Lightmap);
 }
 
-static void UpdateEpoch(const EnvProbe& envProbe, BakeLayer& bakeLayer)
+void UpdateEpoch(const EnvProbe& envProbe, BakeLayer& bakeLayer)
 {
     uint64 epoch = BakeEpoch::ComputeEpoch(envProbe, bakeLayer);
 
     bakeLayer.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
 }
 
-static void UpdateEpoch(const FogVolume& fogVolume, BakeLayer& bakeLayer)
+void UpdateEpoch(const FogVolume& fogVolume, BakeLayer& bakeLayer)
 {
     uint64 epoch = BakeEpoch::ComputeEpoch(fogVolume, bakeLayer);
 
     bakeLayer.SetAssetEpoch<Cat::LightReceiver>(fogVolume, epoch);
 }
+
+} // namespace
 
 #pragma region BakerSubsystem
 
