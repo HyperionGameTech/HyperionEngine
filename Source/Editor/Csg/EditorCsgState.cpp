@@ -1678,7 +1678,9 @@ void EditorCsgState::FinalizeMesh()
 
         if (rigidBodyComponent && rigidBodyComponent->shape.IsValid() && rigidBodyComponent->shape->GetType() == PhysicsShapeType::Compound)
         {
-            m_subsystem->GenerateConvexCollision(target.Get());
+            const CompoundPhysicsShape* compoundShape = static_cast<const CompoundPhysicsShape*>(rigidBodyComponent->shape.Get());
+
+            m_subsystem->GenerateConvexCollisionWithSettings(target.Get(), compoundShape->GetDecompositionSettings());
         }
     }
 }

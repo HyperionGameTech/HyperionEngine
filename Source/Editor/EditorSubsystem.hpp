@@ -20,6 +20,8 @@
 
 #include <Scene/Subsystem.hpp>
 
+#include <Physics/PhysicsShape.hpp>
+
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector2.hpp>
 
@@ -74,6 +76,7 @@ struct Ray;
 struct MouseEvent;
 struct KeyboardEvent;
 struct MeshComponent;
+struct ConvexDecompositionResult;
 
 HYP_ENUM()
 enum class MeshEditFaceMode : uint8
@@ -499,12 +502,22 @@ public:
     HYP_METHOD()
     bool CanGenerateConvexCollision(Node* node) const;
 
-    /*! \brief Decompose the entity's mesh into convex hulls and assign them as its collision shape.
-     *  Runs in the background; the swap is undoable. Acts on \p node, or the focused node when null.
-     *  The generated shape remembers the mesh it came from, so it can be tuned and regenerated from
-     *  the inspector afterwards. */
     HYP_METHOD()
     void GenerateConvexCollision(Node* node);
+
+    void GenerateConvexCollisionWithSettings(Node* node, const ConvexDecompositionSettings& settings);
+
+    HYP_METHOD()
+    uint32 GetNumConvexCollisionPresets() const;
+
+    HYP_METHOD()
+    String GetConvexCollisionPresetName(uint32 presetIndex) const;
+
+    HYP_METHOD()
+    void ApplyConvexCollisionPreset(uint32 presetIndex);
+
+    HYP_METHOD()
+    void SetConvexCollisionTarget(Node* node);
 
     ///Prefabs
 
@@ -807,6 +820,8 @@ private:
 
     bool IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const;
 
+    void ApplyConvexDecomposition(const Handle<Entity>& entity, const Handle<Mesh>& mesh, const ConvexDecompositionSettings& settings, const ConvexDecompositionResult& result);
+
     ////////////////////
 
     SubsystemUpdatePhase GetUpdatePhase_Internal() const override
@@ -852,6 +867,11 @@ private:
     Handle<EditorDecalPainterState> m_decalPainter;
 
     Handle<EditorCsgState> m_csgState;
+
+    HYP_FIELD(Property = "ConvexCollisionSettings")
+    ConvexDecompositionSettings m_convexCollisionSettings;
+
+    WeakHandle<Node> m_convexCollisionTarget;
 
     ////////////////////
 

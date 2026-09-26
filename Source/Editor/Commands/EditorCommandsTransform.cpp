@@ -43,7 +43,16 @@ public:
     {
         AssertOnThread(g_simThread);
 
-        Node* node = ResolveNodeUuidArgument(subsystem, NumArguments() >= 1 ? GetArgument(0) : String());
+        const String nodeUuidArgument = NumArguments() >= 1 ? GetArgument(0) : String();
+
+        Node* node = ResolveNodeUuidArgument(subsystem, nodeUuidArgument);
+
+        if (node == nullptr && !nodeUuidArgument.Empty())
+        {
+            HYP_LOG(Editor, Warning, "Generate Convex Collision: node '{}' no longer exists", nodeUuidArgument);
+
+            return;
+        }
 
         subsystem->GenerateConvexCollision(node);
     }

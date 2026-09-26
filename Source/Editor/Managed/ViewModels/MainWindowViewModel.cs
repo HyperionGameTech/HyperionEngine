@@ -629,6 +629,10 @@ namespace Hyperion.Editor.ViewModels
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
         // that was right-clicked rather than whatever happens to be focused.
         public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
+
+        public ICommand OpenGenerateConvexCollisionPanel { get; private set; }
+        private GenerateConvexCollisionPanelViewModel? _generateConvexCollisionPanel;
+
         public EditorCommand FitCollisionToMesh => new EditorCommand("FitCollisionToMesh", GetSelectedNodeUuid);
 
         // Takes the right-clicked volume's UUID; the bounds come from the engine-side selection.
@@ -1543,6 +1547,37 @@ namespace Hyperion.Editor.ViewModels
                 var panel = new AddNormalizedCubeSpherePanelViewModel(_editorSubsystem, confirmed => { });
 
                 PanelService.Instance.OpenPanel(panel);
+            });
+
+            OpenGenerateConvexCollisionPanel = new RelayCommand<NodeViewModel>(node =>
+            {
+                if (node == null)
+                {
+                    return;
+                }
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    uint numPresets = _editorSubsystem.GetNumConvexCollisionPresets();
+                    List<string> presetNames = new List<string>((int)numPresets);
+
+                    for (uint presetIndex = 0; presetIndex < numPresets; presetIndex++)
+                    {
+                        presetNames.Add(_editorSubsystem.GetConvexCollisionPresetName(presetIndex));
+                    }
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_generateConvexCollisionPanel != null)
+                        {
+                            PanelService.Instance.RemovePanel(_generateConvexCollisionPanel);
+                        }
+
+                        _generateConvexCollisionPanel = new GenerateConvexCollisionPanelViewModel(_editorSubsystem, node, presetNames, GenerateConvexCollision);
+
+                        PanelService.Instance.OpenPanel(_generateConvexCollisionPanel);
+                    });
+                });
             });
 
             EditorGame? editorGame = EngineManager.EditorGame;

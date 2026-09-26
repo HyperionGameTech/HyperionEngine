@@ -1429,11 +1429,10 @@
                                                                         <Separator />
                                                                         <MenuItem Header="Collision" IsEnabled="{Binding HasCollisionActions}">
                                                                             <MenuItem
-                                                                                Command="{Binding GenerateConvexCollision, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                                CommandParameter="{Binding UUID}"
-                                                                                Header="Generate Convex Collision"
-                                                                                IsEnabled="{Binding CanGenerateCollision}"
-                                                                                ToolTip.Tip="Decompose this entity's mesh into convex hulls and use them as its collision shape" />
+                                                                                Command="{Binding OpenGenerateConvexCollisionPanel, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Header="Generate Convex Collision..."
+                                                                                IsEnabled="{Binding CanGenerateCollision}" />
                                                                             <MenuItem
                                                                                 Command="{Binding FitCollisionToMesh, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                 CommandParameter="{Binding UUID}"

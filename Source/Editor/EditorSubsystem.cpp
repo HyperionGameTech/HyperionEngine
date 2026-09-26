@@ -2613,53 +2613,7 @@ void EditorSubsystem::GenerateConvexCollisionWithSettings(Node* node, const Conv
                         return;
                     }
 
-                    RigidBodyComponent* rigidBodyComponent = entityRef->TryGetComponent<RigidBodyComponent>();
-
-                    if (rigidBodyComponent == nullptr)
-                    {
-                        return;
-                    }
-
-                    Handle<CompoundPhysicsShape> compoundShape = MakeHandle<CompoundPhysicsShape>(NAME_FMT("{}_Collision", mesh->GetName()));
-                    compoundShape->SetHulls(
-                        Span<const float>(result.positions.Data(), result.positions.Size()),
-                        Span<const uint32>(result.indices.Data(), result.indices.Size()),
-                        Span<const ConvexHullRange>(result.hulls.Data(), result.hulls.Size()));
-                    compoundShape->SetDecompositionSettings(settings);
-
-                    {
-                        auto readScope = mesh->GetReadScope();
-
-                        compoundShape->SetSource(mesh, mesh->ComputeLod0DataHash());
-                    }
-
-                    GetCurrentAssetRegistry()->PutAssetUnique(compoundShape);
-
-                    Handle<PhysicsShape> previousShape = rigidBodyComponent->shape;
-
-                    subsystem->GetCurrentProject()->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
-                        "Generate Convex Collision",
-                        [entityRef, compoundShape, previousShape]() -> EditorActionFunctions
-                        {
-                            return {
-                                [entityRef, compoundShape](EditorSubsystem*, EditorProject*)
-                                {
-                                    if (RigidBodyComponent* rigidBodyComponent = entityRef.IsValid() ? entityRef->TryGetComponent<RigidBodyComponent>() : nullptr)
-                                    {
-                                        rigidBodyComponent->shape = compoundShape;
-                                        entityRef->AddTag<EntityTag::UpdatePhysicsShape>();
-                                    }
-                                },
-                                [entityRef, previousShape](EditorSubsystem*, EditorProject*)
-                                {
-                                    if (RigidBodyComponent* rigidBodyComponent = entityRef.IsValid() ? entityRef->TryGetComponent<RigidBodyComponent>() : nullptr)
-                                    {
-                                        rigidBodyComponent->shape = previousShape;
-                                        entityRef->AddTag<EntityTag::UpdatePhysicsShape>();
-                                    }
-                                }
-                            };
-                        }));
+                    subsystem->ApplyConvexDecomposition(entityRef, mesh, settings, result);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
@@ -2667,6 +2621,140 @@ void EditorSubsystem::GenerateConvexCollisionWithSettings(Node* node, const Conv
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND,
         TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+static ConvexDecompositionResult CopyCompoundShapeHulls(const CompoundPhysicsShape* compoundShape)
+{
+    ConvexDecompositionResult hullData;
+
+    auto readScope = compoundShape->GetReadScope();
+
+    for (uint32 hullIndex = 0; hullIndex < compoundShape->NumHulls(); hullIndex++)
+    {
+        const Span<const float> hullVertices = compoundShape->GetHullVertices(hullIndex);
+        const Span<const uint32> hullIndices = compoundShape->GetHullIndices(hullIndex);
+
+        ConvexHullRange range;
+        range.firstVertex = uint32(hullData.positions.Size() / 3);
+        range.numVertices = uint32(hullVertices.Size() / 3);
+        range.firstIndex = uint32(hullData.indices.Size());
+        range.numIndices = uint32(hullIndices.Size());
+
+        hullData.positions.Concat(hullVertices);
+        hullData.indices.Concat(hullIndices);
+        hullData.hulls.PushBack(range);
+    }
+
+    return hullData;
+}
+
+static void SetCompoundShapeHulls(
+    CompoundPhysicsShape* compoundShape,
+    const ConvexDecompositionResult& hullData,
+    const ConvexDecompositionSettings& settings,
+    const Handle<Mesh>& sourceMesh,
+    uint64 sourceDataHash)
+{
+    compoundShape->SetHulls(
+        Span<const float>(hullData.positions.Data(), hullData.positions.Size()),
+        Span<const uint32>(hullData.indices.Data(), hullData.indices.Size()),
+        Span<const ConvexHullRange>(hullData.hulls.Data(), hullData.hulls.Size()));
+    compoundShape->SetDecompositionSettings(settings);
+    compoundShape->SetSource(sourceMesh, sourceDataHash);
+}
+
+void EditorSubsystem::ApplyConvexDecomposition(const Handle<Entity>& entity, const Handle<Mesh>& mesh, const ConvexDecompositionSettings& settings, const ConvexDecompositionResult& result)
+{
+    AssertOnThread(g_simThread);
+
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    if (rigidBodyComponent == nullptr)
+    {
+        return;
+    }
+
+    uint64 sourceDataHash = 0;
+
+    {
+        auto readScope = mesh->GetReadScope();
+
+        sourceDataHash = mesh->ComputeLod0DataHash();
+    }
+
+    const Handle<PhysicsShape>& currentShape = rigidBodyComponent->shape;
+
+    // regenerating collision this mesh already produced rebuilds that shape, rather than registering another asset each time
+    if (currentShape.IsValid()
+        && currentShape->GetType() == PhysicsShapeType::Compound
+        && static_cast<CompoundPhysicsShape*>(currentShape.Get())->GetSourceMesh() == mesh
+        && !IsPhysicsShapeShared(entity.Get(), currentShape))
+    {
+        Handle<CompoundPhysicsShape> compoundShape = MakeStrongRef(static_cast<CompoundPhysicsShape*>(currentShape.Get()));
+
+        ConvexDecompositionResult previousHulls = CopyCompoundShapeHulls(compoundShape.Get());
+        const ConvexDecompositionSettings previousSettings = compoundShape->GetDecompositionSettings();
+        const uint64 previousSourceDataHash = compoundShape->GetSourceDataHash();
+
+        GetCurrentProject()->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+            "Regenerate Convex Collision",
+            [entity, compoundShape, mesh, settings, result, sourceDataHash, previousHulls = std::move(previousHulls), previousSettings, previousSourceDataHash]() -> EditorActionFunctions
+            {
+                return {
+                    [entity, compoundShape, mesh, settings, result, sourceDataHash](EditorSubsystem*, EditorProject*)
+                    {
+                        SetCompoundShapeHulls(compoundShape.Get(), result, settings, mesh, sourceDataHash);
+
+                        if (entity.IsValid())
+                        {
+                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                        }
+                    },
+                    [entity, compoundShape, mesh, previousHulls, previousSettings, previousSourceDataHash](EditorSubsystem*, EditorProject*)
+                    {
+                        SetCompoundShapeHulls(compoundShape.Get(), previousHulls, previousSettings, mesh, previousSourceDataHash);
+
+                        if (entity.IsValid())
+                        {
+                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                        }
+                    }
+                };
+            }));
+
+        return;
+    }
+
+    Handle<CompoundPhysicsShape> compoundShape = MakeHandle<CompoundPhysicsShape>(NAME_FMT("{}_Collision", mesh->GetName()));
+    SetCompoundShapeHulls(compoundShape.Get(), result, settings, mesh, sourceDataHash);
+
+    GetCurrentAssetRegistry()->PutAssetUnique(compoundShape);
+
+    Handle<PhysicsShape> previousShape = currentShape;
+
+    GetCurrentProject()->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+        "Generate Convex Collision",
+        [entity, compoundShape, previousShape]() -> EditorActionFunctions
+        {
+            return {
+                [entity, compoundShape](EditorSubsystem*, EditorProject*)
+                {
+                    if (RigidBodyComponent* rigidBodyComponent = entity.IsValid() ? entity->TryGetComponent<RigidBodyComponent>() : nullptr)
+                    {
+                        rigidBodyComponent->shape = compoundShape;
+                        entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                    }
+                },
+                [entity, previousShape](EditorSubsystem*, EditorProject*)
+                {
+                    if (RigidBodyComponent* rigidBodyComponent = entity.IsValid() ? entity->TryGetComponent<RigidBodyComponent>() : nullptr)
+                    {
+                        rigidBodyComponent->shape = previousShape;
+                        entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                    }
+                }
+            };
+        }));
 }
 
 uint32 EditorSubsystem::GetNumConvexCollisionPresets() const
@@ -2687,6 +2775,11 @@ void EditorSubsystem::ApplyConvexCollisionPreset(uint32 presetIndex)
     }
 
     m_convexCollisionSettings = GetConvexDecompositionPreset(presetIndex);
+}
+
+void EditorSubsystem::SetConvexCollisionTarget(Node* node)
+{
+    m_convexCollisionTarget = MakeWeakRef(node);
 }
 
 String EditorSubsystem::GetSourcePrefabName(Node* node) const
@@ -2910,19 +3003,9 @@ static Color HullDebugColor(uint32 hullIndex)
     return hullColors[hullIndex % GetArrayCount(hullColors)];
 }
 
-void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawCommandList)
+static void DebugDrawPhysicsShape(DebugDrawCommandList& debugDrawCommandList, Entity* entity, PhysicsShape* shape, bool highlighted)
 {
-    if (!s_cvDebugDrawPhysics.Get())
-    {
-        return;
-    }
-
     static const RenderableAttributeSet wireframeAttributes = PhysicsWireframeAttributes();
-
-    if (!m_currentProject.IsValid())
-    {
-        return;
-    }
 
     static constexpr auto BoxPhysicsShapeTypeId = CONSTEXPR_TYPE_ID(BoxPhysicsShape);
     static constexpr auto SpherePhysicsShapeTypeId = CONSTEXPR_TYPE_ID(SpherePhysicsShape);
@@ -2932,6 +3015,178 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
     static constexpr auto CompoundPhysicsShapeTypeId = CONSTEXPR_TYPE_ID(CompoundPhysicsShape);
 
     static constexpr float PlaneDebugHalfExtent = 5.0f;
+
+    const Color color = highlighted ? Color::Yellow() : Color::Green();
+
+    const Transform entityWorldTransform(entity->GetWorldTranslation(), entity->GetWorldScale(), entity->GetWorldRotation());
+    const Mat4f& entityWorldMatrix = entity->GetWorldMatrix();
+    const Vec3f entityWorldScale = entity->GetWorldScale();
+    const float maxEntityScale = MathUtil::Max(MathUtil::Max(entityWorldScale.x, entityWorldScale.y), entityWorldScale.z);
+
+    switch (shape->InstanceClass()->GetTypeId().Value())
+    {
+    case BoxPhysicsShapeTypeId:
+    {
+        const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(shape)->GetAABB();
+        const Transform boxWorldTransform = entityWorldTransform * Transform(aabb.GetCenter(), aabb.GetExtent() * 0.5f, Quat4f::Identity());
+        debugDrawCommandList.box(boxWorldTransform, color, wireframeAttributes);
+        break;
+    }
+    case SpherePhysicsShapeTypeId:
+    {
+        const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(shape)->GetSphere();
+        const Vec3f worldCenter = entityWorldMatrix.TransformVector(Vec4f(sphere.GetCenter(), 1.0f)).GetXYZ();
+        debugDrawCommandList.sphere(worldCenter, sphere.GetRadius() * maxEntityScale, color, wireframeAttributes);
+        break;
+    }
+    case CapsulePhysicsShapeTypeId:
+    {
+        const float radius = static_cast<CapsulePhysicsShape*>(shape)->GetRadius();
+        const float height = static_cast<CapsulePhysicsShape*>(shape)->GetHeight(); // cylindrical part (Bullet convention)
+        // Capsule is Y-axis aligned in local space. Unit cylinder mesh has radius 1 and height 1.
+        const Transform cylinderWorldTransform = entityWorldTransform * Transform(Vec3f::Zero(), Vec3f(radius, height, radius), Quat4f::Identity());
+        debugDrawCommandList.cylinder(cylinderWorldTransform, color, wireframeAttributes);
+        const float worldRadius = radius * maxEntityScale;
+        const Vec3f topWorld = entityWorldMatrix.TransformVector(Vec4f(Vec3f(0.0f, height * 0.5f, 0.0f), 1.0f)).GetXYZ();
+        const Vec3f bottomWorld = entityWorldMatrix.TransformVector(Vec4f(Vec3f(0.0f, -height * 0.5f, 0.0f), 1.0f)).GetXYZ();
+        debugDrawCommandList.sphere(topWorld, worldRadius, color, wireframeAttributes);
+        debugDrawCommandList.sphere(bottomWorld, worldRadius, color, wireframeAttributes);
+        break;
+    }
+    case PlanePhysicsShapeTypeId:
+    {
+        // Planes are infinite; draw a finite wireframe quad at the entity origin oriented to the plane normal.
+        const Vec4f& plane = static_cast<PlanePhysicsShape*>(shape)->GetPlane();
+        Vec3f normal(plane.x, plane.y, plane.z);
+        if (normal.Length() < MathUtil::epsilonF)
+        {
+            normal = Vec3f::UnitY();
+        }
+        else
+        {
+            normal.Normalize();
+        }
+        const Vec3f reference = MathUtil::Abs(normal.y) < 0.99f ? Vec3f::UnitY() : Vec3f::UnitX();
+        const Vec3f tangent = (reference - normal * normal.Dot(reference)).Normalize();
+        const Vec3f bitangent = normal.Cross(tangent).Normalize();
+        const float e = PlaneDebugHalfExtent;
+        const Vec3f c0 = (-tangent - bitangent) * e;
+        const Vec3f c1 = ( tangent - bitangent) * e;
+        const Vec3f c2 = ( tangent + bitangent) * e;
+        const Vec3f c3 = (-tangent + bitangent) * e;
+        const Mat4f& m = entityWorldMatrix;
+        const FixedArray<Vec3f, 4> worldCorners = {
+            m.TransformVector(Vec4f(c0, 1.0f)).GetXYZ(),
+            m.TransformVector(Vec4f(c1, 1.0f)).GetXYZ(),
+            m.TransformVector(Vec4f(c2, 1.0f)).GetXYZ(),
+            m.TransformVector(Vec4f(c3, 1.0f)).GetXYZ()
+        };
+        debugDrawCommandList.plane(worldCorners, color, wireframeAttributes);
+        break;
+    }
+    case ConvexHullPhysicsShapeTypeId:
+    {
+        // Without recomputing the hull, render the local AABB of the hull points as an oriented box.
+        const ConvexHullPhysicsShape* hull = static_cast<ConvexHullPhysicsShape*>(shape);
+        const size_t numVertices = hull->NumVertices();
+        const float* vertexData = hull->GetVertexData();
+
+        if (numVertices == 0 || vertexData == nullptr)
+        {
+            break;
+        }
+
+        BoundingBox hullAabb(Vec3f(vertexData[0], vertexData[1], vertexData[2]), Vec3f(vertexData[0], vertexData[1], vertexData[2]));
+        for (size_t i = 1; i < numVertices; i++)
+        {
+            const Vec3f v(vertexData[i * 3 + 0], vertexData[i * 3 + 1], vertexData[i * 3 + 2]);
+            hullAabb = hullAabb.Union(v);
+        }
+
+        const Transform hullWorldTransform = entityWorldTransform * Transform(hullAabb.GetCenter(), hullAabb.GetExtent() * 0.5f, Quat4f::Identity());
+        debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
+        break;
+    }
+    case CompoundPhysicsShapeTypeId:
+    {
+        const CompoundPhysicsShape* compoundShape = static_cast<CompoundPhysicsShape*>(shape);
+
+        for (uint32 hullIndex = 0; hullIndex < compoundShape->NumHulls(); hullIndex++)
+        {
+            const Span<const float> hullVertices = compoundShape->GetHullVertices(hullIndex);
+
+            if (hullVertices.Size() < 3 * 3)
+            {
+                continue;
+            }
+
+            // one debug entry per triangle adds up fast, so only highlighted entities get real hulls
+            if (!highlighted)
+            {
+                BoundingBox hullAabb = BoundingBox::Empty();
+
+                for (size_t vertexIndex = 0; vertexIndex + 2 < hullVertices.Size(); vertexIndex += 3)
+                {
+                    hullAabb = hullAabb.Union(Vec3f(hullVertices[vertexIndex], hullVertices[vertexIndex + 1], hullVertices[vertexIndex + 2]));
+                }
+
+                const Transform hullWorldTransform = entityWorldTransform * Transform(hullAabb.GetCenter(), hullAabb.GetExtent() * 0.5f, Quat4f::Identity());
+                debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
+
+                continue;
+            }
+
+            const Span<const uint32> hullIndices = compoundShape->GetHullIndices(hullIndex);
+            const Color hullColor = HullDebugColor(hullIndex);
+
+            for (size_t index = 0; index + 2 < hullIndices.Size(); index += 3)
+            {
+                const uint32 i0 = hullIndices[index] * 3;
+                const uint32 i1 = hullIndices[index + 1] * 3;
+                const uint32 i2 = hullIndices[index + 2] * 3;
+
+                if (i0 + 2 >= hullVertices.Size() || i1 + 2 >= hullVertices.Size() || i2 + 2 >= hullVertices.Size())
+                {
+                    continue;
+                }
+
+                const Vec3f v0 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i0], hullVertices[i0 + 1], hullVertices[i0 + 2]), 1.0f)).GetXYZ();
+                const Vec3f v1 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i1], hullVertices[i1 + 1], hullVertices[i1 + 2]), 1.0f)).GetXYZ();
+                const Vec3f v2 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i2], hullVertices[i2 + 1], hullVertices[i2 + 2]), 1.0f)).GetXYZ();
+
+                debugDrawCommandList.triangle(v0, v1, v2, hullColor, wireframeAttributes);
+            }
+        }
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawCommandList)
+{
+    if (!m_currentProject.IsValid())
+    {
+        return;
+    }
+
+    const Handle<Node> convexCollisionTarget = m_convexCollisionTarget.Lock();
+
+    // always draw the target even if DebugDrawPhysics is off
+    if (!s_cvDebugDrawPhysics.Get())
+    {
+        Entity* targetEntity = DynamicCast<Entity>(convexCollisionTarget.Get());
+        RigidBodyComponent* rigidBodyComponent = targetEntity != nullptr ? targetEntity->TryGetComponent<RigidBodyComponent>() : nullptr;
+
+        if (rigidBodyComponent != nullptr && rigidBodyComponent->shape.IsValid())
+        {
+            DebugDrawPhysicsShape(debugDrawCommandList, targetEntity, rigidBodyComponent->shape.Get(), /* highlighted */ true);
+        }
+
+        return;
+    }
 
     for (Scene* scene : GetCurrentProject()->GetWorld()->GetScenes())
     {
@@ -2946,154 +3201,9 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
                 continue;
             }
 
-            const bool selected = IsNodeSelected(MakeStrongRef(static_cast<Node*>(entity)));
-            const Color color = selected ? Color::Yellow() : Color::Green();
+            const bool highlighted = entity == convexCollisionTarget.Get() || IsNodeSelected(MakeStrongRef(static_cast<Node*>(entity)));
 
-            const Transform entityWorldTransform(entity->GetWorldTranslation(), entity->GetWorldScale(), entity->GetWorldRotation());
-            const Mat4f& entityWorldMatrix = entity->GetWorldMatrix();
-            const Vec3f entityWorldScale = entity->GetWorldScale();
-            const float maxEntityScale = MathUtil::Max(MathUtil::Max(entityWorldScale.x, entityWorldScale.y), entityWorldScale.z);
-
-            switch (shape->InstanceClass()->GetTypeId().Value())
-            {
-            case BoxPhysicsShapeTypeId:
-            {
-                const BoundingBox& aabb = static_cast<BoxPhysicsShape*>(shape)->GetAABB();
-                const Transform boxWorldTransform = entityWorldTransform * Transform(aabb.GetCenter(), aabb.GetExtent() * 0.5f, Quat4f::Identity());
-                debugDrawCommandList.box(boxWorldTransform, color, wireframeAttributes);
-                break;
-            }
-            case SpherePhysicsShapeTypeId:
-            {
-                const BoundingSphere& sphere = static_cast<SpherePhysicsShape*>(shape)->GetSphere();
-                const Vec3f worldCenter = entityWorldMatrix.TransformVector(Vec4f(sphere.GetCenter(), 1.0f)).GetXYZ();
-                debugDrawCommandList.sphere(worldCenter, sphere.GetRadius() * maxEntityScale, color, wireframeAttributes);
-                break;
-            }
-            case CapsulePhysicsShapeTypeId:
-            {
-                const float radius = static_cast<CapsulePhysicsShape*>(shape)->GetRadius();
-                const float height = static_cast<CapsulePhysicsShape*>(shape)->GetHeight(); // cylindrical part (Bullet convention)
-                // Capsule is Y-axis aligned in local space. Unit cylinder mesh has radius 1 and height 1.
-                const Transform cylinderWorldTransform = entityWorldTransform * Transform(Vec3f::Zero(), Vec3f(radius, height, radius), Quat4f::Identity());
-                debugDrawCommandList.cylinder(cylinderWorldTransform, color, wireframeAttributes);
-                const float worldRadius = radius * maxEntityScale;
-                const Vec3f topWorld = entityWorldMatrix.TransformVector(Vec4f(Vec3f(0.0f, height * 0.5f, 0.0f), 1.0f)).GetXYZ();
-                const Vec3f bottomWorld = entityWorldMatrix.TransformVector(Vec4f(Vec3f(0.0f, -height * 0.5f, 0.0f), 1.0f)).GetXYZ();
-                debugDrawCommandList.sphere(topWorld, worldRadius, color, wireframeAttributes);
-                debugDrawCommandList.sphere(bottomWorld, worldRadius, color, wireframeAttributes);
-                break;
-            }
-            case PlanePhysicsShapeTypeId:
-            {
-                // Planes are infinite; draw a finite wireframe quad at the entity origin oriented to the plane normal.
-                const Vec4f& plane = static_cast<PlanePhysicsShape*>(shape)->GetPlane();
-                Vec3f normal(plane.x, plane.y, plane.z);
-                if (normal.Length() < MathUtil::epsilonF)
-                {
-                    normal = Vec3f::UnitY();
-                }
-                else
-                {
-                    normal.Normalize();
-                }
-                const Vec3f reference = MathUtil::Abs(normal.y) < 0.99f ? Vec3f::UnitY() : Vec3f::UnitX();
-                const Vec3f tangent = (reference - normal * normal.Dot(reference)).Normalize();
-                const Vec3f bitangent = normal.Cross(tangent).Normalize();
-                const float e = PlaneDebugHalfExtent;
-                const Vec3f c0 = (-tangent - bitangent) * e;
-                const Vec3f c1 = ( tangent - bitangent) * e;
-                const Vec3f c2 = ( tangent + bitangent) * e;
-                const Vec3f c3 = (-tangent + bitangent) * e;
-                const Mat4f& m = entityWorldMatrix;
-                const FixedArray<Vec3f, 4> worldCorners = {
-                    m.TransformVector(Vec4f(c0, 1.0f)).GetXYZ(),
-                    m.TransformVector(Vec4f(c1, 1.0f)).GetXYZ(),
-                    m.TransformVector(Vec4f(c2, 1.0f)).GetXYZ(),
-                    m.TransformVector(Vec4f(c3, 1.0f)).GetXYZ()
-                };
-                debugDrawCommandList.plane(worldCorners, color, wireframeAttributes);
-                break;
-            }
-            case ConvexHullPhysicsShapeTypeId:
-            {
-                // Without recomputing the hull, render the local AABB of the hull points as an oriented box.
-                const ConvexHullPhysicsShape* hull = static_cast<ConvexHullPhysicsShape*>(shape);
-                const size_t numVertices = hull->NumVertices();
-                const float* vertexData = hull->GetVertexData();
-
-                if (numVertices == 0 || vertexData == nullptr)
-                {
-                    break;
-                }
-
-                BoundingBox hullAabb(Vec3f(vertexData[0], vertexData[1], vertexData[2]), Vec3f(vertexData[0], vertexData[1], vertexData[2]));
-                for (size_t i = 1; i < numVertices; i++)
-                {
-                    const Vec3f v(vertexData[i * 3 + 0], vertexData[i * 3 + 1], vertexData[i * 3 + 2]);
-                    hullAabb = hullAabb.Union(v);
-                }
-
-                const Transform hullWorldTransform = entityWorldTransform * Transform(hullAabb.GetCenter(), hullAabb.GetExtent() * 0.5f, Quat4f::Identity());
-                debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
-                break;
-            }
-            case CompoundPhysicsShapeTypeId:
-            {
-                const CompoundPhysicsShape* compoundShape = static_cast<CompoundPhysicsShape*>(shape);
-
-                for (uint32 hullIndex = 0; hullIndex < compoundShape->NumHulls(); hullIndex++)
-                {
-                    const Span<const float> hullVertices = compoundShape->GetHullVertices(hullIndex);
-
-                    if (hullVertices.Size() < 3 * 3)
-                    {
-                        continue;
-                    }
-
-                    // one debug entry per triangle adds up fast, so only the selected entity gets real hulls
-                    if (!selected)
-                    {
-                        BoundingBox hullAabb = BoundingBox::Empty();
-
-                        for (size_t vertexIndex = 0; vertexIndex + 2 < hullVertices.Size(); vertexIndex += 3)
-                        {
-                            hullAabb = hullAabb.Union(Vec3f(hullVertices[vertexIndex], hullVertices[vertexIndex + 1], hullVertices[vertexIndex + 2]));
-                        }
-
-                        const Transform hullWorldTransform = entityWorldTransform * Transform(hullAabb.GetCenter(), hullAabb.GetExtent() * 0.5f, Quat4f::Identity());
-                        debugDrawCommandList.box(hullWorldTransform, color, wireframeAttributes);
-
-                        continue;
-                    }
-
-                    const Span<const uint32> hullIndices = compoundShape->GetHullIndices(hullIndex);
-                    const Color hullColor = HullDebugColor(hullIndex);
-
-                    for (size_t index = 0; index + 2 < hullIndices.Size(); index += 3)
-                    {
-                        const uint32 i0 = hullIndices[index] * 3;
-                        const uint32 i1 = hullIndices[index + 1] * 3;
-                        const uint32 i2 = hullIndices[index + 2] * 3;
-
-                        if (i0 + 2 >= hullVertices.Size() || i1 + 2 >= hullVertices.Size() || i2 + 2 >= hullVertices.Size())
-                        {
-                            continue;
-                        }
-
-                        const Vec3f v0 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i0], hullVertices[i0 + 1], hullVertices[i0 + 2]), 1.0f)).GetXYZ();
-                        const Vec3f v1 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i1], hullVertices[i1 + 1], hullVertices[i1 + 2]), 1.0f)).GetXYZ();
-                        const Vec3f v2 = entityWorldMatrix.TransformVector(Vec4f(Vec3f(hullVertices[i2], hullVertices[i2 + 1], hullVertices[i2 + 2]), 1.0f)).GetXYZ();
-
-                        debugDrawCommandList.triangle(v0, v1, v2, hullColor, wireframeAttributes);
-                    }
-                }
-
-                break;
-            }
-            default:
-                break;
-            }
+            DebugDrawPhysicsShape(debugDrawCommandList, entity, shape, highlighted);
         }
     }
 }

@@ -464,6 +464,11 @@ public:
         return m_sourceMesh;
     }
 
+    HYP_FORCE_INLINE uint64 GetSourceDataHash() const
+    {
+        return m_sourceDataHash;
+    }
+
     void SetSource(const Handle<Mesh>& sourceMesh, uint64 sourceDataHash);
 
     HYP_METHOD(Property = "CollisionOutOfDate", Editor = false, Transient)

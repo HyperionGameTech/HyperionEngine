@@ -32,6 +32,9 @@
         <DataTemplate DataType="vm:AddNormalizedCubeSpherePanelViewModel">
             <panels:AddNormalizedCubeSpherePanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:GenerateConvexCollisionPanelViewModel">
+            <panels:GenerateConvexCollisionPanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:AssetObjectEditPanelViewModel">
             <panels:AssetObjectEditPanelView />
         </DataTemplate>
