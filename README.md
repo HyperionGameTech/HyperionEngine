@@ -12,10 +12,9 @@
 
 ## About
 
-Hyperion started as a passion project in 2016 (forked from [apex-engine](https://github.com/ajmd17/apex-engine)), and is still worked on daily.
-Our aim with Hyperion is to offer a high fidelity gaming experience even on low-end hardware using our in-house baking system to prepare as much of the lighting and effects as possible ahead of time.
+Hyperion started as a passion project, back in 2016, and is still worked on daily. Our aim with Hyperion is to offer a high fidelity gaming experience even on low-end hardware using our in-house baking system to prepare as much of the lighting and effects as possible ahead of time.
 
-> This repo receives commits as they are merged upstream from my game's repo - you'll see them tagged `cherry picked from commit ...`
+> This repo receives commits as they are merged upstream. You'll see them tagged `cherry picked from commit ...`
 
 ## Screenshots
 | | |
