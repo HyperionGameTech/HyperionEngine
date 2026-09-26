@@ -783,6 +783,11 @@ static void ApplyMeshEditVertexPositions(
         }
     }
 
+    if (Scene* scene = entity->GetScene())
+    {
+        scene->MarkStaticRenderResourcesChanged();
+    }
+
     // Update editor pick cache, so we don't test against old verts
     g_editorState->GetPickCache().PutEntry(mesh, /* invalidate */ true);
 
@@ -2559,6 +2564,11 @@ bool EditorSubsystem::CanGenerateConvexCollision(Node* node) const
 
 void EditorSubsystem::GenerateConvexCollision(Node* node)
 {
+    GenerateConvexCollisionWithSettings(node, m_convexCollisionSettings);
+}
+
+void EditorSubsystem::GenerateConvexCollisionWithSettings(Node* node, const ConvexDecompositionSettings& settings)
+{
     if (!CanGenerateConvexCollision(node))
     {
         return;
@@ -2569,9 +2579,6 @@ void EditorSubsystem::GenerateConvexCollision(Node* node)
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
     Handle<Mesh> mesh = meshComponent->mesh;
-
-    // The shape carries these settings from here on, so they can be tuned and regenerated in the inspector.
-    const ConvexDecompositionSettings settings = ConvexDecompositionSettings {};
 
     EditorTaskScope* editorTaskScope = new EditorTaskScope(
         TickableEditorTask::StaticClass(),
@@ -2660,6 +2667,26 @@ void EditorSubsystem::GenerateConvexCollision(Node* node)
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND,
         TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+uint32 EditorSubsystem::GetNumConvexCollisionPresets() const
+{
+    return GetNumConvexDecompositionPresets();
+}
+
+String EditorSubsystem::GetConvexCollisionPresetName(uint32 presetIndex) const
+{
+    return GetConvexDecompositionPresetName(presetIndex);
+}
+
+void EditorSubsystem::ApplyConvexCollisionPreset(uint32 presetIndex)
+{
+    if (presetIndex >= GetNumConvexDecompositionPresets())
+    {
+        return;
+    }
+
+    m_convexCollisionSettings = GetConvexDecompositionPreset(presetIndex);
 }
 
 String EditorSubsystem::GetSourcePrefabName(Node* node) const

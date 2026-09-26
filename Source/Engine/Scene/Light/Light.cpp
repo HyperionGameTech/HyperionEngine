@@ -504,6 +504,23 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
 #ifdef HYP_EDITOR
 
+HashCode Light::GetLightingHashCode() const
+{
+    // directional lights store their direction as the translation
+    HashCode hashCode;
+    hashCode.Add(m_type);
+    hashCode.Add(GetWorldTranslation());
+    hashCode.Add(m_normal);
+    hashCode.Add(m_areaSize);
+    hashCode.Add(m_color);
+    hashCode.Add(m_intensity);
+    hashCode.Add(m_radius);
+    hashCode.Add(m_falloff);
+    hashCode.Add(m_spotAngles);
+
+    return hashCode;
+}
+
 bool Light::CanBakeStaticShadows() const
 {
     return !IsA(DirectionalLight::StaticClass());

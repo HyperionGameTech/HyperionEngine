@@ -166,6 +166,13 @@ void Mesh::SetVertexData(uint8 lodIndex, const VertexArrayView& view)
 
     m_meshDesc.lods[lodIndex].numVertices = uint32(view.vertexCount);
 
+#ifdef HYP_EDITOR
+    if (lodIndex == 0)
+    {
+        ++m_lod0DataRevision;
+    }
+#endif // HYP_EDITOR
+
     MarkDirty();
 }
 
@@ -175,6 +182,13 @@ void Mesh::SetIndexData(uint8 lodIndex, Span<const ubyte> indexData)
     AllocateBlobData(m_lodData[lodIndex].indexData, indexData.Data(), indexData.Size(), alignof(uint32));
 
     m_meshDesc.lods[lodIndex].numIndices = uint32(indexData.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
+
+#ifdef HYP_EDITOR
+    if (lodIndex == 0)
+    {
+        ++m_lod0DataRevision;
+    }
+#endif // HYP_EDITOR
 
     MarkDirty();
 }
@@ -787,6 +801,10 @@ void Mesh::SetMeshData(
     m_meshDesc = meshDesc;
     m_lodDataVersion.Increment(1, MemoryOrder::RELEASE);
 
+#ifdef HYP_EDITOR
+    ++m_lod0DataRevision;
+#endif // HYP_EDITOR
+
     for (uint8 lodIndex = 0; lodIndex < MaxMeshLods; lodIndex++)
     {
         AssertDebug(m_meshDesc.lods[lodIndex].numVertices == meshData.vertices[lodIndex].vertexCount);
@@ -1321,6 +1339,10 @@ void Mesh::CalculateNormals(bool weighted)
 
         setNormal(i, normal);
     }
+
+#ifdef HYP_EDITOR
+    ++m_lod0DataRevision;
+#endif // HYP_EDITOR
 }
 
 
