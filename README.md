@@ -39,6 +39,11 @@ Currently, we are focusing our efforts on developing the engine for *Windows*, *
 Documentation is a WIP but we have some available on our site: [Documentation](https://hyperionengine.dev/docs)
 For any questions you have, please feel free to ask away in [Discord](https://discord.gg/Fv8PwMJEUb).
 
+## AI
+AI can a useful tool, but intention is important when building something super complex like a game engine. We aim to keep the usage of AI-generated code limited to bug fixes, UI changes, and occasionally, prototyping / boilerplate. In an effort to maintain transparency, we aim to note where AI is used generally as part of a commit message, commit on the commit on GitHub, or on the PR; although this is on a best effort basis. 
+
+We expect contributors to be honest and upfront about the usage of AI generated code and while AI-generated code isn’t de facto unacceptable, the code must pass the same quality bar that human generated code would. 
+
 ## Credits
 - [Avalonia](https://github.com/AvaloniaUI/Avalonia)
 - [Dock.Avalonia](https://github.com/wieslawsoltes/Dock)
