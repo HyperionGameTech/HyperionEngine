@@ -332,8 +332,7 @@ Vec2f ThirdPersonCameraController::UpdateControllerLookRate(const Vec2f& stick, 
         const float boostFraction = MathUtil::Clamp((m_controllerTurnHoldTime - ControllerTurnBoostDelay) / ControllerTurnBoostRampTime, 0.0f, 1.0f);
         const float yawSpeed = m_controllerYawSpeed * (1.0f + m_controllerTurnBoost * boostFraction);
 
-        // Stick up reports positive y, while positive pitch looks down
-        const float pitchSign = m_invertControllerPitch ? 1.0f : -1.0f;
+        const float pitchSign = m_invertControllerPitch ? -1.0f : 1.0f;
 
         targetRate = Vec2f(response.x * yawSpeed, response.y * m_controllerPitchSpeed * pitchSign);
     }
