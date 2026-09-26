@@ -171,131 +171,134 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             AnimationPlaybackState& playbackState = animationComponent.playbackState;
 
-            if (playbackState.status == AnimationPlaybackStatus::PLAYING)
+            if (playbackState.status != AnimationPlaybackStatus::PLAYING)
             {
-                if (playbackState.animationIndex == ~0u)
+                continue;
+            }
+            if (playbackState.animationIndex == ~0u)
+            {
+                playbackState = {};
+
+                continue;
+            }
+
+            Animation* animation = meshComponent.skeleton->GetAnimation(playbackState.animationIndex);
+            if (!animation)
+            {
+                HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
+
+                playbackState = {};
+
+                continue;
+            }
+
+            playbackState.currentTime += delta * playbackState.speed;
+
+            const float animationLength = animation->GetLength();
+
+            if (playbackState.currentTime > animationLength)
+            {
+                if (playbackState.loopMode == AnimationLoopMode::ONCE)
                 {
-                    playbackState = {};
-
-                    continue;
-                }
-
-                Animation* animation = meshComponent.skeleton->GetAnimation(playbackState.animationIndex);
-                if (!animation)
-                {
-                    HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
-
-                    playbackState = {};
-
-                    continue;
-                }
-
-                playbackState.currentTime += delta * playbackState.speed;
-
-                const float animationLength = animation->GetLength();
-
-                if (playbackState.currentTime > animationLength)
-                {
-                    if (playbackState.loopMode == AnimationLoopMode::ONCE)
-                    {
-                        // hold the last frame instead of snapping back to frame 0
-                        playbackState.status = AnimationPlaybackStatus::STOPPED;
-                        playbackState.currentTime = animationLength;
-                    }
-                    else
-                    {
-                        playbackState.currentTime = animationLength > 0.0f
-                            ? std::fmod(playbackState.currentTime, animationLength)
-                            : 0.0f;
-                    }
-                }
-                else if (playbackState.currentTime < 0.0f)
-                {
-                    // playing in reverse
-                    if (playbackState.loopMode == AnimationLoopMode::ONCE)
-                    {
-                        playbackState.status = AnimationPlaybackStatus::STOPPED;
-                        playbackState.currentTime = 0.0f;
-                    }
-                    else
-                    {
-                        playbackState.currentTime = animationLength > 0.0f
-                            ? animationLength + std::fmod(playbackState.currentTime, animationLength)
-                            : 0.0f;
-                    }
-                }
-
-                const Animation* layerAnimation = playbackState.layerWeight > 0.0f && playbackState.layerAnimationIndex != ~0u
-                    ? meshComponent.skeleton->GetAnimation(playbackState.layerAnimationIndex).Get()
-                    : nullptr;
-
-                const Animation* secondLayerAnimation = playbackState.secondLayerWeight > 0.0f && playbackState.secondLayerAnimationIndex != ~0u
-                    ? meshComponent.skeleton->GetAnimation(playbackState.secondLayerAnimationIndex).Get()
-                    : nullptr;
-
-                if (layerAnimation != nullptr)
-                {
-                    playbackState.layerTime = AdvanceLayerTime(playbackState.layerTime, delta * playbackState.speed, layerAnimation->GetLength());
-                }
-
-                if (secondLayerAnimation != nullptr)
-                {
-                    playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
-                }
-
-                const Animation* overlayAnimation = playbackState.overlayWeight > 0.0f && playbackState.overlayAnimationIndex != ~0u
-                    ? meshComponent.skeleton->GetAnimation(playbackState.overlayAnimationIndex).Get()
-                    : nullptr;
-
-                if (overlayAnimation != nullptr)
-                {
-                    playbackState.overlayTime = AdvanceLayerTime(playbackState.overlayTime, delta * playbackState.speed, overlayAnimation->GetLength());
-                }
-
-                if (layerAnimation != nullptr || secondLayerAnimation != nullptr || overlayAnimation != nullptr)
-                {
-                    ApplyAnimParams params {};
-                    params.time = playbackState.currentTime;
-                    params.blend = 0.5f;
-
-                    if (layerAnimation != nullptr)
-                    {
-                        params.layerAnimation = layerAnimation;
-                        params.layerTime = playbackState.layerTime;
-                        params.layerWeight = playbackState.layerWeight;
-                        params.layerExcludedBone = playbackState.layerExcludedBone;
-
-                        params.secondLayerAnimation = secondLayerAnimation;
-                        params.secondLayerTime = playbackState.secondLayerTime;
-                        params.secondLayerWeight = playbackState.secondLayerWeight;
-                    }
-                    else if (secondLayerAnimation != nullptr)
-                    {
-                        params.layerAnimation = secondLayerAnimation;
-                        params.layerTime = playbackState.secondLayerTime;
-                        params.layerWeight = playbackState.secondLayerWeight;
-                    }
-
-                    params.overlayAnimation = overlayAnimation;
-                    params.overlayTime = playbackState.overlayTime;
-                    params.overlayWeight = playbackState.overlayWeight;
-                    params.overlayRootBone = playbackState.overlayRootBone;
-                    params.overlaySecondRootBone = playbackState.overlaySecondRootBone;
-
-                    animation->ApplyLayered(*meshComponent.skeleton, params);
+                    // hold the last frame instead of snapping back to frame 0
+                    playbackState.status = AnimationPlaybackStatus::STOPPED;
+                    playbackState.currentTime = animationLength;
                 }
                 else
                 {
-                    animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
+                    playbackState.currentTime = animationLength > 0.0f
+                        ? std::fmod(playbackState.currentTime, animationLength)
+                        : 0.0f;
                 }
-
-                if (playbackState.twistAngle != 0.0f && playbackState.twistRootBone.IsValid() && playbackState.twistEndBone.IsValid())
-                {
-                    ApplyTwist(*meshComponent.skeleton, playbackState.twistRootBone, playbackState.twistEndBone, playbackState.twistAngle);
-                }
-
-                meshComponent.skeleton->SetNeedsRenderProxyUpdate();
             }
+            else if (playbackState.currentTime < 0.0f)
+            {
+                // playing in reverse
+                if (playbackState.loopMode == AnimationLoopMode::ONCE)
+                {
+                    playbackState.status = AnimationPlaybackStatus::STOPPED;
+                    playbackState.currentTime = 0.0f;
+                }
+                else
+                {
+                    playbackState.currentTime = animationLength > 0.0f
+                        ? animationLength + std::fmod(playbackState.currentTime, animationLength)
+                        : 0.0f;
+                }
+            }
+
+            const Animation* layerAnimation = playbackState.layerWeight > 0.0f && playbackState.layerAnimationIndex != ~0u
+                ? meshComponent.skeleton->GetAnimation(playbackState.layerAnimationIndex).Get()
+                : nullptr;
+
+            const Animation* secondLayerAnimation = playbackState.secondLayerWeight > 0.0f && playbackState.secondLayerAnimationIndex != ~0u
+                ? meshComponent.skeleton->GetAnimation(playbackState.secondLayerAnimationIndex).Get()
+                : nullptr;
+
+            if (layerAnimation != nullptr)
+            {
+                playbackState.layerTime = AdvanceLayerTime(playbackState.layerTime, delta * playbackState.speed, layerAnimation->GetLength());
+            }
+
+            if (secondLayerAnimation != nullptr)
+            {
+                playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
+            }
+
+            const Animation* overlayAnimation = playbackState.overlayWeight > 0.0f && playbackState.overlayAnimationIndex != ~0u
+                ? meshComponent.skeleton->GetAnimation(playbackState.overlayAnimationIndex).Get()
+                : nullptr;
+
+            if (overlayAnimation != nullptr)
+            {
+                playbackState.overlayTime = AdvanceLayerTime(playbackState.overlayTime, delta * playbackState.speed, overlayAnimation->GetLength());
+            }
+        
+            ApplyAnimParams params{};
+            params.time = playbackState.currentTime;
+            params.blend = 0.5f;
+
+            if (layerAnimation != nullptr || secondLayerAnimation != nullptr || overlayAnimation != nullptr)
+            {
+                if (layerAnimation != nullptr)
+                {
+                    params.layerAnimation = layerAnimation;
+                    params.layerTime = playbackState.layerTime;
+                    params.layerWeight = playbackState.layerWeight;
+                    params.layerExcludedBone = playbackState.layerExcludedBone;
+
+                    params.secondLayerAnimation = secondLayerAnimation;
+                    params.secondLayerTime = playbackState.secondLayerTime;
+                    params.secondLayerWeight = playbackState.secondLayerWeight;
+                }
+                else if (secondLayerAnimation != nullptr)
+                {
+                    params.layerAnimation = secondLayerAnimation;
+                    params.layerTime = playbackState.secondLayerTime;
+                    params.layerWeight = playbackState.secondLayerWeight;
+                }
+
+                params.overlayAnimation = overlayAnimation;
+                params.overlayTime = playbackState.overlayTime;
+                params.overlayWeight = playbackState.overlayWeight;
+                params.overlayRootBone = playbackState.overlayRootBone;
+                params.overlaySecondRootBone = playbackState.overlaySecondRootBone;
+
+                animation->ApplyLayered(*meshComponent.skeleton, params);
+            }
+            else
+            {
+                animation->ApplyBlended(*meshComponent.skeleton, params);
+            }
+
+            if (playbackState.twistAngle != 0.0f
+                && playbackState.twistRootBone.IsValid()
+                && playbackState.twistEndBone.IsValid())
+            {
+                ApplyTwist(*meshComponent.skeleton, playbackState.twistRootBone, playbackState.twistEndBone, playbackState.twistAngle);
+            }
+
+            meshComponent.skeleton->SetNeedsRenderProxyUpdate();
         }
     }
 }

@@ -242,61 +242,49 @@ void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
     m_tracks = tracks;
 }
 
-void Animation::Apply(Skeleton* skeleton, float time)
+void Animation::Apply(Skeleton& skeleton, const ApplyAnimParams& params)
 {
-    Assert(skeleton != nullptr);
+    HYP_SCOPE;
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
-        Bone* bone = skeleton->FindBone(track->GetBoneName());
+        Bone* bone = skeleton.FindBone(track->GetBoneName());
+
         if (!bone)
         {
             continue;
         }
 
         bone->ClearPose();
-        bone->SetKeyframe(track->GetKeyframe(time));
+        bone->SetKeyframe(track->GetKeyframe(params.time));
     }
 }
 
-void Animation::ApplyBlended(Skeleton* skeleton, float time, float blend)
+void Animation::ApplyBlended(Skeleton& skeleton, const ApplyAnimParams& params)
 {
     HYP_SCOPE;
-    Assert(skeleton != nullptr);
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
-        Bone* bone = skeleton->FindBone(track->GetBoneName());
+        Bone* bone = skeleton.FindBone(track->GetBoneName());
+
         if (!bone)
         {
             continue;
         }
 
-        if (blend <= MathUtil::epsilonF)
+        if (params.blend <= MathUtil::epsilonF)
         {
             bone->ClearPose();
         }
 
-        Keyframe frame = track->GetKeyframe(time);
+        Keyframe frame = track->GetKeyframe(params.time);
         Keyframe blended = bone->GetKeyframe().Blend(
             frame,
-            MathUtil::Clamp(blend, 0.0f, 1.0f));
+            MathUtil::Clamp(params.blend, 0.0f, 1.0f));
 
         bone->SetKeyframe(blended);
     }
-}
-
-AnimationTrack* Animation::FindTrack(Name boneName) const
-{
-    for (const Handle<AnimationTrack>& track : m_tracks)
-    {
-        if (track.IsValid() && track->GetBoneName() == boneName)
-        {
-            return track.Get();
-        }
-    }
-
-    return nullptr;
 }
 
 void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
@@ -377,6 +365,19 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
 
         bone->SetKeyframe(bone->GetKeyframe().Blend(layerTrack->GetKeyframe(params.layerTime), blend * layerWeight));
     }
+}
+
+AnimationTrack* Animation::FindTrack(Name boneName) const
+{
+    for (const Handle<AnimationTrack>& track : m_tracks)
+    {
+        if (track.IsValid() && track->GetBoneName() == boneName)
+        {
+            return track.Get();
+        }
+    }
+
+    return nullptr;
 }
 
 #pragma endregion Animation
