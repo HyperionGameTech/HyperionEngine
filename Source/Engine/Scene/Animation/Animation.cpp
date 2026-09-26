@@ -23,6 +23,36 @@
 
 namespace Hyperion {
 
+namespace /* Helpers */ {
+
+bool IsBoneWithin(Bone& bone, Name rootBoneName)
+{
+    for (Node* node = &bone; node != nullptr; node = node->GetParent())
+    {
+        const Bone* ancestor = DynamicCast<Bone>(node);
+
+        if (!ancestor)
+        {
+            break;
+        }
+
+        if (ancestor->GetBoneName() == rootBoneName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+HYP_FORCE_INLINE bool IsBoneOverlaid(Bone& bone, const ApplyAnimParams& params)
+{
+    return (params.overlayRootBone.IsValid() && IsBoneWithin(bone, params.overlayRootBone))
+        || (params.overlaySecondRootBone.IsValid() && IsBoneWithin(bone, params.overlaySecondRootBone));
+}
+
+} // namespace
+
 #pragma region AnimationTrack
 
 AnimationTrack::AnimationTrack()
@@ -269,26 +299,6 @@ AnimationTrack* Animation::FindTrack(Name boneName) const
     return nullptr;
 }
 
-static bool IsBoneWithin(Bone& bone, Name rootBoneName)
-{
-    for (Node* node = &bone; node != nullptr; node = node->GetParent())
-    {
-        const Bone* ancestor = DynamicCast<Bone>(node);
-
-        if (!ancestor)
-        {
-            break;
-        }
-
-        if (ancestor->GetBoneName() == rootBoneName)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
 {
     HYP_SCOPE;
@@ -296,15 +306,9 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
     float layerWeight = MathUtil::Clamp(params.layerWeight, 0.0f, 1.0f);
     float blend = MathUtil::Clamp(params.blend, 0.0f, 1.0f);
     float secondLayerWeight = MathUtil::Clamp(params.secondLayerWeight, 0.0f, 1.0f);
+    float overlayWeight = MathUtil::Clamp(params.overlayWeight, 0.0f, 1.0f);
 
-    Assert(params.layerAnimation != nullptr);
-
-    if (!params.layerAnimation)
-    {
-        return;
-    }
-
-    const Animation& layerAnimation = *params.layerAnimation;
+    const Animation* layerAnimation = params.layerAnimation;
 
     const Animation* secondLayerAnimation = params.secondLayerAnimation;
 
@@ -312,6 +316,8 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
     {
         secondLayerAnimation = nullptr;
     }
+
+    const Animation* overlayAnimation = overlayWeight > 0.0f ? params.overlayAnimation : nullptr;
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
@@ -323,7 +329,7 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
 
         Keyframe frame = track->GetKeyframe(params.time);
 
-        if (const AnimationTrack* layerTrack = layerAnimation.FindTrack(track->GetBoneName()))
+        if (const AnimationTrack* layerTrack = layerAnimation != nullptr ? layerAnimation->FindTrack(track->GetBoneName()) : nullptr)
         {
             if (!params.layerExcludedBone.IsValid() || !IsBoneWithin(*bone, params.layerExcludedBone))
             {
@@ -339,11 +345,24 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
             }
         }
 
+        if (overlayAnimation != nullptr && IsBoneOverlaid(*bone, params))
+        {
+            if (const AnimationTrack* overlayTrack = overlayAnimation->FindTrack(track->GetBoneName()))
+            {
+                frame = frame.Blend(overlayTrack->GetKeyframe(params.overlayTime), overlayWeight);
+            }
+        }
+
         bone->SetKeyframe(bone->GetKeyframe().Blend(frame, blend));
     }
 
+    if (layerAnimation == nullptr)
+    {
+        return;
+    }
+
     // Bones only the layer animates
-    for (const Handle<AnimationTrack>& layerTrack : layerAnimation.GetTracks())
+    for (const Handle<AnimationTrack>& layerTrack : layerAnimation->GetTracks())
     {
         if (FindTrack(layerTrack->GetBoneName()) != nullptr)
         {

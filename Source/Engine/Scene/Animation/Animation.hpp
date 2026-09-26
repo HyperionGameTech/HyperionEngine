@@ -40,6 +40,13 @@ struct ApplyAnimParams
     const Animation* secondLayerAnimation = nullptr;
     float secondLayerTime = 0.0f;
     float secondLayerWeight = 0.0f;
+
+    // mixed over the result, only on these bones and the bones beneath them
+    const Animation* overlayAnimation = nullptr;
+    float overlayTime = 0.0f;
+    float overlayWeight = 0.0f;
+    Name overlayRootBone;
+    Name overlaySecondRootBone;
 };
 
 HYP_CLASS(AssetBucket = "AnimationTracks")

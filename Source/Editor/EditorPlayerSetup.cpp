@@ -111,6 +111,7 @@ void EditorPlayerSetup::AttachToScene(const EditorThirdPersonPlayer& player)
         characterControllerComponent.shape = player.capsuleShape;
         characterControllerComponent.movement.moveSpeed = PlayerWalkSpeed;
         characterControllerComponent.movement.sprintSpeed = PlayerSprintSpeed;
+        characterControllerComponent.movement.orientToMovement = true;
 
         playerEntity->AddComponent<CharacterControllerComponent>(characterControllerComponent);
     }

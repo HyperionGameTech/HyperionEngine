@@ -36,6 +36,16 @@
 
 namespace Hyperion {
 
+struct DirectionalWalk
+{
+    uint32 fromIndex = ~0u;
+    float fromTime = 0.0f;
+
+    uint32 toIndex = ~0u;
+    float toTime = 0.0f;
+    float toWeight = 0.0f;
+};
+
 /// @TODO Refactor, too many fields all over the place
 struct LocomotionClips
 {
@@ -418,14 +428,52 @@ void ApplyAimTwist(
     playbackState.twistEndBone = clips.aimTwistEndBone;
 }
 
-struct DirectionalWalk
+void UpdateWeaponOverlay(CharacterModelComponent& component, float delta)
 {
-    uint32 fromIndex = ~0u;
-    float fromTime = 0.0f;
-    uint32 toIndex = ~0u;
-    float toTime = 0.0f;
-    float toWeight = 0.0f;
-};
+    const bool isSwitching = component.shownWeaponAnimation.IsValid() && component.shownWeaponAnimation != component.heldWeaponAnimation;
+
+    if (!component.shownWeaponAnimation.IsValid())
+    {
+        component.shownWeaponAnimation = component.heldWeaponAnimation;
+    }
+
+    const float targetWeight = component.heldWeaponAnimation.IsValid() && !isSwitching ? 1.0f : 0.0f;
+    const float step = delta / MathUtil::Max(component.weaponBlendTime, 0.001f);
+
+    component.weaponWeight = targetWeight > component.weaponWeight
+        ? MathUtil::Min(component.weaponWeight + step, targetWeight)
+        : MathUtil::Max(component.weaponWeight - step, targetWeight);
+
+    component.weaponTime += delta;
+
+    if (component.weaponWeight <= 0.0f)
+    {
+        component.shownWeaponAnimation = component.heldWeaponAnimation;
+    }
+}
+
+void ApplyWeaponOverlay(const CharacterModelComponent& component, const Skeleton& skeleton, AnimationComponent& animationComponent)
+{
+    AnimationPlaybackState& playbackState = animationComponent.playbackState;
+
+    const uint32 index = component.weaponWeight > 0.0f && component.shownWeaponAnimation.IsValid()
+        ? FindAnimationIndex(skeleton, component.shownWeaponAnimation)
+        : ~0u;
+
+    if (index == ~0u)
+    {
+        playbackState.overlayAnimationIndex = ~0u;
+        playbackState.overlayWeight = 0.0f;
+
+        return;
+    }
+
+    playbackState.overlayAnimationIndex = index;
+    playbackState.overlayTime = WrapTime(component.weaponTime, GetAnimationLength(skeleton, index));
+    playbackState.overlayWeight = MathUtil::SmoothStep(0.0f, 1.0f, component.weaponWeight);
+    playbackState.overlayRootBone = component.animations.weaponOverlayRootBone;
+    playbackState.overlaySecondRootBone = component.animations.weaponOverlaySecondRootBone;
+}
 
 DirectionalWalk GetDirectionalWalk(const CharacterModelComponent& component, const LocomotionClips& clips)
 {
@@ -902,7 +950,12 @@ bool ApplyAirbornePose(
     return true;
 }
 
-void UpdateFacing(Entity& entity, CharacterModelComponent& component, const Vec3f& facingDirection, float delta)
+float GetFacingTurnAlpha(const CharacterModelComponent& component, float delta)
+{
+    return MathUtil::Clamp(1.0f - MathUtil::Exp(-MathUtil::Max(component.turnSharpness, 0.0f) * delta), 0.0f, 1.0f);
+}
+
+void UpdateFacing(Entity& entity, CharacterModelComponent& component, const Vec3f& facingDirection, float turnAlpha)
 {
     if (!component.hasFacingYaw)
     {
@@ -916,9 +969,8 @@ void UpdateFacing(Entity& entity, CharacterModelComponent& component, const Vec3
     {
         const float targetYaw = std::atan2(facingDirection.x, facingDirection.z);
         const float yawDifference = float(std::remainder(targetYaw - component.facingYaw, 2.0f * MathUtil::pi<float>));
-        const float turnAlpha = 1.0f - MathUtil::Exp(-MathUtil::Max(component.turnSharpness, 0.0f) * delta);
 
-        component.facingYaw += yawDifference * MathUtil::Clamp(turnAlpha, 0.0f, 1.0f);
+        component.facingYaw += yawDifference * turnAlpha;
     }
 }
 
@@ -1037,19 +1089,29 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
             switch (component.facingMode)
             {
             case CharacterFacingMode::MovementDirection:
-                UpdateFacing(*entity, component, movementDirection, delta);
+            {
+                if (characterController != nullptr && !isRemotePlayer && characterController->movement.orientToMovement
+                    && characterController->heading.LengthSquared() > 0.0001f)
+                {
+                    UpdateFacing(*entity, component, characterController->heading, 1.0f);
+                }
+                else
+                {
+                    UpdateFacing(*entity, component, movementDirection, GetFacingTurnAlpha(component, delta));
+                }
 
                 break;
+            }
             case CharacterFacingMode::ViewDirection:
             {
                 // Remote players' cameras aren't driven by anyone on this machine, so follow their movement instead
                 if (characterController != nullptr && !isRemotePlayer)
                 {
-                    UpdateFacing(*entity, component, GetCharacterViewDirection(*characterEntity, *characterController), delta);
+                    UpdateFacing(*entity, component, GetCharacterViewDirection(*characterEntity, *characterController), GetFacingTurnAlpha(component, delta));
                 }
                 else
                 {
-                    UpdateFacing(*entity, component, movementDirection, delta);
+                    UpdateFacing(*entity, component, movementDirection, GetFacingTurnAlpha(component, delta));
                 }
 
                 break;
@@ -1105,7 +1167,12 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 component.smoothedLocalVelocity += (localVelocity - component.smoothedLocalVelocity) * MathUtil::Clamp(speedAlpha, 0.0f, 1.0f);
 
-                if (component.smoothedLocalVelocity.Length() > IdleSpeedThreshold * 0.5f)
+                if (component.facingMode == CharacterFacingMode::MovementDirection)
+                {
+                    // The body turns to face its movement, so it always walks forward; strafing while it comes round reads as a sidestep
+                    component.moveAngle = 0.0f;
+                }
+                else if (component.smoothedLocalVelocity.Length() > IdleSpeedThreshold * 0.5f)
                 {
                     component.moveAngle = std::atan2(component.smoothedLocalVelocity.x, component.smoothedLocalVelocity.y);
                 }
@@ -1117,6 +1184,7 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
             }
 
             UpdateLocomotionPhase(component, phaseClips, isMovingBackward, delta);
+            UpdateWeaponOverlay(component, delta);
 
             for (const LocomotionAnimatedEntity& animatedEntity : animatedEntities)
             {
@@ -1138,6 +1206,7 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     ApplyLocomotionPose(component, *pClips, *animatedEntity.animationComponent);
                 }
 
+                ApplyWeaponOverlay(component, *animatedEntity.skeleton, *animatedEntity.animationComponent);
                 ApplyAimTwist(component, *pClips, *animatedEntity.animationComponent);
             }
         }
