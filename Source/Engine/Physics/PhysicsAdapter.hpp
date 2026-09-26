@@ -44,6 +44,10 @@ struct CharacterControllerConfig
     float turnSpeedLoss = 1.5f;
     float brakeDeceleration = 22.0f;
 
+    bool orientToMovement = false;
+    float turnRate = MathUtil::DegToRad(360.0f);
+    Vec3f startHeading = Vec3f::UnitZ();
+
     float jumpCutGravityMultiplier = 2.2f;
     float apexGravityMultiplier = 0.85f;
     float fallGravityMultiplier = 1.8f;
@@ -73,6 +77,7 @@ struct CharacterControllerConfig
 struct CharacterMotionState
 {
     Vec3f horizontalVelocity;
+    Vec3f heading = Vec3f::UnitZ();
     float verticalVelocity = 0.0f;
     float coyoteTimeRemaining = 0.0f;
     float jumpBufferTimeRemaining = 0.0f;

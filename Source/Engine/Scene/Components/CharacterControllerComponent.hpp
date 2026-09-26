@@ -61,6 +61,12 @@ struct CharacterMovementSettings
 
     HYP_FIELD(Property = "BrakeDeceleration", Serialize, Title = "Brake Deceleration")
     float brakeDeceleration = 22.0f;
+
+    HYP_FIELD(Property = "OrientToMovement", Serialize, Title = "Orient To Movement")
+    bool orientToMovement = false;
+
+    HYP_FIELD(Property = "TurnRate", Serialize, Title = "Turn Rate")
+    float turnRate = 360.0f;
 };
 
 HYP_STRUCT()
@@ -148,6 +154,10 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Transient)
     Vec3f translation;
+
+    // Horizontal direction the physics character faces, updated by each move; zero until the first one
+    HYP_FIELD(Transient)
+    Vec3f heading = Vec3f::Zero();
 
     HYP_FIELD(Property = "Movement", Serialize, Title = "Movement")
     CharacterMovementSettings movement;

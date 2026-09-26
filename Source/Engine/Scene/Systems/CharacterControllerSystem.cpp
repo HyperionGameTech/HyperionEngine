@@ -260,8 +260,11 @@ static Vec3f GetPlayerViewDirection(const Entity& entity)
     return entity.GetWorldRotation().RotateVector(Vec3f::UnitZ());
 }
 
-static CharacterControllerConfig MakeCharacterControllerConfig(const CharacterControllerComponent& component)
+static CharacterControllerConfig MakeCharacterControllerConfig(const Entity& entity, const CharacterControllerComponent& component)
 {
+    // Transforms store the inverse rotation
+    const Vec3f entityForward = entity.GetWorldRotation().Inverse().RotateVector(Vec3f::UnitZ());
+
     CharacterControllerConfig config;
     config.shape = component.shape;
     config.startTranslation = component.translation;
@@ -277,6 +280,9 @@ static CharacterControllerConfig MakeCharacterControllerConfig(const CharacterCo
     config.sprintTurnRate = MathUtil::DegToRad(component.movement.sprintTurnRate);
     config.turnSpeedLoss = component.movement.turnSpeedLoss;
     config.brakeDeceleration = component.movement.brakeDeceleration;
+    config.orientToMovement = component.movement.orientToMovement;
+    config.turnRate = MathUtil::DegToRad(component.movement.turnRate);
+    config.startHeading = Vec3f(entityForward.x, 0.0f, entityForward.z);
     config.jumpSpeed = component.jump.speed;
     config.fallSpeed = component.jump.fallSpeed;
     config.jumpCutGravityMultiplier = component.jump.cutGravityMultiplier;
@@ -312,7 +318,7 @@ void CharacterControllerSystem::OnEntityAdded(Entity* entity)
     TransformComponent& transformComponent = entity->GetComponent<TransformComponent>();
     component.translation = transformComponent.translation;
 
-    entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(MakeCharacterControllerConfig(component), component.physicsHandle);
+    entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(MakeCharacterControllerConfig(*entity, component), component.physicsHandle);
 
     if (!component.physicsHandle)
     {
@@ -647,7 +653,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
 
         component.translation = transformComponent.translation;
 
-        entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(MakeCharacterControllerConfig(component), component.physicsHandle);
+        entity->GetWorld()->GetPhysicsWorld()->AddCharacterController(MakeCharacterControllerConfig(*entity, component), component.physicsHandle);
 
         if (!component.physicsHandle)
         {

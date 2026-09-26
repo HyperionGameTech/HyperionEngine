@@ -243,31 +243,44 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
                 }
 
-                if (layerAnimation != nullptr)
+                const Animation* overlayAnimation = playbackState.overlayWeight > 0.0f && playbackState.overlayAnimationIndex != ~0u
+                    ? meshComponent.skeleton->GetAnimation(playbackState.overlayAnimationIndex).Get()
+                    : nullptr;
+
+                if (overlayAnimation != nullptr)
                 {
-                    ApplyAnimParams params {};
-                    params.time = playbackState.currentTime;
-                    params.layerAnimation = layerAnimation;
-                    params.layerTime = playbackState.layerTime;
-                    params.layerWeight = playbackState.layerWeight;
-                    params.blend = 0.5f;
-
-                    params.layerExcludedBone = playbackState.layerExcludedBone;
-                    
-                    params.secondLayerAnimation = secondLayerAnimation;
-                    params.secondLayerTime = playbackState.secondLayerTime;
-                    params.secondLayerWeight = playbackState.secondLayerWeight;
-
-                    animation->ApplyLayered(*meshComponent.skeleton, params);
+                    playbackState.overlayTime = AdvanceLayerTime(playbackState.overlayTime, delta * playbackState.speed, overlayAnimation->GetLength());
                 }
-                else if (secondLayerAnimation != nullptr)
+
+                if (layerAnimation != nullptr || secondLayerAnimation != nullptr || overlayAnimation != nullptr)
                 {
                     ApplyAnimParams params {};
                     params.time = playbackState.currentTime;
-                    params.layerAnimation = secondLayerAnimation;
-                    params.layerTime = playbackState.secondLayerTime;
-                    params.layerWeight = playbackState.secondLayerWeight;
                     params.blend = 0.5f;
+
+                    if (layerAnimation != nullptr)
+                    {
+                        params.layerAnimation = layerAnimation;
+                        params.layerTime = playbackState.layerTime;
+                        params.layerWeight = playbackState.layerWeight;
+                        params.layerExcludedBone = playbackState.layerExcludedBone;
+
+                        params.secondLayerAnimation = secondLayerAnimation;
+                        params.secondLayerTime = playbackState.secondLayerTime;
+                        params.secondLayerWeight = playbackState.secondLayerWeight;
+                    }
+                    else if (secondLayerAnimation != nullptr)
+                    {
+                        params.layerAnimation = secondLayerAnimation;
+                        params.layerTime = playbackState.secondLayerTime;
+                        params.layerWeight = playbackState.secondLayerWeight;
+                    }
+
+                    params.overlayAnimation = overlayAnimation;
+                    params.overlayTime = playbackState.overlayTime;
+                    params.overlayWeight = playbackState.overlayWeight;
+                    params.overlayRootBone = playbackState.overlayRootBone;
+                    params.overlaySecondRootBone = playbackState.overlaySecondRootBone;
 
                     animation->ApplyLayered(*meshComponent.skeleton, params);
                 }

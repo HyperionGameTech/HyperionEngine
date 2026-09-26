@@ -73,8 +73,21 @@ struct AnimationPlaybackState
     HYP_FIELD(Property = "SecondLayerWeight", Editor = true)
     float secondLayerWeight = 0.0f;
 
-    /// radians of twist about the skeleton's up axis, added on top of the sampled pose and spread evenly over the
-    /// bones from twistRootBone up to twistEndBone (e.g. turning the upper body toward where a character aims)
+    HYP_FIELD(Property = "OverlayAnimationIndex", Editor = true)
+    uint32 overlayAnimationIndex = ~0u;
+
+    HYP_FIELD(Property = "OverlayTime", Editor = true)
+    float overlayTime = 0.0f;
+
+    HYP_FIELD(Property = "OverlayWeight", Editor = true)
+    float overlayWeight = 0.0f;
+
+    HYP_FIELD(Property = "OverlayRootBone", Editor = true)
+    Name overlayRootBone;
+
+    HYP_FIELD(Property = "OverlaySecondRootBone", Editor = true)
+    Name overlaySecondRootBone;
+
     HYP_FIELD(Property = "TwistAngle", Editor = true)
     float twistAngle = 0.0f;
 
@@ -100,6 +113,11 @@ struct AnimationPlaybackState
         hc.Add(secondLayerAnimationIndex);
         hc.Add(secondLayerTime);
         hc.Add(secondLayerWeight);
+        hc.Add(overlayAnimationIndex);
+        hc.Add(overlayTime);
+        hc.Add(overlayWeight);
+        hc.Add(overlayRootBone);
+        hc.Add(overlaySecondRootBone);
         hc.Add(twistAngle);
         hc.Add(twistRootBone);
         hc.Add(twistEndBone);

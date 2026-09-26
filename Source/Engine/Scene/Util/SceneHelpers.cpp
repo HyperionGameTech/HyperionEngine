@@ -298,7 +298,7 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         }
 
         const bool isSprinting = bool(move.sprintHeld)
-            && movementInput.y >= SprintMinForwardFraction * movementInput.Length();
+            && (component.movement.orientToMovement || movementInput.y >= SprintMinForwardFraction * movementInput.Length());
 
         const float wishSpeed = isSprinting
             ? MathUtil::Max(component.movement.sprintSpeed, 0.0f)
@@ -317,6 +317,7 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
     CharacterMotionState motionState;
     physicsWorld->GetCharacterMotionState(component.physicsHandle, motionState);
     component.jumpWindupRemaining = motionState.jumpWindupRemaining;
+    component.heading = motionState.heading;
 
     outResultTranslation = component.translation + Vec3f(0.0f, GetCapsuleHeightOffset(component), 0.0f);
 

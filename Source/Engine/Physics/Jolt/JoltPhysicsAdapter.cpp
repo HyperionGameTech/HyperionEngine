@@ -474,6 +474,8 @@ struct JoltCharacterControllerInternalData
 
     JPH::Vec3 commandedHorizontalVelocity = JPH::Vec3::sZero();
 
+    JPH::Vec3 heading = JPH::Vec3::sAxisZ();
+
     float capsuleCenterOffset = 0.0f;
     float stepHeight = 0.35f;
     float jumpSpeed = 4.9f;
@@ -490,6 +492,9 @@ struct JoltCharacterControllerInternalData
     float sprintTurnRate = MathUtil::DegToRad(140.0f);
     float turnSpeedLoss = 1.5f;
     float brakeDeceleration = 22.0f;
+
+    bool orientToMovement = false;
+    float turnRate = MathUtil::DegToRad(360.0f);
 
     float jumpCutGravityMultiplier = 2.2f;
     float apexGravityMultiplier = 0.85f;
@@ -1126,6 +1131,8 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     internalData->sprintTurnRate = config.sprintTurnRate;
     internalData->turnSpeedLoss = config.turnSpeedLoss;
     internalData->brakeDeceleration = config.brakeDeceleration;
+    internalData->orientToMovement = config.orientToMovement;
+    internalData->turnRate = config.turnRate;
     internalData->jumpCutGravityMultiplier = config.jumpCutGravityMultiplier;
     internalData->apexGravityMultiplier = config.apexGravityMultiplier;
     internalData->fallGravityMultiplier = config.fallGravityMultiplier;
@@ -1133,6 +1140,13 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
     internalData->jumpBufferTime = config.jumpBufferTime;
     internalData->jumpWindupTime = config.jumpWindupTime;
     internalData->minGroundSupportMass = config.minGroundSupportMass;
+
+    const JPH::Vec3 startHeading(config.startHeading.x, 0.0f, config.startHeading.z);
+
+    if (startHeading.LengthSq() > MathUtil::epsilonF)
+    {
+        internalData->heading = startHeading.Normalized();
+    }
 
     m_characterVsCharacterCollision->Add(internalData->character.GetPtr());
 
@@ -1213,7 +1227,22 @@ static JPH::Vec3 ApplyCharacterGroundFriction(JPH::Vec3 horizontalVelocity, floa
     return horizontalVelocity * (newSpeed / speed);
 }
 
-static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH::Vec3& wishDirection, float wishSpeed, const JoltCharacterControllerInternalData& data, float deltaTime)
+static JPH::Vec3 TurnHorizontalDirection(const JPH::Vec3& direction, const JPH::Vec3& targetDirection, float maxAngle)
+{
+    const float angle = std::acos(MathUtil::Clamp(direction.Dot(targetDirection), -1.0f, 1.0f));
+    const float turn = MathUtil::Min(angle, maxAngle);
+
+    if (turn <= MathUtil::epsilonF)
+    {
+        return direction;
+    }
+
+    const float side = direction.Cross(targetDirection).GetY() >= 0.0f ? 1.0f : -1.0f;
+
+    return (JPH::Quat::sRotation(JPH::Vec3::sAxisY(), side * turn) * direction).Normalized();
+}
+
+static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH::Vec3& wishDirection, float wishSpeed, const JoltCharacterControllerInternalData& data, float deltaTime, JPH::Vec3& inOutHeading)
 {
     if (wishSpeed <= MathUtil::epsilonF)
     {
@@ -1221,7 +1250,16 @@ static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH:
     }
 
     float speed = horizontalVelocity.Length();
-    JPH::Vec3 direction = speed > CharacterSteerMinSpeed ? horizontalVelocity * (1.0f / speed) : wishDirection;
+    JPH::Vec3 direction;
+
+    if (speed > CharacterSteerMinSpeed)
+    {
+        direction = horizontalVelocity * (1.0f / speed);
+    }
+    else
+    {
+        direction = data.orientToMovement ? inOutHeading : wishDirection;
+    }
 
     const float sprintRange = MathUtil::Max(data.sprintSpeed - data.moveSpeed, 0.01f);
     const float sprintFactor = MathUtil::Clamp((speed - data.moveSpeed) / sprintRange, 0.0f, 1.0f);
@@ -1232,18 +1270,18 @@ static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH:
     {
         speed = MathUtil::Max(speed - data.brakeDeceleration * deltaTime, 0.0f);
 
+        inOutHeading = direction;
+
         return direction * speed;
     }
 
-    const float turnRate = MathUtil::Lerp(CharacterWalkTurnRate, data.sprintTurnRate, sprintFactor);
+    const float walkTurnRate = data.orientToMovement ? data.turnRate : CharacterWalkTurnRate;
+    const float turnRate = MathUtil::Lerp(walkTurnRate, data.sprintTurnRate, sprintFactor);
     const float turn = MathUtil::Min(angle, turnRate * deltaTime);
 
     if (turn > MathUtil::epsilonF)
     {
-        // Rotate about the up axis, toward whichever side the input is on
-        const float side = direction.Cross(wishDirection).GetY() >= 0.0f ? 1.0f : -1.0f;
-
-        direction = (JPH::Quat::sRotation(JPH::Vec3::sAxisY(), side * turn) * direction).Normalized();
+        direction = TurnHorizontalDirection(direction, wishDirection, turn);
 
         // Cornering at a sprint costs the speed above move speed
         if (speed > data.moveSpeed)
@@ -1270,6 +1308,12 @@ static JPH::Vec3 SteerCharacterOnGround(JPH::Vec3 horizontalVelocity, const JPH:
 
         speed = MathUtil::Max(speed - drop, wishSpeed);
     }
+    else if (data.orientToMovement && speed > targetSpeed)
+    {
+        speed = MathUtil::Max(speed - data.brakeDeceleration * deltaTime, targetSpeed);
+    }
+
+    inOutHeading = direction;
 
     return direction * speed;
 }
@@ -1378,7 +1422,7 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
         {
             // Friction only brings the character to a stop once input is released; while moving, steering handles speed
             horizontalVelocity = wishSpeed > MathUtil::epsilonF
-                ? SteerCharacterOnGround(horizontalVelocity, wishDirection, wishSpeed, *internalData, substepDelta)
+                ? SteerCharacterOnGround(horizontalVelocity, wishDirection, wishSpeed, *internalData, substepDelta, internalData->heading)
                 : ApplyCharacterGroundFriction(horizontalVelocity, internalData->friction, internalData->stopSpeed, substepDelta);
         }
         else
@@ -1386,11 +1430,21 @@ void JoltPhysicsAdapter::StepCharacterController(const SharedPtr<void>& physicsH
             horizontalVelocity = AccelerateCharacterHorizontal(horizontalVelocity, wishDirection, wishSpeed, internalData->airAcceleration, substepDelta);
 
             const float maxAirSpeed = MathUtil::Max(previousHorizontalVelocity.Length(), wishSpeed);
-            const float airSpeed = horizontalVelocity.Length();
+            float airSpeed = horizontalVelocity.Length();
 
             if (airSpeed > maxAirSpeed && airSpeed > MathUtil::epsilonF)
             {
                 horizontalVelocity = horizontalVelocity * (maxAirSpeed / airSpeed);
+                airSpeed = maxAirSpeed;
+            }
+
+            if (airSpeed > CharacterSteerMinSpeed)
+            {
+                const JPH::Vec3 driftDirection = horizontalVelocity * (1.0f / airSpeed);
+
+                internalData->heading = internalData->orientToMovement
+                    ? TurnHorizontalDirection(internalData->heading, driftDirection, internalData->turnRate * substepDelta)
+                    : driftDirection;
             }
         }
 
@@ -1575,6 +1629,7 @@ void JoltPhysicsAdapter::GetCharacterMotionState(const SharedPtr<void>& physicsH
     }
 
     outMotionState.horizontalVelocity = FromJPHVec(internalData->commandedHorizontalVelocity);
+    outMotionState.heading = FromJPHVec(internalData->heading);
     outMotionState.verticalVelocity = internalData->character->GetLinearVelocity().GetY();
     outMotionState.coyoteTimeRemaining = internalData->coyoteTimeRemaining;
     outMotionState.jumpBufferTimeRemaining = internalData->jumpBufferTimeRemaining;
@@ -1592,6 +1647,7 @@ void JoltPhysicsAdapter::SetCharacterMotionState(const SharedPtr<void>& physicsH
     }
 
     internalData->commandedHorizontalVelocity = JPH::Vec3(motionState.horizontalVelocity.x, 0.0f, motionState.horizontalVelocity.z);
+    internalData->heading = JPH::Vec3(motionState.heading.x, 0.0f, motionState.heading.z).NormalizedOr(internalData->heading);
     internalData->coyoteTimeRemaining = motionState.coyoteTimeRemaining;
     internalData->jumpBufferTimeRemaining = motionState.jumpBufferTimeRemaining;
     internalData->jumpWindupRemaining = motionState.jumpWindupRemaining;
