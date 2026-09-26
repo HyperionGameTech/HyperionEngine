@@ -5716,7 +5716,6 @@ void EditorSubsystem::UpdateBakeStatus()
         {
             if (!volume->GetAtlasTexture(0, LightmapVolume::IrradianceTexture).IsValid())
             {
-                // Not baked yet, but we consider it 'out of date', so we dont have LMVs left unbaked in the scene.
                 lightmapVolumeNames.PushBack(*volume->GetName());
 
                 continue;

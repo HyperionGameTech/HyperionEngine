@@ -48,9 +48,6 @@ private:
     ThirdPersonCameraController* m_controller;
 };
 
-/*! \brief Orbits the camera around its parent node (usually the player), with the view direction
- *  driving camera-relative character movement. The camera ignores its parent's transform so the
- *  character can turn without dragging the view along with it. */
 HYP_CLASS()
 class ENGINE_API ThirdPersonCameraController : public PerspectiveCameraController
 {
@@ -102,7 +99,6 @@ public:
     HYP_METHOD()
     void Zoom(float amount);
 
-    /*! \brief World-space direction the camera is looking, independent of any pending transform updates. */
     HYP_METHOD()
     Vec3f GetViewDirection() const;
 
@@ -115,10 +111,10 @@ protected:
     virtual void OnDeactivated() override;
     virtual void OnRemoved() override;
 
-    HYP_FIELD(Property = "PivotOffset", Serialize, Editor, Title = "Pivot Offset", Description = "Offset from the parent node's origin that the camera orbits around")
+    HYP_FIELD(Property = "PivotOffset", Serialize, Editor, Title = "Pivot Offset")
     Vec3f m_pivotOffset = Vec3f(0.0f, 1.8f, 0.0f);
 
-    HYP_FIELD(Property = "ShoulderOffset", Serialize, Editor, Title = "Shoulder Offset", Description = "Sideways offset of the orbit pivot, for an over-the-shoulder view")
+    HYP_FIELD(Property = "ShoulderOffset", Serialize, Editor, Title = "Shoulder Offset")
     float m_shoulderOffset = 0.6f;
 
     HYP_FIELD(Property = "Distance", Serialize, Editor, Title = "Distance")
@@ -130,10 +126,10 @@ protected:
     HYP_FIELD(Property = "MaxDistance", Serialize, Editor, Title = "Max Distance")
     float m_maxDistance = 3.0f;
 
-    HYP_FIELD(Property = "Yaw", Serialize, Editor, Title = "Yaw", Description = "Orbit yaw in degrees; 0 looks down +Z")
+    HYP_FIELD(Property = "Yaw", Serialize, Editor, Title = "Yaw")
     float m_yaw = 0.0f;
 
-    HYP_FIELD(Property = "Pitch", Serialize, Editor, Title = "Pitch", Description = "Orbit pitch in degrees; positive looks down at the pivot")
+    HYP_FIELD(Property = "Pitch", Serialize, Editor, Title = "Pitch")
     float m_pitch = 4.0f;
 
     HYP_FIELD(Property = "MinPitch", Serialize, Editor, Title = "Min Pitch")
@@ -142,10 +138,10 @@ protected:
     HYP_FIELD(Property = "MaxPitch", Serialize, Editor, Title = "Max Pitch")
     float m_maxPitch = 70.0f;
 
-    HYP_FIELD(Property = "MinEyeHeight", Serialize, Editor, Title = "Min Eye Height", Description = "Lowest the camera may sit relative to the pivot; looking up pulls the camera in instead of dipping below this")
+    HYP_FIELD(Property = "MinEyeHeight", Serialize, Editor, Title = "Min Eye Height")
     float m_minEyeHeight = -1.4f;
 
-    HYP_FIELD(Property = "FollowSharpness", Serialize, Editor, Title = "Follow Sharpness", Description = "How tightly the camera tracks the pivot; 0 disables smoothing")
+    HYP_FIELD(Property = "FollowSharpness", Serialize, Editor, Title = "Follow Sharpness")
     float m_followSharpness = 25.0f;
 
     HYP_FIELD(Property = "ZoomStep", Serialize, Editor, Title = "Zoom Step", Description = "Distance change per mouse wheel notch")
@@ -154,22 +150,22 @@ protected:
     HYP_FIELD(Property = "MouseSensitivity", Serialize, Editor, Title = "Mouse Sensitivity")
     float m_mouseSensitivity = 120.0f;
 
-    HYP_FIELD(Property = "ControllerYawSpeed", Serialize, Editor, Title = "Controller Yaw Speed", Description = "Degrees per second of horizontal turn at full right stick deflection")
+    HYP_FIELD(Property = "ControllerYawSpeed", Serialize, Editor, Title = "Controller Yaw Speed")
     float m_controllerYawSpeed = 220.0f;
 
-    HYP_FIELD(Property = "ControllerPitchSpeed", Serialize, Editor, Title = "Controller Pitch Speed", Description = "Degrees per second of vertical look at full right stick deflection")
+    HYP_FIELD(Property = "ControllerPitchSpeed", Serialize, Editor, Title = "Controller Pitch Speed")
     float m_controllerPitchSpeed = 130.0f;
 
-    HYP_FIELD(Property = "ControllerDeadzone", Serialize, Editor, Title = "Controller Deadzone", Description = "Radial right stick deadzone (0-1); input is rescaled so turning starts smoothly at its edge")
+    HYP_FIELD(Property = "ControllerDeadzone", Serialize, Editor, Title = "Controller Deadzone")
     float m_controllerDeadzone = 0.12f;
 
-    HYP_FIELD(Property = "ControllerResponseExponent", Serialize, Editor, Title = "Controller Response Exponent", Description = "Right stick response curve; 1 is linear, higher values give finer control near the center")
+    HYP_FIELD(Property = "ControllerResponseExponent", Serialize, Editor, Title = "Controller Response Exponent")
     float m_controllerResponseExponent = 2.0f;
 
-    HYP_FIELD(Property = "ControllerTurnBoost", Serialize, Editor, Title = "Controller Turn Boost", Description = "Extra yaw speed (fraction of yaw speed) ramped in while the stick is held fully sideways")
+    HYP_FIELD(Property = "ControllerTurnBoost", Serialize, Editor, Title = "Controller Turn Boost")
     float m_controllerTurnBoost = 0.6f;
 
-    HYP_FIELD(Property = "InvertControllerPitch", Serialize, Editor, Title = "Invert Controller Pitch", Description = "Pushing the right stick up looks down")
+    HYP_FIELD(Property = "InvertControllerPitch", Serialize, Editor, Title = "Invert Controller Pitch")
     bool m_invertControllerPitch = false;
 
 private:

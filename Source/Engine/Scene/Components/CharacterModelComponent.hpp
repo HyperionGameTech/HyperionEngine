@@ -120,16 +120,16 @@ struct CharacterModelComponent
 {
     HYP_STRUCT_BODY(CharacterModelComponent);
 
-    HYP_FIELD(Property = "AlignToCapsule", Serialize, Editor, Title = "Align To Capsule", Description = "Should the models origin be at the bottom of the parent's character controller capsule?")
+    HYP_FIELD(Property = "AlignToCapsule", Serialize, Editor, Title = "Align To Capsule")
     bool alignToCapsule = true;
 
-    HYP_FIELD(Property = "ModelOffset", Serialize, Editor, Title = "Model Offset", Description = "Offset applied after aligning to the capsule")
+    HYP_FIELD(Property = "ModelOffset", Serialize, Editor, Title = "Model Offset")
     Vec3f modelOffset = Vec3f::Zero();
 
     HYP_FIELD(Property = "FacingMode", Serialize, Editor, Title = "Facing Mode")
     CharacterFacingMode facingMode = CharacterFacingMode::MovementDirection;
 
-    HYP_FIELD(Property = "TurnSharpness", Serialize, Editor, Title = "Turn Sharpness", Description = "How quickly the model turns toward its facing direction. A character controller with Orient To Movement turns at its own Turn Rate instead")
+    HYP_FIELD(Property = "TurnSharpness", Serialize, Editor, Title = "Turn Sharpness")
     float turnSharpness = 12.0f;
 
     HYP_FIELD(Property = "ForwardYawOffset", Serialize, Editor, Title = "Forward Yaw Offset")
@@ -138,7 +138,7 @@ struct CharacterModelComponent
     HYP_FIELD(Property = "Animations", Serialize, Editor)
     CharacterModelAnimations animations;
 
-    HYP_FIELD(Property = "SpeedSmoothing", Serialize, Editor, Title = "Speed Smoothing", Description = "Seconds for the blend to catch up. (Higher = softer)")
+    HYP_FIELD(Property = "SpeedSmoothing", Serialize, Editor, Title = "Speed Smoothing")
     float speedSmoothing = 0.15f;
 
     HYP_FIELD(Property = "HeldWeaponAnimation", Serialize, Editor, Title = "Held Weapon Animation")
@@ -186,37 +186,30 @@ struct CharacterModelComponent
     HYP_FIELD(Transient)
     bool isAirborne = false;
 
-    // Took off with upward speed (plays Jump), as opposed to walking off a ledge (straight into Fall)
     HYP_FIELD(Transient)
     bool isJumping = false;
 
-    // Left the ground at a run (plays RunJump/RunFall and lands with RunLand); kept through the landing
     HYP_FIELD(Transient)
     bool isRunningJump = false;
 
     HYP_FIELD(Transient)
     float airTime = 0.0f;
 
-    // 0..1 through the crouch before a jump leaves the ground; negative when not winding up
     HYP_FIELD(Transient)
     float jumpWindup = -1.0f;
 
-    // The current jump started with a wind-up, so takeoff continues from its crouch
     HYP_FIELD(Transient)
     bool isJumpWoundUp = false;
 
     HYP_FIELD(Transient)
     float jumpWindupHoldTime = 0.0f;
 
-    // Time since touchdown; negative while no landing is playing
     HYP_FIELD(Transient)
     float landTime = -1.0f;
 
     HYP_FIELD(Transient)
     float verticalSpeed = 0.0f;
 
-    // Yaw of the feet and hips, which the model entity is turned to. While standing it lags facingYaw and the upper body
-    // twists to make up the difference; the feet only turn in whole steps
     HYP_FIELD(Transient)
     float bodyYaw = 0.0f;
 
@@ -232,22 +225,18 @@ struct CharacterModelComponent
     HYP_FIELD(Transient)
     float turnStepFromYaw = 0.0f;
 
-    // Radians the current step turns the feet
     HYP_FIELD(Transient)
     float turnStepSize = 0.0f;
 
-    // Whether the current step plays the small (settling) clips
     HYP_FIELD(Transient)
     bool isTurnStepSmall = false;
 
-    // How long the view has been holding still, for settling steps
     HYP_FIELD(Transient)
     float viewStillTime = 0.0f;
 
     HYP_FIELD(Transient)
     float lastFacingYaw = 0.0f;
 
-    // 0..1 time through the current step, and the eased progress the feet and clip follow
     HYP_FIELD(Transient)
     float turnStepTime = 0.0f;
 
@@ -257,8 +246,6 @@ struct CharacterModelComponent
     HYP_FIELD(Transient)
     float turnStepWeight = 0.0f;
 
-    // The upper body's twist toward the view, following it with a slight lag so the shoulders go a little with the body
-    // when it turns instead of staying locked on the view
     HYP_FIELD(Transient)
     float aimTwist = 0.0f;
 };
