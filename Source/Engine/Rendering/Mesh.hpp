@@ -331,6 +331,13 @@ public:
 
     uint64 ComputeLod0DataHash() const;
 
+#ifdef HYP_EDITOR
+    HYP_FORCE_INLINE uint32 GetLod0DataRevision() const
+    {
+        return m_lod0DataRevision;
+    }
+#endif // HYP_EDITOR
+
     ///Lightmap UVs
 
     HYP_FORCE_INLINE uint64 GetLightmapUVDataHash() const
@@ -453,6 +460,11 @@ private:
 
     HYP_FIELD(Property = "LightmapUVDataHash", Serialize, Editor = false)
     uint64 m_lightmapUvDataHash = 0;
+
+#ifdef HYP_EDITOR
+    HYP_FIELD(Property = "Lod0DataRevision", EditorOnly, Serialize, Editor = false)
+    uint32 m_lod0DataRevision = 0;
+#endif // HYP_EDITOR
 
     HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;

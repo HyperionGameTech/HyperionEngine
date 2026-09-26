@@ -177,7 +177,9 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
     {
         return;
     }
-    
+
+    bakeLayer.sceneHashes.Clear();
+
     if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
     {
         UpdateEpoch(*lmv, bakeLayer);

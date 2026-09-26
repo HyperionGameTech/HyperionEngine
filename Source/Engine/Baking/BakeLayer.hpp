@@ -43,7 +43,7 @@ struct BakeLayerHashes
     FixedArray<uint64, Max> uuidHashes;         //!< JUST UUIDs
     
     HYP_FIELD()
-    FixedArray<uint64, Max> transformHashes;    //!< UUID + transform hashes
+    FixedArray<uint64, Max> transformHashes;    //!< UUID + transform hashes, plus mesh revisions / light parameters
 };
 
 HYP_STRUCT()

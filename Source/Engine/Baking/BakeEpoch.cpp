@@ -21,19 +21,76 @@
 #include <Scene/LightmapVolume.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/FogVolume.hpp>
+#include <Scene/Light/Light.hpp>
+
+#include <Rendering/Mesh.hpp>
 
 namespace Hyperion {
 
 namespace Baking {
 namespace BakeEpoch {
 
+static void ComputeStaticLightHashes(const Scene& scene, BakeLayerHashes& inOutResult)
+{
+    HashCode hcUUID;
+    HashCode hcLighting;
+
+    if (scene.GetEntityManager().IsValid())
+    {
+        for (auto [light, _] : scene.GetEntityManager()->GetEntitySet<EntityType<Light>, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            hcUUID.Add(light->GetUUID());
+
+            hcLighting.Add(light->GetUUID());
+            hcLighting.Add(light->GetLightingHashCode());
+        }
+    }
+
+    inOutResult.uuidHashes[BakeLayerHashes::StaticLights] = hcUUID.Value();
+    inOutResult.transformHashes[BakeLayerHashes::StaticLights] = hcLighting.Value();
+}
+
+static void ComputeStaticMeshHashes(const Scene& scene, BakeLayerHashes& inOutResult)
+{
+    HashCode hcUUID;
+    HashCode hcTransform;
+
+    if (scene.GetEntityManager().IsValid())
+    {
+        for (auto [entity, _0, _1] : scene.GetEntityManager()->GetEntitySet<MeshComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            hcUUID.Add(entity->GetUUID());
+        }
+
+        for (auto [entity, meshComponent, boundingBoxComponent, _] : scene.GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            hcTransform.Add(entity->GetUUID());
+            hcTransform.Add(boundingBoxComponent.worldAabb);
+
+            if (meshComponent.mesh.IsValid())
+            {
+                hcTransform.Add(meshComponent.mesh->GetUUID());
+                hcTransform.Add(meshComponent.mesh->GetLod0DataRevision());
+            }
+        }
+    }
+
+    inOutResult.uuidHashes[BakeLayerHashes::StaticMeshEntities] = hcUUID.Value();
+    inOutResult.transformHashes[BakeLayerHashes::StaticMeshEntities] = hcTransform.Value();
+}
+
 void ComputeSceneHashes(const Scene& scene, BakeLayerHashes& inOutResult)
 {
+    ComputeStaticLightHashes(scene, inOutResult);
+
     const bool hasOctree = (scene.GetSceneFlags() & SceneFlags::HAS_OCTREE);
-    
+
     if (hasOctree)
     {
-        const uint64 checksum = scene.GetOctree().GetEntryListHash<EntityTag::MobStatic>().Value();
+        // mesh swaps (CSG) and in-place mesh edits can leave every AABB, and so the octree hash, unchanged
+        const uint64 checksum = scene.GetOctree().GetEntryListHash<EntityTag::MobStatic>()
+            .Combine(scene.GetStaticRenderResourcesRevision())
+            .Value();
 
         if (checksum == inOutResult.checksum)
         {
@@ -48,38 +105,7 @@ void ComputeSceneHashes(const Scene& scene, BakeLayerHashes& inOutResult)
         inOutResult.checksum = 0;
     }
 
-    auto updateHashForComponent = [&]<class ComponentType>(TypeWrapper<ComponentType>, uint64& hashUUID, uint64& hashTransform)
-    {
-        HashCode hcUUID;
-        HashCode hcTransform;
-
-        if (scene.GetEntityManager().IsValid())
-        {
-            for (auto [entity, _0, _1] : scene.GetEntityManager()->GetEntitySet<ComponentType, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-            {
-                hcUUID.Add(entity->GetUUID());
-            }
-
-            for (auto [entity, _0, boundingBoxComponent, _1] : scene.GetEntityManager()->GetEntitySet<ComponentType, BoundingBoxComponent, TagComponent<EntityTag::MobStatic>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-            {
-                hcTransform.Add(entity->GetUUID());
-                hcTransform.Add(boundingBoxComponent.worldAabb);
-            }
-        }
-
-        hashUUID = hcUUID.Value();
-        hashTransform = hcTransform.Value();
-    };
-
-    updateHashForComponent(
-        TypeWrapper<MeshComponent>(),
-        inOutResult.uuidHashes[BakeLayerHashes::StaticMeshEntities],
-        inOutResult.transformHashes[BakeLayerHashes::StaticMeshEntities]);
-
-    updateHashForComponent(
-        TypeWrapper<TagComponent<EntityTag::Light>>(),
-        inOutResult.uuidHashes[BakeLayerHashes::StaticLights],
-        inOutResult.transformHashes[BakeLayerHashes::StaticLights]);
+    ComputeStaticMeshHashes(scene, inOutResult);
 }
 
 uint64 ComputeEpoch(const LightmapVolume& volume, BakeLayer& bakeLayer)
