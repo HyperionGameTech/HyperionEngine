@@ -5703,6 +5703,7 @@ void EditorSubsystem::UpdateBakeStatus()
     Array<String, EditorAllocator> lightmapVolumeNames;
     Array<String, EditorAllocator> reflectionProbeNames;
     Array<String, EditorAllocator> irradianceProbeNames;
+    Array<String, EditorAllocator> fogVolumeNames;
 
     for (const Handle<Scene>& scene : world->GetScenes())
     {
@@ -5777,9 +5778,36 @@ void EditorSubsystem::UpdateBakeStatus()
                 outNames->PushBack(*probe->GetName());
             }
         }
+
+        for (auto [volume] : scene->GetEntityManager()->GetEntitySet<EntityType<FogVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!volume->GetVolumeTexture().IsValid())
+            {
+                // Not baked yet, but we consider it 'out of date', so we dont have FogVolumes left unbaked in the scene.
+                fogVolumeNames.PushBack(*volume->GetName());
+
+                continue;
+            }
+
+            if (!activeSwatch.IsValid())
+            {
+                continue;
+            }
+
+            Baking::BakeLayer& bakeLayer = activeSwatch->bakeLayer;
+
+            uint64 storedEpoch;
+
+            // not tracked yet counts as out of date. bake it to track it
+            if (!bakeLayer.TryGetAssetEpoch<Baking::BakeLayerCategory::LightReceiver>(*volume, storedEpoch)
+                || storedEpoch != Baking::BakeEpoch::ComputeEpoch(*volume, bakeLayer))
+            {
+                fogVolumeNames.PushBack(*volume->GetName());
+            }
+        }
     }
 
-    if (lightmapVolumeNames.Empty() && reflectionProbeNames.Empty() && irradianceProbeNames.Empty())
+    if (lightmapVolumeNames.Empty() && reflectionProbeNames.Empty() && irradianceProbeNames.Empty() && fogVolumeNames.Empty())
     {
         m_messagesOverlay->ClearMessage(s_bakeStatusMessageKey);
 
@@ -5821,6 +5849,7 @@ void EditorSubsystem::UpdateBakeStatus()
     appendSection("LightmapVolumes", lightmapVolumeNames);
     appendSection("ReflectionProbes", reflectionProbeNames);
     appendSection("IrradianceProbes", irradianceProbeNames);
+    appendSection("FogVolumes", fogVolumeNames);
 
     m_messagesOverlay->PutMessage(MessageEntry {
         s_bakeStatusMessageKey,

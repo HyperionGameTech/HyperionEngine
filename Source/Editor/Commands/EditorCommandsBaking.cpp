@@ -418,6 +418,81 @@ DEFINE_EDITOR_COMMAND(BuildStaticShadows);
 
 #pragma endregion BuildStaticShadows
 
+#pragma region BuildFogVolumes
+
+class EditorCommandBuildFogVolumes final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandBuildFogVolumes);
+
+public:
+    virtual ~EditorCommandBuildFogVolumes() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Build Fog Volumes";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active scene; cannot bake fog volumes!");
+
+            return;
+        }
+
+        Handle<EditorProject> project = subsystem->GetCurrentProject();
+        if (!project.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No active project");
+
+            return;
+        }
+
+        Array<Handle<ObjectBase>> fogVolumes;
+
+        if (Handle<Node> root = activeScene->GetRoot(); root.IsValid())
+        {
+            for (Node* node : root->GetDescendants())
+            {
+                if (node->IsA<FogVolume>())
+                {
+                    fogVolumes.PushBack(MakeStrongRef(node));
+                }
+            }
+        }
+
+        if (fogVolumes.Empty())
+        {
+            HYP_LOG(Editor, Warning, "No Fog Volumes in the active scene. Cannot bake.");
+
+            SystemMessageBox(MessageBoxType::WARNING)
+                .Title("Cannot Bake Fog Volumes")
+                .Text("No Fog Volumes in the scene to bake. Add a Fog Volume and try again.")
+                .Button("Close", []() { })
+                .Show();
+
+            return;
+        }
+
+        Handle<GenerateLightmapsEditorTask> editorTask = MakeHandle<GenerateLightmapsEditorTask>(fogVolumes);
+        editorTask->SetIsForegroundTask(true);
+        InitObject(editorTask);
+
+        editorTask->SetScene(activeScene);
+
+        Handle<World> worldHandle = subsystem->GetProjectWorld();
+        editorTask->SetWorld(worldHandle);
+
+        g_editorState->AddTask(editorTask);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(BuildFogVolumes);
+
+#pragma endregion BuildFogVolumes
+
 #pragma region BuildBentNormals
 
 class EditorCommandBuildBentNormals final : public EditorCommandBase

@@ -77,6 +77,7 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand BuildStaticShadows => new EditorCommand("BuildStaticShadows");
         public EditorCommand BuildReflectionProbes => new EditorCommand("BuildReflectionProbes");
         public EditorCommand BuildIrradianceProbes => new EditorCommand("BuildIrradianceProbes");
+        public EditorCommand BuildFogVolumes => new EditorCommand("BuildFogVolumes");
 
         public EditorCommand BuildBentNormals => new EditorCommand("BuildBentNormals");
         

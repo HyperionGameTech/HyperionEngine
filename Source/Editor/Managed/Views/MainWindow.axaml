@@ -688,7 +688,9 @@
                                             <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
                                             <Separator />
                                             <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
-                                          
+                                            <MenuItem Command="{Binding BuildFogVolumes}" Header="Fog Volumes" />
+                                            <MenuItem Command="{Binding BuildStaticShadows}" Header="Shadows" />
+
                                             <!-- Commenting out for now, as actual usage of BN in the engine is not yet surfaced. -->
                                             <!-- <Separator />
                                             <MenuItem Command="{Binding BuildBentNormals}" Header="Bent Normals" /> -->

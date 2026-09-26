@@ -154,8 +154,27 @@ protected:
     HYP_FIELD(Property = "MouseSensitivity", Serialize, Editor, Title = "Mouse Sensitivity")
     float m_mouseSensitivity = 120.0f;
 
+    HYP_FIELD(Property = "ControllerYawSpeed", Serialize, Editor, Title = "Controller Yaw Speed", Description = "Degrees per second of horizontal turn at full right stick deflection")
+    float m_controllerYawSpeed = 220.0f;
+
+    HYP_FIELD(Property = "ControllerPitchSpeed", Serialize, Editor, Title = "Controller Pitch Speed", Description = "Degrees per second of vertical look at full right stick deflection")
+    float m_controllerPitchSpeed = 130.0f;
+
+    HYP_FIELD(Property = "ControllerDeadzone", Serialize, Editor, Title = "Controller Deadzone", Description = "Radial right stick deadzone (0-1); input is rescaled so turning starts smoothly at its edge")
+    float m_controllerDeadzone = 0.12f;
+
+    HYP_FIELD(Property = "ControllerResponseExponent", Serialize, Editor, Title = "Controller Response Exponent", Description = "Right stick response curve; 1 is linear, higher values give finer control near the center")
+    float m_controllerResponseExponent = 2.0f;
+
+    HYP_FIELD(Property = "ControllerTurnBoost", Serialize, Editor, Title = "Controller Turn Boost", Description = "Extra yaw speed (fraction of yaw speed) ramped in while the stick is held fully sideways")
+    float m_controllerTurnBoost = 0.6f;
+
+    HYP_FIELD(Property = "InvertControllerPitch", Serialize, Editor, Title = "Invert Controller Pitch", Description = "Pushing the right stick up looks down")
+    bool m_invertControllerPitch = false;
+
 private:
     Vec3f CalculatePivotTarget() const;
+    Vec2f UpdateControllerLookRate(const Vec2f& stick, float deltaSeconds);
 
     void DetachFromParentTransform();
     void RestoreParentTransform();
@@ -164,6 +183,9 @@ private:
     bool m_hasSmoothedPivot = false;
 
     float m_currentDistance = 1.6f;
+
+    Vec2f m_controllerLookRate;
+    float m_controllerTurnHoldTime = 0.0f;
 
     bool m_addedIgnoreParentTransform = false;
 };

@@ -23,7 +23,10 @@ namespace Hyperion {
 
 static constexpr float TouchLookSensitivity = 80.0f;
 static constexpr float ZoomSharpness = 12.0f;
-static constexpr float ControllerLookDegreesPerSecond = 150.0f;
+static constexpr float ControllerLookSharpness = 18.0f;
+static constexpr float ControllerTurnBoostThreshold = 0.9f;
+static constexpr float ControllerTurnBoostDelay = 0.2f;
+static constexpr float ControllerTurnBoostRampTime = 0.4f;
 
 #pragma region ThirdPersonCameraInputHandler
 
@@ -207,6 +210,9 @@ void ThirdPersonCameraController::OnActivated()
     m_hasSmoothedPivot = false;
     m_currentDistance = MathUtil::Clamp(m_distance, m_minDistance, m_maxDistance);
 
+    m_controllerLookRate = Vec2f::Zero();
+    m_controllerTurnHoldTime = 0.0f;
+
     DetachFromParentTransform();
 }
 
@@ -298,6 +304,56 @@ Vec3f ThirdPersonCameraController::CalculatePivotTarget() const
     return origin + m_pivotOffset;
 }
 
+Vec2f ThirdPersonCameraController::UpdateControllerLookRate(const Vec2f& stick, float deltaSeconds)
+{
+    const float stickLength = stick.Length();
+    const float deadzone = MathUtil::Clamp(m_controllerDeadzone, 0.0f, 0.95f);
+
+    Vec2f targetRate;
+
+    if (stickLength > deadzone)
+    {
+        const Vec2f stickDirection = stick / stickLength;
+        const float rescaledMagnitude = MathUtil::Min((stickLength - deadzone) / (1.0f - deadzone), 1.0f);
+        const float responseMagnitude = MathUtil::Pow(rescaledMagnitude, MathUtil::Max(m_controllerResponseExponent, 0.1f));
+
+        const Vec2f response = stickDirection * responseMagnitude;
+
+        // Holding the stick fully sideways ramps in extra yaw so large turns don't need a lower base sensitivity
+        if (MathUtil::Abs(response.x) >= ControllerTurnBoostThreshold)
+        {
+            m_controllerTurnHoldTime += deltaSeconds;
+        }
+        else
+        {
+            m_controllerTurnHoldTime = 0.0f;
+        }
+
+        const float boostFraction = MathUtil::Clamp((m_controllerTurnHoldTime - ControllerTurnBoostDelay) / ControllerTurnBoostRampTime, 0.0f, 1.0f);
+        const float yawSpeed = m_controllerYawSpeed * (1.0f + m_controllerTurnBoost * boostFraction);
+
+        // Stick up reports positive y, while positive pitch looks down
+        const float pitchSign = m_invertControllerPitch ? 1.0f : -1.0f;
+
+        targetRate = Vec2f(response.x * yawSpeed, response.y * m_controllerPitchSpeed * pitchSign);
+    }
+    else
+    {
+        m_controllerTurnHoldTime = 0.0f;
+    }
+
+    const float lookAlpha = MathUtil::Clamp(1.0f - MathUtil::Exp(-ControllerLookSharpness * deltaSeconds), 0.0f, 1.0f);
+
+    m_controllerLookRate = m_controllerLookRate + (targetRate - m_controllerLookRate) * lookAlpha;
+
+    if (targetRate.IsZero() && m_controllerLookRate.LengthSquared() < 0.01f)
+    {
+        m_controllerLookRate = Vec2f::Zero();
+    }
+
+    return m_controllerLookRate;
+}
+
 void ThirdPersonCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
@@ -306,13 +362,11 @@ void ThirdPersonCameraController::UpdateLogic(double delta)
 
     m_inputHandler->SetDeltaTime(delta);
 
-    const Vec2f& controllerLook = m_inputHandler->GetControllerLookDelta();
+    const Vec2f controllerLookRate = UpdateControllerLookRate(m_inputHandler->GetControllerLookDelta(), deltaSeconds);
 
-    if (!controllerLook.IsZero())
+    if (!controllerLookRate.IsZero())
     {
-        const Vec2f lookDegrees = controllerLook * ControllerLookDegreesPerSecond * deltaSeconds;
-
-        AddYawPitch(lookDegrees.x, lookDegrees.y);
+        AddYawPitch(controllerLookRate.x * deltaSeconds, controllerLookRate.y * deltaSeconds);
     }
 
     DetachFromParentTransform();

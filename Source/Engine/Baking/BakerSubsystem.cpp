@@ -62,6 +62,13 @@ static void UpdateEpoch(const EnvProbe& envProbe, BakeLayer& bakeLayer)
     bakeLayer.SetAssetEpoch<Cat::LightReceiver>(envProbe, epoch);
 }
 
+static void UpdateEpoch(const FogVolume& fogVolume, BakeLayer& bakeLayer)
+{
+    uint64 epoch = BakeEpoch::ComputeEpoch(fogVolume, bakeLayer);
+
+    bakeLayer.SetAssetEpoch<Cat::LightReceiver>(fogVolume, epoch);
+}
+
 #pragma region BakerSubsystem
 
 BakerSubsystem::BakerSubsystem()
@@ -174,6 +181,10 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
     else if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
     {
         UpdateEpoch(*envProbe, bakeLayer);
+    }
+    else if (FogVolume* fogVolume = DynamicCast<FogVolume>(source))
+    {
+        UpdateEpoch(*fogVolume, bakeLayer);
     }
     else
     {
