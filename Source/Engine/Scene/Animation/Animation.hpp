@@ -167,16 +167,12 @@ public:
         return uint32(m_tracks.Size());
     }
 
-    HYP_METHOD()
-    void Apply(Skeleton* skeleton, float time);
-
-    HYP_METHOD()
-    void ApplyBlended(Skeleton* skeleton, float time, float blend);
+    void Apply(Skeleton& skeleton, const ApplyAnimParams& params);
+    void ApplyBlended(Skeleton& skeleton, const ApplyAnimParams& params);
+    void ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params);
 
     HYP_METHOD()
     AnimationTrack* FindTrack(Name boneName) const;
-
-    void ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params);
 
 private:
     HYP_FIELD(Property = "Tracks")
