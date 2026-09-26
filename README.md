@@ -13,10 +13,7 @@
 ## About
 
 Hyperion started as a passion project in 2016 (forked from [apex-engine](https://github.com/ajmd17/apex-engine)), and is still worked on daily.
-
 Our aim with Hyperion is to offer a high fidelity gaming experience even on low-end hardware using our in-house baking system to prepare as much of the lighting and effects as possible ahead of time.
-
-That, and the editor shouldn't suck.
 
 ## Screenshots
 | | |
@@ -35,33 +32,17 @@ That, and the editor shouldn't suck.
 - Basic multiplayer setup, with a dedicated server, client-side prediction, replication, etc
 
 ## Platforms
-Currently, we are focusing our efforts on developing the engine for *Windows*, *macOS*, *Android*, *iOS*, and Steam Deck via Proton. Editor support is available on Windows and macOS.
-> Linux support is planned for the future but not in active development. Contributions welcome on that front if you are interested in that!
-
-To get started, check out the [Compiling the Engine](Documentation/CompilingTheEngine.md) guide to set up your development environment and compile the engine.
-
-## Contributions
-
-If you want to contribute please feel free to submit a pull request! We are open to contributions of all kinds, from bug fixes and documentation improvements to new features and systems.
-> If you submit a PR please indicate where AI-generated code was used (if applicable)
+Currently, we are focusing our efforts on developing the engine for *Windows*, *macOS*, *Android*, *iOS*, and Steam Deck via Proton. Editor support is available on Windows and macOS. Linux support is planned.
 
 ## Getting started
-[Definitions and Terminology](Documentation/Definitions.md) provides definitions and explanations for various terms and concepts used within the engine. - This is slightly outdated and/or incomplete, but it is a good starting point.
-
-## Console commands and console variables (CVars)
-
-[Console Commands](Documentation/Console.md) are commands that can be executed in the editor's console window to perform various actions or set global states that the engine can use to modify rendering, physics, gameplay, etc.
-
-## What about AI?
-AI can a useful tool when used _in moderation_. But we plan on keeping this codebase mostly written by humans, by hand. Intention is important.
-
-Where _do_ we use AI? Primarily, we aim to keep the usage of AI directed towards:
- - some UI stuff
- - bug fixes `hey, take a look at this callstack...`
- - code review
+Documentation is a WIP but we have some available on our site: [Documentation](https://hyperionengine.dev/docs)
+For any questions you have, please feel free to ask away in [Discord](https://discord.gg/Fv8PwMJEUb).
 
 ## Credits
 - [Avalonia](https://github.com/AvaloniaUI/Avalonia)
 - [Dock.Avalonia](https://github.com/wieslawsoltes/Dock)
 - [Codicons](https://github.com/microsoft/vscode-codicons)
 - [Material Icons](https://github.com/google/material-design-icons)
+- [meshoptimizer](https://github.com/zeux/meshoptimizer)
+- [V-HACD](https://github.com/kmammou/v-hacd)
+- [xatlas](https://github.com/jpcy/xatlas)
