@@ -14,6 +14,7 @@ namespace Hyperion {
 class Scene;
 class LightmapVolume;
 class EnvProbe;
+class FogVolume;
 
 namespace Baking {
 
@@ -27,6 +28,7 @@ ENGINE_API void ComputeSceneHashes(const Scene& scene, BakeLayerHashes& inOutRes
 
 ENGINE_API uint64 ComputeEpoch(const LightmapVolume& volume, BakeLayer& bakeLayer);
 ENGINE_API uint64 ComputeEpoch(const EnvProbe& probe, BakeLayer& bakeLayer);
+ENGINE_API uint64 ComputeEpoch(const FogVolume& volume, BakeLayer& bakeLayer);
 
 } // namespace BakeEpoch
 } // namespace Baking
