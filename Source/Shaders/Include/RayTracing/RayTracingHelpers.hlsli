@@ -25,7 +25,7 @@ float CheckInShadow(float3 position, float3 normal, float3 lightDir, float maxDi
     RayDesc ray;
     ray.Origin = origin;
     ray.Direction = direction;
-    ray.TMin = 0.1;
+    ray.TMin = 0.001;
     ray.TMax = maxDist > 0.0 ? maxDist : 1000.0;
     
     rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xff, ray);
