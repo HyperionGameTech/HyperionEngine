@@ -1,0 +1,250 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.CsgPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:CsgPanelViewModel"
+    mc:Ignorable="d">
+
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.csg-tile">
+            <Setter Property="Height" Value="58" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.csg-tile-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.csg-hint">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <Border
+            Padding="12,10"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            DockPanel.Dock="Bottom">
+            <StackPanel Spacing="8">
+                <StackPanel
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        Padding="20,6"
+                        Command="{Binding FinishCommand}"
+                        Content="Finish" />
+                    <Button
+                        Padding="20,6"
+                        Command="{Binding DiscardCommand}"
+                        Content="Discard Edits" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+            <StackPanel Margin="12,12,12,8" Spacing="14">
+
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="section-label" Text="Mesh" />
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="{Binding TargetName}"
+                        TextTrimming="CharacterEllipsis" />
+                    <Border
+                        Padding="8,6"
+                        Background="{DynamicResource Brush.PanelRaised}"
+                        BorderBrush="{DynamicResource Brush.Warning}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.Small}"
+                        IsVisible="{Binding HasStatusText}">
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{DynamicResource Brush.Warning}"
+                            Text="{Binding StatusText}"
+                            TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Shape" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                        <ToggleButton
+                            Classes="panel-toggle csg-tile"
+                            Command="{Binding SelectShapeCommand}"
+                            Grid.Column="0"
+                            CommandParameter="Box"
+                            IsChecked="{Binding IsBoxShape, Mode=OneWay}"
+                            ToolTip.Tip="Box brush">
+                            <StackPanel Spacing="4">
+                                <controls:Codicon
+                                    HorizontalAlignment="Center"
+                                    Kind="PrimitiveSquare"
+                                    Size="20" />
+                                <TextBlock Classes="csg-tile-label" Text="Box" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton
+                            Classes="panel-toggle csg-tile"
+                            Command="{Binding SelectShapeCommand}"
+                            Grid.Column="1"
+                            CommandParameter="Sphere"
+                            IsChecked="{Binding IsSphereShape, Mode=OneWay}"
+                            ToolTip.Tip="Sphere brush">
+                            <StackPanel Spacing="4">
+                                <controls:Codicon
+                                    HorizontalAlignment="Center"
+                                    Kind="CircleLarge"
+                                    Size="20" />
+                                <TextBlock Classes="csg-tile-label" Text="Sphere" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton
+                            Classes="panel-toggle csg-tile"
+                            Command="{Binding SelectShapeCommand}"
+                            Grid.Column="2"
+                            CommandParameter="Cylinder"
+                            IsChecked="{Binding IsCylinderShape, Mode=OneWay}"
+                            ToolTip.Tip="Cylinder brush">
+                            <StackPanel Spacing="4">
+                                <controls:Codicon
+                                    HorizontalAlignment="Center"
+                                    Kind="CsgCylinder"
+                                    Size="20" />
+                                <TextBlock Classes="csg-tile-label" Text="Cylinder" />
+                            </StackPanel>
+                        </ToggleButton>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding ShowSizing}" Spacing="6">
+                    <TextBlock Classes="section-label" Text="Size" />
+                    <Grid
+                        ColumnDefinitions="*,*,*"
+                        ColumnSpacing="4"
+                        IsVisible="{Binding IsSizingBox}">
+                        <TextBox
+                            Grid.Column="0"
+                            Text="{Binding BoxSizeX, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            ToolTip.Tip="Width (X)" />
+                        <TextBox
+                            Grid.Column="1"
+                            Text="{Binding BoxSizeY, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            ToolTip.Tip="Height (Y)" />
+                        <TextBox
+                            Grid.Column="2"
+                            Text="{Binding BoxSizeZ, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            ToolTip.Tip="Depth (Z)" />
+                    </Grid>
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="8"
+                        IsVisible="{Binding IsSizingRound}"
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="4">
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="Radius" />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="{Binding Radius, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsSizingCylinder}"
+                            Text="Height" />
+                        <TextBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            IsVisible="{Binding IsSizingCylinder}"
+                            Text="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </Grid>
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Operation" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                        <ToggleButton
+                            Classes="panel-toggle csg-tile"
+                            Command="{Binding SetOperationCommand}"
+                            Grid.Column="0"
+                            CommandParameter="Union"
+                            IsChecked="{Binding IsUnion, Mode=OneWay}"
+                            ToolTip.Tip="Add the brush to the mesh">
+                            <StackPanel Spacing="4">
+                                <controls:Codicon
+                                    HorizontalAlignment="Center"
+                                    Kind="CsgUnion"
+                                    Size="20" />
+                                <TextBlock Classes="csg-tile-label" Text="Union" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton
+                            Classes="panel-toggle csg-tile"
+                            Command="{Binding SetOperationCommand}"
+                            Grid.Column="1"
+                            CommandParameter="Subtract"
+                            IsChecked="{Binding IsSubtract, Mode=OneWay}"
+                            ToolTip.Tip="Carve the brush out of the mesh">
+                            <StackPanel Spacing="4">
+                                <controls:Codicon
+                                    HorizontalAlignment="Center"
+                                    Kind="CsgSubtract"
+                                    Size="20" />
+                                <TextBlock Classes="csg-tile-label" Text="Subtract" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton
+                            Classes="panel-toggle csg-tile"
+                            Command="{Binding SetOperationCommand}"
+                            Grid.Column="2"
+                            CommandParameter="Intersect"
+                            IsChecked="{Binding IsIntersect, Mode=OneWay}"
+                            ToolTip.Tip="Keep only what the brush overlaps">
+                            <StackPanel Spacing="4">
+                                <controls:Codicon
+                                    HorizontalAlignment="Center"
+                                    Kind="CsgIntersect"
+                                    Size="20" />
+                                <TextBlock Classes="csg-tile-label" Text="Intersect" />
+                            </StackPanel>
+                        </ToggleButton>
+                    </Grid>
+                    <TextBlock Classes="csg-hint" Text="{Binding OperationDescription}" />
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="8">
+                    <Button
+                        Padding="12,8"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Classes="Primary"
+                        Command="{Binding ApplyCommand}"
+                        Content="{Binding ApplyText}"
+                        ToolTip.Tip="Apply operation (Enter)" />
+                    <CheckBox Content="Keep brush after applying" IsChecked="{Binding KeepBrushAfterApply}" />
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

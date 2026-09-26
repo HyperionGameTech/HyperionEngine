@@ -90,6 +90,11 @@ public:
         return true;
     }
 
+    virtual bool IsLocalSpace() const
+    {
+        return false;
+    }
+
     void UpdateScreenSpaceSize(const Handle<Camera>& camera);
 
     virtual void SetFocusedNode(const Handle<Node>& focusedNode);
@@ -131,17 +136,18 @@ protected:
 
     void UpdateScreenSpaceSizeForActiveViewport();
 
+    void AlignToFocusedNode(const Node& focusedNode);
+
     WeakHandle<Node> m_focusedNode;
     Handle<Node> m_node;
     struct InputMouseLockScope* m_mouseLockScope;
 
-    // Keeps the gizmo in sync when the focused node's transform changes externally
-    // (e.g. swatch overrides applied on active-swatch switch)
-    DelegateHandler m_focusedNodeTransformHandler;
 
 private:
     EditorSubsystem* m_editorSubsystem;
     WeakHandle<EditorProject> m_currentProject;
+    
+    DelegateHandler m_focusedNodeTransformHandler;
 
     bool m_isDragging;
 };

@@ -114,6 +114,7 @@ bool EditorActionStack::PushAction(const Handle<EditorActionBase>& action)
     UpdateState(m_undoDepth + 1);
 
     OnAfterActionPush(action.Get());
+    OnActionAdded(action.Get());
 
     return true;
 }
@@ -198,16 +199,55 @@ const Handle<EditorActionBase>& EditorActionStack::GetRedoAction() const
     return action;
 }
 
+void EditorActionStack::RemoveActions(const Proc<bool(EditorActionBase*)>& predicate)
+{
+    int newUndoDepth = m_undoDepth;
+    bool anyRemoved = false;
+
+    for (int actionIndex = int(m_actions.Size()) - 1; actionIndex >= 0; actionIndex--)
+    {
+        if (!predicate(m_actions[actionIndex].Get()))
+        {
+            continue;
+        }
+
+        if (actionIndex <= m_undoDepth)
+        {
+            newUndoDepth--;
+        }
+
+        m_actions.EraseAt(actionIndex);
+
+        anyRemoved = true;
+    }
+
+    if (!anyRemoved)
+    {
+        return;
+    }
+
+    m_undoDepth = newUndoDepth;
+
+    m_currentState = EditorActionStackState::NONE;
+    m_currentState[EditorActionStackState::CAN_UNDO] = CanUndo();
+    m_currentState[EditorActionStackState::CAN_REDO] = CanRedo();
+
+    OnStateChange(m_currentState, m_undoDepth);
+}
+
 void EditorActionStack::UpdateState(int newUndoDepth)
 {
+    const int previousUndoDepth = m_undoDepth;
+
+    m_undoDepth = newUndoDepth;
+
     EnumFlags<EditorActionStackState> newState = EditorActionStackState::NONE;
     newState[EditorActionStackState::CAN_UNDO] = CanUndo();
     newState[EditorActionStackState::CAN_REDO] = CanRedo();
 
-    if (m_currentState != newState || newUndoDepth != m_undoDepth)
+    if (m_currentState != newState || newUndoDepth != previousUndoDepth)
     {
         m_currentState = newState;
-        m_undoDepth = newUndoDepth;
 
         OnStateChange(m_currentState, m_undoDepth);
     }

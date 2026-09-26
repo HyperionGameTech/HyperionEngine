@@ -37,6 +37,11 @@ public:
         return 0;
     }
 
+    virtual bool IsLocalSpace() const override
+    {
+        return true;
+    }
+
     virtual void OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint) override;
     virtual void OnDragEnd(const Handle<Camera>& camera, const MouseEvent& mouseEvent) override;
 

@@ -50,6 +50,8 @@ namespace Hyperion
 
         public EditorDecalPainterState? EditorDecalPainterState => InvokeNativeMethod<EditorDecalPainterState>(new Name("GetDecalPainterState"));
 
+        public EditorCsgState? EditorCsgState => InvokeNativeMethod<EditorCsgState>(new Name("GetCsgState"));
+
         public void ExecuteCommandByName(Name commandName, params string[] arguments)
         {
             this.InvokeNativeMethod(new Name("ExecuteCommandByName"), new object[] { commandName, string.Join(" ", arguments) });

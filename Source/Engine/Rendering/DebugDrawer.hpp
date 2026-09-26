@@ -80,6 +80,11 @@ public:
 
     virtual void UpdateBufferData(DebugDrawCommand* cmd, ImmediateDrawShaderData* bufferData) const;
 
+    virtual Mesh* GetCommandMesh(DebugDrawCommand* cmd) const
+    {
+        return nullptr;
+    }
+
     int shapeId = -1;
 };
 
@@ -105,6 +110,11 @@ public:
         return m_mesh;
     }
 
+    virtual Mesh* GetCommandMesh(DebugDrawCommand* cmd) const override
+    {
+        return GetMesh();
+    }
+
 protected:
     virtual Mesh* GetMesh_Internal() const = 0;
 
@@ -123,6 +133,8 @@ public:
 
     void operator()(const Vec3f& position, float radius, const Color& color);
     void operator()(const Vec3f& position, float radius, const Color& color, const RenderableAttributeSet& attributes);
+
+    void operator()(const Transform& transform, const Color& color, const RenderableAttributeSet& attributes);
 
 private:
     virtual Mesh* GetMesh_Internal() const override;
@@ -222,6 +234,23 @@ private:
     virtual Mesh* GetMesh_Internal() const override;
 };
 
+class ENGINE_API MeshDebugDrawShape : public MeshDebugDrawShapeBase
+{
+public:
+    MeshDebugDrawShape(DebugDrawCommandList& list);
+
+    virtual ~MeshDebugDrawShape() override = default;
+
+    virtual bool CheckShouldCull(DebugDrawCommand* cmd, const Frustum& frustum) const override;
+
+    virtual Mesh* GetCommandMesh(DebugDrawCommand* cmd) const override;
+
+    void operator()(const Mesh& mesh, const Mat4f& transformMatrix, const Color& color, const RenderableAttributeSet& attributes);
+
+private:
+    virtual Mesh* GetMesh_Internal() const override;
+};
+
 using DebugDrawBuffer = memory::ByteBuffer<DebugDrawAllocator>;
 
 class DebugDrawCommandList final
@@ -249,6 +278,7 @@ public:
     void* Alloc(uint32 size, uint32 alignment, DebugDrawCommandHeader& outHeader);
     void Push(const DebugDrawCommandHeader& header);
 
+    MeshDebugDrawShape mesh;
     SphereDebugDrawShape sphere;
     AmbientProbeDebugDrawShape ambientProbe;
     ReflectionProbeDebugDrawShape reflectionProbe;

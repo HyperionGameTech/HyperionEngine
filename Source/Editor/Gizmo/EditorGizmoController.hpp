@@ -87,6 +87,19 @@ public:
      *  World-aligned axes land on grid lines; any other axis moves in whole grid-size steps instead. */
     float SnapToGridAlongAxis(const Vec3f& origin, const Vec3f& axisDirection, float distance) const;
 
+    HYP_FORCE_INLINE float GetRotationSnapDegrees() const
+    {
+        return m_rotationSnapDegrees;
+    }
+
+    HYP_FORCE_INLINE void SetRotationSnapDegrees(float degrees)
+    {
+        m_rotationSnapDegrees = degrees;
+    }
+
+    /*! \brief Rounds \p radians to the nearest multiple of the rotation snap increment. */
+    float SnapAngle(float radians) const;
+
 private:
     EditorSubsystem* m_subsystem = nullptr;
 
@@ -97,7 +110,8 @@ private:
     WeakHandle<Node> m_hoveredGizmoNode;
 
     bool m_gizmosHiddenByProximity = false;
-    bool m_snapToGridEnabled = false;
+    bool m_snapToGridEnabled = true;
+    float m_rotationSnapDegrees = 15.0f;
 };
 
 } // namespace Hyperion

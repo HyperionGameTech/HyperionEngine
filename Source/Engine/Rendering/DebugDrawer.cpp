@@ -95,6 +95,15 @@ struct DebugDrawCommand_Probe : DebugDrawCommand
 
 #pragma endregion DebugDrawCommand_Probe
 
+#pragma region DebugDrawCommand_Mesh
+
+struct DebugDrawCommand_Mesh : DebugDrawCommand
+{
+    Handle<Mesh> mesh;
+};
+
+#pragma endregion DebugDrawCommand_Mesh
+
 #pragma region IDebugDrawShape
 
 void IDebugDrawShape::UpdateBufferData(DebugDrawCommand* cmd, ImmediateDrawShaderData* bufferData) const
@@ -178,6 +187,11 @@ void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const
 
 void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const Color& color, const RenderableAttributeSet& attributes)
 {
+    (*this)(Transform(position, radius, Quat4f::Identity()), color, attributes);
+}
+
+void SphereDebugDrawShape::operator()(const Transform& transform, const Color& color, const RenderableAttributeSet& attributes)
+{
     if (!list.GetDebugDrawer()->IsEnabled() || list.IsFull())
     {
         return;
@@ -188,7 +202,7 @@ void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const
     DebugDrawCommand* ptr = reinterpret_cast<DebugDrawCommand*>(list.Alloc(sizeof(DebugDrawCommand), alignof(DebugDrawCommand), header));
     new (ptr) DebugDrawCommand {
         this,
-        Transform(position, radius, Quat4f::Identity()).GetMatrix(),
+        transform.GetMatrix(),
         color,
         attributes
     };
@@ -733,6 +747,66 @@ void TriangleDebugDrawShape::operator()(const Vec3f& v0, const Vec3f& v1, const 
 
 #pragma endregion TriangleDebugDrawShape
 
+#pragma region MeshDebugDrawShape
+
+MeshDebugDrawShape::MeshDebugDrawShape(DebugDrawCommandList& list)
+    : MeshDebugDrawShapeBase(list)
+{
+    static const int s_shapeId = NextShapeId();
+    shapeId = s_shapeId;
+}
+
+Mesh* MeshDebugDrawShape::GetMesh_Internal() const
+{
+    return nullptr;
+}
+
+Mesh* MeshDebugDrawShape::GetCommandMesh(DebugDrawCommand* cmd) const
+{
+    return static_cast<DebugDrawCommand_Mesh*>(cmd)->mesh.Get();
+}
+
+bool MeshDebugDrawShape::CheckShouldCull(DebugDrawCommand* cmd, const Frustum& frustum) const
+{
+    const Mesh* mesh = GetCommandMesh(cmd);
+
+    return mesh == nullptr
+        || mesh->NumIndices(0) == 0
+        || !mesh->GetVertexBuffer(0).IsValid()
+        || !mesh->GetIndexBuffer(0).IsValid();
+}
+
+void MeshDebugDrawShape::operator()(const Mesh& mesh, const Mat4f& transformMatrix, const Color& color, const RenderableAttributeSet& attributes)
+{
+    if (!list.GetDebugDrawer()->IsEnabled() || list.IsFull())
+    {
+        return;
+    }
+
+    DebugDrawCommandHeader header;
+
+    DebugDrawCommand_Mesh* ptr = reinterpret_cast<DebugDrawCommand_Mesh*>(list.Alloc(sizeof(DebugDrawCommand_Mesh), alignof(DebugDrawCommand_Mesh), header));
+
+    new (ptr) DebugDrawCommand_Mesh;
+    ptr->shape = this;
+    ptr->transformMatrix = transformMatrix;
+    ptr->color = color;
+    ptr->attributes = attributes;
+    ptr->attributes.GetMeshAttributes().inputLayout = mesh.GetMeshAttributes().inputLayout;
+    ptr->attributes.GetMeshAttributes().topology = mesh.GetMeshAttributes().topology;
+    ptr->mesh = MakeStrongRef(&mesh);
+
+    header.destructFn = &Memory::Destruct<DebugDrawCommand_Mesh>;
+    header.moveFn = [](void* dst, void* src)
+    {
+        new (dst) DebugDrawCommand_Mesh(std::move(*reinterpret_cast<DebugDrawCommand_Mesh*>(src)));
+    };
+
+    list.Push(header);
+}
+
+#pragma endregion MeshDebugDrawShape
+
 #pragma region DebugDrawer
 
 static FixedArray<DebugDrawBuffer, DebugDrawer::BufferCount> CreateDebugDrawBuffers()
@@ -1077,6 +1151,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         instanceBuffer.Write(elemOffset * sizeof(ImmediateDrawShaderData), shaderData.Size() * sizeof(ImmediateDrawShaderData), shaderData.Data());
 
         uint32 numToDraw = 0;
+        Mesh* currentMesh = nullptr;
 
         auto commitCurrentDraws = [&]()
         {
@@ -1120,9 +1195,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
                     cr << CommitDrawState();
 
-                    MeshDebugDrawShapeBase* meshShape = static_cast<MeshDebugDrawShapeBase*>(shape);
-
-                    Mesh* mesh = meshShape->GetMesh();
+                    Mesh* mesh = currentMesh;
                     AssertDebug(mesh != nullptr);
 
                     cr << BindVertexBuffer(mesh->GetVertexBuffer(0));
@@ -1156,7 +1229,9 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
             DebugDrawCommand* drawCommand = reinterpret_cast<DebugDrawCommand*>(m_buffers[idx].Data() + offset);
 
-            if (attributes != drawCommand->attributes)
+            Mesh* commandMesh = drawCommand->shape->GetCommandMesh(drawCommand);
+
+            if (attributes != drawCommand->attributes || currentMesh != commandMesh)
             {
                 // commit current pending draws if we'll be changing attributes
                 if (numToDraw != 0)
@@ -1168,6 +1243,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                 AssertDebug(drawCommand->attributes.GetMeshAttributes().inputLayout.mask != 0);
 
                 attributes = drawCommand->attributes;
+                currentMesh = commandMesh;
             }
 
             numToDraw++;
@@ -1270,6 +1346,7 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
 
 DebugDrawCommandList::DebugDrawCommandList(DebugDrawer* debugDrawer)
     : m_debugDrawer(debugDrawer),
+      mesh(*this),
       sphere(*this),
       ambientProbe(*this),
       reflectionProbe(*this),

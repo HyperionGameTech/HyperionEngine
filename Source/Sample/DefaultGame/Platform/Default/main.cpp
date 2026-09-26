@@ -17,6 +17,10 @@ namespace Hyperion::tests::script {
 namespace Hyperion::tests::scene {
     ENGINE_API void RunComponentContainerTests();
 }
+
+namespace Hyperion::tests::rendering {
+    ENGINE_API void RunMeshBooleanTests();
+}
 #endif
 
 int main(int argc, char** argv)
@@ -33,6 +37,7 @@ int main(int argc, char** argv)
 
 #if defined(HYP_TESTS)
     ///Hyperion::tests::scene::RunComponentContainerTests();
+    ///Hyperion::tests::rendering::RunMeshBooleanTests();
 #endif
 
     Handle<Game> defaultGame = Game::CreateGame("DefaultGame"_sh);
