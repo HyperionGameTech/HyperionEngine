@@ -162,8 +162,8 @@ float CalculateProbeVisibility(
     const float2 moments = envProbesDepthTexture.SampleLevel(
         sampler_linear, float4(probeToPointN, float(visTextureIndex)), 0).rg;
 
-    static const float s_selfShadowBias = 0.02;
-    static const float s_minVariance = 1e-2;
+    static const float s_selfShadowBias = 0.005;
+    static const float s_minVariance = 1e-3;
     static const float s_softenAmount = 0.05;
 
     float variance = max(moments.y - moments.x * moments.x, s_minVariance);
@@ -234,10 +234,12 @@ void EvaluateSingleProbe(
     currentIrradiance = EnvProbeSH(CURRENT_ENV_PROBE, shBands);
 #endif
 
-    float3 probeToPoint = positionWS - worldPosition3;
-    float dist = length(probeToPoint);
+    static const float s_visibilityNormalOffset = 0.05;
 
-    float far = aabbMax.w;
+    const float3 probeToPoint = positionWS + N * s_visibilityNormalOffset - worldPosition3;
+    const float dist = max(length(probeToPoint), HYP_FMATH_EPSILON);
+
+    const float far = aabbMax.w;
     float visibility = 1.0;
 
     if ((envProbeFlags & EPF_VISIBILITY) && visTextureIndex != INVALID_ENV_PROBE_TEXTURE)
@@ -266,8 +268,11 @@ void EvaluateSingleProbe(
 
     static const float s_irradianceVisibilityFloor = 0.05;
 
-    const float irradianceCoverage = boundsWeight * diffuseParticipation;
-    const float irradianceWeight = irradianceCoverage * max(visibility, s_irradianceVisibilityFloor);
+    // visibility has to reach coverage too, otherwise the normalization below cancels it for a lone probe
+    // and occluded points never fall through to the sky fill
+    const float irradianceBoundsCoverage = boundsWeight * diffuseParticipation;
+    const float irradianceCoverage = irradianceBoundsCoverage * visibility;
+    const float irradianceWeight = irradianceBoundsCoverage * max(visibility, s_irradianceVisibilityFloor);
 
     reflectionsSum += currentReflections.rgb * reflectionsDomainWeight;
     reflectionsWeightSum += currentReflections.a * reflectionsDomainWeight;

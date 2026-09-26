@@ -165,7 +165,7 @@ float CheckInShadow(float3 position, float3 normal, float3 lightDir, float maxDi
 {
     BVHHit hit;
 
-    return float(TraceBVH(position + normal * 0.01, lightDir, 0.1, maxDist > 0.0 ? maxDist : 1000.0, true, hit));
+    return float(TraceBVH(position + normal * 0.01, lightDir, 0.001, maxDist > 0.0 ? maxDist : 1000.0, true, hit));
 }
 
 float CheckInShadow(float3 position, float3 normal, float3 lightDir)

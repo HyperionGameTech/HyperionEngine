@@ -352,7 +352,9 @@ float4 IntegrateLightmapRay(uint ray_index)
                 // Clamp the contribution after multiplying by beta, since beta can grow
                 // large from Russian roulette compensation (division by a low survival
                 // probability) - clamping the light value alone doesn't bound that.
-                radiance += ClampLuminance(beta * payload.emissive.rgb, MAX_SAMPLE_LUMINANCE);
+                const float3 emissiveContribution = beta * payload.emissive.rgb;
+
+                radiance += bounceIndex > 0 ? ClampLuminance(emissiveContribution, MAX_SAMPLE_LUMINANCE) : emissiveContribution;
             }
 
             float3 diffuseColor = albedo * (1.0 - metalness);

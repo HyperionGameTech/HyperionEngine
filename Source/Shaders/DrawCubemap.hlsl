@@ -498,7 +498,7 @@ PSOutput PSMain(PSInput input)
             // indirectLight = diffuseColor * EnvProbeSH(fallbackProbe, shBands);
         }
 
-        output.output_color.rgb = directLight + indirectLight;
+        output.output_color.rgb = directLight + indirectLight + GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL);
     }
 #else
     output.output_color.rgb = albedo.rgb;
