@@ -139,7 +139,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
 
     if (EditorSubsystem* subsystem = GetEditorSubsystem())
     {
-        Array<Handle<Node>> selectedNodes = subsystem->GetSelectedNodes();
+        Array<Handle<Node>> selectedNodes = subsystem->GetGizmoTargetNodes();
 
         for (const Handle<Node>& selectedNode : selectedNodes)
         {
@@ -191,7 +191,11 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
             Array<SwatchOverrideTransformEditState> overrideEdits = CaptureSwatchOverrideTransformEdits(nodeData, overrideMode);
 
-            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+            EditorActionStack* actionStack = overrideModeSubsystem != nullptr
+                ? overrideModeSubsystem->GetActiveActionStack()
+                : project->GetActionStack().Get();
+
+            actionStack->PushAction(MakeHandle<FunctionalEditorAction>(
                 text,
                 [focusedNode, node = m_node, focusedFinalPosition, focusedOrigin, nodeData = std::move(nodeData), overrideEdits = std::move(overrideEdits)]() -> EditorActionFunctions
                 {

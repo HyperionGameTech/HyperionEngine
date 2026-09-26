@@ -205,6 +205,11 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
         </Style>
 
+        <Style Selector="DropDownButton.gizmo.active">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.AccentHover}" />
+        </Style>
+
 
         <Style Selector="Button.gizmo-wide">
           <Setter Property="MinHeight" Value="30" />
@@ -688,8 +693,10 @@
                                             <MenuItem Command="{Binding BuildIrradianceProbes}" Header="Irradiance Probes" />
                                             <Separator />
                                             <MenuItem Command="{Binding BuildLightmaps}" Header="Lightmaps" />
+                                            <Separator />
                                             <MenuItem Command="{Binding BuildFogVolumes}" Header="Fog Volumes" />
-                                            <MenuItem Command="{Binding BuildStaticShadows}" Header="Shadows" />
+                                            <Separator />
+                                            <MenuItem Command="{Binding BuildStaticShadows}" Header="Static Shadows" />
 
                                             <!-- Commenting out for now, as actual usage of BN in the engine is not yet surfaced. -->
                                             <!-- <Separator />
@@ -797,7 +804,7 @@
                                         Classes="gizmo"
                                         Command="{Binding ToggleSnapToGrid}"
                                         IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}"
-                                        ToolTip.Tip="Snap to Grid">
+                                        ToolTip.Tip="Snap">
                                         <controls:Codicon Kind="Magnet" Size="16" />
                                     </ToggleButton>
                                     <DropDownButton
@@ -811,7 +818,7 @@
                                                 <StackPanel MinWidth="240" Spacing="8">
                                                     <CheckBox
                                                         Command="{Binding ToggleSnapToGrid}"
-                                                        Content="Snap movement to grid"
+                                                        Content="Snap movement and rotation"
                                                         IsChecked="{Binding IsSnapToGridEnabled, Mode=OneWay}" />
                                                     <CheckBox
                                                         Command="{Binding ToggleGridVisible}"
@@ -823,7 +830,7 @@
                                                     <Grid
                                                         ColumnDefinitions="Auto,*"
                                                         ColumnSpacing="8"
-                                                        RowDefinitions="Auto,Auto"
+                                                        RowDefinitions="Auto,Auto,Auto"
                                                         RowSpacing="6">
                                                         <TextBlock
                                                             Grid.Row="0"
@@ -859,6 +866,17 @@
                                                                 Text="{Binding GridOffsetZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                                 ToolTip.Tip="Z" />
                                                         </Grid>
+
+                                                        <TextBlock
+                                                            Grid.Row="2"
+                                                            Grid.Column="0"
+                                                            VerticalAlignment="Center"
+                                                            Text="Rotation snap" />
+                                                        <TextBox
+                                                            Grid.Row="2"
+                                                            Grid.Column="1"
+                                                            Text="{Binding RotationSnapDegrees, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            ToolTip.Tip="Rotation snapping increment, in degrees" />
                                                     </Grid>
                                                 </StackPanel>
                                             </Flyout>
@@ -868,15 +886,37 @@
 
                                 <Border Classes="mode-separator" />
 
-                                <ToggleButton
-                                    x:Name="MeshEditModeToggle"
+                                <DropDownButton
+                                    x:Name="MeshToolsDropDown"
+                                    Width="42"
                                     Classes="gizmo"
-                                    Command="{Binding ToggleMeshEditMode}"
-                                    IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
-                                    IsEnabled="{Binding CanEnableMeshEditMode}"
-                                    ToolTip.Tip="{Binding MeshEditModeTooltip}">
-                                    <controls:Codicon Kind="MeshEdit" Size="16" />
-                                </ToggleButton>
+                                    Classes.active="{Binding IsMeshToolActive}"
+                                    Click="OnDropDownClick"
+                                    IsEnabled="{Binding CanUseMeshTools}"
+                                    ToolTip.Tip="{Binding MeshToolsTooltip}">
+                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                        <controls:Codicon Kind="MeshEdit" Size="16" />
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    </StackPanel>
+                                    <DropDownButton.ContextMenu>
+                                        <ContextMenu Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding ToggleMeshEditMode}"
+                                                Header="Mesh Edit"
+                                                IsChecked="{Binding IsMeshEditModeEnabled, Mode=OneWay}"
+                                                IsEnabled="{Binding CanEnableMeshEditMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="{Binding MeshEditModeTooltip}" />
+                                            <MenuItem
+                                                Command="{Binding ToggleCsgMode}"
+                                                Header="Brush Tools"
+                                                IsChecked="{Binding IsCsgModeEnabled, Mode=OneWay}"
+                                                IsEnabled="{Binding CanEnableCsgMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="{Binding CsgModeTooltip}" />
+                                        </ContextMenu>
+                                    </DropDownButton.ContextMenu>
+                                </DropDownButton>
 
                                 <Border Classes="mode-strip" IsVisible="{Binding IsMeshEditModeEnabled}">
                                     <StackPanel

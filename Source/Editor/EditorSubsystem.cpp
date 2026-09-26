@@ -25,6 +25,7 @@
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/Decal/EditorDecalPainterState.hpp>
+#include <Editor/Csg/EditorCsgState.hpp>
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 
@@ -226,6 +227,19 @@ Handle<EditorDecalPainterState> EditorSubsystem::GetDecalPainterState()
     return m_decalPainter;
 }
 
+Handle<EditorCsgState> EditorSubsystem::GetCsgState()
+{
+    if (!m_csgState.IsValid())
+    {
+        m_csgState = MakeHandle<EditorCsgState>();
+        InitObject(m_csgState);
+
+        m_csgState->Initialize(this);
+    }
+
+    return m_csgState;
+}
+
 #pragma endregion Terrain
 
 bool EditorSubsystem::IsMeshEditModeEnabled() const
@@ -352,6 +366,16 @@ bool EditorSubsystem::IsSnapToGridEnabled() const
 void EditorSubsystem::SetSnapToGridEnabled(bool snapToGrid)
 {
     m_gizmoController->SetSnapToGridEnabled(snapToGrid);
+}
+
+float EditorSubsystem::GetRotationSnapDegrees() const
+{
+    return m_gizmoController->GetRotationSnapDegrees();
+}
+
+void EditorSubsystem::SetRotationSnapDegrees(float degrees)
+{
+    m_gizmoController->SetRotationSnapDegrees(MathUtil::Max(degrees, 0.01f));
 }
 
 bool EditorSubsystem::IsGridVisible() const
@@ -830,6 +854,8 @@ void EditorSubsystem::EnterMeshEditMode()
     {
         return;
     }
+
+    GetCsgState()->Exit(/* saveEdits */ true);
 
     Node* target = ResolveMeshEditTarget();
 
@@ -2044,7 +2070,31 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
         ExitMeshEditMode(/* saveEdits */ true);
     }
 
+    if (m_csgState.IsValid())
+    {
+        mode = m_csgState->ResolveManipulationMode(mode);
+    }
+
     m_gizmoController->SetSelectedManipulationMode(mode);
+}
+
+Array<Handle<Node>> EditorSubsystem::GetGizmoTargetNodes() const
+{
+    AssertOnThread(g_simThread);
+
+    if (m_csgState.IsValid() && m_csgState->IsEnabled())
+    {
+        Handle<Node> focusedNode = m_focusedNode.Lock();
+
+        if (focusedNode.IsValid() && m_csgState->IsBrushSelected())
+        {
+            return { focusedNode };
+        }
+
+        return {};
+    }
+
+    return GetSelectedNodes();
 }
 
 EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
@@ -2084,6 +2134,7 @@ EditorSubsystem::EditorSubsystem()
     // Create eagerly so the managed side can always fetch it, regardless of the calling thread.
     GetTerrainState();
     GetDecalPainterState();
+    GetCsgState();
 
     m_bakeStatusUpdateTimer = ClockTimer { 0.5f };
 
@@ -3044,6 +3095,8 @@ void EditorSubsystem::Update(float delta)
             {
                 EndMeshEditDrag(/* saveEdits */ true);
             }
+
+            GetCsgState()->EndHandleDrag();
         }
     }
 
@@ -3053,6 +3106,7 @@ void EditorSubsystem::Update(float delta)
 
     GetTerrainState()->Update();
     GetDecalPainterState()->Update();
+    GetCsgState()->Update();
     UpdateBakeStatus();
     UpdatePlayNetState();
 
@@ -3073,6 +3127,7 @@ void EditorSubsystem::Update(float delta)
     DebugDrawMeshLods(dbg);
     GetTerrainState()->DebugDrawCursor(dbg);
     GetDecalPainterState()->DebugDrawCursor(dbg);
+    GetCsgState()->DebugDraw(dbg);
 
     if (m_currentProject.IsValid())
     {
@@ -3178,6 +3233,7 @@ bool EditorSubsystem::StartSimulation()
 
     // Save the edits to meshes before simulating.
     ExitMeshEditMode(/* saveEdits */ true);
+    GetCsgState()->Exit(/* saveEdits */ true);
 
     // The terrain tools edit the source world, not the snapshot that simulation runs against.
     if (m_terrainSculpting.IsValid())
@@ -3771,12 +3827,27 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (IsHoveringGizmo())
+            if (GetCsgState()->IsPlacing())
+            {
+                GetCsgState()->UpdatePlacementHover(event.relativePos);
+
+                if (GetCsgState()->CommitPlacement())
+                {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+
+            if (IsHoveringGizmo() || GetCsgState()->IsHandleHovered())
             {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             const Ray ray = activeViewport->GetCamera()->GetPickRay(event.relativePos);
+
+            if (GetCsgState()->TryPickBrush(ray))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
             RayTestResults results;
 
@@ -3900,6 +3971,13 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            if (GetCsgState()->IsHandleDragActive())
+            {
+                GetCsgState()->UpdateHandleDrag(event.relativePos);
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             if (IsHoveringGizmo())
             {
                 // If the mouse is currently over a gizmo, don't allow camera to handle the event
@@ -3946,6 +4024,15 @@ void EditorSubsystem::InitViewport()
             if (!activeViewport)
             {
                 return UIEventHandlerResult::OK;
+            }
+
+            if (GetCsgState()->IsPlacing())
+            {
+                GetCsgState()->UpdatePlacementHover(event.relativePos);
+            }
+            else if (GetCsgState()->IsEnabled() && !event.mouseButtons[MouseButtonState::LEFT])
+            {
+                GetCsgState()->UpdateHandleHover(event.relativePos);
             }
 
             if (GetDecalPainterState()->IsEnabled())
@@ -4117,6 +4204,11 @@ void EditorSubsystem::InitViewport()
                 }
             }
 
+            if (event.mouseButtons[MouseButtonState::LEFT] && GetCsgState()->BeginHandleDrag(event.relativePos))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             CameraController* controller = activeViewport->GetCamera()->GetCameraController();
             
             if (controller != nullptr)
@@ -4180,6 +4272,8 @@ void EditorSubsystem::InitViewport()
                 EndMeshEditDrag(true);
             }
 
+            GetCsgState()->EndHandleDrag();
+
             return UIEventHandlerResult::OK;
         }));
 
@@ -4198,6 +4292,28 @@ void EditorSubsystem::InitViewport()
             {
                 if (BackOutOfMeshEditState())
                 {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+
+            if (GetCsgState()->IsEnabled())
+            {
+                if (event.keyCode == KeyCode::KEY_ESCAPE && GetCsgState()->BackOut())
+                {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+
+                if (event.keyCode == KeyCode::KEY_RETURN && GetCsgState()->CanApply())
+                {
+                    GetCsgState()->ApplyBrush();
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+
+                if (GetCsgState()->IsPlacing() && (event.keyCode == KeyCode::KEY_DASH || event.keyCode == KeyCode::KEY_EQUALS))
+                {
+                    GetCsgState()->ScalePlacement(event.keyCode == KeyCode::KEY_EQUALS ? 1.1f : 1.0f / 1.1f);
+
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
             }
@@ -4611,6 +4727,8 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
+        GetCsgState()->Exit(/* saveEdits */ true);
+
         // Tear the preview scenes down before the world goes away - they hold Scenes inside it.
         if (m_thumbnailService)
         {
@@ -4813,6 +4931,8 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     m_focusedNode = focusedNode;
 
+    GetCsgState()->OnFocusedNodeChanged(focusedNode);
+
     if (m_meshEditState.enabled && focusedNode != m_meshEditState.targetNode)
     {
         Entity* entity = DynamicCast<Entity>(focusedNode.Get());
@@ -4851,7 +4971,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         HYP_LOG(Editor, Verbose, "Set focused node: {}\t{}\t is static ? {}", focusedNode->GetName(), focusedNode->GetWorldTranslation(),
                 focusedNode->IsStatic());
 
-        if (!m_meshEditState.enabled)
+        if (!m_meshEditState.enabled && !GetCsgState()->IsEnabled())
         {
             if (focusedNode->IsA<VolumeBase>() && StaticCast<VolumeBase>(focusedNode)->useVolumeEditTool)
             {

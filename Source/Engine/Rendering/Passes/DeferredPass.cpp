@@ -2167,9 +2167,9 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->cr << SetCurrentFramebuffer(debugPassFramebuffer);
 
-            ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
-
             DebugDrawer::GetInstance().Render(frame, rs);
+
+            ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
 
             frame->cr << SetCurrentFramebuffer(nullptr);
 

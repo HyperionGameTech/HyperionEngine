@@ -288,4 +288,11 @@ float EditorGizmoController::SnapToGridAlongAxis(const Vec3f& origin, const Vec3
     return SnapToGridLine(originAlongAxis + distance, gridOffset.Dot(axisDirection), gridSize) - originAlongAxis;
 }
 
+float EditorGizmoController::SnapAngle(float radians) const
+{
+    const float increment = MathUtil::DegToRad(MathUtil::Max(m_rotationSnapDegrees, 0.01f));
+
+    return MathUtil::Round(radians / increment) * increment;
+}
+
 } // namespace Hyperion

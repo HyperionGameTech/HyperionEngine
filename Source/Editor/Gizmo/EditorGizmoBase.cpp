@@ -156,14 +156,11 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
         return;
     }
 
-    m_node->SetWorldTranslation(focusedNode->GetWorldTranslation());
-    UpdateScreenSpaceSizeForActiveViewport();
+    AlignToFocusedNode(*focusedNode);
 
-    // Keep the gizmo in sync when the focused node's transform changes externally
-    // (e.g. swatch overrides applied on active-swatch switch, undo/redo from other paths).
-    // The handler is owned by this gizmo and reset before it is destroyed, so capturing this is safe.
     const WeakHandle<Node> weakFocused = focusedNode;
 
+    // Keep the gizmo's translation in sync with the focused node's transform, when it changes externally.
     m_focusedNodeTransformHandler = Node::TransformUpdated.Bind(
         focusedNode.Get(),
         [this, weakFocused](Node* updatedNode) -> void
@@ -180,9 +177,20 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
                 return;
             }
 
-            m_node->SetWorldTranslation(focused->GetWorldTranslation());
-            UpdateScreenSpaceSizeForActiveViewport();
+            AlignToFocusedNode(*focused);
         });
+}
+
+void EditorGizmoBase::AlignToFocusedNode(const Node& focusedNode)
+{
+    m_node->SetWorldTranslation(focusedNode.GetWorldTranslation());
+
+    if (IsLocalSpace())
+    {
+        m_node->SetWorldRotation(focusedNode.GetWorldRotation());
+    }
+
+    UpdateScreenSpaceSizeForActiveViewport();
 }
 
 void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)

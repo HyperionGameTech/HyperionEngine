@@ -113,7 +113,6 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     dragData.axis = Vec3f::Zero();
     dragData.axis[axis] = 1.0f;
-    dragData.axis = focusedNode->GetWorldRotation().RotateVector(dragData.axis).Normalize();
 
     dragData.planePoint = m_node->GetWorldTranslation();
     dragData.startRotation = focusedNode->GetWorldRotation();
@@ -143,7 +142,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     if (EditorSubsystem* subsystem = GetEditorSubsystem())
     {
-        Array<Handle<Node>> selectedNodes = subsystem->GetSelectedNodes();
+        Array<Handle<Node>> selectedNodes = subsystem->GetGizmoTargetNodes();
 
         for (const Handle<Node>& selectedNode : selectedNodes)
         {
@@ -175,7 +174,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
         {
             const Quat4f finalRotation = m_dragData->currentRotation;
             const Quat4f originRotation = m_dragData->startRotation;
-            const Quat4f deltaRotation = finalRotation * originRotation.Inverse();
+            const Quat4f deltaRotation = originRotation.Inverse() * finalRotation;
 
             // Sort nodes by depth (ancestors first) so SetWorldRotation on a parent
             // happens before its descendants, preventing accumulated parent rotation
@@ -192,7 +191,11 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
             Array<SwatchOverrideTransformEditState> overrideEdits = CaptureSwatchOverrideTransformEdits(nodeData, overrideMode);
 
-            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+            EditorActionStack* actionStack = overrideModeSubsystem != nullptr
+                ? overrideModeSubsystem->GetActiveActionStack()
+                : project->GetActionStack().Get();
+
+            actionStack->PushAction(MakeHandle<FunctionalEditorAction>(
                 nodeData.Size() == 1
                     ? HYP_FORMAT("Rotate {}", nodeData[0].first->GetName())
                     : HYP_FORMAT("Rotate {} nodes", nodeData.Size()),
@@ -216,7 +219,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                                     continue;
                                 }
 
-                                selectedNode->SetWorldRotation(deltaRotation * pair.second);
+                                selectedNode->SetWorldRotation(pair.second * deltaRotation);
                             }
 
                             ExecuteSwatchOverrideTransformEdits(*overrideEditsPtr);
@@ -358,10 +361,15 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
     const Vec3f cross = m_dragData->startVector.Cross(currentVector);
     const float sinAngle = cross.Dot(m_dragData->axis);
     const float cosAngle = m_dragData->startVector.Dot(currentVector);
-    const float angle = std::atan2(sinAngle, cosAngle);
+    float angle = std::atan2(sinAngle, cosAngle);
 
-    Quat4f deltaRotation = Quat4f::AxisAngles(m_dragData->axis, angle).Inverse();
-    Quat4f newRotation = deltaRotation * m_dragData->startRotation;
+    if (EditorSubsystem* subsystem = GetEditorSubsystem(); subsystem && subsystem->IsSnapToGridEnabled())
+    {
+        angle = subsystem->GetGizmoController()->SnapAngle(angle);
+    }
+
+    const Quat4f deltaRotation = Quat4f::AxisAngles(m_dragData->axis, angle).Inverse();
+    const Quat4f newRotation = m_dragData->startRotation * deltaRotation;
 
     m_dragData->currentRotation = newRotation;
 
@@ -375,9 +383,6 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
     NodeUnlockTransformScope unlockTransformScope(*focusedNode);
     focusedNode->SetWorldRotation(newRotation);
 
-    // Apply the same delta rotation to all selected nodes
-    deltaRotation = newRotation * m_dragData->startRotation.Inverse();
-
     for (const auto& pair : m_selectedNodes)
     {
         const Handle<Node>& selectedNode = pair.first;
@@ -387,7 +392,7 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
             continue;
         }
 
-        selectedNode->SetWorldRotation(deltaRotation * pair.second);
+        selectedNode->SetWorldRotation(pair.second * deltaRotation);
     }
 
     return true;

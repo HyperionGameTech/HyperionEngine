@@ -14,6 +14,8 @@
 
 #include <Scripting/ScriptableDelegate.hpp>
 
+#include <Core/Functional/Delegate.hpp>
+
 #include <Core/Utilities/EnumFlags.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
@@ -79,6 +81,8 @@ public:
     HYP_METHOD()
     const Handle<EditorActionBase>& GetRedoAction() const;
 
+    void RemoveActions(const Proc<bool(EditorActionBase*)>& predicate);
+
     HYP_FIELD()
     ScriptableDelegate<void, EditorActionBase*> OnBeforeActionPush;
 
@@ -93,6 +97,8 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void, EnumFlags<EditorActionStackState> /* state */, int /* undoDepth */> OnStateChange;
+
+    Delegate<void, EditorActionBase*> OnActionAdded;
 
 private:
     void UpdateState(int newUndoDepth);

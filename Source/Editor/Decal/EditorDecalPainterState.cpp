@@ -8,6 +8,7 @@
 
 #include <Editor/Decal/EditorDecalPainterState.hpp>
 #include <Editor/Terrain/EditorTerrainState.hpp>
+#include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorProject.hpp>
@@ -131,6 +132,7 @@ void EditorDecalPainterState::SetEnabled(bool enabled)
             if (enabled)
             {
                 m_subsystem->GetTerrainState()->SetEnabled(false);
+                m_subsystem->GetCsgState()->Exit(/* saveEdits */ true);
             }
 
             m_enabled = enabled;

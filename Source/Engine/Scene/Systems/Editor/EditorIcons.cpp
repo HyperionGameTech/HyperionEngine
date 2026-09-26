@@ -311,13 +311,13 @@ static SdfCanvas& AddIsoCubeFaces(SdfCanvas& canvas, const IsoCube& cube, float 
         .ConvexPolygon(cube.rightFace, seamInset);
 }
 
-static constexpr float s_meshRadius = 0.74f;
-
-static SdfCanvas& AddMeshWireframe(SdfCanvas& canvas, int skippedVertexIndex = -1)
+static SdfCanvas BuildAssetMesh()
 {
+    static constexpr float s_meshRadius = 0.74f;
     static constexpr float s_edgeRadius = 0.06f;
     static constexpr float s_vertexRadius = 0.14f;
 
+    SdfCanvas canvas;
     canvas.Circle(Vec2f::Zero(), s_vertexRadius);
 
     for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++)
@@ -326,39 +326,67 @@ static SdfCanvas& AddMeshWireframe(SdfCanvas& canvas, int skippedVertexIndex = -
         const Vec2f nextVertex = HexagonVertex(s_meshRadius, (vertexIndex + 1) % 6);
 
         canvas.Segment(vertex, nextVertex, s_edgeRadius)
-            .Segment(Vec2f::Zero(), vertex, s_edgeRadius);
-
-        if (vertexIndex != skippedVertexIndex)
-        {
-            canvas.Circle(vertex, s_vertexRadius);
-        }
+            .Segment(Vec2f::Zero(), vertex, s_edgeRadius)
+            .Circle(vertex, s_vertexRadius);
     }
 
     return canvas;
 }
 
-static SdfCanvas BuildAssetMesh()
-{
-    SdfCanvas canvas;
-    AddMeshWireframe(canvas);
-
-    return canvas;
-}
-
+// a scalpel over a dashed cut line
 static SdfCanvas BuildMeshEditMode()
 {
-    // the asset mesh icon with its upper right vertex drawn selected
-    static constexpr int s_selectedVertexIndex = 5;
+    // laid out along +x with the blade tip at +x, then rotated onto the diagonal
+    static const Vec2f s_blade[] = {
+        Vec2f(0.16f, 0.07f),
+        Vec2f(0.16f, -0.1f),
+        Vec2f(0.44f, -0.17f),
+        Vec2f(0.68f, -0.14f),
+        Vec2f(0.86f, -0.05f),
+        Vec2f(0.98f, 0.08f),
+        Vec2f(0.6f, 0.08f)
+    };
 
-    const Vec2f selectedVertex = HexagonVertex(s_meshRadius, s_selectedVertexIndex);
+    static const Vec2f s_offset = Vec2f(-0.1f, 0.12f);
+
+    static constexpr float s_scale = 0.92f;
+
+    const float angle = MathUtil::DegToRad(40.0f);
+    const float cosAngle = std::cos(angle);
+    const float sinAngle = std::sin(angle);
+
+    const auto place = [&](const Vec2f& local) -> Vec2f
+    {
+        const Vec2f scaled = local * s_scale;
+
+        return s_offset + Vec2f(scaled.x * cosAngle - scaled.y * sinAngle, scaled.x * sinAngle + scaled.y * cosAngle);
+    };
+
+    Vec2f bladeCorners[GetArrayCount(s_blade)];
+
+    for (uint32 cornerIndex = 0; cornerIndex < uint32(GetArrayCount(s_blade)); cornerIndex++)
+    {
+        bladeCorners[cornerIndex] = place(s_blade[cornerIndex]);
+    }
 
     SdfCanvas canvas;
-    AddMeshWireframe(canvas, s_selectedVertexIndex)
+    canvas.Segment(place(Vec2f(-0.96f, 0.0f)), place(Vec2f(0.04f, 0.0f)), 0.085f * s_scale)
+        .Segment(place(Vec2f(0.04f, 0.0f)), place(Vec2f(0.18f, -0.01f)), 0.055f * s_scale)
+        .ConvexPolygon(bladeCorners)
         .Subtract()
-        .Circle(selectedVertex, 0.34f)
-        .Union()
-        .Ring(selectedVertex, 0.27f, 0.06f)
-        .Circle(selectedVertex, 0.13f);
+        .Segment(place(Vec2f(0.12f, 0.2f)), place(Vec2f(0.12f, -0.2f)), 0.03f * s_scale);
+
+    for (float gripNotchX : { -0.62f, -0.5f, -0.38f })
+    {
+        canvas.Segment(place(Vec2f(gripNotchX, 0.2f)), place(Vec2f(gripNotchX, -0.2f)), 0.022f * s_scale);
+    }
+
+    canvas.Union();
+
+    for (float dashStartX : { -0.9f, -0.5f, -0.1f, 0.3f })
+    {
+        canvas.Segment(Vec2f(dashStartX, -0.78f), Vec2f(dashStartX + 0.22f, -0.78f), 0.05f);
+    }
 
     return canvas;
 }

@@ -105,28 +105,20 @@ void ScaleEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEven
     const Vec3f initialScale = focusedNode->GetWorldScale();
     const Vec3f cameraDirection = camera->GetDirection();
 
-    const Vec3f axisDirections[3] = { Vec3f(1.0f, 0.0f, 0.0f), Vec3f(0.0f, 1.0f, 0.0f), Vec3f(0.0f, 0.0f, 1.0f) };
-
-    Vec3f axisDirection;
-    Vec3f planeNormal;
+    Vec3f axisDirection = Vec3f::Zero();
+    Vec3f planeNormal = -cameraDirection;
 
     if (axis >= 0)
     {
-        axisDirection = axisDirections[axis];
+        axisDirection[axis] = 1.0f;
+        axisDirection = focusedNode->GetWorldRotation().Inverse().RotateVector(axisDirection).Normalized();
 
-        if (axis == 1)
+        const Vec3f cameraFacingNormal = cameraDirection - axisDirection * cameraDirection.Dot(axisDirection);
+
+        if (cameraFacingNormal.LengthSquared() > MathUtil::epsilonF)
         {
-            planeNormal = axisDirection.Cross(camera->GetSideVector()).Normalize();
+            planeNormal = cameraFacingNormal.Normalized();
         }
-        else
-        {
-            planeNormal = axisDirection.Cross(camera->GetUpVector()).Normalize();
-        }
-    }
-    else
-    {
-        axisDirection = Vec3f::Zero();
-        planeNormal = -cameraDirection;
     }
 
     DragData dragData {};
@@ -144,7 +136,7 @@ void ScaleEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEven
 
     if (EditorSubsystem* subsystem = GetEditorSubsystem())
     {
-        Array<Handle<Node>> selectedNodes = subsystem->GetSelectedNodes();
+        Array<Handle<Node>> selectedNodes = subsystem->GetGizmoTargetNodes();
 
         for (const Handle<Node>& selectedNode : selectedNodes)
         {
@@ -193,7 +185,11 @@ void ScaleEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent&
 
             Array<SwatchOverrideTransformEditState> overrideEdits = CaptureSwatchOverrideTransformEdits(nodeData, overrideMode);
 
-            project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+            EditorActionStack* actionStack = overrideModeSubsystem != nullptr
+                ? overrideModeSubsystem->GetActiveActionStack()
+                : project->GetActionStack().Get();
+
+            actionStack->PushAction(MakeHandle<FunctionalEditorAction>(
                 nodeData.Size() == 1
                     ? HYP_FORMAT("Scale {}", nodeData[0].first->GetName())
                     : HYP_FORMAT("Scale {} nodes", nodeData.Size()),
@@ -353,11 +349,10 @@ bool ScaleEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEven
 
     if (m_dragData->axis >= 0)
     {
-        const Vec3f axisDirections[3] = { Vec3f(1.0f, 0.0f, 0.0f), Vec3f(0.0f, 1.0f, 0.0f), Vec3f(0.0f, 0.0f, 1.0f) };
-        const Vec3f& axisDir = axisDirections[m_dragData->axis];
+        const Vec3f& axisDirection = m_dragData->axisDirection;
 
-        const float initialProj = (m_dragData->hitpointOrigin - m_dragData->nodeOrigin).Dot(axisDir);
-        const float currentProj = (planeRayHit.hitpoint - m_dragData->nodeOrigin).Dot(axisDir);
+        const float initialProj = (m_dragData->hitpointOrigin - m_dragData->nodeOrigin).Dot(axisDirection);
+        const float currentProj = (planeRayHit.hitpoint - m_dragData->nodeOrigin).Dot(axisDirection);
 
         const float reference = MathUtil::Max(MathUtil::Abs(initialProj), 0.05f);
         const float factor = MathUtil::Max(1.0f + (currentProj - initialProj) / reference, 0.0001f);

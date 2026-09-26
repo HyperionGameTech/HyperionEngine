@@ -44,6 +44,9 @@
         <DataTemplate DataType="vm:DecalPainterPanelViewModel">
             <panels:DecalPainterPanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:CsgPanelViewModel">
+            <panels:CsgPanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:NetworkSettingsPanelViewModel">
             <panels:NetworkSettingsPanelView />
         </DataTemplate>

@@ -65,6 +65,7 @@ class WorldGridLayer;
 class DynamicSkySystem;
 class EditorTerrainState;
 class EditorDecalPainterState;
+class EditorCsgState;
 class AppContextBase;
 class BVHNode;
 class RayTestResults;
@@ -266,6 +267,8 @@ public:
     HYP_METHOD()
     Array<Handle<Node>> GetSelectedNodes() const;
 
+    Array<Handle<Node>> GetGizmoTargetNodes() const;
+
     HYP_METHOD()
     Handle<Scene> GetActiveScene() const;
 
@@ -306,6 +309,11 @@ public:
 
     HYP_METHOD()
     Handle<EditorDecalPainterState> GetDecalPainterState();
+
+    ///CSG
+
+    HYP_METHOD()
+    Handle<EditorCsgState> GetCsgState();
 
     ///Mesh edits
 
@@ -380,6 +388,12 @@ public:
 
     HYP_METHOD()
     void SetSnapToGridEnabled(bool snapToGrid);
+
+    HYP_METHOD()
+    float GetRotationSnapDegrees() const;
+
+    HYP_METHOD()
+    void SetRotationSnapDegrees(float degrees);
 
     HYP_METHOD()
     bool IsGridVisible() const;
@@ -836,6 +850,8 @@ private:
     Handle<EditorTerrainState> m_terrainSculpting;
 
     Handle<EditorDecalPainterState> m_decalPainter;
+
+    Handle<EditorCsgState> m_csgState;
 
     ////////////////////
 
