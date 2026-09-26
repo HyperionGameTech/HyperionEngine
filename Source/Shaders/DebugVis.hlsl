@@ -9,8 +9,17 @@ PERMUTE(INSTANCING);
 struct VSInput
 {
     HYP_ATTRIBUTE float3 a_position : POSITION;
-    HYP_ATTRIBUTE float3 a_normal : NORMAL;
-    HYP_ATTRIBUTE float2 a_texcoord0 : TEXCOORD0;
+    ///////////////////
+    HYP_ATTRIBUTE_OPTIONAL float3 a_normal : NORMAL;
+    HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord0 : TEXCOORD0;
+    HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
+    HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
+    HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
+    ///////////////////
+    HYP_ATTRIBUTE_OPTIONAL uint4 a_tree_limb_branch : TEXCOORD2;
+    HYP_ATTRIBUTE_OPTIONAL uint2 a_tree_twig : TEXCOORD3;
+    HYP_ATTRIBUTE_OPTIONAL uint2 a_foliage : TEXCOORD4;
+    
 };
 
 struct VSOutput
@@ -124,22 +133,23 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     previous_position /= previous_position.w;
 
     output.position = position.xyz;
-    output.normal = input.a_normal;
-    output.texcoord0 = input.a_texcoord0;
 
-    float4x4 jitterMat = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    };
-    jitterMat[0][3] += camera.jitter.x;
-    jitterMat[1][3] += camera.jitter.y;
+#if defined(HYP_ATTRIBUTE_a_normal)
+    output.normal = input.a_normal;
+#else
+    output.normal = float3(0.0, 0.0, 0.0);
+#endif
+
+#if defined(HYP_ATTRIBUTE_a_texcoord0)
+    output.texcoord0 = input.a_texcoord0;
+#else
+    output.texcoord0 = float2(0.0, 0.0);
+#endif
 
     output.position_ndc = mul(camera.viewProjMat, position);
     output.previous_position_ndc = mul(camera.prevViewProjMat, previous_position);
 
-    output.position_cs = mul(jitterMat, output.position_ndc);
+    output.position_cs = output.position_ndc;
 
     return output;
 }
