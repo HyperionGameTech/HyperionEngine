@@ -63,17 +63,19 @@ static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
 
 static constexpr float ThirdPersonCharacterHeight = 1.8f;
 
-static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry)
+static constexpr const char* DefaultThirdPersonCharacterSource = "Models/Mannequin/Mannequin.glb";
+
+static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry, const String& sourcePath)
 {
     GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
 
-    auto characterPrefabResult = g_assetManager->Load<Prefab>("Models/Hazmat/Hazmat.glb",
+    auto characterPrefabResult = g_assetManager->Load<Prefab>(sourcePath,
         String::empty,
         AssetLoadHint::Transient);
 
     if (!characterPrefabResult.HasValue())
     {
-        HYP_LOG(Engine, Error, "Failed to load source Models/Hazmat/Hazmat.glb to build the ThirdPersonCharacter prefab");
+        HYP_LOG(Engine, Error, "Failed to load source {} to build the ThirdPersonCharacter prefab", sourcePath);
 
         return;
     }
@@ -120,22 +122,55 @@ class BuildShapesCommandlet : public CommandletBase
 public:
     virtual ~BuildShapesCommandlet() override = default;
 
+    static const CommandLineArgumentDefinitions& GetArgumentDefinitions()
+    {
+        static CommandLineArgumentDefinitions s_definitions;
+        static bool s_initialized = false;
+
+        if (!s_initialized)
+        {
+            s_initialized = true;
+
+            s_definitions.Add(
+                "character",
+                "c",
+                "Model the ThirdPersonCharacter prefab is built from, relative to the data directory",
+                CommandLineArgumentFlags::NONE,
+                CommandLineArgumentType::STRING,
+                JSON::Value(DefaultThirdPersonCharacterSource));
+        }
+
+        return s_definitions;
+    }
+
 protected:
     virtual Result Run(const CommandLineArguments& args) override
     {
+        String characterSource = args["character"].ToString();
+
+        if (characterSource.Empty())
+        {
+            characterSource = DefaultThirdPersonCharacterSource;
+        }
+
         if (IsOnThread(g_simThread))
         {
-            RunStatic();
+            RunStatic(characterSource);
         }
         else
         {
-            GetThreadById(g_simThread)->GetScheduler().Enqueue(RunStatic, TaskEnqueueFlags::FIRE_AND_FORGET);
+            GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                [characterSource]()
+                {
+                    RunStatic(characterSource);
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
         }
 
         return {};
     }
 
-    static void RunStatic()
+    static void RunStatic(const String& characterSource)
     {
         Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
 
@@ -151,7 +186,7 @@ protected:
         }
 
         BuildInvSphere(engineRegistry);
-        BuildThirdPersonCharacter(engineRegistry);
+        BuildThirdPersonCharacter(engineRegistry, characterSource);
 
         GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
         GetCurrentAssetRegistry()->SaveDirtyAssets();
@@ -168,6 +203,7 @@ const Class* BuildShapesCommandlet::StaticClass()
 }
 
 HYP_BEGIN_CLASS(BuildShapesCommandlet, -1, 0, NAME("CommandletBase"), ClassAttribute("command", "buildshapes"))
+    Method(NAME("GetArgumentDefinitions"), &Type::GetArgumentDefinitions)
 HYP_END_CLASS
 
 HYP_REGISTER_STATIC_CLASS(BuildShapesCommandlet);
