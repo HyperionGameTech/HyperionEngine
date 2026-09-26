@@ -1,0 +1,44 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.GenerateConvexCollisionPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:GenerateConvexCollisionPanelViewModel"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.PanelAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="12,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Padding="20,6" Classes="Primary" Command="{Binding GenerateCommand}" Content="Generate" />
+                <Button Padding="20,6" Command="{Binding CloseCommand}" Content="Close" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+            <StackPanel Margin="12,12,12,8" Spacing="12">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Target" />
+                    <TextBlock Text="{Binding TargetName}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="Preset" />
+                    <ComboBox
+                        HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding Presets}"
+                        PlaceholderText="Load a preset"
+                        SelectedIndex="{Binding SelectedPresetIndex, Mode=TwoWay}" />
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="section-label" Text="V-HACD Settings" />
+                    <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
