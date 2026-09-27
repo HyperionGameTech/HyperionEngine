@@ -178,12 +178,14 @@ struct RenderProxyMesh final : IRenderProxy
 
     InstanceData instanceData;
 
+    ///mesh-local bounds, so each instance's bounds can be found for LOD selection
+    BoundingBox meshAabb;
+
     EntityShaderData bufferData {};
 
     uint8 enableAutoInstancing : 1 = false;
 
-    ///false for instanced entities, whose whole batch shares one draw call and whose bounds say nothing
-    ///about any single instance, and for terrain patches, which pick their LOD via TerrainLodSystem.
+    ///false for terrain patches, which pick their LOD via TerrainLodSystem. Instanced entities select per instance.
     uint8 selectsLod : 1 = false;
 
     uint8 numLods : MeshLodCountBits = 1;

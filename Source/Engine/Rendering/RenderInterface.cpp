@@ -39,6 +39,8 @@
 #include <Rendering/DebugDrawer.hpp>
 #include <Rendering/Shader.hpp>
 #include <Rendering/BLASCache.hpp>
+#include <Rendering/InstanceDataPool.hpp>
+#include <Rendering/DrawCall.hpp>
 #include <Rendering/CrashHandler.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/RawBufferAllocator.hpp>
@@ -281,16 +283,7 @@ static ViewData* GetViewData(View* view, bool createIfNotExist)
             viewData->renderCollector.renderGroupFlags &= ~RenderGroupFlags::PARALLEL_COLLECTION;
         }
 
-        if (view->GetViewDesc().entityBatchClass != nullptr)
-        {
-            viewData->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(view->GetViewDesc().entityBatchClass->GetTypeId());
-        }
-        else
-        {
-            viewData->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator<MeshEntityInstanceBatch>();
-        }
-
-        AssertDebug(viewData->renderCollector.batchAllocator != nullptr);
+        viewData->renderCollector.batchAllocator = RI.entityBatchAllocator;
 
         auto insertResult = s_viewData.Insert(view, viewData);
         AssertDebug(insertResult.second);
@@ -677,6 +670,8 @@ RenderInterface::RenderInterface()
       textureViewCache(nullptr),
       samplerCache(nullptr),
       blasCache(nullptr),
+      instanceDataPool(nullptr),
+      entityBatchAllocator(nullptr),
       shadowMapCache(nullptr),
       finalPass(nullptr),
       stagingBufferPool(nullptr),
@@ -747,6 +742,7 @@ RendererResult RenderInterface::Initialize()
     namedBuffers[NamedBuffer::Skeletons] = StructuredBuffer(MaxBoundSkeletons, sizeof(SkeletonShaderData));
     namedBuffers[NamedBuffer::EnvProbes] = StructuredBuffer(MaxBoundEnvProbes, sizeof(EnvProbeShaderData));
     namedBuffers[NamedBuffer::LightmapVolumes] = StructuredBuffer(MaxBoundLightmapVolumes, sizeof(LightmapVolumeShaderData));
+    namedBuffers[NamedBuffer::InstanceData] = StructuredBuffer(MaxInstanceDataSlots, sizeof(InstanceTransformShaderData));
 
     for (uint8 namedBufferIndex = 0; namedBufferIndex < NamedBuffer::Max; namedBufferIndex++)
     {
@@ -766,6 +762,12 @@ RendererResult RenderInterface::Initialize()
 #endif // HYP_DEBUG_MODE
         }
     }
+
+    instanceDataPool = PoolNew<InstanceDataPool>(*g_renderPool);
+    instanceDataPool->Initialize();
+
+    entityBatchAllocator = PoolNew<EntityBatchAllocator>(*g_renderPool);
+    entityBatchAllocator->Initialize();
 
     resources = PoolNew<ResourceContainer>(*g_renderPool);
 
@@ -895,6 +897,9 @@ void RenderInterface::Shutdown()
         resourceBinder->Shutdown();
     }
 
+    PoolDelete(*g_renderPool, instanceDataPool);
+    instanceDataPool = nullptr;
+
     ClearSubtypeBindings();
 
     PoolDelete(*g_renderPool, resources);
@@ -926,6 +931,8 @@ void RenderInterface::Shutdown()
     {
         structuredBuffer.Shutdown();
     }
+
+    entityBatchAllocator->Shutdown();
 
     blueNoiseBuffer.Shutdown();
     sphereSamplesBuffer.Shutdown();
@@ -989,6 +996,9 @@ void RenderInterface::Shutdown()
     renderGroupCache = nullptr;
 
     DeletionQueue::GetInstance().Shutdown();
+
+    PoolDelete(*g_renderPool, entityBatchAllocator);
+    entityBatchAllocator = nullptr;
 
     // Must run last: everything torn down above (passes, textures, buffer caches,
     // shadow maps, etc.) may still enqueue commands via GetCommandRecorder().

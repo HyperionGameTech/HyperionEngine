@@ -314,6 +314,13 @@ Handle<Node> Entity::Clone() const
 
         cloned->DeserializeComponents(serializedComponents);
 
+        // the instance data asset belongs to the source entity
+        if (MeshComponent* clonedMeshComponent = cloned->TryGetComponent<MeshComponent>())
+        {
+            clonedMeshComponent->instanceData = AssetReference();
+            clonedMeshComponent->numInstances = 0;
+        }
+
         // Copy serializable entity tags (skip runtime-only tags like FocusedInEditor)
         Array<Name> serializedTags = SerializeTags();
         cloned->DeserializeTags(serializedTags);
@@ -833,9 +840,8 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->forcedLod = MathUtil::Min<uint8>(meshComponent.forcedLod, MaxMeshLods);
     proxy->lodBias = int8(MathUtil::Clamp(int32(meshComponent.lodBias), -int32(MaxMeshLods), int32(MaxMeshLods)));
 
-    // each view picks its own LOD at draw call collection time, except for these, which have no per-entity LOD to pick
+    // each view picks its own LOD at draw call collection time, except for terrain patches
     proxy->selectsLod = proxy->numLods > 1
-        && meshComponent.numInstances == 0
         && !TryGetComponent<TerrainPatchComponent>();
 
     proxy->numInstances = meshComponent.numInstances;
@@ -868,7 +874,8 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
 
     Mat4f transformMatrix = transformComponent.GetMatrix();
 
-    if (meshComponent.enableAutoInstancing || meshComponent.numInstances)
+    // auto-instanced entities without instances of their own draw at the entity's transform, with no instance data
+    if (meshComponent.numInstances != 0)
     {
         AssertDebug(meshComponent.instanceData.IsLoaded());
 
@@ -884,6 +891,11 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
             {
                 if (imd->buffers[i].size == 0)
                 {
+                    // an emptied buffer must not keep the previous update's contents
+                    proxy->instanceData.buffers[i].SetSize(0);
+                    proxy->instanceData.bufferStructSizes[i] = 0;
+                    proxy->instanceData.bufferStructAlignments[i] = 0;
+
                     continue;
                 }
 
@@ -902,7 +914,9 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
         proxy->instanceData = {};
     }
 
-    const BoundingBox meshWorldBounds = transformMatrix * proxy->mesh->GetAABB();
+    proxy->meshAabb = proxy->mesh->GetAABB();
+
+    const BoundingBox meshWorldBounds = transformMatrix * proxy->meshAabb;
     proxy->bufferData.worldAabbMax = meshWorldBounds.max;
     proxy->bufferData.worldAabbMin = meshWorldBounds.min;
 

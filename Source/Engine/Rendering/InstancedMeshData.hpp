@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-HYP_CLASS(AssetBucket = "InstancedMeshData")
+HYP_CLASS(AssetBucket = "InstanceData")
 class InstancedMeshData : public AssetObject
 {
     HYP_OBJECT_BODY(InstancedMeshData);

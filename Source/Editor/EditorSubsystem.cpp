@@ -43,7 +43,6 @@
 #include <Scene/LOD.hpp>
 #include <Scene/System.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
-#include <Scene/Systems/MeshSystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
@@ -62,6 +61,11 @@
 #include <Scene/Components/RigidBodyComponent.hpp>
 #include <Scene/Components/CharacterControllerComponent.hpp>
 #include <Scene/Components/TerrainCellComponent.hpp>
+#include <Scene/Components/InstanceClusterComponent.hpp>
+
+#include <Scene/Instancing/InstanceGroup.hpp>
+
+#include <Editor/Instancing/InstanceHandleNode.hpp>
 
 #include <Physics/PhysicsShape.hpp>
 #include <Physics/ConvexDecomposition.hpp>
@@ -155,6 +159,39 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
+
+/// A hit on an instance selects a InstanceHandleNode instead of the owning group
+static Handle<Node> ResolvePickedNode(const RayHit& hit, EditorSubsystem& editorSubsystem)
+{
+    Entity* entity = DynamicCast<Entity>(hit.node);
+
+    const InstanceClusterComponent* clusterComponent = entity != nullptr && entity->GetEntityManager() != nullptr
+        ? entity->TryGetComponent<InstanceClusterComponent>()
+        : nullptr;
+
+    if (!clusterComponent)
+    {
+        return MakeStrongRef(hit.node);
+    }
+
+    Handle<InstanceGroup> group = clusterComponent->group.Lock();
+
+    if (!group.IsValid())
+    {
+        return Handle<Node>::Null();
+    }
+
+    const InstanceId instanceId = hit.instanceIndex != ~0u
+        ? group->GetClusterInstanceId(clusterComponent->cell, hit.instanceIndex)
+        : InvalidInstanceId;
+
+    if (instanceId == InvalidInstanceId)
+    {
+        return group;
+    }
+
+    return editorSubsystem.GetOrCreateInstanceHandle(group, instanceId);
+}
 static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
 static CVar<bool> s_cvDebugDrawProbes { "Editor.DebugDrawProbes", false };
 
@@ -2099,7 +2136,20 @@ Array<Handle<Node>> EditorSubsystem::GetGizmoTargetNodes() const
         return {};
     }
 
-    return GetSelectedNodes();
+    Array<Handle<Node>> targetNodes;
+
+    for (const Handle<Node>& node : GetSelectedNodes())
+    {
+        // an instance group's instances are placed in world space, so the group itself never moves
+        if (node.IsValid() && node->IsA<InstanceGroup>())
+        {
+            continue;
+        }
+
+        targetNodes.PushBack(node);
+    }
+
+    return targetNodes;
 }
 
 EditorGizmoBase* EditorSubsystem::GetSelectedGizmo() const
@@ -2939,7 +2989,127 @@ void EditorSubsystem::FitVolumeToSelection(Node* volume)
         }));
 }
 
+Handle<InstanceHandleNode> EditorSubsystem::GetOrCreateInstanceHandle(const Handle<InstanceGroup>& group, InstanceId instanceId)
+{
+    AssertOnThread(g_simThread);
+
+    if (!group.IsValid() || instanceId == InvalidInstanceId)
+    {
+        return Handle<InstanceHandleNode>::Null();
+    }
+
+    const uint64 key = (uint64(group->Id().Value()) << 32) | uint64(instanceId);
+
+    Handle<InstanceHandleNode> handle;
+
+    auto it = m_instanceHandles.Find(key);
+
+    if (it != m_instanceHandles.End())
+    {
+        handle = it->second.Lock();
+
+        // a group made after the handle's own one was destroyed can reuse its id
+        if (handle.IsValid() && handle->GetGroup().Lock() != group)
+        {
+            handle->Remove();
+            handle = Handle<InstanceHandleNode>::Null();
+        }
+    }
+
+    if (!handle.IsValid())
+    {
+        handle = MakeHandle<InstanceHandleNode>(group.ToWeak(), instanceId);
+        handle->SetName(NAME_FMT("{}_{}", group->GetName(), uint32(instanceId)));
+        InitObject(handle);
+
+        m_instanceHandles.Set(key, handle.ToWeak());
+    }
+
+    if (m_editorScene.IsValid() && m_editorScene->GetRoot().IsValid() && handle->GetParent() != m_editorScene->GetRoot().Get())
+    {
+        m_editorScene->GetRoot()->AddChild(handle);
+    }
+
+    handle->SyncFromInstance();
+
+    return handle;
+}
+
+void EditorSubsystem::DetachUnselectedInstanceHandles(const Array<Handle<Node>>& selectedNodes)
+{
+    AssertOnThread(g_simThread);
+
+    for (auto it = m_instanceHandles.Begin(); it != m_instanceHandles.End();)
+    {
+        Handle<InstanceHandleNode> handle = it->second.Lock();
+
+        if (!handle.IsValid())
+        {
+            it = m_instanceHandles.Erase(it);
+
+            continue;
+        }
+
+        if (handle->GetParent() != nullptr && !selectedNodes.Contains(Handle<Node>(handle)))
+        {
+            handle->Remove();
+        }
+
+        ++it;
+    }
+}
+
+void EditorSubsystem::ClearInstanceHandles()
+{
+    AssertOnThread(g_simThread);
+
+    for (auto& it : m_instanceHandles)
+    {
+        if (Handle<InstanceHandleNode> handle = it.second.Lock(); handle.IsValid() && handle->GetParent() != nullptr)
+        {
+            handle->Remove();
+        }
+    }
+
+    m_instanceHandles.Clear();
+}
+
 // Which LOD each mesh is rendering, without needing a shader path for it.
+void EditorSubsystem::DebugDrawSelectedInstances(DebugDrawCommandList& debugDrawCommandList)
+{
+    const Array<Handle<Node>> selectedNodes = GetSelectedNodes();
+
+    DetachUnselectedInstanceHandles(selectedNodes);
+
+    static const RenderableAttributeSet s_wireframeAttributes = PhysicsWireframeAttributes();
+
+    const Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    for (const Handle<Node>& node : selectedNodes)
+    {
+        if (!node.IsValid() || !node->IsA<InstanceHandleNode>())
+        {
+            continue;
+        }
+
+        // an instance has no entity of its own to outline, so its prefab's bounds stand in for it
+        const BoundingBox& bounds = node->GetLocalBounds();
+
+        if (!bounds.IsValid())
+        {
+            continue;
+        }
+
+        const Transform worldTransform(node->GetWorldTranslation(), node->GetWorldScale(), node->GetWorldRotation());
+        const Transform boxTransform = worldTransform * Transform(bounds.GetCenter(), bounds.GetExtent() * 0.5f, Quat4f::Identity());
+
+        debugDrawCommandList.box(
+            boxTransform,
+            node == focusedNode ? Color(1.0f, 0.6f, 0.1f, 1.0f) : Color::Yellow(),
+            s_wireframeAttributes);
+    }
+}
+
 void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandList)
 {
     if (!s_cvShowMeshLods.Get() || !m_currentProject.IsValid())
@@ -3262,6 +3432,8 @@ void EditorSubsystem::Update(float delta)
     DebugDrawMeshEditSelection(dbg);
     DebugDrawPhysicsShapes(dbg);
     DebugDrawMeshLods(dbg);
+    DebugDrawSelectedInstances(dbg);
+    
     GetTerrainState()->DebugDrawCursor(dbg);
     GetDecalPainterState()->DebugDrawCursor(dbg);
     GetCsgState()->DebugDraw(dbg);
@@ -3994,7 +4166,12 @@ void EditorSubsystem::InitViewport()
                 {
                     if (hit.node != nullptr)
                     {
-                        Handle<Node> nodeStrong = MakeStrongRef(hit.node);
+                        Handle<Node> nodeStrong = ResolvePickedNode(hit, *this);
+
+                        if (!nodeStrong.IsValid())
+                        {
+                            continue;
+                        }
 
                         bool shouldMutateSelection = false;
 
@@ -6241,6 +6418,8 @@ void EditorSubsystem::ShutdownProjectWorld(const Handle<EditorProject>& project,
 
     m_focusedNode.Reset();
     m_selectedNodes.Clear();
+
+    ClearInstanceHandles();
 
     ClearAssetDropTarget();
 

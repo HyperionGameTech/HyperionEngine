@@ -16,6 +16,8 @@
 
 #include <Core/Reflection/ObjId.hpp>
 
+#include <Core/Math/Frustum.hpp>
+
 #include <Core/Types.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
@@ -45,6 +47,7 @@ class Texture;
 class Skeleton;
 class RenderCollector;
 class RenderProxyList;
+struct EntityInstanceSlots;
 struct RenderProxy;
 enum class LightType : uint32;
 enum EnvProbeType : uint32;
@@ -130,6 +133,9 @@ public:
     // map entity id to the LOD this view chose last frame, used to give LOD selection hysteresis
     SparsePagedArray<uint8, 64, RenderAllocator> previousLodIndices;
 
+    // same as previousLodIndices, one per instance of an instanced entity
+    SparsePagedArray<Array<uint8, RenderAllocator>, 64, RenderAllocator> previousInstanceLodIndices;
+
     using BinnedDrawCallCollections = SparsePagedArray<DrawCallCollection, 64, RenderAllocator>;
     FixedArray<BinnedDrawCallCollections, NumRenderBuckets> mappingsByBucket;
 
@@ -141,7 +147,7 @@ public:
 
     FixedArray<ParallelRenderingStateLL, NumRenderBuckets> parallelRenderingStates;
 
-    EntityBatchAllocatorBase* batchAllocator;
+    EntityBatchAllocator* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;
 
     bool isFallback : 1;
@@ -192,6 +198,16 @@ public:
 protected:
     /*! \brief Picks the LOD this view should draw \ref{meshProxy} at, and remembers it for next frame's hysteresis. */
     uint8 SelectLod(const RenderProxyMesh& meshProxy, const LODViewData& lodViewData, int32 viewLodBias);
+
+    /*! \brief Sorts the instance slots of \ref{meshProxy} that this view can see by the LOD each should draw at
+     *  lodViewData and cullingFrustum are optional - defaults will be selected if not provided (lod 0, no culling) */
+    void SelectInstanceLods(
+        const RenderProxyMesh& meshProxy,
+        const EntityInstanceSlots& instanceSlots,
+        const LODViewData* lodViewData,
+        const Frustum* cullingFrustum,
+        int32 viewLodBias,
+        FixedArray<Array<uint32, RenderAllocator>, MaxMeshLods>& outSlotsByLod);
 
     void PerformRendering(Frame* frame, struct PerformRenderingPayloadBase& payload);
 

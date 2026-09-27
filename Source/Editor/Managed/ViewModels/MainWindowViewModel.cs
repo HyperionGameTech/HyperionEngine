@@ -168,21 +168,6 @@ namespace Hyperion.Editor.ViewModels
 
         public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
         public EditorCommand AddEntity => new EditorCommand("AddEntity");
-        private EditorCommand _addInstance;
-        public EditorCommand AddInstance => _addInstance;
-
-        private bool _canAddInstance = false;
-        public bool CanAddInstance
-        {
-            get => _canAddInstance;
-            private set
-            {
-                if (SetProperty(ref _canAddInstance, value))
-                {
-                    _addInstance.RaiseCanExecuteChanged();
-                }
-            }
-        }
         public EditorCommand AddCamera => new EditorCommand("AddCamera");
 
         public EditorCommand AddSprite => new EditorCommand("AddSprite");
@@ -995,8 +980,6 @@ namespace Hyperion.Editor.ViewModels
 
         public MainWindowViewModel()
         {
-            _addInstance = new EditorCommand("AddInstance", canExecute: () => CanAddInstance);
-
             PanelService.Instance.ActivePanelChanged += OnActivePanelChanged;
 
             SceneHierarchy = new SceneHierarchyViewModel();
@@ -2319,8 +2302,6 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            CanAddInstance = node is Entity;
-
             _ = EngineManager.PostToSimThread(() =>
             {
                 _editorSubsystem.SetSelectedNodes(new Node[] { node! });
@@ -2525,13 +2506,6 @@ namespace Hyperion.Editor.ViewModels
                     UpdateCopyDeleteHeaders();
 
                     ScheduleInspectorSelectionSync();
-
-                    // can ONLY add Instanced Mesh Proxy child objects instances to entities that have a MeshComponent.
-                    // Note that for now the most derived class MUST be EQUAL to Entity (not just derived from it)
-                    // as currently we only support adding instances to entities, not to other node types (e.g. we don't support adding instances to a Light)
-                    CanAddInstance = validNode != null
-                        && validNode.GetType() == typeof(Entity);
-                    //&& ((Entity)validNode).HasComponent<MeshComponent>();
 
                     _ = EngineManager.PostToSimThread(RefreshMeshEditState);
                     _ = EngineManager.PostToSimThread(RefreshCsgState);
@@ -2947,7 +2921,6 @@ namespace Hyperion.Editor.ViewModels
 
                 bool isRootNode = SceneHierarchy.IsRootNode(clickedNode);
                 Inspector.SetSelectedNode(clickedNode, SceneHierarchy.Scene, isRootNode);
-                CanAddInstance = clickedNode is Entity;
             }
         }
 
@@ -2987,8 +2960,6 @@ namespace Hyperion.Editor.ViewModels
                 bool isRootNode = SceneHierarchy.IsRootNode(focusNode);
                 Inspector.SetSelectedNode(focusNode, SceneHierarchy.Scene, isRootNode);
             }
-
-            CanAddInstance = focusNode is Entity;
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -3048,7 +3019,7 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        public void DropAssetOnViewport(uint bucketIndex, Name assetName, float nx, float ny)
+        public void DropAssetOnViewport(uint bucketIndex, Name assetName, float nx, float ny, bool placeAsInstance = false)
         {
             if (!_isReady)
                 return;
@@ -3070,8 +3041,9 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
+                    // Alt+drop adds a prefab to the scene's instance group for it instead of spawning a copy
                     _editorSubsystem.ExecuteCommandByName(
-                        new Name("EditorCommandAddAsset"),
+                        new Name(placeAsInstance && bucketIndex == AssetBucket.Prefabs.Value ? "EditorCommandPlaceAsInstance" : "EditorCommandAddAsset"),
                         $"{bucketIndex} {assetName} {nx} {ny}");
                 }
                 catch (Exception ex)

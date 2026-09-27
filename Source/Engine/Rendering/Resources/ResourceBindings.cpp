@@ -10,6 +10,7 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/Mesh.hpp>
 #include <Rendering/DescriptorSet.hpp>
+#include <Rendering/InstanceDataPool.hpp>
 
 #include <Rendering/Passes/EnvProbePass.hpp>
 
@@ -57,6 +58,13 @@ void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderPr
     proxyCasted->bufferData.skeletonIndex = GetBinding(proxyCasted->skeleton);
 
     sbuffer.Write(idx * sizeof(proxyCasted->bufferData), sizeof(proxyCasted->bufferData), &proxyCasted->bufferData);
+
+    RI.instanceDataPool->WriteInstances(idx, *proxyCasted);
+}
+
+void OnBindingReleased_MeshEntity(uint32 binding)
+{
+    RI.instanceDataPool->ReleaseInstances(binding);
 }
 
 void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)

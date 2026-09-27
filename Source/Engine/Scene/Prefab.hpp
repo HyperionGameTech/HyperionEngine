@@ -13,6 +13,8 @@
 #include <Core/Name/Name.hpp>
 #include <Core/Containers/String.hpp>
 
+#include <Core/Functional/Delegate.hpp>
+
 namespace Hyperion {
 
 class Node;
@@ -42,8 +44,7 @@ public:
     HYP_METHOD()
     void SetRoot(const Handle<Node>& root);
 
-    /*! \brief Renames the root node to match this Prefab's name. Call after the asset registry may have
-     *  given the Prefab a unique name (e.g. NewPrefab -> NewPrefab_6) without going through Rename() */
+    ///Renames the root node to match this Prefab's name 
     void SyncRootName();
 
     HYP_METHOD()
@@ -52,13 +53,15 @@ public:
     HYP_METHOD()
     static Handle<Prefab> Find(const ANSIStringView& nameStr);
 
-    /*! \brief Look up a registered Prefab asset by its UUID */
+    ///Look up a registered Prefab asset by its UUID
     static Handle<Prefab> FindByUUID(const UUID& uuid);
 
     static UUID GetSourcePrefabUUID(const Node* node);
 
     static void TagAsPrefabInstance(Node* node, const UUID& prefabUUID);
     static void UntagAsPrefabInstance(Node* node);
+
+    static Delegate<void, Prefab*> OnPrefabChanged;
 
 private:
     HYP_FIELD(Property = "Root", Serialize)

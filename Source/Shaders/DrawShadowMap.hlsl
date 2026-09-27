@@ -34,6 +34,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+DECLARE_SRV(Default, InstanceDataBuffer) StructuredBuffer<InstanceTransform> InstanceTransforms;
 #endif // INSTANCING
 
 #include "Include/Instancing.hlsli"
@@ -102,7 +103,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
 
     Entity entity = entities[entityIndex];
 
-    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+    float4x4 transform = LoadInstanceTransform(dataOffset);
 
     output.object_index = entityIndex;
     float4x4 model_matrix = mul(entity.model_matrix, transform);

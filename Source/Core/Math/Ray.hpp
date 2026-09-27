@@ -104,8 +104,9 @@ struct RayHit
     uint32 triangleIndex = ~0u;
     class Node* node = nullptr;
 
-    // Hit came from a bounding volume, not surface geometry. Reported at the point the ray enters
-    // the volume, so it sorts after every exact hit regardless of distance.
+    // Which of the entity's instances was hit, as an index into its instance data. ~0u for entities that aren't instanced
+    uint32 instanceIndex = ~0u;
+    // if true, came from AABB
     bool isApproximate = false;
 
     bool operator<(const RayHit& other) const
@@ -125,6 +126,11 @@ struct RayHit
             return triangleIndex < other.triangleIndex;
         }
 
+        if (instanceIndex != other.instanceIndex)
+        {
+            return instanceIndex < other.instanceIndex;
+        }
+
         return id < other.id;
     }
 
@@ -135,6 +141,7 @@ struct RayHit
         return isApproximate == other.isApproximate
             && distance == other.distance
             && triangleIndex == other.triangleIndex
+            && instanceIndex == other.instanceIndex
             && id == other.id;
     }
 
@@ -145,6 +152,7 @@ struct RayHit
         hc.Add(isApproximate);
         hc.Add(distance);
         hc.Add(triangleIndex);
+        hc.Add(instanceIndex);
         hc.Add(id);
 
         return hc;

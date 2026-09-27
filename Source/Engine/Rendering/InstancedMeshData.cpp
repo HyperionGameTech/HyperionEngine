@@ -36,7 +36,7 @@ void InstancedMeshData::PageBlobData()
             {
                 const uint64 expectedSize = ref.size;
 
-                FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstancedMeshData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
+                FileByteReader stream { registry->GetRootPath() / AssetBuckets::InstanceData.GetName() / (String(*GetName()) + "." + BufferNames[i] + ".raw.blob") };
                 if (!stream.Eof())
                 {
                     if (stream.Max() != expectedSize)

@@ -59,8 +59,6 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(UI);
 
-HYP_REGISTER_DRAW_BATCH_TYPE(UIEntityInstanceBatch);
-
 // Global arena allocator for character data.
 // we allocate a lot throughout the frame when changing text (e.g stats).
 // don't want to make heap allocations if we can avoid it - simple bump allocator does the trick.
@@ -209,7 +207,6 @@ void UISubsystem::OnAddedToWorld()
 
     viewDesc.scenes = { m_uiStage->GetScene() };
     viewDesc.camera = m_uiStage->GetCamera();
-    viewDesc.entityBatchClass = UIEntityInstanceBatch::StaticClass();
 
     m_view = MakeHandle<View>(viewDesc);
     m_view->SetName(NAME("UISubsystem_View"));

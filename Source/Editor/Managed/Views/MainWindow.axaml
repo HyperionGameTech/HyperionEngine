@@ -2546,6 +2546,13 @@
                                                                                     CommandParameter="{Binding}"
                                                                                     Header="Add to Current Scene"
                                                                                     IsVisible="{Binding CanAddToScene, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                                <MenuItem
+                                                                                    Command="{Binding ContentBrowser.PlaceAsInstanceCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                    CommandParameter="{Binding}"
+                                                                                    Header="Place as Instance"
+                                                                                    IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                    IsVisible="{Binding IsPrefab}"
+                                                                                    ToolTip.Tip="Add an instance of this prefab to the scene" />
                                                                                 <Separator IsVisible="{Binding CanAddToScene, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                                 <MenuItem
                                                                                     Command="{Binding ContentBrowser.EditAssetCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"

@@ -64,6 +64,7 @@ DECLARE_SRV(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBuffer<Imm
 #ifdef INSTANCING
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+DECLARE_SRV(Default, InstanceDataBuffer) StructuredBuffer<InstanceTransform> InstanceTransforms;
 
 #include "./include/Instancing.hlsli"
 #endif // INSTANCING
@@ -112,8 +113,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     Entity entity = entities[entityIndex];
 
-    const float4x4 instanceTransform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
-    const float4x4 previousInstanceTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
+    const float4x4 instanceTransform = LoadInstanceTransform(dataOffset);
+    const float4x4 previousInstanceTransform = LoadPreviousInstanceTransform(dataOffset);
 
     output.object_index = entityIndex;
 

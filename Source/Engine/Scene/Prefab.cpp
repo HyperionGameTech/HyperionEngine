@@ -20,6 +20,8 @@ namespace Hyperion {
 
 static const Name s_namePrefabSource = NAME("PrefabSource");
 
+Delegate<void, Prefab*> Prefab::OnPrefabChanged;
+
 void Prefab_OnPostLoad(Prefab& prefab)
 {
     if (!EngineGlobals::IsShuttingDown())
@@ -28,7 +30,6 @@ void Prefab_OnPostLoad(Prefab& prefab)
 
         if (root.IsValid())
         {
-            // Older prefabs may have a root named differently from the asset (e.g. a suffixed name on save)
             prefab.SyncRootName();
 
             root->SetScene(&GetDetachedSceneForThread(g_simThread));
@@ -74,6 +75,8 @@ void Prefab::SetRoot(const Handle<Node>& root)
     SyncRootName();
 
     MarkDirty();
+
+    OnPrefabChanged(this);
 }
 
 void Prefab::SyncRootName()
@@ -90,7 +93,7 @@ Handle<Node> Prefab::Spawn() const
 {
     if (!m_root.IsValid())
     {
-        HYP_LOG(Assets, Warning, "Cannot spawn Prefab '{}': it has no root node", GetName());
+        HYP_LOG(Assets, Error, "Cannot spawn Prefab '{}' as it has no root node!", GetName());
 
         return Handle<Node>::Null();
     }
@@ -168,8 +171,7 @@ void Prefab::TagAsPrefabInstance(Node* node, const UUID& prefabUUID)
         return;
     }
 
-    // A node may already carry a source tag (e.g. it was cloned from another instance), so
-    // replace it outright rather than stacking tags.
+    // replace the existingtag, if one exists
     node->RemoveTag(s_namePrefabSource);
     node->AddTag(NodeTag(s_namePrefabSource, prefabUUID));
 }

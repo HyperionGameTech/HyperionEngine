@@ -207,10 +207,6 @@ namespace Hyperion.Editor
             yield return Entry("Camera", viewModel.AddCamera);
             yield return new Separator();
 
-            yield return GroupHeader("Rendering");
-            yield return Entry("Instanced Mesh", viewModel.AddInstance);
-            yield return new Separator();
-
             yield return GroupHeader("2D");
             yield return Entry("Sprite", viewModel.AddSprite);
             yield return Entry("Text Sprite", viewModel.AddTextSprite);
@@ -1647,7 +1643,7 @@ namespace Hyperion.Editor
             var (nx, ny) = GetNormalizedViewportPosition(e);
 
             var vm = DataContext as MainWindowViewModel;
-            vm?.DropAssetOnViewport(bucketIndex, assetName, nx, ny);
+            vm?.DropAssetOnViewport(bucketIndex, assetName, nx, ny, placeAsInstance: (e.KeyModifiers & KeyModifiers.Alt) != 0);
 
             e.Handled = true;
         }

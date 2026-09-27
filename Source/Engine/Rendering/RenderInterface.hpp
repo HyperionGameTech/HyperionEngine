@@ -67,6 +67,8 @@ class GpuTimerBackendBase;
 class CBufferAllocator;
 class BufferAllocator;
 class ScratchImageAllocator;
+class InstanceDataPool;
+class EntityBatchAllocator;
 
 struct IRenderProxy;
 
@@ -206,6 +208,7 @@ struct NamedBuffer
         Skeletons,
         EnvProbes,
         LightmapVolumes,
+        InstanceData,
 
         Max
     };
@@ -218,7 +221,8 @@ struct NamedBuffer
         "Materials",
         "Skeletons",
         "EnvProbes",
-        "LightmapVolumes"
+        "LightmapVolumes",
+        "InstanceData"
     };
 };
 
@@ -462,6 +466,10 @@ public:
     SamplerCache* samplerCache;
 
     BLASCache* blasCache;
+
+    InstanceDataPool* instanceDataPool;
+
+    EntityBatchAllocator* entityBatchAllocator;
 
     ShadowMapCache* shadowMapCache;
 

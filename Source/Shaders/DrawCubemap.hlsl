@@ -54,6 +54,7 @@ struct VSOutput
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+DECLARE_SRV(Default, InstanceDataBuffer) StructuredBuffer<InstanceTransform> InstanceTransforms;
 #endif // INSTANCING
 DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
 {
@@ -99,13 +100,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     uint dataOffset;
     LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
-    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+    float4x4 transform = LoadInstanceTransform(dataOffset);
 
     output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
-    float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
+    float3x3 normal_matrix = mul((float3x3)currentEntity.normal_matrix, GetInstanceNormalMatrix(transform));
 #else   // !INSTANCING
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;

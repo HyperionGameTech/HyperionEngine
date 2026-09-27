@@ -2333,6 +2333,12 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
+        // the TLAS holds one transform per BLAS, which can't place an instanced entity's copies
+        if (meshProxy->numInstances != 0)
+        {
+            continue;
+        }
+
         uint64 newKey;
         uint64 oldKey;
         BottomLevelAS* blas;

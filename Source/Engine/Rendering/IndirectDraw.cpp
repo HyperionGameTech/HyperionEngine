@@ -7,6 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/IndirectDraw.hpp>
+#include <Rendering/InstanceDataPool.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/DrawCall.hpp>
 #include <Rendering/RenderInterface.hpp>
@@ -230,11 +231,11 @@ void IndirectDrawState::PushDrawCall(size_t drawCallIndex, const DrawCallStorage
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     ObjectInstance& instance = m_objectInstances.EmplaceBack();
-    instance.transform = Mat4f::identity;//drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix;
     instance.entityBindingIndex = drawCalls.entityBindingIndices[drawCallIndex];
     instance.drawCommandIndex = drawCommandIndex;
     instance.batchIndex = ~0u;
     instance.instanceIndex = 0;
+    instance.instanceSlot = IdentityInstanceSlot;
 
     out.drawCommandIndex = drawCommandIndex;
 
@@ -260,16 +261,17 @@ void IndirectDrawState::PushInstancedDrawCall(size_t drawCallIndex, const Instan
     const uint32 drawCommandIndex = m_numDrawCommands++;
 
     const uint32 count = drawCalls.counts[drawCallIndex];
-    EntityInstanceBatch* batch = drawCalls.batches[drawCallIndex];
+
+    const EntityInstanceBatch* batch = drawCalls.batches[drawCallIndex];
 
     for (uint32 index = 0; index < count; index++)
     {
         ObjectInstance& instance = m_objectInstances.EmplaceBack();
-        instance.transform = /*drawCalls.meshProxies[drawCallIndex]->bufferData.modelMatrix * */ batch->transforms[index];
         instance.entityBindingIndex = (batch->indices[index] & 0xFFFFFFu);
         instance.drawCommandIndex = drawCommandIndex;
         instance.batchIndex = batch->batchIndex;
         instance.instanceIndex = index;
+        instance.instanceSlot = batch->instanceSlots[index];
     }
 
     out.drawCommandIndex = drawCommandIndex;
@@ -368,7 +370,7 @@ IndirectRenderer::~IndirectRenderer()
 {
 }
 
-void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
+void IndirectRenderer::Create(EntityBatchAllocator* batchAllocator)
 {
     Assert(batchAllocator != nullptr);
     m_batchAllocator = batchAllocator;
@@ -433,6 +435,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
 
     cr << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
+    cr << SetShaderUniform(numShaderUniforms++, "InstanceDataBuffer"_sh, RI.namedBuffers[NamedBuffer::InstanceData]);
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
     cr << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, RI.placeholderData->GetSamplerNearest());
@@ -454,7 +457,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     constants.totalMips = pd->depthPyramidRenderer->GetTotalMips();
     constants.batchOffset = 0;
     constants.numInstances = numInstances;
-    constants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
+    constants.entityInstanceBatchStride = sizeof(EntityInstanceBatch);
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferSize = 0;

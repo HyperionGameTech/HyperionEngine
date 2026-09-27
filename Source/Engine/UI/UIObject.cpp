@@ -36,6 +36,7 @@
 #include <Rendering/Material.hpp>
 
 #include <Rendering/InstancedMeshData.hpp>
+#include <Rendering/InstanceDataPool.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -72,6 +73,8 @@ ScriptableDelegate<UIEventHandlerResult> UIObject::OnDisabled;
 ScriptableDelegate<UIEventHandlerResult, const BoxedValue&> UIObject::OnValueChange;
 
 namespace Hyperion {
+
+static_assert(sizeof(Mat4f) + sizeof(UIInstanceAttributes) == sizeof(InstanceTransformShaderData), "a UI instance's transform and attributes must fill exactly one instance data slot");
 
 enum class UIObjectFlags : uint32
 {
@@ -2465,18 +2468,16 @@ void UIObject::UpdateMeshData_Internal()
     instanceTransform[0][3] = m_aabbClamped.min.x;
     instanceTransform[1][3] = m_aabbClamped.min.y;
 
-    Vec4f instanceTexcoords = Vec4f { 0.0f, 0.0f, 1.0f, 1.0f };
+    UIInstanceAttributes instanceAttributes;
+    instanceAttributes.texcoords = Vec4f { 0.0f, 0.0f, 1.0f, 1.0f };
+    instanceAttributes.offsets = Vec4f(GetAbsolutePosition() - m_aabbClamped.min.GetXY(), 0.0f, 0.0f);
+    instanceAttributes.sizes = Vec4f(Vec2f(m_actualSize), m_aabbClamped.max.GetXY() - m_aabbClamped.min.GetXY());
 
-    Vec4f instanceOffsets = Vec4f(GetAbsolutePosition() - m_aabbClamped.min.GetXY(), 0.0f, 0.0f);
-
-    Vec4f instanceSizes = Vec4f(Vec2f(m_actualSize), m_aabbClamped.max.GetXY() - m_aabbClamped.min.GetXY());
-
-    Vec4u instanceProperties;
-    instanceProperties[0] = uint32(m_actualSize.x);
-    instanceProperties[1] = uint32(m_actualSize.y);
+    instanceAttributes.properties[0] = uint32(m_actualSize.x);
+    instanceAttributes.properties[1] = uint32(m_actualSize.y);
     // Scale border radius to maintain visual proportions with UI scaling
     const uint32 scaledBorderRadius = MathUtil::Min(uint32(float(m_borderRadius) * GetUIScaleFactor()), 0xFFu);
-    instanceProperties[2] = (scaledBorderRadius & 0xFFu)
+    instanceAttributes.properties[2] = (scaledBorderRadius & 0xFFu)
         | ((uint32(m_borderFlags) & 0xFu) << 8u)
         | ((uint32(m_focusState) & 0xFFu) << 16u);
 
@@ -2499,10 +2500,7 @@ void UIObject::UpdateMeshData_Internal()
     auto writeScope = instancedMesh->GetWriteScope();
 
     instancedMesh->SetBufferData(0, &instanceTransform, 1);
-    instancedMesh->SetBufferData(1, &instanceTexcoords, 1);
-    instancedMesh->SetBufferData(2, &instanceOffsets, 1);
-    instancedMesh->SetBufferData(3, &instanceSizes, 1);
-    instancedMesh->SetBufferData(4, &instanceProperties, 1);
+    instancedMesh->SetBufferData(1, &instanceAttributes, 1);
 
     GetEntity()->SetNeedsRenderProxyUpdate();
 }

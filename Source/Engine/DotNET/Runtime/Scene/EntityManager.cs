@@ -40,8 +40,8 @@ namespace Hyperion
 
         public static readonly EntityTag UpdateRenderProxy = new EntityTag(0x30);
         public static readonly EntityTag UpdateVisibility = new EntityTag(0x40);
-        public static readonly EntityTag UpdateInstancedMeshData = new EntityTag(0x50);
         public static readonly EntityTag UpdateReplication = new EntityTag(0x60);
+        public static readonly EntityTag UpdateInstanceGroup = new EntityTag(0x70);
 
         public static readonly EntityTag UpdatePhysicsShape = new EntityTag(0x100);
         public static readonly EntityTag UpdatePhysicsMaterial = new EntityTag(0x200);

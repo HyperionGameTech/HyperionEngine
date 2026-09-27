@@ -77,6 +77,9 @@ static bool ProcessEntity(
             return true;
         }
 
+        // retried every frame while the tag stays, so only report it once
+        HYP_LOG_ONCE(Scene, Warning, "Failed to insert entity {} into octree: {}", entity->GetName(), insertResult.GetError().GetMessage());
+
         return false;
     }
 

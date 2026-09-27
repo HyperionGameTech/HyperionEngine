@@ -24,7 +24,6 @@ namespace Hyperion {
 
 class PassData;
 class PassBase;
-class EntityBatchAllocatorBase;
 class FullScreenPass;
 
 struct PassDataExt

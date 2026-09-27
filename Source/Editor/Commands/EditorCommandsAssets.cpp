@@ -4,7 +4,65 @@
 
 #include <Scene/Components/ScriptComponent.hpp>
 
+#include <Scene/Instancing/InstanceGroup.hpp>
+
 namespace Hyperion {
+    
+namespace /* Helpers*/ {
+
+/// Where a dropped or added asset lands.
+Vec3f CalculateAssetInsertionPoint(
+    EditorSubsystem& subsystem,
+    Scene& scene,
+    const Optional<Vec2f>& viewportPosition)
+{
+    Vec3f insertionPoint = subsystem.CalculateSceneInsertionPoint();
+
+    if (!viewportPosition.HasValue())
+    {
+        return insertionPoint;
+    }
+
+    EditorViewport* activeViewport = subsystem.GetActiveViewport();
+    Camera* camera = activeViewport != nullptr ? activeViewport->GetCamera() : nullptr;
+
+    if (!camera || !(scene.GetSceneFlags() & SceneFlags::HAS_OCTREE))
+    {
+        return insertionPoint;
+    }
+
+    const Vec4f worldPos = camera->TransformScreenToWorld(*viewportPosition);
+    const Vec3f rayDir = worldPos.GetXYZ().Normalize();
+    const Ray ray { camera->GetWorldTranslation(), rayDir };
+
+    RayTestResults results;
+
+    if (scene.GetOctree().TestRay(ray, results, RayTestFlags::TestBVH))
+    {
+        insertionPoint = results.Front().hitpoint;
+    }
+
+    return insertionPoint;
+}
+
+/// Parses the optional normalized viewport position that follows the bucket index and asset name
+Optional<Vec2f> ParseViewportPositionArguments(const EditorCommandBase& command)
+{
+    if (command.NumArguments() < 4)
+    {
+        return {};
+    }
+
+    float nx = 0.5f;
+    float ny = 0.5f;
+
+    StringUtil::Parse(command.GetArgument(2), &nx);
+    StringUtil::Parse(command.GetArgument(3), &ny);
+
+    return Vec2f(nx, ny);
+}
+
+} // namespace
 
 #pragma region NewScript
 
@@ -471,34 +529,7 @@ public:
             return;
         }
 
-        Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint();
-
-        // If viewport coordinates are provided, try raycasting from the camera
-        if (NumArguments() >= 4)
-        {
-            float nx = 0.5f, ny = 0.5f;
-            StringUtil::Parse(GetArgument(2), &nx);
-            StringUtil::Parse(GetArgument(3), &ny);
-
-            if (EditorViewport* activeViewport = subsystem->GetActiveViewport())
-            {
-                if (Camera* camera = activeViewport->GetCamera())
-                {
-                    const Vec4f worldPos = camera->TransformScreenToWorld(Vec2f(nx, ny));
-                    const Vec3f rayDir = worldPos.GetXYZ().Normalize();
-                    const Ray ray { camera->GetWorldTranslation(), rayDir };
-
-                    if (activeScene->GetSceneFlags() & SceneFlags::HAS_OCTREE)
-                    {
-                        RayTestResults results;
-                        if (activeScene->GetOctree().TestRay(ray, results, RayTestFlags::TestBVH))
-                        {
-                            insertionPoint = results.Front().hitpoint;
-                        }
-                    }
-                }
-            }
-        }
+        const Vec3f insertionPoint = CalculateAssetInsertionPoint(*subsystem, *activeScene, ParseViewportPositionArguments(*this));
 
         clonedNode->SetWorldTranslation(insertionPoint);
 
@@ -537,6 +568,121 @@ public:
 DEFINE_EDITOR_COMMAND(AddAsset);
 
 #pragma endregion AddAsset
+
+#pragma region PlaceAsInstance
+
+/// Places a prefab as one more instance of the active scene's InstanceGroup for it, creating the group if the scene has none.
+/// Arguments match AddAsset: bucket index, asset name, and optionally the normalized viewport position to drop at.
+class EditorCommandPlaceAsInstance final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandPlaceAsInstance);
+
+public:
+    virtual ~EditorCommandPlaceAsInstance() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Place as Instance";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 2)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandPlaceAsInstance requires bucket index and asset name");
+            return;
+        }
+
+        uint32 bucketIndex = 0;
+        if (!StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandPlaceAsInstance: invalid bucket index '{}'", GetArgument(0));
+            return;
+        }
+
+        const ANSIString assetName = GetArgument(1);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandPlaceAsInstance: no project loaded");
+            return;
+        }
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+        if (!activeScene.IsValid() || !activeScene->GetRoot().IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandPlaceAsInstance: no active scene");
+            return;
+        }
+
+        Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
+        if (!prefab.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandPlaceAsInstance: '{}' is not a prefab", assetName);
+            return;
+        }
+
+        Handle<InstanceGroup> group = InstanceGroup::Find(activeScene.Get(), prefab);
+        const bool createsGroup = !group.IsValid();
+
+        if (createsGroup)
+        {
+            group = InstanceGroup::Create(activeScene.Get(), prefab);
+        }
+
+        if (!group.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandPlaceAsInstance: failed to create an instance group for '{}'", assetName);
+            return;
+        }
+
+        const Transform transform { CalculateAssetInsertionPoint(*subsystem, *activeScene, ParseViewportPositionArguments(*this)) };
+
+        // the same id on every redo, so later actions that refer to this instance still find it
+        const InstanceId instanceId = group->ReserveInstanceId();
+
+        Handle<Node> sceneRoot = activeScene->GetRoot();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Place {} as Instance", assetName),
+            Proc<EditorActionFunctions()>(
+                [group, sceneRoot, createsGroup, instanceId, transform]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [group, sceneRoot, createsGroup, instanceId, transform](EditorSubsystem*, EditorProject*)
+                            {
+                                if (createsGroup)
+                                {
+                                    sceneRoot->AddChild(group);
+                                }
+
+                                group->AddInstanceWithId(instanceId, transform);
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [group, createsGroup, instanceId](EditorSubsystem*, EditorProject*)
+                            {
+                                group->RemoveInstance(instanceId);
+
+                                if (createsGroup)
+                                {
+                                    group->Remove();
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(PlaceAsInstance);
+
+#pragma endregion PlaceAsInstance
 
 #pragma region DropAssetOnEntity
 
@@ -1201,6 +1347,8 @@ public:
 
                                 GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
                                 prefab->MarkDirty();
+
+                                prefab->OnPrefabChanged(prefab.Get());
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
                             [prefab, records, instanceClones, previousSelectedNodes, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject*)
@@ -1230,6 +1378,8 @@ public:
                                 }
 
                                 prefab->MarkDirty();
+
+                                prefab->OnPrefabChanged(prefab.Get());
                             })
                     };
                 }));
@@ -1241,9 +1391,7 @@ public:
 
 DEFINE_EDITOR_COMMAND(AddToPrefab);
 
-// Content Browser "New" action: creates a blank Prefab with an empty root node. Deliberately ignores
-// scene selection entirely (the Content Browser has no notion of selected scene nodes), unlike
-// EditorCommandMakePrefab above.
+/// creates a blank Prefab with an empty root node
 class EditorCommandNewPrefab final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandNewPrefab);

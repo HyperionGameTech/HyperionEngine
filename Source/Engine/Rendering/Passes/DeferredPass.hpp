@@ -41,7 +41,6 @@ class DOFBlur;
 class Texture;
 class RayTracingReflections;
 class DDGI;
-class EntityBatchAllocatorBase;
 class RenderProxyList;
 class RenderCollector;
 class TileProcessor;

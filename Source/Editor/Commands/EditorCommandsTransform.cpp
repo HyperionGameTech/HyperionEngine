@@ -1,6 +1,99 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
+#include <Editor/Instancing/InstanceHandleNode.hpp>
+
+#include <Scene/Instancing/InstanceGroup.hpp>
 
 namespace Hyperion {
+
+namespace /* Helpers */ {
+
+struct PastedInstance
+{
+    Handle<InstanceGroup> group;
+    InstanceId instanceId;
+    Transform transform;
+};
+
+/// Pasting an instance handle adds a copy of the instance to the same group, where the original is
+void PushPasteInstancesAction(EditorProject& project, Span<const Handle<InstanceHandleNode>> handles)
+{
+    Array<PastedInstance> pastedInstances;
+
+    for (const Handle<InstanceHandleNode>& handle : handles)
+    {
+        Handle<InstanceGroup> group = handle->GetGroup().Lock();
+
+        PastedInstance pastedInstance;
+
+        if (!group.IsValid() || !group->GetInstanceTransform(handle->GetInstanceId(), pastedInstance.transform))
+        {
+            continue;
+        }
+
+        // reserved now so redo brings back the same instance
+        pastedInstance.instanceId = group->ReserveInstanceId();
+        pastedInstance.group = std::move(group);
+
+        pastedInstances.PushBack(std::move(pastedInstance));
+    }
+
+    if (pastedInstances.Empty())
+    {
+        return;
+    }
+
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+        pastedInstances.Size() == 1
+            ? String("Paste Instance")
+            : HYP_FORMAT("Paste {} Instances", pastedInstances.Size()),
+        Proc<EditorActionFunctions()>(
+            [pastedInstances]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [pastedInstances](EditorSubsystem* editorSubsystem, EditorProject*)
+                        {
+                            Array<Handle<Node>> pastedHandles;
+
+                            for (const PastedInstance& pastedInstance : pastedInstances)
+                            {
+                                pastedInstance.group->AddInstanceWithId(pastedInstance.instanceId, pastedInstance.transform);
+
+                                Handle<InstanceHandleNode> handle = editorSubsystem->GetOrCreateInstanceHandle(pastedInstance.group, pastedInstance.instanceId);
+
+                                if (handle.IsValid())
+                                {
+                                    pastedHandles.PushBack(handle);
+                                }
+                            }
+
+                            editorSubsystem->SetSelectedNodes(pastedHandles);
+
+                            if (pastedHandles.Any())
+                            {
+                                editorSubsystem->SetFocusedNode(pastedHandles[0], true);
+                            }
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [pastedInstances](EditorSubsystem* editorSubsystem, EditorProject*)
+                        {
+                            for (const PastedInstance& pastedInstance : pastedInstances)
+                            {
+                                pastedInstance.group->RemoveInstance(pastedInstance.instanceId);
+                            }
+
+                            editorSubsystem->SetSelectedNodes({});
+                            editorSubsystem->SetFocusedNode(Handle<Node>::Null(), true);
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    project.GetActionStack()->PushAction(action);
+}
+
+} // namespace
 
 #pragma region TeleportTo
 
@@ -476,6 +569,34 @@ public:
             HYP_LOG(Editor, Warning, "No nodes in clipboard");
 
             return;
+        }
+
+        // copied instances are pasted into their own group, not cloned as nodes
+        Array<Handle<InstanceHandleNode>> instanceHandles;
+
+        for (auto it = clipboardNodes.Begin(); it != clipboardNodes.End();)
+        {
+            Handle<InstanceHandleNode> instanceHandle = DynamicCast<InstanceHandleNode>(*it);
+
+            if (instanceHandle.IsValid())
+            {
+                instanceHandles.PushBack(std::move(instanceHandle));
+                it = clipboardNodes.Erase(it);
+
+                continue;
+            }
+
+            ++it;
+        }
+
+        if (instanceHandles.Any())
+        {
+            PushPasteInstancesAction(*currentProject, instanceHandles.ToSpan());
+
+            if (clipboardNodes.Empty())
+            {
+                return;
+            }
         }
 
         Handle<Scene> activeScene = subsystem->GetActiveScene();

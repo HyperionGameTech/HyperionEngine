@@ -17,7 +17,6 @@
 #include <Scene/Light/Light.hpp>
 #include <Scene/EnvProbe.hpp>
 #include <Scene/LightmapVolume.hpp>
-#include <Scene/InstancedMeshProxy.hpp>
 #include <Scene/ParticleVolume.hpp>
 #include <Scene/FogVolume.hpp>
 #include <Scene/Sprite.hpp>

@@ -12,6 +12,7 @@ static void WriteBufferData_Default(StructuredBuffer& sbuffer, uint32 idx, IRend
 }
 
 extern void WriteBufferData_MeshEntity(StructuredBuffer& sbuffer, uint32 idx, IRenderProxy* proxy);
+extern void OnBindingReleased_MeshEntity(uint32 binding);
 
 extern void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next);
 
@@ -36,7 +37,7 @@ extern void WriteBufferData_Material(StructuredBuffer& sbuffer, uint32 idx, IRen
 extern void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next);
 
 static ResourceBindingAllocator<MaxBoundEntities> s_meshEntityBindingsAllocator;
-static ResourceBinder<Entity> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
+static ResourceBinder<Entity, &OnBindingChanged_Default<Entity>, &OnBindingReleased_MeshEntity> s_meshEntityBinder { &s_meshEntityBindingsAllocator };
 ResourceBinderBase* g_meshEntityBinder = &s_meshEntityBinder;
 
 static ResourceBindingAllocator<MaxBoundMeshes> s_meshBindingsAllocator;
