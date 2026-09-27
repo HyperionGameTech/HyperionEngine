@@ -135,8 +135,10 @@ PSOutput PSMain(PSInput input)
         discard;
     }
 
-    const uint objectMask = GBufferMaterialTexture.Load(pixelCoord) >> 28u;
+    const uint objectMask = GBufferUnpackObjectMask(GBufferMaterialTexture.Load(pixelCoord));
 
+    // do not project onto pixels matching the exclusion mask
+    // i.e player, foliage, blah
     if ((objectMask & excludeMask) != 0)
     {
         discard;

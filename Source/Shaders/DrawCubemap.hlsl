@@ -117,7 +117,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     output.object_index = ~0u; // unused
 #endif  // INSTANCING
 
-    output.bucket = currentEntity.bucket;
+    output.bucket = GetEntityBucket(currentEntity);
 
 #if defined(SKINNING) && defined(VT_Skeletal)
     float4x4 skinning_matrix = CreateSkinningMatrix(input.a_bone_indices, input.a_bone_weights);

@@ -176,17 +176,22 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
 
     output.color = material.albedo;
-
-    // Use the compiled shading type rather than the raw entity bucket so this stays in sync with
-    // Rendering.LightmapVolumes - when that cvar is off, lightmapped entities are drawn with the
-    // deferred permutation instead and must not be masked out of probe irradiance.
+    
 #ifdef SHADING_TYPE_LIGHTMAPPED
     const uint lightmappedMask = OBJECT_MASK_LIGHTMAPPED;
 #else // !SHADING_TYPE_LIGHTMAPPED
     const uint lightmappedMask = 0u;
 #endif // SHADING_TYPE_LIGHTMAPPED
 
+#if defined(VT_Tree) || defined(VT_Foliage)
+    const uint treeMask = OBJECT_MASK_TREE;
+#else // !VT_Tree && !VT_Foliage
+    const uint treeMask = 0u;
+#endif // VT_Tree || VT_Foliage
+
     output.object_mask = lightmappedMask
+        | treeMask
+        | (GetEntityObjectMask(currentEntity) & OBJECT_MASK_PLAYER)
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_UNLIT)) * OBJECT_MASK_UNLIT)
         | (min(1u, GET_MATERIAL_PARAM_BIT(material, MATERIAL_FLAG_FOLIAGE)) * OBJECT_MASK_FOLIAGE);
 

@@ -670,16 +670,14 @@ PSOutput PSMain(PSInput input)
     output.gbuffer_material = min((uint)round(saturate(input.texcoord1.x) * 16384.0), 16383u)
         | (min((uint)round(saturate(input.texcoord1.y) * 16384.0), 16383u) << 14u);
 #else
-    // foliage keeps its transmission amount in the low 8 bits
-    output.gbuffer_material = isFoliage ? uint(saturate(transmission) * 255.0 + 0.5) : 0u;
+    output.gbuffer_material = isFoliage ? GBufferPackTransmission(transmission) : 0u;
 
 #ifndef SHADING_TYPE_FORWARD
     output.gbuffer_material |= GBufferPackEmissive(GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL));
 #endif // !SHADING_TYPE_FORWARD
 #endif
 
-    // Mask is stored in the upper 4 bits of gbuffer_material
-    output.gbuffer_material |= (maskPacked << 28u);
+    output.gbuffer_material |= GBufferPackObjectMask(mask);
 
     output.gbuffer_velocity = velocity;
 
