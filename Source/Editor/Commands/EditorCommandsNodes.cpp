@@ -1,6 +1,7 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
 #include <Editor/EditorTemplateLibrary.hpp>
+#include <Editor/EditorImport.hpp>
 #include <Editor/Instancing/InstanceHandleNode.hpp>
 
 #include <Scene/Instancing/InstanceGroup.hpp>
@@ -634,7 +635,7 @@ public:
 
                 for (const FilePath& file : result.GetValue())
                 {
-                    batch->Add(file.Basename(), file);
+                    batch->Add(file.Basename(), file, GetEditorImportLoadHint(file));
                 }
 
                 batch->GetCallbacks().OnItemComplete
