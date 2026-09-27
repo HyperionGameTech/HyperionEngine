@@ -198,6 +198,11 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SetProperty(ref _selectedSubclass, value) && !string.IsNullOrEmpty(value) && !IsApplyingModelValue)
                 {
+                    if (!HasMixedValues && HasSubObject && value == _currentTypeName)
+                    {
+                        return;
+                    }
+
                     CommitSubclass(value);
                 }
             }
