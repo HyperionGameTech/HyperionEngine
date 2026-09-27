@@ -2091,6 +2091,66 @@ CameraOrthoRect {
     }
 
     {
+        // a class that no longer exists is dropped from the array, and the rest of the object still loads
+        const String manifest = R"(HMFVariantArrayHolder {
+    Items = [
+        HMFVariantBase {
+            BaseValue = 10
+        }
+        RemovedClass SomeName {
+            Nested = {
+                Value = 1
+            }
+            List = [1, 2]
+        }
+        HMFVariantBase {
+            BaseValue = 30
+        }
+    ]
+    HolderName = "AfterDropped"
+}
+)";
+
+        HMF::ParseResult result = HMF::Parse(manifest);
+        Check("DroppedClass: parse succeeds", Success(result), result.GetError().GetMessage());
+
+        if (Success(result))
+        {
+            const Class* cls = GetClass(result.GetValue().GetTypeId());
+
+            if (cls)
+            {
+                Name holderName = GetFieldValue<Name>(result.GetValue(), cls, "HolderName");
+                Check("DroppedClass: field after the array still set",
+                      String(holderName.LookupString()) == String("AfterDropped"),
+                      holderName.LookupString());
+
+                if (const IMember* member = cls->GetMember(StringHash("Items")); member && member->GetMemberType() == MemberType::Field)
+                {
+                    BoxedValue itemsValue = static_cast<const Field*>(member)->Get(result.GetValue());
+
+                    auto* arrayHandler = static_cast<ITypeInfoArrayHandler*>(itemsValue.GetTypeInfo()->extendedInfo.handler);
+
+                    if (arrayHandler)
+                    {
+                        const size_t count = arrayHandler->GetSize(itemsValue);
+                        Check("DroppedClass: 2 items remain", count == 2, "wrong count");
+
+                        BoxedValue element;
+
+                        if (count == 2 && arrayHandler->GetElementAt(itemsValue, 1, element))
+                        {
+                            const Class* elementClass = GetClass(element.GetTypeId());
+                            Check("DroppedClass: item after the dropped one kept",
+                                  elementClass != nullptr && GetFieldValue<int32>(element, elementClass, "BaseValue") == 30);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    {
         const String manifest = R"(HMFVariantArrayHolder {
     HolderName = "RT"
     Items = [

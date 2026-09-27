@@ -902,6 +902,9 @@ void View::BeginAsyncCollection(TaskBatch& batch)
             rpl.cachedMatrices = cachedMatrices;
             rpl.cachedBounds = cachedBounds;
 
+            rpl.cullingFrustum = cachedFrustum;
+            rpl.hasCullingFrustum = !(flags & ViewFlags::NO_FRUSTUM_CULLING);
+
             // Write cached entry list hashes
             GetEntryHashes(rpl.cachedEntryHashes);
 

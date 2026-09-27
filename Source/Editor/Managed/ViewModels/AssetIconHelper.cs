@@ -17,8 +17,7 @@ namespace Hyperion.Editor.ViewModels
             "EnvProbe" or "ReflectionProbe"
                 or "SkyProbe"                   => "EnvProbe",
             "ParticleVolume"                    => "ParticleVolume",
-            "InstancedMeshProxy"
-                or "InstancedMeshData"          => "AssetInstancedMesh",
+            "InstancedMeshData"                 => "AssetInstancedMesh",
             "Skeleton"                          => "AssetSkeleton",
             "Animation"                         => "AssetAnimation",
             "AnimationTrack"                    => "AssetAnimationTrack",
@@ -55,7 +54,7 @@ namespace Hyperion.Editor.ViewModels
             if (bucket.Index == AssetBucket.Meshes.Index)               return "AssetMesh";
             if (bucket.Index == AssetBucket.Textures.Index)             return "AssetTexture";
             if (bucket.Index == AssetBucket.Materials.Index)            return "AssetMaterial";
-            if (bucket.Index == AssetBucket.InstancedMeshData.Index)    return "AssetInstancedMesh";
+            if (bucket.Index == AssetBucket.InstanceData.Index)         return "AssetInstancedMesh";
             if (bucket.Index == AssetBucket.Animations.Index)           return "AssetAnimation";
             if (bucket.Index == AssetBucket.AnimationTracks.Index)      return "AssetAnimationTrack";
             if (bucket.Index == AssetBucket.Skeletons.Index)            return "AssetSkeleton";

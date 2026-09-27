@@ -392,6 +392,12 @@ void BakerBase::GatherBakeEntities()
             continue;
         }
 
+        // bakes see one transform per entity, which says nothing about where an instanced entity's copies are drawn
+        if (meshComponent.numInstances != 0)
+        {
+            continue;
+        }
+
         // Only process opaque and translucent materials
         if (meshComponent.material->GetBucket() != RenderBucket::Opaque
             && meshComponent.material->GetBucket() != RenderBucket::Lightmapped

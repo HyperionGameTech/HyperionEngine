@@ -244,6 +244,11 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             continue;
         }
 
+        if (!fieldValue.IsValid())
+        {
+            continue;
+        }
+
         if (member->GetMemberType() == MemberType::Property)
         {
             if (!static_cast<const Property*>(member)->CanSet())
@@ -435,6 +440,11 @@ bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSI
                 // Failed to parse value; continue so we don't stop the world on a schema change
                 SkipValue();
 
+                continue;
+            }
+
+            if (!fieldValue.IsValid())
+            {
                 continue;
             }
 
@@ -1014,6 +1024,11 @@ bool Parser::ParseArrayValue(const TypeInfo& typeInfo, BoxedValue& out)
             return false;
         }
 
+        if (!element.IsValid())
+        {
+            continue;
+        }
+
         elements.PushBack(std::move(element));
     }
 
@@ -1101,6 +1116,11 @@ bool Parser::ParseSetValue(const TypeInfo& typeInfo, BoxedValue& out)
             return false;
         }
 
+        if (!element.IsValid())
+        {
+            continue;
+        }
+
         handler->Insert(out, element);
     }
 
@@ -1181,6 +1201,11 @@ bool Parser::ParseMapValue(const TypeInfo& typeInfo, BoxedValue& out)
             return false;
         }
 
+        if (!key.IsValid() || !value.IsValid())
+        {
+            continue;
+        }
+
         handler->SetValueAt(out, key, value);
     }
 
@@ -1222,8 +1247,6 @@ bool Parser::ParsePairValue(const TypeInfo& typeInfo, BoxedValue& out)
         return false;
     }
 
-    handler->SetFirst(out, first);
-
     // Optional comma between pair elements
     if (Peek().GetTokenClass() == TK_COMMA)
     {
@@ -1236,12 +1259,21 @@ bool Parser::ParsePairValue(const TypeInfo& typeInfo, BoxedValue& out)
         return false;
     }
 
-    handler->SetSecond(out, second);
-
     if (!Expect(TK_CLOSE_PARENTH, ")"))
     {
         return false;
     }
+
+    // a dropped half drops the whole pair
+    if (!first.IsValid() || !second.IsValid())
+    {
+        out = BoxedValue();
+
+        return true;
+    }
+
+    handler->SetFirst(out, first);
+    handler->SetSecond(out, second);
 
     return true;
 }
@@ -1287,9 +1319,18 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
                 return true;
             }
 
-            Error(MSG_CLASS_NOT_FOUND, classToken.GetLocation(), runtimeClassName);
+            Warning(MSG_CLASS_NOT_FOUND, classToken.GetLocation(), runtimeClassName);
 
-            return false;
+            if (Peek().GetTokenClass() == TK_STRING || Peek().GetTokenClass() == TK_IDENT)
+            {
+                Next();
+            }
+
+            SkipBracedBlock();
+
+            out = BoxedValue();
+
+            return true;
         }
 
         if (declaredClass && !actualClass->IsDerivedFrom(declaredClass))
@@ -1380,6 +1421,8 @@ bool Parser::ParseTupleValue(const TypeInfo& typeInfo, BoxedValue& out)
 
     const int numElements = handler->GetNumElements();
 
+    bool hasDroppedElement = false;
+
     for (int i = 0; i < numElements; i++)
     {
         if (Peek().GetTokenClass() == TK_COMMA)
@@ -1401,12 +1444,25 @@ bool Parser::ParseTupleValue(const TypeInfo& typeInfo, BoxedValue& out)
             return false;
         }
 
+        if (!element.IsValid())
+        {
+            hasDroppedElement = true;
+
+            continue;
+        }
+
         handler->SetElement(out, i, element);
     }
 
     if (!Expect(TK_CLOSE_PARENTH, ")"))
     {
         return false;
+    }
+
+    // a dropped element drops the whole tuple
+    if (hasDroppedElement)
+    {
+        out = BoxedValue();
     }
 
     return true;
@@ -1546,7 +1602,7 @@ bool Parser::ParseVariantValue(const TypeInfo& typeInfo, BoxedValue& out)
             const bool parsed = ParseValue(*alternativeTypeInfo, parsedValue);
             m_errorList->SuppressErrors(false);
 
-            if (parsed)
+            if (parsed && parsedValue.IsValid())
             {
                 if (handler->SetValue(variantInstance, parsedValue))
                 {

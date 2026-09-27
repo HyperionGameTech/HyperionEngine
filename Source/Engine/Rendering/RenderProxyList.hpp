@@ -10,6 +10,7 @@
 #include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
+#include <Core/Math/Frustum.hpp>
 
 #include <Core/Utilities/Tuple.hpp>
 
@@ -196,6 +197,10 @@ public:
 
     CameraMatrices cachedMatrices;
     BoundingBox cachedBounds;
+
+    // what the view culls with
+    Frustum cullingFrustum;
+    bool hasCullingFrustum = false;
 
     static constexpr uint32 NumEntryHashes = 10; // must stay in sync with SceneOctree::NumEntryHashesc
     FixedArray<HashCode, NumEntryHashes> cachedEntryHashes;

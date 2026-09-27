@@ -144,8 +144,9 @@ protected:
 /*! \brief This class manages bindings slots for objects of a given resource type. Subclasses of T are also able to be managed,
  *  So binding an instance of e.g ReflectionProbe can be put into the same group of slots as SkyProbe if given the same allocator instance.
  *  Only static subclasses are supported so using types extended only from managed code will not work. (See Class::GetStaticIndex)
+ *  \param OnBindingReleased - optional callback, called when a binding is given back. Note that the object tied to the binding may no longer exist
  *  \note This system is not thread safe and should only be used from a single thread at any given time */
-template <class T, auto OnBindingChanged = &OnBindingChanged_Default<T> >
+template <class T, auto OnBindingChanged = &OnBindingChanged_Default<T>, auto OnBindingReleased = nullptr>
 class ResourceBinder : public ResourceBinderBase
 {
     using BitsetType = TBitset<RenderAllocator>;
@@ -175,6 +176,8 @@ class ResourceBinder : public ResourceBinderBase
                     {
                         OnBindingChanged(it->first.GetUnsafe(), binding, InvalidBinding);
                     }
+
+                    NotifyReleased(binding);
 
                     allocator->FreeIndex(binding);
                     bindings.Erase(it);
@@ -268,6 +271,8 @@ class ResourceBinder : public ResourceBinderBase
                         OnBindingChanged(it.first.GetUnsafe(), binding, InvalidBinding);
                     }
 
+                    NotifyReleased(binding);
+
                     allocator->FreeIndex(binding);
                 }
             }
@@ -338,6 +343,14 @@ class ResourceBinder : public ResourceBinderBase
             }
 
             lastFrameIds = currentFrameIds;
+        }
+
+        static void NotifyReleased(uint32 binding)
+        {
+            if constexpr (!std::is_null_pointer_v<decltype(OnBindingReleased)>)
+            {
+                OnBindingReleased(binding);
+            }
         }
 
         HYP_FORCE_INLINE BitsetType GetNewlyAdded() const

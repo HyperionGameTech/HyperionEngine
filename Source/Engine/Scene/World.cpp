@@ -29,7 +29,7 @@
 #include <Scene/Systems/CharacterControllerSystem.hpp>
 #include <Scene/Systems/PlayerSystem.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
-#include <Scene/Systems/MeshSystem.hpp>
+#include <Scene/Systems/InstanceGroupSystem.hpp>
 #include <Scene/Systems/TerrainLodSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
@@ -273,8 +273,8 @@ void World::Initialize()
     if (!HasSystem<ScriptSystem>())
         AddSystem(MakeHandle<ScriptSystem>());
 
-    if (!HasSystem<MeshSystem>())
-        AddSystem(MakeHandle<MeshSystem>());
+    if (!HasSystem<InstanceGroupSystem>())
+        AddSystem(MakeHandle<InstanceGroupSystem>());
 
     if (!HasSystem<TerrainLodSystem>())
         AddSystem(MakeHandle<TerrainLodSystem>());

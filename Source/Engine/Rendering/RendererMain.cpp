@@ -10,6 +10,7 @@
 #include <Rendering/RenderGroup.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/RenderProxyList.hpp>
+#include <Rendering/InstanceDataPool.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/GBuffer.hpp>
@@ -82,6 +83,11 @@ extern EngineStatCounter<uint32> g_statDrawCalls;
 extern EngineStatCounter<uint32> g_statInstancedDrawCalls;
 extern EngineStatCounter<uint32> g_statTriangles;
 extern EngineStatCounter<uint32> g_statRenderGroups;
+
+EngineStatCounter<uint32> g_statInstancesTested("Rendering/Instancing/InstancesTested");
+EngineStatCounter<uint32> g_statInstancesVisible("Rendering/Instancing/InstancesVisible");
+EngineStatCounter<uint32> g_statShadowInstancesVisible("Rendering/Instancing/ShadowInstancesVisible");
+EngineStatTimer g_statCollectRenderables("Rendering/CPU/CollectRenderables");
 
 extern EngineStatTimer g_statTotalStallTime;
 
@@ -1164,6 +1170,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(camera));
 
     cr << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, RI.namedBuffers[NamedBuffer::Entities]);
+    cr << SetShaderUniform(numShaderUniforms++, "InstanceDataBuffer"_sh, RI.namedBuffers[NamedBuffer::InstanceData]);
 
     cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
@@ -1478,7 +1485,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         if (!drawCallCollection.suppressStats && prepassStage != DepthPrepass::DPP_InPrepass)
         {
             g_statInstancedDrawCalls += entityInstanceBatch->numEntities;
-            g_statTriangles += numIndices / 3;
+            g_statTriangles += (numIndices / 3) * entityInstanceBatch->numEntities;
         }
     }
 }
@@ -2257,20 +2264,104 @@ uint8 RenderCollector::SelectLod(const RenderProxyMesh& meshProxy, const LODView
     return lodIndex;
 }
 
+void RenderCollector::SelectInstanceLods(
+    const RenderProxyMesh& meshProxy,
+    const EntityInstanceSlots& instanceSlots,
+    const LODViewData* lodViewData,
+    const Frustum* cullingFrustum,
+    int32 viewLodBias,
+    FixedArray<Array<uint32, RenderAllocator>, MaxMeshLods>& outSlotsByLod)
+{
+    const ObjId<Entity> entityId = meshProxy.entity->Id();
+
+    const uint8 numLods = MathUtil::Max(meshProxy.numLods, uint8(1));
+    const uint32 numInstances = MathUtil::Min(meshProxy.numInstances, instanceSlots.count);
+
+    const uint8 overrideLod = GetMeshLodOverride(entityId);
+
+    const bool selectsLod = lodViewData != nullptr && meshProxy.selectsLod && overrideLod == uint8(~0);
+
+    const uint8 fixedLod = overrideLod != uint8(~0)
+        ? MathUtil::Min(overrideLod, uint8(numLods - 1))
+        : uint8(0);
+
+    MeshLodSelectionParams params;
+    params.numLods = numLods;
+    params.forcedLod = meshProxy.forcedLod;
+    params.lodBias = meshProxy.lodBias;
+
+    Array<uint8, RenderAllocator>* previousLods = nullptr;
+
+    if (selectsLod)
+    {
+        const uint32 entityIndex = entityId.ToIndex();
+
+        if (!previousInstanceLodIndices.HasIndex(entityIndex))
+        {
+            previousInstanceLodIndices.Set(entityIndex, Array<uint8, RenderAllocator>());
+        }
+
+        previousLods = &previousInstanceLodIndices.Get(entityIndex);
+
+        // a changed instance count shuffles which instance is which, so their history no longer applies
+        if (previousLods->Size() != numInstances)
+        {
+            previousLods->Resize(numInstances);
+
+            for (uint8& previousLod : *previousLods)
+            {
+                previousLod = 0;
+            }
+        }
+    }
+
+    for (uint32 instanceIndex = 0; instanceIndex < numInstances; instanceIndex++)
+    {
+        const Vec4f& sphere = instanceSlots.boundingSpheres[instanceIndex];
+        
+        const bool hasBounds = sphere.w >= 0.0f;
+
+        const BoundingSphere boundingSphere { sphere.GetXYZ(), MathUtil::Max(sphere.w, 0.0f) };
+
+        if (cullingFrustum != nullptr && hasBounds && !cullingFrustum->ContainsBoundingSphere(boundingSphere))
+        {
+            continue;
+        }
+
+        uint8 lodIndex = fixedLod;
+
+        if (selectsLod && hasBounds)
+        {
+            const float screenSize = lodViewData->ComputeScreenSize(boundingSphere);
+
+            lodIndex = SelectMeshLod(meshProxy.mesh->GetMeshDesc(), params, screenSize, (*previousLods)[instanceIndex], viewLodBias);
+
+            (*previousLods)[instanceIndex] = lodIndex;
+        }
+
+        outSlotsByLod[MathUtil::Min(lodIndex, uint8(numLods - 1))].PushBack(instanceSlots.base + instanceIndex);
+    }
+}
+
 // Called at start of frame on render thread
 void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
+    ENGINE_STAT_SCOPE(&g_statCollectRenderables);
+
+    const bool isShadowView = view != nullptr && (view->GetFlags() & ViewFlags::SHADOW_VIEW);
+
+    // UI instances are placed by their instance transform alone, so their bounds don't say where they draw
+    const bool isUIView = view != nullptr && (view->GetFlags() & ViewFlags::UI_VIEW);
+
     // views without a camera have no vantage point to measure screen size from, so everything in them stays at LOD 0
     LODViewData lodViewData;
     bool canSelectLods = false;
 
     // Shadow views select for themselves, so they can be biased coarser without touching what the camera sees.
-    const int32 viewLodBias = (view != nullptr && (view->GetFlags() & ViewFlags::SHADOW_VIEW))
-        ? s_cvMeshLodShadowBias.Get()
-        : 0;
+    const int32 viewLodBias = isShadowView ? s_cvMeshLodShadowBias.Get() : 0;
 
     if (view != nullptr && view->GetCamera() != nullptr)
     {
@@ -2287,7 +2378,7 @@ void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
 
     if (!batchAllocator)
     {
-        batchAllocator = GetOrCreateEntityBatchAllocator<MeshEntityInstanceBatch>();
+        batchAllocator = RI.entityBatchAllocator;
     }
 
     if (bucketBits == 0)
@@ -2323,6 +2414,10 @@ void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
         return;
     }
 
+    FixedArray<Array<uint32, RenderAllocator>, MaxMeshLods> slotsByLod;
+
+    const uint32 identitySlot = IdentityInstanceSlot;
+
     for (const IteratorType& it : iterators)
     {
         DrawCallCollection& drawCallCollection = *it;
@@ -2331,9 +2426,93 @@ void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
         DrawCallCollection prevDrawCallCollection;
         drawCallCollection.TakeDrawCalls(prevDrawCallCollection);
 
+        // reuse last frame's batches where the same draw calls come up again
+        DrawCallCollection* previous = prevDrawCallCollection.batchAllocator != nullptr && prevDrawCallCollection.isInit
+            ? &prevDrawCallCollection
+            : nullptr;
+
         for (RenderProxyMesh* meshProxy : drawCallCollection.meshProxies)
         {
             AssertDebug(Resources::GetBinding(meshProxy->mesh) != Resources::InvalidBinding);
+            AssertDebug(meshProxy->material != nullptr);
+
+            // instances are spread out, so each one is culled on its own and picks its own LOD,
+            // and the entity splits into a draw call per LOD
+            if (meshProxy->numInstances != 0)
+            {
+                const EntityInstanceSlots* instanceSlots = RI.instanceDataPool->GetSlots(Resources::GetBinding(meshProxy->entity));
+
+                // its transforms aren't uploaded yet (or the instance transforms buffer is full) - skip for this frame
+                if (!instanceSlots)
+                {
+                    continue;
+                }
+
+                for (Array<uint32, RenderAllocator>& slots : slotsByLod)
+                {
+                    slots.Resize(0);
+                }
+
+                if (isUIView)
+                {
+                    const uint32 numInstances = MathUtil::Min(meshProxy->numInstances, instanceSlots->count);
+
+                    for (uint32 instanceIndex = 0; instanceIndex < numInstances; instanceIndex++)
+                    {
+                        slotsByLod[0].PushBack(instanceSlots->base + instanceIndex);
+                    }
+                }
+                else
+                {
+                    const RenderProxyList* renderProxyList = drawCallCollection.renderProxyList;
+
+                    const Frustum* cullingFrustum = renderProxyList != nullptr && renderProxyList->hasCullingFrustum
+                        ? &renderProxyList->cullingFrustum
+                        : nullptr;
+
+                    SelectInstanceLods(*meshProxy, *instanceSlots, canSelectLods ? &lodViewData : nullptr, cullingFrustum, viewLodBias, slotsByLod);
+                }
+
+                if (!drawCallCollection.suppressStats)
+                {
+                    uint32 numVisibleInstances = 0;
+
+                    for (const Array<uint32, RenderAllocator>& slots : slotsByLod)
+                    {
+                        numVisibleInstances += uint32(slots.Size());
+                    }
+
+                    g_statInstancesTested += MathUtil::Min(meshProxy->numInstances, instanceSlots->count);
+
+                    if (isShadowView)
+                    {
+                        g_statShadowInstancesVisible += numVisibleInstances;
+                    }
+                    else
+                    {
+                        g_statInstancesVisible += numVisibleInstances;
+                    }
+                }
+
+                for (uint8 instanceLodIndex = 0; instanceLodIndex < uint8(MaxMeshLods); instanceLodIndex++)
+                {
+                    const Array<uint32, RenderAllocator>& slots = slotsByLod[instanceLodIndex];
+
+                    if (slots.Empty())
+                    {
+                        continue;
+                    }
+
+                    AssertDebug(meshProxy->mesh->GetVertexBuffer(instanceLodIndex) != nullptr
+                                && meshProxy->mesh->GetIndexBuffer(instanceLodIndex) != nullptr);
+
+                    const DrawCallID instanceDrawCallId(meshProxy->mesh->Id(), meshProxy->material->Id(), instanceLodIndex);
+
+                    drawCallCollection.PushInstances(instanceDrawCallId, meshProxy, slots.ToSpan(), previous);
+                }
+
+                continue;
+            }
 
             const uint8 lodIndex = (canSelectLods && meshProxy->selectsLod)
                 ? SelectLod(*meshProxy, lodViewData, viewLodBias)
@@ -2343,41 +2522,29 @@ void RenderCollector::CollectRenderables(View* view, uint32 bucketBits)
                         && meshProxy->mesh->GetVertexBuffer(lodIndex) != nullptr
                         && meshProxy->mesh->GetIndexBuffer(lodIndex) != nullptr);
 
-            AssertDebug(meshProxy->material != nullptr);
-
             DrawCallID drawCallId(meshProxy->mesh->Id(), meshProxy->material->Id(), lodIndex);
 
-            if (!meshProxy->enableAutoInstancing && !meshProxy->numInstances)
+            if (!meshProxy->enableAutoInstancing)
             {
                 drawCallCollection.PushDrawCall(drawCallId, meshProxy);
 
                 continue;
             }
 
-            EntityInstanceBatch* batch = nullptr;
-
-            if (prevDrawCallCollection.batchAllocator != nullptr && prevDrawCallCollection.isInit)
+            // a UI object with no instances (e.g empty text) has nothing to draw, and the identity slot isn't UI instance data
+            if (isUIView)
             {
-                // take a batch for reuse if a draw call was using one
-                if ((batch = prevDrawCallCollection.RecycleDrawBatch(drawCallId)) != nullptr)
-                {
-                    const uint32 batchIndex = batch->batchIndex;
-                    AssertDebug(batchIndex != ~0u);
-
-                    // we need to zero it using GetStructSize() since the actual memory footprint of
-                    // the batch will potentially be bigger than sizeof(EntityInstanceBatch).
-                    Memory::Zero(batch, prevDrawCallCollection.batchAllocator->GetStructSize());
-                    batch->batchIndex = batchIndex;
-                }
+                continue;
             }
 
-            drawCallCollection.PushInstancedDrawCall(drawCallId, meshProxy, batch);
+            // auto-instanced, drawn at the entity's own transform
+            drawCallCollection.PushInstances(drawCallId, meshProxy, Span<const uint32>(&identitySlot, 1), previous);
         }
 
-        if (prevDrawCallCollection.batchAllocator != nullptr && prevDrawCallCollection.isInit)
+        if (previous != nullptr)
         {
             // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
-            prevDrawCallCollection.ResetDrawCalls();
+            previous->ResetDrawCalls();
         }
     }
 
@@ -2565,6 +2732,11 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             if (previousLodIndices.HasIndex(idx))
             {
                 previousLodIndices.EraseAt(idx);
+            }
+
+            if (previousInstanceLodIndices.HasIndex(idx))
+            {
+                previousInstanceLodIndices.EraseAt(idx);
             }
         }
     }

@@ -537,6 +537,12 @@ void PathTracerBVH::GatherInstances(RenderProxyList& rpl)
             continue;
         }
 
+        // instance transforms aren't traced yet; the entity's own transform isn't where its copies are drawn
+        if (meshProxy->numInstances != 0)
+        {
+            continue;
+        }
+
         Instance& instance = m_instances.EmplaceBack();
         instance.mesh = MakeStrongRef(meshProxy->mesh);
         instance.transform = meshProxy->bufferData.modelMatrix;

@@ -12,6 +12,7 @@ DECLARE_SRV(ComputeVisibility, DepthPyramidResult) Texture2D<float2> depth_pyram
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SRV(ComputeVisibility, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV(ComputeVisibility, InstanceDataBuffer) StructuredBuffer<InstanceTransform> instanceTransforms;
 
 DECLARE_SRV(ComputeVisibility, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -28,11 +29,15 @@ struct IndirectDrawCommand
 
 struct ObjectInstance
 {
-    float4x4 transform;
     uint entityBindingIndex;
     uint drawCommandIndex;
     uint batchIndex;
     uint instanceIndex;
+
+    uint instanceSlot;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
 };
 
 #include "../Include/Instancing.hlsli"
@@ -99,6 +104,9 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     aabb.max = currEntity.world_aabb_max.xyz;
     aabb.min = currEntity.world_aabb_min.xyz;
 
+    const float3x3 inverseModelBasis = transpose((float3x3)currEntity.normal_matrix);
+    const float3 modelTranslation = float3(currEntity.model_matrix[0].w, currEntity.model_matrix[1].w, currEntity.model_matrix[2].w);
+    const float4x4 instanceWorldTransform = mul(currEntity.model_matrix, instanceTransforms[instance.instanceSlot].transform);
 
     bool visibility = false;
 
@@ -113,7 +121,12 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     [unroll]
     for (int i = 0; i < 8; i++)
     {
-        float4 corner = mul(instance.transform, float4(AABBGetCorner(aabb, i), 1.0));
+        float4 corner = float4(AABBGetCorner(aabb, i), 1.0);
+
+        if (hasInstancing)
+        {
+            corner = mul(instanceWorldTransform, float4(mul(inverseModelBasis, corner.xyz - modelTranslation), 1.0));
+        }
 
         float4 cornerProj = mul(viewProj, corner);
         cullBits &= GetCullBits(cornerProj);
@@ -172,16 +185,15 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         uint newInstanceIndex;
         InterlockedAdd(drawCommands[drawCommandIndex].instance_count, 1u, newInstanceIndex);
         
-        if (hasInstancing && newInstanceIndex < MAX_ENTITIES_PER_INSTANCE_BATCH)
+        if (hasInstancing && newInstanceIndex < MAX_INSTANCES_PER_BATCH)
         {
             // 64 is the byte offset to the 'indices' array
             const uint bindingIndexOffset = (instance.batchIndex * batchStride) + 64
                 + (newInstanceIndex * sizeof(uint));
             
             // Write total index - allow entity binding index to take up 24 bits,
-            // we give the remaining 8 bits to dataOffset (index of the data for this entity, in the batch)
-            // we really only need to be able to hold the value (MAX_ENTITIES_PER_BATCH-1),
-            // so if we run into issues this could be changed. But I think we'll be just fine.
+            // we give the remaining 8 bits to dataOffset (index of the data for this entity, in the batch),
+            // which holds up to MAX_INSTANCES_PER_BATCH-1 = 255
             entityInstanceBatchData.Store(bindingIndexOffset, (entityBindingIndex & 0xFFFFFFu) | (dataOffset << 24));
         }
     }

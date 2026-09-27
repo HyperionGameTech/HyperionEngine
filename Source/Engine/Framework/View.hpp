@@ -37,7 +37,6 @@ class LightmapVolume;
 class EnvProbe;
 class Texture;
 class GBuffer;
-class EntityBatchAllocatorBase;
 class RenderProxyList;
 
 struct ThumbnailCaptureState;
@@ -135,8 +134,6 @@ struct ViewDesc
     float resolutionScale = 1.0f;
 
     Optional<RenderableAttributeSet> overrideAttributes;
-
-    const Class* entityBatchClass = nullptr;
 };
 
 class ViewOutputTarget

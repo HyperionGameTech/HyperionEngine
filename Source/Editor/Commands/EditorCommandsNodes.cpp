@@ -1,17 +1,16 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
 #include <Editor/EditorTemplateLibrary.hpp>
+#include <Editor/Instancing/InstanceHandleNode.hpp>
+
+#include <Scene/Instancing/InstanceGroup.hpp>
 
 namespace Hyperion {
 
-template <class T>
-static constexpr bool ShouldAddNodeAsChild()
-{
-    return std::is_same_v<T, InstancedMeshProxy>;
-}
+namespace /* Helpers */ {
 
 template <class EditorCommandType, class T>
-static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
+void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 {
     const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
     if (!currentProject.IsValid())
@@ -35,12 +34,9 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
     n->SetName(defaultNodeName);
     InitObject(n);
 
-    if constexpr (!std::is_same_v<T, InstancedMeshProxy>)
-    {
-        // Calculate appropriate insertion point in front of camera
-        const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
-        n->SetWorldTranslation(insertionPoint);
-    }
+    // Calculate appropriate insertion point in front of camera
+    const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
+    n->SetWorldTranslation(insertionPoint);
 
     Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         HYP_FORMAT("Add {}", defaultNodeName),
@@ -49,23 +45,9 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
             {
                 return EditorActionFunctions {
                     .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                        [n, currentFocusedNode, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
+                        [n, activeScene](EditorSubsystem* editorSubsystem, EditorProject* project)
                         {
-                            if constexpr (ShouldAddNodeAsChild<T>())
-                            {
-                                Handle<Node> parentNode = currentFocusedNode.Lock();
-
-                                if (!parentNode.IsValid())
-                                {
-                                    parentNode = activeScene->GetRoot();
-                                }
-
-                                parentNode->AddChild(n);
-                            }
-                            else
-                            {
-                                activeScene->GetRoot()->AddChild(n);
-                            }
+                            activeScene->GetRoot()->AddChild(n);
 
                             if constexpr (std::is_base_of_v<Light, T>)
                             {
@@ -104,6 +86,92 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 
     currentProject->GetActionStack()->PushAction(action);
 }
+
+struct DeletedInstance
+{
+    Handle<InstanceGroup> group;
+    InstanceId instanceId;
+    Transform transform;
+};
+
+void PushDeleteInstancesAction(EditorProject& project, Span<const Handle<InstanceHandleNode>> handles)
+{
+    Array<DeletedInstance> deletedInstances;
+
+    for (const Handle<InstanceHandleNode>& handle : handles)
+    {
+        Handle<InstanceGroup> group = handle->GetGroup().Lock();
+
+        DeletedInstance deletedInstance;
+
+        if (!group.IsValid() || !group->GetInstanceTransform(handle->GetInstanceId(), deletedInstance.transform))
+        {
+            continue;
+        }
+
+        deletedInstance.group = std::move(group);
+        deletedInstance.instanceId = handle->GetInstanceId();
+
+        deletedInstances.PushBack(std::move(deletedInstance));
+    }
+
+    if (deletedInstances.Empty())
+    {
+        return;
+    }
+
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+        deletedInstances.Size() == 1
+            ? String("Delete Instance")
+            : HYP_FORMAT("Delete {} Instances", deletedInstances.Size()),
+        Proc<EditorActionFunctions()>(
+            [deletedInstances]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [deletedInstances](EditorSubsystem* editorSubsystem, EditorProject*)
+                        {
+                            for (const DeletedInstance& deletedInstance : deletedInstances)
+                            {
+                                deletedInstance.group->RemoveInstance(deletedInstance.instanceId);
+                            }
+
+                            editorSubsystem->SetSelectedNodes({});
+                            editorSubsystem->SetFocusedNode(Handle<Node>::Null(), true);
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [deletedInstances](EditorSubsystem* editorSubsystem, EditorProject*)
+                        {
+                            Array<Handle<Node>> restoredHandles;
+
+                            for (const DeletedInstance& deletedInstance : deletedInstances)
+                            {
+                                deletedInstance.group->AddInstanceWithId(deletedInstance.instanceId, deletedInstance.transform);
+
+                                Handle<InstanceHandleNode> handle = editorSubsystem->GetOrCreateInstanceHandle(deletedInstance.group, deletedInstance.instanceId);
+
+                                if (handle.IsValid())
+                                {
+                                    restoredHandles.PushBack(handle);
+                                }
+                            }
+
+                            editorSubsystem->SetSelectedNodes(restoredHandles);
+
+                            if (restoredHandles.Any())
+                            {
+                                editorSubsystem->SetFocusedNode(restoredHandles[0], true);
+                            }
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    project.GetActionStack()->PushAction(action);
+}
+
+} // namespace
 
 template <class Derived>
 class EditorCommandAddNodeBase : public EditorCommandBase
@@ -153,18 +221,6 @@ public:
 DEFINE_EDITOR_COMMAND(AddEmptyNode);
 
 #pragma endregion EditorCommandAddEmptyNode
-
-#pragma region EditorCommandAddInstance
-
-class EditorCommandAddInstance final : public EditorCommandAddNodeBase<EditorCommandAddInstance>
-{
-    HYP_OBJECT_BODY(EditorCommandAddInstance);
-
-public:
-    using NodeType = InstancedMeshProxy;
-};
-
-DEFINE_EDITOR_COMMAND(AddInstance);
 
 #pragma region EditorCommandAddCamera
 
@@ -914,6 +970,12 @@ public:
             return;
         }
 
+        if (node->IsA<InstanceHandleNode>())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandMoveNodeToScene: instances move with their instance group");
+            return;
+        }
+
         Scene* nodeScene = node->GetScene();
 
         if (!nodeScene)
@@ -1137,6 +1199,34 @@ public:
                 {
                     nodesToDelete.PushBack(focusedNode);
                 }
+            }
+        }
+
+        // instance handles delete their instance rather than themselves
+        Array<Handle<InstanceHandleNode>> instanceHandles;
+
+        for (auto it = nodesToDelete.Begin(); it != nodesToDelete.End();)
+        {
+            Handle<InstanceHandleNode> instanceHandle = DynamicCast<InstanceHandleNode>(*it);
+
+            if (instanceHandle.IsValid())
+            {
+                instanceHandles.PushBack(std::move(instanceHandle));
+                it = nodesToDelete.Erase(it);
+
+                continue;
+            }
+
+            ++it;
+        }
+
+        if (instanceHandles.Any())
+        {
+            PushDeleteInstancesAction(*currentProject, instanceHandles.ToSpan());
+
+            if (nodesToDelete.Empty())
+            {
+                return;
             }
         }
 

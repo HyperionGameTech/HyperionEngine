@@ -40,6 +40,7 @@ struct VSOutput
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+DECLARE_SRV(Default, InstanceDataBuffer) StructuredBuffer<InstanceTransform> InstanceTransforms;
 #endif // INSTANCING
 
 #ifdef SKINNING
@@ -78,13 +79,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     uint dataOffset;
     LoadEntityIndexAndDataOffset(instanceId, entityIndex, dataOffset);
 
-    float4x4 transform = LoadInstanceTransform(s_offsetOfTransforms + (sizeof(float4x4) * dataOffset));
+    float4x4 transform = LoadInstanceTransform(dataOffset);
 
     output.object_index = entityIndex;
 
     Entity currentEntity = entities[entityIndex];
     float4x4 model_matrix = mul(currentEntity.model_matrix, transform);
-    float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
+    float3x3 normal_matrix = mul((float3x3)currentEntity.normal_matrix, GetInstanceNormalMatrix(transform));
 #else // !INSTANCING
     output.object_index = ~0u; // unused
 
@@ -106,7 +107,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     position = mul(model_matrix, mul(skinning_matrix, float4(local_position, 1.0)));
 
 #ifdef INSTANCING
-    float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
+    float4x4 previousTransform = LoadPreviousInstanceTransform(dataOffset);
     float4x4 previous_model_matrix = mul(currentEntity.previous_model_matrix, previousTransform);
 #else // !INSTANCING
     float4x4 previous_model_matrix = currentEntity.previous_model_matrix;
@@ -118,7 +119,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     position = mul(model_matrix, float4(local_position, 1.0));
 
 #ifdef INSTANCING
-    const float4x4 previousTransform = LoadInstanceTransform(s_offsetOfPrevTransforms + (sizeof(float4x4) * dataOffset));
+    const float4x4 previousTransform = LoadPreviousInstanceTransform(dataOffset);
 
     previous_position = mul(mul(currentEntity.previous_model_matrix, previousTransform), float4(local_position, 1.0));
 #else // !INSTANCING

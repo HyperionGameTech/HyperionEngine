@@ -10,6 +10,7 @@
 #include <Core/Types.hpp>
 
 #include <Core/Math/Color.hpp>
+#include <Core/Math/Vector4.hpp>
 #include <Core/Math/BlendVar.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
@@ -54,10 +55,15 @@ static inline Scene* GetScene(UIStageType* stage)
     return stage->GetScene().Get();
 }
 
-struct UIObjectInstanceData
+/// What a UI instance draws with besides its transform.
+/// InstancedMeshData buffer 0 holds the transforms and buffer 1 these,
+/// and the two are packed into one instance data slot, read as UIInstanceData.
+struct UIInstanceAttributes
 {
-    Mat4f transform;
     Vec4f texcoords;
+    Vec4f offsets;
+    Vec4f sizes;
+    Vec4u properties;
 };
 
 HYP_STRUCT(Size = 24)

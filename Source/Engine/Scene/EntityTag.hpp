@@ -37,8 +37,8 @@ class Entity;
     X(FocusedInEditor, 0x20, false, false)          \
     X(UpdateRenderProxy, 0x30, false, false)        \
     X(UpdateVisibility, 0x40, false, false)         \
-    X(UpdateInstancedMeshData, 0x50, false, false)  \
     X(UpdateReplication, 0x60, false, false)        \
+    X(UpdateInstanceGroup, 0x70, false, false)      \
     X(UpdatePhysicsShape, 0x100, false, false)      \
     X(UpdatePhysicsMaterial, 0x200, false, false)
 

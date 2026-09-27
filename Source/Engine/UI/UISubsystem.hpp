@@ -14,7 +14,6 @@
 #include <Core/Functional/Delegate.hpp>
 
 #include <Rendering/RenderTypes.hpp>
-#include <Rendering/DrawCall.hpp>
 
 namespace Hyperion {
 
@@ -31,26 +30,6 @@ class FontAtlas;
 class RenderProxyList;
 
 class OverlayBase;
-
-HYP_STRUCT(NoScriptBindings)
-struct UIEntityInstanceBatch : EntityInstanceBatch
-{
-    HYP_STRUCT_BODY(UIEntityInstanceBatch);
-
-    HYP_FIELD()
-    FixedArray<Vec4f, MaxEntitiesPerBatch> texcoords;
-
-    HYP_FIELD()
-    FixedArray<Vec4f, MaxEntitiesPerBatch> offsets;
-
-    HYP_FIELD()
-    FixedArray<Vec4f, MaxEntitiesPerBatch> sizes;
-
-    HYP_FIELD()
-    FixedArray<Vec4u, MaxEntitiesPerBatch> properties;
-};
-
-static_assert(sizeof(UIEntityInstanceBatch) % 64 == 0);
 
 HYP_CLASS()
 class ENGINE_API UISubsystem final : public Subsystem

@@ -20,6 +20,10 @@
 #include <Scene/Camera/Camera.hpp>
 
 #include <Rendering/Mesh.hpp>
+#include <Rendering/InstancedMeshData.hpp>
+
+#include <Core/Utilities/Pair.hpp>
+#include <Core/Math/MathUtil.hpp>
 
 #include <Scene/Volume.hpp>
 
@@ -1018,6 +1022,45 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
     }
 }
 
+/// Where an entity's mesh is drawn: at its own transform, or once per instance paired with the instance's index
+static void CollectDrawnTransforms(const Entity* entity, const MeshComponent* meshComponent, Array<Pair<Mat4f, uint32>>& outTransforms)
+{
+    const Mat4f& worldMatrix = entity->GetWorldMatrix();
+
+    if (!meshComponent || meshComponent->numInstances == 0)
+    {
+        outTransforms.EmplaceBack(worldMatrix, ~0u);
+
+        return;
+    }
+
+    const Handle<InstancedMeshData> instanceData = DynamicCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+
+    if (!instanceData.IsValid())
+    {
+        return;
+    }
+
+    auto readScope = instanceData->GetReadScope();
+
+    const BlobDataReference& transformsBuffer = instanceData->buffers[0];
+
+    if (transformsBuffer.raw == nullptr || instanceData->bufferStructSizes[0] != sizeof(Mat4f))
+    {
+        return;
+    }
+
+    const uint32 numInstances = MathUtil::Min(meshComponent->numInstances, uint32(transformsBuffer.size / sizeof(Mat4f)));
+    const Mat4f* transforms = static_cast<const Mat4f*>(transformsBuffer.raw);
+
+    outTransforms.Reserve(numInstances);
+
+    for (uint32 instanceIndex = 0; instanceIndex < numInstances; instanceIndex++)
+    {
+        outTransforms.EmplaceBack(worldMatrix * transforms[instanceIndex], instanceIndex);
+    }
+}
+
 bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
     HYP_SCOPE;
@@ -1037,39 +1080,59 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
             RayTestResults aabbResult;
 
-            if (flags & RayTestFlags::TestBVH)
+            MeshComponent* meshComponent = entry.value->TryGetComponent<MeshComponent>();
+
+            const bool isInstanced = meshComponent != nullptr && meshComponent->numInstances != 0;
+
+            Array<Pair<Mat4f, uint32>> drawnTransforms;
+            CollectDrawnTransforms(entry.value, meshComponent, drawnTransforms);
+
+            if ((flags & RayTestFlags::TestBVH) && meshComponent && meshComponent->mesh && meshComponent->mesh->GetBVH().IsValid())
             {
                 // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
-                if (MeshComponent* meshComponent = entry.value->TryGetComponent<MeshComponent>();
-                    meshComponent && meshComponent->mesh && meshComponent->mesh->GetBVH().IsValid())
-                {
-                    Mat4f modelMatrix = entry.value->GetWorldMatrix();
-                    Mat4f invModelMatrix = modelMatrix.Inverse();
-                    Mat4f normalMatrix = invModelMatrix.Transpose();
+                const BVHNode& bvh = meshComponent->mesh->GetBVH();
+                const BoundingBox& meshAabb = meshComponent->mesh->GetAABB();
 
-                    Ray localSpaceRay = invModelMatrix * ray;
+#ifdef HYP_EDITOR
+                auto* pickCacheEntry = (flags & RayTestFlags::EditorPick)
+                    ? g_editorState->GetPickCache().GetEntry(meshComponent->mesh)
+                    : nullptr;
+#endif
+
+                bool hasBvhHit = false;
+
+                for (const Pair<Mat4f, uint32>& drawnTransform : drawnTransforms)
+                {
+                    const Mat4f& modelMatrix = drawnTransform.first;
+                    const uint32 instanceIndex = drawnTransform.second;
+
+                    // most copies are nowhere near the ray, so skip their BVH
+                    if (isInstanced && !ray.TestAABB(modelMatrix * meshAabb).HasValue())
+                    {
+                        continue;
+                    }
+
+                    if (modelMatrix.Determinant() == 0.0f)
+                    {
+                        continue;
+                    }
+
+                    const Mat4f invModelMatrix = modelMatrix.Inverse();
+                    const Mat4f normalMatrix = invModelMatrix.Transpose();
+
+                    const Ray localSpaceRay = invModelMatrix * ray;
 
                     RayTestResults localBvhResults;
 
 #ifdef HYP_EDITOR
-                    bool usedPickCache = false;
-
-                    if (flags & RayTestFlags::EditorPick)
+                    if (pickCacheEntry)
                     {
-                        auto* pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
-
-                        if (pickCacheEntry)
-                        {
-                            localBvhResults = meshComponent->mesh->GetBVH().TestRay(
-                                localSpaceRay,
-                                pickCacheEntry->positions.ToSpan(),
-                                pickCacheEntry->indices.ToSpan());
-
-                            usedPickCache = true;
-                        }
+                        localBvhResults = bvh.TestRay(
+                            localSpaceRay,
+                            pickCacheEntry->positions.ToSpan(),
+                            pickCacheEntry->indices.ToSpan());
                     }
-
-                    if (!usedPickCache)
+                    else
 #endif
                     {
                         auto resGuard = meshComponent->mesh->GetReadScope();
@@ -1077,47 +1140,86 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                         const Span<const ubyte> indexData = meshComponent->mesh->GetIndexData(0);
 
                         // @TODO Fix for non-uint32 indices
-                        localBvhResults = meshComponent->mesh->GetBVH().TestRay(
+                        localBvhResults = bvh.TestRay(
                             localSpaceRay,
                             vertexData,
                             Span<const uint32>(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32)));
                     }
 
-                    if (localBvhResults.Any())
+                    if (localBvhResults.Empty())
                     {
-                        RayTestResults bvhResults;
-
-                        for (const RayHit& hit : localBvhResults)
-                        {
-                            RayHit newHit = hit;
-                            newHit.id = entry.value->Id().Value();
-                            newHit.node = entry.value;
-
-                            Vec4f transformedNormal = normalMatrix.TransformVector(Vec4f(newHit.normal, 0.0f));
-                            newHit.normal = transformedNormal.GetXYZ().Normalized();
-
-                            Vec4f transformedPosition = modelMatrix.TransformVector(Vec4f(newHit.hitpoint, 1.0f));
-                            transformedPosition /= transformedPosition.w;
-
-                            newHit.hitpoint = transformedPosition.GetXYZ();
-
-                            newHit.distance = (newHit.hitpoint - ray.position).Length();
-
-                            bvhResults.AddHit(newHit);
-                        }
-
-                        outResults.Merge(std::move(bvhResults));
-
-                        hasHit = true;
-
                         continue;
                     }
 
-                    // BVH yielded no hits (e.g. a stale/mismatched BVH deserialized from disk).
-                    // Fall through to the AABB test so a bad BVH cannot permanently hide the
-                    // entity from selection. That hit is flagged approximate, so it only wins
-                    // when nothing in the scene produced a real surface hit.
+                    RayTestResults bvhResults;
+
+                    for (const RayHit& hit : localBvhResults)
+                    {
+                        RayHit newHit = hit;
+                        newHit.id = entry.value->Id().Value();
+                        newHit.node = entry.value;
+                        newHit.instanceIndex = instanceIndex;
+
+                        Vec4f transformedNormal = normalMatrix.TransformVector(Vec4f(newHit.normal, 0.0f));
+                        newHit.normal = transformedNormal.GetXYZ().Normalized();
+
+                        Vec4f transformedPosition = modelMatrix.TransformVector(Vec4f(newHit.hitpoint, 1.0f));
+                        transformedPosition /= transformedPosition.w;
+
+                        newHit.hitpoint = transformedPosition.GetXYZ();
+
+                        newHit.distance = (newHit.hitpoint - ray.position).Length();
+
+                        bvhResults.AddHit(newHit);
+                    }
+
+                    outResults.Merge(std::move(bvhResults));
+
+                    hasBvhHit = true;
                 }
+
+                if (hasBvhHit)
+                {
+                    hasHit = true;
+
+                    continue;
+                }
+
+                // An instanced entity's bounds cover the gaps between its copies, so missing every copy is a miss.
+                if (isInstanced)
+                {
+                    continue;
+                }
+
+                // BVH yielded no hits (e.g. a stale/mismatched BVH deserialized from disk).
+                // Fall through to the AABB test so a bad BVH cannot permanently hide the
+                // entity from selection. That hit is flagged approximate, so it only wins
+                // when nothing in the scene produced a real surface hit.
+            }
+            else if (isInstanced)
+            {
+                // no BVH to test against, so each copy's bounds stand in for it
+                const BoundingBox meshAabb = meshComponent->mesh ? meshComponent->mesh->GetAABB() : BoundingBox::Empty();
+
+                for (const Pair<Mat4f, uint32>& drawnTransform : drawnTransforms)
+                {
+                    RayTestResults instanceResult;
+
+                    if (meshAabb.IsValid() && ray.TestAABB(drawnTransform.first * meshAabb, entry.value->Id().Value(), instanceResult))
+                    {
+                        for (RayHit& hit : instanceResult)
+                        {
+                            hit.node = entry.value;
+                            hit.instanceIndex = drawnTransform.second;
+                        }
+
+                        outResults.Merge(std::move(instanceResult));
+
+                        hasHit = true;
+                    }
+                }
+
+                continue;
             }
 
             if (ray.TestAABB(entry.aabb, entry.value->Id().Value(), aabbResult))

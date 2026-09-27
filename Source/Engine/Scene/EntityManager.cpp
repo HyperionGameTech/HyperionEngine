@@ -1641,7 +1641,6 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     }
 
     // don't call OnEntityAdded() when shutting down, some systems in OnEntityRemoved() will add tags,
-    // (eg MeshSystem adding UpdateRenderProxy)
     // we don't want to revive anything here.
     if (m_isShuttingDown)
     {
@@ -1790,6 +1789,8 @@ void EntityManager::AddPendingEntitySets()
         UniquePtr<EntitySetBase, SceneAllocator>& entitySetPtr = kvp.second;
 
         AssertDebug(!m_entitySets.Contains(entitySetId));
+
+        entitySetPtr->Repopulate();
 
         for (TypeId componentTypeId : entitySetPtr->GetComponentTypeIds())
         {

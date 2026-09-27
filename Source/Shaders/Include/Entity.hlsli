@@ -47,8 +47,9 @@ uint GetLightmapStencilValue(Entity entity)
     return entity.lightmap_rect_offset >> 24u;
 }
 
-#define MAX_ENTITIES_PER_INSTANCE_BATCH 16
+#define MAX_INSTANCES_PER_BATCH 256
 
+// Batches only say which slot of the instance data buffer each entry draws
 struct EntityInstanceBatch
 {
     uint batchIndex;
@@ -58,23 +59,14 @@ struct EntityInstanceBatch
 
     uint4 _pad[3]; // pad 48 bytes so struct size % 64 == 0
 
-    uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
-    float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
+    uint4 indices[MAX_INSTANCES_PER_BATCH / 4];
+    uint4 instanceSlots[MAX_INSTANCES_PER_BATCH / 4];
 };
 
-struct MeshEntityInstanceBatch
+struct InstanceTransform
 {
-    uint batchIndex;
-    uint numEntities;
-    uint _pad0;
-    uint _pad1;
-
-    uint4 _pad[3]; // pad 48 bytes so struct size % 64 == 0
-
-    uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
-
-    float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
-    float4x4 previousTransforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
+    float4x4 transform;
+    float4x4 previousTransform;
 };
 
 #ifdef INSTANCING

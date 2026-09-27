@@ -21,7 +21,7 @@ class Class;
     X(Meshes, 1)                     \
     X(Textures, 2)                   \
     X(Materials, 3)                  \
-    X(InstancedMeshData, 4)          \
+    X(InstanceData, 4)               \
     X(Animations, 5)                 \
     X(AnimationTracks, 6)            \
     X(Skeletons, 7)                  \

@@ -40,6 +40,7 @@ struct VSOutput
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) ByteAddressBuffer EntityInstanceBatchBuffer;
+DECLARE_SRV(Default, InstanceDataBuffer) StructuredBuffer<InstanceTransform> InstanceTransforms;
 #endif // INSTANCING
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -49,7 +50,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef INSTANCING
     // We don't use this for sky.
     // Dummy to allow this to compile when precompiling shaders AOT.
-    MeshEntityInstanceBatch batch = (MeshEntityInstanceBatch) 0;
+    EntityInstanceBatch batch = (EntityInstanceBatch) 0;
 #endif // INSTANCING
 
     float4 position = mul(entity.model_matrix, float4(input.a_position, 1.0));

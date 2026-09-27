@@ -30,7 +30,7 @@ namespace Hyperion
         public static readonly AssetBucket Meshes            = new(1);
         public static readonly AssetBucket Textures          = new(2);
         public static readonly AssetBucket Materials         = new(3);
-        public static readonly AssetBucket InstancedMeshData = new(4);
+        public static readonly AssetBucket InstanceData      = new(4);
         public static readonly AssetBucket Animations        = new(5);
         public static readonly AssetBucket AnimationTracks   = new(6);
         public static readonly AssetBucket Skeletons         = new(7);
@@ -50,7 +50,7 @@ namespace Hyperion
 
         public static readonly AssetBucket[] AllBuckets =
         [
-            Meshes, Textures, Materials, InstancedMeshData,
+            Meshes, Textures, Materials, InstanceData,
             Animations, AnimationTracks, Skeletons, Worlds, Scenes,
             Shaders, ShaderBundles, FontAtlases, PhysicsShapes,
             Scripts, RawData, Prefabs, Sounds, Terrain, Weapons, Decals

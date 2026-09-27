@@ -226,6 +226,9 @@ public:
     /*! \brief To be used by the EntityManager
         \note Do not call this function directly. */
     virtual void OnEntityUpdated(Entity* entity) = 0;
+
+    /*! \brief Rebuilds the membership from every entity in the container  */
+    virtual void Repopulate() = 0;
 };
 
 /*! \brief A set of entities with a specific set of components.
@@ -261,18 +264,7 @@ public:
             AssertDebug(m_componentContainers[i]->GetComponentTypeId() == GetComponentTypeIds()[i]);
         }
 
-        for (auto& subtypeData : m_entities.GetSubtypeData())
-        {
-            for (auto it = subtypeData.data.Begin(); it != subtypeData.data.End(); ++it)
-            {
-                EntityData& entityData = *it;
-
-                Entity* entity = entityData.entityWeak.GetUnsafe();
-                Assert(entity != nullptr);
-
-                OnEntityUpdated(entity);
-            }
-        }
+        Repopulate();
     }
 
     EntitySet(const EntitySet& other) = delete;
@@ -328,6 +320,24 @@ public:
         if (entityElementIt != m_elements.End())
         {
             m_elements.Erase(entityElementIt);
+        }
+    }
+
+    virtual void Repopulate() override
+    {
+        m_elements.Clear();
+
+        for (auto& subtypeData : m_entities.GetSubtypeData())
+        {
+            for (auto it = subtypeData.data.Begin(); it != subtypeData.data.End(); ++it)
+            {
+                EntityData& entityData = *it;
+
+                Entity* entity = entityData.entityWeak.GetUnsafe();
+                Assert(entity != nullptr);
+
+                OnEntityUpdated(entity);
+            }
         }
     }
 

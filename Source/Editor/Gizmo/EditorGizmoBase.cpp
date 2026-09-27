@@ -14,6 +14,8 @@
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/EnvProbe.hpp>
 
+#include <Scene/Instancing/InstanceGroup.hpp>
+
 #include <Input/InputManager.hpp>
 #include <Input/Event.hpp>
 
@@ -141,9 +143,12 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
     // Stop tracking the previously focused node's transform
     m_focusedNodeTransformHandler.Reset();
 
-    if (!focusedNode.IsValid() || focusedNode->IsRoot() || focusedNode->IsA<SkyProbe>())
+    if (!focusedNode.IsValid()
+        || focusedNode->IsRoot()
+        || focusedNode->IsA<SkyProbe>()
+        || focusedNode->IsA<InstanceGroup>())
     {
-        // don't want to move the root node or sky
+        // don't want to move the root node, sky, or an instance group.
         m_focusedNode.Reset();
 
         return;

@@ -18,9 +18,7 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsRootNode => _parent == null;
 
-        public bool CanMoveToGrandparent => _parent?.Parent != null
-            // Doesn't make sense to reparent an InstancedMeshProxy.
-            && _node.Class.Name != new Name(nameof(InstancedMeshProxy), weak: true);
+        public bool CanMoveToGrandparent => _parent?.Parent != null;
 
         public string MoveToGrandparentHeader => _parent?.Parent != null
             ? $"Move to {_parent.Parent.DisplayName}"
@@ -90,7 +88,6 @@ namespace Hyperion.Editor.ViewModels
             ParticleVolume      => "ParticleVolume",
             FogVolume           => "FogVolume",
             DecalProxy          => "Decal",
-            InstancedMeshProxy  => "AssetInstancedMesh",
             Bone                => "AssetSkeleton",
             VolumeBase          => "Package",
             TextSprite          => "TextSprite",

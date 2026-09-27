@@ -139,6 +139,12 @@ bool PathTracerTLAS::Create(RenderProxyList& rpl)
 
         AssertDebug(meshProxy->mesh != nullptr);
 
+        // the TLAS holds one transform per BLAS, which can't place an instanced entity's copies
+        if (meshProxy->numInstances != 0)
+        {
+            continue;
+        }
+
         BottomLevelASRef blas = BLASBuilder::Build(meshProxy->mesh, meshProxy->material);
         AssertDebug(blas != nullptr);
 

@@ -28,16 +28,20 @@ struct DrawCallStorage;
 struct InstancedDrawCallStorage;
 
 class DrawCallCollection;
-class EntityBatchAllocatorBase;
+class EntityBatchAllocator;
 
 struct ObjectInstance
 {
-    Mat4f transform;
     uint32 entityBindingIndex;
     uint32 drawCommandIndex;
     uint32 batchIndex;
     uint32 instanceIndex; // index of data in the batch
+
+    uint32 instanceSlot; // slot in the instance transforms buffer
+    uint32 padding[3];
 };
+
+static_assert(sizeof(ObjectInstance) == 32, "Ensure ObjectInstance layout matches shader layout");
 
 struct DrawCommandData
 {
@@ -116,7 +120,7 @@ public:
         return m_indirectDrawState;
     }
 
-    void Create(EntityBatchAllocatorBase* batchAllocator);
+    void Create(EntityBatchAllocator* batchAllocator);
 
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState(CommandRecorder& cr, DrawCallCollection& drawCallCollection);
@@ -126,7 +130,7 @@ private:
     void PrepareDrawCommands(CommandRecorder& cr);
 
     IndirectDrawState m_indirectDrawState;
-    EntityBatchAllocatorBase* m_batchAllocator;
+    EntityBatchAllocator* m_batchAllocator;
 };
 
 } // namespace Hyperion

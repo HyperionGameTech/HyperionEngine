@@ -434,10 +434,7 @@ void UIText::UpdateMeshData_Internal()
     const float textSize = GetTextSize();
 
     Array<Mat4f, ThreadAllocator> instanceTransforms;
-    Array<Vec4f, ThreadAllocator> instanceTexcoords;
-    Array<Vec4f, ThreadAllocator> instanceOffsets;
-    Array<Vec4f, ThreadAllocator> instanceSizes;
-    Array<Vec4u, ThreadAllocator> instanceProperties;
+    Array<UIInstanceAttributes, ThreadAllocator> instanceAttributes;
 
     ForEachCharacter(
         *fontAtlas,
@@ -476,12 +473,11 @@ void UIText::UpdateMeshData_Internal()
             Vec2f texcoordStart = Vec2f(iter.charOffset) * iter.atlasPixelSize;
             Vec2f texcoordEnd = (Vec2f(iter.charOffset) + (iter.glyphDimensions * 64.0f)) * iter.atlasPixelSize;
 
-            instanceTexcoords.PushBack(Vec4f(texcoordStart, texcoordEnd));
-            instanceOffsets.PushBack(Vec4f(clampedOffset, 0.0f, 0.0f));
-            instanceSizes.PushBack(Vec4f(size, clampedSize));
+            UIInstanceAttributes& characterAttributes = instanceAttributes.EmplaceBack();
+            characterAttributes.texcoords = Vec4f(texcoordStart, texcoordEnd);
+            characterAttributes.offsets = Vec4f(clampedOffset, 0.0f, 0.0f);
+            characterAttributes.sizes = Vec4f(size, clampedSize);
         });
-
-    instanceProperties.Resize(instanceTransforms.Size());
 
     meshComponent.numInstances = uint32(instanceTransforms.Size());
 
@@ -506,10 +502,7 @@ void UIText::UpdateMeshData_Internal()
         auto writeScope = instancedMesh->GetWriteScope();
 
         instancedMesh->SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
-        instancedMesh->SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
-        instancedMesh->SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
-        instancedMesh->SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
-        instancedMesh->SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
+        instancedMesh->SetBufferData(1, instanceAttributes.Data(), instanceAttributes.Size());
     }
 
     GetEntity()->SetNeedsRenderProxyUpdate();

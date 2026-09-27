@@ -170,6 +170,8 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand AddToSceneCommand { get; }
 
+        public ICommand PlaceAsInstanceCommand { get; }
+
         /// <summary>Asset type name and create command for each bucket the browser can create into, keyed by bucket index.</summary>
         private readonly Dictionary<uint, (string TypeName, ICommand Command)> _newAssetActions;
 
@@ -447,6 +449,16 @@ namespace Hyperion.Editor.ViewModels
 
                 // add asset to scene by invoking the EditorCommand
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandAddAsset"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
+            });
+
+            PlaceAsInstanceCommand = new RelayCommand<AssetObjectViewModel>(asset =>
+            {
+                if (asset?.Bucket == null || !asset.IsPrefab)
+                {
+                    return;
+                }
+
+                _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandPlaceAsInstance"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
             });
 
             _thumbnailService = new ThumbnailService(editorSubsystem);

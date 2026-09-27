@@ -18,6 +18,7 @@
 #include <Core/Reflection/TypeInfo.hpp>
 
 #include <Core/Utilities/IndexAllocator.hpp>
+#include <Core/Utilities/Span.hpp>
 
 #include <Rendering/RawBuffer.hpp>
 #include <Rendering/RenderMemory.hpp>
@@ -36,8 +37,10 @@ struct RenderProxyMesh;
 struct RenderProxySprite;
 struct DrawCommandData;
 class IndirectDrawState;
-struct InstanceData;
 
+/*! \brief The instances one instanced draw call draws.
+ *  Each entry of `indices` holds the entity binding in the low 24 bits and the entry's own index in the high 8,
+ *  and the entry reads its per-instance data from the instance data buffer at `instanceSlots[index]`. */
 HYP_STRUCT(NoScriptBindings)
 struct EntityInstanceBatch
 {
@@ -53,25 +56,15 @@ struct EntityInstanceBatch
     PadToMultiple<ubyte, 56> padding;
 
     HYP_FIELD()
-    FixedArray<uint32, MaxEntitiesPerBatch> indices;
+    FixedArray<uint32, MaxInstancesPerBatch> indices;
 
     HYP_FIELD()
-    FixedArray<Mat4f, MaxEntitiesPerBatch> transforms;
+    FixedArray<uint32, MaxInstancesPerBatch> instanceSlots;
 };
 
-static_assert(offsetof(EntityInstanceBatch, indices) == 64);
+static_assert(offsetof(EntityInstanceBatch, indices) == 64, "offset of `indices` must match shader");
 static_assert(sizeof(EntityInstanceBatch) % 64 == 0);
-
-HYP_STRUCT(NoScriptBindings)
-struct MeshEntityInstanceBatch : EntityInstanceBatch
-{
-    HYP_STRUCT_BODY(MeshEntityInstanceBatch);
-
-    HYP_FIELD()
-    FixedArray<Mat4f, MaxEntitiesPerBatch> previousTransforms;
-};
-
-static_assert(sizeof(MeshEntityInstanceBatch) % 64 == 0);
+static_assert(MaxInstancesPerBatch <= 256, "an entry's index within its batch is stored in 8 bits");
 
 /*! \brief Unique identifier for a draw call based on Mesh ID, Mesh LOD index and Material ID.
  *  \details This struct is used to uniquely identify a draw call in the rendering system. */
@@ -232,26 +225,18 @@ struct InstancedDrawCallStorage
     }
 };
 
-class EntityBatchAllocatorBase
+class EntityBatchAllocator
 {
 public:
-    virtual ~EntityBatchAllocatorBase() = default;
+    EntityBatchAllocator();
 
-    EntityBatchAllocatorBase(const EntityBatchAllocatorBase& other) = delete;
-    EntityBatchAllocatorBase& operator=(const EntityBatchAllocatorBase& other) = delete;
+    EntityBatchAllocator(const EntityBatchAllocator& other) = delete;
+    EntityBatchAllocator& operator=(const EntityBatchAllocator& other) = delete;
 
-    EntityBatchAllocatorBase(EntityBatchAllocatorBase&& other) noexcept = delete;
-    EntityBatchAllocatorBase& operator=(EntityBatchAllocatorBase&& other) noexcept = delete;
+    EntityBatchAllocator(EntityBatchAllocator&& other) noexcept = delete;
+    EntityBatchAllocator& operator=(EntityBatchAllocator&& other) noexcept = delete;
 
-    HYP_FORCE_INLINE size_t GetStructSize() const
-    {
-        return m_structSize;
-    }
-
-    HYP_FORCE_INLINE size_t GetStructAlignment() const
-    {
-        return m_structAlignment;
-    }
+    ~EntityBatchAllocator() = default;
 
     HYP_FORCE_INLINE RWStructuredBuffer& GetStructuredBuffer()
     {
@@ -264,6 +249,10 @@ public:
     }
 
     void Initialize();
+    void Shutdown();
+
+    /// Returns nullptr when all MaxEntityInstanceBatches are in use
+    EntityInstanceBatch* AcquireBatch();
 
     void ReleaseBatch(EntityInstanceBatch* batch);
 
@@ -277,15 +266,9 @@ public:
         }
     }
 
-    virtual EntityInstanceBatch* AcquireBatch() = 0;
-
-protected:
-    explicit EntityBatchAllocatorBase(const TypeInfo* structTypeInfo, uint32 maxBatches);
-
+private:
     RWStructuredBuffer m_sbuffer;
-    mutable AtomicIndexAllocator m_indexAllocator;
-    size_t m_structSize;
-    size_t m_structAlignment;
+    AtomicIndexAllocator m_indexAllocator;
 };
 
 class DrawCallCollection
@@ -302,21 +285,15 @@ public:
     ~DrawCallCollection();
 
     void PushDrawCall(DrawCallID id, const RenderProxyMesh* renderProxy);
-    void PushInstancedDrawCall(DrawCallID id, const RenderProxyMesh* renderProxy, EntityInstanceBatch* batch);
 
-    EntityInstanceBatch* RecycleDrawBatch(DrawCallID id);
+    /*! \brief Push one instance of \p renderProxy per entry of \p instanceSlots, into the batches of the draw call for \p id.
+     *  New batches are taken from \p previous (last frame's draw calls) first, when given. */
+    void PushInstances(DrawCallID id, const RenderProxyMesh* renderProxy, Span<const uint32> instanceSlots, DrawCallCollection* previous);
+
+    /// Takes an emptied batch from one of the draw calls for \p id, so the caller can reuse it
+    EntityInstanceBatch* TakeBatch(DrawCallID id);
 
     void ResetDrawCalls();
-
-    /*! \brief Push \p numInstances instances of the given entity into an entity instance batch.
-     *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
-     *  Otherwise, zero will be returned. */
-    HYP_NODISCARD uint32 PushEntityToBatch(
-        size_t drawCallIndex,
-        Entity* entity,
-        const InstanceData& instanceData,
-        uint32 numInstances,
-        uint32 instanceOffset);
 
     void TakeDrawCalls(DrawCallCollection& out)
     {
@@ -334,7 +311,7 @@ public:
         }
     }
 
-    EntityBatchAllocatorBase* batchAllocator = nullptr;
+    EntityBatchAllocator* batchAllocator = nullptr;
 
     RenderableAttributeSet attributes;
     ParallelRenderingState* parallelRenderingState = nullptr;
@@ -356,68 +333,5 @@ public:
     bool isInit = false;
     bool suppressStats = false;
 };
-
-template <class BatchType>
-class TEntityBatchAllocator final : public EntityBatchAllocatorBase
-{
-public:
-    static_assert(std::is_base_of_v<EntityInstanceBatch, BatchType>, "BatchType must be a derived struct type of EntityInstanceBatch");
-    static_assert(offsetof(BatchType, indices) == 64, "offsetof for member `indices` of the derived EntityInstanceBatch type must match shader");
-
-    TEntityBatchAllocator()
-        : EntityBatchAllocatorBase(&TypeOf<BatchType>(), MaxEntityInstanceBatches)
-    {
-    }
-
-    TEntityBatchAllocator(const TEntityBatchAllocator& other) = delete;
-    TEntityBatchAllocator(TEntityBatchAllocator&& other) noexcept = delete;
-
-    ~TEntityBatchAllocator() = default;
-
-    virtual EntityInstanceBatch* AcquireBatch() override
-    {
-        const uint32 batchIndex = m_indexAllocator.Allocate();
-
-        AssertDebug(batchIndex < MaxEntityInstanceBatches,
-                    "Entity instance batch limit ({}) exceeded! Consider increasing MaxEntityInstanceBatches.", MaxEntityInstanceBatches);
-
-        BatchType* batch = reinterpret_cast<BatchType*>(m_sbuffer.cpuBuffer.Data() + batchIndex * m_structSize);
-        batch->batchIndex = batchIndex;
-        batch->numEntities = 0;
-
-        return batch;
-    }
-};
-
-using PFNCreateEntityBatchAllocator = EntityBatchAllocatorBase* (*)();
-
-EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId);
-EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId);
-
-template <class T>
-static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
-{
-    return GetOrCreateEntityBatchAllocator(TypeId::ForType<T>());
-}
-
-// used internally
-extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
-
-const Map<TypeId, EntityBatchAllocatorBase*>& GetAllEntityBatchAllocators();
-
-#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                   \
-    namespace {                                                                                                   \
-    struct BatchType##AllocatorRegistrationHelper                                                                 \
-    {                                                                                                             \
-        BatchType##AllocatorRegistrationHelper()                                                                  \
-        {                                                                                                         \
-            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*          \
-                                         {                                                                        \
-                                             return HYP_POOL_NEW(g_renderPool, TEntityBatchAllocator<BatchType>); \
-                                         });                                                                      \
-        }                                                                                                         \
-    };                                                                                                            \
-    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                     \
-    }
 
 } // namespace Hyperion

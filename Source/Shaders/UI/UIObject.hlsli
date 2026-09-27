@@ -26,22 +26,14 @@ struct UIObjectProperties
     UIObjectFocusState focus_state;
 };
 
-struct UIEntityInstanceBatch
+// A UI object's slot of the instance data buffer: its transform, then its UIInstanceAttributes
+struct UIInstanceData
 {
-    uint batchIndex;
-    uint numEntities;
-    uint _pad0;
-    uint _pad1;
-
-    uvec4 _pad[3]; // pad 48 bytes so struct size % 64 == 0
-
-    uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
-    
-    float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
-    vec4 texcoords[MAX_ENTITIES_PER_INSTANCE_BATCH];
-    vec4 offsets[MAX_ENTITIES_PER_INSTANCE_BATCH];
-    vec4 sizes[MAX_ENTITIES_PER_INSTANCE_BATCH];
-    uvec4 properties[MAX_ENTITIES_PER_INSTANCE_BATCH];
+    float4x4 transform;
+    vec4 texcoords;
+    vec4 offsets;
+    vec4 sizes;
+    uvec4 properties;
 };
 
 UIObjectProperties GetUIObjectProperties(uvec4 data)

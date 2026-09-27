@@ -74,10 +74,11 @@ static constexpr uint32 MaxClusteredShadowMaps = 16;
 
 static constexpr uint32 NumGBufferTargets = 5;
 
-static constexpr uint32 MaxEntitiesPerBatch = 16;
+static constexpr uint32 MaxInstancesPerBatch = 256;
 static constexpr uint32 MaxEntityInstanceBatches = 4096;
 
-// Must match HYP_MAX_BONES in Skinning.hlsli; vertex bone indices are packed 8 bits each, so at most 256
+static constexpr uint32 MaxInstanceDataSlots = 1u << 16;
+
 static constexpr uint32 MaxBonesPerSkeleton = 128;
 
 static constexpr uint32 MaxGpuTimers = 64;

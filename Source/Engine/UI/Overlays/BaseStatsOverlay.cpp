@@ -32,6 +32,14 @@ extern EngineStatCounter<uint32> g_statParticleVolumes;
 extern EngineStatCounter<uint32> g_statEnvProbes;
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
+extern EngineStatCounter<uint32> g_statInstancesTested;
+extern EngineStatCounter<uint32> g_statInstancesVisible;
+extern EngineStatCounter<uint32> g_statShadowInstancesVisible;
+extern EngineStatCounter<uint32> g_statInstancesUploaded;
+extern EngineStatCounter<uint32> g_statInstanceSlotsInUse;
+extern EngineStatCounter<uint32> g_statInstanceBatchesInUse;
+extern EngineStatTimer g_statCollectRenderables;
+
 extern EngineStatTimer g_statSimUpdate;
 extern EngineStatTimer g_statRenderUpdate;
 extern EngineStatTimer g_statRenderThreadSync;
@@ -158,6 +166,21 @@ void BaseStatsOverlay::Update(float delta)
         if (snapshot[g_statInstancedDrawCalls].value > 0)
         {
             countersText += HYP_FORMAT(", Instanced: {}", snapshot[g_statInstancedDrawCalls].value);
+        }
+
+        if (snapshot[g_statInstancesTested].value > 0)
+        {
+            countersText += HYP_FORMAT(
+                "\nInstances: {} visible, {} shadow, {} tested, {} uploaded  Slots: {}/{}  Batches: {}/{}  Collect: {}ms",
+                snapshot[g_statInstancesVisible].value,
+                snapshot[g_statShadowInstancesVisible].value,
+                snapshot[g_statInstancesTested].value,
+                snapshot[g_statInstancesUploaded].value,
+                snapshot[g_statInstanceSlotsInUse].value,
+                MaxInstanceDataSlots,
+                snapshot[g_statInstanceBatchesInUse].value,
+                MaxEntityInstanceBatches,
+                MathUtil::Round(snapshot[g_statCollectRenderables].value, 2));
         }
 
         /*if (snapshot[g_statDebugDraws].value > 0)

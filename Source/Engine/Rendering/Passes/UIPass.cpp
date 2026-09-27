@@ -267,11 +267,7 @@ void UIPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     if (!pd->renderCollector.batchAllocator)
     {
-        const Class* entityBatchClass = renderSetup.view->GetViewDesc().entityBatchClass;
-        Assert(entityBatchClass != nullptr);
-
-        pd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator(entityBatchClass->GetTypeId());
-        Assert(pd->renderCollector.batchAllocator != nullptr);
+        pd->renderCollector.batchAllocator = RI.entityBatchAllocator;
     }
 
     {

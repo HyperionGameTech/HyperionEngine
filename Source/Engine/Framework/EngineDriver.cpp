@@ -46,7 +46,6 @@
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Subsystem.hpp>
-#include <Scene/InstancedMeshProxy.hpp>
 #include <Scene/SystemExecutionGroup.hpp>
 
 #include <Scene/Components/VisibilityStateComponent.hpp>

@@ -27,6 +27,7 @@
 
 #include <Core/Functional/Delegate.hpp>
 #include <Core/Containers/Set.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 
@@ -68,6 +69,8 @@ class DynamicSkySystem;
 class EditorTerrainState;
 class EditorDecalPainterState;
 class EditorCsgState;
+class InstanceGroup;
+class InstanceHandleNode;
 class AppContextBase;
 class BVHNode;
 class RayTestResults;
@@ -77,6 +80,8 @@ struct MouseEvent;
 struct KeyboardEvent;
 struct MeshComponent;
 struct ConvexDecompositionResult;
+
+enum class InstanceId : uint32;
 
 HYP_ENUM()
 enum class MeshEditFaceMode : uint8
@@ -154,6 +159,9 @@ public:
     {
         return m_editorScene;
     }
+
+    /// The editor scene node that stands in for one instance of \p group, so it can be selected and moved like any other node
+    Handle<InstanceHandleNode> GetOrCreateInstanceHandle(const Handle<InstanceGroup>& group, InstanceId instanceId);
 
     /// Use GetProjectWorld() instead if you need the project's world
     /// Otherwise, you can cast to Subsystem and call GetWorld on that.
@@ -805,14 +813,19 @@ private:
 
     bool BackOutOfMeshEditState();
 
-    ////////////////////
+    ///Debug draws
 
     void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
-
     void DebugDrawMeshLods(class DebugDrawCommandList& debugDrawCommandList);
+    void DebugDrawSelectedInstances(class DebugDrawCommandList& debugDrawCommandList);
+
+    void DetachUnselectedInstanceHandles(const Array<Handle<Node>>& selectedNodes);
+    void ClearInstanceHandles();
 
     bool SetAssetDropTargetNode(uint32 bucketIndex, Name assetName, Node* node);
     void DebugDrawAssetDropTarget(class DebugDrawCommandList& debugDrawCommandList);
+
+    ///Physics Shapes
 
     /*! \brief If the focused entity's physics shape is referenced by any other entity, clone it and
      *  assign the clone to this entity, so the shape can be mutated */
@@ -876,6 +889,9 @@ private:
     ////////////////////
 
     Handle<Scene> m_editorScene;
+
+    // keyed by group id and instance id
+    Map<uint64, WeakHandle<InstanceHandleNode>> m_instanceHandles;
 
     // The project.
     Handle<EditorProject> m_currentProject;

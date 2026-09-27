@@ -495,6 +495,8 @@ static inline void CopyDependencies(
     dst.cachedMatrices = src.cachedMatrices;
     dst.cachedBounds = src.cachedBounds;
     dst.cachedEntryHashes = src.cachedEntryHashes;
+    dst.cullingFrustum = src.cullingFrustum;
+    dst.hasCullingFrustum = src.hasCullingFrustum;
 
     if (src.useOrdering)
     {
