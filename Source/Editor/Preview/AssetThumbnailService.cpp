@@ -518,7 +518,9 @@ bool AssetThumbnailService::CaptureTextureDirectly(const PreviewAssetKey& key)
         return false;
     }
 
-    if (desc.extent.x == 0 || desc.extent.y == 0 || texture->GetImageData().Size() == 0)
+    const ConstByteView imageData = texture->GetImageData();
+
+    if (desc.extent.x == 0 || desc.extent.y == 0 || imageData.Data() == nullptr || imageData.Size() == 0)
     {
         return false;
     }
