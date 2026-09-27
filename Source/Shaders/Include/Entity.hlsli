@@ -18,7 +18,7 @@ struct Entity
     uint material_index;
     uint skeleton_index;
 
-    uint bucket;
+    uint bucket_and_object_mask;
     uint lightmap_rect_size;
 
     float lod_morph_start;
@@ -27,8 +27,7 @@ struct Entity
     float4 lod_morph_origin_multiplier;
 };
 
-// UV1 is a per-mesh lightmap unwrap in [0, 1]; each entity maps it into its own rect of its volume's atlas.
-// Packing matches LightmapVolume::GetEntityLightmapRect()
+// Map entity's lightmap rect onto uv1 [0,1]
 float2 GetLightmapAtlasUV(Entity entity, float2 uv1)
 {
     const uint rectOffset = entity.lightmap_rect_offset;
@@ -39,6 +38,16 @@ float2 GetLightmapAtlasUV(Entity entity, float2 uv1)
     const float2 atlasDimensions = float2(1u << ((rectSize >> 24u) & 0xFu), 1u << ((rectSize >> 28u) & 0xFu));
 
     return (offsetTexels + uv1 * scaleTexels) / atlasDimensions;
+}
+
+uint GetEntityBucket(Entity entity)
+{
+    return entity.bucket_and_object_mask & 0xFFFFu;
+}
+
+uint GetEntityObjectMask(Entity entity)
+{
+    return entity.bucket_and_object_mask >> 16u;
 }
 
 // 0 if the entity has no lightmap it can be routed to

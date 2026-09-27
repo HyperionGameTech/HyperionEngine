@@ -136,7 +136,8 @@ struct EntityShaderData
     uint32 materialIndex = ~0u;
     uint32 skeletonIndex = ~0u;
 
-    uint32 bucket;
+    uint16 bucket;
+    uint16 objectMask = 0;
     uint32 lightmapRectSize = 0;
 
     float lodMorphStart = 0.0f;

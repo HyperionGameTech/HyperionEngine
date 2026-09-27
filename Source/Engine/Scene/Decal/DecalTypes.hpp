@@ -15,6 +15,8 @@
 
 #include <Core/Util.hpp>
 
+#include <Rendering/ObjectMasks.hpp>
+
 namespace Hyperion {
 
 enum class DecalId : uint32;
@@ -45,8 +47,8 @@ struct DecalDesc
     HYP_FIELD(Property = "AngleFadeEnd", Serialize, Editor, Title = "Angle Fade End", Description = "Cosine of the angle at which the decal is fully faded out")
     float angleFadeEnd = 0.2f;
 
-    HYP_FIELD(Property = "ExcludeMask", Serialize, Editor, Title = "Exclude Mask", Description = "Object mask bits of surfaces the decal skips (unlit = 1, lightmapped = 2, foliage = 4, alpha cutout = 8)")
-    uint8 excludeMask = 0;
+    HYP_FIELD(Property = "ExcludeMask", Serialize, Editor, Title = "Exclude Mask", Description = "Object mask bits of surfaces the decal skips (unlit = 1, lightmapped = 2, foliage = 4, alpha cutout = 8, tree = 16, player = 32)")
+    uint8 excludeMask = FoliageObjectMask | TreeObjectMask | PlayerObjectMask;
 
     HYP_FIELD(Property = "SortOrder", Serialize, Editor, Title = "Sort Order", Description = "Decals with a higher sort order are drawn on top")
     int32 sortOrder = 0;

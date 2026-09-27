@@ -240,6 +240,8 @@ private:
 
     void SetSceneRaw_Internal(Scene* scene);
 
+    void UpdateDescendantRenderProxies();
+
     ///Serialization
 
     HYP_METHOD(Property = "Tags", NoScriptBindings)

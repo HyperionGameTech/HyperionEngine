@@ -251,7 +251,7 @@ PSOutput PSMain(PSInput input)
     }
 
     const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
-    const float transmission = isFoliage ? float(materialBits & 0xFFu) / 255.0 : 0.0;
+    const float transmission = isFoliage ? GBufferUnpackTransmission(materialBits) : 0.0;
 
     const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
     const float metalness = materialParams.metalness;

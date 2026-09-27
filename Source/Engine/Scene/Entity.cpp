@@ -36,6 +36,7 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/InstancedMeshData.hpp>
+#include <Rendering/ObjectMasks.hpp>
 
 #include <Framework/EngineDriver.hpp>
 
@@ -52,6 +53,27 @@
 #include <Entity.generated.inl>
 
 namespace Hyperion {
+
+static bool IsWithinPlayerHierarchy(Entity* entity)
+{
+    for (Node* node = entity; node != nullptr; node = node->GetParent())
+    {
+        if (!node->IsA<Entity>())
+        {
+            continue;
+        }
+
+        Entity* ancestorEntity = static_cast<Entity*>(node);
+        EntityManager* entityManager = ancestorEntity->GetEntityManager();
+
+        if (entityManager != nullptr && entityManager->HasTag<EntityTag::Player>(ancestorEntity))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 #pragma region Entity
 
@@ -745,6 +767,31 @@ void Entity::OnComponentRemoved(AnyRef component)
 #endif // HYP_EDITOR
 }
 
+void Entity::UpdateDescendantRenderProxies()
+{
+    EntityManager* entityManager = GetEntityManager();
+
+    if (!entityManager)
+    {
+        return;
+    }
+
+    for (Node* descendant : GetDescendants())
+    {
+        if (!descendant->IsA<Entity>())
+        {
+            continue;
+        }
+
+        Entity* descendantEntity = static_cast<Entity*>(descendant);
+
+        if (descendantEntity->GetEntityManager() == entityManager && entityManager->HasEntity(descendantEntity->Id()))
+        {
+            entityManager->AddTag<EntityTag::UpdateRenderProxy>(descendantEntity);
+        }
+    }
+}
+
 void Entity::OnTagAdded(EntityTag tag)
 {
     const bool isSerializableTag = (uint64(tag) & EntityTag::SerializableTagMask) != 0;
@@ -761,6 +808,11 @@ void Entity::OnTagAdded(EntityTag tag)
         m_entityManager->AddTags<
             EntityTag::UpdateVisibility,
             EntityTag::UpdateReplication>(this);
+    }
+
+    if (tag == EntityTag::Player)
+    {
+        UpdateDescendantRenderProxies();
     }
 }
 
@@ -781,6 +833,11 @@ void Entity::OnTagRemoved(EntityTag tag, bool refreshDependentTags)
         m_entityManager->AddTags<
             EntityTag::UpdateVisibility,
             EntityTag::UpdateReplication>(this);
+    }
+
+    if (tag == EntityTag::Player && refreshDependentTags)
+    {
+        UpdateDescendantRenderProxies();
     }
 }
 
@@ -923,7 +980,8 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->bufferData.modelMatrix = transformMatrix;
     proxy->bufferData.previousModelMatrix = meshComponent.previousModelMatrix;
     proxy->bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
-    proxy->bufferData.bucket = uint32(meshComponent.material->GetAttributes().bucket);
+    proxy->bufferData.bucket = uint16(meshComponent.material->GetAttributes().bucket);
+    proxy->bufferData.objectMask = IsWithinPlayerHierarchy(this) ? PlayerObjectMask : 0;
 
     if (TerrainPatchComponent* terrainPatchComponent = TryGetComponent<TerrainPatchComponent>())
     {
