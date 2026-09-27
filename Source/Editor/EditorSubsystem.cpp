@@ -18,6 +18,7 @@
 #include <Editor/EditorCommand.hpp>
 #include <Editor/EditorConfig.hpp>
 #include <Editor/EditorAssetDrop.hpp>
+#include <Editor/EditorImport.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
 #include <Editor/EditorTemplateLibrary.hpp>
 
@@ -5216,7 +5217,7 @@ void EditorSubsystem::ShowImportContentDialog()
 
             for (const FilePath& file : result.GetValue())
             {
-                batch->Add(file.Basename(), file);
+                batch->Add(file.Basename(), file, GetEditorImportLoadHint(file));
             }
 
             batch->OnComplete
