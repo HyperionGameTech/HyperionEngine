@@ -22,12 +22,14 @@ PERMUTE(ALPHA_DISCARD)
 struct VSInput
 {
     HYP_ATTRIBUTE float3 a_position : POSITION;
+    ///////////////////
     HYP_ATTRIBUTE_OPTIONAL float3 a_normal : NORMAL;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord0 : TEXCOORD0;
     HYP_ATTRIBUTE_OPTIONAL float2 a_texcoord1 : TEXCOORD1;
+    ///////////////////
     HYP_ATTRIBUTE_OPTIONAL uint a_bone_indices : BLENDINDICES;
     HYP_ATTRIBUTE_OPTIONAL float4 a_bone_weights : BLENDWEIGHT;
-    // swaying meshes are drawn still here, but have to find a permutation that takes their vertices
+    ///////////////////
     HYP_ATTRIBUTE_OPTIONAL uint4 a_tree_limb_branch : TEXCOORD2;
     HYP_ATTRIBUTE_OPTIONAL uint2 a_tree_twig : TEXCOORD3;
     HYP_ATTRIBUTE_OPTIONAL uint2 a_foliage : TEXCOORD4;
@@ -496,7 +498,7 @@ PSOutput PSMain(PSInput input)
             float shBands[9];
             ProjectSHBands(N, shBands);
 
-            // indirectLight = diffuseColor * EnvProbeSH(fallbackProbe, shBands);
+            indirectLight = diffuseColor * EnvProbeSH(fallbackProbe, shBands);
         }
 
         output.output_color.rgb = directLight + indirectLight + GET_MATERIAL_EMISSIVE(CURRENT_MATERIAL);
