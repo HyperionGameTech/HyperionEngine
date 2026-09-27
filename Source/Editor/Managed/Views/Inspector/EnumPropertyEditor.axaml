@@ -12,6 +12,7 @@
         MinWidth="140"
         HorizontalAlignment="Stretch"
         VerticalAlignment="Center"
+        IsEnabled="{Binding !IsReadOnly}"
         ItemsSource="{Binding EnumEntries}"
         SelectedValue="{Binding SelectedEnumValue, Mode=TwoWay}"
         SelectedValueBinding="{Binding Value}">

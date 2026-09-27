@@ -208,6 +208,8 @@ namespace Hyperion.Editor.ViewModels
             protected set => SetProperty(ref _value, value);
         }
 
+        public bool IsReadOnly => _isReadOnly;
+
         public virtual bool IsTextEditable => false;
 
         public virtual bool IsEnumEditable => false;
