@@ -1141,9 +1141,16 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         + coord.y * (textureDesc.extent.x * bytesPerComponent * numComponents)
         + coord.x * bytesPerComponent * numComponents;
 
-    const uint32 largestMipSize = textureDesc.HasStoredMips()
-        ? textureDesc.mipOffsets[0]
-        : uint32(textureDesc.GetByteSize());
+    if (imageData.Data() == nullptr)
+    {
+        HYP_LOG_ONCE(Texture, Warning, "Sample() called on Texture {} ({}) with no resident image data", GetName(), Id());
+
+        return Vec4f::Zero();
+    }
+
+    const uint32 largestMipSize = uint32(MathUtil::Min(
+        textureDesc.HasStoredMips() ? uint64(textureDesc.mipOffsets[0]) : uint64(textureDesc.GetByteSize()),
+        uint64(imageData.Size())));
 
     if (index + (bytesPerComponent * numComponents) > largestMipSize)
     {
