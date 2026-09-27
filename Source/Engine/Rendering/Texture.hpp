@@ -151,6 +151,15 @@ public:
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly, EditorAction = "Regenerate Mipmaps")
     void RegenerateMipmaps();
+
+    HYP_METHOD(Property = "SRGB", Label = "sRGB", Editor, Transient, EditorOrder = 10)
+    HYP_FORCE_INLINE bool IsSRGB() const
+    {
+        return m_textureDesc.IsSrgb();
+    }
+
+    HYP_METHOD(Property = "SRGB", Label = "sRGB", Editor, Transient, EditorOrder = 10)
+    void SetIsSRGB(bool isSrgb);
 #endif // HYP_EDITOR
     
     AtomicFlag isUploaded;
@@ -161,6 +170,11 @@ protected:
 
     void PageBlobData() override;
     void UnpageBlobData() override;
+
+#ifdef HYP_EDITOR
+    void RebuildImageData(TextureFormat format);
+    void RecreateGpuImage();
+#endif // HYP_EDITOR
 
     void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
     {

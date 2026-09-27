@@ -16,6 +16,7 @@
 #include <Rendering/PlaceholderData.hpp>
 #include <Rendering/RenderHelpers.hpp>
 #include <Rendering/TextureViewCache.hpp>
+#include <Rendering/Bindless.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -1341,43 +1342,119 @@ Vec4f Texture::SampleCube(Vec3f direction)
 
 void Texture::RegenerateMipmaps()
 {
+    RebuildImageData(GetFormat());
+}
+
+void Texture::SetIsSRGB(bool isSrgb)
+{
+    const TextureFormat format = GetFormat();
+    const TextureFormat newFormat = TextureUtils::ChangeFormatSRGB(format, isSrgb);
+
+    if (newFormat == format)
+    {
+        if (TextureUtils::IsSRGB(format) != isSrgb)
+        {
+            HYP_LOG(Texture, Warning, "Texture {} has format {} which has no {} variant",
+                GetName(), EnumToString(format), isSrgb ? "sRGB" : "linear");
+        }
+
+        return;
+    }
+
+    RebuildImageData(newFormat);
+}
+
+void Texture::RebuildImageData(TextureFormat format)
+{
     ByteBuffer data;
+    TextureDesc desc;
 
     {
         auto readScope = GetReadScope();
 
-        const ConstByteView imageData = GetImageData();
+        desc = GetTextureDesc();
+        desc.format = format;
 
-        if (!imageData)
+        const ConstByteView imageData = GetImageData();
+        const size_t baseMipSize = desc.GetByteSize();
+
+        if (!imageData || imageData.Size() < baseMipSize)
         {
+            HYP_LOG(Texture, Warning, "Texture {} has no image data to rebuild", GetName());
+
             return;
         }
 
         data = ByteBuffer(imageData);
+        data.SetSize(baseMipSize);
     }
 
-    auto writeScope = GetWriteScope();
-
-    TextureDesc desc = GetTextureDesc();
+    for (uint32& mipOffset : desc.mipOffsets)
+    {
+        mipOffset = 0;
+    }
 
     Texture::GenerateMipmaps(desc, data);
 
-    m_textureDesc = desc;
-
-    FreeBlobData(m_imageData);
-    AllocateBlobData(m_imageData, data.Data(), data.Size(), 1);
-
-    MarkDirty();
-
-    if (m_gpuImage.IsValid())
     {
-        EnqueueDeletion(std::move(m_gpuImage));
+        auto writeScope = GetWriteScope();
 
-        writeScope.Reset();
+        m_textureDesc = desc;
 
-        // Recreate
-        Check(Create());
+        FreeBlobData(m_imageData);
+        AllocateBlobData(m_imageData, data.Data(), data.Size(), 1);
+
+        MarkDirty();
     }
+
+    RecreateGpuImage();
+}
+
+void Texture::RecreateGpuImage()
+{
+    GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+        [weakThis = MakeWeakRef(this)]()
+        {
+            Handle<Texture> texture = weakThis.Lock();
+
+            if (!texture.IsValid())
+            {
+                return;
+            }
+
+            {
+                auto writeScope = texture->GetWriteScope();
+
+                // never uploaded. rely on lazy upload instead.
+                if (!texture->m_gpuImage.IsValid())
+                {
+                    return;
+                }
+
+                RI.textureViewCache->RemoveTexture(texture.Get());
+
+                EnqueueDeletion(std::move(texture->m_gpuImage));
+                texture->isUploaded.Store(false);
+            }
+
+            RendererResult createResult = texture->Create();
+
+            if (createResult.HasError())
+            {
+                HYP_LOG(Texture, Error, "Failed to recreate GPU image for texture {}: {}",
+                    texture->GetName(), createResult.GetError().GetMessage());
+
+                return;
+            }
+
+            const uint32 bindlessIndex = GetBindlessTextureIndex(texture.Get());
+
+            if (RI.GetRenderConfig().bindlessTextures && bindlessIndex != Resources::InvalidBinding)
+            {
+                RI.bindlessStorage->AddResource(BindlessStorage_Textures, bindlessIndex, RI.textureViewCache->GetOrCreate(texture.Get()));
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 #endif // HYP_EDITOR
