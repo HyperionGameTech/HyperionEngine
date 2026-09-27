@@ -1771,70 +1771,111 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
-    if (flags & ViewFlags::SKIP_ENV_PROBES)
+    const bool isEnvProbeView = (desc.flags & ViewFlags::ENV_PROBE_VIEW);
+
+    auto isOwnedByThisView = [this](EnvProbe* probe)
+    {
+        for (uint8 envProbeViewIndex = 0; envProbeViewIndex < 6; envProbeViewIndex++)
+        {
+            if (probe->GetView(envProbeViewIndex) == this)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    bool hasSkyProbe = false;
+
+    if (!(flags & ViewFlags::SKIP_ENV_PROBES))
+    {
+        for (Scene* scene : m_scenes)
+        {
+            World* world = scene->GetWorld();
+            const LayersMask& activeLayers = world->GetActiveLayers();
+
+            for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+            {
+                if (!probe->HasNoLayers() && !probe->IsInAnyLayers(activeLayers))
+                {
+                    continue;
+                }
+
+                if (isEnvProbeView && isOwnedByThisView(probe))
+                {
+                    continue;
+                }
+
+                if (!probe->IsSkyProbe())
+                {
+                    const BoundingBox worldBounds = probe->GetWorldBounds();
+
+                    if (!worldBounds.IsValid() || !worldBounds.IsFinite())
+                    {
+                        HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->Id(), Id());
+
+                        continue;
+                    }
+
+                    if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
+                    {
+                        continue;
+                    }
+
+                    if (!(flags & ViewFlags::NO_FRUSTUM_CULLING)
+                        && !(!probe->IsBaked() && probe->needsRender.Load()) // Don't cull offline bake pending render
+                        && !cachedFrustum.ContainsAABB(worldBounds))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    hasSkyProbe = true;
+                }
+
+                rpl.GetEnvProbes().Track(probe->Id(), probe, GET_RESOURCE_VERSION(probe));
+            }
+        }
+    }
+
+    if (!isEnvProbeView || hasSkyProbe || m_scenes.Empty())
     {
         return;
     }
 
-    for (Scene* scene : m_scenes)
+    World* world = m_scenes.Front()->GetWorld();
+
+    if (!world)
     {
-        World* world = scene->GetWorld();
-        const LayersMask& activeLayers = world->GetActiveLayers();
+        return;
+    }
+
+    const LayersMask& activeLayers = world->GetActiveLayers();
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (!scene || (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+        {
+            continue;
+        }
 
         for (auto [probe] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
+            if (!probe->IsSkyProbe() || isOwnedByThisView(probe))
+            {
+                continue;
+            }
+
             if (!probe->HasNoLayers() && !probe->IsInAnyLayers(activeLayers))
             {
                 continue;
             }
 
-            if (desc.flags & ViewFlags::ENV_PROBE_VIEW)
-            {
-                bool skipProbe = false;
-
-                // Skip env probes that own this view (don't want to create circular dependency)
-                for (uint8 envProbeViewIndex = 0; envProbeViewIndex < 6; envProbeViewIndex++)
-                {
-                    View* envProbeView = probe->GetView(envProbeViewIndex);
-
-                    if (envProbeView == this)
-                    {
-                        skipProbe = true;
-                        break;
-                    }
-                }
-
-                if (skipProbe)
-                {
-                    continue;
-                }
-            }
-
-            if (!probe->IsSkyProbe())
-            {
-                const BoundingBox worldBounds = probe->GetWorldBounds();
-
-                if (!worldBounds.IsValid() || !worldBounds.IsFinite())
-                {
-                    HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->Id(), Id());
-
-                    continue;
-                }
-
-                if (desc.bounds.IsValid() && !desc.bounds.Overlaps(worldBounds))
-                {
-                    continue;
-                }
-
-                if (!(flags & ViewFlags::NO_FRUSTUM_CULLING)
-                    && !(!probe->IsBaked() && probe->needsRender.Load()) // Don't cull offline bake pending render
-                    && !cachedFrustum.ContainsAABB(worldBounds))
-                {
-                    continue;
-                }
-            }
-
             rpl.GetEnvProbes().Track(probe->Id(), probe, GET_RESOURCE_VERSION(probe));
+
+            return;
         }
     }
 }

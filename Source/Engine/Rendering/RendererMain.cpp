@@ -932,6 +932,13 @@ static void SetForwardShadingConstants(
             Assert(envProbeProxy != nullptr);
 
             forwardShadingConstants->fallbackProbe = envProbeProxy->bufferData;
+
+            const float skyDiffuseScale = envProbeProxy->bufferData.worldPosition.w * GetWorldBufferData()->skyLightParams.x;
+
+            for (Vec4f& shCoefficient : forwardShadingConstants->fallbackProbe.shData)
+            {
+                shCoefficient *= skyDiffuseScale;
+            }
         }
         else
         {
