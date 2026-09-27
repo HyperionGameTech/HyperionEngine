@@ -76,7 +76,8 @@ bool Frustum::ContainsBoundingSphere(const BoundingSphere& sphere) const
 {
     for (const Vec4f& plane : planes)
     {
-        if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius)
+        // the planes aren't normalized, so the signed distance comes out scaled by the normal's length
+        if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius * plane.GetXYZ().Length())
         {
             return false;
         }
