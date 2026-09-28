@@ -854,9 +854,12 @@ if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
     set(HYP_DXC 1)
     add_definitions(-DHYP_DXC=1)
 
-    # copy the dll to the build directory if on Windows
+    # copy the shared lib to the build directory so it can be found at runtime
+    # (on mac/linux the lib is referenced via @rpath / $ORIGIN, so it must sit next to the binaries)
     if(WIN32)
       file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+    else()
+      file(COPY "${DXC_LIB_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
     endif()
   else()
     message(WARNING "DXC library not found at ${DXC_LIB_PATH}, skipping DXC setup")

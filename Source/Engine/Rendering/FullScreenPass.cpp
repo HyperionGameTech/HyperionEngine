@@ -243,14 +243,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
         return;
     }
 
-    if (!(m_flags & FSP_EXTERNAL_RENDERTARGET))
-    {
-        if (!m_framebuffer || m_framebuffer->GetExtent() == newSize)
-        {
-            EnqueueDeletion(std::move(m_framebuffer));
-            CreateFramebuffer();
-        }
-    }
+    CreateFramebuffer();
 
     m_temporalBlending.Reset();
 

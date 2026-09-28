@@ -11,7 +11,11 @@
 
 namespace Hyperion {
 
+namespace filesystem {
 class FilePath;
+} // namespace filesystem
+
+using filesystem::FilePath;
 
 class WritePng
 {

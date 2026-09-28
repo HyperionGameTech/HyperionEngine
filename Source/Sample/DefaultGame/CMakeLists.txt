@@ -84,6 +84,14 @@ if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
       "$<TARGET_FILE:hyperion-core>"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
   )
+
+  if(HYP_DXC)
+    add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DXC_LIB_PATH}"
+        "$<TARGET_FILE_DIR:${BUILD_NAME}>/Frameworks"
+    )
+  endif()
 endif()
 
 message(STATUS "Source dir: ${CMAKE_SOURCE_DIR}")

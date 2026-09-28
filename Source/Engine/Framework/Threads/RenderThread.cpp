@@ -54,6 +54,11 @@
 
 #include <semaphore>
 
+#if HYP_APPLE
+extern "C" void* objc_autoreleasePoolPush(void);
+extern "C" void objc_autoreleasePoolPop(void* pool);
+#endif
+
 namespace Hyperion {
 
 extern EngineStatTimer g_statRenderUpdate;
@@ -364,11 +369,20 @@ void RenderThread::operator()()
         {
             HYP_PROFILE_BEGIN;
 
+#if HYP_APPLE
+            // this thread has no runloop, so objects MoltenVK autoreleases would otherwise pile up until thread exit
+            void* autoreleasePool = objc_autoreleasePoolPush();
+#endif
+
             Update();
 
             m_threadAllocator->Reset();
-            
+
             ResetWorkerThreadAllocators();
+
+#if HYP_APPLE
+            objc_autoreleasePoolPop(autoreleasePool);
+#endif
         }
 
         RI.Shutdown();

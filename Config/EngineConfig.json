@@ -1,24 +1,26 @@
 {
   "Rendering": {
     "HBAO": {
-      "Enabled": true
+      "Enabled": false
     },
     "SSGI": false,
-    "TAA": true,
-    "FogVolumes": true,
+    "TAA": false,
+    "FogVolumes": false,
     "PathTracing": false,
-    "DDGI": true,
+    "DDGI": false,
     "RayTracedReflections": false,
-    "RayTracingEnabled": true,
-    "IndirectRendering": true,
-    "DepthPrepass": true,
-    "ParallelRendering": true,
-    "TargetFrameRate": 60,
+    "RayTracingEnabled": false,
+    "IndirectRendering": false,
+    "DepthPrepass": false,
+    "ParallelRendering": false,
+    "TargetFrameRate": 0,
     "LimitFrameRateOnBatteryPower": true,
     "LimitFrameRateWhenIdle": true,
     "EnableDebugDrawer": true,
+    "Bloom": false,
+    "Clouds": 0,
     "SSR": {
-      "Enabled": true
+      "Enabled": false
     },
     "Debug": {
       "Reflections": false,
@@ -41,11 +43,11 @@
     }
   },
   "Threads": {
-    "NumForegroundWorkers": 3
+    "NumForegroundWorkers": 1
   },
   "System": {
     "SelectedGpu": {
-      "Index": 1
+      "Index": 0
     }
   },
   "Baker": {
