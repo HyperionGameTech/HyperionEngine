@@ -268,40 +268,42 @@ void CrashHandler::Shutdown()
 
 void CrashHandler::Dump()
 {
-    if (!s_isInitialized)
+    if (s_isInitialized)
     {
-        return;
-    }
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
-    GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
-    Assert(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
-
-    const auto start = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::milliseconds::zero();
-
-    while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed && status != GFSDK_Aftermath_CrashDump_Status_Finished && elapsed.count() < 30000)
-    {
-        ThreadSleep(30);
-
+        GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
         Assert(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
 
-        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+        const auto start = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::milliseconds::zero();
+
+        while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed && status != GFSDK_Aftermath_CrashDump_Status_Finished && elapsed.count() < 30000)
+        {
+            ThreadSleep(30);
+
+            Assert(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
+
+            elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+        }
+    #endif
+
+        Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
+
+        const String message = (g_savedDumpFilesPerThread.Any()
+                ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
+                                String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
+                                            {
+                                                return item ? String::Join(*item, '\n') : String();
+                                            }))
+                : "\nCrash dump state is unknown.");
+
+        HYP_LOG(Rendering, Fatal, "A GPU crash has been detected. The application will now exit.\n{}", message);
     }
-#endif
-
-    Mutex::Guard guard(g_savedDumpFilesPerThreadMutex);
-
-    const String message = String("A GPU crash has been detected. The application will now exit.")
-        + (g_savedDumpFilesPerThread.Any()
-               ? HYP_FORMAT("\nCrash dump(s) has been saved to: {}\n\nPlease attach these when submitting a bug report.",
-                            String::Join(g_savedDumpFilesPerThread, '\n', [](const Array<FilePath>* item)
-                                         {
-                                             return item ? String::Join(*item, '\n') : String();
-                                         }))
-               : "\nCrash dump state is unknown.");
-
-    HYP_LOG(Rendering, Fatal, "GPU Crash Detected!\n{}", message);
+    else
+    {
+        HYP_LOG(Rendering, Fatal, "A GPU crash has been detected. The application will now exit.");
+    }
 }
 
 } // namespace Hyperion
