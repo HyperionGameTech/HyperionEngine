@@ -47,7 +47,7 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 namespace {
 
-MeshBooleanOperation ToMeshBooleanOperation(CsgOperation operation)
+HYP_FORCE_INLINE constexpr MeshBooleanOperation ToMeshBooleanOperation(CsgOperation operation)
 {
     switch (operation)
     {
@@ -62,34 +62,14 @@ MeshBooleanOperation ToMeshBooleanOperation(CsgOperation operation)
     return MeshBooleanOperation::Subtract;
 }
 
-const char* GetOperationName(CsgOperation operation)
+HYP_FORCE_INLINE constexpr const char* GetOperationName(CsgOperation operation)
 {
-    switch (operation)
-    {
-    case CsgOperation::Union:
-        return "Union";
-    case CsgOperation::Subtract:
-        return "Subtract";
-    case CsgOperation::Intersect:
-        return "Intersect";
-    }
-
-    return "";
+    return (uint32(operation) < NumCsgOperations) ? CsgOperationNames[uint32(operation)] : "";
 }
 
-const char* GetBrushShapeName(CsgBrushShape shape)
+HYP_FORCE_INLINE constexpr const char* GetBrushShapeName(CsgBrushShape shape)
 {
-    switch (shape)
-    {
-    case CsgBrushShape::Box:
-        return "Box";
-    case CsgBrushShape::Sphere:
-        return "Sphere";
-    case CsgBrushShape::Cylinder:
-        return "Cylinder";
-    default:
-        return "";
-    }
+    return (uint32(shape) < NumCsgBrushShapes) ? CsgBrushShapeNames[uint32(shape)] : "";
 }
 
 Color GetOperationColor(CsgOperation operation, float alpha)
@@ -152,7 +132,7 @@ void AssignMesh(const Handle<Node>& node, const Handle<Mesh>& mesh)
     }
 }
 
-Handle<Mesh> BuildResultMesh(const Mesh* sourceMesh, const MeshBooleanResult& result)
+Handle<Mesh> BuildResultMesh(const Mesh& sourceMesh, const MeshBooleanResult& result)
 {
     VertexArrayView vertices {};
     vertices.floatData = result.vertexData.Data();
@@ -1473,6 +1453,7 @@ void EditorCsgState::ApplyBrush()
     Handle<Node> target = m_targetNode.Lock();
     Handle<Mesh> previousMesh = GetTargetMesh();
     Handle<Node> brushNode = m_brushNode;
+    
     const CsgBrushShape shape = m_brushShape;
     const CsgOperation operation = m_operation;
     const bool keepBrush = m_keepBrushAfterApply;
@@ -1498,7 +1479,7 @@ void EditorCsgState::ApplyBrush()
         return;
     }
 
-    Handle<Mesh> resultMesh = BuildResultMesh(previousMesh.Get(), result);
+    Handle<Mesh> resultMesh = BuildResultMesh(*previousMesh, result);
 
     m_validatedMesh = resultMesh.ToWeak();
     m_targetError = MeshBooleanError::None;

@@ -45,17 +45,35 @@ enum class CsgBrushShape : uint8
 {
     Box = 0,
     Sphere,
-    Cylinder
+    Cylinder,
+
+    Max
 };
 
-static constexpr uint32 NumCsgBrushShapes = 3;
+static constexpr uint32 NumCsgBrushShapes = uint32(CsgBrushShape::Max);
+
+static constexpr const char* CsgBrushShapeNames[NumCsgBrushShapes] = {
+    "Box",
+    "Sphere",
+    "Cylinder"
+};
 
 HYP_ENUM()
 enum class CsgOperation : uint8
 {
     Union = 0,
     Subtract,
-    Intersect
+    Intersect,
+
+    Max
+};
+
+static constexpr uint32 NumCsgOperations = uint32(CsgOperation::Max);
+
+static constexpr const char* CsgOperationNames[NumCsgOperations] = {
+    "Union",
+    "Subtract",
+    "Intersect"
 };
 
 HYP_CLASS(Serialize = false)
