@@ -485,7 +485,7 @@ namespace Hyperion.Editor.ViewModels
 
             AddToSceneCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
-                if (asset?.Bucket == null)
+                if (asset?.Bucket == null || !asset.IsPrefab)
                 {
                     return;
                 }

@@ -24,6 +24,8 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsWorld => _bucket?.BucketIndex == AssetBucket.Worlds.Value;
 
+        public bool HasSceneActions => IsPrefab || IsWorld;
+
         public string ToolTipText => _bucket != null
             ? $"{DisplayName}\n{_bucket.Name}"
             : DisplayName;

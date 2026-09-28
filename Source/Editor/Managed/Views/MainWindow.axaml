@@ -2485,6 +2485,7 @@
                                                         </ListBox>
                                                         <ListBox
                                                             x:Name="ContentBrowserAssetList"
+                                                            DoubleTapped="OnContentBrowserAssetDoubleTapped"
                                                             IsVisible="{Binding ContentBrowser.IsShowingAssets}"
                                                             ItemsSource="{Binding ContentBrowser.Assets}"
                                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -2545,8 +2546,14 @@
                                                                                 <MenuItem
                                                                                     Command="{Binding ContentBrowser.AddToSceneCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     CommandParameter="{Binding}"
-                                                                                    Header="Add to Current Scene"
-                                                                                    IsVisible="{Binding CanAddToScene, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                                    Header="Add to Current Scene">
+                                                                                    <MenuItem.IsVisible>
+                                                                                        <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                            <Binding Path="IsPrefab" />
+                                                                                            <Binding Path="CanAddToScene" Source="{x:Static vm:MainWindowViewModel.Instance}" />
+                                                                                        </MultiBinding>
+                                                                                    </MenuItem.IsVisible>
+                                                                                </MenuItem>
                                                                                 <MenuItem
                                                                                     Command="{Binding ContentBrowser.PlaceAsInstanceCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     CommandParameter="{Binding}"
@@ -2561,7 +2568,7 @@
                                                                                     IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     IsVisible="{Binding IsWorld}"
                                                                                     ToolTip.Tip="Edit this World instead of the current one. The project is saved first." />
-                                                                                <Separator IsVisible="{Binding CanAddToScene, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                                <Separator IsVisible="{Binding HasSceneActions}" />
                                                                                 <MenuItem
                                                                                     Command="{Binding ContentBrowser.EditAssetCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     CommandParameter="{Binding}"
