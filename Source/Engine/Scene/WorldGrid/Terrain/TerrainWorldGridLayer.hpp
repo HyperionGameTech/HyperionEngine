@@ -10,6 +10,13 @@
 
 #include <Scene/WorldGrid/Terrain/Generation/TerrainGenerator.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainQuadtree.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainGeneratorState.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainHeightsCache.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainLodViewpoints.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainLoadedCells.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
+#include <Scene/WorldGrid/Terrain/GroundCover.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainBrush.hpp>
 
 #include <Asset/AssetObject.hpp>
 
@@ -30,26 +37,19 @@ namespace Hyperion {
 class Material;
 class Mesh;
 class Scene;
+class Texture;
 class TerrainStreamingCell;
 class TerrainCellData;
 struct AssetPath;
 
 /// @TODO: Make a TerrainAllocator - use it throughout here.
 
-struct TerrainGenerationState
-{
-    SharedPtr<TerrainGenerator> generator;
-    uint64 cellFingerprint = 0;
-    uint32 epoch = 0;
-
-    ///taken together with the epoch - cell geometry (size, scale, offset) changes bump the epoch
-    WorldGridLayerInfo layerInfo;
-};
-
 HYP_CLASS()
 class ENGINE_API TerrainWorldGridLayer : public WorldGridLayer
 {
     HYP_OBJECT_BODY(TerrainWorldGridLayer);
+
+    friend class TerrainBrush;
 
 public:
     TerrainWorldGridLayer();
@@ -67,7 +67,7 @@ public:
     ///sim thread only - other threads must use GetGenerationState()
     HYP_FORCE_INLINE const TerrainGenerator& GetGenerator() const
     {
-        return *m_generator;
+        return *m_generatorState.GetGenerator();
     }
 
     TerrainGenerationState GetGenerationState() const;
@@ -75,7 +75,7 @@ public:
     ///false once Regenerate() has replaced the generator that \p epoch belongs to
     HYP_FORCE_INLINE bool IsGenerationCurrent(uint32 epoch) const
     {
-        return m_generationEpoch.Get(MemoryOrder::ACQUIRE) == epoch;
+        return m_generatorState.IsCurrent(epoch);
     }
 
     ///not shown in editor because the editor for this shows LayerInfo's Seed property anyway
@@ -99,7 +99,7 @@ public:
 
     HYP_FORCE_INLINE uint64 GetCellFingerprint() const
     {
-        return m_cellFingerprint;
+        return m_generatorState.GetCellFingerprint();
     }
 
     ///first of the coord's references that resolves
@@ -135,6 +135,9 @@ public:
     ///world space height of the full resolution surface - the one the collider and the brush work on
     float SampleHeightAt(const Vec2f& worldXZ) const;
 
+    ///sim thread only - SampleHeightAt(), but generates a cold cell's heights instead of returning the un-eroded stand-in
+    float SampleHeightAtBlocking(const Vec2f& worldXZ) const;
+
     ///world space height of the surface currently drawn at \p worldXZ, CDLOD morph included. Falls back to
     ///SampleHeightAt() where no tile is loaded. Editor picking uses this so the cursor lands on what's on screen
     float SampleDrawnHeightAt(const Vec2f& worldXZ) const;
@@ -168,6 +171,11 @@ public:
     ///CDLOD - tuned through the Terrain.Lod.* cvars, shared by every terrain layer
 
     ///the tile's quadtree needs (cellSize - 1) to be a power of two
+    static Vec3f ComputeCellBoundsMin(const WorldGridLayerInfo& layerInfo, const Vec2i& coord);
+
+    ///inverse of ComputeCellBoundsMin - caller must ensure the cell's world size is non-zero
+    static Vec2i ComputeCellCoord(const WorldGridLayerInfo& layerInfo, const Vec2f& worldXZ);
+
     static uint32 RoundCellSizeForQuadtree(uint32 cellSize);
 
     ///reads the Terrain.Lod cvars, so each tile keeps the layout it was built with
@@ -189,6 +197,24 @@ public:
     ///infinity until the LOD system has run
     float GetNearestLodViewpointDistance(const BoundingBox& worldBounds) const;
 
+    HYP_FORCE_INLINE TerrainGroundCoverResources& GetGroundCoverResources()
+    {
+        return m_groundCoverResources;
+    }
+
+    HYP_METHOD(Property = "GroundCover", Editor)
+    Handle<GroundCover> GetGroundCover() const;
+
+    HYP_METHOD(Property = "GroundCover", Editor)
+    void SetGroundCover(const Handle<GroundCover>& groundCover);
+
+    /// picks up edits to the GroundCover asset
+    HYP_METHOD(EditorAction = "Replant Ground Cover")
+    void ReplantGroundCover();
+
+    virtual void GetDescAssets(Array<WGLayerAsset>& outAssets) const override;
+    virtual void SetDescAssets(Span<const WGLayerAsset> assets) override;
+
     /////////////////////////
 
 protected:
@@ -205,8 +231,7 @@ protected:
     ///swaps in a freshly configured generator and bumps the epoch so work started with the old one is discarded
     void ReplaceGenerator();
 
-    ///call after bumping the epoch, so in-flight work from the previous epoch can't repopulate the caches
-    void ClearHeightCaches();
+    float SampleHeight(const Vec2f& worldXZ, bool generateColdCells) const;
 
     void DetachLoadedCells();
     void DiscardAllCellData();
@@ -221,35 +246,17 @@ protected:
     Handle<Scene> m_scene;
     Handle<Material> m_material;
 
-    ///written on the sim thread only, under m_generationStateMutex
-    SharedPtr<TerrainGenerator> m_generator;
-    mutable Mutex m_generationStateMutex;
-    AtomicVar<uint32> m_generationEpoch { 0 };
+    TerrainGeneratorState m_generatorState;
 
-    mutable Mutex m_heightCacheMutex;
-    mutable FlatMap<Vec2i, SharedPtr<Array<float>>> m_cellHeightsCache;
+    mutable TerrainHeightsCache m_heightsCache;
 
-    mutable Mutex m_pendingWarmsMutex;
-    mutable FlatMap<Vec2i, bool> m_pendingHeightWarms;
+    TerrainLoadedCells m_loadedCells;
 
-    FlatMap<Vec2i, WeakHandle<TerrainStreamingCell>> m_loadedCells;
-    FlatMap<Vec2i, bool> m_cellsModifiedSinceStrokeEnd;
+    TerrainBrush m_brush { *this };
 
-    uint64 m_cellFingerprint = 0;
+    TerrainLodViewpoints m_lodViewpoints;
 
-    mutable Mutex m_lodViewpointsMutex;
-    Array<Vec3f> m_lodViewpoints;
-
-    struct HeightsSampleCache
-    {
-        Handle<TerrainCellData> cell;
-        TSharedResLock<AssetObject> scope;
-        Span<const float> heights;
-
-        void Invalidate();
-    };
-
-    mutable HeightsSampleCache m_heightsSampleCache;
+    TerrainGroundCoverResources m_groundCoverResources;
 };
 
 } // namespace Hyperion

@@ -165,7 +165,8 @@ namespace Hyperion
         DepthBias = 0x4,
         DepthClamp = 0x8,
         StencilTest = 0x10,
-        AlphaDiscard = 0x20
+        AlphaDiscard = 0x20,
+        DisableShadowCasting = 0x40
     }
 
     [ClassBinding(Name = "StencilFunction")]

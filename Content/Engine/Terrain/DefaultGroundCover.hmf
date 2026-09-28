@@ -1,0 +1,35 @@
+GroundCover DefaultGroundCover {
+    Layers = [
+        GroundCoverLayer {
+            SplatLayer = 0
+            Density = 1
+            ClumpSize = 12
+            Types = [
+                GroundCoverType {
+                    Prefab = @"Engine://Prefabs/meadow_grass"
+                    Weight = 6
+                }
+                GroundCoverType {
+                    Prefab = @"Engine://Prefabs/short_grass"
+                    Weight = 3
+                }
+                GroundCoverType {
+                    Prefab = @"Engine://Prefabs/wildflower_meadow"
+                    Weight = 1.5
+                }
+            ]
+        }
+        GroundCoverLayer {
+            SplatLayer = 2
+            Density = 1
+            ClumpSize = 12
+            Types = [
+                GroundCoverType {
+                    Prefab = @"Engine://Prefabs/dry_grass"
+                    Weight = 1
+                }
+            ]
+        }
+    ]
+    UUID = "77a3c642-f37b-4327-9a28-840e29bb2b6e"
+}

@@ -1,0 +1,35 @@
+Texture short_grass_grass_Roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = R8
+        Extent = (1536, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            786432
+            983040
+            1032192
+            1044480
+            1047552
+            1048320
+            1048512
+            1048560
+            1048572
+            1048575
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/short_grass_grass_Roughness.TEX"
+        Size = 1048576
+    }
+    UUID = "5b60b1f5-74cd-42e7-a61c-84e813498d6a"
+}

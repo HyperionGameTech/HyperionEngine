@@ -82,6 +82,10 @@ struct WGLayerDesc
 
     HYP_FIELD()
     Array<WGObject> objects;
+
+    /// assets the layer class configures itself with, by key
+    HYP_FIELD()
+    Array<WGLayerAsset> assets;
 };
 
 HYP_CLASS()

@@ -16,11 +16,14 @@
 #include <Core/Functional/Delegate.hpp>
 
 #include <Core/Utilities/Span.hpp>
+#include <Core/Containers/Array.hpp>
 
 #include <Core/Threading/Mutex.hpp>
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+
+#include <Asset/AssetReference.hpp>
 
 #include <Framework/EngineMemory.hpp>
 
@@ -72,6 +75,18 @@ struct WorldGridLayerInfo
 
         return hc;
     }
+};
+
+HYP_STRUCT()
+struct WGLayerAsset
+{
+    HYP_STRUCT_BODY(WGLayerAsset);
+
+    HYP_FIELD()
+    Name key;
+
+    HYP_FIELD(FollowAssetPath = true)
+    AssetPath path;
 };
 
 HYP_CLASS()
@@ -139,6 +154,15 @@ public:
     virtual Handle<StreamingCell> CreateStreamingCell(const StreamingCellInfo& cellInfo);
 
     virtual void StreamPrefetch(Span<const Vec2i> cellCoords)
+    {
+    }
+
+    /// assets saved with the layer's desc, for layer classes that configure themselves with some
+    virtual void GetDescAssets(Array<WGLayerAsset>& outAssets) const
+    {
+    }
+
+    virtual void SetDescAssets(Span<const WGLayerAsset> assets)
     {
     }
 

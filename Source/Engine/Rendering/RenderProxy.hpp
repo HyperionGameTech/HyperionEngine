@@ -82,7 +82,7 @@ struct WorldShaderData
     uint32 tonemapOperator;
     uint32 environmentFlags;
 
-    // x = exposure multiplier, y = contrast, z = saturation
+    // x = exposure multiplier, y = contrast, z = saturation, w = vignette strength
     Vec4f exposureGrading;
 
     // linear rgb white balance matrix, one row per element
@@ -261,7 +261,7 @@ struct LightShaderData
 
     Vec2f areaSize; // also angles for spot lights
     Vec2f _pad0;
-    Vec4f _pad1;
+    Vec4f atmosphereTint;
     Vec4f _pad2;
     Vec4f _pad3;
 };

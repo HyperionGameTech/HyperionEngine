@@ -92,7 +92,7 @@ float3 SampleDirectLighting(in float3 hitPos, in float3 N)
     for (uint light_index = 0; light_index < min(rayTracingConstants.numBoundLights, 16); light_index++)
     {
         const Light light = lights[light_index];
-        const float3 light_color = light.color.rgb * light.position_intensity.w;
+        const float3 light_color = light.color.rgb * light.atmosphere_tint.rgb * light.position_intensity.w;
 
         if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
         {

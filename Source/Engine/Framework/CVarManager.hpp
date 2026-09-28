@@ -25,7 +25,7 @@
 
 namespace Hyperion {
 
-static constexpr uint32 MaxCVars = 128;
+static constexpr uint32 MaxCVars = 256;
 
 namespace DataProcessing::JSON {
 // Fwd declaration for ConfigValue

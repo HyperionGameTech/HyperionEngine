@@ -44,7 +44,7 @@ struct CloudShapeSettings
     HYP_STRUCT_BODY(CloudShapeSettings);
 
     HYP_FIELD(Property = "Coverage", Serialize, Label = "Cloud Coverage")
-    float coverage = 0.5f;
+    float coverage = 0.3f;
 
     HYP_FIELD(Property = "CloudTypeBias", Serialize, Label = "Cloud Type Bias")
     float cloudTypeBias = 0.5f;
@@ -53,7 +53,7 @@ struct CloudShapeSettings
     float densityMultiplier = 1.0f;
 
     HYP_FIELD(Property = "DetailErosion", Serialize, Label = "Detail Erosion")
-    float detailErosion = 0.3f;
+    float detailErosion = 0.55f;
 };
 
 HYP_STRUCT()
@@ -155,7 +155,7 @@ struct SkyLightSettings
     HYP_STRUCT_BODY(SkyLightSettings);
 
     HYP_FIELD(Property = "DiffuseIntensity", Serialize, Label = "Diffuse Intensity")
-    float diffuseIntensity = 1.0f;
+    float diffuseIntensity = 1.7f;
 
     HYP_FIELD(Property = "SpecularIntensity", Serialize, Label = "Specular Intensity")
     float specularIntensity = 1.0f;
@@ -176,10 +176,10 @@ struct ExposureSettings
     HYP_STRUCT_BODY(ExposureSettings);
 
     HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation")
-    float exposureCompensation = 1.6f;
+    float exposureCompensation = 0.6f;
 
     HYP_FIELD(Property = "TonemapOperator", Serialize, Label = "Tonemapper")
-    TonemapOperator tonemapOperator = TonemapOperator::AgX;
+    TonemapOperator tonemapOperator = TonemapOperator::AgXPunchy;
 
     HYP_FIELD(Property = "WhiteBalanceTemperature", Serialize, Label = "Temperature")
     float whiteBalanceTemperature = 0.0f;
@@ -188,10 +188,13 @@ struct ExposureSettings
     float whiteBalanceTint = 0.0f;
 
     HYP_FIELD(Property = "Saturation", Serialize, Label = "Saturation")
-    float saturation = 1.05f;
+    float saturation = 0.92f;
 
     HYP_FIELD(Property = "Contrast", Serialize, Label = "Contrast")
-    float contrast = 1.05f;
+    float contrast = 0.92f;
+
+    HYP_FIELD(Property = "Vignette", Serialize, Label = "Vignette")
+    float vignette = 0.35f;
 };
 
 HYP_STRUCT()
@@ -203,25 +206,25 @@ struct HeightFogSettings
     bool enabled = true;
 
     HYP_FIELD(Property = "Density", Serialize, Label = "Density")
-    float density = 0.001f;
+    float density = 0.0012f;
 
     HYP_FIELD(Property = "HeightFalloff", Serialize, Label = "Height Falloff")
-    float heightFalloff = 0.05f;
+    float heightFalloff = 0.03f;
 
     HYP_FIELD(Property = "BaseHeight", Serialize, Label = "Base Height")
     float baseHeight = 0.0f;
 
     HYP_FIELD(Property = "StartDistance", Serialize, Label = "Start Distance")
-    float startDistance = 150.0f;
+    float startDistance = 60.0f;
 
     HYP_FIELD(Property = "AerialPerspectiveDistance", Serialize, Label = "Aerial Perspective Distance")
-    float aerialPerspectiveDistance = 4500.0f;
+    float aerialPerspectiveDistance = 3500.0f;
 
     HYP_FIELD(Property = "SkyInscatter", Serialize, Label = "Sky Inscatter")
     float skyInscatterStrength = 1.0f;
 
     HYP_FIELD(Property = "SunInscatter", Serialize, Label = "Sun Inscatter")
-    float sunInscatterStrength = 0.25f;
+    float sunInscatterStrength = 0.35f;
 
     HYP_FIELD(Property = "SunAnisotropy", Serialize, Label = "Sun Anisotropy")
     float sunAnisotropy = 0.6f;

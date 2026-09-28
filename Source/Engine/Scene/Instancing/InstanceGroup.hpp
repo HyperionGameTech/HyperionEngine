@@ -67,6 +67,10 @@ public:
 
     virtual Handle<Node> Clone() const override;
 
+    /// the static meshes of \p prefab, placed in prefab root space.
+    /// Returns how many of its nodes can't be instanced.
+    static uint32 CollectMembers(const Prefab& prefab, Array<InstanceGroupMember>& outMembers);
+
     HYP_METHOD(Property = "Prefab", Serialize, Editor)
     HYP_FORCE_INLINE const Handle<Prefab>& GetPrefab() const
     {

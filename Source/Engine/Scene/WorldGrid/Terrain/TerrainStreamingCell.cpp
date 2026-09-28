@@ -9,6 +9,7 @@
 #include <Scene/WorldGrid/Terrain/TerrainStreamingCell.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainCellData.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainCellTextures.hpp>
 #include <Scene/WorldGrid/Terrain/Generation/TerrainErosion.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
@@ -32,6 +33,7 @@
 #include <Rendering/Material.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/Vertex.hpp>
+#include <Rendering/InstancedMeshData.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
 
@@ -47,11 +49,9 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/CVarManager.hpp>
 
-#ifdef HYP_EDITOR
-#include <Editor/EditorTask.hpp>
-#include <Editor/EditorState.hpp>
-#endif
+#include <Scene/WorldGrid/Terrain/TerrainGenerationEditorTask.hpp>
 
 #include <TerrainStreamingCell.generated.inl>
 
@@ -59,117 +59,17 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-#ifdef HYP_EDITOR
+static CVar<bool> g_cvTerrainGrass("Terrain.Grass", true);
 
-struct TerrainGenerationEditorTaskState
-{
-    ///cells queued for generation that haven't finished loading yet
-    AtomicVar<int32> numPendingCells { 0 };
-    Guarded<Handle<TickableEditorTask>> editorTask;
+///how far from a viewpoint grass is planted
+static CVar<float> g_cvTerrainGrassRange("Terrain.Grass.Range", 80.0f);
+///scales how many patches every ground cover layer plants
+static CVar<float> g_cvTerrainGrassDensity("Terrain.Grass.Density", 1.0f);
+///past this, tiles are planted with fewer, wider patches
+static CVar<float> g_cvTerrainGrassNearRange("Terrain.Grass.NearRange", 30.0f);
+///how much further apart, and wider, the patches of far tiles are
+static constexpr float s_grassFarStretch = 1.8f;
 
-    void OnGenerationQueued()
-    {
-        numPendingCells.Increment(1, MemoryOrder::RELAXED);
-
-        Update();
-    }
-
-    void OnGenerationFinished()
-    {
-        numPendingCells.Decrement(1, MemoryOrder::RELAXED);
-
-        Update();
-    }
-
-    void Update()
-    {
-        auto readCount = [numPendingCells = &numPendingCells]() -> int
-        {
-            return numPendingCells->Get(MemoryOrder::RELAXED);
-        };
-
-        auto updateTaskWithCount = [](Handle<TickableEditorTask>& task, int count) -> bool
-        {
-            if (task.IsValid() && task->IsCancellationRequested())
-            {
-                task.Reset();
-
-                return true;
-            }
-
-            if (count <= 0)
-            {
-                if (task.IsValid())
-                {
-                    task->Cancel();
-
-                    if (task->IsCancellationRequested())
-                    {
-                        task.Reset();
-                    }
-                }
-
-                return true;
-            }
-
-            if (task.IsValid())
-            {
-                task->SetDescription(HYP_FORMAT("{} cells", count));
-
-                return true;
-            }
-
-            return false;
-        };
-
-        auto updateTask = [readCount, updateTaskWithCount](Handle<TickableEditorTask>& task, int& outCount) -> bool
-        {
-            outCount = readCount();
-
-            return updateTaskWithCount(task, outCount);
-        };
-
-        editorTask.Access([this, readCount, updateTaskWithCount](Handle<TickableEditorTask>& task)
-        {
-            const int count = readCount();
-            if (updateTaskWithCount(task, count))
-            {
-                return;
-            }
-
-            if (!g_editorState.IsValid() || !EngineGlobals::IsEditor())
-            {
-                return;
-            }
-
-            Handle<TickableEditorTask> newTask = MakeHandle<TickableEditorTask>(
-                [this, readCount, updateTaskWithCount]()
-                {
-                    editorTask.Access([&](Handle<TickableEditorTask>& task)
-                    {
-                        int count = readCount();
-                        const bool res = updateTaskWithCount(task, count);
-
-                        AssertDebug(res);
-                    });
-                },
-                "Generating terrain",
-                HYP_FORMAT("{} cells", count));
-
-            InitObject(newTask);
-
-            newTask->SetIsForegroundTask(true);
-
-            g_editorState->AddTask(newTask);
-
-            task = std::move(newTask);
-        });
-    }
-};
-
-static TerrainGenerationEditorTaskState s_terrainGenerationEditorTask;
-
-#endif // HYP_EDITOR
 
 ///the physics collider always uses the full-resolution grid, regardless of the mesh LODs in memory
 static void ExtractColliderHeights(Span<const float> paddedHeights, uint32 cellSize, Array<float>& outHeights)
@@ -187,219 +87,6 @@ static void ExtractColliderHeights(Span<const float> paddedHeights, uint32 cellS
             outHeights[size_t(z) * cellSize + x] = paddedHeights[size_t(z + TerrainGenerator::CellPadding) * paddedSize + (x + TerrainGenerator::CellPadding)];
         }
     }
-}
-
-static Handle<Texture> CreateCellTexture(Name name, uint32 cellSize, const Array<ubyte>& uploadBytes)
-{
-    Handle<Texture> texture = MakeHandle<Texture>();
-    texture->SetName(name);
-
-    TextureDesc textureDesc;
-    textureDesc.type = TextureType::Texture2D;
-    textureDesc.format = TextureFormat::RGBA8;
-    textureDesc.extent = Vec3u(cellSize, cellSize, 1);
-    textureDesc.filterModeMin = TextureFilterMode::Linear;
-    textureDesc.filterModeMag = TextureFilterMode::Linear;
-
-    texture->SetTextureDesc(textureDesc);
-    texture->SetImageData(ConstByteView(uploadBytes.Data(), uploadBytes.Size()));
-    texture->SetIsTransient(true);
-
-    InitObject(texture);
-
-    return texture;
-}
-
-static Handle<Texture> CreateSplatTexture(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& uploadBytes)
-{
-    return CreateCellTexture(NAME_FMT("TerrainCellSplatMap_{}", coord), cellSize, uploadBytes);
-}
-
-static void FlipSplatRowsForUpload(uint32 cellSize, const Array<ubyte>& splatBytes, Array<ubyte>& outUploadBytes)
-{
-    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
-
-    outUploadBytes.Resize(requiredSize);
-
-    const size_t rowSize = size_t(cellSize) * 4;
-
-    for (uint32 z = 0; z < cellSize; z++)
-    {
-        const size_t srcRow = size_t(cellSize - 1 - z) * rowSize;
-        const size_t dstRow = size_t(z) * rowSize;
-
-        Memory::Copy(outUploadBytes.Data() + dstRow, splatBytes.Data() + srcRow, rowSize);
-    }
-}
-
-static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 cellSize, const Array<ubyte>& splatBytes)
-{
-    Array<ubyte> uploadBytes;
-    FlipSplatRowsForUpload(cellSize, splatBytes, uploadBytes);
-
-    return CreateSplatTexture(coord, cellSize, uploadBytes);
-}
-
-///world-space normals, row-flipped like the splat map so Terrain.hlsl samples both with the same texcoord
-static void PrepareNormalMapBytes(Span<const float> paddedHeights, Span<const ubyte> erosionMasks, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
-{
-    const size_t texelCount = size_t(cellSize) * size_t(cellSize);
-    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
-
-    const bool hasErosionMasks = erosionMasks.Size() == texelCount * TerrainErosionMasks::NumChannels;
-
-    Array<float> heights;
-    Array<Vec3f> localNormals;
-    TerrainGenerator::ExtractCellHeightsAndNormals(paddedHeights, cellSize, heights, localNormals);
-
-    const auto paddedHeightAt = [&](int32 x, int32 z) -> float
-    {
-        return paddedHeights[size_t(z + int32(TerrainGenerator::CellPadding)) * paddedSize + size_t(x + int32(TerrainGenerator::CellPadding))];
-    };
-
-    Array<ubyte> normalBytes;
-    normalBytes.Resize(texelCount * 4);
-
-    const auto encodeUnorm = [](float value) -> ubyte
-    {
-        return ubyte(MathUtil::Clamp(value * 0.5f + 0.5f, 0.0f, 1.0f) * 255.0f + 0.5f);
-    };
-
-    const float sampleSpacing = MathUtil::Max((scale.x + scale.z) * 0.5f, 0.0001f);
-
-    for (uint32 z = 0; z < cellSize; z++)
-    {
-        for (uint32 x = 0; x < cellSize; x++)
-        {
-            const size_t texelIndex = size_t(z) * cellSize + x;
-
-            // grid normals are in the cell's local (unscaled) space
-            const Vec3f localNormal = localNormals[texelIndex];
-            const Vec3f worldNormal = Vec3f(localNormal.x / scale.x, localNormal.y / scale.y, localNormal.z / scale.z).Normalized();
-
-            // sculpted detail the erosion masks never saw still reads as hollows and bumps
-            const float neighborMean = (paddedHeightAt(int32(x) - 1, int32(z))
-                + paddedHeightAt(int32(x) + 1, int32(z))
-                + paddedHeightAt(int32(x), int32(z) - 1)
-                + paddedHeightAt(int32(x), int32(z) + 1))
-                * 0.25f;
-
-            float concavity = (neighborMean - heights[texelIndex]) / sampleSpacing;
-
-            if (hasErosionMasks)
-            {
-                concavity += TerrainErosionMasks::DecodeConcavity(erosionMasks[texelIndex * TerrainErosionMasks::NumChannels + TerrainErosionMasks::ConcavityChannel]);
-            }
-
-            normalBytes[texelIndex * 4] = encodeUnorm(worldNormal.x);
-            normalBytes[texelIndex * 4 + 1] = encodeUnorm(worldNormal.y);
-            normalBytes[texelIndex * 4 + 2] = encodeUnorm(worldNormal.z);
-            normalBytes[texelIndex * 4 + 3] = ubyte(TerrainErosionMasks::EncodeConcavity(concavity) * 255.0f + 0.5f);
-        }
-    }
-
-    FlipSplatRowsForUpload(cellSize, normalBytes, outUploadBytes);
-}
-
-///copies a painted splat map out of cell data and prepares it for upload
-///call from streaming thread!
-static bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize, Array<ubyte>& outUploadBytes)
-{
-    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
-
-    Array<ubyte> splatBytes;
-
-    {
-        auto readScope = cellData->GetReadScope();
-
-        ConstByteView splatData = cellData->GetSplatMap();
-
-        if (splatData.Size() < requiredSize)
-        {
-            if (splatData.Size() != 0)
-            {
-                HYP_LOG(WorldGrid, Warning,
-                    "Saved splat map for cell {} is {} bytes but the layer expects {} !",
-                    coord,
-                    splatData.Size(),
-                    requiredSize);
-            }
-
-            return false;
-        }
-
-        splatBytes.Resize(requiredSize);
-        Memory::Copy(splatBytes.Data(), splatData.Data(), requiredSize);
-    }
-
-    FlipSplatRowsForUpload(cellSize, splatBytes, outUploadBytes);
-
-    return true;
-}
-
-///synthesizes auto splat weights and prepares them for upload.
-///always sampled at full resolution, since the splat texture is a fixed cellSize x cellSize regardless of the mesh LOD in use
-static bool PrepareAutoSplatBytes(
-    const TerrainGenerator& generator,
-    const StreamingCellInfo& cellInfo,
-    Span<const float> paddedHeights,
-    Span<const ubyte> erosionMasks,
-    Array<ubyte>& outUploadBytes)
-{
-    const uint32 cellSize = cellInfo.extent.x;
-    const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;
-
-    if (paddedHeights.Size() != size_t(paddedSize) * size_t(paddedSize))
-    {
-        return false;
-    }
-
-    Array<ubyte> splatWeights;
-    splatWeights.Resize(size_t(cellSize) * size_t(cellSize) * 4);
-
-    generator.SynthesizeSplatWeights(
-        paddedHeights,
-        erosionMasks,
-        Vec2f(cellInfo.bounds.min.x, cellInfo.bounds.min.z),
-        Vec2f(cellInfo.scale.x, cellInfo.scale.z),
-        cellSize,
-        splatWeights);
-
-    FlipSplatRowsForUpload(cellSize, splatWeights, outUploadBytes);
-
-    return true;
-}
-
-static Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& cellData, const Vec2i& coord, uint32 cellSize)
-{
-    const size_t requiredSize = size_t(cellSize) * size_t(cellSize) * 4;
-
-    Array<ubyte> splatBytes;
-
-    {
-        auto readScope = cellData->GetReadScope();
-
-        ConstByteView splatData = cellData->GetSplatMap();
-
-        if (splatData.Size() < requiredSize)
-        {
-            if (splatData.Size() != 0)
-            {
-                HYP_LOG(WorldGrid, Warning,
-                    "Saved splat map for cell {} is {} bytes but the layer expects {} !",
-                    coord,
-                    splatData.Size(),
-                    requiredSize);
-            }
-
-            return Handle<Texture>::Null();
-        }
-
-        splatBytes.Resize(requiredSize);
-        Memory::Copy(splatBytes.Data(), splatData.Data(), requiredSize);
-    }
-
-    return BuildSplatTextureFromWeights(coord, cellSize, splatBytes);
 }
 
 static void BuildPatchMeshDescAndDataView(const TerrainPatchMeshData& patchMeshData, MeshDesc& outMeshDesc, MeshDataView& outMeshData)
@@ -485,7 +172,7 @@ void TerrainStreamingCell::BeginPendingGeneration()
 #ifdef HYP_EDITOR
     if (!m_isPendingGeneration.Exchange(true, MemoryOrder::ACQUIRE_RELEASE))
     {
-        s_terrainGenerationEditorTask.OnGenerationQueued();
+        TerrainGenerationEditorTask::OnGenerationQueued();
     }
 #endif
 }
@@ -495,7 +182,7 @@ void TerrainStreamingCell::EndPendingGeneration()
 #ifdef HYP_EDITOR
     if (m_isPendingGeneration.Exchange(false, MemoryOrder::ACQUIRE_RELEASE))
     {
-        s_terrainGenerationEditorTask.OnGenerationFinished();
+        TerrainGenerationEditorTask::OnGenerationFinished();
     }
 #endif
 }
@@ -599,22 +286,29 @@ void TerrainStreamingCell::OnStreamStart()
     ResetQuadtree();
     BuildInitialPatchMeshData();
 
-    PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
+    TerrainCellTextures::PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
 
     // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
+    bool hasSplatBytes = false;
+
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
     {
-        if (PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, cellSize, m_splatUploadBytes))
-        {
-            return;
-        }
+        hasSplatBytes = TerrainCellTextures::PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, cellSize, m_splatUploadBytes);
 
-        HYP_LOG(WorldGrid, Warning, "Cell {} splat data could not be loaded!", m_cellInfo.coord);
+        if (!hasSplatBytes)
+        {
+            HYP_LOG(WorldGrid, Warning, "Cell {} splat data could not be loaded!", m_cellInfo.coord);
+        }
     }
 
-    if (m_generator->GetParams().autoPaintSplats)
+    if (!hasSplatBytes && m_generator->GetParams().autoPaintSplats)
     {
-        PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, m_splatUploadBytes);
+        hasSplatBytes = TerrainCellTextures::PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, m_splatUploadBytes);
+    }
+
+    if (hasSplatBytes)
+    {
+        SetSplatWeights(m_splatUploadBytes, /* rowsFlipped */ true);
     }
 }
 
@@ -675,7 +369,7 @@ void TerrainStreamingCell::OnLoaded()
 
     if (m_splatUploadBytes.Any())
     {
-        splatTexture = CreateSplatTexture(m_cellInfo.coord, cellSize, m_splatUploadBytes);
+        splatTexture = TerrainCellTextures::CreateSplatTexture(m_cellInfo.coord, cellSize, m_splatUploadBytes);
     }
 
     m_splatUploadBytes.Clear();
@@ -684,7 +378,7 @@ void TerrainStreamingCell::OnLoaded()
 
     if (m_normalMapUploadBytes.Any())
     {
-        normalMapTexture = CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, m_normalMapUploadBytes);
+        normalMapTexture = TerrainCellTextures::CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, m_normalMapUploadBytes);
     }
 
     m_normalMapUploadBytes.Clear();
@@ -802,6 +496,9 @@ void TerrainStreamingCell::OnRemoved()
     m_collisionShape.Reset();
     m_paddedHeights = Array<float>();
     m_erosionMasks = Array<ubyte>();
+    m_splatWeights = Array<ubyte>();
+    m_grassHeightsSnapshot.Reset();
+    m_grassSplatWeightsSnapshot.Reset();
 }
 
 void TerrainStreamingCell::DetachFromScene()
@@ -824,9 +521,13 @@ void TerrainStreamingCell::DetachFromScene()
     {
         patch = TerrainPatch {};
     }
+
+    // grass tiles aren't in the node hierarchy, so they're removed on their own
+    ReleaseAllGrass();
+    m_grassTiles.Clear();
 }
 
-void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& cellData)
+void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -843,7 +544,7 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
         return;
     }
 
-    Handle<Texture> splatTexture = BuildPaintedSplatTexture(cellData, m_cellInfo.coord, cellSize);
+    Handle<Texture> splatTexture = TerrainCellTextures::BuildPaintedSplatTexture(cellData, m_cellInfo.coord, cellSize);
 
     if (!splatTexture.IsValid())
     {
@@ -851,6 +552,20 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
     }
 
     ApplySplatTexture(splatTexture);
+
+    {
+        auto readScope = cellData->GetReadScope();
+
+        const ConstByteView splatData = cellData->GetSplatMap();
+
+        Array<ubyte> splatBytes;
+        splatBytes.Resize(splatData.Size());
+        Memory::Copy(splatBytes.Data(), splatData.Data(), splatData.Size());
+
+        SetSplatWeights(splatBytes, /* rowsFlipped */ false);
+    }
+
+    InvalidateGrass(minVertex, maxVertex);
 }
 
 void TerrainStreamingCell::RefreshAutoSplat()
@@ -876,12 +591,16 @@ void TerrainStreamingCell::RefreshAutoSplat()
 
     Array<ubyte> splatUploadBytes;
 
-    if (!PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, splatUploadBytes))
+    if (!TerrainCellTextures::PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, splatUploadBytes))
     {
         return;
     }
 
-    ApplySplatTexture(CreateSplatTexture(m_cellInfo.coord, GetCellSize(), splatUploadBytes));
+    ApplySplatTexture(TerrainCellTextures::CreateSplatTexture(m_cellInfo.coord, GetCellSize(), splatUploadBytes));
+
+    SetSplatWeights(splatUploadBytes, /* rowsFlipped */ true);
+
+    InvalidateGrass(Vec2i(0, 0), Vec2i(int32(GetCellSize()) - 1, int32(GetCellSize()) - 1));
 }
 
 void TerrainStreamingCell::ApplySplatTexture(const Handle<Texture>& splatTexture)
@@ -927,9 +646,9 @@ void TerrainStreamingCell::RefreshNormalMap()
     const uint32 cellSize = GetCellSize();
 
     Array<ubyte> normalMapBytes;
-    PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, normalMapBytes);
+    TerrainCellTextures::PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, normalMapBytes);
 
-    ApplyNormalMapTexture(CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, normalMapBytes));
+    ApplyNormalMapTexture(TerrainCellTextures::CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, normalMapBytes));
 }
 
 void TerrainStreamingCell::BindCellMaterialTexture(MaterialTextureKey key, const Handle<Texture>& texture)
@@ -999,6 +718,9 @@ void TerrainStreamingCell::RebuildMesh(const Handle<TerrainCellData>& cellData, 
     }
 
     RebuildPatchesInRegion(rebuildMinVertex, rebuildMaxVertex);
+
+    m_grassHeightsSnapshot.Reset();
+    InvalidateGrass(rebuildMinVertex, rebuildMaxVertex);
 
     RefreshNormalMap();
 
@@ -1293,6 +1015,8 @@ void TerrainStreamingCell::UpdateLodSelection(Span<const Vec3f> viewpoints)
     SelectTerrainQuadtreePatches(selectionInput, nodeInRange, patchDrawn);
 
     m_nodeInRange = std::move(nodeInRange);
+
+    UpdateGrassSelection(viewpoints);
 
     for (uint32 patchIndex = 0; patchIndex < numPatches; patchIndex++)
     {
@@ -1861,6 +1585,521 @@ void TerrainStreamingCell::RebuildPatchesInRegion(const Vec2i& minVertex, const 
 }
 
 #pragma endregion Quadtree
+
+#pragma region Grass
+
+uint32 TerrainStreamingCell::GetNumGrassTilesPerSide() const
+{
+    const uint32 cellQuads = GetCellSize() > 1 ? GetCellSize() - 1 : 0;
+
+    return (cellQuads + TerrainGrassTileQuads - 1) / TerrainGrassTileQuads;
+}
+
+void TerrainStreamingCell::SetSplatWeights(const Array<ubyte>& splatBytes, bool rowsFlipped)
+{
+    const uint32 cellSize = GetCellSize();
+    const size_t rowSize = size_t(cellSize) * TerrainNumSplatLayers;
+
+    if (splatBytes.Size() < rowSize * cellSize)
+    {
+        m_splatWeights = Array<ubyte>();
+
+        return;
+    }
+
+    m_splatWeights.Resize(rowSize * cellSize);
+
+    for (uint32 z = 0; z < cellSize; z++)
+    {
+        const uint32 sourceRow = rowsFlipped ? cellSize - 1 - z : z;
+
+        Memory::Copy(m_splatWeights.Data() + z * rowSize, splatBytes.Data() + sourceRow * rowSize, rowSize);
+    }
+
+    m_grassSplatWeightsSnapshot.Reset();
+}
+
+void TerrainStreamingCell::InvalidateGrass(const Vec2i& minVertex, const Vec2i& maxVertex)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const uint32 tilesPerSide = GetNumGrassTilesPerSide();
+
+    if (m_grassTiles.Size() != size_t(tilesPerSide) * tilesPerSide)
+    {
+        return;
+    }
+
+    const int32 tileQuads = int32(TerrainGrassTileQuads);
+
+    for (uint32 tileZ = 0; tileZ < tilesPerSide; tileZ++)
+    {
+        for (uint32 tileX = 0; tileX < tilesPerSide; tileX++)
+        {
+            const int32 tileMinX = int32(tileX) * tileQuads;
+            const int32 tileMinZ = int32(tileZ) * tileQuads;
+
+            if (maxVertex.x < tileMinX - 1 || minVertex.x > tileMinX + tileQuads + 1
+                || maxVertex.y < tileMinZ - 1 || minVertex.y > tileMinZ + tileQuads + 1)
+            {
+                continue;
+            }
+
+            GrassTile& tile = m_grassTiles[tileZ * tilesPerSide + tileX];
+
+            tile.isBuilt = false;
+            tile.buildGeneration++;
+        }
+    }
+}
+
+void TerrainStreamingCell::UpdateGrassSelection(Span<const Vec3f> viewpoints)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_isRemoved || !m_node.IsValid() || !m_layer.IsValid() || EngineGlobals::IsHeadless())
+    {
+        return;
+    }
+
+    const uint32 tilesPerSide = GetNumGrassTilesPerSide();
+    const size_t numTiles = size_t(tilesPerSide) * tilesPerSide;
+
+    if (m_grassTiles.Size() != numTiles)
+    {
+        ReleaseAllGrass();
+
+        m_grassTiles.Resize(numTiles);
+    }
+
+    const uint32 coverVersion = m_layer->GetGroundCoverResources().GetVersion();
+
+    const bool isEnabled = g_cvTerrainGrass.Get() && m_splatWeights.Any() && viewpoints.Size() != 0;
+
+    const float plantRange = MathUtil::Max(g_cvTerrainGrassRange.Get(), 0.0f);
+
+    // released a tile's width further out than planted, so a viewpoint on a tile boundary doesn't churn
+    const float releaseRange = plantRange + float(TerrainGrassTileQuads) * MathUtil::Max(m_cellInfo.scale.x, m_cellInfo.scale.z);
+
+    const BoundingBox& cellBounds = m_cellInfo.bounds;
+    const uint32 cellQuads = GetCellSize() - 1;
+
+    const float nearRange = MathUtil::Max(g_cvTerrainGrassNearRange.Get(), 0.0f);
+    const float nearHysteresis = float(TerrainGrassTileQuads) * 0.5f * MathUtil::Max(m_cellInfo.scale.x, m_cellInfo.scale.z);
+
+    Array<uint32> tilesToBuild;
+    Array<uint8> tileDetailLevels;
+    Array<uint32> tilesToRelease;
+
+    for (uint32 tileIndex = 0; tileIndex < uint32(numTiles); tileIndex++)
+    {
+        GrassTile& tile = m_grassTiles[tileIndex];
+
+        float nearestDistance = MathUtil::MaxSafeValue<float>();
+
+        if (isEnabled)
+        {
+            const uint32 tileX = tileIndex % tilesPerSide;
+            const uint32 tileZ = tileIndex / tilesPerSide;
+
+            const float minX = float(tileX * TerrainGrassTileQuads);
+            const float minZ = float(tileZ * TerrainGrassTileQuads);
+            const float maxX = float(MathUtil::Min((tileX + 1) * TerrainGrassTileQuads, cellQuads));
+            const float maxZ = float(MathUtil::Min((tileZ + 1) * TerrainGrassTileQuads, cellQuads));
+
+            const BoundingBox tileBounds(
+                Vec3f(cellBounds.min.x + minX * m_cellInfo.scale.x, cellBounds.min.y, cellBounds.min.z + minZ * m_cellInfo.scale.z),
+                Vec3f(cellBounds.min.x + maxX * m_cellInfo.scale.x, cellBounds.max.y, cellBounds.min.z + maxZ * m_cellInfo.scale.z));
+
+            for (const Vec3f& viewpoint : viewpoints)
+            {
+                nearestDistance = MathUtil::Min(nearestDistance, DistanceToBounds(viewpoint, tileBounds));
+            }
+        }
+
+        if (nearestDistance <= plantRange)
+        {
+            uint8 detailLevel = tile.detailLevel;
+
+            if (nearestDistance <= nearRange)
+            {
+                detailLevel = 0;
+            }
+            else if (nearestDistance > nearRange + nearHysteresis)
+            {
+                detailLevel = 1;
+            }
+
+            // a tile being replanted keeps its old cover until the replacement is built
+            if (!tile.isBuildQueued && (!tile.isBuilt || detailLevel != tile.detailLevel || tile.coverVersion != coverVersion))
+            {
+                tilesToBuild.PushBack(tileIndex);
+                tileDetailLevels.PushBack(detailLevel);
+            }
+        }
+        else if (nearestDistance > releaseRange && (tile.isBuilt || tile.slots.Any()))
+        {
+            tilesToRelease.PushBack(tileIndex);
+        }
+    }
+
+    if (tilesToBuild.Any())
+    {
+        QueueGrassBuilds(std::move(tilesToBuild), std::move(tileDetailLevels));
+    }
+
+    if (tilesToRelease.Any())
+    {
+        for (uint32 tileIndex : tilesToRelease)
+        {
+            // stops it being replanted before the deferred release runs
+            m_grassTiles[tileIndex].isBuilt = false;
+        }
+
+        // entities can't be removed while systems are processing
+        if (ThreadBase* simThread = GetThreadById(g_simThread))
+        {
+            simThread->GetScheduler().Enqueue(
+                [weakThis = WeakHandleFromThis(), tilesToRelease = std::move(tilesToRelease)]() mutable
+                {
+                    if (Handle<TerrainStreamingCell> cell = weakThis.Lock(); cell.IsValid())
+                    {
+                        cell->ReleaseUnwantedGrassTiles(std::move(tilesToRelease));
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
+}
+
+void TerrainStreamingCell::QueueGrassBuilds(Array<uint32>&& tileIndices, Array<uint8>&& detailLevels)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    Array<uint32> tileBuildGenerations;
+    tileBuildGenerations.Reserve(tileIndices.Size());
+
+    for (uint32 tileIndex : tileIndices)
+    {
+        m_grassTiles[tileIndex].isBuildQueued = true;
+
+        tileBuildGenerations.PushBack(m_grassTiles[tileIndex].buildGeneration);
+    }
+
+    if (!m_grassHeightsSnapshot.IsValid())
+    {
+        m_grassHeightsSnapshot = MakeShared<Array<float>>(m_paddedHeights);
+    }
+
+    if (!m_grassSplatWeightsSnapshot.IsValid())
+    {
+        m_grassSplatWeightsSnapshot = MakeShared<Array<ubyte>>(m_splatWeights);
+    }
+
+    TerrainGroundCoverResources& coverResources = m_layer->GetGroundCoverResources();
+
+    Array<TerrainCoverLayerPlan> layerPlans = coverResources.GetPlans();
+
+    const float densityScale = MathUtil::Max(g_cvTerrainGrassDensity.Get(), 0.01f);
+
+    for (TerrainCoverLayerPlan& layerPlan : layerPlans)
+    {
+        layerPlan.spacing /= MathUtil::Sqrt(densityScale);
+    }
+
+    TaskSystem::GetInstance().Enqueue(
+        [weakThis = WeakHandleFromThis(),
+            paddedHeights = m_grassHeightsSnapshot,
+            splatWeights = m_grassSplatWeightsSnapshot,
+            cellSize = GetCellSize(),
+            cellMin = m_cellInfo.bounds.min,
+            cellScale = m_cellInfo.scale,
+            coord = m_cellInfo.coord,
+            tilesPerSide = GetNumGrassTilesPerSide(),
+            layerPlans = std::move(layerPlans),
+            coverVersion = coverResources.GetVersion(),
+            tileIndices = std::move(tileIndices),
+            detailLevels = std::move(detailLevels),
+            tileBuildGenerations = std::move(tileBuildGenerations),
+            buildGeneration = m_grassBuildGeneration]()
+        {
+            Array<GrassTileBuild> tileBuilds;
+            tileBuilds.Reserve(tileIndices.Size());
+
+            const uint32 cellQuads = cellSize - 1;
+
+            for (uint32 buildIndex = 0; buildIndex < uint32(tileIndices.Size()); buildIndex++)
+            {
+                const uint32 tileIndex = tileIndices[buildIndex];
+                const uint8 detailLevel = detailLevels[buildIndex];
+
+                const uint32 tileX = tileIndex % tilesPerSide;
+                const uint32 tileZ = tileIndex / tilesPerSide;
+
+                TerrainGrassTileInput input;
+                input.paddedHeights = paddedHeights->ToSpan();
+                input.splatWeights = splatWeights->ToSpan();
+                input.cellSize = cellSize;
+                input.cellMin = cellMin;
+                input.cellScale = cellScale;
+                input.tileMin = Vec2u(tileX * TerrainGrassTileQuads, tileZ * TerrainGrassTileQuads);
+                input.tileMax = Vec2u(
+                    MathUtil::Min((tileX + 1) * TerrainGrassTileQuads, cellQuads),
+                    MathUtil::Min((tileZ + 1) * TerrainGrassTileQuads, cellQuads));
+                input.seed = uint32(HashCode::GetHashCode(coord.x).Combine(HashCode::GetHashCode(coord.y)).Combine(HashCode::GetHashCode(tileIndex)).Value());
+                input.stretch = detailLevel == 0 ? 1.0f : s_grassFarStretch;
+                input.layers = layerPlans.ToSpan();
+
+                GrassTileBuild tileBuild;
+                tileBuild.tileIndex = tileIndex;
+                tileBuild.detailLevel = detailLevel;
+                tileBuild.coverVersion = coverVersion;
+                tileBuild.tileBuildGeneration = tileBuildGenerations[buildIndex];
+
+                TerrainGrass::GenerateTile(input, tileBuild.output);
+
+                tileBuilds.PushBack(std::move(tileBuild));
+            }
+
+            ThreadBase* simThread = GetThreadById(g_simThread);
+
+            if (!simThread)
+            {
+                return;
+            }
+
+            simThread->GetScheduler().Enqueue(
+                [weakThis, tileBuilds = std::move(tileBuilds), buildGeneration]() mutable
+                {
+                    if (Handle<TerrainStreamingCell> cell = weakThis.Lock(); cell.IsValid())
+                    {
+                        cell->ApplyGrassBuilds(std::move(tileBuilds), buildGeneration);
+                    }
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void TerrainStreamingCell::ApplyGrassBuilds(Array<GrassTileBuild>&& tileBuilds, uint32 buildGeneration)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const bool isCurrent = buildGeneration == m_grassBuildGeneration && !m_isRemoved && m_node.IsValid() && m_layer.IsValid() && !IsStale();
+
+    const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
+
+    if (!isCurrent || !entityManager.IsValid())
+    {
+        for (const GrassTileBuild& tileBuild : tileBuilds)
+        {
+            if (tileBuild.tileIndex < m_grassTiles.Size())
+            {
+                m_grassTiles[tileBuild.tileIndex].isBuildQueued = false;
+            }
+        }
+
+        return;
+    }
+
+    TerrainGroundCoverResources& coverResources = m_layer->GetGroundCoverResources();
+
+    const uint32 coverVersion = coverResources.GetVersion();
+    const Array<TerrainCoverLayer>& coverLayers = coverResources.GetLayers();
+    const uint32 numSlots = coverResources.GetNumSlots();
+
+    bool anyChanged = false;
+
+    for (GrassTileBuild& tileBuild : tileBuilds)
+    {
+        if (tileBuild.tileIndex >= m_grassTiles.Size())
+        {
+            continue;
+        }
+
+        GrassTile& tile = m_grassTiles[tileBuild.tileIndex];
+
+        tile.isBuildQueued = false;
+
+        // planted from ground cover that has since changed - asked for again from the current one
+        if (tileBuild.coverVersion != coverVersion
+            || tileBuild.tileBuildGeneration != tile.buildGeneration
+            || tileBuild.output.slots.Size() != numSlots)
+        {
+            continue;
+        }
+
+        if (tile.slots.Size() != numSlots || tile.coverVersion != coverVersion)
+        {
+            for (GrassTileSlot& slot : tile.slots)
+            {
+                ReleaseGrassTileSlot(slot);
+            }
+
+            tile.slots.Clear();
+            tile.slots.Resize(numSlots);
+        }
+
+        tile.isBuilt = true;
+        tile.detailLevel = tileBuild.detailLevel;
+        tile.coverVersion = coverVersion;
+
+        for (const TerrainCoverLayer& coverLayer : coverLayers)
+        {
+            for (const TerrainCoverType& coverType : coverLayer.types)
+            {
+                for (uint32 memberIndex = 0; memberIndex < uint32(coverType.members.Size()); memberIndex++)
+                {
+                    const uint32 slotIndex = coverType.firstSlot + memberIndex;
+
+                    const TerrainCoverMember& member = coverType.members[memberIndex];
+                    const TerrainGrassSlotInstances& instances = tileBuild.output.slots[slotIndex];
+
+                    GrassTileSlot& slot = tile.slots[slotIndex];
+
+                    const uint32 numInstances = uint32(instances.transforms.Size());
+
+                    anyChanged = true;
+
+                    if (numInstances == 0)
+                    {
+                        ReleaseGrassTileSlot(slot);
+
+                        continue;
+                    }
+
+                    // far tiles' shadows are a few texels of the cascade they land in - not worth drawing every patch into it
+                    const Handle<Material>& material = tileBuild.detailLevel == 0 ? member.material : member.materialNoShadows;
+
+                    if (!slot.instanceData.IsValid())
+                    {
+                        slot.instanceData = MakeHandle<InstancedMeshData>(NAME_FMT("TerrainGrass_{}_{}_{}", m_cellInfo.coord, tileBuild.tileIndex, slotIndex));
+                        slot.instanceData->SetIsTransient(true);
+                        InitObject(slot.instanceData);
+                    }
+
+                    {
+                        auto writeScope = slot.instanceData->GetWriteScope();
+
+                        slot.instanceData->SetBufferData(0, instances.transforms.Data(), numInstances);
+                        slot.instanceData->SetBufferData(1, instances.transforms.Data(), numInstances);
+                    }
+
+                    if (!slot.entity.IsValid())
+                    {
+                        EntityInitInfo entityInitInfo {};
+                        entityInitInfo.bvhDepth = 0;
+
+                        slot.entity = MakeHandle<Entity>(NAME_FMT("TerrainGrass_{}_{}_{}", m_cellInfo.coord, tileBuild.tileIndex, slotIndex), entityInitInfo);
+                        slot.entity->SetIsStatic(true);
+
+                        // not part of the node hierarchy, so it's never saved or listed, but it draws and culls like any entity of the scene
+                        entityManager->AddExistingEntity(slot.entity);
+
+                        MeshComponent meshComponent { member.mesh, material };
+                        meshComponent.instanceData = AssetReference(Handle<AssetObject>(slot.instanceData));
+                        meshComponent.numInstances = numInstances;
+
+                        entityManager->AddComponent<MeshComponent>(slot.entity, std::move(meshComponent));
+                    }
+                    else if (MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(slot.entity))
+                    {
+                        meshComponent->numInstances = numInstances;
+                        meshComponent->material = material;
+                    }
+
+                    slot.entity->SetLocalBounds(instances.bounds);
+                    slot.entity->SetNeedsRenderProxyUpdate();
+                }
+            }
+        }
+    }
+
+    if (anyChanged)
+    {
+        m_scene->MarkStaticRenderResourcesChanged();
+    }
+}
+
+void TerrainStreamingCell::ReleaseUnwantedGrassTiles(Array<uint32>&& tileIndices)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_isRemoved || !m_node.IsValid())
+    {
+        return;
+    }
+
+    bool anyReleased = false;
+
+    for (uint32 tileIndex : tileIndices)
+    {
+        if (tileIndex >= m_grassTiles.Size() || m_grassTiles[tileIndex].isBuilt)
+        {
+            continue;
+        }
+
+        ReleaseGrassTile(tileIndex);
+
+        anyReleased = true;
+    }
+
+    if (anyReleased)
+    {
+        m_scene->MarkStaticRenderResourcesChanged();
+    }
+}
+
+void TerrainStreamingCell::ReleaseGrassTileSlot(GrassTileSlot& slot)
+{
+    if (slot.entity.IsValid() && slot.entity->GetEntityManager() != nullptr)
+    {
+        slot.entity->Remove(/* moveToDetached */ false);
+    }
+
+    slot = GrassTileSlot {};
+}
+
+void TerrainStreamingCell::ReleaseGrassTile(uint32 tileIndex)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    GrassTile& tile = m_grassTiles[tileIndex];
+
+    for (GrassTileSlot& slot : tile.slots)
+    {
+        ReleaseGrassTileSlot(slot);
+    }
+
+    const bool isBuildQueued = tile.isBuildQueued;
+    const uint32 buildGeneration = tile.buildGeneration;
+
+    tile = GrassTile {};
+    tile.isBuildQueued = isBuildQueued;
+    tile.buildGeneration = buildGeneration + 1;
+}
+
+void TerrainStreamingCell::ReleaseAllGrass()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    for (uint32 tileIndex = 0; tileIndex < uint32(m_grassTiles.Size()); tileIndex++)
+    {
+        ReleaseGrassTile(tileIndex);
+    }
+
+    m_grassBuildGeneration++;
+}
+
+#pragma endregion Grass
 
 #pragma endregion TerrainStreamingCell
 

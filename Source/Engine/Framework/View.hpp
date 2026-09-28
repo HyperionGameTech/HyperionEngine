@@ -232,6 +232,12 @@ public:
         return flags;
     }
 
+    /// true for views that only draw light blockers
+    HYP_FORCE_INLINE bool IsShadowCasterView() const
+    {
+        return bool(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::SKY_VISIBILITY_VIEW));
+    }
+
     HYP_METHOD()
     const Array<Scene*>& GetScenes() const
     {

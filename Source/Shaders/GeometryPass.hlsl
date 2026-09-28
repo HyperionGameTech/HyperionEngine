@@ -614,7 +614,7 @@ PSOutput PSMain(PSInput input)
                     direct_component += diffuse_lobe * FoliageTransmission(V, L, foliageTransmission);
                 }
 
-                direct_lighting += direct_component * (currentLight.color.rgb * ao * shadow * currentLight.position_intensity.w);
+                direct_lighting += direct_component * (currentLight.color.rgb * currentLight.atmosphere_tint.rgb * ao * shadow * currentLight.position_intensity.w);
             }
     #endif // FORWARD_SHADING
 

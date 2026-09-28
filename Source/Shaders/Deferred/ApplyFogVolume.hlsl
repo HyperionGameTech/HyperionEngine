@@ -401,7 +401,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar,
 
             shadow *= GetCloudShadow(CloudWeatherMapTexture, CloudShadowMapTexture, SamplerLinear, cloudVolume, cloudWeatherMap, cloudShadowMap, currentPos, -lightDir);
 
-            stepLightEnergy += directionalLight.color.rgb * directionalLight.position_intensity.w * phase * shadow;
+            stepLightEnergy += directionalLight.color.rgb * directionalLight.atmosphere_tint.rgb * directionalLight.position_intensity.w * phase * shadow;
         }
 
         stepLightEnergy += bakedPointLightColor * bakedPointLightShadow;

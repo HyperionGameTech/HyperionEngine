@@ -1,0 +1,109 @@
+Mesh wildflower_meadow_LOD0 {
+    AABB = {
+        Min = (-1.2253104, 0, -1.2511611)
+        Max = (1.1293743, 0.9711245, 1.3126196)
+    }
+    LodGeneration = {
+        NumLods = 4
+        TriangleRatios = [
+            1
+            0.5
+            0.25
+            0.125
+        ]
+        MaxRelativeError = 1
+        NormalWeight = 0.5
+        UV0Weight = 1
+        UV1Weight = 0.5
+        WindWeight = 1
+        LockBorder = false
+        Prune = false
+        MaxScreenErrorPixels = 1
+        SourceDataHash = 0
+    }
+    LightmapUVDataHash = 0
+    Lod0DataRevision = 1
+    MeshDesc = {
+        MeshAttributes = {
+            InputLayout = {
+                Mask = 103
+            }
+            Topology = Triangles
+            IndexBufferElemType = UnsignedInt
+        }
+        Lods = [
+            MeshLodDesc {
+                NumVertices = 6090
+                NumIndices = 14616
+                GeometricError = 0
+                ScreenSize = 0
+            }
+            MeshLodDesc {
+                NumVertices = 1824
+                NumIndices = 3648
+                GeometricError = 0
+                ScreenSize = 0.08
+            }
+            MeshLodDesc {
+                NumVertices = 488
+                NumIndices = 732
+                GeometricError = 0
+                ScreenSize = 0.035
+            }
+            MeshLodDesc {
+                NumVertices = 0
+                NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
+            }
+        ]
+    }
+    LodData = [
+        MeshLodData {
+            VertexData = {
+                Key = "Engine://Meshes/wildflower_meadow_LOD0.VB"
+                Size = 389760
+            }
+            IndexData = {
+                Key = "Engine://Meshes/wildflower_meadow_LOD0.IB"
+                Size = 58464
+            }
+        }
+        MeshLodData {
+            VertexData = {
+                Key = "Engine://Meshes/wildflower_meadow_LOD0.VB1"
+                Size = 116736
+            }
+            IndexData = {
+                Key = "Engine://Meshes/wildflower_meadow_LOD0.IB1"
+                Size = 14592
+            }
+        }
+        MeshLodData {
+            VertexData = {
+                Key = "Engine://Meshes/wildflower_meadow_LOD0.VB2"
+                Size = 31232
+            }
+            IndexData = {
+                Key = "Engine://Meshes/wildflower_meadow_LOD0.IB2"
+                Size = 2928
+            }
+        }
+        MeshLodData {
+            VertexData = {
+                Key = ""
+                Size = 0
+            }
+            IndexData = {
+                Key = ""
+                Size = 0
+            }
+        }
+    ]
+    BvhData = {
+        Key = "Engine://Meshes/wildflower_meadow_LOD0.BVH"
+        Size = 82837
+    }
+    Flags = None
+    UUID = "16f23ced-cbba-4362-a324-870214a483e7"
+}

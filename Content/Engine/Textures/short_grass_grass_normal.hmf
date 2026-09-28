@@ -1,0 +1,35 @@
+Texture short_grass_grass_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8
+        Extent = (1536, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            3145728
+            3932160
+            4128768
+            4177920
+            4190208
+            4193280
+            4194048
+            4194240
+            4194288
+            4194300
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/short_grass_grass_normal.TEX"
+        Size = 4194304
+    }
+    UUID = "2d499274-ad71-4354-9628-91bddb7d15c3"
+}
