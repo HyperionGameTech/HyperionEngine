@@ -6,6 +6,8 @@
 
 #include <Scene/Instancing/InstanceGroup.hpp>
 
+#include <Scene/WorldGrid/Terrain/GroundCover.hpp>
+
 namespace Hyperion {
     
 namespace /* Helpers*/ {
@@ -683,6 +685,400 @@ public:
 DEFINE_EDITOR_COMMAND(PlaceAsInstance);
 
 #pragma endregion PlaceAsInstance
+
+#pragma region ScatterInstances
+
+/// Scatters instances of a prefab over the terrain around a point, all in one undoable action.
+/// Arguments: bucket index, asset name, center x, center z, radius, count, then optionally
+/// seed, min scale, max scale, min spacing, max slope (0..1, 1 - normal.y) and sink depth.
+class EditorCommandScatterInstances final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandScatterInstances);
+
+public:
+    virtual ~EditorCommandScatterInstances() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Scatter Instances";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 6)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandScatterInstances requires bucket index, asset name, center x, center z, radius and count");
+            return;
+        }
+
+        const auto parseFloat = [this](uint32 index, float defaultValue)
+        {
+            float value = defaultValue;
+
+            if (index < NumArguments())
+            {
+                StringUtil::Parse(GetArgument(index), &value);
+            }
+
+            return value;
+        };
+
+        uint32 bucketIndex = 0;
+        if (!StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandScatterInstances: invalid bucket index '{}'", GetArgument(0));
+            return;
+        }
+
+        const ANSIString assetName = GetArgument(1);
+        const Vec2f center { parseFloat(2, 0.0f), parseFloat(3, 0.0f) };
+        const float radius = parseFloat(4, 50.0f);
+        const uint32 count = uint32(MathUtil::Max(parseFloat(5, 10.0f), 0.0f));
+        uint32 seed = uint32(parseFloat(6, 1.0f));
+        const float minScale = parseFloat(7, 0.8f);
+        const float maxScale = parseFloat(8, 1.2f);
+        const float minSpacing = parseFloat(9, 0.0f);
+        const float maxSlope = parseFloat(10, 1.0f);
+        const float sinkDepth = parseFloat(11, 0.2f);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+        if (!currentProject.IsValid() || !activeScene.IsValid() || !activeScene->GetRoot().IsValid() || !activeScene->GetWorld())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandScatterInstances: no project or active scene");
+            return;
+        }
+
+        Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
+        if (!prefab.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandScatterInstances: '{}' is not a prefab", assetName);
+            return;
+        }
+
+        Handle<TerrainWorldGridLayer> terrainLayer;
+
+        if (const Handle<WorldGrid>& worldGrid = activeScene->GetWorld()->GetWorldGrid(); worldGrid.IsValid())
+        {
+            for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
+            {
+                if ((terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer)).IsValid())
+                {
+                    break;
+                }
+            }
+        }
+
+        const auto nextRandom = [&seed]()
+        {
+            seed = seed * 747796405u + 2891336453u;
+            uint32 word = ((seed >> ((seed >> 28u) + 4u)) ^ seed) * 277803737u;
+            word = (word >> 22u) ^ word;
+
+            return float(word) / 4294967295.0f;
+        };
+
+        const auto sampleHeight = [&terrainLayer](const Vec2f& position)
+        {
+            return terrainLayer.IsValid() ? terrainLayer->SampleHeightAtBlocking(position) : 0.0f;
+        };
+
+        Array<Transform> transforms;
+        Array<Vec2f> placedPositions;
+
+        const uint32 maxAttempts = count * 30;
+
+        for (uint32 attempt = 0; attempt < maxAttempts && transforms.Size() < count; attempt++)
+        {
+            const float angle = nextRandom() * 2.0f * 3.14159265f;
+            const float distance = MathUtil::Sqrt(nextRandom()) * radius;
+            const Vec2f position = center + Vec2f(MathUtil::Cos(angle), MathUtil::Sin(angle)) * distance;
+
+            bool tooClose = false;
+
+            for (const Vec2f& placedPosition : placedPositions)
+            {
+                if ((placedPosition - position).Length() < minSpacing)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (tooClose)
+            {
+                continue;
+            }
+
+            const float height = sampleHeight(position);
+            const float step = 1.0f;
+            const Vec3f normal = Vec3f(
+                sampleHeight(position - Vec2f(step, 0.0f)) - sampleHeight(position + Vec2f(step, 0.0f)),
+                2.0f * step,
+                sampleHeight(position - Vec2f(0.0f, step)) - sampleHeight(position + Vec2f(0.0f, step)))
+                                     .Normalized();
+
+            if (1.0f - normal.y > maxSlope)
+            {
+                continue;
+            }
+
+            const float scale = MathUtil::Lerp(minScale, maxScale, nextRandom());
+            const Quat4f rotation = Quat4f::AxisAngles(Vec3f::UnitY(), nextRandom() * 2.0f * 3.14159265f);
+
+            transforms.PushBack(Transform(Vec3f(position.x, height - sinkDepth * scale, position.y), Vec3f(scale), rotation));
+            placedPositions.PushBack(position);
+        }
+
+        if (transforms.Empty())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandScatterInstances: no valid positions found for '{}'", assetName);
+            return;
+        }
+
+        Handle<InstanceGroup> group = InstanceGroup::Find(activeScene.Get(), prefab);
+        const bool createsGroup = !group.IsValid();
+
+        if (createsGroup)
+        {
+            group = InstanceGroup::Create(activeScene.Get(), prefab);
+        }
+
+        if (!group.IsValid())
+        {
+            HYP_LOG(Editor, Error, "EditorCommandScatterInstances: failed to create an instance group for '{}'", assetName);
+            return;
+        }
+
+        Array<InstanceId> instanceIds;
+
+        for (uint32 index = 0; index < transforms.Size(); index++)
+        {
+            instanceIds.PushBack(group->ReserveInstanceId());
+        }
+
+        HYP_LOG(Editor, Info, "EditorCommandScatterInstances: placing {} instances of '{}'", transforms.Size(), assetName);
+
+        Handle<Node> sceneRoot = activeScene->GetRoot();
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            HYP_FORMAT("Scatter {}", assetName),
+            Proc<EditorActionFunctions()>(
+                [group, sceneRoot, createsGroup, instanceIds, transforms]() -> EditorActionFunctions
+                {
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [group, sceneRoot, createsGroup, instanceIds, transforms](EditorSubsystem*, EditorProject*)
+                            {
+                                if (createsGroup)
+                                {
+                                    sceneRoot->AddChild(group);
+                                }
+
+                                for (uint32 index = 0; index < instanceIds.Size(); index++)
+                                {
+                                    group->AddInstanceWithId(instanceIds[index], transforms[index]);
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [group, createsGroup, instanceIds](EditorSubsystem*, EditorProject*)
+                            {
+                                for (InstanceId instanceId : instanceIds)
+                                {
+                                    group->RemoveInstance(instanceId);
+                                }
+
+                                if (createsGroup)
+                                {
+                                    group->Remove();
+                                }
+                            })
+                    };
+                }));
+
+        InitObject(action);
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ScatterInstances);
+
+#pragma endregion ScatterInstances
+
+#pragma region NewGroundCover
+
+class EditorCommandNewGroundCover final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandNewGroundCover);
+
+public:
+    virtual ~EditorCommandNewGroundCover() override = default;
+
+    virtual String GetText() const override
+    {
+        return "New Ground Cover";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+
+        if (!currentProject.IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot create ground cover asset!");
+
+            return;
+        }
+
+        Name name = Name::Unique("NewGroundCover");
+        bool apply = false;
+
+        Array<Pair<ANSIString, GroundCoverType>> typeSpecs;
+        Array<uint32> typeSplatLayers;
+
+        for (int argumentIndex = 0; argumentIndex < NumArguments(); argumentIndex++)
+        {
+            const String& argument = GetArgument(argumentIndex);
+
+            if (argument == "--apply")
+            {
+                apply = true;
+
+                continue;
+            }
+
+            const Array<String> parts = argument.Split(':');
+
+            if (parts.Size() == 1 && argumentIndex == 0)
+            {
+                name = CreateNameFromDynamicString(ANSIString(argument));
+
+                continue;
+            }
+
+            GroundCoverType type;
+
+            Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(AssetBuckets::Prefabs, Name(ANSIString(parts[0]))));
+
+            if (!prefab.IsValid())
+            {
+                HYP_LOG(Editor, Warning, "EditorCommandNewGroundCover: '{}' is not a prefab", parts[0]);
+
+                continue;
+            }
+
+            type.prefab = prefab;
+
+            if (parts.Size() > 1)
+            {
+                StringUtil::Parse(parts[1], &type.weight);
+            }
+
+            uint32 splatLayer = 0;
+
+            if (parts.Size() > 2)
+            {
+                StringUtil::Parse(parts[2], &splatLayer);
+            }
+
+            typeSpecs.EmplaceBack(ANSIString(parts[0]), type);
+            typeSplatLayers.PushBack(MathUtil::Min(splatLayer, TerrainNumSplatLayers - 1));
+        }
+
+        Handle<GroundCover> groundCover = MakeHandle<GroundCover>(name);
+
+        for (uint32 specIndex = 0; specIndex < uint32(typeSpecs.Size()); specIndex++)
+        {
+            const auto layerIt = groundCover->layers.FindIf(
+                [splatLayer = typeSplatLayers[specIndex]](const GroundCoverLayer& candidate)
+                {
+                    return candidate.splatLayer == splatLayer;
+                });
+
+            GroundCoverLayer* layer = layerIt != groundCover->layers.End() ? &*layerIt : nullptr;
+
+            if (layer == nullptr)
+            {
+                GroundCoverLayer& newLayer = groundCover->layers.EmplaceBack();
+                newLayer.splatLayer = typeSplatLayers[specIndex];
+
+                layer = &newLayer;
+            }
+
+            layer->types.PushBack(typeSpecs[specIndex].second);
+        }
+
+        InitObject(groundCover);
+
+        Array<Handle<TerrainWorldGridLayer>> terrainLayers;
+
+        if (apply)
+        {
+            if (Handle<Scene> activeScene = subsystem->GetActiveScene(); activeScene.IsValid() && activeScene->GetWorld())
+            {
+                if (const Handle<WorldGrid>& worldGrid = activeScene->GetWorld()->GetWorldGrid(); worldGrid.IsValid())
+                {
+                    for (const Handle<WorldGridLayer>& worldGridLayer : worldGrid->GetLayers())
+                    {
+                        if (Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(worldGridLayer); terrainLayer.IsValid())
+                        {
+                            terrainLayers.PushBack(std::move(terrainLayer));
+                        }
+                    }
+                }
+            }
+        }
+
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+            GetText(),
+            Proc<EditorActionFunctions()>(
+                [groundCover, terrainLayers]() -> EditorActionFunctions
+                {
+                    Array<Handle<GroundCover>> previousGroundCovers;
+
+                    for (const Handle<TerrainWorldGridLayer>& terrainLayer : terrainLayers)
+                    {
+                        previousGroundCovers.PushBack(terrainLayer->GetGroundCover());
+                    }
+
+                    return EditorActionFunctions {
+                        .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [groundCover, terrainLayers](EditorSubsystem*, EditorProject*)
+                            {
+                                GetCurrentAssetRegistry()->PutAssetUnique(groundCover);
+
+                                for (const Handle<TerrainWorldGridLayer>& terrainLayer : terrainLayers)
+                                {
+                                    terrainLayer->SetGroundCover(groundCover);
+                                }
+                            }),
+                        .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                            [groundCover, terrainLayers, previousGroundCovers](EditorSubsystem*, EditorProject*)
+                            {
+                                for (uint32 index = 0; index < uint32(terrainLayers.Size()); index++)
+                                {
+                                    terrainLayers[index]->SetGroundCover(previousGroundCovers[index]);
+                                }
+
+                                GetCurrentAssetRegistry()->RemoveAsset(groundCover);
+                            })
+                    };
+                }));
+
+        InitObject(action);
+
+        currentProject->GetActionStack()->PushAction(action);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(NewGroundCover);
+
+#pragma endregion NewGroundCover
 
 #pragma region DropAssetOnEntity
 

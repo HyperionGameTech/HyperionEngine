@@ -63,7 +63,6 @@
 
 namespace Hyperion {
 
-
 static CVar<float> s_cvCSMMaxDistance("Rendering.Shadows.CSMMaxDistance", 500.0f);
 
 // 0 = uniform splits, 1 = logarithmic. near cascades stay small as CSMMaxDistance grows the closer this is to 1
@@ -1043,7 +1042,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         continue;
                     }
 
-                    if (!meshComponent.mesh || !meshComponent.material)
+                    if (!meshComponent.mesh || !meshComponent.material
+                        || (IsShadowCasterView() && (meshComponent.material->GetAttributes().flags & MAF_DISABLE_SHADOW_CASTING)))
                     {
                         continue;
                     }
@@ -1114,7 +1114,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                     }
 
-                    if (!meshComponent.mesh || !meshComponent.material)
+                    if (!meshComponent.mesh || !meshComponent.material
+                        || (IsShadowCasterView() && (meshComponent.material->GetAttributes().flags & MAF_DISABLE_SHADOW_CASTING)))
                     {
                         continue;
                     }
@@ -1167,7 +1168,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         continue;
                     }
 
-                    if (!meshComponent.mesh || !meshComponent.material)
+                    if (!meshComponent.mesh || !meshComponent.material
+                        || (IsShadowCasterView() && (meshComponent.material->GetAttributes().flags & MAF_DISABLE_SHADOW_CASTING)))
                     {
                         continue;
                     }
@@ -1238,7 +1240,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                     }
 
-                    if (!meshComponent.mesh || !meshComponent.material)
+                    if (!meshComponent.mesh || !meshComponent.material
+                        || (IsShadowCasterView() && (meshComponent.material->GetAttributes().flags & MAF_DISABLE_SHADOW_CASTING)))
                     {
                         continue;
                     }
@@ -1291,7 +1294,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                         continue;
                     }
 
-                    if (!meshComponent.mesh || !meshComponent.material)
+                    if (!meshComponent.mesh || !meshComponent.material
+                        || (IsShadowCasterView() && (meshComponent.material->GetAttributes().flags & MAF_DISABLE_SHADOW_CASTING)))
                     {
                         continue;
                     }
@@ -1362,7 +1366,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                     }
 
-                    if (!meshComponent.mesh || !meshComponent.material)
+                    if (!meshComponent.mesh || !meshComponent.material
+                        || (IsShadowCasterView() && (meshComponent.material->GetAttributes().flags & MAF_DISABLE_SHADOW_CASTING)))
                     {
                         continue;
                     }

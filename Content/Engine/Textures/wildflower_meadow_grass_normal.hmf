@@ -1,0 +1,35 @@
+Texture wildflower_meadow_grass_normal {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8
+        Extent = (2304, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            4718592
+            5898240
+            6193152
+            6266880
+            6285312
+            6289920
+            6291072
+            6291360
+            6291432
+            6291448
+            6291456
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/wildflower_meadow_grass_normal.TEX"
+        Size = 6291460
+    }
+    UUID = "3c1a12c6-e4a2-4ba5-8f97-4b796d1e3be9"
+}

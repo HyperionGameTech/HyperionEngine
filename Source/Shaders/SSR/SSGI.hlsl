@@ -413,7 +413,7 @@ float3 CalculateDirectLighting(uint light_index, float3 albedo, float3 P, float3
     Light light = lights[light_index];
     ShadowMap shadowMap = shadowMaps[light_index];
 
-    float3 light_color = light.color.rgb * light.position_intensity.w;
+    float3 light_color = light.color.rgb * light.atmosphere_tint.rgb * light.position_intensity.w;
 
     float3 L = CalculateLightDirection(light, P);
 

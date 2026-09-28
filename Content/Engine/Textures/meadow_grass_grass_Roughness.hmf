@@ -1,0 +1,35 @@
+Texture meadow_grass_grass_Roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = R8
+        Extent = (1024, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            524288
+            655360
+            688128
+            696320
+            698368
+            698880
+            699008
+            699040
+            699048
+            699050
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/meadow_grass_grass_Roughness.TEX"
+        Size = 699051
+    }
+    UUID = "a0fd9485-cff1-4055-a19c-08eef5cba5da"
+}

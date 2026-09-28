@@ -488,6 +488,10 @@ PSOutput PSMain(PSInput input)
 
     float4 light_color = currentLight.color;
 
+#ifdef LIGHT_TYPE_DIRECTIONAL
+    light_color.rgb *= currentLight.atmosphere_tint.rgb;
+#endif
+
 #ifdef LIGHT_TYPE_POINT
     if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
     {

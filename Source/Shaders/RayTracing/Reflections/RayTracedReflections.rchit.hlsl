@@ -169,7 +169,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
             ? GetSquareFalloffAttenuation(position.xyz, light.position_intensity.xyz, radius)
             : 1.0;
 
-        float4 local_light = (float4)NdotL * light.color * light.position_intensity.w * attenuation;
+        float4 local_light = (float4)NdotL * float4(light.color.rgb * light.atmosphere_tint.rgb, light.color.a) * light.position_intensity.w * attenuation;
 
         if (bool(light.flags & LF_SHADOW_CASTER))
         {

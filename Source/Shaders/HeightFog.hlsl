@@ -33,6 +33,7 @@ VSOutput VSMain(VSInput input)
 #include "include/Scene.hlsli"
 #include "include/Shared.hlsli"
 #include "include/EnvProbes.hlsli"
+#include "include/Atmosphere.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 DECLARE_SAMPLER(HeightFog, SamplerLinear) SamplerState SamplerLinear;
@@ -68,6 +69,9 @@ struct PSOutput
 
 // smooths out the probe's clouds and sun without losing the horizon gradient the fog has to match
 static const float SkyInscatterMipLevel = 2.0;
+
+// how much of the aerial perspective extinction is Rayleigh (spectral) rather than haze (grey)
+static const float AerialRayleighFraction = 0.7;
 
 float HeightFogPhase(float cosTheta, float anisotropy)
 {
@@ -128,11 +132,14 @@ PSOutput PSMain(PSInput input)
     float opticalDepth = GetHeightFogOpticalDepth(fogStartHeight, viewDirection.y, rayLength);
 
     const float aerialPerspectiveDistance = world_shader_data.atmosphere_fog_params.x;
+    const float aerialDepth = aerialPerspectiveDistance > 0.0 ? rayLength / aerialPerspectiveDistance : 0.0;
 
-    if (aerialPerspectiveDistance > 0.0)
-    {
-        opticalDepth += rayLength / aerialPerspectiveDistance;
-    }
+    opticalDepth += aerialDepth;
+
+    const float3 aerialExtinctionRatio = lerp((float3)1.0, RAYLEIGH_SCATTER_COEFF / dot(RAYLEIGH_SCATTER_COEFF, (float3)(1.0 / 3.0)), AerialRayleighFraction);
+    const float3 aerialSpectralTint = (1.0 - exp(-aerialDepth * aerialExtinctionRatio)) / max(1.0 - exp(-aerialDepth), 1e-4);
+
+    const float aerialWeight = aerialDepth / max(opticalDepth, 1e-4);
 
     const float maxOpacity = world_shader_data.atmosphere_fog_params.w;
     const float transmittance = max(exp(-opticalDepth), 1.0 - maxOpacity);
@@ -163,6 +170,7 @@ PSOutput PSMain(PSInput input)
         const float skyFacing = saturate(viewDirection.y * 4.0 + 1.0);
 
         inscatter += lerp(skyIrradiance, skyRadiance, skyFacing)
+            * lerp((float3)1.0, aerialSpectralTint, aerialWeight)
             * world_shader_data.atmosphere_fog_params.y;
     }
 
@@ -174,7 +182,7 @@ PSOutput PSMain(PSInput input)
         // no direct sun through an overcast sky
         const float overcastWeight = smoothstep(0.5, 1.0, world_shader_data.sky_light_params.w);
 
-        inscatter += sun.color.rgb * sun.position_intensity.w * phase
+        inscatter += sun.color.rgb * sun.atmosphere_tint.rgb * sun.position_intensity.w * phase
             * world_shader_data.atmosphere_fog_params.z
             * saturate(directionToSun.y * 10.0 + 1.0)
             * (1.0 - overcastWeight);

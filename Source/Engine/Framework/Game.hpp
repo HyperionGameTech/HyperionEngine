@@ -114,6 +114,8 @@ public:
 
     void HandleEvent(Event&& event);
 
+    bool IsManagedGame() const;
+
     HYP_METHOD(Property = "IsLaunched", Transient)
     bool IsLaunched() const
     {
@@ -165,8 +167,6 @@ protected:
     void Launch();
 
     void Update(float delta);
-
-    bool IsManagedGame() const;
 
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();

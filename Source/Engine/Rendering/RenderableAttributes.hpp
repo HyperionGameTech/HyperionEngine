@@ -30,7 +30,8 @@ enum MaterialAttributeFlags : uint8
     MAF_DEPTH_BIAS = 0x4,       //!< @title="Depth Bias" @description="Enable depth bias settings"
     MAF_DEPTH_CLAMP = 0x8,      //!< @title="Depth Clamp" @description="Depth clamp enablement - objects with depth outside of the 0..1 range will be clamped at those values respectively, rather than clipped."
     MAF_STENCIL_TEST = 0x10,    //!< @title="Stencil Test" @description="Enable objects with this material to be used in stencil test"
-    MAF_ALPHA_DISCARD = 0x20    //!< @title="Has Alpha Discard" @description="Objects with this material will have pixels culled, where they have an opacity below a specified threshold (set on the Material object)"
+    MAF_ALPHA_DISCARD = 0x20,   //!< @title="Has Alpha Discard" @description="Objects with this material will have pixels culled, where they have an opacity below a specified threshold (set on the Material object)"
+    MAF_DISABLE_SHADOW_CASTING = 0x40 //!< @title="Disable Shadow Casting" @description="Objects with this material are left out of shadow maps and the sky visibility capture - for small or distant detail whose shadows cost more than they show"
 };
 
 HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags);

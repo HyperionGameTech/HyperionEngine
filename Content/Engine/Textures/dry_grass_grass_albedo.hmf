@@ -1,0 +1,35 @@
+Texture dry_grass_grass_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (768, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            1572864
+            1966080
+            2064384
+            2088960
+            2095104
+            2096640
+            2097024
+            2097120
+            2097144
+            0
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/dry_grass_grass_albedo.TEX"
+        Size = 2097148
+    }
+    UUID = "62675369-d82f-41b4-b050-2a713f86526d"
+}

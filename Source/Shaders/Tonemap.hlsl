@@ -68,7 +68,10 @@ float4 PSMain(PSInput input) : SV_Target0
 
     float4 color_with_bloom = shaded_result + bloom_result;
 
-    const float3 graded_color = ApplyColorGrading(color_with_bloom.rgb, world_shader_data);
+    float3 graded_color = ApplyColorGrading(color_with_bloom.rgb, world_shader_data);
+
+    const float2 vignette_offset = (texcoord - 0.5) * float2(1.0, 0.75);
+    graded_color *= lerp(1.0, saturate(1.0 - dot(vignette_offset, vignette_offset) * 1.6), world_shader_data.exposure_grading.w);
 
     float4 color_output = float4(Tonemap(graded_color, world_shader_data.tonemap_operator), 1.0);
 

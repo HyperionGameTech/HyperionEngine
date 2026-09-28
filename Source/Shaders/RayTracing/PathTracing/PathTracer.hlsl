@@ -80,7 +80,7 @@ float3 EvaluateDirectLighting(float3 position, float3 N, float3 view_dir, float3
     for (uint light_index = 0; light_index < rayTracingConstants.numBoundLights; light_index++)
     {
         const Light light = lights[light_index];
-        const float3 light_color = light.color.rgb * light.position_intensity.w;
+        const float3 light_color = light.color.rgb * light.atmosphere_tint.rgb * light.position_intensity.w;
 
         float3 L = (float3)0;
         float attenuation = 1.0;

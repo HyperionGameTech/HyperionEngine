@@ -22,6 +22,7 @@ Mesh TriangleDebugDrawShape {
         SourceDataHash = 0
     }
     LightmapUVDataHash = 0
+    Lod0DataRevision = 1
     MeshDesc = {
         MeshAttributes = {
             InputLayout = {

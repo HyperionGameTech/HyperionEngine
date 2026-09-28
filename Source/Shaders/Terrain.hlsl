@@ -15,6 +15,10 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 
 #define TERRAIN_SPLAT_NOISE_BREAKUP 0.10
 
+// slope over which snow gives way to rock
+#define TERRAIN_SNOW_SHED_SLOPE_START 0.22
+#define TERRAIN_SNOW_SHED_SLOPE_END 0.38
+
 #define TERRAIN_ANTITILE_ROTATION 1.1
 #define TERRAIN_ANTITILE_MASK_SCALE 0.03
 
@@ -415,7 +419,7 @@ void AccumulateTerrainLayer(
         HAS_TEXTURE(material, TerrainNormal##layerIndex), \
         (weight), \
         TERRAIN_LAYER##layerIndex##_SCALE, \
-        TERRAIN_LAYER##layerIndex##_TINT, \
+        GetTerrainLayerTintAtDistance(layerIndex##u, view_distance), \
         TERRAIN_LAYER##layerIndex##_ROUGHNESS_RANGE, \
         ((dominantLayer) == layerIndex##u) ? (macroTilingFade) : 0.0, \
         (context), \
@@ -538,6 +542,10 @@ PSOutput PSMain(PSInput input)
 
         const float splat_noise = TerrainValueNoise(P.xz * 0.035) - 0.5;
         weights = saturate((weights - 0.5) * TERRAIN_SPLAT_SHARPNESS + 0.5 + splat_noise * TERRAIN_SPLAT_NOISE_BREAKUP);
+
+        const float snow_shed = smoothstep(TERRAIN_SNOW_SHED_SLOPE_START, TERRAIN_SNOW_SHED_SLOPE_END, slope + splat_noise * 0.15);
+        weights.y += weights.w * snow_shed;
+        weights.w *= 1.0 - snow_shed;
     }
     else
     {

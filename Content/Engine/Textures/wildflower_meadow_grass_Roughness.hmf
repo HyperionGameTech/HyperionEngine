@@ -1,0 +1,35 @@
+Texture wildflower_meadow_grass_Roughness {
+    TextureDesc = {
+        Type = Texture2D
+        Format = R8
+        Extent = (2304, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            1179648
+            1474560
+            1548288
+            1566720
+            1571328
+            1572480
+            1572768
+            1572840
+            1572858
+            1572862
+            1572864
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/wildflower_meadow_grass_Roughness.TEX"
+        Size = 1572865
+    }
+    UUID = "4672eeb3-7283-4d50-b512-f7c4e7e9ab9c"
+}

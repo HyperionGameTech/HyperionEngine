@@ -430,7 +430,7 @@ PSOutput PSMain(PSInput input)
             const float NdotH = max(0.000001, dot(N, H));
             const float HdotV = max(0.000001, dot(H, V));
 
-            float3 light_color = CURRENT_LIGHT.color.rgb;
+            float3 light_color = CURRENT_LIGHT.color.rgb * CURRENT_LIGHT.atmosphere_tint.rgb;
             float attenuation = 1.0;
             float shadow = 1.0;
 

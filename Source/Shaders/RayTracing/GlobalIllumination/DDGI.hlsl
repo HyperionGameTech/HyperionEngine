@@ -164,7 +164,7 @@ void RayGenMain()
         for (uint light_index = 0; light_index < ddgiConstants.numBoundLights; light_index++)
         {
             const Light light = lights[light_index];
-            float3 light_color = light.color.rgb;
+            float3 light_color = light.color.rgb * light.atmosphere_tint.rgb;
 
             if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
             {

@@ -1297,7 +1297,8 @@ struct SplitMetalnessRoughnessResult
 SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     GltfLoadContext& ctx,
     const Handle<Texture>& combinedTexture,
-    const Name& baseName)
+    const Name& baseName,
+    bool splitMetalness)
 {
     if (!combinedTexture)
     {
@@ -1331,7 +1332,7 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     const uint32 stride = numComponents;
 
     Bitmap<TextureFormat::R8> roughnessBitmap(width, height);
-    Bitmap<TextureFormat::R8> metalnessBitmap(width, height);
+    Bitmap<TextureFormat::R8> metalnessBitmap = splitMetalness ? Bitmap<TextureFormat::R8>(width, height) : Bitmap<TextureFormat::R8>();
 
     for (uint32 row = 0; row < height; ++row)
     {
@@ -1339,7 +1340,11 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
         {
             const ubyte* pixel = src + (row * width + col) * stride;
             roughnessBitmap.GetPixelReference(col, row).SetR(float(pixel[1]) / 255.0f);
-            metalnessBitmap.GetPixelReference(col, row).SetR(float(pixel[2]) / 255.0f);
+
+            if (splitMetalness)
+            {
+                metalnessBitmap.GetPixelReference(col, row).SetR(float(pixel[2]) / 255.0f);
+            }
         }
     }
 
@@ -1352,23 +1357,31 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     channelDesc.wrapMode = srcDesc.wrapMode;
 
     ByteBuffer roughnessData(roughnessBitmap.ToByteView());
-    ByteBuffer metalnessData(metalnessBitmap.ToByteView());
-
     Texture::GenerateMipmaps(channelDesc, roughnessData);
-    // metalness shares the same dimensions so mip layout is identical
-    TextureDesc metalnessDesc = channelDesc;
-    Texture::GenerateMipmaps(metalnessDesc, metalnessData);
 
     Handle<Texture> roughnessTexture = MakeHandle<Texture>(channelDesc, roughnessData.ToByteView());
     roughnessTexture->SetName(NAME_FMT("{}_Roughness", baseName));
 
-    Handle<Texture> metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
-    metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
+    Handle<Texture> metalnessTexture;
+
+    if (splitMetalness)
+    {
+        TextureDesc metalnessDesc = channelDesc;
+        ByteBuffer metalnessData(metalnessBitmap.ToByteView());
+        Texture::GenerateMipmaps(metalnessDesc, metalnessData);
+
+        metalnessTexture = MakeHandle<Texture>(metalnessDesc, metalnessData.ToByteView());
+        metalnessTexture->SetName(NAME_FMT("{}_Metalness", baseName));
+    }
 
     if (ShouldRegisterAssets(ctx.state))
     {
         GetCurrentAssetRegistry()->PutAssetUnique(roughnessTexture);
-        GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
+
+        if (metalnessTexture)
+        {
+            GetCurrentAssetRegistry()->PutAssetUnique(metalnessTexture);
+        }
     }
 
     return { metalnessTexture, roughnessTexture };
@@ -1485,7 +1498,7 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         {
             if constexpr (SeparateMetalnessRoughnessTextures)
             {
-                auto [metalnessTexture, roughnessTexture] = SplitMetalnessRoughnessTexture(ctx, metallicRoughnessTexture, materialName);
+                auto [metalnessTexture, roughnessTexture] = SplitMetalnessRoughnessTexture(ctx, metallicRoughnessTexture, materialName, /* splitMetalness */ metallic > 0.0f);
 
                 if (metalnessTexture)
                 {
@@ -1499,7 +1512,11 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
             }
             else
             {
-                textures[MaterialTextureKey::Metalness] = metallicRoughnessTexture;
+                if (metallic > 0.0f)
+                {
+                    textures[MaterialTextureKey::Metalness] = metallicRoughnessTexture;
+                }
+
                 textures[MaterialTextureKey::Roughness] = metallicRoughnessTexture;
             }
         }
@@ -2155,6 +2172,128 @@ Name DetermineRootName(const LoaderState& state, const cgltf_data& data)
     return NAME("GLTFModel");
 }
 
+static constexpr const char* MsftLodExtension = "MSFT_lod";
+
+// the nodes holding a node's coarser LODs, finest first, and the screen size each takes over at
+bool ReadMsftLod(const cgltf_data& data, const cgltf_node& node, Array<const cgltf_node*>& outLodNodes, Array<float>& outScreenSizes)
+{
+    for (cgltf_size extensionIndex = 0; extensionIndex < node.extensions_count; ++extensionIndex)
+    {
+        const cgltf_extension& extension = node.extensions[extensionIndex];
+
+        if (extension.name == nullptr || extension.data == nullptr || std::strcmp(extension.name, MsftLodExtension) != 0)
+        {
+            continue;
+        }
+
+        const JSON::ParseResult parseResult = JSON::Parse(UTF8StringView(extension.data));
+
+        if (!parseResult.ok || !parseResult.value["ids"].IsArray())
+        {
+            HYP_LOG(Assets, Warning, "GLTF {} extension on node '{}' could not be read", MsftLodExtension, node.name ? node.name : "<unnamed>");
+
+            return false;
+        }
+
+        for (const JSON::Value& id : parseResult.value["ids"].AsArray())
+        {
+            const cgltf_size nodeIndex = cgltf_size(id.ToNumber());
+
+            if (nodeIndex < data.nodes_count)
+            {
+                outLodNodes.PushBack(&data.nodes[nodeIndex]);
+            }
+        }
+    }
+
+    if (outLodNodes.Empty())
+    {
+        return false;
+    }
+
+    // screen coverage per LOD, finest first: the first entry is where LOD 1 takes over
+    if (node.extras.data != nullptr)
+    {
+        const JSON::ParseResult parseResult = JSON::Parse(UTF8StringView(node.extras.data));
+
+        if (parseResult.ok && parseResult.value["MSFT_screencoverage"].IsArray())
+        {
+            for (const JSON::Value& coverage : parseResult.value["MSFT_screencoverage"].AsArray())
+            {
+                outScreenSizes.PushBack(coverage.ToFloat());
+            }
+        }
+    }
+
+    return true;
+}
+
+// folds the meshes of MSFT_lod nodes into the primitives of the node that lists them, matching primitives by index
+void ApplyMsftLods(GltfLoadContext& ctx, Set<const cgltf_node*>& outLodNodes)
+{
+    const cgltf_data& data = ctx.data;
+
+    for (cgltf_size nodeIndex = 0; nodeIndex < data.nodes_count; ++nodeIndex)
+    {
+        const cgltf_node& node = data.nodes[nodeIndex];
+
+        Array<const cgltf_node*> lodNodes;
+        Array<float> screenSizes;
+
+        if (node.mesh == nullptr || !ReadMsftLod(data, node, lodNodes, screenSizes))
+        {
+            continue;
+        }
+
+        GltfMeshResource& baseResource = ctx.meshResources[uint32(node.mesh - data.meshes)];
+
+        for (uint32 lodNumber = 0; lodNumber < uint32(lodNodes.Size()) && lodNumber + 1 < MaxMeshLods; ++lodNumber)
+        {
+            const cgltf_node* lodNode = lodNodes[lodNumber];
+
+            outLodNodes.Insert(lodNode);
+
+            if (lodNode->mesh == nullptr)
+            {
+                break;
+            }
+
+            const GltfMeshResource& lodResource = ctx.meshResources[uint32(lodNode->mesh - data.meshes)];
+
+            MeshLodDesc lodDesc;
+            lodDesc.screenSize = lodNumber < screenSizes.Size() ? screenSizes[lodNumber] : 0.0f;
+
+            for (GltfPrimitiveResource& basePrimitive : baseResource.primitives)
+            {
+                const auto lodPrimitiveIt = lodResource.primitives.FindIf(
+                    [&basePrimitive](const GltfPrimitiveResource& primitive)
+                    {
+                        return primitive.gltfPrimitiveIndex == basePrimitive.gltfPrimitiveIndex;
+                    });
+
+                if (lodPrimitiveIt == lodResource.primitives.End() || !lodPrimitiveIt->mesh.IsValid() || !basePrimitive.mesh.IsValid())
+                {
+                    continue;
+                }
+
+                const Mesh& lodMesh = *lodPrimitiveIt->mesh;
+
+                if (lodMesh.GetMeshAttributes().inputLayout.mask != basePrimitive.mesh->GetMeshAttributes().inputLayout.mask)
+                {
+                    HYP_LOG(Assets, Warning, "GLTF LOD node '{}' has a different vertex layout from node '{}', skipping it",
+                        lodNode->name ? lodNode->name : "<unnamed>", node.name ? node.name : "<unnamed>");
+
+                    continue;
+                }
+
+                auto lodReadScope = lodMesh.GetReadScope();
+
+                basePrimitive.mesh->SetLodData(uint8(lodNumber + 1), lodDesc, lodMesh.GetVertexData(0), ConstByteView(lodMesh.GetIndexData(0)));
+            }
+        }
+    }
+}
+
 Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
 {
     const Name nodeName = MakeNodeName(ctx, node);
@@ -2418,6 +2557,9 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
         }
     }
 
+    Set<const cgltf_node*> lodNodes;
+    ApplyMsftLods(ctx, lodNodes);
+
     Array<const cgltf_node*> rootNodes;
 
     if (data.scene && data.scene->nodes_count != 0)
@@ -2438,7 +2580,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
 
         for (cgltf_size nodeIndex = 0; nodeIndex < data.nodes_count; ++nodeIndex)
         {
-            if (data.nodes[nodeIndex].parent == nullptr)
+            if (data.nodes[nodeIndex].parent == nullptr && !lodNodes.Contains(&data.nodes[nodeIndex]))
             {
                 rootNodes.PushBack(&data.nodes[nodeIndex]);
             }

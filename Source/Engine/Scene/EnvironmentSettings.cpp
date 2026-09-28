@@ -78,7 +78,7 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
         MathUtil::Pow(2.0f, MathUtil::Clamp(exposure.exposureCompensation, -16.0f, 16.0f)),
         MathUtil::Clamp(exposure.contrast, 0.0f, 4.0f),
         MathUtil::Clamp(exposure.saturation, 0.0f, 4.0f),
-        0.0f);
+        MathUtil::Clamp(exposure.vignette, 0.0f, 1.0f));
 
     Mat3x3f whiteBalanceMatrix;
     BuildWhiteBalanceMatrix(

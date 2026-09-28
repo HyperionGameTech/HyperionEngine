@@ -9,6 +9,7 @@
 #include <Scene/WorldGrid/WorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainMeshBuilder.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainQuadtree.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
 
 #include <Streaming/StreamingCell.hpp>
 
@@ -33,6 +34,7 @@ class TerrainWorldGridLayer;
 class TerrainCellData;
 class TerrainGenerator;
 class HeightFieldPhysicsShape;
+class InstancedMeshData;
 struct TerrainGenerationState;
 struct MeshComponent;
 struct TerrainPatchComponent;
@@ -62,8 +64,8 @@ public:
 
     void RebuildMesh(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex);
 
-    /// update cell data to apply the splat map, if one.
-    void UpdateSplatMaterial(const Handle<TerrainCellData>& cellData);
+    /// update cell data to apply the splat map, if one. Only grass over \p minVertex - \p maxVertex is replanted
+    void UpdateSplatMaterial(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex);
 
     /// binds a splat map texture to this cell's material instance
     void ApplySplatTexture(const Handle<Texture>& splatTexture);
@@ -83,6 +85,9 @@ public:
         MeshComponent& meshComponent,
         TerrainPatchComponent& patchComponent,
         bool& outDrawnMeshChanged) const;
+
+    /// sim thread only - plants grass on tiles that come into range of \p viewpoints, and queues releasing tiles that leave it
+    void UpdateGrassSelection(Span<const Vec3f> viewpoints);
 
     /// sim thread only - world space height of the full resolution surface at \p worldXZ, the one the collider uses.
     /// false when the position is outside the tile or its heights aren't loaded
@@ -118,6 +123,39 @@ private:
     {
         uint32 patchIndex = 0;
         TerrainPatchMeshData meshData;
+    };
+
+    struct GrassTileSlot
+    {
+        Handle<Entity> entity;
+        Handle<InstancedMeshData> instanceData;
+    };
+
+    struct GrassTile
+    {
+        /// one per member of every ground cover type, in TerrainGroundCoverResources' slot order
+        Array<GrassTileSlot> slots;
+
+        /// the ground cover version the tile was planted with
+        uint32 coverVersion = 0;
+
+        /// bumped when the tile's heights or splat weights change, so builds started before are dropped
+        uint32 buildGeneration = 0;
+
+        bool isBuilt = false;
+        bool isBuildQueued = false;
+
+        /// 0 near viewpoints, 1 further out, where fewer, wider patches cover the ground
+        uint8 detailLevel = 0;
+    };
+
+    struct GrassTileBuild
+    {
+        uint32 tileIndex = 0;
+        uint8 detailLevel = 0;
+        uint32 coverVersion = 0;
+        uint32 tileBuildGeneration = 0;
+        TerrainGrassTileOutput output;
     };
 
     /// the layer has been regenerated since this cell was created if this returns true
@@ -188,6 +226,20 @@ private:
 
     void UpdateCollider(bool notifyPhysicsWorld);
 
+    uint32 GetNumGrassTilesPerSide() const;
+
+    void SetSplatWeights(const Array<ubyte>& splatBytes, bool rowsFlipped);
+
+    void InvalidateGrass(const Vec2i& minVertex, const Vec2i& maxVertex);
+
+    void QueueGrassBuilds(Array<uint32>&& tileIndices, Array<uint8>&& detailLevels);
+    void ApplyGrassBuilds(Array<GrassTileBuild>&& tileBuilds, uint32 buildGeneration);
+
+    void ReleaseUnwantedGrassTiles(Array<uint32>&& tileIndices);
+    void ReleaseGrassTile(uint32 tileIndex);
+    void ReleaseGrassTileSlot(GrassTileSlot& slot);
+    void ReleaseAllGrass();
+
     /// rebuilds the per-cell normal map from the full resolution heights
     void RefreshNormalMap();
     void ApplyNormalMapTexture(const Handle<Texture>& normalMapTexture);
@@ -254,5 +306,16 @@ private:
 
     /// normal map bytes prepared on the streaming thread, ready for texture upload
     Array<ubyte> m_normalMapUploadBytes;
+
+    /// cellSize^2 * TerrainNumSplatLayers weights, row z first
+    Array<ubyte> m_splatWeights;
+    Array<GrassTile> m_grassTiles;
+
+    /// bumped when every tile's grass is released
+    uint32 m_grassBuildGeneration = 0;
+
+    /// what queued grass builds read, shared between them until the heights or splat weights change
+    SharedPtr<const Array<float>> m_grassHeightsSnapshot;
+    SharedPtr<const Array<ubyte>> m_grassSplatWeightsSnapshot;
 };
 } // namespace Hyperion

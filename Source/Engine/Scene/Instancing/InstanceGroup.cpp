@@ -458,23 +458,13 @@ void InstanceGroup::RemoveFromCell(InstanceId id, Vec2i cell)
     clusterIt->second.isDirty = true;
 }
 
-void InstanceGroup::RebuildMembers()
+uint32 InstanceGroup::CollectMembers(const Prefab& prefab, Array<InstanceGroupMember>& outMembers)
 {
-    m_members.Clear();
-    m_prefabBounds = BoundingBox::Empty();
-
-    if (!m_prefab.IsValid())
-    {
-        return;
-    }
-
-    const Handle<Node>& root = m_prefab->GetRoot();
+    const Handle<Node>& root = prefab.GetRoot();
 
     if (!root.IsValid())
     {
-        HYP_LOG(Scene, Warning, "InstanceGroup '{}': prefab '{}' has no root node", GetName(), m_prefab->GetName());
-
-        return;
+        return 0;
     }
 
     Array<Node*> nodes = root->GetDescendantsArray();
@@ -522,9 +512,34 @@ void InstanceGroup::RebuildMembers()
 
         member.bounds = member.matrix * member.mesh->GetAABB();
 
-        m_prefabBounds = m_prefabBounds.Union(member.bounds);
+        outMembers.PushBack(std::move(member));
+    }
 
-        m_members.PushBack(std::move(member));
+    return numSkipped;
+}
+
+void InstanceGroup::RebuildMembers()
+{
+    m_members.Clear();
+    m_prefabBounds = BoundingBox::Empty();
+
+    if (!m_prefab.IsValid())
+    {
+        return;
+    }
+
+    if (!m_prefab->GetRoot().IsValid())
+    {
+        HYP_LOG(Scene, Warning, "InstanceGroup '{}': prefab '{}' has no root node", GetName(), m_prefab->GetName());
+
+        return;
+    }
+
+    const uint32 numSkipped = CollectMembers(*m_prefab, m_members);
+
+    for (const InstanceGroupMember& member : m_members)
+    {
+        m_prefabBounds = m_prefabBounds.Union(member.bounds);
     }
 
     if (numSkipped != 0)

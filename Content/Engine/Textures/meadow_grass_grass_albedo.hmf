@@ -1,0 +1,35 @@
+Texture meadow_grass_grass_albedo {
+    TextureDesc = {
+        Type = Texture2D
+        Format = RGBA8_SRGB
+        Extent = (1024, 512, 1)
+        MinFilterMode = LinearMipmap
+        MagFilterMode = Linear
+        TextureWrapMode = ClampToEdge
+        NumLayers = 1
+        ImageUsage = Sampled
+        MipOffsets = [
+            2097152
+            2621440
+            2752512
+            2785280
+            2793472
+            2795520
+            2796032
+            2796160
+            2796192
+            2796200
+            0
+            0
+            0
+            0
+            0
+            0
+        ]
+    }
+    ImageData = {
+        Key = "Engine://Textures/meadow_grass_grass_albedo.TEX"
+        Size = 2796204
+    }
+    UUID = "d20d8bcb-1104-4ad4-a84c-9e8ba93f3b58"
+}

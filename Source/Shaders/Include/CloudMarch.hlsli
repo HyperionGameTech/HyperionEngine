@@ -121,6 +121,7 @@ CloudLighting GetCloudLighting(Light sun, bool hasSun, EnvProbe skyProbe, CloudV
     // one atmosphere lookup for the whole layer - sun color barely changes across it
     lighting.sunRadiance = hasSun
         ? sun.color.rgb * sun.position_intensity.w * GetSunTransmittance(params.baseAltitude + params.layerThickness * 0.5, lighting.directionToSun)
+            / GetSunTransmittance(params.baseAltitude + params.layerThickness * 0.5, float3(0.0, 1.0, 0.0))
         : (float3)0.0;
 
     const bool hasSkyProbe = skyProbe.textureIndices != ~0u;

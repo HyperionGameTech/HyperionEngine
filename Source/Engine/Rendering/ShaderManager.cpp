@@ -112,6 +112,10 @@ public:
         ShaderInstanceRef shaderInstance;
         Shader* shader = nullptr;
 
+        // keeps the bundle's shader alive while the entry is live - a reload can drop the bundle's own reference
+        // while this entry is still compiling, which skips it in ExpireShaderEntries() and would leave shader dangling
+        Handle<Shader> shaderRef;
+
         // what was requested - may differ from the resolved shader, e.g. when the fallback is used
         Name name;
         ShaderPropertySet properties;
@@ -339,6 +343,8 @@ public:
             return ShaderInstanceRef::Null();
         }
 
+        entry->shaderRef = MakeStrongRef(entry->shader);
+
         ShaderInstanceRef si = RI.MakeShader(entry->shader);
 
         if (RendererResult createResult = si->Create(); createResult.HasError())
@@ -385,6 +391,7 @@ public:
         ShaderInstanceRef releasedInstance = std::move(entry->shaderInstance);
 
         entry->shaderInstance = ShaderInstanceRef::Null();
+        entry->shaderRef = Handle<Shader>::empty;
         entry->retired = true;
 
         return releasedInstance;
@@ -1068,7 +1075,7 @@ public:
                 ShaderMapEntry* entry = it.second;
 
                 // entries still compiling are skipped - the compile task is still writing entry->shader
-                if (!entry || !entry->IsLoaded() || !entry->shader)
+                if (!entry || !entry->IsLoaded() || !entry->shaderRef.IsValid())
                 {
                     continue;
                 }
@@ -1087,7 +1094,7 @@ public:
                     }
                 }
 
-                items.PushBack(ReloadItem { it.first, entry, nullptr, MakeStrongRef(entry->shader) });
+                items.PushBack(ReloadItem { it.first, entry, nullptr, entry->shaderRef });
             }
         }
 

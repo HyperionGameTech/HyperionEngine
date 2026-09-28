@@ -7,6 +7,7 @@
 #include <ScenePch.hpp>
 
 #include <Scene/Light/Light.hpp>
+#include <Scene/Light/LightHelpers.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/EntityTag.hpp>
@@ -478,6 +479,9 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     bufferData.positionIntensity = Vec4f(lightPosition, m_intensity);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()
     bufferData.flags = m_lightFlags;
+    bufferData.atmosphereTint = m_type == LightType::Directional
+        ? Vec4f(LightHelpers::ComputeSunAtmosphereTint(lightPosition), 1.0f)
+        : Vec4f::One();
 
     switch (GetLightType())
     {
