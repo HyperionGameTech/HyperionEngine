@@ -127,6 +127,11 @@ ApplicationWindow::~ApplicationWindow()
 
 void ApplicationWindow::HandleResize(Vec2i newSize)
 {
+    if (newSize.x <= 0 || newSize.y <= 0)
+    {
+        return;
+    }
+
     TUniqueLock lock(m_mtx);
 
     if (m_size == newSize)

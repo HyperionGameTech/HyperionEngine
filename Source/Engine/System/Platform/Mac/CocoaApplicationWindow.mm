@@ -144,11 +144,6 @@ bool IsKeyUpEvent(NSEvent* event);
 
     CGSize drawableSize = CGSizeMake(newSize.width * scale, newSize.height * scale);
 
-    if (metalLayer)
-    {
-        metalLayer.drawableSize = drawableSize;
-    }
-
     if (_hyperionWindow)
     {
         _hyperionWindow->HandleResize(Vec2i(int(drawableSize.width), int(drawableSize.height)));
@@ -158,17 +153,6 @@ bool IsKeyUpEvent(NSEvent* event);
 - (void)viewDidMoveToWindow
 {
     [super viewDidMoveToWindow];
-
-    if (self.window)
-    {
-        CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer;
-        if (metalLayer)
-        {
-            metalLayer.drawableSize = CGSizeMake(
-                self.bounds.size.width * metalLayer.contentsScale,
-                self.bounds.size.height * metalLayer.contentsScale);
-        }
-    }
 }
 
 #define HANDLE_COCOA_EVENT(method)                                                  \
@@ -296,11 +280,6 @@ extern "C" HYP_EXPORT void Hyp_CocoaWindow_ResizeEmbeddedView(void* nsView, int 
             CGFloat scale = metalLayer ? metalLayer.contentsScale : 1.0;
 
             CGSize drawableSize = CGSizeMake((CGFloat)width * scale, (CGFloat)height * scale);
-
-            if (metalLayer)
-            {
-                metalLayer.drawableSize = drawableSize;
-            }
 
             if (window)
             {

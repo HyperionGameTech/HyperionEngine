@@ -263,32 +263,30 @@ RendererResult VulkanSwapchain::Create()
         m_supportDetails.capabilities.currentExtent.height
     };
 
-    if (nativeExtent.Volume() == 0)
-    {
-        return HYP_MAKE_ERROR(RendererError, "Failed to retrieve native surface resolution!");
-    }
-
-    HYP_LOG(RenderingBackend, Verbose, "Vulkan native swapchain resolution: {}", nativeExtent);
-
-    if (m_extent.Volume() == 0)
-    {
-        m_extent = nativeExtent;
-    }
-
     /// https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkSurfaceCapabilitiesKHR.html
     /// - currentExtent is the current width and height of the surface,
     ///   or the special value (0xFFFFFFFF, 0xFFFFFFFF) indicating that
     ///   the surface size will be determined by the extent of a
     ///   swapchain targeting the surface.
-    if (m_supportDetails.capabilities.currentExtent.width != 0xFFFFFFFFu
-        && m_supportDetails.capabilities.currentExtent.height != 0xFFFFFFFFu)
+    const bool surfaceDictatesExtent = nativeExtent.x != 0xFFFFFFFFu && nativeExtent.y != 0xFFFFFFFFu;
+
+    HYP_LOG(RenderingBackend, Verbose, "Vulkan native swapchain resolution: {}", nativeExtent);
+
+    Vec2u extent = m_extent;
+
+    if (surfaceDictatesExtent)
     {
-        if (m_extent != nativeExtent)
+        if (extent != nativeExtent)
         {
-            HYP_LOG(RenderingBackend, Verbose, "Surface dictates swapchain extent; using {} instead of requested {}", nativeExtent, m_extent);
+            HYP_LOG(RenderingBackend, Verbose, "Surface dictates swapchain extent; using {} instead of requested {}", nativeExtent, extent);
         }
 
-        m_extent = nativeExtent;
+        extent = nativeExtent;
+    }
+
+    if (extent.x == 0 || extent.y == 0)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Swapchain extent has a zero dimension, skipping creation");
     }
 
     const Vec2u maxExtent {
@@ -301,10 +299,15 @@ RendererResult VulkanSwapchain::Create()
         m_supportDetails.capabilities.minImageExtent.height
     };
 
-    m_extent = MathUtil::Min(maxExtent, m_extent);
-    m_extent = MathUtil::Max(minExtent, m_extent);
+    extent = MathUtil::Min(maxExtent, extent);
+    extent = MathUtil::Max(minExtent, extent);
 
-    Assert(m_extent.Volume() != 0);
+    if (extent.x <= 1 || extent.y <= 1)
+    {
+        HYP_LOG(RenderingBackend, Warning, "Resolved a degenerate swapchain extent {} (requested: {}, native: {})", extent, m_extent, nativeExtent);
+    }
+
+    m_extent = extent;
 
     HYP_LOG(RenderingBackend, Verbose, "Using Vulkan swapchain resolution {}", m_extent);
 
@@ -425,7 +428,7 @@ RendererResult VulkanSwapchain::Create()
 
 void VulkanSwapchain::SetExtent(Vec2u newExtent)
 {
-    if (m_extent == newExtent || newExtent == Vec2u::Zero())
+    if (m_extent == newExtent || newExtent.x == 0 || newExtent.y == 0)
     {
         return;
     }
