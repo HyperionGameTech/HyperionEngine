@@ -453,14 +453,20 @@ public:
 
     bool HandleNSEvent(NSEvent* nsEvent, Event& event);
 
+    void HandleNativeWindowClosed();
+
 private:
     void* m_windowDelegate = nullptr;
     void* m_metalLayer = nullptr;
-    bool m_isEmbeddedView = false;
-    mutable Vec2i m_mousePosition = Vec2i::Zero();
-    bool m_useCocoaEvents = false;
 
     void* m_nsView = nullptr;
+
+    mutable Vec2i m_mousePosition = Vec2i::Zero();
+
+    bool m_isOpen = false;
+    bool m_isEmbeddedView = false;
+    bool m_useCocoaEvents = false;
+
     bool m_mouseLocked = false;
 };
 

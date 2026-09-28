@@ -22,12 +22,16 @@
 #include <Input/Event.hpp>
 
 #include <Rendering/RenderBackend.hpp>
+#include <Rendering/RenderInterface.hpp>
 #include <Rendering/Device.hpp>
+#include <Rendering/Swapchain.hpp>
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 
+#include <Rendering/Vulkan/VulkanInstance.hpp>
 #include <Rendering/Vulkan/VulkanSwapchain.hpp>
 #endif
 
@@ -231,7 +235,10 @@ HANDLE_COCOA_EVENT(flagsChanged)
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-    // Handle window close event
+    if (_window)
+    {
+        _window->HandleNativeWindowClosed();
+    }
 }
 
 - (BOOL)windowShouldClose:(NSWindow *)sender
@@ -347,6 +354,12 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
         HyperionWindowDelegate* delegate = (HyperionWindowDelegate*)m_windowDelegate;
         [[NSNotificationCenter defaultCenter] removeObserver:delegate];
         delegate.window = nullptr;
+
+        if (m_hwnd && !m_isEmbeddedView)
+        {
+            [(NSWindow*)m_hwnd setDelegate:nil];
+        }
+
         [delegate release];
 
         m_windowDelegate = nullptr;
@@ -457,6 +470,8 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
             m_windowDelegate = delegate;
         }
 
+        m_isOpen = true;
+
         // trigger initial resize handling
         [metalView setFrameSize:frame.size];
 
@@ -480,6 +495,9 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
                                                     styleMask:styleMask
                                                         backing:NSBackingStoreBuffered
                                                         defer:NO];
+
+    // We own the window and release it in the destructor - don't let -close free it out from under us
+    [window setReleasedWhenClosed:NO];
 
     [window setTitle:[NSString stringWithUTF8String:m_title.Data()]];
     [window center];
@@ -540,6 +558,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 
     m_hwnd = window;
     m_windowDelegate = delegate;
+    m_isOpen = true;
 
     if (!(windowOptions.flags & uint32(WindowFlags::HEADLESS)))
     {
@@ -549,11 +568,55 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 
 void CocoaApplicationWindow::Close()
 {
-    if (m_hwnd)
+    AssertOnThread(g_mainThread);
+
+    if (m_isOpen && m_hwnd && !m_isEmbeddedView)
     {
-        NSWindow* window = (NSWindow*)m_hwnd;
-        [window performClose:nil];
+        [(NSWindow*)m_hwnd close];
+
+        return;
     }
+
+    HandleNativeWindowClosed();
+}
+
+void CocoaApplicationWindow::HandleNativeWindowClosed()
+{
+    AssertOnThread(g_mainThread);
+
+    TUniqueLock lock(m_mtx);
+
+    if (!m_isOpen)
+    {
+        return;
+    }
+
+    m_isOpen = false;
+
+#if HYP_VULKAN
+    if (m_swapchain.IsValid())
+    {
+        m_swapchain->TakeOwnershipOfSurface();
+        m_vkSurface = VK_NULL_HANDLE;
+    }
+
+    if (m_vkSurface != VK_NULL_HANDLE)
+    {
+        vkDestroySurfaceKHR(
+            RI.GetInstance()->GetInstance(),
+            m_vkSurface,
+            nullptr);
+        m_vkSurface = VK_NULL_HANDLE;
+    }
+#endif
+
+    EnqueueDeletion(std::move(m_swapchain));
+
+    lock.Reset();
+
+    g_appContext->RemoveWindow(this);
+
+    OnClose.Fire(this);
 }
 
 static bool IsMouseEventInContentArea(const CocoaApplicationWindow* window, NSPoint locationInWindow)

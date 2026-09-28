@@ -25,6 +25,8 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <HyperionEngine.hpp>
+
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
@@ -33,9 +35,54 @@
 #include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #endif
 
+@interface HyperionAppDelegate : NSObject<NSApplicationDelegate>
+@end
+
+@implementation HyperionAppDelegate
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
+{
+    using namespace Hyperion;
+
+    if (!g_appContext.IsValid())
+    {
+        return NSTerminateNow;
+    }
+
+    // need to copy so we don't invalidate the list
+    auto windows = g_appContext->GetWindows();
+
+    for (const auto& window : windows)
+    {
+        window->Close();
+    }
+
+    if (windows.Empty())
+    {
+        Hyp_RequestQuit();
+    }
+
+    return NSTerminateCancel;
+}
+
+@end
+
 namespace Hyperion {
 
 CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
+
+static void InitCocoaApplication()
+{
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+
+    if (!EngineGlobals::IsEditor() && [NSApp delegate] == nil)
+    {
+        [NSApp setDelegate:[[HyperionAppDelegate alloc] init]];
+    }
+
+    [NSApp finishLaunching];
+}
 
 void DestroyCocoaEvent(CocoaEvent& cocoaEvent)
 {
@@ -53,16 +100,12 @@ CocoaAppContext::CocoaAppContext(ANSIString name, const CommandLineArguments& ar
     if (![NSThread isMainThread])
     {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [NSApplication sharedApplication];
-            [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-            [NSApp finishLaunching];
+            InitCocoaApplication();
         });
     }
     else
     {
-        [NSApplication sharedApplication];
-        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-        [NSApp finishLaunching];
+        InitCocoaApplication();
     }
 }
 
