@@ -176,6 +176,13 @@ void HandleFatalError(const char* message)
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
 
+static AtomicVar<bool> s_quitRequested { false };
+
+static bool IsDetached()
+{
+    return CoreApi::GetCommandLineArguments()["detached"].ToBool();
+}
+
 namespace SignalHandlers
 {
 static void HandleExit()
@@ -196,6 +203,16 @@ static void HandleSignal(int signum)
     // we want to ensure Hyp_Shutdown() is only ever called from the main thread.
     if (signum == SIGINT)
     {
+        if (IsDetached())
+        {
+            s_quitRequested.Set(true, MemoryOrder::RELEASE);
+
+            // CRT resets the handler to SIG_DFL once it fires
+            signal(SIGINT, SignalHandlers::HandleSignal);
+
+            return;
+        }
+
         auto doGracefulShutdown = []
         {
             Hyp_Shutdown();
@@ -358,6 +375,13 @@ void InitMainWindow()
         window->OnClose
             .Bind(window, []()
                     {
+                        if (IsDetached())
+                        {
+                            s_quitRequested.Set(true, MemoryOrder::RELEASE);
+
+                            return;
+                        }
+
                         // shut down application on main window close.
                         g_mainThreadInstance->GetScheduler().Enqueue(
                             []()
@@ -478,15 +502,18 @@ extern "C"
 #if HYP_DOTNET && !defined(HYP_COMMANDLET_NAME)
         if (!EngineGlobals::IsCommandlet())
         {
+            // A managed host (the editor, or a C# game via HyperionApp) registers its callback before Hyp_Initialize()
+            const bool initFromManaged = s_initFromManagedCallback != nullptr;
+
             bool shouldInitializeDotNetHost = true;
 
 #if defined(HYP_DOTNET_ONLY_FOR_EDITOR) && HYP_DOTNET_ONLY_FOR_EDITOR
-            shouldInitializeDotNetHost = EngineGlobals::IsEditor();
+            shouldInitializeDotNetHost = EngineGlobals::IsEditor() || initFromManaged;
 #endif // HYP_DOTNET_ONLY_FOR_EDITOR
 
             if (shouldInitializeDotNetHost)
             {
-                DotNETHost::GetInstance().Initialize(basePath, /* initFromManaged */ EngineGlobals::IsEditor(), s_initFromManagedCallback);
+                DotNETHost::GetInstance().Initialize(basePath, initFromManaged, s_initFromManagedCallback);
             }
         }
 #endif // HYP_DOTNET
@@ -1021,6 +1048,16 @@ extern "C"
         AssertOnThread(g_mainThread);
 
         g_mainThreadInstance->Update();
+    }
+
+    HYP_EXPORT int Hyp_IsQuitRequested()
+    {
+        return int(s_quitRequested.Get(MemoryOrder::ACQUIRE));
+    }
+
+    HYP_EXPORT void Hyp_RequestQuit()
+    {
+        s_quitRequested.Set(true, MemoryOrder::RELEASE);
     }
 
 #if HYP_DOTNET

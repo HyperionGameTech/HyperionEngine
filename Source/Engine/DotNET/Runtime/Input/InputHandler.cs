@@ -27,6 +27,7 @@ namespace Hyperion
         }
     }
 
+#if HYP_EDITOR
     [ClassBinding(Name = "EditorCameraInputHandler")]
     public class EditorCameraInputHandler : InputHandlerBase
     {
@@ -34,4 +35,5 @@ namespace Hyperion
         {
         }
     }
+#endif
 }

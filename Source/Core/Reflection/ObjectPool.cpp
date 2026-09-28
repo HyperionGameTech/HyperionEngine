@@ -78,6 +78,14 @@ int32 ObjectHeader::DecRefStrong()
 
     if ((count = AtomicDecrement(&refCountStrong)) == 0)
     {
+#ifdef HYP_DOTNET
+        // Release the reader the object took when initialized
+        if (ScriptObjectFunctions::DecScriptObjectRef)
+        {
+            ScriptObjectFunctions::DecScriptObjectRef(GetObjectPointer(this));
+        }
+#endif
+
         // call virtual destructor of ObjectBase.
         // the weak ref held by the strong refs keeps the header alive through the destructor (e.g for WeakHandleFromThis())
         DestructThisObject(this);

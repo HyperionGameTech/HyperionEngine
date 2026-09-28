@@ -9,11 +9,17 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetBucket.hpp>
+#include <Asset/AssetReference.hpp>
 
 using namespace Hyperion;
 
 extern "C"
 {
+
+    HYP_EXPORT void AssetReference_Construct(AssetReference* pOut)
+    {
+        new (pOut) AssetReference();
+    }
 
     HYP_EXPORT void LoadedAsset_Destroy(LoadedAsset* pLoadedAsset)
     {
@@ -58,6 +64,25 @@ extern "C"
         }
 
         *pOutBoxed = BoxedValue(assetObject);
+
+        return 1;
+    }
+
+    HYP_EXPORT int8 AssetRegistry_GetEngineRegistryBoxed(BoxedValue* pOutBoxed)
+    {
+        if (!pOutBoxed)
+        {
+            return 0;
+        }
+
+        Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
+
+        if (!engineRegistry.IsValid())
+        {
+            return 0;
+        }
+
+        *pOutBoxed = BoxedValue(engineRegistry);
 
         return 1;
     }

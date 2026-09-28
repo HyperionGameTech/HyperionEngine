@@ -39,6 +39,7 @@ namespace EngineGlobals {
 
 static CommandLineArgumentRegistration g_argCacheDir { "cachedir", {}, "Directory for loading blob cache data (or saving for cook)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
 static CommandLineArgumentRegistration g_argContentDir { "contentdir", {}, "Directory for loading content manifest files", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
+static CommandLineArgumentRegistration g_argCooked { "cooked", {}, "Sync content from the cache server and read the cooked cache. Otherwise will read local loose files. Ignored in shipping builds", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, true };
 static CommandLineArgumentRegistration g_argCacheServer { "cacheserver", {}, "Endpoint to sync cache from", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING };
 static CommandLineArgumentRegistration g_argHeadless { "headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
 static CommandLineArgumentRegistration g_argServer { "server", {}, "Launch standalone game as headless authoritative server", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false };
@@ -77,6 +78,13 @@ HYP_EXPORT const FilePath& GetDataDirectory()
 ENGINE_API bool IsCooking()
 {
     return IsGlobalContextActive<CookingContext>();
+}
+
+ENGINE_API bool UseCookedContent()
+{
+    static const bool s_cooked = CoreApi::GetCommandLineArguments()["cooked"].ToBool(true);
+
+    return !IsEditor() && s_cooked;
 }
 
 #endif // !HYP_SHIPPING
@@ -183,27 +191,28 @@ HYP_EXPORT const FilePath& GetContentDirectory()
         s_onceFlag,
         []
         {
-            const String cfgValue = CoreApi::GetCommandLineArguments()["contentdir"].ToString();
-
-            if (cfgValue.Any())
+#if !defined(HYP_SHIPPING) && !defined(HYP_ANDROID) && !defined(HYP_IOS)
+            // Engine/Editor content always lives under the base dir here, so contentdir only redirects the game's content
+            if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
             {
-                s_contentDirectory = (cfgValue.StartsWith(".")
-                    // Relative path - starts with . (eg "../Foo" or "./Foo")
-                    ? (CoreApi::GetExecutablePath() / cfgValue)
-                    // Just use provided path.
-                    : cfgValue);
+                // <base>/Content/Engine
+                // <base>/Content/Editor
+                s_contentDirectory = CoreApi::GetBaseDirectory() / "Content" / String(PackageName.data);
             }
             else
+#endif // !SHIPPING && !ANDROID && !IOS
             {
-#if !defined(HYP_SHIPPING) && !defined(HYP_ANDROID) && !defined(HYP_IOS)
-                if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
+                const String cfgValue = CoreApi::GetCommandLineArguments()["contentdir"].ToString();
+
+                if (cfgValue.Any())
                 {
-                    // <base>/Content/Engine
-                    // <base>/Content/Editor
-                    s_contentDirectory = CoreApi::GetBaseDirectory() / "Content" / String(PackageName.data);
+                    s_contentDirectory = (cfgValue.StartsWith(".")
+                        // Relative path - starts with . (eg "../Foo" or "./Foo")
+                        ? (CoreApi::GetExecutablePath() / cfgValue)
+                        // Just use provided path.
+                        : cfgValue);
                 }
                 else
-#endif // !SHIPPING && !ANDROID && !IOS
                 {
                     // <exe>/Content
                     s_contentDirectory = CoreApi::GetExecutablePath() / "Content";

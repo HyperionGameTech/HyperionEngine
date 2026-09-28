@@ -41,6 +41,12 @@ hyp_link_core_library(${BUILD_NAME})
 if(HYP_DOTNET)
   file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/**.cs" "${HYP_GENERATED_DIR}/CSharp/**.cs")
 
+  if(NOT HYP_EDITOR)
+    # bindings for editor classes, which don't exist natively without HYP_EDITOR
+    list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${CMAKE_CURRENT_SOURCE_DIR}/Editor/")
+    list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${HYP_GENERATED_DIR}/CSharp/Editor/")
+  endif()
+
   if(CSHARP_RUNTIME_SOURCES)
     file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime)
 
@@ -70,11 +76,16 @@ if(HYP_DOTNET)
       file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
     endforeach()
 
+    # Interop is referenced for HyperionApp, which boots the engine from a C# game
     if(USE_MSBUILD_FOR_CSHARP_BUILD)
       file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" />\n")
+      file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj\" />\n")
     else()
       file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
       file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
+      file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
+      file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Interop\" >\n")
+      file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll</HintPath>\n")
       file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
     endif()
 
@@ -115,7 +126,7 @@ if(HYP_DOTNET)
         file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXE}\" build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
         add_custom_target(Hyperion.NET.Runtime ALL
                   COMMAND ${DOTNET_BUILD_WRAPPER}
-                  DEPENDS hyperion-dotnet-shared
+                  DEPENDS hyperion-dotnet-shared Hyperion.NET.Interop
                   WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
               )
       else()
@@ -126,7 +137,7 @@ if(HYP_DOTNET)
         execute_process(COMMAND chmod +x ${DOTNET_BUILD_WRAPPER})
         add_custom_target(Hyperion.NET.Runtime ALL
                   COMMAND ${DOTNET_BUILD_WRAPPER}
-                  DEPENDS hyperion-dotnet-shared
+                  DEPENDS hyperion-dotnet-shared Hyperion.NET.Interop
                   WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
               )
       endif()
@@ -138,7 +149,7 @@ if(HYP_DOTNET)
                 TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
             )
 
-      add_dependencies(Hyperion.NET.Runtime hyperion-dotnet-shared)
+      add_dependencies(Hyperion.NET.Runtime hyperion-dotnet-shared Hyperion.NET.Interop)
     endif()
 
     add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime)

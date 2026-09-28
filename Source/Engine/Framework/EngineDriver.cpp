@@ -507,9 +507,9 @@ void EngineDriver::LoadEngineContent()
 
     doSync = doSyncImpl;
 
-    // check manifest exists already if not editor
-    // (editor process  doesn't use Cache)
-    if (EngineGlobals::IsEditor() || (EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
+    // check manifest exists already, unless not using cooked content
+    // (the editor process and --cooked=false don't use the Cache)
+    if (!EngineGlobals::UseCookedContent() || (EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
     {
         // Initialize with no sync.
         engineRegistry->Initialize(nullptr);
@@ -637,7 +637,7 @@ void EngineDriver::Simulate(float delta, Game* gameInstance)
             entityManager->Unlock();
         }
 
-        gameInstance->OnUpdate(delta);
+        gameInstance->Update(delta);
 
         if (gameInstance->m_gameState.IsSimulating())
         {

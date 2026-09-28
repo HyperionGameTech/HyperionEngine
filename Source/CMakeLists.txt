@@ -55,6 +55,18 @@ if(HYP_ARCH STREQUAL "ARM64")
   message(STATUS "Target architecture: ARM64")
 endif()
 
+# Runtime-only build.
+# no editor, with .NET enabled so games can be written in C# (see HyperionApp).
+# BuildHyperion.bat/.sh pass this for the `runtime` argument. Output goes to Binaries/<Platform>-Runtime/<BuildType>
+# so it can't mix with the editor build's binaries.
+option(HYP_RUNTIME_ONLY "Build only the engine runtime (no editor or tests)" OFF)
+
+set(HYP_RUNTIME_DIRECTORY_SUFFIX "")
+if(HYP_RUNTIME_ONLY)
+  set(HYP_RUNTIME_DIRECTORY_SUFFIX "-Runtime")
+  message(STATUS "Runtime-only build: editor and tests are disabled")
+endif()
+
 # use params passed in
 if(NOT DEFINED HYP_OUTPUT_DIRECTORY_SUFFIX)
   set(HYP_OUTPUT_DIRECTORY_SUFFIX ${CMAKE_BUILD_TYPE})
@@ -64,11 +76,11 @@ if(NOT DEFINED HYP_LIBRARY_OUTPUT_DIRECTORY)
   set(HYP_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../Binaries)
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}${HYP_RUNTIME_DIRECTORY_SUFFIX}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}${HYP_ARCH_DIRECTORY_SUFFIX}${HYP_RUNTIME_DIRECTORY_SUFFIX}/${HYP_OUTPUT_DIRECTORY_SUFFIX})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
@@ -241,7 +253,7 @@ endif()
 add_definitions(-DHYPERION_ENGINE=1)
 set(HYPERION_ENGINE 1)
 
-if (NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
+if (NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING AND NOT HYP_RUNTIME_ONLY)
   set(HYP_TESTS 1)
   add_definitions(-DHYP_TESTS=1)
 endif()
@@ -506,7 +518,12 @@ add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
 
 set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 
-set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
+if(HYP_RUNTIME_ONLY)
+  # kept apart so configuring a runtime build doesn't overwrite the editor build's generated projects
+  set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-Runtime")
+else()
+  set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
+endif()
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
 if(NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
@@ -522,8 +539,12 @@ if(NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
 
   add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR_ESCAPED}")
 
-  set(HYP_EDITOR 1)
-  add_definitions(-DHYP_EDITOR=1)
+  if(NOT HYP_RUNTIME_ONLY)
+    set(HYP_EDITOR 1)
+    add_definitions(-DHYP_EDITOR=1)
+
+    list(APPEND CSHARP_CONSTANTS "HYP_EDITOR")
+  endif()
 
   add_definitions(-DHYP_ENABLE_SHADER_RELOAD=1)
 endif()
@@ -588,6 +609,9 @@ add_definitions(-DHYP_STRATA=1)
 # Other plats will link .o files directly
 # (Need to make PackageBuild.bat scripts invoke stratac, build into folder, then pick up those .o/.obj)
 if (HYP_STRATA)
+    # headers are needed by the engine's Strata bindings even when the compiler/JIT isn't built
+    include_directories("${SUBMODULES_DIR}/stratac/include")
+
     if(HYP_EDITOR)
       # Build strata from the submodule (if available)
       set(STRATA_SUBMODULE_DIR "${SUBMODULES_DIR}/stratac")
@@ -621,9 +645,6 @@ if (HYP_STRATA)
           endif()
         endif()
 
-        # add include.
-        # include_directories("${SUBMODULES_DIR}/stratac/include/strata")
-        include_directories("${STRATA_SUBMODULE_DIR}/include")
 
         # Strata only builds its LLVM JIT/AOT backend when STRATA_ENABLE_LLVM is on
         # (see External/Submodules/stratac/CMakeLists.txt) -- only define HYP_STRATA_JIT
@@ -641,9 +662,9 @@ endif()
 
 # /Strata lang integration
 
-if(HYP_EDITOR)
-  # for editor build, we don't actually need .NET host as the managed application (Hyperion.Editor.exe)
-  # will call into the engine via InitFromManaged.
+if(HYP_EDITOR OR HYP_RUNTIME_ONLY)
+  # for editor and runtime builds, we don't actually need .NET host as the managed application
+  # (Hyperion.Editor.exe, or a C# game via HyperionApp) will call into the engine via InitFromManaged.
   if(HYP_DOTNET_HOST)
     add_definitions(-DHYP_DOTNET_HOST=1)
   else()

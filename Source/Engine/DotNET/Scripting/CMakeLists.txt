@@ -38,7 +38,8 @@ endif()
 
 hyp_link_core_library(${BUILD_NAME})
 
-if(HYP_DOTNET)
+# Hyperion.NET.Scripting compiles and hot reloads C# scripts, which only the editor does
+if(HYP_DOTNET AND HYP_EDITOR)
   file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/**.cs")
 
   if(CSHARP_SCRIPTING_SOURCES)

@@ -82,6 +82,21 @@ namespace Hyperion
             }
         }
 
+        public static Quat4f AxisAngles(Vec3f axis, float radians)
+        {
+            float length = MathF.Sqrt(axis.X * axis.X + axis.Y * axis.Y + axis.Z * axis.Z);
+
+            if (length == 0.0f)
+            {
+                return Identity;
+            }
+
+            float halfAngle = radians * 0.5f;
+            float sinHalfAngle = MathF.Sin(halfAngle) / length;
+
+            return new Quat4f(axis.X * sinHalfAngle, axis.Y * sinHalfAngle, axis.Z * sinHalfAngle, MathF.Cos(halfAngle));
+        }
+
         public override string ToString()
         {
             return $"[{x}, {y}, {z}, {w}]";

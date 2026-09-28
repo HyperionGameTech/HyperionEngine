@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Linq;
@@ -152,10 +153,11 @@ namespace Hyperion
         {
             Class componentClass = Class.GetClass(typeof(T));
 
-            // if (componentClass.Size != Marshal.SizeOf<T>())
-            // {
-            //     throw new Exception("Component size mismatch: " + componentClass.Size + " != " + Marshal.SizeOf<T>());
-            // }
+            // native copies the component's full native size out of the managed struct
+            if (componentClass.Size != Unsafe.SizeOf<T>())
+            {
+                throw new InvalidOperationException($"Component size mismatch for {typeof(T).Name}: native is {componentClass.Size} bytes, managed is {Unsafe.SizeOf<T>()}. The managed struct's layout is out of date.");
+            }
 
             return AddComponent<T>(entity, componentClass, ref component);
         }

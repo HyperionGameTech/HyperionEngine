@@ -11,7 +11,14 @@ namespace Hyperion
 
         public AssetReference()
         {
+            fixed (byte* pRaw = _raw)
+            {
+                AssetReference_Construct(pRaw);
+            }
         }
+
+        [DllImport("hyperion", EntryPoint = "AssetReference_Construct")]
+        private static extern void AssetReference_Construct(byte* pOut);
 
         //public AssetPath Path
         //{

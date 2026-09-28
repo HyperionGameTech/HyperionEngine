@@ -405,10 +405,10 @@ public:
     HYP_METHOD(EditorOnly, EditorAction = "Clear LODs", EditCondition = "HasGeneratedLods")
     void ClearGeneratedLods();
 
-    HYP_METHOD()
+    HYP_METHOD(EditorOnly)
     bool CanGenerateLods() const;
 
-    HYP_METHOD()
+    HYP_METHOD(EditorOnly)
     bool HasGeneratedLods() const
     {
         return m_meshDesc.GetNumLods() > 1;
