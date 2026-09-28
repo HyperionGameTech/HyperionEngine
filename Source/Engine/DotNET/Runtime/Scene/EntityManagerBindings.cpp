@@ -129,7 +129,22 @@ extern "C"
 
         if (pComponent != nullptr)
         {
-            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&pComponentInterface->GetTypeInfo(), pComponent)));
+            // Managed memory isn't guaranteed to meet the component's alignment (eg SIMD types)
+            // so we need to allocate it ourselves
+            // We assume all C# component types are trivially relocatable
+            
+            const TypeInfo& typeInfo = pComponentInterface->GetTypeInfo();
+            const size_t alignment = MathUtil::Max(size_t(typeInfo.alignment), alignof(std::max_align_t));
+
+            void* pAligned = Memory::AllocateAligned(typeInfo.size, alignment);
+            Assert(pAligned);
+
+            Memory::Copy(pAligned, pComponent, typeInfo.size);
+
+            pManager->AddComponent(pEntity, BoxedValue(AnyRef(&typeInfo, pAligned)));
+
+            Memory::Copy(pComponent, pAligned, typeInfo.size);
+            Memory::FreeAligned(pAligned);
         }
         else
         {

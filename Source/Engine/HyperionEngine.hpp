@@ -57,10 +57,13 @@ extern "C"
     ENGINE_API void Hyp_SetGame(Game* pGame);
 
     ENGINE_API int Hyp_LaunchThreads();
-    ENGINE_API void Hyp_Shutdown();
 
     // Only for use in detached mode (--detached CLI flag)
     ENGINE_API void Hyp_MainThreadUpdate();
+
+    // Detached mode: set when the main window closes or on ctrl-c. The host should stop pumping and call Hyp_Shutdown().
+    ENGINE_API int Hyp_IsQuitRequested();
+    ENGINE_API void Hyp_RequestQuit();
 
 #ifdef HYP_DOTNET
     ENGINE_API void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback);

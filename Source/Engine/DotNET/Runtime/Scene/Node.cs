@@ -75,6 +75,12 @@ namespace Hyperion
             set => this.SetNodeFlags(value);
         }
 
+        public bool IsDynamic
+        {
+            get => NodeExtensions.IsDynamic(this);
+            set => this.SetIsDynamic(value);
+        }
+
         public Transform LocalTransform
         {
             get => this.GetLocalTransform();

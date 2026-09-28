@@ -1,0 +1,73 @@
+<Project>
+  <!--
+    Import from a C# game project to build it against a Hyperion engine build:
+
+      <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <HyperionBinDir>C:/Path/To/HyperionEngine/Binaries/Windows-Runtime/Release</HyperionBinDir>
+      </PropertyGroup>
+      <Import Project="C:/Path/To/HyperionEngine/Source/Engine/DotNET/Sdk/Hyperion.Game.props" />
+
+    then start the engine from Main with HyperionApp.Run<MyGame>(args).
+
+    HyperionBinDir        Engine binaries (hyperion.dll + Hyperion.NET.*.dll). Prefer a runtime-only build
+                          (BuildHyperion runtime), which leaves out the editor.
+    HyperionBaseDir       Directory holding the engine's Content folder. Defaults to the repo root above HyperionBinDir.
+    HyperionOutputToBinDir  Build the game straight into HyperionBinDir instead of copying the engine next to the game.
+  -->
+
+  <PropertyGroup>
+    <HyperionBinDir>$([MSBuild]::EnsureTrailingSlash('$(HyperionBinDir)'))</HyperionBinDir>
+    <HyperionBaseDir Condition="'$(HyperionBaseDir)' == ''">$([System.IO.Path]::GetFullPath('$(HyperionBinDir)../../../'))</HyperionBaseDir>
+    <HyperionOutputToBinDir Condition="'$(HyperionOutputToBinDir)' == ''">false</HyperionOutputToBinDir>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- must match the native hyperion library, or the apphost fails to load it -->
+    <PlatformTarget Condition="'$(PlatformTarget)' == '' And $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">ARM64</PlatformTarget>
+    <PlatformTarget Condition="'$(PlatformTarget)' == ''">x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(HyperionOutputToBinDir)' == 'true'">
+    <OutputPath>$(HyperionBinDir)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Hyperion.NET.Shared">
+      <HintPath>$(HyperionBinDir)Hyperion.NET.Shared.dll</HintPath>
+    </Reference>
+    <Reference Include="Hyperion.NET.Interop">
+      <HintPath>$(HyperionBinDir)Hyperion.NET.Interop.dll</HintPath>
+    </Reference>
+    <Reference Include="Hyperion.NET.Runtime">
+      <HintPath>$(HyperionBinDir)Hyperion.NET.Runtime.dll</HintPath>
+    </Reference>
+
+    <!-- read by HyperionApp and passed to the engine as its base directory -->
+    <AssemblyMetadata Include="HyperionBaseDir" Value="$(HyperionBaseDir)" />
+  </ItemGroup>
+
+  <Target Name="HyperionCheckBinDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(HyperionBinDir)' == '/' Or (!Exists('$(HyperionBinDir)hyperion.dll') And !Exists('$(HyperionBinDir)libhyperion.so') And !Exists('$(HyperionBinDir)libhyperion.dylib'))"
+           Text="HyperionBinDir must point at a Hyperion engine build (containing the native hyperion library); got '$(HyperionBinDir)'" />
+  </Target>
+
+  <!-- Copy the native engine next to the game. DLLs are hardlinked; Config is copied since the game may write to it. -->
+  <Target Name="HyperionCopyEngineRuntime" AfterTargets="Build" Condition="'$(HyperionOutputToBinDir)' != 'true'">
+    <ItemGroup>
+      <_HyperionNativeLibraries Include="$(HyperionBinDir)*.dll;$(HyperionBinDir)*.so;$(HyperionBinDir)*.dylib" Exclude="$(HyperionBinDir)Hyperion.NET.*.dll" />
+      <_HyperionConfigFiles Include="$(HyperionBinDir)Config/**/*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_HyperionNativeLibraries)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          UseHardlinksIfPossible="true" />
+
+    <Copy SourceFiles="@(_HyperionConfigFiles)"
+          DestinationFiles="@(_HyperionConfigFiles->'$(OutDir)Config/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

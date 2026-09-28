@@ -44,6 +44,7 @@
 #include <DotNET/Assembly.hpp>
 
 #include <Scripting/ScriptingService.hpp>
+#include <Scripting/ScriptObjectResource.hpp>
 
 #include <Input/Event.hpp>
 
@@ -77,6 +78,51 @@ static CommandLineArgumentRegistration g_argSinglePlayer {
     CommandLineArgumentType::BOOLEAN,
     false
 };
+
+/// Calls a lifecycle hook overridden by a C# subclass of Game.
+/// Hooks left as the base [ScriptMethodStub] are skipped
+template <class... Args>
+static void InvokeManagedHook(Game* game, ANSIStringView methodName, Args&&... args)
+{
+#ifdef HYP_DOTNET
+    ScriptObjectResource* scriptObjectResource = game->GetScriptObjectResource();
+
+    if (!scriptObjectResource || !(scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp))))
+    {
+        return;
+    }
+
+    scriptObjectResource->AddReader();
+    HYP_DEFER({ scriptObjectResource->ReleaseReader(); });
+
+    dotnet::ManagedObject* managedObject = scriptObjectResource->GetManagedObject();
+
+    if (!managedObject || !managedObject->IsValid())
+    {
+        return;
+    }
+
+    const dotnet::ManagedMethod* managedMethod = managedObject->GetMethod(methodName);
+
+    if (!managedMethod || managedMethod->GetAttributes().HasAttribute("ScriptMethodStub"))
+    {
+        return;
+    }
+
+    if (!managedObject->TryInvokeMethod<void>(managedMethod, nullptr, std::forward<Args>(args)...))
+    {
+        HYP_LOG(Game, Error, "Managed Game hook {} failed", methodName);
+    }
+#endif
+}
+
+bool Game::IsManagedGame() const
+{
+    ScriptObjectResource* scriptObjectResource = GetScriptObjectResource();
+
+    return scriptObjectResource != nullptr
+        && (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)));
+}
 
 ScriptableDelegate<void> Game::OnLaunched;
 ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> Game::OnGameStateChange;
@@ -180,6 +226,8 @@ void Game::Shutdown(bool shutdownWorld)
     {
         return;
     }
+
+    InvokeManagedHook(this, "OnShutdown");
 
     BeforeShutdown();
 
@@ -317,7 +365,9 @@ void Game::Launch()
     Assert(m_world.IsValid());
 
     Assert(!IsSyncingOrPreparingContent());
-    
+
+    InvokeManagedHook(this, "OnLaunch");
+
     OnLaunch();
     m_isLaunched.Set(true, MemoryOrder::RELEASE);
         
@@ -387,6 +437,14 @@ void Game::SyncContentAndLaunch()
             m_assetRegistry->PutAssetsDeep(m_world);
         }
 
+        if (!m_world.IsValid())
+        {
+            Handle<World> world = MakeHandle<World>();
+            world->SetName(s_nameMainWorld);
+
+            SetWorld(world);
+        }
+
         Launch();
     }
 }
@@ -411,7 +469,17 @@ void Game::AfterContentLoaded()
     
     m_syncState.currentTask = {};
 
-    if (Handle<World> world = LoadWorld(s_nameMainWorld); world.IsValid())
+    Handle<World> world = LoadWorld(s_nameMainWorld);
+
+    if (!world.IsValid() && IsManagedGame())
+    {
+        HYP_LOG(Game, Info, "No {} asset found, starting from an empty World", s_nameMainWorld);
+
+        world = MakeHandle<World>();
+        world->SetName(s_nameMainWorld);
+    }
+
+    if (world.IsValid())
     {
         m_syncState.SetState(ContentSyncState::Finished);
 
@@ -455,6 +523,18 @@ void Game::OnSyncProgress(uint64 current, uint64 total)
             ? uint32(10000.0f * (float(current) / float(total)))
             : 0,
         MemoryOrder::RELAXED);
+}
+
+void Game::Update(float delta)
+{
+    AssertOnThread(g_simThread);
+
+    OnUpdate(delta);
+
+    if (IsLaunched() && !IsSyncingOrPreparingContent())
+    {
+        InvokeManagedHook(this, "OnUpdate", delta);
+    }
 }
 
 void Game::HandleEvent(Event&& event)

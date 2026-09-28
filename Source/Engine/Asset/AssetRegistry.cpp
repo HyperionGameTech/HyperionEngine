@@ -594,7 +594,7 @@ void AssetRegistry::Initialize(
     if (outSyncContentTask != nullptr)
     {
         // Check if we have a cache server to contect to and sync content before initialize.
-        if (!EngineGlobals::IsEditor()
+        if (EngineGlobals::UseCookedContent()
             && !EngineGlobals::IsCooking()
             && !EngineGlobals::IsCacheServer())
         {

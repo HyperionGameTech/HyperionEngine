@@ -9,6 +9,7 @@ HYP_ANDROID=0
 HYP_REGENERATE=0
 HYP_NOWAIT=0
 HYP_SHIPPING=0
+HYP_RUNTIME=0
 
 USE_NINJA=0
 
@@ -49,6 +50,8 @@ for arg in "$@"; do
     elif [[ "$arg" == "Shipping" || "$arg" == "shipping" ]]; then
         HYP_SHIPPING=1
         CONFIG="Release"
+    elif [[ "$arg" == "Runtime" || "$arg" == "runtime" ]]; then
+        HYP_RUNTIME=1
     fi
 done
 
@@ -57,15 +60,21 @@ if [[ $HYP_SHIPPING -eq 1 ]]; then
     BUILD_DIR_SUFFIX="Shipping"
 fi
 
+# runtime is a flavor of the Debug/Release build types, so it gets its own <Platform>-Runtime build and output dirs
+PLATFORM_SUFFIX=""
+if [[ $HYP_RUNTIME -eq 1 ]]; then
+    PLATFORM_SUFFIX="-Runtime"
+fi
+
 if [[ $HYP_ANDROID -eq 1 ]]; then
-    mkdir -p "Build/Android/$BUILD_DIR_SUFFIX"
-    pushd "Build/Android/$BUILD_DIR_SUFFIX"
+    mkdir -p "Build/Android$PLATFORM_SUFFIX/$BUILD_DIR_SUFFIX"
+    pushd "Build/Android$PLATFORM_SUFFIX/$BUILD_DIR_SUFFIX"
 elif [[ $HYP_LINUX -eq 1 ]]; then
-    mkdir -p "Build/Linux/$BUILD_DIR_SUFFIX"
-    pushd "Build/Linux/$BUILD_DIR_SUFFIX"
+    mkdir -p "Build/Linux$PLATFORM_SUFFIX/$BUILD_DIR_SUFFIX"
+    pushd "Build/Linux$PLATFORM_SUFFIX/$BUILD_DIR_SUFFIX"
 else
-    mkdir -p "Build/$CURR_PLATFORM/$BUILD_DIR_SUFFIX"
-    pushd "Build/$CURR_PLATFORM/$BUILD_DIR_SUFFIX"
+    mkdir -p "Build/$CURR_PLATFORM$PLATFORM_SUFFIX/$BUILD_DIR_SUFFIX"
+    pushd "Build/$CURR_PLATFORM$PLATFORM_SUFFIX/$BUILD_DIR_SUFFIX"
 fi
 
 if [[ $HYP_REGENERATE -eq 1 ]]; then
@@ -96,6 +105,10 @@ if [[ $DO_CMAKE -eq 1 ]]; then
     # only looks for a Debug or Release output folder.
     if [[ $HYP_SHIPPING -eq 1 && $HYP_ANDROID -eq 0 ]]; then
         HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
+    fi
+
+    if [[ $HYP_RUNTIME -eq 1 ]]; then
+        HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_RUNTIME_ONLY=1"
     fi
 
     if [[ $HYP_ANDROID -eq 1 ]]; then

@@ -80,8 +80,14 @@ static constexpr NoOpFunction<bool> IsEditor{};
 
 #ifndef HYP_SHIPPING
 ENGINE_API bool IsCooking();
+ENGINE_API bool UseCookedContent();
 #else   // HYP_SHIPPING
 static constexpr NoOpFunction<bool> IsCooking{};
+
+HYP_FORCE_INLINE constexpr bool UseCookedContent()
+{
+    return true;
+}
 #endif  // !HYP_SHIPPING
 
 ENGINE_API bool IsCacheServer();

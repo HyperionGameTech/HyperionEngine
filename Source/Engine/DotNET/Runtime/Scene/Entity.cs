@@ -126,7 +126,15 @@ namespace Hyperion
         public void AddTag(EntityTag tag)
         {
             EntityManager? entityManager = this.GetEntityManager();
-            entityManager?.AddTag(this, tag);
+
+            if (entityManager == null)
+            {
+                Logger.Log(LogLevel.Warning, "Cannot add tag {0} to entity {1}: no EntityManager", tag, Name);
+
+                return;
+            }
+
+            entityManager.AddTag(this, tag);
         }
 
         public bool RemoveTag(EntityTag tag)

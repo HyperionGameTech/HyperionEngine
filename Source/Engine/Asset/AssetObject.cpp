@@ -1040,7 +1040,7 @@ bool AssetObject::ShouldUseBlobStorage()
 {
     return !EngineGlobals::IsCooking()
         && !EngineGlobals::IsCacheServer()
-        && !EngineGlobals::IsEditor();
+        && EngineGlobals::UseCookedContent();
 }
 
 #pragma endregion AssetObject

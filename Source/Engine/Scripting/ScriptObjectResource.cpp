@@ -81,14 +81,15 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const SharedPtr<dotn
 {
     const DotNETHost& dnh = DotNETHost::GetInstance();
 
+    // Always set, even with no managed object, so the reader taken on init is released consistently.
+    ScriptObjectData_DotNet& data = dotNetData.Emplace(ScriptObjectData_DotNet());
+    data.objectPtr = nullptr;
+    data.managedClass = managedClass;
+
     if (dnh.IsInitialized() && !dnh.IsShuttingDown())
     {
-        ScriptObjectData_DotNet& data = dotNetData.Emplace(ScriptObjectData_DotNet());
-        data.objectPtr = nullptr;
-        data.managedClass = managedClass;
-
         AssertDebug(m_ptr && managedClass);
-    
+
         if (m_ptr && managedClass)
         {
             if (objectFlags & ObjectFlags::CREATED_FROM_MANAGED)

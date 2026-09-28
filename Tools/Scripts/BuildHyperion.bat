@@ -8,6 +8,7 @@ set "HYP_MINGW=0"
 set "HYP_REGENERATE=0"
 set "HYP_NOWAIT=0"
 set "HYP_SHIPPING=0"
+set "HYP_RUNTIME=0"
 set "HYP_BUILD_TYPE=Release"
 set "HYP_ARM64=0"
 set "HYP_BACKEND="
@@ -18,6 +19,7 @@ IF /I "%~1"=="debug" set "HYP_BUILD_TYPE=Debug"
 IF /I "%~1"=="release" set "HYP_BUILD_TYPE=Release"
 IF /I "%~1"=="shipping" set "HYP_SHIPPING=1"
 IF /I "%~1"=="shipping" set "HYP_BUILD_TYPE=Release"
+IF /I "%~1"=="runtime" set "HYP_RUNTIME=1"
 IF /I "%~1"=="android" set "HYP_ANDROID=1"
 IF /I "%~1"=="clang" set "HYP_CLANG=1"
 IF /I "%~1"=="ninja" set "HYP_NINJA=1"
@@ -42,29 +44,35 @@ if "%HYP_SHIPPING%"=="1" set "HYP_BUILD_DIR=Shipping"
 set "HYP_SHIPPING_CMAKE="
 if "%HYP_SHIPPING%"=="1" set "HYP_SHIPPING_CMAKE=-DHYP_SHIPPING=1"
 
+REM "runtime" builds the engine without the editor
+set "HYP_RUNTIME_CMAKE="
+set "HYP_PLATFORM_SUFFIX="
+if "%HYP_RUNTIME%"=="1" set "HYP_RUNTIME_CMAKE=-DHYP_RUNTIME_ONLY=1"
+if "%HYP_RUNTIME%"=="1" set "HYP_PLATFORM_SUFFIX=-Runtime"
+
 REM Shipping builds output to Binaries/Windows/Shipping instead of Binaries/Windows/Release,
 REM but keep the Release build type and third-party libs.
 set "HYP_OUTPUT_SUFFIX_ARG="
 if "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
 
 if "%HYP_ANDROID%"=="1" (
-    if not exist Build\Android\%HYP_BUILD_DIR% mkdir Build\Android\%HYP_BUILD_DIR%
-    pushd Build\Android\%HYP_BUILD_DIR%
+    if not exist Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
+    pushd Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 ) else if "%HYP_ARM64%"=="1" (
-    if not exist Build\Windows-ARM64\%HYP_BUILD_DIR% mkdir Build\Windows-ARM64\%HYP_BUILD_DIR%
-    pushd Build\Windows-ARM64\%HYP_BUILD_DIR%
+    if not exist Build\Windows-ARM64%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Windows-ARM64%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
+    pushd Build\Windows-ARM64%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 ) else if "%HYP_MINGW%"=="1" (
-    if not exist Build\Windows-MinGW\%HYP_BUILD_DIR% mkdir Build\Windows-MinGW\%HYP_BUILD_DIR%
-    pushd Build\Windows-MinGW\%HYP_BUILD_DIR%
+    if not exist Build\Windows-MinGW%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Windows-MinGW%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
+    pushd Build\Windows-MinGW%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 ) else if "%HYP_NINJA%"=="1" (
-    if not exist Build\Windows\%HYP_BUILD_DIR% mkdir Build\Windows\%HYP_BUILD_DIR%
-    pushd Build\Windows\%HYP_BUILD_DIR%
+    if not exist Build\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
+    pushd Build\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 ) else if "%HYP_CLANG%"=="1" (
-    if not exist Build\Windows-Clang\%HYP_BUILD_DIR% mkdir Build\Windows-Clang\%HYP_BUILD_DIR%
-    pushd Build\Windows-Clang\%HYP_BUILD_DIR%
+    if not exist Build\Windows-Clang%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Windows-Clang%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
+    pushd Build\Windows-Clang%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 ) else (
-    if not exist Build\Windows\%HYP_BUILD_DIR% mkdir Build\Windows\%HYP_BUILD_DIR%
-    pushd Build\Windows\%HYP_BUILD_DIR%
+    if not exist Build\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
+    pushd Build\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 )
 
 REM CHOICE returns ERRORLEVEL 1 for Y, 2 for N
@@ -142,7 +150,7 @@ if not defined NINJA_EXE (
 set "ANDROID_NDK_SYSROOT=%ANDROID_NDK%/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
 
 echo Using Ninja: %NINJA_EXE%
-cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_TOOLCHAIN_FILE="%ANDROID_NDK%/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_STL=c++_shared -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_PLATFORM_NAME=Android -DANDROID_NDK_SYSROOT="%ANDROID_NDK_SYSROOT%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE%
+cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_TOOLCHAIN_FILE="%ANDROID_NDK%/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_STL=c++_shared -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_PLATFORM_NAME=Android -DANDROID_NDK_SYSROOT="%ANDROID_NDK_SYSROOT%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE%
 if errorlevel 1 (
     echo CMake generation failed. Aborting build.
     popd
@@ -188,7 +196,7 @@ REM ARM64 defaults to the DX12 rendering backend unless "vulkan" is passed
 set "HYP_BACKEND_CMAKE=-DENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND=1"
 if "%HYP_BACKEND%"=="VULKAN" set "HYP_BACKEND_CMAKE="
 
-cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=arm64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "%HYP_VS_GENERATOR%" -A ARM64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_OUTPUT_SUFFIX_ARG% %HYP_BACKEND_CMAKE%
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=arm64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "%HYP_VS_GENERATOR%" -A ARM64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE% %HYP_OUTPUT_SUFFIX_ARG% %HYP_BACKEND_CMAKE%
 if errorlevel 1 (
     echo CMake generation failed. Aborting build.
     popd
@@ -229,7 +237,7 @@ REM Strata's LLVM JIT/AOT backend needs an LLVM install matching the compiler AB
 REM (LLVMConfig.cmake), which isn't part of this minimal MinGW toolchain. Strata
 REM itself still builds as a plain interpreter; only the LLVM-backed JIT is skipped
 REM (see the STRATA_ENABLE_LLVM guard around HYP_STRATA_JIT in Source/CMakeLists.txt).
-cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic -DVCPKG_HOST_TRIPLET=x64-mingw-dynamic -DSTRATA_ENABLE_LLVM=OFF -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
+cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic -DVCPKG_HOST_TRIPLET=x64-mingw-dynamic -DSTRATA_ENABLE_LLVM=OFF -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
 if errorlevel 1 (
     echo CMake generation failed. Aborting build.
     popd
@@ -285,7 +293,7 @@ if not exist "%CLANG_CL%" set "CLANG_CL=clang-cl"
 echo Using Ninja: %NINJA_EXE%
 echo Using ClangCL: %CLANG_CL%
 
-cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_CXX_COMPILER="%CLANG_CL%" -DCMAKE_C_COMPILER="%CLANG_CL%" -DCMAKE_TOOLCHAIN_FILE="%HYP_VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
+cmake ../../../Source -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%" -DCMAKE_CXX_COMPILER="%CLANG_CL%" -DCMAKE_C_COMPILER="%CLANG_CL%" -DCMAKE_TOOLCHAIN_FILE="%HYP_VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
 if errorlevel 1 (
     echo CMake generation failed. Aborting build.
     popd
@@ -299,7 +307,7 @@ IF NOT DEFINED VCPKG_ROOT (
     exit /b 1
 )
 
-cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
 if errorlevel 1 (
     echo CMake generation failed. Aborting build.
     popd
@@ -313,7 +321,7 @@ IF NOT DEFINED VCPKG_ROOT (
     exit /b 1
 )
 
-cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
+cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE% %HYP_OUTPUT_SUFFIX_ARG%
 if errorlevel 1 (
     echo CMake generation failed. Aborting build.
     popd
@@ -335,7 +343,7 @@ if "%HYP_MINGW%"=="1" (
     REM a "DLL could not be found" error otherwise. Copy them next to the built executables.
     for /f "delims=" %%G in ('where gcc') do set "HYP_MINGW_BIN=%%~dpG"
     for %%D in (libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll) do (
-        if exist "!HYP_MINGW_BIN!%%D" copy /Y "!HYP_MINGW_BIN!%%D" "%~dp0..\..\..\Binaries\Windows\%HYP_BUILD_TYPE%\" >nul
+        if exist "!HYP_MINGW_BIN!%%D" copy /Y "!HYP_MINGW_BIN!%%D" "%~dp0..\..\..\Binaries\Windows%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%\" >nul
     )
 )
 

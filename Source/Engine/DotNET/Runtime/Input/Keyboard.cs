@@ -3,9 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [ClassBinding(Name = "KeyCode")]
     public enum KeyCode : ushort
     {
-        A = 0x41,
+        Unknown = ushort.MaxValue,
+
+        A = 97,
         B,
         C,
         D,
@@ -32,7 +35,7 @@ namespace Hyperion
         Y,
         Z,
 
-        Num0 = 0x30,
+        Num0 = 48,
         Num1,
         Num2,
         Num3,
@@ -43,7 +46,7 @@ namespace Hyperion
         Num8,
         Num9,
 
-        F1 = 0x122,
+        F1 = 290,
         F2,
         F3,
         F4,
@@ -56,24 +59,33 @@ namespace Hyperion
         F11,
         F12,
 
-        LeftShift = 0xE1,
-        LeftCtrl = 0xE0,
-        LeftAlt = 0xE2,
-        RightShift = 0xE5,
-        RightCtrl = 0xE4,
-        RightAlt = 0xE6,
+        LeftCtrl = 224,
+        LeftShift = 225,
+        LeftAlt = 226,
+        RightCtrl = 228,
+        RightShift = 229,
+        RightAlt = 230,
 
-        Space = 0x2C,
-        Period = 0x2E,
-        Return = 0x101,
-        Tab = 0x102,
-        Backspace = 0x103,
-        CapsLock = 0x118,
+        Space = 32,
+        Apostrophe = 39,
+        Comma = 44,
+        Dash = 45,
+        Period = 46,
+        Slash = 47,
+        Semicolon = 59,
+        Equals = 61,
+        Return = 13,
+        Tab = 258,
+        Backspace = 8,
+        CapsLock = 280,
+        Tilde = 96,
 
-        ArrowRight = 0x4F,
-        ArrowLeft = 0x50,
-        ArrowDown = 0x51,
-        ArrowUp = 0x52
+        ArrowRight = 79,
+        ArrowLeft = 80,
+        ArrowDown = 81,
+        ArrowUp = 82,
+
+        Escape = 27
     }
 
     [ClassBinding(Name = "KeyboardEvent")]

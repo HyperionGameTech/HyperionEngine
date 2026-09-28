@@ -28,5 +28,30 @@ namespace Hyperion
             get => this.GetAssetRegistry();
             set => this.SetAssetRegistry(value);
         }
+
+        /// <summary>
+        /// Called on the sim thread once the World is ready, before the engine sets up a View for the
+        /// primary camera
+        /// </summary>
+        [ScriptMethodStub]
+        protected virtual void OnLaunch()
+        {
+        }
+
+        /// <summary>
+        /// Called on the sim thread every tick after the game has launched
+        /// </summary>
+        [ScriptMethodStub]
+        protected virtual void OnUpdate(float delta)
+        {
+        }
+
+        /// <summary>
+        /// Called on the sim thread when the game shuts down, before the World is torn down
+        /// </summary>
+        [ScriptMethodStub]
+        protected virtual void OnShutdown()
+        {
+        }
     }
 }

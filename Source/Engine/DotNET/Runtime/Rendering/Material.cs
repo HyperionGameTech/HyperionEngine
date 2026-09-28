@@ -12,6 +12,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "MaterialParameters")]
+    [StructLayout(LayoutKind.Explicit, Size = 112, Pack = 16)]
     public struct MaterialParameters
     {
         const byte FlagBit_NormalMapFlipY = 0x1;
@@ -21,38 +22,58 @@ namespace Hyperion
         const byte FlagMask_Channel = 0x3;
         const byte FlagBit_ParallaxInverseHeight = 0x80;
 
+        [FieldOffset(0)]
         public Color albedo = new Color(1.0f, 1.0f, 1.0f, 1.0f);
 
+        [FieldOffset(4)]
         public float metalness = 0.0f;
+        [FieldOffset(8)]
         public float roughness = 1.0f;
-        
+
+        [FieldOffset(12)]
         public float alphaThreshold = 0.2f;
+        [FieldOffset(16)]
         public float parallaxHeightScale = 0.02f;
+        [FieldOffset(20)]
         public float transmission = 0.0f;
+        [FieldOffset(24)]
         public float ior = 1.5f;
-        
+
+        [FieldOffset(28)]
         public Color emissiveColor;
 
+        [FieldOffset(32)]
         float emissiveIntensity = 0.0f;
 
+        [FieldOffset(48)]
         Vec4f userParams = Vec4f.Zero;
 
+        [FieldOffset(64)]
         public float windFrequency = 0.0f;
+        [FieldOffset(68)]
         public float windTrunkFlexibility = 0.0f;
+        [FieldOffset(72)]
         public float windTreeHeight = 0.0f;
+        [FieldOffset(76)]
         public float windFlutter = 0.0f;
 
+        [FieldOffset(80)]
         public float foliageNormalBlend = 0.0f;
+        [FieldOffset(84)]
         public float foliageBackfaceVolume = 0.0f;
-        
+
+        [FieldOffset(88)]
         Vec2f uvScale = Vec2f.One;
 
+        [FieldOffset(96)]
         [MarshalAs(UnmanagedType.I1)]
         bool unlit = false;
 
+        [FieldOffset(97)]
         [MarshalAs(UnmanagedType.I1)]
         bool foliage = false;
 
+        [FieldOffset(98)]
         byte flags = 0;
 
         public MaterialParameters()

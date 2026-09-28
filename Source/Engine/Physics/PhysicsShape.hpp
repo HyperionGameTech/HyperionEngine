@@ -153,11 +153,13 @@ public:
 
     ~BoxPhysicsShape() override = default;
 
+    HYP_METHOD(Property = "Bounds")
     HYP_FORCE_INLINE const BoundingBox& GetAABB() const
     {
         return m_aabb;
     }
 
+    HYP_METHOD(Property = "Bounds")
     HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
     {
         if (m_aabb == aabb)
@@ -195,11 +197,13 @@ public:
 
     ~SpherePhysicsShape() override = default;
 
+    HYP_METHOD(Property = "Bounds")
     HYP_FORCE_INLINE const BoundingSphere& GetSphere() const
     {
         return m_sphere;
     }
 
+    HYP_METHOD(Property = "Bounds")
     HYP_FORCE_INLINE void SetSphere(const BoundingSphere& sphere)
     {
         if (m_sphere == sphere)
@@ -478,7 +482,7 @@ public:
     HYP_METHOD(EditorOnly, EditorAction = "Regenerate", EditCondition = "CanRegenerate")
     void Regenerate();
 
-    HYP_METHOD()
+    HYP_METHOD(EditorOnly)
     bool CanRegenerate() const;
 #endif // HYP_EDITOR
 

@@ -860,11 +860,13 @@ public:
 
     void SetIsStatic(bool isStatic);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsDynamic() const
     {
         return !IsStatic();
     }
 
+    HYP_METHOD()
     void SetIsDynamic(bool isDynamic);
 
     /*! \brief The local-space axis-aligned bounding box of the node, extended to include the bounds of all child nodes (with their local-space transforms applied). */

@@ -80,23 +80,7 @@ void DeletionQueueElem<Handle<ObjectBase>>::DestroyObject()
         /// However, we incremented the strong ref count in the constructor to prevent deletion until this point.
         /// So the object would've been kept alive long enough to be safe to use during rendering.
         /// When the .NET GC runs, it will decrement the strong ref count and delete the object immediately if it reaches 0.
-        const int32 count = AtomicDecrement(&header->refCountStrong);
-
-        if (count == 0)
-        {
-            ptr->~ObjectBase();
-
-            // drop the weak ref held by the strong refs. this will free the slot if no other weak references remain
-            header->DecRefWeak();
-        }
-        else
-        {
-            AssertDebug(count >= 0);
-
-#ifdef HYP_DOTNET
-            Object_DecScriptObjectRef(ptr);
-#endif
-        }
+        header->DecRefStrong();
     }
 }
 

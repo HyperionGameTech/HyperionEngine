@@ -10,6 +10,34 @@ namespace Hyperion
         {
         }
 
+        /// <summary>
+        /// The registry for the engine's built-in content
+        /// </summary>
+        public static AssetRegistry? Engine
+        {
+            get
+            {
+                if (!AssetRegistry_GetEngineRegistryBoxed(out BoxedValueInternal dataBuffer))
+                {
+                    return null;
+                }
+
+                try
+                {
+                    return dataBuffer.ReadObject<AssetRegistry>();
+                }
+                finally
+                {
+                    dataBuffer.Dispose();
+                }
+            }
+        }
+
+        public T? GetAsset<T>(AssetBucket bucket, Name name) where T : AssetObject
+        {
+            return GetAsset(bucket.Index, name) as T;
+        }
+
         public uint GetBucketAssetCount(uint bucketIndex)
         {
             return AssetRegistry_GetBucketAssetDescs(NativeAddress, bucketIndex, IntPtr.Zero, 0);
@@ -80,6 +108,10 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "AssetRegistry_GetAssetBoxed")]
         private static extern bool AssetRegistry_GetAssetBoxed([In] IntPtr pRegistry, uint bucketIndex, [In] ref Name name, [Out] out BoxedValueInternal outBoxed);
+
+        [DllImport("hyperion", EntryPoint = "AssetRegistry_GetEngineRegistryBoxed")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool AssetRegistry_GetEngineRegistryBoxed([Out] out BoxedValueInternal outBoxed);
 
         [DllImport("hyperion", EntryPoint = "AssetRegistry_PutAsset")]
         private static extern void AssetRegistry_PutAsset([In] IntPtr pRegistry, [In] IntPtr pAsset);

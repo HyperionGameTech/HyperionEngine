@@ -9,7 +9,13 @@ namespace Hyperion
     {
         None = 0x0,
         ParallaxCorrected = 0x1,
-        Baked = 0x2
+        Baked = 0x2,
+        Realtime = 0x4,
+        OriginFromCenter = 0x8,
+        Visibility = 0x10,
+        PathTraced = 0x20,
+        HitMask = 0x40,
+        OnlySameScene = 0x80
     }
 
     [ClassBinding(Name = "EnvProbeType")]
@@ -18,7 +24,7 @@ namespace Hyperion
         Invalid = ~0u,
         Sky = 0,
         Reflection = 1,
-        Ambient = 3
+        Ambient = 2
     }
 
     [ClassBinding(Name = "EnvProbeDimensions")]

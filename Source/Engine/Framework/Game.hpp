@@ -154,6 +154,10 @@ protected:
     void SyncContentAndLaunch();
     void Launch();
 
+    void Update(float delta);
+
+    bool IsManagedGame() const;
+
     virtual void BeforeContentLoaded();
     virtual void AfterContentLoaded();
 
