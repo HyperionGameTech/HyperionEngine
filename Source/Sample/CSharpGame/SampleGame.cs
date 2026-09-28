@@ -100,17 +100,16 @@ namespace Hyperion.Samples
         {
             Props props = _props!;
 
-            Color groundColor = new Color(0.32f, 0.34f, 0.36f, 1.0f);
-            Color stoneColor = new Color(0.22f, 0.24f, 0.28f, 1.0f);
-            Color trimColor = new Color(0.12f, 0.13f, 0.16f, 1.0f);
+            Color platformColor = new Color(0.8f, 0.8f, 0.78f, 1.0f);
+            Color steelColor = new Color(0.56f, 0.57f, 0.58f, 1.0f);
 
             // ground slab with its top face at y = 0
-            props.Spawn("Ground", PropShape.Box, new Vec3f(0.0f, -0.5f, 0.0f), new Vec3f(80.0f, 1.0f, 80.0f), groundColor, roughness: 0.9f);
+            props.Spawn("Ground", PropShape.Box, new Vec3f(0.0f, -0.5f, 0.0f), new Vec3f(80.0f, 1.0f, 80.0f), steelColor, roughness: 0.1f, metalness: 1.0f);
 
             // tower platform
             props.Spawn("TowerPlatform", PropShape.Box,
                 TowerPosition + new Vec3f(0.0f, TowerPlatformHeight * 0.5f, 0.0f),
-                new Vec3f(4.0f, TowerPlatformHeight, 4.0f), trimColor, roughness: 0.7f);
+                new Vec3f(4.0f, TowerPlatformHeight, 4.0f), platformColor, roughness: 0.9f);
 
             // a ring of pillars around the arena
             for (int i = 0; i < 10; i++)
@@ -118,7 +117,7 @@ namespace Hyperion.Samples
                 float angle = i / 10.0f * MathF.PI * 2.0f;
                 Vec3f position = new Vec3f(MathF.Cos(angle) * 18.0f, 2.0f, MathF.Sin(angle) * 18.0f);
 
-                props.Spawn($"Pillar{i}", PropShape.Box, position, new Vec3f(1.2f, 4.0f, 1.2f), stoneColor, roughness: 0.8f);
+                props.Spawn($"Pillar{i}", PropShape.Box, position, new Vec3f(1.2f, 4.0f, 1.2f), steelColor, roughness: 0.2f, metalness: 1.0f);
             }
 
             // loose physics toys scattered around

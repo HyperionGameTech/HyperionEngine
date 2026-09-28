@@ -787,7 +787,7 @@ RendererResult RenderInterface::Initialize()
         {
             cfg.Set("Rendering.RayTracingEnabled", false);
             cfg.Set("Rendering.RayTracedReflections", false);
-            cfg.Set("Rendering.RayTracedGI", false);
+            cfg.Set("Rendering.DDGI", false);
             cfg.Set("Rendering.PathTracing", false);
         }
 

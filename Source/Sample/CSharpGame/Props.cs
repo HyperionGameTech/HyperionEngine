@@ -20,7 +20,7 @@ namespace Hyperion.Samples
         private readonly BoxPhysicsShape _boxShape;
         private readonly SpherePhysicsShape _sphereShape;
 
-        private readonly Dictionary<(Color, float), Material> _materials = new Dictionary<(Color, float), Material>();
+        private readonly Dictionary<(Color, float, float), Material> _materials = new Dictionary<(Color, float, float), Material>();
 
         public Props(Node root)
         {
@@ -41,7 +41,7 @@ namespace Hyperion.Samples
             _sphereShape.SetSphere(new BoundingSphere(new Vec3f(0.0f, 0.0f, 0.0f), 1.0f));
         }
 
-        public Entity Spawn(string name, PropShape shape, Vec3f position, Vec3f size, Color color, float mass = 0.0f, Quat4f? rotation = null, Vec3f? velocity = null, float roughness = 0.6f)
+        public Entity Spawn(string name, PropShape shape, Vec3f position, Vec3f size, Color color, float mass = 0.0f, Quat4f? rotation = null, Vec3f? velocity = null, float roughness = 0.6f, float metalness = 0.0f)
         {
             Mesh mesh = shape == PropShape.Box ? _cubeMesh : _sphereMesh;
             PhysicsShape physicsShape = shape == PropShape.Box ? _boxShape : _sphereShape;
@@ -61,7 +61,7 @@ namespace Hyperion.Samples
 
             MeshComponent meshComponent = new MeshComponent();
             meshComponent.Mesh = mesh;
-            meshComponent.Material = GetMaterial(color, roughness);
+            meshComponent.Material = GetMaterial(color, roughness, metalness);
             meshComponent.EnableAutoInstancing = true;
 
             entity.AddComponent(ref meshComponent);
@@ -80,9 +80,9 @@ namespace Hyperion.Samples
             return entity;
         }
 
-        public Material GetMaterial(Color color, float roughness = 0.6f)
+        public Material GetMaterial(Color color, float roughness = 0.6f, float metalness = 0.0f)
         {
-            if (_materials.TryGetValue((color, roughness), out Material? material))
+            if (_materials.TryGetValue((color, roughness, metalness), out Material? material))
             {
                 return material;
             }
@@ -94,14 +94,14 @@ namespace Hyperion.Samples
             MaterialParameters parameters = new MaterialParameters();
             parameters.albedo = color;
             parameters.roughness = roughness;
-            parameters.metalness = 0.0f;
+            parameters.metalness = metalness;
 
             material = new Material();
             material.Name = $"PropMaterial_{_materials.Count}";
             material.SetAttributes(attributes);
             material.SetParameters(parameters);
 
-            _materials[(color, roughness)] = material;
+            _materials[(color, roughness, metalness)] = material;
 
             return material;
         }

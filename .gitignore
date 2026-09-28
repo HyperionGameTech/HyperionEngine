@@ -104,7 +104,5 @@ Data/**/*
 .opencode
 
 # Ignore my stupid testing stuff
-Content/Engine/**/Hazmat*
-Content/Engine/**/survivor*
-Content/Engine/**/mutant
-Content/Engine/Materials/M_Hazmat*
+Content/Engine/Animations/*
+Content/Engine/AnimationTracks/*
