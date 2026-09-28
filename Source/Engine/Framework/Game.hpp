@@ -138,6 +138,15 @@ public:
     HYP_METHOD()
     virtual Handle<World> LoadWorld(Name worldName);
 
+    HYP_METHOD()
+    Name GetStartupWorldName() const;
+
+    HYP_METHOD()
+    void SetStartupWorldName(Name worldName)
+    {
+        m_startupWorldName = worldName;
+    }
+
     /// -
 
     HYP_FIELD()
@@ -187,6 +196,8 @@ protected:
     Array<Handle<View>> m_views;
 
     Handle<Camera> m_camera;
+
+    Name m_startupWorldName;
 
     ContentSyncState m_syncState;
     ServerConnectionState m_connectionState;

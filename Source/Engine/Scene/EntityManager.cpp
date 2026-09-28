@@ -454,7 +454,10 @@ void EntityManager::ClearEntities_Internal()
             Entity* entity = entityData.entityWeak.GetUnsafe();
             Assert(entity != nullptr);
 
-            entity->OnRemovedFromWorld(m_world);
+            if (m_world != nullptr)
+            {
+                entity->OnRemovedFromWorld(m_world);
+            }
 
             entity->SetEntityManagerRaw_Internal(nullptr);
             entity->SetSceneRaw_Internal(nullptr);

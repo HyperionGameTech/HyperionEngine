@@ -914,6 +914,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _clipboardChangedHandler;
         private DelegateHandler? _selectedGizmoChangedHandler;
         private DelegateHandler? _activeSceneChangedHandler;
+        private DelegateHandler? _projectWorldChangedHandler;
         private DelegateHandler? _prefabAssetsChangedHandler;
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
@@ -1620,6 +1621,16 @@ namespace Hyperion.Editor.ViewModels
             _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()
                 .Bind(HandleActiveSceneChanged);
 
+            // Same project, different World (Switch to This World in the content browser)
+            _projectWorldChangedHandler?.Remove();
+            _projectWorldChangedHandler = _editorSubsystem.GetOnProjectWorldChangedDelegate()
+                .Bind((EditorProject project, World world) =>
+                {
+                    EngineManager.BindWorldSceneDelegates(world);
+
+                    HandleCurrentProjectChanged(project, isSimulationStateChange: false);
+                });
+
             _prefabAssetsChangedHandler?.Remove();
             _prefabAssetsChangedHandler = _editorSubsystem.GetOnAssetsChangedDelegate().Bind((uint bucketIndex) =>
             {
@@ -1683,6 +1694,7 @@ namespace Hyperion.Editor.ViewModels
             _clipboardChangedHandler?.Remove();
             _selectedGizmoChangedHandler?.Remove();
             _activeSceneChangedHandler?.Remove();
+            _projectWorldChangedHandler?.Remove();
             _prefabAssetsChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
@@ -2090,7 +2102,7 @@ namespace Hyperion.Editor.ViewModels
                 weakProjectForUI.TryGetTarget(out EditorProject? p);
 
                 Title = p != null && !string.IsNullOrEmpty(p.FilePath)
-                    ? $"{Path.GetFileNameWithoutExtension(p.FilePath)} - Hyperion"
+                    ? $"{Path.GetFileNameWithoutExtension(p.FilePath)} ({p.GetEditWorldName()}) - Hyperion"
                     : "Hyperion";
 
                 if (p != null)

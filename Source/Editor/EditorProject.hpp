@@ -81,6 +81,10 @@ public:
         m_editWorld = world;
     }
 
+    /// Name of the World asset opened for editing
+    HYP_METHOD()
+    Name GetEditWorldName() const;
+
     HYP_METHOD(Property = "GameInstance")
     HYP_FORCE_INLINE const Handle<Game>& GetGame() const
     {
@@ -199,6 +203,9 @@ private:
 
     HYP_FIELD(Property = "EditorCameraDirection", Serialize)
     Vec3f m_editorCameraDirection;
+
+    HYP_FIELD(Property = "EditWorldName", Serialize)
+    Name m_editWorldName;
 
     HYP_FIELD(Transient)
     Handle<EditorActionStack> m_actionStack;

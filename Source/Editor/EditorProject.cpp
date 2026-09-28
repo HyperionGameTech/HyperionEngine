@@ -211,6 +211,16 @@ const Handle<World>& EditorProject::GetWorld() const
     return m_editWorld;
 }
 
+Name EditorProject::GetEditWorldName() const
+{
+    if (m_editWorld.IsValid())
+    {
+        return m_editWorld->GetName();
+    }
+
+    return m_editWorldName.IsValid() ? m_editWorldName : Game::s_nameMainWorld;
+}
+
 void EditorProject::SetGame(const Handle<Game>& gameInstance)
 {
     if (m_gameInstance == gameInstance)
@@ -284,6 +294,9 @@ Result EditorProject::SaveAs(FilePath filepath)
     {
         return HYP_MAKE_ERROR(Error, "No World set on the project");
     }
+
+    // follows the World asset if it was renamed
+    m_editWorldName = m_editWorld->GetName();
 
     ///Save EditorCamera position/direction
     Camera* editorCamera = g_editorState->GetEditorCamera();

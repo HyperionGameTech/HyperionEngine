@@ -2411,6 +2411,7 @@
                                                                         <MenuItem Command="{Binding ContentBrowser.NewDecalCommand}" Header="Decal" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewScriptCommand}" Header="Script" />
                                                                         <MenuItem Command="{Binding ContentBrowser.NewPrefabCommand}" Header="Prefab" />
+                                                                        <MenuItem Command="{Binding ContentBrowser.NewWorldCommand}" Header="World" />
                                                                     </MenuFlyout>
                                                                 </Button.Flyout>
                                                             </Button>
@@ -2553,6 +2554,13 @@
                                                                                     IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                     IsVisible="{Binding IsPrefab}"
                                                                                     ToolTip.Tip="Add an instance of this prefab to the scene" />
+                                                                                <MenuItem
+                                                                                    Command="{Binding ContentBrowser.OpenWorldCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                    CommandParameter="{Binding}"
+                                                                                    Header="Switch to This World"
+                                                                                    IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                    IsVisible="{Binding IsWorld}"
+                                                                                    ToolTip.Tip="Edit this World instead of the current one. The project is saved first." />
                                                                                 <Separator IsVisible="{Binding CanAddToScene, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                                 <MenuItem
                                                                                     Command="{Binding ContentBrowser.EditAssetCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"

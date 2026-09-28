@@ -282,7 +282,7 @@ void DefaultGame::ShowLoadingScreen()
                     GetThreadById(g_simThread)->GetScheduler().Enqueue(
                         [self = MakeStrongRef(this)]()
                         {
-                            if (Handle<World> world = self->LoadWorld(s_nameMainWorld); world.IsValid())
+                            if (Handle<World> world = self->LoadWorld(self->GetStartupWorldName()); world.IsValid())
                             {
                                 self->m_syncState.SetState(ContentSyncState::Finished);
 
@@ -393,7 +393,7 @@ void DefaultGame::ShowLoadingScreen()
             GetThreadById(g_simThread)->GetScheduler().Enqueue(
                 [self = MakeStrongRef(this), errorText]()
             {
-                if (Handle<World> world = self->LoadWorld(s_nameMainWorld); world.IsValid())
+                if (Handle<World> world = self->LoadWorld(self->GetStartupWorldName()); world.IsValid())
                 {
                     self->m_syncState.SetState(ContentSyncState::Finished);
 

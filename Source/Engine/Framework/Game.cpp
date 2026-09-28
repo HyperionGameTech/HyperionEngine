@@ -218,6 +218,11 @@ Handle<World> Game::LoadWorld(Name worldName)
     return m_assetRegistry->GetAsset<World>(AssetBuckets::Worlds, worldName);
 }
 
+Name Game::GetStartupWorldName() const
+{
+    return m_startupWorldName.IsValid() ? m_startupWorldName : s_nameMainWorld;
+}
+
 void Game::Shutdown(bool shutdownWorld)
 {
     m_syncState.Wait();
@@ -440,7 +445,7 @@ void Game::SyncContentAndLaunch()
         if (!m_world.IsValid())
         {
             Handle<World> world = MakeHandle<World>();
-            world->SetName(s_nameMainWorld);
+            world->SetName(GetStartupWorldName());
 
             SetWorld(world);
         }
@@ -469,14 +474,16 @@ void Game::AfterContentLoaded()
     
     m_syncState.currentTask = {};
 
-    Handle<World> world = LoadWorld(s_nameMainWorld);
+    const Name startupWorldName = GetStartupWorldName();
+
+    Handle<World> world = LoadWorld(startupWorldName);
 
     if (!world.IsValid() && IsManagedGame())
     {
-        HYP_LOG(Game, Info, "No {} asset found, starting from an empty World", s_nameMainWorld);
+        HYP_LOG(Game, Info, "No {} asset found, starting from an empty World", startupWorldName);
 
         world = MakeHandle<World>();
-        world->SetName(s_nameMainWorld);
+        world->SetName(startupWorldName);
     }
 
     if (world.IsValid())
