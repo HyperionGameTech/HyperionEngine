@@ -933,6 +933,30 @@ namespace Hyperion.Editor
             e.Handled = true;
         }
 
+        private void OnContentBrowserAssetDoubleTapped(object? sender, TappedEventArgs e)
+        {
+            if ((e.Source as StyledElement)?.DataContext is not AssetObjectViewModel assetVm)
+            {
+                return;
+            }
+
+            MainWindowViewModel? viewModel = MainWindowViewModel.Instance;
+
+            // Same gate as the context menu's Edit / Switch to This World items
+            if (viewModel == null || viewModel.IsSimulating)
+            {
+                return;
+            }
+
+            ICommand command = assetVm.IsWorld
+                ? viewModel.ContentBrowser.OpenWorldCommand
+                : viewModel.ContentBrowser.EditAssetCommand;
+
+            command.Execute(assetVm);
+
+            e.Handled = true;
+        }
+
         private void OnContentBrowserKeyDown(object? sender, KeyEventArgs e)
         {
             ContentBrowserViewModel? contentBrowser = MainWindowViewModel.Instance?.ContentBrowser;
