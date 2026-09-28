@@ -207,7 +207,8 @@ namespace Hyperion.Editor
             SetEditorViewportsEnabled(true);
         }
 
-        private static void BindWorldSceneDelegates(World? world)
+        // Also rebound by MainWindowViewModel when the edited World changes
+        internal static void BindWorldSceneDelegates(World? world)
         {
             _onSceneAddedHandler?.Remove();
             _onSceneRemovedHandler?.Remove();

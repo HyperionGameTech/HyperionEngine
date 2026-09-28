@@ -164,6 +164,9 @@ namespace Hyperion.Editor.ViewModels
         public ICommand NewDecalCommand { get; }
         public ICommand NewPhysicsShapeCommand { get; }
         public ICommand NewPrefabCommand { get; }
+        public ICommand NewWorldCommand { get; }
+
+        public ICommand OpenWorldCommand { get; }
 
         public ICommand DeleteAssetCommand { get; }
         public ICommand EditAssetCommand { get; }
@@ -217,6 +220,7 @@ namespace Hyperion.Editor.ViewModels
             (NewDecalCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewPhysicsShapeCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewPrefabCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (NewWorldCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
@@ -430,6 +434,44 @@ namespace Hyperion.Editor.ViewModels
                 });
             }, () => CanCreateAssets);
 
+            NewWorldCommand = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    if (!CanCreateAssetsOnSimThread("world"))
+                    {
+                        return;
+                    }
+
+                    AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+                    uint bucketIndex = AssetBucket.Worlds.Value;
+
+                    var existingNames = new HashSet<string>(
+                        registry.GetBucketAssetDescs(bucketIndex).Select(assetDesc => assetDesc.Name.ToString()),
+                        StringComparer.Ordinal);
+
+                    string name = "NewWorld";
+                    for (int suffix = 1; existingNames.Contains(name); suffix++)
+                    {
+                        name = $"NewWorld_{suffix}";
+                    }
+
+                    _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewWorld"), name);
+
+                    Dispatcher.UIThread.Post(() => FocusAsset(bucketIndex, name));
+                });
+            }, () => CanCreateAssets);
+
+            OpenWorldCommand = new RelayCommand<AssetObjectViewModel>(asset =>
+            {
+                if (asset == null || !asset.IsWorld)
+                {
+                    return;
+                }
+
+                _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandOpenWorld"), asset.AssetDesc.Name.ToString());
+            });
+
             _newAssetActions = new Dictionary<uint, (string TypeName, ICommand Command)>
             {
                 [AssetBucket.PhysicsShapes.Value] = ("Physics Shape", NewPhysicsShapeCommand),
@@ -438,6 +480,7 @@ namespace Hyperion.Editor.ViewModels
                 [AssetBucket.Decals.Value] = ("Decal", NewDecalCommand),
                 [AssetBucket.Scripts.Value] = ("Script", NewScriptCommand),
                 [AssetBucket.Prefabs.Value] = ("Prefab", NewPrefabCommand),
+                [AssetBucket.Worlds.Value] = ("World", NewWorldCommand),
             };
 
             AddToSceneCommand = new RelayCommand<AssetObjectViewModel>(asset =>

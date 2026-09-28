@@ -4988,14 +4988,15 @@ void EditorSubsystem::OpenProjectAtPath(const String& projectFilepath)
     ExecuteCommand(command);
 }
 
-void EditorSubsystem::NewProject()
+// Starter content for a new World: a sun, ground, third person player and sky
+static void PopulateNewWorld(World* world, const Handle<AssetRegistry>& assetRegistry, Name sceneName)
 {
-    Handle<EditorProject> project = EditorProject::CreateNew();
-
     Handle<Scene> mainScene = MakeHandle<Scene>();
-    mainScene->SetName(NAME("MainScene"));
+    mainScene->SetName(sceneName);
     mainScene->SetSceneFlags(SceneFlags::DEFAULT & ~SceneFlags::STREAMED);
-    project->AddScene(mainScene);
+
+    world->AddScene(mainScene, /* addToStreamingLayer */ true);
+    world->MarkDirty();
 
     Handle<DirectionalLight> sun = MakeHandle<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
@@ -5007,8 +5008,8 @@ void EditorSubsystem::NewProject()
     mainScene->GetRoot()->AddChild(sun);
 
     {
-        // The new project isn't open yet, so point asset registration at its registry explicitly
-        GlobalContextScope assetRegistryScope { AssetRegistryContext { project->GetGame()->GetAssetRegistry() } };
+        // The World isn't open yet, so point asset registration at its registry explicitly
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { assetRegistry } };
 
         EditorPlayerSetup::AddGround(mainScene->GetRoot(), NAME("Ground"));
 
@@ -5025,15 +5026,170 @@ void EditorSubsystem::NewProject()
         player.playerEntity->AddTag<EntityTag::Player>();
     }
 
-    // Handle<Scene> streamedScene = MakeHandle<Scene>();
-    // streamedScene->SetName(NAME("StreamedScene"));
-    // streamedScene->SetSceneFlags(SceneFlags::DEFAULT);
-    // project->AddScene(streamedScene);
+    world->AddSystemT<DynamicSkySystem>();
+}
 
-    // add dynamic skybox
-    project->GetWorld()->AddSystemT<DynamicSkySystem>();
+void EditorSubsystem::NewProject()
+{
+    Handle<EditorProject> project = EditorProject::CreateNew();
+
+    PopulateNewWorld(project->GetWorld().Get(), project->GetGame()->GetAssetRegistry(), NAME("MainScene"));
 
     OpenProject(project);
+}
+
+Handle<World> EditorSubsystem::NewWorldAsset(Name worldName)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_currentProject.IsValid() || !worldName.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot create World '{}': no project open or no name given", worldName);
+
+        return Handle<World>::Null();
+    }
+
+    const Handle<AssetRegistry>& assetRegistry = m_currentProject->GetGame()->GetAssetRegistry();
+
+    if (assetRegistry->HasAsset(AssetBuckets::Worlds, worldName))
+    {
+        HYP_LOG(Editor, Error, "Cannot create World '{}': a World with that name already exists", worldName);
+
+        return Handle<World>::Null();
+    }
+
+    // Left uninitialized, like a World freshly loaded from disk - OpenWorld() initializes it
+    Handle<World> world = MakeHandle<World>(worldName, WorldFlags::Default);
+
+    PopulateNewWorld(world.Get(), assetRegistry, NAME_FMT("{}Scene", worldName));
+
+    assetRegistry->PutAssetsDeep(world);
+
+    OnAssetsChanged(AssetBuckets::Worlds.GetIndex());
+
+    return world;
+}
+
+bool EditorSubsystem::OpenWorld(Name worldName)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_currentProject.IsValid() || IsSimulating() || !worldName.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot open World '{}': no project open, or the project is simulating", worldName);
+
+        return false;
+    }
+
+    Handle<EditorProject> project = m_currentProject;
+    Game* gameInstance = project->GetGame();
+
+    const Handle<World> oldWorld = project->GetWorld();
+
+    if (oldWorld.IsValid() && oldWorld->GetName() == worldName)
+    {
+        return true;
+    }
+
+    if (!project->IsSaved() || project->IsDirty())
+    {
+        HYP_LOG(Editor, Error, "Cannot open World '{}': the project has unsaved changes that would be lost", worldName);
+
+        return false;
+    }
+
+    Handle<World> newWorld = gameInstance->LoadWorld(worldName);
+
+    if (!newWorld.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Cannot open World '{}': it could not be loaded from the project", worldName);
+
+        return false;
+    }
+
+    HYP_LOG(Editor, Info, "Switching edited World from '{}' to '{}'",
+        oldWorld.IsValid() ? oldWorld->GetName() : Name::Invalid(), worldName);
+
+    CancelMeshPreview();
+    ExitMeshEditMode(/* saveEdits */ true);
+    GetCsgState()->Exit(/* saveEdits */ true);
+
+    if (m_terrainSculpting.IsValid())
+    {
+        m_terrainSculpting->SetEnabled(false);
+    }
+
+    if (m_decalPainter.IsValid())
+    {
+        m_decalPainter->SetEnabled(false);
+    }
+
+    ShutdownPreviewServices();
+
+    if (oldWorld.IsValid())
+    {
+        // Captured up front, World::Shutdown() moves its scenes out
+        Array<AssetObject*> oldScenes;
+
+        for (const Handle<Scene>& scene : oldWorld->GetScenes())
+        {
+            if (scene.IsValid())
+            {
+                oldScenes.PushBack(scene.Get());
+            }
+        }
+
+        ShutdownProjectWorld(project, /* shutdownWorld */ true);
+
+        // A new project's World is also owned by its Game
+        if (gameInstance->GetWorld() == oldWorld)
+        {
+            gameInstance->SetWorld(Handle<World>::Null());
+        }
+
+        // The shut down objects must not be handed out again if the World is reopened, it's reloaded from disk instead
+        const Handle<AssetRegistry>& assetRegistry = gameInstance->GetAssetRegistry();
+
+        auto isOldWorld = [oldWorldPtr = oldWorld.Get()](AssetObject* asset)
+        {
+            return asset == oldWorldPtr;
+        };
+
+        auto isOldScene = [&oldScenes](AssetObject* asset)
+        {
+            return oldScenes.Contains(asset);
+        };
+
+        assetRegistry->RemoveCachedIf(AssetBuckets::Worlds, isOldWorld);
+        assetRegistry->RemoveCachedIf(AssetBuckets::Scenes, isOldScene);
+    }
+
+    // Undo history refers to nodes of the World being left
+    Proc<bool(EditorActionBase*)> removeAllActions = [](EditorActionBase*)
+    {
+        return true;
+    };
+
+    project->GetActionStack()->RemoveActions(removeAllActions);
+
+    m_committedEnvProbePlacements.Clear();
+
+    newWorld->SetGame(gameInstance);
+    project->SetEditWorld(newWorld);
+
+    InitializeProjectWorld(project, /* isStartSimulation */ false);
+
+    InitializePreviewServices(newWorld.Get());
+
+    OnProjectWorldChanged(project, newWorld);
+
+    // Persists which World the project opens with
+    if (Result saveResult = project->Save(); saveResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to save project after opening World '{}': {}", worldName, saveResult.GetError().GetMessage());
+    }
+
+    return true;
 }
 
 void EditorSubsystem::CloseProject(bool shutdownWorld)
@@ -5044,18 +5200,7 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
     {
         GetCsgState()->Exit(/* saveEdits */ true);
 
-        // Tear the preview scenes down before the world goes away - they hold Scenes inside it.
-        if (m_thumbnailService)
-        {
-            m_thumbnailService->Shutdown();
-            m_thumbnailService.Reset();
-        }
-
-        if (m_materialPreviewRenderer)
-        {
-            m_materialPreviewRenderer->Shutdown();
-            m_materialPreviewRenderer.Reset();
-        }
+        ShutdownPreviewServices();
 
         ShutdownProjectWorld(m_currentProject, /* shutdownWorld */ shutdownWorld);
         OnProjectClosing(m_currentProject);
@@ -5137,23 +5282,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
     InitializeProjectWorld(m_currentProject, isStartSimulation);
 
-    m_thumbnailService = MakeUnique<AssetThumbnailService>();
-    m_thumbnailService->OnThumbnailReady
-        .Bind([this](uint32 bucketIndex, Name assetName)
-              {
-                  OnThumbnailReady(bucketIndex, assetName);
-              })
-        .Detach();
-    m_thumbnailService->Initialize(m_currentProject->GetWorld().Get());
-
-    m_materialPreviewRenderer = MakeUnique<MaterialPreviewRenderer>();
-    m_materialPreviewRenderer->OnFrameReady
-        .Bind([this]()
-              {
-                  OnMaterialPreviewUpdated();
-              })
-        .Detach();
-    m_materialPreviewRenderer->Initialize(m_currentProject->GetWorld().Get());
+    InitializePreviewServices(m_currentProject->GetWorld().Get());
 
     OnProjectOpened(m_currentProject);
 
@@ -5940,6 +6069,9 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
     if (isStartSimulation)
     {
+        // Play the World that was being edited
+        gameInstance->SetStartupWorldName(project->GetEditWorldName());
+
         // Loads the world
         gameInstance->Initialize();
 
@@ -5951,7 +6083,19 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
         if (!world.IsValid())
         {
-            if ((world = gameInstance->LoadWorld(Game::s_nameMainWorld)) && world.IsValid())
+            const Name editWorldName = project->GetEditWorldName();
+
+            world = gameInstance->LoadWorld(editWorldName);
+
+            if (!world.IsValid() && editWorldName != Game::s_nameMainWorld)
+            {
+                HYP_LOG(Editor, Warning, "Could not load World '{}' for project '{}', falling back to {}",
+                    editWorldName, project->GetName(), Game::s_nameMainWorld);
+
+                world = gameInstance->LoadWorld(Game::s_nameMainWorld);
+            }
+
+            if (world.IsValid())
             {
                 world->SetGame(gameInstance);
             }
@@ -6092,6 +6236,43 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
     }
 
     SetActiveScene(activeScene);
+}
+
+void EditorSubsystem::InitializePreviewServices(World* world)
+{
+    m_thumbnailService = MakeUnique<AssetThumbnailService>();
+    m_thumbnailService->OnThumbnailReady
+        .Bind([this](uint32 bucketIndex, Name assetName)
+              {
+                  OnThumbnailReady(bucketIndex, assetName);
+              })
+        .Detach();
+    m_thumbnailService->Initialize(world);
+
+    m_materialPreviewRenderer = MakeUnique<MaterialPreviewRenderer>();
+    m_materialPreviewRenderer->OnFrameReady
+        .Bind([this]()
+              {
+                  OnMaterialPreviewUpdated();
+              })
+        .Detach();
+    m_materialPreviewRenderer->Initialize(world);
+}
+
+void EditorSubsystem::ShutdownPreviewServices()
+{
+    // Tear the preview scenes down before the world goes away - they hold Scenes inside it.
+    if (m_thumbnailService)
+    {
+        m_thumbnailService->Shutdown();
+        m_thumbnailService.Reset();
+    }
+
+    if (m_materialPreviewRenderer)
+    {
+        m_materialPreviewRenderer->Shutdown();
+        m_materialPreviewRenderer.Reset();
+    }
 }
 
 void EditorSubsystem::UpdateBakeStatus()

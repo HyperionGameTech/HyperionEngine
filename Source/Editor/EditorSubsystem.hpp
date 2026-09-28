@@ -252,6 +252,12 @@ public:
     void CloseProject(bool shutdownWorld = true);
 
     HYP_METHOD()
+    Handle<World> NewWorldAsset(Name worldName);
+
+    HYP_METHOD()
+    bool OpenWorld(Name worldName);
+
+    HYP_METHOD()
     void ShowImportContentDialog();
 
     HYP_METHOD()
@@ -682,6 +688,9 @@ public:
     ScriptableDelegate<void, Handle<Scene>> OnActiveSceneChanged;
 
     HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorProject>, Handle<World>> OnProjectWorldChanged;
+
+    HYP_FIELD()
     ScriptableDelegate<void, EditorGizmoBase*, EditorGizmoBase*> OnSelectedGizmoChanged;
 
     HYP_FIELD()
@@ -734,6 +743,9 @@ private:
 
     void InitializeProjectWorld(const Handle<EditorProject>& project, bool isStartSimulation = false);
     void ShutdownProjectWorld(const Handle<EditorProject>& project, bool shutdownWorld = true);
+
+    void InitializePreviewServices(World* world);
+    void ShutdownPreviewServices();
 
     void UpdateBakeStatus();
 

@@ -2,7 +2,9 @@
 
 namespace Hyperion {
 
-static bool ConfirmCloseCurrentProject(EditorSubsystem* subsystem)
+namespace /* Helpers */ {
+
+bool ConfirmCloseCurrentProject(EditorSubsystem* subsystem)
 {
     Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
 
@@ -17,28 +19,103 @@ static bool ConfirmCloseCurrentProject(EditorSubsystem* subsystem)
         .Title("Save changes?")
         .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
         .Button("Save", [currentProject, &cancel]
-        {
-            Result saveResult = currentProject->Save();
-            if (saveResult.HasError())
-            {
-                HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+                {
+                    Result saveResult = currentProject->Save();
+                    if (saveResult.HasError())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
 
-                SystemMessageBox(MessageBoxType::CRITICAL)
+                        SystemMessageBox(MessageBoxType::CRITICAL)
                             .Title("Project could not be saved")
                             .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                + "\nThe operation will be aborted to prevent loss of data")
+                                  + "\nThe operation will be aborted to prevent loss of data")
                             .Button("OK", NoOpFunction<void> {})
                             .Show();
 
-                cancel = true;
-            }
-        })
+                        cancel = true;
+                    }
+                })
         .Button("Discard", NoOpFunction<void> {})
-        .Button("Cancel", [&cancel] { cancel = true; })
+        .Button("Cancel", [&cancel]
+                {
+                    cancel = true;
+                })
         .Show();
 
     return !cancel;
 }
+
+void ParseWorldCommandArguments(const EditorCommandBase& command, Name& outWorldName, bool& outSaveWithoutAsking)
+{
+    outWorldName = Name::Invalid();
+    outSaveWithoutAsking = false;
+
+    for (const String& argument : command.GetArguments())
+    {
+        if (argument == "--save")
+        {
+            outSaveWithoutAsking = true;
+        }
+        else if (!argument.StartsWith("--") && !outWorldName.IsValid())
+        {
+            outWorldName = CreateNameFromDynamicString(ANSIString(argument));
+        }
+    }
+}
+
+// Leaving a World drops it from memory, so it has to be on disk first
+bool EnsureProjectSavedBeforeWorldSwitch(EditorSubsystem* subsystem, bool saveWithoutAsking)
+{
+    Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+
+    if (!currentProject.IsValid())
+    {
+        return false;
+    }
+
+    if (currentProject->IsSaved() && !currentProject->IsDirty())
+    {
+        return true;
+    }
+
+    bool shouldSave = saveWithoutAsking;
+
+    if (!shouldSave)
+    {
+        SystemMessageBox(MessageBoxType::INFO)
+            .Title("Save changes?")
+            .Text("The project has to be saved before another World can be opened for editing.")
+            .Button("Save", [&shouldSave]
+                    {
+                        shouldSave = true;
+                    })
+            .Button("Cancel", NoOpFunction<void> {})
+            .Show();
+    }
+
+    if (!shouldSave)
+    {
+        return false;
+    }
+
+    if (Result saveResult = currentProject->Save(); saveResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to save project before switching World: {}", saveResult.GetError().GetMessage());
+
+        SystemMessageBox(MessageBoxType::CRITICAL)
+            .Title("Project could not be saved")
+            .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
+                  + "\nThe World will not be switched to prevent loss of data")
+            .Button("OK", NoOpFunction<void> {})
+            .Show();
+
+        return false;
+    }
+
+    return true;
+}
+
+} // namespace
 
 #pragma region Undo
 
@@ -410,6 +487,74 @@ public:
 DEFINE_EDITOR_COMMAND(CloseProject);
 
 #pragma endregion CloseProject
+
+#pragma region NewWorld
+
+class EditorCommandNewWorld final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandNewWorld);
+
+public:
+    virtual ~EditorCommandNewWorld() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        if (GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Warning, "NewWorld: no World name given (usage: NewWorld <name>)");
+            return;
+        }
+
+        subsystem->NewWorldAsset(CreateNameFromDynamicString(ANSIString(GetArgument(0))));
+    }
+};
+
+DEFINE_EDITOR_COMMAND(NewWorld);
+
+#pragma endregion NewWorld
+
+#pragma region OpenWorld
+
+class EditorCommandOpenWorld final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandOpenWorld);
+
+public:
+    virtual ~EditorCommandOpenWorld() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Name worldName;
+        bool saveWithoutAsking = false;
+
+        ParseWorldCommandArguments(*this, worldName, saveWithoutAsking);
+
+        if (!worldName.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "OpenWorld: no World name given (usage: OpenWorld <name> [--save])");
+            return;
+        }
+
+        if (Handle<EditorProject> currentProject = subsystem->GetCurrentProject(); currentProject.IsValid())
+        {
+            if (const Handle<World>& currentWorld = currentProject->GetWorld(); currentWorld.IsValid() && currentWorld->GetName() == worldName)
+            {
+                return;
+            }
+        }
+
+        if (!EnsureProjectSavedBeforeWorldSwitch(subsystem, saveWithoutAsking))
+        {
+            return;
+        }
+
+        subsystem->OpenWorld(worldName);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(OpenWorld);
+
+#pragma endregion OpenWorld
 
 
 #pragma region CookGameContent

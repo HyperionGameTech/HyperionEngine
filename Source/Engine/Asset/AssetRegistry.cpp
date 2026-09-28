@@ -1950,6 +1950,35 @@ void AssetRegistry::RemoveCached(const AssetBucket& bucket, StringHash name)
     bucketData.assetObjectCache.EraseAt(it->index);
 }
 
+void AssetRegistry::RemoveCachedIf(const AssetBucket& bucket, const ProcRef<bool(AssetObject*)>& predicate)
+{
+    AssetBucketData& bucketData = m_assetBucketData[bucket.GetIndex()];
+
+    TUniqueLock lock(bucketData.mtx);
+
+    for (const AssetDesc& desc : bucketData.assetDescs)
+    {
+        const Handle<AssetObject>* pAssetObject = bucketData.assetObjectCache.TryGet(desc.index);
+
+        if (pAssetObject == nullptr || !pAssetObject->IsValid())
+        {
+            continue;
+        }
+
+        const Handle<AssetObject>& assetObject = *pAssetObject;
+
+        if (!predicate(assetObject.Get()))
+        {
+            continue;
+        }
+
+        assetObject->m_assetIndex = AssetDesc::InvalidIndex;
+        assetObject->OnUnloaded();
+
+        bucketData.assetObjectCache.EraseAt(desc.index);
+    }
+}
+
 void AssetRegistry::Update()
 {
     HYP_SCOPE;

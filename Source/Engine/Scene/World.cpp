@@ -133,6 +133,22 @@ World::~World()
 
     Shutdown();
 
+    Array<Handle<Scene>> scenes = std::move(m_scenes);
+
+    for (const Handle<Scene>& scene : scenes)
+    {
+        if (!scene.IsValid() || scene->GetWorld() != this)
+        {
+            continue;
+        }
+
+        const ThreadId ownerThreadId = scene->GetOwnerThreadId();
+
+        scene->SetOwnerThreadId(CurrentThreadId());
+        scene->SetWorld(nullptr);
+        scene->SetOwnerThreadId(ownerThreadId);
+    }
+
     OnSceneAdded.RemoveAllForTarget(this);
     OnSceneRemoved.RemoveAllForTarget(this);
     OnActiveSwatchChanged.RemoveAllForTarget(this);
@@ -1832,7 +1848,6 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
     // no thread assertion if not yet init since this is used for deserialization mainly
 
     Array<Handle<Scene>> previousScenes = std::move(m_scenes);
-    m_scenes.Clear();
 
     for (Handle<Scene>& scene : previousScenes)
     {

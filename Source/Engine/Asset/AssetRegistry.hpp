@@ -161,6 +161,7 @@ public:
     void RemoveCached();
     void RemoveCached(const AssetBucket& bucket);
     void RemoveCached(const AssetBucket& bucket, StringHash name);
+    void RemoveCachedIf(const AssetBucket& bucket, const ProcRef<bool(AssetObject*)>& predicate);
 
     /// End new assetbucket based stuff
 
