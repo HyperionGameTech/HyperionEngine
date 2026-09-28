@@ -2802,13 +2802,13 @@ void RenderCollector::PerformRendering(Frame* frame, PerformRenderingPayloadBase
 
         auto& cr = drawCallCollection.parallelRenderingState->data->threadedCommandRecorders[renderThreadIndex - 1];
 
-        TPerformRenderingPayload payloadNext { &cr, &payload };
+        TPerformRenderingPayload<ThreadedCommandRecorder> payloadNext { &cr, &payload };
 
         PerformRenderingImpl(frame, payloadNext);
     }
     else
     {
-        TPerformRenderingPayload payloadNext { &frame->cr, &payload };
+        TPerformRenderingPayload<CommandRecorder> payloadNext { &frame->cr, &payload };
 
         PerformRenderingImpl(frame, payloadNext);
     }
