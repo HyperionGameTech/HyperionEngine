@@ -452,6 +452,14 @@ void UIConsole::Init()
         }).Detach();
 }
 
+void UIConsole::FocusInput()
+{
+    if (m_textbox)
+    {
+        m_textbox->Focus();
+    }
+}
+
 void UIConsole::UpdateSize_Internal(bool updateChildren)
 {
     UIObject::UpdateSize_Internal(updateChildren);

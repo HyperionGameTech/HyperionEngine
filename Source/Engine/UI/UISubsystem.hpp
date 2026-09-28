@@ -30,6 +30,7 @@ class FontAtlas;
 class RenderProxyList;
 
 class OverlayBase;
+class Event;
 
 HYP_CLASS()
 class ENGINE_API UISubsystem final : public Subsystem
@@ -60,6 +61,8 @@ public:
     {
         m_debugOverlaysSuppressed = suppressed;
     }
+
+    bool HandleDebugOverlayInput(const Event& event);
 
     void PreUpdate(float delta) override;
     void Update(float delta) override;

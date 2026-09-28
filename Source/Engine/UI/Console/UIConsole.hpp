@@ -31,6 +31,8 @@ public:
 
     virtual ~UIConsole() override;
 
+    void FocusInput();
+
 protected:
     virtual void Init() override;
     virtual void UpdateSize_Internal(bool updateChildren) override;

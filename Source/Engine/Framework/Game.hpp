@@ -72,6 +72,12 @@ public:
     HYP_METHOD(Property = "World")
     void SetWorld(const Handle<World>& world);
 
+    HYP_METHOD()
+    const Handle<UISubsystem>& GetUISubsystem() const
+    {
+        return m_uiSubsystem;
+    }
+
     HYP_METHOD(Property = "GameState")
     const GameState& GetGameState() const
     {
@@ -141,11 +147,6 @@ public:
     static ScriptableDelegate<void, Game*, GameStateMode, GameStateMode> OnGameStateChange;
 
 protected:
-    const Handle<UISubsystem>& GetUISubsystem() const
-    {
-        return m_uiSubsystem;
-    }
-
     bool IsSyncingOrPreparingContent() const
     {
         return m_syncState.IsInProgress();

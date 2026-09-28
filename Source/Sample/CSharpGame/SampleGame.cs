@@ -26,6 +26,7 @@ namespace Hyperion.Samples
         private Props? _props;
         private Player? _player;
         private InputManager? _input;
+        private ConsoleOverlay? _console;
 
         private readonly List<Entity> _towerCrates = new List<Entity>();
         private readonly Queue<Entity> _balls = new Queue<Entity>();
@@ -68,9 +69,12 @@ namespace Hyperion.Samples
 
             _input = AppContextBase.Instance.GetMainWindow()?.GetInputManager();
 
+            _console = new ConsoleOverlay();
+            UISubsystem?.AddDebugOverlay(_console);
+
             this.StartSimulating();
 
-            Logger.Log(LogLevel.Info, "Playground ready. WASD/Space/Shift to move, click to capture the mouse, left click or F to throw, G to drop a crate, R to rebuild the tower");
+            Logger.Log(LogLevel.Info, "Playground ready. WASD/Space/Shift to move, click to capture the mouse, left click or F to throw, G to drop a crate, R to rebuild the tower, ~ for the console");
         }
 
         protected override void OnUpdate(float delta)
@@ -172,6 +176,15 @@ namespace Hyperion.Samples
         {
             if (_input == null)
             {
+                return;
+            }
+
+            // keys typed into the console shouldn't trigger game actions
+            if (_console != null && _console.IsOpen())
+            {
+                _keysDown.Clear();
+                _throwButtonWasDown = true;
+
                 return;
             }
 

@@ -7,8 +7,6 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 48, Pack = 16)]
     public ref struct TransformComponent : IComponent
     {
-        public static Class Class => Class.GetClass(typeof(TransformComponent));
-
         [FieldOffset(0)]
         public Vec3f Translation = Vec3f.Zero;
 
@@ -20,21 +18,6 @@ namespace Hyperion
 
         public TransformComponent()
         {
-        }
-
-        public void Dispose()
-        {
-        }
-
-        public unsafe IntPtr NativeAddress
-        {
-            get
-            {
-                fixed (TransformComponent* pThis = &this)
-                {
-                    return (IntPtr)pThis;
-                }
-            }
         }
     }
 }

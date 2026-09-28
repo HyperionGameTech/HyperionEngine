@@ -79,19 +79,6 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 208, Pack = 16)]
     public ref struct CharacterControllerComponent : IComponent
     {
-        public static Class Class => Class.GetClass(typeof(CharacterControllerComponent));
-
-        public unsafe IntPtr NativeAddress
-        {
-            get
-            {
-                fixed (CharacterControllerComponent* pThis = &this)
-                {
-                    return (IntPtr)pThis;
-                }
-            }
-        }
-
         [FieldOffset(0)]
         public Handle<PhysicsShape> Shape;
         [FieldOffset(8)]
@@ -130,6 +117,9 @@ namespace Hyperion
         {
             Shape.Dispose();
             InputHandler.Dispose();
+
+            //Hmm... @TODO address me
+            ///PhysicsHandle.Dispose();
         }
     }
 }

@@ -7,8 +7,6 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public ref struct UIComponent : IComponent
     {
-        public static Class Class => Class.GetClass(typeof(UIComponent));
-
         [FieldOffset(0)]
         private WeakHandle<UIObject> _uiObject;
 
@@ -18,19 +16,9 @@ namespace Hyperion
 
         public void Dispose()
         {
+            _uiObject.Dispose();
         }
 
         public UIObject? UIObject => _uiObject.Lock().GetValue();
-
-        public unsafe IntPtr NativeAddress
-        {
-            get
-            {
-                fixed (UIComponent* pThis = &this)
-                {
-                    return (IntPtr)pThis;
-                }
-            }
-        }
     }
 }

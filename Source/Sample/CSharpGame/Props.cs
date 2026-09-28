@@ -62,6 +62,7 @@ namespace Hyperion.Samples
             MeshComponent meshComponent = new MeshComponent();
             meshComponent.Mesh = mesh;
             meshComponent.Material = GetMaterial(color, roughness);
+            meshComponent.EnableAutoInstancing = true;
 
             entity.AddComponent(ref meshComponent);
 

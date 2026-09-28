@@ -30,6 +30,23 @@ public:
     ConsoleOverlay();
     virtual ~ConsoleOverlay() override;
 
+    HYP_METHOD()
+    bool IsOpen() const
+    {
+        return m_isOpen;
+    }
+
+    HYP_METHOD()
+    void SetOpen(bool isOpen);
+
+    HYP_METHOD()
+    void Toggle()
+    {
+        SetOpen(!m_isOpen);
+    }
+
+    virtual bool OnInputEvent(const Event& event) override;
+
 protected:
     virtual Handle<UIObject> CreateUIObject(UIObject* spawnParent) override;
 
@@ -42,11 +59,18 @@ protected:
 
     virtual bool IsEnabled() const override
     {
+        return m_isOpen;
+    }
+
+    virtual bool IgnoresSharedDebugUIVisibility() const override
+    {
         return true;
     }
 
 private:
     UIConsole* m_console;
+    bool m_isOpen;
+    bool m_toggleKeyHeld;
 };
 
 } // namespace Hyperion

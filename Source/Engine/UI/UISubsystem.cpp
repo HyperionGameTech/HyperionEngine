@@ -482,6 +482,23 @@ void UISubsystem::AddDebugOverlay(const Handle<OverlayBase>& debugOverlay)
     }
 }
 
+bool UISubsystem::HandleDebugOverlayInput(const Event& event)
+{
+    HYP_SCOPE;
+
+    AssertOnThread(g_simThread);
+
+    for (const Handle<OverlayBase>& debugOverlay : m_debugOverlays)
+    {
+        if (debugOverlay->OnInputEvent(event))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool UISubsystem::RemoveDebugOverlay(OverlayBase* debugOverlay)
 {
     HYP_SCOPE;

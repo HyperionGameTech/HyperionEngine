@@ -548,6 +548,11 @@ bool Game::OnInputEvent(const Event& event)
 {
     AssertOnThread(g_simThread);
 
+    if (m_uiSubsystem.IsValid() && m_uiSubsystem->HandleDebugOverlayInput(event))
+    {
+        return true;
+    }
+
     if (m_uiSubsystem.IsValid() && m_uiSubsystem->GetUIStage().IsValid())
     {
         if (m_uiSubsystem->GetUIStage()->OnInputEvent(event) == UIEventHandlerResult::STOP_BUBBLING)

@@ -7,8 +7,6 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 176, Pack = 16)]
     public unsafe ref struct MeshComponent : IComponent
     {
-        public static Class Class => Class.GetClass(typeof(MeshComponent));
-
         [FieldOffset(0)]
         private Handle<Mesh> _meshHandle;
 
@@ -106,15 +104,10 @@ namespace Hyperion
             }
         }
 
-        public unsafe IntPtr NativeAddress
+        public bool EnableAutoInstancing
         {
-            get
-            {
-                fixed (MeshComponent* pThis = &this)
-                {
-                    return (IntPtr)pThis;
-                }
-            }
+            get => _enableAutoInstancing;
+            set => _enableAutoInstancing = value;
         }
     }
 }

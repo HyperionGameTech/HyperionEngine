@@ -12,6 +12,9 @@
 
 #include <UI/Console/UIConsole.hpp>
 
+#include <Input/Event.hpp>
+#include <Input/Keyboard.hpp>
+
 #include <ConsoleOverlay.generated.inl>
 
 namespace Hyperion {
@@ -19,7 +22,10 @@ namespace Hyperion {
 #pragma region ConsoleOverlay
 
 ConsoleOverlay::ConsoleOverlay()
-    : OverlayBase()
+    : OverlayBase(),
+      m_console(nullptr),
+      m_isOpen(false),
+      m_toggleKeyHeld(false)
 {
 }
 
@@ -45,6 +51,68 @@ void ConsoleOverlay::Update(float delta)
 {
     HYP_SCOPE;
 
+}
+
+void ConsoleOverlay::SetOpen(bool isOpen)
+{
+    HYP_SCOPE;
+
+    if (m_isOpen == isOpen)
+    {
+        return;
+    }
+
+    m_isOpen = isOpen;
+
+    if (!m_uiObject.IsValid() || m_console == nullptr)
+    {
+        return;
+    }
+
+    m_uiObject->SetIsVisible(isOpen);
+
+    if (isOpen)
+    {
+        m_console->FocusInput();
+    }
+    else
+    {
+        m_console->Blur();
+    }
+}
+
+bool ConsoleOverlay::OnInputEvent(const Event& event)
+{
+    HYP_SCOPE;
+
+    switch (event.GetType())
+    {
+    case EventType::KEYDOWN:
+        if (event.GetKeyCode() != KeyCode::KEY_TILDE)
+        {
+            return false;
+        }
+
+        if (!m_toggleKeyHeld)
+        {
+            m_toggleKeyHeld = true;
+
+            Toggle();
+        }
+
+        return true;
+    case EventType::KEYUP:
+        if (event.GetKeyCode() == KeyCode::KEY_TILDE)
+        {
+            m_toggleKeyHeld = false;
+        }
+
+        return false;
+    case EventType::TEXT_INPUT:
+        return m_toggleKeyHeld && (event.GetTextInput() == "`" || event.GetTextInput() == "~");
+    default:
+        return false;
+    }
 }
 
 #pragma endregion ConsoleOverlay

@@ -23,6 +23,7 @@ class UIStage;
 class UIImage;
 
 class Texture;
+class Event;
 
 HYP_CLASS(Abstract)
 class ENGINE_API OverlayBase : public ObjectBase
@@ -62,6 +63,11 @@ public:
     }
 
     virtual bool IgnoresSharedDebugUIVisibility() const
+    {
+        return false;
+    }
+
+    virtual bool OnInputEvent(const Event& event)
     {
         return false;
     }

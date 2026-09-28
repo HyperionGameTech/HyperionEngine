@@ -29,6 +29,8 @@ namespace Hyperion
             set => this.SetAssetRegistry(value);
         }
 
+        public UISubsystem? UISubsystem => this.GetUISubsystem();
+
         /// <summary>
         /// Called on the sim thread once the World is ready, before the engine sets up a View for the
         /// primary camera

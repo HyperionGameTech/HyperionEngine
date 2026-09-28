@@ -15,19 +15,7 @@ namespace Hyperion
 
         public void Dispose()
         {
-        }
-
-        public static Class Class => Class.GetClass(typeof(WeaponComponent));
-
-        public unsafe IntPtr NativeAddress
-        {
-            get
-            {
-                fixed (WeaponComponent* pThis = &this)
-                {
-                    return (IntPtr)pThis;
-                }
-            }
+            Weapon.Dispose();
         }
     }
 }

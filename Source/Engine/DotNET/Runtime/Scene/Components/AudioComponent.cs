@@ -29,29 +29,24 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="AudioComponent")]
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit, Size = 64, Pack = 16)]
     public ref struct AudioComponent : IComponent
     {
-        public static Class Class => Class.GetClass(typeof(AudioComponent));
-
-        public unsafe IntPtr NativeAddress
-        {
-            get
-            {
-                fixed (AudioComponent* pThis = &this)
-                {
-                    return (IntPtr)pThis;
-                }
-            }
-        }
-
+        [FieldOffset(0)]
         public Handle<AudioSource> AudioSource;
+
+        [FieldOffset(8)]
         public AudioPlaybackState PlaybackState;
+
+        [FieldOffset(32)]
         public Vec3f LastPosition;
+
+        [FieldOffset(48)]
         public float Timer;
 
         public void Dispose()
         {
+            AudioSource.Dispose();
         }
     }
 }
