@@ -695,6 +695,120 @@ private:
 
 #endif // HYP_IOS
 
+#ifdef HYP_LINUX
+
+HYP_CLASS(Condition = "HYP_LINUX")
+class ENGINE_API X11ApplicationWindow final : public ApplicationWindow
+{
+    HYP_OBJECT_BODY(X11ApplicationWindow);
+
+    friend class X11AppContext;
+
+public:
+    X11ApplicationWindow(ANSIString title, Vec2i size);
+    ~X11ApplicationWindow() override;
+
+    void Initialize(WindowOptions windowOptions);
+
+    HYP_METHOD()
+    void SetMousePosition(Vec2i position) override;
+
+    HYP_METHOD()
+    Vec2i GetMousePosition() const override;
+
+    HYP_METHOD()
+    Vec2i GetDimensions() const override;
+
+    HYP_METHOD()
+    void SetIsMouseLocked(bool locked) override;
+
+    HYP_METHOD()
+    bool IsMouseLocked() const override
+    {
+        return m_mouseLocked;
+    }
+
+    HYP_METHOD()
+    bool HasMouseFocus() const override;
+
+    HYP_METHOD()
+    void Close() override;
+
+    //! Display* of the connection the window was created on
+    HYP_FORCE_INLINE void* GetX11Display() const
+    {
+        return m_display;
+    }
+
+    //! X11 Window id (XID), also returned by GetHWND()
+    HYP_FORCE_INLINE uint64 GetX11Window() const
+    {
+        return m_x11Window;
+    }
+
+    HYP_FORCE_INLINE uint64 GetX11ParentWindow() const
+    {
+        return m_x11ParentWindow;
+    }
+
+    bool HandleX11Event(void* xEvent, Event& outEvent);
+
+private:
+    void TryGrabPointer();
+    void WarpPointer(Vec2i position);
+
+    void* m_display = nullptr;
+    uint64 m_x11Window = 0;
+    uint64 m_x11ParentWindow = 0;
+    uint64 m_colormap = 0;
+    uint64 m_hiddenCursor = 0;
+
+    bool m_isOpen = false;
+    bool m_mouseLocked = false;
+    bool m_pointerGrabbed = false;
+    bool m_hasKeyboardFocus = false;
+
+    // Serial of the last XWarpPointer request, motion events older than it are relative to m_preWarpMousePosition
+    uint64 m_warpSerial = 0;
+    Vec2i m_lastMousePosition;
+    Vec2i m_preWarpMousePosition;
+    Vec2i m_lockedMousePosition;
+};
+
+HYP_CLASS(Condition = "HYP_LINUX")
+class ENGINE_API X11AppContext final : public AppContextBase
+{
+    HYP_OBJECT_BODY(X11AppContext);
+
+public:
+    X11AppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~X11AppContext() override;
+
+    HYP_METHOD()
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
+
+    int PollEvents(Event& event) override;
+
+    //! Display* shared by all windows created by this context
+    HYP_FORCE_INLINE void* GetX11Display() const
+    {
+        return m_display;
+    }
+
+#if HYP_VULKAN
+    static VkSurfaceKHR CreateVulkanSurface(
+        X11ApplicationWindow* window,
+        IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
+#endif
+
+private:
+    X11ApplicationWindow* FindWindowForX11Event(uint64 x11Window) const;
+
+    void* m_display;
+};
+
+#endif // HYP_LINUX
+
 #ifdef HYP_WINDOWS
 ENGINE_API void Win32_CleanupWindowClasses();
 #endif

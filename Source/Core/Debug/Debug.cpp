@@ -12,6 +12,8 @@
 
 #include <cstdio>
 #include <cstdarg>
+#include <cstdlib>
+#include <cstring>
 #include <type_traits>
 
 #if HYP_WINDOWS
@@ -129,8 +131,31 @@ CORE_API bool IsDebuggerAttached()
 
     // P_TRACED flag is set when a debugger is tracing the process.
     return (info.kp_proc.p_flag & P_TRACED) != 0;
+#elif HYP_LINUX
+    // TracerPid is non-zero while a debugger (ptrace) is attached
+    FILE* statusFile = std::fopen("/proc/self/status", "r");
+
+    if (!statusFile)
+    {
+        return false;
+    }
+
+    bool isTraced = false;
+    char line[256];
+
+    while (std::fgets(line, sizeof(line), statusFile))
+    {
+        if (std::strncmp(line, "TracerPid:", 10) == 0)
+        {
+            isTraced = std::atoi(line + 10) != 0;
+            break;
+        }
+    }
+
+    std::fclose(statusFile);
+
+    return isTraced;
 #else
-    // @TODO: Implement for HYP_LINUX
     return false;
 #endif
 }

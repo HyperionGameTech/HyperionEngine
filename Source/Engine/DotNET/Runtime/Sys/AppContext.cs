@@ -65,4 +65,12 @@ namespace Hyperion
         {
         }
     }
+
+    [ClassBinding(Name = "X11AppContext", Condition = "IsLinux")]
+    public class X11AppContext : AppContextBase
+    {
+        public X11AppContext()
+        {
+        }
+    }
 }

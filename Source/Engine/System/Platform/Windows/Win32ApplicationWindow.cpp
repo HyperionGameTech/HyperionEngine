@@ -28,8 +28,8 @@
 #include <Rendering/RenderInterface.hpp>
 
 #if HYP_VULKAN
-#include <Vulkan/vulkan.h>
-#include <Vulkan/vulkan_win32.h>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
 
 #include <Rendering/Vulkan/VulkanInstance.hpp>
 #endif

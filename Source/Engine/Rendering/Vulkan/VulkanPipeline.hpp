@@ -9,7 +9,7 @@
 #include <Rendering/Vulkan/VulkanDescriptorSet.hpp>
 #include <Rendering/RenderTypes.hpp>
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 namespace Hyperion {
 

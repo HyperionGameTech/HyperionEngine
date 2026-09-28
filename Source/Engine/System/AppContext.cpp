@@ -26,15 +26,13 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #if HYP_VULKAN
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 #if HYP_WINDOWS
-#include <Vulkan/vulkan_win32.h>
+#include <vulkan/vulkan_win32.h>
 #elif HYP_APPLE
-#include <Vulkan/vulkan_metal.h>
+#include <vulkan/vulkan_metal.h>
 #elif HYP_ANDROID
-#include <Vulkan/vulkan_android.h>
-#elif HYP_LINUX
-#include <Vulkan/vulkan_xlib.h>
+#include <vulkan/vulkan_android.h>
 #endif
 
 #include <Rendering/Vulkan/VulkanInstance.hpp>

@@ -47,3 +47,14 @@ target_link_libraries(${BUILD_NAME} PRIVATE hyperion-input hyperion-rendering)
 if(WIN32)
     target_link_libraries(${BUILD_NAME} PUBLIC comctl32)
 endif()
+
+if(HYP_LINUX)
+    find_package(X11 REQUIRED)
+
+    if(NOT X11_Xkb_FOUND)
+        message(FATAL_ERROR "X11 XKB headers (X11/XKBlib.h) not found - install the libx11 development package")
+    endif()
+
+    target_include_directories(${BUILD_NAME} SYSTEM PRIVATE ${X11_INCLUDE_DIR})
+    target_link_libraries(${BUILD_NAME} PUBLIC ${X11_X11_LIB})
+endif()
