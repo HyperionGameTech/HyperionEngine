@@ -81,6 +81,7 @@ void InstanceDataPool::WriteInstances(uint32 entityBinding, const RenderProxyMes
     const uint32 numInstances = proxy.numInstances;
 
     // buffer 0 is always the instance transform
+    // FIXME: flimsy
     const bool hasTransforms = numInstances != 0
         && instanceData.bufferStructSizes[0] == sizeof(Mat4f)
         && instanceData.buffers[0].Size() >= numInstances * sizeof(Mat4f);
