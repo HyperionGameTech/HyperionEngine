@@ -1361,6 +1361,11 @@ void AssetRegistry::PutAssetsDeep(const Handle<AssetObject>& targetAsset, bool o
 
     auto callback = [this, overwriteExisting](const Handle<AssetObject>& assetObject)
         {
+            if (assetObject->GetPath().IsValid() && assetObject->GetPath().registryId != m_registryId)
+            {
+                return;
+            }
+
             if (assetObject->m_assetIndex == AssetDesc::InvalidIndex)
             {
                 if (overwriteExisting)
