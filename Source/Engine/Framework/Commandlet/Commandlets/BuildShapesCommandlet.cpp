@@ -190,6 +190,13 @@ static void BuildGroundCover(Handle<AssetRegistry>& engineRegistry)
             prefixName(meshComponent->mesh);
             prefixName(meshComponent->material);
 
+            MaterialParameters parameters = meshComponent->material->GetParameters();
+            parameters.colorVariation = 0.6f;
+            parameters.groundNormalBlend = 0.7f;
+            parameters.baseOcclusion = 0.6f;
+            parameters.baseOcclusionHeight = MathUtil::Max(parameters.baseOcclusionHeight, meshComponent->mesh->GetAABB().max.y * 0.5f);
+            meshComponent->material->SetParameters(parameters);
+
             for (const Handle<Texture>& texture : meshComponent->material->GetTextures())
             {
                 prefixName(texture);

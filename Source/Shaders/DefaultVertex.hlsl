@@ -24,6 +24,7 @@ struct VSOutput
     float2 texcoord1 : TEXCOORD1;
     float3 tangent : TANGENT;
     float3 bitangent : BINORMAL;
+    // rgb tints the albedo, a is ambient occlusion
     float4 color : TEXCOORD2;
     nointerpolation float3 camera_position : TEXCOORD3;
     float4 position_ndc : TEXCOORD4;
@@ -31,11 +32,13 @@ struct VSOutput
     nointerpolation uint object_index : TEXCOORD6;
     nointerpolation uint object_mask : TEXCOORD7;
     nointerpolation uint cutout_seed : TEXCOORD8;
+    nointerpolation float3 ground_normal : TEXCOORD9;
 };
 
 #include "include/Entity.hlsli"
 #include "include/TerrainMorph.hlsli"
 #include "include/AlphaCutout.hlsli"
+#include "include/GroundCover.hlsli"
 
 #ifdef INSTANCING
 DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
@@ -175,7 +178,18 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID, uint vertexId : 
     output.position_cs = output.position_ndc;
     output.position_cs.xy += camera.jitter.xy * output.position_cs.w;
 
-    output.color = material.albedo;
+    output.color = float4(1.0, 1.0, 1.0, 1.0);
+
+    // up axis of the instance at rest, before any sway
+    output.ground_normal = normalize(float3(model_matrix[0][1], model_matrix[1][1], model_matrix[2][1]));
+
+    if (any(material.ground_cover != 0.0))
+    {
+        const float3 instanceOrigin = float3(model_matrix[0][3], model_matrix[1][3], model_matrix[2][3]);
+
+        output.color.rgb = GroundCoverTint(instanceOrigin, material.ground_cover.x);
+        output.color.a = GroundCoverBaseOcclusion(local_position.y, material.ground_cover.z, material.ground_cover.w);
+    }
     
 #ifdef SHADING_TYPE_LIGHTMAPPED
     const uint lightmappedMask = OBJECT_MASK_LIGHTMAPPED;

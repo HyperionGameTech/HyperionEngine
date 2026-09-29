@@ -136,6 +136,18 @@ public:
     HYP_FIELD(Property = "Flags", Serialize, Editor = false)
     uint8 flags;
 
+    HYP_FIELD(Property = "ColorVariation", Editor, Serialize)
+    float colorVariation;
+
+    HYP_FIELD(Property = "GroundNormalBlend", Editor, Serialize)
+    float groundNormalBlend;
+
+    HYP_FIELD(Property = "BaseOcclusion", Editor, Serialize)
+    float baseOcclusion;
+
+    HYP_FIELD(Property = "BaseOcclusionHeight", Editor, Serialize)
+    float baseOcclusionHeight;
+
     enum NoInitTag { NoInit };
 
     MaterialParameters()
