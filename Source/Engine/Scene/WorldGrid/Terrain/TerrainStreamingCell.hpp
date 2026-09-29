@@ -67,6 +67,9 @@ public:
     /// update cell data to apply the splat map, if one. Only grass over \p minVertex - \p maxVertex is replanted
     void UpdateSplatMaterial(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex);
 
+    /// sim thread only - picks up the cell data's painted ground cover. Only grass over \p minVertex - \p maxVertex is replanted
+    void UpdateGroundCoverPaint(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex);
+
     /// binds a splat map texture to this cell's material instance
     void ApplySplatTexture(const Handle<Texture>& splatTexture);
 
@@ -230,6 +233,9 @@ private:
 
     void SetSplatWeights(const Array<ubyte>& splatBytes, bool rowsFlipped);
 
+    /// call with a read scope on \p cellData
+    void SetGroundCoverPaint(const TerrainCellData& cellData);
+
     void InvalidateGrass(const Vec2i& minVertex, const Vec2i& maxVertex);
 
     void QueueGrassBuilds(Array<uint32>&& tileIndices, Array<uint8>&& detailLevels);
@@ -309,6 +315,10 @@ private:
 
     /// cellSize^2 * TerrainNumSplatLayers weights, row z first
     Array<ubyte> m_splatWeights;
+
+    /// copied from the cell data - planes of cellSize^2 weights, one per name in m_groundCoverPaintLayers
+    Array<ubyte> m_groundCoverPaint;
+    Array<Name> m_groundCoverPaintLayers;
     Array<GrassTile> m_grassTiles;
 
     /// bumped when every tile's grass is released
@@ -317,5 +327,6 @@ private:
     /// what queued grass builds read, shared between them until the heights or splat weights change
     SharedPtr<const Array<float>> m_grassHeightsSnapshot;
     SharedPtr<const Array<ubyte>> m_grassSplatWeightsSnapshot;
+    SharedPtr<const Array<ubyte>> m_grassPaintSnapshot;
 };
 } // namespace Hyperion

@@ -29,10 +29,24 @@ struct GroundCoverType
     float weight = 1.0f;
 };
 
+HYP_ENUM()
+enum class GroundCoverSource : uint8
+{
+    SplatLayer = 0,
+    Painted
+};
+
 HYP_STRUCT()
 struct GroundCoverLayer
 {
     HYP_STRUCT_BODY(GroundCoverLayer);
+
+    /// painted layers are stored under this in the terrain's cells, and listed by name in the paint tool
+    HYP_FIELD(Property = "Name", Serialize, Editor)
+    Name name;
+
+    HYP_FIELD(Property = "Source", Serialize, Editor)
+    GroundCoverSource source = GroundCoverSource::SplatLayer;
 
     /// the terrain splat layer whose weight decides where this grows - 0 grass, 1 rock, 2 dirt, 3 snow
     HYP_FIELD(Property = "SplatLayer", Serialize, Editor)

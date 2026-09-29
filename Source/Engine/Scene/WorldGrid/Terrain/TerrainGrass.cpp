@@ -84,6 +84,41 @@ static float SampleSplatWeight(const TerrainGrassTileInput& input, uint32 splatL
         fz);
 }
 
+static float SamplePaintWeight(const TerrainGrassTileInput& input, int32 plane, float gridX, float gridZ)
+{
+    const size_t planeSize = size_t(input.cellSize) * input.cellSize;
+
+    if (plane < 0 || input.paintWeights.Size() < planeSize * size_t(plane + 1))
+    {
+        return 0.0f;
+    }
+
+    const float maxCoord = float(input.cellSize - 1);
+
+    gridX = MathUtil::Clamp(gridX, 0.0f, maxCoord);
+    gridZ = MathUtil::Clamp(gridZ, 0.0f, maxCoord);
+
+    const uint32 x0 = MathUtil::Min(uint32(gridX), input.cellSize - 1);
+    const uint32 z0 = MathUtil::Min(uint32(gridZ), input.cellSize - 1);
+    const uint32 x1 = MathUtil::Min(x0 + 1, input.cellSize - 1);
+    const uint32 z1 = MathUtil::Min(z0 + 1, input.cellSize - 1);
+
+    const float fx = gridX - float(x0);
+    const float fz = gridZ - float(z0);
+
+    const ubyte* planeWeights = input.paintWeights.Data() + planeSize * size_t(plane);
+
+    const auto at = [&input, planeWeights](uint32 x, uint32 z)
+    {
+        return float(planeWeights[size_t(z) * input.cellSize + x]) * (1.0f / 255.0f);
+    };
+
+    return MathUtil::Lerp(
+        MathUtil::Lerp(at(x0, z0), at(x1, z0), fx),
+        MathUtil::Lerp(at(x0, z1), at(x1, z1), fx),
+        fz);
+}
+
 static float HashToUnit(int32 x, int32 z, uint32 seed)
 {
     uint32 state = (uint32(x) * 0x8DA6B343u) ^ (uint32(z) * 0xD8163841u) ^ (seed * 0xCB1AB31Fu);
@@ -175,6 +210,26 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
         return TerrainMeshHelpers::SampleLodSurfaceHeight(input.paddedHeights, input.cellSize, 1, x, z) * input.cellScale.y;
     };
 
+    const auto layerPaintPlane = [&input](uint32 layerIndex) -> int32
+    {
+        return layerIndex < input.layerPaintPlanes.Size() ? input.layerPaintPlanes[layerIndex] : -1;
+    };
+
+    const auto sampleTotalPaint = [&input, &layerPaintPlane](float gridX, float gridZ)
+    {
+        float totalPaint = 0.0f;
+
+        for (uint32 layerIndex = 0; layerIndex < uint32(input.layers.Size()); layerIndex++)
+        {
+            if (input.layers[layerIndex].isPainted)
+            {
+                totalPaint += SamplePaintWeight(input, layerPaintPlane(layerIndex), gridX, gridZ);
+            }
+        }
+
+        return MathUtil::Min(totalPaint, 1.0f);
+    };
+
     uint32 layerFirstSlot = 0;
 
     for (uint32 layerIndex = 0; layerIndex < uint32(input.layers.Size()); layerIndex++)
@@ -190,7 +245,11 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
             layerNumSlots += uint32(type.memberMatrices.Size());
         }
 
-        if (layer.types.Empty() || layer.splatLayer >= TerrainNumSplatLayers)
+        const int32 paintPlane = layerPaintPlane(layerIndex);
+
+        if (layer.types.Empty()
+            || (layer.isPainted && paintPlane < 0)
+            || (!layer.isPainted && layer.splatLayer >= TerrainNumSplatLayers))
         {
             layerFirstSlot += layerNumSlots;
 
@@ -221,8 +280,11 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
                     continue;
                 }
 
-                // splat weights are soft at the edges of an area; patches thin out and shrink across that band
-                const float coverage = MathUtil::SmoothStep(0.3f, 0.8f, SampleSplatWeight(input, layer.splatLayer, gridX, gridZ));
+                // weights are soft at the edges of an area; patches thin out and shrink across that band
+                const float coverage = layer.isPainted
+                    ? MathUtil::SmoothStep(0.3f, 0.8f, SamplePaintWeight(input, paintPlane, gridX, gridZ))
+                    : MathUtil::SmoothStep(0.3f, 0.8f, SampleSplatWeight(input, layer.splatLayer, gridX, gridZ))
+                        * (1.0f - MathUtil::SmoothStep(0.3f, 0.8f, sampleTotalPaint(gridX, gridZ)));
 
                 if (acceptance >= coverage)
                 {
@@ -324,6 +386,23 @@ const Array<TerrainCoverLayerPlan>& TerrainGroundCoverResources::GetPlans()
     return m_plans;
 }
 
+Array<Name> TerrainGroundCoverResources::GetPaintedLayerNames()
+{
+    Resolve();
+
+    Array<Name> names;
+
+    for (const TerrainCoverLayerPlan& plan : m_plans)
+    {
+        if (plan.isPainted)
+        {
+            names.PushBack(plan.name);
+        }
+    }
+
+    return names;
+}
+
 uint32 TerrainGroundCoverResources::GetNumSlots()
 {
     Resolve();
@@ -394,9 +473,20 @@ void TerrainGroundCoverResources::Resolve()
     {
         for (const GroundCoverLayer& coverLayer : groundCover->layers)
         {
+            const bool isPainted = coverLayer.source == GroundCoverSource::Painted;
+
+            if (isPainted && !coverLayer.name.IsValid())
+            {
+                HYP_LOG(WorldGrid, Warning, "Ground cover '{}' has a painted layer with no name - it can't be painted, skipping it", groundCover->GetName());
+
+                continue;
+            }
+
             TerrainCoverLayer layer;
             TerrainCoverLayerPlan plan;
 
+            plan.name = coverLayer.name;
+            plan.isPainted = isPainted;
             plan.splatLayer = MathUtil::Min(coverLayer.splatLayer, TerrainNumSplatLayers - 1);
             plan.clumpSize = MathUtil::Max(coverLayer.clumpSize, 0.5f);
 

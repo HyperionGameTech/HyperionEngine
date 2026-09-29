@@ -310,6 +310,13 @@ void TerrainStreamingCell::OnStreamStart()
     {
         SetSplatWeights(m_splatUploadBytes, /* rowsFlipped */ true);
     }
+
+    if (m_cellData.IsValid() && m_cellData->HasGroundCoverPaint())
+    {
+        auto readScope = m_cellData->GetReadScope();
+
+        SetGroundCoverPaint(*m_cellData);
+    }
 }
 
 void TerrainStreamingCell::OnLoaded()
@@ -497,8 +504,11 @@ void TerrainStreamingCell::OnRemoved()
     m_paddedHeights = Array<float>();
     m_erosionMasks = Array<ubyte>();
     m_splatWeights = Array<ubyte>();
+    m_groundCoverPaint = Array<ubyte>();
+    m_groundCoverPaintLayers = Array<Name>();
     m_grassHeightsSnapshot.Reset();
     m_grassSplatWeightsSnapshot.Reset();
+    m_grassPaintSnapshot.Reset();
 }
 
 void TerrainStreamingCell::DetachFromScene()
@@ -563,6 +573,27 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
         Memory::Copy(splatBytes.Data(), splatData.Data(), splatData.Size());
 
         SetSplatWeights(splatBytes, /* rowsFlipped */ false);
+    }
+
+    InvalidateGrass(minVertex, maxVertex);
+}
+
+void TerrainStreamingCell::UpdateGroundCoverPaint(const Handle<TerrainCellData>& cellData, const Vec2i& minVertex, const Vec2i& maxVertex)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    m_cellData = cellData;
+
+    if (!cellData.IsValid())
+    {
+        return;
+    }
+
+    {
+        auto readScope = cellData->GetReadScope();
+
+        SetGroundCoverPaint(*cellData);
     }
 
     InvalidateGrass(minVertex, maxVertex);
@@ -1619,6 +1650,34 @@ void TerrainStreamingCell::SetSplatWeights(const Array<ubyte>& splatBytes, bool 
     m_grassSplatWeightsSnapshot.Reset();
 }
 
+void TerrainStreamingCell::SetGroundCoverPaint(const TerrainCellData& cellData)
+{
+    const size_t planeSize = size_t(GetCellSize()) * GetCellSize();
+    const Array<Name>& paintLayers = cellData.GetGroundCoverPaintLayers();
+    const ConstByteView paint = cellData.GetGroundCoverPaint();
+
+    m_grassPaintSnapshot.Reset();
+
+    if (paint.Size() != planeSize * paintLayers.Size())
+    {
+        if (paint.Size() != 0)
+        {
+            HYP_LOG(WorldGrid, Warning, "Ground cover paint for cell {} is {} bytes but {} layers need {} - ignoring it",
+                m_cellInfo.coord, paint.Size(), paintLayers.Size(), planeSize * paintLayers.Size());
+        }
+
+        m_groundCoverPaint = Array<ubyte>();
+        m_groundCoverPaintLayers = Array<Name>();
+
+        return;
+    }
+
+    m_groundCoverPaint.Resize(paint.Size());
+    Memory::Copy(m_groundCoverPaint.Data(), paint.Data(), paint.Size());
+
+    m_groundCoverPaintLayers = paintLayers;
+}
+
 void TerrainStreamingCell::InvalidateGrass(const Vec2i& minVertex, const Vec2i& maxVertex)
 {
     HYP_SCOPE;
@@ -1799,21 +1858,48 @@ void TerrainStreamingCell::QueueGrassBuilds(Array<uint32>&& tileIndices, Array<u
         m_grassSplatWeightsSnapshot = MakeShared<Array<ubyte>>(m_splatWeights);
     }
 
+    if (!m_grassPaintSnapshot.IsValid())
+    {
+        m_grassPaintSnapshot = MakeShared<Array<ubyte>>(m_groundCoverPaint);
+    }
+
     TerrainGroundCoverResources& coverResources = m_layer->GetGroundCoverResources();
 
     Array<TerrainCoverLayerPlan> layerPlans = coverResources.GetPlans();
 
     const float densityScale = MathUtil::Max(g_cvTerrainGrassDensity.Get(), 0.01f);
 
+    Array<int32> layerPaintPlanes;
+    layerPaintPlanes.Reserve(layerPlans.Size());
+
     for (TerrainCoverLayerPlan& layerPlan : layerPlans)
     {
         layerPlan.spacing /= MathUtil::Sqrt(densityScale);
+
+        int32 paintPlane = -1;
+
+        if (layerPlan.isPainted)
+        {
+            for (uint32 planeIndex = 0; planeIndex < uint32(m_groundCoverPaintLayers.Size()); planeIndex++)
+            {
+                if (m_groundCoverPaintLayers[planeIndex] == layerPlan.name)
+                {
+                    paintPlane = int32(planeIndex);
+
+                    break;
+                }
+            }
+        }
+
+        layerPaintPlanes.PushBack(paintPlane);
     }
 
     TaskSystem::GetInstance().Enqueue(
         [weakThis = WeakHandleFromThis(),
             paddedHeights = m_grassHeightsSnapshot,
             splatWeights = m_grassSplatWeightsSnapshot,
+            paintWeights = m_grassPaintSnapshot,
+            layerPaintPlanes = std::move(layerPaintPlanes),
             cellSize = GetCellSize(),
             cellMin = m_cellInfo.bounds.min,
             cellScale = m_cellInfo.scale,
@@ -1842,6 +1928,8 @@ void TerrainStreamingCell::QueueGrassBuilds(Array<uint32>&& tileIndices, Array<u
                 TerrainGrassTileInput input;
                 input.paddedHeights = paddedHeights->ToSpan();
                 input.splatWeights = splatWeights->ToSpan();
+                input.paintWeights = paintWeights->ToSpan();
+                input.layerPaintPlanes = layerPaintPlanes.ToSpan();
                 input.cellSize = cellSize;
                 input.cellMin = cellMin;
                 input.cellScale = cellScale;

@@ -23,6 +23,52 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
+static TerrainGroundCoverPaintState ReadGroundCoverPaintState(const Handle<TerrainCellData>& cellData)
+{
+    TerrainGroundCoverPaintState state;
+
+    if (!cellData.IsValid() || !cellData->HasGroundCoverPaint())
+    {
+        return state;
+    }
+
+    auto readScope = cellData->GetReadScope();
+
+    const ConstByteView paint = static_cast<const TerrainCellData&>(*cellData).GetGroundCoverPaint();
+
+    state.layers = cellData->GetGroundCoverPaintLayers();
+    state.paint.Resize(paint.Size());
+    Memory::Copy(state.paint.Data(), paint.Data(), paint.Size());
+
+    return state;
+}
+
+static bool IsSameGroundCoverPaintState(const TerrainGroundCoverPaintState& first, const TerrainGroundCoverPaintState& second)
+{
+    if (first.layers.Size() != second.layers.Size() || first.paint.Size() != second.paint.Size())
+    {
+        return false;
+    }
+
+    for (uint32 layerIndex = 0; layerIndex < uint32(first.layers.Size()); layerIndex++)
+    {
+        if (first.layers[layerIndex] != second.layers[layerIndex])
+        {
+            return false;
+        }
+    }
+
+    for (size_t byteIndex = 0; byteIndex < first.paint.Size(); byteIndex++)
+    {
+        if (first.paint[byteIndex] != second.paint[byteIndex])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 TerrainBrush::TerrainBrush(TerrainWorldGridLayer& layer)
     : m_layer(layer)
 {
@@ -31,6 +77,18 @@ TerrainBrush::TerrainBrush(TerrainWorldGridLayer& layer)
 void TerrainBrush::ResetStroke()
 {
     m_modifiedCells.Clear();
+    m_groundCoverStrokeBefore.Clear();
+    m_groundCoverPaintEdits.Clear();
+}
+
+Array<TerrainGroundCoverPaintEdit> TerrainBrush::TakeGroundCoverPaintEdits()
+{
+    AssertOnThread(g_simThread);
+
+    Array<TerrainGroundCoverPaintEdit> edits = std::move(m_groundCoverPaintEdits);
+    m_groundCoverPaintEdits = Array<TerrainGroundCoverPaintEdit>();
+
+    return edits;
 }
 
 void TerrainBrush::Sculpt(const Vec3f& worldPos, float radius, float strength, bool raise)
@@ -478,6 +536,200 @@ void TerrainBrush::Paint(const Vec3f& worldPos, float radius, float strength, ui
     }
 }
 
+void TerrainBrush::PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (radius <= 0.0f || strength == 0.0f || !groundCoverLayer.IsValid())
+    {
+        return;
+    }
+
+    const WorldGridLayerInfo& layerInfo = m_layer.GetLayerInfo();
+    const uint32 cellSize = layerInfo.cellSize;
+    const size_t planeSize = size_t(cellSize) * cellSize;
+    const float cellWorldSizeX = (float(cellSize) - 1.0f) * layerInfo.scale.x;
+    const float cellWorldSizeZ = (float(cellSize) - 1.0f) * layerInfo.scale.z;
+
+    if (cellWorldSizeX <= 0.0f || cellWorldSizeZ <= 0.0f)
+    {
+        return;
+    }
+
+    const Vec2f worldPosXZ(worldPos.x, worldPos.z);
+
+    const Vec2i minCoord = TerrainWorldGridLayer::ComputeCellCoord(layerInfo, worldPosXZ - Vec2f(radius, radius)) - Vec2i(1, 1);
+    const Vec2i maxCoord = TerrainWorldGridLayer::ComputeCellCoord(layerInfo, worldPosXZ + Vec2f(radius, radius)) + Vec2i(1, 1);
+
+    for (int32 cz = minCoord.y; cz <= maxCoord.y; cz++)
+    {
+        for (int32 cx = minCoord.x; cx <= maxCoord.x; cx++)
+        {
+            const Vec2i coord(cx, cz);
+
+            const Vec3f cellBoundsMin = TerrainWorldGridLayer::ComputeCellBoundsMin(layerInfo, coord);
+            const Vec2f cellWorldMinXZ(cellBoundsMin.x, cellBoundsMin.z);
+            const Vec2f cellWorldMaxXZ = cellWorldMinXZ + Vec2f(cellWorldSizeX, cellWorldSizeZ);
+
+            const Vec2f closestPoint(
+                MathUtil::Clamp(worldPosXZ.x, cellWorldMinXZ.x, cellWorldMaxXZ.x),
+                MathUtil::Clamp(worldPosXZ.y, cellWorldMinXZ.y, cellWorldMaxXZ.y));
+
+            if ((closestPoint - worldPosXZ).Length() > radius)
+            {
+                continue;
+            }
+
+            Handle<TerrainCellData> cellData = m_layer.FindCellData(coord);
+
+            const bool isNewCellData = !cellData.IsValid();
+
+            if (isNewCellData)
+            {
+                if (erase)
+                {
+                    continue;
+                }
+
+                cellData = MakeHandle<TerrainCellData>(NAME_FMT("TerrainCellData_{}_{}", coord.x, coord.y), coord, Vec3u(cellSize));
+            }
+
+            if (m_groundCoverStrokeBefore.Find(coord) == m_groundCoverStrokeBefore.End())
+            {
+                m_groundCoverStrokeBefore.Set(coord, ReadGroundCoverPaintState(isNewCellData ? Handle<TerrainCellData>() : cellData));
+            }
+
+            const int32 paintPlane = erase
+                ? cellData->FindGroundCoverPaintLayer(groundCoverLayer)
+                : cellData->EnsureGroundCoverPaintLayer(groundCoverLayer, cellSize * cellSize);
+
+            if (paintPlane < 0 || (erase && !cellData->EnsureWritableGroundCoverPaint()))
+            {
+                continue;
+            }
+
+            const uint32 numPlanes = uint32(cellData->GetGroundCoverPaintLayers().Size());
+
+            bool anyModified = false;
+
+            int32 minVertexX = int32(cellSize);
+            int32 minVertexZ = int32(cellSize);
+            int32 maxVertexX = -1;
+            int32 maxVertexZ = -1;
+
+            {
+                auto cellDataWriteScope = cellData->GetWriteScope();
+
+                ByteView paint = cellData->GetGroundCoverPaint();
+
+                if (paint.Size() != planeSize * numPlanes)
+                {
+                    continue;
+                }
+
+                for (uint32 z = 0; z < cellSize; z++)
+                {
+                    for (uint32 x = 0; x < cellSize; x++)
+                    {
+                        const Vec2f vertexWorldXZ = cellWorldMinXZ + Vec2f(float(x), float(z)) * Vec2f(layerInfo.scale.x, layerInfo.scale.z);
+
+                        const float dist = (vertexWorldXZ - worldPosXZ).Length();
+
+                        if (dist > radius)
+                        {
+                            continue;
+                        }
+
+                        const float falloff = 1.0f - (dist / radius);
+                        const float weight = falloff * falloff * (3.0f - 2.0f * falloff); // smoothstep
+
+                        const int32 paintDelta = int32(MathUtil::Clamp(strength * weight, 0.0f, 1.0f) * 255.0f);
+
+                        if (paintDelta == 0)
+                        {
+                            continue;
+                        }
+
+                        const size_t vertexIndex = size_t(z) * cellSize + x;
+
+                        ubyte& value = paint[planeSize * size_t(paintPlane) + vertexIndex];
+
+                        const int32 oldValue = int32(value);
+                        const int32 newValue = erase
+                            ? MathUtil::Max(oldValue - paintDelta, 0)
+                            : MathUtil::Min(oldValue + paintDelta, 255);
+
+                        if (newValue == oldValue)
+                        {
+                            continue;
+                        }
+
+                        value = ubyte(newValue);
+
+                        if (!erase)
+                        {
+                            int32 othersTotal = 0;
+
+                            for (uint32 plane = 0; plane < numPlanes; plane++)
+                            {
+                                if (plane != uint32(paintPlane))
+                                {
+                                    othersTotal += int32(paint[planeSize * plane + vertexIndex]);
+                                }
+                            }
+
+                            const int32 targetOthers = 255 - newValue;
+
+                            if (othersTotal > targetOthers)
+                            {
+                                for (uint32 plane = 0; plane < numPlanes; plane++)
+                                {
+                                    if (plane == uint32(paintPlane))
+                                    {
+                                        continue;
+                                    }
+
+                                    ubyte& otherValue = paint[planeSize * plane + vertexIndex];
+
+                                    otherValue = ubyte(int32(otherValue) * targetOthers / othersTotal);
+                                }
+                            }
+                        }
+
+                        anyModified = true;
+
+                        minVertexX = MathUtil::Min(minVertexX, int32(x));
+                        minVertexZ = MathUtil::Min(minVertexZ, int32(z));
+                        maxVertexX = MathUtil::Max(maxVertexX, int32(x));
+                        maxVertexZ = MathUtil::Max(maxVertexZ, int32(z));
+                    }
+                }
+
+                if (anyModified)
+                {
+                    cellData->MarkDirty();
+                }
+            }
+
+            if (!anyModified)
+            {
+                continue;
+            }
+
+            if (isNewCellData)
+            {
+                m_layer.AddCellData(coord, cellData);
+            }
+
+            if (Handle<TerrainStreamingCell> loadedCell = m_layer.m_loadedCells.Find(coord); loadedCell)
+            {
+                loadedCell->UpdateGroundCoverPaint(cellData, Vec2i(minVertexX, minVertexZ), Vec2i(maxVertexX, maxVertexZ));
+            }
+        }
+    }
+}
+
 void TerrainBrush::EndStroke()
 {
     HYP_SCOPE;
@@ -501,6 +753,20 @@ void TerrainBrush::EndStroke()
     }
 
     m_modifiedCells.Clear();
+
+    for (KeyValuePair<Vec2i, TerrainGroundCoverPaintState>& pair : m_groundCoverStrokeBefore)
+    {
+        TerrainGroundCoverPaintState after = ReadGroundCoverPaintState(m_layer.FindCellData(pair.first));
+
+        if (IsSameGroundCoverPaintState(pair.second, after))
+        {
+            continue;
+        }
+
+        m_groundCoverPaintEdits.PushBack(TerrainGroundCoverPaintEdit { pair.first, std::move(pair.second), std::move(after) });
+    }
+
+    m_groundCoverStrokeBefore.Clear();
 }
 
 } // namespace Hyperion

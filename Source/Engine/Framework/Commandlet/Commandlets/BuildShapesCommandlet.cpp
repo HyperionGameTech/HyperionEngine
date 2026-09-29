@@ -29,18 +29,19 @@ namespace Hyperion {
 
 #ifdef HYP_EDITOR
 
-struct GroundCoverSource
+struct GroundCoverPrefabSource
 {
     const char* name;
-    float weight;
+    const char* layerName;
+    GroundCoverSource source;
     uint32 splatLayer;
 };
 
-static constexpr GroundCoverSource s_groundCoverSources[] = {
-    { "meadow_grass", 6.0f, 0 },
-    { "short_grass", 3.0f, 0 },
-    { "wildflower_meadow", 1.5f, 0 },
-    { "dry_grass", 1.0f, 2 }
+static constexpr GroundCoverPrefabSource s_groundCoverSources[] = {
+    { "meadow_grass", "Meadow", GroundCoverSource::SplatLayer, 0 },
+    { "short_grass", "Short Grass", GroundCoverSource::Painted, 0 },
+    { "wildflower_meadow", "Wildflowers", GroundCoverSource::Painted, 0 },
+    { "dry_grass", "Dry Grass", GroundCoverSource::Painted, 0 }
 };
 
 static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
@@ -137,7 +138,7 @@ static void BuildGroundCover(Handle<AssetRegistry>& engineRegistry)
 
     Handle<GroundCover> groundCover = MakeHandle<GroundCover>(NAME("DefaultGroundCover"));
 
-    for (const GroundCoverSource& source : s_groundCoverSources)
+    for (const GroundCoverPrefabSource& source : s_groundCoverSources)
     {
         auto prefabResult = g_assetManager->Load<Prefab>(HYP_FORMAT("Models/GroundCover/{}.glb", source.name),
             String::empty,
@@ -197,23 +198,11 @@ static void BuildGroundCover(Handle<AssetRegistry>& engineRegistry)
 
         engineRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
 
-        GroundCoverLayer* layer = nullptr;
-
-        for (GroundCoverLayer& existingLayer : groundCover->layers)
-        {
-            if (existingLayer.splatLayer == source.splatLayer)
-            {
-                layer = &existingLayer;
-            }
-        }
-
-        if (layer == nullptr)
-        {
-            layer = &groundCover->layers.EmplaceBack();
-            layer->splatLayer = source.splatLayer;
-        }
-
-        layer->types.PushBack(GroundCoverType { prefab, source.weight });
+        GroundCoverLayer& layer = groundCover->layers.EmplaceBack();
+        layer.name = CreateNameFromDynamicString(source.layerName);
+        layer.source = source.source;
+        layer.splatLayer = source.splatLayer;
+        layer.types.PushBack(GroundCoverType { prefab, 1.0f });
 
         HYP_LOG(Engine, Info, "Ground cover {} built and registered", source.name);
     }

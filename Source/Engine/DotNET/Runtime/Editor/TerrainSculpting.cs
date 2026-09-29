@@ -7,7 +7,8 @@ namespace Hyperion
     {
         Raise = 0,
         Lower = 1,
-        PaintSplat = 2
+        PaintSplat = 2,
+        PaintGroundCover = 3
     }
 
     [ClassBinding(Name = "EditorTerrainState")]

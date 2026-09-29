@@ -18,6 +18,8 @@
 
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Name/Name.hpp>
+
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -61,6 +63,11 @@ struct TerrainCoverTypePlan
 
 struct TerrainCoverLayerPlan
 {
+    Name name;
+
+    /// grows where painted in the cell's plane for name, rather than over splatLayer
+    bool isPainted = false;
+
     uint32 splatLayer = 0;
 
     /// world units between patches where the splat weight is full
@@ -77,6 +84,12 @@ struct TerrainGrassTileInput
 
     /// cellSize^2 * TerrainNumSplatLayers weights, row z first
     Span<const ubyte> splatWeights;
+
+    /// planes of cellSize^2 painted weights, row z first - see TerrainCellData::GetGroundCoverPaint()
+    Span<const ubyte> paintWeights;
+
+    /// the paintWeights plane of each of layers, -1 where the cell has none
+    Span<const int32> layerPaintPlanes;
 
     uint32 cellSize = 0;
     Vec3f cellMin;
@@ -125,6 +138,9 @@ public:
 
     const Array<TerrainCoverLayer>& GetLayers();
     const Array<TerrainCoverLayerPlan>& GetPlans();
+
+    /// the painted layers, for the paint tool to list
+    Array<Name> GetPaintedLayerNames();
 
     uint32 GetNumSlots();
 

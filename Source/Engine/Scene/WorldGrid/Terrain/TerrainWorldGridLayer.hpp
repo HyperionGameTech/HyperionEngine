@@ -132,6 +132,17 @@ public:
     HYP_METHOD()
     void PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase);
 
+    /// paints the painted GroundCover layer named \p groundCoverLayer - see GetPaintedGroundCoverLayers()
+    HYP_METHOD()
+    void PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase);
+
+    /// sim thread only - the layers of the terrain's GroundCover that grow where painted
+    HYP_METHOD()
+    Array<Name> GetPaintedGroundCoverLayers();
+
+    Array<TerrainGroundCoverPaintEdit> TakeGroundCoverPaintEdits();
+    void SetGroundCoverPaintState(const Vec2i& coord, const TerrainGroundCoverPaintState& state);
+
     ///world space height of the full resolution surface - the one the collider and the brush work on
     float SampleHeightAt(const Vec2f& worldXZ) const;
 
