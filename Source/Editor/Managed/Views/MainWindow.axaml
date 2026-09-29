@@ -1063,15 +1063,34 @@
 
                                 <Border Classes="mode-separator" />
 
-                                <ToggleButton
-                                    x:Name="DecalPainterToggle"
+                                <DropDownButton
+                                    x:Name="PaintToolsDropDown"
                                     Classes="gizmo"
-                                    Command="{Binding ToggleDecalPainterMode}"
-                                    IsChecked="{Binding IsDecalPainterActive, Mode=OneWay}"
-                                    IsEnabled="{Binding CanToggleDecalPainterMode}"
-                                    ToolTip.Tip="Decal Painter">
-                                    <controls:Codicon Kind="Decal" Size="16" />
-                                </ToggleButton>
+                                    Click="OnDropDownClick"
+                                    ToolTip.Tip="Paint Tools">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <controls:Codicon Kind="Paintbrush" Size="16" />
+                                        <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    </StackPanel>
+                                    <DropDownButton.ContextMenu>
+                                        <ContextMenu Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding ToggleDecalPainterMode}"
+                                                Header="Decal Painter"
+                                                IsChecked="{Binding IsDecalPainterActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanTogglePainterMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle decal paint mode" />
+                                            <MenuItem
+                                                Command="{Binding ToggleInstancePainterMode}"
+                                                Header="Instance Painter"
+                                                IsChecked="{Binding IsInstancePainterActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanTogglePainterMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle instance paint mode" />
+                                        </ContextMenu>
+                                    </DropDownButton.ContextMenu>
+                                </DropDownButton>
 
                             </StackPanel>
                         </StackPanel>

@@ -68,6 +68,8 @@ class WorldGridLayer;
 class DynamicSkySystem;
 class EditorTerrainState;
 class EditorDecalPainterState;
+class EditorInstancePainterState;
+class EditorSurfacePainterState;
 class EditorCsgState;
 class InstanceGroup;
 class InstanceHandleNode;
@@ -326,6 +328,16 @@ public:
 
     HYP_METHOD()
     Handle<EditorDecalPainterState> GetDecalPainterState();
+
+    ///Instances
+
+    HYP_METHOD()
+    Handle<EditorInstancePainterState> GetInstancePainterState();
+
+    /// The enabled decal or instance painter, if any (at most one is)
+    EditorSurfacePainterState* GetActiveSurfacePainter();
+
+    void DisableSurfacePainters(const EditorSurfacePainterState* except = nullptr);
 
     ///CSG
 
@@ -890,6 +902,8 @@ private:
     Handle<EditorTerrainState> m_terrainSculpting;
 
     Handle<EditorDecalPainterState> m_decalPainter;
+
+    Handle<EditorInstancePainterState> m_instancePainter;
 
     Handle<EditorCsgState> m_csgState;
 

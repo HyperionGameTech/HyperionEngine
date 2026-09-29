@@ -37,7 +37,6 @@
 #include <Core/Reflection/Class.hpp>
 
 #include <Core/Utilities/Traits.hpp>
-
 #include <Core/Utilities/Time.hpp>
 
 #include <Core/Threading/Threads.hpp>

@@ -8,7 +8,6 @@
 
 #include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/Terrain/EditorTerrainState.hpp>
-#include <Editor/Decal/EditorDecalPainterState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
 #include <Editor/EditorProject.hpp>
@@ -472,7 +471,7 @@ void EditorCsgState::Enter()
 
     m_subsystem->ExitMeshEditMode(/* saveEdits */ true);
     m_subsystem->GetTerrainState()->SetEnabled(false);
-    m_subsystem->GetDecalPainterState()->SetEnabled(false);
+    m_subsystem->DisableSurfacePainters();
 
     m_targetNode = MakeWeakRef(target);
     m_baselineMesh = GetMeshComponent(target)->mesh;

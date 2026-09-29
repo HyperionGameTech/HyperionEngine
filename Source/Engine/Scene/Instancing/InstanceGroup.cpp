@@ -22,6 +22,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Core/Math/MathUtil.hpp>
+#include <Core/Math/BoundingSphere.hpp>
 
 #include <Core/Threading/Threads.hpp>
 
@@ -304,6 +305,26 @@ bool InstanceGroup::RemoveInstance(InstanceId id)
     OnInstancesChanged();
 
     return true;
+}
+
+void InstanceGroup::RemoveInstancesInSphere(const BoundingSphere& sphere, Array<InstanceRecord>& outRemoved)
+{
+    EnsureInstancesLoaded();
+
+    const size_t firstRemovedIndex = outRemoved.Size();
+
+    for (const InstanceEntry& entry : m_instances)
+    {
+        if (sphere.ContainsPoint(entry.transform.GetTranslation()))
+        {
+            outRemoved.PushBack(InstanceRecord::FromTransform(entry.id, entry.transform));
+        }
+    }
+
+    for (size_t index = firstRemovedIndex; index < outRemoved.Size(); index++)
+    {
+        RemoveInstance(outRemoved[index].GetId());
+    }
 }
 
 bool InstanceGroup::SetInstanceTransform(InstanceId id, const Transform& transform)

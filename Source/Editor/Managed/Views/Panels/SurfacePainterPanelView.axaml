@@ -1,18 +1,18 @@
 <UserControl
-    x:Class="Hyperion.Editor.Views.Panels.DecalPainterPanelView"
+    x:Class="Hyperion.Editor.Views.Panels.SurfacePainterPanelView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
-    x:DataType="vm:DecalPainterPanelViewModel"
+    x:DataType="vm:SurfacePainterPanelViewModel"
     mc:Ignorable="d">
     <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
         <StackPanel Margin="12,12,12,8" Spacing="12">
 
             <StackPanel Spacing="6">
-              <TextBlock Classes="section-label" Text="Decal" />
+              <TextBlock Classes="section-label" Text="{Binding AssetLabel}" />
               <inspector:InspectorPropertyItemsControl ItemsSource="{Binding Properties}" />
             </StackPanel>
 
@@ -31,6 +31,31 @@
 
             <StackPanel Spacing="6">
                 <CheckBox Content="Align to surface" IsChecked="{Binding AlignToSurface}" />
+            </StackPanel>
+
+            <!-- instance painter only; reflection bindings since those properties live on the derived view model -->
+            <StackPanel IsVisible="{Binding HasGroundFitting}" Spacing="12">
+                <StackPanel Spacing="6" IsEnabled="{Binding !AlignToSurface}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section-label" Text="Ground Footprint" />
+                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{ReflectionBinding FootprintRadiusText}" />
+                    </Grid>
+                    <Slider
+                        Maximum="5"
+                        Minimum="0"
+                        Value="{ReflectionBinding FootprintRadius}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section-label" Text="Sink Depth" />
+                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{ReflectionBinding SinkDepthText}" />
+                    </Grid>
+                    <Slider
+                        Maximum="2"
+                        Minimum="0"
+                        Value="{ReflectionBinding SinkDepth}" />
+                </StackPanel>
             </StackPanel>
             <StackPanel Spacing="6">
                 <CheckBox Content="Random rotation" IsChecked="{Binding RandomRotation}" />

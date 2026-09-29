@@ -197,10 +197,11 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleTerrainSculptMode { get; private set; }
         public ICommand ToggleTerrainPaintMode { get; private set; }
 
-        // Decals
+        // Painters
         public ICommand ToggleDecalPainterMode { get; private set; }
+        public ICommand ToggleInstancePainterMode { get; private set; }
 
-        public bool CanToggleDecalPainterMode => !IsSimulating;
+        public bool CanTogglePainterMode => !IsSimulating;
 
         private bool _isDecalPainterActive = false;
         public bool IsDecalPainterActive
@@ -208,7 +209,14 @@ namespace Hyperion.Editor.ViewModels
             get => _isDecalPainterActive;
         }
 
+        private bool _isInstancePainterActive = false;
+        public bool IsInstancePainterActive
+        {
+            get => _isInstancePainterActive;
+        }
+
         private DecalPainterPanelViewModel? _decalPainterPanel;
+        private InstancePainterPanelViewModel? _instancePainterPanel;
 
         private bool _canToggleTerrainSculptMode = false;
         public bool CanToggleTerrainSculptMode
@@ -347,44 +355,51 @@ namespace Hyperion.Editor.ViewModels
             {
                 _editorSubsystem.EditorDecalPainterState?.SetEnabled(false);
 
-                RefreshDecalPainterState();
+                RefreshPainterToolState();
             });
         }
 
-        private void RefreshDecalPainterState()
+        private void DisableInstancePainter()
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                _editorSubsystem.EditorInstancePainterState?.SetEnabled(false);
+
+                RefreshPainterToolState();
+            });
+        }
+
+        private void RefreshPainterToolState()
         {
             var action = () =>
             {
-                bool active = _editorSubsystem.EditorDecalPainterState?.IsEnabled ?? false;
+                bool decalActive = _editorSubsystem.EditorDecalPainterState?.IsEnabled ?? false;
+                bool instanceActive = _editorSubsystem.EditorInstancePainterState?.IsEnabled ?? false;
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (_isDecalPainterActive == active)
+                    if (_isDecalPainterActive != decalActive)
                     {
-                        return;
-                    }
+                        _isDecalPainterActive = decalActive;
 
-                    _isDecalPainterActive = active;
+                        OnPropertyChanged(nameof(IsDecalPainterActive));
 
-                    OnPropertyChanged(nameof(IsDecalPainterActive));
-
-                    if (active)
-                    {
                         EditorDecalPainterState? painterState = _editorSubsystem.EditorDecalPainterState;
 
-                        if (_decalPainterPanel == null && painterState != null)
-                        {
-                            _decalPainterPanel = new DecalPainterPanelViewModel(_editorSubsystem, painterState, ContentBrowser.NewDecalCommand, DisableDecalPainter);
-
-                            PanelService.Instance.OpenPanel(_decalPainterPanel);
-                        }
+                        UpdatePainterPanel(ref _decalPainterPanel, decalActive && painterState != null,
+                            () => new DecalPainterPanelViewModel(_editorSubsystem, painterState, ContentBrowser.NewDecalCommand, DisableDecalPainter));
                     }
-                    else if (_decalPainterPanel != null)
-                    {
-                        DecalPainterPanelViewModel panel = _decalPainterPanel;
-                        _decalPainterPanel = null;
 
-                        PanelService.Instance.RemovePanel(panel);
+                    if (_isInstancePainterActive != instanceActive)
+                    {
+                        _isInstancePainterActive = instanceActive;
+
+                        OnPropertyChanged(nameof(IsInstancePainterActive));
+
+                        EditorInstancePainterState? painterState = _editorSubsystem.EditorInstancePainterState;
+
+                        UpdatePainterPanel(ref _instancePainterPanel, instanceActive && painterState != null,
+                            () => new InstancePainterPanelViewModel(_editorSubsystem, painterState, DisableInstancePainter));
                     }
                 });
             };
@@ -396,6 +411,29 @@ namespace Hyperion.Editor.ViewModels
             }
 
             _ = EngineManager.PostToSimThread(action);
+        }
+
+        private static void UpdatePainterPanel<TPanel>(ref TPanel? field, bool shouldBeOpen, Func<TPanel> createPanel)
+            where TPanel : EditorPanelViewModel
+        {
+            if (shouldBeOpen)
+            {
+                if (field != null)
+                {
+                    return;
+                }
+
+                field = createPanel();
+
+                PanelService.Instance.OpenPanel(field);
+            }
+            else if (field != null)
+            {
+                TPanel panel = field;
+                field = null;
+
+                PanelService.Instance.RemovePanel(panel);
+            }
         }
 
         private void UpdateTerrainToolPanel<TPanel>(ref TPanel? field, bool shouldBeOpen, Func<TPanel> createPanel)
@@ -892,6 +930,7 @@ namespace Hyperion.Editor.ViewModels
             (ToggleTerrainSculptMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleTerrainPaintMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleDecalPainterMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleInstancePainterMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleGhostMode as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -901,9 +940,9 @@ namespace Hyperion.Editor.ViewModels
 
             // Starting simulation turns the terrain tools off in the engine; mirror that in the tool panels.
             RefreshTerrainToolState();
-            RefreshDecalPainterState();
+            RefreshPainterToolState();
 
-            OnPropertyChanged(nameof(CanToggleDecalPainterMode));
+            OnPropertyChanged(nameof(CanTogglePainterMode));
         }
 
         private DelegateHandler? _gameInstanceLaunchedHandler;
@@ -1059,7 +1098,7 @@ namespace Hyperion.Editor.ViewModels
                         _editorSubsystem.EditorTerrainState?.ActivateSculpt();
 
                         RefreshTerrainToolState();
-                        RefreshDecalPainterState();
+                        RefreshPainterToolState();
                     });
                 },
                 () => CanToggleTerrainSculptMode);
@@ -1072,7 +1111,7 @@ namespace Hyperion.Editor.ViewModels
                         _editorSubsystem.EditorTerrainState?.ActivatePaint();
 
                         RefreshTerrainToolState();
-                        RefreshDecalPainterState();
+                        RefreshPainterToolState();
                     });
                 },
                 () => CanToggleTerrainSculptMode);
@@ -1084,12 +1123,25 @@ namespace Hyperion.Editor.ViewModels
                     {
                         _editorSubsystem.EditorDecalPainterState?.Toggle();
 
-                        // enabling the painter turns the terrain tools off
+                        // enabling a painter turns the terrain tools and the other painter off
                         RefreshTerrainToolState();
-                        RefreshDecalPainterState();
+                        RefreshPainterToolState();
                     });
                 },
-                () => CanToggleDecalPainterMode);
+                () => CanTogglePainterMode);
+
+            ToggleInstancePainterMode = new RelayCommand(
+                () =>
+                {
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.EditorInstancePainterState?.Toggle();
+
+                        RefreshTerrainToolState();
+                        RefreshPainterToolState();
+                    });
+                },
+                () => CanTogglePainterMode);
 
             SetViewportLod = new RelayCommand<object?>(lodIndex =>
             {
@@ -1265,7 +1317,7 @@ namespace Hyperion.Editor.ViewModels
                     RefreshCsgState();
                     RefreshMeshEditState();
                     RefreshTerrainToolState();
-                    RefreshDecalPainterState();
+                    RefreshPainterToolState();
                 });
             });
 

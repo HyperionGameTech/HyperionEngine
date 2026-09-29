@@ -22,6 +22,7 @@ namespace Hyperion {
 
 class Prefab;
 class Mesh;
+struct BoundingSphere;
 class Material;
 class Scene;
 class InstanceSetData;
@@ -110,6 +111,7 @@ public:
     bool AddInstanceWithId(InstanceId id, const Transform& transform);
 
     bool RemoveInstance(InstanceId id);
+    void RemoveInstancesInSphere(const BoundingSphere& sphere, Array<InstanceRecord>& outRemoved);
 
     bool SetInstanceTransform(InstanceId id, const Transform& transform);
 
