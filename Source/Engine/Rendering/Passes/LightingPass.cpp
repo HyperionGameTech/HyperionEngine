@@ -14,6 +14,8 @@
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/DeferredPassShared.hpp>
 
+#include <Rendering/Glimmer/GlimmerPass.hpp>
+
 #include <Rendering/MaterialTextureCache.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/GBuffer.hpp>
@@ -402,9 +404,14 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             SkyVisibilityPass* skyVisibilityPass = static_cast<SkyVisibilityPass*>(RI.namedPasses[NamedPass::SkyVisibility][0]);
             skyVisibilityPass->WriteShaderData(*RI.cbufferAllocator);
 
+            GlimmerPass* glimmerPass = static_cast<GlimmerPass*>(RI.namedPasses[NamedPass::Glimmer][0]);
+            glimmerPass->WriteApplyShaderData(*RI.cbufferAllocator, rs.world);
+
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(numShaderUniforms++, "SkyVisibilityTexture"_sh, skyVisibilityPass->GetDepthImageView());
+
+            numShaderUniforms = glimmerPass->BindApplyResources(cr, numShaderUniforms, rs.world);
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }

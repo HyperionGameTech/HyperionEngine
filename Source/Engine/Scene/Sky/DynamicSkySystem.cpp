@@ -215,24 +215,22 @@ void DynamicSkySystem::InitializeSky()
     }
 }
 
-void DynamicSkySystem::UpdateSkyVisibilityView()
+bool DynamicSkySystem::FindViewerPosition(World* world, Vec3f& outPosition)
 {
-    HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (!m_skyVisibilityView.IsValid() || !GetWorld())
+    if (!world)
     {
-        return;
+        return false;
     }
 
     // follow the editor camera while stopped and the game camera while playing, like terrain LOD does
-    const bool preferEditorViews = GetWorld()->GetGameState().IsStopped();
+    const bool preferEditorViews = world->GetGameState().IsStopped();
 
-    Vec3f viewerPosition = Vec3f::Zero();
     bool hasPreferredViewpoint = false;
     bool hasViewpoint = false;
 
-    for (View* view : GetWorld()->GetSimThreadViews())
+    for (View* view : world->GetSimThreadViews())
     {
         if (!view || !(view->GetFlags() & ViewFlags::GBUFFER) || !view->GetCamera())
         {
@@ -246,10 +244,26 @@ void DynamicSkySystem::UpdateSkyVisibilityView()
             continue;
         }
 
-        viewerPosition = view->GetCamera()->GetWorldTranslation();
+        outPosition = view->GetCamera()->GetWorldTranslation();
         hasPreferredViewpoint = isPreferred;
         hasViewpoint = true;
     }
+
+    return hasViewpoint;
+}
+
+void DynamicSkySystem::UpdateSkyVisibilityView()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_skyVisibilityView.IsValid() || !GetWorld())
+    {
+        return;
+    }
+
+    Vec3f viewerPosition = Vec3f::Zero();
+    FindViewerPosition(GetWorld(), viewerPosition);
 
     // snapped to texels so the map doesn't shimmer as the viewer moves
     const float texelWorldSize = SkyVisibilityWorldExtent / float(GetSkyVisibilityMapDimensions());

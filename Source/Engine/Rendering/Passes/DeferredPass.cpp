@@ -17,6 +17,8 @@
 #include <Rendering/Passes/FogVolumePass.hpp>
 #include <Rendering/Passes/HeightFogPass.hpp>
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
+
+#include <Rendering/Glimmer/GlimmerPass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 
 #ifdef HYP_EDITOR
@@ -1403,6 +1405,8 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     // the first view with active clouds; sky probes composite its clouds
     DeferredPassData* skyProbeCloudsPassData = nullptr;
+
+    View* glimmerSceneView = nullptr;
     // ---
 
     // init view pass data and collect global rendering resources
@@ -1461,6 +1465,11 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             skyVisibilityRS.view = view;
 
             RI.GetPass(NamedPass::SkyVisibility)->RenderFrame(frame, skyVisibilityRS);
+        }
+        else if (view->GetFlags() & ViewFlags::GLIMMER_SCENE_VIEW)
+        {
+            // updated after the sky probe renders, since Glimmer's probes see the sky through it
+            glimmerSceneView = view;
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
         {
@@ -1598,6 +1607,19 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 }
             }
         }
+    }
+
+    if (glimmerSceneView != nullptr)
+    {
+        RenderSetup glimmerRS = rs.Fork();
+        glimmerRS.view = glimmerSceneView;
+
+        if (envProbes[EPT_SKY].Any())
+        {
+            glimmerRS.envProbe = *envProbes[EPT_SKY].Begin();
+        }
+
+        RI.GetPass(NamedPass::Glimmer)->RenderFrame(frame, glimmerRS);
     }
 
     for (View* view : rs.world->GetViews())
@@ -2210,6 +2232,23 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     GpuImageViewRef finalImageView = (passData.taaPass != nullptr && g_cvTAA.Get())
         ? RI.textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
+
+    { // Glimmer SWRT debug views replace the final image
+        GpuImageViewRef glimmerDebugImageView;
+
+        GlimmerPass* glimmerPass = static_cast<GlimmerPass*>(RI.GetPass(NamedPass::Glimmer));
+
+        if (glimmerPass && !(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
+            && glimmerPass->RenderDebugView(frame, rs, opaquePassFramebuffer, glimmerDebugImageView))
+        {
+            finalImageView = std::move(glimmerDebugImageView);
+        }
+
+        if (glimmerPass && !(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW))
+        {
+            glimmerPass->CaptureFinalImage(frame, rs, finalImageView);
+        }
+    }
 
     if (view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
     {

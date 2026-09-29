@@ -127,12 +127,24 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 #include "./include/SkyVisibility.hlsli"
 
+#include "./Glimmer/GlimmerApply.hlsli"
+
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Camera camera;
     EnvProbe skyProbe;
     SkyVisibilityCapture skyVisibilityCapture;
+    GlimmerApply glimmer;
 };
+
+DECLARE_SRV(DeferredPass, GlimmerProbeSH0Texture) Texture3D<float4> glimmerProbeSH0;
+DECLARE_SRV(DeferredPass, GlimmerProbeSH1Texture) Texture3D<float4> glimmerProbeSH1;
+DECLARE_SRV(DeferredPass, GlimmerProbeSH2Texture) Texture3D<float4> glimmerProbeSH2;
+DECLARE_SRV(DeferredPass, GlimmerProbeStateTexture) Texture3D<uint2> glimmerProbeState;
+DECLARE_SRV(DeferredPass, GlimmerProbeBaseTexture) Texture2DArray<float> glimmerProbeBase;
+
+#define GLIMMER_APPLY_WITH_SAMPLING
+#include "./Glimmer/GlimmerApply.hlsli"
 
 // top-down depth capture of everything that blocks the sky, from DynamicSkySystem
 DECLARE_SRV(DeferredPass, SkyVisibilityTexture) Texture2D SkyVisibilityTexture;
@@ -224,6 +236,8 @@ PSOutput PSMain(PSInput input)
 
     g_skyVisibility = EvaluateSkyVisibility(skyVisibilityCapture, SkyVisibilityTexture, positionWS.xyz, N, texcoord * float2(camera.dimensions.xy) - 0.5);
 
+    g_glimmerIrradiance = EvaluateGlimmer(glimmer, positionWS.xyz, N);
+
     EvaluateEnvProbes(
         positionVS.xyz, positionWS.xyz,
         N, V, R,
@@ -306,6 +320,13 @@ PSOutput PSMain(PSInput input)
     result = normal * 0.5 + 0.5;
 #elif defined(DEBUG_AO)
     result = float3(ao, ao, ao);
+#endif
+
+#ifndef REFLECTIONS_ONLY
+    if (glimmer.params.x == GLIMMER_DEBUG_VIS_IRRADIANCE)
+    {
+        result = g_glimmerIrradiance.a > 0.0 ? g_glimmerIrradiance.rgb : float3(1.0, 0.0, 1.0);
+    }
 #endif
 
     output.output_color = float4(result, 1.0);
