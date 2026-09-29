@@ -43,6 +43,7 @@ TerrainCellData::~TerrainCellData()
     FreeBlobData(m_heights);
     FreeBlobData(m_splatMap);
     FreeBlobData(m_erosionMasks);
+    FreeBlobData(m_groundCoverPaint);
 }
 
 void TerrainCellData::SetHeights(Span<const float> paddedHeights)
@@ -178,6 +179,146 @@ ConstByteView TerrainCellData::GetErosionMasks() const
     }
 
     return ConstByteView((const ubyte*)m_erosionMasks.raw, m_erosionMasks.size);
+}
+
+ByteView TerrainCellData::GetGroundCoverPaint()
+{
+    if (m_groundCoverPaint.raw == nullptr || m_groundCoverPaint.readOnly || m_groundCoverPaint.size == 0)
+    {
+        return ByteView();
+    }
+
+    return ByteView((ubyte*)m_groundCoverPaint.raw, m_groundCoverPaint.size);
+}
+
+ConstByteView TerrainCellData::GetGroundCoverPaint() const
+{
+    if (m_groundCoverPaint.raw == nullptr || m_groundCoverPaint.size == 0)
+    {
+        return ConstByteView();
+    }
+
+    return ConstByteView((const ubyte*)m_groundCoverPaint.raw, m_groundCoverPaint.size);
+}
+
+void TerrainCellData::SetGroundCoverPaint(const Array<Name>& layers, ConstByteView paint)
+{
+    FreeBlobData(m_groundCoverPaint);
+    m_groundCoverPaint = BlobDataReference {};
+
+    if (paint.Size() != 0 && layers.Any())
+    {
+        AllocateBlobData(m_groundCoverPaint, paint.Data(), paint.Size(), 1);
+
+        m_groundCoverPaintLayers = layers;
+    }
+    else
+    {
+        m_groundCoverPaintLayers.Clear();
+    }
+
+    MarkDirty();
+}
+
+int32 TerrainCellData::FindGroundCoverPaintLayer(Name layerName) const
+{
+    for (uint32 layerIndex = 0; layerIndex < uint32(m_groundCoverPaintLayers.Size()); layerIndex++)
+    {
+        if (m_groundCoverPaintLayers[layerIndex] == layerName)
+        {
+            return int32(layerIndex);
+        }
+    }
+
+    return -1;
+}
+
+bool TerrainCellData::EnsureWritableGroundCoverPaint()
+{
+    if (m_groundCoverPaint.size == 0)
+    {
+        return false;
+    }
+
+    const auto makeWritable = [this]()
+    {
+        if (m_groundCoverPaint.raw != nullptr && m_groundCoverPaint.readOnly)
+        {
+            SetBlobDataResident(true, m_groundCoverPaint);
+        }
+
+        return m_groundCoverPaint.raw != nullptr && !m_groundCoverPaint.readOnly;
+    };
+
+    if (makeWritable())
+    {
+        return true;
+    }
+
+    auto readScope = GetReadScope();
+
+    return makeWritable();
+}
+
+int32 TerrainCellData::EnsureGroundCoverPaintLayer(Name layerName, uint32 numVertices)
+{
+    const size_t planeSize = size_t(numVertices);
+    const size_t existingSize = planeSize * m_groundCoverPaintLayers.Size();
+
+    if (m_groundCoverPaintLayers.Any() && (!EnsureWritableGroundCoverPaint() || m_groundCoverPaint.size != existingSize))
+    {
+        HYP_LOG(WorldGrid, Warning, "Ground cover paint of terrain cell data '{}' is {} bytes but {} layers of {} vertices need {} - clearing it",
+            GetName(), m_groundCoverPaint.size, m_groundCoverPaintLayers.Size(), numVertices, existingSize);
+
+        auto writeScope = GetWriteScope();
+
+        FreeBlobData(m_groundCoverPaint);
+        m_groundCoverPaint = BlobDataReference {};
+        m_groundCoverPaintLayers.Clear();
+
+        MarkDirty();
+    }
+
+    if (const int32 existingLayer = FindGroundCoverPaintLayer(layerName); existingLayer >= 0)
+    {
+        return existingLayer;
+    }
+
+    auto writeScope = GetWriteScope();
+
+    ByteBuffer oldData;
+
+    if (m_groundCoverPaint.raw != nullptr && m_groundCoverPaint.size != 0)
+    {
+        oldData = ByteBuffer(ConstByteView((const ubyte*)m_groundCoverPaint.raw, m_groundCoverPaint.size));
+    }
+
+    const size_t requiredSize = planeSize * (m_groundCoverPaintLayers.Size() + 1);
+
+    FreeBlobData(m_groundCoverPaint);
+    m_groundCoverPaint = BlobDataReference {};
+
+    AllocateBlobData(m_groundCoverPaint, nullptr, requiredSize, 1);
+
+    if (m_groundCoverPaint.raw == nullptr || m_groundCoverPaint.size < requiredSize)
+    {
+        m_groundCoverPaintLayers.Clear();
+
+        return -1;
+    }
+
+    Memory::Zero(m_groundCoverPaint.raw, requiredSize);
+
+    if (oldData.Size() != 0)
+    {
+        Memory::Copy(m_groundCoverPaint.raw, oldData.Data(), oldData.Size());
+    }
+
+    m_groundCoverPaintLayers.PushBack(layerName);
+
+    MarkDirty();
+
+    return int32(m_groundCoverPaintLayers.Size() - 1);
 }
 
 bool TerrainCellData::EnsureSplatMapAllocated(uint32 numVertices)
@@ -324,6 +465,16 @@ void TerrainCellData::PageBlobData()
             PageBlobDataFromFile(blobDirectory, ErosionMasksBlobMagic, m_erosionMasks);
         }
     }
+
+    if (m_groundCoverPaint.raw == nullptr
+        && m_groundCoverPaint.key
+        && m_groundCoverPaint.size != 0)
+    {
+        if (!PageBlobDataFromStorage(m_groundCoverPaint))
+        {
+            PageBlobDataFromFile(blobDirectory, GroundCoverPaintBlobMagic, m_groundCoverPaint);
+        }
+    }
 }
 
 bool TerrainCellData::PageBlobDataFromFile(const FilePath& directory, const char* magic, BlobDataReference& reference)
@@ -387,6 +538,15 @@ void TerrainCellData::UnpageBlobData()
     }
 
     m_erosionMasks.raw = nullptr;
+
+    AssertBlobDataPersisted(m_groundCoverPaint);
+
+    if (!m_groundCoverPaint.readOnly)
+    {
+        FreeBlobData(m_groundCoverPaint);
+    }
+
+    m_groundCoverPaint.raw = nullptr;
 }
 
 #pragma endregion TerrainCellData

@@ -1388,6 +1388,68 @@ void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, floa
     m_brush.Paint(worldPos, radius, strength, layerIndex, erase);
 }
 
+void TerrainWorldGridLayer::PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase)
+{
+    m_brush.PaintGroundCover(worldPos, radius, strength, groundCoverLayer, erase);
+}
+
+Array<Name> TerrainWorldGridLayer::GetPaintedGroundCoverLayers()
+{
+    AssertOnThread(g_simThread);
+
+    return m_groundCoverResources.GetPaintedLayerNames();
+}
+
+Array<TerrainGroundCoverPaintEdit> TerrainWorldGridLayer::TakeGroundCoverPaintEdits()
+{
+    AssertOnThread(g_simThread);
+
+    return m_brush.TakeGroundCoverPaintEdits();
+}
+
+void TerrainWorldGridLayer::SetGroundCoverPaintState(const Vec2i& coord, const TerrainGroundCoverPaintState& state)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (!m_scene.IsValid() || !m_scene->GetWorld())
+    {
+        return;
+    }
+
+    const uint32 cellSize = m_layerInfo.cellSize;
+
+    Handle<TerrainCellData> cellData = FindCellData(coord);
+
+    const bool isNewCellData = !cellData.IsValid();
+
+    if (isNewCellData)
+    {
+        if (state.paint.Empty())
+        {
+            return;
+        }
+
+        cellData = MakeHandle<TerrainCellData>(NAME_FMT("TerrainCellData_{}_{}", coord.x, coord.y), coord, Vec3u(cellSize));
+    }
+
+    {
+        auto cellDataWriteScope = cellData->GetWriteScope();
+
+        cellData->SetGroundCoverPaint(state.layers, ConstByteView(state.paint.Data(), state.paint.Size()));
+    }
+
+    if (isNewCellData)
+    {
+        AddCellData(coord, cellData);
+    }
+
+    if (Handle<TerrainStreamingCell> loadedCell = m_loadedCells.Find(coord); loadedCell.IsValid())
+    {
+        loadedCell->UpdateGroundCoverPaint(cellData, Vec2i(0, 0), Vec2i(int32(cellSize) - 1, int32(cellSize) - 1));
+    }
+}
+
 void TerrainWorldGridLayer::EndBrushStroke()
 {
     m_brush.EndStroke();

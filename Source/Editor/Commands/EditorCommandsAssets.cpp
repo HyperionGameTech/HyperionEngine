@@ -910,6 +910,8 @@ DEFINE_EDITOR_COMMAND(ScatterInstances);
 
 #pragma region NewGroundCover
 
+/// Arguments: optionally the asset name, then prefab[:weight[:splat layer | paint]] per type, and --apply to give it to the active world's terrain.
+/// Types with "paint" each get a painted layer named after their prefab, the rest share a layer per splat layer.
 class EditorCommandNewGroundCover final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandNewGroundCover);
@@ -940,6 +942,7 @@ public:
 
         Array<Pair<ANSIString, GroundCoverType>> typeSpecs;
         Array<uint32> typeSplatLayers;
+        Array<bool> typeIsPainted;
 
         for (int argumentIndex = 0; argumentIndex < NumArguments(); argumentIndex++)
         {
@@ -980,24 +983,36 @@ public:
             }
 
             uint32 splatLayer = 0;
+            const bool isPainted = parts.Size() > 2 && parts[2] == "paint";
 
-            if (parts.Size() > 2)
+            if (parts.Size() > 2 && !isPainted)
             {
                 StringUtil::Parse(parts[2], &splatLayer);
             }
 
             typeSpecs.EmplaceBack(ANSIString(parts[0]), type);
             typeSplatLayers.PushBack(MathUtil::Min(splatLayer, TerrainNumSplatLayers - 1));
+            typeIsPainted.PushBack(isPainted);
         }
 
         Handle<GroundCover> groundCover = MakeHandle<GroundCover>(name);
 
         for (uint32 specIndex = 0; specIndex < uint32(typeSpecs.Size()); specIndex++)
         {
+            if (typeIsPainted[specIndex])
+            {
+                GroundCoverLayer& paintedLayer = groundCover->layers.EmplaceBack();
+                paintedLayer.name = CreateNameFromDynamicString(typeSpecs[specIndex].first);
+                paintedLayer.source = GroundCoverSource::Painted;
+                paintedLayer.types.PushBack(typeSpecs[specIndex].second);
+
+                continue;
+            }
+
             const auto layerIt = groundCover->layers.FindIf(
                 [splatLayer = typeSplatLayers[specIndex]](const GroundCoverLayer& candidate)
                 {
-                    return candidate.splatLayer == splatLayer;
+                    return candidate.source == GroundCoverSource::SplatLayer && candidate.splatLayer == splatLayer;
                 });
 
             GroundCoverLayer* layer = layerIt != groundCover->layers.End() ? &*layerIt : nullptr;

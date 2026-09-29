@@ -11,6 +11,9 @@
 #include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorViewport.hpp>
+#include <Editor/EditorProject.hpp>
+#include <Editor/EditorAction.hpp>
+#include <Editor/EditorActionStack.hpp>
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
@@ -24,6 +27,8 @@
 
 #include <Core/Math/MathUtil.hpp>
 
+#include <Core/Memory/SharedPtr.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <EditorTerrainState.generated.inl>
@@ -32,21 +37,12 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-#pragma region EditorTerrainState
+namespace {
 
-EditorTerrainState::EditorTerrainState() = default;
-
-EditorTerrainState::~EditorTerrainState() = default;
-
-void EditorTerrainState::Initialize(EditorSubsystem* subsystem)
+bool IsPaintMode(TerrainSculptMode mode)
 {
-    AssertDebug(subsystem != nullptr);
-
-    m_subsystem = subsystem;
+    return mode == TerrainSculptMode::PaintSplat || mode == TerrainSculptMode::PaintGroundCover;
 }
-
-namespace
-{
 
 template <class Callable>
 void DispatchToSimThread(Callable&& callable)
@@ -62,6 +58,19 @@ void DispatchToSimThread(Callable&& callable)
 }
 
 } // anonymous namespace
+
+#pragma region EditorTerrainState
+
+EditorTerrainState::EditorTerrainState() = default;
+
+EditorTerrainState::~EditorTerrainState() = default;
+
+void EditorTerrainState::Initialize(EditorSubsystem* subsystem)
+{
+    AssertDebug(subsystem != nullptr);
+
+    m_subsystem = subsystem;
+}
 
 bool EditorTerrainState::IsEnabled() const
 {
@@ -136,7 +145,11 @@ void EditorTerrainState::SetMode(TerrainSculptMode mode)
     {
         AssertOnThread(g_simThread);
 
-        if (mode != TerrainSculptMode::PaintSplat)
+        if (IsPaintMode(mode))
+        {
+            m_paintMode = mode;
+        }
+        else
         {
             m_sculptDirection = mode;
         }
@@ -147,12 +160,12 @@ void EditorTerrainState::SetMode(TerrainSculptMode mode)
 
 bool EditorTerrainState::IsSculptActive() const
 {
-    return m_enabled && m_mode != TerrainSculptMode::PaintSplat;
+    return m_enabled && !IsPaintMode(m_mode);
 }
 
 bool EditorTerrainState::IsPaintActive() const
 {
-    return m_enabled && m_mode == TerrainSculptMode::PaintSplat;
+    return m_enabled && IsPaintMode(m_mode);
 }
 
 void EditorTerrainState::ActivateSculpt()
@@ -196,7 +209,7 @@ void EditorTerrainState::ActivatePaint()
             return;
         }
 
-        SetMode(TerrainSculptMode::PaintSplat);
+        SetMode(m_paintMode);
         SetEnabled(true);
     });
 }
@@ -214,6 +227,55 @@ void EditorTerrainState::SetPaintLayer(int paintLayer)
 
         m_paintLayer = uint32(MathUtil::Clamp(paintLayer, 0, 3));
     });
+}
+
+Name EditorTerrainState::GetPaintGroundCoverLayer() const
+{
+    return m_paintGroundCoverLayer;
+}
+
+void EditorTerrainState::SetPaintGroundCoverLayer(Name groundCoverLayer)
+{
+    DispatchToSimThread([this, groundCoverLayer]()
+    {
+        AssertOnThread(g_simThread);
+
+        m_paintGroundCoverLayer = groundCoverLayer;
+    });
+}
+
+Array<Name> EditorTerrainState::GetPaintableGroundCoverLayers() const
+{
+    AssertOnThread(g_simThread);
+
+    Array<Name> layerNames;
+
+    Handle<Scene> activeScene = m_subsystem->GetActiveScene();
+
+    if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+    {
+        return layerNames;
+    }
+
+    for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+    {
+        Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer);
+
+        if (!terrainLayer.IsValid())
+        {
+            continue;
+        }
+
+        for (Name layerName : terrainLayer->GetPaintedGroundCoverLayers())
+        {
+            if (!layerNames.Contains(layerName))
+            {
+                layerNames.PushBack(layerName);
+            }
+        }
+    }
+
+    return layerNames;
 }
 
 bool EditorTerrainState::CanEnterTerrainTools() const
@@ -324,6 +386,16 @@ void EditorTerrainState::ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer
             m_radius,
             brushStrength,
             m_paintLayer,
+            /* erase */ invert);
+
+        break;
+    case TerrainSculptMode::PaintGroundCover:
+
+        layer->PaintGroundCover(
+            worldPos,
+            m_radius,
+            brushStrength,
+            m_paintGroundCoverLayer,
             /* erase */ invert);
 
         break;
@@ -456,8 +528,76 @@ void EditorTerrainState::EndStroke()
         if (Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
         {
             terrainLayer->EndBrushStroke();
+
+            PushGroundCoverPaintAction(terrainLayer);
         }
     }
+}
+
+void EditorTerrainState::PushGroundCoverPaintAction(const Handle<TerrainWorldGridLayer>& terrainLayer)
+{
+    AssertOnThread(g_simThread);
+
+    Array<TerrainGroundCoverPaintEdit> edits = terrainLayer->TakeGroundCoverPaintEdits();
+
+    const Handle<EditorProject>& currentProject = m_subsystem->GetCurrentProject();
+
+    if (edits.Empty() || !currentProject.IsValid())
+    {
+        return;
+    }
+
+    SharedPtr<const Array<TerrainGroundCoverPaintEdit>> sharedEdits = MakeShared<Array<TerrainGroundCoverPaintEdit>>(std::move(edits));
+    SharedPtr<bool> isApplied = MakeShared<bool>(true);
+
+    const WeakHandle<TerrainWorldGridLayer> weakTerrainLayer = terrainLayer;
+
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+        "Paint Ground Cover",
+        Proc<EditorActionFunctions()>(
+            [weakTerrainLayer, edits = sharedEdits, isApplied]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [weakTerrainLayer, edits, isApplied](EditorSubsystem*, EditorProject*)
+                        {
+                            Handle<TerrainWorldGridLayer> layer = weakTerrainLayer.Lock();
+
+                            if (*isApplied || !layer.IsValid())
+                            {
+                                return;
+                            }
+
+                            for (const TerrainGroundCoverPaintEdit& edit : *edits)
+                            {
+                                layer->SetGroundCoverPaintState(edit.coord, edit.after);
+                            }
+
+                            *isApplied = true;
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [weakTerrainLayer, edits, isApplied](EditorSubsystem*, EditorProject*)
+                        {
+                            Handle<TerrainWorldGridLayer> layer = weakTerrainLayer.Lock();
+
+                            if (!layer.IsValid())
+                            {
+                                return;
+                            }
+
+                            for (const TerrainGroundCoverPaintEdit& edit : *edits)
+                            {
+                                layer->SetGroundCoverPaintState(edit.coord, edit.before);
+                            }
+
+                            *isApplied = false;
+                        })
+                };
+            }));
+
+    InitObject(action);
+
+    currentProject->GetActionStack()->PushAction(action);
 }
 
 void EditorTerrainState::Update()
@@ -597,6 +737,9 @@ void EditorTerrainState::DebugDrawCursor(DebugDrawCommandList& debugDrawCommandL
         break;
     case TerrainSculptMode::PaintSplat:
         baseColor = Color(0.6f, 1.0f, 0.35f, 1.0f);
+        break;
+    case TerrainSculptMode::PaintGroundCover:
+        baseColor = Color(0.95f, 0.5f, 1.0f, 1.0f);
         break;
     case TerrainSculptMode::Raise:
     default:

@@ -11,6 +11,7 @@
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 #include <Core/Utilities/Span.hpp>
+#include <Core/Containers/Array.hpp>
 
 namespace Hyperion {
 
@@ -23,6 +24,7 @@ public:
     static constexpr const char* HeightsBlobMagic = "TCD";
     static constexpr const char* SplatMapBlobMagic = "SPLT";
     static constexpr const char* ErosionMasksBlobMagic = "EMSK";
+    static constexpr const char* GroundCoverPaintBlobMagic = "GCPT";
 
     TerrainCellData();
     explicit TerrainCellData(Name name, const Vec2i& coord = Vec2i::Zero(), const Vec3u& extent = Vec3u::Zero());
@@ -85,6 +87,31 @@ public:
 
     ConstByteView GetErosionMasks() const;
 
+    ///one cellSize^2 plane of painted weights per painted GroundCover layer, in the order of GetGroundCoverPaintLayers()
+    bool HasGroundCoverPaint() const
+    {
+        return m_groundCoverPaint.size != 0;
+    }
+
+    const Array<Name>& GetGroundCoverPaintLayers() const
+    {
+        return m_groundCoverPaintLayers;
+    }
+
+    ByteView GetGroundCoverPaint();
+    ConstByteView GetGroundCoverPaint() const;
+
+    ///pages the planes in as a writable copy and appends a cleared plane for \p layerName if it has none. The plane's index, or -1
+    int32 EnsureGroundCoverPaintLayer(Name layerName, uint32 numVertices);
+
+    ///index of \p layerName's plane, or -1 if it has never been painted here
+    int32 FindGroundCoverPaintLayer(Name layerName) const;
+
+    ///pages the planes in as a writable copy; false if there are none
+    bool EnsureWritableGroundCoverPaint();
+
+    void SetGroundCoverPaint(const Array<Name>& layers, ConstByteView paint);
+
 protected:
     virtual void PageBlobData() override;
     virtual void UnpageBlobData() override;
@@ -96,6 +123,7 @@ protected:
         outReferences.EmplaceBack(HeightsBlobMagic, 1, &m_heights);
         outReferences.EmplaceBack(SplatMapBlobMagic, 1, &m_splatMap);
         outReferences.EmplaceBack(ErosionMasksBlobMagic, 1, &m_erosionMasks);
+        outReferences.EmplaceBack(GroundCoverPaintBlobMagic, 1, &m_groundCoverPaint);
     }
 
 private:
@@ -107,6 +135,12 @@ private:
 
     HYP_FIELD(Property = "ErosionMasks", Serialize)
     BlobDataReference m_erosionMasks;
+
+    HYP_FIELD(Property = "GroundCoverPaintLayers", Serialize)
+    Array<Name> m_groundCoverPaintLayers;
+
+    HYP_FIELD(Property = "GroundCoverPaint", Serialize)
+    BlobDataReference m_groundCoverPaint;
 };
 
 } // namespace Hyperion

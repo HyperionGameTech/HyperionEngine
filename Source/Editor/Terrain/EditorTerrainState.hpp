@@ -14,6 +14,10 @@
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 
+#include <Core/Containers/Array.hpp>
+
+#include <Core/Name/Name.hpp>
+
 namespace Hyperion {
 
 class EditorSubsystem;
@@ -28,7 +32,8 @@ enum class TerrainSculptMode : uint8
 {
     Raise,
     Lower,
-    PaintSplat
+    PaintSplat,
+    PaintGroundCover
 };
 
 HYP_CLASS(Serialize = false)
@@ -84,6 +89,15 @@ public:
     HYP_METHOD()
     void SetPaintLayer(int paintLayer);
 
+    HYP_METHOD()
+    Name GetPaintGroundCoverLayer() const;
+
+    HYP_METHOD()
+    void SetPaintGroundCoverLayer(Name groundCoverLayer);
+
+    HYP_METHOD()
+    Array<Name> GetPaintableGroundCoverLayers() const;
+
     /*! \brief Whether the sculpt/paint tools may be turned on right now, independent of what the
      *  world contains. */
     HYP_METHOD()
@@ -115,16 +129,20 @@ private:
     ///one dab of the held stroke, at the anchored position unless the cursor has moved since the last one
     bool ApplyStroke(float dt);
 
+    void PushGroundCoverPaintAction(const Handle<TerrainWorldGridLayer>& terrainLayer);
+
     EditorSubsystem* m_subsystem = nullptr;
 
     bool m_enabled = false;
     
     TerrainSculptMode m_mode = TerrainSculptMode::Raise;
     TerrainSculptMode m_sculptDirection = TerrainSculptMode::Raise;
+    TerrainSculptMode m_paintMode = TerrainSculptMode::PaintSplat;
 
     float m_radius = 5.0f;
     float m_strength = 2.0f;
     uint32 m_paintLayer = 0;
+    Name m_paintGroundCoverLayer;
 
     bool m_hasHover = false;
     Vec3f m_hoverWorldPos;

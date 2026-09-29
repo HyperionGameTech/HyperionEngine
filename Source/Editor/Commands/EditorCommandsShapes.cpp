@@ -477,6 +477,10 @@ public:
         {
             mode = TerrainSculptMode::PaintSplat;
         }
+        else if (GetArgument(0) == "paint-groundcover")
+        {
+            mode = TerrainSculptMode::PaintGroundCover;
+        }
 
         subsystem->GetTerrainState()->SetEnabled(true);
         subsystem->GetTerrainState()->SetMode(mode);
@@ -570,6 +574,33 @@ public:
 DEFINE_EDITOR_COMMAND(SetTerrainSculptPaintLayer);
 
 #pragma endregion SetTerrainSculptPaintLayer
+
+#pragma region SetTerrainGroundCoverPaintLayer
+
+/// Arguments: the name of a painted layer of the terrain's GroundCover
+class EditorCommandSetTerrainGroundCoverPaintLayer final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSetTerrainGroundCoverPaintLayer);
+
+public:
+    virtual ~EditorCommandSetTerrainGroundCoverPaintLayer() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandSetTerrainGroundCoverPaintLayer requires a ground cover layer name");
+
+            return;
+        }
+
+        subsystem->GetTerrainState()->SetPaintGroundCoverLayer(CreateNameFromDynamicString(ANSIString(GetArgument(0))));
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SetTerrainGroundCoverPaintLayer);
+
+#pragma endregion SetTerrainGroundCoverPaintLayer
 
 #pragma region AddNormalizedCubeSphere
 

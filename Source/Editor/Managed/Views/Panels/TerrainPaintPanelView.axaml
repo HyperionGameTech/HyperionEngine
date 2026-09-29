@@ -11,6 +11,29 @@
         <StackPanel Margin="12,12,12,8" Spacing="12">
 
             <StackPanel Spacing="6">
+                <TextBlock Classes="section-label" Text="Paint" />
+                <ComboBox SelectedIndex="{Binding PaintTargetIndex}">
+                    <ComboBoxItem Content="Terrain Layer" />
+                    <ComboBoxItem Content="Ground Cover" />
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Spacing="6" IsVisible="{Binding IsGroundCoverTarget}">
+                <TextBlock Classes="section-label" Text="Ground Cover Layer" />
+                <ComboBox
+                    IsVisible="{Binding HasGroundCoverLayers}"
+                    ItemsSource="{Binding GroundCoverLayers}"
+                    SelectedItem="{Binding SelectedGroundCoverLayer}" />
+                <TextBlock
+                    Classes="hint-text"
+                    IsVisible="{Binding !HasGroundCoverLayers}"
+                    Text="No painted ground cover" />
+                <TextBlock
+                    Classes="hint-text"
+                    Text="Paint ground cover. Hold shift while painting to erase" />
+            </StackPanel>
+
+            <StackPanel Spacing="6" IsVisible="{Binding IsTerrainLayerTarget}">
                 <TextBlock Classes="section-label" Text="Splat Layer" />
                 <ComboBox SelectedIndex="{Binding PaintLayerIndex}">
                     <ComboBoxItem Content="Layer 0" />
