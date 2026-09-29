@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-#pragma region Helpers
+namespace /* Helpers */ {
 
 // ~3 MB per region (heights + erosion masks) - generous budget keeps revisited areas from paying a rebuild
 static constexpr uint32 MaxCachedErosionRegions = 64;
@@ -30,19 +30,16 @@ struct ErosionLayout
     int32 blend = 2;
     int32 apron = 4;
     int32 size = 1;
+
+    explicit ErosionLayout(const TerrainGenerationParams& params)
+    {
+        spacing = MathUtil::Max(params.erosionSpacing, 0.01f);
+        blend = int32(MathUtil::Max(params.erosionRegionBlend & ~1u, 2u));
+        stride = int32(MathUtil::Max(params.erosionRegionSize, uint32(blend) * 2u));
+        apron = int32(MathUtil::Max(params.erosionRegionApron, 4u));
+        size = stride + blend + apron * 2;
+    }
 };
-
-static ErosionLayout GetErosionLayout(const TerrainGenerationParams& params)
-{
-    ErosionLayout layout;
-    layout.spacing = MathUtil::Max(params.erosionSpacing, 0.01f);
-    layout.blend = int32(MathUtil::Max(params.erosionRegionBlend & ~1u, 2u));
-    layout.stride = int32(MathUtil::Max(params.erosionRegionSize, uint32(layout.blend) * 2u));
-    layout.apron = int32(MathUtil::Max(params.erosionRegionApron, 4u));
-    layout.size = layout.stride + layout.blend + layout.apron * 2;
-
-    return layout;
-}
 
 struct ErosionAxisBlend
 {
@@ -51,7 +48,7 @@ struct ErosionAxisBlend
 };
 
 // regions tile the world with a stride; neighbors overlap by the blend band, where their weights cross-fade and sum to one
-static ErosionAxisBlend ComputeErosionAxisBlend(float sampleCoord, const ErosionLayout& layout)
+ErosionAxisBlend ComputeErosionAxisBlend(float sampleCoord, const ErosionLayout& layout)
 {
     const int32 region = int32(std::floor(sampleCoord / float(layout.stride)));
     const float offset = sampleCoord - float(region) * float(layout.stride);
@@ -83,7 +80,7 @@ struct ErosionRegionRange
 };
 
 // every region sampled by a cell's padded heights
-static ErosionRegionRange ComputePaddedCellRegionRange(const ErosionLayout& layout, const Vec2f& cellWorldMinXZ, const Vec2f& scaleXZ, uint32 cellSize)
+ErosionRegionRange ComputePaddedCellRegionRange(const ErosionLayout& layout, const Vec2f& cellWorldMinXZ, const Vec2f& scaleXZ, uint32 cellSize)
 {
     const Vec2f worldCornerA = cellWorldMinXZ - Vec2f(float(TerrainGenerator::CellPadding)) * scaleXZ;
     const Vec2f worldCornerB = cellWorldMinXZ + Vec2f(float(cellSize + TerrainGenerator::CellPadding - 1)) * scaleXZ;
@@ -101,7 +98,7 @@ HYP_FORCE_INLINE static float CatmullRom(float p0, float p1, float p2, float p3,
     return p1 + 0.5f * t * (p2 - p0 + t * (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3 + t * (3.0f * (p1 - p2) + p3 - p0)));
 }
 
-#pragma endregion Helpers
+} // namespace
 
 #pragma region TerrainGenerator
 
@@ -379,7 +376,7 @@ void TerrainGenerator::GeneratePaddedCellHeights(
         return;
     }
 
-    const ErosionLayout layout = GetErosionLayout(m_params);
+    const ErosionLayout layout(m_params);
 
     // resolve every region the cell touches up front, so sampling doesn't lock per vertex
     const ErosionRegionRange regionRange = ComputePaddedCellRegionRange(layout, cellWorldMinXZ, scaleXZ, cellSize);
@@ -470,7 +467,7 @@ void TerrainGenerator::CollectRegionsForCell(
         return;
     }
 
-    const ErosionRegionRange regionRange = ComputePaddedCellRegionRange(GetErosionLayout(m_params), cellWorldMinXZ, scaleXZ, cellSize);
+    const ErosionRegionRange regionRange = ComputePaddedCellRegionRange(ErosionLayout(m_params), cellWorldMinXZ, scaleXZ, cellSize);
 
     for (int32 regionZ = regionRange.minZ; regionZ <= regionRange.maxZ; regionZ++)
     {
@@ -621,7 +618,7 @@ SharedPtr<const TerrainGenerator::ErosionRegion> TerrainGenerator::BuildErosionR
     HYP_SCOPE;
 
     const TerrainGenerationParams& params = m_params;
-    const ErosionLayout layout = GetErosionLayout(params);
+    const ErosionLayout layout(params);
 
     SharedPtr<ErosionRegion> region = MakeShared<ErosionRegion>();
     region->originX = regionCoord.x * layout.stride - layout.blend / 2 - layout.apron;

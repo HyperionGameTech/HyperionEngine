@@ -75,8 +75,12 @@ static Handle<Texture> BuildSplatTextureFromWeights(const Vec2i& coord, uint32 c
     return CreateSplatTexture(coord, cellSize, uploadBytes);
 }
 
-///world-space normals, row-flipped like the splat map so Terrain.hlsl samples both with the same texcoord
-void PrepareNormalMapBytes(Span<const float> paddedHeights, Span<const ubyte> erosionMasks, uint32 cellSize, const Vec3f& scale, Array<ubyte>& outUploadBytes)
+void PrepareNormalMapBytes(
+    Span<const float> paddedHeights,
+    Span<const ubyte> erosionMasks,
+    uint32 cellSize,
+    const Vec3f& scale,
+    Array<ubyte>& outUploadBytes)
 {
     const size_t texelCount = size_t(cellSize) * size_t(cellSize);
     const uint32 paddedSize = cellSize + TerrainGenerator::CellPadding * 2u;

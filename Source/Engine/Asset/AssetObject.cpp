@@ -745,7 +745,7 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
     {
         if (reference.readOnly)
         {
-            Assert(reference.raw != nullptr);
+            AssertDebug(reference.raw != nullptr);
 
             if (reference.raw == nullptr)
             {
