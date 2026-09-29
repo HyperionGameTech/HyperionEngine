@@ -307,12 +307,6 @@ private:
     ///set on the streaming thread when m_paddedHeights had to be generated, so OnLoaded() stores them
     bool m_hasGeneratedHeights = false;
 
-    /// splat map bytes prepared on the streaming thread, ready for texture upload
-    Array<ubyte> m_splatUploadBytes;
-
-    /// normal map bytes prepared on the streaming thread, ready for texture upload
-    Array<ubyte> m_normalMapUploadBytes;
-
     /// cellSize^2 * TerrainNumSplatLayers weights, row z first
     Array<ubyte> m_splatWeights;
 

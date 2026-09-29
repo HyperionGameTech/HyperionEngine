@@ -192,8 +192,8 @@ void TerrainStreamingCell::ReleaseBuildData()
     EndPendingGeneration();
 
     m_hasGeneratedHeights = false;
-    m_splatUploadBytes = Array<ubyte>();
-    m_normalMapUploadBytes = Array<ubyte>();
+    m_splatTexture.Reset();
+    m_normalMapTexture.Reset();
     m_initialPatchBuilds = Array<TerrainPatchBuild>();
 }
 
@@ -286,14 +286,24 @@ void TerrainStreamingCell::OnStreamStart()
     ResetQuadtree();
     BuildInitialPatchMeshData();
 
-    TerrainCellTextures::PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, m_normalMapUploadBytes);
+    Array<ubyte> scratchBuffer;
 
-    // prepare splat upload data on the streaming thread so OnLoaded() only has to create the texture object
+    {
+        TerrainCellTextures::PrepareNormalMapBytes(m_paddedHeights, m_erosionMasks, cellSize, m_cellInfo.scale, scratchBuffer);
+
+        if (scratchBuffer.Any())
+        {
+            m_normalMapTexture = TerrainCellTextures::CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, scratchBuffer);
+        }
+
+        scratchBuffer.Resize(0);
+    }
+
     bool hasSplatBytes = false;
 
     if (m_cellData.IsValid() && m_cellData->HasSplatMap())
     {
-        hasSplatBytes = TerrainCellTextures::PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, cellSize, m_splatUploadBytes);
+        hasSplatBytes = TerrainCellTextures::PreparePaintedSplatBytes(m_cellData, m_cellInfo.coord, cellSize, scratchBuffer);
 
         if (!hasSplatBytes)
         {
@@ -303,12 +313,14 @@ void TerrainStreamingCell::OnStreamStart()
 
     if (!hasSplatBytes && m_generator->GetParams().autoPaintSplats)
     {
-        hasSplatBytes = TerrainCellTextures::PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, m_splatUploadBytes);
+        hasSplatBytes = TerrainCellTextures::PrepareAutoSplatBytes(*m_generator, m_cellInfo, m_paddedHeights, m_erosionMasks, scratchBuffer);
     }
 
     if (hasSplatBytes)
     {
-        SetSplatWeights(m_splatUploadBytes, /* rowsFlipped */ true);
+        SetSplatWeights(scratchBuffer, /* rowsFlipped */ true);
+        
+        m_splatTexture = TerrainCellTextures::CreateSplatTexture(m_cellInfo.coord, cellSize, scratchBuffer);
     }
 
     if (m_cellData.IsValid() && m_cellData->HasGroundCoverPaint())
@@ -371,24 +383,6 @@ void TerrainStreamingCell::OnLoaded()
 
     const uint32 cellSize = GetCellSize();
 
-    ///create the texture
-    Handle<Texture> splatTexture;
-
-    if (m_splatUploadBytes.Any())
-    {
-        splatTexture = TerrainCellTextures::CreateSplatTexture(m_cellInfo.coord, cellSize, m_splatUploadBytes);
-    }
-
-    m_splatUploadBytes.Clear();
-
-    Handle<Texture> normalMapTexture;
-
-    if (m_normalMapUploadBytes.Any())
-    {
-        normalMapTexture = TerrainCellTextures::CreateCellTexture(NAME_FMT("TerrainCellNormalMap_{}", m_cellInfo.coord), cellSize, m_normalMapUploadBytes);
-    }
-
-    m_normalMapUploadBytes.Clear();
 
     HYP_LOG(WorldGrid, Verbose, "Creating terrain tile at coord {} with extent {} and scale {}, bounds: {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, m_cellInfo.bounds);
 
@@ -436,14 +430,14 @@ void TerrainStreamingCell::OnLoaded()
 
     m_initialPatchBuilds = Array<TerrainPatchBuild>();
 
-    if (normalMapTexture.IsValid())
+    if (m_normalMapTexture.IsValid())
     {
-        ApplyNormalMapTexture(normalMapTexture);
+        ApplyNormalMapTexture(m_normalMapTexture);
     }
 
-    if (splatTexture.IsValid())
+    if (m_splatTexture.IsValid())
     {
-        ApplySplatTexture(splatTexture);
+        ApplySplatTexture(m_splatTexture);
     }
 
     m_layer->RegisterLoadedCell(m_cellInfo.coord, WeakHandleFromThis());
