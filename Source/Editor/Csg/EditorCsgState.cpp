@@ -144,11 +144,11 @@ Handle<Mesh> BuildResultMesh(const Mesh& sourceMesh, const MeshBooleanResult& re
     meshData.indices[0] = result.indices.ToByteView();
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetName(sourceMesh->GetName());
+    mesh->SetName(sourceMesh.GetName());
     mesh->SetMeshData(result.meshDesc, meshData);
-    mesh->SetFlags(sourceMesh->GetFlags());
+    mesh->SetFlags(sourceMesh.GetFlags());
 
-    MeshLodGenerationSettings lodGenerationSettings = sourceMesh->GetLodGenerationSettings();
+    MeshLodGenerationSettings lodGenerationSettings = sourceMesh.GetLodGenerationSettings();
     lodGenerationSettings.sourceDataHash = 0;
     mesh->SetLodGenerationSettings(lodGenerationSettings);
 

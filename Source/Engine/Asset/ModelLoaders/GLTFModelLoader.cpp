@@ -1452,7 +1452,7 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
         if (ShouldRegisterAssets(state))
         {
-            GetCurrentAssetRegistry()->PutAsset(fallbackMaterial);
+            GetCurrentAssetRegistry()->PutAssetUnique(fallbackMaterial);
         }
 
         return fallbackMaterial;
@@ -1627,7 +1627,7 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
     if (ShouldRegisterAssets(state))
     {
-        GetCurrentAssetRegistry()->PutAsset(material);
+        GetCurrentAssetRegistry()->PutAssetUnique(material);
     }
 
     InitObject(material);

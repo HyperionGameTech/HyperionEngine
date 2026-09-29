@@ -522,7 +522,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         mesh->SetMeshData(meshDesc, meshData);
         // mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
 
-        GetCurrentAssetRegistry()->PutAsset(mesh);
+        GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
         const OgreMaterialScript* materialScript = FindMaterialScript(materialScriptName);
 
@@ -561,7 +561,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         }
 
         Handle<Material> material = MakeHandle<Material>(assetName, attributes, parameters, textures);
-        GetCurrentAssetRegistry()->PutAsset(material);
+        GetCurrentAssetRegistry()->PutAssetUnique(material);
 
         InitObject(material);
 
