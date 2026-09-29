@@ -126,7 +126,7 @@ void DeviceDetailsOverlay::Update(float delta)
     const EngineStats& s_stats = *g_engineStats;
     const EngineStatsSnapshot& snapshot = s_stats.GetCurrentSnapshot();
 
-    const int fps = MathUtil::Floor(snapshot[StatIdFps].avg);
+    const int fps = MathUtil::Max(MathUtil::Round<float, int>(snapshot[StatIdFps].avg), 0);
 
     char fpsStr[8] = { '9', '9', '9', ' ', 'F', 'P', 'S', '\0' };
 

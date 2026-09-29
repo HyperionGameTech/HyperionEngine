@@ -44,9 +44,9 @@ static constexpr GroundCoverPrefabSource s_groundCoverSources[] = {
     { "dry_grass", "Dry Grass", GroundCoverSource::Painted, 0 }
 };
 
-static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
+static void BuildInvSphere(Handle<AssetRegistry>& outputRegistry)
 {
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { outputRegistry } };
 
     auto domePrefabResult = g_assetManager->Load<Prefab>("Models/inv_sphere.obj",
         String::empty,
@@ -68,13 +68,13 @@ static void BuildInvSphere(Handle<AssetRegistry>& engineRegistry)
 
     MeshComponent& mc = e->GetComponent<MeshComponent>();
     
-    engineRegistry->RemoveAsset(mc.mesh);
-    engineRegistry->RemoveAsset(mc.material);
+    outputRegistry->RemoveAsset(mc.mesh);
+    outputRegistry->RemoveAsset(mc.material);
 
     mc.mesh->SetName(NAME("InvSphereMesh"));
     mc.material->SetName(NAME("InvSphereMaterial"));
 
-    engineRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
+    outputRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
 
     HYP_LOG(Engine, Info, "InvSphere shape built and registered successfully.");
 }
@@ -83,9 +83,9 @@ static constexpr float ThirdPersonCharacterHeight = 1.8f;
 
 static constexpr const char* DefaultThirdPersonCharacterSource = "Models/Mannequin/Mannequin.glb";
 
-static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry, const String& sourcePath)
+static void BuildThirdPersonCharacter(Handle<AssetRegistry>& outputRegistry, const String& sourcePath)
 {
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { outputRegistry } };
 
     auto characterPrefabResult = g_assetManager->Load<Prefab>(sourcePath,
         String::empty,
@@ -127,14 +127,14 @@ static void BuildThirdPersonCharacter(Handle<AssetRegistry>& engineRegistry, con
         root->SetLocalScale(Vec3f(ThirdPersonCharacterHeight / modelHeight));
     }
 
-    engineRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
+    outputRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
 
     HYP_LOG(Engine, Info, "ThirdPersonCharacter prefab built and registered successfully (model height {}, scale {}).", modelHeight, root->GetLocalScale().x);
 }
 
-static void BuildGroundCover(Handle<AssetRegistry>& engineRegistry)
+static void BuildGroundCover(Handle<AssetRegistry>& outputRegistry)
 {
-    GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
+    GlobalContextScope assetRegistryScope { AssetRegistryContext { outputRegistry } };
 
     Handle<GroundCover> groundCover = MakeHandle<GroundCover>(NAME("DefaultGroundCover"));
 
@@ -203,7 +203,7 @@ static void BuildGroundCover(Handle<AssetRegistry>& engineRegistry)
             }
         }
 
-        engineRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
+        outputRegistry->PutAssetsDeep(prefab, /* overwriteExisting */ true);
 
         GroundCoverLayer& layer = groundCover->layers.EmplaceBack();
         layer.name = CreateNameFromDynamicString(source.layerName);
@@ -216,7 +216,7 @@ static void BuildGroundCover(Handle<AssetRegistry>& engineRegistry)
 
     InitObject(groundCover);
 
-    engineRegistry->PutAssetsDeep(groundCover, /* overwriteExisting */ true);
+    outputRegistry->PutAssetsDeep(groundCover, /* overwriteExisting */ true);
 }
 
 class BuildShapesCommandlet : public CommandletBase
@@ -250,6 +250,14 @@ public:
                 CommandLineArgumentFlags::NONE,
                 CommandLineArgumentType::STRING,
                 JSON::Value(""));
+
+            s_definitions.Add(
+                "output",
+                "o",
+                "Directory of the asset registry the shapes are written to. The engine asset registry when empty",
+                CommandLineArgumentFlags::NONE,
+                CommandLineArgumentType::STRING,
+                JSON::Value(""));
         }
 
         return s_definitions;
@@ -266,17 +274,18 @@ protected:
         }
 
         const String parts = args["parts"].ToString();
+        const String outputPath = args["output"].ToString();
 
         if (IsOnThread(g_simThread))
         {
-            RunStatic(characterSource, parts);
+            RunStatic(characterSource, parts, outputPath);
         }
         else
         {
             GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                [characterSource, parts]()
+                [characterSource, parts, outputPath]()
                 {
-                    RunStatic(characterSource, parts);
+                    RunStatic(characterSource, parts, outputPath);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         }
@@ -284,7 +293,7 @@ protected:
         return {};
     }
 
-    static void RunStatic(const String& characterSource, const String& parts)
+    static void RunStatic(const String& characterSource, const String& parts, const String& outputPath)
     {
         const Array<String> selectedParts = parts.Split(',');
 
@@ -306,25 +315,34 @@ protected:
             SetEngineAssetRegistry(engineRegistry);
         }
 
+        Handle<AssetRegistry> outputRegistry = engineRegistry;
+
+        if (!outputPath.Empty())
+        {
+            // Keeps the Engine id so the built assets resolve once the output is merged into the engine content
+            outputRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Engine, FilePath(outputPath));
+            outputRegistry->Initialize(nullptr);
+        }
+
         if (isSelected("invsphere"))
         {
-            BuildInvSphere(engineRegistry);
+            BuildInvSphere(outputRegistry);
         }
 
         if (isSelected("character"))
         {
-            BuildThirdPersonCharacter(engineRegistry, characterSource);
+            BuildThirdPersonCharacter(outputRegistry, characterSource);
         }
 
         if (isSelected("groundcover"))
         {
-            BuildGroundCover(engineRegistry);
+            BuildGroundCover(outputRegistry);
         }
 
-        GlobalContextScope assetRegistryScope { AssetRegistryContext { engineRegistry } };
+        GlobalContextScope assetRegistryScope { AssetRegistryContext { outputRegistry } };
         GetCurrentAssetRegistry()->SaveDirtyAssets();
 
-        HYP_LOG(Engine, Info, "Shape assets saved to engine registry");
+        HYP_LOG(Engine, Info, "Shape assets saved to registry at {}", outputRegistry->GetRootPath());
     }
 };
 

@@ -489,6 +489,29 @@ void EngineStats::Publish()
         statSnapshot.avg = actualNumSamples > 0 ? (sum / float(actualNumSamples)) : 0.0;
     }
 
+    // The mean of per-frame (1 / delta) values is biased by frame time jitter and spans the whole sample
+    // history (1000 frames), so it lags behind and doesn't settle on the target rate when frame limited.
+    // Report the FPS as frames / elapsed time over the most recent window instead.
+    {
+        static constexpr double fpsWindowSeconds = 0.5;
+
+        double elapsedSeconds = 0.0;
+        uint32 numFrames = 0;
+
+        for (uint32 i = 0; i < actualNumSamples && elapsedSeconds < fpsWindowSeconds; ++i)
+        {
+            const uint32 idx = (sampleIdx + EngineStatsNumSamples - i) % EngineStatsNumSamples;
+
+            elapsedSeconds += double(GetSampleData(StatIdMsPerFrame, idx)) / 1000.0;
+            ++numFrames;
+        }
+
+        if (numFrames > 0 && elapsedSeconds > 0.0)
+        {
+            snapshot.values[StatIdFps].avg = float(double(numFrames) / elapsedSeconds);
+        }
+    }
+
     m_impl->numSamples = MathUtil::Min<uint32>(m_impl->numSamples + 1u, EngineStatsNumSamples);
     m_impl->sampleIndex = (m_impl->sampleIndex + 1) % EngineStatsNumSamples;
 
