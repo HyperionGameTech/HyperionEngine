@@ -1,0 +1,18 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "native",
+      "project": "..\\Binaries\\Windows\\Debug\\Hyperion.Editor.exe",
+      "name": "Hyperion.Editor (Debug)",
+      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Debug"
+    },
+    {
+      "type": "native",
+      "project": "..\\Binaries\\Windows\\Release\\Hyperion.Editor.exe",
+      "name": "Hyperion.Editor (Release)",
+      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Release"
+    }
+  ]
+}
