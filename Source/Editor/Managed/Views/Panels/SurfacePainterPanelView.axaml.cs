@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Hyperion.Editor.Views.Panels
 {
-    public partial class DecalPainterPanelView : UserControl
+    public partial class SurfacePainterPanelView : UserControl
     {
-        public DecalPainterPanelView()
+        public SurfacePainterPanelView()
         {
             InitializeComponent();
         }

@@ -44,8 +44,8 @@
         <DataTemplate DataType="vm:TerrainPaintPanelViewModel">
             <panels:TerrainPaintPanelView />
         </DataTemplate>
-        <DataTemplate DataType="vm:DecalPainterPanelViewModel">
-            <panels:DecalPainterPanelView />
+        <DataTemplate DataType="vm:SurfacePainterPanelViewModel">
+            <panels:SurfacePainterPanelView />
         </DataTemplate>
         <DataTemplate DataType="vm:CsgPanelViewModel">
             <panels:CsgPanelView />

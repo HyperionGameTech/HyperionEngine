@@ -26,6 +26,7 @@
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/Decal/EditorDecalPainterState.hpp>
+#include <Editor/Instancing/EditorInstancePainterState.hpp>
 #include <Editor/Csg/EditorCsgState.hpp>
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
@@ -160,6 +161,34 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
+static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
+static CVar<bool> s_cvDebugDrawProbes { "Editor.DebugDrawProbes", false };
+
+static constexpr const char* PlayNetModeConfigKey = "PlayInEditor.NetMode";
+static constexpr const char* PlayNetHostConfigKey = "PlayInEditor.Host";
+static constexpr const char* PlayNetPortConfigKey = "PlayInEditor.Port";
+static constexpr const char* PlayNetCachePortConfigKey = "PlayInEditor.CachePort";
+
+struct SuppressIdleThrottlingContext {};
+
+#pragma region Helpers
+
+static RenderableAttributeSet PhysicsWireframeAttributes()
+{
+    RenderableAttributeSet attributes;
+
+    MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
+    meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple>;
+    meshAttributes.topology = Topology::Triangles;
+
+    MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+    materialAttributes.bucket = RenderBucket::Debug;
+    materialAttributes.fillMode = FillMode::Line;
+    materialAttributes.blendFunction = BlendFunction::None();
+    materialAttributes.flags = MAF_DEPTH_TEST;
+
+    return attributes;
+}
 
 /// A hit on an instance selects a InstanceHandleNode instead of the owning group
 static Handle<Node> ResolvePickedNode(const RayHit& hit, EditorSubsystem& editorSubsystem)
@@ -192,34 +221,6 @@ static Handle<Node> ResolvePickedNode(const RayHit& hit, EditorSubsystem& editor
     }
 
     return editorSubsystem.GetOrCreateInstanceHandle(group, instanceId);
-}
-static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
-static CVar<bool> s_cvDebugDrawProbes { "Editor.DebugDrawProbes", false };
-
-static constexpr const char* PlayNetModeConfigKey = "PlayInEditor.NetMode";
-static constexpr const char* PlayNetHostConfigKey = "PlayInEditor.Host";
-static constexpr const char* PlayNetPortConfigKey = "PlayInEditor.Port";
-static constexpr const char* PlayNetCachePortConfigKey = "PlayInEditor.CachePort";
-
-struct SuppressIdleThrottlingContext {};
-
-#pragma region Helpers
-
-static RenderableAttributeSet PhysicsWireframeAttributes()
-{
-    RenderableAttributeSet attributes;
-
-    MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
-    meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple>;
-    meshAttributes.topology = Topology::Triangles;
-
-    MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
-    materialAttributes.bucket = RenderBucket::Debug;
-    materialAttributes.fillMode = FillMode::Line;
-    materialAttributes.blendFunction = BlendFunction::None();
-    materialAttributes.flags = MAF_DEPTH_TEST;
-
-    return attributes;
 }
 
 static Vec3f ComputeMeshEditDragPlaneNormal(const Handle<Camera>& camera, const Vec3f& axisDirection)
@@ -263,6 +264,43 @@ Handle<EditorDecalPainterState> EditorSubsystem::GetDecalPainterState()
     }
 
     return m_decalPainter;
+}
+
+Handle<EditorInstancePainterState> EditorSubsystem::GetInstancePainterState()
+{
+    if (!m_instancePainter.IsValid())
+    {
+        m_instancePainter = MakeHandle<EditorInstancePainterState>();
+        InitObject(m_instancePainter);
+
+        m_instancePainter->Initialize(this);
+    }
+
+    return m_instancePainter;
+}
+
+EditorSurfacePainterState* EditorSubsystem::GetActiveSurfacePainter()
+{
+    for (EditorSurfacePainterState* painter : { static_cast<EditorSurfacePainterState*>(GetDecalPainterState().Get()), static_cast<EditorSurfacePainterState*>(GetInstancePainterState().Get()) })
+    {
+        if (painter->IsEnabled())
+        {
+            return painter;
+        }
+    }
+
+    return nullptr;
+}
+
+void EditorSubsystem::DisableSurfacePainters(const EditorSurfacePainterState* except)
+{
+    for (EditorSurfacePainterState* painter : { static_cast<EditorSurfacePainterState*>(m_decalPainter.Get()), static_cast<EditorSurfacePainterState*>(m_instancePainter.Get()) })
+    {
+        if (painter != nullptr && painter != except)
+        {
+            painter->SetEnabled(false);
+        }
+    }
 }
 
 Handle<EditorCsgState> EditorSubsystem::GetCsgState()
@@ -2190,6 +2228,7 @@ EditorSubsystem::EditorSubsystem()
     // Create eagerly so the managed side can always fetch it, regardless of the calling thread.
     GetTerrainState();
     GetDecalPainterState();
+    GetInstancePainterState();
     GetCsgState();
 
     m_bakeStatusUpdateTimer = ClockTimer { 0.5f };
@@ -3414,6 +3453,7 @@ void EditorSubsystem::Update(float delta)
 
     GetTerrainState()->Update();
     GetDecalPainterState()->Update();
+    GetInstancePainterState()->Update();
     GetCsgState()->Update();
     UpdateBakeStatus();
     UpdatePlayNetState();
@@ -3437,6 +3477,7 @@ void EditorSubsystem::Update(float delta)
     
     GetTerrainState()->DebugDrawCursor(dbg);
     GetDecalPainterState()->DebugDrawCursor(dbg);
+    GetInstancePainterState()->DebugDrawCursor(dbg);
     GetCsgState()->DebugDraw(dbg);
 
     if (m_currentProject.IsValid())
@@ -3551,10 +3592,7 @@ bool EditorSubsystem::StartSimulation()
         m_terrainSculpting->SetEnabled(false);
     }
 
-    if (m_decalPainter.IsValid())
-    {
-        m_decalPainter->SetEnabled(false);
-    }
+    DisableSurfacePainters();
 
     const GameState& gameState = m_currentProject->GetGame()->GetGameState();
 
@@ -4112,7 +4150,7 @@ void EditorSubsystem::InitViewport()
             //     return UIEventHandlerResult::STOP_BUBBLING;
             // }
 
-            if (GetTerrainState()->IsEnabled() || GetDecalPainterState()->IsEnabled())
+            if (GetTerrainState()->IsEnabled() || GetActiveSurfacePainter() != nullptr)
             {
                 // Strokes are applied from OnMouseDown / OnMouseDrag / the per-frame update;
                 // clicking just shouldn't fall through to scene picking.
@@ -4270,11 +4308,11 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (GetDecalPainterState()->IsEnabled() && event.mouseButtons[MouseButtonState::LEFT])
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter(); painter && event.mouseButtons[MouseButtonState::LEFT])
             {
                 InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
 
-                GetDecalPainterState()->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+                painter->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
 
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -4350,15 +4388,15 @@ void EditorSubsystem::InitViewport()
                 GetCsgState()->UpdateHandleHover(event.relativePos);
             }
 
-            if (GetDecalPainterState()->IsEnabled())
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter())
             {
-                GetDecalPainterState()->UpdateHover(event.relativePos);
+                painter->UpdateHover(event.relativePos);
 
-                if (GetDecalPainterState()->IsStroking() && event.mouseButtons[MouseButtonState::LEFT])
+                if (painter->IsStroking() && event.mouseButtons[MouseButtonState::LEFT])
                 {
                     InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
 
-                    GetDecalPainterState()->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+                    painter->UpdateStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
 
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
@@ -4478,11 +4516,11 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
-            if (GetDecalPainterState()->IsEnabled())
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter())
             {
                 InputManager* inputManager = g_appContext->GetMainWindow()->GetInputManager();
 
-                GetDecalPainterState()->BeginStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
+                painter->BeginStroke(event.relativePos, /* erase */ inputManager->IsShiftDown());
 
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -4560,9 +4598,9 @@ void EditorSubsystem::InitViewport()
                 GetTerrainState()->EndStroke();
             }
 
-            if (GetDecalPainterState()->IsEnabled())
+            if (EditorSurfacePainterState* painter = GetActiveSurfacePainter())
             {
-                GetDecalPainterState()->EndStroke();
+                painter->EndStroke();
             }
 
             CameraController* controller = activeViewport->GetCamera()->GetCameraController();
@@ -5120,10 +5158,7 @@ bool EditorSubsystem::OpenWorld(Name worldName)
         m_terrainSculpting->SetEnabled(false);
     }
 
-    if (m_decalPainter.IsValid())
-    {
-        m_decalPainter->SetEnabled(false);
-    }
+    DisableSurfacePainters();
 
     ShutdownPreviewServices();
 
