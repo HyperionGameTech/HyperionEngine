@@ -141,8 +141,7 @@ void BaseStatsOverlay::Update(float delta)
 
     if (m_fpsTextElement.IsValid())
     {
-        // Display average FPS for smoother reading, with instantaneous ms/frame
-        const int avgFps = int(snapshot[StatIdFps].avg);
+        const int avgFps = MathUtil::Round<float, int>(snapshot[StatIdFps].avg);
 
         m_fpsTextElement->SetText(HYP_FORMAT(
             "{} fps, {} ms/frame (avg: {}, min: {}, max: {})  Sim: {}ms  Render: {}ms",

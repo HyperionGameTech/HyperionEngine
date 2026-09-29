@@ -13,6 +13,18 @@
       "project": "..\\Binaries\\Windows\\Release\\Hyperion.Editor.exe",
       "name": "Hyperion.Editor (Release)",
       "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Release"
+    },
+    {
+      "type": "coreclr",
+      "project": "..\\Binaries\\Windows\\Debug\\Hyperion.Editor.exe",
+      "name": "Hyperion.Editor (Debug, Managed)",
+      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Debug"
+    },
+    {
+      "type": "coreclr",
+      "project": "..\\Binaries\\Windows\\Release\\Hyperion.Editor.exe",
+      "name": "Hyperion.Editor (Release, Managed)",
+      "currentDir": "${workspaceRoot}\\..\\Binaries\\Windows\\Release"
     }
   ]
 }

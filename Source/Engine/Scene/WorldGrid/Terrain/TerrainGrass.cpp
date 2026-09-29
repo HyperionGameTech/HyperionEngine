@@ -465,7 +465,7 @@ void TerrainGroundCoverResources::Resolve()
     // clumps are tufts with gaps between them, so they're planted overlapping to close those
     static constexpr float s_spacingPerFootprint = 0.47f;
 
-    const Handle<GroundCover>& groundCover = GetGroundCover();
+    Handle<GroundCover> groundCover = GetGroundCover();
 
     if (!groundCover.IsValid())
     {
