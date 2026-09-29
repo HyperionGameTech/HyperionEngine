@@ -488,7 +488,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
             InitObject(material);
 
-            GetCurrentAssetRegistry()->PutAsset(material);
+            GetCurrentAssetRegistry()->PutAssetUnique(material);
         }
         else
         {
