@@ -100,7 +100,7 @@ struct TerrainGrassTileInput
 
     uint32 seed = 0;
 
-    /// patches this much further apart and wider, so fewer of them still cover the ground
+    /// patches this much further apart and wider (and sqrt of it taller), so fewer of them still cover the ground
     float stretch = 1.0f;
 
     Span<const TerrainCoverLayerPlan> layers;
@@ -122,7 +122,7 @@ struct TerrainGrassTileOutput
 class TerrainGroundCoverResources
 {
 public:
-    Handle<GroundCover> GetGroundCover() const;
+    const Handle<GroundCover>& GetGroundCover() const;
     void SetGroundCover(const Handle<GroundCover>& groundCover);
 
     /// resolved on first use, so it can be set before the asset registry is ready

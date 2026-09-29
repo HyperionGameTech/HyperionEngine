@@ -313,7 +313,10 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
                 const Vec3f forward = right.Cross(up);
 
                 const float scale = scaleJitter * MathUtil::Lerp(0.65f, 1.0f, coverage);
-                const Vec3f axes[3] = { right * (scale * input.stretch), up * scale, forward * (scale * input.stretch) };
+
+                // stretched patches grow some height too, or far clumps flatten into wide blobs
+                const float stretchHeight = MathUtil::Sqrt(input.stretch);
+                const Vec3f axes[3] = { right * (scale * input.stretch), up * (scale * stretchHeight), forward * (scale * input.stretch) };
 
                 Mat4f patchMatrix;
 
@@ -343,7 +346,7 @@ void GenerateTile(const TerrainGrassTileInput& input, TerrainGrassTileOutput& ou
 
 #pragma region TerrainGroundCoverResources
 
-Handle<GroundCover> TerrainGroundCoverResources::GetGroundCover() const
+const Handle<GroundCover>& TerrainGroundCoverResources::GetGroundCover() const
 {
     if (!m_groundCover.IsValid())
     {
@@ -462,7 +465,7 @@ void TerrainGroundCoverResources::Resolve()
     // clumps are tufts with gaps between them, so they're planted overlapping to close those
     static constexpr float s_spacingPerFootprint = 0.47f;
 
-    Handle<GroundCover> groundCover = GetGroundCover();
+    const Handle<GroundCover>& groundCover = GetGroundCover();
 
     if (!groundCover.IsValid())
     {

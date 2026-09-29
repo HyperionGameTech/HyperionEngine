@@ -33,6 +33,13 @@ struct Material
 
     // sway frequency, trunk flexibility, tree height, leaf flutter
     float4 tree_wind;
+
+    // color variation, ground normal blend, base occlusion, base occlusion height
+    float4 ground_cover;
+
+    float4 _pad0;
+    float4 _pad1;
+    float4 _pad2;
 };
 
 // enum for packed params

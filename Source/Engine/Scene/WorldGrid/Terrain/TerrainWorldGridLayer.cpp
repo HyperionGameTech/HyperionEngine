@@ -264,7 +264,7 @@ void TerrainWorldGridLayer::UpdateLodSelection(Span<const Vec3f> viewpoints)
         });
 }
 
-Handle<GroundCover> TerrainWorldGridLayer::GetGroundCover() const
+const Handle<GroundCover>& TerrainWorldGridLayer::GetGroundCover() const
 {
     return m_groundCoverResources.GetGroundCover();
 }

@@ -447,6 +447,12 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         m_parameters.windTreeHeight,
         m_parameters.windFlutter);
 
+    bufferData.groundCover = Vec4f(
+        MathUtil::Clamp(m_parameters.colorVariation, 0.0f, 1.0f),
+        MathUtil::Clamp(m_parameters.groundNormalBlend, 0.0f, 1.0f),
+        MathUtil::Clamp(m_parameters.baseOcclusion, 0.0f, 1.0f),
+        MathUtil::Max(m_parameters.baseOcclusionHeight, 0.0f));
+
     bufferData.textureUsage = 0;
 
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);

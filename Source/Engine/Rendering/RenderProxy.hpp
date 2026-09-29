@@ -481,6 +481,12 @@ struct MaterialShaderData
     // =====
     // sway frequency, trunk flexibility, tree height, leaf flutter
     Vec4f treeWind;
+
+    // =====
+    // color variation, ground normal blend, base occlusion, base occlusion height
+    Vec4f groundCover;
+
+    Vec4f _pad[3];
 };
 
 static_assert(sizeof(MaterialShaderData) % 64 == 0);

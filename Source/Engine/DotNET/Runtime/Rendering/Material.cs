@@ -12,7 +12,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "MaterialParameters")]
-    [StructLayout(LayoutKind.Explicit, Size = 112, Pack = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 128, Pack = 16)]
     public struct MaterialParameters
     {
         const byte FlagBit_NormalMapFlipY = 0x1;
@@ -75,6 +75,15 @@ namespace Hyperion
 
         [FieldOffset(98)]
         byte flags = 0;
+
+        [FieldOffset(100)]
+        public float colorVariation = 0.0f;
+        [FieldOffset(104)]
+        public float groundNormalBlend = 0.0f;
+        [FieldOffset(108)]
+        public float baseOcclusion = 0.0f;
+        [FieldOffset(112)]
+        public float baseOcclusionHeight = 0.0f;
 
         public MaterialParameters()
         {

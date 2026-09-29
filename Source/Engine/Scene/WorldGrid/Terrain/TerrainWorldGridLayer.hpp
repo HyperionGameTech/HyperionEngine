@@ -214,7 +214,7 @@ public:
     }
 
     HYP_METHOD(Property = "GroundCover", Editor)
-    Handle<GroundCover> GetGroundCover() const;
+    const Handle<GroundCover>& GetGroundCover() const;
 
     HYP_METHOD(Property = "GroundCover", Editor)
     void SetGroundCover(const Handle<GroundCover>& groundCover);

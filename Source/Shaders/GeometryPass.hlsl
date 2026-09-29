@@ -30,6 +30,7 @@ struct PSInput
     nointerpolation uint object_index : TEXCOORD6;
     nointerpolation uint object_mask : TEXCOORD7;
     nointerpolation uint cutout_seed : TEXCOORD8;
+    nointerpolation float3 ground_normal : TEXCOORD9;
     bool is_front_face : SV_IsFrontFace;
 };
 
@@ -289,7 +290,7 @@ PSOutput PSMain(PSInput input)
 
     output.gbuffer_albedo = CURRENT_MATERIAL.albedo;
 
-    float ao = 1.0;
+    float ao = input.color.a;
     float metalness = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_METALNESS);
     float roughness = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ROUGHNESS);
     float transmission = GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_TRANSMISSION);
@@ -341,6 +342,7 @@ PSOutput PSMain(PSInput input)
         output.gbuffer_albedo *= albedo_texture;
     }
 
+    output.gbuffer_albedo.rgb = min(output.gbuffer_albedo.rgb * input.color.rgb, 1.0);
     output.gbuffer_albedo.a = max(output.gbuffer_albedo.a, 0.005);
 
     float4 normals_texture = float4(0.0, 0.0, 0.0, 0.0);
@@ -354,6 +356,14 @@ PSOutput PSMain(PSInput input)
         N = normalize(mul(normals_texture.xyz, tbn_matrix));
     }
  #endif
+
+    // after the back face flip, so both sides of a blade take the ground's shading
+    const float groundNormalBlend = CURRENT_MATERIAL.ground_cover.y;
+
+    if (groundNormalBlend > 0.0)
+    {
+        N = normalize(lerp(N, normalize(input.ground_normal), groundNormalBlend));
+    }
 
     if (HAS_TEXTURE(CURRENT_MATERIAL, MetalnessMap))
     {
