@@ -8,6 +8,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Core/Math/Vector4.hpp>
 
@@ -59,17 +60,7 @@ public:
     const GpuBufferRef& GetSpansBuffer() const;
 
 private:
-    // absolute texels, max exclusive
-    struct Rect
-    {
-        Vec2i min;
-        Vec2i max;
-
-        bool IsEmpty() const
-        {
-            return min.x >= max.x || min.y >= max.y;
-        }
-    };
+    using Rect = GlimmerTexelRect;
 
     struct RectList
     {
@@ -79,9 +70,6 @@ private:
         // false when full
         bool Add(const Rect& rect);
     };
-
-    static Rect GetWindow(const Vec2i& origin);
-    static Rect Intersect(const Rect& a, const Rect& b);
 
     /*! \brief Clears and refills the spans of the rects (inside the window), leaving the rest of the level as it is. */
     void FillLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const RectList& rects, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache);

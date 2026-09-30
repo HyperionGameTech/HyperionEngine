@@ -12,6 +12,7 @@
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CommandRecorder.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/GpuBuffer.hpp>
@@ -39,7 +40,6 @@ static StaticShaderPropertyId s_propSpanModeSplat { ShaderProperty(NAME("MODE"),
 static_assert(GlimmerSpanMaxRects == 4);
 
 static constexpr uint32 SpanGroupSize = 64;
-static constexpr uint32 MaxGroupsPerDimension = 65535;
 
 // Must match GlimmerSpanSplatConstants in Shaders/Glimmer/GlimmerSpanSplat.hlsl
 struct GlimmerSpanSplatConstants
@@ -93,25 +93,6 @@ bool GlimmerSpanCache::RectList::Add(const Rect& rect)
     return true;
 }
 
-GlimmerSpanCache::Rect GlimmerSpanCache::GetWindow(const Vec2i& origin)
-{
-    return Rect { origin, origin + Vec2i(int32(GlimmerGroundResolution), int32(GlimmerGroundResolution)) };
-}
-
-GlimmerSpanCache::Rect GlimmerSpanCache::Intersect(const Rect& a, const Rect& b)
-{
-    Rect result;
-    result.min = Vec2i(MathUtil::Max(a.min.x, b.min.x), MathUtil::Max(a.min.y, b.min.y));
-    result.max = Vec2i(MathUtil::Min(a.max.x, b.max.x), MathUtil::Min(a.max.y, b.max.y));
-
-    if (result.IsEmpty())
-    {
-        result.max = result.min;
-    }
-
-    return result;
-}
-
 void GlimmerSpanCache::FillLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const RectList& rects, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
 {
     HYP_SCOPE;
@@ -122,14 +103,12 @@ void GlimmerSpanCache::FillLevel(Frame* frame, uint32 levelIndex, const Vec2i& w
 
     const auto dispatchPass = [&](const StaticShaderPropertyId& modeProperty, uint32 numThreads)
     {
-        const uint32 numGroups = MathUtil::Max((numThreads + SpanGroupSize - 1) / SpanGroupSize, 1u);
-        const uint32 groupsX = MathUtil::Min(numGroups, MaxGroupsPerDimension);
-        const uint32 groupsY = (numGroups + groupsX - 1) / groupsX;
+        const Vec3u groups = helpers::WrapComputeGroupCount((numThreads + SpanGroupSize - 1) / SpanGroupSize);
 
         GlimmerSpanSplatConstants constants {};
         constants.window = Vec4i(windowOrigin.x, windowOrigin.y, int32(levelIndex), int32(rects.count));
         constants.params = Vec4f(texelSize, 1.0f / texelSize, GlimmerSpansMinFoliageHeight, 0.0f);
-        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groupsX, 0);
+        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groups.x, 0);
 
         for (uint32 rectIndex = 0; rectIndex < rects.count; rectIndex++)
         {
@@ -163,7 +142,7 @@ void GlimmerSpanCache::FillLevel(Frame* frame, uint32 levelIndex, const Vec2i& w
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
         cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, surfaceCache.GetGroundImageView());
 
-        cr << DispatchCompute(Vec3u { groupsX, groupsY, 1 });
+        cr << DispatchCompute(groups);
 
         cr << InsertBarrier(m_spansBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
     };
@@ -234,7 +213,7 @@ void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, co
         const GlimmerGroundLevelState& groundLevel = state.groundLevels[levelIndex];
 
         const Vec2i windowOrigin = groundLevel.windowOrigin;
-        const Rect window = GetWindow(windowOrigin);
+        const Rect window = GetGlimmerGroundWindow(windowOrigin);
 
         const bool isGroundComplete = groundLevel.validMin == windowOrigin
             && groundLevel.validMax == windowOrigin + Vec2i(int32(GlimmerGroundResolution), int32(GlimmerGroundResolution));
@@ -253,42 +232,20 @@ void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, co
 
         if (!isFullRebuild)
         {
-            // only what scrolled in: a full height strip on x, then the rest of the new rows on z
-            const Rect oldWindow = GetWindow(builtOrigin);
+            // only what scrolled in
+            Rect columns;
+            Rect rows;
+            GetGlimmerScrolledRects(GetGlimmerGroundWindow(builtOrigin), window, columns, rows);
 
-            Rect columns = window;
-            Rect rows = window;
-
-            if (windowOrigin.x > builtOrigin.x)
-            {
-                columns.min.x = oldWindow.max.x;
-            }
-            else
-            {
-                columns.max.x = oldWindow.min.x;
-            }
-
-            rows.min.x = MathUtil::Max(window.min.x, oldWindow.min.x);
-            rows.max.x = MathUtil::Min(window.max.x, oldWindow.max.x);
-
-            if (windowOrigin.y > builtOrigin.y)
-            {
-                rows.min.y = oldWindow.max.y;
-            }
-            else
-            {
-                rows.max.y = oldWindow.min.y;
-            }
-
-            rects.Add(Intersect(columns, window));
-            rects.Add(Intersect(rows, window));
+            rects.Add(columns);
+            rects.Add(rows);
 
             // what scrolled out is gone; the rest waits for its ground, or goes again now that it's there
             RectList stillWithoutGround;
 
             for (uint32 rectIndex = 0; rectIndex < filledWithoutGround.count; rectIndex++)
             {
-                const Rect rect = Intersect(filledWithoutGround.rects[rectIndex], window);
+                const Rect rect = Rect::Intersect(filledWithoutGround.rects[rectIndex], window);
 
                 if (isGroundComplete)
                 {
@@ -304,7 +261,7 @@ void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, co
 
             for (uint32 rectIndex = 0; rectIndex < m_changed[levelIndex].count; rectIndex++)
             {
-                isWholeWindow |= !rects.Add(Intersect(m_changed[levelIndex].rects[rectIndex], window));
+                isWholeWindow |= !rects.Add(Rect::Intersect(m_changed[levelIndex].rects[rectIndex], window));
             }
         }
 

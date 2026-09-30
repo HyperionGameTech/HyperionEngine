@@ -7,6 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -197,11 +198,8 @@ void GlimmerBLASCache::CreatePoolBuffers()
     const uint32 nodeCapacity = uint32((PoolBytes / 4) / sizeof(GlimmerBVHNode));
     const uint32 triangleCapacity = uint32((PoolBytes - PoolBytes / 4) / sizeof(GlimmerTriangle));
 
-    m_nodesBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, size_t(nodeCapacity) * sizeof(GlimmerBVHNode), alignof(Vec4f));
-    Check(m_nodesBuffer->Create());
-
-    m_trianglesBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, size_t(triangleCapacity) * sizeof(GlimmerTriangle), alignof(Vec4f));
-    Check(m_trianglesBuffer->Create());
+    m_nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBVHNode), nodeCapacity);
+    m_trianglesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangle), triangleCapacity);
 
 #ifdef HYP_RHI_DEBUG_NAMES
     m_nodesBuffer->SetDebugName(NAME("GlimmerBLASNodes"));

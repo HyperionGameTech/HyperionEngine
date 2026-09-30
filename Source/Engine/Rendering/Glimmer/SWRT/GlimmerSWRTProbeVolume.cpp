@@ -12,7 +12,7 @@
 #include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
-#include <Rendering/Glimmer/GlimmerMath.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
@@ -106,16 +106,6 @@ struct GlimmerProbeBlendConstants
     Vec4u cascadeDispatches[GlimmerProbeCascades]; // x = GlimmerProbeDispatchMode, y = slice period | slice << 16, z = probes
 };
 
-static float GetCascadeSpacing(uint32 cascadeIndex)
-{
-    return 2.0f * float(1u << cascadeIndex);
-}
-
-static uint32 GetCascadeUpdatePeriod(uint32 cascadeIndex)
-{
-    return 2u << MathUtil::Max(cascadeIndex, 1u);
-}
-
 // Must match GLIMMER_PROBE_DISPATCH_* in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
 enum GlimmerProbeDispatchMode : uint32
 {
@@ -123,25 +113,6 @@ enum GlimmerProbeDispatchMode : uint32
     GPDM_SCROLLED = 1,
     GPDM_SLICE = 2
 };
-
-static Handle<Texture> CreateProbeTexture(TextureType type, TextureFormat format, const Vec3u& extent, uint16 numLayers, Name name)
-{
-    Handle<Texture> texture = MakeHandle<Texture>(TextureDesc {
-        type,
-        format,
-        extent,
-        TextureFilterMode::Nearest,
-        TextureFilterMode::Nearest,
-        TextureWrapMode::Repeat,
-        numLayers,
-        ImageUsage::Storage | ImageUsage::Sampled });
-
-    texture->SetIsTransient(true);
-    texture->SetName(name);
-    Check(texture->Create());
-
-    return texture;
-}
 
 GlimmerSWRTProbeVolume::GlimmerSWRTProbeVolume()
     : m_hasGridOrigins(false),
@@ -163,10 +134,10 @@ void GlimmerSWRTProbeVolume::CreateResources()
     const Vec3u probeExtent = Vec3u(GlimmerProbeGrid, GlimmerProbeCascades * GlimmerProbeLayers, GlimmerProbeGrid);
 
     // a slab per colour channel (GlimmerProbeSHTexel)
-    m_shTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, Vec3u(probeExtent.x, probeExtent.y, probeExtent.z * 3), 1, NAME("GlimmerProbeSH"));
-    m_stateTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RG32, probeExtent, 1, NAME("GlimmerProbeState"));
-    m_trendTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::R16F, probeExtent, 1, NAME("GlimmerProbeTrend"));
-    m_baseTexture = CreateProbeTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerSWRTProbeBase"));
+    m_shTexture = CreateGlimmerStorageTexture(TextureType::Texture3D, TextureFormat::RGBA16F, Vec3u(probeExtent.x, probeExtent.y, probeExtent.z * 3), 1, NAME("GlimmerProbeSH"));
+    m_stateTexture = CreateGlimmerStorageTexture(TextureType::Texture3D, TextureFormat::RG32, probeExtent, 1, NAME("GlimmerProbeState"));
+    m_trendTexture = CreateGlimmerStorageTexture(TextureType::Texture3D, TextureFormat::R16F, probeExtent, 1, NAME("GlimmerProbeTrend"));
+    m_baseTexture = CreateGlimmerStorageTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerSWRTProbeBase"));
 
     m_raysBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbeCascades) * GlimmerProbesPerCascade * GlimmerProbeRays * sizeof(Vec4f), alignof(Vec4f));
     Check(m_raysBuffer->Create());
@@ -211,7 +182,7 @@ void GlimmerSWRTProbeVolume::ScrollCascades(const Vec3f& viewerPosition, uint32&
 
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerProbeCascades; cascadeIndex++)
     {
-        const float spacing = GetCascadeSpacing(cascadeIndex);
+        const float spacing = GetGlimmerProbeCascadeSpacing(cascadeIndex);
         const int32 half = int32(GlimmerProbeGrid / 2);
 
         const Vec2i origin = Vec2i(
@@ -271,10 +242,10 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         GlimmerProbeCascadeShaderData& cascade = m_shaderData.cascades[cascadeIndex];
 
         // hysteresis is per update, so cascades updated less often blend faster and every cascade settles in about the same time
-        const float period = float(GetCascadeUpdatePeriod(cascadeIndex));
+        const float period = float(GetGlimmerProbeCascadeUpdatePeriod(cascadeIndex));
 
         cascade.gridOrigin = Vec4i(m_gridOrigins[cascadeIndex].x, m_gridOrigins[cascadeIndex].y, cascade.gridOrigin.z, 0);
-        cascade.params = Vec4f(GetCascadeSpacing(cascadeIndex), float(1u << cascadeIndex), MathUtil::Pow(ProbesHysteresisSteady, period), MathUtil::Pow(ProbesHysteresisChanging, period));
+        cascade.params = Vec4f(GetGlimmerProbeCascadeSpacing(cascadeIndex), float(1u << cascadeIndex), MathUtil::Pow(ProbesHysteresisSteady, period), MathUtil::Pow(ProbesHysteresisChanging, period));
     }
 
     m_shaderData.info = Vec4u(GlimmerProbeCascades, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
@@ -348,7 +319,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerProbeCascades; cascadeIndex++)
     {
         // every frame updates one slice of each cascade's probes, so light changes creep in rather than stepping
-        const uint32 period = GetCascadeUpdatePeriod(cascadeIndex);
+        const uint32 period = GetGlimmerProbeCascadeUpdatePeriod(cascadeIndex);
         const uint32 slice = m_frameIndex % period;
 
         const bool hasScrolled = (scrolledMask & (1u << cascadeIndex)) != 0;

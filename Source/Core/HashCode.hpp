@@ -108,6 +108,24 @@ inline constexpr uint64 DoHashBytes(const ubyte* _begin, const ubyte* _end)
 
     return hash;
 }
+
+/*! \brief FNV-1a over words rather than bytes, for hashing large POD arrays quickly.
+ *  Any bytes past the last whole word are ignored.
+ *  Chain calls by passing the previous result as `seed`. */
+inline uint64 DoHashWords(const void* data, size_t byteSize, uint64 seed = 0)
+{
+    const uint64* words = static_cast<const uint64*>(data);
+
+    uint64 hash = seed ^ (OffsetBasis + byteSize);
+
+    for (size_t wordIndex = 0; wordIndex < byteSize / sizeof(uint64); wordIndex++)
+    {
+        hash ^= words[wordIndex];
+        hash *= Prime;
+    }
+
+    return hash;
+}
 } // namespace FNV1
 
 HYP_STRUCT()

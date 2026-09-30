@@ -19,13 +19,6 @@ namespace Hyperion {
 static constexpr uint32 NumSplitBins = 16;
 static constexpr uint32 MaxSahSplitDepth = 32;
 
-static inline float GetSurfaceArea(const BoundingBox& bounds)
-{
-    const Vec3f extent = Vec3f::Max(bounds.max - bounds.min, Vec3f::Zero());
-
-    return 2.0f * (extent.x * extent.y + extent.y * extent.z + extent.z * extent.x);
-}
-
 static HYP_FORCE_INLINE uint32 GetSplitBinIndex(float centroid, float binMin, float binScale)
 {
     return MathUtil::Min(uint32((centroid - binMin) * binScale), NumSplitBins - 1);
@@ -145,7 +138,7 @@ private:
 
         if (depth < MaxSahSplitDepth)
         {
-            const float parentArea = MathUtil::Max(GetSurfaceArea(bounds), 1e-20f);
+            const float parentArea = MathUtil::Max(bounds.GetSurfaceArea(), 1e-20f);
 
             uint32 bestAxis = ~0u;
             uint32 bestBin = 0;
@@ -188,7 +181,7 @@ private:
                     rightBounds = rightBounds.Union(m_bins[binIndex].bounds);
                     rightCount += m_bins[binIndex].count;
 
-                    rightAreas[binIndex - 1] = GetSurfaceArea(rightBounds);
+                    rightAreas[binIndex - 1] = rightBounds.GetSurfaceArea();
                     rightCounts[binIndex - 1] = rightCount;
                 }
 
@@ -206,7 +199,7 @@ private:
                     }
 
                     const float cost = m_params.traversalCost
-                        + (GetSurfaceArea(leftBounds) * float(leftCount) + rightAreas[splitIndex] * float(rightCounts[splitIndex])) / parentArea;
+                        + (leftBounds.GetSurfaceArea() * float(leftCount) + rightAreas[splitIndex] * float(rightCounts[splitIndex])) / parentArea;
 
                     if (cost < bestCost)
                     {

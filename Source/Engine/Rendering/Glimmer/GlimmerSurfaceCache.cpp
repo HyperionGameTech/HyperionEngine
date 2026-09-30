@@ -7,8 +7,10 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CommandRecorder.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/Buffers.hpp>
@@ -31,7 +33,6 @@
 namespace Hyperion {
 
 static constexpr uint32 GroundUploadGroupSize = 64;
-static constexpr uint32 MaxGroupsPerDimension = 65535;
 
 static constexpr uint32 GroundAlbedoGroupSize = 8;
 
@@ -84,36 +85,10 @@ GlimmerSurfaceCache::~GlimmerSurfaceCache()
 
 void GlimmerSurfaceCache::CreateTextures()
 {
-    m_ground = MakeHandle<Texture>(TextureDesc {
-        TextureType::Texture2DArray,
-        TextureFormat::R32F,
-        Vec3u(GlimmerGroundResolution, GlimmerGroundResolution, 1),
-        TextureFilterMode::Nearest,
-        TextureFilterMode::Nearest,
-        TextureWrapMode::Repeat,
-        uint16(GlimmerGroundLevels),
-        ImageUsage::Storage | ImageUsage::Sampled });
+    m_ground = CreateGlimmerStorageTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerGroundResolution, GlimmerGroundResolution, 1), uint16(GlimmerGroundLevels), NAME("GlimmerGround"));
+    m_groundAlbedo = CreateGlimmerStorageTexture(TextureType::Texture2DArray, TextureFormat::RGBA8, Vec3u(GlimmerGroundResolution, GlimmerGroundResolution, 1), uint16(GlimmerGroundLevels), NAME("GlimmerGroundAlbedo"));
 
-    m_ground->SetIsTransient(true);
-    m_ground->SetName(NAME("GlimmerGround"));
-    Check(m_ground->Create());
-
-    m_groundAlbedo = MakeHandle<Texture>(TextureDesc {
-        TextureType::Texture2DArray,
-        TextureFormat::RGBA8,
-        Vec3u(GlimmerGroundResolution, GlimmerGroundResolution, 1),
-        TextureFilterMode::Nearest,
-        TextureFilterMode::Nearest,
-        TextureWrapMode::Repeat,
-        uint16(GlimmerGroundLevels),
-        ImageUsage::Storage | ImageUsage::Sampled });
-
-    m_groundAlbedo->SetIsTransient(true);
-    m_groundAlbedo->SetName(NAME("GlimmerGroundAlbedo"));
-    Check(m_groundAlbedo->Create());
-
-    m_terrainPatchesBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, GlimmerMaxTerrainPatches * sizeof(GlimmerTerrainPatchShaderData), alignof(Vec4f));
-    Check(m_terrainPatchesBuffer->Create());
+    m_terrainPatchesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTerrainPatchShaderData), GlimmerMaxTerrainPatches);
 
     m_groundCoverAlbedoBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, GlimmerGroundCoverLayers * sizeof(Vec4f), alignof(Vec4f));
     Check(m_groundCoverAlbedoBuffer->Create());
@@ -364,13 +339,11 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
         for (const GlimmerGroundUpload& upload : groundUploads)
         {
             const uint32 numTexels = upload.extent.x * upload.extent.y;
-            const uint32 numGroups = MathUtil::Max((numTexels + GroundUploadGroupSize - 1) / GroundUploadGroupSize, 1u);
-            const uint32 groupsX = MathUtil::Min(numGroups, MaxGroupsPerDimension);
-            const uint32 groupsY = (numGroups + groupsX - 1) / groupsX;
+            const Vec3u groups = helpers::WrapComputeGroupCount((numTexels + GroundUploadGroupSize - 1) / GroundUploadGroupSize);
 
             GlimmerGroundUploadConstants constants {};
             constants.texelMinExtent = Vec4i(upload.texelMin.x, upload.texelMin.y, int32(upload.extent.x), int32(upload.extent.y));
-            constants.info = Vec4u(upload.level, uint32(readOffset), groupsX, 0);
+            constants.info = Vec4u(upload.level, uint32(readOffset), groups.x, 0);
 
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
@@ -383,7 +356,7 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
             cr << SetShaderUniform(1, "HeightsBuffer"_sh, heightsBuffer.Get(), ShaderDataOffset(0, sizeof(float)));
             cr << SetShaderUniform(2, "OutGround"_sh, RI.textureViewCache->GetOrCreate(m_ground));
 
-            cr << DispatchCompute(Vec3u { groupsX, groupsY, 1 });
+            cr << DispatchCompute(groups);
 
             readOffset += upload.heights.Size();
         }

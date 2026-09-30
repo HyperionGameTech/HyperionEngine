@@ -159,6 +159,20 @@ struct MeshDesc
 
         return numLods;
     }
+
+    /*! \brief Coarsest LOD whose geometric error, scaled to world space by `worldScale`, stays within `maxWorldError`. */
+    HYP_FORCE_INLINE uint8 GetCoarsestLodWithinError(float worldScale, float maxWorldError) const
+    {
+        for (uint8 lodIndex = GetNumLods(); lodIndex > 1; lodIndex--)
+        {
+            if (lods[lodIndex - 1].geometricError * worldScale <= maxWorldError)
+            {
+                return lodIndex - 1;
+            }
+        }
+
+        return 0;
+    }
 };
 
 HYP_STRUCT()

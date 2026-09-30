@@ -8,8 +8,10 @@
 
 #include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CommandRecorder.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/GpuBuffer.hpp>
@@ -31,7 +33,6 @@ static StaticShaderPropertyId s_propMaskModeReduce { ShaderProperty(NAME("MODE")
 
 static constexpr uint32 MaskGroupSize = 64;
 static constexpr uint32 MaxMaskResolution = 2048;
-static constexpr uint32 MaxGroupsPerDimension = 65535;
 
 // Must match GlimmerFootprintMaskConstants in Shaders/Glimmer/SWRT/GlimmerSWRTFootprintMask.hlsl
 struct GlimmerFootprintMaskConstants
@@ -39,31 +40,6 @@ struct GlimmerFootprintMaskConstants
     GlimmerFootprintMaskShaderData mask;
     Vec4u passInfo;
 };
-
-static uint32 CalculateNumLevels(uint32 resolution)
-{
-    uint32 numLevels = 1;
-
-    while ((resolution >> (numLevels - 1)) > 1)
-    {
-        numLevels++;
-    }
-
-    return numLevels;
-}
-
-static uint32 CalculateTotalCells(uint32 resolution, uint32 numLevels)
-{
-    uint32 totalCells = 0;
-
-    for (uint32 level = 0; level < numLevels; level++)
-    {
-        const uint32 levelResolution = MathUtil::Max(resolution >> level, 1u);
-        totalCells += levelResolution * levelResolution;
-    }
-
-    return totalCells;
-}
 
 GlimmerFootprintMask::GlimmerFootprintMask()
     : m_bufferResolution(0),
@@ -104,7 +80,7 @@ void GlimmerFootprintMask::EnsureBuffer(uint32 resolution, uint32 numLevels)
 
     EnqueueDeletion(std::move(m_maskBuffer));
 
-    const uint32 totalCells = CalculateTotalCells(resolution, numLevels);
+    const uint32 totalCells = CalculateGlimmerMipChainCells(resolution, numLevels);
 
     m_maskBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(totalCells) * 2 * sizeof(uint32), alignof(uint32));
     Check(m_maskBuffer->Create());
@@ -127,8 +103,8 @@ void GlimmerFootprintMask::Rebuild(Frame* frame, const GlimmerTLAS& tlas, const 
 
     const float cellSize = GlimmerFootprintMaskCellSize;
     const uint32 resolution = MathUtil::Clamp(uint32(MathUtil::Ceil(2.0f * regionRadius / cellSize)), 1u, MaxMaskResolution);
-    const uint32 numLevels = CalculateNumLevels(resolution);
-    const uint32 totalCells = CalculateTotalCells(resolution, numLevels);
+    const uint32 numLevels = uint32(MathUtil::FastLog2(resolution)) + 1;
+    const uint32 totalCells = CalculateGlimmerMipChainCells(resolution, numLevels);
 
     EnsureBuffer(resolution, numLevels);
 
@@ -144,15 +120,11 @@ void GlimmerFootprintMask::Rebuild(Frame* frame, const GlimmerTLAS& tlas, const 
 
     CommandRecorder& cr = frame->cr;
 
-    // group counts are limited to 65535 per dimension, so large dispatches wrap onto y
     const auto dispatchPass = [&](const StaticShaderPropertyId& modeProperty, Vec4u passInfo, uint32 numGroups)
     {
-        numGroups = MathUtil::Max(numGroups, 1u);
+        const Vec3u groups = helpers::WrapComputeGroupCount(numGroups);
 
-        const uint32 groupsX = MathUtil::Min(numGroups, MaxGroupsPerDimension);
-        const uint32 groupsY = (numGroups + groupsX - 1) / groupsX;
-
-        passInfo.w = groupsX;
+        passInfo.w = groups.x;
 
         GlimmerFootprintMaskConstants constants {};
         constants.mask = m_shaderData;
@@ -174,7 +146,7 @@ void GlimmerFootprintMask::Rebuild(Frame* frame, const GlimmerTLAS& tlas, const 
         cr << SetShaderUniform(1, "FootprintMaskBuffer"_sh, m_maskBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(2, "GlimmerInstanceBoundsBuffer"_sh, tlas.GetInstanceBoundsBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerInstanceBoundsShaderData)));
 
-        cr << DispatchCompute(Vec3u { groupsX, groupsY, 1 });
+        cr << DispatchCompute(groups);
 
         cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
     };

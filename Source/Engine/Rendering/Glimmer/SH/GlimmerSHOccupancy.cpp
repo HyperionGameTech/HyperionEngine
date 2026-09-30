@@ -9,8 +9,10 @@
 #include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/RenderHelpers.hpp>
 #include <Rendering/CommandRecorder.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/GpuBuffer.hpp>
@@ -37,7 +39,6 @@ static StaticShaderPropertyId s_propOccupancyModeClear { ShaderProperty(NAME("MO
 static StaticShaderPropertyId s_propOccupancyModeSplat { ShaderProperty(NAME("MODE"), NAME("SPLAT")) };
 
 static constexpr uint32 OccupancyGroupSize = 64;
-static constexpr uint32 MaxGroupsPerDimension = 65535;
 
 // windows move in steps of this many voxels, so a walking viewer only rebuilds a cascade now and then
 static constexpr int32 WindowSnapVoxels = 8;
@@ -50,22 +51,12 @@ struct GlimmerSHOccupancySplatConstants
     Vec4u counts; // x = span instances, y = span triangles, z = groups along x
 };
 
-static float GetOccupancySpacing(uint32 cascadeIndex)
-{
-    return 0.5f * GlimmerSHSpacing * float(1u << cascadeIndex);
-}
-
-static int32 FloorToMultiple(int32 value, int32 multiple)
-{
-    return int32(MathUtil::Floor(float(value) / float(multiple))) * multiple;
-}
-
 GlimmerSHOccupancy::GlimmerSHOccupancy()
     : m_shaderData {}
 {
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
     {
-        const float spacing = GetOccupancySpacing(cascadeIndex);
+        const float spacing = GetGlimmerSHOccupancySpacing(cascadeIndex);
 
         m_shaderData.cascades[cascadeIndex].params = Vec4f(spacing, 1.0f / spacing, 0.0f, 0.0f);
         m_builtGenerations[cascadeIndex] = ~0u;
@@ -79,19 +70,13 @@ GlimmerSHOccupancy::~GlimmerSHOccupancy()
 
 void GlimmerSHOccupancy::CreateResources()
 {
-    m_texture = MakeHandle<Texture>(TextureDesc {
+    m_texture = CreateGlimmerStorageTexture(
         TextureType::Texture3D,
         TextureFormat::RGBA8,
         Vec3u(GlimmerSHOccupancyGridXZ, GlimmerSHOccupancyGridY * GlimmerSHCascades, GlimmerSHOccupancyGridXZ),
-        TextureFilterMode::Nearest,
-        TextureFilterMode::Nearest,
-        TextureWrapMode::ClampToEdge,
         1,
-        ImageUsage::Storage | ImageUsage::Sampled });
-
-    m_texture->SetIsTransient(true);
-    m_texture->SetName(NAME("GlimmerSHOccupancy"));
-    Check(m_texture->Create());
+        NAME("GlimmerSHOccupancy"),
+        TextureWrapMode::ClampToEdge);
 }
 
 const GpuImageViewRef& GlimmerSHOccupancy::GetImageView() const
@@ -105,18 +90,16 @@ void GlimmerSHOccupancy::RebuildCascade(Frame* frame, uint32 cascadeIndex, const
 
     CommandRecorder& cr = frame->cr;
 
-    const float spacing = GetOccupancySpacing(cascadeIndex);
+    const float spacing = GetGlimmerSHOccupancySpacing(cascadeIndex);
 
     const auto dispatchPass = [&](const StaticShaderPropertyId& modeProperty, uint32 numThreads)
     {
-        const uint32 numGroups = MathUtil::Max((numThreads + OccupancyGroupSize - 1) / OccupancyGroupSize, 1u);
-        const uint32 groupsX = MathUtil::Min(numGroups, MaxGroupsPerDimension);
-        const uint32 groupsY = (numGroups + groupsX - 1) / groupsX;
+        const Vec3u groups = helpers::WrapComputeGroupCount((numThreads + OccupancyGroupSize - 1) / OccupancyGroupSize);
 
         GlimmerSHOccupancySplatConstants constants {};
         constants.origin = Vec4i(origin.x, origin.y, origin.z, int32(cascadeIndex));
         constants.params = Vec4f(spacing, 1.0f / spacing, 0.0f, 0.0f);
-        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groupsX, 0);
+        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groups.x, 0);
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
@@ -140,7 +123,7 @@ void GlimmerSHOccupancy::RebuildCascade(Frame* frame, uint32 cascadeIndex, const
         cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
 
-        cr << DispatchCompute(Vec3u { groupsX, groupsY, 1 });
+        cr << DispatchCompute(groups);
     };
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHOccupancy);
@@ -182,12 +165,12 @@ void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const
     // finest first, one cascade a frame: what's nearest the camera settles first
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
     {
-        const float spacing = GetOccupancySpacing(cascadeIndex);
+        const float spacing = GetGlimmerSHOccupancySpacing(cascadeIndex);
 
         const Vec3i origin = Vec3i(
-            FloorToMultiple(int32(MathUtil::Floor(viewerPosition.x / spacing)) - int32(GlimmerSHOccupancyGridXZ / 2), WindowSnapVoxels),
-            FloorToMultiple(int32(MathUtil::Floor(viewerPosition.y / spacing)) - int32(GlimmerSHOccupancyGridY / 2), WindowSnapVoxels),
-            FloorToMultiple(int32(MathUtil::Floor(viewerPosition.z / spacing)) - int32(GlimmerSHOccupancyGridXZ / 2), WindowSnapVoxels));
+            MathUtil::FloorToMultiple(int32(MathUtil::Floor(viewerPosition.x / spacing)) - int32(GlimmerSHOccupancyGridXZ / 2), WindowSnapVoxels),
+            MathUtil::FloorToMultiple(int32(MathUtil::Floor(viewerPosition.y / spacing)) - int32(GlimmerSHOccupancyGridY / 2), WindowSnapVoxels),
+            MathUtil::FloorToMultiple(int32(MathUtil::Floor(viewerPosition.z / spacing)) - int32(GlimmerSHOccupancyGridXZ / 2), WindowSnapVoxels));
 
         if (m_builtGenerations[cascadeIndex] == tlas.GetGeneration() && m_builtOrigins[cascadeIndex] == origin)
         {

@@ -14,6 +14,7 @@
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderSetup.hpp>
@@ -59,68 +60,6 @@ static EngineStatCounter<uint32> s_statGlimmerInstances("Rendering/Glimmer/Insta
 static EngineStatCounter<uint32> s_statGlimmerSpanInstances("Rendering/Glimmer/SpanInstances", false);
 static EngineStatCounter<uint32> s_statGlimmerResidentBLASes("Rendering/Glimmer/ResidentBLASes", false);
 static EngineStatCounter<uint32> s_statGlimmerBuildingBLASes("Rendering/Glimmer/BuildingBLASes", false);
-
-// Terrain patches of a cell share its material and transform, so they merge into one entry covering all of them
-static void CollectTerrainPatches(RenderProxyList& rpl, Array<GlimmerTerrainPatchShaderData>& outPatches)
-{
-    for (Entity* entity : rpl.GetMeshEntities())
-    {
-        RenderProxyMesh* proxy = rpl.GetMeshEntities().GetProxy(entity->Id());
-
-        if (!proxy || !proxy->mesh || !proxy->material || proxy->numInstances != 0)
-        {
-            continue;
-        }
-
-        if (proxy->attributes.GetMaterialAttributes().shaderName != "Terrain"_sh)
-        {
-            continue;
-        }
-
-        const uint32 materialIndex = Resources::GetBinding(proxy->material);
-
-        if (materialIndex == ~0u)
-        {
-            continue;
-        }
-
-        const Mat4f& objectToWorld = proxy->bufferData.modelMatrix;
-        const Mat4f worldToObject = objectToWorld.Inverse();
-        const BoundingBox worldBounds = objectToWorld * proxy->meshAabb;
-
-        if (!worldBounds.IsValid() || !worldBounds.IsFinite())
-        {
-            continue;
-        }
-
-        GlimmerTerrainPatchShaderData patch {};
-        Memory::Copy(&patch.worldToObject0, &worldToObject.values[0], sizeof(Vec4f));
-        Memory::Copy(&patch.worldToObject2, &worldToObject.values[8], sizeof(Vec4f));
-        patch.boundsXZ = Vec4f(worldBounds.min.x, worldBounds.min.z, worldBounds.max.x, worldBounds.max.z);
-        patch.data = Vec4u(materialIndex, 0, 0, 0);
-
-        GlimmerTerrainPatchShaderData* existing = outPatches.FindIf([&patch](const GlimmerTerrainPatchShaderData& other)
-            {
-                return other.data.x == patch.data.x && other.worldToObject0 == patch.worldToObject0 && other.worldToObject2 == patch.worldToObject2;
-            });
-
-        if (existing != outPatches.End())
-        {
-            existing->boundsXZ = Vec4f(
-                MathUtil::Min(existing->boundsXZ.x, patch.boundsXZ.x),
-                MathUtil::Min(existing->boundsXZ.y, patch.boundsXZ.y),
-                MathUtil::Max(existing->boundsXZ.z, patch.boundsXZ.z),
-                MathUtil::Max(existing->boundsXZ.w, patch.boundsXZ.w));
-
-            continue;
-        }
-
-        if (outPatches.Size() < GlimmerMaxTerrainPatches)
-        {
-            outPatches.PushBack(patch);
-        }
-    }
-}
 
 #pragma region GlimmerScenePassData
 
@@ -288,7 +227,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
         // the scene view only reaches the scene region; the cameras see the terrain out to the horizon
         Array<GlimmerTerrainPatchShaderData> terrainPatches;
-        CollectTerrainPatches(rpl, terrainPatches);
+        CollectGlimmerTerrainPatches(rpl, terrainPatches);
 
         for (View* otherView : renderSetup.world->GetViews())
         {
@@ -300,7 +239,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
             RenderProxyList& cameraRpl = GetConsumerProxyList(otherView);
             cameraRpl.BeginRead();
 
-            CollectTerrainPatches(cameraRpl, terrainPatches);
+            CollectGlimmerTerrainPatches(cameraRpl, terrainPatches);
 
             cameraRpl.EndRead();
         }

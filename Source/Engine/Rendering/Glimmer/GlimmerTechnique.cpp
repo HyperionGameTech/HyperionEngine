@@ -17,6 +17,7 @@
 #include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -64,20 +65,9 @@ struct GlimmerSWRTDebugConstants
     GlimmerSpanShaderData spans;
 };
 
-static float GetNearFieldRadius()
-{
-    return MathUtil::Max(g_cvGlimmerSWRTNearFieldRadius.Get(), 8.0f);
-}
-
-// SWRT only covers the middle of the scene region; the rest is only splatted into the heightfield
-static float GetSWRTRadius(const BoundingBox& sceneRegion)
-{
-    return MathUtil::Min(GetNearFieldRadius(), 0.5f * sceneRegion.GetExtent().x);
-}
-
 GlimmerSceneRegionParams GlimmerTechnique::GetSceneRegionParams()
 {
-    const float nearFieldRadius = GetNearFieldRadius();
+    const float nearFieldRadius = GetGlimmerNearFieldRadius();
 
     // SWRT only covers the middle of the region; the wider span region (which the SH volume's occupancy and rays see too) rides along with it
     GlimmerSceneRegionParams params;
@@ -162,7 +152,7 @@ GlimmerTechnique::~GlimmerTechnique()
 BoundingBox GlimmerTechnique::GetTracedRegion(const BoundingBox& sceneRegion) const
 {
     const Vec3f regionCenter = sceneRegion.GetCenter();
-    const float swrtRadius = GetSWRTRadius(sceneRegion);
+    const float swrtRadius = GetGlimmerSWRTRadius(sceneRegion);
 
     BoundingBox swrtRegion = sceneRegion;
     swrtRegion.min.x = regionCenter.x - swrtRadius;
@@ -184,7 +174,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
     {
         const Vec3f regionCenter = context.region.GetCenter();
 
-        m_footprintMask->Rebuild(context.frame, tlas, Vec2f(regionCenter.x, regionCenter.z), GetSWRTRadius(context.region));
+        m_footprintMask->Rebuild(context.frame, tlas, Vec2f(regionCenter.x, regionCenter.z), GetGlimmerSWRTRadius(context.region));
 
         m_maskGeneration = tlas.GetGeneration();
     }

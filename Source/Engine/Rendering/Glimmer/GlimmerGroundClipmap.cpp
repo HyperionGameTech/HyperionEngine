@@ -12,7 +12,6 @@
 #include <Scene/WorldGrid/WorldGrid.hpp>
 #include <Scene/WorldGrid/WorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
-#include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -29,34 +28,10 @@ static constexpr int32 RefreshRows = 8;
 // terrain height samples taken per frame
 static constexpr int32 SamplesPerFrame = 65536;
 
-static int32 FloorDiv(float value, float divisor)
-{
-    return int32(MathUtil::Floor(value / divisor));
-}
-
-GlimmerGroundClipmap::Rect GlimmerGroundClipmap::Rect::Intersect(const Rect& a, const Rect& b)
-{
-    Rect result;
-    result.min = Vec2i(MathUtil::Max(a.min.x, b.min.x), MathUtil::Max(a.min.y, b.min.y));
-    result.max = Vec2i(MathUtil::Min(a.max.x, b.max.x), MathUtil::Min(a.max.y, b.max.y));
-
-    if (result.IsEmpty())
-    {
-        result.max = result.min;
-    }
-
-    return result;
-}
-
 GlimmerGroundClipmap::GlimmerGroundClipmap()
     : m_terrain(nullptr),
       m_generation(0)
 {
-}
-
-GlimmerGroundClipmap::Rect GlimmerGroundClipmap::GetWindow(const Vec2i& origin)
-{
-    return Rect { origin, origin + Vec2i(int32(GlimmerGroundResolution), int32(GlimmerGroundResolution)) };
 }
 
 void GlimmerGroundClipmap::MoveWindow(uint32 levelIndex, const Vec2i& desiredOrigin)
@@ -68,7 +43,7 @@ void GlimmerGroundClipmap::MoveWindow(uint32 levelIndex, const Vec2i& desiredOri
         return;
     }
 
-    const Rect newWindow = GetWindow(desiredOrigin);
+    const Rect newWindow = GetGlimmerGroundWindow(desiredOrigin);
 
     const bool isJump = !level.hasWindow
         || MathUtil::Abs(desiredOrigin.x - level.windowOrigin.x) >= int32(GlimmerGroundResolution)
@@ -82,7 +57,7 @@ void GlimmerGroundClipmap::MoveWindow(uint32 levelIndex, const Vec2i& desiredOri
     }
     else
     {
-        const Rect oldWindow = GetWindow(level.windowOrigin);
+        const Rect oldWindow = GetGlimmerGroundWindow(level.windowOrigin);
 
         level.valid = Rect::Intersect(level.valid, newWindow);
 
@@ -92,32 +67,9 @@ void GlimmerGroundClipmap::MoveWindow(uint32 levelIndex, const Vec2i& desiredOri
             pendingRect = Rect::Intersect(pendingRect, newWindow);
         }
 
-        // what scrolled in: a full height strip on x, then the rest of the new rows on z
-        Rect columns = newWindow;
-        Rect rows = newWindow;
-
-        if (desiredOrigin.x > oldWindow.min.x)
-        {
-            columns.min.x = MathUtil::Max(oldWindow.max.x, newWindow.min.x);
-        }
-        else
-        {
-            columns.max.x = MathUtil::Min(oldWindow.min.x, newWindow.max.x);
-        }
-
-        const Rect keptColumns = Rect { Vec2i(MathUtil::Max(newWindow.min.x, oldWindow.min.x), newWindow.min.y), Vec2i(MathUtil::Min(newWindow.max.x, oldWindow.max.x), newWindow.max.y) };
-
-        rows.min.x = keptColumns.min.x;
-        rows.max.x = keptColumns.max.x;
-
-        if (desiredOrigin.y > oldWindow.min.y)
-        {
-            rows.min.y = MathUtil::Max(oldWindow.max.y, newWindow.min.y);
-        }
-        else
-        {
-            rows.max.y = MathUtil::Min(oldWindow.min.y, newWindow.max.y);
-        }
+        Rect columns;
+        Rect rows;
+        GetGlimmerScrolledRects(oldWindow, newWindow, columns, rows);
 
         if (!columns.IsEmpty())
         {
@@ -224,8 +176,8 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
         const int32 half = int32(GlimmerGroundResolution / 2);
 
         const Vec2i desiredOrigin = Vec2i(
-            FloorDiv(float(FloorDiv(viewerPosition.x, texelSize) - half), float(WindowSnapTexels)) * WindowSnapTexels,
-            FloorDiv(float(FloorDiv(viewerPosition.z, texelSize) - half), float(WindowSnapTexels)) * WindowSnapTexels);
+            MathUtil::FloorToMultiple(int32(MathUtil::Floor(viewerPosition.x / texelSize)) - half, WindowSnapTexels),
+            MathUtil::FloorToMultiple(int32(MathUtil::Floor(viewerPosition.z / texelSize)) - half, WindowSnapTexels));
 
         MoveWindow(levelIndex, desiredOrigin);
     }
@@ -262,7 +214,7 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
 
         if (level.pending.Empty())
         {
-            level.valid = GetWindow(level.windowOrigin);
+            level.valid = GetGlimmerGroundWindow(level.windowOrigin);
         }
     }
 
@@ -276,7 +228,7 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
             continue;
         }
 
-        const Rect window = GetWindow(level.windowOrigin);
+        const Rect window = GetGlimmerGroundWindow(level.windowOrigin);
 
         const int32 row = window.min.y + (level.refreshRow % int32(GlimmerGroundResolution));
         const Rect strip = Rect { Vec2i(window.min.x, row), Vec2i(window.max.x, MathUtil::Min(row + RefreshRows, window.max.y)) };
@@ -287,54 +239,13 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
     }
 }
 
-static void FillGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState& outState)
-{
-    HYP_SCOPE;
-
-    const Array<TerrainCoverLayerPlan>& plans = terrain->GetGroundCoverResources().GetPlans();
-    const Array<TerrainCoverLayer>& layers = terrain->GetGroundCoverResources().GetLayers();
-
-    for (uint32 layerIndex = 0; layerIndex < uint32(MathUtil::Min(plans.Size(), layers.Size())); layerIndex++)
-    {
-        const TerrainCoverLayerPlan& plan = plans[layerIndex];
-
-        // painted layers grow from paint that only the sim side has
-        if (plan.isPainted || plan.splatLayer >= GlimmerGroundCoverLayers)
-        {
-            continue;
-        }
-
-        GlimmerGroundCoverLayerState& coverState = outState.groundCover[plan.splatLayer];
-
-        // layers over the same splat layer hide what the others leave showing
-        coverState.coverage = 1.0f - (1.0f - coverState.coverage) * (1.0f - MathUtil::Clamp(plan.coverage, 0.0f, 1.0f));
-
-        for (uint32 typeIndex = 0; typeIndex < uint32(MathUtil::Min(plan.types.Size(), layers[layerIndex].types.Size())); typeIndex++)
-        {
-            const TerrainCoverType& type = layers[layerIndex].types[typeIndex];
-
-            for (const TerrainCoverMember& member : type.members)
-            {
-                if (!member.material.IsValid() || coverState.numMaterials >= GlimmerGroundCoverMaxMaterials)
-                {
-                    continue;
-                }
-
-                coverState.materials[coverState.numMaterials] = member.material;
-                coverState.weights[coverState.numMaterials] = plan.types[typeIndex].weight / float(MathUtil::Max(type.members.Size(), size_t(1)));
-                coverState.numMaterials++;
-            }
-        }
-    }
-}
-
 void GlimmerGroundClipmap::FillState(GlimmerChannelState& outState) const
 {
     outState.groundGeneration = m_generation;
 
     if (m_terrain)
     {
-        FillGroundCover(m_terrain, outState);
+        FillGlimmerGroundCover(m_terrain, outState);
     }
 
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)

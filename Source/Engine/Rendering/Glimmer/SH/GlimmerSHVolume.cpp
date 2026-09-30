@@ -11,7 +11,7 @@
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
-#include <Rendering/Glimmer/GlimmerMath.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -56,30 +56,6 @@ struct GlimmerSHUpdateConstants
     Vec4f params;      // x = foliage extinction, y = max ray distance, z = albedo where the ground's isn't known
 };
 
-static float GetCascadeSpacing(uint32 cascadeIndex)
-{
-    return GlimmerSHSpacing * float(1u << cascadeIndex);
-}
-
-static Handle<Texture> CreateVolumeTexture(TextureFormat format, uint32 numSlabs, Name name)
-{
-    Handle<Texture> texture = MakeHandle<Texture>(TextureDesc {
-        TextureType::Texture3D,
-        format,
-        Vec3u(GlimmerSHGridXZ, GlimmerSHGridY * GlimmerSHCascades, GlimmerSHGridXZ * numSlabs),
-        TextureFilterMode::Nearest,
-        TextureFilterMode::Nearest,
-        TextureWrapMode::Repeat,
-        1,
-        ImageUsage::Storage | ImageUsage::Sampled });
-
-    texture->SetIsTransient(true);
-    texture->SetName(name);
-    Check(texture->Create());
-
-    return texture;
-}
-
 GlimmerSHVolume::Box GlimmerSHVolume::Box::Intersect(const Box& a, const Box& b)
 {
     Box result;
@@ -102,7 +78,7 @@ GlimmerSHVolume::GlimmerSHVolume()
 {
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
     {
-        const float spacing = GetCascadeSpacing(cascadeIndex);
+        const float spacing = GetGlimmerSHCascadeSpacing(cascadeIndex);
 
         m_shaderData.cascades[cascadeIndex].params = Vec4f(spacing, 1.0f / spacing, 0.0f, 0.0f);
     }
@@ -118,8 +94,8 @@ GlimmerSHVolume::~GlimmerSHVolume()
 
 void GlimmerSHVolume::CreateResources()
 {
-    m_dataTexture = CreateVolumeTexture(TextureFormat::RGBA16F, GlimmerSHDataSlabs, NAME("GlimmerSHData"));
-    m_stateTexture = CreateVolumeTexture(TextureFormat::RG32, 1, NAME("GlimmerSHState"));
+    m_dataTexture = CreateGlimmerStorageTexture(TextureType::Texture3D, TextureFormat::RGBA16F, Vec3u(GlimmerSHGridXZ, GlimmerSHGridY * GlimmerSHCascades, GlimmerSHGridXZ * GlimmerSHDataSlabs), 1, NAME("GlimmerSHData"));
+    m_stateTexture = CreateGlimmerStorageTexture(TextureType::Texture3D, TextureFormat::RG32, Vec3u(GlimmerSHGridXZ, GlimmerSHGridY * GlimmerSHCascades, GlimmerSHGridXZ), 1, NAME("GlimmerSHState"));
 }
 
 const GpuImageViewRef& GlimmerSHVolume::GetDataImageView() const
@@ -270,7 +246,7 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
 
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
     {
-        const float spacing = GetCascadeSpacing(cascadeIndex);
+        const float spacing = GetGlimmerSHCascadeSpacing(cascadeIndex);
 
         const Vec3i origin = Vec3i(
             int32(MathUtil::Floor(inputs.viewerPosition.x / spacing)) - int32(GlimmerSHGridXZ / 2),

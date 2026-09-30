@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FixedArray.hpp>
@@ -39,23 +40,7 @@ public:
     }
 
 private:
-    struct Rect
-    {
-        Vec2i min;
-        Vec2i max; // exclusive
-
-        HYP_FORCE_INLINE bool IsEmpty() const
-        {
-            return max.x <= min.x || max.y <= min.y;
-        }
-
-        HYP_FORCE_INLINE int32 Area() const
-        {
-            return IsEmpty() ? 0 : (max.x - min.x) * (max.y - min.y);
-        }
-
-        static Rect Intersect(const Rect& a, const Rect& b);
-    };
+    using Rect = GlimmerTexelRect;
 
     struct Level
     {
@@ -65,8 +50,6 @@ private:
         Array<Rect> pending;
         int32 refreshRow = 0;
     };
-
-    static Rect GetWindow(const Vec2i& origin);
 
     void MoveWindow(uint32 levelIndex, const Vec2i& desiredOrigin);
     int32 SampleRect(TerrainWorldGridLayer* terrain, uint32 levelIndex, const Rect& rect, Array<GlimmerGroundUpload>& outUploads) const;

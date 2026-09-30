@@ -9,6 +9,7 @@
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -47,43 +48,6 @@ static constexpr float SolidLodErrorMeters = 0.25f;
 static constexpr float FoliageLodErrorMeters = 1.0f;
 
 static constexpr double RebuildDebounceMs = 250.0;
-
-static float GetMaxAxisScale(const Mat4f& transform)
-{
-    float maxScaleSquared = 0.0f;
-
-    for (uint32 column = 0; column < 3; column++)
-    {
-        const Vec3f axis = Vec3f(transform.values[column], transform.values[4 + column], transform.values[8 + column]);
-        maxScaleSquared = MathUtil::Max(maxScaleSquared, axis.LengthSquared());
-    }
-
-    return MathUtil::Sqrt(maxScaleSquared);
-}
-
-static uint8 SelectBLASLod(const Mesh& mesh, float worldScale, float maxErrorMeters)
-{
-    const MeshDesc& meshDesc = mesh.GetMeshDesc();
-    const uint8 numLods = meshDesc.GetNumLods();
-
-    for (uint8 lodIndex = numLods; lodIndex > 1; lodIndex--)
-    {
-        if (meshDesc.lods[lodIndex - 1].geometricError * worldScale <= maxErrorMeters)
-        {
-            return lodIndex - 1;
-        }
-    }
-
-    return 0;
-}
-
-static GpuBufferRef CreateStructuredBuffer(size_t elementSize, size_t numElements)
-{
-    GpuBufferRef buffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, elementSize * MathUtil::Max(numElements, size_t(1)), alignof(Vec4f));
-    Check(buffer->Create());
-
-    return buffer;
-}
 
 GlimmerTLAS::GlimmerTLAS()
     : m_lastBuildStartTime(0),
@@ -159,7 +123,7 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             }
         }
 
-        const uint8 lodIndex = SelectBLASLod(*proxy.mesh, GetMaxAxisScale(objectToWorld), isFoliage ? FoliageLodErrorMeters : SolidLodErrorMeters);
+        const uint8 lodIndex = proxy.mesh->GetMeshDesc().GetCoarsestLodWithinError(objectToWorld.ExtractMaxScale(), isFoliage ? FoliageLodErrorMeters : SolidLodErrorMeters);
 
         GlimmerBLASRef blasRef;
 
@@ -291,21 +255,8 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
     }
 }
 
-// FNV-1a over 64-bit words; the instance structs are all multiples of 8 bytes
-static uint64 HashWords(const void* data, size_t byteSize, uint64 hash)
-{
-    const uint64* words = static_cast<const uint64*>(data);
-
-    hash ^= 0xcbf29ce484222325ull + byteSize;
-
-    for (size_t wordIndex = 0; wordIndex < byteSize / sizeof(uint64); wordIndex++)
-    {
-        hash ^= words[wordIndex];
-        hash *= 0x100000001b3ull;
-    }
-
-    return hash;
-}
+// the instance structs are all multiples of 8 bytes, so hashing them a word at a time covers every byte
+static_assert(sizeof(GlimmerInstanceShaderData) % sizeof(uint64) == 0 && sizeof(GlimmerSpanInstanceShaderData) % sizeof(uint64) == 0);
 
 GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
 {
@@ -316,7 +267,7 @@ GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
     BuildResult result;
 
     // mesh entity diffs come often (editor, LOD, anything else in the list), and most leave what Glimmer gathers as it was
-    result.inputHash = HashWords(input.instances.Data(), input.instances.ByteSize(), HashWords(input.spanInstances.Data(), input.spanInstances.ByteSize(), 0));
+    result.inputHash = FNV1::DoHashWords(input.instances.Data(), input.instances.ByteSize(), FNV1::DoHashWords(input.spanInstances.Data(), input.spanInstances.ByteSize(), 0));
 
     result.blasKeys = std::move(input.blasKeys);
 
@@ -345,7 +296,7 @@ GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
 
     for (size_t spanIndex = 0; spanIndex < result.spanInstances.Size(); spanIndex++)
     {
-        result.spanKeys.PushBack(SpanKey { HashWords(&result.spanInstances[spanIndex], sizeof(GlimmerSpanInstanceShaderData), 0), input.spanInstanceBounds[spanIndex] });
+        result.spanKeys.PushBack(SpanKey { FNV1::DoHashWords(&result.spanInstances[spanIndex], sizeof(GlimmerSpanInstanceShaderData), 0), input.spanInstanceBounds[spanIndex] });
     }
 
     std::sort(result.spanKeys.Begin(), result.spanKeys.End());
@@ -437,11 +388,11 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
 
     CommandRecorder& cr = frame->cr;
 
-    GpuBufferRef nodesBuffer = CreateStructuredBuffer(sizeof(GlimmerBVHNode), result.nodes.Size());
-    GpuBufferRef instancesBuffer = CreateStructuredBuffer(sizeof(GlimmerInstanceShaderData), result.instances.Size());
-    GpuBufferRef instanceBoundsBuffer = CreateStructuredBuffer(sizeof(GlimmerInstanceBoundsShaderData), result.instanceBounds.Size());
-    GpuBufferRef spanInstancesBuffer = CreateStructuredBuffer(sizeof(GlimmerSpanInstanceShaderData), result.spanInstances.Size());
-    GpuBufferRef spanChunksBuffer = CreateStructuredBuffer(sizeof(GlimmerSpanChunkShaderData), result.spanChunks.Size());
+    GpuBufferRef nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBVHNode), result.nodes.Size());
+    GpuBufferRef instancesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerInstanceShaderData), result.instances.Size());
+    GpuBufferRef instanceBoundsBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerInstanceBoundsShaderData), result.instanceBounds.Size());
+    GpuBufferRef spanInstancesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerSpanInstanceShaderData), result.spanInstances.Size());
+    GpuBufferRef spanChunksBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerSpanChunkShaderData), result.spanChunks.Size());
 
     const size_t nodesByteSize = result.nodes.ByteSize();
     const size_t instancesByteSize = result.instances.ByteSize();
