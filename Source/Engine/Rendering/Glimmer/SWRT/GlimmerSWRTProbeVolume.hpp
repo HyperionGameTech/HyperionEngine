@@ -8,7 +8,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
-#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTSpanCache.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -29,28 +29,28 @@ static constexpr uint32 GlimmerProbeLayers = 4;
 static constexpr uint32 GlimmerProbesPerCascade = GlimmerProbeGrid * GlimmerProbeGrid * GlimmerProbeLayers;
 static constexpr uint32 GlimmerProbeRays = 32;
 
-// Must match GlimmerProbeCascade in Shaders/Glimmer/GlimmerProbeTypes.hlsli
+// Must match GlimmerProbeCascade in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
 struct GlimmerProbeCascadeShaderData
 {
     Vec4i gridOrigin; // xy = absolute column of the grid's first column, z = 1 once the cascade has been traced
     Vec4f params;     // x = column spacing, y = layer scale, z = hysteresis
 };
 
-// Must match GlimmerProbeVolume in Shaders/Glimmer/GlimmerProbeTypes.hlsli
+// Must match GlimmerProbeVolume in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
 struct GlimmerProbeVolumeShaderData
 {
     GlimmerProbeCascadeShaderData cascades[GlimmerProbeCascades];
     Vec4u info;        // x = number of cascades, y = rays per probe, z = frame, w = 1 when the volume can be sampled
     Vec4f rayRotation; // quaternion applied to this frame's ray directions
-    Vec4f params;      // x = base height where there's no ground, y = intensity, z = escape radiance clamp, w = max ray distance
+    Vec4f params;      // x = base height where there's no ground, y = unused, z = escape radiance clamp, w = max ray distance
     Vec4f nearField;   // x = cascades traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 
-struct GlimmerProbeUpdateInputs
+struct GlimmerSWRTProbeUpdateInputs
 {
     Vec3f viewerPosition;
     const GlimmerSurfaceCache* surfaceCache = nullptr;
-    const GlimmerSpanCache* spanCache = nullptr;
+    const GlimmerSWRTSpanCache* spanCache = nullptr;
     const GlimmerBLASCache* blasCache = nullptr;
     const GlimmerTLAS* tlas = nullptr;
     EnvProbe* skyProbe = nullptr;
@@ -59,15 +59,15 @@ struct GlimmerProbeUpdateInputs
 /*! \brief Glimmer's terrain following probe clipmap: cascades of columns that scroll with the viewer, each column holding
  *  a few probes stacked up from the ground. Probes are traced against the SWRT scene and the heightfield and store L1 irradiance.
  *  Render thread only. */
-class GlimmerProbeVolume
+class GlimmerSWRTProbeVolume
 {
 public:
-    GlimmerProbeVolume();
-    GlimmerProbeVolume(const GlimmerProbeVolume& other) = delete;
-    GlimmerProbeVolume& operator=(const GlimmerProbeVolume& other) = delete;
-    ~GlimmerProbeVolume();
+    GlimmerSWRTProbeVolume();
+    GlimmerSWRTProbeVolume(const GlimmerSWRTProbeVolume& other) = delete;
+    GlimmerSWRTProbeVolume& operator=(const GlimmerSWRTProbeVolume& other) = delete;
+    ~GlimmerSWRTProbeVolume();
 
-    void Update(Frame* frame, const GlimmerProbeUpdateInputs& inputs);
+    void Update(Frame* frame, const GlimmerSWRTProbeUpdateInputs& inputs);
 
     HYP_FORCE_INLINE const GlimmerProbeVolumeShaderData& GetShaderData() const
     {

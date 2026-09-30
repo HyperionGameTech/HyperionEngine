@@ -6,10 +6,11 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/GlimmerProbeVolume.hpp>
-#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -50,14 +51,14 @@ static constexpr float ProbesMaxDistance = 2000.0f;
 // how many probe spacings SWRT traces a near field probe's rays before the heightfield takes over
 static constexpr float NearFieldReachSpacings = 8.0f;
 
-// Must match GlimmerProbeBaseConstants in Shaders/Glimmer/GlimmerProbeBase.hlsl
+// Must match GlimmerProbeBaseConstants in Shaders/Glimmer/SWRT/GlimmerSWRTProbeBase.hlsl
 struct GlimmerProbeBaseConstants
 {
     GlimmerProbeVolumeShaderData volume;
     GlimmerGroundShaderData ground;
 };
 
-// Must match GlimmerProbeTraceConstants in Shaders/Glimmer/GlimmerProbeTrace.hlsl
+// Must match GlimmerProbeTraceConstants in Shaders/Glimmer/SWRT/GlimmerSWRTProbeTrace.hlsl
 struct GlimmerProbeTraceConstants
 {
     GlimmerProbeVolumeShaderData volume;
@@ -67,7 +68,7 @@ struct GlimmerProbeTraceConstants
     Vec4f sky;      // x = sky probe diffuse strength, y = foliage extinction
 };
 
-// Must match GlimmerProbeBlendConstants in Shaders/Glimmer/GlimmerProbeBlend.hlsl
+// Must match GlimmerProbeBlendConstants in Shaders/Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolumeShaderData volume;
@@ -128,19 +129,19 @@ static Handle<Texture> CreateProbeTexture(TextureType type, TextureFormat format
     return texture;
 }
 
-GlimmerProbeVolume::GlimmerProbeVolume()
+GlimmerSWRTProbeVolume::GlimmerSWRTProbeVolume()
     : m_hasGridOrigins(false),
       m_frameIndex(0),
       m_shaderData {}
 {
 }
 
-GlimmerProbeVolume::~GlimmerProbeVolume()
+GlimmerSWRTProbeVolume::~GlimmerSWRTProbeVolume()
 {
     EnqueueDeletion(std::move(m_raysBuffer));
 }
 
-void GlimmerProbeVolume::CreateResources()
+void GlimmerSWRTProbeVolume::CreateResources()
 {
     const Vec3u probeExtent = Vec3u(GlimmerProbeGrid, GlimmerProbeCascades * GlimmerProbeLayers, GlimmerProbeGrid);
 
@@ -148,13 +149,13 @@ void GlimmerProbeVolume::CreateResources()
     m_shTextures[1] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH1"));
     m_shTextures[2] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH2"));
     m_stateTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RG32, probeExtent, 1, NAME("GlimmerProbeState"));
-    m_baseTexture = CreateProbeTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerProbeBase"));
+    m_baseTexture = CreateProbeTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerSWRTProbeBase"));
 
     m_raysBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbesPerCascade) * GlimmerProbeRays * sizeof(Vec4f), alignof(Vec4f));
     Check(m_raysBuffer->Create());
 }
 
-const GpuImageViewRef& GlimmerProbeVolume::GetSHImageView(uint32 channel) const
+const GpuImageViewRef& GlimmerSWRTProbeVolume::GetSHImageView(uint32 channel) const
 {
     if (!m_shTextures[channel].IsValid())
     {
@@ -164,7 +165,7 @@ const GpuImageViewRef& GlimmerProbeVolume::GetSHImageView(uint32 channel) const
     return RI.textureViewCache->GetOrCreate(m_shTextures[channel]);
 }
 
-const GpuImageViewRef& GlimmerProbeVolume::GetStateImageView() const
+const GpuImageViewRef& GlimmerSWRTProbeVolume::GetStateImageView() const
 {
     if (!m_stateTexture.IsValid())
     {
@@ -174,7 +175,7 @@ const GpuImageViewRef& GlimmerProbeVolume::GetStateImageView() const
     return RI.textureViewCache->GetOrCreate(m_stateTexture);
 }
 
-const GpuImageViewRef& GlimmerProbeVolume::GetBaseImageView() const
+const GpuImageViewRef& GlimmerSWRTProbeVolume::GetBaseImageView() const
 {
     if (!m_baseTexture.IsValid())
     {
@@ -184,7 +185,7 @@ const GpuImageViewRef& GlimmerProbeVolume::GetBaseImageView() const
     return RI.textureViewCache->GetOrCreate(m_baseTexture);
 }
 
-void GlimmerProbeVolume::ScrollCascades(const Vec3f& viewerPosition, uint32& outScrolledMask)
+void GlimmerSWRTProbeVolume::ScrollCascades(const Vec3f& viewerPosition, uint32& outScrolledMask)
 {
     outScrolledMask = 0;
 
@@ -208,7 +209,7 @@ void GlimmerProbeVolume::ScrollCascades(const Vec3f& viewerPosition, uint32& out
     m_hasGridOrigins = true;
 }
 
-void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& inputs)
+void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateInputs& inputs)
 {
     HYP_SCOPE;
 
@@ -246,11 +247,11 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
     m_shaderData.rayRotation = MakeRandomRotation(m_frameIndex);
     m_shaderData.params = Vec4f(
         inputs.viewerPosition.y - 2.0f,
-        MathUtil::Max(g_cvGlimmerIntensity.Get(), 0.0f),
+        0.0f,
         ProbesEscapeClamp,
         ProbesMaxDistance);
     m_shaderData.nearField = Vec4f(
-        float(MathUtil::Clamp(g_cvGlimmerNearFieldCascades.Get(), 0, int(GlimmerProbeCascades))),
+        float(MathUtil::Clamp(g_cvGlimmerSWRTNearFieldCascades.Get(), 0, int(GlimmerProbeCascades))),
         NearFieldReachSpacings,
         hasSWRTScene ? float(inputs.tlas->GetNumInstances()) : 0.0f,
         MathUtil::Clamp(g_cvGlimmerGroundAlbedo.Get(), 0.0f, 1.0f));
@@ -274,7 +275,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
         cr << InsertBarrier(m_baseTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerProbeBase")));
+        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeBase")));
         cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(1, "GlimmerGroundTexture"_sh, groundImageView);
         cr << SetShaderUniform(2, "OutProbeBase"_sh, RI.textureViewCache->GetOrCreate(m_baseTexture));
@@ -316,7 +317,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             constants.ground = groundShaderData;
             constants.spans = inputs.spanCache->GetShaderData();
             constants.dispatch = Vec4u(cascadeIndex, skyTextureIndex, 0, 0);
-            constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
+            constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
 
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
@@ -333,7 +334,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
             cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerProbeTrace")));
+            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeTrace")));
 
             uint32 uniformIndex = 0;
 
@@ -380,7 +381,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 
             cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerProbeBlend")));
+            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeBlend")));
 
             uint32 uniformIndex = 0;
 

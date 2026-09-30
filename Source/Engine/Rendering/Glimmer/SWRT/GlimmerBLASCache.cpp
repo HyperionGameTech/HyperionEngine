@@ -6,7 +6,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>

@@ -8,7 +8,6 @@
 
 #include <Rendering/Pass.hpp>
 #include <Rendering/RenderTypes.hpp>
-#include <Rendering/Glimmer/GlimmerProbeVolume.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/SharedPtr.hpp>
@@ -22,17 +21,14 @@ namespace Hyperion {
 class World;
 class Texture;
 class CBufferAllocator;
-class GlimmerBLASCache;
-class GlimmerTLAS;
-class GlimmerFootprintMask;
 class GlimmerSurfaceCache;
-class GlimmerSpanCache;
+class GlimmerTechnique;
 
-// Must match GlimmerApply in Shaders/Glimmer/GlimmerApply.hlsli
+// Must match GlimmerApply in Shaders/Glimmer/GlimmerApply.hlsli, less the technique's block that follows it
 struct GlimmerApplyShaderData
 {
-    GlimmerProbeVolumeShaderData volume;
-    Vec4u params; // x = debug vis
+    Vec4u params;   // x = 1 to show Glimmer's irradiance on its own, y = 1 when the technique can be sampled
+    Vec4f settings; // x = intensity
 };
 
 /*! \brief Per world Glimmer state, keyed by the world's Glimmer scene view. */
@@ -45,12 +41,8 @@ public:
     GlimmerScenePassData();
     virtual ~GlimmerScenePassData() override;
 
-    SharedPtr<GlimmerBLASCache> blasCache;
-    UniquePtr<GlimmerTLAS> tlas;
-    UniquePtr<GlimmerFootprintMask> footprintMask;
     UniquePtr<GlimmerSurfaceCache> surfaceCache;
-    UniquePtr<GlimmerSpanCache> spanCache;
-    UniquePtr<GlimmerProbeVolume> probeVolume;
+    UniquePtr<GlimmerTechnique> technique;
 
     World* world = nullptr;
     BoundingBox region;
@@ -70,8 +62,8 @@ public:
     Handle<Texture> debugTexture;
 };
 
-/*! \brief Glimmer GI: keeps each world's software ray tracing scene, heightfield and probe volume up to date,
- *  provides what lighting samples it through, and renders the debug views. */
+/*! \brief Glimmer GI: keeps each world's Glimmer scene (ground heights and albedo) and technique up to date,
+ *  provides what lighting samples it through, and renders the debug views. Which technique runs is up to GetActiveGlimmerTechniqueType(). */
 class GlimmerPass final : public PassBase
 {
 public:
@@ -82,14 +74,15 @@ public:
     virtual void Shutdown() override;
 
     /*! \brief renderSetup.view must be a world's Glimmer scene view, and renderSetup.envProbe the world's sky probe if it has one.
-     *  Updates the SWRT scene, the heightfield and the probes. Call after the sky probe has rendered for the frame. */
+     *  Updates the surface cache, then the world's technique. Call after the sky probe has rendered for the frame. */
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
-    /*! \brief Traces the SWRT debug view for a GBuffer view, if Rendering.Glimmer.DebugView is one of the SWRT views.
+    /*! \brief Renders the technique's debug view for a GBuffer view, if Rendering.Glimmer.DebugView is one of the technique's views.
      *  \return true with outImageView set to the result, to be shown in place of the view's final image. */
     bool RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView);
 
-    /*! \brief Writes the Glimmer apply constants for the world into the CBuffer being built. Zeroed (lighting skips Glimmer) when it has none. */
+    /*! \brief Writes the Glimmer apply constants for the world into the CBuffer being built, the technique's block included.
+     *  Lighting skips Glimmer when the world's technique isn't ready. */
     void WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World* world) const;
 
     /*! \brief Binds the textures lighting samples Glimmer through, or placeholders. \return the next uniform index. */
@@ -98,14 +91,17 @@ public:
     /*! \brief The world's Glimmer scene, or nullptr if it has none yet. */
     GlimmerScenePassData* GetSceneForWorld(World* world) const;
 
+    /*! \brief The technique lighting samples for the world: its scene's, or the placeholder while it has none that's ready. */
+    const GlimmerTechnique& GetApplyTechnique(World* world) const;
+
     virtual void OnFrameEnd(uint32 prevFrameIndex) override;
 
 protected:
     virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
 
 private:
-    SharedPtr<GlimmerBLASCache> m_blasCache;
-    uint32 m_lastBLASCacheUpdateFrame;
+    // stands in for the technique of worlds without a Glimmer scene, so their apply constants and bindings keep the technique's layout
+    UniquePtr<GlimmerTechnique> m_placeholderTechnique;
 
     Map<World*, GlimmerScenePassData*> m_scenes;
 };

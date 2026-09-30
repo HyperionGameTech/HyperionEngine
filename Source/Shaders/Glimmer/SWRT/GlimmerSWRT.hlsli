@@ -1,8 +1,8 @@
 #ifndef GLIMMER_SWRT_HLSLI
 #define GLIMMER_SWRT_HLSLI
 
-#include "../Include/RayTracing/BVH.hlsli"
-#include "GlimmerCommon.hlsli"
+#include "../../Include/RayTracing/BVH.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 
 // Two level software ray tracing over the Glimmer TLAS (instances) and the shared BLAS pool (mesh local triangles).
 // The includer declares, before including this file:

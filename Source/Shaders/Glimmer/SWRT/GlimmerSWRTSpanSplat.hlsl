@@ -1,16 +1,16 @@
-#include "../Include/Defines.hlsli"
-#include "../Include/Shared.hlsli"
+#include "../../Include/Defines.hlsli"
+#include "../../Include/Shared.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../Include/Material.hlsli"
+#include "../../Include/Material.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../Include/RayTracing/BVH.hlsli"
-#include "GlimmerCommon.hlsli"
+#include "../../Include/RayTracing/BVH.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 
 PERMUTE(MODE, CLEAR, SPLAT)
 
-// Must match GlimmerSpanSplatConstants in GlimmerSpanCache.cpp
+// Must match GlimmerSpanSplatConstants in GlimmerSWRTSpanCache.cpp
 struct GlimmerSpanSplatConstants
 {
     int4 window;   // xy = absolute texel of the window origin, z = level
@@ -38,10 +38,9 @@ DECLARE_SAMPLER(GlimmerSpanSplat, SamplerLinearMipmap) SamplerState glimmerMater
 
 DECLARE_SRV(GlimmerSpanSplat, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 
-#include "GlimmerMaterial.hlsli"
+#include "../GlimmerMaterial.hlsli"
 
-#define GLIMMER_HEIGHTFIELD_NO_SPANS
-#include "GlimmerHeightfield.hlsli"
+#include "../GlimmerGround.hlsli"
 
 #define GROUP_SIZE 64
 

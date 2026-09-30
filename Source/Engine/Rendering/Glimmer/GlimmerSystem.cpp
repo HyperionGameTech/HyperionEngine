@@ -9,7 +9,7 @@
 #include <Rendering/Glimmer/GlimmerSystem.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
-#include <Rendering/Glimmer/GlimmerFootprintMask.hpp>
+#include <Rendering/Glimmer/GlimmerTechnique.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/Camera/Camera.hpp>
@@ -27,9 +27,6 @@
 #include <GlimmerSystem.generated.inl>
 
 namespace Hyperion {
-
-// the region follows the viewer in steps, so the TLAS only rebuilds when it has moved this fraction of its radius
-static constexpr float RegionRecenterFraction = 0.25f;
 
 GlimmerSystem::GlimmerSystem()
     : m_isSceneViewActive(false),
@@ -130,10 +127,11 @@ void GlimmerSystem::UpdateSceneRegion(bool force)
         return;
     }
 
-    // the SWRT region moves in steps of a fraction of its own radius; the wider span region rides along with it
-    const float swrtRadius = MathUtil::Max(g_cvGlimmerNearFieldRadius.Get(), 8.0f);
-    const float radius = MathUtil::Max(swrtRadius, g_cvGlimmerSpansRadius.Get());
-    const float snap = GlimmerFootprintMaskCellSize;
+    // the region moves in steps, so whatever the technique builds from the scene only rebuilds now and then
+    const GlimmerSceneRegionParams regionParams = GetGlimmerSceneRegionParams(GetActiveGlimmerTechniqueType());
+
+    const float radius = regionParams.radius;
+    const float snap = MathUtil::Max(regionParams.snap, 0.001f);
 
     const Vec2f offsetXZ = Vec2f(viewerPosition.x - m_regionCenter.x, viewerPosition.z - m_regionCenter.z);
     const float verticalOffset = MathUtil::Abs(viewerPosition.y - m_regionCenter.y);
@@ -141,8 +139,8 @@ void GlimmerSystem::UpdateSceneRegion(bool force)
     const bool needsRecenter = force
         || !m_hasRegion
         || radius != m_regionRadius
-        || offsetXZ.Length() > swrtRadius * RegionRecenterFraction
-        || verticalOffset > SceneVerticalHalfExtent * RegionRecenterFraction;
+        || offsetXZ.Length() > regionParams.recenterDistance
+        || verticalOffset > SceneVerticalHalfExtent * 0.25f;
 
     if (!needsRecenter)
     {

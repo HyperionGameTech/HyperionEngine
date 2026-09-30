@@ -6,8 +6,8 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/GlimmerFootprintMask.hpp>
-#include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -33,7 +33,7 @@ static constexpr uint32 MaskGroupSize = 64;
 static constexpr uint32 MaxMaskResolution = 2048;
 static constexpr uint32 MaxGroupsPerDimension = 65535;
 
-// Must match GlimmerFootprintMaskConstants in Shaders/Glimmer/GlimmerFootprintMask.hlsl
+// Must match GlimmerFootprintMaskConstants in Shaders/Glimmer/SWRT/GlimmerSWRTFootprintMask.hlsl
 struct GlimmerFootprintMaskConstants
 {
     GlimmerFootprintMaskShaderData mask;
@@ -110,7 +110,7 @@ void GlimmerFootprintMask::EnsureBuffer(uint32 resolution, uint32 numLevels)
     Check(m_maskBuffer->Create());
 
 #ifdef HYP_RHI_DEBUG_NAMES
-    m_maskBuffer->SetDebugName(NAME("GlimmerFootprintMask"));
+    m_maskBuffer->SetDebugName(NAME("GlimmerSWRTFootprintMask"));
 #endif
 
     m_bufferResolution = resolution;
@@ -168,7 +168,7 @@ void GlimmerFootprintMask::Rebuild(Frame* frame, const GlimmerTLAS& tlas, const 
         ShaderPropertySet shaderProperties;
         shaderProperties.Add(modeProperty);
 
-        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerFootprintMask"), shaderProperties));
+        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTFootprintMask"), shaderProperties));
 
         cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(1, "FootprintMaskBuffer"_sh, m_maskBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));

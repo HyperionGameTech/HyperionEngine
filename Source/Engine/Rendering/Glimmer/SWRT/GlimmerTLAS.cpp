@@ -6,9 +6,9 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/GlimmerTLAS.hpp>
-#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTSpanCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>

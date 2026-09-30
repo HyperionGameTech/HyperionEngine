@@ -7,11 +7,8 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerPass.hpp>
-#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/GlimmerTLAS.hpp>
-#include <Rendering/Glimmer/GlimmerFootprintMask.hpp>
+#include <Rendering/Glimmer/GlimmerTechnique.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
-#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 
@@ -22,18 +19,12 @@
 #include <Rendering/CommandRecorder.hpp>
 #include <Rendering/CBufferAllocator.hpp>
 #include <Rendering/Framebuffer.hpp>
-#include <Rendering/GBuffer.hpp>
-#include <Rendering/GpuBuffer.hpp>
 #include <Rendering/GpuImage.hpp>
 #include <Rendering/GpuImageView.hpp>
 #include <Rendering/Texture.hpp>
 #include <Rendering/TextureViewCache.hpp>
-#include <Rendering/ShaderManager.hpp>
-#include <Rendering/PlaceholderData.hpp>
 #include <Rendering/Frame.hpp>
 #include <Rendering/Material.hpp>
-
-#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/Entity.hpp>
@@ -59,23 +50,8 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 static EngineStatGpuTimer s_statGlimmerScene("Rendering/GPU/Glimmer/Scene");
-static EngineStatGpuTimer s_statGlimmerSWRTDebug("Rendering/GPU/Glimmer/SWRTDebug");
 
-static EngineStatCounter<uint32> s_statGlimmerInstances("Rendering/Glimmer/Instances", false);
-static EngineStatCounter<uint32> s_statGlimmerResidentBLASes("Rendering/Glimmer/ResidentBLASes", false);
-static EngineStatCounter<uint32> s_statGlimmerBuildingBLASes("Rendering/Glimmer/BuildingBLASes", false);
-static EngineStatCounter<uint32> s_statGlimmerSWRTDebugRays("Rendering/Glimmer/SWRTDebugRays");
 static EngineStatCounter<uint32> s_statGlimmerTerrainPatches("Rendering/Glimmer/TerrainPatches", false);
-
-// Must match GlimmerSWRTDebugConstants in Shaders/Glimmer/GlimmerSWRTDebug.hlsl
-struct GlimmerSWRTDebugConstants
-{
-    Vec4u dimensionsModeInstances;
-    GlimmerFootprintMaskShaderData mask;
-    Vec4f params;
-    GlimmerGroundShaderData ground;
-    GlimmerSpanShaderData spans;
-};
 
 // Terrain patches of a cell share its material and transform, so they merge into one entry covering all of them
 static void CollectTerrainPatches(RenderProxyList& rpl, Array<GlimmerTerrainPatchShaderData>& outPatches)
@@ -147,10 +123,6 @@ GlimmerScenePassData::GlimmerScenePassData()
 
 GlimmerScenePassData::~GlimmerScenePassData()
 {
-    if (tlas && blasCache)
-    {
-        tlas->Release(*blasCache);
-    }
 }
 
 #pragma endregion GlimmerScenePassData
@@ -171,7 +143,6 @@ GlimmerViewPassData::~GlimmerViewPassData()
 #pragma region GlimmerPass
 
 GlimmerPass::GlimmerPass()
-    : m_lastBLASCacheUpdateFrame(~0u)
 {
 }
 
@@ -181,12 +152,13 @@ GlimmerPass::~GlimmerPass()
 
 void GlimmerPass::Initialize()
 {
-    m_blasCache = MakeShared<GlimmerBLASCache>();
+    m_placeholderTechnique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
 }
 
 void GlimmerPass::Shutdown()
 {
     m_scenes.Clear();
+    m_placeholderTechnique.Reset();
 }
 
 PassData* GlimmerPass::CreateViewPassData(View* view, PassDataExt&)
@@ -195,12 +167,8 @@ PassData* GlimmerPass::CreateViewPassData(View* view, PassDataExt&)
     {
         GlimmerScenePassData* passData = new GlimmerScenePassData();
         passData->view = MakeWeakRef(view);
-        passData->blasCache = m_blasCache;
-        passData->tlas = MakeUnique<GlimmerTLAS>();
-        passData->footprintMask = MakeUnique<GlimmerFootprintMask>();
         passData->surfaceCache = MakeUnique<GlimmerSurfaceCache>();
-        passData->spanCache = MakeUnique<GlimmerSpanCache>();
-        passData->probeVolume = MakeUnique<GlimmerProbeVolume>();
+        passData->technique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
 
         return passData;
     }
@@ -219,6 +187,18 @@ GlimmerScenePassData* GlimmerPass::GetSceneForWorld(World* world) const
     }
 
     return nullptr;
+}
+
+const GlimmerTechnique& GlimmerPass::GetApplyTechnique(World* world) const
+{
+    GlimmerScenePassData* scene = g_cvGlimmerEnabled.Get() ? GetSceneForWorld(world) : nullptr;
+
+    if (scene && scene->technique->IsReady())
+    {
+        return *scene->technique;
+    }
+
+    return *m_placeholderTechnique;
 }
 
 void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
@@ -256,14 +236,6 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerScene);
 
-    // shared by every world, so only once per frame
-    if (m_lastBLASCacheUpdateFrame != frameCounter)
-    {
-        m_lastBLASCacheUpdateFrame = frameCounter;
-
-        m_blasCache->Update(frame);
-    }
-
     // the system keeps the view's ortho box on the region; recover it from the matrices it set
     BoundingBox regionNDC;
     regionNDC.min = Vec3f(-1.0f);
@@ -278,33 +250,22 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     scene->region = region;
 
-    // SWRT only covers the middle of the collected region; the rest is only splatted into the heightfield
-    const Vec3f regionCenter = region.GetCenter();
-    const float swrtRadius = MathUtil::Min(MathUtil::Max(g_cvGlimmerNearFieldRadius.Get(), 8.0f), 0.5f * region.GetExtent().x);
+    GlimmerTechniqueUpdateContext context;
+    context.frame = frame;
+    context.world = renderSetup.world;
+    context.skyProbe = renderSetup.envProbe;
+    context.sceneProxies = &rpl;
+    context.region = region;
 
-    BoundingBox swrtRegion = region;
-    swrtRegion.min.x = regionCenter.x - swrtRadius;
-    swrtRegion.max.x = regionCenter.x + swrtRadius;
-    swrtRegion.min.z = regionCenter.z - swrtRadius;
-    swrtRegion.max.z = regionCenter.z + swrtRadius;
+    GlimmerChannelState channelState;
 
-    if (scene->tlas->Update(frame, rpl, region, swrtRegion, *m_blasCache))
+    if (SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world))
     {
-        scene->footprintMask->Rebuild(frame, *scene->tlas, Vec2f(regionCenter.x, regionCenter.z), swrtRadius);
-    }
-
-    const GlimmerBLASCacheStats blasStats = m_blasCache->GetStats();
-
-    SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world);
-
-    if (channel)
-    {
-        GlimmerChannelState channelState;
         Array<GlimmerGroundUpload> groundUploads;
 
         channel->Consume(channelState, groundUploads);
 
-        // the scene view only reaches the SWRT region; the cameras see the terrain out to the horizon
+        // the scene view only reaches the scene region; the cameras see the terrain out to the horizon
         Array<GlimmerTerrainPatchShaderData> terrainPatches;
         CollectTerrainPatches(rpl, terrainPatches);
 
@@ -326,25 +287,13 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         s_statGlimmerTerrainPatches = uint32(terrainPatches.Size());
 
         scene->surfaceCache->Update(frame, channelState, groundUploads.ToSpan(), terrainPatches.ToSpan());
-        scene->spanCache->Update(frame, channelState, *scene->tlas, *m_blasCache, *scene->surfaceCache);
 
-        if (g_cvGlimmerEnabled.Get() && channelState.hasViewer)
-        {
-            GlimmerProbeUpdateInputs inputs;
-            inputs.viewerPosition = channelState.viewerPosition;
-            inputs.surfaceCache = scene->surfaceCache.Get();
-            inputs.spanCache = scene->spanCache.Get();
-            inputs.blasCache = m_blasCache.Get();
-            inputs.tlas = scene->tlas.Get();
-            inputs.skyProbe = renderSetup.envProbe;
-
-            scene->probeVolume->Update(frame, inputs);
-        }
+        context.channelState = &channelState;
+        context.surfaceCache = scene->surfaceCache.Get();
+        context.updateLighting = g_cvGlimmerEnabled.Get() && channelState.hasViewer;
     }
 
-    s_statGlimmerInstances = scene->tlas->GetNumInstances();
-    s_statGlimmerResidentBLASes = blasStats.numResident;
-    s_statGlimmerBuildingBLASes = blasStats.numBuilding + blasStats.numPendingUpload;
+    scene->technique->Update(context);
 }
 
 bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView)
@@ -354,7 +303,7 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
 
     const int debugView = g_cvGlimmerDebugView.Get();
 
-    if (debugView <= int(GlimmerDebugView::None) || debugView >= int(GlimmerDebugView::Irradiance))
+    if (debugView < int(GlimmerDebugView::TechniqueFirst))
     {
         return false;
     }
@@ -368,7 +317,7 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
 
     GlimmerScenePassData* scene = GetSceneForWorld(renderSetup.world);
 
-    if (!scene || !scene->tlas->IsReady() || !m_blasCache->IsReady())
+    if (!scene)
     {
         return false;
     }
@@ -391,108 +340,57 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
             ImageUsage::Storage | ImageUsage::Sampled });
 
         viewData->debugTexture->SetIsTransient(true);
-        viewData->debugTexture->SetName(NAME("GlimmerSWRTDebugTexture"));
+        viewData->debugTexture->SetName(NAME("GlimmerDebugTexture"));
         Check(viewData->debugTexture->Create());
     }
 
-    ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSWRTDebug);
-
-    GlimmerSWRTDebugConstants constants {};
-    constants.dimensionsModeInstances = Vec4u(extent.x, extent.y, uint32(debugView), scene->tlas->GetNumInstances());
-    constants.mask = scene->footprintMask->GetShaderData();
-    constants.params = Vec4f(10000.0f, 0.0f, 0.0f, 0.0f);
-    constants.ground = scene->surfaceCache->GetGroundShaderData();
-    constants.spans = scene->spanCache->GetShaderData();
-
-    GpuBuffer* cbuffer = nullptr;
-    size_t cbufferOffset = 0;
-    size_t cbufferSize = 0;
-
-    RI.cbufferAllocator->Write(&constants);
-    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
-
     CommandRecorder& cr = frame->cr;
 
-    const GpuImageRef& depthImage = gbufferFramebuffer->GetAttachment(GBufferTarget::Depth)->GetGpuImage();
-    const GpuImageRef& normalsImage = gbufferFramebuffer->GetAttachment(GBufferTarget::Normals)->GetGpuImage();
-
-    cr << InsertBarrier(depthImage, ResourceState::ShaderResource, ShaderModuleType::Compute);
-    cr << InsertBarrier(normalsImage, ResourceState::ShaderResource, ShaderModuleType::Compute);
     cr << InsertBarrier(viewData->debugTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-    cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTDebug")));
+    GlimmerDebugViewContext context;
+    context.frame = frame;
+    context.view = view;
+    context.gbufferFramebuffer = gbufferFramebuffer;
+    context.surfaceCache = scene->surfaceCache.Get();
+    context.outputImageView = RI.textureViewCache->GetOrCreate(viewData->debugTexture);
+    context.extent = extent;
+    context.techniqueView = debugView - int(GlimmerDebugView::TechniqueFirst) + 1;
 
-    uint32 uniformIndex = 0;
-
-    cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-    cr << SetShaderUniform(uniformIndex++, "OutImage"_sh, RI.textureViewCache->GetOrCreate(viewData->debugTexture));
-    cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, gbufferFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
-    cr << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, gbufferFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
-    cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(view->GetCamera()));
-    cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
-    cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerTLASNodesBuffer"_sh, scene->tlas->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerInstancesBuffer"_sh, scene->tlas->GetInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerInstanceShaderData)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, m_blasCache->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, m_blasCache->GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
-    cr << SetShaderUniform(uniformIndex++, "FootprintMaskBuffer"_sh, scene->footprintMask->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, scene->surfaceCache->GetGroundImageView());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, scene->spanCache->GetSpansBuffer().IsValid() ? scene->spanCache->GetSpansBuffer().Get() : scene->footprintMask->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, scene->surfaceCache->GetGroundAlbedoImageView());
-
-    cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
+    const bool rendered = scene->technique->RenderDebugView(context);
 
     cr << InsertBarrier(viewData->debugTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Pixel);
 
-    s_statGlimmerSWRTDebugRays += extent.x * extent.y;
+    if (!rendered)
+    {
+        return false;
+    }
 
-    outImageView = RI.textureViewCache->GetOrCreate(viewData->debugTexture);
+    outImageView = context.outputImageView;
 
     return true;
 }
 
 void GlimmerPass::WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World* world) const
 {
+    const GlimmerTechnique& technique = GetApplyTechnique(world);
+
     GlimmerApplyShaderData shaderData {};
 
-    GlimmerScenePassData* scene = g_cvGlimmerEnabled.Get() ? GetSceneForWorld(world) : nullptr;
-
-    if (scene && scene->probeVolume && scene->probeVolume->IsReady())
+    if (technique.IsReady())
     {
-        shaderData.volume = scene->probeVolume->GetShaderData();
-        shaderData.params = Vec4u(g_cvGlimmerDebugView.Get() == int(GlimmerDebugView::Irradiance) ? 1u : 0u, 0, 0, 0);
+        shaderData.params = Vec4u(g_cvGlimmerDebugView.Get() == int(GlimmerDebugView::Irradiance) ? 1u : 0u, 1u, 0, 0);
+        shaderData.settings = Vec4f(MathUtil::Max(g_cvGlimmerIntensity.Get(), 0.0f), 0.0f, 0.0f, 0.0f);
     }
 
     cbufferAllocator.Write(&shaderData);
+
+    technique.WriteApplyShaderData(cbufferAllocator);
 }
 
 uint32 GlimmerPass::BindApplyResources(CommandRecorder& cr, uint32 uniformIndex, World* world) const
 {
-    GlimmerScenePassData* scene = g_cvGlimmerEnabled.Get() ? GetSceneForWorld(world) : nullptr;
-
-    const GlimmerProbeVolume* probeVolume = (scene && scene->probeVolume && scene->probeVolume->IsReady())
-        ? scene->probeVolume.Get()
-        : nullptr;
-
-    if (probeVolume)
-    {
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH0Texture"_sh, probeVolume->GetSHImageView(0));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH1Texture"_sh, probeVolume->GetSHImageView(1));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH2Texture"_sh, probeVolume->GetSHImageView(2));
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, probeVolume->GetStateImageView());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, probeVolume->GetBaseImageView());
-    }
-    else
-    {
-        // never sampled: the zeroed constants tell lighting to skip Glimmer
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH0Texture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH1Texture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH2Texture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.placeholderData->GetImageView2D1x1R8Array());
-    }
-
-    return uniformIndex;
+    return GetApplyTechnique(world).BindApplyResources(cr, uniformIndex);
 }
 
 void GlimmerPass::OnFrameEnd(uint32 prevFrameIndex)

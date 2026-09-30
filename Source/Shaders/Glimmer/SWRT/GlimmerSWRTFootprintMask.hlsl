@@ -1,6 +1,6 @@
-#include "../Include/Defines.hlsli"
+#include "../../Include/Defines.hlsli"
 
-#include "GlimmerCommon.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 
 PERMUTE(MODE, CLEAR, RASTERIZE, REDUCE)
 

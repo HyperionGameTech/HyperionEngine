@@ -1,16 +1,16 @@
-#include "../Include/Defines.hlsli"
-#include "../Include/Shared.hlsli"
-#include "../Include/Packing.hlsli"
+#include "../../Include/Defines.hlsli"
+#include "../../Include/Shared.hlsli"
+#include "../../Include/Packing.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../Include/Material.hlsli"
-#include "../Include/Scene.hlsli"
+#include "../../Include/Material.hlsli"
+#include "../../Include/Scene.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../Include/RayTracing/BVH.hlsli"
-#include "GlimmerCommon.hlsli"
+#include "../../Include/RayTracing/BVH.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 
-// Must match GlimmerSWRTDebugConstants in GlimmerPass.cpp
+// Must match GlimmerSWRTDebugConstants in GlimmerSWRTTechnique.cpp
 struct GlimmerSWRTDebugConstants
 {
     uint4 dimensionsModeInstances; // xy = output size, z = debug view, w = number of instances
@@ -59,7 +59,7 @@ DECLARE_SRV(GlimmerSWRTDebug, GlimmerSpansBuffer) StructuredBuffer<uint> glimmer
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
 
 #include "GlimmerSWRT.hlsli"
-#include "GlimmerMaterial.hlsli"
+#include "../GlimmerMaterial.hlsli"
 
 float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float extinction)
 {

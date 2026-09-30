@@ -199,11 +199,11 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GenerateMipmap" {
             CS = "GenerateMipmap.hlsl"
         }
-        ShaderDefinition "GlimmerFootprintMask" {
-            CS = "Glimmer/GlimmerFootprintMask.hlsl"
+        ShaderDefinition "GlimmerSWRTFootprintMask" {
+            CS = "Glimmer/SWRT/GlimmerSWRTFootprintMask.hlsl"
         }
         ShaderDefinition "GlimmerSWRTDebug" {
-            CS = "Glimmer/GlimmerSWRTDebug.hlsl"
+            CS = "Glimmer/SWRT/GlimmerSWRTDebug.hlsl"
         }
         ShaderDefinition "GlimmerGroundUpload" {
             CS = "Glimmer/GlimmerGroundUpload.hlsl"
@@ -211,17 +211,17 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerGroundAlbedo" {
             CS = "Glimmer/GlimmerGroundAlbedo.hlsl"
         }
-        ShaderDefinition "GlimmerProbeBase" {
-            CS = "Glimmer/GlimmerProbeBase.hlsl"
+        ShaderDefinition "GlimmerSWRTProbeBase" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeBase.hlsl"
         }
-        ShaderDefinition "GlimmerProbeTrace" {
-            CS = "Glimmer/GlimmerProbeTrace.hlsl"
+        ShaderDefinition "GlimmerSWRTProbeTrace" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeTrace.hlsl"
         }
-        ShaderDefinition "GlimmerProbeBlend" {
-            CS = "Glimmer/GlimmerProbeBlend.hlsl"
+        ShaderDefinition "GlimmerSWRTProbeBlend" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl"
         }
-        ShaderDefinition "GlimmerSpanSplat" {
-            CS = "Glimmer/GlimmerSpanSplat.hlsl"
+        ShaderDefinition "GlimmerSWRTSpanSplat" {
+            CS = "Glimmer/SWRT/GlimmerSWRTSpanSplat.hlsl"
         }
         ShaderDefinition "CloudWeatherMap" {
             CS = "Clouds/CloudWeatherMap.hlsl"

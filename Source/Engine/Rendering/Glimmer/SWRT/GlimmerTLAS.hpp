@@ -29,7 +29,7 @@ enum GlimmerInstanceFlags : uint32
     GIF_FOLIAGE = 0x8 //!< span instances only: splatted as canopy rather than solid
 };
 
-// Must match GlimmerInstance in Shaders/Glimmer/GlimmerSWRT.hlsli
+// Must match GlimmerInstance in Shaders/Glimmer/SWRT/GlimmerSWRTCommon.hlsli
 struct GlimmerInstanceShaderData
 {
     float worldToObject[12]; // first three rows, row major
@@ -41,7 +41,7 @@ struct GlimmerInstanceShaderData
 
 static_assert(sizeof(GlimmerInstanceShaderData) == 64);
 
-// Must match GlimmerInstanceBounds in Shaders/Glimmer/GlimmerSWRT.hlsli
+// Must match GlimmerInstanceBounds in Shaders/Glimmer/SWRT/GlimmerSWRTCommon.hlsli
 struct GlimmerInstanceBoundsShaderData
 {
     Vec4f min;
@@ -50,7 +50,7 @@ struct GlimmerInstanceBoundsShaderData
 
 static_assert(sizeof(GlimmerInstanceBoundsShaderData) == 32);
 
-// Must match GlimmerSpanInstance in Shaders/Glimmer/GlimmerCommon.hlsli
+// Must match GlimmerSpanInstance in Shaders/Glimmer/SWRT/GlimmerSWRTCommon.hlsli
 struct GlimmerSpanInstanceShaderData
 {
     float objectToWorld[12]; // first three rows, row major

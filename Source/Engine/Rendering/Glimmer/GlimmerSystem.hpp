@@ -20,8 +20,8 @@ class Camera;
 class View;
 class GlimmerChannel;
 
-/*! \brief Sim side of Glimmer GI. Owns the world's Glimmer scene view, which collects the static solids around the viewer
- *  for the software ray tracing scene, and keeps it centred on the viewer. */
+/*! \brief Sim side of Glimmer GI. Owns the world's Glimmer scene view, which collects the static scene around the viewer for the
+ *  active technique (sized by GetGlimmerSceneRegionParams()), and keeps it centred on the viewer. Samples the terrain into the ground clipmap. */
 HYP_CLASS(NoScriptBindings, Serialize = false)
 class ENGINE_API GlimmerSystem final : public SystemBase
 {

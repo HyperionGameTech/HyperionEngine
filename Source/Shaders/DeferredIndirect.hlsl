@@ -137,12 +137,6 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     GlimmerApply glimmer;
 };
 
-DECLARE_SRV(DeferredPass, GlimmerProbeSH0Texture) Texture3D<float4> glimmerProbeSH0;
-DECLARE_SRV(DeferredPass, GlimmerProbeSH1Texture) Texture3D<float4> glimmerProbeSH1;
-DECLARE_SRV(DeferredPass, GlimmerProbeSH2Texture) Texture3D<float4> glimmerProbeSH2;
-DECLARE_SRV(DeferredPass, GlimmerProbeStateTexture) Texture3D<uint2> glimmerProbeState;
-DECLARE_SRV(DeferredPass, GlimmerProbeBaseTexture) Texture2DArray<float> glimmerProbeBase;
-
 #define GLIMMER_APPLY_WITH_SAMPLING
 #include "./Glimmer/GlimmerApply.hlsli"
 

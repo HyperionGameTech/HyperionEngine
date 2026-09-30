@@ -1,17 +1,17 @@
-#include "../Include/Defines.hlsli"
-#include "../Include/Shared.hlsli"
-#include "../Include/Packing.hlsli"
+#include "../../Include/Defines.hlsli"
+#include "../../Include/Shared.hlsli"
+#include "../../Include/Packing.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../Include/Material.hlsli"
-#include "../Include/Scene.hlsli"
+#include "../../Include/Material.hlsli"
+#include "../../Include/Scene.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../Include/RayTracing/BVH.hlsli"
-#include "GlimmerCommon.hlsli"
+#include "../../Include/RayTracing/BVH.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 #include "GlimmerProbeTypes.hlsli"
 
-// Must match GlimmerProbeTraceConstants in GlimmerProbeVolume.cpp
+// Must match GlimmerProbeTraceConstants in GlimmerSWRTProbeVolume.cpp
 struct GlimmerProbeTraceConstants
 {
     GlimmerProbeVolume volume;
@@ -58,7 +58,7 @@ DECLARE_UAV(GlimmerProbeTrace, OutRays) RWStructuredBuffer<float4> OutRays;
 
 #include "GlimmerProbes.hlsli"
 #include "GlimmerSWRT.hlsli"
-#include "GlimmerMaterial.hlsli"
+#include "../GlimmerMaterial.hlsli"
 
 float3 GlimmerSkyRadiance(float3 direction);
 

@@ -1,6 +1,6 @@
-#include "../Include/Defines.hlsli"
+#include "../../Include/Defines.hlsli"
 
-#include "GlimmerCommon.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 
 #include "GlimmerProbeTypes.hlsli"
 

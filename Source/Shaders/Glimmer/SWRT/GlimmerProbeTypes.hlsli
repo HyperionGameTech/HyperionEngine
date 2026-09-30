@@ -10,20 +10,20 @@
 #define GLIMMER_PROBE_LAYERS 4
 #define GLIMMER_PROBES_PER_CASCADE (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID * GLIMMER_PROBE_LAYERS)
 
-// Must match GlimmerProbeCascadeShaderData in GlimmerProbeVolume.hpp
+// Must match GlimmerProbeCascadeShaderData in GlimmerSWRTProbeVolume.hpp
 struct GlimmerProbeCascade
 {
     int4 gridOrigin; // xy = absolute column of the grid's first column, z = 1 once the cascade has been traced
     float4 params;   // x = column spacing, y = layer scale, z = hysteresis
 };
 
-// Must match GlimmerProbeVolumeShaderData in GlimmerProbeVolume.hpp
+// Must match GlimmerProbeVolumeShaderData in GlimmerSWRTProbeVolume.hpp
 struct GlimmerProbeVolume
 {
     GlimmerProbeCascade cascades[GLIMMER_PROBE_CASCADES];
     uint4 info;          // x = number of cascades, y = rays per probe, z = frame, w = 1 when the volume can be sampled
     float4 rayRotation;  // quaternion applied to this frame's ray directions
-    float4 params;       // x = base height where there's no ground, y = intensity, z = escape radiance clamp, w = max ray distance
+    float4 params;       // x = base height where there's no ground, y = unused, z = escape radiance clamp, w = max ray distance
     float4 nearField;    // x = cascades traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 

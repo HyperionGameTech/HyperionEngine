@@ -1,6 +1,6 @@
-#include "../Include/Defines.hlsli"
+#include "../../Include/Defines.hlsli"
 
-#include "GlimmerCommon.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
 
 #include "GlimmerProbeTypes.hlsli"
 
@@ -18,8 +18,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerProbeBase, CBuffer) cbuffer CBuffer
 DECLARE_SRV(GlimmerProbeBase, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_UAV(GlimmerProbeBase, OutProbeBase) RWTexture2DArray<float> OutProbeBase;
 
-#define GLIMMER_HEIGHTFIELD_NO_SPANS
-#include "GlimmerHeightfield.hlsli"
+#include "../GlimmerGround.hlsli"
 
 [numthreads(64, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)

@@ -15,7 +15,7 @@ namespace Hyperion {
 
 class GlimmerTLAS;
 
-// Must match GlimmerFootprintMaskParams in Shaders/Glimmer/GlimmerCommon.hlsli
+// Must match GlimmerFootprintMaskParams in Shaders/Glimmer/SWRT/GlimmerSWRTCommon.hlsli
 struct GlimmerFootprintMaskShaderData
 {
     Vec4f originCellSize; // xy = world xz of cell (0, 0)'s corner, z = cell size, w = 1 when the mask is valid
