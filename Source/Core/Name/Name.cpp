@@ -312,7 +312,8 @@ StringHash CreateStringHashFromDynamicString(const ANSIStringView& str)
 
 NameID NameRegistration::GenerateID(const ANSIStringView& str)
 {
-    const HashCode hashCode = HashCode::GetHashCode(str.Data(), str.Data() + str.Size());
+    // Stop at a null terminator (views of char arrays include it) so the ID matches compile-time Name hashes
+    const HashCode hashCode = str.GetHashCode();
     const NameID id = hashCode.Value();
 
     return id;
