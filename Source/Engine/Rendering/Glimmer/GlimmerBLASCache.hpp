@@ -13,6 +13,7 @@
 #include <Core/Containers/Map.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Threading/Task.hpp>
 
@@ -116,6 +117,12 @@ public:
     void RemoveReferences(Span<const uint64> keys);
 
     /*! \brief Polls finished builds, uploads within the frame budget and recycles freed ranges. Call once per frame before any TLAS reads. */
+    /*! \brief The pool every world's Glimmer scene draws its BLASes from; it goes away with the last user. Render thread only. */
+    static SharedPtr<GlimmerBLASCache> AcquireShared();
+
+    /*! \brief Update(), unless it already ran this frame. */
+    void UpdateOncePerFrame(Frame* frame);
+
     void Update(Frame* frame);
 
     /*! \brief Bumped whenever an entry becomes resident, so TLASes waiting on BLASes know to rebuild. */
@@ -204,6 +211,7 @@ private:
 
     uint32 m_residentGeneration;
     uint32 m_numBuildsInFlight;
+    uint32 m_lastUpdateFrame;
 };
 
 } // namespace Hyperion

@@ -6,9 +6,9 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/SWRT/GlimmerSWRTSpanCache.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
@@ -38,7 +38,7 @@ static StaticShaderPropertyId s_propSpanModeSplat { ShaderProperty(NAME("MODE"),
 static constexpr uint32 SpanGroupSize = 64;
 static constexpr uint32 MaxGroupsPerDimension = 65535;
 
-// Must match GlimmerSpanSplatConstants in Shaders/Glimmer/SWRT/GlimmerSWRTSpanSplat.hlsl
+// Must match GlimmerSpanSplatConstants in Shaders/Glimmer/GlimmerSpanSplat.hlsl
 struct GlimmerSpanSplatConstants
 {
     Vec4i window;   // xy = absolute texel of the window origin, z = level
@@ -47,7 +47,7 @@ struct GlimmerSpanSplatConstants
     GlimmerGroundShaderData ground;
 };
 
-GlimmerSWRTSpanCache::GlimmerSWRTSpanCache()
+GlimmerSpanCache::GlimmerSpanCache()
     : m_shaderData {}
 {
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
@@ -61,17 +61,17 @@ GlimmerSWRTSpanCache::GlimmerSWRTSpanCache()
     }
 }
 
-GlimmerSWRTSpanCache::~GlimmerSWRTSpanCache()
+GlimmerSpanCache::~GlimmerSpanCache()
 {
     EnqueueDeletion(std::move(m_spansBuffer));
 }
 
-const GpuBufferRef& GlimmerSWRTSpanCache::GetSpansBuffer() const
+const GpuBufferRef& GlimmerSpanCache::GetSpansBuffer() const
 {
     return m_spansBuffer;
 }
 
-void GlimmerSWRTSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
+void GlimmerSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
 {
     HYP_SCOPE;
 
@@ -101,7 +101,7 @@ void GlimmerSWRTSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const V
         ShaderPropertySet shaderProperties;
         shaderProperties.Add(modeProperty);
 
-        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTSpanSplat"), shaderProperties));
+        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSpanSplat"), shaderProperties));
 
         uint32 uniformIndex = 0;
 
@@ -136,7 +136,7 @@ void GlimmerSWRTSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const V
     m_shaderData.levels[levelIndex].window = Vec4i(windowOrigin.x, windowOrigin.y, 1, 0);
 }
 
-void GlimmerSWRTSpanCache::Update(Frame* frame, const GlimmerChannelState& state, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
+void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
 {
     HYP_SCOPE;
 

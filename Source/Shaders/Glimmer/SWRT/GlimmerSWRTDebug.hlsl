@@ -66,7 +66,7 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
     return albedo;
 }
 
-#include "GlimmerHeightfield.hlsli"
+#include "../GlimmerHeightfield.hlsli"
 
 static const float3 DebugLightDirection = normalize(float3(0.45, 0.8, 0.35));
 

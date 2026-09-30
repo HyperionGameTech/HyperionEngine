@@ -15,6 +15,7 @@
 #include <Rendering/Passes/DeferredPassShared.hpp>
 
 #include <Rendering/Glimmer/GlimmerPass.hpp>
+#include <Rendering/Glimmer/GlimmerTechnique.hpp>
 
 #include <Rendering/MaterialTextureCache.hpp>
 #include <Rendering/ShaderManager.hpp>
@@ -117,6 +118,11 @@ void GetDeferredShaderProperties(
     static const IRenderConfig& s_renderConfig = RI.GetRenderConfig();
 
     MergeGlobalShaderProperties(outShaderProperties);
+
+    if (mode == DPM_INDIRECT_LIGHTING || mode == DPM_REFLECTIONS_ONLY)
+    {
+        AddGlimmerApplyShaderProperties(outShaderProperties);
+    }
 
     if (mode == DPM_REFLECTIONS_ONLY)
     {

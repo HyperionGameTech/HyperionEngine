@@ -50,7 +50,7 @@ struct GlimmerInstanceBoundsShaderData
 
 static_assert(sizeof(GlimmerInstanceBoundsShaderData) == 32);
 
-// Must match GlimmerSpanInstance in Shaders/Glimmer/SWRT/GlimmerSWRTCommon.hlsli
+// Must match GlimmerSpanInstance in Shaders/Glimmer/GlimmerCommon.hlsli
 struct GlimmerSpanInstanceShaderData
 {
     float objectToWorld[12]; // first three rows, row major
@@ -74,7 +74,8 @@ struct GlimmerTLASStats
     uint32 numSpanTriangles = 0;
 };
 
-/*! \brief Instance level BVH over the static solids of one world's Glimmer region.
+/*! \brief The instances of one world's Glimmer region: every static solid and foliage instance as a span instance, for splatting into the
+ *  heightfield, plus an instance level BVH over the solids inside the traced region for techniques that ray trace them (none if it's empty).
  *  Gathers from the Glimmer scene view's proxy list on the render thread and builds on a background thread, swapping in once ready.
  *  Render thread only. */
 class GlimmerTLAS
@@ -87,7 +88,7 @@ public:
 
     /*! \brief Latches changes, starts a rebuild when due and swaps in a finished one.
      *  \return true on the frame a new TLAS was swapped in. */
-    bool Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& swrtRegion, GlimmerBLASCache& blasCache);
+    bool Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache);
 
     /*! \brief Releases the BLAS references held by the active TLAS. Must be called before the BLAS cache goes away. */
     void Release(GlimmerBLASCache& blasCache);
@@ -172,7 +173,7 @@ private:
         double buildMs = 0.0;
     };
 
-    void Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& swrtRegion, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS);
+    void Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS);
 
     static BuildResult Build(BuildInput&& input);
 
@@ -190,7 +191,7 @@ private:
     Array<uint64> m_pendingBlasKeys; // referenced while the build is in flight so the BLASes stay resident
 
     BoundingBox m_lastRegion;
-    BoundingBox m_lastSWRTRegion;
+    BoundingBox m_lastTracedRegion;
     uint64 m_lastBuildStartTime;
     uint32 m_blasGenerationAtGather;
     bool m_dirty;

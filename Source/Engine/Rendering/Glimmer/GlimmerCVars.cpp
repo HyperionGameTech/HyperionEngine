@@ -7,10 +7,12 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
+#include <Rendering/Glimmer/GlimmerTechnique.hpp>
 
 namespace Hyperion {
 
 CVar<bool> g_cvGlimmerEnabled("Rendering.Glimmer.Enabled", false);
+CVar<int> g_cvGlimmerTechnique("Rendering.Glimmer.Technique", int(GlimmerTechniqueType::SH));
 CVar<float> g_cvGlimmerIntensity("Rendering.Glimmer.Intensity", 1.0f);
 CVar<int> g_cvGlimmerDebugView("Rendering.Glimmer.DebugView", 0);
 

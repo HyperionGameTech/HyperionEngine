@@ -6,9 +6,9 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerSWRTSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -126,7 +126,7 @@ void GlimmerTLAS::Release(GlimmerBLASCache& blasCache)
     m_pendingBlasKeys.Clear();
 }
 
-void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& swrtRegion, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS)
+void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS)
 {
     HYP_SCOPE;
 
@@ -139,9 +139,9 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
         const bool isFoliage = (flags & GIF_FOLIAGE) != 0;
 
         const bool wantsSpan = outInput.spanInstances.Size() < MaxSpanInstances;
-        const bool wantsSWRT = !isFoliage && outInput.instances.Size() < MaxInstances;
+        const bool wantsTraced = !isFoliage && outInput.instances.Size() < MaxInstances;
 
-        if (!wantsSpan && !wantsSWRT)
+        if (!wantsSpan && !wantsTraced)
         {
             return;
         }
@@ -198,7 +198,7 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             isReferenced = true;
         }
 
-        if (wantsSWRT && worldBounds.Overlaps(swrtRegion))
+        if (wantsTraced && worldBounds.Overlaps(tracedRegion))
         {
             const Mat4f worldToObject = objectToWorld.Inverse();
 
@@ -424,13 +424,13 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
     m_spanTriangleOffsetsBuffer = std::move(spanTriangleOffsetsBuffer);
 }
 
-bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& swrtRegion, GlimmerBLASCache& blasCache)
+bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     // the diff only lives for the frame a change syncs, so latch it
-    if (rpl.GetMeshEntities().GetDiff().NeedsUpdate() || region != m_lastRegion || swrtRegion != m_lastSWRTRegion)
+    if (rpl.GetMeshEntities().GetDiff().NeedsUpdate() || region != m_lastRegion || tracedRegion != m_lastTracedRegion)
     {
         m_dirty = true;
     }
@@ -478,7 +478,7 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     BuildInput input;
     uint32 numWaitingForBLAS = 0;
 
-    Gather(rpl, region, swrtRegion, blasCache, input, numWaitingForBLAS);
+    Gather(rpl, region, tracedRegion, blasCache, input, numWaitingForBLAS);
 
     // keep the gathered BLASes where they are until this build is swapped in
     blasCache.AddReferences(input.blasKeys.ToSpan());
@@ -489,7 +489,7 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     m_stats.numWaitingForBLAS = numWaitingForBLAS;
 
     m_lastRegion = region;
-    m_lastSWRTRegion = swrtRegion;
+    m_lastTracedRegion = tracedRegion;
     m_lastBuildStartTime = PerformanceClock::Now();
     m_dirty = false;
 

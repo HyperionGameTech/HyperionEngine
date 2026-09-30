@@ -220,8 +220,11 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerSWRTProbeBlend" {
             CS = "Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl"
         }
-        ShaderDefinition "GlimmerSWRTSpanSplat" {
-            CS = "Glimmer/SWRT/GlimmerSWRTSpanSplat.hlsl"
+        ShaderDefinition "GlimmerSpanSplat" {
+            CS = "Glimmer/GlimmerSpanSplat.hlsl"
+        }
+        ShaderDefinition "GlimmerSHUpdate" {
+            CS = "Glimmer/SH/GlimmerSHUpdate.hlsl"
         }
         ShaderDefinition "CloudWeatherMap" {
             CS = "Clouds/CloudWeatherMap.hlsl"

@@ -19,62 +19,12 @@ struct GlimmerInstanceBounds
     float4 boundsMax;
 };
 
-#define GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED 0x1u
-#define GLIMMER_INSTANCE_FLAG_MIRRORED 0x2u
-#define GLIMMER_INSTANCE_FLAG_ALPHA_TESTED 0x4u
-#define GLIMMER_INSTANCE_FLAG_FOLIAGE 0x8u
-
 // Must match GlimmerFootprintMaskShaderData in GlimmerFootprintMask.hpp
 struct GlimmerFootprintMaskParams
 {
     float4 originCellSize; // xy = world xz of cell (0, 0)'s corner, z = cell size, w = 1 when the mask is valid
     uint4 info;            // x = resolution of level 0, y = number of levels
 };
-
-// Must match GlimmerSpanInstanceShaderData in GlimmerTLAS.hpp
-struct GlimmerSpanInstance
-{
-    float4 objectToWorld0;
-    float4 objectToWorld1;
-    float4 objectToWorld2;
-    uint4 data; // x = BLAS triangle base, y = triangle count, z = material index, w = flags
-};
-
-// Must match GlimmerSpanLevelShaderData in GlimmerSWRTSpanCache.hpp
-struct GlimmerSpanLevel
-{
-    int4 window;   // xy = absolute texel the spans were built from, z = 1 when built
-    float4 params; // x = texel size, y = 1 / texel size
-};
-
-struct GlimmerSpanParams
-{
-    GlimmerSpanLevel levels[GLIMMER_GROUND_LEVELS];
-};
-
-// Per texel values in the spans buffer
-#define GLIMMER_SPAN_SOLID_MIN 0
-#define GLIMMER_SPAN_SOLID_MAX 1
-#define GLIMMER_SPAN_CANOPY_MIN 2
-#define GLIMMER_SPAN_CANOPY_MAX 3
-#define GLIMMER_SPAN_LEAF_AREA 4      // leaf area index
-#define GLIMMER_SPAN_CANOPY_ALBEDO 5 // 3 values
-#define GLIMMER_SPAN_SOLID_ALBEDO 8  // 3 values
-#define GLIMMER_SPAN_SOLID_AREA 11     // surface area / texel area, how filled the texel is
-#define GLIMMER_SPAN_VALUES_PER_TEXEL 12
-
-// areas are accumulated with integer atomics in these units
-#define GLIMMER_SPAN_AREA_SCALE 256.0
-
-uint GlimmerSpanTexelIndex(uint level, int2 texel)
-{
-    const uint2 wrapped = GlimmerWrapGroundTexel(texel);
-
-    return ((level * GLIMMER_GROUND_RESOLUTION + wrapped.y) * GLIMMER_GROUND_RESOLUTION + wrapped.x) * GLIMMER_SPAN_VALUES_PER_TEXEL;
-}
-
-#define GLIMMER_MASK_EMPTY_MIN 0xFFFFFFFFu
-#define GLIMMER_MASK_EMPTY_MAX 0u
 
 uint GlimmerMaskLevelResolution(GlimmerFootprintMaskParams params, uint level)
 {

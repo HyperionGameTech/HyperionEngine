@@ -7,7 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerTLAS.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>

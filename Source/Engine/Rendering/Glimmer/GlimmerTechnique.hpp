@@ -21,14 +21,21 @@ class View;
 class EnvProbe;
 class RenderProxyList;
 class CBufferAllocator;
+struct ShaderPropertySet;
 class GlimmerSurfaceCache;
+class GlimmerBLASCache;
+class GlimmerTLAS;
+class GlimmerSpanCache;
 struct GlimmerChannelState;
 
 /*! \brief The flavours of Glimmer. Each lives in its own subfolder of Rendering/Glimmer (and Shaders/Glimmer) and plugs into GlimmerPass
  *  through GlimmerTechnique; everything outside those subfolders (the scene view, ground heights and albedo, apply) is shared. */
 enum class GlimmerTechniqueType : uint32
 {
-    SWRT // probes traced against a software BVH of the nearby solids and the heightfield beyond
+    SWRT, // probes traced against a software BVH of the nearby solids and the heightfield beyond
+    SH,   // clipmap of sky visibility and blocker albedo, traced against the heightfield now and then and relit per pixel
+
+    Count
 };
 
 /*! \brief How much static scene around the viewer the Glimmer scene view collects. Sim thread. */
@@ -49,11 +56,15 @@ struct GlimmerTechniqueUpdateContext
     RenderProxyList* sceneProxies = nullptr;
     BoundingBox region;
 
-    // nullptr until the world's GlimmerSystem has published
-    const GlimmerChannelState* channelState = nullptr;
+    // the world's scene instances (and the BLAS pool they draw from), already updated for this frame
+    GlimmerBLASCache* blasCache = nullptr;
+    const GlimmerTLAS* tlas = nullptr;
+    bool tlasSwapped = false; // a newly built TLAS was swapped in this frame
 
-    // already up to date for this frame
+    // nullptr until the world's GlimmerSystem has published; the caches are up to date for this frame when set
+    const GlimmerChannelState* channelState = nullptr;
     const GlimmerSurfaceCache* surfaceCache = nullptr;
+    const GlimmerSpanCache* spanCache = nullptr;
 
     // Glimmer is enabled and there's a viewer; otherwise only the scene is kept up to date, for debug views
     bool updateLighting = false;
@@ -64,7 +75,11 @@ struct GlimmerDebugViewContext
     Frame* frame = nullptr;
     View* view = nullptr;
     Framebuffer* gbufferFramebuffer = nullptr;
+
+    const GlimmerBLASCache* blasCache = nullptr;
+    const GlimmerTLAS* tlas = nullptr;
     const GlimmerSurfaceCache* surfaceCache = nullptr;
+    const GlimmerSpanCache* spanCache = nullptr;
 
     // RGBA16F storage image of extent, already in the unordered access state
     GpuImageViewRef outputImageView;
@@ -83,7 +98,13 @@ public:
 
     virtual GlimmerTechniqueType GetType() const = 0;
 
-    /*! \brief Called once per frame while the Glimmer scene is required. */
+    /*! \brief The part of the scene region whose solids should get an instance BVH (GlimmerTLAS) for ray tracing. Empty for none. */
+    virtual BoundingBox GetTracedRegion(const BoundingBox& sceneRegion) const
+    {
+        return BoundingBox::Empty();
+    }
+
+    /*! \brief Called once per frame while the Glimmer scene is required, after the scene instances, surface cache and spans. */
     virtual void Update(const GlimmerTechniqueUpdateContext& context) = 0;
 
     /*! \brief Whether lighting can sample the technique yet. */
@@ -99,8 +120,11 @@ public:
     virtual bool RenderDebugView(const GlimmerDebugViewContext& context) = 0;
 };
 
-/*! \brief The technique every world uses. Must match the technique Shaders/Glimmer/GlimmerApply.hlsli includes. */
+/*! \brief The technique every world uses, from Rendering.Glimmer.Technique. */
 GlimmerTechniqueType GetActiveGlimmerTechniqueType();
+
+/*! \brief Adds the properties that make Shaders/Glimmer/GlimmerApply.hlsli include the active technique's apply header. */
+void AddGlimmerApplyShaderProperties(ShaderPropertySet& outShaderProperties);
 
 UniquePtr<GlimmerTechnique> CreateGlimmerTechnique(GlimmerTechniqueType type);
 

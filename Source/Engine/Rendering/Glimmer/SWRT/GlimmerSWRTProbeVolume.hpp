@@ -8,7 +8,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerSWRTSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -50,7 +50,7 @@ struct GlimmerSWRTProbeUpdateInputs
 {
     Vec3f viewerPosition;
     const GlimmerSurfaceCache* surfaceCache = nullptr;
-    const GlimmerSWRTSpanCache* spanCache = nullptr;
+    const GlimmerSpanCache* spanCache = nullptr;
     const GlimmerBLASCache* blasCache = nullptr;
     const GlimmerTLAS* tlas = nullptr;
     EnvProbe* skyProbe = nullptr;

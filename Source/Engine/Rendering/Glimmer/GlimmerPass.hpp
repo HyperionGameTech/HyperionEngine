@@ -8,11 +8,13 @@
 
 #include <Rendering/Pass.hpp>
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/Glimmer/GlimmerTechnique.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Map.hpp>
+#include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 
@@ -22,7 +24,9 @@ class World;
 class Texture;
 class CBufferAllocator;
 class GlimmerSurfaceCache;
-class GlimmerTechnique;
+class GlimmerBLASCache;
+class GlimmerTLAS;
+class GlimmerSpanCache;
 
 // Must match GlimmerApply in Shaders/Glimmer/GlimmerApply.hlsli, less the technique's block that follows it
 struct GlimmerApplyShaderData
@@ -41,7 +45,12 @@ public:
     GlimmerScenePassData();
     virtual ~GlimmerScenePassData() override;
 
+    // the scene every technique builds on: instances (spans, and a BVH where the technique traces), ground, spans
+    SharedPtr<GlimmerBLASCache> blasCache;
+    UniquePtr<GlimmerTLAS> tlas;
     UniquePtr<GlimmerSurfaceCache> surfaceCache;
+    UniquePtr<GlimmerSpanCache> spanCache;
+
     UniquePtr<GlimmerTechnique> technique;
 
     World* world = nullptr;
@@ -62,7 +71,7 @@ public:
     Handle<Texture> debugTexture;
 };
 
-/*! \brief Glimmer GI: keeps each world's Glimmer scene (ground heights and albedo) and technique up to date,
+/*! \brief Glimmer GI: keeps each world's Glimmer scene (instances, ground heights and albedo, spans) and technique up to date,
  *  provides what lighting samples it through, and renders the debug views. Which technique runs is up to GetActiveGlimmerTechniqueType(). */
 class GlimmerPass final : public PassBase
 {
@@ -74,7 +83,7 @@ public:
     virtual void Shutdown() override;
 
     /*! \brief renderSetup.view must be a world's Glimmer scene view, and renderSetup.envProbe the world's sky probe if it has one.
-     *  Updates the surface cache, then the world's technique. Call after the sky probe has rendered for the frame. */
+     *  Updates the scene, then the world's technique. Call after the sky probe has rendered for the frame. */
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
     /*! \brief Renders the technique's debug view for a GBuffer view, if Rendering.Glimmer.DebugView is one of the technique's views.
@@ -100,8 +109,8 @@ protected:
     virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
 
 private:
-    // stands in for the technique of worlds without a Glimmer scene, so their apply constants and bindings keep the technique's layout
-    UniquePtr<GlimmerTechnique> m_placeholderTechnique;
+    // stand in for the technique of worlds without a Glimmer scene, so their apply constants and bindings keep the active technique's layout
+    FixedArray<UniquePtr<GlimmerTechnique>, uint32(GlimmerTechniqueType::Count)> m_placeholderTechniques;
 
     Map<World*, GlimmerScenePassData*> m_scenes;
 };

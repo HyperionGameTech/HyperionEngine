@@ -7,10 +7,10 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTTechnique.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerSWRTSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
@@ -47,9 +47,6 @@ namespace Hyperion {
 
 static EngineStatGpuTimer s_statGlimmerSWRTDebug("Rendering/GPU/Glimmer/SWRTDebug");
 
-static EngineStatCounter<uint32> s_statGlimmerInstances("Rendering/Glimmer/Instances", false);
-static EngineStatCounter<uint32> s_statGlimmerResidentBLASes("Rendering/Glimmer/ResidentBLASes", false);
-static EngineStatCounter<uint32> s_statGlimmerBuildingBLASes("Rendering/Glimmer/BuildingBLASes", false);
 static EngineStatCounter<uint32> s_statGlimmerSWRTDebugRays("Rendering/Glimmer/SWRTDebugRays");
 
 // the region follows the viewer in steps, so the TLAS only rebuilds when it has moved this fraction of the SWRT radius
@@ -64,25 +61,6 @@ struct GlimmerSWRTDebugConstants
     GlimmerGroundShaderData ground;
     GlimmerSpanShaderData spans;
 };
-
-static uint32 s_lastBLASCacheUpdateFrame = ~0u;
-
-// every world's SWRT scene draws its BLASes from one pool, which goes away with the last of them
-static SharedPtr<GlimmerBLASCache> AcquireSharedBLASCache()
-{
-    static WeakPtr<GlimmerBLASCache> s_blasCache;
-
-    SharedPtr<GlimmerBLASCache> blasCache = s_blasCache.Lock();
-
-    if (!blasCache)
-    {
-        blasCache = MakeShared<GlimmerBLASCache>();
-        s_blasCache = blasCache;
-        s_lastBLASCacheUpdateFrame = ~0u;
-    }
-
-    return blasCache;
-}
 
 static float GetNearFieldRadius()
 {
@@ -102,20 +80,35 @@ GlimmerSceneRegionParams GlimmerSWRTTechnique::GetSceneRegionParams()
     return params;
 }
 
+// SWRT only covers the middle of the scene region; the rest is only splatted into the heightfield
+static float GetSWRTRadius(const BoundingBox& sceneRegion)
+{
+    return MathUtil::Min(GetNearFieldRadius(), 0.5f * sceneRegion.GetExtent().x);
+}
+
 GlimmerSWRTTechnique::GlimmerSWRTTechnique()
-    : m_tlas(MakeUnique<GlimmerTLAS>()),
-      m_footprintMask(MakeUnique<GlimmerFootprintMask>()),
-      m_spanCache(MakeUnique<GlimmerSWRTSpanCache>()),
-      m_probeVolume(MakeUnique<GlimmerSWRTProbeVolume>())
+    : m_footprintMask(MakeUnique<GlimmerFootprintMask>()),
+      m_probeVolume(MakeUnique<GlimmerSWRTProbeVolume>()),
+      m_maskGeneration(~0u)
 {
 }
 
 GlimmerSWRTTechnique::~GlimmerSWRTTechnique()
 {
-    if (m_blasCache)
-    {
-        m_tlas->Release(*m_blasCache);
-    }
+}
+
+BoundingBox GlimmerSWRTTechnique::GetTracedRegion(const BoundingBox& sceneRegion) const
+{
+    const Vec3f regionCenter = sceneRegion.GetCenter();
+    const float swrtRadius = GetSWRTRadius(sceneRegion);
+
+    BoundingBox swrtRegion = sceneRegion;
+    swrtRegion.min.x = regionCenter.x - swrtRadius;
+    swrtRegion.max.x = regionCenter.x + swrtRadius;
+    swrtRegion.min.z = regionCenter.z - swrtRadius;
+    swrtRegion.max.z = regionCenter.z + swrtRadius;
+
+    return swrtRegion;
 }
 
 void GlimmerSWRTTechnique::Update(const GlimmerTechniqueUpdateContext& context)
@@ -123,59 +116,30 @@ void GlimmerSWRTTechnique::Update(const GlimmerTechniqueUpdateContext& context)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    // acquired on first use, so the placeholder technique used for worlds without a scene never creates the pool
-    if (!m_blasCache)
+    const GlimmerTLAS& tlas = *context.tlas;
+
+    // the mask follows whichever TLAS is live, including one swapped in while another technique was active
+    if (tlas.IsReady() && (context.tlasSwapped || tlas.GetGeneration() != m_maskGeneration))
     {
-        m_blasCache = AcquireSharedBLASCache();
+        const Vec3f regionCenter = context.region.GetCenter();
+
+        m_footprintMask->Rebuild(context.frame, tlas, Vec2f(regionCenter.x, regionCenter.z), GetSWRTRadius(context.region));
+
+        m_maskGeneration = tlas.GetGeneration();
     }
 
-    const uint32 frameCounter = GetFrameCounter();
-
-    if (s_lastBLASCacheUpdateFrame != frameCounter)
+    if (context.updateLighting && context.surfaceCache && context.spanCache)
     {
-        s_lastBLASCacheUpdateFrame = frameCounter;
+        GlimmerSWRTProbeUpdateInputs inputs;
+        inputs.viewerPosition = context.channelState->viewerPosition;
+        inputs.surfaceCache = context.surfaceCache;
+        inputs.spanCache = context.spanCache;
+        inputs.blasCache = context.blasCache;
+        inputs.tlas = context.tlas;
+        inputs.skyProbe = context.skyProbe;
 
-        m_blasCache->Update(context.frame);
+        m_probeVolume->Update(context.frame, inputs);
     }
-
-    const BoundingBox& region = context.region;
-    const Vec3f regionCenter = region.GetCenter();
-    const float swrtRadius = MathUtil::Min(GetNearFieldRadius(), 0.5f * region.GetExtent().x);
-
-    BoundingBox swrtRegion = region;
-    swrtRegion.min.x = regionCenter.x - swrtRadius;
-    swrtRegion.max.x = regionCenter.x + swrtRadius;
-    swrtRegion.min.z = regionCenter.z - swrtRadius;
-    swrtRegion.max.z = regionCenter.z + swrtRadius;
-
-    if (m_tlas->Update(context.frame, *context.sceneProxies, region, swrtRegion, *m_blasCache))
-    {
-        m_footprintMask->Rebuild(context.frame, *m_tlas, Vec2f(regionCenter.x, regionCenter.z), swrtRadius);
-    }
-
-    if (context.channelState && context.surfaceCache)
-    {
-        m_spanCache->Update(context.frame, *context.channelState, *m_tlas, *m_blasCache, *context.surfaceCache);
-
-        if (context.updateLighting)
-        {
-            GlimmerSWRTProbeUpdateInputs inputs;
-            inputs.viewerPosition = context.channelState->viewerPosition;
-            inputs.surfaceCache = context.surfaceCache;
-            inputs.spanCache = m_spanCache.Get();
-            inputs.blasCache = m_blasCache.Get();
-            inputs.tlas = m_tlas.Get();
-            inputs.skyProbe = context.skyProbe;
-
-            m_probeVolume->Update(context.frame, inputs);
-        }
-    }
-
-    const GlimmerBLASCacheStats blasStats = m_blasCache->GetStats();
-
-    s_statGlimmerInstances = m_tlas->GetNumInstances();
-    s_statGlimmerResidentBLASes = blasStats.numResident;
-    s_statGlimmerBuildingBLASes = blasStats.numBuilding + blasStats.numPendingUpload;
 }
 
 bool GlimmerSWRTTechnique::IsReady() const
@@ -229,10 +193,13 @@ bool GlimmerSWRTTechnique::RenderDebugView(const GlimmerDebugViewContext& contex
         return false;
     }
 
-    if (!m_blasCache || !m_tlas->IsReady() || !m_blasCache->IsReady() || !context.surfaceCache)
+    if (!context.blasCache || !context.tlas || !context.tlas->IsReady() || !context.blasCache->IsReady() || !context.surfaceCache || !context.spanCache)
     {
         return false;
     }
+
+    const GlimmerTLAS& tlas = *context.tlas;
+    const GlimmerBLASCache& blasCache = *context.blasCache;
 
     View* view = context.view;
     Framebuffer* gbufferFramebuffer = context.gbufferFramebuffer;
@@ -241,11 +208,11 @@ bool GlimmerSWRTTechnique::RenderDebugView(const GlimmerDebugViewContext& contex
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSWRTDebug);
 
     GlimmerSWRTDebugConstants constants {};
-    constants.dimensionsModeInstances = Vec4u(extent.x, extent.y, uint32(context.techniqueView), m_tlas->GetNumInstances());
+    constants.dimensionsModeInstances = Vec4u(extent.x, extent.y, uint32(context.techniqueView), tlas.GetNumInstances());
     constants.mask = m_footprintMask->GetShaderData();
     constants.params = Vec4f(10000.0f, 0.0f, 0.0f, 0.0f);
     constants.ground = context.surfaceCache->GetGroundShaderData();
-    constants.spans = m_spanCache->GetShaderData();
+    constants.spans = context.spanCache->GetShaderData();
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferOffset = 0;
@@ -266,8 +233,6 @@ bool GlimmerSWRTTechnique::RenderDebugView(const GlimmerDebugViewContext& contex
 
     uint32 uniformIndex = 0;
 
-    const GpuBufferRef& spansBuffer = m_spanCache->GetSpansBuffer().IsValid() ? m_spanCache->GetSpansBuffer() : m_footprintMask->GetMaskBuffer();
-
     cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
     cr << SetShaderUniform(uniformIndex++, "OutImage"_sh, context.outputImageView);
     cr << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, gbufferFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
@@ -275,13 +240,13 @@ bool GlimmerSWRTTechnique::RenderDebugView(const GlimmerDebugViewContext& contex
     cr << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(view->GetCamera()));
     cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
     cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerTLASNodesBuffer"_sh, m_tlas->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerInstancesBuffer"_sh, m_tlas->GetInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerInstanceShaderData)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, m_blasCache->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, m_blasCache->GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerTLASNodesBuffer"_sh, tlas.GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerInstancesBuffer"_sh, tlas.GetInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerInstanceShaderData)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, blasCache.GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, blasCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
     cr << SetShaderUniform(uniformIndex++, "FootprintMaskBuffer"_sh, m_footprintMask->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, context.surfaceCache->GetGroundImageView());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, spansBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, context.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, context.surfaceCache->GetGroundAlbedoImageView());
 
     cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });

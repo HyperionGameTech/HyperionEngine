@@ -172,4 +172,29 @@ bool GlimmerTraceGround(GlimmerGroundParams params, float3 origin, float3 direct
     return false;
 }
 
+/*! Terrain albedo under worldXZ from the finest level at or above minLevel that has it; the albedo clipmap's alpha is 0 where no terrain patch was seen yet. */
+float3 GlimmerSampleGroundAlbedo(Texture2DArray<float4> groundAlbedo, GlimmerGroundParams params, float2 worldXZ, uint minLevel, float3 fallback)
+{
+    [loop]
+    for (uint level = minLevel; level < GLIMMER_GROUND_LEVELS; level++)
+    {
+        const GlimmerGroundLevel groundLevel = params.levels[level];
+        const int2 texel = int2(floor(worldXZ * groundLevel.params.y));
+
+        if (any(texel < groundLevel.validRect.xy) || any(texel >= groundLevel.validRect.zw))
+        {
+            continue;
+        }
+
+        const float4 albedo = groundAlbedo.Load(int4(GlimmerWrapGroundTexel(texel), level, 0));
+
+        if (albedo.a > 0.5)
+        {
+            return albedo.rgb;
+        }
+    }
+
+    return fallback;
+}
+
 #endif

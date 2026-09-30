@@ -19,7 +19,7 @@ class GlimmerSurfaceCache;
 
 static constexpr uint32 GlimmerSpanValuesPerTexel = 12;
 
-// Must match GlimmerSpanLevel in Shaders/Glimmer/SWRT/GlimmerSWRTCommon.hlsli
+// Must match GlimmerSpanLevel in Shaders/Glimmer/GlimmerCommon.hlsli
 struct GlimmerSpanLevelShaderData
 {
     Vec4i window; // xy = absolute texel the spans were built from, z = 1 when built
@@ -37,13 +37,13 @@ static constexpr float GlimmerSpansMinFoliageHeight = 1.5f;
 /*! \brief The heightfield's occupancy above the ground: per texel, the vertical span of static solids and of the foliage canopy,
  *  with the canopy's leaf area and the albedos of both. Built on the GPU by splatting the span instances' BLAS triangles,
  *  one level per frame whenever the instances or that level's window change. Render thread only. */
-class GlimmerSWRTSpanCache
+class GlimmerSpanCache
 {
 public:
-    GlimmerSWRTSpanCache();
-    GlimmerSWRTSpanCache(const GlimmerSWRTSpanCache& other) = delete;
-    GlimmerSWRTSpanCache& operator=(const GlimmerSWRTSpanCache& other) = delete;
-    ~GlimmerSWRTSpanCache();
+    GlimmerSpanCache();
+    GlimmerSpanCache(const GlimmerSpanCache& other) = delete;
+    GlimmerSpanCache& operator=(const GlimmerSpanCache& other) = delete;
+    ~GlimmerSpanCache();
 
     void Update(Frame* frame, const GlimmerChannelState& state, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache);
 

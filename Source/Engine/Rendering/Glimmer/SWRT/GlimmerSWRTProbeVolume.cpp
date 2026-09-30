@@ -7,9 +7,10 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/SWRT/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
+#include <Rendering/Glimmer/GlimmerMath.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
@@ -83,31 +84,6 @@ static float GetCascadeSpacing(uint32 cascadeIndex)
 static uint32 GetCascadeUpdatePeriod(uint32 cascadeIndex)
 {
     return 1u << MathUtil::Max(cascadeIndex, 1u);
-}
-
-static uint32 HashUint(uint32 value)
-{
-    value ^= value >> 16;
-    value *= 0x7feb352du;
-    value ^= value >> 15;
-    value *= 0x846ca68bu;
-    value ^= value >> 16;
-
-    return value;
-}
-
-// Uniformly random rotation (Shoemake), so each frame's ray set samples new directions
-static Vec4f MakeRandomRotation(uint32 seed)
-{
-    const float u1 = float(HashUint(seed * 3 + 0) & 0xFFFFFFu) / float(0x1000000);
-    const float u2 = float(HashUint(seed * 3 + 1) & 0xFFFFFFu) / float(0x1000000);
-    const float u3 = float(HashUint(seed * 3 + 2) & 0xFFFFFFu) / float(0x1000000);
-
-    const float a = MathUtil::Sqrt(1.0f - u1);
-    const float b = MathUtil::Sqrt(u1);
-    const float twoPi = 2.0f * MathUtil::pi<float>;
-
-    return Vec4f(a * MathUtil::Sin(twoPi * u2), a * MathUtil::Cos(twoPi * u2), b * MathUtil::Sin(twoPi * u3), b * MathUtil::Cos(twoPi * u3));
 }
 
 static Handle<Texture> CreateProbeTexture(TextureType type, TextureFormat format, const Vec3u& extent, uint16 numLayers, Name name)
@@ -244,7 +220,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     }
 
     m_shaderData.info = Vec4u(GlimmerProbeCascades, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
-    m_shaderData.rayRotation = MakeRandomRotation(m_frameIndex);
+    m_shaderData.rayRotation = MakeGlimmerRandomRotation(m_frameIndex);
     m_shaderData.params = Vec4f(
         inputs.viewerPosition.y - 2.0f,
         0.0f,

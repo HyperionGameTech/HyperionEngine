@@ -6,7 +6,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <Rendering/Glimmer/SWRT/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -130,8 +130,40 @@ void GlimmerPoolAllocator::Free(uint32 offset, uint32 count)
 
 GlimmerBLASCache::GlimmerBLASCache()
     : m_residentGeneration(0),
-      m_numBuildsInFlight(0)
+      m_numBuildsInFlight(0),
+      m_lastUpdateFrame(~0u)
 {
+}
+
+SharedPtr<GlimmerBLASCache> GlimmerBLASCache::AcquireShared()
+{
+    AssertOnThread(g_renderThread);
+
+    static WeakPtr<GlimmerBLASCache> s_blasCache;
+
+    SharedPtr<GlimmerBLASCache> blasCache = s_blasCache.Lock();
+
+    if (!blasCache)
+    {
+        blasCache = MakeShared<GlimmerBLASCache>();
+        s_blasCache = blasCache;
+    }
+
+    return blasCache;
+}
+
+void GlimmerBLASCache::UpdateOncePerFrame(Frame* frame)
+{
+    const uint32 frameCounter = GetFrameCounter();
+
+    if (m_lastUpdateFrame == frameCounter)
+    {
+        return;
+    }
+
+    m_lastUpdateFrame = frameCounter;
+
+    Update(frame);
 }
 
 GlimmerBLASCache::~GlimmerBLASCache()

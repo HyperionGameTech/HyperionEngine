@@ -1,6 +1,8 @@
 #ifndef GLIMMER_PROBE_TYPES_HLSLI
 #define GLIMMER_PROBE_TYPES_HLSLI
 
+#include "../GlimmerCommon.hlsli"
+
 // Terrain following probe clipmap: GLIMMER_PROBE_CASCADES cascades of GRID x GRID columns with LAYERS probes each,
 // stored toroidally in Texture3Ds of GRID x (CASCADES * LAYERS) x GRID.
 // Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n).
@@ -44,23 +46,6 @@ uint3 GlimmerProbeTexel(uint cascadeIndex, int2 column, uint layer)
     const uint2 wrapped = GlimmerWrapProbeColumn(column);
 
     return uint3(wrapped.x, cascadeIndex * GLIMMER_PROBE_LAYERS + layer, wrapped.y);
-}
-
-float3 GlimmerRotateByQuaternion(float4 q, float3 v)
-{
-    return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
-}
-
-// Evenly spread directions over the sphere; the per frame rotation turns them into a stratified random pattern
-float3 GlimmerSphericalFibonacci(uint index, uint count)
-{
-    const float goldenRatio = 1.6180339887;
-
-    const float phi = 2.0 * 3.14159265 * frac(float(index) * (goldenRatio - 1.0));
-    const float cosTheta = 1.0 - (2.0 * float(index) + 1.0) / float(count);
-    const float sinTheta = sqrt(saturate(1.0 - cosTheta * cosTheta));
-
-    return float3(cos(phi) * sinTheta, cosTheta, sin(phi) * sinTheta);
 }
 
 float3 GlimmerProbeRayDirection(GlimmerProbeVolume volume, uint rayIndex)

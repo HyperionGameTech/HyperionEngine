@@ -9,6 +9,9 @@
 #include <Rendering/Glimmer/GlimmerPass.hpp>
 #include <Rendering/Glimmer/GlimmerTechnique.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
+#include <Rendering/Glimmer/GlimmerBLASCache.hpp>
+#include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 
@@ -52,6 +55,10 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 static EngineStatGpuTimer s_statGlimmerScene("Rendering/GPU/Glimmer/Scene");
 
 static EngineStatCounter<uint32> s_statGlimmerTerrainPatches("Rendering/Glimmer/TerrainPatches", false);
+static EngineStatCounter<uint32> s_statGlimmerInstances("Rendering/Glimmer/Instances", false);
+static EngineStatCounter<uint32> s_statGlimmerSpanInstances("Rendering/Glimmer/SpanInstances", false);
+static EngineStatCounter<uint32> s_statGlimmerResidentBLASes("Rendering/Glimmer/ResidentBLASes", false);
+static EngineStatCounter<uint32> s_statGlimmerBuildingBLASes("Rendering/Glimmer/BuildingBLASes", false);
 
 // Terrain patches of a cell share its material and transform, so they merge into one entry covering all of them
 static void CollectTerrainPatches(RenderProxyList& rpl, Array<GlimmerTerrainPatchShaderData>& outPatches)
@@ -123,6 +130,12 @@ GlimmerScenePassData::GlimmerScenePassData()
 
 GlimmerScenePassData::~GlimmerScenePassData()
 {
+    technique.Reset();
+
+    if (tlas && blasCache)
+    {
+        tlas->Release(*blasCache);
+    }
 }
 
 #pragma endregion GlimmerScenePassData
@@ -152,13 +165,20 @@ GlimmerPass::~GlimmerPass()
 
 void GlimmerPass::Initialize()
 {
-    m_placeholderTechnique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
+    for (uint32 typeIndex = 0; typeIndex < uint32(GlimmerTechniqueType::Count); typeIndex++)
+    {
+        m_placeholderTechniques[typeIndex] = CreateGlimmerTechnique(GlimmerTechniqueType(typeIndex));
+    }
 }
 
 void GlimmerPass::Shutdown()
 {
     m_scenes.Clear();
-    m_placeholderTechnique.Reset();
+
+    for (UniquePtr<GlimmerTechnique>& placeholderTechnique : m_placeholderTechniques)
+    {
+        placeholderTechnique.Reset();
+    }
 }
 
 PassData* GlimmerPass::CreateViewPassData(View* view, PassDataExt&)
@@ -167,7 +187,9 @@ PassData* GlimmerPass::CreateViewPassData(View* view, PassDataExt&)
     {
         GlimmerScenePassData* passData = new GlimmerScenePassData();
         passData->view = MakeWeakRef(view);
+        passData->tlas = MakeUnique<GlimmerTLAS>();
         passData->surfaceCache = MakeUnique<GlimmerSurfaceCache>();
+        passData->spanCache = MakeUnique<GlimmerSpanCache>();
         passData->technique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
 
         return passData;
@@ -193,12 +215,14 @@ const GlimmerTechnique& GlimmerPass::GetApplyTechnique(World* world) const
 {
     GlimmerScenePassData* scene = g_cvGlimmerEnabled.Get() ? GetSceneForWorld(world) : nullptr;
 
-    if (scene && scene->technique->IsReady())
+    const GlimmerTechniqueType activeType = GetActiveGlimmerTechniqueType();
+
+    if (scene && scene->technique->GetType() == activeType && scene->technique->IsReady())
     {
         return *scene->technique;
     }
 
-    return *m_placeholderTechnique;
+    return *m_placeholderTechniques[uint32(activeType)];
 }
 
 void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
@@ -227,6 +251,11 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     scene->lastUpdatedFrame = frameCounter;
     scene->world = renderSetup.world;
 
+    if (scene->technique->GetType() != GetActiveGlimmerTechniqueType())
+    {
+        scene->technique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
+    }
+
     m_scenes.Set(renderSetup.world, scene);
 
     RenderProxyList& rpl = GetConsumerProxyList(view);
@@ -250,12 +279,25 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     scene->region = region;
 
+    // every world's scene draws its BLASes from the same pool; acquired here so worlds without a scene never create it
+    if (!scene->blasCache)
+    {
+        scene->blasCache = GlimmerBLASCache::AcquireShared();
+    }
+
+    scene->blasCache->UpdateOncePerFrame(frame);
+
+    const bool tlasSwapped = scene->tlas->Update(frame, rpl, region, scene->technique->GetTracedRegion(region), *scene->blasCache);
+
     GlimmerTechniqueUpdateContext context;
     context.frame = frame;
     context.world = renderSetup.world;
     context.skyProbe = renderSetup.envProbe;
     context.sceneProxies = &rpl;
     context.region = region;
+    context.blasCache = scene->blasCache.Get();
+    context.tlas = scene->tlas.Get();
+    context.tlasSwapped = tlasSwapped;
 
     GlimmerChannelState channelState;
 
@@ -287,13 +329,22 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         s_statGlimmerTerrainPatches = uint32(terrainPatches.Size());
 
         scene->surfaceCache->Update(frame, channelState, groundUploads.ToSpan(), terrainPatches.ToSpan());
+        scene->spanCache->Update(frame, channelState, *scene->tlas, *scene->blasCache, *scene->surfaceCache);
 
         context.channelState = &channelState;
         context.surfaceCache = scene->surfaceCache.Get();
+        context.spanCache = scene->spanCache->GetSpansBuffer().IsValid() ? scene->spanCache.Get() : nullptr;
         context.updateLighting = g_cvGlimmerEnabled.Get() && channelState.hasViewer;
     }
 
     scene->technique->Update(context);
+
+    const GlimmerBLASCacheStats blasStats = scene->blasCache->GetStats();
+
+    s_statGlimmerInstances = scene->tlas->GetNumInstances();
+    s_statGlimmerSpanInstances = scene->tlas->GetNumSpanInstances();
+    s_statGlimmerResidentBLASes = blasStats.numResident;
+    s_statGlimmerBuildingBLASes = blasStats.numBuilding + blasStats.numPendingUpload;
 }
 
 bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView)
@@ -317,7 +368,7 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
 
     GlimmerScenePassData* scene = GetSceneForWorld(renderSetup.world);
 
-    if (!scene)
+    if (!scene || !scene->blasCache)
     {
         return false;
     }
@@ -352,7 +403,10 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
     context.frame = frame;
     context.view = view;
     context.gbufferFramebuffer = gbufferFramebuffer;
+    context.blasCache = scene->blasCache.Get();
+    context.tlas = scene->tlas.Get();
     context.surfaceCache = scene->surfaceCache.Get();
+    context.spanCache = scene->spanCache->GetSpansBuffer().IsValid() ? scene->spanCache.Get() : nullptr;
     context.outputImageView = RI.textureViewCache->GetOrCreate(viewData->debugTexture);
     context.extent = extent;
     context.techniqueView = debugView - int(GlimmerDebugView::TechniqueFirst) + 1;

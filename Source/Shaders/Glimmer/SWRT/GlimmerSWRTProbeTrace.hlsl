@@ -83,7 +83,7 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
     return min(albedo, (float3)0.9) * radiance;
 }
 
-#include "GlimmerHeightfield.hlsli"
+#include "../GlimmerHeightfield.hlsli"
 
 // sky probes are filtered cubemaps; this mip keeps the sun's forward scattering from spiking single rays
 #define GLIMMER_SKY_MIP 3.0
@@ -134,31 +134,6 @@ float GlimmerSunVisibility(float3 P, float3 N, float3 L, bool traceSWRT)
     }
 
     return shadowHit.transmittance;
-}
-
-// Terrain albedo under worldXZ from the finest level at or above minLevel that has it; alpha is 0 where no terrain patch was seen yet
-float3 GlimmerSampleGroundAlbedo(float2 worldXZ, uint minLevel, float3 fallback)
-{
-    [loop]
-    for (uint level = minLevel; level < GLIMMER_GROUND_LEVELS; level++)
-    {
-        const GlimmerGroundLevel groundLevel = constants.ground.levels[level];
-        const int2 texel = int2(floor(worldXZ * groundLevel.params.y));
-
-        if (any(texel < groundLevel.validRect.xy) || any(texel >= groundLevel.validRect.zw))
-        {
-            continue;
-        }
-
-        const float4 albedo = glimmerGroundAlbedo.Load(int4(GlimmerWrapGroundTexel(texel), level, 0));
-
-        if (albedo.a > 0.5)
-        {
-            return albedo.rgb;
-        }
-    }
-
-    return fallback;
 }
 
 // Outgoing radiance of a diffuse surface lit by the sun and by the previous frame's probes
@@ -247,7 +222,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             const float3 P = origin + direction * hitT;
 
             const float3 albedo = heightfieldHit.kind == GLIMMER_HEIGHTFIELD_GROUND
-                ? GlimmerSampleGroundAlbedo(P.xz, heightfieldHit.level, (float3)constants.volume.nearField.w)
+                ? GlimmerSampleGroundAlbedo(glimmerGroundAlbedo, constants.ground, P.xz, heightfieldHit.level, (float3)constants.volume.nearField.w)
                 : heightfieldHit.albedo;
 
             radiance = hitT <= 0.0 ? (float3)0.0 : GlimmerShadeSurface(P + heightfieldHit.normal * 0.05, heightfieldHit.normal, albedo, traceSWRT);

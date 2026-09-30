@@ -1,8 +1,7 @@
 #ifndef GLIMMER_HEIGHTFIELD_HLSLI
 #define GLIMMER_HEIGHTFIELD_HLSLI
 
-#include "../GlimmerGround.hlsli"
-#include "GlimmerSWRTCommon.hlsli"
+#include "GlimmerGround.hlsli"
 
 // The ground plus the spans of solids and canopy splatted above it; expects StructuredBuffer<uint> glimmerSpans to be declared
 
@@ -129,7 +128,7 @@ struct GlimmerHeightfieldHit
     float3 inscatter;    // light the canopy scattered toward the origin along the way
 };
 
-/*! Marches the ray through the heightfield: the ground, solid spans (blocking, but only from solidsFromT on, since SWRT covers what's
+/*! Marches the ray through the heightfield: the ground, solid spans (blocking, but only from solidsFromT on, for callers that traced what's
  *  before it) and canopy slabs, which dim the ray by their leaf area and scatter light into it when accumulateCanopy is set. */
 bool GlimmerTraceHeightfield(
     GlimmerGroundParams groundParams,

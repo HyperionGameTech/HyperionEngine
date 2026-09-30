@@ -1,0 +1,130 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+ */
+
+#pragma once
+
+#include <Rendering/RenderTypes.hpp>
+
+#include <Core/Containers/Array.hpp>
+#include <Core/Containers/FixedArray.hpp>
+
+#include <Core/Reflection/Handle.hpp>
+
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
+
+namespace Hyperion {
+
+class Texture;
+class GlimmerSurfaceCache;
+class GlimmerSpanCache;
+
+static constexpr uint32 GlimmerSHCascades = 4;
+static constexpr uint32 GlimmerSHGridXZ = 32;
+static constexpr uint32 GlimmerSHGridY = 16;
+static constexpr uint32 GlimmerSHRays = 64;
+static constexpr float GlimmerSHSpacing = 2.0f; // cascade 0, doubling per cascade
+
+// Must match GlimmerSHCascade in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
+struct GlimmerSHCascadeShaderData
+{
+    Vec4i origin; // xyz = absolute voxel of the window's first voxel, w = 1 once the cascade has a window
+    Vec4f params; // x = voxel spacing, y = 1 / spacing
+};
+
+// Must match GlimmerSHVolume in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
+struct GlimmerSHVolumeShaderData
+{
+    GlimmerSHCascadeShaderData cascades[GlimmerSHCascades];
+    Vec4u info; // x = number of cascades, w = 1 when anything has been traced
+};
+
+struct GlimmerSHVolumeUpdateInputs
+{
+    Vec3f viewerPosition;
+    const GlimmerSurfaceCache* surfaceCache = nullptr;
+    const GlimmerSpanCache* spanCache = nullptr;
+};
+
+/*! \brief Clipmap of voxels around the viewer, each holding what it sees of the sky and of the surfaces blocking it:
+ *  L1 sky visibility (canopy transmittance included), the blockers' mean albedo and how much of them the sun lights,
+ *  and per axis direction the distance moments to the nearest solid, which keep light from leaking through walls when interpolating.
+ *  Voxels are traced against the heightfield (ground + spans) only when they scroll in, plus a slow round robin refresh,
+ *  within a per frame budget; lighting relights them with the current sky and sun per pixel. Render thread only. */
+class GlimmerSHVolume
+{
+public:
+    GlimmerSHVolume();
+    GlimmerSHVolume(const GlimmerSHVolume& other) = delete;
+    GlimmerSHVolume& operator=(const GlimmerSHVolume& other) = delete;
+    ~GlimmerSHVolume();
+
+    void Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& inputs);
+
+    HYP_FORCE_INLINE bool IsReady() const
+    {
+        return m_shaderData.info.w != 0;
+    }
+
+    HYP_FORCE_INLINE const GlimmerSHVolumeShaderData& GetShaderData() const
+    {
+        return m_shaderData;
+    }
+
+    const GpuImageViewRef& GetVisibilityImageView() const;
+    const GpuImageViewRef& GetBounceImageView() const;
+    const GpuImageViewRef& GetStateImageView() const;
+
+    /*! \brief axis 0/1/2 = x/y/z */
+    const GpuImageViewRef& GetDepthImageView(uint32 axis) const;
+
+private:
+    struct Box
+    {
+        Vec3i min;
+        Vec3i max; // exclusive
+
+        HYP_FORCE_INLINE bool IsEmpty() const
+        {
+            return max.x <= min.x || max.y <= min.y || max.z <= min.z;
+        }
+
+        HYP_FORCE_INLINE Vec3i Extent() const
+        {
+            return max - min;
+        }
+
+        static Box Intersect(const Box& a, const Box& b);
+    };
+
+    struct Cascade
+    {
+        bool hasOrigin = false;
+        Vec3i origin;
+        Array<Box> pending;
+    };
+
+    static Box GetWindow(const Vec3i& origin);
+
+    void CreateResources();
+    void MoveWindow(uint32 cascadeIndex, const Vec3i& origin);
+    void DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& box, const GlimmerSHVolumeUpdateInputs& inputs, bool& inOutHasBarriers);
+
+    Handle<Texture> m_visibilityTexture;
+    Handle<Texture> m_bounceTexture;
+    Handle<Texture> m_stateTexture;
+    Handle<Texture> m_depthTextures[3];
+
+    FixedArray<Cascade, GlimmerSHCascades> m_cascades;
+
+    uint32 m_refreshCascade;
+    int32 m_refreshSlice;
+    uint32 m_updateIndex;
+
+    GlimmerSHVolumeShaderData m_shaderData;
+};
+
+} // namespace Hyperion
