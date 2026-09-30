@@ -12,6 +12,7 @@
 #include <Scene/WorldGrid/WorldGrid.hpp>
 #include <Scene/WorldGrid/WorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
+#include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -286,9 +287,55 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
     }
 }
 
+static void FillGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState& outState)
+{
+    HYP_SCOPE;
+
+    const Array<TerrainCoverLayerPlan>& plans = terrain->GetGroundCoverResources().GetPlans();
+    const Array<TerrainCoverLayer>& layers = terrain->GetGroundCoverResources().GetLayers();
+
+    for (uint32 layerIndex = 0; layerIndex < uint32(MathUtil::Min(plans.Size(), layers.Size())); layerIndex++)
+    {
+        const TerrainCoverLayerPlan& plan = plans[layerIndex];
+
+        // painted layers grow from paint that only the sim side has
+        if (plan.isPainted || plan.splatLayer >= GlimmerGroundCoverLayers)
+        {
+            continue;
+        }
+
+        GlimmerGroundCoverLayerState& coverState = outState.groundCover[plan.splatLayer];
+
+        // layers over the same splat layer hide what the others leave showing
+        coverState.coverage = 1.0f - (1.0f - coverState.coverage) * (1.0f - MathUtil::Clamp(plan.coverage, 0.0f, 1.0f));
+
+        for (uint32 typeIndex = 0; typeIndex < uint32(MathUtil::Min(plan.types.Size(), layers[layerIndex].types.Size())); typeIndex++)
+        {
+            const TerrainCoverType& type = layers[layerIndex].types[typeIndex];
+
+            for (const TerrainCoverMember& member : type.members)
+            {
+                if (!member.material.IsValid() || coverState.numMaterials >= GlimmerGroundCoverMaxMaterials)
+                {
+                    continue;
+                }
+
+                coverState.materials[coverState.numMaterials] = member.material;
+                coverState.weights[coverState.numMaterials] = plan.types[typeIndex].weight / float(MathUtil::Max(type.members.Size(), size_t(1)));
+                coverState.numMaterials++;
+            }
+        }
+    }
+}
+
 void GlimmerGroundClipmap::FillState(GlimmerChannelState& outState) const
 {
     outState.groundGeneration = m_generation;
+
+    if (m_terrain)
+    {
+        FillGroundCover(m_terrain, outState);
+    }
 
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
     {

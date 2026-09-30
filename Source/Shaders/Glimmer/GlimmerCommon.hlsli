@@ -8,6 +8,9 @@
 #define GLIMMER_GROUND_RESOLUTION 256
 #define GLIMMER_NO_GROUND_HEIGHT -60000.0
 
+// one per terrain splat layer, see GlimmerGroundCoverLayers
+#define GLIMMER_GROUND_COVER_LAYERS 4
+
 // Must match GlimmerGroundLevelShaderData in GlimmerSurfaceCache.hpp
 struct GlimmerGroundLevel
 {

@@ -216,11 +216,14 @@ bool GlimmerTraceHeightfield(
                     if (solidFill >= GLIMMER_SPAN_SOLID_THRESHOLD)
                     {
                         const bool enteredFromAbove = previousPosition.y > spanSample.solidMax;
+                        const bool enteredFromBelow = previousPosition.y < spanSample.solidMin;
 
                         hit.t = max(previousT, solidsFromT);
                         hit.kind = GLIMMER_HEIGHTFIELD_SOLID;
                         hit.level = stepLevel;
-                        hit.normal = enteredFromAbove ? float3(0.0, 1.0, 0.0) : -normalize(float3(direction.x, 0.0, direction.z) + float3(1e-5, 0.0, 0.0));
+                        hit.normal = enteredFromAbove
+                            ? float3(0.0, 1.0, 0.0)
+                            : (enteredFromBelow ? float3(0.0, -1.0, 0.0) : -normalize(float3(direction.x, 0.0, direction.z) + float3(1e-5, 0.0, 0.0)));
                         hit.albedo = spanSample.solidAlbedo;
 
                         return true;

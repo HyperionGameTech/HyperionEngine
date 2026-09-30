@@ -7,6 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
+#include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
@@ -49,6 +50,7 @@ struct GlimmerSHUpdateConstants
     GlimmerSHVolumeShaderData volume;
     GlimmerGroundShaderData ground;
     GlimmerSpanShaderData spans;
+    GlimmerSHOccupancyShaderData occupancy;
     Vec4i boxMin;      // xyz = absolute voxel of the dispatch's first voxel, w = cascade
     Vec4f rayRotation; // quaternion applied to this update's ray directions
     Vec4f params;      // x = foliage extinction, y = max ray distance, z = albedo where the ground's isn't known
@@ -244,6 +246,7 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
     constants.volume = m_shaderData;
     constants.ground = inputs.surfaceCache->GetGroundShaderData();
     constants.spans = inputs.spanCache->GetShaderData();
+    constants.occupancy = *inputs.occupancy;
     constants.boxMin = Vec4i(box.min.x, box.min.y, box.min.z, int32(cascadeIndex));
     constants.rayRotation = MakeGlimmerRandomRotation(m_updateIndex++);
     constants.params = Vec4f(
@@ -272,6 +275,7 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
     cr << SetShaderUniform(uniformIndex++, "OutDepthX"_sh, RI.textureViewCache->GetOrCreate(m_depthTextures[0]));
     cr << SetShaderUniform(uniformIndex++, "OutDepthY"_sh, RI.textureViewCache->GetOrCreate(m_depthTextures[1]));
     cr << SetShaderUniform(uniformIndex++, "OutDepthZ"_sh, RI.textureViewCache->GetOrCreate(m_depthTextures[2]));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, inputs.occupancyImageView);
 
     const Vec3i extent = box.Extent();
 
@@ -284,7 +288,7 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
 {
     HYP_SCOPE;
 
-    if (!inputs.surfaceCache || !inputs.spanCache || !inputs.spanCache->GetSpansBuffer().IsValid())
+    if (!inputs.surfaceCache || !inputs.spanCache || !inputs.spanCache->GetSpansBuffer().IsValid() || !inputs.occupancy)
     {
         return;
     }

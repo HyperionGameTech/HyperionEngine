@@ -84,12 +84,19 @@ private:
 
     void CreateTextures();
     void UploadTerrainPatches(Frame* frame, Span<const GlimmerTerrainPatchShaderData> terrainPatches);
+    void UpdateGroundCover(Frame* frame, const GlimmerChannelState& state);
     void UpdateGroundAlbedo(Frame* frame, const GlimmerChannelState& state);
 
     Handle<Texture> m_ground;
     Handle<Texture> m_groundAlbedo;
 
     GpuBufferRef m_terrainPatchesBuffer;
+
+    // per splat layer, the mean albedo of the plants its ground cover grows (a = 1 once known)
+    GpuBufferRef m_groundCoverAlbedoBuffer;
+    bool m_hasClearedGroundCover;
+    Vec4f m_groundCoverCoverage;
+
     Array<GlimmerTerrainPatchShaderData> m_uploadedTerrainPatches;
 
     GlimmerGroundShaderData m_groundShaderData;

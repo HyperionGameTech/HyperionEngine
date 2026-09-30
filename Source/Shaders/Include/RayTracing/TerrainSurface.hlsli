@@ -45,24 +45,30 @@ float3 SampleTerrainLayerAlbedo(Material material, uint layerIndex, float3 posit
     return SAMPLE_TEXTURE_2D_LOD(texture_sampler, tex, uv, TERRAIN_RAY_HIT_LOD).rgb * GetTerrainLayerTint(layerIndex);
 }
 
+// The splat weights as painted, before any sharpening; slope based where the terrain has no splat map
+float4 SampleTerrainSplatWeights(Material material, float3 normal, float2 splatTexcoord)
+{
+    if (HAS_TEXTURE(material, TerrainSplatMap))
+    {
+        return SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(material, TerrainSplatMap), splatTexcoord, 0.0);
+    }
+
+    const float rockBlend = smoothstep(TERRAIN_SLOPE_BLEND_START, TERRAIN_SLOPE_BLEND_END, saturate(1.0 - normal.y));
+
+    return float4(1.0 - rockBlend, rockBlend, 0.0, 0.0);
+}
+
 float3 SampleTerrainAlbedo(Material material, float3 position, float3 normal, float2 splatTexcoord)
 {
-    float4 weights;
+    float4 weights = SampleTerrainSplatWeights(material, normal, splatTexcoord);
 
     if (HAS_TEXTURE(material, TerrainSplatMap))
     {
-        weights = SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(material, TerrainSplatMap), splatTexcoord, 0.0);
         weights = saturate((weights - 0.5) * TERRAIN_SPLAT_SHARPNESS + 0.5);
 
         const float snowShed = smoothstep(TERRAIN_SNOW_SHED_SLOPE_START, TERRAIN_SNOW_SHED_SLOPE_END, saturate(1.0 - normal.y));
         weights.y += weights.w * snowShed;
         weights.w *= 1.0 - snowShed;
-    }
-    else
-    {
-        const float rockBlend = smoothstep(TERRAIN_SLOPE_BLEND_START, TERRAIN_SLOPE_BLEND_END, saturate(1.0 - normal.y));
-
-        weights = float4(1.0 - rockBlend, rockBlend, 0.0, 0.0);
     }
 
     const float4 hasLayerTexture = float4(

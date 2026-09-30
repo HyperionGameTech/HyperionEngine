@@ -211,6 +211,9 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerGroundAlbedo" {
             CS = "Glimmer/GlimmerGroundAlbedo.hlsl"
         }
+        ShaderDefinition "GlimmerGroundCover" {
+            CS = "Glimmer/GlimmerGroundCover.hlsl"
+        }
         ShaderDefinition "GlimmerSWRTProbeBase" {
             CS = "Glimmer/SWRT/GlimmerSWRTProbeBase.hlsl"
         }
@@ -225,6 +228,9 @@ ShaderDefinitions "ShaderDefinitions" {
         }
         ShaderDefinition "GlimmerSHUpdate" {
             CS = "Glimmer/SH/GlimmerSHUpdate.hlsl"
+        }
+        ShaderDefinition "GlimmerSHOccupancySplat" {
+            CS = "Glimmer/SH/GlimmerSHOccupancySplat.hlsl"
         }
         ShaderDefinition "CloudWeatherMap" {
             CS = "Clouds/CloudWeatherMap.hlsl"

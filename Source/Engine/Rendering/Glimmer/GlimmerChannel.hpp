@@ -11,6 +11,8 @@
 
 #include <Core/Memory/SharedPtr.hpp>
 
+#include <Core/Reflection/Handle.hpp>
+
 #include <Core/Threading/Mutex.hpp>
 
 #include <Core/Math/Vector2.hpp>
@@ -19,6 +21,7 @@
 namespace Hyperion {
 
 class World;
+class Material;
 
 static constexpr uint32 GlimmerGroundLevels = 4;
 static constexpr uint32 GlimmerGroundResolution = 256;
@@ -38,6 +41,21 @@ struct GlimmerGroundUpload
     Array<float> heights; // row major, extent.x * extent.y
 };
 
+// one per terrain splat layer (0 grass, 1 rock, 2 dirt, 3 snow)
+static constexpr uint32 GlimmerGroundCoverLayers = 4;
+static constexpr uint32 GlimmerGroundCoverMaxMaterials = 4;
+
+/*! \brief What the terrain's ground cover plants over one splat layer, so the ground albedo can take its colour. */
+struct GlimmerGroundCoverLayerState
+{
+    // how much of the ground the plants hide from above where the splat layer is full
+    float coverage = 0.0f;
+
+    uint32 numMaterials = 0;
+    FixedArray<Handle<Material>, GlimmerGroundCoverMaxMaterials> materials;
+    FixedArray<float, GlimmerGroundCoverMaxMaterials> weights {};
+};
+
 struct GlimmerGroundLevelState
 {
     Vec2i windowOrigin;
@@ -54,6 +72,8 @@ struct GlimmerChannelState
 
     // bumped whenever the terrain source is swapped or reset, so the render side drops what it has
     uint32 groundGeneration = 0;
+
+    FixedArray<GlimmerGroundCoverLayerState, GlimmerGroundCoverLayers> groundCover;
 };
 
 /*! \brief Carries per world Glimmer data from GlimmerSystem (sim thread) to GlimmerPass (render thread). */

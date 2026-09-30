@@ -18,6 +18,8 @@
 #include <Rendering/TextureViewCache.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/PlaceholderData.hpp>
+#include <Rendering/RenderProxy.hpp>
+#include <Rendering/Material.hpp>
 #include <Rendering/Frame.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
@@ -45,10 +47,22 @@ struct GlimmerGroundAlbedoConstants
     GlimmerGroundShaderData ground;
     Vec4i windowOrigins; // xy = the level's window origin, zw = its origin at the level's last fill
     Vec4u info;          // x = level, y = number of terrain patches, z = 1 when the last fill's origin is valid
+    Vec4f groundCover;   // per splat layer, how much of the ground its plants hide where the layer is full
 };
+
+// Must match GlimmerGroundCoverConstants in Shaders/Glimmer/GlimmerGroundCover.hlsl
+struct GlimmerGroundCoverConstants
+{
+    Vec4u materials[GlimmerGroundCoverLayers]; // ~0 where unused or not bound this frame
+    Vec4f weights[GlimmerGroundCoverLayers];
+};
+
+static_assert(GlimmerGroundCoverMaxMaterials == 4, "GlimmerGroundCoverConstants packs a layer's materials in a Vec4u");
 
 GlimmerSurfaceCache::GlimmerSurfaceCache()
     : m_groundShaderData {},
+      m_hasClearedGroundCover(false),
+      m_groundCoverCoverage(Vec4f::Zero()),
       m_albedoGeneration(0),
       m_albedoFillCounter(0)
 {
@@ -65,6 +79,7 @@ GlimmerSurfaceCache::~GlimmerSurfaceCache()
     m_groundAlbedo = Handle<Texture>();
 
     EnqueueDeletion(std::move(m_terrainPatchesBuffer));
+    EnqueueDeletion(std::move(m_groundCoverAlbedoBuffer));
 }
 
 void GlimmerSurfaceCache::CreateTextures()
@@ -99,6 +114,9 @@ void GlimmerSurfaceCache::CreateTextures()
 
     m_terrainPatchesBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, GlimmerMaxTerrainPatches * sizeof(GlimmerTerrainPatchShaderData), alignof(Vec4f));
     Check(m_terrainPatchesBuffer->Create());
+
+    m_groundCoverAlbedoBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, GlimmerGroundCoverLayers * sizeof(Vec4f), alignof(Vec4f));
+    Check(m_groundCoverAlbedoBuffer->Create());
 }
 
 const GpuImageViewRef& GlimmerSurfaceCache::GetGroundImageView() const
@@ -143,6 +161,80 @@ void GlimmerSurfaceCache::UploadTerrainPatches(Frame* frame, Span<const GlimmerT
     cr << InsertBarrier(m_terrainPatchesBuffer.Get(), ResourceState::CopyDst);
     cr << CopyBuffer(stagingBuffer, m_terrainPatchesBuffer.Get(), uint32(byteSize));
     cr << InsertBarrier(m_terrainPatchesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+}
+
+void GlimmerSurfaceCache::UpdateGroundCover(Frame* frame, const GlimmerChannelState& state)
+{
+    HYP_SCOPE;
+
+    CommandRecorder& cr = frame->cr;
+
+    // every layer starts unknown (alpha 0), and only takes a colour once one of its plants' materials has been bound
+    if (!m_hasClearedGroundCover)
+    {
+        m_hasClearedGroundCover = true;
+
+        const FixedArray<Vec4f, GlimmerGroundCoverLayers> unknown {};
+
+        GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(sizeof(unknown));
+        Assert(stagingBuffer != nullptr);
+
+        stagingBuffer->Copy(0, sizeof(unknown), unknown.Data());
+        stagingBuffer->Flush(0, sizeof(unknown));
+
+        cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
+        cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::CopyDst);
+        cr << CopyBuffer(stagingBuffer, m_groundCoverAlbedoBuffer.Get(), uint32(sizeof(unknown)));
+        cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    }
+
+    GlimmerGroundCoverConstants constants {};
+    bool hasAnyMaterial = false;
+
+    for (uint32 layerIndex = 0; layerIndex < GlimmerGroundCoverLayers; layerIndex++)
+    {
+        const GlimmerGroundCoverLayerState& coverState = state.groundCover[layerIndex];
+
+        m_groundCoverCoverage[layerIndex] = coverState.numMaterials != 0 ? coverState.coverage : 0.0f;
+
+        for (uint32 materialIndex = 0; materialIndex < GlimmerGroundCoverMaxMaterials; materialIndex++)
+        {
+            // only materials some render proxy list tracks have a binding; plants drawn nowhere this frame keep their last colour
+            const uint32 binding = materialIndex < coverState.numMaterials && coverState.materials[materialIndex].IsValid()
+                ? Resources::GetBinding(coverState.materials[materialIndex])
+                : ~0u;
+
+            constants.materials[layerIndex][materialIndex] = binding;
+            constants.weights[layerIndex][materialIndex] = binding != ~0u ? coverState.weights[materialIndex] : 0.0f;
+
+            hasAnyMaterial |= binding != ~0u;
+        }
+    }
+
+    if (!hasAnyMaterial)
+    {
+        return;
+    }
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    RI.cbufferAllocator->Write(&constants);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
+    cr << SetCurrentShader(ShaderDesc(NAME("GlimmerGroundCover")));
+
+    cr << SetShaderUniform(0, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    cr << SetShaderUniform(1, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
+    cr << SetShaderUniform(2, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+    cr << SetShaderUniform(3, "OutGroundCoverAlbedo"_sh, m_groundCoverAlbedoBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+
+    cr << DispatchCompute(Vec3u { 1, 1, 1 });
+
+    cr << InsertBarrier(m_groundCoverAlbedoBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
 }
 
 void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelState& state)
@@ -191,6 +283,7 @@ void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelS
         constants.ground = m_groundShaderData;
         constants.windowOrigins = Vec4i(windowOrigin.x, windowOrigin.y, albedoLevel.filledOrigin.x, albedoLevel.filledOrigin.y);
         constants.info = Vec4u(levelIndex, uint32(m_uploadedTerrainPatches.Size()), albedoLevel.hasFilled ? 1u : 0u, 0);
+        constants.groundCover = m_groundCoverCoverage;
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
@@ -206,6 +299,7 @@ void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelS
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
         cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, RI.textureViewCache->GetOrCreate(m_ground));
         cr << SetShaderUniform(uniformIndex++, "TerrainPatchesBuffer"_sh, m_terrainPatchesBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerTerrainPatchShaderData)));
+        cr << SetShaderUniform(uniformIndex++, "GroundCoverAlbedoBuffer"_sh, m_groundCoverAlbedoBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
         cr << SetShaderUniform(uniformIndex++, "OutGroundAlbedo"_sh, RI.textureViewCache->GetOrCreate(m_groundAlbedo));
 
         cr << DispatchCompute(Vec3u { GlimmerGroundResolution / GroundAlbedoGroupSize, GlimmerGroundResolution / GroundAlbedoGroupSize, 1 });
@@ -307,6 +401,7 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
     }
 
     UploadTerrainPatches(frame, terrainPatches);
+    UpdateGroundCover(frame, state);
     UpdateGroundAlbedo(frame, state);
 }
 

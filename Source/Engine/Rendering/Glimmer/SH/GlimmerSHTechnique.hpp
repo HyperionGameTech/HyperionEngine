@@ -14,8 +14,10 @@
 namespace Hyperion {
 
 class GlimmerSHVolume;
+class GlimmerSHOccupancy;
 
-/*! \brief Glimmer's SH flavour: a clipmap of sky visibility and blocker albedo, traced against the heightfield (ground and spans) only
+/*! \brief Glimmer's SH flavour: a clipmap of sky visibility and blocker albedo, traced against an occupancy clipmap of the scene's solids
+ *  (splatted from their BLAS triangles, so overhangs stay open) and the heightfield (ground, canopy, and solids beyond the clipmap) only
  *  when voxels scroll in or come up for a slow refresh, and relit per pixel with the current sky and sun. Traces no BVH, so it asks the
  *  scene for none (the default GetTracedRegion()). Render thread only. */
 class GlimmerSHTechnique final : public GlimmerTechnique
@@ -43,6 +45,7 @@ public:
     virtual bool RenderDebugView(const GlimmerDebugViewContext& context) override;
 
 private:
+    UniquePtr<GlimmerSHOccupancy> m_occupancy;
     UniquePtr<GlimmerSHVolume> m_volume;
 };
 

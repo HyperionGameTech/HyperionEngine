@@ -123,12 +123,18 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
         const float voxelToPointLength = length(voxelToPoint);
         const float visibility = voxelToPointLength > 1e-3 ? GlimmerSHVoxelVisibility(texel, voxelToPoint, voxelToPointLength) : 1.0;
 
-        const float weight = trilinear.x * trilinear.y * trilinear.z * (facing * facing + 0.05) * visibility;
+        // like DDGI, weights are crushed rather than dropped: where every voxel around P is blocked they still blend evenly,
+        // instead of P falling through to the next cascade with a seam
+        float weight = trilinear.x * trilinear.y * trilinear.z * (facing * facing + 0.05) * visibility;
 
-        if (weight <= 1e-6)
+        const float crushThreshold = 0.2;
+
+        if (weight < crushThreshold)
         {
-            continue;
+            weight *= weight * weight / (crushThreshold * crushThreshold);
         }
+
+        weight = max(weight, 1e-6);
 
         visibilitySum += glimmerSHVisibility.Load(int4(texel, 0)) * weight;
         bounceSum += bounce * weight;
@@ -201,9 +207,9 @@ float4 EvaluateGlimmerTechnique(GlimmerTechniqueApply techniqueApply, float3 P, 
     const float openSky = max(0.5 + 0.5 * N.y, 0.05);
     const float3 sky = GlimmerSHSkyIrradiance(N) * saturate(skySeen / openSky);
 
-    // blockers reflect the sun where it reaches them and about half the sky
+    // blockers reflect the sky they face (already in bounce.rgb) and the sun where it reaches them
     const float3 sunIrradiance = world_shader_data.sun_color.rgb * world_shader_data.sun_direction_intensity.w;
-    const float3 blockerLighting = sunIrradiance * saturate(bounce.a) * 0.31830988618 + GlimmerSHSkyIrradiance(float3(0.0, 1.0, 0.0)) * 0.5;
+    const float3 blockerLighting = GlimmerSHSkyIrradiance(float3(0.0, 1.0, 0.0)) + sunIrradiance * max(bounce.a, 0.0) * 0.31830988618;
     const float3 bounceLight = blockedSeen * min(bounce.rgb, (float3)GLIMMER_SH_MAX_ALBEDO) * blockerLighting;
 
     return float4(sky + bounceLight, coverage);

@@ -556,6 +556,9 @@ void TerrainGroundCoverResources::Resolve()
 
             plan.spacing = (weightedFootprint / totalWeight) * s_spacingPerFootprint / MathUtil::Sqrt(MathUtil::Max(coverLayer.density, 0.01f));
 
+            // spacing closes the gaps between clumps at density 1; sparser layers leave ground showing in proportion
+            plan.coverage = MathUtil::Clamp(coverLayer.density, 0.0f, 1.0f);
+
             m_layers.PushBack(std::move(layer));
             m_plans.PushBack(std::move(plan));
         }

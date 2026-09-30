@@ -30,6 +30,7 @@ public:
     /*! \brief Moves the windows with the viewer and samples up to the frame's budget. */
     void Update(World* world, const Vec3f& viewerPosition, Array<GlimmerGroundUpload>& outUploads);
 
+    /*! \brief Also fills in the terrain's ground cover. */
     void FillState(GlimmerChannelState& outState) const;
 
     HYP_FORCE_INLINE uint32 GetGeneration() const

@@ -8,6 +8,7 @@
 
 #include <Rendering/Glimmer/SH/GlimmerSHTechnique.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
+#include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 
@@ -36,7 +37,8 @@ GlimmerSceneRegionParams GlimmerSHTechnique::GetSceneRegionParams()
 }
 
 GlimmerSHTechnique::GlimmerSHTechnique()
-    : m_volume(MakeUnique<GlimmerSHVolume>())
+    : m_occupancy(MakeUnique<GlimmerSHOccupancy>()),
+      m_volume(MakeUnique<GlimmerSHVolume>())
 {
 }
 
@@ -51,10 +53,14 @@ void GlimmerSHTechnique::Update(const GlimmerTechniqueUpdateContext& context)
 
     if (context.updateLighting && context.surfaceCache && context.spanCache)
     {
+        m_occupancy->Update(context.frame, context.channelState->viewerPosition, *context.tlas, *context.blasCache);
+
         GlimmerSHVolumeUpdateInputs inputs;
         inputs.viewerPosition = context.channelState->viewerPosition;
         inputs.surfaceCache = context.surfaceCache;
         inputs.spanCache = context.spanCache;
+        inputs.occupancy = &m_occupancy->GetShaderData();
+        inputs.occupancyImageView = m_occupancy->GetImageView();
 
         m_volume->Update(context.frame, inputs);
     }

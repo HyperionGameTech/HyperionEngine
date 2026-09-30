@@ -13,6 +13,7 @@ struct GlimmerGroundAlbedoConstants
     GlimmerGroundParams ground;
     int4 windowOrigins; // xy = the level's window origin, zw = its origin at the level's last fill
     uint4 info;         // x = level, y = number of terrain patches, z = 1 when the last fill's origin is valid
+    float4 groundCover; // per splat layer, how much of the ground its plants hide where the layer is full
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerGroundAlbedo, CBuffer) cbuffer CBuffer
@@ -30,6 +31,7 @@ DECLARE_SAMPLER(GlimmerGroundAlbedo, SamplerLinearMipmap) SamplerState glimmerMa
 
 DECLARE_SRV(GlimmerGroundAlbedo, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerGroundAlbedo, TerrainPatchesBuffer) StructuredBuffer<GlimmerTerrainPatch> terrainPatches;
+DECLARE_SRV(GlimmerGroundAlbedo, GroundCoverAlbedoBuffer) StructuredBuffer<float4> groundCoverAlbedo; // rgb, a = 1 once known
 
 DECLARE_UAV(GlimmerGroundAlbedo, OutGroundAlbedo) RWTexture2DArray<float4> OutGroundAlbedo;
 
@@ -57,6 +59,33 @@ float GlimmerLoadNeighbourHeight(GlimmerGroundLevel groundLevel, uint level, int
     return GlimmerLoadGroundHeight(groundLevel, level, texel, height) ? height : centerHeight;
 }
 
+// where the splat grows ground cover, what's seen from above is the plants rather than the soil under them; this matches how the grass
+// planter thins its patches out across a splat edge
+float3 GlimmerApplyGroundCover(float3 terrainAlbedo, float4 splatWeights)
+{
+    float4 cover = smoothstep(0.3, 0.8, splatWeights) * constants.groundCover;
+
+    float3 coverAlbedo = (float3)0.0;
+
+    [unroll]
+    for (uint layerIndex = 0; layerIndex < GLIMMER_GROUND_COVER_LAYERS; layerIndex++)
+    {
+        const float4 layerAlbedo = groundCoverAlbedo[layerIndex];
+
+        cover[layerIndex] *= layerAlbedo.a;
+        coverAlbedo += layerAlbedo.rgb * cover[layerIndex];
+    }
+
+    const float coverSum = cover.x + cover.y + cover.z + cover.w;
+
+    if (coverSum <= 1e-4)
+    {
+        return terrainAlbedo;
+    }
+
+    return lerp(terrainAlbedo, coverAlbedo / coverSum, saturate(coverSum));
+}
+
 float3 GlimmerSamplePatchAlbedo(GlimmerTerrainPatch patch, float3 P, float3 N)
 {
     const Material material = materials[patch.data.x];
@@ -76,7 +105,7 @@ float3 GlimmerSamplePatchAlbedo(GlimmerTerrainPatch patch, float3 P, float3 N)
     float2 splatTexcoord = saturate((objectXZ + 0.5) / max(splatSize, 1.0));
     splatTexcoord.y = 1.0 - splatTexcoord.y;
 
-    return SampleTerrainAlbedo(material, P, N, splatTexcoord);
+    return GlimmerApplyGroundCover(SampleTerrainAlbedo(material, P, N, splatTexcoord), SampleTerrainSplatWeights(material, N, splatTexcoord));
 #else
     return material.albedo.rgb;
 #endif

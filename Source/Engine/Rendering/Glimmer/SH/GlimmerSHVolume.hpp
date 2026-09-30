@@ -21,6 +21,7 @@ namespace Hyperion {
 class Texture;
 class GlimmerSurfaceCache;
 class GlimmerSpanCache;
+struct GlimmerSHOccupancyShaderData;
 
 static constexpr uint32 GlimmerSHCascades = 4;
 static constexpr uint32 GlimmerSHGridXZ = 32;
@@ -47,12 +48,15 @@ struct GlimmerSHVolumeUpdateInputs
     Vec3f viewerPosition;
     const GlimmerSurfaceCache* surfaceCache = nullptr;
     const GlimmerSpanCache* spanCache = nullptr;
+
+    const GlimmerSHOccupancyShaderData* occupancy = nullptr;
+    GpuImageViewRef occupancyImageView;
 };
 
 /*! \brief Clipmap of voxels around the viewer, each holding what it sees of the sky and of the surfaces blocking it:
  *  L1 sky visibility (canopy transmittance included), the blockers' mean albedo and how much of them the sun lights,
  *  and per axis direction the distance moments to the nearest solid, which keep light from leaking through walls when interpolating.
- *  Voxels are traced against the heightfield (ground + spans) only when they scroll in, plus a slow round robin refresh,
+ *  Voxels are traced against the occupancy clipmap and the heightfield (ground + spans) only when they scroll in, plus a slow round robin refresh,
  *  within a per frame budget; lighting relights them with the current sky and sun per pixel. Render thread only. */
 class GlimmerSHVolume
 {

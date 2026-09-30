@@ -4,7 +4,8 @@
 // Clipmap of GLIMMER_SH_CASCADES cascades of GRID_XZ x GRID_Y x GRID_XZ voxels around the viewer, world aligned, each cascade twice the
 // spacing of the last. Stored toroidally in Texture3Ds of GRID_XZ x (CASCADES * GRID_Y) x GRID_XZ:
 //  visibility = L1 of sky visibility, cosine convolved: the fraction of the sky a surface facing n sees is v.x + dot(v.yzw, n)
-//  bounce     = rgb: mean albedo of what blocks the sky, a: how much of it the sun lights (N.L and shadow), or -1 inside the ground or a solid
+//  bounce     = rgb: albedo of what blocks the sky, weighted by how much sky each blocker faces; a: the sun's share (N.L and shadow)
+//               relative to that, or -1 inside the ground or a solid
 //  state      = the absolute voxel it was traced for (GlimmerSHPackVoxel), so voxels that scrolled in and aren't traced yet read as empty
 //  depth x/y/z = per axis direction (+, -), the mean and mean square distance to the ground or a solid, in voxels and capped at
 //                GLIMMER_SH_DEPTH_RANGE: lighting uses them to drop voxels that can't see the surface being lit (the far side of a wall)
