@@ -96,14 +96,9 @@ float GetGlimmerSHOccupancySpacing(uint32 cascadeIndex)
     return 0.5f * GetGlimmerSHCascadeSpacing(cascadeIndex);
 }
 
-float GetGlimmerProbeCascadeSpacing(uint32 cascadeIndex)
+float GetGlimmerProbeLevelSpacing(uint32 levelIndex)
 {
-    return 2.0f * float(1u << cascadeIndex);
-}
-
-uint32 GetGlimmerProbeCascadeUpdatePeriod(uint32 cascadeIndex)
-{
-    return 2u << MathUtil::Max(cascadeIndex, 1u);
+    return 2.0f * float(1u << levelIndex);
 }
 
 Vec4f MakeGlimmerRandomRotation(uint32 seed)

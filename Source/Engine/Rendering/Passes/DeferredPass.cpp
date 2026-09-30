@@ -2258,6 +2258,12 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
+    // a capture armed on any other View (the editor's CaptureViewport command) takes what the View shows
+    if (!(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW) && view->thumbnailCaptureState != nullptr && view->thumbnailCaptureState->IsRequested())
+    {
+        view->thumbnailCaptureState->CaptureFrom(frame, finalImageView, finalImageView);
+    }
+
     if (view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
     {
         if (view->thumbnailCaptureState != nullptr)

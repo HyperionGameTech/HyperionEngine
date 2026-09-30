@@ -15,6 +15,7 @@
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 
 #include <Rendering/DebugDrawer.hpp>
+#include <Rendering/Vertex.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/Camera/Camera.hpp>
@@ -33,32 +34,47 @@
 
 namespace Hyperion {
 
-// a quarter of a probe's rays on back faces puts it inside a solid
-static constexpr float ProbeDebugInsideBackfaceFraction = 0.25f;
+HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const GlimmerProbeDebugRecord& record, const Vec3f& viewerPosition, float exposure)
 {
-    if (record.info.x == 0)
+    const uint32 probeState = record.info.x & 0xFFu;
+
+    if (probeState == GPS_BURIED)
+    {
+        return Color::Red();
+    }
+
+    if (probeState == GPS_INSIDE)
+    {
+        return Color::Magenta();
+    }
+
+    if (record.info.w == 0)
     {
         return Color(0.35f, 0.35f, 0.35f);
     }
 
     if (mode == GlimmerSWRTDebugProbes::Status)
     {
-        if (record.info.z != 0)
+        const float spacing = GetGlimmerProbeLevelSpacing(uint32(record.position.w));
+        const Vec3f position = record.position.GetXYZ();
+
+        // off its grid point: moved out of a solid, or off a surface it sat against
+        const Vec3f gridPoint = Vec3f(
+            (MathUtil::Floor(position.x / spacing) + 0.5f) * spacing,
+            (MathUtil::Floor(position.y / spacing) + 0.5f) * spacing,
+            (MathUtil::Floor(position.z / spacing) + 0.5f) * spacing);
+
+        if (position.Distance(gridPoint) > 0.05f * spacing)
         {
-            return Color::Red();
+            return Color::Cyan();
         }
 
-        const float backfaceFraction = float(record.info.y) / float(GlimmerProbeRays);
+        // green, through yellow as more of its rays hit back faces (a quarter of them moves it)
+        const float backfaceFraction = float(record.info.y) / float(MathUtil::Max(record.info.z, 1u));
 
-        if (backfaceFraction >= ProbeDebugInsideBackfaceFraction)
-        {
-            return Color::Magenta();
-        }
-
-        // green, through yellow as more of its rays hit back faces
-        return Color(backfaceFraction / ProbeDebugInsideBackfaceFraction, 1.0f, 0.0f);
+        return Color(MathUtil::Min(backfaceFraction / 0.25f, 1.0f), 1.0f, 0.0f);
     }
 
     Vec3f irradiance = Vec3f(record.sh[0].x, record.sh[1].x, record.sh[2].x);
@@ -89,6 +105,24 @@ static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const Glimme
         irradiance.x / (1.0f + irradiance.x),
         irradiance.y / (1.0f + irradiance.y),
         irradiance.z / (1.0f + irradiance.z));
+}
+
+static RenderableAttributeSet MakeProbeBlockDebugAttributes()
+{
+    RenderableAttributeSet attributes;
+
+    MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
+    meshAttributes.inputLayout = StaticVertexInputLayout<VT_Simple>;
+    meshAttributes.topology = Topology::Triangles;
+
+    MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+    materialAttributes.bucket = RenderBucket::Debug;
+    materialAttributes.fillMode = FillMode::Line;
+    materialAttributes.cullFaces = FaceCullMode::None;
+    materialAttributes.blendFunction = BlendFunction::None();
+    materialAttributes.flags = MAF_DEPTH_TEST | MAF_DEPTH_WRITE;
+
+    return attributes;
 }
 
 GlimmerSystem::GlimmerSystem()
@@ -318,39 +352,116 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
     }
 
     // leaves the last readback in place when there's no newer one
-    m_channel->ConsumeProbeDebug(m_probeDebugRecords);
+    const bool hasNewRecords = m_channel->ConsumeProbeDebug(m_probeDebugRecords);
 
     if (m_probeDebugRecords.Empty())
     {
         return;
     }
 
-    const int cascadeFilter = g_cvGlimmerSWRTDebugProbesCascade.Get();
+    // a summary now and then, for looking at the probes without a screen
+    if (hasNewRecords && ++m_probeDebugLogCounter % 60 == 1)
+    {
+        uint32 blocks[GlimmerProbeLevels] = {};
+        uint32 states[4] = {};
+        uint32 updated = 0;
+        uint32 relocated = 0;
+        float luminanceSum = 0.0f;
+
+        for (uint32 recordIndex = 0; recordIndex < uint32(m_probeDebugRecords.Size()); recordIndex++)
+        {
+            const GlimmerProbeDebugRecord& record = m_probeDebugRecords[recordIndex];
+
+            if (record.position.w < 0.0f)
+            {
+                continue;
+            }
+
+            const uint32 levelIndex = MathUtil::Min(uint32(record.position.w), GlimmerProbeLevels - 1);
+
+            if (recordIndex % GlimmerProbesPerBlock == 0)
+            {
+                blocks[levelIndex]++;
+            }
+
+            const uint32 probeState = record.info.x & 0xFFu;
+
+            states[MathUtil::Min(probeState, 3u)]++;
+
+            if (probeState == GPS_ACTIVE && record.info.w != 0)
+            {
+                updated++;
+                luminanceSum += record.sh[0].x * 0.2126f + record.sh[1].x * 0.7152f + record.sh[2].x * 0.0722f;
+
+                const float spacing = GetGlimmerProbeLevelSpacing(levelIndex);
+                const Vec3f position = record.position.GetXYZ();
+                const Vec3f gridPoint = Vec3f(
+                    (MathUtil::Floor(position.x / spacing) + 0.5f) * spacing,
+                    (MathUtil::Floor(position.y / spacing) + 0.5f) * spacing,
+                    (MathUtil::Floor(position.z / spacing) + 0.5f) * spacing);
+
+                relocated += position.Distance(gridPoint) > 0.05f * spacing ? 1 : 0;
+            }
+        }
+
+        HYP_LOG(Rendering, Info, "Glimmer probes: blocks {}/{} (L0/L1), active {} (updated {}, moved {}), buried {}, inside {}, mean luminance {}, viewer {}",
+            blocks[0], blocks[1], states[GPS_ACTIVE], updated, relocated, states[GPS_BURIED], states[GPS_INSIDE],
+            updated != 0 ? luminanceSum / float(updated) : 0.0f, viewerPosition);
+    }
+
+    const int levelFilter = g_cvGlimmerSWRTDebugProbesLevel.Get();
     const float radius = g_cvGlimmerSWRTDebugProbesRadius.Get();
     const float exposure = g_cvGlimmerSWRTDebugProbesExposure.Get();
 
+    static const RenderableAttributeSet s_blockAttributes = MakeProbeBlockDebugAttributes();
+
     DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
-    for (uint32 recordIndex = 0; recordIndex < uint32(m_probeDebugRecords.Size()); recordIndex++)
+    for (uint32 slot = 0; slot < uint32(m_probeDebugRecords.Size()) / GlimmerProbesPerBlock; slot++)
     {
-        const uint32 cascadeIndex = recordIndex / GlimmerProbesPerCascade;
+        const GlimmerProbeDebugRecord& firstRecord = m_probeDebugRecords[slot * GlimmerProbesPerBlock];
 
-        if (cascadeFilter >= 0 && int(cascadeIndex) != cascadeFilter)
+        if (firstRecord.position.w < 0.0f)
         {
             continue;
         }
 
-        const GlimmerProbeDebugRecord& record = m_probeDebugRecords[recordIndex];
-        const Vec3f position = record.position.GetXYZ();
+        const uint32 levelIndex = uint32(firstRecord.position.w);
 
-        if (position.Distance(viewerPosition) > radius)
+        if (levelFilter >= 0 && int(levelIndex) != levelFilter)
         {
             continue;
         }
 
-        const Color color = GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes(mode), record, viewerPosition, exposure);
+        const float spacing = GetGlimmerProbeLevelSpacing(levelIndex);
+        const float blockSize = spacing * float(GlimmerProbeBlock);
 
-        dbg.sphere(position, 0.1f * GetGlimmerProbeCascadeSpacing(cascadeIndex), color);
+        // the first probe of a block is its corner one, so its grid point gives the block
+        const Vec3f firstPosition = firstRecord.position.GetXYZ();
+        const Vec3f blockCenter = Vec3f(
+            (MathUtil::Floor(firstPosition.x / blockSize) + 0.5f) * blockSize,
+            (MathUtil::Floor(firstPosition.y / blockSize) + 0.5f) * blockSize,
+            (MathUtil::Floor(firstPosition.z / blockSize) + 0.5f) * blockSize);
+
+        if (blockCenter.Distance(viewerPosition) > radius + blockSize)
+        {
+            continue;
+        }
+
+        dbg.box(Transform(blockCenter, Vec3f(blockSize * 0.5f), Quat4f::Identity()), levelIndex == 0 ? Color::White() : Color(1.0f, 0.6f, 0.1f), s_blockAttributes);
+
+        for (uint32 probe = 0; probe < GlimmerProbesPerBlock; probe++)
+        {
+            const GlimmerProbeDebugRecord& record = m_probeDebugRecords[slot * GlimmerProbesPerBlock + probe];
+            const Vec3f position = record.position.GetXYZ();
+
+            if (position.Distance(viewerPosition) > radius)
+            {
+                continue;
+            }
+
+            dbg.sphere(position, 0.1f * spacing, GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes(mode), record, viewerPosition, exposure));
+        }
     }
 }
 

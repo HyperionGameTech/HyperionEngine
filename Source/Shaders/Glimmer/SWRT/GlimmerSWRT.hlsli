@@ -19,6 +19,16 @@
 #define GLIMMER_SWRT_BLAS_STACK_SIZE 32
 #endif
 
+// a well formed BVH is walked in far fewer steps; the caps keep a walk through one being rewritten (a BLAS evicted and its pool space
+// reused while an older TLAS still points at it) from spinning until the GPU times out
+#ifndef GLIMMER_SWRT_MAX_BLAS_STEPS
+#define GLIMMER_SWRT_MAX_BLAS_STEPS 4096
+#endif
+
+#ifndef GLIMMER_SWRT_MAX_TLAS_STEPS
+#define GLIMMER_SWRT_MAX_TLAS_STEPS 1024
+#endif
+
 #define GLIMMER_SWRT_INVALID_INDEX 0xFFFFFFFFu
 
 struct GlimmerSWRTHit
@@ -105,7 +115,7 @@ void GlimmerTraverseBLAS(
     uint nodeIndex = 0;
 
     [loop]
-    while (true)
+    for (uint blasStep = 0; blasStep < GLIMMER_SWRT_MAX_BLAS_STEPS; blasStep++)
     {
         stats.nodeVisits++;
 
@@ -227,7 +237,7 @@ bool TraceGlimmerSWRT(
     uint nodeIndex = 0;
 
     [loop]
-    while (true)
+    for (uint tlasStep = 0; tlasStep < GLIMMER_SWRT_MAX_TLAS_STEPS; tlasStep++)
     {
         stats.nodeVisits++;
 

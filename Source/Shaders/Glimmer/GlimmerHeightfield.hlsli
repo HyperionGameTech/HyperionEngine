@@ -93,7 +93,7 @@ float GlimmerSpanSolidFill(GlimmerSpanSample spanSample, float texelSize)
 {
     const float thickness = max(spanSample.solidMax - spanSample.solidMin, texelSize);
 
-    return spanSample.solidity * texelSize / (3.14159265 * thickness);
+    return spanSample.solidity * texelSize / (HYP_FMATH_PI * thickness);
 }
 
 // Length of the segment from height y0 to y1 (over segmentLength) that lies within [spanMin, spanMax]

@@ -136,6 +136,7 @@ float4 GlimmerBlendFarField(float4 nearField, float4 farField)
     const float farWeight = farField.a * (1.0 - nearField.a);
     const float weight = nearField.a + farWeight;
 
+    // @TODO no branch
     if (weight <= 1e-4)
     {
         return (float4)0.0;

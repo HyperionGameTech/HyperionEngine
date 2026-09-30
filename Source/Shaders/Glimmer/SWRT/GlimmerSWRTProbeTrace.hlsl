@@ -37,9 +37,8 @@ struct GlimmerProbeTraceConstants
     GlimmerProbeVolume volume;
     GlimmerGroundParams ground;
     GlimmerSpanParams spans;
-    uint4 dispatch; // y = sky probe color texture index (~0 without one)
+    uint4 dispatch; // x = probes traced per frame at most, y = sky probe color texture index (~0 without one)
     float4 sky;     // x = sky probe diffuse strength, y = foliage extinction
-    uint4 cascadeDispatches[GLIMMER_PROBE_CASCADES]; // x = GLIMMER_PROBE_DISPATCH_*, y = slice period | slice << 16, z = probes
     GlimmerFootprintMaskParams mask;
     GlimmerSHVolume sh;  // the far field, sampled where a ray's hit is past the probes
     EnvProbe skyProbe;   // its spherical harmonics relight the SH voxels; textureIndices is ~0 without a sky probe
@@ -74,9 +73,13 @@ DECLARE_SRV(GlimmerProbeTrace, GlimmerGroundAlbedoTexture) Texture2DArray<float4
 DECLARE_SRV(GlimmerProbeTrace, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
 DECLARE_SRV(GlimmerProbeTrace, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
 
-DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSHTexture) Texture3D<float4> glimmerProbeSH;
-DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeStateTexture) Texture3D<uint2> glimmerProbeState;
-DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeBaseTexture) Texture2DArray<float> glimmerProbeBase;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeBlockTableBuffer) StructuredBuffer<uint> glimmerProbeBlockTable;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSHBuffer) StructuredBuffer<float4> glimmerProbeSH;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeStatesBuffer) StructuredBuffer<uint4> glimmerProbeStates;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeVisibilityBuffer) StructuredBuffer<float4> glimmerProbeVisibility;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> glimmerProbeSlots;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeUpdateListBuffer) StructuredBuffer<uint> glimmerProbeUpdateList;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeCountersBuffer) StructuredBuffer<uint> glimmerProbeCounters;
 
 DECLARE_SRV(GlimmerProbeTrace, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
 
@@ -103,6 +106,11 @@ DECLARE_UAV(GlimmerProbeTrace, RayHits) RWStructuredBuffer<GlimmerProbeRayHit> R
 
 float3 GlimmerSkyRadiance(float3 direction);
 
+// what lights a canopy from around it changes slowly along a ray, so it's looked up once per ray rather than at every canopy step
+// (a probe lookup per step made rays through forests slow enough to hang the GPU); reset before each heightfield trace
+static float3 g_canopySurroundings = (float3)0.0;
+static bool g_hasCanopySurroundings = false;
+
 // Leaves scatter light both ways, so a canopy element is lit by the sun (dimmed by the leaves above it) and by its surroundings
 float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float extinction)
 {
@@ -118,8 +126,15 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
         radiance += sunIrradiance * sunTransmittance * (0.5 * 0.31830988618);
     }
 
-    const float4 surroundings = SampleGlimmerProbes(constants.volume, P, float3(0.0, 1.0, 0.0));
-    radiance += surroundings.a > 0.0 ? surroundings.rgb : GlimmerSkyRadiance(float3(0.0, 1.0, 0.0)) * 0.5;
+    if (!g_hasCanopySurroundings)
+    {
+        const float4 surroundings = SampleGlimmerProbes(constants.volume, P, float3(0.0, 1.0, 0.0));
+
+        g_canopySurroundings = surroundings.a > 0.0 ? surroundings.rgb : GlimmerSkyRadiance(float3(0.0, 1.0, 0.0)) * 0.5;
+        g_hasCanopySurroundings = true;
+    }
+
+    radiance += g_canopySurroundings;
 
     return min(albedo, (float3)0.9) * radiance;
 }
@@ -134,7 +149,7 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 // SWRT shadow rays toward the sun only need to reach past nearby occluders; the heightfield handles the terrain beyond
 #define GLIMMER_SUN_SWRT_DISTANCE 256.0
 
-// the footprint mask level rays walk: a cascade's rays walk cells as wide as its probe spacing, and sun rays (which are long) 4 m cells
+// the footprint mask level rays walk: a level's rays walk cells as wide as its probe spacing, and sun rays (which are long) 4 m cells
 #define GLIMMER_MASK_RAY_LEVEL_BIAS 1
 #define GLIMMER_SUN_MASK_LEVEL 2
 
@@ -232,9 +247,9 @@ float3 GlimmerShadeSurface(float3 P, float3 N, float3 albedo, bool traceSWRT)
 
 #endif // MODE_SHADE
 
-// a lane per ray, and as many probes as fill a wave of 32 (Must match GlimmerProbeRays and ProbesPerTraceGroup in GlimmerSWRTProbeVolume)
-#define RAYS_PER_PROBE 16
-#define PROBES_PER_GROUP 2
+// a lane per ray, a probe per group (Must match GlimmerProbeRays and ProbesPerTraceGroup in GlimmerSWRTProbeVolume)
+#define RAYS_PER_PROBE 32
+#define PROBES_PER_GROUP 1
 
 void GlimmerWriteRayHit(uint rayRecordIndex, float3 P, float3 N, float hitT, uint flags, float3 albedo, GlimmerHeightfieldHit heightfieldHit)
 {
@@ -250,30 +265,21 @@ void GlimmerWriteRayHit(uint rayRecordIndex, float3 P, float3 N, float hitT, uin
 [numthreads(RAYS_PER_PROBE * PROBES_PER_GROUP, 1, 1)]
 void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    // a row of groups per cascade
-    const uint cascadeIndex = groupId.y;
-    const uint4 cascadeDispatch = constants.cascadeDispatches[cascadeIndex];
-    const uint2 slice = uint2(cascadeDispatch.y & 0xFFFFu, cascadeDispatch.y >> 16);
+    // a group per listed probe; the list can hold more than the budget, the rest wait for a later frame
+    const uint listIndex = groupId.x * PROBES_PER_GROUP + groupIndex / RAYS_PER_PROBE;
 
-    const uint dispatchedIndex = groupId.x * PROBES_PER_GROUP + groupIndex / RAYS_PER_PROBE;
-
-    if (dispatchedIndex >= cascadeDispatch.z)
+    if (listIndex >= min(glimmerProbeCounters[0], constants.dispatch.x))
     {
         return;
     }
 
-    const uint probeIndex = GlimmerDispatchedProbe(dispatchedIndex, cascadeDispatch.x, slice);
     const uint rayLane = groupIndex % RAYS_PER_PROBE;
-
-    // ray records of every cascade, one after another
-    const uint probeRecord = cascadeIndex * GLIMMER_PROBES_PER_CASCADE + probeIndex;
-
-#if defined(MODE_SHADE)
     const uint numRays = constants.volume.info.y;
 
+#if defined(MODE_SHADE)
     for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
     {
-        const uint rayRecordIndex = probeRecord * numRays + rayIndex;
+        const uint rayRecordIndex = listIndex * numRays + rayIndex;
         const GlimmerProbeRayHit rayHit = RayHits[rayRecordIndex];
 
         const uint flags = asuint(rayHit.normalFlags.w);
@@ -288,37 +294,18 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         OutRays[rayRecordIndex] = float4(rayHit.inscatter.rgb + rayHit.albedoTransmittance.a * radiance, rayHit.positionT.w);
     }
 #else
-    const GlimmerProbeCascade cascade = constants.volume.cascades[cascadeIndex];
+    const uint probeIndex = glimmerProbeUpdateList[listIndex];
+    const int4 slot = glimmerProbeSlots[probeIndex / GLIMMER_PROBES_PER_BLOCK];
+    const uint levelIndex = uint(slot.w);
 
-    int2 localColumn;
-    uint layer;
-    GlimmerProbeFromIndex(probeIndex, localColumn, layer);
+    const GlimmerProbeLevel level = constants.volume.levels[levelIndex];
+    const float3 origin = GlimmerProbePosition(constants.volume, probeIndex, slot, glimmerProbeStates[probeIndex]);
 
-    const int2 column = cascade.gridOrigin.xy + localColumn;
-    const float3 origin = GlimmerProbePosition(cascade, cascadeIndex, column, layer);
-
-    const uint numRays = constants.volume.info.y;
     const uint numInstances = uint(constants.volume.nearField.z);
 
-    // a cascade that scrolled needs the probes it gained, besides this frame's slice; the rest keep what they have
-    if (cascadeDispatch.x == GLIMMER_PROBE_DISPATCH_SCROLLED && !GlimmerIsProbeInSlice(probeIndex, slice))
-    {
-        const uint2 state = glimmerProbeState.Load(int4(GlimmerProbeTexel(cascadeIndex, column, layer), 0));
-
-        if (GlimmerIsSameColumn(state.x, column) && abs(asfloat(state.y) - origin.y) <= 0.25 * cascade.params.y)
-        {
-            for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
-            {
-                RayHits[probeRecord * numRays + rayIndex].normalFlags.w = asfloat(GLIMMER_RAY_HIT_DONE);
-            }
-
-            return;
-        }
-    }
-
     // whether hits get sun shadows from SWRT (the shade pass asks the footprint mask before tracing)
-    const bool swrtEnabled = numInstances != 0u && float(cascadeIndex) < constants.volume.nearField.x;
-    const float swrtReach = constants.volume.nearField.y * cascade.params.x;
+    const bool swrtEnabled = numInstances != 0u && float(levelIndex) < constants.volume.nearField.x;
+    const float swrtReach = constants.volume.nearField.y * level.params.x;
 
     const float maxDistance = constants.volume.params.w;
 
@@ -326,15 +313,15 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const float swrtRange = min(swrtReach, maxDistance);
     const bool traceSWRT = swrtEnabled && GlimmerMaskAnyInBox(constants.mask, origin.xz - swrtRange, origin.xz + swrtRange, origin.y - swrtRange, origin.y + swrtRange);
 
-    const uint maskLevel = cascadeIndex + GLIMMER_MASK_RAY_LEVEL_BIAS;
+    const uint maskLevel = levelIndex + GLIMMER_MASK_RAY_LEVEL_BIAS;
 
-    // coarse cascades march the heightfield with coarse steps
-    const uint startLevel = uint(clamp(int(cascadeIndex) - 2, 0, GLIMMER_GROUND_LEVELS - 1));
+    // the probes are all near the viewer, so their rays march the heightfield from its finest level
+    const uint startLevel = 0u;
 
     for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
     {
-        const float3 direction = GlimmerProbeRayDirection(constants.volume, rayIndex);
-        const uint rayRecordIndex = probeRecord * numRays + rayIndex;
+        const float3 direction = GlimmerProbeRayDirection(constants.volume, probeIndex, rayIndex);
+        const uint rayRecordIndex = listIndex * numRays + rayIndex;
 
         float hitT = maxDistance;
         float3 radiance = (float3)0.0;
@@ -367,6 +354,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         const float solidsFromT = traceRay ? swrtCovered : 0.0;
 
         GlimmerHeightfieldHit heightfieldHit;
+
+        g_hasCanopySurroundings = false;
+
         const bool hitHeightfield = GlimmerTraceHeightfield(constants.ground, constants.spans, origin, direction, hitT, startLevel, solidsFromT, constants.sky.y, true, heightfieldHit);
 
         if (hitHeightfield)

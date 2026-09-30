@@ -17,10 +17,16 @@
 
 #include <Rendering/Shader.hpp>
 #include <Rendering/Shared.hpp>
+#include <Rendering/CrashHandler.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
 #include <algorithm>
+
+#if defined(HYP_AFTERMATH) && HYP_AFTERMATH
+#include <Aftermath/GFSDK_Aftermath.h>
+#include <Aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h>
+#endif
 
 #include <DX12ComputePipeline.generated.inl>
 
@@ -82,6 +88,15 @@ RendererResult DX12ComputePipeline::Create()
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create compute pipeline state", res);
     }
+
+#if defined(HYP_AFTERMATH) && HYP_AFTERMATH
+    GFSDK_Aftermath_ShaderBinaryHash binaryHash = {};
+
+    if (GFSDK_Aftermath_SUCCEED(GFSDK_Aftermath_GetShaderHash(GFSDK_Aftermath_Version_API, &psoDesc.CS, &binaryHash)))
+    {
+        CrashHandler::RegisterShaderBinary(binaryHash.hash, shaderInstance->GetShader()->GetName());
+    }
+#endif
 #ifdef HYP_RHI_DEBUG_NAMES
     if (Name debugName = GetDebugName())
     {

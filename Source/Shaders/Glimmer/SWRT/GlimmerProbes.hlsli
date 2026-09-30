@@ -3,122 +3,140 @@
 
 #include "GlimmerProbeTypes.hlsli"
 
-float GlimmerProbeColumnBase(uint cascadeIndex, int2 column)
+// slot: xyz = the block's absolute coordinate, w = its level (-1 for a free slot)
+float3 GlimmerProbePosition(GlimmerProbeVolume volume, uint probeIndex, int4 slot, uint4 state)
 {
-    return glimmerProbeBase.Load(int4(GlimmerWrapProbeColumn(column), cascadeIndex, 0));
-}
+    const GlimmerProbeLevel level = volume.levels[slot.w];
+    const int3 probeCoord = GlimmerProbeCoord(slot.xyz, GlimmerLocalProbeOf(probeIndex));
 
-float3 GlimmerProbeColumnCenter(GlimmerProbeCascade cascade, int2 column)
-{
-    const float2 xz = (float2(column) + 0.5) * cascade.params.x;
-
-    return float3(xz.x, 0.0, xz.y);
-}
-
-float3 GlimmerProbePosition(GlimmerProbeCascade cascade, uint cascadeIndex, int2 column, uint layer)
-{
-    float3 position = GlimmerProbeColumnCenter(cascade, column);
-    position.y = GlimmerProbeColumnBase(cascadeIndex, column) + cascade.params.y * GlimmerProbeLayerHeights[layer];
-
-    return position;
+    return GlimmerProbeGridPosition(level, probeCoord) + GlimmerUnpackProbeOffset(state.y) * level.params.x;
 }
 
 #ifndef GLIMMER_PROBES_NO_SAMPLING
 
-float GlimmerSampleCascade(GlimmerProbeVolume volume, uint cascadeIndex, float3 P, float3 N, out float3 outIrradiance)
+// expects these declared: StructuredBuffer<uint> glimmerProbeBlockTable, StructuredBuffer<float4> glimmerProbeSH (3 per probe),
+// StructuredBuffer<uint4> glimmerProbeStates, StructuredBuffer<float4> glimmerProbeVisibility (3 per probe)
+
+// Chebyshev bound on how likely the probe sees a point this far (in spacings) toward it, from the depth moments of its rays that way
+float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanceInSpacings)
+{
+    if (distanceInSpacings < 1e-4)
+    {
+        return 1.0;
+    }
+
+    // each axis contributes by how much of the direction is along it, so there are no hard lines where two axes tie
+    const float3 axisWeights = probeToPoint * probeToPoint / (distanceInSpacings * distanceInSpacings);
+
+    float2 moments = (float2)0.0;
+
+    [unroll]
+    for (uint axis = 0; axis < 3; axis++)
+    {
+        const float4 depth = glimmerProbeVisibility[probeIndex * 3u + axis];
+
+        moments += (probeToPoint[axis] < 0.0 ? depth.zw : depth.xy) * axisWeights[axis];
+    }
+
+    if (distanceInSpacings <= moments.x)
+    {
+        return 1.0;
+    }
+
+    const float variance = max(moments.y - moments.x * moments.x, 1e-3);
+    const float difference = distanceInSpacings - moments.x;
+    const float chebyshev = variance / (variance + difference * difference);
+
+    // sharpened, as DDGI does, so a mostly blocked direction still rejects
+    return max(chebyshev * chebyshev * chebyshev, 0.0);
+}
+
+/*! One level's irradiance / pi at P, from the probes of its allocated blocks around P that are active and can see P.
+ *  \return how much this level covers P: fades out where the corner probes are missing or can't see P, and toward the window's edge */
+float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 N, out float3 outIrradiance)
 {
     outIrradiance = (float3)0.0;
 
-    const GlimmerProbeCascade cascade = volume.cascades[cascadeIndex];
+    const GlimmerProbeLevel level = volume.levels[levelIndex];
 
-    if (cascade.gridOrigin.z == 0)
+    if (level.windowOrigin.w == 0)
     {
         return 0.0;
     }
 
-    const float spacing = cascade.params.x;
-    const float layerScale = cascade.params.y;
+    const float spacing = level.params.x;
 
-    const float2 gridCoord = P.xz / spacing - 0.5;
-    const int2 column0 = int2(floor(gridCoord));
-    const float2 columnFraction = gridCoord - float2(column0);
+    const float3 gridCoord = P * level.params.y - 0.5;
+    const int3 probeCoord0 = int3(floor(gridCoord));
+    const float3 fraction = gridCoord - float3(probeCoord0);
 
-    const int2 local0 = column0 - cascade.gridOrigin.xy;
+    // fade over the window's outer block, so the next level takes over smoothly as the window scrolls
+    const float3 windowCoord = gridCoord + 0.5 - float3(level.windowOrigin.xyz * GLIMMER_PROBE_BLOCK);
+    const float3 edgeDistance = min(windowCoord, float(GLIMMER_PROBE_WINDOW * GLIMMER_PROBE_BLOCK) - windowCoord);
+    const float windowFade = saturate((min(edgeDistance.x, min(edgeDistance.y, edgeDistance.z)) - 1.0) / float(GLIMMER_PROBE_BLOCK));
 
-    if (any(local0 < 0) || any(local0 >= GLIMMER_PROBE_GRID - 1))
+    if (windowFade <= 0.0)
     {
         return 0.0;
     }
 
-    // fade over the outer columns so the next cascade takes over smoothly
-    const float2 edgeDistance = min(float2(local0) + columnFraction, float2(GLIMMER_PROBE_GRID - 2, GLIMMER_PROBE_GRID - 2) - float2(local0) - columnFraction);
-    const float horizontalWeight = saturate(min(edgeDistance.x, edgeDistance.y) / 3.0);
-
-    const float base00 = GlimmerProbeColumnBase(cascadeIndex, column0);
-    const float base10 = GlimmerProbeColumnBase(cascadeIndex, column0 + int2(1, 0));
-    const float base01 = GlimmerProbeColumnBase(cascadeIndex, column0 + int2(0, 1));
-    const float base11 = GlimmerProbeColumnBase(cascadeIndex, column0 + int2(1, 1));
-
-    const float base = lerp(lerp(base00, base10, columnFraction.x), lerp(base01, base11, columnFraction.x), columnFraction.y);
-
-    const float heightAboveBase = (P.y - base) / layerScale;
-
-    // above the top layer, hand over to a coarser cascade
-    const float verticalWeight = saturate((GlimmerProbeLayerHeights[GLIMMER_PROBE_LAYERS - 1] * 1.25 - heightAboveBase) / (GlimmerProbeLayerHeights[GLIMMER_PROBE_LAYERS - 1] * 0.25));
-
-    if (horizontalWeight * verticalWeight <= 0.0)
-    {
-        return 0.0;
-    }
-
-    const float layerCoord = clamp(log(max(heightAboveBase, 1.0)) / log(3.0), 0.0, float(GLIMMER_PROBE_LAYERS - 1));
-    const uint layer0 = min(uint(layerCoord), GLIMMER_PROBE_LAYERS - 2);
-    const float layerFraction = layerCoord - float(layer0);
+    // the point tested for visibility sits a little off the surface, so rays that end on the surface itself don't count against it
+    const float3 visibilityPoint = P + N * (0.2 * spacing);
 
     float4 sumR = (float4)0.0;
     float4 sumG = (float4)0.0;
     float4 sumB = (float4)0.0;
     float weightSum = 0.0;
+    float visibleCoverage = 0.0;
 
     [unroll]
     for (uint corner = 0; corner < 8; corner++)
     {
-        const int2 offset = int2(corner & 1u, (corner >> 1) & 1u);
-        const uint layerOffset = (corner >> 2) & 1u;
+        const int3 offset = int3(corner & 1u, (corner >> 1) & 1u, (corner >> 2) & 1u);
+        const int3 probeCoord = probeCoord0 + offset;
+        const int3 block = probeCoord >> 2;
 
-        const int2 column = column0 + offset;
-        const uint layer = layer0 + layerOffset;
-
-        const uint3 texel = GlimmerProbeTexel(cascadeIndex, column, layer);
-
-        // only probes traced for this column hold anything meaningful
-        const uint2 state = glimmerProbeState.Load(int4(texel, 0));
-
-        if (!GlimmerIsSameColumn(state.x, column))
+        if (!GlimmerIsBlockInWindow(level, block))
         {
             continue;
         }
 
-        const float3 probePosition = float3(GlimmerProbeColumnCenter(cascade, column).x, asfloat(state.y), GlimmerProbeColumnCenter(cascade, column).z);
+        const uint slot = glimmerProbeBlockTable[GlimmerProbeBlockTableIndex(levelIndex, block)];
+
+        if (slot == GLIMMER_PROBE_NO_SLOT)
+        {
+            continue;
+        }
+
+        const uint probeIndex = GlimmerProbeIndex(slot, probeCoord & (GLIMMER_PROBE_BLOCK - 1));
+        const uint4 state = glimmerProbeStates[probeIndex];
+
+        if (GlimmerProbeStateOf(state) != GLIMMER_PROBE_STATE_ACTIVE || GlimmerProbeUpdates(state) == 0u)
+        {
+            continue;
+        }
+
+        const float3 probePosition = GlimmerProbeGridPosition(level, probeCoord) + GlimmerUnpackProbeOffset(state.y) * spacing;
+
+        const float3 trilinear = lerp(1.0 - fraction, fraction, float3(offset));
+        const float trilinearWeight = trilinear.x * trilinear.y * trilinear.z;
+
         const float3 toProbe = probePosition - P;
         const float toProbeLength = length(toProbe);
 
-        const float3 trilinear = float3(
-            offset.x != 0 ? columnFraction.x : 1.0 - columnFraction.x,
-            offset.y != 0 ? columnFraction.y : 1.0 - columnFraction.y,
-            layerOffset != 0 ? layerFraction : 1.0 - layerFraction);
-
-        float weight = trilinear.x * trilinear.y * trilinear.z;
-
         // probes behind the surface see what's behind it
         const float backface = toProbeLength > 1e-4 ? (dot(toProbe / toProbeLength, N) + 1.0) * 0.5 : 1.0;
-        weight *= backface * backface + 0.2;
 
-        weight = max(weight, 1e-6);
+        const float3 probeToPoint = visibilityPoint - probePosition;
+        const float visibility = GlimmerProbeVisibility(probeIndex, probeToPoint, length(probeToPoint) / spacing);
 
-        sumR += glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 0u), 0)) * weight;
-        sumG += glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 1u), 0)) * weight;
-        sumB += glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 2u), 0)) * weight;
+        const float weight = trilinearWeight * (backface * backface + 0.2) * visibility;
+
+        visibleCoverage += trilinearWeight * visibility;
+
+        sumR += glimmerProbeSH[probeIndex * 3u + 0u] * weight;
+        sumG += glimmerProbeSH[probeIndex * 3u + 1u] * weight;
+        sumB += glimmerProbeSH[probeIndex * 3u + 2u] * weight;
         weightSum += weight;
     }
 
@@ -129,9 +147,10 @@ float GlimmerSampleCascade(GlimmerProbeVolume volume, uint cascadeIndex, float3 
 
     outIrradiance = GlimmerEvaluateL1(sumR / weightSum, sumG / weightSum, sumB / weightSum, N);
 
-    return horizontalWeight * verticalWeight;
+    return smoothstep(0.3, 0.7, visibleCoverage) * windowFade;
 }
 
+/*! Irradiance / pi from the probe blocks at P, finest level first, with how much they cover P as .a */
 float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
 {
     if (volume.info.w == 0u)
@@ -143,18 +162,18 @@ float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
     float remaining = 1.0;
 
     [loop]
-    for (uint cascadeIndex = 0; cascadeIndex < volume.info.x && remaining > 1e-3; cascadeIndex++)
+    for (uint levelIndex = 0; levelIndex < volume.info.x && remaining > 1e-3; levelIndex++)
     {
-        float3 cascadeIrradiance;
-        const float cascadeWeight = GlimmerSampleCascade(volume, cascadeIndex, P, N, cascadeIrradiance);
+        float3 levelIrradiance;
+        const float levelWeight = GlimmerSampleProbeLevel(volume, levelIndex, P, N, levelIrradiance);
 
-        if (cascadeWeight <= 0.0)
+        if (levelWeight <= 0.0)
         {
             continue;
         }
 
-        irradiance += cascadeIrradiance * cascadeWeight * remaining;
-        remaining *= 1.0 - cascadeWeight;
+        irradiance += levelIrradiance * levelWeight * remaining;
+        remaining *= 1.0 - levelWeight;
     }
 
     const float coverage = 1.0 - remaining;
@@ -168,6 +187,5 @@ float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
 }
 
 #endif // GLIMMER_PROBES_NO_SAMPLING
-
 
 #endif

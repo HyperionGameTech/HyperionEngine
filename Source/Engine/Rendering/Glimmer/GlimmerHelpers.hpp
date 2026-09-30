@@ -61,8 +61,7 @@ float GetGlimmerSWRTRadius(const BoundingBox& sceneRegion);
 float GetGlimmerSHCascadeSpacing(uint32 cascadeIndex);
 float GetGlimmerSHOccupancySpacing(uint32 cascadeIndex);
 
-float GetGlimmerProbeCascadeSpacing(uint32 cascadeIndex);
-uint32 GetGlimmerProbeCascadeUpdatePeriod(uint32 cascadeIndex);
+float GetGlimmerProbeLevelSpacing(uint32 levelIndex);
 
 /*! \brief Uniformly random rotation quaternion (Shoemake), so each update's ray set samples new directions.
  *  Pairs with GlimmerRotateByQuaternion in Shaders/Glimmer/GlimmerCommon.hlsli. */

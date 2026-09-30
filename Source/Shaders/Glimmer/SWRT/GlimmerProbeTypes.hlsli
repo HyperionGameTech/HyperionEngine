@@ -3,141 +3,171 @@
 
 #include "../GlimmerCommon.hlsli"
 
-// Terrain following probe clipmap, Glimmer's near field: GLIMMER_PROBE_CASCADES cascades of GRID x GRID columns with LAYERS probes each,
-// stored toroidally in Texture3Ds of GRID x (CASCADES * LAYERS) x GRID. Past them the SH voxels (GlimmerSHCommon.hlsli) take over.
-// Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n): one float4
-// per colour channel, in a single Texture3D of GRID x (CASCADES * LAYERS) x (3 * GRID) with a GRID deep slab per channel (GlimmerProbeSHTexel).
+// Glimmer's near field: sparse blocks of probes around the static solids near the viewer. Probes sit on a world aligned grid, one per
+// level (2 m, then 4 m), grouped into blocks of 4x4x4. Each level keeps a window of 8x8x8 blocks around the viewer, and a block of it
+// only gets probes (a slot of the pool) where there are solids nearby; everywhere else lighting falls through to the SH voxels.
+// Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n), one float4
+// per colour channel, plus depth moments along each axis to keep light from leaking through walls.
 
-#define GLIMMER_PROBE_CASCADES 2
-#define GLIMMER_PROBE_GRID 32
-#define GLIMMER_PROBE_LAYERS 4
-#define GLIMMER_PROBES_PER_CASCADE (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID * GLIMMER_PROBE_LAYERS)
+#define GLIMMER_PROBE_LEVELS 2
+#define GLIMMER_PROBE_BLOCK 4
+#define GLIMMER_PROBES_PER_BLOCK 64
+#define GLIMMER_PROBE_WINDOW 8
+#define GLIMMER_PROBE_WINDOW_BLOCKS 512
+#define GLIMMER_PROBE_POOL_BLOCKS 128
+#define GLIMMER_PROBE_POOL_PROBES (GLIMMER_PROBE_POOL_BLOCKS * GLIMMER_PROBES_PER_BLOCK)
 
-// Must match GlimmerProbeDispatchMode in GlimmerSWRTProbeVolume.cpp
-#define GLIMMER_PROBE_DISPATCH_ALL 0u     // every probe
-#define GLIMMER_PROBE_DISPATCH_SCROLLED 1u // every probe, but only those that scrolled in or are in the slice do anything
-#define GLIMMER_PROBE_DISPATCH_SLICE 2u    // only the slice's probes, one after another
+#define GLIMMER_PROBE_NO_SLOT 0xFFFFFFFFu
 
-// A cascade updates a slice of its probes each frame rather than all of them every few frames, so light changes creep in
-// rather than stepping. Slices are made of 2x2 column tiles (16 probes, traced together for coherence): every period-th tile
-// of a scrambled order (a bijection on the 8 bit tile index: multiply, xorshift, multiply), so each slice is spread evenly
-// over the cascade rather than bunched into a stripe
-#define GLIMMER_PROBE_TILES_X (GLIMMER_PROBE_GRID / 2)
-#define GLIMMER_PROBE_TILE_MASK (GLIMMER_PROBE_TILES_X * GLIMMER_PROBE_TILES_X - 1u)
-#define GLIMMER_PROBES_PER_TILE (4u * GLIMMER_PROBE_LAYERS)
+// Must match GlimmerProbeState in GlimmerSWRTProbeVolume.hpp
+#define GLIMMER_PROBE_STATE_FREE 0u
+#define GLIMMER_PROBE_STATE_ACTIVE 1u
+#define GLIMMER_PROBE_STATE_BURIED 2u  // under the ground; never traced
+#define GLIMMER_PROBE_STATE_INSIDE 3u  // inside a solid even after moving; traced now and then to see if it got out
 
-uint GlimmerProbeTileOrder(uint tile)
+// distances the depth moments hold, in probe spacings; the lookup never asks past the far corner of a cell
+#define GLIMMER_PROBE_DEPTH_RANGE 2.0
+
+// how far a probe may be moved off its grid point, per axis, in spacings
+#define GLIMMER_PROBE_MAX_OFFSET 0.45
+
+// Must match GlimmerProbeLevelShaderData in GlimmerSWRTProbeVolume.hpp
+struct GlimmerProbeLevel
 {
-    uint x = (tile * 181u) & GLIMMER_PROBE_TILE_MASK;
-    x ^= x >> 4;
-
-    return (x * 109u) & GLIMMER_PROBE_TILE_MASK;
-}
-
-uint GlimmerProbeTileFromOrder(uint order)
-{
-    uint x = (order * 101u) & GLIMMER_PROBE_TILE_MASK; // 109^-1 mod 256
-    x ^= x >> 4;
-
-    return (x * 157u) & GLIMMER_PROBE_TILE_MASK; // 181^-1 mod 256
-}
-
-// slice: x = period, y = the slice updated this frame
-bool GlimmerIsProbeInSlice(uint probeIndex, uint2 slice)
-{
-    const uint columnIndex = probeIndex % (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID);
-    const uint2 column = uint2(columnIndex % GLIMMER_PROBE_GRID, columnIndex / GLIMMER_PROBE_GRID);
-    const uint tile = (column.y / 2u) * GLIMMER_PROBE_TILES_X + column.x / 2u;
-
-    return GlimmerProbeTileOrder(tile) % slice.x == slice.y;
-}
-
-// the probe a dispatch's index-th thread (or group) handles: in a slice, a tile's probes one after another, layers first
-uint GlimmerDispatchedProbe(uint index, uint mode, uint2 slice)
-{
-    if (mode != GLIMMER_PROBE_DISPATCH_SLICE)
-    {
-        return index;
-    }
-
-    const uint layer = index % GLIMMER_PROBE_LAYERS;
-    const uint tileColumn = (index / GLIMMER_PROBE_LAYERS) % 4u;
-    const uint tile = GlimmerProbeTileFromOrder((index / GLIMMER_PROBES_PER_TILE) * slice.x + slice.y);
-
-    const uint2 column = uint2((tile % GLIMMER_PROBE_TILES_X) * 2u + (tileColumn & 1u), (tile / GLIMMER_PROBE_TILES_X) * 2u + (tileColumn >> 1));
-
-    return layer * (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID) + column.y * GLIMMER_PROBE_GRID + column.x;
-}
-
-// Must match GlimmerProbeCascadeShaderData in GlimmerSWRTProbeVolume.hpp
-struct GlimmerProbeCascade
-{
-    int4 gridOrigin; // xy = absolute column of the grid's first column, z = 1 once the cascade has been traced
-    float4 params;   // x = column spacing, y = layer scale, z = hysteresis while the light holds, w = hysteresis when it changes
+    int4 windowOrigin; // xyz = absolute block of the window's first block, w = 1 once it has been allocated
+    float4 params;     // x = probe spacing, y = 1 / spacing
 };
 
 // Must match GlimmerProbeVolumeShaderData in GlimmerSWRTProbeVolume.hpp
 struct GlimmerProbeVolume
 {
-    GlimmerProbeCascade cascades[GLIMMER_PROBE_CASCADES];
-    uint4 info;          // x = number of cascades, y = rays per probe, z = frame, w = 1 when the volume can be sampled
-    float4 rayRotation;  // quaternion applied to this frame's ray directions
-    float4 params;       // x = base height where there's no ground, y = unused, z = escape radiance clamp, w = max ray distance
-    float4 nearField;    // x = cascades traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
+    GlimmerProbeLevel levels[GLIMMER_PROBE_LEVELS];
+    uint4 info;       // x = number of levels, y = rays per probe, z = frame, w = 1 when the volume can be sampled
+    float4 params;    // x = seconds since the volume started, y = unused, z = escape radiance clamp, w = max ray distance
+    float4 nearField; // x = levels traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 
-static const float GlimmerProbeLayerHeights[GLIMMER_PROBE_LAYERS] = { 1.0, 3.0, 9.0, 27.0 };
+// A probe's state: x = state (bits 0-3) | relocation attempts (4-5) | updates since it was placed (8-13) | back face rays of its last
+// update (16-23) | rays of its last update that started inside the ground or a solid span (24-31), y = offset from its grid point (3 x 10 bit snorm of GLIMMER_PROBE_MAX_OFFSET spacings), z = time of its last update
+// (float bits), w = how many updates in a row the estimate sat on the same side of the history (signed)
+#define GLIMMER_PROBE_MAX_UPDATES 63u
 
-// A probe's state: x = column (14 bits each, plenty to tell apart the columns that share a texel) | updates since it was placed
-// (top 4 bits, saturating), y = height (as float bits)
-#define GLIMMER_PROBE_COLUMN_MASK 0x0FFFFFFFu
-#define GLIMMER_PROBE_MAX_UPDATES 15u
-
-uint GlimmerPackColumn(int2 column)
+uint GlimmerProbeStateOf(uint4 state)
 {
-    return (uint(column.x) & 0x3FFFu) | ((uint(column.y) & 0x3FFFu) << 14);
+    return state.x & 0xFu;
 }
 
-bool GlimmerIsSameColumn(uint stateX, int2 column)
+uint GlimmerProbeRelocations(uint4 state)
 {
-    return (stateX & GLIMMER_PROBE_COLUMN_MASK) == GlimmerPackColumn(column);
+    return (state.x >> 4) & 0x3u;
 }
 
-uint GlimmerProbeUpdates(uint stateX)
+uint GlimmerProbeUpdates(uint4 state)
 {
-    return stateX >> 28;
+    return (state.x >> 8) & 0x3Fu;
 }
 
-uint2 GlimmerWrapProbeColumn(int2 column)
+uint GlimmerProbeBackfaces(uint4 state)
 {
-    return uint2(column & (GLIMMER_PROBE_GRID - 1));
+    return (state.x >> 16) & 0xFFu;
 }
 
-uint3 GlimmerProbeTexel(uint cascadeIndex, int2 column, uint layer)
+uint GlimmerProbeStartsInside(uint4 state)
 {
-    const uint2 wrapped = GlimmerWrapProbeColumn(column);
-
-    return uint3(wrapped.x, cascadeIndex * GLIMMER_PROBE_LAYERS + layer, wrapped.y);
+    return (state.x >> 24) & 0xFFu;
 }
 
-// where a probe's texel (GlimmerProbeTexel) is in the SH texture's slab for channel 0/1/2 = r/g/b
-uint3 GlimmerProbeSHTexel(uint3 texel, uint channel)
+uint GlimmerPackProbeFlags(uint probeState, uint relocations, uint updates, uint backfaces, uint startsInside = 0u)
 {
-    return uint3(texel.xy, channel * GLIMMER_PROBE_GRID + texel.z);
+    return (probeState & 0xFu) | ((relocations & 0x3u) << 4) | ((min(updates, GLIMMER_PROBE_MAX_UPDATES) & 0x3Fu) << 8) | ((min(backfaces, 255u) & 0xFFu) << 16)
+        | ((min(startsInside, 255u) & 0xFFu) << 24);
 }
 
-float3 GlimmerProbeRayDirection(GlimmerProbeVolume volume, uint rayIndex)
+// offset in spacings
+uint GlimmerPackProbeOffset(float3 offset)
 {
-    return normalize(GlimmerRotateByQuaternion(volume.rayRotation, GlimmerSphericalFibonacci(rayIndex, volume.info.y)));
+    const int3 quantized = int3(round(clamp(offset / GLIMMER_PROBE_MAX_OFFSET, -1.0, 1.0) * 511.0));
+
+    return (uint(quantized.x) & 0x3FFu) | ((uint(quantized.y) & 0x3FFu) << 10) | ((uint(quantized.z) & 0x3FFu) << 20);
 }
 
-// probes of a cascade are dispatched in this order: layer major, then z, then x
-void GlimmerProbeFromIndex(uint probeIndex, out int2 outLocalColumn, out uint outLayer)
+float3 GlimmerUnpackProbeOffset(uint packed)
 {
-    outLayer = probeIndex / (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID);
+    // sign extend each 10 bit field
+    const int3 quantized = int3(int(packed << 22) >> 22, int(packed << 12) >> 22, int(packed << 2) >> 22);
 
-    const uint columnIndex = probeIndex % (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID);
-    outLocalColumn = int2(columnIndex % GLIMMER_PROBE_GRID, columnIndex / GLIMMER_PROBE_GRID);
+    return float3(quantized) / 511.0 * GLIMMER_PROBE_MAX_OFFSET;
+}
+
+// the block table holds a slot (or GLIMMER_PROBE_NO_SLOT) per block of each level's window, addressed by the block's absolute coordinate
+uint GlimmerProbeBlockTableIndex(uint levelIndex, int3 block)
+{
+    const uint3 wrapped = uint3(block & (GLIMMER_PROBE_WINDOW - 1));
+
+    return levelIndex * GLIMMER_PROBE_WINDOW_BLOCKS + (wrapped.z * GLIMMER_PROBE_WINDOW + wrapped.y) * GLIMMER_PROBE_WINDOW + wrapped.x;
+}
+
+bool GlimmerIsBlockInWindow(GlimmerProbeLevel level, int3 block)
+{
+    const int3 local = block - level.windowOrigin.xyz;
+
+    return level.windowOrigin.w != 0 && all(local >= 0) && all(local < GLIMMER_PROBE_WINDOW);
+}
+
+// the index of a probe of a slot, x fastest
+uint GlimmerProbeIndex(uint slot, int3 localProbe)
+{
+    return slot * GLIMMER_PROBES_PER_BLOCK + uint((localProbe.z * GLIMMER_PROBE_BLOCK + localProbe.y) * GLIMMER_PROBE_BLOCK + localProbe.x);
+}
+
+int3 GlimmerLocalProbeOf(uint probeIndex)
+{
+    const uint local = probeIndex % GLIMMER_PROBES_PER_BLOCK;
+
+    return int3(local % GLIMMER_PROBE_BLOCK, (local / GLIMMER_PROBE_BLOCK) % GLIMMER_PROBE_BLOCK, local / (GLIMMER_PROBE_BLOCK * GLIMMER_PROBE_BLOCK));
+}
+
+// absolute probe coordinate on its level's grid
+int3 GlimmerProbeCoord(int3 block, int3 localProbe)
+{
+    return block * GLIMMER_PROBE_BLOCK + localProbe;
+}
+
+float3 GlimmerProbeGridPosition(GlimmerProbeLevel level, int3 probeCoord)
+{
+    return (float3(probeCoord) + 0.5) * level.params.x;
+}
+
+uint GlimmerProbeHash(uint value)
+{
+    value ^= value >> 16;
+    value *= 0x7FEB352Du;
+    value ^= value >> 15;
+    value *= 0x846CA68Bu;
+    value ^= value >> 16;
+
+    return value;
+}
+
+// a uniformly random rotation per probe and frame, so neighbouring probes never make the same error in the same frame
+float4 GlimmerProbeRayRotation(uint probeIndex, uint frame)
+{
+    const uint seed = GlimmerProbeHash(probeIndex * 0x9E3779B9u + frame * 0x85EBCA6Bu);
+
+    const float u1 = float(GlimmerProbeHash(seed) & 0xFFFFFFu) / 16777216.0;
+    const float u2 = float(GlimmerProbeHash(seed + 1u) & 0xFFFFFFu) / 16777216.0;
+    const float u3 = float(GlimmerProbeHash(seed + 2u) & 0xFFFFFFu) / 16777216.0;
+
+    const float a = sqrt(1.0 - u1);
+    const float b = sqrt(u1);
+    const float twoPi = 6.28318530718;
+
+    return float4(a * sin(twoPi * u2), a * cos(twoPi * u2), b * sin(twoPi * u3), b * cos(twoPi * u3));
+}
+
+float3 GlimmerProbeRayDirection(GlimmerProbeVolume volume, uint probeIndex, uint rayIndex)
+{
+    return normalize(GlimmerRotateByQuaternion(GlimmerProbeRayRotation(probeIndex, volume.info.z), GlimmerSphericalFibonacci(rayIndex, volume.info.y)));
 }
 
 float3 GlimmerEvaluateL1(float4 shR, float4 shG, float4 shB, float3 N)
@@ -145,6 +175,15 @@ float3 GlimmerEvaluateL1(float4 shR, float4 shG, float4 shB, float3 N)
     const float4 basis = float4(1.0, N);
 
     return max(float3(dot(shR, basis), dot(shG, basis), dot(shB, basis)), 0.0);
+}
+
+// which of the six axis directions (+x, -x, +y, ...) a direction is closest to
+uint GlimmerProbeDirectionBin(float3 direction)
+{
+    const float3 absDirection = abs(direction);
+    const uint axis = (absDirection.x >= absDirection.y && absDirection.x >= absDirection.z) ? 0u : (absDirection.y >= absDirection.z ? 1u : 2u);
+
+    return axis * 2u + (direction[axis] < 0.0 ? 1u : 0u);
 }
 
 #endif

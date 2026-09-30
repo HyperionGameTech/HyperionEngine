@@ -9,6 +9,8 @@
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeDebug.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
+#include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
+#include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -23,13 +25,15 @@
 
 namespace Hyperion {
 
-static constexpr uint32 NumProbeDebugRecords = GlimmerProbeCascades * GlimmerProbesPerCascade;
+static constexpr uint32 NumProbeDebugRecords = GlimmerProbePoolProbes;
 static constexpr uint32 ProbeDebugGroupSize = 64;
 
 // Must match GlimmerProbeDebugConstants in Shaders/Glimmer/SWRT/GlimmerSWRTProbeDebug.hlsl
 struct GlimmerProbeDebugConstants
 {
     GlimmerProbeVolumeShaderData volume;
+    GlimmerGroundShaderData ground;
+    GlimmerSHOccupancyShaderData occupancy;
 };
 
 GlimmerSWRTProbeDebug::GlimmerSWRTProbeDebug()
@@ -83,11 +87,11 @@ void GlimmerSWRTProbeDebug::Reset()
     }
 }
 
-void GlimmerSWRTProbeDebug::Update(Frame* frame, const GlimmerSWRTProbeVolume& probeVolume, GlimmerChannel& channel)
+void GlimmerSWRTProbeDebug::Update(Frame* frame, const GlimmerSWRTProbeVolume& probeVolume, const GlimmerSurfaceCache& surfaceCache, const GlimmerSHOccupancy& occupancy, GlimmerChannel& channel)
 {
     HYP_SCOPE;
 
-    if (!probeVolume.IsReady() || !probeVolume.GetRaysBuffer().IsValid())
+    if (!probeVolume.IsReady())
     {
         return;
     }
@@ -117,6 +121,8 @@ void GlimmerSWRTProbeDebug::Update(Frame* frame, const GlimmerSWRTProbeVolume& p
 
     GlimmerProbeDebugConstants constants {};
     constants.volume = probeVolume.GetShaderData();
+    constants.ground = surfaceCache.GetGroundShaderData();
+    constants.occupancy = occupancy.GetShaderData();
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferOffset = 0;
@@ -134,13 +140,14 @@ void GlimmerSWRTProbeDebug::Update(Frame* frame, const GlimmerSWRTProbeVolume& p
     uint32 uniformIndex = 0;
 
     cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-    cr << SetShaderUniform(uniformIndex++, "Rays"_sh, probeVolume.GetRaysBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHTexture"_sh, probeVolume.GetSHImageView());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, probeVolume.GetStateImageView());
-    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, probeVolume.GetBaseImageView());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, probeVolume.GetSHBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume.GetStatesBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4u)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, probeVolume.GetSlotsBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4i)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, surfaceCache.GetGroundImageView());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, occupancy.GetImageView());
     cr << SetShaderUniform(uniformIndex++, "OutRecords"_sh, m_recordsBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerProbeDebugRecord)));
 
-    cr << DispatchCompute(Vec3u { (GlimmerProbesPerCascade + ProbeDebugGroupSize - 1) / ProbeDebugGroupSize, GlimmerProbeCascades, 1 });
+    cr << DispatchCompute(Vec3u { (NumProbeDebugRecords + ProbeDebugGroupSize - 1) / ProbeDebugGroupSize, 1, 1 });
 
     cr << InsertBarrier(m_recordsBuffer.Get(), ResourceState::CopySrc, ShaderModuleType::Compute);
     cr << InsertBarrier(readbackBuffer.Get(), ResourceState::CopyDst, ShaderModuleType::Compute);

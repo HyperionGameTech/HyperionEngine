@@ -87,7 +87,7 @@ void GlimmerTechnique::WriteApplyShaderData(CBufferAllocator& cbufferAllocator, 
 
     if (technique)
     {
-        if (technique->m_probeVolume->IsReady())
+        if (technique->m_probeVolume->IsReady() && g_cvGlimmerSWRTProbesEnabled.Get())
         {
             probeShaderData = technique->m_probeVolume->GetShaderData();
         }
@@ -108,18 +108,21 @@ uint32 GlimmerTechnique::BindApplyResources(CommandRecorder& cr, uint32 uniformI
     const GlimmerSHVolume* shVolume = technique ? technique->m_shVolume.Get() : nullptr;
 
     // in the order GlimmerSWRTApply.hlsli and GlimmerSHApply.hlsli declare them
-    if (probeVolume && probeVolume->IsReady())
+    if (probeVolume)
     {
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHTexture"_sh, probeVolume->GetSHImageView());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, probeVolume->GetStateImageView());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, probeVolume->GetBaseImageView());
+        // placeholders until the volume has buffers; the zeroed constants tell lighting to skip the probes until it's ready
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, probeVolume->GetBlockTableBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, probeVolume->GetSHBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, probeVolume->GetStatesBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4u)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, probeVolume->GetVisibilityBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4f)));
     }
     else
     {
-        // never sampled: the zeroed constants tell lighting to skip the probes
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.placeholderData->GetImageView2D1x1R8Array());
+        // any structured buffer will do, as the zeroed constants keep lighting from reading it
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
     }
 
     if (shVolume)
@@ -197,6 +200,8 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
 
         // near field
         GlimmerSWRTProbeUpdateInputs probeInputs;
+        probeInputs.occupancy = &m_shOccupancy->GetShaderData();
+        probeInputs.occupancyImageView = m_shOccupancy->GetImageView();
         probeInputs.viewerPosition = context.channelState->viewerPosition;
         probeInputs.surfaceCache = context.surfaceCache;
         probeInputs.spanCache = context.spanCache;
@@ -206,12 +211,15 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         probeInputs.shVolume = m_shVolume.Get();
         probeInputs.skyProbe = context.skyProbe;
 
-        m_probeVolume->Update(context.frame, probeInputs);
+        if (g_cvGlimmerSWRTProbesEnabled.Get())
+        {
+            m_probeVolume->Update(context.frame, probeInputs);
+        }
     }
 
-    if (context.updateLighting && context.channel && g_cvGlimmerSWRTDebugProbes.Get() > int(GlimmerSWRTDebugProbes::None))
+    if (context.updateLighting && context.channel && context.surfaceCache && g_cvGlimmerSWRTProbesEnabled.Get() && g_cvGlimmerSWRTDebugProbes.Get() > int(GlimmerSWRTDebugProbes::None))
     {
-        m_probeDebug->Update(context.frame, *m_probeVolume, *context.channel);
+        m_probeDebug->Update(context.frame, *m_probeVolume, *context.surfaceCache, *m_shOccupancy, *context.channel);
     }
     else
     {
@@ -221,7 +229,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
 
 bool GlimmerTechnique::IsReady() const
 {
-    return m_probeVolume->IsReady() || m_shVolume->IsReady();
+    return (m_probeVolume->IsReady() && g_cvGlimmerSWRTProbesEnabled.Get()) || m_shVolume->IsReady();
 }
 
 bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)

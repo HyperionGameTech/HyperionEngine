@@ -85,8 +85,8 @@ float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
     return EvaluateGlimmerSH(glimmer.sh, P, N).rgb * glimmer.settings.x;
 }
 
-/*! Which volume and cascade EvaluateGlimmer takes its irradiance from at P: the probes (SWRT, the near field) from yellow for
- *  the finest cascade to red for the coarsest, then the SH voxels (the far field) from cyan to violet. Colours mix where cascades
+/*! Which volume and cascade EvaluateGlimmer takes its irradiance from at P: the probe blocks (SWRT, the near field) from yellow
+ *  for the finest level to red for the coarsest, then the SH voxels (the far field) from cyan to violet. Colours mix where cascades
  *  blend, weighted as the lighting weights them; what no cascade covers is magenta. */
 float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N)
 {
@@ -98,12 +98,12 @@ float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N)
         if (glimmer.probes.info.w != 0u)
         {
             [loop]
-            for (uint probeCascade = 0; probeCascade < glimmer.probes.info.x && remaining > 1e-3; probeCascade++)
+            for (uint probeLevel = 0; probeLevel < glimmer.probes.info.x && remaining > 1e-3; probeLevel++)
             {
-                float3 cascadeIrradiance;
-                const float weight = GlimmerSampleCascade(glimmer.probes, probeCascade, P + N * 0.05, N, cascadeIrradiance);
+                float3 levelIrradiance;
+                const float weight = GlimmerSampleProbeLevel(glimmer.probes, probeLevel, P + N * 0.05, N, levelIrradiance);
 
-                const float t = float(probeCascade) / float(max(GLIMMER_PROBE_CASCADES - 1, 1));
+                const float t = float(probeLevel) / float(max(GLIMMER_PROBE_LEVELS - 1, 1));
 
                 color += lerp(float3(1.0, 0.85, 0.1), float3(1.0, 0.15, 0.05), t) * weight * remaining;
                 remaining *= 1.0 - weight;

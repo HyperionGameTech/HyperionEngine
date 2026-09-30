@@ -16,6 +16,8 @@ namespace Hyperion {
 
 class GlimmerSWRTProbeVolume;
 class GlimmerChannel;
+class GlimmerSurfaceCache;
+class GlimmerSHOccupancy;
 
 /*! \brief Reads the SWRT probes back for Rendering.Glimmer.SWRT.DebugProbes: packs where each probe is and what its last trace saw,
  *  copies that to a readback buffer per frame in flight, and hands each to the channel once its frame has finished on the GPU, for
@@ -29,7 +31,7 @@ public:
     ~GlimmerSWRTProbeDebug();
 
     /*! \brief Call after the probe volume's Update(), while it's ready. */
-    void Update(Frame* frame, const GlimmerSWRTProbeVolume& probeVolume, GlimmerChannel& channel);
+    void Update(Frame* frame, const GlimmerSWRTProbeVolume& probeVolume, const GlimmerSurfaceCache& surfaceCache, const GlimmerSHOccupancy& occupancy, GlimmerChannel& channel);
 
     /*! \brief Frees the buffers while the debug view is off. */
     void Reset();

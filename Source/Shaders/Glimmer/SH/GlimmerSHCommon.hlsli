@@ -11,7 +11,7 @@
 //                GLIMMER_SH_DEPTH_RANGE: lighting uses them to drop voxels that can't see the surface being lit (the far side of a wall)
 //  state      = the absolute voxel it was traced for (GlimmerSHPackVoxel), so voxels that scrolled in and aren't traced yet read as empty
 
-#define GLIMMER_SH_CASCADES 4
+#define GLIMMER_SH_CASCADES 5
 #define GLIMMER_SH_GRID_XZ 32
 #define GLIMMER_SH_GRID_Y 16
 

@@ -77,12 +77,13 @@ struct GlimmerChannelState
     FixedArray<GlimmerGroundCoverLayerState, GlimmerGroundCoverLayers> groundCover;
 };
 
-/*! \brief One SWRT probe as read back for Rendering.Glimmer.SWRT.DebugProbes, a record per probe of each cascade in turn, layer major
- *  then z then x within a cascade. Must match GlimmerProbeDebugRecord in Shaders/Glimmer/SWRT/GlimmerSWRTProbeDebug.hlsl */
+/*! \brief One SWRT probe as read back for Rendering.Glimmer.SWRT.DebugProbes, a record per probe of the pool (64 per block slot).
+ *  Must match GlimmerProbeDebugRecord in Shaders/Glimmer/SWRT/GlimmerSWRTProbeDebug.hlsl */
 struct GlimmerProbeDebugRecord
 {
-    Vec4f position; // xyz = where the probe was last traced, or where it will be when it hasn't been yet
-    Vec4u info;     // x = 1 once traced for its column, y = rays that hit a back face, z = rays that started under the ground, w = updates
+    Vec4f position; // xyz = where the probe is (its grid point plus its offset), w = its level, or -1 for a probe of a free slot
+    Vec4u info;     // x = GlimmerProbeState | 0x100 in an occupied voxel | rays that started inside a solid << 16, y = back face rays of its last
+                    // update, z = height above the ground (float bits), w = updates
     Vec4f sh[3];    // L1 irradiance / pi per colour channel
 };
 

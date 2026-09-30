@@ -23,12 +23,13 @@ class GlimmerSurfaceCache;
 class GlimmerSpanCache;
 struct GlimmerSHOccupancyShaderData;
 
-static constexpr uint32 GlimmerSHCascades = 4;
+static constexpr uint32 GlimmerSHCascades = 5;
 static constexpr uint32 GlimmerSHGridXZ = 32;
 static constexpr uint32 GlimmerSHGridY = 16;
 static constexpr uint32 GlimmerSHRays = 64;
-// cascade 0, doubling per cascade: 8 m puts its +-128 m window just past the probe clipmap's +-64 m, so the voxels only cover the far field
-static constexpr float GlimmerSHSpacing = 8.0f;
+// cascade 0, doubling per cascade: 4 m voxels (a +-64 m window) light everything near the viewer that the probe blocks don't reach,
+// open terrain included; the coarsest reaches +-1 km
+static constexpr float GlimmerSHSpacing = 4.0f;
 // visibility, bounce and depth x/y/z share one texture, a GlimmerSHGridXZ deep slab each. Must match GLIMMER_SH_SLABS in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
 static constexpr uint32 GlimmerSHDataSlabs = 5;
 

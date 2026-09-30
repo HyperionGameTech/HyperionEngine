@@ -4,12 +4,18 @@
 
 #include "GlimmerProbeTypes.hlsli"
 
-// Packs every probe of the clipmap, where it is and what its last trace saw, for the CPU to read back and draw with the DebugDrawer
+#define GLIMMER_SH_OCCUPANCY_NO_TRACE
+#include "../SH/GlimmerSHOccupancy.hlsli"
+#undef GLIMMER_SH_OCCUPANCY_NO_TRACE
+
+// Packs every probe of the pool, where it is and what its last update saw, for the CPU to read back and draw with the DebugDrawer
 
 // Must match GlimmerProbeDebugConstants in GlimmerSWRTProbeDebug.cpp
 struct GlimmerProbeDebugConstants
 {
     GlimmerProbeVolume volume;
+    GlimmerGroundParams ground;
+    GlimmerSHOccupancyParams occupancy;
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSWRTProbeDebug, CBuffer) cbuffer CBuffer
@@ -20,19 +26,24 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSWRTProbeDebug, CBuffer) cbuffer CBuffer
 // Must match GlimmerProbeDebugRecord in GlimmerChannel.hpp
 struct GlimmerProbeDebugRecord
 {
-    float4 position; // xyz = where the probe was last traced, or where it will be when it hasn't been yet
-    uint4 info;      // x = 1 once traced for its column, y = rays that hit a back face, z = rays that started under the ground, w = updates
+    float4 position; // xyz = where the probe is (its grid point plus its offset), w = its level, or -1 for a probe of a free slot
+    uint4 info;      // x = GLIMMER_PROBE_STATE_* | 0x100 where the SH occupancy has a solid | rays that started inside a solid << 16, y = back face rays of its last update, z = height above the ground (float bits), w = updates
     float4 shR;
     float4 shG;
     float4 shB;
 };
 
-DECLARE_SRV(GlimmerSWRTProbeDebug, Rays) StructuredBuffer<float4> rays;
-DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeSHTexture) Texture3D<float4> glimmerProbeSH;
-DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeStateTexture) Texture3D<uint2> glimmerProbeState;
-DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeBaseTexture) Texture2DArray<float> glimmerProbeBase;
+DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeSHBuffer) StructuredBuffer<float4> glimmerProbeSH;
+DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeStatesBuffer) StructuredBuffer<uint4> glimmerProbeStates;
+DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> glimmerProbeSlots;
+
+DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
+DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
 
 DECLARE_UAV(GlimmerSWRTProbeDebug, OutRecords) RWStructuredBuffer<GlimmerProbeDebugRecord> OutRecords;
+
+#include "../SH/GlimmerSHOccupancy.hlsli"
+#include "../GlimmerGround.hlsli"
 
 #define GLIMMER_PROBES_NO_SAMPLING
 #include "GlimmerProbes.hlsli"
@@ -40,66 +51,42 @@ DECLARE_UAV(GlimmerSWRTProbeDebug, OutRecords) RWStructuredBuffer<GlimmerProbeDe
 [numthreads(64, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    // a row of groups per cascade
-    const uint cascadeIndex = dispatchThreadId.y;
     const uint probeIndex = dispatchThreadId.x;
 
-    if (probeIndex >= GLIMMER_PROBES_PER_CASCADE || cascadeIndex >= constants.volume.info.x)
+    if (probeIndex >= GLIMMER_PROBE_POOL_PROBES)
     {
         return;
     }
 
-    const GlimmerProbeCascade cascade = constants.volume.cascades[cascadeIndex];
-
-    int2 localColumn;
-    uint layer;
-    GlimmerProbeFromIndex(probeIndex, localColumn, layer);
-
-    const int2 column = cascade.gridOrigin.xy + localColumn;
-    const uint3 texel = GlimmerProbeTexel(cascadeIndex, column, layer);
-    const uint2 state = glimmerProbeState.Load(int4(texel, 0));
-
-    const bool isTraced = GlimmerIsSameColumn(state.x, column);
-
-    float3 position = GlimmerProbePosition(cascade, cascadeIndex, column, layer);
-
-    if (isTraced)
-    {
-        position.y = asfloat(state.y);
-    }
-
-    const uint probeRecord = cascadeIndex * GLIMMER_PROBES_PER_CASCADE + probeIndex;
-
-    // ray records follow the probe's place in the grid rather than its column, so for the few frames after the grid scrolls they
-    // can still hold what the probe that was there before saw
-    uint numBackfaces = 0u;
-    uint numBuried = 0u;
-
-    if (isTraced)
-    {
-        const uint numRays = constants.volume.info.y;
-
-        for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
-        {
-            const float hitT = rays[probeRecord * numRays + rayIndex].w;
-
-            if (hitT < 0.0)
-            {
-                numBackfaces++;
-            }
-            else if (hitT == 0.0)
-            {
-                numBuried++;
-            }
-        }
-    }
+    const int4 slot = glimmerProbeSlots[probeIndex / GLIMMER_PROBES_PER_BLOCK];
+    const uint4 state = glimmerProbeStates[probeIndex];
 
     GlimmerProbeDebugRecord record;
-    record.position = float4(position, 0.0);
-    record.info = uint4(isTraced ? 1u : 0u, numBackfaces, numBuried, GlimmerProbeUpdates(state.x));
-    record.shR = isTraced ? glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 0u), 0)) : (float4)0.0;
-    record.shG = isTraced ? glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 1u), 0)) : (float4)0.0;
-    record.shB = isTraced ? glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 2u), 0)) : (float4)0.0;
 
-    OutRecords[probeRecord] = record;
+    if (slot.w < 0 || slot.w >= GLIMMER_PROBE_LEVELS)
+    {
+        record.position = float4(0.0, 0.0, 0.0, -1.0);
+        record.info = (uint4)0u;
+        record.shR = (float4)0.0;
+        record.shG = (float4)0.0;
+        record.shB = (float4)0.0;
+    }
+    else
+    {
+        const float3 position = GlimmerProbePosition(constants.volume, probeIndex, slot, state);
+
+        float groundHeight;
+        uint groundLevel;
+
+        const float heightAboveGround = GlimmerSampleGround(constants.ground, position.xz, 0u, groundHeight, groundLevel) ? position.y - groundHeight : 1e30;
+        const bool isOccupied = GlimmerSHOccupancyIsSolid(constants.occupancy, position);
+
+        record.position = float4(position, float(slot.w));
+        record.info = uint4(GlimmerProbeStateOf(state) | (isOccupied ? 0x100u : 0u) | (GlimmerProbeStartsInside(state) << 16), GlimmerProbeBackfaces(state), asuint(heightAboveGround), GlimmerProbeUpdates(state));
+        record.shR = glimmerProbeSH[probeIndex * 3u + 0u];
+        record.shG = glimmerProbeSH[probeIndex * 3u + 1u];
+        record.shB = glimmerProbeSH[probeIndex * 3u + 2u];
+    }
+
+    OutRecords[probeIndex] = record;
 }

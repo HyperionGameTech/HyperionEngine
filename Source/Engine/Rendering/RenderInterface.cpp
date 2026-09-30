@@ -1744,7 +1744,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     };
 
-    constexpr uint32 MaxDynamicOffsetsPerSet = 16; // 8;
+    constexpr uint32 MaxDynamicOffsetsPerSet = DescriptorSetOffsetMap::MaxOffsets;
     constexpr uint32 MaxDescriptorSetsBound = 4;
 
     DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
@@ -2096,7 +2096,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             uint8 setIndex = uniformMappings[uniformIndex].setIndex;
 
             const uint8 offsetIndex = bufferOffsetCounts[setIndex]++;
-            AssertDebug(offsetIndex < MaxDynamicOffsetsPerSet);
+            Assert(offsetIndex < MaxDynamicOffsetsPerSet, "too many buffers bound with offsets in descriptor set {}", setIndex);
 
             bufferOffsets[setIndex][offsetIndex] = (uint8)uniformIndex;
 

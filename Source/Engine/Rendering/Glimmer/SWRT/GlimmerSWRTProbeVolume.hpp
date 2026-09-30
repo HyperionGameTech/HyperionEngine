@@ -12,6 +12,8 @@
 
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Utilities/Time.hpp>
+
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
 #include <Core/Math/Vector4.hpp>
@@ -24,29 +26,46 @@ class GlimmerBLASCache;
 class GlimmerTLAS;
 class GlimmerFootprintMask;
 class GlimmerSHVolume;
+struct GlimmerSHOccupancyShaderData;
 
-// the near field only: 2 m and 4 m columns, so out to +-64 m; the SH volume covers what's past that
-static constexpr uint32 GlimmerProbeCascades = 2;
-static constexpr uint32 GlimmerProbeGrid = 32;
-static constexpr uint32 GlimmerProbeLayers = 4;
-static constexpr uint32 GlimmerProbesPerCascade = GlimmerProbeGrid * GlimmerProbeGrid * GlimmerProbeLayers;
-static constexpr uint32 GlimmerProbeRays = 16;
+// Must match the defines in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli: 2 m then 4 m probes, in blocks of 4x4x4, each level
+// keeping a window of 8x8x8 blocks around the viewer (so +-32 m, then +-64 m); the SH voxels cover what's past them
+static constexpr uint32 GlimmerProbeLevels = 2;
+static constexpr uint32 GlimmerProbeBlock = 4;
+static constexpr uint32 GlimmerProbesPerBlock = GlimmerProbeBlock * GlimmerProbeBlock * GlimmerProbeBlock;
+static constexpr uint32 GlimmerProbeWindow = 8;
+static constexpr uint32 GlimmerProbeWindowBlocks = GlimmerProbeWindow * GlimmerProbeWindow * GlimmerProbeWindow;
+static constexpr uint32 GlimmerProbePoolBlocks = 128;
+static constexpr uint32 GlimmerProbePoolProbes = GlimmerProbePoolBlocks * GlimmerProbesPerBlock;
 
-// Must match GlimmerProbeCascade in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
-struct GlimmerProbeCascadeShaderData
+static constexpr uint32 GlimmerProbeRays = 32;
+
+// what the per frame buffers are sized for; Rendering.Glimmer.SWRT.Probes.RaysPerFrame is clamped to it
+static constexpr uint32 GlimmerMaxProbesPerFrame = 4096;
+
+// Must match GLIMMER_PROBE_STATE_* in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
+enum GlimmerProbeState : uint32
 {
-    Vec4i gridOrigin; // xy = absolute column of the grid's first column, z = 1 once the cascade has been traced
-    Vec4f params;     // x = column spacing, y = layer scale, z = hysteresis
+    GPS_FREE = 0,
+    GPS_ACTIVE = 1,
+    GPS_BURIED = 2,
+    GPS_INSIDE = 3
+};
+
+// Must match GlimmerProbeLevel in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
+struct GlimmerProbeLevelShaderData
+{
+    Vec4i windowOrigin; // xyz = absolute block of the window's first block, w = 1 once it has been allocated
+    Vec4f params;       // x = probe spacing, y = 1 / spacing
 };
 
 // Must match GlimmerProbeVolume in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
 struct GlimmerProbeVolumeShaderData
 {
-    GlimmerProbeCascadeShaderData cascades[GlimmerProbeCascades];
-    Vec4u info;        // x = number of cascades, y = rays per probe, z = frame, w = 1 when the volume can be sampled
-    Vec4f rayRotation; // quaternion applied to this frame's ray directions
-    Vec4f params;      // x = base height where there's no ground, y = unused, z = escape radiance clamp, w = max ray distance
-    Vec4f nearField;   // x = cascades traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
+    GlimmerProbeLevelShaderData levels[GlimmerProbeLevels];
+    Vec4u info;      // x = number of levels, y = rays per probe, z = frame, w = 1 when the volume can be sampled
+    Vec4f params;    // x = seconds since the volume started, y = unused, z = escape radiance clamp, w = max ray distance
+    Vec4f nearField; // x = levels traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 
 struct GlimmerSWRTProbeUpdateInputs
@@ -58,12 +77,19 @@ struct GlimmerSWRTProbeUpdateInputs
     const GlimmerTLAS* tlas = nullptr;
     const GlimmerFootprintMask* footprintMask = nullptr; // of the tlas; tells the trace where SWRT has anything to hit
     const GlimmerSHVolume* shVolume = nullptr;           // the far field, for the bounce at hits past the probes; may be nullptr
+
+    // the solids the probe blocks are placed around
+    const GlimmerSHOccupancyShaderData* occupancy = nullptr;
+    GpuImageViewRef occupancyImageView;
+
     EnvProbe* skyProbe = nullptr;
 };
 
-/*! \brief Glimmer's near field: a terrain following probe clipmap, cascades of columns that scroll with the viewer, each column
- *  holding a few probes stacked up from the ground. Probes are traced against the SWRT scene and the heightfield and store L1 irradiance.
- *  Render thread only. */
+/*! \brief Glimmer's near field: sparse blocks of probes around the static solids near the viewer, on a world aligned grid per level.
+ *  Each frame a pass allocates blocks from a fixed pool where the SH occupancy has solids standing off the ground (nearest first),
+ *  then the active probes due for an update (within a per frame ray budget) are traced against the SWRT scene and the heightfield,
+ *  and blended into L1 irradiance and depth moments. Probes under the ground are skipped, and probes inside solids are moved out.
+ *  Where there are no blocks lighting falls through to the SH voxels. Render thread only. */
 class GlimmerSWRTProbeVolume
 {
 public:
@@ -84,36 +110,35 @@ public:
         return m_shaderData.info.w != 0;
     }
 
-    /*! \brief L1 per colour channel, a slab each stacked along z (see GlimmerProbeTypes.hlsli) */
-    const GpuImageViewRef& GetSHImageView() const;
-    const GpuImageViewRef& GetStateImageView() const;
-    const GpuImageViewRef& GetBaseImageView() const;
-
-    /*! \brief Each probe's rays from its last trace (see OutRays in GlimmerSWRTProbeTrace.hlsl), in the shader resource state after Update(). */
-    HYP_FORCE_INLINE const GpuBufferRef& GetRaysBuffer() const
-    {
-        return m_raysBuffer;
-    }
+    // placeholders until the volume has been updated once; all in the shader resource state after Update()
+    const GpuBufferRef& GetBlockTableBuffer() const;
+    const GpuBufferRef& GetSHBuffer() const;
+    const GpuBufferRef& GetStatesBuffer() const;
+    const GpuBufferRef& GetVisibilityBuffer() const;
+    const GpuBufferRef& GetSlotsBuffer() const;
 
 private:
-    void CreateResources();
-    void ScrollCascades(const Vec3f& viewerPosition, uint32& outScrolledMask);
-    float UpdateFallbackBase(float viewerHeight);
+    void CreateResources(Frame* frame);
+    void UpdateWindows(const Vec3f& viewerPosition);
 
-    Handle<Texture> m_shTexture;
-    Handle<Texture> m_stateTexture;
-    Handle<Texture> m_trendTexture; // luminance over each probe's last few updates, to tell real change from noise
-    Handle<Texture> m_baseTexture;
+    const GpuBufferRef& GetBufferOrPlaceholder(const GpuBufferRef& buffer) const;
+
+    GpuBufferRef m_blockTableBuffer; // a slot (or ~0) per block of each level's window
+    GpuBufferRef m_slotsBuffer;      // per slot: the block's absolute coordinate and level (-1 when free)
+    GpuBufferRef m_slotAgesBuffer;   // per slot: frames since its block was last wanted
+    GpuBufferRef m_statesBuffer;
+    GpuBufferRef m_shBuffer;         // 3 per probe
+    GpuBufferRef m_visibilityBuffer; // 3 per probe
+    GpuBufferRef m_trendBuffer;
+    GpuBufferRef m_countersBuffer;
+    GpuBufferRef m_updateListBuffer;
 
     GpuBufferRef m_raysBuffer;
     GpuBufferRef m_rayHitsBuffer; // between the trace and shade passes
 
-    Vec2i m_gridOrigins[GlimmerProbeCascades];
-    bool m_hasGridOrigins;
+    GpuBufferRef m_placeholderBuffer;
 
-    float m_fallbackBase;
-    bool m_hasFallbackBase;
-
+    Time m_startTime;
     uint32 m_frameIndex;
 
     GlimmerProbeVolumeShaderData m_shaderData;

@@ -71,6 +71,7 @@ private:
 
     // drawn every frame, as debug draws only last one; replaced whenever a newer readback comes in
     Array<GlimmerProbeDebugRecord> m_probeDebugRecords;
+    uint32 m_probeDebugLogCounter = 0;
 };
 
 } // namespace Hyperion
