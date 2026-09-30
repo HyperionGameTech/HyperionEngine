@@ -277,6 +277,7 @@ void TouchControlsSubsystem::ProcessTouchEvent(const TouchEvent& touchEvent)
         else if (!isLeftSide && m_rightTouchId == -1)
         {
             m_rightTouchId = pointerId;
+            m_prevLookPosition = position;
         }
 
         break;
@@ -357,17 +358,8 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
             const TouchPoint& touch = it->second;
 
             // For look, we use delta from previous frame
-            // Store previous position and calculate delta
-            /// FIXME: WTF
-            static Vec2f prevRightPosition = Vec2f::Zero();
-
-            if (prevRightPosition.IsZero())
-            {
-                prevRightPosition = touch.startPosition;
-            }
-
-            Vec2f lookDelta = touch.position - prevRightPosition;
-            prevRightPosition = touch.position;
+            Vec2f lookDelta = touch.position - m_prevLookPosition;
+            m_prevLookPosition = touch.position;
 
             // Normalize to -1 to 1 range based on screen size
             const Vec2f screenSize = Vec2f(m_uiStage->GetSurfaceSize());
@@ -387,10 +379,6 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
     else
     {
         m_lookDelta = Vec2f::Zero();
-        // Reset the static prev position when touch is released
-        static Vec2f prevRightPosition = Vec2f::Zero();
-        /// FIXME: WTF
-        prevRightPosition = Vec2f::Zero();
     }
 }
 
