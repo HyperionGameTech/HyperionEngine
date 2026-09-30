@@ -43,6 +43,29 @@ float3 GlimmerRotateByQuaternion(float4 q, float3 v)
 }
 
 // Evenly spread directions over the sphere; the per frame rotation turns them into a stratified random pattern
+// a direction to [0, 1]^2, folded around +y
+float2 GlimmerOctahedralEncode(float3 direction)
+{
+    const float3 n = direction / (abs(direction.x) + abs(direction.y) + abs(direction.z));
+    const float2 e = n.y >= 0.0 ? n.xz : (1.0 - abs(n.zx)) * select(n.xz >= 0.0, 1.0, -1.0);
+
+    return e * 0.5 + 0.5;
+}
+
+float3 GlimmerOctahedralDecode(float2 uv)
+{
+    const float2 e = uv * 2.0 - 1.0;
+
+    float3 n = float3(e.x, 1.0 - abs(e.x) - abs(e.y), e.y);
+
+    if (n.y < 0.0)
+    {
+        n.xz = (1.0 - abs(n.zx)) * select(n.xz >= 0.0, 1.0, -1.0);
+    }
+
+    return normalize(n);
+}
+
 float3 GlimmerSphericalFibonacci(uint index, uint count)
 {
     const float goldenRatio = 1.6180339887;

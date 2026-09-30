@@ -4,17 +4,17 @@
 #include "../GlimmerCommon.hlsli"
 
 // Glimmer's near field: sparse blocks of probes around the static solids near the viewer. Probes sit on a world aligned grid, one per
-// level (2 m, then 4 m), grouped into blocks of 4x4x4. Each level keeps a window of 8x8x8 blocks around the viewer, and a block of it
+// level (2, 4, 8 and 16 m), grouped into blocks of 4x4x4. Each level keeps a window of 8x8x8 blocks around the viewer, and a block of it
 // only gets probes (a slot of the pool) where there are solids nearby; everywhere else lighting falls through to the SH voxels.
 // Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n), one float4
 // per colour channel, plus depth moments along each axis to keep light from leaking through walls.
 
-#define GLIMMER_PROBE_LEVELS 2
+#define GLIMMER_PROBE_LEVELS 4
 #define GLIMMER_PROBE_BLOCK 4
 #define GLIMMER_PROBES_PER_BLOCK 64
 #define GLIMMER_PROBE_WINDOW 8
 #define GLIMMER_PROBE_WINDOW_BLOCKS 512
-#define GLIMMER_PROBE_POOL_BLOCKS 128
+#define GLIMMER_PROBE_POOL_BLOCKS 256
 #define GLIMMER_PROBE_POOL_PROBES (GLIMMER_PROBE_POOL_BLOCKS * GLIMMER_PROBES_PER_BLOCK)
 
 #define GLIMMER_PROBE_NO_SLOT 0xFFFFFFFFu
@@ -27,6 +27,11 @@
 
 // distances the depth moments hold, in probe spacings; the lookup never asks past the far corner of a cell
 #define GLIMMER_PROBE_DEPTH_RANGE 2.0
+
+// visibility is an octahedral map per probe, of GLIMMER_PROBE_VISIBILITY_RES^2 texels each holding the mean and mean square of the
+// distance (in spacings, capped at GLIMMER_PROBE_DEPTH_RANGE) rays went around its direction, as DDGI keeps it
+#define GLIMMER_PROBE_VISIBILITY_RES 8
+#define GLIMMER_PROBE_VISIBILITY_TEXELS (GLIMMER_PROBE_VISIBILITY_RES * GLIMMER_PROBE_VISIBILITY_RES)
 
 // how far a probe may be moved off its grid point, per axis, in spacings
 #define GLIMMER_PROBE_MAX_OFFSET 0.45
@@ -43,7 +48,7 @@ struct GlimmerProbeVolume
 {
     GlimmerProbeLevel levels[GLIMMER_PROBE_LEVELS];
     uint4 info;       // x = number of levels, y = rays per probe, z = frame, w = 1 when the volume can be sampled
-    float4 params;    // x = seconds since the volume started, y = unused, z = escape radiance clamp, w = max ray distance
+    float4 params;    // x = seconds since the volume started, y = how much visibility counts, z = escape radiance clamp, w = max ray distance
     float4 nearField; // x = levels traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 
@@ -175,15 +180,6 @@ float3 GlimmerEvaluateL1(float4 shR, float4 shG, float4 shB, float3 N)
     const float4 basis = float4(1.0, N);
 
     return max(float3(dot(shR, basis), dot(shG, basis), dot(shB, basis)), 0.0);
-}
-
-// which of the six axis directions (+x, -x, +y, ...) a direction is closest to
-uint GlimmerProbeDirectionBin(float3 direction)
-{
-    const float3 absDirection = abs(direction);
-    const uint axis = (absDirection.x >= absDirection.y && absDirection.x >= absDirection.z) ? 0u : (absDirection.y >= absDirection.z ? 1u : 2u);
-
-    return axis * 2u + (direction[axis] < 0.0 ? 1u : 0u);
 }
 
 #endif

@@ -15,7 +15,7 @@ float3 GlimmerProbePosition(GlimmerProbeVolume volume, uint probeIndex, int4 slo
 #ifndef GLIMMER_PROBES_NO_SAMPLING
 
 // expects these declared: StructuredBuffer<uint> glimmerProbeBlockTable, StructuredBuffer<float4> glimmerProbeSH (3 per probe),
-// StructuredBuffer<uint4> glimmerProbeStates, StructuredBuffer<float4> glimmerProbeVisibility (3 per probe)
+// StructuredBuffer<uint4> glimmerProbeStates, StructuredBuffer<float2> glimmerProbeVisibility (GLIMMER_PROBE_VISIBILITY_TEXELS per probe)
 
 // Chebyshev bound on how likely the probe sees a point this far (in spacings) toward it, from the depth moments of its rays that way
 float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanceInSpacings)
@@ -25,17 +25,21 @@ float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanc
         return 1.0;
     }
 
-    // each axis contributes by how much of the direction is along it, so there are no hard lines where two axes tie
-    const float3 axisWeights = probeToPoint * probeToPoint / (distanceInSpacings * distanceInSpacings);
+    // bilinear between the four texels around the direction (clamped rather than wrapped at the octahedron's edges)
+    const float2 texelCoord = GlimmerOctahedralEncode(probeToPoint / distanceInSpacings) * float(GLIMMER_PROBE_VISIBILITY_RES) - 0.5;
+    const int2 texel0 = int2(floor(texelCoord));
+    const float2 fraction = texelCoord - float2(texel0);
 
     float2 moments = (float2)0.0;
 
     [unroll]
-    for (uint axis = 0; axis < 3; axis++)
+    for (uint corner = 0; corner < 4; corner++)
     {
-        const float4 depth = glimmerProbeVisibility[probeIndex * 3u + axis];
+        const int2 offset = int2(corner & 1u, corner >> 1);
+        const int2 texel = clamp(texel0 + offset, 0, GLIMMER_PROBE_VISIBILITY_RES - 1);
+        const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
 
-        moments += (probeToPoint[axis] < 0.0 ? depth.zw : depth.xy) * axisWeights[axis];
+        moments += glimmerProbeVisibility[probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + uint(texel.y * GLIMMER_PROBE_VISIBILITY_RES + texel.x)] * (bilinear.x * bilinear.y);
     }
 
     if (distanceInSpacings <= moments.x)
@@ -89,6 +93,10 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
     float weightSum = 0.0;
     float visibleCoverage = 0.0;
 
+    // corners whose probe is under the ground or inside a solid are expected to be missing for a point on the surface: they don't
+    // count against coverage, the rest are renormalized. Only corners without a traced probe (no block yet, not updated) do
+    float excludedTrilinear = 0.0;
+
     [unroll]
     for (uint corner = 0; corner < 8; corner++)
     {
@@ -110,16 +118,24 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
 
         const uint probeIndex = GlimmerProbeIndex(slot, probeCoord & (GLIMMER_PROBE_BLOCK - 1));
         const uint4 state = glimmerProbeStates[probeIndex];
+        const uint probeState = GlimmerProbeStateOf(state);
 
-        if (GlimmerProbeStateOf(state) != GLIMMER_PROBE_STATE_ACTIVE || GlimmerProbeUpdates(state) == 0u)
+        const float3 trilinear = lerp(1.0 - fraction, fraction, float3(offset));
+        const float trilinearWeight = trilinear.x * trilinear.y * trilinear.z;
+
+        if (probeState == GLIMMER_PROBE_STATE_BURIED || probeState == GLIMMER_PROBE_STATE_INSIDE)
+        {
+            excludedTrilinear += trilinearWeight;
+
+            continue;
+        }
+
+        if (probeState != GLIMMER_PROBE_STATE_ACTIVE || GlimmerProbeUpdates(state) == 0u)
         {
             continue;
         }
 
         const float3 probePosition = GlimmerProbeGridPosition(level, probeCoord) + GlimmerUnpackProbeOffset(state.y) * spacing;
-
-        const float3 trilinear = lerp(1.0 - fraction, fraction, float3(offset));
-        const float trilinearWeight = trilinear.x * trilinear.y * trilinear.z;
 
         const float3 toProbe = probePosition - P;
         const float toProbeLength = length(toProbe);
@@ -128,7 +144,7 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
         const float backface = toProbeLength > 1e-4 ? (dot(toProbe / toProbeLength, N) + 1.0) * 0.5 : 1.0;
 
         const float3 probeToPoint = visibilityPoint - probePosition;
-        const float visibility = GlimmerProbeVisibility(probeIndex, probeToPoint, length(probeToPoint) / spacing);
+        const float visibility = lerp(1.0, GlimmerProbeVisibility(probeIndex, probeToPoint, length(probeToPoint) / spacing), volume.params.y);
 
         const float weight = trilinearWeight * (backface * backface + 0.2) * visibility;
 
@@ -147,7 +163,9 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
 
     outIrradiance = GlimmerEvaluateL1(sumR / weightSum, sumG / weightSum, sumB / weightSum, N);
 
-    return smoothstep(0.3, 0.7, visibleCoverage) * windowFade;
+    const float coverage = visibleCoverage / max(1.0 - excludedTrilinear, 1e-3);
+
+    return smoothstep(0.3, 0.7, coverage) * windowFade;
 }
 
 /*! Irradiance / pi from the probe blocks at P, finest level first, with how much they cover P as .a */

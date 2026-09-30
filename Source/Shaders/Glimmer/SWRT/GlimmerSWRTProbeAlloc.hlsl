@@ -40,7 +40,7 @@ DECLARE_UAV(GlimmerSWRTProbeAlloc, OutSlots) RWStructuredBuffer<int4> OutSlots; 
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutSlotAges) RWStructuredBuffer<uint> OutSlotAges; // frames since the block was last wanted
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutStates) RWStructuredBuffer<uint4> OutStates;
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutSH) RWStructuredBuffer<float4> OutSH;
-DECLARE_UAV(GlimmerSWRTProbeAlloc, OutVisibility) RWStructuredBuffer<float4> OutVisibility;
+DECLARE_UAV(GlimmerSWRTProbeAlloc, OutVisibility) RWStructuredBuffer<float2> OutVisibility;
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutTrend) RWStructuredBuffer<float4> OutTrend;
 // [0] = probes listed this frame, [1] = active probes this frame, [2] = active probes last frame, [3] = blocks allocated,
 // [4] = wanted blocks the pool had no slot for
@@ -62,9 +62,12 @@ void GlimmerResetProbe(uint probeIndex)
     for (uint channel = 0; channel < 3; channel++)
     {
         OutSH[probeIndex * 3u + channel] = (float4)0.0;
+    }
 
-        // open in every direction until traced
-        OutVisibility[probeIndex * 3u + channel] = float4(GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE * GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE * GLIMMER_PROBE_DEPTH_RANGE);
+    // open in every direction until traced
+    for (uint texel = 0; texel < GLIMMER_PROBE_VISIBILITY_TEXELS; texel++)
+    {
+        OutVisibility[probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + texel] = float2(GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE * GLIMMER_PROBE_DEPTH_RANGE);
     }
 
     OutTrend[probeIndex] = (float4)0.0;
@@ -82,11 +85,13 @@ void GlimmerFreeSlot(uint slot)
 
 #if defined(MODE_ALLOC)
 
-// a solid at P that stands far enough off the ground to shape the light around it (roads and rocks lying on the ground don't)
-bool GlimmerIsStandingSolid(float3 P)
+// a solid in the voxel around P that stands far enough off the ground to shape the light around it (roads and rocks lying on the
+// ground don't). The voxels come from the occupancy cascade whose spacing matches the probes' (or a coarser one past its window),
+// so a sample per probe cell sees every solid in it
+bool GlimmerIsStandingSolid(float3 P, uint firstCascade)
 {
     [loop]
-    for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_CASCADES; cascadeIndex++)
+    for (uint cascadeIndex = firstCascade; cascadeIndex < GLIMMER_SH_CASCADES; cascadeIndex++)
     {
         const GlimmerSHOccupancyCascade cascade = constants.occupancy.cascades[cascadeIndex];
 
@@ -127,20 +132,8 @@ bool GlimmerIsBlockWanted(uint levelIndex, int3 block)
 
     const float3 blockMin = float3(block) * blockSize;
 
-    // a coarser level's block that the finer level covers entirely (short of its fade band) would never be sampled
-    if (levelIndex > 0u)
-    {
-        const GlimmerProbeLevel finerLevel = constants.volume.levels[levelIndex - 1u];
-        const float finerBlockSize = finerLevel.params.x * float(GLIMMER_PROBE_BLOCK);
-
-        const float3 innerMin = float3(finerLevel.windowOrigin.xyz + 1) * finerBlockSize;
-        const float3 innerMax = float3(finerLevel.windowOrigin.xyz + GLIMMER_PROBE_WINDOW - 1) * finerBlockSize;
-
-        if (all(blockMin >= innerMin) && all(blockMin + blockSize <= innerMax))
-        {
-            return false;
-        }
-    }
+    // every level allocates around the solids on its own, even inside a finer level's window: the finer level only has blocks
+    // right by the solids, and its probes can be buried or inside them, so the coarser one is what's left where it has nothing
 
     const float margin = constants.params.x * spacing;
     const int steps = GLIMMER_PROBE_BLOCK + 2 * int(ceil(constants.params.x));
@@ -156,7 +149,7 @@ bool GlimmerIsBlockWanted(uint levelIndex, int3 block)
             [loop]
             for (int x = 0; x < steps; x++)
             {
-                if (GlimmerIsStandingSolid(sampleMin + float3(x, y, z) * spacing))
+                if (GlimmerIsStandingSolid(sampleMin + float3(x, y, z) * spacing, levelIndex))
                 {
                     return true;
                 }
@@ -167,7 +160,10 @@ bool GlimmerIsBlockWanted(uint levelIndex, int3 block)
     return false;
 }
 
-#define ALLOC_GROUP_SIZE (GLIMMER_PROBE_LEVELS * GLIMMER_PROBE_WINDOW_BLOCKS)
+// every level's window cells, a few per thread
+#define ALLOC_GROUP_SIZE 1024
+#define ALLOC_CELLS (GLIMMER_PROBE_LEVELS * GLIMMER_PROBE_WINDOW_BLOCKS)
+#define ALLOC_CELLS_PER_THREAD ((ALLOC_CELLS + ALLOC_GROUP_SIZE - 1) / ALLOC_GROUP_SIZE)
 #define PRIORITY_BUCKETS (GLIMMER_PROBE_LEVELS * GLIMMER_PROBE_WINDOW)
 
 groupshared uint gsFreeSlots[GLIMMER_PROBE_POOL_BLOCKS];
@@ -195,85 +191,117 @@ void CSMain(uint groupIndex : SV_GroupIndex)
     }
 
     // blocks that scrolled out of their window give their slots back
-    if (groupIndex < GLIMMER_PROBE_POOL_BLOCKS)
+    for (uint slotIndex = groupIndex; slotIndex < GLIMMER_PROBE_POOL_BLOCKS; slotIndex += ALLOC_GROUP_SIZE)
     {
-        const int4 slot = OutSlots[groupIndex];
+        const int4 slot = OutSlots[slotIndex];
 
         if (slot.w >= 0 && (slot.w >= GLIMMER_PROBE_LEVELS || !GlimmerIsBlockInWindow(constants.volume.levels[slot.w], slot.xyz)))
         {
-            GlimmerFreeSlot(groupIndex);
+            GlimmerFreeSlot(slotIndex);
         }
     }
 
     AllMemoryBarrierWithGroupSync();
 
-    const uint levelIndex = groupIndex / GLIMMER_PROBE_WINDOW_BLOCKS;
-    const uint cellIndex = groupIndex % GLIMMER_PROBE_WINDOW_BLOCKS;
+    int3 blocks[ALLOC_CELLS_PER_THREAD];
+    uint tableIndices[ALLOC_CELLS_PER_THREAD];
+    uint buckets[ALLOC_CELLS_PER_THREAD];
+    uint ranksInBucket[ALLOC_CELLS_PER_THREAD];
+    bool hasSlots[ALLOC_CELLS_PER_THREAD];
+    bool needsSlots[ALLOC_CELLS_PER_THREAD];
 
-    const GlimmerProbeLevel level = constants.volume.levels[levelIndex];
-
-    const int3 localBlock = int3(cellIndex % GLIMMER_PROBE_WINDOW, (cellIndex / GLIMMER_PROBE_WINDOW) % GLIMMER_PROBE_WINDOW, cellIndex / (GLIMMER_PROBE_WINDOW * GLIMMER_PROBE_WINDOW));
-    const int3 block = level.windowOrigin.xyz + localBlock;
-
-    const uint tableIndex = GlimmerProbeBlockTableIndex(levelIndex, block);
-    const uint existingSlot = OutBlockTable[tableIndex];
-
-    bool hasSlot = false;
-
-    if (existingSlot < GLIMMER_PROBE_POOL_BLOCKS)
+    [unroll]
+    for (uint cellOffset = 0; cellOffset < ALLOC_CELLS_PER_THREAD; cellOffset++)
     {
-        hasSlot = all(OutSlots[existingSlot] == int4(block, int(levelIndex)));
-    }
+        const uint globalCell = groupIndex + cellOffset * ALLOC_GROUP_SIZE;
 
-    const bool isWanted = GlimmerIsBlockWanted(levelIndex, block);
+        blocks[cellOffset] = (int3)0;
+        tableIndices[cellOffset] = 0u;
+        buckets[cellOffset] = 0u;
+        ranksInBucket[cellOffset] = 0u;
+        hasSlots[cellOffset] = false;
+        needsSlots[cellOffset] = false;
 
-    if (hasSlot)
-    {
-        if (isWanted)
+        if (globalCell >= ALLOC_CELLS)
         {
-            OutSlotAges[existingSlot] = 0u;
+            continue;
         }
-        else
-        {
-            const uint age = OutSlotAges[existingSlot] + 1u;
-            OutSlotAges[existingSlot] = age;
 
-            if (age > constants.budget.y)
+        const uint levelIndex = globalCell / GLIMMER_PROBE_WINDOW_BLOCKS;
+        const uint cellIndex = globalCell % GLIMMER_PROBE_WINDOW_BLOCKS;
+
+        const GlimmerProbeLevel level = constants.volume.levels[levelIndex];
+
+        const int3 localBlock = int3(cellIndex % GLIMMER_PROBE_WINDOW, (cellIndex / GLIMMER_PROBE_WINDOW) % GLIMMER_PROBE_WINDOW, cellIndex / (GLIMMER_PROBE_WINDOW * GLIMMER_PROBE_WINDOW));
+        const int3 block = level.windowOrigin.xyz + localBlock;
+
+        const uint tableIndex = GlimmerProbeBlockTableIndex(levelIndex, block);
+        const uint existingSlot = OutBlockTable[tableIndex];
+
+        bool hasSlot = false;
+
+        if (existingSlot < GLIMMER_PROBE_POOL_BLOCKS)
+        {
+            hasSlot = all(OutSlots[existingSlot] == int4(block, int(levelIndex)));
+        }
+
+        const bool isWanted = GlimmerIsBlockWanted(levelIndex, block);
+
+        if (hasSlot)
+        {
+            if (isWanted)
             {
-                GlimmerFreeSlot(existingSlot);
-                hasSlot = false;
+                OutSlotAges[existingSlot] = 0u;
+            }
+            else
+            {
+                const uint age = OutSlotAges[existingSlot] + 1u;
+                OutSlotAges[existingSlot] = age;
+
+                if (age > constants.budget.y)
+                {
+                    GlimmerFreeSlot(existingSlot);
+                    hasSlot = false;
+                }
             }
         }
-    }
 
-    if (!hasSlot)
-    {
-        OutBlockTable[tableIndex] = GLIMMER_PROBE_NO_SLOT;
-    }
+        if (!hasSlot)
+        {
+            OutBlockTable[tableIndex] = GLIMMER_PROBE_NO_SLOT;
+        }
 
-    const bool needsSlot = isWanted && !hasSlot;
+        // nearest first, and a finer level before a coarser one: bucketed by level and ring of blocks around the viewer's
+        const int3 viewerBlock = int3(floor(constants.viewer.xyz / (level.params.x * float(GLIMMER_PROBE_BLOCK))));
+        const int3 ringDistance = abs(block - viewerBlock);
+        const uint ring = min(uint(max(ringDistance.x, max(ringDistance.y, ringDistance.z))), GLIMMER_PROBE_WINDOW - 1u);
 
-    // nearest first, and the finer level before the coarser: bucketed by level and ring of blocks around the viewer's
-    const int3 viewerBlock = int3(floor(constants.viewer.xyz / (level.params.x * float(GLIMMER_PROBE_BLOCK))));
-    const int3 ringDistance = abs(block - viewerBlock);
-    const uint ring = min(uint(max(ringDistance.x, max(ringDistance.y, ringDistance.z))), GLIMMER_PROBE_WINDOW - 1u);
-    const uint bucket = levelIndex * GLIMMER_PROBE_WINDOW + ring;
+        blocks[cellOffset] = block;
+        tableIndices[cellOffset] = tableIndex;
+        buckets[cellOffset] = levelIndex * GLIMMER_PROBE_WINDOW + ring;
+        hasSlots[cellOffset] = hasSlot;
+        needsSlots[cellOffset] = isWanted && !hasSlot;
 
-    uint rankInBucket = 0u;
+        if (needsSlots[cellOffset])
+        {
+            uint rankInBucket;
+            InterlockedAdd(gsBucketCounts[buckets[cellOffset]], 1u, rankInBucket);
 
-    if (needsSlot)
-    {
-        InterlockedAdd(gsBucketCounts[bucket], 1u, rankInBucket);
+            ranksInBucket[cellOffset] = rankInBucket;
+        }
     }
 
     AllMemoryBarrierWithGroupSync();
 
-    if (groupIndex < GLIMMER_PROBE_POOL_BLOCKS && OutSlots[groupIndex].w < 0)
+    for (uint freeSlotIndex = groupIndex; freeSlotIndex < GLIMMER_PROBE_POOL_BLOCKS; freeSlotIndex += ALLOC_GROUP_SIZE)
     {
-        uint freeIndex;
-        InterlockedAdd(gsFreeCount, 1u, freeIndex);
+        if (OutSlots[freeSlotIndex].w < 0)
+        {
+            uint freeIndex;
+            InterlockedAdd(gsFreeCount, 1u, freeIndex);
 
-        gsFreeSlots[freeIndex] = groupIndex;
+            gsFreeSlots[freeIndex] = freeSlotIndex;
+        }
     }
 
     if (groupIndex == 0u)
@@ -289,34 +317,47 @@ void CSMain(uint groupIndex : SV_GroupIndex)
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (needsSlot)
+    [unroll]
+    for (uint allocOffset = 0; allocOffset < ALLOC_CELLS_PER_THREAD; allocOffset++)
     {
-        const uint rank = gsBucketStarts[bucket] + rankInBucket;
+        const uint globalCell = groupIndex + allocOffset * ALLOC_GROUP_SIZE;
 
-        if (rank < gsFreeCount)
+        if (globalCell >= ALLOC_CELLS)
         {
-            const uint slot = gsFreeSlots[rank];
+            continue;
+        }
 
-            OutSlots[slot] = int4(block, int(levelIndex));
-            OutSlotAges[slot] = 0u;
-            OutBlockTable[tableIndex] = slot;
+        bool hasSlot = hasSlots[allocOffset];
 
-            for (uint probe = 0; probe < GLIMMER_PROBES_PER_BLOCK; probe++)
+        if (needsSlots[allocOffset])
+        {
+            const uint rank = gsBucketStarts[buckets[allocOffset]] + ranksInBucket[allocOffset];
+
+            if (rank < gsFreeCount)
             {
-                GlimmerResetProbe(slot * GLIMMER_PROBES_PER_BLOCK + probe);
+                const uint slot = gsFreeSlots[rank];
+
+                OutSlots[slot] = int4(blocks[allocOffset], int(globalCell / GLIMMER_PROBE_WINDOW_BLOCKS));
+                OutSlotAges[slot] = 0u;
+                OutBlockTable[tableIndices[allocOffset]] = slot;
+
+                for (uint probe = 0; probe < GLIMMER_PROBES_PER_BLOCK; probe++)
+                {
+                    GlimmerResetProbe(slot * GLIMMER_PROBES_PER_BLOCK + probe);
+                }
+
+                hasSlot = true;
             }
-
-            hasSlot = true;
+            else
+            {
+                InterlockedAdd(OutCounters[4], 1u);
+            }
         }
-        else
+
+        if (hasSlot)
         {
-            InterlockedAdd(OutCounters[4], 1u);
+            InterlockedAdd(OutCounters[3], 1u);
         }
-    }
-
-    if (hasSlot)
-    {
-        InterlockedAdd(OutCounters[3], 1u);
     }
 }
 
@@ -342,12 +383,38 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint4 state = OutStates[probeIndex];
     uint probeState = GlimmerProbeStateOf(state);
 
-    const float3 position = GlimmerProbePosition(constants.volume, probeIndex, slot, state);
+    const GlimmerProbeLevel level = constants.volume.levels[slot.w];
+    const float spacing = level.params.x;
+    const float3 gridPosition = GlimmerProbeGridPosition(level, GlimmerProbeCoord(slot.xyz, GlimmerLocalProbeOf(probeIndex)));
+
+    float3 offset = GlimmerUnpackProbeOffset(state.y);
 
     float groundHeight;
     uint groundLevel;
 
-    const bool isBuried = GlimmerSampleGround(constants.ground, position.xz, 0u, groundHeight, groundLevel) && position.y < groundHeight + GLIMMER_PROBE_BURIED_MARGIN;
+    bool isBuried = false;
+
+    if (GlimmerSampleGround(constants.ground, gridPosition.xz + offset.xz * spacing, 0u, groundHeight, groundLevel))
+    {
+        // how far up (in spacings) the probe has to sit to clear the ground
+        const float lift = (groundHeight + GLIMMER_PROBE_BURIED_MARGIN - gridPosition.y) / spacing;
+
+        if (lift > offset.y)
+        {
+            if (lift <= GLIMMER_PROBE_MAX_OFFSET)
+            {
+                // lifted just clear of the ground rather than lost, so the ground under its neighbours keeps a probe above it
+                offset.y = min(lift + 0.01, GLIMMER_PROBE_MAX_OFFSET);
+                state.y = GlimmerPackProbeOffset(offset);
+
+                OutStates[probeIndex] = state;
+            }
+            else
+            {
+                isBuried = true;
+            }
+        }
+    }
 
     if (isBuried != (probeState == GLIMMER_PROBE_STATE_BURIED))
     {

@@ -69,10 +69,13 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 // how much of the previous trace a re-traced voxel keeps; each trace uses new ray directions, so this smooths the noise
 #define GLIMMER_SH_HYSTERESIS 0.5
 
+// how narrowly a depth map texel takes the rays around its direction (the power of their cosine)
+#define GLIMMER_SH_VISIBILITY_SHARPNESS 12.0
+
 groupshared float4 gsVisibility[GLIMMER_SH_RAYS]; // visible, visible * direction
 groupshared float4 gsBlockedAlbedo[GLIMMER_SH_RAYS]; // rgb = albedo weighted by how much it blocks and how much sky it faces, a = how much it blocks
 groupshared float gsSunlit[GLIMMER_SH_RAYS];         // blocked albedo luminance the sun lights
-groupshared float2 gsDepth[GLIMMER_SH_RAYS];         // distance to a solid or the ground in voxels, direction bin
+groupshared float4 gsDepth[GLIMMER_SH_RAYS];         // xyz = direction, w = distance to a solid or the ground in voxels
 
 float GlimmerLuminance(float3 color)
 {
@@ -161,13 +164,15 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     // lighting skips voxels inside the ground or a solid; this is uniform across the group
     if (GlimmerSHIsBuried(origin))
     {
+        for (uint pair = groupIndex; pair < GLIMMER_SH_VISIBILITY_TEXELS / 2u; pair += GLIMMER_SH_RAYS)
+        {
+            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + pair)] = (float4)0.0;
+        }
+
         if (groupIndex == 0u)
         {
             OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY)] = (float4)0.0;
             OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE)] = float4(0.0, 0.0, 0.0, -1.0);
-            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + 0u)] = (float4)0.0;
-            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + 1u)] = (float4)0.0;
-            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + 2u)] = (float4)0.0;
             OutState[texel] = GlimmerSHPackVoxel(voxel);
         }
 
@@ -219,11 +224,62 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     // leaves don't count: light through a canopy isn't a leak
     const float depth = didHit ? min(hit.t * cascade.params.y, GLIMMER_SH_DEPTH_RANGE) : GLIMMER_SH_DEPTH_RANGE;
-    gsDepth[groupIndex] = float2(depth, float(GlimmerSHDirectionBin(direction)));
+    gsDepth[groupIndex] = float4(direction, depth);
 
     GroupMemoryBarrierWithGroupSync();
 
-    // gsDepth stays as written; thread 0 bins it after the reductions
+    // every thread reads the history here, before thread 0 overwrites the state and bounce at the end
+    const uint2 state = GlimmerSHPackVoxel(voxel);
+    const uint3 bounceTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE);
+    const float4 previousBounce = OutData[bounceTexel];
+
+    const bool hasHistory = all(OutState[texel] == state) && previousBounce.a >= 0.0;
+
+    // each depth map texel takes the rays around its direction, two texels (xy, zw) to a thread. One no ray came near this time keeps
+    // what it had (open without history), and one only a few did takes less of them
+    for (uint pair = groupIndex; pair < GLIMMER_SH_VISIBILITY_TEXELS / 2u; pair += GLIMMER_SH_RAYS)
+    {
+        const uint3 depthTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + pair);
+        const float4 previousPair = hasHistory
+            ? OutData[depthTexel]
+            : float4(GLIMMER_SH_DEPTH_RANGE, GLIMMER_SH_DEPTH_RANGE * GLIMMER_SH_DEPTH_RANGE, GLIMMER_SH_DEPTH_RANGE, GLIMMER_SH_DEPTH_RANGE * GLIMMER_SH_DEPTH_RANGE);
+
+        float4 depthPair;
+
+        [unroll]
+        for (uint side = 0; side < 2; side++)
+        {
+            const uint mapIndex = pair * 2u + side;
+            const float2 mapUV = (float2(mapIndex % GLIMMER_SH_VISIBILITY_RES, mapIndex / GLIMMER_SH_VISIBILITY_RES) + 0.5) / float(GLIMMER_SH_VISIBILITY_RES);
+            const float3 mapDirection = GlimmerOctahedralDecode(mapUV);
+
+            float3 sums = (float3)0.0; // weighted depth, weighted depth squared, weight
+
+            for (uint rayIndex = 0; rayIndex < GLIMMER_SH_RAYS; rayIndex++)
+            {
+                const float4 ray = gsDepth[rayIndex];
+                const float weight = pow(saturate(dot(mapDirection, ray.xyz)), GLIMMER_SH_VISIBILITY_SHARPNESS);
+
+                sums += float3(ray.w, ray.w * ray.w, 1.0) * weight;
+            }
+
+            const float2 previous = side == 0u ? previousPair.xy : previousPair.zw;
+            const float2 estimate = sums.z > 1e-4 ? sums.xy / sums.z : previous;
+            const float2 moments = lerp(estimate, previous, lerp(1.0, hasHistory ? GLIMMER_SH_HYSTERESIS : 0.0, saturate(sums.z)));
+
+            if (side == 0u)
+            {
+                depthPair.xy = moments;
+            }
+            else
+            {
+                depthPair.zw = moments;
+            }
+        }
+
+        OutData[depthTexel] = depthPair;
+    }
+
     [unroll]
     for (uint stride = GLIMMER_SH_RAYS / 2; stride > 0; stride >>= 1)
     {
@@ -255,42 +311,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         blocked.a > 1e-3 ? blocked.rgb / blocked.a : (float3)0.0,
         skyLitLuminance > 1e-4 ? min(gsSunlit[0] / skyLitLuminance, GLIMMER_SH_MAX_SUN_RATIO) : 0.0);
 
-    float2 depthSums[6] = { (float2)0.0, (float2)0.0, (float2)0.0, (float2)0.0, (float2)0.0, (float2)0.0 };
-    float depthCounts[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-
-    for (uint rayIndex = 0; rayIndex < GLIMMER_SH_RAYS; rayIndex++)
-    {
-        const float2 rayDepth = gsDepth[rayIndex];
-        const uint bin = uint(rayDepth.y);
-
-        depthSums[bin] += float2(rayDepth.x, rayDepth.x * rayDepth.x);
-        depthCounts[bin] += 1.0;
-    }
-
-    float2 depthMoments[6];
-
-    [unroll]
-    for (uint bin = 0; bin < 6; bin++)
-    {
-        // a direction no ray went in this time reads as open
-        depthMoments[bin] = depthCounts[bin] > 0.0
-            ? depthSums[bin] / depthCounts[bin]
-            : float2(GLIMMER_SH_DEPTH_RANGE, GLIMMER_SH_DEPTH_RANGE * GLIMMER_SH_DEPTH_RANGE);
-    }
-
-    float4 depths[3] = {
-        float4(depthMoments[0], depthMoments[1]),
-        float4(depthMoments[2], depthMoments[3]),
-        float4(depthMoments[4], depthMoments[5])
-    };
-
     const uint3 visibilityTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY);
-    const uint3 bounceTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE);
-
-    const uint2 state = GlimmerSHPackVoxel(voxel);
-    const float4 previousBounce = OutData[bounceTexel];
-
-    const bool hasHistory = all(OutState[texel] == state) && previousBounce.a >= 0.0;
 
     if (hasHistory)
     {
@@ -300,14 +321,5 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     OutData[visibilityTexel] = visibility;
     OutData[bounceTexel] = bounce;
-
-    [unroll]
-    for (uint axis = 0; axis < 3; axis++)
-    {
-        const uint3 depthTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + axis);
-
-        OutData[depthTexel] = hasHistory ? lerp(depths[axis], OutData[depthTexel], GLIMMER_SH_HYSTERESIS) : depths[axis];
-    }
-
     OutState[texel] = state;
 }

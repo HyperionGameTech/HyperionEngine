@@ -178,7 +178,7 @@ void GlimmerSWRTProbeVolume::CreateResources(Frame* frame)
     m_slotAgesBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerProbePoolBlocks);
     m_statesBuffer = CreateProbeBuffer(sizeof(Vec4u), GlimmerProbePoolProbes);
     m_shBuffer = CreateProbeBuffer(sizeof(Vec4f), GlimmerProbePoolProbes * 3);
-    m_visibilityBuffer = CreateProbeBuffer(sizeof(Vec4f), GlimmerProbePoolProbes * 3);
+    m_visibilityBuffer = CreateProbeBuffer(sizeof(Vec2f), size_t(GlimmerProbePoolProbes) * GlimmerProbeVisibilityTexels);
     m_trendBuffer = CreateProbeBuffer(sizeof(Vec4f), GlimmerProbePoolProbes);
     m_countersBuffer = CreateProbeBuffer(sizeof(uint32), NumProbeCounters);
     m_updateListBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerMaxProbesPerFrame);
@@ -290,7 +290,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     m_shaderData.info = Vec4u(GlimmerProbeLevels, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
     m_shaderData.params = Vec4f(
         float(double(Time::Now().ToMilliseconds() - m_startTime.ToMilliseconds()) * 0.001),
-        0.0f,
+        MathUtil::Clamp(g_cvGlimmerVisibility.Get(), 0.0f, 1.0f),
         ProbesEscapeClamp,
         ProbesMaxDistance);
     m_shaderData.nearField = Vec4f(
@@ -350,7 +350,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "OutSlotAges"_sh, m_slotAgesBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutStates"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
             cr << SetShaderUniform(uniformIndex++, "OutSH"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-            cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+            cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec2f)));
             cr << SetShaderUniform(uniformIndex++, "OutTrend"_sh, m_trendBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "OutCounters"_sh, m_countersBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutUpdateList"_sh, m_updateListBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
@@ -455,7 +455,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, m_blockTableBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec2f)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, m_slotsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeUpdateListBuffer"_sh, m_updateListBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeCountersBuffer"_sh, m_countersBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
@@ -513,7 +513,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, m_slotsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
         cr << SetShaderUniform(uniformIndex++, "OutSH"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
         cr << SetShaderUniform(uniformIndex++, "OutStates"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-        cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+        cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec2f)));
         cr << SetShaderUniform(uniformIndex++, "OutTrend"_sh, m_trendBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
 
         cr << DispatchCompute(Vec3u { (probesPerFrame + BlendGroupSize - 1) / BlendGroupSize, 1, 1 });

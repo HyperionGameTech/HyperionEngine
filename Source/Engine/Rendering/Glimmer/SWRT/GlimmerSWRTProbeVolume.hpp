@@ -28,17 +28,21 @@ class GlimmerFootprintMask;
 class GlimmerSHVolume;
 struct GlimmerSHOccupancyShaderData;
 
-// Must match the defines in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli: 2 m then 4 m probes, in blocks of 4x4x4, each level
-// keeping a window of 8x8x8 blocks around the viewer (so +-32 m, then +-64 m); the SH voxels cover what's past them
-static constexpr uint32 GlimmerProbeLevels = 2;
+// Must match the defines in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli: 2, 4, 8 and 16 m probes, in blocks of 4x4x4, each level
+// keeping a window of 8x8x8 blocks around the viewer (+-32 m up to +-256 m), so structures well into the distance still get probes;
+// the SH voxels cover open ground and what's past them
+static constexpr uint32 GlimmerProbeLevels = 4;
 static constexpr uint32 GlimmerProbeBlock = 4;
 static constexpr uint32 GlimmerProbesPerBlock = GlimmerProbeBlock * GlimmerProbeBlock * GlimmerProbeBlock;
 static constexpr uint32 GlimmerProbeWindow = 8;
 static constexpr uint32 GlimmerProbeWindowBlocks = GlimmerProbeWindow * GlimmerProbeWindow * GlimmerProbeWindow;
-static constexpr uint32 GlimmerProbePoolBlocks = 128;
+static constexpr uint32 GlimmerProbePoolBlocks = 256;
 static constexpr uint32 GlimmerProbePoolProbes = GlimmerProbePoolBlocks * GlimmerProbesPerBlock;
 
 static constexpr uint32 GlimmerProbeRays = 32;
+
+// Must match GLIMMER_PROBE_VISIBILITY_TEXELS in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli: an 8x8 octahedral map of depth moments per probe
+static constexpr uint32 GlimmerProbeVisibilityTexels = 64;
 
 // what the per frame buffers are sized for; Rendering.Glimmer.SWRT.Probes.RaysPerFrame is clamped to it
 static constexpr uint32 GlimmerMaxProbesPerFrame = 4096;
@@ -64,7 +68,7 @@ struct GlimmerProbeVolumeShaderData
 {
     GlimmerProbeLevelShaderData levels[GlimmerProbeLevels];
     Vec4u info;      // x = number of levels, y = rays per probe, z = frame, w = 1 when the volume can be sampled
-    Vec4f params;    // x = seconds since the volume started, y = unused, z = escape radiance clamp, w = max ray distance
+    Vec4f params;    // x = seconds since the volume started, y = how much visibility counts (Rendering.Glimmer.Visibility), z = escape radiance clamp, w = max ray distance
     Vec4f nearField; // x = levels traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 
@@ -128,7 +132,7 @@ private:
     GpuBufferRef m_slotAgesBuffer;   // per slot: frames since its block was last wanted
     GpuBufferRef m_statesBuffer;
     GpuBufferRef m_shBuffer;         // 3 per probe
-    GpuBufferRef m_visibilityBuffer; // 3 per probe
+    GpuBufferRef m_visibilityBuffer; // GlimmerProbeVisibilityTexels per probe
     GpuBufferRef m_trendBuffer;
     GpuBufferRef m_countersBuffer;
     GpuBufferRef m_updateListBuffer;

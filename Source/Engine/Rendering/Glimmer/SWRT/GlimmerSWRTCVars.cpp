@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-CVar<int> g_cvGlimmerSWRTNearFieldCascades("Rendering.Glimmer.SWRT.NearField.Cascades", 2);
+CVar<int> g_cvGlimmerSWRTNearFieldCascades("Rendering.Glimmer.SWRT.NearField.Cascades", 4);
 CVar<float> g_cvGlimmerSWRTNearFieldRadius("Rendering.Glimmer.SWRT.NearField.Radius", 96.0f);
 
 CVar<float> g_cvGlimmerSWRTSpansRadius("Rendering.Glimmer.SWRT.Spans.Radius", 384.0f);

@@ -248,6 +248,8 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
     {
         const float spacing = GetGlimmerSHCascadeSpacing(cascadeIndex);
 
+        m_shaderData.cascades[cascadeIndex].params.z = MathUtil::Clamp(g_cvGlimmerVisibility.Get(), 0.0f, 1.0f);
+
         const Vec3i origin = Vec3i(
             int32(MathUtil::Floor(inputs.viewerPosition.x / spacing)) - int32(GlimmerSHGridXZ / 2),
             int32(MathUtil::Floor(inputs.viewerPosition.y / spacing)) - int32(GlimmerSHGridY / 2),

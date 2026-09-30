@@ -362,6 +362,8 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
     // a summary now and then, for looking at the probes without a screen
     if (hasNewRecords && ++m_probeDebugLogCounter % 60 == 1)
     {
+        static_assert(GlimmerProbeLevels == 4, "the summary below prints four levels");
+
         uint32 blocks[GlimmerProbeLevels] = {};
         uint32 states[4] = {};
         uint32 updated = 0;
@@ -404,8 +406,8 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
             }
         }
 
-        HYP_LOG(Rendering, Info, "Glimmer probes: blocks {}/{} (L0/L1), active {} (updated {}, moved {}), buried {}, inside {}, mean luminance {}, viewer {}",
-            blocks[0], blocks[1], states[GPS_ACTIVE], updated, relocated, states[GPS_BURIED], states[GPS_INSIDE],
+        HYP_LOG(Rendering, Info, "Glimmer probes: blocks {}/{}/{}/{} (2/4/8/16 m), active {} (updated {}, moved {}), buried {}, inside {}, mean luminance {}, viewer {}",
+            blocks[0], blocks[1], blocks[2], blocks[3], states[GPS_ACTIVE], updated, relocated, states[GPS_BURIED], states[GPS_INSIDE],
             updated != 0 ? luminanceSum / float(updated) : 0.0f, viewerPosition);
     }
 

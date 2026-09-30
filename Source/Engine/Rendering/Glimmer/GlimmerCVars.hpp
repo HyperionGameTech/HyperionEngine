@@ -33,6 +33,9 @@ extern CVar<int> g_cvGlimmerDebugView;
 // the SH voxels on their own: 0 = off, 1 = irradiance, 2 = sky visibility, 3 = sky visibility of the single voxel (no interpolation)
 extern CVar<int> g_cvGlimmerDebugSH;
 
+// how much the probes' and SH voxels' depth moments cut off light from behind walls: 1 = fully, 0 = not at all (for comparing)
+extern CVar<float> g_cvGlimmerVisibility;
+
 extern CVar<float> g_cvGlimmerGroundAlbedo; // where the terrain's own albedo isn't known
 
 /*! \brief Whether the Glimmer scene (scene view, surface cache, technique) needs to be kept up to date. */

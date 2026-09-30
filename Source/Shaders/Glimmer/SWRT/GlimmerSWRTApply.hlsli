@@ -12,7 +12,7 @@
 DECLARE_SRV(DeferredPass, GlimmerProbeBlockTableBuffer) StructuredBuffer<uint> glimmerProbeBlockTable;
 DECLARE_SRV(DeferredPass, GlimmerProbeSHBuffer) StructuredBuffer<float4> glimmerProbeSH;
 DECLARE_SRV(DeferredPass, GlimmerProbeStatesBuffer) StructuredBuffer<uint4> glimmerProbeStates;
-DECLARE_SRV(DeferredPass, GlimmerProbeVisibilityBuffer) StructuredBuffer<float4> glimmerProbeVisibility;
+DECLARE_SRV(DeferredPass, GlimmerProbeVisibilityBuffer) StructuredBuffer<float2> glimmerProbeVisibility;
 
 #include "GlimmerProbes.hlsli"
 

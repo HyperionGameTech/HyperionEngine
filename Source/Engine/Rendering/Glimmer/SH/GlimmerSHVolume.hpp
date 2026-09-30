@@ -30,14 +30,15 @@ static constexpr uint32 GlimmerSHRays = 64;
 // cascade 0, doubling per cascade: 4 m voxels (a +-64 m window) light everything near the viewer that the probe blocks don't reach,
 // open terrain included; the coarsest reaches +-1 km
 static constexpr float GlimmerSHSpacing = 4.0f;
-// visibility, bounce and depth x/y/z share one texture, a GlimmerSHGridXZ deep slab each. Must match GLIMMER_SH_SLABS in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
-static constexpr uint32 GlimmerSHDataSlabs = 5;
+// visibility, bounce and the 8x8 octahedral depth map (two texels per slab) share one texture, a GlimmerSHGridXZ deep slab each.
+// Must match GLIMMER_SH_SLABS in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
+static constexpr uint32 GlimmerSHDataSlabs = 2 + (8 * 8) / 2;
 
 // Must match GlimmerSHCascade in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
 struct GlimmerSHCascadeShaderData
 {
     Vec4i origin; // xyz = absolute voxel of the window's first voxel, w = 1 once the cascade has a window
-    Vec4f params; // x = voxel spacing, y = 1 / spacing
+    Vec4f params; // x = voxel spacing, y = 1 / spacing, z = how much visibility counts (Rendering.Glimmer.Visibility)
 };
 
 // Must match GlimmerSHVolume in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
@@ -59,7 +60,7 @@ struct GlimmerSHVolumeUpdateInputs
 
 /*! \brief Clipmap of voxels around the viewer, each holding what it sees of the sky and of the surfaces blocking it:
  *  L1 sky visibility (canopy transmittance included), the blockers' mean albedo and how much of them the sun lights,
- *  and per axis direction the distance moments to the nearest solid, which keep light from leaking through walls when interpolating.
+ *  and an octahedral map of the distance moments to the nearest solid, which keep light from leaking through walls when interpolating.
  *  Voxels are traced against the occupancy clipmap and the heightfield (ground + spans) only when they scroll in, plus a slow round robin refresh,
  *  within a per frame budget; lighting relights them with the current sky and sun per pixel. Render thread only. */
 class GlimmerSHVolume
@@ -82,7 +83,7 @@ public:
         return m_shaderData;
     }
 
-    /*! \brief Visibility, bounce and depth x/y/z, stacked along z (see GlimmerSHCommon.hlsli) */
+    /*! \brief Visibility, bounce and the depth map, stacked along z (see GlimmerSHCommon.hlsli) */
     const GpuImageViewRef& GetDataImageView() const;
     const GpuImageViewRef& GetStateImageView() const;
 

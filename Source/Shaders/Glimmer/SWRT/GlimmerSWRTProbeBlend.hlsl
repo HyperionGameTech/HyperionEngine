@@ -24,7 +24,7 @@ DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> g
 
 DECLARE_UAV(GlimmerProbeBlend, OutSH) RWStructuredBuffer<float4> OutSH;
 DECLARE_UAV(GlimmerProbeBlend, OutStates) RWStructuredBuffer<uint4> OutStates;
-DECLARE_UAV(GlimmerProbeBlend, OutVisibility) RWStructuredBuffer<float4> OutVisibility;
+DECLARE_UAV(GlimmerProbeBlend, OutVisibility) RWStructuredBuffer<float2> OutVisibility; // GLIMMER_PROBE_VISIBILITY_TEXELS per probe
 DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend; // x = mean luminance of recent estimates, y = mean of its square
 
 #define GLIMMER_PROBES_NO_SAMPLING
@@ -48,6 +48,13 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend; //
 // once settled, an estimate can't be brighter than this many times the history
 #define GLIMMER_PROBE_FIREFLY_RATIO 4.0
 
+// how narrowly a visibility texel takes the rays around its direction (the power of their cosine); a few rays per update have to
+// reach every texel, so it's far wider than DDGI's
+#define GLIMMER_PROBE_VISIBILITY_SHARPNESS 12.0
+
+// Must match GlimmerProbeRays in GlimmerSWRTProbeVolume.hpp
+#define GLIMMER_PROBE_MAX_RAYS 32
+
 float GlimmerLuminance(float3 color)
 {
     return dot(color, float3(0.2126, 0.7152, 0.0722));
@@ -59,8 +66,8 @@ float3 GlimmerClampOffset(float3 offset)
 }
 
 // Projects each listed probe's rays onto L1, already convolved with the cosine lobe and divided by pi: with N uniformly spread rays,
-// e0 = mean radiance and e1 = 2 * mean(radiance * direction). Also bins the hit distances into depth moments per axis direction,
-// and moves probes out of solids
+// e0 = mean radiance and e1 = 2 * mean(radiance * direction). Also spreads the hit distances over the probe's octahedral map of
+// depth moments, and moves probes out of solids
 [numthreads(64, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
@@ -85,15 +92,15 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     const float spacing = constants.volume.levels[slot.w].params.x;
     const float invSpacing = constants.volume.levels[slot.w].params.y;
 
-    const uint numRays = constants.volume.info.y;
+    const uint numRays = min(constants.volume.info.y, GLIMMER_PROBE_MAX_RAYS);
 
     float3 e0 = (float3)0.0;
     float3 e1R = (float3)0.0;
     float3 e1G = (float3)0.0;
     float3 e1B = (float3)0.0;
 
-    float2 depthSums[6] = { (float2)0.0, (float2)0.0, (float2)0.0, (float2)0.0, (float2)0.0, (float2)0.0 };
-    float depthCounts[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    float3 rayDirections[GLIMMER_PROBE_MAX_RAYS];
+    float rayDepths[GLIMMER_PROBE_MAX_RAYS];
 
     uint numBackfaces = 0u;
     uint numStartsInside = 0u;
@@ -140,11 +147,8 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
             nearestFrontfaceDirection = direction;
         }
 
-        const float depth = min(hitDistance * invSpacing, GLIMMER_PROBE_DEPTH_RANGE);
-        const uint bin = GlimmerProbeDirectionBin(direction);
-
-        depthSums[bin] += float2(depth, depth * depth);
-        depthCounts[bin] += 1.0;
+        rayDirections[rayIndex] = direction;
+        rayDepths[rayIndex] = min(hitDistance * invSpacing, GLIMMER_PROBE_DEPTH_RANGE);
     }
 
     uint relocations = GlimmerProbeRelocations(state);
@@ -188,23 +192,6 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     float4 shR = float4(e0.r * invNumRays, e1R * (2.0 * invNumRays));
     float4 shG = float4(e0.g * invNumRays, e1G * (2.0 * invNumRays));
     float4 shB = float4(e0.b * invNumRays, e1B * (2.0 * invNumRays));
-
-    float2 depthMoments[6];
-
-    [unroll]
-    for (uint bin = 0; bin < 6; bin++)
-    {
-        // a direction no ray went in this time reads as open
-        depthMoments[bin] = depthCounts[bin] > 0.0
-            ? depthSums[bin] / depthCounts[bin]
-            : float2(GLIMMER_PROBE_DEPTH_RANGE, GLIMMER_PROBE_DEPTH_RANGE * GLIMMER_PROBE_DEPTH_RANGE);
-    }
-
-    float4 visibility[3] = {
-        float4(depthMoments[0], depthMoments[1]),
-        float4(depthMoments[2], depthMoments[3]),
-        float4(depthMoments[4], depthMoments[5])
-    };
 
     float estimateLuminance = GlimmerLuminance(float3(shR.x, shG.x, shB.x));
 
@@ -254,12 +241,6 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         shR = lerp(shR, previousR, hysteresis);
         shG = lerp(shG, previousG, hysteresis);
         shB = lerp(shB, previousB, hysteresis);
-
-        [unroll]
-        for (uint axis = 0; axis < 3; axis++)
-        {
-            visibility[axis] = lerp(visibility[axis], OutVisibility[probeIndex * 3u + axis], hysteresis);
-        }
     }
     else
     {
@@ -271,10 +252,32 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     OutSH[probeIndex * 3u + 1u] = shG;
     OutSH[probeIndex * 3u + 2u] = shB;
 
-    [unroll]
-    for (uint axis = 0; axis < 3; axis++)
+    // each texel takes the rays around its direction; a texel no ray came near this time keeps what it had, and one only a few did
+    // takes less of them
+    for (uint texel = 0; texel < GLIMMER_PROBE_VISIBILITY_TEXELS; texel++)
     {
-        OutVisibility[probeIndex * 3u + axis] = visibility[axis];
+        const float2 texelUV = (float2(texel % GLIMMER_PROBE_VISIBILITY_RES, texel / GLIMMER_PROBE_VISIBILITY_RES) + 0.5) / float(GLIMMER_PROBE_VISIBILITY_RES);
+        const float3 texelDirection = GlimmerOctahedralDecode(texelUV);
+
+        float3 sums = (float3)0.0; // weighted depth, weighted depth squared, weight
+
+        for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
+        {
+            const float weight = pow(saturate(dot(texelDirection, rayDirections[rayIndex])), GLIMMER_PROBE_VISIBILITY_SHARPNESS);
+            const float depth = rayDepths[rayIndex];
+
+            sums += float3(depth, depth * depth, 1.0) * weight;
+        }
+
+        const uint visibilityIndex = probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + texel;
+
+        if (sums.z > 1e-4)
+        {
+            const float2 estimate = sums.xy / sums.z;
+            const float texelHysteresis = updates > 0u ? lerp(1.0, hysteresis, saturate(sums.z)) : 0.0;
+
+            OutVisibility[visibilityIndex] = lerp(estimate, OutVisibility[visibilityIndex], texelHysteresis);
+        }
     }
 
     OutTrend[probeIndex] = trend;

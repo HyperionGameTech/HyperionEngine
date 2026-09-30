@@ -214,8 +214,8 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerGroundCover" {
             CS = "Glimmer/GlimmerGroundCover.hlsl"
         }
-        ShaderDefinition "GlimmerSWRTProbeBase" {
-            CS = "Glimmer/SWRT/GlimmerSWRTProbeBase.hlsl"
+        ShaderDefinition "GlimmerSWRTProbeAlloc" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeAlloc.hlsl"
         }
         ShaderDefinition "GlimmerSWRTProbeTrace" {
             CS = "Glimmer/SWRT/GlimmerSWRTProbeTrace.hlsl"

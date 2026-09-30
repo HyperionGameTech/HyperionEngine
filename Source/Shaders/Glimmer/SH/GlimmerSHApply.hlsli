@@ -20,21 +20,30 @@ DECLARE_SRV(DeferredPass, GlimmerSHStateTexture) Texture3D<uint2> glimmerSHState
 // the point tested for visibility sits this many voxels off the surface, so a voxel's rays that end on the surface itself don't count against it
 #define GLIMMER_SH_VISIBILITY_NORMAL_BIAS 0.3
 
+// in voxels^2, see GlimmerSHVoxelVisibility
+#define GLIMMER_SH_MIN_VARIANCE 0.01
+
 // Chebyshev bound on how likely the voxel sees a point this far (in voxels) toward it, from the distances its rays in that direction went
 float GlimmerSHVoxelVisibility(uint3 texel, float3 voxelToPoint, float distanceInVoxels)
 {
-    // each axis contributes the moments of the way it points, by how much of the direction is along it; taking the dominant axis's
-    // alone jumps wherever two axes tie, which shows up as hard diagonal lines through every voxel
-    const float3 axisWeights = voxelToPoint * voxelToPoint / (distanceInVoxels * distanceInVoxels);
+    // bilinear between the four depth map texels around the direction (clamped rather than wrapped at the octahedron's edges)
+    const float2 mapCoord = GlimmerOctahedralEncode(voxelToPoint / distanceInVoxels) * float(GLIMMER_SH_VISIBILITY_RES) - 0.5;
+    const int2 mapTexel0 = int2(floor(mapCoord));
+    const float2 fraction = mapCoord - float2(mapTexel0);
 
     float2 moments = (float2)0.0;
 
     [unroll]
-    for (uint axis = 0; axis < 3; axis++)
+    for (uint corner = 0; corner < 4; corner++)
     {
-        const float4 depth = glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + axis), 0));
+        const int2 offset = int2(corner & 1u, corner >> 1);
+        const int2 mapTexel = clamp(mapTexel0 + offset, 0, GLIMMER_SH_VISIBILITY_RES - 1);
+        const uint mapIndex = uint(mapTexel.y * GLIMMER_SH_VISIBILITY_RES + mapTexel.x);
+        const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
 
-        moments += (voxelToPoint[axis] < 0.0 ? depth.zw : depth.xy) * axisWeights[axis];
+        const float4 depthPair = glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + mapIndex / 2u), 0));
+
+        moments += ((mapIndex & 1u) != 0u ? depthPair.zw : depthPair.xy) * (bilinear.x * bilinear.y);
     }
 
     if (distanceInVoxels <= moments.x)
@@ -42,12 +51,15 @@ float GlimmerSHVoxelVisibility(uint3 texel, float3 voxelToPoint, float distanceI
         return 1.0;
     }
 
-    const float variance = max(moments.y - moments.x * moments.x, 1e-3);
+    // floored at (0.1 voxel)^2, so a voxel's shadow of a flat wall fades in rather than cutting off: with every ray that way ending on
+    // the same wall the variance is ~0, and the bound would snap from 1 to 0 over a few centimetres
+    const float variance = max(moments.y - moments.x * moments.x, GLIMMER_SH_MIN_VARIANCE);
     const float difference = distanceInVoxels - moments.x;
     const float chebyshev = variance / (variance + difference * difference);
 
-    // sharpen, as DDGI does, so a partly blocked direction still mostly rejects
-    return max(chebyshev * chebyshev * chebyshev, 0.0);
+    // sharpened, as DDGI does, so a partly blocked direction still mostly rejects; only squared, as a voxel is several metres across and
+    // DDGI's cube makes the edge of its shadow read as a hard line
+    return max(chebyshev * chebyshev, 0.0);
 }
 
 // Trilinear over the voxels traced for this cascade's window that aren't buried, favouring those in front of the surface.
@@ -119,7 +131,7 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
         // and voxels with a wall, trunk or ridge between them and the surface see the other side of it
         const float3 voxelToPoint = (P + N * (GLIMMER_SH_VISIBILITY_NORMAL_BIAS * cascade.params.x) - voxelCenter) * cascade.params.y;
         const float voxelToPointLength = length(voxelToPoint);
-        const float visibility = voxelToPointLength > 1e-3 ? GlimmerSHVoxelVisibility(texel, voxelToPoint, voxelToPointLength) : 1.0;
+        const float visibility = voxelToPointLength > 1e-3 ? lerp(1.0, GlimmerSHVoxelVisibility(texel, voxelToPoint, voxelToPointLength), cascade.params.z) : 1.0;
 
         // like DDGI, weights are crushed rather than dropped: where every voxel around P is blocked they still blend evenly,
         // instead of P falling through to the next cascade with a seam
@@ -139,7 +151,9 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
         weightSum += weight;
     }
 
-    if (weightSum <= 1e-5)
+    // every usable corner carries at least 1e-6, so this is only where none is: when they're all blocked they blend evenly rather
+    // than dropping P to the next cascade
+    if (weightSum <= 0.0)
     {
         return 0.0;
     }
