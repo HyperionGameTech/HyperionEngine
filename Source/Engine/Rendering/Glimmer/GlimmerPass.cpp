@@ -351,7 +351,7 @@ void GlimmerPass::WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World
 
     if (technique && technique->IsReady())
     {
-        // the deferred indirect pass draws the views up to Coverage itself; the rest are the technique's, in place of the final image
+        // GlimmerIrradiancePass draws the views up to Coverage for the deferred indirect pass to show; the rest are the technique's, in place of the final image
         const int debugView = g_cvGlimmerDebugView.Get();
         const bool isApplyView = debugView == int(GlimmerDebugView::Irradiance) || debugView == int(GlimmerDebugView::Coverage);
 

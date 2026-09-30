@@ -14,10 +14,10 @@ enum class GlimmerDebugView : int
 {
     None = 0,
 
-    // Glimmer's irradiance on its own, from the deferred indirect pass
+    // Glimmer's irradiance on its own, drawn by GlimmerIrradiancePass and shown by the deferred indirect pass
     Irradiance,
 
-    // which volume and cascade lighting takes Glimmer's irradiance from, from the deferred indirect pass: probes (SWRT, the near field)
+    // which volume and cascade lighting takes Glimmer's irradiance from, drawn like Irradiance: probes (SWRT, the near field)
     // yellow to red, SH voxels (the far field) cyan to violet, magenta where neither covers
     Coverage,
 

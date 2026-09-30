@@ -232,6 +232,10 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerSHOccupancySplat" {
             CS = "Glimmer/SH/GlimmerSHOccupancySplat.hlsl"
         }
+        ShaderDefinition "GlimmerIrradiance" {
+            VS = "Glimmer/GlimmerIrradiance.hlsl"
+            PS = "Glimmer/GlimmerIrradiance.hlsl"
+        }
         ShaderDefinition "CloudWeatherMap" {
             CS = "Clouds/CloudWeatherMap.hlsl"
         }

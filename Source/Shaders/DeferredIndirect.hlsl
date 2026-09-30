@@ -127,18 +127,16 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 
 #include "./include/SkyVisibility.hlsli"
 
-#include "./Glimmer/GlimmerApply.hlsli"
-
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 {
     Camera camera;
     EnvProbe skyProbe;
     SkyVisibilityCapture skyVisibilityCapture;
-    GlimmerApply glimmer;
+    uint4 glimmerParams; // GlimmerIrradianceShaderData: x = 1 when GlimmerIrradianceTexture holds Glimmer, y = 1 when it holds a debug view
 };
 
-#define GLIMMER_APPLY_WITH_SAMPLING
-#include "./Glimmer/GlimmerApply.hlsli"
+// Glimmer's irradiance from GlimmerIrradiancePass, which never shades sky or lightmapped pixels
+DECLARE_SRV(DeferredPass, GlimmerIrradianceTexture) Texture2D GlimmerIrradianceTexture;
 
 // top-down depth capture of everything that blocks the sky, from DynamicSkySystem
 DECLARE_SRV(DeferredPass, SkyVisibilityTexture) Texture2D SkyVisibilityTexture;
@@ -230,7 +228,13 @@ PSOutput PSMain(PSInput input)
 
     g_skyVisibility = EvaluateSkyVisibility(skyVisibilityCapture, SkyVisibilityTexture, positionWS.xyz, N, texcoord * float2(camera.dimensions.xy) - 0.5);
 
-    g_glimmerIrradiance = EvaluateGlimmer(glimmer, positionWS.xyz, N);
+#ifndef REFLECTIONS_ONLY
+    // lightmapped pixels take their diffuse GI from the (path traced) lightmap, so Glimmer's pass leaves them out
+    if (glimmerParams.x != 0u && glimmerParams.y == 0u && (mask & OBJECT_MASK_LIGHTMAPPED) == 0)
+    {
+        g_glimmerIrradiance = GlimmerIrradianceTexture.Load(int3(pixelCoord, 0));
+    }
+#endif
 
     EvaluateEnvProbes(
         positionVS.xyz, positionWS.xyz,
@@ -317,18 +321,12 @@ PSOutput PSMain(PSInput input)
 #endif
 
 #ifndef REFLECTIONS_ONLY
-    if (glimmer.params.x == GLIMMER_DEBUG_VIS_IRRADIANCE)
+    // Glimmer's pass drew the debug view in place of its irradiance; what it left out (lightmapped pixels) shows as missing
+    if (glimmerParams.y != 0u)
     {
-        result = g_glimmerIrradiance.a > 0.0 ? g_glimmerIrradiance.rgb : float3(1.0, 0.0, 1.0);
-    }
-    else if (glimmer.params.x == GLIMMER_DEBUG_VIS_COVERAGE)
-    {
-        result = EvaluateGlimmerCoverage(glimmer, positionWS.xyz, N);
-    }
+        const float4 glimmerDebug = GlimmerIrradianceTexture.Load(int3(pixelCoord, 0));
 
-    if (glimmer.params.y != 0u && glimmer.params.z != 0u)
-    {
-        result = EvaluateGlimmerSHDebug(glimmer, positionWS.xyz, N);
+        result = glimmerDebug.a > 0.0 ? glimmerDebug.rgb : float3(1.0, 0.0, 1.0);
     }
 #endif
 

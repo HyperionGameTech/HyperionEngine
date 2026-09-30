@@ -62,7 +62,7 @@ static constexpr float FogHistoryWeight = 0.9f;
 
 static EngineStatGpuTimer s_statFogVolumes("Rendering/GPU/FogVolumes");
 
-// Must match the tail of FogVolumeConstants in Shaders/Deferred/ApplyFogVolume.hlsl, which Glimmer's apply data follows
+// Must match the tail of FogVolumeConstants in Shaders/Deferred/ApplyFogVolume.hlsl, which the sky probe and Glimmer's apply data follow
 struct FogVolumeMarchConstants
 {
     Vec2i screenDimensions;
@@ -357,7 +357,12 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
 
     GlimmerPass* glimmerPass = static_cast<GlimmerPass*>(RI.namedPasses[NamedPass::Glimmer][0]);
-    glimmerPass->BindApplyResources(cr, 17, renderSetup.world);
+    const uint32 worldsBufferIndex = glimmerPass->BindApplyResources(cr, 17, renderSetup.world);
+    cr << SetShaderUniform(worldsBufferIndex, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+
+    RenderProxyEnvProbe* skyProbeProxy = renderSetup.envProbe != nullptr
+        ? static_cast<RenderProxyEnvProbe*>(GetRenderProxy(renderSetup.envProbe))
+        : nullptr;
 
     LightShaderData fogLightData[MaxFogLights] {};
     ShadowMapData fogShadowMapData[MaxFogLights] {};
@@ -483,6 +488,17 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
             marchConstants.maxSteps = FogMaxSteps;
             marchConstants.frameCounter = GetFrameCounter();
             RI.cbufferAllocator->Write(&marchConstants);
+
+            if (skyProbeProxy != nullptr)
+            {
+                RI.cbufferAllocator->Write(&skyProbeProxy->bufferData);
+            }
+            else
+            {
+                // default constructed, so textureIndices is ~0u
+                static const EnvProbeShaderData s_noSkyProbeData {};
+                RI.cbufferAllocator->Write(&s_noSkyProbeData);
+            }
 
             glimmerPass->WriteApplyShaderData(*RI.cbufferAllocator, renderSetup.world);
 

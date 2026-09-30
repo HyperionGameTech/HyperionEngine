@@ -19,6 +19,7 @@
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
 
 #include <Rendering/Glimmer/GlimmerPass.hpp>
+#include <Rendering/Glimmer/GlimmerIrradiancePass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 
 #ifdef HYP_EDITOR
@@ -346,6 +347,8 @@ DeferredPassData::~DeferredPassData()
     depthPyramidRenderer.Reset();
 
     hbao.Reset();
+
+    glimmerIrradiancePass.Reset();
 
     taaPass.Reset();
 
@@ -1102,6 +1105,9 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.hbao = MakeUnique<HBAO>(gbuffer->GetExtent(), gbuffer);
         passData.hbao->Create();
 
+        passData.glimmerIrradiancePass = MakeUnique<GlimmerIrradiancePass>(gbuffer->GetExtent(), gbuffer);
+        passData.glimmerIrradiancePass->Create();
+
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
 
@@ -1326,6 +1332,9 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
 
     passData.hbao = MakeUnique<HBAO>(newSize, gbuffer);
     passData.hbao->Create();
+
+    passData.glimmerIrradiancePass = MakeUnique<GlimmerIrradiancePass>(newSize, gbuffer);
+    passData.glimmerIrradiancePass->Create();
 
     passData.ssgi = MakeUnique<SSGI>(gbuffer);
     passData.ssgi->Create();
@@ -1927,6 +1936,9 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         lightingRS.envProbe = *skyProbes.Begin();
     }
 
+    // read by the indirect lighting pass, so it has to be done before that pass's framebuffer is bound
+    passData.glimmerIrradiancePass->Render(frame, lightingRS);
+
     const int debugVisMode = g_cvDeferredDebugVis.Get();
 
     { // deferred lighting on opaque objects
@@ -2138,6 +2150,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             RenderSetup fogVolumeRS = rs.Fork();
             fogVolumeRS.framebuffer = effectPassFramebuffer;
+            fogVolumeRS.envProbe = lightingRS.envProbe;
 
             passData.fogVolumePass->Render(frame, fogVolumeRS);
         }

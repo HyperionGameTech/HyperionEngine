@@ -105,6 +105,10 @@ DECLARE_SRV(FogVolume, DepthTexture) Texture2D DepthTexture;
 DECLARE_SRV_DYNAMIC(FogVolume, CamerasBuffer) StructuredBuffer<Camera> _cameras_buffer;
 #define camera _cameras_buffer[0]
 
+// Glimmer's SH voxels relight with the sky probe and the sun
+DECLARE_SRV(FogVolume, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+
 DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray<float> shadow_maps;
 DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
@@ -191,6 +195,7 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
     uint frameCounter;
     uint3 _tailPad;
 
+    EnvProbe skyProbe; // for Glimmer's SH voxels; textureIndices is ~0 without one
     GlimmerApply glimmer;
 };
 
@@ -238,6 +243,7 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
     uint frameCounter;
     uint3 _tailPad;
 
+    EnvProbe skyProbe; // for Glimmer's SH voxels; textureIndices is ~0 without one
     GlimmerApply glimmer;
 };
 
