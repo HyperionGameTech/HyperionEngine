@@ -94,7 +94,7 @@ float GlimmerSampleCascade(GlimmerProbeVolume volume, uint cascadeIndex, float3 
         // only probes traced for this column hold anything meaningful
         const uint2 state = glimmerProbeState.Load(int4(texel, 0));
 
-        if (state.x != GlimmerPackColumn(column))
+        if (!GlimmerIsSameColumn(state.x, column))
         {
             continue;
         }

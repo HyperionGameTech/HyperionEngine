@@ -89,6 +89,7 @@ private:
 
     Handle<Texture> m_shTextures[3];
     Handle<Texture> m_stateTexture;
+    Handle<Texture> m_trendTexture; // luminance over each probe's last few updates, to tell real change from noise
     Handle<Texture> m_baseTexture;
 
     GpuBufferRef m_raysBuffer;

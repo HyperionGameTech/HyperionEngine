@@ -50,11 +50,17 @@ static constexpr size_t RayHitSize = 4 * sizeof(Vec4f);
 static constexpr uint32 ProbesPerTraceGroup = 32 / GlimmerProbeRays;
 
 static_assert(GlimmerProbesPerCascade % ProbesPerTraceGroup == 0);
+// slices are made of 2x2 column tiles, scrambled as an 8 bit index (GlimmerProbeTileOrder in GlimmerProbeTypes.hlsli)
+static_assert(GlimmerProbeGrid == 32, "slices scramble 16 x 16 tiles");
+static_assert((2u << (GlimmerProbeCascades - 1)) * 4u <= 256u, "every slice needs at least one tile");
 
 static constexpr uint32 BaseGroupSize = 64;
 static constexpr uint32 BlendGroupSize = 64;
 
-static constexpr float ProbesHysteresis = 0.95f;
+// per frame, so a cascade updated every n frames blends by these to the n: steady light settles over ~4 s at 30 fps, while a
+// probe whose light jumps (2x or more) catches up over ~1 s
+static constexpr float ProbesHysteresisSteady = 0.995f;
+static constexpr float ProbesHysteresisChanging = 0.965f;
 
 // escaping rays brighter than this are scaled down, so a sliver of sun in the sky probe doesn't make fireflies
 static constexpr float ProbesEscapeClamp = 64.0f;
@@ -77,15 +83,16 @@ struct GlimmerProbeTraceConstants
     GlimmerProbeVolumeShaderData volume;
     GlimmerGroundShaderData ground;
     GlimmerSpanShaderData spans;
-    Vec4u dispatch; // x = cascade, y = sky probe color texture index (~0 without one)
+    Vec4u dispatch; // y = sky probe color texture index (~0 without one)
     Vec4f sky;      // x = sky probe diffuse strength, y = foliage extinction
+    Vec4u cascadeDispatches[GlimmerProbeCascades]; // x = GlimmerProbeDispatchMode, y = slice period | slice << 16, z = probes
 };
 
 // Must match GlimmerProbeBlendConstants in Shaders/Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolumeShaderData volume;
-    Vec4u dispatch; // x = cascade
+    Vec4u cascadeDispatches[GlimmerProbeCascades]; // x = GlimmerProbeDispatchMode, y = slice period | slice << 16, z = probes
 };
 
 static float GetCascadeSpacing(uint32 cascadeIndex)
@@ -98,11 +105,13 @@ static uint32 GetCascadeUpdatePeriod(uint32 cascadeIndex)
     return 2u << MathUtil::Max(cascadeIndex, 1u);
 }
 
-// Frame within its period each cascade updates on, so no two ever share a frame (4, 4, 8, 16, 32, 64 frame periods: 0 and 2 of
-// every 4 for the first two, the rest nested into 1 and 3) and the cost per frame stays flat
-static constexpr uint32 CascadeUpdatePhases[] = { 0, 2, 1, 5, 3, 7 };
-
-static_assert(sizeof(CascadeUpdatePhases) / sizeof(CascadeUpdatePhases[0]) == GlimmerProbeCascades);
+// Must match GLIMMER_PROBE_DISPATCH_* in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
+enum GlimmerProbeDispatchMode : uint32
+{
+    GPDM_ALL = 0,
+    GPDM_SCROLLED = 1,
+    GPDM_SLICE = 2
+};
 
 static Handle<Texture> CreateProbeTexture(TextureType type, TextureFormat format, const Vec3u& extent, uint16 numLayers, Name name)
 {
@@ -144,12 +153,13 @@ void GlimmerSWRTProbeVolume::CreateResources()
     m_shTextures[1] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH1"));
     m_shTextures[2] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH2"));
     m_stateTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RG32, probeExtent, 1, NAME("GlimmerProbeState"));
+    m_trendTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::R16F, probeExtent, 1, NAME("GlimmerProbeTrend"));
     m_baseTexture = CreateProbeTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerSWRTProbeBase"));
 
-    m_raysBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbesPerCascade) * GlimmerProbeRays * sizeof(Vec4f), alignof(Vec4f));
+    m_raysBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbeCascades) * GlimmerProbesPerCascade * GlimmerProbeRays * sizeof(Vec4f), alignof(Vec4f));
     Check(m_raysBuffer->Create());
 
-    m_rayHitsBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbesPerCascade) * GlimmerProbeRays * RayHitSize, alignof(Vec4f));
+    m_rayHitsBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbeCascades) * GlimmerProbesPerCascade * GlimmerProbeRays * RayHitSize, alignof(Vec4f));
     Check(m_rayHitsBuffer->Create());
 }
 
@@ -235,11 +245,11 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     {
         GlimmerProbeCascadeShaderData& cascade = m_shaderData.cascades[cascadeIndex];
 
-        // cascades updated less often blend faster, so every cascade converges in about the same time
-        const float cascadeHysteresis = MathUtil::Pow(ProbesHysteresis, float(GetCascadeUpdatePeriod(cascadeIndex)) * 0.5f);
+        // hysteresis is per update, so cascades updated less often blend faster and every cascade settles in about the same time
+        const float period = float(GetCascadeUpdatePeriod(cascadeIndex));
 
         cascade.gridOrigin = Vec4i(m_gridOrigins[cascadeIndex].x, m_gridOrigins[cascadeIndex].y, cascade.gridOrigin.z, 0);
-        cascade.params = Vec4f(GetCascadeSpacing(cascadeIndex), float(1u << cascadeIndex), cascadeHysteresis, 0.0f);
+        cascade.params = Vec4f(GetCascadeSpacing(cascadeIndex), float(1u << cascadeIndex), MathUtil::Pow(ProbesHysteresisSteady, period), MathUtil::Pow(ProbesHysteresisChanging, period));
     }
 
     m_shaderData.info = Vec4u(GlimmerProbeCascades, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
@@ -299,116 +309,130 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     const GpuBufferRef& tlasNodes = hasSWRTScene ? inputs.tlas->GetNodesBuffer() : inputs.blasCache->GetNodesBuffer();
     const GpuBufferRef& tlasInstances = hasSWRTScene ? inputs.tlas->GetInstancesBuffer() : inputs.blasCache->GetTrianglesBuffer();
 
+    // every cascade in one dispatch per pass (the cascade is the group's y), as a slice is too small to fill the GPU on its own
+    Vec4u cascadeDispatches[GlimmerProbeCascades];
+    uint32 maxProbes = 0;
+
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerProbeCascades; cascadeIndex++)
     {
-        const bool isScheduled = (m_frameIndex % GetCascadeUpdatePeriod(cascadeIndex)) == CascadeUpdatePhases[cascadeIndex];
+        // every frame updates one slice of each cascade's probes, so light changes creep in rather than stepping
+        const uint32 period = GetCascadeUpdatePeriod(cascadeIndex);
+        const uint32 slice = m_frameIndex % period;
+
         const bool hasScrolled = (scrolledMask & (1u << cascadeIndex)) != 0;
         const bool isFirstTrace = m_shaderData.cascades[cascadeIndex].gridOrigin.z == 0;
 
-        if (!isScheduled && !hasScrolled && !isFirstTrace)
+        const GlimmerProbeDispatchMode mode = isFirstTrace ? GPDM_ALL : (hasScrolled ? GPDM_SCROLLED : GPDM_SLICE);
+        const uint32 numProbes = mode == GPDM_SLICE ? GlimmerProbesPerCascade / period : GlimmerProbesPerCascade;
+
+        cascadeDispatches[cascadeIndex] = Vec4u(uint32(mode), period | (slice << 16), numProbes, 0);
+        maxProbes = MathUtil::Max(maxProbes, numProbes);
+    }
+
+    { // trace
+        GlimmerProbeTraceConstants constants {};
+        constants.volume = m_shaderData;
+        constants.ground = groundShaderData;
+        constants.spans = inputs.spanCache->GetShaderData();
+        constants.dispatch = Vec4u(0, skyTextureIndex, 0, 0);
+        Memory::Copy(constants.cascadeDispatches, cascadeDispatches, sizeof(cascadeDispatches));
+        constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
+
+        GpuBuffer* cbuffer = nullptr;
+        size_t cbufferOffset = 0;
+        size_t cbufferSize = 0;
+
+        RI.cbufferAllocator->Write(&constants);
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        for (const Handle<Texture>& shTexture : m_shTextures)
         {
-            continue;
+            cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
         }
 
-        const bool onlyScrolledIn = hasScrolled && !isScheduled && !isFirstTrace;
+        cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-        { // trace
-            GlimmerProbeTraceConstants constants {};
-            constants.volume = m_shaderData;
-            constants.ground = groundShaderData;
-            constants.spans = inputs.spanCache->GetShaderData();
-            constants.dispatch = Vec4u(cascadeIndex, skyTextureIndex, onlyScrolledIn ? 1u : 0u, 0);
-            constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
+        for (const StaticShaderPropertyId* modeProperty : { &s_propTraceModeTrace, &s_propTraceModeShade })
+        {
+            ShaderPropertySet shaderProperties;
+            shaderProperties.Add(*modeProperty);
 
-            GpuBuffer* cbuffer = nullptr;
-            size_t cbufferOffset = 0;
-            size_t cbufferSize = 0;
-
-            RI.cbufferAllocator->Write(&constants);
-            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
-
-            for (const Handle<Texture>& shTexture : m_shTextures)
-            {
-                cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-            }
-
-            cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-            cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-            cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-
-            for (const StaticShaderPropertyId* modeProperty : { &s_propTraceModeTrace, &s_propTraceModeShade })
-            {
-                ShaderPropertySet shaderProperties;
-                shaderProperties.Add(*modeProperty);
-
-                cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeTrace"), shaderProperties));
-
-                uint32 uniformIndex = 0;
-
-                cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-                cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
-                cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
-                cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-                cr << SetShaderUniform(uniformIndex++, "GlimmerTLASNodesBuffer"_sh, tlasNodes.Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerInstancesBuffer"_sh, tlasInstances.Get(), ShaderDataOffset(0, sizeof(GlimmerInstanceShaderData)));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, inputs.blasCache->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, inputs.blasCache->GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, groundImageView);
-                cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, inputs.surfaceCache->GetGroundAlbedoImageView());
-                cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, inputs.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH0Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH1Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH2Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[2]));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
-                cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.textureViewCache->GetOrCreate(m_baseTexture));
-                cr << SetShaderUniform(uniformIndex++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
-                cr << SetShaderUniform(uniformIndex++, "OutRays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-                cr << SetShaderUniform(uniformIndex++, "RayHits"_sh, m_rayHitsBuffer.Get(), ShaderDataOffset(0, RayHitSize));
-
-                cr << DispatchCompute(Vec3u { GlimmerProbesPerCascade / ProbesPerTraceGroup, 1, 1 });
-
-                // the shade pass reads the trace pass's hits and adds to its rays
-                cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-                cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-            }
-        }
-
-        { // blend
-            GlimmerProbeBlendConstants constants {};
-            constants.volume = m_shaderData;
-            constants.dispatch = Vec4u(cascadeIndex, onlyScrolledIn ? 1u : 0u, 0, 0);
-
-            GpuBuffer* cbuffer = nullptr;
-            size_t cbufferOffset = 0;
-            size_t cbufferSize = 0;
-
-            RI.cbufferAllocator->Write(&constants);
-            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
-
-            cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-
-            for (const Handle<Texture>& shTexture : m_shTextures)
-            {
-                cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-            }
-
-            cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-
-            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeBlend")));
+            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeTrace"), shaderProperties));
 
             uint32 uniformIndex = 0;
 
             cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-            cr << SetShaderUniform(uniformIndex++, "Rays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+            cr << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
+            cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
+            cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+            cr << SetShaderUniform(uniformIndex++, "GlimmerTLASNodesBuffer"_sh, tlasNodes.Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerInstancesBuffer"_sh, tlasInstances.Get(), ShaderDataOffset(0, sizeof(GlimmerInstanceShaderData)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, inputs.blasCache->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, inputs.blasCache->GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, groundImageView);
+            cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, inputs.surfaceCache->GetGroundAlbedoImageView());
+            cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, inputs.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH0Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH1Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH2Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[2]));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.textureViewCache->GetOrCreate(m_baseTexture));
-            cr << SetShaderUniform(uniformIndex++, "OutProbeSH0"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
-            cr << SetShaderUniform(uniformIndex++, "OutProbeSH1"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));
-            cr << SetShaderUniform(uniformIndex++, "OutProbeSH2"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[2]));
-            cr << SetShaderUniform(uniformIndex++, "OutProbeState"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
+            cr << SetShaderUniform(uniformIndex++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+            cr << SetShaderUniform(uniformIndex++, "OutRays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+            cr << SetShaderUniform(uniformIndex++, "RayHits"_sh, m_rayHitsBuffer.Get(), ShaderDataOffset(0, RayHitSize));
 
-            cr << DispatchCompute(Vec3u { (GlimmerProbesPerCascade + BlendGroupSize - 1) / BlendGroupSize, 1, 1 });
+            cr << DispatchCompute(Vec3u { maxProbes / ProbesPerTraceGroup, GlimmerProbeCascades, 1 });
+
+            // the shade pass reads the trace pass's hits and adds to its rays
+            cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+            cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        }
+    }
+
+
+    { // blend
+        GlimmerProbeBlendConstants constants {};
+        constants.volume = m_shaderData;
+        Memory::Copy(constants.cascadeDispatches, cascadeDispatches, sizeof(cascadeDispatches));
+
+        GpuBuffer* cbuffer = nullptr;
+        size_t cbufferOffset = 0;
+        size_t cbufferSize = 0;
+
+        RI.cbufferAllocator->Write(&constants);
+        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+        cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+
+        for (const Handle<Texture>& shTexture : m_shTextures)
+        {
+            cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         }
 
+        cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_trendTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
+        cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeBlend")));
+
+        uint32 uniformIndex = 0;
+
+        cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+        cr << SetShaderUniform(uniformIndex++, "Rays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+        cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.textureViewCache->GetOrCreate(m_baseTexture));
+        cr << SetShaderUniform(uniformIndex++, "OutProbeSH0"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
+        cr << SetShaderUniform(uniformIndex++, "OutProbeSH1"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));
+        cr << SetShaderUniform(uniformIndex++, "OutProbeSH2"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[2]));
+        cr << SetShaderUniform(uniformIndex++, "OutProbeState"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
+        cr << SetShaderUniform(uniformIndex++, "OutProbeTrend"_sh, RI.textureViewCache->GetOrCreate(m_trendTexture));
+
+        cr << DispatchCompute(Vec3u { (maxProbes + BlendGroupSize - 1) / BlendGroupSize, GlimmerProbeCascades, 1 });
+    }
+
+
+    for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerProbeCascades; cascadeIndex++)
+    {
         m_shaderData.cascades[cascadeIndex].gridOrigin.z = 1;
     }
 

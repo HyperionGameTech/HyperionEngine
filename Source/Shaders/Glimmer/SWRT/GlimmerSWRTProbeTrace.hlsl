@@ -35,8 +35,9 @@ struct GlimmerProbeTraceConstants
     GlimmerProbeVolume volume;
     GlimmerGroundParams ground;
     GlimmerSpanParams spans;
-    uint4 dispatch; // x = cascade, y = sky probe color texture index (~0 without one), z = 1 to only trace probes that scrolled in
+    uint4 dispatch; // y = sky probe color texture index (~0 without one)
     float4 sky;     // x = sky probe diffuse strength, y = foliage extinction
+    uint4 cascadeDispatches[GLIMMER_PROBE_CASCADES]; // x = GLIMMER_PROBE_DISPATCH_*, y = slice period | slice << 16, z = probes
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerProbeTrace, CBuffer) cbuffer CBuffer
@@ -201,15 +202,30 @@ void GlimmerWriteRayHit(uint rayRecordIndex, float3 P, float3 N, float hitT, uin
 [numthreads(RAYS_PER_PROBE * PROBES_PER_GROUP, 1, 1)]
 void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    const uint probeIndex = groupId.x * PROBES_PER_GROUP + groupIndex / RAYS_PER_PROBE;
+    // a row of groups per cascade
+    const uint cascadeIndex = groupId.y;
+    const uint4 cascadeDispatch = constants.cascadeDispatches[cascadeIndex];
+    const uint2 slice = uint2(cascadeDispatch.y & 0xFFFFu, cascadeDispatch.y >> 16);
+
+    const uint dispatchedIndex = groupId.x * PROBES_PER_GROUP + groupIndex / RAYS_PER_PROBE;
+
+    if (dispatchedIndex >= cascadeDispatch.z)
+    {
+        return;
+    }
+
+    const uint probeIndex = GlimmerDispatchedProbe(dispatchedIndex, cascadeDispatch.x, slice);
     const uint rayLane = groupIndex % RAYS_PER_PROBE;
+
+    // ray records of every cascade, one after another
+    const uint probeRecord = cascadeIndex * GLIMMER_PROBES_PER_CASCADE + probeIndex;
 
 #if defined(MODE_SHADE)
     const uint numRays = constants.volume.info.y;
 
     for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
     {
-        const uint rayRecordIndex = probeIndex * numRays + rayIndex;
+        const uint rayRecordIndex = probeRecord * numRays + rayIndex;
         const GlimmerProbeRayHit rayHit = RayHits[rayRecordIndex];
 
         const uint flags = asuint(rayHit.normalFlags.w);
@@ -224,9 +240,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         OutRays[rayRecordIndex] = float4(rayHit.inscatter.rgb + rayHit.albedoTransmittance.a * radiance, rayHit.positionT.w);
     }
 #else
-    const uint cascadeIndex = constants.dispatch.x;
     const GlimmerProbeCascade cascade = constants.volume.cascades[cascadeIndex];
-
 
     int2 localColumn;
     uint layer;
@@ -238,16 +252,16 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const uint numRays = constants.volume.info.y;
     const uint numInstances = uint(constants.volume.nearField.z);
 
-    // a cascade that scrolled between its scheduled updates only needs the probes it gained; the rest keep what they have
-    if (constants.dispatch.z != 0u)
+    // a cascade that scrolled needs the probes it gained, besides this frame's slice; the rest keep what they have
+    if (cascadeDispatch.x == GLIMMER_PROBE_DISPATCH_SCROLLED && !GlimmerIsProbeInSlice(probeIndex, slice))
     {
         const uint2 state = glimmerProbeState.Load(int4(GlimmerProbeTexel(cascadeIndex, column, layer), 0));
 
-        if (state.x == GlimmerPackColumn(column) && abs(asfloat(state.y) - origin.y) <= 0.25 * cascade.params.y)
+        if (GlimmerIsSameColumn(state.x, column) && abs(asfloat(state.y) - origin.y) <= 0.25 * cascade.params.y)
         {
             for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
             {
-                RayHits[probeIndex * numRays + rayIndex].normalFlags.w = asfloat(GLIMMER_RAY_HIT_DONE);
+                RayHits[probeRecord * numRays + rayIndex].normalFlags.w = asfloat(GLIMMER_RAY_HIT_DONE);
             }
 
             return;
@@ -265,7 +279,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
     {
         const float3 direction = GlimmerProbeRayDirection(constants.volume, rayIndex);
-        const uint rayRecordIndex = probeIndex * numRays + rayIndex;
+        const uint rayRecordIndex = probeRecord * numRays + rayIndex;
 
         float hitT = maxDistance;
         float3 radiance = (float3)0.0;
