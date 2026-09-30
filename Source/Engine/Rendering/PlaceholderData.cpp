@@ -265,6 +265,8 @@ void PlaceholderData::Initialize()
 
         outTexture = MakeHandle<Texture>(textureDesc, bufferData.first.ToByteView());
         outTexture->SetName(name);
+        // regenerated every run, so a random UUID would rewrite the saved manifest each time
+        outTexture->SetUUID(UUID::FromName(*name));
         outTexture->SetPersistentRequested(true, /* setFlag */ true);
 
         GetEngineAssetRegistry()->PutAsset(outTexture);

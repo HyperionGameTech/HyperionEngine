@@ -82,6 +82,33 @@ UUID::UUID(const char* str)
     data1 = data[1];
 }
 
+UUID UUID::FromName(const char* name)
+{
+    const ubyte* begin = reinterpret_cast<const ubyte*>(name);
+    const ubyte* end = begin + (name ? Memory::StrLen(name) : 0);
+
+    UUID result { FNV1::DoHashBytes(begin, end), 0 };
+
+    // a second pass seeded by the first fills the other 64 bits
+    uint64 hash = result.data0 ^ FNV1::OffsetBasis;
+
+    for (const ubyte* it = begin; it != end; ++it)
+    {
+        hash ^= *it;
+        hash *= FNV1::Prime;
+    }
+
+    result.data1 = hash;
+
+    // version 8 (custom) and the RFC 4122 variant, in the same bits the random ones set
+    result.data0 &= ~0xF000;
+    result.data0 |= 0x8000;
+    result.data1 &= ~0xC000000000000000;
+    result.data1 |= 0x8000000000000000;
+
+    return result;
+}
+
 String UUID::ToString() const
 {
     union

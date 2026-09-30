@@ -233,6 +233,8 @@ void LightingPass::Create()
             ltcMatrixData.ToByteView());
 
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
+        // regenerated every run, so a random UUID would rewrite the saved manifest each time
+        m_ltcMatrixTexture->SetUUID(UUID::FromName("LTC_Matrix"));
         GetEngineAssetRegistry()->PutAsset(m_ltcMatrixTexture);
         
         Check(m_ltcMatrixTexture->Create());
@@ -250,6 +252,7 @@ void LightingPass::Create()
             ltcBrdfData.ToByteView());
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
+        m_ltcBrdfTexture->SetUUID(UUID::FromName("LTC_BRDF"));
         GetEngineAssetRegistry()->PutAsset(m_ltcBrdfTexture);
 
         Check(m_ltcBrdfTexture->Create());

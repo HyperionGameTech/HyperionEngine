@@ -358,6 +358,7 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
 
             // For look, we use delta from previous frame
             // Store previous position and calculate delta
+            /// FIXME: WTF
             static Vec2f prevRightPosition = Vec2f::Zero();
 
             if (prevRightPosition.IsZero())
@@ -388,6 +389,7 @@ void TouchControlsSubsystem::UpdateActiveTouches(float delta)
         m_lookDelta = Vec2f::Zero();
         // Reset the static prev position when touch is released
         static Vec2f prevRightPosition = Vec2f::Zero();
+        /// FIXME: WTF
         prevRightPosition = Vec2f::Zero();
     }
 }
