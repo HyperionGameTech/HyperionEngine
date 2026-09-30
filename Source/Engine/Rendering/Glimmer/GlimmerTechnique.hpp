@@ -27,6 +27,8 @@ class GlimmerTLAS;
 class GlimmerSpanCache;
 class GlimmerFootprintMask;
 class GlimmerSWRTProbeVolume;
+class GlimmerSWRTProbeDebug;
+class GlimmerChannel;
 class GlimmerSHOccupancy;
 class GlimmerSHVolume;
 struct GlimmerChannelState;
@@ -55,6 +57,7 @@ struct GlimmerTechniqueUpdateContext
 
     // nullptr until the world's GlimmerSystem has published; the caches are up to date for this frame when set
     const GlimmerChannelState* channelState = nullptr;
+    GlimmerChannel* channel = nullptr; // where debug readbacks go back to the sim
     const GlimmerSurfaceCache* surfaceCache = nullptr;
     const GlimmerSpanCache* spanCache = nullptr;
 
@@ -120,6 +123,7 @@ public:
 private:
     UniquePtr<GlimmerFootprintMask> m_footprintMask;
     UniquePtr<GlimmerSWRTProbeVolume> m_probeVolume;
+    UniquePtr<GlimmerSWRTProbeDebug> m_probeDebug;
     UniquePtr<GlimmerSHOccupancy> m_shOccupancy;
     UniquePtr<GlimmerSHVolume> m_shVolume;
 

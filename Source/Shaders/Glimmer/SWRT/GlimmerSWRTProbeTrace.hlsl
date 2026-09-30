@@ -83,6 +83,7 @@ DECLARE_SRV(GlimmerProbeTrace, EnvProbesColorTexture) TextureCubeArray envProbes
 DECLARE_SRV(GlimmerProbeTrace, GlimmerSHDataTexture) Texture3D<float4> glimmerSHData;
 DECLARE_SRV(GlimmerProbeTrace, GlimmerSHStateTexture) Texture3D<uint2> glimmerSHState;
 
+// rgb = radiance, w = hit distance: negative for the back face of one sided geometry, 0 where the probe is under the ground
 DECLARE_UAV(GlimmerProbeTrace, OutRays) RWStructuredBuffer<float4> OutRays;
 DECLARE_UAV(GlimmerProbeTrace, RayHits) RWStructuredBuffer<GlimmerProbeRayHit> RayHits;
 
@@ -338,6 +339,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         float hitT = maxDistance;
         float3 radiance = (float3)0.0;
         bool isDone = true;
+        bool isBackface = false;
 
         GlimmerSWRTHit hit;
         bool hitSWRT = false;
@@ -389,7 +391,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         {
             const GlimmerInstance instance = glimmerInstances[hit.instanceIndex];
 
-            const bool isBackface = !hit.frontFace && (instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) == 0u;
+            isBackface = !hit.frontFace && (instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) == 0u;
 
             if (isBackface)
             {
@@ -415,7 +417,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         {
             RayHits[rayRecordIndex].normalFlags.w = asfloat(GLIMMER_RAY_HIT_DONE);
 
-            OutRays[rayRecordIndex] = float4(heightfieldHit.inscatter + heightfieldHit.transmittance * radiance, hitT);
+            OutRays[rayRecordIndex] = float4(heightfieldHit.inscatter + heightfieldHit.transmittance * radiance, isBackface ? -hitT : hitT);
         }
     }
 #endif

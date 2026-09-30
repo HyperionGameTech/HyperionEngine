@@ -68,4 +68,28 @@ void GlimmerChannel::Consume(GlimmerChannelState& outState, Array<GlimmerGroundU
     m_pendingGroundUploads = Array<GlimmerGroundUpload>();
 }
 
+void GlimmerChannel::PublishProbeDebug(Array<GlimmerProbeDebugRecord>&& records)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_probeDebugRecords = std::move(records);
+    m_hasProbeDebugRecords = true;
+}
+
+bool GlimmerChannel::ConsumeProbeDebug(Array<GlimmerProbeDebugRecord>& outRecords)
+{
+    Mutex::Guard guard(m_mutex);
+
+    if (!m_hasProbeDebugRecords)
+    {
+        return false;
+    }
+
+    outRecords = std::move(m_probeDebugRecords);
+    m_probeDebugRecords = Array<GlimmerProbeDebugRecord>();
+    m_hasProbeDebugRecords = false;
+
+    return true;
+}
+
 } // namespace Hyperion

@@ -219,7 +219,9 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     GlimmerChannelState channelState;
 
-    if (SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world))
+    const SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world);
+
+    if (channel)
     {
         Array<GlimmerGroundUpload> groundUploads;
 
@@ -250,6 +252,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         scene->spanCache->Update(frame, channelState, *scene->tlas, *scene->blasCache, *scene->surfaceCache);
 
         context.channelState = &channelState;
+        context.channel = channel.Get();
         context.surfaceCache = scene->surfaceCache.Get();
         context.spanCache = scene->spanCache->GetSpansBuffer().IsValid() ? scene->spanCache.Get() : nullptr;
         context.updateLighting = g_cvGlimmerEnabled.Get() && channelState.hasViewer;

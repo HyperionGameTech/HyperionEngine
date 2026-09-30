@@ -12,6 +12,7 @@
 #include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeDebug.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
@@ -139,6 +140,7 @@ uint32 GlimmerTechnique::BindApplyResources(CommandRecorder& cr, uint32 uniformI
 GlimmerTechnique::GlimmerTechnique()
     : m_footprintMask(MakeUnique<GlimmerFootprintMask>()),
       m_probeVolume(MakeUnique<GlimmerSWRTProbeVolume>()),
+      m_probeDebug(MakeUnique<GlimmerSWRTProbeDebug>()),
       m_shOccupancy(MakeUnique<GlimmerSHOccupancy>()),
       m_shVolume(MakeUnique<GlimmerSHVolume>()),
       m_maskGeneration(~0u)
@@ -205,6 +207,15 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         probeInputs.skyProbe = context.skyProbe;
 
         m_probeVolume->Update(context.frame, probeInputs);
+    }
+
+    if (context.updateLighting && context.channel && g_cvGlimmerSWRTDebugProbes.Get() > int(GlimmerSWRTDebugProbes::None))
+    {
+        m_probeDebug->Update(context.frame, *m_probeVolume, *context.channel);
+    }
+    else
+    {
+        m_probeDebug->Reset();
     }
 }
 

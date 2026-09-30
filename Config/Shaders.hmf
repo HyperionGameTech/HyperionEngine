@@ -223,6 +223,9 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerSWRTProbeBlend" {
             CS = "Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl"
         }
+        ShaderDefinition "GlimmerSWRTProbeDebug" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeDebug.hlsl"
+        }
         ShaderDefinition "GlimmerSpanSplat" {
             CS = "Glimmer/GlimmerSpanSplat.hlsl"
         }

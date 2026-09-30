@@ -10,6 +10,11 @@
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerTechnique.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
+
+#include <Rendering/DebugDrawer.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/Camera/Camera.hpp>
@@ -27,6 +32,64 @@
 #include <GlimmerSystem.generated.inl>
 
 namespace Hyperion {
+
+// a quarter of a probe's rays on back faces puts it inside a solid
+static constexpr float ProbeDebugInsideBackfaceFraction = 0.25f;
+
+static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const GlimmerProbeDebugRecord& record, const Vec3f& viewerPosition, float exposure)
+{
+    if (record.info.x == 0)
+    {
+        return Color(0.35f, 0.35f, 0.35f);
+    }
+
+    if (mode == GlimmerSWRTDebugProbes::Status)
+    {
+        if (record.info.z != 0)
+        {
+            return Color::Red();
+        }
+
+        const float backfaceFraction = float(record.info.y) / float(GlimmerProbeRays);
+
+        if (backfaceFraction >= ProbeDebugInsideBackfaceFraction)
+        {
+            return Color::Magenta();
+        }
+
+        // green, through yellow as more of its rays hit back faces
+        return Color(backfaceFraction / ProbeDebugInsideBackfaceFraction, 1.0f, 0.0f);
+    }
+
+    Vec3f irradiance = Vec3f(record.sh[0].x, record.sh[1].x, record.sh[2].x);
+
+    if (mode == GlimmerSWRTDebugProbes::IrradianceTowardViewer)
+    {
+        const Vec3f toViewer = viewerPosition - record.position.GetXYZ();
+        const float distance = toViewer.Length();
+
+        if (distance > 1e-4f)
+        {
+            // L1 as the apply shaders evaluate it (GlimmerEvaluateL1)
+            const Vec3f N = toViewer * Vec3f(1.0f / distance);
+
+            const auto evaluateL1 = [&N](const Vec4f& sh)
+            {
+                return MathUtil::Max(sh.x + Vec3f(sh.y, sh.z, sh.w).Dot(N), 0.0f);
+            };
+
+            irradiance = Vec3f(evaluateL1(record.sh[0]), evaluateL1(record.sh[1]), evaluateL1(record.sh[2]));
+        }
+    }
+
+    // debug draws aren't tonemapped with the scene, so a simple Reinhard keeps bright probes apart
+    irradiance *= Vec3f(MathUtil::Max(exposure, 0.0f));
+
+    return Color(
+        irradiance.x / (1.0f + irradiance.x),
+        irradiance.y / (1.0f + irradiance.y),
+        irradiance.z / (1.0f + irradiance.z));
+}
 
 GlimmerSystem::GlimmerSystem()
     : m_isSceneViewActive(false),
@@ -230,6 +293,65 @@ void GlimmerSystem::Process(float delta, Span<Handle<Scene>> scenes)
     m_groundClipmap.FillState(state);
 
     m_channel->Publish(state, std::move(groundUploads));
+
+    if (state.hasViewer)
+    {
+        DebugDrawProbes(viewerPosition);
+    }
+}
+
+void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    const int mode = g_cvGlimmerSWRTDebugProbes.Get();
+
+    if (mode <= int(GlimmerSWRTDebugProbes::None) || mode >= int(GlimmerSWRTDebugProbes::Max))
+    {
+        if (m_probeDebugRecords.Any())
+        {
+            m_probeDebugRecords = Array<GlimmerProbeDebugRecord>();
+        }
+
+        return;
+    }
+
+    // leaves the last readback in place when there's no newer one
+    m_channel->ConsumeProbeDebug(m_probeDebugRecords);
+
+    if (m_probeDebugRecords.Empty())
+    {
+        return;
+    }
+
+    const int cascadeFilter = g_cvGlimmerSWRTDebugProbesCascade.Get();
+    const float radius = g_cvGlimmerSWRTDebugProbesRadius.Get();
+    const float exposure = g_cvGlimmerSWRTDebugProbesExposure.Get();
+
+    DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
+
+    for (uint32 recordIndex = 0; recordIndex < uint32(m_probeDebugRecords.Size()); recordIndex++)
+    {
+        const uint32 cascadeIndex = recordIndex / GlimmerProbesPerCascade;
+
+        if (cascadeFilter >= 0 && int(cascadeIndex) != cascadeFilter)
+        {
+            continue;
+        }
+
+        const GlimmerProbeDebugRecord& record = m_probeDebugRecords[recordIndex];
+        const Vec3f position = record.position.GetXYZ();
+
+        if (position.Distance(viewerPosition) > radius)
+        {
+            continue;
+        }
+
+        const Color color = GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes(mode), record, viewerPosition, exposure);
+
+        dbg.sphere(position, 0.1f * GetGlimmerProbeCascadeSpacing(cascadeIndex), color);
+    }
 }
 
 } // namespace Hyperion

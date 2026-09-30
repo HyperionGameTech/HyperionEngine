@@ -9,6 +9,7 @@
 #include <Scene/System.hpp>
 
 #include <Rendering/Glimmer/GlimmerGroundClipmap.hpp>
+#include <Rendering/Glimmer/GlimmerChannel.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
 
@@ -49,6 +50,9 @@ private:
     void SetSceneViewActive(bool active);
     void UpdateSceneRegion(bool force);
 
+    /*! \brief Rendering.Glimmer.SWRT.DebugProbes: draws the latest probe readback around the viewer with the DebugDrawer. */
+    void DebugDrawProbes(const Vec3f& viewerPosition);
+
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {};
@@ -64,6 +68,9 @@ private:
 
     SharedPtr<GlimmerChannel> m_channel;
     GlimmerGroundClipmap m_groundClipmap;
+
+    // drawn every frame, as debug draws only last one; replaced whenever a newer readback comes in
+    Array<GlimmerProbeDebugRecord> m_probeDebugRecords;
 };
 
 } // namespace Hyperion

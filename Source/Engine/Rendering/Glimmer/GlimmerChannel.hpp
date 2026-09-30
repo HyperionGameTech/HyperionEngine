@@ -17,6 +17,7 @@
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 namespace Hyperion {
 
@@ -76,7 +77,18 @@ struct GlimmerChannelState
     FixedArray<GlimmerGroundCoverLayerState, GlimmerGroundCoverLayers> groundCover;
 };
 
-/*! \brief Carries per world Glimmer data from GlimmerSystem (sim thread) to GlimmerPass (render thread). */
+/*! \brief One SWRT probe as read back for Rendering.Glimmer.SWRT.DebugProbes, a record per probe of each cascade in turn, layer major
+ *  then z then x within a cascade. Must match GlimmerProbeDebugRecord in Shaders/Glimmer/SWRT/GlimmerSWRTProbeDebug.hlsl */
+struct GlimmerProbeDebugRecord
+{
+    Vec4f position; // xyz = where the probe was last traced, or where it will be when it hasn't been yet
+    Vec4u info;     // x = 1 once traced for its column, y = rays that hit a back face, z = rays that started under the ground, w = updates
+    Vec4f sh[3];    // L1 irradiance / pi per colour channel
+};
+
+static_assert(sizeof(GlimmerProbeDebugRecord) == 80);
+
+/*! \brief Carries per world Glimmer data from GlimmerSystem (sim thread) to GlimmerPass (render thread), and debug readbacks back. */
 class ENGINE_API GlimmerChannel
 {
 public:
@@ -87,10 +99,19 @@ public:
     void Publish(const GlimmerChannelState& state, Array<GlimmerGroundUpload>&& groundUploads);
     void Consume(GlimmerChannelState& outState, Array<GlimmerGroundUpload>& outGroundUploads);
 
+    /*! \brief Render thread: hands over the latest probe readback, replacing one the sim hasn't taken yet. */
+    void PublishProbeDebug(Array<GlimmerProbeDebugRecord>&& records);
+
+    /*! \brief Sim thread: takes the latest probe readback. \return false if there's been none since the last call. */
+    bool ConsumeProbeDebug(Array<GlimmerProbeDebugRecord>& outRecords);
+
 private:
     Mutex m_mutex;
     GlimmerChannelState m_state;
     Array<GlimmerGroundUpload> m_pendingGroundUploads;
+
+    Array<GlimmerProbeDebugRecord> m_probeDebugRecords;
+    bool m_hasProbeDebugRecords = false;
 };
 
 } // namespace Hyperion

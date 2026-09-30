@@ -89,6 +89,12 @@ public:
     const GpuImageViewRef& GetStateImageView() const;
     const GpuImageViewRef& GetBaseImageView() const;
 
+    /*! \brief Each probe's rays from its last trace (see OutRays in GlimmerSWRTProbeTrace.hlsl), in the shader resource state after Update(). */
+    HYP_FORCE_INLINE const GpuBufferRef& GetRaysBuffer() const
+    {
+        return m_raysBuffer;
+    }
+
 private:
     void CreateResources();
     void ScrollCascades(const Vec3f& viewerPosition, uint32& outScrolledMask);
