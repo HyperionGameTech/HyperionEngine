@@ -119,11 +119,6 @@ void GetDeferredShaderProperties(
 
     MergeGlobalShaderProperties(outShaderProperties);
 
-    if (mode == DPM_INDIRECT_LIGHTING || mode == DPM_REFLECTIONS_ONLY)
-    {
-        AddGlimmerApplyShaderProperties(outShaderProperties);
-    }
-
     if (mode == DPM_REFLECTIONS_ONLY)
     {
         outShaderProperties.Add(s_propReflectionsOnly);

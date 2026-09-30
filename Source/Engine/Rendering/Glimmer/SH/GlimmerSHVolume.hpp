@@ -27,7 +27,10 @@ static constexpr uint32 GlimmerSHCascades = 4;
 static constexpr uint32 GlimmerSHGridXZ = 32;
 static constexpr uint32 GlimmerSHGridY = 16;
 static constexpr uint32 GlimmerSHRays = 64;
-static constexpr float GlimmerSHSpacing = 2.0f; // cascade 0, doubling per cascade
+// cascade 0, doubling per cascade: 8 m puts its +-128 m window just past the probe clipmap's +-64 m, so the voxels only cover the far field
+static constexpr float GlimmerSHSpacing = 8.0f;
+// visibility, bounce and depth x/y/z share one texture, a GlimmerSHGridXZ deep slab each. Must match GLIMMER_SH_SLABS in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
+static constexpr uint32 GlimmerSHDataSlabs = 5;
 
 // Must match GlimmerSHCascade in Shaders/Glimmer/SH/GlimmerSHCommon.hlsli
 struct GlimmerSHCascadeShaderData
@@ -78,12 +81,9 @@ public:
         return m_shaderData;
     }
 
-    const GpuImageViewRef& GetVisibilityImageView() const;
-    const GpuImageViewRef& GetBounceImageView() const;
+    /*! \brief Visibility, bounce and depth x/y/z, stacked along z (see GlimmerSHCommon.hlsli) */
+    const GpuImageViewRef& GetDataImageView() const;
     const GpuImageViewRef& GetStateImageView() const;
-
-    /*! \brief axis 0/1/2 = x/y/z */
-    const GpuImageViewRef& GetDepthImageView(uint32 axis) const;
 
 private:
     struct Box
@@ -117,10 +117,8 @@ private:
     void MoveWindow(uint32 cascadeIndex, const Vec3i& origin);
     void DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& box, const GlimmerSHVolumeUpdateInputs& inputs, bool& inOutHasBarriers);
 
-    Handle<Texture> m_visibilityTexture;
-    Handle<Texture> m_bounceTexture;
+    Handle<Texture> m_dataTexture;
     Handle<Texture> m_stateTexture;
-    Handle<Texture> m_depthTextures[3];
 
     FixedArray<Cascade, GlimmerSHCascades> m_cascades;
 

@@ -3,11 +3,12 @@
 
 #include "../GlimmerCommon.hlsli"
 
-// Terrain following probe clipmap: GLIMMER_PROBE_CASCADES cascades of GRID x GRID columns with LAYERS probes each,
-// stored toroidally in Texture3Ds of GRID x (CASCADES * LAYERS) x GRID.
-// Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n).
+// Terrain following probe clipmap, Glimmer's near field: GLIMMER_PROBE_CASCADES cascades of GRID x GRID columns with LAYERS probes each,
+// stored toroidally in Texture3Ds of GRID x (CASCADES * LAYERS) x GRID. Past them the SH voxels (GlimmerSHCommon.hlsli) take over.
+// Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n): one float4
+// per colour channel, in a single Texture3D of GRID x (CASCADES * LAYERS) x (3 * GRID) with a GRID deep slab per channel (GlimmerProbeSHTexel).
 
-#define GLIMMER_PROBE_CASCADES 6
+#define GLIMMER_PROBE_CASCADES 2
 #define GLIMMER_PROBE_GRID 32
 #define GLIMMER_PROBE_LAYERS 4
 #define GLIMMER_PROBES_PER_CASCADE (GLIMMER_PROBE_GRID * GLIMMER_PROBE_GRID * GLIMMER_PROBE_LAYERS)
@@ -117,6 +118,12 @@ uint3 GlimmerProbeTexel(uint cascadeIndex, int2 column, uint layer)
     const uint2 wrapped = GlimmerWrapProbeColumn(column);
 
     return uint3(wrapped.x, cascadeIndex * GLIMMER_PROBE_LAYERS + layer, wrapped.y);
+}
+
+// where a probe's texel (GlimmerProbeTexel) is in the SH texture's slab for channel 0/1/2 = r/g/b
+uint3 GlimmerProbeSHTexel(uint3 texel, uint channel)
+{
+    return uint3(texel.xy, channel * GLIMMER_PROBE_GRID + texel.z);
 }
 
 float3 GlimmerProbeRayDirection(GlimmerProbeVolume volume, uint rayIndex)

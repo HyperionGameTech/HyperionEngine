@@ -9,6 +9,8 @@
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
+#include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
+#include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerMath.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
@@ -67,6 +69,12 @@ static constexpr float ProbesEscapeClamp = 64.0f;
 
 static constexpr float ProbesMaxDistance = 2000.0f;
 
+// where there's no ground, columns are based at a multiple of this, and only rebased once the viewer is outside the band around it
+// (moving the base restarts every probe, so it must not follow the viewer's eye height)
+static constexpr float FallbackBaseStep = 4.0f;
+static constexpr float FallbackBaseBandMin = 0.0f;
+static constexpr float FallbackBaseBandMax = 6.0f;
+
 // how many probe spacings SWRT traces a near field probe's rays before the heightfield takes over
 static constexpr float NearFieldReachSpacings = 8.0f;
 
@@ -86,6 +94,9 @@ struct GlimmerProbeTraceConstants
     Vec4u dispatch; // y = sky probe color texture index (~0 without one)
     Vec4f sky;      // x = sky probe diffuse strength, y = foliage extinction
     Vec4u cascadeDispatches[GlimmerProbeCascades]; // x = GlimmerProbeDispatchMode, y = slice period | slice << 16, z = probes
+    GlimmerFootprintMaskShaderData mask;
+    GlimmerSHVolumeShaderData sh;
+    EnvProbeShaderData skyProbe;
 };
 
 // Must match GlimmerProbeBlendConstants in Shaders/Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl
@@ -134,6 +145,8 @@ static Handle<Texture> CreateProbeTexture(TextureType type, TextureFormat format
 
 GlimmerSWRTProbeVolume::GlimmerSWRTProbeVolume()
     : m_hasGridOrigins(false),
+      m_fallbackBase(0.0f),
+      m_hasFallbackBase(false),
       m_frameIndex(0),
       m_shaderData {}
 {
@@ -149,9 +162,8 @@ void GlimmerSWRTProbeVolume::CreateResources()
 {
     const Vec3u probeExtent = Vec3u(GlimmerProbeGrid, GlimmerProbeCascades * GlimmerProbeLayers, GlimmerProbeGrid);
 
-    m_shTextures[0] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH0"));
-    m_shTextures[1] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH1"));
-    m_shTextures[2] = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, probeExtent, 1, NAME("GlimmerProbeSH2"));
+    // a slab per colour channel (GlimmerProbeSHTexel)
+    m_shTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RGBA16F, Vec3u(probeExtent.x, probeExtent.y, probeExtent.z * 3), 1, NAME("GlimmerProbeSH"));
     m_stateTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RG32, probeExtent, 1, NAME("GlimmerProbeState"));
     m_trendTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::R16F, probeExtent, 1, NAME("GlimmerProbeTrend"));
     m_baseTexture = CreateProbeTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerSWRTProbeBase"));
@@ -163,14 +175,14 @@ void GlimmerSWRTProbeVolume::CreateResources()
     Check(m_rayHitsBuffer->Create());
 }
 
-const GpuImageViewRef& GlimmerSWRTProbeVolume::GetSHImageView(uint32 channel) const
+const GpuImageViewRef& GlimmerSWRTProbeVolume::GetSHImageView() const
 {
-    if (!m_shTextures[channel].IsValid())
+    if (!m_shTexture.IsValid())
     {
         return RI.placeholderData->GetImageView3D1x1x1R8();
     }
 
-    return RI.textureViewCache->GetOrCreate(m_shTextures[channel]);
+    return RI.textureViewCache->GetOrCreate(m_shTexture);
 }
 
 const GpuImageViewRef& GlimmerSWRTProbeVolume::GetStateImageView() const
@@ -217,11 +229,24 @@ void GlimmerSWRTProbeVolume::ScrollCascades(const Vec3f& viewerPosition, uint32&
     m_hasGridOrigins = true;
 }
 
+float GlimmerSWRTProbeVolume::UpdateFallbackBase(float viewerHeight)
+{
+    const float heightAboveBase = viewerHeight - m_fallbackBase;
+
+    if (!m_hasFallbackBase || heightAboveBase < FallbackBaseBandMin || heightAboveBase > FallbackBaseBandMax)
+    {
+        m_fallbackBase = MathUtil::Floor((viewerHeight - 2.0f) / FallbackBaseStep) * FallbackBaseStep;
+        m_hasFallbackBase = true;
+    }
+
+    return m_fallbackBase;
+}
+
 void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateInputs& inputs)
 {
     HYP_SCOPE;
 
-    if (!inputs.surfaceCache || !inputs.spanCache || !inputs.blasCache || !inputs.blasCache->IsReady() || !inputs.spanCache->GetSpansBuffer().IsValid())
+    if (!inputs.surfaceCache || !inputs.spanCache || !inputs.blasCache || !inputs.footprintMask || !inputs.blasCache->IsReady() || !inputs.spanCache->GetSpansBuffer().IsValid())
     {
         return;
     }
@@ -255,7 +280,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     m_shaderData.info = Vec4u(GlimmerProbeCascades, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
     m_shaderData.rayRotation = MakeGlimmerRandomRotation(m_frameIndex);
     m_shaderData.params = Vec4f(
-        inputs.viewerPosition.y - 2.0f,
+        UpdateFallbackBase(inputs.viewerPosition.y),
         0.0f,
         ProbesEscapeClamp,
         ProbesMaxDistance);
@@ -297,14 +322,21 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     uint32 skyTextureIndex = ~0u;
     float skyDiffuseStrength = 0.0f;
 
+    // default constructed without a sky probe, which has textureIndices ~0u
+    EnvProbeShaderData skyProbeData {};
+
     if (inputs.skyProbe)
     {
         if (RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(inputs.skyProbe)))
         {
             skyTextureIndex = skyProbeProxy->bufferData.textureIndices & 0xFFFFu;
             skyDiffuseStrength = skyProbeProxy->bufferData.worldPosition.w;
+            skyProbeData = skyProbeProxy->bufferData;
         }
     }
+
+    // the far field is sampled once it has been traced; until then its constants stay zeroed and the trace treats it as covering nothing
+    const bool hasSHVolume = inputs.shVolume && inputs.shVolume->IsReady();
 
     const GpuBufferRef& tlasNodes = hasSWRTScene ? inputs.tlas->GetNodesBuffer() : inputs.blasCache->GetNodesBuffer();
     const GpuBufferRef& tlasInstances = hasSWRTScene ? inputs.tlas->GetInstancesBuffer() : inputs.blasCache->GetTrianglesBuffer();
@@ -338,6 +370,19 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         Memory::Copy(constants.cascadeDispatches, cascadeDispatches, sizeof(cascadeDispatches));
         constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
 
+        // a mask that isn't built yet is left invalid, which has the trace treat all of the SWRT region as occupied
+        if (hasSWRTScene && inputs.footprintMask->IsReady())
+        {
+            constants.mask = inputs.footprintMask->GetShaderData();
+        }
+
+        if (hasSHVolume)
+        {
+            constants.sh = inputs.shVolume->GetShaderData();
+        }
+
+        constants.skyProbe = skyProbeData;
+
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
         size_t cbufferSize = 0;
@@ -345,11 +390,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         RI.cbufferAllocator->Write(&constants);
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
-        for (const Handle<Texture>& shTexture : m_shTextures)
-        {
-            cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-        }
-
+        cr << InsertBarrier(m_shTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
         cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
         cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
@@ -374,12 +415,18 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, groundImageView);
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, inputs.surfaceCache->GetGroundAlbedoImageView());
             cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, inputs.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH0Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
-            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH1Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));
-            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH2Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[2]));
+            cr << SetShaderUniform(uniformIndex++, "FootprintMaskBuffer"_sh, inputs.footprintMask->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHTexture"_sh, RI.textureViewCache->GetOrCreate(m_shTexture));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStateTexture"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.textureViewCache->GetOrCreate(m_baseTexture));
             cr << SetShaderUniform(uniformIndex++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+
+            // placeholders where the far field isn't ready: its zeroed constants keep the shader from sampling them
+            const GpuImageViewRef& placeholderView = RI.placeholderData->GetImageView3D1x1x1R8();
+
+            cr << SetShaderUniform(uniformIndex++, "GlimmerSHDataTexture"_sh, hasSHVolume ? inputs.shVolume->GetDataImageView() : placeholderView);
+            cr << SetShaderUniform(uniformIndex++, "GlimmerSHStateTexture"_sh, hasSHVolume ? inputs.shVolume->GetStateImageView() : placeholderView);
+
             cr << SetShaderUniform(uniformIndex++, "OutRays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "RayHits"_sh, m_rayHitsBuffer.Get(), ShaderDataOffset(0, RayHitSize));
 
@@ -406,11 +453,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
 
         cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
 
-        for (const Handle<Texture>& shTexture : m_shTextures)
-        {
-            cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-        }
-
+        cr << InsertBarrier(m_shTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier(m_trendTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
@@ -421,9 +464,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "Rays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
         cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBaseTexture"_sh, RI.textureViewCache->GetOrCreate(m_baseTexture));
-        cr << SetShaderUniform(uniformIndex++, "OutProbeSH0"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
-        cr << SetShaderUniform(uniformIndex++, "OutProbeSH1"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));
-        cr << SetShaderUniform(uniformIndex++, "OutProbeSH2"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[2]));
+        cr << SetShaderUniform(uniformIndex++, "OutProbeSH"_sh, RI.textureViewCache->GetOrCreate(m_shTexture));
         cr << SetShaderUniform(uniformIndex++, "OutProbeState"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
         cr << SetShaderUniform(uniformIndex++, "OutProbeTrend"_sh, RI.textureViewCache->GetOrCreate(m_trendTexture));
 
@@ -436,11 +477,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         m_shaderData.cascades[cascadeIndex].gridOrigin.z = 1;
     }
 
-    for (const Handle<Texture>& shTexture : m_shTextures)
-    {
-        cr << InsertBarrier(shTexture->GetGpuImage(), ResourceState::ShaderResource);
-    }
-
+    cr << InsertBarrier(m_shTexture->GetGpuImage(), ResourceState::ShaderResource);
     cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::ShaderResource);
 
     m_shaderData.info.w = 1;

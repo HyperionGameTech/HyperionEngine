@@ -39,8 +39,6 @@ public:
     DynamicSkySystem();
     virtual ~DynamicSkySystem() override;
 
-    static bool FindViewerPosition(World* world, Vec3f& outPosition);
-
     HYP_FORCE_INLINE const Handle<Texture>& GetCubemap() const
     {
         return m_cubemap;

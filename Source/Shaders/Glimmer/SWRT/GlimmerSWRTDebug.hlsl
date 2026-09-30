@@ -10,7 +10,7 @@
 #include "../../Include/RayTracing/BVH.hlsli"
 #include "GlimmerSWRTCommon.hlsli"
 
-// Must match GlimmerSWRTDebugConstants in GlimmerSWRTTechnique.cpp
+// Must match GlimmerSWRTDebugConstants in GlimmerTechnique.cpp
 struct GlimmerSWRTDebugConstants
 {
     uint4 dimensionsModeInstances; // xy = output size, z = debug view, w = number of instances

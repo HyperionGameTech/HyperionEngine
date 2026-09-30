@@ -129,4 +129,19 @@ float GlimmerFloatFromOrderedUint(uint value)
     return asfloat((value & 0x80000000u) != 0u ? (value & 0x7FFFFFFFu) : ~value);
 }
 
+/*! Puts a far field sample (the SH voxels) behind a near field one (the probes): the near field's coverage comes first, and the far field
+ *  takes what's left. Both are irradiance / pi in rgb with their coverage in .a; so is the result. */
+float4 GlimmerBlendFarField(float4 nearField, float4 farField)
+{
+    const float farWeight = farField.a * (1.0 - nearField.a);
+    const float weight = nearField.a + farWeight;
+
+    if (weight <= 1e-4)
+    {
+        return (float4)0.0;
+    }
+
+    return float4((nearField.rgb * nearField.a + farField.rgb * farWeight) / weight, weight);
+}
+
 #endif

@@ -165,20 +165,11 @@ GlimmerPass::~GlimmerPass()
 
 void GlimmerPass::Initialize()
 {
-    for (uint32 typeIndex = 0; typeIndex < uint32(GlimmerTechniqueType::Count); typeIndex++)
-    {
-        m_placeholderTechniques[typeIndex] = CreateGlimmerTechnique(GlimmerTechniqueType(typeIndex));
-    }
 }
 
 void GlimmerPass::Shutdown()
 {
     m_scenes.Clear();
-
-    for (UniquePtr<GlimmerTechnique>& placeholderTechnique : m_placeholderTechniques)
-    {
-        placeholderTechnique.Reset();
-    }
 }
 
 PassData* GlimmerPass::CreateViewPassData(View* view, PassDataExt&)
@@ -190,7 +181,7 @@ PassData* GlimmerPass::CreateViewPassData(View* view, PassDataExt&)
         passData->tlas = MakeUnique<GlimmerTLAS>();
         passData->surfaceCache = MakeUnique<GlimmerSurfaceCache>();
         passData->spanCache = MakeUnique<GlimmerSpanCache>();
-        passData->technique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
+        passData->technique = MakeUnique<GlimmerTechnique>();
 
         return passData;
     }
@@ -211,18 +202,11 @@ GlimmerScenePassData* GlimmerPass::GetSceneForWorld(World* world) const
     return nullptr;
 }
 
-const GlimmerTechnique& GlimmerPass::GetApplyTechnique(World* world) const
+const GlimmerTechnique* GlimmerPass::GetApplyTechnique(World* world) const
 {
     GlimmerScenePassData* scene = g_cvGlimmerEnabled.Get() ? GetSceneForWorld(world) : nullptr;
 
-    const GlimmerTechniqueType activeType = GetActiveGlimmerTechniqueType();
-
-    if (scene && scene->technique->GetType() == activeType && scene->technique->IsReady())
-    {
-        return *scene->technique;
-    }
-
-    return *m_placeholderTechniques[uint32(activeType)];
+    return scene ? scene->technique.Get() : nullptr;
 }
 
 void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
@@ -250,11 +234,6 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     scene->lastUpdatedFrame = frameCounter;
     scene->world = renderSetup.world;
-
-    if (scene->technique->GetType() != GetActiveGlimmerTechniqueType())
-    {
-        scene->technique = CreateGlimmerTechnique(GetActiveGlimmerTechniqueType());
-    }
 
     m_scenes.Set(renderSetup.world, scene);
 
@@ -427,24 +406,28 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
 
 void GlimmerPass::WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World* world) const
 {
-    const GlimmerTechnique& technique = GetApplyTechnique(world);
+    const GlimmerTechnique* technique = GetApplyTechnique(world);
 
     GlimmerApplyShaderData shaderData {};
 
-    if (technique.IsReady())
+    if (technique && technique->IsReady())
     {
-        shaderData.params = Vec4u(g_cvGlimmerDebugView.Get() == int(GlimmerDebugView::Irradiance) ? 1u : 0u, 1u, 0, 0);
+        // the deferred indirect pass draws the views up to Coverage itself; the rest are the technique's, in place of the final image
+        const int debugView = g_cvGlimmerDebugView.Get();
+        const bool isApplyView = debugView == int(GlimmerDebugView::Irradiance) || debugView == int(GlimmerDebugView::Coverage);
+
+        shaderData.params = Vec4u(isApplyView ? uint32(debugView) : 0u, 1u, uint32(MathUtil::Clamp(g_cvGlimmerDebugSH.Get(), 0, 3)), 0);
         shaderData.settings = Vec4f(MathUtil::Max(g_cvGlimmerIntensity.Get(), 0.0f), 0.0f, 0.0f, 0.0f);
     }
 
     cbufferAllocator.Write(&shaderData);
 
-    technique.WriteApplyShaderData(cbufferAllocator);
+    GlimmerTechnique::WriteApplyShaderData(cbufferAllocator, technique);
 }
 
 uint32 GlimmerPass::BindApplyResources(CommandRecorder& cr, uint32 uniformIndex, World* world) const
 {
-    return GetApplyTechnique(world).BindApplyResources(cr, uniformIndex);
+    return GlimmerTechnique::BindApplyResources(cr, uniformIndex, GetApplyTechnique(world));
 }
 
 void GlimmerPass::OnFrameEnd(uint32 prevFrameIndex)

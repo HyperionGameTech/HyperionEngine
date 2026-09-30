@@ -14,7 +14,6 @@
 #include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Map.hpp>
-#include <Core/Containers/FixedArray.hpp>
 
 #include <Core/Math/BoundingBox.hpp>
 
@@ -28,10 +27,10 @@ class GlimmerBLASCache;
 class GlimmerTLAS;
 class GlimmerSpanCache;
 
-// Must match GlimmerApply in Shaders/Glimmer/GlimmerApply.hlsli, less the technique's block that follows it
+// Must match GlimmerApply in Shaders/Glimmer/GlimmerApply.hlsli, less the volumes' blocks that follow it (GlimmerTechnique::WriteApplyShaderData)
 struct GlimmerApplyShaderData
 {
-    Vec4u params;   // x = 1 to show Glimmer's irradiance on its own, y = 1 when the technique can be sampled
+    Vec4u params;   // x = 1 to show Glimmer's irradiance on its own, y = 1 when either volume can be sampled
     Vec4f settings; // x = intensity
 };
 
@@ -45,7 +44,7 @@ public:
     GlimmerScenePassData();
     virtual ~GlimmerScenePassData() override;
 
-    // the scene every technique builds on: instances (spans, and a BVH where the technique traces), ground, spans
+    // the scene the technique builds on: instances (spans, and a BVH near the viewer), ground, spans
     SharedPtr<GlimmerBLASCache> blasCache;
     UniquePtr<GlimmerTLAS> tlas;
     UniquePtr<GlimmerSurfaceCache> surfaceCache;
@@ -72,7 +71,7 @@ public:
 };
 
 /*! \brief Glimmer GI: keeps each world's Glimmer scene (instances, ground heights and albedo, spans) and technique up to date,
- *  provides what lighting samples it through, and renders the debug views. Which technique runs is up to GetActiveGlimmerTechniqueType(). */
+ *  provides what lighting samples it through, and renders the debug views. */
 class GlimmerPass final : public PassBase
 {
 public:
@@ -90,7 +89,7 @@ public:
      *  \return true with outImageView set to the result, to be shown in place of the view's final image. */
     bool RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView);
 
-    /*! \brief Writes the Glimmer apply constants for the world into the CBuffer being built, the technique's block included.
+    /*! \brief Writes the Glimmer apply constants for the world into the CBuffer being built, the volumes' blocks included.
      *  Lighting skips Glimmer when the world's technique isn't ready. */
     void WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World* world) const;
 
@@ -100,8 +99,8 @@ public:
     /*! \brief The world's Glimmer scene, or nullptr if it has none yet. */
     GlimmerScenePassData* GetSceneForWorld(World* world) const;
 
-    /*! \brief The technique lighting samples for the world: its scene's, or the placeholder while it has none that's ready. */
-    const GlimmerTechnique& GetApplyTechnique(World* world) const;
+    /*! \brief The technique lighting samples for the world, or nullptr while Glimmer is off or the world has no scene yet. */
+    const GlimmerTechnique* GetApplyTechnique(World* world) const;
 
     virtual void OnFrameEnd(uint32 prevFrameIndex) override;
 
@@ -109,9 +108,6 @@ protected:
     virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
 
 private:
-    // stand in for the technique of worlds without a Glimmer scene, so their apply constants and bindings keep the active technique's layout
-    FixedArray<UniquePtr<GlimmerTechnique>, uint32(GlimmerTechniqueType::Count)> m_placeholderTechniques;
-
     Map<World*, GlimmerScenePassData*> m_scenes;
 };
 

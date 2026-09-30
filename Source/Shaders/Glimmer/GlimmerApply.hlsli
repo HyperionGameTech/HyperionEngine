@@ -2,34 +2,35 @@
 #define GLIMMER_APPLY_HLSLI
 
 // How lighting samples Glimmer. Included twice: first for the constants, then with GLIMMER_APPLY_WITH_SAMPLING once they are declared.
-// The active technique's apply header (picked by the properties AddGlimmerApplyShaderProperties() adds) provides GlimmerTechniqueApply,
-// the textures it samples, and EvaluateGlimmerTechnique().
-#ifdef GLIMMER_TECHNIQUE_SH
-#include "SH/GlimmerSHApply.hlsli"
-#else
+// Two volumes make up Glimmer: SWRT probes for the near field, and SH voxels for the far field beyond them.
 #include "SWRT/GlimmerSWRTApply.hlsli"
-#endif
+#include "SH/GlimmerSHApply.hlsli"
 
-// Must match GlimmerApplyShaderData in GlimmerPass.hpp, followed by the technique's block
+// Must match GlimmerApplyShaderData in GlimmerPass.hpp, followed by the probe volume and the SH volume (GlimmerTechnique::WriteApplyShaderData)
 struct GlimmerApply
 {
-    uint4 params;    // x = 1 to show Glimmer's irradiance on its own, y = 1 when the technique can be sampled
+    uint4 params;    // x = GLIMMER_DEBUG_VIS_*, y = 1 when either volume can be sampled, z = GLIMMER_DEBUG_SH_*
     float4 settings; // x = intensity
-    GlimmerTechniqueApply techniqueApply; // not `technique`, which HLSL reserves
+    GlimmerProbeVolume probes;
+    GlimmerSHVolume sh;
 };
 
-#define GLIMMER_DEBUG_VIS_IRRADIANCE 1
+// Must match GlimmerDebugView in GlimmerCVars.hpp
+#define GLIMMER_DEBUG_VIS_IRRADIANCE 1 // Glimmer's irradiance on its own
+#define GLIMMER_DEBUG_VIS_COVERAGE 2   // which volume and cascade lighting takes it from
+
+// Must match Rendering.Glimmer.DebugSH in GlimmerCVars.cpp: the SH voxels on their own, in place of the final image
+#define GLIMMER_DEBUG_SH_IRRADIANCE 1 // their irradiance
+#define GLIMMER_DEBUG_SH_VISIBILITY 2 // the sky they see, interpolated
+#define GLIMMER_DEBUG_SH_NEAREST 3    // the sky they see, of the one voxel P is in
 
 #endif
 
 #if defined(GLIMMER_APPLY_WITH_SAMPLING) && !defined(GLIMMER_APPLY_SAMPLING_HLSLI)
 #define GLIMMER_APPLY_SAMPLING_HLSLI
 
-#ifdef GLIMMER_TECHNIQUE_SH
-#include "SH/GlimmerSHApply.hlsli"
-#else
 #include "SWRT/GlimmerSWRTApply.hlsli"
-#endif
+#include "SH/GlimmerSHApply.hlsli"
 
 /*! Diffuse irradiance / pi from Glimmer at P, in the same units as the sky irradiance it stands in for. .a is its weight. */
 float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N)
@@ -39,10 +40,92 @@ float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N)
         return (float4)0.0;
     }
 
-    float4 irradiance = EvaluateGlimmerTechnique(glimmer.techniqueApply, P, N);
+    // the probes cover the near field and fade out at its edge; the SH voxels take over from there, so they're only sampled
+    // where the probes leave something uncovered
+    const float4 nearField = EvaluateGlimmerProbes(glimmer.probes, P, N);
+
+    float4 farField = (float4)0.0;
+
+    if (nearField.a < 0.999)
+    {
+        farField = EvaluateGlimmerSH(glimmer.sh, P, N);
+    }
+
+    float4 irradiance = GlimmerBlendFarField(nearField, farField);
     irradiance.rgb *= glimmer.settings.x;
 
     return irradiance;
+}
+
+float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
+{
+    const float3 missing = float3(1.0, 0.0, 1.0);
+
+    if (glimmer.params.z == GLIMMER_DEBUG_SH_NEAREST)
+    {
+        const float skySeen = GlimmerSHNearestSkySeen(glimmer.sh, P, N);
+
+        return skySeen >= 0.0 ? (float3)skySeen : missing;
+    }
+
+    float4 visibility;
+    float4 bounce;
+    const float coverage = GlimmerSHSampleVolume(glimmer.sh, P, N, visibility, bounce);
+
+    if (coverage <= 0.0)
+    {
+        return missing;
+    }
+
+    if (glimmer.params.z == GLIMMER_DEBUG_SH_VISIBILITY)
+    {
+        return (float3)saturate(visibility.x + dot(visibility.yzw, N));
+    }
+
+    return EvaluateGlimmerSH(glimmer.sh, P, N).rgb * glimmer.settings.x;
+}
+
+/*! Which volume and cascade EvaluateGlimmer takes its irradiance from at P: the probes (SWRT, the near field) from yellow for
+ *  the finest cascade to red for the coarsest, then the SH voxels (the far field) from cyan to violet. Colours mix where cascades
+ *  blend, weighted as the lighting weights them; what no cascade covers is magenta. */
+float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N)
+{
+    float3 color = (float3)0.0;
+    float remaining = 1.0;
+
+    if (glimmer.params.y != 0u)
+    {
+        if (glimmer.probes.info.w != 0u)
+        {
+            [loop]
+            for (uint probeCascade = 0; probeCascade < glimmer.probes.info.x && remaining > 1e-3; probeCascade++)
+            {
+                float3 cascadeIrradiance;
+                const float weight = GlimmerSampleCascade(glimmer.probes, probeCascade, P + N * 0.05, N, cascadeIrradiance);
+
+                const float t = float(probeCascade) / float(max(GLIMMER_PROBE_CASCADES - 1, 1));
+
+                color += lerp(float3(1.0, 0.85, 0.1), float3(1.0, 0.15, 0.05), t) * weight * remaining;
+                remaining *= 1.0 - weight;
+            }
+        }
+
+        // as in EvaluateGlimmer, the voxels only get what the probes leave
+        [loop]
+        for (uint shCascade = 0; shCascade < GLIMMER_SH_CASCADES && remaining > 1e-3; shCascade++)
+        {
+            float4 cascadeVisibility;
+            float4 cascadeBounce;
+            const float weight = GlimmerSHSampleCascade(glimmer.sh, shCascade, P + N * 0.05, N, cascadeVisibility, cascadeBounce);
+
+            const float t = float(shCascade) / float(max(GLIMMER_SH_CASCADES - 1, 1));
+
+            color += lerp(float3(0.0, 1.0, 1.0), float3(0.6, 0.1, 1.0), t) * weight * remaining;
+            remaining *= 1.0 - weight;
+        }
+    }
+
+    return color + float3(1.0, 0.0, 1.0) * remaining;
 }
 
 #endif

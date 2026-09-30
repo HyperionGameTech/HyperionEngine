@@ -8,8 +8,10 @@
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../../Include/RayTracing/BVH.hlsli"
+#include "../../Include/EnvProbes.hlsli"
 #include "GlimmerSWRTCommon.hlsli"
 #include "GlimmerProbeTypes.hlsli"
+#include "../SH/GlimmerSHCommon.hlsli"
 
 // Two passes, so each kernel carries one BVH traversal (two inlined ones spill and halve occupancy for every ray):
 //  TRACE finds what each ray hits (SWRT, then the heightfield) and writes a hit record, or the ray's final radiance when it escapes
@@ -38,12 +40,18 @@ struct GlimmerProbeTraceConstants
     uint4 dispatch; // y = sky probe color texture index (~0 without one)
     float4 sky;     // x = sky probe diffuse strength, y = foliage extinction
     uint4 cascadeDispatches[GLIMMER_PROBE_CASCADES]; // x = GLIMMER_PROBE_DISPATCH_*, y = slice period | slice << 16, z = probes
+    GlimmerFootprintMaskParams mask;
+    GlimmerSHVolume sh;  // the far field, sampled where a ray's hit is past the probes
+    EnvProbe skyProbe;   // its spherical harmonics relight the SH voxels; textureIndices is ~0 without a sky probe
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerProbeTrace, CBuffer) cbuffer CBuffer
 {
     GlimmerProbeTraceConstants constants;
 };
+
+// what the SH apply code below expects to find declared
+#define skyProbe constants.skyProbe
 
 DECLARE_SRV(GlimmerProbeTrace, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -64,21 +72,33 @@ DECLARE_SRV(GlimmerProbeTrace, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHT
 DECLARE_SRV(GlimmerProbeTrace, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerProbeTrace, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
 DECLARE_SRV(GlimmerProbeTrace, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
+DECLARE_SRV(GlimmerProbeTrace, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
 
-DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSH0Texture) Texture3D<float4> glimmerProbeSH0;
-DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSH1Texture) Texture3D<float4> glimmerProbeSH1;
-DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSH2Texture) Texture3D<float4> glimmerProbeSH2;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSHTexture) Texture3D<float4> glimmerProbeSH;
 DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeStateTexture) Texture3D<uint2> glimmerProbeState;
 DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeBaseTexture) Texture2DArray<float> glimmerProbeBase;
 
 DECLARE_SRV(GlimmerProbeTrace, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
+
+DECLARE_SRV(GlimmerProbeTrace, GlimmerSHDataTexture) Texture3D<float4> glimmerSHData;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerSHStateTexture) Texture3D<uint2> glimmerSHState;
 
 DECLARE_UAV(GlimmerProbeTrace, OutRays) RWStructuredBuffer<float4> OutRays;
 DECLARE_UAV(GlimmerProbeTrace, RayHits) RWStructuredBuffer<GlimmerProbeRayHit> RayHits;
 
 #include "GlimmerProbes.hlsli"
 #include "GlimmerSWRT.hlsli"
+#include "GlimmerSWRTFootprint.hlsli"
 #include "../GlimmerMaterial.hlsli"
+
+// the far field's sampling code, on the resources declared above
+#if defined(MODE_SHADE)
+#define GLIMMER_APPLY_WITH_SAMPLING
+#define GLIMMER_SH_APPLY_EXTERNAL_RESOURCES
+#include "../SH/GlimmerSHApply.hlsli"
+#undef GLIMMER_SH_APPLY_EXTERNAL_RESOURCES
+#undef GLIMMER_APPLY_WITH_SAMPLING
+#endif
 
 float3 GlimmerSkyRadiance(float3 direction);
 
@@ -113,6 +133,10 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 // SWRT shadow rays toward the sun only need to reach past nearby occluders; the heightfield handles the terrain beyond
 #define GLIMMER_SUN_SWRT_DISTANCE 256.0
 
+// the footprint mask level rays walk: a cascade's rays walk cells as wide as its probe spacing, and sun rays (which are long) 4 m cells
+#define GLIMMER_MASK_RAY_LEVEL_BIAS 1
+#define GLIMMER_SUN_MASK_LEVEL 2
+
 static const float GlimmerInvPi = 0.31830988618;
 
 float3 GlimmerSkyRadiance(float3 direction)
@@ -137,20 +161,32 @@ float GlimmerSunVisibility(float3 P, float3 N, float3 L, bool traceSWRT)
 {
     const float3 origin = P + N * 0.05 + L * 0.02;
 
+    // the heightfield's solids only skip what SWRT covered; a ray the footprint mask cleared keeps them
+    float solidsFromT = 0.0;
+
     if (traceSWRT)
     {
-        GlimmerSWRTStats stats = GlimmerMakeSWRTStats();
-        GlimmerSWRTHit shadowHit;
+        float tFirst;
+        float tLast;
+        float tCovered;
 
-        if (TraceGlimmerSWRT(origin, L, 0.0, GLIMMER_SUN_SWRT_DISTANCE, uint(constants.volume.nearField.z), true, shadowHit, stats))
+        if (GlimmerMaskTraceRay(constants.mask, GLIMMER_SUN_MASK_LEVEL, origin, L, GLIMMER_SUN_SWRT_DISTANCE, tFirst, tLast, tCovered))
         {
-            return 0.0;
+            GlimmerSWRTStats stats = GlimmerMakeSWRTStats();
+            GlimmerSWRTHit shadowHit;
+
+            if (TraceGlimmerSWRT(origin, L, tFirst, tLast, uint(constants.volume.nearField.z), true, shadowHit, stats))
+            {
+                return 0.0;
+            }
+
+            solidsFromT = tCovered;
         }
     }
 
     GlimmerHeightfieldHit shadowHit;
 
-    if (GlimmerTraceHeightfield(constants.ground, constants.spans, origin, L, constants.volume.params.w, 0u, traceSWRT ? GLIMMER_SUN_SWRT_DISTANCE : 0.0, constants.sky.y, false, shadowHit))
+    if (GlimmerTraceHeightfield(constants.ground, constants.spans, origin, L, constants.volume.params.w, 0u, solidsFromT, constants.sky.y, false, shadowHit))
     {
         return 0.0;
     }
@@ -175,8 +211,19 @@ float3 GlimmerShadeSurface(float3 P, float3 N, float3 albedo, bool traceSWRT)
         direct = sunIrradiance * GlimmerInvPi * GlimmerSunVisibility(P, N, L, traceSWRT);
     }
 
-    // multiple bounces come from last frame's probes; where they don't reach yet, the sky stands in
-    const float4 previous = SampleGlimmerProbes(constants.volume, P + N * 0.1, N);
+    // multiple bounces come from last frame's probes, and past them (a ray goes far) the far field's SH voxels; where neither
+    // reaches yet, the sky stands in
+    const float4 nearField = SampleGlimmerProbes(constants.volume, P + N * 0.1, N);
+
+    float4 farField = (float4)0.0;
+
+    [branch]
+    if (nearField.a < 0.999)
+    {
+        farField = EvaluateGlimmerSH(constants.sh, P + N * 0.05, N);
+    }
+
+    const float4 previous = GlimmerBlendFarField(nearField, farField);
     const float3 indirect = previous.rgb * previous.a + GlimmerSkyRadiance(N) * 0.5 * (1.0 - previous.a);
 
     return albedo * (direct + indirect);
@@ -268,10 +315,17 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         }
     }
 
-    const bool traceSWRT = numInstances != 0u && float(cascadeIndex) < constants.volume.nearField.x;
+    // whether hits get sun shadows from SWRT (the shade pass asks the footprint mask before tracing)
+    const bool swrtEnabled = numInstances != 0u && float(cascadeIndex) < constants.volume.nearField.x;
     const float swrtReach = constants.volume.nearField.y * cascade.params.x;
 
     const float maxDistance = constants.volume.params.w;
+
+    // a probe with nothing in the footprint mask within reach has nothing for SWRT to hit
+    const float swrtRange = min(swrtReach, maxDistance);
+    const bool traceSWRT = swrtEnabled && GlimmerMaskAnyInBox(constants.mask, origin.xz - swrtRange, origin.xz + swrtRange, origin.y - swrtRange, origin.y + swrtRange);
+
+    const uint maskLevel = cascadeIndex + GLIMMER_MASK_RAY_LEVEL_BIAS;
 
     // coarse cascades march the heightfield with coarse steps
     const uint startLevel = uint(clamp(int(cascadeIndex) - 2, 0, GLIMMER_GROUND_LEVELS - 1));
@@ -288,10 +342,17 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         GlimmerSWRTHit hit;
         bool hitSWRT = false;
 
-        if (traceSWRT)
+        float swrtFirst = 0.0;
+        float swrtLast = 0.0;
+        float swrtCovered = 0.0;
+
+        // SWRT only traces the stretches of the ray the footprint mask marks occupied
+        const bool traceRay = traceSWRT && GlimmerMaskTraceRay(constants.mask, maskLevel, origin, direction, swrtRange, swrtFirst, swrtLast, swrtCovered);
+
+        if (traceRay)
         {
             GlimmerSWRTStats stats = GlimmerMakeSWRTStats();
-            hitSWRT = TraceGlimmerSWRT(origin, direction, 0.0, min(swrtReach, maxDistance), numInstances, false, hit, stats);
+            hitSWRT = TraceGlimmerSWRT(origin, direction, swrtFirst, swrtLast, numInstances, false, hit, stats);
 
             if (hitSWRT)
             {
@@ -299,8 +360,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             }
         }
 
-        // what SWRT traced, the heightfield's solid spans skip; the ground and the canopy apply along the whole ray
-        const float solidsFromT = traceSWRT ? min(swrtReach, maxDistance) : 0.0;
+        // what SWRT covered, the heightfield's solid spans skip; a ray SWRT didn't trace keeps them, and the ground and the canopy
+        // apply along the whole ray
+        const float solidsFromT = traceRay ? swrtCovered : 0.0;
 
         GlimmerHeightfieldHit heightfieldHit;
         const bool hitHeightfield = GlimmerTraceHeightfield(constants.ground, constants.spans, origin, direction, hitT, startLevel, solidsFromT, constants.sky.y, true, heightfieldHit);
@@ -318,7 +380,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             if (hitT > 0.0)
             {
                 GlimmerWriteRayHit(rayRecordIndex, P + heightfieldHit.normal * 0.05, heightfieldHit.normal, hitT,
-                    traceSWRT ? GLIMMER_RAY_HIT_SHADE_SWRT : GLIMMER_RAY_HIT_SHADE, albedo, heightfieldHit);
+                    swrtEnabled ? GLIMMER_RAY_HIT_SHADE_SWRT : GLIMMER_RAY_HIT_SHADE, albedo, heightfieldHit);
 
                 isDone = false;
             }

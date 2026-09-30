@@ -17,17 +17,21 @@ enum class GlimmerDebugView : int
     // Glimmer's irradiance on its own, from the deferred indirect pass
     Irradiance,
 
-    // values from here on are the active technique's own views, shown in place of the final image
+    // which volume and cascade lighting takes Glimmer's irradiance from, from the deferred indirect pass: probes (SWRT, the near field)
+    // yellow to red, SH voxels (the far field) cyan to violet, magenta where neither covers
+    Coverage,
+
+    // values from here on are the technique's own views, shown in place of the final image
     TechniqueFirst
 };
 
 extern CVar<bool> g_cvGlimmerEnabled;
 
-// which GlimmerTechniqueType every world runs: 0 = SWRT (default), 1 = SH
-extern CVar<int> g_cvGlimmerTechnique;
-
 extern CVar<float> g_cvGlimmerIntensity;
 extern CVar<int> g_cvGlimmerDebugView;
+
+// the SH voxels on their own: 0 = off, 1 = irradiance, 2 = sky visibility, 3 = sky visibility of the single voxel (no interpolation)
+extern CVar<int> g_cvGlimmerDebugSH;
 
 extern CVar<float> g_cvGlimmerGroundAlbedo; // where the terrain's own albedo isn't known
 

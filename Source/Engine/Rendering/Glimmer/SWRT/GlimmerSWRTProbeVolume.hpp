@@ -22,8 +22,11 @@ class Texture;
 class EnvProbe;
 class GlimmerBLASCache;
 class GlimmerTLAS;
+class GlimmerFootprintMask;
+class GlimmerSHVolume;
 
-static constexpr uint32 GlimmerProbeCascades = 6;
+// the near field only: 2 m and 4 m columns, so out to +-64 m; the SH volume covers what's past that
+static constexpr uint32 GlimmerProbeCascades = 2;
 static constexpr uint32 GlimmerProbeGrid = 32;
 static constexpr uint32 GlimmerProbeLayers = 4;
 static constexpr uint32 GlimmerProbesPerCascade = GlimmerProbeGrid * GlimmerProbeGrid * GlimmerProbeLayers;
@@ -53,11 +56,13 @@ struct GlimmerSWRTProbeUpdateInputs
     const GlimmerSpanCache* spanCache = nullptr;
     const GlimmerBLASCache* blasCache = nullptr;
     const GlimmerTLAS* tlas = nullptr;
+    const GlimmerFootprintMask* footprintMask = nullptr; // of the tlas; tells the trace where SWRT has anything to hit
+    const GlimmerSHVolume* shVolume = nullptr;           // the far field, for the bounce at hits past the probes; may be nullptr
     EnvProbe* skyProbe = nullptr;
 };
 
-/*! \brief Glimmer's terrain following probe clipmap: cascades of columns that scroll with the viewer, each column holding
- *  a few probes stacked up from the ground. Probes are traced against the SWRT scene and the heightfield and store L1 irradiance.
+/*! \brief Glimmer's near field: a terrain following probe clipmap, cascades of columns that scroll with the viewer, each column
+ *  holding a few probes stacked up from the ground. Probes are traced against the SWRT scene and the heightfield and store L1 irradiance.
  *  Render thread only. */
 class GlimmerSWRTProbeVolume
 {
@@ -79,15 +84,17 @@ public:
         return m_shaderData.info.w != 0;
     }
 
-    const GpuImageViewRef& GetSHImageView(uint32 channel) const;
+    /*! \brief L1 per colour channel, a slab each stacked along z (see GlimmerProbeTypes.hlsli) */
+    const GpuImageViewRef& GetSHImageView() const;
     const GpuImageViewRef& GetStateImageView() const;
     const GpuImageViewRef& GetBaseImageView() const;
 
 private:
     void CreateResources();
     void ScrollCascades(const Vec3f& viewerPosition, uint32& outScrolledMask);
+    float UpdateFallbackBase(float viewerHeight);
 
-    Handle<Texture> m_shTextures[3];
+    Handle<Texture> m_shTexture;
     Handle<Texture> m_stateTexture;
     Handle<Texture> m_trendTexture; // luminance over each probe's last few updates, to tell real change from noise
     Handle<Texture> m_baseTexture;
@@ -97,6 +104,9 @@ private:
 
     Vec2i m_gridOrigins[GlimmerProbeCascades];
     bool m_hasGridOrigins;
+
+    float m_fallbackBase;
+    bool m_hasFallbackBase;
 
     uint32 m_frameIndex;
 

@@ -27,7 +27,8 @@ static_assert(sizeof(GlimmerFootprintMaskShaderData) == 32);
 static constexpr float GlimmerFootprintMaskCellSize = 1.0f;
 
 /*! \brief 2D grid over the Glimmer region holding the vertical extent of every TLAS instance footprint, plus max-reduced mips.
- *  Covers every instance in the TLAS by construction, so it tells probes and rays when there is nothing in reach for SWRT to hit.
+ *  Covers every instance in the TLAS by construction, so it tells probes and rays when there is nothing in reach for SWRT to hit
+ *  (GlimmerSWRTFootprint.hlsli). It is only authoritative inside its extent, which is the region the TLAS covers.
  *  Rebuilt on the GPU whenever a new TLAS is swapped in. Render thread only. */
 class GlimmerFootprintMask
 {

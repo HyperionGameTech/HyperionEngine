@@ -61,12 +61,12 @@ static float GetCascadeSpacing(uint32 cascadeIndex)
     return GlimmerSHSpacing * float(1u << cascadeIndex);
 }
 
-static Handle<Texture> CreateVolumeTexture(TextureFormat format, Name name)
+static Handle<Texture> CreateVolumeTexture(TextureFormat format, uint32 numSlabs, Name name)
 {
     Handle<Texture> texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Texture3D,
         format,
-        Vec3u(GlimmerSHGridXZ, GlimmerSHGridY * GlimmerSHCascades, GlimmerSHGridXZ),
+        Vec3u(GlimmerSHGridXZ, GlimmerSHGridY * GlimmerSHCascades, GlimmerSHGridXZ * numSlabs),
         TextureFilterMode::Nearest,
         TextureFilterMode::Nearest,
         TextureWrapMode::Repeat,
@@ -112,44 +112,24 @@ GlimmerSHVolume::GlimmerSHVolume()
 
 GlimmerSHVolume::~GlimmerSHVolume()
 {
-    m_visibilityTexture = Handle<Texture>();
-    m_bounceTexture = Handle<Texture>();
+    m_dataTexture = Handle<Texture>();
     m_stateTexture = Handle<Texture>();
-
-    for (Handle<Texture>& depthTexture : m_depthTextures)
-    {
-        depthTexture = Handle<Texture>();
-    }
 }
 
 void GlimmerSHVolume::CreateResources()
 {
-    m_visibilityTexture = CreateVolumeTexture(TextureFormat::RGBA16F, NAME("GlimmerSHVisibility"));
-    m_bounceTexture = CreateVolumeTexture(TextureFormat::RGBA16F, NAME("GlimmerSHBounce"));
-    m_stateTexture = CreateVolumeTexture(TextureFormat::RG32, NAME("GlimmerSHState"));
-    m_depthTextures[0] = CreateVolumeTexture(TextureFormat::RGBA16F, NAME("GlimmerSHDepthX"));
-    m_depthTextures[1] = CreateVolumeTexture(TextureFormat::RGBA16F, NAME("GlimmerSHDepthY"));
-    m_depthTextures[2] = CreateVolumeTexture(TextureFormat::RGBA16F, NAME("GlimmerSHDepthZ"));
+    m_dataTexture = CreateVolumeTexture(TextureFormat::RGBA16F, GlimmerSHDataSlabs, NAME("GlimmerSHData"));
+    m_stateTexture = CreateVolumeTexture(TextureFormat::RG32, 1, NAME("GlimmerSHState"));
 }
 
-const GpuImageViewRef& GlimmerSHVolume::GetVisibilityImageView() const
+const GpuImageViewRef& GlimmerSHVolume::GetDataImageView() const
 {
-    return m_visibilityTexture.IsValid() ? RI.textureViewCache->GetOrCreate(m_visibilityTexture) : RI.placeholderData->GetImageView3D1x1x1R8();
-}
-
-const GpuImageViewRef& GlimmerSHVolume::GetBounceImageView() const
-{
-    return m_bounceTexture.IsValid() ? RI.textureViewCache->GetOrCreate(m_bounceTexture) : RI.placeholderData->GetImageView3D1x1x1R8();
+    return m_dataTexture.IsValid() ? RI.textureViewCache->GetOrCreate(m_dataTexture) : RI.placeholderData->GetImageView3D1x1x1R8();
 }
 
 const GpuImageViewRef& GlimmerSHVolume::GetStateImageView() const
 {
     return m_stateTexture.IsValid() ? RI.textureViewCache->GetOrCreate(m_stateTexture) : RI.placeholderData->GetImageView3D1x1x1R8();
-}
-
-const GpuImageViewRef& GlimmerSHVolume::GetDepthImageView(uint32 axis) const
-{
-    return m_depthTextures[axis].IsValid() ? RI.textureViewCache->GetOrCreate(m_depthTextures[axis]) : RI.placeholderData->GetImageView3D1x1x1R8();
 }
 
 GlimmerSHVolume::Box GlimmerSHVolume::GetWindow(const Vec3i& origin)
@@ -230,14 +210,8 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
     {
         inOutHasBarriers = true;
 
-        cr << InsertBarrier(m_visibilityTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-        cr << InsertBarrier(m_bounceTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_dataTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-
-        for (const Handle<Texture>& depthTexture : m_depthTextures)
-        {
-            cr << InsertBarrier(depthTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-        }
 
         cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSHUpdate")));
     }
@@ -269,12 +243,8 @@ void GlimmerSHVolume::DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& 
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, inputs.surfaceCache->GetGroundImageView());
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, inputs.surfaceCache->GetGroundAlbedoImageView());
     cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, inputs.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
-    cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, RI.textureViewCache->GetOrCreate(m_visibilityTexture));
-    cr << SetShaderUniform(uniformIndex++, "OutBounce"_sh, RI.textureViewCache->GetOrCreate(m_bounceTexture));
+    cr << SetShaderUniform(uniformIndex++, "OutData"_sh, RI.textureViewCache->GetOrCreate(m_dataTexture));
     cr << SetShaderUniform(uniformIndex++, "OutState"_sh, RI.textureViewCache->GetOrCreate(m_stateTexture));
-    cr << SetShaderUniform(uniformIndex++, "OutDepthX"_sh, RI.textureViewCache->GetOrCreate(m_depthTextures[0]));
-    cr << SetShaderUniform(uniformIndex++, "OutDepthY"_sh, RI.textureViewCache->GetOrCreate(m_depthTextures[1]));
-    cr << SetShaderUniform(uniformIndex++, "OutDepthZ"_sh, RI.textureViewCache->GetOrCreate(m_depthTextures[2]));
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, inputs.occupancyImageView);
 
     const Vec3i extent = box.Extent();
@@ -293,7 +263,7 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
         return;
     }
 
-    if (!m_visibilityTexture.IsValid())
+    if (!m_dataTexture.IsValid())
     {
         CreateResources();
     }
@@ -380,14 +350,8 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
     {
         CommandRecorder& cr = frame->cr;
 
-        cr << InsertBarrier(m_visibilityTexture->GetGpuImage(), ResourceState::ShaderResource);
-        cr << InsertBarrier(m_bounceTexture->GetGpuImage(), ResourceState::ShaderResource);
+        cr << InsertBarrier(m_dataTexture->GetGpuImage(), ResourceState::ShaderResource);
         cr << InsertBarrier(m_stateTexture->GetGpuImage(), ResourceState::ShaderResource);
-
-        for (const Handle<Texture>& depthTexture : m_depthTextures)
-        {
-            cr << InsertBarrier(depthTexture->GetGpuImage(), ResourceState::ShaderResource);
-        }
 
         m_shaderData.info.w = 1;
     }

@@ -13,7 +13,7 @@
 
 #include <Scene/World.hpp>
 #include <Scene/Camera/Camera.hpp>
-#include <Scene/Sky/DynamicSkySystem.hpp>
+#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/View.hpp>
@@ -122,13 +122,13 @@ void GlimmerSystem::UpdateSceneRegion(bool force)
 
     Vec3f viewerPosition = m_regionCenter;
 
-    if (!DynamicSkySystem::FindViewerPosition(GetWorld(), viewerPosition) && m_hasRegion && !force)
+    if (!SceneHelpers::FindViewerPosition(*GetWorld(), viewerPosition) && m_hasRegion && !force)
     {
         return;
     }
 
     // the region moves in steps, so whatever the technique builds from the scene only rebuilds now and then
-    const GlimmerSceneRegionParams regionParams = GetGlimmerSceneRegionParams(GetActiveGlimmerTechniqueType());
+    const GlimmerSceneRegionParams regionParams = GlimmerTechnique::GetSceneRegionParams();
 
     const float radius = regionParams.radius;
     const float snap = MathUtil::Max(regionParams.snap, 0.001f);
@@ -218,7 +218,7 @@ void GlimmerSystem::Process(float delta, Span<Handle<Scene>> scenes)
     Array<GlimmerGroundUpload> groundUploads;
 
     Vec3f viewerPosition;
-    state.hasViewer = DynamicSkySystem::FindViewerPosition(GetWorld(), viewerPosition);
+    state.hasViewer = SceneHelpers::FindViewerPosition(*GetWorld(), viewerPosition);
 
     if (state.hasViewer)
     {

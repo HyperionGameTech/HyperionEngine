@@ -34,6 +34,11 @@ Camera* GetEditorCamera(const World& world);
 inline Camera* GetEditorCamera(const World&) { return nullptr; }
 #endif // HYP_EDITOR
 
+/// Finds the position that view-dependent systems (terrain LOD, sky visibility, Glimmer, etc.) should follow.
+/// Prefers the editor camera while the game is stopped and the game camera while it is playing.
+/// Must be called on the sim thread. Returns false if there is no viewer, leaving outPosition untouched.
+bool FindViewerPosition(const World& world, Vec3f& outPosition);
+
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId);
 
 bool IsLocalPlayerEntity(const Entity& entity);

@@ -116,9 +116,9 @@ float GlimmerSampleCascade(GlimmerProbeVolume volume, uint cascadeIndex, float3 
 
         weight = max(weight, 1e-6);
 
-        sumR += glimmerProbeSH0.Load(int4(texel, 0)) * weight;
-        sumG += glimmerProbeSH1.Load(int4(texel, 0)) * weight;
-        sumB += glimmerProbeSH2.Load(int4(texel, 0)) * weight;
+        sumR += glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 0u), 0)) * weight;
+        sumG += glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 1u), 0)) * weight;
+        sumB += glimmerProbeSH.Load(int4(GlimmerProbeSHTexel(texel, 2u), 0)) * weight;
         weightSum += weight;
     }
 

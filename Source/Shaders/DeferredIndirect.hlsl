@@ -321,6 +321,15 @@ PSOutput PSMain(PSInput input)
     {
         result = g_glimmerIrradiance.a > 0.0 ? g_glimmerIrradiance.rgb : float3(1.0, 0.0, 1.0);
     }
+    else if (glimmer.params.x == GLIMMER_DEBUG_VIS_COVERAGE)
+    {
+        result = EvaluateGlimmerCoverage(glimmer, positionWS.xyz, N);
+    }
+
+    if (glimmer.params.y != 0u && glimmer.params.z != 0u)
+    {
+        result = EvaluateGlimmerSHDebug(glimmer, positionWS.xyz, N);
+    }
 #endif
 
     output.output_color = float4(result, 1.0);

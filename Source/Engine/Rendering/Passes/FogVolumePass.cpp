@@ -324,8 +324,6 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
             fogShaderProperties.Add(s_propUseClusteredLights);
         }
 
-        AddGlimmerApplyShaderProperties(fogShaderProperties);
-
         cr << SetCurrentShader(ShaderDesc(NAME("ApplyFogVolume"), fogShaderProperties));
     }
 

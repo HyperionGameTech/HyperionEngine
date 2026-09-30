@@ -38,12 +38,8 @@ DECLARE_SRV(GlimmerSHUpdate, GlimmerGroundTexture) Texture2DArray<float> glimmer
 DECLARE_SRV(GlimmerSHUpdate, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
 DECLARE_SRV(GlimmerSHUpdate, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
 
-DECLARE_UAV(GlimmerSHUpdate, OutVisibility) RWTexture3D<float4> OutVisibility;
-DECLARE_UAV(GlimmerSHUpdate, OutBounce) RWTexture3D<float4> OutBounce;
+DECLARE_UAV(GlimmerSHUpdate, OutData) RWTexture3D<float4> OutData; // GLIMMER_SH_SLABS slabs (GlimmerSHSlabTexel)
 DECLARE_UAV(GlimmerSHUpdate, OutState) RWTexture3D<uint2> OutState;
-DECLARE_UAV(GlimmerSHUpdate, OutDepthX) RWTexture3D<float4> OutDepthX;
-DECLARE_UAV(GlimmerSHUpdate, OutDepthY) RWTexture3D<float4> OutDepthY;
-DECLARE_UAV(GlimmerSHUpdate, OutDepthZ) RWTexture3D<float4> OutDepthZ;
 
 DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
 
@@ -167,12 +163,12 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     {
         if (groupIndex == 0u)
         {
-            OutVisibility[texel] = (float4)0.0;
-            OutBounce[texel] = float4(0.0, 0.0, 0.0, -1.0);
+            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY)] = (float4)0.0;
+            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE)] = float4(0.0, 0.0, 0.0, -1.0);
+            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + 0u)] = (float4)0.0;
+            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + 1u)] = (float4)0.0;
+            OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + 2u)] = (float4)0.0;
             OutState[texel] = GlimmerSHPackVoxel(voxel);
-            OutDepthX[texel] = (float4)0.0;
-            OutDepthY[texel] = (float4)0.0;
-            OutDepthZ[texel] = (float4)0.0;
         }
 
         return;
@@ -181,8 +177,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const float3 L = normalize(world_shader_data.sun_direction_intensity.xyz);
     const float3 direction = normalize(GlimmerRotateByQuaternion(constants.rayRotation, GlimmerSphericalFibonacci(groupIndex, GLIMMER_SH_RAYS)));
 
-    // coarse cascades march the heightfield with coarse steps
-    const uint startLevel = min(cascadeIndex, uint(GLIMMER_GROUND_LEVELS - 1));
+    // the heightfield starts at the ground level whose texels are about a voxel wide, and moves to coarser ones as the ray goes on
+    const float finestTexel = constants.ground.levels[0].params.x;
+    const uint startLevel = uint(clamp(int(round(log2(max(cascade.params.x / finestTexel, 1.0)))), 0, GLIMMER_GROUND_LEVELS - 1));
 
     GlimmerHeightfieldHit hit;
     const bool didHit = GlimmerSHTraceScene(origin, direction, constants.params.y, startLevel, true, hit);
@@ -281,26 +278,36 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             : float2(GLIMMER_SH_DEPTH_RANGE, GLIMMER_SH_DEPTH_RANGE * GLIMMER_SH_DEPTH_RANGE);
     }
 
-    float4 depthX = float4(depthMoments[0], depthMoments[1]);
-    float4 depthY = float4(depthMoments[2], depthMoments[3]);
-    float4 depthZ = float4(depthMoments[4], depthMoments[5]);
+    float4 depths[3] = {
+        float4(depthMoments[0], depthMoments[1]),
+        float4(depthMoments[2], depthMoments[3]),
+        float4(depthMoments[4], depthMoments[5])
+    };
+
+    const uint3 visibilityTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY);
+    const uint3 bounceTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE);
 
     const uint2 state = GlimmerSHPackVoxel(voxel);
-    const float4 previousBounce = OutBounce[texel];
+    const float4 previousBounce = OutData[bounceTexel];
 
-    if (all(OutState[texel] == state) && previousBounce.a >= 0.0)
+    const bool hasHistory = all(OutState[texel] == state) && previousBounce.a >= 0.0;
+
+    if (hasHistory)
     {
-        visibility = lerp(visibility, OutVisibility[texel], GLIMMER_SH_HYSTERESIS);
+        visibility = lerp(visibility, OutData[visibilityTexel], GLIMMER_SH_HYSTERESIS);
         bounce = lerp(bounce, previousBounce, GLIMMER_SH_HYSTERESIS);
-        depthX = lerp(depthX, OutDepthX[texel], GLIMMER_SH_HYSTERESIS);
-        depthY = lerp(depthY, OutDepthY[texel], GLIMMER_SH_HYSTERESIS);
-        depthZ = lerp(depthZ, OutDepthZ[texel], GLIMMER_SH_HYSTERESIS);
     }
 
-    OutVisibility[texel] = visibility;
-    OutBounce[texel] = bounce;
+    OutData[visibilityTexel] = visibility;
+    OutData[bounceTexel] = bounce;
+
+    [unroll]
+    for (uint axis = 0; axis < 3; axis++)
+    {
+        const uint3 depthTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + axis);
+
+        OutData[depthTexel] = hasHistory ? lerp(depths[axis], OutData[depthTexel], GLIMMER_SH_HYSTERESIS) : depths[axis];
+    }
+
     OutState[texel] = state;
-    OutDepthX[texel] = depthX;
-    OutDepthY[texel] = depthY;
-    OutDepthZ[texel] = depthZ;
 }

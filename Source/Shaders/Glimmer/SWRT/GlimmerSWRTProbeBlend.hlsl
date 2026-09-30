@@ -18,9 +18,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerProbeBlend, CBuffer) cbuffer CBuffer
 DECLARE_SRV(GlimmerProbeBlend, Rays) StructuredBuffer<float4> rays;
 DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeBaseTexture) Texture2DArray<float> glimmerProbeBase;
 
-DECLARE_UAV(GlimmerProbeBlend, OutProbeSH0) RWTexture3D<float4> OutProbeSH0;
-DECLARE_UAV(GlimmerProbeBlend, OutProbeSH1) RWTexture3D<float4> OutProbeSH1;
-DECLARE_UAV(GlimmerProbeBlend, OutProbeSH2) RWTexture3D<float4> OutProbeSH2;
+DECLARE_UAV(GlimmerProbeBlend, OutProbeSH) RWTexture3D<float4> OutProbeSH; // a slab per channel (GlimmerProbeSHTexel)
 DECLARE_UAV(GlimmerProbeBlend, OutProbeState) RWTexture3D<uint2> OutProbeState;
 DECLARE_UAV(GlimmerProbeBlend, OutProbeTrend) RWTexture3D<float> OutProbeTrend; // luminance over the last few updates
 
@@ -53,6 +51,9 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     const float3 position = GlimmerProbePosition(cascade, cascadeIndex, column, layer);
 
     const uint3 texel = GlimmerProbeTexel(cascadeIndex, column, layer);
+    const uint3 texelR = GlimmerProbeSHTexel(texel, 0u);
+    const uint3 texelG = GlimmerProbeSHTexel(texel, 1u);
+    const uint3 texelB = GlimmerProbeSHTexel(texel, 2u);
 
     // a probe that was traced for another column (it scrolled in) or at another height starts over
     const uint2 state = OutProbeState[texel];
@@ -98,9 +99,9 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     if (isSameProbe)
     {
-        const float4 previousR = OutProbeSH0[texel];
-        const float4 previousG = OutProbeSH1[texel];
-        const float4 previousB = OutProbeSH2[texel];
+        const float4 previousR = OutProbeSH[texelR];
+        const float4 previousG = OutProbeSH[texelG];
+        const float4 previousB = OutProbeSH[texelB];
 
         // a few rays per update make every estimate noisy: hold on to the history while the light only jitters around it, and
         // let it go when it has really changed (a light, a door, an occluder). One estimate can't tell the two apart, but the
@@ -124,9 +125,9 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         shB = lerp(shB, previousB, hysteresis);
     }
 
-    OutProbeSH0[texel] = shR;
-    OutProbeSH1[texel] = shG;
-    OutProbeSH2[texel] = shB;
+    OutProbeSH[texelR] = shR;
+    OutProbeSH[texelG] = shG;
+    OutProbeSH[texelB] = shB;
     OutProbeState[texel] = uint2(GlimmerPackColumn(column) | (updates << 28), asuint(position.y));
     OutProbeTrend[texel] = trend;
 }

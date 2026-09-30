@@ -3,24 +3,17 @@
 
 #include "GlimmerSHCommon.hlsli"
 
-// Must match what GlimmerSHTechnique::WriteApplyShaderData() writes
-struct GlimmerTechniqueApply
-{
-    GlimmerSHVolume volume;
-};
-
 #endif
 
 #if defined(GLIMMER_APPLY_WITH_SAMPLING) && !defined(GLIMMER_SH_APPLY_SAMPLING_HLSLI)
 #define GLIMMER_SH_APPLY_SAMPLING_HLSLI
 
-// Bound by GlimmerSHTechnique::BindApplyResources()
-DECLARE_SRV(DeferredPass, GlimmerSHVisibilityTexture) Texture3D<float4> glimmerSHVisibility;
-DECLARE_SRV(DeferredPass, GlimmerSHBounceTexture) Texture3D<float4> glimmerSHBounce;
+// Bound by GlimmerTechnique::BindApplyResources(). A shader that samples the volume for its own purposes declares these itself
+// (in its own descriptor set) and defines GLIMMER_SH_APPLY_EXTERNAL_RESOURCES first.
+#ifndef GLIMMER_SH_APPLY_EXTERNAL_RESOURCES
+DECLARE_SRV(DeferredPass, GlimmerSHDataTexture) Texture3D<float4> glimmerSHData;
 DECLARE_SRV(DeferredPass, GlimmerSHStateTexture) Texture3D<uint2> glimmerSHState;
-DECLARE_SRV(DeferredPass, GlimmerSHDepthXTexture) Texture3D<float4> glimmerSHDepthX;
-DECLARE_SRV(DeferredPass, GlimmerSHDepthYTexture) Texture3D<float4> glimmerSHDepthY;
-DECLARE_SRV(DeferredPass, GlimmerSHDepthZTexture) Texture3D<float4> glimmerSHDepthZ;
+#endif
 
 #define GLIMMER_SH_MAX_ALBEDO 0.9
 
@@ -30,14 +23,19 @@ DECLARE_SRV(DeferredPass, GlimmerSHDepthZTexture) Texture3D<float4> glimmerSHDep
 // Chebyshev bound on how likely the voxel sees a point this far (in voxels) toward it, from the distances its rays in that direction went
 float GlimmerSHVoxelVisibility(uint3 texel, float3 voxelToPoint, float distanceInVoxels)
 {
-    const uint bin = GlimmerSHDirectionBin(voxelToPoint);
-    const uint axis = bin >> 1;
+    // each axis contributes the moments of the way it points, by how much of the direction is along it; taking the dominant axis's
+    // alone jumps wherever two axes tie, which shows up as hard diagonal lines through every voxel
+    const float3 axisWeights = voxelToPoint * voxelToPoint / (distanceInVoxels * distanceInVoxels);
 
-    const float4 depth = axis == 0u
-        ? glimmerSHDepthX.Load(int4(texel, 0))
-        : (axis == 1u ? glimmerSHDepthY.Load(int4(texel, 0)) : glimmerSHDepthZ.Load(int4(texel, 0)));
+    float2 moments = (float2)0.0;
 
-    const float2 moments = (bin & 1u) != 0u ? depth.zw : depth.xy;
+    [unroll]
+    for (uint axis = 0; axis < 3; axis++)
+    {
+        const float4 depth = glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_DEPTH + axis), 0));
+
+        moments += (voxelToPoint[axis] < 0.0 ? depth.zw : depth.xy) * axisWeights[axis];
+    }
 
     if (distanceInVoxels <= moments.x)
     {
@@ -103,7 +101,7 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
             continue;
         }
 
-        const float4 bounce = glimmerSHBounce.Load(int4(texel, 0));
+        const float4 bounce = glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE), 0));
 
         if (bounce.a < 0.0)
         {
@@ -136,7 +134,7 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
 
         weight = max(weight, 1e-6);
 
-        visibilitySum += glimmerSHVisibility.Load(int4(texel, 0)) * weight;
+        visibilitySum += glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY), 0)) * weight;
         bounceSum += bounce * weight;
         weightSum += weight;
     }
@@ -165,8 +163,8 @@ float3 GlimmerSHSkyIrradiance(float3 N)
     return max(EnvProbeSH(skyProbe, shBands), (float3)0.0) * skyProbe.world_position.w * world_shader_data.sky_light_params.x;
 }
 
-/*! Relights the voxels around P with the current sky and sun. Expects skyProbe (EnvProbe) and world_shader_data to be declared. */
-float4 EvaluateGlimmerTechnique(GlimmerTechniqueApply techniqueApply, float3 P, float3 N)
+/*! Blends the cascades that cover P, finest first. \return their combined coverage */
+float GlimmerSHSampleVolume(GlimmerSHVolume volume, float3 P, float3 N, out float4 outVisibility, out float4 outBounce)
 {
     float4 visibility = (float4)0.0;
     float4 bounce = (float4)0.0;
@@ -177,7 +175,7 @@ float4 EvaluateGlimmerTechnique(GlimmerTechniqueApply techniqueApply, float3 P, 
     {
         float4 cascadeVisibility;
         float4 cascadeBounce;
-        const float cascadeWeight = GlimmerSHSampleCascade(techniqueApply.volume, cascadeIndex, P + N * 0.05, N, cascadeVisibility, cascadeBounce);
+        const float cascadeWeight = GlimmerSHSampleCascade(volume, cascadeIndex, P + N * 0.05, N, cascadeVisibility, cascadeBounce);
 
         if (cascadeWeight <= 0.0)
         {
@@ -191,13 +189,55 @@ float4 EvaluateGlimmerTechnique(GlimmerTechniqueApply techniqueApply, float3 P, 
 
     const float coverage = 1.0 - remaining;
 
-    if (coverage <= 1e-4)
+    outVisibility = coverage > 1e-4 ? visibility / coverage : (float4)0.0;
+    outBounce = coverage > 1e-4 ? bounce / coverage : (float4)0.0;
+
+    return coverage > 1e-4 ? coverage : 0.0;
+}
+
+/*! The fraction of the sky a surface facing N sees, from the traced voxel P is in and nothing else (no interpolation, no weights), or -1 where
+ *  no cascade has traced it. For telling artifacts in the traced data from ones made by interpolating it. */
+float GlimmerSHNearestSkySeen(GlimmerSHVolume volume, float3 P, float3 N)
+{
+    [loop]
+    for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_CASCADES; cascadeIndex++)
+    {
+        const GlimmerSHCascade cascade = volume.cascades[cascadeIndex];
+
+        const int3 voxel = int3(floor(P * cascade.params.y));
+        const int3 local = voxel - cascade.origin.xyz;
+
+        if (cascade.origin.w == 0 || any(local < 1) || any(local >= int3(GLIMMER_SH_GRID_XZ, GLIMMER_SH_GRID_Y, GLIMMER_SH_GRID_XZ) - 1))
+        {
+            continue;
+        }
+
+        const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
+
+        if (any(glimmerSHState.Load(int4(texel, 0)) != GlimmerSHPackVoxel(voxel)) || glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE), 0)).a < 0.0)
+        {
+            return -1.0;
+        }
+
+        const float4 visibility = glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY), 0));
+
+        return saturate(visibility.x + dot(visibility.yzw, N));
+    }
+
+    return -1.0;
+}
+
+/*! The far field: relights the voxels around P with the current sky and sun. Expects skyProbe (EnvProbe) and world_shader_data to be declared. */
+float4 EvaluateGlimmerSH(GlimmerSHVolume volume, float3 P, float3 N)
+{
+    float4 visibility;
+    float4 bounce;
+    const float coverage = GlimmerSHSampleVolume(volume, P, N, visibility, bounce);
+
+    if (coverage <= 0.0)
     {
         return (float4)0.0;
     }
-
-    visibility /= coverage;
-    bounce /= coverage;
 
     // cosine weighted fraction of the sky seen, and of what blocks it
     const float skySeen = saturate(visibility.x + dot(visibility.yzw, N));
