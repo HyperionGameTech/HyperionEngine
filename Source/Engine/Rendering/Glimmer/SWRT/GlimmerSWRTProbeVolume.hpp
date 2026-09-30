@@ -27,7 +27,7 @@ static constexpr uint32 GlimmerProbeCascades = 6;
 static constexpr uint32 GlimmerProbeGrid = 32;
 static constexpr uint32 GlimmerProbeLayers = 4;
 static constexpr uint32 GlimmerProbesPerCascade = GlimmerProbeGrid * GlimmerProbeGrid * GlimmerProbeLayers;
-static constexpr uint32 GlimmerProbeRays = 32;
+static constexpr uint32 GlimmerProbeRays = 16;
 
 // Must match GlimmerProbeCascade in Shaders/Glimmer/SWRT/GlimmerProbeTypes.hlsli
 struct GlimmerProbeCascadeShaderData
@@ -92,6 +92,7 @@ private:
     Handle<Texture> m_baseTexture;
 
     GpuBufferRef m_raysBuffer;
+    GpuBufferRef m_rayHitsBuffer; // between the trace and shade passes
 
     Vec2i m_gridOrigins[GlimmerProbeCascades];
     bool m_hasGridOrigins;

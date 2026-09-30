@@ -10,12 +10,16 @@
 
 PERMUTE(MODE, CLEAR, SPLAT)
 
+// Must match GlimmerSpanMaxRects in GlimmerSpanCache.cpp
+#define GLIMMER_SPAN_MAX_RECTS 4
+
 // Must match GlimmerSpanSplatConstants in GlimmerSpanCache.cpp
 struct GlimmerSpanSplatConstants
 {
-    int4 window;   // xy = absolute texel of the window origin, z = level
+    int4 window;   // xy = absolute texel of the window origin, z = level, w = rects to fill
     float4 params; // x = texel size, y = 1 / texel size, z = minimum height of foliage above the ground
-    uint4 counts;  // x = span instances, y = span triangles, z = groups along x
+    uint4 counts;  // x = span instances, y = span chunks, z = groups along x
+    int4 rects[GLIMMER_SPAN_MAX_RECTS]; // absolute texels, xy = min, zw = max (exclusive), inside the window; only these are cleared and filled
     GlimmerGroundParams ground;
 };
 
@@ -26,7 +30,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSpanSplat, CBuffer) cbuffer CBuffer
 
 DECLARE_UAV(GlimmerSpanSplat, SpansBuffer) RWStructuredBuffer<uint> spans;
 DECLARE_SRV(GlimmerSpanSplat, SpanInstancesBuffer) StructuredBuffer<GlimmerSpanInstance> spanInstances;
-DECLARE_SRV(GlimmerSpanSplat, SpanTriangleOffsetsBuffer) StructuredBuffer<uint> spanTriangleOffsets;
+DECLARE_SRV(GlimmerSpanSplat, SpanChunksBuffer) StructuredBuffer<GlimmerSpanChunk> spanChunks;
 DECLARE_SRV(GlimmerSpanSplat, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTriangle> glimmerBLASTriangles;
 DECLARE_SRV(GlimmerSpanSplat, MaterialsBuffer) StructuredBuffer<Material> materials;
 
@@ -54,69 +58,47 @@ float3 TransformPoint(GlimmerSpanInstance instance, float3 position)
     return float3(dot(instance.objectToWorld0, homogeneous), dot(instance.objectToWorld1, homogeneous), dot(instance.objectToWorld2, homogeneous));
 }
 
-uint FindSpanInstance(uint triangleIndex)
+bool IsInRects(int2 texel)
 {
-    uint low = 0;
-    uint high = constants.counts.x;
-
-    // last instance whose first triangle is at or before triangleIndex
-    while (high - low > 1u)
+    for (int rectIndex = 0; rectIndex < constants.window.w; rectIndex++)
     {
-        const uint middle = (low + high) / 2u;
+        const int4 rect = constants.rects[rectIndex];
 
-        if (spanTriangleOffsets[middle] <= triangleIndex)
+        if (all(texel >= rect.xy) && all(texel < rect.zw))
         {
-            low = middle;
-        }
-        else
-        {
-            high = middle;
+            return true;
         }
     }
 
-    return low;
+    return false;
 }
 
-[numthreads(GROUP_SIZE, 1, 1)]
-void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+void AccumulateTexel(uint baseIndex, bool isFoliage, uint minY, uint maxY, uint areaFixed, uint3 albedoFixed)
 {
-    const uint threadIndex = (groupId.y * constants.counts.z + groupId.x) * GROUP_SIZE + groupIndex;
-    const uint level = uint(constants.window.z);
+    uint previous;
 
-#if defined(MODE_CLEAR)
-    if (threadIndex >= GLIMMER_GROUND_RESOLUTION * GLIMMER_GROUND_RESOLUTION)
+    if (isFoliage)
     {
-        return;
+        InterlockedMin(spans[baseIndex + GLIMMER_SPAN_CANOPY_MIN], minY, previous);
+        InterlockedMax(spans[baseIndex + GLIMMER_SPAN_CANOPY_MAX], maxY, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_LEAF_AREA], areaFixed, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 0], albedoFixed.r, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 1], albedoFixed.g, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 2], albedoFixed.b, previous);
     }
-
-    const uint baseIndex = ((level * GLIMMER_GROUND_RESOLUTION * GLIMMER_GROUND_RESOLUTION) + threadIndex) * GLIMMER_SPAN_VALUES_PER_TEXEL;
-
-    spans[baseIndex + GLIMMER_SPAN_SOLID_MIN] = GLIMMER_MASK_EMPTY_MIN;
-    spans[baseIndex + GLIMMER_SPAN_SOLID_MAX] = GLIMMER_MASK_EMPTY_MAX;
-    spans[baseIndex + GLIMMER_SPAN_CANOPY_MIN] = GLIMMER_MASK_EMPTY_MIN;
-    spans[baseIndex + GLIMMER_SPAN_CANOPY_MAX] = GLIMMER_MASK_EMPTY_MAX;
-
-    [unroll]
-    for (uint valueIndex = GLIMMER_SPAN_LEAF_AREA; valueIndex < GLIMMER_SPAN_VALUES_PER_TEXEL; valueIndex++)
+    else
     {
-        spans[baseIndex + valueIndex] = 0u;
+        InterlockedMin(spans[baseIndex + GLIMMER_SPAN_SOLID_MIN], minY, previous);
+        InterlockedMax(spans[baseIndex + GLIMMER_SPAN_SOLID_MAX], maxY, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 0], albedoFixed.r, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 1], albedoFixed.g, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 2], albedoFixed.b, previous);
+        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_AREA], areaFixed, previous);
     }
-#elif defined(MODE_SPLAT)
-    if (threadIndex >= constants.counts.y)
-    {
-        return;
-    }
+}
 
-    const uint instanceIndex = FindSpanInstance(threadIndex);
-    const GlimmerSpanInstance instance = spanInstances[instanceIndex];
-
-    const uint localTriangle = threadIndex - spanTriangleOffsets[instanceIndex];
-
-    if (localTriangle >= instance.data.y)
-    {
-        return;
-    }
-
+void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
+{
     const BVHTriangle bvhTriangle = glimmerBLASTriangles[instance.data.x + localTriangle];
 
     const float3 p0 = TransformPoint(instance, bvhTriangle.position0.xyz);
@@ -136,6 +118,20 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const int2 texelMax = min(int2(floor(boundsMax * invTexelSize)), min(windowMax - 1, texelMin + MAX_FOOTPRINT_TEXELS - 1));
 
     if (any(texelMax < texelMin))
+    {
+        return;
+    }
+
+    bool overlapsRects = false;
+
+    for (int rectIndex = 0; rectIndex < constants.window.w; rectIndex++)
+    {
+        const int4 rect = constants.rects[rectIndex];
+
+        overlapsRects = overlapsRects || (all(texelMax >= rect.xy) && all(texelMin < rect.zw));
+    }
+
+    if (!overlapsRects)
     {
         return;
     }
@@ -181,33 +177,91 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     const uint3 albedoFixed = uint3(saturate(albedoAlpha.rgb) * float(areaFixed) + 0.5);
 
-    for (int z = texelMin.y; z <= texelMax.y; z++)
+    for (int rectIndex = 0; rectIndex < constants.window.w; rectIndex++)
     {
-        for (int x = texelMin.x; x <= texelMax.x; x++)
+        const int4 rect = constants.rects[rectIndex];
+
+        const int2 rectMin = max(texelMin, rect.xy);
+        const int2 rectMax = min(texelMax, rect.zw - 1);
+
+        for (int z = rectMin.y; z <= rectMax.y; z++)
         {
-            const uint baseIndex = GlimmerSpanTexelIndex(level, int2(x, z));
-
-            uint previous;
-
-            if (isFoliage)
+            for (int x = rectMin.x; x <= rectMax.x; x++)
             {
-                InterlockedMin(spans[baseIndex + GLIMMER_SPAN_CANOPY_MIN], minY, previous);
-                InterlockedMax(spans[baseIndex + GLIMMER_SPAN_CANOPY_MAX], maxY, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_LEAF_AREA], areaFixed, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 0], albedoFixed.r, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 1], albedoFixed.g, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 2], albedoFixed.b, previous);
-            }
-            else
-            {
-                InterlockedMin(spans[baseIndex + GLIMMER_SPAN_SOLID_MIN], minY, previous);
-                InterlockedMax(spans[baseIndex + GLIMMER_SPAN_SOLID_MAX], maxY, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 0], albedoFixed.r, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 1], albedoFixed.g, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 2], albedoFixed.b, previous);
-                InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_AREA], areaFixed, previous);
+                AccumulateTexel(GlimmerSpanTexelIndex(level, int2(x, z)), isFoliage, minY, maxY, areaFixed, albedoFixed);
             }
         }
+    }
+}
+
+[numthreads(GROUP_SIZE, 1, 1)]
+void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+{
+    const uint threadIndex = (groupId.y * constants.counts.z + groupId.x) * GROUP_SIZE + groupIndex;
+    const uint level = uint(constants.window.z);
+
+#if defined(MODE_CLEAR)
+    if (threadIndex >= GLIMMER_GROUND_RESOLUTION * GLIMMER_GROUND_RESOLUTION)
+    {
+        return;
+    }
+
+    const int2 texel = constants.window.xy + int2(threadIndex % GLIMMER_GROUND_RESOLUTION, threadIndex / GLIMMER_GROUND_RESOLUTION);
+
+    if (!IsInRects(texel))
+    {
+        return;
+    }
+
+    const uint baseIndex = GlimmerSpanTexelIndex(level, texel);
+
+    spans[baseIndex + GLIMMER_SPAN_SOLID_MIN] = GLIMMER_MASK_EMPTY_MIN;
+    spans[baseIndex + GLIMMER_SPAN_SOLID_MAX] = GLIMMER_MASK_EMPTY_MAX;
+    spans[baseIndex + GLIMMER_SPAN_CANOPY_MIN] = GLIMMER_MASK_EMPTY_MIN;
+    spans[baseIndex + GLIMMER_SPAN_CANOPY_MAX] = GLIMMER_MASK_EMPTY_MAX;
+
+    [unroll]
+    for (uint valueIndex = GLIMMER_SPAN_LEAF_AREA; valueIndex < GLIMMER_SPAN_VALUES_PER_TEXEL; valueIndex++)
+    {
+        spans[baseIndex + valueIndex] = 0u;
+    }
+#elif defined(MODE_SPLAT)
+    const uint chunkIndex = groupId.y * constants.counts.z + groupId.x;
+
+    if (chunkIndex >= constants.counts.y)
+    {
+        return;
+    }
+
+    const GlimmerSpanChunk chunk = spanChunks[chunkIndex];
+
+    // the whole chunk goes when its instance misses every rect being filled
+    bool overlapsRects = false;
+
+    for (int rectIndex = 0; rectIndex < constants.window.w; rectIndex++)
+    {
+        const float4 rectBounds = float4(constants.rects[rectIndex]) * constants.params.x;
+
+        overlapsRects = overlapsRects || (all(chunk.boundsMax.xz >= rectBounds.xy) && all(chunk.boundsMin.xz <= rectBounds.zw));
+    }
+
+    if (!overlapsRects)
+    {
+        return;
+    }
+
+    const GlimmerSpanInstance instance = spanInstances[asuint(chunk.boundsMin.w)];
+
+    for (uint chunkTriangle = groupIndex; chunkTriangle < GLIMMER_SPAN_CHUNK_TRIANGLES; chunkTriangle += GROUP_SIZE)
+    {
+        const uint localTriangle = asuint(chunk.boundsMax.w) + chunkTriangle;
+
+        if (localTriangle >= instance.data.y)
+        {
+            break;
+        }
+
+        SplatTriangle(instance, localTriangle, level);
     }
 #endif
 }

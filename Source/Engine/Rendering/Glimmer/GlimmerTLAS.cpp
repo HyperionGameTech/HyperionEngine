@@ -88,6 +88,8 @@ static GpuBufferRef CreateStructuredBuffer(size_t elementSize, size_t numElement
 GlimmerTLAS::GlimmerTLAS()
     : m_lastBuildStartTime(0),
       m_blasGenerationAtGather(~0u),
+      m_activeInputHash(0),
+      m_spanFullyDirty(true),
       m_dirty(true),
       m_waitingForBLAS(false)
 {
@@ -107,7 +109,7 @@ GlimmerTLAS::~GlimmerTLAS()
     EnqueueDeletion(std::move(m_instancesBuffer));
     EnqueueDeletion(std::move(m_instanceBoundsBuffer));
     EnqueueDeletion(std::move(m_spanInstancesBuffer));
-    EnqueueDeletion(std::move(m_spanTriangleOffsetsBuffer));
+    EnqueueDeletion(std::move(m_spanChunksBuffer));
 }
 
 void GlimmerTLAS::Release(GlimmerBLASCache& blasCache)
@@ -194,6 +196,8 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             spanInstance.triangleCount = blasRef.triangleCount;
             spanInstance.materialIndex = materialIndex;
             spanInstance.flags = instanceFlags;
+
+            outInput.spanInstanceBounds.PushBack(worldBounds);
 
             isReferenced = true;
         }
@@ -287,6 +291,22 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
     }
 }
 
+// FNV-1a over 64-bit words; the instance structs are all multiples of 8 bytes
+static uint64 HashWords(const void* data, size_t byteSize, uint64 hash)
+{
+    const uint64* words = static_cast<const uint64*>(data);
+
+    hash ^= 0xcbf29ce484222325ull + byteSize;
+
+    for (size_t wordIndex = 0; wordIndex < byteSize / sizeof(uint64); wordIndex++)
+    {
+        hash ^= words[wordIndex];
+        hash *= 0x100000001b3ull;
+    }
+
+    return hash;
+}
+
 GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
 {
     HYP_SCOPE;
@@ -294,15 +314,86 @@ GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
     const uint64 startTime = PerformanceClock::Now();
 
     BuildResult result;
+
+    // mesh entity diffs come often (editor, LOD, anything else in the list), and most leave what Glimmer gathers as it was
+    result.inputHash = HashWords(input.instances.Data(), input.instances.ByteSize(), HashWords(input.spanInstances.Data(), input.spanInstances.ByteSize(), 0));
+
     result.blasKeys = std::move(input.blasKeys);
 
     result.spanInstances = std::move(input.spanInstances);
-    result.spanTriangleOffsets.Resize(result.spanInstances.Size());
 
     for (size_t spanIndex = 0; spanIndex < result.spanInstances.Size(); spanIndex++)
     {
-        result.spanTriangleOffsets[spanIndex] = result.numSpanTriangles;
-        result.numSpanTriangles += result.spanInstances[spanIndex].triangleCount;
+        const uint32 triangleCount = result.spanInstances[spanIndex].triangleCount;
+        const BoundingBox& bounds = input.spanInstanceBounds[spanIndex];
+
+        for (uint32 firstTriangle = 0; firstTriangle < triangleCount; firstTriangle += GlimmerSpanChunkTriangles)
+        {
+            GlimmerSpanChunkShaderData& chunk = result.spanChunks.EmplaceBack();
+            Memory::Copy(chunk.boundsMin, &bounds.min.x, sizeof(chunk.boundsMin));
+            chunk.spanInstance = uint32(spanIndex);
+            Memory::Copy(chunk.boundsMax, &bounds.max.x, sizeof(chunk.boundsMax));
+            chunk.firstTriangle = firstTriangle;
+        }
+
+        result.numSpanTriangles += triangleCount;
+    }
+
+    // which span instances came and went since the live build, grouped by quadrant around the region so a recentre (instances
+    // leaving one side, arriving on the other) stays a few boxes along the edges
+    result.spanKeys.Reserve(result.spanInstances.Size());
+
+    for (size_t spanIndex = 0; spanIndex < result.spanInstances.Size(); spanIndex++)
+    {
+        result.spanKeys.PushBack(SpanKey { HashWords(&result.spanInstances[spanIndex], sizeof(GlimmerSpanInstanceShaderData), 0), input.spanInstanceBounds[spanIndex] });
+    }
+
+    std::sort(result.spanKeys.Begin(), result.spanKeys.End());
+
+    result.spanFullyDirty = !input.hasPrevious;
+
+    if (input.hasPrevious)
+    {
+        BoundingBox quadrants[GlimmerSpanMaxDirtyBounds];
+
+        const auto addChanged = [&](const BoundingBox& bounds)
+        {
+            const Vec3f center = bounds.GetCenter();
+            const uint32 quadrant = (center.x >= input.regionCenter.x ? 1u : 0u) | (center.z >= input.regionCenter.z ? 2u : 0u);
+
+            quadrants[quadrant] = quadrants[quadrant].Union(bounds);
+        };
+
+        const Array<SpanKey>& previousKeys = input.previousSpanKeys;
+        const Array<SpanKey>& currentKeys = result.spanKeys;
+
+        size_t previousIndex = 0;
+        size_t currentIndex = 0;
+
+        while (previousIndex < previousKeys.Size() || currentIndex < currentKeys.Size())
+        {
+            if (currentIndex == currentKeys.Size() || (previousIndex < previousKeys.Size() && previousKeys[previousIndex].hash < currentKeys[currentIndex].hash))
+            {
+                addChanged(previousKeys[previousIndex++].bounds);
+            }
+            else if (previousIndex == previousKeys.Size() || currentKeys[currentIndex].hash < previousKeys[previousIndex].hash)
+            {
+                addChanged(currentKeys[currentIndex++].bounds);
+            }
+            else
+            {
+                previousIndex++;
+                currentIndex++;
+            }
+        }
+
+        for (const BoundingBox& quadrant : quadrants)
+        {
+            if (quadrant.IsValid())
+            {
+                result.spanDirtyBounds.PushBack(quadrant);
+            }
+        }
     }
 
     if (input.instances.Empty())
@@ -350,14 +441,14 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
     GpuBufferRef instancesBuffer = CreateStructuredBuffer(sizeof(GlimmerInstanceShaderData), result.instances.Size());
     GpuBufferRef instanceBoundsBuffer = CreateStructuredBuffer(sizeof(GlimmerInstanceBoundsShaderData), result.instanceBounds.Size());
     GpuBufferRef spanInstancesBuffer = CreateStructuredBuffer(sizeof(GlimmerSpanInstanceShaderData), result.spanInstances.Size());
-    GpuBufferRef spanTriangleOffsetsBuffer = CreateStructuredBuffer(sizeof(uint32), result.spanTriangleOffsets.Size());
+    GpuBufferRef spanChunksBuffer = CreateStructuredBuffer(sizeof(GlimmerSpanChunkShaderData), result.spanChunks.Size());
 
     const size_t nodesByteSize = result.nodes.ByteSize();
     const size_t instancesByteSize = result.instances.ByteSize();
     const size_t instanceBoundsByteSize = result.instanceBounds.ByteSize();
     const size_t spanInstancesByteSize = result.spanInstances.ByteSize();
-    const size_t spanTriangleOffsetsByteSize = result.spanTriangleOffsets.ByteSize();
-    const size_t totalByteSize = nodesByteSize + instancesByteSize + instanceBoundsByteSize + spanInstancesByteSize + spanTriangleOffsetsByteSize;
+    const size_t spanChunksByteSize = result.spanChunks.ByteSize();
+    const size_t totalByteSize = nodesByteSize + instancesByteSize + instanceBoundsByteSize + spanInstancesByteSize + spanChunksByteSize;
 
     if (totalByteSize != 0)
     {
@@ -368,7 +459,7 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
         stagingBuffer->Copy(nodesByteSize, instancesByteSize, result.instances.Data());
         stagingBuffer->Copy(nodesByteSize + instancesByteSize, instanceBoundsByteSize, result.instanceBounds.Data());
         stagingBuffer->Copy(nodesByteSize + instancesByteSize + instanceBoundsByteSize, spanInstancesByteSize, result.spanInstances.Data());
-        stagingBuffer->Copy(nodesByteSize + instancesByteSize + instanceBoundsByteSize + spanInstancesByteSize, spanTriangleOffsetsByteSize, result.spanTriangleOffsets.Data());
+        stagingBuffer->Copy(nodesByteSize + instancesByteSize + instanceBoundsByteSize + spanInstancesByteSize, spanChunksByteSize, result.spanChunks.Data());
         stagingBuffer->Flush(0, totalByteSize);
 
         cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
@@ -376,7 +467,7 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
         cr << InsertBarrier(instancesBuffer.Get(), ResourceState::CopyDst);
         cr << InsertBarrier(instanceBoundsBuffer.Get(), ResourceState::CopyDst);
         cr << InsertBarrier(spanInstancesBuffer.Get(), ResourceState::CopyDst);
-        cr << InsertBarrier(spanTriangleOffsetsBuffer.Get(), ResourceState::CopyDst);
+        cr << InsertBarrier(spanChunksBuffer.Get(), ResourceState::CopyDst);
 
         size_t copyOffset = 0;
 
@@ -394,14 +485,14 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
         copyInto(instancesBuffer, instancesByteSize);
         copyInto(instanceBoundsBuffer, instanceBoundsByteSize);
         copyInto(spanInstancesBuffer, spanInstancesByteSize);
-        copyInto(spanTriangleOffsetsBuffer, spanTriangleOffsetsByteSize);
+        copyInto(spanChunksBuffer, spanChunksByteSize);
     }
 
     cr << InsertBarrier(nodesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
     cr << InsertBarrier(instancesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
     cr << InsertBarrier(instanceBoundsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
     cr << InsertBarrier(spanInstancesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-    cr << InsertBarrier(spanTriangleOffsetsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(spanChunksBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
 
 #ifdef HYP_RHI_DEBUG_NAMES
     nodesBuffer->SetDebugName(NAME("GlimmerTLASNodes"));
@@ -418,10 +509,10 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
     m_instanceBoundsBuffer = std::move(instanceBoundsBuffer);
 
     EnqueueDeletion(std::move(m_spanInstancesBuffer));
-    EnqueueDeletion(std::move(m_spanTriangleOffsetsBuffer));
+    EnqueueDeletion(std::move(m_spanChunksBuffer));
 
     m_spanInstancesBuffer = std::move(spanInstancesBuffer);
-    m_spanTriangleOffsetsBuffer = std::move(spanTriangleOffsetsBuffer);
+    m_spanChunksBuffer = std::move(spanChunksBuffer);
 }
 
 bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache)
@@ -447,6 +538,21 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
         BuildResult result = std::move(m_buildTask).Await();
         m_buildTask = Task<BuildResult>();
 
+        if (IsReady() && result.inputHash == m_activeInputHash)
+        {
+            // same instances as the live TLAS: keep it (and its generation), so nothing built from it rebuilds
+            blasCache.RemoveReferences(result.blasKeys.ToSpan());
+            m_pendingBlasKeys.Clear();
+
+            return false;
+        }
+
+        m_activeInputHash = result.inputHash;
+
+        m_spanKeys = std::move(result.spanKeys);
+        m_spanDirtyBounds = std::move(result.spanDirtyBounds);
+        m_spanFullyDirty = result.spanFullyDirty;
+
         Upload(frame, result);
 
         blasCache.RemoveReferences(m_activeBlasKeys.ToSpan());
@@ -460,6 +566,7 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
         m_stats.lastBuildMs = result.buildMs;
         m_stats.numSpanInstances = uint32(result.spanInstances.Size());
         m_stats.numSpanTriangles = result.numSpanTriangles;
+        m_stats.numSpanChunks = uint32(result.spanChunks.Size());
         m_stats.numBuilds++;
 
         swapped = true;
@@ -479,6 +586,10 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     uint32 numWaitingForBLAS = 0;
 
     Gather(rpl, region, tracedRegion, blasCache, input, numWaitingForBLAS);
+
+    input.regionCenter = region.GetCenter();
+    input.previousSpanKeys = m_spanKeys;
+    input.hasPrevious = IsReady() || !m_spanKeys.Empty();
 
     // keep the gathered BLASes where they are until this build is swapped in
     blasCache.AddReferences(input.blasKeys.ToSpan());

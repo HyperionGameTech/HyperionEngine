@@ -35,26 +35,31 @@ static EngineStatGpuTimer s_statGlimmerSpans("Rendering/GPU/Glimmer/Spans");
 static StaticShaderPropertyId s_propSpanModeClear { ShaderProperty(NAME("MODE"), NAME("CLEAR")) };
 static StaticShaderPropertyId s_propSpanModeSplat { ShaderProperty(NAME("MODE"), NAME("SPLAT")) };
 
+// Must match GLIMMER_SPAN_MAX_RECTS in Shaders/Glimmer/GlimmerSpanSplat.hlsl
+static_assert(GlimmerSpanMaxRects == 4);
+
 static constexpr uint32 SpanGroupSize = 64;
 static constexpr uint32 MaxGroupsPerDimension = 65535;
 
 // Must match GlimmerSpanSplatConstants in Shaders/Glimmer/GlimmerSpanSplat.hlsl
 struct GlimmerSpanSplatConstants
 {
-    Vec4i window;   // xy = absolute texel of the window origin, z = level
+    Vec4i window;   // xy = absolute texel of the window origin, z = level, w = rects to fill
     Vec4f params;   // x = texel size, y = 1 / texel size, z = minimum height of foliage above the ground
-    Vec4u counts;   // x = span instances, y = span triangles, z = groups along x
+    Vec4u counts;   // x = span instances, y = span chunks, z = groups along x
+    Vec4i rects[GlimmerSpanMaxRects]; // xy = min, zw = max (exclusive)
     GlimmerGroundShaderData ground;
 };
 
 GlimmerSpanCache::GlimmerSpanCache()
-    : m_shaderData {}
+    : m_seenGeneration(~0u),
+      m_shaderData {}
 {
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
     {
         m_builtGenerations[levelIndex] = ~0u;
         m_builtOrigins[levelIndex] = Vec2i(0, 0);
-        m_builtWithCompleteGround[levelIndex] = false;
+        m_changedWholeWindow[levelIndex] = true;
 
         const float texelSize = GetGlimmerGroundTexelSize(levelIndex);
         m_shaderData.levels[levelIndex].params = Vec4f(texelSize, 1.0f / texelSize, 0.0f, 0.0f);
@@ -71,7 +76,43 @@ const GpuBufferRef& GlimmerSpanCache::GetSpansBuffer() const
     return m_spansBuffer;
 }
 
-void GlimmerSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
+bool GlimmerSpanCache::RectList::Add(const Rect& rect)
+{
+    if (rect.IsEmpty())
+    {
+        return true;
+    }
+
+    if (count == GlimmerSpanMaxRects)
+    {
+        return false;
+    }
+
+    rects[count++] = rect;
+
+    return true;
+}
+
+GlimmerSpanCache::Rect GlimmerSpanCache::GetWindow(const Vec2i& origin)
+{
+    return Rect { origin, origin + Vec2i(int32(GlimmerGroundResolution), int32(GlimmerGroundResolution)) };
+}
+
+GlimmerSpanCache::Rect GlimmerSpanCache::Intersect(const Rect& a, const Rect& b)
+{
+    Rect result;
+    result.min = Vec2i(MathUtil::Max(a.min.x, b.min.x), MathUtil::Max(a.min.y, b.min.y));
+    result.max = Vec2i(MathUtil::Min(a.max.x, b.max.x), MathUtil::Min(a.max.y, b.max.y));
+
+    if (result.IsEmpty())
+    {
+        result.max = result.min;
+    }
+
+    return result;
+}
+
+void GlimmerSpanCache::FillLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const RectList& rects, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache)
 {
     HYP_SCOPE;
 
@@ -86,9 +127,17 @@ void GlimmerSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i
         const uint32 groupsY = (numGroups + groupsX - 1) / groupsX;
 
         GlimmerSpanSplatConstants constants {};
-        constants.window = Vec4i(windowOrigin.x, windowOrigin.y, int32(levelIndex), 0);
+        constants.window = Vec4i(windowOrigin.x, windowOrigin.y, int32(levelIndex), int32(rects.count));
         constants.params = Vec4f(texelSize, 1.0f / texelSize, GlimmerSpansMinFoliageHeight, 0.0f);
-        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanTriangles(), groupsX, 0);
+        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groupsX, 0);
+
+        for (uint32 rectIndex = 0; rectIndex < rects.count; rectIndex++)
+        {
+            const Rect& rect = rects.rects[rectIndex];
+
+            constants.rects[rectIndex] = Vec4i(rect.min.x, rect.min.y, rect.max.x, rect.max.y);
+        }
+
         constants.ground = surfaceCache.GetGroundShaderData();
 
         GpuBuffer* cbuffer = nullptr;
@@ -108,7 +157,7 @@ void GlimmerSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "SpansBuffer"_sh, m_spansBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, tlas.GetSpanInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanInstanceShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "SpanTriangleOffsetsBuffer"_sh, tlas.GetSpanTriangleOffsetsBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, tlas.GetSpanChunksBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanChunkShaderData)));
         cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, blasCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
         cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
@@ -123,9 +172,10 @@ void GlimmerSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i
 
     dispatchPass(s_propSpanModeClear, GlimmerGroundResolution * GlimmerGroundResolution);
 
-    if (tlas.GetNumSpanTriangles() != 0)
+    if (tlas.GetNumSpanChunks() != 0)
     {
-        dispatchPass(s_propSpanModeSplat, tlas.GetNumSpanTriangles());
+        // a group per chunk
+        dispatchPass(s_propSpanModeSplat, tlas.GetNumSpanChunks() * SpanGroupSize);
     }
 
     cr << InsertBarrier(m_spansBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
@@ -153,26 +203,144 @@ void GlimmerSpanCache::Update(Frame* frame, const GlimmerChannelState& state, co
         Check(m_spansBuffer->Create());
     }
 
+    // a swap only has to redo where its span instances changed, on every level; one missed means not knowing where that was
+    if (tlas.GetGeneration() != m_seenGeneration)
+    {
+        const bool isWholeWindow = tlas.IsSpanFullyDirty() || tlas.GetGeneration() != m_seenGeneration + 1;
+
+        for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
+        {
+            const float invTexelSize = 1.0f / GetGlimmerGroundTexelSize(levelIndex);
+
+            m_changedWholeWindow[levelIndex] |= isWholeWindow;
+
+            for (const BoundingBox& bounds : tlas.GetSpanDirtyBounds())
+            {
+                const Rect rect {
+                    Vec2i(int32(MathUtil::Floor(bounds.min.x * invTexelSize)), int32(MathUtil::Floor(bounds.min.z * invTexelSize))),
+                    Vec2i(int32(MathUtil::Floor(bounds.max.x * invTexelSize)) + 1, int32(MathUtil::Floor(bounds.max.z * invTexelSize)) + 1)
+                };
+
+                m_changedWholeWindow[levelIndex] |= !m_changed[levelIndex].Add(rect);
+            }
+        }
+
+        m_seenGeneration = tlas.GetGeneration();
+    }
+
     // one level per frame keeps the splat's cost spread out; the finest level is what the near probes see
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
     {
-        const Vec2i windowOrigin = state.groundLevels[levelIndex].windowOrigin;
-
         const GlimmerGroundLevelState& groundLevel = state.groundLevels[levelIndex];
+
+        const Vec2i windowOrigin = groundLevel.windowOrigin;
+        const Rect window = GetWindow(windowOrigin);
+
         const bool isGroundComplete = groundLevel.validMin == windowOrigin
             && groundLevel.validMax == windowOrigin + Vec2i(int32(GlimmerGroundResolution), int32(GlimmerGroundResolution));
 
-        if (m_builtGenerations[levelIndex] == tlas.GetGeneration() && m_builtOrigins[levelIndex] == windowOrigin
-            && (m_builtWithCompleteGround[levelIndex] || !isGroundComplete))
+        const Vec2i builtOrigin = m_builtOrigins[levelIndex];
+
+        // a jump keeps nothing
+        const bool isFullRebuild = m_changedWholeWindow[levelIndex]
+            || MathUtil::Abs(windowOrigin.x - builtOrigin.x) >= int32(GlimmerGroundResolution)
+            || MathUtil::Abs(windowOrigin.y - builtOrigin.y) >= int32(GlimmerGroundResolution);
+
+        RectList& filledWithoutGround = m_filledWithoutGround[levelIndex];
+
+        RectList rects;
+        bool isWholeWindow = isFullRebuild;
+
+        if (!isFullRebuild)
+        {
+            // only what scrolled in: a full height strip on x, then the rest of the new rows on z
+            const Rect oldWindow = GetWindow(builtOrigin);
+
+            Rect columns = window;
+            Rect rows = window;
+
+            if (windowOrigin.x > builtOrigin.x)
+            {
+                columns.min.x = oldWindow.max.x;
+            }
+            else
+            {
+                columns.max.x = oldWindow.min.x;
+            }
+
+            rows.min.x = MathUtil::Max(window.min.x, oldWindow.min.x);
+            rows.max.x = MathUtil::Min(window.max.x, oldWindow.max.x);
+
+            if (windowOrigin.y > builtOrigin.y)
+            {
+                rows.min.y = oldWindow.max.y;
+            }
+            else
+            {
+                rows.max.y = oldWindow.min.y;
+            }
+
+            rects.Add(Intersect(columns, window));
+            rects.Add(Intersect(rows, window));
+
+            // what scrolled out is gone; the rest waits for its ground, or goes again now that it's there
+            RectList stillWithoutGround;
+
+            for (uint32 rectIndex = 0; rectIndex < filledWithoutGround.count; rectIndex++)
+            {
+                const Rect rect = Intersect(filledWithoutGround.rects[rectIndex], window);
+
+                if (isGroundComplete)
+                {
+                    isWholeWindow |= !rects.Add(rect);
+                }
+                else
+                {
+                    isWholeWindow |= !stillWithoutGround.Add(rect);
+                }
+            }
+
+            filledWithoutGround = stillWithoutGround;
+
+            for (uint32 rectIndex = 0; rectIndex < m_changed[levelIndex].count; rectIndex++)
+            {
+                isWholeWindow |= !rects.Add(Intersect(m_changed[levelIndex].rects[rectIndex], window));
+            }
+        }
+
+        m_changed[levelIndex] = RectList();
+        m_changedWholeWindow[levelIndex] = false;
+
+        if (isWholeWindow)
+        {
+            rects = RectList();
+            rects.Add(window);
+
+            filledWithoutGround = RectList();
+        }
+
+        if (rects.count == 0)
         {
             continue;
         }
 
-        m_builtWithCompleteGround[levelIndex] = isGroundComplete;
+        if (!isGroundComplete)
+        {
+            for (uint32 rectIndex = 0; rectIndex < rects.count; rectIndex++)
+            {
+                if (!filledWithoutGround.Add(rects.rects[rectIndex]))
+                {
+                    filledWithoutGround = RectList();
+                    filledWithoutGround.Add(window);
+
+                    break;
+                }
+            }
+        }
 
         ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSpans);
 
-        RebuildLevel(frame, levelIndex, windowOrigin, tlas, blasCache, surfaceCache);
+        FillLevel(frame, levelIndex, windowOrigin, rects, tlas, blasCache, surfaceCache);
 
         break;
     }

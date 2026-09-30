@@ -37,4 +37,5 @@ extern CVar<float> g_cvGlimmerSWRTFoliageExtinction;
 // leaves bunch up in crowns with gaps between them, so a texel's leaf area blocks less than if it were spread evenly
 extern CVar<float> g_cvGlimmerSWRTFoliageClumping;
 
+
 } // namespace Hyperion

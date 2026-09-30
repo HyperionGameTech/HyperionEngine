@@ -116,7 +116,7 @@ void GlimmerSHOccupancy::RebuildCascade(Frame* frame, uint32 cascadeIndex, const
         GlimmerSHOccupancySplatConstants constants {};
         constants.origin = Vec4i(origin.x, origin.y, origin.z, int32(cascadeIndex));
         constants.params = Vec4f(spacing, 1.0f / spacing, 0.0f, 0.0f);
-        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanTriangles(), groupsX, 0);
+        constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groupsX, 0);
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
@@ -135,7 +135,7 @@ void GlimmerSHOccupancy::RebuildCascade(Frame* frame, uint32 cascadeIndex, const
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "OutOccupancy"_sh, RI.textureViewCache->GetOrCreate(m_texture));
         cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, tlas.GetSpanInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanInstanceShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "SpanTriangleOffsetsBuffer"_sh, tlas.GetSpanTriangleOffsetsBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, tlas.GetSpanChunksBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanChunkShaderData)));
         cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, blasCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
         cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
@@ -149,11 +149,12 @@ void GlimmerSHOccupancy::RebuildCascade(Frame* frame, uint32 cascadeIndex, const
 
     dispatchPass(s_propOccupancyModeClear, GlimmerSHOccupancyGridXZ * GlimmerSHOccupancyGridY * GlimmerSHOccupancyGridXZ);
 
-    if (tlas.GetNumSpanTriangles() != 0)
+    if (tlas.GetNumSpanChunks() != 0)
     {
         cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-        dispatchPass(s_propOccupancyModeSplat, tlas.GetNumSpanTriangles());
+        // a group per chunk
+        dispatchPass(s_propOccupancyModeSplat, tlas.GetNumSpanChunks() * OccupancyGroupSize);
     }
 
     cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);

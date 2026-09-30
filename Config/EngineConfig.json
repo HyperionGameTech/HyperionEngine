@@ -34,7 +34,7 @@
     }
   },
   "Editor": {
-    "SkipRenderingWhenIdle": true,
+    "SkipRenderingWhenIdle": false,
     "Camera": {
       "MovementSpeed": 35.0,
       "MouseSensitivity": 50.0

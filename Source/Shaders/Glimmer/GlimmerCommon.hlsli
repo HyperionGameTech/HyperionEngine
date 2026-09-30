@@ -69,6 +69,16 @@ struct GlimmerSpanInstance
     uint4 data; // x = BLAS triangle base, y = triangle count, z = material index, w = flags
 };
 
+// Must match GlimmerSpanChunkTriangles in GlimmerTLAS.hpp
+#define GLIMMER_SPAN_CHUNK_TRIANGLES 256
+
+// Must match GlimmerSpanChunkShaderData in GlimmerTLAS.hpp
+struct GlimmerSpanChunk
+{
+    float4 boundsMin; // xyz = the instance's world bounds, w = span instance (as uint)
+    float4 boundsMax; // w = first triangle of the chunk, local to the instance (as uint)
+};
+
 // Must match GlimmerSpanLevelShaderData in GlimmerSpanCache.hpp
 struct GlimmerSpanLevel
 {

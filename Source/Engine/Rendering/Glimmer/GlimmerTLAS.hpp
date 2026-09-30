@@ -62,6 +62,23 @@ struct GlimmerSpanInstanceShaderData
 
 static_assert(sizeof(GlimmerSpanInstanceShaderData) == 64);
 
+// triangles of one span instance that a splat thread group takes on together
+static constexpr uint32 GlimmerSpanChunkTriangles = 256;
+
+// Must match GlimmerSpanChunk in Shaders/Glimmer/GlimmerCommon.hlsli
+struct GlimmerSpanChunkShaderData
+{
+    float boundsMin[3]; // of the instance, so a splat can skip every chunk of an instance outside what it's filling
+    uint32 spanInstance;
+    float boundsMax[3];
+    uint32 firstTriangle; // local to the instance
+};
+
+static_assert(sizeof(GlimmerSpanChunkShaderData) == 32);
+
+// most areas a TLAS swap reports its span instances changed in; more and the whole span region counts as changed
+static constexpr uint32 GlimmerSpanMaxDirtyBounds = 4;
+
 struct GlimmerTLASStats
 {
     uint32 numInstances = 0;
@@ -72,6 +89,7 @@ struct GlimmerTLASStats
     double lastBuildMs = 0.0;
     uint32 numSpanInstances = 0;
     uint32 numSpanTriangles = 0;
+    uint32 numSpanChunks = 0;
 };
 
 /*! \brief The instances of one world's Glimmer region: every static solid and foliage instance as a span instance, for splatting into the
@@ -124,10 +142,28 @@ public:
         return m_spanInstancesBuffer;
     }
 
-    /*! \brief Exclusive prefix sum of the span instances' triangle counts, so a thread can find its instance from its triangle. */
-    HYP_FORCE_INLINE const GpuBufferRef& GetSpanTriangleOffsetsBuffer() const
+    /*! \brief Span instances' triangles in runs of up to GlimmerSpanChunkTriangles, one splat thread group each. */
+    HYP_FORCE_INLINE const GpuBufferRef& GetSpanChunksBuffer() const
     {
-        return m_spanTriangleOffsetsBuffer;
+        return m_spanChunksBuffer;
+    }
+
+    HYP_FORCE_INLINE uint32 GetNumSpanChunks() const
+    {
+        return m_stats.numSpanChunks;
+    }
+
+    /*! \brief Whether the last swap changed span instances anywhere, rather than only inside GetSpanDirtyBounds(). */
+    HYP_FORCE_INLINE bool IsSpanFullyDirty() const
+    {
+        return m_spanFullyDirty;
+    }
+
+    /*! \brief World bounds (XZ is what matters) around every span instance the last swap added or removed, so what's built from the
+     *  span instances only has to redo these. Empty when the swap changed no span instances. */
+    HYP_FORCE_INLINE const Array<BoundingBox>& GetSpanDirtyBounds() const
+    {
+        return m_spanDirtyBounds;
     }
 
     HYP_FORCE_INLINE uint32 GetNumSpanInstances() const
@@ -152,11 +188,27 @@ public:
     }
 
 private:
+    // a span instance by what it splats, to tell which ones a rebuild added or removed
+    struct SpanKey
+    {
+        uint64 hash;
+        BoundingBox bounds;
+
+        bool operator<(const SpanKey& other) const
+        {
+            return hash < other.hash;
+        }
+    };
+
     struct BuildInput
     {
+        Vec3f regionCenter;
+        Array<SpanKey> previousSpanKeys; // sorted; empty for the first build
+        bool hasPrevious = false;
         Array<GlimmerInstanceShaderData> instances;
         Array<BoundingBox> instanceBounds;
         Array<GlimmerSpanInstanceShaderData> spanInstances;
+        Array<BoundingBox> spanInstanceBounds;
         Array<uint64> blasKeys; // unique
     };
 
@@ -166,11 +218,15 @@ private:
         Array<GlimmerInstanceShaderData> instances;
         Array<GlimmerInstanceBoundsShaderData> instanceBounds;
         Array<GlimmerSpanInstanceShaderData> spanInstances;
-        Array<uint32> spanTriangleOffsets;
+        Array<GlimmerSpanChunkShaderData> spanChunks;
         uint32 numSpanTriangles = 0;
         Array<uint64> blasKeys;
         uint32 depth = 0;
         double buildMs = 0.0;
+        uint64 inputHash = 0; // of the gathered instances, so a rebuild that changed nothing can be dropped
+        Array<SpanKey> spanKeys; // sorted
+        Array<BoundingBox> spanDirtyBounds;
+        bool spanFullyDirty = true;
     };
 
     void Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS);
@@ -183,7 +239,7 @@ private:
     GpuBufferRef m_instancesBuffer;
     GpuBufferRef m_instanceBoundsBuffer;
     GpuBufferRef m_spanInstancesBuffer;
-    GpuBufferRef m_spanTriangleOffsetsBuffer;
+    GpuBufferRef m_spanChunksBuffer;
 
     Array<uint64> m_activeBlasKeys;
 
@@ -196,6 +252,11 @@ private:
     uint32 m_blasGenerationAtGather;
     bool m_dirty;
     bool m_waitingForBLAS;
+    uint64 m_activeInputHash;
+
+    Array<SpanKey> m_spanKeys;
+    Array<BoundingBox> m_spanDirtyBounds;
+    bool m_spanFullyDirty;
 
     GlimmerTLASStats m_stats;
 };

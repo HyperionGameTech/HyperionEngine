@@ -19,6 +19,9 @@ class GlimmerSurfaceCache;
 
 static constexpr uint32 GlimmerSpanValuesPerTexel = 12;
 
+// most rects of a level one splat fills; more than this and it fills the whole window instead
+static constexpr uint32 GlimmerSpanMaxRects = 4;
+
 // Must match GlimmerSpanLevel in Shaders/Glimmer/GlimmerCommon.hlsli
 struct GlimmerSpanLevelShaderData
 {
@@ -56,13 +59,45 @@ public:
     const GpuBufferRef& GetSpansBuffer() const;
 
 private:
-    void RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache);
+    // absolute texels, max exclusive
+    struct Rect
+    {
+        Vec2i min;
+        Vec2i max;
+
+        bool IsEmpty() const
+        {
+            return min.x >= max.x || min.y >= max.y;
+        }
+    };
+
+    struct RectList
+    {
+        Rect rects[GlimmerSpanMaxRects];
+        uint32 count = 0;
+
+        // false when full
+        bool Add(const Rect& rect);
+    };
+
+    static Rect GetWindow(const Vec2i& origin);
+    static Rect Intersect(const Rect& a, const Rect& b);
+
+    /*! \brief Clears and refills the spans of the rects (inside the window), leaving the rest of the level as it is. */
+    void FillLevel(Frame* frame, uint32 levelIndex, const Vec2i& windowOrigin, const RectList& rects, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerSurfaceCache& surfaceCache);
 
     GpuBufferRef m_spansBuffer;
 
     uint32 m_builtGenerations[GlimmerGroundLevels];
     Vec2i m_builtOrigins[GlimmerGroundLevels];
-    bool m_builtWithCompleteGround[GlimmerGroundLevels];
+
+    // what TLAS swaps changed since the level was last filled, waiting for its turn
+    RectList m_changed[GlimmerGroundLevels];
+    bool m_changedWholeWindow[GlimmerGroundLevels];
+    uint32 m_seenGeneration;
+
+    // filled while the ground under them hadn't loaded, so foliage there wasn't told apart from ground cover; filled again once it has
+    RectList m_filledWithoutGround[GlimmerGroundLevels];
 
     GlimmerSpanShaderData m_shaderData;
 };

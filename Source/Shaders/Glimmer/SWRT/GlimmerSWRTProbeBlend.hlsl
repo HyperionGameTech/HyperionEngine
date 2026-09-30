@@ -7,7 +7,7 @@
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolume volume;
-    uint4 dispatch; // x = cascade
+    uint4 dispatch; // x = cascade, y = 1 to leave probes that didn't scroll in alone (the trace skipped them)
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerProbeBlend, CBuffer) cbuffer CBuffer
@@ -48,6 +48,20 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     const int2 column = cascade.gridOrigin.xy + localColumn;
     const float3 position = GlimmerProbePosition(cascade, cascadeIndex, column, layer);
 
+    const uint3 texel = GlimmerProbeTexel(cascadeIndex, column, layer);
+
+    // a probe that was traced for another column (it scrolled in) or at another height starts over
+    const uint2 state = OutProbeState[texel];
+
+    const bool isSameProbe = state.x == GlimmerPackColumn(column)
+        && abs(asfloat(state.y) - position.y) <= 0.25 * cascade.params.y;
+
+    // a scroll-only dispatch traced just the probes that scrolled in
+    if (isSameProbe && constants.dispatch.y != 0u)
+    {
+        return;
+    }
+
     const uint numRays = constants.volume.info.y;
 
     float3 e0 = (float3)0.0;
@@ -71,14 +85,6 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     float4 shR = float4(e0.r * invNumRays, e1R * (2.0 * invNumRays));
     float4 shG = float4(e0.g * invNumRays, e1G * (2.0 * invNumRays));
     float4 shB = float4(e0.b * invNumRays, e1B * (2.0 * invNumRays));
-
-    const uint3 texel = GlimmerProbeTexel(cascadeIndex, column, layer);
-
-    // a probe that was traced for another column (it scrolled in) or at another height starts over
-    const uint2 state = OutProbeState[texel];
-
-    const bool isSameProbe = state.x == GlimmerPackColumn(column)
-        && abs(asfloat(state.y) - position.y) <= 0.25 * cascade.params.y;
 
     if (isSameProbe)
     {

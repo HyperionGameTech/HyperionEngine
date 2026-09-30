@@ -18,7 +18,7 @@ struct GlimmerSHOccupancySplatConstants
 {
     int4 origin;   // xyz = absolute voxel of the cascade's window, w = cascade
     float4 params; // x = voxel spacing, y = 1 / spacing
-    uint4 counts;  // x = span instances, y = span triangles, z = groups along x
+    uint4 counts;  // x = span instances, y = span chunks, z = groups along x
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
@@ -28,7 +28,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
 
 DECLARE_UAV(GlimmerSHOccupancySplat, OutOccupancy) RWTexture3D<float4> OutOccupancy;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanInstancesBuffer) StructuredBuffer<GlimmerSpanInstance> spanInstances;
-DECLARE_SRV(GlimmerSHOccupancySplat, SpanTriangleOffsetsBuffer) StructuredBuffer<uint> spanTriangleOffsets;
+DECLARE_SRV(GlimmerSHOccupancySplat, SpanChunksBuffer) StructuredBuffer<GlimmerSpanChunk> spanChunks;
 DECLARE_SRV(GlimmerSHOccupancySplat, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTriangle> glimmerBLASTriangles;
 DECLARE_SRV(GlimmerSHOccupancySplat, MaterialsBuffer) StructuredBuffer<Material> materials;
 
@@ -50,29 +50,6 @@ float3 TransformPoint(GlimmerSpanInstance instance, float3 position)
     const float4 homogeneous = float4(position, 1.0);
 
     return float3(dot(instance.objectToWorld0, homogeneous), dot(instance.objectToWorld1, homogeneous), dot(instance.objectToWorld2, homogeneous));
-}
-
-uint FindSpanInstance(uint triangleIndex)
-{
-    uint low = 0;
-    uint high = constants.counts.x;
-
-    // last instance whose first triangle is at or before triangleIndex
-    while (high - low > 1u)
-    {
-        const uint middle = (low + high) / 2u;
-
-        if (spanTriangleOffsets[middle] <= triangleIndex)
-        {
-            low = middle;
-        }
-        else
-        {
-            high = middle;
-        }
-    }
-
-    return low;
 }
 
 // Conservative enough triangle / box overlap: the box straddles the triangle's plane, and its centre lies inside every edge
@@ -105,48 +82,8 @@ bool TriangleOverlapsBox(float3 p0, float3 p1, float3 p2, float3 normal, float3 
     return true;
 }
 
-[numthreads(GROUP_SIZE, 1, 1)]
-void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascadeIndex)
 {
-    const uint threadIndex = (groupId.y * constants.counts.z + groupId.x) * GROUP_SIZE + groupIndex;
-    const uint cascadeIndex = uint(constants.origin.w);
-
-#if defined(MODE_CLEAR)
-    const uint voxelsPerSlab = GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y * GLIMMER_SH_OCCUPANCY_GRID_XZ;
-
-    if (threadIndex >= voxelsPerSlab)
-    {
-        return;
-    }
-
-    const int3 localVoxel = int3(
-        threadIndex % GLIMMER_SH_OCCUPANCY_GRID_XZ,
-        (threadIndex / GLIMMER_SH_OCCUPANCY_GRID_XZ) % GLIMMER_SH_OCCUPANCY_GRID_Y,
-        threadIndex / (GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y));
-
-    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, localVoxel)] = (float4)0.0;
-#elif defined(MODE_SPLAT)
-    if (threadIndex >= constants.counts.y)
-    {
-        return;
-    }
-
-    const uint instanceIndex = FindSpanInstance(threadIndex);
-    const GlimmerSpanInstance instance = spanInstances[instanceIndex];
-
-    // leaves are the canopy spans' business: they dim light rather than stop it
-    if ((instance.data.w & GLIMMER_INSTANCE_FLAG_FOLIAGE) != 0u)
-    {
-        return;
-    }
-
-    const uint localTriangle = threadIndex - spanTriangleOffsets[instanceIndex];
-
-    if (localTriangle >= instance.data.y)
-    {
-        return;
-    }
-
     const float4 albedoAlpha = GlimmerGetMaterialAverageAlbedoAlpha(instance.data.z);
 
     // mostly cut out alpha tested cards (chains, grilles) let most light through
@@ -204,6 +141,66 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
                 }
             }
         }
+    }
+}
+
+[numthreads(GROUP_SIZE, 1, 1)]
+void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+{
+    const uint threadIndex = (groupId.y * constants.counts.z + groupId.x) * GROUP_SIZE + groupIndex;
+    const uint cascadeIndex = uint(constants.origin.w);
+
+#if defined(MODE_CLEAR)
+    const uint voxelsPerSlab = GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y * GLIMMER_SH_OCCUPANCY_GRID_XZ;
+
+    if (threadIndex >= voxelsPerSlab)
+    {
+        return;
+    }
+
+    const int3 localVoxel = int3(
+        threadIndex % GLIMMER_SH_OCCUPANCY_GRID_XZ,
+        (threadIndex / GLIMMER_SH_OCCUPANCY_GRID_XZ) % GLIMMER_SH_OCCUPANCY_GRID_Y,
+        threadIndex / (GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y));
+
+    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, localVoxel)] = (float4)0.0;
+#elif defined(MODE_SPLAT)
+    const uint chunkIndex = groupId.y * constants.counts.z + groupId.x;
+
+    if (chunkIndex >= constants.counts.y)
+    {
+        return;
+    }
+
+    const GlimmerSpanChunk chunk = spanChunks[chunkIndex];
+
+    // the whole chunk goes when its instance misses the cascade
+    const float3 windowMinPosition = float3(constants.origin.xyz) * constants.params.x;
+    const float3 windowMaxPosition = float3(constants.origin.xyz + GlimmerSHOccupancyGridSize) * constants.params.x;
+
+    if (any(chunk.boundsMax.xyz < windowMinPosition) || any(chunk.boundsMin.xyz > windowMaxPosition))
+    {
+        return;
+    }
+
+    const GlimmerSpanInstance instance = spanInstances[asuint(chunk.boundsMin.w)];
+
+    // leaves are the canopy spans' business: they dim light rather than stop it
+    if ((instance.data.w & GLIMMER_INSTANCE_FLAG_FOLIAGE) != 0u)
+    {
+        return;
+    }
+
+    for (uint chunkTriangle = groupIndex; chunkTriangle < GLIMMER_SPAN_CHUNK_TRIANGLES; chunkTriangle += GROUP_SIZE)
+    {
+        const uint localTriangle = asuint(chunk.boundsMax.w) + chunkTriangle;
+
+        if (localTriangle >= instance.data.y)
+        {
+            break;
+        }
+
+        SplatTriangle(instance, localTriangle, cascadeIndex);
     }
 #endif
 }
