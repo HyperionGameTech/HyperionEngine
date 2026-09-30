@@ -7,7 +7,6 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -36,6 +35,10 @@ static constexpr uint32 MinFramesBeforeEviction = 8;
 static constexpr uint32 FailedRetryDelayFrames = 120;
 
 static constexpr uint32 PackedVertexSizeInFloats = sizeof(TVertex<VT_Simple>) / sizeof(float);
+
+static constexpr uint64 PoolBytes = 64ull * 1024ull * 1024ull;
+static constexpr uint32 MaxBuildsInFlight = 4;
+static constexpr size_t UploadBudgetBytes = 8u * 1024u * 1024u;
 
 #pragma region GlimmerPoolAllocator
 
@@ -158,11 +161,9 @@ uint64 GlimmerBLASCache::MakeKey(const Mesh* mesh, uint8 lodIndex)
 
 void GlimmerBLASCache::CreatePoolBuffers()
 {
-    const uint64 poolBytes = uint64(MathUtil::Clamp(g_cvGlimmerSWRTPoolMB.Get(), 4, 1024)) * 1024ull * 1024ull;
-
     // nodes average about a quarter of a triangle's footprint with leaves of 2-8 triangles
-    const uint32 nodeCapacity = uint32((poolBytes / 4) / sizeof(GlimmerBVHNode));
-    const uint32 triangleCapacity = uint32((poolBytes - poolBytes / 4) / sizeof(GlimmerTriangle));
+    const uint32 nodeCapacity = uint32((PoolBytes / 4) / sizeof(GlimmerBVHNode));
+    const uint32 triangleCapacity = uint32((PoolBytes - PoolBytes / 4) / sizeof(GlimmerTriangle));
 
     m_nodesBuffer = RI.MakeGpuBuffer(GpuBufferType::StructuredBuffer, size_t(nodeCapacity) * sizeof(GlimmerBVHNode), alignof(Vec4f));
     Check(m_nodesBuffer->Create());
@@ -179,7 +180,7 @@ void GlimmerBLASCache::CreatePoolBuffers()
     m_triangleAllocator.Reset(triangleCapacity);
 
     HYP_LOG(Rendering, Info, "Glimmer: created BLAS pool ({} MB, {} nodes, {} triangles)",
-        poolBytes / (1024ull * 1024ull), nodeCapacity, triangleCapacity);
+        PoolBytes / (1024ull * 1024ull), nodeCapacity, triangleCapacity);
 }
 
 bool GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef)
@@ -582,9 +583,6 @@ void GlimmerBLASCache::Update(Frame* frame)
         m_deferredFrees.EraseAt(freeIndex);
     }
 
-    const uint32 maxBuildsInFlight = uint32(MathUtil::Max(g_cvGlimmerSWRTMaxBLASBuildsInFlight.Get(), 1));
-    const size_t uploadBudgetBytes = size_t(MathUtil::Max(g_cvGlimmerSWRTUploadBudgetKB.Get(), 64)) * 1024;
-
     size_t uploadedBytes = 0;
     bool uploadedAny = false;
 
@@ -596,7 +594,7 @@ void GlimmerBLASCache::Update(Frame* frame)
         {
         case EntryState::Queued:
         {
-            if (m_numBuildsInFlight >= maxBuildsInFlight)
+            if (m_numBuildsInFlight >= MaxBuildsInFlight)
             {
                 break;
             }
@@ -644,7 +642,7 @@ void GlimmerBLASCache::Update(Frame* frame)
             const size_t entryBytes = entry.result.nodes.ByteSize() + entry.result.triangles.ByteSize();
 
             // always allow one upload per frame so a single large BLAS can't stall forever
-            if (uploadedAny && uploadedBytes + entryBytes > uploadBudgetBytes)
+            if (uploadedAny && uploadedBytes + entryBytes > UploadBudgetBytes)
             {
                 break;
             }

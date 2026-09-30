@@ -26,6 +26,7 @@ struct GlimmerSWRTDebugConstants
 #define DEBUG_VIEW_DEPTH_COMPARE 4
 #define DEBUG_VIEW_FOOTPRINT_MASK 5
 #define DEBUG_VIEW_SPANS 6
+#define DEBUG_VIEW_GROUND_ALBEDO 7
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSWRTDebug, CBuffer) cbuffer CBuffer
 {
@@ -55,6 +56,7 @@ DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTr
 DECLARE_SRV(GlimmerSWRTDebug, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
+DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
 
 #include "GlimmerSWRT.hlsli"
 #include "GlimmerMaterial.hlsli"
@@ -191,7 +193,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
             result.rgb = float3(1.0, 1.0, 1.0);
         }
     }
-    else if (mode == DEBUG_VIEW_DEPTH_COMPARE || mode == DEBUG_VIEW_FOOTPRINT_MASK || mode == DEBUG_VIEW_SPANS)
+    else if (mode == DEBUG_VIEW_DEPTH_COMPARE || mode == DEBUG_VIEW_FOOTPRINT_MASK || mode == DEBUG_VIEW_SPANS || mode == DEBUG_VIEW_GROUND_ALBEDO)
     {
         const float depth = GBufferDepthTexture.Load(int3(coord, 0)).r;
         const bool hasRasterSurface = depth < 1.0;
@@ -203,7 +205,33 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         const float3 rasterNormal = normalize(DecodeNormal(GBufferNormalsTexture.Load(int3(coord, 0)).yzww));
         const float grey = hasRasterSurface ? 0.25 + 0.5 * saturate(dot(rasterNormal, DebugLightDirection) * 0.5 + 0.5) : 0.15;
 
-        if (mode == DEBUG_VIEW_SPANS)
+        if (mode == DEBUG_VIEW_GROUND_ALBEDO)
+        {
+            // the albedo probes see on the ground under each surface, from the finest level that has it; dark magenta: none yet
+            result.rgb = hasRasterSurface ? float3(0.25, 0.0, 0.25) : SkyColor(direction) * 0.5;
+
+            [loop]
+            for (uint level = 0; level < GLIMMER_GROUND_LEVELS && hasRasterSurface; level++)
+            {
+                const GlimmerGroundLevel groundLevel = constants.ground.levels[level];
+                const int2 texel = int2(floor(rasterPosition.xz * groundLevel.params.y));
+
+                if (any(texel < groundLevel.validRect.xy) || any(texel >= groundLevel.validRect.zw))
+                {
+                    continue;
+                }
+
+                const float4 albedo = glimmerGroundAlbedo.Load(int4(GlimmerWrapGroundTexel(texel), level, 0));
+
+                if (albedo.a > 0.5)
+                {
+                    result.rgb = albedo.rgb;
+
+                    break;
+                }
+            }
+        }
+        else if (mode == DEBUG_VIEW_SPANS)
         {
             // green: canopy leaf area over this surface's texel (bright where the surface is inside the slab),
             // red: solidity, blue tint: the ground heightfield is within half a meter of the surface

@@ -7,7 +7,6 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerGroundClipmap.hpp>
-#include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/WorldGrid/WorldGrid.hpp>
@@ -25,6 +24,9 @@ static constexpr int32 WindowSnapTexels = 16;
 
 // rows re-sampled per refresh strip, which is how terrain edits reach the heightfield
 static constexpr int32 RefreshRows = 8;
+
+// terrain height samples taken per frame
+static constexpr int32 SamplesPerFrame = 65536;
 
 static int32 FloorDiv(float value, float divisor)
 {
@@ -227,7 +229,7 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
         MoveWindow(levelIndex, desiredOrigin);
     }
 
-    int32 budget = MathUtil::Max(g_cvGlimmerGroundSamplesPerFrame.Get(), 1024);
+    int32 budget = SamplesPerFrame;
 
     // finest first: it's what the near probes and the camera sit on
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels && budget > 0; levelIndex++)

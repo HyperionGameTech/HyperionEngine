@@ -53,6 +53,10 @@ float3 SampleTerrainAlbedo(Material material, float3 position, float3 normal, fl
     {
         weights = SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(material, TerrainSplatMap), splatTexcoord, 0.0);
         weights = saturate((weights - 0.5) * TERRAIN_SPLAT_SHARPNESS + 0.5);
+
+        const float snowShed = smoothstep(TERRAIN_SNOW_SHED_SLOPE_START, TERRAIN_SNOW_SHED_SLOPE_END, saturate(1.0 - normal.y));
+        weights.y += weights.w * snowShed;
+        weights.w *= 1.0 - snowShed;
     }
     else
     {
@@ -104,7 +108,9 @@ float3 SampleTerrainAlbedo(Material material, float3 position, float3 normal, fl
         albedo += weights.w * SampleTerrainLayerAlbedo(material, 3, position, normal);
     }
 
-    return albedo;
+    const float peakAlbedo = max(albedo.r, max(albedo.g, albedo.b));
+
+    return albedo * min(1.0, TERRAIN_MAX_ALBEDO / max(peakAlbedo, 0.0001));
 }
 
 #endif // HYP_FEATURES_BINDLESS_TEXTURES

@@ -2243,11 +2243,6 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             finalImageView = std::move(glimmerDebugImageView);
         }
-
-        if (glimmerPass && !(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW))
-        {
-            glimmerPass->CaptureFinalImage(frame, rs, finalImageView);
-        }
     }
 
     if (view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)

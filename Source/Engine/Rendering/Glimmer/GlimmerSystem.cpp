@@ -9,6 +9,7 @@
 #include <Rendering/Glimmer/GlimmerSystem.hpp>
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
+#include <Rendering/Glimmer/GlimmerFootprintMask.hpp>
 
 #include <Scene/World.hpp>
 #include <Scene/Camera/Camera.hpp>
@@ -132,7 +133,7 @@ void GlimmerSystem::UpdateSceneRegion(bool force)
     // the SWRT region moves in steps of a fraction of its own radius; the wider span region rides along with it
     const float swrtRadius = MathUtil::Max(g_cvGlimmerNearFieldRadius.Get(), 8.0f);
     const float radius = MathUtil::Max(swrtRadius, g_cvGlimmerSpansRadius.Get());
-    const float snap = MathUtil::Max(g_cvGlimmerSWRTMaskCellSize.Get(), 0.125f);
+    const float snap = GlimmerFootprintMaskCellSize;
 
     const Vec2f offsetXZ = Vec2f(viewerPosition.x - m_regionCenter.x, viewerPosition.z - m_regionCenter.z);
     const float verticalOffset = MathUtil::Abs(viewerPosition.y - m_regionCenter.y);

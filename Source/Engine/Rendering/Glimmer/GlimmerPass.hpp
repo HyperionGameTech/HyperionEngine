@@ -57,7 +57,7 @@ public:
     uint32 lastUpdatedFrame = ~0u;
 };
 
-/*! \brief Per GBuffer view Glimmer state (debug output and captures). */
+/*! \brief Per GBuffer view Glimmer state (debug output). */
 HYP_CLASS(NoScriptBindings)
 class GlimmerViewPassData : public PassData
 {
@@ -68,7 +68,6 @@ public:
     virtual ~GlimmerViewPassData() override;
 
     Handle<Texture> debugTexture;
-    Handle<Texture> captureTexture;
 };
 
 /*! \brief Glimmer GI: keeps each world's software ray tracing scene, heightfield and probe volume up to date,
@@ -86,7 +85,7 @@ public:
      *  Updates the SWRT scene, the heightfield and the probes. Call after the sky probe has rendered for the frame. */
     virtual void RenderFrame(Frame* frame, const RenderSetup& renderSetup) override;
 
-    /*! \brief Traces the SWRT debug view for a GBuffer view, if Rendering.Glimmer.SWRT.DebugView is set.
+    /*! \brief Traces the SWRT debug view for a GBuffer view, if Rendering.Glimmer.DebugView is one of the SWRT views.
      *  \return true with outImageView set to the result, to be shown in place of the view's final image. */
     bool RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView);
 
@@ -95,10 +94,6 @@ public:
 
     /*! \brief Binds the textures lighting samples Glimmer through, or placeholders. \return the next uniform index. */
     uint32 BindApplyResources(CommandRecorder& cr, uint32 uniformIndex, World* world) const;
-
-    /*! \brief DEBUG ONLY : TO REMOVE!
-     *  Copies the view's final image to a PNG when Rendering.Glimmer.CaptureFrame changes. */
-    void CaptureFinalImage(Frame* frame, const RenderSetup& renderSetup, const GpuImageViewRef& finalImageView);
 
     /*! \brief The world's Glimmer scene, or nullptr if it has none yet. */
     GlimmerScenePassData* GetSceneForWorld(World* world) const;
@@ -109,13 +104,8 @@ protected:
     virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
 
 private:
-    void LogStats(const GlimmerScenePassData& scene) const;
-    void CaptureTexture(const Handle<Texture>& texture, const char* prefix, int captureIndex);
-
     SharedPtr<GlimmerBLASCache> m_blasCache;
     uint32 m_lastBLASCacheUpdateFrame;
-    int m_lastCaptureIndex;
-    int m_lastFrameCaptureIndex;
 
     Map<World*, GlimmerScenePassData*> m_scenes;
 };

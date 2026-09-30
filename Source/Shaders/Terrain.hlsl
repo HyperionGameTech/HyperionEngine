@@ -15,10 +15,6 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 
 #define TERRAIN_SPLAT_NOISE_BREAKUP 0.10
 
-// slope over which snow gives way to rock
-#define TERRAIN_SNOW_SHED_SLOPE_START 0.22
-#define TERRAIN_SNOW_SHED_SLOPE_END 0.38
-
 #define TERRAIN_ANTITILE_ROTATION 1.1
 #define TERRAIN_ANTITILE_MASK_SCALE 0.03
 
@@ -28,9 +24,6 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 #define TERRAIN_FAR_NOISE_SCALE 0.0016
 #define TERRAIN_FAR_STRENGTH 0.14
 
-// No natural ground reflects more than this. The gbuffer albedo target is RGBA16F and does not clamp,
-// so without a ceiling the macro gains multiply bright materials past 1.0 and snow turns into a flat white cutout.
-#define TERRAIN_MAX_ALBEDO 0.88
 // macro variation shifts hue as well as brightness; varying brightness alone still reads as one material
 #define TERRAIN_MACRO_HUE_WARM float3(1.06, 1.00, 0.90)
 #define TERRAIN_MACRO_HUE_COOL float3(0.92, 0.97, 1.08)

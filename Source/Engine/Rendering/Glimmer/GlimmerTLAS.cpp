@@ -8,7 +8,7 @@
 
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
-#include <Rendering/Glimmer/GlimmerCVars.hpp>
+#include <Rendering/Glimmer/GlimmerSpanCache.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -37,6 +37,16 @@
 #include <algorithm>
 
 namespace Hyperion {
+
+static constexpr uint32 MaxInstances = 131072;
+static constexpr uint32 MaxSpanInstances = 262144;
+
+static constexpr float SolidLodErrorMeters = 0.25f;
+
+// canopy only needs its extent and density, so leaves can come from much coarser LODs
+static constexpr float FoliageLodErrorMeters = 1.0f;
+
+static constexpr double RebuildDebounceMs = 250.0;
 
 static float GetMaxAxisScale(const Mat4f& transform)
 {
@@ -120,15 +130,6 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 {
     HYP_SCOPE;
 
-    const uint32 maxInstances = uint32(MathUtil::Max(g_cvGlimmerSWRTMaxInstances.Get(), 1));
-    const uint32 maxSpanInstances = uint32(MathUtil::Max(g_cvGlimmerSpansMaxInstances.Get(), 1));
-
-    const float solidLodError = MathUtil::Max(g_cvGlimmerSWRTMaxLodErrorMeters.Get(), 0.0f);
-
-    // canopy only needs its extent and density, so leaves can come from much coarser LODs
-    const float foliageLodError = MathUtil::Max(g_cvGlimmerSpansFoliageLodErrorMeters.Get(), 0.0f);
-    const float minFoliageHeight = MathUtil::Max(g_cvGlimmerSpansMinFoliageHeight.Get(), 0.0f);
-
     outNumWaitingForBLAS = 0;
 
     Set<uint64> blasKeysSeen;
@@ -137,8 +138,8 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
     {
         const bool isFoliage = (flags & GIF_FOLIAGE) != 0;
 
-        const bool wantsSpan = outInput.spanInstances.Size() < maxSpanInstances;
-        const bool wantsSWRT = !isFoliage && outInput.instances.Size() < maxInstances;
+        const bool wantsSpan = outInput.spanInstances.Size() < MaxSpanInstances;
+        const bool wantsSWRT = !isFoliage && outInput.instances.Size() < MaxInstances;
 
         if (!wantsSpan && !wantsSWRT)
         {
@@ -150,13 +151,13 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
         {
             const BoundingBox estimatedBounds = objectToWorld * proxy.meshAabb;
 
-            if (!estimatedBounds.Overlaps(region) || (isFoliage && estimatedBounds.max.y - estimatedBounds.min.y < minFoliageHeight))
+            if (!estimatedBounds.Overlaps(region) || (isFoliage && estimatedBounds.max.y - estimatedBounds.min.y < GlimmerSpansMinFoliageHeight))
             {
                 return;
             }
         }
 
-        const uint8 lodIndex = SelectBLASLod(*proxy.mesh, GetMaxAxisScale(objectToWorld), isFoliage ? foliageLodError : solidLodError);
+        const uint8 lodIndex = SelectBLASLod(*proxy.mesh, GetMaxAxisScale(objectToWorld), isFoliage ? FoliageLodErrorMeters : SolidLodErrorMeters);
 
         GlimmerBLASRef blasRef;
 
@@ -175,7 +176,7 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
         }
 
         // grass and low plants are far thinner than a probe spacing; screen space and material AO cover them
-        if (isFoliage && worldBounds.max.y - worldBounds.min.y < minFoliageHeight)
+        if (isFoliage && worldBounds.max.y - worldBounds.min.y < GlimmerSpansMinFoliageHeight)
         {
             return;
         }
@@ -469,9 +470,7 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
         return swapped;
     }
 
-    const double debounceMs = double(MathUtil::Max(g_cvGlimmerSWRTRebuildDebounceMs.Get(), 0));
-
-    if (IsReady() && m_lastBuildStartTime != 0 && PerformanceClock::TimeSince(m_lastBuildStartTime) < debounceMs)
+    if (IsReady() && m_lastBuildStartTime != 0 && PerformanceClock::TimeSince(m_lastBuildStartTime) < RebuildDebounceMs)
     {
         return swapped;
     }

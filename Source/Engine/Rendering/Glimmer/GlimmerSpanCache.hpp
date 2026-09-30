@@ -31,6 +31,9 @@ struct GlimmerSpanShaderData
     GlimmerSpanLevelShaderData levels[GlimmerGroundLevels];
 };
 
+// foliage lower than this hugs the ground (grass, ferns), far thinner than the probes above it can resolve
+static constexpr float GlimmerSpansMinFoliageHeight = 1.5f;
+
 /*! \brief The heightfield's occupancy above the ground: per texel, the vertical span of static solids and of the foliage canopy,
  *  with the canopy's leaf area and the albedos of both. Built on the GPU by splatting the span instances' BLAS triangles,
  *  one level per frame whenever the instances or that level's window change. Render thread only. */

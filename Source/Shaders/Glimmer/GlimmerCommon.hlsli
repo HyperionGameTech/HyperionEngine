@@ -44,6 +44,15 @@ struct GlimmerGroundParams
     GlimmerGroundLevel levels[GLIMMER_GROUND_LEVELS];
 };
 
+// Must match GlimmerTerrainPatchShaderData in GlimmerSurfaceCache.hpp
+struct GlimmerTerrainPatch
+{
+    float4 worldToObject0;
+    float4 worldToObject2;
+    float4 boundsXZ; // xy = world xz min, zw = max
+    uint4 data;      // x = material index
+};
+
 uint2 GlimmerWrapGroundTexel(int2 texel)
 {
     return uint2(texel & (GLIMMER_GROUND_RESOLUTION - 1));

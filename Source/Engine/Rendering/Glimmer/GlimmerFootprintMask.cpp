@@ -8,7 +8,6 @@
 
 #include <Rendering/Glimmer/GlimmerFootprintMask.hpp>
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
-#include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -126,7 +125,7 @@ void GlimmerFootprintMask::Rebuild(Frame* frame, const GlimmerTLAS& tlas, const 
         return;
     }
 
-    const float cellSize = MathUtil::Max(g_cvGlimmerSWRTMaskCellSize.Get(), 0.125f);
+    const float cellSize = GlimmerFootprintMaskCellSize;
     const uint32 resolution = MathUtil::Clamp(uint32(MathUtil::Ceil(2.0f * regionRadius / cellSize)), 1u, MaxMaskResolution);
     const uint32 numLevels = CalculateNumLevels(resolution);
     const uint32 totalCells = CalculateTotalCells(resolution, numLevels);

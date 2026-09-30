@@ -27,7 +27,7 @@ static constexpr uint32 GlimmerProbeCascades = 6;
 static constexpr uint32 GlimmerProbeGrid = 32;
 static constexpr uint32 GlimmerProbeLayers = 4;
 static constexpr uint32 GlimmerProbesPerCascade = GlimmerProbeGrid * GlimmerProbeGrid * GlimmerProbeLayers;
-static constexpr uint32 GlimmerMaxProbeRays = 128;
+static constexpr uint32 GlimmerProbeRays = 32;
 
 // Must match GlimmerProbeCascade in Shaders/Glimmer/GlimmerProbeTypes.hlsli
 struct GlimmerProbeCascadeShaderData

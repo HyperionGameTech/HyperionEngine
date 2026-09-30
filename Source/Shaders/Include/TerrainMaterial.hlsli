@@ -33,6 +33,14 @@
 
 #define TERRAIN_SPLAT_SHARPNESS 1.35
 
+// slope over which snow gives way to rock
+#define TERRAIN_SNOW_SHED_SLOPE_START 0.22
+#define TERRAIN_SNOW_SHED_SLOPE_END 0.38
+
+// No natural ground reflects more than this. The gbuffer albedo target is RGBA16F and does not clamp,
+// so without a ceiling the macro gains multiply bright materials past 1.0 and snow turns into a flat white cutout.
+#define TERRAIN_MAX_ALBEDO 0.88
+
 float GetTerrainLayerScale(uint layerIndex)
 {
     switch (layerIndex)

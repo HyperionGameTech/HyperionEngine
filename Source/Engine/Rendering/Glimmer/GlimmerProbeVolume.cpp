@@ -40,6 +40,16 @@ static EngineStatGpuTimer s_statGlimmerProbes("Rendering/GPU/Glimmer/Probes");
 static constexpr uint32 BaseGroupSize = 64;
 static constexpr uint32 BlendGroupSize = 64;
 
+static constexpr float ProbesHysteresis = 0.95f;
+
+// escaping rays brighter than this are scaled down, so a sliver of sun in the sky probe doesn't make fireflies
+static constexpr float ProbesEscapeClamp = 64.0f;
+
+static constexpr float ProbesMaxDistance = 2000.0f;
+
+// how many probe spacings SWRT traces a near field probe's rays before the heightfield takes over
+static constexpr float NearFieldReachSpacings = 8.0f;
+
 // Must match GlimmerProbeBaseConstants in Shaders/Glimmer/GlimmerProbeBase.hlsl
 struct GlimmerProbeBaseConstants
 {
@@ -140,7 +150,7 @@ void GlimmerProbeVolume::CreateResources()
     m_stateTexture = CreateProbeTexture(TextureType::Texture3D, TextureFormat::RG32, probeExtent, 1, NAME("GlimmerProbeState"));
     m_baseTexture = CreateProbeTexture(TextureType::Texture2DArray, TextureFormat::R32F, Vec3u(GlimmerProbeGrid, GlimmerProbeGrid, 1), uint16(GlimmerProbeCascades), NAME("GlimmerProbeBase"));
 
-    m_raysBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbesPerCascade) * GlimmerMaxProbeRays * sizeof(Vec4f), alignof(Vec4f));
+    m_raysBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, size_t(GlimmerProbesPerCascade) * GlimmerProbeRays * sizeof(Vec4f), alignof(Vec4f));
     Check(m_raysBuffer->Create());
 }
 
@@ -202,11 +212,6 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
 {
     HYP_SCOPE;
 
-    if (g_cvGlimmerFreeze.Get() && IsReady())
-    {
-        return;
-    }
-
     if (!inputs.surfaceCache || !inputs.spanCache || !inputs.blasCache || !inputs.blasCache->IsReady() || !inputs.spanCache->GetSpansBuffer().IsValid())
     {
         return;
@@ -224,9 +229,6 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
     uint32 scrolledMask = 0;
     ScrollCascades(inputs.viewerPosition, scrolledMask);
 
-    const uint32 numRays = uint32(MathUtil::Clamp(g_cvGlimmerProbesRays.Get(), 8, int(GlimmerMaxProbeRays)));
-    const float hysteresis = MathUtil::Clamp(g_cvGlimmerProbesHysteresis.Get(), 0.0f, 0.999f);
-
     const bool hasSWRTScene = inputs.tlas && inputs.tlas->IsReady();
 
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerProbeCascades; cascadeIndex++)
@@ -234,22 +236,22 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
         GlimmerProbeCascadeShaderData& cascade = m_shaderData.cascades[cascadeIndex];
 
         // cascades updated less often blend faster, so every cascade converges in about the same time
-        const float cascadeHysteresis = MathUtil::Pow(hysteresis, float(GetCascadeUpdatePeriod(cascadeIndex)) * 0.5f);
+        const float cascadeHysteresis = MathUtil::Pow(ProbesHysteresis, float(GetCascadeUpdatePeriod(cascadeIndex)) * 0.5f);
 
         cascade.gridOrigin = Vec4i(m_gridOrigins[cascadeIndex].x, m_gridOrigins[cascadeIndex].y, cascade.gridOrigin.z, 0);
         cascade.params = Vec4f(GetCascadeSpacing(cascadeIndex), float(1u << cascadeIndex), cascadeHysteresis, 0.0f);
     }
 
-    m_shaderData.info = Vec4u(GlimmerProbeCascades, numRays, m_frameIndex, m_shaderData.info.w);
+    m_shaderData.info = Vec4u(GlimmerProbeCascades, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
     m_shaderData.rayRotation = MakeRandomRotation(m_frameIndex);
     m_shaderData.params = Vec4f(
         inputs.viewerPosition.y - 2.0f,
         MathUtil::Max(g_cvGlimmerIntensity.Get(), 0.0f),
-        MathUtil::Max(g_cvGlimmerProbesEscapeClamp.Get(), 0.0f),
-        MathUtil::Max(g_cvGlimmerProbesMaxDistance.Get(), 1.0f));
+        ProbesEscapeClamp,
+        ProbesMaxDistance);
     m_shaderData.nearField = Vec4f(
         float(MathUtil::Clamp(g_cvGlimmerNearFieldCascades.Get(), 0, int(GlimmerProbeCascades))),
-        MathUtil::Max(g_cvGlimmerNearFieldReachSpacings.Get(), 0.0f),
+        NearFieldReachSpacings,
         hasSWRTScene ? float(inputs.tlas->GetNumInstances()) : 0.0f,
         MathUtil::Clamp(g_cvGlimmerGroundAlbedo.Get(), 0.0f, 1.0f));
 
@@ -314,7 +316,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             constants.ground = groundShaderData;
             constants.spans = inputs.spanCache->GetShaderData();
             constants.dispatch = Vec4u(cascadeIndex, skyTextureIndex, 0, 0);
-            constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerFoliageExtinction.Get(), 0.0f), 0.0f, 0.0f);
+            constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
 
             GpuBuffer* cbuffer = nullptr;
             size_t cbufferOffset = 0;
@@ -344,6 +346,7 @@ void GlimmerProbeVolume::Update(Frame* frame, const GlimmerProbeUpdateInputs& in
             cr << SetShaderUniform(uniformIndex++, "GlimmerBLASNodesBuffer"_sh, inputs.blasCache->GetNodesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerBVHNode)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, inputs.blasCache->GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerTriangle)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, groundImageView);
+            cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, inputs.surfaceCache->GetGroundAlbedoImageView());
             cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, inputs.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH0Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[0]));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSH1Texture"_sh, RI.textureViewCache->GetOrCreate(m_shTextures[1]));

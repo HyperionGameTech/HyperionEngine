@@ -10,7 +10,6 @@
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
-#include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -88,7 +87,7 @@ void GlimmerSpanCache::RebuildLevel(Frame* frame, uint32 levelIndex, const Vec2i
 
         GlimmerSpanSplatConstants constants {};
         constants.window = Vec4i(windowOrigin.x, windowOrigin.y, int32(levelIndex), 0);
-        constants.params = Vec4f(texelSize, 1.0f / texelSize, MathUtil::Max(g_cvGlimmerSpansMinFoliageHeight.Get(), 0.0f), 0.0f);
+        constants.params = Vec4f(texelSize, 1.0f / texelSize, GlimmerSpansMinFoliageHeight, 0.0f);
         constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanTriangles(), groupsX, 0);
         constants.ground = surfaceCache.GetGroundShaderData();
 

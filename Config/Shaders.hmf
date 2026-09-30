@@ -208,6 +208,9 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerGroundUpload" {
             CS = "Glimmer/GlimmerGroundUpload.hlsl"
         }
+        ShaderDefinition "GlimmerGroundAlbedo" {
+            CS = "Glimmer/GlimmerGroundAlbedo.hlsl"
+        }
         ShaderDefinition "GlimmerProbeBase" {
             CS = "Glimmer/GlimmerProbeBase.hlsl"
         }
