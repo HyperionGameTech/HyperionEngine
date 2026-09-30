@@ -357,6 +357,12 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     }
 }
 
+/// The global state BuildAttributes() reads besides the proxy; attributes built under other inputs are stale.
+static uint32 GetGlobalAttributeInputs()
+{
+    return (g_cvLightmapVolumes.Get() ? 0x1u : 0x0u) | (g_cvPathTracing.Get() ? 0x2u : 0x0u);
+}
+
 } // namespace GeometryPass
 
 #pragma endregion GeometryPass
@@ -1631,6 +1637,7 @@ RenderCollector::RenderCollector()
     : parallelRenderingStates {},
       batchAllocator(nullptr),
       renderGroupFlags(RenderGroupFlags::DEFAULT),
+      attributeInputs(~0u),
       isFallback(false)
 {
 }
@@ -2624,15 +2631,31 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
     const RenderableAttributeSet* overrideAttributes = view->GetOverrideAttributes().TryGet();
 
+    const uint32 currentAttributeInputs = GeometryPass::GetGlobalAttributeInputs();
+    const bool attributeInputsChanged = currentAttributeInputs != attributeInputs;
+    attributeInputs = currentAttributeInputs;
+
     auto diff = renderProxyList.GetMeshEntities().GetDiff();
 
-    if (!diff.NeedsUpdate())
+    if (!diff.NeedsUpdate() && !attributeInputsChanged)
     {
         return;
     }
 
     Array<ObjId<Entity>, RenderTempAllocator> changedIds;
     renderProxyList.GetMeshEntities().GetChanged(changedIds);
+
+    // e.g. toggling Rendering.LightmapVolumes moves unchanged lightmapped proxies between lightmapped and deferred pipelines
+    if (attributeInputsChanged)
+    {
+        for (Entity* entity : renderProxyList.GetMeshEntities())
+        {
+            if (previousAttributes.HasIndex(entity->Id().ToIndex()))
+            {
+                changedIds.PushBack(entity->Id());
+            }
+        }
+    }
 
     if (changedIds.Any())
     {
