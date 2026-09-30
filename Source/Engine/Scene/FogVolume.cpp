@@ -293,6 +293,110 @@ Array<Name> FogVolume::GetBakedSwatchNames() const
 
 #endif // HYP_EDITOR
 
+void FogVolume::SetDensity(float density)
+{
+    if (m_density == density)
+    {
+        return;
+    }
+
+    m_density = density;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetAlbedo(const Vec3f& albedo)
+{
+    if (m_albedo == albedo)
+    {
+        return;
+    }
+
+    m_albedo = albedo;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetPhaseForward(float phaseForward)
+{
+    if (m_phaseForward == phaseForward)
+    {
+        return;
+    }
+
+    m_phaseForward = phaseForward;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetPhaseBackward(float phaseBackward)
+{
+    if (m_phaseBackward == phaseBackward)
+    {
+        return;
+    }
+
+    m_phaseBackward = phaseBackward;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetPhaseBlend(float phaseBlend)
+{
+    if (m_phaseBlend == phaseBlend)
+    {
+        return;
+    }
+
+    m_phaseBlend = phaseBlend;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetSunIntensity(float sunIntensity)
+{
+    if (m_sunIntensity == sunIntensity)
+    {
+        return;
+    }
+
+    m_sunIntensity = sunIntensity;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetAmbientIntensity(float ambientIntensity)
+{
+    if (m_ambientIntensity == ambientIntensity)
+    {
+        return;
+    }
+
+    m_ambientIntensity = ambientIntensity;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
+void FogVolume::SetEdgeFade(float edgeFade)
+{
+    if (m_edgeFade == edgeFade)
+    {
+        return;
+    }
+
+    m_edgeFade = edgeFade;
+
+    SetNeedsRenderProxyUpdate();
+    MarkDirty();
+}
+
 void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
 {
     AssertDebug(proxy != nullptr);
@@ -330,6 +434,19 @@ void FogVolume::UpdateRenderProxy(RenderProxyFogVolume* proxy)
         proxy->bufferData.transformMatrix = newTransformMatrix;
         proxy->bufferData.aabbMin = Vec4f(worldAabb.min, 1.0f);
         proxy->bufferData.aabbMax = Vec4f(worldAabb.max, 1.0f);
+    }
+
+    const Vec4f medium = Vec4f(MathUtil::Max(m_density, 0.0f), MathUtil::Clamp(m_phaseForward, -0.95f, 0.95f), MathUtil::Clamp(m_phaseBackward, -0.95f, 0.95f), MathUtil::Clamp(m_phaseBlend, 0.0f, 1.0f));
+    const Vec4f lighting = Vec4f(Vec3f::Max(Vec3f::Min(m_albedo, Vec3f(1.0f)), Vec3f(0.0f)), MathUtil::Max(m_ambientIntensity, 0.0f));
+    const Vec4f shape = Vec4f(MathUtil::Max(m_sunIntensity, 0.0f), MathUtil::Max(m_edgeFade, 0.0f), 0.0f, 0.0f);
+
+    if (medium != proxy->bufferData.medium || lighting != proxy->bufferData.lighting || shape != proxy->bufferData.shape)
+    {
+        proxy->forceRebind = true;
+
+        proxy->bufferData.medium = medium;
+        proxy->bufferData.lighting = lighting;
+        proxy->bufferData.shape = shape;
     }
 }
 

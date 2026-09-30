@@ -52,6 +52,14 @@ private:
 
     virtual void Resize_Internal(Vec2u newSize) override;
 
+    void CreateHistoryTextures();
+    void ResolveTemporal(Frame* frame, const RenderSetup& renderSetup);
+
+    // the fog, accumulated over frames at the same quarter res; ping-ponged, the one written last frame is read this frame
+    Handle<Texture> m_historyTextures[2];
+    uint32 m_historyIndex = 0;
+    bool m_historyValid = false;
+
     struct FogVolumePassData
     {
         class FogVolume* volume = nullptr;

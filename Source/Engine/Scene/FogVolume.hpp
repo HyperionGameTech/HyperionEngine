@@ -53,6 +53,88 @@ public:
         const Handle<Texture>& volumeTexture,
         const Handle<Texture>& noiseTexture);
 
+    // Medium
+
+    /*! \brief Extinction per metre where the noise map is 1. */
+    HYP_METHOD(Property = "Density")
+    HYP_FORCE_INLINE float GetDensity() const
+    {
+        return m_density;
+    }
+
+    HYP_METHOD(Property = "Density")
+    void SetDensity(float density);
+
+    /*! \brief Fraction of the extinction that scatters rather than absorbs, per channel. */
+    HYP_METHOD(Property = "Albedo")
+    HYP_FORCE_INLINE const Vec3f& GetAlbedo() const
+    {
+        return m_albedo;
+    }
+
+    HYP_METHOD(Property = "Albedo")
+    void SetAlbedo(const Vec3f& albedo);
+
+    /*! \brief Henyey-Greenstein g of the forward lobe (bright looking toward the sun). */
+    HYP_METHOD(Property = "PhaseForward")
+    HYP_FORCE_INLINE float GetPhaseForward() const
+    {
+        return m_phaseForward;
+    }
+
+    HYP_METHOD(Property = "PhaseForward")
+    void SetPhaseForward(float phaseForward);
+
+    /*! \brief Henyey-Greenstein g of the backward lobe. */
+    HYP_METHOD(Property = "PhaseBackward")
+    HYP_FORCE_INLINE float GetPhaseBackward() const
+    {
+        return m_phaseBackward;
+    }
+
+    HYP_METHOD(Property = "PhaseBackward")
+    void SetPhaseBackward(float phaseBackward);
+
+    /*! \brief How much of the scattering goes to the backward lobe. */
+    HYP_METHOD(Property = "PhaseBlend")
+    HYP_FORCE_INLINE float GetPhaseBlend() const
+    {
+        return m_phaseBlend;
+    }
+
+    HYP_METHOD(Property = "PhaseBlend")
+    void SetPhaseBlend(float phaseBlend);
+
+    /*! \brief Scale on the sun's in-scattering. */
+    HYP_METHOD(Property = "SunIntensity")
+    HYP_FORCE_INLINE float GetSunIntensity() const
+    {
+        return m_sunIntensity;
+    }
+
+    HYP_METHOD(Property = "SunIntensity")
+    void SetSunIntensity(float sunIntensity);
+
+    /*! \brief Scale on the ambient in-scattering (Glimmer's irradiance where it reaches, else a flat grey). */
+    HYP_METHOD(Property = "AmbientIntensity")
+    HYP_FORCE_INLINE float GetAmbientIntensity() const
+    {
+        return m_ambientIntensity;
+    }
+
+    HYP_METHOD(Property = "AmbientIntensity")
+    void SetAmbientIntensity(float ambientIntensity);
+
+    /*! \brief Metres over which the density fades out toward the volume's box. */
+    HYP_METHOD(Property = "EdgeFade")
+    HYP_FORCE_INLINE float GetEdgeFade() const
+    {
+        return m_edgeFade;
+    }
+
+    HYP_METHOD(Property = "EdgeFade")
+    void SetEdgeFade(float edgeFade);
+
     void UpdateRenderProxy(struct RenderProxyFogVolume* proxy);
 
     ///Per-swatch stuff
@@ -94,6 +176,30 @@ private:
 
     HYP_FIELD(Property = "NoiseTexture")
     Handle<Texture> m_noiseTexture;
+
+    HYP_FIELD(Property = "Density")
+    float m_density = 0.04f;
+
+    HYP_FIELD(Property = "Albedo")
+    Vec3f m_albedo = Vec3f(0.5f);
+
+    HYP_FIELD(Property = "PhaseForward")
+    float m_phaseForward = 0.8f;
+
+    HYP_FIELD(Property = "PhaseBackward")
+    float m_phaseBackward = -0.3f;
+
+    HYP_FIELD(Property = "PhaseBlend")
+    float m_phaseBlend = 0.2f;
+
+    HYP_FIELD(Property = "SunIntensity")
+    float m_sunIntensity = 1.4f;
+
+    HYP_FIELD(Property = "AmbientIntensity")
+    float m_ambientIntensity = 0.6f;
+
+    HYP_FIELD(Property = "EdgeFade")
+    float m_edgeFade = 6.0f;
 };
 
 } // namespace Hyperion

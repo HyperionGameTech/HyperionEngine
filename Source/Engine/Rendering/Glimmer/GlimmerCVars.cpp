@@ -11,8 +11,8 @@
 
 namespace Hyperion {
 
-CVar<bool> g_cvGlimmerEnabled("Rendering.Glimmer.Enabled", false);
-CVar<int> g_cvGlimmerTechnique("Rendering.Glimmer.Technique", int(GlimmerTechniqueType::SH));
+CVar<bool> g_cvGlimmerEnabled("Rendering.Glimmer.Enabled", true);
+CVar<int> g_cvGlimmerTechnique("Rendering.Glimmer.Technique", int(GlimmerTechniqueType::SWRT));
 CVar<float> g_cvGlimmerIntensity("Rendering.Glimmer.Intensity", 1.0f);
 CVar<int> g_cvGlimmerDebugView("Rendering.Glimmer.DebugView", 0);
 

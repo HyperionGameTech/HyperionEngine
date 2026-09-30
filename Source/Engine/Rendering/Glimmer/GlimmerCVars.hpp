@@ -23,7 +23,7 @@ enum class GlimmerDebugView : int
 
 extern CVar<bool> g_cvGlimmerEnabled;
 
-// which GlimmerTechniqueType every world runs: 0 = SWRT, 1 = SH (default)
+// which GlimmerTechniqueType every world runs: 0 = SWRT (default), 1 = SH
 extern CVar<int> g_cvGlimmerTechnique;
 
 extern CVar<float> g_cvGlimmerIntensity;

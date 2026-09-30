@@ -31,6 +31,9 @@
 
 #include <Rendering/Clouds/CloudPass.hpp>
 
+#include <Rendering/Glimmer/GlimmerPass.hpp>
+#include <Rendering/Glimmer/GlimmerTechnique.hpp>
+
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
@@ -44,10 +47,39 @@
 #include <Framework/EngineDriver.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/View.hpp>
+#include <Framework/EngineStats.hpp>
 
 namespace Hyperion {
 
 static constexpr uint32 MaxFogLights = 4;
+
+// each ray covers its whole length inside the volume in up to this many steps, none shorter than the minimum
+static constexpr uint32 FogMaxSteps = 48;
+static constexpr float FogMinStepSize = 0.25f;
+
+// how much of the accumulated fog each frame keeps
+static constexpr float FogHistoryWeight = 0.9f;
+
+static EngineStatGpuTimer s_statFogVolumes("Rendering/GPU/FogVolumes");
+
+// Must match the tail of FogVolumeConstants in Shaders/Deferred/ApplyFogVolume.hlsl, which Glimmer's apply data follows
+struct FogVolumeMarchConstants
+{
+    Vec2i screenDimensions;
+    float minStepSize;
+    uint32 maxSteps;
+    uint32 frameCounter;
+    uint32 _pad[3];
+};
+
+static_assert(sizeof(FogVolumeMarchConstants) == 32);
+
+// Must match FogVolumeTemporalConstants in Shaders/Deferred/FogVolumeTemporal.hlsl
+struct FogVolumeTemporalConstants
+{
+    Vec4u params; // xy = extent, z = 1 when the history is usable
+    Vec4f blend;  // x = history weight
+};
 
 static StaticShaderPropertyId s_propUseClusteredLights { ShaderProperty(NAME("CLUSTERED_LIGHTS")) };
 static StaticShaderPropertyId s_propFogVolumeUseSDF { ShaderProperty(NAME("FOG_VOLUME_USE_SDF")) };
@@ -64,6 +96,10 @@ FogVolumePass::FogVolumePass(Vec2u extent, GBuffer* gbuffer)
 
 FogVolumePass::~FogVolumePass()
 {
+    for (Handle<Texture>& historyTexture : m_historyTextures)
+    {
+        EnqueueDeletion(std::move(historyTexture));
+    }
 }
 
 void FogVolumePass::Create()
@@ -105,11 +141,85 @@ void FogVolumePass::Create()
         m_upsamplePasses[i]->SetShaderDesc(ShaderDesc(NAME("Upsample"), ShaderPropertySet {}));
         m_upsamplePasses[i]->Create();
     }
+
+    CreateHistoryTextures();
 }
 
 void FogVolumePass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
+
+    CreateHistoryTextures();
+}
+
+void FogVolumePass::CreateHistoryTextures()
+{
+    for (Handle<Texture>& historyTexture : m_historyTextures)
+    {
+        if (historyTexture.IsValid())
+        {
+            EnqueueDeletion(std::move(historyTexture));
+        }
+
+        historyTexture = MakeHandle<Texture>(TextureDesc {
+            TextureType::Texture2D,
+            TextureFormat::RGBA16F,
+            Vec3u(m_extent, 1),
+            TextureFilterMode::Linear,
+            TextureFilterMode::Linear,
+            TextureWrapMode::ClampToEdge,
+            1,
+            ImageUsage::Storage | ImageUsage::Sampled });
+
+        historyTexture->SetIsTransient(true);
+        historyTexture->SetName(NAME("FogVolumeHistory"));
+        Check(historyTexture->Create());
+    }
+
+    m_historyValid = false;
+}
+
+void FogVolumePass::ResolveTemporal(Frame* frame, const RenderSetup& renderSetup)
+{
+    CommandRecorder& cr = frame->cr;
+
+    const Handle<Texture>& historyTexture = m_historyTextures[m_historyIndex];
+    const Handle<Texture>& outTexture = m_historyTextures[m_historyIndex ^ 1u];
+
+    FogVolumeTemporalConstants constants {};
+    constants.params = Vec4u(m_extent.x, m_extent.y, m_historyValid ? 1u : 0u, 0u);
+    constants.blend = Vec4f(FogHistoryWeight, 0.0f, 0.0f, 0.0f);
+
+    GpuBuffer* cbuffer = nullptr;
+    size_t cbufferOffset = 0;
+    size_t cbufferSize = 0;
+
+    RI.cbufferAllocator->Write(&constants);
+    RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+    AttachmentBase* currentTexture = GetAttachment(0);
+
+    cr << InsertBarrier(currentTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(historyTexture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(outTexture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
+    cr << SetCurrentShader(ShaderDesc(NAME("FogVolumeTemporal")));
+
+    uint32 uniformIndex = 0;
+
+    cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+    cr << SetShaderUniform(uniformIndex++, "CurrentTexture"_sh, currentTexture->GetImageView());
+    cr << SetShaderUniform(uniformIndex++, "HistoryTexture"_sh, RI.textureViewCache->GetOrCreate(historyTexture));
+    cr << SetShaderUniform(uniformIndex++, "VelocityTexture"_sh, m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Velocity)->GetImageView());
+    cr << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, RI.placeholderData->GetSamplerLinear());
+    cr << SetShaderUniform(uniformIndex++, "OutTexture"_sh, RI.textureViewCache->GetOrCreate(outTexture));
+
+    cr << DispatchCompute(Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
+
+    cr << InsertBarrier(outTexture->GetGpuImage(), ResourceState::ShaderResource);
+
+    m_historyIndex ^= 1u;
+    m_historyValid = true;
 }
 
 void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -123,8 +233,13 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (rpl.GetFogVolumes().NumCurrent() == 0)
     {
+        // what's accumulated belongs to volumes that are gone
+        m_historyValid = false;
+
         return;
     }
+
+    ENGINE_STAT_GPU_SCOPE(&s_statFogVolumes);
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     if (!cameraProxy)
@@ -183,7 +298,8 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetDepthWrite(false);
     cr << SetDepthTest(false);
     cr << SetStencilTest(false);
-    cr << SetCurrentBlendFunction(BlendFunction::None());
+    // overlapping volumes composite over each other (premultiplied: rgb is the light they scatter, alpha their opacity)
+    cr << SetCurrentBlendFunction(BlendFunction(BlendModeFactor::One, BlendModeFactor::OneMinusSrcAlpha, BlendModeFactor::One, BlendModeFactor::OneMinusSrcAlpha));
 
     cr << SetCurrentViewport(Viewport { m_extent, renderSetup.viewport.position });
 
@@ -192,16 +308,9 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetTopology(m_volumeMesh->GetMeshAttributes().topology);
     cr << SetInputLayout(m_volumeMesh->GetMeshAttributes().inputLayout);
 
-    //if (rpl.GetFogVolumes().NumCurrent() == 1)
-    //{
-    //    // We don't want to cull front faces inside volume
-    //    cr << SetFaceCullMode(FaceCullMode::Front);
-    //}
-    //else
-    //{
-        // Because multiple vols can overlap, we don't want to skip drawing backfaces
-        cr << SetFaceCullMode(FaceCullMode::None);
-    //}
+    // back faces alone cover a box's whole footprint on screen whether the camera is inside it or not, and exactly once: drawing
+    // both faces would march every pixel twice
+    cr << SetFaceCullMode(FaceCullMode::Front);
 
     const bool useClusteredLights = g_cvFogVolumesClusteredLights.Get();
 
@@ -214,6 +323,8 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
         {
             fogShaderProperties.Add(s_propUseClusteredLights);
         }
+
+        AddGlimmerApplyShaderProperties(fogShaderProperties);
 
         cr << SetCurrentShader(ShaderDesc(NAME("ApplyFogVolume"), fogShaderProperties));
     }
@@ -246,6 +357,9 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     cr << SetShaderUniform(15, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
     cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
+
+    GlimmerPass* glimmerPass = static_cast<GlimmerPass*>(RI.namedPasses[NamedPass::Glimmer][0]);
+    glimmerPass->BindApplyResources(cr, 17, renderSetup.world);
 
     LightShaderData fogLightData[MaxFogLights] {};
     ShadowMapData fogShadowMapData[MaxFogLights] {};
@@ -365,17 +479,14 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
                 }
             }
 
-            const Vec2i screenDimensions = Vec2i(m_extent);
-            RI.cbufferAllocator->Write(&screenDimensions);
+            FogVolumeMarchConstants marchConstants {};
+            marchConstants.screenDimensions = Vec2i(m_extent);
+            marchConstants.minStepSize = FogMinStepSize;
+            marchConstants.maxSteps = FogMaxSteps;
+            marchConstants.frameCounter = GetFrameCounter();
+            RI.cbufferAllocator->Write(&marchConstants);
 
-            const float stepSize = 0.125f;
-            RI.cbufferAllocator->Write(&stepSize);
-
-            const uint32 maxSteps = 256;
-            RI.cbufferAllocator->Write(&maxSteps);
-
-            const uint32 frameCounter = GetFrameCounter();
-            RI.cbufferAllocator->Write(&frameCounter);
+            glimmerPass->WriteApplyShaderData(*RI.cbufferAllocator, renderSetup.world);
 
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
@@ -390,6 +501,11 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 
     cr << SetFaceCullMode(FaceCullMode::None);
+    cr << SetCurrentBlendFunction(BlendFunction::None());
+
+    ResolveTemporal(frame, renderSetup);
+
+    const Handle<Texture>& resolvedTexture = m_historyTextures[m_historyIndex];
 
     // Now upsampling passes
     for (uint32 i = 0; i < NumUpsamplePasses; i++)
@@ -430,10 +546,10 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
         cr << SetCurrentShader(pass->GetShaderDesc());
 
-        // if last - direct to framebuffer
+        // if last - direct to framebuffer, over the scene: what's behind the fog shows through by its transmittance
         if (isLast)
         {
-            cr << SetCurrentBlendFunction(BlendFunction::Additive());
+            cr << SetCurrentBlendFunction(BlendFunction(BlendModeFactor::One, BlendModeFactor::OneMinusSrcAlpha, BlendModeFactor::Zero, BlendModeFactor::One));
             cr << SetCurrentFramebuffer(renderSetup.framebuffer);
             cr << SetCurrentViewport(renderSetup.viewport);
 
@@ -461,7 +577,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(
             numShaderUniforms++,
             "PrevPassTexture"_sh,
-            isFirst ? m_framebuffer->GetAttachment(0)->GetImageView() : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
+            isFirst ? RI.textureViewCache->GetOrCreate(resolvedTexture) : m_upsamplePasses[i - 1]->GetAttachment(0)->GetImageView());
 
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
