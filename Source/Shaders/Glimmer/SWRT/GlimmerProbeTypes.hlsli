@@ -3,18 +3,22 @@
 
 #include "../GlimmerCommon.hlsli"
 
-// Glimmer's near field: sparse blocks of probes around the static solids near the viewer. Probes sit on a world aligned grid, one per
-// level (2, 4, 8 and 16 m), grouped into blocks of 4x4x4. Each level keeps a window of 8x8x8 blocks around the viewer, and a block of it
-// only gets probes (a slot of the pool) where there are solids nearby; everywhere else lighting falls through to the SH voxels.
+// Glimmer's near field: sparse blocks of probes around the static solids around the viewer. Probes sit on a world aligned grid, one per
+// level (2, 4, 8 and 16 m), grouped into blocks of 4x4x4. Each level keeps a window of 16x16x16 blocks around the viewer (+-64 m up to
+// +-512 m), and a block of it only gets probes (a slot of the pool) where there are solids nearby and no finer level already covers
+// them. Slots go nearest first in blocks of their own level, so a structure gets probes as fine as the pool affords at its distance
+// rather than up to a fixed range; everywhere else lighting falls through to the SH voxels. Within a block only the probes with a
+// solid next to them are traced; the rest (open air) idle.
 // Each probe holds L1 irradiance already divided by pi and convolved with the cosine lobe, so E(n) / pi = e0 + dot(e1, n), one float4
-// per colour channel, plus depth moments along each axis to keep light from leaking through walls.
+// per colour channel, plus an octahedral map of depth moments to keep light from leaking through walls.
 
 #define GLIMMER_PROBE_LEVELS 4
 #define GLIMMER_PROBE_BLOCK 4
 #define GLIMMER_PROBES_PER_BLOCK 64
-#define GLIMMER_PROBE_WINDOW 8
-#define GLIMMER_PROBE_WINDOW_BLOCKS 512
-#define GLIMMER_PROBE_POOL_BLOCKS 256
+#define GLIMMER_PROBE_WINDOW 16
+#define GLIMMER_PROBE_WINDOW_BLOCKS 4096
+// what the buffers are sized for; the constants' budget.w limits how many of them are used (Rendering.Glimmer.SWRT.Probes.PoolBlocks)
+#define GLIMMER_PROBE_POOL_BLOCKS 1024
 #define GLIMMER_PROBE_POOL_PROBES (GLIMMER_PROBE_POOL_BLOCKS * GLIMMER_PROBES_PER_BLOCK)
 
 #define GLIMMER_PROBE_NO_SLOT 0xFFFFFFFFu
@@ -24,14 +28,25 @@
 #define GLIMMER_PROBE_STATE_ACTIVE 1u
 #define GLIMMER_PROBE_STATE_BURIED 2u  // under the ground; never traced
 #define GLIMMER_PROBE_STATE_INSIDE 3u  // inside a solid even after moving; traced now and then to see if it got out
+#define GLIMMER_PROBE_STATE_IDLE 4u    // no solid next to it (open air); never traced, and lighting treats it as missing
 
 // distances the depth moments hold, in probe spacings; the lookup never asks past the far corner of a cell
 #define GLIMMER_PROBE_DEPTH_RANGE 2.0
 
 // visibility is an octahedral map per probe, of GLIMMER_PROBE_VISIBILITY_RES^2 texels each holding the mean and mean square of the
-// distance (in spacings, capped at GLIMMER_PROBE_DEPTH_RANGE) rays went around its direction, as DDGI keeps it
+// distance (in spacings, capped at GLIMMER_PROBE_DEPTH_RANGE) rays went around its direction, as DDGI keeps it; packed as two halves
 #define GLIMMER_PROBE_VISIBILITY_RES 8
 #define GLIMMER_PROBE_VISIBILITY_TEXELS (GLIMMER_PROBE_VISIBILITY_RES * GLIMMER_PROBE_VISIBILITY_RES)
+
+uint GlimmerPackHalf2(float2 value)
+{
+    return f32tof16(value.x) | (f32tof16(value.y) << 16);
+}
+
+float2 GlimmerUnpackHalf2(uint packed)
+{
+    return float2(f16tof32(packed & 0xFFFFu), f16tof32(packed >> 16));
+}
 
 // how far a probe may be moved off its grid point, per axis, in spacings
 #define GLIMMER_PROBE_MAX_OFFSET 0.45

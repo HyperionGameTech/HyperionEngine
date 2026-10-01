@@ -20,6 +20,7 @@ CVar<float> g_cvGlimmerSWRTFoliageClumping("Rendering.Glimmer.SWRT.FoliageClumpi
 
 CVar<bool> g_cvGlimmerSWRTProbesEnabled("Rendering.Glimmer.SWRT.Probes.Enabled", true);
 CVar<int> g_cvGlimmerSWRTProbesRaysPerFrame("Rendering.Glimmer.SWRT.Probes.RaysPerFrame", 65536);
+CVar<int> g_cvGlimmerSWRTProbesPoolBlocks("Rendering.Glimmer.SWRT.Probes.PoolBlocks", 512);
 CVar<float> g_cvGlimmerSWRTProbesBlockMargin("Rendering.Glimmer.SWRT.Probes.BlockMargin", 1.0f);
 CVar<float> g_cvGlimmerSWRTProbesMinHeightAboveGround("Rendering.Glimmer.SWRT.Probes.MinHeightAboveGround", 0.5f);
 CVar<int> g_cvGlimmerSWRTProbesBlockReleaseFrames("Rendering.Glimmer.SWRT.Probes.BlockReleaseFrames", 60);

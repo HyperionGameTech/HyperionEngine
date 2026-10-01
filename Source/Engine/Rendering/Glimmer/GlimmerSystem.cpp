@@ -50,6 +50,12 @@ static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const Glimme
         return Color::Magenta();
     }
 
+    // open air: not traced
+    if (probeState == GPS_IDLE)
+    {
+        return Color(0.15f, 0.2f, 0.45f);
+    }
+
     if (record.info.w == 0)
     {
         return Color(0.35f, 0.35f, 0.35f);
@@ -365,7 +371,7 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
         static_assert(GlimmerProbeLevels == 4, "the summary below prints four levels");
 
         uint32 blocks[GlimmerProbeLevels] = {};
-        uint32 states[4] = {};
+        uint32 states[5] = {};
         uint32 updated = 0;
         uint32 relocated = 0;
         float luminanceSum = 0.0f;
@@ -388,7 +394,7 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
 
             const uint32 probeState = record.info.x & 0xFFu;
 
-            states[MathUtil::Min(probeState, 3u)]++;
+            states[MathUtil::Min(probeState, 4u)]++;
 
             if (probeState == GPS_ACTIVE && record.info.w != 0)
             {
@@ -406,8 +412,8 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
             }
         }
 
-        HYP_LOG(Rendering, Info, "Glimmer probes: blocks {}/{}/{}/{} (2/4/8/16 m), active {} (updated {}, moved {}), buried {}, inside {}, mean luminance {}, viewer {}",
-            blocks[0], blocks[1], blocks[2], blocks[3], states[GPS_ACTIVE], updated, relocated, states[GPS_BURIED], states[GPS_INSIDE],
+        HYP_LOG(Rendering, Info, "Glimmer probes: blocks {}/{}/{}/{} (2/4/8/16 m), active {} (updated {}, moved {}), idle {}, buried {}, inside {}, mean luminance {}, viewer {}",
+            blocks[0], blocks[1], blocks[2], blocks[3], states[GPS_ACTIVE], updated, relocated, states[GPS_IDLE], states[GPS_BURIED], states[GPS_INSIDE],
             updated != 0 ? luminanceSum / float(updated) : 0.0f, viewerPosition);
     }
 
@@ -458,6 +464,12 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
             const Vec3f position = record.position.GetXYZ();
 
             if (position.Distance(viewerPosition) > radius)
+            {
+                continue;
+            }
+
+            // idle probes hold nothing to show but where they are
+            if ((record.info.x & 0xFFu) == GPS_IDLE && GlimmerSWRTDebugProbes(mode) != GlimmerSWRTDebugProbes::Status)
             {
                 continue;
             }

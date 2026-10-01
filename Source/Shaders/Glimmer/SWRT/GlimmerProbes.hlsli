@@ -15,7 +15,7 @@ float3 GlimmerProbePosition(GlimmerProbeVolume volume, uint probeIndex, int4 slo
 #ifndef GLIMMER_PROBES_NO_SAMPLING
 
 // expects these declared: StructuredBuffer<uint> glimmerProbeBlockTable, StructuredBuffer<float4> glimmerProbeSH (3 per probe),
-// StructuredBuffer<uint4> glimmerProbeStates, StructuredBuffer<float2> glimmerProbeVisibility (GLIMMER_PROBE_VISIBILITY_TEXELS per probe)
+// StructuredBuffer<uint4> glimmerProbeStates, StructuredBuffer<uint> glimmerProbeVisibility (GLIMMER_PROBE_VISIBILITY_TEXELS per probe, GlimmerPackHalf2)
 
 // Chebyshev bound on how likely the probe sees a point this far (in spacings) toward it, from the depth moments of its rays that way
 float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanceInSpacings)
@@ -39,7 +39,7 @@ float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanc
         const int2 texel = clamp(texel0 + offset, 0, GLIMMER_PROBE_VISIBILITY_RES - 1);
         const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
 
-        moments += glimmerProbeVisibility[probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + uint(texel.y * GLIMMER_PROBE_VISIBILITY_RES + texel.x)] * (bilinear.x * bilinear.y);
+        moments += GlimmerUnpackHalf2(glimmerProbeVisibility[probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + uint(texel.y * GLIMMER_PROBE_VISIBILITY_RES + texel.x)]) * (bilinear.x * bilinear.y);
     }
 
     if (distanceInSpacings <= moments.x)
@@ -55,8 +55,9 @@ float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanc
     return max(chebyshev * chebyshev * chebyshev, 0.0);
 }
 
-/*! One level's irradiance / pi at P, from the probes of its allocated blocks around P that are active and can see P.
- *  \return how much this level covers P: fades out where the corner probes are missing or can't see P, and toward the window's edge */
+/*! One level's irradiance / pi at P, from the probes of its allocated blocks around P that are active, weighted toward those that can see P.
+ *  \return how much this level covers P: fades out where the corner probes are missing, where none of them can see P, and toward the
+ *  window's edge */
 float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 N, out float3 outIrradiance)
 {
     outIrradiance = (float3)0.0;
@@ -91,10 +92,14 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
     float4 sumG = (float4)0.0;
     float4 sumB = (float4)0.0;
     float weightSum = 0.0;
-    float visibleCoverage = 0.0;
+
+    // the trilinear weight of the corners with a probe, and how well the best of them sees P. Corners that can't see P only lose weight
+    // to the ones that can: a surface through the cell always has about half of them behind it
+    float presentCoverage = 0.0;
+    float bestVisibility = 0.0;
 
     // corners whose probe is under the ground or inside a solid are expected to be missing for a point on the surface: they don't
-    // count against coverage, the rest are renormalized. Only corners without a traced probe (no block yet, not updated) do
+    // count against coverage, the rest are renormalized. Corners without a traced probe (no block, idle in open air, not updated) do
     float excludedTrilinear = 0.0;
 
     [unroll]
@@ -148,7 +153,8 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
 
         const float weight = trilinearWeight * (backface * backface + 0.2) * visibility;
 
-        visibleCoverage += trilinearWeight * visibility;
+        presentCoverage += trilinearWeight;
+        bestVisibility = max(bestVisibility, visibility);
 
         sumR += glimmerProbeSH[probeIndex * 3u + 0u] * weight;
         sumG += glimmerProbeSH[probeIndex * 3u + 1u] * weight;
@@ -163,9 +169,9 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
 
     outIrradiance = GlimmerEvaluateL1(sumR / weightSum, sumG / weightSum, sumB / weightSum, N);
 
-    const float coverage = visibleCoverage / max(1.0 - excludedTrilinear, 1e-3);
+    const float coverage = presentCoverage / max(1.0 - excludedTrilinear, 1e-3);
 
-    return smoothstep(0.3, 0.7, coverage) * windowFade;
+    return smoothstep(0.3, 0.7, coverage) * smoothstep(0.02, 0.2, bestVisibility) * windowFade;
 }
 
 /*! Irradiance / pi from the probe blocks at P, finest level first, with how much they cover P as .a */

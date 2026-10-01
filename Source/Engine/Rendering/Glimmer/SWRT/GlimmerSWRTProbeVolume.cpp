@@ -44,6 +44,7 @@ namespace Hyperion {
 
 static EngineStatGpuTimer s_statGlimmerProbes("Rendering/GPU/Glimmer/Probes");
 
+static StaticShaderPropertyId s_propAllocModeClassify { ShaderProperty(NAME("MODE"), NAME("CLASSIFY")) };
 static StaticShaderPropertyId s_propAllocModeAlloc { ShaderProperty(NAME("MODE"), NAME("ALLOC")) };
 static StaticShaderPropertyId s_propAllocModeList { ShaderProperty(NAME("MODE"), NAME("LIST")) };
 static StaticShaderPropertyId s_propTraceModeTrace { ShaderProperty(NAME("MODE"), NAME("TRACE")) };
@@ -56,6 +57,7 @@ static constexpr size_t RayHitSize = 4 * sizeof(Vec4f);
 static constexpr uint32 ProbesPerTraceGroup = 1;
 static_assert(GlimmerProbeRays == 32);
 
+static constexpr uint32 ClassifyGroupSize = 64;
 static constexpr uint32 ListGroupSize = 64;
 static constexpr uint32 BlendGroupSize = 64;
 
@@ -79,7 +81,7 @@ struct GlimmerProbeAllocConstants
     GlimmerProbeVolumeShaderData volume;
     GlimmerGroundShaderData ground;
     GlimmerSHOccupancyShaderData occupancy;
-    Vec4u budget; // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids
+    Vec4u budget; // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids, w = pool slots to use
     Vec4f params; // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it
     Vec4f viewer; // xyz = viewer position
 };
@@ -122,7 +124,7 @@ GlimmerSWRTProbeVolume::GlimmerSWRTProbeVolume()
 
 GlimmerSWRTProbeVolume::~GlimmerSWRTProbeVolume()
 {
-    for (GpuBufferRef* buffer : { &m_blockTableBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer,
+    for (GpuBufferRef* buffer : { &m_blockTableBuffer, &m_cellsBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer,
              &m_trendBuffer, &m_countersBuffer, &m_updateListBuffer, &m_raysBuffer, &m_rayHitsBuffer, &m_placeholderBuffer })
     {
         EnqueueDeletion(std::move(*buffer));
@@ -174,18 +176,19 @@ const GpuBufferRef& GlimmerSWRTProbeVolume::GetSlotsBuffer() const
 void GlimmerSWRTProbeVolume::CreateResources(Frame* frame)
 {
     m_blockTableBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerProbeLevels * GlimmerProbeWindowBlocks);
+    m_cellsBuffer = CreateProbeBuffer(sizeof(Vec4i), GlimmerProbeLevels * GlimmerProbeWindowBlocks);
     m_slotsBuffer = CreateProbeBuffer(sizeof(Vec4i), GlimmerProbePoolBlocks);
     m_slotAgesBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerProbePoolBlocks);
     m_statesBuffer = CreateProbeBuffer(sizeof(Vec4u), GlimmerProbePoolProbes);
     m_shBuffer = CreateProbeBuffer(sizeof(Vec4f), GlimmerProbePoolProbes * 3);
-    m_visibilityBuffer = CreateProbeBuffer(sizeof(Vec2f), size_t(GlimmerProbePoolProbes) * GlimmerProbeVisibilityTexels);
+    m_visibilityBuffer = CreateProbeBuffer(sizeof(uint32), size_t(GlimmerProbePoolProbes) * GlimmerProbeVisibilityTexels);
     m_trendBuffer = CreateProbeBuffer(sizeof(Vec4f), GlimmerProbePoolProbes);
     m_countersBuffer = CreateProbeBuffer(sizeof(uint32), NumProbeCounters);
     m_updateListBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerMaxProbesPerFrame);
     m_raysBuffer = CreateProbeBuffer(sizeof(Vec4f), size_t(GlimmerMaxProbesPerFrame) * GlimmerProbeRays);
     m_rayHitsBuffer = CreateProbeBuffer(RayHitSize, size_t(GlimmerMaxProbesPerFrame) * GlimmerProbeRays);
 
-    // every slot free, no block with a slot, every counter zero
+    // every slot free, no block with a slot or classified, every counter zero
     Array<uint32> blockTable;
     blockTable.Resize(GlimmerProbeLevels * GlimmerProbeWindowBlocks);
 
@@ -234,6 +237,16 @@ void GlimmerSWRTProbeVolume::CreateResources(Frame* frame)
     };
 
     upload(m_blockTableBuffer, blockTable.Data(), blockTable.Size() * sizeof(uint32));
+
+    Array<Vec4i> cells;
+    cells.Resize(GlimmerProbeLevels * GlimmerProbeWindowBlocks);
+
+    for (Vec4i& cell : cells)
+    {
+        cell = Vec4i::Zero();
+    }
+
+    upload(m_cellsBuffer, cells.Data(), cells.Size() * sizeof(Vec4i));
     upload(m_slotsBuffer, slots.Data(), slots.Size() * sizeof(Vec4i));
     upload(m_slotAgesBuffer, zeros.Data(), GlimmerProbePoolBlocks * sizeof(uint32));
     upload(m_statesBuffer, states.Data(), states.Size() * sizeof(Vec4u));
@@ -302,9 +315,9 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     const GlimmerGroundShaderData& groundShaderData = inputs.surfaceCache->GetGroundShaderData();
     const GpuImageViewRef& groundImageView = inputs.surfaceCache->GetGroundImageView();
 
-    const GpuBufferRef* const probeStateBuffers[] = { &m_blockTableBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_countersBuffer, &m_updateListBuffer };
+    const GpuBufferRef* const probeStateBuffers[] = { &m_blockTableBuffer, &m_cellsBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_countersBuffer, &m_updateListBuffer };
 
-    { // allocate blocks around the solids, then list the probes due for an update
+    { // find the blocks around solids, allocate them, then list the probes due for an update
         GlimmerProbeAllocConstants constants {};
         constants.volume = m_shaderData;
         constants.ground = groundShaderData;
@@ -313,7 +326,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             probesPerFrame,
             uint32(MathUtil::Max(g_cvGlimmerSWRTProbesBlockReleaseFrames.Get(), 0)),
             uint32(MathUtil::Max(g_cvGlimmerSWRTProbesReclassifyInterval.Get(), 1)),
-            0);
+            uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesPoolBlocks.Get(), 1, int(GlimmerProbePoolBlocks))));
         constants.params = Vec4f(
             MathUtil::Clamp(g_cvGlimmerSWRTProbesBlockMargin.Get(), 0.0f, 2.0f),
             g_cvGlimmerSWRTProbesMinHeightAboveGround.Get(),
@@ -333,7 +346,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << InsertBarrier(buffer->Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         }
 
-        for (const StaticShaderPropertyId* modeProperty : { &s_propAllocModeAlloc, &s_propAllocModeList })
+        for (const StaticShaderPropertyId* modeProperty : { &s_propAllocModeClassify, &s_propAllocModeAlloc, &s_propAllocModeList })
         {
             ShaderPropertySet shaderProperties;
             shaderProperties.Add(*modeProperty);
@@ -346,16 +359,21 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, groundImageView);
             cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, inputs.occupancyImageView);
             cr << SetShaderUniform(uniformIndex++, "OutBlockTable"_sh, m_blockTableBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
+            cr << SetShaderUniform(uniformIndex++, "OutCells"_sh, m_cellsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
             cr << SetShaderUniform(uniformIndex++, "OutSlots"_sh, m_slotsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
             cr << SetShaderUniform(uniformIndex++, "OutSlotAges"_sh, m_slotAgesBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutStates"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
             cr << SetShaderUniform(uniformIndex++, "OutSH"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-            cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec2f)));
+            cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutTrend"_sh, m_trendBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "OutCounters"_sh, m_countersBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutUpdateList"_sh, m_updateListBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
 
-            if (modeProperty == &s_propAllocModeAlloc)
+            if (modeProperty == &s_propAllocModeClassify)
+            {
+                cr << DispatchCompute(Vec3u { GlimmerProbeLevels * GlimmerProbeWindowBlocks / ClassifyGroupSize, 1, 1 });
+            }
+            else if (modeProperty == &s_propAllocModeAlloc)
             {
                 cr << DispatchCompute(Vec3u { 1, 1, 1 });
             }
@@ -364,7 +382,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
                 cr << DispatchCompute(Vec3u { GlimmerProbePoolProbes / ListGroupSize, 1, 1 });
             }
 
-            // the list reads the slots the allocation wrote, and the trace the list
+            // the allocation reads the classification, the list the slots the allocation wrote, and the trace the list
             for (const GpuBufferRef* buffer : probeStateBuffers)
             {
                 cr << InsertBarrier(buffer->Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
@@ -455,7 +473,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, m_blockTableBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeStatesBuffer"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec2f)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerProbeVisibilityBuffer"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, m_slotsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeUpdateListBuffer"_sh, m_updateListBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeCountersBuffer"_sh, m_countersBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
@@ -513,7 +531,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, m_slotsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
         cr << SetShaderUniform(uniformIndex++, "OutSH"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
         cr << SetShaderUniform(uniformIndex++, "OutStates"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
-        cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(Vec2f)));
+        cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "OutTrend"_sh, m_trendBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
 
         cr << DispatchCompute(Vec3u { (probesPerFrame + BlendGroupSize - 1) / BlendGroupSize, 1, 1 });

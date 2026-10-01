@@ -24,7 +24,7 @@ DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> g
 
 DECLARE_UAV(GlimmerProbeBlend, OutSH) RWStructuredBuffer<float4> OutSH;
 DECLARE_UAV(GlimmerProbeBlend, OutStates) RWStructuredBuffer<uint4> OutStates;
-DECLARE_UAV(GlimmerProbeBlend, OutVisibility) RWStructuredBuffer<float2> OutVisibility; // GLIMMER_PROBE_VISIBILITY_TEXELS per probe
+DECLARE_UAV(GlimmerProbeBlend, OutVisibility) RWStructuredBuffer<uint> OutVisibility; // GLIMMER_PROBE_VISIBILITY_TEXELS per probe (GlimmerPackHalf2)
 DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend; // x = mean luminance of recent estimates, y = mean of its square
 
 #define GLIMMER_PROBES_NO_SAMPLING
@@ -84,7 +84,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint4 state = OutStates[probeIndex];
     uint probeState = GlimmerProbeStateOf(state);
 
-    if (slot.w < 0 || probeState == GLIMMER_PROBE_STATE_FREE || probeState == GLIMMER_PROBE_STATE_BURIED)
+    if (slot.w < 0 || probeState == GLIMMER_PROBE_STATE_FREE || probeState == GLIMMER_PROBE_STATE_BURIED || probeState == GLIMMER_PROBE_STATE_IDLE)
     {
         return;
     }
@@ -276,7 +276,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
             const float2 estimate = sums.xy / sums.z;
             const float texelHysteresis = updates > 0u ? lerp(1.0, hysteresis, saturate(sums.z)) : 0.0;
 
-            OutVisibility[visibilityIndex] = lerp(estimate, OutVisibility[visibilityIndex], texelHysteresis);
+            OutVisibility[visibilityIndex] = GlimmerPackHalf2(lerp(estimate, GlimmerUnpackHalf2(OutVisibility[visibilityIndex]), texelHysteresis));
         }
     }
 

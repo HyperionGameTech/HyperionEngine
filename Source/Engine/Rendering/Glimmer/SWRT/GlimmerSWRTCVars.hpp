@@ -40,6 +40,7 @@ extern CVar<float> g_cvGlimmerSWRTFoliageClumping;
 // the probe blocks; off leaves the near field to the SH voxels
 extern CVar<bool> g_cvGlimmerSWRTProbesEnabled;
 extern CVar<int> g_cvGlimmerSWRTProbesRaysPerFrame;            // probes traced a frame = this / rays per probe
+extern CVar<int> g_cvGlimmerSWRTProbesPoolBlocks;              // blocks of 64 probes the pool holds at most (up to GlimmerProbePoolBlocks)
 extern CVar<float> g_cvGlimmerSWRTProbesBlockMargin;           // how far (in probe spacings) around a block solids make it wanted
 extern CVar<float> g_cvGlimmerSWRTProbesMinHeightAboveGround;  // solids lower than this on the ground (roads, rocks) want no probes
 extern CVar<int> g_cvGlimmerSWRTProbesBlockReleaseFrames;      // frames an unwanted block keeps its probes
