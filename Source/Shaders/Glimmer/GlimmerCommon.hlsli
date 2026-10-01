@@ -45,6 +45,23 @@ float2 GlimmerOctahedralEncode(float3 direction)
     return e * 0.5 + 0.5;
 }
 
+int2 GlimmerOctahedralWrapTexel(int2 texel, int resolution)
+{
+    if (texel.x < 0 || texel.x >= resolution)
+    {
+        texel.x = clamp(texel.x, 0, resolution - 1);
+        texel.y = resolution - 1 - texel.y;
+    }
+
+    if (texel.y < 0 || texel.y >= resolution)
+    {
+        texel.y = clamp(texel.y, 0, resolution - 1);
+        texel.x = resolution - 1 - texel.x;
+    }
+
+    return texel;
+}
+
 /// @TODO Unify with other octahedral stuff?
 float3 GlimmerOctahedralDecode(float2 uv)
 {
