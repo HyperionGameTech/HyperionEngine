@@ -1,0 +1,453 @@
+#include "../../Include/Defines.hlsli"
+#include "../../Include/Shared.hlsli"
+#include "../../Include/Packing.hlsli"
+
+PERMUTE(MODE, TRACE, SHADE)
+
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "../../Include/Material.hlsli"
+#include "../../Include/Scene.hlsli"
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "../../Include/RayTracing/BVH.hlsli"
+#include "../../Include/EnvProbes.hlsli"
+#include "GlimmerSWRTCommon.hlsli"
+#include "GlimmerProbeTypes.hlsli"
+#include "../SH/GlimmerSHCommon.hlsli"
+
+struct GlimmerProbeRayHit
+{
+    float4 positionT;           // xyz = shading position, w = hit distance for the ray record
+    float4 normalFlags;         // xyz = normal, w = GLIMMER_RAY_HIT_* as uint
+    float4 albedoTransmittance; // rgb = albedo, a = transmittance of the canopy in front of the hit
+    float4 inscatter;           // rgb = light the canopy scattered toward the probe in front of the hit
+};
+
+//////////
+#define GLIMMER_RAY_HIT_DONE 0u
+#define GLIMMER_RAY_HIT_SHADE 1u
+#define GLIMMER_RAY_HIT_SHADE_SWRT 2u
+//////////
+
+struct GlimmerProbeTraceConstants
+{
+    GlimmerProbeVolume volume;
+    GlimmerGroundParams ground;
+    GlimmerSpanParams spans;
+    uint4 dispatch; // x = probes traced per frame at most, y = sky probe color texture index (~0 without one)
+    float4 sky;     // x = sky probe diffuse strength, y = foliage extinction
+    GlimmerFootprintMaskParams mask;
+    GlimmerSHVolume sh;  // the far field, sampled where a ray's hit is past the probes
+    EnvProbe skyProbe;   // its spherical harmonics relight the SH voxels; textureIndices is ~0 without a sky probe
+};
+
+DECLARE_BUFFER_DYNAMIC(GlimmerProbeTrace, CBuffer) cbuffer CBuffer
+{
+    GlimmerProbeTraceConstants constants;
+};
+
+#define skyProbe constants.skyProbe
+
+DECLARE_SRV(GlimmerProbeTrace, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
+#define world_shader_data _worlds_buffer[0]
+
+DECLARE_SRV(GlimmerProbeTrace, MaterialsBuffer) StructuredBuffer<Material> materials;
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
+#endif
+
+DECLARE_SAMPLER(GlimmerProbeTrace, SamplerLinearMipmap) SamplerState glimmerMaterialSampler;
+
+DECLARE_SRV(GlimmerProbeTrace, GlimmerTLASNodesBuffer) StructuredBuffer<BVHNode> glimmerTLASNodes;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerInstancesBuffer) StructuredBuffer<GlimmerInstance> glimmerInstances;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerBLASNodesBuffer) StructuredBuffer<BVHNode> glimmerBLASNodes;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTriangle> glimmerBLASTriangles;
+
+DECLARE_SRV(GlimmerProbeTrace, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
+DECLARE_SRV(GlimmerProbeTrace, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
+
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeBlockTableBuffer) StructuredBuffer<uint> glimmerProbeBlockTable;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSHBuffer) StructuredBuffer<float4> glimmerProbeSH;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeStatesBuffer) StructuredBuffer<uint4> glimmerProbeStates;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeVisibilityBuffer) StructuredBuffer<uint> glimmerProbeVisibility;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> glimmerProbeSlots;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeUpdateListBuffer) StructuredBuffer<uint> glimmerProbeUpdateList;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerProbeCountersBuffer) StructuredBuffer<uint> glimmerProbeCounters;
+
+DECLARE_SRV(GlimmerProbeTrace, EnvProbesColorTexture) TextureCubeArray envProbesColorTexture;
+
+DECLARE_SRV(GlimmerProbeTrace, GlimmerSHDataTexture) Texture3D<float4> glimmerSHData;
+DECLARE_SRV(GlimmerProbeTrace, GlimmerSHStateTexture) Texture3D<uint2> glimmerSHState;
+
+/// rgb = radiance, w = hit distance
+/// w is negative for the back face of one sided geometry, 0 where the probe is underground
+DECLARE_UAV(GlimmerProbeTrace, OutRays) RWStructuredBuffer<float4> OutRays;
+DECLARE_UAV(GlimmerProbeTrace, RayHits) RWStructuredBuffer<GlimmerProbeRayHit> RayHits;
+
+#include "GlimmerProbes.hlsli"
+#include "GlimmerSWRT.hlsli"
+#include "GlimmerSWRTFootprint.hlsli"
+#include "../GlimmerMaterial.hlsli"
+
+#if defined(MODE_SHADE)
+#define GLIMMER_APPLY_WITH_SAMPLING
+#define GLIMMER_SH_APPLY_EXTERNAL_RESOURCES
+#include "../SH/GlimmerSHApply.hlsli"
+#undef GLIMMER_SH_APPLY_EXTERNAL_RESOURCES
+#undef GLIMMER_APPLY_WITH_SAMPLING
+#endif
+
+float3 GlimmerSkyRadiance(float3 direction);
+
+static float3 g_canopySurroundings = (float3)0.0;
+static bool g_hasCanopySurroundings = false;
+
+float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float extinction)
+{
+    const float3 L = normalize(world_shader_data.sun_direction_intensity.xyz);
+
+    float3 radiance = (float3)0.0;
+
+    if (L.y > 0.0)
+    {
+        const float3 sunIrradiance = world_shader_data.sun_color.rgb * world_shader_data.sun_direction_intensity.w;
+        const float sunTransmittance = exp(-extinction * depthBelowTop / max(L.y, 0.15));
+
+        radiance += sunIrradiance * sunTransmittance * (0.5 * 0.31830988618);
+    }
+
+    if (!g_hasCanopySurroundings)
+    {
+        const float4 surroundings = SampleGlimmerProbes(constants.volume, P, float3(0.0, 1.0, 0.0));
+
+        g_canopySurroundings = surroundings.a > 0.0 ? surroundings.rgb : GlimmerSkyRadiance(float3(0.0, 1.0, 0.0)) * 0.5;
+        g_hasCanopySurroundings = true;
+    }
+
+    radiance += g_canopySurroundings;
+
+    return min(albedo, (float3)0.9) * radiance;
+}
+
+#include "../GlimmerHeightfield.hlsli"
+
+#define GLIMMER_SKY_MIP 3.0
+
+#define GLIMMER_MAX_ALBEDO 0.9
+
+#define GLIMMER_SUN_SWRT_DISTANCE 256.0
+
+#define GLIMMER_MASK_RAY_LEVEL_BIAS 1
+#define GLIMMER_SUN_MASK_LEVEL 2
+
+float3 GlimmerSkyRadiance(float3 direction)
+{
+    if (constants.dispatch.y == 0xFFFFu || constants.dispatch.y == 0xFFFFFFFFu)
+    {
+        return (float3)0.0;
+    }
+
+    float3 radiance = envProbesColorTexture.SampleLevel(glimmerMaterialSampler, float4(direction, float(constants.dispatch.y)), GLIMMER_SKY_MIP).rgb;
+    radiance *= constants.sky.x * world_shader_data.sky_light_params.x;
+
+    const float luminance = dot(radiance, float3(0.2126, 0.7152, 0.0722));
+    const float maxLuminance = constants.volume.params.z;
+
+    return luminance > maxLuminance ? radiance * (maxLuminance / luminance) : radiance;
+}
+
+#if defined(MODE_SHADE)
+
+float GlimmerSunVisibility(float3 P, float3 N, float3 L, bool traceSWRT)
+{
+    const float3 origin = P + N * 0.05 + L * 0.02;
+
+    float solidsFromT = 0.0;
+
+    if (traceSWRT)
+    {
+        float tFirst;
+        float tLast;
+        float tCovered;
+
+        if (GlimmerMaskTraceRay(constants.mask, GLIMMER_SUN_MASK_LEVEL, origin, L, GLIMMER_SUN_SWRT_DISTANCE, tFirst, tLast, tCovered))
+        {
+            GlimmerSWRTStats stats = GlimmerMakeSWRTStats();
+            GlimmerSWRTHit shadowHit;
+
+            if (TraceGlimmerSWRT(origin, L, tFirst, tLast, uint(constants.volume.nearField.z), true, shadowHit, stats))
+            {
+                return 0.0;
+            }
+
+            solidsFromT = tCovered;
+        }
+    }
+
+    GlimmerHeightfieldHit shadowHit;
+
+    if (GlimmerTraceHeightfield(
+        constants.ground,
+        constants.spans,
+        origin,
+        L,
+        constants.volume.params.w,
+        0u,
+        solidsFromT,
+        constants.sky.y,
+        false,
+        shadowHit))
+    {
+        return 0.0;
+    }
+
+    return shadowHit.transmittance;
+}
+
+float3 GlimmerShadeSurface(float3 P, float3 N, float3 albedo, bool traceSWRT)
+{
+    albedo = min(albedo, (float3)GLIMMER_MAX_ALBEDO);
+
+    const float3 L = normalize(world_shader_data.sun_direction_intensity.xyz);
+    const float NdotL = dot(N, L);
+
+    float3 direct = (float3)0.0;
+
+    if (NdotL > 0.0 && L.y > -0.1)
+    {
+        const float3 sunIrradiance = world_shader_data.sun_color.rgb * world_shader_data.sun_direction_intensity.w * NdotL;
+
+        direct = sunIrradiance * HYP_FMATH_ONE_OVER_PI * GlimmerSunVisibility(P, N, L, traceSWRT);
+    }
+
+    const float4 nearField = SampleGlimmerProbes(constants.volume, P + N * 0.1, N);
+
+    float4 farField = (float4)0.0;
+
+    [branch]
+    if (nearField.a < 0.999)
+    {
+        farField = EvaluateGlimmerSH(constants.sh, P + N * 0.05, N);
+    }
+
+    const float4 previous = GlimmerBlendFarField(nearField, farField);
+    const float3 indirect = previous.rgb * previous.a + GlimmerSkyRadiance(N) * 0.5 * (1.0 - previous.a);
+
+    return albedo * (direct + indirect);
+}
+
+#endif // MODE_SHADE
+
+/// 1 lane per ray, 1 probe per group
+/// NOTE must match GlimmerProbeRays and ProbesPerTraceGroup in GlimmerSWRTProbeVolume
+#define RAYS_PER_PROBE 32
+#define PROBES_PER_GROUP 1
+
+void GlimmerWriteRayHit(
+    uint rayRecordIndex,
+    float3 P,
+    float3 N,
+    float hitT,
+    uint flags,
+    float3 albedo,
+    GlimmerHeightfieldHit heightfieldHit)
+{
+    GlimmerProbeRayHit rayHit;
+    rayHit.positionT = float4(P, hitT);
+    rayHit.normalFlags = float4(N, asfloat(flags));
+    rayHit.albedoTransmittance = float4(albedo, heightfieldHit.transmittance);
+    rayHit.inscatter = float4(heightfieldHit.inscatter, 0.0);
+
+    RayHits[rayRecordIndex] = rayHit;
+}
+
+[numthreads(RAYS_PER_PROBE * PROBES_PER_GROUP, 1, 1)]
+void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+{
+    const uint listIndex = groupId.x * PROBES_PER_GROUP + groupIndex / RAYS_PER_PROBE;
+
+    if (listIndex >= min(glimmerProbeCounters[0], constants.dispatch.x))
+    {
+        return;
+    }
+
+    const uint rayLane = groupIndex % RAYS_PER_PROBE;
+    const uint numRays = constants.volume.info.y;
+
+#if defined(MODE_SHADE)
+    for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
+    {
+        const uint rayRecordIndex = listIndex * numRays + rayIndex;
+        const GlimmerProbeRayHit rayHit = RayHits[rayRecordIndex];
+
+        const uint flags = asuint(rayHit.normalFlags.w);
+
+        if (flags == GLIMMER_RAY_HIT_DONE)
+        {
+            continue;
+        }
+
+        const float3 radiance = GlimmerShadeSurface(
+            rayHit.positionT.xyz,
+            rayHit.normalFlags.xyz,
+            rayHit.albedoTransmittance.rgb,
+            flags == GLIMMER_RAY_HIT_SHADE_SWRT);
+
+        OutRays[rayRecordIndex] = float4(rayHit.inscatter.rgb + rayHit.albedoTransmittance.a * radiance, rayHit.positionT.w);
+    }
+#else
+    const uint probeIndex = glimmerProbeUpdateList[listIndex];
+    const int4 slot = glimmerProbeSlots[probeIndex / GLIMMER_PROBES_PER_BLOCK];
+    const uint levelIndex = uint(slot.w);
+
+    const GlimmerProbeLevel level = constants.volume.levels[levelIndex];
+    const float3 origin = GlimmerProbePosition(constants.volume, probeIndex, slot, glimmerProbeStates[probeIndex]);
+
+    const uint numInstances = uint(constants.volume.nearField.z);
+
+    // whether hits get sun shadows from SWRT (the shade pass asks the footprint mask before tracing)
+    const bool swrtEnabled = numInstances != 0u && float(levelIndex) < constants.volume.nearField.x;
+    const float swrtReach = constants.volume.nearField.y * level.params.x;
+
+    const float maxDistance = constants.volume.params.w;
+
+    // a probe with nothing in the footprint mask within reach has nothing for SWRT to hit
+    const float swrtRange = min(swrtReach, maxDistance);
+
+    const bool traceSWRT = swrtEnabled && GlimmerMaskAnyInBox(
+        constants.mask,
+        origin.xz - swrtRange,
+        origin.xz + swrtRange,
+        origin.y - swrtRange,
+        origin.y + swrtRange);
+
+    const uint maskLevel = levelIndex + GLIMMER_MASK_RAY_LEVEL_BIAS;
+
+    // the probes are all near the viewer, so their rays march the heightfield from its finest level
+    const uint startLevel = 0u;
+
+    for (uint rayIndex = rayLane; rayIndex < numRays; rayIndex += RAYS_PER_PROBE)
+    {
+        const float3 direction = GlimmerProbeRayDirection(constants.volume, probeIndex, rayIndex);
+        const uint rayRecordIndex = listIndex * numRays + rayIndex;
+
+        float hitT = maxDistance;
+        float3 radiance = (float3)0.0;
+        bool isDone = true;
+        bool isBackface = false;
+
+        GlimmerSWRTHit hit;
+        bool hitSWRT = false;
+
+        float swrtFirst = 0.0;
+        float swrtLast = 0.0;
+        float swrtCovered = 0.0;
+
+        // SWRT only traces the stretches of the ray the footprint mask marks occupied
+        const bool traceRay = traceSWRT && GlimmerMaskTraceRay(
+            constants.mask,
+            maskLevel,
+            origin,
+            direction,
+            swrtRange,
+            swrtFirst,
+            swrtLast,
+            swrtCovered);
+
+        if (traceRay)
+        {
+            GlimmerSWRTStats stats = GlimmerMakeSWRTStats();
+            hitSWRT = TraceGlimmerSWRT(origin, direction, swrtFirst, swrtLast, numInstances, false, hit, stats);
+
+            if (hitSWRT)
+            {
+                hitT = hit.t;
+            }
+        }
+
+        const float solidsFromT = select(traceRay, swrtCovered, 0.0);
+
+        GlimmerHeightfieldHit heightfieldHit;
+
+        g_hasCanopySurroundings = false;
+
+        const bool hitHeightfield = GlimmerTraceHeightfield(
+            constants.ground,
+            constants.spans,
+            origin,
+            direction,
+            hitT,
+            startLevel,
+            solidsFromT,
+            constants.sky.y,
+            true,
+            heightfieldHit);
+
+        if (hitHeightfield)
+        {
+            hitT = heightfieldHit.t;
+
+            const float3 P = origin + direction * hitT;
+
+            const float3 albedo = heightfieldHit.kind == GLIMMER_HEIGHTFIELD_GROUND
+                ? GlimmerSampleGroundAlbedo(glimmerGroundAlbedo, constants.ground, P.xz, heightfieldHit.level, (float3)constants.volume.nearField.w)
+                : heightfieldHit.albedo;
+
+            if (hitT > 0.0)
+            {
+                GlimmerWriteRayHit(
+                    rayRecordIndex,
+                    P + heightfieldHit.normal * 0.05,
+                    heightfieldHit.normal,
+                    hitT,
+                    select(swrtEnabled, GLIMMER_RAY_HIT_SHADE_SWRT, GLIMMER_RAY_HIT_SHADE),
+                    albedo,
+                    heightfieldHit);
+
+                isDone = false;
+            }
+        }
+        else if (hitSWRT)
+        {
+            const GlimmerInstance instance = glimmerInstances[hit.instanceIndex];
+
+            isBackface = !hit.frontFace && (instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) == 0u;
+
+            if (isBackface)
+            {
+                radiance = (float3)0.0;
+            }
+            else
+            {
+                const float3 P = origin + direction * hitT;
+                const float3 N = GlimmerGetHitNormal(hit, direction);
+
+                GlimmerWriteRayHit(
+                    rayRecordIndex,
+                    P,
+                    N,
+                    hitT,
+                    GLIMMER_RAY_HIT_SHADE_SWRT,
+                    GlimmerGetMaterialAverageAlbedo(instance.data.z),
+                    heightfieldHit);
+
+                isDone = false;
+            }
+        }
+        else
+        {
+            radiance = GlimmerSkyRadiance(direction);
+        }
+
+        if (isDone)
+        {
+            RayHits[rayRecordIndex].normalFlags.w = asfloat(GLIMMER_RAY_HIT_DONE);
+
+            OutRays[rayRecordIndex] = float4(heightfieldHit.inscatter + heightfieldHit.transmittance * radiance, select(isBackface, -hitT, hitT));
+        }
+    }
+#endif
+}

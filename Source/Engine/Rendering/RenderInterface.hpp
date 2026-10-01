@@ -155,6 +155,7 @@ struct NamedPass
         Sprite,
         SSAO,
         SkyVisibility,
+        Glimmer,
 
         Max
     };
@@ -169,6 +170,7 @@ struct NamedPass
         "Sprite",
         "SSAO",
         "SkyVisibility",
+        "Glimmer",
     };
 
     /// NOTE intentionally not explicit ctor

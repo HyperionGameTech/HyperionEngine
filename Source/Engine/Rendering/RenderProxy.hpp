@@ -337,7 +337,9 @@ struct FogVolumeShaderData
     uint32 _pad1;
     uint32 _pad2;
 
-    Vec4f _pad3;
+    Vec4f medium;   // x = density (extinction per metre at full noise), y = forward phase g, z = backward phase g, w = backward share
+    Vec4f lighting; // rgb = albedo, a = ambient intensity
+    Vec4f shape;    // x = sun intensity, y = edge fade (metres)
 };
 
 struct RenderProxyFogVolume : IRenderProxy

@@ -253,6 +253,8 @@ PSOutput PSMain(PSInput input)
     const bool isFoliage = (materialParams.mask & OBJECT_MASK_FOLIAGE) != 0;
     const float transmission = isFoliage ? GBufferUnpackTransmission(materialBits) : 0.0;
 
+    const float foliageDirectOcclusion = isFoliage ? lerp(1.0, albedo.a, 0.8) : 1.0;
+
     const float roughness = clamp(materialParams.roughness, 0.01, 0.999);
     const float metalness = materialParams.metalness;
 
@@ -387,7 +389,7 @@ PSOutput PSMain(PSInput input)
             direct_component += diffuse * FoliageTransmission(V, L, transmission);
         }
 
-        result += float4((direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
+        result += float4((direct_component * (light_color * shadow * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation)).rgb, attenuation);
 
         lightHit = true;
     }
@@ -530,7 +532,9 @@ PSOutput PSMain(PSInput input)
             nextCascadeIndex = (insideMask.z > 0.5 && cascadeIndex < 2) ? 2 : nextCascadeIndex;
             nextCascadeIndex = (insideMask.y > 0.5 && cascadeIndex < 1) ? 1 : nextCascadeIndex;
 
-            shadow = GetCascadeShadow(cascadeIndex, position.xyz, N, texcoord, NdotL);
+            const float3 shadowPosition = isFoliage ? position.xyz + L * 0.6 : position.xyz;
+
+            shadow = GetCascadeShadow(cascadeIndex, shadowPosition, N, texcoord, NdotL);
 
             // bias, normal offset and PCF footprint all scale with cascade width, so fade into the next cascade before the split
             // rather than stepping at it (most visible on large receivers like terrain)
@@ -540,7 +544,7 @@ PSOutput PSMain(PSInput input)
             [branch]
             if (nextCascadeIndex < 4 && nextCascadeWeight > 0.0)
             {
-                shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, position.xyz, N, texcoord, NdotL), nextCascadeWeight);
+                shadow = lerp(shadow, GetCascadeShadow(nextCascadeIndex, shadowPosition, N, texcoord, NdotL), nextCascadeWeight);
             }
         }
     }
@@ -601,7 +605,7 @@ PSOutput PSMain(PSInput input)
         direct_component += diffuse * FoliageTransmission(V, L, transmission);
     }
 
-    result += direct_component * (light_color * shadow * currentLight.position_intensity.w * attenuation);
+    result += direct_component * (light_color * shadow * foliageDirectOcclusion * currentLight.position_intensity.w * attenuation);
     result.a = attenuation;
 
 #ifdef LIGHT_TYPE_AREA_RECT

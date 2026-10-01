@@ -52,6 +52,9 @@ private:
 
     virtual void Resize_Internal(Vec2u newSize) override;
 
+    void CreateHistoryTextures();
+    void ResolveTemporal(Frame* frame, const RenderSetup& renderSetup);
+
     struct FogVolumePassData
     {
         class FogVolume* volume = nullptr;
@@ -79,6 +82,10 @@ private:
 
         return *it;
     }
+
+    Handle<Texture> m_historyTextures[2];
+    uint32 m_historyIndex = 0;
+    bool m_historyValid = false;
 
     Array<FogVolumePassData, RenderAllocator> m_fogVolumePassData;
     Handle<Mesh> m_volumeMesh;

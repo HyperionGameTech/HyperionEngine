@@ -21,77 +21,112 @@ namespace Hyperion {
 
 HYP_MAKE_HAS_METHOD(GetHashCode);
 
-struct FNV1
+namespace FNV1 {
+
+static constexpr uint64 OffsetBasis = 14695981039346656037ull;
+static constexpr uint64 Prime = 1099511628211ull;
+
+template <class CharType, size_t Size>
+inline constexpr uint64 DoHashString(const CharType (&str)[Size])
 {
-    static constexpr uint64 offsetBasis = 14695981039346656037ull;
-    static constexpr uint64 fnvPrime = 1099511628211ull;
+    uint64 hash = OffsetBasis;
 
-    template <class CharType, size_t Size>
-    static constexpr uint64 DoHashString(const CharType (&str)[Size])
+    for (size_t i = 0; i < Size; ++i)
     {
-        uint64 hash = offsetBasis;
-
-        for (size_t i = 0; i < Size; ++i)
+        if (!str[i])
         {
-            if (!str[i])
-            {
-                break;
-            }
-
-            hash ^= str[i];
-            hash *= fnvPrime;
+            break;
         }
 
-        return hash;
+        hash ^= str[i];
+        hash *= Prime;
     }
 
-    template <class CharType>
-    static constexpr uint64 DoHashString(const CharType* str)
+    return hash;
+}
+
+template <class CharType>
+inline constexpr uint64 DoHashString(const CharType* str)
+{
+    uint64 hash = OffsetBasis;
+
+    while (*str)
     {
-        uint64 hash = offsetBasis;
+        hash ^= *str;
+        hash *= Prime;
 
-        while (*str)
-        {
-            hash ^= *str;
-            hash *= fnvPrime;
-
-            ++str;
-        }
-
-        return hash;
+        ++str;
     }
 
-    template <class CharType>
-    static constexpr uint64 DoHashString(const CharType* _begin, const CharType* _end)
+    return hash;
+}
+
+/*! \brief Hashes every character in [_begin, _end), including any zero characters. */
+template <class CharType>
+inline constexpr uint64 DoHashString(const CharType* _begin, const CharType* _end)
+{
+    uint64 hash = OffsetBasis;
+
+    while (_begin != _end)
     {
-        uint64 hash = offsetBasis;
+        hash ^= *_begin;
+        hash *= Prime;
 
-        while (*_begin && _begin != _end)
-        {
-            hash ^= *_begin;
-            hash *= fnvPrime;
-
-            ++_begin;
-        }
-
-        return hash;
+        ++_begin;
     }
 
-    static constexpr uint64 DoHashBytes(const ubyte* _begin, const ubyte* _end)
+    return hash;
+}
+
+template <class CharType>
+inline constexpr uint64 DoHashTerminatedString(const CharType* _begin, const CharType* _end)
+{
+    uint64 hash = OffsetBasis;
+
+    while (_begin != _end && *_begin)
     {
-        uint64 hash = offsetBasis;
+        hash ^= *_begin;
+        hash *= Prime;
 
-        while (_begin != _end)
-        {
-            hash ^= *_begin;
-            hash *= fnvPrime;
-
-            ++_begin;
-        }
-
-        return hash;
+        ++_begin;
     }
-};
+
+    return hash;
+}
+
+inline constexpr uint64 DoHashBytes(const ubyte* _begin, const ubyte* _end)
+{
+    uint64 hash = OffsetBasis;
+
+    while (_begin != _end)
+    {
+        hash ^= *_begin;
+        hash *= Prime;
+
+        ++_begin;
+    }
+
+    return hash;
+}
+
+/*! \brief FNV-1a over words rather than bytes, for hashing large POD arrays quickly.
+ *  Any bytes past the last whole word are ignored!
+ *  \note Chain calls by passing the previous result as `seed`. */
+inline uint64 DoHashWords(const void* data, size_t byteSize, uint64 seed = 0)
+{
+    const uint64* words = static_cast<const uint64*>(data);
+
+    uint64 hash = seed ^ (OffsetBasis + byteSize);
+
+    for (size_t wordIndex = 0; wordIndex < byteSize / sizeof(uint64); wordIndex++)
+    {
+        hash ^= words[wordIndex];
+        hash *= Prime;
+    }
+
+    return hash;
+}
+} // namespace FNV1
 
 HYP_STRUCT()
 struct HashCode
@@ -356,4 +391,5 @@ private:
         value ^= other.value + 0x9e3779b9 + (value << 6) + (value >> 2);
     }
 };
+
 } // namespace Hyperion

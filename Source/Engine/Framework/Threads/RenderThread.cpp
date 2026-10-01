@@ -190,14 +190,11 @@ void RenderThread::Update()
 
         if (skipRenderingValue < 1)
         {
-            if (g_cvSkipRenderingWhenIdle.Get() > 0)
-            {
-                const bool skipRenderingThisFrame = isIdle;
+            const bool skipRenderingThisFrame = g_cvSkipRenderingWhenIdle.Get() > 0 && isIdle;
 
-                if ((skipRenderingValue != 0) != skipRenderingThisFrame)
-                {
-                    g_cvSkipRendering.Set(skipRenderingThisFrame ? -1 : 0);
-                }
+            if ((skipRenderingValue != 0) != skipRenderingThisFrame)
+            {
+                g_cvSkipRendering.Set(skipRenderingThisFrame ? -1 : 0);
             }
         }
     }

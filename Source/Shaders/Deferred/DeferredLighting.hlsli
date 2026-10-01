@@ -8,6 +8,9 @@
 // how much of the sky this pixel can see; DeferredIndirect sets it per pixel, everything else leaves it open
 static float g_skyVisibility = 1.0;
 
+// Glimmer irradiance / pi
+static float4 g_glimmerIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+
 struct Refraction
 {
     float3 position;
@@ -402,6 +405,14 @@ void EvaluateEnvProbes(
         skyIrradianceCoverage = saturate(skyIrradianceCoverageSum);
     }
 #endif // DEFERRED_LIGHTING_HAS_SKY
+
+    const float glimmerWeight = g_glimmerIrradiance.a * (1.0 - lightmappedWeight);
+
+    if (glimmerWeight > 0.0)
+    {
+        skyIrradiance = lerp(skyIrradiance, g_glimmerIrradiance.rgb, glimmerWeight);
+        skyIrradianceCoverage = max(skyIrradianceCoverage, glimmerWeight);
+    }
 
     //////////////////////////////////////////////////
 

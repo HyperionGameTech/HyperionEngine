@@ -19,6 +19,8 @@
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
 
+#include <Rendering/Glimmer/GlimmerSystem.hpp>
+
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
 #include <Scene/Systems/AnimationSystem.hpp>
@@ -294,6 +296,9 @@ void World::Initialize()
 
     if (!HasSystem<TerrainLodSystem>())
         AddSystem(MakeHandle<TerrainLodSystem>());
+
+    if (!HasSystem<GlimmerSystem>() && !EngineGlobals::IsHeadless())
+        AddSystem(MakeHandle<GlimmerSystem>());
 
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());

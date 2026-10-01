@@ -44,10 +44,10 @@ struct CloudShapeSettings
     HYP_STRUCT_BODY(CloudShapeSettings);
 
     HYP_FIELD(Property = "Coverage", Serialize, Label = "Cloud Coverage")
-    float coverage = 0.3f;
+    float coverage = 0.4f;
 
     HYP_FIELD(Property = "CloudTypeBias", Serialize, Label = "Cloud Type Bias")
-    float cloudTypeBias = 0.5f;
+    float cloudTypeBias = 0.6f;
 
     HYP_FIELD(Property = "DensityMultiplier", Serialize, Label = "Density Multiplier")
     float densityMultiplier = 1.0f;
@@ -65,7 +65,7 @@ struct CloudNoiseSettings
     float weatherScale = 12000.0f;
 
     HYP_FIELD(Property = "CloudSize", Serialize, Label = "Cloud Size")
-    float cloudSize = 1500.0f;
+    float cloudSize = 2200.0f;
 
     HYP_FIELD(Property = "ShapeScale", Serialize, Label = "Shape Scale")
     float shapeScale = 3000.0f;
@@ -137,10 +137,10 @@ struct SkyLookSettings
     HYP_STRUCT_BODY(SkyLookSettings);
 
     HYP_FIELD(Property = "Tint", Serialize, Label = "Tint")
-    Vec3f tint = Vec3f(1.0f);
+    Vec3f tint = Vec3f(0.84f, 0.97f, 1.18f);
 
     HYP_FIELD(Property = "Intensity", Serialize, Label = "Intensity")
-    float intensity = 1.0f;
+    float intensity = 3.4f;
 
     HYP_FIELD(Property = "OvercastBrightness", Serialize, Label = "Overcast Brightness")
     float overcastBrightness = 1.0f;
@@ -155,7 +155,7 @@ struct SkyLightSettings
     HYP_STRUCT_BODY(SkyLightSettings);
 
     HYP_FIELD(Property = "DiffuseIntensity", Serialize, Label = "Diffuse Intensity")
-    float diffuseIntensity = 1.7f;
+    float diffuseIntensity = 0.7f;
 
     HYP_FIELD(Property = "SpecularIntensity", Serialize, Label = "Specular Intensity")
     float specularIntensity = 1.0f;
@@ -176,25 +176,25 @@ struct ExposureSettings
     HYP_STRUCT_BODY(ExposureSettings);
 
     HYP_FIELD(Property = "ExposureCompensation", Serialize, Label = "Exposure Compensation")
-    float exposureCompensation = 0.6f;
+    float exposureCompensation = 0.65f;
 
     HYP_FIELD(Property = "TonemapOperator", Serialize, Label = "Tonemapper")
     TonemapOperator tonemapOperator = TonemapOperator::AgXPunchy;
 
     HYP_FIELD(Property = "WhiteBalanceTemperature", Serialize, Label = "Temperature")
-    float whiteBalanceTemperature = 0.0f;
+    float whiteBalanceTemperature = 0.06f;
 
     HYP_FIELD(Property = "WhiteBalanceTint", Serialize, Label = "Tint")
     float whiteBalanceTint = 0.0f;
 
     HYP_FIELD(Property = "Saturation", Serialize, Label = "Saturation")
-    float saturation = 0.92f;
+    float saturation = 0.48f;
 
     HYP_FIELD(Property = "Contrast", Serialize, Label = "Contrast")
-    float contrast = 0.92f;
+    float contrast = 1.25f;
 
     HYP_FIELD(Property = "Vignette", Serialize, Label = "Vignette")
-    float vignette = 0.35f;
+    float vignette = 0.25f;
 };
 
 HYP_STRUCT()
@@ -206,28 +206,28 @@ struct HeightFogSettings
     bool enabled = true;
 
     HYP_FIELD(Property = "Density", Serialize, Label = "Density")
-    float density = 0.0012f;
+    float density = 0.0007f;
 
     HYP_FIELD(Property = "HeightFalloff", Serialize, Label = "Height Falloff")
-    float heightFalloff = 0.03f;
+    float heightFalloff = 0.035f;
 
     HYP_FIELD(Property = "BaseHeight", Serialize, Label = "Base Height")
     float baseHeight = 0.0f;
 
     HYP_FIELD(Property = "StartDistance", Serialize, Label = "Start Distance")
-    float startDistance = 60.0f;
+    float startDistance = 40.0f;
 
     HYP_FIELD(Property = "AerialPerspectiveDistance", Serialize, Label = "Aerial Perspective Distance")
-    float aerialPerspectiveDistance = 3500.0f;
+    float aerialPerspectiveDistance = 2000.0f;
 
     HYP_FIELD(Property = "SkyInscatter", Serialize, Label = "Sky Inscatter")
-    float skyInscatterStrength = 1.0f;
+    float skyInscatterStrength = 0.9f;
 
     HYP_FIELD(Property = "SunInscatter", Serialize, Label = "Sun Inscatter")
-    float sunInscatterStrength = 0.35f;
+    float sunInscatterStrength = 0.6f;
 
     HYP_FIELD(Property = "SunAnisotropy", Serialize, Label = "Sun Anisotropy")
-    float sunAnisotropy = 0.6f;
+    float sunAnisotropy = 0.8f;
 
     HYP_FIELD(Property = "MaxOpacity", Serialize, Label = "Max Opacity")
     float maxOpacity = 1.0f;
@@ -256,7 +256,7 @@ struct GlobalIlluminationSettings
     HYP_STRUCT_BODY(GlobalIlluminationSettings);
 
     HYP_FIELD(Property = "DDGIEnabled", Serialize, Label = "Dynamic Diffuse GI (DDGI)")
-    bool ddgiEnabled = true;
+    bool ddgiEnabled = false;
 
     HYP_FIELD(Property = "RayTracedReflectionsEnabled", Serialize, Label = "Ray Traced Reflections")
     bool rayTracedReflectionsEnabled = true;

@@ -465,6 +465,59 @@ DEFINE_EDITOR_COMMAND(MoveEditorCamera);
 
 #pragma endregion MoveEditorCamera
 
+#pragma region LogEditorCamera
+
+class EditorCommandLogEditorCamera final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandLogEditorCamera);
+
+public:
+    virtual ~EditorCommandLogEditorCamera() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Log Editor Camera";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Camera* camera = nullptr;
+
+        if (EditorViewport* activeViewport = subsystem->GetActiveViewport())
+        {
+            camera = activeViewport->GetCamera();
+        }
+
+        if (!camera && g_editorState.IsValid())
+        {
+            camera = g_editorState->GetEditorCamera();
+        }
+
+        if (!camera)
+        {
+            HYP_LOG(Editor, Warning, "no editor camera");
+
+            return;
+        }
+
+        const Vec3f translation = camera->GetWorldTranslation();
+        const Vec3f direction = camera->GetDirection();
+
+        HYP_LOG(Editor, Info, "MoveEditorCamera {} {} {} {} {} {}", translation.x, translation.y, translation.z, direction.x, direction.y, direction.z);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(LogEditorCamera);
+
+#pragma endregion LogEditorCamera
+
 #pragma region Copy
 
 class EditorCommandCopy final : public EditorCommandBase

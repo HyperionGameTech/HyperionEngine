@@ -684,7 +684,7 @@ public:
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode(::Hyperion::FNV1::DoHashString(m_begin, m_end));
+        return HashCode(::Hyperion::FNV1::DoHashTerminatedString(m_begin, m_end));
     }
 
     HYP_NODISCARD constexpr Iterator Begin() const

@@ -49,6 +49,7 @@ MeshComponent& MeshComponent::operator=(const MeshComponent& other)
     lodBias = other.lodBias;
     instanceData = other.instanceData;
     previousModelMatrix = other.previousModelMatrix;
+    userData = other.userData;
 
     return *this;
 }
@@ -84,6 +85,7 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
     lodBias = other.lodBias;
     instanceData = std::move(other.instanceData);
     previousModelMatrix = std::move(other.previousModelMatrix);
+    userData = std::move(other.userData);
 
     return *this;
 }

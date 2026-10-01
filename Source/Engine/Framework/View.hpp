@@ -69,7 +69,7 @@ enum class ViewFlags : uint32
     NO_FRUSTUM_CULLING = 0x10,      //!< If set, the view will not perform frustum culling. This is useful for debugging or when you want to render everything regardless of visibility.
 
     SKIP_ENV_PROBES = 0x20,         //!< If set, the view will not collect EnvProbes
-    //SKIP_PROBE_VOLUMES = 0x40,    //!< If set, the view will not collect ProbeVolumes.
+    GLIMMER_SCENE_VIEW = 0x40,      //!< Collects the static solids around the viewer for Glimmer's software ray tracing scene. Sets its own matrices, never drawn.
     SKIP_LIGHTS = 0x80,             //!< If set, the view will not collect Lights.
     SKIP_LIGHTMAP_VOLUMES = 0x100,  //!< If set, the view will not collect LightmapVolumes.
     SKIP_PARTICLE_VOLUMES = 0x200,  //!< If set, the view will not collect ParticleVolumes.
@@ -235,7 +235,7 @@ public:
     /// true for views that only draw light blockers
     HYP_FORCE_INLINE bool IsShadowCasterView() const
     {
-        return bool(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::SKY_VISIBILITY_VIEW));
+        return bool(flags & (ViewFlags::SHADOW_VIEW | ViewFlags::SKY_VISIBILITY_VIEW | ViewFlags::GLIMMER_SCENE_VIEW));
     }
 
     HYP_METHOD()

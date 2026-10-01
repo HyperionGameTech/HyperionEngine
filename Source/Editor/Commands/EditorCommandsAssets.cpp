@@ -908,6 +908,103 @@ DEFINE_EDITOR_COMMAND(ScatterInstances);
 
 #pragma endregion ScatterInstances
 
+#pragma region SampleTerrainHeight
+
+class EditorCommandSampleTerrainHeight final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSampleTerrainHeight);
+
+public:
+    virtual ~EditorCommandSampleTerrainHeight() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Sample Terrain Height";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+        if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "SampleTerrainHeight: no world grid");
+            return;
+        }
+
+        Handle<TerrainWorldGridLayer> terrainLayer;
+
+        for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+        {
+            if ((terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer)).IsValid())
+            {
+                break;
+            }
+        }
+
+        if (!terrainLayer.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "SampleTerrainHeight: no terrain layer");
+            return;
+        }
+
+        const auto parseFloat = [this](int index)
+        {
+            float value = 0.0f;
+
+            if (index < NumArguments())
+            {
+                StringUtil::Parse(GetArgument(index), &value);
+            }
+
+            return value;
+        };
+
+        if (NumArguments() >= 1 && GetArgument(0) == "grid")
+        {
+            const Vec2f center { parseFloat(1), parseFloat(2) };
+            const float extent = parseFloat(3);
+            const int steps = MathUtil::Clamp(int(parseFloat(4)), 1, 64);
+
+            for (int row = 0; row <= steps; row++)
+            {
+                const float z = center.y - extent + 2.0f * extent * float(row) / float(steps);
+
+                String rowText;
+
+                for (int column = 0; column <= steps; column++)
+                {
+                    const float x = center.x - extent + 2.0f * extent * float(column) / float(steps);
+
+                    rowText = rowText + HYP_FORMAT("{} ", int(MathUtil::Round(terrainLayer->SampleHeightAtBlocking(Vec2f(x, z)))));
+                }
+
+                HYP_LOG(Editor, Info, "SampleTerrainHeight z={}: {}", z, rowText);
+            }
+
+            return;
+        }
+
+        for (int index = 0; index + 1 < NumArguments(); index += 2)
+        {
+            const Vec2f position { parseFloat(index), parseFloat(index + 1) };
+
+            HYP_LOG(Editor, Info, "SampleTerrainHeight {} {}: {}", position.x, position.y, terrainLayer->SampleHeightAtBlocking(position));
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SampleTerrainHeight);
+
+#pragma endregion SampleTerrainHeight
+
 #pragma region NewGroundCover
 
 /// Arguments: optionally the asset name, then prefab[:weight[:splat layer | paint]] per type, and --apply to give it to the active world's terrain.
