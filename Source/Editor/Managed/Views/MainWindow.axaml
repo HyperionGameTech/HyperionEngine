@@ -1281,7 +1281,7 @@
                                         Title="Scene"
                                         Id="SceneHierarchy">
                                         <ContentControl DataContext="{Binding Source={x:Static vm:MainWindowViewModel.Instance}}">
-                                            <Grid RowDefinitions="Auto, *">
+                                            <Grid RowDefinitions="Auto, *, Auto">
                                                 <Border Grid.Row="0" Classes="panel-header">
                                                     <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
                                                         <DropDownButton
@@ -1290,16 +1290,50 @@
                                                             HorizontalAlignment="Left"
                                                             VerticalAlignment="Center"
                                                             Background="Transparent"
-                                                            BorderThickness="0">
-                                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                                <TextBlock
-                                                                    VerticalAlignment="Center"
-                                                                    Classes="header"
-                                                                    Text="{Binding ActiveScene.Name, FallbackValue='No Active Scene'}" />
-                                                            </StackPanel>
+                                                            BorderThickness="0"
+                                                            ToolTip.Tip="{Binding SceneSelectorTooltip}">
+                                                            <Panel>
+                                                                <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsEditingPrefab}">
+                                                                    <TextBlock
+                                                                        VerticalAlignment="Center"
+                                                                        Classes="header"
+                                                                        Text="{Binding ActiveScene.Name, FallbackValue='No Active Scene'}" />
+                                                                </StackPanel>
+                                                                <Border
+                                                                    Padding="6,1"
+                                                                    Background="{DynamicResource DockApplicationAccentBrushLow}"
+                                                                    BorderBrush="{DynamicResource DockApplicationAccentBrushHigh}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="3"
+                                                                    IsVisible="{Binding IsEditingPrefab}">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                        <TextBlock
+                                                                            VerticalAlignment="Center"
+                                                                            Classes="header"
+                                                                            Foreground="{DynamicResource DockApplicationAccentBrushMed}"
+                                                                            Text="&#x25C6;" />
+                                                                        <TextBlock
+                                                                            VerticalAlignment="Center"
+                                                                            Classes="header"
+                                                                            Text="{Binding EditingPrefabName}" />
+                                                                        <TextBlock
+                                                                            VerticalAlignment="Center"
+                                                                            Classes="header"
+                                                                            Foreground="{DynamicResource DockApplicationAccentBrushMed}"
+                                                                            IsVisible="{Binding IsEditingPrefabDirty}"
+                                                                            Text="&#x2022;" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </Panel>
                                                             <DropDownButton.Flyout>
                                                                 <Flyout Placement="Bottom">
                                                                     <StackPanel MinWidth="150">
+                                                                        <StackPanel IsVisible="{Binding IsEditingPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem
+                                                                                Command="{Binding ExitPrefabEditCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                Header="Exit Prefab Edit" />
+                                                                            <Separator />
+                                                                        </StackPanel>
                                                                         <ItemsControl ItemsSource="{Binding Scenes}">
                                                                             <ItemsControl.ItemTemplate>
                                                                                 <DataTemplate x:DataType="vm:SceneViewModel">
@@ -1315,7 +1349,7 @@
                                                                         <MenuItem
                                                                             Command="{Binding AddNewSceneCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="Add New Scene..."
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            IsEnabled="{Binding CanAddNewScene, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                     </StackPanel>
                                                                 </Flyout>
                                                             </DropDownButton.Flyout>
@@ -1492,6 +1526,7 @@
                                                                                 <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
                                                                                     <Binding Path="!IsOutsideSelection" />
                                                                                     <Binding Path="!IsPrefabInstance" />
+                                                                                    <Binding Path="CanUsePrefabActions" />
                                                                                 </MultiBinding>
                                                                             </MenuItem.IsVisible>
                                                                         </MenuItem>
@@ -1505,6 +1540,7 @@
                                                                                 <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
                                                                                     <Binding Path="IsOutsideSelection" />
                                                                                     <Binding Path="!IsPrefabInstance" />
+                                                                                    <Binding Path="CanUsePrefabActions" />
                                                                                 </MultiBinding>
                                                                             </MenuItem.IsVisible>
                                                                         </MenuItem>
@@ -1512,7 +1548,6 @@
                                                                         <MenuItem
                                                                             Header="Add to Prefab"
                                                                             IsEnabled="{Binding HasAddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding !IsPrefabInstance}"
                                                                             ItemsSource="{Binding AddToPrefabTargets, Source={x:Static vm:MainWindowViewModel.Instance}}">
                                                                             <MenuItem.ItemContainerTheme>
                                                                                 <ControlTheme
@@ -1523,13 +1558,37 @@
                                                                                     <Setter Property="Command" Value="{Binding AddToPrefabCommand}" />
                                                                                 </ControlTheme>
                                                                             </MenuItem.ItemContainerTheme>
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="!IsPrefabInstance" />
+                                                                                    <Binding Path="CanUsePrefabActions" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
+                                                                        </MenuItem>
+                                                                        <MenuItem
+                                                                            Command="{Binding EditPrefabCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                            CommandParameter="{Binding SourcePrefabName}"
+                                                                            Header="{Binding EditPrefabHeader}"
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="IsPrefabInstance" />
+                                                                                    <Binding Path="CanUsePrefabActions" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
                                                                         </MenuItem>
                                                                         <MenuItem
                                                                             Command="{Binding SavePrefab, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             CommandParameter="{Binding UUID}"
                                                                             Header="{Binding SavePrefabHeader}"
-                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                            IsVisible="{Binding IsPrefabInstance}" />
+                                                                            IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                            <MenuItem.IsVisible>
+                                                                                <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                                                    <Binding Path="IsPrefabInstance" />
+                                                                                    <Binding Path="CanUsePrefabActions" />
+                                                                                </MultiBinding>
+                                                                            </MenuItem.IsVisible>
+                                                                        </MenuItem>
                                                                         <MenuItem
                                                                             Command="{Binding SaveAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding MakeTemplateHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -1561,6 +1620,39 @@
                                                         </TreeDataTemplate>
                                                     </TreeView.ItemTemplate>
                                                 </TreeView>
+
+                                                <Border
+                                                    Grid.Row="2"
+                                                    Padding="8,6"
+                                                    Background="{DynamicResource Brush.PanelAlt}"
+                                                    BorderBrush="{DynamicResource Brush.Border}"
+                                                    BorderThickness="0,1,0,0"
+                                                    IsVisible="{Binding IsEditingPrefab}">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock
+                                                            Grid.Column="0"
+                                                            Margin="0,0,8,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="11"
+                                                            Foreground="{DynamicResource Brush.TextMuted}"
+                                                            Text="{Binding EditingPrefabName, StringFormat='Editing prefab {0}'}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <StackPanel
+                                                            Grid.Column="1"
+                                                            Orientation="Horizontal"
+                                                            Spacing="6">
+                                                            <Button
+                                                                Padding="14,4"
+                                                                Command="{Binding RevertPrefabEditCommand}"
+                                                                Content="Revert" />
+                                                            <Button
+                                                                Padding="14,4"
+                                                                Classes="Primary"
+                                                                Command="{Binding ApplyPrefabEditCommand}"
+                                                                Content="Apply" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
                                             </Grid>
                                         </ContentControl>
                                     </Tool>

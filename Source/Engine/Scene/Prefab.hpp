@@ -12,12 +12,14 @@
 
 #include <Core/Name/Name.hpp>
 #include <Core/Containers/String.hpp>
+#include <Core/Containers/Array.hpp>
 
 #include <Core/Functional/Delegate.hpp>
 
 namespace Hyperion {
 
 class Node;
+class World;
 
 extern void Prefab_OnPostLoad(class Prefab&);
 
@@ -44,11 +46,18 @@ public:
     HYP_METHOD()
     void SetRoot(const Handle<Node>& root);
 
+    HYP_METHOD()
+    uint32 GetRevision() const;
+
+    void SetRevision(uint32 revision);
+
     ///Renames the root node to match this Prefab's name 
     void SyncRootName();
 
     HYP_METHOD()
     Handle<Node> Spawn() const;
+
+    Handle<Node> SpawnReplacementFor(const Node* instance) const;
 
     HYP_METHOD()
     static Handle<Prefab> Find(const ANSIStringView& nameStr);
@@ -56,16 +65,26 @@ public:
     ///Look up a registered Prefab asset by its UUID
     static Handle<Prefab> FindByUUID(const UUID& uuid);
 
+    ///Every live instance of this Prefab across the world's foreground scenes
+    Array<Handle<Node>> FindLiveInstances(const World* world) const;
+
     static UUID GetSourcePrefabUUID(const Node* node);
 
-    static void TagAsPrefabInstance(Node* node, const UUID& prefabUUID);
+    static uint32 GetInstanceRevision(const Node* node);
+
+    static void TagAsPrefabInstance(Node* node, const UUID& prefabUUID, uint32 revision = 0);
     static void UntagAsPrefabInstance(Node* node);
+
+    static uint32 SyncStaleInstances(Node* root);
 
     static Delegate<void, Prefab*> OnPrefabChanged;
 
 private:
     HYP_FIELD(Property = "Root", Serialize)
     Handle<Node> m_root;
+
+    HYP_FIELD(Property = "Revision", Serialize)
+    uint32 m_revision = 0;
 };
 
 } // namespace Hyperion

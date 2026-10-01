@@ -318,7 +318,7 @@ namespace Hyperion.Editor.ViewModels
 
             if (project != null)
             {
-                project.ActionStack.PushAction(action);
+                (EngineManager.GetActionStackFor(null) ?? project.ActionStack).PushAction(action);
             }
             else
             {

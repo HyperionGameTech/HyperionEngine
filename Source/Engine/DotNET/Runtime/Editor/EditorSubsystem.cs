@@ -54,6 +54,8 @@ namespace Hyperion
 
         public EditorCsgState? EditorCsgState => InvokeNativeMethod<EditorCsgState>(new Name("GetCsgState"));
 
+        public EditorPrefabEditState? EditorPrefabEditState => InvokeNativeMethod<EditorPrefabEditState>(new Name("GetPrefabEditState"));
+
         public void ExecuteCommandByName(Name commandName, params string[] arguments)
         {
             this.InvokeNativeMethod(new Name("ExecuteCommandByName"), new object[] { commandName, string.Join(" ", arguments) });

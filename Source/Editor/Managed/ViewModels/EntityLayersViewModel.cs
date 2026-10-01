@@ -174,7 +174,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorProject? project = EngineManager.CurrentProject;
                 Debug.Assert(project != null, "No active project found when adding an entity to a layer");
 
-                project?.ActionStack?.PushAction(new EditorAction(
+                (EngineManager.GetActionStackFor(capturedEntity) ?? project?.ActionStack)?.PushAction(new EditorAction(
                     $"Add to Layer: {layerName}",
                     execute: (_, _) => capturedEntity.AddToLayerByName(name),
                     revert: (_, _) => capturedEntity.RemoveFromLayerByName(name)));
@@ -214,7 +214,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorProject? project = EngineManager.CurrentProject;
                 Debug.Assert(project != null, "No active project found when creating a new layer");
 
-                project?.ActionStack?.PushAction(new EditorAction(
+                (EngineManager.GetActionStackFor(capturedEntity) ?? project?.ActionStack)?.PushAction(new EditorAction(
                     $"New Layer: {layerName}",
                     execute: (_, _) =>
                     {
@@ -254,7 +254,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorProject? project = EngineManager.CurrentProject;
                 Debug.Assert(project != null, "No active project found when removing an entity from a layer");
 
-                project?.ActionStack?.PushAction(new EditorAction(
+                (EngineManager.GetActionStackFor(capturedEntity) ?? project?.ActionStack)?.PushAction(new EditorAction(
                     $"Remove Layer: {layerName}",
                     execute: (_, _) => capturedEntity.RemoveFromLayerByName(name),
                     revert: (_, _) => capturedEntity.AddToLayerByName(name)));

@@ -25,6 +25,12 @@
 
 namespace Hyperion {
 
+/// @TODO Move to a new EditorHelpers
+static bool IsWorldSceneShownInViewport(const Scene* scene)
+{
+    return (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND;
+}
+
 EditorViewport::EditorViewport(const Handle<Camera>& camera)
     : m_camera(camera),
       m_view(nullptr),
@@ -97,16 +103,26 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
     const Handle<World>& world = currentProject->GetWorld();
     Assert(world.IsValid());
 
-    for (const Handle<Scene>& scene : world->GetScenes())
+    if (m_isolatedScenes.Any())
     {
-        Assert(scene != nullptr);
-
-        if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+        for (const WeakHandle<Scene>& isolatedSceneWeak : m_isolatedScenes)
         {
-            continue;
+            m_view->AddScene(isolatedSceneWeak.Lock().Get());
         }
+    }
+    else
+    {
+        for (const Handle<Scene>& scene : world->GetScenes())
+        {
+            Assert(scene != nullptr);
 
-        m_view->AddScene(scene);
+            if (!IsWorldSceneShownInViewport(scene.Get()))
+            {
+                continue;
+            }
+
+            m_view->AddScene(scene);
+        }
     }
 
     world->AddView(m_view);
@@ -134,6 +150,13 @@ void EditorViewport::OnRemoved(EditorSubsystem* editorSubsystem)
         m_view->RemoveScene(scene);
     }
 
+    for (const WeakHandle<Scene>& isolatedSceneWeak : m_isolatedScenes)
+    {
+        m_view->RemoveScene(isolatedSceneWeak.Lock().Get());
+    }
+
+    m_isolatedScenes.Clear();
+
     world->RemoveView(m_view);
 }
 
@@ -141,7 +164,7 @@ void EditorViewport::OnSceneAdded(Scene* scene)
 {
     Assert(scene != nullptr);
 
-    if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
+    if (m_isolatedScenes.Any() || !IsWorldSceneShownInViewport(scene))
     {
         return;
     }
@@ -154,6 +177,50 @@ void EditorViewport::OnSceneRemoved(Scene* scene)
     Assert(scene != nullptr);
 
     m_view->RemoveScene(scene);
+}
+
+void EditorViewport::SetIsolatedScenes(EditorSubsystem* editorSubsystem, const Array<Handle<Scene>>& scenes)
+{
+    for (const WeakHandle<Scene>& isolatedSceneWeak : m_isolatedScenes)
+    {
+        m_view->RemoveScene(isolatedSceneWeak.Lock().Get());
+    }
+
+    m_isolatedScenes.Clear();
+
+    const Handle<EditorProject>& currentProject = editorSubsystem->GetCurrentProject();
+    const World* world = currentProject.IsValid() ? currentProject->GetWorld().Get() : nullptr;
+
+    if (world)
+    {
+        for (const Handle<Scene>& scene : world->GetScenes())
+        {
+            if (!scene.IsValid() || !IsWorldSceneShownInViewport(scene.Get()))
+            {
+                continue;
+            }
+
+            if (scenes.Any())
+            {
+                m_view->RemoveScene(scene);
+            }
+            else
+            {
+                m_view->AddScene(scene);
+            }
+        }
+    }
+
+    for (const Handle<Scene>& scene : scenes)
+    {
+        if (!scene.IsValid())
+        {
+            continue;
+        }
+
+        m_isolatedScenes.PushBack(scene.ToWeak());
+        m_view->AddScene(scene);
+    }
 }
 
 } // namespace Hyperion

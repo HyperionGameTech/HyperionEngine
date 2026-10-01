@@ -9,6 +9,7 @@
 #include <Editor/Tasks/EditorTasks.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
+#include <Editor/Prefab/EditorPrefabEditState.hpp>
 
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>

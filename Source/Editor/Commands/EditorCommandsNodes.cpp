@@ -85,7 +85,7 @@ void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 
     InitObject(action);
 
-    currentProject->GetActionStack()->PushAction(action);
+    subsystem->GetSceneActionStack()->PushAction(action);
 }
 
 struct DeletedInstance
@@ -531,7 +531,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 
 private:
@@ -889,7 +889,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 
 private:
@@ -914,6 +914,11 @@ public:
     virtual String GetText() const override
     {
         return m_text.Length() ? m_text : EditorCommandBase::GetText();
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -1127,7 +1132,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 
 private:
@@ -1338,7 +1343,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
