@@ -481,7 +481,9 @@ struct EnqueueDeletionImpl<Handle<T>>
         if (!instance.IsInitialized())
         {
             // just destruct it
-            DeletionQueueElem<Handle<T>>(std::forward<Handle<T>>(value));
+            DeletionQueueElem<Handle<T>> tmp(std::forward<Handle<T>>(value));
+            tmp.Destroy(&tmp);
+
             return;
         }
 
@@ -505,7 +507,9 @@ struct EnqueueDeletionImpl<T*>
         if (!instance.IsInitialized())
         {
             // just destruct it
-            DeletionQueueElem<std::remove_const_t<T>*> { value };
+            DeletionQueueElem<std::remove_const_t<T>*> tmp { value };
+            tmp.Destroy(&tmp);
+
             return;
         }
 
