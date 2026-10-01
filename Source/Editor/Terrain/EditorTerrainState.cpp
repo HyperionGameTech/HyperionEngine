@@ -281,16 +281,7 @@ bool EditorTerrainState::CanEnterTerrainTools() const
 {
     AssertOnThread(g_simThread);
 
-    // The tools edit the source world; simulation runs against a throwaway snapshot of it, so any
-    // edits made while simulating would be discarded when it stops.
-    if (m_subsystem->IsSimulating())
-    {
-        HYP_LOG(Editor, Warning, "Cannot use the terrain tools while simulation is active");
-
-        return false;
-    }
-
-    return true;
+    return !m_subsystem->IsSimulating() && !m_subsystem->IsEditingPrefab();
 }
 
 bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) const

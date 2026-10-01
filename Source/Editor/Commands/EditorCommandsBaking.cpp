@@ -105,6 +105,11 @@ public:
         return "Build Reflection Probes";
     }
 
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         Handle<Scene> activeScene = subsystem->GetActiveScene();
@@ -185,6 +190,11 @@ public:
     virtual String GetText() const override
     {
         return "Build Irradiance Probes";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -269,6 +279,11 @@ public:
         return "Build Lightmap Volumes";
     }
 
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         Handle<Scene> activeScene = subsystem->GetActiveScene();
@@ -341,6 +356,11 @@ public:
     virtual String GetText() const override
     {
         return "Build Static Shadows";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -432,6 +452,11 @@ public:
         return "Build Fog Volumes";
     }
 
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         Handle<Scene> activeScene = subsystem->GetActiveScene();
@@ -505,6 +530,11 @@ public:
     virtual String GetText() const override
     {
         return "Build Bent Normals";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override

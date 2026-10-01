@@ -461,7 +461,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorProject? project = EngineManager.CurrentProject;
                 Debug.Assert(project != null, "No active project found when setting script");
 
-                project.ActionStack.PushAction(new EditorAction(
+                (EngineManager.GetActionStackFor(capturedEntity) ?? project.ActionStack).PushAction(new EditorAction(
                     scriptAsset != null ? "Set Script" : "Clear Script",
                     execute: (_, _) => ApplyValue(capturedNewValue),
                     revert: (_, _) => ApplyValue(capturedOldValue)));

@@ -770,7 +770,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
 
         HYP_LOG(Editor, Verbose, "Pasted {} node(s) to scene", newNodesWithParents.Size());
     }

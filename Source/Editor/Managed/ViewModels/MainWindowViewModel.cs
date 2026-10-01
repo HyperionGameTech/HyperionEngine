@@ -18,6 +18,17 @@ using System.Windows.Input;
 
 namespace Hyperion.Editor.ViewModels
 {
+    public struct PrefabEditStateSnapshot
+    {
+        public bool Active;
+        public bool Dirty;
+        public string PrefabName = string.Empty;
+
+        public PrefabEditStateSnapshot()
+        {
+        }
+    }
+
     public class MainWindowViewModel : ViewModelBase, IDisposable
     {
         private string _title = "Hyperion";
@@ -758,6 +769,21 @@ namespace Hyperion.Editor.ViewModels
 
         private CsgPanelViewModel? _csgPanel;
 
+        private PrefabEditStateSnapshot _prefabEditState = new PrefabEditStateSnapshot();
+
+        public bool IsEditingPrefab => _prefabEditState.Active;
+        public string EditingPrefabName => _prefabEditState.PrefabName;
+        public bool IsEditingPrefabDirty => _prefabEditState.Active && _prefabEditState.Dirty;
+
+        public string? SceneSelectorTooltip => IsEditingPrefab
+            ? $"Editing prefab '{EditingPrefabName}'. Pick a scene to exit prefab edit mode."
+            : null;
+
+        public ICommand EditPrefabCommand { get; private set; }
+        public ICommand ApplyPrefabEditCommand { get; private set; }
+        public ICommand RevertPrefabEditCommand { get; private set; }
+        public ICommand ExitPrefabEditCommand { get; private set; }
+
         public ICommand ToggleCsgMode { get; private set; }
         public bool IsCsgModeEnabled => _csgState.Enabled;
         public bool CanEnableCsgMode => _csgState.CanEnable;
@@ -922,6 +948,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanSetGameModePaused));
             OnPropertyChanged(nameof(CanSetGameModeStopped));
             OnPropertyChanged(nameof(IsSimulating));
+            OnPropertyChanged(nameof(CanAddNewScene));
             OnPropertyChanged(nameof(GameStateText));
             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
             OnPropertyChanged(nameof(CanAddTerrainLayer));
@@ -958,6 +985,9 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
         private DelegateHandler? _csgStateChangedHandler;
+        private DelegateHandler? _prefabEditActiveChangedHandler;
+        private DelegateHandler? _prefabEditDirtyChangedHandler;
+        private DelegateHandler? _activeActionStackChangedHandler;
         private DelegateHandler? _scriptReloadedHandler;
         private DelegateHandler? _activeSwatchChangedHandler;
         private DelegateHandler? _activeLayersChangedHandler;
@@ -998,7 +1028,9 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public bool CanAddToScene => ActiveScene != null;
+        public bool CanAddToScene => ActiveScene != null || IsEditingPrefab;
+
+        public bool CanAddNewScene => !IsSimulating && !IsEditingPrefab;
 
         public ICommand SetActiveSceneCommand { get; private set; }
         public ICommand AddNewSceneCommand { get; private set; }
@@ -1325,7 +1357,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 // Feed back changes to EditorSubsystem.
                 // this will eventually trigger `set ActiveScene` via our bound delegate
-                _ = EngineManager.PostToSimThread(() =>
+                void SetActiveScene()
                 {
                     try
                     {
@@ -1335,8 +1367,23 @@ namespace Hyperion.Editor.ViewModels
                     {
                         Logger.Log(LogLevel.Warning, $"Failed to set active scene: {ex.Message}");
                     }
-                });
+                }
+
+                // Picking a scene is how prefab edit mode is left
+                RequestExitPrefabEdit(afterExit: SetActiveScene);
             });
+
+            EditPrefabCommand = new RelayCommand<string>(prefabName =>
+            {
+                if (!string.IsNullOrEmpty(prefabName))
+                {
+                    RequestEditPrefab(prefabName);
+                }
+            }, _ => !IsSimulating);
+
+            ApplyPrefabEditCommand = new RelayCommand(() => PostToPrefabEditState(prefabEditState => prefabEditState.Apply()), () => IsEditingPrefabDirty);
+            RevertPrefabEditCommand = new RelayCommand(RequestRevertPrefabEdit, () => IsEditingPrefabDirty);
+            ExitPrefabEditCommand = new RelayCommand(() => RequestExitPrefabEdit(afterExit: null), () => IsEditingPrefab);
 
             AddNewSceneCommand = new RelayCommand(() =>
             {
@@ -1378,7 +1425,7 @@ namespace Hyperion.Editor.ViewModels
                 });
 
                 PanelService.Instance.OpenPanel(panel);
-            }, () => !IsSimulating);
+            }, () => CanAddNewScene);
 
             SetActiveSwatchCommand = new RelayCommand<string>(swatchName =>
             {
@@ -1705,6 +1752,7 @@ namespace Hyperion.Editor.ViewModels
             BindSelectionChanged();
             BindMeshEditStateChanged();
             BindCsgStateChanged();
+            BindPrefabEditStateChanged();
             BindScriptReloaded();
             BindPlayNetStateChanged();
 
@@ -1749,6 +1797,9 @@ namespace Hyperion.Editor.ViewModels
             _projectWorldChangedHandler?.Remove();
             _prefabAssetsChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
+            _prefabEditActiveChangedHandler?.Remove();
+            _prefabEditDirtyChangedHandler?.Remove();
+            _activeActionStackChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
             _playNetStateChangedHandler?.Remove();
@@ -1829,10 +1880,24 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleActiveSceneChanged(Scene? scene)
         {
+            bool isPrefabEditScene = scene != null && (_editorSubsystem.EditorPrefabEditState?.IsEditScene(scene) ?? false);
+
             Dispatcher.UIThread.Post(() =>
             {
                 if (!_isReady)
                 {
+                    return;
+                }
+
+                if (isPrefabEditScene)
+                {
+                    _activeScene = null;
+
+                    SceneHierarchy.AttachToScene(scene);
+
+                    OnPropertyChanged(nameof(ActiveScene));
+                    OnPropertyChanged(nameof(CanAddToScene));
+
                     return;
                 }
 
@@ -1886,8 +1951,11 @@ namespace Hyperion.Editor.ViewModels
                 if (!weakProject.TryGetTarget(out EditorProject? p))
                     return;
 
-                EditorActionBase? undoAction = p.ActionStack.GetUndoAction();
-                EditorActionBase? redoAction = p.ActionStack.GetRedoAction();
+                // mesh and prefab edit modes keep their own stacks
+                EditorActionStack actionStack = _editorSubsystem.GetActiveActionStack() ?? p.ActionStack;
+
+                EditorActionBase? undoAction = actionStack.GetUndoAction();
+                EditorActionBase? redoAction = actionStack.GetRedoAction();
                 string? undoName = undoAction?.GetText();
                 string? redoName = redoAction?.GetText();
                 bool hasUndo = undoAction != null;
@@ -1991,29 +2059,7 @@ namespace Hyperion.Editor.ViewModels
             // In simulation mode, when project changes we also want to update the play/pause/stop buttons
             _gameModeChangedHandler?.Remove();
 
-            _actionStackStateChangedHandler?.Remove();
-            _actionStackStateChangedHandler = null;
-
-            if (project != null)
-            {
-                _actionStackStateChangedHandler = project.ActionStack.GetOnStateChangeDelegate()
-                    .Bind((EditorActionStackState state, int undoDepth) =>
-                    {
-                        UpdateUndoRedoHeaders(project);
-                        UpdatePasteHeader();
-
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            SceneHierarchy.RefreshAllNames();
-
-                            // Entity swatch assignments are tracked as editor actions (the inspector's
-                            // add/remove-swatch buttons push them), so re-apply the swatch filter here to
-                            // keep the hierarchy in sync with changes made in the inspector (and
-                            // undo/redo of those changes).
-                            SceneHierarchy.RefreshFilter();
-                        });
-                    });
-            }
+            BindActiveActionStack(project);
 
             _activeSwatchChangedHandler?.Remove();
             _activeSwatchChangedHandler = null;
@@ -2931,6 +2977,211 @@ namespace Hyperion.Editor.ViewModels
 
                 RefreshCsgState();
             });
+        }
+
+        private void BindActiveActionStack(EditorProject? project)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                _actionStackStateChangedHandler?.Remove();
+                _actionStackStateChangedHandler = null;
+
+                EditorActionStack? actionStack = project != null ? (_editorSubsystem.GetActiveActionStack() ?? project.ActionStack) : null;
+
+                if (project == null || actionStack == null)
+                {
+                    return;
+                }
+
+                _actionStackStateChangedHandler = actionStack.GetOnStateChangeDelegate()
+                    .Bind((EditorActionStackState state, int undoDepth) =>
+                    {
+                        UpdateUndoRedoHeaders(project);
+                        UpdatePasteHeader();
+
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            SceneHierarchy.RefreshAllNames();
+                            SceneHierarchy.RefreshFilter();
+                        });
+                    });
+
+                UpdateUndoRedoHeaders(project);
+            });
+        }
+
+        private void BindPrefabEditStateChanged()
+        {
+            WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
+
+            _prefabEditActiveChangedHandler?.Remove();
+            _prefabEditActiveChangedHandler = _editorSubsystem.EditorPrefabEditState?.GetOnActiveChangedDelegate()
+                .Bind((bool active) =>
+                {
+                    if (weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        target.RefreshPrefabEditState();
+                    }
+                });
+
+            _prefabEditDirtyChangedHandler?.Remove();
+            _prefabEditDirtyChangedHandler = _editorSubsystem.EditorPrefabEditState?.GetOnDirtyChangedDelegate()
+                .Bind((bool dirty) =>
+                {
+                    if (weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        target.RefreshPrefabEditState();
+                    }
+                });
+
+            _activeActionStackChangedHandler?.Remove();
+            _activeActionStackChangedHandler = _editorSubsystem.GetOnActiveActionStackChangedDelegate()
+                .Bind(() =>
+                {
+                    if (weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        target.BindActiveActionStack(EngineManager.CurrentProject);
+                    }
+                });
+        }
+
+        /// <summary>Opens <paramref name="prefabName"/> in prefab edit mode, leaving any prefab currently being edited first.</summary>
+        public void RequestEditPrefab(string prefabName)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (IsEditingPrefab && prefabName == EditingPrefabName)
+            {
+                return;
+            }
+
+            RequestExitPrefabEdit(afterExit: () =>
+            {
+                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+                Prefab? prefab = AssetManager.Instance.AssetRegistry.GetAsset(AssetBucket.Prefabs.Value, new Name(prefabName)) as Prefab;
+
+                if (prefabEditState == null || prefab == null || !prefab.IsValid)
+                {
+                    Logger.Log(LogLevel.Warning, $"EditPrefab: prefab '{prefabName}' could not be resolved.");
+
+                    return;
+                }
+
+                if (!prefabEditState.Enter(prefab))
+                {
+                    Logger.Log(LogLevel.Warning, $"EditPrefab: could not open prefab '{prefabName}' for editing.");
+                }
+            });
+        }
+
+        public void RequestExitPrefabEdit(Action? afterExit, Action? onCancelled = null)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+
+                if (prefabEditState == null || !prefabEditState.IsActive() || !prefabEditState.IsDirty())
+                {
+                    prefabEditState?.Exit(/* apply */ false);
+                    afterExit?.Invoke();
+
+                    RefreshPrefabEditState();
+
+                    return;
+                }
+
+                string prefabName = prefabEditState.GetPrefabName() ?? string.Empty;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    MessageBox.Warning("Unapplied Prefab Changes", $"Prefab '{prefabName}' has changes that haven't been applied. Apply them before leaving prefab edit mode?")
+                        .Button("Apply", () => PostToPrefabEditState(state => state.Exit(/* apply */ true), afterExit))
+                        .Button("Discard", () => PostToPrefabEditState(state => state.Exit(/* apply */ false), afterExit))
+                        .Button("Cancel", () =>
+                        {
+                            if (onCancelled != null)
+                            {
+                                Dispatcher.UIThread.Post(onCancelled);
+                            }
+                        })
+                        .Show();
+                });
+            });
+        }
+
+        private void RequestRevertPrefabEdit()
+        {
+            MessageBox.Warning("Revert Prefab Changes?", $"Discard all unapplied changes to prefab '{EditingPrefabName}'?")
+                .Button("Revert", () => PostToPrefabEditState(prefabEditState => prefabEditState.Revert()))
+                .Button("Cancel", () => { })
+                .Show();
+        }
+
+        private void PostToPrefabEditState(Action<EditorPrefabEditState> action, Action? afterwards = null)
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+
+                if (prefabEditState != null)
+                {
+                    action(prefabEditState);
+                }
+
+                afterwards?.Invoke();
+
+                RefreshPrefabEditState();
+            });
+        }
+
+        private void RefreshPrefabEditState()
+        {
+            if (_editorSubsystem == null)
+            {
+                return;
+            }
+
+            PrefabEditStateSnapshot snapshot = new();
+
+            try
+            {
+                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+
+                if (prefabEditState != null && prefabEditState.IsActive())
+                {
+                    snapshot.Active = true;
+                    snapshot.Dirty = prefabEditState.IsDirty();
+                    snapshot.PrefabName = prefabEditState.GetPrefabName() ?? string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Warning, $"Failed to read prefab edit state from engine: {ex.Message}");
+
+                return;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                _prefabEditState = snapshot;
+
+                NotifyPrefabEditStateChanged();
+            });
+        }
+
+        private void NotifyPrefabEditStateChanged()
+        {
+            OnPropertyChanged(nameof(IsEditingPrefab));
+            OnPropertyChanged(nameof(EditingPrefabName));
+            OnPropertyChanged(nameof(IsEditingPrefabDirty));
+            OnPropertyChanged(nameof(SceneSelectorTooltip));
+            OnPropertyChanged(nameof(CanAddToScene));
+            OnPropertyChanged(nameof(CanAddNewScene));
+
+            (ApplyPrefabEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RevertPrefabEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExitPrefabEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private void HandleSelectionUpdate()

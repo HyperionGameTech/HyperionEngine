@@ -11,6 +11,8 @@
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
+#include <Core/Containers/Array.hpp>
+
 namespace Hyperion {
 
 class Camera;
@@ -66,10 +68,15 @@ public:
     /*! \brief Called from the editor subsystem when a scene is removed from the current project's World. */
     void OnSceneRemoved(Scene* scene);
 
+    /*! \brief Show only \p scenes (plus the editor scene) in place of the world's scenes. An empty array shows the world's scenes again. */
+    void SetIsolatedScenes(EditorSubsystem* editorSubsystem, const Array<Handle<Scene>>& scenes);
+
 protected:
     Handle<Camera> m_camera;
     Handle<View> m_view;
     ApplicationWindow* m_window;
+
+    Array<WeakHandle<Scene>> m_isolatedScenes;
 };
 
 } // namespace Hyperion

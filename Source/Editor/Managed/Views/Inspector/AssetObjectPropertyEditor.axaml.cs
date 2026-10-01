@@ -112,6 +112,13 @@ namespace Hyperion.Editor.Views.Inspector
                     return;
                 }
 
+                if (vm.SubObject.Target is Prefab)
+                {
+                    vm.IsEditorExpanded = false;
+                    OpenPrefabEditMode(vm.SubObject.Target);
+                    return;
+                }
+
                 if (_editPanel != null)
                 {
                     return;
@@ -158,6 +165,23 @@ namespace Hyperion.Editor.Views.Inspector
                 string scriptPath = Path.Combine(AssetManager.Instance.AssetRegistry.GetRootPath(), scriptDesc.Path);
 
                 Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
+            });
+        }
+
+        private static void OpenPrefabEditMode(ObjectBase target)
+        {
+            ObjectBase capturedTarget = target;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                if (capturedTarget is not Prefab prefab || !prefab.IsValid)
+                {
+                    return;
+                }
+
+                string prefabName = prefab.Name.ToString();
+
+                Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditPrefab(prefabName));
             });
         }
 

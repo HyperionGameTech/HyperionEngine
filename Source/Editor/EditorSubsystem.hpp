@@ -71,6 +71,7 @@ class EditorDecalPainterState;
 class EditorInstancePainterState;
 class EditorSurfacePainterState;
 class EditorCsgState;
+class EditorPrefabEditState;
 class InstanceGroup;
 class InstanceHandleNode;
 class AppContextBase;
@@ -344,6 +345,19 @@ public:
     HYP_METHOD()
     Handle<EditorCsgState> GetCsgState();
 
+    ///Prefab editing
+
+    HYP_METHOD()
+    Handle<EditorPrefabEditState> GetPrefabEditState();
+
+    HYP_METHOD()
+    bool IsEditingPrefab() const;
+
+    void UpdateViewportIsolation();
+
+    void SyncStalePrefabInstances(Scene* scene);
+    void SyncStalePrefabInstances();
+
     ///Mesh edits
 
     HYP_METHOD()
@@ -408,7 +422,17 @@ public:
 
     ///action stack
 
+    /// The stack Undo/Redo act on: mesh edit's, then prefab edit's, then the project's
+    HYP_METHOD()
     EditorActionStack* GetActiveActionStack() const;
+
+    /// The stack scene node edits are pushed to: prefab edit's while a prefab is being edited, otherwise the project's
+    HYP_METHOD()
+    EditorActionStack* GetSceneActionStack() const;
+
+    /// The stack edits to \p node are pushed to: prefab edit's for nodes in the prefab being edited, otherwise the project's
+    HYP_METHOD()
+    EditorActionStack* GetActionStackForNode(Node* node) const;
 
     ///Snapple
 
@@ -735,6 +759,9 @@ public:
     ScriptableDelegate<void> OnMeshEditStateChanged;
 
     HYP_FIELD()
+    ScriptableDelegate<void> OnActiveActionStackChanged;
+
+    HYP_FIELD()
     ScriptableDelegate<void, EditorPlayNetStatus> OnPlayNetStatusChanged;
 
     /*! \brief Fired on the sim thread after a changed script was reloaded, which can add, remove or redefine components. */
@@ -906,6 +933,8 @@ private:
     Handle<EditorInstancePainterState> m_instancePainter;
 
     Handle<EditorCsgState> m_csgState;
+
+    Handle<EditorPrefabEditState> m_prefabEditState;
 
     HYP_FIELD(Property = "ConvexCollisionSettings")
     ConvexDecompositionSettings m_convexCollisionSettings;

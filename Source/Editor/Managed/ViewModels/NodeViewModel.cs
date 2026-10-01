@@ -101,7 +101,10 @@ namespace Hyperion.Editor.ViewModels
         public bool IsPrefabInstance => _sourcePrefabName.Length != 0;
         public string SourcePrefabName => _sourcePrefabName;
         public string SavePrefabHeader => $"Sync Prefab '{_sourcePrefabName}'";
+        public string EditPrefabHeader => $"Edit Prefab '{_sourcePrefabName}'";
         public string PrefabInstanceTooltip => $"Prefab instance: {_sourcePrefabName}";
+
+        public bool CanUsePrefabActions => !(MainWindowViewModel.Instance?.IsEditingPrefab ?? false);
 
         public void RefreshSourcePrefab()
         {
@@ -112,7 +115,9 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(IsPrefabInstance));
             OnPropertyChanged(nameof(SourcePrefabName));
             OnPropertyChanged(nameof(SavePrefabHeader));
+            OnPropertyChanged(nameof(EditPrefabHeader));
             OnPropertyChanged(nameof(PrefabInstanceTooltip));
+            OnPropertyChanged(nameof(CanUsePrefabActions));
         }
 
         private readonly List<NodeViewModel> _allChildren = new List<NodeViewModel>();
@@ -283,7 +288,7 @@ namespace Hyperion.Editor.ViewModels
 
             MainWindowViewModel? mainWindowViewModel = MainWindowViewModel.Instance;
 
-            if (mainWindowViewModel != null && !IsRootNode)
+            if (mainWindowViewModel != null && !IsRootNode && !mainWindowViewModel.IsEditingPrefab)
             {
                 Scene? currentScene = _node.IsValid ? _node.Scene : null;
 
