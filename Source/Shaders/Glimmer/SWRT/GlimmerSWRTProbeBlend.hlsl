@@ -33,6 +33,8 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;   
 
 // a quarter of a probe's rays on back faces puts it inside a solid
 #define GLIMMER_PROBE_INSIDE_FRACTION 0.25
+#define GLIMMER_PROBE_OUTSIDE_FRACTION 0.05
+
 // closer than this (in spacings) to a front face, a probe is nudged off it
 #define GLIMMER_PROBE_MIN_CLEARANCE 0.1
 // how quickly the luminance statistics follow the estimates
@@ -149,8 +151,13 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     const float time = constants.volume.params.x;
 
+    const float insideFraction = select(
+        probeState == GLIMMER_PROBE_STATE_INSIDE,
+        GLIMMER_PROBE_OUTSIDE_FRACTION,
+        GLIMMER_PROBE_INSIDE_FRACTION);
+
     // inside a solid: move past the nearest back face and start over, a few times, before giving up on the probe
-    if (float(numBackfaces + numStartsInside) >= GLIMMER_PROBE_INSIDE_FRACTION * float(numRays))
+    if (float(numBackfaces + numStartsInside) >= insideFraction * float(numRays))
     {
         if (relocations < constants.dispatch.y)
         {

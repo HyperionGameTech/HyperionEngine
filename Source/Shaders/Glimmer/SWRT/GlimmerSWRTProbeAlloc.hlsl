@@ -581,10 +581,13 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     uint groundLevel;
 
     bool isBuried = false;
+    float groundLift = 0.0;
 
     if (GlimmerSampleGround(constants.ground, gridPosition.xz + offset.xz * spacing, 0u, groundHeight, groundLevel))
     {
         const float lift = (groundHeight + GLIMMER_PROBE_BURIED_MARGIN - gridPosition.y) / spacing;
+
+        groundLift = clamp(lift + 0.01, 0.0, GLIMMER_PROBE_MAX_OFFSET);
 
         if (lift > offset.y)
         {
@@ -668,11 +671,11 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         return;
     }
 
+    // a probe stuck inside is checked again from its grid point and stays out of the lighting until it's clear there; what moved it
+    // in may be gone, and from inside the solid it could never tell
     if (probeState == GLIMMER_PROBE_STATE_INSIDE)
     {
-        state.x = GlimmerPackProbeFlags(GLIMMER_PROBE_STATE_ACTIVE, 0u, 0u, 0u);
-        state.y = GlimmerPackProbeOffset((float3)0.0);
-        state.w = 0u;
+        state.y = GlimmerPackProbeOffset(float3(0.0, groundLift, 0.0));
 
         OutStates[probeIndex] = state;
     }
