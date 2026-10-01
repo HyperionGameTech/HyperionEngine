@@ -30,7 +30,7 @@ float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanc
     for (uint corner = 0; corner < 4; corner++)
     {
         const int2 offset = int2(corner & 1u, corner >> 1);
-        const int2 texel = clamp(texel0 + offset, 0, GLIMMER_PROBE_VISIBILITY_RES - 1);
+        const int2 texel = GlimmerOctahedralWrapTexel(texel0 + offset, GLIMMER_PROBE_VISIBILITY_RES);
         const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
 
         moments += GlimmerUnpackHalf2(glimmerProbeVisibility[probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + uint(texel.y * GLIMMER_PROBE_VISIBILITY_RES + texel.x)]) * (bilinear.x * bilinear.y);

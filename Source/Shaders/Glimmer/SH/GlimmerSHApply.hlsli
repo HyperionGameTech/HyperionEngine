@@ -31,7 +31,7 @@ float GlimmerSHVoxelVisibility(uint3 texel, float3 voxelToPoint, float distanceI
     for (uint corner = 0; corner < 4; corner++)
     {
         const int2 offset = int2(corner & 1u, corner >> 1);
-        const int2 mapTexel = clamp(mapTexel0 + offset, 0, GLIMMER_SH_VISIBILITY_RES - 1);
+        const int2 mapTexel = GlimmerOctahedralWrapTexel(mapTexel0 + offset, GLIMMER_SH_VISIBILITY_RES);
         const uint mapIndex = uint(mapTexel.y * GLIMMER_SH_VISIBILITY_RES + mapTexel.x);
         const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
 
