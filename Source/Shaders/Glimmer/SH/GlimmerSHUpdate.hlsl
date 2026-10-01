@@ -60,10 +60,6 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 #define GLIMMER_SH_RAYS 64
 #define GLIMMER_SH_MAX_ALBEDO 0.9
 
-// blockers that barely see the sky (facing down, or down in a courtyard) can still be sunlit, so the ratio of sun to sky they're lit by
-// gets large; this only keeps it finite (the texture is half floats)
-#define GLIMMER_SH_MAX_SUN_RATIO 4096.0
-
 // sun shadow rays only need to get out from under the nearby canopy and terrain
 #define GLIMMER_SH_SUN_DISTANCE 256.0
 
@@ -201,7 +197,7 @@ float4 GlimmerSHBlockerLighting(float3 P, float3 N)
         const float4 visibility = OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY)];
         const float skySeen = saturate(visibility.x + dot(visibility.yzw, N));
 
-        return float4(min(skySeen + (1.0 - skySeen) * bounce.rgb, (float3)1.0), (1.0 - skySeen) * GlimmerLuminance(bounce.rgb) * bounce.a);
+        return float4(min(skySeen + (1.0 - skySeen) * bounce.rgb, (float3)1.0), (1.0 - skySeen) * bounce.a);
     }
 
     return openGround;
@@ -404,14 +400,11 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const float invNumRays = 1.0 / float(GLIMMER_SH_RAYS);
     float4 visibility = float4(gsVisibility[0].x * invNumRays, gsVisibility[0].yzw * (2.0 * invNumRays));
 
-    // rgb: blocker albedo as the sky lights it, per unit of blocked; a: the sun's share relative to that (luminance), so
-    // lighting can relight them as rgb * (sky + a * sun)
+    // rgb: blocker albedo as the sky lights it, a: the luminance of what the sun lights of them, both per unit of blocked. Kept apart
+    // rather than as a ratio of the two, so blending voxels (and traces) blends the light: a ratio blows up next to voxels that see no sky
     const float4 blocked = gsBlockedAlbedo[0];
-    const float skyLitLuminance = GlimmerLuminance(blocked.rgb);
 
-    float4 bounce = float4(
-        blocked.a > 1e-3 ? blocked.rgb / blocked.a : (float3)0.0,
-        skyLitLuminance > 1e-6 ? min(gsSunlit[0] / skyLitLuminance, GLIMMER_SH_MAX_SUN_RATIO) : 0.0);
+    float4 bounce = blocked.a > 1e-3 ? float4(blocked.rgb, gsSunlit[0]) / blocked.a : (float4)0.0;
 
     const uint3 visibilityTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY);
 

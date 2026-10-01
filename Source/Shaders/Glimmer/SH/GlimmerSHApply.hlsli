@@ -271,10 +271,13 @@ float4 EvaluateGlimmerSH(GlimmerSHVolume volume, float3 P, float3 N)
     const float openSky = max(0.5 + 0.5 * N.y, 0.05);
     const float3 sky = GlimmerSHSkyIrradiance(N) * saturate(skySeen / openSky);
 
-    // blockers reflect the sky they face (already in bounce.rgb) and the sun where it reaches them
+    // blockers reflect the sky they face (already in bounce.rgb) and the sun where it reaches them (bounce.a, tinted as the sky-lit blockers are)
+    const float3 blockerAlbedo = min(bounce.rgb, (float3)GLIMMER_SH_MAX_ALBEDO);
+    const float blockerLuminance = dot(blockerAlbedo, float3(0.2126, 0.7152, 0.0722));
+    const float3 sunTint = blockerLuminance > 1e-4 ? blockerAlbedo / blockerLuminance : (float3)1.0;
+
     const float3 sunIrradiance = world_shader_data.sun_color.rgb * world_shader_data.sun_direction_intensity.w;
-    const float3 blockerLighting = GlimmerSHSkyIrradiance(float3(0.0, 1.0, 0.0)) + sunIrradiance * max(bounce.a, 0.0) * 0.31830988618;
-    const float3 bounceLight = blockedSeen * min(bounce.rgb, (float3)GLIMMER_SH_MAX_ALBEDO) * blockerLighting;
+    const float3 bounceLight = blockedSeen * (blockerAlbedo * GlimmerSHSkyIrradiance(float3(0.0, 1.0, 0.0)) + sunTint * sunIrradiance * max(bounce.a, 0.0) * 0.31830988618);
 
     return float4(sky + bounceLight, coverage);
 }

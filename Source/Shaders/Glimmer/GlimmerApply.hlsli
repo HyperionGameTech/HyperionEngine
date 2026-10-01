@@ -87,7 +87,7 @@ float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
     {
         const float skyLit = dot(bounce.rgb, float3(0.2126, 0.7152, 0.0722));
 
-        return float3(skyLit, skyLit * max(bounce.a, 0.0), 0.0);
+        return float3(skyLit, max(bounce.a, 0.0), 0.0);
     }
 
     return EvaluateGlimmerSH(glimmer.sh, P, N).rgb * glimmer.settings.x;
