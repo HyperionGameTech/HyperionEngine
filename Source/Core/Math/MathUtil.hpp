@@ -213,6 +213,17 @@ static HYP_FORCE_INLINE constexpr uint64 Rand64(uint64& seed)
     return (seed = 6364136223846793005ULL * seed + 1442695040888963407ULL);
 }
 
+static HYP_FORCE_INLINE constexpr uint32 HashUint32(uint32 value)
+{
+    value ^= value >> 16;
+    value *= 0x7feb352du;
+    value ^= value >> 15;
+    value *= 0x846ca68bu;
+    value ^= value >> 16;
+
+    return value;
+}
+
 static HYP_FORCE_INLINE constexpr float RandomFloat(uint32& seed)
 {
     return (float(Rand32(seed) & 0x00FFFFFF) / float(0x01000000));
@@ -797,6 +808,24 @@ HYP_FORCE_INLINE constexpr auto NextMultiple(T&& value, U&& multiple) -> std::co
     }
 
     return value + multiple - remainder;
+}
+
+/*! \brief Integer division rounding towards negative infinity, rather than towards zero like the / operator. */
+template <class T>
+HYP_FORCE_INLINE constexpr T FloorDiv(T value, T divisor)
+{
+    static_assert(std::is_integral_v<T>, "T must be an integral type");
+
+    const T quotient = value / divisor;
+
+    return (value % divisor != 0 && ((value < 0) != (divisor < 0))) ? quotient - 1 : quotient;
+}
+
+/*! \brief Rounds down to a multiple of `multiple`, towards negative infinity for negative values too. */
+template <class T>
+HYP_FORCE_INLINE constexpr T FloorToMultiple(T value, T multiple)
+{
+    return FloorDiv(value, multiple) * multiple;
 }
 
 /*! \brief Linearizes a depth value from non-linear depth buffer space into 0.0 - 1.0 range */

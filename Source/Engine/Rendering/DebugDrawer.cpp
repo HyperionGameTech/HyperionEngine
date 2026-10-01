@@ -657,6 +657,7 @@ Mesh* TriangleDebugDrawShape::GetMesh_Internal() const
 
             mesh = MakeHandle<Mesh>();
             mesh->SetFlags(MeshFlags::ViewIndependent);
+            mesh->SetIsTransient(true);
             mesh->SetName(NAME("TriangleDebugDrawShape"));
 
             VertexArrayView vertexArrayView {};

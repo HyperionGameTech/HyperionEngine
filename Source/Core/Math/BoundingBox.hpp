@@ -173,6 +173,13 @@ struct CORE_API BoundingBox
 
     float Area() const;
 
+    HYP_FORCE_INLINE float GetSurfaceArea() const
+    {
+        const Vec3f extent = Vec3f::Max(max - min, Vec3f::Zero());
+
+        return 2.0f * (extent.x * extent.y + extent.y * extent.z + extent.z * extent.x);
+    }
+
     HYP_FORCE_INLINE constexpr bool IsFinite() const
     {
         return MathUtil::IsFinite(min) && MathUtil::IsFinite(max);

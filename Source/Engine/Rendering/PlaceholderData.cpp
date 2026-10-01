@@ -265,6 +265,7 @@ void PlaceholderData::Initialize()
 
         outTexture = MakeHandle<Texture>(textureDesc, bufferData.first.ToByteView());
         outTexture->SetName(name);
+        outTexture->SetUUID(UUID::FromName(*name));
         outTexture->SetPersistentRequested(true, /* setFlag */ true);
 
         GetEngineAssetRegistry()->PutAsset(outTexture);

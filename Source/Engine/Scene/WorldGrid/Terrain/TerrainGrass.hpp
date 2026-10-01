@@ -75,6 +75,9 @@ struct TerrainCoverLayerPlan
 
     float clumpSize = 12.0f;
 
+    /// how much of the ground the layer hides from above where it grows fully
+    float coverage = 1.0f;
+
     Array<TerrainCoverTypePlan> types;
 };
 

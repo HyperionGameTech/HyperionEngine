@@ -33,6 +33,11 @@
 
 #define TERRAIN_SPLAT_SHARPNESS 1.35
 
+#define TERRAIN_SNOW_SHED_SLOPE_START 0.22
+#define TERRAIN_SNOW_SHED_SLOPE_END 0.38
+
+#define TERRAIN_MAX_ALBEDO 0.88
+
 float GetTerrainLayerScale(uint layerIndex)
 {
     switch (layerIndex)

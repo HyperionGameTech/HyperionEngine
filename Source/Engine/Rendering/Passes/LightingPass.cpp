@@ -14,6 +14,8 @@
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
 #include <Rendering/Passes/DeferredPassShared.hpp>
 
+#include <Rendering/Glimmer/GlimmerIrradiancePass.hpp>
+
 #include <Rendering/MaterialTextureCache.hpp>
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/GBuffer.hpp>
@@ -231,6 +233,7 @@ void LightingPass::Create()
             ltcMatrixData.ToByteView());
 
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
+        m_ltcMatrixTexture->SetUUID(UUID::FromName("LTC_Matrix"));
         GetEngineAssetRegistry()->PutAsset(m_ltcMatrixTexture);
         
         Check(m_ltcMatrixTexture->Create());
@@ -248,6 +251,7 @@ void LightingPass::Create()
             ltcBrdfData.ToByteView());
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
+        m_ltcBrdfTexture->SetUUID(UUID::FromName("LTC_BRDF"));
         GetEngineAssetRegistry()->PutAsset(m_ltcBrdfTexture);
 
         Check(m_ltcBrdfTexture->Create());
@@ -402,9 +406,13 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             SkyVisibilityPass* skyVisibilityPass = static_cast<SkyVisibilityPass*>(RI.namedPasses[NamedPass::SkyVisibility][0]);
             skyVisibilityPass->WriteShaderData(*RI.cbufferAllocator);
 
+            RI.cbufferAllocator->Write(&dpd->glimmerIrradiancePass->GetShaderData());
+
             RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
             cr << SetShaderUniform(numShaderUniforms++, "SkyVisibilityTexture"_sh, skyVisibilityPass->GetDepthImageView());
+
+            cr << SetShaderUniform(numShaderUniforms++, "GlimmerIrradianceTexture"_sh, dpd->glimmerIrradiancePass->GetFinalImageView());
 
             cr << SetShaderUniform(cbufferUniformIndex, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         }

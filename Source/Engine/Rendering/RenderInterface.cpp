@@ -59,6 +59,7 @@
 #include <Rendering/Passes/SpritePass.hpp>
 #include <Rendering/Passes/DecalPass.hpp>
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
+#include <Rendering/Glimmer/GlimmerPass.hpp>
 #include <Rendering/Passes/UIPass.hpp>
 
 #include <Rendering/Shadows/ShadowMapCache.hpp>
@@ -859,6 +860,10 @@ RendererResult RenderInterface::Initialize()
     namedPasses[NamedPass::SkyVisibility].ResizeZeroed(1);
     namedPasses[NamedPass::SkyVisibility][0] = new SkyVisibilityPass;
     namedPasses[NamedPass::SkyVisibility][0]->Initialize();
+
+    namedPasses[NamedPass::Glimmer].ResizeZeroed(1);
+    namedPasses[NamedPass::Glimmer][0] = new GlimmerPass;
+    namedPasses[NamedPass::Glimmer][0]->Initialize();
 
     return {};
 }
@@ -1739,7 +1744,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     };
 
-    constexpr uint32 MaxDynamicOffsetsPerSet = 16; // 8;
+    constexpr uint32 MaxDynamicOffsetsPerSet = DescriptorSetOffsetMap::MaxOffsets;
     constexpr uint32 MaxDescriptorSetsBound = 4;
 
     DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
@@ -2091,7 +2096,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             uint8 setIndex = uniformMappings[uniformIndex].setIndex;
 
             const uint8 offsetIndex = bufferOffsetCounts[setIndex]++;
-            AssertDebug(offsetIndex < MaxDynamicOffsetsPerSet);
+            Assert(offsetIndex < MaxDynamicOffsetsPerSet, "too many buffers bound with offsets in descriptor set {}", setIndex);
 
             bufferOffsets[setIndex][offsetIndex] = (uint8)uniformIndex;
 

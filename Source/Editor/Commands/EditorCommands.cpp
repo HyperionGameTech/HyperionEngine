@@ -1,5 +1,21 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 
+#include <Rendering/ThumbnailCaptureState.hpp>
+#include <Rendering/Framebuffer.hpp>
+#include <Rendering/GBuffer.hpp>
+
+#include <Framework/View.hpp>
+
+#include <Util/Img/WritePng.hpp>
+
+#include <Asset/SerializationUtils.hpp>
+
+#include <Scene/EnvironmentSettings.hpp>
+
+#include <Core/Utilities/Float16.hpp>
+#include <Core/Threading/Threads.hpp>
+#include <Core/Utilities/Time.hpp>
+
 namespace Hyperion {
 
 namespace /* Helpers */ {
@@ -402,6 +418,17 @@ public:
                 dir = EngineGlobals::GetProjectsDirectory() / *project->GetName();
             }
 
+            if (NumArguments() >= 1 && !GetArgument(0).Empty())
+            {
+                Result saveResult = project->SaveAs(FilePath(GetArgument(0)));
+                if (!saveResult)
+                {
+                    HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", GetArgument(0), saveResult.GetError().GetMessage());
+                }
+
+                return;
+            }
+
             dir.MkDir();
 
             String projectName = *project->GetName();
@@ -691,5 +718,223 @@ public:
 DEFINE_EDITOR_COMMAND(CookGameContent);
 
 #pragma endregion CookGameContent
+
+#pragma region CaptureViewport
+
+class EditorCommandCaptureViewport final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandCaptureViewport);
+
+public:
+    virtual ~EditorCommandCaptureViewport() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Capture Viewport";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        EditorViewport* activeViewport = subsystem->GetActiveViewport();
+
+        if (!activeViewport || !activeViewport->GetView().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "no active viewport");
+            return;
+        }
+
+        const FilePath path = NumArguments() >= 1 && !GetArgument(0).Empty()
+            ? FilePath(GetArgument(0))
+            : CoreApi::GetExecutablePath() / "Screenshots" / "Viewport.png";
+
+        GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+            [view = activeViewport->GetView(), path]()
+            {
+                static constexpr uint64 CaptureTimeoutMs = 5000;
+                static ThumbnailCaptureState* s_pendingCapture = nullptr;
+                static uint64 s_pendingSinceMs = 0;
+
+                if (view->thumbnailCaptureState != nullptr)
+                {
+                    if (view->thumbnailCaptureState != s_pendingCapture || Time::Now().ToMilliseconds() - s_pendingSinceMs < CaptureTimeoutMs)
+                    {
+                        HYP_LOG(Editor, Warning, "a capture of this viewport is already in flight");
+                        return;
+                    }
+
+                    HYP_LOG(Editor, Warning, "abandoning a viewport capture that never completed");
+                    view->thumbnailCaptureState = nullptr;
+                }
+
+                const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);
+
+                if (!framebuffer.IsValid())
+                {
+                    HYP_LOG(Editor, Warning, "the viewport hasn't rendered yet");
+                    return;
+                }
+
+                ThumbnailCaptureState* captureState = new ThumbnailCaptureState(framebuffer->GetExtent());
+                view->thumbnailCaptureState = captureState;
+
+                s_pendingCapture = captureState;
+                s_pendingSinceMs = Time::Now().ToMilliseconds();
+
+                captureState->Request(
+                    [view, path, captureState](ByteBuffer&& color, ByteBuffer&&, Vec2u extent)
+                    {
+                        const uint32 numPixels = extent.x * extent.y;
+
+                        if (numPixels != 0 && color.Size() >= size_t(numPixels) * 8)
+                        {
+                            ByteBuffer rgba8(size_t(numPixels) * 4);
+
+                            //shit for RGBA16F RT
+                            const Float16* src = reinterpret_cast<const Float16*>(color.Data());
+                            ubyte* dst = rgba8.Data();
+
+                            for (uint32 i = 0; i < numPixels; i++)
+                            {
+                                // sRGB
+                                for (uint32 c = 0; c < 3; c++)
+                                {
+                                    float value = MathUtil::Clamp(float(src[i * 4 + c]), 0.0f, 1.0f);
+
+                                    value = value <= 0.0031308f
+                                        ? value * 12.92f
+                                        : 1.055f * MathUtil::Pow(value, 1.0f / 2.4f) - 0.055f;
+
+                                    dst[i * 4 + c] = ubyte(MathUtil::Clamp(value * 255.0f + 0.5f, 0.0f, 255.0f));
+                                }
+
+                                dst[i * 4 + 3] = 255;
+                            }
+
+                            path.BasePath().MkDir();
+
+                            if (WritePng::Write(path, extent.x, extent.y, 4, rgba8.Data()))
+                            {
+                                HYP_LOG(Editor, Info, "EditorCommandCaptureViewport: wrote {} ({}x{})", path, extent.x, extent.y);
+                            }
+                            else
+                            {
+                                HYP_LOG(Editor, Error, "EditorCommandCaptureViewport: failed to write {}", path);
+                            }
+                        }
+
+                        if (view->thumbnailCaptureState == captureState)
+                        {
+                            view->thumbnailCaptureState = nullptr;
+                        }
+
+                        // not from inside its own callback
+                        GetThreadById(g_renderThread)->GetScheduler().Enqueue(
+                            [captureState]()
+                            {
+                                delete captureState;
+                            },
+                            TaskEnqueueFlags::FIRE_AND_FORGET);
+                    });
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(CaptureViewport);
+
+#pragma endregion CaptureViewport
+
+#pragma region SetEnvironment
+
+// SetEnvironment {"Exposure": {"Contrast": 1.2}} to deep merge into the open World's EnvironmentSettings
+class EditorCommandSetEnvironment final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSetEnvironment);
+
+public:
+    virtual ~EditorCommandSetEnvironment() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Set Environment";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+
+        if (!currentProject.IsValid() || !currentProject->GetWorld().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "SetEnvironment: no World open");
+            return;
+        }
+
+        const Handle<World>& world = currentProject->GetWorld();
+        const Class* environmentClass = GetClass<EnvironmentSettings>();
+
+        EnvironmentSettings environmentSettings = world->GetEnvironmentSettings();
+        BoxedValue target = BoxedValue(AnyRef(environmentClass->GetTypeInfo(), &environmentSettings));
+
+        JSON::Object environmentJson;
+
+        if (!ObjectToJSON(environmentClass, target, environmentJson))
+        {
+            HYP_LOG(Editor, Error, "SetEnvironment: could not serialize EnvironmentSettings");
+            return;
+        }
+
+        if (NumArguments() != 0)
+        {
+            String changesText;
+
+            for (const String& argument : GetArguments())
+            {
+                changesText = changesText.Empty() ? argument : changesText + " " + argument;
+            }
+
+            const JSON::ParseResult parseResult = JSON::Parse(changesText);
+
+            if (!parseResult.ok || !parseResult.value.IsObject())
+            {
+                HYP_LOG(Editor, Error, "SetEnvironment: expected a JSON object, got {}", changesText);
+                return;
+            }
+
+            environmentJson.MergeDeep(parseResult.value.AsObject());
+
+            if (!ObjectFromJSON(environmentJson, environmentClass, target))
+            {
+                HYP_LOG(Editor, Error, "SetEnvironment: could not apply {}", changesText);
+                return;
+            }
+
+            world->SetEnvironmentSettings(environmentSettings);
+            world->MarkDirty();
+
+            environmentJson = JSON::Object();
+            ObjectToJSON(environmentClass, target, environmentJson);
+        }
+
+        HYP_LOG(Editor, Info, "SetEnvironment: {}", JSON::Value(environmentJson).ToString());
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SetEnvironment);
+
+#pragma endregion SetEnvironment
 
 } // namespace Hyperion

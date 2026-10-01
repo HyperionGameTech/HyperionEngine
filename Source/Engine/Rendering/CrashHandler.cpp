@@ -18,6 +18,8 @@
 
 #include <Core/IO/ByteWriter.hpp>
 
+#include <Core/Containers/Map.hpp>
+
 #include <System/MessageBox.hpp>
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
@@ -45,6 +47,25 @@ static Mutex g_savedDumpFilesPerThreadMutex;
 static Array<Array<FilePath>*> g_savedDumpFilesPerThread {};
 
 bool CrashHandler::s_isInitialized = false;
+
+static Mutex g_shaderBinaryNamesMutex;
+static Map<uint64, Name> g_shaderBinaryNames;
+
+void CrashHandler::RegisterShaderBinary(uint64 binaryHash, Name name)
+{
+    Mutex::Guard guard(g_shaderBinaryNamesMutex);
+
+    g_shaderBinaryNames.Set(binaryHash, name);
+}
+
+static Name FindShaderBinaryName(uint64 binaryHash)
+{
+    Mutex::Guard guard(g_shaderBinaryNamesMutex);
+
+    const auto* it = g_shaderBinaryNames.TryGet(binaryHash);
+
+    return it ? it->second : Name::Invalid();
+}
 
 static AtomicVar<bool> g_isHandlingDeviceLoss { false };
 
@@ -155,7 +176,13 @@ void CrashHandler::Initialize()
                         // Print information for each active shader
                         for (const GFSDK_Aftermath_GpuCrashDump_ShaderInfo& info : infos)
                         {
-                            HYP_LOG(Rendering, Error, "Active shader: ShaderHash = {} ShaderInstance = {} Shadertype = {}",
+                            GFSDK_Aftermath_ShaderBinaryHash binaryHash = {};
+                            const GFSDK_Aftermath_Result hashResult = GFSDK_Aftermath_GetShaderHashForShaderInfo(decoder, &info, &binaryHash);
+
+                            const Name shaderName = GFSDK_Aftermath_SUCCEED(hashResult) ? FindShaderBinaryName(binaryHash.hash) : Name::Invalid();
+
+                            HYP_LOG(Rendering, Error, "Active shader: {} (ShaderHash = {} ShaderInstance = {} Shadertype = {})",
+                                    shaderName.IsValid() ? shaderName.LookupString() : "<unknown>",
                                     info.shaderHash,
                                     info.shaderInstance,
                                     info.shaderType);

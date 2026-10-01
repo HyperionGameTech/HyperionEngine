@@ -54,6 +54,7 @@ class FogVolumePass;
 class HeightFogPass;
 class CloudPass;
 class TonemapPass;
+class GlimmerIrradiancePass;
 #ifdef HYP_EDITOR
 class EditorGridPass;
 #endif
@@ -100,6 +101,7 @@ public:
     UniquePtr<TonemapPass> tonemapPass;
 
     UniquePtr<HBAO> hbao;
+    UniquePtr<GlimmerIrradiancePass> glimmerIrradiancePass;
     // UniquePtr<SSAO> ssao;
 
     UniquePtr<FullScreenPass> combinePass;

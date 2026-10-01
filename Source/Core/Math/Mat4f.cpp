@@ -577,6 +577,18 @@ Vec3f Mat4f::ExtractScale() const
     return scale;
 }
 
+float Mat4f::ExtractMaxScale() const
+{
+    float maxScaleSquared = 0.0f;
+
+    for (uint32 column = 0; column < 3; column++)
+    {
+        maxScaleSquared = MathUtil::Max(maxScaleSquared, Vec3f(rows[0][column], rows[1][column], rows[2][column]).LengthSquared());
+    }
+
+    return MathUtil::Sqrt(maxScaleSquared);
+}
+
 Quat4f Mat4f::ExtractRotation() const
 {
     return Quat4f(*this);

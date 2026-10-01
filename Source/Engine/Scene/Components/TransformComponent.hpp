@@ -32,6 +32,21 @@ struct TransformComponent
     HYP_FIELD(Property = "Scale")
     Vec3f scale;
 
+    TransformComponent()
+        : translation(),
+          rotation(),
+          scale(1, 1, 1)
+    {
+        
+    }
+
+    TransformComponent(const Vec3f& translation, const Quat4f& rotation, const Vec3f& scale)
+        : translation(translation),
+          rotation(rotation),
+          scale(scale)
+    {
+    }
+
     HYP_FORCE_INLINE Mat4f GetMatrix() const
     {
         return Transform(translation, scale, rotation).GetMatrix();

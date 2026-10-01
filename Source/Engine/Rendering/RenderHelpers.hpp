@@ -10,6 +10,8 @@
 
 #include <Core/Functional/Proc.hpp>
 
+#include <Core/Math/Vector3.hpp>
+
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/RenderMemory.hpp>
 
@@ -25,6 +27,11 @@ using CommandRecorder = TCommandRecorder<RenderAllocator>;
 namespace helpers {
 
 uint32 MipmapSize(uint32 srcSize, int lod);
+
+// every backend supports at least this many compute groups along each dimension
+static constexpr uint32 MaxComputeGroupsPerDimension = 65535;
+
+Vec3u WrapComputeGroupCount(uint32 numGroups);
 
 } // namespace helpers
 

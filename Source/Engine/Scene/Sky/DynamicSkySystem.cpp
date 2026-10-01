@@ -13,6 +13,7 @@
 #include <Scene/EnvProbe.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/EntityManager.hpp>
+#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/MeshComponent.hpp>
@@ -225,31 +226,8 @@ void DynamicSkySystem::UpdateSkyVisibilityView()
         return;
     }
 
-    // follow the editor camera while stopped and the game camera while playing, like terrain LOD does
-    const bool preferEditorViews = GetWorld()->GetGameState().IsStopped();
-
     Vec3f viewerPosition = Vec3f::Zero();
-    bool hasPreferredViewpoint = false;
-    bool hasViewpoint = false;
-
-    for (View* view : GetWorld()->GetSimThreadViews())
-    {
-        if (!view || !(view->GetFlags() & ViewFlags::GBUFFER) || !view->GetCamera())
-        {
-            continue;
-        }
-
-        const bool isPreferred = (bool(view->GetFlags() & ViewFlags::EDITOR_VIEW) == preferEditorViews);
-
-        if (hasViewpoint && (hasPreferredViewpoint || !isPreferred))
-        {
-            continue;
-        }
-
-        viewerPosition = view->GetCamera()->GetWorldTranslation();
-        hasPreferredViewpoint = isPreferred;
-        hasViewpoint = true;
-    }
+    SceneHelpers::FindViewerPosition(*GetWorld(), viewerPosition);
 
     // snapped to texels so the map doesn't shimmer as the viewer moves
     const float texelWorldSize = SkyVisibilityWorldExtent / float(GetSkyVisibilityMapDimensions());

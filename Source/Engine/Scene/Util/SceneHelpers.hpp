@@ -34,6 +34,8 @@ Camera* GetEditorCamera(const World& world);
 inline Camera* GetEditorCamera(const World&) { return nullptr; }
 #endif // HYP_EDITOR
 
+bool FindViewerPosition(const World& world, Vec3f& outPosition);
+
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId);
 
 bool IsLocalPlayerEntity(const Entity& entity);
