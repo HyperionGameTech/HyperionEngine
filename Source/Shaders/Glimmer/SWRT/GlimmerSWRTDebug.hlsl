@@ -10,6 +10,11 @@
 #include "../../Include/RayTracing/BVH.hlsli"
 #include "GlimmerSWRTCommon.hlsli"
 
+// its types now, its tracing once the texture is declared
+#define GLIMMER_SH_OCCUPANCY_NO_TRACE
+#include "../SH/GlimmerSHOccupancy.hlsli"
+#undef GLIMMER_SH_OCCUPANCY_NO_TRACE
+
 // Must match GlimmerSWRTDebugConstants in GlimmerTechnique.cpp
 struct GlimmerSWRTDebugConstants
 {
@@ -18,6 +23,7 @@ struct GlimmerSWRTDebugConstants
     float4 params;                 // x = max trace distance
     GlimmerGroundParams ground;
     GlimmerSpanParams spans;
+    GlimmerSHOccupancyParams occupancy;
 };
 
 #define DEBUG_VIEW_SHADED 1
@@ -27,6 +33,7 @@ struct GlimmerSWRTDebugConstants
 #define DEBUG_VIEW_FOOTPRINT_MASK 5
 #define DEBUG_VIEW_SPANS 6
 #define DEBUG_VIEW_GROUND_ALBEDO 7
+#define DEBUG_VIEW_OCCUPANCY 8
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSWRTDebug, CBuffer) cbuffer CBuffer
 {
@@ -57,6 +64,9 @@ DECLARE_SRV(GlimmerSWRTDebug, FootprintMaskBuffer) StructuredBuffer<uint> footpr
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
+DECLARE_SRV(GlimmerSWRTDebug, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
+
+#include "../SH/GlimmerSHOccupancy.hlsli"
 
 #include "GlimmerSWRT.hlsli"
 #include "../GlimmerMaterial.hlsli"
@@ -176,7 +186,24 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float4 result = float4(hitColor, 1.0);
 
-    if (mode == DEBUG_VIEW_INSTANCE_ID)
+    if (mode == DEBUG_VIEW_OCCUPANCY)
+    {
+        // the solids as the SH voxels' rays see them: the occupancy clipmap, shaded by the face entered and tinted by its cascade
+        // (finest white, through yellow and orange); sky where a ray leaves every cascade
+        GlimmerSHOccupancyHit occupancyHit;
+        float coveredT;
+
+        result.rgb = SkyColor(direction);
+
+        if (GlimmerSHTraceOccupancy(constants.occupancy, cameraPosition, direction, constants.params.x, occupancyHit, coveredT))
+        {
+            const float cascade = log2(max(occupancyHit.spacing / constants.occupancy.cascades[0].params.x, 1.0));
+            const float3 tint = lerp(float3(1.0, 1.0, 1.0), float3(1.0, 0.45, 0.1), saturate(cascade / 3.0));
+
+            result.rgb = ShadeHit(tint * (0.3 + 0.7 * occupancyHit.albedo), occupancyHit.normal);
+        }
+    }
+    else if (mode == DEBUG_VIEW_INSTANCE_ID)
     {
         result.rgb = didHit
             ? HashColor(hit.instanceIndex) * (0.35 + 0.65 * saturate(dot(hitNormal, DebugLightDirection) * 0.5 + 0.5))

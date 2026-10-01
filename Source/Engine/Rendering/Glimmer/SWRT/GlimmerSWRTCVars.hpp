@@ -21,6 +21,7 @@ enum class GlimmerSWRTDebugView : int
     FootprintMask,
     Spans,
     GroundAlbedo,
+    Occupancy, // the SH occupancy clipmap, ray marched from the camera: the solids as the SH voxels' rays see them
 
     Max
 };

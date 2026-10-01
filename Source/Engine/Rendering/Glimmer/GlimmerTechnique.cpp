@@ -64,6 +64,7 @@ struct GlimmerSWRTDebugConstants
     Vec4f params;
     GlimmerGroundShaderData ground;
     GlimmerSpanShaderData spans;
+    GlimmerSHOccupancyShaderData occupancy;
 };
 
 GlimmerSceneRegionParams GlimmerTechnique::GetSceneRegionParams()
@@ -262,6 +263,7 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
     constants.params = Vec4f(10000.0f, 0.0f, 0.0f, 0.0f);
     constants.ground = context.surfaceCache->GetGroundShaderData();
     constants.spans = context.spanCache->GetShaderData();
+    constants.occupancy = m_shOccupancy->GetShaderData();
 
     GpuBuffer* cbuffer = nullptr;
     size_t cbufferOffset = 0;
@@ -297,6 +299,10 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, context.surfaceCache->GetGroundImageView());
     cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, context.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, context.surfaceCache->GetGroundAlbedoImageView());
+
+    // the occupancy's zeroed constants (before it's built) have every cascade read as missing
+    const GpuImageViewRef& occupancyImageView = m_shOccupancy->GetImageView();
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, occupancyImageView.IsValid() ? occupancyImageView : RI.placeholderData->GetImageView3D1x1x1R8());
 
     cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
 

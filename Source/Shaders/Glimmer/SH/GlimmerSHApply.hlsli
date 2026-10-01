@@ -21,7 +21,7 @@ DECLARE_SRV(DeferredPass, GlimmerSHStateTexture) Texture3D<uint2> glimmerSHState
 #define GLIMMER_SH_VISIBILITY_NORMAL_BIAS 0.3
 
 // in voxels^2, see GlimmerSHVoxelVisibility
-#define GLIMMER_SH_MIN_VARIANCE 0.01
+#define GLIMMER_SH_MIN_VARIANCE 0.03
 
 // Chebyshev bound on how likely the voxel sees a point this far (in voxels) toward it, from the distances its rays in that direction went
 float GlimmerSHVoxelVisibility(uint3 texel, float3 voxelToPoint, float distanceInVoxels)
@@ -51,7 +51,7 @@ float GlimmerSHVoxelVisibility(uint3 texel, float3 voxelToPoint, float distanceI
         return 1.0;
     }
 
-    // floored at (0.1 voxel)^2, so a voxel's shadow of a flat wall fades in rather than cutting off: with every ray that way ending on
+    // floored at about (0.17 voxel)^2, so a voxel's shadow of a flat wall fades in rather than cutting off: with every ray that way ending on
     // the same wall the variance is ~0, and the bound would snap from 1 to 0 over a few centimetres
     const float variance = max(moments.y - moments.x * moments.x, GLIMMER_SH_MIN_VARIANCE);
     const float difference = distanceInVoxels - moments.x;
@@ -101,6 +101,10 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
     float4 bounceSum = (float4)0.0;
     float weightSum = 0.0;
 
+    // the trilinear weight of the corners that were traced and aren't buried. Where it runs out (next to a buried voxel, at the cell
+    // face the usable corners have no weight on) the renormalized blend would jump, so the cascade fades out and the next takes over
+    float presentTrilinear = 0.0;
+
     [unroll]
     for (uint corner = 0; corner < 8; corner++)
     {
@@ -108,7 +112,9 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
         const int3 voxel = voxel0 + offset;
         const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
 
-        if (any(glimmerSHState.Load(int4(texel, 0)) != GlimmerSHPackVoxel(voxel)))
+        const uint2 state = glimmerSHState.Load(int4(texel, 0));
+
+        if (!GlimmerSHStateMatches(state, voxel))
         {
             continue;
         }
@@ -121,9 +127,12 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
         }
 
         const float3 trilinear = lerp(1.0 - fraction, fraction, float3(offset));
+        const float trilinearWeight = trilinear.x * trilinear.y * trilinear.z;
 
-        // voxels behind the surface see what's behind it
-        const float3 voxelCenter = GlimmerSHVoxelCenter(cascade, voxel);
+        presentTrilinear += trilinearWeight;
+
+        // voxels behind the surface see what's behind it; measured from where its rays started, which is off the centre when that's in a solid
+        const float3 voxelCenter = GlimmerSHVoxelCenter(cascade, voxel) + GlimmerSHStateOffset(state) * cascade.params.x;
         const float3 toVoxel = voxelCenter - P;
         const float toVoxelLength = length(toVoxel);
         const float facing = toVoxelLength > 1e-4 ? (dot(toVoxel / toVoxelLength, N) + 1.0) * 0.5 : 1.0;
@@ -133,9 +142,10 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
         const float voxelToPointLength = length(voxelToPoint);
         const float visibility = voxelToPointLength > 1e-3 ? lerp(1.0, GlimmerSHVoxelVisibility(texel, voxelToPoint, voxelToPointLength), cascade.params.z) : 1.0;
 
-        // like DDGI, weights are crushed rather than dropped: where every voxel around P is blocked they still blend evenly,
-        // instead of P falling through to the next cascade with a seam
-        float weight = trilinear.x * trilinear.y * trilinear.z * (facing * facing + 0.05) * visibility;
+        // like DDGI, the facing and visibility weight is crushed rather than dropped: where every voxel around P is blocked they
+        // still blend evenly, instead of P falling through to the next cascade with a seam. Trilinear comes in after the crush, which
+        // would otherwise turn the interpolation between voxels into steps (nearly every trilinear weight is under the threshold)
+        float weight = (facing * facing + 0.2) * visibility;
 
         const float crushThreshold = 0.2;
 
@@ -144,14 +154,14 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
             weight *= weight * weight / (crushThreshold * crushThreshold);
         }
 
-        weight = max(weight, 1e-6);
+        weight = trilinearWeight * max(weight, 1e-5);
 
         visibilitySum += glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY), 0)) * weight;
         bounceSum += bounce * weight;
         weightSum += weight;
     }
 
-    // every usable corner carries at least 1e-6, so this is only where none is: when they're all blocked they blend evenly rather
+    // every usable corner keeps some weight, so this is only where none is: when they're all blocked they blend evenly rather
     // than dropping P to the next cascade
     if (weightSum <= 0.0)
     {
@@ -161,7 +171,7 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
     outVisibility = visibilitySum / weightSum;
     outBounce = bounceSum / weightSum;
 
-    return edgeWeight;
+    return edgeWeight * smoothstep(0.05, 0.5, presentTrilinear);
 }
 
 float3 GlimmerSHSkyIrradiance(float3 N)
@@ -228,7 +238,7 @@ float GlimmerSHNearestSkySeen(GlimmerSHVolume volume, float3 P, float3 N)
 
         const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
 
-        if (any(glimmerSHState.Load(int4(texel, 0)) != GlimmerSHPackVoxel(voxel)) || glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE), 0)).a < 0.0)
+        if (!GlimmerSHStateMatches(glimmerSHState.Load(int4(texel, 0)), voxel) || glimmerSHData.Load(int4(GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE), 0)).a < 0.0)
         {
             return -1.0;
         }

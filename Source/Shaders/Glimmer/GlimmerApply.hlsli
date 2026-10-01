@@ -23,6 +23,7 @@ struct GlimmerApply
 #define GLIMMER_DEBUG_SH_IRRADIANCE 1 // their irradiance
 #define GLIMMER_DEBUG_SH_VISIBILITY 2 // the sky they see, interpolated
 #define GLIMMER_DEBUG_SH_NEAREST 3    // the sky they see, of the one voxel P is in
+#define GLIMMER_DEBUG_SH_BOUNCE 4     // what their blockers bounce: red = lit by the sky, green = lit by the sun
 
 #endif
 
@@ -80,6 +81,13 @@ float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
     if (glimmer.params.z == GLIMMER_DEBUG_SH_VISIBILITY)
     {
         return (float3)saturate(visibility.x + dot(visibility.yzw, N));
+    }
+
+    if (glimmer.params.z == GLIMMER_DEBUG_SH_BOUNCE)
+    {
+        const float skyLit = dot(bounce.rgb, float3(0.2126, 0.7152, 0.0722));
+
+        return float3(skyLit, skyLit * max(bounce.a, 0.0), 0.0);
     }
 
     return EvaluateGlimmerSH(glimmer.sh, P, N).rgb * glimmer.settings.x;

@@ -60,8 +60,9 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 #define GLIMMER_SH_RAYS 64
 #define GLIMMER_SH_MAX_ALBEDO 0.9
 
-// blockers barely facing the sky can still catch low sun; this bounds the ratio stored for them
-#define GLIMMER_SH_MAX_SUN_RATIO 16.0
+// blockers that barely see the sky (facing down, or down in a courtyard) can still be sunlit, so the ratio of sun to sky they're lit by
+// gets large; this only keeps it finite (the texture is half floats)
+#define GLIMMER_SH_MAX_SUN_RATIO 4096.0
 
 // sun shadow rays only need to get out from under the nearby canopy and terrain
 #define GLIMMER_SH_SUN_DISTANCE 256.0
@@ -69,8 +70,9 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 // how much of the previous trace a re-traced voxel keeps; each trace uses new ray directions, so this smooths the noise
 #define GLIMMER_SH_HYSTERESIS 0.5
 
-// how narrowly a depth map texel takes the rays around its direction (the power of their cosine)
-#define GLIMMER_SH_VISIBILITY_SHARPNESS 12.0
+// how narrowly a depth map texel takes the rays around its direction (the power of their cosine). Wide, so the map is blurred well past
+// its texels: a voxel seeing out through a colonnade would otherwise project the map's diamond shaped texels onto the wall it lights
+#define GLIMMER_SH_VISIBILITY_SHARPNESS 6.0
 
 groupshared float4 gsVisibility[GLIMMER_SH_RAYS]; // visible, visible * direction
 groupshared float4 gsBlockedAlbedo[GLIMMER_SH_RAYS]; // rgb = albedo weighted by how much it blocks and how much sky it faces, a = how much it blocks
@@ -114,8 +116,23 @@ float GlimmerSHSunVisibility(float3 P, float3 N, float3 L, uint level)
 {
     GlimmerHeightfieldHit shadowHit;
 
-    // far enough off the surface to start in the empty occupancy voxel the hit ray came through
-    if (GlimmerSHTraceScene(P + N * 0.3 + L * 0.05, L, GLIMMER_SH_SUN_DISTANCE, level, false, shadowHit))
+    // half an occupancy voxel off the surface and a couple toward the sun: a sunlit wall is blocky at the occupancy's spacing (every
+    // ledge, cornice and balustrade fills a voxel), and a ray skimming up it from any closer would be shadowed by them. What that
+    // lets through under an overhang is well under the SH voxels' size
+    float spacing = 0.6; // past the occupancy, the heightfield alone
+
+    [loop]
+    for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_CASCADES; cascadeIndex++)
+    {
+        if (GlimmerSHOccupancyContains(constants.occupancy.cascades[cascadeIndex], P))
+        {
+            spacing = constants.occupancy.cascades[cascadeIndex].params.x;
+
+            break;
+        }
+    }
+
+    if (GlimmerSHTraceScene(P + (N * 0.5 + L * 2.0) * spacing, L, GLIMMER_SH_SUN_DISTANCE, level, false, shadowHit))
     {
         return 0.0;
     }
@@ -150,6 +167,46 @@ bool GlimmerSHIsBuried(float3 P)
         && GlimmerSpanSolidFill(spanSample, constants.spans.levels[0].params.x) >= GLIMMER_SPAN_SOLID_THRESHOLD;
 }
 
+/*! The indirect light on a blocker at P facing N, from what the voxel in front of it saw when last traced: rgb = sky light, relative to
+ *  the sky on open ground facing up (the sky it sees directly plus what its own blockers bounce of it), a = sun light its blockers bounce,
+ *  relative to the sun's irradiance / pi (as EvaluateGlimmerSH relights them). So the bounce feeds back into itself over the refreshes, for
+ *  multiple bounces of both. Where that voxel isn't traced (or is buried): the sky a surface facing that way sees on open ground (undersides
+ *  see none), and no bounced sun. */
+float4 GlimmerSHBlockerLighting(float3 P, float3 N)
+{
+    const float4 openGround = float4((float3)saturate(0.5 + 0.5 * N.y), 0.0);
+
+    [loop]
+    for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_CASCADES; cascadeIndex++)
+    {
+        const GlimmerSHCascade cascade = constants.volume.cascades[cascadeIndex];
+
+        // half a voxel out, so it's the air in front of the surface rather than the voxel the surface is in
+        const int3 voxel = int3(floor((P + N * (0.5 * cascade.params.x)) * cascade.params.y));
+        const int3 local = voxel - cascade.origin.xyz;
+
+        if (cascade.origin.w == 0 || any(local < 0) || any(local >= int3(GLIMMER_SH_GRID_XZ, GLIMMER_SH_GRID_Y, GLIMMER_SH_GRID_XZ)))
+        {
+            continue;
+        }
+
+        const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
+        const float4 bounce = OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE)];
+
+        if (!GlimmerSHStateMatches(OutState[texel], voxel) || bounce.a < 0.0)
+        {
+            return openGround;
+        }
+
+        const float4 visibility = OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY)];
+        const float skySeen = saturate(visibility.x + dot(visibility.yzw, N));
+
+        return float4(min(skySeen + (1.0 - skySeen) * bounce.rgb, (float3)1.0), (1.0 - skySeen) * GlimmerLuminance(bounce.rgb) * bounce.a);
+    }
+
+    return openGround;
+}
+
 // One group per voxel, one thread per ray
 [numthreads(GLIMMER_SH_RAYS, 1, 1)]
 void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
@@ -159,10 +216,51 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     const int3 voxel = constants.boxMin.xyz + int3(groupId);
     const uint3 texel = GlimmerSHTexel(cascadeIndex, voxel);
-    const float3 origin = GlimmerSHVoxelCenter(cascade, voxel);
+    const float3 center = GlimmerSHVoxelCenter(cascade, voxel);
 
-    // lighting skips voxels inside the ground or a solid; this is uniform across the group
-    if (GlimmerSHIsBuried(origin))
+    // the centre sits on the corner the voxel's 2x2x2 occupancy voxels share, so a wall a metre off it reads as the centre being solid.
+    // Rather than lose the voxel (and have lighting jump wherever it's skipped), its rays start from the middle of its free octants,
+    // and lighting measures visibility from there too. This is uniform across the group
+    float3 originOffset = (float3)0.0;
+    bool isBuried = GlimmerSHIsBuried(center);
+
+    if (isBuried)
+    {
+        float3 freeSum = (float3)0.0;
+        float freeCount = 0.0;
+        float3 firstFree = (float3)0.0;
+
+        [unroll]
+        for (uint octant = 0; octant < 8; octant++)
+        {
+            const float3 octantOffset = float3(octant & 1u, (octant >> 1) & 1u, (octant >> 2) & 1u) * 0.5 - 0.25;
+
+            if (!GlimmerSHIsBuried(center + octantOffset * cascade.params.x))
+            {
+                firstFree = freeCount == 0.0 ? octantOffset : firstFree;
+                freeSum += octantOffset;
+                freeCount += 1.0;
+            }
+        }
+
+        if (freeCount > 0.0)
+        {
+            // the middle of the free octants, unless that lands back in a solid
+            originOffset = freeSum / freeCount;
+
+            if (GlimmerSHIsBuried(center + originOffset * cascade.params.x))
+            {
+                originOffset = firstFree;
+            }
+
+            isBuried = false;
+        }
+    }
+
+    const float3 origin = center + originOffset * cascade.params.x;
+
+    // lighting skips voxels entirely inside the ground or a solid
+    if (isBuried)
     {
         for (uint pair = groupIndex; pair < GLIMMER_SH_VISIBILITY_TEXELS / 2u; pair += GLIMMER_SH_RAYS)
         {
@@ -173,7 +271,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         {
             OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY)] = (float4)0.0;
             OutData[GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE)] = float4(0.0, 0.0, 0.0, -1.0);
-            OutState[texel] = GlimmerSHPackVoxel(voxel);
+            OutState[texel] = GlimmerSHPackState(voxel, (float3)0.0);
         }
 
         return;
@@ -205,17 +303,21 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             ? GlimmerSampleGroundAlbedo(glimmerGroundAlbedo, constants.ground, P.xz, hit.level, (float3)constants.params.z)
             : hit.albedo, (float3)GLIMMER_SH_MAX_ALBEDO);
 
-        // the fraction of the sky a surface facing this way sees on open ground; undersides see none
-        const float skyFacing = saturate(0.5 + 0.5 * hit.normal.y);
+        const float4 indirect = GlimmerSHBlockerLighting(P, hit.normal);
 
-        skyLitAlbedo += hit.transmittance * albedo * skyFacing;
+        skyLitAlbedo += hit.transmittance * albedo * indirect.rgb;
+
+        // the sun on it directly, and bounced off what's around it
+        float sunLighting = indirect.a;
 
         const float NdotL = dot(hit.normal, L);
 
         if (NdotL > 0.0 && L.y > 0.0)
         {
-            sunlit += hit.transmittance * GlimmerLuminance(albedo) * NdotL * GlimmerSHSunVisibility(P, hit.normal, L, hit.level);
+            sunLighting += NdotL * GlimmerSHSunVisibility(P, hit.normal, L, hit.level);
         }
+
+        sunlit += hit.transmittance * GlimmerLuminance(albedo) * sunLighting;
     }
 
     gsVisibility[groupIndex] = float4(visible, visible * direction);
@@ -229,11 +331,11 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     GroupMemoryBarrierWithGroupSync();
 
     // every thread reads the history here, before thread 0 overwrites the state and bounce at the end
-    const uint2 state = GlimmerSHPackVoxel(voxel);
+    const uint2 state = GlimmerSHPackState(voxel, originOffset);
     const uint3 bounceTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_BOUNCE);
     const float4 previousBounce = OutData[bounceTexel];
 
-    const bool hasHistory = all(OutState[texel] == state) && previousBounce.a >= 0.0;
+    const bool hasHistory = GlimmerSHStateMatches(OutState[texel], voxel) && previousBounce.a >= 0.0;
 
     // each depth map texel takes the rays around its direction, two texels (xy, zw) to a thread. One no ray came near this time keeps
     // what it had (open without history), and one only a few did takes less of them
@@ -309,7 +411,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     float4 bounce = float4(
         blocked.a > 1e-3 ? blocked.rgb / blocked.a : (float3)0.0,
-        skyLitLuminance > 1e-4 ? min(gsSunlit[0] / skyLitLuminance, GLIMMER_SH_MAX_SUN_RATIO) : 0.0);
+        skyLitLuminance > 1e-6 ? min(gsSunlit[0] / skyLitLuminance, GLIMMER_SH_MAX_SUN_RATIO) : 0.0);
 
     const uint3 visibilityTexel = GlimmerSHSlabTexel(texel, GLIMMER_SH_SLAB_VISIBILITY);
 

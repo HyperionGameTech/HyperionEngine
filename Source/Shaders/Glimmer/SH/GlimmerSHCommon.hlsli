@@ -12,7 +12,8 @@
 //  depth      = an octahedral map (GlimmerOctahedralEncode) of GLIMMER_SH_VISIBILITY_RES^2 texels, two per slab (xy, zw): the mean and
 //               mean square distance to the ground or a solid around each direction, in voxels and capped at GLIMMER_SH_DEPTH_RANGE.
 //               Lighting uses them to drop voxels that can't see the surface being lit (the far side of a wall)
-//  state      = the absolute voxel it was traced for (GlimmerSHPackVoxel), so voxels that scrolled in and aren't traced yet read as empty
+//  state      = the absolute voxel it was traced for (GlimmerSHPackState), so voxels that scrolled in and aren't traced yet read as empty,
+//               and where in it the rays started (GlimmerSHStateOffset): off the centre when the centre is in a solid
 
 #define GLIMMER_SH_CASCADES 5
 #define GLIMMER_SH_GRID_XZ 32
@@ -63,10 +64,35 @@ float3 GlimmerSHVoxelCenter(GlimmerSHCascade cascade, int3 voxel)
     return (float3(voxel) + 0.5) * cascade.params.x;
 }
 
-// bit 16 of y marks a traced voxel, so never written (zeroed) state can't match voxel (0, 0, 0)
-uint2 GlimmerSHPackVoxel(int3 voxel)
+// how far (in voxels, per axis) the rays' origin can sit off the voxel's centre
+#define GLIMMER_SH_MAX_ORIGIN_OFFSET 0.5
+
+// x = voxel x and z (16 bits each), y = voxel y (bits 0-15) | traced (bit 16, so never written (zeroed) state can't match voxel (0, 0, 0))
+// | the rays' origin off the voxel's centre (bits 17-31, 3 x 5 bit snorm of GLIMMER_SH_MAX_ORIGIN_OFFSET voxels)
+uint2 GlimmerSHPackState(int3 voxel, float3 originOffset)
 {
-    return uint2((uint(voxel.x) & 0xFFFFu) | ((uint(voxel.z) & 0xFFFFu) << 16), (uint(voxel.y) & 0xFFFFu) | 0x10000u);
+    const int3 quantized = int3(round(clamp(originOffset / GLIMMER_SH_MAX_ORIGIN_OFFSET, -1.0, 1.0) * 15.0));
+    const uint packedOffset = (uint(quantized.x) & 0x1Fu) | ((uint(quantized.y) & 0x1Fu) << 5) | ((uint(quantized.z) & 0x1Fu) << 10);
+
+    return uint2((uint(voxel.x) & 0xFFFFu) | ((uint(voxel.z) & 0xFFFFu) << 16), (uint(voxel.y) & 0xFFFFu) | 0x10000u | (packedOffset << 17));
+}
+
+bool GlimmerSHStateMatches(uint2 state, int3 voxel)
+{
+    const uint2 expected = GlimmerSHPackState(voxel, (float3)0.0);
+
+    return state.x == expected.x && (state.y & 0x1FFFFu) == expected.y;
+}
+
+// in voxels
+float3 GlimmerSHStateOffset(uint2 state)
+{
+    const uint packedOffset = state.y >> 17;
+
+    // sign extend each 5 bit field
+    const int3 quantized = int3(int(packedOffset << 27) >> 27, int(packedOffset << 22) >> 27, int(packedOffset << 17) >> 27);
+
+    return float3(quantized) / 15.0 * GLIMMER_SH_MAX_ORIGIN_OFFSET;
 }
 
 #endif
