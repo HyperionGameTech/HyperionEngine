@@ -23,7 +23,7 @@
 
 #include <Core/Containers/FlatMap.hpp>
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 namespace Hyperion {
 

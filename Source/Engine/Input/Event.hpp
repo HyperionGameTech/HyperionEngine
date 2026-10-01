@@ -95,6 +95,14 @@ struct IOSEvent
 };
 #endif
 
+#ifdef HYP_LINUX
+struct X11Event
+{
+    uint64 window; // Window (XID)
+    int32 type;    // XEvent type
+};
+#endif
+
 HYP_STRUCT()
 struct MotionData
 {
@@ -200,6 +208,10 @@ union PlatformEvent
 
 #ifdef HYP_IOS
     IOSEvent iosEvent;
+#endif
+
+#ifdef HYP_LINUX
+    X11Event x11Event;
 #endif
 };
 

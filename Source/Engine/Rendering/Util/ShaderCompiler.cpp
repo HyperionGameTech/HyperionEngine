@@ -61,7 +61,7 @@
 #endif // HYP_DXC
 
 #ifdef HYP_VULKAN
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 #endif // HYP_VULKAN
 
 #include <HyperionEngine.hpp>

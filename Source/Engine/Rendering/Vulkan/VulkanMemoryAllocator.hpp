@@ -33,7 +33,7 @@
 
 #else // #ifdef _WIN32
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 #endif // #ifdef _WIN32
 

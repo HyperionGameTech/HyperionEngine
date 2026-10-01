@@ -21,7 +21,7 @@
 
 #include <Core/Containers/FixedArray.hpp>
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 #include <Core/Types.hpp>
 
