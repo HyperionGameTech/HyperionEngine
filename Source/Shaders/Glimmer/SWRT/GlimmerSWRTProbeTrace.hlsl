@@ -143,6 +143,8 @@ float3 GlimmerCanopyRadiance(float3 P, float3 albedo, float depthBelowTop, float
 #define GLIMMER_MASK_RAY_LEVEL_BIAS 1
 #define GLIMMER_SUN_MASK_LEVEL 2
 
+#define GLIMMER_SPAN_FOOTPRINT_SLACK 1.5
+
 float3 GlimmerSkyRadiance(float3 direction)
 {
     if (constants.dispatch.y == 0xFFFFu || constants.dispatch.y == 0xFFFFFFFFu)
@@ -173,7 +175,11 @@ float GlimmerSunVisibility(float3 P, float3 N, float3 L, bool traceSWRT)
         float tLast;
         float tCovered;
 
-        if (GlimmerMaskTraceRay(constants.mask, GLIMMER_SUN_MASK_LEVEL, origin, L, GLIMMER_SUN_SWRT_DISTANCE, tFirst, tLast, tCovered))
+        const bool maskHit = GlimmerMaskTraceRay(constants.mask, GLIMMER_SUN_MASK_LEVEL, origin, L, GLIMMER_SUN_SWRT_DISTANCE, tFirst, tLast, tCovered);
+
+        solidsFromT = min(tCovered, GLIMMER_SPAN_FOOTPRINT_SLACK * constants.spans.levels[0].params.x);
+
+        if (maskHit)
         {
             GlimmerSWRTStats stats = GlimmerMakeSWRTStats();
             GlimmerSWRTHit shadowHit;
@@ -368,7 +374,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
             }
         }
 
-        const float solidsFromT = select(traceRay, swrtCovered, 0.0);
+        const float solidsFromT = select(traceRay, swrtCovered, select(traceSWRT, min(swrtCovered, GLIMMER_SPAN_FOOTPRINT_SLACK * constants.spans.levels[0].params.x), 0.0));
 
         GlimmerHeightfieldHit heightfieldHit;
 
