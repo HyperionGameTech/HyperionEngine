@@ -74,10 +74,10 @@ vec3 RandomInHemisphere(vec3 rand, vec3 n)
     return v * sign(dot(v, n));
 }
 
-// Generates a seed for a random number generator from 2 inputs plus a backoff
-// https://github.com/nvpro-samples/optix_prime_baking/blob/332a886f1ac46c0b3eea9e89a59593470c755a0e/random.h
-// https://github.com/nvpro-samples/vk_raytracing_tutorial_KHR/tree/master/ray_tracing_jitter_cam
-// https://en.wikipedia.org/wiki/Tiny_Encryption_Algorithm
+// Generates a seed for a random number generator from 2 inputs, using 16 rounds of the Tiny Encryption Algorithm
+// (Zafar, Olano and Curtis, "GPU Random Numbers via the Tiny Encryption Algorithm").
+// Ported to HLSL from tea() in https://github.com/nvpro-samples/vk_raytracing_tutorial_KHR/blob/7c7e1b379132e67f82628f909278e3bc592ac1fe/ray_tracing_jitter_cam/shaders/random.glsl
+// Copyright (c) 2019-2021, NVIDIA CORPORATION. Apache-2.0, see THIRD_PARTY_NOTICES.md
 uint InitRandomSeed(uint val0, uint val1)
 {
     uint v0 = val0, v1 = val1, s0 = 0;

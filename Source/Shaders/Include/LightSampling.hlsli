@@ -10,29 +10,26 @@ static const float lut_size = 64.0;
 static const float lut_scale = (lut_size - 1.0) / lut_size;
 static const float lut_bias = 0.5 / lut_size;
 
-// References:
-// https://blog.selfshadow.com/publications/s2016-advances/s2016_ltc_rnd.pdf
-// https://learnopengl.com/code_viewer_gh.php?code=src/8.guest/2022/7.area_lights/2.multiple_area_lights/7.multi_area_light.fs
+// Linearly Transformed Cosines, adapted from the reference implementation (webgl/shaders/ltc/ltc_quad.fs) at
+// https://github.com/selfshadow/ltc_code
+// Copyright (c) 2017, Eric Heitz, Jonathan Dupuy, Stephen Hill and David Neubelt. BSD-3-Clause, see THIRD_PARTY_NOTICES.md
+// Eric Heitz, Jonathan Dupuy, Stephen Hill and David Neubelt. Real-Time Polygonal-Light Shading with Linearly Transformed Cosines.
+// ACM Transactions on Graphics (Proceedings of ACM SIGGRAPH 2016) 35(4), 2016.
+// Textured lights: https://blog.selfshadow.com/publications/s2016-advances/s2016_ltc_rnd.pdf
 
-float IntegrateEdge(float3 v1, float3 v2)
+float3 IntegrateEdgeVec(float3 v1, float3 v2)
 {
-    // Using built-in acos() function will result flaws
-    // Using fitting result for calculating acos()
     float x = dot(v1, v2);
     float y = abs(x);
 
+    // rational fit of theta / sin(theta), avoids acos()
     float a = 0.8543985 + (0.4965155 + 0.0145206 * y) * y;
     float b = 3.4175940 + (4.1616724 + y) * y;
     float v = a / b;
 
     float theta_sintheta = (x > 0.0) ? v : 0.5 * inversesqrt(max(1.0 - x * x, 1e-7)) - v;
 
-    return theta_sintheta;
-}
-
-float3 IntegrateEdgeVec(float3 v1, float3 v2)
-{
-    return cross(v1, v2) * IntegrateEdge(v1, v2);
+    return cross(v1, v2) * theta_sintheta;
 }
 
 bool RayPlaneIntersect(in Ray ray, float4 plane, out float t)
@@ -84,7 +81,7 @@ float4 SampleRectLightTexture(in Light light, in float3 pts[4])
 
 float4 CalculateAreaLightRadiance(in Light light, in float3x3 Minv, in float3 pts[4], in float3 P, in float3 N, in float3 V)
 {
-    // construct an orthonormal basis around N
+    // construct orthonormal basis around N
     float3 T1 = normalize(V - N * dot(V, N));
     float3 T2 = cross(N, T1);
     float3x3 tbn = transpose(float3x3(T1, T2, N));
@@ -92,10 +89,7 @@ float4 CalculateAreaLightRadiance(in Light light, in float3x3 Minv, in float3 pt
     // rotate area light in (T1, T2, N) basis
     Minv = mul(tbn, Minv);
 
-    // polygon (allocate 4 vertices for clipping)
     float3 L[4];
-
-    // transform polygon from LTC back to origin Do (cosine weighted)
     L[0] = mul(pts[0] - P, Minv);
     L[1] = mul(pts[1] - P, Minv);
     L[2] = mul(pts[2] - P, Minv);
@@ -109,8 +103,7 @@ float4 CalculateAreaLightRadiance(in Light light, in float3x3 Minv, in float3 pt
         L[i] = normalize(L[i]);
     }
 
-    // use tabulated horizon-clipped sphere
-    // check if the shading point is behind the light
+    // clipless approximation: the sphere form factor table in ltc_brdf_texture.w accounts for horizon clipping
     float3 dir = pts[0] - P;
     float3 light_normal = cross(pts[1] - pts[0], pts[3] - pts[0]);
     bool behind = (dot(dir, light_normal) < 0.0);
@@ -121,19 +114,16 @@ float4 CalculateAreaLightRadiance(in Light light, in float3x3 Minv, in float3 pt
     vsum += IntegrateEdgeVec(L[2], L[3]);
     vsum += IntegrateEdgeVec(L[3], L[0]);
 
-    // form factor of the polygon in direction vsum
     float len = length(vsum);
-
     float z = vsum.z / len;
-    
+
     if (behind)
         z = -z;
 
-    float2 uv = float2(z * 0.5 + 0.5, len); // range [0, 1]
+    float2 uv = float2(z * 0.5 + 0.5, len);
     uv.y = 1.0 - uv.y;
     uv = uv * lut_scale + lut_bias;
 
-    // Fetch the form factor for horizon clipping
     float scale = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_brdf_texture, uv).w;
 
     float sum = max(select(behind, 0.0, len * scale), 0.0);
