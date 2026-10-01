@@ -28,6 +28,9 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Deferred/ApplyFogVolume.hlsl"
             PS = "Deferred/ApplyFogVolume.hlsl"
         }
+        ShaderDefinition "FogVolumeTemporal" {
+            CS = "Deferred/FogVolumeTemporal.hlsl"
+        }
         ShaderDefinition "FogVolumeOcclusionBake" {
             CS = "Deferred/FogVolumeOcclusionBake.hlsl"
         }
