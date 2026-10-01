@@ -61,6 +61,10 @@ endif()
 # so it can't mix with the editor build's binaries.
 option(HYP_RUNTIME_ONLY "Build only the engine runtime (no editor or tests)" OFF)
 
+# Both should be OFF for binaries that get redistributed (e.g. Tools/Scripts/PackageEditorWindows.ps1).
+option(HYP_BAKE_ROOT_DIR "Bake the source tree path (HYP_ROOT_DIR) into non-shipping binaries" ON)
+option(HYP_ENABLE_AFTERMATH "Link NVIDIA Aftermath on Windows when the SDK is present" ON)
+
 set(HYP_RUNTIME_DIRECTORY_SUFFIX "")
 if(HYP_RUNTIME_ONLY)
   set(HYP_RUNTIME_DIRECTORY_SUFFIX "-Runtime")
@@ -530,14 +534,18 @@ if(NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_SHIPPING)
   # TODO if not final release build check.
   # for final release follow the android technique
 
-  # we need to escape if on windows:
-  if(WIN32)
-    string(REPLACE "\\" "\\\\" HYP_ROOT_DIR_ESCAPED "${HYP_ROOT_DIR}")
-  else()
-    set(HYP_ROOT_DIR_ESCAPED "${HYP_ROOT_DIR}")
-  endif()
+  if(HYP_BAKE_ROOT_DIR)
+    # we need to escape if on windows:
+    if(WIN32)
+      string(REPLACE "\\" "\\\\" HYP_ROOT_DIR_ESCAPED "${HYP_ROOT_DIR}")
+    else()
+      set(HYP_ROOT_DIR_ESCAPED "${HYP_ROOT_DIR}")
+    endif()
 
-  add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR_ESCAPED}")
+    add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR_ESCAPED}")
+  else()
+    message(STATUS "HYP_BAKE_ROOT_DIR is OFF, binaries won't reference the source tree")
+  endif()
 
   if(NOT HYP_RUNTIME_ONLY)
     set(HYP_EDITOR 1)
@@ -870,7 +878,9 @@ endif()
 
 # if aftermath lib exists on windows, link to it
 if(WIN32)
-  if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
+  if(NOT HYP_ENABLE_AFTERMATH)
+    message(STATUS "HYP_ENABLE_AFTERMATH is OFF, not linking Aftermath")
+  elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
     set(HYP_AFTERMATH 1)
 

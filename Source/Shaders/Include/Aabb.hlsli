@@ -42,7 +42,7 @@ float AABBGetGreatestExtent(AABB aabb)
 
     return max(extent.x, max(extent.y, extent.z));
 }
-// https://github.com/nvpro-samples/gl_occlusion_culling/blob/master/cull-common.h
+
 float3 AABBGetCorner(AABB aabb, int index)
 {
     const float3 extent = AABBGetExtent(aabb);
