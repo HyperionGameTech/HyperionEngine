@@ -546,12 +546,11 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     m_lastBuildStartTime = PerformanceClock::Now();
     m_dirty = false;
 
-    m_buildTask = TaskSystem::GetInstance().Enqueue(
+    m_buildTask = blasCache.GetBuildPool().Enqueue(
         [input = std::move(input)]() mutable -> BuildResult
         {
             return Build(std::move(input));
-        },
-        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+        });
 
     return swapped;
 }

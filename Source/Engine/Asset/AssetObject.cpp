@@ -958,6 +958,8 @@ void AssetObject::UnlockReader()
 
     if (isTearingDown)
     {
+        Mutex::Guard persistLock(GetBlobPersistMutex(this));
+
         if (IsDirty() || !IsRegistered())
         {
             // Modified blob data only exists in memory, so it has to be kept resident until
@@ -993,6 +995,8 @@ void AssetObject::UnlockReader()
     {
         if (!m_flags[AssetObjectFlags::Persistent])
         {
+            Mutex::Guard persistLock(GetBlobPersistMutex(this));
+
             if (IsRegistered() && !IsDirty())
             {
                 SetBlobDataResident(false);
@@ -1034,6 +1038,14 @@ Handle<AssetRegistry> AssetObject::GetAssetRegistry() const
     }
 
     return Handle<AssetRegistry>::Null();
+}
+
+Mutex& AssetObject::GetBlobPersistMutex(const AssetObject* assetObject)
+{
+    static constexpr uint32 NumMutexes = 16;
+    static Mutex s_mutexes[NumMutexes];
+
+    return s_mutexes[(uintptr_t(assetObject) >> 4) % NumMutexes];
 }
 
 bool AssetObject::ShouldUseBlobStorage()

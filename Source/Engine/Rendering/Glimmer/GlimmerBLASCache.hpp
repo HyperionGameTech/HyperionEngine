@@ -23,6 +23,12 @@
 
 namespace Hyperion {
 
+namespace threading {
+class TaskThreadPool;
+} // namespace threading
+
+using threading::TaskThreadPool;
+
 class Mesh;
 
 struct GlimmerTriangle
@@ -115,6 +121,11 @@ public:
     void UpdateOncePerFrame(Frame* frame);
     void Update(Frame* frame);
 
+    HYP_FORCE_INLINE TaskThreadPool& GetBuildPool() const
+    {
+        return *m_buildPool;
+    }
+
     HYP_FORCE_INLINE uint32 GetResidentGeneration() const
     {
         return m_residentGeneration;
@@ -188,6 +199,8 @@ private:
     void UploadEntry(Frame* frame, Entry& entry);
 
     Map<uint64, UniquePtr<Entry>> m_entries;
+
+    UniquePtr<TaskThreadPool> m_buildPool;
 
     GpuBufferRef m_nodesBuffer;
     GpuBufferRef m_trianglesBuffer;
