@@ -20,7 +20,7 @@
 namespace Hyperion {
 
 static constexpr int32 WindowSnapTexels = 16;
-static constexpr int32 RefreshRows = 8;
+static constexpr size_t MaxPendingRects = 64;
 static constexpr int32 SamplesPerFrame = 65536;
 
 #pragma region GlimmerGroundClipmap
@@ -80,6 +80,40 @@ void GlimmerGroundClipmap::MoveWindow(uint32 levelIndex, const Vec2i& desiredOri
 
     level.windowOrigin = desiredOrigin;
     level.hasWindow = true;
+}
+
+void GlimmerGroundClipmap::AddDirtyRect(uint32 levelIndex, const Vec4f& worldRect)
+{
+    Level& level = m_levels[levelIndex];
+
+    if (!level.hasWindow)
+    {
+        return;
+    }
+
+    const float invTexelSize = 1.0f / GetGlimmerGroundTexelSize(levelIndex);
+    const Rect window = GetGlimmerGroundWindow(level.windowOrigin);
+
+    const Rect rect = Rect::Intersect(
+        Rect {
+            Vec2i(int32(MathUtil::Floor(worldRect.x * invTexelSize)) - 1, int32(MathUtil::Floor(worldRect.y * invTexelSize)) - 1),
+            Vec2i(int32(MathUtil::Floor(worldRect.z * invTexelSize)) + 2, int32(MathUtil::Floor(worldRect.w * invTexelSize)) + 2) },
+        window);
+
+    if (rect.IsEmpty())
+    {
+        return;
+    }
+
+    if (level.pending.Size() >= MaxPendingRects)
+    {
+        level.pending.Clear();
+        level.pending.PushBack(window);
+
+        return;
+    }
+
+    level.pending.PushBack(rect);
 }
 
 int32 GlimmerGroundClipmap::SampleRect(TerrainWorldGridLayer* terrain, uint32 levelIndex, const Rect& rect, Array<GlimmerGroundUpload>& outUploads) const
@@ -177,6 +211,14 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
         MoveWindow(levelIndex, desiredOrigin);
     }
 
+    for (const Vec4f& worldRect : m_terrain->TakeHeightDirtyRects())
+    {
+        for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
+        {
+            AddDirtyRect(levelIndex, worldRect);
+        }
+    }
+
     int32 budget = SamplesPerFrame;
 
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels && budget > 0; levelIndex++)
@@ -210,25 +252,6 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
         {
             level.valid = GetGlimmerGroundWindow(level.windowOrigin);
         }
-    }
-
-    for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels && budget > 0; levelIndex++)
-    {
-        Level& level = m_levels[levelIndex];
-
-        if (level.pending.Any())
-        {
-            continue;
-        }
-
-        const Rect window = GetGlimmerGroundWindow(level.windowOrigin);
-
-        const int32 row = window.min.y + (level.refreshRow % int32(GlimmerGroundResolution));
-        const Rect strip = Rect { Vec2i(window.min.x, row), Vec2i(window.max.x, MathUtil::Min(row + RefreshRows, window.max.y)) };
-
-        budget -= SampleRect(m_terrain, levelIndex, strip, outUploads);
-
-        level.refreshRow = (level.refreshRow + RefreshRows) % int32(GlimmerGroundResolution);
     }
 }
 

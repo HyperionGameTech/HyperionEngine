@@ -243,14 +243,21 @@ void GlimmerBLASCache::CreatePoolBuffers()
         PoolBytes / (1024ull * 1024ull), nodeCapacity, triangleCapacity);
 }
 
-bool GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef)
+GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     if (!mesh)
     {
-        return false;
+        return GlimmerBLASRequestResult::Failed;
+    }
+
+    const uint32 numLods = mesh->GetMeshDesc().GetNumLods();
+
+    if (lodIndex >= numLods)
+    {
+        lodIndex = 0;
     }
 
     const uint64 key = MakeKey(mesh, lodIndex);
@@ -266,36 +273,32 @@ bool GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRe
         {
             entry.lastUsedFrame = GetFrameCounter();
 
+            if (entry.state == EntryState::Failed && entry.dead)
+            {
+                return GlimmerBLASRequestResult::Failed;
+            }
+
             if (entry.state != EntryState::Resident)
             {
-                return false;
+                return GlimmerBLASRequestResult::Pending;
             }
 
             outRef = entry.ref;
 
-            return true;
+            return GlimmerBLASRequestResult::Resident;
         }
 
         if (entry.state == EntryState::Building || entry.numReferences != 0)
         {
-            // let the stale build finish, or wait for the TLASes still using the old one to let go
-            return false;
+            // let the stale build finish, or wait for the TLASes still using the old one to let go, then requeue for this mesh
+            entry.replacementMesh = MakeWeakRef(mesh);
+
+            return GlimmerBLASRequestResult::Pending;
         }
 
-        if (entry.state == EntryState::Resident)
-        {
-            FreeEntryRanges(entry);
-        }
+        Requeue(entry, mesh);
 
-        entry = Entry {};
-        entry.state = EntryState::Queued;
-        entry.mesh = MakeStrongRef(mesh);
-        entry.meshWeak = MakeWeakRef(mesh);
-        entry.lodIndex = lodIndex;
-        entry.ref.key = key;
-        entry.lastUsedFrame = GetFrameCounter();
-
-        return false;
+        return GlimmerBLASRequestResult::Pending;
     }
 
     UniquePtr<Entry> entry = MakeUnique<Entry>();
@@ -308,7 +311,7 @@ bool GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRe
 
     m_entries.Set(key, std::move(entry));
 
-    return false;
+    return GlimmerBLASRequestResult::Pending;
 }
 
 void GlimmerBLASCache::AddReferences(Span<const uint64> keys)
@@ -338,8 +341,54 @@ void GlimmerBLASCache::RemoveReferences(Span<const uint64> keys)
             }
 
             entry.lastUsedFrame = GetFrameCounter();
+
+            if (entry.numReferences == 0 && entry.state != EntryState::Building)
+            {
+                RequeueForReplacement(entry);
+            }
         }
     }
+}
+
+void GlimmerBLASCache::Requeue(Entry& entry, Mesh* mesh)
+{
+    AssertDebug(entry.numReferences == 0 && !entry.buildTask.IsValid());
+
+    if (entry.state == EntryState::Resident)
+    {
+        FreeEntryRanges(entry);
+    }
+
+    const uint64 key = entry.ref.key;
+    const uint8 lodIndex = entry.lodIndex;
+
+    entry = Entry {};
+    entry.state = EntryState::Queued;
+    entry.mesh = MakeStrongRef(mesh);
+    entry.meshWeak = MakeWeakRef(mesh);
+    entry.lodIndex = lodIndex;
+    entry.ref.key = key;
+    entry.lastUsedFrame = GetFrameCounter();
+}
+
+bool GlimmerBLASCache::RequeueForReplacement(Entry& entry)
+{
+    if (!entry.replacementMesh.IsValid())
+    {
+        return false;
+    }
+
+    const Handle<Mesh> replacementMesh = entry.replacementMesh.Expired() ? Handle<Mesh>() : entry.replacementMesh.Lock();
+    entry.replacementMesh = WeakHandle<Mesh>();
+
+    if (!replacementMesh.IsValid())
+    {
+        return false;
+    }
+
+    Requeue(entry, replacementMesh.Get());
+
+    return true;
 }
 
 GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& mesh, uint8 lodIndex)
@@ -376,6 +425,8 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
 
         if (indexSize != sizeof(uint16) && indexSize != sizeof(uint32))
         {
+            result.isFail = true;
+
             return result;
         }
 
@@ -470,6 +521,8 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
 
     if (unorderedTriangles.Empty())
     {
+        result.isFail = !indices.Empty();
+
         return result;
     }
 
@@ -492,11 +545,6 @@ bool GlimmerBLASCache::AllocateEntry(Entry& entry)
 {
     const uint32 nodeCount = uint32(entry.result.nodes.Size());
     const uint32 triangleCount = uint32(entry.result.triangles.Size());
-
-    if (nodeCount > m_nodeAllocator.GetCapacity() || triangleCount > m_triangleAllocator.GetCapacity())
-    {
-        return false;
-    }
 
     const uint32 nodeBase = m_nodeAllocator.Allocate(nodeCount);
     const uint32 triangleBase = nodeBase != GlimmerPoolAllocator::InvalidOffset
@@ -684,10 +732,21 @@ void GlimmerBLASCache::Update(Frame* frame)
             AssertDebug(m_numBuildsInFlight != 0);
             m_numBuildsInFlight--;
 
+            // built from a mesh whose id has since been reused
+            if (RequeueForReplacement(entry))
+            {
+                break;
+            }
+
             if (entry.result.nodes.Empty())
             {
                 entry.state = EntryState::Failed;
                 entry.failedFrame = frameCounter;
+
+                if ((entry.dead = entry.result.isFail))
+                {
+                    HYP_LOG(Rendering, Warning, "Glimmer: mesh {} (LOD {}) has no traceable triangles", it.first >> 8, entry.lodIndex);
+                }
 
                 break;
             }
@@ -698,6 +757,19 @@ void GlimmerBLASCache::Update(Frame* frame)
         }
         case EntryState::PendingUpload:
         {
+            if (entry.result.nodes.Size() > m_nodeAllocator.GetCapacity() || entry.result.triangles.Size() > m_triangleAllocator.GetCapacity())
+            {
+                HYP_LOG(Rendering, Warning, "Glimmer: mesh {} (LOD {}) has {} triangles, more than the BLAS pool holds",
+                    it.first >> 8, entry.lodIndex, entry.result.triangles.Size());
+
+                entry.result = BuildResult {};
+                entry.state = EntryState::Failed;
+                entry.failedFrame = frameCounter;
+                entry.dead = true;
+
+                break;
+            }
+
             const size_t entryBytes = entry.result.nodes.ByteSize() + entry.result.triangles.ByteSize();
 
             // always allow one upload per frame so a single large BLAS can't stall forever
@@ -722,6 +794,17 @@ void GlimmerBLASCache::Update(Frame* frame)
         }
         case EntryState::Failed:
         {
+            if (entry.dead)
+            {
+                if (entry.meshWeak.Expired())
+                {
+                    entry.state = EntryState::Evicted;
+                    m_keysToErase.PushBack(it.first);
+                }
+
+                break;
+            }
+
             if (frameCounter - entry.failedFrame < FailedRetryDelayFrames)
             {
                 break;

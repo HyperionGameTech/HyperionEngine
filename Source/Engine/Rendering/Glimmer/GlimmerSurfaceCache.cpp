@@ -26,11 +26,19 @@
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
+#include <Framework/EngineStats.hpp>
+
+#include <Core/Containers/Set.hpp>
+
 #include <Core/Math/MathUtil.hpp>
+
+#include <Core/HashCode.hpp>
 
 #include <Core/Profiling/ProfileScope.hpp>
 
 namespace Hyperion {
+
+static EngineStatGpuTimer s_statGlimmerSurface("Rendering/GPU/Glimmer/Surface");
 
 static constexpr uint32 GroundUploadGroupSize = 64;
 
@@ -48,7 +56,12 @@ struct GlimmerGroundAlbedoConstants
     Vec4i windowOrigins; // xy = the level's window origin, zw = its origin at the level's last fill
     Vec4u info;          // x = level, y = number of terrain patches, z = 1 when the last fill's origin is valid
     Vec4f groundCover;   // per splat layer, how much of the ground its plants hide where the layer is full
+    Vec4i fillMax;       // xy = absolute texel past the rect being filled (exclusive)
 };
+
+static constexpr uint32 MaxAlbedoRects = 4;
+
+static constexpr uint32 AlbedoRefreshFrames = 64;
 
 struct GlimmerGroundCoverConstants
 {
@@ -64,6 +77,8 @@ GlimmerSurfaceCache::GlimmerSurfaceCache()
     : m_groundShaderData {},
       m_hasClearedGroundCover(false),
       m_groundCoverCoverage(Vec4f::Zero()),
+      m_groundCoverKey {},
+      m_hasGroundCoverChanged(true),
       m_albedoGeneration(0),
       m_albedoFillCounter(0)
 {
@@ -113,6 +128,25 @@ void GlimmerSurfaceCache::UploadTerrainPatches(Frame* frame, Span<const GlimmerT
         && (byteSize == 0 || Memory::Compare(reinterpret_cast<const ubyte*>(m_uploadedTerrainPatches.Data()), reinterpret_cast<const ubyte*>(terrainPatches.Data()), byteSize) == 0))
     {
         return;
+    }
+
+    {
+        Set<uint64> previousPatches;
+
+        for (const GlimmerTerrainPatchShaderData& patch : m_uploadedTerrainPatches)
+        {
+            previousPatches.Insert(FNV1::DoHashWords(&patch, sizeof(patch), 0));
+        }
+
+        for (size_t patchIndex = 0; patchIndex < numPatches; patchIndex++)
+        {
+            const GlimmerTerrainPatchShaderData& patch = terrainPatches[patchIndex];
+
+            if (!previousPatches.Contains(FNV1::DoHashWords(&patch, sizeof(patch), 0)))
+            {
+                m_albedoDirtyWorldRects.PushBack(patch.boundsXZ);
+            }
+        }
     }
 
     m_uploadedTerrainPatches.Resize(numPatches);
@@ -184,6 +218,17 @@ void GlimmerSurfaceCache::UpdateGroundCover(Frame* frame, const GlimmerChannelSt
         }
     }
 
+    GlimmerGroundCoverConstantsKey key {};
+    Memory::Copy(key.materials, constants.materials, sizeof(key.materials));
+    Memory::Copy(key.weights, constants.weights, sizeof(key.weights));
+    key.coverage = m_groundCoverCoverage;
+
+    if (Memory::Compare(reinterpret_cast<const ubyte*>(&key), reinterpret_cast<const ubyte*>(&m_groundCoverKey), sizeof(key)) != 0)
+    {
+        m_groundCoverKey = key;
+        m_hasGroundCoverChanged = true;
+    }
+
     if (!hasAnyMaterial)
     {
         return;
@@ -224,7 +269,8 @@ void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelS
         }
     }
 
-    const uint32 scheduledLevel = m_albedoFillCounter++ % GlimmerGroundLevels;
+    const uint32 frameIndex = m_albedoFillCounter++;
+    const uint32 refreshLevel = frameIndex % AlbedoRefreshFrames == 0 ? (frameIndex / AlbedoRefreshFrames) % GlimmerGroundLevels : ~0u;
 
     CommandRecorder& cr = frame->cr;
 
@@ -235,50 +281,131 @@ void GlimmerSurfaceCache::UpdateGroundAlbedo(Frame* frame, const GlimmerChannelS
         AlbedoLevel& albedoLevel = m_albedoLevels[levelIndex];
 
         const Vec2i windowOrigin = state.groundLevels[levelIndex].windowOrigin;
-        const bool hasMoved = !albedoLevel.hasFilled || albedoLevel.filledOrigin != windowOrigin;
+        const GlimmerTexelRect window = GetGlimmerGroundWindow(windowOrigin);
 
-        if (levelIndex != scheduledLevel && !hasMoved)
+        const bool isJump = !albedoLevel.hasFilled
+            || MathUtil::Abs(windowOrigin.x - albedoLevel.filledOrigin.x) >= int32(GlimmerGroundResolution)
+            || MathUtil::Abs(windowOrigin.y - albedoLevel.filledOrigin.y) >= int32(GlimmerGroundResolution);
+
+        bool isWholeWindow = isJump || m_hasGroundCoverChanged || levelIndex == refreshLevel;
+
+        const GlimmerTexelRect& uploadedRect = m_uploadedRects[levelIndex];
+
+        if (!uploadedRect.IsEmpty())
         {
-            continue;
+            albedoLevel.unfilledUploads = GlimmerTexelRect::Union(
+                albedoLevel.unfilledUploads,
+                GlimmerTexelRect { uploadedRect.min - Vec2i(1, 1), uploadedRect.max + Vec2i(1, 1) });
         }
 
-        if (isFirstDispatch)
-        {
-            isFirstDispatch = false;
+        albedoLevel.unfilledUploads = GlimmerTexelRect::Intersect(albedoLevel.unfilledUploads, window);
 
-            cr << InsertBarrier(m_ground->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
-            cr << InsertBarrier(m_groundAlbedo->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-            cr << SetCurrentShader(ShaderDesc(NAME("GlimmerGroundAlbedo")));
+        const GlimmerGroundLevelState& levelState = state.groundLevels[levelIndex];
+        const GlimmerTexelRect validRect { levelState.validMin, levelState.validMax };
+        const GlimmerTexelRect validUploads = GlimmerTexelRect::Intersect(albedoLevel.unfilledUploads, validRect);
+
+        const bool canFillUploads = !albedoLevel.unfilledUploads.IsEmpty()
+            && validUploads.min == albedoLevel.unfilledUploads.min
+            && validUploads.max == albedoLevel.unfilledUploads.max;
+
+        Array<GlimmerTexelRect> rects;
+
+        const auto addRect = [&](const GlimmerTexelRect& rect)
+        {
+            const GlimmerTexelRect clipped = GlimmerTexelRect::Intersect(rect, window);
+
+            if (!clipped.IsEmpty())
+            {
+                rects.PushBack(clipped);
+            }
+        };
+
+        if (!isWholeWindow)
+        {
+            if (albedoLevel.filledOrigin != windowOrigin)
+            {
+                GlimmerTexelRect columns;
+                GlimmerTexelRect rows;
+                GetGlimmerScrolledRects(GetGlimmerGroundWindow(albedoLevel.filledOrigin), window, columns, rows);
+
+                addRect(columns);
+                addRect(rows);
+            }
+
+            if (canFillUploads)
+            {
+                addRect(albedoLevel.unfilledUploads);
+            }
+
+            const float invTexelSize = 1.0f / GetGlimmerGroundTexelSize(levelIndex);
+
+            for (const Vec4f& worldRect : m_albedoDirtyWorldRects)
+            {
+                addRect(GlimmerTexelRect {
+                    Vec2i(int32(MathUtil::Floor(worldRect.x * invTexelSize)) - 1, int32(MathUtil::Floor(worldRect.y * invTexelSize)) - 1),
+                    Vec2i(int32(MathUtil::Floor(worldRect.z * invTexelSize)) + 2, int32(MathUtil::Floor(worldRect.w * invTexelSize)) + 2) });
+            }
+
+            isWholeWindow = rects.Size() > MaxAlbedoRects;
         }
 
-        GlimmerGroundAlbedoConstants constants {};
-        constants.ground = m_groundShaderData;
-        constants.windowOrigins = Vec4i(windowOrigin.x, windowOrigin.y, albedoLevel.filledOrigin.x, albedoLevel.filledOrigin.y);
-        constants.info = Vec4u(levelIndex, uint32(m_uploadedTerrainPatches.Size()), albedoLevel.hasFilled ? 1u : 0u, 0);
-        constants.groundCover = m_groundCoverCoverage;
+        if (isWholeWindow)
+        {
+            rects.Clear();
+            rects.PushBack(window);
+        }
 
-        GpuBuffer* cbuffer = nullptr;
-        size_t cbufferOffset = 0;
-        size_t cbufferSize = 0;
+        for (const GlimmerTexelRect& rect : rects)
+        {
+            if (isFirstDispatch)
+            {
+                isFirstDispatch = false;
 
-        RI.cbufferAllocator->Write(&constants);
-        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+                cr << InsertBarrier(m_ground->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+                cr << InsertBarrier(m_groundAlbedo->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+                cr << SetCurrentShader(ShaderDesc(NAME("GlimmerGroundAlbedo")));
+            }
 
-        uint32 uniformIndex = 0;
+            GlimmerGroundAlbedoConstants constants {};
+            constants.ground = m_groundShaderData;
+            constants.windowOrigins = Vec4i(rect.min.x, rect.min.y, albedoLevel.filledOrigin.x, albedoLevel.filledOrigin.y);
+            constants.info = Vec4u(levelIndex, uint32(m_uploadedTerrainPatches.Size()), albedoLevel.hasFilled ? 1u : 0u, 0);
+            constants.groundCover = m_groundCoverCoverage;
+            constants.fillMax = Vec4i(rect.max.x, rect.max.y, 0, 0);
 
-        cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
-        cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
-        cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
-        cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, RI.textureViewCache->GetOrCreate(m_ground));
-        cr << SetShaderUniform(uniformIndex++, "TerrainPatchesBuffer"_sh, m_terrainPatchesBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerTerrainPatchShaderData)));
-        cr << SetShaderUniform(uniformIndex++, "GroundCoverAlbedoBuffer"_sh, m_groundCoverAlbedoBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
-        cr << SetShaderUniform(uniformIndex++, "OutGroundAlbedo"_sh, RI.textureViewCache->GetOrCreate(m_groundAlbedo));
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
 
-        cr << DispatchCompute(Vec3u { GlimmerGroundResolution / GroundAlbedoGroupSize, GlimmerGroundResolution / GroundAlbedoGroupSize, 1 });
+            RI.cbufferAllocator->Write(&constants);
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
+            uint32 uniformIndex = 0;
+
+            cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
+            cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
+            cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+            cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, RI.textureViewCache->GetOrCreate(m_ground));
+            cr << SetShaderUniform(uniformIndex++, "TerrainPatchesBuffer"_sh, m_terrainPatchesBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerTerrainPatchShaderData)));
+            cr << SetShaderUniform(uniformIndex++, "GroundCoverAlbedoBuffer"_sh, m_groundCoverAlbedoBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+            cr << SetShaderUniform(uniformIndex++, "OutGroundAlbedo"_sh, RI.textureViewCache->GetOrCreate(m_groundAlbedo));
+
+            const Vec2u extent = Vec2u(uint32(rect.max.x - rect.min.x), uint32(rect.max.y - rect.min.y));
+
+            cr << DispatchCompute(Vec3u { (extent.x + GroundAlbedoGroupSize - 1) / GroundAlbedoGroupSize, (extent.y + GroundAlbedoGroupSize - 1) / GroundAlbedoGroupSize, 1 });
+        }
+
+        if (canFillUploads)
+        {
+            albedoLevel.unfilledUploads = GlimmerTexelRect {};
+        }
 
         albedoLevel.hasFilled = true;
         albedoLevel.filledOrigin = windowOrigin;
     }
+
+    m_albedoDirtyWorldRects.Clear();
+    m_hasGroundCoverChanged = false;
 
     if (!isFirstDispatch)
     {
@@ -293,6 +420,13 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
     if (!m_ground.IsValid())
     {
         CreateTextures();
+    }
+
+    ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSurface);
+
+    for (GlimmerTexelRect& uploadedRect : m_uploadedRects)
+    {
+        uploadedRect = GlimmerTexelRect {};
     }
 
     CommandRecorder& cr = frame->cr;
@@ -356,6 +490,9 @@ void GlimmerSurfaceCache::Update(Frame* frame, const GlimmerChannelState& state,
             cr << DispatchCompute(groups);
 
             readOffset += upload.heights.Size();
+
+            const GlimmerTexelRect uploadRect { upload.texelMin, upload.texelMin + Vec2i(int32(upload.extent.x), int32(upload.extent.y)) };
+            m_uploadedRects[upload.level] = GlimmerTexelRect::Union(m_uploadedRects[upload.level], uploadRect);
         }
 
         cr << InsertBarrier(m_ground->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);

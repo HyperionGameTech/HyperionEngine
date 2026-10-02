@@ -21,11 +21,15 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
+#include <Framework/EngineStats.hpp>
+
 #include <Core/Math/MathUtil.hpp>
 
 #include <Core/Profiling/ProfileScope.hpp>
 
 namespace Hyperion {
+
+static EngineStatGpuTimer s_statGlimmerFootprintMask("Rendering/GPU/Glimmer/FootprintMask");
 
 static StaticShaderPropertyId s_propMaskModeClear { ShaderProperty(NAME("MODE"), NAME("CLEAR")) };
 static StaticShaderPropertyId s_propMaskModeRasterize { ShaderProperty(NAME("MODE"), NAME("RASTERIZE")) };
@@ -33,6 +37,7 @@ static StaticShaderPropertyId s_propMaskModeReduce { ShaderProperty(NAME("MODE")
 
 static constexpr uint32 MaskGroupSize = 64;
 static constexpr uint32 MaxMaskResolution = 2048;
+static constexpr uint32 MaskResolutionAlignment = 32;
 
 struct GlimmerFootprintMaskConstants
 {
@@ -103,11 +108,15 @@ void GlimmerFootprintMask::Rebuild(Frame* frame, const GlimmerTLAS& tlas, const 
     }
 
     const float cellSize = GlimmerFootprintMaskCellSize;
-    const uint32 resolution = MathUtil::Clamp(uint32(MathUtil::Ceil(2.0f * regionRadius / cellSize)), 1u, MaxMaskResolution);
+
+    const uint32 cellsAcross = MathUtil::Clamp(uint32(MathUtil::Ceil(2.0f * regionRadius / cellSize)), 1u, MaxMaskResolution);
+    const uint32 resolution = MathUtil::Min((cellsAcross + MaskResolutionAlignment - 1) / MaskResolutionAlignment * MaskResolutionAlignment, MaxMaskResolution);
     const uint32 numLevels = uint32(MathUtil::FastLog2(resolution)) + 1;
     const uint32 totalCells = CalculateGlimmerMipChainCells(resolution, numLevels);
 
     EnsureBuffer(resolution, numLevels);
+
+    ENGINE_STAT_GPU_SCOPE(&s_statGlimmerFootprintMask);
 
     const float halfExtent = 0.5f * float(resolution) * cellSize;
 

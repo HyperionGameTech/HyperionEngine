@@ -53,18 +53,32 @@ public:
         return m_shaderData;
     }
 
+    // false while a cascade is still waiting to be rebuilt for the current TLAS or window
+    HYP_FORCE_INLINE bool IsSettled() const
+    {
+        return m_isSettled;
+    }
+
     const GpuImageViewRef& GetImageView() const;
 
 private:
     void CreateResources();
-    void RebuildCascade(Frame* frame, uint32 cascadeIndex, const Vec3i& origin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache);
+    struct Box
+    {
+        Vec3i min;
+        Vec3i max; // exclusive
+    };
+
+    void SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i& origin, const Box& box, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache);
 
     Handle<Texture> m_texture;
 
     FixedArray<Vec3i, GlimmerSHCascades> m_builtOrigins;
     FixedArray<uint32, GlimmerSHCascades> m_builtGenerations;
+    FixedArray<Array<Box>, GlimmerSHCascades> m_dirtyBoxes;
 
     GlimmerSHOccupancyShaderData m_shaderData;
+    bool m_isSettled;
 };
 
 } // namespace Hyperion

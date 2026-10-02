@@ -24,7 +24,7 @@ enum GlimmerInstanceFlags : uint32
 {
     GIF_NONE = 0x0,
     GIF_DOUBLE_SIDED = 0x1,
-    GIF_MIRRORED = 0x2,         //!< negative determinant, so object space winding is flipped
+    GIF_MIRRORED = 0x2,         //!< negative determinant
     GIF_ALPHA_TESTED = 0x4,
     GIF_FOLIAGE = 0x8           //!< span instances only: splatted as canopy rather than solid
 };
@@ -164,6 +164,11 @@ public:
         return m_stats.numBuilds;
     }
 
+    HYP_FORCE_INLINE const BoundingBox& GetActiveRegion() const
+    {
+        return m_activeRegion;
+    }
+
     HYP_FORCE_INLINE const GlimmerTLASStats& GetStats() const
     {
         return m_stats;
@@ -183,6 +188,7 @@ private:
 
     struct BuildInput
     {
+        BoundingBox region;
         Vec3f regionCenter;
         Array<SpanKey> previousSpanKeys; // sorted; empty for the first build
         bool hasPrevious = false;
@@ -195,6 +201,7 @@ private:
 
     struct BuildResult
     {
+        BoundingBox region;
         Array<GlimmerBVHNode> nodes;
         Array<GlimmerInstanceShaderData> instances;
         Array<GlimmerInstanceBoundsShaderData> instanceBounds;
@@ -235,6 +242,7 @@ private:
 
     BoundingBox m_lastRegion;
     BoundingBox m_lastTracedRegion;
+    BoundingBox m_activeRegion;
     uint64 m_lastBuildStartTime;
     uint32 m_blasGenerationAtGather;
     bool m_dirty;

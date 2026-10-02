@@ -10,6 +10,10 @@ static float g_skyVisibility = 1.0;
 
 // Glimmer irradiance / pi
 static float4 g_glimmerIrradiance = float4(0.0, 0.0, 0.0, 0.0);
+// x = Glimmer's sky visibility along the reflection, y = how much it replaces g_skyVisibility for sky reflections
+static float2 g_glimmerSpecular = float2(0.0, 0.0);
+// Glimmer irradiance / pi toward the reflection: what the part of it Glimmer finds blocked sees in place of the sky
+static float3 g_glimmerReflection = float3(0.0, 0.0, 0.0);
 
 struct Refraction
 {
@@ -398,7 +402,11 @@ void EvaluateEnvProbes(
         const float skyReflectionsMissedWeight = min(skyReflectionsWeightSum, reflectionsMissedWeight);
         const float skyReflectionsUncoveredWeight = min(skyReflectionsWeightSum, reflectionsUncoveredWeight);
 
-        reflectionsSum += skyReflectionsColor * (skyReflectionsMissedWeight + skyReflectionsUncoveredWeight * g_skyVisibility);
+        const float skyReflectionsVisibility = lerp(g_skyVisibility, g_glimmerSpecular.x, g_glimmerSpecular.y);
+        const float3 blockedReflectionsColor = g_glimmerReflection * (g_glimmerSpecular.y * (1.0 - g_glimmerSpecular.x));
+
+        reflectionsSum += skyReflectionsColor * (skyReflectionsMissedWeight + skyReflectionsUncoveredWeight * skyReflectionsVisibility)
+            + blockedReflectionsColor * skyReflectionsUncoveredWeight;
         reflectionsWeightSum += skyReflectionsMissedWeight + skyReflectionsUncoveredWeight;
 
         skyIrradiance = (skyIrradianceSum / max(skyIrradianceWeightSum, HYP_FMATH_EPSILON)) * skyIrradianceIntensity;
@@ -425,6 +433,16 @@ void EvaluateEnvProbes(
 
     reflections = float4(reflectionsSum / max(reflectionsWeightSum, HYP_FMATH_EPSILON), saturate(reflectionsWeightSum));
     irradiance = float4(irradianceColor / max(irradianceWeight, HYP_FMATH_EPSILON), saturate(irradianceWeight));
+
+    // Glimmer sees the scene as it is around this point, local probes only from where they were captured: where it covers, it wins the
+    // diffuse (the probes keep the reflections)
+    if (glimmerWeight > 0.0)
+    {
+        const float localWeight = irradiance.a * (1.0 - glimmerWeight);
+        const float combinedWeight = glimmerWeight + localWeight;
+
+        irradiance = float4((g_glimmerIrradiance.rgb * glimmerWeight + irradiance.rgb * localWeight) / combinedWeight, combinedWeight);
+    }
 
     // DEBUG
     reflections = any(isnan(reflections)) ? (float4) 0 : reflections;

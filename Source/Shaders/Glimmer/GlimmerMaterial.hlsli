@@ -28,4 +28,14 @@ float3 GlimmerGetMaterialAverageAlbedo(uint materialIndex)
     return GlimmerGetMaterialAverageAlbedoAlpha(materialIndex).rgb;
 }
 
+float3 GlimmerGetMaterialEmissive(uint materialIndex)
+{
+    if (materialIndex == 0xFFFFFFFFu)
+    {
+        return (float3)0.0;
+    }
+
+    return max(GET_MATERIAL_EMISSIVE(materials[materialIndex]), (float3)0.0);
+}
+
 #endif

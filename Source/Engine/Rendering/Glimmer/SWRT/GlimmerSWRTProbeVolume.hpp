@@ -20,12 +20,15 @@
 
 namespace Hyperion {
 
+class CloudPass;
+
 class Texture;
 class EnvProbe;
 class GlimmerBLASCache;
 class GlimmerTLAS;
 class GlimmerFootprintMask;
 class GlimmerSHVolume;
+class GlimmerRelight;
 struct GlimmerSHOccupancyShaderData;
 
 static constexpr uint32 GlimmerProbeLevels = 4;
@@ -74,12 +77,15 @@ struct GlimmerSWRTProbeUpdateInputs
     const GlimmerTLAS* tlas = nullptr;
     const GlimmerFootprintMask* footprintMask = nullptr; // of the tlas; tells the trace where SWRT has anything to hit
     const GlimmerSHVolume* shVolume = nullptr;           // the far field, for the bounce at hits past the probes; may be nullptr
+    GlimmerRelight* relight = nullptr;                   // lit here, before the trace shades heightfield hits from it; may be nullptr
 
     // the solids the probe blocks are placed around
     const GlimmerSHOccupancyShaderData* occupancy = nullptr;
     GpuImageViewRef occupancyImageView;
 
     EnvProbe* skyProbe = nullptr;
+
+    const CloudPass* cloudPass = nullptr; // its cloud shadows dim the sun at hits; may be nullptr
 };
 
 class GlimmerSWRTProbeVolume final

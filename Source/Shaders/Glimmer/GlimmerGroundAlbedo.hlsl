@@ -10,9 +10,10 @@
 struct GlimmerGroundAlbedoConstants
 {
     GlimmerGroundParams ground;
-    int4 windowOrigins; // xy = the level's window origin, zw = its origin at the level's last fill
+    int4 windowOrigins; // xy = absolute texel of the rect being filled, zw = the window's origin at the level's last fill
     uint4 info;         // x = level, y = number of terrain patches, z = 1 when the last fill's origin is valid
     float4 groundCover; // per splat layer, how much of the ground its plants hide where the layer is full
+    int4 fillMax;       // xy = absolute texel past the rect being filled (exclusive)
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerGroundAlbedo, CBuffer) cbuffer CBuffer
@@ -154,6 +155,11 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupId : SV_Gro
     const uint numPatches = min(groupNumPatches, uint(MAX_GROUP_PATCHES));
 
     const int2 texel = constants.windowOrigins.xy + int2(dispatchThreadId.xy);
+
+    if (any(texel >= constants.fillMax.xy))
+    {
+        return;
+    }
     const uint3 slot = uint3(GlimmerWrapGroundTexel(texel), level);
 
     const bool isNew = constants.info.z == 0u

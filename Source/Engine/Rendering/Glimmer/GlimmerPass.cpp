@@ -16,6 +16,8 @@
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
+#include <Rendering/Passes/DeferredPass.hpp>
+
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderSetup.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -215,6 +217,11 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     context.tlas = scene->tlas.Get();
     context.tlasSwapped = tlasSwapped;
 
+    if (const DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData))
+    {
+        context.cloudPass = cloudsPassData->cloudPass.Get();
+    }
+
     GlimmerChannelState channelState;
 
     const SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world);
@@ -354,7 +361,7 @@ void GlimmerPass::WriteApplyShaderData(CBufferAllocator& cbufferAllocator, World
         const int debugView = g_cvGlimmerDebugView.Get();
         const bool isApplyView = debugView == int(GlimmerDebugView::Irradiance) || debugView == int(GlimmerDebugView::Coverage);
 
-        shaderData.params = Vec4u(isApplyView ? uint32(debugView) : 0u, 1u, uint32(MathUtil::Clamp(g_cvGlimmerDebugSH.Get(), 0, 4)), 0);
+        shaderData.params = Vec4u(isApplyView ? uint32(debugView) : 0u, 1u, uint32(MathUtil::Clamp(g_cvGlimmerDebugSH.Get(), 0, 3)), 0);
         shaderData.settings = Vec4f(MathUtil::Max(g_cvGlimmerIntensity.Get(), 0.0f), 0.0f, 0.0f, 0.0f);
     }
 
