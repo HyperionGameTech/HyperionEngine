@@ -2,7 +2,7 @@ AnimationTrack PickUp_hand_r {
     BoneName = hand_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PickUp_hand_r.KEYF"
-        Size = 1664
+        Size = 128
     }
-    UUID = "d785a63d-a9fa-4212-9c1c-e2c83ae5ca44"
+    UUID = "3d874326-675d-43d3-9f98-6bea45ebf284"
 }

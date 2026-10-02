@@ -54,5 +54,5 @@ Animation Run {
         @"Engine://AnimationTracks/Run_foot_r"
         @"Engine://AnimationTracks/Run_ball_r"
     ]
-    UUID = "77e02958-3f61-4305-a52f-684281ef1987"
+    UUID = "a4c21caa-ed2e-4446-bd1d-fc1240d61839"
 }

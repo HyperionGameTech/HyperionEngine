@@ -4,5 +4,5 @@ AnimationTrack Walk_clavicle_l {
         Key = "Engine://AnimationTracks/Walk_clavicle_l.KEYF"
         Size = 2624
     }
-    UUID = "fdad69db-6718-4930-8cbb-e0e83d865f78"
+    UUID = "4f410661-86a1-4422-9929-cec437b7935a"
 }

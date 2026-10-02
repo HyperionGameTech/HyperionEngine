@@ -4,5 +4,5 @@ AnimationTrack Death_thumb_01_r {
         Key = "Engine://AnimationTracks/Death_thumb_01_r.KEYF"
         Size = 4672
     }
-    UUID = "d614f87b-5e6b-4579-9de9-bc652d64230b"
+    UUID = "5729c07b-f417-4cd0-9a7b-c3591a7b87ed"
 }

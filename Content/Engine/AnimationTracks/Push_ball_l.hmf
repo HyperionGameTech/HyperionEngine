@@ -4,5 +4,5 @@ AnimationTrack Push_ball_l {
         Key = "Engine://AnimationTracks/Push_ball_l.KEYF"
         Size = 5184
     }
-    UUID = "a994f354-d203-4835-ac8a-058f1687b8f3"
+    UUID = "aeb0e889-565b-4598-b548-286fb9bd4958"
 }

@@ -2,7 +2,7 @@ AnimationTrack RunFall_middle_02_r {
     BoneName = middle_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunFall_middle_02_r.KEYF"
-        Size = 1984
+        Size = 128
     }
-    UUID = "05b973ce-97ca-44f9-b2e1-9d7358f44ce3"
+    UUID = "eee789f2-3ec8-4376-9bb8-6131cbed5042"
 }

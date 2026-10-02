@@ -2,7 +2,7 @@ AnimationTrack CrouchWalk_middle_03_l {
     BoneName = middle_03_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/CrouchWalk_middle_03_l.KEYF"
-        Size = 3904
+        Size = 128
     }
-    UUID = "e06e2f64-e144-4eee-a48b-3702c9bcd920"
+    UUID = "0f3a4a5c-2e0e-4f9e-b436-6846495939a3"
 }

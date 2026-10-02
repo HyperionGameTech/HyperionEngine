@@ -2,7 +2,7 @@ AnimationTrack Death_spine_01 {
     BoneName = spine_01
     KeyframeData = {
         Key = "Engine://AnimationTracks/Death_spine_01.KEYF"
-        Size = 4672
+        Size = 128
     }
-    UUID = "3026f350-682c-4e0b-9a85-97f9d8fe6dd9"
+    UUID = "11c3ad77-9b39-440f-a4a1-f88729924568"
 }

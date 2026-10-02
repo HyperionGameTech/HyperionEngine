@@ -2,7 +2,7 @@ AnimationTrack PistolAimNeutral_pinky_03_l {
     BoneName = pinky_03_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolAimNeutral_pinky_03_l.KEYF"
-        Size = 384
+        Size = 128
     }
-    UUID = "fd809c93-e366-400c-a91a-43829f4cf4e9"
+    UUID = "1a9c3520-78a4-48b9-8ef3-d8d34141ba81"
 }

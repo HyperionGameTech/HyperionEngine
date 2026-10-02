@@ -4,5 +4,5 @@ AnimationTrack StrafeLeft_spine_02 {
         Key = "Engine://AnimationTracks/StrafeLeft_spine_02.KEYF"
         Size = 2624
     }
-    UUID = "4a417a9d-e898-4f10-8f07-c12257d8f23d"
+    UUID = "448c29b7-f295-4058-bce6-60d29e91c06f"
 }

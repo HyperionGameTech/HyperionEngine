@@ -2,7 +2,7 @@ AnimationTrack Jump_root {
     BoneName = root
     KeyframeData = {
         Key = "Engine://AnimationTracks/Jump_root.KEYF"
-        Size = 1600
+        Size = 128
     }
-    UUID = "b6ee041a-ad54-4443-b295-7858f6243bdd"
+    UUID = "ce0fb945-cf6e-4702-8e53-47b27856d59c"
 }

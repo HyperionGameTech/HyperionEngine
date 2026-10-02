@@ -4,5 +4,5 @@ AnimationTrack Roll_thigh_l {
         Key = "Engine://AnimationTracks/Roll_thigh_l.KEYF"
         Size = 2880
     }
-    UUID = "43faded0-28b6-43b6-84e4-85ffc357bbd0"
+    UUID = "bb6d4ff1-1af4-4719-9101-16a78062246c"
 }

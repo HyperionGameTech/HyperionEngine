@@ -4,5 +4,5 @@ AnimationTrack Run_calf_l {
         Key = "Engine://AnimationTracks/Run_calf_l.KEYF"
         Size = 1344
     }
-    UUID = "c40fb98b-3953-462d-8d9b-81c6aae4d59a"
+    UUID = "afb4439f-09d2-4413-8417-81043fedc028"
 }

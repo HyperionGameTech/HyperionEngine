@@ -4,5 +4,5 @@ AnimationTrack CrouchIdle_spine_02 {
         Key = "Engine://AnimationTracks/CrouchIdle_spine_02.KEYF"
         Size = 5696
     }
-    UUID = "11945350-156e-4171-8541-727628e84f10"
+    UUID = "00a9e282-575a-45f9-9032-9e107f102097"
 }

@@ -2,7 +2,7 @@ AnimationTrack WalkBackward_middle_03_l {
     BoneName = middle_03_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/WalkBackward_middle_03_l.KEYF"
-        Size = 2624
+        Size = 128
     }
-    UUID = "cf6d61ec-3ca0-40c4-b41b-d23466db8bab"
+    UUID = "9732cf0a-2122-4ac8-a727-5c992550ed4e"
 }

@@ -54,5 +54,5 @@ Animation HitChest {
         @"Engine://AnimationTracks/HitChest_foot_r"
         @"Engine://AnimationTracks/HitChest_ball_r"
     ]
-    UUID = "d1f7bfc9-a10f-4e78-82d7-a4a99ccc80cd"
+    UUID = "bb4dbfa2-cad3-404e-aedb-c40d2a1a0339"
 }

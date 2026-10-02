@@ -54,5 +54,5 @@ Animation JumpWindup {
         @"Engine://AnimationTracks/JumpWindup_foot_r"
         @"Engine://AnimationTracks/JumpWindup_ball_r"
     ]
-    UUID = "22c01f55-b2d0-4ccb-a511-5fec96ffe779"
+    UUID = "af718bac-7cc9-49c1-9162-85ca603bbb8d"
 }

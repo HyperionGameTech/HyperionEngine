@@ -4,5 +4,5 @@ AnimationTrack CrouchIdle_pinky_01_r {
         Key = "Engine://AnimationTracks/CrouchIdle_pinky_01_r.KEYF"
         Size = 5696
     }
-    UUID = "9b24d89a-5f8b-46b5-91b0-3de26ca0f8b0"
+    UUID = "7f863f2c-688c-437a-bfa0-122197d5875d"
 }

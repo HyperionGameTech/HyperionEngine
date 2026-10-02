@@ -2,7 +2,7 @@ AnimationTrack StrafeLeft_middle_02_l {
     BoneName = middle_02_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/StrafeLeft_middle_02_l.KEYF"
-        Size = 2624
+        Size = 128
     }
-    UUID = "65f3686d-4a7a-41b7-b14b-69953c5f06a1"
+    UUID = "10339bda-d86e-4cab-8811-095ef8d6d16c"
 }

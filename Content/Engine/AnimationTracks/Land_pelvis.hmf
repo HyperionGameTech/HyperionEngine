@@ -4,5 +4,5 @@ AnimationTrack Land_pelvis {
         Key = "Engine://AnimationTracks/Land_pelvis.KEYF"
         Size = 1344
     }
-    UUID = "107682ab-9921-4b47-a9b1-38bb81fee011"
+    UUID = "5ac6f2ae-ad95-4c68-bd7b-aed68b71b289"
 }

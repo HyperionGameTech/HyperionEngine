@@ -2,7 +2,7 @@ AnimationTrack Idle_hand_l {
     BoneName = hand_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/Idle_hand_l.KEYF"
-        Size = 11584
+        Size = 128
     }
-    UUID = "b6d8d982-0494-4951-9dea-dde7a412fb7a"
+    UUID = "691adae6-370d-4151-9e36-53059ccedf6e"
 }

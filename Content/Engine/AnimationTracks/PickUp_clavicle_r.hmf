@@ -2,7 +2,7 @@ AnimationTrack PickUp_clavicle_r {
     BoneName = clavicle_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PickUp_clavicle_r.KEYF"
-        Size = 1664
+        Size = 128
     }
-    UUID = "0b96bba7-7bed-4015-94f5-3ed0437b733c"
+    UUID = "801ae57c-78c6-4f79-a451-ec13118c0b1b"
 }

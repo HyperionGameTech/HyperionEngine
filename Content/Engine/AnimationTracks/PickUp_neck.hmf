@@ -4,5 +4,5 @@ AnimationTrack PickUp_neck {
         Key = "Engine://AnimationTracks/PickUp_neck.KEYF"
         Size = 1664
     }
-    UUID = "734196a6-4151-4025-a827-d4b481fd670e"
+    UUID = "47c9fd07-ce65-45d7-99cf-16275d5445af"
 }

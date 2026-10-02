@@ -4,5 +4,5 @@ AnimationTrack StrafeLeft_clavicle_l {
         Key = "Engine://AnimationTracks/StrafeLeft_clavicle_l.KEYF"
         Size = 2624
     }
-    UUID = "ed6715ee-d6b8-45db-8e0d-e3777bfdd26a"
+    UUID = "f027a4fa-fcdd-4dfa-9c23-20a9e1558810"
 }

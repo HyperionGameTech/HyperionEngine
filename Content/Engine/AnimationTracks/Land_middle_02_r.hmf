@@ -2,7 +2,7 @@ AnimationTrack Land_middle_02_r {
     BoneName = middle_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Land_middle_02_r.KEYF"
-        Size = 1344
+        Size = 128
     }
-    UUID = "f4b2d29d-2927-4c48-b2ca-ade38202b9d9"
+    UUID = "66cad2c3-5874-4e34-8ffc-113348d28661"
 }

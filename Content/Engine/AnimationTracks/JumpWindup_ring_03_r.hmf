@@ -2,7 +2,7 @@ AnimationTrack JumpWindup_ring_03_r {
     BoneName = ring_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/JumpWindup_ring_03_r.KEYF"
-        Size = 320
+        Size = 128
     }
-    UUID = "28ee0db1-69eb-4aa7-9af8-8d22b13884af"
+    UUID = "fc8b317f-c1fd-4534-a0d1-22ed6dd65b86"
 }

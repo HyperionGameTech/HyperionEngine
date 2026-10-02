@@ -4,5 +4,5 @@ AnimationTrack Roll_hand_r {
         Key = "Engine://AnimationTracks/Roll_hand_r.KEYF"
         Size = 2880
     }
-    UUID = "4e353e41-2883-4aef-a18c-303dadf029f8"
+    UUID = "b9716ed9-3694-4935-a5c0-d78393044372"
 }

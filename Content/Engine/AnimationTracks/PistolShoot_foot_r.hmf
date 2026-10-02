@@ -2,7 +2,7 @@ AnimationTrack PistolShoot_foot_r {
     BoneName = foot_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolShoot_foot_r.KEYF"
-        Size = 1280
+        Size = 128
     }
-    UUID = "dd643357-865b-4320-9781-5de65c9b06d9"
+    UUID = "7b132373-efda-45d1-9836-a83b6f1fc3b3"
 }

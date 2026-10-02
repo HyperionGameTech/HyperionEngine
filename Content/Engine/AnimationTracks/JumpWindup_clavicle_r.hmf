@@ -4,5 +4,5 @@ AnimationTrack JumpWindup_clavicle_r {
         Key = "Engine://AnimationTracks/JumpWindup_clavicle_r.KEYF"
         Size = 320
     }
-    UUID = "ffa4d7fd-b918-4f01-b8af-49545a353f5f"
+    UUID = "7958e19a-cf30-4fc8-9fd6-bc99ada28f26"
 }

@@ -2,7 +2,7 @@ AnimationTrack TurnLeft_spine_03 {
     BoneName = spine_03
     KeyframeData = {
         Key = "Engine://AnimationTracks/TurnLeft_spine_03.KEYF"
-        Size = 1216
+        Size = 128
     }
-    UUID = "a65e060d-8cf4-4752-9bf8-4df3d04a855a"
+    UUID = "8cde5ed9-4222-4fc7-a590-820162c14b16"
 }

@@ -2,7 +2,7 @@ AnimationTrack RunFall_clavicle_l {
     BoneName = clavicle_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunFall_clavicle_l.KEYF"
-        Size = 1984
+        Size = 128
     }
-    UUID = "5204f593-20ee-4b3f-a7b1-811a50522b7e"
+    UUID = "44120f1b-0d44-434a-8014-a225d135b939"
 }

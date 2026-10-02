@@ -4,5 +4,5 @@ AnimationTrack Interact_clavicle_l {
         Key = "Engine://AnimationTracks/Interact_clavicle_l.KEYF"
         Size = 3904
     }
-    UUID = "f1d77e13-fb6a-4379-b558-b25f94adf1e6"
+    UUID = "542a2230-c98d-43ee-9503-570c8b486288"
 }
