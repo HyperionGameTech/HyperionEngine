@@ -1,7 +1,7 @@
 #include "../Include/Defines.hlsli"
 #include "../Include/Shared.hlsli"
 
-PERMUTE(MODE, CLEAR, SPLAT)
+PERMUTE(MODE, CLEAR, BOUNDS, FILL)
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../Include/Material.hlsli"
@@ -70,28 +70,57 @@ bool IsInRects(int2 texel)
     return false;
 }
 
-void AccumulateTexel(uint baseIndex, bool isFoliage, uint minY, uint maxY, uint areaFixed, uint3 albedoFixed)
+bool TriangleOverlapsSquare(float2 corners[3], float2 squareCenter, float2 squareHalfExtent)
 {
-    uint previous;
+    [unroll]
+    for (uint edgeIndex = 0; edgeIndex < 3; edgeIndex++)
+    {
+        const float2 a = corners[edgeIndex];
+        const float2 edge = corners[(edgeIndex + 1) % 3] - a;
+        const float2 axis = float2(-edge.y, edge.x);
 
-    if (isFoliage)
-    {
-        InterlockedMin(spans[baseIndex + GLIMMER_SPAN_CANOPY_MIN], minY, previous);
-        InterlockedMax(spans[baseIndex + GLIMMER_SPAN_CANOPY_MAX], maxY, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_LEAF_AREA], areaFixed, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 0], albedoFixed.r, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 1], albedoFixed.g, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 2], albedoFixed.b, previous);
+        const float opposite = dot(axis, corners[(edgeIndex + 2) % 3] - a);
+        const float center = dot(axis, squareCenter - a);
+        const float radius = dot(abs(axis), squareHalfExtent);
+
+        if (opposite >= 0.0 ? center + radius < 0.0 : center - radius > 0.0)
+        {
+            return false;
+        }
+
+        if (opposite == 0.0 && center - radius > 0.0)
+        {
+            return false;
+        }
     }
-    else
+
+    return true;
+}
+
+float2 TriangleHeightsOverSquare(float3 p0, float3 normal, float2 triangleHeights, float2 squareMin, float2 squareMax)
+{
+    if (abs(normal.y) <= 1e-3 * length(normal))
     {
-        InterlockedMin(spans[baseIndex + GLIMMER_SPAN_SOLID_MIN], minY, previous);
-        InterlockedMax(spans[baseIndex + GLIMMER_SPAN_SOLID_MAX], maxY, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 0], albedoFixed.r, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 1], albedoFixed.g, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 2], albedoFixed.b, previous);
-        InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_AREA], areaFixed, previous);
+        return triangleHeights;
     }
+
+    float low = 1e30;
+    float high = -1e30;
+
+    [unroll]
+    for (uint corner = 0; corner < 4; corner++)
+    {
+        const float2 xz = float2((corner & 1u) != 0u ? squareMax.x : squareMin.x, (corner & 2u) != 0u ? squareMax.y : squareMin.y);
+        const float y = p0.y - (normal.x * (xz.x - p0.x) + normal.z * (xz.y - p0.z)) / normal.y;
+
+        low = min(low, y);
+        high = max(high, y);
+    }
+
+    low = clamp(low, triangleHeights.x, triangleHeights.y);
+    high = clamp(high, triangleHeights.x, triangleHeights.y);
+
+    return float2(low, high);
 }
 
 void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
@@ -111,8 +140,11 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
     const float2 boundsMin = min(p0.xz, min(p1.xz, p2.xz));
     const float2 boundsMax = max(p0.xz, max(p1.xz, p2.xz));
 
-    const int2 texelMin = max(int2(floor(boundsMin * invTexelSize)), windowMin);
-    const int2 texelMax = min(int2(floor(boundsMax * invTexelSize)), min(windowMax - 1, texelMin + MAX_FOOTPRINT_TEXELS - 1));
+    const int2 footprintMin = int2(floor(boundsMin * invTexelSize));
+    const int2 footprintMax = min(int2(floor(boundsMax * invTexelSize)), footprintMin + MAX_FOOTPRINT_TEXELS - 1);
+
+    const int2 texelMin = max(footprintMin, windowMin);
+    const int2 texelMax = min(footprintMax, windowMax - 1);
 
     if (any(texelMax < texelMin))
     {
@@ -149,27 +181,36 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
         }
     }
 
+    const float3 normal = cross(p1 - p0, p2 - p0);
+    const float2 triangleHeights = float2(min(p0.y, min(p1.y, p2.y)), max(p0.y, max(p1.y, p2.y)));
+
+    float2 corners[3] = { p0.xz, p1.xz, p2.xz };
+    const float2 halfTexel = (float2)(0.5 * texelSize);
+
+#if defined(MODE_FILL)
     const float4 albedoAlpha = GlimmerGetMaterialAverageAlbedoAlpha(instance.data.z);
+    const float surfaceArea = 0.5 * length(normal) * (isFoliage ? saturate(albedoAlpha.a) : 1.0);
 
-    const float3 edgeA = p1 - p0;
-    const float3 edgeB = p2 - p0;
-    const float surfaceArea = 0.5 * length(cross(edgeA, edgeB)) * (isFoliage ? saturate(albedoAlpha.a) : 1.0);
+    uint numOverlapped = 0u;
 
-    const uint2 footprint = uint2(texelMax - texelMin) + 1u;
-    const float texelArea = texelSize * texelSize;
+    for (int z = footprintMin.y; z <= footprintMax.y; z++)
+    {
+        for (int x = footprintMin.x; x <= footprintMax.x; x++)
+        {
+            numOverlapped += TriangleOverlapsSquare(corners, (float2(x, z) + 0.5) * texelSize, halfTexel) ? 1u : 0u;
+        }
+    }
 
-    const float areaPerTexel = surfaceArea / (float(footprint.x * footprint.y) * texelArea);
-    const uint areaFixed = uint(min(areaPerTexel * GLIMMER_SPAN_AREA_SCALE, 65535.0) + 0.5);
+    const float areaPerTexel = min(surfaceArea / (float(max(numOverlapped, 1u)) * texelSize * texelSize), 255.0);
+    const uint areaFixed = uint(areaPerTexel * GLIMMER_SPAN_AREA_SCALE + 0.5);
 
     if (areaFixed == 0u)
     {
         return;
     }
 
-    const uint minY = GlimmerOrderedUintFromFloat(min(p0.y, min(p1.y, p2.y)));
-    const uint maxY = GlimmerOrderedUintFromFloat(max(p0.y, max(p1.y, p2.y)));
-
     const uint3 albedoFixed = uint3(saturate(albedoAlpha.rgb) * float(areaFixed) + 0.5);
+#endif
 
     for (int rectIndex = 0; rectIndex < constants.window.w; rectIndex++)
     {
@@ -182,7 +223,56 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint level)
         {
             for (int x = rectMin.x; x <= rectMax.x; x++)
             {
-                AccumulateTexel(GlimmerSpanTexelIndex(level, int2(x, z)), isFoliage, minY, maxY, areaFixed, albedoFixed);
+                const float2 squareMin = float2(x, z) * texelSize;
+
+                if (!TriangleOverlapsSquare(corners, squareMin + halfTexel, halfTexel))
+                {
+                    continue;
+                }
+
+                const float2 heights = TriangleHeightsOverSquare(p0, normal, triangleHeights, squareMin, squareMin + texelSize);
+                const uint baseIndex = GlimmerSpanTexelIndex(level, int2(x, z));
+
+                uint previous;
+
+#if defined(MODE_BOUNDS)
+                InterlockedMin(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MIN : GLIMMER_SPAN_SOLID_MIN)], GlimmerOrderedUintFromFloat(heights.x), previous);
+                InterlockedMax(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MAX : GLIMMER_SPAN_SOLID_MAX)], GlimmerOrderedUintFromFloat(heights.y), previous);
+#elif defined(MODE_FILL)
+                const float spanMin = GlimmerFloatFromOrderedUint(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MIN : GLIMMER_SPAN_SOLID_MIN)]);
+                const float spanMax = GlimmerFloatFromOrderedUint(spans[baseIndex + (isFoliage ? GLIMMER_SPAN_CANOPY_MAX : GLIMMER_SPAN_SOLID_MAX)]);
+
+                const int binLow = GlimmerSpanBin(heights.x, spanMin, spanMax);
+                const int binHigh = GlimmerSpanBin(heights.y, spanMin, spanMax);
+
+                const uint bins = GlimmerSpanBinRange(binLow, binHigh);
+                const uint bandsOffset = isFoliage ? GLIMMER_SPAN_CANOPY_BANDS : GLIMMER_SPAN_SOLID_BANDS;
+
+                for (int band = binLow / GLIMMER_SPAN_BINS_PER_BAND; band <= binHigh / GLIMMER_SPAN_BINS_PER_BAND; band++)
+                {
+                    const int binsInBand = min(binHigh, band * GLIMMER_SPAN_BINS_PER_BAND + GLIMMER_SPAN_BINS_PER_BAND - 1) - max(binLow, band * GLIMMER_SPAN_BINS_PER_BAND) + 1;
+                    const uint bandAreaFixed = min(uint(areaPerTexel * GLIMMER_SPAN_BAND_AREA_SCALE * float(binsInBand) / float(binHigh - binLow + 1) + 0.5), 0xFFFFu);
+
+                    InterlockedAdd(spans[baseIndex + bandsOffset + uint(band >> 1)], bandAreaFixed << (uint(band & 1) * 16u), previous);
+                }
+
+                if (isFoliage)
+                {
+                    InterlockedOr(spans[baseIndex + GLIMMER_SPAN_CANOPY_BINS], bins, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_LEAF_AREA], areaFixed, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 0], albedoFixed.r, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 1], albedoFixed.g, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_CANOPY_ALBEDO + 2], albedoFixed.b, previous);
+                }
+                else
+                {
+                    InterlockedOr(spans[baseIndex + GLIMMER_SPAN_SOLID_BINS], bins, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 0], albedoFixed.r, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 1], albedoFixed.g, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_ALBEDO + 2], albedoFixed.b, previous);
+                    InterlockedAdd(spans[baseIndex + GLIMMER_SPAN_SOLID_AREA], areaFixed, previous);
+                }
+#endif
             }
         }
     }
@@ -219,7 +309,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     {
         spans[baseIndex + valueIndex] = 0u;
     }
-#elif defined(MODE_SPLAT)
+#elif defined(MODE_BOUNDS) || defined(MODE_FILL)
     const uint chunkIndex = groupId.y * constants.counts.z + groupId.x;
 
     if (chunkIndex >= constants.counts.y)

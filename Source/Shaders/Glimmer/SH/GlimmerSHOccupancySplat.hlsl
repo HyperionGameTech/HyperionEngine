@@ -18,6 +18,8 @@ struct GlimmerSHOccupancySplatConstants
     int4 origin;   // xyz = absolute voxel of the cascade's window, w = cascade
     float4 params; // x = voxel spacing, y = 1 / spacing
     uint4 counts;  // x = span instances, y = span chunks, z = groups along x
+    int4 boxMin;   // xyz = absolute voxel; only voxels in the box are cleared and splatted
+    int4 boxMax;   // xyz = absolute voxel, exclusive
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
@@ -41,7 +43,15 @@ DECLARE_SAMPLER(GlimmerSHOccupancySplat, SamplerLinearMipmap) SamplerState glimm
 
 #define GROUP_SIZE 64
 
-#define MAX_VOXELS_PER_TRIANGLE 8192
+float GetComponent(float3 value, uint axis)
+{
+    return select(axis == 0u, value.x, select(axis == 1u, value.y, value.z));
+}
+
+int GetComponent(int3 value, uint axis)
+{
+    return select(axis == 0u, value.x, select(axis == 1u, value.y, value.z));
+}
 
 float3 TransformPoint(GlimmerSpanInstance instance, float3 position)
 {
@@ -105,10 +115,11 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
     const float invSpacing = constants.params.y;
 
     const int3 windowMin = constants.origin.xyz;
-    const int3 windowMax = windowMin + GlimmerSHOccupancyGridSize - 1;
+    const int3 boxMin = max(windowMin, constants.boxMin.xyz);
+    const int3 boxMax = min(windowMin + GlimmerSHOccupancyGridSize, constants.boxMax.xyz) - 1;
 
-    const int3 voxelMin = max(int3(floor(min(p0, min(p1, p2)) * invSpacing)), windowMin);
-    const int3 voxelMax = min(int3(floor(max(p0, max(p1, p2)) * invSpacing)), windowMax);
+    const int3 voxelMin = max(int3(floor(min(p0, min(p1, p2)) * invSpacing)), boxMin);
+    const int3 voxelMax = min(int3(floor(max(p0, max(p1, p2)) * invSpacing)), boxMax);
 
     if (any(voxelMax < voxelMin))
     {
@@ -118,17 +129,54 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
     const float4 value = float4(saturate(albedoAlpha.rgb), 1.0);
     const float3 halfExtent = (float3)(0.5 * spacing);
 
-    uint numVisited = 0;
+    const float3 absNormal = abs(normal);
+    const uint axisW = select(absNormal.x >= absNormal.y, select(absNormal.x >= absNormal.z, 0u, 2u), select(absNormal.y >= absNormal.z, 1u, 2u));
+    const uint axisU = (axisW + 1u) % 3u;
+    const uint axisV = (axisW + 2u) % 3u;
 
-    for (int z = voxelMin.z; z <= voxelMax.z && numVisited < MAX_VOXELS_PER_TRIANGLE; z++)
+    const float normalU = GetComponent(normal, axisU);
+    const float normalV = GetComponent(normal, axisV);
+    const float normalW = GetComponent(normal, axisW);
+
+    const float planeU = GetComponent(p0, axisU);
+    const float planeV = GetComponent(p0, axisV);
+    const float planeW = GetComponent(p0, axisW);
+
+    const float triangleMinW = GetComponent(min(p0, min(p1, p2)), axisW);
+    const float triangleMaxW = GetComponent(max(p0, max(p1, p2)), axisW);
+
+    const int minW = GetComponent(voxelMin, axisW);
+    const int maxW = GetComponent(voxelMax, axisW);
+
+    for (int v = GetComponent(voxelMin, axisV); v <= GetComponent(voxelMax, axisV); v++)
     {
-        for (int y = voxelMin.y; y <= voxelMax.y && numVisited < MAX_VOXELS_PER_TRIANGLE; y++)
+        for (int u = GetComponent(voxelMin, axisU); u <= GetComponent(voxelMax, axisU); u++)
         {
-            for (int x = voxelMin.x; x <= voxelMax.x && numVisited < MAX_VOXELS_PER_TRIANGLE; x++)
-            {
-                numVisited++;
+            float columnMinW = 1e30;
+            float columnMaxW = -1e30;
 
-                const int3 voxel = int3(x, y, z);
+            [unroll]
+            for (uint corner = 0; corner < 4; corner++)
+            {
+                const float cornerU = float(u + int(corner & 1u)) * spacing;
+                const float cornerV = float(v + int(corner >> 1)) * spacing;
+                const float cornerW = planeW - (normalU * (cornerU - planeU) + normalV * (cornerV - planeV)) / normalW;
+
+                columnMinW = min(columnMinW, cornerW);
+                columnMaxW = max(columnMaxW, cornerW);
+            }
+
+            const int firstW = max(int(floor(max(columnMinW, triangleMinW) * invSpacing)), minW);
+            const int lastW = min(int(floor(min(columnMaxW, triangleMaxW) * invSpacing)), maxW);
+
+            for (int w = firstW; w <= lastW; w++)
+            {
+                int coords[3];
+                coords[axisU] = u;
+                coords[axisV] = v;
+                coords[axisW] = w;
+
+                const int3 voxel = int3(coords[0], coords[1], coords[2]);
                 const float3 center = (float3(voxel) + 0.5) * spacing;
 
                 if (TriangleOverlapsBox(p0, p1, p2, normal, center, halfExtent))
@@ -147,19 +195,19 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const uint cascadeIndex = uint(constants.origin.w);
 
 #if defined(MODE_CLEAR)
-    const uint voxelsPerSlab = GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y * GLIMMER_SH_OCCUPANCY_GRID_XZ;
+    const uint3 boxExtent = uint3(constants.boxMax.xyz - constants.boxMin.xyz);
 
-    if (threadIndex >= voxelsPerSlab)
+    if (threadIndex >= boxExtent.x * boxExtent.y * boxExtent.z)
     {
         return;
     }
 
-    const int3 localVoxel = int3(
-        threadIndex % GLIMMER_SH_OCCUPANCY_GRID_XZ,
-        (threadIndex / GLIMMER_SH_OCCUPANCY_GRID_XZ) % GLIMMER_SH_OCCUPANCY_GRID_Y,
-        threadIndex / (GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y));
+    const int3 voxel = constants.boxMin.xyz + int3(
+        threadIndex % boxExtent.x,
+        (threadIndex / boxExtent.x) % boxExtent.y,
+        threadIndex / (boxExtent.x * boxExtent.y));
 
-    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, localVoxel)] = (float4)0.0;
+    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel - constants.origin.xyz)] = (float4)0.0;
 #elif defined(MODE_SPLAT)
     const uint chunkIndex = groupId.y * constants.counts.z + groupId.x;
 
@@ -170,9 +218,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     const GlimmerSpanChunk chunk = spanChunks[chunkIndex];
 
-    // the whole chunk goes when its instance misses the cascade
-    const float3 windowMinPosition = float3(constants.origin.xyz) * constants.params.x;
-    const float3 windowMaxPosition = float3(constants.origin.xyz + GlimmerSHOccupancyGridSize) * constants.params.x;
+    // the whole chunk goes when its instance misses the box
+    const float3 windowMinPosition = float3(max(constants.origin.xyz, constants.boxMin.xyz)) * constants.params.x;
+    const float3 windowMaxPosition = float3(min(constants.origin.xyz + GlimmerSHOccupancyGridSize, constants.boxMax.xyz)) * constants.params.x;
 
     if (any(chunk.boundsMax.xyz < windowMinPosition) || any(chunk.boundsMin.xyz > windowMaxPosition))
     {

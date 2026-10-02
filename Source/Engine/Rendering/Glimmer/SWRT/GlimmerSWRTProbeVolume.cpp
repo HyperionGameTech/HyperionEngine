@@ -7,6 +7,7 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTProbeVolume.hpp>
+#include <Rendering/Glimmer/GlimmerRelight.hpp>
 #include <Rendering/Glimmer/GlimmerBLASCache.hpp>
 #include <Rendering/Glimmer/GlimmerTLAS.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerFootprintMask.hpp>
@@ -16,7 +17,10 @@
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 
+#include <Rendering/Clouds/CloudPass.hpp>
+
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/RenderHelpers.hpp>
 #include <Rendering/Buffers.hpp>
 #include <Rendering/RenderProxy.hpp>
 #include <Rendering/CommandRecorder.hpp>
@@ -43,29 +47,34 @@
 namespace Hyperion {
 
 static EngineStatGpuTimer s_statGlimmerProbes("Rendering/GPU/Glimmer/Probes");
+static EngineStatGpuTimer s_statGlimmerProbeClassify("Rendering/GPU/Glimmer/ProbeClassify");
+static EngineStatGpuTimer s_statGlimmerProbeAlloc("Rendering/GPU/Glimmer/ProbeAlloc");
+static EngineStatGpuTimer s_statGlimmerProbeList("Rendering/GPU/Glimmer/ProbeList");
+static EngineStatGpuTimer s_statGlimmerProbeTrace("Rendering/GPU/Glimmer/ProbeTrace");
+static EngineStatGpuTimer s_statGlimmerProbeShade("Rendering/GPU/Glimmer/ProbeShade");
+static EngineStatGpuTimer s_statGlimmerProbeBlend("Rendering/GPU/Glimmer/ProbeBlend");
+static EngineStatGpuTimer s_statGlimmerRelight("Rendering/GPU/Glimmer/Relight");
+
+static EngineStatCounter<uint32> s_statGlimmerRelightTexels("Rendering/Glimmer/RelightTexels");
 
 static StaticShaderPropertyId s_propAllocModeClassify { ShaderProperty(NAME("MODE"), NAME("CLASSIFY")) };
 static StaticShaderPropertyId s_propAllocModeAlloc { ShaderProperty(NAME("MODE"), NAME("ALLOC")) };
 static StaticShaderPropertyId s_propAllocModeList { ShaderProperty(NAME("MODE"), NAME("LIST")) };
 static StaticShaderPropertyId s_propTraceModeTrace { ShaderProperty(NAME("MODE"), NAME("TRACE")) };
 static StaticShaderPropertyId s_propTraceModeShade { ShaderProperty(NAME("MODE"), NAME("SHADE")) };
+static StaticShaderPropertyId s_propTraceModeRelight { ShaderProperty(NAME("MODE"), NAME("RELIGHT")) };
 
 static constexpr size_t RayHitSize = 4 * sizeof(Vec4f);
 
-static constexpr uint32 ProbesPerTraceGroup = 1;
+static constexpr uint32 ProbesPerTraceGroup = 2;
+static constexpr uint32 RelightGroupSize = 64; // GlimmerSWRTProbeTrace's RAYS_PER_PROBE * PROBES_PER_GROUP
 static_assert(GlimmerProbeRays == 32);
 
-static constexpr uint32 ClassifyGroupSize = 64;
 static constexpr uint32 ListGroupSize = 64;
-static constexpr uint32 BlendGroupSize = 64;
 
 static constexpr uint32 NumProbeCounters = 8;
 
 static constexpr uint32 MaxRelocations = 2;
-
-static constexpr float ProbesEscapeClamp = 64.0f;
-
-static constexpr float ProbesMaxDistance = 2000.0f;
 
 static constexpr float NearFieldReachSpacings = 8.0f;
 
@@ -84,18 +93,22 @@ struct GlimmerProbeTraceConstants
     GlimmerProbeVolumeShaderData volume;
     GlimmerGroundShaderData ground;
     GlimmerSpanShaderData spans;
-    Vec4u dispatch; // x = probes traced per frame at most, y = sky probe color texture index (~0 without one)
-    Vec4f sky;      // x = sky probe diffuse strength, y = foliage extinction
+    Vec4u dispatch; // x = probes traced per frame at most
+    Vec4f params;   // x = foliage extinction
+    GlimmerSkyShaderData sky;
     GlimmerFootprintMaskShaderData mask;
     GlimmerSHVolumeShaderData sh;
     EnvProbeShaderData skyProbe;
+    GlimmerRelightShaderData relight;
+    Vec4i relightRect; // relight pass: xy = absolute texel of the rect to light, zw = its extent
+    Vec4u relightInfo; // relight pass: x = ground level, y = groups along x
 };
 
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolumeShaderData volume;
-    Vec4u dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid
-    Vec4f params;   // x = seconds for the history to fade while the light holds, y = while it changes, z = how far past a back face a probe moves (m)
+    Vec4u dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid, z = updates the history averages at most, w = ...at least while its light changes
+    Vec4f params;   // z = how far past a back face a probe moves (m)
 };
 
 static GpuBufferRef CreateProbeBuffer(size_t elementSize, size_t numElements)
@@ -298,8 +311,8 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     m_shaderData.params = Vec4f(
         float(double(Time::Now().ToMilliseconds() - m_startTime.ToMilliseconds()) * 0.001),
         MathUtil::Clamp(g_cvGlimmerVisibility.Get(), 0.0f, 1.0f),
-        ProbesEscapeClamp,
-        ProbesMaxDistance);
+        GlimmerSkyMaxLuminance,
+        GlimmerMaxRayDistance);
     m_shaderData.nearField = Vec4f(
         float(MathUtil::Clamp(g_cvGlimmerSWRTNearFieldCascades.Get(), 0, int(GlimmerProbeLevels))),
         NearFieldReachSpacings,
@@ -319,31 +332,33 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         constants.budget = Vec4u(
             probesPerFrame,
             uint32(MathUtil::Max(g_cvGlimmerSWRTProbesBlockReleaseFrames.Get(), 0)),
-            uint32(MathUtil::Max(g_cvGlimmerSWRTProbesReclassifyInterval.Get(), 1)),
+            uint32(MathUtil::Max(g_cvGlimmerSWRTProbesInsideRetryInterval.Get(), 1)),
             uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesPoolBlocks.Get(), 1, int(GlimmerProbePoolBlocks))));
         constants.params = Vec4f(
             MathUtil::Clamp(g_cvGlimmerSWRTProbesBlockMargin.Get(), 0.0f, 2.0f),
             g_cvGlimmerSWRTProbesMinHeightAboveGround.Get(),
-            0.0f,
+            float(MathUtil::Max(g_cvGlimmerSWRTProbesClassifyPeriod.Get(), 1)),
             0.0f);
         constants.viewer = Vec4f(inputs.viewerPosition.x, inputs.viewerPosition.y, inputs.viewerPosition.z, 0.0f);
-
-        GpuBuffer* cbuffer = nullptr;
-        size_t cbufferOffset = 0;
-        size_t cbufferSize = 0;
-
-        RI.cbufferAllocator->Write(&constants);
-        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
 
         for (const GpuBufferRef* buffer : probeStateBuffers)
         {
             cr << InsertBarrier(buffer->Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         }
 
-        for (const StaticShaderPropertyId* modeProperty : { &s_propAllocModeClassify, &s_propAllocModeAlloc, &s_propAllocModeList })
+        auto dispatchPass = [&](const StaticShaderPropertyId& modeProperty, uint32 levelIndex, const Vec3u& groups)
         {
+            constants.params.w = float(levelIndex);
+
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
+
+            RI.cbufferAllocator->Write(&constants);
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
             ShaderPropertySet shaderProperties;
-            shaderProperties.Add(*modeProperty);
+            shaderProperties.Add(modeProperty);
 
             cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeAlloc"), shaderProperties));
 
@@ -363,42 +378,40 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "OutCounters"_sh, m_countersBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutUpdateList"_sh, m_updateListBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
 
-            if (modeProperty == &s_propAllocModeClassify)
-            {
-                cr << DispatchCompute(Vec3u { GlimmerProbeLevels * GlimmerProbeWindowBlocks / ClassifyGroupSize, 1, 1 });
-            }
-            else if (modeProperty == &s_propAllocModeAlloc)
-            {
-                cr << DispatchCompute(Vec3u { 1, 1, 1 });
-            }
-            else
-            {
-                cr << DispatchCompute(Vec3u { GlimmerProbePoolProbes / ListGroupSize, 1, 1 });
-            }
+            cr << DispatchCompute(groups);
 
-            // the allocation reads the classification, the list the slots the allocation wrote, and the trace the list
             for (const GpuBufferRef* buffer : probeStateBuffers)
             {
                 cr << InsertBarrier(buffer->Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
             }
-        }
-    }
+        };
 
-    uint32 skyTextureIndex = ~0u;
-    float skyDiffuseStrength = 0.0f;
-
-    // default constructed without a sky probe, which has textureIndices ~0u
-    EnvProbeShaderData skyProbeData {};
-
-    if (inputs.skyProbe)
-    {
-        if (RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(inputs.skyProbe)))
         {
-            skyTextureIndex = skyProbeProxy->bufferData.textureIndices & 0xFFFFu;
-            skyDiffuseStrength = skyProbeProxy->bufferData.worldPosition.w;
-            skyProbeData = skyProbeProxy->bufferData;
+            ENGINE_STAT_GPU_SCOPE(&s_statGlimmerProbeClassify);
+
+            // a group per block, finest level first
+            for (uint32 levelIndex = 0; levelIndex < GlimmerProbeLevels; levelIndex++)
+            {
+                dispatchPass(s_propAllocModeClassify, levelIndex, Vec3u { GlimmerProbeWindowBlocks, 1, 1 });
+            }
+        }
+
+        {
+            ENGINE_STAT_GPU_SCOPE(&s_statGlimmerProbeAlloc);
+
+            dispatchPass(s_propAllocModeAlloc, 0, Vec3u { 1, 1, 1 });
+        }
+
+        {
+            ENGINE_STAT_GPU_SCOPE(&s_statGlimmerProbeList);
+
+            dispatchPass(s_propAllocModeList, 0, Vec3u { GlimmerProbePoolProbes / ListGroupSize, 1, 1 });
         }
     }
+
+    GlimmerSkyShaderData skyData;
+    EnvProbeShaderData skyProbeData;
+    GetGlimmerSkyShaderData(inputs.skyProbe, skyData, skyProbeData);
 
     // the far field is sampled once it has been traced; until then its constants stay zeroed and the trace treats it as covering nothing
     const bool hasSHVolume = inputs.shVolume && inputs.shVolume->IsReady();
@@ -417,8 +430,9 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         constants.volume = m_shaderData;
         constants.ground = groundShaderData;
         constants.spans = inputs.spanCache->GetShaderData();
-        constants.dispatch = Vec4u(probesPerFrame, skyTextureIndex, 0, 0);
-        constants.sky = Vec4f(skyDiffuseStrength, MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f), 0.0f, 0.0f);
+        constants.dispatch = Vec4u(probesPerFrame, 0, 0, 0);
+        constants.params = Vec4f(GetGlimmerFoliageExtinction(), 0.0f, 0.0f, 0.0f);
+        constants.sky = skyData;
 
         // a mask that isn't built yet is left invalid, which has the trace treat all of the SWRT region as occupied
         if (hasSWRTScene && inputs.footprintMask->IsReady())
@@ -433,20 +447,35 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
 
         constants.skyProbe = skyProbeData;
 
-        GpuBuffer* cbuffer = nullptr;
-        size_t cbufferOffset = 0;
-        size_t cbufferSize = 0;
+        const GpuImageViewRef relightImageView = inputs.relight ? inputs.relight->GetImageView() : GpuImageViewRef();
 
-        RI.cbufferAllocator->Write(&constants);
-        RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
-
-        cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-        cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-
-        for (const StaticShaderPropertyId* modeProperty : { &s_propTraceModeTrace, &s_propTraceModeShade })
+        const auto bindTraceResources = [&](const StaticShaderPropertyId& modeProperty, const GlimmerProbeTraceConstants& dispatchConstants)
         {
+            GpuBuffer* cbuffer = nullptr;
+            size_t cbufferOffset = 0;
+            size_t cbufferSize = 0;
+
+            RI.cbufferAllocator->Write(&dispatchConstants);
+
+            if (inputs.cloudPass != nullptr)
+            {
+                inputs.cloudPass->WriteShaderData(*RI.cbufferAllocator);
+            }
+            else
+            {
+                static const EffectVolumeShaderData s_noCloudVolume {};
+                static const CloudWeatherMapShaderData s_noWeatherMap {};
+                static const CloudShadowMapShaderData s_noShadowMap {};
+
+                RI.cbufferAllocator->Write(&s_noCloudVolume);
+                RI.cbufferAllocator->Write(&s_noWeatherMap);
+                RI.cbufferAllocator->Write(&s_noShadowMap);
+            }
+
+            RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
+
             ShaderPropertySet shaderProperties;
-            shaderProperties.Add(*modeProperty);
+            shaderProperties.Add(modeProperty);
 
             cr << SetCurrentShader(ShaderDesc(NAME("GlimmerSWRTProbeTrace"), shaderProperties));
 
@@ -463,6 +492,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, groundImageView);
             cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, inputs.surfaceCache->GetGroundAlbedoImageView());
             cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, inputs.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+            cr << SetShaderUniform(uniformIndex++, "GlimmerHeightBoundsBuffer"_sh, inputs.spanCache->GetHeightBoundsBuffer().Get(), ShaderDataOffset(0, sizeof(float)));
             cr << SetShaderUniform(uniformIndex++, "FootprintMaskBuffer"_sh, inputs.footprintMask->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeBlockTableBuffer"_sh, m_blockTableBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSHBuffer"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
@@ -472,17 +502,67 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeUpdateListBuffer"_sh, m_updateListBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "GlimmerProbeCountersBuffer"_sh, m_countersBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));
+            cr << SetShaderUniform(uniformIndex++, "CloudWeatherMapTexture"_sh, inputs.cloudPass != nullptr ? inputs.cloudPass->GetWeatherMapView() : RI.placeholderData->GetImageView2D1x1R8Array());
+            cr << SetShaderUniform(uniformIndex++, "CloudShadowMapTexture"_sh, inputs.cloudPass != nullptr ? inputs.cloudPass->GetShadowMapView() : RI.placeholderData->GetImageView2D1x1R8());
 
             // placeholders where the far field isn't ready: its zeroed constants keep the shader from sampling them
             const GpuImageViewRef& placeholderView = RI.placeholderData->GetImageView3D1x1x1R8();
 
             cr << SetShaderUniform(uniformIndex++, "GlimmerSHDataTexture"_sh, hasSHVolume ? inputs.shVolume->GetDataImageView() : placeholderView);
             cr << SetShaderUniform(uniformIndex++, "GlimmerSHStateTexture"_sh, hasSHVolume ? inputs.shVolume->GetStateImageView() : placeholderView);
+            cr << SetShaderUniform(uniformIndex++, "GlimmerSHRadianceTexture"_sh, hasSHVolume ? inputs.shVolume->GetRadianceImageView() : placeholderView);
 
             cr << SetShaderUniform(uniformIndex++, "OutRays"_sh, m_raysBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "RayHits"_sh, m_rayHitsBuffer.Get(), ShaderDataOffset(0, RayHitSize));
 
-            cr << DispatchCompute(Vec3u { probesPerFrame / ProbesPerTraceGroup, 1, 1 });
+            if (relightImageView.IsValid())
+            {
+                cr << SetShaderUniform(uniformIndex++, &modeProperty == &s_propTraceModeRelight ? "OutRelight"_sh : "GlimmerRelightTexture"_sh, relightImageView);
+            }
+        };
+
+        if (inputs.relight && inputs.relight->GetDispatches().Any())
+        {
+            ENGINE_STAT_GPU_SCOPE(&s_statGlimmerRelight);
+
+            cr << InsertBarrier(inputs.relight->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
+            for (const GlimmerRelightDispatch& relightDispatch : inputs.relight->GetDispatches())
+            {
+                const Vec2u extent = Vec2u(uint32(relightDispatch.rect.max.x - relightDispatch.rect.min.x), uint32(relightDispatch.rect.max.y - relightDispatch.rect.min.y));
+                const Vec3u groups = helpers::WrapComputeGroupCount((extent.x * extent.y + RelightGroupSize - 1) / RelightGroupSize);
+
+                GlimmerProbeTraceConstants relightConstants = constants;
+                relightConstants.relightRect = Vec4i(relightDispatch.rect.min.x, relightDispatch.rect.min.y, int32(extent.x), int32(extent.y));
+                relightConstants.relightInfo = Vec4u(relightDispatch.level, groups.x, 0, 0);
+
+                bindTraceResources(s_propTraceModeRelight, relightConstants);
+
+                cr << DispatchCompute(groups);
+
+                s_statGlimmerRelightTexels += extent.x * extent.y;
+            }
+
+            cr << InsertBarrier(inputs.relight->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+
+            inputs.relight->OnDispatched();
+        }
+
+        if (inputs.relight)
+        {
+            constants.relight = inputs.relight->GetShaderData();
+        }
+
+        cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_rayHitsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+
+        for (const StaticShaderPropertyId* modeProperty : { &s_propTraceModeTrace, &s_propTraceModeShade })
+        {
+            ENGINE_STAT_GPU_SCOPE(modeProperty == &s_propTraceModeTrace ? &s_statGlimmerProbeTrace : &s_statGlimmerProbeShade);
+
+            bindTraceResources(*modeProperty, constants);
+
+            cr << DispatchCompute(Vec3u { (probesPerFrame + ProbesPerTraceGroup - 1) / ProbesPerTraceGroup, 1, 1 });
 
             // the shade pass reads the trace pass's hits and adds to its rays
             cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
@@ -491,14 +571,21 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     }
 
     { // blend
+        ENGINE_STAT_GPU_SCOPE(&s_statGlimmerProbeBlend);
+
         GlimmerProbeBlendConstants constants {};
         constants.volume = m_shaderData;
-        constants.dispatch = Vec4u(probesPerFrame, MaxRelocations, 0, 0);
-        constants.params = Vec4f(
-            MathUtil::Max(g_cvGlimmerSWRTProbesTau.Get(), 0.01f),
-            MathUtil::Max(g_cvGlimmerSWRTProbesTauChanging.Get(), 0.01f),
-            MathUtil::Max(g_cvGlimmerSWRTProbesRelocateMargin.Get(), 0.0f),
-            0.0f);
+
+        // the visibility's history is bounded by the 6 bit update count in the probe state
+        const uint32 maxHistory = uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMaxHistory.Get(), 1, 63));
+
+        constants.dispatch = Vec4u(
+            probesPerFrame,
+            MaxRelocations,
+            maxHistory,
+            uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistory.Get(), 0, int(maxHistory))));
+        
+        constants.params = Vec4f(0.0f, 0.0f, MathUtil::Max(g_cvGlimmerSWRTProbesRelocateMargin.Get(), 0.0f), 0.0f);
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
@@ -528,7 +615,8 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "OutTrend"_sh, m_trendBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
 
-        cr << DispatchCompute(Vec3u { (probesPerFrame + BlendGroupSize - 1) / BlendGroupSize, 1, 1 });
+        // group per probe
+        cr << DispatchCompute(Vec3u { probesPerFrame, 1, 1 });
     }
 
     for (const GpuBufferRef* buffer : probeStateBuffers)

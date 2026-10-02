@@ -5,6 +5,7 @@
 #include <Rendering/GBuffer.hpp>
 
 #include <Framework/View.hpp>
+#include <Framework/EngineStats.hpp>
 
 #include <Util/Img/WritePng.hpp>
 
@@ -936,5 +937,71 @@ public:
 DEFINE_EDITOR_COMMAND(SetEnvironment);
 
 #pragma endregion SetEnvironment
+
+#pragma region LogStats
+
+class EditorCommandLogStats final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandLogStats);
+
+public:
+    virtual ~EditorCommandLogStats() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Log Stats";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        const Handle<EngineStats>& engineStats = EngineStats::GetInstance();
+
+        if (!engineStats.IsValid() || NumArguments() < 1)
+        {
+            HYP_LOG(Editor, Warning, "LogStats: expected a stat or group path, e.g. Rendering/GPU/Glimmer");
+            return;
+        }
+
+        const String path = GetArgument(0);
+
+        EngineStatBase* stat = engineStats->GetStat(ANSIStringView(path.Data()));
+
+        if (!stat)
+        {
+            HYP_LOG(Editor, Warning, "LogStats: no stat at {}", path);
+            return;
+        }
+
+        const auto logStat = [&engineStats](EngineStatBase* statToLog)
+        {
+            const EngineStatsSnapshotValue& value = engineStats->GetCurrentSnapshot()[*statToLog];
+
+            HYP_LOG(Editor, Info, "LogStats {}: value={} avg={} min={} max={}", statToLog->name, value.value, value.avg, value.min, value.max);
+        };
+
+        if (stat->type != EST_GROUP)
+        {
+            logStat(stat);
+            return;
+        }
+
+        for (EngineStatBase* child : static_cast<EngineStatGroup*>(stat)->stats)
+        {
+            if (child->type != EST_GROUP)
+            {
+                logStat(child);
+            }
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(LogStats);
+
+#pragma endregion LogStats
 
 } // namespace Hyperion

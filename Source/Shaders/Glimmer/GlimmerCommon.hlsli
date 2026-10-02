@@ -77,6 +77,19 @@ float3 GlimmerOctahedralDecode(float2 uv)
     return normalize(n);
 }
 
+struct GlimmerSkyParams
+{
+    uint4 info;    // x = sky probe color texture index (~0 without one)
+    float4 params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity)
+};
+
+float3 GlimmerEvaluateL1(float4 shR, float4 shG, float4 shB, float3 N)
+{
+    const float4 basis = float4(1.0, N);
+
+    return max(float3(dot(shR, basis), dot(shG, basis), dot(shB, basis)), 0.0);
+}
+
 float3 GlimmerSphericalFibonacci(uint index, uint count)
 {
     const float goldenRatio = 1.6180339887;
@@ -128,15 +141,75 @@ struct GlimmerSpanParams
 #define GLIMMER_SPAN_CANOPY_ALBEDO 5 // 3 values
 #define GLIMMER_SPAN_SOLID_ALBEDO 8  // 3 values
 #define GLIMMER_SPAN_SOLID_AREA 11     // surface area / texel area, how filled the texel is
-#define GLIMMER_SPAN_VALUES_PER_TEXEL 12
+#define GLIMMER_SPAN_SOLID_BINS 12     // bit per 1/32 of [solid min, solid max] that has solid in it
+#define GLIMMER_SPAN_CANOPY_BINS 13    // same, for the canopy
+#define GLIMMER_SPAN_SOLID_BANDS 14    // 4 values: solid area / texel area in each eighth of [solid min, solid max], 16 bits each
+#define GLIMMER_SPAN_CANOPY_BANDS 18   // 4 values: same, leaf area in the canopy
+#define GLIMMER_SPAN_VALUES_PER_TEXEL 22
 
 #define GLIMMER_SPAN_AREA_SCALE 256.0
+
+#define GLIMMER_SPAN_BINS 32
+#define GLIMMER_SPAN_BANDS 8
+#define GLIMMER_SPAN_BINS_PER_BAND (GLIMMER_SPAN_BINS / GLIMMER_SPAN_BANDS)
+
+#define GLIMMER_SPAN_BAND_AREA_SCALE 64.0
+
+#define GLIMMER_SPAN_MIN_THICKNESS 0.05
+
+float GlimmerSpanHeight(float spanMin, float spanMax)
+{
+    return max(spanMax - spanMin, GLIMMER_SPAN_MIN_THICKNESS);
+}
+
+uint GlimmerSpanBinRange(int lo, int hi)
+{
+    const uint upTo = hi >= GLIMMER_SPAN_BINS - 1 ? 0xFFFFFFFFu : ((1u << uint(hi + 1)) - 1u);
+
+    return upTo & ~((1u << uint(lo)) - 1u);
+}
+
+int GlimmerSpanBin(float y, float spanMin, float spanMax)
+{
+    return clamp(int(floor((y - spanMin) * float(GLIMMER_SPAN_BINS) / GlimmerSpanHeight(spanMin, spanMax))), 0, GLIMMER_SPAN_BINS - 1);
+}
+
+uint GlimmerSpanBinsBetween(float low, float high, float spanMin, float spanMax)
+{
+    return GlimmerSpanBinRange(GlimmerSpanBin(low, spanMin, spanMax), GlimmerSpanBin(high, spanMin, spanMax));
+}
+
+uint GlimmerSpanBandMask(uint band)
+{
+    return ((1u << GLIMMER_SPAN_BINS_PER_BAND) - 1u) << (band * GLIMMER_SPAN_BINS_PER_BAND);
+}
+
+float GlimmerSpanBandArea(uint4 bands, uint band)
+{
+    return float((bands[band >> 1] >> ((band & 1u) * 16u)) & 0xFFFFu) / GLIMMER_SPAN_BAND_AREA_SCALE;
+}
 
 uint GlimmerSpanTexelIndex(uint level, int2 texel)
 {
     const uint2 wrapped = GlimmerWrapGroundTexel(texel);
 
     return ((level * GLIMMER_GROUND_RESOLUTION + wrapped.y) * GLIMMER_GROUND_RESOLUTION + wrapped.x) * GLIMMER_SPAN_VALUES_PER_TEXEL;
+}
+
+#define GLIMMER_HEIGHT_BOUNDS_TILE_SHIFT 4
+#define GLIMMER_HEIGHT_BOUNDS_TILE_TEXELS (1 << GLIMMER_HEIGHT_BOUNDS_TILE_SHIFT)
+#define GLIMMER_HEIGHT_BOUNDS_TILES (GLIMMER_GROUND_RESOLUTION / GLIMMER_HEIGHT_BOUNDS_TILE_TEXELS)
+#define GLIMMER_HEIGHT_BOUNDS_SKIP 0                                                                     // per tile; unbounded where any texel it could sample isn't known
+#define GLIMMER_HEIGHT_BOUNDS_DATA (GLIMMER_HEIGHT_BOUNDS_TILES * GLIMMER_HEIGHT_BOUNDS_TILES)          // per tile; of the known texels only
+#define GLIMMER_HEIGHT_BOUNDS_WINDOW (2 * GLIMMER_HEIGHT_BOUNDS_TILES * GLIMMER_HEIGHT_BOUNDS_TILES)    // of the whole window's known texels
+#define GLIMMER_HEIGHT_BOUNDS_STRIDE (GLIMMER_HEIGHT_BOUNDS_WINDOW + 4)
+#define GLIMMER_HEIGHT_UNBOUNDED 1e30
+
+uint GlimmerHeightBoundsTile(int2 texel)
+{
+    const uint2 tile = uint2((texel >> GLIMMER_HEIGHT_BOUNDS_TILE_SHIFT) & (GLIMMER_HEIGHT_BOUNDS_TILES - 1));
+
+    return tile.y * GLIMMER_HEIGHT_BOUNDS_TILES + tile.x;
 }
 
 #define GLIMMER_MASK_EMPTY_MIN 0xFFFFFFFFu

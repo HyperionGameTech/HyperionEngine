@@ -7,8 +7,8 @@
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolume volume;
-    uint4 dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid
-    float4 params;  // x = seconds for the history to fade while the light holds, y = while it changes, z = how far past a back face a probe moves (m)
+    uint4 dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid, z = estimates the history averages at most, w = ...at least while its light changes
+    float4 params;  // z = how far past a back face a probe moves (m)
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerProbeBlend, CBuffer) cbuffer CBuffer
@@ -24,7 +24,7 @@ DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> g
 DECLARE_UAV(GlimmerProbeBlend, OutSH) RWStructuredBuffer<float4> OutSH;
 DECLARE_UAV(GlimmerProbeBlend, OutStates) RWStructuredBuffer<uint4> OutStates;
 DECLARE_UAV(GlimmerProbeBlend, OutVisibility) RWStructuredBuffer<uint> OutVisibility;   // GLIMMER_PROBE_VISIBILITY_TEXELS per probe (GlimmerPackHalf2)
-DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;           // x = mean luminance of recent estimates, y = mean of its square
+DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;           // x = variance of an estimate's luminance, y = recent mean of how far estimates fall off the history (in standard deviations), w = estimates the history averages
 
 #define GLIMMER_PROBES_NO_SAMPLING
 #include "GlimmerProbes.hlsli"
@@ -37,20 +37,35 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;   
 
 // closer than this (in spacings) to a front face, a probe is nudged off it
 #define GLIMMER_PROBE_MIN_CLEARANCE 0.1
-// how quickly the luminance statistics follow the estimates
-#define GLIMMER_PROBE_TREND_RATE 0.125
-// the history counts as changed when an estimate is this many standard deviations off it...
-#define GLIMMER_PROBE_CHANGE_SIGMAS 3.0
-// ...or when this many estimates in a row fall on the same side of it, which is how slow drift (bounce light building up) shows
-#define GLIMMER_PROBE_DRIFT_UPDATES 6
-// once settled, an estimate can't be brighter than this many times the history
-#define GLIMMER_PROBE_FIREFLY_RATIO 4.0
+// how far (in spacings) a probe whose rays all start inside moves toward the ones that don't
+#define GLIMMER_PROBE_FREE_STEP 0.25
+// updates a moved probe has to stay out of solids for its moves to count as done
+#define GLIMMER_PROBE_SETTLE_UPDATES 4u
+// how quickly the noise estimate and the drift follow the updates
+#define GLIMMER_PROBE_NOISE_RATE 0.25
+#define GLIMMER_PROBE_DRIFT_RATE 0.25
+// the drift's own variance while the light holds (rate / (2 - rate)), with room so noise alone rarely shortens the history
+#define GLIMMER_PROBE_DRIFT_NOISE (4.0 * GLIMMER_PROBE_DRIFT_RATE / (2.0 - GLIMMER_PROBE_DRIFT_RATE))
+// an update's share of the drift is capped; the noise's long tail is on the bright side, so a big drop counts more
+#define GLIMMER_PROBE_DRIFT_STEP_UP 2.0
+#define GLIMMER_PROBE_DRIFT_STEP_DOWN 4.0
+#define GLIMMER_PROBE_MIN_RELATIVE_SIGMA 0.05
+// estimates more than this many standard deviations brighter than a settled history are clamped to it
+#define GLIMMER_PROBE_FIREFLY_SIGMAS 3.0
+#define GLIMMER_PROBE_FIREFLY_MIN_HISTORY 4.0
 // how narrowly a visibility texel takes the rays around its direction (the power of their cosine); a few rays per update have to
 // reach every texel, so it's far wider than DDGI's
 #define GLIMMER_PROBE_VISIBILITY_SHARPNESS 12.0
 
 #define GLIMMER_PROBE_MAX_RAYS 32
 /////////////////////////////
+
+#define GROUP_SIZE GLIMMER_PROBE_VISIBILITY_TEXELS
+
+groupshared float4 gsRays[GLIMMER_PROBE_MAX_RAYS];       // rgb = radiance, w = hit distance (negative on back faces, 0 starting inside)
+groupshared float3 gsDirections[GLIMMER_PROBE_MAX_RAYS];
+groupshared uint gsWriteVisibility;
+groupshared float gsVisibilityBlend;
 
 float GlimmerLuminance(float3 color)
 {
@@ -62,39 +77,16 @@ float3 GlimmerClampOffset(float3 offset)
     return clamp(offset, -GLIMMER_PROBE_MAX_OFFSET, GLIMMER_PROBE_MAX_OFFSET);
 }
 
-[numthreads(64, 1, 1)]
-void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpacing)
 {
-    const uint listIndex = dispatchThreadId.x;
-
-    if (listIndex >= min(glimmerProbeCounters[0], constants.dispatch.x))
-    {
-        return;
-    }
-
-    const uint probeIndex = glimmerProbeUpdateList[listIndex];
-    const int4 slot = glimmerProbeSlots[probeIndex / GLIMMER_PROBES_PER_BLOCK];
-
-    uint4 state = OutStates[probeIndex];
     uint probeState = GlimmerProbeStateOf(state);
-
-    if (slot.w < 0 || probeState == GLIMMER_PROBE_STATE_FREE || probeState == GLIMMER_PROBE_STATE_BURIED || probeState == GLIMMER_PROBE_STATE_IDLE)
-    {
-        return;
-    }
-
-    const float spacing = constants.volume.levels[slot.w].params.x;
-    const float invSpacing = constants.volume.levels[slot.w].params.y;
-
-    const uint numRays = min(constants.volume.info.y, GLIMMER_PROBE_MAX_RAYS);
 
     float3 e0 = (float3)0.0;
     float3 e1R = (float3)0.0;
     float3 e1G = (float3)0.0;
     float3 e1B = (float3)0.0;
-
-    float3 rayDirections[GLIMMER_PROBE_MAX_RAYS];
-    float rayDepths[GLIMMER_PROBE_MAX_RAYS];
+    float luminanceSquaredSum = 0.0;
+    uint numSeen = 0u;
 
     uint numBackfaces = 0u;
     uint numStartsInside = 0u;
@@ -105,44 +97,47 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     float nearestFrontface = 1e30;
     float3 nearestFrontfaceDirection = (float3)0.0;
 
+    float3 freeDirectionSum = (float3)0.0;
+
     for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
     {
-        const float4 ray = rays[listIndex * numRays + rayIndex];
-        const float3 direction = GlimmerProbeRayDirection(constants.volume, probeIndex, rayIndex);
+        const float4 ray = gsRays[rayIndex];
+        const float3 direction = gsDirections[rayIndex];
+
+        if (ray.w < 0.0)
+        {
+            numBackfaces++;
+
+            if (-ray.w < nearestBackface)
+            {
+                nearestBackface = -ray.w;
+                nearestBackfaceDirection = direction;
+            }
+
+            continue;
+        }
+        
+        if (ray.w == 0.0)
+        {
+            numStartsInside++;
+
+            continue;
+        }
 
         e0 += ray.rgb;
         e1R += ray.r * direction;
         e1G += ray.g * direction;
         e1B += ray.b * direction;
+        luminanceSquaredSum += GlimmerLuminance(ray.rgb) * GlimmerLuminance(ray.rgb);
+        numSeen++;
 
-        // negative distances are back faces, 0 is a ray that started under the ground
-        const float hitDistance = abs(ray.w);
+        freeDirectionSum += direction;
 
-        if (ray.w <= 0.0)
+        if (ray.w < nearestFrontface)
         {
-            if (ray.w < 0.0)
-            {
-                numBackfaces++;
-            }
-            else
-            {
-                numStartsInside++;
-            }
-
-            if (hitDistance < nearestBackface)
-            {
-                nearestBackface = hitDistance;
-                nearestBackfaceDirection = direction;
-            }
-        }
-        else if (hitDistance < nearestFrontface)
-        {
-            nearestFrontface = hitDistance;
+            nearestFrontface = ray.w;
             nearestFrontfaceDirection = direction;
         }
-
-        rayDirections[rayIndex] = direction;
-        rayDepths[rayIndex] = min(hitDistance * invSpacing, GLIMMER_PROBE_DEPTH_RANGE);
     }
 
     uint relocations = GlimmerProbeRelocations(state);
@@ -156,28 +151,43 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         GLIMMER_PROBE_OUTSIDE_FRACTION,
         GLIMMER_PROBE_INSIDE_FRACTION);
 
-    // inside a solid: move past the nearest back face and start over, a few times, before giving up on the probe
+    // inside a solid: move out and start over, a few times, before giving up on the probe
     if (float(numBackfaces + numStartsInside) >= insideFraction * float(numRays))
     {
         if (relocations < constants.dispatch.y)
         {
-            offset = GlimmerClampOffset(offset + nearestBackfaceDirection * ((nearestBackface + constants.params.z) * invSpacing));
+            if (numBackfaces != 0u)
+            {
+                // past the nearest back face
+                offset += nearestBackfaceDirection * ((nearestBackface + constants.params.z) * invSpacing);
+            }
+            else if (dot(freeDirectionSum, freeDirectionSum) > 1e-6)
+            {
+                // toward the rays that got out
+                offset += normalize(freeDirectionSum) * GLIMMER_PROBE_FREE_STEP;
+            }
 
-            OutStates[probeIndex] = uint4(GlimmerPackProbeFlags(GLIMMER_PROBE_STATE_ACTIVE, relocations + 1u, 0u, numBackfaces, numStartsInside), GlimmerPackProbeOffset(offset), asuint(time), 0u);
+            OutStates[probeIndex] = uint4(
+                GlimmerPackProbeFlags(GLIMMER_PROBE_STATE_ACTIVE, relocations + 1u, 0u, numBackfaces, numStartsInside),
+                GlimmerPackProbeOffset(GlimmerClampOffset(offset)),
+                asuint(time),
+                state.w);
         }
         else
         {
-            OutStates[probeIndex] = uint4(GlimmerPackProbeFlags(GLIMMER_PROBE_STATE_INSIDE, relocations, 0u, numBackfaces, numStartsInside), state.y, asuint(time), 0u);
+            OutStates[probeIndex] = uint4(GlimmerPackProbeFlags(GLIMMER_PROBE_STATE_INSIDE, relocations, 0u, numBackfaces, numStartsInside), state.y, asuint(time), state.w);
         }
+
+        gsWriteVisibility = 0u;
 
         return;
     }
 
-    // a probe that was inside got out (the solid moved, or streamed out) and starts over
     if (probeState == GLIMMER_PROBE_STATE_INSIDE)
     {
         probeState = GLIMMER_PROBE_STATE_ACTIVE;
         updates = 0u;
+        relocations = 0u;
     }
 
     // right up against a front face, half the probe's view is that face; nudge it off
@@ -186,18 +196,20 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         offset = GlimmerClampOffset(offset - nearestFrontfaceDirection * (GLIMMER_PROBE_MIN_CLEARANCE - nearestFrontface * invSpacing));
     }
 
-    const float invNumRays = 1.0 / float(max(numRays, 1u));
+    const float invNumSeen = 1.0 / float(max(numSeen, 1u));
 
-    float4 shR = float4(e0.r * invNumRays, e1R * (2.0 * invNumRays));
-    float4 shG = float4(e0.g * invNumRays, e1G * (2.0 * invNumRays));
-    float4 shB = float4(e0.b * invNumRays, e1B * (2.0 * invNumRays));
+    float4 shR = float4(e0.r * invNumSeen, e1R * (2.0 * invNumSeen));
+    float4 shG = float4(e0.g * invNumSeen, e1G * (2.0 * invNumSeen));
+    float4 shB = float4(e0.b * invNumSeen, e1B * (2.0 * invNumSeen));
 
     float estimateLuminance = GlimmerLuminance(float3(shR.x, shG.x, shB.x));
+   
+    const float estimateVariance = max(luminanceSquaredSum * invNumSeen - estimateLuminance * estimateLuminance, 0.0) * invNumSeen;
+
+    const float maxHistory = float(max(constants.dispatch.z, 1u));
+    const float minHistory = min(float(constants.dispatch.w), maxHistory);
 
     float4 trend = OutTrend[probeIndex];
-    int drift = int(state.w);
-
-    float hysteresis = 0.0;
 
     if (updates > 0u)
     {
@@ -207,71 +219,129 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
         const float historyLuminance = GlimmerLuminance(float3(previousR.x, previousG.x, previousB.x));
 
-        // once the history means something, a single bright estimate (a sliver of sun) can't drag it far
-        if (updates > 4u && estimateLuminance > GLIMMER_PROBE_FIREFLY_RATIO * historyLuminance + 1e-3)
+        const float sigma = max(sqrt(trend.x), GLIMMER_PROBE_MIN_RELATIVE_SIGMA * historyLuminance + 1e-5);
+        const float deviation = (estimateLuminance - historyLuminance) / sigma;
+
+        const float drift = lerp(trend.y, clamp(deviation, -GLIMMER_PROBE_DRIFT_STEP_DOWN, GLIMMER_PROBE_DRIFT_STEP_UP), GLIMMER_PROBE_DRIFT_RATE);
+
+        // a history off by b standard deviations is worth no more than (1 / b)^2 estimates
+        const float bias = drift * drift - GLIMMER_PROBE_DRIFT_NOISE;
+
+        float history = min(trend.w, maxHistory);
+
+        if (bias > 0.0)
         {
-            const float scale = (GLIMMER_PROBE_FIREFLY_RATIO * historyLuminance + 1e-3) / estimateLuminance;
+            history = min(history, max(1.0 / bias, minHistory));
+        }
+
+        if (history >= GLIMMER_PROBE_FIREFLY_MIN_HISTORY && deviation > GLIMMER_PROBE_FIREFLY_SIGMAS)
+        {
+            const float scale = (historyLuminance + GLIMMER_PROBE_FIREFLY_SIGMAS * sigma) / max(estimateLuminance, 1e-6);
 
             shR *= scale;
             shG *= scale;
             shB *= scale;
-            estimateLuminance *= scale;
         }
 
-        trend.xy = lerp(trend.xy, float2(estimateLuminance, estimateLuminance * estimateLuminance), GLIMMER_PROBE_TREND_RATE);
+        const float blend = 1.0 / (history + 1.0);
 
-        const float sigma = sqrt(max(trend.y - trend.x * trend.x, 0.0));
+        shR = lerp(previousR, shR, blend);
+        shG = lerp(previousG, shG, blend);
+        shB = lerp(previousB, shB, blend);
 
-        const int side = estimateLuminance >= historyLuminance ? 1 : -1;
-        drift = (drift * side > 0) ? clamp(drift + side, -15, 15) : side;
-
-        const bool isChanging = abs(estimateLuminance - historyLuminance) > GLIMMER_PROBE_CHANGE_SIGMAS * sigma + 1e-4
-            || abs(drift) >= GLIMMER_PROBE_DRIFT_UPDATES;
-
-        const float elapsed = max(time - asfloat(state.z), 0.0);
-        hysteresis = exp(-elapsed / max(isChanging ? constants.params.y : constants.params.x, 1e-3));
-        hysteresis = min(hysteresis, float(updates) / float(updates + 1u));
-
-        shR = lerp(shR, previousR, hysteresis);
-        shG = lerp(shG, previousG, hysteresis);
-        shB = lerp(shB, previousB, hysteresis);
+        trend = float4(lerp(trend.x, estimateVariance, GLIMMER_PROBE_NOISE_RATE), drift, 0.0, min(history + 1.0, maxHistory));
     }
     else
     {
-        trend = float4(estimateLuminance, estimateLuminance * estimateLuminance, 0.0, 0.0);
-        drift = 0;
+        trend = float4(estimateVariance, 0.0, 0.0, 1.0);
+    }
+
+    if (relocations != 0u && updates >= GLIMMER_PROBE_SETTLE_UPDATES)
+    {
+        relocations = 0u;
     }
 
     OutSH[probeIndex * 3u + 0u] = shR;
     OutSH[probeIndex * 3u + 1u] = shG;
     OutSH[probeIndex * 3u + 2u] = shB;
 
-    for (uint texel = 0; texel < GLIMMER_PROBE_VISIBILITY_TEXELS; texel++)
+    OutTrend[probeIndex] = trend;
+    OutStates[probeIndex] = uint4(
+        GlimmerPackProbeFlags(probeState, relocations, updates + 1u, numBackfaces, numStartsInside),
+        GlimmerPackProbeOffset(offset),
+        asuint(time),
+        GlimmerPackGoodOffset(offset));
+
+    // the depths only change with the geometry, which resets updates when it moves the probe, so they don't follow the light's history
+    gsWriteVisibility = 1u;
+    gsVisibilityBlend = 1.0 / (min(float(updates), maxHistory) + 1.0);
+}
+
+[numthreads(GROUP_SIZE, 1, 1)]
+void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+{
+    const uint listIndex = groupId.x;
+
+    if (listIndex >= min(glimmerProbeCounters[0], constants.dispatch.x))
     {
-        const float2 texelUV = (float2(texel % GLIMMER_PROBE_VISIBILITY_RES, texel / GLIMMER_PROBE_VISIBILITY_RES) + 0.5) / float(GLIMMER_PROBE_VISIBILITY_RES);
-        const float3 texelDirection = GlimmerOctahedralDecode(texelUV);
-
-        float3 sums = (float3)0.0; // weighted depth, weighted depth squared, weight
-
-        for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
-        {
-            const float weight = pow(saturate(dot(texelDirection, rayDirections[rayIndex])), GLIMMER_PROBE_VISIBILITY_SHARPNESS);
-            const float depth = rayDepths[rayIndex];
-
-            sums += float3(depth, depth * depth, 1.0) * weight;
-        }
-
-        const uint visibilityIndex = probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + texel;
-
-        if (sums.z > 1e-4)
-        {
-            const float2 estimate = sums.xy / sums.z;
-            const float texelHysteresis = updates > 0u ? lerp(1.0, hysteresis, saturate(sums.z)) : 0.0;
-
-            OutVisibility[visibilityIndex] = GlimmerPackHalf2(lerp(estimate, GlimmerUnpackHalf2(OutVisibility[visibilityIndex]), texelHysteresis));
-        }
+        return;
     }
 
-    OutTrend[probeIndex] = trend;
-    OutStates[probeIndex] = uint4(GlimmerPackProbeFlags(probeState, relocations, updates + 1u, numBackfaces, numStartsInside), GlimmerPackProbeOffset(offset), asuint(time), uint(drift));
+    const uint probeIndex = glimmerProbeUpdateList[listIndex];
+    const int4 slot = glimmerProbeSlots[probeIndex / GLIMMER_PROBES_PER_BLOCK];
+
+    const uint4 state = OutStates[probeIndex];
+    const uint probeState = GlimmerProbeStateOf(state);
+
+    if (slot.w < 0 || (probeState != GLIMMER_PROBE_STATE_ACTIVE && probeState != GLIMMER_PROBE_STATE_INSIDE))
+    {
+        return;
+    }
+
+    const float invSpacing = constants.volume.levels[slot.w].params.y;
+    const uint numRays = min(constants.volume.info.y, GLIMMER_PROBE_MAX_RAYS);
+
+    if (groupIndex < numRays)
+    {
+        gsRays[groupIndex] = rays[listIndex * numRays + groupIndex];
+        gsDirections[groupIndex] = GlimmerProbeRayDirection(constants.volume, probeIndex, groupIndex);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (groupIndex == 0u)
+    {
+        GlimmerBlendProbe(probeIndex, state, numRays, invSpacing);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (gsWriteVisibility == 0u)
+    {
+        return;
+    }
+
+    const uint texel = groupIndex;
+    const float2 texelUV = (float2(texel % GLIMMER_PROBE_VISIBILITY_RES, texel / GLIMMER_PROBE_VISIBILITY_RES) + 0.5) / float(GLIMMER_PROBE_VISIBILITY_RES);
+    const float3 texelDirection = GlimmerOctahedralDecode(texelUV);
+
+    float3 sums = (float3)0.0; // weighted depth, weighted depth squared, weight
+
+    for (uint rayIndex = 0; rayIndex < numRays; rayIndex++)
+    {
+        const float weight = pow(saturate(dot(texelDirection, gsDirections[rayIndex])), GLIMMER_PROBE_VISIBILITY_SHARPNESS);
+        const float depth = min(abs(gsRays[rayIndex].w) * invSpacing, GLIMMER_PROBE_DEPTH_RANGE);
+
+        sums += float3(depth, depth * depth, 1.0) * weight;
+    }
+
+    if (sums.z > 1e-4)
+    {
+        const uint visibilityIndex = probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + texel;
+
+        const float2 estimate = sums.xy / sums.z;
+        const float texelBlend = gsVisibilityBlend < 1.0 ? gsVisibilityBlend * saturate(sums.z) : 1.0;
+
+        OutVisibility[visibilityIndex] = GlimmerPackHalf2(lerp(GlimmerUnpackHalf2(OutVisibility[visibilityIndex]), estimate, texelBlend));
+    }
 }

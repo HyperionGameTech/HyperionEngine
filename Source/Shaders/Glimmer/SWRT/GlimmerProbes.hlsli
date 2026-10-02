@@ -36,6 +36,8 @@ float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanc
         moments += GlimmerUnpackHalf2(glimmerProbeVisibility[probeIndex * GLIMMER_PROBE_VISIBILITY_TEXELS + uint(texel.y * GLIMMER_PROBE_VISIBILITY_RES + texel.x)]) * (bilinear.x * bilinear.y);
     }
 
+    distanceInSpacings = min(distanceInSpacings, GLIMMER_PROBE_DEPTH_RANGE * 0.99);
+
     if (distanceInSpacings <= moments.x)
     {
         return 1.0;
@@ -48,9 +50,10 @@ float GlimmerProbeVisibility(uint probeIndex, float3 probeToPoint, float distanc
     return max(chebyshev * chebyshev * chebyshev, 0.0);
 }
 
-float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 N, out float3 outIrradiance)
+float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 N, float3 R, out float3 outIrradiance, out float3 outIrradianceR)
 {
     outIrradiance = (float3)0.0;
+    outIrradianceR = (float3)0.0;
 
     const GlimmerProbeLevel level = volume.levels[levelIndex];
 
@@ -151,27 +154,39 @@ float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3
     }
 
     outIrradiance = GlimmerEvaluateL1(sumR / weightSum, sumG / weightSum, sumB / weightSum, N);
+    outIrradianceR = GlimmerEvaluateL1(sumR / weightSum, sumG / weightSum, sumB / weightSum, R);
 
     const float coverage = presentCoverage / max(1.0 - excludedTrilinear, 1e-3);
 
     return smoothstep(0.3, 0.7, coverage) * smoothstep(0.02, 0.2, bestVisibility) * windowFade;
 }
 
-float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
+float GlimmerSampleProbeLevel(GlimmerProbeVolume volume, uint levelIndex, float3 P, float3 N, out float3 outIrradiance)
 {
+    float3 irradianceR;
+
+    return GlimmerSampleProbeLevel(volume, levelIndex, P, N, N, outIrradiance, irradianceR);
+}
+
+float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N, float3 R, out float3 outIrradianceR)
+{
+    outIrradianceR = (float3)0.0;
+
     if (volume.info.w == 0u)
     {
         return (float4)0.0;
     }
 
     float3 irradiance = (float3)0.0;
+    float3 irradianceR = (float3)0.0;
     float remaining = 1.0;
 
     [loop]
     for (uint levelIndex = 0; levelIndex < volume.info.x && remaining > 1e-3; levelIndex++)
     {
         float3 levelIrradiance;
-        const float levelWeight = GlimmerSampleProbeLevel(volume, levelIndex, P, N, levelIrradiance);
+        float3 levelIrradianceR;
+        const float levelWeight = GlimmerSampleProbeLevel(volume, levelIndex, P, N, R, levelIrradiance, levelIrradianceR);
 
         if (levelWeight <= 0.0)
         {
@@ -179,6 +194,7 @@ float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
         }
 
         irradiance += levelIrradiance * levelWeight * remaining;
+        irradianceR += levelIrradianceR * levelWeight * remaining;
         remaining *= 1.0 - levelWeight;
     }
 
@@ -189,7 +205,16 @@ float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
         return (float4)0.0;
     }
 
+    outIrradianceR = irradianceR / coverage;
+
     return float4(irradiance / coverage, coverage);
+}
+
+float4 SampleGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
+{
+    float3 irradianceR;
+
+    return SampleGlimmerProbes(volume, P, N, N, irradianceR);
 }
 
 #endif // GLIMMER_PROBES_NO_SAMPLING

@@ -95,8 +95,6 @@ void GlimmerTraverseBLAS(
     const float3 direction = GlimmerWorldToObjectVector(instance, worldDirection);
     const float3 inverseDirection = float3(GetBVHSafeInverse(direction.x), GetBVHSafeInverse(direction.y), GetBVHSafeInverse(direction.z));
 
-    const bool mirrored = (instance.data.w & GLIMMER_INSTANCE_FLAG_MIRRORED) != 0u;
-
     uint stack[GLIMMER_SWRT_BLAS_STACK_SIZE];
     uint stackSize = 0;
 
@@ -149,7 +147,7 @@ void GlimmerTraverseBLAS(
                     hit.instanceIndex = instanceIndex;
                     hit.triangleIndex = triangleIndex;
                     hit.barycentrics = barycentrics;
-                    hit.frontFace = mirrored ? !frontFace : frontFace;
+                    hit.frontFace = frontFace;
 
                     if (acceptFirstHit)
                     {

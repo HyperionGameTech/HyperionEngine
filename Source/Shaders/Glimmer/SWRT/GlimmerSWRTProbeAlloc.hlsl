@@ -15,7 +15,7 @@ struct GlimmerProbeAllocConstants
     GlimmerGroundParams ground;
     GlimmerSHOccupancyParams occupancy;
     uint4 budget;   // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids, w = pool slots to use
-    float4 params;  // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it
+    float4 params;  // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it, z = frames between looks at a block's solids, w = level classified
     float4 viewer;  // xyz = viewer position
 };
 
@@ -58,8 +58,6 @@ DECLARE_UAV(GlimmerSWRTProbeAlloc, OutUpdateList) RWStructuredBuffer<uint> OutUp
 #define GLIMMER_PROBE_CELL_SOLIDS 0x2     // solids stand around the block
 #define GLIMMER_PROBE_CELL_WANTED 0x4     // no finer level covers them
 
-// a block's solids are looked at again every this many frames and as soon as it scrolls in
-#define GLIMMER_PROBE_CLASSIFY_PERIOD 8u
 // a probe checks for solids next to it every this many frames and as soon as it's placed
 #define GLIMMER_PROBE_IDLE_PERIOD 16u
 /////////////////////////////
@@ -132,8 +130,7 @@ bool GlimmerIsSolidVoxel(float3 P, uint firstCascade, out int3 outVoxel, out flo
     return false;
 }
 
-#if defined(MODE_CLASSIFY)
-
+// a solid voxel that isn't just the ground's own bumps
 bool GlimmerIsStandingSolid(float3 P, uint firstCascade)
 {
     int3 voxel;
@@ -155,33 +152,44 @@ bool GlimmerIsStandingSolid(float3 P, uint firstCascade)
     return true;
 }
 
-bool GlimmerBlockHasSolids(uint levelIndex, int3 block)
+#if defined(MODE_CLASSIFY)
+
+#define CLASSIFY_GROUP_SIZE 64
+
+groupshared uint gsHasSolids;
+
+bool GlimmerBlockHasSolids(uint levelIndex, int3 block, uint groupIndex)
 {
     const float spacing = constants.volume.levels[levelIndex].params.x;
 
     const float margin = constants.params.x * spacing;
-    const int steps = GLIMMER_PROBE_BLOCK + 2 * int(ceil(constants.params.x));
+    const uint steps = uint(GLIMMER_PROBE_BLOCK + 2 * int(ceil(constants.params.x)));
 
     const float3 sampleMin = float3(block) * (spacing * float(GLIMMER_PROBE_BLOCK)) - margin + 0.5 * spacing;
 
-    [loop]
-    for (int z = 0; z < steps; z++)
+    if (groupIndex == 0u)
     {
-        [loop]
-        for (int y = 0; y < steps; y++)
+        gsHasSolids = 0u;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    [loop]
+    for (uint sampleIndex = groupIndex; sampleIndex < steps * steps * steps && gsHasSolids == 0u; sampleIndex += CLASSIFY_GROUP_SIZE)
+    {
+        const uint3 step = uint3(sampleIndex % steps, (sampleIndex / steps) % steps, sampleIndex / (steps * steps));
+
+        if (GlimmerIsStandingSolid(sampleMin + float3(step) * spacing, levelIndex))
         {
-            [loop]
-            for (int x = 0; x < steps; x++)
-            {
-                if (GlimmerIsStandingSolid(sampleMin + float3(x, y, z) * spacing, levelIndex))
-                {
-                    return true;
-                }
-            }
+            gsHasSolids = 1u;
+
+            break;
         }
     }
 
-    return false;
+    GroupMemoryBarrierWithGroupSync();
+
+    return gsHasSolids != 0u;
 }
 
 bool GlimmerIsCoveredByFinerLevel(uint levelIndex, int3 block)
@@ -223,18 +231,16 @@ bool GlimmerIsCoveredByFinerLevel(uint levelIndex, int3 block)
     return true;
 }
 
-[numthreads(64, 1, 1)]
-void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+[numthreads(CLASSIFY_GROUP_SIZE, 1, 1)]
+void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    const uint globalCell = dispatchThreadId.x;
+    const uint cellIndex = groupId.x;
+    const uint levelIndex = uint(constants.params.w);
 
-    if (globalCell >= GLIMMER_PROBE_LEVELS * GLIMMER_PROBE_WINDOW_BLOCKS)
+    if (cellIndex >= GLIMMER_PROBE_WINDOW_BLOCKS || levelIndex >= GLIMMER_PROBE_LEVELS)
     {
         return;
     }
-
-    const uint levelIndex = globalCell / GLIMMER_PROBE_WINDOW_BLOCKS;
-    const uint cellIndex = globalCell % GLIMMER_PROBE_WINDOW_BLOCKS;
 
     const GlimmerProbeLevel level = constants.volume.levels[levelIndex];
 
@@ -248,13 +254,18 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     bool hasSolids;
 
-    if (!isClassified || (GlimmerProbeHash(tableIndex) + constants.volume.info.z) % GLIMMER_PROBE_CLASSIFY_PERIOD == 0u)
+    if (!isClassified || (GlimmerProbeHash(tableIndex) + constants.volume.info.z) % max(uint(constants.params.z), 1u) == 0u)
     {
-        hasSolids = GlimmerBlockHasSolids(levelIndex, block);
+        hasSolids = GlimmerBlockHasSolids(levelIndex, block, groupIndex);
     }
     else
     {
         hasSolids = (cell.w & GLIMMER_PROBE_CELL_SOLIDS) != 0;
+    }
+
+    if (groupIndex != 0u)
+    {
+        return;
     }
 
     const bool isWanted = hasSolids && !GlimmerIsCoveredByFinerLevel(levelIndex, block);
@@ -267,7 +278,9 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 #define ALLOC_GROUP_SIZE 1024
 #define ALLOC_CELLS (GLIMMER_PROBE_LEVELS * GLIMMER_PROBE_WINDOW_BLOCKS)
 
-#define PRIORITY_RINGS (GLIMMER_PROBE_WINDOW / 2 + 1)
+// blocks are ranked by distance to the viewer, in steps of PRIORITY_STEP metres, then by level
+#define PRIORITY_STEP 8.0
+#define PRIORITY_RINGS 65
 #define PRIORITY_BUCKETS (PRIORITY_RINGS * GLIMMER_PROBE_LEVELS)
 
 #define PRIORITY_HYSTERESIS 1u
@@ -312,9 +325,9 @@ uint GlimmerPriorityBucket(GlimmerAllocCell cell)
 {
     const float blockSize = constants.volume.levels[cell.levelIndex].params.x * float(GLIMMER_PROBE_BLOCK);
 
-    const int3 viewerBlock = int3(floor(constants.viewer.xyz / blockSize));
-    const int3 ringDistance = abs(cell.block - viewerBlock);
-    const uint ring = min(uint(max(ringDistance.x, max(ringDistance.y, ringDistance.z))), PRIORITY_RINGS - 1u);
+    const float3 blockMin = float3(cell.block) * blockSize;
+    const float3 toBlock = max(max(blockMin - constants.viewer.xyz, constants.viewer.xyz - (blockMin + blockSize)), 0.0);
+    const uint ring = min(uint(length(toBlock) / PRIORITY_STEP), PRIORITY_RINGS - 1u);
 
     return ring * GLIMMER_PROBE_LEVELS + cell.levelIndex;
 }
@@ -515,7 +528,7 @@ void CSMain(uint groupIndex : SV_GroupIndex)
 
         for (uint probe = 0; probe < GLIMMER_PROBES_PER_BLOCK; probe++)
         {
-            GlimmerResetProbe(slot * GLIMMER_PROBES_PER_BLOCK + probe);
+            OutStates[slot * GLIMMER_PROBES_PER_BLOCK + probe] = uint4(GlimmerPackProbeFlags(GLIMMER_PROBE_STATE_RESET, 0u, 0u, 0u), 0u, 0u, 0u);
         }
 
         InterlockedAdd(OutCounters[3], 1u);
@@ -526,21 +539,18 @@ void CSMain(uint groupIndex : SV_GroupIndex)
 
 bool GlimmerHasSolidNextToProbe(uint levelIndex, float3 gridPosition, float spacing)
 {
-    /// TODO: optimize?
-    
+    const int radius = clamp(int(ceil(constants.params.x)), 1, 2);
+
     [loop]
-    for (int z = -1; z <= 1; z++)
+    for (int z = -radius; z <= radius; z++)
     {
         [loop]
-        for (int y = -1; y <= 1; y++)
+        for (int y = -radius; y <= radius; y++)
         {
             [loop]
-            for (int x = -1; x <= 1; x++)
+            for (int x = -radius; x <= radius; x++)
             {
-                int3 voxel;
-                float voxelSpacing;
-
-                if (GlimmerIsSolidVoxel(gridPosition + float3(x, y, z) * spacing, levelIndex, voxel, voxelSpacing))
+                if (GlimmerIsStandingSolid(gridPosition + float3(x, y, z) * spacing, levelIndex))
                 {
                     return true;
                 }
@@ -570,6 +580,14 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     uint4 state = OutStates[probeIndex];
     uint probeState = GlimmerProbeStateOf(state);
+
+    if (probeState == GLIMMER_PROBE_STATE_RESET)
+    {
+        GlimmerResetProbe(probeIndex);
+
+        state = OutStates[probeIndex];
+        probeState = GlimmerProbeStateOf(state);
+    }
 
     const GlimmerProbeLevel level = constants.volume.levels[slot.w];
     const float spacing = level.params.x;
@@ -635,7 +653,6 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
                 probeState = select(isIdle, GLIMMER_PROBE_STATE_IDLE, GLIMMER_PROBE_STATE_ACTIVE);
 
                 state.x = GlimmerPackProbeFlags(probeState, GlimmerProbeRelocations(state), 0u, 0u);
-                state.w = 0u;
 
                 OutStates[probeIndex] = state;
             }
@@ -671,11 +688,20 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         return;
     }
 
-    // a probe stuck inside is checked again from its grid point and stays out of the lighting until it's clear there; what moved it
-    // in may be gone, and from inside the solid it could never tell
+    // a probe stuck inside is checked again from where it last was clear (or its grid point) and stays out of the lighting until it's
+    // clear there; what moved it in may be gone, and from inside the solid it could never tell
     if (probeState == GLIMMER_PROBE_STATE_INSIDE)
     {
-        state.y = GlimmerPackProbeOffset(float3(0.0, groundLift, 0.0));
+        float3 retryOffset;
+
+        if (!GlimmerUnpackGoodOffset(state.w, retryOffset))
+        {
+            retryOffset = (float3)0.0;
+        }
+
+        retryOffset.y = max(retryOffset.y, groundLift);
+
+        state.y = GlimmerPackProbeOffset(retryOffset);
 
         OutStates[probeIndex] = state;
     }

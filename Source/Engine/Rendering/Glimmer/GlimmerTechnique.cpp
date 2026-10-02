@@ -16,6 +16,7 @@
 #include <Rendering/Glimmer/SWRT/GlimmerSWRTCVars.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHOccupancy.hpp>
+#include <Rendering/Glimmer/GlimmerRelight.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
@@ -127,11 +128,13 @@ uint32 GlimmerTechnique::BindApplyResources(CommandRecorder& cr, uint32 uniformI
     {
         cr << SetShaderUniform(uniformIndex++, "GlimmerSHDataTexture"_sh, shVolume->GetDataImageView());
         cr << SetShaderUniform(uniformIndex++, "GlimmerSHStateTexture"_sh, shVolume->GetStateImageView());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerSHRadianceTexture"_sh, shVolume->GetRadianceImageView());
     }
     else
     {
         cr << SetShaderUniform(uniformIndex++, "GlimmerSHDataTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
         cr << SetShaderUniform(uniformIndex++, "GlimmerSHStateTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerSHRadianceTexture"_sh, RI.placeholderData->GetImageView3D1x1x1R8());
     }
 
     return uniformIndex;
@@ -143,6 +146,7 @@ GlimmerTechnique::GlimmerTechnique()
       m_probeDebug(MakeUnique<GlimmerSWRTProbeDebug>()),
       m_shOccupancy(MakeUnique<GlimmerSHOccupancy>()),
       m_shVolume(MakeUnique<GlimmerSHVolume>()),
+      m_relight(MakeUnique<GlimmerRelight>()),
       m_maskGeneration(~0u)
 {
 }
@@ -179,16 +183,32 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
 
     if (tlas.IsReady() && (context.tlasSwapped || tlas.GetGeneration() != m_maskGeneration))
     {
-        const Vec3f regionCenter = context.region.GetCenter();
+        const BoundingBox& gatherRegion = tlas.GetActiveRegion();
+        const Vec3f regionCenter = gatherRegion.GetCenter();
 
-        m_footprintMask->Rebuild(context.frame, tlas, Vec2f(regionCenter.x, regionCenter.z), GetGlimmerSWRTRadius(context.region));
+        m_footprintMask->Rebuild(context.frame, tlas, Vec2f(regionCenter.x, regionCenter.z), GetGlimmerSWRTRadius(gatherRegion));
 
         m_maskGeneration = tlas.GetGeneration();
     }
 
     if (context.updateLighting && context.surfaceCache && context.spanCache)
     {
-        // far field 
+        const bool areProbesEnabled = g_cvGlimmerSWRTProbesEnabled.Get();
+
+        if (areProbesEnabled)
+        {
+            m_relight->Schedule(*context.channelState, *context.surfaceCache, *context.spanCache);
+        }
+        else
+        {
+            m_relight->Invalidate();
+        }
+
+        const GpuImageViewRef& relightImageView = m_relight->GetImageView();
+
+        context.frame->cr << InsertBarrier(m_relight->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+
+        // far field
         m_shOccupancy->Update(context.frame, context.channelState->viewerPosition, tlas, *context.blasCache);
 
         GlimmerSHVolumeUpdateInputs shInputs;
@@ -197,6 +217,13 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         shInputs.spanCache = context.spanCache;
         shInputs.occupancy = &m_shOccupancy->GetShaderData();
         shInputs.occupancyImageView = m_shOccupancy->GetImageView();
+        shInputs.isOccupancySettled = m_shOccupancy->IsSettled();
+        shInputs.relight = &m_relight->GetShaderData();
+        shInputs.tlas = context.tlas;
+        shInputs.relightImageView = relightImageView;
+        shInputs.probeVolume = m_probeVolume.Get();
+        shInputs.skyProbe = context.skyProbe;
+        shInputs.cloudPass = context.cloudPass;
 
         m_shVolume->Update(context.frame, shInputs);
 
@@ -212,8 +239,10 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         probeInputs.footprintMask = m_footprintMask.Get();
         probeInputs.shVolume = m_shVolume.Get();
         probeInputs.skyProbe = context.skyProbe;
+        probeInputs.relight = m_relight.Get();
+        probeInputs.cloudPass = context.cloudPass;
 
-        if (g_cvGlimmerSWRTProbesEnabled.Get())
+        if (areProbesEnabled)
         {
             m_probeVolume->Update(context.frame, probeInputs);
         }
@@ -294,6 +323,7 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
     cr << SetShaderUniform(uniformIndex++, "FootprintMaskBuffer"_sh, m_footprintMask->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, context.surfaceCache->GetGroundImageView());
     cr << SetShaderUniform(uniformIndex++, "GlimmerSpansBuffer"_sh, context.spanCache->GetSpansBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+    cr << SetShaderUniform(uniformIndex++, "GlimmerHeightBoundsBuffer"_sh, context.spanCache->GetHeightBoundsBuffer().Get(), ShaderDataOffset(0, sizeof(float)));
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundAlbedoTexture"_sh, context.surfaceCache->GetGroundAlbedoImageView());
 
     // the occupancy's zeroed constants (before it's built) have every cascade read as missing

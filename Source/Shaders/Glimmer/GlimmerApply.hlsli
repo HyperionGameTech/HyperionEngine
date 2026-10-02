@@ -18,7 +18,6 @@ struct GlimmerApply
 #define GLIMMER_DEBUG_SH_IRRADIANCE 1
 #define GLIMMER_DEBUG_SH_VISIBILITY 2
 #define GLIMMER_DEBUG_SH_NEAREST 3
-#define GLIMMER_DEBUG_SH_BOUNCE 4
 
 #endif
 
@@ -50,6 +49,41 @@ float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N)
     return irradiance;
 }
 
+float4 EvaluateGlimmer(GlimmerApply glimmer, float3 P, float3 N, float3 R, out float2 outSpecular, out float3 outReflection)
+{
+    outSpecular = (float2)0.0;
+    outReflection = (float3)0.0;
+
+    if (glimmer.params.y == 0u)
+    {
+        return (float4)0.0;
+    }
+
+    float3 nearFieldR;
+    const float4 nearField = EvaluateGlimmerProbes(glimmer.probes, P, N, R, nearFieldR);
+
+    float4 visibility;
+    GlimmerSHRadiance radiance;
+    const float shCoverage = GlimmerSHSampleVolume(glimmer.sh, P, N, visibility, radiance);
+
+    float4 farField = (float4)0.0;
+    float3 farFieldR = (float3)0.0;
+
+    if (shCoverage > 0.0)
+    {
+        farField = float4(GlimmerSHEvaluate(radiance, N), shCoverage);
+        farFieldR = GlimmerSHEvaluate(radiance, R);
+        outSpecular = GlimmerSHSpecularVisibility(visibility, shCoverage, R);
+    }
+
+    float4 irradiance = GlimmerBlendFarField(nearField, farField);
+    irradiance.rgb *= glimmer.settings.x;
+
+    outReflection = GlimmerBlendFarField(float4(nearFieldR, nearField.a), float4(farFieldR, farField.a)).rgb * glimmer.settings.x;
+
+    return irradiance;
+}
+
 float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
 {
     const float3 missing = float3(1.0, 0.0, 1.0);
@@ -62,8 +96,8 @@ float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
     }
 
     float4 visibility;
-    float4 bounce;
-    const float coverage = GlimmerSHSampleVolume(glimmer.sh, P, N, visibility, bounce);
+    GlimmerSHRadiance radiance;
+    const float coverage = GlimmerSHSampleVolume(glimmer.sh, P, N, visibility, radiance);
 
     if (coverage <= 0.0)
     {
@@ -75,14 +109,7 @@ float3 EvaluateGlimmerSHDebug(GlimmerApply glimmer, float3 P, float3 N)
         return (float3)saturate(visibility.x + dot(visibility.yzw, N));
     }
 
-    if (glimmer.params.z == GLIMMER_DEBUG_SH_BOUNCE)
-    {
-        const float skyLit = dot(bounce.rgb, float3(0.2126, 0.7152, 0.0722));
-
-        return float3(skyLit, max(bounce.a, 0.0), 0.0);
-    }
-
-    return EvaluateGlimmerSH(glimmer.sh, P, N).rgb * glimmer.settings.x;
+    return GlimmerSHEvaluate(radiance, N) * glimmer.settings.x;
 }
 
 float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N)
@@ -111,8 +138,8 @@ float3 EvaluateGlimmerCoverage(GlimmerApply glimmer, float3 P, float3 N)
         for (uint shCascade = 0; shCascade < GLIMMER_SH_CASCADES && remaining > 1e-3; shCascade++)
         {
             float4 cascadeVisibility;
-            float4 cascadeBounce;
-            const float weight = GlimmerSHSampleCascade(glimmer.sh, shCascade, P + N * 0.05, N, cascadeVisibility, cascadeBounce);
+            GlimmerSHRadiance cascadeRadiance;
+            const float weight = GlimmerSHSampleCascade(glimmer.sh, shCascade, P + N * 0.05, N, cascadeVisibility, cascadeRadiance);
 
             const float t = float(shCascade) / float(max(GLIMMER_SH_CASCADES - 1, 1));
 

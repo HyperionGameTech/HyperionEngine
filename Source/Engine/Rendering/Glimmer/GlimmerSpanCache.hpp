@@ -18,7 +18,7 @@ class GlimmerTLAS;
 class GlimmerBLASCache;
 class GlimmerSurfaceCache;
 
-static constexpr uint32 GlimmerSpanValuesPerTexel = 12;
+static constexpr uint32 GlimmerSpanValuesPerTexel = 22;
 static constexpr uint32 GlimmerSpanMaxRects = 4;
 
 struct GlimmerSpanLevelShaderData
@@ -33,6 +33,10 @@ struct GlimmerSpanShaderData
 };
 
 static constexpr float GlimmerSpansMinFoliageHeight = 1.5f;
+
+static constexpr uint32 GlimmerHeightBoundsTileTexels = 16;
+static constexpr uint32 GlimmerHeightBoundsTiles = GlimmerGroundResolution / GlimmerHeightBoundsTileTexels;
+static constexpr uint32 GlimmerHeightBoundsStride = 2 * GlimmerHeightBoundsTiles * GlimmerHeightBoundsTiles + 4;
 
 class GlimmerSpanCache final
 {
@@ -52,6 +56,16 @@ public:
     }
 
     const GpuBufferRef& GetSpansBuffer() const;
+
+    HYP_FORCE_INLINE const GpuBufferRef& GetHeightBoundsBuffer() const
+    {
+        return m_heightBoundsBuffer;
+    }
+
+    HYP_FORCE_INLINE const GlimmerTexelRect& GetFilledRect(uint32 level) const
+    {
+        return m_lastFilledRects[level];
+    }
 
 private:
     using Rect = GlimmerTexelRect;
@@ -74,7 +88,16 @@ private:
         const GlimmerBLASCache& blasCache,
         const GlimmerSurfaceCache& surfaceCache);
 
+    void UpdateHeightBounds(Frame* frame, const GlimmerChannelState& state, const GlimmerSurfaceCache& surfaceCache);
+
     GpuBufferRef m_spansBuffer;
+
+    GpuBufferRef m_heightBoundsBuffer;
+    Rect m_filledRects[GlimmerGroundLevels];
+    Rect m_lastFilledRects[GlimmerGroundLevels];
+    Vec2i m_boundsWindowOrigins[GlimmerGroundLevels];
+    Vec4i m_boundsValidRects[GlimmerGroundLevels];
+    Vec4i m_boundsSpanWindows[GlimmerGroundLevels];
 
     uint32 m_builtGenerations[GlimmerGroundLevels];
     Vec2i m_builtOrigins[GlimmerGroundLevels];

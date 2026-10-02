@@ -232,6 +232,9 @@ ShaderDefinitions "ShaderDefinitions" {
         ShaderDefinition "GlimmerSpanSplat" {
             CS = "Glimmer/GlimmerSpanSplat.hlsl"
         }
+        ShaderDefinition "GlimmerHeightBounds" {
+            CS = "Glimmer/GlimmerHeightBounds.hlsl"
+        }
         ShaderDefinition "GlimmerSHUpdate" {
             CS = "Glimmer/SH/GlimmerSHUpdate.hlsl"
         }

@@ -54,6 +54,13 @@ struct GlimmerBLASRef
     BoundingBox localBounds;
 };
 
+enum class GlimmerBLASRequestResult : uint8
+{
+    Resident,
+    Pending,
+    Failed  //!< the mesh has nothing to trace, or doesn't fit the pool
+};
+
 class GlimmerPoolAllocator final
 {
 public:
@@ -111,7 +118,7 @@ public:
 
     static uint64 MakeKey(const Mesh* mesh, uint8 lodIndex);
 
-    bool Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef);
+    GlimmerBLASRequestResult Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef);
 
     void AddReferences(Span<const uint64> keys);
     void RemoveReferences(Span<const uint64> keys);
@@ -165,6 +172,7 @@ private:
         Array<GlimmerTriangle> triangles;
         BoundingBox localBounds;
         uint32 depth = 0;
+        bool isFail = false; // set when there's nothing to trace, as opposed to mesh data not being readable yet
     };
 
     struct Entry
@@ -172,6 +180,7 @@ private:
         EntryState state = EntryState::Queued;
         Handle<Mesh> mesh; // only held until the build finishes
         WeakHandle<Mesh> meshWeak;
+        WeakHandle<Mesh> replacementMesh; // a newer mesh with the same id, waiting for this entry's build or references to finish
         uint8 lodIndex = 0;
         Task<BuildResult> buildTask;
         BuildResult result;
@@ -179,6 +188,7 @@ private:
         uint32 numReferences = 0;
         uint32 lastUsedFrame = 0;
         uint32 failedFrame = 0;
+        bool dead = false;
     };
 
     struct DeferredFree
@@ -194,6 +204,8 @@ private:
 
     void CreatePoolBuffers();
     bool AllocateEntry(Entry& entry);
+    void Requeue(Entry& entry, Mesh* mesh);
+    bool RequeueForReplacement(Entry& entry);
     bool EvictOne();
     void FreeEntryRanges(Entry& entry);
     void UploadEntry(Frame* frame, Entry& entry);

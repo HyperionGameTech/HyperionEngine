@@ -126,9 +126,14 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 
         GlimmerBLASRef blasRef;
 
-        if (!blasCache.Request(proxy.mesh, lodIndex, blasRef))
+        const GlimmerBLASRequestResult requestResult = blasCache.Request(proxy.mesh, lodIndex, blasRef);
+
+        if (requestResult != GlimmerBLASRequestResult::Resident)
         {
-            outNumWaitingForBLAS++;
+            if (requestResult == GlimmerBLASRequestResult::Pending)
+            {
+                outNumWaitingForBLAS++;
+            }
 
             return;
         }
@@ -260,6 +265,8 @@ GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
     const uint64 startTime = PerformanceClock::Now();
 
     BuildResult result;
+
+    result.region = input.region;
 
     result.inputHash = FNV1::DoHashWords(
         input.instances.Data(),
@@ -487,32 +494,39 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
             blasCache.RemoveReferences(result.blasKeys.ToSpan());
             m_pendingBlasKeys.Clear();
 
-            return false;
+            if (result.region != m_activeRegion)
+            {
+                m_activeRegion = result.region;
+                swapped = true;
+            }
         }
+        else
+        {
+            m_activeInputHash = result.inputHash;
+            m_activeRegion = result.region;
 
-        m_activeInputHash = result.inputHash;
+            m_spanKeys = std::move(result.spanKeys);
+            m_spanDirtyBounds = std::move(result.spanDirtyBounds);
+            m_spanFullyDirty = result.spanFullyDirty;
 
-        m_spanKeys = std::move(result.spanKeys);
-        m_spanDirtyBounds = std::move(result.spanDirtyBounds);
-        m_spanFullyDirty = result.spanFullyDirty;
+            Upload(frame, result);
 
-        Upload(frame, result);
+            blasCache.RemoveReferences(m_activeBlasKeys.ToSpan());
 
-        blasCache.RemoveReferences(m_activeBlasKeys.ToSpan());
+            m_activeBlasKeys = std::move(result.blasKeys);
+            m_pendingBlasKeys.Clear();
 
-        m_activeBlasKeys = std::move(result.blasKeys);
-        m_pendingBlasKeys.Clear();
+            m_stats.numInstances = uint32(result.instances.Size());
+            m_stats.numNodes = uint32(result.nodes.Size());
+            m_stats.depth = result.depth;
+            m_stats.lastBuildMs = result.buildMs;
+            m_stats.numSpanInstances = uint32(result.spanInstances.Size());
+            m_stats.numSpanTriangles = result.numSpanTriangles;
+            m_stats.numSpanChunks = uint32(result.spanChunks.Size());
+            m_stats.numBuilds++;
 
-        m_stats.numInstances = uint32(result.instances.Size());
-        m_stats.numNodes = uint32(result.nodes.Size());
-        m_stats.depth = result.depth;
-        m_stats.lastBuildMs = result.buildMs;
-        m_stats.numSpanInstances = uint32(result.spanInstances.Size());
-        m_stats.numSpanTriangles = result.numSpanTriangles;
-        m_stats.numSpanChunks = uint32(result.spanChunks.Size());
-        m_stats.numBuilds++;
-
-        swapped = true;
+            swapped = true;
+        }
     }
 
     if (!m_dirty || m_buildTask.IsValid())
@@ -530,6 +544,7 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
 
     Gather(rpl, region, tracedRegion, blasCache, input, numWaitingForBLAS);
 
+    input.region = region;
     input.regionCenter = region.GetCenter();
     input.previousSpanKeys = m_spanKeys;
     input.hasPrevious = IsReady() || !m_spanKeys.Empty();

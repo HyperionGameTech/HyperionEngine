@@ -18,9 +18,10 @@
 #define GLIMMER_PROBE_STATE_BURIED 2u  // under the ground; never traced
 #define GLIMMER_PROBE_STATE_INSIDE 3u  // inside a solid even after moving; traced now and then to see if it got out
 #define GLIMMER_PROBE_STATE_IDLE 4u    // no solid next to it (open air); never traced, and lighting treats it as missing
+#define GLIMMER_PROBE_STATE_RESET 5u   // its block was just allocated; the list pass clears it
 
-// distances the depth moments hold, in probe spacings; the lookup never asks past the far corner of a cell
-#define GLIMMER_PROBE_DEPTH_RANGE 2.0
+// distances the depth moments hold, in probe spacings: past the far corner of a cell, with the probe offset and the normal bias
+#define GLIMMER_PROBE_DEPTH_RANGE 3.0
 
 #define GLIMMER_PROBE_VISIBILITY_RES 8
 #define GLIMMER_PROBE_VISIBILITY_TEXELS (GLIMMER_PROBE_VISIBILITY_RES * GLIMMER_PROBE_VISIBILITY_RES)
@@ -57,7 +58,7 @@ struct GlimmerProbeVolume
 // x = state (bits 0-3) | relocation attempts (4-5) | updates since it was placed (8-13) | back face rays of its last update (16-23) | rays of its last update that started inside the ground or a solid span (24-31)
 // y = offset from its grid point (3 x 10 bit snorm of GLIMMER_PROBE_MAX_OFFSET spacings)
 // z = time of its last update (float bits)
-// w = how many updates in a row the estimate sat on the same side of the history (signed)
+// w = the last offset it was traced from without ending up inside, packed like y (bits 0-29) | 1 when there is one (bit 31)
 uint GlimmerProbeStateOf(uint4 state)
 {
     return state.x & 0xFu;
@@ -103,6 +104,20 @@ float3 GlimmerUnpackProbeOffset(uint packed)
     const int3 quantized = int3(int(packed << 22) >> 22, int(packed << 12) >> 22, int(packed << 2) >> 22);
 
     return float3(quantized) / 511.0 * GLIMMER_PROBE_MAX_OFFSET;
+}
+
+#define GLIMMER_PROBE_GOOD_OFFSET_VALID 0x80000000u
+
+uint GlimmerPackGoodOffset(float3 offset)
+{
+    return GlimmerPackProbeOffset(offset) | GLIMMER_PROBE_GOOD_OFFSET_VALID;
+}
+
+bool GlimmerUnpackGoodOffset(uint packed, out float3 outOffset)
+{
+    outOffset = GlimmerUnpackProbeOffset(packed & 0x3FFFFFFFu);
+
+    return (packed & GLIMMER_PROBE_GOOD_OFFSET_VALID) != 0u;
 }
 
 uint GlimmerProbeBlockTableIndex(uint levelIndex, int3 block)
@@ -170,13 +185,6 @@ float4 GlimmerProbeRayRotation(uint probeIndex, uint frame)
 float3 GlimmerProbeRayDirection(GlimmerProbeVolume volume, uint probeIndex, uint rayIndex)
 {
     return normalize(GlimmerRotateByQuaternion(GlimmerProbeRayRotation(probeIndex, volume.info.z), GlimmerSphericalFibonacci(rayIndex, volume.info.y)));
-}
-
-float3 GlimmerEvaluateL1(float4 shR, float4 shG, float4 shB, float3 N)
-{
-    const float4 basis = float4(1.0, N);
-
-    return max(float3(dot(shR, basis), dot(shG, basis), dot(shB, basis)), 0.0);
 }
 
 #endif

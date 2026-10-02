@@ -1621,6 +1621,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
     {
         RenderSetup glimmerRS = rs.Fork();
         glimmerRS.view = glimmerSceneView;
+        glimmerRS.passData = skyProbeCloudsPassData; // whose clouds shade the sun at probe hits
 
         if (envProbes[EPT_SKY].Any())
         {

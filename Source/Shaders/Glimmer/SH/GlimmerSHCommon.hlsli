@@ -7,15 +7,10 @@
 #define GLIMMER_SH_GRID_XZ 32
 #define GLIMMER_SH_GRID_Y 16
 
-#define GLIMMER_SH_VISIBILITY_RES 8
-#define GLIMMER_SH_VISIBILITY_TEXELS (GLIMMER_SH_VISIBILITY_RES * GLIMMER_SH_VISIBILITY_RES)
-
-#define GLIMMER_SH_SLAB_VISIBILITY 0u
-#define GLIMMER_SH_SLAB_BOUNCE 1u
-#define GLIMMER_SH_SLAB_DEPTH 2u // + depth map texel / 2
-#define GLIMMER_SH_SLABS (2u + GLIMMER_SH_VISIBILITY_TEXELS / 2u)
-
 #define GLIMMER_SH_DEPTH_RANGE 2.0
+#define GLIMMER_SH_MAX_ORIGIN_OFFSET 0.5
+
+#define GLIMMER_SH_AXIS_DEPTHS 6
 
 struct GlimmerSHCascade
 {
@@ -37,45 +32,93 @@ uint3 GlimmerSHTexel(uint cascadeIndex, int3 voxel)
         uint(voxel.z & (GLIMMER_SH_GRID_XZ - 1)));
 }
 
-uint3 GlimmerSHSlabTexel(uint3 texel, uint slab)
+#define GLIMMER_SH_RADIANCE_CHANNEL_STRIDE (GLIMMER_SH_CASCADES * GLIMMER_SH_GRID_Y)
+
+uint3 GlimmerSHRadianceTexel(uint3 texel, uint channel)
 {
-    return uint3(texel.xy, slab * GLIMMER_SH_GRID_XZ + texel.z);
+    return texel + uint3(0u, channel * GLIMMER_SH_RADIANCE_CHANNEL_STRIDE, 0u);
 }
+
+struct GlimmerSHRadiance
+{
+    float4 r;
+    float4 g;
+    float4 b;
+};
 
 float3 GlimmerSHVoxelCenter(GlimmerSHCascade cascade, int3 voxel)
 {
     return (float3(voxel) + 0.5) * cascade.params.x;
 }
 
-// how far in voxels, per axis the rays' origin can sit off the voxel's center
-#define GLIMMER_SH_MAX_ORIGIN_OFFSET 0.5
-
-// x = voxel x and z (16 bits each)
-// y = voxel y (bits 0-15) | traced (bit 16, so never written (zeroed) state can't match voxel (0, 0, 0)) | the rays' origin off the voxel's center (bits 17-31, 3 x 5 bit snorm of GLIMMER_SH_MAX_ORIGIN_OFFSET voxels)
-uint2 GlimmerSHPackState(int3 voxel, float3 originOffset)
+struct GlimmerSHVoxel
 {
-    const int3 quantized = int3(round(clamp(originOffset / GLIMMER_SH_MAX_ORIGIN_OFFSET, -1.0, 1.0) * 15.0));
-    const uint packedOffset = (uint(quantized.x) & 0x1Fu) | ((uint(quantized.y) & 0x1Fu) << 5) | ((uint(quantized.z) & 0x1Fu) << 10);
+    float3 originOffset; // in voxels
+    float depths[GLIMMER_SH_AXIS_DEPTHS];
+    bool isBuried;
+    bool isAir;
+};
 
-    return uint2((uint(voxel.x) & 0xFFFFu) | ((uint(voxel.z) & 0xFFFFu) << 16), (uint(voxel.y) & 0xFFFFu) | 0x10000u | (packedOffset << 17));
+#define GLIMMER_SH_STATE_TRACED 0x80000000u
+#define GLIMMER_SH_STATE_BURIED 0x40000000u
+#define GLIMMER_SH_STATE_AIR 0x80000000u
+
+uint GlimmerSHWrapId(int3 voxel)
+{
+    const uint3 wrap = uint3(int3(voxel.x >> 5, voxel.y >> 4, voxel.z >> 5) & 63);
+
+    return wrap.x | (wrap.y << 6) | (wrap.z << 12);
 }
 
-bool GlimmerSHStateMatches(uint2 state, int3 voxel)
+// x = unused
+// y = origin offset (3 x 5 bit snorm of GLIMMER_SH_MAX_ORIGIN_OFFSET voxels, bits 16-30) | GLIMMER_SH_STATE_TRACED
+// z = axis depths (6 x 5 bit unorm of GLIMMER_SH_DEPTH_RANGE voxels) | GLIMMER_SH_STATE_BURIED | GLIMMER_SH_STATE_AIR
+// w = GlimmerSHWrapId
+uint4 GlimmerSHPackVoxel(int3 voxel, GlimmerSHVoxel data)
 {
-    const uint2 expected = GlimmerSHPackState(voxel, (float3)0.0);
+    const int3 offset = int3(round(clamp(data.originOffset / GLIMMER_SH_MAX_ORIGIN_OFFSET, -1.0, 1.0) * 15.0));
+    const uint packedOffset = (uint(offset.x) & 0x1Fu) | ((uint(offset.y) & 0x1Fu) << 5) | ((uint(offset.z) & 0x1Fu) << 10);
 
-    return state.x == expected.x && (state.y & 0x1FFFFu) == expected.y;
+    uint packedDepths = 0u;
+
+    [unroll]
+    for (uint axisIndex = 0; axisIndex < GLIMMER_SH_AXIS_DEPTHS; axisIndex++)
+    {
+        packedDepths |= uint(round(saturate(data.depths[axisIndex] / GLIMMER_SH_DEPTH_RANGE) * 31.0)) << (axisIndex * 5u);
+    }
+
+    return uint4(
+        0u,
+        (packedOffset << 16) | GLIMMER_SH_STATE_TRACED,
+        packedDepths | (data.isBuried ? GLIMMER_SH_STATE_BURIED : 0u) | (data.isAir ? GLIMMER_SH_STATE_AIR : 0u),
+        GlimmerSHWrapId(voxel));
 }
 
-// in voxels
-float3 GlimmerSHStateOffset(uint2 state)
+// false where the voxel hasn't been traced since it scrolled in
+bool GlimmerSHUnpackVoxel(uint4 packed, int3 voxel, out GlimmerSHVoxel outData)
 {
-    const uint packedOffset = state.y >> 17;
+    outData = (GlimmerSHVoxel)0;
 
-    // sign extend each 5 bit field
-    const int3 quantized = int3(int(packedOffset << 27) >> 27, int(packedOffset << 22) >> 27, int(packedOffset << 17) >> 27);
+    if ((packed.y & GLIMMER_SH_STATE_TRACED) == 0u || packed.w != GlimmerSHWrapId(voxel))
+    {
+        return false;
+    }
 
-    return float3(quantized) / 15.0 * GLIMMER_SH_MAX_ORIGIN_OFFSET;
+    const uint packedOffset = (packed.y >> 16) & 0x7FFFu;
+    const int3 offset = int3(int(packedOffset << 27) >> 27, int(packedOffset << 22) >> 27, int(packedOffset << 17) >> 27);
+
+    outData.originOffset = float3(offset) / 15.0 * GLIMMER_SH_MAX_ORIGIN_OFFSET;
+
+    [unroll]
+    for (uint axisIndex = 0; axisIndex < GLIMMER_SH_AXIS_DEPTHS; axisIndex++)
+    {
+        outData.depths[axisIndex] = float((packed.z >> (axisIndex * 5u)) & 0x1Fu) / 31.0 * GLIMMER_SH_DEPTH_RANGE;
+    }
+
+    outData.isBuried = (packed.z & GLIMMER_SH_STATE_BURIED) != 0u;
+    outData.isAir = (packed.z & GLIMMER_SH_STATE_AIR) != 0u;
+
+    return true;
 }
 
 #endif

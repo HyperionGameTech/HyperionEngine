@@ -62,6 +62,7 @@ DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTr
 DECLARE_SRV(GlimmerSWRTDebug, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
+DECLARE_SRV(GlimmerSWRTDebug, GlimmerHeightBoundsBuffer) StructuredBuffer<float> glimmerHeightBounds;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
 
@@ -262,11 +263,18 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
             if (hasRasterSurface && GlimmerSampleSpans(constants.spans, 0u, rasterPosition.xz, spanSample))
             {
-                const bool inCanopy = rasterPosition.y >= spanSample.canopyMin - 0.5 && rasterPosition.y <= spanSample.canopyMax + 0.5;
-                const bool inSolid = rasterPosition.y >= spanSample.solidMin - 0.5 && rasterPosition.y <= spanSample.solidMax + 0.5;
+                const bool inCanopy = GlimmerSpanOccupies(rasterPosition.y, 0.5, spanSample.canopyMin, spanSample.canopyMax, spanSample.canopyBins);
+                const bool inSolid = GlimmerSpanOccupies(rasterPosition.y, 0.5, spanSample.solidMin, spanSample.solidMax, spanSample.solidBins);
 
-                result.g += saturate(spanSample.leafArea / 4.0) * (inCanopy ? 1.0 : 0.35);
-                result.r += saturate(GlimmerSpanSolidFill(spanSample, constants.spans.levels[0].params.x) / GLIMMER_SPAN_SOLID_THRESHOLD) * (inSolid ? 1.0 : 0.35);
+                float leafArea = 0.0;
+
+                for (uint band = 0; band < GLIMMER_SPAN_BANDS; band++)
+                {
+                    leafArea += GlimmerSpanBandArea(spanSample.canopyBands, band);
+                }
+
+                result.g += saturate(leafArea / 4.0) * (inCanopy ? 1.0 : 0.35);
+                result.r += saturate(GlimmerSpanSolidFillAt(spanSample, rasterPosition.y, constants.spans.levels[0].params.x) / GLIMMER_SPAN_SOLID_THRESHOLD) * (inSolid ? 1.0 : 0.35);
             }
 
             float groundHeight;

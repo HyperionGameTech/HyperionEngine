@@ -14,6 +14,7 @@
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 namespace Hyperion {
 
@@ -43,10 +44,10 @@ private:
         Vec2i windowOrigin;
         Rect valid;
         Array<Rect> pending;
-        int32 refreshRow = 0;
     };
 
     void MoveWindow(uint32 levelIndex, const Vec2i& desiredOrigin);
+    void AddDirtyRect(uint32 levelIndex, const Vec4f& worldRect);
     int32 SampleRect(TerrainWorldGridLayer* terrain, uint32 levelIndex, const Rect& rect, Array<GlimmerGroundUpload>& outUploads) const;
 
     FixedArray<Level, GlimmerGroundLevels> m_levels;
