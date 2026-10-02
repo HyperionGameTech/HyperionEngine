@@ -19,6 +19,8 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Core/Threading/TaskSystem.hpp>
+#include <Core/Threading/TaskThread.hpp>
+#include <Core/Threading/ThreadPool.hpp>
 #include <Core/Threading/Threads.hpp>
 
 #include <Core/Math/MathUtil.hpp>
@@ -129,11 +131,24 @@ void GlimmerPoolAllocator::Free(uint32 offset, uint32 count)
 
 #pragma region GlimmerBLASCache
 
+class GlimmerBuildThread final : public TaskThread
+{
+public:
+    GlimmerBuildThread(const ThreadId& id)
+        : TaskThread(id, ThreadPriorityValue::LOW)
+    {
+    }
+
+    virtual ~GlimmerBuildThread() override = default;
+};
+
 GlimmerBLASCache::GlimmerBLASCache()
-    : m_residentGeneration(0),
+    : m_buildPool(MakeUnique<TaskThreadPool>(TypeWrapper<GlimmerBuildThread>(), "GlimmerBuild", 1)),
+      m_residentGeneration(0),
       m_numBuildsInFlight(0),
       m_lastUpdateFrame(~0u)
 {
+    m_buildPool->Start();
 }
 
 SharedPtr<GlimmerBLASCache> GlimmerBLASCache::AcquireShared()
@@ -180,6 +195,21 @@ GlimmerBLASCache::~GlimmerBLASCache()
     }
 
     m_entries.Clear();
+
+    if (m_buildPool->IsRunning())
+    {
+        m_buildPool->Stop();
+
+        for (const UniquePtr<ThreadBase>& thread : m_buildPool->GetThreads())
+        {
+            thread->GetScheduler().WakeUpOwnerThread();
+        }
+
+        while (m_buildPool->IsRunning())
+        {
+            ThreadSleep(1);
+        }
+    }
 
     EnqueueDeletion(std::move(m_nodesBuffer));
     EnqueueDeletion(std::move(m_trianglesBuffer));
@@ -629,12 +659,11 @@ void GlimmerBLASCache::Update(Frame* frame)
                 break;
             }
 
-            entry.buildTask = TaskSystem::GetInstance().Enqueue(
+            entry.buildTask = m_buildPool->Enqueue(
                 [mesh = entry.mesh, lodIndex = entry.lodIndex]() -> BuildResult
                 {
                     return BuildBLAS(mesh, lodIndex);
-                },
-                TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+                });
 
             entry.state = EntryState::Building;
             m_numBuildsInFlight++;

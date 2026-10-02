@@ -16,6 +16,8 @@
 #include <Core/Utilities/Result.hpp>
 #include <Core/Utilities/Uuid.hpp>
 
+#include <Core/Threading/Mutex.hpp>
+
 #include <Core/FileSystem/FilePath.hpp>
 
 #include <Core/Resource/Resource.hpp>
@@ -175,6 +177,8 @@ public:
 
 protected:
     static bool ShouldUseBlobStorage();
+
+    static Mutex& GetBlobPersistMutex(const AssetObject* assetObject);
 
     virtual void OnLoaded()
     {
