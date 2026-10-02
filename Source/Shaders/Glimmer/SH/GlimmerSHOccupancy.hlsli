@@ -17,6 +17,8 @@ struct GlimmerSHOccupancyParams
     GlimmerSHOccupancyCascade cascades[GLIMMER_SH_CASCADES];
 };
 
+#define GLIMMER_SH_OCCUPANCY_TRACED_CASCADES 2
+
 static const int3 GlimmerSHOccupancyGridSize = int3(GLIMMER_SH_OCCUPANCY_GRID_XZ, GLIMMER_SH_OCCUPANCY_GRID_Y, GLIMMER_SH_OCCUPANCY_GRID_XZ);
 
 uint3 GlimmerSHOccupancyTexel(uint cascadeIndex, int3 localVoxel)
@@ -88,7 +90,7 @@ bool GlimmerSHTraceOccupancy(GlimmerSHOccupancyParams params, float3 origin, flo
     const int3 stepDirection = int3(sign(safeDirection));
 
     [loop]
-    for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_CASCADES && t < tMax; cascadeIndex++)
+    for (uint cascadeIndex = 0; cascadeIndex < GLIMMER_SH_OCCUPANCY_TRACED_CASCADES && t < tMax; cascadeIndex++)
     {
         const GlimmerSHOccupancyCascade cascade = params.cascades[cascadeIndex];
 

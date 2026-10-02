@@ -20,4 +20,9 @@ float4 EvaluateGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N)
     return SampleGlimmerProbes(volume, P + N * 0.05, N);
 }
 
+float4 EvaluateGlimmerProbes(GlimmerProbeVolume volume, float3 P, float3 N, float3 R, out float3 outIrradianceR)
+{
+    return SampleGlimmerProbes(volume, P + N * 0.05, N, R, outIrradianceR);
+}
+
 #endif

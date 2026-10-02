@@ -31,6 +31,7 @@
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 
 namespace Hyperion {
 
@@ -146,6 +147,10 @@ public:
     ///world space height of the full resolution surface - the one the collider and the brush work on
     float SampleHeightAt(const Vec2f& worldXZ) const;
 
+    ///world XZ rects (xy = min, zw = max) where SampleHeightAt() may return something new since the last call.
+    ///this method is thread safe
+    Array<Vec4f> TakeHeightDirtyRects();
+
     ///sim thread only - SampleHeightAt(), but generates a cold cell's heights instead of returning the un-eroded stand-in
     float SampleHeightAtBlocking(const Vec2f& worldXZ) const;
 
@@ -196,6 +201,9 @@ public:
 
     static float CalculateLodRange(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
     static float CalculateLodMorphStart(uint8 level, const TerrainQuadtreeLayout& layout, const Vec3f& scale);
+
+    void MarkHeightsDirty(const WorldGridLayerInfo& layerInfo, const Vec2i& coord) const;
+    void MarkHeightsDirty(const Vec4f& worldRect) const;
 
     ///sim thread only - reselects the drawn patches of every loaded tile
     void UpdateLodSelection(Span<const Vec3f> viewpoints);
@@ -260,6 +268,9 @@ protected:
     TerrainGeneratorState m_generatorState;
 
     mutable TerrainHeightsCache m_heightsCache;
+
+    mutable Mutex m_heightDirtyMutex;
+    mutable Array<Vec4f> m_heightDirtyRects;
 
     TerrainLoadedCells m_loadedCells;
 

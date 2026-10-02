@@ -23,9 +23,23 @@ class Texture;
 class RenderProxyList;
 class TerrainWorldGridLayer;
 
+class EnvProbe;
 struct BoundingBox;
 struct GlimmerChannelState;
 struct GlimmerTerrainPatchShaderData;
+struct EnvProbeShaderData;
+
+// luminance the sky (and emissive surfaces) seen by Glimmer's rays is clamped to
+static constexpr float GlimmerSkyMaxLuminance = 64.0f;
+
+// how far the probe and SH voxel rays look before taking the sky
+static constexpr float GlimmerMaxRayDistance = 2000.0f;
+
+struct GlimmerSkyShaderData
+{
+    Vec4u info;   // x = sky probe color texture index (~0 without one)
+    Vec4f params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity)
+};
 
 /// @TODO: Namespace this
 
@@ -45,6 +59,7 @@ struct GlimmerTexelRect
     }
 
     static GlimmerTexelRect Intersect(const GlimmerTexelRect& a, const GlimmerTexelRect& b);
+    static GlimmerTexelRect Union(const GlimmerTexelRect& a, const GlimmerTexelRect& b);
 };
 
 GlimmerTexelRect GetGlimmerGroundWindow(const Vec2i& origin);
@@ -73,5 +88,10 @@ uint32 CalculateGlimmerMipChainCells(uint32 resolution, uint32 numLevels);
 void CollectGlimmerTerrainPatches(RenderProxyList& rpl, Array<GlimmerTerrainPatchShaderData>& outPatches);
 
 void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState& outState);
+
+// the sky as both the probe and SH voxel traces see it
+void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, EnvProbeShaderData& outSkyProbe);
+
+float GetGlimmerFoliageExtinction();
 
 } // namespace Hyperion

@@ -8,6 +8,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -46,6 +47,13 @@ static_assert(sizeof(GlimmerTerrainPatchShaderData) == 64);
 
 static constexpr uint32 GlimmerMaxTerrainPatches = 512;
 
+struct GlimmerGroundCoverConstantsKey
+{
+    Vec4u materials[GlimmerGroundCoverLayers];
+    Vec4f weights[GlimmerGroundCoverLayers];
+    Vec4f coverage;
+};
+
 class GlimmerSurfaceCache final
 {
 public:
@@ -70,11 +78,17 @@ public:
     const GpuImageViewRef& GetGroundImageView() const;
     const GpuImageViewRef& GetGroundAlbedoImageView() const;
 
+    HYP_FORCE_INLINE const GlimmerTexelRect& GetUploadedRect(uint32 level) const
+    {
+        return m_uploadedRects[level];
+    }
+
 private:
     struct AlbedoLevel
     {
         bool hasFilled = false;
         Vec2i filledOrigin;
+        GlimmerTexelRect unfilledUploads {}; // uploaded heights not yet valid when they arrived
     };
 
     void CreateTextures();
@@ -94,8 +108,12 @@ private:
     Array<GlimmerTerrainPatchShaderData> m_uploadedTerrainPatches;
 
     GlimmerGroundShaderData m_groundShaderData;
+    FixedArray<GlimmerTexelRect, GlimmerGroundLevels> m_uploadedRects;
 
     FixedArray<AlbedoLevel, GlimmerGroundLevels> m_albedoLevels;
+    Array<Vec4f> m_albedoDirtyWorldRects;
+    GlimmerGroundCoverConstantsKey m_groundCoverKey;
+    bool m_hasGroundCoverChanged;
     uint32 m_albedoGeneration;
     uint32 m_albedoFillCounter;
 };

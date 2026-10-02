@@ -16,6 +16,8 @@
 
 namespace Hyperion {
 
+class CloudPass;
+
 class World;
 class View;
 class EnvProbe;
@@ -31,6 +33,7 @@ class GlimmerSWRTProbeDebug;
 class GlimmerChannel;
 class GlimmerSHOccupancy;
 class GlimmerSHVolume;
+class GlimmerRelight;
 struct GlimmerChannelState;
 
 struct GlimmerSceneRegionParams
@@ -51,7 +54,9 @@ struct GlimmerTechniqueUpdateContext
 
     GlimmerBLASCache* blasCache = nullptr;
     const GlimmerTLAS* tlas = nullptr;
-    bool tlasSwapped = false; // a newly built TLAS was swapped in this frame
+    bool tlasSwapped = false; // a newly built TLAS was swapped in this frame, or its active region moved
+
+    const CloudPass* cloudPass = nullptr; // its cloud shadows dim the sun at probe hits; may be nullptr
 
     // nullptr until the world's GlimmerSystem has published - the caches are up to date for this frame when set
     const GlimmerChannelState* channelState = nullptr;
@@ -110,6 +115,7 @@ private:
     UniquePtr<GlimmerSWRTProbeDebug> m_probeDebug;
     UniquePtr<GlimmerSHOccupancy> m_shOccupancy;
     UniquePtr<GlimmerSHVolume> m_shVolume;
+    UniquePtr<GlimmerRelight> m_relight;
 
     uint32 m_maskGeneration;
 };

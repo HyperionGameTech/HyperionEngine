@@ -20,6 +20,7 @@
 #include <Rendering/Material.hpp>
 
 #include <Scene/Entity.hpp>
+#include <Scene/EnvProbe.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
 
@@ -40,6 +41,25 @@ GlimmerTexelRect GlimmerTexelRect::Intersect(const GlimmerTexelRect& a, const Gl
     {
         result.max = result.min;
     }
+
+    return result;
+}
+
+GlimmerTexelRect GlimmerTexelRect::Union(const GlimmerTexelRect& a, const GlimmerTexelRect& b)
+{
+    if (a.IsEmpty())
+    {
+        return b;
+    }
+
+    if (b.IsEmpty())
+    {
+        return a;
+    }
+
+    GlimmerTexelRect result;
+    result.min = Vec2i(MathUtil::Min(a.min.x, b.min.x), MathUtil::Min(a.min.y, b.min.y));
+    result.max = Vec2i(MathUtil::Max(a.max.x, b.max.x), MathUtil::Max(a.max.y, b.max.y));
 
     return result;
 }
@@ -213,6 +233,38 @@ void CollectGlimmerTerrainPatches(RenderProxyList& rpl, Array<GlimmerTerrainPatc
             outPatches.PushBack(patch);
         }
     }
+}
+
+void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, EnvProbeShaderData& outSkyProbe)
+{
+    // default constructed without a sky probe, which has textureIndices ~0u
+    outSkyProbe = EnvProbeShaderData {};
+    outSky.info = Vec4u(~0u, 0, 0, 0);
+    outSky.params = Vec4f(0.0f, GlimmerSkyMaxLuminance, 0.0f, 0.0f);
+
+    if (!skyProbe)
+    {
+        return;
+    }
+
+    if (RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe)))
+    {
+        outSkyProbe = skyProbeProxy->bufferData;
+        outSky.info.x = skyProbeProxy->bufferData.textureIndices & 0xFFFFu;
+        outSky.params.x = skyProbeProxy->bufferData.worldPosition.w;
+
+        // the sky's irradiance on an upward surface (ProjectSHBands for (0, 1, 0)), before the world's sky intensity
+        const Vec4f* sh = skyProbeProxy->bufferData.shData;
+        const Vec4f up = sh[0] * 0.282095f + sh[1] * 0.488603f - sh[6] * 0.315392f - sh[8] * 0.546274f;
+
+        outSky.params.z = (MathUtil::Max(up.x, 0.0f) * 0.2126f + MathUtil::Max(up.y, 0.0f) * 0.7152f + MathUtil::Max(up.z, 0.0f) * 0.0722f)
+            * skyProbeProxy->bufferData.worldPosition.w;
+    }
+}
+
+float GetGlimmerFoliageExtinction()
+{
+    return MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f);
 }
 
 void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState& outState)
