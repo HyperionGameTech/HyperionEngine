@@ -4,5 +4,5 @@ AnimationTrack JumpWindup_foot_l {
         Key = "Engine://AnimationTracks/JumpWindup_foot_l.KEYF"
         Size = 320
     }
-    UUID = "7010542f-82aa-459a-b105-6d5bf5e5a5fd"
+    UUID = "f2f9e09b-e465-4f34-870e-5f77748fb315"
 }

@@ -2,7 +2,7 @@ AnimationTrack PistolIdle_clavicle_l {
     BoneName = clavicle_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolIdle_clavicle_l.KEYF"
-        Size = 3264
+        Size = 128
     }
-    UUID = "aeb6b69b-92a1-44e6-b993-b346a5404047"
+    UUID = "c476a971-fba4-47b0-b165-dbd50e3ce61c"
 }

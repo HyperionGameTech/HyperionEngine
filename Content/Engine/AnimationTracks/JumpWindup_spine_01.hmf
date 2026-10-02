@@ -4,5 +4,5 @@ AnimationTrack JumpWindup_spine_01 {
         Key = "Engine://AnimationTracks/JumpWindup_spine_01.KEYF"
         Size = 320
     }
-    UUID = "69b9a3c6-9d61-4080-8279-4c4837cfc0d4"
+    UUID = "8ad4a9b6-d4fc-4311-a28d-f22b45add3ac"
 }

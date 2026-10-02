@@ -4,5 +4,5 @@ AnimationTrack Interact_neck {
         Key = "Engine://AnimationTracks/Interact_neck.KEYF"
         Size = 3904
     }
-    UUID = "b1fce4d9-9c71-4442-9eb3-2d81ee536084"
+    UUID = "95a4731b-b4b9-4329-bfd6-c6ce78311ce3"
 }

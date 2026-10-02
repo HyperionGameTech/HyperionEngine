@@ -2,7 +2,7 @@ AnimationTrack PistolShoot_ring_03_r {
     BoneName = ring_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolShoot_ring_03_r.KEYF"
-        Size = 1280
+        Size = 128
     }
-    UUID = "a7551add-7a9f-49c1-9908-7c558ceb3022"
+    UUID = "24278b24-bfb9-48df-b509-0d0f99ca19b5"
 }

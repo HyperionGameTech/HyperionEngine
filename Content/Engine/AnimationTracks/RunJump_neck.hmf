@@ -4,5 +4,5 @@ AnimationTrack RunJump_neck {
         Key = "Engine://AnimationTracks/RunJump_neck.KEYF"
         Size = 1600
     }
-    UUID = "6ca904d3-5c8c-4819-b468-0e6c51ae51c9"
+    UUID = "36b179b6-65ee-4189-b1db-9b9f49925db3"
 }

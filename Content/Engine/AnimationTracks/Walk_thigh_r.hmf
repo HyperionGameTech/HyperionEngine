@@ -4,5 +4,5 @@ AnimationTrack Walk_thigh_r {
         Key = "Engine://AnimationTracks/Walk_thigh_r.KEYF"
         Size = 2624
     }
-    UUID = "d4e7a263-dd2c-4998-a02e-0b2427b009c8"
+    UUID = "c8183c7d-4114-44e9-b1c9-f8b21b1c3c90"
 }

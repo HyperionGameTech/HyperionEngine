@@ -43,7 +43,15 @@ Hyperion Engine is licensed under the MIT License (see `LICENSE`). Binary releas
 | Codicons | CC-BY-4.0 | Copyright (c) Microsoft Corporation | `Codicons-CC-BY-4.0.txt` |
 | Material Icons, Material Symbols | Apache-2.0 | Copyright (c) Google | `Apache-2.0.txt` |
 
+## Assets
+
+| Asset | License | Author | Text |
+|---|---|---|---|
+| [Base Mesh T Pose FBX](https://sketchfab.com/3d-models/base-mesh-t-pose-fbx-bbe0cb980c19431eab04832493971053) (ThirdPersonCharacter model) | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) | [iamnuffy](https://sketchfab.com/iamnuffy) | `BaseMesh-T-Pose-CC-BY-4.0.txt` |
+
 ## Notices
+
+Base Mesh T Pose FBX: "Base Mesh T Pose FBX" by iamnuffy, licensed under CC BY 4.0. Modified: rescaled and reoriented, skeleton bones renamed, given a plain material, and animated with retargeted clips.
 
 FreeType: Portions of this software are copyright (c) 2024 The FreeType Project (www.freetype.org). All rights reserved.
 

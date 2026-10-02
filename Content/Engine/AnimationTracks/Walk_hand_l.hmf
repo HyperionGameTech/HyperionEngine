@@ -4,5 +4,5 @@ AnimationTrack Walk_hand_l {
         Key = "Engine://AnimationTracks/Walk_hand_l.KEYF"
         Size = 2624
     }
-    UUID = "d0c68970-da2e-492b-8a97-fd813e9fa155"
+    UUID = "206c3ffa-9f14-40db-992e-1488bbf55ca9"
 }

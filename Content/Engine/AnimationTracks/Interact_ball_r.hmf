@@ -2,7 +2,7 @@ AnimationTrack Interact_ball_r {
     BoneName = ball_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Interact_ball_r.KEYF"
-        Size = 3904
+        Size = 128
     }
-    UUID = "c75d6234-93c4-4268-8f52-6fed4e8096be"
+    UUID = "b01c0246-f012-48df-b0b8-4a401579a770"
 }

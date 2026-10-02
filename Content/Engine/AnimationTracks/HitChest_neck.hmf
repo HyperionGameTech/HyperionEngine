@@ -4,5 +4,5 @@ AnimationTrack HitChest_neck {
         Key = "Engine://AnimationTracks/HitChest_neck.KEYF"
         Size = 704
     }
-    UUID = "fd498fce-a4ee-44c7-b7fb-62fa0192cb39"
+    UUID = "9eca0add-3f4d-47dd-80ac-8c9824c50ca4"
 }

@@ -2,7 +2,7 @@ AnimationTrack RunLand_thumb_02_r {
     BoneName = thumb_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunLand_thumb_02_r.KEYF"
-        Size = 1152
+        Size = 128
     }
-    UUID = "424e3bd8-1f0d-4d61-a11a-23d00e7b517f"
+    UUID = "f03e3681-044c-4f6e-a6ef-dfbb8276845b"
 }

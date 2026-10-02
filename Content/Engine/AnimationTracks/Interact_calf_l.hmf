@@ -4,5 +4,5 @@ AnimationTrack Interact_calf_l {
         Key = "Engine://AnimationTracks/Interact_calf_l.KEYF"
         Size = 3904
     }
-    UUID = "5d3e9d67-2f2e-4d93-b37d-21586f20c9bc"
+    UUID = "0a0930c0-a9bb-4201-a479-7e764d793c1f"
 }

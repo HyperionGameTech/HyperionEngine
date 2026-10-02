@@ -2,7 +2,7 @@ AnimationTrack TurnLeftSmall_lowerarm_l {
     BoneName = lowerarm_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/TurnLeftSmall_lowerarm_l.KEYF"
-        Size = 960
+        Size = 128
     }
-    UUID = "d8516baf-a133-4d2b-9605-88dbecc3738b"
+    UUID = "1814ed5b-5f41-40d1-8393-b5e7349e1759"
 }

@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_hand_l {
         Key = "Engine://AnimationTracks/WalkBackward_hand_l.KEYF"
         Size = 2624
     }
-    UUID = "cc48589b-116e-4014-9a27-4a7541e42840"
+    UUID = "a9706c1c-b650-4728-952c-e4089dba4ca3"
 }

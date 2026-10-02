@@ -2,7 +2,7 @@ AnimationTrack TurnLeftSmall_upperarm_l {
     BoneName = upperarm_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/TurnLeftSmall_upperarm_l.KEYF"
-        Size = 960
+        Size = 128
     }
-    UUID = "1d43e04e-c441-4410-8d40-48397823ed5a"
+    UUID = "b560aee6-ca97-4cb5-9cd2-b9633918c9c3"
 }

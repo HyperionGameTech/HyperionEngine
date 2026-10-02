@@ -4,5 +4,5 @@ AnimationTrack Idle_foot_l {
         Key = "Engine://AnimationTracks/Idle_foot_l.KEYF"
         Size = 11584
     }
-    UUID = "ca043506-9c8c-425a-986c-a9a568e75c12"
+    UUID = "49b7f7c7-16d8-40be-bcac-2896ced023d7"
 }

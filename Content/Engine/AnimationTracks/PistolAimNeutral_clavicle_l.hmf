@@ -2,7 +2,7 @@ AnimationTrack PistolAimNeutral_clavicle_l {
     BoneName = clavicle_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolAimNeutral_clavicle_l.KEYF"
-        Size = 384
+        Size = 128
     }
-    UUID = "3e5c7ae8-65bd-43cb-9396-603ef72a450d"
+    UUID = "a958d077-9495-4c75-a18f-71784762efce"
 }

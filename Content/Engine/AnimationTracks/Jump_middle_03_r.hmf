@@ -2,7 +2,7 @@ AnimationTrack Jump_middle_03_r {
     BoneName = middle_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Jump_middle_03_r.KEYF"
-        Size = 1600
+        Size = 128
     }
-    UUID = "4c6ada3d-832e-483a-9fdb-ccf7a3f7c72a"
+    UUID = "55ed27b2-03e9-48ee-93da-5e8976bf5c95"
 }

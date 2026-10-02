@@ -81,7 +81,7 @@ static void BuildInvSphere(Handle<AssetRegistry>& outputRegistry)
 
 static constexpr float ThirdPersonCharacterHeight = 1.8f;
 
-static constexpr const char* DefaultThirdPersonCharacterSource = "Models/Mannequin/Mannequin.glb";
+static constexpr const char* DefaultThirdPersonCharacterSource = "Models/BaseHuman/BaseHuman.glb";
 
 static void BuildThirdPersonCharacter(Handle<AssetRegistry>& outputRegistry, const String& sourcePath)
 {

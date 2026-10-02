@@ -2,7 +2,7 @@ AnimationTrack Land_thumb_02_r {
     BoneName = thumb_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Land_thumb_02_r.KEYF"
-        Size = 1344
+        Size = 128
     }
-    UUID = "05df0e78-b157-4ea6-adb1-800373104778"
+    UUID = "d4271552-6a9d-4b32-b3fb-e5be7707727c"
 }

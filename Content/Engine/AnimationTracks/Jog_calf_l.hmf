@@ -4,5 +4,5 @@ AnimationTrack Jog_calf_l {
         Key = "Engine://AnimationTracks/Jog_calf_l.KEYF"
         Size = 1856
     }
-    UUID = "0128ac36-fb79-48a5-ad70-59ee1e1faf7c"
+    UUID = "77acc42e-aebd-49cd-982f-347e1ee3af54"
 }

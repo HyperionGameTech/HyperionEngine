@@ -4,5 +4,5 @@ AnimationTrack Interact_foot_r {
         Key = "Engine://AnimationTracks/Interact_foot_r.KEYF"
         Size = 3904
     }
-    UUID = "77cf2411-3003-41c0-8301-8528af3bd3a6"
+    UUID = "4279046f-8d6f-49b8-ae84-4a3eb5aad4f1"
 }

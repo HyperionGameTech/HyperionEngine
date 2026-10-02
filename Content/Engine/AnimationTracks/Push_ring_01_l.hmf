@@ -2,7 +2,7 @@ AnimationTrack Push_ring_01_l {
     BoneName = ring_01_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/Push_ring_01_l.KEYF"
-        Size = 5184
+        Size = 128
     }
-    UUID = "da208312-f608-4db7-8e3e-3cc6c95053d0"
+    UUID = "6ee4fca6-83b9-485a-9bff-63121d53d9a0"
 }

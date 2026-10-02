@@ -2,7 +2,7 @@ AnimationTrack PistolIdle_index_03_r {
     BoneName = index_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolIdle_index_03_r.KEYF"
-        Size = 3264
+        Size = 128
     }
-    UUID = "a4ebf0fb-c134-489b-be18-718293ca3e9d"
+    UUID = "d0e43b7f-0dbb-4c2a-978c-2e2f27fe2660"
 }

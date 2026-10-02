@@ -4,5 +4,5 @@ AnimationTrack Idle_spine_02 {
         Key = "Engine://AnimationTracks/Idle_spine_02.KEYF"
         Size = 11584
     }
-    UUID = "bf65efce-b70d-409f-a551-47ca45fd0c91"
+    UUID = "04f0a25e-d7c4-438b-beb8-c986056a4464"
 }

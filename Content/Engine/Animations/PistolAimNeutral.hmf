@@ -54,5 +54,5 @@ Animation PistolAimNeutral {
         @"Engine://AnimationTracks/PistolAimNeutral_foot_r"
         @"Engine://AnimationTracks/PistolAimNeutral_ball_r"
     ]
-    UUID = "b578623f-7978-434e-80c2-4252abe9af2c"
+    UUID = "440c2131-01b4-4d8c-be4f-3e97f1064878"
 }

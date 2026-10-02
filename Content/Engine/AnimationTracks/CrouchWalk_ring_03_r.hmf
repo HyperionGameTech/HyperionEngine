@@ -2,7 +2,7 @@ AnimationTrack CrouchWalk_ring_03_r {
     BoneName = ring_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/CrouchWalk_ring_03_r.KEYF"
-        Size = 3904
+        Size = 128
     }
-    UUID = "6ac8ef5f-53ec-4226-b837-63e9dbe7e78e"
+    UUID = "0d5a25cd-ca5b-4ec4-9b81-e56357cc5f7b"
 }

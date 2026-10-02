@@ -4,5 +4,5 @@ AnimationTrack PistolReload_foot_r {
         Key = "Engine://AnimationTracks/PistolReload_foot_r.KEYF"
         Size = 3264
     }
-    UUID = "f486b3c3-28d7-43be-9f36-f39d13161df4"
+    UUID = "7c753f88-93f3-4263-826f-25103ffa307e"
 }

@@ -4,5 +4,5 @@ AnimationTrack HitHead_thumb_01_l {
         Key = "Engine://AnimationTracks/HitHead_thumb_01_l.KEYF"
         Size = 896
     }
-    UUID = "6c2edbf1-414d-4e8f-a054-d38e23af353d"
+    UUID = "41cf5526-528d-486b-aa1d-97a9ab4a44f1"
 }
