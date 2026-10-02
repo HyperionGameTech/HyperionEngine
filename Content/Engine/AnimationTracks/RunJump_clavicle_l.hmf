@@ -4,5 +4,5 @@ AnimationTrack RunJump_clavicle_l {
         Key = "Engine://AnimationTracks/RunJump_clavicle_l.KEYF"
         Size = 1600
     }
-    UUID = "cc554a24-75ca-4efb-a9bc-8a2adad47bb3"
+    UUID = "ccd0dad7-c31a-43b9-95da-d975c1ddd99b"
 }

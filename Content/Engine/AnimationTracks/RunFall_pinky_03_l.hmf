@@ -2,7 +2,7 @@ AnimationTrack RunFall_pinky_03_l {
     BoneName = pinky_03_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunFall_pinky_03_l.KEYF"
-        Size = 1984
+        Size = 128
     }
-    UUID = "916c4ab5-9877-4b52-8ab4-7f604c0552f0"
+    UUID = "01a46aae-8234-4b71-9f30-edda37592e87"
 }

@@ -2,7 +2,7 @@ AnimationTrack RunLand_hand_l {
     BoneName = hand_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunLand_hand_l.KEYF"
-        Size = 1152
+        Size = 128
     }
-    UUID = "97069cfc-cd1c-4cbe-a64a-5a1074dd71cc"
+    UUID = "87b83467-bbab-48b6-9ea4-accef7361650"
 }

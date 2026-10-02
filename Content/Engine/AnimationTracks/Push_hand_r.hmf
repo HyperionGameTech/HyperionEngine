@@ -4,5 +4,5 @@ AnimationTrack Push_hand_r {
         Key = "Engine://AnimationTracks/Push_hand_r.KEYF"
         Size = 5184
     }
-    UUID = "be03d1a2-0ef4-4326-9aa4-9ac347e25eea"
+    UUID = "26fad0de-fef7-4024-bf7d-bcc3feffcf5c"
 }

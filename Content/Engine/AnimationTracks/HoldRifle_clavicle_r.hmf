@@ -1,0 +1,8 @@
+AnimationTrack HoldRifle_clavicle_r {
+    BoneName = clavicle_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldRifle_clavicle_r.KEYF"
+        Size = 128
+    }
+    UUID = "e8d916a4-f448-4069-87a8-c856c954b614"
+}

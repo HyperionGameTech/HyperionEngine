@@ -2,7 +2,7 @@ AnimationTrack PistolReload_index_01_r {
     BoneName = index_01_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolReload_index_01_r.KEYF"
-        Size = 3264
+        Size = 128
     }
-    UUID = "4e755f61-2469-4e02-8968-d995b0bf4f95"
+    UUID = "56f98882-506a-405a-bee0-029e4d4baea0"
 }

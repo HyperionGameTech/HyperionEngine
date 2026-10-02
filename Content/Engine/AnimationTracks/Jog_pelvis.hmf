@@ -4,5 +4,5 @@ AnimationTrack Jog_pelvis {
         Key = "Engine://AnimationTracks/Jog_pelvis.KEYF"
         Size = 1856
     }
-    UUID = "47761c63-091b-43cb-bfd2-8c3c87174288"
+    UUID = "ed8456ad-7af5-4c46-9d8c-505613bb57f6"
 }

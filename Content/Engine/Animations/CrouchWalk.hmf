@@ -54,5 +54,5 @@ Animation CrouchWalk {
         @"Engine://AnimationTracks/CrouchWalk_foot_r"
         @"Engine://AnimationTracks/CrouchWalk_ball_r"
     ]
-    UUID = "463559cb-15f7-4ac6-9123-6eb779875ac7"
+    UUID = "606d348e-0bf8-486b-a9b3-e0c544eda2cb"
 }

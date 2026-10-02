@@ -2,7 +2,7 @@ AnimationTrack PistolAimNeutral_ball_r {
     BoneName = ball_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolAimNeutral_ball_r.KEYF"
-        Size = 384
+        Size = 128
     }
-    UUID = "a4b1781f-fda1-4d8d-8b90-b1b5bd5a1dc2"
+    UUID = "adde3456-d611-4eca-b2ee-6fce461c5d13"
 }

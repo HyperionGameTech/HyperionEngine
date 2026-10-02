@@ -4,5 +4,5 @@ AnimationTrack RunLand_clavicle_l {
         Key = "Engine://AnimationTracks/RunLand_clavicle_l.KEYF"
         Size = 1152
     }
-    UUID = "058c8e9b-9bc9-4af0-87e6-db738add1696"
+    UUID = "73bc0611-4420-4f1d-9133-f70718dc326e"
 }

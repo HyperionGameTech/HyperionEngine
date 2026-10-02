@@ -1,0 +1,8 @@
+AnimationTrack HoldFlamethrower_pinky_03_r {
+    BoneName = pinky_03_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldFlamethrower_pinky_03_r.KEYF"
+        Size = 128
+    }
+    UUID = "dfea1da1-ffe9-4d7a-86b4-6527cb4bac85"
+}

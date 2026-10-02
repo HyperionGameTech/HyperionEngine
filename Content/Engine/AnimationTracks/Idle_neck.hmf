@@ -4,5 +4,5 @@ AnimationTrack Idle_neck {
         Key = "Engine://AnimationTracks/Idle_neck.KEYF"
         Size = 11584
     }
-    UUID = "491ac002-a4bf-492c-9990-084228f47db5"
+    UUID = "9dd965db-a3e9-4ea9-a5d7-02285407a896"
 }

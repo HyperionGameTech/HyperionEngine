@@ -2,7 +2,7 @@ AnimationTrack PistolAimUp_calf_l {
     BoneName = calf_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolAimUp_calf_l.KEYF"
-        Size = 384
+        Size = 128
     }
-    UUID = "07896d71-889f-4e61-9399-62be92a5a83f"
+    UUID = "c5a1fb64-53da-4d40-b01d-c80224cb79a9"
 }

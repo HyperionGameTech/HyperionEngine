@@ -4,5 +4,5 @@ AnimationTrack Idle_thigh_r {
         Key = "Engine://AnimationTracks/Idle_thigh_r.KEYF"
         Size = 11584
     }
-    UUID = "0e9839c2-3be9-4e05-afff-c8ae3ac23229"
+    UUID = "11b73dc3-bf4b-45e8-842e-e758a39b803d"
 }

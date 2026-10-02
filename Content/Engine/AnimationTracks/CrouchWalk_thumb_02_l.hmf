@@ -2,7 +2,7 @@ AnimationTrack CrouchWalk_thumb_02_l {
     BoneName = thumb_02_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/CrouchWalk_thumb_02_l.KEYF"
-        Size = 3904
+        Size = 128
     }
-    UUID = "452c3433-93e1-446a-a370-ae64244d7871"
+    UUID = "07f49bf3-c040-4386-8761-8081826f9f2f"
 }

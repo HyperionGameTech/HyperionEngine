@@ -4,5 +4,5 @@ AnimationTrack Interact_pelvis {
         Key = "Engine://AnimationTracks/Interact_pelvis.KEYF"
         Size = 3904
     }
-    UUID = "190d1cc5-8c3f-47b8-b2ff-0965c57a45d9"
+    UUID = "a60049a7-c519-4afd-ad52-0ff696992817"
 }

@@ -2,7 +2,7 @@ AnimationTrack TurnLeft_index_01_l {
     BoneName = index_01_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/TurnLeft_index_01_l.KEYF"
-        Size = 1216
+        Size = 128
     }
-    UUID = "37a4f3f4-7bc7-48a7-8d54-4480779caf1f"
+    UUID = "6db82ca5-c43b-464b-8ed2-911db02e4b81"
 }

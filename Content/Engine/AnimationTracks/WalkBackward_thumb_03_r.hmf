@@ -2,7 +2,7 @@ AnimationTrack WalkBackward_thumb_03_r {
     BoneName = thumb_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/WalkBackward_thumb_03_r.KEYF"
-        Size = 2624
+        Size = 128
     }
-    UUID = "9e7b9145-3ce3-4379-ad2d-fcf932f25be8"
+    UUID = "c0ad17ed-58cb-4d3e-9754-0abf5446e4fc"
 }

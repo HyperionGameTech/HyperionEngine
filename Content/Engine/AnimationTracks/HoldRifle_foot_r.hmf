@@ -1,0 +1,8 @@
+AnimationTrack HoldRifle_foot_r {
+    BoneName = foot_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldRifle_foot_r.KEYF"
+        Size = 128
+    }
+    UUID = "282a59c2-d4a4-43ca-bf56-57d0fa77420d"
+}

@@ -54,5 +54,5 @@ Animation Jog {
         @"Engine://AnimationTracks/Jog_foot_r"
         @"Engine://AnimationTracks/Jog_ball_r"
     ]
-    UUID = "356c0c09-ba89-4850-9d2e-21bb96c75bd0"
+    UUID = "b39fa180-3eb2-4449-8f37-a5cf1792e040"
 }

@@ -2,7 +2,7 @@ AnimationTrack RunLand_middle_02_l {
     BoneName = middle_02_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunLand_middle_02_l.KEYF"
-        Size = 1152
+        Size = 128
     }
-    UUID = "288792f3-8ee0-4244-b390-4fc7fc3af4be"
+    UUID = "61134378-fb0c-464c-b3f7-fa24e4febf99"
 }

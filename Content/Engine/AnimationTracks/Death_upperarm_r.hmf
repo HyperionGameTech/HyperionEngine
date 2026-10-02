@@ -4,5 +4,5 @@ AnimationTrack Death_upperarm_r {
         Key = "Engine://AnimationTracks/Death_upperarm_r.KEYF"
         Size = 4672
     }
-    UUID = "97edde68-32fd-4787-9867-6147698cab57"
+    UUID = "c1632e8f-e974-4ea3-a13d-ef87ebc150c7"
 }

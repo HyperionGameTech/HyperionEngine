@@ -2,7 +2,7 @@ AnimationTrack PistolAimUp_lowerarm_l {
     BoneName = lowerarm_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolAimUp_lowerarm_l.KEYF"
-        Size = 384
+        Size = 128
     }
-    UUID = "a2f3537c-1f03-41eb-b41b-36cc1316c070"
+    UUID = "fa6a8f62-553d-4f33-9515-5f38835a9780"
 }

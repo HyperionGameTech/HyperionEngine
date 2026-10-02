@@ -2,7 +2,7 @@ AnimationTrack PickUp_pinky_03_r {
     BoneName = pinky_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PickUp_pinky_03_r.KEYF"
-        Size = 1664
+        Size = 128
     }
-    UUID = "c24e610a-042b-40ba-a6a3-09152a3b966b"
+    UUID = "1ee0e86c-7673-4561-b02c-0918c8e0bef6"
 }

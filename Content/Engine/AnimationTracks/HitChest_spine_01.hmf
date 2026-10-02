@@ -2,7 +2,7 @@ AnimationTrack HitChest_spine_01 {
     BoneName = spine_01
     KeyframeData = {
         Key = "Engine://AnimationTracks/HitChest_spine_01.KEYF"
-        Size = 704
+        Size = 128
     }
-    UUID = "39a51611-9b4b-4a90-818e-ce2f15d18c0b"
+    UUID = "9fc5bd0f-0fe7-45e4-9e02-84e879cbc9e4"
 }

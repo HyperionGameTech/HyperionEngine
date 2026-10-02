@@ -4,5 +4,5 @@ AnimationTrack PickUp_calf_r {
         Key = "Engine://AnimationTracks/PickUp_calf_r.KEYF"
         Size = 1664
     }
-    UUID = "fc7d6720-7512-4a64-910e-2b42ea7df60e"
+    UUID = "de46281d-4be3-4a7a-a698-49ad0bee624a"
 }

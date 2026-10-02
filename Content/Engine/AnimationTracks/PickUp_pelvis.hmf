@@ -4,5 +4,5 @@ AnimationTrack PickUp_pelvis {
         Key = "Engine://AnimationTracks/PickUp_pelvis.KEYF"
         Size = 1664
     }
-    UUID = "a1fb722b-e9e1-4416-bd68-f60aa6b10fa7"
+    UUID = "829fb028-e9ca-4e65-b94d-105f28444568"
 }

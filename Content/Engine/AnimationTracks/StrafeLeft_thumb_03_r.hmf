@@ -2,7 +2,7 @@ AnimationTrack StrafeLeft_thumb_03_r {
     BoneName = thumb_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/StrafeLeft_thumb_03_r.KEYF"
-        Size = 2624
+        Size = 128
     }
-    UUID = "937f2181-0d96-4ee9-a4c2-a3b4a92a0c47"
+    UUID = "157b7831-2baa-42d1-af86-c296f22a2b36"
 }

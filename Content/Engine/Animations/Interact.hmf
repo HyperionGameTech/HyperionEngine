@@ -54,5 +54,5 @@ Animation Interact {
         @"Engine://AnimationTracks/Interact_foot_r"
         @"Engine://AnimationTracks/Interact_ball_r"
     ]
-    UUID = "187862fc-da59-4638-b78e-ba11b58f6a8e"
+    UUID = "66e74eba-2ceb-46b4-a496-e6e603e96735"
 }

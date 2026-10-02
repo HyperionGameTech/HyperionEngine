@@ -4,5 +4,5 @@ AnimationTrack TurnRight_foot_l {
         Key = "Engine://AnimationTracks/TurnRight_foot_l.KEYF"
         Size = 1216
     }
-    UUID = "774436dc-555c-47d1-ae0e-326be11fa142"
+    UUID = "183ca9b6-f0de-43c4-a37d-2231ea0ac5c8"
 }

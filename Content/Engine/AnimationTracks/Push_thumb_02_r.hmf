@@ -2,7 +2,7 @@ AnimationTrack Push_thumb_02_r {
     BoneName = thumb_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Push_thumb_02_r.KEYF"
-        Size = 5184
+        Size = 128
     }
-    UUID = "34f64034-0ea1-4598-adfb-3072c722aa84"
+    UUID = "8b86d5fb-10a2-4a8d-a52d-88edb68b8c3f"
 }

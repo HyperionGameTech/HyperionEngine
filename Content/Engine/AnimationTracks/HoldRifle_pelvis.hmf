@@ -1,0 +1,8 @@
+AnimationTrack HoldRifle_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldRifle_pelvis.KEYF"
+        Size = 128
+    }
+    UUID = "558bee45-d9d5-4a0f-961e-d6deac9a95a3"
+}

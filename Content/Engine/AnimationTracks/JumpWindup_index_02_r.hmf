@@ -2,7 +2,7 @@ AnimationTrack JumpWindup_index_02_r {
     BoneName = index_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/JumpWindup_index_02_r.KEYF"
-        Size = 320
+        Size = 128
     }
-    UUID = "2686849e-41e9-4553-8b0d-f141fe2c1f66"
+    UUID = "2ce670e4-cf9d-4034-8782-9c7d48f426c2"
 }

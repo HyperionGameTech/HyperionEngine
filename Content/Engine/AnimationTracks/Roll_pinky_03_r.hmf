@@ -4,5 +4,5 @@ AnimationTrack Roll_pinky_03_r {
         Key = "Engine://AnimationTracks/Roll_pinky_03_r.KEYF"
         Size = 2880
     }
-    UUID = "d081c1d8-051d-48fc-aea6-66d2da05711d"
+    UUID = "7a2d30f0-ade2-44db-9cc0-b02427681f5b"
 }

@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_pelvis {
         Key = "Engine://AnimationTracks/WalkBackward_pelvis.KEYF"
         Size = 2624
     }
-    UUID = "56ea996b-8dfc-4cd7-8378-5dd65e7b0cf4"
+    UUID = "705e7045-d14e-4d2b-b75d-6c5e560f8aff"
 }

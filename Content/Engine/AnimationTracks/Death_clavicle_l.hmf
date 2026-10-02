@@ -4,5 +4,5 @@ AnimationTrack Death_clavicle_l {
         Key = "Engine://AnimationTracks/Death_clavicle_l.KEYF"
         Size = 4672
     }
-    UUID = "8937d62b-8ef7-4fa6-a531-56104c54fc1f"
+    UUID = "55108bf7-58e6-4543-b36c-e9d7534cbbb9"
 }

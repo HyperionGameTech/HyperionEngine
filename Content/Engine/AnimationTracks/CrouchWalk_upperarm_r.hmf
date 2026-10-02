@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_upperarm_r {
         Key = "Engine://AnimationTracks/CrouchWalk_upperarm_r.KEYF"
         Size = 3904
     }
-    UUID = "8f02953a-6194-4d65-ad9f-395b58f19fc9"
+    UUID = "edb9f3f1-5ed3-426a-91eb-f647fb890d7a"
 }

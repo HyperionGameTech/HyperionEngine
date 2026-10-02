@@ -2,7 +2,7 @@ AnimationTrack RunJump_hand_r {
     BoneName = hand_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunJump_hand_r.KEYF"
-        Size = 1600
+        Size = 128
     }
-    UUID = "e1b25c1c-31c2-46cf-8cbd-db5a6635831f"
+    UUID = "787d7df8-a7c3-4c28-b0b9-ad063e5a5aee"
 }

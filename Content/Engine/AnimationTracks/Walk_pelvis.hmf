@@ -4,5 +4,5 @@ AnimationTrack Walk_pelvis {
         Key = "Engine://AnimationTracks/Walk_pelvis.KEYF"
         Size = 2624
     }
-    UUID = "1209ea3d-2f27-4d86-8dfd-29068a69a0c5"
+    UUID = "ff5afe34-6293-4924-8cc1-8f21f246b7ef"
 }

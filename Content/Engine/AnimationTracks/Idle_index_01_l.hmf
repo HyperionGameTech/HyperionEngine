@@ -2,7 +2,7 @@ AnimationTrack Idle_index_01_l {
     BoneName = index_01_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/Idle_index_01_l.KEYF"
-        Size = 11584
+        Size = 128
     }
-    UUID = "4d369331-5016-4180-917a-c41366589ffb"
+    UUID = "f219e66c-e679-4dc1-9d20-4774419b1b9f"
 }

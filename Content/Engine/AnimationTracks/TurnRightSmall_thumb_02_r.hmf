@@ -2,7 +2,7 @@ AnimationTrack TurnRightSmall_thumb_02_r {
     BoneName = thumb_02_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/TurnRightSmall_thumb_02_r.KEYF"
-        Size = 960
+        Size = 128
     }
-    UUID = "6cc78bb1-0f1d-4bc6-ba76-79085272e5ad"
+    UUID = "98efff9b-536d-4f1d-a0db-c1131cd56def"
 }

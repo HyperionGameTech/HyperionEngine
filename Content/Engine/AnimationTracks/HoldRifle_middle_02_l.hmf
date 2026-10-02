@@ -1,0 +1,8 @@
+AnimationTrack HoldRifle_middle_02_l {
+    BoneName = middle_02_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldRifle_middle_02_l.KEYF"
+        Size = 128
+    }
+    UUID = "b1469ef9-aa9c-4af1-851a-24c0772c1989"
+}

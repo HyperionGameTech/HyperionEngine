@@ -2,7 +2,7 @@ AnimationTrack Jog_middle_01_l {
     BoneName = middle_01_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/Jog_middle_01_l.KEYF"
-        Size = 1856
+        Size = 128
     }
-    UUID = "00568451-bf88-4f2e-a625-ceb1cf9c7589"
+    UUID = "6ed2e309-7e39-4fad-999e-872c914357a8"
 }

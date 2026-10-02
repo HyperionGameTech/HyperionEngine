@@ -2,7 +2,7 @@ AnimationTrack Jump_thumb_03_l {
     BoneName = thumb_03_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/Jump_thumb_03_l.KEYF"
-        Size = 1600
+        Size = 128
     }
-    UUID = "2138c137-b24b-4a20-8a94-067bd1306320"
+    UUID = "a9bcb26f-ea31-42bb-be94-8630585669ba"
 }

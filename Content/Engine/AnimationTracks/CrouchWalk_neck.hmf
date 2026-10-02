@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_neck {
         Key = "Engine://AnimationTracks/CrouchWalk_neck.KEYF"
         Size = 3904
     }
-    UUID = "c0447900-541c-4f19-9aad-3548b070d224"
+    UUID = "7dd393a0-1e7d-4157-954b-82c9945fc51e"
 }
