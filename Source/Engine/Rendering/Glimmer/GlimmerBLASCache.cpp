@@ -41,7 +41,11 @@ static constexpr uint32 FailedRetryDelayFrames = 120;
 
 static constexpr uint32 PackedVertexSizeInFloats = sizeof(TVertex<VT_Simple>) / sizeof(float);
 
-static constexpr uint64 PoolBytes = 256ull * 1024ull * 1024ull;
+static constexpr uint64 PoolBytes = 192ull * 1024ull * 1024ull;
+static constexpr uint64 NodePoolBytes = PoolBytes * 3 / 16;
+
+static constexpr uint32 BLASMinLeafSize = 4;
+static constexpr uint32 BLASMaxLeafSize = 16;
 static constexpr uint32 MaxBuildsInFlight = 4;
 static constexpr size_t UploadBudgetBytes = 8u * 1024u * 1024u;
 
@@ -261,10 +265,12 @@ uint64 GlimmerBLASCache::MakeKey(const Mesh* mesh, uint8 lodIndex)
 
 void GlimmerBLASCache::CreatePoolBuffers()
 {
-    const uint32 nodeCapacity = uint32((PoolBytes * 3 / 8) / sizeof(GlimmerBVHNode));
-    const uint32 triangleCapacity = uint32((PoolBytes - PoolBytes * 3 / 8) / sizeof(GlimmerTriangle));
+    const uint32 nodeCapacity = uint32(NodePoolBytes / sizeof(GlimmerBLASNode));
+    const uint32 triangleCapacity = uint32((PoolBytes - NodePoolBytes) / sizeof(GlimmerTriangle));
 
-    m_nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBVHNode), nodeCapacity);
+    Assert(nodeCapacity <= GlimmerBLASNode::MaxIndex + 1 && triangleCapacity <= GlimmerBLASNode::MaxIndex + 1);
+
+    m_nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBLASNode), nodeCapacity);
     m_trianglesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangle), triangleCapacity);
 
 #ifdef HYP_RHI_DEBUG_NAMES
@@ -610,7 +616,7 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
             triangle.edge2[axis] = edge2[axis];
         }
 
-        triangle.padding0 = 0;
+        triangle.leafFlags = 0;
         triangle.padding1 = 0;
         triangle.padding2 = 0;
 
@@ -627,8 +633,13 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
         return result;
     }
 
+    GlimmerBVHBuildParams buildParams;
+    buildParams.minLeafSize = BLASMinLeafSize;
+    buildParams.maxLeafSize = BLASMaxLeafSize;
+
+    Array<GlimmerBVHNode> bvhNodes;
     Array<uint32> triangleOrder;
-    GlimmerBVHBuilder::Build(triangleBounds.ToSpan(), GlimmerBVHBuildParams {}, result.nodes, triangleOrder);
+    GlimmerBVHBuilder::Build(triangleBounds.ToSpan(), buildParams, bvhNodes, triangleOrder);
 
     result.triangles.Resize(triangleOrder.Size());
 
@@ -637,7 +648,23 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
         result.triangles[orderIndex] = unorderedTriangles[triangleOrder[orderIndex]];
     }
 
-    result.depth = GlimmerBVHBuilder::CalculateDepth(result.nodes.ToSpan());
+    result.depth = GlimmerBVHBuilder::CalculateDepth(bvhNodes.ToSpan());
+
+    Array<uint32> leafEnds;
+
+    if (!GlimmerBVHBuilder::PackBLAS(bvhNodes.ToSpan(), result.nodes, leafEnds))
+    {
+        // more triangles or nodes than a child ref can address, which is more than the pool holds anyway
+        result = BuildResult {};
+        result.isFail = true;
+
+        return result;
+    }
+
+    for (const uint32 leafEnd : leafEnds)
+    {
+        result.triangles[leafEnd].leafFlags |= GlimmerBLASNode::LeafEndFlag;
+    }
 
     return result;
 }
@@ -901,7 +928,7 @@ void GlimmerBLASCache::UploadEntry(Frame* frame, Entry& entry)
 
     cr << CopyBuffer(stagingBuffer, m_nodesBuffer.Get(),
         0,
-        uint32(size_t(entry.ref.nodeBase) * sizeof(GlimmerBVHNode)),
+        uint32(size_t(entry.ref.nodeBase) * sizeof(GlimmerBLASNode)),
         uint32(nodesByteSize));
 
     cr << CopyBuffer(stagingBuffer, m_trianglesBuffer.Get(),
