@@ -34,7 +34,7 @@ class Mesh;
 struct GlimmerTriangle
 {
     float position0[3];
-    uint32 padding0;
+    uint32 leafFlags; //!< GlimmerBLASNode::LeafEndFlag on the last triangle of each leaf, since leaves don't store a count
     float edge1[3];
     uint32 padding1;
     float edge2[3];
@@ -190,7 +190,7 @@ private:
 
     struct BuildResult
     {
-        Array<GlimmerBVHNode> nodes;
+        Array<GlimmerBLASNode> nodes;
         Array<GlimmerTriangle> triangles;
         BoundingBox localBounds;
         uint32 depth = 0;

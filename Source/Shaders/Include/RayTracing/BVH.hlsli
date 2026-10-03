@@ -14,9 +14,26 @@ struct BVHNode
     float4 rightMaxCount;
 };
 
+struct BVHBLASNode
+{
+    uint4 header; // xyz = asuint origin, w = bits 0-17 per axis scale exponents (6 bits each, biased by 32), bits 18-31 = bits 9-22 of the right ref
+    uint4 data;   // xyz = child bounds bytes (left min, left max, right min, right max), w = left ref in bits 0-22, bits 0-8 of the right ref in bits 23-31
+};
+
+#define BVH_BLAS_REF_LEAF_BIT (1u << 22)
+#define BVH_BLAS_REF_INDEX_MASK 0x3FFFFFu
+#define BVH_BLAS_LEAF_END_FLAG 1u
+
+struct BVHBLASChildren
+{
+    float3 boundsMin[2];
+    float3 boundsMax[2];
+    uint refs[2]; // BVH_BLAS_REF_LEAF_BIT set for leaves, index in BVH_BLAS_REF_INDEX_MASK: child node, or first triangle of the leaf
+};
+
 struct BVHTriangle
 {
-    float4 position0;
+    float4 position0; // w = asuint flags
     float4 edge1;
     float4 edge2;
 };
@@ -38,6 +55,33 @@ struct BVHHit
 float GetBVHSafeInverse(float value)
 {
     return 1.0 / (abs(value) > 1e-12 ? value : (value >= 0.0 ? 1e-12 : -1e-12));
+}
+
+float3 UnpackBVHBLASBytes(uint word, uint firstByte)
+{
+    return float3((word >> (firstByte * 8u)) & 0xFFu, (word >> ((firstByte + 1u) * 8u)) & 0xFFu, (word >> ((firstByte + 2u) * 8u)) & 0xFFu);
+}
+
+BVHBLASChildren UnpackBVHBLASNode(BVHBLASNode node)
+{
+    const float3 origin = asfloat(node.header.xyz);
+
+    // scale = 2^(exponent - 32)
+    // the float exponent field is exponent - 32 + 127
+    const uint3 exponents = (uint3(node.header.w, node.header.w >> 6u, node.header.w >> 12u) & 0x3Fu) + 95u;
+    const float3 scale = asfloat(exponents << 23u);
+
+    BVHBLASChildren children;
+
+    children.boundsMin[0] = origin + UnpackBVHBLASBytes(node.data.x, 0u) * scale;
+    children.boundsMax[0] = origin + float3(node.data.x >> 24u, node.data.y & 0xFFu, (node.data.y >> 8u) & 0xFFu) * scale;
+    children.boundsMin[1] = origin + float3((node.data.y >> 16u) & 0xFFu, node.data.y >> 24u, node.data.z & 0xFFu) * scale;
+    children.boundsMax[1] = origin + UnpackBVHBLASBytes(node.data.z, 1u) * scale;
+
+    children.refs[0] = node.data.w & 0x7FFFFFu;
+    children.refs[1] = (node.data.w >> 23u) | ((node.header.w >> 18u) << 9u);
+
+    return children;
 }
 
 float IntersectBVHBounds(float3 boundsMin, float3 boundsMax, float3 origin, float3 inverseDirection, float tMin, float tMax)
