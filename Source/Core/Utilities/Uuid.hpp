@@ -37,6 +37,8 @@ struct CORE_API UUID
     UUID();
     explicit UUID(const char* str);
 
+    static UUID FromName(const char* name);
+
     HYP_FORCE_INLINE constexpr bool operator==(const UUID& other) const
     {
         return data0 == other.data0 && data1 == other.data1;

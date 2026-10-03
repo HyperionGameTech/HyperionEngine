@@ -260,7 +260,11 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
                 const BoundingBox finalBounds = m_currentBounds;
                 const BoundingBox originalBounds = m_dragData->originalBounds;
 
-                project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+                EditorActionStack* actionStack = GetEditorSubsystem() != nullptr
+                    ? GetEditorSubsystem()->GetActionStackForNode(focusedNode.Get())
+                    : project->GetActionStack().Get();
+
+                actionStack->PushAction(MakeHandle<FunctionalEditorAction>(
                     "Edit Volume Shape",
                     [manipulationMode = GetManipulationMode(), focusedNode, finalBounds, originalBounds]() -> EditorActionFunctions
                     {

@@ -2,7 +2,7 @@ AnimationTrack PistolAimNeutral_thumb_03_r {
     BoneName = thumb_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/PistolAimNeutral_thumb_03_r.KEYF"
-        Size = 384
+        Size = 128
     }
-    UUID = "8b626933-76f4-42cd-804c-f54c77205f2c"
+    UUID = "e2e2430f-2e9e-41e2-8424-b133d088e95d"
 }

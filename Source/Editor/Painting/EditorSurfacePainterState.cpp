@@ -152,15 +152,7 @@ bool EditorSurfacePainterState::CanEnterTool() const
 {
     AssertOnThread(g_simThread);
 
-    // simulation runs against a throwaway snapshot of the edited world, anything painted there would be lost
-    if (m_subsystem->IsSimulating())
-    {
-        HYP_LOG(Editor, Warning, "Cannot use the {} while simulation is active", GetToolName());
-
-        return false;
-    }
-
-    return true;
+    return !m_subsystem->IsSimulating() && !m_subsystem->IsEditingPrefab();
 }
 
 float EditorSurfacePainterState::GetScale() const

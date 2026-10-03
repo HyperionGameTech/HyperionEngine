@@ -24,7 +24,7 @@ float HenyeyGreenstein(float cosTheta, float g)
 // strong forward lobe for the silver lining, weak back lobe so clouds facing away from the sun aren't flat
 float CloudPhase(float cosTheta, float eccentricityScale)
 {
-    return lerp(HenyeyGreenstein(cosTheta, 0.8 * eccentricityScale), HenyeyGreenstein(cosTheta, -0.2 * eccentricityScale), 0.25);
+    return lerp(HenyeyGreenstein(cosTheta, 0.8 * eccentricityScale), HenyeyGreenstein(cosTheta, -0.3 * eccentricityScale), 0.4);
 }
 
 struct CloudLayer
@@ -225,8 +225,8 @@ CloudMarchResult MarchCloudLayer(
             {
                 sunScattering += octaveScattering * CloudPhase(cosTheta, octaveEccentricity) * exp(-opticalDepthToSun * octaveAttenuation);
 
-                octaveScattering *= 0.5;
-                octaveAttenuation *= 0.5;
+                octaveScattering *= 0.75;
+                octaveAttenuation *= 0.35;
                 octaveEccentricity *= 0.5;
             }
 

@@ -1,0 +1,8 @@
+AnimationTrack HoldRifle_spine_02 {
+    BoneName = spine_02
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldRifle_spine_02.KEYF"
+        Size = 128
+    }
+    UUID = "33771c15-9037-4edc-b22f-83e3519664f9"
+}

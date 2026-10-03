@@ -2,7 +2,7 @@ AnimationTrack JumpWindup_pinky_02_l {
     BoneName = pinky_02_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/JumpWindup_pinky_02_l.KEYF"
-        Size = 320
+        Size = 128
     }
-    UUID = "a047ee59-f214-4ce1-89a9-f863b1d98767"
+    UUID = "2a34c444-db38-4192-a369-5b43764494e8"
 }

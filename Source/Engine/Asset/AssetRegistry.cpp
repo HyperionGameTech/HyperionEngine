@@ -1741,26 +1741,11 @@ void AssetRegistry::SaveDirtyAssets()
                 continue;
             }
 
-            // Would pin the blob data so another thread releasing the last reader can't unpage it mid-write,
-            // but GetReadScope() can block waiting for another thread's in-progress teardown of the same
-            // asset to finish (AssetObject::LockReader's "another thread may be tearing down" wait). On the
-            // sim thread that deadlocks against the render thread when render's teardown can't complete
-            // until sim reaches its next lockstep sync point (see writeScope above for the same issue).
-            // The resulting race (a concurrent last-reader release freeing this asset's blob mid-persist) is
-            // handled non-fatally now - see AssertBlobDataPersisted / Shader::UnpageBlobData.
-            //auto readScope = assetObject->GetReadScope();
-
             const uint32 assetIndex = assetObject->GetAssetIndex();
 
             if (assetIndex == AssetDesc::InvalidIndex)
             {
                 continue;
-            }
-
-            // Cleared before writing so a MarkDirty() racing with the save isn't lost
-            {
-                TUniqueLock dirtyLock(data.mtx);
-                data.dirtyIndices.Set(assetIndex, false);
             }
 
             const Name assetName = assetObject->GetName();
@@ -1773,7 +1758,20 @@ void AssetRegistry::SaveDirtyAssets()
 
             const FilePath manifestPath = bucketDir / (assetName.ToString() + ".hmf");
 
-            if (Result saveBlobResult = assetObject->PersistBlobData(nullptr, bucketDir); saveBlobResult.HasError())
+            Result saveBlobResult;
+
+            {
+                Mutex::Guard persistLock(AssetObject::GetBlobPersistMutex(assetObject));
+
+                {
+                    TUniqueLock dirtyLock(data.mtx);
+                    data.dirtyIndices.Set(assetIndex, false);
+                }
+
+                saveBlobResult = assetObject->PersistBlobData(nullptr, bucketDir);
+            }
+
+            if (saveBlobResult.HasError())
             {
                 HYP_LOG(Assets, Warning, "Failed to save blob data for asset '{}' in bucket '{}': {}",
                         assetName, bucketName, saveBlobResult.GetError().GetMessage());

@@ -778,7 +778,7 @@ namespace Hyperion.Editor.ViewModels
 
             if (project != null)
             {
-                project.ActionStack.PushAction(action);
+                (EngineManager.GetActionStackFor(_target) ?? project.ActionStack).PushAction(action);
             }
             else
             {
@@ -814,7 +814,7 @@ namespace Hyperion.Editor.ViewModels
 
             if (overrideProject != null)
             {
-                overrideProject.ActionStack.PushAction(action);
+                (EngineManager.GetActionStackFor(entity) ?? overrideProject.ActionStack).PushAction(action);
             }
             else
             {
@@ -1036,7 +1036,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (project != null)
                 {
-                    project.ActionStack.PushAction(new EditorAction(
+                    (EngineManager.GetActionStackFor(capturedEntity) ?? project.ActionStack).PushAction(new EditorAction(
                         $"Revert Override ({swatchName}): {label}",
                         (_, _) => ApplyRemove(),
                         (_, _) => ApplyRestore()));

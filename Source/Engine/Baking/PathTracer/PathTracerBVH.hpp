@@ -18,6 +18,8 @@
 
 #include <Core/Utilities/Span.hpp>
 
+#include <Rendering/Glimmer/GlimmerBVHBuilder.hpp>
+
 namespace Hyperion {
 
 class Mesh;
@@ -25,19 +27,7 @@ class RenderProxyList;
 
 namespace Baking {
 
-struct PathTracerBVHNode
-{
-    float leftMin[3];
-    uint32 leftIndex; //!< Child node index, or first triangle when the child is a leaf
-    float leftMax[3];
-    uint32 leftCount; //!< Leaf triangle count, 0 when the child is an interior node
-    float rightMin[3];
-    uint32 rightIndex;
-    float rightMax[3];
-    uint32 rightCount;
-};
-
-static_assert(sizeof(PathTracerBVHNode) == 64);
+using PathTracerBVHNode = GlimmerBVHNode;
 
 struct PathTracerTriangle
 {
@@ -60,12 +50,6 @@ struct PathTracerTriangleAttributes
 };
 
 static_assert(sizeof(PathTracerTriangleAttributes) == 48);
-
-class PathTracerBVHBuilder
-{
-public:
-    static void Build(Span<const PathTracerTriangle> triangles, Array<PathTracerBVHNode>& outNodes, Array<uint32>& outTriangleOrder);
-};
 
 enum class PathTracerBVHState : uint8
 {

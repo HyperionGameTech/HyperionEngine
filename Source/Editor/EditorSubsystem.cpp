@@ -28,6 +28,7 @@
 #include <Editor/Decal/EditorDecalPainterState.hpp>
 #include <Editor/Instancing/EditorInstancePainterState.hpp>
 #include <Editor/Csg/EditorCsgState.hpp>
+#include <Editor/Prefab/EditorPrefabEditState.hpp>
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 
@@ -316,6 +317,75 @@ Handle<EditorCsgState> EditorSubsystem::GetCsgState()
     return m_csgState;
 }
 
+Handle<EditorPrefabEditState> EditorSubsystem::GetPrefabEditState()
+{
+    if (!m_prefabEditState.IsValid())
+    {
+        m_prefabEditState = MakeHandle<EditorPrefabEditState>();
+        InitObject(m_prefabEditState);
+
+        m_prefabEditState->Initialize(this);
+    }
+
+    return m_prefabEditState;
+}
+
+bool EditorSubsystem::IsEditingPrefab() const
+{
+    return m_prefabEditState.IsValid() && m_prefabEditState->IsActive();
+}
+
+void EditorSubsystem::SyncStalePrefabInstances(Scene* scene)
+{
+    AssertOnThread(g_simThread);
+
+    if (!scene || !scene->GetRoot().IsValid())
+    {
+        return;
+    }
+
+    const uint32 numReplaced = Prefab::SyncStaleInstances(scene->GetRoot().Get());
+
+    if (numReplaced != 0)
+    {
+        scene->MarkDirty();
+
+        HYP_LOG(Editor, Info, "Updated {} out of date prefab instances in scene '{}'", numReplaced, scene->GetName());
+    }
+}
+
+void EditorSubsystem::SyncStalePrefabInstances()
+{
+    const Handle<World>& world = GetProjectWorld();
+
+    if (!world.IsValid())
+    {
+        return;
+    }
+
+    for (const Handle<Scene>& scene : world->GetScenes())
+    {
+        if (scene.IsValid() && (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        {
+            SyncStalePrefabInstances(scene.Get());
+        }
+    }
+}
+
+void EditorSubsystem::UpdateViewportIsolation()
+{
+    AssertOnThread(g_simThread);
+
+    const Array<Handle<Scene>> isolatedScenes = IsEditingPrefab()
+        ? m_prefabEditState->GetIsolatedScenes()
+        : Array<Handle<Scene>>();
+
+    for (const Handle<EditorViewport>& viewport : m_editorViewports)
+    {
+        viewport->SetIsolatedScenes(this, isolatedScenes);
+    }
+}
+
 #pragma endregion Terrain
 
 bool EditorSubsystem::IsMeshEditModeEnabled() const
@@ -365,7 +435,7 @@ bool EditorSubsystem::CanEnableMeshEditMode() const
         return true;
     }
 
-    if (!m_currentProject.IsValid() || IsSimulating())
+    if (!m_currentProject.IsValid() || IsSimulating() || IsEditingPrefab())
     {
         return false;
     }
@@ -413,6 +483,31 @@ EditorActionStack* EditorSubsystem::GetActiveActionStack() const
     if (m_meshEditState.enabled && m_meshEditState.actionStack.IsValid())
     {
         return m_meshEditState.actionStack.Get();
+    }
+
+    return GetSceneActionStack();
+}
+
+EditorActionStack* EditorSubsystem::GetSceneActionStack() const
+{
+    if (IsEditingPrefab())
+    {
+        return m_prefabEditState->GetActionStack();
+    }
+
+    if (!m_currentProject.IsValid())
+    {
+        return nullptr;
+    }
+
+    return m_currentProject->GetActionStack().Get();
+}
+
+EditorActionStack* EditorSubsystem::GetActionStackForNode(Node* node) const
+{
+    if (node != nullptr && IsEditingPrefab() && node->GetScene() == m_prefabEditState->GetEditScene().Get())
+    {
+        return m_prefabEditState->GetActionStack();
     }
 
     if (!m_currentProject.IsValid())
@@ -931,7 +1026,7 @@ void EditorSubsystem::EnterMeshEditMode()
         return;
     }
 
-    if (!m_currentProject.IsValid())
+    if (!m_currentProject.IsValid() || IsEditingPrefab())
     {
         return;
     }
@@ -966,6 +1061,7 @@ void EditorSubsystem::EnterMeshEditMode()
     m_meshEditState.isChanging = false;
 
     OnMeshEditStateChanged();
+    OnActiveActionStackChanged();
 }
 
 void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
@@ -1008,6 +1104,7 @@ void EditorSubsystem::ExitMeshEditMode(bool saveEdits)
     m_meshEditState.isChanging = false;
 
     OnMeshEditStateChanged();
+    OnActiveActionStackChanged();
 }
 
 bool EditorSubsystem::BackOutOfMeshEditState()
@@ -2594,7 +2691,7 @@ void EditorSubsystem::FitPhysicsShapeToMesh(Node* node)
     const BoundingBox meshAabb = meshComponent->mesh->GetAABB();
     const BoundingBox oldAabb = boxShape->GetAABB();
 
-    project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+    GetActionStackForNode(entity)->PushAction(MakeHandle<FunctionalEditorAction>(
         "Fit Physics Shape to Mesh",
         [boxShape, entity = MakeStrongRef(entity), meshAabb, oldAabb]() -> EditorActionFunctions
         {
@@ -2786,7 +2883,7 @@ void EditorSubsystem::ApplyConvexDecomposition(const Handle<Entity>& entity, con
         const ConvexDecompositionSettings previousSettings = compoundShape->GetDecompositionSettings();
         const uint64 previousSourceDataHash = compoundShape->GetSourceDataHash();
 
-        GetCurrentProject()->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+        GetActionStackForNode(entity.Get())->PushAction(MakeHandle<FunctionalEditorAction>(
             "Regenerate Convex Collision",
             [entity, compoundShape, mesh, settings, result, sourceDataHash, previousHulls = std::move(previousHulls), previousSettings, previousSourceDataHash]() -> EditorActionFunctions
             {
@@ -2822,7 +2919,7 @@ void EditorSubsystem::ApplyConvexDecomposition(const Handle<Entity>& entity, con
 
     Handle<PhysicsShape> previousShape = currentShape;
 
-    GetCurrentProject()->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+    GetActionStackForNode(entity.Get())->PushAction(MakeHandle<FunctionalEditorAction>(
         "Generate Convex Collision",
         [entity, compoundShape, previousShape]() -> EditorActionFunctions
         {
@@ -3012,7 +3109,7 @@ void EditorSubsystem::FitVolumeToSelection(Node* volume)
     const BoundingBox fittedLocalBounds = fittableVolume->GetWorldMatrix().Inverse() * selectionBounds;
     const BoundingBox previousLocalBounds = fittableVolume->GetLocalBounds();
 
-    project->GetActionStack()->PushAction(MakeHandle<FunctionalEditorAction>(
+    GetActionStackForNode(fittableVolume)->PushAction(MakeHandle<FunctionalEditorAction>(
         "Fit Volume to Selection",
         [volumeRef = MakeStrongRef(fittableVolume), fittedLocalBounds, previousLocalBounds]() -> EditorActionFunctions
         {
@@ -3580,6 +3677,12 @@ bool EditorSubsystem::StartSimulation()
     if (!m_currentProject.IsValid())
     {
         return false;
+    }
+
+    // Pending prefab edits go into the snapshot too
+    if (m_prefabEditState.IsValid())
+    {
+        m_prefabEditState->Exit(/* apply */ true);
     }
 
     // Save the edits to meshes before simulating.
@@ -4936,6 +5039,13 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
         return false;
     }
 
+    if (IsEditingPrefab() && !command->AllowedWhileEditingPrefab())
+    {
+        HYP_LOG(Editor, Warning, "Cannot execute command '{}' while editing a prefab", command->InstanceClass()->GetName());
+
+        return false;
+    }
+
     if (IsOnThread(g_simThread))
     {
         command->Execute(this);
@@ -5041,7 +5151,7 @@ static void PopulateNewWorld(World* world, const Handle<AssetRegistry>& assetReg
     // low, side-on golden hour sun - the atmosphere tint warms it and ridges throw long shadows
     sun->SetDirection(Vec3f(-0.86f, 0.36f, -0.36f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));
-    sun->SetIntensity(18.0f);
+    sun->SetIntensity(10.0f);
     InitObject(sun);
 
     mainScene->GetRoot()->AddChild(sun);
@@ -5150,6 +5260,12 @@ bool EditorSubsystem::OpenWorld(Name worldName)
         oldWorld.IsValid() ? oldWorld->GetName() : Name::Invalid(), worldName);
 
     CancelMeshPreview();
+
+    if (m_prefabEditState.IsValid())
+    {
+        m_prefabEditState->Exit(/* apply */ true);
+    }
+
     ExitMeshEditMode(/* saveEdits */ true);
     GetCsgState()->Exit(/* saveEdits */ true);
 
@@ -5234,6 +5350,11 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
+        if (m_prefabEditState.IsValid())
+        {
+            m_prefabEditState->Exit(/* apply */ false);
+        }
+
         GetCsgState()->Exit(/* saveEdits */ true);
 
         ShutdownPreviewServices();
@@ -5707,7 +5828,25 @@ bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
     {
         if (EditorSpriteSystem* spriteSystem = projectWorld->GetSystem<EditorSpriteSystem>())
         {
-            hasHits |= spriteSystem->TestRay(ray, outResults);
+            if (IsEditingPrefab())
+            {
+                RayTestResults spriteResults;
+                spriteSystem->TestRay(ray, spriteResults);
+
+                const Handle<Scene>& editScene = m_prefabEditState->GetEditScene();
+
+                for (const RayHit& hit : spriteResults)
+                {
+                    if (hit.node != nullptr && hit.node->GetScene() == editScene.Get())
+                    {
+                        hasHits |= outResults.AddHit(hit);
+                    }
+                }
+            }
+            else
+            {
+                hasHits |= spriteSystem->TestRay(ray, outResults);
+            }
         }
     }
 
@@ -5952,7 +6091,7 @@ void EditorSubsystem::CommitMeshPreview()
 
     InitObject(action);
 
-    currentProject->GetActionStack()->PushAction(action);
+    GetSceneActionStack()->PushAction(action);
 }
 
 void EditorSubsystem::CancelMeshPreview()
@@ -6042,6 +6181,11 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
 
     viewport->OnAdded(this);
     m_editorViewports.PushBack(viewportStrong);
+
+    if (IsEditingPrefab())
+    {
+        viewport->SetIsolatedScenes(this, m_prefabEditState->GetIsolatedScenes());
+    }
 
     // active VP is always the first one in the array
     // if size == 1 it's because we just added the first one
@@ -6190,6 +6334,8 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
         {
             activeScene = scene;
         }
+
+        SyncStalePrefabInstances(scene.Get());
     }
 
     if (!activeScene.IsValid())
@@ -6219,6 +6365,8 @@ void EditorSubsystem::InitializeProjectWorld(const Handle<EditorProject>& projec
 
             Handle<EditorProject> project = projectWeak.Lock();
             Assert(project != nullptr);
+
+            SyncStalePrefabInstances(scene.Get());
 
             if (!isStartSimulation)
             {

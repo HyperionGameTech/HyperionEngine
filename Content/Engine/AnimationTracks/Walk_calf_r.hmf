@@ -4,5 +4,5 @@ AnimationTrack Walk_calf_r {
         Key = "Engine://AnimationTracks/Walk_calf_r.KEYF"
         Size = 2624
     }
-    UUID = "d0192911-5f7e-496a-a03a-64c9c1b8eaa4"
+    UUID = "b3a6265c-bf22-4385-87ce-36bb205d105b"
 }

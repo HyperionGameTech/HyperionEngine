@@ -4,5 +4,5 @@ AnimationTrack HitHead_calf_l {
         Key = "Engine://AnimationTracks/HitHead_calf_l.KEYF"
         Size = 896
     }
-    UUID = "e40a1577-749b-44e9-8c9e-337598256491"
+    UUID = "3b030806-35b6-4dea-9197-1d4be5c3270a"
 }

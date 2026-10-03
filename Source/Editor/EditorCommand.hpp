@@ -37,6 +37,11 @@ public:
         return false;
     }
 
+    virtual bool AllowedWhileEditingPrefab() const
+    {
+        return true;
+    }
+
     HYP_METHOD()
     const Array<String>& GetArguments() const
     {

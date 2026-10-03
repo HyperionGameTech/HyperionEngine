@@ -213,7 +213,7 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(reinterpret_cast<const char*>(Begin()), reinterpret_cast<const char*>(End()));
+        return HashCode(FNV1::DoHashBytes(reinterpret_cast<const ubyte*>(Begin()), reinterpret_cast<const ubyte*>(End())));
     }
 
     HYP_FORCE_INLINE constexpr operator Span<const Type>() const
@@ -395,7 +395,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(reinterpret_cast<const char*>(Begin()), reinterpret_cast<const char*>(End()));
+        return HashCode(FNV1::DoHashBytes(reinterpret_cast<const ubyte*>(Begin()), reinterpret_cast<const ubyte*>(End())));
     }
 
     HYP_DEF_STL_BEGIN_END_CONSTEXPR(first, last)

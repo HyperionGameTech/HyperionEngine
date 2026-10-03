@@ -4,5 +4,5 @@ AnimationTrack Roll_foot_l {
         Key = "Engine://AnimationTracks/Roll_foot_l.KEYF"
         Size = 2880
     }
-    UUID = "f0a51c52-42cf-458d-af40-cde5b88b6e68"
+    UUID = "f57304ef-ac44-4f28-b61e-f3cb7da1cf0b"
 }

@@ -54,5 +54,5 @@ Animation Push {
         @"Engine://AnimationTracks/Push_foot_r"
         @"Engine://AnimationTracks/Push_ball_r"
     ]
-    UUID = "cce55df8-e942-41ec-8a11-d49dbf1386e6"
+    UUID = "fda7a9e6-2785-4f4f-8243-f9483e46b275"
 }

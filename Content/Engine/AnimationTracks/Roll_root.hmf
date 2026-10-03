@@ -2,7 +2,7 @@ AnimationTrack Roll_root {
     BoneName = root
     KeyframeData = {
         Key = "Engine://AnimationTracks/Roll_root.KEYF"
-        Size = 2880
+        Size = 128
     }
-    UUID = "579565c3-0c38-4a03-a71e-be86e3d1c84e"
+    UUID = "fd31862c-b0e7-479b-830e-1b88dbd603c8"
 }

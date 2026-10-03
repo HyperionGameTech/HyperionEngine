@@ -2,7 +2,7 @@ AnimationTrack Run_pinky_03_r {
     BoneName = pinky_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Run_pinky_03_r.KEYF"
-        Size = 1344
+        Size = 128
     }
-    UUID = "71b4fe0c-6e61-4408-a806-757ac2593306"
+    UUID = "e9ef3dd9-92f2-4306-88bf-36b6d1f63f1f"
 }

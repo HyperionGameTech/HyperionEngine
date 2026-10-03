@@ -31,6 +31,8 @@
 
 #include <Framework/Client/GameClient.hpp>
 #include <Framework/CVarManager.hpp>
+#include <Framework/GameState.hpp>
+#include <Framework/View.hpp>
 #include <Framework/Net/PlayerMove.hpp>
 
 namespace Hyperion {
@@ -108,6 +110,50 @@ Camera* GetEditorCamera(const World& world)
 }
 
 #endif // HYP_EDITOR
+
+Camera* FindViewerCamera(const World& world)
+{
+    AssertOnThread(g_simThread);
+
+    const bool preferEditorViews = world.GetGameState().IsStopped();
+
+    Camera* viewerCamera = nullptr;
+    bool hasPreferredViewpoint = false;
+
+    for (View* view : world.GetSimThreadViews())
+    {
+        if (!view || !(view->GetFlags() & ViewFlags::GBUFFER) || !view->GetCamera())
+        {
+            continue;
+        }
+
+        const bool isPreferred = (bool(view->GetFlags() & ViewFlags::EDITOR_VIEW) == preferEditorViews);
+
+        if (viewerCamera != nullptr && (hasPreferredViewpoint || !isPreferred))
+        {
+            continue;
+        }
+
+        viewerCamera = view->GetCamera();
+        hasPreferredViewpoint = isPreferred;
+    }
+
+    return viewerCamera;
+}
+
+bool FindViewerPosition(const World& world, Vec3f& outPosition)
+{
+    Camera* viewerCamera = FindViewerCamera(world);
+
+    if (!viewerCamera)
+    {
+        return false;
+    }
+
+    outPosition = viewerCamera->GetWorldTranslation();
+
+    return true;
+}
 
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId)
 {

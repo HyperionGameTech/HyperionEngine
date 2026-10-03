@@ -2,7 +2,7 @@ AnimationTrack WalkBackward_pinky_03_r {
     BoneName = pinky_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/WalkBackward_pinky_03_r.KEYF"
-        Size = 2624
+        Size = 128
     }
-    UUID = "46fb3a68-1752-4c0d-a8cb-69c5e6fd43d3"
+    UUID = "360e6488-3f0d-402e-97c7-7fd0f93067c9"
 }

@@ -131,8 +131,9 @@ private:
 
     // Touch tracking
     Map<int32, TouchPoint> m_activeTouches;
-    int32 m_leftTouchId = -1;   // Touch ID for left side (movement)
-    int32 m_rightTouchId = -1;  // Touch ID for right side (look)
+    int32 m_leftTouchId = -1;                   // Touch ID for left side (movement)
+    int32 m_rightTouchId = -1;                  // Touch ID for right side (look)
+    Vec2f m_prevLookPosition = Vec2f::Zero();   // Right touch position as of the last look update
 
     // Current input values
     Vec2f m_movementDelta = Vec2f::Zero();

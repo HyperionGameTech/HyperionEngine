@@ -17,6 +17,9 @@
 #include <Rendering/Passes/FogVolumePass.hpp>
 #include <Rendering/Passes/HeightFogPass.hpp>
 #include <Rendering/Passes/SkyVisibilityPass.hpp>
+
+#include <Rendering/Glimmer/GlimmerPass.hpp>
+#include <Rendering/Glimmer/GlimmerIrradiancePass.hpp>
 #include <Rendering/Passes/ReflectionsPass.hpp>
 
 #ifdef HYP_EDITOR
@@ -344,6 +347,8 @@ DeferredPassData::~DeferredPassData()
     depthPyramidRenderer.Reset();
 
     hbao.Reset();
+
+    glimmerIrradiancePass.Reset();
 
     taaPass.Reset();
 
@@ -1100,6 +1105,9 @@ PassData* DeferredPass::CreateViewPassData(View* view, PassDataExt&)
         passData.hbao = MakeUnique<HBAO>(gbuffer->GetExtent(), gbuffer);
         passData.hbao->Create();
 
+        passData.glimmerIrradiancePass = MakeUnique<GlimmerIrradiancePass>(gbuffer->GetExtent(), gbuffer);
+        passData.glimmerIrradiancePass->Create();
+
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
 
@@ -1325,6 +1333,9 @@ void DeferredPass::ResizeView(Viewport viewport, View* view, DeferredPassData& p
     passData.hbao = MakeUnique<HBAO>(newSize, gbuffer);
     passData.hbao->Create();
 
+    passData.glimmerIrradiancePass = MakeUnique<GlimmerIrradiancePass>(newSize, gbuffer);
+    passData.glimmerIrradiancePass->Create();
+
     passData.ssgi = MakeUnique<SSGI>(gbuffer);
     passData.ssgi->Create();
 
@@ -1392,10 +1403,10 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
         View* view;
     };
 
-    // --- Collect view-independent renderable types from all views, binned ---
+    /// Collect view-independent renderable types from all views, binned
     FixedArray<Set<EnvProbe*, RenderTempAllocator>, EPT_MAX> envProbes;
 
-    // For rendering EnvProbes, we use a directional light from one of the Views that references it (if found)
+    /// For rendering EnvProbes, we use a directional light from one of the Views that references it (if found)
     Map<EnvProbe*, Light*, RenderTempAllocator> envProbeLights;
 
     FixedArray<Set<Light*, RenderTempAllocator>, NumLightTypes> lights;
@@ -1403,7 +1414,9 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
 
     // the first view with active clouds; sky probes composite its clouds
     DeferredPassData* skyProbeCloudsPassData = nullptr;
-    // ---
+
+    View* glimmerSceneView = nullptr;
+    ///////////////////
 
     // init view pass data and collect global rendering resources
     // (env probes, env grids)
@@ -1461,6 +1474,10 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             skyVisibilityRS.view = view;
 
             RI.GetPass(NamedPass::SkyVisibility)->RenderFrame(frame, skyVisibilityRS);
+        }
+        else if (view->GetFlags() & ViewFlags::GLIMMER_SCENE_VIEW)
+        {
+            glimmerSceneView = view;
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && RI.GetRenderConfig().rayTracing)
         {
@@ -1598,6 +1615,20 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
                 }
             }
         }
+    }
+
+    if (glimmerSceneView != nullptr)
+    {
+        RenderSetup glimmerRS = rs.Fork();
+        glimmerRS.view = glimmerSceneView;
+        glimmerRS.passData = skyProbeCloudsPassData; // whose clouds shade the sun at probe hits
+
+        if (envProbes[EPT_SKY].Any())
+        {
+            glimmerRS.envProbe = *envProbes[EPT_SKY].Begin();
+        }
+
+        RI.GetPass(NamedPass::Glimmer)->RenderFrame(frame, glimmerRS);
     }
 
     for (View* view : rs.world->GetViews())
@@ -1905,6 +1936,8 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         lightingRS.envProbe = *skyProbes.Begin();
     }
 
+    passData.glimmerIrradiancePass->Render(frame, lightingRS);
+
     const int debugVisMode = g_cvDeferredDebugVis.Get();
 
     { // deferred lighting on opaque objects
@@ -2116,6 +2149,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             RenderSetup fogVolumeRS = rs.Fork();
             fogVolumeRS.framebuffer = effectPassFramebuffer;
+            fogVolumeRS.envProbe = lightingRS.envProbe;
 
             passData.fogVolumePass->Render(frame, fogVolumeRS);
         }
@@ -2210,6 +2244,24 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     GpuImageViewRef finalImageView = (passData.taaPass != nullptr && g_cvTAA.Get())
         ? RI.textureViewCache->GetOrCreate(passData.taaPass->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
+
+    { // Glimmer debug views replace the final image
+        GpuImageViewRef glimmerDebugImageView;
+
+        GlimmerPass* glimmerPass = static_cast<GlimmerPass*>(RI.GetPass(NamedPass::Glimmer));
+
+        if (glimmerPass && !(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
+            && glimmerPass->RenderDebugView(frame, rs, opaquePassFramebuffer, glimmerDebugImageView))
+        {
+            finalImageView = std::move(glimmerDebugImageView);
+        }
+    }
+
+    // note may not be thumbnail, a capture using the editor also registers a view as THUMBNAIL_VIEW
+    if (!(view->GetFlags() & ViewFlags::THUMBNAIL_VIEW) && view->thumbnailCaptureState != nullptr && view->thumbnailCaptureState->IsRequested())
+    {
+        view->thumbnailCaptureState->CaptureFrom(frame, finalImageView, finalImageView);
+    }
 
     if (view->GetFlags() & ViewFlags::THUMBNAIL_VIEW)
     {

@@ -4,5 +4,5 @@ AnimationTrack Push_lowerarm_l {
         Key = "Engine://AnimationTracks/Push_lowerarm_l.KEYF"
         Size = 5184
     }
-    UUID = "cfd9f4eb-ac91-4314-9606-4d5a3f85d767"
+    UUID = "bb984b55-0639-46aa-bfc4-f1a6c9efaae4"
 }

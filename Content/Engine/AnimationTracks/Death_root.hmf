@@ -2,7 +2,7 @@ AnimationTrack Death_root {
     BoneName = root
     KeyframeData = {
         Key = "Engine://AnimationTracks/Death_root.KEYF"
-        Size = 4672
+        Size = 128
     }
-    UUID = "70567c89-0eb6-4a38-a28f-33fcef20136c"
+    UUID = "231c6030-7b28-485f-a7ee-e48f7462caf7"
 }

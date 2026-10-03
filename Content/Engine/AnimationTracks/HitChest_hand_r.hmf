@@ -2,7 +2,7 @@ AnimationTrack HitChest_hand_r {
     BoneName = hand_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/HitChest_hand_r.KEYF"
-        Size = 704
+        Size = 128
     }
-    UUID = "225f972d-8801-4797-82a8-c87e6e9f4e2f"
+    UUID = "0ad57d6c-3898-4730-b415-f8c2c557aea2"
 }

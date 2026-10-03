@@ -440,7 +440,7 @@ bool EditorCsgState::CanEnter() const
         return true;
     }
 
-    if (!MeshBoolean::IsSupported() || !m_subsystem->GetCurrentProject().IsValid() || m_subsystem->IsSimulating())
+    if (!MeshBoolean::IsSupported() || !m_subsystem->GetCurrentProject().IsValid() || m_subsystem->IsSimulating() || m_subsystem->IsEditingPrefab())
     {
         return false;
     }

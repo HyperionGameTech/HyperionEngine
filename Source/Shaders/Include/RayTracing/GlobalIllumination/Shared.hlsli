@@ -5,6 +5,10 @@
 
 #define M_PI 3.14159265359
 
+///////////////
+//// DDGI /////
+///////////////
+
 // fraction of a cascade's half extent over which it cross fades into the next, coarser cascade
 #define DDGI_CASCADE_BLEND_BAND 0.2
 

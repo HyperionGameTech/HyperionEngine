@@ -515,6 +515,12 @@ public:
             return;
         }
 
+        if (subsystem->IsEditingPrefab() && subsystem->GetPrefabEditState()->GetPrefab() == prefab)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandAddAsset: cannot add prefab '{}' to itself", assetName);
+            return;
+        }
+
         Handle<Node> clonedNode = prefab->Spawn();
         if (!clonedNode.IsValid())
         {
@@ -563,7 +569,7 @@ public:
                 }));
 
         InitObject(action);
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
@@ -585,6 +591,11 @@ public:
     virtual String GetText() const override
     {
         return "Place as Instance";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -701,6 +712,11 @@ public:
     virtual String GetText() const override
     {
         return "Scatter Instances";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -908,10 +924,118 @@ DEFINE_EDITOR_COMMAND(ScatterInstances);
 
 #pragma endregion ScatterInstances
 
+#pragma region SampleTerrainHeight
+
+class EditorCommandSampleTerrainHeight final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSampleTerrainHeight);
+
+public:
+    virtual ~EditorCommandSampleTerrainHeight() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Sample Terrain Height";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Handle<Scene> activeScene = subsystem->GetActiveScene();
+
+        if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+        {
+            HYP_LOG(Editor, Warning, "SampleTerrainHeight: no world grid");
+            return;
+        }
+
+        Handle<TerrainWorldGridLayer> terrainLayer;
+
+        for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+        {
+            if ((terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer)).IsValid())
+            {
+                break;
+            }
+        }
+
+        if (!terrainLayer.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "SampleTerrainHeight: no terrain layer");
+            return;
+        }
+
+        const auto parseFloat = [this](int index)
+        {
+            float value = 0.0f;
+
+            if (index < NumArguments())
+            {
+                StringUtil::Parse(GetArgument(index), &value);
+            }
+
+            return value;
+        };
+
+        if (NumArguments() >= 1 && GetArgument(0) == "grid")
+        {
+            const Vec2f center { parseFloat(1), parseFloat(2) };
+            const float extent = parseFloat(3);
+            const int steps = MathUtil::Clamp(int(parseFloat(4)), 1, 64);
+
+            for (int row = 0; row <= steps; row++)
+            {
+                const float z = center.y - extent + 2.0f * extent * float(row) / float(steps);
+
+                String rowText;
+
+                for (int column = 0; column <= steps; column++)
+                {
+                    const float x = center.x - extent + 2.0f * extent * float(column) / float(steps);
+
+                    rowText = rowText + HYP_FORMAT("{} ", int(MathUtil::Round(terrainLayer->SampleHeightAtBlocking(Vec2f(x, z)))));
+                }
+
+                HYP_LOG(Editor, Info, "SampleTerrainHeight z={}: {}", z, rowText);
+            }
+
+            return;
+        }
+
+        for (int index = 0; index + 1 < NumArguments(); index += 2)
+        {
+            const Vec2f position { parseFloat(index), parseFloat(index + 1) };
+
+            HYP_LOG(Editor, Info, "SampleTerrainHeight {} {}: {}", position.x, position.y, terrainLayer->SampleHeightAtBlocking(position));
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SampleTerrainHeight);
+
+#pragma endregion SampleTerrainHeight
+
 #pragma region NewGroundCover
 
-/// Arguments: optionally the asset name, then prefab[:weight[:splat layer | paint]] per type, and --apply to give it to the active world's terrain.
-/// Types with "paint" each get a painted layer named after their prefab, the rest share a layer per splat layer.
+/// Creates a ground cover asset from a list of prefab types.
+///
+/// The first argument may optionally be the asset's name; otherwise a unique name is generated.
+///
+/// Each remaining argument adds a prefab type and accepts up to three parts, separated by colons:
+///   - The prefab name (required).
+///   - The weight: this type's share of its layer's patches, relative to the layer's other types. Defaults to 1.
+///   - The placement: either a splat layer index (defaults to 0), or "paint" to place it using terrain painting.
+///
+/// Passing --apply additionally assigns the resulting ground cover to the active world's terrain.
+///
+/// Painted types each get their own layer, named after their prefab, while the remaining types share
+/// one layer per splat layer.
 class EditorCommandNewGroundCover final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandNewGroundCover);
@@ -922,6 +1046,11 @@ public:
     virtual String GetText() const override
     {
         return "New Ground Cover";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -1181,7 +1310,7 @@ public:
             return;
         }
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
@@ -1295,6 +1424,11 @@ public:
     virtual String GetText() const override
     {
         return "Save as Prefab";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -1505,42 +1639,6 @@ static bool IsOrContainsPrefabInstance(const Node* node, const UUID& prefabUUID)
     return false;
 }
 
-// Every live instance of the given Prefab across the world's foreground scenes
-static Array<Handle<Node>> FindPrefabInstances(const World* world, const UUID& prefabUUID)
-{
-    Array<Handle<Node>> instances;
-
-    if (!world)
-    {
-        return instances;
-    }
-
-    for (const Handle<Scene>& scene : world->GetScenes())
-    {
-        if (!scene.IsValid() || (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
-        {
-            continue;
-        }
-
-        const Handle<Node>& sceneRoot = scene->GetRoot();
-
-        if (!sceneRoot.IsValid())
-        {
-            continue;
-        }
-
-        for (Node* node : sceneRoot->GetDescendants())
-        {
-            if (Prefab::GetSourcePrefabUUID(node) == prefabUUID)
-            {
-                instances.PushBack(MakeStrongRef(node));
-            }
-        }
-    }
-
-    return instances;
-}
-
 // Scene Hierarchy context menu action: moves the current selection into an existing Prefab. The nodes are
 // cloned into the Prefab's root and into every live instance of it, then the originals are removed.
 class EditorCommandAddToPrefab final : public EditorCommandBase
@@ -1553,6 +1651,11 @@ public:
     virtual String GetText() const override
     {
         return "Add to Prefab";
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -1617,7 +1720,7 @@ public:
             return;
         }
 
-        const Array<Handle<Node>> instances = FindPrefabInstances(currentProject->GetWorld().Get(), prefabUUID);
+        const Array<Handle<Node>> instances = prefab->FindLiveInstances(currentProject->GetWorld().Get());
 
         Vec3f centroid = Vec3f::Zero();
 
@@ -1723,15 +1826,31 @@ public:
         Array<Handle<Node>> previousSelectedNodes = subsystem->GetSelectedNodes();
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
+        const uint32 previousRevision = prefab->GetRevision();
+
+        Array<Pair<Handle<Node>, uint32>> instanceRevisions;
+
+        for (const Handle<Node>& instance : instances)
+        {
+            instanceRevisions.PushBack({ instance, Prefab::GetInstanceRevision(instance.Get()) });
+        }
+
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             HYP_FORMAT("Add to Prefab {}", prefabNameArg),
             Proc<EditorActionFunctions()>(
-                [prefab, records, instanceClones, referenceClones, previousSelectedNodes, previousFocusedNode]() -> EditorActionFunctions
+                [prefab, records, instanceClones, referenceClones, previousSelectedNodes, previousFocusedNode, previousRevision, instanceRevisions]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [prefab, records, instanceClones, referenceClones](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [prefab, records, instanceClones, referenceClones, previousRevision, instanceRevisions](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
+                                prefab->SetRevision(previousRevision + 1);
+
+                                for (const Pair<Handle<Node>, uint32>& instanceRevision : instanceRevisions)
+                                {
+                                    Prefab::TagAsPrefabInstance(instanceRevision.first.Get(), prefab->GetUUID(), previousRevision + 1);
+                                }
+
                                 Handle<Node> existingRoot = prefab->GetRoot();
 
                                 for (const AddToPrefabNodeRecord& record : records)
@@ -1762,8 +1881,15 @@ public:
                                 prefab->OnPrefabChanged(prefab.Get());
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [prefab, records, instanceClones, previousSelectedNodes, previousFocusedNode](EditorSubsystem* editorSubsystem, EditorProject*)
+                            [prefab, records, instanceClones, previousSelectedNodes, previousFocusedNode, previousRevision, instanceRevisions](EditorSubsystem* editorSubsystem, EditorProject*)
                             {
+                                prefab->SetRevision(previousRevision);
+
+                                for (const Pair<Handle<Node>, uint32>& instanceRevision : instanceRevisions)
+                                {
+                                    Prefab::TagAsPrefabInstance(instanceRevision.first.Get(), prefab->GetUUID(), instanceRevision.second);
+                                }
+
                                 for (const Pair<Handle<Node>, Handle<Node>>& pair : instanceClones)
                                 {
                                     pair.second->Remove();
@@ -1883,6 +2009,11 @@ public:
         return "Sync Prefab";
     }
 
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
+    }
+
     virtual void Execute(EditorSubsystem* subsystem) override
     {
         AssertOnThread(g_simThread);
@@ -1934,22 +2065,32 @@ public:
 
         Handle<Node> previousRoot = prefab->GetRoot();
 
+        const uint32 previousRevision = prefab->GetRevision();
+        const uint32 previousNodeRevision = Prefab::GetInstanceRevision(node.Get());
+
         Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             HYP_FORMAT("Sync Prefab {}", prefab->GetName()),
             Proc<EditorActionFunctions()>(
-                [prefab, newRoot, previousRoot]() -> EditorActionFunctions
+                [prefab, node, newRoot, previousRoot, previousRevision, previousNodeRevision]() -> EditorActionFunctions
                 {
                     return EditorActionFunctions {
                         .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [prefab, newRoot](EditorSubsystem*, EditorProject*)
+                            [prefab, node, newRoot, previousRevision](EditorSubsystem*, EditorProject*)
                             {
                                 prefab->SetRoot(newRoot);
+                                prefab->SetRevision(previousRevision + 1);
+
+                                Prefab::TagAsPrefabInstance(node.Get(), prefab->GetUUID(), previousRevision + 1);
+
                                 GetCurrentAssetRegistry()->PutAssetsDeep(prefab);
                             }),
                         .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
-                            [prefab, previousRoot](EditorSubsystem*, EditorProject*)
+                            [prefab, node, previousRoot, previousRevision, previousNodeRevision](EditorSubsystem*, EditorProject*)
                             {
                                 prefab->SetRoot(previousRoot);
+                                prefab->SetRevision(previousRevision);
+
+                                Prefab::TagAsPrefabInstance(node.Get(), prefab->GetUUID(), previousNodeRevision);
                             })
                     };
                 }));
@@ -2329,5 +2470,127 @@ public:
 DEFINE_EDITOR_COMMAND(NewPhysicsShape);
 
 #pragma endregion NewPhysicsShape
+
+#pragma region PrefabEdit
+
+/// opens a Prefab in prefab edit mode (the same as Edit on a prefab in the content browser)
+class EditorCommandEditPrefab final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandEditPrefab);
+
+public:
+    virtual ~EditorCommandEditPrefab() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Edit Prefab";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 1 || GetArgument(0).Empty())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditPrefab requires a prefab name argument");
+            return;
+        }
+
+        Handle<Prefab> prefab = GetCurrentAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, Name(ANSIString(GetArgument(0))));
+
+        if (!prefab.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditPrefab: could not find prefab '{}'", GetArgument(0));
+            return;
+        }
+
+        const Handle<EditorPrefabEditState>& prefabEditState = subsystem->GetPrefabEditState();
+
+        if (prefabEditState->IsActive() && prefabEditState->GetPrefab() != prefab)
+        {
+            prefabEditState->Exit(/* apply */ true);
+        }
+
+        prefabEditState->Enter(prefab);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(EditPrefab);
+
+class EditorCommandApplyPrefabEdit final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandApplyPrefabEdit);
+
+public:
+    virtual ~EditorCommandApplyPrefabEdit() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Apply Prefab Edit";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        const Handle<EditorPrefabEditState>& prefabEditState = subsystem->GetPrefabEditState();
+
+        const bool updateInstances = prefabEditState->IsUpdateInstancesOnApply();
+        prefabEditState->SetUpdateInstancesOnApply(!(NumArguments() >= 1 && GetArgument(0) == "noinstances"));
+
+        prefabEditState->Apply();
+
+        prefabEditState->SetUpdateInstancesOnApply(updateInstances);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ApplyPrefabEdit);
+
+class EditorCommandRevertPrefabEdit final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandRevertPrefabEdit);
+
+public:
+    virtual ~EditorCommandRevertPrefabEdit() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Revert Prefab Edit";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        subsystem->GetPrefabEditState()->Revert();
+    }
+};
+
+DEFINE_EDITOR_COMMAND(RevertPrefabEdit);
+
+/// leaves prefab edit mode; pass "apply" to write pending edits back first, otherwise they're discarded
+class EditorCommandExitPrefabEdit final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandExitPrefabEdit);
+
+public:
+    virtual ~EditorCommandExitPrefabEdit() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Exit Prefab Edit";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        subsystem->GetPrefabEditState()->Exit(/* apply */ NumArguments() >= 1 && GetArgument(0) == "apply");
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ExitPrefabEdit);
+
+#pragma endregion PrefabEdit
 
 } // namespace Hyperion

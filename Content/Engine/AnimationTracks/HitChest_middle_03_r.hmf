@@ -4,5 +4,5 @@ AnimationTrack HitChest_middle_03_r {
         Key = "Engine://AnimationTracks/HitChest_middle_03_r.KEYF"
         Size = 704
     }
-    UUID = "e1154c6a-f030-45c5-a07f-f37c0eb0fd19"
+    UUID = "3b9d311c-4d11-4fce-80cc-94589354e40f"
 }

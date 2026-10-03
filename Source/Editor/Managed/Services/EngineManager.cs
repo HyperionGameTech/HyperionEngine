@@ -344,6 +344,20 @@ namespace Hyperion.Editor
         /// of the project, so anything created while it runs would be thrown away with the snapshot.
         public static bool CanCreateAssets => EditorGame?.EditorSubsystem?.CanCreateAssets() ?? false;
 
+        public static EditorActionStack? GetActionStackFor(ObjectBase? owner)
+        {
+            EditorSubsystem? editorSubsystem = EditorGame?.EditorSubsystem;
+
+            if (editorSubsystem == null)
+            {
+                return CurrentProject?.ActionStack;
+            }
+
+            return owner is Node node
+                ? editorSubsystem.GetActionStackForNode(node)
+                : editorSubsystem.GetSceneActionStack();
+        }
+
         public static async Task PostToSimThread(Action action)
         {
             await SimThread.PostTask(action).ConfigureAwait(false);

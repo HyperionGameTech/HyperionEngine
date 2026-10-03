@@ -2,7 +2,7 @@ AnimationTrack CrouchWalk_root {
     BoneName = root
     KeyframeData = {
         Key = "Engine://AnimationTracks/CrouchWalk_root.KEYF"
-        Size = 3904
+        Size = 128
     }
-    UUID = "047deb49-8f6c-47ef-b397-32f49a307729"
+    UUID = "c8e9f6dd-690c-45cb-8177-cd928ccc6221"
 }

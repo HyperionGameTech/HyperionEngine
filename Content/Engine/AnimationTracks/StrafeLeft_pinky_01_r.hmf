@@ -2,7 +2,7 @@ AnimationTrack StrafeLeft_pinky_01_r {
     BoneName = pinky_01_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/StrafeLeft_pinky_01_r.KEYF"
-        Size = 2624
+        Size = 128
     }
-    UUID = "e8712ce3-c44e-4fae-81ca-805181e147e3"
+    UUID = "ec863366-7e66-40b2-a4ea-29a893b5a43e"
 }

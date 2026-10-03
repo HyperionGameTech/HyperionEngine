@@ -1,0 +1,8 @@
+AnimationTrack HoldRifle_pinky_02_r {
+    BoneName = pinky_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldRifle_pinky_02_r.KEYF"
+        Size = 128
+    }
+    UUID = "d0a147d0-25db-40cb-b45e-6a4928084f22"
+}

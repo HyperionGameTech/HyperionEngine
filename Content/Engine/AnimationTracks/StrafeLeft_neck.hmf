@@ -4,5 +4,5 @@ AnimationTrack StrafeLeft_neck {
         Key = "Engine://AnimationTracks/StrafeLeft_neck.KEYF"
         Size = 2624
     }
-    UUID = "4220cb27-8ccd-4832-b28e-b3babf157719"
+    UUID = "761474f8-d0e1-4b0d-b7bc-71537a527b26"
 }

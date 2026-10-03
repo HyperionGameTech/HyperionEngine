@@ -28,6 +28,9 @@ ShaderDefinitions "ShaderDefinitions" {
             VS = "Deferred/ApplyFogVolume.hlsl"
             PS = "Deferred/ApplyFogVolume.hlsl"
         }
+        ShaderDefinition "FogVolumeTemporal" {
+            CS = "Deferred/FogVolumeTemporal.hlsl"
+        }
         ShaderDefinition "FogVolumeOcclusionBake" {
             CS = "Deferred/FogVolumeOcclusionBake.hlsl"
         }
@@ -198,6 +201,49 @@ ShaderDefinitions "ShaderDefinitions" {
         }
         ShaderDefinition "GenerateMipmap" {
             CS = "GenerateMipmap.hlsl"
+        }
+        ShaderDefinition "GlimmerSWRTFootprintMask" {
+            CS = "Glimmer/SWRT/GlimmerSWRTFootprintMask.hlsl"
+        }
+        ShaderDefinition "GlimmerSWRTDebug" {
+            CS = "Glimmer/SWRT/GlimmerSWRTDebug.hlsl"
+        }
+        ShaderDefinition "GlimmerGroundUpload" {
+            CS = "Glimmer/GlimmerGroundUpload.hlsl"
+        }
+        ShaderDefinition "GlimmerGroundAlbedo" {
+            CS = "Glimmer/GlimmerGroundAlbedo.hlsl"
+        }
+        ShaderDefinition "GlimmerGroundCover" {
+            CS = "Glimmer/GlimmerGroundCover.hlsl"
+        }
+        ShaderDefinition "GlimmerSWRTProbeAlloc" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeAlloc.hlsl"
+        }
+        ShaderDefinition "GlimmerSWRTProbeTrace" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeTrace.hlsl"
+        }
+        ShaderDefinition "GlimmerSWRTProbeBlend" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeBlend.hlsl"
+        }
+        ShaderDefinition "GlimmerSWRTProbeDebug" {
+            CS = "Glimmer/SWRT/GlimmerSWRTProbeDebug.hlsl"
+        }
+        ShaderDefinition "GlimmerSpanSplat" {
+            CS = "Glimmer/GlimmerSpanSplat.hlsl"
+        }
+        ShaderDefinition "GlimmerHeightBounds" {
+            CS = "Glimmer/GlimmerHeightBounds.hlsl"
+        }
+        ShaderDefinition "GlimmerSHUpdate" {
+            CS = "Glimmer/SH/GlimmerSHUpdate.hlsl"
+        }
+        ShaderDefinition "GlimmerSHOccupancySplat" {
+            CS = "Glimmer/SH/GlimmerSHOccupancySplat.hlsl"
+        }
+        ShaderDefinition "GlimmerIrradiance" {
+            VS = "Glimmer/GlimmerIrradiance.hlsl"
+            PS = "Glimmer/GlimmerIrradiance.hlsl"
         }
         ShaderDefinition "CloudWeatherMap" {
             CS = "Clouds/CloudWeatherMap.hlsl"

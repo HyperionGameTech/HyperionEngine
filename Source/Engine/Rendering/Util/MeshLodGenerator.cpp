@@ -426,9 +426,47 @@ Result MeshLodGenerator::Apply(Mesh* mesh, const MeshLodGenerationResult& result
     settings.sourceDataHash = result.sourceDataHash;
     mesh->SetLodGenerationSettings(settings);
 
-    mesh->UploadGpuData();
+    // a mesh that isn't on the GPU yet gets all of its LODs when it's first bound
+    if (mesh->isUploaded.Load())
+    {
+        for (uint8 lodIndex = 1; lodIndex <= numGeneratedLods; lodIndex++)
+        {
+            mesh->UploadLod(lodIndex);
+        }
+    }
 
     return {};
+}
+
+uint32 MeshLodGenerator::GenerateIfMissing(Mesh* mesh, uint32 minTriangles)
+{
+    if (!mesh || !IsSupported() || mesh->GetMeshDesc().GetNumLods() > 1 || !CanGenerate(mesh))
+    {
+        return 0;
+    }
+
+    if (mesh->GetMeshDesc().lods[0].numIndices / 3 < minTriangles)
+    {
+        return 0;
+    }
+
+    TResult<MeshLodGenerationResult> result = Generate(mesh, mesh->GetLodGenerationSettings());
+
+    if (result.HasError())
+    {
+        HYP_LOG(Rendering, Warning, "Failed to generate LODs for mesh {}: {}", mesh->GetName(), result.GetError().GetMessage());
+
+        return 0;
+    }
+
+    if (Result applyResult = Apply(mesh, result.GetValue()); applyResult.HasError())
+    {
+        HYP_LOG(Rendering, Warning, "Failed to apply generated LODs to mesh {}: {}", mesh->GetName(), applyResult.GetError().GetMessage());
+
+        return 0;
+    }
+
+    return uint32(result.GetValue().lods.Size());
 }
 
 } // namespace Hyperion

@@ -150,6 +150,9 @@ public:
     EntityBatchAllocator* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;
 
+    // GeometryPass::GetGlobalAttributeInputs() when previousAttributes were built
+    uint32 attributeInputs;
+
     bool isFallback : 1;
 
 #if HYP_DEBUG_MODE

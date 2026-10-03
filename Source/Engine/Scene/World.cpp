@@ -15,9 +15,12 @@
 #include <Scene/Swatch.hpp>
 #include <Scene/Subsystem.hpp>
 #include <Scene/Light/Light.hpp>
+#include <Scene/Light/LightHelpers.hpp>
 #include <Scene/LOD.hpp>
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
+
+#include <Rendering/Glimmer/GlimmerSystem.hpp>
 
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
@@ -294,6 +297,9 @@ void World::Initialize()
 
     if (!HasSystem<TerrainLodSystem>())
         AddSystem(MakeHandle<TerrainLodSystem>());
+
+    if (!HasSystem<GlimmerSystem>() && !EngineGlobals::IsHeadless())
+        AddSystem(MakeHandle<GlimmerSystem>());
 
     if (!HasSystem<CameraSystem>())
         AddSystem(MakeHandle<CameraSystem>());
@@ -2465,6 +2471,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
             outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
             outShaderData.sunColor = Vec4f(light->GetColor());
+            outShaderData.sunAtmosphereTint = Vec4f(LightHelpers::ComputeSunAtmosphereTint(outShaderData.sunDirectionIntensity.GetXYZ()), 1.0f);
             outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::HasSun);
 
             hasSun = true;

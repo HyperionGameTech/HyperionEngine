@@ -132,7 +132,12 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
     Camera camera;
     EnvProbe skyProbe;
     SkyVisibilityCapture skyVisibilityCapture;
+    uint4 glimmerParams; // GlimmerIrradianceShaderData: x = 1 when GlimmerIrradianceTexture holds Glimmer, y = 1 when it holds a debug view, z = 1 when sky reflections use GlimmerSpecularTexture
 };
+
+DECLARE_SRV(DeferredPass, GlimmerIrradianceTexture) Texture2D GlimmerIrradianceTexture;
+DECLARE_SRV(DeferredPass, GlimmerSpecularTexture) Texture2D GlimmerSpecularTexture;
+DECLARE_SRV(DeferredPass, GlimmerReflectionTexture) Texture2D GlimmerReflectionTexture;
 
 // top-down depth capture of everything that blocks the sky, from DynamicSkySystem
 DECLARE_SRV(DeferredPass, SkyVisibilityTexture) Texture2D SkyVisibilityTexture;
@@ -224,6 +229,19 @@ PSOutput PSMain(PSInput input)
 
     g_skyVisibility = EvaluateSkyVisibility(skyVisibilityCapture, SkyVisibilityTexture, positionWS.xyz, N, texcoord * float2(camera.dimensions.xy) - 0.5);
 
+    if (glimmerParams.x != 0u && glimmerParams.y == 0u && (mask & OBJECT_MASK_LIGHTMAPPED) == 0)
+    {
+#ifndef REFLECTIONS_ONLY
+        g_glimmerIrradiance = GlimmerIrradianceTexture.Load(int3(pixelCoord, 0));
+#endif
+
+        if (glimmerParams.z != 0u)
+        {
+            g_glimmerSpecular = GlimmerSpecularTexture.Load(int3(pixelCoord, 0)).rg;
+            g_glimmerReflection = GlimmerReflectionTexture.Load(int3(pixelCoord, 0)).rgb;
+        }
+    }
+
     EvaluateEnvProbes(
         positionVS.xyz, positionWS.xyz,
         N, V, R,
@@ -306,6 +324,15 @@ PSOutput PSMain(PSInput input)
     result = normal * 0.5 + 0.5;
 #elif defined(DEBUG_AO)
     result = float3(ao, ao, ao);
+#endif
+
+#ifndef REFLECTIONS_ONLY
+    if (glimmerParams.y != 0u)
+    {
+        const float4 glimmerDebug = GlimmerIrradianceTexture.Load(int3(pixelCoord, 0));
+
+        result = glimmerDebug.a > 0.0 ? glimmerDebug.rgb : float3(1.0, 0.0, 1.0);
+    }
 #endif
 
     output.output_color = float4(result, 1.0);

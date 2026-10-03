@@ -2,7 +2,7 @@ AnimationTrack Death_ball_l {
     BoneName = ball_l
     KeyframeData = {
         Key = "Engine://AnimationTracks/Death_ball_l.KEYF"
-        Size = 4672
+        Size = 128
     }
-    UUID = "662c9d24-9368-46dd-b945-6f9b75590f52"
+    UUID = "fec2d575-dab5-4ac1-bd6b-6c484a6cb5c2"
 }

@@ -923,7 +923,7 @@ namespace Hyperion.Editor.ViewModels
             _editorSubsystem.SetSelectedBucket(bucketIndex);
         }
 
-        /// <summary>Opens the asset in a pop-out property editor panel, the same one used by the "Edit" button on asset-object properties in the inspector. Works for any AssetObject-derived type.</summary>
+        /// <summary>Opens the asset in a pop-out property editor panel, the same one used by the "Edit" button on asset-object properties in the inspector. Works for any AssetObject-derived type. Prefabs open in prefab edit mode instead.</summary>
         private void OpenAssetEditor(AssetObjectViewModel? assetVm)
         {
             if (assetVm?.Bucket == null)
@@ -952,6 +952,13 @@ namespace Hyperion.Editor.ViewModels
 
                     string scriptPath = Path.Combine(registry.GetRootPath(), scriptDesc.Path);
                     Dispatcher.UIThread.Post(() => CodeEditorService.OpenFile(scriptPath));
+
+                    return;
+                }
+
+                if (obj is Prefab)
+                {
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditPrefab(assetName.ToString()));
 
                     return;
                 }

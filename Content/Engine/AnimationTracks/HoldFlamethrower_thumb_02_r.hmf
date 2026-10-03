@@ -1,0 +1,8 @@
+AnimationTrack HoldFlamethrower_thumb_02_r {
+    BoneName = thumb_02_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldFlamethrower_thumb_02_r.KEYF"
+        Size = 128
+    }
+    UUID = "5ebdab5e-137c-4311-a9f0-ef5056b6f3fb"
+}

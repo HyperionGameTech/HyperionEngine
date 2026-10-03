@@ -171,7 +171,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorProject? project = EngineManager.CurrentProject;
                 Debug.Assert(project != null, "No active project found when adding an entity tag");
 
-                project?.ActionStack?.PushAction(new EditorAction(
+                (EngineManager.GetActionStackFor(capturedEntity) ?? project?.ActionStack)?.PushAction(new EditorAction(
                     $"Add Tag: {tag.Name}",
                     execute: (_, _) => capturedEntity.EntityManager?.AddTag(capturedEntity, tag),
                     revert: (_, _) => capturedEntity.EntityManager?.RemoveTag(capturedEntity, tag)));
@@ -204,7 +204,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorProject? project = EngineManager.CurrentProject;
                 Debug.Assert(project != null, "No active project found when removing an entity tag");
 
-                project?.ActionStack?.PushAction(new EditorAction(
+                (EngineManager.GetActionStackFor(capturedEntity) ?? project?.ActionStack)?.PushAction(new EditorAction(
                     $"Remove Tag: {tag.Name}",
                     execute: (_, _) => capturedEntity.EntityManager?.RemoveTag(capturedEntity, tag),
                     revert: (_, _) => capturedEntity.EntityManager?.AddTag(capturedEntity, tag)));

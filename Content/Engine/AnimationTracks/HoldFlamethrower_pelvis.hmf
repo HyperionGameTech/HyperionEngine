@@ -1,0 +1,8 @@
+AnimationTrack HoldFlamethrower_pelvis {
+    BoneName = pelvis
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldFlamethrower_pelvis.KEYF"
+        Size = 128
+    }
+    UUID = "7895f3a6-2fc4-4b74-b3cd-ea7dbda567bc"
+}

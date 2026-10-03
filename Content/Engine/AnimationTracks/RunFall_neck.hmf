@@ -2,7 +2,7 @@ AnimationTrack RunFall_neck {
     BoneName = neck
     KeyframeData = {
         Key = "Engine://AnimationTracks/RunFall_neck.KEYF"
-        Size = 1984
+        Size = 128
     }
-    UUID = "29cefa1c-fb41-4178-9562-a1947ebd550c"
+    UUID = "a8d63981-c45e-49fb-9df8-ce67d96f6db8"
 }

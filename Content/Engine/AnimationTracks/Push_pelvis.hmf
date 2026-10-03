@@ -4,5 +4,5 @@ AnimationTrack Push_pelvis {
         Key = "Engine://AnimationTracks/Push_pelvis.KEYF"
         Size = 5184
     }
-    UUID = "f54ba378-ae8e-4085-9d67-4567ca6db6ab"
+    UUID = "1715defc-5544-4239-9a62-e92d2e9c3f12"
 }

@@ -4,5 +4,5 @@ AnimationTrack Jump_thigh_l {
         Key = "Engine://AnimationTracks/Jump_thigh_l.KEYF"
         Size = 1600
     }
-    UUID = "b0dc6d21-adab-4c15-9b04-e63a911c73b4"
+    UUID = "91ecd21d-00dc-414a-b4b9-18a3762750c7"
 }

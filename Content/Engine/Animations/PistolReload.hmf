@@ -54,5 +54,5 @@ Animation PistolReload {
         @"Engine://AnimationTracks/PistolReload_foot_r"
         @"Engine://AnimationTracks/PistolReload_ball_r"
     ]
-    UUID = "70062029-1e9c-4eef-b4b3-bbd1bb0e443c"
+    UUID = "4d0addf7-3c45-4687-8739-7f3285a6a0cb"
 }

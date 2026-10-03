@@ -54,5 +54,5 @@ Animation PistolAimUp {
         @"Engine://AnimationTracks/PistolAimUp_foot_r"
         @"Engine://AnimationTracks/PistolAimUp_ball_r"
     ]
-    UUID = "3eebf187-06d5-4387-8933-3e9bcca1fcb1"
+    UUID = "d1b2864f-4b80-43c4-b6e0-64d87b65db24"
 }

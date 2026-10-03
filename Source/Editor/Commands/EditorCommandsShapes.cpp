@@ -87,7 +87,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
@@ -190,7 +190,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
@@ -293,7 +293,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
@@ -332,6 +332,11 @@ public:
         }
 
         return Name(name);
+    }
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
     }
 
     virtual void Execute(EditorSubsystem* subsystem) override
@@ -433,6 +438,11 @@ class EditorCommandToggleTerrainSculptMode final : public EditorCommandBase
 
 public:
     virtual ~EditorCommandToggleTerrainSculptMode() override = default;
+
+    virtual bool AllowedWhileEditingPrefab() const override
+    {
+        return false;
+    }
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
@@ -694,7 +704,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 };
 
@@ -854,7 +864,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 
 private:
@@ -1029,7 +1039,7 @@ public:
 
         InitObject(action);
 
-        currentProject->GetActionStack()->PushAction(action);
+        subsystem->GetSceneActionStack()->PushAction(action);
     }
 
 private:

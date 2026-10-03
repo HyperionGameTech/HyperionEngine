@@ -1313,7 +1313,7 @@ struct DescriptorSetOffsetMap
 {
     HYP_STRUCT_BODY(DescriptorSetOffsetMap);
 
-    static constexpr uint32 MaxOffsets = 16; // 8;
+    static constexpr uint32 MaxOffsets = 32;
 
     StringHash keys[MaxOffsets];
     uint32 values[MaxOffsets];
@@ -1367,7 +1367,7 @@ struct DescriptorSetOffsetMap
         }
 
         uint32 idx = count++;
-        AssertDebug(idx < MaxOffsets, "too many offsets!");
+        Assert(idx < MaxOffsets, "too many offsets!");
 
         keys[idx] = key;
         values[idx] = value;

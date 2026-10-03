@@ -101,6 +101,8 @@ public:
     HYP_METHOD()
     Vec3f ExtractScale() const;
 
+    float ExtractMaxScale() const;
+
     HYP_METHOD()
     Quat4f ExtractRotation() const;
 

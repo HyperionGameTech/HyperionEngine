@@ -4,5 +4,5 @@ AnimationTrack RunLand_calf_l {
         Key = "Engine://AnimationTracks/RunLand_calf_l.KEYF"
         Size = 1152
     }
-    UUID = "23e7fa25-2e28-4769-8672-4587408a6f32"
+    UUID = "9103a6a4-a9a8-4179-840a-633b5f2e32ae"
 }

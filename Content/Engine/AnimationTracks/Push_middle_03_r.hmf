@@ -2,7 +2,7 @@ AnimationTrack Push_middle_03_r {
     BoneName = middle_03_r
     KeyframeData = {
         Key = "Engine://AnimationTracks/Push_middle_03_r.KEYF"
-        Size = 5184
+        Size = 128
     }
-    UUID = "d293c801-7a9d-4f3a-8ba7-4f369cd5274e"
+    UUID = "607ee95e-e1ee-4e69-bfeb-ccc6ac2bd027"
 }

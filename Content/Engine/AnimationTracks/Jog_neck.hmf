@@ -4,5 +4,5 @@ AnimationTrack Jog_neck {
         Key = "Engine://AnimationTracks/Jog_neck.KEYF"
         Size = 1856
     }
-    UUID = "dcc200ce-49c3-4c8f-8c7b-071ec2e2c40e"
+    UUID = "3507c2c4-98b1-4321-9aea-f36e5ffdbeef"
 }

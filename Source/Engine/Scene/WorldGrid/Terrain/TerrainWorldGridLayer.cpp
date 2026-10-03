@@ -481,6 +481,8 @@ void TerrainWorldGridLayer::AddCellData(const Vec2i& coord, const Handle<Terrain
     }
 
     AddStreamingObject(cellData.Get(), coord);
+
+    MarkHeightsDirty(m_layerInfo, coord);
 }
 
 bool TerrainWorldGridLayer::RemoveUnregisteredCellData()
@@ -841,11 +843,61 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell(const Streaming
 void TerrainWorldGridLayer::RegisterLoadedCell(const Vec2i& coord, const WeakHandle<TerrainStreamingCell>& cell)
 {
     m_loadedCells.Register(coord, cell);
+
+    MarkHeightsDirty(GetGenerationState().layerInfo, coord);
 }
 
 void TerrainWorldGridLayer::UnregisterLoadedCell(const Vec2i& coord, const TerrainStreamingCell* cell)
 {
     m_loadedCells.Unregister(coord, cell);
+
+    MarkHeightsDirty(GetGenerationState().layerInfo, coord);
+}
+
+void TerrainWorldGridLayer::MarkHeightsDirty(const WorldGridLayerInfo& layerInfo, const Vec2i& coord) const
+{
+    const Vec3f cellBoundsMin = ComputeCellBoundsMin(layerInfo, coord);
+    const Vec2f cellWorldSize = Vec2f((float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.x, (float(layerInfo.cellSize) - 1.0f) * layerInfo.scale.z);
+
+    MarkHeightsDirty(Vec4f(
+        cellBoundsMin.x - layerInfo.scale.x,
+        cellBoundsMin.z - layerInfo.scale.z,
+        cellBoundsMin.x + cellWorldSize.x + layerInfo.scale.x,
+        cellBoundsMin.z + cellWorldSize.y + layerInfo.scale.z));
+}
+
+void TerrainWorldGridLayer::MarkHeightsDirty(const Vec4f& worldRect) const
+{
+    static constexpr size_t MaxHeightDirtyRects = 256;
+
+    Mutex::Guard guard(m_heightDirtyMutex);
+
+    if (m_heightDirtyRects.Size() >= MaxHeightDirtyRects)
+    {
+        Vec4f merged = worldRect;
+
+        for (const Vec4f& rect : m_heightDirtyRects)
+        {
+            merged = Vec4f(MathUtil::Min(merged.x, rect.x), MathUtil::Min(merged.y, rect.y), MathUtil::Max(merged.z, rect.z), MathUtil::Max(merged.w, rect.w));
+        }
+
+        m_heightDirtyRects.Clear();
+        m_heightDirtyRects.PushBack(merged);
+
+        return;
+    }
+
+    m_heightDirtyRects.PushBack(worldRect);
+}
+
+Array<Vec4f> TerrainWorldGridLayer::TakeHeightDirtyRects()
+{
+    Mutex::Guard guard(m_heightDirtyMutex);
+
+    Array<Vec4f> rects = std::move(m_heightDirtyRects);
+    m_heightDirtyRects = Array<Vec4f>();
+
+    return rects;
 }
 
 SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(const TerrainGenerator& generator, uint32 generationEpoch, const Vec2i& coord) const
@@ -870,7 +922,11 @@ SharedPtr<const Array<float>> TerrainWorldGridLayer::GetOrGenerateCellHeights(co
         layerInfo.cellSize,
         *heights);
 
-    return m_heightsCache.Insert(coord, heights, m_generatorState, generationEpoch);
+    SharedPtr<const Array<float>> insertedHeights = m_heightsCache.Insert(coord, heights, m_generatorState, generationEpoch);
+
+    MarkHeightsDirty(layerInfo, coord);
+
+    return insertedHeights;
 }
 
 SharedPtr<const Array<float>> TerrainWorldGridLayer::TryGetCachedCellHeights(const Vec2i& coord) const
@@ -1381,6 +1437,10 @@ bool TerrainWorldGridLayer::IsCollisionPendingAt(const Vec3f& worldPosition) con
 void TerrainWorldGridLayer::ApplyBrush(const Vec3f& worldPos, float radius, float strength, bool raise)
 {
     m_brush.Sculpt(worldPos, radius, strength, raise);
+
+    const float margin = radius + MathUtil::Max(m_layerInfo.scale.x, m_layerInfo.scale.z);
+
+    MarkHeightsDirty(Vec4f(worldPos.x - margin, worldPos.z - margin, worldPos.x + margin, worldPos.z + margin));
 }
 
 void TerrainWorldGridLayer::PaintSplat(const Vec3f& worldPos, float radius, float strength, uint32 layerIndex, bool erase)

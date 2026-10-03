@@ -4,5 +4,5 @@ AnimationTrack Idle_pelvis {
         Key = "Engine://AnimationTracks/Idle_pelvis.KEYF"
         Size = 11584
     }
-    UUID = "c903e98b-c45e-41f6-a99f-7e459fbdae45"
+    UUID = "08ed1ba6-45ce-4c31-899d-d0a1c36d29ff"
 }

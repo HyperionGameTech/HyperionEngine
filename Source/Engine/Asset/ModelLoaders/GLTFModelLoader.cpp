@@ -2286,9 +2286,26 @@ void ApplyMsftLods(GltfLoadContext& ctx, Set<const cgltf_node*>& outLodNodes)
                     continue;
                 }
 
+                // MSFT_lod carries no error metric, so estimate one from the screen size the same way MeshLodGenerator relates them
+                const BoundingBox& baseAabb = basePrimitive.mesh->GetAABB();
+                const float localRadius = baseAabb.IsValid() ? baseAabb.GetRadius() : 0.0f;
+
+                MeshLodDesc primitiveLodDesc = lodDesc;
+
+                if (lodDesc.screenSize > MathUtil::epsilonF)
+                {
+                    constexpr float referenceScreenHeightPixels = 1080.0f;
+
+                    primitiveLodDesc.geometricError = 2.0f * localRadius * (basePrimitive.mesh->GetLodGenerationSettings().maxScreenErrorPixels / referenceScreenHeightPixels) / lodDesc.screenSize;
+                }
+                else
+                {
+                    primitiveLodDesc.geometricError = localRadius * 0.005f * float(1u << (lodNumber + 1));
+                }
+
                 auto lodReadScope = lodMesh.GetReadScope();
 
-                basePrimitive.mesh->SetLodData(uint8(lodNumber + 1), lodDesc, lodMesh.GetVertexData(0), ConstByteView(lodMesh.GetIndexData(0)));
+                basePrimitive.mesh->SetLodData(uint8(lodNumber + 1), primitiveLodDesc, lodMesh.GetVertexData(0), ConstByteView(lodMesh.GetIndexData(0)));
             }
         }
     }
