@@ -58,7 +58,7 @@ DECLARE_SAMPLER(GlimmerSWRTDebug, SamplerLinearMipmap) SamplerState glimmerMater
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerTLASNodesBuffer) StructuredBuffer<BVHNode> glimmerTLASNodes;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerInstancesBuffer) StructuredBuffer<GlimmerInstance> glimmerInstances;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASNodesBuffer) StructuredBuffer<BVHBLASNode> glimmerBLASNodes;
-DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTriangle> glimmerBLASTriangles;
+DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASTrianglesBuffer) StructuredBuffer<uint> glimmerBLASTriangles;
 DECLARE_SRV(GlimmerSWRTDebug, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerSpansBuffer) StructuredBuffer<uint> glimmerSpans;
@@ -177,7 +177,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         hitColor = ShadeHit(GlimmerGetMaterialAverageAlbedo(instance.data.z), hitNormal);
 
         // back faces of one sided geometry, which probes inside solids would see
-        if (!hit.frontFace && (instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) == 0u)
+        if (!hit.frontFace && (instance.data.w & (GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED | GLIMMER_INSTANCE_FLAG_ALPHA_TESTED)) == 0u)
         {
             hitColor = lerp(hitColor, float3(1.0, 0.0, 1.0), 0.6);
         }

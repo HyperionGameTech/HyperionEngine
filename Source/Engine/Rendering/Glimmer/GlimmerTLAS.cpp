@@ -207,12 +207,14 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 
         const uint32 instanceFlags = flags | (objectToWorld.Determinant() < 0.0f ? GIF_MIRRORED : GIF_NONE);
 
+        const Mat4f gridToWorld = objectToWorld * Mat4f::Translation(blasRef.gridOrigin) * Mat4f::Scaling(blasRef.gridScale);
+
         bool isReferenced = false;
 
         if (wantsSpan)
         {
             GlimmerSpanInstanceShaderData& spanInstance = outInput.spanInstances.EmplaceBack();
-            Memory::Copy(spanInstance.objectToWorld, objectToWorld.values, sizeof(spanInstance.objectToWorld));
+            Memory::Copy(spanInstance.objectToWorld, gridToWorld.values, sizeof(spanInstance.objectToWorld));
 
             spanInstance.blasTriangleBase = blasRef.triangleBase;
             spanInstance.triangleCount = blasRef.triangleCount;
@@ -226,10 +228,10 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 
         if (wantsTraced && worldBounds.Overlaps(tracedRegion))
         {
-            const Mat4f worldToObject = objectToWorld.Inverse();
+            const Mat4f worldToGrid = gridToWorld.Inverse();
 
             GlimmerInstanceShaderData& instance = outInput.instances.EmplaceBack();
-            Memory::Copy(instance.worldToObject, worldToObject.values, sizeof(instance.worldToObject));
+            Memory::Copy(instance.worldToObject, worldToGrid.values, sizeof(instance.worldToObject));
 
             instance.blasNodeBase = blasRef.nodeBase;
             instance.blasTriangleBase = blasRef.triangleBase;
