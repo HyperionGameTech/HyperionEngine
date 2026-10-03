@@ -33,15 +33,13 @@ class Mesh;
 
 struct GlimmerTriangle
 {
-    float position0[3];
-    uint32 leafFlags; //!< GlimmerBLASNode::LeafEndFlag on the last triangle of each leaf, since leaves don't store a count
-    float edge1[3];
-    uint32 padding1;
-    float edge2[3];
-    uint32 padding2;
+    static constexpr uint32 GridMax = 65535;
+
+    uint16 grid[9];
+    uint16 leafFlags;
 };
 
-static_assert(sizeof(GlimmerTriangle) == 48);
+static_assert(sizeof(GlimmerTriangle) == 20);
 
 struct GlimmerBLASRef
 {
@@ -51,7 +49,11 @@ struct GlimmerBLASRef
     uint32 triangleBase = 0;
     uint32 triangleCount = 0;
     uint32 depth = 0;
+    
     BoundingBox localBounds;
+
+    Vec3f gridOrigin = Vec3f::Zero();
+    Vec3f gridScale = Vec3f::One();
 };
 
 enum class GlimmerBLASRequestResult : uint8
@@ -193,6 +195,8 @@ private:
         Array<GlimmerBLASNode> nodes;
         Array<GlimmerTriangle> triangles;
         BoundingBox localBounds;
+        Vec3f gridOrigin = Vec3f::Zero();
+        Vec3f gridScale = Vec3f::One();
         uint32 depth = 0;
         bool isFail = false; // set when there's nothing to trace, as opposed to mesh data not being readable yet
     };

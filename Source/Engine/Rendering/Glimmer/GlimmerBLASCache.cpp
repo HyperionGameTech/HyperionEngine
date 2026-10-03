@@ -30,6 +30,7 @@
 #include <Core/Logging/Logger.hpp>
 
 #include <algorithm>
+#include <cmath>
 
 namespace Hyperion {
 
@@ -41,8 +42,8 @@ static constexpr uint32 FailedRetryDelayFrames = 120;
 
 static constexpr uint32 PackedVertexSizeInFloats = sizeof(TVertex<VT_Simple>) / sizeof(float);
 
-static constexpr uint64 PoolBytes = 192ull * 1024ull * 1024ull;
-static constexpr uint64 NodePoolBytes = PoolBytes * 3 / 16;
+static constexpr uint64 PoolBytes = 256ull * 1024ull * 1024ull;
+static constexpr uint64 NodePoolBytes = PoolBytes * 3 / 8;
 
 static constexpr uint32 BLASMinLeafSize = 4;
 static constexpr uint32 BLASMaxLeafSize = 16;
@@ -267,8 +268,6 @@ void GlimmerBLASCache::CreatePoolBuffers()
 {
     const uint32 nodeCapacity = uint32(NodePoolBytes / sizeof(GlimmerBLASNode));
     const uint32 triangleCapacity = uint32((PoolBytes - NodePoolBytes) / sizeof(GlimmerTriangle));
-
-    Assert(nodeCapacity <= GlimmerBLASNode::MaxIndex + 1 && triangleCapacity <= GlimmerBLASNode::MaxIndex + 1);
 
     m_nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBLASNode), nodeCapacity);
     m_trianglesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangle), triangleCapacity);
@@ -558,11 +557,10 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
 
     const uint32 numVertices = uint32(packedVertices.Size() / PackedVertexSizeInFloats);
 
-    Array<GlimmerTriangle> unorderedTriangles;
-    unorderedTriangles.Reserve(indices.Size() / 3);
+    Array<Vec3f> trianglePositions; // object space, three per triangle
+    trianglePositions.Reserve(indices.Size());
 
-    Array<BoundingBox> triangleBounds;
-    triangleBounds.Reserve(indices.Size() / 3);
+    BoundingBox objectBounds;
 
     for (size_t firstIndex = 0; firstIndex + 2 < indices.Size(); firstIndex += 3)
     {
@@ -607,28 +605,79 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
             continue;
         }
 
+        for (uint32 corner = 0; corner < 3; corner++)
+        {
+            trianglePositions.PushBack(positions[corner]);
+        }
+
+        objectBounds = objectBounds.Union(positions[0]).Union(positions[1]).Union(positions[2]);
+    }
+
+    if (trianglePositions.Empty())
+    {
+        result.isFail = !indices.Empty();
+
+        return result;
+    }
+
+    result.localBounds = objectBounds;
+
+    // Vertices snap to a 16 bit grid spanning the mesh, so a triangle costs 20 bytes. The BVH is built on the snapped triangles;
+    // instances trace in grid space (the grid transform is folded into their matrices), where the vertices are exact integers.
+    // Vertices that were shared before still are, so the surface stays watertight.
+    result.gridOrigin = objectBounds.min;
+
+    for (int axis = 0; axis < 3; axis++)
+    {
+        const float extent = objectBounds.max[axis] - objectBounds.min[axis];
+
+        result.gridScale[axis] = extent > 0.0f ? extent / float(GlimmerTriangle::GridMax) : 1.0f;
+    }
+
+    Array<GlimmerTriangle> unorderedTriangles;
+    unorderedTriangles.Reserve(trianglePositions.Size() / 3);
+
+    Array<BoundingBox> triangleBounds;
+    triangleBounds.Reserve(trianglePositions.Size() / 3);
+
+    for (size_t firstPosition = 0; firstPosition + 2 < trianglePositions.Size(); firstPosition += 3)
+    {
+        Vec3f gridPositions[3];
+
+        for (uint32 corner = 0; corner < 3; corner++)
+        {
+            for (int axis = 0; axis < 3; axis++)
+            {
+                const float grid = std::round((trianglePositions[firstPosition + corner][axis] - result.gridOrigin[axis]) / result.gridScale[axis]);
+
+                gridPositions[corner][axis] = MathUtil::Clamp(grid, 0.0f, float(GlimmerTriangle::GridMax));
+            }
+        }
+
+        // triangles that collapse on the grid can't be hit either
+        if (!((gridPositions[1] - gridPositions[0]).Cross(gridPositions[2] - gridPositions[0]).LengthSquared() > 0.0f))
+        {
+            continue;
+        }
+
         GlimmerTriangle& triangle = unorderedTriangles.EmplaceBack();
 
-        for (int axis = 0; axis < 3; axis++)
+        for (uint32 corner = 0; corner < 3; corner++)
         {
-            triangle.position0[axis] = positions[0][axis];
-            triangle.edge1[axis] = edge1[axis];
-            triangle.edge2[axis] = edge2[axis];
+            for (int axis = 0; axis < 3; axis++)
+            {
+                triangle.grid[corner * 3 + axis] = uint16(gridPositions[corner][axis]);
+            }
         }
 
         triangle.leafFlags = 0;
-        triangle.padding1 = 0;
-        triangle.padding2 = 0;
 
-        const BoundingBox bounds = BoundingBox(positions[0], positions[0]).Union(positions[1]).Union(positions[2]);
-
-        triangleBounds.PushBack(bounds);
-        result.localBounds = result.localBounds.Union(bounds);
+        triangleBounds.PushBack(BoundingBox(gridPositions[0], gridPositions[0]).Union(gridPositions[1]).Union(gridPositions[2]));
     }
 
     if (unorderedTriangles.Empty())
     {
-        result.isFail = !indices.Empty();
+        result.isFail = true;
 
         return result;
     }
@@ -663,7 +712,7 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
 
     for (const uint32 leafEnd : leafEnds)
     {
-        result.triangles[leafEnd].leafFlags |= GlimmerBLASNode::LeafEndFlag;
+        result.triangles[leafEnd].leafFlags |= uint16(GlimmerBLASNode::LeafEndFlag);
     }
 
     return result;
@@ -938,6 +987,8 @@ void GlimmerBLASCache::UploadEntry(Frame* frame, Entry& entry)
 
     entry.ref.depth = entry.result.depth;
     entry.ref.localBounds = entry.result.localBounds;
+    entry.ref.gridOrigin = entry.result.gridOrigin;
+    entry.ref.gridScale = entry.result.gridScale;
 
     entry.result = BuildResult {};
     entry.state = EntryState::Resident;

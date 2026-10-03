@@ -30,7 +30,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
 DECLARE_UAV(GlimmerSHOccupancySplat, OutOccupancy) RWTexture3D<float4> OutOccupancy;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanInstancesBuffer) StructuredBuffer<GlimmerSpanInstance> spanInstances;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanChunksBuffer) StructuredBuffer<GlimmerSpanChunk> spanChunks;
-DECLARE_SRV(GlimmerSHOccupancySplat, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTriangle> glimmerBLASTriangles;
+DECLARE_SRV(GlimmerSHOccupancySplat, GlimmerBLASTrianglesBuffer) StructuredBuffer<uint> glimmerBLASTriangles;
 DECLARE_SRV(GlimmerSHOccupancySplat, MaterialsBuffer) StructuredBuffer<Material> materials;
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
@@ -98,11 +98,11 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
         return;
     }
 
-    const BVHTriangle bvhTriangle = glimmerBLASTriangles[instance.data.x + localTriangle];
+    const BVHBLASTriangle bvhTriangle = LOAD_BVH_BLAS_TRIANGLE(glimmerBLASTriangles, instance.data.x + localTriangle);
 
-    const float3 p0 = TransformPoint(instance, bvhTriangle.position0.xyz);
-    const float3 p1 = TransformPoint(instance, bvhTriangle.position0.xyz + bvhTriangle.edge1.xyz);
-    const float3 p2 = TransformPoint(instance, bvhTriangle.position0.xyz + bvhTriangle.edge2.xyz);
+    const float3 p0 = TransformPoint(instance, bvhTriangle.position0);
+    const float3 p1 = TransformPoint(instance, bvhTriangle.position1);
+    const float3 p2 = TransformPoint(instance, bvhTriangle.position2);
 
     const float3 normal = cross(p1 - p0, p2 - p0);
 

@@ -73,9 +73,13 @@ float3 GlimmerObjectToWorldNormal(GlimmerInstance instance, float3 normal)
 float3 GlimmerGetHitNormal(GlimmerSWRTHit hit, float3 worldDirection)
 {
     const GlimmerInstance instance = glimmerInstances[hit.instanceIndex];
-    const BVHTriangle bvhTriangle = glimmerBLASTriangles[hit.triangleIndex];
+    const BVHBLASTriangle blasTriangle = LOAD_BVH_BLAS_TRIANGLE(glimmerBLASTriangles, hit.triangleIndex);
 
-    float3 normal = GlimmerObjectToWorldNormal(instance, cross(bvhTriangle.edge1.xyz, bvhTriangle.edge2.xyz));
+    float3 normal = GlimmerObjectToWorldNormal(
+        instance,
+        cross(
+            blasTriangle.position1 - blasTriangle.position0,
+            blasTriangle.position2 - blasTriangle.position0));
 
     return dot(normal, worldDirection) > 0.0 ? -normal : normal;
 }
@@ -139,7 +143,8 @@ void GlimmerTraverseBLAS(
                 stats.triangleTests++;
                 workLeft--;
 
-                const BVHTriangle bvhTriangle = glimmerBLASTriangles[triangleIndex];
+                const BVHBLASTriangle blasTriangle = LOAD_BVH_BLAS_TRIANGLE(glimmerBLASTriangles, triangleIndex);
+                const BVHTriangle bvhTriangle = MakeBVHTriangle(blasTriangle);
 
                 float distance;
                 float2 barycentrics;
@@ -160,7 +165,7 @@ void GlimmerTraverseBLAS(
                     }
                 }
 
-                if ((asuint(bvhTriangle.position0.w) & BVH_BLAS_LEAF_END_FLAG) != 0u)
+                if (blasTriangle.isLeafEnd)
                 {
                     break;
                 }
