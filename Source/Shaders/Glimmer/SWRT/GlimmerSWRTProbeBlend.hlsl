@@ -41,6 +41,10 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;   
 #define GLIMMER_PROBE_FREE_STEP 0.25
 // updates a moved probe has to stay out of solids for its moves to count as done
 #define GLIMMER_PROBE_SETTLE_UPDATES 4u
+#define GLIMMER_PROBE_INSIDE_STREAK 3u
+
+#define GLIMMER_PROBE_RETURN_CLEARANCE 0.25
+#define GLIMMER_PROBE_RETURN_STEP 0.01
 
 #define GLIMMER_PROBE_NOISE_RATE 0.25
 #define GLIMMER_PROBE_DRIFT_RATE 0.0625
@@ -156,6 +160,17 @@ void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpac
     // inside a solid: move out and start over, a few times, before giving up on the probe
     if (float(numBackfaces + numStartsInside) >= insideFraction * float(numRays))
     {
+        const uint insideStreak = GlimmerProbeInsideStreak(state) + 1u;
+
+        if (probeState == GLIMMER_PROBE_STATE_ACTIVE && updates > 0u && insideStreak < GLIMMER_PROBE_INSIDE_STREAK)
+        {
+            OutStates[probeIndex] = uint4(GlimmerWithInsideStreak(state.x, insideStreak), state.y, asuint(time), state.w);
+
+            gsWriteVisibility = 0u;
+
+            return;
+        }
+
         if (relocations < constants.dispatch.y)
         {
             if (numBackfaces != 0u)
@@ -196,6 +211,15 @@ void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpac
     if (nearestFrontface * invSpacing < GLIMMER_PROBE_MIN_CLEARANCE)
     {
         offset = GlimmerClampOffset(offset - nearestFrontfaceDirection * (GLIMMER_PROBE_MIN_CLEARANCE - nearestFrontface * invSpacing));
+    }
+    else if (numBackfaces == 0u && numStartsInside == 0u && nearestFrontface * invSpacing > GLIMMER_PROBE_RETURN_CLEARANCE)
+    {
+        const float offsetLength = length(offset);
+
+        if (offsetLength > 1e-4)
+        {
+            offset *= max(offsetLength - GLIMMER_PROBE_RETURN_STEP, 0.0) / offsetLength;
+        }
     }
 
     const float invNumSeen = 1.0 / float(max(numSeen, 1u));
