@@ -62,6 +62,9 @@ static EngineStatCounter<uint32> s_statGlimmerInstances("Rendering/Glimmer/Insta
 static EngineStatCounter<uint32> s_statGlimmerSpanInstances("Rendering/Glimmer/SpanInstances", false);
 static EngineStatCounter<uint32> s_statGlimmerResidentBLASes("Rendering/Glimmer/ResidentBLASes", false);
 static EngineStatCounter<uint32> s_statGlimmerBuildingBLASes("Rendering/Glimmer/BuildingBLASes", false);
+static EngineStatCounter<uint32> s_statGlimmerBLASesWaitingForRoom("Rendering/Glimmer/BLASesWaitingForRoom", false);
+static EngineStatCounter<uint32> s_statGlimmerBLASPoolTriangles("Rendering/Glimmer/BLASPoolTriangles", false);
+static EngineStatCounter<uint32> s_statGlimmerBLASPoolNodes("Rendering/Glimmer/BLASPoolNodes", false);
 
 #pragma region GlimmerScenePassData
 
@@ -205,7 +208,19 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     scene->blasCache->UpdateOncePerFrame(frame);
 
-    const bool tlasSwapped = scene->tlas->Update(frame, rpl, region, scene->technique->GetTracedRegion(region), *scene->blasCache);
+    GlimmerChannelState channelState;
+    Array<GlimmerGroundUpload> groundUploads;
+
+    const SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world);
+
+    if (channel)
+    {
+        channel->Consume(channelState, groundUploads);
+    }
+
+    const Vec3f viewerPosition = channelState.hasViewer ? channelState.viewerPosition : region.GetCenter();
+
+    const bool tlasSwapped = scene->tlas->Update(frame, rpl, region, scene->technique->GetTracedRegion(region), viewerPosition, *scene->blasCache);
 
     GlimmerTechniqueUpdateContext context;
     context.frame = frame;
@@ -222,16 +237,8 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         context.cloudPass = cloudsPassData->cloudPass.Get();
     }
 
-    GlimmerChannelState channelState;
-
-    const SharedPtr<GlimmerChannel> channel = GlimmerChannel::Get(renderSetup.world);
-
     if (channel)
     {
-        Array<GlimmerGroundUpload> groundUploads;
-
-        channel->Consume(channelState, groundUploads);
-
         Array<GlimmerTerrainPatchShaderData> terrainPatches;
         CollectGlimmerTerrainPatches(rpl, terrainPatches);
 
@@ -270,6 +277,9 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     s_statGlimmerSpanInstances = scene->tlas->GetNumSpanInstances();
     s_statGlimmerResidentBLASes = blasStats.numResident;
     s_statGlimmerBuildingBLASes = blasStats.numBuilding + blasStats.numPendingUpload;
+    s_statGlimmerBLASesWaitingForRoom = blasStats.numWaitingForRoom;
+    s_statGlimmerBLASPoolTriangles = blasStats.trianglesUsed;
+    s_statGlimmerBLASPoolNodes = blasStats.nodesUsed;
 }
 
 bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView)

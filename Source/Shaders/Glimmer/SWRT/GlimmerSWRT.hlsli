@@ -19,6 +19,9 @@
 #ifndef GLIMMER_SWRT_MAX_TLAS_STEPS
 #define GLIMMER_SWRT_MAX_TLAS_STEPS 1024
 #endif
+#ifndef GLIMMER_SWRT_MAX_RAY_WORK
+#define GLIMMER_SWRT_MAX_RAY_WORK 65536
+#endif
 
 #define GLIMMER_SWRT_INVALID_INDEX 0xFFFFFFFFu
 
@@ -84,7 +87,8 @@ void GlimmerTraverseBLAS(
     float tMin,
     bool acceptFirstHit,
     inout GlimmerSWRTHit hit,
-    inout GlimmerSWRTStats stats)
+    inout GlimmerSWRTStats stats,
+    inout uint workLeft)
 {
     const GlimmerInstance instance = glimmerInstances[instanceIndex];
 
@@ -101,9 +105,10 @@ void GlimmerTraverseBLAS(
     uint nodeIndex = 0;
 
     [loop]
-    for (uint blasStep = 0; blasStep < GLIMMER_SWRT_MAX_BLAS_STEPS; blasStep++)
+    for (uint blasStep = 0; blasStep < GLIMMER_SWRT_MAX_BLAS_STEPS && workLeft != 0u; blasStep++)
     {
         stats.nodeVisits++;
+        workLeft--;
 
         const BVHNode node = glimmerBLASNodes[nodeBase + nodeIndex];
 
@@ -130,9 +135,12 @@ void GlimmerTraverseBLAS(
 
             const uint firstTriangle = triangleBase + childIndices[child];
 
-            for (uint triangleIndex = firstTriangle; triangleIndex < firstTriangle + childCounts[child]; triangleIndex++)
+            const uint lastTriangle = firstTriangle + min(childCounts[child], workLeft);
+
+            for (uint triangleIndex = firstTriangle; triangleIndex < lastTriangle; triangleIndex++)
             {
                 stats.triangleTests++;
+                workLeft--;
 
                 const BVHTriangle bvhTriangle = glimmerBLASTriangles[triangleIndex];
 
@@ -214,6 +222,8 @@ bool TraceGlimmerSWRT(
         return false;
     }
 
+    uint workLeft = GLIMMER_SWRT_MAX_RAY_WORK;
+
     const float3 inverseDirection = float3(GetBVHSafeInverse(direction.x), GetBVHSafeInverse(direction.y), GetBVHSafeInverse(direction.z));
 
     uint stack[GLIMMER_SWRT_TLAS_STACK_SIZE];
@@ -222,9 +232,10 @@ bool TraceGlimmerSWRT(
     uint nodeIndex = 0;
 
     [loop]
-    for (uint tlasStep = 0; tlasStep < GLIMMER_SWRT_MAX_TLAS_STEPS; tlasStep++)
+    for (uint tlasStep = 0; tlasStep < GLIMMER_SWRT_MAX_TLAS_STEPS && workLeft != 0u; tlasStep++)
     {
         stats.nodeVisits++;
+        workLeft--;
 
         const BVHNode node = glimmerTLASNodes[nodeIndex];
 
@@ -252,7 +263,12 @@ bool TraceGlimmerSWRT(
             {
                 stats.instanceVisits++;
 
-                GlimmerTraverseBLAS(instanceIndex, origin, direction, tMin, acceptFirstHit, hit, stats);
+                if (workLeft == 0u)
+                {
+                    break;
+                }
+
+                GlimmerTraverseBLAS(instanceIndex, origin, direction, tMin, acceptFirstHit, hit, stats, workLeft);
 
                 if (acceptFirstHit && hit.instanceIndex != GLIMMER_SWRT_INVALID_INDEX)
                 {
