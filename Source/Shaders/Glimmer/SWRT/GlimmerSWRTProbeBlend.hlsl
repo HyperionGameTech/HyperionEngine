@@ -7,8 +7,8 @@
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolume volume;
-    uint4 dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid, z = estimates the history averages at most, w = ...at least while its light changes
-    float4 params;  // z = how far past a back face a probe moves (m)
+    uint4 dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid, z = estimates the history averages at least while its light holds, w = ...while it changes
+    float4 params;  // x = seconds the history spans while the light holds, y = while it changes, z = how far past a back face a probe moves (m)
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerProbeBlend, CBuffer) cbuffer CBuffer
@@ -24,7 +24,7 @@ DECLARE_SRV(GlimmerProbeBlend, GlimmerProbeSlotsBuffer) StructuredBuffer<int4> g
 DECLARE_UAV(GlimmerProbeBlend, OutSH) RWStructuredBuffer<float4> OutSH;
 DECLARE_UAV(GlimmerProbeBlend, OutStates) RWStructuredBuffer<uint4> OutStates;
 DECLARE_UAV(GlimmerProbeBlend, OutVisibility) RWStructuredBuffer<uint> OutVisibility;   // GLIMMER_PROBE_VISIBILITY_TEXELS per probe (GlimmerPackHalf2)
-DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;           // x = variance of an estimate's luminance, y = recent mean of how far estimates fall off the history (in standard deviations), w = estimates the history averages
+DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;           // x = variance of an estimate's luminance, y = recent mean of how far estimates fall off the history (in standard deviations), z = recent mean of that distance squared (unscaled), w = estimates the history averages
 
 #define GLIMMER_PROBES_NO_SAMPLING
 #include "GlimmerProbes.hlsli"
@@ -41,15 +41,16 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;   
 #define GLIMMER_PROBE_FREE_STEP 0.25
 // updates a moved probe has to stay out of solids for its moves to count as done
 #define GLIMMER_PROBE_SETTLE_UPDATES 4u
-// how quickly the noise estimate and the drift follow the updates
+
 #define GLIMMER_PROBE_NOISE_RATE 0.25
-#define GLIMMER_PROBE_DRIFT_RATE 0.25
-// the drift's own variance while the light holds (rate / (2 - rate)), with room so noise alone rarely shortens the history
-#define GLIMMER_PROBE_DRIFT_NOISE (4.0 * GLIMMER_PROBE_DRIFT_RATE / (2.0 - GLIMMER_PROBE_DRIFT_RATE))
-// an update's share of the drift is capped; the noise's long tail is on the bright side, so a big drop counts more
+#define GLIMMER_PROBE_DRIFT_RATE 0.0625
+#define GLIMMER_PROBE_SPREAD_RATE 0.0625
+#define GLIMMER_PROBE_DRIFT_NOISE (6.0 * GLIMMER_PROBE_DRIFT_RATE / (2.0 - GLIMMER_PROBE_DRIFT_RATE))
+
 #define GLIMMER_PROBE_DRIFT_STEP_UP 2.0
 #define GLIMMER_PROBE_DRIFT_STEP_DOWN 4.0
 #define GLIMMER_PROBE_MIN_RELATIVE_SIGMA 0.05
+
 // estimates more than this many standard deviations brighter than a settled history are clamped to it
 #define GLIMMER_PROBE_FIREFLY_SIGMAS 3.0
 #define GLIMMER_PROBE_FIREFLY_MIN_HISTORY 4.0
@@ -57,6 +58,7 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;   
 // reach every texel, so it's far wider than DDGI's
 #define GLIMMER_PROBE_VISIBILITY_SHARPNESS 12.0
 
+#define GLIMMER_PROBE_MAX_HISTORY 256.0
 #define GLIMMER_PROBE_MAX_RAYS 32
 /////////////////////////////
 
@@ -206,8 +208,10 @@ void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpac
    
     const float estimateVariance = max(luminanceSquaredSum * invNumSeen - estimateLuminance * estimateLuminance, 0.0) * invNumSeen;
 
-    const float maxHistory = float(max(constants.dispatch.z, 1u));
-    const float minHistory = min(float(constants.dispatch.w), maxHistory);
+    const float updateInterval = max(time - asfloat(state.z), 1e-3);
+
+    const float maxHistory = clamp(constants.params.x / updateInterval, float(max(constants.dispatch.z, 1u)), GLIMMER_PROBE_MAX_HISTORY);
+    const float minHistory = min(max(constants.params.y / updateInterval, float(constants.dispatch.w)), maxHistory);
 
     float4 trend = OutTrend[probeIndex];
 
@@ -220,7 +224,9 @@ void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpac
         const float historyLuminance = GlimmerLuminance(float3(previousR.x, previousG.x, previousB.x));
 
         const float sigma = max(sqrt(trend.x), GLIMMER_PROBE_MIN_RELATIVE_SIGMA * historyLuminance + 1e-5);
-        const float deviation = (estimateLuminance - historyLuminance) / sigma;
+        const float difference = estimateLuminance - historyLuminance;
+
+        const float deviation = difference / max(sqrt(trend.z), sigma);
 
         const float drift = lerp(trend.y, clamp(deviation, -GLIMMER_PROBE_DRIFT_STEP_DOWN, GLIMMER_PROBE_DRIFT_STEP_UP), GLIMMER_PROBE_DRIFT_RATE);
 
@@ -234,7 +240,7 @@ void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpac
             history = min(history, max(1.0 / bias, minHistory));
         }
 
-        if (history >= GLIMMER_PROBE_FIREFLY_MIN_HISTORY && deviation > GLIMMER_PROBE_FIREFLY_SIGMAS)
+        if (history >= GLIMMER_PROBE_FIREFLY_MIN_HISTORY && difference > GLIMMER_PROBE_FIREFLY_SIGMAS * sigma)
         {
             const float scale = (historyLuminance + GLIMMER_PROBE_FIREFLY_SIGMAS * sigma) / max(estimateLuminance, 1e-6);
 
@@ -249,11 +255,15 @@ void GlimmerBlendProbe(uint probeIndex, uint4 state, uint numRays, float invSpac
         shG = lerp(previousG, shG, blend);
         shB = lerp(previousB, shB, blend);
 
-        trend = float4(lerp(trend.x, estimateVariance, GLIMMER_PROBE_NOISE_RATE), drift, 0.0, min(history + 1.0, maxHistory));
+        trend = float4(
+            lerp(trend.x, estimateVariance, GLIMMER_PROBE_NOISE_RATE),
+            drift,
+            lerp(trend.z, difference * difference, GLIMMER_PROBE_SPREAD_RATE),
+            min(history + 1.0, maxHistory));
     }
     else
     {
-        trend = float4(estimateVariance, 0.0, 0.0, 1.0);
+        trend = float4(estimateVariance, 0.0, 2.0 * estimateVariance, 1.0);
     }
 
     if (relocations != 0u && updates >= GLIMMER_PROBE_SETTLE_UPDATES)
