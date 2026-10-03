@@ -36,9 +36,24 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-//// @TODO: Refactor debug drawing stuff into a new GlimmerDebugDraw
+namespace /* Helpers */ {
 
-static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const GlimmerProbeDebugRecord& record, const Vec3f& viewerPosition, float exposure)
+float EvaluateL1(const Vec4f& sh, const Vec3f& N)
+{
+    const float l0 = MathUtil::Max(sh.x, 0.0f);
+    const Vec3f dipole = Vec3f(sh.y, sh.z, sh.w);
+    const float dipoleLength = dipole.Length();
+    const float cosTheta = dipole.Dot(N) / MathUtil::Max(dipoleLength, 1e-6f);
+
+    const float r = MathUtil::Clamp(dipoleLength / MathUtil::Max(2.0f * l0, 1e-6f), 0.0f, 1.0f);
+    const float p = 1.0f + 2.0f * r;
+    const float a = (1.0f - r) / (1.0f + r);
+
+    return l0 * (a + (1.0f - a) * (p + 1.0f) * MathUtil::Pow(MathUtil::Clamp(0.5f * (1.0f + cosTheta), 0.0f, 1.0f), p));
+}
+
+//// @TODO: Refactor debug drawing stuff into a new GlimmerDebugDraw
+Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const GlimmerProbeDebugRecord& record, const Vec3f& viewerPosition, float exposure)
 {
     const uint32 probeState = record.info.x & 0xFFu;
 
@@ -97,12 +112,8 @@ static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const Glimme
             // L1 as the apply shaders evaluate it (GlimmerEvaluateL1)
             const Vec3f N = toViewer * Vec3f(1.0f / distance);
 
-            const auto evaluateL1 = [&N](const Vec4f& sh)
-            {
-                return MathUtil::Max(sh.x + Vec3f(sh.y, sh.z, sh.w).Dot(N), 0.0f);
-            };
 
-            irradiance = Vec3f(evaluateL1(record.sh[0]), evaluateL1(record.sh[1]), evaluateL1(record.sh[2]));
+            irradiance = Vec3f(EvaluateL1(record.sh[0], N), EvaluateL1(record.sh[1], N), EvaluateL1(record.sh[2], N));
         }
     }
 
@@ -114,7 +125,7 @@ static Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const Glimme
         irradiance.z / (1.0f + irradiance.z));
 }
 
-static RenderableAttributeSet MakeProbeBlockDebugAttributes()
+RenderableAttributeSet MakeProbeBlockDebugAttributes()
 {
     RenderableAttributeSet attributes;
 
@@ -131,6 +142,10 @@ static RenderableAttributeSet MakeProbeBlockDebugAttributes()
 
     return attributes;
 }
+
+} // namespace
+
+#pragma region GlimmerSystem
 
 GlimmerSystem::GlimmerSystem()
     : m_isSceneViewActive(false),
@@ -512,5 +527,7 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
         }
     }
 }
+
+#pragma endregion GlimmerSystem
 
 } // namespace Hyperion
