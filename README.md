@@ -7,26 +7,28 @@
 </p>
 
 <div align="center">
-  <img width="700" src="Documentation/Images/terrain-agx.jpg">
+  <img width="700" src="Documentation/Images/terrain-glimmer.jpg">
 </div>
 
 ## About
 
 Hyperion started as a passion project, back in 2016, and is still worked on daily. Our aim with Hyperion is to offer a high fidelity gaming experience even on low-end hardware using our in-house baking system to prepare as much of the lighting and effects as possible ahead of time.
 
-> This repo receives commits as they are merged upstream. You'll see them tagged `cherry picked from commit ...`
-
 ## Screenshots
 | | |
 |:---:|:---:|
 | ![Hyperion Engine - Baked lightmaps](/Documentation/Images/editor-scene.jpg) | ![Hyperion Engine - Multiplayer, in PIE](/Documentation/Images/multiplayer-editor-1.png) |
 | Baked lightmaps and reflections | Multiplayer, in play-in-editor mode |
+| ![Hyperion Engine - Glimmer GI](/Documentation/Images/sponza-glimmer.png) | ![Hyperion Engine - Baked lightmaps](/Documentation/Images/sponza-lightmaps.png) |
+| Glimmer - realtime GI | Lightmaps - baked offline, static only |
 
 ## Some Features
 - Clustered deferred shading supporting a large number of dynamic lights while maintaining good frame times. Uses forward clustered shading for translucent materials.
 - Visual editor on Windows and macOS, built with Avalonia.
 - Offline lightmapper integrated into the editor. Bake lightmaps into the scene,  reflection/irradiance probes for dynamic objects, fog volumes, and other static lighting data such as shadow maps.
-- Real time global illumination and reflections via Ray tracing and screen-space options for non-RT capable hardware.
+- Real time global illumination and reflections via ray tracing on RT capable hardware, with screen-space options for reflections.
+- **Glimmer GI** - our (non-hardware RT required!) global illumination system. Probe-based diffuse lighting from software ray tracing against a cached scene representation, with a ground clipmap for terrain and incremental relighting as lights and the sun change.
+- Rendering backends: DirectX 12 (the default on Windows) and Vulkan (macOS via MoltenVK, Android, and Linux in future). DirectX 12 is a fully supported, mainline backend.
 - Shader compiler system with built in permutations support, and live reload in editor to see changes as you make them.
 - Scripting via the [Strata programming language](https://github.com/StrataLanguage/stratac) - JIT compiled, live reload in editor, or AOT linking with shipping builds
 - Level streaming via grid-based streaming

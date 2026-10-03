@@ -321,7 +321,7 @@ float4 IntegrateLightmapRay(uint ray_index)
                     {
                         float4 env = EnvProbeSample(sampler_linear, envProbesColorTexture, envProbeTextureIndex, direction, 0.0);
                         env *= (1.0 - environmentRadiance.a);
-                        environmentRadiance += env * ENVIRONMENT_INTENSITY;
+                        environmentRadiance += env * ENVIRONMENT_INTENSITY * envProbes[envProbeIdx].world_position.w * world_shader_data.sky_light_params.x;
                     }
                 }
 

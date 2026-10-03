@@ -20,6 +20,7 @@ struct WorldShaderData
 
     float4 sun_direction_intensity;
     float4 sun_color;
+    float4 sun_atmosphere_tint;
 
     float4 sky_tint_intensity;
     float4 sky_light_params;
