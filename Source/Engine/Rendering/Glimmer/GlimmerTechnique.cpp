@@ -248,7 +248,8 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         }
     }
 
-    if (context.updateLighting && context.channel && context.surfaceCache && g_cvGlimmerSWRTProbesEnabled.Get() && g_cvGlimmerSWRTDebugProbes.Get() > int(GlimmerSWRTDebugProbes::None))
+    if (context.updateLighting && context.channel && context.surfaceCache && g_cvGlimmerSWRTProbesEnabled.Get()
+        && (g_cvGlimmerSWRTDebugProbes.Get() > int(GlimmerSWRTDebugProbes::None) || g_cvGlimmerSWRTProbesLogStats.Get()))
     {
         m_probeDebug->Update(context.frame, *m_probeVolume, *context.surfaceCache, *m_shOccupancy, *context.channel);
     }

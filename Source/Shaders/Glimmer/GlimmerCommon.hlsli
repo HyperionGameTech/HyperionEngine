@@ -101,10 +101,14 @@ float3 GlimmerSphericalFibonacci(uint index, uint count)
     return float3(cos(phi) * sinTheta, cosTheta, sin(phi) * sinTheta);
 }
 
+// enum GlimmerInstanceFlags {
 #define GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED 0x1u
 #define GLIMMER_INSTANCE_FLAG_MIRRORED 0x2u
 #define GLIMMER_INSTANCE_FLAG_ALPHA_TESTED 0x4u
 #define GLIMMER_INSTANCE_FLAG_FOLIAGE 0x8u
+// }
+
+//////////SPAN////////////
 
 struct GlimmerSpanInstance
 {
@@ -196,6 +200,8 @@ uint GlimmerSpanTexelIndex(uint level, int2 texel)
     return ((level * GLIMMER_GROUND_RESOLUTION + wrapped.y) * GLIMMER_GROUND_RESOLUTION + wrapped.x) * GLIMMER_SPAN_VALUES_PER_TEXEL;
 }
 
+//////////////////////////
+
 #define GLIMMER_HEIGHT_BOUNDS_TILE_SHIFT 4
 #define GLIMMER_HEIGHT_BOUNDS_TILE_TEXELS (1 << GLIMMER_HEIGHT_BOUNDS_TILE_SHIFT)
 #define GLIMMER_HEIGHT_BOUNDS_TILES (GLIMMER_GROUND_RESOLUTION / GLIMMER_HEIGHT_BOUNDS_TILE_TEXELS)
@@ -232,13 +238,7 @@ float4 GlimmerBlendFarField(float4 nearField, float4 farField)
     const float farWeight = farField.a * (1.0 - nearField.a);
     const float weight = nearField.a + farWeight;
 
-    // @TODO no branch
-    if (weight <= 1e-4)
-    {
-        return (float4)0.0;
-    }
-
-    return float4((nearField.rgb * nearField.a + farField.rgb * farWeight) / weight, weight);
+    return select(weight <= 1e-4, (float4)0.0, float4((nearField.rgb * nearField.a + farField.rgb * farWeight) / weight, weight));
 }
 
 #endif

@@ -47,6 +47,7 @@ extern CVar<int> g_cvGlimmerSWRTProbesBlockReleaseFrames;      // frames an unwa
 extern CVar<float> g_cvGlimmerSWRTProbesRelocateMargin;        // how far past a back face a probe inside a solid moves (m)
 extern CVar<int> g_cvGlimmerSWRTProbesInsideRetryInterval;     // updates between checks on probes stuck inside solids
 extern CVar<int> g_cvGlimmerSWRTProbesClassifyPeriod;          // frames between looks at the solids around a block
+extern CVar<bool> g_cvGlimmerSWRTProbesLogStats;               // logs how many probes there are (per level, by state, and on screen) once a second
 
 extern CVar<float> g_cvGlimmerSWRTProbesHistorySeconds;
 extern CVar<float> g_cvGlimmerSWRTProbesHistorySecondsChanging;

@@ -76,12 +76,13 @@ DECLARE_BUFFER_DYNAMIC(DeferredPass, CBuffer) cbuffer CBuffer
 #define GLIMMER_APPLY_WITH_SAMPLING
 #include "GlimmerApply.hlsli"
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
+//////////UPSAMPLE////////////
 #define GLIMMER_UPSAMPLE_PLANE_TOLERANCE 0.02
 #define GLIMMER_UPSAMPLE_NORMAL_POWER 8.0
-// below this much weight, the samples' depths and normals are ignored
 #define GLIMMER_UPSAMPLE_MIN_WEIGHT 0.05
+//////////////////////////////
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 struct GlimmerSurface
 {
