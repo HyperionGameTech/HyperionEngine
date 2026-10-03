@@ -47,7 +47,11 @@ private:
     void SetSceneViewActive(bool active);
     void UpdateSceneRegion(bool force);
 
+    ////////// DEBUG //////////
+    void UpdateProbeDebugRecords(float delta);
+    void LogProbeStats();
     void DebugDrawProbes(const Vec3f& viewerPosition);
+    ///////////////////////////
 
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
@@ -66,7 +70,7 @@ private:
     GlimmerGroundClipmap m_groundClipmap;
 
     Array<GlimmerProbeDebugRecord> m_probeDebugRecords;
-    uint32 m_probeDebugLogCounter = 0;
+    float m_probeStatsLogTimer = 0.0f;
 };
 
 } // namespace Hyperion

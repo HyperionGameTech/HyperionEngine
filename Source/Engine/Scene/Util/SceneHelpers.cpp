@@ -111,14 +111,14 @@ Camera* GetEditorCamera(const World& world)
 
 #endif // HYP_EDITOR
 
-bool FindViewerPosition(const World& world, Vec3f& outPosition)
+Camera* FindViewerCamera(const World& world)
 {
     AssertOnThread(g_simThread);
 
     const bool preferEditorViews = world.GetGameState().IsStopped();
 
+    Camera* viewerCamera = nullptr;
     bool hasPreferredViewpoint = false;
-    bool hasViewpoint = false;
 
     for (View* view : world.GetSimThreadViews())
     {
@@ -129,17 +129,30 @@ bool FindViewerPosition(const World& world, Vec3f& outPosition)
 
         const bool isPreferred = (bool(view->GetFlags() & ViewFlags::EDITOR_VIEW) == preferEditorViews);
 
-        if (hasViewpoint && (hasPreferredViewpoint || !isPreferred))
+        if (viewerCamera != nullptr && (hasPreferredViewpoint || !isPreferred))
         {
             continue;
         }
 
-        outPosition = view->GetCamera()->GetWorldTranslation();
+        viewerCamera = view->GetCamera();
         hasPreferredViewpoint = isPreferred;
-        hasViewpoint = true;
     }
 
-    return hasViewpoint;
+    return viewerCamera;
+}
+
+bool FindViewerPosition(const World& world, Vec3f& outPosition)
+{
+    Camera* viewerCamera = FindViewerCamera(world);
+
+    if (!viewerCamera)
+    {
+        return false;
+    }
+
+    outPosition = viewerCamera->GetWorldTranslation();
+
+    return true;
 }
 
 Entity* FindMyLocalPlayerEntity(const Scene& scene, net::NetConnectionId ownerConnectionId)
