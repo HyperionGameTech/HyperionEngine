@@ -1,5 +1,9 @@
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
+#include <Rendering/Util/MeshLodGenerator.hpp>
+
 namespace Hyperion {
 
 #pragma region AddLightmapVolume
@@ -685,6 +689,128 @@ public:
 DEFINE_EDITOR_COMMAND(RebuildMeshBVHs);
 
 #pragma endregion RebuildMeshBVHs
+
+#pragma region GenerateMissingLods
+
+class EditorCommandGenerateMissingLods final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandGenerateMissingLods);
+
+public:
+    virtual ~EditorCommandGenerateMissingLods() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Generate Missing LODs";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        if (!MeshLodGenerator::IsSupported())
+        {
+            HYP_LOG(Editor, Error, "Built without meshoptimizer; cannot generate mesh LODs");
+
+            return;
+        }
+
+        Handle<AssetRegistry> registry = GetCurrentAssetRegistry();
+
+        if (!registry.IsValid() || !subsystem->GetCurrentProject().IsValid())
+        {
+            HYP_LOG(Editor, Error, "No project loaded; cannot generate mesh LODs");
+
+            return;
+        }
+
+        uint32 minTriangles = MeshLodGenerator::DefaultMinTriangles;
+
+        if (NumArguments() > 0)
+        {
+            int32 parsed = 0;
+
+            if (StringUtil::Parse(GetArgument(0), &parsed))
+            {
+                minTriangles = uint32(MathUtil::Max(parsed, 0));
+            }
+        }
+
+        Array<AssetDesc> meshDescs;
+        registry->GetBucketAssetDescs(AssetBuckets::Meshes.GetIndex(), meshDescs);
+
+        EditorTaskScope* editorTaskScope = new EditorTaskScope(
+            TickableEditorTask::StaticClass(),
+            []()
+            { /* no tick function */ },
+            "Generating Mesh LODs",
+            HYP_FORMAT("0/{} meshes", meshDescs.Size()),
+            /* isForegroundTask */ true);
+
+        TaskSystem::GetInstance().Enqueue(
+            [editorTaskScope, registry, meshDescs = std::move(meshDescs), minTriangles, world = subsystem->GetProjectWorld()]()
+            {
+                EditorTaskBase* task = editorTaskScope->GetEditorTask();
+
+                Array<Handle<Mesh>> updatedMeshes;
+                uint32 numLodsAdded = 0;
+
+                for (size_t index = 0; index < meshDescs.Size(); index++)
+                {
+                    if (task->IsCancellationRequested())
+                    {
+                        break;
+                    }
+
+                    task->SetProgress(float(index) / float(MathUtil::Max(meshDescs.Size(), size_t(1))));
+                    task->SetDescription(HYP_FORMAT("{}/{} meshes: {}", index + 1, meshDescs.Size(), meshDescs[index].name));
+
+                    Handle<Mesh> mesh = registry->GetAsset<Mesh>(AssetBuckets::Meshes, meshDescs[index].name);
+
+                    if (const uint32 numLods = MeshLodGenerator::GenerateIfMissing(mesh.Get(), minTriangles))
+                    {
+                        updatedMeshes.PushBack(mesh);
+                        numLodsAdded += numLods;
+                    }
+                }
+
+                HYP_LOG(Editor, Info, "Generated {} LOD(s) for {} of {} meshes (at least {} triangles); save the project to keep them",
+                    numLodsAdded, updatedMeshes.Size(), meshDescs.Size(), minTriangles);
+
+                GetThreadById(g_simThread)->GetScheduler().Enqueue(
+                    [world, updatedMeshes = std::move(updatedMeshes)]()
+                    {
+                        if (!world.IsValid())
+                        {
+                            return;
+                        }
+
+                        for (const Handle<Scene>& scene : world->GetScenes())
+                        {
+                            if (!scene.IsValid())
+                            {
+                                continue;
+                            }
+
+                            for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(DataAccessFlags::ACCESS_READ))
+                            {
+                                if (meshComponent.mesh.IsValid() && updatedMeshes.Contains(meshComponent.mesh))
+                                {
+                                    entity->SetNeedsRenderProxyUpdate();
+                                }
+                            }
+                        }
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+
+                delete editorTaskScope;
+            },
+            TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(GenerateMissingLods);
+
+#pragma endregion GenerateMissingLods
 
 
 #pragma region AddReflectionProbe

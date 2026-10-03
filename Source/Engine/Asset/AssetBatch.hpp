@@ -24,6 +24,8 @@ class AssetManager;
 
 using AssetMap = FlatMap<String, LoadedAsset>;
 
+ENGINE_API void GenerateMissingMeshLods(LoadedAsset& asset);
+
 struct AssetBatchCallbackData
 {
     using AssetKeyValuePair = Pair<String, LoadedAsset*>;
@@ -161,6 +163,11 @@ private:
         if (asset.IsValid())
         {
             asset.OnPostLoad();
+
+            if (hint & AssetLoadHint::GenerateMeshLods)
+            {
+                GenerateMissingMeshLods(asset);
+            }
 
             if (callbacks)
             {

@@ -65,6 +65,7 @@ static EngineStatCounter<uint32> s_statGlimmerBuildingBLASes("Rendering/Glimmer/
 static EngineStatCounter<uint32> s_statGlimmerBLASesWaitingForRoom("Rendering/Glimmer/BLASesWaitingForRoom", false);
 static EngineStatCounter<uint32> s_statGlimmerBLASPoolTriangles("Rendering/Glimmer/BLASPoolTriangles", false);
 static EngineStatCounter<uint32> s_statGlimmerBLASPoolNodes("Rendering/Glimmer/BLASPoolNodes", false);
+static EngineStatCounter<uint32> s_statGlimmerLodErrorScalePercent("Rendering/Glimmer/LodErrorScalePercent", false);
 
 #pragma region GlimmerScenePassData
 
@@ -280,6 +281,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     s_statGlimmerBLASesWaitingForRoom = blasStats.numWaitingForRoom;
     s_statGlimmerBLASPoolTriangles = blasStats.trianglesUsed;
     s_statGlimmerBLASPoolNodes = blasStats.nodesUsed;
+    s_statGlimmerLodErrorScalePercent = uint32(scene->blasCache->GetLodErrorScale() * 100.0f + 0.5f);
 }
 
 bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView)
