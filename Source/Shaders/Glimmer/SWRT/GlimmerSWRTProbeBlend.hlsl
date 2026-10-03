@@ -28,43 +28,7 @@ DECLARE_UAV(GlimmerProbeBlend, OutTrend) RWStructuredBuffer<float4> OutTrend;   
 
 #define GLIMMER_PROBES_NO_SAMPLING
 #include "GlimmerProbes.hlsli"
-
-//////////CONSTANTS//////////
-
-// a quarter of a probe's rays on back faces puts it inside a solid
-#define GLIMMER_PROBE_INSIDE_FRACTION 0.25
-#define GLIMMER_PROBE_OUTSIDE_FRACTION 0.05
-
-// closer than this (in spacings) to a front face, a probe is nudged off it
-#define GLIMMER_PROBE_MIN_CLEARANCE 0.1
-// how far (in spacings) a probe whose rays all start inside moves toward the ones that don't
-#define GLIMMER_PROBE_FREE_STEP 0.25
-// updates a moved probe has to stay out of solids for its moves to count as done
-#define GLIMMER_PROBE_SETTLE_UPDATES 4u
-#define GLIMMER_PROBE_INSIDE_STREAK 3u
-
-#define GLIMMER_PROBE_RETURN_CLEARANCE 0.25
-#define GLIMMER_PROBE_RETURN_STEP 0.01
-
-#define GLIMMER_PROBE_NOISE_RATE 0.25
-#define GLIMMER_PROBE_DRIFT_RATE 0.0625
-#define GLIMMER_PROBE_SPREAD_RATE 0.0625
-#define GLIMMER_PROBE_DRIFT_NOISE (6.0 * GLIMMER_PROBE_DRIFT_RATE / (2.0 - GLIMMER_PROBE_DRIFT_RATE))
-
-#define GLIMMER_PROBE_DRIFT_STEP_UP 2.0
-#define GLIMMER_PROBE_DRIFT_STEP_DOWN 4.0
-#define GLIMMER_PROBE_MIN_RELATIVE_SIGMA 0.05
-
-// estimates more than this many standard deviations brighter than a settled history are clamped to it
-#define GLIMMER_PROBE_FIREFLY_SIGMAS 3.0
-#define GLIMMER_PROBE_FIREFLY_MIN_HISTORY 4.0
-// how narrowly a visibility texel takes the rays around its direction (the power of their cosine); a few rays per update have to
-// reach every texel, so it's far wider than DDGI's
-#define GLIMMER_PROBE_VISIBILITY_SHARPNESS 12.0
-
-#define GLIMMER_PROBE_MAX_HISTORY 256.0
-#define GLIMMER_PROBE_MAX_RAYS 32
-/////////////////////////////
+#include "../GlimmerConstants.hlsli"
 
 #define GROUP_SIZE GLIMMER_PROBE_VISIBILITY_TEXELS
 

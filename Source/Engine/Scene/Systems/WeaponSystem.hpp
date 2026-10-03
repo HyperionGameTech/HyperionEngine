@@ -44,7 +44,7 @@ private:
     SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<WeaponSystem, ComponentAccess::READ_WRITE> {},
+            ComponentDescriptor<WeaponComponent, ComponentAccess::READ_WRITE> {},
 
             // adds or sets the mesh/material
             ComponentDescriptor<MeshComponent, ComponentAccess::READ_WRITE, false> {}

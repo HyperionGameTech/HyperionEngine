@@ -335,7 +335,102 @@ void GlimmerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
     if (state.hasViewer)
     {
+        UpdateProbeDebugRecords(delta);
         DebugDrawProbes(viewerPosition);
+    }
+}
+
+void GlimmerSystem::UpdateProbeDebugRecords(float delta)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    static constexpr float ProbeStatsLogInterval = 1.0f;
+
+    const int mode = g_cvGlimmerSWRTDebugProbes.Get();
+    const bool isDrawingProbes = mode > int(GlimmerSWRTDebugProbes::None) && mode < int(GlimmerSWRTDebugProbes::Max);
+    const bool isLoggingStats = g_cvGlimmerSWRTProbesLogStats.Get();
+
+    if (!isDrawingProbes && !isLoggingStats)
+    {
+        if (m_probeDebugRecords.Any())
+        {
+            m_probeDebugRecords.Resize(0);
+        }
+
+        m_probeStatsLogTimer = 0.0f;
+
+        return;
+    }
+
+    const bool hasNewRecords = m_channel->ConsumeProbeDebug(m_probeDebugRecords);
+
+    if (!isLoggingStats)
+    {
+        return;
+    }
+
+    m_probeStatsLogTimer += delta;
+
+    if (hasNewRecords && m_probeStatsLogTimer >= ProbeStatsLogInterval)
+    {
+        m_probeStatsLogTimer = 0.0f;
+
+        LogProbeStats();
+    }
+}
+
+void GlimmerSystem::LogProbeStats()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    Camera* viewerCamera = SceneHelpers::FindViewerCamera(*GetWorld());
+
+    struct LevelCounts
+    {
+        uint32 resident = 0;
+        uint32 states[GPS_IDLE + 1] = {};
+        uint32 activeOnScreen = 0;
+    };
+
+    LevelCounts levels[GlimmerProbeLevels];
+    LevelCounts total;
+
+    for (const GlimmerProbeDebugRecord& record : m_probeDebugRecords)
+    {
+        if (record.position.w < 0.0f)
+        {
+            continue;
+        }
+
+        const uint32 levelIndex = MathUtil::Min(uint32(record.position.w), GlimmerProbeLevels - 1);
+        const uint32 probeState = MathUtil::Min(record.info.x & 0xFFu, uint32(GPS_IDLE));
+
+        // a probe that just reset holds nothing the lighting uses yet
+        const bool isOnScreen = probeState == GPS_ACTIVE
+            && record.info.w != 0
+            && viewerCamera != nullptr
+            && viewerCamera->GetFrustum().ContainsPoint(record.position.GetXYZ());
+
+        for (LevelCounts* counts : { &levels[levelIndex], &total })
+        {
+            counts->resident++;
+            counts->states[probeState]++;
+            counts->activeOnScreen += isOnScreen ? 1u : 0u;
+        }
+    }
+
+    HYP_LOG(Rendering, Info, "Glimmer probes: {} resident, {} active ({} on screen), {} idle, {} inside, {} buried",
+        total.resident, total.states[GPS_ACTIVE], total.activeOnScreen, total.states[GPS_IDLE], total.states[GPS_INSIDE], total.states[GPS_BURIED]);
+
+    for (uint32 levelIndex = 0; levelIndex < GlimmerProbeLevels; levelIndex++)
+    {
+        const LevelCounts& counts = levels[levelIndex];
+
+        HYP_LOG(Rendering, Info, "  level {} ({} m): {} resident, {} active ({} on screen), {} idle, {} inside, {} buried",
+            levelIndex, GetGlimmerProbeLevelSpacing(levelIndex), counts.resident, counts.states[GPS_ACTIVE], counts.activeOnScreen,
+            counts.states[GPS_IDLE], counts.states[GPS_INSIDE], counts.states[GPS_BURIED]);
     }
 }
 
@@ -348,15 +443,8 @@ void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)
 
     if (mode <= int(GlimmerSWRTDebugProbes::None) || mode >= int(GlimmerSWRTDebugProbes::Max))
     {
-        if (m_probeDebugRecords.Any())
-        {
-            m_probeDebugRecords.Resize(0);
-        }
-
         return;
     }
-
-    const bool hasNewRecords = m_channel->ConsumeProbeDebug(m_probeDebugRecords);
 
     if (m_probeDebugRecords.Empty())
     {

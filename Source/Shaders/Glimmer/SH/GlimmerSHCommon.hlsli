@@ -2,15 +2,7 @@
 #define GLIMMER_SH_COMMON_HLSLI
 
 #include "../GlimmerCommon.hlsli"
-
-#define GLIMMER_SH_CASCADES 5
-#define GLIMMER_SH_GRID_XZ 32
-#define GLIMMER_SH_GRID_Y 16
-
-#define GLIMMER_SH_DEPTH_RANGE 2.0
-#define GLIMMER_SH_MAX_ORIGIN_OFFSET 0.5
-
-#define GLIMMER_SH_AXIS_DEPTHS 6
+#include "../GlimmerConstants.hlsli"
 
 struct GlimmerSHCascade
 {
