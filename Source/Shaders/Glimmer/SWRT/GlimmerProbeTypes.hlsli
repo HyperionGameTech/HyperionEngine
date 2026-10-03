@@ -55,7 +55,12 @@ struct GlimmerProbeVolume
 #define GLIMMER_PROBE_MAX_UPDATES 63u
 
 // da bits:
-// x = state (bits 0-3) | relocation attempts (4-5) | updates since it was placed (8-13) | back face rays of its last update (16-23) | rays of its last update that started inside the ground or a solid span (24-31)
+// x = state (bits 0-3)
+//      | reloc. attempts (4-5)
+//      | updates in a row it looked inside a solid (6-7)
+//      | updates since placed (8-13)
+//      | back face rays of last update (16-23)
+//      | rays of last update started inside ground or solid span (24-31)
 // y = offset from its grid point (3 x 10 bit snorm of GLIMMER_PROBE_MAX_OFFSET spacings)
 // z = time of its last update (float bits)
 // w = the last offset it was traced from without ending up inside, packed like y (bits 0-29) | 1 when there is one (bit 31)
@@ -82,6 +87,16 @@ uint GlimmerProbeBackfaces(uint4 state)
 uint GlimmerProbeStartsInside(uint4 state)
 {
     return (state.x >> 24) & 0xFFu;
+}
+
+uint GlimmerProbeInsideStreak(uint4 state)
+{
+    return (state.x >> 6) & 0x3u;
+}
+
+uint GlimmerWithInsideStreak(uint flags, uint insideStreak)
+{
+    return (flags & ~0xC0u) | ((min(insideStreak, 3u) & 0x3u) << 6);
 }
 
 uint GlimmerPackProbeFlags(uint probeState, uint relocations, uint updates, uint backfaces, uint startsInside = 0u)
