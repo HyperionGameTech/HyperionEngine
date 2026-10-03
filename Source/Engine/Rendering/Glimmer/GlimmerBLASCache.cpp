@@ -29,6 +29,8 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#include <algorithm>
+
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
@@ -39,9 +41,20 @@ static constexpr uint32 FailedRetryDelayFrames = 120;
 
 static constexpr uint32 PackedVertexSizeInFloats = sizeof(TVertex<VT_Simple>) / sizeof(float);
 
-static constexpr uint64 PoolBytes = 64ull * 1024ull * 1024ull;
+static constexpr uint64 PoolBytes = 256ull * 1024ull * 1024ull;
 static constexpr uint32 MaxBuildsInFlight = 4;
 static constexpr size_t UploadBudgetBytes = 8u * 1024u * 1024u;
+
+// a full pool only gives up a mesh's BLAS for one this much nearer, so two meshes at about the same distance don't take turns
+static constexpr float DemotionDistanceRatio = 1.25f;
+static constexpr float DemotionDistanceMargin = 8.0f;
+// a mesh waiting for a stretch of the pool to be cleared for it asks again no sooner than this, giving the TLASes time to let go
+static constexpr uint32 RoomRequestIntervalFrames = 30;
+
+// a mesh that didn't fit is built again no sooner than this (doubling each time it doesn't fit again), and only when there's room for it
+static constexpr uint32 DeferredRetryDelayFrames = 30;
+static constexpr uint32 MaxDeferredRetryShift = 5;
+static constexpr uint32 PoolFullLogIntervalFrames = 600;
 
 #pragma region GlimmerPoolAllocator
 
@@ -90,6 +103,18 @@ uint32 GlimmerPoolAllocator::Allocate(uint32 count)
     }
 
     return InvalidOffset;
+}
+
+uint32 GlimmerPoolAllocator::GetLargestFreeRange() const
+{
+    uint32 largest = 0;
+
+    for (const Range& range : m_freeRanges)
+    {
+        largest = MathUtil::Max(largest, range.count);
+    }
+
+    return largest;
 }
 
 void GlimmerPoolAllocator::Free(uint32 offset, uint32 count)
@@ -145,8 +170,10 @@ public:
 GlimmerBLASCache::GlimmerBLASCache()
     : m_buildPool(MakeUnique<TaskThreadPool>(TypeWrapper<GlimmerBuildThread>(), "GlimmerBuild", 1)),
       m_residentGeneration(0),
+      m_evictionGeneration(0),
       m_numBuildsInFlight(0),
-      m_lastUpdateFrame(~0u)
+      m_lastUpdateFrame(~0u),
+      m_lastPoolFullLogFrame(~0u)
 {
     m_buildPool->Start();
 }
@@ -224,9 +251,8 @@ uint64 GlimmerBLASCache::MakeKey(const Mesh* mesh, uint8 lodIndex)
 
 void GlimmerBLASCache::CreatePoolBuffers()
 {
-    // nodes average about a quarter of a triangle's footprint with leaves of 2-8 triangles
-    const uint32 nodeCapacity = uint32((PoolBytes / 4) / sizeof(GlimmerBVHNode));
-    const uint32 triangleCapacity = uint32((PoolBytes - PoolBytes / 4) / sizeof(GlimmerTriangle));
+    const uint32 nodeCapacity = uint32((PoolBytes * 3 / 8) / sizeof(GlimmerBVHNode));
+    const uint32 triangleCapacity = uint32((PoolBytes - PoolBytes * 3 / 8) / sizeof(GlimmerTriangle));
 
     m_nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBVHNode), nodeCapacity);
     m_trianglesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangle), triangleCapacity);
@@ -243,7 +269,22 @@ void GlimmerBLASCache::CreatePoolBuffers()
         PoolBytes / (1024ull * 1024ull), nodeCapacity, triangleCapacity);
 }
 
-GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef)
+static void UpdateEntryPriority(float& entryPriority, uint32& entryPriorityFrame, float priority)
+{
+    const uint32 frameCounter = GetFrameCounter();
+
+    if (entryPriorityFrame != frameCounter)
+    {
+        entryPriority = priority;
+        entryPriorityFrame = frameCounter;
+    }
+    else
+    {
+        entryPriority = MathUtil::Min(entryPriority, priority);
+    }
+}
+
+GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -273,9 +314,23 @@ GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, G
         {
             entry.lastUsedFrame = GetFrameCounter();
 
+            UpdateEntryPriority(entry.priority, entry.priorityFrame, priority);
+
+            if (entry.isDeferred && entry.numDefers != 0 && entry.priority < entry.deferredPriority * 0.5f)
+            {
+                entry.numDefers = 0;
+                entry.failedFrame = GetFrameCounter() - DeferredRetryDelayFrames;
+            }
+
             if (entry.state == EntryState::Failed && entry.dead)
             {
                 return GlimmerBLASRequestResult::Failed;
+            }
+
+            // on its way out: once the TLASes have rebuilt without it, it's freed
+            if (entry.isDemoted)
+            {
+                return GlimmerBLASRequestResult::Pending;
             }
 
             if (entry.state != EntryState::Resident)
@@ -297,6 +352,7 @@ GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, G
         }
 
         Requeue(entry, mesh);
+        UpdateEntryPriority(entry.priority, entry.priorityFrame, priority);
 
         return GlimmerBLASRequestResult::Pending;
     }
@@ -308,6 +364,8 @@ GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, G
     entry->lodIndex = lodIndex;
     entry->ref.key = key;
     entry->lastUsedFrame = GetFrameCounter();
+
+    UpdateEntryPriority(entry->priority, entry->priorityFrame, priority);
 
     m_entries.Set(key, std::move(entry));
 
@@ -566,9 +624,6 @@ bool GlimmerBLASCache::AllocateEntry(Entry& entry)
         m_nodeAllocator.Free(nodeBase, nodeCount);
     }
 
-    // evicted ranges only become allocatable after a few frames, so make room for a later attempt
-    EvictOne();
-
     return false;
 }
 
@@ -583,7 +638,7 @@ bool GlimmerBLASCache::EvictOne()
     {
         Entry& entry = *it.second;
 
-        if (entry.state != EntryState::Resident || entry.numReferences != 0)
+        if (entry.state != EntryState::Resident || entry.numReferences != 0 || entry.isDemoted)
         {
             continue;
         }
@@ -612,6 +667,162 @@ bool GlimmerBLASCache::EvictOne()
     m_keysToErase.PushBack(evictKey);
 
     return true;
+}
+
+bool GlimmerBLASCache::IsWorthBuilding(const Entry& entry, uint32 frameCounter, float farthestDemotablePriority) const
+{
+    if (!entry.isDeferred)
+    {
+        return true;
+    }
+
+    const uint32 retryDelay = DeferredRetryDelayFrames << MathUtil::Min(entry.numDefers, MaxDeferredRetryShift);
+
+    if (frameCounter - entry.failedFrame < retryDelay)
+    {
+        return false;
+    }
+
+    const bool fits = m_nodeAllocator.GetLargestFreeRange() >= entry.lastNodeCount
+        && m_triangleAllocator.GetLargestFreeRange() >= entry.lastTriangleCount;
+
+    return fits || farthestDemotablePriority > entry.priority * DemotionDistanceRatio + DemotionDistanceMargin;
+}
+
+bool GlimmerBLASCache::MakeContiguousRoom(const Entry& requester, uint32 nodeCount, uint32 triangleCount, uint32& numDemotions)
+{
+    const float threshold = requester.priority * DemotionDistanceRatio + DemotionDistanceMargin;
+
+    Array<Entry*> residents;
+
+    for (auto& it : m_entries)
+    {
+        if (it.second->state == EntryState::Resident)
+        {
+            residents.PushBack(it.second.Get());
+        }
+    }
+
+    const auto findStretch = [&](bool isNodes, uint32 count, uint32 capacity, Array<Entry*>& outVictims) -> bool
+    {
+        const auto baseOf = [isNodes](const Entry* entry)
+        {
+            return isNodes ? entry->ref.nodeBase : entry->ref.triangleBase;
+        };
+
+        const auto sizeOf = [isNodes](const Entry* entry)
+        {
+            return isNodes ? entry->ref.nodeCount : entry->ref.triangleCount;
+        };
+
+        std::sort(residents.Begin(), residents.End(), [&baseOf](const Entry* lhs, const Entry* rhs)
+            {
+                return baseOf(lhs) < baseOf(rhs);
+            });
+
+        uint64 bestCost = ~0ull;
+        uint32 bestStart = 0;
+
+        // the cheapest stretch starts at the start of the pool or right after a BLAS
+        for (size_t first = 0; first <= residents.Size(); first++)
+        {
+            const uint32 start = first == 0 ? 0u : baseOf(residents[first - 1]) + sizeOf(residents[first - 1]);
+
+            if (uint64(start) + count > capacity)
+            {
+                break;
+            }
+
+            uint64 cost = 0;
+            bool isBlocked = false;
+
+            for (size_t index = first; index < residents.Size() && baseOf(residents[index]) < start + count; index++)
+            {
+                const Entry* occupant = residents[index];
+
+                if (occupant->isDemoted)
+                {
+                    continue;
+                }
+
+                if (occupant->priority <= threshold)
+                {
+                    isBlocked = true;
+
+                    break;
+                }
+
+                cost += uint64(occupant->ref.triangleCount) + 1;
+            }
+
+            if (!isBlocked && cost < bestCost)
+            {
+                bestCost = cost;
+                bestStart = start;
+
+                if (cost == 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        if (bestCost == ~0ull)
+        {
+            return false;
+        }
+
+        for (Entry* occupant : residents)
+        {
+            if (!occupant->isDemoted && baseOf(occupant) < bestStart + count && baseOf(occupant) + sizeOf(occupant) > bestStart)
+            {
+                outVictims.PushBack(occupant);
+            }
+        }
+
+        return true;
+    };
+
+    Array<Entry*> victims;
+
+    if (!findStretch(true, nodeCount, m_nodeAllocator.GetCapacity(), victims)
+        || !findStretch(false, triangleCount, m_triangleAllocator.GetCapacity(), victims))
+    {
+        return false;
+    }
+
+    for (Entry* victim : victims)
+    {
+        if (!victim->isDemoted)
+        {
+            victim->isDemoted = true;
+            numDemotions++;
+        }
+    }
+
+    return true;
+}
+
+void GlimmerBLASCache::Defer(Entry& entry, uint32 frameCounter)
+{
+    entry.lastNodeCount = uint32(entry.result.nodes.Size());
+    entry.lastTriangleCount = uint32(entry.result.triangles.Size());
+    entry.result = BuildResult {};
+    entry.mesh = entry.meshWeak.Lock();
+    entry.failedFrame = frameCounter;
+
+    if (!entry.mesh.IsValid())
+    {
+        entry.state = EntryState::Evicted;
+        m_keysToErase.PushBack(entry.ref.key);
+
+        return;
+    }
+
+    entry.state = EntryState::Queued;
+    entry.isDeferred = true;
+    entry.deferredPriority = entry.priority;
+    entry.numDefers++;
 }
 
 void GlimmerBLASCache::FreeEntryRanges(Entry& entry)
@@ -691,8 +902,82 @@ void GlimmerBLASCache::Update(Frame* frame)
         m_deferredFrees.EraseAt(freeIndex);
     }
 
-    size_t uploadedBytes = 0;
-    bool uploadedAny = false;
+    for (auto& it : m_entries)
+    {
+        Entry& entry = *it.second;
+
+        if (entry.isDemoted && entry.state == EntryState::Resident && entry.numReferences == 0)
+        {
+            FreeEntryRanges(entry);
+
+            entry.state = EntryState::Evicted;
+            m_keysToErase.PushBack(it.first);
+        }
+    }
+
+    float farthestDemotablePriority = 0.0f;
+
+    uint32 pendingDemotedNodes = 0;
+    uint32 pendingDemotedTriangles = 0;
+
+    Array<Entry*> queued;
+    Array<Entry*> pendingUploads;
+
+    for (auto& it : m_entries)
+    {
+        Entry& entry = *it.second;
+
+        if (entry.state == EntryState::Resident)
+        {
+            if (entry.isDemoted)
+            {
+                pendingDemotedNodes += entry.ref.nodeCount;
+                pendingDemotedTriangles += entry.ref.triangleCount;
+            }
+            else if (entry.numReferences != 0)
+            {
+                farthestDemotablePriority = MathUtil::Max(farthestDemotablePriority, entry.priority);
+            }
+        }
+        else if (entry.state == EntryState::Queued)
+        {
+            queued.PushBack(&entry);
+        }
+    }
+
+    const auto byPriority = [](const Entry* lhs, const Entry* rhs)
+    {
+        return lhs->priority < rhs->priority;
+    };
+
+    // nearest first
+    std::sort(queued.Begin(), queued.End(), byPriority);
+
+    for (Entry* entryPtr : queued)
+    {
+        if (m_numBuildsInFlight >= MaxBuildsInFlight)
+        {
+            break;
+        }
+
+        Entry& entry = *entryPtr;
+
+        if (!IsWorthBuilding(entry, frameCounter, farthestDemotablePriority))
+        {
+            continue;
+        }
+
+        entry.isDeferred = false;
+
+        entry.buildTask = m_buildPool->Enqueue(
+            [mesh = entry.mesh, lodIndex = entry.lodIndex]() -> BuildResult
+            {
+                return BuildBLAS(mesh, lodIndex);
+            });
+
+        entry.state = EntryState::Building;
+        m_numBuildsInFlight++;
+    }
 
     for (auto& it : m_entries)
     {
@@ -700,24 +985,6 @@ void GlimmerBLASCache::Update(Frame* frame)
 
         switch (entry.state)
         {
-        case EntryState::Queued:
-        {
-            if (m_numBuildsInFlight >= MaxBuildsInFlight)
-            {
-                break;
-            }
-
-            entry.buildTask = m_buildPool->Enqueue(
-                [mesh = entry.mesh, lodIndex = entry.lodIndex]() -> BuildResult
-                {
-                    return BuildBLAS(mesh, lodIndex);
-                });
-
-            entry.state = EntryState::Building;
-            m_numBuildsInFlight++;
-
-            break;
-        }
         case EntryState::Building:
         {
             if (!entry.buildTask.IsCompleted())
@@ -751,12 +1018,6 @@ void GlimmerBLASCache::Update(Frame* frame)
                 break;
             }
 
-            entry.state = EntryState::PendingUpload;
-
-            [[fallthrough]];
-        }
-        case EntryState::PendingUpload:
-        {
             if (entry.result.nodes.Size() > m_nodeAllocator.GetCapacity() || entry.result.triangles.Size() > m_triangleAllocator.GetCapacity())
             {
                 HYP_LOG(Rendering, Warning, "Glimmer: mesh {} (LOD {}) has {} triangles, more than the BLAS pool holds",
@@ -770,25 +1031,7 @@ void GlimmerBLASCache::Update(Frame* frame)
                 break;
             }
 
-            const size_t entryBytes = entry.result.nodes.ByteSize() + entry.result.triangles.ByteSize();
-
-            // always allow one upload per frame so a single large BLAS can't stall forever
-            if (uploadedAny && uploadedBytes + entryBytes > UploadBudgetBytes)
-            {
-                break;
-            }
-
-            if (!AllocateEntry(entry))
-            {
-                break;
-            }
-
-            UploadEntry(frame, entry);
-
-            uploadedBytes += entryBytes;
-            uploadedAny = true;
-
-            m_residentGeneration++;
+            entry.state = EntryState::PendingUpload;
 
             break;
         }
@@ -828,6 +1071,139 @@ void GlimmerBLASCache::Update(Frame* frame)
         default:
             break;
         }
+
+        if (entry.state == EntryState::PendingUpload)
+        {
+            pendingUploads.PushBack(&entry);
+        }
+    }
+
+    std::sort(pendingUploads.Begin(), pendingUploads.End(), byPriority);
+
+    uint32 availableNodes = m_nodeAllocator.GetCapacity() - m_nodeAllocator.GetNumUsed() + pendingDemotedNodes;
+    uint32 availableTriangles = m_triangleAllocator.GetCapacity() - m_triangleAllocator.GetNumUsed() + pendingDemotedTriangles;
+
+    for (const DeferredFree& deferredFree : m_deferredFrees)
+    {
+        availableNodes += deferredFree.nodeCount;
+        availableTriangles += deferredFree.triangleCount;
+    }
+
+    size_t uploadedBytes = 0;
+    bool uploadedAny = false;
+
+    uint32 numDemotions = 0;
+    uint32 numDeferred = 0;
+    uint32 numWaiting = 0;
+
+    const Entry* nearestWaiting = nullptr;
+
+    bool isNearerWaiting = false;
+
+    for (const Entry* entryPtr : queued)
+    {
+        if (entryPtr->isDeferred && entryPtr->state == EntryState::Queued)
+        {
+            nearestWaiting = entryPtr;
+
+            break;
+        }
+    }
+
+    for (Entry* entryPtr : pendingUploads)
+    {
+        Entry& entry = *entryPtr;
+
+        const uint32 nodeCount = uint32(entry.result.nodes.Size());
+        const uint32 triangleCount = uint32(entry.result.triangles.Size());
+        const size_t entryBytes = entry.result.nodes.ByteSize() + entry.result.triangles.ByteSize();
+
+        const bool isWithinBudget = !uploadedAny || uploadedBytes + entryBytes <= UploadBudgetBytes;
+
+        if (!isWithinBudget || isNearerWaiting)
+        {
+            availableNodes -= MathUtil::Min(availableNodes, nodeCount);
+            availableTriangles -= MathUtil::Min(availableTriangles, triangleCount);
+
+            continue;
+        }
+
+        if (AllocateEntry(entry))
+        {
+            entry.numDefers = 0;
+
+            UploadEntry(frame, entry);
+
+            uploadedBytes += entryBytes;
+            uploadedAny = true;
+
+            availableNodes -= MathUtil::Min(availableNodes, nodeCount);
+            availableTriangles -= MathUtil::Min(availableTriangles, triangleCount);
+
+            m_residentGeneration++;
+
+            continue;
+        }
+
+        if (!nearestWaiting || entry.priority < nearestWaiting->priority)
+        {
+            nearestWaiting = &entry;
+        }
+
+        // unused BLASes go first
+        while (availableNodes < nodeCount || availableTriangles < triangleCount)
+        {
+            const size_t numDeferredFrees = m_deferredFrees.Size();
+
+            if (!EvictOne())
+            {
+                break;
+            }
+
+            for (size_t freeIndex = numDeferredFrees; freeIndex < m_deferredFrees.Size(); freeIndex++)
+            {
+                availableNodes += m_deferredFrees[freeIndex].nodeCount;
+                availableTriangles += m_deferredFrees[freeIndex].triangleCount;
+            }
+        }
+
+        if (frameCounter - entry.roomRequestFrame >= RoomRequestIntervalFrames)
+        {
+            entry.roomRequestFrame = frameCounter;
+
+            if (!MakeContiguousRoom(entry, nodeCount, triangleCount, numDemotions))
+            {
+                Defer(entry, frameCounter);
+                numDeferred++;
+
+                continue;
+            }
+        }
+
+        availableNodes -= MathUtil::Min(availableNodes, nodeCount);
+        availableTriangles -= MathUtil::Min(availableTriangles, triangleCount);
+
+        isNearerWaiting = true;
+        numWaiting++;
+    }
+
+    if (numDemotions != 0)
+    {
+        m_evictionGeneration++;
+    }
+
+    if (nearestWaiting && (m_lastPoolFullLogFrame == ~0u || frameCounter - m_lastPoolFullLogFrame >= PoolFullLogIntervalFrames))
+    {
+        m_lastPoolFullLogFrame = frameCounter;
+
+        const bool isBuilt = nearestWaiting->state == EntryState::PendingUpload;
+
+        HYP_LOG(Rendering, Warning, "Glimmer BLAS pool full (nodes {}/{}, largest free {}; triangles {}/{}, largest free {}); {} built and {} more waiting for room, nearest {} m away ({} nodes, {} triangles)",
+            m_nodeAllocator.GetNumUsed(), m_nodeAllocator.GetCapacity(), m_nodeAllocator.GetLargestFreeRange(),
+            m_triangleAllocator.GetNumUsed(), m_triangleAllocator.GetCapacity(), m_triangleAllocator.GetLargestFreeRange(),
+            numWaiting, numDeferred, nearestWaiting->priority,
+            isBuilt ? uint32(nearestWaiting->result.nodes.Size()) : nearestWaiting->lastNodeCount,
+            isBuilt ? uint32(nearestWaiting->result.triangles.Size()) : nearestWaiting->lastTriangleCount);
     }
 
     for (const uint64 keyToErase : m_keysToErase)
@@ -861,6 +1237,15 @@ GlimmerBLASCacheStats GlimmerBLASCache::GetStats() const
         switch (entry.state)
         {
         case EntryState::Queued:
+            if (entry.isDeferred)
+            {
+                stats.numWaitingForRoom++;
+            }
+            else
+            {
+                stats.numBuilding++;
+            }
+            break;
         case EntryState::Building:
             stats.numBuilding++;
             break;
@@ -870,6 +1255,7 @@ GlimmerBLASCacheStats GlimmerBLASCache::GetStats() const
         case EntryState::Resident:
             stats.numResident++;
             stats.numResidentTriangles += entry.ref.triangleCount;
+            stats.numDemoted += entry.isDemoted ? 1u : 0u;
             break;
         case EntryState::Failed:
             stats.numFailed++;

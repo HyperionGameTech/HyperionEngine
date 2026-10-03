@@ -96,7 +96,14 @@ public:
 
     ~GlimmerTLAS();
 
-    bool Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache);
+    bool Update(
+        Frame* frame,
+        RenderProxyList& rpl,
+        const BoundingBox& region,
+        const BoundingBox& tracedRegion,
+        const Vec3f& viewerPosition,
+        GlimmerBLASCache& blasCache);
+        
     void Release(GlimmerBLASCache& blasCache);
 
     HYP_FORCE_INLINE bool IsReady() const
@@ -221,6 +228,7 @@ private:
         RenderProxyList& rpl,
         const BoundingBox& region,
         const BoundingBox& tracedRegion,
+        const Vec3f& viewerPosition,
         GlimmerBLASCache& blasCache,
         BuildInput& outInput,
         uint32& outNumWaitingForBLAS);
@@ -245,6 +253,8 @@ private:
     BoundingBox m_activeRegion;
     uint64 m_lastBuildStartTime;
     uint32 m_blasGenerationAtGather;
+    uint32 m_blasEvictionGenerationAtGather;
+    Vec3f m_viewerPositionAtGather;
     bool m_dirty;
     bool m_waitingForBLAS;
     uint64 m_activeInputHash;

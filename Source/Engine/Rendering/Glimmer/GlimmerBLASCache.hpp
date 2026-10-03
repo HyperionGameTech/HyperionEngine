@@ -81,6 +81,8 @@ public:
         return m_numUsed;
     }
 
+    uint32 GetLargestFreeRange() const;
+
 private:
     struct Range
     {
@@ -99,6 +101,8 @@ struct GlimmerBLASCacheStats
     uint32 numBuilding = 0;
     uint32 numPendingUpload = 0;
     uint32 numFailed = 0;
+    uint32 numDemoted = 0;
+    uint32 numWaitingForRoom = 0;
     uint32 numResidentTriangles = 0;
     uint32 nodesUsed = 0;
     uint32 nodesCapacity = 0;
@@ -118,7 +122,9 @@ public:
 
     static uint64 MakeKey(const Mesh* mesh, uint8 lodIndex);
 
-    GlimmerBLASRequestResult Request(Mesh* mesh, uint8 lodIndex, GlimmerBLASRef& outRef);
+    /// priority: how far (m) the nearest instance asking for it is from the viewer; nearer meshes are built and given pool space first,
+    /// and push out the BLASes of meshes much farther away when the pool is full
+    GlimmerBLASRequestResult Request(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef);
 
     void AddReferences(Span<const uint64> keys);
     void RemoveReferences(Span<const uint64> keys);
@@ -136,6 +142,11 @@ public:
     HYP_FORCE_INLINE uint32 GetResidentGeneration() const
     {
         return m_residentGeneration;
+    }
+
+    HYP_FORCE_INLINE uint32 GetEvictionGeneration() const
+    {
+        return m_evictionGeneration;
     }
 
     HYP_FORCE_INLINE const GpuBufferRef& GetNodesBuffer() const
@@ -188,7 +199,16 @@ private:
         uint32 numReferences = 0;
         uint32 lastUsedFrame = 0;
         uint32 failedFrame = 0;
+        float priority = 0.0f;
+        uint32 priorityFrame = ~0u;
+        uint32 lastNodeCount = 0;
+        uint32 lastTriangleCount = 0;
+        uint32 numDefers = 0;
+        float deferredPriority = 0.0f;
+        uint32 roomRequestFrame = 0;
         bool dead = false;
+        bool isDemoted = false;
+        bool isDeferred = false;
     };
 
     struct DeferredFree
@@ -207,6 +227,9 @@ private:
     void Requeue(Entry& entry, Mesh* mesh);
     bool RequeueForReplacement(Entry& entry);
     bool EvictOne();
+    bool IsWorthBuilding(const Entry& entry, uint32 frameCounter, float farthestDemotablePriority) const;
+    bool MakeContiguousRoom(const Entry& requester, uint32 nodeCount, uint32 triangleCount, uint32& numDemotions);
+    void Defer(Entry& entry, uint32 frameCounter);
     void FreeEntryRanges(Entry& entry);
     void UploadEntry(Frame* frame, Entry& entry);
 
@@ -224,8 +247,10 @@ private:
     Array<uint64> m_keysToErase; // entries to drop after the Update() loop, which may be iterating them
 
     uint32 m_residentGeneration;
+    uint32 m_evictionGeneration;
     uint32 m_numBuildsInFlight;
     uint32 m_lastUpdateFrame;
+    uint32 m_lastPoolFullLogFrame;
 };
 
 } // namespace Hyperion
