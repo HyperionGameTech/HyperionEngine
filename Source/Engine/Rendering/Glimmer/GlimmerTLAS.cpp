@@ -42,13 +42,15 @@ namespace Hyperion {
 static constexpr uint32 MaxInstances = 131072;
 static constexpr uint32 MaxSpanInstances = 262144;
 
-static constexpr float SolidLodErrorMeters = 0.25f;
-
+static constexpr float SolidLodErrorMeters = 0.05f;
 static constexpr float FoliageLodErrorMeters = 1.0f;
+static constexpr float LodErrorPerMeter = 0.02f;
+static constexpr float LodHysteresis = 0.25f;
 
 static constexpr double RebuildDebounceMs = 250.0;
 
 static constexpr float ViewerMoveRegatherDistance = 4.0f;
+static constexpr float ViewerMoveLodRegatherDistance = 16.0f;
 
 #pragma region GlimmerTLAS
 
@@ -103,7 +105,11 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 
     Set<uint64> blasKeysSeen;
 
-    const auto addInstance = [&](const RenderProxyMesh& proxy, const Mat4f& objectToWorld, uint32 flags, uint32 materialIndex)
+    const float lodErrorScale = blasCache.GetLodErrorScale();
+
+    Map<uint64, uint8> instanceLods;
+
+    const auto addInstance = [&](const RenderProxyMesh& proxy, const Mat4f& objectToWorld, uint32 flags, uint32 materialIndex, uint32 instanceIndex)
     {
         const bool isFoliage = (flags & GIF_FOLIAGE) != 0;
 
@@ -134,7 +140,33 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             priority = viewerPosition.Distance(nearestPoint);
         }
 
-        const uint8 lodIndex = proxy.mesh->GetMeshDesc().GetCoarsestLodWithinError(objectToWorld.ExtractMaxScale(), isFoliage ? FoliageLodErrorMeters : SolidLodErrorMeters);
+        const MeshDesc& meshDesc = proxy.mesh->GetMeshDesc();
+        const float worldScale = objectToWorld.ExtractMaxScale();
+        
+        const float maxError = MathUtil::Max(
+            isFoliage ? FoliageLodErrorMeters : SolidLodErrorMeters,
+            priority * LodErrorPerMeter * lodErrorScale);
+
+        uint8 lodIndex = meshDesc.GetCoarsestLodWithinError(worldScale, maxError);
+
+        const uint64 instanceKey = (uint64(proxy.entity ? proxy.entity->Id().Value() : 0u) << 32) | instanceIndex;
+
+        uint8 previousLod = lodIndex;
+
+        if (const KeyValuePair<uint64, uint8>* previous = m_instanceLods.TryGet(instanceKey))
+        {
+            previousLod = previous->second;
+
+            const uint8 coarsestTight = meshDesc.GetCoarsestLodWithinError(worldScale, maxError * (1.0f - LodHysteresis));
+            const uint8 coarsestLoose = meshDesc.GetCoarsestLodWithinError(worldScale, maxError * (1.0f + LodHysteresis));
+
+            if (previousLod >= coarsestTight && previousLod <= coarsestLoose && previousLod < MathUtil::Max<uint8>(meshDesc.GetNumLods(), 1))
+            {
+                lodIndex = previousLod;
+            }
+        }
+
+        instanceLods.Set(instanceKey, lodIndex);
 
         GlimmerBLASRef blasRef;
 
@@ -147,7 +179,18 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
                 outNumWaitingForBLAS++;
             }
 
-            return;
+            bool hasFallback = previousLod != lodIndex && blasCache.TryGetResident(proxy.mesh, previousLod, priority, blasRef);
+
+            for (uint8 distance = 1; !hasFallback && distance < MaxMeshLods; distance++)
+            {
+                hasFallback = (lodIndex + distance < MaxMeshLods && blasCache.TryGetResident(proxy.mesh, uint8(lodIndex + distance), priority, blasRef))
+                    || (lodIndex >= distance && blasCache.TryGetResident(proxy.mesh, uint8(lodIndex - distance), priority, blasRef));
+            }
+
+            if (!hasFallback)
+            {
+                return;
+            }
         }
 
         const BoundingBox worldBounds = objectToWorld * blasRef.localBounds;
@@ -245,7 +288,7 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 
         if (proxy->numInstances == 0)
         {
-            addInstance(*proxy, modelMatrix, flags, materialIndex);
+            addInstance(*proxy, modelMatrix, flags, materialIndex, 0);
 
             continue;
         }
@@ -265,9 +308,11 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             Mat4f instanceTransform;
             Memory::Copy(instanceTransform.values, instanceTransforms + size_t(instanceIndex) * sizeof(Mat4f), sizeof(Mat4f));
 
-            addInstance(*proxy, modelMatrix * instanceTransform, flags, materialIndex);
+            addInstance(*proxy, modelMatrix * instanceTransform, flags, materialIndex, instanceIndex);
         }
     }
+
+    m_instanceLods = std::move(instanceLods);
 }
 
 GlimmerTLAS::BuildResult GlimmerTLAS::Build(BuildInput&& input)
@@ -494,7 +539,9 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
         m_dirty = true;
     }
 
-    if (m_waitingForBLAS && viewerPosition.Distance(m_viewerPositionAtGather) > ViewerMoveRegatherDistance)
+    const float viewerMoved = viewerPosition.Distance(m_viewerPositionAtGather);
+
+    if ((m_waitingForBLAS && viewerMoved > ViewerMoveRegatherDistance) || viewerMoved > ViewerMoveLodRegatherDistance)
     {
         m_dirty = true;
     }

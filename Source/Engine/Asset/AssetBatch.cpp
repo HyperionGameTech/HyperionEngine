@@ -8,6 +8,10 @@
 
 #include <Asset/AssetBatch.hpp>
 #include <Asset/Assets.hpp>
+#include <Asset/AssetRegistry.hpp>
+
+#include <Rendering/Mesh.hpp>
+#include <Rendering/Util/MeshLodGenerator.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
@@ -15,6 +19,24 @@
 #include <Core/Threading/TaskSystem.hpp>
 
 namespace Hyperion {
+
+void GenerateMissingMeshLods(LoadedAsset& asset)
+{
+    if (!asset.IsValid() || !MeshLodGenerator::IsSupported())
+    {
+        return;
+    }
+
+    auto generateForMesh = [](const Handle<AssetObject>& assetObject)
+    {
+        if (assetObject.IsValid() && assetObject->IsA(Mesh::StaticClass()))
+        {
+            MeshLodGenerator::GenerateIfMissing(static_cast<Mesh*>(assetObject.Get()));
+        }
+    };
+
+    AssetRegistry::WalkAssetDeep(asset.Unwrap(), generateForMesh);
+}
 
 #pragma region AssetBatch
 

@@ -83,11 +83,19 @@ struct GlimmerSkyParams
     float4 params; // x = sky probe diffuse strength, y = luminance escaping rays are clamped to, z = luminance of the sky's irradiance from above (without the world's sky intensity)
 };
 
+// non-negative L1 reconstruction (Hazel, "Reconstructing Diffuse Lighting from SH L1")
 float3 GlimmerEvaluateL1(float4 shR, float4 shG, float4 shB, float3 N)
 {
-    const float4 basis = float4(1.0, N);
+    const float3 l0 = max(float3(shR.x, shG.x, shB.x), 0.0);
+    const float3 dipoleLength = float3(length(shR.yzw), length(shG.yzw), length(shB.yzw));
+    const float3 cosTheta = float3(dot(shR.yzw, N), dot(shG.yzw, N), dot(shB.yzw, N)) / max(dipoleLength, 1e-6);
 
-    return max(float3(dot(shR, basis), dot(shG, basis), dot(shB, basis)), 0.0);
+    // how directional the light is, 1 for a single point source
+    const float3 r = saturate(dipoleLength / max(2.0 * l0, 1e-6));
+    const float3 p = 1.0 + 2.0 * r;
+    const float3 a = (1.0 - r) / (1.0 + r);
+
+    return l0 * (a + (1.0 - a) * (p + 1.0) * pow(saturate(0.5 * (1.0 + cosTheta)), p));
 }
 
 float3 GlimmerSphericalFibonacci(uint index, uint count)

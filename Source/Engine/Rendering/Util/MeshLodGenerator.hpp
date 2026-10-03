@@ -32,12 +32,18 @@ struct MeshLodGenerationResult
 class ENGINE_API MeshLodGenerator final
 {
 public:
+    static constexpr uint32 DefaultMinTriangles = 1024;
+
     static bool IsSupported();
 
     static bool CanGenerate(const Mesh* mesh);
 
     static TResult<MeshLodGenerationResult> Generate(const Mesh* mesh, const MeshLodGenerationSettings& settings);
     static Result Apply(Mesh* mesh, const MeshLodGenerationResult& result);
+
+    /// Generates and applies LODs for a mesh that has none, if it has at least minTriangles.
+    /// Returns the number of LODs added.
+    static uint32 GenerateIfMissing(Mesh* mesh, uint32 minTriangles = DefaultMinTriangles);
 };
 
 } // namespace Hyperion

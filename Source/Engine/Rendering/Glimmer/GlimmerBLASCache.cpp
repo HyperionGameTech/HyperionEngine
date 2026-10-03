@@ -56,6 +56,13 @@ static constexpr uint32 DeferredRetryDelayFrames = 30;
 static constexpr uint32 MaxDeferredRetryShift = 5;
 static constexpr uint32 PoolFullLogIntervalFrames = 600;
 
+static constexpr uint32 LodErrorScaleIntervalFrames = 120;
+static constexpr float LodErrorScaleStepUp = 1.5f;
+static constexpr float LodErrorScaleStepDown = 1.25f;
+static constexpr float MaxLodErrorScale = 4.0f;
+static constexpr float LodErrorScaleMinUsageDrop = 0.005f;
+static constexpr float LodErrorScaleRelaxUsage = 0.8f;
+
 #pragma region GlimmerPoolAllocator
 
 void GlimmerPoolAllocator::Reset(uint32 capacity)
@@ -173,7 +180,10 @@ GlimmerBLASCache::GlimmerBLASCache()
       m_evictionGeneration(0),
       m_numBuildsInFlight(0),
       m_lastUpdateFrame(~0u),
-      m_lastPoolFullLogFrame(~0u)
+      m_lastPoolFullLogFrame(~0u),
+      m_lodErrorScale(1.0f),
+      m_lastLodErrorScaleFrame(0),
+      m_poolUsageAtLodErrorScaleStep(1.0f)
 {
     m_buildPool->Start();
 }
@@ -370,6 +380,39 @@ GlimmerBLASRequestResult GlimmerBLASCache::Request(Mesh* mesh, uint8 lodIndex, f
     m_entries.Set(key, std::move(entry));
 
     return GlimmerBLASRequestResult::Pending;
+}
+
+bool GlimmerBLASCache::TryGetResident(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+
+    if (!mesh || lodIndex >= MathUtil::Max<uint8>(mesh->GetMeshDesc().GetNumLods(), 1))
+    {
+        return false;
+    }
+
+    KeyValuePair<uint64, UniquePtr<Entry>>* it = m_entries.TryGet(MakeKey(mesh, lodIndex));
+
+    if (!it)
+    {
+        return false;
+    }
+
+    Entry& entry = *it->second;
+
+    if (entry.state != EntryState::Resident || entry.isDemoted || entry.meshWeak.Expired() || entry.meshWeak.GetUnsafe() != mesh)
+    {
+        return false;
+    }
+
+    entry.lastUsedFrame = GetFrameCounter();
+
+    UpdateEntryPriority(entry.priority, entry.priorityFrame, priority);
+
+    outRef = entry.ref;
+
+    return true;
 }
 
 void GlimmerBLASCache::AddReferences(Span<const uint64> keys)
@@ -1190,6 +1233,36 @@ void GlimmerBLASCache::Update(Frame* frame)
     if (numDemotions != 0)
     {
         m_evictionGeneration++;
+    }
+
+    if (frameCounter - m_lastLodErrorScaleFrame >= LodErrorScaleIntervalFrames)
+    {
+        m_lastLodErrorScaleFrame = frameCounter;
+
+        const float poolUsage = MathUtil::Max(
+            float(m_nodeAllocator.GetNumUsed()) / float(MathUtil::Max(m_nodeAllocator.GetCapacity(), 1u)),
+            float(m_triangleAllocator.GetNumUsed()) / float(MathUtil::Max(m_triangleAllocator.GetCapacity(), 1u)));
+
+        const float previousScale = m_lodErrorScale;
+
+        if (nearestWaiting != nullptr)
+        {
+            if (m_lodErrorScale == 1.0f || poolUsage < m_poolUsageAtLodErrorScaleStep - LodErrorScaleMinUsageDrop)
+            {
+                m_lodErrorScale = MathUtil::Min(m_lodErrorScale * LodErrorScaleStepUp, MaxLodErrorScale);
+                m_poolUsageAtLodErrorScaleStep = poolUsage;
+            }
+        }
+        else if (poolUsage < LodErrorScaleRelaxUsage)
+        {
+            m_lodErrorScale = MathUtil::Max(m_lodErrorScale / LodErrorScaleStepDown, 1.0f);
+            m_poolUsageAtLodErrorScaleStep = poolUsage;
+        }
+
+        if (m_lodErrorScale != previousScale)
+        {
+            m_evictionGeneration++;
+        }
     }
 
     if (nearestWaiting && (m_lastPoolFullLogFrame == ~0u || frameCounter - m_lastPoolFullLogFrame >= PoolFullLogIntervalFrames))

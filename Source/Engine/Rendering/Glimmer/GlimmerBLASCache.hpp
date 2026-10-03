@@ -126,6 +126,9 @@ public:
     /// and push out the BLASes of meshes much farther away when the pool is full
     GlimmerBLASRequestResult Request(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef);
 
+    /// Like Request(), for a BLAS that's already resident, without queueing one that isn't
+    bool TryGetResident(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef);
+
     void AddReferences(Span<const uint64> keys);
     void RemoveReferences(Span<const uint64> keys);
 
@@ -144,9 +147,17 @@ public:
         return m_residentGeneration;
     }
 
+    /// Bumped when the TLASes have to gather again: resident BLASes were demoted to make room (they're freed once no TLAS references
+    /// them), or the LOD error scale changed
     HYP_FORCE_INLINE uint32 GetEvictionGeneration() const
     {
         return m_evictionGeneration;
+    }
+
+    /// Scales the geometric error the TLASes allow a mesh's LOD; above 1 while the pool can't hold everything in range
+    HYP_FORCE_INLINE float GetLodErrorScale() const
+    {
+        return m_lodErrorScale;
     }
 
     HYP_FORCE_INLINE const GpuBufferRef& GetNodesBuffer() const
@@ -251,6 +262,9 @@ private:
     uint32 m_numBuildsInFlight;
     uint32 m_lastUpdateFrame;
     uint32 m_lastPoolFullLogFrame;
+    float m_lodErrorScale;
+    uint32 m_lastLodErrorScaleFrame;
+    float m_poolUsageAtLodErrorScaleStep;
 };
 
 } // namespace Hyperion

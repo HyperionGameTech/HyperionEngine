@@ -35,6 +35,16 @@ static inline EnumFlags<AssetLoadHint> GetEditorImportLoadHint(const FilePath& f
 
     if (!isTexture)
     {
+        static const char* const modelExtensions[] = { "obj", "fbx", "gltf", "glb", "xml" };
+
+        for (const char* modelExtension : modelExtensions)
+        {
+            if (extension == modelExtension)
+            {
+                return AssetLoadHint::GenerateMeshLods;
+            }
+        }
+
         return AssetLoadHint::NoHint;
     }
 

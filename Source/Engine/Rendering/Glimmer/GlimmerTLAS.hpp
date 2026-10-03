@@ -10,6 +10,7 @@
 #include <Rendering/Glimmer/GlimmerBVHBuilder.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Threading/Task.hpp>
 
@@ -255,6 +256,8 @@ private:
     uint32 m_blasGenerationAtGather;
     uint32 m_blasEvictionGenerationAtGather;
     Vec3f m_viewerPositionAtGather;
+
+    Map<uint64, uint8> m_instanceLods; // the LOD each instance (entity id << 32 | instance index) was given at the last gather
     bool m_dirty;
     bool m_waitingForBLAS;
     uint64 m_activeInputHash;
