@@ -48,11 +48,14 @@ static constexpr float FoliageLodErrorMeters = 1.0f;
 
 static constexpr double RebuildDebounceMs = 250.0;
 
+static constexpr float ViewerMoveRegatherDistance = 4.0f;
+
 #pragma region GlimmerTLAS
 
 GlimmerTLAS::GlimmerTLAS()
     : m_lastBuildStartTime(0),
       m_blasGenerationAtGather(~0u),
+      m_blasEvictionGenerationAtGather(0),
       m_activeInputHash(0),
       m_spanFullyDirty(true),
       m_dirty(true),
@@ -92,7 +95,7 @@ void GlimmerTLAS::Release(GlimmerBLASCache& blasCache)
     m_pendingBlasKeys.Clear();
 }
 
-void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS)
+void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, const Vec3f& viewerPosition, GlimmerBLASCache& blasCache, BuildInput& outInput, uint32& outNumWaitingForBLAS)
 {
     HYP_SCOPE;
 
@@ -112,6 +115,8 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             return;
         }
 
+        float priority = viewerPosition.Distance(objectToWorld.ExtractTranslation());
+
         if (proxy.meshAabb.IsValid())
         {
             const BoundingBox estimatedBounds = objectToWorld * proxy.meshAabb;
@@ -120,13 +125,20 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             {
                 return;
             }
+
+            const Vec3f nearestPoint = Vec3f(
+                MathUtil::Clamp(viewerPosition.x, estimatedBounds.min.x, estimatedBounds.max.x),
+                MathUtil::Clamp(viewerPosition.y, estimatedBounds.min.y, estimatedBounds.max.y),
+                MathUtil::Clamp(viewerPosition.z, estimatedBounds.min.z, estimatedBounds.max.z));
+
+            priority = viewerPosition.Distance(nearestPoint);
         }
 
         const uint8 lodIndex = proxy.mesh->GetMeshDesc().GetCoarsestLodWithinError(objectToWorld.ExtractMaxScale(), isFoliage ? FoliageLodErrorMeters : SolidLodErrorMeters);
 
         GlimmerBLASRef blasRef;
 
-        const GlimmerBLASRequestResult requestResult = blasCache.Request(proxy.mesh, lodIndex, blasRef);
+        const GlimmerBLASRequestResult requestResult = blasCache.Request(proxy.mesh, lodIndex, priority, blasRef);
 
         if (requestResult != GlimmerBLASRequestResult::Resident)
         {
@@ -467,7 +479,7 @@ void GlimmerTLAS::Upload(Frame* frame, BuildResult& result)
     m_spanChunksBuffer = std::move(spanChunksBuffer);
 }
 
-bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, GlimmerBLASCache& blasCache)
+bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& region, const BoundingBox& tracedRegion, const Vec3f& viewerPosition, GlimmerBLASCache& blasCache)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -478,6 +490,16 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     }
 
     if (m_waitingForBLAS && blasCache.GetResidentGeneration() != m_blasGenerationAtGather)
+    {
+        m_dirty = true;
+    }
+
+    if (m_waitingForBLAS && viewerPosition.Distance(m_viewerPositionAtGather) > ViewerMoveRegatherDistance)
+    {
+        m_dirty = true;
+    }
+
+    if (blasCache.GetEvictionGeneration() != m_blasEvictionGenerationAtGather)
     {
         m_dirty = true;
     }
@@ -542,7 +564,7 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     BuildInput input;
     uint32 numWaitingForBLAS = 0;
 
-    Gather(rpl, region, tracedRegion, blasCache, input, numWaitingForBLAS);
+    Gather(rpl, region, tracedRegion, viewerPosition, blasCache, input, numWaitingForBLAS);
 
     input.region = region;
     input.regionCenter = region.GetCenter();
@@ -553,6 +575,8 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     m_pendingBlasKeys = input.blasKeys;
 
     m_blasGenerationAtGather = blasCache.GetResidentGeneration();
+    m_blasEvictionGenerationAtGather = blasCache.GetEvictionGeneration();
+    m_viewerPositionAtGather = viewerPosition;
     m_waitingForBLAS = numWaitingForBLAS != 0;
     m_stats.numWaitingForBLAS = numWaitingForBLAS;
 
