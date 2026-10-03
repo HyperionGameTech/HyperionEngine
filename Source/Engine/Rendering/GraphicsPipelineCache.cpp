@@ -37,7 +37,7 @@ namespace Hyperion {
 // #define HYP_GRAPHICS_PIPELINE_TIMING_DEBUG 1
 
 // discard a graphics pipeline that hasn't been used after this number of frames
-static constexpr uint32 GraphicsPipelineDiscardFrames = 100;
+static constexpr uint32 GraphicsPipelineDiscardFrames = 3000;
 static constexpr size_t CachedPipelinesPerPage = 256;
 
 #pragma region CachedPipelinesMap
