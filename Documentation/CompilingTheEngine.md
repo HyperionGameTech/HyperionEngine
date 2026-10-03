@@ -8,7 +8,7 @@ The engine compiles as a shared library (`hyperion`) with the editor and sample 
 All platforms require the following:
 
 * **CMake** (3.10+) - Project generation and build orchestration.
-* **Vulkan SDK** - Required for the Vulkan rendering backend (the default and primary backend). On Apple platforms, the SDK includes MoltenVK which translates Vulkan API calls to Metal.
+* **Vulkan SDK** - Required for the Vulkan rendering backend, which is the default on macOS, Android, and Linux. On Apple platforms, the SDK includes MoltenVK which translates Vulkan API calls to Metal. On Windows, DirectX 12 is the default backend and uses the Windows SDK, so the Vulkan SDK is only needed if you build the Vulkan backend.
 
 Platform-specific prerequisites:
 
@@ -117,6 +117,7 @@ For this setup, we support using Clang for Windows as well as Android.
 
 ### Windows
 
+- **Rendering backend:** DirectX 12 is a fully supported, mainline backend and is the default on Windows (MSVC and Clang). Vulkan is used on the other platforms.
 - **`VCPKG_ROOT` must be set.** The build will fail without it. Point it to your vcpkg installation directory.
 
 ### macOS

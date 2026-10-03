@@ -92,6 +92,9 @@ struct WorldShaderData
     Vec4f sunDirectionIntensity;
     Vec4f sunColor;
 
+    // rgb = transmittance of the sun's light through the atmosphere, same as the sun light's atmosphereTint
+    Vec4f sunAtmosphereTint;
+
     // rgb = tint, w = intensity
     Vec4f skyTintIntensity;
 
@@ -120,7 +123,7 @@ struct WorldShaderData
     Vec4f cutoutParams;
 };
 
-static_assert(sizeof(WorldShaderData) == 256);
+static_assert(sizeof(WorldShaderData) == 272);
 
 struct EntityShaderData
 {

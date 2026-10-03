@@ -15,6 +15,7 @@
 #include <Scene/Swatch.hpp>
 #include <Scene/Subsystem.hpp>
 #include <Scene/Light/Light.hpp>
+#include <Scene/Light/LightHelpers.hpp>
 #include <Scene/LOD.hpp>
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
@@ -2470,6 +2471,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
 
             outShaderData.sunDirectionIntensity = Vec4f(light->GetWorldTranslation().Normalized(), light->GetIntensity());
             outShaderData.sunColor = Vec4f(light->GetColor());
+            outShaderData.sunAtmosphereTint = Vec4f(LightHelpers::ComputeSunAtmosphereTint(outShaderData.sunDirectionIntensity.GetXYZ()), 1.0f);
             outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::HasSun);
 
             hasSun = true;

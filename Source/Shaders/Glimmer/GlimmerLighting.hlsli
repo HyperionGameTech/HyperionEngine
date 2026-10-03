@@ -47,7 +47,7 @@ float GlimmerSkyReference()
 
 float3 GlimmerSunIrradiance()
 {
-    return world_shader_data.sun_color.rgb * world_shader_data.sun_direction_intensity.w;
+    return world_shader_data.sun_color.rgb * world_shader_data.sun_atmosphere_tint.rgb * world_shader_data.sun_direction_intensity.w;
 }
 
 float GlimmerCloudShadow(float3 P, float3 L)
