@@ -33,10 +33,21 @@ struct BVHBLASChildren
 
 struct BVHTriangle
 {
-    float4 position0; // w = asuint flags
+    float4 position0;
     float4 edge1;
     float4 edge2;
 };
+
+struct BVHBLASTriangle
+{
+    float3 position0;
+    float3 position1;
+    float3 position2;
+    bool isLeafEnd;
+};
+
+#define LOAD_BVH_BLAS_TRIANGLE(buffer, triangleIndex) \
+    UnpackBVHBLASTriangle((buffer)[(triangleIndex) * 5u], (buffer)[(triangleIndex) * 5u + 1u], (buffer)[(triangleIndex) * 5u + 2u], (buffer)[(triangleIndex) * 5u + 3u], (buffer)[(triangleIndex) * 5u + 4u])
 
 struct BVHTriangleAttributes
 {
@@ -82,6 +93,29 @@ BVHBLASChildren UnpackBVHBLASNode(BVHBLASNode node)
     children.refs[1] = (node.data.w >> 23u) | ((node.header.w >> 18u) << 9u);
 
     return children;
+}
+
+BVHBLASTriangle UnpackBVHBLASTriangle(uint word0, uint word1, uint word2, uint word3, uint word4)
+{
+    BVHBLASTriangle blasTriangle;
+
+    blasTriangle.position0 = float3(word0 & 0xFFFFu, word0 >> 16u, word1 & 0xFFFFu);
+    blasTriangle.position1 = float3(word1 >> 16u, word2 & 0xFFFFu, word2 >> 16u);
+    blasTriangle.position2 = float3(word3 & 0xFFFFu, word3 >> 16u, word4 & 0xFFFFu);
+    blasTriangle.isLeafEnd = ((word4 >> 16u) & BVH_BLAS_LEAF_END_FLAG) != 0u;
+
+    return blasTriangle;
+}
+
+BVHTriangle MakeBVHTriangle(BVHBLASTriangle blasTriangle)
+{
+    BVHTriangle bvhTriangle;
+
+    bvhTriangle.position0 = float4(blasTriangle.position0, 0.0);
+    bvhTriangle.edge1 = float4(blasTriangle.position1 - blasTriangle.position0, 0.0);
+    bvhTriangle.edge2 = float4(blasTriangle.position2 - blasTriangle.position0, 0.0);
+
+    return bvhTriangle;
 }
 
 float IntersectBVHBounds(float3 boundsMin, float3 boundsMax, float3 origin, float3 inverseDirection, float tMin, float tMax)

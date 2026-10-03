@@ -32,7 +32,7 @@ enum GlimmerInstanceFlags : uint32
 
 struct GlimmerInstanceShaderData
 {
-    float worldToObject[12]; // first three rows, row major
+    float worldToObject[12]; // world to the BLAS's quantization grid space, first three rows, row major
     uint32 blasNodeBase;
     uint32 blasTriangleBase;
     uint32 materialIndex;
@@ -51,7 +51,7 @@ static_assert(sizeof(GlimmerInstanceBoundsShaderData) == 32);
 
 struct GlimmerSpanInstanceShaderData
 {
-    float objectToWorld[12]; // first three rows, row major
+    float objectToWorld[12]; // BLAS quantization grid space to world, first three rows, row major
     uint32 blasTriangleBase;
     uint32 triangleCount;
     uint32 materialIndex;
