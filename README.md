@@ -15,12 +15,22 @@
 Hyperion started as a passion project, back in 2016, and is still worked on daily. Our aim with Hyperion is to offer a high fidelity gaming experience even on low-end hardware using our in-house baking system to prepare as much of the lighting and effects as possible ahead of time.
 
 ## Screenshots
-| | |
-|:---:|:---:|
-| ![Hyperion Engine - Baked lightmaps](/Documentation/Images/editor-scene.jpg) | ![Hyperion Engine - Multiplayer, in PIE](/Documentation/Images/multiplayer-editor-1.png) |
-| Baked lightmaps and reflections | Multiplayer, in play-in-editor mode |
-| ![Hyperion Engine - Glimmer GI](/Documentation/Images/sponza-glimmer.png) | ![Hyperion Engine - Baked lightmaps](/Documentation/Images/sponza-lightmaps.png) |
-| Glimmer - realtime GI | Lightmaps - baked offline, static only |
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="Documentation/Images/emissives.png" alt="Hyperion Engine - Emissives" width="100%"><br>
+      Glimmer - Emissives
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="Documentation/Images/multiplayer-editor-1.png" alt="Hyperion Engine - Multiplayer, in PIE" width="100%"><br>
+      Multiplayer, in play-in-editor mode
+    </td>
+  </tr>
+</table>
+
+
+<!-- | ![Hyperion Engine - Glimmer GI](/Documentation/Images/sponza-glimmer.png) | ![Hyperion Engine - Baked lightmaps](/Documentation/Images/sponza-lightmaps.png) |
+| Glimmer - realtime GI | Lightmaps - baked offline, static only | -->
 
 ## Some Features
 - Clustered deferred shading supporting a large number of dynamic lights while maintaining good frame times. Uses forward clustered shading for translucent materials.
