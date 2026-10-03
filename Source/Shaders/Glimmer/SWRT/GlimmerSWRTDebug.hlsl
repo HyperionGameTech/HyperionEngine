@@ -57,7 +57,7 @@ DECLARE_SAMPLER(GlimmerSWRTDebug, SamplerLinearMipmap) SamplerState glimmerMater
 
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerTLASNodesBuffer) StructuredBuffer<BVHNode> glimmerTLASNodes;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerInstancesBuffer) StructuredBuffer<GlimmerInstance> glimmerInstances;
-DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASNodesBuffer) StructuredBuffer<BVHNode> glimmerBLASNodes;
+DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASNodesBuffer) StructuredBuffer<BVHBLASNode> glimmerBLASNodes;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerBLASTrianglesBuffer) StructuredBuffer<BVHTriangle> glimmerBLASTriangles;
 DECLARE_SRV(GlimmerSWRTDebug, FootprintMaskBuffer) StructuredBuffer<uint> footprintMask;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;

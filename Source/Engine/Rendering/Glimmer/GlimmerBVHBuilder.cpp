@@ -13,6 +13,8 @@
 #include <Core/Profiling/ProfileScope.hpp>
 
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 
 namespace Hyperion {
 
@@ -386,6 +388,97 @@ uint32 GlimmerBVHBuilder::CalculateDepth(Span<const GlimmerBVHNode> nodes)
     }
 
     return maxDepth;
+}
+
+bool GlimmerBVHBuilder::PackBLAS(Span<const GlimmerBVHNode> nodes, Array<GlimmerBLASNode>& outNodes, Array<uint32>& outLeafEnds)
+{
+    HYP_SCOPE;
+
+    constexpr int MinExponent = -32;
+    constexpr int MaxExponent = 31;
+
+    outNodes.Resize(nodes.Size());
+    outLeafEnds.Clear();
+
+    for (size_t nodeIndex = 0; nodeIndex < nodes.Size(); nodeIndex++)
+    {
+        const GlimmerBVHNode& node = nodes[nodeIndex];
+        GlimmerBLASNode& packed = outNodes[nodeIndex];
+
+        const float* const childMin[2] = { node.leftMin, node.rightMin };
+        const float* const childMax[2] = { node.leftMax, node.rightMax };
+
+        float origin[3];
+        double scale[3];
+        uint32 exponents = 0;
+
+        for (int axis = 0; axis < 3; axis++)
+        {
+            origin[axis] = MathUtil::Min(node.leftMin[axis], node.rightMin[axis]);
+
+            const double extent = double(MathUtil::Max(node.leftMax[axis], node.rightMax[axis])) - double(origin[axis]);
+
+            int exponent = extent > 0.0 ? int(std::ceil(std::log2(extent / 255.0))) : MinExponent;
+            exponent = MathUtil::Clamp(exponent, MinExponent, MaxExponent);
+
+            while (exponent < MaxExponent && 255.0 * std::ldexp(1.0, exponent) < extent)
+            {
+                exponent++;
+            }
+
+            scale[axis] = std::ldexp(1.0, exponent);
+            exponents |= uint32(exponent - MinExponent) << (axis * 6);
+        }
+
+        // rounding outward keeps the quantized bounds around the real ones
+        ubyte childBytes[12];
+
+        for (uint32 child = 0; child < 2; child++)
+        {
+            for (int axis = 0; axis < 3; axis++)
+            {
+                const double quantizedMin = std::floor((double(childMin[child][axis]) - double(origin[axis])) / scale[axis]);
+                const double quantizedMax = std::ceil((double(childMax[child][axis]) - double(origin[axis])) / scale[axis]);
+
+                childBytes[child * 6 + axis] = ubyte(MathUtil::Clamp(quantizedMin, 0.0, 255.0));
+                childBytes[child * 6 + 3 + axis] = ubyte(MathUtil::Clamp(quantizedMax, 0.0, 255.0));
+            }
+        }
+
+        const uint32 childIndices[2] = { node.leftIndex, node.rightIndex };
+        const uint32 childCounts[2] = { node.leftCount, node.rightCount };
+
+        uint32 refs[2];
+
+        for (uint32 child = 0; child < 2; child++)
+        {
+            if (childIndices[child] > GlimmerBLASNode::MaxIndex)
+            {
+                return false;
+            }
+
+            refs[child] = childIndices[child];
+
+            if (childCounts[child] != 0)
+            {
+                if (childIndices[child] + childCounts[child] - 1 > GlimmerBLASNode::MaxIndex)
+                {
+                    return false;
+                }
+
+                refs[child] |= GlimmerBLASNode::RefLeafBit;
+                outLeafEnds.PushBack(childIndices[child] + childCounts[child] - 1);
+            }
+        }
+
+        Memory::Copy(&packed.words[0], origin, sizeof(origin));
+        Memory::Copy(&packed.words[4], childBytes, sizeof(childBytes));
+
+        packed.words[3] = exponents | ((refs[1] >> 9) << 18);
+        packed.words[7] = refs[0] | ((refs[1] & 0x1FFu) << 23);
+    }
+
+    return true;
 }
 
 } // namespace Hyperion

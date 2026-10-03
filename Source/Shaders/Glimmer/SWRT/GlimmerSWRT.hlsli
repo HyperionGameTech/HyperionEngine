@@ -110,14 +110,14 @@ void GlimmerTraverseBLAS(
         stats.nodeVisits++;
         workLeft--;
 
-        const BVHNode node = glimmerBLASNodes[nodeBase + nodeIndex];
+        const BVHBLASChildren children = UnpackBVHBLASNode(glimmerBLASNodes[nodeBase + nodeIndex]);
 
-        const uint childIndices[2] = { asuint(node.leftMinIndex.w), asuint(node.rightMinIndex.w) };
-        const uint childCounts[2] = { asuint(node.leftMaxCount.w), asuint(node.rightMaxCount.w) };
+        const uint childIndices[2] = { children.refs[0] & BVH_BLAS_REF_INDEX_MASK, children.refs[1] & BVH_BLAS_REF_INDEX_MASK };
+        const bool childIsLeaf[2] = { (children.refs[0] & BVH_BLAS_REF_LEAF_BIT) != 0u, (children.refs[1] & BVH_BLAS_REF_LEAF_BIT) != 0u };
 
         const float childDistances[2] = {
-            IntersectBVHBounds(node.leftMinIndex.xyz, node.leftMaxCount.xyz, origin, inverseDirection, tMin, hit.t),
-            IntersectBVHBounds(node.rightMinIndex.xyz, node.rightMaxCount.xyz, origin, inverseDirection, tMin, hit.t)
+            IntersectBVHBounds(children.boundsMin[0], children.boundsMax[0], origin, inverseDirection, tMin, hit.t),
+            IntersectBVHBounds(children.boundsMin[1], children.boundsMax[1], origin, inverseDirection, tMin, hit.t)
         };
 
         const uint nearChild = childDistances[1] < childDistances[0] ? 1u : 0u;
@@ -128,16 +128,13 @@ void GlimmerTraverseBLAS(
         {
             const uint child = order == 0 ? nearChild : 1u - nearChild;
 
-            if (childCounts[child] == 0u || childDistances[child] > hit.t)
+            if (!childIsLeaf[child] || childDistances[child] > hit.t)
             {
                 continue;
             }
 
-            const uint firstTriangle = triangleBase + childIndices[child];
-
-            const uint lastTriangle = firstTriangle + min(childCounts[child], workLeft);
-
-            for (uint triangleIndex = firstTriangle; triangleIndex < lastTriangle; triangleIndex++)
+            // a leaf's triangles run up to the one flagged as its end
+            for (uint triangleIndex = triangleBase + childIndices[child]; workLeft != 0u; triangleIndex++)
             {
                 stats.triangleTests++;
                 workLeft--;
@@ -162,12 +159,17 @@ void GlimmerTraverseBLAS(
                         return;
                     }
                 }
+
+                if ((asuint(bvhTriangle.position0.w) & BVH_BLAS_LEAF_END_FLAG) != 0u)
+                {
+                    break;
+                }
             }
         }
 
         // hits found in the leaves above can put an interior child out of range, misses are always out of range
-        const bool traverseNear = childCounts[nearChild] == 0u && childDistances[nearChild] <= hit.t;
-        const bool traverseFar = childCounts[1u - nearChild] == 0u && childDistances[1u - nearChild] <= hit.t;
+        const bool traverseNear = !childIsLeaf[nearChild] && childDistances[nearChild] <= hit.t;
+        const bool traverseFar = !childIsLeaf[1u - nearChild] && childDistances[1u - nearChild] <= hit.t;
 
         if (traverseNear && traverseFar)
         {
