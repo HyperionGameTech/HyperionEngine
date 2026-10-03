@@ -24,8 +24,10 @@ CVar<int> g_cvGlimmerSWRTProbesPoolBlocks("Rendering.Glimmer.SWRT.Probes.PoolBlo
 CVar<float> g_cvGlimmerSWRTProbesBlockMargin("Rendering.Glimmer.SWRT.Probes.BlockMargin", 1.0f);
 CVar<float> g_cvGlimmerSWRTProbesMinHeightAboveGround("Rendering.Glimmer.SWRT.Probes.MinHeightAboveGround", 0.5f);
 CVar<int> g_cvGlimmerSWRTProbesBlockReleaseFrames("Rendering.Glimmer.SWRT.Probes.BlockReleaseFrames", 60);
-CVar<int> g_cvGlimmerSWRTProbesMaxHistory("Rendering.Glimmer.SWRT.Probes.MaxHistory", 16);
-CVar<int> g_cvGlimmerSWRTProbesMinHistory("Rendering.Glimmer.SWRT.Probes.MinHistory", 1);
+CVar<float> g_cvGlimmerSWRTProbesHistorySeconds("Rendering.Glimmer.SWRT.Probes.HistorySeconds", 1.0f);
+CVar<float> g_cvGlimmerSWRTProbesHistorySecondsChanging("Rendering.Glimmer.SWRT.Probes.HistorySecondsChanging", 0.25f);
+CVar<int> g_cvGlimmerSWRTProbesMinHistory("Rendering.Glimmer.SWRT.Probes.MinHistory", 16);
+CVar<int> g_cvGlimmerSWRTProbesMinHistoryChanging("Rendering.Glimmer.SWRT.Probes.MinHistoryChanging", 4);
 CVar<float> g_cvGlimmerSWRTProbesRelocateMargin("Rendering.Glimmer.SWRT.Probes.RelocateMargin", 0.3f);
 CVar<int> g_cvGlimmerSWRTProbesInsideRetryInterval("Rendering.Glimmer.SWRT.Probes.InsideRetryInterval", 64);
 CVar<int> g_cvGlimmerSWRTProbesClassifyPeriod("Rendering.Glimmer.SWRT.Probes.ClassifyPeriod", 8);

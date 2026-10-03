@@ -44,11 +44,14 @@ extern CVar<int> g_cvGlimmerSWRTProbesPoolBlocks;              // blocks of 64 p
 extern CVar<float> g_cvGlimmerSWRTProbesBlockMargin;           // how far (in probe spacings) around a block solids make it wanted
 extern CVar<float> g_cvGlimmerSWRTProbesMinHeightAboveGround;  // solids lower than this on the ground (roads, rocks) want no probes
 extern CVar<int> g_cvGlimmerSWRTProbesBlockReleaseFrames;      // frames an unwanted block keeps its probes
-extern CVar<int> g_cvGlimmerSWRTProbesMaxHistory;              // updates a probe's history averages at most this
-extern CVar<int> g_cvGlimmerSWRTProbesMinHistory;              // min of the above
 extern CVar<float> g_cvGlimmerSWRTProbesRelocateMargin;        // how far past a back face a probe inside a solid moves (m)
 extern CVar<int> g_cvGlimmerSWRTProbesInsideRetryInterval;     // updates between checks on probes stuck inside solids
 extern CVar<int> g_cvGlimmerSWRTProbesClassifyPeriod;          // frames between looks at the solids around a block
+
+extern CVar<float> g_cvGlimmerSWRTProbesHistorySeconds;
+extern CVar<float> g_cvGlimmerSWRTProbesHistorySecondsChanging;
+extern CVar<int> g_cvGlimmerSWRTProbesMinHistory;
+extern CVar<int> g_cvGlimmerSWRTProbesMinHistoryChanging;
 
 enum class GlimmerSWRTDebugProbes : int
 {

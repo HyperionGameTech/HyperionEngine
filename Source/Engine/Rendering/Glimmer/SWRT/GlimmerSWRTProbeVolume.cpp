@@ -107,8 +107,8 @@ struct GlimmerProbeTraceConstants
 struct GlimmerProbeBlendConstants
 {
     GlimmerProbeVolumeShaderData volume;
-    Vec4u dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid, z = updates the history averages at most, w = ...at least while its light changes
-    Vec4f params;   // z = how far past a back face a probe moves (m)
+    Vec4u dispatch; // x = probes traced per frame at most, y = moves a probe gets to get out of a solid, z = updates the history averages at least while its light holds, w = ...while it changes
+    Vec4f params;   // x = seconds the history spans while the light holds, y = while it changes, z = how far past a back face a probe moves (m)
 };
 
 static GpuBufferRef CreateProbeBuffer(size_t elementSize, size_t numElements)
@@ -576,16 +576,21 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         GlimmerProbeBlendConstants constants {};
         constants.volume = m_shaderData;
 
-        // the visibility's history is bounded by the 6 bit update count in the probe state
-        const uint32 maxHistory = uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMaxHistory.Get(), 1, 63));
+        const uint32 minHistory = uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistory.Get(), 1, 255));
 
         constants.dispatch = Vec4u(
             probesPerFrame,
             MaxRelocations,
-            maxHistory,
-            uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistory.Get(), 0, int(maxHistory))));
-        
-        constants.params = Vec4f(0.0f, 0.0f, MathUtil::Max(g_cvGlimmerSWRTProbesRelocateMargin.Get(), 0.0f), 0.0f);
+            minHistory,
+            uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistoryChanging.Get(), 0, int(minHistory))));
+
+        const float historySeconds = MathUtil::Max(g_cvGlimmerSWRTProbesHistorySeconds.Get(), 0.0f);
+
+        constants.params = Vec4f(
+            historySeconds,
+            MathUtil::Clamp(g_cvGlimmerSWRTProbesHistorySecondsChanging.Get(), 0.0f, historySeconds),
+            MathUtil::Max(g_cvGlimmerSWRTProbesRelocateMargin.Get(), 0.0f),
+            0.0f);
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
