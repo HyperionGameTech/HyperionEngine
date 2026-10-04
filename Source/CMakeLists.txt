@@ -1123,6 +1123,7 @@ if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
         "-framework Foundation"
         "-framework AppKit"
         "-framework QuartzCore"
+        "-framework IOKit"
     )
 endif()
 

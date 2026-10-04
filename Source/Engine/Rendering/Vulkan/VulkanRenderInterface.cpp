@@ -39,6 +39,7 @@
 #include <Framework/CVarManager.hpp>
 #include <Framework/Config/EngineConfig.hpp>
 #include <Framework/EngineGlobals.hpp>
+#include <Framework/DeviceTier/DeviceTierResolver.hpp>
 
 #include <Framework/EngineStats.hpp>
 
@@ -718,6 +719,9 @@ RendererResult VulkanRenderInterface::Initialize()
 
     m_instance = new VulkanInstance;
     CheckResultOrReturn(m_instance->Initialize(enableDebugLayers));
+
+    InitDeviceDetails(deviceDetails);
+    DeviceTierResolver::GetInstance().ResolvePostGpu(deviceDetails);
 
     LoadPipelineCache();
 
@@ -1860,14 +1864,23 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
 void VulkanRenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
 {
     const VulkanFeatures& features = m_instance->GetDevice()->GetFeatures();
-    uint32 deviceId = features.GetDeviceId();
-    uint32 vendorId = deviceId >> 24;
-    uint32 deviceIdLower = deviceId & 0xFFFF;
+    const VkPhysicalDeviceMemoryProperties& memoryProperties = features.GetPhysicalDeviceMemoryProperties();
+
+    uint64 vramBytes = 0;
+
+    for (uint32 heapIndex = 0; heapIndex < memoryProperties.memoryHeapCount; heapIndex++)
+    {
+        if (memoryProperties.memoryHeaps[heapIndex].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+        {
+            vramBytes += memoryProperties.memoryHeaps[heapIndex].size;
+        }
+    }
 
     GpuInfo info;
     info.gpuType = features.IsDiscreteGpu() ? GpuType::Dedicated : GpuType::Integrated;
-    info.vendorId = vendorId;
-    info.deviceId = deviceIdLower;
+    info.vendorId = features.GetPhysicalDeviceProperties().vendorID;
+    info.deviceId = features.GetDeviceId();
+    info.vramBytes = vramBytes;
     info.gpuModel = String(features.GetDeviceName());
     info.isDiscrete = features.IsDiscreteGpu();
     info.supportsRayTracing = features.IsRayTracingSupported();

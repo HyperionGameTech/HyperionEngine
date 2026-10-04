@@ -733,8 +733,6 @@ RendererResult RenderInterface::Initialize()
     shadowMapCache = PoolNew<ShadowMapCache>(*g_renderPool);
     stagingBufferPool = PoolNew<StagingBufferPool>(*g_renderPool);
 
-    InitDeviceDetails(deviceDetails);
-
     namedBuffers[NamedBuffer::Worlds] = StructuredBuffer(MaxBoundWorlds, sizeof(WorldShaderData));
     namedBuffers[NamedBuffer::Cameras] = StructuredBuffer(MaxBoundCameras, sizeof(CameraShaderData));
     namedBuffers[NamedBuffer::Lights] = StructuredBuffer(MaxBoundLights, sizeof(LightShaderData));

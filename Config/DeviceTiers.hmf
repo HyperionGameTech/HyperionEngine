@@ -1,0 +1,39 @@
+TierProfile "DeviceTiers" {
+    Rules = [
+        Rule "Glimmer.High" {
+            AtMost = { DeviceGrade = High }
+            Set = {
+                "Rendering.Glimmer.SWRT.NearField.Cascades" = 3
+                "Rendering.Glimmer.SWRT.Probes.RaysPerFrame" = 32768
+                "Rendering.Glimmer.SWRT.Probes.PoolBlocks" = 384
+            }
+        }
+        Rule "Glimmer.Medium" {
+            AtMost = { DeviceGrade = Medium }
+            Set = {
+                "Rendering.Glimmer.SWRT.NearField.Cascades" = 2
+                "Rendering.Glimmer.SWRT.Probes.RaysPerFrame" = 16384
+                "Rendering.Glimmer.SWRT.Probes.PoolBlocks" = 192
+                "Rendering.Glimmer.SWRT.Spans.Radius" = 192
+            }
+        }
+        Rule "Glimmer.Low" {
+            AtMost = { DeviceGrade = Low }
+            Set = {
+                "Rendering.Glimmer.SWRT.Probes.Enabled" = false
+            }
+        }
+        Rule "Glimmer.MobileSHOnly" {
+            When = { DeviceType = Mobile }
+            Set = {
+                "Rendering.Glimmer.SWRT.Probes.Enabled" = false
+            }
+        }
+        Rule "Glimmer.LaptopUltraCap" {
+            When = { DeviceType = Laptop, DeviceGrade = Ultra }
+            Set = {
+                "Rendering.Glimmer.SWRT.Probes.RaysPerFrame" = 32768
+            }
+        }
+    ]
+}

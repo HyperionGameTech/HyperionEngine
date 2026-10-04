@@ -93,6 +93,9 @@ copy "%HYP_ROOT_DIR%Config\*Config.Android.json" "%OUT_DIR%\Config\" >nul 2>nul
 echo Copying Shaders.hmf...
 copy "%HYP_ROOT_DIR%Config\Shaders.hmf" "%OUT_DIR%\Config\" >nul
 
+echo Copying DeviceTiers.hmf...
+copy "%HYP_ROOT_DIR%Config\DeviceTiers.hmf" "%OUT_DIR%\Config\" >nul
+
 set "ANDROID_PROJECT=%HYP_ROOT_DIR%Source\PlatformSpecific\Android"
 
 if not exist "%ANDROID_PROJECT%" (

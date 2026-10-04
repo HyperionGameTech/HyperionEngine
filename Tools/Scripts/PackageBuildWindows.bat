@@ -61,6 +61,9 @@ powershell -NoProfile -Command "(Get-Content '%OUT_DIR%\Config\GlobalConfig.json
 echo Copying Shaders.hmf...
 copy "%HYP_ROOT_DIR%Config\Shaders.hmf" "%OUT_DIR%\Config\" >nul
 
+echo Copying DeviceTiers.hmf...
+copy "%HYP_ROOT_DIR%Config\DeviceTiers.hmf" "%OUT_DIR%\Config\" >nul
+
 REM For development build, copy the game actions vdf and steam app id
 echo Copying development steam files...
 REM This will need to not be hardcoded obviously!

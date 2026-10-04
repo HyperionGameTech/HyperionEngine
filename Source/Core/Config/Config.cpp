@@ -36,11 +36,43 @@ static const ConfigValue s_invalidConfigValue {};
 static Map<String, JSON::Value> s_configCache;
 static SharedMutex s_configCacheMutex;
 
+static Map<String, SharedPtr<const ConfigOverlay>> s_configOverlays;
+static SharedMutex s_configOverlaysMutex;
+
+static SharedPtr<const ConfigOverlay> FindOverlay(const String& configName)
+{
+    TSharedLock lock(s_configOverlaysMutex);
+
+    if (auto it = s_configOverlays.Find(configName); it != s_configOverlays.End())
+    {
+        return it->second;
+    }
+
+    return {};
+}
+
+static String GetOverlayKey(const Optional<String>& subobjectPath, UTF8StringView key)
+{
+    if (subobjectPath.HasValue())
+    {
+        return *subobjectPath + "." + String(key);
+    }
+
+    return String(key);
+}
+
 #pragma region ConfigBase
 
 // Set externally for DI
 CORE_API Result (*ConfigBase::s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target) = nullptr;
 CORE_API Result (*ConfigBase::s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, struct ToJSONOptions* pOptions) = nullptr;
+
+void ConfigBase::SetOverlay(const String& configName, SharedPtr<const ConfigOverlay> overlay)
+{
+    TUniqueLock lock(s_configOverlaysMutex);
+
+    s_configOverlays.Set(configName, std::move(overlay));
+}
 
 ConfigBase::ConfigBase()
     : m_rootObject(JSON::Object())
@@ -68,6 +100,7 @@ ConfigBase::ConfigBase(const ConfigBase& other)
     : m_subobjectPath(other.m_subobjectPath),
       m_rootObject(other.m_rootObject),
       m_name(other.m_name),
+      m_overlay(other.m_overlay),
       m_cachedHashCode(other.m_cachedHashCode)
 {
 }
@@ -82,6 +115,7 @@ ConfigBase& ConfigBase::operator=(const ConfigBase& other)
     m_subobjectPath = other.m_subobjectPath;
     m_rootObject = other.m_rootObject;
     m_name = other.m_name;
+    m_overlay = other.m_overlay;
     m_cachedHashCode = other.m_cachedHashCode;
 
     return *this;
@@ -91,6 +125,7 @@ ConfigBase::ConfigBase(ConfigBase&& other) noexcept
     : m_subobjectPath(std::move(other.m_subobjectPath)),
       m_rootObject(std::move(other.m_rootObject)),
       m_name(std::move(other.m_name)),
+      m_overlay(std::move(other.m_overlay)),
       m_cachedHashCode(std::move(other.m_cachedHashCode))
 {
 }
@@ -105,6 +140,7 @@ ConfigBase& ConfigBase::operator=(ConfigBase&& other) noexcept
     m_subobjectPath = std::move(other.m_subobjectPath);
     m_rootObject = std::move(other.m_rootObject);
     m_name = std::move(other.m_name);
+    m_overlay = std::move(other.m_overlay);
     m_cachedHashCode = std::move(other.m_cachedHashCode);
 
     return *this;
@@ -218,6 +254,14 @@ ConfigBase& ConfigBase::Merge(const ConfigBase& other)
 
 const ConfigValue& ConfigBase::Get(UTF8StringView key) const
 {
+    if (m_overlay)
+    {
+        if (auto it = m_overlay->Find(GetOverlayKey(m_subobjectPath, key)); it != m_overlay->End())
+        {
+            return it->second;
+        }
+    }
+
     auto selectResult = GetSubobject().Get(key);
 
     if (selectResult.value != nullptr)
@@ -230,6 +274,19 @@ const ConfigValue& ConfigBase::Get(UTF8StringView key) const
 
 void ConfigBase::Set(UTF8StringView key, const ConfigValue& value)
 {
+    if (m_overlay)
+    {
+        const String overlayKey = GetOverlayKey(m_subobjectPath, key);
+
+        if (m_overlay->Contains(overlayKey))
+        {
+            SharedPtr<ConfigOverlay> overlayWithoutKey = MakeShared<ConfigOverlay>(*m_overlay);
+            overlayWithoutKey->Erase(overlayKey);
+
+            m_overlay = std::move(overlayWithoutKey);
+        }
+    }
+
     GetSubobject().Set(key, value);
 }
 
@@ -256,6 +313,8 @@ bool ConfigBase::Save()
 
 bool ConfigBase::Load()
 {
+    m_overlay = FindOverlay(m_name);
+
     // Check cache
     {
         TSharedLock lock(s_configCacheMutex);

@@ -55,6 +55,39 @@ ENGINE_API bool IsOnBatteryPower()
     return powerStatus.ACLineStatus == 0;
 }
 
+ENGINE_API bool HasBattery()
+{
+    SYSTEM_POWER_STATUS powerStatus;
+    if (!GetSystemPowerStatus(&powerStatus))
+    {
+        return false;
+    }
+
+    // 128 = no system battery, 255 = unknown status
+    return powerStatus.BatteryFlag != 128 && powerStatus.BatteryFlag != 255;
+}
+
+ENGINE_API uint64 GetSystemMemoryBytes()
+{
+    MEMORYSTATUSEX memoryStatus {};
+    memoryStatus.dwLength = sizeof(memoryStatus);
+
+    if (!GlobalMemoryStatusEx(&memoryStatus))
+    {
+        return 0;
+    }
+
+    return memoryStatus.ullTotalPhys;
+}
+
+ENGINE_API uint32 GetLogicalCoreCount()
+{
+    SYSTEM_INFO systemInfo {};
+    GetSystemInfo(&systemInfo);
+
+    return uint32(systemInfo.dwNumberOfProcessors);
+}
+
 ENGINE_API void InitializeNetwork()
 {
     static std::once_flag s_onceFlag;

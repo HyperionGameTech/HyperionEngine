@@ -37,6 +37,7 @@
 #include <Core/Threading/AtomicFlag.hpp>
 
 #include <Framework/DeviceDetails.hpp>
+#include <Framework/DeviceTier/DeviceTierResolver.hpp>
 
 #include <System/AppContext.hpp>
 
@@ -352,6 +353,12 @@ RendererResult DX12RenderInterface::Initialize()
     // Initialize render config features based on device capabilities
     m_renderConfig->InitializeBindless(this);
     m_renderConfig->InitializeRayTracing(this);
+
+    InitDeviceDetails(deviceDetails);
+    DeviceTierResolver::GetInstance().ResolvePostGpu(deviceDetails);
+
+    m_renderConfig->indirectRendering = g_cvIndirectRendering.Get();
+    m_renderConfig->parallelRendering = g_cvParallelRendering.Get();
 
     static_assert(sizeof(decltype(m_queueData)) / sizeof(decltype(m_queueData[0])) > D3D12_COMMAND_LIST_TYPE_COPY,
                   "m_queueData is too small; must have size increased.");
@@ -1291,6 +1298,7 @@ void DX12RenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
     info.gpuType = isIntegrated ? GpuType::Integrated : GpuType::Dedicated;
     info.vendorId = adapterDesc.VendorId;
     info.deviceId = adapterDesc.DeviceId;
+    info.vramBytes = isIntegrated ? uint64(adapterDesc.SharedSystemMemory) : uint64(adapterDesc.DedicatedVideoMemory);
     info.gpuModel = String(adapterDesc.Description);
     info.isDiscrete = !isIntegrated;
     info.supportsRayTracing = options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;

@@ -43,6 +43,7 @@ struct GpuInfo
     String driverVersion;
     uint32 deviceId = 0;
     uint32 vendorId = 0;
+    uint64 vramBytes = 0;
 
     bool isDiscrete = false;
     bool supportsRayTracing = false;
