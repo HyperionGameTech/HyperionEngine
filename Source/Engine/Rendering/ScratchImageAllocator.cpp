@@ -18,7 +18,7 @@ namespace Hyperion {
 #pragma region ScratchImageAllocator
 
 static constexpr bool UseNextPowerOfTwoExtent = true;
-static constexpr uint32 MaxFramesBeforeDiscard = 100;
+static constexpr uint32 MaxFramesBeforeDiscard = 3000;
 
 struct ScratchImageAllocatorImpl
 {

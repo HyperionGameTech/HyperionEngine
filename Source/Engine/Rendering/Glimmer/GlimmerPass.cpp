@@ -149,7 +149,10 @@ GlimmerScenePassData* GlimmerPass::GetSceneForWorld(World* world) const
 
 const GlimmerTechnique* GlimmerPass::GetApplyTechnique(World* world) const
 {
-    GlimmerScenePassData* scene = g_cvGlimmerEnabled.Get() ? GetSceneForWorld(world) : nullptr;
+    const bool isEnabled = g_cvGlimmerEnabled.Get()
+        && (GetWorldBufferData()->environmentFlags & uint32(WorldEnvironmentFlags::Glimmer));
+
+    GlimmerScenePassData* scene = isEnabled ? GetSceneForWorld(world) : nullptr;
 
     return scene ? scene->technique.Get() : nullptr;
 }
@@ -162,7 +165,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     View* view = renderSetup.view;
     AssertDebug(view != nullptr && (view->GetFlags() & ViewFlags::GLIMMER_SCENE_VIEW));
 
-    if (!IsGlimmerSceneRequired())
+    if (!IsGlimmerSceneRequired() || !(GetWorldBufferData()->environmentFlags & uint32(WorldEnvironmentFlags::Glimmer)))
     {
         return;
     }

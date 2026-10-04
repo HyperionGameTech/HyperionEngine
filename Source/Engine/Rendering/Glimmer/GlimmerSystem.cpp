@@ -38,6 +38,11 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 namespace /* Helpers */ {
 
+bool IsWorldGlimmerEnabled(const World* world)
+{
+    return world != nullptr && world->GetEnvironmentSettings().globalIllumination.glimmerEnabled;
+}
+
 float EvaluateL1(const Vec4f& sh, const Vec3f& N)
 {
     const float l0 = MathUtil::Max(sh.x, 0.0f);
@@ -299,7 +304,7 @@ void GlimmerSystem::OnAddedToWorld(World* world)
         GlimmerChannel::Register(world, m_channel);
     }
 
-    SetSceneViewActive(IsGlimmerSceneRequired());
+    SetSceneViewActive(IsGlimmerSceneRequired() && IsWorldGlimmerEnabled(world));
 }
 
 void GlimmerSystem::OnRemovedFromWorld(World* world)
@@ -322,7 +327,7 @@ void GlimmerSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
 
-    SetSceneViewActive(IsGlimmerSceneRequired());
+    SetSceneViewActive(IsGlimmerSceneRequired() && IsWorldGlimmerEnabled(GetWorld()));
 
     if (!m_isSceneViewActive || !m_channel)
     {

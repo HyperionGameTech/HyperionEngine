@@ -82,11 +82,6 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         return VK_NULL_HANDLE;
     }
 
-    EngineConfig cfg;
-    cfg.Load();
-
-    const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
-
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
     VulkanFeatures deviceFeatures;
 
@@ -100,33 +95,6 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         if (deviceFeatures.IsDiscreteGpu() || deviceFeatures.IsIntegratedGpu())
         {
             validDevices.PushBack(device);
-        }
-    }
-
-    if (validDevices.Any() && cfgSelectedGpuIndex.IsNumber())
-    {
-        const double configuredIndex = cfgSelectedGpuIndex.AsNumber();
-
-        if (!(configuredIndex >= 0.0 && configuredIndex < double(validDevices.Size())))
-        {
-            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid device(s); falling back to automatic selection",
-                configuredIndex, validDevices.Size());
-        }
-        else
-        {
-            const uint32 selectedIndex = uint32(configuredIndex);
-
-            deviceFeatures.SetPhysicalDevice(validDevices[selectedIndex]);
-
-            if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
-            {
-                HYP_LOG(RenderingBackend, Info, "Select {} device {} (from config)", deviceFeatures.IsDiscreteGpu() ? "discrete" : "integrated", deviceFeatures.GetDeviceName());
-
-                return validDevices[selectedIndex];
-            }
-
-            HYP_LOG(RenderingBackend, Warning, "Configured GPU {} does not satisfy minimum requirements ({}); falling back to automatic selection",
-                deviceFeatures.GetDeviceName(), deviceRequirementsResult.message);
         }
     }
 
@@ -157,13 +125,6 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
             HYP_LOG(RenderingBackend, Info, "Select {} device {} (score {})", deviceFeatures.IsDiscreteGpu() ? "discrete" : "integrated", deviceFeatures.GetDeviceName(), deviceScores[index]);
-
-            cfg.Set("System.SelectedGpu.Index", JSON::Number(index));
-
-            if (!cfg.Save())
-            {
-                HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
-            }
 
             return device;
         }

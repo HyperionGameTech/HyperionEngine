@@ -61,6 +61,20 @@ extern uint32 GetBinding(const void* resource);
 } // namespace Resources
 
 HYP_ENUM()
+enum class WorldEnvironmentFlags : uint32
+{
+    None = 0x0,
+    HasSun = 0x1,
+    SunDisk = 0x2,
+    HeightFog = 0x4,
+    DDGI = 0x8,
+    RayTracedReflections = 0x10,
+    Glimmer = 0x20
+};
+
+HYP_MAKE_ENUM_FLAGS(WorldEnvironmentFlags);
+
+HYP_ENUM()
 enum class ImageUsage : uint8
 {
     None = 0x0,

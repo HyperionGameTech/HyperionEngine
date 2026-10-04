@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Input;
@@ -13,11 +14,43 @@ namespace Hyperion.Editor.Commands
         private Func<string?>? _argumentProvider;
         private Func<bool>? _canExecute;
 
+        private static readonly List<WeakReference<EditorCommand>> s_instances = new List<WeakReference<EditorCommand>>();
+
         public EditorCommand(string name, Func<string?>? argumentProvider = null, Func<bool>? canExecute = null)
         {
             _name = name;
             _argumentProvider = argumentProvider;
             _canExecute = canExecute;
+
+            lock (s_instances)
+            {
+                s_instances.Add(new WeakReference<EditorCommand>(this));
+            }
+        }
+
+        public static void RaiseCanExecuteChangedForAll()
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            List<EditorCommand> alive = new List<EditorCommand>();
+
+            lock (s_instances)
+            {
+                s_instances.RemoveAll(weak => !weak.TryGetTarget(out _));
+
+                foreach (WeakReference<EditorCommand> weak in s_instances)
+                {
+                    if (weak.TryGetTarget(out EditorCommand? command))
+                    {
+                        alive.Add(command);
+                    }
+                }
+            }
+
+            foreach (EditorCommand command in alive)
+            {
+                command.RaiseCanExecuteChanged();
+            }
         }
 
         public bool CanExecute(object? parameter) => !string.IsNullOrEmpty(_name)

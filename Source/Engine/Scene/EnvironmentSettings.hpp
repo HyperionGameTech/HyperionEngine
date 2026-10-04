@@ -255,6 +255,9 @@ struct GlobalIlluminationSettings
 {
     HYP_STRUCT_BODY(GlobalIlluminationSettings);
 
+    HYP_FIELD(Property = "GlimmerEnabled", Serialize, Label = "Glimmer GI")
+    bool glimmerEnabled = true;
+
     HYP_FIELD(Property = "DDGIEnabled", Serialize, Label = "Dynamic Diffuse GI (DDGI)")
     bool ddgiEnabled = false;
 

@@ -246,11 +246,6 @@ RendererResult DX12RenderInterface::Initialize()
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create DXGI Factory", res);
 
-    EngineConfig cfg;
-    cfg.Load();
-
-    const ConfigValue& cfgSelectedGpuIndex = cfg.Get("System.SelectedGpu.Index");
-
     struct AdapterCandidate
     {
         ComPtr<IDXGIAdapter1> adapter;
@@ -293,6 +288,8 @@ RendererResult DX12RenderInterface::Initialize()
 
         score += uint64(desc.DedicatedVideoMemory) / (1024 * 1024);
 
+        HYP_LOG(RenderingBackend, Info, "GPU candidate {}: {} (score {})", candidates.Size(), WideString(desc.Description), score);
+
         candidates.PushBack({ adapter, desc, score });
     }
 
@@ -302,47 +299,13 @@ RendererResult DX12RenderInterface::Initialize()
         return HYP_MAKE_ERROR(RendererError, "Failed to find suitable GPU", E_FAIL);
     }
 
-    int targetGpuIndex = -1;
+    UINT selectedIndex = 0;
 
-    if (cfgSelectedGpuIndex.IsNumber())
+    for (UINT candidateIndex = 1; candidateIndex < UINT(candidates.Size()); candidateIndex++)
     {
-        const double configuredIndex = cfgSelectedGpuIndex.AsNumber();
-
-        if (!(configuredIndex >= 0.0 && configuredIndex < double(candidates.Size())))
+        if (candidates[candidateIndex].score > candidates[selectedIndex].score)
         {
-            HYP_LOG(RenderingBackend, Warning, "Configured GPU index {} is out of bounds for {} valid adapter(s); falling back to automatic selection",
-                configuredIndex, candidates.Size());
-        }
-        else
-        {
-            targetGpuIndex = int(configuredIndex);
-        }
-    }
-
-    UINT selectedIndex;
-
-    if (targetGpuIndex >= 0)
-    {
-        selectedIndex = UINT(targetGpuIndex);
-    }
-    else
-    {
-        // pick the best candidate without reordering, so the saved index matches enumeration order on the next launch
-        selectedIndex = 0;
-
-        for (UINT candidateIndex = 1; candidateIndex < UINT(candidates.Size()); candidateIndex++)
-        {
-            if (candidates[candidateIndex].score > candidates[selectedIndex].score)
-            {
-                selectedIndex = candidateIndex;
-            }
-        }
-
-        cfg.Set("System.SelectedGpu.Index", JSON::Number(selectedIndex));
-
-        if (!cfg.Save())
-        {
-            HYP_LOG(RenderingBackend, Warning, "Failed to save GPU selection config");
+            selectedIndex = candidateIndex;
         }
     }
 

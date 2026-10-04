@@ -136,6 +136,11 @@ void WriteEnvironmentShaderData(const EnvironmentSettings& settings, WorldShader
 
     const GlobalIlluminationSettings& globalIllumination = settings.globalIllumination;
 
+    if (globalIllumination.glimmerEnabled)
+    {
+        outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::Glimmer);
+    }
+
     if (globalIllumination.ddgiEnabled)
     {
         outShaderData.environmentFlags |= uint32(WorldEnvironmentFlags::DDGI);

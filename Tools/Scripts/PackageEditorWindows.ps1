@@ -292,17 +292,6 @@ $releaseArgs = ($globalConfig.App.Args -split "\s+") |
     Where-Object { $_ -and $_ -notmatch "^--(basedir|traceserver|cacheserver)=" }
 $globalConfig.App.Args = (@($releaseArgs) + "--basedir=./") -join " "
 [System.IO.File]::WriteAllText($GlobalConfigPath, ($globalConfig | ConvertTo-Json -Depth 16), [System.Text.UTF8Encoding]::new($false))
-
-# the engine saves its GPU pick here; a stale index from the build machine would override automatic selection
-$EngineConfigPath = Join-Path $ConfigStageDir "EngineConfig.json"
-$engineConfig = Get-Content $EngineConfigPath -Raw | ConvertFrom-Json
-if ($engineConfig.PSObject.Properties["System"] -and $engineConfig.System.PSObject.Properties["SelectedGpu"])
-{
-    $engineConfig.System.PSObject.Properties.Remove("SelectedGpu")
-    if (-not @($engineConfig.System.PSObject.Properties).Count) { $engineConfig.PSObject.Properties.Remove("System") }
-    [System.IO.File]::WriteAllText($EngineConfigPath, ($engineConfig | ConvertTo-Json -Depth 16), [System.Text.UTF8Encoding]::new($false))
-}
-
 # --- Content, shaders, scripts ----------------------------------------------------------------------------------------
 
 Write-Step "Staging engine and editor content"

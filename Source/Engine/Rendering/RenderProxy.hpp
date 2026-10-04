@@ -64,17 +64,6 @@ struct NullProxy final
 {
 };
 
-// matches the WORLD_ENVIRONMENT_FLAG_* defines in Shaders/Include/Scene.hlsli
-enum class WorldEnvironmentFlags : uint32
-{
-    None = 0x0,
-    HasSun = 0x1,
-    SunDisk = 0x2,
-    HeightFog = 0x4,
-    DDGI = 0x8,
-    RayTracedReflections = 0x10
-};
-
 struct WorldShaderData
 {
     float gameTime;

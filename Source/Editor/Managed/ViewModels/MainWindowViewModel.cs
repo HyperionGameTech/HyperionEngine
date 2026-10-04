@@ -51,11 +51,11 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ClosePanelCommand => PanelService.Instance.CloseCommand;
         public ICommand BackPanelCommand => PanelService.Instance.BackCommand;
 
-        public EditorCommand NewProject => new EditorCommand("NewProject");
-        public EditorCommand OpenProject => new EditorCommand("OpenProject");
-        public EditorCommand SaveProject => new EditorCommand("SaveProject");
-        public EditorCommand SaveProjectAs => new EditorCommand("SaveProjectAs");
-        public EditorCommand CloseProject => new EditorCommand("CloseProject");
+        public EditorCommand NewProject { get; } = new EditorCommand("NewProject");
+        public EditorCommand OpenProject { get; } = new EditorCommand("OpenProject");
+        public EditorCommand SaveProject { get; } = new EditorCommand("SaveProject");
+        public EditorCommand SaveProjectAs { get; } = new EditorCommand("SaveProjectAs");
+        public EditorCommand CloseProject { get; } = new EditorCommand("CloseProject");
 
         public ICommand OpenRecentProject { get; } = new RelayCommand<string>(projectFilepath =>
         {
@@ -78,23 +78,23 @@ namespace Hyperion.Editor.ViewModels
             }
         });
 
-        public EditorCommand Undo => new EditorCommand("Undo");
-        public EditorCommand Redo => new EditorCommand("Redo");
-        public EditorCommand SelectAll => new EditorCommand("SelectAll");
-        public EditorCommand SelectAllInViewport => new EditorCommand("SelectAllInViewport");
-        public EditorCommand SelectNone => new EditorCommand("SelectNone");
+        public EditorCommand Undo { get; } = new EditorCommand("Undo");
+        public EditorCommand Redo { get; } = new EditorCommand("Redo");
+        public EditorCommand SelectAll { get; } = new EditorCommand("SelectAll");
+        public EditorCommand SelectAllInViewport { get; } = new EditorCommand("SelectAllInViewport");
+        public EditorCommand SelectNone { get; } = new EditorCommand("SelectNone");
 
-        public EditorCommand BuildLightmaps => new EditorCommand("BuildLightmaps");
-        public EditorCommand BuildStaticShadows => new EditorCommand("BuildStaticShadows");
-        public EditorCommand BuildReflectionProbes => new EditorCommand("BuildReflectionProbes");
-        public EditorCommand BuildIrradianceProbes => new EditorCommand("BuildIrradianceProbes");
-        public EditorCommand BuildFogVolumes => new EditorCommand("BuildFogVolumes");
+        public EditorCommand BuildLightmaps { get; } = new EditorCommand("BuildLightmaps");
+        public EditorCommand BuildStaticShadows { get; } = new EditorCommand("BuildStaticShadows");
+        public EditorCommand BuildReflectionProbes { get; } = new EditorCommand("BuildReflectionProbes");
+        public EditorCommand BuildIrradianceProbes { get; } = new EditorCommand("BuildIrradianceProbes");
+        public EditorCommand BuildFogVolumes { get; } = new EditorCommand("BuildFogVolumes");
 
-        public EditorCommand BuildBentNormals => new EditorCommand("BuildBentNormals");
+        public EditorCommand BuildBentNormals { get; } = new EditorCommand("BuildBentNormals");
         
-        public EditorCommand RebuildMeshBVHs => new EditorCommand("RebuildMeshBVHs");
+        public EditorCommand RebuildMeshBVHs { get; } = new EditorCommand("RebuildMeshBVHs");
 
-        public EditorCommand CookGameContent => new EditorCommand("CookGameContent");
+        public EditorCommand CookGameContent { get; } = new EditorCommand("CookGameContent");
 
         private string _undoHeader = "Undo";
         public string UndoHeader
@@ -177,34 +177,34 @@ namespace Hyperion.Editor.ViewModels
 
         public bool HasAddToPrefabTargets => AddToPrefabTargets.Count > 0;
 
-        public EditorCommand AddEmptyNode => new EditorCommand("AddEmptyNode");
-        public EditorCommand AddEntity => new EditorCommand("AddEntity");
-        public EditorCommand AddCamera => new EditorCommand("AddCamera");
+        public EditorCommand AddEmptyNode { get; } = new EditorCommand("AddEmptyNode");
+        public EditorCommand AddEntity { get; } = new EditorCommand("AddEntity");
+        public EditorCommand AddCamera { get; } = new EditorCommand("AddCamera");
 
-        public EditorCommand AddSprite => new EditorCommand("AddSprite");
-        public EditorCommand AddTextSprite => new EditorCommand("AddTextSprite");
+        public EditorCommand AddSprite { get; } = new EditorCommand("AddSprite");
+        public EditorCommand AddTextSprite { get; } = new EditorCommand("AddTextSprite");
 
-        public EditorCommand AddPointLight => new EditorCommand("AddPointLight");
-        public EditorCommand AddDirectionalLight => new EditorCommand("AddDirectionalLight");
-        public EditorCommand AddSpotLight => new EditorCommand("AddSpotLight");
-        public EditorCommand AddAreaRectLight => new EditorCommand("AddAreaRectLight");
+        public EditorCommand AddPointLight { get; } = new EditorCommand("AddPointLight");
+        public EditorCommand AddDirectionalLight { get; } = new EditorCommand("AddDirectionalLight");
+        public EditorCommand AddSpotLight { get; } = new EditorCommand("AddSpotLight");
+        public EditorCommand AddAreaRectLight { get; } = new EditorCommand("AddAreaRectLight");
 
-        public EditorCommand AddReflectionProbe => new EditorCommand("AddReflectionProbe");
-        public EditorCommand AddIrradianceProbe => new EditorCommand("AddIrradianceProbe");
-        public EditorCommand AddLightmapVolume => new EditorCommand("AddLightmapVolume");
-        public EditorCommand AddParticleVolume => new EditorCommand("AddParticleVolume");
-        public EditorCommand AddFogVolume => new EditorCommand("AddFogVolume");
+        public EditorCommand AddReflectionProbe { get; } = new EditorCommand("AddReflectionProbe");
+        public EditorCommand AddIrradianceProbe { get; } = new EditorCommand("AddIrradianceProbe");
+        public EditorCommand AddLightmapVolume { get; } = new EditorCommand("AddLightmapVolume");
+        public EditorCommand AddParticleVolume { get; } = new EditorCommand("AddParticleVolume");
+        public EditorCommand AddFogVolume { get; } = new EditorCommand("AddFogVolume");
 
-        public EditorCommand NewScript => new EditorCommand("NewScript");
+        public EditorCommand NewScript { get; } = new EditorCommand("NewScript");
 
         // Shapes
-        public EditorCommand AddPlane => new EditorCommand("AddPlane");
-        public EditorCommand AddCube => new EditorCommand("AddCube");
+        public EditorCommand AddPlane { get; } = new EditorCommand("AddPlane");
+        public EditorCommand AddCube { get; } = new EditorCommand("AddCube");
         public ICommand AddNormalizedCubeSphereCommand { get; private set; }
-        public EditorCommand AddCylinder => new EditorCommand("AddCylinder");
+        public EditorCommand AddCylinder { get; } = new EditorCommand("AddCylinder");
 
         // Terrain
-        public EditorCommand AddTerrainLayer => new EditorCommand("AddWorldGridLayer", () => "TerrainWorldGridLayer");
+        public EditorCommand AddTerrainLayer { get; } = new EditorCommand("AddWorldGridLayer", () => "TerrainWorldGridLayer");
         public ICommand ToggleTerrainSculptMode { get; private set; }
         public ICommand ToggleTerrainPaintMode { get; private set; }
 
@@ -480,9 +480,9 @@ namespace Hyperion.Editor.ViewModels
         }
 
         // Templates
-        public EditorCommand AddPlayerEntity => new EditorCommand("AddPlayerEntity");
+        public EditorCommand AddPlayerEntity { get; } = new EditorCommand("AddPlayerEntity");
         // CommandParameter is the template name
-        public EditorCommand AddTemplate => new EditorCommand("AddTemplate");
+        public EditorCommand AddTemplate { get; } = new EditorCommand("AddTemplate");
         public ICommand SaveAsTemplate { get; private set; }
         public ICommand SavePrefabAsTemplate { get; private set; }
         public ICommand OpenTemplatesFolder { get; private set; }
@@ -505,14 +505,16 @@ namespace Hyperion.Editor.ViewModels
 
         private string GetSelectedNodeUuid() => SceneHierarchy.SelectedNode?.UUID.ToString() ?? string.Empty;
 
-        public EditorCommand DeleteNode => new EditorCommand("DeleteNode");
-        public EditorCommand Delete => new EditorCommand("DeleteNode");
+        public EditorCommand DeleteNode { get; } = new EditorCommand("DeleteNode");
+        public EditorCommand Delete { get; } = new EditorCommand("DeleteNode");
         public ICommand SaveAsPrefab { get; private set; }
-        public EditorCommand SavePrefab => new EditorCommand("SavePrefab");
-        public EditorCommand TeleportToNode => new EditorCommand("TeleportTo", GetSelectedNodeUuid);
-        public EditorCommand MoveToCameraNode => new EditorCommand("MoveToCamera", GetSelectedNodeUuid);
-        public EditorCommand Copy => new EditorCommand("Copy");
-        public EditorCommand Paste => new EditorCommand("Paste");
+        public EditorCommand SavePrefab { get; } = new EditorCommand("SavePrefab");
+        private EditorCommand? _teleportToNodeCommand;
+        public EditorCommand TeleportToNode => _teleportToNodeCommand ??= new EditorCommand("TeleportTo", GetSelectedNodeUuid);
+        private EditorCommand? _moveToCameraNodeCommand;
+        public EditorCommand MoveToCameraNode => _moveToCameraNodeCommand ??= new EditorCommand("MoveToCamera", GetSelectedNodeUuid);
+        public EditorCommand Copy { get; } = new EditorCommand("Copy");
+        public EditorCommand Paste { get; } = new EditorCommand("Paste");
 
         public ICommand SelectTransformModeTranslate { get; private set; }
         public ICommand SelectTransformModeRotate { get; private set; }
@@ -662,15 +664,17 @@ namespace Hyperion.Editor.ViewModels
 
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
         // that was right-clicked rather than whatever happens to be focused.
-        public EditorCommand GenerateConvexCollision => new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
+        private EditorCommand? _generateConvexCollisionCommand;
+        public EditorCommand GenerateConvexCollision => _generateConvexCollisionCommand ??= new EditorCommand("GenerateConvexCollision", GetSelectedNodeUuid);
 
         public ICommand OpenGenerateConvexCollisionPanel { get; private set; }
         private GenerateConvexCollisionPanelViewModel? _generateConvexCollisionPanel;
 
-        public EditorCommand FitCollisionToMesh => new EditorCommand("FitCollisionToMesh", GetSelectedNodeUuid);
+        private EditorCommand? _fitCollisionToMeshCommand;
+        public EditorCommand FitCollisionToMesh => _fitCollisionToMeshCommand ??= new EditorCommand("FitCollisionToMesh", GetSelectedNodeUuid);
 
         // Takes the right-clicked volume's UUID; the bounds come from the engine-side selection.
-        public EditorCommand FitVolumeToSelection => new EditorCommand("FitVolumeToSelection");
+        public EditorCommand FitVolumeToSelection { get; } = new EditorCommand("FitVolumeToSelection");
 
         public ICommand SetViewportLod { get; private set; }
 
@@ -963,6 +967,7 @@ namespace Hyperion.Editor.ViewModels
             (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewLayerCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
+            EditorCommand.RaiseCanExecuteChangedForAll();
             ContentBrowser?.RefreshCanCreateAssets();
 
             // Starting simulation turns the terrain tools off in the engine; mirror that in the tool panels.
