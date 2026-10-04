@@ -7,17 +7,27 @@
 
 #define GLIMMER_SH_VISIBILITY_NORMAL_BIAS 0.3
 #define GLIMMER_SH_CRUSH_THRESHOLD 0.2
-#define GLIMMER_SH_AXIS_FADE 0.25
+#define GLIMMER_SH_AXIS_FADE 0.5
 
 float GlimmerSHAxisVisibility(GlimmerSHVoxel voxelData, float3 voxelToPoint)
 {
     const float3 distances = abs(voxelToPoint);
-    const uint axis = distances.x >= distances.y ? (distances.x >= distances.z ? 0u : 2u) : (distances.y >= distances.z ? 1u : 2u);
 
-    const float along = axis == 0u ? voxelToPoint.x : (axis == 1u ? voxelToPoint.y : voxelToPoint.z);
-    const float depth = voxelData.depths[axis * 2u + (along < 0.0 ? 1u : 0u)];
+    const float3 depths = float3(
+        voxelData.depths[voxelToPoint.x < 0.0 ? 1u : 0u],
+        voxelData.depths[voxelToPoint.y < 0.0 ? 3u : 2u],
+        voxelData.depths[voxelToPoint.z < 0.0 ? 5u : 4u]);
 
-    return saturate(1.0 - (abs(along) - depth) / GLIMMER_SH_AXIS_FADE);
+    const float3 visible = saturate(1.0 - (distances - depths) / GLIMMER_SH_AXIS_FADE);
+
+    const float3 direction = distances / max(length(distances), 1e-4);
+
+    float3 weights = direction * direction;
+    weights *= weights;
+
+    const float weightSum = weights.x + weights.y + weights.z;
+
+    return weightSum > 1e-6 ? dot(visible, weights) / weightSum : 1.0;
 }
 
 /// Based on DDGI:  https://www.jcgt.org/published/0008/02/01/paper-lowres.pdf
