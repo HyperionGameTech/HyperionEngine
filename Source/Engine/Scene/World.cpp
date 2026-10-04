@@ -20,8 +20,6 @@
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
 
-#include <Rendering/Glimmer/GlimmerSystem.hpp>
-
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
 #include <Scene/Systems/AnimationSystem.hpp>
@@ -38,6 +36,8 @@
 #include <Scene/Systems/ReplicationApplySystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 #include <Scene/Systems/WeaponSystem.hpp>
+
+#include <Scene/Systems/Glimmer/GlimmerSystem.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
