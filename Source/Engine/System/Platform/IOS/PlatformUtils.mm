@@ -44,6 +44,21 @@ ENGINE_API bool IsOnBatteryPower()
     return state == UIDeviceBatteryStateUnplugged;
 }
 
+ENGINE_API bool HasBattery()
+{
+    return true;
+}
+
+ENGINE_API uint64 GetSystemMemoryBytes()
+{
+    return uint64([[NSProcessInfo processInfo] physicalMemory]);
+}
+
+ENGINE_API uint32 GetLogicalCoreCount()
+{
+    return uint32([[NSProcessInfo processInfo] activeProcessorCount]);
+}
+
 ENGINE_API void InitializeNetwork()
 {
 }

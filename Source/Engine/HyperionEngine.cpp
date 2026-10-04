@@ -14,6 +14,7 @@
 #include <Framework/CVarManager.hpp>
 #include <Framework/Game.hpp>
 #include <Framework/CacheClient.hpp>
+#include <Framework/DeviceTier/DeviceTierResolver.hpp>
 
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/Threads/SimThread.hpp>
@@ -498,6 +499,8 @@ extern "C"
         ClassRegistry::GetInstance().Initialize();
 
         InitLogger();
+
+        DeviceTierResolver::GetInstance().ResolvePreGpu();
 
 #if HYP_DOTNET && !defined(HYP_COMMANDLET_NAME)
         if (!EngineGlobals::IsCommandlet())

@@ -7,9 +7,6 @@
 #include <RenderingPch.hpp>
 
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
-#include <Rendering/RenderInterface.hpp>
-
-#include <Framework/DeviceDetails.hpp>
 
 namespace Hyperion {
 
@@ -23,32 +20,9 @@ CVar<float> g_cvGlimmerVisibility("Rendering.Glimmer.Visibility", 1.0f);
 
 CVar<float> g_cvGlimmerGroundAlbedo("Rendering.Glimmer.Ground.Albedo", 0.25f);
 
-/// STOPGAP.
-/// @TODO: Replace with a check for VRAM, use a new device profiles system for scaling Glimmer or disabling on low-end
-static bool IsGlimmerSupportedOnDevice()
-{
-    const DeviceDetails& device = RI.deviceDetails;
-
-    if (device.IsDiscreteGpu())
-    {
-        return true;
-    }
-
-    static bool s_hasLogged = false;
-
-    if (!s_hasLogged)
-    {
-        s_hasLogged = true;
-        HYP_LOG(Rendering, Warning, "Glimmer GI is disabled on integrated GPU '{}'", device.GetGpuModel());
-    }
-
-    return false;
-}
-
 bool IsGlimmerSceneRequired()
 {
-    return IsGlimmerSupportedOnDevice()
-        && (g_cvGlimmerEnabled.Get() || g_cvGlimmerDebugView.Get() >= int(GlimmerDebugView::TechniqueFirst));
+    return g_cvGlimmerEnabled.Get() || g_cvGlimmerDebugView.Get() >= int(GlimmerDebugView::TechniqueFirst);
 }
 
 } // namespace Hyperion

@@ -10,6 +10,7 @@
 
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/FixedArray.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Utilities/StringView.hpp>
 #include <Core/Utilities/Optional.hpp>
@@ -18,6 +19,7 @@
 #include <Core/FileSystem/FilePath.hpp>
 
 #include <Core/Memory/NotNullPtr.hpp>
+#include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Threading/SharedMutex.hpp>
 
@@ -88,6 +90,7 @@ private:
 };
 
 using ConfigValue = JSON::Value;
+using ConfigOverlay = Map<String, ConfigValue>;
 
 class CORE_API ConfigBase
 {
@@ -98,6 +101,9 @@ protected:
     ConfigBase(const String& configName, const Class* cls);
 
 public:
+    static void SetOverlay(const String& configName, SharedPtr<const ConfigOverlay> overlay);
+
+
     static Result(*s_ObjectFromJSON)(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
     static Result(*s_ObjectToJSON)(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions* pOptions);
 
@@ -169,6 +175,8 @@ private:
 
     String m_name;
     Array<Error> m_errors;
+
+    SharedPtr<const ConfigOverlay> m_overlay;
 
     mutable HashCode m_cachedHashCode;
 };
@@ -329,6 +337,7 @@ private:
 using config::Config;
 using config::ConfigBase;
 using config::ConfigValue;
+using config::ConfigOverlay;
 using config::ConfigKey;
 using config::GlobalConfig;
 

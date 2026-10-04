@@ -106,6 +106,9 @@ if(HYP_PLATFORM_NAME STREQUAL "IOS")
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_SOURCE_DIR}/../Config/Shaders.hmf"
       "$<TARGET_FILE_DIR:${BUILD_NAME}>/Config/Shaders.hmf"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_SOURCE_DIR}/../Config/DeviceTiers.hmf"
+      "$<TARGET_FILE_DIR:${BUILD_NAME}>/Config/DeviceTiers.hmf"
   )
 
   add_custom_command(TARGET ${BUILD_NAME} POST_BUILD

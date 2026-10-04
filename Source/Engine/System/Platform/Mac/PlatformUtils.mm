@@ -8,6 +8,8 @@
 
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
+#import <IOKit/ps/IOPowerSources.h>
+#import <IOKit/ps/IOPSKeys.h>
 
 namespace Hyperion {
 namespace PlatformUtils {
@@ -40,6 +42,51 @@ ENGINE_API bool IsOnBatteryPower()
 {
     // TODO: implement for macOS using IOPowerSources or IOPS
     return false;
+}
+
+ENGINE_API bool HasBattery()
+{
+    CFTypeRef powerSourcesInfo = IOPSCopyPowerSourcesInfo();
+
+    if (!powerSourcesInfo)
+    {
+        return false;
+    }
+
+    bool hasBattery = false;
+
+    if (CFArrayRef powerSources = IOPSCopyPowerSourcesList(powerSourcesInfo))
+    {
+        for (CFIndex i = 0; i < CFArrayGetCount(powerSources) && !hasBattery; i++)
+        {
+            CFDictionaryRef description = IOPSGetPowerSourceDescription(powerSourcesInfo, CFArrayGetValueAtIndex(powerSources, i));
+
+            if (!description)
+            {
+                continue;
+            }
+
+            CFStringRef type = (CFStringRef)CFDictionaryGetValue(description, CFSTR(kIOPSTypeKey));
+
+            hasBattery = type && CFStringCompare(type, CFSTR(kIOPSInternalBatteryType), 0) == kCFCompareEqualTo;
+        }
+
+        CFRelease(powerSources);
+    }
+
+    CFRelease(powerSourcesInfo);
+
+    return hasBattery;
+}
+
+ENGINE_API uint64 GetSystemMemoryBytes()
+{
+    return uint64([[NSProcessInfo processInfo] physicalMemory]);
+}
+
+ENGINE_API uint32 GetLogicalCoreCount()
+{
+    return uint32([[NSProcessInfo processInfo] activeProcessorCount]);
 }
 
 ENGINE_API void InitializeNetwork()
