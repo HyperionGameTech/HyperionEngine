@@ -4,9 +4,14 @@
  *  @licence MIT
  */
 
-#include <RenderingPch.hpp>
+#include <ScenePch.hpp>
 
-#include <Rendering/Glimmer/GlimmerSystem.hpp>
+#include <Scene/Systems/Glimmer/GlimmerSystem.hpp>
+
+#include <Scene/World.hpp>
+#include <Scene/Camera/Camera.hpp>
+#include <Scene/Util/SceneHelpers.hpp>
+
 #include <Rendering/Glimmer/GlimmerCVars.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerTechnique.hpp>
@@ -16,10 +21,6 @@
 
 #include <Rendering/DebugDrawer.hpp>
 #include <Rendering/Vertex.hpp>
-
-#include <Scene/World.hpp>
-#include <Scene/Camera/Camera.hpp>
-#include <Scene/Util/SceneHelpers.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/View.hpp>
