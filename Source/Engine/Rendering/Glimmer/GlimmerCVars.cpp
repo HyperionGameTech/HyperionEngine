@@ -23,7 +23,8 @@ CVar<float> g_cvGlimmerVisibility("Rendering.Glimmer.Visibility", 1.0f);
 
 CVar<float> g_cvGlimmerGroundAlbedo("Rendering.Glimmer.Ground.Albedo", 0.25f);
 
-// Stopgap: integrated GPUs hit a device timeout building Glimmer's BLAS pool
+/// STOPGAP.
+/// @TODO: Replace with a check for VRAM, use a new device profiles system for scaling Glimmer or disabling on low-end
 static bool IsGlimmerSupportedOnDevice()
 {
     const DeviceDetails& device = RI.deviceDetails;

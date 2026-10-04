@@ -65,7 +65,6 @@ $dumpTaken = $false
 $everHung = $false
 $elapsed = 0
 $lastFileCount = -1
-$stalledSamples = 0
 while ($elapsed -lt $DurationSeconds)
 {
     Start-Sleep -Seconds 5
@@ -80,16 +79,15 @@ while ($elapsed -lt $DurationSeconds)
     $responding = $process.Responding
     $fileCount = Get-RuntimeFileCount
     if (-not $responding) { $everHung = $true }
-    if ($fileCount -eq $lastFileCount) { $stalledSamples++ } else { $stalledSamples = 0 }
     $lastFileCount = $fileCount
 
     Log ("t={0}s responding={1} ws={2:N0} MB threads={3} cpu={4:N1}s temp files={5}" -f $elapsed, $responding, ($process.WorkingSet64 / 1MB), $process.Threads.Count, $process.TotalProcessorTime.TotalSeconds, $fileCount)
     if ($elapsed -in 15, 45, 75) { Save-Screenshot ("screenshot_{0:D3}s" -f $elapsed) }
 
-    if (-not $dumpTaken -and $elapsed -ge 40 -and ($everHung -or $stalledSamples -ge 4))
+    if (-not $dumpTaken -and $everHung)
     {
         $dumpPath = Join-Path $ResultsDir "editor_hung.dmp"
-        Log "no progress, writing full dump to $dumpPath"
+        Log "not responding, writing full dump to $dumpPath"
         Start-Process -FilePath "rundll32.exe" -ArgumentList "C:\Windows\System32\comsvcs.dll, MiniDump $($process.Id) $dumpPath full" -Wait
         Log ("dump size: {0:N0} MB" -f ((Get-Item $dumpPath -ErrorAction SilentlyContinue).Length / 1MB))
         $dumpTaken = $true
