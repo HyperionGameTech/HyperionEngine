@@ -243,7 +243,7 @@ public:
     struct State
     {
         static constexpr uint32 MaxShaderUniforms = 32;
-        static constexpr uint32 MaxBoundDescriptorSets = 8;
+        static constexpr uint32 MaxBoundDescriptorSets = 4;
 
         RenderableAttributeSet attributes;
         Viewport viewport;

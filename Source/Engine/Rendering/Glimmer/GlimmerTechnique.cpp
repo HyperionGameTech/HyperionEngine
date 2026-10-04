@@ -300,8 +300,8 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
 
     CommandRecorder& cr = context.frame->cr;
 
-    const GpuImageRef& depthImage = gbufferFramebuffer->GetAttachment(GBufferTarget::Depth)->GetGpuImage();
-    const GpuImageRef& normalsImage = gbufferFramebuffer->GetAttachment(GBufferTarget::Normals)->GetGpuImage();
+    GpuImage* depthImage = gbufferFramebuffer->GetAttachment(GBufferTarget::Depth)->GetGpuImage();
+    GpuImage* normalsImage = gbufferFramebuffer->GetAttachment(GBufferTarget::Normals)->GetGpuImage();
 
     cr << InsertBarrier(depthImage, ResourceState::ShaderResource, ShaderModuleType::Compute);
     cr << InsertBarrier(normalsImage, ResourceState::ShaderResource, ShaderModuleType::Compute);

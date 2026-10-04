@@ -1988,7 +1988,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const GpuImageRef& srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
+        GpuImage* srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
@@ -2069,7 +2069,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->cr << SetCurrentFramebuffer(nullptr);
 
         {
-            const GpuImageRef& srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
+            GpuImage* srcImage = passData.lightingFramebuffer->GetAttachment(0)->GetGpuImage();
             GenerateMipChain(frame, rs, renderCollector, srcImage);
         }
     }

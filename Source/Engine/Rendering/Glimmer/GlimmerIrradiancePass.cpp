@@ -173,9 +173,9 @@ void GlimmerIrradiancePass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     m_shaderData.params = Vec4u(isActive ? 1u : 0u, isActive && isDebugView ? 1u : 0u, g_cvGlimmerSpecularOcclusion.Get() ? 1u : 0u, 0);
 
-    const GpuImageRef& targetImage = GetAttachment(0)->GetGpuImage();
-    const GpuImageRef& specularImage = GetAttachment(1)->GetGpuImage();
-    const GpuImageRef& reflectionImage = GetAttachment(2)->GetGpuImage();
+    GpuImage* targetImage = GetAttachment(0)->GetGpuImage();
+    GpuImage* specularImage = GetAttachment(1)->GetGpuImage();
+    GpuImage* reflectionImage = GetAttachment(2)->GetGpuImage();
 
     if (!isActive)
     {

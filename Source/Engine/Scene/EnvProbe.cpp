@@ -771,7 +771,7 @@ void EnvProbe::CreateViewData()
         ImageUsage::Sampled | ImageUsage::Attachment
     }));
 
-    for (const GpuImageRef& image : attachmentImages)
+    for (GpuImage* image : attachmentImages)
     {
         Check(image->Create());
     }
@@ -807,7 +807,7 @@ void EnvProbe::CreateViewData()
         for (uint32 attachmentIndex = 0; attachmentIndex < uint32(attachmentDescs.Size()); attachmentIndex++)
         {
             const AttachmentDesc& attachmentDesc = attachmentDescs[attachmentIndex];
-            const GpuImageRef& image = attachmentImages[attachmentIndex];
+            GpuImage* image = attachmentImages[attachmentIndex];
 
             // Create 2D view to the cubemap face
             GpuImageViewRef imageView = RI.MakeImageView(image, 0, 1, viewIndex, 1, TextureType::Texture2D);
