@@ -2491,7 +2491,11 @@ void DeferredPass::ExecuteDrawCalls(
     renderCollector.ExecuteDrawCalls(frame, rs, bucketMask);
 }
 
-void DeferredPass::GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
+void DeferredPass::GenerateMipChain(
+    Frame* frame,
+    const RenderSetup& rs,
+    RenderCollector& renderCollector,
+    GpuImage* srcImage)
 {
     DeferredPassData* pd = DynamicCast<DeferredPassData>(rs.passData);
 

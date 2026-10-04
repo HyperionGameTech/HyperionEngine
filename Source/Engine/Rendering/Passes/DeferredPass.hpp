@@ -154,8 +154,10 @@ public:
     };
 
     DeferredPass();
+    
     DeferredPass(const DeferredPass& other) = delete;
     DeferredPass& operator=(const DeferredPass& other) = delete;
+
     virtual ~DeferredPass() override;
 
     HYP_FORCE_INLINE const RenderedViewOutputs& GetRenderedViewOutputs() const
@@ -182,7 +184,7 @@ private:
     void ResizeView(Viewport viewport, View* view, DeferredPassData& passData);
 
     void ExecuteDrawCalls(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, uint32 bucketMask);
-    void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage);
+    void GenerateMipChain(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector, GpuImage* srcImage);
 
     RenderedViewOutputs m_renderedViewOutputs;
 
