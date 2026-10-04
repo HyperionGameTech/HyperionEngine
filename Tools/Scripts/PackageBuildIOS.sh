@@ -78,6 +78,9 @@ fi
 echo "Copying Shaders.hmf..."
 cp "$HYP_ROOT_DIR/Config/Shaders.hmf" "$OUT_DIR/Config/Shaders.hmf"
 
+echo "Copying DeviceTiers.hmf..."
+cp "$HYP_ROOT_DIR/Config/DeviceTiers.hmf" "$OUT_DIR/Config/DeviceTiers.hmf"
+
 echo "Done! Packaged build created at: $OUT_DIR"
 echo "NOTE: this is a raw Ninja build output, not a signed .app/.ipa. Installing on a"
 echo "      device or the simulator still requires taking this through Xcode (or"
