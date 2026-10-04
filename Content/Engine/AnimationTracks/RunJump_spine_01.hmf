@@ -4,5 +4,5 @@ AnimationTrack RunJump_spine_01 {
         Key = "Engine://AnimationTracks/RunJump_spine_01.KEYF"
         Size = 1600
     }
-    UUID = "ab6e068b-f89c-4e11-8557-6ff36f86f91b"
+    UUID = "be2fd570-7c42-4636-8aa0-baa5749d6d21"
 }

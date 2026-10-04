@@ -4,5 +4,5 @@ AnimationTrack Fall_hand_r {
         Key = "Engine://AnimationTracks/Fall_hand_r.KEYF"
         Size = 128
     }
-    UUID = "49687f34-4555-40ac-89a2-6b676a010571"
+    UUID = "a5431ee6-d8cd-4980-a2df-c5a4ee363a6a"
 }

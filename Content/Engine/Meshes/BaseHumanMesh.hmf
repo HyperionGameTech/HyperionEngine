@@ -105,5 +105,5 @@ Mesh BaseHumanMesh {
         Size = 161855
     }
     Flags = None
-    UUID = "bcae7a78-c63a-48c4-b535-e3eeaee66bf4"
+    UUID = "c5cfdbd0-b266-4b76-ad37-1471b8b6fcfe"
 }

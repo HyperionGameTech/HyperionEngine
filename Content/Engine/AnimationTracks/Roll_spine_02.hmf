@@ -4,5 +4,5 @@ AnimationTrack Roll_spine_02 {
         Key = "Engine://AnimationTracks/Roll_spine_02.KEYF"
         Size = 2880
     }
-    UUID = "491001f2-83d2-46c1-8ec9-38d7371fc20d"
+    UUID = "9b2d5ed8-c2d2-4e7b-b05b-f0e599e9233f"
 }

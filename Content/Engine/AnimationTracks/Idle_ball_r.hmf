@@ -4,5 +4,5 @@ AnimationTrack Idle_ball_r {
         Key = "Engine://AnimationTracks/Idle_ball_r.KEYF"
         Size = 128
     }
-    UUID = "878f6f75-f56f-416b-8fc8-2397047c8e5a"
+    UUID = "8b010d7c-49ce-47d3-abb6-486cd4583e45"
 }

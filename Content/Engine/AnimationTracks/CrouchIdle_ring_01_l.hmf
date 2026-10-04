@@ -4,5 +4,5 @@ AnimationTrack CrouchIdle_ring_01_l {
         Key = "Engine://AnimationTracks/CrouchIdle_ring_01_l.KEYF"
         Size = 5696
     }
-    UUID = "165f26ab-f620-43bf-b4e6-91d0c827f145"
+    UUID = "6bfeb8e9-44be-4e16-9ff9-8bbed58a2837"
 }

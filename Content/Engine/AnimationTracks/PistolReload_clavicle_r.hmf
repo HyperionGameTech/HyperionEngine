@@ -4,5 +4,5 @@ AnimationTrack PistolReload_clavicle_r {
         Key = "Engine://AnimationTracks/PistolReload_clavicle_r.KEYF"
         Size = 3264
     }
-    UUID = "62ef5c35-8bf9-4d7c-a3b3-15e15051193f"
+    UUID = "3b822630-f515-4cd0-8496-bf277e6c0395"
 }

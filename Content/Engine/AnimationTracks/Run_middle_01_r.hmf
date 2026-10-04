@@ -4,5 +4,5 @@ AnimationTrack Run_middle_01_r {
         Key = "Engine://AnimationTracks/Run_middle_01_r.KEYF"
         Size = 128
     }
-    UUID = "33ffdae3-947b-438e-b739-f8bc0521a54c"
+    UUID = "d25eb2ff-e8f2-43bf-bcb1-c7e923b0b3a2"
 }

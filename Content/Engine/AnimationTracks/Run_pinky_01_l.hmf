@@ -4,5 +4,5 @@ AnimationTrack Run_pinky_01_l {
         Key = "Engine://AnimationTracks/Run_pinky_01_l.KEYF"
         Size = 128
     }
-    UUID = "96a408bd-b52e-435f-a899-ef8f3ff4b613"
+    UUID = "e87dbcd6-8c3b-4823-9d65-cb64f1d40258"
 }

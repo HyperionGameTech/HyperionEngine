@@ -4,5 +4,5 @@ AnimationTrack PistolAimNeutral_lowerarm_r {
         Key = "Engine://AnimationTracks/PistolAimNeutral_lowerarm_r.KEYF"
         Size = 128
     }
-    UUID = "0172697c-6a28-418f-97ca-48c4911930cf"
+    UUID = "9a33168e-c386-4fa7-933a-2000e1d24ada"
 }

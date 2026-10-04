@@ -4,5 +4,5 @@ AnimationTrack Interact_head {
         Key = "Engine://AnimationTracks/Interact_head.KEYF"
         Size = 3904
     }
-    UUID = "354fe5a5-7080-450d-b99a-fbaf6ffc8d3e"
+    UUID = "319ac1bb-b774-4151-a582-b2a49e981a1a"
 }

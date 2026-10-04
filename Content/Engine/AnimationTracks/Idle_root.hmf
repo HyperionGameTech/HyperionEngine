@@ -4,5 +4,5 @@ AnimationTrack Idle_root {
         Key = "Engine://AnimationTracks/Idle_root.KEYF"
         Size = 128
     }
-    UUID = "e8b7ab7f-0831-45c1-84d2-219762083648"
+    UUID = "538494ac-99c2-4951-97cd-f1275dc28771"
 }

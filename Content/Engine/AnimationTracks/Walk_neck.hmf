@@ -4,5 +4,5 @@ AnimationTrack Walk_neck {
         Key = "Engine://AnimationTracks/Walk_neck.KEYF"
         Size = 2624
     }
-    UUID = "07e5a90b-2abd-4a6f-82da-2c33be110e44"
+    UUID = "8b1415e7-36f6-4833-95fc-90776d3092c3"
 }

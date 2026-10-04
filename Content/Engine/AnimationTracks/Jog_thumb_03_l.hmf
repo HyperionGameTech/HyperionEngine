@@ -4,5 +4,5 @@ AnimationTrack Jog_thumb_03_l {
         Key = "Engine://AnimationTracks/Jog_thumb_03_l.KEYF"
         Size = 128
     }
-    UUID = "5b3a5d15-4115-4e4c-970b-fdf9993a3e08"
+    UUID = "3dd3fa85-780f-49c9-be81-efe47cc0e0d4"
 }

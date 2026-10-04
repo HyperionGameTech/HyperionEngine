@@ -1142,7 +1142,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 RenderInterface::State& state = RI.state;
 
-                AssertDebug(cmd->uniformIndex < state.MaxShaderUniforms,
+                Assert(cmd->uniformIndex < state.MaxShaderUniforms,
                             "SetShaderUniform: uniformIndex {} is out of bounds (MaxShaderUniforms = {})",
                             cmd->uniformIndex, state.MaxShaderUniforms);
 
@@ -1181,7 +1181,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                 RenderInterface::State& state = RI.state;
 
                 const ShaderUniforms& srcUniforms = cmd->shaderUniforms;
-                AssertDebug(cmd->startIndex + srcUniforms.count <= state.MaxShaderUniforms);
+                Assert(cmd->startIndex + srcUniforms.count <= state.MaxShaderUniforms);
 
                 for (uint32 i = cmd->startIndex; i < cmd->startIndex + srcUniforms.count; i++)
                 {

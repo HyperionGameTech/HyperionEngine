@@ -4,5 +4,5 @@ AnimationTrack Roll_ring_01_r {
         Key = "Engine://AnimationTracks/Roll_ring_01_r.KEYF"
         Size = 2880
     }
-    UUID = "eed0898a-6802-4922-a125-90ae133b7d23"
+    UUID = "a43eb61d-792c-4165-a9ca-cc60bd175b5d"
 }

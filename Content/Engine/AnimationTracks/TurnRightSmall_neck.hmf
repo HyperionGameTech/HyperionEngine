@@ -4,5 +4,5 @@ AnimationTrack TurnRightSmall_neck {
         Key = "Engine://AnimationTracks/TurnRightSmall_neck.KEYF"
         Size = 128
     }
-    UUID = "a66a0a3f-7fb1-4c90-8576-d0d23ab85191"
+    UUID = "78de6dd1-a436-4529-a2f4-a565e228fbff"
 }

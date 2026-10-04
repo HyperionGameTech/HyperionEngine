@@ -54,5 +54,5 @@ Animation HitHead {
         @"Engine://AnimationTracks/HitHead_foot_r"
         @"Engine://AnimationTracks/HitHead_ball_r"
     ]
-    UUID = "9bbe8c45-6fe1-4b75-b5e1-d32e8752adb8"
+    UUID = "eda53da4-a021-42cf-9b7a-b21f8a6c57da"
 }

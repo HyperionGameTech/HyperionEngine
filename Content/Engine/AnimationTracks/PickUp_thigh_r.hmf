@@ -4,5 +4,5 @@ AnimationTrack PickUp_thigh_r {
         Key = "Engine://AnimationTracks/PickUp_thigh_r.KEYF"
         Size = 1664
     }
-    UUID = "64617230-9e39-4f87-b655-3f75f30ecff9"
+    UUID = "0596538f-c9d4-46e9-8552-f4c56a3365ce"
 }

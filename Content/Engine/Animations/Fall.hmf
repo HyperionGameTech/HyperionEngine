@@ -54,5 +54,5 @@ Animation Fall {
         @"Engine://AnimationTracks/Fall_foot_r"
         @"Engine://AnimationTracks/Fall_ball_r"
     ]
-    UUID = "8373d4a0-31ca-4d1b-a8b2-4b0af310c9b1"
+    UUID = "13940433-578b-4d80-8c1f-e7cf26beca30"
 }

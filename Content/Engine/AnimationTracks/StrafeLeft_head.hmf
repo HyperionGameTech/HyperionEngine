@@ -4,5 +4,5 @@ AnimationTrack StrafeLeft_head {
         Key = "Engine://AnimationTracks/StrafeLeft_head.KEYF"
         Size = 2624
     }
-    UUID = "33f1f960-ca06-4ae5-bc71-7abb280df969"
+    UUID = "c70d0713-62f9-41e5-a38c-e0a90d26159f"
 }

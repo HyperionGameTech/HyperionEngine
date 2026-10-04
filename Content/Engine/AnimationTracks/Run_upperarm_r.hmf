@@ -4,5 +4,5 @@ AnimationTrack Run_upperarm_r {
         Key = "Engine://AnimationTracks/Run_upperarm_r.KEYF"
         Size = 1344
     }
-    UUID = "a87b7c15-55d4-4a5f-9b94-2c560a39d4b8"
+    UUID = "9e4d8dc8-b5fc-48dd-ad52-ff5dcd0539e1"
 }

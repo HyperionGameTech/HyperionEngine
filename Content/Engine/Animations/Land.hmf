@@ -54,5 +54,5 @@ Animation Land {
         @"Engine://AnimationTracks/Land_foot_r"
         @"Engine://AnimationTracks/Land_ball_r"
     ]
-    UUID = "648b0b98-c0f1-4f02-bbb2-a25aee017b58"
+    UUID = "49ecf560-aa21-4a50-8d67-13dd10c91d8c"
 }

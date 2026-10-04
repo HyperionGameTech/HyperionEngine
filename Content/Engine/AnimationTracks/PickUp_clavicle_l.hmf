@@ -4,5 +4,5 @@ AnimationTrack PickUp_clavicle_l {
         Key = "Engine://AnimationTracks/PickUp_clavicle_l.KEYF"
         Size = 128
     }
-    UUID = "15bba3f6-8074-4666-b4ff-d693821a631e"
+    UUID = "fd433f39-7a0c-4024-b011-da231820fdf5"
 }

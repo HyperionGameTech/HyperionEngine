@@ -4,5 +4,5 @@ AnimationTrack PickUp_hand_l {
         Key = "Engine://AnimationTracks/PickUp_hand_l.KEYF"
         Size = 128
     }
-    UUID = "017970f4-ec44-4ce2-96a9-34b8838c3f70"
+    UUID = "193f3c4d-268d-4a3f-81b7-7e38fe3d2ab3"
 }

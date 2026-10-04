@@ -4,5 +4,5 @@ AnimationTrack PistolReload_pelvis {
         Key = "Engine://AnimationTracks/PistolReload_pelvis.KEYF"
         Size = 3264
     }
-    UUID = "88d443ec-c2fd-4a99-94cd-dc7f5d9f25d5"
+    UUID = "df670812-1297-4d7f-a827-002d1eac7ffc"
 }

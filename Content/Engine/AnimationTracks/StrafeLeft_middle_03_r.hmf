@@ -4,5 +4,5 @@ AnimationTrack StrafeLeft_middle_03_r {
         Key = "Engine://AnimationTracks/StrafeLeft_middle_03_r.KEYF"
         Size = 128
     }
-    UUID = "32995362-a761-4843-a7a9-5429dbd0f42d"
+    UUID = "3d6e9fda-ef64-45e1-ae00-a103bde5f0c3"
 }

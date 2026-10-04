@@ -1,0 +1,8 @@
+AnimationTrack HoldFlamethrower_spine_02 {
+    BoneName = spine_02
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldFlamethrower_spine_02.KEYF"
+        Size = 128
+    }
+    UUID = "d2a9e51d-8753-4bc4-9d70-7ec3ece7ac1e"
+}

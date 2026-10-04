@@ -4,5 +4,5 @@ AnimationTrack Run_clavicle_r {
         Key = "Engine://AnimationTracks/Run_clavicle_r.KEYF"
         Size = 1344
     }
-    UUID = "6251d04e-4afd-42ab-a12b-dce51dc7ac53"
+    UUID = "cf5ea7bc-113f-434a-9984-16c79bacb53d"
 }

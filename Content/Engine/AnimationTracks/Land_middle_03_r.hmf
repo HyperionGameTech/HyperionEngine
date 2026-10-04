@@ -4,5 +4,5 @@ AnimationTrack Land_middle_03_r {
         Key = "Engine://AnimationTracks/Land_middle_03_r.KEYF"
         Size = 128
     }
-    UUID = "b6f665ed-a3f4-461d-a6c4-7f91ae2a72ec"
+    UUID = "b2db744a-51bb-4187-9e67-450e74c74b0d"
 }

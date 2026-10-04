@@ -70,7 +70,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         const float3 samplePosition = groundPosition + directionToSun * (distanceToLayerBase + (float(i) + 0.5) * stepLength);
         const float heightFraction = (samplePosition.y - layerBase) / params.layerThickness;
 
-        opticalDepth += SampleCloudDensity(samplePosition, heightFraction, false) * CloudExtinction * stepLength;
+        opticalDepth += SampleCloudDensity(samplePosition, heightFraction, true) * CLOUD_EXTINCTION * stepLength;
     }
 
     OutShadowMap[pixel] = exp(-opticalDepth);

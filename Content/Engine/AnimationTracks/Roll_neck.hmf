@@ -4,5 +4,5 @@ AnimationTrack Roll_neck {
         Key = "Engine://AnimationTracks/Roll_neck.KEYF"
         Size = 2880
     }
-    UUID = "25610686-62f0-471d-bd49-c8e2c500f757"
+    UUID = "74a47c17-a884-4e1b-ba1c-6d15e99e7a98"
 }

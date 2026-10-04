@@ -1,16 +1,8 @@
 #ifndef HYP_CLOUD_DENSITY
 #define HYP_CLOUD_DENSITY
 
-// Cloud density shared by everything that marches the clouds (the sky trace, the cloud shadow map), so they agree.
-// Include after Clouds.hlsli and CloudNoise.hlsli, once these are declared:
-//   Texture2DArray CloudWeatherMapTexture, Texture3D CloudShapeNoiseTexture, Texture3D CloudDetailNoiseTexture,
-//   SamplerState SamplerLinear (repeat), and CloudVolume cloudVolume / CloudWeatherMap cloudWeatherMap constants
-
-// extinction per meter at full density
-static const float CloudExtinction = 0.04;
-
-// how far wind pushes cloud tops ahead of their bases, in meters
-static const float CloudTopWindSkew = 600.0;
+#define CLOUD_EXTINCTION 0.04
+#define CLOUD_TOP_WIND_SKEW 600.0
 
 float GetHeightGradient(float heightFraction, float cloudType)
 {
@@ -23,9 +15,10 @@ float GetHeightGradient(float heightFraction, float cloudType)
         : lerp(stratocumulus, cumulus, cloudType * 2.0 - 1.0);
 }
 
-// Density at a point in the cloud layer. Cheap samples skip detail erosion, which only ever removes density,
-// so a cheap sample of zero guarantees a full sample of zero
-float SampleCloudDensity(float3 position, float heightFraction, bool isCheap)
+float SampleCloudDensity(
+    float3 position,
+    float heightFraction,
+    bool detail)
 {
     const CloudVolumeParams params = cloudVolume.params;
 
@@ -50,7 +43,7 @@ float SampleCloudDensity(float3 position, float heightFraction, bool isCheap)
     }
 
     const float3 windDirection = float3(params.windDirection.x, 0.0, params.windDirection.y);
-    const float3 skewedPosition = position + windDirection * (heightFraction * CloudTopWindSkew);
+    const float3 skewedPosition = position + windDirection * (heightFraction * CLOUD_TOP_WIND_SKEW);
 
     const float3 shapeUVW = (skewedPosition + float3(params.shapeWindOffset.x, 0.0, params.shapeWindOffset.y)) / params.shapeNoiseScale;
     const float4 shapeNoise = CloudShapeNoiseTexture.SampleLevel(SamplerLinear, shapeUVW, 0.0);
@@ -67,7 +60,7 @@ float SampleCloudDensity(float3 position, float heightFraction, bool isCheap)
         return 0.0;
     }
 
-    if (!isCheap)
+    if (detail)
     {
         const float3 detailUVW = (skewedPosition + float3(params.detailWindOffset.x, 0.0, params.detailWindOffset.y)) / params.detailNoiseScale;
         const float3 detailNoise = CloudDetailNoiseTexture.SampleLevel(SamplerLinear, detailUVW, 0.0).rgb;

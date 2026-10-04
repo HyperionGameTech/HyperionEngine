@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_ring_03_r {
         Key = "Engine://AnimationTracks/WalkBackward_ring_03_r.KEYF"
         Size = 128
     }
-    UUID = "080b676b-66cc-4a08-83ae-a930a66896d0"
+    UUID = "d3a14bbe-1688-412e-bb76-2978f03959e9"
 }

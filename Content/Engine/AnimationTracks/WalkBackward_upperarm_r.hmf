@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_upperarm_r {
         Key = "Engine://AnimationTracks/WalkBackward_upperarm_r.KEYF"
         Size = 2624
     }
-    UUID = "6e47286c-6657-4ba0-bf97-814980c06b97"
+    UUID = "7c957b56-100c-4a71-afb0-e0a8de9e27db"
 }

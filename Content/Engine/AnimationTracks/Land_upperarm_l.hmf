@@ -4,5 +4,5 @@ AnimationTrack Land_upperarm_l {
         Key = "Engine://AnimationTracks/Land_upperarm_l.KEYF"
         Size = 1344
     }
-    UUID = "deede519-7958-48aa-bf6a-60047b393914"
+    UUID = "a547fed0-c7de-4018-8d58-6646832ea832"
 }

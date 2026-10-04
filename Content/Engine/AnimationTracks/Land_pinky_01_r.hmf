@@ -4,5 +4,5 @@ AnimationTrack Land_pinky_01_r {
         Key = "Engine://AnimationTracks/Land_pinky_01_r.KEYF"
         Size = 128
     }
-    UUID = "29cd8040-8b63-4cb1-ab27-9b19fbf26873"
+    UUID = "8d53780b-6c0b-4994-b7de-a63645034c4e"
 }

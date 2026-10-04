@@ -4,5 +4,5 @@ AnimationTrack Jog_clavicle_l {
         Key = "Engine://AnimationTracks/Jog_clavicle_l.KEYF"
         Size = 1856
     }
-    UUID = "72ca0f33-30c2-402e-b43e-2f114be7bcc9"
+    UUID = "465538c9-9dab-412d-a43e-3a7c1ff2c70a"
 }

@@ -4,5 +4,5 @@ AnimationTrack Jog_middle_03_l {
         Key = "Engine://AnimationTracks/Jog_middle_03_l.KEYF"
         Size = 128
     }
-    UUID = "d60d2fa5-766f-484a-8da7-201ca44ec6a4"
+    UUID = "b1aabc6a-9a99-4d4e-b483-a0b17ce6e84c"
 }

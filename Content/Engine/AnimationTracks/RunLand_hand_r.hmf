@@ -4,5 +4,5 @@ AnimationTrack RunLand_hand_r {
         Key = "Engine://AnimationTracks/RunLand_hand_r.KEYF"
         Size = 128
     }
-    UUID = "18e3f7e8-a9f0-4419-9bb6-f51b6c2eefee"
+    UUID = "07ae3ab9-328f-4bea-bcc6-d3f02fbfe8dc"
 }

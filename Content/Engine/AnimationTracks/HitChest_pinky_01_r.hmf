@@ -4,5 +4,5 @@ AnimationTrack HitChest_pinky_01_r {
         Key = "Engine://AnimationTracks/HitChest_pinky_01_r.KEYF"
         Size = 704
     }
-    UUID = "da682723-a28a-4ae7-bd4a-c37c8d94ba6b"
+    UUID = "c95ab47c-a197-4d47-b18d-9259c3f9d673"
 }

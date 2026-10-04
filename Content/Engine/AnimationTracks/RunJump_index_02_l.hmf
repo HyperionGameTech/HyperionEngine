@@ -4,5 +4,5 @@ AnimationTrack RunJump_index_02_l {
         Key = "Engine://AnimationTracks/RunJump_index_02_l.KEYF"
         Size = 128
     }
-    UUID = "8d24536f-ebd3-4689-8cc5-78dd40d13a75"
+    UUID = "a5433a61-0668-4470-9e4a-86152c723263"
 }

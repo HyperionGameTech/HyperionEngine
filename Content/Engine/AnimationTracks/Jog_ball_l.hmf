@@ -4,5 +4,5 @@ AnimationTrack Jog_ball_l {
         Key = "Engine://AnimationTracks/Jog_ball_l.KEYF"
         Size = 1856
     }
-    UUID = "db78151e-7879-4c1f-b1b4-e979a950d198"
+    UUID = "e4cf8ed6-22cf-47bd-997e-9fdea6255b51"
 }

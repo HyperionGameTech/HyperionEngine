@@ -4,5 +4,5 @@ AnimationTrack PistolAimUp_index_02_r {
         Key = "Engine://AnimationTracks/PistolAimUp_index_02_r.KEYF"
         Size = 128
     }
-    UUID = "6774fe32-c92b-4d96-817a-29f65027a763"
+    UUID = "bf42d441-6d35-41bf-8bff-1e8d30a50143"
 }

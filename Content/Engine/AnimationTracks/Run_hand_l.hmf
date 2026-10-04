@@ -4,5 +4,5 @@ AnimationTrack Run_hand_l {
         Key = "Engine://AnimationTracks/Run_hand_l.KEYF"
         Size = 128
     }
-    UUID = "2fe4807d-606d-438a-90dc-6a294ede66bb"
+    UUID = "350352cd-ee54-4267-b009-24b446ae5dc0"
 }

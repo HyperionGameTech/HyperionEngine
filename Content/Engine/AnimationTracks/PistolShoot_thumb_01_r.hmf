@@ -4,5 +4,5 @@ AnimationTrack PistolShoot_thumb_01_r {
         Key = "Engine://AnimationTracks/PistolShoot_thumb_01_r.KEYF"
         Size = 128
     }
-    UUID = "4cbedf7c-c31a-4066-af92-35cad9e2ffe8"
+    UUID = "f5b894e9-29ad-46ef-af0c-75815ac6cde6"
 }

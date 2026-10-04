@@ -4,5 +4,5 @@ AnimationTrack RunJump_head {
         Key = "Engine://AnimationTracks/RunJump_head.KEYF"
         Size = 1600
     }
-    UUID = "e558f070-9c74-469a-bada-595ad4e59cb1"
+    UUID = "f54c62b5-9128-4c87-bf02-3b9f4724e5f4"
 }

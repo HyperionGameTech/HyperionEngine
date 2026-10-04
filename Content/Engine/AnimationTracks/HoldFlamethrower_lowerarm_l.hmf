@@ -1,0 +1,8 @@
+AnimationTrack HoldFlamethrower_lowerarm_l {
+    BoneName = lowerarm_l
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldFlamethrower_lowerarm_l.KEYF"
+        Size = 128
+    }
+    UUID = "6ae36b13-c369-4f11-b7bf-19874c087d5b"
+}

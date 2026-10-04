@@ -1,6 +1,6 @@
 Prefab ThirdPersonCharacter {
     Root = {
-        UUID = "38a660ea-4c76-4e21-91de-ae7a24a57d6f"
+        UUID = "3721930f-a3c4-49e7-b1a3-4298fc19a696"
         Name = ThirdPersonCharacter
         NodeFlags = MobilityStatic
         LocalBounds = {
@@ -19,7 +19,7 @@ Prefab ThirdPersonCharacter {
         }
         Children = [
             Node BaseHumanRig {
-                UUID = "c4e3ad5f-a8df-4437-a766-55806a99c537"
+                UUID = "86ed6a32-6c3e-4a90-b57a-f592cfe1cb22"
                 NodeFlags = MobilityStatic
                 LocalBounds = {
                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -37,7 +37,7 @@ Prefab ThirdPersonCharacter {
                 }
                 Children = [
                     Node BaseHuman {
-                        UUID = "e0c3704c-b0eb-464c-809c-b9913a8e5444"
+                        UUID = "d26cc409-9473-46f3-bc4b-e634459ce49b"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -92,7 +92,7 @@ Prefab ThirdPersonCharacter {
                                     }
                                 ]
                                 Layers = []
-                                UUID = "f09bc578-1ad6-4bf6-88d5-a72ff2634204"
+                                UUID = "80612b5a-6a21-4c03-ab19-321915d7558f"
                                 NodeFlags = MobilityDynamic
                                 LocalBounds = {
                                     Min = (-0.6957399, 0, -0.16982281)
@@ -119,7 +119,7 @@ Prefab ThirdPersonCharacter {
                         }
                     }
                     Node root {
-                        UUID = "493f2eb6-2822-40c5-a5a2-6931fa8c5fa9"
+                        UUID = "64466abb-15a3-4866-9325-f8b7aed22657"
                         NodeFlags = MobilityStatic
                         LocalBounds = {
                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -137,7 +137,7 @@ Prefab ThirdPersonCharacter {
                         }
                         Children = [
                             Node pelvis {
-                                UUID = "40a74e9f-3831-4f22-b44d-80661fc1ae02"
+                                UUID = "ca5062b1-df21-4c64-9fea-7b4669fb0b1e"
                                 NodeFlags = MobilityStatic
                                 LocalBounds = {
                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -155,7 +155,7 @@ Prefab ThirdPersonCharacter {
                                 }
                                 Children = [
                                     Node spine_01 {
-                                        UUID = "a9a8157c-a7d1-4d25-9b7b-57670bbe7234"
+                                        UUID = "693ce1ae-d365-415d-a671-bac2567faa05"
                                         NodeFlags = MobilityStatic
                                         LocalBounds = {
                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -173,7 +173,7 @@ Prefab ThirdPersonCharacter {
                                         }
                                         Children = [
                                             Node spine_02 {
-                                                UUID = "bd52ebba-f9db-426c-b0f1-bb0bd5020e50"
+                                                UUID = "9e77c4cf-f743-41a2-874c-2b7290817362"
                                                 NodeFlags = MobilityStatic
                                                 LocalBounds = {
                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -191,7 +191,7 @@ Prefab ThirdPersonCharacter {
                                                 }
                                                 Children = [
                                                     Node spine_03 {
-                                                        UUID = "01da5aa1-cc9b-4936-91d0-ebfe6eb08ff8"
+                                                        UUID = "4e83d00e-bc48-4533-a6fb-ed1300858a97"
                                                         NodeFlags = MobilityStatic
                                                         LocalBounds = {
                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -209,7 +209,7 @@ Prefab ThirdPersonCharacter {
                                                         }
                                                         Children = [
                                                             Node clavicle_l {
-                                                                UUID = "cf688272-8e5c-4b70-830d-b0e3203f05ec"
+                                                                UUID = "839ed230-d35d-4e88-b2c8-38f7e3c55234"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -227,7 +227,7 @@ Prefab ThirdPersonCharacter {
                                                                 }
                                                                 Children = [
                                                                     Node upperarm_l {
-                                                                        UUID = "7268c36d-c678-47b8-88e6-6ea6250a891e"
+                                                                        UUID = "f7fe638b-8133-4dfb-a82d-7872910918ea"
                                                                         NodeFlags = MobilityStatic
                                                                         LocalBounds = {
                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -245,7 +245,7 @@ Prefab ThirdPersonCharacter {
                                                                         }
                                                                         Children = [
                                                                             Node lowerarm_l {
-                                                                                UUID = "c54e9028-9a60-4e0c-81fa-ce557cab033c"
+                                                                                UUID = "c818bf79-20ef-43af-91ba-af9f6047f2cf"
                                                                                 NodeFlags = MobilityStatic
                                                                                 LocalBounds = {
                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -263,7 +263,7 @@ Prefab ThirdPersonCharacter {
                                                                                 }
                                                                                 Children = [
                                                                                     Node hand_l {
-                                                                                        UUID = "42328f4b-f7cd-46ed-b68d-735ca45c8bb3"
+                                                                                        UUID = "f9e29339-6c36-46fb-8aa5-c44fdb39f922"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -281,7 +281,7 @@ Prefab ThirdPersonCharacter {
                                                                                         }
                                                                                         Children = [
                                                                                             Node index_01_l {
-                                                                                                UUID = "9c9b604e-aa23-4d4e-b7d5-34d72a97cbea"
+                                                                                                UUID = "f17d8341-6c2c-4971-8cfc-a3830bb91440"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -299,7 +299,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node index_02_l {
-                                                                                                        UUID = "4ad4d6ad-9922-4f8a-8605-ffc1743b9758"
+                                                                                                        UUID = "3ae8510a-493b-4841-99b4-2c4069c1338b"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -317,7 +317,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node index_03_l {
-                                                                                                                UUID = "91fb9aa2-6e07-43a1-8abc-3c65cca48e02"
+                                                                                                                UUID = "7b853500-6a80-4f44-b400-3d5be7034725"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -349,7 +349,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node middle_01_l {
-                                                                                                UUID = "44d1235a-bfbe-4a0b-9e3c-fc02c64c80a4"
+                                                                                                UUID = "82e65ded-c3f1-4781-987a-26ab0b5b1a6c"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -367,7 +367,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node middle_02_l {
-                                                                                                        UUID = "e45bf67c-bf6c-4637-aaa5-75beee8cf1e6"
+                                                                                                        UUID = "c733a234-549c-4e25-8260-fc9a7d96123b"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -385,7 +385,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node middle_03_l {
-                                                                                                                UUID = "941c848b-b22b-480e-ab2e-913dd9de4f12"
+                                                                                                                UUID = "b1c672c4-194b-408a-8e9d-f3e362ce9828"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -417,7 +417,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node pinky_01_l {
-                                                                                                UUID = "b19344ed-a8f7-4772-a3b4-c92fb0b3ea2d"
+                                                                                                UUID = "067a6b11-a624-474a-b1ce-a9cd0756dd4a"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -435,7 +435,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node pinky_02_l {
-                                                                                                        UUID = "33f49d5d-4668-456b-a536-3025608dfc45"
+                                                                                                        UUID = "f50e12a4-1506-4b0b-8202-1410c6415176"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -453,7 +453,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node pinky_03_l {
-                                                                                                                UUID = "83ad7b0c-4861-4cc8-9409-81f71e1c97b4"
+                                                                                                                UUID = "bd37fd3d-f94c-4934-86a3-7bdc05571f97"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -485,7 +485,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node ring_01_l {
-                                                                                                UUID = "18b6acb6-11ac-47b4-8884-c449825c03f4"
+                                                                                                UUID = "38f17ff1-a571-4f10-992c-936bee81a9c5"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -503,7 +503,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node ring_02_l {
-                                                                                                        UUID = "b28beaf7-27b0-443c-9d88-3fdd3b509620"
+                                                                                                        UUID = "eeea54ba-bd25-4a24-a965-4efdcfc45181"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -521,7 +521,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node ring_03_l {
-                                                                                                                UUID = "d785480f-1056-4d21-9902-0f644f44e1d5"
+                                                                                                                UUID = "93f254a3-947d-40bf-aaca-dd8845bab1ac"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -553,7 +553,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node thumb_01_l {
-                                                                                                UUID = "eb19efff-ca90-4f56-9541-a5378bbef5f3"
+                                                                                                UUID = "1e89202f-97c6-42fb-8f14-4e6c684b2a71"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -571,7 +571,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node thumb_02_l {
-                                                                                                        UUID = "34ee7a81-092f-4d01-b3ac-ee5c1115a9f3"
+                                                                                                        UUID = "adffd5d9-188d-47ab-9218-60dd4bb06ff6"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -589,7 +589,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node thumb_03_l {
-                                                                                                                UUID = "74778e00-6936-44ed-b0a6-eb3c8e55af74"
+                                                                                                                UUID = "2ab6b7e1-1c4d-4241-9815-bd7305241be7"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -641,7 +641,7 @@ Prefab ThirdPersonCharacter {
                                                                 }
                                                             }
                                                             Node clavicle_r {
-                                                                UUID = "ab66aa3b-24e4-4cce-bc51-4bad60f8fd91"
+                                                                UUID = "956489b8-4710-40f6-b147-46fc7687acb6"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -659,7 +659,7 @@ Prefab ThirdPersonCharacter {
                                                                 }
                                                                 Children = [
                                                                     Node upperarm_r {
-                                                                        UUID = "a61fbb52-1766-406c-b7b6-02359800632d"
+                                                                        UUID = "8e9f2213-7248-49cd-8654-073f279e59d2"
                                                                         NodeFlags = MobilityStatic
                                                                         LocalBounds = {
                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -677,7 +677,7 @@ Prefab ThirdPersonCharacter {
                                                                         }
                                                                         Children = [
                                                                             Node lowerarm_r {
-                                                                                UUID = "d0708599-d103-47d3-a03e-ffdeb9df63e2"
+                                                                                UUID = "547ae414-eb3a-46ea-8ad0-3eee321ab58e"
                                                                                 NodeFlags = MobilityStatic
                                                                                 LocalBounds = {
                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -695,7 +695,7 @@ Prefab ThirdPersonCharacter {
                                                                                 }
                                                                                 Children = [
                                                                                     Node hand_r {
-                                                                                        UUID = "394a1b6d-53e3-4283-9a4f-6dfd7737ad80"
+                                                                                        UUID = "159df170-9401-4539-978e-a4a53b8e3fd7"
                                                                                         NodeFlags = MobilityStatic
                                                                                         LocalBounds = {
                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -713,7 +713,7 @@ Prefab ThirdPersonCharacter {
                                                                                         }
                                                                                         Children = [
                                                                                             Node index_01_r {
-                                                                                                UUID = "0f9383cd-dd6e-4dd3-8057-57fcb4f76be5"
+                                                                                                UUID = "533733a0-2c64-4b65-b7b2-0714afb13ff1"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -731,7 +731,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node index_02_r {
-                                                                                                        UUID = "3fbce813-a8c6-489f-afb5-6e0bb690057f"
+                                                                                                        UUID = "e66dd23d-4c96-4beb-92e7-7e7df342438c"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -749,7 +749,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node index_03_r {
-                                                                                                                UUID = "536f8638-5976-4a76-8fef-f99b45d22711"
+                                                                                                                UUID = "d3f85076-6906-4a29-9d50-2b77e9ecaf97"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -781,7 +781,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node middle_01_r {
-                                                                                                UUID = "94dfe60f-8cb6-4050-97d1-31afecb176eb"
+                                                                                                UUID = "5c5c5544-fbd0-4dbc-a14a-13a7e3fbad9a"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -799,7 +799,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node middle_02_r {
-                                                                                                        UUID = "5c6d8e51-7a7e-476e-88e8-7c4cf81182fc"
+                                                                                                        UUID = "4ef7356c-efc7-4bb0-9224-449abec48184"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -817,7 +817,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node middle_03_r {
-                                                                                                                UUID = "6c130c36-5414-4770-8345-7e7d0defb78a"
+                                                                                                                UUID = "75516333-1da8-4e8a-8d1d-53ecb9077f82"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -849,7 +849,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node pinky_01_r {
-                                                                                                UUID = "eccf5b33-cff5-4c11-8bc4-3d17af0f837d"
+                                                                                                UUID = "ff2500b3-9110-4700-88c0-8ce5b625ae91"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -867,7 +867,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node pinky_02_r {
-                                                                                                        UUID = "7ce93e48-2d5a-40e2-8cc6-0583a92572b4"
+                                                                                                        UUID = "47dcfcc1-17a0-479e-9696-ccc8f691cc7d"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -885,7 +885,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node pinky_03_r {
-                                                                                                                UUID = "7649b67d-7196-4e92-b857-e1cb277cd2da"
+                                                                                                                UUID = "f19ca110-b64c-4372-9a78-e7527467f190"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -917,7 +917,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node ring_01_r {
-                                                                                                UUID = "83a313b0-c5d4-4e51-bd4f-7044c05a3d0a"
+                                                                                                UUID = "217d5ee5-f557-4177-b0d3-24c828e0cba3"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -935,7 +935,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node ring_02_r {
-                                                                                                        UUID = "0db335ca-98d1-4b03-94a2-9a9de95257af"
+                                                                                                        UUID = "f33ef7e8-5721-4329-bb9e-2ecc4c55553e"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -953,7 +953,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node ring_03_r {
-                                                                                                                UUID = "7ac336f4-2451-446d-a950-e6464d858f6b"
+                                                                                                                UUID = "a77edacd-5e32-4e3a-b383-f900591dde9a"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -985,7 +985,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                             }
                                                                                             Node thumb_01_r {
-                                                                                                UUID = "d8fef3bb-3fa1-42c5-8323-7d73a4910578"
+                                                                                                UUID = "0e405c65-cfde-4c2f-9389-66c2e87f3fe8"
                                                                                                 NodeFlags = MobilityStatic
                                                                                                 LocalBounds = {
                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1003,7 +1003,7 @@ Prefab ThirdPersonCharacter {
                                                                                                 }
                                                                                                 Children = [
                                                                                                     Node thumb_02_r {
-                                                                                                        UUID = "3536f11c-e297-4911-92c7-a4cbb9906d7f"
+                                                                                                        UUID = "a0397a25-ac41-4567-a418-260c04ca8841"
                                                                                                         NodeFlags = MobilityStatic
                                                                                                         LocalBounds = {
                                                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1021,7 +1021,7 @@ Prefab ThirdPersonCharacter {
                                                                                                         }
                                                                                                         Children = [
                                                                                                             Node thumb_03_r {
-                                                                                                                UUID = "6dc52220-06f9-4669-b5c9-192eaca46281"
+                                                                                                                UUID = "bd7a572f-2c72-42c8-aeaa-4012382d1ac5"
                                                                                                                 NodeFlags = MobilityStatic
                                                                                                                 LocalBounds = {
                                                                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1073,7 +1073,7 @@ Prefab ThirdPersonCharacter {
                                                                 }
                                                             }
                                                             Node neck {
-                                                                UUID = "d0b1b49e-22e8-446a-9976-48d575672079"
+                                                                UUID = "82acea8f-923b-40de-8229-6f07c824fbf8"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1091,7 +1091,7 @@ Prefab ThirdPersonCharacter {
                                                                 }
                                                                 Children = [
                                                                     Node head {
-                                                                        UUID = "41997767-dbc8-4d00-ba81-4ad84359c8f5"
+                                                                        UUID = "bb946bb8-20bf-4091-a3f2-7ab89393e41f"
                                                                         NodeFlags = MobilityStatic
                                                                         LocalBounds = {
                                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1133,7 +1133,7 @@ Prefab ThirdPersonCharacter {
                                         }
                                     }
                                     Node thigh_l {
-                                        UUID = "64156ccb-5f73-4345-b9a4-fdacda687f81"
+                                        UUID = "8eef49c6-746b-4881-8e6c-911561e26fb3"
                                         NodeFlags = MobilityStatic
                                         LocalBounds = {
                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1151,7 +1151,7 @@ Prefab ThirdPersonCharacter {
                                         }
                                         Children = [
                                             Node calf_l {
-                                                UUID = "08767273-31da-440e-b8aa-fcb97f278c87"
+                                                UUID = "fe5651e3-f208-4a2e-9b09-77a31df39c19"
                                                 NodeFlags = MobilityStatic
                                                 LocalBounds = {
                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1169,7 +1169,7 @@ Prefab ThirdPersonCharacter {
                                                 }
                                                 Children = [
                                                     Node foot_l {
-                                                        UUID = "f0a092c7-1b90-40d6-9e3d-df9f98a89125"
+                                                        UUID = "b6bec162-36f9-4aa5-ac34-97c825f5e151"
                                                         NodeFlags = MobilityStatic
                                                         LocalBounds = {
                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1187,7 +1187,7 @@ Prefab ThirdPersonCharacter {
                                                         }
                                                         Children = [
                                                             Node ball_l {
-                                                                UUID = "2b137a5c-14d7-4d55-88b4-23a2a709d83a"
+                                                                UUID = "5ad91ed6-b25e-43d5-b912-3541b7f24d8d"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1224,7 +1224,7 @@ Prefab ThirdPersonCharacter {
                                         }
                                     }
                                     Node thigh_r {
-                                        UUID = "ea39b5e7-e285-441d-ae00-3c7f82eef05e"
+                                        UUID = "08f368b4-873e-483b-8006-4d2daafa31a7"
                                         NodeFlags = MobilityStatic
                                         LocalBounds = {
                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1242,7 +1242,7 @@ Prefab ThirdPersonCharacter {
                                         }
                                         Children = [
                                             Node calf_r {
-                                                UUID = "a5884696-b9c0-4947-a002-38c0f12fffe1"
+                                                UUID = "5e2b4abe-fce8-4e64-a380-7a8f1ec5b839"
                                                 NodeFlags = MobilityStatic
                                                 LocalBounds = {
                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1260,7 +1260,7 @@ Prefab ThirdPersonCharacter {
                                                 }
                                                 Children = [
                                                     Node foot_r {
-                                                        UUID = "3fcd10b6-864a-4e90-8c96-2a0b6b062c8d"
+                                                        UUID = "3ec268cb-5159-41cb-9397-11566b4760e3"
                                                         NodeFlags = MobilityStatic
                                                         LocalBounds = {
                                                             Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1278,7 +1278,7 @@ Prefab ThirdPersonCharacter {
                                                         }
                                                         Children = [
                                                             Node ball_r {
-                                                                UUID = "ba71b36c-ac3b-4873-87b5-b77f19c1b9c0"
+                                                                UUID = "6865f2ca-b6b3-4367-b598-832d0483f120"
                                                                 NodeFlags = MobilityStatic
                                                                 LocalBounds = {
                                                                     Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
@@ -1335,5 +1335,5 @@ Prefab ThirdPersonCharacter {
         }
     }
     Revision = 0
-    UUID = "0cdfdaf2-8e73-4607-824c-52c7728ceedc"
+    UUID = "09788742-79dc-40ba-a654-cf6dacd39c0c"
 }

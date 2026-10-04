@@ -4,5 +4,5 @@ AnimationTrack PistolIdle_thumb_01_l {
         Key = "Engine://AnimationTracks/PistolIdle_thumb_01_l.KEYF"
         Size = 128
     }
-    UUID = "980c7b64-2aa1-4935-a3ec-beca3884002d"
+    UUID = "1264d1c5-b1bd-4e62-aa53-46e0e4b5900e"
 }

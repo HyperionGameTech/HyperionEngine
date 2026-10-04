@@ -4,5 +4,5 @@ AnimationTrack Roll_lowerarm_l {
         Key = "Engine://AnimationTracks/Roll_lowerarm_l.KEYF"
         Size = 2880
     }
-    UUID = "a5fbf6bc-138b-454c-a6b0-1999373b6167"
+    UUID = "e32beed7-7648-4d69-958c-f419302f2164"
 }

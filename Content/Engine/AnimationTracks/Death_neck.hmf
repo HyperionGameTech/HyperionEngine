@@ -4,5 +4,5 @@ AnimationTrack Death_neck {
         Key = "Engine://AnimationTracks/Death_neck.KEYF"
         Size = 4672
     }
-    UUID = "d9358407-5af7-4397-99ff-c5a2421d65a8"
+    UUID = "bf8d079c-056e-42f1-a905-97737d41feb9"
 }

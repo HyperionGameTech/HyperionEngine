@@ -4,5 +4,5 @@ AnimationTrack Land_head {
         Key = "Engine://AnimationTracks/Land_head.KEYF"
         Size = 1344
     }
-    UUID = "64f870f8-bd2c-45a0-9fa6-020190740960"
+    UUID = "94d94d38-ea60-4e89-a382-be1340237de3"
 }

@@ -4,5 +4,5 @@ AnimationTrack PistolAimNeutral_ring_01_r {
         Key = "Engine://AnimationTracks/PistolAimNeutral_ring_01_r.KEYF"
         Size = 128
     }
-    UUID = "d12953bb-fbe2-4135-9e3f-b45e3066c75c"
+    UUID = "88f55af7-6d07-4f22-82b1-431d9a06af4d"
 }

@@ -4,5 +4,5 @@ AnimationTrack Walk_ball_r {
         Key = "Engine://AnimationTracks/Walk_ball_r.KEYF"
         Size = 2624
     }
-    UUID = "6eec4821-7559-48a9-85cf-88e13db38da3"
+    UUID = "b94849ec-3cf6-4b0b-be11-683582eb8211"
 }

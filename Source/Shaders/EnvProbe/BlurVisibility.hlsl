@@ -24,7 +24,7 @@ DECLARE_BUFFER_DYNAMIC(BlurVisibility, CBuffer) cbuffer CBuffer
     uint2 dimensions;
 };
 
-static const float Sigma = float(KERNEL_SIZE) * 0.25;
+static const float s_sigma = float(KERNEL_SIZE) * 0.25;
 
 [numthreads(WORKGROUP_SIZE, WORKGROUP_SIZE, 1)]
 void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID)
@@ -64,7 +64,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : 
 
             const float2 sample_val = input_texture.SampleLevel(sampler_linear, N, 0);
 
-            const float weight = exp(-0.5f * (float(dx * dx) + float(dy * dy)) / (Sigma * Sigma));
+            const float weight = exp(-0.5f * (float(dx * dx) + float(dy * dy)) / (s_sigma * s_sigma));
 
             sum += sample_val * weight;
             total_weight += weight;

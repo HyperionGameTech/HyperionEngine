@@ -4,5 +4,5 @@ AnimationTrack Idle_middle_02_r {
         Key = "Engine://AnimationTracks/Idle_middle_02_r.KEYF"
         Size = 128
     }
-    UUID = "1185d7f7-c0f2-46fe-b1e1-b03a565cf564"
+    UUID = "c30bd7ad-91fa-4b7d-ad50-0ee3d87d4623"
 }

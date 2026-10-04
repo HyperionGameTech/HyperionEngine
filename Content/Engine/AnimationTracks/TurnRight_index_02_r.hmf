@@ -4,5 +4,5 @@ AnimationTrack TurnRight_index_02_r {
         Key = "Engine://AnimationTracks/TurnRight_index_02_r.KEYF"
         Size = 128
     }
-    UUID = "1f128cf8-e4c9-4f49-8448-03d1442bc4f0"
+    UUID = "e0d42a99-fa3a-468c-8108-2cb1ce3ce529"
 }

@@ -4,5 +4,5 @@ AnimationTrack TurnRight_calf_r {
         Key = "Engine://AnimationTracks/TurnRight_calf_r.KEYF"
         Size = 1216
     }
-    UUID = "a4387e02-8447-4948-a6e6-6ed75ce300e8"
+    UUID = "6a702384-981d-4551-b140-82fd70364cb2"
 }

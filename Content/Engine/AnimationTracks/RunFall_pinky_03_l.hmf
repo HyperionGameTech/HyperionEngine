@@ -4,5 +4,5 @@ AnimationTrack RunFall_pinky_03_l {
         Key = "Engine://AnimationTracks/RunFall_pinky_03_l.KEYF"
         Size = 128
     }
-    UUID = "01a46aae-8234-4b71-9f30-edda37592e87"
+    UUID = "90115ca0-34d1-4e90-a029-6f467afa6b82"
 }

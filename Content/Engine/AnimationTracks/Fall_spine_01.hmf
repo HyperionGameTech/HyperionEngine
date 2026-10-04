@@ -4,5 +4,5 @@ AnimationTrack Fall_spine_01 {
         Key = "Engine://AnimationTracks/Fall_spine_01.KEYF"
         Size = 128
     }
-    UUID = "66c5e312-01a5-4830-9c03-1bc783c3c8e1"
+    UUID = "3745a7d0-d295-4d5c-833a-f48095e30a67"
 }

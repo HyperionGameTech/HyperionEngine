@@ -4,5 +4,5 @@ AnimationTrack PistolAimNeutral_clavicle_r {
         Key = "Engine://AnimationTracks/PistolAimNeutral_clavicle_r.KEYF"
         Size = 128
     }
-    UUID = "3a398235-ea2f-4a48-a80d-239193d16515"
+    UUID = "805c0c1e-f7c1-4fa9-b206-fc962ceeee1d"
 }

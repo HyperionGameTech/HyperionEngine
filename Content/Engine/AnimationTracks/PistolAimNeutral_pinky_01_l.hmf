@@ -4,5 +4,5 @@ AnimationTrack PistolAimNeutral_pinky_01_l {
         Key = "Engine://AnimationTracks/PistolAimNeutral_pinky_01_l.KEYF"
         Size = 128
     }
-    UUID = "1584b152-a446-43a4-93f0-579ab50dc316"
+    UUID = "0f083a30-f192-4419-94bc-92ca9893c748"
 }

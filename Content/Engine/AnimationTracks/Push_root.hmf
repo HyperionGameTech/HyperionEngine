@@ -4,5 +4,5 @@ AnimationTrack Push_root {
         Key = "Engine://AnimationTracks/Push_root.KEYF"
         Size = 128
     }
-    UUID = "60d1dc9e-3b54-4b2e-89b4-75819dae3ca0"
+    UUID = "02ec76ea-691f-48e4-aa3c-a1b619077d0c"
 }

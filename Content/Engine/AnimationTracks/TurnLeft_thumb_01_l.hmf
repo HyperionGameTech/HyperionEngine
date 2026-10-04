@@ -4,5 +4,5 @@ AnimationTrack TurnLeft_thumb_01_l {
         Key = "Engine://AnimationTracks/TurnLeft_thumb_01_l.KEYF"
         Size = 128
     }
-    UUID = "10d6f48e-7ea1-4025-8562-1ec84347b10c"
+    UUID = "48767c0a-6cd1-4d3d-8dde-39ebc08e9bac"
 }

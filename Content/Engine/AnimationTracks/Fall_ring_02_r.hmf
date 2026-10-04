@@ -4,5 +4,5 @@ AnimationTrack Fall_ring_02_r {
         Key = "Engine://AnimationTracks/Fall_ring_02_r.KEYF"
         Size = 128
     }
-    UUID = "0fc88076-117c-4ec4-92ad-f0d2a988610e"
+    UUID = "aab90868-f76f-4f67-a93b-bf6f8f35c985"
 }

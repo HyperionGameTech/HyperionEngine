@@ -54,5 +54,5 @@ Animation TurnRightSmall {
         @"Engine://AnimationTracks/TurnRightSmall_foot_r"
         @"Engine://AnimationTracks/TurnRightSmall_ball_r"
     ]
-    UUID = "22f6a6ba-b9e2-42c5-89c9-7d0acd14abb6"
+    UUID = "3434db84-da4e-4a3d-a947-5e2a3556231b"
 }

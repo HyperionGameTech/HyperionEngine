@@ -5,7 +5,14 @@
 
 #define BVH_STACK_SIZE 64
 
-bool IntersectBVHLeaf(uint firstTriangle, uint triangleCount, float3 origin, float3 direction, float tMin, bool acceptFirstHit, inout BVHHit hit)
+bool IntersectBVHLeaf(
+    uint firstTriangle,
+    uint triangleCount,
+    float3 origin,
+    float3 direction,
+    float tMin,
+    bool acceptFirstHit,
+    inout BVHHit hit)
 {
     bool foundHit = false;
 
@@ -33,13 +40,22 @@ bool IntersectBVHLeaf(uint firstTriangle, uint triangleCount, float3 origin, flo
 }
 
 // Leaf children are intersected as soon as their parent is visited, only interior children go through the stack.
-bool TraceBVH(float3 origin, float3 direction, float tMin, float tMax, bool acceptFirstHit, out BVHHit hit)
+bool TraceBVH(
+    float3 origin,
+    float3 direction,
+    float tMin,
+    float tMax,
+    bool acceptFirstHit,
+    out BVHHit hit)
 {
     hit.distance = tMax;
     hit.triangleIndex = BVH_INVALID_INDEX;
     hit.barycentrics = float2(0.0, 0.0);
 
-    const float3 inverseDirection = float3(GetBVHSafeInverse(direction.x), GetBVHSafeInverse(direction.y), GetBVHSafeInverse(direction.z));
+    const float3 inverseDirection = float3(
+        GetBVHSafeInverse(direction.x),
+        GetBVHSafeInverse(direction.y),
+        GetBVHSafeInverse(direction.z));
 
     uint stack[BVH_STACK_SIZE];
     uint stackSize = 0;

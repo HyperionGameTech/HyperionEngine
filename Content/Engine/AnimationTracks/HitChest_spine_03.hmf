@@ -4,5 +4,5 @@ AnimationTrack HitChest_spine_03 {
         Key = "Engine://AnimationTracks/HitChest_spine_03.KEYF"
         Size = 704
     }
-    UUID = "8e3bdc7b-d6e2-4461-82ee-1f6e7667623d"
+    UUID = "42aaf900-3c0b-4919-a6de-9f7a9f421339"
 }

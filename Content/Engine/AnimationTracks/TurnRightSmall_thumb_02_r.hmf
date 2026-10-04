@@ -4,5 +4,5 @@ AnimationTrack TurnRightSmall_thumb_02_r {
         Key = "Engine://AnimationTracks/TurnRightSmall_thumb_02_r.KEYF"
         Size = 128
     }
-    UUID = "98efff9b-536d-4f1d-a0db-c1131cd56def"
+    UUID = "f35cfd82-6759-43d9-b2d6-1715bf93a983"
 }

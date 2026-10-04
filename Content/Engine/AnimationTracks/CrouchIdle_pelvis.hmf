@@ -4,5 +4,5 @@ AnimationTrack CrouchIdle_pelvis {
         Key = "Engine://AnimationTracks/CrouchIdle_pelvis.KEYF"
         Size = 5696
     }
-    UUID = "090c22d4-f4b6-48a4-bbe6-dea74d8a15f3"
+    UUID = "cf2eb072-5d11-4867-887d-2bcab2953a2b"
 }

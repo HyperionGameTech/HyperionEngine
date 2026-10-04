@@ -4,5 +4,5 @@ AnimationTrack HitHead_thigh_l {
         Key = "Engine://AnimationTracks/HitHead_thigh_l.KEYF"
         Size = 896
     }
-    UUID = "57437d8c-e82a-4574-95ac-845b26b07b31"
+    UUID = "d5fac948-7ccb-48de-8cdb-e1b67ad0a05c"
 }

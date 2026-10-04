@@ -4,5 +4,5 @@ AnimationTrack Fall_foot_l {
         Key = "Engine://AnimationTracks/Fall_foot_l.KEYF"
         Size = 1984
     }
-    UUID = "35bb9695-072f-4bd6-92e3-2ea09160fb57"
+    UUID = "bfd74260-867b-4c3d-a72c-840c9c015a3b"
 }

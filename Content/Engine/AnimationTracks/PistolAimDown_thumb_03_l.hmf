@@ -4,5 +4,5 @@ AnimationTrack PistolAimDown_thumb_03_l {
         Key = "Engine://AnimationTracks/PistolAimDown_thumb_03_l.KEYF"
         Size = 128
     }
-    UUID = "fa95f1ea-cce5-4304-a1ef-1b186f1e099b"
+    UUID = "494d47ec-75ff-4e11-98c1-3ae383272885"
 }

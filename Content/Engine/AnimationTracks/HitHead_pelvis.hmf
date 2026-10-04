@@ -4,5 +4,5 @@ AnimationTrack HitHead_pelvis {
         Key = "Engine://AnimationTracks/HitHead_pelvis.KEYF"
         Size = 896
     }
-    UUID = "b91b1b03-a42f-41d9-90ed-65f0b7850ba1"
+    UUID = "b650d2cd-e41b-445d-8017-09a79647322c"
 }

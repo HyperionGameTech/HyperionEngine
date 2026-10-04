@@ -4,5 +4,5 @@ AnimationTrack StrafeRight_pelvis {
         Key = "Engine://AnimationTracks/StrafeRight_pelvis.KEYF"
         Size = 2624
     }
-    UUID = "cf1fab23-e16e-4e5d-8585-ec264fe7487e"
+    UUID = "8ee91420-e1b7-41e0-b466-d4eaf4b05d7a"
 }

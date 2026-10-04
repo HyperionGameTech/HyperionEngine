@@ -4,5 +4,5 @@ AnimationTrack Fall_pelvis {
         Key = "Engine://AnimationTracks/Fall_pelvis.KEYF"
         Size = 128
     }
-    UUID = "4e94b9c1-eb53-48f4-8ac7-22bcddb10b10"
+    UUID = "882e0b29-82e4-4bd7-af89-617d87911f8d"
 }

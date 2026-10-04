@@ -4,5 +4,5 @@ AnimationTrack Idle_lowerarm_r {
         Key = "Engine://AnimationTracks/Idle_lowerarm_r.KEYF"
         Size = 11584
     }
-    UUID = "51c3e6c7-e997-43f1-81e2-1aff3a3ab96d"
+    UUID = "55e7e6ce-10fa-434c-a232-58dc63101427"
 }

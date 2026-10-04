@@ -4,5 +4,5 @@ AnimationTrack Walk_index_01_r {
         Key = "Engine://AnimationTracks/Walk_index_01_r.KEYF"
         Size = 128
     }
-    UUID = "70c63f20-7cea-45ed-aeac-46187e038e17"
+    UUID = "d442e75c-5a4e-4bdc-8d49-26d57b75dc7c"
 }

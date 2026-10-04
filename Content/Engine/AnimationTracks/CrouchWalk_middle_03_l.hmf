@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_middle_03_l {
         Key = "Engine://AnimationTracks/CrouchWalk_middle_03_l.KEYF"
         Size = 128
     }
-    UUID = "0f3a4a5c-2e0e-4f9e-b436-6846495939a3"
+    UUID = "a2fa90c0-aa0d-472b-81cc-08612ec507e6"
 }

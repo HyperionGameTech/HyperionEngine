@@ -4,5 +4,5 @@ AnimationTrack RunJump_middle_03_l {
         Key = "Engine://AnimationTracks/RunJump_middle_03_l.KEYF"
         Size = 128
     }
-    UUID = "8db8acf7-4f39-4a67-adc8-e8b7fe7a9a00"
+    UUID = "bd905bea-7e8a-4176-aaca-502be4ab4f3b"
 }

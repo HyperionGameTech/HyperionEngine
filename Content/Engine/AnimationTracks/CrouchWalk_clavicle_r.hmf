@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_clavicle_r {
         Key = "Engine://AnimationTracks/CrouchWalk_clavicle_r.KEYF"
         Size = 128
     }
-    UUID = "ef91d130-3aad-47ae-a310-4466e5bf8716"
+    UUID = "df9dd9c8-b7cb-4f96-8af0-4c9e5807ce88"
 }

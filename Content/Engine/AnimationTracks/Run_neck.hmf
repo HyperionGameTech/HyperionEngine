@@ -4,5 +4,5 @@ AnimationTrack Run_neck {
         Key = "Engine://AnimationTracks/Run_neck.KEYF"
         Size = 1344
     }
-    UUID = "5f092100-b199-40ec-8ac7-bf0ce47a20b4"
+    UUID = "bbf7be03-cdb8-4611-9a8c-62bccde9a9f7"
 }

@@ -4,5 +4,5 @@ AnimationTrack Fall_lowerarm_l {
         Key = "Engine://AnimationTracks/Fall_lowerarm_l.KEYF"
         Size = 1984
     }
-    UUID = "7a64d6c3-b8b9-469f-9bbf-cf2008e9eeaa"
+    UUID = "666a4f1d-35d9-4c1f-a01d-d7f8ad6f3b80"
 }

@@ -4,5 +4,5 @@ AnimationTrack HitHead_pinky_02_l {
         Key = "Engine://AnimationTracks/HitHead_pinky_02_l.KEYF"
         Size = 896
     }
-    UUID = "e97acff6-ea6f-495b-aaf5-e0aa671e33c2"
+    UUID = "b3484692-a48a-442b-8017-6db65bb4cea8"
 }

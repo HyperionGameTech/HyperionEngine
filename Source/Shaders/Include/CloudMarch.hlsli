@@ -65,7 +65,7 @@ float MarchOpticalDepthToSun(CloudLayer layer, float3 position, float3 direction
             break;
         }
 
-        opticalDepth += SampleCloudDensity(samplePosition, heightFraction, true) * CloudExtinction * stepLength;
+        opticalDepth += SampleCloudDensity(samplePosition, heightFraction, false) * CLOUD_EXTINCTION * stepLength;
 
         distanceAlongRay += stepLength;
         stepLength *= LightMarchStepGrowth;
@@ -191,7 +191,7 @@ CloudMarchResult MarchCloudLayer(
 
         if (!isFineMarching)
         {
-            if (SampleCloudDensity(samplePosition, heightFraction, true) > 0.0)
+            if (SampleCloudDensity(samplePosition, heightFraction, false) > 0.0)
             {
                 // step back so the fine march starts before the cloud edge
                 isFineMarching = true;
@@ -206,13 +206,13 @@ CloudMarchResult MarchCloudLayer(
             continue;
         }
 
-        const float density = SampleCloudDensity(samplePosition, heightFraction, false);
+        const float density = SampleCloudDensity(samplePosition, heightFraction, true);
 
         if (density > 0.0)
         {
             emptyFineSamples = 0;
 
-            const float extinction = max(density * CloudExtinction, 1e-6);
+            const float extinction = max(density * CLOUD_EXTINCTION, 1e-6);
             const float opticalDepthToSun = MarchOpticalDepthToSun(layer, samplePosition, lighting.directionToSun, lightSteps);
 
             // multiple scattering approximation (Wrenninge 2013): each octave scatters more, attenuates less and is less directional

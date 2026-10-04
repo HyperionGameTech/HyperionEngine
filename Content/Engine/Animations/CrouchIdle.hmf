@@ -54,5 +54,5 @@ Animation CrouchIdle {
         @"Engine://AnimationTracks/CrouchIdle_foot_r"
         @"Engine://AnimationTracks/CrouchIdle_ball_r"
     ]
-    UUID = "9b1f61d9-a091-4125-a34c-b3c5c8b92f69"
+    UUID = "d57d73fb-74a2-4047-bea8-7fe219299d5b"
 }

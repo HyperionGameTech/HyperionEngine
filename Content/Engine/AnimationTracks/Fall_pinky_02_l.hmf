@@ -4,5 +4,5 @@ AnimationTrack Fall_pinky_02_l {
         Key = "Engine://AnimationTracks/Fall_pinky_02_l.KEYF"
         Size = 128
     }
-    UUID = "22001b47-70fe-40f5-96ae-1f4e992fe98a"
+    UUID = "98b7d870-c2e1-40ce-b798-9a5efa3120ad"
 }

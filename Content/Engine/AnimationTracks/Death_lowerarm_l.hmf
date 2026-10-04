@@ -4,5 +4,5 @@ AnimationTrack Death_lowerarm_l {
         Key = "Engine://AnimationTracks/Death_lowerarm_l.KEYF"
         Size = 4672
     }
-    UUID = "f7520d9f-b45f-445e-b14d-3e085ade6843"
+    UUID = "a2551eb7-cc08-411f-802f-96c91faf605a"
 }

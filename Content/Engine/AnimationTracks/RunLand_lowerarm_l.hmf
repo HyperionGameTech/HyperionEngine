@@ -4,5 +4,5 @@ AnimationTrack RunLand_lowerarm_l {
         Key = "Engine://AnimationTracks/RunLand_lowerarm_l.KEYF"
         Size = 1152
     }
-    UUID = "a7bc34a5-5e0f-469d-b7f7-b1eca8ac4d8d"
+    UUID = "5cfefb4b-9bb1-4266-aadb-ed456c602836"
 }

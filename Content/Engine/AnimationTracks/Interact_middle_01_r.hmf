@@ -4,5 +4,5 @@ AnimationTrack Interact_middle_01_r {
         Key = "Engine://AnimationTracks/Interact_middle_01_r.KEYF"
         Size = 128
     }
-    UUID = "a04b9658-c9b6-4fb2-9c1c-54fee996b425"
+    UUID = "1f02ebef-a1fd-4a35-9cc5-8c6a63bb8585"
 }

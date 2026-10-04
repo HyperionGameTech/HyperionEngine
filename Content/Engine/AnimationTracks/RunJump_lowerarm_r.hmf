@@ -4,5 +4,5 @@ AnimationTrack RunJump_lowerarm_r {
         Key = "Engine://AnimationTracks/RunJump_lowerarm_r.KEYF"
         Size = 1600
     }
-    UUID = "cb1e63dc-d0bf-4750-b014-7130a0e1224a"
+    UUID = "6b02c042-e089-461c-8222-db2841b91d2f"
 }

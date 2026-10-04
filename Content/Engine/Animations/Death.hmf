@@ -54,5 +54,5 @@ Animation Death {
         @"Engine://AnimationTracks/Death_foot_r"
         @"Engine://AnimationTracks/Death_ball_r"
     ]
-    UUID = "be6f9323-53f7-44e9-b61c-b9dfa4859457"
+    UUID = "b1df7282-c46c-4dd3-893c-d1eaf20f3af7"
 }

@@ -4,5 +4,5 @@ AnimationTrack Walk_spine_02 {
         Key = "Engine://AnimationTracks/Walk_spine_02.KEYF"
         Size = 2624
     }
-    UUID = "6c635c8c-9397-4bd2-801a-19d15c362cae"
+    UUID = "1fb9ae0e-751a-4ea6-8f81-7b0d95305e4a"
 }

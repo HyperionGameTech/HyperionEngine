@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_thumb_02_l {
         Key = "Engine://AnimationTracks/WalkBackward_thumb_02_l.KEYF"
         Size = 128
     }
-    UUID = "b2ae6178-b2d3-4609-a858-1ae90c5b0d7b"
+    UUID = "4aa6117c-f760-490b-bdd4-9dca14a50d6b"
 }

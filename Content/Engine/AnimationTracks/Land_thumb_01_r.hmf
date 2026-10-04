@@ -4,5 +4,5 @@ AnimationTrack Land_thumb_01_r {
         Key = "Engine://AnimationTracks/Land_thumb_01_r.KEYF"
         Size = 128
     }
-    UUID = "e44d3e82-9fd6-4b1b-b244-4948be404bbc"
+    UUID = "6832e1d1-3d09-49d0-9e89-0735ffc4a926"
 }

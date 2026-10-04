@@ -4,5 +4,5 @@ AnimationTrack Land_spine_02 {
         Key = "Engine://AnimationTracks/Land_spine_02.KEYF"
         Size = 1344
     }
-    UUID = "885493ac-006b-47c1-a8fb-b80b953da8e5"
+    UUID = "35ca9b17-c3c9-4029-b57b-203c99ecf21a"
 }

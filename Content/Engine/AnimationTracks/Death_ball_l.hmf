@@ -4,5 +4,5 @@ AnimationTrack Death_ball_l {
         Key = "Engine://AnimationTracks/Death_ball_l.KEYF"
         Size = 128
     }
-    UUID = "fec2d575-dab5-4ac1-bd6b-6c484a6cb5c2"
+    UUID = "12c578be-c801-4836-bc5e-acd3d6670ad5"
 }

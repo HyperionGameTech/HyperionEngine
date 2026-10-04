@@ -54,5 +54,5 @@ Animation Idle {
         @"Engine://AnimationTracks/Idle_foot_r"
         @"Engine://AnimationTracks/Idle_ball_r"
     ]
-    UUID = "d8f1cf9a-e498-4f73-abbc-51f532a65e3f"
+    UUID = "3d45a498-ec1a-43a0-9bba-994996fb87f3"
 }

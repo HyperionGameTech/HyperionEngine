@@ -4,5 +4,5 @@ AnimationTrack Death_hand_l {
         Key = "Engine://AnimationTracks/Death_hand_l.KEYF"
         Size = 4672
     }
-    UUID = "43d2ac85-4050-457f-96a9-30dcaf037b0b"
+    UUID = "e5f77844-da3f-4de8-ad85-16a52a5d91b7"
 }

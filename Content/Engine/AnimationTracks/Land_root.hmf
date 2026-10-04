@@ -4,5 +4,5 @@ AnimationTrack Land_root {
         Key = "Engine://AnimationTracks/Land_root.KEYF"
         Size = 128
     }
-    UUID = "f1ce4fd9-5f4e-47ab-891e-11a372848476"
+    UUID = "e3ebd1de-2784-4c9c-b137-b1da8ad57e7b"
 }

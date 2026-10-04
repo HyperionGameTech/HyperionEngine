@@ -4,5 +4,5 @@ AnimationTrack Walk_pinky_01_l {
         Key = "Engine://AnimationTracks/Walk_pinky_01_l.KEYF"
         Size = 128
     }
-    UUID = "3dc0088f-0c1d-49fd-b1ab-2d35549cea35"
+    UUID = "a366f23c-6d6c-461a-bbbd-571505d80fb4"
 }

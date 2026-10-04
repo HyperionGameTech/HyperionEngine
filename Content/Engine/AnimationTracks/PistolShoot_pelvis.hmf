@@ -4,5 +4,5 @@ AnimationTrack PistolShoot_pelvis {
         Key = "Engine://AnimationTracks/PistolShoot_pelvis.KEYF"
         Size = 128
     }
-    UUID = "c5470e39-0449-468d-80d6-12d20df7f835"
+    UUID = "4d7634b5-e4ce-4a84-9957-d0ffb1a6ed22"
 }

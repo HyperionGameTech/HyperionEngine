@@ -4,5 +4,5 @@ AnimationTrack Land_ball_l {
         Key = "Engine://AnimationTracks/Land_ball_l.KEYF"
         Size = 1344
     }
-    UUID = "5cfaae7c-1d4b-4da7-98c8-23be454b9b4a"
+    UUID = "5258e2fc-319d-45c7-9940-50d9a0ec9d04"
 }

@@ -4,5 +4,5 @@ AnimationTrack Jump_foot_r {
         Key = "Engine://AnimationTracks/Jump_foot_r.KEYF"
         Size = 1600
     }
-    UUID = "cdf67565-48b3-4ba8-a737-f056f3850a07"
+    UUID = "79d23037-3a20-4139-a51c-a610b7bff935"
 }

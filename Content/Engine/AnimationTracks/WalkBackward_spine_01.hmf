@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_spine_01 {
         Key = "Engine://AnimationTracks/WalkBackward_spine_01.KEYF"
         Size = 128
     }
-    UUID = "a29e2fc0-b6f0-466b-814e-7ce62f8396ed"
+    UUID = "77e66b7c-90b3-4b07-bee7-6a073bd8edda"
 }

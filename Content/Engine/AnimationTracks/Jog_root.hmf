@@ -4,5 +4,5 @@ AnimationTrack Jog_root {
         Key = "Engine://AnimationTracks/Jog_root.KEYF"
         Size = 128
     }
-    UUID = "7dc6ffd1-c48d-4068-a24d-4ff2054f2a13"
+    UUID = "d175fdab-600c-4dd5-a470-27a9c5120a20"
 }

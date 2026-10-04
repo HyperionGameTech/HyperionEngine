@@ -54,5 +54,5 @@ Animation Jump {
         @"Engine://AnimationTracks/Jump_foot_r"
         @"Engine://AnimationTracks/Jump_ball_r"
     ]
-    UUID = "0e88f006-632f-4fac-b84a-18ff0f8d51f4"
+    UUID = "9ede92ba-3b65-4bdb-9ce1-88937b6eebe2"
 }

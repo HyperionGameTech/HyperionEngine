@@ -4,5 +4,5 @@ AnimationTrack Jump_pelvis {
         Key = "Engine://AnimationTracks/Jump_pelvis.KEYF"
         Size = 1600
     }
-    UUID = "cbea81b5-9e1b-4400-9254-654db90d3e3d"
+    UUID = "5c5e8db5-4fc2-4ff9-9df9-d9a2f0c4da47"
 }

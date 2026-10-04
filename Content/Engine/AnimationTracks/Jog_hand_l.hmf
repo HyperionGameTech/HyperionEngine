@@ -4,5 +4,5 @@ AnimationTrack Jog_hand_l {
         Key = "Engine://AnimationTracks/Jog_hand_l.KEYF"
         Size = 128
     }
-    UUID = "1807a4d9-6953-4250-910e-b9266de5bdf7"
+    UUID = "24a8157e-1e1b-4659-86fa-43501ba322d9"
 }

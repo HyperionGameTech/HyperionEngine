@@ -4,5 +4,5 @@ AnimationTrack RunLand_spine_02 {
         Key = "Engine://AnimationTracks/RunLand_spine_02.KEYF"
         Size = 1152
     }
-    UUID = "75ec7679-b394-4b2f-bf40-2ed2aeeeb965"
+    UUID = "12a3f4a5-6262-4954-a847-48c15e2c7939"
 }

@@ -54,5 +54,5 @@ Animation RunJump {
         @"Engine://AnimationTracks/RunJump_foot_r"
         @"Engine://AnimationTracks/RunJump_ball_r"
     ]
-    UUID = "4fb9109a-85c2-4ea6-b11d-728832dca02e"
+    UUID = "dbf27ee1-33c0-41b8-8666-b2b4e824bed0"
 }

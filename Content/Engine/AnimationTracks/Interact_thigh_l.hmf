@@ -4,5 +4,5 @@ AnimationTrack Interact_thigh_l {
         Key = "Engine://AnimationTracks/Interact_thigh_l.KEYF"
         Size = 3904
     }
-    UUID = "f256515d-f651-4cf2-866f-de4216c2c741"
+    UUID = "d3e24a32-311b-413a-b22c-8cef652fd88a"
 }

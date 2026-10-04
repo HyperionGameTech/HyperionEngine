@@ -4,5 +4,5 @@ AnimationTrack Jog_ring_02_l {
         Key = "Engine://AnimationTracks/Jog_ring_02_l.KEYF"
         Size = 128
     }
-    UUID = "cffa1848-4fe9-4f01-b54a-490c261710e3"
+    UUID = "50c06da3-d7e2-421b-8de8-41dde08e9d45"
 }

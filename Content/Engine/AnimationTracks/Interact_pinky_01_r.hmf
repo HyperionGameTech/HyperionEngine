@@ -4,5 +4,5 @@ AnimationTrack Interact_pinky_01_r {
         Key = "Engine://AnimationTracks/Interact_pinky_01_r.KEYF"
         Size = 128
     }
-    UUID = "1ba4c143-3989-4134-aa1a-c67f904ae0f5"
+    UUID = "bb2cd6c6-9954-4663-8ecc-abc2117a6480"
 }

@@ -4,5 +4,5 @@ AnimationTrack PickUp_lowerarm_r {
         Key = "Engine://AnimationTracks/PickUp_lowerarm_r.KEYF"
         Size = 1664
     }
-    UUID = "02c359e4-cee0-4977-9f23-846b37c0a0f6"
+    UUID = "b5b88b99-4eea-4a93-a076-a50dc03bf607"
 }

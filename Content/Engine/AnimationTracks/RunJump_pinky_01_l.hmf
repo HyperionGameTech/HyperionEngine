@@ -4,5 +4,5 @@ AnimationTrack RunJump_pinky_01_l {
         Key = "Engine://AnimationTracks/RunJump_pinky_01_l.KEYF"
         Size = 128
     }
-    UUID = "3600ea38-851d-46e8-b14b-92d6b66251d2"
+    UUID = "dd8d35ee-75a7-4912-9bf3-be284d6daa39"
 }

@@ -54,5 +54,5 @@ Animation PistolIdle {
         @"Engine://AnimationTracks/PistolIdle_foot_r"
         @"Engine://AnimationTracks/PistolIdle_ball_r"
     ]
-    UUID = "c75b23e6-91c5-4245-945b-da77a030de86"
+    UUID = "3bef0b77-ad8c-4875-b4ac-cfaeb2c2cacc"
 }

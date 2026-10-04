@@ -4,5 +4,5 @@ AnimationTrack PistolAimUp_spine_02 {
         Key = "Engine://AnimationTracks/PistolAimUp_spine_02.KEYF"
         Size = 128
     }
-    UUID = "77a23d0b-17be-469e-a73a-c0d124b597b2"
+    UUID = "b96a89b1-c1c8-40f8-9499-6d83f0600352"
 }

@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_clavicle_l {
         Key = "Engine://AnimationTracks/WalkBackward_clavicle_l.KEYF"
         Size = 2624
     }
-    UUID = "bfc7e08f-282b-44dc-a2ff-2ae04f49a5b1"
+    UUID = "ba734682-13a2-4bf2-9781-e70406c61649"
 }

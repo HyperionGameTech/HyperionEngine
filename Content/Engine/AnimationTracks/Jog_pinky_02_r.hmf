@@ -4,5 +4,5 @@ AnimationTrack Jog_pinky_02_r {
         Key = "Engine://AnimationTracks/Jog_pinky_02_r.KEYF"
         Size = 128
     }
-    UUID = "11b6d5a1-6b6c-4ddd-8e98-49fcef520c77"
+    UUID = "f8ad2199-6a95-43c5-a277-d9bb852e3ee6"
 }

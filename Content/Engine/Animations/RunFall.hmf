@@ -54,5 +54,5 @@ Animation RunFall {
         @"Engine://AnimationTracks/RunFall_foot_r"
         @"Engine://AnimationTracks/RunFall_ball_r"
     ]
-    UUID = "9f1b3c40-cd69-4a22-929d-5158438a6698"
+    UUID = "ee9820a6-8b3a-412d-859c-249d81fe73b9"
 }

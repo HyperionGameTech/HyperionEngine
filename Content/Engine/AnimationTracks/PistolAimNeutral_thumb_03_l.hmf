@@ -4,5 +4,5 @@ AnimationTrack PistolAimNeutral_thumb_03_l {
         Key = "Engine://AnimationTracks/PistolAimNeutral_thumb_03_l.KEYF"
         Size = 128
     }
-    UUID = "de4c7afe-f333-4912-998f-a479fd1d87f0"
+    UUID = "9139d088-ec72-405a-8ae4-8afac89f5174"
 }

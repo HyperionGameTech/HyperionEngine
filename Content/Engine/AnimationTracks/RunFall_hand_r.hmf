@@ -4,5 +4,5 @@ AnimationTrack RunFall_hand_r {
         Key = "Engine://AnimationTracks/RunFall_hand_r.KEYF"
         Size = 128
     }
-    UUID = "c3614a0c-0df4-4605-b171-23a826a8c1c9"
+    UUID = "93634845-c237-4948-b16f-9de2ea14f77b"
 }

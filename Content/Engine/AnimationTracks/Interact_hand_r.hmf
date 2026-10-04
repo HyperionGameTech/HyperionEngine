@@ -4,5 +4,5 @@ AnimationTrack Interact_hand_r {
         Key = "Engine://AnimationTracks/Interact_hand_r.KEYF"
         Size = 128
     }
-    UUID = "18315579-be51-4f70-bf39-f202d59012f7"
+    UUID = "bd3fd6c6-00b5-4a3d-a4b3-5cc37b970ffa"
 }

@@ -4,5 +4,5 @@ AnimationTrack TurnLeftSmall_spine_02 {
         Key = "Engine://AnimationTracks/TurnLeftSmall_spine_02.KEYF"
         Size = 128
     }
-    UUID = "0ec09662-95b6-4c54-8aab-b312a7fd8022"
+    UUID = "358cfea5-e7d8-4d38-bfa2-9faba8289924"
 }

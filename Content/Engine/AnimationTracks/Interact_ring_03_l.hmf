@@ -4,5 +4,5 @@ AnimationTrack Interact_ring_03_l {
         Key = "Engine://AnimationTracks/Interact_ring_03_l.KEYF"
         Size = 128
     }
-    UUID = "b65a75c2-7570-498a-957d-2b071116d3b3"
+    UUID = "45d2f9af-21b4-4b33-b0fc-4170200e3548"
 }

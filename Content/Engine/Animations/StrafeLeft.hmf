@@ -54,5 +54,5 @@ Animation StrafeLeft {
         @"Engine://AnimationTracks/StrafeLeft_foot_r"
         @"Engine://AnimationTracks/StrafeLeft_ball_r"
     ]
-    UUID = "dcf5d1be-a790-4c95-a15f-105872f9c036"
+    UUID = "1ea23d74-e9b4-4e7c-8cb4-0a5d05de0ba8"
 }

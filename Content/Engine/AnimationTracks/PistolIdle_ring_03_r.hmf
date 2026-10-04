@@ -4,5 +4,5 @@ AnimationTrack PistolIdle_ring_03_r {
         Key = "Engine://AnimationTracks/PistolIdle_ring_03_r.KEYF"
         Size = 128
     }
-    UUID = "cb29ebd1-2a66-4348-928c-2cc41a4f8866"
+    UUID = "2f3564e2-17af-4ceb-b91e-3cef7bb1a7ed"
 }

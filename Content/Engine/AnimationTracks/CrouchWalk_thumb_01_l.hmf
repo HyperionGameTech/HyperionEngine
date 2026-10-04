@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_thumb_01_l {
         Key = "Engine://AnimationTracks/CrouchWalk_thumb_01_l.KEYF"
         Size = 128
     }
-    UUID = "990ba7af-7cb6-40fe-bd03-ddc8d9ed3290"
+    UUID = "d28481b1-a0b0-4753-a8a0-ba12aeba1f89"
 }

@@ -4,5 +4,5 @@ AnimationTrack PistolShoot_lowerarm_r {
         Key = "Engine://AnimationTracks/PistolShoot_lowerarm_r.KEYF"
         Size = 1280
     }
-    UUID = "0d027d39-b6bc-4937-9e9c-b7d9f2ecc644"
+    UUID = "fc7324f0-ddf4-4e01-b51e-4a7d648367b0"
 }

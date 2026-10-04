@@ -4,5 +4,5 @@ AnimationTrack Jump_hand_l {
         Key = "Engine://AnimationTracks/Jump_hand_l.KEYF"
         Size = 128
     }
-    UUID = "8b08da44-4db2-4872-8611-d0ac6a12b4cd"
+    UUID = "6b2391f1-0632-49c6-b482-70b52b5ef9ea"
 }

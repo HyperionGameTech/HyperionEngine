@@ -4,5 +4,5 @@ AnimationTrack PistolAimDown_pinky_03_r {
         Key = "Engine://AnimationTracks/PistolAimDown_pinky_03_r.KEYF"
         Size = 128
     }
-    UUID = "a5b41c8c-4441-42cc-8747-016c0ec866d0"
+    UUID = "993561bf-6eb8-4571-bf32-e7548ac94da8"
 }

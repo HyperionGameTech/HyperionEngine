@@ -4,5 +4,5 @@ AnimationTrack Push_spine_02 {
         Key = "Engine://AnimationTracks/Push_spine_02.KEYF"
         Size = 5184
     }
-    UUID = "ef0cccba-9d1f-4eb1-8d36-1486f939f3dc"
+    UUID = "df07f685-f2c3-49b7-8488-1f4c090e9bcc"
 }

@@ -4,5 +4,5 @@ AnimationTrack TurnLeft_thigh_r {
         Key = "Engine://AnimationTracks/TurnLeft_thigh_r.KEYF"
         Size = 1216
     }
-    UUID = "6fe37e22-853d-4ed3-b923-b7898b4613c8"
+    UUID = "d1417431-fb53-4089-86e5-ab95c62b3323"
 }

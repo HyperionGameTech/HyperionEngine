@@ -4,5 +4,5 @@ AnimationTrack Jog_thigh_r {
         Key = "Engine://AnimationTracks/Jog_thigh_r.KEYF"
         Size = 1856
     }
-    UUID = "b19ee229-1b61-4c1a-9ec4-fd628ac581e5"
+    UUID = "4acf7f6a-e25b-4ce4-8b0f-fd753c66cf71"
 }

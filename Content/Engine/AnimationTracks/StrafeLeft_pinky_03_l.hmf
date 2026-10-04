@@ -4,5 +4,5 @@ AnimationTrack StrafeLeft_pinky_03_l {
         Key = "Engine://AnimationTracks/StrafeLeft_pinky_03_l.KEYF"
         Size = 128
     }
-    UUID = "74d07aef-2490-4bce-b8ee-3c07117536ef"
+    UUID = "fe319440-2dda-446c-ae75-39288b7fddcc"
 }

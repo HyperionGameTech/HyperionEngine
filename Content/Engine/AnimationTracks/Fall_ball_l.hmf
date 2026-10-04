@@ -4,5 +4,5 @@ AnimationTrack Fall_ball_l {
         Key = "Engine://AnimationTracks/Fall_ball_l.KEYF"
         Size = 128
     }
-    UUID = "0b6b32fe-4ccc-4662-8992-c3b643a671ea"
+    UUID = "d520df58-6f87-4c41-9ccc-cd04b4dd5548"
 }

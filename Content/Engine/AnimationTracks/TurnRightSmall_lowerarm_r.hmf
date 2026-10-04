@@ -4,5 +4,5 @@ AnimationTrack TurnRightSmall_lowerarm_r {
         Key = "Engine://AnimationTracks/TurnRightSmall_lowerarm_r.KEYF"
         Size = 128
     }
-    UUID = "0ddce0cf-1ab7-4f41-9e24-5e04d72edf02"
+    UUID = "61cdc8ab-07f7-44de-9c9f-750b427b237d"
 }

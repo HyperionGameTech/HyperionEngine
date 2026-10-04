@@ -4,5 +4,5 @@ AnimationTrack HitHead_middle_03_r {
         Key = "Engine://AnimationTracks/HitHead_middle_03_r.KEYF"
         Size = 896
     }
-    UUID = "5257d377-c582-410a-adf7-70df7132107a"
+    UUID = "42e7a2fc-c16d-46d6-9c69-4d79d8461598"
 }

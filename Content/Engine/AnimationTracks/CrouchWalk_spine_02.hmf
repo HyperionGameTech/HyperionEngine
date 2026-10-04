@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_spine_02 {
         Key = "Engine://AnimationTracks/CrouchWalk_spine_02.KEYF"
         Size = 3904
     }
-    UUID = "dfbce2a3-cb0a-48c7-8341-6fd15314e9c9"
+    UUID = "7644fd96-086e-440b-a882-7485e0d69118"
 }

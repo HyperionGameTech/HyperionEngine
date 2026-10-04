@@ -4,5 +4,5 @@ AnimationTrack PistolIdle_clavicle_l {
         Key = "Engine://AnimationTracks/PistolIdle_clavicle_l.KEYF"
         Size = 128
     }
-    UUID = "c476a971-fba4-47b0-b165-dbd50e3ce61c"
+    UUID = "a965bd39-c4dd-4232-8efb-b8aa313bdeaa"
 }

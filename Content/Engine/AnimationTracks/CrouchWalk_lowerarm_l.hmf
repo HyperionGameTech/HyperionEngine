@@ -4,5 +4,5 @@ AnimationTrack CrouchWalk_lowerarm_l {
         Key = "Engine://AnimationTracks/CrouchWalk_lowerarm_l.KEYF"
         Size = 3904
     }
-    UUID = "1a306e1c-8bb9-4e7a-9f44-c1e59064b480"
+    UUID = "ea972cbf-2444-4dcb-88e0-a3a3de0e6bf7"
 }

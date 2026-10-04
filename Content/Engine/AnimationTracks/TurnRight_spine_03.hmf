@@ -4,5 +4,5 @@ AnimationTrack TurnRight_spine_03 {
         Key = "Engine://AnimationTracks/TurnRight_spine_03.KEYF"
         Size = 128
     }
-    UUID = "18f88fa0-1ade-4f74-9683-d01b7127a5a2"
+    UUID = "85b9eb47-4d9b-466d-908b-738426985ccb"
 }

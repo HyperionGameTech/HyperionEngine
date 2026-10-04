@@ -4,5 +4,5 @@ AnimationTrack Walk_root {
         Key = "Engine://AnimationTracks/Walk_root.KEYF"
         Size = 128
     }
-    UUID = "ca2538a4-9eed-49c7-b4b7-33c0f69fc2cc"
+    UUID = "97d11d16-21f9-4cc2-a180-7d5f98addd13"
 }

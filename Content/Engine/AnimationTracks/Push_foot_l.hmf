@@ -4,5 +4,5 @@ AnimationTrack Push_foot_l {
         Key = "Engine://AnimationTracks/Push_foot_l.KEYF"
         Size = 5184
     }
-    UUID = "bb33ced3-539b-4208-a885-d23e4934581a"
+    UUID = "3ba7760c-f946-4c2b-b897-1c546c3bb9a3"
 }

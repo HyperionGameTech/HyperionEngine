@@ -4,5 +4,5 @@ AnimationTrack RunLand_ball_l {
         Key = "Engine://AnimationTracks/RunLand_ball_l.KEYF"
         Size = 1152
     }
-    UUID = "db2503c9-835d-41ae-a900-22b859078e2d"
+    UUID = "e50ffa99-f11d-41fc-9e37-6dbdf47704c8"
 }

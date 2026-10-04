@@ -4,5 +4,5 @@ AnimationTrack Death_pelvis {
         Key = "Engine://AnimationTracks/Death_pelvis.KEYF"
         Size = 4672
     }
-    UUID = "4a9d75f8-be81-4969-8338-846d200c51aa"
+    UUID = "613b6ea8-cda2-44a8-8b04-270df2a618d8"
 }

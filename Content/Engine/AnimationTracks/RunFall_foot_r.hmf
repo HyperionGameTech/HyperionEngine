@@ -4,5 +4,5 @@ AnimationTrack RunFall_foot_r {
         Key = "Engine://AnimationTracks/RunFall_foot_r.KEYF"
         Size = 1984
     }
-    UUID = "0a29f988-4320-4d6b-b1ff-1d1b44464667"
+    UUID = "42ee4873-6298-4c4f-a332-c652c961e1fe"
 }

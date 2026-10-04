@@ -4,5 +4,5 @@ AnimationTrack RunLand_ring_03_r {
         Key = "Engine://AnimationTracks/RunLand_ring_03_r.KEYF"
         Size = 128
     }
-    UUID = "72a5026c-120d-4ab4-ace5-4cee32d0fc8c"
+    UUID = "773b2cee-c4dd-41df-b28e-4302c9cacf52"
 }

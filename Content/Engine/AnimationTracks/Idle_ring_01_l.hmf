@@ -4,5 +4,5 @@ AnimationTrack Idle_ring_01_l {
         Key = "Engine://AnimationTracks/Idle_ring_01_l.KEYF"
         Size = 128
     }
-    UUID = "447fb9f9-48fb-40b1-884b-9be44326c9b3"
+    UUID = "7db9104c-e458-4486-9605-82e003d0dcb0"
 }

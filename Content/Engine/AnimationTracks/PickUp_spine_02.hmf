@@ -4,5 +4,5 @@ AnimationTrack PickUp_spine_02 {
         Key = "Engine://AnimationTracks/PickUp_spine_02.KEYF"
         Size = 1664
     }
-    UUID = "9fecbe96-e96e-4ad3-b85d-8dcaaad62780"
+    UUID = "068ea7c4-c2fc-4fe6-bcfe-f6563b885941"
 }

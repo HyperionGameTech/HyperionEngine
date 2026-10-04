@@ -4,5 +4,5 @@ AnimationTrack Interact_ball_r {
         Key = "Engine://AnimationTracks/Interact_ball_r.KEYF"
         Size = 128
     }
-    UUID = "b01c0246-f012-48df-b0b8-4a401579a770"
+    UUID = "35f2dd19-92a9-477d-bdef-12fe6ecb8c13"
 }

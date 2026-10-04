@@ -4,5 +4,5 @@ AnimationTrack Roll_middle_02_r {
         Key = "Engine://AnimationTracks/Roll_middle_02_r.KEYF"
         Size = 2880
     }
-    UUID = "87647c62-c803-4aff-aa9c-349a504810ab"
+    UUID = "82c6e444-3d1a-44d1-859f-064790499ff5"
 }

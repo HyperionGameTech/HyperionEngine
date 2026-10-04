@@ -4,5 +4,5 @@ AnimationTrack PistolReload_spine_01 {
         Key = "Engine://AnimationTracks/PistolReload_spine_01.KEYF"
         Size = 128
     }
-    UUID = "4c660d10-f86d-4082-a36c-439095a74ab5"
+    UUID = "1189d501-80bd-4e33-a087-2c246e66cbda"
 }

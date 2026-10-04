@@ -4,5 +4,5 @@ AnimationTrack CrouchIdle_thigh_r {
         Key = "Engine://AnimationTracks/CrouchIdle_thigh_r.KEYF"
         Size = 5696
     }
-    UUID = "64f01f18-d3a0-4a99-9874-466994bc75bd"
+    UUID = "04c928cc-6075-4316-9343-14d43f3ab0ea"
 }

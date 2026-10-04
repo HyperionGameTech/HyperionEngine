@@ -4,5 +4,5 @@ AnimationTrack Walk_lowerarm_l {
         Key = "Engine://AnimationTracks/Walk_lowerarm_l.KEYF"
         Size = 2624
     }
-    UUID = "e1138308-18b2-4f66-ab25-c860d37d48d1"
+    UUID = "28845938-e0e2-4d31-bbbb-8c9ef1fc42fd"
 }

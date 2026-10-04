@@ -4,5 +4,5 @@ AnimationTrack TurnRightSmall_pelvis {
         Key = "Engine://AnimationTracks/TurnRightSmall_pelvis.KEYF"
         Size = 960
     }
-    UUID = "83c6a142-0af4-4744-9d44-3787e119b222"
+    UUID = "3c70974f-e0e5-4f2e-b1d1-15ffb78106bb"
 }

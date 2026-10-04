@@ -4,5 +4,5 @@ AnimationTrack HitHead_spine_03 {
         Key = "Engine://AnimationTracks/HitHead_spine_03.KEYF"
         Size = 896
     }
-    UUID = "e5aa826c-a829-4053-98d8-0297a94c97fd"
+    UUID = "fc6b3095-d408-49b4-93e8-571f305fcb59"
 }

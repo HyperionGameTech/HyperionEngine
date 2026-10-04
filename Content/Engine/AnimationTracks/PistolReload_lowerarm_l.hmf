@@ -4,5 +4,5 @@ AnimationTrack PistolReload_lowerarm_l {
         Key = "Engine://AnimationTracks/PistolReload_lowerarm_l.KEYF"
         Size = 3264
     }
-    UUID = "8da5f10a-11a0-4e6e-b135-de0a78a7dcef"
+    UUID = "2c5929ad-8f9b-42eb-b982-0c4df3fe1631"
 }

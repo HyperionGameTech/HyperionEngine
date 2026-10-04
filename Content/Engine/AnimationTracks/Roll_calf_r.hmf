@@ -4,5 +4,5 @@ AnimationTrack Roll_calf_r {
         Key = "Engine://AnimationTracks/Roll_calf_r.KEYF"
         Size = 2880
     }
-    UUID = "af35cbe5-430a-4568-9ae6-6a7c01ef2812"
+    UUID = "824569f1-1454-4634-b9c6-e93038106deb"
 }

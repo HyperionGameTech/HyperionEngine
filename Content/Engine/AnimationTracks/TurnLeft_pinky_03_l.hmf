@@ -4,5 +4,5 @@ AnimationTrack TurnLeft_pinky_03_l {
         Key = "Engine://AnimationTracks/TurnLeft_pinky_03_l.KEYF"
         Size = 128
     }
-    UUID = "e79e997c-b08e-4b2f-b087-7e26c4066930"
+    UUID = "31ead27f-779f-47b0-8017-7a7474153f68"
 }

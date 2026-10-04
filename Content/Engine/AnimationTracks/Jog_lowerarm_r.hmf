@@ -4,5 +4,5 @@ AnimationTrack Jog_lowerarm_r {
         Key = "Engine://AnimationTracks/Jog_lowerarm_r.KEYF"
         Size = 1856
     }
-    UUID = "7985d868-15fa-42d2-b257-1571fe5965be"
+    UUID = "0bf33963-2883-4ab8-8b81-448e44903366"
 }

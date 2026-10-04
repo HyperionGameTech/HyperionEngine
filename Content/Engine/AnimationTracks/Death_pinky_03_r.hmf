@@ -4,5 +4,5 @@ AnimationTrack Death_pinky_03_r {
         Key = "Engine://AnimationTracks/Death_pinky_03_r.KEYF"
         Size = 4672
     }
-    UUID = "9d8090a9-176f-48cb-9a68-53168a1e3740"
+    UUID = "6dfa5ecb-7f48-487a-a6bb-aedd508c535d"
 }

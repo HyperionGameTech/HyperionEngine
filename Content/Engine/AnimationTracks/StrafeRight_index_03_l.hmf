@@ -4,5 +4,5 @@ AnimationTrack StrafeRight_index_03_l {
         Key = "Engine://AnimationTracks/StrafeRight_index_03_l.KEYF"
         Size = 128
     }
-    UUID = "9c040d19-7188-4011-ac13-d85e0a75565a"
+    UUID = "3762394d-f34b-4091-9a66-8b95166668d2"
 }

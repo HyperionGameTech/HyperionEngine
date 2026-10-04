@@ -4,5 +4,5 @@ AnimationTrack PickUp_pinky_01_r {
         Key = "Engine://AnimationTracks/PickUp_pinky_01_r.KEYF"
         Size = 128
     }
-    UUID = "b938abcf-5843-4702-9f2c-fbd17163892d"
+    UUID = "dd4e5284-a667-4dfb-8bed-ff268282bdc1"
 }

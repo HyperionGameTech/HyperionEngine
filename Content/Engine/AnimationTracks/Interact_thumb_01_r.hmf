@@ -4,5 +4,5 @@ AnimationTrack Interact_thumb_01_r {
         Key = "Engine://AnimationTracks/Interact_thumb_01_r.KEYF"
         Size = 128
     }
-    UUID = "2390a159-9f67-462b-8def-d3b6c0988625"
+    UUID = "b5ea602c-2220-4758-8e95-52aa61fd9142"
 }

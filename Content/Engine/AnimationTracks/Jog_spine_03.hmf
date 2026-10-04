@@ -4,5 +4,5 @@ AnimationTrack Jog_spine_03 {
         Key = "Engine://AnimationTracks/Jog_spine_03.KEYF"
         Size = 1856
     }
-    UUID = "5ee4f5d8-8320-487d-9270-ed83b6d7d5ac"
+    UUID = "ecec9486-c4e1-4195-aa4a-7a8b5ba15756"
 }

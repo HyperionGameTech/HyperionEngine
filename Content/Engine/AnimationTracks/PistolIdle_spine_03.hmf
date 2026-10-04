@@ -4,5 +4,5 @@ AnimationTrack PistolIdle_spine_03 {
         Key = "Engine://AnimationTracks/PistolIdle_spine_03.KEYF"
         Size = 3264
     }
-    UUID = "ad1272cc-57a5-42d2-9b93-2ddd85683691"
+    UUID = "bd2cf356-c628-4a64-ac9a-c5c0aef301da"
 }

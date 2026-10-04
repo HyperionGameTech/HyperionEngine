@@ -4,5 +4,5 @@ AnimationTrack TurnLeftSmall_clavicle_r {
         Key = "Engine://AnimationTracks/TurnLeftSmall_clavicle_r.KEYF"
         Size = 128
     }
-    UUID = "1ac132f6-8085-4b07-b7cc-ff67d760a887"
+    UUID = "5dcb2221-81d6-4f19-b7fe-26f9b0ea8b5c"
 }

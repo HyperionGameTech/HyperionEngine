@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_pinky_01_r {
         Key = "Engine://AnimationTracks/WalkBackward_pinky_01_r.KEYF"
         Size = 128
     }
-    UUID = "e9b2fa70-1488-48d6-9e8b-ea1da1f31455"
+    UUID = "ec75ee0a-64f8-45b4-893c-6daba382a140"
 }

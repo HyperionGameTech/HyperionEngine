@@ -4,5 +4,5 @@ AnimationTrack Death_thigh_r {
         Key = "Engine://AnimationTracks/Death_thigh_r.KEYF"
         Size = 4672
     }
-    UUID = "724525b7-f141-4789-8cc5-42257b47099d"
+    UUID = "055d9062-e098-4195-a6fa-e50a43a3c46d"
 }

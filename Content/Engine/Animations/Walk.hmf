@@ -54,5 +54,5 @@ Animation Walk {
         @"Engine://AnimationTracks/Walk_foot_r"
         @"Engine://AnimationTracks/Walk_ball_r"
     ]
-    UUID = "9ae908a6-3474-4a0b-9e4e-1c663c6c01fa"
+    UUID = "901444d6-818a-4164-8720-c6deafa235b9"
 }

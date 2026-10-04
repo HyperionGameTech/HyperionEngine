@@ -4,5 +4,5 @@ AnimationTrack PickUp_thumb_02_r {
         Key = "Engine://AnimationTracks/PickUp_thumb_02_r.KEYF"
         Size = 128
     }
-    UUID = "a1315260-56a0-47c5-94cb-c1fccbdbea6d"
+    UUID = "988795a1-52a0-4caf-94f3-6ae7854131c7"
 }

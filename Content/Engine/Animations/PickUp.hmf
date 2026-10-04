@@ -54,5 +54,5 @@ Animation PickUp {
         @"Engine://AnimationTracks/PickUp_foot_r"
         @"Engine://AnimationTracks/PickUp_ball_r"
     ]
-    UUID = "9dc06d8c-ef43-45f1-bbc3-453ce9073e7a"
+    UUID = "2e337943-7f6c-49dc-99b3-344f024a5ad9"
 }

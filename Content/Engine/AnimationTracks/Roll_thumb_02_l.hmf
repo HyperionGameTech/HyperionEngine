@@ -4,5 +4,5 @@ AnimationTrack Roll_thumb_02_l {
         Key = "Engine://AnimationTracks/Roll_thumb_02_l.KEYF"
         Size = 2880
     }
-    UUID = "1f4fcabb-f640-4c29-88bd-9517b05ae2f4"
+    UUID = "b8df190e-ad30-4a5b-a6f1-ca73f2baf196"
 }

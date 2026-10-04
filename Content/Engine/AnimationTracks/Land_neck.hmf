@@ -4,5 +4,5 @@ AnimationTrack Land_neck {
         Key = "Engine://AnimationTracks/Land_neck.KEYF"
         Size = 1344
     }
-    UUID = "56a7815b-97e6-404a-8870-12fbb60dd057"
+    UUID = "14eb204e-2e69-4e0d-8f82-787197ea86ea"
 }

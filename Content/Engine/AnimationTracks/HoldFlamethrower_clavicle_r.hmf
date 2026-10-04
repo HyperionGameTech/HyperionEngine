@@ -1,0 +1,8 @@
+AnimationTrack HoldFlamethrower_clavicle_r {
+    BoneName = clavicle_r
+    KeyframeData = {
+        Key = "Engine://AnimationTracks/HoldFlamethrower_clavicle_r.KEYF"
+        Size = 128
+    }
+    UUID = "0fa9da6d-e041-4eda-a7ec-e4da91e13b0a"
+}

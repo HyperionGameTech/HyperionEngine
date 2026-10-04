@@ -4,5 +4,5 @@ AnimationTrack Run_foot_r {
         Key = "Engine://AnimationTracks/Run_foot_r.KEYF"
         Size = 1344
     }
-    UUID = "66d4bf71-283a-486e-850b-ea2671314032"
+    UUID = "07d1912a-2d35-4218-9f56-3a5451c82535"
 }

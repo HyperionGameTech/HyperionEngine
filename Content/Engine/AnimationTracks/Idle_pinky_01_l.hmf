@@ -4,5 +4,5 @@ AnimationTrack Idle_pinky_01_l {
         Key = "Engine://AnimationTracks/Idle_pinky_01_l.KEYF"
         Size = 128
     }
-    UUID = "879bcce4-6295-4c82-8703-ad0b2e44fd3a"
+    UUID = "bb8c90d9-b3d9-441d-add4-da9354cb1cac"
 }

@@ -4,5 +4,5 @@ AnimationTrack Idle_calf_l {
         Key = "Engine://AnimationTracks/Idle_calf_l.KEYF"
         Size = 11584
     }
-    UUID = "aa236b05-49e1-46c2-8cfd-8491ce9889a3"
+    UUID = "50024b47-2ed9-46fc-abe5-1da44080e3f8"
 }

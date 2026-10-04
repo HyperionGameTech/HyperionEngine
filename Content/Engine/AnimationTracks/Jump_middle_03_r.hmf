@@ -4,5 +4,5 @@ AnimationTrack Jump_middle_03_r {
         Key = "Engine://AnimationTracks/Jump_middle_03_r.KEYF"
         Size = 128
     }
-    UUID = "55ed27b2-03e9-48ee-93da-5e8976bf5c95"
+    UUID = "1f621fde-2250-4dd5-9e31-3ba20e957022"
 }

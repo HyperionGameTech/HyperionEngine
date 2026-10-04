@@ -54,5 +54,5 @@ Animation Roll {
         @"Engine://AnimationTracks/Roll_foot_r"
         @"Engine://AnimationTracks/Roll_ball_r"
     ]
-    UUID = "52e6d87f-695a-46e8-aa00-7d8497060a51"
+    UUID = "5f456538-ea90-4c51-8c2e-741ef22b71de"
 }

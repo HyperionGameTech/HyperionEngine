@@ -4,5 +4,5 @@ AnimationTrack Land_thigh_r {
         Key = "Engine://AnimationTracks/Land_thigh_r.KEYF"
         Size = 1344
     }
-    UUID = "682ed1f1-b883-45fb-9876-2cac9252546e"
+    UUID = "45804f0d-1779-48b2-9d94-105acd33c5d0"
 }

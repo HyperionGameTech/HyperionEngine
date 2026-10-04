@@ -4,5 +4,5 @@ AnimationTrack Jump_lowerarm_r {
         Key = "Engine://AnimationTracks/Jump_lowerarm_r.KEYF"
         Size = 1600
     }
-    UUID = "75ac9083-5899-40bc-9bdf-97414f298c53"
+    UUID = "a58f4ca1-f2db-46a0-a67c-862cf22da74f"
 }

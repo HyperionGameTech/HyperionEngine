@@ -4,5 +4,5 @@ AnimationTrack Interact_spine_01 {
         Key = "Engine://AnimationTracks/Interact_spine_01.KEYF"
         Size = 128
     }
-    UUID = "cf9e6c98-8ce6-4513-b8b6-a040c5c575d1"
+    UUID = "4a659af5-c906-4467-be6b-9dde426a9d01"
 }

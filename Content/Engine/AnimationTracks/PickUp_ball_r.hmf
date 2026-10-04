@@ -4,5 +4,5 @@ AnimationTrack PickUp_ball_r {
         Key = "Engine://AnimationTracks/PickUp_ball_r.KEYF"
         Size = 128
     }
-    UUID = "5d7e7af0-6a26-4689-bf27-3074c207b209"
+    UUID = "55c0cdd1-bd5b-45e4-b89c-26e79f5659c3"
 }

@@ -4,5 +4,5 @@ AnimationTrack Idle_thumb_03_l {
         Key = "Engine://AnimationTracks/Idle_thumb_03_l.KEYF"
         Size = 128
     }
-    UUID = "c98bd2e7-fa89-4451-9551-201d9472eb1c"
+    UUID = "244bc790-ae24-4270-9ee8-bf678a14951d"
 }

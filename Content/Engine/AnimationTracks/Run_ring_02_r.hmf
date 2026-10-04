@@ -4,5 +4,5 @@ AnimationTrack Run_ring_02_r {
         Key = "Engine://AnimationTracks/Run_ring_02_r.KEYF"
         Size = 128
     }
-    UUID = "8814e4b6-0093-4059-b4af-dade5d616916"
+    UUID = "d28a247c-b0e7-472c-891e-34408bf7c1c6"
 }

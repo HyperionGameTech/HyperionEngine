@@ -4,5 +4,5 @@ AnimationTrack HitHead_clavicle_r {
         Key = "Engine://AnimationTracks/HitHead_clavicle_r.KEYF"
         Size = 128
     }
-    UUID = "d40ffed0-95cc-4c8f-bf2d-3579cc702533"
+    UUID = "14cc4a14-55d7-4690-8329-3300911ac9f0"
 }

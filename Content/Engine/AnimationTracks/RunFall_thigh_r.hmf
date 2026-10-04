@@ -4,5 +4,5 @@ AnimationTrack RunFall_thigh_r {
         Key = "Engine://AnimationTracks/RunFall_thigh_r.KEYF"
         Size = 1984
     }
-    UUID = "728bb947-2861-4313-8a0b-05577bdecb8d"
+    UUID = "fb833b74-3889-4ac3-9730-8317a895f1ba"
 }

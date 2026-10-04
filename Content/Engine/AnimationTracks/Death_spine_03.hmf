@@ -4,5 +4,5 @@ AnimationTrack Death_spine_03 {
         Key = "Engine://AnimationTracks/Death_spine_03.KEYF"
         Size = 4672
     }
-    UUID = "162b59c0-a15d-4d01-b0e6-7fb7ce31546e"
+    UUID = "1520bd5b-8dfc-43e2-92af-e2197b10b2bb"
 }

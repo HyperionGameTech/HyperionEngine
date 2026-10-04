@@ -4,5 +4,5 @@ AnimationTrack Idle_index_02_l {
         Key = "Engine://AnimationTracks/Idle_index_02_l.KEYF"
         Size = 128
     }
-    UUID = "6aaa6b20-29ef-40c5-8add-861578633e02"
+    UUID = "188dd372-165e-4d8a-a219-cc168eca0c14"
 }

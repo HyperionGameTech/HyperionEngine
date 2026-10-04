@@ -4,5 +4,5 @@ AnimationTrack RunLand_pinky_01_l {
         Key = "Engine://AnimationTracks/RunLand_pinky_01_l.KEYF"
         Size = 128
     }
-    UUID = "a7eb7a49-b4b5-4733-a8b9-7f864e09fec0"
+    UUID = "f985690c-6a9b-4a6c-8e7f-e7c6a1a220c4"
 }

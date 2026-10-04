@@ -4,5 +4,5 @@ AnimationTrack PickUp_ring_03_r {
         Key = "Engine://AnimationTracks/PickUp_ring_03_r.KEYF"
         Size = 128
     }
-    UUID = "23107c21-7af2-4f34-b574-1eed8187c07e"
+    UUID = "6a465f8a-33e2-459f-9b3c-e186d5024719"
 }

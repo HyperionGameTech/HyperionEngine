@@ -4,5 +4,5 @@ AnimationTrack Death_root {
         Key = "Engine://AnimationTracks/Death_root.KEYF"
         Size = 128
     }
-    UUID = "231c6030-7b28-485f-a7ee-e48f7462caf7"
+    UUID = "93fd3228-6ba6-4cab-8158-3f0e1efe1e7c"
 }

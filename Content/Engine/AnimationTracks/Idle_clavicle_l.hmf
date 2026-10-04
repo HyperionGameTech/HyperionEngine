@@ -4,5 +4,5 @@ AnimationTrack Idle_clavicle_l {
         Key = "Engine://AnimationTracks/Idle_clavicle_l.KEYF"
         Size = 11584
     }
-    UUID = "719a807f-413a-4eec-a715-4677d2f8fdc5"
+    UUID = "7c56b209-b5de-4955-b986-0133f5d38ebe"
 }

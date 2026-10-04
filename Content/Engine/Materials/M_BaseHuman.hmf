@@ -87,5 +87,5 @@ Material M_BaseHuman {
         ]
     }
     IsDynamic = false
-    UUID = "6620bd91-11d8-4693-a265-492507a675c7"
+    UUID = "a01bff52-686a-4f21-9bb6-b82614aaf5d3"
 }

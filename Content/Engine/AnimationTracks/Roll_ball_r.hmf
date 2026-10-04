@@ -4,5 +4,5 @@ AnimationTrack Roll_ball_r {
         Key = "Engine://AnimationTracks/Roll_ball_r.KEYF"
         Size = 2880
     }
-    UUID = "bf2bce0a-a2b1-46dc-b416-61144e45fb5f"
+    UUID = "ed83a37b-dcf1-4a94-9f22-91738fe2a6c7"
 }

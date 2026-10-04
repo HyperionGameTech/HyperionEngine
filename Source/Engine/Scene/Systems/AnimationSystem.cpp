@@ -116,8 +116,22 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 
         for (const Handle<Animation>& anim : meshComponent.skeleton->GetAnimations())
         {
+            Assert(anim.IsValid());
+
+            if (!anim.IsValid())
+            {
+                continue;
+            }
+
             for (const Handle<AnimationTrack>& track : anim->GetTracks())
             {
+                Assert(track.IsValid());
+
+                if (!track.IsValid())
+                {
+                    continue;
+                }
+
                 locks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
             }
         }

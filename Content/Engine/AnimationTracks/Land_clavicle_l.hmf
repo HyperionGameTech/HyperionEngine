@@ -4,5 +4,5 @@ AnimationTrack Land_clavicle_l {
         Key = "Engine://AnimationTracks/Land_clavicle_l.KEYF"
         Size = 1344
     }
-    UUID = "9128a803-f609-4ff1-8de5-113fd8b2e446"
+    UUID = "8f61bb26-e338-4812-9ebf-96ebb8f28e9f"
 }

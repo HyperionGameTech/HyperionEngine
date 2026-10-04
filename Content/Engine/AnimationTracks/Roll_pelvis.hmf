@@ -4,5 +4,5 @@ AnimationTrack Roll_pelvis {
         Key = "Engine://AnimationTracks/Roll_pelvis.KEYF"
         Size = 2880
     }
-    UUID = "d6ad6bd4-0426-471e-b175-87dbcaafe0a7"
+    UUID = "da0cb8ae-2552-4196-a782-2c5e46eedbed"
 }

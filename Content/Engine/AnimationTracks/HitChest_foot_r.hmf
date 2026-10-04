@@ -4,5 +4,5 @@ AnimationTrack HitChest_foot_r {
         Key = "Engine://AnimationTracks/HitChest_foot_r.KEYF"
         Size = 704
     }
-    UUID = "10e0ac2b-9346-4ada-9c46-6f255a5bdd85"
+    UUID = "392200c8-a9e7-45f0-842c-e1d75de67663"
 }

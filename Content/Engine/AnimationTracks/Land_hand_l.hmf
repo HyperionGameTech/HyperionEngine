@@ -4,5 +4,5 @@ AnimationTrack Land_hand_l {
         Key = "Engine://AnimationTracks/Land_hand_l.KEYF"
         Size = 128
     }
-    UUID = "a558a85d-d021-482f-9eeb-21ad50202c58"
+    UUID = "08bf0c78-9a53-441a-99ff-2d227f1dca84"
 }

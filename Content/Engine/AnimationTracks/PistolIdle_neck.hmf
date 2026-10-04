@@ -4,5 +4,5 @@ AnimationTrack PistolIdle_neck {
         Key = "Engine://AnimationTracks/PistolIdle_neck.KEYF"
         Size = 3264
     }
-    UUID = "43be5e5c-3749-45eb-88f4-c2f5416c8896"
+    UUID = "08e425c3-cfde-4bd2-a5cb-82608106d82f"
 }

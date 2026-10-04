@@ -4,5 +4,5 @@ AnimationTrack TurnRightSmall_hand_l {
         Key = "Engine://AnimationTracks/TurnRightSmall_hand_l.KEYF"
         Size = 128
     }
-    UUID = "6045806c-b405-4fa2-b9bd-073a933f479f"
+    UUID = "eb41a1b3-6d5d-4900-acd8-494d45815df8"
 }

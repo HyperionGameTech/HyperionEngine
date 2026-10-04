@@ -4,5 +4,5 @@ AnimationTrack PistolIdle_thigh_l {
         Key = "Engine://AnimationTracks/PistolIdle_thigh_l.KEYF"
         Size = 128
     }
-    UUID = "8b43182a-0503-49e4-b54c-8014308c85d7"
+    UUID = "3d23981f-a45e-4d23-a7e0-d54b9b655f00"
 }

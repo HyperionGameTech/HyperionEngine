@@ -4,5 +4,5 @@ AnimationTrack TurnLeftSmall_head {
         Key = "Engine://AnimationTracks/TurnLeftSmall_head.KEYF"
         Size = 128
     }
-    UUID = "c40fda13-4d81-48cb-ac7c-a8bf016cf6bb"
+    UUID = "204444d3-b730-4987-9b23-3c135f4fc330"
 }

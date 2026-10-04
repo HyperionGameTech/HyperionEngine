@@ -4,5 +4,5 @@ AnimationTrack Land_ring_03_l {
         Key = "Engine://AnimationTracks/Land_ring_03_l.KEYF"
         Size = 128
     }
-    UUID = "d85c186b-fd62-4476-9347-52f1338512ac"
+    UUID = "675667b0-92bc-40ff-af2b-12ebdb1cd0a2"
 }

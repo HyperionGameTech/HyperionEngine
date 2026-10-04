@@ -4,5 +4,5 @@ AnimationTrack WalkBackward_calf_l {
         Key = "Engine://AnimationTracks/WalkBackward_calf_l.KEYF"
         Size = 2624
     }
-    UUID = "720239d1-a2c7-4a39-b401-61f3fa4d62d4"
+    UUID = "96279a80-97bc-4122-91af-ed3673b819fa"
 }

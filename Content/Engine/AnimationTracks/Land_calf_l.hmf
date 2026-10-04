@@ -4,5 +4,5 @@ AnimationTrack Land_calf_l {
         Key = "Engine://AnimationTracks/Land_calf_l.KEYF"
         Size = 1344
     }
-    UUID = "86fdd16f-d5f6-4417-8bfc-3a50a98a04bd"
+    UUID = "3e92e505-5c5a-49c9-b32d-d39ffbf4c1da"
 }

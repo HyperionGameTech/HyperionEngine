@@ -4,5 +4,5 @@ AnimationTrack TurnLeftSmall_ball_l {
         Key = "Engine://AnimationTracks/TurnLeftSmall_ball_l.KEYF"
         Size = 960
     }
-    UUID = "d5c0d410-d1ce-42fb-83d3-ddddd07447a9"
+    UUID = "fa196af1-04a0-4b2b-9a9a-841f9d2aa772"
 }

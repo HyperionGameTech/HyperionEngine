@@ -255,8 +255,7 @@ bool TraceGlimmerSWRT(
         };
 
         const uint nearChild = childDistances[1] < childDistances[0] ? 1u : 0u;
-
-        [loop]
+        
         for (uint order = 0; order < 2; order++)
         {
             const uint child = order == 0 ? nearChild : 1u - nearChild;

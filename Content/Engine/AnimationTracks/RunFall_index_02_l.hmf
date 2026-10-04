@@ -4,5 +4,5 @@ AnimationTrack RunFall_index_02_l {
         Key = "Engine://AnimationTracks/RunFall_index_02_l.KEYF"
         Size = 128
     }
-    UUID = "fc2fac3c-b311-4e17-bc89-e6b524136be9"
+    UUID = "f52c78ea-3f1d-4811-a9c5-18cf644e0bfc"
 }

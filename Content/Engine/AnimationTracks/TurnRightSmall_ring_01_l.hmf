@@ -4,5 +4,5 @@ AnimationTrack TurnRightSmall_ring_01_l {
         Key = "Engine://AnimationTracks/TurnRightSmall_ring_01_l.KEYF"
         Size = 128
     }
-    UUID = "5a7b277d-9812-40d7-886a-c0adef8bff97"
+    UUID = "67e7b181-965f-40bd-9395-133f8199b6b0"
 }

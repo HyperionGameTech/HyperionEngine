@@ -4,5 +4,5 @@ AnimationTrack Death_ring_03_l {
         Key = "Engine://AnimationTracks/Death_ring_03_l.KEYF"
         Size = 4672
     }
-    UUID = "fc5976eb-566f-4f4d-a257-dcdc65548dbf"
+    UUID = "f8ec9609-7501-40e7-b862-ee4565b9728b"
 }
