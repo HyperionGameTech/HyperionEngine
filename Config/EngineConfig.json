@@ -18,7 +18,7 @@
     "LimitFrameRateWhenIdle": true,
     "EnableDebugDrawer": true,
     "SSR": {
-      "Enabled": true
+      "Enabled": false
     },
     "Debug": {
       "Reflections": false,
