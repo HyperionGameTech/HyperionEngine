@@ -697,6 +697,10 @@ public:
 protected:
     virtual void Await_Internal() const;
 
+    virtual void OnCancelled()
+    {
+    }
+
     virtual void Reset()
     {
         m_id = TaskID::Invalid();
@@ -872,6 +876,14 @@ protected:
 #endif
     }
 
+    virtual void OnCancelled() override
+    {
+        if (m_executor != nullptr && m_ownsExecutor && !m_allowDeferredDeletion && !IsCompleted())
+        {
+            m_executor->Complete(&m_executor->GetNotifier());
+        }
+    }
+
     virtual void Reset() override
     {
         if (m_executor != nullptr && m_ownsExecutor)
@@ -1010,6 +1022,14 @@ protected:
         // Sanity Check
         HYP_CORE_ASSERT(IsCompleted());
 #endif
+    }
+
+    virtual void OnCancelled() override
+    {
+        if (m_executor != nullptr && m_ownsExecutor && !m_allowDeferredDeletion && !IsCompleted())
+        {
+            m_executor->Complete(&m_executor->GetNotifier());
+        }
     }
 
     virtual void Reset() override

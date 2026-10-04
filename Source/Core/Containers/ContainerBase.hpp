@@ -312,7 +312,7 @@ static inline void Fill(IteratorType begin, IteratorType end, const ValueType& v
 {
     for (auto it = begin; it != end; ++it)
     {
-        *begin = value;
+        *it = value;
     }
 }
 

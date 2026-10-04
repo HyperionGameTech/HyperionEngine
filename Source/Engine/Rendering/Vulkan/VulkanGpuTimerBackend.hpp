@@ -32,6 +32,8 @@ public:
 
     bool Initialize(DeviceBase* device) override;
     void Shutdown() override;
+    
+    void OnFrameStart() override;
 
     bool IsSupported() const override;
     double GetTimestampPeriod() const override;

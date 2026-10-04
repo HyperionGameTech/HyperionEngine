@@ -47,7 +47,7 @@ static void WriteOption(ShaderPropertyOptionBinding& out, const ShaderProperty& 
         out.kind = uint8(ShaderPropertyOptionKind::Value);
 
         // Truncates and null-terminates on its own; the zeroed buffer covers the empty case.
-        Memory::CopyString(out.valueString, valueString.Data(), Memory::StrLen(valueString.Data()));
+        Memory::CopyString(out.valueString, valueString.Data(), valueString.Size() + 1);
     }
     else
     {

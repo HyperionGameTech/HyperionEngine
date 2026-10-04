@@ -26,8 +26,6 @@
 
 #include <Asset/AssetRegistry.hpp>
 
-#include <Rendering/Shadows/ShadowMapCache.hpp>
-
 #include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
@@ -41,33 +39,21 @@
 #include <Core/Threading/Threads.hpp>
 
 #include <Scene/EnvProbe.hpp>
-#include <Scene/Light/Light.hpp>
 
 namespace Hyperion {
 
 static constexpr bool SSGIUseTemporalBlending = true;
 static constexpr TextureFormat SSGIFormat = TextureFormat::RGBA16F;
-static constexpr uint32 SSGIMaxLights = 4;
 static constexpr uint32 SSGIMaxEnvProbes = 4;
-static constexpr uint32 SSGINumSamples = 32; // temporal sample count
+static constexpr uint32 SSGINumSamples = 25; // temporal sample count
 
 CVar<float> g_cvSSGIDepthThreshold { "Rendering.SSGI.DepthThreshold", 0.2f };
 CVar<float> g_cvSSGINormalPower { "Rendering.SSGI.NormalPower", 8.0f };
 CVar<float> g_cvSSGIRayStep { "Rendering.SSGI.RayStep", 1.5f };
 CVar<float> g_cvSSGIDistanceBias { "Rendering.SSGI.DistanceBias", 0.009f };
 CVar<uint32> g_cvSSGIMaxIterations { "Rendering.SSGI.MaxIterations", 16 };
-
-namespace DeferredRendererHelpers {
-
-// Defined in DeferredPass.cpp
-void FillShadowMapData(
-    ShadowMapData& outShadowMapData,
-    const ShadowMap& inShadowMap,
-    uint32 cascadeIndex,
-    View* shadowMapViewDynamic,
-    View* shadowMapViewStatic);
-
-} // namespace DeferredRendererHelpers
+CVar<float> g_cvSSGIThickness { "Rendering.SSGI.Thickness", 0.5f };
+CVar<float> g_cvSSGIRayStepDepthScale { "Rendering.SSGI.RayStepDepthScale", 0.1f };
 
 namespace {
 
@@ -101,8 +87,9 @@ struct SSGIConstants
     float maxIterations;
 
     float distanceBias;
+    float thickness;
+    float rayStepDepthScale;
     uint32 numSamples;
-    uint32 numBoundLights;
     uint32 numBoundEnvProbes;
 };
 
@@ -222,39 +209,17 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             ssgiConstants.rayStep = g_cvSSGIRayStep.Get();
             ssgiConstants.maxIterations = g_cvSSGIMaxIterations.Get();
             ssgiConstants.distanceBias = g_cvSSGIDistanceBias.Get();
+            ssgiConstants.thickness = g_cvSSGIThickness.Get();
+            ssgiConstants.rayStepDepthScale = g_cvSSGIRayStepDepthScale.Get();
             ssgiConstants.numSamples = SSGINumSamples;
 
-            Array<Pair<Light*, LightShaderData*>, RenderAllocator> tempLights;
             Array<Pair<EnvProbe*, EnvProbeShaderData*>, RenderAllocator> tempEnvProbes;
 
-            uint32& numBoundLights = ssgiConstants.numBoundLights;
             uint32& numBoundEnvProbes = ssgiConstants.numBoundEnvProbes;
 
             RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
             rpl.BeginRead();
             HYP_DEFER({ rpl.EndRead(); });
-
-            for (Light* light : rpl.GetLights())
-            {
-                const LightType lightType = light->GetLightType();
-
-                if (lightType != LightType::Directional && lightType != LightType::Point)
-                {
-                    continue;
-                }
-
-                if (numBoundLights >= SSGIMaxLights)
-                {
-                    break;
-                }
-
-                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
-                Assert(lightProxy != nullptr);
-
-                tempLights.EmplaceBack(light, &lightProxy->bufferData);
-
-                ++numBoundLights;
-            }
 
             for (EnvProbe* envProbe : rpl.GetEnvProbes())
             {
@@ -275,52 +240,6 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
             }
 
             RI.cbufferAllocator->Write(&ssgiConstants);
-
-            for (uint32 i = 0; i < SSGIMaxLights; i++)
-            {
-                if (i < uint32(tempLights.Size()))
-                {
-                    RI.cbufferAllocator->Write(tempLights[i].second);
-                    continue;
-                }
-
-                LightShaderData dummy {};
-                RI.cbufferAllocator->Write(&dummy);
-            }
-
-            for (uint32 i = 0; i < SSGIMaxLights; i++)
-            {
-                ShadowMapData shadowMapData {};
-
-                if (i < uint32(tempLights.Size()))
-                {
-                    View* shadowMapViewDynamic;
-                    View* shadowMapViewStatic;
-
-                    Light* light = tempLights[i].first;
-
-                    const uint32 cascadeIndex = 0;
-
-                    ShadowMap* shadowMap = RI.shadowMapCache->GetShadowMap(
-                        light,
-                        renderSetup.view,
-                        cascadeIndex,
-                        shadowMapViewDynamic,
-                        shadowMapViewStatic);
-
-                    if (shadowMap != nullptr)
-                    {
-                        DeferredRendererHelpers::FillShadowMapData(
-                            shadowMapData,
-                            *shadowMap,
-                            cascadeIndex,
-                            shadowMapViewDynamic,
-                            shadowMapViewStatic);
-                    }
-                }
-
-                RI.cbufferAllocator->Write(&shadowMapData);
-            }
 
             // sort probes
             // we want to draw reflection probes first, sky should be the very last
@@ -388,9 +307,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetShaderUniform(numShaderUniforms++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
 
         // GBuffer textures
-        cr << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Color)->GetImageView());
         cr << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Normals)->GetImageView());
-        cr << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::MatData)->GetImageView());
         cr << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GBufferTarget::Depth)->GetImageView());
 
         cr << SetShaderUniform(numShaderUniforms++, "DeferredShadingTexture"_sh, dpd->lightingFramebuffer->GetAttachment(0)->GetImageView());
@@ -404,10 +321,6 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
         // World and camera buffers
         cr << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
         cr << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, RI.namedBuffers[NamedBuffer::Cameras], Resources::GetBinding(renderSetup.view->GetCamera()));
-
-        // Shadow maps
-        cr << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, RI.shadowMapCache->GetAtlasImageView());
-        cr << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, RI.shadowMapCache->GetPointLightShadowMapImageView());
 
         // Env probes
         cr << SetShaderUniform(numShaderUniforms++, "EnvProbesColorTexture"_sh, RI.textureViewCache->GetOrCreate(RI.envProbesColorTexture));

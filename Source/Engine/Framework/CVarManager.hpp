@@ -303,14 +303,8 @@ inline bool CVar<bool>::SetFromString(const String& str)
 template <>
 inline bool CVar<CVarString>::SetFromString(const String& str)
 {
-    if (m_value != nullptr)
-    {
-        Memory::Free(const_cast<char*>(m_value));
-        m_value = nullptr;
-    }
-
     char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
-    Memory::CopyString(chars, str.Data(), str.Size());
+    Memory::CopyString(chars, str.Data(), str.Size() + 1);
 
     if (m_value != nullptr)
     {

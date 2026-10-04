@@ -124,7 +124,12 @@ public:
 
         size_t maxWrite = DstBufferSize - offset - 1;
 
-        size_t numToCopy = (len < maxWrite) ? len : maxWrite;
+        size_t numToCopy = 0;
+
+        while (numToCopy < len && numToCopy < maxWrite && src[numToCopy] != '\0')
+        {
+            ++numToCopy;
+        }
 
         if (numToCopy == 0)
         {
@@ -148,6 +153,7 @@ public:
     }
 
     /// Assumes len of dst and src are the same or dst is larger.
+    /// \param len Treated as the destination capacity, including the terminating NUL.
     static constexpr HYP_FORCE_INLINE size_t CopyString(char* __restrict dst, size_t& offset, const char* __restrict src, size_t len)
     {
         if (offset >= len)
@@ -157,7 +163,12 @@ public:
 
         size_t maxWrite = len - offset - 1;
 
-        size_t numToCopy = (len < maxWrite) ? len : maxWrite;
+        size_t numToCopy = 0;
+
+        while (numToCopy < maxWrite && src[numToCopy] != '\0')
+        {
+            ++numToCopy;
+        }
 
         if (numToCopy == 0)
         {

@@ -118,6 +118,8 @@ public:
     Game* GetGameInstance() const;
 
     void Initialize();
+    
+    void BeginShutdown();
     void Shutdown();
 
     Delegate<void, World*> OnCurrentWorldChanged;
@@ -137,6 +139,7 @@ private:
     TaskBatch* m_viewCollectionBatch;
 
     bool m_isInitialized;
+    bool m_hasShutdown;
 
     AtomicFlag m_isShuttingDown;
 };

@@ -56,12 +56,14 @@ CVar<CVarString>::~CVar()
 template <>
 void CVar<CVarString>::Set(CVarString value)
 {
+    const char* newValue = Detail::AcquireCVarValue(value);
+
     if (m_value != nullptr)
     {
         Memory::Free(const_cast<char*>(m_value));
     }
 
-    m_value = Detail::AcquireCVarValue(value);
+    m_value = newValue;
 }
 
 template <>
@@ -74,14 +76,8 @@ bool CVar<CVarString>::SetFromBoxed(const BoxedValue& boxed)
 
     String& str = boxed.Get<String>();
 
-    if (m_value != nullptr)
-    {
-        Memory::Free(const_cast<char*>(m_value));
-        m_value = nullptr;
-    }
-
     char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
-    Memory::CopyString(chars, str.Data(), str.Size());
+    Memory::CopyString(chars, str.Data(), str.Size() + 1);
 
     if (m_value != nullptr)
     {
@@ -103,14 +99,8 @@ bool CVar<CVarString>::SetFromConfig(const ConfigValue& cfgValue)
 
     String str = cfgValue.ToString();
 
-    if (m_value != nullptr)
-    {
-        Memory::Free(const_cast<char*>(m_value));
-        m_value = nullptr;
-    }
-
     char* chars = (char*)Memory::AllocateZeros(str.Size() + 1);
-    Memory::CopyString(chars, str.Data(), str.Size());
+    Memory::CopyString(chars, str.Data(), str.Size() + 1);
 
     if (m_value != nullptr)
     {

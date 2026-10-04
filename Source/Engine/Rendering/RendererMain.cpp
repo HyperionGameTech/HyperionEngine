@@ -1129,6 +1129,9 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     const DepthPrepass::Stage prepassStage = payload.pNext->prepassStage;
 
+    // If UseIndirectRendering is true, indirectRenderer may not be null
+    AssertDebug(!UseIndirectRendering || indirectRenderer != nullptr);
+
     Mat4f viewProjMat;
 
     Camera* camera = nullptr;
@@ -1147,11 +1150,6 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         {
             cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
         }
-    }
-
-    if constexpr (UseIndirectRendering)
-    {
-        AssertDebug(indirectRenderer != nullptr);
     }
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
@@ -1198,14 +1196,22 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
 
     // These two (CurrentLight, CurrentEnvProbe) should be refactored out; they exist for RenderSky shader currently.
     if (renderSetup.light != nullptr)
+    {
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], Resources::GetBinding(renderSetup.light));
+    }
     else
+    {
         cr << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, RI.namedBuffers[NamedBuffer::Lights], 0);
+    }
 
     if (renderSetup.envProbe != nullptr)
+    {
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], Resources::GetBinding(renderSetup.envProbe));
+    }
     else
+    {
         cr << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, RI.namedBuffers[NamedBuffer::EnvProbes], 0);
+    }
 
     // Will only be non-null if we are in a deferred rendering pass.
     DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);

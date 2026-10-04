@@ -33,7 +33,7 @@ public:
     virtual bool IsSupported() const = 0;
     virtual double GetTimestampPeriod() const = 0;
 
-    void OnFrameStart()
+    virtual void OnFrameStart()
     {
         m_timers.Clear();
     }

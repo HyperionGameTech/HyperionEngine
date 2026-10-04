@@ -33,11 +33,21 @@ InputHandlerBase::~InputHandlerBase()
 
 bool InputHandlerBase::IsKeyDown(KeyCode key) const
 {
+    if (uint32(key) >= NumKeyboardKeys)
+    {
+        return false;
+    }
+
     return m_keyStates.Test(uint32(key));
 }
 
 bool InputHandlerBase::IsKeyUp(KeyCode key) const
 {
+    if (uint32(key) >= NumKeyboardKeys)
+    {
+        return true;
+    }
+
     return !m_keyStates.Test(uint32(key));
 }
 

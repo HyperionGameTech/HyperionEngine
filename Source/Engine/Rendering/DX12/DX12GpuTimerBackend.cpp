@@ -114,6 +114,19 @@ bool DX12GpuTimerBackend::Initialize(DeviceBase* device)
     return true;
 }
 
+void DX12GpuTimerBackend::OnFrameStart()
+{
+    for (EngineStatGpuTimer* timer : m_timers)
+    {
+        if (timer != nullptr)
+        {
+            timer->querySlotIndex = UINT32_MAX;
+        }
+    }
+
+    m_timers.Clear();
+}
+
 void DX12GpuTimerBackend::Shutdown()
 {
     for (uint32 i = 0; i < NumFramesInFlight; i++)
@@ -249,8 +262,6 @@ void DX12GpuTimerBackend::WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatG
     cmd->GetCommandList()->EndQuery(frameState.queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, slot * 2 + 1);
 
     frameState.timerCount = MathUtil::Max(frameState.timerCount, slot + 1);
-
-    timer->querySlotIndex = UINT32_MAX;
 }
 
 double DX12GpuTimerBackend::ComputeDeltaMs(uint64 start, uint64 end) const

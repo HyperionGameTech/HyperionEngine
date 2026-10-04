@@ -560,7 +560,7 @@ void TerrainStreamingCell::UpdateSplatMaterial(const Handle<TerrainCellData>& ce
     {
         auto readScope = cellData->GetReadScope();
 
-        const ConstByteView splatData = cellData->GetSplatMap();
+        const ConstByteView splatData = static_cast<const TerrainCellData&>(*cellData).GetSplatMap();
 
         Array<ubyte> splatBytes;
         splatBytes.Resize(splatData.Size());

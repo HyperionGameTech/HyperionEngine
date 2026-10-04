@@ -788,12 +788,9 @@ void Class::Initialize()
 
     m_serializationMode = ClassSerializationMode::DEFAULT;
 
-    if (const ClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize))
+    if (const ClassAttributeValue& serializeAttribute = GetAttribute(Attributes::g_attrSerialize); serializeAttribute.IsValid() && !serializeAttribute.GetBool())
     {
-        if (!serializeAttribute.GetBool())
-        {
-            m_serializationMode = ClassSerializationMode::NONE;
-        }
+        m_serializationMode = ClassSerializationMode::NONE;
     }
 
     if (m_parentName.IsValid())

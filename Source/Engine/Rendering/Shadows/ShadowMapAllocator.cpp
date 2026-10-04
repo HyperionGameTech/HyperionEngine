@@ -334,7 +334,9 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRe
                     dstSubResource.baseMipLevel = 0;
                     dstSubResource.numLevels = 1;
 
-                    Vec3u srcOffset = Vec3u(atlasElement.offsetCoords, 0);
+                    // the clear texture is uniform: the element's offset belongs
+                    // on the destination side
+                    const Vec3u dstOffset = Vec3u(atlasElement.offsetCoords, 0);
                     Vec3u extent = Vec3u(atlasElement.dimensions, 1);
 
                     cr << InsertBarrier(
@@ -345,8 +347,8 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRe
                     cr << CopyImage(
                         m_clearTexture->GetGpuImage(),
                         m_atlasTextureArray->GetGpuImage(),
-                        srcOffset,
                         Vec3u::Zero(),
+                        dstOffset,
                         extent,
                         srcSubResource,
                         dstSubResource);

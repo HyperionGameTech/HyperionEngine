@@ -151,7 +151,7 @@ bool PreparePaintedSplatBytes(const Handle<TerrainCellData>& cellData, const Vec
     {
         auto readScope = cellData->GetReadScope();
 
-        ConstByteView splatData = cellData->GetSplatMap();
+        ConstByteView splatData = static_cast<const TerrainCellData&>(*cellData).GetSplatMap();
 
         if (splatData.Size() < requiredSize)
         {
@@ -218,7 +218,7 @@ Handle<Texture> BuildPaintedSplatTexture(const Handle<TerrainCellData>& cellData
     {
         auto readScope = cellData->GetReadScope();
 
-        ConstByteView splatData = cellData->GetSplatMap();
+        ConstByteView splatData = static_cast<const TerrainCellData&>(*cellData).GetSplatMap();
 
         if (splatData.Size() < requiredSize)
         {

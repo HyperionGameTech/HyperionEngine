@@ -743,6 +743,11 @@ extern "C"
             g_appContext->PurgeClosedWindows();
         }
 
+        if (g_engineDriver != nullptr)
+        {
+            g_engineDriver->BeginShutdown();
+        }
+
         if (g_simThreadInstance != nullptr && g_simThreadInstance->IsRunning())
         {
             g_simThreadInstance->Stop();

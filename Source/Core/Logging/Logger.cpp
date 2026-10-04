@@ -119,9 +119,24 @@ struct LoggerRedirectSnapshot
     AtomicVar<uint32> refCount;
 
     LoggerRedirectSnapshot()
-        : refCount(0)
+        : refCount(1) // one reference is held by the logger state itself
     {
         Memory::Zero(heads, sizeof(heads));
+    }
+
+    ~LoggerRedirectSnapshot()
+    {
+        for (uint32 index = 0; index < Logger::MaxChannels; index++)
+        {
+            LoggerRedirectNode* node = heads[index];
+
+            while (node != nullptr)
+            {
+                LoggerRedirectNode* next = node->next;
+                delete node;
+                node = next;
+            }
+        }
     }
 
     void AddRef()
@@ -656,7 +671,7 @@ public:
 
 private:
     AtomicVar<Logger::ChannelMask> m_logMask;
-    FixedArray<LogChannel*, Logger::MaxChannels> m_logChannels;
+    FixedArray<LogChannel*, Logger::MaxChannels> m_logChannels {};
 
     Array<LogChannel*> m_dynamicLogChannels;
     mutable Mutex m_dynamicLogChannelsMutex;

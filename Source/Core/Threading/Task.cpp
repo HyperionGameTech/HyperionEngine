@@ -213,6 +213,8 @@ bool TaskBase::Cancel()
         m_id = {};
         m_assignedScheduler = nullptr;
 
+        OnCancelled();
+
         // Reset the task state since it was dequeued.
         Reset();
 

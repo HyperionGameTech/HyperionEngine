@@ -66,7 +66,7 @@ struct IndexAllocator
     {
         if (freeIndices.Count() != 0)
         {
-            Bitset::BitIndex bitIndex = freeIndices.LastSetBitIndex();
+            Bitset::BitIndex bitIndex = freeIndices.FirstSetBitIndex();
 
             HYP_CORE_ASSERT(bitIndex != Bitset::NotFound);
             HYP_CORE_ASSERT(freeIndices.Test(bitIndex) == true);
@@ -142,7 +142,7 @@ struct AtomicIndexAllocator
             // Check that it hasn't changed before the lock
             if (freeIndices.Count() != 0)
             {
-                Bitset::BitIndex bitIndex = freeIndices.LastSetBitIndex();
+                Bitset::BitIndex bitIndex = freeIndices.FirstSetBitIndex();
                 HYP_CORE_ASSERT(bitIndex != Bitset::NotFound);
                 HYP_CORE_ASSERT(freeIndices.Test(bitIndex) == true);
                 freeIndices.Set(bitIndex, false);

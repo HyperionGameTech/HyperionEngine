@@ -245,10 +245,10 @@ void ResourceBase::AddReader()
         if (!isInitializedLocal)
         {
             // wait for initialization to complete
+            Mutex::Guard initGuard(m_initMutex);
+
             while (!m_isInitialized.Load())
             {
-                Mutex::Guard initGuard(m_initMutex);
-
                 m_initCV.Wait(m_initMutex);
             }
         }

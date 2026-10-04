@@ -86,6 +86,19 @@ bool VulkanGpuTimerBackend::Initialize(DeviceBase* device)
     return true;
 }
 
+void VulkanGpuTimerBackend::OnFrameStart()
+{
+    for (EngineStatGpuTimer* timer : m_timers)
+    {
+        if (timer != nullptr)
+        {
+            timer->querySlotIndex = UINT32_MAX;
+        }
+    }
+
+    m_timers.Clear();
+}
+
 void VulkanGpuTimerBackend::Shutdown()
 {
     if (!m_device)
@@ -195,8 +208,6 @@ void VulkanGpuTimerBackend::WriteStopTimestamp(VulkanCommandBuffer* cmd, EngineS
     const uint32 queryIndex = slot * 2 + 1;
 
     vkCmdWriteTimestamp(cmd->GetVulkanHandle(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, frameState.queryPool, queryIndex);
-
-    timer->querySlotIndex = UINT32_MAX;
 }
 
 double VulkanGpuTimerBackend::ComputeDeltaMs(uint64 start, uint64 end) const

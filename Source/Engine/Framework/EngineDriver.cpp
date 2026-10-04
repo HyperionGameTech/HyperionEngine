@@ -181,6 +181,7 @@ EngineDriver::EngineDriver()
     : m_currentWorld(nullptr),
       m_viewCollectionBatch(nullptr),
       m_isInitialized(false),
+      m_hasShutdown(false),
       m_isShuttingDown(false)
 {
 }
@@ -209,6 +210,7 @@ void EngineDriver::Initialize()
     m_viewCollectionBatch = new TaskBatch();
     
     m_isShuttingDown.Store(false);
+    m_hasShutdown = false;
 
     m_isInitialized = true;
 }
@@ -404,15 +406,25 @@ bool EngineDriver::StartThreads()
     return success;
 }
 
+void EngineDriver::BeginShutdown()
+{
+    m_isShuttingDown.Store(true);
+}
+
 void EngineDriver::Shutdown()
 {
     AssertOnThread(g_mainThread);
 
-    if (m_isShuttingDown.Store(true) == true)
+    if (m_hasShutdown)
     {
         HYP_LOG(Engine, Warning, "Already shutting down!");
         return;
     }
+
+    m_hasShutdown = true;
+
+    // unblock threads that wait on this flag
+    m_isShuttingDown.Store(true);
 
     HYP_LOG(Engine, Info, "Stopping all engine processes...");
 
