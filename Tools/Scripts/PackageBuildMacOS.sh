@@ -66,6 +66,9 @@ fi
 echo "Copying Shaders.hmf..."
 cp "$HYP_ROOT_DIR/Config/Shaders.hmf" "$OUT_DIR/Config/Shaders.hmf"
 
+echo "Copying DeviceTiers.hmf..."
+cp "$HYP_ROOT_DIR/Config/DeviceTiers.hmf" "$OUT_DIR/Config/DeviceTiers.hmf"
+
 # For development build, copy the game actions vdf and steam app id
 echo "Copying development steam files..."
 # This will need to not be hardcoded obviously!

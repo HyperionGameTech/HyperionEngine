@@ -39,7 +39,7 @@ int ComputeDeviceGradeScore(const DeviceFacts& facts)
         score = 5.0f + MathUtil::Min(vramGiB, 4.0f);
     }
 
-    if (facts.gpu.supportsRayTracing)
+    if (facts.gpu.isDiscrete && facts.gpu.supportsRayTracing)
     {
         score += 10.0f;
     }
@@ -49,13 +49,14 @@ int ComputeDeviceGradeScore(const DeviceFacts& facts)
         score += 6.0f;
     }
 
-    if (facts.systemMemoryBytes >= 16 * BytesPerGiB)
+    // the OS reports a bit less than the installed RAM, so thresholds sit 1 GiB under nominal
+    if (facts.systemMemoryBytes >= 15 * BytesPerGiB)
     {
         score += 4.0f;
     }
 
     const bool isCpuConstrained = (facts.logicalCores != 0 && facts.logicalCores < 4)
-        || (facts.systemMemoryBytes != 0 && facts.systemMemoryBytes < 8 * BytesPerGiB);
+        || (facts.systemMemoryBytes != 0 && facts.systemMemoryBytes < 7 * BytesPerGiB);
 
     if (isCpuConstrained)
     {
