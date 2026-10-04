@@ -43,11 +43,6 @@
   "Threads": {
     "NumForegroundWorkers": 3
   },
-  "System": {
-    "SelectedGpu": {
-      "Index": 1
-    }
-  },
   "Baker": {
     "OnlyGenerateUVs": false,
     "NumSamples": 1,

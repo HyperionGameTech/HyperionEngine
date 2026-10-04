@@ -1318,14 +1318,18 @@ void DX12RenderInterface::InitDeviceDetails(DeviceDetails& deviceDetails)
     D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 {};
     m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
 
+    D3D12_FEATURE_DATA_ARCHITECTURE architecture {};
+    m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &architecture, sizeof(architecture));
+
     bool isSoftware = (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
+    bool isIntegrated = isSoftware || architecture.UMA;
 
     GpuInfo info;
-    info.gpuType = isSoftware ? GpuType::Integrated : GpuType::Dedicated;
+    info.gpuType = isIntegrated ? GpuType::Integrated : GpuType::Dedicated;
     info.vendorId = adapterDesc.VendorId;
     info.deviceId = adapterDesc.DeviceId;
     info.gpuModel = String(adapterDesc.Description);
-    info.isDiscrete = !isSoftware;
+    info.isDiscrete = !isIntegrated;
     info.supportsRayTracing = options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 
     deviceDetails.Set(info);
