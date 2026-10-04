@@ -252,7 +252,7 @@ void DX12GpuTimerBackend::WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatG
         frameState.timerCount = 0;
     }
 
-    const uint32 slot = GetOrCreateQuerySlot(timer);
+    const uint32 slot = timer->querySlotIndex;
 
     if (slot >= MaxGpuTimers)
     {
@@ -262,6 +262,8 @@ void DX12GpuTimerBackend::WriteStopTimestamp(DX12CommandBuffer* cmd, EngineStatG
     cmd->GetCommandList()->EndQuery(frameState.queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, slot * 2 + 1);
 
     frameState.timerCount = MathUtil::Max(frameState.timerCount, slot + 1);
+
+    timer->querySlotIndex = UINT32_MAX;
 }
 
 double DX12GpuTimerBackend::ComputeDeltaMs(uint64 start, uint64 end) const
