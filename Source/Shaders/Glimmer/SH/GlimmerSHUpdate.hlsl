@@ -77,6 +77,7 @@ DECLARE_UAV(GlimmerSHUpdate, OutState) RWTexture3D<uint4> OutState;
 DECLARE_UAV(GlimmerSHUpdate, OutRadiance) RWTexture3D<float4> OutRadiance;
 
 DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
+DECLARE_SRV(GlimmerSHUpdate, GlimmerSHOccupancyMaskBuffer) StructuredBuffer<uint> glimmerSHOccupancyMask;
 
 // the hits see the far field as this update's own volume has it
 #define GLIMMER_SH_LOAD_DATA(texel) OutData[texel]
@@ -150,7 +151,7 @@ bool GlimmerSHTraceScene(float3 origin, float3 direction, float tMax, uint start
     return false;
 }
 
-float GlimmerSHSunVisibility(float3 P, float3 N, float3 L, uint level)
+float GlimmerSHSunVisibility(float3 P, float3 N, float3 L, uint level, bool isOccupancyHit)
 {
     GlimmerHeightfieldHit shadowHit;
 
@@ -167,7 +168,9 @@ float GlimmerSHSunVisibility(float3 P, float3 N, float3 L, uint level)
         }
     }
 
-    if (GlimmerSHTraceScene(P + (N * 0.5 + L * 2.0) * spacing, L, GLIMMER_SH_SUN_DISTANCE, level, false, shadowHit))
+    const float3 offset = isOccupancyHit ? N * 0.05 : N * 0.5 + L * 2.0;
+
+    if (GlimmerSHTraceScene(P + offset * spacing, L, GLIMMER_SH_SUN_DISTANCE, level, false, shadowHit))
     {
         return 0.0;
     }
@@ -271,7 +274,7 @@ float3 GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo)
     }
 
     const float3 L = normalize(world_shader_data.sun_direction_intensity.xyz);
-    const float sunVisibility = GlimmerFacesSun(hit.normal) ? GlimmerSHSunVisibility(P, hit.normal, L, hit.level) : 0.0;
+    const float sunVisibility = GlimmerFacesSun(hit.normal) ? GlimmerSHSunVisibility(P, hit.normal, L, hit.level, hit.kind == GLIMMER_SH_HIT_OCCUPANCY) : 0.0;
 
     return GlimmerShadeSurface(P, hit.normal, albedo, sunVisibility);
 }
@@ -307,37 +310,33 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     if (groupIndex == 0u)
     {
         float3 originOffset = (float3)0.0;
-        bool isBuried = GlimmerSHIsBuried(center);
 
-        if (isBuried)
+        float3 freeSum = (float3)0.0;
+        float freeCount = 0.0;
+        float3 firstFree = (float3)0.0;
+
+        [unroll]
+        for (uint octant = 0; octant < 8; octant++)
         {
-            float3 freeSum = (float3)0.0;
-            float freeCount = 0.0;
-            float3 firstFree = (float3)0.0;
+            const float3 octantOffset = float3(octant & 1u, (octant >> 1) & 1u, (octant >> 2) & 1u) * 0.5 - 0.25;
 
-            [unroll]
-            for (uint octant = 0; octant < 8; octant++)
+            if (!GlimmerSHIsBuried(center + octantOffset * spacing))
             {
-                const float3 octantOffset = float3(octant & 1u, (octant >> 1) & 1u, (octant >> 2) & 1u) * 0.5 - 0.25;
-
-                if (!GlimmerSHIsBuried(center + octantOffset * spacing))
-                {
-                    firstFree = freeCount == 0.0 ? octantOffset : firstFree;
-                    freeSum += octantOffset;
-                    freeCount += 1.0;
-                }
+                firstFree = freeCount == 0.0 ? octantOffset : firstFree;
+                freeSum += octantOffset;
+                freeCount += 1.0;
             }
+        }
 
-            if (freeCount > 0.0)
+        const bool isBuried = freeCount == 0.0;
+
+        if (freeCount > 0.0 && freeCount < 8.0)
+        {
+            originOffset = freeSum / freeCount;
+
+            if (GlimmerSHIsBuried(center + originOffset * spacing))
             {
-                originOffset = freeSum / freeCount;
-
-                if (GlimmerSHIsBuried(center + originOffset * spacing))
-                {
-                    originOffset = firstFree;
-                }
-
-                isBuried = false;
+                originOffset = firstFree;
             }
         }
 

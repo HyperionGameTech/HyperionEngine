@@ -28,6 +28,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
 };
 
 DECLARE_UAV(GlimmerSHOccupancySplat, OutOccupancy) RWTexture3D<float4> OutOccupancy;
+DECLARE_UAV(GlimmerSHOccupancySplat, OutOccupancyMask) RWStructuredBuffer<uint> OutOccupancyMask;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanInstancesBuffer) StructuredBuffer<GlimmerSpanInstance> spanInstances;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanChunksBuffer) StructuredBuffer<GlimmerSpanChunk> spanChunks;
 DECLARE_SRV(GlimmerSHOccupancySplat, GlimmerBLASTrianglesBuffer) StructuredBuffer<uint> glimmerBLASTriangles;
@@ -42,6 +43,7 @@ DECLARE_SAMPLER(GlimmerSHOccupancySplat, SamplerLinearMipmap) SamplerState glimm
 #include "../GlimmerMaterial.hlsli"
 
 #define GROUP_SIZE 64
+#define BACK_BIAS 0.01
 
 float GetComponent(float3 value, uint axis)
 {
@@ -100,9 +102,9 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
 
     const BVHBLASTriangle bvhTriangle = LOAD_BVH_BLAS_TRIANGLE(glimmerBLASTriangles, instance.data.x + localTriangle);
 
-    const float3 p0 = TransformPoint(instance, bvhTriangle.position0);
-    const float3 p1 = TransformPoint(instance, bvhTriangle.position1);
-    const float3 p2 = TransformPoint(instance, bvhTriangle.position2);
+    float3 p0 = TransformPoint(instance, bvhTriangle.position0);
+    float3 p1 = TransformPoint(instance, bvhTriangle.position1);
+    float3 p2 = TransformPoint(instance, bvhTriangle.position2);
 
     const float3 normal = cross(p1 - p0, p2 - p0);
 
@@ -111,12 +113,22 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
         return;
     }
 
-    const float spacing = constants.params.x;
-    const float invSpacing = constants.params.y;
+    const float spacing = constants.params.x / float(GLIMMER_SH_OCCUPANCY_SUB_VOXELS);
+    const float invSpacing = constants.params.y * float(GLIMMER_SH_OCCUPANCY_SUB_VOXELS);
+
+    if ((instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) == 0u)
+    {
+        const float facing = (instance.data.w & GLIMMER_INSTANCE_FLAG_MIRRORED) != 0u ? -1.0 : 1.0;
+        const float3 behind = normalize(normal) * (-facing * BACK_BIAS * spacing);
+
+        p0 += behind;
+        p1 += behind;
+        p2 += behind;
+    }
 
     const int3 windowMin = constants.origin.xyz;
-    const int3 boxMin = max(windowMin, constants.boxMin.xyz);
-    const int3 boxMax = min(windowMin + GlimmerSHOccupancyGridSize, constants.boxMax.xyz) - 1;
+    const int3 boxMin = max(windowMin, constants.boxMin.xyz) * GLIMMER_SH_OCCUPANCY_SUB_VOXELS;
+    const int3 boxMax = min(windowMin + GlimmerSHOccupancyGridSize, constants.boxMax.xyz) * GLIMMER_SH_OCCUPANCY_SUB_VOXELS - 1;
 
     const int3 voxelMin = max(int3(floor(min(p0, min(p1, p2)) * invSpacing)), boxMin);
     const int3 voxelMax = min(int3(floor(max(p0, max(p1, p2)) * invSpacing)), boxMax);
@@ -181,7 +193,13 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
 
                 if (TriangleOverlapsBox(p0, p1, p2, normal, center, halfExtent))
                 {
-                    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel - windowMin)] = value;
+                    const int3 solidVoxel = voxel >> GLIMMER_SH_OCCUPANCY_SUB_SHIFT;
+                    const uint bit = GlimmerSHOccupancySubBit(voxel & (GLIMMER_SH_OCCUPANCY_SUB_VOXELS - 1));
+
+                    uint previous;
+                    InterlockedOr(OutOccupancyMask[GlimmerSHOccupancyMaskIndex(cascadeIndex, solidVoxel) + (bit >> 5)], 1u << (bit & 31u), previous);
+
+                    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, solidVoxel)] = value;
                 }
             }
         }
@@ -207,7 +225,15 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         (threadIndex / boxExtent.x) % boxExtent.y,
         threadIndex / (boxExtent.x * boxExtent.y));
 
-    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel - constants.origin.xyz)] = (float4)0.0;
+    const uint maskIndex = GlimmerSHOccupancyMaskIndex(cascadeIndex, voxel);
+
+    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel)] = (float4)0.0;
+
+    [unroll]
+    for (uint wordIndex = 0; wordIndex < GLIMMER_SH_OCCUPANCY_MASK_WORDS; wordIndex++)
+    {
+        OutOccupancyMask[maskIndex + wordIndex] = 0u;
+    }
 #elif defined(MODE_SPLAT)
     const uint chunkIndex = groupId.y * constants.counts.z + groupId.x;
 

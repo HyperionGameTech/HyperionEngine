@@ -65,6 +65,7 @@ DECLARE_SRV(GlimmerSWRTDebug, GlimmerSpansBuffer) StructuredBuffer<uint> glimmer
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerHeightBoundsBuffer) StructuredBuffer<float> glimmerHeightBounds;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerGroundAlbedoTexture) Texture2DArray<float4> glimmerGroundAlbedo;
 DECLARE_SRV(GlimmerSWRTDebug, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
+DECLARE_SRV(GlimmerSWRTDebug, GlimmerSHOccupancyMaskBuffer) StructuredBuffer<uint> glimmerSHOccupancyMask;
 
 #include "../SH/GlimmerSHOccupancy.hlsli"
 
