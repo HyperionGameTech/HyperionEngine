@@ -243,6 +243,13 @@ namespace Hyperion
                 return false;
             }
 
+            // single-file editor builds keep the engine assemblies in the bundle and ship reference copies here
+            string referenceDirectory = System.IO.Path.Combine(dependenciesDirectory, "ref");
+            if (System.IO.Directory.Exists(referenceDirectory))
+            {
+                dependenciesDirectory = referenceDirectory;
+            }
+
             List<string> csFiles = System.IO.Directory.GetFiles(scriptDirectory, "*.cs")
                 .ToList();
 

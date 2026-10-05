@@ -1,5 +1,6 @@
 param(
-    [int]$DurationSeconds = 90
+    [int]$DurationSeconds = 90,
+    [switch]$ProbeDlls
 )
 
 $ErrorActionPreference = "Continue"
@@ -32,6 +33,45 @@ function Save-Screenshot([string]$Name)
     catch { Log "screenshot failed: $_" }
 }
 
+function Save-SecurityDiagnostics
+{
+    $sacState = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy" -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState
+    Log "Smart App Control state: $sacState (0 off, 1 on, 2 evaluation)"
+
+    $events = @(Get-WinEvent -FilterHashtable @{ LogName = "Microsoft-Windows-CodeIntegrity/Operational"; StartTime = $script:launchTime } -ErrorAction SilentlyContinue) +
+        @(Get-WinEvent -FilterHashtable @{ LogName = "Microsoft-Windows-Windows Defender/Operational"; StartTime = $script:launchTime } -ErrorAction SilentlyContinue)
+
+    $events | Select-Object TimeCreated, ProviderName, Id, Message | Format-List | Out-File (Join-Path $ResultsDir "security_events.txt")
+    Log "code integrity / defender events since launch: $(@($events).Count)"
+}
+
+function Test-DllLoads
+{
+    $probeStart = Get-Date
+    $results = foreach ($dll in Get-ChildItem $InstallDir -Filter *.dll -File)
+    {
+        $probe = Start-Process -FilePath "$env:SystemRoot\System32\regsvr32.exe" -ArgumentList "/s `"$($dll.FullName)`"" -PassThru -WindowStyle Hidden
+        if (-not $probe.WaitForExit(15000)) { $probe.Kill() }
+
+        # regsvr32 exits 3 when LoadLibrary fails, 4 when the DLL loaded but has no DllRegisterServer
+        [pscustomobject]@{
+            File = $dll.Name
+            Signed = ((Get-AuthenticodeSignature $dll.FullName).Status -eq "Valid")
+            ExitCode = $probe.ExitCode
+        }
+    }
+
+    $blockedNames = @(Get-WinEvent -FilterHashtable @{ LogName = "Microsoft-Windows-CodeIntegrity/Operational"; StartTime = $probeStart; Id = 3033, 3077 } -ErrorAction SilentlyContinue |
+        ForEach-Object { [regex]::Matches($_.Message, "Hyperion\\([^\\\s]+\.(?:dll|exe))") | ForEach-Object { $_.Groups[1].Value } } |
+        Sort-Object -Unique)
+
+    $results = $results | ForEach-Object { $_ | Add-Member -NotePropertyName Blocked -NotePropertyValue ($blockedNames -contains $_.File) -PassThru }
+    $results | Sort-Object Blocked, Signed, File | Format-Table -AutoSize | Out-String -Width 200 | Set-Content (Join-Path $ResultsDir "dll_probe.txt")
+
+    $unsigned = @($results | Where-Object { -not $_.Signed })
+    Log ("dll probe: {0} DLLs, {1} unsigned, {2} blocked by code integrity ({3} unsigned blocked)" -f @($results).Count, $unsigned.Count, @($results | Where-Object Blocked).Count, @($unsigned | Where-Object Blocked).Count)
+}
+
 Set-Content -Path $LogPath -Value ""
 
 Log "sandbox OS: $((Get-CimInstance Win32_OperatingSystem).Caption) $((Get-CimInstance Win32_OperatingSystem).Version)"
@@ -41,6 +81,8 @@ foreach ($systemDll in "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll",
     Log ("system32 has {0}: {1}" -f $systemDll, (Test-Path "$env:SystemRoot\System32\$systemDll"))
 }
 Log ("host dotnet mapped: {0}" -f (Test-Path "C:\dotnet\dotnet.exe"))
+try { Log ("network reachable: {0}" -f ((Invoke-WebRequest "http://www.msftconnecttest.com/connecttest.txt" -UseBasicParsing -TimeoutSec 5).Content)) }
+catch { Log "network reachable: no ($($_.Exception.Message))" }
 
 Log "copying build to $InstallDir"
 $copyTimer = [System.Diagnostics.Stopwatch]::StartNew()
@@ -50,6 +92,8 @@ Log ("copy finished in {0:N1}s, exit {1}" -f $copyTimer.Elapsed.TotalSeconds, $L
 $installedFiles = Get-ChildItem $InstallDir -Recurse -File | Select-Object -ExpandProperty FullName
 $baselineFiles = [System.Collections.Generic.HashSet[string]]::new($installedFiles, [System.StringComparer]::OrdinalIgnoreCase)
 
+if ($ProbeDlls) { Test-DllLoads }
+
 $env:DOTNET_ROOT = "C:\dotnet"
 $env:DOTNET_ROOT_X64 = "C:\dotnet"
 $env:DOTNET_MULTILEVEL_LOOKUP = "0"
@@ -57,7 +101,19 @@ $env:DOTNET_MULTILEVEL_LOOKUP = "0"
 $editorPath = Join-Path $InstallDir "Hyperion.Editor.exe"
 Log "launching $editorPath"
 $launchTime = Get-Date
-$process = Start-Process -FilePath $editorPath -WorkingDirectory $InstallDir -PassThru -RedirectStandardOutput (Join-Path $ResultsDir "editor_stdout.txt") -RedirectStandardError (Join-Path $ResultsDir "editor_stderr.txt")
+try
+{
+    $process = Start-Process -FilePath $editorPath -WorkingDirectory $InstallDir -PassThru -ErrorAction Stop -RedirectStandardOutput (Join-Path $ResultsDir "editor_stdout.txt") -RedirectStandardError (Join-Path $ResultsDir "editor_stderr.txt")
+}
+catch
+{
+    Log "LAUNCH FAILED: $($_.Exception.Message)"
+    Save-Screenshot "screenshot_launch_failed"
+    Start-Sleep -Seconds 3
+    Save-SecurityDiagnostics
+    Set-Content -Path (Join-Path $ResultsDir "done.txt") -Value "FAIL: editor failed to launch: $($_.Exception.Message)"
+    return
+}
 
 function Get-RuntimeFileCount { @(Get-ChildItem (Join-Path $InstallDir "Temp") -Recurse -File -ErrorAction SilentlyContinue).Count }
 
@@ -129,6 +185,8 @@ foreach ($logDirectory in "Logs", "Temp", "Cache")
 Get-ChildItem $InstallDir -Recurse -Include *.log, *.txt -File -ErrorAction SilentlyContinue |
     Where-Object { -not $baselineFiles.Contains($_.FullName) } |
     ForEach-Object { Copy-Item $_.FullName (Join-Path $ResultsDir ("runtime_" + $_.Name)) -Force }
+
+Save-SecurityDiagnostics
 
 $hangEvents = @($crashEvents | Where-Object { $_.Message -match "AppHang" }).Count
 $verdict = if ($exited) { "FAIL: editor exited early (code $($process.ExitCode))" }

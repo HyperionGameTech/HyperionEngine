@@ -42,6 +42,7 @@ set "HYP_MINGW=%HYP_MINGW%"
 
 set "HYP_BUILD_DIR=%HYP_BUILD_TYPE%"
 if "%HYP_SHIPPING%"=="1" set "HYP_BUILD_DIR=Shipping"
+if "%HYP_DISTRIBUTION%"=="1" if not "%HYP_SHIPPING%"=="1" set "HYP_BUILD_DIR=Distribution"
 
 set "HYP_SHIPPING_CMAKE="
 if "%HYP_SHIPPING%"=="1" set "HYP_SHIPPING_CMAKE=-DHYP_SHIPPING=1"
@@ -52,15 +53,21 @@ set "HYP_PLATFORM_SUFFIX="
 if "%HYP_RUNTIME%"=="1" set "HYP_RUNTIME_CMAKE=-DHYP_RUNTIME_ONLY=1"
 if "%HYP_RUNTIME%"=="1" set "HYP_PLATFORM_SUFFIX=-Runtime"
 
-REM "distribution" builds binaries that are safe to redistribute (no source tree path, no Aftermath).
-REM Always passed explicitly since the options are cached, and would otherwise stick after one distribution build.
+REM "distribution" builds binaries that are safe to redistribute (no source tree path, no Aftermath, one hyperion.dll
+REM with core/net/Strata and the vcpkg libraries linked in), into Build/Windows/Distribution and
+REM Binaries/Windows/Distribution so the dev build is left alone.
+REM Needs the static vcpkg libraries: Tools\Scripts\InstallDistributionDependencies.bat
 set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=ON -DHYP_ENABLE_AFTERMATH=ON"
-if "%HYP_DISTRIBUTION%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=OFF -DHYP_ENABLE_AFTERMATH=OFF"
+if "%HYP_DISTRIBUTION%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=OFF -DHYP_ENABLE_AFTERMATH=OFF -DHYP_MONOLITHIC=ON -DVCPKG_TARGET_TRIPLET=x64-windows-hyp-static -DVCPKG_OVERLAY_TRIPLETS=%~dp0..\vcpkg\triplets"
+
+REM Optional: set HYP_VS_INSTANCE to a Visual Studio install path to pick which one the Visual Studio generator binds to.
+if defined HYP_VS_INSTANCE set HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DCMAKE_GENERATOR_INSTANCE="%HYP_VS_INSTANCE%"
 
 REM Shipping builds output to Binaries/Windows/Shipping instead of Binaries/Windows/Release,
 REM but keep the Release build type and third-party libs.
 set "HYP_OUTPUT_SUFFIX_ARG="
 if "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
+if "%HYP_DISTRIBUTION%"=="1" if not "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Distribution"
 
 if "%HYP_ANDROID%"=="1" (
     if not exist Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%

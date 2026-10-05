@@ -6,7 +6,9 @@ param(
     [string]$BuildDir,
     [int]$DurationSeconds = 90,
     [int]$TimeoutMinutes = 10,
-    [switch]$NoGpu
+    [switch]$NoGpu,
+    [switch]$ProbeDlls,
+    [switch]$Network
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +27,7 @@ if (-not (Test-Path "$env:SystemRoot\System32\WindowsSandbox.exe"))
     Write-Host "then reboot and run this script again."
     exit 1
 }
-if (Get-Process WindowsSandbox, WindowsSandboxClient -ErrorAction SilentlyContinue)
+if (Get-Process -Name "WindowsSandbox*" -ErrorAction SilentlyContinue)
 {
     throw "A Windows Sandbox instance is already running; only one can run at a time. Close it first."
 }
@@ -36,10 +38,12 @@ New-Item -ItemType Directory -Path $ResultsDir -Force | Out-Null
 Copy-Item (Join-Path $PSScriptRoot "SandboxGuestTest.ps1") $ResultsDir
 
 $vGpu = if ($NoGpu) { "Disable" } else { "Enable" }
+$networking = if ($Network) { "Default" } else { "Disable" }
+$guestArguments ="-DurationSeconds $DurationSeconds" + $(if ($ProbeDlls) { " -ProbeDlls" } else { "" })
 $config = @"
 <Configuration>
   <VGpu>$vGpu</VGpu>
-  <Networking>Disable</Networking>
+  <Networking>$networking</Networking>
   <MemoryInMB>16384</MemoryInMB>
   <MappedFolders>
     <MappedFolder><HostFolder>$BuildDir</HostFolder><SandboxFolder>C:\Source\Build</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
@@ -47,14 +51,14 @@ $config = @"
     <MappedFolder><HostFolder>$ResultsDir</HostFolder><SandboxFolder>C:\Results</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Results\SandboxGuestTest.ps1 -DurationSeconds $DurationSeconds</Command>
+    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Results\SandboxGuestTest.ps1 $guestArguments</Command>
   </LogonCommand>
 </Configuration>
 "@
 $configPath = Join-Path $TestDir "EditorTest.wsb"
 Set-Content -Path $configPath -Value $config -Encoding utf8
 
-Write-Host "Launching sandbox (vGPU: $vGpu), build: $BuildDir"
+Write-Host "Launching sandbox (vGPU: $vGpu, networking: $networking), build: $BuildDir"
 Start-Process $configPath
 
 $donePath = Join-Path $ResultsDir "done.txt"

@@ -60,7 +60,7 @@ namespace Hyperion
             return $"Translation: {_translation}, Scale: {_scale}, Rotation: {_rotation}";
         }
 
-        [DllImport("hyperion", EntryPoint = "Transform_GetMatrix")]
+        [DllImport("hyperion", EntryPoint = "Transform_GetMatrixManaged")]
         private static extern void Transform_GetMatrix([In] ref Transform transform, [Out] out Mat4f matrix);
     }
 }

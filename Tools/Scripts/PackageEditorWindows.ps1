@@ -11,7 +11,7 @@
     powershell -ExecutionPolicy Bypass -File Tools/Scripts/PackageEditorWindows.ps1 -Symbols
 #>
 param(
-    [string]$Configuration = "Release",
+    [string]$Configuration = "Distribution",
     [string]$OutputDir,
     [switch]$Build,
     [switch]$IncludeShaderCache,
@@ -47,6 +47,13 @@ $ManagedEditorFiles = @(
     "Hyperion.Editor.dll",
     "Hyperion.Editor.deps.json",
     "Hyperion.Editor.runtimeconfig.json"
+)
+
+# The only binaries of ours in a monolithic (distribution) package; everything else must already carry a signature.
+$SignedByUs = @(
+    "Hyperion.Editor.exe",
+    "hyperion.dll",
+    "Hyperion.NET.Scripting.dll"
 )
 
 $Warnings = [System.Collections.Generic.List[string]]::new()
@@ -152,7 +159,7 @@ if ($Build)
     try
     {
         # regenerate so the distribution options reach the CMake cache
-        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" $Configuration distribution regenerate"
+        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" Release distribution regenerate"
         if ($LASTEXITCODE -ne 0) { throw "Build failed" }
     }
     finally { Pop-Location }
@@ -173,6 +180,41 @@ Write-Step "Staging managed editor assemblies"
 
 $StagedBinaries = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
+# HYP_MONOLITHIC build: core/net/Strata live in hyperion.dll, and the editor is published as a single file
+$IsMonolithic = -not (Test-Path (Join-Path $BinDir "hyperion-core.dll"))
+
+if ($IsMonolithic)
+{
+    $RuntimeExecutables = @()
+    $ManagedEditorFiles = @()
+
+    $editorProject = Join-Path $RootDir "Build/CSharpProjects-$Configuration/Hyperion.Editor/Hyperion.Editor.csproj"
+    if (-not (Test-Path $editorProject)) { throw "Editor project not found at $editorProject" }
+
+    $publishRoot = Join-Path $OutputDir "publish-intermediate"
+    if (Test-Path $publishRoot) { Remove-Item $publishRoot -Recurse -Force }
+
+    Write-Step "Publishing single-file editor"
+    $env:MSBuildSdksPath = $null
+    & dotnet publish $editorProject --configuration Release --runtime win-x64 --self-contained false --disable-build-servers `
+        -p:PublishSingleFile=true -p:DebugType=none "-p:OutputPath=$publishRoot/build/" --output "$publishRoot/publish" | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+
+    foreach ($file in Get-ChildItem "$publishRoot/publish" -File | Where-Object { $_.Extension -in ".exe", ".dll" })
+    {
+        Copy-StagedFile $file.FullName (Join-Path $StageDir $file.Name)
+        [void]$StagedBinaries.Add($file.Name)
+    }
+
+    Remove-Item $publishRoot -Recurse -Force
+
+    # C# script projects compile against these; at runtime the copies inside the single-file editor are used
+    foreach ($file in "Hyperion.NET.Shared.dll", "Hyperion.NET.Runtime.dll", "Hyperion.NET.Interop.dll")
+    {
+        Copy-StagedFile (Join-Path $BinDir $file) (Join-Path $StageDir "ref/$file")
+    }
+}
+
 foreach ($file in $ManagedEditorFiles)
 {
     $source = Join-Path $BinDir $file
@@ -181,10 +223,14 @@ foreach ($file in $ManagedEditorFiles)
     [void]$StagedBinaries.Add($file)
 }
 
-$depsJson = Get-Content (Join-Path $BinDir "Hyperion.Editor.deps.json") -Raw | ConvertFrom-Json
-$depsTarget = $depsJson.targets.PSObject.Properties[$depsJson.runtimeTarget.name].Value
+$depsLibraries = @()
+if (-not $IsMonolithic)
+{
+    $depsJson = Get-Content (Join-Path $BinDir "Hyperion.Editor.deps.json") -Raw | ConvertFrom-Json
+    $depsLibraries = $depsJson.targets.PSObject.Properties[$depsJson.runtimeTarget.name].Value.PSObject.Properties
+}
 
-foreach ($library in $depsTarget.PSObject.Properties)
+foreach ($library in $depsLibraries)
 {
     $runtimeAssets = $library.Value.PSObject.Properties["runtime"]
     if ($runtimeAssets)
@@ -247,7 +293,7 @@ if ($crtImports | Where-Object { $_ -match "d\.dll$" }) { Add-Warning "Debug CRT
 
 if ($StagedBinaries.Contains("GFSDK_Aftermath_Lib.x64.dll"))
 {
-    Add-Warning "hyperion.dll links NVIDIA Aftermath, so GFSDK_Aftermath_Lib.x64.dll was staged. Rebuild with 'BuildHyperion.bat $Configuration distribution regenerate' (or pass -Build) to leave it out."
+    Add-Warning "hyperion.dll links NVIDIA Aftermath, so GFSDK_Aftermath_Lib.x64.dll was staged. Rebuild with 'BuildHyperion.bat Release distribution regenerate' (or pass -Build) to leave it out."
 }
 if ($StagedBinaries.Contains("steam_api64.dll"))
 {
@@ -344,7 +390,18 @@ else { Add-Warning "Documentation/ThirdPartyLicenses missing; third-party licens
 
 $hyperionDllBytes = [System.IO.File]::ReadAllBytes((Join-Path $StageDir "hyperion.dll"))
 $hyperionDllText = [System.Text.Encoding]::GetEncoding(28591).GetString($hyperionDllBytes)
-if ($hyperionDllText.Contains($RootDir.Replace("\", "/"))) { Add-Warning "hyperion.dll has the source tree path ($RootDir) baked in via HYP_ROOT_DIR. Rebuild with 'BuildHyperion.bat $Configuration distribution regenerate' (or pass -Build)." }
+if ($hyperionDllText.Contains($RootDir.Replace("\", "/"))) { Add-Warning "hyperion.dll has the source tree path ($RootDir) baked in via HYP_ROOT_DIR. Rebuild with 'BuildHyperion.bat Release distribution regenerate' (or pass -Build)." }
+
+if ($IsMonolithic)
+{
+    # ref/ holds compile-time reference copies that are never loaded
+    $unsigned = Get-ChildItem $StageDir -Recurse -File |
+        Where-Object { $_.Extension -in ".dll", ".exe" -and $_.Directory.Name -ne "ref" -and (Get-AuthenticodeSignature $_.FullName).Status -ne "Valid" } |
+        ForEach-Object Name
+    $unexpectedUnsigned = @($unsigned | Where-Object { $_ -notin $SignedByUs })
+    if ($unexpectedUnsigned) { Add-Warning "Unsigned third-party binaries (Smart App Control would block them even in a signed release): $($unexpectedUnsigned -join ', ')" }
+    Write-Host "    Unsigned binaries of ours: $(@($unsigned | Where-Object { $_ -in $SignedByUs }) -join ', ')"
+}
 
 $droppedBinaries = Get-ChildItem $BinDir -File |
     Where-Object { $_.Extension -in ".dll", ".exe" -and -not $StagedBinaries.Contains($_.Name) -and -not (Test-Path (Join-Path $StageDir $_.Name)) } |

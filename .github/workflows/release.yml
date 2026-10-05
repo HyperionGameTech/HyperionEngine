@@ -1,0 +1,197 @@
+name: Release (Windows editor preview)
+
+# Builds the distribution configuration, packages the editor and drafts a GitHub release. Releases are unsigned for
+# now: signing through SignPath is on hold and only runs when asked for in a manual run (Documentation/CodeSigning.md).
+# Every job runs on GitHub-hosted runners, which SignPath Foundation requires for signed builds.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: Sign with SignPath (needs the SignPath project and secrets to be set up)
+        type: boolean
+        default: false
+      signing-policy:
+        description: SignPath signing policy
+        type: choice
+        options: [test-signing, release-signing]
+        default: test-signing
+      draft-release:
+        description: Create a draft GitHub release from the result
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  SIGNING_POLICY: ${{ inputs.signing-policy }}
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Read engine version
+        id: version
+        shell: pwsh
+        run: |
+          $cmake = Get-Content Source/CMakeLists.txt -Raw
+          $parts = foreach ($c in 'MAJOR', 'MINOR', 'PATCH') {
+            if ($cmake -notmatch "set\(HYP_VERSION_$c\s+(\d+)\)") { throw "HYP_VERSION_$c not found" }
+            $Matches[1]
+          }
+          $version = $parts -join '.'
+          "version=$version" >> $env:GITHUB_OUTPUT
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match the engine version v$version in Source/CMakeLists.txt"
+          }
+
+      - name: Check generated editor icons are committed
+        shell: pwsh
+        run: |
+          # embedded into the editor at build time; they are written by BuildEditorIconsCommandlet, which this build skips
+          if (-not (Get-ChildItem Source/Editor/managed/Assets/Icons/Generated -Filter *.png -ErrorAction SilentlyContinue)) {
+            throw "Source/Editor/managed/Assets/Icons/Generated has no icons"
+          }
+
+      - name: Point VCPKG_ROOT at the runner's vcpkg
+        shell: pwsh
+        run: '"VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV'
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\vcpkg\archives
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('Tools/vcpkg/**', 'Tools/Scripts/InstallDistributionDependencies.bat') }}
+
+      - name: Build static third-party libraries
+        shell: cmd
+        run: Tools\Scripts\InstallDistributionDependencies.bat
+
+      - name: Build
+        shell: cmd
+        run: Tools\Scripts\BuildHyperion.bat Release ninja distribution regenerate
+
+      - name: Package
+        shell: pwsh
+        run: ./Tools/Scripts/PackageEditorWindows.ps1 -NoZip -Symbols -OutputDir "${{ github.workspace }}/Packaged"
+
+      - name: Upload unsigned editor
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: editor-unsigned
+          path: Packaged/Hyperion-Editor-${{ steps.version.outputs.version }}-win64
+          if-no-files-found: error
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: editor-symbols
+          path: Packaged/Hyperion-Editor-${{ steps.version.outputs.version }}-win64-symbols
+          if-no-files-found: warn
+
+  sign:
+    needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.sign }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      # release-signing needs a manual approval in SignPath, so this waits for hours rather than minutes
+      - uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: hyperion-engine
+          signing-policy-slug: ${{ env.SIGNING_POLICY }}
+          artifact-configuration-slug: editor-preview
+          github-artifact-id: ${{ needs.build.outputs.artifact-id }}
+          parameters: |
+            version: "${{ needs.build.outputs.version }}"
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 18000
+          output-artifact-directory: signed
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: editor-signed
+          path: signed
+          if-no-files-found: error
+
+  release:
+    needs: [build, sign]
+    # runs for unsigned builds too (sign is skipped then), but not when signing failed
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.sign.result == 'success' || needs.sign.result == 'skipped') && (github.event_name == 'push' || inputs.draft-release) }}
+    runs-on: windows-2025
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      SIGNED: ${{ needs.sign.result == 'success' }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.sign.result == 'success' && 'editor-signed' || 'editor-unsigned' }}
+          path: stage/Hyperion-Editor-${{ needs.build.outputs.version }}-win64
+
+      - uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          name: editor-symbols
+          path: stage/Hyperion-Editor-${{ needs.build.outputs.version }}-win64-symbols
+
+      - name: Verify signatures
+        shell: pwsh
+        run: |
+          $dir = "stage/Hyperion-Editor-$env:VERSION-win64"
+          $unsigned = Get-ChildItem $dir -Recurse -File |
+            Where-Object { $_.Extension -in '.dll', '.exe' -and $_.Directory.Name -ne 'ref' -and (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' } |
+            ForEach-Object Name
+          "Unsigned binaries: $($unsigned -join ', ')"
+          if ($env:SIGNED -eq 'true' -and $unsigned) { throw "Signed build still has unsigned binaries" }
+          $ours = 'Hyperion.Editor.exe', 'hyperion.dll', 'Hyperion.NET.Scripting.dll'
+          $unexpected = @($unsigned | Where-Object { $_ -notin $ours })
+          if ($unexpected) { throw "Unsigned binaries that are not on the signing list: $($unexpected -join ', ')" }
+
+      - name: Create archives
+        shell: pwsh
+        run: |
+          $suffix = if ($env:SIGNED -eq 'true') { '' } else { '-unsigned' }
+          $name = "Hyperion-Editor-$env:VERSION-win64"
+          tar.exe -a -c -f "$name$suffix.zip" -C stage $name
+          if ($LASTEXITCODE -ne 0) { throw "tar failed" }
+          if (Test-Path "stage/$name-symbols") {
+            tar.exe -a -c -f "$name-symbols.zip" -C stage "$name-symbols"
+            if ($LASTEXITCODE -ne 0) { throw "tar failed" }
+          }
+          Get-ChildItem *.zip | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), $_.Name } | Set-Content SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - name: Draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { "v$env:VERSION" }
+          $notes = if ($env:SIGNED -eq 'true') {
+            "Windows editor preview. Requires the .NET 10 runtime."
+          } else {
+            "Windows editor preview, **unsigned**. Windows 11 machines with Smart App Control turned on will refuse to run it. Requires the .NET 10 runtime."
+          }
+          $assets = @(Get-ChildItem *.zip | ForEach-Object Name) + 'SHA256SUMS.txt'
+          gh release create $tag @assets --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --draft --prerelease --title "Hyperion Editor $env:VERSION (preview)" --notes $notes
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }

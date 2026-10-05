@@ -65,6 +65,10 @@ option(HYP_RUNTIME_ONLY "Build only the engine runtime (no editor or tests)" OFF
 option(HYP_BAKE_ROOT_DIR "Bake the source tree path (HYP_ROOT_DIR) into non-shipping binaries" ON)
 option(HYP_ENABLE_AFTERMATH "Link NVIDIA Aftermath on Windows when the SDK is present" ON)
 
+# Links hyperion-core, hyperion-net and Strata (without its LLVM JIT) into the hyperion shared library, and skips the
+# sample and commandlet executables, so a redistributed editor only carries hyperion.dll and Hyperion.Editor.exe.
+option(HYP_MONOLITHIC "Build a single hyperion shared library" OFF)
+
 set(HYP_RUNTIME_DIRECTORY_SUFFIX "")
 if(HYP_RUNTIME_ONLY)
   set(HYP_RUNTIME_DIRECTORY_SUFFIX "-Runtime")
@@ -503,6 +507,10 @@ if(${OpenAL_FOUND})
   # module agreeing on AudioManager's layout - see Audio/AudioManager.hpp, which picks
   # between OpenALAudioAdapter/NullAudioAdapter based on this macro.
   add_definitions(-DHYP_OPENAL=1)
+
+  if(HYP_MONOLITHIC)
+    add_definitions(-DAL_LIBTYPE_STATIC)
+  endif()
 else()
   message(WARNING "OpenAL not found, audio will be disabled!")
 endif()
@@ -525,6 +533,8 @@ set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 if(HYP_RUNTIME_ONLY)
   # kept apart so configuring a runtime build doesn't overwrite the editor build's generated projects
   set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-Runtime")
+elseif(HYP_OUTPUT_DIRECTORY_SUFFIX STREQUAL "Distribution")
+  set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-Distribution")
 else()
   set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 endif()
@@ -563,6 +573,13 @@ if((HYP_IOS OR HYP_SHIPPING) AND NOT HYP_ANDROID)
   set(HYP_BUILD_STATIC 1)
 
   add_definitions(-DHYP_BUILD_STATIC=1)
+endif()
+
+if(HYP_MONOLITHIC AND NOT HYP_BUILD_STATIC)
+  set(HYP_BUILD_CORE_LIBRARY_STATIC 1)
+  set(HYP_BUILD_NET_LIBRARY_STATIC 1)
+
+  add_definitions(-DHYP_MONOLITHIC=1)
 endif()
 
 # Set to true if C# is not planned on being used for scripting
@@ -625,6 +642,12 @@ if (HYP_STRATA)
       set(STRATA_SUBMODULE_DIR "${SUBMODULES_DIR}/stratac")
 
         message(STATUS "Building strata from submodule: ${STRATA_SUBMODULE_DIR}")
+
+        if(HYP_MONOLITHIC)
+          set(STRATA_SHARED OFF CACHE BOOL "Build Strata as a shared library" FORCE)
+          set(STRATA_ENABLE_LLVM OFF CACHE BOOL "Build strata with LLVM backend" FORCE)
+          add_definitions(-DSTRATA_STATIC)
+        endif()
 
         set(STRATA_SHARED ON CACHE BOOL "Build Strata as a shared library")
         set(STRATA_ENABLE_TCC OFF CACHE BOOL "Build strata with TCC backend")
@@ -1188,6 +1211,15 @@ endif()
 
 target_compile_definitions(${ENGINE_OBJECTS_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
+if(HYP_MONOLITHIC AND WIN32 AND NOT HYP_BUILD_STATIC)
+  # version metadata, required on signed binaries
+  enable_language(RC)
+  # rc.exe hangs on the engine's compile definitions, and the resource needs none of them
+  set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> /nologo /fo <OBJECT> <SOURCE>")
+  configure_file(${CMAKE_SOURCE_DIR}/HyperionVersion.rc.in ${CMAKE_BINARY_DIR}/HyperionVersion.rc @ONLY)
+  target_sources(${BUILD_NAME} PRIVATE ${CMAKE_BINARY_DIR}/HyperionVersion.rc)
+endif()
+
 # if(HYP_ANDROID)
 #     # add hyperion-android module
 #     add_subdirectory(${CMAKE_SOURCE_DIR}/PlatformSpecific/Android ${CMAKE_BINARY_DIR}/android)
@@ -1219,6 +1251,31 @@ target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
 
 target_link_libraries(${BUILD_NAME} PRIVATE Jolt::Jolt)
+
+if(HYP_MONOLITHIC AND NOT HYP_BUILD_STATIC)
+  # whole archive so reflection registration and exports in unreferenced objects are kept
+  add_dependencies(${BUILD_NAME} hyperion-core hyperion-net)
+
+  if(HYP_MSVC OR HYP_CLANG_WINDOWS)
+    target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:hyperion-core>" "/WHOLEARCHIVE:$<TARGET_FILE:hyperion-net>")
+
+    # Static initializers run in link input order. Engine statics use core's (e.g. JSON::Undefined()), which was safe
+    # while core was its own DLL, so keep core and net ahead of the engine's objects on the link line.
+    string(REPLACE " <LINK_FLAGS>" "" HYP_CREATE_SHARED_LIBRARY_RULE "${CMAKE_CXX_CREATE_SHARED_LIBRARY}")
+    string(REPLACE "<OBJECTS>" "<LINK_FLAGS> <OBJECTS>" HYP_CREATE_SHARED_LIBRARY_RULE "${HYP_CREATE_SHARED_LIBRARY_RULE}")
+    set(CMAKE_CXX_CREATE_SHARED_LIBRARY "${HYP_CREATE_SHARED_LIBRARY_RULE}")
+  else()
+    target_link_libraries(${BUILD_NAME} PRIVATE -Wl,--whole-archive $<TARGET_FILE:hyperion-core> $<TARGET_FILE:hyperion-net> -Wl,--no-whole-archive)
+  endif()
+
+  target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core hyperion-net)
+
+  if(OpenAL_FOUND AND WIN32)
+    # link dependencies of the static OpenAL Soft library
+    find_package(fmt CONFIG REQUIRED)
+    target_link_libraries(${BUILD_NAME} PRIVATE fmt::fmt avrt)
+  endif()
+endif()
 
 if(HYP_USE_OBJECT_LIBRARIES)
   target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
@@ -1297,9 +1354,11 @@ endif()
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
-add_subdirectory(Sample)
+if(NOT HYP_MONOLITHIC)
+  add_subdirectory(Sample)
+endif()
 
-if(NOT HYP_SHIPPING AND NOT HYP_ANDROID AND NOT HYP_IOS)
+if(NOT HYP_SHIPPING AND NOT HYP_ANDROID AND NOT HYP_IOS AND NOT HYP_MONOLITHIC)
   add_subdirectory(Commandlets)
 endif()
 

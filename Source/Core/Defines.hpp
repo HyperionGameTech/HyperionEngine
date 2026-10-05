@@ -425,7 +425,17 @@
 #define HYP_IMPORT
 #endif
 
-#ifndef HYP_BUILD_CORE_LIBRARY_STATIC
+#if defined(HYP_MONOLITHIC) && !defined(HYP_BUILD_STATIC)
+// core is linked into the engine library, which exports its symbols
+#if defined(HYP_BUILD_CORE)
+#define CORE_API HYP_EXPORT
+#elif defined(HYP_BUILD_ENGINE)
+#define CORE_API
+#else
+#define CORE_API HYP_IMPORT
+#endif
+
+#elif !defined(HYP_BUILD_CORE_LIBRARY_STATIC)
 // Modules
 #ifdef HYP_BUILD_CORE
 #define CORE_API HYP_EXPORT
@@ -445,7 +455,16 @@
 #define ENGINE_API HYP_IMPORT
 #endif // HYP_BUILD_ENGINE
 
-#ifndef HYP_BUILD_NET_LIBRARY_STATIC
+#if defined(HYP_MONOLITHIC) && !defined(HYP_BUILD_STATIC)
+#if defined(HYP_BUILD_NET)
+#define NET_API HYP_EXPORT
+#elif defined(HYP_BUILD_ENGINE)
+#define NET_API
+#else
+#define NET_API HYP_IMPORT
+#endif
+
+#elif !defined(HYP_BUILD_NET_LIBRARY_STATIC)
 #ifdef HYP_BUILD_NET
 #define NET_API HYP_EXPORT
 #else // !HYP_BUILD_NET
