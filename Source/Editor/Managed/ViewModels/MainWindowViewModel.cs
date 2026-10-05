@@ -95,6 +95,8 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand RebuildMeshBVHs { get; } = new EditorCommand("RebuildMeshBVHs");
 
         public EditorCommand CookGameContent { get; } = new EditorCommand("CookGameContent");
+        public EditorCommand GenerateNativeProject { get; } = new EditorCommand("GenerateNativeProject");
+        public EditorCommand BuildNativeGame { get; } = new EditorCommand("BuildNativeGame");
 
         private string _undoHeader = "Undo";
         public string UndoHeader
@@ -519,6 +521,7 @@ namespace Hyperion.Editor.ViewModels
         public ICommand SelectTransformModeTranslate { get; private set; }
         public ICommand SelectTransformModeRotate { get; private set; }
         public ICommand SelectTransformModeScale { get; private set; }
+        public ICommand SelectTransformModeReshapeVolume { get; private set; }
 
         public bool CanSelectTransformModeTranslate => CanSelectGizmo;// && _editorSubsystem.GetSelectedGizmo()?.ManipulationMode != EditorManipulationMode.Translate;
         public bool CanSelectTransformModeRotate => CanSelectGizmo;// && _editorSubsystem.GetSelectedGizmo()?.ManipulationMode != EditorManipulationMode.Rotate;
@@ -527,6 +530,26 @@ namespace Hyperion.Editor.ViewModels
         public bool IsTransformModeTranslateActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.Translate;
         public bool IsTransformModeRotateActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.Rotate;
         public bool IsTransformModeScaleActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.Scale;
+        public bool IsTransformModeReshapeVolumeActive => _editorSubsystem?.GetSelectedManipulationMode() == EditorManipulationMode.ReshapeVolume;
+
+        private volatile bool _canUseVolumeEditTool;
+        public bool CanUseVolumeEditTool => _canUseVolumeEditTool;
+
+        private void NotifyTransformModeChanged()
+        {
+            OnPropertyChanged(nameof(IsTransformModeTranslateActive));
+            OnPropertyChanged(nameof(IsTransformModeRotateActive));
+            OnPropertyChanged(nameof(IsTransformModeScaleActive));
+            OnPropertyChanged(nameof(IsTransformModeReshapeVolumeActive));
+            OnPropertyChanged(nameof(CanUseVolumeEditTool));
+        }
+
+        private void RefreshVolumeEditAvailability()
+        {
+            _canUseVolumeEditTool = _editorSubsystem?.CanUseVolumeEditTool() ?? false;
+
+            Dispatcher.UIThread.Post(NotifyTransformModeChanged);
+        }
 
         public bool CanSelectGizmo = true; // temp hax
 
@@ -1067,6 +1090,7 @@ namespace Hyperion.Editor.ViewModels
             SelectTransformModeTranslate = new SetGizmoCommand(EditorManipulationMode.Translate);
             SelectTransformModeRotate = new SetGizmoCommand(EditorManipulationMode.Rotate);
             SelectTransformModeScale = new SetGizmoCommand(EditorManipulationMode.Scale);
+            SelectTransformModeReshapeVolume = new SetGizmoCommand(EditorManipulationMode.ReshapeVolume);
 
             ToggleSnapToGrid = new RelayCommand(() =>
             {
@@ -2147,9 +2171,7 @@ namespace Hyperion.Editor.ViewModels
                             OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                             OnPropertyChanged(nameof(CanSelectTransformModeScale));
 
-                            OnPropertyChanged(nameof(IsTransformModeTranslateActive));
-                            OnPropertyChanged(nameof(IsTransformModeRotateActive));
-                            OnPropertyChanged(nameof(IsTransformModeScaleActive));
+                            NotifyTransformModeChanged();
 
                             _ = EngineManager.PostToSimThread(RefreshMeshEditState);
                             _ = EngineManager.PostToSimThread(RefreshCsgState);
@@ -2161,6 +2183,8 @@ namespace Hyperion.Editor.ViewModels
             _selectedGizmoChangedHandler = _editorSubsystem.GetOnSelectedGizmoChangedDelegate()
                 .Bind((EditorGizmoBase? newGizmo, EditorGizmoBase? prevGizmo) =>
                 {
+                    RefreshVolumeEditAvailability();
+
                     Dispatcher.UIThread.Post(() =>
                     {
                         (SelectTransformModeTranslate as SetGizmoCommand)?.RaiseCanExecuteChanged();
@@ -2172,9 +2196,7 @@ namespace Hyperion.Editor.ViewModels
                         OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                         OnPropertyChanged(nameof(CanSelectTransformModeScale));
 
-                        OnPropertyChanged(nameof(IsTransformModeTranslateActive));
-                        OnPropertyChanged(nameof(IsTransformModeRotateActive));
-                        OnPropertyChanged(nameof(IsTransformModeScaleActive));
+                        NotifyTransformModeChanged();
                     });
                 });
 
@@ -2189,9 +2211,7 @@ namespace Hyperion.Editor.ViewModels
                 OnPropertyChanged(nameof(CanSelectTransformModeRotate));
                 OnPropertyChanged(nameof(CanSelectTransformModeScale));
 
-                OnPropertyChanged(nameof(IsTransformModeTranslateActive));
-                OnPropertyChanged(nameof(IsTransformModeRotateActive));
-                OnPropertyChanged(nameof(IsTransformModeScaleActive));
+                NotifyTransformModeChanged();
 
                 OnPropertyChanged(nameof(IsSnapToGridEnabled));
 
@@ -2583,6 +2603,7 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
+                    target.RefreshVolumeEditAvailability();
                     target.HandleFocusedNodeUpdate(newNode);
                 });
         }
@@ -2795,6 +2816,8 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            _canUseVolumeEditTool = _editorSubsystem.CanUseVolumeEditTool();
+
             MeshEditStateSnapshot snapshot = new MeshEditStateSnapshot();
 
             int viewportForcedLod = -1;
@@ -2847,9 +2870,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(StatusText));
             NotifyMeshToolsChanged();
 
-            OnPropertyChanged(nameof(IsTransformModeTranslateActive));
-            OnPropertyChanged(nameof(IsTransformModeRotateActive));
-            OnPropertyChanged(nameof(IsTransformModeScaleActive));
+            NotifyTransformModeChanged();
 
             (ToggleMeshEditMode as RelayCommand)?.RaiseCanExecuteChanged();
             (SaveMeshEdits as RelayCommand)?.RaiseCanExecuteChanged();
@@ -2872,6 +2893,8 @@ namespace Hyperion.Editor.ViewModels
             {
                 return;
             }
+
+            _canUseVolumeEditTool = _editorSubsystem.CanUseVolumeEditTool();
 
             CsgStateSnapshot snapshot = new();
 
@@ -2922,9 +2945,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CsgModeTooltip));
             NotifyMeshToolsChanged();
 
-            OnPropertyChanged(nameof(IsTransformModeTranslateActive));
-            OnPropertyChanged(nameof(IsTransformModeRotateActive));
-            OnPropertyChanged(nameof(IsTransformModeScaleActive));
+            NotifyTransformModeChanged();
 
             (ToggleCsgMode as RelayCommand)?.RaiseCanExecuteChanged();
 
