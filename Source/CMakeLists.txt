@@ -1212,7 +1212,6 @@ endif()
 target_compile_definitions(${ENGINE_OBJECTS_NAME} PRIVATE HYP_BUILD_ENGINE=1)
 
 if(HYP_MONOLITHIC AND WIN32 AND NOT HYP_BUILD_STATIC)
-  # version metadata, required on signed binaries
   enable_language(RC)
   # rc.exe hangs on the engine's compile definitions, and the resource needs none of them
   set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> /nologo /fo <OBJECT> <SOURCE>")

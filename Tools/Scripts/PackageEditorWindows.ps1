@@ -49,8 +49,7 @@ $ManagedEditorFiles = @(
     "Hyperion.Editor.runtimeconfig.json"
 )
 
-# The only binaries of ours in a monolithic (distribution) package; everything else must already carry a signature.
-$SignedByUs = @(
+$OwnBinaries = @(
     "Hyperion.Editor.exe",
     "hyperion.dll",
     "Hyperion.NET.Scripting.dll"
@@ -398,9 +397,8 @@ if ($IsMonolithic)
     $unsigned = Get-ChildItem $StageDir -Recurse -File |
         Where-Object { $_.Extension -in ".dll", ".exe" -and $_.Directory.Name -ne "ref" -and (Get-AuthenticodeSignature $_.FullName).Status -ne "Valid" } |
         ForEach-Object Name
-    $unexpectedUnsigned = @($unsigned | Where-Object { $_ -notin $SignedByUs })
-    if ($unexpectedUnsigned) { Add-Warning "Unsigned third-party binaries (Smart App Control would block them even in a signed release): $($unexpectedUnsigned -join ', ')" }
-    Write-Host "    Unsigned binaries of ours: $(@($unsigned | Where-Object { $_ -in $SignedByUs }) -join ', ')"
+    $unexpectedUnsigned = @($unsigned | Where-Object { $_ -notin $OwnBinaries })
+    if ($unexpectedUnsigned) { Add-Warning "Third-party binaries without a vendor signature: $($unexpectedUnsigned -join ', ')" }
 }
 
 $droppedBinaries = Get-ChildItem $BinDir -File |
