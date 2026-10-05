@@ -38,9 +38,11 @@ static EngineStatGpuTimer s_statGlimmerSHOccupancy("Rendering/GPU/Glimmer/SHOccu
 
 static StaticShaderPropertyId s_propOccupancyModeClear { ShaderProperty(NAME("MODE"), NAME("CLEAR")) };
 static StaticShaderPropertyId s_propOccupancyModeSplat { ShaderProperty(NAME("MODE"), NAME("SPLAT")) };
+static StaticShaderPropertyId s_propOccupancyModeResolve { ShaderProperty(NAME("MODE"), NAME("RESOLVE")) };
 
 static constexpr uint32 OccupancyGroupSize = 64;
 static constexpr int32 WindowSnapVoxels = 8;
+static constexpr uint32 AlbedoSumWords = 4;
 
 struct GlimmerSHOccupancySplatConstants
 {
@@ -78,6 +80,7 @@ GlimmerSHOccupancy::~GlimmerSHOccupancy()
     m_texture = Handle<Texture>();
 
     EnqueueDeletion(std::move(m_maskBuffer));
+    EnqueueDeletion(std::move(m_albedoSumsBuffer));
 }
 
 void GlimmerSHOccupancy::CreateResources()
@@ -94,6 +97,11 @@ void GlimmerSHOccupancy::CreateResources()
 
     m_maskBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numVoxels * GlimmerSHOccupancyMaskWords * sizeof(uint32), alignof(uint32));
     Check(m_maskBuffer->Create());
+
+    const size_t numCascadeVoxels = size_t(GlimmerSHOccupancyGridXZ) * GlimmerSHOccupancyGridY * GlimmerSHOccupancyGridXZ;
+
+    m_albedoSumsBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numCascadeVoxels * AlbedoSumWords * sizeof(uint32), alignof(uint32));
+    Check(m_albedoSumsBuffer->Create());
 }
 
 const GpuImageViewRef& GlimmerSHOccupancy::GetImageView() const
@@ -137,6 +145,7 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "OutOccupancy"_sh, RI.textureViewCache->GetOrCreate(m_texture));
         cr << SetShaderUniform(uniformIndex++, "OutOccupancyMask"_sh, m_maskBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
+        cr << SetShaderUniform(uniformIndex++, "OutAlbedoSums"_sh, m_albedoSumsBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, tlas.GetSpanInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanInstanceShaderData)));
         cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, tlas.GetSpanChunksBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanChunkShaderData)));
         cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, blasCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
@@ -146,22 +155,32 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
         cr << DispatchCompute(groups);
     };
 
-    ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHOccupancy);
-
-    cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-    cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
-
-    const Vec3i boxExtent = box.max - box.min;
-
-    dispatchPass(s_propOccupancyModeClear, uint32(boxExtent.x * boxExtent.y * boxExtent.z));
-
-    if (tlas.GetNumSpanChunks() != 0)
+    const auto insertWriteBarriers = [&]()
     {
         cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_albedoSumsBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    };
+
+    ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHOccupancy);
+
+    insertWriteBarriers();
+
+    const Vec3i boxExtent = box.max - box.min;
+    const uint32 numBoxVoxels = uint32(boxExtent.x * boxExtent.y * boxExtent.z);
+
+    dispatchPass(s_propOccupancyModeClear, numBoxVoxels);
+
+    if (tlas.GetNumSpanChunks() != 0)
+    {
+        insertWriteBarriers();
 
         // a group per chunk
         dispatchPass(s_propOccupancyModeSplat, tlas.GetNumSpanChunks() * OccupancyGroupSize);
+
+        insertWriteBarriers();
+
+        dispatchPass(s_propOccupancyModeResolve, numBoxVoxels);
     }
 
     cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);

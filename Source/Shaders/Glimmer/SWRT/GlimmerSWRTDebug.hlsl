@@ -195,10 +195,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
         if (GlimmerSHTraceOccupancy(constants.occupancy, cameraPosition, direction, constants.params.x, occupancyHit, coveredT))
         {
-            const float cascade = log2(max(occupancyHit.spacing / constants.occupancy.cascades[0].params.x, 1.0));
-            const float3 tint = lerp(float3(1.0, 1.0, 1.0), float3(1.0, 0.45, 0.1), saturate(cascade / 3.0));
-
-            result.rgb = ShadeHit(tint * (0.3 + 0.7 * occupancyHit.albedo), occupancyHit.normal);
+            result.rgb = ShadeHit(occupancyHit.albedo, occupancyHit.normal);
         }
     }
     else if (mode == DEBUG_VIEW_INSTANCE_ID)

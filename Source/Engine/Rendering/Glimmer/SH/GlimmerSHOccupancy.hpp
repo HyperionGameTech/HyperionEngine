@@ -81,6 +81,7 @@ private:
 
     Handle<Texture> m_texture;
     GpuBufferRef m_maskBuffer;
+    GpuBufferRef m_albedoSumsBuffer;
 
     FixedArray<Vec3i, GlimmerSHCascades> m_builtOrigins;
     FixedArray<uint32, GlimmerSHCascades> m_builtGenerations;
