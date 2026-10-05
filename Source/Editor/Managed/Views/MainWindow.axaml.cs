@@ -811,6 +811,14 @@ namespace Hyperion.Editor
             }
         }
 
+        private void OnBuildFlyoutOpened(object? sender, EventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.RefreshNativeProjectMenuText();
+            }
+        }
+
         private static readonly object RecentProjectEntryTag = new object();
 
         private void OnOpenProjectMenuOpened(object? sender, RoutedEventArgs e)

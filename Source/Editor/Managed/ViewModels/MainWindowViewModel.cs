@@ -97,6 +97,24 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand CookGameContent { get; } = new EditorCommand("CookGameContent");
         public EditorCommand GenerateNativeProject { get; } = new EditorCommand("GenerateNativeProject");
         public EditorCommand BuildNativeGame { get; } = new EditorCommand("BuildNativeGame");
+
+        public string NativeProjectMenuText
+        {
+            get
+            {
+                string? projectFilePath = EngineManager.CurrentProject?.FilePath;
+                string? projectDirectory = string.IsNullOrEmpty(projectFilePath) ? null : Path.GetDirectoryName(projectFilePath);
+
+                return projectDirectory != null && Directory.Exists(Path.Combine(projectDirectory, "Source"))
+                    ? "Open C++ Project Folder"
+                    : "Generate C++ Project";
+            }
+        }
+
+        public void RefreshNativeProjectMenuText()
+        {
+            OnPropertyChanged(nameof(NativeProjectMenuText));
+        }
         public EditorCommand PackageGame { get; } = new EditorCommand("PackageGame");
 
         private string _undoHeader = "Undo";
