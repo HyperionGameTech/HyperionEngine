@@ -14,7 +14,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $RootDir = (Resolve-Path "$PSScriptRoot/../../..").Path
-if (-not $BuildDir) { $BuildDir = Join-Path $RootDir "PackagedBuilds/EditorPreview/Hyperion-Editor-0.5.1-win64" }
+if (-not $BuildDir) { $BuildDir = Join-Path $RootDir "PackagedBuilds/EditorPreview/Hyperion-Editor-0.5.2-win64" }
 $BuildDir = (Resolve-Path $BuildDir).Path
 $TestDir = Join-Path $RootDir "PackagedBuilds/EditorPreview/SandboxTest"
 $ResultsDir = Join-Path $TestDir "Results"
