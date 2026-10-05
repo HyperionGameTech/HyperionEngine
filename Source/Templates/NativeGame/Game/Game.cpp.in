@@ -1,5 +1,12 @@
 #include <Game/@CLASS@.hpp>
 
+#include <Framework/EngineGlobals.hpp>
+
+#include <UI/UISubsystem.hpp>
+#include <UI/UIStage.hpp>
+#include <UI/UIPanel.hpp>
+#include <UI/UIText.hpp>
+
 #include <Core/Logging/Logger.hpp>
 
 #include <Core/Reflection/ClassUtils.hpp>
@@ -16,6 +23,90 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Game);
 
 @CLASS@::~@CLASS@()
 {
+}
+
+void @CLASS@::BeforeConnectingToServer()
+{
+    Game::BeforeConnectingToServer();
+
+    const char* hostAddress = NetGlobals::GetHostAddress();
+
+    ShowStatus(hostAddress != nullptr && *hostAddress != '\0'
+        ? HYP_FORMAT("Connecting to {}...", hostAddress)
+        : String("Not connected. Start the game with --host=<address> to join a server."));
+
+    m_connectionState.OnStateChanged.RemoveAllDetached();
+    m_connectionState.OnStateChanged.Bind(
+        [this](ServerConnectionState::State state)
+        {
+            if (state == ServerConnectionState::Failed)
+            {
+                ShowStatus(m_connectionState.lastResult.HasError()
+                    ? String("Failed to connect: ") + m_connectionState.lastResult.GetError().GetMessage()
+                    : String("Failed to connect"));
+            }
+        })
+        .Detach();
+}
+
+void @CLASS@::BeforeContentLoaded()
+{
+    Game::BeforeContentLoaded();
+
+    ShowStatus("Loading...");
+}
+
+void @CLASS@::AfterContentLoaded()
+{
+    Game::AfterContentLoaded();
+
+    if (m_syncState.state == ContentSyncState::Failed)
+    {
+        ShowStatus(HYP_FORMAT("Could not load world '{}'", GetStartupWorldName()));
+
+        return;
+    }
+
+    HideStatus();
+}
+
+void @CLASS@::ShowStatus(const String& text)
+{
+    if (!m_uiSubsystem.IsValid())
+    {
+        return;
+    }
+
+    HideStatus();
+
+    UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+    Handle<UIPanel> background = stage.CreateUIObject<UIPanel>(NAME("StatusScreen"), Vec2i::Zero(), UIObjectSize { { 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT } });
+    background->SetBackgroundColor(Color(0.1f, 0.1f, 0.1f, 1.0f));
+    stage.AddChildUIObject(background);
+
+    Handle<UIText> statusText = background->CreateUIObject<UIText>(Vec2i::Zero(), UIObjectSize { { 0, UIObjectSize::AUTO }, { 80, UIObjectSize::PIXEL } });
+    statusText->SetText(text);
+    statusText->SetTextSize(24.0f);
+    statusText->SetTextColor(Color::White());
+    statusText->SetOriginAlignment(UIObjectAlignment::CENTER);
+    statusText->SetParentAlignment(UIObjectAlignment::CENTER);
+    background->AddChildUIObject(statusText);
+}
+
+void @CLASS@::HideStatus()
+{
+    if (!m_uiSubsystem.IsValid())
+    {
+        return;
+    }
+
+    UIStage& stage = *m_uiSubsystem->GetUIStage();
+
+    if (Handle<UIObject> background = stage.FindChildUIObject("StatusScreen"_sh); background.IsValid())
+    {
+        stage.RemoveChildUIObject(background);
+    }
 }
 
 void @CLASS@::OnLaunch()
