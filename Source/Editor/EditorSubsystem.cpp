@@ -5166,7 +5166,7 @@ static void PopulateNewWorld(World* world, const Handle<AssetRegistry>& assetReg
         GetCurrentAssetRegistry()->PutAssetUnique(player.capsuleShape);
 
         // In edit mode the player's origin is the capsule center, so this rests the capsule on the ground
-        player.playerEntity->SetWorldTranslation(Vec3f(0.0f, player.capsuleShape->GetHeight() * 0.5f + player.capsuleShape->GetRadius(), 0.0f));
+        player.playerEntity->SetWorldTranslation(Vec3f(0.0f, EditorPlayerSetup::GroundSurfaceHeight + player.capsuleShape->GetHeight() * 0.5f + player.capsuleShape->GetRadius(), 0.0f));
 
         mainScene->GetRoot()->AddChild(player.playerEntity);
 
