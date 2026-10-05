@@ -24,6 +24,7 @@ class GlimmerBLASCache;
 
 static constexpr uint32 GlimmerSHOccupancyGridXZ = GlimmerSHGridXZ * 2;
 static constexpr uint32 GlimmerSHOccupancyGridY = GlimmerSHGridY * 2;
+static constexpr uint32 GlimmerSHOccupancyMaskWords = 2;
 
 struct GlimmerSHOccupancyCascadeShaderData
 {
@@ -61,6 +62,11 @@ public:
 
     const GpuImageViewRef& GetImageView() const;
 
+    HYP_FORCE_INLINE const GpuBufferRef& GetMaskBuffer() const
+    {
+        return m_maskBuffer;
+    }
+
 private:
     void CreateResources();
     struct Box
@@ -70,11 +76,16 @@ private:
     };
 
     void SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i& origin, const Box& box, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache);
+    void ScrollWindow(Frame* frame, uint32 cascadeIndex, const Vec3i& origin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache);
+    void SetBuilt(uint32 cascadeIndex, const Vec3i& origin);
 
     Handle<Texture> m_texture;
+    GpuBufferRef m_maskBuffer;
 
     FixedArray<Vec3i, GlimmerSHCascades> m_builtOrigins;
     FixedArray<uint32, GlimmerSHCascades> m_builtGenerations;
+    FixedArray<int32, GlimmerSHCascades> m_rebuildSlices; // next slice of a rebuild spread over frames, -1 when there's none
+    FixedArray<uint32, GlimmerSHCascades> m_rebuildGenerations;
     FixedArray<Array<Box>, GlimmerSHCascades> m_dirtyBoxes;
 
     GlimmerSHOccupancyShaderData m_shaderData;

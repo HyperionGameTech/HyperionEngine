@@ -27,8 +27,6 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSWRTProbeAlloc, CBuffer) cbuffer CBuffer
 DECLARE_SRV(GlimmerSWRTProbeAlloc, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSWRTProbeAlloc, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
 
-#include "../SH/GlimmerSHOccupancy.hlsli"
-
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutBlockTable) RWStructuredBuffer<uint> OutBlockTable;
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutCells) RWStructuredBuffer<int4> OutCells;
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutSlots) RWStructuredBuffer<int4> OutSlots;         // xyz = block, w = level (-1 when free)
@@ -124,7 +122,7 @@ bool GlimmerIsSolidVoxel(float3 P, uint firstCascade, out int3 outVoxel, out flo
         outVoxel = int3(floor(P * cascade.params.y));
         outSpacing = cascade.params.x;
 
-        return glimmerSHOccupancy.Load(int4(GlimmerSHOccupancyTexel(cascadeIndex, outVoxel - cascade.origin.xyz), 0)).a > 0.5;
+        return glimmerSHOccupancy.Load(int4(GlimmerSHOccupancyTexel(cascadeIndex, outVoxel), 0)).a > 0.5;
     }
 
     return false;

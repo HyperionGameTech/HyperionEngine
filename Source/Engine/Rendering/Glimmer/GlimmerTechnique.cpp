@@ -217,6 +217,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         shInputs.spanCache = context.spanCache;
         shInputs.occupancy = &m_shOccupancy->GetShaderData();
         shInputs.occupancyImageView = m_shOccupancy->GetImageView();
+        shInputs.occupancyMaskBuffer = m_shOccupancy->GetMaskBuffer();
         shInputs.isOccupancySettled = m_shOccupancy->IsSettled();
         shInputs.relight = &m_relight->GetShaderData();
         shInputs.tlas = context.tlas;
@@ -270,6 +271,11 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
     }
 
     if (!context.blasCache || !context.tlas || !context.tlas->IsReady() || !context.blasCache->IsReady() || !context.surfaceCache || !context.spanCache)
+    {
+        return false;
+    }
+
+    if (!m_shOccupancy->GetMaskBuffer().IsValid())
     {
         return false;
     }
@@ -330,6 +336,7 @@ bool GlimmerTechnique::RenderDebugView(const GlimmerDebugViewContext& context)
     // the occupancy's zeroed constants (before it's built) have every cascade read as missing
     const GpuImageViewRef& occupancyImageView = m_shOccupancy->GetImageView();
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, occupancyImageView.IsValid() ? occupancyImageView : RI.placeholderData->GetImageView3D1x1x1R8());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, m_shOccupancy->GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
 
     cr << DispatchCompute(Vec3u { (extent.x + 7) / 8, (extent.y + 7) / 8, 1 });
 

@@ -34,6 +34,7 @@ DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerProbeSlotsBuffer) StructuredBuffer<int
 
 DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerGroundTexture) Texture2DArray<float> glimmerGround;
 DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerSHOccupancyTexture) Texture3D<float4> glimmerSHOccupancy;
+DECLARE_SRV(GlimmerSWRTProbeDebug, GlimmerSHOccupancyMaskBuffer) StructuredBuffer<uint> glimmerSHOccupancyMask;
 
 DECLARE_UAV(GlimmerSWRTProbeDebug, OutRecords) RWStructuredBuffer<GlimmerProbeDebugRecord> OutRecords;
 

@@ -92,7 +92,7 @@ void GlimmerSWRTProbeDebug::Update(Frame* frame, const GlimmerSWRTProbeVolume& p
 {
     HYP_SCOPE;
 
-    if (!probeVolume.IsReady())
+    if (!probeVolume.IsReady() || !occupancy.GetMaskBuffer().IsValid())
     {
         return;
     }
@@ -146,6 +146,7 @@ void GlimmerSWRTProbeDebug::Update(Frame* frame, const GlimmerSWRTProbeVolume& p
     cr << SetShaderUniform(uniformIndex++, "GlimmerProbeSlotsBuffer"_sh, probeVolume.GetSlotsBuffer().Get(), ShaderDataOffset(0, sizeof(Vec4i)));
     cr << SetShaderUniform(uniformIndex++, "GlimmerGroundTexture"_sh, surfaceCache.GetGroundImageView());
     cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyTexture"_sh, occupancy.GetImageView());
+    cr << SetShaderUniform(uniformIndex++, "GlimmerSHOccupancyMaskBuffer"_sh, occupancy.GetMaskBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
     cr << SetShaderUniform(uniformIndex++, "OutRecords"_sh, m_recordsBuffer.Get(), ShaderDataOffset(0, sizeof(GlimmerProbeDebugRecord)));
 
     cr << DispatchCompute(Vec3u { (NumProbeDebugRecords + ProbeDebugGroupSize - 1) / ProbeDebugGroupSize, 1, 1 });

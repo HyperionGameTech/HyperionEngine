@@ -55,6 +55,7 @@ struct GlimmerSHVolumeUpdateInputs
 
     const GlimmerSHOccupancyShaderData* occupancy = nullptr;
     GpuImageViewRef occupancyImageView;
+    GpuBufferRef occupancyMaskBuffer;
     bool isOccupancySettled = true; // voxels traced before then would keep stale solids until their refresh
 
     const GlimmerRelightShaderData* relight = nullptr;

@@ -23,6 +23,7 @@
 #include <Rendering/ShaderManager.hpp>
 #include <Rendering/Frame.hpp>
 
+#include <Rendering/Util/DeletionQueue.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <Framework/EngineStats.hpp>
@@ -52,6 +53,9 @@ struct GlimmerSHOccupancySplatConstants
 
 static constexpr size_t MaxDirtyBoxes = 8;
 
+static const Vec3i OccupancyGridSize = Vec3i(int32(GlimmerSHOccupancyGridXZ), int32(GlimmerSHOccupancyGridY), int32(GlimmerSHOccupancyGridXZ));
+static constexpr int32 RebuildSlices = 8;
+
 #pragma region GlimmerSHOccupancy
 
 GlimmerSHOccupancy::GlimmerSHOccupancy()
@@ -64,12 +68,16 @@ GlimmerSHOccupancy::GlimmerSHOccupancy()
 
         m_shaderData.cascades[cascadeIndex].params = Vec4f(spacing, 1.0f / spacing, 0.0f, 0.0f);
         m_builtGenerations[cascadeIndex] = ~0u;
+        m_rebuildSlices[cascadeIndex] = -1;
+        m_rebuildGenerations[cascadeIndex] = ~0u;
     }
 }
 
 GlimmerSHOccupancy::~GlimmerSHOccupancy()
 {
     m_texture = Handle<Texture>();
+
+    EnqueueDeletion(std::move(m_maskBuffer));
 }
 
 void GlimmerSHOccupancy::CreateResources()
@@ -81,6 +89,11 @@ void GlimmerSHOccupancy::CreateResources()
         1,
         NAME("GlimmerSHOccupancy"),
         TextureWrapMode::ClampToEdge);
+
+    const size_t numVoxels = size_t(GlimmerSHOccupancyGridXZ) * GlimmerSHOccupancyGridY * GlimmerSHCascades * GlimmerSHOccupancyGridXZ;
+
+    m_maskBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numVoxels * GlimmerSHOccupancyMaskWords * sizeof(uint32), alignof(uint32));
+    Check(m_maskBuffer->Create());
 }
 
 const GpuImageViewRef& GlimmerSHOccupancy::GetImageView() const
@@ -123,6 +136,7 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
 
         cr << SetShaderUniform(uniformIndex++, "CBuffer"_sh, cbuffer, ShaderDataOffset(cbufferOffset, cbufferSize));
         cr << SetShaderUniform(uniformIndex++, "OutOccupancy"_sh, RI.textureViewCache->GetOrCreate(m_texture));
+        cr << SetShaderUniform(uniformIndex++, "OutOccupancyMask"_sh, m_maskBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "SpanInstancesBuffer"_sh, tlas.GetSpanInstancesBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanInstanceShaderData)));
         cr << SetShaderUniform(uniformIndex++, "SpanChunksBuffer"_sh, tlas.GetSpanChunksBuffer().Get(), ShaderDataOffset(0, sizeof(GlimmerSpanChunkShaderData)));
         cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, blasCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
@@ -135,6 +149,7 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
     ENGINE_STAT_GPU_SCOPE(&s_statGlimmerSHOccupancy);
 
     cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
     const Vec3i boxExtent = box.max - box.min;
 
@@ -143,19 +158,65 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
     if (tlas.GetNumSpanChunks() != 0)
     {
         cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
+        cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
         // a group per chunk
         dispatchPass(s_propOccupancyModeSplat, tlas.GetNumSpanChunks() * OccupancyGroupSize);
     }
 
     cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+}
 
+void GlimmerSHOccupancy::SetBuilt(uint32 cascadeIndex, const Vec3i& origin)
+{
+    m_builtOrigins[cascadeIndex] = origin;
     m_shaderData.cascades[cascadeIndex].origin = Vec4i(origin.x, origin.y, origin.z, 1);
+}
+
+void GlimmerSHOccupancy::ScrollWindow(Frame* frame, uint32 cascadeIndex, const Vec3i& origin, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache)
+{
+    const Vec3i oldMin = m_builtOrigins[cascadeIndex];
+    const Vec3i oldMax = oldMin + OccupancyGridSize;
+
+    Box remaining { origin, origin + OccupancyGridSize };
+
+    for (int axis = 0; axis < 3; axis++)
+    {
+        Box entering = remaining;
+
+        if (origin[axis] > oldMin[axis])
+        {
+            entering.min[axis] = oldMax[axis];
+            remaining.max[axis] = oldMax[axis];
+        }
+        else if (origin[axis] < oldMin[axis])
+        {
+            entering.max[axis] = oldMin[axis];
+            remaining.min[axis] = oldMin[axis];
+        }
+        else
+        {
+            continue;
+        }
+
+        SplatBox(frame, cascadeIndex, origin, entering, tlas, blasCache);
+    }
+
+    SetBuilt(cascadeIndex, origin);
 }
 
 void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache)
 {
     HYP_SCOPE;
+
+    if (!m_texture.IsValid())
+    {
+        CreateResources();
+
+        frame->cr << InsertBarrier(m_texture->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_maskBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+    }
 
     if (!tlas.IsReady() || !blasCache.IsReady() || !tlas.GetSpanInstancesBuffer().IsValid())
     {
@@ -164,16 +225,16 @@ void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const
         return;
     }
 
-    if (!m_texture.IsValid())
-    {
-        CreateResources();
-    }
-
     const uint32 generation = tlas.GetGeneration();
 
     for (uint32 cascadeIndex = 0; cascadeIndex < GlimmerSHCascades; cascadeIndex++)
     {
         if (m_builtGenerations[cascadeIndex] == generation || m_builtGenerations[cascadeIndex] + 1 != generation || tlas.IsSpanFullyDirty())
+        {
+            continue;
+        }
+
+        if (m_rebuildSlices[cascadeIndex] >= 0)
         {
             continue;
         }
@@ -210,7 +271,7 @@ void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const
         m_builtGenerations[cascadeIndex] = generation;
     }
 
-    // finest first, one rebuild a frame: what's nearest the camera settles first
+    // finest first, one scroll or rebuild step a frame: what's nearest the camera settles first
     bool hasRebuilt = false;
 
     m_isSettled = true;
@@ -226,11 +287,40 @@ void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const
 
         Array<Box>& dirtyBoxes = m_dirtyBoxes[cascadeIndex];
 
-        if (m_builtGenerations[cascadeIndex] == generation && m_builtOrigins[cascadeIndex] == origin)
+        const Vec3i builtOrigin = m_builtOrigins[cascadeIndex];
+
+        const bool overlapsBuilt = m_builtGenerations[cascadeIndex] != ~0u
+            && MathUtil::Abs(origin.x - builtOrigin.x) < OccupancyGridSize.x
+            && MathUtil::Abs(origin.y - builtOrigin.y) < OccupancyGridSize.y
+            && MathUtil::Abs(origin.z - builtOrigin.z) < OccupancyGridSize.z;
+
+        if (m_rebuildSlices[cascadeIndex] < 0 && m_builtGenerations[cascadeIndex] == generation && overlapsBuilt)
         {
-            for (const Box& box : dirtyBoxes)
+            if (builtOrigin != origin)
             {
-                SplatBox(frame, cascadeIndex, origin, box, tlas, blasCache);
+                if (hasRebuilt)
+                {
+                    m_isSettled = false;
+
+                    continue;
+                }
+
+                ScrollWindow(frame, cascadeIndex, origin, tlas, blasCache);
+
+                hasRebuilt = true;
+            }
+
+            for (const Box& dirtyBox : dirtyBoxes)
+            {
+                const Box box {
+                    Vec3i(MathUtil::Max(dirtyBox.min.x, origin.x), MathUtil::Max(dirtyBox.min.y, origin.y), MathUtil::Max(dirtyBox.min.z, origin.z)),
+                    Vec3i(MathUtil::Min(dirtyBox.max.x, origin.x + OccupancyGridSize.x), MathUtil::Min(dirtyBox.max.y, origin.y + OccupancyGridSize.y), MathUtil::Min(dirtyBox.max.z, origin.z + OccupancyGridSize.z))
+                };
+
+                if (box.max.x > box.min.x && box.max.y > box.min.y && box.max.z > box.min.z)
+                {
+                    SplatBox(frame, cascadeIndex, origin, box, tlas, blasCache);
+                }
             }
 
             dirtyBoxes.Clear();
@@ -245,16 +335,47 @@ void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const
             continue;
         }
 
-        const Box window { origin, origin + Vec3i(int32(GlimmerSHOccupancyGridXZ), int32(GlimmerSHOccupancyGridY), int32(GlimmerSHOccupancyGridXZ)) };
-
-        SplatBox(frame, cascadeIndex, origin, window, tlas, blasCache);
-
-        m_builtOrigins[cascadeIndex] = origin;
-        m_builtGenerations[cascadeIndex] = generation;
-
-        dirtyBoxes.Clear();
-
         hasRebuilt = true;
+
+        if (m_rebuildSlices[cascadeIndex] < 0 || !overlapsBuilt)
+        {
+            m_rebuildSlices[cascadeIndex] = -1;
+            m_rebuildGenerations[cascadeIndex] = generation;
+
+            dirtyBoxes.Clear();
+
+            if (!overlapsBuilt)
+            {
+                SplatBox(frame, cascadeIndex, origin, Box { origin, origin + OccupancyGridSize }, tlas, blasCache);
+
+                SetBuilt(cascadeIndex, origin);
+                m_builtGenerations[cascadeIndex] = generation;
+
+                continue;
+            }
+
+            m_rebuildSlices[cascadeIndex] = 0;
+        }
+
+        // in place, a slice a frame: the window stays where it was built and scrolls to the viewer once it's done
+        const int32 sliceDepth = OccupancyGridSize.z / RebuildSlices;
+
+        Box slice { builtOrigin, builtOrigin + OccupancyGridSize };
+        slice.min.z += m_rebuildSlices[cascadeIndex] * sliceDepth;
+        slice.max.z = slice.min.z + sliceDepth;
+
+        SplatBox(frame, cascadeIndex, builtOrigin, slice, tlas, blasCache);
+
+        if (++m_rebuildSlices[cascadeIndex] == RebuildSlices)
+        {
+            m_rebuildSlices[cascadeIndex] = -1;
+            m_builtGenerations[cascadeIndex] = m_rebuildGenerations[cascadeIndex];
+        }
+
+        if (m_rebuildSlices[cascadeIndex] >= 0 || builtOrigin != origin || m_builtGenerations[cascadeIndex] != generation)
+        {
+            m_isSettled = false;
+        }
     }
 }
 
