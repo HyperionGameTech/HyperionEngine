@@ -13,9 +13,17 @@ public:
     virtual ~@CLASS@() override;
 
 protected:
+    virtual void BeforeConnectingToServer() override;
+
+    virtual void BeforeContentLoaded() override;
+    virtual void AfterContentLoaded() override;
+
     virtual void OnLaunch() override;
     virtual void OnUpdate(float delta) override;
     virtual bool OnInputEvent(const Event& event) override;
+
+    void ShowStatus(const String& text);
+    void HideStatus();
 };
 
 } // namespace Hyperion
