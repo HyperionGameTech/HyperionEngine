@@ -151,14 +151,7 @@ CORE_API bool Initialize(int argc, char** argv)
     {
         JSON::JString configArgsString = configArgs.ToString();
 
-        Array<String> configArgsStringSplit = MapToArray(
-            configArgsString.Split(' '),
-            [](auto&& str)
-            {
-                return str.ToUtf8();
-            });
-
-        parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), configArgsStringSplit, false);
+        parseResult = argParse.Parse(s_commandLineArguments.GetCommand(), CommandLineParser::SplitArguments(configArgsString.ToUtf8()), false);
 
         if (!parseResult.HasError())
         {

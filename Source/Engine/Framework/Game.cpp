@@ -79,6 +79,14 @@ static CommandLineArgumentRegistration g_argSinglePlayer {
     false
 };
 
+static CommandLineArgumentRegistration g_argStartupWorld {
+    "startupworld",
+    {},
+    "Name of the World asset to load on launch, when the game hasn't set one itself",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
+
 /// Calls a lifecycle hook overridden by a C# subclass of Game.
 /// Hooks left as the base [ScriptMethodStub] are skipped
 template <class... Args>
@@ -220,7 +228,14 @@ Handle<World> Game::LoadWorld(Name worldName)
 
 Name Game::GetStartupWorldName() const
 {
-    return m_startupWorldName.IsValid() ? m_startupWorldName : s_nameMainWorld;
+    if (m_startupWorldName.IsValid())
+    {
+        return m_startupWorldName;
+    }
+
+    static const String s_startupWorldArgument = CoreApi::GetCommandLineArguments()["startupworld"].ToString();
+
+    return s_startupWorldArgument.Any() ? CreateNameFromDynamicString(s_startupWorldArgument.Data()) : s_nameMainWorld;
 }
 
 void Game::Shutdown(bool shutdownWorld)

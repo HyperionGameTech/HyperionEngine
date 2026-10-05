@@ -10,6 +10,7 @@
 #include <Editor/EditorActionStack.hpp>
 #include <Editor/EditorTask.hpp>
 #include <Editor/EditorState.hpp>
+#include <Editor/EditorNativeModule.hpp>
 
 #include <Framework/Game.hpp>
 #include <Framework/EngineGlobals.hpp>
@@ -618,6 +619,25 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
             project = std::move(boxed.Get<Handle<EditorProject>>());
         }
+    }
+
+    // a project with a built C++ game module plays with the module's Game class
+    TResult<Handle<Game>> moduleGameResult = CreateGameFromNativeModule(projectFilepath);
+
+    if (moduleGameResult.HasError())
+    {
+        return moduleGameResult.GetError();
+    }
+
+    if (moduleGameResult.GetValue().IsValid())
+    {
+        project->m_gameInstance = std::move(moduleGameResult.GetValue());
+    }
+
+    if (!project->m_gameInstance.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "{} uses an overridden Game class, but game module {} isn't built. Build the game ({}) and open the project again.",
+            projectFilepath, GetNativeModulePath(projectFilepath), dir / "Build" / "Windows" / "Build.bat");
     }
 
     // hand registry over to the game instance on the project

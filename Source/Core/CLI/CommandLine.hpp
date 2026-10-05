@@ -273,6 +273,8 @@ public:
         return m_definitions;
     }
 
+    static Array<String> SplitArguments(const String& commandLine);
+
     TResult<CommandLineArguments> Parse(const String& commandLine, bool fillDefaults = true) const;
     TResult<CommandLineArguments> Parse(int argc, char** argv, bool fillDefaults = true) const;
     TResult<CommandLineArguments> Parse(ANSIStringView command, const Array<String>& args, bool fillDefaults = true) const;

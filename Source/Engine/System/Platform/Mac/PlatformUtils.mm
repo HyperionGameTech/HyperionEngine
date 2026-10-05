@@ -4,6 +4,8 @@
 
 #include <Core/Containers/String.hpp>
 
+#include <Core/FileSystem/FilePath.hpp>
+
 #include <Input/Keyboard.hpp>
 
 #import <AppKit/AppKit.h>
@@ -87,6 +89,13 @@ ENGINE_API uint64 GetSystemMemoryBytes()
 ENGINE_API uint32 GetLogicalCoreCount()
 {
     return uint32([[NSProcessInfo processInfo] activeProcessorCount]);
+}
+
+ENGINE_API bool OpenInFileBrowser(const FilePath& path)
+{
+    NSString* pathString = [NSString stringWithUTF8String:path.Data()];
+
+    return [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:pathString isDirectory:YES]];
 }
 
 ENGINE_API void InitializeNetwork()

@@ -1,0 +1,21 @@
+#pragma once
+
+#include <Framework/Game.hpp>
+
+namespace Hyperion {
+
+class @CLASS@ : public Game
+{
+    HYP_OBJECT_BODY(@CLASS@);
+
+public:
+    @CLASS@();
+    virtual ~@CLASS@() override;
+
+protected:
+    virtual void OnLaunch() override;
+    virtual void OnUpdate(float delta) override;
+    virtual bool OnInputEvent(const Event& event) override;
+};
+
+} // namespace Hyperion

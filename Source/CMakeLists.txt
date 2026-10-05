@@ -1379,6 +1379,94 @@ if(HYP_EDITOR)
   endif()
 endif()
 
+if(NOT HYP_BUILD_STATIC AND NOT HYP_ANDROID AND NOT HYP_IOS)
+  get_directory_property(HYP_SDK_DEFINITION_LIST COMPILE_DEFINITIONS)
+
+  if(WIN32)
+    list(APPEND HYP_SDK_DEFINITION_LIST "_HAS_EXCEPTIONS=0" "NOMINMAX")
+    set(HYP_SDK_COMPILE_OPTIONS "/EHs-c- /GR-")
+
+    if(HYP_MSVC)
+      string(APPEND HYP_SDK_COMPILE_OPTIONS " /Zc:preprocessor /Zc:__cplusplus /constexpr:depth1024 /bigobj /wd4251 /wd4275")
+    endif()
+  else()
+    set(HYP_SDK_COMPILE_OPTIONS "-fno-exceptions -fno-rtti")
+  endif()
+
+  list(REMOVE_DUPLICATES HYP_SDK_DEFINITION_LIST)
+
+  set(HYP_SDK_COMPILE_DEFINITIONS "")
+  foreach(definition ${HYP_SDK_DEFINITION_LIST})
+    string(APPEND HYP_SDK_COMPILE_DEFINITIONS "      [==[${definition}]==]\n")
+  endforeach()
+
+  set(HYP_SDK_THIRD_PARTY_SUBDIRS "")
+  set(HYP_SDK_DEV_INCLUDE_DIRS "${HYP_GENERATED_DIR}" "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/Engine")
+
+  if(HYP_DX12)
+    list(APPEND HYP_SDK_THIRD_PARTY_SUBDIRS "DirectX-Headers")
+
+    if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/include")
+      list(APPEND HYP_SDK_THIRD_PARTY_SUBDIRS "D3D12MemoryAllocator/include")
+    endif()
+  endif()
+
+  foreach(third_party_subdir ${HYP_SDK_THIRD_PARTY_SUBDIRS})
+    list(APPEND HYP_SDK_DEV_INCLUDE_DIRS "${THIRD_PARTY_INCLUDE_DIR}/${third_party_subdir}")
+  endforeach()
+
+  if(HYP_VULKAN AND Vulkan_INCLUDE_DIRS)
+    list(APPEND HYP_SDK_DEV_INCLUDE_DIRS ${Vulkan_INCLUDE_DIRS})
+  endif()
+
+  set(HYP_SDK_DEV_LIBRARIES "$<TARGET_LINKER_FILE:${BUILD_NAME}>")
+  if(NOT HYP_MONOLITHIC)
+    list(APPEND HYP_SDK_DEV_LIBRARIES "$<TARGET_LINKER_FILE:hyperion-core>")
+  endif()
+
+  set(HYP_SDK_RUNTIME_LIBRARIES "")
+  if(HYP_MONOLITHIC AND WIN32)
+    set(HYP_SDK_RUNTIME_LIBRARIES "hyperion.dll")
+
+    if(HYP_DXC)
+      list(APPEND HYP_SDK_RUNTIME_LIBRARIES "dxcompiler.dll")
+    endif()
+  endif()
+
+  if(HYP_MSVC)
+    set(HYP_SDK_COMPILER "cl")
+  elseif(HYP_CLANG_WINDOWS)
+    set(HYP_SDK_COMPILER "clang-cl")
+  else()
+    set(HYP_SDK_COMPILER "${CMAKE_CXX_COMPILER_ID}")
+  endif()
+
+  get_filename_component(HYP_SDK_DEV_BASE_DIR "${CMAKE_SOURCE_DIR}/.." ABSOLUTE)
+
+  set(HYP_SDK_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Sdk/CMake")
+
+  configure_file(${CMAKE_SOURCE_DIR}/HyperionSdk.cmake.in "${HYP_SDK_OUTPUT_DIR}/HyperionSdk.cmake" @ONLY)
+
+  set(HYP_SDK_DEV_PATHS_CONDITION "1")
+  get_property(HYP_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(HYP_IS_MULTI_CONFIG)
+    # every configuration shares the output directory, so only the one being built describes it
+    if(HYP_BUILD_TYPE)
+      set(HYP_SDK_DEV_PATHS_CONDITION "$<CONFIG:${HYP_BUILD_TYPE}>")
+    else()
+      set(HYP_SDK_DEV_PATHS_CONDITION "$<CONFIG:Release>")
+    endif()
+  endif()
+
+  file(GENERATE OUTPUT "${HYP_SDK_OUTPUT_DIR}/HyperionSdkDevPaths.cmake" CONTENT
+"set(HYPERION_SDK_INCLUDE_DIRS \"${HYP_SDK_DEV_INCLUDE_DIRS}\")
+set(HYPERION_SDK_LIBRARIES \"${HYP_SDK_DEV_LIBRARIES}\")
+set(HYPERION_SDK_RUNTIME_DIR \"$<TARGET_FILE_DIR:${BUILD_NAME}>\")
+set(HYPERION_SDK_BASE_DIR \"${HYP_SDK_DEV_BASE_DIR}\")
+set(HYPERION_SDK_PCH \"${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp\")
+" CONDITION "${HYP_SDK_DEV_PATHS_CONDITION}")
+endif()
+
 if (CMAKE_GENERATOR MATCHES "Ninja")
   # Copy compile_commands.json to workspace root for clangd/LSP support in editors like VSCode, Zed, etc.
   message(STATUS "Syncing compile_commands.json to workspace root")

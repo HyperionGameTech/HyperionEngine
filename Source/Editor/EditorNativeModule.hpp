@@ -1,0 +1,27 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+*/
+
+#pragma once
+
+#include <Core/Containers/String.hpp>
+
+#include <Core/FileSystem/FilePath.hpp>
+
+#include <Core/Reflection/Handle.hpp>
+
+#include <Core/Utilities/Result.hpp>
+
+namespace Hyperion {
+
+class Game;
+
+EDITOR_API String GetNativeProjectName(const FilePath& projectFilepath);
+
+EDITOR_API FilePath GetNativeModulePath(const FilePath& projectFilepath);
+
+EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& projectFilepath);
+
+} // namespace Hyperion
