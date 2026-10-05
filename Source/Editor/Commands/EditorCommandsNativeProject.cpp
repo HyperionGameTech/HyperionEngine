@@ -124,6 +124,8 @@ public:
         if (sourceDir.Exists())
         {
             /// @TODO regenerate?
+            PlatformUtils::OpenInFileBrowser(sourceDir);
+
             return;
         }
 
