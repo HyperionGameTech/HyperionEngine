@@ -27,6 +27,12 @@ namespace Hyperion
         {
             Logger.Log(LogLevel.Verbose, "Loading global assembly from path: " + path);
 
+            // single-file publish: core assemblies are in the bundle rather than on disk
+            if (!File.Exists(path))
+            {
+                return LoadGlobalAssembly(new AssemblyName(Path.GetFileNameWithoutExtension(path)));
+            }
+
             AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
             Assembly? assembly = FindGlobalAssembly(assemblyName);
 
@@ -518,6 +524,12 @@ namespace Hyperion
             }
 
             string assemblyPath = assembly.Location;
+
+            // empty for assemblies loaded from a single-file bundle
+            if (string.IsNullOrEmpty(assemblyPath))
+            {
+                return null;
+            }
 
             lock (lockObject)
             {

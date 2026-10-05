@@ -53,7 +53,7 @@ find_program(DOTNET_EXECUTABLE dotnet)
 
 if(DOTNET_EXECUTABLE)
   # Generate Hyperion.Editor.csproj
-  set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects/Hyperion.Editor")
+  set(EDITOR_PROJECT_DIR "${CSHARP_PROJECTS_DIR}/Hyperion.Editor")
   file(MAKE_DIRECTORY ${EDITOR_PROJECT_DIR})
 
   # Generate launchSettings.json to enable native debugging
@@ -88,7 +88,10 @@ if(DOTNET_EXECUTABLE)
   file(APPEND ${EDITOR_CSPROJ_PATH} "    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>\n")
   file(APPEND ${EDITOR_CSPROJ_PATH} "    <RootNamespace>Hyperion.Editor</RootNamespace>\n")
   file(APPEND ${EDITOR_CSPROJ_PATH} "    <AssemblyName>Hyperion.Editor</AssemblyName>\n")
-  file(APPEND ${EDITOR_CSPROJ_PATH} "    <Product>Hyperion Editor</Product>\n")
+  # signed binaries must agree on product name and version (see Documentation/CodeSigning.md)
+  file(APPEND ${EDITOR_CSPROJ_PATH} "    <Product>Hyperion Engine</Product>\n")
+  file(APPEND ${EDITOR_CSPROJ_PATH} "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}</Version>\n")
+  file(APPEND ${EDITOR_CSPROJ_PATH} "    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>\n")
   file(APPEND ${EDITOR_CSPROJ_PATH} "    <AssemblyTitle>Hyperion Editor</AssemblyTitle>\n")
   file(APPEND ${EDITOR_CSPROJ_PATH} "    <Platforms>x64;ARM64</Platforms>\n")
   # PlatformTarget must match the native hyperion.dll architecture,

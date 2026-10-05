@@ -283,7 +283,9 @@ bool Thread<TScheduler, TArgs...>::IsStopping() const
     return m_stopRequested.Load();
 }
 
-#ifndef HYP_BUILD_CORE
+#if defined(HYP_MONOLITHIC) && defined(HYP_BUILD_ENGINE) && !defined(HYP_BUILD_STATIC)
+extern template class Thread<Scheduler>;
+#elif !defined(HYP_BUILD_CORE)
 extern template class HYP_IMPORT Thread<Scheduler>;
 #endif
 

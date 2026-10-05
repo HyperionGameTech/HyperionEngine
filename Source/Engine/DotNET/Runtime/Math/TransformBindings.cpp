@@ -12,7 +12,8 @@ using namespace Hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void Transform_GetMatrix(Transform* transform, Mat4f* outMatrix)
+    // not Transform_GetMatrix: that name is taken by the generated Strata thunk in core
+    HYP_EXPORT void Transform_GetMatrixManaged(Transform* transform, Mat4f* outMatrix)
     {
         Assert(transform != nullptr && outMatrix != nullptr);
 

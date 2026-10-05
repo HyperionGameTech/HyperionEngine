@@ -123,7 +123,10 @@ include_directories(
 
 message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c)
+# the engine library compiles its own copy, which would collide when core is linked into it
+if(NOT HYP_MONOLITHIC)
+  set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c)
+endif()
 
 if(HYP_BUILD_STATIC)
   set(HYP_BUILD_CORE_LIBRARY_STATIC 1)
