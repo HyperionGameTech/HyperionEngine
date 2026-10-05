@@ -14,6 +14,8 @@ set(CMAKE_AR "${HYP_VCPKG_LLVM_BIN}/llvm-lib.exe" CACHE FILEPATH "" FORCE)
 set(CMAKE_RC_COMPILER "${HYP_VCPKG_LLVM_BIN}/llvm-rc.exe" CACHE FILEPATH "" FORCE)
 set(CMAKE_MT "${HYP_VCPKG_LLVM_BIN}/llvm-mt.exe" CACHE FILEPATH "" FORCE)
 
+set(CMAKE_RC_FLAGS "/DWIN32" CACHE STRING "")
+
 # included from <vcpkg>/scripts/buildsystems/vcpkg.cmake
 get_filename_component(HYP_VCPKG_SCRIPTS_DIR "${CMAKE_PARENT_LIST_FILE}/../.." ABSOLUTE)
 include("${HYP_VCPKG_SCRIPTS_DIR}/toolchains/windows.cmake")
