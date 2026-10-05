@@ -9,7 +9,8 @@ namespace Hyperion
         None = 0,
         Translate = 1,
         Rotate = 2,
-        Scale = 3
+        Scale = 3,
+        ReshapeVolume = 4
     }
 
     [ClassBinding(Name = "EditorGizmoBase")]
