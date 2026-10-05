@@ -11,7 +11,7 @@
 #define GLIMMER_SH_OCCUPANCY_NO_TRACE
 #include "GlimmerSHOccupancy.hlsli"
 
-PERMUTE(MODE, CLEAR, SPLAT)
+PERMUTE(MODE, CLEAR, SPLAT, RESOLVE)
 
 struct GlimmerSHOccupancySplatConstants
 {
@@ -29,6 +29,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
 
 DECLARE_UAV(GlimmerSHOccupancySplat, OutOccupancy) RWTexture3D<float4> OutOccupancy;
 DECLARE_UAV(GlimmerSHOccupancySplat, OutOccupancyMask) RWStructuredBuffer<uint> OutOccupancyMask;
+DECLARE_UAV(GlimmerSHOccupancySplat, OutAlbedoSums) RWStructuredBuffer<uint> OutAlbedoSums;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanInstancesBuffer) StructuredBuffer<GlimmerSpanInstance> spanInstances;
 DECLARE_SRV(GlimmerSHOccupancySplat, SpanChunksBuffer) StructuredBuffer<GlimmerSpanChunk> spanChunks;
 DECLARE_SRV(GlimmerSHOccupancySplat, GlimmerBLASTrianglesBuffer) StructuredBuffer<uint> glimmerBLASTriangles;
@@ -43,6 +44,16 @@ DECLARE_SAMPLER(GlimmerSHOccupancySplat, SamplerLinearMipmap) SamplerState glimm
 #include "../GlimmerMaterial.hlsli"
 
 #define GROUP_SIZE 64
+
+#define ALBEDO_SUM_WORDS 4u
+#define ALBEDO_WEIGHT_SCALE 1024.0
+
+uint AlbedoSumIndex(int3 voxel)
+{
+    const uint3 texel = GlimmerSHOccupancyTexel(0u, voxel);
+
+    return ((texel.z * uint(GLIMMER_SH_OCCUPANCY_GRID_Y) + texel.y) * uint(GLIMMER_SH_OCCUPANCY_GRID_XZ) + texel.x) * ALBEDO_SUM_WORDS;
+}
 #define BACK_BIAS 0.01
 
 float GetComponent(float3 value, uint axis)
@@ -138,7 +149,9 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
         return;
     }
 
-    const float4 value = float4(saturate(albedoAlpha.rgb), 1.0);
+    const float coveredArea = min(0.5 * length(normal) * invSpacing * invSpacing, 1.0);
+    const uint weight = max(uint(coveredArea * ALBEDO_WEIGHT_SCALE + 0.5), 1u);
+    const uint3 weightedAlbedo = uint3(saturate(albedoAlpha.rgb) * float(weight) + 0.5);
     const float3 halfExtent = (float3)(0.5 * spacing);
 
     const float3 absNormal = abs(normal);
@@ -199,7 +212,12 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
                     uint previous;
                     InterlockedOr(OutOccupancyMask[GlimmerSHOccupancyMaskIndex(cascadeIndex, solidVoxel) + (bit >> 5)], 1u << (bit & 31u), previous);
 
-                    OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, solidVoxel)] = value;
+                    const uint sumIndex = AlbedoSumIndex(solidVoxel);
+
+                    InterlockedAdd(OutAlbedoSums[sumIndex + 0u], weightedAlbedo.r, previous);
+                    InterlockedAdd(OutAlbedoSums[sumIndex + 1u], weightedAlbedo.g, previous);
+                    InterlockedAdd(OutAlbedoSums[sumIndex + 2u], weightedAlbedo.b, previous);
+                    InterlockedAdd(OutAlbedoSums[sumIndex + 3u], weight, previous);
                 }
             }
         }
@@ -212,7 +230,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     const uint threadIndex = (groupId.y * constants.counts.z + groupId.x) * GROUP_SIZE + groupIndex;
     const uint cascadeIndex = uint(constants.origin.w);
 
-#if defined(MODE_CLEAR)
+#if defined(MODE_CLEAR) || defined(MODE_RESOLVE)
     const uint3 boxExtent = uint3(constants.boxMax.xyz - constants.boxMin.xyz);
 
     if (threadIndex >= boxExtent.x * boxExtent.y * boxExtent.z)
@@ -226,14 +244,30 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         threadIndex / (boxExtent.x * boxExtent.y));
 
     const uint maskIndex = GlimmerSHOccupancyMaskIndex(cascadeIndex, voxel);
+    const uint sumIndex = AlbedoSumIndex(voxel);
 
+#if defined(MODE_RESOLVE)
+    if ((OutOccupancyMask[maskIndex] | OutOccupancyMask[maskIndex + 1u]) != 0u)
+    {
+        const float3 albedoSum = float3(OutAlbedoSums[sumIndex + 0u], OutAlbedoSums[sumIndex + 1u], OutAlbedoSums[sumIndex + 2u]);
+
+        OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel)] = float4(albedoSum / float(max(OutAlbedoSums[sumIndex + 3u], 1u)), 1.0);
+    }
+#else
     OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel)] = (float4)0.0;
+
+    [unroll]
+    for (uint sumWord = 0; sumWord < ALBEDO_SUM_WORDS; sumWord++)
+    {
+        OutAlbedoSums[sumIndex + sumWord] = 0u;
+    }
 
     [unroll]
     for (uint wordIndex = 0; wordIndex < GLIMMER_SH_OCCUPANCY_MASK_WORDS; wordIndex++)
     {
         OutOccupancyMask[maskIndex + wordIndex] = 0u;
     }
+#endif
 #elif defined(MODE_SPLAT)
     const uint chunkIndex = groupId.y * constants.counts.z + groupId.x;
 
