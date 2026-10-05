@@ -1,5 +1,4 @@
-name: Release (Windows editor preview)
-
+name: Release Editor
 
 on:
   push:
@@ -123,4 +122,4 @@ jobs:
           gh release create "$tag" *.zip SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease \
             --title "Hyperion Editor $VERSION (preview)" \
-            --notes "Windows editor preview. Requires the .NET 10 runtime (the .NET 10 SDK for C# scripting)."
+            --notes "Requires the .NET 10 runtime,.NET 10 SDK for C# scripting."
