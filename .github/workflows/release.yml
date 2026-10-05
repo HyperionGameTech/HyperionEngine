@@ -15,8 +15,13 @@ permissions:
 
 jobs:
   build:
+    name: build (${{ matrix.backend }})
     runs-on: windows-2025
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [dx12, vulkan]
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -65,26 +70,36 @@ jobs:
         shell: cmd
         run: Tools\Scripts\InstallDistributionDependencies.bat
 
+      - name: Install Vulkan SDK
+        if: matrix.backend == 'vulkan'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe -OutFile $env:RUNNER_TEMP/vulkan_sdk.exe
+          & $env:RUNNER_TEMP/vulkan_sdk.exe --accept-licenses --default-answer --confirm-command install | Out-Host
+          $sdk = Get-ChildItem C:\VulkanSDK -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $sdk) { throw "Vulkan SDK was not installed under C:\VulkanSDK" }
+          "VULKAN_SDK=$($sdk.FullName)" >> $env:GITHUB_ENV
+
       - name: Build
         shell: cmd
-        run: Tools\Scripts\BuildHyperion.bat Release ninja distribution regenerate
+        run: Tools\Scripts\BuildHyperion.bat Release ninja distribution ${{ matrix.backend }} regenerate
 
       - name: Package
         shell: pwsh
         run: |
           ./Tools/Scripts/PackageEditorWindows.ps1 -NoZip -Symbols -OutputDir "${{ github.workspace }}/Packaged/editor"
           New-Item -ItemType Directory Packaged/symbols | Out-Null
-          Move-Item "Packaged/editor/Hyperion-Editor-${{ steps.version.outputs.version }}-win64-symbols" Packaged/symbols/
+          Move-Item "Packaged/editor/Hyperion-Editor-${{ steps.version.outputs.version }}-win64-${{ matrix.backend }}-symbols" Packaged/symbols/
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Hyperion-Editor-${{ steps.version.outputs.version }}-win64
+          name: Hyperion-Editor-${{ steps.version.outputs.version }}-win64-${{ matrix.backend }}
           path: Packaged/editor
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Hyperion-Editor-${{ steps.version.outputs.version }}-win64-symbols
+          name: Hyperion-Editor-${{ steps.version.outputs.version }}-win64-${{ matrix.backend }}-symbols
           path: Packaged/symbols
           if-no-files-found: error
 
@@ -97,19 +112,18 @@ jobs:
     env:
       VERSION: ${{ needs.build.outputs.version }}
     steps:
+      # every artifact holds one top-level folder named after it
       - uses: actions/download-artifact@v5
         with:
-          name: Hyperion-Editor-${{ needs.build.outputs.version }}-win64
-
-      - uses: actions/download-artifact@v5
-        with:
-          name: Hyperion-Editor-${{ needs.build.outputs.version }}-win64-symbols
+          pattern: Hyperion-Editor-*
+          merge-multiple: true
 
       - name: Create archives
         run: |
-          name="Hyperion-Editor-$VERSION-win64"
-          zip -q -r "$name.zip" "$name"
-          zip -q -r "$name-symbols.zip" "$name-symbols"
+          for dir in Hyperion-Editor-*/; do
+            name="${dir%/}"
+            zip -q -r "$name.zip" "$name"
+          done
           sha256sum *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
 

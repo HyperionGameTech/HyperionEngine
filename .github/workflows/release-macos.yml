@@ -1,0 +1,46 @@
+name: Release Editor (macOS, experimental)
+
+# Manual only until it has produced a working build; then fold it into release.yml.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (macos-arm64)
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install dependencies
+        run: |
+          brew install ninja molten-vk vulkan-headers vulkan-loader curl freetype
+          echo "VULKAN_SDK=$(brew --prefix)" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: bash Tools/Scripts/BuildHyperion.sh distribution ninja regenerate
+
+      - name: List build output
+        if: always()
+        run: ls -la Binaries/Mac/Distribution || true
+
+      - name: Package
+        run: bash Tools/Scripts/PackageEditorMacOS.sh "$GITHUB_WORKSPACE/Packaged"
+
+      # the tarball keeps the executable bits, which a plain artifact upload would drop
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Hyperion-Editor-macos-arm64
+          path: Packaged/*.tar.gz
+          if-no-files-found: error
+          compression-level: 0

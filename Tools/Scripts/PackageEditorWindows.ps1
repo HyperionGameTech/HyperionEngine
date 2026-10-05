@@ -146,7 +146,11 @@ function Copy-Directory([string]$Source, [string]$Destination)
 }
 
 $Version = Get-EngineVersion
-$StageName = "Hyperion-Editor-$Version-win64"
+# the rendering backend the build directory was last configured with (BuildHyperion.bat "vulkan" / "dx12")
+$CMakeCachePath = Join-Path $RootDir "Build/Windows/$Configuration/CMakeCache.txt"
+$Backend = if ((Test-Path $CMakeCachePath) -and (Select-String -Path $CMakeCachePath -Pattern "^HYP_RENDERING_BACKEND:\w+=Vulkan\s*$" -Quiet)) { "vulkan" } else { "dx12" }
+$BackendSuffix = "-$Backend"
+$StageName = "Hyperion-Editor-$Version-win64$BackendSuffix"
 $StageDir = Join-Path $OutputDir $StageName
 
 Write-Step "Packaging Hyperion editor preview $Version ($Configuration)"
@@ -158,7 +162,7 @@ if ($Build)
     try
     {
         # regenerate so the distribution options reach the CMake cache
-        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" Release distribution regenerate"
+        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" Release ninja distribution $Backend regenerate"
         if ($LASTEXITCODE -ne 0) { throw "Build failed" }
     }
     finally { Pop-Location }

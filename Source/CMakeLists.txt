@@ -709,12 +709,13 @@ endif()
 set(RENDERING_BACKEND "Vulkan")
 
 if(WIN32 AND NOT HYP_GCC)
-  set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true)
-
-  if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND)
+  # DX12 unless configured with -DHYP_RENDERING_BACKEND=Vulkan (BuildHyperion.bat: "vulkan")
+  if(NOT HYP_RENDERING_BACKEND STREQUAL "Vulkan")
     set(RENDERING_BACKEND "DX12")
   endif()
 endif()
+
+message(STATUS "Rendering backend: ${RENDERING_BACKEND}")
 
 if (NOT DEFINED RENDERING_BACKEND)
   if (WIN32 AND NOT HYP_GCC)

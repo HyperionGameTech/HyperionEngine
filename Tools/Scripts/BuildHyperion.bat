@@ -53,15 +53,15 @@ set "HYP_PLATFORM_SUFFIX="
 if "%HYP_RUNTIME%"=="1" set "HYP_RUNTIME_CMAKE=-DHYP_RUNTIME_ONLY=1"
 if "%HYP_RUNTIME%"=="1" set "HYP_PLATFORM_SUFFIX=-Runtime"
 
-REM "distribution" builds binaries that are safe to redistribute (no source tree path, no Aftermath, one hyperion.dll
-REM with core/net/Strata and the vcpkg libraries linked in), into Build/Windows/Distribution and
-REM Binaries/Windows/Distribution so the dev build is left alone.
-REM Needs the static vcpkg libraries: Tools\Scripts\InstallDistributionDependencies.bat
 set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=ON -DHYP_ENABLE_AFTERMATH=ON"
 if "%HYP_DISTRIBUTION%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=OFF -DHYP_ENABLE_AFTERMATH=OFF -DHYP_MONOLITHIC=ON -DVCPKG_TARGET_TRIPLET=x64-windows-hyp-static -DVCPKG_OVERLAY_TRIPLETS=%~dp0..\vcpkg\triplets"
 
 REM Optional: set HYP_VS_INSTANCE to a Visual Studio install path to pick which one the Visual Studio generator binds to.
 if defined HYP_VS_INSTANCE set HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DCMAKE_GENERATOR_INSTANCE="%HYP_VS_INSTANCE%"
+
+REM "vulkan" / "dx12" pick the rendering backend on Windows (DX12 when neither is passed). Always passed, so a build
+REM directory last configured for the other backend switches back.
+if "%HYP_BACKEND%"=="VULKAN" (set "HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DHYP_RENDERING_BACKEND=Vulkan") else (set "HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DHYP_RENDERING_BACKEND=DX12")
 
 REM Shipping builds output to Binaries/Windows/Shipping instead of Binaries/Windows/Release,
 REM but keep the Release build type and third-party libs.
@@ -207,8 +207,7 @@ if not exist "%HYP_CLANGCL_HOST%" if not exist "%HYP_CLANGCL_CROSS%" (
 echo Using generator: %HYP_VS_GENERATOR% -A ARM64 -T ClangCL
 
 REM ARM64 defaults to the DX12 rendering backend unless "vulkan" is passed
-set "HYP_BACKEND_CMAKE=-DENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND=1"
-if "%HYP_BACKEND%"=="VULKAN" set "HYP_BACKEND_CMAKE="
+set "HYP_BACKEND_CMAKE="
 
 cmake ../../../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=arm64-windows -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" -G "%HYP_VS_GENERATOR%" -A ARM64 -T ClangCL -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\..\Binaries" -DHYP_ROOT_DIR="%HYP_ROOT_DIR%" %HYP_SHIPPING_CMAKE% %HYP_RUNTIME_CMAKE% %HYP_DISTRIBUTION_CMAKE% %HYP_OUTPUT_SUFFIX_ARG% %HYP_BACKEND_CMAKE%
 if errorlevel 1 (
