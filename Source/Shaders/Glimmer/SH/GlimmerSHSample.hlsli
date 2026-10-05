@@ -8,6 +8,8 @@
 #define GLIMMER_SH_VISIBILITY_NORMAL_BIAS 0.3
 #define GLIMMER_SH_CRUSH_THRESHOLD 0.2
 #define GLIMMER_SH_AXIS_FADE 0.5
+// a rejected voxel keeps this much weight: with next to none, the blend jumps where the voxels around the point change
+#define GLIMMER_SH_MIN_WEIGHT 0.05
 
 float GlimmerSHAxisVisibility(GlimmerSHVoxel voxelData, float3 voxelToPoint)
 {
@@ -104,7 +106,7 @@ float GlimmerSHSampleCascade(GlimmerSHVolume volume, uint cascadeIndex, float3 P
             weight *= weight * weight / (GLIMMER_SH_CRUSH_THRESHOLD * GLIMMER_SH_CRUSH_THRESHOLD);
         }
 
-        weight = trilinearWeight * max(weight, 1e-5);
+        weight = trilinearWeight * max(weight, GLIMMER_SH_MIN_WEIGHT);
 
         visibilitySum += GLIMMER_SH_LOAD_DATA(texel) * weight;
         radianceSum.r += GLIMMER_SH_LOAD_RADIANCE(GlimmerSHRadianceTexel(texel, 0u)) * weight;
