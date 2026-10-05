@@ -2256,6 +2256,20 @@ void EditorSubsystem::SetSelectedManipulationMode(EditorManipulationMode mode)
     m_gizmoController->SetSelectedManipulationMode(mode);
 }
 
+bool EditorSubsystem::CanUseVolumeEditTool() const
+{
+    AssertOnThread(g_simThread);
+
+    if (m_meshEditState.enabled || (m_csgState.IsValid() && m_csgState->IsEnabled()))
+    {
+        return false;
+    }
+
+    Handle<Node> focusedNode = m_focusedNode.Lock();
+
+    return focusedNode.IsValid() && focusedNode->IsA<VolumeBase>() && StaticCast<VolumeBase>(focusedNode)->useVolumeEditTool;
+}
+
 Array<Handle<Node>> EditorSubsystem::GetGizmoTargetNodes() const
 {
     AssertOnThread(g_simThread);
@@ -5574,7 +5588,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
         if (!m_meshEditState.enabled && !GetCsgState()->IsEnabled())
         {
-            if (focusedNode->IsA<VolumeBase>() && StaticCast<VolumeBase>(focusedNode)->useVolumeEditTool)
+            if (CanUseVolumeEditTool())
             {
                 SetSelectedManipulationMode(EditorManipulationMode::ReshapeVolume);
             }

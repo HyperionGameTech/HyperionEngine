@@ -313,6 +313,9 @@ public:
     void SetSelectedManipulationMode(EditorManipulationMode mode);
 
     HYP_METHOD()
+    bool CanUseVolumeEditTool() const;
+
+    HYP_METHOD()
     EditorGizmoBase* GetSelectedGizmo() const;
 
     HYP_METHOD()

@@ -757,33 +757,47 @@
                             Spacing="2">
                             <!-- <TextBlock Classes="ribbon-label" Text="TRANSFORM" /> -->
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <ToggleButton
+                                <RadioButton
                                     x:Name="TransformModeTranslate"
                                     Classes="gizmo"
                                     Command="{Binding SelectTransformModeTranslate}"
+                                    GroupName="TransformMode"
                                     IsChecked="{Binding IsTransformModeTranslateActive, Mode=OneWay}"
                                     IsEnabled="{Binding CanSelectTransformModeTranslate}"
                                     ToolTip.Tip="Translate">
                                     <controls:Codicon Kind="Move" Size="16" />
-                                </ToggleButton>
-                                <ToggleButton
+                                </RadioButton>
+                                <RadioButton
                                     x:Name="TransformModeRotate"
                                     Classes="gizmo"
                                     Command="{Binding SelectTransformModeRotate}"
+                                    GroupName="TransformMode"
                                     IsChecked="{Binding IsTransformModeRotateActive, Mode=OneWay}"
                                     IsEnabled="{Binding CanSelectTransformModeRotate}"
                                     ToolTip.Tip="Rotate">
                                     <controls:Codicon Kind="Refresh" Size="16" />
-                                </ToggleButton>
-                                <ToggleButton
+                                </RadioButton>
+                                <RadioButton
                                     x:Name="TransformModeScale"
                                     Classes="gizmo"
                                     Command="{Binding SelectTransformModeScale}"
+                                    GroupName="TransformMode"
                                     IsChecked="{Binding IsTransformModeScaleActive, Mode=OneWay}"
                                     IsEnabled="{Binding CanSelectTransformModeScale}"
                                     ToolTip.Tip="Scale">
                                     <controls:Codicon Kind="ScreenFull" Size="16" />
-                                </ToggleButton>
+                                </RadioButton>
+                                <RadioButton
+                                    x:Name="TransformModeReshapeVolume"
+                                    Classes="gizmo"
+                                    Command="{Binding SelectTransformModeReshapeVolume}"
+                                    GroupName="TransformMode"
+                                    IsChecked="{Binding IsTransformModeReshapeVolumeActive, Mode=OneWay}"
+                                    IsEnabled="{Binding CanSelectGizmo}"
+                                    IsVisible="{Binding CanUseVolumeEditTool}"
+                                    ToolTip.Tip="Edit Volume">
+                                    <controls:Codicon Kind="Package" Size="16" />
+                                </RadioButton>
                             </StackPanel>
                         </StackPanel>
 
@@ -1102,6 +1116,35 @@
                         VerticalAlignment="Center"
                         Orientation="Horizontal"
                         Spacing="8">
+
+                        <DropDownButton
+                            VerticalAlignment="Center"
+                            Classes="gizmo-wide"
+                            IsEnabled="{Binding !IsSimulating}"
+                            ToolTip.Tip="Build">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <controls:Codicon
+                                    VerticalAlignment="Center"
+                                    Kind="Package"
+                                    Size="16" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    Text="Build" />
+                                <controls:Codicon
+                                    VerticalAlignment="Center"
+                                    Kind="ChevronDown"
+                                    Size="10" />
+                            </StackPanel>
+                            <DropDownButton.Flyout>
+                                <Flyout Placement="Bottom">
+                                    <StackPanel MinWidth="150">
+                                        <MenuItem Command="{Binding GenerateNativeProject}" Header="Generate C++ Project" />
+                                        <MenuItem Command="{Binding BuildNativeGame}" Header="Build Game" />
+                                    </StackPanel>
+                                </Flyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
 
                         <DropDownButton
                             x:Name="ToolDropDown"
