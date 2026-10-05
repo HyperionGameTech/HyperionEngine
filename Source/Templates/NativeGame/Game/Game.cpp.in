@@ -1,0 +1,77 @@
+#include <Game/@CLASS@.hpp>
+
+#include <Core/Logging/Logger.hpp>
+
+#include <Core/Reflection/ClassUtils.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
+
+namespace Hyperion {
+
+ENGINE_API HYP_DECLARE_LOG_CHANNEL(Game);
+
+@CLASS@::@CLASS@()
+    : Game()
+{
+}
+
+@CLASS@::~@CLASS@()
+{
+}
+
+void @CLASS@::OnLaunch()
+{
+    Game::OnLaunch();
+
+    HYP_LOG(Game, Info, "@CLASS@ launched");
+
+    StartSimulating();
+}
+
+void @CLASS@::OnUpdate(float delta)
+{
+    Game::OnUpdate(delta);
+}
+
+bool @CLASS@::OnInputEvent(const Event& event)
+{
+    return Game::OnInputEvent(event);
+}
+
+#pragma region Reflection
+
+const Class* g_cls@CLASS@ = nullptr;
+
+const Class* @CLASS@::StaticClass()
+{
+    return g_cls@CLASS@;
+}
+
+// clang-format off
+
+HYP_BEGIN_CLASS(@CLASS@, -1, 0, NAME("Game"))
+HYP_END_CLASS
+
+// clang-format on
+
+HYP_REGISTER_STATIC_CLASS(@CLASS@);
+
+#pragma endregion Reflection
+
+} // namespace Hyperion
+
+extern "C"
+{
+
+HYP_EXPORT const char* HypGameModule_GetGameClassName()
+{
+    return "@CLASS@";
+}
+
+HYP_EXPORT void HypGameModule_GetEngineVersion(Hyperion::uint32* outMajor, Hyperion::uint32* outMinor, Hyperion::uint32* outPatch)
+{
+    *outMajor = HYP_VERSION_MAJOR;
+    *outMinor = HYP_VERSION_MINOR;
+    *outPatch = HYP_VERSION_PATCH;
+}
+
+}

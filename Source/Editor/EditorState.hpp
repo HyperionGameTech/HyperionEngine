@@ -121,6 +121,9 @@ public:
     ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskProgressUpdated;
 
     HYP_FIELD()
+    ScriptableDelegate<void> OnBuildNativeGameRequested;
+
+    HYP_FIELD()
     ScriptableDelegate<void> OnClipboardChanged;
 
     HYP_FIELD()

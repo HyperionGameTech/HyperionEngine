@@ -97,6 +97,14 @@ public:
                 CommandLineArgumentFlags::REQUIRED,
                 {},
                 JSON::Value(""));
+
+            s_definitions.Add(
+                "out-engine-content",
+                "",
+                "Directory to write engine content to, when it shouldn't share the game's content directory",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
         }
 
         return s_definitions;
@@ -238,7 +246,20 @@ protected:
             return HYP_MAKE_ERROR(Error, "Failed to create content directory: {}", args["out-content"].ToString());
         }
 
-        Result result = Cook(engineRegistry, gameRegistry, projectDir, outCacheDir, outContentDir);
+        // engine manifests can go to their own directory, for builds that keep engine content apart from the game's (<base>/Content/Engine)
+        FilePath outEngineContentDir = outContentDir;
+
+        if (const String outEngineContentArg = args["out-engine-content"].ToString(); outEngineContentArg.Any())
+        {
+            outEngineContentDir = GetDirectory(outEngineContentArg, true);
+
+            if (outEngineContentDir.Empty())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to create engine content directory: {}", outEngineContentArg);
+            }
+        }
+
+        Result result = Cook(engineRegistry, gameRegistry, projectDir, outCacheDir, outContentDir, outEngineContentDir);
 
         if (result.HasError())
         {
@@ -365,7 +386,7 @@ private:
     static Result Cook(
         const Handle<AssetRegistry>& engineRegistry, const Handle<AssetRegistry>& gameRegistry,
         const FilePath& projectPath,
-        const FilePath& outputCacheDir, const FilePath& outputContentDir)
+        const FilePath& outputCacheDir, const FilePath& outputContentDir, const FilePath& outputEngineContentDir)
     {
         Array<TSharedResLock<AssetObject>> readLocks;
         Array<CollectedBlob> collectedBlobs;
@@ -383,7 +404,7 @@ private:
 
             for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
             {
-                if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
+                if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
                 {
                     return result;
                 }

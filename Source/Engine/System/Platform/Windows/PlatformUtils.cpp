@@ -8,7 +8,11 @@
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
+#include <shellapi.h>
+
 #include <Core/Containers/String.hpp>
+
+#include <Core/FileSystem/FilePath.hpp>
 
 #include <mutex>
 
@@ -86,6 +90,13 @@ ENGINE_API uint32 GetLogicalCoreCount()
     GetSystemInfo(&systemInfo);
 
     return uint32(systemInfo.dwNumberOfProcessors);
+}
+
+ENGINE_API bool OpenInFileBrowser(const FilePath& path)
+{
+    const PlatformString platformPath { String(path) };
+
+    return INT_PTR(ShellExecuteW(nullptr, L"open", platformPath.Data(), nullptr, nullptr, SW_SHOWNORMAL)) > 32;
 }
 
 ENGINE_API void InitializeNetwork()

@@ -97,6 +97,7 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand CookGameContent { get; } = new EditorCommand("CookGameContent");
         public EditorCommand GenerateNativeProject { get; } = new EditorCommand("GenerateNativeProject");
         public EditorCommand BuildNativeGame { get; } = new EditorCommand("BuildNativeGame");
+        public EditorCommand PackageGame { get; } = new EditorCommand("PackageGame");
 
         private string _undoHeader = "Undo";
         public string UndoHeader

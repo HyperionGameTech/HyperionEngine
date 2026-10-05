@@ -1,0 +1,35 @@
+#include <Framework/Game.hpp>
+
+#include <HyperionEngine.hpp>
+
+using namespace Hyperion;
+
+extern "C" HYP_IMPORT const char* HypGameModule_GetGameClassName();
+
+int main(int argc, char** argv)
+{
+    if (!Hyp_Initialize(argc, argv))
+    {
+        return 1;
+    }
+
+    Handle<Game> game = Game::CreateGame(StringHash(HypGameModule_GetGameClassName()));
+
+    if (!game.IsValid())
+    {
+        Hyp_Shutdown();
+
+        return 1;
+    }
+
+    Hyp_SetGame(game.Get());
+
+    if (!Hyp_LaunchThreads())
+    {
+        return 1;
+    }
+
+    Hyp_Shutdown();
+
+    return 0;
+}

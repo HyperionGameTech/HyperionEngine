@@ -358,6 +358,10 @@ Write-Step "Staging shader sources"
 $shaderCount = Copy-TrackedFiles @("Source/Shaders") $StageDir
 Write-Host "    $shaderCount files"
 
+Write-Step "Staging project templates"
+$templateCount = Copy-TrackedFiles @("Source/Templates") $StageDir
+if ($templateCount -eq 0) { Add-Warning "No tracked files under Source/Templates; Generate C++ Project won't work from this package" }
+
 $StrataScriptsDir = Join-Path $RootDir "Data/Scripts/Strata"
 if (Test-Path $StrataScriptsDir)
 {
@@ -367,6 +371,62 @@ if (Test-Path $StrataScriptsDir)
 else
 {
     Add-Warning "Data/Scripts/Strata not found; CodeGen output is missing and Strata scripts won't resolve engine modules"
+}
+
+# --- SDK --------------------------------------------------------------------------------------------------------------
+
+# Headers, import library and CMake description that game projects build against (see Source/HyperionSdk.cmake.in)
+$BuildDir = Join-Path $RootDir "Build/Windows/$Configuration"
+$SdkCMakeFile = Join-Path $BinDir "Sdk/CMake/HyperionSdk.cmake"
+$SdkImportLibrary = Join-Path $BuildDir "hyperion.lib"
+
+if ($IsMonolithic -and (Test-Path $SdkCMakeFile) -and (Test-Path $SdkImportLibrary))
+{
+    Write-Step "Staging SDK"
+    $SdkStageDir = Join-Path $StageDir "Sdk"
+    $HeaderExtensions = ".hpp", ".h", ".inl", ".inc"
+
+    Push-Location $RootDir
+    try
+    {
+        $trackedSources = git -c core.quotepath=off ls-files -- "Source/Core" "Source/Engine"
+        if ($LASTEXITCODE -ne 0) { throw "git ls-files failed" }
+    }
+    finally { Pop-Location }
+
+    $headerCount = 0
+    foreach ($relativePath in $trackedSources)
+    {
+        if ([System.IO.Path]::GetExtension($relativePath) -notin $HeaderExtensions) { continue }
+        $source = Join-Path $RootDir $relativePath
+        if (-not (Test-Path -LiteralPath $source)) { continue }
+        Copy-StagedFile $source (Join-Path $SdkStageDir ("Include/" + $relativePath.Substring("Source/".Length)))
+        $headerCount++
+    }
+
+    # CodeGen output isn't tracked
+    foreach ($generatedFile in Get-ChildItem (Join-Path $RootDir "Source/Generated") -File | Where-Object { $_.Extension -in $HeaderExtensions })
+    {
+        Copy-StagedFile $generatedFile.FullName (Join-Path $SdkStageDir "Include/Generated/$($generatedFile.Name)")
+        $headerCount++
+    }
+    Write-Host "    $headerCount headers"
+
+    $sdkCMakeText = Get-Content $SdkCMakeFile -Raw
+    if ($sdkCMakeText -notmatch 'set\(HYPERION_SDK_THIRD_PARTY_DIRS "([^"]*)"\)') { throw "HYPERION_SDK_THIRD_PARTY_DIRS not found in $SdkCMakeFile" }
+    foreach ($thirdPartyDir in ($Matches[1] -split ";" | Where-Object { $_ }))
+    {
+        Copy-Directory (Join-Path $RootDir "External/ThirdParty/Source/$thirdPartyDir") (Join-Path $SdkStageDir "ThirdParty/$thirdPartyDir")
+    }
+
+    Copy-StagedFile $SdkCMakeFile (Join-Path $SdkStageDir "CMake/HyperionSdk.cmake")
+    Copy-StagedFile $SdkImportLibrary (Join-Path $SdkStageDir "Lib/hyperion.lib")
+
+    if ($sdkCMakeText.Contains($RootDir.Replace("\", "/"))) { Add-Warning "Sdk/CMake/HyperionSdk.cmake has the source tree path ($RootDir) in it" }
+}
+else
+{
+    Add-Warning "SDK not staged (needs a monolithic build with $SdkCMakeFile and $SdkImportLibrary); game projects can't be built from this package"
 }
 
 # --- Legal ------------------------------------------------------------------------------------------------------------

@@ -31,6 +31,7 @@ namespace Hyperion.Editor
         private static DelegateHandler? _onTaskStartedHandler;
         private static DelegateHandler? _onTaskEndedHandler;
         private static DelegateHandler? _onTaskProgressUpdatedHandler;
+        private static DelegateHandler? _onBuildNativeGameRequestedHandler;
 
         public static event Action<World, Scene>? SceneAdded;
         public static event Action<World, Scene>? SceneRemoved;
@@ -146,6 +147,14 @@ namespace Hyperion.Editor
             _onTaskProgressUpdatedHandler = editorState.GetOnTaskProgressUpdatedDelegate().Bind((EditorTaskBase task) =>
             {
                 RaiseTaskProgressUpdated(task.Id, task.Progress);
+            });
+
+            _onBuildNativeGameRequestedHandler?.Remove();
+            _onBuildNativeGameRequestedHandler = editorState.GetOnBuildNativeGameRequestedDelegate().Bind(() =>
+            {
+                string? projectFilePath = CurrentProject?.FilePath;
+
+                _ = System.Threading.Tasks.Task.Run(() => Services.NativeGameBuildService.Instance.BuildAsync(projectFilePath));
             });
         }
 

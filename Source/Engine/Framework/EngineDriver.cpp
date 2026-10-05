@@ -519,9 +519,11 @@ void EngineDriver::LoadEngineContent()
 
     doSync = doSyncImpl;
 
+    const bool hasCacheServer = *EngineGlobals::GetCacheServerAddress() != '\0';
+
     // check manifest exists already, unless not using cooked content
     // (the editor process and --cooked=false don't use the Cache)
-    if (!EngineGlobals::UseCookedContent() || (EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
+    if (!EngineGlobals::UseCookedContent() || !hasCacheServer || (EngineGlobals::GetCacheDirectory() / "Engine.hmf").Exists())
     {
         // Initialize with no sync.
         engineRegistry->Initialize(nullptr);

@@ -465,27 +465,17 @@ CommandLineArgumentDefinitions& CommandLineArgumentDefinitions::Add(
 
 #pragma region CommandLineParser
 
-TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine, bool fillDefaults) const
+Array<String> CommandLineParser::SplitArguments(const String& commandLine)
 {
-    ANSIString command;
     Array<String> args;
-
-    int currentStringIndex = 0;
     String currentString;
 
     auto addCurrentString = [&]()
     {
         if (currentString.Any())
         {
-            if (currentStringIndex++ == 0)
-            {
-                command = currentString.ToAnsi();
-                currentString.Clear();
-            }
-            else
-            {
-                args.PushBack(std::move(currentString));
-            }
+            args.PushBack(std::move(currentString));
+            currentString.Clear();
         }
     };
 
@@ -526,6 +516,21 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine
     }
 
     addCurrentString();
+
+    return args;
+}
+
+TResult<CommandLineArguments> CommandLineParser::Parse(const String& commandLine, bool fillDefaults) const
+{
+    Array<String> args = SplitArguments(commandLine);
+
+    ANSIString command;
+
+    if (args.Any())
+    {
+        command = args.Front().ToAnsi();
+        args.EraseAt(0);
+    }
 
     return Parse(command, args, fillDefaults);
 }

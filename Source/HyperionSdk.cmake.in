@@ -1,0 +1,79 @@
+set(HYPERION_SDK_VERSION "@HYP_VERSION_MAJOR@.@HYP_VERSION_MINOR@.@HYP_VERSION_PATCH@")
+set(HYPERION_SDK_COMPILER "@HYP_SDK_COMPILER@")
+set(HYPERION_SDK_THIRD_PARTY_DIRS "@HYP_SDK_THIRD_PARTY_SUBDIRS@")
+set(HYPERION_SDK_RUNTIME_LIBRARIES "@HYP_SDK_RUNTIME_LIBRARIES@")
+
+# only present next to an engine build tree; a packaged SDK uses the layout below
+include("${CMAKE_CURRENT_LIST_DIR}/HyperionSdkDevPaths.cmake" OPTIONAL)
+
+if(NOT DEFINED HYPERION_SDK_INCLUDE_DIRS)
+  get_filename_component(HYPERION_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+
+  set(HYPERION_SDK_INCLUDE_DIRS
+      "${HYPERION_SDK_ROOT}/Include/Generated"
+      "${HYPERION_SDK_ROOT}/Include"
+      "${HYPERION_SDK_ROOT}/Include/Engine")
+
+  foreach(third_party_dir ${HYPERION_SDK_THIRD_PARTY_DIRS})
+    list(APPEND HYPERION_SDK_INCLUDE_DIRS "${HYPERION_SDK_ROOT}/ThirdParty/${third_party_dir}")
+  endforeach()
+
+  set(HYPERION_SDK_LIBRARIES "${HYPERION_SDK_ROOT}/Lib/hyperion.lib")
+  get_filename_component(HYPERION_SDK_RUNTIME_DIR "${HYPERION_SDK_ROOT}/.." ABSOLUTE)
+  set(HYPERION_SDK_BASE_DIR "${HYPERION_SDK_RUNTIME_DIR}")
+  set(HYPERION_SDK_PCH "${HYPERION_SDK_ROOT}/Include/Engine/HyperionPch.hpp")
+endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+
+string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+if(NOT TARGET Hyperion::Engine)
+  add_library(Hyperion::Engine INTERFACE IMPORTED)
+
+  target_include_directories(Hyperion::Engine INTERFACE ${HYPERION_SDK_INCLUDE_DIRS})
+  target_link_libraries(Hyperion::Engine INTERFACE ${HYPERION_SDK_LIBRARIES})
+  target_compile_features(Hyperion::Engine INTERFACE cxx_std_20)
+  target_compile_options(Hyperion::Engine INTERFACE @HYP_SDK_COMPILE_OPTIONS@)
+
+  target_compile_definitions(Hyperion::Engine INTERFACE
+@HYP_SDK_COMPILE_DEFINITIONS@  )
+endif()
+
+function(hyperion_copy_runtime target content_dir)
+  set(runtime_files "")
+
+  if(HYPERION_SDK_RUNTIME_LIBRARIES)
+    foreach(runtime_library ${HYPERION_SDK_RUNTIME_LIBRARIES})
+      list(APPEND runtime_files "${HYPERION_SDK_RUNTIME_DIR}/${runtime_library}")
+    endforeach()
+  else()
+    file(GLOB runtime_files "${HYPERION_SDK_RUNTIME_DIR}/*.dll")
+  endif()
+
+  file(GLOB config_files "${HYPERION_SDK_RUNTIME_DIR}/Config/*")
+  list(FILTER config_files EXCLUDE REGEX "GlobalConfig\\.json$")
+
+  add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${runtime_files} "$<TARGET_FILE_DIR:${target}>")
+
+  if(config_files)
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${target}>/Config"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${config_files} "$<TARGET_FILE_DIR:${target}>/Config")
+  endif()
+
+  get_target_property(output_dir ${target} RUNTIME_OUTPUT_DIRECTORY)
+  set(global_config "${output_dir}/Config/GlobalConfig.json")
+
+  if(NOT EXISTS "${global_config}")
+    file(WRITE "${global_config}"
+"{
+  \"App\": {
+    \"Name\": \"${target}\",
+    \"Args\": \"--basedir=\\\"${HYPERION_SDK_BASE_DIR}\\\" --contentdir=${content_dir} --cooked=false --singleplayer\"
+  }
+}
+")
+  endif()
+endfunction()
