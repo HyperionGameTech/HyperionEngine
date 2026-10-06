@@ -127,9 +127,8 @@ Click a section to expand it.
 <details>
 <summary><b>UI</b></summary>
 
-- In-game UI is a custom retained-mode system, drawn by the engine's own renderer (the editor is separate, and uses Avalonia).
-- Widgets: button, text, textbox, image, panel, grid, list view, tab view, menu bar, window, dockable container.
-- XML markup with event handlers bound to script methods; list views bind to data sources. Fill/auto/percent sizing, alignment, and padding.
+- In-game UI is a custom retained-mode system, drawn by the engine's own renderer (the Avalonia-based editor is unrelated to this).
+- Widgets: button, text, textbox, image, panel, grid, list view, tab view, menu bar, etc.
 - TrueType/OpenType text via FreeType.
 
 </details>
