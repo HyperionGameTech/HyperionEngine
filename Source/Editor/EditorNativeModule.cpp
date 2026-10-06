@@ -21,12 +21,30 @@
 
 #include <Core/Reflection/Class.hpp>
 #include <Core/Reflection/ClassRegistry.hpp>
+#include <Core/Reflection/ScriptObjectFunctions.hpp>
+
+#include <Core/Utilities/GlobalContext.hpp>
+
+#include <Core/IO/ByteWriter.hpp>
+
+#include <Scripting/ScriptObjectResource.hpp>
+
+#ifdef HYP_DOTNET
+#include <DotNET/DotNETHost.hpp>
+#include <DotNET/Assembly.hpp>
+#include <DotNET/ManagedClass.hpp>
+#endif
 
 #include <filesystem>
 
 namespace Hyperion {
 
 EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
+
+namespace CoreApi {
+CORE_API extern const FilePath& GetBaseDirectory();
+CORE_API extern const FilePath& GetExecutablePath();
+} // namespace CoreApi
 
 namespace {
 
@@ -45,6 +63,17 @@ struct LoadedNativeModule
 static Array<LoadedNativeModule> s_loadedModules;
 static Mutex s_loadedModulesMutex;
 static uint32 s_moduleCopyCounter = 0;
+
+static const char* GetModulePlatformDirectory()
+{
+#ifdef HYP_WINDOWS
+    return "Windows";
+#elif defined(HYP_MACOS)
+    return "Darwin";
+#else
+    return "Linux";
+#endif
+}
 
 } // namespace
 
@@ -85,16 +114,7 @@ EDITOR_API FilePath GetNativeModulePath(const FilePath& projectFilepath)
     const String fileName = String("lib") + GetNativeProjectName(projectFilepath) + "Game.so";
 #endif
 
-    // matches GAME_OUTPUT_DIR in the generated CMakeLists.txt (CMAKE_SYSTEM_NAME)
-#ifdef HYP_WINDOWS
-    const char* platformDirectory = "Windows";
-#elif defined(HYP_MACOS)
-    const char* platformDirectory = "Darwin";
-#else
-    const char* platformDirectory = "Linux";
-#endif
-
-    return projectFilepath.BasePath() / "Binaries" / platformDirectory / fileName;
+    return projectFilepath.BasePath() / "Binaries" / GetModulePlatformDirectory() / fileName;
 }
 
 EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& projectFilepath)
@@ -217,6 +237,182 @@ EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& proj
     }
 
     return game;
+}
+
+namespace {
+
+#ifdef HYP_DOTNET
+struct LoadedManagedModule
+{
+    FilePath modulePath;
+    SharedPtr<dotnet::Assembly> assembly;
+    SharedPtr<dotnet::ManagedClass> gameClass;
+    String error;
+    Time loadedTimestamp;
+};
+
+static Array<LoadedManagedModule> s_loadedManagedModules;
+#endif
+
+} // namespace
+
+EDITOR_API FilePath GetManagedProjectFilePath(const FilePath& projectFilepath)
+{
+    return projectFilepath.BasePath() / "Source" / (GetNativeProjectName(projectFilepath) + ".csproj");
+}
+
+EDITOR_API bool IsManagedProject(const FilePath& projectFilepath)
+{
+    return GetManagedProjectFilePath(projectFilepath).Exists();
+}
+
+EDITOR_API FilePath GetManagedModulePath(const FilePath& projectFilepath)
+{
+    return projectFilepath.BasePath() / "Binaries" / GetModulePlatformDirectory() / (GetNativeProjectName(projectFilepath) + ".dll");
+}
+
+EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath)
+{
+    const FilePath propsPath = projectFilepath.BasePath() / "Source" / "Hyperion.Local.props";
+
+    const String binDir = String(CoreApi::GetExecutablePath()).ReplaceAll("\\", "/");
+    const String baseDir = String(CoreApi::GetBaseDirectory()).ReplaceAll("\\", "/");
+
+    const String text = String("<Project>\n  <PropertyGroup>\n")
+        + "    <HyperionBinDir>" + binDir + "/</HyperionBinDir>\n"
+        + "    <HyperionBaseDir>" + baseDir + "/</HyperionBaseDir>\n"
+        + "    <HyperionSdkDir>" + baseDir + "/Source/Engine/DotNET/Sdk/</HyperionSdkDir>\n"
+        + "  </PropertyGroup>\n</Project>\n";
+
+    FileByteWriter writer { propsPath };
+
+    if (!writer.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open {} for writing", propsPath);
+    }
+
+    writer.Write(text.Data(), text.Size());
+    writer.Close();
+
+    return {};
+}
+
+EDITOR_API TResult<Handle<Game>> CreateGameFromManagedModule(const FilePath& projectFilepath)
+{
+#ifdef HYP_DOTNET
+    if (!IsManagedProject(projectFilepath))
+    {
+        return Handle<Game>();
+    }
+
+    const FilePath modulePath = GetManagedModulePath(projectFilepath);
+
+    if (!modulePath.Exists())
+    {
+        return Handle<Game>();
+    }
+
+    Mutex::Guard guard(s_loadedModulesMutex);
+
+    LoadedManagedModule* loadedModulePtr = nullptr;
+
+    for (LoadedManagedModule& candidate : s_loadedManagedModules)
+    {
+        if (candidate.modulePath == modulePath)
+        {
+            loadedModulePtr = &candidate;
+
+            break;
+        }
+    }
+
+    if (loadedModulePtr == nullptr)
+    {
+        const FilePath copyDirectory = EngineGlobals::GetTempDirectory() / "ManagedModules";
+
+        if (!copyDirectory.Exists() && !copyDirectory.MkDir())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create {} for the game assembly", copyDirectory);
+        }
+
+        const FilePath copyPath = copyDirectory / HYP_FORMAT("{}.{}.{}.dll",
+            FilePath(modulePath.Basename()).StripExtension(),
+            uint64(Time::Now()),
+            s_moduleCopyCounter++);
+
+        std::error_code errorCode;
+        std::filesystem::copy_file(modulePath.Data(), copyPath.Data(), std::filesystem::copy_options::overwrite_existing, errorCode);
+
+        if (errorCode)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to copy game assembly {} to {}: {}", modulePath, copyPath, errorCode.message().c_str());
+        }
+
+        const String gameClassName = GetNativeProjectName(projectFilepath) + "Game";
+
+        LoadedManagedModule loadedModule;
+        loadedModule.modulePath = modulePath;
+        loadedModule.loadedTimestamp = modulePath.LastModifiedTimestamp();
+        loadedModule.assembly = DotNETHost::GetInstance().LoadAssembly(copyPath.Data());
+
+        if (!loadedModule.assembly)
+        {
+            loadedModule.error = HYP_FORMAT("Failed to load game assembly {} (it may have been built for a different engine version). Rebuild the game and restart the editor.", modulePath);
+        }
+        else
+        {
+            loadedModule.gameClass = loadedModule.assembly->FindClassByName(gameClassName.Data());
+
+            if (!loadedModule.gameClass || !loadedModule.gameClass->HasParentClass("Game"))
+            {
+                loadedModule.gameClass.Reset();
+                loadedModule.error = HYP_FORMAT("Game assembly {} has no Game subclass named '{}'", modulePath, gameClassName);
+            }
+            else
+            {
+                HYP_LOG(Editor, Info, "Loaded game assembly {} (Game class: {})", modulePath, gameClassName);
+            }
+        }
+
+        loadedModulePtr = &s_loadedManagedModules.PushBack(std::move(loadedModule));
+    }
+    else if (modulePath.LastModifiedTimestamp() > loadedModulePtr->loadedTimestamp)
+    {
+        HYP_LOG(Editor, Warning, "Game assembly {} was rebuilt since it was loaded, restart the editor to use the new build", modulePath);
+    }
+
+    if (loadedModulePtr->error.Any())
+    {
+        return HYP_MAKE_ERROR(Error, "{}", loadedModulePtr->error);
+    }
+
+    Handle<Game> game;
+
+    {
+        GlobalContextScope scope(ObjectInitializerContext { Game::StaticClass(), ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+
+        game = MakeHandle<Game>();
+    }
+
+    ScriptObjectResource* scriptObjectResource = ScriptObjectFunctions::CreateScriptObjectResource_DotNet(game.Get(), loadedModulePtr->gameClass);
+
+    if (scriptObjectResource == nullptr || ScriptObjectFunctions::GetManagedObject(scriptObjectResource) == nullptr)
+    {
+        if (scriptObjectResource != nullptr)
+        {
+            ScriptObjectFunctions::DestroyScriptObjectResource(scriptObjectResource);
+        }
+
+        return HYP_MAKE_ERROR(Error, "Failed to create an instance of the Game class from {}", modulePath);
+    }
+
+    game->SetScriptObjectResource(scriptObjectResource);
+    scriptObjectResource->AddReader();
+
+    return game;
+#else
+    return Handle<Game>();
+#endif
 }
 
 } // namespace Hyperion

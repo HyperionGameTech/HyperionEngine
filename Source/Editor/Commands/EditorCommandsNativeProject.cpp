@@ -68,6 +68,115 @@ Result WriteTemplateFile(const FilePath& templatePath, const FilePath& filepath,
 
 #pragma region GenerateNativeProject
 
+namespace /* Helpers */ {
+
+enum class GameProjectLanguage
+{
+    Native,
+    Managed
+};
+
+void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage language)
+{
+    const char* languageName = language == GameProjectLanguage::Managed ? "C#" : "C++";
+
+    const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+
+    if (!currentProject.IsValid() || !currentProject->IsSaved())
+    {
+        if (!currentProject.IsValid())
+        {
+            return;
+        }
+
+        bool shouldSave = false;
+
+        SystemMessageBox(MessageBoxType::INFO)
+            .Title("Save project?")
+            .Text(HYP_FORMAT("The project must be saved before generating the {} project, do you want to save?", languageName))
+            .Button("Save", [&shouldSave]
+                    {
+                        shouldSave = true;
+                    })
+            .Button("Cancel", NoOpFunction<void> {})
+            .Show();
+
+        if (!shouldSave || !SaveProjectWithPromptOrAlert(currentProject, "The operation will be aborted to prevent loss of data"))
+        {
+            return;
+        }
+    }
+
+    const FilePath sourceDir = currentProject->GetFilePath().BasePath() / "Source";
+
+    if (sourceDir.Exists())
+    {
+        /// @TODO regenerate?
+        PlatformUtils::OpenInFileBrowser(sourceDir);
+
+        return;
+    }
+
+    const String name = GetNativeProjectName(currentProject->GetFilePath());
+    const String className = name + "Game";
+
+    Array<TemplateFile> files;
+
+    if (language == GameProjectLanguage::Managed)
+    {
+        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/ManagedGame";
+
+        files.PushBack({ templateDir / "Game.csproj.in", GetManagedProjectFilePath(currentProject->GetFilePath()) });
+        files.PushBack({ templateDir / "Game.cs.in", sourceDir / (className + ".cs") });
+        files.PushBack({ templateDir / "Program.cs.in", sourceDir / "Program.cs" });
+    }
+    else
+    {
+        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/NativeGame";
+
+        files.PushBack({ templateDir / "CMakeLists.txt.in", sourceDir / "CMakeLists.txt" });
+        files.PushBack({ templateDir / "Game" / "Game.hpp.in", sourceDir / "Game" / (className + ".hpp") });
+        files.PushBack({ templateDir / "Game" / "Game.cpp.in", sourceDir / "Game" / (className + ".cpp") });
+        files.PushBack({ templateDir / "Launcher" / "main.cpp.in", sourceDir / "Launcher" / "main.cpp" });
+    }
+
+    Result result;
+
+    for (const TemplateFile& file : files)
+    {
+        result = WriteTemplateFile(file.templatePath, file.filepath, name, className);
+
+        if (result.HasError())
+        {
+            break;
+        }
+    }
+
+    if (!result.HasError() && language == GameProjectLanguage::Managed)
+    {
+        result = WriteManagedProjectProps(currentProject->GetFilePath());
+    }
+
+    if (result.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to generate {} project! {}", languageName, result.GetError().GetMessage());
+
+        SystemMessageBox(MessageBoxType::CRITICAL)
+            .Title(HYP_FORMAT("Failed to generate {} project!", languageName))
+            .Text(result.GetError().GetMessage())
+            .Button("OK", NoOpFunction<void> {})
+            .Show();
+
+        return;
+    }
+
+    HYP_LOG(Editor, Info, "Generated {} project for '{}' at {}", languageName, name, sourceDir);
+
+    PlatformUtils::OpenInFileBrowser(sourceDir);
+}
+
+} // namespace
+
 class EditorCommandGenerateNativeProject final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandGenerateNativeProject);
@@ -82,80 +191,37 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
-
-        if (!currentProject.IsValid() || !currentProject->IsSaved())
-        {
-            if (!currentProject.IsValid())
-            {
-                return;
-            }
-
-            bool shouldSave = false;
-
-            SystemMessageBox(MessageBoxType::INFO)
-                .Title("Save project?")
-                .Text("The project must be saved before generating the C++ project, do you want to save?")
-                .Button("Save", [&shouldSave]
-                        {
-                            shouldSave = true;
-                        })
-                .Button("Cancel", NoOpFunction<void> {})
-                .Show();
-
-            if (!shouldSave || !SaveProjectWithPromptOrAlert(currentProject, "The operation will be aborted to prevent loss of data"))
-            {
-                return;
-            }
-        }
-
-        const FilePath sourceDir = currentProject->GetFilePath().BasePath() / "Source";
-
-        if (sourceDir.Exists())
-        {
-            /// @TODO regenerate?
-            PlatformUtils::OpenInFileBrowser(sourceDir);
-
-            return;
-        }
-
-        const String name = GetNativeProjectName(currentProject->GetFilePath());
-        const String className = name + "Game";
-
-        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/NativeGame";
-
-        const TemplateFile files[] = {
-            { templateDir / "CMakeLists.txt.in", sourceDir / "CMakeLists.txt" },
-            { templateDir / "Game" / "Game.hpp.in", sourceDir / "Game" / (className + ".hpp") },
-            { templateDir / "Game" / "Game.cpp.in", sourceDir / "Game" / (className + ".cpp") },
-            { templateDir / "Launcher" / "main.cpp.in", sourceDir / "Launcher" / "main.cpp" }
-        };
-
-        for (const TemplateFile& file : files)
-        {
-            if (Result result = WriteTemplateFile(file.templatePath, file.filepath, name, className); result.HasError())
-            {
-                HYP_LOG(Editor, Error, "Failed to generate C++ project! {}", result.GetError().GetMessage());
-
-                SystemMessageBox(MessageBoxType::CRITICAL)
-                    .Title("Failed to generate C++ project!")
-                    .Text(result.GetError().GetMessage())
-                    .Button("OK", NoOpFunction<void> {})
-                    .Show();
-
-                return;
-            }
-        }
-
-        HYP_LOG(Editor, Info, "Generated C++ project for '{}' at {}", name, sourceDir);
-
-        PlatformUtils::OpenInFileBrowser(sourceDir);
+        GenerateGameProject(subsystem, GameProjectLanguage::Native);
     }
 };
 
 DEFINE_EDITOR_COMMAND(GenerateNativeProject);
 
 #pragma endregion GenerateNativeProject
+
+#pragma region GenerateManagedProject
+
+class EditorCommandGenerateManagedProject final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandGenerateManagedProject);
+
+public:
+    virtual ~EditorCommandGenerateManagedProject() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Generate C# Project";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        GenerateGameProject(subsystem, GameProjectLanguage::Managed);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(GenerateManagedProject);
+
+#pragma endregion GenerateManagedProject
 
 #pragma region BuildNativeGame
 
@@ -173,6 +239,16 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
+        const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
+
+        if (currentProject.IsValid() && currentProject->IsSaved() && IsManagedProject(currentProject->GetFilePath()))
+        {
+            if (Result result = WriteManagedProjectProps(currentProject->GetFilePath()); result.HasError())
+            {
+                HYP_LOG(Editor, Error, "{}", result.GetError().GetMessage());
+            }
+        }
+
         g_editorState->OnBuildNativeGameRequested();
     }
 };
@@ -233,7 +309,7 @@ Result CopyFilesWithExtensions(const FilePath& sourceDir, const FilePath& target
 // Game executable, engine libraries and config from the project's build output, set up to run from its own cooked content
 Result StagePackagedGame(const FilePath& binariesDir, const FilePath& outputDir, const String& name, Name startupWorldName)
 {
-    static const char* const s_binaryExtensions[] = { ".exe", ".dll", ".so", ".dylib", "" };
+    static const char* const s_binaryExtensions[] = { ".exe", ".dll", ".so", ".dylib", ".json", "" };
 
     if (Result result = CopyFilesWithExtensions(binariesDir, outputDir, Span<const char* const>(s_binaryExtensions)); result.HasError())
     {
@@ -314,9 +390,11 @@ public:
             return;
         }
 
-        const FilePath binariesDir = GetNativeModulePath(currentProject->GetFilePath()).BasePath();
+        const FilePath modulePath = IsManagedProject(currentProject->GetFilePath())
+            ? GetManagedModulePath(currentProject->GetFilePath())
+            : GetNativeModulePath(currentProject->GetFilePath());
 
-        if (!GetNativeModulePath(currentProject->GetFilePath()).Exists())
+        if (!modulePath.Exists())
         {
             ShowPackageGameMessage(MessageBoxType::INFO, "Build the game first", "Packaging uses the game built by Build Game.");
 

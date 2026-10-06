@@ -641,6 +641,16 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return moduleGameResult.GetError();
     }
 
+    if (!moduleGameResult.GetValue().IsValid())
+    {
+        moduleGameResult = CreateGameFromManagedModule(projectFilepath);
+
+        if (moduleGameResult.HasError())
+        {
+            return moduleGameResult.GetError();
+        }
+    }
+
     if (moduleGameResult.GetValue().IsValid())
     {
         project->m_gameInstance = std::move(moduleGameResult.GetValue());

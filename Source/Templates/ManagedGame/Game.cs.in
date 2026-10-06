@@ -1,0 +1,19 @@
+using Hyperion;
+
+public class @CLASS@ : Game
+{
+    protected override void OnLaunch()
+    {
+        Logger.Log(LogLevel.Info, "@CLASS@ launched");
+
+        this.StartSimulating();
+    }
+
+    protected override void OnUpdate(float delta)
+    {
+    }
+
+    protected override void OnShutdown()
+    {
+    }
+}

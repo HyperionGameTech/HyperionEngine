@@ -14,10 +14,19 @@
                           (BuildHyperion runtime), which leaves out the editor.
     HyperionBaseDir       Directory holding the engine's Content folder. Defaults to the repo root above HyperionBinDir.
     HyperionOutputToBinDir  Build the game straight into HyperionBinDir instead of copying the engine next to the game.
+    HyperionManagedDir    Directory holding Hyperion.NET.*.dll. Defaults to HyperionBinDir, or its ref/ folder for a
+                          packaged editor (which keeps its own copies inside the single-file executable).
+    HyperionWriteGlobalConfig  Write Config/GlobalConfig.json next to the game with the engine arguments for running
+                          against HyperionBaseDir and HyperionContentDir (uncooked). Use with
+                          HyperionAppOptions.UseGlobalConfigArgs.
+    HyperionContentDir    The game's project directory (the one holding its Content folder), relative to the built game.
   -->
 
   <PropertyGroup>
     <HyperionBinDir>$([MSBuild]::EnsureTrailingSlash('$(HyperionBinDir)'))</HyperionBinDir>
+    <HyperionManagedDir Condition="'$(HyperionManagedDir)' == '' And !Exists('$(HyperionBinDir)Hyperion.NET.Runtime.dll') And Exists('$(HyperionBinDir)ref/Hyperion.NET.Runtime.dll')">$(HyperionBinDir)ref/</HyperionManagedDir>
+    <HyperionManagedDir Condition="'$(HyperionManagedDir)' == ''">$(HyperionBinDir)</HyperionManagedDir>
+    <HyperionManagedDir>$([MSBuild]::EnsureTrailingSlash('$(HyperionManagedDir)'))</HyperionManagedDir>
     <HyperionBaseDir Condition="'$(HyperionBaseDir)' == ''">$([System.IO.Path]::GetFullPath('$(HyperionBinDir)../../../'))</HyperionBaseDir>
     <HyperionOutputToBinDir Condition="'$(HyperionOutputToBinDir)' == ''">false</HyperionOutputToBinDir>
 
@@ -36,13 +45,13 @@
 
   <ItemGroup>
     <Reference Include="Hyperion.NET.Shared">
-      <HintPath>$(HyperionBinDir)Hyperion.NET.Shared.dll</HintPath>
+      <HintPath>$(HyperionManagedDir)Hyperion.NET.Shared.dll</HintPath>
     </Reference>
     <Reference Include="Hyperion.NET.Interop">
-      <HintPath>$(HyperionBinDir)Hyperion.NET.Interop.dll</HintPath>
+      <HintPath>$(HyperionManagedDir)Hyperion.NET.Interop.dll</HintPath>
     </Reference>
     <Reference Include="Hyperion.NET.Runtime">
-      <HintPath>$(HyperionBinDir)Hyperion.NET.Runtime.dll</HintPath>
+      <HintPath>$(HyperionManagedDir)Hyperion.NET.Runtime.dll</HintPath>
     </Reference>
 
     <!-- read by HyperionApp and passed to the engine as its base directory -->
@@ -69,5 +78,17 @@
     <Copy SourceFiles="@(_HyperionConfigFiles)"
           DestinationFiles="@(_HyperionConfigFiles->'$(OutDir)Config/%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="HyperionWriteGlobalConfig" AfterTargets="HyperionCopyEngineRuntime" Condition="'$(HyperionWriteGlobalConfig)' == 'true' And '$(HyperionOutputToBinDir)' != 'true'">
+    <PropertyGroup>
+      <_HyperionConfigBaseDir>$([System.String]::Copy('$(HyperionBaseDir)').Replace('\', '/').TrimEnd('/'))</_HyperionConfigBaseDir>
+      <_HyperionConfigArgs>--basedir=\&quot;$(_HyperionConfigBaseDir)\&quot; --cooked=false --singleplayer</_HyperionConfigArgs>
+      <_HyperionConfigArgs Condition="'$(HyperionContentDir)' != ''">$(_HyperionConfigArgs) --contentdir=$(HyperionContentDir)</_HyperionConfigArgs>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(OutDir)Config/GlobalConfig.json"
+                      Lines="{ &quot;App&quot;: { &quot;Name&quot;: &quot;$(AssemblyName)&quot;, &quot;Args&quot;: &quot;$(_HyperionConfigArgs)&quot; } }"
+                      Overwrite="true" />
   </Target>
 </Project>
