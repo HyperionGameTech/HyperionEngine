@@ -45,6 +45,22 @@ public:
             }
         }
     }
+
+    static inline void ConvertGreyAlphaToRGBA(
+        size_t numPixels,
+        const ubyte* const inBytes,
+        ubyte* outBytes)
+    {
+        for (size_t i = 0; i < numPixels; i++)
+        {
+            const ubyte grey = inBytes[i * 2];
+
+            outBytes[i * 4] = grey;
+            outBytes[i * 4 + 1] = grey;
+            outBytes[i * 4 + 2] = grey;
+            outBytes[i * 4 + 3] = inBytes[i * 2 + 1];
+        }
+    }
 };
 
 } // namespace Hyperion

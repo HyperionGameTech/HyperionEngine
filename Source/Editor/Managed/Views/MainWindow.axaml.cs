@@ -245,7 +245,8 @@ namespace Hyperion.Editor
         {
             var templatesMenuItem = new MenuItem { Header = "Templates" };
 
-            templatesMenuItem.Items.Add(new MenuItem { Header = "Player Entity", Command = viewModel.AddPlayerEntity });
+            templatesMenuItem.Items.Add(new MenuItem { Header = "Third Person Player", Command = viewModel.AddThirdPersonPlayer });
+            templatesMenuItem.Items.Add(new MenuItem { Header = "First Person Player", Command = viewModel.AddFirstPersonPlayer });
             templatesMenuItem.Items.Add(new Separator());
             templatesMenuItem.Items.Add(new MenuItem { Header = "Open Templates Folder", Command = viewModel.OpenTemplatesFolder });
 

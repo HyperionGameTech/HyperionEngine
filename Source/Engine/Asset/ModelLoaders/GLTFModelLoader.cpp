@@ -386,6 +386,20 @@ Handle<Texture> LoadTextureFromEncodedBytes(const cgltf_image& image, Span<const
 
         baseMipData = std::move(newByteBuffer);
     }
+    else if (numComponents == 2)
+    {
+        // grey + alpha
+        textureDesc.format = TextureFormat::RGBA8;
+
+        ByteBuffer newByteBuffer(textureDesc.GetByteSize());
+
+        ImageUtil::ConvertGreyAlphaToRGBA(
+            size_t(width) * size_t(height),
+            baseMipData.Data(),
+            newByteBuffer.Data());
+
+        baseMipData = std::move(newByteBuffer);
+    }
 
     if (srgb)
     {

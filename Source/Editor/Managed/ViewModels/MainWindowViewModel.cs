@@ -501,7 +501,8 @@ namespace Hyperion.Editor.ViewModels
         }
 
         // Templates
-        public EditorCommand AddPlayerEntity { get; } = new EditorCommand("AddPlayerEntity");
+        public EditorCommand AddThirdPersonPlayer { get; } = new EditorCommand("AddThirdPersonPlayer");
+        public EditorCommand AddFirstPersonPlayer { get; } = new EditorCommand("AddFirstPersonPlayer");
         // CommandParameter is the template name
         public EditorCommand AddTemplate { get; } = new EditorCommand("AddTemplate");
         public ICommand SaveAsTemplate { get; private set; }

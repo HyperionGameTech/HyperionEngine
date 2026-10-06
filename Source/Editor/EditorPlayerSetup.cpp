@@ -14,6 +14,7 @@
 #include <Scene/Prefab.hpp>
 
 #include <Scene/Camera/Camera.hpp>
+#include <Scene/Camera/FirstPersonCamera.hpp>
 #include <Scene/Camera/ThirdPersonCamera.hpp>
 
 #include <Scene/Components/CharacterControllerComponent.hpp>
@@ -47,14 +48,14 @@ static constexpr float PlayerWalkSpeed = 1.35f;
 static constexpr float PlayerSprintSpeed = 7.5f;
 
 static constexpr float CameraPivotHeight = 1.8f;
+static constexpr float FirstPersonEyeHeight = 1.65f;
 
 static constexpr float GroundHalfExtent = 100.0f;
 static constexpr float GroundHalfThickness = 0.5f;
-} // namespace
 
-EditorThirdPersonPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerName, Name cameraName)
+EditorPlayer CreatePlayer(Name playerName, Name cameraName, EnumFlags<NodeFlags> cameraNodeFlags, const Handle<CameraController>& cameraController)
 {
-    EditorThirdPersonPlayer player;
+    EditorPlayer player;
 
     player.playerEntity = MakeHandle<Entity>();
     player.playerEntity->SetName(playerName);
@@ -71,11 +72,29 @@ EditorThirdPersonPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerNa
     player.camera->SetFarClip(3000.0f);
     player.camera->SetNearClip(0.1f);
     player.camera->SetIsDynamic(true);
-    // The third person controller positions the camera in world space itself
-    player.camera->SetNodeFlags(player.camera->GetNodeFlags() | NodeFlags::IgnoreParentTransform);
+    player.camera->SetNodeFlags(player.camera->GetNodeFlags() | cameraNodeFlags);
     player.camera->AddTag<EntityTag::PrimaryCamera>();
-    player.camera->AddCameraController(MakeHandle<ThirdPersonCameraController>());
+    player.camera->AddCameraController(cameraController);
     InitObject(player.camera);
+
+    return player;
+}
+
+} // namespace
+
+EditorPlayer EditorPlayerSetup::CreateFirstPersonPlayer(Name playerName, Name cameraName)
+{
+    Handle<FirstPersonCameraController> cameraController = MakeHandle<FirstPersonCameraController>();
+    cameraController->SetMovementEnabled(false);
+
+    // The camera rides the player at eye height but keeps its own look rotation
+    return CreatePlayer(playerName, cameraName, NodeFlags::IgnoreParentRotation, cameraController);
+}
+
+EditorPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerName, Name cameraName)
+{
+    // The third person controller positions the camera in world space itself
+    EditorPlayer player = CreatePlayer(playerName, cameraName, NodeFlags::IgnoreParentTransform, MakeHandle<ThirdPersonCameraController>());
 
     Handle<Prefab> characterPrefab = GetEngineAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "ThirdPersonCharacter"_sh);
 
@@ -96,7 +115,7 @@ EditorThirdPersonPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerNa
     return player;
 }
 
-void EditorPlayerSetup::AttachToScene(const EditorThirdPersonPlayer& player)
+void EditorPlayerSetup::AttachToScene(const EditorPlayer& player)
 {
     Assert(player.playerEntity.IsValid());
     Assert(player.playerEntity->GetScene() != nullptr);
@@ -105,13 +124,17 @@ void EditorPlayerSetup::AttachToScene(const EditorThirdPersonPlayer& player)
 
     const float capsuleHalfHeight = player.capsuleShape->GetHeight() * 0.5f + player.capsuleShape->GetRadius();
 
+    FirstPersonCameraController* firstPersonController = player.camera.IsValid()
+        ? DynamicCast<FirstPersonCameraController>(player.camera->GetCameraController().Get())
+        : nullptr;
+
     if (!playerEntity->HasComponent<CharacterControllerComponent>())
     {
         CharacterControllerComponent characterControllerComponent;
         characterControllerComponent.shape = player.capsuleShape;
         characterControllerComponent.movement.moveSpeed = PlayerWalkSpeed;
         characterControllerComponent.movement.sprintSpeed = PlayerSprintSpeed;
-        characterControllerComponent.movement.orientToMovement = true;
+        characterControllerComponent.movement.orientToMovement = firstPersonController == nullptr;
 
         playerEntity->AddComponent<CharacterControllerComponent>(characterControllerComponent);
     }
@@ -133,6 +156,10 @@ void EditorPlayerSetup::AttachToScene(const EditorThirdPersonPlayer& player)
         if (ThirdPersonCameraController* thirdPersonController = DynamicCast<ThirdPersonCameraController>(player.camera->GetCameraController().Get()))
         {
             thirdPersonController->SetPivotOffset(Vec3f(0.0f, playingFeetOffset + CameraPivotHeight, 0.0f));
+        }
+        else if (firstPersonController != nullptr)
+        {
+            player.camera->SetLocalTranslation(Vec3f(0.0f, playingFeetOffset + FirstPersonEyeHeight, 0.0f));
         }
     }
 

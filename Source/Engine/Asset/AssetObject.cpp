@@ -346,7 +346,7 @@ Result AssetObject::ExportFiles(const FilePath& directory) const
 
         if (!blobWriter.IsOpen())
         {
-            return HYP_MAKE_ERROR(Error, "Failed to write blob data '{}' of asset '{}' to '{}'", magic, m_name, blobWriter.GetFilePath());
+            return HYP_MAKE_ERROR(Error, "Failed to write blob data '{}' of asset '{}' to '{}', errno: {}", magic, m_name, blobWriter.GetFilePath(), std::strerror(errno));
         }
 
         blobWriter.Write(reference->raw, reference->size);
@@ -526,7 +526,7 @@ Result AssetObject::PersistBlobData(
         FileByteWriter stream { *localBlobDirectory / (String(*GetName()) + "." + magic + ".raw.blob") };
         if (!stream.IsOpen())
         {
-            return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}", stream.GetFilePath());
+            return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}, errno: {}", stream.GetFilePath(), std::strerror(errno));
         }
 
         stream.Write(reference.raw, reference.size);

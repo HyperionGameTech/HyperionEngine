@@ -225,7 +225,7 @@ public:
 
     HYP_FORCE_INLINE bool HasEntity(ObjId<Entity> id) const
     {
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         return id.IsValid() && m_entities.HasEntity(id);
     }
@@ -300,7 +300,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
@@ -311,7 +311,7 @@ public:
     {
         EnsureValidComponentType(componentTypeId);
 
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
 
@@ -325,7 +325,7 @@ public:
 
         Assert(entity, "Invalid entity");
 
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -362,7 +362,7 @@ public:
             return nullptr;
         }
 
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -421,7 +421,7 @@ public:
             return AnyRef::Empty();
         }
 
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         HYP_MT_CHECK_READ(m_entitiesDataRaceDetector);
         HYP_MT_CHECK_READ(m_containersDataRaceDetector);
@@ -498,7 +498,7 @@ public:
             return {};
         }
 
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         const EntityData* entityData = m_entities.TryGetEntityData(entity->Id());
 
@@ -609,7 +609,7 @@ public:
     template <class... Components>
     EntitySet<Components...>& GetEntitySet()
     {
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         constexpr EntitySetId entitySetId = GetEntitySetId<Components...>();
 
@@ -655,7 +655,7 @@ public:
     template <class... Components>
     EntitySet<Components...>* TryGetEntitySet()
     {
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         constexpr EntitySetId entitySetId = GetEntitySetId<Components...>();
 
@@ -676,7 +676,7 @@ public:
 
     EntitySetBase* TryGetEntitySet(EntitySetId entitySetId)
     {
-        Assert(IsLocked() || IsOnThread(m_ownerThreadId));
+        AssertDebug(IsLocked() || IsOnThread(m_ownerThreadId));
 
         auto entitySetsIt = m_entitySets.Find(entitySetId);
 

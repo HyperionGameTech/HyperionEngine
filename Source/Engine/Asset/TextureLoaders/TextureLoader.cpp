@@ -145,6 +145,20 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
         baseMipData = std::move(newByteBuffer);
     }
+    else if (data.numComponents == 2)
+    {
+        // grey + alpha; two channel sRGB formats are not widely supported
+        textureDesc.format = TextureFormat::RGBA8;
+
+        ByteBuffer newByteBuffer(textureDesc.GetByteSize());
+
+        ImageUtil::ConvertGreyAlphaToRGBA(
+            size_t(data.width) * size_t(data.height),
+            baseMipData.Data(),
+            newByteBuffer.Data());
+
+        baseMipData = std::move(newByteBuffer);
+    }
 
     if (state.hint & AssetLoadHint::TextureSRGB)
     {

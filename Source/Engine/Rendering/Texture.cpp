@@ -108,6 +108,38 @@ static bool CheckImageData(Texture& texture, GpuImage& image)
     return true;
 }
 
+static const Texture* GetPlaceholderTexture(const TextureDesc& desc)
+{
+    const PlaceholderData* placeholderData = RI.placeholderData;
+
+    if (!placeholderData)
+    {
+        return nullptr;
+    }
+
+    if (desc.IsTextureCubeArray())
+    {
+        return placeholderData->defaultCubemapArray.Get();
+    }
+
+    if (desc.IsTextureCube())
+    {
+        return placeholderData->defaultCubemap.Get();
+    }
+
+    if (desc.IsTexture2DArray())
+    {
+        return placeholderData->defaultTexture2dArray.Get();
+    }
+
+    if (desc.IsTexture3D())
+    {
+        return placeholderData->defaultTexture3d.Get();
+    }
+
+    return placeholderData->defaultTexture2d.Get();
+}
+
 static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, ResourceState initialState, bool uploadTextureData)
 {
     if (!IsOnThread(g_renderThread))
@@ -469,7 +501,17 @@ RendererResult Texture::Create()
 
         if (createGpuImageResult.HasError())
         {
-            return createGpuImageResult;
+            const Texture* placeholder = GetPlaceholderTexture(m_textureDesc);
+
+            if (!placeholder || placeholder == this || !placeholder->IsCreated())
+            {
+                return createGpuImageResult;
+            }
+
+            HYP_LOG(Rendering, Error, "Failed to create GPU image for texture '{}' ({}), using placeholder",
+                GetName(), createGpuImageResult.GetError().GetMessage());
+
+            gpuImage = placeholder->GetGpuImage();
         }
 
         // done with image data

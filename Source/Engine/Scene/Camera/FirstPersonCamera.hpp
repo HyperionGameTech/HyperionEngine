@@ -84,6 +84,18 @@ public:
         return true;
     }
 
+    HYP_METHOD()
+    bool IsMovementEnabled() const
+    {
+        return m_movementEnabled;
+    }
+
+    HYP_METHOD()
+    void SetMovementEnabled(bool movementEnabled)
+    {
+        m_movementEnabled = movementEnabled;
+    }
+
     virtual void UpdateLogic(double delta) override;
 
 protected:
@@ -93,6 +105,9 @@ protected:
     virtual void OnDeactivated() override;
 
     FirstPersonCameraControllerMode m_mode;
+
+    HYP_FIELD(Property = "MovementEnabled", Serialize, Editor, Title = "Movement Enabled", Description = "Fly the camera with movement input. Disable when something else moves the camera, e.g. a character controller parent")
+    bool m_movementEnabled = true;
 
     Vec3f m_moveDeltas;
     Vec3f m_dirCrossY;

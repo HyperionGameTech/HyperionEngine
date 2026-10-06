@@ -321,19 +321,13 @@ DEFINE_EDITOR_COMMAND(AddAreaRectLight);
 
 #pragma endregion EditorCommandAddAreaRectLight
 
-#pragma region EditorCommandAddPlayerEntity
+#pragma region EditorCommandAddPlayer
 
-class EditorCommandAddPlayerEntity final : public EditorCommandBase
+template <class Derived>
+class EditorCommandAddPlayerBase : public EditorCommandBase
 {
-    HYP_OBJECT_BODY(EditorCommandAddPlayerEntity);
-
 public:
-    virtual ~EditorCommandAddPlayerEntity() override = default;
-
-    virtual String GetText() const override
-    {
-        return "Add Player Entity";
-    }
+    virtual ~EditorCommandAddPlayerBase() override = default;
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
@@ -355,7 +349,7 @@ public:
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
 
-        const EditorThirdPersonPlayer player = EditorPlayerSetup::CreateThirdPersonPlayer(
+        const EditorPlayer player = Derived::CreatePlayer(
             activeScene->GetUniqueNodeName("Player"),
             activeScene->GetUniqueNodeNameT<Camera>());
 
@@ -413,9 +407,43 @@ public:
     }
 };
 
-DEFINE_EDITOR_COMMAND(AddPlayerEntity);
+class EditorCommandAddThirdPersonPlayer final : public EditorCommandAddPlayerBase<EditorCommandAddThirdPersonPlayer>
+{
+    HYP_OBJECT_BODY(EditorCommandAddThirdPersonPlayer);
 
-#pragma endregion EditorCommandAddPlayerEntity
+public:
+    virtual String GetText() const override
+    {
+        return "Add Third Person Player";
+    }
+
+    static EditorPlayer CreatePlayer(Name playerName, Name cameraName)
+    {
+        return EditorPlayerSetup::CreateThirdPersonPlayer(playerName, cameraName);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddThirdPersonPlayer);
+
+class EditorCommandAddFirstPersonPlayer final : public EditorCommandAddPlayerBase<EditorCommandAddFirstPersonPlayer>
+{
+    HYP_OBJECT_BODY(EditorCommandAddFirstPersonPlayer);
+
+public:
+    virtual String GetText() const override
+    {
+        return "Add First Person Player";
+    }
+
+    static EditorPlayer CreatePlayer(Name playerName, Name cameraName)
+    {
+        return EditorPlayerSetup::CreateFirstPersonPlayer(playerName, cameraName);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(AddFirstPersonPlayer);
+
+#pragma endregion EditorCommandAddPlayer
 
 #pragma region EditorCommandAddTemplate
 

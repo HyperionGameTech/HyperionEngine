@@ -5176,7 +5176,7 @@ static void PopulateNewWorld(World* world, const Handle<AssetRegistry>& assetReg
 
         EditorPlayerSetup::AddGround(mainScene->GetRoot(), NAME("Ground"));
 
-        EditorThirdPersonPlayer player = EditorPlayerSetup::CreateThirdPersonPlayer(NAME("Player"), NAME("Camera"));
+        EditorPlayer player = EditorPlayerSetup::CreateThirdPersonPlayer(NAME("Player"), NAME("Camera"));
         GetCurrentAssetRegistry()->PutAssetUnique(player.capsuleShape);
 
         // In edit mode the player's origin is the capsule center, so this rests the capsule on the ground

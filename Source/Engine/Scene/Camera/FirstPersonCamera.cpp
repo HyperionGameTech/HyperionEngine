@@ -313,6 +313,11 @@ void FirstPersonCameraController::UpdateLogic(double delta)
         m_camera->Rotate(lookDirCrossY, CameraUtils::ClampPitchDelta(*m_camera, MathUtil::DegToRad(lookDelta.y), 0.98f));
     }
 
+    if (!m_movementEnabled)
+    {
+        return;
+    }
+
     Vec3f translation = m_camera->GetWorldTranslation();
 
     const Vec3f direction = m_camera->GetDirection();
