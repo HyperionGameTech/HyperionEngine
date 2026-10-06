@@ -154,6 +154,13 @@ namespace Hyperion.Editor
             {
                 string? projectFilePath = CurrentProject?.FilePath;
 
+                if (Services.ManagedGameBuildService.FindProjectFile(projectFilePath) != null)
+                {
+                    _ = System.Threading.Tasks.Task.Run(() => Services.ManagedGameBuildService.Instance.BuildAsync(projectFilePath));
+
+                    return;
+                }
+
                 _ = System.Threading.Tasks.Task.Run(() => Services.NativeGameBuildService.Instance.BuildAsync(projectFilePath));
             });
         }

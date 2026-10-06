@@ -98,22 +98,41 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand GenerateNativeProject { get; } = new EditorCommand("GenerateNativeProject");
         public EditorCommand BuildNativeGame { get; } = new EditorCommand("BuildNativeGame");
 
-        public string NativeProjectMenuText
+        public EditorCommand GenerateManagedProject { get; } = new EditorCommand("GenerateManagedProject");
+
+        private static string? GameSourceDirectory
         {
             get
             {
                 string? projectFilePath = EngineManager.CurrentProject?.FilePath;
                 string? projectDirectory = string.IsNullOrEmpty(projectFilePath) ? null : Path.GetDirectoryName(projectFilePath);
+                string? sourceDirectory = projectDirectory == null ? null : Path.Combine(projectDirectory, "Source");
 
-                return projectDirectory != null && Directory.Exists(Path.Combine(projectDirectory, "Source"))
-                    ? "Open C++ Project Folder"
-                    : "Generate C++ Project";
+                return sourceDirectory != null && Directory.Exists(sourceDirectory) ? sourceDirectory : null;
             }
         }
+
+        public string NativeProjectMenuText
+        {
+            get
+            {
+                if (GameSourceDirectory == null)
+                {
+                    return "Generate C++ Project";
+                }
+
+                return Services.ManagedGameBuildService.FindProjectFile(EngineManager.CurrentProject?.FilePath) != null
+                    ? "Open C# Project Folder"
+                    : "Open C++ Project Folder";
+            }
+        }
+
+        public bool CanGenerateGameProject => GameSourceDirectory == null;
 
         public void RefreshNativeProjectMenuText()
         {
             OnPropertyChanged(nameof(NativeProjectMenuText));
+            OnPropertyChanged(nameof(CanGenerateGameProject));
         }
         public EditorCommand PackageGame { get; } = new EditorCommand("PackageGame");
 

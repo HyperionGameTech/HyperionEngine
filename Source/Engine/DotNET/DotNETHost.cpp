@@ -167,7 +167,7 @@ public:
 
     static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const char* path)
     {
-        const FilePath filepath = basePath / path;
+        const FilePath filepath = FilePath(path).IsAbsolute() ? FilePath(path) : basePath / path;
 
         if (!filepath.Exists())
         {

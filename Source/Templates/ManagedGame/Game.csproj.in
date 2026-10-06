@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>@NAME@</AssemblyName>
+
+    <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+
+    <HyperionPlatform Condition="$([MSBuild]::IsOSPlatform('Windows'))">Windows</HyperionPlatform>
+    <HyperionPlatform Condition="$([MSBuild]::IsOSPlatform('OSX'))">Darwin</HyperionPlatform>
+    <HyperionPlatform Condition="'$(HyperionPlatform)' == ''">Linux</HyperionPlatform>
+
+    <OutputPath>$(MSBuildProjectDirectory)/../Binaries/$(HyperionPlatform)/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+
+    <HyperionContentDir>../../</HyperionContentDir>
+    <HyperionWriteGlobalConfig>true</HyperionWriteGlobalConfig>
+  </PropertyGroup>
+
+  <Import Project="Hyperion.Local.props" />
+  <Import Project="$(HyperionSdkDir)Hyperion.Game.props" />
+</Project>

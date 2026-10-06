@@ -24,4 +24,14 @@ EDITOR_API FilePath GetNativeModulePath(const FilePath& projectFilepath);
 
 EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& projectFilepath);
 
+EDITOR_API FilePath GetManagedProjectFilePath(const FilePath& projectFilepath);
+
+EDITOR_API bool IsManagedProject(const FilePath& projectFilepath);
+
+EDITOR_API FilePath GetManagedModulePath(const FilePath& projectFilepath);
+
+EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath);
+
+EDITOR_API TResult<Handle<Game>> CreateGameFromManagedModule(const FilePath& projectFilepath);
+
 } // namespace Hyperion

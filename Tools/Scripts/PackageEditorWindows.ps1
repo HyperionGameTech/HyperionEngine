@@ -366,6 +366,9 @@ Write-Step "Staging project templates"
 $templateCount = Copy-TrackedFiles @("Source/Templates") $StageDir
 if ($templateCount -eq 0) { Add-Warning "No tracked files under Source/Templates; Generate C++ Project won't work from this package" }
 
+$managedSdkCount = Copy-TrackedFiles @("Source/Engine/DotNET/Sdk") $StageDir
+if ($managedSdkCount -eq 0) { Add-Warning "No tracked files under Source/Engine/DotNET/Sdk; C# game projects won't build from this package" }
+
 $StrataScriptsDir = Join-Path $RootDir "Data/Scripts/Strata"
 if (Test-Path $StrataScriptsDir)
 {

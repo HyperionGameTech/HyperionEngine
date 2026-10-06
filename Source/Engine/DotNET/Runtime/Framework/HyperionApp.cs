@@ -17,6 +17,7 @@ namespace Hyperion
         public string? CacheDirectory { get; set; }
 
         public bool UseCookedContent { get; set; } = false;
+        public bool UseGlobalConfigArgs { get; set; } = false;
 
         public bool SinglePlayer { get; set; } = true;
         public bool Headless { get; set; } = false;
@@ -99,6 +100,14 @@ namespace Hyperion
                 Environment.ProcessPath ?? gameAssembly.Location,
                 "--detached"
             };
+
+            if (options.UseGlobalConfigArgs)
+            {
+                engineArgs.AddRange(options.EngineArgs);
+                engineArgs.AddRange(args);
+
+                return engineArgs;
+            }
 
             string? baseDirectory = options.BaseDirectory ?? FindAssemblyMetadata(gameAssembly, "HyperionBaseDir");
 

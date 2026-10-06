@@ -1140,6 +1140,10 @@
                                 <Flyout Opened="OnBuildFlyoutOpened" Placement="Bottom">
                                     <StackPanel MinWidth="150">
                                         <MenuItem Command="{Binding GenerateNativeProject}" Header="{Binding NativeProjectMenuText}" />
+                                        <MenuItem
+                                            Command="{Binding GenerateManagedProject}"
+                                            Header="Generate C# Project"
+                                            IsVisible="{Binding CanGenerateGameProject}" />
                                         <MenuItem Command="{Binding BuildNativeGame}" Header="Build Game" />
                                         <MenuItem Command="{Binding PackageGame}" Header="Package Game" />
                                     </StackPanel>
