@@ -339,6 +339,9 @@ Result EditorProject::SaveAs(FilePath filepath)
     else if (filepath.GetExtension().Any())
     {
         dir = filepath.BasePath();
+
+        // project is named after its file, so saving under a new file name renames it
+        m_name = CreateNameFromDynamicString(ANSIString(FilePath(filepath.Basename()).StripExtension()));
     }
     else
     {
@@ -403,6 +406,15 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     wri.WriteString(projectHmf);
     wri.Close();
+
+    // renamed in place, don't leave two project files in the same directory
+    if (!rootPathChanged && m_filepath.Any() && String(m_filepath.Basename()) != String(filepath.Basename()) && m_filepath.Exists())
+    {
+        if (!m_filepath.Remove())
+        {
+            HYP_LOG(Editor, Warning, "Failed to remove old project file '{}'", m_filepath);
+        }
+    }
 
     m_filepath = filepath;
 

@@ -72,8 +72,11 @@ DECLARE_BUFFER_DYNAMIC(HBAO, CBuffer) cbuffer CBuffer
     float power;
 };
 
-#define HYP_HBAO_NUM_CIRCLES 3
-#define HYP_HBAO_NUM_SLICES 3
+#define HYP_HBAO_NUM_CIRCLES 4
+#define HYP_HBAO_NUM_SLICES 4
+
+// fraction of screen height
+#define HYP_HBAO_MAX_RADIUS_SCALE 0.2
 
 #define HYP_HBAO_NUM_TEMPORAL_SAMPLES 32u
 
@@ -150,8 +153,8 @@ void TraceAO_New(float2 uv, out float occlusion)
     
 
     float2 rnd = float2(
-        SampleBlueNoise(pixel_coord.x, pixel_coord.y, int(world_shader_data.frame_counter % HYP_HBAO_NUM_TEMPORAL_SAMPLES) * 2, HYP_HBAO_NUM_TEMPORAL_SAMPLES * 2),
-        SampleBlueNoise(pixel_coord.x, pixel_coord.y, int(world_shader_data.frame_counter % HYP_HBAO_NUM_TEMPORAL_SAMPLES) * 2 + 1, HYP_HBAO_NUM_TEMPORAL_SAMPLES * 2)
+        SampleBlueNoise(pixel_coord.x, pixel_coord.y, temporal_sample_index, HYP_HBAO_NOISE_DIMENSION_DIRECTION),
+        SampleBlueNoise(pixel_coord.x, pixel_coord.y, temporal_sample_index, HYP_HBAO_NOISE_DIMENSION_STEP)
     );
     
     const float noise_direction = rnd.x;
@@ -173,7 +176,8 @@ void TraceAO_New(float2 uv, out float occlusion)
 
     const float camera_distance = P.z;
     const float2 texel_size = float2(1.0, 1.0) / float2(dimension);
-    const float step_radius = max((projected_scale * radius) / max(camera_distance, HYP_FMATH_EPSILON), float(HYP_HBAO_NUM_SLICES)) / float(HYP_HBAO_NUM_SLICES + 1);
+    const float max_radius_pixels = max(float(dimension.y) * HYP_HBAO_MAX_RADIUS_SCALE, float(HYP_HBAO_NUM_SLICES));
+    const float radius_pixels = clamp((projected_scale * radius) / max(camera_distance, HYP_FMATH_EPSILON), float(HYP_HBAO_NUM_SLICES), max_radius_pixels);
 
     for (int i = 0; i < HYP_HBAO_NUM_CIRCLES; i++)
     {
@@ -196,9 +200,14 @@ void TraceAO_New(float2 uv, out float occlusion)
 
         float2 slice_ao = float2(0.0, 0.0);
 
+        const float direction_ray_step = frac(ray_step + float(i) * 0.618034);
+
         for (int j = 0; j < HYP_HBAO_NUM_SLICES; j++)
         {
-            float2 uv_offset = (ss_ray * texel_size) * max(step_radius * (float(j) + ray_step), float(j + 1));
+            // quadratic spacing, denser near the pixel where occluders matter most
+            const float step_fraction = (float(j) + direction_ray_step) / float(HYP_HBAO_NUM_SLICES);
+
+            float2 uv_offset = (ss_ray * texel_size) * max(radius_pixels * step_fraction * step_fraction, float(j + 1));
 
             float4 new_uv = uv.xyxy + float4(uv_offset, -uv_offset);
 

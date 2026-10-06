@@ -68,14 +68,30 @@ void HBAO::Create()
 {
     FullScreenPass::Create();
 
+    // grey output so the YCoCg temporal resolve sees no chroma
     m_upsamplePass = MakeUnique<FullScreenPass>(
-        TextureFormat::R16F,
+        TextureFormat::RGBA8,
         m_extent,
         nullptr,
         FSP_NONE);
 
-    m_upsamplePass->SetShaderDesc(ShaderDesc(NAME("Upsample"), ShaderPropertySet {}));
+    m_upsamplePass->SetShaderDesc(ShaderDesc(NAME("Upsample"), ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("RED_TO_WHITE"))) } }));
     m_upsamplePass->Create();
+
+    CreateTemporalBlending();
+}
+
+void HBAO::CreateTemporalBlending()
+{
+    m_temporalBlending = MakeUnique<TemporalBlending>(
+        m_extent,
+        TextureFormat::RGBA16F,
+        TemporalBlendTechnique::TECHNIQUE_3,
+        DefaultTemporalBlendingFeedback,
+        m_upsamplePass->GetAttachment(0)->GetImageView(),
+        m_gbuffer);
+
+    m_temporalBlending->Create();
 }
 
 void HBAO::Resize_Internal(Vec2u newSize)
@@ -87,11 +103,18 @@ void HBAO::Resize_Internal(Vec2u newSize)
     if (m_upsamplePass != nullptr)
     {
         m_upsamplePass->Resize(newSize);
+
+        CreateTemporalBlending();
     }
 }
 
 const GpuImageViewRef& HBAO::GetFinalImageView() const
 {
+    if (m_temporalBlending != nullptr)
+    {
+        return RI.textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
+    }
+
     if (m_upsamplePass != nullptr)
     {
         return m_upsamplePass->GetFinalImageView();
@@ -209,6 +232,10 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     m_upsamplePass->RenderFullScreenQuad(frame, renderSetup);
 
     m_upsamplePass->End(frame, renderSetup);
+
+    cr << InsertBarrier(m_upsamplePass->GetAttachment(0)->GetGpuImage(), ResourceState::ShaderResource);
+
+    m_temporalBlending->Render(frame, renderSetup);
 }
 
 } // namespace Hyperion

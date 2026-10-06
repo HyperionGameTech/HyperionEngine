@@ -39,6 +39,8 @@ protected:
     virtual void Resize_Internal(Vec2u newSize) override;
 
 private:
+    void CreateTemporalBlending();
+
     UniquePtr<FullScreenPass> m_upsamplePass;
 };
 

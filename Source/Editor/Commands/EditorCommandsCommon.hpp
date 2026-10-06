@@ -101,6 +101,10 @@ CORE_API extern const FilePath& GetExecutablePath();
 
 Node* ResolveNodeUuidArgument(EditorSubsystem* subsystem, const String& nodeUuidArgument);
 
+TResult<bool> SaveProjectAsWithPrompt(EditorProject* project);
+TResult<bool> SaveProjectWithPrompt(EditorProject* project);
+bool SaveProjectWithPromptOrAlert(EditorProject* project, const String& abortText);
+
 } // namespace Hyperion
 
 #define DEFINE_EDITOR_COMMAND(name)                                        \

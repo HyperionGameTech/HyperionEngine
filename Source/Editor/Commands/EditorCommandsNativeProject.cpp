@@ -86,35 +86,24 @@ public:
 
         if (!currentProject.IsValid() || !currentProject->IsSaved())
         {
-            bool cancel = false;
+            if (!currentProject.IsValid())
+            {
+                return;
+            }
+
+            bool shouldSave = false;
 
             SystemMessageBox(MessageBoxType::INFO)
                 .Title("Save project?")
                 .Text("The project must be saved before generating the C++ project, do you want to save?")
-                .Button("Save", [currentProject, &cancel]
+                .Button("Save", [&shouldSave]
                         {
-                            Result saveResult = currentProject->Save();
-                            if (saveResult.HasError())
-                            {
-                                HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
-
-                                SystemMessageBox(MessageBoxType::CRITICAL)
-                                    .Title("Project could not be saved")
-                                    .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                          + "\nThe operation will be aborted to prevent loss of data")
-                                    .Button("OK", NoOpFunction<void> {})
-                                    .Show();
-
-                                cancel = true;
-                            }
+                            shouldSave = true;
                         })
-                .Button("Cancel", [&cancel]
-                        {
-                            cancel = true;
-                        })
+                .Button("Cancel", NoOpFunction<void> {})
                 .Show();
 
-            if (cancel)
+            if (!shouldSave || !SaveProjectWithPromptOrAlert(currentProject, "The operation will be aborted to prevent loss of data"))
             {
                 return;
             }

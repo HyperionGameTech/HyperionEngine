@@ -15,9 +15,110 @@
 
 #include <Core/Utilities/Float16.hpp>
 #include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Semaphore.hpp>
 #include <Core/Utilities/Time.hpp>
 
 namespace Hyperion {
+
+TResult<bool> SaveProjectAsWithPrompt(EditorProject* project)
+{
+    FilePath dir = EngineGlobals::GetProjectsDirectory();
+    String currentFileName;
+
+    if (project->IsSaved())
+    {
+        dir = project->GetFilePath().BasePath().BasePath();
+        currentFileName = String(project->GetFilePath().Basename());
+    }
+
+    dir.IsDirectory() || dir.MkDir();
+
+    FilePath selectedPath;
+    Semaphore<int32> semaphore;
+
+    ShowSaveFileDialog(
+        "Save project as",
+        dir,
+        { "hypproject" },
+        [&selectedPath, &semaphore](TResult<FilePath>&& result)
+        {
+            if (result.HasValue())
+            {
+                selectedPath = result.GetValue();
+            }
+            else
+            {
+                HYP_LOG(Editor, Info, "No project save path selected: {}", result.GetError().GetMessage());
+            }
+
+            semaphore.Produce();
+        });
+
+    // the dialog can return before a path has been picked
+    semaphore.Acquire();
+
+    if (selectedPath.Empty())
+    {
+        return false;
+    }
+
+    // the file name picked is the new project name
+    const String projectName = FilePath(selectedPath.Basename()).StripExtension();
+    if (projectName.Empty())
+    {
+        HYP_LOG(Editor, Warning, "No project name given.");
+        return false;
+    }
+
+    const FilePath selectedDir = selectedPath.BasePath();
+
+    const bool isProjectDir = String(selectedDir.Basename()) == projectName
+        || (currentFileName.Any() && (selectedDir / currentFileName).Exists());
+
+    selectedPath = (isProjectDir ? selectedDir : selectedDir / projectName) / (projectName + ".hypproject");
+
+    if (Result saveResult = project->SaveAs(selectedPath); saveResult.HasError())
+    {
+        return saveResult.GetError();
+    }
+
+    return true;
+}
+
+TResult<bool> SaveProjectWithPrompt(EditorProject* project)
+{
+    if (!project->IsSaved())
+    {
+        return SaveProjectAsWithPrompt(project);
+    }
+
+    if (Result saveResult = project->Save(); saveResult.HasError())
+    {
+        return saveResult.GetError();
+    }
+
+    return true;
+}
+
+bool SaveProjectWithPromptOrAlert(EditorProject* project, const String& abortText)
+{
+    TResult<bool> saveResult = SaveProjectWithPrompt(project);
+
+    if (saveResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+
+        SystemMessageBox(MessageBoxType::CRITICAL)
+            .Title("Project could not be saved")
+            .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage() + "\n" + abortText)
+            .Button("OK", NoOpFunction<void> {})
+            .Show();
+
+        return false;
+    }
+
+    return saveResult.GetValue();
+}
 
 namespace /* Helpers */ {
 
@@ -31,26 +132,14 @@ bool ConfirmCloseCurrentProject(EditorSubsystem* subsystem)
     }
 
     bool cancel = false;
+    bool shouldSave = false;
 
     SystemMessageBox(MessageBoxType::INFO)
         .Title("Save changes?")
         .Text("Closing this project will discard any unsaved changes. Do you want to save changes before exiting?")
-        .Button("Save", [currentProject, &cancel]
+        .Button("Save", [&shouldSave]
                 {
-                    Result saveResult = currentProject->Save();
-                    if (saveResult.HasError())
-                    {
-                        HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
-
-                        SystemMessageBox(MessageBoxType::CRITICAL)
-                            .Title("Project could not be saved")
-                            .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                  + "\nThe operation will be aborted to prevent loss of data")
-                            .Button("OK", NoOpFunction<void> {})
-                            .Show();
-
-                        cancel = true;
-                    }
+                    shouldSave = true;
                 })
         .Button("Discard", NoOpFunction<void> {})
         .Button("Cancel", [&cancel]
@@ -59,7 +148,12 @@ bool ConfirmCloseCurrentProject(EditorSubsystem* subsystem)
                 })
         .Show();
 
-    return !cancel;
+    if (cancel)
+    {
+        return false;
+    }
+
+    return !shouldSave || SaveProjectWithPromptOrAlert(currentProject, "The operation will be aborted to prevent loss of data");
 }
 
 void ParseWorldCommandArguments(const EditorCommandBase& command, Name& outWorldName, bool& outSaveWithoutAsking)
@@ -115,21 +209,7 @@ bool EnsureProjectSavedBeforeWorldSwitch(EditorSubsystem* subsystem, bool saveWi
         return false;
     }
 
-    if (Result saveResult = currentProject->Save(); saveResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to save project before switching World: {}", saveResult.GetError().GetMessage());
-
-        SystemMessageBox(MessageBoxType::CRITICAL)
-            .Title("Project could not be saved")
-            .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                  + "\nThe World will not be switched to prevent loss of data")
-            .Button("OK", NoOpFunction<void> {})
-            .Show();
-
-        return false;
-    }
-
-    return true;
+    return SaveProjectWithPromptOrAlert(currentProject, "The World will not be switched to prevent loss of data");
 }
 
 } // namespace
@@ -359,8 +439,6 @@ DEFINE_EDITOR_COMMAND(OpenProjectAtPath);
 
 #pragma region SaveProject
 
-class EditorCommandSaveProjectAs;
-
 class EditorCommandSaveProject final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandSaveProject);
@@ -373,16 +451,8 @@ public:
         EditorProject* project = subsystem->GetCurrentProject();
         if (project != nullptr)
         {
-            if (!project->IsSaved())
-            {
-                Handle<EditorCommandSaveProjectAs> saveAs = MakeHandle<EditorCommandSaveProjectAs>();
-                reinterpret_cast<EditorCommandBase&>(*saveAs).Execute(subsystem);
-
-                return;
-            }
-
-            Result result = project->Save();
-            if (!result)
+            TResult<bool> result = SaveProjectWithPrompt(project);
+            if (result.HasError())
             {
                 HYP_LOG(Editor, Error, "Failed to save project: {}", result.GetError().GetMessage());
             }
@@ -408,17 +478,6 @@ public:
         EditorProject* project = subsystem->GetCurrentProject();
         if (project != nullptr)
         {
-            FilePath dir;
-
-            if (project->IsSaved())
-            {
-                dir = project->GetFilePath().BasePath();
-            }
-            else
-            {
-                dir = EngineGlobals::GetProjectsDirectory() / *project->GetName();
-            }
-
             if (NumArguments() >= 1 && !GetArgument(0).Empty())
             {
                 Result saveResult = project->SaveAs(FilePath(GetArgument(0)));
@@ -430,60 +489,11 @@ public:
                 return;
             }
 
-            dir.MkDir();
-
-            String projectName = *project->GetName();
-
-            ShowSelectFolderDialog(
-                "Select project folder",
-                dir,
-                [weakSubsystem = MakeWeakRef(subsystem), projectName = std::move(projectName)](TResult<FilePath>&& result) mutable
-                {
-                    if (result.HasError())
-                    {
-                        HYP_LOG(Editor, Error, "Failed to select project directory: {}", result.GetError().GetMessage());
-                        return;
-                    }
-
-                    FilePath selectedPath = result.GetValue();
-                    if (selectedPath.Empty())
-                    {
-                        HYP_LOG(Editor, Warning, "No save path selected.");
-                        return;
-                    }
-
-                    if (selectedPath.EndsWith(projectName))
-                    {
-                        // IF the path we receive ends with the project name (ie. Projects/Project1) we want to chop off that part,
-                        // otherwise we'd end up saving at Projects/Project1/Project1.
-                        selectedPath = selectedPath.BasePath();
-                    }
-
-                    GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                        [weakSubsystem = std::move(weakSubsystem), selectedPath = std::move(selectedPath)]() mutable
-                        {
-                            Handle<EditorSubsystem> subsystem = weakSubsystem.Lock();
-                            if (!subsystem)
-                            {
-                                HYP_LOG(Editor, Error, "Failed to lock EditorSubsystem from weak reference in ShowSaveProjectDialog");
-                                return;
-                            }
-
-                            EditorProject* project = subsystem->GetCurrentProject();
-                            if (!project)
-                            {
-                                HYP_LOG(Editor, Error, "No current project in EditorSubsystem; cannot save project as.");
-                                return;
-                            }
-
-                            Result saveResult = project->SaveAs(selectedPath);
-                            if (!saveResult)
-                            {
-                                HYP_LOG(Editor, Error, "Failed to save project as '{}': {}", selectedPath, saveResult.GetError().GetMessage());
-                            }
-                        },
-                        TaskEnqueueFlags::FIRE_AND_FORGET);
-                });
+            TResult<bool> saveResult = SaveProjectAsWithPrompt(project);
+            if (saveResult.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
+            }
         }
     }
 };
@@ -635,40 +645,21 @@ public:
         else
         {
             // Not saved, alert the user that we need them to save the project before this:
-            bool cancel = false;
-            Result saveResult;
+            bool shouldSave = false;
 
             SystemMessageBox(MessageBoxType::INFO)
                 .Title("Must be saved before cooking game content")
                 .Text("The current project is not yet saved - would you like to save the project to continue with the cook task?")
-                .Button("Save", [currentProject, &saveResult]
-                {
-                    saveResult = currentProject->Save();
-                    if (saveResult.HasError())
-                    {
-                        HYP_LOG(Editor, Error, "Failed to save project: {}", saveResult.GetError().GetMessage());
-
-                        SystemMessageBox(MessageBoxType::CRITICAL)
-                                    .Title("Project could not be saved")
-                                    .Text(String("The project could not be saved: ") + saveResult.GetError().GetMessage()
-                                        + "\nThe operation will be aborted to prevent loss of data")
-                                    .Button("OK", NoOpFunction<void> {})
-                                    .Show();
-                            
-                    }
-                })
-                .Button("Discard", NoOpFunction<void> {})
-                .Button("Cancel", [&cancel] { cancel = true; })
+                .Button("Save", [&shouldSave]
+                        {
+                            shouldSave = true;
+                        })
+                .Button("Cancel", NoOpFunction<void> {})
                 .Show();
 
-            if (saveResult.HasError())
+            if (!shouldSave || !SaveProjectWithPromptOrAlert(currentProject, "The operation will be aborted to prevent loss of data"))
             {
                 return;
-            }
-
-            if (cancel)
-            {
-                return; // ok, intentional cancel
             }
         }
 
