@@ -429,7 +429,7 @@ endif()
 
 set(HYP_VERSION_MAJOR 0)
 set(HYP_VERSION_MINOR 5)
-set(HYP_VERSION_PATCH 2)
+set(HYP_VERSION_PATCH 3)
 
 link_directories(${THIRD_PARTY_LIBRARY_DIR})
 
