@@ -94,9 +94,12 @@ $baselineFiles = [System.Collections.Generic.HashSet[string]]::new($installedFil
 
 if ($ProbeDlls) { Test-DllLoads }
 
-$env:DOTNET_ROOT = "C:\dotnet"
-$env:DOTNET_ROOT_X64 = "C:\dotnet"
-$env:DOTNET_MULTILEVEL_LOOKUP = "0"
+if (Test-Path "C:\dotnet\dotnet.exe")
+{
+    $env:DOTNET_ROOT = "C:\dotnet"
+    $env:DOTNET_ROOT_X64 = "C:\dotnet"
+    $env:DOTNET_MULTILEVEL_LOOKUP = "0"
+}
 
 $editorPath = Join-Path $InstallDir "Hyperion.Editor.exe"
 Log "launching $editorPath"
