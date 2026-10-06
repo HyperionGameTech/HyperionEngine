@@ -1,6 +1,7 @@
 param(
     [int]$DurationSeconds = 90,
-    [switch]$ProbeDlls
+    [switch]$ProbeDlls,
+    [switch]$DisableSmartAppControl
 )
 
 $ErrorActionPreference = "Continue"
@@ -92,11 +93,29 @@ Log ("copy finished in {0:N1}s, exit {1}" -f $copyTimer.Elapsed.TotalSeconds, $L
 $installedFiles = Get-ChildItem $InstallDir -Recurse -File | Select-Object -ExpandProperty FullName
 $baselineFiles = [System.Collections.Generic.HashSet[string]]::new($installedFiles, [System.StringComparer]::OrdinalIgnoreCase)
 
+if ($DisableSmartAppControl)
+{
+    # only affects this throwaway sandbox; stands in for a user machine that has Smart App Control off
+    $policyKey = "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy"
+    Log "Smart App Control state before: $((Get-ItemProperty $policyKey -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState)"
+    try
+    {
+        Set-ItemProperty -Path $policyKey -Name VerifiedAndReputablePolicyState -Value 0 -Type DWord -ErrorAction Stop
+        $refresh = & "$env:SystemRoot\System32\CiTool.exe" --refresh 2>&1 | Out-String
+        Log "CiTool --refresh exit ${LASTEXITCODE}: $($refresh.Trim() -replace '\s+', ' ')"
+    }
+    catch { Log "could not turn Smart App Control off: $($_.Exception.Message)" }
+    Log "Smart App Control state after: $((Get-ItemProperty $policyKey -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState)"
+}
+
 if ($ProbeDlls) { Test-DllLoads }
 
-$env:DOTNET_ROOT = "C:\dotnet"
-$env:DOTNET_ROOT_X64 = "C:\dotnet"
-$env:DOTNET_MULTILEVEL_LOOKUP = "0"
+if (Test-Path "C:\dotnet\dotnet.exe")
+{
+    $env:DOTNET_ROOT = "C:\dotnet"
+    $env:DOTNET_ROOT_X64 = "C:\dotnet"
+    $env:DOTNET_MULTILEVEL_LOOKUP = "0"
+}
 
 $editorPath = Join-Path $InstallDir "Hyperion.Editor.exe"
 Log "launching $editorPath"

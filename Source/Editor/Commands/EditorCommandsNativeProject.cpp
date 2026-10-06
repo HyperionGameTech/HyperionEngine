@@ -9,6 +9,7 @@
 
 #include <Core/Utilities/Span.hpp>
 
+#include <ctime>
 #include <filesystem>
 
 namespace Hyperion {
@@ -333,7 +334,6 @@ public:
             return;
         }
 
-        // [output folder] skips the dialog
         if (GetArguments().Any())
         {
             Package(currentProject, FilePath(GetArgument(0)));
@@ -341,22 +341,15 @@ public:
             return;
         }
 
-        ShowSelectFolderDialog(
-            "Select a folder to package the game into",
-            currentProject->GetFilePath().BasePath(),
-            [currentProject](TResult<FilePath>&& result)
-            {
-                if (result.HasError() || result.GetValue().Empty())
-                {
-                    return;
-                }
+        char timestamp[32];
+        const std::time_t now = std::time(nullptr);
+        std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", std::localtime(&now));
 
-                Package(currentProject, result.GetValue());
-            });
+        Package(currentProject, currentProject->GetFilePath().BasePath() / "Packaged" / (String("Build_") + timestamp));
     }
 
 private:
-    static void Package(const Handle<EditorProject>& project, const FilePath& parentDir)
+    static void Package(const Handle<EditorProject>& project, const FilePath& outputDir)
     {
         if (Result saveResult = project->Save(); saveResult.HasError())
         {
@@ -366,7 +359,6 @@ private:
         }
 
         const String name = GetNativeProjectName(project->GetFilePath());
-        const FilePath outputDir = parentDir / name;
 
         if (!outputDir.Exists() && !outputDir.MkDir())
         {

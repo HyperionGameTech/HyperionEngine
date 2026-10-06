@@ -8,7 +8,9 @@ param(
     [int]$TimeoutMinutes = 10,
     [switch]$NoGpu,
     [switch]$ProbeDlls,
-    [switch]$Network
+    [switch]$Network,
+    [switch]$NoDotNet,
+    [switch]$DisableSmartAppControl
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,7 +33,9 @@ if (Get-Process -Name "WindowsSandbox*" -ErrorAction SilentlyContinue)
 {
     throw "A Windows Sandbox instance is already running; only one can run at a time. Close it first."
 }
-if (-not (Test-Path (Join-Path $DotNetDir "dotnet.exe"))) { throw "dotnet not found at $DotNetDir" }
+if (-not $NoDotNet -and -not (Test-Path (Join-Path $DotNetDir "dotnet.exe"))) { throw "dotnet not found at $DotNetDir" }
+
+$dotNetMapping = if ($NoDotNet) { "" } else { "<MappedFolder><HostFolder>$DotNetDir</HostFolder><SandboxFolder>C:\dotnet</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>" }
 
 if (Test-Path $ResultsDir) { Remove-Item $ResultsDir -Recurse -Force }
 New-Item -ItemType Directory -Path $ResultsDir -Force | Out-Null
@@ -39,7 +43,7 @@ Copy-Item (Join-Path $PSScriptRoot "SandboxGuestTest.ps1") $ResultsDir
 
 $vGpu = if ($NoGpu) { "Disable" } else { "Enable" }
 $networking = if ($Network) { "Default" } else { "Disable" }
-$guestArguments ="-DurationSeconds $DurationSeconds" + $(if ($ProbeDlls) { " -ProbeDlls" } else { "" })
+$guestArguments = "-DurationSeconds $DurationSeconds" + $(if ($ProbeDlls) { " -ProbeDlls" } else { "" }) + $(if ($DisableSmartAppControl) { " -DisableSmartAppControl" } else { "" })
 $config = @"
 <Configuration>
   <VGpu>$vGpu</VGpu>
@@ -47,7 +51,7 @@ $config = @"
   <MemoryInMB>16384</MemoryInMB>
   <MappedFolders>
     <MappedFolder><HostFolder>$BuildDir</HostFolder><SandboxFolder>C:\Source\Build</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
-    <MappedFolder><HostFolder>$DotNetDir</HostFolder><SandboxFolder>C:\dotnet</SandboxFolder><ReadOnly>true</ReadOnly></MappedFolder>
+    $dotNetMapping
     <MappedFolder><HostFolder>$ResultsDir</HostFolder><SandboxFolder>C:\Results</SandboxFolder><ReadOnly>false</ReadOnly></MappedFolder>
   </MappedFolders>
   <LogonCommand>

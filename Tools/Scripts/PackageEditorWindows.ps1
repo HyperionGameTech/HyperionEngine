@@ -199,8 +199,8 @@ if ($IsMonolithic)
 
     Write-Step "Publishing single-file editor"
     $env:MSBuildSdksPath = $null
-    & dotnet publish $editorProject --configuration Release --runtime win-x64 --self-contained false --disable-build-servers `
-        -p:PublishSingleFile=true -p:DebugType=none "-p:OutputPath=$publishRoot/build/" --output "$publishRoot/publish" | Out-Host
+    & dotnet publish $editorProject --configuration Release --runtime win-x64 --self-contained true --disable-build-servers `
+        -p:PublishSingleFile=true -p:OutputType=WinExe -p:DebugType=none "-p:OutputPath=$publishRoot/build/" --output "$publishRoot/publish" | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
     foreach ($file in Get-ChildItem "$publishRoot/publish" -File | Where-Object { $_.Extension -in ".exe", ".dll" })

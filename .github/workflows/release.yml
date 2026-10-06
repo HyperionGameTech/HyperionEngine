@@ -99,7 +99,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Hyperion-Editor-${{ steps.version.outputs.version }}-win64-${{ matrix.backend }}-symbols
+          name: Symbols-${{ steps.version.outputs.version }}-win64-${{ matrix.backend }}
           path: Packaged/symbols
           if-no-files-found: error
 
@@ -112,7 +112,6 @@ jobs:
     env:
       VERSION: ${{ needs.build.outputs.version }}
     steps:
-      # every artifact holds one top-level folder named after it
       - uses: actions/download-artifact@v5
         with:
           pattern: Hyperion-Editor-*
@@ -124,8 +123,6 @@ jobs:
             name="${dir%/}"
             zip -q -r "$name.zip" "$name"
           done
-          sha256sum *.zip > SHA256SUMS.txt
-          cat SHA256SUMS.txt
 
       - name: Draft release
         env:
@@ -133,7 +130,7 @@ jobs:
         run: |
           tag="v$VERSION"
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then tag="$GITHUB_REF_NAME"; fi
-          gh release create "$tag" *.zip SHA256SUMS.txt \
+          gh release create "$tag" *.zip \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease \
             --title "Hyperion Editor $VERSION (preview)" \
-            --notes "Requires the .NET 10 runtime,.NET 10 SDK for C# scripting."
+            --notes "No .NET install is needed to run the editor. C# scripting requires the .NET 10 SDK."

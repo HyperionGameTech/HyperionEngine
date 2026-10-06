@@ -1141,7 +1141,7 @@
                                     <StackPanel MinWidth="150">
                                         <MenuItem Command="{Binding GenerateNativeProject}" Header="{Binding NativeProjectMenuText}" />
                                         <MenuItem Command="{Binding BuildNativeGame}" Header="Build Game" />
-                                        <MenuItem Command="{Binding PackageGame}" Header="Package Game..." />
+                                        <MenuItem Command="{Binding PackageGame}" Header="Package Game" />
                                     </StackPanel>
                                 </Flyout>
                             </DropDownButton.Flyout>

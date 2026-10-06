@@ -168,7 +168,7 @@ EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& proj
             loadedModule.error = HYP_FORMAT("Game module {} doesn't export HypGameModule_GetGameClassName / HypGameModule_GetEngineVersion", modulePath);
         }
         else if (getEngineVersion(&versionMajor, &versionMinor, &versionPatch);
-            versionMajor != HYP_VERSION_MAJOR || versionMinor != HYP_VERSION_MINOR || versionPatch != HYP_VERSION_PATCH)
+            versionMajor != HYP_VERSION_MAJOR || versionMinor != HYP_VERSION_MINOR)
         {
             loadedModule.error = HYP_FORMAT("Game module {} was built for engine {}.{}.{} (this is {}.{}.{}). Rebuild the game and restart the editor.",
                 modulePath, versionMajor, versionMinor, versionPatch, HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH);
