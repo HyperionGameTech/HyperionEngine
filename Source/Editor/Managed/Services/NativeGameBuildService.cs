@@ -54,7 +54,7 @@ namespace Hyperion.Editor.Services
 
             if (projectDirectory == null || !File.Exists(Path.Combine(projectDirectory, "Source", "CMakeLists.txt")))
             {
-                ShowMessage(MessageBox.Info("No C++ project", "Generate the C++ project first.").Button("OK", () => { }));
+                ShowMessage(MessageBox.Info("No game project", "Generate a game project first (Build > Generate Game Project...).").Button("OK", () => { }));
 
                 return false;
             }
