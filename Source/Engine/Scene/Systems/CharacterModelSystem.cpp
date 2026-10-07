@@ -709,7 +709,7 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
     // Ease the upper body's twist toward the gap between the feet and the view rather than locking it there
     const float twistAlpha = MathUtil::Clamp(1.0f - MathUtil::Exp(-AimTwistSharpness * delta), 0.0f, 1.0f);
 
-    component.aimTwist += float(std::remainder(GetStandingTwist(component) - component.aimTwist, 2.0f * MathUtil::pi<float>)) * twistAlpha;
+    component.aimTwist += (GetStandingTwist(component) - component.aimTwist) * twistAlpha;
 
     component.lastFacingYaw = component.facingYaw;
 }

@@ -187,6 +187,9 @@ public:
     HYP_METHOD()
     bool CanCreateAssets() const;
 
+    HYP_METHOD()
+    bool IsStrataEnabled() const;
+
     ///PIE net state
 
     HYP_METHOD()
