@@ -1118,6 +1118,7 @@
                         Spacing="8">
 
                         <DropDownButton
+                            x:Name="BuildDropDown"
                             VerticalAlignment="Center"
                             Classes="gizmo-wide"
                             IsEnabled="{Binding !IsSimulating}"
@@ -1139,17 +1140,82 @@
                             <DropDownButton.Flyout>
                                 <Flyout Opened="OnBuildFlyoutOpened" Placement="Bottom">
                                     <StackPanel MinWidth="150">
-                                        <MenuItem Command="{Binding GenerateNativeProject}" Header="{Binding NativeProjectMenuText}" />
+                                        <MenuItem Command="{Binding GameProjectMenuCommand}" Header="{Binding NativeProjectMenuText}" />
                                         <MenuItem
-                                            Command="{Binding GenerateManagedProject}"
-                                            Header="Generate C# Project"
-                                            IsVisible="{Binding CanGenerateGameProject}" />
+                                            Command="{Binding ChangeGameProjectLanguageCommand}"
+                                            Header="Change Language..."
+                                            IsVisible="{Binding CanChangeGameProjectLanguage}" />
                                         <MenuItem Command="{Binding BuildNativeGame}" Header="Build Game" />
                                         <MenuItem Command="{Binding PackageGame}" Header="Package Game" />
                                     </StackPanel>
                                 </Flyout>
                             </DropDownButton.Flyout>
                         </DropDownButton>
+
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            Orientation="Vertical"
+                            Spacing="2">
+                            <!-- <TextBlock Classes="ribbon-label" Text="{Binding GameStateText}" /> -->
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button
+                                    Classes="Play"
+                                    Command="{Binding SetGameModePlaying}"
+                                    IsVisible="{Binding CanSetGameModePlaying}"
+                                    ToolTip.Tip="{Binding PlayTooltip}">
+                                    <controls:Codicon
+                                        Foreground="White"
+                                        Kind="Play"
+                                        Size="16" />
+                                </Button>
+                                <Button
+                                    Padding="2,0"
+                                    IsVisible="{Binding !IsSimulating}"
+                                    ToolTip.Tip="Play options">
+                                    <controls:Codicon Kind="ChevronDown" Size="10" />
+                                    <Button.Flyout>
+                                        <MenuFlyout Placement="Bottom">
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeStandalone}"
+                                                Header="Standalone"
+                                                IsChecked="{Binding IsPlayNetModeStandalone, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Play locally with no network connection" />
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeClient}"
+                                                Header="Play As Client"
+                                                IsChecked="{Binding IsPlayNetModeClient, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Connect to the server set in Network Settings once play starts" />
+                                            <MenuItem
+                                                Command="{Binding SetPlayNetModeDedicatedServer}"
+                                                Header="Play As Dedicated Server"
+                                                IsChecked="{Binding IsPlayNetModeDedicatedServer, Mode=OneWay}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Host the play session as a server on the port set in Network Settings" />
+                                            <Separator />
+                                            <MenuItem
+                                                Command="{Binding OpenNetworkSettings}"
+                                                Header="Network Settings..." />
+                                        </MenuFlyout>
+                                    </Button.Flyout>
+                                </Button>
+                                <Button
+                                    Command="{Binding SetGameModePaused}"
+                                    IsVisible="{Binding CanSetGameModePaused}"
+                                    ToolTip.Tip="Pause">
+                                    <controls:Codicon Kind="DebugPause" Size="16" />
+                                </Button>
+                                <Button
+                                    Command="{Binding SetGameModeStopped}"
+                                    IsVisible="{Binding CanSetGameModeStopped}"
+                                    ToolTip.Tip="Stop">
+                                    <controls:Codicon Kind="DebugStop" Size="16" />
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Border Classes="mode-separator" />
 
                         <DropDownButton
                             x:Name="ToolDropDown"
@@ -1221,71 +1287,6 @@
                                 </ContextMenu>
                             </DropDownButton.ContextMenu>
                         </DropDownButton>
-
-                        <Border Classes="mode-separator" />
-
-                        <StackPanel
-                            VerticalAlignment="Center"
-                            Orientation="Vertical"
-                            Spacing="2">
-                            <!-- <TextBlock Classes="ribbon-label" Text="{Binding GameStateText}" /> -->
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button
-                                    Classes="Play"
-                                    Command="{Binding SetGameModePlaying}"
-                                    IsVisible="{Binding CanSetGameModePlaying}"
-                                    ToolTip.Tip="{Binding PlayTooltip}">
-                                    <controls:Codicon
-                                        Foreground="White"
-                                        Kind="Play"
-                                        Size="16" />
-                                </Button>
-                                <Button
-                                    Padding="2,0"
-                                    IsVisible="{Binding !IsSimulating}"
-                                    ToolTip.Tip="Play options">
-                                    <controls:Codicon Kind="ChevronDown" Size="10" />
-                                    <Button.Flyout>
-                                        <MenuFlyout Placement="Bottom">
-                                            <MenuItem
-                                                Command="{Binding SetPlayNetModeStandalone}"
-                                                Header="Standalone"
-                                                IsChecked="{Binding IsPlayNetModeStandalone, Mode=OneWay}"
-                                                ToggleType="CheckBox"
-                                                ToolTip.Tip="Play locally with no network connection" />
-                                            <MenuItem
-                                                Command="{Binding SetPlayNetModeClient}"
-                                                Header="Play As Client"
-                                                IsChecked="{Binding IsPlayNetModeClient, Mode=OneWay}"
-                                                ToggleType="CheckBox"
-                                                ToolTip.Tip="Connect to the server set in Network Settings once play starts" />
-                                            <MenuItem
-                                                Command="{Binding SetPlayNetModeDedicatedServer}"
-                                                Header="Play As Dedicated Server"
-                                                IsChecked="{Binding IsPlayNetModeDedicatedServer, Mode=OneWay}"
-                                                ToggleType="CheckBox"
-                                                ToolTip.Tip="Host the play session as a server on the port set in Network Settings" />
-                                            <Separator />
-                                            <MenuItem
-                                                Command="{Binding OpenNetworkSettings}"
-                                                Header="Network Settings..." />
-                                        </MenuFlyout>
-                                    </Button.Flyout>
-                                </Button>
-                                <Button
-                                    Command="{Binding SetGameModePaused}"
-                                    IsVisible="{Binding CanSetGameModePaused}"
-                                    ToolTip.Tip="Pause">
-                                    <controls:Codicon Kind="DebugPause" Size="16" />
-                                </Button>
-                                <Button
-                                    Command="{Binding SetGameModeStopped}"
-                                    IsVisible="{Binding CanSetGameModeStopped}"
-                                    ToolTip.Tip="Stop">
-                                    <controls:Codicon Kind="DebugStop" Size="16" />
-                                </Button>
-                            </StackPanel>
-                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </Border>

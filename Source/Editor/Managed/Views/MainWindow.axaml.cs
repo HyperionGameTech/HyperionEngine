@@ -647,6 +647,39 @@ namespace Hyperion.Editor
             await window.ShowDialog(this);
         }
 
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.GameProjectWindowRequested += ShowGameProjectWindow;
+            }
+        }
+
+        private async void ShowGameProjectWindow()
+        {
+            if (DataContext is not MainWindowViewModel viewModel)
+            {
+                return;
+            }
+
+            this.FindControl<DropDownButton>("BuildDropDown")?.Flyout?.Hide();
+
+            var gameProjectViewModel = new GameProjectWindowViewModel(EngineManager.CurrentProject?.FilePath, viewModel.CurrentGameProjectLanguage);
+
+            await new GameProjectWindow { DataContext = gameProjectViewModel }.ShowDialog(this);
+
+            bool openInVisualStudio = gameProjectViewModel.ConfirmedOpenInVisualStudio;
+
+            viewModel.GenerateGameProject(gameProjectViewModel.ConfirmedLanguage, openFolder: !openInVisualStudio);
+
+            if (openInVisualStudio)
+            {
+                _ = VisualStudioService.OpenGameProjectAsync(() => EngineManager.CurrentProject?.FilePath, gameProjectViewModel.ConfirmedLanguage);
+            }
+        }
+
         private T? FindVisualChildByName<T>(string name) where T : Control
         {
             return this.GetVisualDescendants().OfType<T>().FirstOrDefault(c => c.Name == name);

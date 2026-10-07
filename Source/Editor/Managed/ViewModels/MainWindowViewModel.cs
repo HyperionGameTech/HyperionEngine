@@ -112,27 +112,69 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public string NativeProjectMenuText
+        public event Action? GameProjectWindowRequested;
+
+        public ICommand GameProjectMenuCommand { get; }
+        public ICommand ChangeGameProjectLanguageCommand { get; }
+
+        public GameProjectLanguage CurrentGameProjectLanguage
         {
             get
             {
                 if (GameSourceDirectory == null)
                 {
-                    return "Generate C++ Project";
+                    return GameProjectLanguage.None;
                 }
 
                 return Services.ManagedGameBuildService.FindProjectFile(EngineManager.CurrentProject?.FilePath) != null
-                    ? "Open C# Project Folder"
-                    : "Open C++ Project Folder";
+                    ? GameProjectLanguage.Managed
+                    : GameProjectLanguage.Native;
             }
         }
 
-        public bool CanGenerateGameProject => GameSourceDirectory == null;
+        public string NativeProjectMenuText => CurrentGameProjectLanguage switch
+        {
+            GameProjectLanguage.Managed => "Open C# Project Folder",
+            GameProjectLanguage.Native => "Open C++ Project Folder",
+            _ => "Generate Game Project..."
+        };
+
+        public bool CanChangeGameProjectLanguage => GameSourceDirectory != null && EngineManager.CanChangeGameProjectLanguage;
 
         public void RefreshNativeProjectMenuText()
         {
             OnPropertyChanged(nameof(NativeProjectMenuText));
-            OnPropertyChanged(nameof(CanGenerateGameProject));
+            OnPropertyChanged(nameof(CanChangeGameProjectLanguage));
+        }
+
+        public void GenerateGameProject(GameProjectLanguage language, bool openFolder = true)
+        {
+            string? argument = openFolder ? null : "--no-open";
+
+            if (language == GameProjectLanguage.Managed)
+            {
+                GenerateManagedProject.Execute(argument);
+            }
+            else if (language == GameProjectLanguage.Native)
+            {
+                GenerateNativeProject.Execute(argument);
+            }
+        }
+
+        private void OnGameProjectMenu()
+        {
+            switch (CurrentGameProjectLanguage)
+            {
+                case GameProjectLanguage.None:
+                    GameProjectWindowRequested?.Invoke();
+                    break;
+                case GameProjectLanguage.Managed:
+                    GenerateManagedProject.Execute(null);
+                    break;
+                default:
+                    GenerateNativeProject.Execute(null);
+                    break;
+            }
         }
         public EditorCommand PackageGame { get; } = new EditorCommand("PackageGame");
 
@@ -1119,6 +1161,9 @@ namespace Hyperion.Editor.ViewModels
 
         public MainWindowViewModel()
         {
+            GameProjectMenuCommand = new RelayCommand(OnGameProjectMenu);
+            ChangeGameProjectLanguageCommand = new RelayCommand(() => GameProjectWindowRequested?.Invoke());
+
             PanelService.Instance.ActivePanelChanged += OnActivePanelChanged;
 
             SceneHierarchy = new SceneHierarchyViewModel();

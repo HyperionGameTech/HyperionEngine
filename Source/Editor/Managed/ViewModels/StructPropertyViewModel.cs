@@ -31,7 +31,7 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasSubProperties, value);
         }
 
-        private bool _isExpanded = true;
+        private bool _isExpanded;
         public bool IsExpanded
         {
             get => _isExpanded;

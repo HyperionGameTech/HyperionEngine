@@ -21,6 +21,7 @@
 #include <Editor/EditorImport.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
 #include <Editor/EditorTemplateLibrary.hpp>
+#include <Editor/EditorNativeModule.hpp>
 
 #include <Editor/Tasks/EditorTasks.hpp>
 
@@ -536,6 +537,12 @@ bool EditorSubsystem::IsStrataEnabled() const
 #else
     return false;
 #endif
+}
+
+bool EditorSubsystem::CanChangeGameProjectLanguage() const
+{
+    return m_currentProject.IsValid() && m_currentProject->IsSaved() && !IsSimulating()
+        && IsGameProjectUnmodified(m_currentProject->GetFilePath());
 }
 
 bool EditorSubsystem::IsSnapToGridEnabled() const

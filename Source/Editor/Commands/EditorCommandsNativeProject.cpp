@@ -22,61 +22,11 @@ namespace PlatformUtils {
 ENGINE_API extern bool OpenInFileBrowser(const FilePath& path);
 } // namespace PlatformUtils
 
-namespace /* Helpers */ {
-
-struct TemplateFile
-{
-    FilePath templatePath;
-    FilePath filepath;
-};
-
-Result WriteTemplateFile(const FilePath& templatePath, const FilePath& filepath, const String& name, const String& className)
-{
-    FileByteReader reader { templatePath };
-
-    if (reader.Eof())
-    {
-        return HYP_MAKE_ERROR(Error, "Template {} is missing", templatePath);
-    }
-
-    const ByteBuffer templateBuffer = reader.Read();
-    reader.Close();
-
-    const FilePath directory = filepath.BasePath();
-
-    if (!directory.Exists() && !directory.MkDir())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to create directory {}", directory);
-    }
-
-    FileByteWriter writer { filepath };
-
-    if (!writer.IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to open {} for writing", filepath);
-    }
-
-    const String text = String(templateBuffer.ToByteView()).ReplaceAll("@NAME@", name).ReplaceAll("@CLASS@", className);
-
-    writer.Write(text.Data(), text.Size());
-    writer.Close();
-
-    return {};
-}
-
-} // namespace
-
 #pragma region GenerateNativeProject
 
 namespace /* Helpers */ {
 
-enum class GameProjectLanguage
-{
-    Native,
-    Managed
-};
-
-void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage language)
+void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage language, bool openFolder)
 {
     const char* languageName = language == GameProjectLanguage::Managed ? "C#" : "C++";
 
@@ -107,54 +57,28 @@ void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage languag
         }
     }
 
-    const FilePath sourceDir = currentProject->GetFilePath().BasePath() / "Source";
+    const FilePath projectFilepath = currentProject->GetFilePath();
+    const FilePath sourceDir = projectFilepath.BasePath() / "Source";
 
-    if (sourceDir.Exists())
-    {
-        /// @TODO regenerate?
-        PlatformUtils::OpenInFileBrowser(sourceDir);
-
-        return;
-    }
-
-    const String name = GetNativeProjectName(currentProject->GetFilePath());
-    const String className = name + "Game";
-
-    Array<TemplateFile> files;
-
-    if (language == GameProjectLanguage::Managed)
-    {
-        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/ManagedGame";
-
-        files.PushBack({ templateDir / "Game.csproj.in", GetManagedProjectFilePath(currentProject->GetFilePath()) });
-        files.PushBack({ templateDir / "Game.cs.in", sourceDir / (className + ".cs") });
-        files.PushBack({ templateDir / "Program.cs.in", sourceDir / "Program.cs" });
-    }
-    else
-    {
-        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/NativeGame";
-
-        files.PushBack({ templateDir / "CMakeLists.txt.in", sourceDir / "CMakeLists.txt" });
-        files.PushBack({ templateDir / "Game" / "Game.hpp.in", sourceDir / "Game" / (className + ".hpp") });
-        files.PushBack({ templateDir / "Game" / "Game.cpp.in", sourceDir / "Game" / (className + ".cpp") });
-        files.PushBack({ templateDir / "Launcher" / "main.cpp.in", sourceDir / "Launcher" / "main.cpp" });
-    }
+    const GameProjectLanguage currentLanguage = GetGameProjectLanguage(projectFilepath);
 
     Result result;
 
-    for (const TemplateFile& file : files)
+    if (currentLanguage != GameProjectLanguage::None)
     {
-        result = WriteTemplateFile(file.templatePath, file.filepath, name, className);
-
-        if (result.HasError())
+        if (currentLanguage == language || !IsGameProjectUnmodified(projectFilepath))
         {
-            break;
+            PlatformUtils::OpenInFileBrowser(sourceDir);
+
+            return;
         }
+
+        result = RemoveGameProjectFiles(projectFilepath);
     }
 
-    if (!result.HasError() && language == GameProjectLanguage::Managed)
+    if (!result.HasError())
     {
-        result = WriteManagedProjectProps(currentProject->GetFilePath());
+        result = GenerateGameProjectFiles(projectFilepath, language);
     }
 
     if (result.HasError())
@@ -170,9 +94,12 @@ void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage languag
         return;
     }
 
-    HYP_LOG(Editor, Info, "Generated {} project for '{}' at {}", languageName, name, sourceDir);
+    HYP_LOG(Editor, Info, "Generated {} project for '{}' at {}", languageName, GetNativeProjectName(projectFilepath), sourceDir);
 
-    PlatformUtils::OpenInFileBrowser(sourceDir);
+    if (openFolder)
+    {
+        PlatformUtils::OpenInFileBrowser(sourceDir);
+    }
 }
 
 } // namespace
@@ -191,7 +118,7 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        GenerateGameProject(subsystem, GameProjectLanguage::Native);
+        GenerateGameProject(subsystem, GameProjectLanguage::Native, !(GetArguments().Any() && GetArgument(0) == "--no-open"));
     }
 };
 
@@ -215,7 +142,7 @@ public:
 
     virtual void Execute(EditorSubsystem* subsystem) override
     {
-        GenerateGameProject(subsystem, GameProjectLanguage::Managed);
+        GenerateGameProject(subsystem, GameProjectLanguage::Managed, !(GetArguments().Any() && GetArgument(0) == "--no-open"));
     }
 };
 

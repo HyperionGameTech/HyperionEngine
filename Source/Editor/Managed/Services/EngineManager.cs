@@ -360,6 +360,8 @@ namespace Hyperion.Editor
 
         public static bool IsStrataEnabled => EditorGame?.EditorSubsystem?.IsStrataEnabled() ?? false;
 
+        public static bool CanChangeGameProjectLanguage => EditorGame?.EditorSubsystem?.CanChangeGameProjectLanguage() ?? false;
+
         public static EditorActionStack? GetActionStackFor(ObjectBase? owner)
         {
             EditorSubsystem? editorSubsystem = EditorGame?.EditorSubsystem;

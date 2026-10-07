@@ -1,0 +1,110 @@
+<Window
+    x:Class="Hyperion.Editor.Views.GameProjectWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:CompileBindings="False"
+    x:DataType="vm:GameProjectWindowViewModel"
+    mc:Ignorable="d"
+    Title="{Binding Title}"
+    Icon="/Assets/Branding/hyperion-icon.ico"
+    Width="460"
+    SizeToContent="Height"
+    CanResize="False"
+    WindowStartupLocation="CenterOwner"
+    Background="{DynamicResource Brush.Background}">
+
+    <Window.Styles>
+        <Style Selector="RadioButton.language-option">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Radius.Medium}" />
+        </Style>
+
+        <Style Selector="RadioButton.language-option:checked">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.AccentMuted}" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+        <Border
+            Padding="12,10"
+            Background="{DynamicResource Brush.Panel}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            DockPanel.Dock="Bottom">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock
+                    Grid.Column="0"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    Classes="muted"
+                    FontSize="11"
+                    Text="{Binding SourceDirectory}"
+                    TextTrimming="PrefixCharacterEllipsis"
+                    ToolTip.Tip="{Binding SourceDirectory}" />
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        Padding="20,6"
+                        Classes="Primary"
+                        Command="{Binding ConfirmCommand}"
+                        Content="{Binding ConfirmText}" />
+                    <Button
+                        Padding="20,6"
+                        Command="{Binding CancelCommand}"
+                        Content="Cancel" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <StackPanel Margin="16,16,16,14" Spacing="8">
+            <TextBlock
+                Margin="0,0,0,2"
+                Classes="section-label"
+                Text="Language" />
+
+            <RadioButton
+                Classes="language-option"
+                GroupName="GameProjectLanguage"
+                Padding="5"
+                IsChecked="{Binding IsManagedSelected, Mode=TwoWay}">
+                <StackPanel Spacing="1">
+                    <TextBlock FontWeight="SemiBold" Text="C#" />
+                    <TextBlock
+                        Classes="muted"
+                        FontSize="11"
+                        Text="Visual Studio .sln + .csproj" />
+                </StackPanel>
+            </RadioButton>
+
+            <RadioButton
+                Classes="language-option"
+                GroupName="GameProjectLanguage"
+                Padding="5"
+                IsChecked="{Binding IsNativeSelected, Mode=TwoWay}">
+                <StackPanel Spacing="1">
+                    <TextBlock FontWeight="SemiBold" Text="C++" />
+                    <TextBlock
+                        Classes="muted"
+                        FontSize="11"
+                        Text="CMake project" />
+                </StackPanel>
+            </RadioButton>
+
+            <CheckBox
+                Margin="0,4,0,0"
+                Content="Open in Visual Studio"
+                IsChecked="{Binding OpenInVisualStudio, Mode=TwoWay}"
+                IsVisible="{Binding CanOpenInVisualStudio}" />
+        </StackPanel>
+    </DockPanel>
+</Window>
