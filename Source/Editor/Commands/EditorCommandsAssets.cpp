@@ -204,13 +204,18 @@ public:
         }
 
         ScriptDesc scriptDesc;
-        scriptDesc.language = ScriptLanguage::Strata;
-
-        String extension = ".strata";
+        String extension;
         String templateCode;
 
         if (languageArg == "strata")
         {
+#ifndef HYP_STRATA
+            HYP_LOG(Editor, Error, "Strata scripting is not enabled in this build; cannot create a Strata script");
+
+            return;
+#endif
+
+
             scriptDesc.language = ScriptLanguage::Strata;
             extension = ".strata";
 

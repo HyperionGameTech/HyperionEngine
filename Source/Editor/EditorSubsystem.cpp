@@ -529,6 +529,15 @@ bool EditorSubsystem::CanCreateAssets() const
     return m_currentProject.IsValid() && !IsSimulating();
 }
 
+bool EditorSubsystem::IsStrataEnabled() const
+{
+#ifdef HYP_STRATA
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool EditorSubsystem::IsSnapToGridEnabled() const
 {
     return m_gizmoController->IsSnapToGridEnabled();

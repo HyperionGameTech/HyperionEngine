@@ -18,11 +18,12 @@ namespace Hyperion.Editor.ViewModels
         private string _scriptName = "NewScript";
         private ScriptLanguageEntry _selectedLanguage;
 
-        public ScriptLanguageEntry[] Languages { get; } =
-        {
-            new ScriptLanguageEntry("Strata", "strata", ".strata"),
-            new ScriptLanguageEntry("C#", "csharp", ".cs")
-        };
+        private static readonly ScriptLanguageEntry StrataLanguage = new ScriptLanguageEntry("Strata", "strata", ".strata");
+        private static readonly ScriptLanguageEntry CSharpLanguage = new ScriptLanguageEntry("C#", "csharp", ".cs");
+
+        public bool IsStrataAvailable { get; } = EngineManager.IsStrataEnabled;
+
+        public ScriptLanguageEntry[] Languages { get; }
 
         public string ScriptName
         {
@@ -48,13 +49,13 @@ namespace Hyperion.Editor.ViewModels
         public bool IsStrataSelected
         {
             get => _selectedLanguage.LanguageArg == "strata";
-            set { if (value) SelectedLanguage = Languages[0]; }
+            set { if (value && IsStrataAvailable) SelectedLanguage = StrataLanguage; }
         }
 
         public bool IsCSharpSelected
         {
             get => _selectedLanguage.LanguageArg == "csharp";
-            set { if (value) SelectedLanguage = Languages[1]; }
+            set { if (value) SelectedLanguage = CSharpLanguage; }
         }
 
         public ICommand ConfirmCommand { get; }
@@ -64,6 +65,10 @@ namespace Hyperion.Editor.ViewModels
             : base("New Script")
         {
             _onCompleted = onCompleted ?? throw new ArgumentNullException(nameof(onCompleted));
+
+            Languages = IsStrataAvailable
+                ? new[] { StrataLanguage, CSharpLanguage }
+                : new[] { CSharpLanguage };
 
             _selectedLanguage = Languages[0];
 
