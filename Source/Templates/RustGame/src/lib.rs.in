@@ -1,0 +1,23 @@
+#![allow(non_snake_case)]
+
+use hyperion::{log, Game, GameContext};
+
+pub struct @CLASS@;
+
+impl Game for @CLASS@ {
+    fn new() -> Self {
+        Self
+    }
+
+    fn on_launch(&mut self, context: &mut GameContext) {
+        log::info("@CLASS@ launched");
+
+        context.start_simulating();
+    }
+
+    fn on_update(&mut self, _context: &mut GameContext, _delta: f32) {}
+
+    fn on_shutdown(&mut self, _context: &mut GameContext) {}
+}
+
+hyperion::game_module!(@CLASS@);

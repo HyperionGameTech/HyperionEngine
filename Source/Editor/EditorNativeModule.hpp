@@ -38,10 +38,13 @@ enum class GameProjectLanguage : uint32
 {
     None = 0,
     Native,
-    Managed
+    Managed,
+    Rust
 };
 
 EDITOR_API GameProjectLanguage GetGameProjectLanguage(const FilePath& projectFilepath);
+
+EDITOR_API const char* GetGameProjectLanguageName(GameProjectLanguage language);
 
 EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath);
 

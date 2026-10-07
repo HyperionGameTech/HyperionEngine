@@ -1,0 +1,18 @@
+[package]
+name = "@NAME@"
+version = "0.1.0"
+edition = "2021"
+
+# The game as a library: loaded by the editor for Play, and linked into the standalone executable below.
+[lib]
+name = "@CLASS@"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "@NAME@"
+path = "src/main.rs"
+
+[dependencies]
+# Written by the editor: the engine install this project was generated from.
+hyperion = { path = "@HYPERION_RUST_DIR@/hyperion" }

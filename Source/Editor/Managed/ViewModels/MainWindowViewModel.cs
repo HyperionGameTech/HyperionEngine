@@ -99,6 +99,7 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand BuildNativeGame { get; } = new EditorCommand("BuildNativeGame");
 
         public EditorCommand GenerateManagedProject { get; } = new EditorCommand("GenerateManagedProject");
+        public EditorCommand GenerateRustProject { get; } = new EditorCommand("GenerateRustProject");
 
         private static string? GameSourceDirectory
         {
@@ -126,6 +127,11 @@ namespace Hyperion.Editor.ViewModels
                     return GameProjectLanguage.None;
                 }
 
+                if (Services.RustGameBuildService.FindProjectFile(EngineManager.CurrentProject?.FilePath) != null)
+                {
+                    return GameProjectLanguage.Rust;
+                }
+
                 return Services.ManagedGameBuildService.FindProjectFile(EngineManager.CurrentProject?.FilePath) != null
                     ? GameProjectLanguage.Managed
                     : GameProjectLanguage.Native;
@@ -136,6 +142,7 @@ namespace Hyperion.Editor.ViewModels
         {
             GameProjectLanguage.Managed => "Open C# Project Folder",
             GameProjectLanguage.Native => "Open C++ Project Folder",
+            GameProjectLanguage.Rust => "Open Rust Project Folder",
             _ => "Generate Game Project..."
         };
 
@@ -159,6 +166,10 @@ namespace Hyperion.Editor.ViewModels
             {
                 GenerateNativeProject.Execute(argument);
             }
+            else if (language == GameProjectLanguage.Rust)
+            {
+                GenerateRustProject.Execute(argument);
+            }
         }
 
         private void OnGameProjectMenu()
@@ -170,6 +181,9 @@ namespace Hyperion.Editor.ViewModels
                     break;
                 case GameProjectLanguage.Managed:
                     GenerateManagedProject.Execute(null);
+                    break;
+                case GameProjectLanguage.Rust:
+                    GenerateRustProject.Execute(null);
                     break;
                 default:
                     GenerateNativeProject.Execute(null);

@@ -50,12 +50,14 @@ CORE_API extern const FilePath& GetExecutablePath();
 namespace {
 
 using GetGameClassNameFn = const char* (*)();
+using CreateGameFn = Game* (*)();
 using GetEngineVersionFn = void (*)(uint32*, uint32*, uint32*);
 
 struct LoadedNativeModule
 {
     FilePath modulePath;
     String gameClassName;
+    CreateGameFn createGame = nullptr;
     String error;
     Time loadedTimestamp;
 };
@@ -184,7 +186,10 @@ EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& proj
         uint32 versionMinor = 0;
         uint32 versionPatch = 0;
 
-        if (getGameClassName == nullptr || getEngineVersion == nullptr)
+        // a module without a reflected Game class (e.g. one written in Rust) creates its game itself
+        const CreateGameFn createGame = reinterpret_cast<CreateGameFn>(library->GetFunction("HypGameModule_CreateGame"));
+
+        if ((getGameClassName == nullptr && createGame == nullptr) || getEngineVersion == nullptr)
         {
             loadedModule.error = HYP_FORMAT("Game module {} doesn't export HypGameModule_GetGameClassName / HypGameModule_GetEngineVersion", modulePath);
         }
@@ -193,6 +198,12 @@ EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& proj
         {
             loadedModule.error = HYP_FORMAT("Game module {} was built for engine {}.{}.{} (this is {}.{}.{}). Rebuild the game and restart the editor.",
                 modulePath, versionMajor, versionMinor, versionPatch, HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH);
+        }
+        else if (createGame != nullptr)
+        {
+            loadedModule.createGame = createGame;
+
+            HYP_LOG(Editor, Info, "Loaded game module {} (creates its own Game)", modulePath);
         }
         else
         {
@@ -230,7 +241,17 @@ EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& proj
         return HYP_MAKE_ERROR(Error, "{}", loadedModulePtr->error);
     }
 
-    Handle<Game> game = Game::CreateGame(StringHash(loadedModulePtr->gameClassName.Data()));
+    Handle<Game> game;
+
+    if (loadedModulePtr->createGame != nullptr)
+    {
+        // returned with a reference that the handle takes over
+        game.ptr = loadedModulePtr->createGame();
+    }
+    else
+    {
+        game = Game::CreateGame(StringHash(loadedModulePtr->gameClassName.Data()));
+    }
 
     if (!game.IsValid())
     {
@@ -449,6 +470,14 @@ Array<GameProjectFile> GetGameProjectFiles(const FilePath& projectFilepath, Game
         files.PushBack({ templateDir / "Game" / "Game.cpp.in", sourceDir / "Game" / (className + ".cpp") });
         files.PushBack({ templateDir / "Launcher" / "main.cpp.in", sourceDir / "Launcher" / "main.cpp" });
     }
+    else if (language == GameProjectLanguage::Rust)
+    {
+        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/RustGame";
+
+        files.PushBack({ templateDir / "Cargo.toml.in", sourceDir / "Cargo.toml" });
+        files.PushBack({ templateDir / "src" / "lib.rs.in", sourceDir / "src" / "lib.rs" });
+        files.PushBack({ templateDir / "src" / "main.rs.in", sourceDir / "src" / "main.rs" });
+    }
 
     return files;
 }
@@ -486,7 +515,10 @@ bool RenderGameProjectTemplate(const FilePath& templatePath, const FilePath& pro
 
     const String name = GetNativeProjectName(projectFilepath);
 
-    outText = templateText.ReplaceAll("@NAME@", name).ReplaceAll("@CLASS@", name + "Game");
+    // the engine's Rust crates (Source/Rust), which a Rust game depends on by path
+    const String rustDir = String(CoreApi::GetBaseDirectory() / "Source" / "Rust").ReplaceAll("\\", "/");
+
+    outText = templateText.ReplaceAll("@NAME@", name).ReplaceAll("@CLASS@", name + "Game").ReplaceAll("@HYPERION_RUST_DIR@", rustDir);
 
     return true;
 }
@@ -517,7 +549,25 @@ EDITOR_API GameProjectLanguage GetGameProjectLanguage(const FilePath& projectFil
         return GameProjectLanguage::None;
     }
 
+    if ((projectFilepath.BasePath() / "Source" / "Cargo.toml").Exists())
+    {
+        return GameProjectLanguage::Rust;
+    }
+
     return IsManagedProject(projectFilepath) ? GameProjectLanguage::Managed : GameProjectLanguage::Native;
+}
+
+EDITOR_API const char* GetGameProjectLanguageName(GameProjectLanguage language)
+{
+    switch (language)
+    {
+    case GameProjectLanguage::Managed:
+        return "C#";
+    case GameProjectLanguage::Rust:
+        return "Rust";
+    default:
+        return "C++";
+    }
 }
 
 EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath)
@@ -551,6 +601,7 @@ EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath)
 
     generatedPaths.PushBack(std::filesystem::weakly_canonical((sourceDir / "Hyperion.Local.props").Data(), errorCode));
     generatedPaths.PushBack(std::filesystem::weakly_canonical((sourceDir / "CMakeUserPresets.json").Data(), errorCode));
+    generatedPaths.PushBack(std::filesystem::weakly_canonical((sourceDir / "Cargo.lock").Data(), errorCode));
 
     // anything the user added next to the generated files counts as their work too
     for (std::filesystem::recursive_directory_iterator it(sourceDir.Data(), errorCode), end; !errorCode && it != end; it.increment(errorCode))

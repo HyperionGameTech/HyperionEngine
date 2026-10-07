@@ -28,7 +28,7 @@ namespace /* Helpers */ {
 
 void GenerateGameProject(EditorSubsystem* subsystem, GameProjectLanguage language, bool openFolder)
 {
-    const char* languageName = language == GameProjectLanguage::Managed ? "C#" : "C++";
+    const char* languageName = GetGameProjectLanguageName(language);
 
     const Handle<EditorProject>& currentProject = subsystem->GetCurrentProject();
 
@@ -149,6 +149,30 @@ public:
 DEFINE_EDITOR_COMMAND(GenerateManagedProject);
 
 #pragma endregion GenerateManagedProject
+
+#pragma region GenerateRustProject
+
+class EditorCommandGenerateRustProject final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandGenerateRustProject);
+
+public:
+    virtual ~EditorCommandGenerateRustProject() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Generate Rust Project";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        GenerateGameProject(subsystem, GameProjectLanguage::Rust, !(GetArguments().Any() && GetArgument(0) == "--no-open"));
+    }
+};
+
+DEFINE_EDITOR_COMMAND(GenerateRustProject);
+
+#pragma endregion GenerateRustProject
 
 #pragma region BuildNativeGame
 

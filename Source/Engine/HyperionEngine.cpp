@@ -37,6 +37,11 @@
 #include <Core/Reflection/Handle.hpp>
 #include <Core/Reflection/Method.hpp>
 
+#include <Core/Scripting/Strata/ThunkDrawer.hpp>
+#include <Core/Scripting/Strata/StrataMarshal.hpp>
+
+#include <Framework/CallbackGame.hpp>
+
 #include <Core/Threading/Threads.hpp>
 #include <Core/Threading/TaskSystem.hpp>
 
@@ -1125,6 +1130,90 @@ extern "C"
         }
     }
 #endif // HYP_EDITOR
+
+    HYP_EXPORT void* Hyp_ResolveBinding(const char* name)
+    {
+        if (!name)
+        {
+            return nullptr;
+        }
+
+        return Strata::ThunkDrawer::Resolve(StringHash(name));
+    }
+
+    HYP_EXPORT int Hyp_GetBindingAbiVersion()
+    {
+        // matches "abiVersion" in the generated Bindings.json
+        return 1;
+    }
+
+    HYP_EXPORT void Hyp_Retain(void* object)
+    {
+        if (object)
+        {
+            static_cast<ObjectBase*>(object)->AddRef();
+        }
+    }
+
+    HYP_EXPORT void Hyp_Release(void* object)
+    {
+        if (object)
+        {
+            static_cast<ObjectBase*>(object)->Release();
+        }
+    }
+
+    HYP_EXPORT void Hyp_Free(void* data)
+    {
+        if (data)
+        {
+            Strata::Free(data);
+        }
+    }
+
+    HYP_EXPORT Game* Hyp_CreateCallbackGame(const HypGameCallbacks* callbacks, void* userData)
+    {
+        Handle<CallbackGame> gameHandle = MakeHandle<CallbackGame>();
+
+        if (callbacks)
+        {
+            gameHandle->SetCallbacks(*callbacks, userData);
+        }
+
+        Game* pGame = gameHandle.Get();
+        gameHandle.ptr = nullptr; // transfer ownership
+
+        return pGame;
+    }
+
+    HYP_EXPORT void Hyp_GetEngineVersion(unsigned int* outMajor, unsigned int* outMinor, unsigned int* outPatch)
+    {
+        *outMajor = HYP_VERSION_MAJOR;
+        *outMinor = HYP_VERSION_MINOR;
+        *outPatch = HYP_VERSION_PATCH;
+    }
+
+    HYP_EXPORT void Hyp_Log(int level, const char* message)
+    {
+        if (!message)
+        {
+            return;
+        }
+
+        switch (LogLevel(level))
+        {
+        case LogLevel::Fatal:
+        case LogLevel::Error:
+            HYP_LOG(Engine, Error, "{}", message);
+            break;
+        case LogLevel::Warning:
+            HYP_LOG(Engine, Warning, "{}", message);
+            break;
+        default:
+            HYP_LOG(Engine, Info, "{}", message);
+            break;
+        }
+    }
 
     HYP_EXPORT int Hyp_ExecuteConsoleCommand(int argc, const char** argv)
     {

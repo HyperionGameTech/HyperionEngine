@@ -59,9 +59,6 @@ public:
 
     // Emit one `extern` free function per bindable method in this module.
     Result EmitMethods(const Analyzer& analyzer, const Module& mod, const Set<String>& allHandleNames, ByteWriter& writer) const;
-
-    //  Generates C bindings for our C++ methods.
-    Result EmitThunks(const Analyzer& analyzer, const Module& mod, const Set<String>& allHandleNames, ByteWriter& writer) const;
 };
 
 } // namespace CodeGen

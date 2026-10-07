@@ -35,6 +35,7 @@ class ApplicationWindow;
 struct WindowOptions;
 
 class Game;
+struct HypGameCallbacks;
 
 #if HYP_DOTNET
 struct ManagedDelegates;
@@ -64,6 +65,25 @@ extern "C"
     // Detached mode: set when the main window closes or on ctrl-c. The host should stop pumping and call Hyp_Shutdown().
     ENGINE_API int Hyp_IsQuitRequested();
     ENGINE_API void Hyp_RequestQuit();
+
+    // Generated C bindings (see Source/Generated/Bindings.json): returns the function for a symbol such as "Node_GetName", or null.
+    ENGINE_API void* Hyp_ResolveBinding(const char* name);
+    ENGINE_API int Hyp_GetBindingAbiVersion();
+
+    // Reference counting for objects that cross the C bindings. A binding whose manifest return convention is
+    // "handle_retained" returns an object the caller must Hyp_Release.
+    ENGINE_API void Hyp_Retain(void* object);
+    ENGINE_API void Hyp_Release(void* object);
+
+    // Frees a string or array that a binding returned through an out-parameter.
+    ENGINE_API void Hyp_Free(void* data);
+
+    // A Game driven by C function pointers. Returns a retained object, released with Hyp_DestroyGame.
+    ENGINE_API Game* Hyp_CreateCallbackGame(const HypGameCallbacks* callbacks, void* userData);
+
+    ENGINE_API void Hyp_Log(int level, const char* message);
+
+    ENGINE_API void Hyp_GetEngineVersion(unsigned int* outMajor, unsigned int* outMinor, unsigned int* outPatch);
 
 #ifdef HYP_DOTNET
     ENGINE_API void Hyp_SetInitFromManagedCallback(InitFromManagedCallback callback);

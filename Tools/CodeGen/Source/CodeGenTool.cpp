@@ -28,6 +28,11 @@
 #include <generator/generators/CXXModuleGenerator.hpp>
 #include <generator/generators/CSharpModuleGenerator.hpp>
 #include <generator/generators/StrataModuleGenerator.hpp>
+#include <generator/generators/CBindingGenerator.hpp>
+#include <generator/generators/RustBindingGenerator.hpp>
+#include <generator/generators/CHeaderGenerator.hpp>
+#include <generator/generators/BindingLayouts.hpp>
+#include <generator/generators/BindingsShared.hpp>
 
 #include <parser/Parser.hpp>
 
@@ -1228,24 +1233,11 @@ private:
 
         if (m_cxxMode == CXXGenerationMode::INL)
         {
-            // Strata C-binding thunks are appended to each module's .generated.inl
+            // C binding thunks are appended to each module's .generated.inl
             // (compiled in the Foo.cpp / Foo.generated.cpp context where the class
-            // is fully defined). Only emit when Strata generation is enabled.
-            StrataModuleGenerator strataModuleGenerator;
-            const bool strataEnabled = m_analyzer.GetStrataOutputDirectory().Any();
-            Set<String> strataHandleNames = strataEnabled
-                ? strataModuleGenerator.CollectHandleNames(m_analyzer)
-                : Set<String>{};
-
-            if (strataEnabled)
-            {
-                // Enums are declared types too (EmitEnums emits them into
-                // Engine.strata ahead of all method declarations).
-                for (const String& enumName : strataModuleGenerator.CollectEnumNames(m_analyzer))
-                {
-                    strataHandleNames.Insert(enumName);
-                }
-            }
+            // is fully defined). They don't depend on Strata generation being enabled.
+            CBindingGenerator cBindingGenerator;
+            const Set<String> bindingTypeNames = BindingsShared::CollectDeclaredTypeNames(m_analyzer);
 
             // Pre-scan for duplicate flattened .inl filenames (e.g., Foo.generated.inl)
             Map<String, FilePath> seenInlNames; // maps inl filename to first header path encountered
@@ -1315,6 +1307,44 @@ private:
                 }
             }
 
+            // Structs the bindings pass by pointer get a real layout where one can be worked out. That needs the
+            // whole list of bindings before any module is written, so collect it with a throwaway pass first.
+            BindingLayoutSet bindingLayouts(m_analyzer);
+
+            {
+                Array<ThunkBindingRecord> prepassRecords;
+
+                for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
+                {
+                    if (mod->GetClasses().Empty())
+                    {
+                        continue;
+                    }
+
+                    MemoryByteWriter<DynamicAllocator> discardedWriter;
+
+                    cBindingGenerator.EmitThunks(m_analyzer, *mod, bindingTypeNames, discardedWriter, &prepassRecords);
+                }
+
+                for (const ThunkBindingRecord& record : prepassRecords)
+                {
+                    for (const ThunkBindingValue& param : record.params)
+                    {
+                        if (param.convention == "struct_ptr")
+                        {
+                            bindingLayouts.Resolve(param.type);
+                        }
+                    }
+
+                    if (record.returnValue.convention == "struct_out")
+                    {
+                        bindingLayouts.Resolve(record.returnValue.type);
+                    }
+                }
+            }
+
+            Array<ThunkBindingRecord> bindingRecords;
+
             for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
             {
                 if (mod->GetClasses().Empty())
@@ -1357,13 +1387,15 @@ private:
                     continue;
                 }
 
-                // Append Strata binding thunks for this module's scriptable methods.
-                if (strataEnabled)
+                // Append C binding thunks for this module's scriptable methods.
+                if (Result res = cBindingGenerator.EmitThunks(m_analyzer, *mod, bindingTypeNames, inlWriter, &bindingRecords); res.HasError())
                 {
-                    if (Result res = strataModuleGenerator.EmitThunks(m_analyzer, *mod, strataHandleNames, inlWriter); res.HasError())
-                    {
-                        m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
-                    }
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+                }
+
+                if (Result res = cBindingGenerator.EmitLayoutChecks(*mod, bindingLayouts, inlWriter); res.HasError())
+                {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                 }
 
                 inlWriter.Close();
@@ -1380,6 +1412,85 @@ private:
                 ReplaceFileIfDifferent(tmpInlPath, inlPath);
 
                 m_writtenCXXGeneratedFiles.Insert(NormalizeGeneratedFilePath(inlPath));
+            }
+
+            // Every C thunk the engine registers, for binding generators of other languages
+            {
+                const FilePath manifestPath = m_analyzer.GetCXXOutputDirectory() / "Bindings.json";
+                FilePath tmpManifestPath = manifestPath + ".tmp";
+
+                FileByteWriter manifestWriter { tmpManifestPath };
+
+                if (!manifestWriter.IsOpen())
+                {
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open binding manifest file: {}", {}, -1, tmpManifestPath));
+                }
+                else
+                {
+                    manifestWriter.WriteString(CBindingGenerator::FormatBindingManifest(bindingRecords, bindingLayouts));
+                    manifestWriter.Close();
+
+                    ReplaceFileIfDifferent(tmpManifestPath, manifestPath);
+                }
+
+                // The same bindings as raw Rust, included by the hyperion-sys crate
+                const FilePath rustDirectory = m_analyzer.GetCXXOutputDirectory() / "Rust";
+                const FilePath rustPath = rustDirectory / "bindings.rs";
+                FilePath tmpRustPath = rustPath + ".tmp";
+
+                rustDirectory.MkDir();
+
+                FileByteWriter rustWriter { tmpRustPath };
+
+                if (!rustWriter.IsOpen())
+                {
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open Rust bindings file: {}", {}, -1, tmpRustPath));
+                }
+                else
+                {
+                    rustWriter.WriteString(RustBindingGenerator::Format(m_analyzer, bindingRecords, bindingLayouts));
+                    rustWriter.Close();
+
+                    ReplaceFileIfDifferent(tmpRustPath, rustPath);
+                }
+
+                const FilePath rustWrappersPath = rustDirectory / "wrappers.rs";
+                FilePath tmpRustWrappersPath = rustWrappersPath + ".tmp";
+
+                FileByteWriter rustWrappersWriter { tmpRustWrappersPath };
+
+                if (!rustWrappersWriter.IsOpen())
+                {
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open Rust wrappers file: {}", {}, -1, tmpRustWrappersPath));
+                }
+                else
+                {
+                    rustWrappersWriter.WriteString(RustBindingGenerator::FormatWrappers(m_analyzer, bindingRecords, bindingLayouts));
+                    rustWrappersWriter.Close();
+
+                    ReplaceFileIfDifferent(tmpRustWrappersPath, rustWrappersPath);
+                }
+
+                // And as a plain C header
+                const FilePath cDirectory = m_analyzer.GetCXXOutputDirectory() / "C";
+                const FilePath cHeaderPath = cDirectory / "hyperion_bindings.h";
+                FilePath tmpCHeaderPath = cHeaderPath + ".tmp";
+
+                cDirectory.MkDir();
+
+                FileByteWriter cHeaderWriter { tmpCHeaderPath };
+
+                if (!cHeaderWriter.IsOpen())
+                {
+                    m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open C bindings header: {}", {}, -1, tmpCHeaderPath));
+                }
+                else
+                {
+                    cHeaderWriter.WriteString(CHeaderGenerator::Format(m_analyzer, std::move(bindingRecords), bindingLayouts));
+                    cHeaderWriter.Close();
+
+                    ReplaceFileIfDifferent(tmpCHeaderPath, cHeaderPath);
+                }
             }
 
             TaskSystem::GetInstance().EnqueueBatch(batch);

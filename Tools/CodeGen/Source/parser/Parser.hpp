@@ -51,6 +51,10 @@ struct StrataTypeMapping
 
     String cxxQualifiedName;
 
+    bool isHandleWrapper = false; // True when the C++ type is Handle<T> rather than T*; crosses the binding as a T* either way
+    bool isResult = false;        // True for a `Result` return: crosses as a success flag plus an error message out-param
+    bool hasResultValue = false;  // True for `TResult<T>`: the other fields then describe T, returned through an out-param on success
+
     const String& CxxTypeName() const
     {
         return cxxQualifiedName.Any() ? cxxQualifiedName : typeName;

@@ -594,6 +594,9 @@ public:
 
     HYP_METHOD()
     String GetTemplatesDirectory() const;
+
+    HYP_METHOD(OnlyLanguages = "strata")
+    TResult<Handle<Node>> InstantiateTemplate(Name templateName) const;
     
     ///LOD
 

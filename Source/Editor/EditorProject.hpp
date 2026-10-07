@@ -165,6 +165,7 @@ public:
     HYP_METHOD()
     void SetActiveSwatch(Name swatchName);
 
+    HYP_METHOD(OnlyLanguages = "strata")
     static TResult<Handle<EditorProject>> Load(const FilePath& filepath);
     static Handle<EditorProject> CreateNew();
 

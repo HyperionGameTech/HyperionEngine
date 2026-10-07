@@ -100,6 +100,20 @@
                 </StackPanel>
             </RadioButton>
 
+            <RadioButton
+                Classes="language-option"
+                GroupName="GameProjectLanguage"
+                Padding="5"
+                IsChecked="{Binding IsRustSelected, Mode=TwoWay}">
+                <StackPanel Spacing="1">
+                    <TextBlock FontWeight="SemiBold" Text="Rust" />
+                    <TextBlock
+                        Classes="muted"
+                        FontSize="11"
+                        Text="Cargo project" />
+                </StackPanel>
+            </RadioButton>
+
             <CheckBox
                 Margin="0,4,0,0"
                 Content="Open in Visual Studio"

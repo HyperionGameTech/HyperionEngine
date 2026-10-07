@@ -177,5 +177,21 @@ HYP_FORCE_INLINE void SetReturnString(SString* outString, const StringType& str)
     SetReturnString(outString, str.Data(), str.Size());
 }
 
+/// The message of a failed Result. The caller may pass null when it doesn't want it.
+HYP_FORCE_INLINE void SetReturnError(SString* outError, const char* message)
+{
+    if (outError == nullptr)
+    {
+        return;
+    }
+
+    if (message == nullptr)
+    {
+        message = "";
+    }
+
+    SetReturnString(outError, message, Memory::StrLen(message));
+}
+
 } // namespace Strata
 } // namespace Hyperion

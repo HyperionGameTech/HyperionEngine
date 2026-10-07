@@ -1,0 +1,5 @@
+#![allow(non_snake_case)]
+
+fn main() {
+    std::process::exit(hyperion::run::<@CLASS@::@CLASS@>());
+}

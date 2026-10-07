@@ -230,7 +230,7 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         {
             const StrataTypeMapping& innerMapping = innerRes.GetValue();
 
-            if (innerMapping.isString || innerMapping.isArray || innerMapping.isVector || innerMapping.isStructValue)
+            if (innerMapping.isString || innerMapping.isArray || innerMapping.isVector || innerMapping.isStructValue || innerMapping.isHandleWrapper)
             {
                 return innerMapping;
             }
@@ -287,6 +287,29 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             ? type->typeName->parts.Back()
             : String::empty;
 
+        if (templateName == "Handle")
+        {
+            if (type->templateArguments.Empty() || !type->templateArguments[0]->type
+                || !type->templateArguments[0]->type->typeName.HasValue() || type->templateArguments[0]->type->typeName->parts.Empty())
+            {
+                return HYP_MAKE_ERROR(Error, "Handle type is missing its object type");
+            }
+
+            const String objectTypeName = type->templateArguments[0]->type->typeName->ToString(/* includeNamespace */ false);
+
+            const ClassDefinition* definition = analyzer.FindClassDefinition(objectTypeName);
+
+            if (!definition || definition->type != ClassDefinitionType::Class)
+            {
+                return HYP_MAKE_ERROR(Error, "Handle<{}> does not refer to a reflected class", objectTypeName);
+            }
+
+            StrataTypeMapping mapping { definition->name, true, false, false, false, false, false, BuildQualifiedCXXName(*definition) };
+            mapping.isHandleWrapper = true;
+
+            return mapping;
+        }
+
         if (templateName == "Array" || templateName == "SlimArray" || templateName == "FatArray")
         {
             if (type->templateArguments.Empty() || !type->templateArguments[0]->type)
@@ -312,6 +335,35 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
             StrataTypeMapping mapping;
             mapping.typeName = elementMapping.typeName + "[]";
             mapping.isArray = true;
+
+            return mapping;
+        }
+
+        // TResult<T>: a Result that carries a value on success. The mapping describes T.
+        if (templateName == "TResult")
+        {
+            if (type->templateArguments.Size() != 1 || !type->templateArguments[0]->type)
+            {
+                return HYP_MAKE_ERROR(Error, "TResult must have exactly one type argument to be bound");
+            }
+
+            TResult<StrataTypeMapping> valueRes = MapToStrataType(analyzer, type->templateArguments[0]->type.Get());
+
+            if (valueRes.HasError())
+            {
+                return valueRes.GetError();
+            }
+
+            StrataTypeMapping mapping = valueRes.GetValue();
+
+            if (mapping.typeName == "void" || mapping.isArray || mapping.isResult
+                || (mapping.isHandle && !mapping.isHandleWrapper))
+            {
+                return HYP_MAKE_ERROR(Error, "TResult<{}> is not supported in bindings", mapping.typeName);
+            }
+
+            mapping.isResult = true;
+            mapping.hasResultValue = true;
 
             return mapping;
         }
@@ -355,16 +407,29 @@ TResult<StrataTypeMapping> MapToStrataType(const Analyzer& analyzer, const ASTTy
         { "String", { "string", false, false, true } },
         { "ANSIString", { "string", false, false, true } },
 
+        // A path is a string to everything outside the engine.
+        { "FilePath", { "string", false, false, true } },
+
         // Engine's float vectors map directly to Strata's core vector types.
         // Unlike structs these are core language types, passed by value.
-        { "Vec2f", { "float2", false, false, false, false, true } },
-        { "Vec3f", { "float3", false, false, false, false, true } },
-        { "Vec4f", { "float4", false, false, false, false, true } }
+        { "Vec2f", { "float2", false, false, false, false, true, false, "Vec2f" } },
+        { "Vec3f", { "float3", false, false, false, false, true, false, "Vec3f" } },
+        { "Vec4f", { "float4", false, false, false, false, true, false, "Vec4f" } }
     };
 
     if (auto it = s_mapping.Find(typeNameString); it != s_mapping.End())
     {
         return it->second;
+    }
+
+    // Result is not a plain struct (it owns its error). Only meaningful as a return value.
+    if (typeNameString == "Result")
+    {
+        StrataTypeMapping mapping;
+        mapping.typeName = "Result";
+        mapping.isResult = true;
+
+        return mapping;
     }
 
     // Reflected enums map to their own strong enum type in Strata

@@ -9,7 +9,8 @@ namespace Hyperion.Editor.ViewModels
     {
         None,
         Native,
-        Managed
+        Managed,
+        Rust
     }
 
     public class GameProjectWindowViewModel : ViewModelBase
@@ -44,6 +45,12 @@ namespace Hyperion.Editor.ViewModels
             set { if (value) Select(GameProjectLanguage.Managed); }
         }
 
+        public bool IsRustSelected
+        {
+            get => _selectedLanguage == GameProjectLanguage.Rust;
+            set { if (value) Select(GameProjectLanguage.Rust); }
+        }
+
         public RelayCommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
 
@@ -72,6 +79,7 @@ namespace Hyperion.Editor.ViewModels
 
             OnPropertyChanged(nameof(IsNativeSelected));
             OnPropertyChanged(nameof(IsManagedSelected));
+            OnPropertyChanged(nameof(IsRustSelected));
 
             ConfirmCommand.RaiseCanExecuteChanged();
         }
@@ -79,7 +87,7 @@ namespace Hyperion.Editor.ViewModels
         private void OnConfirm()
         {
             ConfirmedLanguage = _selectedLanguage;
-            ConfirmedOpenInVisualStudio = CanOpenInVisualStudio && OpenInVisualStudio;
+            ConfirmedOpenInVisualStudio = CanOpenInVisualStudio && OpenInVisualStudio && _selectedLanguage != GameProjectLanguage.Rust;
 
             CloseRequested?.Invoke();
         }

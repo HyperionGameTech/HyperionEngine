@@ -369,6 +369,23 @@ if ($templateCount -eq 0) { Add-Warning "No tracked files under Source/Templates
 $managedSdkCount = Copy-TrackedFiles @("Source/Engine/DotNET/Sdk") $StageDir
 if ($managedSdkCount -eq 0) { Add-Warning "No tracked files under Source/Engine/DotNET/Sdk; C# game projects won't build from this package" }
 
+# crates that generated Rust game projects depend on by path, plus the bindings CodeGen wrote for them
+$rustSdkCount = Copy-TrackedFiles @("Source/Rust") $StageDir
+$rustBindings = Join-Path $RootDir "Source/Generated/Rust/bindings.rs"
+if ($rustSdkCount -eq 0 -or -not (Test-Path $rustBindings))
+{
+    Add-Warning "Source/Rust isn't tracked or Source/Generated/Rust/bindings.rs is missing; Rust game projects won't build from this package"
+}
+else
+{
+    Copy-StagedFile $rustBindings (Join-Path $StageDir "Source/Generated/Rust/bindings.rs")
+    Copy-StagedFile (Join-Path $RootDir "Source/Generated/Rust/wrappers.rs") (Join-Path $StageDir "Source/Generated/Rust/wrappers.rs")
+}
+
+# the same bindings for C callers
+$cBindingsHeader = Join-Path $RootDir "Source/Generated/C/hyperion_bindings.h"
+if (Test-Path $cBindingsHeader) { Copy-StagedFile $cBindingsHeader (Join-Path $StageDir "Sdk/Include/C/hyperion_bindings.h") }
+
 $StrataScriptsDir = Join-Path $RootDir "Data/Scripts/Strata"
 if (Test-Path $StrataScriptsDir)
 {

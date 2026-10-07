@@ -3033,6 +3033,11 @@ String EditorSubsystem::GetTemplatesDirectory() const
     return EditorTemplateLibrary::GetDirectory();
 }
 
+TResult<Handle<Node>> EditorSubsystem::InstantiateTemplate(Name templateName) const
+{
+    return EditorTemplateLibrary::InstantiateTemplate(templateName);
+}
+
 int32 EditorSubsystem::GetViewportForcedLod() const
 {
     return g_cvMeshLodForceLod.Get();
