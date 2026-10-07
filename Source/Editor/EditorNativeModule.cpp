@@ -26,6 +26,7 @@
 #include <Core/Utilities/GlobalContext.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
 
 #include <Scripting/ScriptObjectResource.hpp>
 
@@ -413,6 +414,251 @@ EDITOR_API TResult<Handle<Game>> CreateGameFromManagedModule(const FilePath& pro
 #else
     return Handle<Game>();
 #endif
+}
+
+namespace {
+
+struct GameProjectFile
+{
+    FilePath templatePath;
+    FilePath filepath;
+};
+
+Array<GameProjectFile> GetGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language)
+{
+    const FilePath sourceDir = projectFilepath.BasePath() / "Source";
+    const String className = GetNativeProjectName(projectFilepath) + "Game";
+
+    Array<GameProjectFile> files;
+
+    if (language == GameProjectLanguage::Managed)
+    {
+        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/ManagedGame";
+
+        files.PushBack({ templateDir / "Game.csproj.in", GetManagedProjectFilePath(projectFilepath) });
+        files.PushBack({ templateDir / "Game.cs.in", sourceDir / (className + ".cs") });
+        files.PushBack({ templateDir / "Program.cs.in", sourceDir / "Program.cs" });
+        files.PushBack({ templateDir / "Game.slnx.in", projectFilepath.BasePath() / (GetNativeProjectName(projectFilepath) + ".slnx") });
+    }
+    else if (language == GameProjectLanguage::Native)
+    {
+        const FilePath templateDir = CoreApi::GetBaseDirectory() / "Source/Templates/NativeGame";
+
+        files.PushBack({ templateDir / "CMakeLists.txt.in", sourceDir / "CMakeLists.txt" });
+        files.PushBack({ templateDir / "Game" / "Game.hpp.in", sourceDir / "Game" / (className + ".hpp") });
+        files.PushBack({ templateDir / "Game" / "Game.cpp.in", sourceDir / "Game" / (className + ".cpp") });
+        files.PushBack({ templateDir / "Launcher" / "main.cpp.in", sourceDir / "Launcher" / "main.cpp" });
+    }
+
+    return files;
+}
+
+bool ReadTextFile(const FilePath& filepath, String& outText)
+{
+    if (!filepath.Exists())
+    {
+        return false;
+    }
+
+    FileByteReader reader { filepath };
+
+    if (reader.Eof())
+    {
+        return false;
+    }
+
+    const ByteBuffer buffer = reader.Read();
+    reader.Close();
+
+    outText = String(buffer.ToByteView());
+
+    return true;
+}
+
+bool RenderGameProjectTemplate(const FilePath& templatePath, const FilePath& projectFilepath, String& outText)
+{
+    String templateText;
+
+    if (!ReadTextFile(templatePath, templateText))
+    {
+        return false;
+    }
+
+    const String name = GetNativeProjectName(projectFilepath);
+
+    outText = templateText.ReplaceAll("@NAME@", name).ReplaceAll("@CLASS@", name + "Game");
+
+    return true;
+}
+
+bool IsGameProjectScratchDirectory(const std::filesystem::path& path)
+{
+    static const char* const s_scratchDirectories[] = { "obj", "bin", ".vs", ".vscode", ".idea" };
+
+    const std::string directoryName = path.filename().string();
+
+    for (const char* scratchDirectory : s_scratchDirectories)
+    {
+        if (directoryName == scratchDirectory)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+} // namespace
+
+EDITOR_API GameProjectLanguage GetGameProjectLanguage(const FilePath& projectFilepath)
+{
+    if (!(projectFilepath.BasePath() / "Source").Exists())
+    {
+        return GameProjectLanguage::None;
+    }
+
+    return IsManagedProject(projectFilepath) ? GameProjectLanguage::Managed : GameProjectLanguage::Native;
+}
+
+EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath)
+{
+    const GameProjectLanguage language = GetGameProjectLanguage(projectFilepath);
+
+    if (language == GameProjectLanguage::None)
+    {
+        return false;
+    }
+
+    const FilePath sourceDir = projectFilepath.BasePath() / "Source";
+
+    std::error_code errorCode;
+    Array<std::filesystem::path> generatedPaths;
+
+    for (const GameProjectFile& file : GetGameProjectFiles(projectFilepath, language))
+    {
+        String expectedText;
+        String actualText;
+
+        if (!RenderGameProjectTemplate(file.templatePath, projectFilepath, expectedText)
+            || !ReadTextFile(file.filepath, actualText)
+            || expectedText != actualText)
+        {
+            return false;
+        }
+
+        generatedPaths.PushBack(std::filesystem::weakly_canonical(file.filepath.Data(), errorCode));
+    }
+
+    generatedPaths.PushBack(std::filesystem::weakly_canonical((sourceDir / "Hyperion.Local.props").Data(), errorCode));
+    generatedPaths.PushBack(std::filesystem::weakly_canonical((sourceDir / "CMakeUserPresets.json").Data(), errorCode));
+
+    // anything the user added next to the generated files counts as their work too
+    for (std::filesystem::recursive_directory_iterator it(sourceDir.Data(), errorCode), end; !errorCode && it != end; it.increment(errorCode))
+    {
+        if (it->is_directory(errorCode))
+        {
+            if (IsGameProjectScratchDirectory(it->path()))
+            {
+                it.disable_recursion_pending();
+            }
+
+            continue;
+        }
+
+        const std::filesystem::path path = std::filesystem::weakly_canonical(it->path(), errorCode);
+
+        bool isGenerated = false;
+
+        for (const std::filesystem::path& generatedPath : generatedPaths)
+        {
+            isGenerated |= (path == generatedPath);
+        }
+
+        if (!isGenerated)
+        {
+            return false;
+        }
+    }
+
+    return !errorCode;
+}
+
+EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language)
+{
+    if (language == GameProjectLanguage::None)
+    {
+        return HYP_MAKE_ERROR(Error, "No game project language given");
+    }
+
+    for (const GameProjectFile& file : GetGameProjectFiles(projectFilepath, language))
+    {
+        String text;
+
+        if (!RenderGameProjectTemplate(file.templatePath, projectFilepath, text))
+        {
+            return HYP_MAKE_ERROR(Error, "Template {} is missing", file.templatePath);
+        }
+
+        const FilePath directory = file.filepath.BasePath();
+
+        if (!directory.Exists() && !directory.MkDir())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to create directory {}", directory);
+        }
+
+        FileByteWriter writer { file.filepath };
+
+        if (!writer.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open {} for writing", file.filepath);
+        }
+
+        writer.Write(text.Data(), text.Size());
+        writer.Close();
+    }
+
+    if (language == GameProjectLanguage::Managed)
+    {
+        return WriteManagedProjectProps(projectFilepath);
+    }
+
+    return {};
+}
+
+EDITOR_API Result RemoveGameProjectFiles(const FilePath& projectFilepath)
+{
+    if (!IsGameProjectUnmodified(projectFilepath))
+    {
+        return HYP_MAKE_ERROR(Error, "The game project has been modified, not removing it");
+    }
+
+    const GameProjectLanguage language = GetGameProjectLanguage(projectFilepath);
+    const FilePath sourceDir = projectFilepath.BasePath() / "Source";
+
+    if (!sourceDir.RemoveRecursively())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to remove {}", sourceDir);
+    }
+
+    for (const GameProjectFile& file : GetGameProjectFiles(projectFilepath, language))
+    {
+        if (file.filepath.Exists())
+        {
+            file.filepath.Remove();
+        }
+    }
+
+    // a module built from the removed sources would still be picked up for play
+    const FilePath modulePath = language == GameProjectLanguage::Managed
+        ? GetManagedModulePath(projectFilepath)
+        : GetNativeModulePath(projectFilepath);
+
+    if (modulePath.Exists())
+    {
+        modulePath.Remove();
+    }
+
+    return {};
 }
 
 } // namespace Hyperion

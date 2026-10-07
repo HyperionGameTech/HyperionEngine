@@ -70,7 +70,7 @@ namespace Hyperion.Editor.ViewModels
         public override bool SupportsMultipleTargets => false;
         public override bool ShowsDescriptionInOwnTemplate => true;
 
-        private bool _isExpanded = true;
+        private bool _isExpanded;
         public bool IsExpanded
         {
             get => _isExpanded;

@@ -34,4 +34,19 @@ EDITOR_API Result WriteManagedProjectProps(const FilePath& projectFilepath);
 
 EDITOR_API TResult<Handle<Game>> CreateGameFromManagedModule(const FilePath& projectFilepath);
 
+enum class GameProjectLanguage : uint32
+{
+    None = 0,
+    Native,
+    Managed
+};
+
+EDITOR_API GameProjectLanguage GetGameProjectLanguage(const FilePath& projectFilepath);
+
+EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath);
+
+EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language);
+
+EDITOR_API Result RemoveGameProjectFiles(const FilePath& projectFilepath);
+
 } // namespace Hyperion

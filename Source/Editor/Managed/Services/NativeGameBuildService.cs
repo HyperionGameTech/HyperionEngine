@@ -207,7 +207,7 @@ namespace Hyperion.Editor.Services
             return best;
         }
 
-        private static List<string> FindVisualStudioInstalls()
+        internal static List<string> FindVisualStudioInstalls()
         {
             List<string> installPaths = new List<string>();
 

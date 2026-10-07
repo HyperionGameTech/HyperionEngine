@@ -190,6 +190,9 @@ public:
     HYP_METHOD()
     bool IsStrataEnabled() const;
 
+    HYP_METHOD()
+    bool CanChangeGameProjectLanguage() const;
+
     ///PIE net state
 
     HYP_METHOD()
