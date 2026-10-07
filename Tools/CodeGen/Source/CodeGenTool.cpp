@@ -28,6 +28,8 @@
 #include <generator/generators/CXXModuleGenerator.hpp>
 #include <generator/generators/CSharpModuleGenerator.hpp>
 #include <generator/generators/StrataModuleGenerator.hpp>
+#include <generator/generators/CBindingGenerator.hpp>
+#include <generator/generators/BindingsShared.hpp>
 
 #include <parser/Parser.hpp>
 
@@ -1228,24 +1230,11 @@ private:
 
         if (m_cxxMode == CXXGenerationMode::INL)
         {
-            // Strata C-binding thunks are appended to each module's .generated.inl
+            // C binding thunks are appended to each module's .generated.inl
             // (compiled in the Foo.cpp / Foo.generated.cpp context where the class
-            // is fully defined). Only emit when Strata generation is enabled.
-            StrataModuleGenerator strataModuleGenerator;
-            const bool strataEnabled = m_analyzer.GetStrataOutputDirectory().Any();
-            Set<String> strataHandleNames = strataEnabled
-                ? strataModuleGenerator.CollectHandleNames(m_analyzer)
-                : Set<String>{};
-
-            if (strataEnabled)
-            {
-                // Enums are declared types too (EmitEnums emits them into
-                // Engine.strata ahead of all method declarations).
-                for (const String& enumName : strataModuleGenerator.CollectEnumNames(m_analyzer))
-                {
-                    strataHandleNames.Insert(enumName);
-                }
-            }
+            // is fully defined).
+            CBindingGenerator cBindingGenerator;
+            const Set<String> bindingTypeNames = BindingsShared::CollectDeclaredTypeNames(m_analyzer);
 
             // Pre-scan for duplicate flattened .inl filenames (e.g., Foo.generated.inl)
             Map<String, FilePath> seenInlNames; // maps inl filename to first header path encountered
@@ -1357,13 +1346,10 @@ private:
                     continue;
                 }
 
-                // Append Strata binding thunks for this module's scriptable methods.
-                if (strataEnabled)
+                // Append C binding thunks for this module's scriptable methods.
+                if (Result res = cBindingGenerator.EmitThunks(m_analyzer, *mod, bindingTypeNames, inlWriter); res.HasError())
                 {
-                    if (Result res = strataModuleGenerator.EmitThunks(m_analyzer, *mod, strataHandleNames, inlWriter); res.HasError())
-                    {
-                        m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
-                    }
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                 }
 
                 inlWriter.Close();
