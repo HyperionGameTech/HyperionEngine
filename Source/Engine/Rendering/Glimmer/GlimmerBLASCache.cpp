@@ -40,10 +40,11 @@ static constexpr uint32 FreedRangeReuseDelayFrames = 4;
 static constexpr uint32 MinFramesBeforeEviction = 8;
 static constexpr uint32 FailedRetryDelayFrames = 120;
 
-static constexpr uint32 PackedVertexSizeInFloats = sizeof(TVertex<VT_Simple>) / sizeof(float);
+static constexpr uint32 LightmapUVOffsetInFloats = sizeof(TVertex<VT_Simple>) / sizeof(float);
 
 static constexpr uint64 PoolBytes = 256ull * 1024ull * 1024ull;
 static constexpr uint64 NodePoolBytes = PoolBytes * 3 / 8;
+static constexpr uint64 LightmapUVPoolBytes = 24ull * 1024ull * 1024ull;
 
 static constexpr uint32 BLASMinLeafSize = 4;
 static constexpr uint32 BLASMaxLeafSize = 16;
@@ -255,6 +256,7 @@ GlimmerBLASCache::~GlimmerBLASCache()
 
     EnqueueDeletion(std::move(m_nodesBuffer));
     EnqueueDeletion(std::move(m_trianglesBuffer));
+    EnqueueDeletion(std::move(m_lightmapUVsBuffer));
 }
 
 uint64 GlimmerBLASCache::MakeKey(const Mesh* mesh, uint8 lodIndex)
@@ -272,13 +274,19 @@ void GlimmerBLASCache::CreatePoolBuffers()
     m_nodesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerBLASNode), nodeCapacity);
     m_trianglesBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangle), triangleCapacity);
 
+    const uint32 lightmapUVCapacity = uint32(LightmapUVPoolBytes / sizeof(GlimmerTriangleLightmapUVs));
+
+    m_lightmapUVsBuffer = CreateGlimmerStructuredBuffer(sizeof(GlimmerTriangleLightmapUVs), lightmapUVCapacity);
+
 #ifdef HYP_RHI_DEBUG_NAMES
     m_nodesBuffer->SetDebugName(NAME("GlimmerBLASNodes"));
     m_trianglesBuffer->SetDebugName(NAME("GlimmerBLASTriangles"));
+    m_lightmapUVsBuffer->SetDebugName(NAME("GlimmerBLASLightmapUVs"));
 #endif
 
     m_nodeAllocator.Reset(nodeCapacity);
     m_triangleAllocator.Reset(triangleCapacity);
+    m_lightmapUVAllocator.Reset(lightmapUVCapacity);
 
     HYP_LOG(Rendering, Info, "Glimmer: created BLAS pool ({} MB, {} nodes, {} triangles)",
         PoolBytes / (1024ull * 1024ull), nodeCapacity, triangleCapacity);
@@ -511,6 +519,9 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
     Array<float> packedVertices;
     Array<uint32> indices;
 
+    VertexInputLayoutDesc inputLayout = StaticVertexInputLayout<VT_Simple>;
+    bool hasLightmapUVs = false;
+
     {
         auto resourceGuard = mesh->GetReadScope();
 
@@ -524,7 +535,13 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
             lodIndex = 0;
         }
 
-        mesh->BuildVertexBuffer(StaticVertexInputLayout<VT_Simple>, lodIndex, packedVertices);
+        if (mesh->GetMeshDesc().meshAttributes.inputLayout.mask & VT_UV1)
+        {
+            inputLayout = StaticVertexInputLayout<VT_Simple | VT_UV1>;
+            hasLightmapUVs = true;
+        }
+
+        mesh->BuildVertexBuffer(inputLayout, lodIndex, packedVertices);
 
         const Span<const ubyte> indexData = mesh->GetIndexData(lodIndex);
         const size_t indexSize = GpuElemTypeSize(mesh->GetMeshDesc().meshAttributes.indexBufferElemType);
@@ -555,16 +572,20 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
         }
     }
 
-    const uint32 numVertices = uint32(packedVertices.Size() / PackedVertexSizeInFloats);
+    const uint32 packedVertexSizeInFloats = uint32(inputLayout.VertexSize() / sizeof(float));
+    const uint32 numVertices = uint32(packedVertices.Size() / packedVertexSizeInFloats);
 
     Array<Vec3f> trianglePositions; // object space, three per triangle
     trianglePositions.Reserve(indices.Size());
+
+    Array<Vec2f> triangleLightmapUVs; // three per triangle, when the mesh has them
 
     BoundingBox objectBounds;
 
     for (size_t firstIndex = 0; firstIndex + 2 < indices.Size(); firstIndex += 3)
     {
         Vec3f positions[3];
+        Vec2f lightmapUVs[3];
         Vec3f normalSum = Vec3f::Zero();
         bool isValid = true;
 
@@ -579,9 +600,14 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
                 break;
             }
 
-            const float* vertex = packedVertices.Data() + size_t(vertexIndex) * PackedVertexSizeInFloats;
+            const float* vertex = packedVertices.Data() + size_t(vertexIndex) * packedVertexSizeInFloats;
             positions[corner] = Vec3f(vertex[0], vertex[1], vertex[2]);
             normalSum += Vec3f(vertex[3], vertex[4], vertex[5]);
+
+            if (hasLightmapUVs)
+            {
+                lightmapUVs[corner] = Vec2f(vertex[LightmapUVOffsetInFloats], vertex[LightmapUVOffsetInFloats + 1]);
+            }
         }
 
         if (!isValid || !MathUtil::IsFinite(positions[0]) || !MathUtil::IsFinite(positions[1]) || !MathUtil::IsFinite(positions[2]))
@@ -594,6 +620,7 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
         if ((positions[1] - positions[0]).Cross(positions[2] - positions[0]).Dot(normalSum) < 0.0f)
         {
             std::swap(positions[1], positions[2]);
+            std::swap(lightmapUVs[1], lightmapUVs[2]);
         }
 
         const Vec3f edge1 = positions[1] - positions[0];
@@ -608,6 +635,11 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
         for (uint32 corner = 0; corner < 3; corner++)
         {
             trianglePositions.PushBack(positions[corner]);
+
+            if (hasLightmapUVs)
+            {
+                triangleLightmapUVs.PushBack(lightmapUVs[corner]);
+            }
         }
 
         objectBounds = objectBounds.Union(positions[0]).Union(positions[1]).Union(positions[2]);
@@ -639,6 +671,8 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
 
     Array<BoundingBox> triangleBounds;
     triangleBounds.Reserve(trianglePositions.Size() / 3);
+
+    Array<GlimmerTriangleLightmapUVs> unorderedLightmapUVs;
 
     for (size_t firstPosition = 0; firstPosition + 2 < trianglePositions.Size(); firstPosition += 3)
     {
@@ -672,6 +706,23 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
 
         triangle.leafFlags = 0;
 
+        if (hasLightmapUVs)
+        {
+            GlimmerTriangleLightmapUVs& packedUVs = unorderedLightmapUVs.EmplaceBack();
+
+            for (uint32 corner = 0; corner < 3; corner++)
+            {
+                const Vec2f uv = triangleLightmapUVs[firstPosition + corner];
+
+                for (int axis = 0; axis < 2; axis++)
+                {
+                    const float value = std::isfinite(uv[axis]) ? MathUtil::Clamp(uv[axis], 0.0f, 1.0f) : 0.0f;
+
+                    packedUVs.uvs[corner * 2 + axis] = uint16(value * 65535.0f + 0.5f);
+                }
+            }
+        }
+
         triangleBounds.PushBack(BoundingBox(gridPositions[0], gridPositions[0]).Union(gridPositions[1]).Union(gridPositions[2]));
     }
 
@@ -695,6 +746,16 @@ GlimmerBLASCache::BuildResult GlimmerBLASCache::BuildBLAS(const Handle<Mesh>& me
     for (size_t orderIndex = 0; orderIndex < triangleOrder.Size(); orderIndex++)
     {
         result.triangles[orderIndex] = unorderedTriangles[triangleOrder[orderIndex]];
+    }
+
+    if (hasLightmapUVs)
+    {
+        result.lightmapUVs.Resize(triangleOrder.Size());
+
+        for (size_t orderIndex = 0; orderIndex < triangleOrder.Size(); orderIndex++)
+        {
+            result.lightmapUVs[orderIndex] = unorderedLightmapUVs[triangleOrder[orderIndex]];
+        }
     }
 
     result.depth = GlimmerBVHBuilder::CalculateDepth(bvhNodes.ToSpan());
@@ -734,6 +795,11 @@ bool GlimmerBLASCache::AllocateEntry(Entry& entry)
         entry.ref.nodeCount = nodeCount;
         entry.ref.triangleBase = triangleBase;
         entry.ref.triangleCount = triangleCount;
+
+        // a mesh the pool has no room for goes without, and is lit as if it had no lightmap
+        entry.ref.lightmapUVBase = entry.result.lightmapUVs.Size() == triangleCount
+            ? m_lightmapUVAllocator.Allocate(triangleCount)
+            : GlimmerPoolAllocator::InvalidOffset;
 
         return true;
     }
@@ -951,10 +1017,13 @@ void GlimmerBLASCache::FreeEntryRanges(Entry& entry)
         entry.ref.nodeCount,
         entry.ref.triangleBase,
         entry.ref.triangleCount,
-        GetFrameCounter() });
+        GetFrameCounter(),
+        entry.ref.lightmapUVBase,
+        entry.ref.lightmapUVBase != GlimmerPoolAllocator::InvalidOffset ? entry.ref.triangleCount : 0u });
 
     entry.ref.nodeCount = 0;
     entry.ref.triangleCount = 0;
+    entry.ref.lightmapUVBase = GlimmerPoolAllocator::InvalidOffset;
 }
 
 void GlimmerBLASCache::UploadEntry(Frame* frame, Entry& entry)
@@ -963,13 +1032,20 @@ void GlimmerBLASCache::UploadEntry(Frame* frame, Entry& entry)
 
     const size_t nodesByteSize = entry.result.nodes.ByteSize();
     const size_t trianglesByteSize = entry.result.triangles.ByteSize();
+    const size_t lightmapUVsByteSize = entry.ref.lightmapUVBase != GlimmerPoolAllocator::InvalidOffset ? entry.result.lightmapUVs.ByteSize() : 0;
 
-    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(nodesByteSize + trianglesByteSize);
+    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(nodesByteSize + trianglesByteSize + lightmapUVsByteSize);
     Assert(stagingBuffer != nullptr);
 
     stagingBuffer->Copy(0, nodesByteSize, entry.result.nodes.Data());
     stagingBuffer->Copy(nodesByteSize, trianglesByteSize, entry.result.triangles.Data());
-    stagingBuffer->Flush(0, nodesByteSize + trianglesByteSize);
+
+    if (lightmapUVsByteSize != 0)
+    {
+        stagingBuffer->Copy(nodesByteSize + trianglesByteSize, lightmapUVsByteSize, entry.result.lightmapUVs.Data());
+    }
+
+    stagingBuffer->Flush(0, nodesByteSize + trianglesByteSize + lightmapUVsByteSize);
 
     cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
     cr << InsertBarrier(m_nodesBuffer.Get(), ResourceState::CopyDst);
@@ -984,6 +1060,16 @@ void GlimmerBLASCache::UploadEntry(Frame* frame, Entry& entry)
         uint32(nodesByteSize),
         uint32(size_t(entry.ref.triangleBase) * sizeof(GlimmerTriangle)),
         uint32(trianglesByteSize));
+
+    if (lightmapUVsByteSize != 0)
+    {
+        cr << InsertBarrier(m_lightmapUVsBuffer.Get(), ResourceState::CopyDst);
+
+        cr << CopyBuffer(stagingBuffer, m_lightmapUVsBuffer.Get(),
+            uint32(nodesByteSize + trianglesByteSize),
+            uint32(size_t(entry.ref.lightmapUVBase) * sizeof(GlimmerTriangleLightmapUVs)),
+            uint32(lightmapUVsByteSize));
+    }
 
     entry.ref.depth = entry.result.depth;
     entry.ref.localBounds = entry.result.localBounds;
@@ -1002,6 +1088,8 @@ void GlimmerBLASCache::Update(Frame* frame)
     if (!IsReady())
     {
         CreatePoolBuffers();
+
+        frame->cr << InsertBarrier(m_lightmapUVsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
     }
 
     const uint32 frameCounter = GetFrameCounter();
@@ -1019,6 +1107,7 @@ void GlimmerBLASCache::Update(Frame* frame)
 
         m_nodeAllocator.Free(deferredFree.nodeOffset, deferredFree.nodeCount);
         m_triangleAllocator.Free(deferredFree.triangleOffset, deferredFree.triangleCount);
+        m_lightmapUVAllocator.Free(deferredFree.lightmapUVOffset, deferredFree.lightmapUVCount);
 
         m_deferredFrees.EraseAt(freeIndex);
     }
@@ -1374,6 +1463,7 @@ void GlimmerBLASCache::Update(Frame* frame)
     {
         frame->cr << InsertBarrier(m_nodesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
         frame->cr << InsertBarrier(m_trianglesBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
+        frame->cr << InsertBarrier(m_lightmapUVsBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
     }
 }
 
@@ -1418,6 +1508,8 @@ GlimmerBLASCacheStats GlimmerBLASCache::GetStats() const
     stats.nodesCapacity = m_nodeAllocator.GetCapacity();
     stats.trianglesUsed = m_triangleAllocator.GetNumUsed();
     stats.trianglesCapacity = m_triangleAllocator.GetCapacity();
+    stats.lightmapUVsUsed = m_lightmapUVAllocator.GetNumUsed();
+    stats.lightmapUVsCapacity = m_lightmapUVAllocator.GetCapacity();
 
     return stats;
 }

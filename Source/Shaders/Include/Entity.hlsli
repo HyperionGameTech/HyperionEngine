@@ -2,6 +2,7 @@
 #define HYP_ENTITY
 
 #include "Defines.hlsli"
+#include "Lightmap.hlsli"
 
 struct Entity
 {
@@ -30,14 +31,7 @@ struct Entity
 // Map entity's lightmap rect onto uv1 [0,1]
 float2 GetLightmapAtlasUV(Entity entity, float2 uv1)
 {
-    const uint rectOffset = entity.lightmap_rect_offset;
-    const uint rectSize = entity.lightmap_rect_size;
-
-    const float2 offsetTexels = float2(rectOffset & 0xFFFu, (rectOffset >> 12u) & 0xFFFu);
-    const float2 scaleTexels = float2((rectSize & 0xFFFu) + 1u, ((rectSize >> 12u) & 0xFFFu) + 1u);
-    const float2 atlasDimensions = float2(1u << ((rectSize >> 24u) & 0xFu), 1u << ((rectSize >> 28u) & 0xFu));
-
-    return (offsetTexels + uv1 * scaleTexels) / atlasDimensions;
+    return GetLightmapAtlasUV(entity.lightmap_rect_offset, entity.lightmap_rect_size, uv1);
 }
 
 uint GetEntityBucket(Entity entity)
@@ -53,7 +47,7 @@ uint GetEntityObjectMask(Entity entity)
 // 0 if the entity has no lightmap it can be routed to
 uint GetLightmapStencilValue(Entity entity)
 {
-    return entity.lightmap_rect_offset >> 24u;
+    return GetLightmapStencilValue(entity.lightmap_rect_offset);
 }
 
 #define MAX_INSTANCES_PER_BATCH 256

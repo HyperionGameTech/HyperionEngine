@@ -209,7 +209,14 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         context.frame->cr << InsertBarrier(m_relight->GetGpuImage(), ResourceState::ShaderResource, ShaderModuleType::Compute);
 
         // far field
-        m_shOccupancy->Update(context.frame, context.channelState->viewerPosition, tlas, *context.blasCache);
+        GlimmerLightmapPages lightmapPages;
+
+        if (context.sceneProxies)
+        {
+            CollectGlimmerLightmapPages(*context.sceneProxies, lightmapPages);
+        }
+
+        m_shOccupancy->Update(context.frame, context.channelState->viewerPosition, tlas, *context.blasCache, lightmapPages);
 
         GlimmerSHVolumeUpdateInputs shInputs;
         shInputs.viewerPosition = context.channelState->viewerPosition;

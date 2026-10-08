@@ -111,4 +111,29 @@ float UnpackDepth(in float4 packedDepth)
 #define HYP_QUANTIZE(v, bits) uint(round(clamp((v), 0.0, 1.0) * ((1 << (bits)) - 1)))
 #define HYP_UNQUANTIZE(x, bits) float(x) / float((1 << (bits)) - 1)
 
+uint PackRGB9E5(float3 color)
+{
+    color = clamp(color, 0.0, 65408.0);
+
+    const float maxChannel = max(max(color.r, color.g), max(color.b, 1e-12));
+
+    float exponent = max(-16.0, floor(log2(maxChannel))) + 16.0;
+    float scale = exp2(exponent - 24.0);
+
+    if (floor(maxChannel / scale + 0.5) >= 512.0)
+    {
+        scale *= 2.0;
+        exponent += 1.0;
+    }
+
+    const uint3 mantissa = uint3(floor(color / scale + 0.5));
+
+    return (uint(exponent) << 27u) | (mantissa.b << 18u) | (mantissa.g << 9u) | mantissa.r;
+}
+
+float3 UnpackRGB9E5(uint packed)
+{
+    return float3(packed & 0x1FFu, (packed >> 9u) & 0x1FFu, (packed >> 18u) & 0x1FFu) * exp2(float(packed >> 27u) - 24.0);
+}
+
 #endif

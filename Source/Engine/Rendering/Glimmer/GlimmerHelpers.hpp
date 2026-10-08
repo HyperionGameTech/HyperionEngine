@@ -35,6 +35,8 @@ static constexpr float GlimmerSkyMaxLuminance = 64.0f;
 // how far the probe and SH voxel rays look before taking the sky
 static constexpr float GlimmerMaxRayDistance = 2000.0f;
 
+static constexpr uint32 GlimmerMaxLightmapPages = 4;
+
 struct GlimmerSkyShaderData
 {
     Vec4u info;   // x = sky probe color texture index (~0 without one)
@@ -93,5 +95,13 @@ void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState&
 void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, EnvProbeShaderData& outSkyProbe);
 
 float GetGlimmerFoliageExtinction();
+
+struct GlimmerLightmapPages
+{
+    Texture* irradianceTextures[GlimmerMaxLightmapPages] = {};
+    Vec4u stencilValues;
+};
+
+void CollectGlimmerLightmapPages(RenderProxyList& rpl, GlimmerLightmapPages& outPages);
 
 } // namespace Hyperion

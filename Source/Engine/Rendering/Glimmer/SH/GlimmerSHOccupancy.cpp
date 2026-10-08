@@ -43,20 +43,33 @@ static StaticShaderPropertyId s_propOccupancyModeResolve { ShaderProperty(NAME("
 static constexpr uint32 OccupancyGroupSize = 64;
 static constexpr int32 WindowSnapVoxels = 8;
 static constexpr uint32 AlbedoSumWords = 4;
+static constexpr uint32 LightmapSumWords = GlimmerSHOccupancyLightmapFaces * 4;
 
 struct GlimmerSHOccupancySplatConstants
 {
     Vec4i origin; // xyz = absolute voxel of the cascade's window, w = cascade
+    
     Vec4f params; // x = voxel spacing, y = 1 / spacing
+    
     Vec4u counts; // x = span instances, y = span triangles, z = groups along x
+    
     Vec4i boxMin; // xyz = absolute voxel; only voxels in the box are cleared and splatted
     Vec4i boxMax; // xyz = absolute voxel, exclusive
+
+    Vec4u lightmapStencils;
 };
 
 static constexpr size_t MaxDirtyBoxes = 8;
 
 static const Vec3i OccupancyGridSize = Vec3i(int32(GlimmerSHOccupancyGridXZ), int32(GlimmerSHOccupancyGridY), int32(GlimmerSHOccupancyGridXZ));
 static constexpr int32 RebuildSlices = 8;
+
+static constexpr StringHash LightmapTextureNames[GlimmerMaxLightmapPages] = {
+    "LightmapVolumeIrradianceTexture0"_sh,
+    "LightmapVolumeIrradianceTexture1"_sh,
+    "LightmapVolumeIrradianceTexture2"_sh,
+    "LightmapVolumeIrradianceTexture3"_sh
+};
 
 #pragma region GlimmerSHOccupancy
 
@@ -93,14 +106,16 @@ void GlimmerSHOccupancy::CreateResources()
         NAME("GlimmerSHOccupancy"),
         TextureWrapMode::ClampToEdge);
 
-    const size_t numVoxels = size_t(GlimmerSHOccupancyGridXZ) * GlimmerSHOccupancyGridY * GlimmerSHCascades * GlimmerSHOccupancyGridXZ;
+    const size_t numCascadeVoxels = size_t(GlimmerSHOccupancyGridXZ) * GlimmerSHOccupancyGridY * GlimmerSHOccupancyGridXZ;
+    const size_t numVoxels = numCascadeVoxels * GlimmerSHCascades;
 
-    m_maskBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numVoxels * GlimmerSHOccupancyMaskWords * sizeof(uint32), alignof(uint32));
+    // the mask words, then the traced cascades' lightmap words
+    const size_t numMaskWords = numVoxels * GlimmerSHOccupancyMaskWords + numCascadeVoxels * GlimmerSHOccupancyTracedCascades * GlimmerSHOccupancyLightmapFaces;
+
+    m_maskBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numMaskWords * sizeof(uint32), alignof(uint32));
     Check(m_maskBuffer->Create());
 
-    const size_t numCascadeVoxels = size_t(GlimmerSHOccupancyGridXZ) * GlimmerSHOccupancyGridY * GlimmerSHOccupancyGridXZ;
-
-    m_albedoSumsBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numCascadeVoxels * AlbedoSumWords * sizeof(uint32), alignof(uint32));
+    m_albedoSumsBuffer = RI.MakeGpuBuffer(GpuBufferType::RWStructuredBuffer, numCascadeVoxels * (AlbedoSumWords + LightmapSumWords) * sizeof(uint32), alignof(uint32));
     Check(m_albedoSumsBuffer->Create());
 }
 
@@ -127,6 +142,7 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
         constants.counts = Vec4u(tlas.GetNumSpanInstances(), tlas.GetNumSpanChunks(), groups.x, 0);
         constants.boxMin = Vec4i(box.min.x, box.min.y, box.min.z, 0);
         constants.boxMax = Vec4i(box.max.x, box.max.y, box.max.z, 0);
+        constants.lightmapStencils = m_lightmapPages.stencilValues;
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
@@ -151,6 +167,15 @@ void GlimmerSHOccupancy::SplatBox(Frame* frame, uint32 cascadeIndex, const Vec3i
         cr << SetShaderUniform(uniformIndex++, "GlimmerBLASTrianglesBuffer"_sh, blasCache.GetTrianglesBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "MaterialsBuffer"_sh, RI.namedBuffers[NamedBuffer::Materials]);
         cr << SetShaderUniform(uniformIndex++, "SamplerLinearMipmap"_sh, RI.placeholderData->GetSamplerLinearMipmap());
+        cr << SetShaderUniform(uniformIndex++, "GlimmerBLASLightmapUVsBuffer"_sh, blasCache.GetLightmapUVsBuffer().Get(), ShaderDataOffset(0, sizeof(uint32)));
+
+        for (uint32 pageIndex = 0; pageIndex < GlimmerMaxLightmapPages; pageIndex++)
+        {
+            Texture* irradianceTexture = m_lightmapPages.irradianceTextures[pageIndex];
+
+            cr << SetShaderUniform(uniformIndex++, LightmapTextureNames[pageIndex],
+                RI.textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : RI.placeholderData->textureSolidBlack));
+        }
 
         cr << DispatchCompute(groups);
     };
@@ -225,9 +250,11 @@ void GlimmerSHOccupancy::ScrollWindow(Frame* frame, uint32 cascadeIndex, const V
     SetBuilt(cascadeIndex, origin);
 }
 
-void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache)
+void GlimmerSHOccupancy::Update(Frame* frame, const Vec3f& viewerPosition, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache, const GlimmerLightmapPages& lightmapPages)
 {
     HYP_SCOPE;
+
+    m_lightmapPages = lightmapPages;
 
     if (!m_texture.IsValid())
     {

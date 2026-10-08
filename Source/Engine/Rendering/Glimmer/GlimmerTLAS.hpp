@@ -56,9 +56,13 @@ struct GlimmerSpanInstanceShaderData
     uint32 triangleCount;
     uint32 materialIndex;
     uint32 flags;
+    uint32 lightmapUVBase; // ~0u when it has no lightmap to take its indirect light from
+    uint32 lightmapRectOffset;
+    uint32 lightmapRectSize;
+    uint32 _pad0;
 };
 
-static_assert(sizeof(GlimmerSpanInstanceShaderData) == 64);
+static_assert(sizeof(GlimmerSpanInstanceShaderData) == 80);
 
 static constexpr uint32 GlimmerSpanChunkTriangles = 256;
 
@@ -260,6 +264,7 @@ private:
     Map<uint64, uint8> m_instanceLods; // the LOD each instance (entity id << 32 | instance index) was given at the last gather
     bool m_dirty;
     bool m_waitingForBLAS;
+    bool m_usesLightmaps;
     uint64 m_activeInputHash;
 
     Array<SpanKey> m_spanKeys;
