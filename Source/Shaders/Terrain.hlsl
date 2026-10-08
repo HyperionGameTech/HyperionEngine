@@ -18,16 +18,6 @@ PERMUTE(SHADING_TYPE, DEFERRED, FORWARD, LIGHTMAPPED, UNLIT);
 #define TERRAIN_ANTITILE_ROTATION 1.1
 #define TERRAIN_ANTITILE_MASK_SCALE 0.03
 
-// two octaves: ridge-scale patchiness and a much broader drift that survives to the horizon
-#define TERRAIN_MACRO_NOISE_SCALE 0.012
-#define TERRAIN_MACRO_STRENGTH 0.12
-#define TERRAIN_FAR_NOISE_SCALE 0.0016
-#define TERRAIN_FAR_STRENGTH 0.14
-
-// macro variation shifts hue as well as brightness; varying brightness alone still reads as one material
-#define TERRAIN_MACRO_HUE_WARM float3(1.06, 1.00, 0.90)
-#define TERRAIN_MACRO_HUE_COOL float3(0.92, 0.97, 1.08)
-
 #define TERRAIN_ROUGHNESS_NOISE_STRENGTH 0.08
 
 #define TERRAIN_PACKED_AO_STRENGTH 1.0
@@ -110,6 +100,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Material.hlsli"
 
 #include "include/TerrainMaterial.hlsli"
+#include "include/TerrainColor.hlsli"
 
 #ifndef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(Material, TerrainSplatMap) Texture2D TerrainSplatMap;
@@ -141,35 +132,6 @@ DECLARE_BUFFER_DYNAMIC(Default, CBuffer) cbuffer CBuffer
     Material material;
     float4x4 vpMatrix;
 };
-
-float TerrainValueNoise(float2 p)
-{
-    float2 i = floor(p);
-    float2 f = frac(p);
-    f = f * f * (3.0 - 2.0 * f);
-
-    float a = frac(sin(dot(i, float2(127.1, 311.7))) * 43758.5453);
-    float b = frac(sin(dot(i + float2(1.0, 0.0), float2(127.1, 311.7))) * 43758.5453);
-    float c = frac(sin(dot(i + float2(0.0, 1.0), float2(127.1, 311.7))) * 43758.5453);
-    float d = frac(sin(dot(i + float2(1.0, 1.0), float2(127.1, 311.7))) * 43758.5453);
-
-    return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
-}
-
-float TerrainFbm(float2 p)
-{
-    float value = 0.0;
-    float amplitude = 0.5;
-
-    for (int octave = 0; octave < 4; octave++)
-    {
-        value += amplitude * TerrainValueNoise(p);
-        p = p * 2.07 + float2(13.1, 5.7);
-        amplitude *= 0.5;
-    }
-
-    return value;
-}
 
 float2 RotateUv(float2 uv, float angle)
 {
@@ -520,8 +482,8 @@ PSOutput PSMain(PSInput input)
     const float macro_tiling_fade = TERRAIN_MACRO_TILING_MAX
         * smoothstep(TERRAIN_MACRO_TILING_FADE_START, TERRAIN_MACRO_TILING_FADE_END, view_distance);
 
-    const float macro_noise = TerrainFbm(P.xz * TERRAIN_MACRO_NOISE_SCALE);
-    const float far_noise = TerrainFbm(P.xz * TERRAIN_FAR_NOISE_SCALE + 117.3);
+    const TerrainMacroNoise terrain_macro_noise = SampleTerrainMacroNoise(P.xz);
+    const float macro_noise = terrain_macro_noise.macro;
     const float antitile_mask = smoothstep(0.35, 0.65, TerrainFbm(P.xz * TERRAIN_ANTITILE_MASK_SCALE + 43.7));
     const float macro_antitile_mask = smoothstep(0.35, 0.65, TerrainFbm(P.xz * TERRAIN_MACRO_ANTITILE_MASK_SCALE + 91.3));
 
@@ -663,13 +625,8 @@ PSOutput PSMain(PSInput input)
         }
     }
 
-    // two octaves of brightness plus a hue swing, so distant slopes keep varying once the tiling has mipped away.
-    // Summed into one gain rather than multiplied, so the octaves can't compound on top of each other.
-    const float macro_variation = (macro_noise - 0.5) * (TERRAIN_MACRO_STRENGTH * 2.0)
-        + (far_noise - 0.5) * (TERRAIN_FAR_STRENGTH * 2.0);
-
-    albedo *= max(1.0 + macro_variation, 0.0);
-    albedo *= lerp(TERRAIN_MACRO_HUE_COOL, TERRAIN_MACRO_HUE_WARM, saturate(far_noise));
+    // two octaves of brightness plus a hue swing, so distant slopes keep varying once the tiling has mipped away
+    albedo *= GetTerrainMacroColorGain(terrain_macro_noise);
 
     const float hollow = saturate(concavity);
     const float ridge = saturate(-concavity);

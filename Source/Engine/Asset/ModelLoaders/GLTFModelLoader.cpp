@@ -1655,6 +1655,7 @@ using TreeVertex = TVertex<VT_Simple | VT_Tree>;
 using FoliageVertex = TVertex<VT_Simple | VT_Tree | VT_Foliage>;
 
 static constexpr const char* ArborTreeWindExtension = "ARBOR_tree_wind";
+static constexpr const char* ArborGroundCoverExtension = "ARBOR_ground_cover";
 static constexpr uint32 ArborBranchFloats = 8;
 
 struct ArborTreeWind
@@ -1672,6 +1673,21 @@ struct ArborTreeWind
     float normalBlend = 0.0f;
     float backfaceVolume = 0.0f;
 };
+
+static bool HasPrimitiveExtension(const cgltf_primitive& primitive, const char* name)
+{
+    for (cgltf_size extensionIndex = 0; extensionIndex < primitive.extensions_count; ++extensionIndex)
+    {
+        const cgltf_extension& candidate = primitive.extensions[extensionIndex];
+
+        if (candidate.name != nullptr && std::strcmp(candidate.name, name) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 bool ReadArborTreeWind(const GltfLoadContext& ctx, const cgltf_primitive& primitive, ArborTreeWind& outWind)
 {
@@ -1817,6 +1833,7 @@ struct PrimitiveBuildOutput
     bool skinned = false;
     bool tree = false;
     bool foliage = false;
+    bool groundCover = false;
     float windFrequency = 0.0f;
     float windTrunkFlexibility = 0.0f;
     float windTreeHeight = 0.0f;
@@ -2143,6 +2160,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     out.skinned = hasSkinning && !hasWind;
     out.tree = hasWind;
     out.foliage = hasFoliage;
+    out.groundCover = HasPrimitiveExtension(primitive, ArborGroundCoverExtension);
 
     if (hasWind)
     {
@@ -2558,6 +2576,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
             {
                 MaterialParameters parameters = material->GetParameters();
                 parameters.foliage = output.foliage;
+                parameters.terrainColorMatch = output.groundCover;
                 parameters.windFrequency = output.windFrequency;
                 parameters.windTrunkFlexibility = output.windTrunkFlexibility;
                 parameters.windTreeHeight = output.windTreeHeight;

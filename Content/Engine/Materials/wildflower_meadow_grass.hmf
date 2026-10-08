@@ -60,6 +60,7 @@ Material wildflower_meadow_grass {
         UVScale = (1, 1)
         Unlit = false
         Foliage = true
+        TerrainColorMatch = true
         Flags = 0
     }
     Textures = {

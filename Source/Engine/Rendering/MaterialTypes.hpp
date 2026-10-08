@@ -133,6 +133,9 @@ public:
     HYP_FIELD(Property = "Foliage", Editor, Serialize)
     bool foliage;
 
+    HYP_FIELD(Property = "TerrainColorMatch", Editor, Serialize)
+    bool terrainColorMatch;
+
     HYP_FIELD(Property = "Flags", Serialize, Editor = false)
     uint8 flags;
 
