@@ -159,7 +159,9 @@ Game* g_gameInstance; // active game instance, read/write only from the main thr
 VulkanRenderInterface RI;
 #elif HYP_DX12
 DX12RenderInterface RI;
-#endif // HYP_VULKAN || HYP_DX12
+#elif HYP_WEBGPU
+WebGPURenderInterface RI;
+#endif // HYP_VULKAN || HYP_DX12 || HYP_WEBGPU
 
 namespace {
 

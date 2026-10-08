@@ -22,6 +22,8 @@
 #include <Rendering/Vulkan/VulkanStructs.hpp>
 #elif defined(HYP_DX12)
 #include <Rendering/DX12/DX12Structs.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUStructs.hpp>
 #endif
 
 namespace Hyperion {
@@ -522,6 +524,8 @@ private:
 #include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12RenderInterface.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPURenderInterface.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

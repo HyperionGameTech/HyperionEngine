@@ -183,7 +183,7 @@ PSOutput PSMain(PSInput input)
     {
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.v_texcoord0);
 
-        const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, input.v_texcoord0);
+        const float diffuseMipLevel = HYP_TEXTURE_LOD(texture_sampler, GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap), input.v_texcoord0);
         const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD), diffuseMipLevel);
     
         if (ShouldDiscardCutout(cutoutCoverage, 0.0, input.cutout_seed))

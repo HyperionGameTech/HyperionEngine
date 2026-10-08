@@ -28,6 +28,7 @@ IF /I "%~1"=="mingw" set "HYP_MINGW=1"
 IF /I "%~1"=="arm64" set "HYP_ARM64=1"
 IF /I "%~1"=="dx12" set "HYP_BACKEND=DX12"
 IF /I "%~1"=="vulkan" set "HYP_BACKEND=VULKAN"
+IF /I "%~1"=="webgpu" set "HYP_BACKEND=WEBGPU"
 IF /I "%~1"=="regenerate" set "HYP_REGENERATE=1"
 IF /I "%~1"=="nowait" set "HYP_NOWAIT=1"
 IF /I "%~1"=="distribution" set "HYP_DISTRIBUTION=1"
@@ -59,9 +60,12 @@ if "%HYP_DISTRIBUTION%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=OFF
 REM Optional: set HYP_VS_INSTANCE to a Visual Studio install path to pick which one the Visual Studio generator binds to.
 if defined HYP_VS_INSTANCE set HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DCMAKE_GENERATOR_INSTANCE="%HYP_VS_INSTANCE%"
 
-REM "vulkan" / "dx12" pick the rendering backend on Windows (DX12 when neither is passed). Always passed, so a build
+REM "vulkan" / "dx12" / "webgpu" pick the rendering backend on Windows (DX12 when neither is passed). Always passed, so a build
 REM directory last configured for the other backend switches back.
-if "%HYP_BACKEND%"=="VULKAN" (set "HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DHYP_RENDERING_BACKEND=Vulkan") else (set "HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DHYP_RENDERING_BACKEND=DX12")
+set "HYP_BACKEND_NAME=DX12"
+if "%HYP_BACKEND%"=="VULKAN" set "HYP_BACKEND_NAME=Vulkan"
+if "%HYP_BACKEND%"=="WEBGPU" set "HYP_BACKEND_NAME=WebGPU"
+set "HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DHYP_RENDERING_BACKEND=%HYP_BACKEND_NAME%"
 
 REM Shipping builds output to Binaries/Windows/Shipping instead of Binaries/Windows/Release,
 REM but keep the Release build type and third-party libs.

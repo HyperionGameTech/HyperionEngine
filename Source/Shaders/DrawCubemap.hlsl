@@ -376,7 +376,7 @@ PSOutput PSMain(PSInput input)
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
 #ifdef ALPHA_DISCARD
-        const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, texcoord);
+        const float diffuseMipLevel = HYP_TEXTURE_LOD(texture_sampler, GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap), texcoord);
         const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, GET_MATERIAL_PARAM(CURRENT_MATERIAL, MATERIAL_PARAM_ALPHA_THRESHOLD), diffuseMipLevel);
 
         if (ShouldDiscardCutout(cutoutCoverage, 0.0, input.cutout_seed))
@@ -518,9 +518,9 @@ PSOutput PSMain(PSInput input)
     output.output_moments = moments;
 #endif // WRITE_MOMENTS
 
-#ifdef WRITE_HIT_MASK
+#if defined(WRITE_HIT_MASK) && !defined(MODE_SHADOWS)
     output.output_hit_mask = 1.0;
-#endif // WRITE_HIT_MASK
+#endif // WRITE_HIT_MASK && !MODE_SHADOWS
 
     return output;
 }

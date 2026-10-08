@@ -336,10 +336,8 @@ PSOutput PSMain(PSInput input)
 
         const float4 specular_lobe = D * G * F;
 
-        switch (currentLight.type)
+        if (currentLight.type == HYP_LIGHT_TYPE_POINT || currentLight.type == HYP_LIGHT_TYPE_SPOT)
         {
-            case HYP_LIGHT_TYPE_POINT:
-            case HYP_LIGHT_TYPE_SPOT: // fallthrough
             {
                 const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
                 const float radius = radiusFalloff.x;
@@ -369,10 +367,7 @@ PSOutput PSMain(PSInput input)
                         shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
                     }
                 }
-
-                break;
             }
-            default: break;
         }
 
         float4 specular = specular_lobe;

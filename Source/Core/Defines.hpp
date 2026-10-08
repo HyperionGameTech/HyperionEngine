@@ -353,6 +353,15 @@
 #define HYP_VULKAN_API_VERSION VK_API_VERSION_1_2 // moltenvk supports api 1.1
 #define HYP_MOLTENVK 1
 #endif
+#elif defined(HYP_WEBGPU) && HYP_WEBGPU
+// WebGPU has neither ray tracing nor unbounded texture arrays
+#ifdef HYP_FEATURES_ENABLE_RAY_TRACING
+#undef HYP_FEATURES_ENABLE_RAY_TRACING
+#endif
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+#undef HYP_FEATURES_BINDLESS_TEXTURES
+#endif
 #else
 #define HYP_FEATURES_ENABLE_RAY_TRACING 1
 #define HYP_FEATURES_BINDLESS_TEXTURES 1

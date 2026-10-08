@@ -138,7 +138,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     //color = YCoCgToRGB(color);
     //color = ADJUST_COLOR_GAMMA_OUT(color);
 
-    color = any(isnan(color)) ? float4(0.0, 0.0, 1.0, 1.0) : color;
+    color = any(HYP_ISNAN(color)) ? float4(0.0, 0.0, 1.0, 1.0) : color;
 
 #elif TEMPORAL_BLEND_TECHNIQUE == 1
     color = TemporalResolve(input_texture, prev_input_texture, uv, velocity, texel_size, view_space_depth);

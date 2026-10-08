@@ -137,7 +137,33 @@
 #define HYP_FLOAT_MAX 3.402823466e+38F
 #define HYP_FLOAT_MIN 1.175494351e-38F
 
+#ifdef BACKEND_WEBGPU
+// WGSL has no NaN / infinity tests, so look at the bit pattern
+#define HYP_ISNAN(value) ((asuint(value) & 0x7FFFFFFFu) > 0x7F800000u)
+#define HYP_ISINF(value) ((asuint(value) & 0x7FFFFFFFu) == 0x7F800000u)
+#else
+#define HYP_ISNAN(value) isnan(value)
+#define HYP_ISINF(value) isinf(value)
+#endif // BACKEND_WEBGPU
+
+#if defined(BACKEND_WEBGPU) && defined(PIXEL_SHADER)
+// WGSL has no LOD query; compute what the sampler would pick from the UV derivatives
+float HypCalculateTextureLod(Texture2D tex, float2 texcoord)
+{
+    uint width, height, numLevels;
+    tex.GetDimensions(0, width, height, numLevels);
+
+    const float2 texelDx = ddx(texcoord) * float2(width, height);
+    const float2 texelDy = ddy(texcoord) * float2(width, height);
+    const float maxSquaredLength = max(dot(texelDx, texelDx), dot(texelDy, texelDy));
+
+    return clamp(0.5 * log2(max(maxSquaredLength, 1e-12)), 0.0, float(numLevels) - 1.0);
+}
+
+#define HYP_TEXTURE_LOD(samp, tex, texcoord) HypCalculateTextureLod((tex), (texcoord))
+#else
 #define HYP_TEXTURE_LOD(samp, tex, texcoord) (tex).CalculateLevelOfDetail((samp), (texcoord))
+#endif // BACKEND_WEBGPU && PIXEL_SHADER
 
 #ifdef __COUNTER__
 #define HYP_UNIQUE_NAME(prefix) \
@@ -156,6 +182,10 @@
 #ifdef BACKEND_VULKAN
 #define VULKAN 1
 #endif // BACKEND_VULKAN
+
+#ifdef BACKEND_WEBGPU
+#define WEBGPU 1
+#endif // BACKEND_WEBGPU
 
 #ifndef HYP_SHADER_COMPILER
     ///// For Intellisense /////

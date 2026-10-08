@@ -83,6 +83,14 @@ public:
                 false);
 
             s_definitions.Add(
+                "worlds",
+                "",
+                "Comma-separated World asset names to cook game content for (all Worlds in the project when empty)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
                 "out-cache",
                 "c",
                 "Directory to write cache to",
@@ -113,13 +121,19 @@ public:
 protected:
     static FilePath GetDirectory(const String& value, bool mkdirs)
     {
-        const FilePath dir = (value.StartsWith(".")
+        FilePath dir = (value.StartsWith(".")
                     // Relative path - starts with . (eg "../Foo" or "./Foo")
                     ? (CoreApi::GetBaseDirectory() / value)
                     // Just use provided path.
                     : value);
 
-        if (!dir.IsDirectory() && (mkdirs && !dir.MkDir()))
+        // eg "Projects/Foo" when not launched from the repo root
+        if (!mkdirs && !dir.IsDirectory() && (CoreApi::GetBaseDirectory() / value).IsDirectory())
+        {
+            dir = CoreApi::GetBaseDirectory() / value;
+        }
+
+        if (!dir.IsDirectory() && (!mkdirs || !dir.MkDir()))
         {
             return FilePath();
         }
@@ -213,7 +227,7 @@ protected:
 
             if ((projectDir = GetDirectory(projectArg, false)); projectDir.Empty())
             {
-                return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", projectDir);
+                return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", projectArg);
             }
 
             gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
@@ -259,7 +273,17 @@ protected:
             }
         }
 
-        Result result = Cook(engineRegistry, gameRegistry, projectDir, outCacheDir, outContentDir, outEngineContentDir);
+        Array<String> worldNames;
+
+        for (const String& worldName : args["worlds"].ToString().Split(','))
+        {
+            if (worldName.Trimmed().Any())
+            {
+                worldNames.PushBack(worldName.Trimmed());
+            }
+        }
+
+        Result result = Cook(engineRegistry, gameRegistry, projectDir, worldNames, outCacheDir, outContentDir, outEngineContentDir);
 
         if (result.HasError())
         {
@@ -386,6 +410,7 @@ private:
     static Result Cook(
         const Handle<AssetRegistry>& engineRegistry, const Handle<AssetRegistry>& gameRegistry,
         const FilePath& projectPath,
+        const Array<String>& worldNames,
         const FilePath& outputCacheDir, const FilePath& outputContentDir, const FilePath& outputEngineContentDir)
     {
         Array<TSharedResLock<AssetObject>> readLocks;
@@ -449,6 +474,11 @@ private:
 
                 for (const AssetDesc& assetDesc : assetDescs)
                 {
+                    if (worldNames.Any() && !worldNames.Contains(String(*assetDesc.name)))
+                    {
+                        continue;
+                    }
+
                     Handle<AssetObject> worldAsset = gameRegistry->GetAsset(WorldsBucket, assetDesc.name);
                     if (!worldAsset.IsValid())
                     {

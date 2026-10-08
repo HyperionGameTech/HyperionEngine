@@ -364,7 +364,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                     dstSubResource.numLayers = dstDesc.NumArrayLayers();
                 }
 
-#ifdef HYP_VULKAN
+#if defined(HYP_VULKAN) || defined(HYP_WEBGPU)
                 src->GetGpuImage()->InsertBarrier(commandBuffer, srcSubResource, ResourceState::CopySrc, ShaderModuleType::None);
                 dst->GetGpuImage()->InsertBarrier(commandBuffer, dstSubResource, ResourceState::CopyDst, ShaderModuleType::None);
 
@@ -596,7 +596,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 Texture* inTexture = cmd->inTexture;
 
-#ifdef HYP_VULKAN
+#if defined(HYP_VULKAN) || defined(HYP_WEBGPU)
                 inTexture->GetGpuImage()->GenerateMipmaps(commandBuffer);
 #else
                 const TextureDesc& desc = inTexture->GetTextureDesc();

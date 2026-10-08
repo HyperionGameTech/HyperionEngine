@@ -92,6 +92,8 @@ protected:
 #include <Rendering/Vulkan/VulkanComputePipeline.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12ComputePipeline.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUComputePipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

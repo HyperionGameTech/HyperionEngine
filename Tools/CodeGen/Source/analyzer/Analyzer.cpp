@@ -60,6 +60,7 @@ static const Map<String, String> s_pathConditionalDefines = {
     // rendering backends
     { "rendering/vulkan", "HYP_VULKAN" },
     { "rendering/dx12", "HYP_DX12" },
+    { "rendering/webgpu", "HYP_WEBGPU" },
 
     // Editor-only paths.
     { "editor", "HYP_EDITOR" },

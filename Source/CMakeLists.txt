@@ -241,7 +241,7 @@ endfunction()
 # Run CodeGen with version 0.11
 # HYP_CODEGEN_VERSION_MAJOR 0
 # HYP_CODEGEN_VERSION_MINOR 11
-RunCodeGen(0 11)
+RunCodeGen(0 12)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -709,8 +709,10 @@ endif()
 set(RENDERING_BACKEND "Vulkan")
 
 if(WIN32 AND NOT HYP_GCC)
-  # DX12 unless configured with -DHYP_RENDERING_BACKEND=Vulkan (BuildHyperion.bat: "vulkan")
-  if(NOT HYP_RENDERING_BACKEND STREQUAL "Vulkan")
+  # DX12 unless configured with -DHYP_RENDERING_BACKEND=Vulkan or WebGPU (BuildHyperion.bat: "vulkan" / "webgpu")
+  if(HYP_RENDERING_BACKEND STREQUAL "WebGPU")
+    set(RENDERING_BACKEND "WebGPU")
+  elseif(NOT HYP_RENDERING_BACKEND STREQUAL "Vulkan")
     set(RENDERING_BACKEND "DX12")
   endif()
 endif()
@@ -821,6 +823,41 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
             ${RENDERER_LIBRARIES}
             D3D12MemoryAllocator)
   endif()
+elseif(RENDERING_BACKEND STREQUAL "WebGPU")
+  add_definitions(-DHYP_WEBGPU=1)
+  set(HYP_WEBGPU 1)
+
+  message(STATUS "Using WebGPU as rendering backend")
+
+  if(NOT EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dawn/webgpu/webgpu.h")
+    message(FATAL_ERROR "WebGPU backend requested but Dawn headers were not found at ${THIRD_PARTY_INCLUDE_DIR}/dawn")
+  endif()
+
+  include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dawn)
+
+  # Native builds link Dawn; Emscripten gets WebGPU from its emdawnwebgpu port instead
+  if(WIN32)
+    if(NOT EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/webgpu_dawn.lib")
+      message(FATAL_ERROR "WebGPU backend requested but webgpu_dawn.lib was not found in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
+    endif()
+
+    set(RENDERER_LIBRARIES
+            ${RENDERER_LIBRARIES}
+            "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/webgpu_dawn.lib")
+
+    file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/webgpu_dawn.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+    # Dawn only loads FXC and the Vulkan loader from beside its own DLL
+    foreach(DAWN_RUNTIME_DLL d3dcompiler_47.dll vulkan-1.dll)
+      if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${DAWN_RUNTIME_DLL}")
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${DAWN_RUNTIME_DLL}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+      endif()
+    endforeach()
+
+    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/tint.exe")
+      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/tint.exe" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+    endif()
+  endif()
 else()
   message(FATAL_ERROR "No rendering backend found!")
 endif()
@@ -904,6 +941,8 @@ endif()
 if(WIN32)
   if(NOT HYP_ENABLE_AFTERMATH)
     message(STATUS "HYP_ENABLE_AFTERMATH is OFF, not linking Aftermath")
+  elseif("${RENDERING_BACKEND}" STREQUAL "WebGPU")
+    message(STATUS "Aftermath cannot watch a Dawn device, not linking it")
   elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
     set(HYP_AFTERMATH 1)

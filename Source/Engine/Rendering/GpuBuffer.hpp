@@ -154,6 +154,8 @@ protected:
 #include <Rendering/Vulkan/VulkanGpuBuffer.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12GpuBuffer.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUGpuBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

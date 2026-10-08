@@ -505,6 +505,8 @@ protected:
 #include <Rendering/Vulkan/VulkanDescriptorSet.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12DescriptorSet.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUDescriptorSet.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

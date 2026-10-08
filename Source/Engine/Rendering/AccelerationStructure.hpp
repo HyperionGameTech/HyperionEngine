@@ -195,6 +195,8 @@ protected:
 #include <Rendering/Vulkan/VulkanAccelerationStructure.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12AccelerationStructure.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUAccelerationStructure.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

@@ -108,6 +108,8 @@ protected:
 #include <Rendering/Vulkan/VulkanSwapchain.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12Swapchain.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUSwapchain.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

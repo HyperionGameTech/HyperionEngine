@@ -93,6 +93,8 @@ protected:
 #include <Rendering/Vulkan/VulkanSampler.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12Sampler.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUSampler.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

@@ -150,6 +150,8 @@ ENGINE_API Arena* g_renderArena;
 ENGINE_API Pool* g_vulkanPool;
 #elif defined(HYP_DX12)
 ENGINE_API Pool* g_dx12Pool;
+#elif defined(HYP_WEBGPU)
+ENGINE_API Pool* g_webgpuPool;
 #endif
 
 /// ========================
@@ -158,6 +160,7 @@ CVar<bool> g_cvEnableVSync("Rendering.VSync", true);
 CVar<bool> g_cvEnableGpuStats("Rendering.EnableGpuStats", true);
 CVar<bool> g_cvIndirectRendering("Rendering.IndirectRendering", true);
 CVar<bool> g_cvParallelRendering("Rendering.ParallelRendering", true);
+CVar<bool> g_cvBindlessTextures("Rendering.BindlessTextures", true);
 
 namespace Framework {
 
@@ -694,6 +697,9 @@ RenderInterface::RenderInterface()
 #elif defined(HYP_DX12)
     Assert(g_dx12Pool == nullptr);
     g_dx12Pool = &s_rhiPool;
+#elif defined(HYP_WEBGPU)
+    Assert(g_webgpuPool == nullptr);
+    g_webgpuPool = &s_rhiPool;
 #endif
 
     // must be created by the end of the block!

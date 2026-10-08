@@ -6,9 +6,9 @@
 
 #pragma once
 
-#if !HYP_VULKAN && !HYP_DX12
+#if !HYP_VULKAN && !HYP_DX12 && !HYP_WEBGPU
 #error Rendering backend undefined
-#endif // !HYP_VULKAN && !HYP_DX12
+#endif // !HYP_VULKAN && !HYP_DX12 && !HYP_WEBGPU
 
 #include <Rendering/Framebuffer.hpp>
 #include <Rendering/CommandBuffer.hpp>
