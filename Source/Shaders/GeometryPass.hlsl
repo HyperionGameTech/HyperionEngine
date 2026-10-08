@@ -58,6 +58,7 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/Entity.hlsli"
 #include "include/Noise.hlsli"
 #include "include/AlphaCutout.hlsli"
+#include "include/TerrainColor.hlsli"
 
 DECLARE_SRV(Default, WorldsBuffer) StructuredBuffer<WorldShaderData> _worlds_buffer;
 #define world_shader_data _worlds_buffer[0]
@@ -330,7 +331,7 @@ PSOutput PSMain(PSInput input)
         float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
 #ifdef ALPHA_DISCARD
-        const float diffuseMipLevel = GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap).CalculateLevelOfDetail(texture_sampler, texcoord);
+        const float diffuseMipLevel = HYP_TEXTURE_LOD(texture_sampler, GET_TEXTURE(CURRENT_MATERIAL, DiffuseMap), texcoord);
         const float cutoutCoverage = AlphaCutoutCoverage(albedo_texture.a, alpha_threshold, diffuseMipLevel);
         const float cutoutNoise = world_shader_data.cutout_params.x * InterleavedGradientNoiseAnimated(input.position_cs.xy, world_shader_data.frame_counter % 64u);
 
@@ -340,6 +341,11 @@ PSOutput PSMain(PSInput input)
         }
 #endif
         output.gbuffer_albedo *= albedo_texture;
+    }
+
+    if (GET_MATERIAL_PARAM_BIT(CURRENT_MATERIAL, MATERIAL_FLAG_TERRAIN_COLOR_MATCH))
+    {
+        output.gbuffer_albedo.rgb *= GetTerrainMacroColorGain(SampleTerrainMacroNoise(P.xz));
     }
 
     output.gbuffer_albedo.rgb = min(output.gbuffer_albedo.rgb * input.color.rgb, 1.0);

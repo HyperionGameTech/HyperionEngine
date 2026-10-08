@@ -184,12 +184,6 @@ ShaderDefinitions "ShaderDefinitions" {
             CHS = "RayTracing/GlobalIllumination/DDGI.rchit.hlsl"
             MS = "RayTracing/GlobalIllumination/DDGI.rmiss.hlsl"
         }
-        ShaderDefinition "RTCopyBorderTexelsIrradiance" {
-            CS = "RayTracing/copy_border_texels_irradiance.comp"
-        }
-        ShaderDefinition "RTCopyBorderTexelsDepth" {
-            CS = "RayTracing/copy_border_texels_depth.comp"
-        }
         ShaderDefinition "UpdateProbeData" {
             CS = "RayTracing/GlobalIllumination/UpdateProbeData.hlsl"
         }

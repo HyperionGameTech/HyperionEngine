@@ -3,9 +3,15 @@
 
 #include "Entity.hlsli"
 
-// morph_target_heights.x = height on the next coarser LOD's surface, .y = height two LODs coarser.
-// morphing is a function of distance only, so a cell and its coarser replacement agree wherever both can represent the surface
-float3 ApplyTerrainMorph(Entity terrain_entity, float4x4 model_matrix, float3 local_position, float2 morph_target_heights)
+/// \p morph_target_heights
+///     .x = height on the next coarser LOD's surface
+///     .y = height two LODs coarser.
+/// morphing is a function of distance only, so a cell and its coarser replacement agree wherever both can represent the surface
+float3 ApplyTerrainMorph(
+    Entity terrain_entity,
+    float4x4 model_matrix,
+    float3 local_position,
+    float2 morph_target_heights)
 {
     const float morph_start = terrain_entity.lod_morph_start;
     const float morph_end = terrain_entity.lod_morph_end;

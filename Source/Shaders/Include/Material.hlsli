@@ -97,6 +97,7 @@ float4 UnpackMaterialParamFloat4(uint4 uValue, uint index)
 #define MATERIAL_FLAG_FOLIAGE 9
 #define MATERIAL_FLAG_PREMULTIPLIED_ALPHA 10
 #define MATERIAL_FLAG_DOUBLE_SIDED 11
+#define MATERIAL_FLAG_TERRAIN_COLOR_MATCH 12
 
 #define GET_MATERIAL_CHANNEL(mat, bitOffset) ((((mat).packed_params[3]) >> (bitOffset)) & 0x3u)
 
