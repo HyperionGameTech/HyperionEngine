@@ -59,6 +59,8 @@ extern WebGPURenderInterface RI;
 // Dawn's D3D12 backend compiles through FXC unless Dawn is built with its own DXC, and FXC rejects the larger shaders
 CVar<CVarString> g_cvWebGPUBackend("Rendering.WebGPU.Backend", "vulkan");
 
+extern CVar<bool> g_cvIndirectRendering;
+
 #pragma region WebGPURenderConfig
 
 class WebGPURenderConfig final : public IRenderConfig
@@ -68,7 +70,7 @@ public:
     {
         bindlessTextures = false;
         rayTracing = false;
-        indirectRendering = false;
+        indirectRendering = g_cvIndirectRendering.Get();
         parallelRendering = false;
         dynamicDescriptorIndexing = false;
     }
@@ -205,6 +207,9 @@ WebGPURenderInterface::~WebGPURenderInterface()
 RendererResult WebGPURenderInterface::Initialize()
 {
     HYP_LOG(RenderingBackend, Info, "Initializing WebGPU render backend");
+
+    // the config object is built during static initialisation, before the engine config has been read
+    m_renderConfig->indirectRendering = g_cvIndirectRendering.Get();
 
 #ifdef HYP_WEB
     g_webGPUDeviceThread = pthread_self();
@@ -348,6 +353,8 @@ RendererResult WebGPURenderInterface::FinishInitialize()
 
     HYP_LOG(RenderingBackend, Info, "WebGPU features: depth clip control {}, float32 filterable {}, texture formats tier1 {}, rg11b10 renderable {}",
         m_deviceFeatures.depthClipControl, m_deviceFeatures.float32Filterable, m_deviceFeatures.textureFormatsTier1, m_deviceFeatures.rg11b10UfloatRenderable);
+
+    HYP_LOG(RenderingBackend, Info, "WebGPU render config: indirect rendering {}", bool(m_renderConfig->indirectRendering));
 
     WGPUBufferDescriptor realignBufferDescriptor = WGPU_BUFFER_DESCRIPTOR_INIT;
     realignBufferDescriptor.label = ToWGPUStringView("RealignedDynamicRanges");

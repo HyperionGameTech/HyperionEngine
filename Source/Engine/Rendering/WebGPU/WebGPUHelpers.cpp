@@ -326,6 +326,9 @@ WGPUBufferUsage GetWGPUBufferUsage(GpuBufferType bufferType)
         break;
     case GpuBufferType::StructuredBuffer:
     case GpuBufferType::RWStructuredBuffer:
+        // a shader over the storage buffer limit binds the ones it reads a single element of as uniform buffers
+        usage |= WGPUBufferUsage_Storage | WGPUBufferUsage_Uniform;
+        break;
     case GpuBufferType::ByteAddressBuffer:
     case GpuBufferType::RWByteAddressBuffer:
     case GpuBufferType::ScratchBuffer:

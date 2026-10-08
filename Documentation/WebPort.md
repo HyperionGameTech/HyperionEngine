@@ -684,10 +684,113 @@ The recipe for a web package is now: run the level on a native WebGPU build with
 
 One thing to know: the list is what one desktop run loaded. An engine asset that only a different code path loads (another level, a feature that was off) will be missing from the package, and the first sign is an unresolved reference in the browser's log.
 
+### Startup, measured
+
+`MainWorld` from the 425 MB package, served from localhost, timed with a timestamp on every log line and a counter around every `wgpu*` call.
+
+| When | What | Took |
+|---|---|---|
+| 0.0 - 0.35 s | page, 60 MB wasm fetched and compiled, 3 MB of manifests preloaded | 0.35 s |
+| 0.35 - 1.2 s | engine initialisation | 0.85 s |
+| 1.2 s | adapter and device | 0.04 s |
+| 1.5 - 3.5 s | loading the World: parsing manifests and building the scene | 2.0 s |
+| 3.5 s | `Meshes.bin`, 25 MB read | 0.02 s |
+| 3.8 - 4.5 s | `Textures.bin`, 414 MB read into the heap | 0.75 s |
+| 4.5 - 4.9 s | 160 textures created, 387 MB of pixel data handed to the GPU | 0.4 s |
+| **4.9 s** | **first frame** | |
+| 4.9 - 10 s | first 27 frames average 78 ms each while pipelines compile and uploads land | about 2 s of hitching |
+| after | 7.6 ms of render thread work per frame | |
+
+What this says:
+
+- **Start-up on localhost is five seconds, not the "tens of seconds" recorded earlier.** That figure was an impression from waiting on a hidden pane, never a measurement.
+- **Forwarding GPU calls between threads costs nothing here**: 93 forwarded calls, 13 ms in total. Uploads are recorded on the game thread but issued by the render thread, so almost every call is already on the right thread. Batching forwarded calls is not worth doing.
+- **All GPU calls together are about 4 ms a frame** (1,800 calls). The one thing that stands out is bind groups: about 156 are created and released every frame.
+- **The largest single piece is loading the World, two seconds of manifest parsing on one thread**, before any of its data is read.
+- **Over a network the picture is entirely different, and it is all download.** At 50 Mbit/s the package as it stands is over a minute. The wasm is 60 MB because it carries debug information: stripped it is 21 MB, and 4.7 MB gzipped. The textures gzip to about 41% of their size, and block compression would do better and also cut GPU memory.
+
+The desktop app's browser pane delivers no animation frames at all, to the page or to its workers, so everything in it runs on the 100 ms fallback timer, at about nine frames a second. The frame time above is the work per frame, not a frame rate seen on screen.
+
+#### Done: a smaller wasm
+
+`hyperion-sample` now links without DWARF unless `HYP_WEB_DEBUG_INFO` is on, keeping function names so a stack trace in the console still reads. The wasm is 27 MB instead of 60 MB, and `ServeWeb.py` gzips the page's own files as a host would, so 4.6 MB crosses the wire. The link takes about three minutes instead of thirty seconds, because Binaryen now optimises the whole module; turn the option on for quick iteration.
+
+#### Not done, on purpose: pipeline warm-up
+
+The slow early frames are not pipeline creation. Timing the render loop's stages shows where they go:
+
+- **The first frame takes three seconds inside `RenderInterface::UpdateResources`.** The render thread binds every mesh and texture of the level in that one call, behind the game thread's World load, so nothing is presented until the level is fully in: the loading screen is never drawn.
+- **The next 29 frames lose 1.2 s between them waiting for a frame slot**, which is the GPU working through 387 MB of texture uploads and its first pipeline compiles. This is the only part warm-up could touch, and it cannot be split further from inside the page.
+- `wgpuDeviceCreateRenderPipeline` itself does not make the ten most expensive calls.
+
+So the thing worth changing is that loading blocks the render thread, which is engine behaviour shared with desktop rather than anything in the web port: resources bound over several frames instead of one, and the World parsed off the game thread, would let a loading screen draw and progress show.
+
+In order of value from here: texture compression and ranged reads (milestone 6, the download), then unblocking the render thread during load, then the two seconds of World parsing.
+
+### Features to bring back
+
+Chosen 2026-10-08: depth prepass, Glimmer, and indirect rendering with occlusion culling. No ray tracing.
+
+#### Indirect rendering and depth prepass: working
+
+These are one feature, not two: the prepass only runs when indirect rendering is on (`DeferredPass.cpp`, `GBuffer.cpp`), so `DepthPrepass` alone changes nothing.
+
+The WebGPU backend had indirect rendering switched off in its config. It now follows `Rendering.IndirectRendering` like the other backends, set in `Initialize()` because the config object is built during static initialisation, before the engine config has been read. Nothing else needed changing: the culling compute shader (`ComputeVisibility`) converts through Tint and runs, and `DrawIndexedIndirect` was already implemented.
+
+| Check | Result |
+|---|---|
+| Native Dawn, indirect + prepass, against the Vulkan capture | mean difference 0.64 / 0.41 / 0.45, 0.05% of pixels over 24, no validation errors, no frame waited for its slot |
+| Browser, same settings, package cooked from a run recorded with them | renders, log clean, start-up line reports `indirect rendering true`, no missing or popping geometry while turning the camera |
+
+Not measured: how much the culling removes, or what it does to frame time. `MainWorld` is a single courtyard, so there is little to cull; a larger level is the place to measure it. The browser frame was compared with desktop by eye this time, not by pixel difference.
+
+Two things noticed on the way:
+
+- A variant that is compiled during a run is not in that run's `--record-engine-assets` list, because it was never loaded from disk. After turning a feature on, run once to compile and once more to record.
+- A rebuild re-copies `Config/` into the binaries folder, so the min-spec settings have to be re-applied before the next run. One run here went out with the default config by mistake, Glimmer included.
+
+#### Glimmer: working
+
+Every Glimmer shader now converts to WGSL and the passes run on native Dawn and in the browser with no validation errors. Finished 2026-10-08 14:25, about an hour and a half of work.
+
+What had to change, all of it in shaders unless noted. The restructured shaders are shared with Vulkan and DX12.
+
+| Problem | Fix |
+|---|---|
+| `AllMemoryBarrierWithGroupSync` becomes a device-scope barrier, which has no WGSL form | `Defines.hlsli` emits `OpControlBarrier` with workgroup scope itself on WebGPU (`HypControlBarrier`) |
+| WGSL only allows a barrier where control flow cannot differ between threads, and treats anything read from a buffer or from workgroup memory as possibly different | `GlimmerSWRTProbeAlloc` (classify), `GlimmerSWRTProbeBlend` and `GlimmerSHUpdate` no longer return before their last barrier; the early-out conditions guard the work between barriers instead |
+| Tint's SPIR-V reader fails its own IR validation ("continue: %n is not in scope") on a `continue` that follows a nested loop and carries that loop's values | The two BVH traversal loops in `GlimmerSWRT.hlsli` end in an if/else chain instead of early `continue`s. `-Od` does not avoid it |
+| 16 storage buffers per stage, on Dawn and in Chrome alike; `GlimmerSWRTProbeTrace` `MODE=TRACE` reads 18 | On WebGPU the two it reads one element of, the world data and the probe counters, are declared as `cbuffer`s. The backend gives structured buffers uniform usage as well so they can be bound that way |
+
+Two diagnostics came out of it. A failed Tint conversion now leaves its SPIR-V in `Temp/` so the failure can be reproduced with `tint.exe` by hand, and the WebGPU backend names any shader over the storage buffer limit when it reflects it, where Dawn only reports an unlabeled bind group layout.
+
+| Check | Result |
+|---|---|
+| `Rendering.Glimmer.DebugView=3` and `4` (the scene ray traced in software through Glimmer's BLAS and TLAS), Dawn against Vulkan | identical, largest difference 0 |
+| Normal view, Glimmer on, Dawn against Vulkan | 0.95% of pixels differ by more than 8 |
+| Browser, package cooked from a run recorded with Glimmer on (429 MB) | renders, BLAS pool created, last 200 log lines clean |
+
+**Why `MainWorld` showed nothing.** Glimmer does not light lightmapped surfaces, by design: `GlimmerIrradiancePass` draws with a stencil test that keeps out sky and lightmapped pixels (`SkippedStencilMask`), and `DeferredIndirect` only adds Glimmer where `OBJECT_MASK_LIGHTMAPPED` is clear. Every surface in `MainWorld` is lightmapped, so the irradiance target stays cleared and debug views 1 and 2 show its "no data" magenta. The probes themselves were alive all along: `Rendering.Glimmer.SWRT.Probes.LogStats=true` reports 32,768 resident, about 21,300 active.
+
+With `Rendering.LightmapVolumes=false` the stencil is not written and the debug views show Glimmer's output, which gives the comparison that was missing:
+
+| Check, lightmap volumes off | Dawn against Vulkan |
+|---|---|
+| `DebugView=1`, irradiance | mean difference 1.75 / 1.65 / 1.6, 1.6% of pixels over 8 (the probes are stochastic, so not identical) |
+| `DebugView=2`, coverage | mean difference 0.03 / 0.01 / 0.08 |
+| Probe stats after 70 s | 21,345 active against 21,317 |
+
+So the trace, blend and SH passes compute the same thing on WebGPU as on Vulkan. Not done: the same comparison in the browser, which needs a package recorded with lightmap volumes off.
+
+One thing found on the way and left alone: with `Rendering.LightmapVolumes=false` the normal view is black on Vulkan in this configuration, Glimmer on or off, with `srcResourceState == ResourceState::CopySrc` asserting. Only the debug views are usable in that mode.
+
+The browser check read only the tail of the page log, which keeps 200 lines; an error in the first seconds would have scrolled out, though an invalid pipeline repeats every frame and none did.
+
+Runs with this package exit with an access violation at shutdown on Vulkan as well as WebGPU, after an assert in `EntityManager` about `DynamicSkyProbe_Capture`. The cook commandlet does the same after "Blob storage cook complete". Not looked into.
+
 ### Known gaps
 
 - **Intermittent crash in `DeserializeBVHNodeFrom`** while a mesh is paged in, seen about one run in four or five before the storage was kept mapped. Zeroed or partial BVH bytes from the same short read would produce exactly this, so it is probably fixed by the read loop; it has not been seen since, in about fifteen runs, which is not proof.
-- **One proxied call at a time.** Each forwarded `wgpu*` call is a round trip to the device thread.
 - **Memory.** Each block file is held whole in the heap (594 MB of textures for this level) on top of the fetch backend's own copy.
 - The page ticks at 10 Hz while hidden, by design of the timer fallback.
 - **Pointer lock is untested.** The desktop app's browser pane refuses it for any page ("The root document of this element is not valid for pointer lock"), so it needs a run in a real Chrome window. Until the lock is granted the mouse still turns the camera, from absolute positions. When the user leaves the lock with Escape, which the browser never delivers as a key, the window hands the game a synthetic Escape so it releases the mouse as on desktop; that path is also untested.

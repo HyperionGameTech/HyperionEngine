@@ -22,7 +22,7 @@
 
     function appendLog(text)
     {
-        logLines.push(text);
+        logLines.push('[' + (performance.now() / 1000).toFixed(2).padStart(7) + '] ' + text);
 
         if (logLines.length > 20000)
         {

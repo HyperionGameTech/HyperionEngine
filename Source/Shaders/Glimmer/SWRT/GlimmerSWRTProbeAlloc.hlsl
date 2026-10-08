@@ -156,7 +156,9 @@ bool GlimmerIsStandingSolid(float3 P, uint firstCascade)
 
 groupshared uint gsHasSolids;
 
-bool GlimmerBlockHasSolids(uint levelIndex, int3 block, uint groupIndex)
+// Every thread of the group has to reach the barriers, whether or not the block is scanned: WGSL only allows a barrier
+// where control flow cannot differ between threads, and it cannot tell that shouldScan is the same for all of them.
+bool GlimmerBlockHasSolids(uint levelIndex, int3 block, uint groupIndex, bool shouldScan)
 {
     const float spacing = constants.volume.levels[levelIndex].params.x;
 
@@ -173,7 +175,7 @@ bool GlimmerBlockHasSolids(uint levelIndex, int3 block, uint groupIndex)
     GroupMemoryBarrierWithGroupSync();
 
     [loop]
-    for (uint sampleIndex = groupIndex; sampleIndex < steps * steps * steps && gsHasSolids == 0u; sampleIndex += CLASSIFY_GROUP_SIZE)
+    for (uint sampleIndex = groupIndex; shouldScan && sampleIndex < steps * steps * steps && gsHasSolids == 0u; sampleIndex += CLASSIFY_GROUP_SIZE)
     {
         const uint3 step = uint3(sampleIndex % steps, (sampleIndex / steps) % steps, sampleIndex / (steps * steps));
 
@@ -250,16 +252,10 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     const bool isClassified = all(cell.xyz == block) && (cell.w & GLIMMER_PROBE_CELL_CLASSIFIED) != 0;
 
-    bool hasSolids;
+    const bool shouldScan = !isClassified || (GlimmerProbeHash(tableIndex) + constants.volume.info.z) % max(uint(constants.params.z), 1u) == 0u;
+    const bool scannedSolids = GlimmerBlockHasSolids(levelIndex, block, groupIndex, shouldScan);
 
-    if (!isClassified || (GlimmerProbeHash(tableIndex) + constants.volume.info.z) % max(uint(constants.params.z), 1u) == 0u)
-    {
-        hasSolids = GlimmerBlockHasSolids(levelIndex, block, groupIndex);
-    }
-    else
-    {
-        hasSolids = (cell.w & GLIMMER_PROBE_CELL_SOLIDS) != 0;
-    }
+    const bool hasSolids = shouldScan ? scannedSolids : (cell.w & GLIMMER_PROBE_CELL_SOLIDS) != 0;
 
     if (groupIndex != 0u)
     {

@@ -383,11 +383,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (gsVoxelKind == GLIMMER_SH_VOXEL_BURIED)
-    {
-        return;
-    }
-
+    // a buried voxel traces nothing, but still runs to the last barrier: WGSL wants every thread to reach them
+    const bool isBuried = gsVoxelKind == GLIMMER_SH_VOXEL_BURIED;
     const bool isAir = gsVoxelKind == GLIMMER_SH_VOXEL_AIR;
 
     const float3 originOffset = gsOriginOffset;
@@ -400,7 +397,10 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     float3 radianceSample = (float3)0.0;
     float3 rayDirection = (float3)0.0;
 
-    if (groupIndex < GLIMMER_SH_RAYS)
+    if (isBuried)
+    {
+    }
+    else if (groupIndex < GLIMMER_SH_RAYS)
     {
         rayDirection = normalize(GlimmerRotateByQuaternion(constants.rayRotation, GlimmerSphericalFibonacci(groupIndex, GLIMMER_SH_RAYS)));
 
@@ -493,7 +493,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         GroupMemoryBarrierWithGroupSync();
     }
 
-    if (groupIndex != 0u)
+    if (isBuried || groupIndex != 0u)
     {
         return;
     }

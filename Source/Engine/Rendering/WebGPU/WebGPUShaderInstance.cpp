@@ -874,6 +874,27 @@ RendererResult WebGPUShaderInstance::Create()
         reflectedGroup.hashCode = hashCode.Value();
     }
 
+    for (const WGPUShaderStage stage : { WGPUShaderStage_Vertex, WGPUShaderStage_Fragment, WGPUShaderStage_Compute })
+    {
+        uint32 numStorageBuffers = 0;
+
+        for (const WebGPUReflectedGroup& reflectedGroup : m_reflectedGroups)
+        {
+            for (const WebGPUReflectedBinding& reflectedBinding : reflectedGroup.bindings)
+            {
+                const bool isStorageBuffer = reflectedBinding.kind == WebGPUBindingKind::StorageBuffer || reflectedBinding.kind == WebGPUBindingKind::ReadOnlyStorageBuffer;
+
+                numStorageBuffers += (isStorageBuffer && (reflectedBinding.visibility & stage)) ? 1 : 0;
+            }
+        }
+
+        if (numStorageBuffers > RI.GetDeviceLimits().maxStorageBuffersPerShaderStage)
+        {
+            HYP_LOG(RenderingBackend, Error, "Shader {} ({}) uses {} storage buffers in one stage, the device allows {}",
+                m_shader->GetName(), m_shader->properties.GetDebugString(), numStorageBuffers, RI.GetDeviceLimits().maxStorageBuffersPerShaderStage);
+        }
+    }
+
     return {};
 }
 

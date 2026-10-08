@@ -3,9 +3,11 @@
     python ServeWeb.py <binaries dir> <package dir> [port]
 
 The binaries dir holds index.html and hyperion-sample.{js,wasm,data}; the package dir holds the cooked Cache/.
-Sends the cross-origin isolation headers threads need, and answers range requests, which the cache files are read with.
+Sends the cross-origin isolation headers threads need, answers range requests, which the cache files are read with,
+and gzips the page's own files the way a real host would (the wasm is about a fifth of its size compressed).
 """
 
+import gzip
 import http.server
 import os
 import re
@@ -20,6 +22,20 @@ content_types = {
     ".js": "text/javascript",
     ".wasm": "application/wasm",
 }
+
+
+compressed_types = {".html", ".js", ".wasm", ".data"}
+compressed_cache = {}
+
+
+def gzipped(full_path):
+    key = (full_path, os.path.getmtime(full_path))
+
+    if key not in compressed_cache:
+        with open(full_path, "rb") as file:
+            compressed_cache[key] = gzip.compress(file.read(), 6)
+
+    return compressed_cache[key]
 
 
 def root_is_package(full_path):
@@ -53,6 +69,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         start, end = 0, size - 1
         range_match = re.fullmatch(r"bytes=(\d+)-(\d*)", self.headers.get("Range", ""))
 
+        extension = os.path.splitext(full_path)[1]
+
+        if not range_match and extension in compressed_types and "gzip" in self.headers.get("Accept-Encoding", ""):
+            body = gzipped(full_path)
+
+            self.send_response(200)
+            self.send_header("Content-Type", content_types.get(extension, "application/octet-stream"))
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_isolation_headers()
+            self.end_headers()
+
+            if send_body:
+                self.wfile.write(body)
+
+            return
+
         if range_match and size > 0:
             start = min(int(range_match.group(1)), size - 1)
             end = min(int(range_match.group(2)), size - 1) if range_match.group(2) else size - 1
@@ -69,10 +102,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_types.get(os.path.splitext(full_path)[1], "application/octet-stream"))
         self.send_header("Content-Length", str(length))
         self.send_header("Accept-Ranges", "bytes")
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
-        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
-        self.send_header("Cache-Control", "no-store")
+        self.send_isolation_headers()
         self.end_headers()
 
         if not send_body:
@@ -90,6 +120,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
                 self.wfile.write(chunk)
                 remaining -= len(chunk)
+
+    def send_isolation_headers(self):
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header("Cache-Control", "no-store")
 
     def do_GET(self):
         self.respond(True)

@@ -67,6 +67,14 @@ if(HYP_WEB)
 
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Platform/Web/index.html" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html" COPYONLY)
 
+  # DWARF triples the download (60 MB against 21 MB) and holds the link back to limited optimisation.
+  # Function names are kept either way, so a stack trace in the browser's console stays readable.
+  option(HYP_WEB_DEBUG_INFO "Keep DWARF debug information in the wasm" OFF)
+
+  if(NOT HYP_WEB_DEBUG_INFO)
+    target_link_options(${BUILD_NAME} PRIVATE -g0 --profiling-funcs)
+  endif()
+
   if(HYP_WEB_NODE_PACKAGE_DIR)
     target_compile_definitions(${BUILD_NAME} PRIVATE HYP_WEB_NODE_PACKAGE_DIR="${HYP_WEB_NODE_PACKAGE_DIR}")
   else()

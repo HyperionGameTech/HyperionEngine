@@ -146,6 +146,16 @@
 #define HYP_ISINF(value) isinf(value)
 #endif // BACKEND_WEBGPU
 
+#ifdef BACKEND_WEBGPU
+// WGSL's barriers are scoped to the workgroup: workgroupBarrier() for groupshared memory, storageBarrier() for buffers.
+// DXC gives AllMemoryBarrierWithGroupSync device scope, which has no WGSL form, so emit the instruction ourselves:
+// OpControlBarrier, execution and memory scope Workgroup, semantics AcquireRelease | UniformMemory | WorkgroupMemory.
+[[vk::ext_instruction(224)]]
+void HypControlBarrier(uint executionScope, uint memoryScope, uint memorySemantics);
+
+#define AllMemoryBarrierWithGroupSync() HypControlBarrier(2u, 2u, 0x8u | 0x40u | 0x100u)
+#endif // BACKEND_WEBGPU
+
 #if defined(BACKEND_WEBGPU) && defined(PIXEL_SHADER)
 // WGSL has no LOD query; compute what the sampler would pick from the UV derivatives
 float HypCalculateTextureLod(Texture2D tex, float2 texcoord)

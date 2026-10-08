@@ -1101,8 +1101,15 @@ static ByteBuffer ConvertSPIRVToWGSL(const ByteBuffer& spirv, const FilePath& ou
     const FilePath wgslFilepath = FilePath(String(scratchBase) + ".wgsl");
     const FilePath logFilepath = FilePath(String(scratchBase) + ".log");
 
+    // the SPIR-V of a failed conversion is left behind, it is the only way to reproduce the failure with Tint by hand
+    bool keepSpirv = false;
+
     HYP_DEFER({
-        spirvFilepath.Remove();
+        if (!keepSpirv)
+        {
+            spirvFilepath.Remove();
+        }
+
         wgslFilepath.Remove();
         logFilepath.Remove();
     });
@@ -1158,6 +1165,8 @@ static ByteBuffer ConvertSPIRVToWGSL(const ByteBuffer& spirv, const FilePath& ou
     if (exitCode != 0 || !wgslFilepath.Exists())
     {
         errorMessages.PushBack(HYP_FORMAT("Tint failed to convert {} to WGSL (exit code {}): {}", spirvFilepath, exitCode, log));
+
+        keepSpirv = true;
 
         return ByteBuffer();
     }
