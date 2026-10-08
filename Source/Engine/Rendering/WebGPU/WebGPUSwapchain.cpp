@@ -17,6 +17,18 @@
 
 #include <WebGPUSwapchain.generated.inl>
 
+#ifdef HYP_WEB
+#include <emscripten.h>
+
+EM_ASYNC_JS(void, WaitForAnimationFrame, (), {
+    // a hidden page gets no animation frames, the timer keeps the engine ticking there
+    await new Promise((resolve) => {
+        requestAnimationFrame(resolve);
+        setTimeout(resolve, 100);
+    });
+});
+#endif
+
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
@@ -88,6 +100,11 @@ RendererResult WebGPUSwapchain::Create()
         WGPUSurfaceSourceWindowsHWND surfaceSource = WGPU_SURFACE_SOURCE_WINDOWS_HWND_INIT;
         surfaceSource.hinstance = GetModuleHandleW(nullptr);
         surfaceSource.hwnd = m_window->GetHWND();
+
+        surfaceDescriptor.nextInChain = &surfaceSource.chain;
+#elif defined(HYP_WEB)
+        WGPUEmscriptenSurfaceSourceCanvasHTMLSelector surfaceSource = WGPU_EMSCRIPTEN_SURFACE_SOURCE_CANVAS_HTML_SELECTOR_INIT;
+        surfaceSource.selector = { "#canvas", WGPU_STRLEN };
 
         surfaceDescriptor.nextInChain = &surfaceSource.chain;
 #else
@@ -222,7 +239,12 @@ void WebGPUSwapchain::PresentFrame()
         return;
     }
 
+#ifdef HYP_WEB
+    // the canvas is presented when this thread yields; waiting for the next animation frame also paces the loop
+    WaitForAnimationFrame();
+#else
     wgpuSurfacePresent(m_surface);
+#endif
 
     ReleaseCurrentTexture();
 

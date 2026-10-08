@@ -82,6 +82,11 @@ elseif(EXISTS "${SUBMODULES_DIR}/zlib/CMakeLists.txt")
   set(ZLIB_BUILD_MINIZIP OFF CACHE BOOL "" FORCE)
   set(ZLIB_INSTALL OFF CACHE BOOL "" FORCE)
 
+  if(EMSCRIPTEN)
+    set(ZLIB_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+  endif()
+
+
   include_directories(SYSTEM ${SUBMODULES_DIR}/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
   add_subdirectory(${SUBMODULES_DIR}/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
 

@@ -421,6 +421,14 @@ const WebGPUDescriptorSet::CachedBindGroup* WebGPUDescriptorSet::GetOrCreateBind
             // the engine prefills every image slot with a 2D float placeholder, which does not fit most other declarations
             if (view == nullptr)
             {
+                if (imageView != nullptr && imageView != RI.placeholderData->GetImageView2D1x1R8().Get() && imageView->GetImage().IsValid())
+                {
+                    HYP_LOG_ONCE(RenderingBackend, Warning, "Image bound to {}.{} ({}, {}) does not fit the shader declaration (view dimension {}, sample type {}), an empty texture is bound instead",
+                        m_layout.GetName(), shaderInput->name,
+                        EnumToString(imageView->GetImage()->GetTextureFormat()), EnumToString(imageView->GetImage()->GetType()),
+                        uint32(reflectedBinding.viewDimension), uint32(reflectedBinding.sampleType));
+                }
+
                 sampleType = wantsDepth ? WGPUTextureSampleType_Depth : reflectedBinding.sampleType;
                 view = RI.GetFallbackTextureView(reflectedBinding.viewDimension, sampleType);
             }

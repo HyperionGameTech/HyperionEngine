@@ -421,7 +421,7 @@ void WebGPUGpuBuffer::WaitForReadback() const
 
     while (m_isReadbackPending.load(std::memory_order_acquire))
     {
-        RI.ProcessEvents();
+        RI.WaitForEvents();
     }
 }
 

@@ -28,13 +28,6 @@ using DataProcessing::CompilerError;
 using DataProcessing::ErrorLevel;
 using DataProcessing::SourceLocation;
 
-static const Value s_undefined = JSON::JSUndefined();
-static const Value s_null = JSON::JSNull();
-static const Value s_emptyObject = JSON::Object();
-static const Value s_emptyArray = JSON::JArray();
-static const Value s_emptyString = JSON::JString();
-static const Value s_true = true;
-static const Value s_false = false;
 
 #pragma region Helpers
 
@@ -326,7 +319,7 @@ const JArray& JSONSubscriptWrapper<Value>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
-        return s_emptyArray.AsArray();
+        return JSON::EmptyArray().AsArray();
     }
 
     return value->AsArray();
@@ -343,7 +336,7 @@ const Object& JSONSubscriptWrapper<Value>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
-        return s_emptyObject.AsObject();
+        return JSON::EmptyObject().AsObject();
     }
 
     return value->AsObject();
@@ -579,7 +572,7 @@ const JArray& JSONSubscriptWrapper<const Value>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
-        return s_emptyArray.AsArray();
+        return JSON::EmptyArray().AsArray();
     }
 
     return value->AsArray();
@@ -596,7 +589,7 @@ const Object& JSONSubscriptWrapper<const Value>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
-        return s_emptyObject.AsObject();
+        return JSON::EmptyObject().AsObject();
     }
 
     return value->AsObject();
@@ -995,7 +988,7 @@ const Object& Value::ToObject() const
         return AsObject();
     }
 
-    return s_emptyObject.AsObject();
+    return JSON::EmptyObject().AsObject();
 }
 
 thread_local containers::Set<const Value*>* t_serializedObjects = nullptr;
@@ -1226,38 +1219,53 @@ HashCode Value::GetHashCode() const
 
 #pragma region JSON
 
+// Function-local so they are constructed on first use: other translation units call these from their static initializers.
 const Value& Undefined()
 {
+    static const Value s_undefined = JSON::JSUndefined();
+
     return s_undefined;
 }
 
 const Value& Null()
 {
+    static const Value s_null = JSON::JSNull();
+
     return s_null;
 }
 
 const Value& EmptyObject()
 {
+    static const Value s_emptyObject = JSON::Object();
+
     return s_emptyObject;
 }
 
 const Value& EmptyArray()
 {
+    static const Value s_emptyArray = JSON::JArray();
+
     return s_emptyArray;
 }
 
 const Value& EmptyString()
 {
+    static const Value s_emptyString = JSON::JString();
+
     return s_emptyString;
 }
 
 const Value& True()
 {
+    static const Value s_true = true;
+
     return s_true;
 }
 
 const Value& False()
 {
+    static const Value s_false = false;
+
     return s_false;
 }
 

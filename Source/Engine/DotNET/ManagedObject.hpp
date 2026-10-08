@@ -49,7 +49,8 @@ struct ObjectReference
     bool operator!=(const ObjectReference& other) const = default;
 };
 
-static_assert(sizeof(ObjectReference) == 16, "ObjectReference size mismatch with C#");
+// only checked where the .NET host can run; a 32-bit target (wasm) has no managed side to match
+static_assert(sizeof(void*) != 8 || sizeof(ObjectReference) == 16, "ObjectReference size mismatch with C#");
 
 /*! \brief References a managed object in the .NET runtime.
  *  By default, the managed object this ManagedObject is associated with will be allowed to be released by the .NET runtime upon this object's destruction.

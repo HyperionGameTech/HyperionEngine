@@ -38,6 +38,11 @@
 
 #include <Framework/DeviceDetails.hpp>
 
+#ifdef HYP_WEB
+#include <emscripten.h>
+#include <emscripten/threading.h>
+#endif
+
 #include <System/AppContext.hpp>
 
 #include <Core/Logging/Logger.hpp>
@@ -201,6 +206,10 @@ RendererResult WebGPURenderInterface::Initialize()
 {
     HYP_LOG(RenderingBackend, Info, "Initializing WebGPU render backend");
 
+#ifdef HYP_WEB
+    g_webGPUDeviceThread = pthread_self();
+#endif
+
     const WGPUInstanceFeatureName instanceFeatures[] = { WGPUInstanceFeatureName_TimedWaitAny };
 
     WGPUInstanceDescriptor instanceDescriptor = WGPU_INSTANCE_DESCRIPTOR_INIT;
@@ -219,6 +228,7 @@ RendererResult WebGPURenderInterface::Initialize()
 
     const ANSIStringView backendName = g_cvWebGPUBackend.Get();
 
+    //https://github.com/HyperionGameTech/HyperionEngine/issues/359
     if (backendName == "d3d12" && backendName.Size() == 5)
     {
         adapterOptions.backendType = WGPUBackendType_D3D12;
@@ -240,8 +250,7 @@ RendererResult WebGPURenderInterface::Initialize()
     // the web build returns to the event loop here instead and finishes from the device callback
     while (m_initializeState == InitializeState::WaitingForAdapter || m_initializeState == InitializeState::WaitingForDevice)
     {
-        ProcessEvents();
-        ThreadSleep(1);
+        WaitForEvents();
     }
 
     if (m_initializeState != InitializeState::DeviceReady)
@@ -287,8 +296,10 @@ void WebGPURenderInterface::OnAdapterRequestEnded(WGPUAdapter adapter)
     requestFeature(WGPUFeatureName_TextureFormatsTier2);
     requestFeature(WGPUFeatureName_Float32Blendable);
     requestFeature(WGPUFeatureName_TextureCompressionBC);
-
+#ifndef HYP_WEB
+    // Dawn only: lets transient command buffers be recorded off the render thread
     requestFeature(WGPUFeatureName_ImplicitDeviceSynchronization);
+#endif
 
     // ask for everything the adapter has; the web build will need to be held to the default limits instead
     WGPULimits adapterLimits = WGPU_LIMITS_INIT;
@@ -514,6 +525,33 @@ void WebGPURenderInterface::ProcessEvents()
     {
         wgpuInstanceProcessEvents(m_instance);
     }
+
+#ifdef HYP_WEB
+    if (IsOnWebGPUDeviceThread())
+    {
+        // calls other threads have handed over, which otherwise wait for this thread's next yield
+        emscripten_current_thread_process_queued_calls();
+    }
+#endif
+}
+
+void WebGPURenderInterface::WaitForEvents()
+{
+#ifdef HYP_WEB
+    if (!IsOnWebGPUDeviceThread())
+    {
+        ThreadSleep(1);
+
+        return;
+    }
+
+    // futures are promises here, they only resolve once this thread is back in its event loop
+    emscripten_sleep(0);
+    ProcessEvents();
+#else
+    ProcessEvents();
+    ThreadSleep(0);
+#endif
 }
 
 void WebGPURenderInterface::NoteBlockingReadbackWait()
@@ -551,8 +589,7 @@ void WebGPURenderInterface::WaitForFrameSlot(FrameSlot& frameSlot)
         // A browser cannot spin here; the web build skips the tick and tries the slot again on the next one.
         while (!IsFrameSlotComplete(frameSlot) && !m_isDeviceLost)
         {
-            ProcessEvents();
-            ThreadSleep(0);
+            WaitForEvents();
         }
     }
 
@@ -562,6 +599,25 @@ void WebGPURenderInterface::WaitForFrameSlot(FrameSlot& frameSlot)
 void WebGPURenderInterface::WaitForSubmittedWork()
 {
     ++m_numBlockingSubmitWaits;
+
+#ifdef HYP_WEB
+    // WaitAny suspends, which only the device thread may do; anyone else polls while that thread runs its events
+    AtomicVar<bool> isWorkDone { false };
+
+    WGPUQueueWorkDoneCallbackInfo workDoneCallbackInfo = WGPU_QUEUE_WORK_DONE_CALLBACK_INFO_INIT;
+    workDoneCallbackInfo.mode = WGPUCallbackMode_AllowProcessEvents;
+    workDoneCallbackInfo.callback = &OnFrameWorkDone;
+    workDoneCallbackInfo.userdata1 = &isWorkDone;
+
+    wgpuQueueOnSubmittedWorkDone(m_queue, workDoneCallbackInfo);
+
+    while (!isWorkDone.Get(MemoryOrder::ACQUIRE) && !m_isDeviceLost)
+    {
+        WaitForEvents();
+    }
+
+    return;
+#endif
 
     bool isDone = false;
 

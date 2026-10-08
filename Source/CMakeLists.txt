@@ -22,6 +22,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 if(NOT DEFINED HYP_PLATFORM_NAME)
   if(ANDROID)
     set(HYP_PLATFORM_NAME "Android")
+  elseif(EMSCRIPTEN OR CMAKE_TOOLCHAIN_FILE MATCHES "Emscripten") # the toolchain file is not loaded until project()
+    set(HYP_PLATFORM_NAME "Web")
   elseif(WIN32)
     set(HYP_PLATFORM_NAME "Windows")
   elseif(IOS)
@@ -170,6 +172,23 @@ elseif(HYP_PLATFORM_NAME STREQUAL "Android")
 
   set(HYP_ANDROID 1)
   set(HYP_UNIX 1)
+elseif(HYP_PLATFORM_NAME STREQUAL "Web")
+  # wasm32 through Emscripten; always the shipping-style static build (no editor, .NET host or commandlets)
+  set(CSHARP_CONSTANTS "HYP_WEB;HYP_UNIX")
+  add_definitions(-DHYP_WEB=1)
+  add_definitions(-DHYP_UNIX=1)
+  add_definitions(-DHYP_PLATFORM_NAME_STR="${HYP_PLATFORM_NAME}")
+
+  set(HYP_WEB 1)
+  set(HYP_UNIX 1)
+  set(HYP_SHIPPING 1)
+
+  # the engine is threaded throughout, and Core/Math has SSE paths that go through the wasm SIMD emulation headers
+  set(HYP_WEB_COMPILE_FLAGS "-pthread -msimd128 -msse4.1")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${HYP_WEB_COMPILE_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${HYP_WEB_COMPILE_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
 elseif(HYP_PLATFORM_NAME STREQUAL "Linux")
   set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
   add_definitions(-DHYP_LINUX=1)
@@ -241,7 +260,7 @@ endfunction()
 # Run CodeGen with version 0.11
 # HYP_CODEGEN_VERSION_MAJOR 0
 # HYP_CODEGEN_VERSION_MINOR 11
-RunCodeGen(0 12)
+RunCodeGen(0 13)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -717,6 +736,10 @@ if(WIN32 AND NOT HYP_GCC)
   endif()
 endif()
 
+if(HYP_WEB)
+  set(RENDERING_BACKEND "WebGPU")
+endif()
+
 message(STATUS "Rendering backend: ${RENDERING_BACKEND}")
 
 if (NOT DEFINED RENDERING_BACKEND)
@@ -829,11 +852,18 @@ elseif(RENDERING_BACKEND STREQUAL "WebGPU")
 
   message(STATUS "Using WebGPU as rendering backend")
 
-  if(NOT EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dawn/webgpu/webgpu.h")
-    message(FATAL_ERROR "WebGPU backend requested but Dawn headers were not found at ${THIRD_PARTY_INCLUDE_DIR}/dawn")
-  endif()
+  if(HYP_WEB)
+    # webgpu.h and the implementation both come from the port; Dawn's own headers must not shadow them
+    # C++ only: the port refuses to link from C, which is what CMake's C feature checks do
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --use-port=emdawnwebgpu")
+    set(HYP_WEB_LINK_OPTIONS ${HYP_WEB_LINK_OPTIONS} --use-port=emdawnwebgpu)
+  else()
+    if(NOT EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dawn/webgpu/webgpu.h")
+      message(FATAL_ERROR "WebGPU backend requested but Dawn headers were not found at ${THIRD_PARTY_INCLUDE_DIR}/dawn")
+    endif()
 
-  include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dawn)
+    include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dawn)
+  endif()
 
   # Native builds link Dawn; Emscripten gets WebGPU from its emdawnwebgpu port instead
   if(WIN32)

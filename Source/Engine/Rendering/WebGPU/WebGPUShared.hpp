@@ -11,6 +11,8 @@
 
 #include <webgpu/webgpu.h>
 
+#include <Rendering/WebGPU/WebGPUThreadProxy.hpp>
+
 namespace Hyperion {
 
 HYP_FORCE_INLINE WGPUStringView ToWGPUStringView(const char* str)

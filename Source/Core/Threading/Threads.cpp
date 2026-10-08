@@ -14,6 +14,10 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#if HYP_WEB
+#include <emscripten/threading.h>
+#endif
+
 #if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>
 #endif
@@ -135,6 +139,8 @@ void SetCurrentThreadId(const ThreadId& id)
     }
 #elif HYP_MACOS || HYP_IOS
     pthread_setname_np(id.GetName().LookupString());
+#elif HYP_WEB
+    emscripten_set_thread_name(pthread_self(), id.GetName().LookupString());
 #elif HYP_UNIX
     pthread_setname_np(pthread_self(), id.GetName().LookupString());
 #endif
@@ -342,6 +348,8 @@ const ThreadId& CurrentThreadId()
         {
             t_currentThreadId = ThreadId(NAME("Unknown"), /* forceUnique */ true);
         }
+#elif HYP_WEB
+        t_currentThreadId = ThreadId(NAME("Unknown"), /* forceUnique */ true);
 #elif HYP_UNIX
         char threadName[256];
         pthread_getname_np(pthread_self(), threadName, sizeof(threadName));

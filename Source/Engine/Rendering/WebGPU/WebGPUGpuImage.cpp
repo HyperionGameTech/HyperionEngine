@@ -1032,6 +1032,8 @@ void WebGPUGpuImage::CopyDepthRegion(
     WGPUBindGroup bindGroup = wgpuDeviceCreateBindGroup(RI.GetDevice(), &bindGroupDescriptor);
 
     WGPURenderPassDepthStencilAttachment depthStencilAttachment = WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
+    // browsers reject the header's NaN default even when the pass loads depth
+    depthStencilAttachment.depthClearValue = 1.0f;
     depthStencilAttachment.view = dstView;
     depthStencilAttachment.depthLoadOp = WGPULoadOp_Load;
     depthStencilAttachment.depthStoreOp = WGPUStoreOp_Store;
@@ -1096,6 +1098,8 @@ void WebGPUGpuImage::Fill(
 
             WGPURenderPassColorAttachment colorAttachment = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
             WGPURenderPassDepthStencilAttachment depthStencilAttachment = WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
+            // browsers reject the header's NaN default even when the pass loads depth
+            depthStencilAttachment.depthClearValue = 1.0f;
 
             if (isDepthStencil)
             {

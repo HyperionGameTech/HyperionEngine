@@ -19,4 +19,9 @@ ENGINE_API ShaderPropertyDictionary& ShaderPropertyDictionary::GetInstance()
 
 StaticShaderPropertyId* StaticShaderPropertyId::s_head = nullptr;
 
+ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
+{
+    return ShaderPropertyDictionary::GetInstance().Intern(property);
+}
+
 } // namespace Hyperion

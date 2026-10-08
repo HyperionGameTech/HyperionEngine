@@ -58,6 +58,48 @@ else()
   add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 endif()
 
+if(HYP_WEB)
+  # for test runs under node: a host folder holding Config/, Cache/ and Content/, mounted as /hyperion
+  set(HYP_WEB_NODE_PACKAGE_DIR "" CACHE PATH "Host folder to mount as the package when running under node")
+
+  # for the browser: a host folder whose Config/ and Content/ are preloaded; Cache/ is served beside the page
+  set(HYP_WEB_PACKAGE_DIR "" CACHE PATH "Host folder holding the Config/ and Content/ to preload in the browser build")
+
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Platform/Web/index.html" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/index.html" COPYONLY)
+
+  if(HYP_WEB_NODE_PACKAGE_DIR)
+    target_compile_definitions(${BUILD_NAME} PRIVATE HYP_WEB_NODE_PACKAGE_DIR="${HYP_WEB_NODE_PACKAGE_DIR}")
+  else()
+    # JSPI lets the thread that renders wait on the browser (device requests, readbacks, the next animation frame)
+    target_link_options(${BUILD_NAME} PRIVATE -sJSPI=1 -sOFFSCREENCANVAS_SUPPORT=1)
+
+    if(HYP_WEB_PACKAGE_DIR)
+      target_link_options(${BUILD_NAME} PRIVATE
+        "--preload-file=${HYP_WEB_PACKAGE_DIR}/Config@/hyperion/Config"
+        "--preload-file=${HYP_WEB_PACKAGE_DIR}/Content@/hyperion/Content")
+    endif()
+  endif()
+
+  # main() runs on a worker so it may block; the page's thread only proxies to it
+  target_link_options(${BUILD_NAME} PRIVATE
+    ${HYP_WEB_LINK_OPTIONS}
+    -sPROXY_TO_PTHREAD=1
+    -sWASMFS=1
+    -sFORCE_FILESYSTEM=1
+    -sALLOW_MEMORY_GROWTH=1
+    -sINITIAL_MEMORY=512MB
+    -sMAXIMUM_MEMORY=4GB
+    -sSTACK_SIZE=4MB
+    -sDEFAULT_PTHREAD_STACK_SIZE=2MB
+    -sPTHREAD_POOL_SIZE=24
+    -sEXIT_RUNTIME=1
+    -sENVIRONMENT=web,worker,node
+    -sASSERTIONS=1
+    # see WebGPUThreadProxy.cpp
+    -Wl,--wrap=emscripten_futex_wait
+  )
+endif()
+
 if(MSVC)
   set (CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configurations" FORCE)
   set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)

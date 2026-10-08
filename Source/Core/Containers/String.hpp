@@ -296,7 +296,11 @@ public:
     /*! \brief Return the data size in characters. Note, UTF-8 strings can have a shorter length than size. */
     HYP_FORCE_INLINE size_t Size() const
     {
-        return Base::Size() - 1; /* for NT char */
+        // zero before the constructor has run, which another translation unit's static initializer can observe
+        // (e.g. String::empty used as a default argument of a static registration)
+        const size_t sizeWithTerminator = Base::Size();
+
+        return sizeWithTerminator != 0 ? sizeWithTerminator - 1 : 0; /* for NT char */
     }
 
     /*! \brief Return the length of the string in characters. Note, UTF-8 strings can have a shorter length than size. */

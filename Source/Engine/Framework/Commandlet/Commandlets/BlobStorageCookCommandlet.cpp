@@ -30,8 +30,10 @@
 
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/Shader.hpp>
 #include <Rendering/ShaderManager.hpp>
 
+#include <Rendering/Util/ShaderCompiler.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <System/MessageBox.hpp>
@@ -86,6 +88,14 @@ public:
                 "worlds",
                 "",
                 "Comma-separated World asset names to cook game content for (all Worlds in the project when empty)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
+                "engine-assets",
+                "",
+                "File listing the Engine assets to cook, one Bucket/Name per line, as written by a run with --record-engine-assets (every Engine asset when empty)",
                 CommandLineArgumentFlags::NONE,
                 {},
                 JSON::Value(""));
@@ -283,7 +293,9 @@ protected:
             }
         }
 
-        Result result = Cook(engineRegistry, gameRegistry, projectDir, worldNames, outCacheDir, outContentDir, outEngineContentDir);
+        const String engineAssetListArg = args["engine-assets"].ToString();
+
+        Result result = Cook(engineRegistry, gameRegistry, projectDir, worldNames, FilePath(engineAssetListArg), outCacheDir, outContentDir, outEngineContentDir);
 
         if (result.HasError())
         {
@@ -373,7 +385,7 @@ private:
                 StringHash(reference->key),
                 tup.GetElement<0>(),
                 tup.GetElement<1>(),
-                reference->size,
+                size_t(reference->size),
                 reference
             });
         }
@@ -407,10 +419,110 @@ private:
         return {};
     }
 
+    // Engine assets are referenced from code as well as from content, so what a game needs can't be found by walking
+    // references. The list is what a run of the game actually loaded.
+    static Result CookListedAssets(
+        AssetRegistry* registry,
+        const FilePath& assetListPath,
+        const FilePath& outputContentDir,
+        Array<TSharedResLock<AssetObject>>& readLocks,
+        Array<CollectedBlob>& collectedBlobs,
+        Array<uint64>& blockSizes)
+    {
+        FILE* listFile = fopen(assetListPath.Data(), "r");
+
+        if (listFile == nullptr)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open asset list '{}'", assetListPath);
+        }
+
+        HYP_DEFER({ fclose(listFile); });
+
+        Set<String> seenEntries;
+        Array<Handle<AssetObject>> listedAssets;
+        Set<const AssetObject*> listedAssetSet;
+        uint32 numMissing = 0;
+
+        char line[1024];
+
+        while (fgets(line, sizeof(line), listFile) != nullptr)
+        {
+            const String entry = String(line).Trimmed();
+
+            if (entry.Empty() || !seenEntries.Insert(entry).second)
+            {
+                continue;
+            }
+
+            const Array<String> parts = entry.Split('/');
+
+            if (parts.Size() != 2)
+            {
+                HYP_LOG(Assets, Warning, "Skipping asset list entry '{}', expected Bucket/Name", entry);
+
+                continue;
+            }
+
+            const AssetBucket& bucket = GetAssetBucketByName(StringHash(parts[0]));
+
+            if (bucket == AssetBuckets::None)
+            {
+                HYP_LOG(Assets, Warning, "Skipping asset list entry '{}', no such bucket", entry);
+
+                continue;
+            }
+
+            Handle<AssetObject> assetObject = registry->GetAsset(bucket, StringHash(parts[1]));
+
+            if (!assetObject.IsValid())
+            {
+                HYP_LOG(Assets, Warning, "Listed asset '{}' is not in the registry", entry);
+
+                ++numMissing;
+
+                continue;
+            }
+
+            listedAssetSet.Insert(assetObject.Get());
+            listedAssets.PushBack(std::move(assetObject));
+        }
+
+        for (const Handle<AssetObject>& assetObject : listedAssets)
+        {
+            // a bundle on disk holds its variants for every backend; its cooked manifest should only name the ones cooked with it
+            if (assetObject->GetPath().GetBucket() == AssetBuckets::ShaderBundles)
+            {
+                ShaderBundle* shaderBundle = static_cast<ShaderBundle*>(assetObject.Get());
+
+                for (auto it = shaderBundle->compiledShaders.Begin(); it != shaderBundle->compiledShaders.End();)
+                {
+                    if (!listedAssetSet.Contains(static_cast<const AssetObject*>(it->Get())))
+                    {
+                        it = shaderBundle->compiledShaders.Erase(it);
+
+                        continue;
+                    }
+
+                    ++it;
+                }
+            }
+
+            if (Result result = CookAsset(outputContentDir, assetObject, readLocks, collectedBlobs, blockSizes); result.HasError())
+            {
+                return result;
+            }
+        }
+
+        HYP_LOG(Assets, Info, "Cooked {} listed asset(s) from \"{}\", {} missing", listedAssets.Size(), assetListPath, numMissing);
+
+        return {};
+    }
+
     static Result Cook(
         const Handle<AssetRegistry>& engineRegistry, const Handle<AssetRegistry>& gameRegistry,
         const FilePath& projectPath,
         const Array<String>& worldNames,
+        const FilePath& engineAssetListPath,
         const FilePath& outputCacheDir, const FilePath& outputContentDir, const FilePath& outputEngineContentDir)
     {
         Array<TSharedResLock<AssetObject>> readLocks;
@@ -427,11 +539,21 @@ private:
             GlobalContextScope assetRegistryContextScope { AssetRegistryContext { engineRegistry } };
             engineRegistry->LoadAssetDescs();
 
-            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+            if (engineAssetListPath.Any())
             {
-                if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
+                if (Result result = CookListedAssets(engineRegistry, engineAssetListPath, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
                 {
                     return result;
+                }
+            }
+            else
+            {
+                for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+                {
+                    if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
+                    {
+                        return result;
+                    }
                 }
             }
         }

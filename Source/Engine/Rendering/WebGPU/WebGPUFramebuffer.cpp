@@ -323,6 +323,20 @@ WebGPUAttachment* WebGPUFramebuffer::GetAttachment(uint32 binding) const
     return it->second;
 }
 
+Vec2u WebGPUFramebuffer::GetAttachmentExtent() const
+{
+    for (const auto& it : m_attachments)
+    {
+        const WebGPUAttachment* attachment = it.second;
+
+        const uint32 mipLevel = attachment->GetImageView()->GetImageSubResource().baseMipLevel;
+
+        return attachment->GetGpuImage()->GetTextureDesc().GetMipExtent(uint8(mipLevel)).GetXY();
+    }
+
+    return GetExtent();
+}
+
 uint32 WebGPUFramebuffer::GetAllAttachmentsMask() const
 {
     uint32 mask = 0;
@@ -384,6 +398,8 @@ WGPURenderPassEncoder WebGPUFramebuffer::BeginPass(WGPUCommandEncoder encoder)
     uint32 numColorAttachments = 0;
 
     WGPURenderPassDepthStencilAttachment depthStencilAttachment = WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
+    // browsers reject the header's NaN default even when the pass loads depth
+    depthStencilAttachment.depthClearValue = 1.0f;
     bool hasDepthStencilAttachment = false;
 
     for (const auto& it : m_attachments)
@@ -502,7 +518,7 @@ void WebGPUFramebuffer::Clear(WebGPUCommandBuffer* commandBuffer, const Rect<uin
 
     Assert(m_isRecording);
 
-    const Vec2u extent = GetExtent();
+    const Vec2u extent = GetAttachmentExtent();
 
     if (rect.x0 == 0 && rect.y0 == 0 && rect.x1 >= extent.x && rect.y1 >= extent.y)
     {

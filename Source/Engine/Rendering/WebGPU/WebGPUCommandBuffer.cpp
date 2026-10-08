@@ -414,7 +414,7 @@ bool WebGPUCommandBuffer::PrepareDraw() const
 
     if (passOpened || m_isViewportDirty)
     {
-        const Vec2u framebufferExtent = m_framebuffer->GetExtent();
+        const Vec2u framebufferExtent = m_framebuffer->GetAttachmentExtent();
 
         Vec2i position = m_viewport.position;
         Vec2u extent = m_viewport.extent;
@@ -422,7 +422,7 @@ bool WebGPUCommandBuffer::PrepareDraw() const
         if (extent == Vec2u::Zero())
         {
             position = Vec2i::Zero();
-            extent = framebufferExtent;
+            extent = m_framebuffer->GetExtent();
         }
 
         position.x = MathUtil::Clamp(position.x, 0, int32(framebufferExtent.x));
@@ -499,7 +499,7 @@ void WebGPUCommandBuffer::DrawRectClear(WGPURenderPipeline pipeline, const Rect<
         }
     }
 
-    const Vec2u framebufferExtent = m_framebuffer->GetExtent();
+    const Vec2u framebufferExtent = m_framebuffer->GetAttachmentExtent();
 
     const uint32 x0 = MathUtil::Min(rect.x0, framebufferExtent.x);
     const uint32 y0 = MathUtil::Min(rect.y0, framebufferExtent.y);

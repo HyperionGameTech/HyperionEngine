@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hyperion</title>
+<style>
+    html, body { margin: 0; height: 100%; background: #101014; color: #c8c8d0; font: 13px/1.4 Consolas, monospace; }
+    body { display: flex; flex-direction: column; align-items: center; }
+    canvas { display: block; margin-top: 12px; width: 1280px; height: 720px; background: #000; outline: none; }
+    #status { margin: 8px 0; }
+    #log { width: 1280px; flex: 1; overflow-y: auto; white-space: pre-wrap; margin: 0; }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="1280" height="720" tabindex="0"></canvas>
+<div id="status">Loading...</div>
+<pre id="log"></pre>
+<script>
+    const logElement = document.getElementById('log');
+    const statusElement = document.getElementById('status');
+    const logLines = [];
+
+    function appendLog(text)
+    {
+        logLines.push(text);
+
+        if (logLines.length > 20000)
+        {
+            logLines.splice(0, logLines.length - 20000);
+        }
+
+        logElement.textContent = logLines.slice(-200).join('\n');
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    var Module = {
+        canvas: document.getElementById('canvas'),
+        print: (text) => { console.log(text); appendLog(text); },
+        printErr: (text) => { console.warn(text); appendLog(text); },
+        setStatus: (text) => { statusElement.textContent = text; },
+        onAbort: (reason) => { statusElement.textContent = 'Aborted: ' + reason; }
+    };
+
+    // The engine hears about input on a worker, too late to cancel what the browser does with it, so that happens here:
+    // while the canvas has focus its keys don't scroll the page or move focus, and it has no context menu.
+    const canvasElement = Module.canvas;
+
+    window.addEventListener('keydown', (event) => {
+        const isBrowserShortcut = event.ctrlKey || event.metaKey || /^F\d+$/.test(event.code);
+
+        if (document.activeElement === canvasElement && !isBrowserShortcut)
+        {
+            event.preventDefault();
+        }
+    });
+
+    canvasElement.addEventListener('wheel', (event) => event.preventDefault(), { passive: false });
+    canvasElement.addEventListener('contextmenu', (event) => event.preventDefault());
+
+    if (!navigator.gpu)
+    {
+        statusElement.textContent = 'WebGPU is not available in this browser.';
+    }
+    else if (!crossOriginIsolated)
+    {
+        statusElement.textContent = 'The page is not cross-origin isolated, threads cannot start. Serve it with COOP and COEP headers.';
+    }
+</script>
+<script src="hyperion-sample.js"></script>
+</body>
+</html>

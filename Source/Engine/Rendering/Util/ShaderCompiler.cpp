@@ -643,7 +643,9 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderProper
     out.Add(s_propVulkan);
 #endif // HYP_WEBGPU || HYP_DX12 || HYP_VULKAN
 
-#if defined(HYP_WEB)
+    // WGSL is the same on every host, and a native Dawn run is how the variants a browser build needs get captured,
+    // so the WebGPU backend always targets WEB
+#if defined(HYP_WEB) || defined(HYP_WEBGPU)
     out.Add(s_propTargetWeb);
 #elif defined(HYP_WINDOWS)
     out.Add(s_propTargetWindows);
@@ -3252,10 +3254,6 @@ bool ShaderCompiler::CompileBundle(
             addForPlatform(NAME("WINDOWS"));
             if (shouldCompileDX12)
                 targetPairs.PushBack({ NAME("WINDOWS"), NAME("DX12") });
-
-            // native Dawn
-            if (shouldCompileWebGPU)
-                targetPairs.PushBack({ NAME("WINDOWS"), NAME("WEBGPU") });
         }
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Web] && shouldCompileWebGPU)
@@ -3278,7 +3276,7 @@ bool ShaderCompiler::CompileBundle(
         // Only compile for the active platform/backend when not precompiling.
 
         Name activePlatform;
-#if HYP_WEB
+#if HYP_WEB || HYP_WEBGPU
         activePlatform = NAME("WEB");
 #elif HYP_WINDOWS
         activePlatform = NAME("WINDOWS");

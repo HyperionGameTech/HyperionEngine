@@ -244,13 +244,13 @@ Revised 2026-10-07 after the milestone 0 spikes (sections 10-12). Estimates assu
 |---|---|---|---|
 | 0 | **Spikes** | **Done.** Shader route viable (§10), worker-thread topology works (§11), cooked content too large for whole-package preload (§12) | done |
 | 1 | **Desktop groundwork** on existing backends | **Done** (§13). The sample level runs on Windows **Vulkan** in the min-spec config (bindless, RT, indirect and parallel rendering off) from a cooked package with `CompileOnTheFly` off | measured: 0.8 h |
-| 2 | **WebGPU backend on native Dawn**, including the web shader target (B1), the backend seam (A1) and the web-gated shader fixes (B2) | sample level matches the Vulkan min-spec frame using WGSL modules, not SPIR-V; Dawn validation clean; no backend call blocks on the GPU; readbacks asynchronous; render init completes from a callback | 20–40 h |
-| 3 | **Emscripten core build** (can overlap 2), including the `uint64` typedef and ranged BlobStorage reads | engine boots in a worker, loads the cooked package from WASMFS, sim ticks, logs to console; renderer not required | 4–8 h |
-| 4 | **Browser bring-up**, including a small test level and reachable-only engine cooking | test level playable in Chrome, single player, keyboard and mouse, package within the size budget | 6–12 h |
-| 5 | **Hardening** | memory budget held, pipeline warm-up, resize/DPI, tab visibility, device loss, audio, Firefox and Safari pass | 6–12 h |
-| 6 | **Content size for a real game** | a Project410-sized game loads: block-compressed textures, streamed delivery, cook-time asset index | 8–16 h |
+| 2 | **WebGPU backend on native Dawn**, including the web shader target (B1), the backend seam (A1) and the web-gated shader fixes (B2) | **Done** (§14). Sample level matches the Vulkan min-spec frame using WGSL modules; Dawn validation clean; no stall on the GPU in a 936-frame run apart from one frame-slot wait; readbacks asynchronous; the device arrives through a callback chain | measured: 3.8 h |
+| 3 | **Emscripten core build** (can overlap 2), including the `uint64` typedef | **Done** (§15). Engine boots on a worker in Chromium, reads the cooked package through WASMFS, loads `MainWorld`, sim ticks. Ranged BlobStorage reads were not needed for this and moved to milestone 6 | measured: 1.9 h |
+| 4 | **Browser bring-up**, including a small test level and reachable-only engine cooking | **In progress** (§16): `MainWorld` renders in Chromium. The frame matches desktop to within frame-to-frame noise, mouse look works, and the engine share of the package is cooked from a recorded list (602 MB to 425 MB). Left: a small test level, package within the size budget | 3–6 h left |
+| 5 | **Hardening** | memory budget held, pipeline warm-up, resize/DPI, tab visibility, device loss, audio, Firefox and Safari pass, an audit for the 32-bit bug classes in §15 | 4–8 h |
+| 6 | **Content size for a real game** | a Project410-sized game loads: block-compressed textures, streamed delivery, cook-time asset index | 5–10 h |
 
-The estimates were originally in person-weeks (milestone 1 was 3–5 weeks). They are now in hours of working-session wall-clock, because that is what is being measured. Milestone 1 is the only data point, it was the smallest milestone, and about half of its original items moved to later milestones, so the remaining figures are guesses and will be revised as each milestone finishes.
+The estimates were originally in person-weeks (milestone 1 was 3–5 weeks). They are now in hours of working-session wall-clock, because that is what is being measured. There are two data points now. Milestone 1 took 0.8 h. Milestone 2, the largest, was estimated at 20–40 h and took 3.8 h, about a third of it waiting on builds and test runs (each backend switch is a six minute rebuild, each test run 60–90 s). The remaining estimates were cut by roughly a third on that evidence, not by the full factor of five to ten, because milestones 3 and 4 depend on a toolchain and a browser that have not been exercised by this engine at all, and their unknowns are of a different kind from writing a backend against a well-specified API.
 
 Milestone 6 is what a real game needs on top of milestones 1–5, and can start any time because both halves are useful on desktop too.
 
@@ -262,7 +262,9 @@ Measured wall-clock time from the first edit to the exit criterion being met, ta
 |---|---|---|---|---|
 | 0 | 2026-10-07 (not timed) | 2026-10-07 | under one day, three spikes | not measured precisely |
 | 1 | 2026-10-07 19:56:41 -0300 | 2026-10-07 20:45:21 -0300 | 48 min 40 s | roughly half of it engine build time (three full builds, four incremental); scope reduced, see §13 |
-| 2 | 2026-10-07 20:48:25 -0300 | | | in progress; `MainWorld` rendered validation-clean on native Dawn at 23:03 (2 h 15 min in). Left: no blocking GPU waits, asynchronous readbacks, init from a callback; see §14 |
+| 2 | 2026-10-07 20:48:25 -0300 | 2026-10-08 00:38:26 -0300 | 3 h 50 min | first frame at 2 h 04 min, `MainWorld` validation-clean at 2 h 15 min, then 1 h 35 min on the remaining exit criteria and one shadow bug; about a third of the total was builds and test runs; see §14 |
+| 3 | 2026-10-08 00:44:48 -0300 | 2026-10-08 02:36:41 -0300 | 1 h 52 min | compiled and linked at 22 min; the rest was booting it. The exit criterion and the first browser frame landed within minutes of each other, so this row includes the start of milestone 4; see §15 |
+| 4 | 2026-10-08 02:36:41 -0300 | | | in progress; first frame is counted under milestone 3; see §16 |
 
 ### Milestone 1 contents
 
@@ -488,7 +490,7 @@ Started 2026-10-07 20:48:25 -0300. This section is updated as the milestone proc
 
 ### Done so far
 
-- **Dawn.** Cloned to `C:/Users/andre/Dev/dawn` (commit in `External/ThirdParty/Source/dawn/VERSION`), built with Clang + Ninja as a single shared library (`C:/Users/andre/Dev/dawn-build.bat`). It needs `-DDAWN_SUPPORTS_CXX_MODULES=OFF` with clang-cl. Headers are in `External/ThirdParty/Source/dawn/`; `webgpu_dawn.lib`, `webgpu_dawn.dll` and `tint.exe` are in `External/ThirdParty/Binaries/Windows/Release/` (git-ignored).
+- **Dawn.** Cloned to `C:/Users/andre/Dev/dawn` (commit in `External/ThirdParty/Source/dawn/DAWN_VERSION.txt`), built with Clang + Ninja as a single shared library (`C:/Users/andre/Dev/dawn-build.bat`). It needs `-DDAWN_SUPPORTS_CXX_MODULES=OFF` with clang-cl. Headers are in `External/ThirdParty/Source/dawn/`; `webgpu_dawn.lib`, `webgpu_dawn.dll` and `tint.exe` are in `External/ThirdParty/Binaries/Windows/Release/` (git-ignored).
 - **Web shader target** in `ShaderCompiler`: platform `Web`, backend `WebGPU` (`BACKEND=WEBGPU`, `TARGET=WEB` or `WINDOWS` for native Dawn). Both are opt-in and not part of `AllPlatforms` / `AllBackends`. `PrecompileShaders --platform=windows --api=webgpu` works from any desktop build.
   - DXC emits SPIR-V 1.3 (`-fspv-target-env=vulkan1.1`) for this target; Tint rejects anything newer.
   - `tint.exe` converts each stage to WGSL (`ShaderCompiler.TintPath`, default beside the executable or in the third-party folder) and **the shader blob stores WGSL text**. Bindless variants and ray tracing stages are skipped for this target.
@@ -522,17 +524,24 @@ Started 2026-10-07 20:48:25 -0300. This section is updated as the milestone proc
   - *Dawn loads `d3dcompiler_47.dll` and `vulkan-1.dll` only from beside its own DLL*; both are copied to the output folder by CMake.
 - **Dawn's D3D12 backend cannot be used yet.** It compiles through FXC unless Dawn is built with `DAWN_USE_BUILT_DXC`, and FXC fails on `GeometryPass` (`E_FAIL`). Chrome uses DXC, so this is a property of this Dawn build, not of the port. Native runs use Dawn's Vulkan backend (`Rendering.WebGPU.Backend`, default `vulkan`) and are held to the 256-byte offset alignment that D3D12 browsers report.
 
+- **Exit criteria** (finished 2026-10-08 00:38:26, 3 h 50 min):
+  - *No stall on the GPU.* A frame slot is not recorded into again until the GPU work and the readbacks of the frame that last used it have completed, which is also what makes the engine's `OnFrameEnd` readback handlers safe to run. That wait is the only place the backend can stall, and is where the web build will skip a tick instead of spinning. The backend counts its stalls and logs them at shutdown: in the final run, 1 of 936 frames waited for its slot, with 0 blocking readbacks and 0 blocking submits.
+  - *Init from a callback.* The adapter and device arrive through `AllowProcessEvents` callbacks; `Initialize()` starts the chain and, natively, pumps events until the device is there. The engine-side signal (`g_renderInitSignal`) is still raised by the caller, which is milestone 3 work.
+  - *Matches Vulkan.* Compared against a Vulkan build of this same checkout, same package, same config, captured at the same time into the run: region means agree to within 0.1 (of 255), mean absolute difference 0.8 / 0.5 / 0.6, and 0.15% of pixels differ by more than 24, against 0.08% for two Vulkan runs. The engine's DX12 backend was captured as a third opinion and agrees with both.
+- **The one rendering bug found by that comparison:** sun shadows leaked on about 3% of the frame. The backend clamped the viewport to the extent the framebuffer was *described* with, but a shadow cascade renders into part of a larger atlas image at an offset, so every cascade not at the atlas origin was clipped away. The clamp now uses the size of the attachment image. Finding it took about an hour, most of it ruling out other causes (clouds, lightmaps, cascade time slicing, the static shadow cache, alpha cutouts, culling, depth clamping, skipped draws, point lights) by experiment.
+- **`Shadows.hlsli`** chose the layout of a literal bias matrix with `#ifdef VULKAN`; WebGPU goes through SPIR-V as well, so it now takes the same branch. This is the only backend-conditional matrix in the shaders (the other is the tonemap matrices, which already default to the SPIR-V layout).
+
 ### Known gaps in the backend as written
 
 | Gap | Effect | Planned handling |
 |---|---|---|
-| Framebuffers with `numLayers > 1` (env probe cubemaps) | Only the first layer is rendered; WebGPU has no layered rendering | One pass per face, later milestone |
+| Framebuffers with `numLayers > 1` | Only the first layer is rendered; WebGPU has no layered rendering | Not used by the min-spec passes: cubemaps are rendered one face per framebuffer |
 | Partial-rect clear of a colour attachment | Logged once and skipped; depth rect clears work (far-plane draw) | Add a colour clear-quad pipeline if a pass needs it |
-| Storage textures | DXC emits `rgba32float, read_write` for untyped `RWTexture2D`; WebGPU wants the real format and only allows `read_write` on a few | `[[vk::image_format]]` on the declarations, needs `texture-formats-tier2` for the rest |
+| Storage textures that are read and written | Formats are now taken from the bound image (see above), but `read_write` access is only allowed on `r32float` / `r32uint` / `r32sint` without `texture-formats-tier2` | Measure which shaders need it in the browser |
 | Resource arrays (`count > 1`) | Only element 0 is bound; WGSL has no binding arrays | None in the web tier so far |
 | Filtering sampler on an unfilterable texture (depth, `R32F` without `float32-filterable`) | Pipeline creation fails validation | Fix per shader as they come up |
 | An attachment sampled in the pass that renders to it | Validation error | Per pass |
-| `Map()` on a readback buffer blocks on `ProcessEvents` | Fine natively, impossible on the browser main thread | Milestone 3 |
+| `Map()` on a readback buffer outside a frame, `SingleTimeCommands`, shutdown | Still block; counted, and zero in the game path | Only editor and baking paths use them |
 | Device limits | The device requests every adapter limit (dynamic buffer counts, offset alignments) | The web build has to fit the default limits; measure in milestone 3 |
 | Pipeline creation | Synchronous, at first draw | Async creation later if hitches matter |
 
@@ -558,15 +567,134 @@ Tint needs no fix-up pass: read-only buffers come out as `var<storage, read>`, v
 | Blit, mip generation | Implemented inside the backend with render passes (as Vulkan does natively), not the compute path, which needs storage usage on the destination |
 | Reflection classes | `Tools/CodeGen` needs a `rendering/webgpu` → `HYP_WEBGPU` path entry so the generated class declarations are guarded |
 
-### Still to do in this milestone
+### Left over from this milestone
 
-- The remaining exit criteria: no backend call that blocks on the GPU, asynchronous readbacks, render init completing from a callback.
-- Passes that are off in the min-spec config or not yet looked at individually: Glimmer (new in this checkout, on by default, uses storage texture arrays), env probe cubemaps (layered framebuffers), particles.
-- The game exits with an access violation when the window is closed.
-- A Dawn build with DXC, to run the D3D12 backend natively.
+None of these are part of the exit criterion; they are recorded so they are not rediscovered.
+
+- **Glimmer** (the GI system new in this checkout, on by default, off in the min-spec config) does not run: Tint rejects `GlimmerSWRTProbeAlloc` ("`workgroupBarrier` must only be called from uniform control flow"), and the failed compile then trips an assertion instead of disabling the pass.
+- **Dawn's D3D12 backend** needs a Dawn build with `DAWN_USE_BUILT_DXC`. Not needed for the browser.
+- **The game exits with an access violation** when the window is closed, after an `EntityManager` assertion in scene shutdown. It happens on Vulkan and DX12 in this checkout as well, so it is not from the port.
+- **Vulkan logs `Assert(srcResourceState == ResourceState::CopySrc)`** from `VulkanGpuImage::CopyFrom` a few times per run in the min-spec config (the point-light shadow atlas clear). Not from the port either, and the frame is unaffected.
+- **Particles, fog volumes and SSGI** were off throughout and have not been run on this backend.
+- **Pipeline creation is synchronous** at first draw, and shaders were compiled on the fly, so the first seconds of every run hitch.
+- `PrecompileShaders --contentdir=` is not honoured in this checkout: a run with `--api=webgpu --filter=DeferredDirect` wrote its variants into the git-ignored `Content/Engine/Shaders` cache.
 
 ### Notes
 
 - `Config/Shaders.hmf` is read from the output folder's `Config/`, copied at build time.
 - A virus scanner briefly locks freshly written scratch files; the Tint step retries when its input cannot be opened.
 - Transient command buffers are recorded off the render thread on DX12 (`DX12RenderInterface.cpp`, "usable from any thread"). Native Dawn tolerates this; the browser will not.
+
+## 15. Milestone 3 log: Emscripten core build
+
+Started 2026-10-08 00:44:48 -0300. This section is updated as the milestone proceeds.
+
+### Done so far
+
+- **Toolchain.** Emscripten from the milestone 0 `emsdk`, driven through `emcmake cmake -G Ninja` into `Build/Web/Release`, output in `Binaries/Web/Release`. `Web` is a platform like `Android`, not a backend permutation.
+- **`hyperion-core` compiles for wasm32** (10 minutes in). 85 of its 88 files compiled untouched once `uint64` / `int64` became `long long` on Web (`Core/Types.hpp`); the predicted overload fallout from `size_t` being a third type did not happen. The other three needed: no `execinfo.h` (`StackDump.cpp`), and CodeGen's `HYP_STRUCT(Size = N)` assertions, which bake the 64-bit size and now only apply where pointers are 8 bytes (CodeGen 0.13).
+- **The whole engine and `hyperion-sample` compile and link** (22 minutes in): `hyperion-sample.wasm`, 57 MB unoptimised-for-size, with Jolt, OpenAL and zlib. What it took:
+  - CMake: `Web` platform detection has to look at the toolchain file name, because `EMSCRIPTEN` is not set until `project()`; Web forces the shipping-style static build; flags `-pthread -msimd128 -msse4.1`; backend fixed to WebGPU through `--use-port=emdawnwebgpu` (C++ flags only, the port refuses to link from C, which breaks CMake's C feature checks); zlib's shared library off.
+  - Dawn's `VERSION` file was renamed `DAWN_VERSION.txt`: on a case-insensitive filesystem it shadows the C++ `<version>` header for anything with that folder on its include path.
+  - Engine sources: five fixes, none of them deep. `Game::IsManagedGame` and `ComponentInterface.cpp` assumed the .NET bindings exist; `InternShaderProperty` was inline but declared `extern` elsewhere; the cache server commandlet is compiled out on Web; one `uint64` to `size_t` narrowing; `pthread_setname_np` replaced by `emscripten_set_thread_name`; `WGPUFeatureName_ImplicitDeviceSynchronization` is Dawn-only.
+  - New `Engine/System/Platform/Web/` with `PlatformUtils.cpp` and `ShowMessageBox.cpp`.
+- The items section 5 expected to be problems and were not: inline `asm` in `HYP_WAIT_IDLE`, raw sockets, signal handlers, the V-HACD include, and the SSE paths in `Core/Math` all compiled as they are.
+
+### Booting it
+
+Finished 2026-10-08 02:36:41 -0300, 1 h 52 min after the start.
+
+- **Link flags** (`Sample/DefaultGame/CMakeLists.txt`): `PROXY_TO_PTHREAD`, WASMFS, memory growth to 4 GB, a 24-thread pool, and for the browser `JSPI` and `OFFSCREENCANVAS_SUPPORT`. `HYP_WEB_PACKAGE_DIR` names a host folder whose `Config/` and `Content/` are preloaded; `HYP_WEB_NODE_PACKAGE_DIR` instead mounts a folder through the node backend for test runs without a browser.
+- **Package delivery.** `Config/` and the manifests in `Content/` are preloaded (4 MB). `Cache/` is served beside the page and read through the WASMFS fetch backend: `Cache/index.txt` lists the block files, each is created as a fetch file under `/package` and symlinked into `/hyperion/Cache`, which stays an ordinary directory the engine can write to. `Tools/Scripts/ServeWeb.py` serves a build with the isolation headers and range support.
+- **Web app context** (`WebAppContext`, `WebApplicationWindow`): a window that is the page's canvas. No input yet.
+- **Under node** the engine initialises and reads the package; it stops at the renderer, as expected.
+
+### Bugs this found in shared code
+
+Each of these is wrong on any 32-bit target, or on any toolchain with a different static initialisation order, and was only hidden by the desktop builds.
+
+| Bug | Effect on wasm32 | Fix |
+|---|---|---|
+| `JSON::Undefined()` and its siblings returned file-scope statics that other translation units read from their own static initialisers | a missing command line argument read as an empty string: `--exec` was truthy, and `cacheserver` looked set, so the game waited on a content sync that never ended | function-local statics |
+| `String::Size()` on a not-yet-constructed string underflowed | same family as above | returns 0 |
+| `BitField::Set` kept its 64-bit word mask in a `size_t` | bits 32 to 63 of every word were never set, and clearing a bit wiped them: the 33rd entity in a `SparsePagedArray` page did not exist | mask is `WordType` |
+| indices held in `size_t` compared against `Bitset::NotFound`, a 64-bit all-ones value (`AtlasPacker`, `ResourceTracker`) | never equal, so "not found" was treated as index 0xFFFFFFFF | `NotFound` is now a type that compares equal to the all-ones value of whatever integer it is compared with |
+| C# bindings were generated for the Web app context classes | desktop C# build broke | no `HYP_METHOD` on them |
+
+More of the same kind probably remain where nothing in `MainWorld` exercises them. Milestone 5 has an audit for them.
+
+### Not done
+
+- Ranged BlobStorage reads. Each block file is still mapped whole, which on wasm means read whole: 594 MB of textures for `MainWorld`. It works within the 4 GB limit; it belongs with streamed delivery in milestone 6.
+- A node-based smoke test in the build.
+
+## 16. Milestone 4 log: browser bring-up
+
+Started 2026-10-08 02:36:41 -0300 (the first frame came out of milestone 3's last half hour).
+
+### First frame
+
+`MainWorld` renders in Chromium 152 (the desktop app's built-in browser) from `Binaries/Web/Release`, served by `ServeWeb.py`, with sun shadows, at the canvas's 1280x720. No WebGPU validation errors were logged.
+
+How the frame gets there:
+
+- **Shader variants** are captured, not built. The WebGPU backend now always uses `TARGET=WEB`, on native Dawn too, so a native Dawn run of the level records exactly the WGSL variants a browser needs. Those 246 variants (4.9 MB) are staged into an engine content folder holding no other backend's variants, and `BlobStorageCookCommandlet --basedir=<staging>` cooks from it. `Shaders.bin` is 3.4 MB; the package is 631 MB of cache, 594 MB of that textures.
+- **One thread renders, and it is the thread running `main()`** (`--RenderOnMainThread=true`), which under `PROXY_TO_PTHREAD` is a worker and owns the transferred canvas. JSPI lets it wait on the browser where it has to: the adapter and device requests, readbacks, and a yield per frame (`requestAnimationFrame`, raced with a 100 ms timer because a hidden page gets no animation frames).
+- **WebGPU calls from other threads are forwarded.** A WebGPU object in a browser exists only on the thread that made the device, while the engine uploads meshes and textures from the sim and task threads. `WebGPUThreadProxy.hpp` wraps every `wgpu*` function the backend uses: off the device thread, the call is run on the device thread and waited for. The device thread runs these calls from its event loop, once a frame, and from inside any blocking wait: `emscripten_futex_wait` is wrapped at link time (`--wrap`), so a device thread parked on a lock or a signal held by the caller is woken to run the call instead of deadlocking. Native Dawn builds compile none of this.
+- Dawn accepts a NaN depth clear value on a pass that loads depth; the browser's bindings reject it. The backend sets one always.
+
+### Second session (2026-10-08, morning)
+
+Asked to track down the "missing shader variants". There were none.
+
+- **"Not linked with DXC" is not a missing variant.** `ShaderCompiler::CanCompileShaders` logs it every time a bundle is loaded. A variant that really is missing logs "Bundle ... does not contain a shader satisfying"; the browser run has no such line. All 246 captured variants cover what `MainWorld` asks for.
+- **Keyboard and mouse work.** `WebAppContext.cpp` registers `html5.h` callbacks on the thread that polls events and turns them into the engine's events: keys by `KeyboardEvent.code`, mouse move, buttons, wheel, focus, and pointer lock (requested deferred, since browsers only grant it from a user gesture). Mouse look was checked in the browser; keys and pointer lock were not exercised.
+- **Loading went from over a minute to about 25 seconds** by holding one reader on the blob storage for the life of the app (`Platform/Web/main.cpp`). `BlobStorage::Unlock` unmaps every block file when its last reader lets go, and on wasm a mapping is a heap copy of the file, so the 594 MB texture file was being copied in again and again.
+- **The canvas can be read from the page** with `createImageBitmap(canvas)` drawn into a 2D canvas, which is how frames were inspected while the pane's own screenshots timed out.
+
+### The missing curtains: a short read behind `mmap`
+
+Reading the lightmap atlas textures back from the GPU showed all four hold exactly the cooked data, so the earlier reading of the swap experiments ("two atlases are empty") was wrong. The curtains were missing for a simpler reason, found by logging vertex bounds at mesh upload: **41 of the level's 103 meshes, every one past a fixed point in `Meshes.bin`, arrived as all zeros**, positions and indices both. The player character's data was in that range too, which is why the camera sat in the wrong place.
+
+WASMFS implements `mmap` as an allocation filled by a single `read`, and if that read comes back short it zero fills the rest and reports success (`system/lib/wasmfs/syscalls.cpp`, `_mmap_js`). `MemoryMappedFile::MapRange` now does the reading itself on Web: allocate, then `pread` in 4 MB pieces until every byte has arrived, and fail loudly if a read stops early. With that, no mesh is empty and the browser frame matches the desktop frame of the same package, curtains and camera included.
+
+This also explains the earlier symptoms that looked like separate bugs: surfaces that seemed unlit were sitting behind geometry that was not there, and the "dark" lightmap pages were lighting the right pixels for meshes that had no triangles.
+
+Why the single read comes back short was not chased further. The fetch backend's own `read` looks correct for both its whole-file and chunked paths, so the truncation is probably in the proxied call between the two.
+
+### Comparison with desktop
+
+The canvas captured in the render worker 60 s after the first frame, against the desktop Vulkan capture of the same package at 60 s: mean absolute difference 0.72 / 0.54 / 0.51 per channel, 0.05% of pixels off by more than 24. Two browser captures 5 s apart differ by more than that (1.02 / 0.60 / 0.71, 0.14%), so the two builds agree to within frame-to-frame noise.
+
+### Input, checked in the browser
+
+Holding W walks the character forward, real key presses arrive with the right codes, the wheel zooms the camera and dragging turns it. Events reach the engine on a worker, too late for it to cancel the browser's own handling, so `index.html` does that: with the canvas focused, keys no longer scroll the page or move focus (Ctrl/Cmd combinations and function keys are left to the browser), the wheel does not scroll, and there is no context menu.
+
+### Reachable-only engine cooking
+
+Engine assets are referenced from code as well as from content, so the cook cannot find what a game needs by walking references. It now takes a list of what a run actually loaded.
+
+- `--record-engine-assets=<file>` on any run appends `Bucket/Name` for every Engine asset as it loads (`AssetRegistry.cpp`). It appends as it goes, so the list survives the crash on exit.
+- `Tools/Scripts/FilterEngineAssetList.py` narrows the shader entries to one backend and target. Loading a shader bundle loads every variant of it on disk, so a raw list names all of them: 3,212 of the 3,257 entries recorded for `MainWorld`.
+- `BlobStorageCookCommandlet --engine-assets=<file>` cooks only the listed Engine assets, and trims each cooked shader bundle to the variants cooked with it. Without the trim the browser logs about 3,200 unresolved references at start-up.
+
+For `MainWorld` the list comes to 291 assets: 246 shader variants, 30 bundles, ten font atlas textures, the sky sphere's mesh, material and prefab, the font and the blue noise. The cache goes from 602 MB to 425 MB and the manifests from 7.6 MB to 4.4 MB; what is left is the level's own content, 414 MB of it textures. The browser renders the level from this package with a clean log. The staging copy of engine content used for the first package is no longer needed.
+
+The recipe for a web package is now: run the level on a native WebGPU build with `--record-engine-assets`, filter the list for `WEBGPU` / `WEB`, cook with `--engine-assets`.
+
+One thing to know: the list is what one desktop run loaded. An engine asset that only a different code path loads (another level, a feature that was off) will be missing from the package, and the first sign is an unresolved reference in the browser's log.
+
+### Known gaps
+
+- **Intermittent crash in `DeserializeBVHNodeFrom`** while a mesh is paged in, seen about one run in four or five before the storage was kept mapped. Zeroed or partial BVH bytes from the same short read would produce exactly this, so it is probably fixed by the read loop; it has not been seen since, in about fifteen runs, which is not proof.
+- **One proxied call at a time.** Each forwarded `wgpu*` call is a round trip to the device thread.
+- **Memory.** Each block file is held whole in the heap (594 MB of textures for this level) on top of the fetch backend's own copy.
+- The page ticks at 10 Hz while hidden, by design of the timer fallback.
+- **Pointer lock is untested.** The desktop app's browser pane refuses it for any page ("The root document of this element is not valid for pointer lock"), so it needs a run in a real Chrome window. Until the lock is granted the mouse still turns the camera, from absolute positions. When the user leaves the lock with Escape, which the browser never delivers as a key, the window hands the game a synthetic Escape so it releases the mouse as on desktop; that path is also untested.
+- No resize, no audio check.
+- Meshes cooked from the other checkout warn about an unknown `Lod0DataRevision` field. Four entities log an invalid mesh and material; the desktop build logs the same four from the same package.
+
+### Still to do in this milestone
+
+A small test level and the package size budget. Engine content is no longer the size problem; the level's own 414 MB of uncompressed textures is, which is milestone 6's block compression.
+

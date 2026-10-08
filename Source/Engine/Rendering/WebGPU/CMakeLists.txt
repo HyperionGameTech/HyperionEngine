@@ -16,7 +16,10 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 add_definitions(-DHYP_WEBGPU=1)
 
 include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR})
-include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dawn)
+# Emscripten gets webgpu.h from its emdawnwebgpu port
+if(NOT EMSCRIPTEN)
+  include_directories(SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dawn)
+endif()
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated

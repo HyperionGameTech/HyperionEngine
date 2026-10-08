@@ -591,6 +591,81 @@ private:
 
 #endif // HYP_ANDROID
 
+#ifdef HYP_WEB
+
+// The window is the page's canvas. Browser events arrive on the browser thread and are queued for the engine's main
+// thread, which is a worker.
+HYP_CLASS(Condition = "HYP_WEB")
+class ENGINE_API WebApplicationWindow final : public ApplicationWindow
+{
+    HYP_OBJECT_BODY(WebApplicationWindow);
+
+public:
+    WebApplicationWindow(ANSIString title, Vec2i size);
+    ~WebApplicationWindow() override;
+
+    void SetMousePosition(Vec2i position) override;
+
+    Vec2i GetMousePosition() const override;
+
+    Vec2i GetDimensions() const override;
+
+    void SetIsMouseLocked(bool locked) override;
+
+    bool IsMouseLocked() const override
+    {
+        return m_isMouseLocked;
+    }
+
+    /// Whether the browser has actually granted the lock; IsMouseLocked() is true from the moment it is asked for.
+    bool HasPointerLock() const
+    {
+        return m_hasPointerLock;
+    }
+
+    /// The browser granted or took away pointer lock. Returns true if it was taken away while the engine still wanted it.
+    bool OnPointerLockChanged(bool isLocked);
+
+    bool HasMouseFocus() const override;
+
+    float GetContentScaleFactor() const override;
+
+    float GetRenderTargetScale() const override;
+
+    void Close() override;
+
+    void ShowVirtualKeyboard() override;
+
+    void HideVirtualKeyboard() override;
+
+private:
+    Vec2i m_mousePosition;
+    bool m_isMouseLocked = false;
+    bool m_hasPointerLock = false;
+};
+
+HYP_CLASS(Condition = "HYP_WEB")
+class ENGINE_API WebAppContext final : public AppContextBase
+{
+    HYP_OBJECT_BODY(WebAppContext);
+
+public:
+    WebAppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~WebAppContext() override;
+
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
+
+    int PollEvents(Event& event) override;
+
+    void EnqueueEvent(Event&& event);
+
+private:
+    Array<Event> m_pendingEvents;
+    Mutex m_pendingEventsMutex;
+};
+
+#endif // HYP_WEB
+
 #ifdef HYP_IOS
 
 HYP_CLASS(Condition = "HYP_IOS")

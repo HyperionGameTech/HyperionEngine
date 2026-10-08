@@ -71,6 +71,10 @@ public:
         const Rect<uint32>& rect,
         uint8 attachmentsMask = uint8(-1)) override;
 
+    // Size of what is actually rendered into. Shadow maps render into part of a larger atlas image, so this can
+    // exceed the extent the framebuffer was described with.
+    Vec2u GetAttachmentExtent() const;
+
     HYP_FORCE_INLINE bool HasPendingClears() const
     {
         return m_pendingClearMask != 0;

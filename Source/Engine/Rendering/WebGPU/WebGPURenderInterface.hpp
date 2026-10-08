@@ -170,6 +170,7 @@ public:
     void Submit(WebGPUCommandBuffer& commandBuffer);
 
     void ProcessEvents();
+    void WaitForEvents();
 
     // The adapter and device arrive through callbacks, which a browser only runs once control is back in its event loop.
     // Initialize() starts the chain and, natively, pumps events until it ends.

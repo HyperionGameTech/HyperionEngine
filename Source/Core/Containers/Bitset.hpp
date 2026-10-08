@@ -20,6 +20,42 @@
 namespace Hyperion {
 namespace containers {
 
+/*! \brief What a bit search returns when there is nothing to find.
+ *  Equal to the all-ones value of whichever integer type it is compared with, so an index kept in a type narrower
+ *  than BitIndex (size_t is 32 bits on some targets) still tests correctly. */
+struct BitsetNotFound
+{
+    template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    constexpr operator T() const
+    {
+        return T(-1);
+    }
+
+    template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    friend constexpr bool operator==(T lhs, BitsetNotFound)
+    {
+        return lhs == T(-1);
+    }
+
+    template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    friend constexpr bool operator==(BitsetNotFound, T rhs)
+    {
+        return rhs == T(-1);
+    }
+
+    template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    friend constexpr bool operator!=(T lhs, BitsetNotFound)
+    {
+        return lhs != T(-1);
+    }
+
+    template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    friend constexpr bool operator!=(BitsetNotFound, T rhs)
+    {
+        return rhs != T(-1);
+    }
+};
+
 /*! \brief A dynamic bitset implementation that allows for efficient storage and manipulation of bits.
  *  It supports operations such as setting, clearing, flipping bits, and iterating over set bits.
  *  The bitset can be resized dynamically, and it provides a range of bitwise operations.
@@ -36,7 +72,7 @@ public:
     static constexpr uint32 NumBitsPerBlock = sizeof(BlockType) * CHAR_BIT;
     static constexpr uint32 NumBitsPerBlockLog2 = MathUtil::FastLog2(NumBitsPerBlock);
 
-    static constexpr BitIndex NotFound = BitIndex(-1);
+    static constexpr BitsetNotFound NotFound {};
 
     HYP_FORCE_INLINE static constexpr uint64 GetBitMask(BitIndex bit)
     {
