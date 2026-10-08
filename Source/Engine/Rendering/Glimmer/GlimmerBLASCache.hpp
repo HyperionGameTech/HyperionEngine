@@ -41,6 +41,13 @@ struct GlimmerTriangle
 
 static_assert(sizeof(GlimmerTriangle) == 20);
 
+struct GlimmerTriangleLightmapUVs
+{
+    uint16 uvs[6]; //the mesh's UV1 at each corner, unorm
+};
+
+static_assert(sizeof(GlimmerTriangleLightmapUVs) == 12);
+
 struct GlimmerBLASRef
 {
     uint64 key = 0;
@@ -48,6 +55,7 @@ struct GlimmerBLASRef
     uint32 nodeCount = 0;
     uint32 triangleBase = 0;
     uint32 triangleCount = 0;
+    uint32 lightmapUVBase = ~0u; // ~0u for a mesh without lightmap UVs, or when their pool is full
     uint32 depth = 0;
     
     BoundingBox localBounds;
@@ -110,6 +118,8 @@ struct GlimmerBLASCacheStats
     uint32 nodesCapacity = 0;
     uint32 trianglesUsed = 0;
     uint32 trianglesCapacity = 0;
+    uint32 lightmapUVsUsed = 0;
+    uint32 lightmapUVsCapacity = 0;
 };
 
 class GlimmerBLASCache final
@@ -124,11 +134,12 @@ public:
 
     static uint64 MakeKey(const Mesh* mesh, uint8 lodIndex);
 
-    /// priority: how far (m) the nearest instance asking for it is from the viewer; nearer meshes are built and given pool space first,
-    /// and push out the BLASes of meshes much farther away when the pool is full
+    ///\p priority  how far (m) the nearest instance asking for it is from the viewer.
+    ///             nearer meshes are built and given pool space first,
+    ///             and push out the BLASes of meshes much farther away when the pool is full
     GlimmerBLASRequestResult Request(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef);
 
-    /// Like Request(), for a BLAS that's already resident, without queueing one that isn't
+    /// Try to get blas ref for the given params. Will not create one if none exists.
     bool TryGetResident(Mesh* mesh, uint8 lodIndex, float priority, GlimmerBLASRef& outRef);
 
     void AddReferences(Span<const uint64> keys);
@@ -172,6 +183,11 @@ public:
         return m_trianglesBuffer;
     }
 
+    HYP_FORCE_INLINE const GpuBufferRef& GetLightmapUVsBuffer() const
+    {
+        return m_lightmapUVsBuffer;
+    }
+
     HYP_FORCE_INLINE bool IsReady() const
     {
         return m_nodesBuffer.IsValid() && m_trianglesBuffer.IsValid();
@@ -194,6 +210,7 @@ private:
     {
         Array<GlimmerBLASNode> nodes;
         Array<GlimmerTriangle> triangles;
+        Array<GlimmerTriangleLightmapUVs> lightmapUVs; // one per triangle, or empty
         BoundingBox localBounds;
         Vec3f gridOrigin = Vec3f::Zero();
         Vec3f gridScale = Vec3f::One();
@@ -233,6 +250,8 @@ private:
         uint32 triangleOffset;
         uint32 triangleCount;
         uint32 frameFreed;
+        uint32 lightmapUVOffset;
+        uint32 lightmapUVCount;
     };
 
     static BuildResult BuildBLAS(const Handle<Mesh>& mesh, uint8 lodIndex);
@@ -254,9 +273,11 @@ private:
 
     GpuBufferRef m_nodesBuffer;
     GpuBufferRef m_trianglesBuffer;
+    GpuBufferRef m_lightmapUVsBuffer;
 
     GlimmerPoolAllocator m_nodeAllocator;
     GlimmerPoolAllocator m_triangleAllocator;
+    GlimmerPoolAllocator m_lightmapUVAllocator;
 
     Array<DeferredFree> m_deferredFrees;
     Array<uint64> m_keysToErase; // entries to drop after the Update() loop, which may be iterating them

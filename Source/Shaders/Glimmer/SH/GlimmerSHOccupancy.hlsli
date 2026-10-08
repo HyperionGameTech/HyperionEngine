@@ -1,6 +1,7 @@
 #ifndef GLIMMER_SH_OCCUPANCY_HLSLI
 #define GLIMMER_SH_OCCUPANCY_HLSLI
 
+#include "../../Include/Packing.hlsli"
 #include "GlimmerSHCommon.hlsli"
 
 #define GLIMMER_SH_OCCUPANCY_GRID_XZ (GLIMMER_SH_GRID_XZ * 2)
@@ -46,6 +47,16 @@ uint GlimmerSHOccupancySubBit(int3 subVoxel)
     return uint(subVoxel.x) | (uint(subVoxel.y) << GLIMMER_SH_OCCUPANCY_SUB_SHIFT) | (uint(subVoxel.z) << (2 * GLIMMER_SH_OCCUPANCY_SUB_SHIFT));
 }
 
+#define GLIMMER_SH_OCCUPANCY_LIGHTMAP_FACES 6u
+#define GLIMMER_SH_OCCUPANCY_LIGHTMAP_BASE (uint(GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_XZ * GLIMMER_SH_OCCUPANCY_GRID_Y * GLIMMER_SH_CASCADES) * GLIMMER_SH_OCCUPANCY_MASK_WORDS)
+
+uint GlimmerSHOccupancyLightmapIndex(uint cascadeIndex, int3 voxel)
+{
+    const uint3 texel = GlimmerSHOccupancyTexel(cascadeIndex, voxel);
+
+    return GLIMMER_SH_OCCUPANCY_LIGHTMAP_BASE + ((texel.z * uint(GLIMMER_SH_OCCUPANCY_GRID_Y * GLIMMER_SH_OCCUPANCY_TRACED_CASCADES) + texel.y) * uint(GLIMMER_SH_OCCUPANCY_GRID_XZ) + texel.x) * GLIMMER_SH_OCCUPANCY_LIGHTMAP_FACES;
+}
+
 bool GlimmerSHOccupancyContains(GlimmerSHOccupancyCascade cascade, float3 P)
 {
     const int3 localVoxel = int3(floor(P * cascade.params.y)) - cascade.origin.xyz;
@@ -64,6 +75,8 @@ struct GlimmerSHOccupancyHit
     float3 normal;
     float3 albedo;
     float spacing; // of the cascade the hit was in
+    int3 voxel;
+    uint cascadeIndex;
 };
 
 // true where any of the 8 sub voxels nearest P is solid
@@ -106,6 +119,28 @@ bool GlimmerSHOccupancyIsSolid(GlimmerSHOccupancyParams params, float3 P)
     }
 
     return false;
+}
+
+float4 GlimmerSHLoadHitLightmap(GlimmerSHOccupancyHit occupancyHit, float3 direction)
+{
+    const uint lightmapIndex = GlimmerSHOccupancyLightmapIndex(occupancyHit.cascadeIndex, occupancyHit.voxel);
+
+    float4 lightmap = (float4)0.0;
+
+    [unroll]
+    for (uint axis = 0; axis < 3; axis++)
+    {
+        const uint packed = glimmerSHOccupancyMask[lightmapIndex + axis * 2u + (direction[axis] > 0.0 ? 1u : 0u)];
+
+        if (packed != 0u)
+        {
+            const float weight = direction[axis] * direction[axis];
+
+            lightmap += float4(UnpackRGB9E5(packed) * weight, weight);
+        }
+    }
+
+    return lightmap.a > 1e-4 ? float4(lightmap.rgb / lightmap.a, 1.0) : (float4)0.0;
 }
 
 bool GlimmerSHTraceOccupancyMask(
@@ -187,6 +222,8 @@ bool GlimmerSHTraceOccupancy(GlimmerSHOccupancyParams params, float3 origin, flo
     outHit.normal = -direction;
     outHit.albedo = (float3)0.0;
     outHit.spacing = params.cascades[0].params.x;
+    outHit.voxel = (int3)0;
+    outHit.cascadeIndex = 0u;
 
     float t = 0.0;
 
@@ -249,6 +286,8 @@ bool GlimmerSHTraceOccupancy(GlimmerSHOccupancyParams params, float3 origin, flo
                     outHit.normal = hitNormal;
                     outHit.albedo = occupancy.rgb;
                     outHit.spacing = spacing;
+                    outHit.voxel = voxel;
+                    outHit.cascadeIndex = cascadeIndex;
                     outCoveredT = hitT;
 
                     return true;

@@ -126,8 +126,10 @@ groupshared uint gsHasGround;
 groupshared float gsGroundHeight;
 groupshared uint gsGroundLevel;
 
-bool GlimmerSHTraceScene(float3 origin, float3 direction, float tMax, uint startLevel, bool accumulateCanopy, out GlimmerHeightfieldHit hit)
+bool GlimmerSHTraceScene(float3 origin, float3 direction, float tMax, uint startLevel, bool accumulateCanopy, out GlimmerHeightfieldHit hit, out float4 outLightmap)
 {
+    outLightmap = (float4)0.0;
+
     GlimmerSHOccupancyHit occupancyHit;
     float coveredT;
 
@@ -145,6 +147,8 @@ bool GlimmerSHTraceScene(float3 origin, float3 direction, float tMax, uint start
         hit.normal = occupancyHit.normal;
         hit.albedo = occupancyHit.albedo;
 
+        outLightmap = GlimmerSHLoadHitLightmap(occupancyHit, direction);
+
         return true;
     }
 
@@ -154,6 +158,7 @@ bool GlimmerSHTraceScene(float3 origin, float3 direction, float tMax, uint start
 float GlimmerSHSunVisibility(float3 P, float3 N, float3 L, uint level, bool isOccupancyHit)
 {
     GlimmerHeightfieldHit shadowHit;
+    float4 shadowHitLightmap;
 
     float spacing = 0.6; // past the occupancy, the heightfield alone
 
@@ -170,7 +175,7 @@ float GlimmerSHSunVisibility(float3 P, float3 N, float3 L, uint level, bool isOc
 
     const float3 offset = isOccupancyHit ? N * 0.05 : N * 0.5 + L * 2.0;
 
-    if (GlimmerSHTraceScene(P + offset * spacing, L, GLIMMER_SH_SUN_DISTANCE, level, false, shadowHit))
+    if (GlimmerSHTraceScene(P + offset * spacing, L, GLIMMER_SH_SUN_DISTANCE, level, false, shadowHit, shadowHitLightmap))
     {
         return 0.0;
     }
@@ -264,7 +269,7 @@ bool GlimmerSHTraceAirRay(float3 origin, float3 direction, out GlimmerHeightfiel
     return true;
 }
 
-float3 GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo)
+float3 GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo, float4 lightmap)
 {
     float3 radiance;
 
@@ -275,6 +280,11 @@ float3 GlimmerSHShadeHit(float3 P, GlimmerHeightfieldHit hit, float3 albedo)
 
     const float3 L = normalize(world_shader_data.sun_direction_intensity.xyz);
     const float sunVisibility = GlimmerFacesSun(hit.normal) ? GlimmerSHSunVisibility(P, hit.normal, L, hit.level, hit.kind == GLIMMER_SH_HIT_OCCUPANCY) : 0.0;
+
+    if (lightmap.a > 0.0)
+    {
+        return GlimmerShade(P, hit.normal, albedo, sunVisibility, lightmap.rgb);
+    }
 
     return GlimmerShadeSurface(P, hit.normal, albedo, sunVisibility);
 }
@@ -397,9 +407,17 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         g_hasCanopySurroundings = false;
 
         GlimmerHeightfieldHit hit;
-        const bool didHit = isAir
-            ? GlimmerSHTraceAirRay(origin, rayDirection, hit)
-            : GlimmerSHTraceScene(origin, rayDirection, constants.params.y, startLevel, true, hit);
+        float4 hitLightmap = (float4)0.0;
+        bool didHit;
+
+        if (isAir)
+        {
+            didHit = GlimmerSHTraceAirRay(origin, rayDirection, hit);
+        }
+        else
+        {
+            didHit = GlimmerSHTraceScene(origin, rayDirection, constants.params.y, startLevel, true, hit, hitLightmap);
+        }
 
         float3 radiance;
 
@@ -411,7 +429,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
                 ? GlimmerSampleGroundAlbedo(glimmerGroundAlbedo, constants.ground, P.xz, hit.level, (float3)constants.params.z)
                 : hit.albedo;
 
-            radiance = GlimmerSHShadeHit(P, hit, albedo);
+            radiance = GlimmerSHShadeHit(P, hit, albedo, hitLightmap);
         }
         else
         {
@@ -439,7 +457,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         {
             // leaves don't count: light through a canopy isn't a leak
             GlimmerHeightfieldHit axisHit;
-            const bool didHit = GlimmerSHTraceScene(origin, GlimmerSHAxisDirection(axisIndex), GLIMMER_SH_DEPTH_RANGE * spacing, startLevel, false, axisHit);
+            float4 axisHitLightmap;
+            const bool didHit = GlimmerSHTraceScene(origin, GlimmerSHAxisDirection(axisIndex), GLIMMER_SH_DEPTH_RANGE * spacing, startLevel, false, axisHit, axisHitLightmap);
 
             gsAxisDepths[axisIndex] = didHit ? min(axisHit.t / spacing, GLIMMER_SH_DEPTH_RANGE) : GLIMMER_SH_DEPTH_RANGE;
         }

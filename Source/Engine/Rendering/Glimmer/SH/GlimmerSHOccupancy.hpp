@@ -8,6 +8,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/SH/GlimmerSHVolume.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Core/Containers/FixedArray.hpp>
 
@@ -25,6 +26,9 @@ class GlimmerBLASCache;
 static constexpr uint32 GlimmerSHOccupancyGridXZ = GlimmerSHGridXZ * 2;
 static constexpr uint32 GlimmerSHOccupancyGridY = GlimmerSHGridY * 2;
 static constexpr uint32 GlimmerSHOccupancyMaskWords = 2;
+
+static constexpr uint32 GlimmerSHOccupancyTracedCascades = 2;
+static constexpr uint32 GlimmerSHOccupancyLightmapFaces = 6;
 
 struct GlimmerSHOccupancyCascadeShaderData
 {
@@ -47,7 +51,12 @@ public:
     
     ~GlimmerSHOccupancy();
 
-    void Update(Frame* frame, const Vec3f& viewerPosition, const GlimmerTLAS& tlas, const GlimmerBLASCache& blasCache);
+    void Update(
+        Frame* frame,
+        const Vec3f& viewerPosition,
+        const GlimmerTLAS& tlas,
+        const GlimmerBLASCache& blasCache,
+        const GlimmerLightmapPages& lightmapPages);
 
     HYP_FORCE_INLINE const GlimmerSHOccupancyShaderData& GetShaderData() const
     {
@@ -82,6 +91,8 @@ private:
     Handle<Texture> m_texture;
     GpuBufferRef m_maskBuffer;
     GpuBufferRef m_albedoSumsBuffer;
+
+    GlimmerLightmapPages m_lightmapPages;
 
     FixedArray<Vec3i, GlimmerSHCascades> m_builtOrigins;
     FixedArray<uint32, GlimmerSHCascades> m_builtGenerations;

@@ -188,7 +188,6 @@ void GlimmerSystem::CreateSceneView()
         | ViewFlags::SKIP_LIGHTS
         | ViewFlags::SKIP_CAMERAS
         | ViewFlags::SKIP_ENV_PROBES
-        | ViewFlags::SKIP_LIGHTMAP_VOLUMES
         | ViewFlags::SKIP_PARTICLE_VOLUMES
         | ViewFlags::SKIP_FOG_VOLUMES
         | ViewFlags::SKIP_SPRITES

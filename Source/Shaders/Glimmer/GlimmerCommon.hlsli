@@ -123,7 +123,8 @@ struct GlimmerSpanInstance
     float4 objectToWorld0;
     float4 objectToWorld1;
     float4 objectToWorld2;
-    uint4 data; // x = BLAS triangle base, y = triangle count, z = material index, w = flags
+    uint4 data;     // x = BLAS triangle base, y = triangle count, z = material index, w = flags
+    uint4 lightmap; // x = BLAS lightmap UV base (~0 without a lightmap), y = lightmap rect offset, z = lightmap rect size
 };
 
 #define GLIMMER_SPAN_CHUNK_TRIANGLES 256

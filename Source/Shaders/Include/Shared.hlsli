@@ -397,4 +397,14 @@ uint GetCubemapFaceIndex(float3 dir)
 
 ///// End cubemap utilities
 
+float GetComponent(float3 value, uint axis)
+{
+    return select(axis == 0u, value.x, select(axis == 1u, value.y, value.z));
+}
+
+int GetComponent(int3 value, uint axis)
+{
+    return select(axis == 0u, value.x, select(axis == 1u, value.y, value.z));
+}
+
 #endif

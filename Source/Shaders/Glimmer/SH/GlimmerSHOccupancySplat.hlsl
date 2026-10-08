@@ -1,5 +1,7 @@
 #include "../../Include/Defines.hlsli"
 #include "../../Include/Shared.hlsli"
+#include "../../Include/Aabb.hlsli"
+#include "../../Include/Lightmap.hlsli"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../Include/Material.hlsli"
@@ -16,10 +18,15 @@ PERMUTE(MODE, CLEAR, SPLAT, RESOLVE)
 struct GlimmerSHOccupancySplatConstants
 {
     int4 origin;   // xyz = absolute voxel of the cascade's window, w = cascade
+    
     float4 params; // x = voxel spacing, y = 1 / spacing
+    
     uint4 counts;  // x = span instances, y = span chunks, z = groups along x
+    
     int4 boxMin;   // xyz = absolute voxel; only voxels in the box are cleared and splatted
     int4 boxMax;   // xyz = absolute voxel, exclusive
+
+    uint4 lightmapStencils;
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSHOccupancySplat, CBuffer) cbuffer CBuffer
@@ -41,6 +48,13 @@ DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
 
 DECLARE_SAMPLER(GlimmerSHOccupancySplat, SamplerLinearMipmap) SamplerState glimmerMaterialSampler;
 
+DECLARE_SRV(GlimmerSHOccupancySplat, GlimmerBLASLightmapUVsBuffer) StructuredBuffer<uint> glimmerBLASLightmapUVs;
+
+DECLARE_SRV(GlimmerSHOccupancySplat, LightmapVolumeIrradianceTexture0) Texture2D LightmapVolumeIrradianceTexture0;
+DECLARE_SRV(GlimmerSHOccupancySplat, LightmapVolumeIrradianceTexture1) Texture2D LightmapVolumeIrradianceTexture1;
+DECLARE_SRV(GlimmerSHOccupancySplat, LightmapVolumeIrradianceTexture2) Texture2D LightmapVolumeIrradianceTexture2;
+DECLARE_SRV(GlimmerSHOccupancySplat, LightmapVolumeIrradianceTexture3) Texture2D LightmapVolumeIrradianceTexture3;
+
 #include "../GlimmerMaterial.hlsli"
 
 #define GROUP_SIZE 64
@@ -48,23 +62,56 @@ DECLARE_SAMPLER(GlimmerSHOccupancySplat, SamplerLinearMipmap) SamplerState glimm
 #define ALBEDO_SUM_WORDS 4u
 #define ALBEDO_WEIGHT_SCALE 1024.0
 
+// per face : weighted irradiance (3 values), weight
+#define LIGHTMAP_SUM_WORDS (GLIMMER_SH_OCCUPANCY_LIGHTMAP_FACES * 4u)
+#define VOXEL_SUM_WORDS (ALBEDO_SUM_WORDS + LIGHTMAP_SUM_WORDS)
+#define LIGHTMAP_MAX_IRRADIANCE 32.0
+#define LIGHTMAP_IRRADIANCE_SCALE 16.0
+
 uint AlbedoSumIndex(int3 voxel)
 {
     const uint3 texel = GlimmerSHOccupancyTexel(0u, voxel);
 
-    return ((texel.z * uint(GLIMMER_SH_OCCUPANCY_GRID_Y) + texel.y) * uint(GLIMMER_SH_OCCUPANCY_GRID_XZ) + texel.x) * ALBEDO_SUM_WORDS;
+    return ((texel.z * uint(GLIMMER_SH_OCCUPANCY_GRID_Y) + texel.y) * uint(GLIMMER_SH_OCCUPANCY_GRID_XZ) + texel.x) * VOXEL_SUM_WORDS;
 }
+
+uint LightmapSumIndex(int3 voxel)
+{
+    return AlbedoSumIndex(voxel) + ALBEDO_SUM_WORDS;
+}
+
+float2 LoadLightmapUV(uint uvBase, uint corner)
+{
+    const uint packed = glimmerBLASLightmapUVs[uvBase + corner];
+
+    return float2(packed & 0xFFFFu, packed >> 16u) / 65535.0;
+}
+
+float3 SampleLightmapPage(uint page, float2 atlasUV)
+{
+    float3 irradiance;
+
+    if (page == 0u)
+    {
+        irradiance = LightmapVolumeIrradianceTexture0.SampleLevel(glimmerMaterialSampler, atlasUV, 0.0).rgb;
+    }
+    else if (page == 1u)
+    {
+        irradiance = LightmapVolumeIrradianceTexture1.SampleLevel(glimmerMaterialSampler, atlasUV, 0.0).rgb;
+    }
+    else if (page == 2u)
+    {
+        irradiance = LightmapVolumeIrradianceTexture2.SampleLevel(glimmerMaterialSampler, atlasUV, 0.0).rgb;
+    }
+    else
+    {
+        irradiance = LightmapVolumeIrradianceTexture3.SampleLevel(glimmerMaterialSampler, atlasUV, 0.0).rgb;
+    }
+
+    return min(max(irradiance, (float3)0.0), (float3)LIGHTMAP_MAX_IRRADIANCE);
+}
+
 #define BACK_BIAS 0.01
-
-float GetComponent(float3 value, uint axis)
-{
-    return select(axis == 0u, value.x, select(axis == 1u, value.y, value.z));
-}
-
-int GetComponent(int3 value, uint axis)
-{
-    return select(axis == 0u, value.x, select(axis == 1u, value.y, value.z));
-}
 
 float3 TransformPoint(GlimmerSpanInstance instance, float3 position)
 {
@@ -73,32 +120,115 @@ float3 TransformPoint(GlimmerSpanInstance instance, float3 position)
     return float3(dot(instance.objectToWorld0, homogeneous), dot(instance.objectToWorld1, homogeneous), dot(instance.objectToWorld2, homogeneous));
 }
 
-bool TriangleOverlapsBox(float3 p0, float3 p1, float3 p2, float3 normal, float3 center, float3 halfExtent)
+struct TriangleLightmap
 {
-    if (abs(dot(normal, center - p0)) > dot(abs(normal), halfExtent))
+    bool isValid;
+    
+    uint page;
+    
+    uint rectOffset;
+    uint rectSize;
+    
+    float2 uv0;
+    
+    float2 uvEdge1;
+    float2 uvEdge2;
+
+    float3 p0;
+    float3 edge1;
+    float3 edge2;
+};
+
+TriangleLightmap LoadTriangleLightmap(GlimmerSpanInstance instance, uint localTriangle, uint cascadeIndex, float3 p0, float3 p1, float3 p2)
+{
+    TriangleLightmap lightmap = (TriangleLightmap)0;
+    lightmap.rectOffset = instance.lightmap.y;
+    lightmap.rectSize = instance.lightmap.z;
+    lightmap.p0 = p0;
+    lightmap.edge1 = p1 - p0;
+    lightmap.edge2 = p2 - p0;
+
+    if (cascadeIndex >= uint(GLIMMER_SH_OCCUPANCY_TRACED_CASCADES) || instance.lightmap.x == 0xFFFFFFFFu)
     {
-        return false;
+        return lightmap;
     }
 
-    const float3 corners[3] = { p0, p1, p2 };
+    const uint stencilValue = GetLightmapStencilValue(lightmap.rectOffset);
 
     [unroll]
-    for (uint edgeIndex = 0; edgeIndex < 3; edgeIndex++)
+    for (uint page = 0; page < 4; page++)
     {
-        const float3 a = corners[edgeIndex];
-        const float3 b = corners[(edgeIndex + 1) % 3];
-        const float3 opposite = corners[(edgeIndex + 2) % 3];
-
-        float3 inward = cross(normal, b - a);
-        inward *= dot(inward, opposite - a) < 0.0 ? -1.0 : 1.0;
-
-        if (dot(inward, center - a) < -dot(abs(inward), halfExtent))
+        if (!lightmap.isValid && stencilValue != 0u && constants.lightmapStencils[page] == stencilValue)
         {
-            return false;
+            lightmap.isValid = true;
+            lightmap.page = page;
         }
     }
 
-    return true;
+    if (lightmap.isValid)
+    {
+        const uint uvBase = (instance.lightmap.x + localTriangle) * 3u;
+
+        lightmap.uv0 = LoadLightmapUV(uvBase, 0u);
+        lightmap.uvEdge1 = LoadLightmapUV(uvBase, 1u) - lightmap.uv0;
+        lightmap.uvEdge2 = LoadLightmapUV(uvBase, 2u) - lightmap.uv0;
+    }
+
+    return lightmap;
+}
+
+// the baked irradiance at the point of the triangle nearest position
+float3 SampleTriangleLightmap(TriangleLightmap lightmap, float3 position)
+{
+    const float edge11 = dot(lightmap.edge1, lightmap.edge1);
+    const float edge12 = dot(lightmap.edge1, lightmap.edge2);
+    const float edge22 = dot(lightmap.edge2, lightmap.edge2);
+
+    const float3 toPosition = position - lightmap.p0;
+    const float toPosition1 = dot(toPosition, lightmap.edge1);
+    const float toPosition2 = dot(toPosition, lightmap.edge2);
+
+    float2 barycentrics = float2(edge22 * toPosition1 - edge12 * toPosition2, edge11 * toPosition2 - edge12 * toPosition1) / max(edge11 * edge22 - edge12 * edge12, 1e-20);
+    barycentrics = max(barycentrics, (float2)0.0);
+    barycentrics /= max(barycentrics.x + barycentrics.y, 1.0);
+
+    const float2 uv = lightmap.uv0 + lightmap.uvEdge1 * barycentrics.x + lightmap.uvEdge2 * barycentrics.y;
+
+    return SampleLightmapPage(lightmap.page, GetLightmapAtlasUV(lightmap.rectOffset, lightmap.rectSize, uv));
+}
+
+void SplatLightmapIrradiance(int3 solidVoxel, float3 irradiance, float coveredArea, float3 facingNormal, bool isDoubleSided)
+{
+    // texels nothing was baked into are black
+    if (!any(irradiance > 0.0))
+    {
+        return;
+    }
+
+    const uint lightmapSumIndex = LightmapSumIndex(solidVoxel);
+
+    [unroll]
+    for (uint axis = 0; axis < 3; axis++)
+    {
+        const float facing = GetComponent(facingNormal, axis);
+        const uint faceWeight = uint(coveredArea * facing * facing * ALBEDO_WEIGHT_SCALE + 0.5);
+        const uint3 weightedIrradiance = uint3(irradiance * (float(faceWeight) * LIGHTMAP_IRRADIANCE_SCALE) + 0.5);
+
+        [unroll]
+        for (uint side = 0; side < 2; side++)
+        {
+            if (faceWeight != 0u && (isDoubleSided || (facing < 0.0) == (side == 1u)))
+            {
+                const uint faceIndex = lightmapSumIndex + (axis * 2u + side) * 4u;
+
+                uint previous;
+                InterlockedAdd(OutAlbedoSums[faceIndex + 0u], weightedIrradiance.r, previous);
+                InterlockedAdd(OutAlbedoSums[faceIndex + 1u], weightedIrradiance.g, previous);
+                InterlockedAdd(OutAlbedoSums[faceIndex + 2u], weightedIrradiance.b, previous);
+                InterlockedAdd(OutAlbedoSums[faceIndex + 3u], faceWeight, previous);
+            }
+        }
+    }
 }
 
 void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascadeIndex)
@@ -127,10 +257,14 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
     const float spacing = constants.params.x / float(GLIMMER_SH_OCCUPANCY_SUB_VOXELS);
     const float invSpacing = constants.params.y * float(GLIMMER_SH_OCCUPANCY_SUB_VOXELS);
 
-    if ((instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) == 0u)
+    const bool isDoubleSided = (instance.data.w & GLIMMER_INSTANCE_FLAG_DOUBLE_SIDED) != 0u;
+    const float3 facingNormal = normalize(normal) * ((instance.data.w & GLIMMER_INSTANCE_FLAG_MIRRORED) != 0u ? -1.0 : 1.0);
+
+    const TriangleLightmap lightmap = LoadTriangleLightmap(instance, localTriangle, cascadeIndex, p0, p1, p2);
+
+    if (!isDoubleSided)
     {
-        const float facing = (instance.data.w & GLIMMER_INSTANCE_FLAG_MIRRORED) != 0u ? -1.0 : 1.0;
-        const float3 behind = normalize(normal) * (-facing * BACK_BIAS * spacing);
+        const float3 behind = facingNormal * (-BACK_BIAS * spacing);
 
         p0 += behind;
         p1 += behind;
@@ -218,6 +352,11 @@ void SplatTriangle(GlimmerSpanInstance instance, uint localTriangle, uint cascad
                     InterlockedAdd(OutAlbedoSums[sumIndex + 1u], weightedAlbedo.g, previous);
                     InterlockedAdd(OutAlbedoSums[sumIndex + 2u], weightedAlbedo.b, previous);
                     InterlockedAdd(OutAlbedoSums[sumIndex + 3u], weight, previous);
+
+                    if (lightmap.isValid)
+                    {
+                        SplatLightmapIrradiance(solidVoxel, SampleTriangleLightmap(lightmap, center), coveredArea, facingNormal, isDoubleSided);
+                    }
                 }
             }
         }
@@ -252,6 +391,26 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
         const float3 albedoSum = float3(OutAlbedoSums[sumIndex + 0u], OutAlbedoSums[sumIndex + 1u], OutAlbedoSums[sumIndex + 2u]);
 
         OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel)] = float4(albedoSum / float(max(OutAlbedoSums[sumIndex + 3u], 1u)), 1.0);
+
+        if (cascadeIndex < uint(GLIMMER_SH_OCCUPANCY_TRACED_CASCADES))
+        {
+            const uint lightmapSumIndex = LightmapSumIndex(voxel);
+            const uint lightmapIndex = GlimmerSHOccupancyLightmapIndex(cascadeIndex, voxel);
+
+            [unroll]
+            for (uint face = 0; face < GLIMMER_SH_OCCUPANCY_LIGHTMAP_FACES; face++)
+            {
+                const uint faceIndex = lightmapSumIndex + face * 4u;
+                const uint faceWeight = OutAlbedoSums[faceIndex + 3u];
+
+                if (faceWeight != 0u)
+                {
+                    const float3 irradianceSum = float3(OutAlbedoSums[faceIndex + 0u], OutAlbedoSums[faceIndex + 1u], OutAlbedoSums[faceIndex + 2u]);
+
+                    OutOccupancyMask[lightmapIndex + face] = PackRGB9E5(irradianceSum / (float(faceWeight) * LIGHTMAP_IRRADIANCE_SCALE));
+                }
+            }
+        }
     }
 #else
     OutOccupancy[GlimmerSHOccupancyTexel(cascadeIndex, voxel)] = (float4)0.0;
@@ -266,6 +425,25 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
     for (uint wordIndex = 0; wordIndex < GLIMMER_SH_OCCUPANCY_MASK_WORDS; wordIndex++)
     {
         OutOccupancyMask[maskIndex + wordIndex] = 0u;
+    }
+
+    const uint lightmapSumIndex = LightmapSumIndex(voxel);
+
+    [unroll]
+    for (uint lightmapSumWord = 0; lightmapSumWord < LIGHTMAP_SUM_WORDS; lightmapSumWord++)
+    {
+        OutAlbedoSums[lightmapSumIndex + lightmapSumWord] = 0u;
+    }
+
+    if (cascadeIndex < uint(GLIMMER_SH_OCCUPANCY_TRACED_CASCADES))
+    {
+        const uint lightmapIndex = GlimmerSHOccupancyLightmapIndex(cascadeIndex, voxel);
+
+        [unroll]
+        for (uint face = 0; face < GLIMMER_SH_OCCUPANCY_LIGHTMAP_FACES; face++)
+        {
+            OutOccupancyMask[lightmapIndex + face] = 0u;
+        }
     }
 #endif
 #elif defined(MODE_SPLAT)

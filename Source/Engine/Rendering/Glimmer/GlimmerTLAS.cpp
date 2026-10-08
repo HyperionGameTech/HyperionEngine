@@ -24,6 +24,9 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Scene/Entity.hpp>
+#include <Scene/LightmapVolume.hpp>
+
+#include <Framework/CVarManager.hpp>
 
 #include <Core/Threading/TaskSystem.hpp>
 #include <Core/Threading/Threads.hpp>
@@ -38,6 +41,8 @@
 #include <algorithm>
 
 namespace Hyperion {
+
+extern CVar<bool> g_cvLightmapVolumes;
 
 static constexpr uint32 MaxInstances = 131072;
 static constexpr uint32 MaxSpanInstances = 262144;
@@ -61,7 +66,8 @@ GlimmerTLAS::GlimmerTLAS()
       m_activeInputHash(0),
       m_spanFullyDirty(true),
       m_dirty(true),
-      m_waitingForBLAS(false)
+      m_waitingForBLAS(false),
+      m_usesLightmaps(false)
 {
 }
 
@@ -109,7 +115,10 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
 
     Map<uint64, uint8> instanceLods;
 
-    const auto addInstance = [&](const RenderProxyMesh& proxy, const Mat4f& objectToWorld, uint32 flags, uint32 materialIndex, uint32 instanceIndex)
+    m_usesLightmaps = g_cvLightmapVolumes.Get();
+
+    // the rect offset is 0 for a mesh that isn't lit by a lightmap
+    const auto addInstance = [&](const RenderProxyMesh& proxy, const Mat4f& objectToWorld, uint32 flags, uint32 materialIndex, uint32 instanceIndex, uint32 lightmapRectOffset, uint32 lightmapRectSize)
     {
         const bool isFoliage = (flags & GIF_FOLIAGE) != 0;
 
@@ -221,6 +230,13 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             spanInstance.materialIndex = materialIndex;
             spanInstance.flags = instanceFlags;
 
+            const bool hasLightmap = lightmapRectOffset != 0 && blasRef.lightmapUVBase != ~0u;
+
+            spanInstance.lightmapUVBase = hasLightmap ? blasRef.lightmapUVBase : ~0u;
+            spanInstance.lightmapRectOffset = hasLightmap ? lightmapRectOffset : 0;
+            spanInstance.lightmapRectSize = hasLightmap ? lightmapRectSize : 0;
+            spanInstance._pad0 = 0;
+
             outInput.spanInstanceBounds.PushBack(worldBounds);
 
             isReferenced = true;
@@ -288,9 +304,36 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
         const uint32 materialIndex = Resources::GetBinding(proxy->material);
         const Mat4f& modelMatrix = proxy->bufferData.modelMatrix;
 
+        uint32 lightmapRectOffset = 0;
+        uint32 lightmapRectSize = 0;
+
+        if (m_usesLightmaps
+            && materialAttributes.bucket == RenderBucket::Lightmapped
+            && proxy->lightmapStencilValue != 0
+            && proxy->lightmapVolume != nullptr)
+        {
+            const MaterialParameters& materialParameters = proxy->material->GetParameters();
+
+            const bool isEmissive = materialParameters.emissiveIntensity > 0.0f
+                && (materialParameters.emissiveColor.GetRed() > 0.0f || materialParameters.emissiveColor.GetGreen() > 0.0f || materialParameters.emissiveColor.GetBlue() > 0.0f);
+
+            const RenderProxyLightmapVolume* volumeProxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(proxy->lightmapVolume));
+
+            if (!isEmissive && volumeProxy && volumeProxy->stencilBase != 0 && proxy->lightmapStencilValue >= volumeProxy->stencilBase)
+            {
+                const uint32 atlasIndex = uint32(proxy->lightmapStencilValue - volumeProxy->stencilBase);
+
+                if (atlasIndex < volumeProxy->numAtlases && volumeProxy->atlasIrradianceTextures[atlasIndex] != nullptr)
+                {
+                    lightmapRectOffset = proxy->bufferData.lightmapRectOffset;
+                    lightmapRectSize = proxy->bufferData.lightmapRectSize;
+                }
+            }
+        }
+
         if (proxy->numInstances == 0)
         {
-            addInstance(*proxy, modelMatrix, flags, materialIndex, 0);
+            addInstance(*proxy, modelMatrix, flags, materialIndex, 0, lightmapRectOffset, lightmapRectSize);
 
             continue;
         }
@@ -310,7 +353,7 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             Mat4f instanceTransform;
             Memory::Copy(instanceTransform.values, instanceTransforms + size_t(instanceIndex) * sizeof(Mat4f), sizeof(Mat4f));
 
-            addInstance(*proxy, modelMatrix * instanceTransform, flags, materialIndex, instanceIndex);
+            addInstance(*proxy, modelMatrix * instanceTransform, flags, materialIndex, instanceIndex, lightmapRectOffset, lightmapRectSize);
         }
     }
 
@@ -532,6 +575,11 @@ bool GlimmerTLAS::Update(Frame* frame, RenderProxyList& rpl, const BoundingBox& 
     AssertOnThread(g_renderThread);
 
     if (rpl.GetMeshEntities().GetDiff().NeedsUpdate() || region != m_lastRegion || tracedRegion != m_lastTracedRegion)
+    {
+        m_dirty = true;
+    }
+
+    if (rpl.GetLightmapVolumes().GetDiff().NeedsUpdate() || g_cvLightmapVolumes.Get() != m_usesLightmaps)
     {
         m_dirty = true;
     }

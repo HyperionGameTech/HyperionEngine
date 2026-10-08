@@ -21,6 +21,7 @@
 
 #include <Scene/Entity.hpp>
 #include <Scene/EnvProbe.hpp>
+#include <Scene/LightmapVolume.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainGrass.hpp>
 
@@ -30,6 +31,8 @@
 #include <Core/Profiling/ProfileScope.hpp>
 
 namespace Hyperion {
+
+extern CVar<bool> g_cvLightmapVolumes;
 
 GlimmerTexelRect GlimmerTexelRect::Intersect(const GlimmerTexelRect& a, const GlimmerTexelRect& b)
 {
@@ -265,6 +268,41 @@ void GetGlimmerSkyShaderData(EnvProbe* skyProbe, GlimmerSkyShaderData& outSky, E
 float GetGlimmerFoliageExtinction()
 {
     return MathUtil::Max(g_cvGlimmerSWRTFoliageExtinction.Get() * MathUtil::Clamp(g_cvGlimmerSWRTFoliageClumping.Get(), 0.0f, 1.0f), 0.0f);
+}
+
+void CollectGlimmerLightmapPages(RenderProxyList& rpl, GlimmerLightmapPages& outPages)
+{
+    outPages = GlimmerLightmapPages {};
+
+    if (!g_cvLightmapVolumes.Get())
+    {
+        return;
+    }
+
+    uint32 numPages = 0;
+
+    for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
+    {
+        const RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(lightmapVolume));
+
+        if (!proxy || proxy->stencilBase == 0)
+        {
+            continue;
+        }
+
+        for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases && numPages < GlimmerMaxLightmapPages; atlasIndex++)
+        {
+            if (proxy->atlasIrradianceTextures[atlasIndex] == nullptr)
+            {
+                continue;
+            }
+
+            outPages.irradianceTextures[numPages] = proxy->atlasIrradianceTextures[atlasIndex];
+            outPages.stencilValues[numPages] = uint32(proxy->stencilBase) + atlasIndex;
+
+            numPages++;
+        }
+    }
 }
 
 void FillGlimmerGroundCover(TerrainWorldGridLayer* terrain, GlimmerChannelState& outState)

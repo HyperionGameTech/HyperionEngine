@@ -62,4 +62,32 @@ void AABBToSphere(AABB aabb, out float3 center, out float radius)
     radius = length(AABBGetExtent(aabb)) * 0.5;  //greatest_extent * 0.5;
 }
 
+bool TriangleOverlapsBox(float3 p0, float3 p1, float3 p2, float3 normal, float3 center, float3 halfExtent)
+{
+    if (abs(dot(normal, center - p0)) > dot(abs(normal), halfExtent))
+    {
+        return false;
+    }
+
+    const float3 corners[3] = { p0, p1, p2 };
+
+    [unroll]
+    for (uint edgeIndex = 0; edgeIndex < 3; edgeIndex++)
+    {
+        const float3 a = corners[edgeIndex];
+        const float3 b = corners[(edgeIndex + 1) % 3];
+        const float3 opposite = corners[(edgeIndex + 2) % 3];
+
+        float3 inward = cross(normal, b - a);
+        inward *= dot(inward, opposite - a) < 0.0 ? -1.0 : 1.0;
+
+        if (dot(inward, center - a) < -dot(abs(inward), halfExtent))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 #endif
