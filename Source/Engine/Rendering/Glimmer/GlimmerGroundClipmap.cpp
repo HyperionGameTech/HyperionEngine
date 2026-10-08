@@ -194,11 +194,7 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
         }
     }
 
-    if (!m_terrain)
-    {
-        return;
-    }
-
+    
     for (uint32 levelIndex = 0; levelIndex < GlimmerGroundLevels; levelIndex++)
     {
         const float texelSize = GetGlimmerGroundTexelSize(levelIndex);
@@ -209,6 +205,16 @@ void GlimmerGroundClipmap::Update(World* world, const Vec3f& viewerPosition, Arr
             MathUtil::FloorToMultiple(int32(MathUtil::Floor(viewerPosition.z / texelSize)) - half, WindowSnapTexels));
 
         MoveWindow(levelIndex, desiredOrigin);
+    }
+
+    if (!m_terrain)
+    {
+        for (Level& level : m_levels)
+        {
+            level.pending.Clear();
+        }
+
+        return;
     }
 
     for (const Vec4f& worldRect : m_terrain->TakeHeightDirtyRects())

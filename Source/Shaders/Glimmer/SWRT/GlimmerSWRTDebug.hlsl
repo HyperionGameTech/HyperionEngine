@@ -197,7 +197,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
             const float4 lightmap = GlimmerSHLoadHitLightmap(occupancyHit, direction);
 
-            result.rgb = lightmap.a > 0.0 ? occupancyHit.albedo * lightmap.rgb : ShadeHit(occupancyHit.albedo, occupancyHit.normal) * float3(1.0, 0.5, 1.0);
+            result.rgb = lightmap.a > 0.0 ? occupancyHit.albedo * lightmap.rgb : ShadeHit(occupancyHit.albedo, occupancyHit.normal);
         }
     }
     else if (mode == DEBUG_VIEW_INSTANCE_ID)

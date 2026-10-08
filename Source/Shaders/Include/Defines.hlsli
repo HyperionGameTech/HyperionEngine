@@ -137,6 +137,8 @@
 #define HYP_FLOAT_MAX 3.402823466e+38F
 #define HYP_FLOAT_MIN 1.175494351e-38F
 
+#define HYP_TEXTURE_LOD(samp, tex, texcoord) (tex).CalculateLevelOfDetail((samp), (texcoord))
+
 #ifdef __COUNTER__
 #define HYP_UNIQUE_NAME(prefix) \
     HYP_CONCAT(prefix, __COUNTER__)
