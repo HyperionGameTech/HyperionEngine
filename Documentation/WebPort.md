@@ -782,7 +782,9 @@ With `Rendering.LightmapVolumes=false` the stencil is not written and the debug 
 
 So the trace, blend and SH passes compute the same thing on WebGPU as on Vulkan. Not done: the same comparison in the browser, which needs a package recorded with lightmap volumes off.
 
-One thing found on the way and left alone: with `Rendering.LightmapVolumes=false` the normal view is black on Vulkan in this configuration, Glimmer on or off, with `srcResourceState == ResourceState::CopySrc` asserting. Only the debug views are usable in that mode.
+**The lightmaps-off mode was broken with the depth prepass, and that is now fixed.** `RenderCollector::Commit` resets the depth compare to `Less` after each bucket. With the prepass on the opaque pass needs `LessOrEqual`, and the `Rendering.LightmapVolumes=false` branch of `DeferredPass` drew the lightmapped bucket straight after the opaque one without setting it again, so every lightmapped fragment failed the depth test: black frame, empty G-buffer, depth alone surviving from the prepass. `DeferredPass.cpp` sets the compare again before that draw. Unrelated to WebGPU; the mode had the same fault on Vulkan.
+
+This matters for the comparison above: it was made before the fix, so Glimmer was evaluating every pixel with the cleared G-buffer normal, (0, -1, 0). Both backends got the same wrong input, so the agreement still holds, but it has not been repeated with real normals on Dawn. The diamond shapes on the curtains in those captures came from the same thing, the visibility test point being pushed down the wall instead of off it, and are gone with real normals.
 
 The browser check read only the tail of the page log, which keeps 200 lines; an error in the first seconds would have scrolled out, though an invalid pipeline repeats every frame and none did.
 
@@ -800,4 +802,30 @@ Runs with this package exit with an access violation at shutdown on Vulkan as we
 ### Still to do in this milestone
 
 A small test level and the package size budget. Engine content is no longer the size problem; the level's own 414 MB of uncompressed textures is, which is milestone 6's block compression.
+
+## Building, packaging and serving
+
+Three scripts in `Tools/Scripts`, Windows only so far. They need `EMSDK` pointing at an emsdk folder with a toolchain installed and activated (6.0.11 is what the port was built with), Ninja and Python on `PATH`, and a Windows Release build of the engine for the host tools.
+
+| Script | Does |
+|---|---|
+| `BuildHyperion.bat Web [Regenerate]` | Configures and builds `Build/Web/Release` with Emscripten, output in `Binaries/Web/Release`. `HYP_WEB_PACKAGE_DIR`, when set, names the package whose `Config/` and `Content/` are preloaded; unset, the build directory keeps the one it had. |
+| `PackageBuildWeb.bat --project <name or path> [--worlds <names>] [--engine-assets <list>] [--skip-precompile] [--skip-build]` | Converts the shaders for WebGPU, cooks the project, copies the web configs, writes `Cache/index.txt`, builds the wasm against the package and copies the page in. The result, `PackagedBuilds/Web/Build_<time>`, is everything a web server needs. |
+| `ServeWeb.bat [package dir] [port]` | Serves a package with the headers threads need, by default the last one packaged, on port 8080. |
+
+`--engine-assets` takes the raw file a native WebGPU run of the level wrote with `--record-engine-assets=<file>`; the script narrows it to the WebGPU variants itself. Without it all engine content is cooked, which is larger and has not been tried in the browser since the list existed.
+
+The web build's settings are `Config/EngineConfig.Web.json` and `Config/GlobalConfig.Web.json`, whole-file replacements like the other platforms': the desktop config with bindless textures, fog volumes and parallel rendering off.
+
+Tested once, 2026-10-08: `MainWorld` with the recorded list, four minutes from start to a 460 MB folder, which loads and renders in the browser. Not tested: a run without `--skip-precompile`, a run without `--engine-assets`, and a fresh build directory.
+
+Known rough edge: the package's `shaderpreload.bin` comes from the host's default cache rather than from the recording run, so the browser logs "Blocking wait on shader load" for a dozen Glimmer and cloud shaders at start-up. They load, later than they could.
+
+### The page's console
+
+The input under the canvas runs a line the way the editor's console does: a console variable and its value (`Rendering.Glimmer.DebugView 3`, or just the last part of the name, `ssgi 0`), or a commandlet. `HypWeb_ExecuteConsoleLine` in `Platform/Web/main.cpp` hands the line to `Hyp_ExecuteConsoleCommand` on the simulation thread and prints `ok` or an error to the page's log.
+
+It completes the word being typed from the engine's own list, `HypWeb_GetConsoleNames` (154 names on 2026-10-08), with the editor's rule: the start of a name or of any of its dot separated parts, ignoring case. Tab or Enter takes the selected completion, the arrow keys move through the list, Escape closes it; with no list open Enter runs the line and the arrow keys walk the history.
+
+The engine listens for keys on the window, capturing, so the page registers its own capturing listeners first and stops the keys typed into the console there. Otherwise typing `w` would also walk.
 

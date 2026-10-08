@@ -1,0 +1,56 @@
+{
+  "Rendering": {
+    "HBAO": {
+      "Enabled": true
+    },
+    "SSGI": false,
+    "TAA": true,
+    "FogVolumes": false,
+    "PathTracing": false,
+    "DDGI": false,
+    "RayTracedReflections": false,
+    "RayTracingEnabled": false,
+    "IndirectRendering": true,
+    "DepthPrepass": true,
+    "ParallelRendering": false,
+    "TargetFrameRate": 60,
+    "LimitFrameRateOnBatteryPower": true,
+    "LimitFrameRateWhenIdle": true,
+    "EnableDebugDrawer": true,
+    "SSR": {
+      "Enabled": false
+    },
+    "Debug": {
+      "Reflections": false,
+      "Irradiance": false,
+      "Normals": false,
+      "AO": false
+    },
+    "VSync": true,
+    "EnableGpuStats": true,
+    "Vulkan": {
+      "DebugLayers": false,
+      "TimelineSemaphores": true
+    },
+    "BindlessTextures": false
+  },
+  "Editor": {
+    "SkipRenderingWhenIdle": false,
+    "Camera": {
+      "MovementSpeed": 35.0,
+      "MouseSensitivity": 50.0
+    }
+  },
+  "Threads": {
+    "NumForegroundWorkers": 3
+  },
+  "Baker": {
+    "OnlyGenerateUVs": false,
+    "NumSamples": 1,
+    "MaxTexelsPerFrame": 262144,
+    "ForceComputeTracing": false
+  },
+  "ShaderCompiler": {
+    "CompileOnTheFly": true
+  }
+}

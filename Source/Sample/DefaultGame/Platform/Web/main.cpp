@@ -4,6 +4,7 @@
 
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/Game.hpp>
+#include <Framework/Threads/SimThread.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -68,6 +69,69 @@ static void MountPackage()
     fclose(indexFile);
 #endif
 }
+
+extern "C" int Hyp_ExecuteConsoleCommand(int argc, const char** argv);
+extern "C" void Hyp_GetAllCVarNames(void* callback, void* userData);
+extern "C" void Hyp_GetAllCommandletNames(void* callback, void* userData);
+
+extern "C" {
+
+// The page's console calls this, on the page's own thread, with each line typed into it.
+EMSCRIPTEN_KEEPALIVE void HypWeb_ExecuteConsoleLine(const char* line)
+{
+    if (g_simThreadInstance == nullptr)
+    {
+        return;
+    }
+
+    g_simThreadInstance->GetScheduler().Enqueue(
+        [text = String(line).Trimmed()]()
+        {
+            Array<String> args = text.Split(' ');
+
+            if (args.Empty())
+            {
+                return;
+            }
+
+            Array<const char*> argsCharV = MapToArray(args, [](const String& str)
+                {
+                    return str.Data();
+                });
+
+            if (Hyp_ExecuteConsoleCommand(int(args.Size()), argsCharV.Data()) != 0)
+            {
+                // straight to the page's log, the Console log channel only feeds the in-game console
+                fprintf(stderr, "`%s` is not a console variable or command, or its value is not valid\n", text.Data());
+            }
+            else
+            {
+                printf("ok\n");
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+// What the page's console completes from: every console variable and commandlet, one name per line.
+EMSCRIPTEN_KEEPALIVE const char* HypWeb_GetConsoleNames()
+{
+    static String names;
+    names.Clear();
+
+    void (*appendName)(const char*, void*) = [](const char* name, void* userData)
+    {
+        String& names = *static_cast<String*>(userData);
+        names.Append(name);
+        names.Append("\n");
+    };
+
+    Hyp_GetAllCVarNames(reinterpret_cast<void*>(appendName), &names);
+    Hyp_GetAllCommandletNames(reinterpret_cast<void*>(appendName), &names);
+
+    return names.Data();
+}
+
+} // extern "C"
 
 int main(int argc, char** argv)
 {

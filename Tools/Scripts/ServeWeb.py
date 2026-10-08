@@ -1,10 +1,6 @@
 """Serves a web build for local testing.
 
-    python ServeWeb.py <binaries dir> <package dir> [port]
-
-The binaries dir holds index.html and hyperion-sample.{js,wasm,data}; the package dir holds the cooked Cache/.
-Sends the cross-origin isolation headers threads need, answers range requests, which the cache files are read with,
-and gzips the page's own files the way a real host would (the wasm is about a fifth of its size compressed).
+   python ServeWeb.py <binaries dir> <package dir> [port]
 """
 
 import gzip

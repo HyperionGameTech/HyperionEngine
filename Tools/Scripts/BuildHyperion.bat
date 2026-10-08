@@ -2,6 +2,7 @@
 setlocal EnableDelayedExpansion
 
 set "HYP_ANDROID=0"
+set "HYP_WEB=0"
 set "HYP_CLANG=0"
 set "HYP_NINJA=0"
 set "HYP_MINGW=0"
@@ -22,6 +23,7 @@ IF /I "%~1"=="shipping" set "HYP_SHIPPING=1"
 IF /I "%~1"=="shipping" set "HYP_BUILD_TYPE=Release"
 IF /I "%~1"=="runtime" set "HYP_RUNTIME=1"
 IF /I "%~1"=="android" set "HYP_ANDROID=1"
+IF /I "%~1"=="web" set "HYP_WEB=1"
 IF /I "%~1"=="clang" set "HYP_CLANG=1"
 IF /I "%~1"=="ninja" set "HYP_NINJA=1"
 IF /I "%~1"=="mingw" set "HYP_MINGW=1"
@@ -73,7 +75,27 @@ set "HYP_OUTPUT_SUFFIX_ARG="
 if "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
 if "%HYP_DISTRIBUTION%"=="1" if not "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Distribution"
 
-if "%HYP_ANDROID%"=="1" (
+REM "web" builds the WebAssembly + WebGPU sample with Emscripten. EMSDK has to point at an emsdk checkout with a
+REM toolchain installed and activated; its environment is needed for the build as well as for generating.
+if "%HYP_WEB%"=="1" (
+    if not defined EMSDK (
+        echo ERROR: EMSDK is not set. Point it at your emsdk folder ^(the one holding emsdk_env.bat^).
+        exit /b 1
+    )
+
+    if not exist "%EMSDK%\emsdk_env.bat" (
+        echo ERROR: "%EMSDK%\emsdk_env.bat" not found.
+        exit /b 1
+    )
+
+    set "EMSDK_QUIET=1"
+    call "%EMSDK%\emsdk_env.bat"
+)
+
+if "%HYP_WEB%"=="1" (
+    if not exist Build\Web\%HYP_BUILD_DIR% mkdir Build\Web\%HYP_BUILD_DIR%
+    pushd Build\Web\%HYP_BUILD_DIR%
+) else if "%HYP_ANDROID%"=="1" (
     if not exist Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR% mkdir Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
     pushd Build\Android%HYP_PLATFORM_SUFFIX%\%HYP_BUILD_DIR%
 ) else if "%HYP_ARM64%"=="1" (
@@ -108,12 +130,37 @@ for %%i in ("%~dp0..\..\..") do set "HYP_ROOT_DIR=%%~fi"
 set "HYP_ROOT_DIR=%HYP_ROOT_DIR:\=/%"
 
 
+if "%HYP_WEB%"=="1" GOTO CMAKE_WEB
 if "%HYP_ANDROID%"=="1" GOTO CMAKE_ANDROID
 if "%HYP_ARM64%"=="1" GOTO CMAKE_WINDOWS_ARM64
 if "%HYP_MINGW%"=="1" GOTO CMAKE_WINDOWS_MINGW
 if "%HYP_NINJA%"=="1" GOTO CMAKE_WINDOWS_NINJA
 if "%HYP_CLANG%"=="1" GOTO CMAKE_WINDOWS_CLANG
 GOTO CMAKE_WINDOWS
+
+:CMAKE_WEB
+set "NINJA_EXE="
+where ninja >nul 2>&1 && set "NINJA_EXE=ninja"
+
+if not defined NINJA_EXE (
+    echo ERROR: Ninja not found. Make sure it is installed and in your PATH!
+    popd
+    exit /b 1
+)
+
+REM HYP_WEB_PACKAGE_DIR: the cooked package whose Config/ and Content/ get preloaded (PackageBuildWeb.bat sets it).
+REM Left alone when unset, so a plain rebuild keeps the package the build directory was last configured with.
+set "HYP_WEB_PACKAGE_CMAKE="
+if defined HYP_WEB_PACKAGE_DIR set "HYP_WEB_PACKAGE_CMAKE=-DHYP_WEB_PACKAGE_DIR=%HYP_WEB_PACKAGE_DIR:\=/%"
+
+call emcmake cmake ../../../Source -G Ninja -DCMAKE_BUILD_TYPE="%HYP_BUILD_TYPE%" %HYP_WEB_PACKAGE_CMAKE%
+if errorlevel 1 (
+    echo CMake generation failed. Aborting build.
+    popd
+    exit /b 1
+)
+
+GOTO SKIP_CMAKE_GENERATION
 
 :CMAKE_ANDROID
 REM Android ARM64

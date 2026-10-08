@@ -103,6 +103,8 @@ if(HYP_WEB)
     -sEXIT_RUNTIME=1
     -sENVIRONMENT=web,worker,node
     -sASSERTIONS=1
+    # the page's console calls into the engine with it
+    -sEXPORTED_RUNTIME_METHODS=ccall
     # see WebGPUThreadProxy.cpp
     -Wl,--wrap=emscripten_futex_wait
   )

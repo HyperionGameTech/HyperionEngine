@@ -1,5 +1,5 @@
 file(MAKE_DIRECTORY "${CONFIG_DST_DIR}")
-set(KNOWN_PLATFORMS IOS Android Windows Mac Linux)
+set(KNOWN_PLATFORMS IOS Android Windows Mac Linux Web)
 
 file(GLOB JSON_FILES "${CONFIG_SRC_DIR}/*.json")
 
