@@ -1800,6 +1800,11 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         if (!g_cvLightmapVolumes.Get())
         {
+            if (performDepthPrepass)
+            {
+                frame->cr << SetDepthCompareOp(DepthCompareOp::LessOrEqual);
+            }
+
             renderCollector.ExecuteDrawCalls(frame, rs, RenderBucketMask<RenderBucket::Lightmapped>);
         }
     }
