@@ -25,6 +25,7 @@
 #include <Rendering/Passes/DeferredPass.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
+#include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <System/AppContext.hpp>
 
