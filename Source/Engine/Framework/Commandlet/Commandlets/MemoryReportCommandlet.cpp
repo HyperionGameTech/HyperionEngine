@@ -174,6 +174,8 @@ protected:
         tryAddPool("vulkan", g_vulkanPool);
 #elif HYP_DX12
         tryAddPool("dx12", g_dx12Pool);
+#elif HYP_WEBGPU
+        tryAddPool("webgpu", g_webgpuPool);
 #endif
 
         return pools;

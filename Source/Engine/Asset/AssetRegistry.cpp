@@ -69,6 +69,33 @@ static Handle<AssetRegistry> s_engineAssetRegistry;
 static Handle<AssetRegistry> s_editorAssetRegistry;
 #endif // HYP_EDITOR
 
+static CommandLineArgumentRegistration g_argRecordEngineAssets {
+    "record-engine-assets",
+    {},
+    "File to append the bucket and name of every Engine asset to as it is loaded. A cook takes the file as --engine-assets",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
+
+static void RecordEngineAssetLoad(const AssetBucket& bucket, Name assetName)
+{
+    static const String s_listPath = CoreApi::GetCommandLineArguments()["record-engine-assets"].ToString();
+
+    if (s_listPath.Empty())
+    {
+        return;
+    }
+
+    static Mutex s_mutex;
+    Mutex::Guard guard(s_mutex);
+
+    if (FILE* listFile = fopen(s_listPath.Data(), "a"))
+    {
+        fprintf(listFile, "%s/%s\n", bucket.GetName(), assetName.LookupString());
+        fclose(listFile);
+    }
+}
+
 static Mutex& GetCurrentAssetRegistryMutex()
 {
     static Mutex s_mutex;
@@ -806,6 +833,11 @@ Handle<AssetObject> AssetRegistry::GetAsset(const AssetBucket& bucket, StringHas
         }
 
         data.assetObjectCache.Set(index, assetObject);
+    }
+
+    if (m_registryId == AssetRegistryId::Engine)
+    {
+        RecordEngineAssetLoad(bucket, assetPath.GetName());
     }
 
     InitObject(assetObject);

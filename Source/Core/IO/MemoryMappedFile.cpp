@@ -21,6 +21,8 @@
 #include <unistd.h>
 #endif
 
+#include <cstdlib>
+
 namespace Hyperion {
 
 CORE_API HYP_DECLARE_LOG_CHANNEL(Core);
@@ -145,7 +147,11 @@ void MemoryMappedFileView::Close()
 #elif HYP_UNIX
     if (m_address != nullptr && m_mapSize > 0)
     {
+#if HYP_WEB
+        std::free(m_address);
+#else
         munmap(m_address, m_mapSize);
+#endif
     }
 #endif
 
@@ -448,9 +454,40 @@ bool MemoryMappedFile::MapRange(size_t offset, size_t size, MemoryMappedFileView
     const size_t viewDelta = offset - alignedOffset;
     const size_t mapSize = viewDelta + outView.m_viewSize;
 
+#if HYP_WEB
+    // There is no mapping on the web, mmap is an allocation filled by one read, and it zero fills whatever a short read
+    // leaves out without reporting anything. Read the range ourselves until every byte has arrived.
+    static constexpr size_t readChunkSize = 4u * 1024u * 1024u;
+
+    void* address = std::malloc(mapSize);
+
+    for (size_t numBytesRead = 0; address != nullptr && numBytesRead < mapSize;)
+    {
+        const size_t numBytesWanted = mapSize - numBytesRead < readChunkSize ? mapSize - numBytesRead : readChunkSize;
+        const ssize_t result = pread(m_impl->fd, static_cast<ubyte*>(address) + numBytesRead, numBytesWanted, off_t(alignedOffset + numBytesRead));
+
+        if (result <= 0)
+        {
+            HYP_LOG(Core, Error, "Reading {} stopped at byte {} of {}", m_impl->filepath, alignedOffset + numBytesRead, alignedOffset + mapSize);
+
+            std::free(address);
+            address = nullptr;
+
+            break;
+        }
+
+        numBytesRead += size_t(result);
+    }
+
+    if (address == nullptr)
+    {
+        address = MAP_FAILED;
+    }
+#else
     const int prot = PROT_READ | (m_impl->mode == Mode::READ_WRITE ? PROT_WRITE : 0);
 
     void* address = mmap(nullptr, mapSize, prot, MAP_SHARED, m_impl->fd, off_t(alignedOffset));
+#endif
 
     if (address == MAP_FAILED)
     {

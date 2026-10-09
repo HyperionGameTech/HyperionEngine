@@ -336,43 +336,36 @@ PSOutput PSMain(PSInput input)
 
         const float4 specular_lobe = D * G * F;
 
-        switch (currentLight.type)
+        if (currentLight.type == HYP_LIGHT_TYPE_POINT || currentLight.type == HYP_LIGHT_TYPE_SPOT)
         {
-            case HYP_LIGHT_TYPE_POINT:
-            case HYP_LIGHT_TYPE_SPOT: // fallthrough
+            const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
+            const float radius = radiusFalloff.x;
+            const float falloff = radiusFalloff.y;
+
+            attenuation = GetSquareFalloffAttenuation(position.xyz, currentLight.position_intensity.xyz, radius);
+
+            if (currentLight.type == HYP_LIGHT_TYPE_SPOT)
             {
-                const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
-                const float radius = radiusFalloff.x;
-                const float falloff = radiusFalloff.y;
+                float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
+                float2 spot_angles = currentLight.area_size.xy;
 
-                attenuation = GetSquareFalloffAttenuation(position.xyz, currentLight.position_intensity.xyz, radius);
+                attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
 
-                if (currentLight.type == HYP_LIGHT_TYPE_SPOT)
-                {
-                    float theta = max(dot(-L, normalize(currentLight.normal.xyz)), 0.0);
-                    float2 spot_angles = currentLight.area_size.xy;
+                // @TODO Spot shadows for clustered deferred
 
-                    attenuation *= saturate((theta - spot_angles[0]) / (spot_angles[1] - spot_angles[0])) * step(spot_angles[0], theta);
-
-                    // @TODO Spot shadows for clustered deferred
-
-                }
-                else
-                {
-                    if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
-                    {
-                        uint shadowMapIndex = GetShadowMapIndexForLight(lightIndex);
-                        ShadowMap shadowMap = shadowMaps[shadowMapIndex];
-
-                        float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
-
-                        shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
-                    }
-                }
-
-                break;
             }
-            default: break;
+            else
+            {
+                if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
+                {
+                    uint shadowMapIndex = GetShadowMapIndexForLight(lightIndex);
+                    ShadowMap shadowMap = shadowMaps[shadowMapIndex];
+
+                    float3 worldToLight = position.xyz - currentLight.position_intensity.xyz;
+
+                    shadow = GetPointShadow(shadowMap, currentLight.flags, worldToLight, NdotL);
+                }
+            }
         }
 
         float4 specular = specular_lobe;

@@ -94,5 +94,5 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const uint2 clamped_coord = clamp(pixel_coord, uint2(0, 0), colorDimensions - uint2(1, 1));
 
     // cheeky nan check to prevent poisoning
-    output_image[clamped_coord] = any(isnan(result)) ? float4(0.0, 1.0, 0.0, 1.0) : result;
+    output_image[clamped_coord] = any(HYP_ISNAN(result)) ? float4(0.0, 1.0, 0.0, 1.0) : result;
 }

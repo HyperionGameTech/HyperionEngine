@@ -47,21 +47,21 @@ static const float2 s_pcfKernel[16] = {
     float2(0.14383161, -0.14100790)
 };
 
-#ifdef VULKAN
+#if defined(VULKAN) || defined(WEBGPU)
 static const float4x4 s_shadowBiasMatrix = float4x4(
     0.5, 0.0, 0.0, 0.5,
     0.0, -0.5, 0.0, 0.5,
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 );
-#else // !VULKAN
+#else // DX12
 static const float4x4 s_shadowBiasMatrix = float4x4(
     0.5, 0.0, 0.0, 0.0,
     0.0, -0.5, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
     0.5, 0.5, 0.0, 1.0
 );
-#endif // VULKAN
+#endif // VULKAN || WEBGPU
 
 float3 GetShadowCoord(in float4x4 shadowMatrix, float3 pos)
 {

@@ -384,7 +384,7 @@ struct BitField
     constexpr HYP_FORCE_INLINE void Set(size_t bitIndex, bool value)
     {
         const size_t wordIndex = GetWordIndex(bitIndex);
-        const size_t mask = GetBitMask(bitIndex);
+        const WordType mask = GetBitMask(bitIndex);
 
         const WordType currValue = words[wordIndex];
 

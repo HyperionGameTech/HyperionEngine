@@ -22,6 +22,7 @@
 #include <Core/Containers/Set.hpp>
 
 #include <Core/IO/ByteWriter.hpp>
+#include <Core/IO/ByteReader.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
@@ -30,8 +31,11 @@
 
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderInterface.hpp>
+#include <Rendering/Shader.hpp>
+#include <Rendering/Texture.hpp>
 #include <Rendering/ShaderManager.hpp>
 
+#include <Rendering/Util/ShaderCompiler.hpp>
 #include <Rendering/Util/ShaderPropertyDictionary.hpp>
 
 #include <System/MessageBox.hpp>
@@ -83,6 +87,30 @@ public:
                 false);
 
             s_definitions.Add(
+                "worlds",
+                "",
+                "Comma-separated World asset names to cook game content for (all Worlds in the project when empty)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
+                "max-texture-size",
+                "",
+                "Largest width or height a cooked 2D texture keeps; the mips above it are left out (0 keeps every mip)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
+                "engine-assets",
+                "",
+                "File listing the Engine assets to cook, one Bucket/Name per line, as written by a run with --record-engine-assets (every Engine asset when empty)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
                 "out-cache",
                 "c",
                 "Directory to write cache to",
@@ -113,13 +141,19 @@ public:
 protected:
     static FilePath GetDirectory(const String& value, bool mkdirs)
     {
-        const FilePath dir = (value.StartsWith(".")
+        FilePath dir = (value.StartsWith(".")
                     // Relative path - starts with . (eg "../Foo" or "./Foo")
                     ? (CoreApi::GetBaseDirectory() / value)
                     // Just use provided path.
                     : value);
 
-        if (!dir.IsDirectory() && (mkdirs && !dir.MkDir()))
+        // eg "Projects/Foo" when not launched from the repo root
+        if (!mkdirs && !dir.IsDirectory() && (CoreApi::GetBaseDirectory() / value).IsDirectory())
+        {
+            dir = CoreApi::GetBaseDirectory() / value;
+        }
+
+        if (!dir.IsDirectory() && (!mkdirs || !dir.MkDir()))
         {
             return FilePath();
         }
@@ -213,7 +247,7 @@ protected:
 
             if ((projectDir = GetDirectory(projectArg, false)); projectDir.Empty())
             {
-                return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", projectDir);
+                return HYP_MAKE_ERROR(Error, "Package path is non existant or is not a directory: {}", projectArg);
             }
 
             gameRegistry = MakeHandle<AssetRegistry>(AssetRegistryId::Game, projectDir);
@@ -259,7 +293,22 @@ protected:
             }
         }
 
-        Result result = Cook(engineRegistry, gameRegistry, projectDir, outCacheDir, outContentDir, outEngineContentDir);
+        Array<String> worldNames;
+
+        for (const String& worldName : args["worlds"].ToString().Split(','))
+        {
+            if (worldName.Trimmed().Any())
+            {
+                worldNames.PushBack(worldName.Trimmed());
+            }
+        }
+
+        const String engineAssetListArg = args["engine-assets"].ToString();
+
+        s_maxTextureSize = 0;
+        StringUtil::Parse(args["max-texture-size"].ToString(), &s_maxTextureSize);
+
+        Result result = Cook(engineRegistry, gameRegistry, projectDir, worldNames, FilePath(engineAssetListArg), outCacheDir, outContentDir, outEngineContentDir);
 
         if (result.HasError())
         {
@@ -284,6 +333,70 @@ private:
         BlobDataReference* reference;
     };
 
+    static inline uint32 s_maxTextureSize = 0;
+
+    // Leaves out the mips above the size limit. The texture keeps the rest of its chain as it was stored.
+    static void LimitTextureSize(Texture& texture, uint32 maxTextureSize)
+    {
+        const TextureDesc textureDesc = texture.GetTextureDesc();
+
+        if (textureDesc.type != TextureType::Texture2D || textureDesc.numLayers != 1 || !textureDesc.HasStoredMips())
+        {
+            return;
+        }
+
+        const uint32 numMips = textureDesc.NumMips();
+
+        Vec3u extent = textureDesc.extent;
+        uint32 numMipsRemoved = 0;
+
+        while (MathUtil::Max(extent.x, extent.y) > maxTextureSize && numMipsRemoved + 1 < numMips && textureDesc.mipOffsets[numMipsRemoved] != 0)
+        {
+            extent = Vec3u(MathUtil::Max(extent.x >> 1, 1u), MathUtil::Max(extent.y >> 1, 1u), 1u);
+
+            ++numMipsRemoved;
+        }
+
+        if (numMipsRemoved == 0)
+        {
+            return;
+        }
+
+        const uint32 keptDataStart = textureDesc.mipOffsets[numMipsRemoved - 1];
+
+        ByteBuffer keptData;
+
+        {
+            auto readScope = texture.GetReadScope();
+
+            const ConstByteView imageData = texture.GetImageData();
+
+            if (!imageData || imageData.Size() <= keptDataStart)
+            {
+                return;
+            }
+
+            keptData = ByteBuffer(imageData.Slice(keptDataStart));
+        }
+
+        TextureDesc limitedDesc = textureDesc;
+        limitedDesc.extent = extent;
+
+        for (uint32 mipIndex = 0; mipIndex < TextureDesc::MaxMips; mipIndex++)
+        {
+            const uint32 sourceIndex = mipIndex + numMipsRemoved;
+
+            limitedDesc.mipOffsets[mipIndex] = (sourceIndex < TextureDesc::MaxMips && textureDesc.mipOffsets[sourceIndex] != 0)
+                ? textureDesc.mipOffsets[sourceIndex] - keptDataStart
+                : 0;
+        }
+
+        auto writeScope = texture.GetWriteScope();
+
+        texture.SetTextureDesc(limitedDesc);
+        texture.SetImageData(keptData.ToByteView());
+    }
+
     static Result CookAsset(
         const FilePath& outputContentDir,
         const Handle<AssetObject>& assetObject,
@@ -299,6 +412,11 @@ private:
         if (assetObject->IsTransient())
         {
             return {};
+        }
+
+        if (s_maxTextureSize != 0 && assetObject->GetPath().GetBucket() == AssetBuckets::Textures)
+        {
+            LimitTextureSize(*static_cast<Texture*>(assetObject.Get()), s_maxTextureSize);
         }
 
         const uint32 bucketIndex = assetObject->GetPath().GetBucket().GetIndex();
@@ -349,7 +467,7 @@ private:
                 StringHash(reference->key),
                 tup.GetElement<0>(),
                 tup.GetElement<1>(),
-                reference->size,
+                size_t(reference->size),
                 reference
             });
         }
@@ -383,9 +501,110 @@ private:
         return {};
     }
 
+    // Engine assets are referenced from code as well as from content, so what a game needs can't be found by walking
+    // references. The list is what a run of the game actually loaded.
+    static Result CookListedAssets(
+        AssetRegistry* registry,
+        const FilePath& assetListPath,
+        const FilePath& outputContentDir,
+        Array<TSharedResLock<AssetObject>>& readLocks,
+        Array<CollectedBlob>& collectedBlobs,
+        Array<uint64>& blockSizes)
+    {
+        FILE* listFile = fopen(assetListPath.Data(), "r");
+
+        if (listFile == nullptr)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open asset list '{}'", assetListPath);
+        }
+
+        HYP_DEFER({ fclose(listFile); });
+
+        Set<String> seenEntries;
+        Array<Handle<AssetObject>> listedAssets;
+        Set<const AssetObject*> listedAssetSet;
+        uint32 numMissing = 0;
+
+        char line[1024];
+
+        while (fgets(line, sizeof(line), listFile) != nullptr)
+        {
+            const String entry = String(line).Trimmed();
+
+            if (entry.Empty() || !seenEntries.Insert(entry).second)
+            {
+                continue;
+            }
+
+            const Array<String> parts = entry.Split('/');
+
+            if (parts.Size() != 2)
+            {
+                HYP_LOG(Assets, Warning, "Skipping asset list entry '{}', expected Bucket/Name", entry);
+
+                continue;
+            }
+
+            const AssetBucket& bucket = GetAssetBucketByName(StringHash(parts[0]));
+
+            if (bucket == AssetBuckets::None)
+            {
+                HYP_LOG(Assets, Warning, "Skipping asset list entry '{}', no such bucket", entry);
+
+                continue;
+            }
+
+            Handle<AssetObject> assetObject = registry->GetAsset(bucket, StringHash(parts[1]));
+
+            if (!assetObject.IsValid())
+            {
+                HYP_LOG(Assets, Warning, "Listed asset '{}' is not in the registry", entry);
+
+                ++numMissing;
+
+                continue;
+            }
+
+            listedAssetSet.Insert(assetObject.Get());
+            listedAssets.PushBack(std::move(assetObject));
+        }
+
+        for (const Handle<AssetObject>& assetObject : listedAssets)
+        {
+            // a bundle on disk holds its variants for every backend; its cooked manifest should only name the ones cooked with it
+            if (assetObject->GetPath().GetBucket() == AssetBuckets::ShaderBundles)
+            {
+                ShaderBundle* shaderBundle = static_cast<ShaderBundle*>(assetObject.Get());
+
+                for (auto it = shaderBundle->compiledShaders.Begin(); it != shaderBundle->compiledShaders.End();)
+                {
+                    if (!listedAssetSet.Contains(static_cast<const AssetObject*>(it->Get())))
+                    {
+                        it = shaderBundle->compiledShaders.Erase(it);
+
+                        continue;
+                    }
+
+                    ++it;
+                }
+            }
+
+            if (Result result = CookAsset(outputContentDir, assetObject, readLocks, collectedBlobs, blockSizes); result.HasError())
+            {
+                return result;
+            }
+        }
+
+        HYP_LOG(Assets, Info, "Cooked {} listed asset(s) from \"{}\", {} missing", listedAssets.Size(), assetListPath, numMissing);
+
+        return {};
+    }
+
     static Result Cook(
         const Handle<AssetRegistry>& engineRegistry, const Handle<AssetRegistry>& gameRegistry,
         const FilePath& projectPath,
+        const Array<String>& worldNames,
+        const FilePath& engineAssetListPath,
         const FilePath& outputCacheDir, const FilePath& outputContentDir, const FilePath& outputEngineContentDir)
     {
         Array<TSharedResLock<AssetObject>> readLocks;
@@ -402,11 +621,21 @@ private:
             GlobalContextScope assetRegistryContextScope { AssetRegistryContext { engineRegistry } };
             engineRegistry->LoadAssetDescs();
 
-            for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+            if (engineAssetListPath.Any())
             {
-                if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
+                if (Result result = CookListedAssets(engineRegistry, engineAssetListPath, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
                 {
                     return result;
+                }
+            }
+            else
+            {
+                for (uint32 bucketIndex = 1; bucketIndex < MaxAssetBuckets; bucketIndex++)
+                {
+                    if (Result result = CookBucketInFull(engineRegistry, bucketIndex, outputEngineContentDir, readLocks, collectedBlobs, blockSizes); result.HasError())
+                    {
+                        return result;
+                    }
                 }
             }
         }
@@ -449,6 +678,11 @@ private:
 
                 for (const AssetDesc& assetDesc : assetDescs)
                 {
+                    if (worldNames.Any() && !worldNames.Contains(String(*assetDesc.name)))
+                    {
+                        continue;
+                    }
+
                     Handle<AssetObject> worldAsset = gameRegistry->GetAsset(WorldsBucket, assetDesc.name);
                     if (!worldAsset.IsValid())
                     {
@@ -551,6 +785,20 @@ private:
         HYP_LOG(Assets, Info, "Writing shader cache data...");
         g_shaderManager->WriteShaderCache(outputCacheDir);
         HYP_LOG(Assets, Info, "Shader cache data written.");
+
+        // For webGPU, collecting minimal pipelines
+        const FilePath pipelineManifestPath = EngineGlobals::GetCacheDirectory() / "pipelinevariants.bin";
+
+        if (pipelineManifestPath.Exists())
+        {
+            FileByteReader pipelineManifestReader { pipelineManifestPath };
+            const ByteBuffer pipelineManifest = pipelineManifestReader.Read();
+            pipelineManifestReader.Close();
+
+            FileByteWriter pipelineManifestWriter { outputCacheDir / "pipelinevariants.bin" };
+            pipelineManifestWriter.Write(pipelineManifest.Data(), pipelineManifest.Size());
+            pipelineManifestWriter.Close();
+        }
 
         return {};
     }
