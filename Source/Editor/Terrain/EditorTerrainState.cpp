@@ -19,6 +19,11 @@
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
 #include <Scene/WorldGrid/Terrain/TerrainWorldGridLayer.hpp>
+#include <Scene/WorldGrid/Terrain/GroundCover.hpp>
+
+#include <Scene/Prefab.hpp>
+
+#include <Asset/AssetRegistry.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 
@@ -144,11 +149,7 @@ void EditorTerrainState::SetMode(TerrainSculptMode mode)
     {
         AssertOnThread(g_simThread);
 
-        if (IsPaintMode(mode))
-        {
-            m_paintMode = mode;
-        }
-        else
+        if (!IsPaintMode(mode))
         {
             m_sculptDirection = mode;
         }
@@ -164,29 +165,39 @@ bool EditorTerrainState::IsSculptActive() const
 
 bool EditorTerrainState::IsPaintActive() const
 {
-    return m_enabled && IsPaintMode(m_mode);
+    return m_enabled && m_mode == TerrainSculptMode::PaintSplat;
+}
+
+bool EditorTerrainState::IsGroundCoverPaintActive() const
+{
+    return m_enabled && m_mode == TerrainSculptMode::PaintGroundCover;
+}
+
+void EditorTerrainState::ActivateMode(TerrainSculptMode mode, bool isActive)
+{
+    AssertOnThread(g_simThread);
+
+    // toggle off if already active
+    if (isActive)
+    {
+        SetEnabled(false);
+        return;
+    }
+
+    if (!CanEnterTerrainTools())
+    {
+        return;
+    }
+
+    SetMode(mode);
+    SetEnabled(true);
 }
 
 void EditorTerrainState::ActivateSculpt()
 {
     DispatchToSimThread([this]()
     {
-        AssertOnThread(g_simThread);
-
-        // toggle off if already active
-        if (IsSculptActive())
-        {
-            SetEnabled(false);
-            return;
-        }
-
-        if (!CanEnterTerrainTools())
-        {
-            return;
-        }
-
-        SetMode(m_sculptDirection);
-        SetEnabled(true);
+        ActivateMode(m_sculptDirection, IsSculptActive());
     });
 }
 
@@ -194,22 +205,15 @@ void EditorTerrainState::ActivatePaint()
 {
     DispatchToSimThread([this]()
     {
-        AssertOnThread(g_simThread);
+        ActivateMode(TerrainSculptMode::PaintSplat, IsPaintActive());
+    });
+}
 
-        // toggle off if already active
-        if (IsPaintActive())
-        {
-            SetEnabled(false);
-            return;
-        }
-
-        if (!CanEnterTerrainTools())
-        {
-            return;
-        }
-
-        SetMode(m_paintMode);
-        SetEnabled(true);
+void EditorTerrainState::ActivateGroundCoverPaint()
+{
+    DispatchToSimThread([this]()
+    {
+        ActivateMode(TerrainSculptMode::PaintGroundCover, IsGroundCoverPaintActive());
     });
 }
 
@@ -240,7 +244,139 @@ void EditorTerrainState::SetPaintGroundCoverLayer(Name groundCoverLayer)
         AssertOnThread(g_simThread);
 
         m_paintGroundCoverLayer = groundCoverLayer;
+        m_groundCoverPrefab.Reset();
+
+        // the prefab picker follows the layer
+        for (const Handle<TerrainWorldGridLayer>& terrainLayer : GetTerrainLayers())
+        {
+            const Handle<GroundCover> groundCover = terrainLayer->GetPlantedGroundCover();
+
+            if (groundCover.IsValid())
+            {
+                m_groundCoverPrefab = groundCover->GetPaintedLayerPrefab(groundCoverLayer);
+            }
+
+            if (m_groundCoverPrefab.IsValid())
+            {
+                break;
+            }
+        }
     });
+}
+
+const Handle<Prefab>& EditorTerrainState::GetActiveGroundCoverPrefab() const
+{
+    return m_groundCoverPrefab;
+}
+
+void EditorTerrainState::SetActiveGroundCoverPrefab(const Handle<Prefab>& prefab)
+{
+    DispatchToSimThread([this, prefab]()
+    {
+        AssertOnThread(g_simThread);
+
+        m_groundCoverPrefab = prefab;
+        m_paintGroundCoverLayer = Name::Invalid();
+
+        // a prefab the terrain doesn't plant yet gets its layer from the first stroke
+        for (const Handle<TerrainWorldGridLayer>& terrainLayer : GetTerrainLayers())
+        {
+            const Handle<GroundCover> groundCover = terrainLayer->GetPlantedGroundCover();
+
+            if (groundCover.IsValid())
+            {
+                m_paintGroundCoverLayer = groundCover->FindPaintedLayer(prefab);
+            }
+
+            if (m_paintGroundCoverLayer.IsValid())
+            {
+                break;
+            }
+        }
+    });
+}
+
+Array<Handle<TerrainWorldGridLayer>> EditorTerrainState::GetTerrainLayers() const
+{
+    AssertOnThread(g_simThread);
+
+    Array<Handle<TerrainWorldGridLayer>> terrainLayers;
+
+    Handle<Scene> activeScene = m_subsystem->GetActiveScene();
+
+    if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+    {
+        return terrainLayers;
+    }
+
+    for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
+    {
+        if (Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+        {
+            terrainLayers.PushBack(std::move(terrainLayer));
+        }
+    }
+
+    return terrainLayers;
+}
+
+Name EditorTerrainState::ResolveGroundCoverPaintLayer(const Handle<TerrainWorldGridLayer>& terrainLayer, bool createIfMissing)
+{
+    AssertOnThread(g_simThread);
+
+    if (!m_groundCoverPrefab.IsValid())
+    {
+        return m_paintGroundCoverLayer;
+    }
+
+    const Handle<GroundCover> plantedGroundCover = terrainLayer->GetPlantedGroundCover();
+
+    if (plantedGroundCover.IsValid())
+    {
+        if (Name layerName = plantedGroundCover->FindPaintedLayer(m_groundCoverPrefab); layerName.IsValid())
+        {
+            return layerName;
+        }
+    }
+
+    if (!createIfMissing || !m_subsystem->GetCurrentProject().IsValid())
+    {
+        return Name::Invalid();
+    }
+
+    Handle<GroundCover> groundCover = terrainLayer->GetGroundCover();
+
+    // the engine's default can't take the layer, so the terrain gets its own GroundCover that plants the same
+    if (!groundCover.IsValid())
+    {
+        groundCover = MakeHandle<GroundCover>(Name::Unique("GroundCover"));
+
+        if (plantedGroundCover.IsValid())
+        {
+            groundCover->layers = plantedGroundCover->layers;
+        }
+
+        InitObject(groundCover);
+
+        GetCurrentAssetRegistry()->PutAssetUnique(groundCover);
+
+        terrainLayer->SetGroundCover(groundCover);
+    }
+
+    const Name layerName = groundCover->EnsurePaintedLayer(m_groundCoverPrefab);
+
+    groundCover->MarkDirty();
+
+    // planted for the stroke's first dab rather than a frame behind it
+    terrainLayer->ReplantGroundCover();
+
+    m_paintGroundCoverLayer = layerName;
+
+    m_subsystem->OnAssetsChanged(AssetBuckets::Terrain.GetIndex());
+
+    HYP_LOG(Editor, Info, "Ground cover '{}' now plants prefab '{}' where painted", groundCover->GetName(), m_groundCoverPrefab->GetName());
+
+    return layerName;
 }
 
 Array<Name> EditorTerrainState::GetPaintableGroundCoverLayers() const
@@ -249,22 +385,8 @@ Array<Name> EditorTerrainState::GetPaintableGroundCoverLayers() const
 
     Array<Name> layerNames;
 
-    Handle<Scene> activeScene = m_subsystem->GetActiveScene();
-
-    if (!activeScene.IsValid() || !activeScene->GetWorld() || !activeScene->GetWorld()->GetWorldGrid().IsValid())
+    for (const Handle<TerrainWorldGridLayer>& terrainLayer : GetTerrainLayers())
     {
-        return layerNames;
-    }
-
-    for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
-    {
-        Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer);
-
-        if (!terrainLayer.IsValid())
-        {
-            continue;
-        }
-
         for (Name layerName : terrainLayer->GetPaintedGroundCoverLayers())
         {
             if (!layerNames.Contains(layerName))
@@ -385,7 +507,7 @@ void EditorTerrainState::ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer
             worldPos,
             m_radius,
             brushStrength,
-            m_paintGroundCoverLayer,
+            ResolveGroundCoverPaintLayer(layer, /* createIfMissing */ !invert),
             /* erase */ invert);
 
         break;

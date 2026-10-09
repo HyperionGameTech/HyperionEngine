@@ -356,6 +356,13 @@ const Handle<GroundCover>& TerrainGroundCoverResources::GetGroundCover() const
     return DynamicCast<GroundCover>(m_groundCover.Resolve());
 }
 
+Handle<GroundCover> TerrainGroundCoverResources::GetPlantedGroundCover() const
+{
+    Handle<GroundCover> groundCover = GetGroundCover();
+
+    return groundCover.IsValid() ? groundCover : GetDefaultGroundCover();
+}
+
 void TerrainGroundCoverResources::SetGroundCover(const Handle<GroundCover>& groundCover)
 {
     m_groundCover = groundCover.IsValid() ? AssetReference(Handle<AssetObject>(groundCover)) : AssetReference();
@@ -420,29 +427,82 @@ uint32 TerrainGroundCoverResources::GetVersion()
     return m_version;
 }
 
-const Handle<Material>& TerrainGroundCoverResources::GetNoShadowMaterial(const Handle<Material>& material)
+void TerrainGroundCoverResources::Refresh()
 {
-    for (uint32 index = 0; index < uint32(m_noShadowSources.Size()); index++)
+    AssertOnThread(g_simThread);
+
+    if (!m_isResolved)
     {
-        if (m_noShadowSources[index] == material)
-        {
-            return m_noShadowMaterials[index];
-        }
+        return;
     }
 
-    Handle<Material> noShadowMaterial = material->Clone();
-    noShadowMaterial->SetName(NAME_FMT("{}_NoShadows", material->GetName()));
+    const Handle<GroundCover> groundCover = GetGroundCover();
 
-    MaterialAttributes attributes = noShadowMaterial->GetAttributes();
+    if (groundCover.IsValid() && groundCover->GetContentHashCode().Value() != m_contentHashCode)
+    {
+        Invalidate();
+    }
+}
+
+const TerrainGroundCoverResources::CoverMaterial& TerrainGroundCoverResources::GetCoverMaterial(
+    const Handle<Material>& source,
+    const Vec4f& groundCoverParameters,
+    Array<CoverMaterial>& previousMaterials)
+{
+    const auto matches = [&source, &groundCoverParameters](const CoverMaterial& coverMaterial)
+    {
+        return coverMaterial.source == source && coverMaterial.groundCoverParameters == groundCoverParameters;
+    };
+
+    if (const auto it = m_coverMaterials.FindIf(matches); it != m_coverMaterials.End())
+    {
+        return *it;
+    }
+
+    if (const auto it = previousMaterials.FindIf(matches); it != previousMaterials.End())
+    {
+        m_coverMaterials.PushBack(std::move(*it));
+        previousMaterials.Erase(it);
+
+        return m_coverMaterials.Back();
+    }
+
+    CoverMaterial coverMaterial;
+    coverMaterial.source = source;
+    coverMaterial.groundCoverParameters = groundCoverParameters;
+
+    MaterialParameters parameters = source->GetParameters();
+    parameters.colorVariation = groundCoverParameters.x;
+    parameters.groundNormalBlend = groundCoverParameters.y;
+    parameters.baseOcclusion = groundCoverParameters.z;
+    parameters.baseOcclusionHeight = groundCoverParameters.w;
+
+    // a prefab already authored as ground cover is planted as is
+    if (parameters == source->GetParameters())
+    {
+        coverMaterial.material = source;
+    }
+    else
+    {
+        coverMaterial.material = source->Clone();
+        coverMaterial.material->SetName(NAME_FMT("{}_GroundCover", source->GetName()));
+        coverMaterial.material->SetParameters(parameters);
+
+        InitObject(coverMaterial.material);
+    }
+
+    coverMaterial.materialNoShadows = coverMaterial.material->Clone();
+    coverMaterial.materialNoShadows->SetName(NAME_FMT("{}_NoShadows", coverMaterial.material->GetName()));
+
+    MaterialAttributes attributes = coverMaterial.materialNoShadows->GetAttributes();
     attributes.flags |= MAF_DISABLE_SHADOW_CASTING;
-    noShadowMaterial->SetAttributes(attributes);
+    coverMaterial.materialNoShadows->SetAttributes(attributes);
 
-    InitObject(noShadowMaterial);
+    InitObject(coverMaterial.materialNoShadows);
 
-    m_noShadowSources.PushBack(material);
-    m_noShadowMaterials.PushBack(std::move(noShadowMaterial));
+    m_coverMaterials.PushBack(std::move(coverMaterial));
 
-    return m_noShadowMaterials.Back();
+    return m_coverMaterials.Back();
 }
 
 void TerrainGroundCoverResources::Resolve()
@@ -461,16 +521,21 @@ void TerrainGroundCoverResources::Resolve()
     m_layers.Clear();
     m_plans.Clear();
     m_numSlots = 0;
+    m_contentHashCode = 0;
+
+    // only the materials still planted are kept
+    Array<CoverMaterial> previousCoverMaterials = std::move(m_coverMaterials);
+    m_coverMaterials.Clear();
 
     // clumps are tufts with gaps between them, so they're planted overlapping to close those
     static constexpr float s_spacingPerFootprint = 0.47f;
 
-    Handle<GroundCover> groundCover = GetGroundCover();
-
-    if (!groundCover.IsValid())
+    if (const Handle<GroundCover>& ownGroundCover = GetGroundCover(); ownGroundCover.IsValid())
     {
-        groundCover = GetDefaultGroundCover();
+        m_contentHashCode = ownGroundCover->GetContentHashCode().Value();
     }
+
+    Handle<GroundCover> groundCover = GetPlantedGroundCover();
 
     if (groundCover.IsValid())
     {
@@ -530,7 +595,17 @@ void TerrainGroundCoverResources::Resolve()
 
                 for (const InstanceGroupMember& member : members)
                 {
-                    type.members.PushBack(TerrainCoverMember { member.mesh, member.material, GetNoShadowMaterial(member.material) });
+                    const MaterialParameters& sourceParameters = member.material->GetParameters();
+
+                    const Vec4f groundCoverParameters(
+                        coverType.colorVariation,
+                        coverType.groundNormalBlend,
+                        coverType.baseOcclusion,
+                        MathUtil::Max(sourceParameters.baseOcclusionHeight, member.mesh->GetAABB().max.y * 0.5f));
+
+                    const CoverMaterial& coverMaterial = GetCoverMaterial(member.material, groundCoverParameters, previousCoverMaterials);
+
+                    type.members.PushBack(TerrainCoverMember { member.mesh, coverMaterial.material, coverMaterial.materialNoShadows });
 
                     typePlan.memberMatrices.PushBack(member.matrix);
                     typePlan.memberBounds.PushBack(member.bounds);

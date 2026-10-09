@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
-using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Commands;
 
@@ -13,17 +12,13 @@ namespace Hyperion.Editor.ViewModels
     {
         private readonly EditorSurfacePainterState _painterState;
 
-        private readonly uint _assetBucketIndex;
-
-        private DelegateHandler? _onAssetsChangedHandler;
-
-        private readonly InspectorPropertyViewModelBase? _activeAssetProperty;
+        private readonly PainterAssetPicker _assetPicker;
 
         public string AssetLabel { get; }
 
         public virtual bool HasGroundFitting => false;
 
-        public ObservableCollection<InspectorPropertyViewModelBase> Properties { get; } = new ObservableCollection<InspectorPropertyViewModelBase>();
+        public ObservableCollection<InspectorPropertyViewModelBase> Properties => _assetPicker.Properties;
 
         private double _scale;
         public double Scale
@@ -129,7 +124,6 @@ namespace Hyperion.Editor.ViewModels
             ArgumentNullException.ThrowIfNull(painterState);
 
             _painterState = painterState;
-            _assetBucketIndex = assetBucket.Value;
 
             AssetLabel = assetLabel;
 
@@ -140,38 +134,12 @@ namespace Hyperion.Editor.ViewModels
             _eraseRadius = painterState.EraseRadius;
             _alignToSurface = painterState.AlignToSurface;
 
-            Property? activeAssetProperty = painterState.Class.GetProperty(new Name(activeAssetPropertyName));
-
-            if (activeAssetProperty != null)
-            {
-                _activeAssetProperty = InspectorViewModelFactory.Create(painterState, activeAssetProperty.Value, isReadOnly: false);
-
-                Properties.Add(_activeAssetProperty);
-            }
-            else
-            {
-                Logger.Log(LogLevel.Error, $"{title}: painter state has no {activeAssetPropertyName} property");
-            }
-
-            // sim thread
-            _onAssetsChangedHandler = editorSubsystem.GetOnAssetsChangedDelegate().Bind((uint bucketIndex) =>
-            {
-                if (bucketIndex != _assetBucketIndex)
-                {
-                    return;
-                }
-
-                OnAssetBucketChanged();
-
-                // the active asset may have just been created, or deleted out from under the painter
-                Dispatcher.UIThread.Post(() => _activeAssetProperty?.RefreshValue());
-            });
+            _assetPicker = new PainterAssetPicker(title, painterState, activeAssetPropertyName, assetBucket, editorSubsystem);
+            _assetPicker.AssetBucketChanged += OnAssetBucketChanged;
 
             OnClosed = () =>
             {
-                _onAssetsChangedHandler?.Remove();
-                _onAssetsChangedHandler?.Dispose();
-                _onAssetsChangedHandler = null;
+                _assetPicker.Dispose();
 
                 onClosed?.Invoke();
             };
@@ -184,11 +152,7 @@ namespace Hyperion.Editor.ViewModels
 
         protected HashSet<string> GetAssetNames()
         {
-            AssetRegistry registry = AssetManager.Instance.AssetRegistry;
-
-            return new HashSet<string>(
-                registry.GetBucketAssetDescs(_assetBucketIndex).Select(assetDesc => assetDesc.Name.ToString()),
-                StringComparer.Ordinal);
+            return _assetPicker.GetAssetNames();
         }
     }
 

@@ -13,12 +13,15 @@
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
 #include <Core/Math/Mat4f.hpp>
 #include <Core/Math/BoundingBox.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Name/Name.hpp>
+
+#include <Core/HashCode.hpp>
 
 #include <Core/Types.hpp>
 
@@ -117,12 +120,10 @@ struct TerrainGrassSlotInstances
 
 struct TerrainGrassTileOutput
 {
-    /// one per member of every type of every layer, in layer then type order
     Array<TerrainGrassSlotInstances> slots;
 };
 
-/// sim thread only - what a terrain plants, resolved from its GroundCover or the engine's DefaultGroundCover without one
-class TerrainGroundCoverResources
+class TerrainGroundCoverResources final
 {
 public:
     const Handle<GroundCover>& GetGroundCover() const;
@@ -131,13 +132,16 @@ public:
     /// resolved on first use, so it can be set before the asset registry is ready
     void SetGroundCoverPath(const AssetPath& assetPath);
 
+    /// what is planted - the engine's DefaultGroundCover where the terrain has none of its own
+    Handle<GroundCover> GetPlantedGroundCover() const;
+
     const AssetReference& GetGroundCoverReference() const
     {
         return m_groundCover;
     }
 
-    /// re-resolves on next use, e.g after the GroundCover asset was edited
     void Invalidate();
+    void Refresh();
 
     const Array<TerrainCoverLayer>& GetLayers();
     const Array<TerrainCoverLayerPlan>& GetPlans();
@@ -155,7 +159,21 @@ private:
 
     static Handle<GroundCover> GetDefaultGroundCover();
 
-    const Handle<Material>& GetNoShadowMaterial(const Handle<Material>& material);
+    struct CoverMaterial
+    {
+        Handle<Material> source;
+
+        /// colorVariation, groundNormalBlend, baseOcclusion, baseOcclusionHeight
+        Vec4f groundCoverParameters;
+
+        Handle<Material> material;
+        Handle<Material> materialNoShadows;
+    };
+
+    const CoverMaterial& GetCoverMaterial(
+        const Handle<Material>& source,
+        const Vec4f& groundCoverParameters,
+        Array<CoverMaterial>& previousMaterials);
 
     AssetReference m_groundCover;
 
@@ -166,8 +184,9 @@ private:
     Array<TerrainCoverLayer> m_layers;
     Array<TerrainCoverLayerPlan> m_plans;
 
-    Array<Handle<Material>> m_noShadowSources;
-    Array<Handle<Material>> m_noShadowMaterials;
+    Array<CoverMaterial> m_coverMaterials;
+
+    HashCode::ValueType m_contentHashCode = 0;
 };
 
 namespace TerrainGrass {

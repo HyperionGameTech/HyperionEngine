@@ -44,6 +44,9 @@
         <DataTemplate DataType="vm:TerrainPaintPanelViewModel">
             <panels:TerrainPaintPanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:GroundCoverPainterPanelViewModel">
+            <panels:GroundCoverPainterPanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:SurfacePainterPanelViewModel">
             <panels:SurfacePainterPanelView />
         </DataTemplate>

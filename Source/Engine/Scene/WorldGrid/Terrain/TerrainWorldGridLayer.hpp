@@ -227,7 +227,11 @@ public:
     HYP_METHOD(Property = "GroundCover", Editor)
     void SetGroundCover(const Handle<GroundCover>& groundCover);
 
-    /// picks up edits to the GroundCover asset
+    HYP_FORCE_INLINE Handle<GroundCover> GetPlantedGroundCover() const
+    {
+        return m_groundCoverResources.GetPlantedGroundCover();
+    }
+
     HYP_METHOD(EditorAction = "Replant Ground Cover")
     void ReplantGroundCover();
 

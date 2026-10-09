@@ -293,6 +293,7 @@ namespace Hyperion.Editor.ViewModels
         // Painters
         public ICommand ToggleDecalPainterMode { get; private set; }
         public ICommand ToggleInstancePainterMode { get; private set; }
+        public ICommand ToggleGroundCoverPainterMode { get; private set; }
 
         public bool CanTogglePainterMode => !IsSimulating;
 
@@ -347,8 +348,15 @@ namespace Hyperion.Editor.ViewModels
             get => _isPaintModeActive;
         }
 
+        private bool _isGroundCoverPainterActive = false;
+        public bool IsGroundCoverPainterActive
+        {
+            get => _isGroundCoverPainterActive;
+        }
+
         private TerrainSculptPanelViewModel? _terrainSculptPanel;
         private TerrainPaintPanelViewModel? _terrainPaintPanel;
+        private GroundCoverPainterPanelViewModel? _groundCoverPainterPanel;
 
         private void UpdateTerrainToolPanels()
         {
@@ -357,6 +365,9 @@ namespace Hyperion.Editor.ViewModels
 
             UpdateTerrainToolPanel(ref _terrainPaintPanel, _isPaintModeActive,
                 () => new TerrainPaintPanelViewModel(_editorSubsystem.EditorTerrainState!, DisableTerrainPainting));
+
+            UpdateTerrainToolPanel(ref _groundCoverPainterPanel, _isGroundCoverPainterActive,
+                () => new GroundCoverPainterPanelViewModel(_editorSubsystem, _editorSubsystem.EditorTerrainState!, DisableGroundCoverPainter));
         }
 
         private void DisableTerrainSculpting()
@@ -391,27 +402,45 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
+        private void DisableGroundCoverPainter()
+        {
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                EditorTerrainState? terrainState = _editorSubsystem.EditorTerrainState;
+
+                if (terrainState != null && terrainState.IsGroundCoverPaintActive)
+                {
+                    terrainState.SetEnabled(false);
+                }
+
+                RefreshTerrainToolState();
+            });
+        }
+
         private void RefreshTerrainToolState()
         {
             var action = () =>
             {
-                var updateOnUIThread = (bool shouldBeActive, bool sculptActive, bool paintActive) =>
+                var updateOnUIThread = (bool shouldBeActive, bool sculptActive, bool paintActive, bool groundCoverActive) =>
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
                         bool changed = shouldBeActive != _canToggleTerrainSculptMode
                             || _isSculptModeActive != sculptActive
-                            || _isPaintModeActive != paintActive;
+                            || _isPaintModeActive != paintActive
+                            || _isGroundCoverPainterActive != groundCoverActive;
 
                         if (changed)
                         {
                             _canToggleTerrainSculptMode = shouldBeActive;
                             _isSculptModeActive = sculptActive;
                             _isPaintModeActive = paintActive;
+                            _isGroundCoverPainterActive = groundCoverActive;
 
                             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
                             OnPropertyChanged(nameof(IsSculptModeActive));
                             OnPropertyChanged(nameof(IsPaintModeActive));
+                            OnPropertyChanged(nameof(IsGroundCoverPainterActive));
 
                             UpdateTerrainToolPanels();
                         }
@@ -421,7 +450,7 @@ namespace Hyperion.Editor.ViewModels
                 EditorTerrainState? ets = _editorSubsystem.EditorTerrainState;
                 if (ets == null)
                 {
-                    updateOnUIThread(false, false, false);
+                    updateOnUIThread(false, false, false, false);
 
                     return;
                 }
@@ -429,8 +458,9 @@ namespace Hyperion.Editor.ViewModels
                 bool shouldBeActive = ets.CanSculptTerrainForWorld(EngineManager.CurrentProject?.World);
                 bool sculptActive = shouldBeActive && ets.IsSculptActive;
                 bool paintActive = shouldBeActive && ets.IsPaintActive;
+                bool groundCoverActive = shouldBeActive && ets.IsGroundCoverPaintActive;
 
-                updateOnUIThread(shouldBeActive, sculptActive, paintActive);
+                updateOnUIThread(shouldBeActive, sculptActive, paintActive, groundCoverActive);
             };
 
             if (EngineManager.IsOnSimThread)
@@ -1066,6 +1096,7 @@ namespace Hyperion.Editor.ViewModels
             (ToggleTerrainPaintMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleDecalPainterMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleInstancePainterMode as RelayCommand)?.RaiseCanExecuteChanged();
+            (ToggleGroundCoverPainterMode as RelayCommand)?.RaiseCanExecuteChanged();
             (ToggleGhostMode as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSwatchCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -1287,6 +1318,19 @@ namespace Hyperion.Editor.ViewModels
                     });
                 },
                 () => CanTogglePainterMode);
+
+            ToggleGroundCoverPainterMode = new RelayCommand(
+                () =>
+                {
+                    _ = EngineManager.PostToSimThread(() =>
+                    {
+                        _editorSubsystem.EditorTerrainState?.ActivateGroundCoverPaint();
+
+                        RefreshTerrainToolState();
+                        RefreshPainterToolState();
+                    });
+                },
+                () => CanToggleTerrainSculptMode);
 
             SetViewportLod = new RelayCommand<object?>(lodIndex =>
             {

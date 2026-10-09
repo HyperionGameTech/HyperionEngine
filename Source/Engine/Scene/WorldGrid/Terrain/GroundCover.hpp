@@ -10,6 +10,10 @@
 
 #include <Core/Containers/Array.hpp>
 
+#include <Core/Name/Name.hpp>
+
+#include <Core/HashCode.hpp>
+
 #include <Core/Reflection/Handle.hpp>
 
 namespace Hyperion {
@@ -27,6 +31,15 @@ struct GroundCoverType
     /// share of its layer's patches, relative to the layer's other types
     HYP_FIELD(Property = "Weight", Serialize, Editor)
     float weight = 1.0f;
+
+    HYP_FIELD(Property = "ColorVariation", Serialize, Editor)
+    float colorVariation = 0.6f;
+
+    HYP_FIELD(Property = "GroundNormalBlend", Serialize, Editor)
+    float groundNormalBlend = 0.7f;
+
+    HYP_FIELD(Property = "BaseOcclusion", Serialize, Editor)
+    float baseOcclusion = 0.6f;
 };
 
 HYP_ENUM()
@@ -64,7 +77,6 @@ struct GroundCoverLayer
     Array<GroundCoverType> types;
 };
 
-/// what a terrain plants over its splat layers - prefabs exported from Arbor's ground cover
 HYP_CLASS(AssetBucket = "Terrain")
 class ENGINE_API GroundCover final : public AssetObject
 {
@@ -75,6 +87,21 @@ public:
     explicit GroundCover(Name name);
 
     virtual ~GroundCover() override = default;
+
+    /// the painted layer that plants just \p prefab, or an invalid name
+    HYP_METHOD()
+    Name FindPaintedLayer(const Handle<Prefab>& prefab) const;
+
+    /// the painted layer that plants just \p prefab, added and named after it if there is none
+    HYP_METHOD()
+    Name EnsurePaintedLayer(const Handle<Prefab>& prefab);
+
+    /// the prefab \p layerName plants, if it plants just one
+    HYP_METHOD()
+    Handle<Prefab> GetPaintedLayerPrefab(Name layerName) const;
+
+    /// changes whenever what the layers plant does, so terrains know to replant
+    HashCode GetContentHashCode() const;
 
     HYP_FIELD(Property = "Layers", Serialize, Editor)
     Array<GroundCoverLayer> layers;
