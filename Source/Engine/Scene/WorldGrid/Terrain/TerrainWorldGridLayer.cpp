@@ -257,6 +257,8 @@ void TerrainWorldGridLayer::UpdateLodSelection(Span<const Vec3f> viewpoints)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
+    m_groundCoverResources.Refresh();
+
     m_loadedCells.ForEach(
         [&viewpoints](const Handle<TerrainStreamingCell>& loadedCell)
         {

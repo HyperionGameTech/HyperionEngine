@@ -26,6 +26,7 @@ class Scene;
 class World;
 class WorldGrid;
 class TerrainWorldGridLayer;
+class Prefab;
 
 HYP_ENUM()
 enum class TerrainSculptMode : uint8
@@ -78,10 +79,16 @@ public:
     bool IsPaintActive() const;
 
     HYP_METHOD()
+    bool IsGroundCoverPaintActive() const;
+
+    HYP_METHOD()
     void ActivateSculpt();
 
     HYP_METHOD()
     void ActivatePaint();
+
+    HYP_METHOD()
+    void ActivateGroundCoverPaint();
 
     HYP_METHOD()
     int GetPaintLayer() const;
@@ -97,6 +104,12 @@ public:
 
     HYP_METHOD()
     Array<Name> GetPaintableGroundCoverLayers() const;
+
+    HYP_METHOD(Property = "ActiveGroundCoverPrefab", Editor)
+    const Handle<Prefab>& GetActiveGroundCoverPrefab() const;
+
+    HYP_METHOD(Property = "ActiveGroundCoverPrefab", Editor)
+    void SetActiveGroundCoverPrefab(const Handle<Prefab>& prefab);
 
     /*! \brief Whether the sculpt/paint tools may be turned on right now, independent of what the
      *  world contains. */
@@ -123,6 +136,7 @@ public:
 
 private:
     bool TryGetTerrainHit(const Vec2f& relativePos, Handle<TerrainWorldGridLayer>& outLayer, Vec3f& outWorldPos) const;
+    void ActivateMode(TerrainSculptMode mode, bool isActive);
     void ApplyBrushAt(const Handle<TerrainWorldGridLayer>& layer, const Vec3f& worldPos, bool invert, float dt);
     bool TryApplyAtScreenPos(const Vec2f& relativePos, bool invert, float dt);
 
@@ -131,18 +145,21 @@ private:
 
     void PushGroundCoverPaintAction(const Handle<TerrainWorldGridLayer>& terrainLayer);
 
+    Array<Handle<TerrainWorldGridLayer>> GetTerrainLayers() const;
+    Name ResolveGroundCoverPaintLayer(const Handle<TerrainWorldGridLayer>& terrainLayer, bool createIfMissing);
+
     EditorSubsystem* m_subsystem = nullptr;
 
     bool m_enabled = false;
     
     TerrainSculptMode m_mode = TerrainSculptMode::Raise;
     TerrainSculptMode m_sculptDirection = TerrainSculptMode::Raise;
-    TerrainSculptMode m_paintMode = TerrainSculptMode::PaintSplat;
 
     float m_radius = 5.0f;
     float m_strength = 2.0f;
     uint32 m_paintLayer = 0;
     Name m_paintGroundCoverLayer;
+    Handle<Prefab> m_groundCoverPrefab;
 
     bool m_hasHover = false;
     Vec3f m_hoverWorldPos;

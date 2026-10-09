@@ -20,6 +20,8 @@ namespace Hyperion
 
         public bool IsPaintActive => this.IsPaintActive();
 
+        public bool IsGroundCoverPaintActive => this.IsGroundCoverPaintActive();
+
         public float Radius => this.GetRadius();
 
         public float Strength => this.GetStrength();
@@ -27,5 +29,7 @@ namespace Hyperion
         public TerrainSculptMode Mode => this.GetMode();
 
         public int PaintLayer => this.GetPaintLayer();
+
+        public Prefab? ActiveGroundCoverPrefab => this.GetActiveGroundCoverPrefab();
     }
 }

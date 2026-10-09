@@ -1102,6 +1102,13 @@
                                                 IsEnabled="{Binding CanTogglePainterMode}"
                                                 ToggleType="CheckBox"
                                                 ToolTip.Tip="Toggle instance paint mode" />
+                                            <MenuItem
+                                                Command="{Binding ToggleGroundCoverPainterMode}"
+                                                Header="Ground Cover Painter"
+                                                IsChecked="{Binding IsGroundCoverPainterActive, Mode=OneWay}"
+                                                IsEnabled="{Binding CanToggleTerrainSculptMode}"
+                                                ToggleType="CheckBox"
+                                                ToolTip.Tip="Toggle ground cover paint mode" />
                                         </ContextMenu>
                                     </DropDownButton.ContextMenu>
                                 </DropDownButton>
