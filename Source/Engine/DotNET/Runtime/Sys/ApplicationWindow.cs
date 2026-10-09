@@ -72,4 +72,12 @@ namespace Hyperion
         {
         }
     }
+
+    [ClassBinding(Name = "X11ApplicationWindow", Condition = "IsLinux")]
+    public class X11ApplicationWindow : ApplicationWindow
+    {
+        public X11ApplicationWindow()
+        {
+        }
+    }
 }

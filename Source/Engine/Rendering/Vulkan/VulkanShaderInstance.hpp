@@ -16,7 +16,7 @@
 
 #include <Rendering/Shared.hpp>
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 namespace Hyperion {
 

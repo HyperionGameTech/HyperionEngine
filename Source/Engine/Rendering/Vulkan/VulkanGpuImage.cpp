@@ -27,7 +27,7 @@
 
 #include <Core/Debug/Debug.hpp>
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 #include <VulkanGpuImage.generated.inl>
 

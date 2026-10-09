@@ -27,7 +27,7 @@
 
 #include <Framework/EngineDriver.hpp>
 
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 
 #include <VulkanDescriptorSet.generated.inl>
 

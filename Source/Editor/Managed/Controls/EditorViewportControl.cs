@@ -120,6 +120,23 @@ namespace Hyperion.Editor
 
                 return new PlatformHandle(nsView, "NSView");
             }
+            else if (OperatingSystem.IsLinux())
+            {
+                if (!(Window is X11ApplicationWindow))
+                {
+                    throw new Exception("Failed to cast to X11ApplicationWindow");
+                }
+
+                // X11 window id (XID)
+                IntPtr xid = Window.GetHWND();
+
+                if (xid == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to get X11 window from Hyperion");
+                }
+
+                return new PlatformHandle(xid, "XID");
+            }
             else
             {
                 throw new PlatformNotSupportedException("Unsupported platform for EditorViewportControl");
