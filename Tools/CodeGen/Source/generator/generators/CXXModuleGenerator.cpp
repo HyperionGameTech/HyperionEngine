@@ -772,7 +772,8 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         if (structSizeAttributeValue.IsValid())
         {
-            writer.WriteString(HYP_FORMAT("static_assert(sizeof({}) == {}, \"Expected sizeof({}) to be {} bytes\");\n", cls.name, structSizeAttributeValue.ToString(), cls.name, structSizeAttributeValue.ToString()));
+            // the declared size is the 64-bit one; a 32-bit target (wasm) lays out anything holding a pointer differently
+            writer.WriteString(HYP_FORMAT("static_assert(sizeof(void*) != 8 || sizeof({}) == {}, \"Expected sizeof({}) to be {} bytes\");\n", cls.name, structSizeAttributeValue.ToString(), cls.name, structSizeAttributeValue.ToString()));
         }
 
         if (postLoadAttributeValue.IsValid())
@@ -1078,7 +1079,8 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         if (structSizeAttributeValue.IsValid())
         {
-            writer.WriteString(HYP_FORMAT("static_assert(sizeof({}) == {}, \"Expected sizeof({}) to be {} bytes\");\n", cls.name, structSizeAttributeValue.ToString(), cls.name, structSizeAttributeValue.ToString()));
+            // the declared size is the 64-bit one; a 32-bit target (wasm) lays out anything holding a pointer differently
+            writer.WriteString(HYP_FORMAT("static_assert(sizeof(void*) != 8 || sizeof({}) == {}, \"Expected sizeof({}) to be {} bytes\");\n", cls.name, structSizeAttributeValue.ToString(), cls.name, structSizeAttributeValue.ToString()));
         }
 
         if (postLoadAttributeValue.IsValid())

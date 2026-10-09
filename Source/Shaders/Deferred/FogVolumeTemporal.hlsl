@@ -60,5 +60,5 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         result = lerp(current, history, constants.blend.x);
     }
 
-    outTexture[coord] = any(isnan(result)) ? current : result;
+    outTexture[coord] = any(HYP_ISNAN(result)) ? current : result;
 }

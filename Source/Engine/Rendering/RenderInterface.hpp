@@ -22,6 +22,8 @@
 #include <Rendering/Vulkan/VulkanStructs.hpp>
 #elif defined(HYP_DX12)
 #include <Rendering/DX12/DX12Structs.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUStructs.hpp>
 #endif
 
 namespace Hyperion {
@@ -343,6 +345,13 @@ public:
 
     virtual const IRenderConfig& GetRenderConfig() const = 0;
 
+    /// Pipelines the backend is still compiling in the background. What they would draw or dispatch is left out until
+    /// they are in, so a pass that cannot run with part of itself missing holds off while this is not zero.
+    virtual uint32 GetNumPipelinesCompilingInBackground() const
+    {
+        return 0;
+    }
+
     virtual Frame* GetCurrentFrame() const = 0;
 
     virtual void BeginFrame(AtomicFlag* pCancelFlag);
@@ -522,6 +531,8 @@ private:
 #include <Rendering/Vulkan/VulkanRenderInterface.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12RenderInterface.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPURenderInterface.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

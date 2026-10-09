@@ -280,26 +280,22 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     const uint listIndex = groupId.x;
 
-    if (listIndex >= min(glimmerProbeCounters[0], constants.dispatch.x))
-    {
-        return;
-    }
+    // NOTE: no return before the barriers.
+    // WGSL wants every thread to reach them, and can't tell these are per-group decisions
+    const bool isListed = listIndex < min(glimmerProbeCounters[0], constants.dispatch.x);
 
-    const uint probeIndex = glimmerProbeUpdateList[listIndex];
+    const uint probeIndex = isListed ? glimmerProbeUpdateList[listIndex] : 0u;
     const int4 slot = glimmerProbeSlots[probeIndex / GLIMMER_PROBES_PER_BLOCK];
 
     const uint4 state = OutStates[probeIndex];
     const uint probeState = GlimmerProbeStateOf(state);
 
-    if (slot.w < 0 || (probeState != GLIMMER_PROBE_STATE_ACTIVE && probeState != GLIMMER_PROBE_STATE_INSIDE))
-    {
-        return;
-    }
+    const bool isUpdated = isListed && slot.w >= 0 && (probeState == GLIMMER_PROBE_STATE_ACTIVE || probeState == GLIMMER_PROBE_STATE_INSIDE);
 
-    const float invSpacing = constants.volume.levels[slot.w].params.y;
+    const float invSpacing = constants.volume.levels[max(slot.w, 0)].params.y;
     const uint numRays = min(constants.volume.info.y, GLIMMER_PROBE_MAX_RAYS);
 
-    if (groupIndex < numRays)
+    if (isUpdated && groupIndex < numRays)
     {
         gsRays[groupIndex] = rays[listIndex * numRays + groupIndex];
         gsDirections[groupIndex] = GlimmerProbeRayDirection(constants.volume, probeIndex, groupIndex);
@@ -307,14 +303,14 @@ void CSMain(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (groupIndex == 0u)
+    if (isUpdated && groupIndex == 0u)
     {
         GlimmerBlendProbe(probeIndex, state, numRays, invSpacing);
     }
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (gsWriteVisibility == 0u)
+    if (!isUpdated || gsWriteVisibility == 0u)
     {
         return;
     }

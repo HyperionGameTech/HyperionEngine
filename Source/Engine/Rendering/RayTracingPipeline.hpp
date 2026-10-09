@@ -89,6 +89,8 @@ protected:
 #include <Rendering/Vulkan/VulkanRayTracingPipeline.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12RayTracingPipeline.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPURayTracingPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

@@ -334,6 +334,8 @@ protected:
 #include <Rendering/Vulkan/VulkanGraphicsPipeline.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12GraphicsPipeline.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUGraphicsPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

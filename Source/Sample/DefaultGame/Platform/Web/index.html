@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hyperion</title>
+<style>
+    html, body { margin: 0; height: 100%; background: #101014; color: #c8c8d0; font: 13px/1.4 Consolas, monospace; }
+    body { display: flex; flex-direction: column; align-items: center; }
+    canvas { display: block; margin-top: 12px; width: 1280px; height: 720px; background: #000; outline: none; }
+    #status { margin: 8px 0 0; }
+    #gpu { margin: 2px 0 8px; color: #80808c; }
+    #log { width: 1280px; flex: 1; overflow-y: auto; white-space: pre-wrap; margin: 0; }
+    #console { width: 1280px; box-sizing: border-box; margin: 0 0 8px; padding: 6px 8px; background: #1a1a22; color: inherit; font: inherit; border: 1px solid #33333f; outline: none; }
+    #console:focus { border-color: #6a6a80; }
+    #console-box { position: relative; width: 1280px; margin: 0 0 8px; }
+    #console-box #console { width: 100%; margin: 0; }
+    #completions { position: absolute; left: 0; right: 0; top: 100%; z-index: 1; max-height: 260px; overflow-y: auto; margin: 0; padding: 0; list-style: none; background: #1a1a22; border: 1px solid #33333f; border-top: none; }
+    #completions:empty { display: none; }
+    #completions li { padding: 2px 8px; cursor: default; }
+    #completions li.selected { background: #34344a; color: #ffffff; }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="1280" height="720" tabindex="0"></canvas>
+<div id="status">Loading...</div>
+<div id="gpu" title="The graphics adapter used"></div>
+<div id="console-box">
+    <input id="console" type="text" spellcheck="false" autocomplete="off" placeholder="Console">
+    <ul id="completions"></ul>
+</div>
+<pre id="log"></pre>
+<script>
+    const logElement = document.getElementById('log');
+    const statusElement = document.getElementById('status');
+    const logLines = [];
+
+    let isLogViewPending = false;
+
+    function appendLog(text)
+    {
+        logLines.push('[' + (performance.now() / 1000).toFixed(2).padStart(7) + '] ' + text);
+
+        if (logLines.length > 20000)
+        {
+            logLines.splice(0, logLines.length - 20000);
+        }
+
+        // lines arrive by the hundred while a level loads; the view is brought up to date once a frame at most
+        if (!isLogViewPending)
+        {
+            isLogViewPending = true;
+
+            setTimeout(() => {
+                isLogViewPending = false;
+
+                logElement.textContent = logLines.slice(-200).join('\n');
+                logElement.scrollTop = logElement.scrollHeight;
+            }, 50);
+        }
+    }
+
+    var Module = {
+        canvas: document.getElementById('canvas'),
+        // ?set=Name=Value in the address sets a console variable before the game starts, any number of them
+        arguments: new URLSearchParams(location.search).getAll('set'),
+        print: (text) => { console.log(text); appendLog(text); },
+        printErr: (text) => { console.warn(text); appendLog(text); },
+        setStatus: (text) => { statusElement.textContent = text; },
+        onAbort: (reason) => { statusElement.textContent = 'Aborted: ' + reason; }
+    };
+
+    // The engine hears about input on a worker, too late to cancel what the browser does with it, so that happens here:
+    // while the canvas has focus its keys don't scroll the page or move focus, and it has no context menu.
+    const canvasElement = Module.canvas;
+
+    window.addEventListener('keydown', (event) => {
+        const isBrowserShortcut = event.ctrlKey || event.metaKey || /^F\d+$/.test(event.code);
+
+        if (document.activeElement === canvasElement && !isBrowserShortcut)
+        {
+            event.preventDefault();
+        }
+    });
+
+    canvasElement.addEventListener('wheel', (event) => event.preventDefault(), { passive: false });
+    canvasElement.addEventListener('contextmenu', (event) => event.preventDefault());
+
+    // The console works as the editor's does: the word being typed is completed from the engine's console variables and
+    // commandlets, matching the start of a name or of any of its dot separated parts. Tab or Enter takes the selected
+    // completion, the arrow keys move through them, Escape closes the list. With no list open, Enter runs the line and
+    // the arrow keys walk back through earlier lines.
+    const consoleElement = document.getElementById('console');
+    const completionsElement = document.getElementById('completions');
+    const consoleHistory = [];
+    let consoleHistoryIndex = 0;
+
+    let consoleNames = null;
+    let completions = [];
+    let selectedCompletion = -1;
+
+    function loadConsoleNames()
+    {
+        if (consoleNames !== null || typeof Module.ccall !== 'function')
+        {
+            return;
+        }
+
+        const names = Module.ccall('HypWeb_GetConsoleNames', 'string', [], []).split('\n').filter((name) => name !== '');
+
+        if (names.length !== 0)
+        {
+            consoleNames = names.sort((a, b) => a.localeCompare(b));
+        }
+    }
+
+    function currentConsoleWord()
+    {
+        return consoleElement.value.slice(consoleElement.value.lastIndexOf(' ') + 1);
+    }
+
+    function showCompletions()
+    {
+        completionsElement.replaceChildren(...completions.map((name, index) => {
+            const item = document.createElement('li');
+            item.textContent = name;
+            item.className = index === selectedCompletion ? 'selected' : '';
+
+            // mousedown, so the input keeps its focus
+            item.addEventListener('mousedown', (event) => {
+                selectedCompletion = index;
+                takeCompletion();
+                event.preventDefault();
+            });
+
+            return item;
+        }));
+
+        const selectedItem = completionsElement.children[selectedCompletion];
+
+        if (selectedItem)
+        {
+            selectedItem.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function clearCompletions()
+    {
+        completions = [];
+        selectedCompletion = -1;
+        showCompletions();
+    }
+
+    function updateCompletions()
+    {
+        loadConsoleNames();
+
+        const prefix = currentConsoleWord().toLowerCase();
+
+        if (prefix === '' || consoleNames === null)
+        {
+            clearCompletions();
+
+            return;
+        }
+
+        completions = consoleNames.filter((name) => {
+            const lowerName = name.toLowerCase();
+
+            return lowerName.startsWith(prefix) || lowerName.split('.').some((part) => part.startsWith(prefix));
+        });
+
+        selectedCompletion = completions.length !== 0 ? 0 : -1;
+        showCompletions();
+    }
+
+    function takeCompletion()
+    {
+        const text = consoleElement.value;
+
+        consoleElement.value = text.slice(0, text.lastIndexOf(' ') + 1) + completions[selectedCompletion];
+        clearCompletions();
+    }
+
+    consoleElement.addEventListener('input', updateCompletions);
+    consoleElement.addEventListener('blur', clearCompletions);
+
+    function onConsoleKeyDown(event)
+    {
+        if (completions.length !== 0)
+        {
+            if (event.key === 'Tab' || event.key === 'Enter')
+            {
+                takeCompletion();
+                event.preventDefault();
+
+                return;
+            }
+
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+            {
+                const step = event.key === 'ArrowUp' ? completions.length - 1 : 1;
+
+                selectedCompletion = (selectedCompletion + step) % completions.length;
+                showCompletions();
+                event.preventDefault();
+
+                return;
+            }
+
+            if (event.key === 'Escape')
+            {
+                clearCompletions();
+                event.preventDefault();
+
+                return;
+            }
+        }
+
+        if (event.key === 'Enter')
+        {
+            const line = consoleElement.value.trim();
+
+            if (line === '')
+            {
+                return;
+            }
+
+            consoleHistory.push(line);
+            consoleHistoryIndex = consoleHistory.length;
+            consoleElement.value = '';
+
+            appendLog('> ' + line);
+
+            if (typeof Module.ccall !== 'function')
+            {
+                appendLog('The engine has not started yet.');
+
+                return;
+            }
+
+            Module.ccall('HypWeb_ExecuteConsoleLine', null, ['string'], [line]);
+        }
+        else if (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+        {
+            consoleHistoryIndex = Math.min(Math.max(consoleHistoryIndex + (event.key === 'ArrowUp' ? -1 : 1), 0), consoleHistory.length);
+            consoleElement.value = consoleHistory[consoleHistoryIndex] || '';
+
+            event.preventDefault();
+        }
+    }
+
+    // The engine listens for keys on the window, capturing. These are registered before it starts, so they run first
+    // and keep what is typed into the console from also driving the game.
+    window.addEventListener('keydown', (event) => {
+        if (event.target === consoleElement)
+        {
+            onConsoleKeyDown(event);
+            event.stopImmediatePropagation();
+        }
+    }, true);
+
+    window.addEventListener('keyup', (event) => {
+        if (event.target === consoleElement)
+        {
+            event.stopImmediatePropagation();
+        }
+    }, true);
+
+    if (!navigator.gpu)
+    {
+        statusElement.textContent = 'WebGPU is not available in this browser.';
+    }
+    else if (!crossOriginIsolated)
+    {
+        statusElement.textContent = 'The page is not cross-origin isolated, threads cannot start. Serve it with COOP and COEP headers.';
+    }
+
+    // Which adapter the browser hands out, asked for the same way the engine asks. Shown so that a slow run on an
+    // integrated chip is not taken for the engine's speed.
+    if (navigator.gpu)
+    {
+        navigator.gpu.requestAdapter({ powerPreference: 'high-performance' }).then((adapter) => {
+            const gpuElement = document.getElementById('gpu');
+
+            if (!adapter)
+            {
+                gpuElement.textContent = 'GPU: none available';
+
+                return;
+            }
+
+            const info = adapter.info || {};
+            const name = info.description || [info.vendor, info.device || info.architecture].filter((part) => part).join(' ');
+
+            gpuElement.textContent = 'GPU: ' + (name || 'unknown') + (info.isFallbackAdapter ? ' (software)' : '');
+        });
+    }
+</script>
+<script src="hyperion-sample.js"></script>
+</body>
+</html>

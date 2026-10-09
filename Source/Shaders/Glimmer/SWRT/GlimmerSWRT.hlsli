@@ -176,6 +176,8 @@ void GlimmerTraverseBLAS(
         const bool traverseNear = !childIsLeaf[nearChild] && childDistances[nearChild] <= hit.t;
         const bool traverseFar = !childIsLeaf[1u - nearChild] && childDistances[1u - nearChild] <= hit.t;
 
+        // @NOTE: no early continue here.
+        // Tint's SPIR-V reader miscompiles one that follows the leaf loop
         if (traverseNear && traverseFar)
         {
             if (stackSize < GLIMMER_SWRT_BLAS_STACK_SIZE)
@@ -188,23 +190,19 @@ void GlimmerTraverseBLAS(
             }
 
             nodeIndex = childIndices[nearChild];
-
-            continue;
         }
-
-        if (traverseNear || traverseFar)
+        else if (traverseNear || traverseFar)
         {
             nodeIndex = traverseNear ? childIndices[nearChild] : childIndices[1u - nearChild];
-
-            continue;
         }
-
-        if (stackSize == 0)
+        else if (stackSize != 0)
+        {
+            nodeIndex = stack[--stackSize];
+        }
+        else
         {
             break;
         }
-
-        nodeIndex = stack[--stackSize];
     }
 }
 
@@ -285,7 +283,9 @@ bool TraceGlimmerSWRT(
 
         const bool traverseNear = childCounts[nearChild] == 0u && childDistances[nearChild] <= hit.t;
         const bool traverseFar = childCounts[1u - nearChild] == 0u && childDistances[1u - nearChild] <= hit.t;
-
+        
+        // @NOTE: no early continue here.
+        // Tint's SPIR-V reader miscompiles one that follows the leaf loop
         if (traverseNear && traverseFar)
         {
             if (stackSize < GLIMMER_SWRT_TLAS_STACK_SIZE)
@@ -298,23 +298,19 @@ bool TraceGlimmerSWRT(
             }
 
             nodeIndex = childIndices[nearChild];
-
-            continue;
         }
-
-        if (traverseNear || traverseFar)
+        else if (traverseNear || traverseFar)
         {
             nodeIndex = traverseNear ? childIndices[nearChild] : childIndices[1u - nearChild];
-
-            continue;
         }
-
-        if (stackSize == 0)
+        else if (stackSize != 0)
+        {
+            nodeIndex = stack[--stackSize];
+        }
+        else
         {
             break;
         }
-
-        nodeIndex = stack[--stackSize];
     }
 
     return hit.instanceIndex != GLIMMER_SWRT_INVALID_INDEX;

@@ -64,6 +64,20 @@ namespace Hyperion {
                                           \
     using DX12##T##Ref = Handle<DX12##T>; \
     using DX12##T##WeakRef = WeakHandle<DX12##T>;
+
+#elif HYP_WEBGPU
+#define DECLARE_GFX_TYPE(T)                           \
+    DECLARE_GFX_TYPE_BASE(T);                         \
+                                                      \
+    class WebGPU##T;                                  \
+                                                      \
+    using T = WebGPU##T;                              \
+                                                      \
+    using WebGPU##T##Ref = Handle<WebGPU##T>;         \
+    using WebGPU##T##WeakRef = WeakHandle<WebGPU##T>; \
+                                                      \
+    using T##Ref = WebGPU##T##Ref;                    \
+    using T##WeakRef = WebGPU##T##WeakRef;
 #endif
 
 DECLARE_GFX_TYPE(Device);
