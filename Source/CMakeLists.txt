@@ -626,9 +626,9 @@ if(HYP_DOTNET_HOST)
   endif()
 endif()
 
-# Strata lang integration
-set(HYP_STRATA 1)
-add_definitions(-DHYP_STRATA=1)
+# # Strata lang integration
+# set(HYP_STRATA 1)
+# add_definitions(-DHYP_STRATA=1)
 
 # Only enable Strata JIT for non-shipping builds.
 # Other plats will link .o files directly
