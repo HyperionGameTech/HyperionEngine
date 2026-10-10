@@ -8,6 +8,8 @@
 
 #include <Rendering/RenderTypes.hpp>
 
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
+
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/FixedArray.hpp>
 
@@ -67,7 +69,7 @@ struct GlimmerSHVolumeUpdateInputs
     EnvProbe* skyProbe = nullptr;
     const CloudPass* cloudPass = nullptr;
 
-    bool wakeLighting = false;
+    EnumFlags<GlimmerLightingChangeFlags> lightingChanges = GlimmerLightingChangeFlags::None; // any of them refreshes the whole volume once at the burst rate
 };
 
 class GlimmerSHVolume final
@@ -112,7 +114,13 @@ private:
             return max - min;
         }
 
+        HYP_FORCE_INLINE int64 Volume() const
+        {
+            return IsEmpty() ? 0 : int64(max.x - min.x) * int64(max.y - min.y) * int64(max.z - min.z);
+        }
+
         static Box Intersect(const Box& a, const Box& b);
+        static Box Union(const Box& a, const Box& b);
     };
 
     struct Cascade
@@ -146,7 +154,8 @@ private:
     int32 m_refreshBudget;  // voxels the refresh may still trace, carried between frames so a rate below a slice still gets its turn
     int32 m_burstCascade;   // the cascade a burst is refreshing, or -1
     int32 m_burstSlice;
-    bool m_deferNextBurst;   // the lighting changed again during a burst, so another follows it
+    bool m_isWakePending;    // the lighting changed while the volume couldn't update
+    bool m_deferNextBurst;  // the lighting changed again during a burst, so another follows it
 
     GlimmerSHVolumeShaderData m_shaderData;
 };

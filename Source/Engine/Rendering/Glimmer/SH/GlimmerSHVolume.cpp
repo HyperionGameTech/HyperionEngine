@@ -86,6 +86,25 @@ GlimmerSHVolume::Box GlimmerSHVolume::Box::Intersect(const Box& a, const Box& b)
     return result;
 }
 
+GlimmerSHVolume::Box GlimmerSHVolume::Box::Union(const Box& a, const Box& b)
+{
+    if (a.IsEmpty())
+    {
+        return b;
+    }
+
+    if (b.IsEmpty())
+    {
+        return a;
+    }
+
+    Box result;
+    result.min = Vec3i(MathUtil::Min(a.min.x, b.min.x), MathUtil::Min(a.min.y, b.min.y), MathUtil::Min(a.min.z, b.min.z));
+    result.max = Vec3i(MathUtil::Max(a.max.x, b.max.x), MathUtil::Max(a.max.y, b.max.y), MathUtil::Max(a.max.z, b.max.z));
+
+    return result;
+}
+
 #pragma region GlimmerSHVolume
 
 GlimmerSHVolume::GlimmerSHVolume()
@@ -97,6 +116,7 @@ GlimmerSHVolume::GlimmerSHVolume()
       m_refreshBudget(0),
       m_burstCascade(-1),
       m_burstSlice(0),
+      m_isWakePending(false),
       m_deferNextBurst(false),
       m_shaderData {}
 {
@@ -230,8 +250,23 @@ void GlimmerSHVolume::AddPending(uint32 cascadeIndex, const Box& box)
 
     if (cascade.pending.Size() >= MaxPendingBoxes)
     {
-        cascade.pending.Clear();
-        cascade.pending.PushBack(window);
+        // joins the pending box it adds the fewest voxels to
+        size_t bestIndex = 0;
+        int64 bestGrowth = INT64_MAX;
+
+        for (size_t pendingIndex = 0; pendingIndex < cascade.pending.Size(); pendingIndex++)
+        {
+            const Box& pendingBox = cascade.pending[pendingIndex];
+            const int64 growth = Box::Union(pendingBox, clipped).Volume() - pendingBox.Volume();
+
+            if (growth < bestGrowth)
+            {
+                bestGrowth = growth;
+                bestIndex = pendingIndex;
+            }
+        }
+
+        cascade.pending[bestIndex] = Box::Union(cascade.pending[bestIndex], clipped);
 
         return;
     }
@@ -399,6 +434,8 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
 {
     HYP_SCOPE;
 
+    m_isWakePending |= bool(inputs.lightingChanges);
+
     if (!inputs.surfaceCache || !inputs.spanCache || !inputs.spanCache->GetSpansBuffer().IsValid() || !inputs.occupancy || !inputs.occupancyMaskBuffer.IsValid())
     {
         return;
@@ -529,8 +566,10 @@ void GlimmerSHVolume::Update(Frame* frame, const GlimmerSHVolumeUpdateInputs& in
 
     if (g_cvGlimmerRunOnChange.Get())
     {
-        if (inputs.wakeLighting)
+        if (m_isWakePending)
         {
+            m_isWakePending = false;
+
             if (m_burstCascade < 0)
             {
                 m_burstCascade = 0;

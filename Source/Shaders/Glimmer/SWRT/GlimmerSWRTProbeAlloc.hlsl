@@ -19,7 +19,7 @@ struct GlimmerProbeAllocConstants
     uint4 budget;   // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids, w = pool slots to use
     float4 params;  // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it, z = frames between looks at a block's solids, w = level classified
     float4 viewer;  // xyz = viewer position
-    uint4 wake;     // x = 1 when the lighting changed, which wakes every probe, y = changed boxes, z = longest sleep interval, w = estimates a woken probe's history keeps at most
+    uint4 wake;     // x = 1 when the lighting changed, which wakes every probe, y = changed boxes, z = longest sleep interval, w = estimates a woken probe's history keeps at most (0 = all of it)
     float4 changedMin[GLIMMER_PROBE_MAX_CHANGED_BOXES]; // where the scene changed since the last update
     float4 changedMax[GLIMMER_PROBE_MAX_CHANGED_BOXES];
 };
@@ -705,10 +705,13 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
             sleepInterval = 0u;
 
-            float4 trend = OutTrend[probeIndex];
-            trend.w = min(trend.w, float(constants.wake.w));
+            if (constants.wake.w != 0u)
+            {
+                float4 trend = OutTrend[probeIndex];
+                trend.w = min(trend.w, float(constants.wake.w));
 
-            OutTrend[probeIndex] = trend;
+                OutTrend[probeIndex] = trend;
+            }
         }
 
         if (sleepInterval != GlimmerProbeSleepInterval(state))

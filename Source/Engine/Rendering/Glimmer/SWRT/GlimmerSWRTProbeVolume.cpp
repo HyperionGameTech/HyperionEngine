@@ -90,7 +90,7 @@ struct GlimmerProbeAllocConstants
     Vec4u budget; // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids, w = pool slots to use
     Vec4f params; // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it
     Vec4f viewer; // xyz = viewer position
-    Vec4u wake;   // x = 1 when the lighting changed, y = changed boxes, z = longest sleep interval, w = estimates a woken probe's history keeps at most
+    Vec4u wake;   // x = 1 when the lighting changed, y = changed boxes, z = longest sleep interval, w = estimates a woken probe's history keeps at most (0 = all of it)
     Vec4f changedMin[MaxChangedBoxes];
     Vec4f changedMax[MaxChangedBoxes];
 };
@@ -133,6 +133,7 @@ GlimmerSWRTProbeVolume::GlimmerSWRTProbeVolume()
     : m_startTime(Time::Now()),
       m_frameIndex(0),
       m_seenTLASGeneration(~0u),
+      m_pendingLightingChanges(GlimmerLightingChangeFlags::None),
       m_shaderData {}
 {
 }
@@ -294,6 +295,8 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
 {
     HYP_SCOPE;
 
+    m_pendingLightingChanges |= inputs.lightingChanges;
+
     if (!inputs.surfaceCache || !inputs.spanCache || !inputs.blasCache || !inputs.footprintMask || !inputs.occupancy
         || !inputs.blasCache->IsReady() || !inputs.spanCache->GetSpansBuffer().IsValid())
     {
@@ -353,7 +356,11 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             0.0f);
         constants.viewer = Vec4f(inputs.viewerPosition.x, inputs.viewerPosition.y, inputs.viewerPosition.z, 0.0f);
 
-        bool wakeEverything = inputs.wakeLighting;
+        const EnumFlags<GlimmerLightingChangeFlags> lightingChanges = m_pendingLightingChanges;
+        m_pendingLightingChanges = GlimmerLightingChangeFlags::None;
+
+        bool wakeEverything = bool(lightingChanges);
+
         uint32 numChangedBoxes = 0;
 
         if (hasSWRTScene && inputs.tlas->GetGeneration() != m_seenTLASGeneration)
@@ -402,7 +409,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             wakeEverything ? 1u : 0u,
             numChangedBoxes,
             sleepMaxInterval,
-            uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistoryChanging.Get(), 1, 255)));
+            (lightingChanges & GlimmerLightingChangeFlags::Sun) ? uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistoryChanging.Get(), 1, 255)) : 0u);
 
         for (const GpuBufferRef* buffer : probeStateBuffers)
         {

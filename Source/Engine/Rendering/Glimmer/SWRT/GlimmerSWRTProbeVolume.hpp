@@ -87,7 +87,7 @@ struct GlimmerSWRTProbeUpdateInputs
 
     const CloudPass* cloudPass = nullptr; // its cloud shadows dim the sun at hits; may be nullptr
 
-    bool wakeLighting = false; // wake due to lighting change (sun, cloud shadow)
+    EnumFlags<GlimmerLightingChangeFlags> lightingChanges = GlimmerLightingChangeFlags::None;
 };
 
 class GlimmerSWRTProbeVolume final
@@ -144,6 +144,8 @@ private:
     Time m_startTime;
     uint32 m_frameIndex;
     uint32 m_seenTLASGeneration;
+
+    EnumFlags<GlimmerLightingChangeFlags> m_pendingLightingChanges;
 
     GlimmerProbeVolumeShaderData m_shaderData;
 };

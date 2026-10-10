@@ -8,6 +8,7 @@
 
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/CommandRecorder.hpp>
+#include <Rendering/Glimmer/GlimmerHelpers.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 
@@ -118,8 +119,8 @@ private:
     UniquePtr<GlimmerSHVolume> m_shVolume;
     UniquePtr<GlimmerRelight> m_relight;
 
-    // true when the lighting changed enough to wake the caches; outSunChanged when the sun did, not only the sky
-    bool UpdateLightingSignature(EnvProbe* skyProbe, bool& outSunChanged);
+    // what of the lighting changed enough to wake the caches
+    EnumFlags<GlimmerLightingChangeFlags> UpdateLightingSignature(EnvProbe* skyProbe);
 
     uint32 m_maskGeneration;
 

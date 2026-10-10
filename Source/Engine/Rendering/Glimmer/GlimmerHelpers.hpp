@@ -11,6 +11,8 @@
 
 #include <Core/Containers/Array.hpp>
 
+#include <Core/Utilities/EnumFlags.hpp>
+
 #include <Core/Name/Name.hpp>
 
 #include <Core/Math/Vector2.hpp>
@@ -36,6 +38,15 @@ static constexpr float GlimmerSkyMaxLuminance = 64.0f;
 static constexpr float GlimmerMaxRayDistance = 2000.0f;
 
 static constexpr uint32 GlimmerMaxLightmapPages = 4;
+
+enum class GlimmerLightingChangeFlags : uint32
+{
+    None = 0x0,
+    Sun = 0x1, //!< its direction, colour or intensity
+    Sky = 0x2  //!< its brightness
+};
+
+HYP_MAKE_ENUM_FLAGS(GlimmerLightingChangeFlags);
 
 struct GlimmerSkyShaderData
 {

@@ -50,7 +50,7 @@ public:
         const GlimmerChannelState& state,
         const GlimmerSurfaceCache& surfaceCache,
         const GlimmerSpanCache& spanCache,
-        bool wakeLighting);
+        EnumFlags<GlimmerLightingChangeFlags> lightingChanges);
 
     HYP_FORCE_INLINE const Array<GlimmerRelightDispatch>& GetDispatches() const
     {

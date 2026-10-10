@@ -384,7 +384,9 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             isReferenced = true;
         }
 
-        if (wantsTraced && worldBounds.Overlaps(tracedRegion))
+        const bool isTraced = wantsTraced && worldBounds.Overlaps(tracedRegion);
+
+        if (isTraced)
         {
             const Mat4f worldToGrid = gridToWorld.Inverse();
 
@@ -418,7 +420,9 @@ void GlimmerTLAS::Gather(RenderProxyList& rpl, const BoundingBox& region, const 
             uint32 flags;
             uint32 lightmapRectOffset;
             uint32 lightmapRectSize;
-        } content = { uint64(uintptr_t(proxy.mesh)), materialIndex, instanceFlags, lightmapRectOffset, lightmapRectSize };
+            uint32 isTraced;
+            uint32 _pad0;
+        } content = { uint64(uintptr_t(proxy.mesh)), materialIndex, instanceFlags, lightmapRectOffset, lightmapRectSize, isTraced ? 1u : 0u, 0u };
 
         InstanceRecord& record = outInput.instanceRecords.EmplaceBack();
         record.identity = instanceKey;

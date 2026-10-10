@@ -82,7 +82,11 @@ void GlimmerRelight::AddPending(Level& level, const Rect& rect)
     level.pending.PushBack(clipped);
 }
 
-void GlimmerRelight::Schedule(const GlimmerChannelState& state, const GlimmerSurfaceCache& surfaceCache, const GlimmerSpanCache& spanCache, bool wakeLighting)
+void GlimmerRelight::Schedule(
+    const GlimmerChannelState& state,
+    const GlimmerSurfaceCache& surfaceCache,
+    const GlimmerSpanCache& spanCache,
+    EnumFlags<GlimmerLightingChangeFlags> lightingChanges)
 {
     HYP_SCOPE;
 
@@ -183,7 +187,7 @@ void GlimmerRelight::Schedule(const GlimmerChannelState& state, const GlimmerSur
 
     if (runOnChange)
     {
-        if (wakeLighting)
+        if (lightingChanges)
         {
             m_burstTexelsLeft = int32(GlimmerGroundLevels) * rowTexels * rowTexels;
         }

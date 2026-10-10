@@ -242,7 +242,7 @@ private:
     struct InstanceRecord
     {
         uint64 identity;    // entity id << 32 | a hash of its transform within the entity
-        uint64 worldHash;   // of its transform, mesh, material, flags and lightmap rect
+        uint64 worldHash;   // of its transform, mesh, material, flags and lightmap rect, and whether it's in the traced BVH
         uint64 geometryKey; // the BLAS it uses, which changes with its LOD
         BoundingBox bounds;
 
