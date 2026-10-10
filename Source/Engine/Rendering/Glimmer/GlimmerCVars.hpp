@@ -38,6 +38,14 @@ extern CVar<float> g_cvGlimmerVisibility;
 
 extern CVar<float> g_cvGlimmerGroundAlbedo; // where the terrain's own albedo isn't known
 
+extern CVar<bool> g_cvGlimmerRunOnChange;
+extern CVar<bool> g_cvGlimmerSkipLodOnlyChanges;   // an instance that only changed LOD does not retrace the SH voxels or wake the probes around it
+extern CVar<float> g_cvGlimmerSunAngleThreshold;   // degrees the sun turns before the lighting counts as changed
+extern CVar<int> g_cvGlimmerSHRefreshVoxels;       // per frame while the lighting holds
+extern CVar<int> g_cvGlimmerSHRefreshVoxelsBurst;  // per frame for one pass over the volume after it changes
+extern CVar<int> g_cvGlimmerRelightTexels;
+extern CVar<int> g_cvGlimmerRelightTexelsBurst;
+
 /// @TODO Move to GlimmerHelpers?
 bool IsGlimmerSceneRequired();
 

@@ -20,6 +20,7 @@
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerChannel.hpp>
 #include <Rendering/Glimmer/GlimmerHelpers.hpp>
+#include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/RenderProxy.hpp>
@@ -48,13 +49,24 @@
 
 #include <Core/Profiling/ProfileScope.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
 namespace Hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 static EngineStatGpuTimer s_statGlimmerSWRTDebug("Rendering/GPU/Glimmer/SWRTDebug");
 
 static EngineStatCounter<uint32> s_statGlimmerSWRTDebugRays("Rendering/Glimmer/SWRTDebugRays");
 
+static EngineStatCounter<uint32> s_statGlimmerLightingChanges("Rendering/Glimmer/LightingChanges", false);
+
 static constexpr float RegionRecenterFraction = 0.25f;
+
+// how far the sun brightness  must move before the caches are woken for it
+static constexpr float LightingChangeFraction = 0.03f;
+// clouds move the sky's brightness all the time, and the probes follow a slow change by themselves
+static constexpr float SkyChangeFraction = 0.1f;
 
 struct GlimmerSWRTDebugConstants
 {
@@ -147,8 +159,78 @@ GlimmerTechnique::GlimmerTechnique()
       m_shOccupancy(MakeUnique<GlimmerSHOccupancy>()),
       m_shVolume(MakeUnique<GlimmerSHVolume>()),
       m_relight(MakeUnique<GlimmerRelight>()),
-      m_maskGeneration(~0u)
+      m_maskGeneration(~0u),
+      m_litSkyLight(0.0f),
+      m_litSkyLuminance(0.0f),
+      m_hasLitSignature(false)
 {
+}
+
+EnumFlags<GlimmerLightingChangeFlags> GlimmerTechnique::UpdateLightingSignature(EnvProbe* skyProbe)
+{
+    const WorldShaderData* worldData = GetWorldBufferData();
+
+    if (!worldData)
+    {
+        return GlimmerLightingChangeFlags::None;
+    }
+
+    GlimmerSkyShaderData skyData;
+    EnvProbeShaderData skyProbeData;
+    GetGlimmerSkyShaderData(skyProbe, skyData, skyProbeData);
+
+    const Vec3f toSun = worldData->sunDirectionIntensity.GetXYZ();
+    const Vec3f sunDirection = toSun.LengthSquared() > 1e-8f ? toSun.Normalized() : Vec3f(0.0f, 1.0f, 0.0f);
+    const Vec3f sunRadiance = worldData->sunColor.GetXYZ() * worldData->sunAtmosphereTint.GetXYZ() * worldData->sunDirectionIntensity.w;
+    const float skyLight = worldData->skyLightParams.x;
+    const float skyLuminance = skyData.params.z;
+
+    const auto hasMoved = [](float previous, float current, float fraction = LightingChangeFraction)
+    {
+        return MathUtil::Abs(current - previous) > fraction * MathUtil::Max(MathUtil::Abs(previous), MathUtil::Abs(current)) + 1e-6f;
+    };
+
+    const float cosThreshold = MathUtil::Cos(MathUtil::DegToRad(MathUtil::Clamp(g_cvGlimmerSunAngleThreshold.Get(), 0.01f, 45.0f)));
+
+    EnumFlags<GlimmerLightingChangeFlags> changes = GlimmerLightingChangeFlags::None;
+
+    if (!m_hasLitSignature
+        || sunDirection.Dot(m_litSunDirection) < cosThreshold
+        || hasMoved(m_litSunRadiance.x, sunRadiance.x)
+        || hasMoved(m_litSunRadiance.y, sunRadiance.y)
+        || hasMoved(m_litSunRadiance.z, sunRadiance.z))
+    {
+        changes |= GlimmerLightingChangeFlags::Sun;
+    }
+
+    if (!m_hasLitSignature
+        || hasMoved(m_litSkyLight, skyLight)
+        || hasMoved(m_litSkyLuminance, skyLuminance, SkyChangeFraction))
+    {
+        changes |= GlimmerLightingChangeFlags::Sky;
+    }
+
+    if (!changes)
+    {
+        return GlimmerLightingChangeFlags::None;
+    }
+
+    if (g_cvGlimmerSWRTProbesLogStats.Get())
+    {
+        HYP_LOG(Rendering, Info, "Glimmer lighting changed: sun turned {} deg, sun radiance {} -> {}, sky light {} -> {}, sky luminance {} -> {}",
+            MathUtil::RadToDeg(MathUtil::Arccos(MathUtil::Clamp(sunDirection.Dot(m_litSunDirection), -1.0f, 1.0f))),
+            m_litSunRadiance.Sum(), sunRadiance.Sum(), m_litSkyLight, skyLight, m_litSkyLuminance, skyLuminance);
+    }
+
+    m_litSunDirection = sunDirection;
+    m_litSunRadiance = sunRadiance;
+    m_litSkyLight = skyLight;
+    m_litSkyLuminance = skyLuminance;
+    m_hasLitSignature = true;
+
+    s_statGlimmerLightingChanges++;
+
+    return true;
 }
 
 GlimmerTechnique::~GlimmerTechnique()
@@ -195,9 +277,11 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
     {
         const bool areProbesEnabled = g_cvGlimmerSWRTProbesEnabled.Get();
 
+        const EnumFlags<GlimmerLightingChangeFlags> lightingChanges = UpdateLightingSignature(context.skyProbe);
+
         if (areProbesEnabled)
         {
-            m_relight->Schedule(*context.channelState, *context.surfaceCache, *context.spanCache);
+            m_relight->Schedule(*context.channelState, *context.surfaceCache, *context.spanCache, lightingChanges);
         }
         else
         {
@@ -232,6 +316,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         shInputs.probeVolume = m_probeVolume.Get();
         shInputs.skyProbe = context.skyProbe;
         shInputs.cloudPass = context.cloudPass;
+        shInputs.lightingChanges = lightingChanges;
 
         m_shVolume->Update(context.frame, shInputs);
 
@@ -249,6 +334,7 @@ void GlimmerTechnique::Update(const GlimmerTechniqueUpdateContext& context)
         probeInputs.skyProbe = context.skyProbe;
         probeInputs.relight = m_relight.Get();
         probeInputs.cloudPass = context.cloudPass;
+        probeInputs.lightingChanges = lightingChanges;
 
         if (areProbesEnabled)
         {

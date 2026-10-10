@@ -26,6 +26,12 @@
 #define GLIMMER_PROBE_VISIBILITY_RES 8
 #define GLIMMER_PROBE_VISIBILITY_TEXELS (GLIMMER_PROBE_VISIBILITY_RES * GLIMMER_PROBE_VISIBILITY_RES)
 
+#define GLIMMER_PROBE_MAX_SLEEP_INTERVAL 3u
+
+#define GLIMMER_PROBE_MAX_UPDATES 63u
+
+#define GLIMMER_PROBE_MAX_OFFSET 0.45
+
 uint GlimmerPackHalf2(float2 value)
 {
     return f32tof16(value.x) | (f32tof16(value.y) << 16);
@@ -35,8 +41,6 @@ float2 GlimmerUnpackHalf2(uint packed)
 {
     return float2(f16tof32(packed & 0xFFFFu), f16tof32(packed >> 16));
 }
-
-#define GLIMMER_PROBE_MAX_OFFSET 0.45
 
 struct GlimmerProbeLevel
 {
@@ -52,13 +56,12 @@ struct GlimmerProbeVolume
     float4 nearField; // x = levels traced with SWRT, y = SWRT reach in spacings, z = SWRT instances, w = ground albedo
 };
 
-#define GLIMMER_PROBE_MAX_UPDATES 63u
-
 // da bits:
 // x = state (bits 0-3)
 //      | reloc. attempts (4-5)
 //      | updates in a row it looked inside a solid (6-7)
 //      | updates since placed (8-13)
+//      | sleep interval n: traced every 2^n of its turns (14-15)
 //      | back face rays of last update (16-23)
 //      | rays of last update started inside ground or solid span (24-31)
 // y = offset from its grid point (3 x 10 bit snorm of GLIMMER_PROBE_MAX_OFFSET spacings)
@@ -97,6 +100,16 @@ uint GlimmerProbeInsideStreak(uint4 state)
 uint GlimmerWithInsideStreak(uint flags, uint insideStreak)
 {
     return (flags & ~0xC0u) | ((min(insideStreak, 3u) & 0x3u) << 6);
+}
+
+uint GlimmerProbeSleepInterval(uint4 state)
+{
+    return (state.x >> 14) & 0x3u;
+}
+
+uint GlimmerWithSleepInterval(uint flags, uint sleepInterval)
+{
+    return (flags & ~0xC000u) | ((min(sleepInterval, GLIMMER_PROBE_MAX_SLEEP_INTERVAL) & 0x3u) << 14);
 }
 
 uint GlimmerPackProbeFlags(uint probeState, uint relocations, uint updates, uint backfaces, uint startsInside = 0u)

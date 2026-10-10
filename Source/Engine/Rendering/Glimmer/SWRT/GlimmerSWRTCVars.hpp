@@ -54,6 +54,9 @@ extern CVar<float> g_cvGlimmerSWRTProbesHistorySecondsChanging;
 extern CVar<int> g_cvGlimmerSWRTProbesMinHistory;
 extern CVar<int> g_cvGlimmerSWRTProbesMinHistoryChanging;
 
+extern CVar<bool> g_cvGlimmerSWRTProbesSleep;
+extern CVar<int> g_cvGlimmerSWRTProbesSleepMaxInterval;
+
 enum class GlimmerSWRTDebugProbes : int
 {
     None = 0,

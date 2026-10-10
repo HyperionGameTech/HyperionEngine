@@ -46,7 +46,11 @@ public:
 
     ~GlimmerRelight();
 
-    void Schedule(const GlimmerChannelState& state, const GlimmerSurfaceCache& surfaceCache, const GlimmerSpanCache& spanCache);
+    void Schedule(
+        const GlimmerChannelState& state,
+        const GlimmerSurfaceCache& surfaceCache,
+        const GlimmerSpanCache& spanCache,
+        EnumFlags<GlimmerLightingChangeFlags> lightingChanges);
 
     HYP_FORCE_INLINE const Array<GlimmerRelightDispatch>& GetDispatches() const
     {
@@ -85,6 +89,8 @@ private:
     FixedArray<Level, GlimmerGroundLevels> m_levels;
     uint32 m_groundGeneration;
     uint32 m_refreshLevel;
+    int32 m_refreshBudget;
+    int32 m_burstTexelsLeft;
 
     Array<GlimmerRelightDispatch> m_dispatches;
 
