@@ -13,6 +13,7 @@
 
 #include <Core/Math/BoundingBox.hpp>
 #include <Core/Math/Vector2.hpp>
+#include <Core/Math/Vector3.hpp>
 
 namespace Hyperion {
 
@@ -117,7 +118,17 @@ private:
     UniquePtr<GlimmerSHVolume> m_shVolume;
     UniquePtr<GlimmerRelight> m_relight;
 
+    // true when the lighting changed enough to wake the caches; outSunChanged when the sun did, not only the sky
+    bool UpdateLightingSignature(EnvProbe* skyProbe, bool& outSunChanged);
+
     uint32 m_maskGeneration;
+
+    // the lighting the caches were last woken for
+    Vec3f m_litSunDirection;
+    Vec3f m_litSunRadiance;
+    float m_litSkyLight;
+    float m_litSkyLuminance;
+    bool m_hasLitSignature;
 };
 
 } // namespace Hyperion

@@ -22,7 +22,7 @@ DECLARE_BUFFER_DYNAMIC(GlimmerSWRTProbeDebug, CBuffer) cbuffer CBuffer
 struct GlimmerProbeDebugRecord
 {
     float4 position; // xyz = where the probe is (its grid point plus its offset), w = its level, or -1 for a probe of a free slot
-    uint4 info;      // x = GLIMMER_PROBE_STATE_* | 0x100 where the SH occupancy has a solid | rays that started inside a solid << 16, y = back face rays of its last update, z = height above the ground (float bits), w = updates
+    uint4 info;      // x = GLIMMER_PROBE_STATE_* | 0x100 where the SH occupancy has a solid | sleep interval << 9 | rays that started inside a solid << 16, y = back face rays of its last update, z = height above the ground (float bits), w = updates
     float4 shR;
     float4 shG;
     float4 shB;
@@ -86,7 +86,7 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 
         record.position = float4(position, float(slot.w));
         record.info = uint4(
-            GlimmerProbeStateOf(state) | (isOccupied ? 0x100u : 0u) | (GlimmerProbeStartsInside(state) << 16),
+            GlimmerProbeStateOf(state) | (isOccupied ? 0x100u : 0u) | (GlimmerProbeSleepInterval(state) << 9) | (GlimmerProbeStartsInside(state) << 16),
             GlimmerProbeBackfaces(state),
             asuint(heightAboveGround),
             GlimmerProbeUpdates(state));

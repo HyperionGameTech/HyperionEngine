@@ -66,6 +66,8 @@ struct GlimmerSHVolumeUpdateInputs
     const GlimmerSWRTProbeVolume* probeVolume = nullptr;
     EnvProbe* skyProbe = nullptr;
     const CloudPass* cloudPass = nullptr;
+
+    bool wakeLighting = false;
 };
 
 class GlimmerSHVolume final
@@ -127,6 +129,7 @@ private:
     void AddPending(uint32 cascadeIndex, const Box& box);
     void AddPendingWorld(const Vec3f& worldMin, const Vec3f& worldMax, int32 marginVoxels);
     void DispatchBox(Frame* frame, uint32 cascadeIndex, const Box& box, const GlimmerSHVolumeUpdateInputs& inputs, bool& inOutHasBarriers);
+    bool DispatchRefreshSlice(Frame* frame, uint32 cascadeIndex, int32 sliceIndex, const GlimmerSHVolumeUpdateInputs& inputs, bool& inOutHasBarriers);
 
     Handle<Texture> m_dataTexture;     // sky visibility L1
     Handle<Texture> m_stateTexture;
@@ -139,6 +142,11 @@ private:
     uint32 m_updateIndex;
     uint32 m_seenTLASGeneration;
     uint32 m_occupancyWaitFrames;
+
+    int32 m_refreshBudget;  // voxels the refresh may still trace, carried between frames so a rate below a slice still gets its turn
+    int32 m_burstCascade;   // the cascade a burst is refreshing, or -1
+    int32 m_burstSlice;
+    bool m_deferNextBurst;   // the lighting changed again during a burst, so another follows it
 
     GlimmerSHVolumeShaderData m_shaderData;
 };

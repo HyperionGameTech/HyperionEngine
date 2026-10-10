@@ -32,6 +32,8 @@ CVar<float> g_cvGlimmerSWRTProbesRelocateMargin("Rendering.Glimmer.SWRT.Probes.R
 CVar<int> g_cvGlimmerSWRTProbesInsideRetryInterval("Rendering.Glimmer.SWRT.Probes.InsideRetryInterval", 64);
 CVar<int> g_cvGlimmerSWRTProbesClassifyPeriod("Rendering.Glimmer.SWRT.Probes.ClassifyPeriod", 8);
 CVar<bool> g_cvGlimmerSWRTProbesLogStats("Rendering.Glimmer.SWRT.Probes.LogStats", false);
+CVar<bool> g_cvGlimmerSWRTProbesSleep("Rendering.Glimmer.SWRT.Probes.Sleep", true);
+CVar<int> g_cvGlimmerSWRTProbesSleepMaxInterval("Rendering.Glimmer.SWRT.Probes.SleepMaxInterval", 3);
 
 CVar<int> g_cvGlimmerSWRTDebugProbes("Rendering.Glimmer.SWRT.DebugProbes", 0);
 CVar<int> g_cvGlimmerSWRTDebugProbesLevel("Rendering.Glimmer.SWRT.DebugProbes.Level", -1);

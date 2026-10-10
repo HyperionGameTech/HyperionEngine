@@ -86,6 +86,8 @@ struct GlimmerSWRTProbeUpdateInputs
     EnvProbe* skyProbe = nullptr;
 
     const CloudPass* cloudPass = nullptr; // its cloud shadows dim the sun at hits; may be nullptr
+
+    bool wakeLighting = false; // wake due to lighting change (sun, cloud shadow)
 };
 
 class GlimmerSWRTProbeVolume final
@@ -126,6 +128,7 @@ private:
     GpuBufferRef m_cellsBuffer;      // per block table entry: the block it was classified for, and whether it wants a slot
     GpuBufferRef m_slotsBuffer;      // per slot: the block's absolute coordinate and level (-1 when free)
     GpuBufferRef m_slotAgesBuffer;   // per slot: frames since its block was last wanted
+    GpuBufferRef m_blockWakeBuffer;  // per slot: the frame one of its probes last saw its light change
     GpuBufferRef m_statesBuffer;
     GpuBufferRef m_shBuffer;         // 3 per probe
     GpuBufferRef m_visibilityBuffer; // GlimmerProbeVisibilityTexels per probe
@@ -140,6 +143,7 @@ private:
 
     Time m_startTime;
     uint32 m_frameIndex;
+    uint32 m_seenTLASGeneration;
 
     GlimmerProbeVolumeShaderData m_shaderData;
 };

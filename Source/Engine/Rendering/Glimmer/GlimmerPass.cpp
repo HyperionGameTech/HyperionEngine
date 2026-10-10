@@ -66,6 +66,10 @@ static EngineStatCounter<uint32> s_statGlimmerBLASesWaitingForRoom("Rendering/Gl
 static EngineStatCounter<uint32> s_statGlimmerBLASPoolTriangles("Rendering/Glimmer/BLASPoolTriangles", false);
 static EngineStatCounter<uint32> s_statGlimmerBLASPoolNodes("Rendering/Glimmer/BLASPoolNodes", false);
 static EngineStatCounter<uint32> s_statGlimmerLodErrorScalePercent("Rendering/Glimmer/LodErrorScalePercent", false);
+static EngineStatCounter<uint32> s_statGlimmerTLASBuilds("Rendering/Glimmer/TLASBuilds", false);
+static EngineStatCounter<uint32> s_statGlimmerTLASEverywhereBuilds("Rendering/Glimmer/TLASEverywhereBuilds", false);
+static EngineStatCounter<uint32> s_statGlimmerTLASChanges("Rendering/Glimmer/TLASChanges", false);
+static EngineStatCounter<uint32> s_statGlimmerTLASLodOnlyChanges("Rendering/Glimmer/TLASLodOnlyChanges", false);
 
 #pragma region GlimmerScenePassData
 
@@ -285,6 +289,13 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     s_statGlimmerBLASPoolTriangles = blasStats.trianglesUsed;
     s_statGlimmerBLASPoolNodes = blasStats.nodesUsed;
     s_statGlimmerLodErrorScalePercent = uint32(scene->blasCache->GetLodErrorScale() * 100.0f + 0.5f);
+
+    const GlimmerTLASStats& tlasStats = scene->tlas->GetStats();
+
+    s_statGlimmerTLASBuilds = tlasStats.numBuilds;
+    s_statGlimmerTLASEverywhereBuilds = tlasStats.numEverywhereBuilds;
+    s_statGlimmerTLASChanges = tlasStats.numChanges;
+    s_statGlimmerTLASLodOnlyChanges = tlasStats.numLodOnlyChanges;
 }
 
 bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, Framebuffer* gbufferFramebuffer, GpuImageViewRef& outImageView)

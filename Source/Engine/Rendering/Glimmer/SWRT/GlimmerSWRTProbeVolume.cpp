@@ -56,6 +56,8 @@ static EngineStatGpuTimer s_statGlimmerProbeBlend("Rendering/GPU/Glimmer/ProbeBl
 static EngineStatGpuTimer s_statGlimmerRelight("Rendering/GPU/Glimmer/Relight");
 
 static EngineStatCounter<uint32> s_statGlimmerRelightTexels("Rendering/Glimmer/RelightTexels");
+static EngineStatCounter<uint32> s_statGlimmerProbeWakes("Rendering/Glimmer/ProbeWakes");
+static EngineStatCounter<uint32> s_statGlimmerProbeChangedBoxes("Rendering/Glimmer/ProbeChangedBoxes");
 
 static StaticShaderPropertyId s_propAllocModeClassify { ShaderProperty(NAME("MODE"), NAME("CLASSIFY")) };
 static StaticShaderPropertyId s_propAllocModeAlloc { ShaderProperty(NAME("MODE"), NAME("ALLOC")) };
@@ -72,7 +74,9 @@ static_assert(GlimmerProbeRays == 32);
 
 static constexpr uint32 ListGroupSize = 64;
 
-static constexpr uint32 NumProbeCounters = 8;
+static constexpr uint32 NumProbeCounters = 16;
+
+static constexpr uint32 MaxChangedBoxes = 16; // GLIMMER_PROBE_MAX_CHANGED_BOXES
 
 static constexpr uint32 MaxRelocations = 2;
 
@@ -86,6 +90,9 @@ struct GlimmerProbeAllocConstants
     Vec4u budget; // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids, w = pool slots to use
     Vec4f params; // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it
     Vec4f viewer; // xyz = viewer position
+    Vec4u wake;   // x = 1 when the lighting changed, y = changed boxes, z = longest sleep interval, w = estimates a woken probe's history keeps at most
+    Vec4f changedMin[MaxChangedBoxes];
+    Vec4f changedMax[MaxChangedBoxes];
 };
 
 struct GlimmerProbeTraceConstants
@@ -125,13 +132,14 @@ static GpuBufferRef CreateProbeBuffer(size_t elementSize, size_t numElements)
 GlimmerSWRTProbeVolume::GlimmerSWRTProbeVolume()
     : m_startTime(Time::Now()),
       m_frameIndex(0),
+      m_seenTLASGeneration(~0u),
       m_shaderData {}
 {
 }
 
 GlimmerSWRTProbeVolume::~GlimmerSWRTProbeVolume()
 {
-    for (GpuBufferRef* buffer : { &m_blockTableBuffer, &m_cellsBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer,
+    for (GpuBufferRef* buffer : { &m_blockTableBuffer, &m_cellsBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_blockWakeBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer,
              &m_trendBuffer, &m_countersBuffer, &m_updateListBuffer, &m_raysBuffer, &m_rayHitsBuffer, &m_placeholderBuffer })
     {
         EnqueueDeletion(std::move(*buffer));
@@ -186,6 +194,7 @@ void GlimmerSWRTProbeVolume::CreateResources(Frame* frame)
     m_cellsBuffer = CreateProbeBuffer(sizeof(Vec4i), GlimmerProbeLevels * GlimmerProbeWindowBlocks);
     m_slotsBuffer = CreateProbeBuffer(sizeof(Vec4i), GlimmerProbePoolBlocks);
     m_slotAgesBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerProbePoolBlocks);
+    m_blockWakeBuffer = CreateProbeBuffer(sizeof(uint32), GlimmerProbePoolBlocks);
     m_statesBuffer = CreateProbeBuffer(sizeof(Vec4u), GlimmerProbePoolProbes);
     m_shBuffer = CreateProbeBuffer(sizeof(Vec4f), GlimmerProbePoolProbes * 3);
     m_visibilityBuffer = CreateProbeBuffer(sizeof(uint32), size_t(GlimmerProbePoolProbes) * GlimmerProbeVisibilityTexels);
@@ -256,6 +265,7 @@ void GlimmerSWRTProbeVolume::CreateResources(Frame* frame)
     upload(m_cellsBuffer, cells.Data(), cells.Size() * sizeof(Vec4i));
     upload(m_slotsBuffer, slots.Data(), slots.Size() * sizeof(Vec4i));
     upload(m_slotAgesBuffer, zeros.Data(), GlimmerProbePoolBlocks * sizeof(uint32));
+    upload(m_blockWakeBuffer, zeros.Data(), GlimmerProbePoolBlocks * sizeof(uint32));
     upload(m_statesBuffer, states.Data(), states.Size() * sizeof(Vec4u));
     upload(m_countersBuffer, zeros.Data(), NumProbeCounters * sizeof(uint32));
 }
@@ -307,6 +317,8 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
 
     const uint32 probesPerFrame = MathUtil::Clamp(uint32(MathUtil::Max(g_cvGlimmerSWRTProbesRaysPerFrame.Get(), 0)) / GlimmerProbeRays, 1u, GlimmerMaxProbesPerFrame);
 
+    const uint32 sleepMaxInterval = g_cvGlimmerSWRTProbesSleep.Get() ? uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesSleepMaxInterval.Get(), 0, 3)) : 0u;
+
     m_shaderData.info = Vec4u(GlimmerProbeLevels, GlimmerProbeRays, m_frameIndex, m_shaderData.info.w);
     m_shaderData.params = Vec4f(
         float(double(Time::Now().ToMilliseconds() - m_startTime.ToMilliseconds()) * 0.001),
@@ -322,7 +334,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
     const GlimmerGroundShaderData& groundShaderData = inputs.surfaceCache->GetGroundShaderData();
     const GpuImageViewRef& groundImageView = inputs.surfaceCache->GetGroundImageView();
 
-    const GpuBufferRef* const probeStateBuffers[] = { &m_blockTableBuffer, &m_cellsBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_countersBuffer, &m_updateListBuffer };
+    const GpuBufferRef* const probeStateBuffers[] = { &m_blockTableBuffer, &m_cellsBuffer, &m_slotsBuffer, &m_slotAgesBuffer, &m_blockWakeBuffer, &m_statesBuffer, &m_shBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_countersBuffer, &m_updateListBuffer };
 
     { // find the blocks around solids, allocate them, then list the probes due for an update
         GlimmerProbeAllocConstants constants {};
@@ -340,6 +352,57 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             float(MathUtil::Max(g_cvGlimmerSWRTProbesClassifyPeriod.Get(), 1)),
             0.0f);
         constants.viewer = Vec4f(inputs.viewerPosition.x, inputs.viewerPosition.y, inputs.viewerPosition.z, 0.0f);
+
+        bool wakeEverything = inputs.wakeLighting;
+        uint32 numChangedBoxes = 0;
+
+        if (hasSWRTScene && inputs.tlas->GetGeneration() != m_seenTLASGeneration)
+        {
+            GlimmerSceneChanges changes;
+
+            if (m_seenTLASGeneration == ~0u || !inputs.tlas->GetChangesSince(m_seenTLASGeneration, changes))
+            {
+                wakeEverything = true;
+            }
+            else
+            {
+                if (g_cvGlimmerSkipLodOnlyChanges.Get())
+                {
+                    GlimmerSceneChanges worldChanges;
+
+                    for (const GlimmerSceneChange& change : changes)
+                    {
+                        if (!change.isLodOnly)
+                        {
+                            worldChanges.Add(change);
+                        }
+                    }
+
+                    changes = std::move(worldChanges);
+                }
+
+                changes.Quantize(MaxChangedBoxes);
+
+                for (const GlimmerSceneChange& change : changes)
+                {
+                    constants.changedMin[numChangedBoxes] = Vec4f(change.bounds.min, 0.0f);
+                    constants.changedMax[numChangedBoxes] = Vec4f(change.bounds.max, 0.0f);
+
+                    numChangedBoxes++;
+                }
+            }
+
+            m_seenTLASGeneration = inputs.tlas->GetGeneration();
+        }
+
+        s_statGlimmerProbeWakes += wakeEverything ? 1u : 0u;
+        s_statGlimmerProbeChangedBoxes += numChangedBoxes;
+
+        constants.wake = Vec4u(
+            wakeEverything ? 1u : 0u,
+            numChangedBoxes,
+            sleepMaxInterval,
+            uint32(MathUtil::Clamp(g_cvGlimmerSWRTProbesMinHistoryChanging.Get(), 1, 255)));
 
         for (const GpuBufferRef* buffer : probeStateBuffers)
         {
@@ -371,6 +434,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             cr << SetShaderUniform(uniformIndex++, "OutCells"_sh, m_cellsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
             cr << SetShaderUniform(uniformIndex++, "OutSlots"_sh, m_slotsBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4i)));
             cr << SetShaderUniform(uniformIndex++, "OutSlotAges"_sh, m_slotAgesBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
+            cr << SetShaderUniform(uniformIndex++, "OutBlockWake"_sh, m_blockWakeBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
             cr << SetShaderUniform(uniformIndex++, "OutStates"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
             cr << SetShaderUniform(uniformIndex++, "OutSH"_sh, m_shBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
             cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
@@ -590,7 +654,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
             historySeconds,
             MathUtil::Clamp(g_cvGlimmerSWRTProbesHistorySecondsChanging.Get(), 0.0f, historySeconds),
             MathUtil::Max(g_cvGlimmerSWRTProbesRelocateMargin.Get(), 0.0f),
-            0.0f);
+            float(sleepMaxInterval));
 
         GpuBuffer* cbuffer = nullptr;
         size_t cbufferOffset = 0;
@@ -601,7 +665,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
 
         cr << InsertBarrier(m_raysBuffer.Get(), ResourceState::ShaderResource, ShaderModuleType::Compute);
 
-        for (const GpuBufferRef* buffer : { &m_shBuffer, &m_statesBuffer, &m_visibilityBuffer, &m_trendBuffer })
+        for (const GpuBufferRef* buffer : { &m_shBuffer, &m_statesBuffer, &m_visibilityBuffer, &m_trendBuffer, &m_blockWakeBuffer })
         {
             cr << InsertBarrier(buffer->Get(), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
         }
@@ -619,6 +683,7 @@ void GlimmerSWRTProbeVolume::Update(Frame* frame, const GlimmerSWRTProbeUpdateIn
         cr << SetShaderUniform(uniformIndex++, "OutStates"_sh, m_statesBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4u)));
         cr << SetShaderUniform(uniformIndex++, "OutVisibility"_sh, m_visibilityBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
         cr << SetShaderUniform(uniformIndex++, "OutTrend"_sh, m_trendBuffer.Get(), ShaderDataOffset(0, sizeof(Vec4f)));
+        cr << SetShaderUniform(uniformIndex++, "OutBlockWake"_sh, m_blockWakeBuffer.Get(), ShaderDataOffset(0, sizeof(uint32)));
 
         // group per probe
         cr << DispatchCompute(Vec3u { probesPerFrame, 1, 1 });

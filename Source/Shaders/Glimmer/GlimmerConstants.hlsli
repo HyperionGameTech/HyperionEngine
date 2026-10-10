@@ -23,6 +23,9 @@
 #define GLIMMER_PROBE_DRIFT_STEP_DOWN 4.0
 #define GLIMMER_PROBE_MIN_RELATIVE_SIGMA 0.05
 
+// how far past the drift's own noise a probe's light has to move before the rest of its block wakes with it
+#define GLIMMER_PROBE_WAKE_BLOCK_BIAS 1.0
+
 #define GLIMMER_PROBE_FIREFLY_SIGMAS 3.0
 #define GLIMMER_PROBE_FIREFLY_MIN_HISTORY 4.0
 

@@ -77,7 +77,7 @@ struct GlimmerChannelState
 struct GlimmerProbeDebugRecord
 {
     Vec4f position; // xyz = where the probe is (its grid point plus its offset), w = its level, or -1 for a probe of a free slot
-    Vec4u info;     // x = GlimmerProbeState | 0x100 in an occupied voxel | rays that started inside a solid << 16
+    Vec4u info;     // x = GlimmerProbeState | 0x100 in an occupied voxel | sleep interval << 9 | rays that started inside a solid << 16
                     // y = back face rays of its last update
                     // z = height above the ground (float bits)
                     // w = updates

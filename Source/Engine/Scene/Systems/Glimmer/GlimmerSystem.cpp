@@ -103,7 +103,10 @@ Color GetGlimmerProbeDebugColor(GlimmerSWRTDebugProbes mode, const GlimmerProbeD
         // green, through yellow as more of its rays hit back faces (a quarter of them moves it)
         const float backfaceFraction = float(record.info.y) / float(MathUtil::Max(record.info.z, 1u));
 
-        return Color(MathUtil::Min(backfaceFraction / 0.25f, 1.0f), 1.0f, 0.0f);
+        // Quantize the brightness to prevent waking probes too often
+        const float brightness = 1.0f - 0.25f * float((record.info.x >> 9) & 0x3u);
+
+        return Color(MathUtil::Min(backfaceFraction / 0.25f, 1.0f) * brightness, brightness, 0.0f);
     }
 
     Vec3f irradiance = Vec3f(record.sh[0].x, record.sh[1].x, record.sh[2].x);
@@ -412,6 +415,7 @@ void GlimmerSystem::LogProbeStats()
         uint32 resident = 0;
         uint32 states[GPS_IDLE + 1] = {};
         uint32 activeOnScreen = 0;
+        uint32 sleepIntervals[4] = {};
     };
 
     LevelCounts levels[GlimmerProbeLevels];
@@ -438,11 +442,20 @@ void GlimmerSystem::LogProbeStats()
             counts->resident++;
             counts->states[probeState]++;
             counts->activeOnScreen += isOnScreen ? 1u : 0u;
+
+            if (probeState == GPS_ACTIVE)
+            {
+                counts->sleepIntervals[(record.info.x >> 9) & 0x3u]++;
+            }
         }
     }
 
+#if 0
     HYP_LOG(Rendering, Info, "Glimmer probes: {} resident, {} active ({} on screen), {} idle, {} inside, {} buried",
         total.resident, total.states[GPS_ACTIVE], total.activeOnScreen, total.states[GPS_IDLE], total.states[GPS_INSIDE], total.states[GPS_BURIED]);
+
+    HYP_LOG(Rendering, Info, "  active by sleep interval: {} awake, {} every 2nd turn, {} every 4th, {} every 8th",
+        total.sleepIntervals[0], total.sleepIntervals[1], total.sleepIntervals[2], total.sleepIntervals[3]);
 
     for (uint32 levelIndex = 0; levelIndex < GlimmerProbeLevels; levelIndex++)
     {
@@ -452,6 +465,7 @@ void GlimmerSystem::LogProbeStats()
             levelIndex, GetGlimmerProbeLevelSpacing(levelIndex), counts.resident, counts.states[GPS_ACTIVE], counts.activeOnScreen,
             counts.states[GPS_IDLE], counts.states[GPS_INSIDE], counts.states[GPS_BURIED]);
     }
+#endif
 }
 
 void GlimmerSystem::DebugDrawProbes(const Vec3f& viewerPosition)

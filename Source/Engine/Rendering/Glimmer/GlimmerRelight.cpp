@@ -9,6 +9,7 @@
 #include <Rendering/Glimmer/GlimmerRelight.hpp>
 #include <Rendering/Glimmer/GlimmerSurfaceCache.hpp>
 #include <Rendering/Glimmer/GlimmerSpanCache.hpp>
+#include <Rendering/Glimmer/GlimmerCVars.hpp>
 
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Texture.hpp>
@@ -28,6 +29,8 @@ static constexpr size_t MaxPendingRects = 16;
 GlimmerRelight::GlimmerRelight()
     : m_groundGeneration(~0u),
       m_refreshLevel(0),
+      m_refreshBudget(0),
+      m_burstTexelsLeft(0),
       m_shaderData {}
 {
 }
@@ -79,7 +82,7 @@ void GlimmerRelight::AddPending(Level& level, const Rect& rect)
     level.pending.PushBack(clipped);
 }
 
-void GlimmerRelight::Schedule(const GlimmerChannelState& state, const GlimmerSurfaceCache& surfaceCache, const GlimmerSpanCache& spanCache)
+void GlimmerRelight::Schedule(const GlimmerChannelState& state, const GlimmerSurfaceCache& surfaceCache, const GlimmerSpanCache& spanCache, bool wakeLighting)
 {
     HYP_SCOPE;
 
@@ -175,6 +178,27 @@ void GlimmerRelight::Schedule(const GlimmerChannelState& state, const GlimmerSur
         }
     }
 
+    const bool runOnChange = g_cvGlimmerRunOnChange.Get();
+    const int32 rowTexels = int32(GlimmerGroundResolution);
+
+    if (runOnChange)
+    {
+        if (wakeLighting)
+        {
+            m_burstTexelsLeft = int32(GlimmerGroundLevels) * rowTexels * rowTexels;
+        }
+
+        const int32 rate = MathUtil::Max(m_burstTexelsLeft > 0 ? g_cvGlimmerRelightTexelsBurst.Get() : g_cvGlimmerRelightTexels.Get(), 0);
+
+        m_refreshBudget = MathUtil::Min(m_refreshBudget + rate, MathUtil::Max(rate, rowTexels) * 2);
+
+        budget = m_refreshBudget >= rowTexels
+            ? m_refreshBudget
+            : 0;
+    }
+
+    const int32 refreshBudget = budget;
+
     for (uint32 attempt = 0; attempt < GlimmerGroundLevels && budget > 0; attempt++)
     {
         Level& level = m_levels[m_refreshLevel];
@@ -203,6 +227,14 @@ void GlimmerRelight::Schedule(const GlimmerChannelState& state, const GlimmerSur
         }
 
         attempt = 0;
+    }
+
+    if (runOnChange)
+    {
+        const int32 refreshed = refreshBudget - budget;
+
+        m_refreshBudget -= refreshed;
+        m_burstTexelsLeft = MathUtil::Max(m_burstTexelsLeft - refreshed, 0);
     }
 }
 
@@ -233,6 +265,9 @@ void GlimmerRelight::Invalidate()
 
     m_dispatches.Clear();
     m_shaderData = GlimmerRelightShaderData {};
+
+    m_refreshBudget = 0;
+    m_burstTexelsLeft = 0;
 }
 
 #pragma endregion GlimmerRelight

@@ -9,6 +9,8 @@ PERMUTE(MODE, CLASSIFY, ALLOC, LIST)
 #include "../SH/GlimmerSHOccupancy.hlsli"
 #undef GLIMMER_SH_OCCUPANCY_NO_TRACE
 
+#define GLIMMER_PROBE_MAX_CHANGED_BOXES 16
+
 struct GlimmerProbeAllocConstants
 {
     GlimmerProbeVolume volume;
@@ -17,6 +19,9 @@ struct GlimmerProbeAllocConstants
     uint4 budget;   // x = probes traced per frame, y = frames an unwanted block keeps its slot, z = updates between retries of probes inside solids, w = pool slots to use
     float4 params;  // x = block margin in spacings, y = how far above the ground a solid has to be to want probes around it, z = frames between looks at a block's solids, w = level classified
     float4 viewer;  // xyz = viewer position
+    uint4 wake;     // x = 1 when the lighting changed, which wakes every probe, y = changed boxes, z = longest sleep interval, w = estimates a woken probe's history keeps at most
+    float4 changedMin[GLIMMER_PROBE_MAX_CHANGED_BOXES]; // where the scene changed since the last update
+    float4 changedMax[GLIMMER_PROBE_MAX_CHANGED_BOXES];
 };
 
 DECLARE_BUFFER_DYNAMIC(GlimmerSWRTProbeAlloc, CBuffer) cbuffer CBuffer
@@ -41,7 +46,12 @@ DECLARE_UAV(GlimmerSWRTProbeAlloc, OutTrend) RWStructuredBuffer<float4> OutTrend
 // 2 = active probes last frame
 // 3 = blocks allocated,
 // 4 = wanted blocks the pool had no slot for
+// 5 = sleeping probes this frame, each weighted 8 >> its sleep interval
+// 6 = ditto but last frame
+// 7 = sleeping probes this frame
+// 8 = ditto but last frame
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutCounters) RWStructuredBuffer<uint> OutCounters;
+DECLARE_UAV(GlimmerSWRTProbeAlloc, OutBlockWake) RWStructuredBuffer<uint> OutBlockWake; // per slot: the frame one of its probes last saw its light change
 DECLARE_UAV(GlimmerSWRTProbeAlloc, OutUpdateList) RWStructuredBuffer<uint> OutUpdateList;
 
 #include "../GlimmerGround.hlsli"
@@ -342,6 +352,10 @@ void CSMain(uint groupIndex : SV_GroupIndex)
         OutCounters[1] = 0u;
         OutCounters[3] = 0u;
         OutCounters[4] = 0u;
+        OutCounters[6] = OutCounters[5];
+        OutCounters[8] = OutCounters[7];
+        OutCounters[5] = 0u;
+        OutCounters[7] = 0u;
 
         gsFreeCount = 0u;
     }
@@ -559,6 +573,25 @@ bool GlimmerHasSolidNextToProbe(uint levelIndex, float3 gridPosition, float spac
     return false;
 }
 
+bool GlimmerIsProbeWoken(uint probeIndex, float3 position, float reach)
+{
+    if (constants.wake.x != 0u || OutBlockWake[probeIndex / GLIMMER_PROBES_PER_BLOCK] + 1u == constants.volume.info.z)
+    {
+        return true;
+    }
+
+    [loop]
+    for (uint boxIndex = 0; boxIndex < min(constants.wake.y, uint(GLIMMER_PROBE_MAX_CHANGED_BOXES)); boxIndex++)
+    {
+        if (all(position + reach >= constants.changedMin[boxIndex].xyz) && all(position - reach <= constants.changedMax[boxIndex].xyz))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 [numthreads(64, 1, 1)]
 void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
@@ -662,13 +695,46 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         return;
     }
 
+    uint sleepInterval = 0u;
+
     if (probeState == GLIMMER_PROBE_STATE_ACTIVE)
     {
+        sleepInterval = min(GlimmerProbeSleepInterval(state), constants.wake.z);
+
+        if (sleepInterval != 0u && GlimmerIsProbeWoken(probeIndex, gridPosition, constants.volume.nearField.y * spacing))
+        {
+            sleepInterval = 0u;
+
+            float4 trend = OutTrend[probeIndex];
+            trend.w = min(trend.w, float(constants.wake.w));
+
+            OutTrend[probeIndex] = trend;
+        }
+
+        if (sleepInterval != GlimmerProbeSleepInterval(state))
+        {
+            state.x = GlimmerWithSleepInterval(state.x, sleepInterval);
+
+            OutStates[probeIndex] = state;
+        }
+
         InterlockedAdd(OutCounters[1], 1u);
+
+        if (sleepInterval != 0u)
+        {
+            InterlockedAdd(OutCounters[5], 8u >> sleepInterval);
+            InterlockedAdd(OutCounters[7], 1u);
+        }
     }
 
     const uint probesPerFrame = max(constants.budget.x, 1u);
     const uint period = max((OutCounters[2] + probesPerFrame - 1u) / probesPerFrame, 1u);
+
+    // sleeping probes keep the period every probe would have awake, stretched by their interval; the probes left awake share what that frees
+    const float sleepingLoad = float(OutCounters[6]) / float(8u * period);
+    const float awakeBudget = max(float(probesPerFrame) - sleepingLoad, 1.0);
+    const uint numAwake = OutCounters[2] - min(OutCounters[8], OutCounters[2]);
+    const uint awakePeriod = clamp(uint(ceil(float(numAwake) / awakeBudget)), 1u, period);
 
     bool isDue;
 
@@ -676,9 +742,13 @@ void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
     {
         isDue = phase % (period * max(constants.budget.z, 1u)) == 0u;
     }
+    else if (sleepInterval != 0u)
+    {
+        isDue = phase % (period << sleepInterval) == 0u;
+    }
     else
     {
-        isDue = GlimmerProbeUpdates(state) == 0u || phase % period == 0u;
+        isDue = GlimmerProbeUpdates(state) == 0u || phase % awakePeriod == 0u;
     }
 
     if (!isDue)

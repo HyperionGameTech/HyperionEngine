@@ -78,6 +78,40 @@ static_assert(sizeof(GlimmerSpanChunkShaderData) == 32);
 
 static constexpr uint32 GlimmerSpanMaxDirtyBounds = 4;
 
+struct GlimmerSceneChange
+{
+    BoundingBox bounds;
+    bool isLodOnly = false; // same instance, transform and material; only the LOD its BLAS was built from differs
+};
+
+struct GlimmerSceneChanges
+{
+    using Iterator = typename Array<GlimmerSceneChange>::Iterator;
+    using ConstIterator = typename Array<GlimmerSceneChange>::ConstIterator;
+
+    /// @TODO: https://github.com/HyperionGameTech/HyperionEngine/issues/363
+    Array<GlimmerSceneChange> changes;
+
+    void Quantize(size_t maxChanges);
+
+    HYP_FORCE_INLINE size_t Size() const
+    {
+        return changes.Size();
+    }
+
+    HYP_FORCE_INLINE void Add(const GlimmerSceneChange& change)
+    {
+        changes.PushBack(change);
+    }
+
+    HYP_FORCE_INLINE void Add(GlimmerSceneChange&& change)
+    {
+        changes.PushBack(std::move(change));
+    }
+
+    HYP_DEF_STL_BEGIN_END(changes.Begin(), changes.End());
+};
+
 struct GlimmerTLASStats
 {
     uint32 numInstances = 0;
@@ -89,6 +123,9 @@ struct GlimmerTLASStats
     uint32 numSpanInstances = 0;
     uint32 numSpanTriangles = 0;
     uint32 numSpanChunks = 0;
+    uint32 numChanges = 0;        // num changes of the last build, before merging
+    uint32 numLodOnlyChanges = 0;
+    uint32 numEverywhereBuilds = 0;
 };
 
 class GlimmerTLAS final
@@ -176,6 +213,10 @@ public:
         return m_stats.numBuilds;
     }
 
+    bool GetChangesSince(
+        uint32 seenGeneration,
+        GlimmerSceneChanges& outChanges) const;
+
     HYP_FORCE_INLINE const BoundingBox& GetActiveRegion() const
     {
         return m_activeRegion;
@@ -198,11 +239,33 @@ private:
         }
     };
 
+    struct InstanceRecord
+    {
+        uint64 identity;    // entity id << 32 | a hash of its transform within the entity
+        uint64 worldHash;   // of its transform, mesh, material, flags and lightmap rect
+        uint64 geometryKey; // the BLAS it uses, which changes with its LOD
+        BoundingBox bounds;
+
+        bool operator<(const InstanceRecord& other) const
+        {
+            return identity != other.identity ? identity < other.identity : worldHash < other.worldHash;
+        }
+    };
+
+    struct ChangeSet
+    {
+        uint32 generation = 0;
+        bool isEverywhere = false;
+        GlimmerSceneChanges changes;
+    };
+
     struct BuildInput
     {
         BoundingBox region;
         Vec3f regionCenter;
         Array<SpanKey> previousSpanKeys; // sorted; empty for the first build
+        Array<InstanceRecord> previousInstanceRecords; // sorted
+        Array<InstanceRecord> instanceRecords;
         bool hasPrevious = false;
         Array<GlimmerInstanceShaderData> instances;
         Array<BoundingBox> instanceBounds;
@@ -227,6 +290,9 @@ private:
         Array<SpanKey> spanKeys; // sorted
         Array<BoundingBox> spanDirtyBounds;
         bool spanFullyDirty = true;
+        Array<InstanceRecord> instanceRecords; // sorted
+        GlimmerSceneChanges changes;
+        uint32 numLodOnlyChanges = 0;
     };
 
     void Gather(
@@ -261,7 +327,7 @@ private:
     uint32 m_blasEvictionGenerationAtGather;
     Vec3f m_viewerPositionAtGather;
 
-    Map<uint64, uint8> m_instanceLods; // the LOD each instance (entity id << 32 | instance index) was given at the last gather
+    Map<uint64, uint8> m_instanceLods; // the LOD each instance (entity id << 32 | a hash of its transform within the entity) was given at the last gather
     bool m_dirty;
     bool m_waitingForBLAS;
     bool m_usesLightmaps;
@@ -270,6 +336,9 @@ private:
     Array<SpanKey> m_spanKeys;
     Array<BoundingBox> m_spanDirtyBounds;
     bool m_spanFullyDirty;
+
+    Array<InstanceRecord> m_instanceRecords;
+    Array<ChangeSet> m_changeJournal; // oldest first, one per generation
 
     GlimmerTLASStats m_stats;
 };
