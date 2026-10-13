@@ -156,6 +156,18 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
 
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dx12)
   set(RENDERER_LIBRARIES hyperion-dx12)
+elseif(RENDERING_BACKEND STREQUAL "WebGPU")
+  message(STATUS "Using WebGPU rendering backend")
+
+  file(GLOB_RECURSE WEBGPU_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/WebGPU/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/WebGPU/*.hpp")
+  file(GLOB_RECURSE WEBGPU_HEADERS RELATIVE ${CMAKE_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/WebGPU/*.hpp")
+
+  set(hyperion-webgpu_SOURCES ${WEBGPU_SOURCES})
+  set(hyperion-webgpu_HEADERS ${WEBGPU_HEADERS})
+  set(hyperion-webgpu_PCH ${CMAKE_CURRENT_SOURCE_DIR}/WebGPU/WebGPUPch.hpp)
+
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/WebGPU)
+  set(RENDERER_LIBRARIES hyperion-webgpu)
 endif()
 
 

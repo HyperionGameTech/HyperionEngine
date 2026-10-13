@@ -152,7 +152,12 @@ const GlimmerTechnique* GlimmerPass::GetApplyTechnique(World* world) const
 
     GlimmerScenePassData* scene = isEnabled ? GetSceneForWorld(world) : nullptr;
 
-    return scene ? scene->technique.Get() : nullptr;
+    if (!scene || scene->isWarmingUp)
+    {
+        return nullptr;
+    }
+
+    return scene->technique.Get();
 }
 
 void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
@@ -176,6 +181,31 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     if (scene->lastUpdatedFrame == frameCounter)
     {
         return;
+    }
+
+    if (RI.GetNumPipelinesCompilingInBackground() != 0)
+    {
+        scene->isWarmingUp = true;
+    }
+    else if (scene->isWarmingUp)
+    {
+        scene->technique.Reset();
+
+        if (scene->tlas && scene->blasCache)
+        {
+            scene->tlas->Release(*scene->blasCache);
+        }
+
+        scene->tlas = MakeUnique<GlimmerTLAS>();
+        scene->surfaceCache = MakeUnique<GlimmerSurfaceCache>();
+        scene->spanCache = MakeUnique<GlimmerSpanCache>();
+        scene->technique = MakeUnique<GlimmerTechnique>();
+        scene->isWarmingUp = false;
+    }
+    else
+    {
+        // nothing started compiling since the last update, so the uploads it was given reached the GPU
+        scene->groundUploads.Clear();
     }
 
     scene->lastUpdatedFrame = frameCounter;

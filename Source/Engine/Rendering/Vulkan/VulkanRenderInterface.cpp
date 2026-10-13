@@ -70,6 +70,7 @@ namespace Hyperion {
 
 extern CVar<bool> g_cvIndirectRendering;
 extern CVar<bool> g_cvParallelRendering;
+extern CVar<bool> g_cvBindlessTextures;
 
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 256;
@@ -112,7 +113,7 @@ public:
 
         timelineSemaphores = cfg.Get("Rendering.Vulkan.TimelineSemaphores").ToBool(/* defaultValue */ false);
 
-        bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
+        bindlessTextures = g_cvBindlessTextures.Get() && renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         dynamicDescriptorIndexing = renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
         rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
         indirectRendering = g_cvIndirectRendering.Get();

@@ -95,6 +95,7 @@ enum class ShaderCompileTargetPlatform : uint32
     Linux = 0x00000004,   // Bit 2
     Android = 0x00000008, // Bit 3
     IOS = 0x00000010,     // Bit 4
+    Web = 0x00000020,     // Bit 5 - opt-in, not part of AllPlatforms
     AllPlatforms = Windows | Mac | Linux | Android | IOS
 };
 
@@ -106,6 +107,7 @@ enum class ShaderCompileTargetBackend : uint32
     None = 0x00000000,
     Vulkan = 0x00000100, // Bit 8
     DX12 = 0x00000200,   // Bit 9
+    WebGPU = 0x00000400, // Bit 10 - opt-in, not part of AllBackends
     AllBackends = Vulkan | DX12
 };
 

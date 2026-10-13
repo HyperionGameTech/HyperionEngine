@@ -87,6 +87,8 @@ protected:
 #include <Rendering/Vulkan/VulkanShaderInstance.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12ShaderInstance.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUShaderInstance.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

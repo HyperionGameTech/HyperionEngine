@@ -41,6 +41,11 @@
 #include <Core/IO/ByteWriter.hpp>
 #include <Core/IO/ByteReader.hpp>
 
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
+#include <thread>
+
 #include <Core/Math/MathUtil.hpp>
 
 #include <Util/INI/INIFile.hpp>
@@ -548,10 +553,12 @@ static StaticShaderPropertyId s_propTargetMac { ShaderProperty(NAME("TARGET"), N
 static StaticShaderPropertyId s_propTargetLinux { ShaderProperty(NAME("TARGET"), NAME("LINUX")) };
 static StaticShaderPropertyId s_propTargetAndroid { ShaderProperty(NAME("TARGET"), NAME("ANDROID")) };
 static StaticShaderPropertyId s_propTargetIOS { ShaderProperty(NAME("TARGET"), NAME("IOS")) };
+static StaticShaderPropertyId s_propTargetWeb { ShaderProperty(NAME("TARGET"), NAME("WEB")) };
 
 // Target backend properties for cross-compilation
 static StaticShaderPropertyId s_propVulkan { ShaderProperty(NAME("BACKEND"), NAME("VULKAN")) };
 static StaticShaderPropertyId s_propDX12 { ShaderProperty(NAME("BACKEND"), NAME("DX12")) };
+static StaticShaderPropertyId s_propWebGPU { ShaderProperty(NAME("BACKEND"), NAME("WEBGPU")) };
 
 static StaticShaderPropertyId s_propNumGBufferTextures { ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)) };
 
@@ -627,13 +634,17 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderProper
 
     // Current platform + Graphics API
 
-#if defined(HYP_DX12)
+#if defined(HYP_WEBGPU)
+    out.Add(s_propWebGPU);
+#elif defined(HYP_DX12)
     out.Add(s_propDX12);
 #elif defined(HYP_VULKAN)
     out.Add(s_propVulkan);
-#endif // HYP_DX12 || HYP_VULKAN
+#endif // HYP_WEBGPU || HYP_DX12 || HYP_VULKAN
 
-#if defined(HYP_WINDOWS)
+#if defined(HYP_WEB) || defined(HYP_WEBGPU)
+    out.Add(s_propTargetWeb);
+#elif defined(HYP_WINDOWS)
     out.Add(s_propTargetWindows);
 #elif defined(HYP_MACOS)
     out.Add(s_propTargetMac);
@@ -942,6 +953,12 @@ static ByteBuffer CompileHLSL(
         uint32 vulkanApiVersion;
         GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
 
+        // Tint only reads SPIR-V up to 1.3
+        if (targetBackend == ShaderCompileTargetBackend::WebGPU)
+        {
+            vulkanApiVersion = VK_API_VERSION_1_1;
+        }
+
         switch (vulkanApiVersion)
         {
         case VK_API_VERSION_1_0:
@@ -1010,6 +1027,152 @@ static ByteBuffer CompileHLSL(
 
 #pragma endregion SPRIV Compilation
 
+#pragma region WGSL Conversion
+
+CVar<CVarString> g_cvTintPath("ShaderCompiler.TintPath", "");
+
+static FilePath GetTintPath()
+{
+    const CVarString configuredPath = g_cvTintPath.Get();
+
+    if (configuredPath != nullptr && *configuredPath != 0)
+    {
+        return FilePath(configuredPath);
+    }
+
+#ifdef HYP_WINDOWS
+    const char* executableName = "tint.exe";
+#else
+    const char* executableName = "tint";
+#endif
+
+    const FilePath besideExecutable = CoreApi::GetExecutablePath() / executableName;
+
+    if (besideExecutable.Exists())
+    {
+        return besideExecutable;
+    }
+
+    return CoreApi::GetBaseDirectory() / "External/ThirdParty/Binaries/Windows/Release" / executableName;
+}
+
+template <class SourceFileArray>
+static bool IsCompilableForWebGPU(const SourceFileArray& sourceFiles, const ShaderVariantPerms& perm)
+{
+    for (const ShaderProperty& property : perm.ToArray())
+    {
+        if (property.name == NAME("HYP_FEATURES_BINDLESS_TEXTURES"))
+        {
+            return false;
+        }
+    }
+
+    for (const auto& sourceFile : sourceFiles)
+    {
+        if (IsRayTracingShaderModule(sourceFile.type))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static ByteBuffer ConvertSPIRVToWGSL(const ByteBuffer& spirv, const FilePath& outputFilepath, Array<String>& errorMessages)
+{
+    const FilePath tintPath = GetTintPath();
+
+    if (!tintPath.Exists())
+    {
+        errorMessages.PushBack(HYP_FORMAT("Tint not found at {}; set ShaderCompiler.TintPath to compile WebGPU shaders", tintPath));
+
+        return ByteBuffer();
+    }
+
+    // Variants compile in parallel and several stages share a source file, so the scratch files need their own names
+    static std::atomic<uint32> conversionCounter { 0 };
+    const uint32 conversionIndex = conversionCounter.fetch_add(1);
+
+    const FilePath scratchBase = outputFilepath.BasePath() / HYP_FORMAT("tint_{}_{}", uint64(std::chrono::steady_clock::now().time_since_epoch().count()), conversionIndex);
+    const FilePath spirvFilepath = FilePath(String(scratchBase) + ".spv");
+    const FilePath wgslFilepath = FilePath(String(scratchBase) + ".wgsl");
+    const FilePath logFilepath = FilePath(String(scratchBase) + ".log");
+
+    // the SPIR-V of a failed conversion is left behind, it is the only way to reproduce the failure with Tint by hand
+    bool keepSpirv = false;
+
+    HYP_DEFER({
+        if (!keepSpirv)
+        {
+            spirvFilepath.Remove();
+        }
+
+        wgslFilepath.Remove();
+        logFilepath.Remove();
+    });
+
+    {
+        FileByteWriter spirvWriter(spirvFilepath.Data());
+
+        if (!spirvWriter.IsOpen())
+        {
+            errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", spirvFilepath));
+
+            return ByteBuffer();
+        }
+
+        spirvWriter.Write(spirv.Data(), spirv.Size());
+        spirvWriter.Close();
+    }
+
+    // cmd.exe strips the outermost quotes, so the whole command needs its own pair
+    const String command = HYP_FORMAT("\"\"{}\" --allow-non-uniform-derivatives \"{}\" -o \"{}\" > \"{}\" 2>&1\"",
+        tintPath, spirvFilepath, wgslFilepath, logFilepath);
+
+    // A virus scanner can briefly hold the file we just wrote, so Tint gets a few tries at opening it
+    constexpr uint32 maxAttempts = 4;
+
+    int exitCode = 0;
+    String log;
+
+    for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
+    {
+        exitCode = std::system(command.Data());
+        log.Clear();
+
+        if (exitCode == 0 && wgslFilepath.Exists())
+        {
+            break;
+        }
+
+        if (logFilepath.Exists())
+        {
+            const ByteBuffer logBytes = FileByteReader(logFilepath).Read();
+            log = String(ConstByteView(logBytes.Data(), MathUtil::Min(logBytes.Size(), size_t(2048))));
+        }
+
+        if (!log.Contains("Failed to open"))
+        {
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100 * (attempt + 1)));
+    }
+
+    if (exitCode != 0 || !wgslFilepath.Exists())
+    {
+        errorMessages.PushBack(HYP_FORMAT("Tint failed to convert {} to WGSL (exit code {}): {}", spirvFilepath, exitCode, log));
+
+        keepSpirv = true;
+
+        return ByteBuffer();
+    }
+
+    return FileByteReader(wgslFilepath).Read();
+}
+
+#pragma endregion WGSL Conversion
+
 static constexpr const char* ShaderLanguageToBinaryExtension(ShaderCompileTargetBackend backend)
 {
     switch (backend)
@@ -1018,6 +1181,8 @@ static constexpr const char* ShaderLanguageToBinaryExtension(ShaderCompileTarget
         return ".dxil";
     case ShaderCompileTargetBackend::Vulkan:
         return ".spv";
+    case ShaderCompileTargetBackend::WebGPU:
+        return ".wgsl";
     default:
         return "";
     }
@@ -3082,6 +3247,7 @@ bool ShaderCompiler::CompileBundle(
     {
         const bool shouldCompileVulkan = m_compileParams.targetBackends[ShaderCompileTargetBackend::Vulkan];
         const bool shouldCompileDX12 = m_compileParams.targetBackends[ShaderCompileTargetBackend::DX12];
+        const bool shouldCompileWebGPU = m_compileParams.targetBackends[ShaderCompileTargetBackend::WebGPU];
 
         auto addForPlatform = [&](Name platformName)
         {
@@ -3095,6 +3261,9 @@ bool ShaderCompiler::CompileBundle(
             if (shouldCompileDX12)
                 targetPairs.PushBack({ NAME("WINDOWS"), NAME("DX12") });
         }
+
+        if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Web] && shouldCompileWebGPU)
+            targetPairs.PushBack({ NAME("WEB"), NAME("WEBGPU") });
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Mac])
             addForPlatform(NAME("MAC"));
@@ -3113,7 +3282,9 @@ bool ShaderCompiler::CompileBundle(
         // Only compile for the active platform/backend when not precompiling.
 
         Name activePlatform;
-#if HYP_WINDOWS
+#if HYP_WEB || HYP_WEBGPU
+        activePlatform = NAME("WEB");
+#elif HYP_WINDOWS
         activePlatform = NAME("WINDOWS");
 #elif HYP_MACOS
         activePlatform = NAME("MAC");
@@ -3131,7 +3302,9 @@ bool ShaderCompiler::CompileBundle(
         }
 
         Name graphicsApi;
-#if HYP_VULKAN
+#if HYP_WEBGPU
+        graphicsApi = NAME("WEBGPU");
+#elif HYP_VULKAN
         graphicsApi = NAME("VULKAN");
 #elif HYP_DX12
         graphicsApi = NAME("DX12");
@@ -3312,6 +3485,9 @@ bool ShaderCompiler::CompileBundle(
 
             if (backendName == "DX12"_sh)
                 return ShaderCompileTargetBackend::DX12;
+
+            if (backendName == "WEBGPU"_sh)
+                return ShaderCompileTargetBackend::WebGPU;
         }
 
         return {};
@@ -3340,6 +3516,9 @@ bool ShaderCompiler::CompileBundle(
 
             if (platformName == "IOS"_sh)
                 return ShaderCompileTargetPlatform::IOS;
+
+            if (platformName == "WEB"_sh)
+                return ShaderCompileTargetPlatform::Web;
         }
 
         return {};
@@ -3369,6 +3548,13 @@ bool ShaderCompiler::CompileBundle(
         // Determine if we're compiling for Vulkan or DX12 for this specific variant
         const bool isVulkan = targetBackend.Get() == ShaderCompileTargetBackend::Vulkan;
         const bool isDX12 = targetBackend.Get() == ShaderCompileTargetBackend::DX12;
+        const bool isWebGPU = targetBackend.Get() == ShaderCompileTargetBackend::WebGPU;
+
+        if (isWebGPU && !IsCompilableForWebGPU(loadedSourceFiles, perm))
+        {
+            HYP_LOG(ShaderCompiler, Verbose, "Skipping WebGPU shader variant (bindless or ray tracing): {}", perm.ToString());
+            return;
+        }
 
         // DX12 is exclusive to Windows; skip invalid platform+backend combinations
         if (isDX12 && targetPlatform.Get() != ShaderCompileTargetPlatform::Windows)
@@ -3517,6 +3703,11 @@ bool ShaderCompiler::CompileBundle(
                 outputType = HLSLOutputType::SPIRV;
                 hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
             }
+            else if (isWebGPU)
+            {
+                outputType = HLSLOutputType::SPIRV;
+                hlslTargetBackend = ShaderCompileTargetBackend::WebGPU;
+            }
             else
             {
                 Mutex::Guard guard(errorMessagesMutex);
@@ -3545,6 +3736,21 @@ bool ShaderCompiler::CompileBundle(
                 ++numErrored;
 
                 continue;
+            }
+
+            if (isWebGPU && byteBuffer.Any())
+            {
+                byteBuffer = ConvertSPIRVToWGSL(byteBuffer, outputFilepath, errorMessages);
+
+                if (errorMessages.Any())
+                {
+                    Mutex::Guard guard(errorMessagesMutex);
+                    outBundle->errorMessages.Concat(errorMessages);
+
+                    ++numErrored;
+
+                    continue;
+                }
             }
 
 #else

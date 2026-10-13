@@ -32,6 +32,8 @@
 #include <Rendering/Vulkan/VulkanStructs.hpp>
 #elif defined(HYP_DX12)
 #include <Rendering/DX12/DX12Structs.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUStructs.hpp>
 #endif
 
 #ifndef HYP_SHIPPING

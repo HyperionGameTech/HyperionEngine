@@ -34,6 +34,7 @@ enum class DeviceTierPhase : uint8
 };
 
 // StringView::operator== only compares up to the shorter length, so the lengths have to match too
+// https://github.com/HyperionGameTech/HyperionEngine/issues/359
 HYP_FORCE_INLINE bool IsSameName(const ANSIStringView& lhs, const ANSIStringView& rhs)
 {
     return lhs.Length() == rhs.Length() && lhs == rhs;

@@ -22,6 +22,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 if(NOT DEFINED HYP_PLATFORM_NAME)
   if(ANDROID)
     set(HYP_PLATFORM_NAME "Android")
+  elseif(EMSCRIPTEN OR CMAKE_TOOLCHAIN_FILE MATCHES "Emscripten") # the toolchain file is not loaded until project()
+    set(HYP_PLATFORM_NAME "Web")
   elseif(WIN32)
     set(HYP_PLATFORM_NAME "Windows")
   elseif(IOS)
@@ -170,6 +172,21 @@ elseif(HYP_PLATFORM_NAME STREQUAL "Android")
 
   set(HYP_ANDROID 1)
   set(HYP_UNIX 1)
+elseif(HYP_PLATFORM_NAME STREQUAL "Web")
+  set(CSHARP_CONSTANTS "HYP_WEB;HYP_UNIX")
+  add_definitions(-DHYP_WEB=1)
+  add_definitions(-DHYP_UNIX=1)
+  add_definitions(-DHYP_PLATFORM_NAME_STR="${HYP_PLATFORM_NAME}")
+
+  set(HYP_WEB 1)
+  set(HYP_UNIX 1)
+  set(HYP_SHIPPING 1)
+
+  set(HYP_WEB_COMPILE_FLAGS "-pthread -msimd128 -msse4.1")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${HYP_WEB_COMPILE_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${HYP_WEB_COMPILE_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
 elseif(HYP_PLATFORM_NAME STREQUAL "Linux")
   set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
   add_definitions(-DHYP_LINUX=1)
@@ -238,10 +255,10 @@ function(RunCodeGen version_major version_minor)
   endif()
 endfunction()
 
-# Run CodeGen with version 0.11
+# Run CodeGen with version 0.13
 # HYP_CODEGEN_VERSION_MAJOR 0
-# HYP_CODEGEN_VERSION_MINOR 11
-RunCodeGen(0 11)
+# HYP_CODEGEN_VERSION_MINOR 13
+RunCodeGen(0 13)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -709,10 +726,16 @@ endif()
 set(RENDERING_BACKEND "Vulkan")
 
 if(WIN32 AND NOT HYP_GCC)
-  # DX12 unless configured with -DHYP_RENDERING_BACKEND=Vulkan (BuildHyperion.bat: "vulkan")
-  if(NOT HYP_RENDERING_BACKEND STREQUAL "Vulkan")
+  # DX12 unless configured with -DHYP_RENDERING_BACKEND=Vulkan or WebGPU (BuildHyperion.bat: "vulkan" / "webgpu")
+  if(HYP_RENDERING_BACKEND STREQUAL "WebGPU")
+    set(RENDERING_BACKEND "WebGPU")
+  elseif(NOT HYP_RENDERING_BACKEND STREQUAL "Vulkan")
     set(RENDERING_BACKEND "DX12")
   endif()
+endif()
+
+if(HYP_WEB)
+  set(RENDERING_BACKEND "WebGPU")
 endif()
 
 message(STATUS "Rendering backend: ${RENDERING_BACKEND}")
@@ -821,6 +844,48 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
             ${RENDERER_LIBRARIES}
             D3D12MemoryAllocator)
   endif()
+elseif(RENDERING_BACKEND STREQUAL "WebGPU")
+  add_definitions(-DHYP_WEBGPU=1)
+  set(HYP_WEBGPU 1)
+
+  message(STATUS "Using WebGPU as rendering backend")
+
+  if(HYP_WEB)
+    # webgpu.h and the implementation both come from the port; Dawn's own headers must not shadow them
+    # C++ only: the port refuses to link from C, which is what CMake's C feature checks do
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --use-port=emdawnwebgpu")
+    set(HYP_WEB_LINK_OPTIONS ${HYP_WEB_LINK_OPTIONS} --use-port=emdawnwebgpu)
+  else()
+    if(NOT EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dawn/webgpu/webgpu.h")
+      message(FATAL_ERROR "WebGPU backend requested but Dawn headers were not found at ${THIRD_PARTY_INCLUDE_DIR}/dawn")
+    endif()
+
+    include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dawn)
+  endif()
+
+  # Native builds link Dawn; Emscripten gets WebGPU from its emdawnwebgpu port instead
+  if(WIN32)
+    if(NOT EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/webgpu_dawn.lib")
+      message(FATAL_ERROR "WebGPU backend requested but webgpu_dawn.lib was not found in ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}")
+    endif()
+
+    set(RENDERER_LIBRARIES
+            ${RENDERER_LIBRARIES}
+            "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/webgpu_dawn.lib")
+
+    file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/webgpu_dawn.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+    # Dawn only loads FXC and the Vulkan loader from beside its own DLL
+    foreach(DAWN_RUNTIME_DLL d3dcompiler_47.dll vulkan-1.dll)
+      if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${DAWN_RUNTIME_DLL}")
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${DAWN_RUNTIME_DLL}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+      endif()
+    endforeach()
+
+    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/tint.exe")
+      file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/tint.exe" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+    endif()
+  endif()
 else()
   message(FATAL_ERROR "No rendering backend found!")
 endif()
@@ -904,6 +969,8 @@ endif()
 if(WIN32)
   if(NOT HYP_ENABLE_AFTERMATH)
     message(STATUS "HYP_ENABLE_AFTERMATH is OFF, not linking Aftermath")
+  elseif("${RENDERING_BACKEND}" STREQUAL "WebGPU")
+    message(STATUS "Aftermath cannot watch a Dawn device, not linking it")
   elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/GFSDK_Aftermath_Lib.x64.lib")
     set(HYP_AFTERMATH 1)

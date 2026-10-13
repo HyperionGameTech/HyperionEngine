@@ -17,18 +17,21 @@
 
 namespace Hyperion {
 
-extern "C" ENGINE_API const ClassAttribute* Class_GetAttribute(const Class* cls, const Name* name);
-
 static const ClassAttributeValue& GetComponentClassAttributeValue(const Class* cls, const Name& name)
 {
-    const ClassAttribute* attribute = Class_GetAttribute(cls, &name);
-
-    if (!attribute)
+    if (!cls)
     {
         return ClassAttributeValue::empty;
     }
 
-    return attribute->GetValue();
+    auto it = cls->GetAttributes().Find(StringHash(name));
+
+    if (it == cls->GetAttributes().End())
+    {
+        return ClassAttributeValue::empty;
+    }
+
+    return it->GetValue();
 }
 
 #pragma region ComponentInterface

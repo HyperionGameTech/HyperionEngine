@@ -40,6 +40,16 @@
 
 #include <stb_image_resize.h>
 
+// @TODO: Just use the same alignment for all backends?
+#if defined(HYP_DX12) || defined(HYP_WEBGPU)
+#define HYP_PADDED_TEXTURE_COPIES 1
+#endif
+
+#ifdef HYP_WEBGPU
+static constexpr unsigned int D3D12_TEXTURE_DATA_PITCH_ALIGNMENT = 256;
+static constexpr unsigned int D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT = 512;
+#endif
+
 namespace Hyperion
 {
 
@@ -236,7 +246,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         const uint32 numMips = hasMips ? textureDesc.NumMips() : 1;
         const uint32 numArrayLayers = textureDesc.NumArrayLayers();
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
         auto AlignUp = [](uint32 value, uint32 alignment) -> uint32
         {
             return (value + alignment - 1) & ~(alignment - 1);
@@ -334,7 +344,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
             {
                 const size_t mipSize = textureDesc.GetMipByteSize(mipIndex, /* includeArrayLayers */ false);
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
                 size_t mipBlockStart = paddedMipOffsets[mipIndex];
 
                 const uint32 mipWidth = MathUtil::Max(1u, textureDesc.extent.x >> mipIndex);
@@ -358,7 +368,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
                 {
                     // layerOffset indexes into the (possibly padded) staging buffer, not imageData
                     // directly -- compare against the buffer it actually indexes into.
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
                     const size_t stagingBufferBoundsCheckSize = paddedTotalSize;
 #else
                     const size_t stagingBufferBoundsCheckSize = imageData.Size();
@@ -379,7 +389,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
                         /* dstMipIndex */ mipIndex,
                         /* dstArrayLayer */ layerIndex);
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
                     layerOffset += paddedLayerStride;
 #else
                     layerOffset += mipSize;
@@ -390,7 +400,7 @@ static RendererResult CreateGpuImage(Texture& texture, GpuImage& image, Resource
         else
         {
             // No mips, just base level
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
             cr << CopyBufferToImage(stagingBuffer, &image, /* byteOffset */ paddedMipOffsets[0], /* dstMipIndex */ 0, /* dstArrayLayer */ UINT16_MAX);
 #else
             cr << CopyBufferToImage(stagingBuffer, &image);
@@ -876,7 +886,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
     }
 }
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
 // DX12 buffer-backed copies require each subresource's rows to be padded out to
 // D3D12_TEXTURE_DATA_PITCH_ALIGNMENT, unlike Vulkan (which copies tightly packed rows
 // directly via VkBufferImageCopy::bufferRowLength = 0). These mirror the padded layout
@@ -933,7 +943,7 @@ static void UnpadDX12ReadbackData(const TextureDesc& desc, const ubyte* paddedDa
         }
     }
 }
-#endif // HYP_DX12
+#endif // HYP_PADDED_TEXTURE_COPIES
 
 void Texture::Readback(GpuBufferRef& outBuffer)
 {
@@ -949,7 +959,7 @@ void Texture::Readback(GpuBufferRef& outBuffer)
 
     const TextureDesc& desc = m_gpuImage->GetTextureDesc();
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
     const size_t readbackSize = GetDX12ReadbackSize(desc, /* allMips */ true);
 #else
     const size_t readbackSize = desc.GetByteSize(/* includeAllMips */ true);
@@ -1005,7 +1015,7 @@ void Texture::Readback(GpuBufferRef& outBuffer)
     // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
     outBuffer->Invalidate();
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
     {
         const size_t tightSize = desc.GetByteSize(/* includeAllMips */ true);
 
@@ -1021,7 +1031,7 @@ void Texture::Readback(GpuBufferRef& outBuffer)
 
         outBuffer->Copy(tightSize, tightBuffer.Data());
     }
-#endif // HYP_DX12
+#endif // HYP_PADDED_TEXTURE_COPIES
 }
 
 void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
@@ -1040,7 +1050,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
 
     const TextureDesc& desc = m_gpuImage->GetTextureDesc();
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
     const size_t readbackSize = GetDX12ReadbackSize(desc, /* allMips */ true);
 #else
     const size_t readbackSize = desc.GetByteSize(/* includeAllMips */ true);
@@ -1112,7 +1122,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
                           // GPU writes are not guaranteed to be visible to the CPU until the range is invalidated
                           payload->readbackBuffer->Invalidate();
 
-#ifdef HYP_DX12
+#ifdef HYP_PADDED_TEXTURE_COPIES
                           {
                               const TextureDesc& desc = payload->image->GetTextureDesc();
 
@@ -1136,7 +1146,7 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
                                   payload->readbackBuffer->Flush(0, tightSize);
                               }
                           }
-#endif // HYP_DX12
+#endif // HYP_PADDED_TEXTURE_COPIES
 
                           payload->callback(*payload->readbackBuffer);
 

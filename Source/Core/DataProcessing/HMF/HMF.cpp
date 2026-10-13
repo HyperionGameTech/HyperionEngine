@@ -57,7 +57,10 @@ ParseResult RunParse(
 {
     ErrorList errorList;
 
-    SourceStream sourceStream { &reader, filePath };
+    const ByteBuffer source = reader.Read();
+    MemoryByteReader sourceReader(source.ToByteView());
+
+    SourceStream sourceStream { &sourceReader, filePath };
     TokenStream tokenStream { TokenStreamInfo(filePath) };
 
     Lexer lexer(sourceStream, &tokenStream, &errorList);

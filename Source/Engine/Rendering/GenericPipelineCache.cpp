@@ -268,7 +268,15 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(Name shaderName, const Sha
         return ComputePipelineRef::Null();
     }
 
-    return RI.MakeComputePipeline(shader);
+    ComputePipelineRef pipeline = RI.MakeComputePipeline(shader);
+
+    if (pipeline.IsValid())
+    {
+        pipeline->cacheDesc.name = shaderName;
+        pipeline->cacheDesc.properties = properties;
+    }
+
+    return pipeline;
 }
 
 #pragma endregion ComputePipelineCache

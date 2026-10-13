@@ -38,6 +38,8 @@ static String GetRenderingBackendText()
     return "Vulkan";
 #elif HYP_DX12
     return "DX12";
+#elif HYP_WEBGPU
+    return "WebGPU";
 #else
     return "<unknown>";
 #endif

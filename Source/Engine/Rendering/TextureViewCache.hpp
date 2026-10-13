@@ -52,6 +52,8 @@ public:
 #include <Rendering/Vulkan/VulkanTextureViewCache.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12TextureViewCache.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUTextureViewCache.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

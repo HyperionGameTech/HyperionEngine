@@ -86,7 +86,7 @@ public:
     using Base = GenericPipelineCache<ComputePipeline>;
 
     ComputePipelineCache()
-        : Base(100)
+        : Base(3000)
     {
     }
 

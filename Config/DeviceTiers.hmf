@@ -11,10 +11,6 @@ TierProfile "DeviceTiers" {
         TierRule "Glimmer.Medium" {
             AtMost = { DeviceGrade = Medium }
             Set = {
-                "Rendering.Glimmer.SWRT.NearField.Cascades" = 2
-                "Rendering.Glimmer.SWRT.Probes.RaysPerFrame" = 16384
-                "Rendering.Glimmer.SWRT.Probes.PoolBlocks" = 192
-                "Rendering.Glimmer.SWRT.Spans.Radius" = 192
                 "Rendering.Glimmer.SWRT.Probes.Enabled" = false
             }
         }

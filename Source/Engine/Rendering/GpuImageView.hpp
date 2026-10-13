@@ -94,6 +94,8 @@ protected:
 #include <Rendering/Vulkan/VulkanGpuImageView.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12GpuImageView.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUGpuImageView.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

@@ -35,6 +35,8 @@ public:
 #include <Rendering/Vulkan/VulkanDevice.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12Device.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUDevice.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

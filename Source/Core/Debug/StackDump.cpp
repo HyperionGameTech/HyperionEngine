@@ -15,7 +15,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <DbgHelp.h>
-#elif HYP_UNIX && !HYP_ANDROID
+#elif HYP_UNIX && !HYP_ANDROID && !HYP_WEB
 #include <execinfo.h>
 #endif
 
@@ -89,7 +89,7 @@ struct StackDump::Impl
         }
 
         SymCleanup(process);
-#elif HYP_UNIX && !HYP_ANDROID
+#elif HYP_UNIX && !HYP_ANDROID && !HYP_WEB
         if (rawFrames.Any())
         {
             char** strings = backtrace_symbols(rawFrames.Data(), int(rawFrames.Size()));
@@ -157,7 +157,7 @@ static void CaptureRawStackFrames(Array<void*>& rawFrames, uint32 depth, uint32 
     }
 
     SymCleanup(process);
-#elif HYP_UNIX && !HYP_ANDROID
+#elif HYP_UNIX && !HYP_ANDROID && !HYP_WEB
     offset += 2;
 
     void** stack = (void**)malloc((depth + offset) * sizeof(void*));

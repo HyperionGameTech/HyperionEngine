@@ -9,6 +9,7 @@
 #include <Rendering/Pass.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Glimmer/GlimmerTechnique.hpp>
+#include <Rendering/Glimmer/GlimmerChannel.hpp>
 
 #include <Core/Memory/UniquePtr.hpp>
 #include <Core/Memory/SharedPtr.hpp>
@@ -52,6 +53,11 @@ public:
     World* world = nullptr;
     BoundingBox region;
     uint32 lastUpdatedFrame = ~0u;
+
+    bool isWarmingUp = false;
+
+    Array<GlimmerGroundUpload> groundUploads;
+    uint32 groundUploadGeneration = 0;
 };
 
 HYP_CLASS(NoScriptBindings)

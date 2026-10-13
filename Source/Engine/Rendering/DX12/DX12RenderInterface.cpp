@@ -67,6 +67,7 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern CVar<bool> g_cvIndirectRendering;
 extern CVar<bool> g_cvParallelRendering;
+extern CVar<bool> g_cvBindlessTextures;
 
 extern EngineStatGpuTimer g_statGpuFrameTime;
 
@@ -104,7 +105,7 @@ public:
         {
             // We only use bindless for SRVs (textures, buffers) -- we currently aren't using bindless for UAVs or CBVs.
             // Tier 2 resource binding support provides full heap access for SRVs.
-            bindlessTextures = (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2);
+            bindlessTextures = g_cvBindlessTextures.Get() && (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2);
         }
     }
 

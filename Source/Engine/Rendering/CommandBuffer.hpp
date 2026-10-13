@@ -77,6 +77,8 @@ protected:
 #include <Rendering/Vulkan/VulkanCommandBuffer.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12CommandBuffer.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUCommandBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

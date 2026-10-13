@@ -445,7 +445,7 @@ void EvaluateEnvProbes(
     }
 
     // DEBUG
-    reflections = any(isnan(reflections)) ? (float4) 0 : reflections;
+    reflections = any(HYP_ISNAN(reflections)) ? (float4) 0 : reflections;
 }
 
 #endif // CLUSTERED_SHADING_HLSLI

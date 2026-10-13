@@ -114,7 +114,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float4 albedo = SAMPLE_TEXTURE_CUBE_LOD(sampler_linear, cubemap_color, dir, 0.0);
 
-    if (any(isnan(albedo)) || any(isinf(albedo)))
+    if (any(HYP_ISNAN(albedo)) || any(HYP_ISINF(albedo)))
     {
         albedo = float4(0.0, 0.0, 0.0, 1.0);
     }

@@ -168,7 +168,7 @@ PSOutput PSMain(PSInput input)
 
             float3 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, saturate(hitUV), mip_level).rgb;
 
-            const bool is_valid_sample = !any(isnan(current_reflection_sample));
+            const bool is_valid_sample = !any(HYP_ISNAN(current_reflection_sample));
             current_reflection_sample = is_valid_sample ? current_reflection_sample : float3(0.0, 0.0, 0.0);
 
             const float weight = is_valid_sample ? min(gloss_multiplier, remaining_weight) : 0.0;

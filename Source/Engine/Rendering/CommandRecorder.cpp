@@ -62,7 +62,7 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out);
 #pragma region TCommandRecorder
 
 template <>
-void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
+void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer, bool keepCommands, bool skipCustomCommands)
 {
     AssertDebug(commandBuffer != nullptr);
 
@@ -364,7 +364,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
                     dstSubResource.numLayers = dstDesc.NumArrayLayers();
                 }
 
-#ifdef HYP_VULKAN
+#if defined(HYP_VULKAN) || defined(HYP_WEBGPU)
                 src->GetGpuImage()->InsertBarrier(commandBuffer, srcSubResource, ResourceState::CopySrc, ShaderModuleType::None);
                 dst->GetGpuImage()->InsertBarrier(commandBuffer, dstSubResource, ResourceState::CopyDst, ShaderModuleType::None);
 
@@ -596,7 +596,7 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
                 Texture* inTexture = cmd->inTexture;
 
-#ifdef HYP_VULKAN
+#if defined(HYP_VULKAN) || defined(HYP_WEBGPU)
                 inTexture->GetGpuImage()->GenerateMipmaps(commandBuffer);
 #else
                 const TextureDesc& desc = inTexture->GetTextureDesc();
@@ -1247,11 +1247,21 @@ void TCommandRecorder<RenderAllocator>::Execute(CommandBuffer* commandBuffer)
 
             i++;
 
+            if (skipCustomCommands)
+            {
+                continue;
+            }
+
             InvokeCmdFnPtr fnPtr = reinterpret_cast<InvokeCmdFnPtr>(m_headersPtr[i].address);
             fnPtr(cmdDataPtr, commandBuffer);
 
             continue;
         }
+    }
+
+    if (keepCommands)
+    {
+        return;
     }
 
     m_headerCount = 0;

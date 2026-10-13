@@ -190,7 +190,9 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
     float minStepSize;
     uint maxSteps;
     uint frameCounter;
-    uint3 _tailPad;
+    uint _tailPad0;
+    uint _tailPad1;
+    uint _tailPad2;
 
     EnvProbe skyProbe;
     GlimmerApply glimmer;
@@ -238,7 +240,9 @@ DECLARE_BUFFER_DYNAMIC(FogVolume, FogVolumeConstants) cbuffer FogVolumeConstants
     float minStepSize;
     uint maxSteps;
     uint frameCounter;
-    uint3 _tailPad;
+    uint _tailPad0;
+    uint _tailPad1;
+    uint _tailPad2;
 
     EnvProbe skyProbe;
     GlimmerApply glimmer;

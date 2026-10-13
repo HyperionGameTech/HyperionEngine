@@ -40,6 +40,15 @@ using RHIAllocator = DX12Allocator;
 
 #define g_rhiPool g_dx12Pool
 
+#elif defined(HYP_WEBGPU)
+
+ENGINE_API extern Pool* g_webgpuPool;
+using WebGPUAllocator = AllocatorInstance<Pool, &g_webgpuPool>;
+
+using RHIAllocator = WebGPUAllocator;
+
+#define g_rhiPool g_webgpuPool
+
 #endif
 
 } // namespace Hyperion

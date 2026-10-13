@@ -20,7 +20,8 @@ using uint8 = unsigned char;
 using uint16 = unsigned short;
 using uint32 = unsigned int;
 
-#if HYP_WINDOWS
+// long is 32 bits on Windows and on wasm32
+#if HYP_WINDOWS || HYP_WEB
 using uint64 = unsigned long long;
 #else
 using uint64 = unsigned long;
@@ -30,7 +31,7 @@ using int8 = signed char;
 using int16 = short;
 using int32 = int;
 
-#if HYP_WINDOWS
+#if HYP_WINDOWS || HYP_WEB
 using int64 = long long;
 #else
 using int64 = long;

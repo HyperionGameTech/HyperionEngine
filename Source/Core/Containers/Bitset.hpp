@@ -36,7 +36,40 @@ public:
     static constexpr uint32 NumBitsPerBlock = sizeof(BlockType) * CHAR_BIT;
     static constexpr uint32 NumBitsPerBlockLog2 = MathUtil::FastLog2(NumBitsPerBlock);
 
-    static constexpr BitIndex NotFound = BitIndex(-1);
+    struct NotFoundImpl final
+    {
+        template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+        constexpr operator T() const
+        {
+            return T(-1);
+        }
+
+        template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+        friend constexpr bool operator==(T lhs, NotFoundImpl)
+        {
+            return lhs == T(-1);
+        }
+
+        template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+        friend constexpr bool operator==(NotFoundImpl, T rhs)
+        {
+            return rhs == T(-1);
+        }
+
+        template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+        friend constexpr bool operator!=(T lhs, NotFoundImpl)
+        {
+            return lhs != T(-1);
+        }
+
+        template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+        friend constexpr bool operator!=(NotFoundImpl, T rhs)
+        {
+            return rhs != T(-1);
+        }
+    };
+
+    static constexpr NotFoundImpl NotFound = NotFoundImpl();
 
     HYP_FORCE_INLINE static constexpr uint64 GetBitMask(BitIndex bit)
     {

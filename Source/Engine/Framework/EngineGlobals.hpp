@@ -48,6 +48,8 @@ using filesystem::FilePath;
 class VulkanRenderInterface;
 #elif HYP_DX12
 class DX12RenderInterface;
+#elif HYP_WEBGPU
+class WebGPURenderInterface;
 #endif
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -146,7 +148,9 @@ extern Game* g_gameInstance;
 extern VulkanRenderInterface RI;
 #elif HYP_DX12
 extern DX12RenderInterface RI;
-#endif // HYP_VULKAN || HYP_DX12
+#elif HYP_WEBGPU
+extern WebGPURenderInterface RI;
+#endif // HYP_VULKAN || HYP_DX12 || HYP_WEBGPU
 
 #endif // HYPERION_ENGINE
 

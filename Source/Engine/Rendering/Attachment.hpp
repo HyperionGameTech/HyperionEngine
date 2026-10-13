@@ -134,6 +134,8 @@ protected:
 #include <Rendering/Vulkan/VulkanAttachment.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12Attachment.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUAttachment.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

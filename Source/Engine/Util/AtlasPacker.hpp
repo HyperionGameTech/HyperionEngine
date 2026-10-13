@@ -109,7 +109,7 @@ bool AtlasPacker<AtlasElement>::AddElement(
 
         if (bestIndex != -1)
         {
-            size_t freeIndex = freeElementSlots.FirstSetBitIndex();
+            const Bitset::BitIndex freeIndex = freeElementSlots.FirstSetBitIndex();
             if (freeIndex != Bitset::NotFound)
             {
                 // take the free slot, set it to zero now that we're using it.

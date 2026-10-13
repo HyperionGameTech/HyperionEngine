@@ -49,17 +49,17 @@ public:
             s_definitions.Add(
                 "platform",
                 "p",
-                "Target platforms to compile for (comma-separated: windows,mac,linux,android,ios)", // @TODO add 'all'
+                "Target platforms to compile for (comma-separated: windows,mac,linux,android,ios,web)", // @TODO add 'all'
                 CommandLineArgumentFlags::ALLOW_MULTIPLE,
-                Array<String> { "windows", "mac", "linux", "android", "ios" },
+                Array<String> { "windows", "mac", "linux", "android", "ios", "web" },
                 JSON::Value("windows,mac,linux,android,ios"));
 
             s_definitions.Add(
                 "api",
                 "a",
-                "Target rendering backends to compile for (comma-separated: vulkan,dx12)", // @TODO add 'all'
+                "Target rendering backends to compile for (comma-separated: vulkan,dx12,webgpu)", // @TODO add 'all'
                 CommandLineArgumentFlags::ALLOW_MULTIPLE,
-                Array<String> { "vulkan", "dx12" },
+                Array<String> { "vulkan", "dx12", "webgpu" },
                 JSON::Value("vulkan,dx12"));
 
             s_definitions.Add(
@@ -119,6 +119,8 @@ protected:
                 platformFlags |= ShaderCompileTargetPlatform::Android;
             else if (platform == "ios")
                 platformFlags |= ShaderCompileTargetPlatform::IOS;
+            else if (platform == "web")
+                platformFlags |= ShaderCompileTargetPlatform::Web;
         }
 
         if (platformFlags != ShaderCompileTargetPlatform::None)
@@ -140,6 +142,8 @@ protected:
                 backendFlags |= ShaderCompileTargetBackend::Vulkan;
             else if (backend == "dx12")
                 backendFlags |= ShaderCompileTargetBackend::DX12;
+            else if (backend == "webgpu")
+                backendFlags |= ShaderCompileTargetBackend::WebGPU;
         }
 
         if (backendFlags != ShaderCompileTargetBackend::None)

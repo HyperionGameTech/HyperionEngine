@@ -9,6 +9,7 @@
 #include <Core/Defines.hpp>
 
 #include <Rendering/RenderTypes.hpp>
+#include <Rendering/Shared.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
@@ -68,6 +69,8 @@ public:
 
     uint32 lastFrame = uint32(-1);
 
+    ShaderDesc cacheDesc;
+
 protected:
     ComputePipelineBase() = default;
 
@@ -92,6 +95,8 @@ protected:
 #include <Rendering/Vulkan/VulkanComputePipeline.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12ComputePipeline.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUComputePipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

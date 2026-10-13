@@ -72,6 +72,14 @@ namespace Hyperion
     using GpuTimerBackend = DX12GpuTimerBackend;
 } // namespace Hyperion
 
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUGpuTimerBackend.hpp>
+
+namespace Hyperion
+{
+    using GpuTimerBackend = WebGPUGpuTimerBackend;
+} // namespace Hyperion
+
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

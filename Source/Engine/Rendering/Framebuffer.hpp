@@ -107,6 +107,8 @@ protected:
 #include <Rendering/Vulkan/VulkanFramebuffer.hpp>
 #elif HYP_DX12
 #include <Rendering/DX12/DX12Framebuffer.hpp>
+#elif HYP_WEBGPU
+#include <Rendering/WebGPU/WebGPUFramebuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

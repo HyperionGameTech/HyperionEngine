@@ -1,0 +1,9 @@
+{
+  "App": {
+    "Name": "DefaultGame",
+    "Args": "--resx=1280 --resy=720 --profile=false"
+  },
+  "Logging": {
+    "Verbose": false
+  }
+}

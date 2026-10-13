@@ -126,10 +126,14 @@ static void InvokeManagedHook(Game* game, ANSIStringView methodName, Args&&... a
 
 bool Game::IsManagedGame() const
 {
+#ifdef HYP_DOTNET
     ScriptObjectResource* scriptObjectResource = GetScriptObjectResource();
 
     return scriptObjectResource != nullptr
         && (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)));
+#else
+    return false;
+#endif
 }
 
 ScriptableDelegate<void> Game::OnLaunched;

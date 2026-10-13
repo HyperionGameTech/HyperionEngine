@@ -47,21 +47,21 @@ static const float2 s_pcfKernel[16] = {
     float2(0.14383161, -0.14100790)
 };
 
-#ifdef VULKAN
+#if defined(VULKAN) || defined(WEBGPU)
 static const float4x4 s_shadowBiasMatrix = float4x4(
     0.5, 0.0, 0.0, 0.5,
     0.0, -0.5, 0.0, 0.5,
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 );
-#else // !VULKAN
+#else // DX12
 static const float4x4 s_shadowBiasMatrix = float4x4(
     0.5, 0.0, 0.0, 0.0,
     0.0, -0.5, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
     0.5, 0.5, 0.0, 1.0
 );
-#endif // VULKAN
+#endif // VULKAN || WEBGPU
 
 float3 GetShadowCoord(in float4x4 shadowMatrix, float3 pos)
 {
@@ -135,7 +135,12 @@ float GetShadowCSM(in float4 shadowMapCoord, // w = slice
     float bias = HYP_SHADOW_BIAS;
 
     const float2 uv = (clamp(shadowMapCoord.xy, HYP_SHADOW_ATLAS_EDGE_BIAS, 1.0 - HYP_SHADOW_ATLAS_EDGE_BIAS) * atlasScale) + atlasUV;
+#if defined(BACKEND_WEBGPU) && defined(HYP_SAMPLER_NEAREST)
+    // WebGPU has no filtered reads of a depth texture
+    const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_NEAREST, shadow_maps, float3(uv, layerIndex), 0);
+#else
     const float4 shadow_sample = SAMPLE_TEXTURE_2D_ARRAY_LOD(HYP_SAMPLER_LINEAR, shadow_maps, float3(uv, layerIndex), 0);
+#endif
     const float shadow_depth = shadow_sample.r;
 
     return max(step(shadowMapCoord.z - bias, shadow_depth), 0.0);

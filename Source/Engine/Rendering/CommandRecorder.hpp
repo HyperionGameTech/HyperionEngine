@@ -6,9 +6,9 @@
 
 #pragma once
 
-#if !HYP_VULKAN && !HYP_DX12
+#if !HYP_VULKAN && !HYP_DX12 && !HYP_WEBGPU
 #error Rendering backend undefined
-#endif // !HYP_VULKAN && !HYP_DX12
+#endif // !HYP_VULKAN && !HYP_DX12 && !HYP_WEBGPU
 
 #include <Rendering/Framebuffer.hpp>
 #include <Rendering/CommandBuffer.hpp>
@@ -1452,7 +1452,9 @@ public:
         return *this;
     }
 
-    void Execute(CommandBuffer* commandBuffer);
+    /// \param keepCommands leaves the commands in place, so they can be executed again
+    /// \param skipCustomCommands leaves out the custom commands, which are not safe to run twice
+    void Execute(CommandBuffer* commandBuffer, bool keepCommands = false, bool skipCustomCommands = false);
 
     void Submit();
 

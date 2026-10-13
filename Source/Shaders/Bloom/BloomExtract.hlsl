@@ -73,11 +73,13 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float contribution = (knee > 0.0f) ? (0.25f * b * b / knee) : max(0.0f, luminance - bloomConstants.threshold);
     contribution = max(contribution, luminance - bloomConstants.threshold);
 
-    out_image[coord] = color * (contribution / max(luminance, 1e-5f)) * bloomConstants.intensity;
-    
+    float4 extracted = color * (contribution / max(luminance, 1e-5f)) * bloomConstants.intensity;
+
     // YUCKY YUCKY YUCK! nans showing up! TODO: track down root cause and fix instead of this band-aid
-    if (any(isnan(out_image[coord])))
+    if (any(HYP_ISNAN(extracted)))
     {
-        out_image[coord] = float4(0.0f, 0.0f, 0.0f, 0.0f);
+        extracted = float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
+
+    out_image[coord] = extracted;
 }

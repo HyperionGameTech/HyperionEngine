@@ -6,6 +6,9 @@
 
 #include <HyperionPch.hpp>
 
+// a host tool: it watches directories and serves blobs over sockets, neither of which a browser has
+#if !HYP_WEB
+
 #include <Framework/Commandlet/Commandlet.hpp>
 
 #include <Framework/EngineGlobals.hpp>
@@ -1782,3 +1785,5 @@ HYP_END_CLASS
 HYP_REGISTER_STATIC_CLASS(CacheServerCommandlet);
 
 } // namespace Hyperion
+
+#endif // !HYP_WEB

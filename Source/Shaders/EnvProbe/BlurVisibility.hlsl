@@ -42,8 +42,12 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupThreadID : 
     const bool is_even_x = (groupThreadID.x & 1) == 0;
     const bool is_even_y = (groupThreadID.y & 1) == 0;
 
-    const float3 D_neighbor_x = QuadReadAcrossX(D);
-    const float3 D_neighbor_y = QuadReadAcrossY(D);
+    // Direction of the other texel in this 2x2 quad on each axis
+    const float2 uv_neighbor_x = (float2(dispatchThreadID.xy ^ uint2(1, 0)) + 0.5) / float2(dimensions);
+    const float2 uv_neighbor_y = (float2(dispatchThreadID.xy ^ uint2(0, 1)) + 0.5) / float2(dimensions);
+
+    const float3 D_neighbor_x = GetCubemapCoord(face, uv_neighbor_x);
+    const float3 D_neighbor_y = GetCubemapCoord(face, uv_neighbor_y);
 
     const float3 dDdx = is_even_x ? (D_neighbor_x - D) : (D - D_neighbor_x);
     const float3 dDdy = is_even_y ? (D_neighbor_y - D) : (D - D_neighbor_y);

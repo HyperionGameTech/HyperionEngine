@@ -58,11 +58,6 @@ inline bool ReadShaderPropertyDictionary(ByteReader& stream)
     return ShaderPropertyDictionary::GetInstance().Read(stream);
 }
 
-inline ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
-{
-    return ShaderPropertyDictionary::GetInstance().Intern(property);
-}
-
 inline bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty)
 {
     return ShaderPropertyDictionary::GetInstance().GetById(propertyId, outProperty);
