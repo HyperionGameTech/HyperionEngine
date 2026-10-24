@@ -1352,9 +1352,11 @@ void EntityManager::AddComponent_Internal(Entity* entity, const ComponentInterfa
             return;
         }
 
-        HYP_LOG(Entity, Error, "Cannot add duplicate component of type '{}' to entity {}", *GetComponentTypeName(componentTypeId), entity->GetName());
+        // Replace the existing component
+        RemoveComponent(componentTypeId, entity);
 
-        return;
+        entityData = m_entities.TryGetEntityData(entity);
+        Assert(entityData != nullptr, "Entity with id {} does not exist", entity->Id());
     }
 
     ComponentContainer* container = GetOrCreateContainer(componentInterface);

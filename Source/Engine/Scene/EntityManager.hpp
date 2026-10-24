@@ -534,9 +534,14 @@ public:
         Component* componentPtr = nullptr;
         ComponentMap componentIds;
 
-        auto componentIt = entityData->FindComponent<Component>();
-        /// \todo : Replace the component if it already exists
-        Assert(componentIt == entityData->components.End(), "Entity already has component of type {}", TypeNameWithoutNamespace<Component>().Data());
+        if (entityData->FindComponent<Component>() != entityData->components.End())
+        {
+            // Replace the existing component
+            RemoveComponent<Component>(entity);
+
+            entityData = m_entities.TryGetEntityData(entity);
+            Assert(entityData != nullptr);
+        }
 
         static constexpr TypeId ComponentTypeId = TypeId::ForType<Component>();
 
