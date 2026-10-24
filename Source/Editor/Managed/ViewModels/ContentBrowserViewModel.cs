@@ -18,6 +18,8 @@ namespace Hyperion.Editor.ViewModels
 {
     public sealed record AssetCreationEntry(string Header, ICommand Command, bool IsUserDefined = false);
 
+    internal sealed record CreatableAssetType(string Name, bool IsUserDefined, IReadOnlyList<ClassPickerEntry>? PickerEntries);
+
     public enum AssetSortMode
     {
         Name,
@@ -77,7 +79,6 @@ namespace Hyperion.Editor.ViewModels
         {
             new(nameof(ScriptAsset), (ContentBrowserViewModel vm) => vm.NewScriptCommand),
             new(nameof(Weapon), (ContentBrowserViewModel vm) => vm.NewWeaponCommand),
-            new(nameof(PhysicsShape), (ContentBrowserViewModel vm) => vm.NewPhysicsShapeCommand),
             new(nameof(World), (ContentBrowserViewModel vm) => vm.NewWorldCommand)
         };
 
@@ -190,7 +191,6 @@ namespace Hyperion.Editor.ViewModels
         public ICommand NewScriptCommand { get; }
         public ICommand NewWeaponCommand { get; }
         public ICommand NewDecalCommand { get; }
-        public ICommand NewPhysicsShapeCommand { get; }
         public ICommand NewWorldCommand { get; }
 
         public ICommand OpenWorldCommand { get; }
@@ -245,7 +245,6 @@ namespace Hyperion.Editor.ViewModels
             (NewScriptCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewWeaponCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewDecalCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (NewPhysicsShapeCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewWorldCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewFolderCommand as RelayCommand<AssetFolderViewModel>)?.RaiseCanExecuteChanged();
         }
@@ -376,28 +375,6 @@ namespace Hyperion.Editor.ViewModels
             }, () => CanCreateAssets);
 
             NewDecalCommand = new RelayCommand(() => CreateAssetOfClass("Decal"), () => CanCreateAssets);
-
-            NewPhysicsShapeCommand = new RelayCommand(() =>
-            {
-                var panel = new NewPhysicsShapePanelViewModel(shape =>
-                {
-                    if (shape == null)
-                    {
-                        Logger.Log(LogLevel.Warning, "Physics shape creation cancelled.");
-                        return;
-                    }
-
-                    CreateInCurrentFolder("physics shape", AssetBucket.PhysicsShapes.Value, openEditor: false, () =>
-                    {
-                        AssetRegistry? registry = EngineManager.EditorGame?.AssetRegistry;
-                        Debug.Assert(registry != null);
-
-                        registry.PutAssetUnique(shape);
-                    });
-                });
-
-                PanelService.Instance.OpenPanel(panel);
-            }, () => CanCreateAssets);
 
             NewWorldCommand = new RelayCommand(() =>
             {
@@ -1147,7 +1124,7 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            List<(string Name, bool IsUserDefined)> classes = await EngineManager.PostToSimThread<List<(string Name, bool IsUserDefined)>>(BuildCreatableAssetClasses);
+            List<CreatableAssetType> types = await EngineManager.PostToSimThread<List<CreatableAssetType>>(BuildCreatableAssetTypes);
 
             List<AssetCreationEntry> entries = new();
             foreach (var kvp in DedicatedCreatorTypes)
@@ -1155,9 +1132,13 @@ namespace Hyperion.Editor.ViewModels
                 entries.Add(new AssetCreationEntry(kvp.Key, kvp.Value(this)));
             }
 
-            foreach ((string className, bool isUserDefined) in classes)
+            foreach (CreatableAssetType type in types)
             {
-                entries.Add(new AssetCreationEntry(className, new RelayCommand(() => CreateAssetOfClass(className), () => CanCreateAssets), isUserDefined));
+                ICommand command = type.PickerEntries is { } pickerEntries
+                    ? new RelayCommand(() => OpenAssetTypePicker(pickerEntries), () => CanCreateAssets)
+                    : new RelayCommand(() => CreateAssetOfClass(type.Name), () => CanCreateAssets);
+
+                entries.Add(new AssetCreationEntry(type.Name, command, type.IsUserDefined));
             }
 
             // Engine types first, then UDT
@@ -1167,7 +1148,7 @@ namespace Hyperion.Editor.ViewModels
                 .ToList();
         }
 
-        private static List<(string Name, bool IsUserDefined)> BuildCreatableAssetClasses()
+        private static List<CreatableAssetType> BuildCreatableAssetTypes()
         {
             Class? assetClass = Class.TryGetClass<AssetObject>();
 
@@ -1195,21 +1176,105 @@ namespace Hyperion.Editor.ViewModels
                 }
             }
 
-            List<(string Name, bool IsUserDefined)> classes = new();
+            HashSet<string> pickerNames = new(StringComparer.Ordinal);
+            List<CreatableAssetType> types = new();
 
             foreach (ClassPickerEntry entry in ClassPickerEntries.BuildDerived(assetClass.Value.TypeId))
             {
                 if (dedicatedNames.Contains(entry.Name)
-                    || Class.TryGetClass(entry.Name) is not { } cls
-                    || !ClassPickerEntries.CanCreateAssetForType(cls))
+                    || pickerNames.Contains(entry.Name)
+                    || Class.TryGetClass(entry.Name) is not { } cls)
                 {
                     continue;
                 }
 
-                classes.Add((entry.Name, cls.IsUserDefined));
+                if (entry.IsAbstract)
+                {
+                    IReadOnlyList<ClassPickerEntry> pickerEntries = ClassPickerEntries.BuildCreatableEntries(cls);
+
+                    if (!pickerEntries.Any(pickerEntry => !pickerEntry.IsAbstract))
+                    {
+                        continue;
+                    }
+
+                    types.Add(new CreatableAssetType(entry.Name, cls.IsUserDefined, pickerEntries));
+
+                    foreach (ClassPickerEntry pickerEntry in pickerEntries)
+                    {
+                        pickerNames.Add(pickerEntry.Name);
+                    }
+
+                    continue;
+                }
+
+                if (ClassPickerEntries.CanCreateAssetForType(cls))
+                {
+                    types.Add(new CreatableAssetType(entry.Name, cls.IsUserDefined, null));
+                }
             }
 
-            return classes;
+            return types;
+        }
+
+        private void OpenAssetTypePicker(IReadOnlyList<ClassPickerEntry> entries)
+        {
+            try
+            {
+                string folderPath = _currentFolder.Path;
+
+                PanelService.Instance.OpenPanel(new NewAssetPanelViewModel(entries, CreatePendingAsset, asset =>
+                {
+                    if (asset == null)
+                    {
+                        return;
+                    }
+
+                    _ = EngineManager.PostToSimThread(() => CommitPendingAsset(asset, folderPath));
+                }));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogLevel.Error, $"Failed to open the new asset panel: {ex}");
+            }
+        }
+
+        private static AssetObject? CreatePendingAsset(string className)
+        {
+            if (!NativeBindings.Hyp_CreateInstanceOfClass(className, out BoxedValueInternal result))
+            {
+                Logger.Log(LogLevel.Warning, $"Failed to create instance of class '{className}'");
+                return null;
+            }
+
+            using BoxedValue boxed = BoxedValue.FromBuffer(result);
+
+            return boxed.GetValue() as AssetObject;
+        }
+
+        private void CommitPendingAsset(AssetObject asset, string folderPath)
+        {
+            if (!CanCreateAssetsOnSimThread(asset.Class.Name.ToString()))
+            {
+                return;
+            }
+
+            AssetRegistry registry = AssetManager.Instance.AssetRegistry;
+            registry.PutAssetUnique(asset);
+
+            if (!asset.IsRegistered())
+            {
+                Logger.Log(LogLevel.Warning, $"New '{asset.Class.Name}' could not be added to the asset registry");
+                return;
+            }
+
+            uint bucketIndex = asset.Path.BucketIndex;
+            Name assetName = asset.Name;
+
+            EngineManager.CurrentProject?.AssetFolders?.SetAssetFolderOf(bucketIndex, assetName, folderPath);
+            NotifyAssetsChanged();
+
+            string focusName = assetName.ToString();
+            Dispatcher.UIThread.Post(() => FocusAsset(bucketIndex, focusName, beginRename: true));
         }
 
         private void CreateAssetOfClass(string className)

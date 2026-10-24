@@ -11,9 +11,6 @@
     RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
-        <DataTemplate DataType="vm:NewPhysicsShapePanelViewModel">
-            <panels:NewPhysicsShapePanelView />
-        </DataTemplate>
         <DataTemplate DataType="vm:NewAssetPanelViewModel">
             <panels:NewAssetPanelView />
         </DataTemplate>

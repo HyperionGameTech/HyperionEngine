@@ -54,27 +54,36 @@ struct GroundCoverLayer
 {
     HYP_STRUCT_BODY(GroundCoverLayer);
 
-    /// painted layers are stored under this in the terrain's cells, and listed by name in the paint tool
     HYP_FIELD(Property = "Name", Serialize, Editor)
     Name name;
 
     HYP_FIELD(Property = "Source", Serialize, Editor)
     GroundCoverSource source = GroundCoverSource::SplatLayer;
 
-    /// the terrain splat layer whose weight decides where this grows - 0 grass, 1 rock, 2 dirt, 3 snow
-    HYP_FIELD(Property = "SplatLayer", Serialize, Editor)
+    /// the terrain splat layer - weight decides where this grows.
+    HYP_FIELD(Property = "SplatLayer", Serialize, Editor, Condition = "IsFromSplatLayer")
     uint32 splatLayer = 0;
 
-    /// patches per footprint where the splat weight is full
     HYP_FIELD(Property = "Density", Serialize, Editor)
     float density = 1.0f;
 
-    /// world units across the drifts that one type grows in
     HYP_FIELD(Property = "ClumpSize", Serialize, Editor)
     float clumpSize = 12.0f;
 
     HYP_FIELD(Property = "Types", Serialize, Editor)
     Array<GroundCoverType> types;
+
+    HYP_METHOD(NoScriptBindings)
+    bool IsFromSplatLayer() const
+    {
+        return source == GroundCoverSource::SplatLayer;
+    }
+
+    HYP_METHOD()
+    bool IsFromPainted() const
+    {
+        return source == GroundCoverSource::Painted;
+    }
 };
 
 HYP_CLASS(AssetBucket = "Terrain")

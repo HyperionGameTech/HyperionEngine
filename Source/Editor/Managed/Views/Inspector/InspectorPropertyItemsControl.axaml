@@ -255,6 +255,7 @@
                                     <DockPanel LastChildFill="True" Margin="0,1,0,1">
                                         <Button
                                             DockPanel.Dock="Right"
+                                            VerticalAlignment="Top"
                                             Padding="4,1"
                                             FontSize="10"
                                             Content="✕"

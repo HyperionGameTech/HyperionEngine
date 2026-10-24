@@ -31,15 +31,31 @@ namespace Hyperion.Editor
 
         private static void OnUIThreadUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            Logger.Log(LogLevel.Error, "Unhandled exception on the UI thread:\n\n{0}", e.Exception);
+            string messageText = string.Format("Unhandled exception on the UI thread:\n\n{0}", e.Exception);
+
+            Logger.Log(LogLevel.Error, messageText);
+
+            MessageBox.Critical()
+                .Title("Uncaught Exception")
+                .Text(messageText)
+                .Button("OK", () => { })
+                .Show();
 
             e.Handled = true;
         }
 
         private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
-            Logger.Log(LogLevel.Error, "Unobserved task exception:\n\n{0}", e.Exception);
+            string messageText = string.Format("Unobserved task exception:\n\n{0}", e.Exception);
 
+            Logger.Log(LogLevel.Error, messageText);
+
+            MessageBox.Critical()
+                .Title("Unobserved task exception")
+                .Text(messageText)
+                .Button("OK", () => { })
+                .Show();
+                
             e.SetObserved();
         }
 

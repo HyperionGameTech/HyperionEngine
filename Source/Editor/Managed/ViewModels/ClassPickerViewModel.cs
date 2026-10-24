@@ -19,9 +19,7 @@ namespace Hyperion.Editor.ViewModels
             "Prefab",
             "World",
             "Scene",
-            "Weapon",
             "GroundCover",
-            "RawDataAsset",
             "BoxPhysicsShape",
             "SpherePhysicsShape",
             "PlanePhysicsShape",
@@ -73,7 +71,7 @@ namespace Hyperion.Editor.ViewModels
                 siblings.Add(name);
             }
 
-            List<ClassPickerEntry> entries = new List<ClassPickerEntry>();
+            List<ClassPickerEntry> entries = new();
 
             if (baseName == null)
             {
@@ -132,6 +130,22 @@ namespace Hyperion.Editor.ViewModels
 
             return assetClass.IsUserDefined || CreatableEngineAssetTypeNames.Contains(className);
         }
+
+        public static IReadOnlyList<ClassPickerEntry> BuildCreatableEntries(Class expected)
+        {
+            if (!expected.IsAbstract)
+            {
+                // @TODO: should it still show derived types?
+                return CanCreateAssetForType(expected)
+                    ? [new ClassPickerEntry(expected.Name.ToString(), 0, false)]
+                    : [];
+            }
+
+            return BuildDerived(expected.TypeId)
+                .Where(entry => entry.IsAbstract
+                    || (Class.TryGetClass(entry.Name) is { } cls && CanCreateAssetForType(cls)))
+                .ToList();
+        }
     }
 
     public class ClassPickerItemViewModel
@@ -146,7 +160,13 @@ namespace Hyperion.Editor.ViewModels
         public string MatchText { get; }
         public string MatchAfter { get; }
 
-        public ClassPickerItemViewModel(string? className, int depth, bool isSelectable, bool isCurrent, int matchStart = 0, int matchLength = 0)
+        public ClassPickerItemViewModel(
+            string? className,
+            int depth,
+            bool isSelectable,
+            bool isCurrent,
+            int matchStart = 0,
+            int matchLength = 0)
         {
             ClassName = className;
             IsSelectable = isSelectable;

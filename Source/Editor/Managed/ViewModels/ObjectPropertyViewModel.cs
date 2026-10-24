@@ -17,7 +17,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public class ObjectPropertyViewModel : InspectorPropertyViewModelBase
     {
-        private const int MaxDepth = 4;
+        private const int MaxDepth = 8;
 
         private readonly int _depth;
         private readonly bool _isAssetObjectType;
@@ -297,17 +297,7 @@ namespace Hyperion.Editor.ViewModels
                 return [];
             }
 
-            if (!expected.IsAbstract)
-            {
-                return ClassPickerEntries.CanCreateAssetForType(expected)
-                    ? [new ClassPickerEntry(expected.Name.ToString(), 0, false)]
-                    : [];
-            }
-
-            return ClassPickerEntries.BuildDerived(expected.TypeId)
-                .Where(entry => entry.IsAbstract
-                    || (Class.TryGetClass(entry.Name) is { } cls && ClassPickerEntries.CanCreateAssetForType(cls)))
-                .ToList();
+            return ClassPickerEntries.BuildCreatableEntries(expected);
         }
 
         private static bool IsAssetObjectClass(Class? propertyClass)

@@ -10,7 +10,7 @@ namespace Hyperion.Editor.ViewModels
 {
     public class StructPropertyViewModel : InspectorPropertyViewModelBase
     {
-        private const int MaxDepth = 4;
+        private const int MaxDepth = 8;
 
         private readonly int _depth;
         private readonly Class _structClass;
