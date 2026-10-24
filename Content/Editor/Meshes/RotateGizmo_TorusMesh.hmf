@@ -1,8 +1,28 @@
-Mesh "RotateGizmo_TorusMesh" {
+Mesh RotateGizmo_TorusMesh {
     AABB = {
-        Min = (-0.83, -0.03, -0.83)
-        Max = (0.83, 0.03, 0.83)
+        Min = (-0.8299999, -0.029999997, -0.8299999)
+        Max = (0.8299999, 0.029999997, 0.8299999)
     }
+    LodGeneration = {
+        NumLods = 4
+        TriangleRatios = [
+            1
+            0.5
+            0.25
+            0.125
+        ]
+        MaxRelativeError = 1
+        NormalWeight = 0.5
+        UV0Weight = 1
+        UV1Weight = 0.5
+        WindWeight = 1
+        LockBorder = false
+        Prune = false
+        MaxScreenErrorPixels = 1
+        SourceDataHash = 0
+    }
+    LightmapUVDataHash = 0
+    Lod0DataRevision = 1
     MeshDesc = {
         MeshAttributes = {
             InputLayout = {
@@ -15,18 +35,26 @@ Mesh "RotateGizmo_TorusMesh" {
             MeshLodDesc {
                 NumVertices = 833
                 NumIndices = 4608
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
         ]
     }
@@ -74,8 +102,8 @@ Mesh "RotateGizmo_TorusMesh" {
     ]
     BvhData = {
         Key = "Editor://Meshes/RotateGizmo_TorusMesh.BVH"
-        Size = 29025
+        Size = 30369
     }
     Flags = None
-    FriendlyName = "RotateGizmoTorusMesh"
+    UUID = "0bca0068-8180-4765-adfc-a1c5472a276e"
 }

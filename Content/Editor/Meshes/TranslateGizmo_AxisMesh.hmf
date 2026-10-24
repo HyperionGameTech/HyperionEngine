@@ -1,8 +1,28 @@
-Mesh "TranslateGizmo_AxisMesh" {
+Mesh TranslateGizmo_AxisMesh {
     AABB = {
-        Min = (-0.08, 0, -0.08)
-        Max = (0.08, 0.95, 0.08)
+        Min = (-0.07999999, 0, -0.07999999)
+        Max = (0.07999999, 0.95, 0.07999999)
     }
+    LodGeneration = {
+        NumLods = 4
+        TriangleRatios = [
+            1
+            0.5
+            0.25
+            0.125
+        ]
+        MaxRelativeError = 1
+        NormalWeight = 0.5
+        UV0Weight = 1
+        UV1Weight = 0.5
+        WindWeight = 1
+        LockBorder = false
+        Prune = false
+        MaxScreenErrorPixels = 1
+        SourceDataHash = 0
+    }
+    LightmapUVDataHash = 0
+    Lod0DataRevision = 1
     MeshDesc = {
         MeshAttributes = {
             InputLayout = {
@@ -15,18 +35,26 @@ Mesh "TranslateGizmo_AxisMesh" {
             MeshLodDesc {
                 NumVertices = 167
                 NumIndices = 336
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
         ]
     }
@@ -74,8 +102,8 @@ Mesh "TranslateGizmo_AxisMesh" {
     ]
     BvhData = {
         Key = "Editor://Meshes/TranslateGizmo_AxisMesh.BVH"
-        Size = 14485
+        Size = 15133
     }
     Flags = None
-    FriendlyName = "TranslateGizmoAxisMesh"
+    UUID = "9255e727-fdf8-4c80-886e-b5ef34b5dfd8"
 }

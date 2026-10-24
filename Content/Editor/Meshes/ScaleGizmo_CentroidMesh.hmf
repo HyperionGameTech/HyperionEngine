@@ -1,8 +1,28 @@
-Mesh "ScaleGizmo_CentroidMesh" {
+Mesh ScaleGizmo_CentroidMesh {
     AABB = {
         Min = (-0.1, -0.1, -0.1)
         Max = (0.1, 0.1, 0.1)
     }
+    LodGeneration = {
+        NumLods = 4
+        TriangleRatios = [
+            1
+            0.5
+            0.25
+            0.125
+        ]
+        MaxRelativeError = 1
+        NormalWeight = 0.5
+        UV0Weight = 1
+        UV1Weight = 0.5
+        WindWeight = 1
+        LockBorder = false
+        Prune = false
+        MaxScreenErrorPixels = 1
+        SourceDataHash = 0
+    }
+    LightmapUVDataHash = 0
+    Lod0DataRevision = 1
     MeshDesc = {
         MeshAttributes = {
             InputLayout = {
@@ -15,18 +35,26 @@ Mesh "ScaleGizmo_CentroidMesh" {
             MeshLodDesc {
                 NumVertices = 24
                 NumIndices = 36
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
             MeshLodDesc {
                 NumVertices = 0
                 NumIndices = 0
+                GeometricError = 0
+                ScreenSize = 0
             }
         ]
     }
@@ -74,8 +102,8 @@ Mesh "ScaleGizmo_CentroidMesh" {
     ]
     BvhData = {
         Key = "Editor://Meshes/ScaleGizmo_CentroidMesh.BVH"
-        Size = 16625
+        Size = 16865
     }
     Flags = None
-    FriendlyName = "ScaleGizmoCentroidMesh"
+    UUID = "2586d789-0882-4115-af72-3d5650fc9d76"
 }

@@ -1,6 +1,9 @@
-Prefab "VolumeEditGizmo" {
-    Root = {
-        Name = "VolumeEditGizmo"
+Prefab VolumeEditGizmo {
+    Root = Entity VolumeEditGizmo {
+        Tags = []
+        Components = []
+        Layers = []
+        UUID = "d51d6df8-7c78-4559-8ef9-1eec2c2deb36"
         NodeFlags = HideInSceneOutline|MobilityStatic
         LocalBounds = {
             Min = (-1, -1, -1)
@@ -17,7 +20,7 @@ Prefab "VolumeEditGizmo" {
             }
         }
         Children = [
-            Entity {
+            Entity VolumeFace_0 {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -26,51 +29,13 @@ Prefab "VolumeEditGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "VolumeFace_0"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
-                LocalBounds = {
-                    Min = (-1, -1, 0)
-                    Max = (1, 1, 0)
-                }
-                LocalTransform = {
-                    Translation = (0, 0, 0)
-                    Scale = (1, 1, 1)
-                    Rotation = {
-                        X = -0
-                        Y = -0.707107
-                        Z = -0
-                        W = 0.707107
-                    }
-                }
-                Children = []
-                NodeTags = {
-                    Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
-                            Data = (0.3, 0, 0.28, 0.25)
-                        }
-                        NodeTag {
-                            Name = "VolumeFaceIndex"
-                            Data = 0
-                        }
-                    ]
-                }
-            }
-            Entity {
-                Tags = []
-                Components = [
-                    MeshComponent {
-                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
-                        Material = @"Editor://Materials/VolumeFace_1"
-                        Skeleton = null
-                        EnableAutoInstancing = false
-                        InstanceData = null
-                    }
-                ]
-                Name = "VolumeFace_1"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "25501c1d-cffc-4b34-a3ea-07458b69cf2b"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
                     Min = (-1, -1, 0)
                     Max = (1, 1, 0)
@@ -80,26 +45,68 @@ Prefab "VolumeEditGizmo" {
                     Scale = (1, 1, 1)
                     Rotation = {
                         X = 0
-                        Y = 0.707107
+                        Y = 0.70710677
                         Z = 0
-                        W = 0.707107
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag {
-                            Name = "VolumeFaceIndex"
+                        NodeTag VolumeFaceIndex {
+                            Data = 0
+                        }
+                    ]
+                }
+            }
+            Entity VolumeFace_1 {
+                Tags = []
+                Components = [
+                    MeshComponent {
+                        Mesh = @"Editor://Meshes/MeshBuilder_Quad"
+                        Material = @"Editor://Materials/VolumeFace_1"
+                        Skeleton = null
+                        EnableAutoInstancing = false
+                        InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
+                    }
+                ]
+                Layers = []
+                UUID = "e83bde67-a668-4357-92f4-c31b497be055"
+                NodeFlags = MobilityDynamic
+                LocalBounds = {
+                    Min = (-1, -1, 0)
+                    Max = (1, 1, 0)
+                }
+                LocalTransform = {
+                    Translation = (0, 0, 0)
+                    Scale = (1, 1, 1)
+                    Rotation = {
+                        X = -0
+                        Y = -0.70710677
+                        Z = -0
+                        W = 0.70710677
+                    }
+                }
+                Children = []
+                RotationConvention = 1
+                NodeTags = {
+                    Values = [
+                        NodeTag TransformWidgetElementColor {
+                            Data = (0.3, 0, 0.28, 0.25)
+                        }
+                        NodeTag VolumeFaceIndex {
                             Data = 1
                         }
                     ]
                 }
             }
-            Entity {
+            Entity VolumeFace_2 {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -108,10 +115,13 @@ Prefab "VolumeEditGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "VolumeFace_2"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "ba65fdf0-91a6-4a21-ad70-011ee175b108"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
                     Min = (-1, -1, 0)
                     Max = (1, 1, 0)
@@ -120,27 +130,26 @@ Prefab "VolumeEditGizmo" {
                     Translation = (0, 0, 0)
                     Scale = (1, 1, 1)
                     Rotation = {
-                        X = 0.707107
-                        Y = 0
-                        Z = 0
-                        W = 0.707107
+                        X = -0.70710677
+                        Y = -0
+                        Z = -0
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag {
-                            Name = "VolumeFaceIndex"
+                        NodeTag VolumeFaceIndex {
                             Data = 2
                         }
                     ]
                 }
             }
-            Entity {
+            Entity VolumeFace_3 {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -149,10 +158,13 @@ Prefab "VolumeEditGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "VolumeFace_3"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "2dc526bf-59e0-435d-ad59-3e8fca221a31"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
                     Min = (-1, -1, 0)
                     Max = (1, 1, 0)
@@ -161,27 +173,26 @@ Prefab "VolumeEditGizmo" {
                     Translation = (0, 0, 0)
                     Scale = (1, 1, 1)
                     Rotation = {
-                        X = -0.707107
-                        Y = -0
-                        Z = -0
-                        W = 0.707107
+                        X = 0.70710677
+                        Y = 0
+                        Z = 0
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag {
-                            Name = "VolumeFaceIndex"
+                        NodeTag VolumeFaceIndex {
                             Data = 3
                         }
                     ]
                 }
             }
-            Entity {
+            Entity VolumeFace_4 {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -190,10 +201,13 @@ Prefab "VolumeEditGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "VolumeFace_4"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "120030a3-389d-4f46-9c19-bbb5b76d2ddd"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
                     Min = (-1, -1, 0)
                     Max = (1, 1, 0)
@@ -205,24 +219,23 @@ Prefab "VolumeEditGizmo" {
                         X = 0
                         Y = 1
                         Z = 0
-                        W = -4.37114e-08
+                        W = -4.371139e-08
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag {
-                            Name = "VolumeFaceIndex"
+                        NodeTag VolumeFaceIndex {
                             Data = 4
                         }
                     ]
                 }
             }
-            Entity {
+            Entity VolumeFace_5 {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -231,10 +244,13 @@ Prefab "VolumeEditGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "VolumeFace_5"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "db6b966e-fdf9-4ac1-8fbd-d7cab4dbc956"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
                     Min = (-1, -1, 0)
                     Max = (1, 1, 0)
@@ -250,23 +266,24 @@ Prefab "VolumeEditGizmo" {
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag {
-                            Name = "VolumeFaceIndex"
+                        NodeTag VolumeFaceIndex {
                             Data = 5
                         }
                     ]
                 }
             }
         ]
+        RotationConvention = 1
         NodeTags = {
             Values = []
         }
     }
-    FriendlyName = "VolumeEditGizmo"
+    Revision = 0
+    UUID = "dd9a0d0b-298a-4782-a1fd-2cc0f22b6542"
 }

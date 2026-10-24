@@ -1,10 +1,13 @@
-Prefab "TranslateGizmo" {
-    Root = {
-        Name = "TranslateGizmo"
+Prefab TranslateGizmo {
+    Root = Entity TranslateGizmo {
+        Tags = []
+        Components = []
+        Layers = []
+        UUID = "88c8256f-e4ba-47fc-a81b-22a499547507"
         NodeFlags = HideInSceneOutline|MobilityStatic
         LocalBounds = {
-            Min = (3.40282e+38, 3.40282e+38, 3.40282e+38)
-            Max = (-3.40282e+38, -3.40282e+38, -3.40282e+38)
+            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
         }
         LocalTransform = {
             Translation = (0, 0, 0)
@@ -17,7 +20,7 @@ Prefab "TranslateGizmo" {
             }
         }
         Children = [
-            Entity {
+            Entity TranslateGizmo_AxisX {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -26,39 +29,41 @@ Prefab "TranslateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "TranslateGizmo_AxisX"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "4590072b-787b-44f1-aee6-8b0ccc960e6c"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
-                    Min = (-0.08, 0, -0.08)
-                    Max = (0.08, 0.95, 0.08)
+                    Min = (-0.07999999, 0, -0.07999999)
+                    Max = (0.07999999, 0.95, 0.07999999)
                 }
                 LocalTransform = {
                     Translation = (0, 0, 0)
                     Scale = (1, 1, 1)
                     Rotation = {
-                        X = 0
-                        Y = 0
-                        Z = 0.707107
-                        W = 0.707107
+                        X = -0
+                        Y = -0
+                        Z = -0.70710677
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (1, 0.02, 0.02, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = 0
                         }
                     ]
                 }
             }
-            Entity {
+            Entity TranslateGizmo_AxisY {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -67,13 +72,16 @@ Prefab "TranslateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "TranslateGizmo_AxisY"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "b2b1c7d5-af1c-4a50-a14f-a581d6ec2ca0"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
-                    Min = (-0.08, 0, -0.08)
-                    Max = (0.08, 0.95, 0.08)
+                    Min = (-0.07999999, 0, -0.07999999)
+                    Max = (0.07999999, 0.95, 0.07999999)
                 }
                 LocalTransform = {
                     Translation = (0, 0, 0)
@@ -86,20 +94,19 @@ Prefab "TranslateGizmo" {
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.02, 1, 0.02, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = 1
                         }
                     ]
                 }
             }
-            Entity {
+            Entity TranslateGizmo_AxisZ {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -108,39 +115,41 @@ Prefab "TranslateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "TranslateGizmo_AxisZ"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "2eab0448-8fb8-4da5-ab18-2e3820f66617"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
-                    Min = (-0.08, 0, -0.08)
-                    Max = (0.08, 0.95, 0.08)
+                    Min = (-0.07999999, 0, -0.07999999)
+                    Max = (0.07999999, 0.95, 0.07999999)
                 }
                 LocalTransform = {
                     Translation = (0, 0, 0)
                     Scale = (1, 1, 1)
                     Rotation = {
-                        X = -0.707107
-                        Y = -0
-                        Z = -0
-                        W = 0.707107
+                        X = 0.70710677
+                        Y = 0
+                        Z = 0
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.02, 0.02, 1, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = 2
                         }
                     ]
                 }
             }
-            Entity {
+            Entity TranslateGizmo_Centroid {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -149,10 +158,13 @@ Prefab "TranslateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "TranslateGizmo_Centroid"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "d34dc4d6-ac3c-46e8-b584-42601b78d9a7"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
                     Min = (-0.1, -0.1, -0.1)
                     Max = (0.1, 0.1, 0.1)
@@ -168,23 +180,24 @@ Prefab "TranslateGizmo" {
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.8, 0.8, 0.8, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = -1
                         }
                     ]
                 }
             }
         ]
+        RotationConvention = 1
         NodeTags = {
             Values = []
         }
     }
-    FriendlyName = "TranslateGizmo"
+    Revision = 0
+    UUID = "b19dea28-d04d-4a0a-87d5-1803482e3c30"
 }

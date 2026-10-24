@@ -1,32 +1,7 @@
-Material "VolumeFace_1" {
+Material VolumeFace_1 {
     BaseMaterial = null
-    Parameters = {
-        Albedo = (0.3, 0, 0.28, 0.25)
-        Metalness = 0
-        Roughness = 1
-        AlphaThreshold = 0
-        ParallaxHeightScale = 0.02
-        Transmission = 0
-        IOR = 1.5
-        EmissiveColor = (0, 0, 0, 0)
-        EmissiveIntensity = 0
-        UserParams = (0, 0, 0, 0)
-        Unlit = true
-    }
-    Textures = {
-        Values = [
-            null
-            null
-            null
-            null
-            null
-            null
-            null
-            null
-        ]
-    }
     Attributes = {
-        ShaderName = "GeometryPass"
+        ShaderName = GeometryPass
         ShaderProperties = {
             Chunks = [
                 0
@@ -47,7 +22,7 @@ Material "VolumeFace_1" {
             SrcAlpha = One
             DstAlpha = One
         }
-        CullFaces = None
+        FaceCullMode = None
         Flags = MAF_DEPTH_WRITE|MAF_DEPTH_TEST
         StencilFunction = {
             PassOp = Replace
@@ -60,6 +35,58 @@ Material "VolumeFace_1" {
         DepthBias = 0
         DepthBiasSlope = 0
     }
+    Parameters = {
+        NormalMapFlipY = false
+        RoughnessChannel = R
+        MetalnessChannel = R
+        AmbientOcclusionChannel = R
+        InverseHeight = false
+        Albedo = (0.29803923, 0, 0.2784314, 0.24705882)
+        Metalness = 0
+        Roughness = 1
+        AlphaThreshold = 0
+        ParallaxHeightScale = 0.02
+        Transmission = 0
+        IOR = 1.5
+        EmissiveColor = (0, 0, 0, 0)
+        EmissiveIntensity = 0
+        UserParams = (0, 0, 0, 0)
+        WindFrequency = 0
+        WindTrunkFlexibility = 0
+        WindTreeHeight = 0
+        WindFlutter = 0
+        FoliageNormalBlend = 0
+        FoliageBackfaceVolume = 0
+        UVScale = (1, 1)
+        Unlit = true
+        Foliage = false
+        TerrainColorMatch = false
+        Flags = 0
+        ColorVariation = 0
+        GroundNormalBlend = 0
+        BaseOcclusion = 0
+        BaseOcclusionHeight = 0
+    }
+    Textures = {
+        Values = [
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+            null
+        ]
+    }
     IsDynamic = true
-    FriendlyName = "VolumeFace_1"
+    UUID = "498ad087-1b19-4c8b-9fd3-107e7119d43c"
 }

@@ -1,10 +1,13 @@
-Prefab "RotateGizmo" {
-    Root = {
-        Name = "RotateGizmo"
+Prefab RotateGizmo {
+    Root = Entity RotateGizmo {
+        Tags = []
+        Components = []
+        Layers = []
+        UUID = "ca317b00-d703-4cca-81cd-76cb32abc8d2"
         NodeFlags = HideInSceneOutline|MobilityStatic
         LocalBounds = {
-            Min = (3.40282e+38, 3.40282e+38, 3.40282e+38)
-            Max = (-3.40282e+38, -3.40282e+38, -3.40282e+38)
+            Min = (3.4028235e+38, 3.4028235e+38, 3.4028235e+38)
+            Max = (-3.4028235e+38, -3.4028235e+38, -3.4028235e+38)
         }
         LocalTransform = {
             Translation = (0, 0, 0)
@@ -17,7 +20,7 @@ Prefab "RotateGizmo" {
             }
         }
         Children = [
-            Entity {
+            Entity RotateGizmo_AxisX {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -26,39 +29,41 @@ Prefab "RotateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "RotateGizmo_AxisX"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "0ffa8953-4989-4b87-8570-e9c013764e25"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
-                    Min = (-0.83, -0.03, -0.83)
-                    Max = (0.83, 0.03, 0.83)
+                    Min = (-0.8299999, -0.029999997, -0.8299999)
+                    Max = (0.8299999, 0.029999997, 0.8299999)
                 }
                 LocalTransform = {
                     Translation = (0, 0, 0)
                     Scale = (1, 1, 1)
                     Rotation = {
-                        X = 0
-                        Y = 0
-                        Z = 0.707107
-                        W = 0.707107
+                        X = -0
+                        Y = -0
+                        Z = -0.70710677
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (1, 0.02, 0.02, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = 0
                         }
                     ]
                 }
             }
-            Entity {
+            Entity RotateGizmo_AxisY {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -67,13 +72,16 @@ Prefab "RotateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "RotateGizmo_AxisY"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "a5458051-c107-4d4d-a60e-e4bcaafeef1e"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
-                    Min = (-0.83, -0.03, -0.83)
-                    Max = (0.83, 0.03, 0.83)
+                    Min = (-0.8299999, -0.029999997, -0.8299999)
+                    Max = (0.8299999, 0.029999997, 0.8299999)
                 }
                 LocalTransform = {
                     Translation = (0, 0, 0)
@@ -86,20 +94,19 @@ Prefab "RotateGizmo" {
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.02, 1, 0.02, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = 1
                         }
                     ]
                 }
             }
-            Entity {
+            Entity RotateGizmo_AxisZ {
                 Tags = []
                 Components = [
                     MeshComponent {
@@ -108,42 +115,46 @@ Prefab "RotateGizmo" {
                         Skeleton = null
                         EnableAutoInstancing = false
                         InstanceData = null
+                        ForcedLod = 0
+                        LodBias = 0
                     }
                 ]
-                Name = "RotateGizmo_AxisZ"
-                NodeFlags = MobilityStaticByProxy|MobilityDynamic
+                Layers = []
+                UUID = "1d4a2e21-c4da-4af8-b187-ba6cd465d169"
+                NodeFlags = MobilityDynamic
                 LocalBounds = {
-                    Min = (-0.83, -0.03, -0.83)
-                    Max = (0.83, 0.03, 0.83)
+                    Min = (-0.8299999, -0.029999997, -0.8299999)
+                    Max = (0.8299999, 0.029999997, 0.8299999)
                 }
                 LocalTransform = {
                     Translation = (0, 0, 0)
                     Scale = (1, 1, 1)
                     Rotation = {
-                        X = 0.707107
-                        Y = 0
-                        Z = 0
-                        W = 0.707107
+                        X = -0.70710677
+                        Y = -0
+                        Z = -0
+                        W = 0.70710677
                     }
                 }
                 Children = []
+                RotationConvention = 1
                 NodeTags = {
                     Values = [
-                        NodeTag {
-                            Name = "TransformWidgetElementColor"
+                        NodeTag TransformWidgetElementColor {
                             Data = (0.02, 0.02, 1, 1)
                         }
-                        NodeTag {
-                            Name = "TransformWidgetAxis"
+                        NodeTag TransformWidgetAxis {
                             Data = 2
                         }
                     ]
                 }
             }
         ]
+        RotationConvention = 1
         NodeTags = {
             Values = []
         }
     }
-    FriendlyName = "RotateGizmo"
+    Revision = 0
+    UUID = "049822cd-75d8-4daf-8c0a-bd8122eb5078"
 }
