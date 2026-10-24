@@ -9,10 +9,12 @@
 #include <Scene/Prefab.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Entity.hpp>
-#include <Scene/Components/MeshComponent.hpp>
+#include <Scene/EntityManager.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/DetachedScene.hpp>
+
+#include <Scene/Components/MeshComponent.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 
