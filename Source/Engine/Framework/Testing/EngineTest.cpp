@@ -1,0 +1,147 @@
+/*!
+ *  @author: The Hyperion Contributors
+ *  @date 2016-2026
+ *  @licence MIT
+ */
+
+#ifdef HYP_TESTS
+
+#include <Framework/Testing/EngineTest.hpp>
+
+#include <Core/Logging/Logger.hpp>
+#include <Core/Logging/LogChannels.hpp>
+
+#include <chrono>
+
+namespace Hyperion {
+namespace tests {
+
+namespace {
+
+thread_local EngineTestContext* t_currentContext = nullptr;
+
+} // namespace
+
+EngineTestContext* EngineTestContext::Current()
+{
+    return t_currentContext;
+}
+
+bool EngineTestContext::Check(const char* checkName, bool condition, const String& detail)
+{
+    ++m_numChecks;
+
+    if (!condition)
+    {
+        ++m_numFailedChecks;
+
+        if (m_failureMessage.Any())
+        {
+            m_failureMessage += "\n";
+        }
+
+        m_failureMessage += checkName;
+
+        if (detail.Any())
+        {
+            // a check can attach a whole document as its detail, which would bury the other failures
+            constexpr size_t maxDetailLength = 200;
+
+            String shortenedDetail;
+
+            for (size_t index = 0; index < detail.Length() && index < maxDetailLength; index++)
+            {
+                const char ch = char(detail[index]);
+
+                shortenedDetail.Append(ch == '\n' || ch == '\r' || ch == '\t' ? ' ' : ch);
+            }
+
+            m_failureMessage += " (";
+            m_failureMessage += shortenedDetail;
+            m_failureMessage += detail.Length() > maxDetailLength ? "...)" : ")";
+        }
+    }
+
+    return condition;
+}
+
+EngineTestRegistry& EngineTestRegistry::GetInstance()
+{
+    static EngineTestRegistry s_instance;
+
+    return s_instance;
+}
+
+void EngineTestRegistry::Register(const EngineTestDefinition& definition)
+{
+    m_tests.PushBack(definition);
+}
+
+String EngineTestRunner::GetFullName(const EngineTestDefinition& test)
+{
+    return String(test.suite) + "." + String(test.name);
+}
+
+bool EngineTestRunner::MatchesFilter(const EngineTestDefinition& test, const String& filter)
+{
+    if (filter.Empty())
+    {
+        return true;
+    }
+
+    return String(test.suite) == filter || GetFullName(test).Contains(filter);
+}
+
+EngineTestResult EngineTestRunner::Run(const EngineTestDefinition& test)
+{
+    EngineTestContext context;
+    EngineTestContext* previousContext = t_currentContext;
+    t_currentContext = &context;
+
+    const auto startTime = std::chrono::steady_clock::now();
+
+    test.function(context);
+
+    const double durationMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+
+    t_currentContext = previousContext;
+
+    EngineTestResult result;
+    result.name = GetFullName(test);
+    result.passed = !context.HasFailed();
+    result.message = context.GetFailureMessage();
+    result.durationMs = durationMs;
+
+    if (result.passed)
+    {
+        HYP_LOG(Engine, Info, "[PASS] {} ({} checks)", result.name, context.GetNumChecks());
+    }
+    else
+    {
+        HYP_LOG(Engine, Error, "[FAIL] {}: {} of {} checks failed\n{}", result.name, context.GetNumFailedChecks(), context.GetNumChecks(), result.message);
+    }
+
+    return result;
+}
+
+bool Check(const char* checkName, bool condition, const String& detail)
+{
+    EngineTestContext* context = EngineTestContext::Current();
+
+    if (context == nullptr)
+    {
+        if (!condition)
+        {
+            HYP_LOG(Engine, Error, "[FAIL] {} {} (outside of a test)", checkName, detail);
+        }
+
+        return condition;
+    }
+
+    return context->Check(checkName, condition, detail);
+}
+
+} // namespace tests
+} // namespace Hyperion
+
+#endif // HYP_TESTS

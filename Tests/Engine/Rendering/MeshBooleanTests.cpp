@@ -6,6 +6,7 @@
 
 #ifdef HYP_TESTS
 
+#include <Framework/Testing/EngineTest.hpp>
 #include <Rendering/Util/MeshBoolean.hpp>
 #include <Rendering/Util/MeshBuilder.hpp>
 #include <Rendering/Mesh.hpp>
@@ -23,23 +24,6 @@ namespace tests {
 namespace rendering {
 
 namespace {
-
-int g_passCount = 0;
-int g_failCount = 0;
-
-void Check(const char* testName, bool condition, const String& detail = "")
-{
-    if (condition)
-    {
-        ++g_passCount;
-        HYP_LOG(Engine, Info, "[PASS] {}", testName);
-    }
-    else
-    {
-        ++g_failCount;
-        HYP_LOG(Engine, Error, "[FAIL] {} {}", testName, detail);
-    }
-}
 
 Mat4f MakeTransform(const Vec3f& translation, const Vec3f& scale)
 {
@@ -132,8 +116,13 @@ void CheckClosed(const char* testName, const MeshBooleanResult& result)
     Check(testName, MeshBoolean::ValidateSolid(mesh.Get()) == MeshBooleanError::None);
 }
 
-void TestPrimitivesAreSolid()
+HYP_ENGINE_TEST(MeshBoolean, PrimitivesAreSolid)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
     Handle<Mesh> sphere = MeshBuilder::NormalizedCubeSphere(8);
     Handle<Mesh> cylinder = MeshBuilder::Cylinder(1.0f, 2.0f, 24);
@@ -145,8 +134,13 @@ void TestPrimitivesAreSolid()
     Check("Primitives: quad is rejected as open", MeshBoolean::ValidateSolid(quad.Get()) == MeshBooleanError::TargetNotClosed);
 }
 
-void TestSubtractCorner()
+HYP_ENGINE_TEST(MeshBoolean, SubtractCorner)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
 
     const MeshBooleanResult result = MeshBoolean::Apply(
@@ -159,8 +153,13 @@ void TestSubtractCorner()
     Check("Subtract: hard edges keep flat axis-aligned normals", result.error == MeshBooleanError::None && AreNormalsAxisAligned(result));
 }
 
-void TestSubtractCoplanar()
+HYP_ENGINE_TEST(MeshBoolean, SubtractCoplanar)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
 
     const MeshBooleanResult result = MeshBoolean::Apply(
@@ -172,8 +171,13 @@ void TestSubtractCoplanar()
     CheckClosed("Subtract: flush brush result stays closed", result);
 }
 
-void TestUnion()
+HYP_ENGINE_TEST(MeshBoolean, Union)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
 
     const MeshBooleanResult result = MeshBoolean::Apply(
@@ -185,8 +189,13 @@ void TestUnion()
     CheckClosed("Union: result stays closed", result);
 }
 
-void TestIntersectCylinder()
+HYP_ENGINE_TEST(MeshBoolean, IntersectCylinder)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
     Handle<Mesh> cylinder = MeshBuilder::Cylinder(1.0f, 2.0f, 24);
 
@@ -201,8 +210,13 @@ void TestIntersectCylinder()
     CheckClosed("Intersect: result stays closed", result);
 }
 
-void TestSubtractSphereThrough()
+HYP_ENGINE_TEST(MeshBoolean, SubtractSphereThrough)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
     Handle<Mesh> sphere = MeshBuilder::NormalizedCubeSphere(8);
 
@@ -217,8 +231,13 @@ void TestSubtractSphereThrough()
     CheckClosed("Subtract: sphere carve stays closed", result);
 }
 
-void TestSubtractEverything()
+HYP_ENGINE_TEST(MeshBoolean, SubtractEverything)
 {
+    if (!MeshBoolean::IsSupported())
+    {
+        return;
+    }
+
     Handle<Mesh> cube = MeshBuilder::Cube();
 
     const MeshBooleanResult result = MeshBoolean::Apply(
@@ -230,34 +249,6 @@ void TestSubtractEverything()
 }
 
 } // namespace
-
-ENGINE_API void RunMeshBooleanTests()
-{
-    g_passCount = 0;
-    g_failCount = 0;
-
-    if (!MeshBoolean::IsSupported())
-    {
-        HYP_LOG(Engine, Warning, "Mesh boolean tests skipped - built without manifold");
-
-        return;
-    }
-
-    TestPrimitivesAreSolid();
-    TestSubtractCorner();
-    TestSubtractCoplanar();
-    TestUnion();
-    TestIntersectCylinder();
-    TestSubtractSphereThrough();
-    TestSubtractEverything();
-
-    HYP_LOG(Engine, Info, "========== Mesh Boolean Test Results: {} passed, {} failed ==========", g_passCount, g_failCount);
-
-    if (g_failCount > 0)
-    {
-        HYP_LOG(Engine, Error, "!!! MESH BOOLEAN TEST HAD FAILURES !!!");
-    }
-}
 
 } // namespace rendering
 } // namespace tests

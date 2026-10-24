@@ -8,7 +8,11 @@
 
 #ifdef HYP_TESTS
 
+#include <Framework/Testing/EngineTest.hpp>
+
 #include <Core/DataProcessing/HMF/HMF.hpp>
+#include <Core/DataProcessing/Shared/CompilerError.hpp>
+#include <Core/DataProcessing/Shared/ErrorList.hpp>
 
 #include <Core/Reflection/BoxedValue.hpp>
 #include <Core/Reflection/TypeInfo.hpp>
@@ -215,23 +219,6 @@ BoxedValue GetVariantInnerObject(const BoxedValue& variantValue)
     return {};
 }
 
-int g_passCount = 0;
-int g_failCount = 0;
-
-void Check(const char* testName, bool condition, const String& detail = "")
-{
-    if (condition)
-    {
-        ++g_passCount;
-        HYP_LOG(Engine, Info, "[PASS] {}", testName);
-    }
-    else
-    {
-        ++g_failCount;
-        HYP_LOG(Engine, Error, "[FAIL] {} {}", testName, detail);
-    }
-}
-
 template <class T>
 T GetFieldValue(const BoxedValue& obj, const Class* cls, const char* fieldName)
 {
@@ -290,6 +277,35 @@ void SetFieldValue(BoxedValue& obj, const Class* cls, const char* fieldName, con
     }
 }
 
+// arrays and matrices are written one element per line, so compare them with their whitespace collapsed
+String NormalizeWhitespace(const String& text)
+{
+    String result;
+    bool pendingSpace = false;
+
+    for (size_t index = 0; index < text.Length(); index++)
+    {
+        const char ch = char(text[index]);
+
+        if (ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t')
+        {
+            pendingSpace = result.Any();
+
+            continue;
+        }
+
+        if (pendingSpace)
+        {
+            result.Append(' ');
+            pendingSpace = false;
+        }
+
+        result.Append(ch);
+    }
+
+    return result;
+}
+
 bool ClassNameIs(const BoxedValue& value, const char* expected)
 {
     const Class* cls = GetClass(value.GetTypeId());
@@ -302,7 +318,7 @@ bool ClassNameIs(const BoxedValue& value, const char* expected)
 #pragma optimize("", off)
 #endif
 
-HYP_EXPORT void RunHMFTest()
+HYP_ENGINE_TEST(Hmf, Serialization)
 {
 
     {
@@ -405,7 +421,7 @@ HYP_EXPORT void RunHMFTest()
         Array<ShaderModuleType> arr = { ShaderModuleType::Vertex, ShaderModuleType::Pixel, ShaderModuleType::Compute };
         const TypeInfo& arrTi = TypeOf<Array<ShaderModuleType>>();
         BoxedToHMF(BoxedValue(arr), text, &arrTi);
-        Check("Array<ShaderModuleType>[3]", text == "[Vertex, Pixel, Compute]", text);
+        Check("Array<ShaderModuleType>[3]", NormalizeWhitespace(text) == "[ Vertex Pixel Compute ]", text);
 
         text.Clear();
         Array<ShaderModuleType> empty;
@@ -439,14 +455,14 @@ HYP_EXPORT void RunHMFTest()
         text.Clear();
         EnumFlags<CameraFlags> empty = CameraFlags::None;
         BoxedToHMF(BoxedValue(empty), text, &ti);
-        Check("EnumFlags NONE", text == "NONE", text);
+        Check("EnumFlags None", text == "None", text);
     }
 
     {
         String text;
         Array<int32> arr = { 10, 20, 30 };
         BoxedToHMF(BoxedValue(arr), text);
-        Check("Array<int32>[3]", text == "[10, 20, 30]", text);
+        Check("Array<int32>[3]", NormalizeWhitespace(text) == "[ 10 20 30 ]", text);
 
         text.Clear();
         Array<int32> empty;
@@ -497,7 +513,7 @@ HYP_EXPORT void RunHMFTest()
             Check("TextureDesc: MinFilterMode = Nearest", text.Contains("MinFilterMode = Nearest"), text);
             Check("TextureDesc: NumLayers = 1", text.Contains("NumLayers = 1"), text);
             Check("TextureDesc: ImageUsage = Sampled", text.Contains("ImageUsage = Sampled"), text);
-            Check("TextureDesc: MipOffsets has 16 elements", text.Contains("0, 0, 0, 0"), text);
+            Check("TextureDesc: MipOffsets has 16 elements", NormalizeWhitespace(text).Contains("[ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]"), text);
         }
     }
 
@@ -905,7 +921,12 @@ CameraOrthoRect {
         Check("Unknown class fails", !Success(HMF::Parse("NonexistentClass {\n}\n")));
         Check("Empty input fails", Failed(HMF::Parse("")));
         Check("Garbage fails", !Success(HMF::Parse("??? not valid")));
-        Check("Missing closing brace fails", !Success(HMF::Parse("CameraOrthoRect {\n    Left = 1.0\n")));
+        {
+            HMF::ErrorList unterminatedErrors;
+            const HMF::ParseResult unterminated = HMF::Parse(String("CameraOrthoRect {\n    Left = 1.0\n"), &unterminatedErrors);
+
+            Check("Missing closing brace fails", !Success(unterminated) || unterminatedErrors.HasFatalErrors());
+        }
 
         const String manifest = R"(CameraOrthoRect {
     Left = 1.0
@@ -1019,7 +1040,7 @@ CameraOrthoRect {
             Check("MA: has ShaderName", text.Contains("ShaderName"), text);
             Check("MA: has Bucket", text.Contains("Bucket"), text);
             Check("MA: has FillMode", text.Contains("FillMode"), text);
-            Check("MA: has CullFaces", text.Contains("CullFaces"), text);
+            Check("MA: has FaceCullMode", text.Contains("FaceCullMode"), text);
             Check("MA: has Flags", text.Contains("Flags"), text);
             Check("MA: has StencilFunction", text.Contains("StencilFunction"), text);
             Check("MA: has DepthCompareOp", text.Contains("DepthCompareOp"), text);
@@ -1266,7 +1287,7 @@ CameraOrthoRect {
         HYP_LOG(Engine, Info, "Mat4f written: {}", text);
 
         Check("Matrix: non-empty", !text.Empty(), text);
-        Check("Matrix: has nested arrays", text.Contains("[["), text);
+        Check("Matrix: has nested arrays", NormalizeWhitespace(text).Contains("[ [1, 2, 3, 4] [5, 6, 7, 8]"), text);
         Check("Matrix: contains 1", text.Contains("1"), text);
         Check("Matrix: contains 16", text.Contains("16"), text);
     }
@@ -1804,7 +1825,7 @@ CameraOrthoRect {
                 HYP_LOG(Engine, Info, "NodeTag round-trip HMF:\n{}", rt);
 
                 Check("NodeTag RT: has no Name field", !rt.Contains("Name ="), rt);
-                Check("NodeTag RT: has Name at top of object", rt.Contains("NodeTag \"Speed\""), rt);
+                Check("NodeTag RT: has Name at top of object", rt.Contains("NodeTag Speed"), rt);
                 Check("NodeTag RT: has Data field", rt.Contains("Data"), rt);
                 Check("NodeTag RT: Data = 42.5", rt.Contains("Data = 42.5"), rt);
 
@@ -2189,7 +2210,7 @@ CameraOrthoRect {
                 Check("PolyArray RT: BaseValue = 111", text.Contains("BaseValue = 111"), text);
                 Check("PolyArray RT: BaseValue = 222", text.Contains("BaseValue = 222"), text);
                 Check("PolyArray RT: DerivedValue = 9.99", text.Contains("DerivedValue = 9.99"), text);
-                Check("PolyArray RT: DerivedName = RTDerived", text.Contains("DerivedName = \"RTDerived\""), text);
+                Check("PolyArray RT: DerivedName = RTDerived", text.Contains("DerivedName = RTDerived"), text);
 
                 // Re-parse
                 HMF::ParseResult rtResult = HMF::Parse(text);
@@ -2297,10 +2318,19 @@ CameraOrthoRect {
 
             if (Success(result))
             {
-                const IMember* valueMember = cls->GetMember(StringHash("Value"));
-                const BoxedValue value = valueMember && valueMember->GetMemberType() == MemberType::Field
-                    ? static_cast<const Field*>(valueMember)->Get(result.GetValue())
-                    : BoxedValue();
+                BoxedValue value;
+
+                if (const IMember* valueMember = cls->GetMember(StringHash("Value")))
+                {
+                    if (valueMember->GetMemberType() == MemberType::Field)
+                    {
+                        value = static_cast<const Field*>(valueMember)->Get(result.GetValue());
+                    }
+                    else if (valueMember->GetMemberType() == MemberType::Property)
+                    {
+                        value = static_cast<const Property*>(valueMember)->Get(result.GetValue());
+                    }
+                }
 
                 Check("BoxedValue slot: read back as text", value.Is<HMF::UnresolvedValue>());
 
@@ -2322,14 +2352,6 @@ CameraOrthoRect {
 
         Check("ParseValue: int", Success(HMF::ParseValue("42", TypeOf<int32>())) && HMF::ParseValue("42", TypeOf<int32>()).GetValue().Get<int32>() == 42);
         Check("ParseValue: trailing tokens fail", !Success(HMF::ParseValue("42 43", TypeOf<int32>())));
-    }
-
-    HYP_LOG(Engine, Info, "========== HMF Test Results: {} passed, {} failed ==========",
-            g_passCount, g_failCount);
-
-    if (g_failCount > 0)
-    {
-        HYP_LOG(Engine, Error, "!!! HMF TEST HAD FAILURES !!!");
     }
 }
 

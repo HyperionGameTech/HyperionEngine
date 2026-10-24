@@ -1238,6 +1238,23 @@ inline size_t ToUtf32(const wchar_t* start, const wchar_t* end, Char32* result)
     return len;
 }
 
+namespace detail {
+
+// the unsigned type that holds the magnitude of every value of T, so negating the minimum of a signed type doesn't overflow
+template <class T, bool = std::is_integral_v<T> && !std::is_same_v<T, bool>>
+struct ToStringMagnitude
+{
+    using Type = T;
+};
+
+template <class T>
+struct ToStringMagnitude<T, true>
+{
+    using Type = std::make_unsigned_t<T>;
+};
+
+} // namespace detail
+
 /*! \brief How to use:
     if buffer length is not known, pass nullptr for \p result.
     bufferLength will be set to the size needed for \p result.
@@ -1245,16 +1262,19 @@ inline size_t ToUtf32(const wchar_t* start, const wchar_t* end, Char32* result)
     value for \p bufferLength. The resulting string will be written into the provided
     param, \p result, so it'll need to have \p bufferLength bytes allocated to it. */
 template <class T, class CharType>
-inline void ToString(T value, size_t& bufferLength, CharType* result)
+inline void ToString(T signedValue, size_t& bufferLength, CharType* result)
 {
-    T divisor = 1;
+    using Magnitude = typename detail::ToStringMagnitude<T>::Type;
+
+    Magnitude value = Magnitude(signedValue);
+    Magnitude divisor = 1;
     bool isNegative = 0;
     size_t bufferIndex = 0;
 
-    if (value < 0)
+    if (signedValue < 0)
     {
         isNegative = true;
-        value = -value;
+        value = Magnitude(0) - value;
     }
 
     if (result == nullptr)

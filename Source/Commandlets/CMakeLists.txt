@@ -76,4 +76,8 @@ if(HYP_EDITOR)
   add_commandlet_target(EditorGameTestCommandlet)
 endif()
 
+if(HYP_TESTS)
+  add_commandlet_target(EngineTestCommandlet)
+endif()
+
 # add_commandlet_target(LogMemoryPools)

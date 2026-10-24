@@ -6,6 +6,8 @@
 
 #ifdef HYP_TESTS
 
+#include <Framework/Testing/EngineTest.hpp>
+
 #include <Core/Containers/StridedBuffer.hpp>
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
@@ -46,23 +48,6 @@ namespace tests {
 namespace scene {
 
 namespace {
-
-int g_passCount = 0;
-int g_failCount = 0;
-
-void Check(const char* testName, bool condition, const String& detail = "")
-{
-    if (condition)
-    {
-        ++g_passCount;
-        HYP_LOG(Engine, Info, "[PASS] {}", testName);
-    }
-    else
-    {
-        ++g_failCount;
-        HYP_LOG(Engine, Error, "[FAIL] {} {}", testName, detail);
-    }
-}
 
 bool IsAligned(const void* pointer, size_t alignment)
 {
@@ -202,7 +187,7 @@ DynamicStructInstance* CreateRuntimeComponentStruct(TypeId typeId)
 
 #pragma endregion Runtime component
 
-void TestStridedBuffer()
+HYP_ENGINE_TEST(ComponentContainer, StridedBuffer)
 {
     StridedBuffer<DynamicAllocator> buffer(24, 64, 4);
 
@@ -254,7 +239,7 @@ void TestStridedBuffer()
     Check("StridedBuffer: Reset clears everything", !buffer.HasIndex(0) && buffer.NumActiveAllocations() == 0);
 }
 
-void TestDynamicStructDefaultValue()
+HYP_ENGINE_TEST(ComponentContainer, DynamicStructDefaultValue)
 {
     struct DefaultValueLayout
     {
@@ -288,7 +273,7 @@ void TestDynamicStructDefaultValue()
     dynamicStruct->Release();
 }
 
-void TestDynamicStructFields()
+HYP_ENGINE_TEST(ComponentContainer, DynamicStructFields)
 {
     // a float followed by a Vec3f at offset 4, less aligned than Vec3f normally is, as C# lays it out
     static constexpr uint32 structSize = sizeof(float) + sizeof(Vec3f);
@@ -367,6 +352,9 @@ void TestDynamicStructFields()
 void TestNativeAndTagComponents(EntityManager* entityManagerA, const Handle<EntityManager>& entityManagerB)
 {
     Handle<Entity> entity = entityManagerA->AddEntity();
+
+    // an entity takes its TransformComponent from its node's transform when it enters a scene, which a move does too
+    entity->SetLocalTransform(Transform(Vec3f(1.0f, 2.0f, 3.0f), Vec3f(4.0f), Quat4f::Identity()));
 
     TransformComponent transformComponent;
     transformComponent.translation = Vec3f(1.0f, 2.0f, 3.0f);
@@ -756,17 +744,9 @@ void TestRuntimeComponentRedefinition(EntityManager* entityManager)
     secondStruct->Release();
 }
 
-} // namespace
 
-ENGINE_API void RunComponentContainerTests()
+HYP_ENGINE_TEST(ComponentContainer, EntityManagerComponents)
 {
-    g_passCount = 0;
-    g_failCount = 0;
-
-    TestStridedBuffer();
-    TestDynamicStructDefaultValue();
-    TestDynamicStructFields();
-
     {
         Handle<Scene> sceneA = MakeHandle<Scene>(NAME("ComponentContainerTestSceneA"), ThreadId::Current(), SceneFlags::NONE);
         Handle<Scene> sceneB = MakeHandle<Scene>(NAME("ComponentContainerTestSceneB"), ThreadId::Current(), SceneFlags::NONE);
@@ -783,14 +763,9 @@ ENGINE_API void RunComponentContainerTests()
     Check("Runtime: every construct/copy/move is matched by a destruct once the scenes are gone",
         g_counters.constructs + g_counters.copies + g_counters.moves == g_counters.destructs,
         HYP_FORMAT("constructs={} copies={} moves={} destructs={}", g_counters.constructs, g_counters.copies, g_counters.moves, g_counters.destructs));
-
-    HYP_LOG(Engine, Info, "========== Component Container Test Results: {} passed, {} failed ==========", g_passCount, g_failCount);
-
-    if (g_failCount > 0)
-    {
-        HYP_LOG(Engine, Error, "!!! COMPONENT CONTAINER TEST HAD FAILURES !!!");
-    }
 }
+
+} // namespace
 
 } // namespace scene
 } // namespace tests

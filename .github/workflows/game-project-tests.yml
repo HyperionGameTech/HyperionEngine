@@ -1,6 +1,6 @@
 name: Game Project Tests
 
-# Builds the engine, then generates, builds and runs C# and C++ game projects against it (Tests/GameProjects)
+# Builds the engine, then runs the engine tests (Tests/Engine), and generates, builds and runs C# and C++ game projects against it (Tests/GameProjects)
 on:
   push:
     branches: [dev]
@@ -131,12 +131,25 @@ jobs:
       - name: Make CodeGen tool executable
         run: chmod +x Build/hyperion-codegen
 
-      # the game projects run headless, so no GPU or display is needed
-      - name: Run game project tests
+      # the engine tests need no game project, so they run first and report in seconds
+      - name: Run engine tests
         env:
           HYPERION_BIN_DIR: ${{ github.workspace }}/Binaries/Linux/Release
         run: >
           dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName~Hyperion.GameProjectTests.EngineTests"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=engine-tests.trx"
+          --results-directory Build/GameProjectTests/EngineTestResults
+
+      # the game projects run headless, so no GPU or display is needed
+      - name: Run game project tests
+        if: ${{ !cancelled() }}
+        env:
+          HYPERION_BIN_DIR: ${{ github.workspace }}/Binaries/Linux/Release
+        run: >
+          dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName!~Hyperion.GameProjectTests.EngineTests"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=game-project-tests.trx"
           --results-directory Build/GameProjectTests/TestResults
@@ -147,6 +160,7 @@ jobs:
           name: game-project-tests-linux-x64
           path: |
             Build/GameProjectTests/TestResults
+            Build/GameProjectTests/EngineTestResults
             Build/GameProjectTests/*/Logs
           if-no-files-found: ignore
 
@@ -201,12 +215,26 @@ jobs:
           if not exist Binaries\Windows\Release\hyperion.dll exit /b 1
           if not exist Binaries\Windows\Release\Sdk\CMake\HyperionSdk.cmake exit /b 1
 
-      - name: Run game project tests
+      # the engine tests need no game project, so they run first and report in seconds
+      - name: Run engine tests
         shell: pwsh
         env:
           HYPERION_BIN_DIR: ${{ github.workspace }}\Binaries\Windows\Release
         run: >
           dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName~Hyperion.GameProjectTests.EngineTests"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=engine-tests.trx"
+          --results-directory Build/GameProjectTests/EngineTestResults
+
+      - name: Run game project tests
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        env:
+          HYPERION_BIN_DIR: ${{ github.workspace }}\Binaries\Windows\Release
+        run: >
+          dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName!~Hyperion.GameProjectTests.EngineTests"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=game-project-tests.trx"
           --results-directory Build/GameProjectTests/TestResults
@@ -217,6 +245,7 @@ jobs:
           name: game-project-tests-win-x64
           path: |
             Build/GameProjectTests/TestResults
+            Build/GameProjectTests/EngineTestResults
             Build/GameProjectTests/*/Logs
           if-no-files-found: ignore
 
@@ -262,11 +291,24 @@ jobs:
       - name: Make CodeGen tool executable
         run: chmod +x Build/hyperion-codegen
 
-      - name: Run game project tests
+      # the engine tests need no game project, so they run first and report in seconds
+      - name: Run engine tests
         env:
           HYPERION_BIN_DIR: ${{ github.workspace }}/Binaries/Mac/Release
         run: >
           dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName~Hyperion.GameProjectTests.EngineTests"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=engine-tests.trx"
+          --results-directory Build/GameProjectTests/EngineTestResults
+
+      - name: Run game project tests
+        if: ${{ !cancelled() }}
+        env:
+          HYPERION_BIN_DIR: ${{ github.workspace }}/Binaries/Mac/Release
+        run: >
+          dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName!~Hyperion.GameProjectTests.EngineTests"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=game-project-tests.trx"
           --results-directory Build/GameProjectTests/TestResults
@@ -277,5 +319,6 @@ jobs:
           name: game-project-tests-macos-arm64
           path: |
             Build/GameProjectTests/TestResults
+            Build/GameProjectTests/EngineTestResults
             Build/GameProjectTests/*/Logs
           if-no-files-found: ignore

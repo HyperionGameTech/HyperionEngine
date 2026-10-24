@@ -6,6 +6,8 @@
 
 #if defined(HYP_TESTS) && defined(HYP_STRATA) && defined(HYP_STRATA_JIT)
 
+#include <Framework/Testing/EngineTest.hpp>
+
 #include <Scripting/StrataTypes.hpp>
 
 #include <Core/Reflection/Struct.hpp>
@@ -39,23 +41,6 @@ namespace tests {
 namespace script {
 
 namespace {
-
-int g_passCount = 0;
-int g_failCount = 0;
-
-void Check(const char* testName, bool condition, const String& detail = "")
-{
-    if (condition)
-    {
-        ++g_passCount;
-        HYP_LOG(Engine, Info, "[PASS] {}", testName);
-    }
-    else
-    {
-        ++g_failCount;
-        HYP_LOG(Engine, Error, "[FAIL] {} {}", testName, detail);
-    }
-}
 
 const char* const g_firstLayoutSource = R"(
 handle Entity;
@@ -319,27 +304,16 @@ void TestRegistrationAndAccess(EntityManager* entityManager)
     strataCompilerDestroy(compiler);
 }
 
-} // namespace
 
-ENGINE_API void RunStrataComponentTests()
+HYP_ENGINE_TEST(StrataComponents, RegistrationAndAccess)
 {
-    g_passCount = 0;
-    g_failCount = 0;
+    Handle<Scene> scene = MakeHandle<Scene>(NAME("StrataComponentTestScene"), ThreadId::Current(), SceneFlags::NONE);
+    InitObject(scene);
 
-    {
-        Handle<Scene> scene = MakeHandle<Scene>(NAME("StrataComponentTestScene"), ThreadId::Current(), SceneFlags::NONE);
-        InitObject(scene);
-
-        TestRegistrationAndAccess(scene->GetEntityManager().Get());
-    }
-
-    HYP_LOG(Engine, Info, "========== Strata Component Test Results: {} passed, {} failed ==========", g_passCount, g_failCount);
-
-    if (g_failCount > 0)
-    {
-        HYP_LOG(Engine, Error, "!!! STRATA COMPONENT TEST HAD FAILURES !!!");
-    }
+    TestRegistrationAndAccess(scene->GetEntityManager().Get());
 }
+
+} // namespace
 
 } // namespace script
 } // namespace tests

@@ -1161,6 +1161,14 @@ set(SUB_LIBRARIES "")
 collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Engine SOURCES HEADERS SUB_LIBRARIES)
 source_group(TREE ${CMAKE_SOURCE_DIR}/Engine PREFIX "Source Code" FILES ${SOURCES} ${HEADERS})
 
+# engine tests live with the other tests, but compile into the engine so they can reach its internals
+if(HYP_TESTS)
+  get_filename_component(HYP_ENGINE_TESTS_DIR "${CMAKE_SOURCE_DIR}/../Tests/Engine" ABSOLUTE)
+  file(GLOB_RECURSE ENGINE_TEST_SOURCES "${HYP_ENGINE_TESTS_DIR}/*.cpp")
+  source_group(TREE ${HYP_ENGINE_TESTS_DIR} PREFIX "Engine Tests" FILES ${ENGINE_TEST_SOURCES})
+  list(APPEND SOURCES ${ENGINE_TEST_SOURCES})
+endif()
+
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_HEADERS "")
 set(THIRD_PARTY_LIBRARIES "")

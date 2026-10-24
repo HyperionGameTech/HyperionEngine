@@ -6,6 +6,7 @@
 
 #ifdef HYP_TESTS
 
+#include <Framework/Testing/EngineTest.hpp>
 #include <Core/Config/Config.hpp>
 
 #include <Core/Containers/String.hpp>
@@ -31,23 +32,6 @@ namespace tests {
 namespace devicetier {
 
 namespace {
-
-int g_passCount = 0;
-int g_failCount = 0;
-
-void Check(const ANSIStringView& testName, bool condition, const String& detail = "")
-{
-    if (condition)
-    {
-        ++g_passCount;
-        HYP_LOG(Engine, Info, "[PASS] {}", testName);
-    }
-    else
-    {
-        ++g_failCount;
-        HYP_LOG(Engine, Error, "[FAIL] {} {}", testName, detail);
-    }
-}
 
 DeviceFacts MakeResolvedFacts(DeviceType type, DeviceGrade grade)
 {
@@ -83,7 +67,7 @@ double GetNumber(const ConfigOverlay& overlay, const UTF8StringView& key)
     return it != overlay.End() && it->second.IsNumber() ? it->second.AsNumber() : -1.0;
 }
 
-void TestTierResolution()
+HYP_ENGINE_TEST(DeviceTier, TierResolution)
 {
     const DeviceTierRegistry& registry = DeviceTierRegistry::GetInstance();
 
@@ -139,7 +123,7 @@ void TestTierResolution()
     }
 }
 
-void TestOverlayRules()
+HYP_ENGINE_TEST(DeviceTier, OverlayRules)
 {
     TierProfile profile;
 
@@ -201,7 +185,7 @@ void TestOverlayRules()
     }
 }
 
-void TestProfileParsing()
+HYP_ENGINE_TEST(DeviceTier, ProfileParsing)
 {
     const String source = R"(
 // comment
@@ -261,7 +245,7 @@ TierProfile "DeviceTiers" {
     Check("Parse: string setting", textIt != ruleA.set.End() && textIt->second.Is<String>() && textIt->second.Get<String>() == "abc");
 }
 
-void TestConfigOverlay()
+HYP_ENGINE_TEST(DeviceTier, ConfigOverlay)
 {
     ConfigOverlay overlay;
     overlay.Set("Rendering.Test.Value", ConfigValue(5.0));
@@ -282,24 +266,6 @@ void TestConfigOverlay()
 }
 
 } // namespace
-
-ENGINE_API void RunDeviceTierTests()
-{
-    g_passCount = 0;
-    g_failCount = 0;
-
-    TestTierResolution();
-    TestOverlayRules();
-    TestProfileParsing();
-    TestConfigOverlay();
-
-    HYP_LOG(Engine, Info, "========== Device Tier Test Results: {} passed, {} failed ==========", g_passCount, g_failCount);
-
-    if (g_failCount > 0)
-    {
-        HYP_LOG(Engine, Error, "!!! DEVICE TIER TEST HAD FAILURES !!!");
-    }
-}
 
 } // namespace devicetier
 } // namespace tests
