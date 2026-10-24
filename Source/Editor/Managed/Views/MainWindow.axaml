@@ -3078,7 +3078,7 @@
                                                                                         IsVisible="{Binding !IsWorld}" />
                                                                                     <MenuItem
                                                                                         Click="OnWorldSettingsClick"
-                                                                                        Header="World Settings"
+                                                                                        Header="World Settings..."
                                                                                         IsVisible="{Binding IsWorld}" />
                                                                                     <MenuItem
                                                                                         Command="{Binding SavePrefabAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"

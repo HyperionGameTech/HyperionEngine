@@ -16,7 +16,7 @@
 #include <Rendering/Mesh.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/DetachedScene.hpp>
@@ -326,7 +326,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 {
     Assert(state.assetManager != nullptr);
 
-    Handle<Node> top = MakeHandle<Node>(model.name);
+    Handle<Entity> top = MakeHandle<Entity>(model.name);
     top->SetIsDynamic(false);
 
     Map<String, Handle<Material>> materialLibrary;

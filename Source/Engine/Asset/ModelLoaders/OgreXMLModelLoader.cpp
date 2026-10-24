@@ -10,7 +10,7 @@
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
 
-#include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/World.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Prefab.hpp>
@@ -368,7 +368,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     BuildVertices(model);
 
-    Handle<Node> top = MakeHandle<Node>(Name(ANSIString(StringUtil::Basename(state.filepath.StripExtension()))));
+    Handle<Entity> top = MakeHandle<Entity>(Name(ANSIString(StringUtil::Basename(state.filepath.StripExtension()))));
 
     Handle<Skeleton> skeleton;
 
@@ -569,7 +569,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         scene.GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
-        Handle<Node> node = MakeHandle<Node>();
+        Handle<Entity> node = MakeHandle<Entity>();
         node->SetName(assetName);
         node->AddChild(entity);
 

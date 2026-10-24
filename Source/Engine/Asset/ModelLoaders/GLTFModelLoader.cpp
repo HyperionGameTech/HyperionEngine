@@ -21,7 +21,7 @@
 #include <Rendering/Util/TextureUtils.hpp>
 
 #include <Scene/World.hpp>
-#include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/DetachedScene.hpp>
@@ -2370,11 +2370,11 @@ void ApplyMsftLods(GltfLoadContext& ctx, Set<const cgltf_node*>& outLodNodes)
     }
 }
 
-Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
+Handle<Entity> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
 {
     const Name nodeName = MakeNodeName(ctx, node);
 
-    Handle<Node> nodeHandle = MakeHandle<Node>(nodeName);
+    Handle<Entity> nodeHandle = MakeHandle<Entity>(nodeName);
     nodeHandle->SetLocalTransform(BuildTransformFromNode(node));
 
     Handle<Skeleton> nodeSkeleton;
@@ -2467,7 +2467,7 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
             continue;
         }
 
-        Handle<Node> childHandle = BuildNodeRecursive(ctx, *childNode);
+        Handle<Entity> childHandle = BuildNodeRecursive(ctx, *childNode);
         nodeHandle->AddChild(childHandle);
     }
 
@@ -2647,7 +2647,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
 
     const Name rootName = DetermineRootName(state, data);
 
-    Handle<Node> root = MakeHandle<Node>(rootName);
+    Handle<Entity> root = MakeHandle<Entity>(rootName);
     root->SetIsDynamic(false);
 
     for (const cgltf_node* rootNode : rootNodes)
@@ -2657,7 +2657,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
             continue;
         }
 
-        Handle<Node> child = BuildNodeRecursive(ctx, *rootNode);
+        Handle<Entity> child = BuildNodeRecursive(ctx, *rootNode);
         root->AddChild(child);
     }
 

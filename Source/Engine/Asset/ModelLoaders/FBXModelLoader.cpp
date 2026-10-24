@@ -1073,7 +1073,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     const String baseName = StringUtil::StripExtension(path.Basename());
 
-    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(ANSIString(baseName)));
+    Handle<Entity> top = MakeHandle<Entity>(CreateNameFromDynamicString(ANSIString(baseName)));
     Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
 
     FileByteReader fbr { path };
@@ -2388,7 +2388,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }
         else
         {
-            node = MakeHandle<Node>();
+            node = MakeHandle<Entity>();
         }
 
         parentNode->AddChild(node);
