@@ -18,29 +18,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # CodeGen output is the same for every platform, so generate it once and skip it in the build jobs
+  # CodeGen output is the same for every platform, so it is generated once (on Linux) and skipped in the build jobs.
+  # The tool itself is native, so each platform builds it here, in parallel with the other platforms, and the test
+  # jobs download it for the C++ games, which run it over their own headers.
   codegen:
-    runs-on: ubuntu-latest
+    name: codegen (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64, os: ubuntu-24.04, submodules: false }
+          - { name: win-x64, os: windows-2025, submodules: recursive }
+          - { name: macos-arm64, os: macos-15, submodules: recursive }
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: ${{ matrix.submodules }}
 
       - name: Install dependencies
+        if: matrix.name == 'linux-x64'
         run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
 
+      # builds Build/hyperion-codegen first if it is missing, so the tool uploaded below is the one that generated the output
       - name: Run CodeGen
+        if: matrix.name == 'linux-x64'
         run: |
           version="$(grep -oE '^RunCodeGen\([0-9]+ [0-9]+\)' Source/CMakeLists.txt | grep -oE '[0-9]+ [0-9]+')"
           if [ -z "$version" ]; then echo "RunCodeGen(<major> <minor>) not found in Source/CMakeLists.txt"; exit 1; fi
           bash Tools/Scripts/RunCodeGen.sh $version
           test -f Source/Generated/CodeGenOutput.inc
+          test -f Build/hyperion-codegen
+
+      - name: Build CodeGen tool
+        if: matrix.name == 'macos-arm64'
+        run: echo y | bash Tools/Scripts/BuildCodeGen.sh
+
+      - name: Build CodeGen tool
+        if: matrix.name == 'win-x64'
+        shell: cmd
+        run: |
+          echo y| call Tools\Scripts\BuildCodeGen.bat
+          if not exist Build\hyperion-codegen.exe exit /b 1
 
       - uses: actions/upload-artifact@v7
+        if: matrix.name == 'linux-x64'
         with:
           name: codegen
           path: |
             Source/Generated
             Data/Scripts/Strata
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: codegen-tool-${{ matrix.name }}
+          path: Build/hyperion-codegen*
           if-no-files-found: error
 
   test-linux:
@@ -63,6 +97,11 @@ jobs:
       - uses: actions/download-artifact@v5
         with:
           name: codegen
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: codegen-tool-linux-x64
+          path: Build
 
       - name: Install dependencies
         run: |
@@ -88,12 +127,9 @@ jobs:
           test -f Binaries/Linux/Release/libhyperion.so
           test -f Binaries/Linux/Release/Sdk/CMake/HyperionSdk.cmake
 
-      # a C++ game's build runs CodeGen over its own headers with Build/hyperion-codegen, which the skipped CodeGen step would have built
-      - name: Build CodeGen tool
-        run: |
-          cmake -S Tools/CodeGen -B Build/CodeGen -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build Build/CodeGen --target hyperion-codegen --parallel 4
-          cp Build/CodeGen/hyperion-codegen Build/hyperion-codegen
+      # artifacts don't keep the executable bit
+      - name: Make CodeGen tool executable
+        run: chmod +x Build/hyperion-codegen
 
       # the game projects run headless, so no GPU or display is needed
       - name: Run game project tests
@@ -132,6 +168,11 @@ jobs:
         with:
           name: codegen
 
+      - uses: actions/download-artifact@v5
+        with:
+          name: codegen-tool-win-x64
+          path: Build
+
       - name: Point VCPKG_ROOT at the runner's vcpkg
         shell: pwsh
         run: '"VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV'
@@ -159,15 +200,6 @@ jobs:
           Tools\Scripts\BuildHyperion.bat Release ninja regenerate
           if not exist Binaries\Windows\Release\hyperion.dll exit /b 1
           if not exist Binaries\Windows\Release\Sdk\CMake\HyperionSdk.cmake exit /b 1
-
-      - name: Build CodeGen tool
-        shell: cmd
-        run: |
-          cmake -S Tools/CodeGen -B Build/CodeGen
-          if errorlevel 1 exit /b 1
-          cmake --build Build/CodeGen --target hyperion-codegen --config Release --parallel 4
-          if errorlevel 1 exit /b 1
-          copy /Y Build\CodeGen\Release\hyperion-codegen.exe Build\hyperion-codegen.exe
 
       - name: Run game project tests
         shell: pwsh
@@ -206,6 +238,11 @@ jobs:
         with:
           name: codegen
 
+      - uses: actions/download-artifact@v5
+        with:
+          name: codegen-tool-macos-arm64
+          path: Build
+
       - name: Install dependencies
         run: |
           brew install ninja molten-vk vulkan-headers vulkan-loader freetype
@@ -221,11 +258,9 @@ jobs:
           test -f Binaries/Mac/Release/libhyperion.dylib
           test -f Binaries/Mac/Release/Sdk/CMake/HyperionSdk.cmake
 
-      - name: Build CodeGen tool
-        run: |
-          cmake -S Tools/CodeGen -B Build/CodeGen -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build Build/CodeGen --target hyperion-codegen --parallel 4
-          cp Build/CodeGen/hyperion-codegen Build/hyperion-codegen
+      # artifacts don't keep the executable bit
+      - name: Make CodeGen tool executable
+        run: chmod +x Build/hyperion-codegen
 
       - name: Run game project tests
         env:

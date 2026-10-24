@@ -206,37 +206,48 @@ void CompoundPhysicsShape::Regenerate()
         return;
     }
 
-    // decomposition takes seconds on a dense mesh, so it can't run on the thread the editor action came from
     TaskSystem::GetInstance().Enqueue(
-        [self = MakeStrongRef(this), sourceMesh = m_sourceMesh, settings = m_decompositionSettings]()
+        [weakThis = MakeWeakRef(this), sourceMesh = m_sourceMesh, settings = m_decompositionSettings]()
         {
+            Handle<CompoundPhysicsShape> strongThis = weakThis.Lock();
+            if (!strongThis.IsValid())
+            {
+                return;
+            }
+
             TResult<ConvexDecompositionResult> decompositionResult = DecomposeMesh(sourceMesh.Get(), settings);
 
             if (decompositionResult.HasError())
             {
                 HYP_LOG(Physics, Error, "Failed to regenerate collision for '{}': {}",
-                    self->GetName(), decompositionResult.GetError().GetMessage());
+                    strongThis->GetName(), decompositionResult.GetError().GetMessage());
 
                 return;
             }
 
             GetThreadById(g_simThread)->GetScheduler().Enqueue(
-                [self, sourceMesh, result = std::move(decompositionResult.GetValue())]()
+                [weakThis, sourceMesh, result = std::move(decompositionResult.GetValue())]()
                 {
-                    // the source was reassigned while decomposing, so these hulls belong to a mesh that is no longer selected
-                    if (self->m_sourceMesh != sourceMesh)
+                    Handle<CompoundPhysicsShape> strongThis = weakThis.Lock();
+                    if (!strongThis.IsValid())
                     {
                         return;
                     }
 
-                    self->SetHulls(
+                    // the source was reassigned while decomposing
+                    if (strongThis->m_sourceMesh != sourceMesh)
+                    {
+                        return;
+                    }
+
+                    strongThis->SetHulls(
                         Span<const float>(result.positions.Data(), result.positions.Size()),
                         Span<const uint32>(result.indices.Data(), result.indices.Size()),
                         Span<const ConvexHullRange>(result.hulls.Data(), result.hulls.Size()));
 
                     auto readScope = sourceMesh->GetReadScope();
 
-                    self->SetSource(sourceMesh, sourceMesh->ComputeLod0DataHash());
+                    strongThis->SetSource(sourceMesh, sourceMesh->ComputeLod0DataHash());
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
         },
