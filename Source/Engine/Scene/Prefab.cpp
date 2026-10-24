@@ -114,6 +114,11 @@ void Prefab_OnPostLoad(Prefab& prefab)
         {
             prefab.SyncRootName();
 
+            if (Handle<Entity> rootEntity = prefab.GetRoot(); rootEntity.IsValid() && !rootEntity->GetEntityManager())
+            {
+                GetDetachedSceneForCurrentThread().GetEntityManager()->AddExistingEntity(rootEntity);
+            }
+
             root->SetScene(&GetDetachedSceneForThread(g_simThread));
         }
     }

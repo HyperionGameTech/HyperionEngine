@@ -25,6 +25,7 @@ namespace Hyperion.Editor.Views.Inspector
 
             PART_CopyMenuItem.Click += OnCopyClicked;
             PART_PasteMenuItem.Click += OnPasteClicked;
+            PART_IconTile.Click += OnIconTileClicked;
 
             DataContextChanged += OnDataContextChanged;
 
@@ -134,6 +135,14 @@ namespace Hyperion.Editor.Views.Inspector
             else if (!vm.IsEditorExpanded)
             {
                 CloseEditPanel();
+            }
+        }
+
+        private void OnIconTileClicked(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is ObjectPropertyViewModel vm && vm.HasSubObject)
+            {
+                vm.IsEditorExpanded = true;
             }
         }
 

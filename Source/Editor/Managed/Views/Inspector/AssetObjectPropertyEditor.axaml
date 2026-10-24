@@ -8,17 +8,55 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:DataType="vm:ObjectPropertyViewModel"
     mc:Ignorable="d">
+    <UserControl.Styles>
+        <Style Selector="Button.asset-tile">
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource Brush.PanelRaised}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Transitions">
+                <Transitions />
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        ClipToBounds="True"
+                        CornerRadius="{DynamicResource Radius.Medium}">
+                        <ContentPresenter
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.asset-tile:not(:disabled)">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style Selector="Button.asset-tile:not(:disabled):pointerover">
+            <Setter Property="Background" Value="{DynamicResource Brush.MenuHover}" />
+        </Style>
+
+        <Style Selector="Button.asset-tile:not(:disabled):pressed">
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentSubtle}" />
+        </Style>
+    </UserControl.Styles>
+
     <Grid ColumnDefinitions="56,*" Margin="2,2,2,4">
-        <Border
-            Width="48"
-            Height="48"
+        <Button
+            x:Name="PART_IconTile"
             Margin="0,0,8,0"
             VerticalAlignment="Top"
-            Background="{DynamicResource Brush.PanelRaised}"
-            BorderBrush="{DynamicResource Brush.BorderLight}"
-            BorderThickness="1"
-            ClipToBounds="True"
-            CornerRadius="{DynamicResource Radius.Medium}">
+            Classes="asset-tile"
+            IsEnabled="{Binding HasSubObject}"
+            ToolTip.Tip="Edit this object...">
             <Panel>
                 <controls:Codicon
                     HorizontalAlignment="Center"
@@ -33,7 +71,7 @@
                     Source="{Binding Thumbnail}"
                     Stretch="UniformToFill" />
             </Panel>
-        </Border>
+        </Button>
 
         <StackPanel Grid.Column="1" Spacing="4">
             <TextBlock
