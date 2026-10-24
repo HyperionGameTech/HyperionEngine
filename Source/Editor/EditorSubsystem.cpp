@@ -2664,8 +2664,9 @@ bool EditorSubsystem::CanFitPhysicsShapeToMesh(Node* node) const
 
     return meshComponent != nullptr
         && meshComponent->mesh.IsValid()
-        && rigidBodyComponent != nullptr
-        && DynamicCast<BoxPhysicsShape>(rigidBodyComponent->shape).IsValid();
+        && (rigidBodyComponent == nullptr
+            || !rigidBodyComponent->shape.IsValid()
+            || DynamicCast<BoxPhysicsShape>(rigidBodyComponent->shape).IsValid());
 }
 
 bool EditorSubsystem::IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const
@@ -2737,12 +2738,68 @@ void EditorSubsystem::FitPhysicsShapeToMesh(Node* node)
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
     RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
 
-    if (meshComponent == nullptr || !meshComponent->mesh.IsValid() || rigidBodyComponent == nullptr)
+    if (meshComponent == nullptr || !meshComponent->mesh.IsValid())
     {
         return;
     }
 
-    if (!rigidBodyComponent->shape.IsValid() || rigidBodyComponent->shape->GetType() != PhysicsShapeType::Box)
+    if (rigidBodyComponent == nullptr || !rigidBodyComponent->shape.IsValid())
+    {
+        const bool addedRigidBody = rigidBodyComponent == nullptr;
+
+        Handle<BoxPhysicsShape> newShape = MakeHandle<BoxPhysicsShape>(
+            NAME_FMT("{}_{}_PhysicsShape", entity->GetName(), entity->Id().Value()),
+            meshComponent->mesh->GetAABB());
+
+        GetCurrentAssetRegistry()->PutAssetUnique(newShape);
+
+        GetActionStackForNode(entity)->PushAction(MakeHandle<FunctionalEditorAction>(
+            "Fit Physics Shape to Mesh",
+            [entity = MakeStrongRef(entity), newShape, addedRigidBody]() -> EditorActionFunctions
+            {
+                return {
+                    [entity, newShape, addedRigidBody](EditorSubsystem*, EditorProject*)
+                    {
+                        if (!entity.IsValid())
+                        {
+                            return;
+                        }
+
+                        if (addedRigidBody)
+                        {
+                            entity->AddComponent<RigidBodyComponent>(RigidBodyComponent {});
+                        }
+
+                        if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
+                        {
+                            rigidBodyComponent->shape = newShape;
+                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                        }
+                    },
+                    [entity, addedRigidBody](EditorSubsystem*, EditorProject*)
+                    {
+                        if (!entity.IsValid())
+                        {
+                            return;
+                        }
+
+                        if (addedRigidBody)
+                        {
+                            entity->RemoveComponent<RigidBodyComponent>();
+                        }
+                        else if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
+                        {
+                            rigidBodyComponent->shape = Handle<PhysicsShape>::Null();
+                            entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                        }
+                    }
+                };
+            }));
+
+        return;
+    }
+
+    if (rigidBodyComponent->shape->GetType() != PhysicsShapeType::Box)
     {
         return;
     }
@@ -2812,11 +2869,9 @@ bool EditorSubsystem::CanGenerateConvexCollision(Node* node) const
     }
 
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
 
     return meshComponent != nullptr
-        && meshComponent->mesh.IsValid()
-        && rigidBodyComponent != nullptr;
+        && meshComponent->mesh.IsValid();
 }
 
 void EditorSubsystem::GenerateConvexCollision(Node* node)
@@ -2926,10 +2981,7 @@ void EditorSubsystem::ApplyConvexDecomposition(const Handle<Entity>& entity, con
 
     RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
 
-    if (rigidBodyComponent == nullptr)
-    {
-        return;
-    }
+    const bool addedRigidBody = rigidBodyComponent == nullptr;
 
     uint64 sourceDataHash = 0;
 
@@ -2939,7 +2991,7 @@ void EditorSubsystem::ApplyConvexDecomposition(const Handle<Entity>& entity, con
         sourceDataHash = mesh->ComputeLod0DataHash();
     }
 
-    const Handle<PhysicsShape>& currentShape = rigidBodyComponent->shape;
+    const Handle<PhysicsShape> currentShape = addedRigidBody ? Handle<PhysicsShape>::Null() : rigidBodyComponent->shape;
 
     // regenerating collision this mesh already produced rebuilds that shape, rather than registering another asset each time
     if (currentShape.IsValid()
@@ -2991,19 +3043,36 @@ void EditorSubsystem::ApplyConvexDecomposition(const Handle<Entity>& entity, con
 
     GetActionStackForNode(entity.Get())->PushAction(MakeHandle<FunctionalEditorAction>(
         "Generate Convex Collision",
-        [entity, compoundShape, previousShape]() -> EditorActionFunctions
+        [entity, compoundShape, previousShape, addedRigidBody]() -> EditorActionFunctions
         {
             return {
-                [entity, compoundShape](EditorSubsystem*, EditorProject*)
+                [entity, compoundShape, addedRigidBody](EditorSubsystem*, EditorProject*)
                 {
-                    if (RigidBodyComponent* rigidBodyComponent = entity.IsValid() ? entity->TryGetComponent<RigidBodyComponent>() : nullptr)
+                    if (!entity.IsValid())
+                    {
+                        return;
+                    }
+
+                    if (addedRigidBody)
+                    {
+                        entity->AddComponent<RigidBodyComponent>(RigidBodyComponent {});
+                    }
+
+                    if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
                     {
                         rigidBodyComponent->shape = compoundShape;
                         entity->AddTag<EntityTag::UpdatePhysicsShape>();
                     }
                 },
-                [entity, previousShape](EditorSubsystem*, EditorProject*)
+                [entity, previousShape, addedRigidBody](EditorSubsystem*, EditorProject*)
                 {
+                    if (entity.IsValid() && addedRigidBody)
+                    {
+                        entity->RemoveComponent<RigidBodyComponent>();
+
+                        return;
+                    }
+
                     if (RigidBodyComponent* rigidBodyComponent = entity.IsValid() ? entity->TryGetComponent<RigidBodyComponent>() : nullptr)
                     {
                         rigidBodyComponent->shape = previousShape;

@@ -8,7 +8,7 @@
 
 #include <Editor/EditorTemplateLibrary.hpp>
 
-#include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/Prefab.hpp>
 
 #include <Asset/AssetRegistry.hpp>

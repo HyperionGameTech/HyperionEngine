@@ -19,6 +19,7 @@
 namespace Hyperion {
 
 class Node;
+class Entity;
 class World;
 class Mesh;
 
@@ -28,6 +29,8 @@ HYP_CLASS(AssetBucket = "Prefabs", PostLoad = "Prefab_OnPostLoad")
 class ENGINE_API Prefab final : public AssetObject
 {
     HYP_OBJECT_BODY(Prefab);
+
+    friend void Prefab_OnPostLoad(Prefab&);
 
 public:
     Prefab();
@@ -42,7 +45,7 @@ public:
     virtual Result Rename(Name name) override;
 
     HYP_METHOD()
-    const Handle<Node>& GetRoot() const;
+    Handle<Entity> GetRoot() const;
 
     HYP_METHOD()
     void SetRoot(const Handle<Node>& root);

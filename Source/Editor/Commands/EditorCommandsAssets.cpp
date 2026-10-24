@@ -478,7 +478,7 @@ public:
         {
             Handle<Prefab> prefab = static_cast<Handle<Prefab>>(asset);
 
-            Handle<Node> root = MakeHandle<Node>();
+            Handle<Entity> root = MakeHandle<Entity>();
             root->SetName(prefab->GetName());
             InitObject(root);
 
@@ -1878,7 +1878,7 @@ public:
 
         // Build the detached object that backs the asset - never the live scene nodes themselves,
         // matching every other Prefab in the engine (its root is always a template, never simultaneously live)
-        Handle<Node> prefabRoot = MakeHandle<Node>();
+        Handle<Entity> prefabRoot = MakeHandle<Entity>();
         prefabRoot->SetName(prefabName);
         InitObject(prefabRoot);
 

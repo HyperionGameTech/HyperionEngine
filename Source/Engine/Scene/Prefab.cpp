@@ -34,22 +34,33 @@ static const Name s_namePrefabRevision = NAME("PrefabRevision");
 
 Delegate<void, Prefab*> Prefab::OnPrefabChanged;
 
-void Prefab_OnPostLoad(Prefab& prefab)
-{
-    if (!EngineGlobals::IsShuttingDown())
-    {
-        const Handle<Node>& root = prefab.GetRoot();
-
-        if (root.IsValid())
-        {
-            prefab.SyncRootName();
-
-            root->SetScene(&GetDetachedSceneForThread(g_simThread));
-        }
-    }
-}
-
 namespace {
+    
+Handle<Entity> EnsureEntityRoot(const Handle<Node>& node)
+{
+    if (!node.IsValid())
+    {
+        return Handle<Entity>::Null();
+    }
+
+    if (Handle<Entity> entity = DynamicCast<Entity>(node); entity.IsValid())
+    {
+        return entity;
+    }
+
+    Handle<Entity> converted = DynamicCast<Entity>(node->CloneAs(Entity::StaticClass(), /* cloneChildren */ true));
+
+    if (!converted.IsValid())
+    {
+        HYP_LOG(Assets, Error, "Failed to convert prefab root '{}' to an Entity", node->GetName());
+
+        return Handle<Entity>::Null();
+    }
+
+    converted->SetUUID(node->GetUUID());
+
+    return converted;
+}
 
 void CollectStaleInstances(Node& node, Map<UUID, Handle<Prefab>>& prefabCache, Array<Pair<Handle<Node>, Handle<Prefab>>>& outStale)
 {
@@ -87,6 +98,27 @@ void CollectStaleInstances(Node& node, Map<UUID, Handle<Prefab>>& prefabCache, A
 
 } // namespace
 
+void Prefab_OnPostLoad(Prefab& prefab)
+{
+    if (!EngineGlobals::IsShuttingDown())
+    {
+        // Prefabs previously had Node root, convert it on load.
+        if (prefab.m_root.IsValid() && !prefab.m_root->IsA<Entity>())
+        {
+            prefab.m_root = EnsureEntityRoot(prefab.m_root);
+        }
+
+        const Handle<Node>& root = prefab.m_root;
+
+        if (root.IsValid())
+        {
+            prefab.SyncRootName();
+
+            root->SetScene(&GetDetachedSceneForThread(g_simThread));
+        }
+    }
+}
+
 #pragma region Prefab
 
 Prefab::Prefab()
@@ -96,7 +128,7 @@ Prefab::Prefab()
 
 Prefab::Prefab(Name name, const Handle<Node>& root)
     : AssetObject(name),
-      m_root(root)
+      m_root(EnsureEntityRoot(root))
 {
 }
 
@@ -109,9 +141,9 @@ Result Prefab::Rename(Name name)
     return result;
 }
 
-const Handle<Node>& Prefab::GetRoot() const
+Handle<Entity> Prefab::GetRoot() const
 {
-    return m_root;
+    return DynamicCast<Entity>(m_root);
 }
 
 void Prefab::SetRoot(const Handle<Node>& root)
@@ -121,7 +153,7 @@ void Prefab::SetRoot(const Handle<Node>& root)
         return;
     }
 
-    m_root = root;
+    m_root = EnsureEntityRoot(root);
     m_revision++;
 
     SyncRootName();

@@ -141,7 +141,7 @@ static void BuildTranslateGizmo(Handle<AssetRegistry>& assetRegistry)
 
     static const char* s_axisNames[3] = { "TranslateGizmo_AxisX", "TranslateGizmo_AxisY", "TranslateGizmo_AxisZ" };
 
-    Handle<Node> rootNode = MakeHandle<Node>();
+    Handle<Entity> rootNode = MakeHandle<Entity>();
     rootNode->SetName(NAME("TranslateGizmo"));
     rootNode->SetWorldScale(2.5f);
     rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
@@ -182,7 +182,7 @@ static void BuildRotateGizmo(Handle<AssetRegistry>& assetRegistry)
 
     static const char* s_axisNames[3] = { "RotateGizmo_AxisX", "RotateGizmo_AxisY", "RotateGizmo_AxisZ" };
 
-    Handle<Node> rootNode = MakeHandle<Node>();
+    Handle<Entity> rootNode = MakeHandle<Entity>();
     rootNode->SetName(NAME("RotateGizmo"));
     rootNode->SetWorldScale(2.5f);
     rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
@@ -240,7 +240,7 @@ static void BuildScaleGizmo(Handle<AssetRegistry>& assetRegistry)
 
     static const char* s_axisNames[3] = { "ScaleGizmo_AxisX", "ScaleGizmo_AxisY", "ScaleGizmo_AxisZ" };
 
-    Handle<Node> rootNode = MakeHandle<Node>();
+    Handle<Entity> rootNode = MakeHandle<Entity>();
     rootNode->SetName(NAME("ScaleGizmo"));
     rootNode->SetWorldScale(2.5f);
     rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
@@ -287,7 +287,7 @@ static void BuildVolumeGizmo(Handle<AssetRegistry>& assetRegistry)
     materialParameters.albedo = volumeColor;
     materialParameters.unlit = true;
 
-    Handle<Node> rootNode = MakeHandle<Node>();
+    Handle<Entity> rootNode = MakeHandle<Entity>();
     rootNode->SetName(NAME("VolumeEditGizmo"));
     rootNode->SetNodeFlags(rootNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
 

@@ -576,8 +576,6 @@ public:
     HYP_METHOD()
     void SetShowStatsEnabled(bool enabled);
 
-    /*! \brief True if \p node (or the focused node when null) has a mesh and a BoxPhysicsShape whose
-     *  AABB can be fitted to the mesh via \ref FitPhysicsShapeToMesh. */
     HYP_METHOD()
     bool CanFitPhysicsShapeToMesh(Node* node) const;
 
@@ -588,8 +586,6 @@ public:
 
     void SyncBoxPhysicsShapeToLocalBounds(Entity* entity);
 
-    /*! \brief True if \p node (or the focused node when null) has a mesh and a rigid body that convex
-     *  collision can be built for. */
     HYP_METHOD()
     bool CanGenerateConvexCollision(Node* node) const;
 
