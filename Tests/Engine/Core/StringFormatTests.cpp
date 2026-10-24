@@ -89,7 +89,7 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoWriterReturnsFullSizeWhenTruncated)
     const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
 
     HYP_TEST_CHECK(size == 16);
-    HYP_TEST_CHECK(UTF8StringView(buffer, sizeof(buffer)) == "abcdefgh");
+    HYP_TEST_CHECK(UTF8StringView(buffer, buffer + sizeof(buffer)) == "abcdefgh");
 }
 
 HYP_ENGINE_TEST(StringFormat, FormatIntoWriterWritesWindowAtOffset)
@@ -99,7 +99,7 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoWriterWritesWindowAtOffset)
     const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
 
     HYP_TEST_CHECK(size == 16);
-    HYP_TEST_CHECK(UTF8StringView(buffer, sizeof(buffer)) == "ij 12345");
+    HYP_TEST_CHECK(UTF8StringView(buffer, buffer + sizeof(buffer)) == "ij 12345");
 }
 
 HYP_ENGINE_TEST(StringFormat, FormatIntoWindowsReassembleToFullOutput)
