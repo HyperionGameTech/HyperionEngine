@@ -33,9 +33,6 @@ struct EngineTestDefinition
 class ENGINE_API EngineTestContext
 {
 public:
-    /// The context of the test being run, or null outside of one
-    static EngineTestContext* Current();
-
     /// Records a failure if the condition is false; returns the condition so a test can bail out of what depends on it
     bool Check(const char* checkName, bool condition, const String& detail = String::empty);
 

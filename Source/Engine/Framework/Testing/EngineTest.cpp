@@ -11,21 +11,12 @@
 #include <Core/Logging/Logger.hpp>
 #include <Core/Logging/LogChannels.hpp>
 
+#include <Core/Utilities/GlobalContext.hpp>
+
 #include <chrono>
 
 namespace Hyperion {
 namespace tests {
-
-namespace {
-
-thread_local EngineTestContext* t_currentContext = nullptr;
-
-} // namespace
-
-EngineTestContext* EngineTestContext::Current()
-{
-    return t_currentContext;
-}
 
 bool EngineTestContext::Check(const char* checkName, bool condition, const String& detail)
 {
@@ -93,17 +84,14 @@ bool EngineTestRunner::MatchesFilter(const EngineTestDefinition& test, const Str
 
 EngineTestResult EngineTestRunner::Run(const EngineTestDefinition& test)
 {
-    EngineTestContext context;
-    EngineTestContext* previousContext = t_currentContext;
-    t_currentContext = &context;
+    GlobalContextScope scope(EngineTestContext {});
+    EngineTestContext& context = *GetGlobalContext<EngineTestContext>();
 
     const auto startTime = std::chrono::steady_clock::now();
 
     test.function(context);
 
     const double durationMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
-
-    t_currentContext = previousContext;
 
     EngineTestResult result;
     result.name = GetFullName(test);
@@ -125,7 +113,7 @@ EngineTestResult EngineTestRunner::Run(const EngineTestDefinition& test)
 
 bool Check(const char* checkName, bool condition, const String& detail)
 {
-    EngineTestContext* context = EngineTestContext::Current();
+    EngineTestContext* context = GetGlobalContext<EngineTestContext>();
 
     if (context == nullptr)
     {
