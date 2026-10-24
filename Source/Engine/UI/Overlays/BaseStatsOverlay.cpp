@@ -159,17 +159,18 @@ void BaseStatsOverlay::Update(float delta)
     if (m_countersTextElement.IsValid())
     {
         String countersText;
-        countersText += HYP_FORMAT("Tris: {}", uint64(snapshot[g_statTriangles].value));
-        countersText += HYP_FORMAT(", DrawCalls: {}", snapshot[g_statDrawCalls].value);
+        HYP_FORMAT_INTO(countersText, "Tris: {}", uint64(snapshot[g_statTriangles].value));
+        HYP_FORMAT_INTO(countersText, ", DrawCalls: {}", snapshot[g_statDrawCalls].value);
 
         if (snapshot[g_statInstancedDrawCalls].value > 0)
         {
-            countersText += HYP_FORMAT(", Instanced: {}", snapshot[g_statInstancedDrawCalls].value);
+            HYP_FORMAT_INTO(countersText, ", Instanced: {}", snapshot[g_statInstancedDrawCalls].value);
         }
 
         if (snapshot[g_statInstancesTested].value > 0)
         {
-            countersText += HYP_FORMAT(
+            HYP_FORMAT_INTO(
+                countersText,
                 "\nInstances: {} visible, {} shadow, {} tested, {} uploaded  Slots: {}/{}  Batches: {}/{}  Collect: {}ms",
                 snapshot[g_statInstancesVisible].value,
                 snapshot[g_statShadowInstancesVisible].value,

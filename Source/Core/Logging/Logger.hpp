@@ -20,6 +20,7 @@
 #include <Core/Reflection/ObjectFwd.hpp>
 
 #include <Core/Containers/String.hpp>
+#include <Core/Containers/FixedArray.hpp>
 #include <Core/Containers/Bitset.hpp>
 
 #include <Core/Threading/AtomicVar.hpp>
@@ -46,6 +47,8 @@ enum class LogLevel : uint8
 };
 
 constexpr uint8 NumLogLevels = uint8(LogLevel::Debug) + 1;
+
+constexpr size_t LogMessageWindowCapacity = 512;
 
 struct LogMessage
 {
@@ -295,6 +298,61 @@ struct LogOnceHelper
     }
 };
 
+template <LogLevel Level, auto FormatString, class... Args>
+static inline void LogFormattedWindows(Logger& logger, const LogChannel& channel, const String& prefix, const char* fileName, int lineNumber, Args&&... args)
+{
+    char windowBuffer[LogMessageWindowCapacity];
+    size_t offset = 0;
+    size_t total = 0;
+
+    FixedArray<UTF8StringView, 2> chunks { UTF8StringView(prefix), UTF8StringView() };
+
+    do
+    {
+        utilities::FormatBufferWriter writer(windowBuffer, sizeof(windowBuffer), offset);
+
+        total = utilities::FormatInto<FormatString>(writer, args...);
+
+        const size_t windowSize = MathUtil::Min(sizeof(windowBuffer), total - offset);
+        const bool isLastWindow = offset + windowSize == total;
+
+        chunks[1] = UTF8StringView(windowBuffer, windowBuffer + windowSize);
+
+        const size_t firstChunk = offset == 0 ? 0 : 1;
+        const Span<UTF8StringView> chunksSliced = chunks.ToSpan().Slice(firstChunk, 2 - firstChunk);
+
+        if constexpr (Level == LogLevel::Fatal)
+        {
+            if (isLastWindow)
+            {
+                logger.LogFatal(
+                    channel,
+                    LogMessage {
+                        Level,
+                        Time::Now().ToMilliseconds(),
+                        chunksSliced,
+                        fileName,
+                        lineNumber
+                    });
+
+                HYP_UNREACHABLE();
+            }
+        }
+
+        logger.Log(
+            channel,
+            LogMessage {
+                Level,
+                Time::Now().ToMilliseconds(),
+                chunksSliced,
+                fileName,
+                lineNumber
+            });
+
+        offset += windowSize;
+    } while (offset < total);
+}
+
 template <LogLevel Level, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args)
 {
@@ -305,22 +363,26 @@ inline void LogStatic(Logger& logger, Args&&... args)
     {
 #ifndef HYP_DEBUG_MODE
         if constexpr (Level == LogLevel::Debug)
+        {
             return;
+        }
 #endif
 
         if constexpr (Level == LogLevel::Verbose)
         {
             if (!IsVerboseLoggingEnabled())
+            {
                 return;
-        }
-        else if constexpr (Level == LogLevel::Fatal)
-        {
-            logger.LogFatal(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
-
-            HYP_UNREACHABLE();
+            }
         }
 
-        logger.Log(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
+        LogFormattedWindows<Level, FormatString>(
+            logger,
+            s_channel,
+            s_prefix,
+            FileName.Data(),
+            LineNumber,
+            std::forward<Args>(args)...);
     }
 }
 
@@ -333,22 +395,26 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
     {
 #ifndef HYP_DEBUG_MODE
         if constexpr (Level == LogLevel::Debug)
+        {
             return;
+        }
 #endif
 
         if constexpr (Level == LogLevel::Verbose)
         {
             if (!IsVerboseLoggingEnabled())
+            {
                 return;
-        }
-        else if constexpr (Level == LogLevel::Fatal)
-        {
-            logger.LogFatal(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
-
-            HYP_UNREACHABLE();
+            }
         }
 
-        logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
+        LogFormattedWindows<Level, FormatString>(
+            logger,
+            channel,
+            prefix,
+            FileName.Data(),
+            LineNumber,
+            std::forward<Args>(args)...);
     }
 }
 
