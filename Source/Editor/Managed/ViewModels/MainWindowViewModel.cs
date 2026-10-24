@@ -286,7 +286,7 @@ namespace Hyperion.Editor.ViewModels
         public EditorCommand AddPlane { get; } = new EditorCommand("AddPlane");
         public EditorCommand AddCube { get; } = new EditorCommand("AddCube");
         public ICommand AddNormalizedCubeSphereCommand { get; private set; }
-        public EditorCommand AddCylinder { get; } = new EditorCommand("AddCylinder");
+        public ICommand AddCylinderCommand { get; private set; }
 
         // Terrain
         public EditorCommand AddTerrainLayer { get; } = new EditorCommand("AddWorldGridLayer", () => "TerrainWorldGridLayer");
@@ -1789,6 +1789,13 @@ namespace Hyperion.Editor.ViewModels
             AddNormalizedCubeSphereCommand = new RelayCommand(() =>
             {
                 var panel = new AddNormalizedCubeSpherePanelViewModel(_editorSubsystem, confirmed => { });
+
+                PanelService.Instance.OpenPanel(panel);
+            });
+
+            AddCylinderCommand = new RelayCommand(() =>
+            {
+                var panel = new AddCylinderPanelViewModel(_editorSubsystem, confirmed => { });
 
                 PanelService.Instance.OpenPanel(panel);
             });

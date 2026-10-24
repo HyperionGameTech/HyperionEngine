@@ -386,7 +386,7 @@ namespace Hyperion.Editor
                 new MenuItem { Header = "Plane", Command = viewModel.AddPlane },
                 new MenuItem { Header = "Cube", Command = viewModel.AddCube },
                 new MenuItem { Header = "Sphere", Command = viewModel.AddNormalizedCubeSphereCommand },
-                new MenuItem { Header = "Cylinder", Command = viewModel.AddCylinder });
+                new MenuItem { Header = "Cylinder", Command = viewModel.AddCylinderCommand });
             yield return BuildTemplatesSubmenu(viewModel);
         }
 

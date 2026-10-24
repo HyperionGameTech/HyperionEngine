@@ -108,6 +108,8 @@ public:
         return m_type == LightType::AreaRect;
     }
 
+    Vec3f GetWorldNormal() const;
+
     HYP_METHOD()
     Vec3f GetSpotDirection() const;
 

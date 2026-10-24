@@ -42,7 +42,7 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
 
-        public AddNormalizedCubeSpherePanelViewModel(EditorSubsystem editorSubsystem, Action<bool> onCompleted)
+        public AddNormalizedCubeSpherePanelViewModel(EditorSubsystem? editorSubsystem, Action<bool>? onCompleted)
             : base("Add Normalized Cube Sphere")
         {
             _editorSubsystem = editorSubsystem ?? throw new ArgumentNullException(nameof(editorSubsystem));

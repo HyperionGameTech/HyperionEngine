@@ -743,6 +743,9 @@ public:
     HYP_METHOD()
     void UpdateNormalizedCubeSpherePreview(uint32 numDivisions);
 
+    HYP_METHOD()
+    void UpdateCylinderPreview(float radius, float height, uint32 numSegments);
+
     /*! \brief Commit the current mesh preview entity (if any) as a permanent scene entity, pushing an
      *  undoable "Add" action onto the current project's action stack. No-op if there is no active preview. */
     HYP_METHOD()
@@ -928,6 +931,8 @@ private:
 
     bool BackOutOfMeshEditState();
 
+    void SetMeshPreview(const Handle<Mesh>& mesh, Name shapeName, const String& actionText);
+
     ///Debug draws
 
     void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
@@ -1067,6 +1072,8 @@ private:
 
     Handle<Entity> m_meshPreviewEntity;
     Handle<Material> m_meshPreviewMaterial;
+    Name m_meshPreviewShapeName;
+    String m_meshPreviewActionText;
 
     UniquePtr<AssetThumbnailService> m_thumbnailService;
     UniquePtr<MaterialPreviewRenderer> m_materialPreviewRenderer;

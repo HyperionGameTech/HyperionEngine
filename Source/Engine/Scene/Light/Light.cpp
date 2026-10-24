@@ -156,6 +156,11 @@ void Light::Init()
 
     Entity::Init();
 
+    if (m_type != LightType::Directional)
+    {
+        Entity::SetLocalBounds(CalculateLightBounds());
+    }
+
     if (m_material.IsValid())
     {
         InitObject(m_material);
@@ -262,6 +267,11 @@ void Light::SetNormal(const Vec3f& normal)
 
     SetNeedsRenderProxyUpdate();
     MarkDirty();
+}
+
+Vec3f Light::GetWorldNormal() const
+{
+    return GetWorldRotation().RotateVector(m_normal).Normalized();
 }
 
 Vec3f Light::GetSpotDirection() const
@@ -476,18 +486,31 @@ BoundingBox Light::CalculateLightBounds() const
 
     if (m_type == LightType::AreaRect)
     {
+        const Vec3f normal = m_normal.Normalized();
+
         Vec3f tangent;
         Vec3f bitangent;
-        MathUtil::ComputeOrthonormalBasis(m_normal, tangent, bitangent);
+        MathUtil::ComputeOrthonormalBasis(normal, tangent, bitangent);
 
-        const float halfWidth = m_areaSize.x * 0.5f;
-        const float halfHeight = m_areaSize.y * 0.5f;
+        const float halfExtent = MathUtil::Max(m_areaSize.x, m_areaSize.y) * 0.5f + m_radius;
 
-        const Vec3f rectCorner = tangent * halfWidth + bitangent * halfHeight;
+        const Vec3f halfWidth = tangent * halfExtent;
+        const Vec3f halfHeight = bitangent * halfExtent;
 
-        return BoundingBox::Empty()
-            .Union(-(rectCorner + m_normal * m_radius))
-            .Union(rectCorner + m_normal * m_radius);
+        // the shader lights the side the normal points away from
+        const Vec3f depth = normal * -m_radius;
+
+        BoundingBox bounds = BoundingBox::Empty();
+
+        for (uint32 i = 0; i < 8; i++)
+        {
+            bounds = bounds.Union(
+                halfWidth * ((i & 1) ? 1.0f : -1.0f)
+                + halfHeight * ((i & 2) ? 1.0f : -1.0f)
+                + ((i & 4) ? depth : Vec3f::Zero()));
+        }
+
+        return bounds;
     }
 
     if (m_type == LightType::Point)
@@ -551,7 +574,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     {
     case LightType::AreaRect:
         bufferData.areaSize = m_areaSize;
-        bufferData.areaNormal = m_normal;
+        bufferData.areaNormal = GetWorldNormal();
         break;
     case LightType::Spot:
     {
@@ -589,6 +612,10 @@ HashCode Light::GetLightingHashCode() const
     if (m_type == LightType::Spot)
     {
         hashCode.Add(GetSpotDirection());
+    }
+    else if (m_type == LightType::AreaRect)
+    {
+        hashCode.Add(GetWorldNormal());
     }
 
     return hashCode;

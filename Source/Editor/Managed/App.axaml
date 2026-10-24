@@ -29,6 +29,9 @@
         <DataTemplate DataType="vm:AddNormalizedCubeSpherePanelViewModel">
             <panels:AddNormalizedCubeSpherePanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:AddCylinderPanelViewModel">
+            <panels:AddCylinderPanelView />
+        </DataTemplate>
         <DataTemplate DataType="vm:GenerateConvexCollisionPanelViewModel">
             <panels:GenerateConvexCollisionPanelView />
         </DataTemplate>

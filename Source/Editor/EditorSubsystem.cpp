@@ -3759,15 +3759,28 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
 
     const Handle<Node> convexCollisionTarget = m_convexCollisionTarget.Lock();
 
-    // always draw the target even if DebugDrawPhysics is off
+    // always draw the target and the selection even if DebugDrawPhysics is off
     if (!s_cvDebugDrawPhysics.Get())
     {
-        Entity* targetEntity = DynamicCast<Entity>(convexCollisionTarget.Get());
-        RigidBodyComponent* rigidBodyComponent = targetEntity != nullptr ? targetEntity->TryGetComponent<RigidBodyComponent>() : nullptr;
-
-        if (rigidBodyComponent != nullptr && rigidBodyComponent->shape.IsValid())
+        auto drawHighlighted = [&debugDrawCommandList](Node* node)
         {
-            DebugDrawPhysicsShape(debugDrawCommandList, targetEntity, rigidBodyComponent->shape.Get(), /* highlighted */ true);
+            Entity* entity = DynamicCast<Entity>(node);
+            RigidBodyComponent* rigidBodyComponent = entity != nullptr ? entity->TryGetComponent<RigidBodyComponent>() : nullptr;
+
+            if (rigidBodyComponent != nullptr && rigidBodyComponent->shape.IsValid())
+            {
+                DebugDrawPhysicsShape(debugDrawCommandList, entity, rigidBodyComponent->shape.Get(), /* highlighted */ true);
+            }
+        };
+
+        drawHighlighted(convexCollisionTarget.Get());
+
+        for (const Handle<Node>& selectedNode : m_selectedNodes)
+        {
+            if (selectedNode != convexCollisionTarget)
+            {
+                drawHighlighted(selectedNode.Get());
+            }
         }
 
         return;
@@ -6426,21 +6439,39 @@ void EditorSubsystem::UpdateNormalizedCubeSpherePreview(uint32 numDivisions)
 {
     AssertOnThread(g_simThread);
 
-    numDivisions = MathUtil::Max(numDivisions, 1u);
+    SetMeshPreview(
+        MeshBuilder::NormalizedCubeSphere(MathUtil::Max(numDivisions, 1u)),
+        NAME("NormalizedCubeSphere"),
+        "Add Normalized Cube Sphere");
+}
 
+void EditorSubsystem::UpdateCylinderPreview(float radius, float height, uint32 numSegments)
+{
+    AssertOnThread(g_simThread);
+
+    SetMeshPreview(
+        MeshBuilder::Cylinder(MathUtil::Max(radius, 0.01f), MathUtil::Max(height, 0.01f), MathUtil::Max(numSegments, 3u)),
+        NAME("Cylinder"),
+        "Add Cylinder");
+}
+
+void EditorSubsystem::SetMeshPreview(const Handle<Mesh>& mesh, Name shapeName, const String& actionText)
+{
     Handle<Scene> activeScene = GetActiveScene();
     if (!activeScene.IsValid())
     {
         return;
     }
 
-    Handle<Mesh> mesh = MeshBuilder::NormalizedCubeSphere(numDivisions);
     mesh->SetIsTransient(true);
-    mesh->SetName(NAME("NormalizedCubeSphereMesh_Preview"));
+    mesh->SetName(NAME_FMT("{}Mesh_Preview", shapeName));
 
     GetCurrentAssetRegistry()->PutAssetUnique(mesh);
 
     InitObject(mesh);
+
+    m_meshPreviewShapeName = shapeName;
+    m_meshPreviewActionText = actionText;
 
     if (!m_meshPreviewEntity.IsValid())
     {
@@ -6449,12 +6480,12 @@ void EditorSubsystem::UpdateNormalizedCubeSpherePreview(uint32 numDivisions)
         MaterialAttributes attributes;
         attributes.shaderName = NAME("GeometryPass");
 
-        m_meshPreviewMaterial = MakeHandle<Material>(NAME("NormalizedCubeSpherePreviewMaterial"), attributes);
+        m_meshPreviewMaterial = MakeHandle<Material>(NAME_FMT("{}PreviewMaterial", shapeName), attributes);
         m_meshPreviewMaterial->SetIsTransient(true);
         InitObject(m_meshPreviewMaterial);
 
         m_meshPreviewEntity = MakeHandle<Entity>();
-        m_meshPreviewEntity->SetName(NAME("NormalizedCubeSpherePreviewEntity"));
+        m_meshPreviewEntity->SetName(NAME_FMT("{}PreviewEntity", shapeName));
         m_meshPreviewEntity->SetWorldTranslation(insertionPoint);
 
         activeScene->GetRoot()->AddChild(m_meshPreviewEntity);
@@ -6466,6 +6497,8 @@ void EditorSubsystem::UpdateNormalizedCubeSpherePreview(uint32 numDivisions)
     }
     else if (MeshComponent* meshComponent = m_meshPreviewEntity->TryGetComponent<MeshComponent>())
     {
+        GetCurrentAssetRegistry()->RemoveAsset(meshComponent->mesh);
+
         meshComponent->mesh = mesh;
         m_meshPreviewEntity->AddTag<EntityTag::UpdateRenderProxy>();
     }
@@ -6513,17 +6546,20 @@ void EditorSubsystem::CommitMeshPreview()
     MaterialAttributes attributes;
     attributes.shaderName = NAME("GeometryPass");
 
-    Handle<Material> material = MakeHandle<Material>(NAME("NormalizedCubeSphereMaterial"), attributes);
+    Handle<Material> material = MakeHandle<Material>(NAME_FMT("{}Material", m_meshPreviewShapeName), attributes);
     InitObject(material);
 
     meshComponent->material = material;
 
-    entity->SetName(NAME("NormalizedCubeSphereEntity"));
+    entity->SetName(NAME_FMT("{}Entity", m_meshPreviewShapeName));
 
-    mesh->SetName(NAME("NormalizedCubeSphereMesh"));
+    GetCurrentAssetRegistry()->RemoveAsset(mesh);
+    
+    mesh->SetIsTransient(false);
+    mesh->SetName(NAME_FMT("{}Mesh", m_meshPreviewShapeName));
 
     Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
-        "Add Normalized Cube Sphere",
+        m_meshPreviewActionText,
         Proc<EditorActionFunctions()>(
             [entity, mesh, material]() -> EditorActionFunctions
             {
@@ -6531,8 +6567,8 @@ void EditorSubsystem::CommitMeshPreview()
                     .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
                         [entity, mesh, material](EditorSubsystem* subsystem, EditorProject*)
                         {
-                            GetCurrentAssetRegistry()->PutAsset(mesh);
-                            GetCurrentAssetRegistry()->PutAsset(material);
+                            GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+                            GetCurrentAssetRegistry()->PutAssetUnique(material);
 
                             Handle<Scene> activeScene = subsystem->GetActiveScene();
                             if (activeScene.IsValid())
@@ -6562,6 +6598,11 @@ void EditorSubsystem::CancelMeshPreview()
 
     if (m_meshPreviewEntity.IsValid())
     {
+        if (MeshComponent* meshComponent = m_meshPreviewEntity->TryGetComponent<MeshComponent>())
+        {
+            GetCurrentAssetRegistry()->RemoveAsset(meshComponent->mesh);
+        }
+
         m_meshPreviewEntity->Remove();
         m_meshPreviewEntity = Handle<Entity>::Null();
     }
