@@ -979,24 +979,30 @@ namespace utilities {
 template <class StringType, class AllocatorType>
 struct Formatter<StringType, TBitset<AllocatorType>>
 {
-    auto operator()(const TBitset<AllocatorType>& bitset) const
+    template <class OutType>
+    void Append(OutType& out, const TBitset<AllocatorType>& bitset) const
     {
-        StringType result;
-
         for (uint32 blockIndex = bitset.NumBits() / bitset.NumBitsPerBlock; blockIndex != 0; --blockIndex)
         {
             for (uint32 bitIndex = TBitset<AllocatorType>::NumBitsPerBlock; bitIndex != 0; --bitIndex)
             {
                 const uint32 combinedBitIndex = ((blockIndex - 1) * TBitset<AllocatorType>::NumBitsPerBlock) + (bitIndex - 1);
+                const char bit = bitset.Get(combinedBitIndex) ? '1' : '0';
 
-                result.Append(bitset.Get(combinedBitIndex) ? '1' : '0');
+                FormatInto_Write(out, &bit, 1);
 
                 if (((bitIndex - 1) % CHAR_BIT) == 0)
                 {
-                    result.Append(' ');
+                    FormatInto_Write(out, " ", 1);
                 }
             }
         }
+    }
+
+    auto operator()(const TBitset<AllocatorType>& bitset) const
+    {
+        StringType result;
+        Append(result, bitset);
 
         return result;
     }

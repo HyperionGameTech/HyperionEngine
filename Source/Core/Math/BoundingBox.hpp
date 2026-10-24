@@ -235,13 +235,22 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, BoundingBox>
 {
+    template <class OutType>
+    void Append(OutType& out, const BoundingBox& boundingBox) const
+    {
+        FormatInto_WriteString(out, "BoundingBox(min: ");
+        Formatter<StringType, Vec3f> {}.Append(out, boundingBox.min);
+        FormatInto_WriteString(out, ", max: ");
+        Formatter<StringType, Vec3f> {}.Append(out, boundingBox.max);
+        FormatInto_WriteString(out, ")");
+    }
+
     auto operator()(const BoundingBox& boundingBox) const
     {
-        return StringType("BoundingBox(min: ")
-            + Formatter<StringType, Vec3f> {}(boundingBox.min)
-            + StringType(", max: ")
-            + Formatter<StringType, Vec3f> {}(boundingBox.max)
-            + StringType(")");
+        StringType result;
+        Append(result, boundingBox);
+
+        return result;
     }
 };
 

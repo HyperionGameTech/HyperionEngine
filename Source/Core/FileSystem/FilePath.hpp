@@ -322,16 +322,18 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, FilePath>
 {
+    template <class OutType>
+    void Append(OutType& out, const FilePath& value) const
+    {
+        FormatInto_Write(out, value.Data(), value.Size());
+    }
+
     auto operator()(const FilePath& value) const
     {
-        if constexpr (std::is_base_of_v<StringType, FilePath>)
-        {
-            return static_cast<StringType>(value);
-        }
-        else
-        {
-            return StringType(value.Data());
-        }
+        StringType result;
+        Append(result, value);
+
+        return result;
     }
 };
 

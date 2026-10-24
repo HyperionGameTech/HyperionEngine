@@ -94,7 +94,15 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, UUID>
 {
-    constexpr auto operator()(const UUID& value) const
+    template <class OutType>
+    void Append(OutType& out, const UUID& value) const
+    {
+        const auto str = value.ToString();
+
+        FormatInto_Write(out, str.Data(), str.Size());
+    }
+
+    auto operator()(const UUID& value) const
     {
         return StringType(value.ToString());
     }

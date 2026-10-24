@@ -59,7 +59,15 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, dotnet::ManagedGuid>
 {
-    constexpr auto operator()(const dotnet::ManagedGuid& value) const
+    template <class OutType>
+    void Append(OutType& out, const dotnet::ManagedGuid& value) const
+    {
+        const auto str = value.ToUUID().ToString();
+
+        FormatInto_Write(out, str.Data(), str.Size());
+    }
+
+    auto operator()(const dotnet::ManagedGuid& value) const
     {
         return StringType(value.ToUUID().ToString());
     }

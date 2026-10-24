@@ -15,6 +15,13 @@
 
 #include <Core/IO/ByteWriter.hpp>
 
+#include <Core/Math/Mat4f.hpp>
+#include <Core/Math/Vector2.hpp>
+#include <Core/Math/Vector3.hpp>
+#include <Core/Math/Vector4.hpp>
+
+#include <Core/Name/Name.hpp>
+
 #include <limits>
 #include <string_view>
 #include <type_traits>
@@ -235,6 +242,31 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoEmptyStringViewSliceWritesNothing)
 
     HYP_TEST_CHECK(size == 2);
     HYP_TEST_CHECK(writer.GetText() == "<>");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoMathTypesMatchPrintfOutput)
+{
+    String buffer;
+    HYP_FORMAT_INTO(buffer, "{} {} {}", Vec3f(1.5f, -2.0f, 3.0f), Vec4f(0.0f, 1.0f, 2.0f, 3.0f), NAME("hello"));
+
+    HYP_TEST_CHECK(buffer == "[1.500000 -2.000000 3.000000] [0.000000 1.000000 2.000000 3.000000] hello");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoMat4fIdentityMatchesPrintfOutput)
+{
+    String buffer;
+    HYP_FORMAT_INTO(buffer, "{}", Mat4f::Identity());
+
+    HYP_TEST_CHECK(buffer == "Mat4f([1.000000 0.000000 0.000000 0.000000], [0.000000 1.000000 0.000000 0.000000], [0.000000 0.000000 1.000000 0.000000], [0.000000 0.000000 0.000000 1.000000])");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoVectorWithByteWriter)
+{
+    RecordingByteWriter writer;
+    const size_t size = HYP_FORMAT_INTO(writer, "{}", Vec2f(1.0f, 2.5f));
+
+    HYP_TEST_CHECK(size == 19);
+    HYP_TEST_CHECK(writer.GetText() == "[1.000000 2.500000]");
 }
 
 } // namespace

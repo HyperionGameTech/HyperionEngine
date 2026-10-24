@@ -782,65 +782,28 @@ namespace utilities {
 template <class StringType, class T>
 struct Formatter<StringType, math::Vec4<T>>
 {
-    HYP_FORCE_INLINE static const char* GetFormatString()
+    template <class OutType>
+    void Append(OutType& out, const math::Vec4<T>& value) const
     {
-        if constexpr (std::is_floating_point_v<T>)
-        {
-            static const char* formatString = "[%f %f %f %f]";
+        static_assert(std::is_arithmetic_v<T>, "Cannot format Vec4 type: unknown inner type");
 
-            return formatString;
-        }
-        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 4)
-        {
-            static const char* formatString = "[%d %d %d %d]";
-
-            return formatString;
-        }
-        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 8)
-        {
-            static const char* formatString = "[%lld %lld %lld %lld]";
-
-            return formatString;
-        }
-        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 4)
-        {
-            static const char* formatString = "[%u %u %u %u]";
-
-            return formatString;
-        }
-        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 8)
-        {
-            static const char* formatString = "[%llu %llu %llu %llu]";
-
-            return formatString;
-        }
-        else
-        {
-            static_assert(always_fail_v<T>, "Cannot format Vec4 type: unknown inner type");
-        }
+        FormatInto_WriteString(out, "[");
+        FormatInto_Scalar(out, value.x);
+        FormatInto_WriteString(out, " ");
+        FormatInto_Scalar(out, value.y);
+        FormatInto_WriteString(out, " ");
+        FormatInto_Scalar(out, value.z);
+        FormatInto_WriteString(out, " ");
+        FormatInto_Scalar(out, value.w);
+        FormatInto_WriteString(out, "]");
     }
 
     auto operator()(const math::Vec4<T>& value) const
     {
-        ubyte inlineBuf[1024];
-        ubyte* buf = &inlineBuf[0];
+        StringType result;
+        Append(result, value);
 
-        int resultSize = std::snprintf(reinterpret_cast<char*>(buf), 1024, GetFormatString(), value.x, value.y, value.z, value.w) + 1;
-
-        if (resultSize > sizeof(inlineBuf))
-        {
-            buf = new ubyte[resultSize];
-
-            resultSize = std::snprintf(reinterpret_cast<char*>(buf), resultSize, GetFormatString(), value.x, value.y, value.z, value.w) + 1;
-
-            StringType res(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf + resultSize));
-
-            delete[] buf;
-
-            return res;
-        }
-
-        return StringType(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf + resultSize));
+        return result;
     }
 };
 

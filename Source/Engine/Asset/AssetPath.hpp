@@ -125,6 +125,14 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, AssetPath>
 {
+    template <class OutType>
+    void Append(OutType& out, const AssetPath& value) const
+    {
+        const auto str = value.ToString();
+
+        FormatInto_Write(out, str.Data(), str.Size());
+    }
+
     auto operator()(const AssetPath& value) const
     {
         return value.ToString();

@@ -14,46 +14,7 @@
 #include <cstring>
 
 namespace Hyperion {
-
-class ByteWriter;
-
-} // namespace Hyperion
-
-namespace Hyperion {
 namespace utilities {
-
-// A sink is either a ByteWriter (Write and Position) or a string (Append and Size)
-template <class OutType>
-static inline void FormatInto_Write(OutType& out, const char* begin, size_t size)
-{
-    if constexpr (std::is_base_of_v<ByteWriter, OutType>)
-    {
-        out.Write(begin, size);
-    }
-    else
-    {
-        out.Append(begin, begin + size);
-    }
-}
-
-template <class OutType>
-static inline void FormatInto_WriteString(OutType& out, const char* str)
-{
-    FormatInto_Write(out, str, std::strlen(str));
-}
-
-template <class OutType>
-static inline size_t FormatInto_Size(const OutType& out)
-{
-    if constexpr (std::is_base_of_v<ByteWriter, OutType>)
-    {
-        return out.Position();
-    }
-    else
-    {
-        return out.Size();
-    }
-}
 
 HYP_MAKE_HAS_METHOD_CALL(Append);
 

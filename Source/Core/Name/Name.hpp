@@ -99,9 +99,18 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, Name>
 {
+    template <class OutType>
+    void Append(OutType& out, const Name& value) const
+    {
+        FormatInto_WriteString(out, value.LookupString());
+    }
+
     auto operator()(const Name& value) const
     {
-        return StringType(value.LookupString());
+        StringType result;
+        Append(result, value);
+
+        return result;
     }
 };
 

@@ -246,9 +246,18 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, Color>
 {
-    constexpr auto operator()(const Color& value) const
+    template <class OutType>
+    void Append(OutType& out, const Color& value) const
     {
-        return Formatter<StringType, Vec4f>()(Vec4f(value.GetRed(), value.GetGreen(), value.GetBlue(), value.GetAlpha()));
+        Formatter<StringType, Vec4f> {}.Append(out, Vec4f(value.GetRed(), value.GetGreen(), value.GetBlue(), value.GetAlpha()));
+    }
+
+    auto operator()(const Color& value) const
+    {
+        StringType result;
+        Append(result, value);
+
+        return result;
     }
 };
 

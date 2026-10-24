@@ -179,18 +179,40 @@ namespace utilities {
 template <class StringType, class T>
 struct Formatter<StringType, ObjId<T>>
 {
+    template <class OutType>
+    void Append(OutType& out, const ObjId<T>& value) const
+    {
+        FormatInto_WriteString(out, LookupTypeName(value.GetTypeId()));
+        FormatInto_WriteString(out, "#");
+        Formatter<StringType, uint32> {}.Append(out, value.Value());
+    }
+
     auto operator()(const ObjId<T>& value) const
     {
-        return StringType(LookupTypeName(value.GetTypeId())) + "#" + Formatter<StringType, uint32> {}(value.Value());
+        StringType result;
+        Append(result, value);
+
+        return result;
     }
 };
 
 template <class StringType>
 struct Formatter<StringType, ObjIdBase>
 {
+    template <class OutType>
+    void Append(OutType& out, const ObjIdBase& value) const
+    {
+        FormatInto_WriteString(out, LookupTypeName(value.GetTypeId()));
+        FormatInto_WriteString(out, "#");
+        Formatter<StringType, uint32> {}.Append(out, value.Value());
+    }
+
     auto operator()(const ObjIdBase& value) const
     {
-        return StringType(LookupTypeName(value.GetTypeId())) + "#" + Formatter<StringType, uint32> {}(value.Value());
+        StringType result;
+        Append(result, value);
+
+        return result;
     }
 };
 

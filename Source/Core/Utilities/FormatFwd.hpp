@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <Core/Utilities/FormatSink.hpp>
+
 namespace Hyperion {
 namespace utilities {
 

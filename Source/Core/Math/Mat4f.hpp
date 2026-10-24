@@ -158,13 +158,32 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, Mat4f>
 {
+    template <class OutType>
+    void Append(OutType& out, const Mat4f& matrix) const
+    {
+        FormatInto_WriteString(out, "Mat4f(");
+
+        for (uint32 rowIndex = 0; rowIndex < 4; rowIndex++)
+        {
+            if (rowIndex != 0)
+            {
+                FormatInto_WriteString(out, ", ");
+            }
+
+            const float(&row)[4] = matrix.rows[rowIndex];
+
+            Formatter<StringType, Vec4f> {}.Append(out, Vec4f(row[0], row[1], row[2], row[3]));
+        }
+
+        FormatInto_WriteString(out, ")");
+    }
+
     auto operator()(const Mat4f& matrix) const
     {
-        return StringType("Mat4f(")
-            + Formatter<StringType, Vec4f> {}(matrix.rows[0]) + StringType(", ")
-            + Formatter<StringType, Vec4f> {}(matrix.rows[1]) + StringType(", ")
-            + Formatter<StringType, Vec4f> {}(matrix.rows[2]) + StringType(", ")
-            + Formatter<StringType, Vec4f> {}(matrix.rows[3]) + StringType(")");
+        StringType result;
+        Append(result, matrix);
+
+        return result;
     }
 };
 

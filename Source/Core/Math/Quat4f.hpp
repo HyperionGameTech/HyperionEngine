@@ -163,27 +163,26 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, Quat4f>
 {
+    template <class OutType>
+    void Append(OutType& out, const Quat4f& value) const
+    {
+        FormatInto_WriteString(out, "[");
+        FormatInto_Scalar(out, value.x);
+        FormatInto_WriteString(out, " ");
+        FormatInto_Scalar(out, value.y);
+        FormatInto_WriteString(out, " ");
+        FormatInto_Scalar(out, value.z);
+        FormatInto_WriteString(out, " ");
+        FormatInto_Scalar(out, value.w);
+        FormatInto_WriteString(out, "]");
+    }
+
     auto operator()(const Quat4f& value) const
     {
-        ubyte inlineBuf[1024];
-        ubyte* buf = &inlineBuf[0];
+        StringType result;
+        Append(result, value);
 
-        int resultSize = std::snprintf(reinterpret_cast<char*>(buf), 1024, "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
-
-        if (resultSize > sizeof(inlineBuf))
-        {
-            buf = new ubyte[resultSize];
-
-            resultSize = std::snprintf(reinterpret_cast<char*>(buf), resultSize, "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
-
-            StringType res(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf + resultSize));
-
-            delete[] buf;
-
-            return res;
-        }
-
-        return StringType(reinterpret_cast<char*>(buf), reinterpret_cast<char*>(buf + resultSize));
+        return result;
     }
 };
 
