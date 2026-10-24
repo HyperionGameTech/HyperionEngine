@@ -181,6 +181,19 @@ bool CompoundPhysicsShape::IsOutOfDate() const
 
 #ifdef HYP_EDITOR
 
+void CompoundPhysicsShape::SetSourceMesh(const Handle<Mesh>& sourceMesh)
+{
+    if (m_sourceMesh == sourceMesh)
+    {
+        return;
+    }
+
+    // the hash is recorded once the hulls built from the new mesh are applied (see Regenerate)
+    SetSource(sourceMesh, 0);
+
+    Regenerate();
+}
+
 bool CompoundPhysicsShape::CanRegenerate() const
 {
     return m_sourceMesh.IsValid() && IsConvexDecompositionSupported();
@@ -210,6 +223,12 @@ void CompoundPhysicsShape::Regenerate()
             GetThreadById(g_simThread)->GetScheduler().Enqueue(
                 [self, sourceMesh, result = std::move(decompositionResult.GetValue())]()
                 {
+                    // the source was reassigned while decomposing, so these hulls belong to a mesh that is no longer selected
+                    if (self->m_sourceMesh != sourceMesh)
+                    {
+                        return;
+                    }
+
                     self->SetHulls(
                         Span<const float>(result.positions.Data(), result.positions.Size()),
                         Span<const uint32>(result.indices.Data(), result.indices.Size()),

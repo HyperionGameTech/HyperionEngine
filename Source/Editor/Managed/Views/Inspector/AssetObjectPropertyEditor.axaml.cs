@@ -43,7 +43,7 @@ namespace Hyperion.Editor.Views.Inspector
             PART_PickerBox.SelectionChanged += OnPickerSelectionChanged;
 
             SubscribeViewModel(DataContext as ObjectPropertyViewModel);
-            UpdateCopyEnabled();
+            UpdateEnabled();
         }
 
         private ObjectPropertyViewModel? _subscribedVm;
@@ -53,7 +53,7 @@ namespace Hyperion.Editor.Views.Inspector
         {
             SubscribeViewModel(DataContext as ObjectPropertyViewModel);
             CloseEditPanel();
-            UpdateCopyEnabled();
+            UpdateEnabled();
 
             if (_subscribedVm != null)
             {
@@ -87,7 +87,7 @@ namespace Hyperion.Editor.Views.Inspector
                 || e.PropertyName == nameof(ObjectPropertyViewModel.HasSubObject)
                 || e.PropertyName == nameof(ObjectPropertyViewModel.SubObject))
             {
-                UpdateCopyEnabled();
+                UpdateEnabled();
             }
 
             if (e.PropertyName == nameof(ObjectPropertyViewModel.IsEditorExpanded)
@@ -183,9 +183,12 @@ namespace Hyperion.Editor.Views.Inspector
             });
         }
 
-        private void UpdateCopyEnabled()
+        private void UpdateEnabled()
         {
-            PART_CopyMenuItem.IsEnabled = (DataContext as ObjectPropertyViewModel)?.GetCopyText() != null;
+            ObjectPropertyViewModel? vm = DataContext as ObjectPropertyViewModel;
+
+            PART_CopyMenuItem.IsEnabled = vm?.GetCopyText() != null;
+            PART_PasteMenuItem.IsEnabled = vm?.IsReadOnly == false;
         }
 
         private async void OnCopyClicked(object? sender, RoutedEventArgs e)

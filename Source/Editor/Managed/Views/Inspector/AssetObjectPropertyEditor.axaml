@@ -88,6 +88,7 @@
                     <Button
                         Classes="gizmo"
                         Command="{Binding ClearCommand}"
+                        IsEnabled="{Binding !IsReadOnly}"
                         ToolTip.Tip="Clear">
                         <controls:Codicon Kind="Close" Size="14" />
                     </Button>

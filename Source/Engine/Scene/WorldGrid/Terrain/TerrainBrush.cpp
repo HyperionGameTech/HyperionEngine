@@ -23,7 +23,8 @@ namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 
-static TerrainGroundCoverPaintState ReadGroundCoverPaintState(const Handle<TerrainCellData>& cellData)
+static TerrainGroundCoverPaintState ReadGroundCoverPaintState(
+    const Handle<TerrainCellData>& cellData)
 {
     TerrainGroundCoverPaintState state;
 
@@ -43,7 +44,9 @@ static TerrainGroundCoverPaintState ReadGroundCoverPaintState(const Handle<Terra
     return state;
 }
 
-static bool IsSameGroundCoverPaintState(const TerrainGroundCoverPaintState& first, const TerrainGroundCoverPaintState& second)
+static bool IsSameGroundCoverPaintState(
+    const TerrainGroundCoverPaintState& first,
+    const TerrainGroundCoverPaintState& second)
 {
     if (first.layers.Size() != second.layers.Size() || first.paint.Size() != second.paint.Size())
     {
@@ -68,6 +71,8 @@ static bool IsSameGroundCoverPaintState(const TerrainGroundCoverPaintState& firs
 
     return true;
 }
+
+#pragma region TerrainBrush
 
 TerrainBrush::TerrainBrush(TerrainWorldGridLayer& layer)
     : m_layer(layer)
@@ -536,7 +541,12 @@ void TerrainBrush::Paint(const Vec3f& worldPos, float radius, float strength, ui
     }
 }
 
-void TerrainBrush::PaintGroundCover(const Vec3f& worldPos, float radius, float strength, Name groundCoverLayer, bool erase)
+void TerrainBrush::PaintGroundCover(
+    const Vec3f& worldPos,
+    float radius,
+    float strength,
+    Name groundCoverLayer,
+    bool erase)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -597,7 +607,14 @@ void TerrainBrush::PaintGroundCover(const Vec3f& worldPos, float radius, float s
 
             if (m_groundCoverStrokeBefore.Find(coord) == m_groundCoverStrokeBefore.End())
             {
-                m_groundCoverStrokeBefore.Set(coord, ReadGroundCoverPaintState(isNewCellData ? Handle<TerrainCellData>() : cellData));
+                if (isNewCellData)
+                {
+                    m_groundCoverStrokeBefore.Emplace(coord);
+                }
+                else
+                {
+                    m_groundCoverStrokeBefore[coord] = ReadGroundCoverPaintState(cellData);
+                }
             }
 
             const int32 paintPlane = erase
@@ -741,8 +758,7 @@ void TerrainBrush::EndStroke()
 
         if (!loadedCell.IsValid())
         {
-            // the heights were edited but no tile was there to rebuild, so nothing changed on screen. Once per
-            // stroke rather than per brush dab, which runs every frame
+            // the heights were edited but no tile was there to rebuild
             HYP_LOG(WorldGrid, Warning, "Sculpted cell {} of terrain layer '{}' has no loaded tile - the edit won't show until it streams in",
                 pair.first, m_layer.GetName());
 
@@ -768,5 +784,7 @@ void TerrainBrush::EndStroke()
 
     m_groundCoverStrokeBefore.Clear();
 }
+
+#pragma endregion TerrainBrush
 
 } // namespace Hyperion

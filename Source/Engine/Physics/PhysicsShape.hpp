@@ -463,10 +463,18 @@ public:
 
     void SetDecompositionSettings(const ConvexDecompositionSettings& settings);
 
+    // Exposed to the inspector as "SourceMesh" (the serialized field of that name is hidden): loading must not trigger a regenerate
+    HYP_METHOD(Property = "EditSourceMesh", Label = "SourceMesh", Editor, Transient)
     HYP_FORCE_INLINE const Handle<Mesh>& GetSourceMesh() const
     {
         return m_sourceMesh;
     }
+
+#ifdef HYP_EDITOR
+    /*! \brief Assign the mesh this shape's hulls are decomposed from, and regenerate them. */
+    HYP_METHOD(Property = "EditSourceMesh", Label = "SourceMesh", Editor, Transient, EditorOnly)
+    void SetSourceMesh(const Handle<Mesh>& sourceMesh);
+#endif // HYP_EDITOR
 
     HYP_FORCE_INLINE uint64 GetSourceDataHash() const
     {
@@ -515,7 +523,7 @@ protected:
     HYP_FIELD(Property = "DecompositionSettings", Serialize)
     ConvexDecompositionSettings m_decompositionSettings;
 
-    HYP_FIELD(Property = "SourceMesh", Serialize, EditEnabled = false)
+    HYP_FIELD(Property = "SourceMesh", Serialize, Editor = false)
     Handle<Mesh> m_sourceMesh;
 
     HYP_FIELD(Property = "SourceDataHash", Serialize, Editor = false)

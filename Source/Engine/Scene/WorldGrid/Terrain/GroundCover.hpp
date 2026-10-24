@@ -79,7 +79,7 @@ struct GroundCoverLayer
         return source == GroundCoverSource::SplatLayer;
     }
 
-    HYP_METHOD()
+    HYP_METHOD(NoScriptBindings)
     bool IsFromPainted() const
     {
         return source == GroundCoverSource::Painted;

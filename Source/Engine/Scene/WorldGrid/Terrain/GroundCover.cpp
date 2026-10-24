@@ -33,7 +33,10 @@ Name GroundCover::FindPaintedLayer(const Handle<Prefab>& prefab) const
 
     for (const GroundCoverLayer& layer : layers)
     {
-        if (layer.source == GroundCoverSource::Painted && layer.name.IsValid() && layer.types.Size() == 1 && layer.types[0].prefab == prefab)
+        if (layer.source == GroundCoverSource::Painted
+            && layer.name.IsValid()
+            && layer.types.Size() == 1
+            && layer.types[0].prefab == prefab)
         {
             return layer.name;
         }
@@ -66,9 +69,9 @@ Name GroundCover::EnsurePaintedLayer(const Handle<Prefab>& prefab)
     // cells store what was painted under the layer's name, so it must not collide with another layer's
     Name layerName = prefab->GetName();
 
-    for (uint32 suffix = 2; !layerName.IsValid() || isNameTaken(layerName); suffix++)
+    for (uint32 suffix = 1; !layerName.IsValid() || isNameTaken(layerName); suffix++)
     {
-        layerName = NAME_FMT("{}_{}", prefab->GetName(), suffix);
+        layerName = NAME_FMT("{}{}", prefab->GetName(), suffix);
     }
 
     GroundCoverLayer& layer = layers.EmplaceBack();
