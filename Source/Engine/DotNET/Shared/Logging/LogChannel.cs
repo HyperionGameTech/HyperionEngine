@@ -45,7 +45,7 @@ namespace Hyperion
         private static extern IntPtr Logger_FindLogChannel(ref Name name);
 
         [DllImport("hyperion", EntryPoint = "Logger_CreateLogChannel")]
-        private static extern IntPtr Logger_CreateLogChannel([MarshalAs(UnmanagedType.LPStr)] string name);
+        private static extern IntPtr Logger_CreateLogChannel([MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
         [DllImport("hyperion", EntryPoint = "Logger_DestroyLogChannel")]
         private static extern void Logger_DestroyLogChannel(IntPtr logChannelPtr);

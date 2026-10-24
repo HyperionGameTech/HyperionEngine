@@ -302,11 +302,12 @@ struct LogOnceHelper
 template <LogLevel Level, auto FormatString, class... Args>
 static inline void LogFormattedWindows(Logger& logger, const LogChannel& channel, const String& prefix, const char* fileName, int lineNumber, Args&&... args)
 {
-    char windowBuffer[LogMessageWindowCapacity];
+    utf::Char8 windowBuffer[LogMessageWindowCapacity];
+
     size_t offset = 0;
     size_t total = 0;
 
-    FixedArray<UTF8StringView, 2> chunks { UTF8StringView(prefix), UTF8StringView() };
+    UTF8StringView chunks[2] = { UTF8StringView(prefix), UTF8StringView() };
 
     do
     {
@@ -314,13 +315,33 @@ static inline void LogFormattedWindows(Logger& logger, const LogChannel& channel
 
         total = utilities::FormatInto<FormatString>(writer, args...);
 
-        const size_t windowSize = MathUtil::Min(sizeof(windowBuffer), total - offset);
+        size_t windowSize = MathUtil::Min(sizeof(windowBuffer), total - offset);
+
+        if (HYP_UNLIKELY(offset + windowSize != total))
+        {
+            windowSize = utf::TrimIncompleteUtf8(windowBuffer, windowSize);
+        }
+
         const bool isLastWindow = offset + windowSize == total;
 
-        chunks[1] = UTF8StringView(windowBuffer, windowBuffer + windowSize);
+        chunks[1] = UTF8StringView(
+            windowBuffer,
+            windowBuffer + windowSize);
+
+        if (HYP_UNLIKELY(chunks[1].Size() == 0 && windowSize != 0))
+        {
+            const size_t validSize = utf::RemoveInvalidUtf8(windowBuffer, windowSize);
+
+            chunks[1] = UTF8StringView(
+                windowBuffer,
+                windowBuffer + validSize);
+        }
 
         const size_t firstChunk = offset == 0 ? 0 : 1;
-        const Span<UTF8StringView> chunksSliced = chunks.ToSpan().Slice(firstChunk, 2 - firstChunk);
+
+        const Span<UTF8StringView> chunksSliced = Span<UTF8StringView>(
+            chunks + firstChunk,
+            chunks + 2 - firstChunk);
 
         if constexpr (Level == LogLevel::Fatal)
         {

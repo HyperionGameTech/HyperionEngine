@@ -81,6 +81,6 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "Logger_Log")]
-        private static extern void Logger_Log(IntPtr logChannelPtr, uint logLevel, [MarshalAs(UnmanagedType.LPStr)] string fileName, uint line, [MarshalAs(UnmanagedType.LPStr)] string message);
+        private static extern void Logger_Log(IntPtr logChannelPtr, uint logLevel, [MarshalAs(UnmanagedType.LPUTF8Str)] string fileName, uint line, [MarshalAs(UnmanagedType.LPUTF8Str)] string message);
     }
 }

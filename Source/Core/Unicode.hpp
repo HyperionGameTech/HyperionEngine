@@ -202,6 +202,55 @@ inline constexpr size_t StringLength(const Char8* str, size_t& outBytes)
     return StringLengthSized(str, std::char_traits<Char8>::length(str), outBytes);
 }
 
+inline constexpr size_t TrimIncompleteUtf8(const Char8* str, size_t size)
+{
+    for (size_t back = 1; back <= 3 && back < size; back++)
+    {
+        const Char8 ch = str[size - back];
+
+        if (!IsUtf8Continuation(ch))
+        {
+            return Utf8SequenceWidth(ch) > back ? size - back : size;
+        }
+    }
+
+    return size;
+}
+
+inline size_t RemoveInvalidUtf8(Char8* str, size_t size)
+{
+    const Char8* pos = str;
+    const Char8* const last = str + size;
+    Char8* out = str;
+
+    while (pos != last)
+    {
+        const size_t width = Utf8SequenceWidth(*pos);
+        const size_t available = size_t(last - pos);
+
+        size_t i = 1;
+
+        while (i < width && i < available && IsUtf8Continuation(pos[i]))
+        {
+            i++;
+        }
+
+        if (width == 0 || i != width)
+        {
+            pos++;
+
+            continue;
+        }
+
+        for (size_t j = 0; j < width; j++)
+        {
+            *out++ = *pos++;
+        }
+    }
+
+    return size_t(out - str);
+}
+
 template <class T, bool IsUtf8>
 static inline constexpr size_t StringLength(const T* str)
 {

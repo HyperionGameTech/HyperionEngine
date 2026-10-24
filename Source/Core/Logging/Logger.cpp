@@ -72,6 +72,8 @@ CORE_API bool IsVerboseLoggingEnabled()
     return (t_isVerboseLoggingEnabled || (t_isVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose").ToBool(false)));
 }
 
+namespace {
+
 class LogChannelIndexAllocator
 {
 public:
@@ -93,8 +95,6 @@ public:
 private:
     AtomicVar<uint32> m_counter { 0 };
 };
-
-static LogChannelIndexAllocator s_logChannelIndexAllocator {};
 
 struct LoggerRedirect
 {
@@ -165,20 +165,6 @@ struct ThreadLocalRedirectSnapshot
     }
 };
 
-thread_local ThreadLocalRedirectSnapshot t_redirectSnapshot;
-
-static bool IsInteractiveStream(FILE* stream)
-{
-#if HYP_WINDOWS
-    const int descriptor = _fileno(stream);
-    return descriptor >= 0 && _isatty(descriptor) != 0;
-#elif HYP_UNIX
-    const int descriptor = fileno(stream);
-    return descriptor >= 0 && isatty(descriptor) != 0;
-#else
-    return false;
-#endif
-}
 
 struct LoggerState
 {
@@ -208,20 +194,56 @@ struct LoggerState
         Assert(!s_isOutputStreamInitialized, "Only one instance off LoggerOutputStream can be active");
         s_isOutputStreamInitialized = true;
     }
+
+    static bool IsInteractiveStream(FILE* stream)
+    {
+    #if HYP_WINDOWS
+        const int descriptor = _fileno(stream);
+        return descriptor >= 0 && _isatty(descriptor) != 0;
+    #elif HYP_UNIX
+        const int descriptor = fileno(stream);
+        return descriptor >= 0 && isatty(descriptor) != 0;
+    #else
+        return false;
+    #endif
+    }
 };
 
-static LoggerState s_loggerState;
+LoggerState g_loggerState;
 
-static void RebuildRedirectsLocked()
+thread_local ThreadLocalRedirectSnapshot t_redirectSnapshot;
+
+LogChannelIndexAllocator g_logChannelIndexAllocator {};
+
+void BuildChannelMask(LogChannel& channel)
+{
+    channel.maskBitset = Bitset();
+
+    if (channel.id < Logger::MaxChannels)
+    {
+        channel.maskBitset.Set(channel.id, true);
+    }
+
+    if (channel.parentChannel != nullptr)
+    {
+        channel.maskBitset |= channel.parentChannel->maskBitset;
+    }
+    else if (channel.id >= Logger::MaxChannels)
+    {
+        channel.maskBitset |= g_logChannel_Misc.maskBitset;
+    }
+}
+
+void RebuildRedirectsLocked()
 {
     LoggerRedirectSnapshot* newSnapshot = new LoggerRedirectSnapshot;
 
     // iterate by id to preserve registration order
-    for (int id = 0; id <= s_loggerState.m_redirectIdCounter; id++)
+    for (int id = 0; id <= g_loggerState.m_redirectIdCounter; id++)
     {
-        auto it = s_loggerState.m_redirects.Find(id);
+        auto it = g_loggerState.m_redirects.Find(id);
 
-        if (it == s_loggerState.m_redirects.End())
+        if (it == g_loggerState.m_redirects.End())
         {
             continue;
         }
@@ -249,24 +271,24 @@ static void RebuildRedirectsLocked()
         }
     }
 
-    LoggerRedirectSnapshot* oldSnapshot = s_loggerState.m_redirectSnapshot;
-    s_loggerState.m_redirectSnapshot = newSnapshot;
+    LoggerRedirectSnapshot* oldSnapshot = g_loggerState.m_redirectSnapshot;
+    g_loggerState.m_redirectSnapshot = newSnapshot;
 
     if (oldSnapshot != nullptr)
     {
         oldSnapshot->Release();
     }
 
-    s_loggerState.m_generation.Increment(1, MemoryOrder::RELEASE);
+    g_loggerState.m_generation.Increment(1, MemoryOrder::RELEASE);
 }
 
-static void RefreshLocalRedirectSnapshot(uint32 currentGeneration)
+void RefreshLocalRedirectSnapshot(uint32 currentGeneration)
 {
     LoggerRedirectSnapshot* newSnapshot;
 
     {
-        Mutex::Guard guard(s_loggerState.m_mutex);
-        newSnapshot = s_loggerState.m_redirectSnapshot;
+        Mutex::Guard guard(g_loggerState.m_mutex);
+        newSnapshot = g_loggerState.m_redirectSnapshot;
 
         if (newSnapshot != nullptr)
         {
@@ -283,19 +305,16 @@ static void RefreshLocalRedirectSnapshot(uint32 currentGeneration)
     t_localGeneration = currentGeneration;
 }
 
-static void Write(const LogChannel& channel, const LogMessage& message)
+void Write(const LogChannel& channel, const LogMessage& message)
 {
     const LogChannel* pChannel = &channel;
 
-    if (HYP_UNLIKELY(channel.id >= Logger::MaxChannels))
+    if (HYP_UNLIKELY(channel.maskBitset.ToUInt64() == 0))
     {
-        // log channel overflow! revert to Log_Misc
-        //// \todo : Dynamic channels with ID >= MaxChannels should be checked using a dynamic bitset w/ mutex
         pChannel = &g_logChannel_Misc;
-        return;
     }
 
-    const uint32 currentGeneration = s_loggerState.m_generation.Get(MemoryOrder::RELAXED);
+    const uint32 currentGeneration = g_loggerState.m_generation.Get(MemoryOrder::RELAXED);
 
     if (HYP_UNLIKELY(t_localGeneration != currentGeneration))
     {
@@ -341,9 +360,9 @@ static void Write(const LogChannel& channel, const LogMessage& message)
 
     if (allowDefaultOutput)
     {
-        FILE* file = isError ? s_loggerState.m_outputError : s_loggerState.m_output;
+        FILE* file = isError ? g_loggerState.m_outputError : g_loggerState.m_output;
         const bool isConsole = file == stdout || file == stderr;
-        const bool isInteractive = isError ? s_loggerState.m_isOutputErrorInteractive : s_loggerState.m_isOutputInteractive;
+        const bool isInteractive = isError ? g_loggerState.m_isOutputErrorInteractive : g_loggerState.m_isOutputInteractive;
 
 #if HYP_ANDROID
         if (isConsole)
@@ -452,23 +471,24 @@ static void Write(const LogChannel& channel, const LogMessage& message)
     }
 }
 
-static void WriteError(const LogChannel& channel, const LogMessage& message)
+void WriteError(const LogChannel& channel, const LogMessage& message)
 {
     Write(channel, message);
 }
 
-static void Flush()
+void Flush()
 {
-    if (s_loggerState.m_output)
+    if (g_loggerState.m_output)
     {
-        std::fflush(s_loggerState.m_output);
+        std::fflush(g_loggerState.m_output);
     }
 
-    if (s_loggerState.m_outputError)
+    if (g_loggerState.m_outputError)
     {
-        std::fflush(s_loggerState.m_outputError);
+        std::fflush(g_loggerState.m_outputError);
     }
 }
+} // namespace
 
 #pragma region DynamicLogChannelHandle
 
@@ -622,22 +642,14 @@ void LogChannelRegistrar::RegisterAll()
         order[i]->id = i;
     }
 
+    AtomicExchange(&s_maxLogChannelId, int32(n) - 1);
+
     // kept alive until program exit
     static Array<DynamicLogChannelHandle> s_dynamicLogChannelHandles;
 
-    for (LogChannel* channel : m_channels)
+    for (LogChannel* channel : order)
     {
-        Assert(channel->id != ~0u);
-
-        channel->maskBitset = Bitset();
-        channel->maskBitset.Set(channel->id, true);
-
-        if (channel->parentChannel != nullptr)
-        {
-            Assert(channel->parentChannel->id != ~0u);
-
-            channel->maskBitset |= channel->parentChannel->maskBitset;
-        }
+        BuildChannelMask(*channel);
 
         if (channel->id < Hyperion::logging::Logger::MaxChannels)
         {
@@ -711,11 +723,11 @@ int Logger::AddRedirect(
 {
     AssertDebug(writeFnptr != nullptr || writeErrorFnptr != nullptr, "At least one of writeFnptr or writeErrorFnptr must be non-null");
 
-    Mutex::Guard guard(s_loggerState.m_mutex);
+    Mutex::Guard guard(g_loggerState.m_mutex);
 
-    const int id = ++s_loggerState.m_redirectIdCounter;
+    const int id = ++g_loggerState.m_redirectIdCounter;
 
-    s_loggerState.m_redirects.Emplace(id, LoggerRedirect { channelMask, context, writeFnptr, writeErrorFnptr });
+    g_loggerState.m_redirects.Emplace(id, LoggerRedirect { channelMask, context, writeFnptr, writeErrorFnptr });
 
     RebuildRedirectsLocked();
 
@@ -724,16 +736,16 @@ int Logger::AddRedirect(
 
 void Logger::RemoveRedirect(int id)
 {
-    Mutex::Guard guard(s_loggerState.m_mutex);
+    Mutex::Guard guard(g_loggerState.m_mutex);
 
-    auto it = s_loggerState.m_redirects.Find(id);
+    auto it = g_loggerState.m_redirects.Find(id);
 
-    if (it == s_loggerState.m_redirects.End())
+    if (it == g_loggerState.m_redirects.End())
     {
         return;
     }
 
-    s_loggerState.m_redirects.Erase(it);
+    g_loggerState.m_redirects.Erase(it);
 
     RebuildRedirectsLocked();
 }
@@ -763,8 +775,6 @@ const LogChannel* Logger::FindLogChannel(StringHash name) const
         {
             return channel;
         }
-
-        return channel;
     }
 
     return nullptr;
@@ -787,15 +797,15 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(Name name, LogChannel* p
     LogChannel* channel = m_impl->m_dynamicLogChannels.PushBack(new LogChannel(name));
 
     channel->id = AtomicIncrement(&s_maxLogChannelId);
-    channel->maskBitset = Bitset(1ull << channel->id);
 
     if (parentChannel)
     {
         AssertDebug(parentChannel->id != ~0u, "Parent channel must be registered if it exists!");
 
         channel->parentChannel = parentChannel;
-        channel->maskBitset |= parentChannel->maskBitset;
     }
+
+    BuildChannelMask(*channel);
 
     return DynamicLogChannelHandle(this, channel, /* ownsAllocation */ true);
 }
@@ -813,7 +823,9 @@ DynamicLogChannelHandle Logger::CreateDynamicLogChannel(LogChannel& channel)
         channel.id = AtomicIncrement(&s_maxLogChannelId);
     }
 
-    channel.maskBitset = Bitset(1ull << channel.id);
+    AssertDebug(channel.parentChannel == nullptr || channel.parentChannel->id != ~0u, "Parent channel must be registered if it exists!");
+
+    BuildChannelMask(channel);
 
     return DynamicLogChannelHandle(this, &channel, /* ownsAllocation */ false);
 }
@@ -872,6 +884,11 @@ bool Logger::IsChannelEnabled(const LogChannel& channel) const
 
 void Logger::SetChannelEnabled(const LogChannel& channel, bool enabled)
 {
+    if (channel.id >= MaxChannels)
+    {
+        return;
+    }
+
     if (enabled)
     {
         m_impl->m_logMask.BitOr(1ull << channel.id, MemoryOrder::RELAXED);
@@ -930,7 +947,7 @@ void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& 
 
     const LogChannel* pChannel = &channel;
 
-    if (channel.id == ~0u || channel.id >= Logger::MaxChannels)
+    if (channel.id == ~0u)
     {
         pChannel = &g_logChannel_Misc;
     }

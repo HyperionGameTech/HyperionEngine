@@ -1158,7 +1158,7 @@ extern "C"
         if (g_logRedirectId == -1)
         {
             g_logRedirectId = Logger::GetInstance().AddRedirect(
-                Bitset(~0u), // All channels
+                Bitset(~0ull), // All channels
                 nullptr,
                 HandleLogMessage,
                 HandleLogMessage // Use same handler for errors for now

@@ -22,6 +22,10 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Logging/Logger.hpp>
+
+#include <Core/Unicode.hpp>
+
 #include <limits>
 #include <string_view>
 #include <type_traits>
@@ -78,6 +82,53 @@ protected:
 private:
     String m_text;
 };
+
+struct CapturedLog
+{
+    const logging::LogChannel* channel = nullptr;
+    Array<String> messages;
+};
+
+bool CaptureLogMessage(void* context, const logging::LogChannel& channel, const logging::LogMessage& message)
+{
+    CapturedLog* captured = static_cast<CapturedLog*>(context);
+
+    if (&channel != captured->channel)
+    {
+        return true;
+    }
+
+    String text;
+
+    for (const auto& chunk : message.chunks)
+    {
+        text.Append(chunk);
+    }
+
+    captured->messages.PushBack(std::move(text));
+
+    return false;
+}
+
+template <class Arg>
+Array<String> LogAndCapture(const Arg& arg)
+{
+    logging::Logger& logger = logging::GetLogger();
+
+    logging::LogChannel channel(NAME("StringFormatLogTest"));
+    logging::DynamicLogChannelHandle channelHandle = logger.CreateDynamicLogChannel(channel);
+
+    CapturedLog captured;
+    captured.channel = &channel;
+
+    const int redirectId = logger.AddRedirect(channel.maskBitset, &captured, CaptureLogMessage, CaptureLogMessage);
+
+    logging::LogStatic_Channel<logging::LogLevel::Info, HYP_STATIC_STRING("{}\n"), HYP_STATIC_STRING(""), 0>(logger, channel, arg);
+
+    logger.RemoveRedirect(redirectId);
+
+    return std::move(captured.messages);
+}
 
 HYP_ENGINE_TEST(StringFormat, IntegersToString)
 {
@@ -140,7 +191,7 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoWriterReturnsFullSizeWhenTruncated)
     const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
 
     HYP_TEST_CHECK(size == 16);
-    HYP_TEST_CHECK(UTF8StringView(buffer, buffer + sizeof(buffer)) == "abcdefgh");
+    HYP_TEST_CHECK(std::string_view(buffer, sizeof(buffer)) == "abcdefgh");
 }
 
 HYP_ENGINE_TEST(StringFormat, FormatIntoWriterWritesWindowAtOffset)
@@ -150,7 +201,7 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoWriterWritesWindowAtOffset)
     const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
 
     HYP_TEST_CHECK(size == 16);
-    HYP_TEST_CHECK(UTF8StringView(buffer, buffer + sizeof(buffer)) == "ij 12345");
+    HYP_TEST_CHECK(std::string_view(buffer, sizeof(buffer)) == "ij 12345");
 }
 
 HYP_ENGINE_TEST(StringFormat, FormatIntoWindowsReassembleToFullOutput)
@@ -267,6 +318,55 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoVectorWithByteWriter)
 
     HYP_TEST_CHECK(size == 19);
     HYP_TEST_CHECK(writer.GetText() == "[1.000000 2.500000]");
+}
+
+HYP_ENGINE_TEST(StringFormat, RemoveInvalidUtf8KeepsValidSequences)
+{
+    char text[] = "a\xE9" "b\x80" "c\xE2\x82\xAC" "d\xE2\x82";
+    const size_t size = utf::RemoveInvalidUtf8(text, sizeof(text) - 1);
+
+    HYP_TEST_CHECK(std::string_view(text, size) == "abc\xE2\x82\xAC" "d");
+}
+
+HYP_ENGINE_TEST(StringFormat, TrimIncompleteUtf8DropsPartialSequence)
+{
+    HYP_TEST_CHECK(utf::TrimIncompleteUtf8("ab\xC3", 3) == 2);
+    HYP_TEST_CHECK(utf::TrimIncompleteUtf8("a\xE2\x82", 3) == 1);
+    HYP_TEST_CHECK(utf::TrimIncompleteUtf8("a\xE2\x82\xAC", 4) == 4);
+    HYP_TEST_CHECK(utf::TrimIncompleteUtf8("abc", 3) == 3);
+    HYP_TEST_CHECK(utf::TrimIncompleteUtf8("\xE2\x82", 2) == 2);
+}
+
+HYP_ENGINE_TEST(StringFormat, LogLongMessageWindowsReassemble)
+{
+    String text("a");
+
+    for (int i = 0; i < 1000; i++)
+    {
+        text.Append("\xC3\xA9");
+    }
+
+    const Array<String> messages = LogAndCapture(text);
+
+    String joined;
+
+    for (const String& message : messages)
+    {
+        HYP_TEST_CHECK(!message.Empty());
+
+        joined.Append(message);
+    }
+
+    HYP_TEST_CHECK(messages.Size() > 1);
+    HYP_TEST_CHECK(joined == HYP_FORMAT("StringFormatLogTest [Info]: {}\n", text));
+}
+
+HYP_ENGINE_TEST(StringFormat, LogInvalidUtf8KeepsMessage)
+{
+    const Array<String> messages = LogAndCapture("bad\xE9!");
+
+    HYP_TEST_CHECK(messages.Size() == 1);
+    HYP_TEST_CHECK(messages.Size() == 1 && messages[0] == "StringFormatLogTest [Info]: bad!\n");
 }
 
 } // namespace

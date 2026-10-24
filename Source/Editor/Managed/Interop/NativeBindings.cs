@@ -10,12 +10,12 @@ namespace Hyperion.Editor
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void LogCallbackDelegate(
-        [MarshalAs(UnmanagedType.LPStr)] string channel,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string channel,
         LogLevel level,
         double timestamp,
-        [MarshalAs(UnmanagedType.LPStr)] string fileName,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string fileName,
         int lineNumber,
-        [MarshalAs(UnmanagedType.LPStr)] string text);
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void NameCallbackDelegate(
