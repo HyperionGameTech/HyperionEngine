@@ -406,11 +406,11 @@ PSOutput PSMain(PSInput input)
     }
     else
     {
-        float3 diffuseColor = CalculateDiffuseColor(albedo, metalness);
-
         // transmission on foliage == light going through the leaf. not refraction
         const float refractionTransmission = isFoliage ? 0.0 : transmission;
         const float foliageTransmission = isFoliage ? transmission : 0.0;
+
+        float3 diffuseColor = CalculateDiffuseColor(albedo, metalness) * (1.0 - refractionTransmission);
 
         {
             float3 indirect_lighting = 0;
@@ -420,7 +420,9 @@ PSOutput PSMain(PSInput input)
 
             const float3 R = normalize(reflect(-V, N));
 
-            const float3 F0 = CalculateF0(albedo, metalness);
+            const float ior = CURRENT_MATERIAL.refraction.x;
+
+            const float3 F0 = CalculateF0(albedo, metalness, ior);
             const float3 dfg = CalculateDFG(perceptualRoughness, NdotV);
             const float3 E = CalculateE(F0, dfg);
 
@@ -440,7 +442,7 @@ PSOutput PSMain(PSInput input)
                     P, N, V,
                     texcoord,
                     F0, E,
-                    refractionTransmission, perceptualRoughness,
+                    refractionTransmission, perceptualRoughness, ior,
                     float4(0.0, 0.0, 0.0, 0.0),
                     output.gbuffer_albedo,
                     float3(ao, ao, ao));
@@ -481,8 +483,7 @@ PSOutput PSMain(PSInput input)
                 }
 #endif // FORWARD_CLUSTERED
 
-                Ft *= refractionTransmission;
-                Fd *= (1.0 - refractionTransmission);
+                Ft *= refractionTransmission * (1.0 - metalness);
 
                 indirect_lighting = Ft + Fd + Fr;
             }

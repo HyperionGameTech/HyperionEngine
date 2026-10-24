@@ -458,6 +458,8 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
         MathUtil::Clamp(m_parameters.baseOcclusion, 0.0f, 1.0f),
         MathUtil::Max(m_parameters.baseOcclusionHeight, 0.0f));
 
+    bufferData.refraction = Vec4f(MathUtil::Max(m_parameters.ior, 1.0f), 0.0f, 0.0f, 0.0f);
+
     bufferData.textureUsage = 0;
 
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);

@@ -363,12 +363,16 @@ float4 CalculateDiffuseColor(float4 albedo, float metalness)
     return float4(CalculateDiffuseColor(albedo.rgb, metalness), albedo.a);
 }
 
-float3 CalculateF0(float3 albedo, float metalness)
+float3 CalculateF0(float3 albedo, float metalness, float ior)
 {
-    const float IOR = 1.5;
-    float3 F0 = float3((pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0)).xxx);
+    float3 F0 = float3((pow(ior - 1.0, 2.0) / pow(ior + 1.0, 2.0)).xxx);
     F0 = lerp(F0, albedo, metalness);
     return F0;
+}
+
+float3 CalculateF0(float3 albedo, float metalness)
+{
+    return CalculateF0(albedo, metalness, 1.5);
 }
 
 float3 CalculateFresnelTerm(float3 F0, float VdotH)

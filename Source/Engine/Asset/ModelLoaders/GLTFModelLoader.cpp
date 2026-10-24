@@ -116,6 +116,15 @@ struct GltfSkinResource
     Set<const cgltf_node*> jointNodes;
 };
 
+struct GltfMaterialEntry
+{
+    Name name;
+    MaterialAttributes attributes;
+    MaterialParameters parameters;
+    MaterialTextures textures;
+    Array<Handle<Material>> variants;
+};
+
 struct GltfLoadContext
 {
     LoaderState& state;
@@ -123,7 +132,7 @@ struct GltfLoadContext
     Scene* scene;
     Array<GltfMeshResource> meshResources;
     Map<const cgltf_skin*, GltfSkinResource> skinResources;
-    Map<const cgltf_material*, Handle<Material>> materialCache;
+    Map<const cgltf_material*, GltfMaterialEntry> materialCache;
     Map<const cgltf_texture*, Handle<Texture>> textureCache;
     uint32 unnamedNodeCounter = 0;
     uint32 unnamedMaterialCounter = 0;
@@ -1376,6 +1385,22 @@ SplitMetalnessRoughnessResult SplitMetalnessRoughnessTexture(
     return { metalnessTexture, roughnessTexture };
 }
 
+struct PrimitiveBuildOutput
+{
+    Handle<Mesh> mesh;
+    Vec3f localTranslation = Vec3f::Zero();
+    bool skinned = false;
+    bool tree = false;
+    bool foliage = false;
+    bool groundCover = false;
+    float windFrequency = 0.0f;
+    float windTrunkFlexibility = 0.0f;
+    float windTreeHeight = 0.0f;
+    float windFlutter = 0.0f;
+    float foliageNormalBlend = 0.0f;
+    float foliageBackfaceVolume = 0.0f;
+};
+
 static constexpr const char* BlendModeExtraKey = "hyperionBlendMode";
 
 // glTF only knows straight alpha blending, so other blend modes (or blending a MASK material) are asked for in the material's extras
@@ -1422,7 +1447,7 @@ Optional<BlendFunction> ReadBlendModeOverride(const cgltf_material* gltfMaterial
     return {};
 }
 
-Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const cgltf_material* gltfMaterial, const Handle<Mesh>& mesh)
+GltfMaterialEntry BuildMaterialEntry(LoaderState& state, GltfLoadContext& ctx, const cgltf_material* gltfMaterial)
 {
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = NAME("GeometryPass");
@@ -1431,25 +1456,9 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
     if (!gltfMaterial)
     {
-        Handle<Material> fallbackMaterial = MakeHandle<Material>(
-            NAME("BasicGLTFMaterial"),
-            materialAttributes,
-            MaterialParameters {},
-            MaterialTextures {});
-
-        InitObject(fallbackMaterial);
-
-        if (ShouldRegisterAssets(state))
-        {
-            GetCurrentAssetRegistry()->PutAssetUnique(fallbackMaterial);
-        }
-
-        return fallbackMaterial;
-    }
-
-    if (const auto it = ctx.materialCache.Find(gltfMaterial); it != ctx.materialCache.End())
-    {
-        return it->second;
+        return GltfMaterialEntry {
+            .name = NAME("BasicGLTFMaterial"),
+            .attributes = materialAttributes };
     }
 
     const Name materialName = (gltfMaterial->name && *gltfMaterial->name)
@@ -1526,6 +1535,11 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         parameters.transmission = transmission;
     }
 
+    if (gltfMaterial->has_ior && gltfMaterial->ior.ior >= 1.0f)
+    {
+        parameters.ior = float(gltfMaterial->ior.ior);
+    }
+
     if (gltfMaterial->alpha_mode == cgltf_alpha_mode_mask)
     {
         parameters.alphaThreshold = float(gltfMaterial->alpha_cutoff);
@@ -1560,8 +1574,12 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         materialAttributes.bucket = RenderBucket::Translucent;
         materialAttributes.blendFunction = *translucentBlendFunction;
 
-        // blended surfaces aren't sorted, so writing depth would hide whatever translucent draws after them
-        materialAttributes.flags &= ~MAF_DEPTH_WRITE;
+        // blended surfaces aren't sorted, so writing depth would hide whatever translucent draws after them.
+        // unblended transmission replaces what's behind it (it refracts the opaque mip chain), so it keeps depth like an opaque surface
+        if (*translucentBlendFunction != BlendFunction::None())
+        {
+            materialAttributes.flags &= ~MAF_DEPTH_WRITE;
+        }
     }
 
     if (gltfMaterial->double_sided)
@@ -1613,11 +1631,61 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         parameters.emissiveIntensity *= emissiveStrength;
     }
 
+    GltfMaterialEntry entry {};
+    entry.name = materialName;
+    entry.attributes = materialAttributes;
+    entry.parameters = parameters;
+    entry.textures = std::move(textures);
+
+    return entry;
+}
+
+void ApplyPrimitiveMaterialSettings(const PrimitiveBuildOutput& primitive, MaterialAttributes& attributes, MaterialParameters& parameters)
+{
+    parameters.foliage = primitive.foliage;
+    parameters.terrainColorMatch = primitive.groundCover;
+    parameters.windFrequency = primitive.windFrequency;
+    parameters.windTrunkFlexibility = primitive.windTrunkFlexibility;
+    parameters.windTreeHeight = primitive.windTreeHeight;
+    parameters.windFlutter = primitive.windFlutter;
+    parameters.foliageNormalBlend = primitive.foliageNormalBlend;
+    parameters.foliageBackfaceVolume = primitive.foliageBackfaceVolume;
+
+    // foliage reads transmission as light through the leaf, which the deferred path handles - refraction was the only reason to go forward
+    if (primitive.foliage && attributes.bucket == RenderBucket::Translucent && attributes.blendFunction == BlendFunction::None())
+    {
+        attributes.bucket = RenderBucket::Opaque;
+    }
+}
+
+Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const cgltf_material* gltfMaterial, const PrimitiveBuildOutput& primitive)
+{
+    auto it = ctx.materialCache.Find(gltfMaterial);
+
+    if (it == ctx.materialCache.End())
+    {
+        it = ctx.materialCache.Insert(gltfMaterial, BuildMaterialEntry(state, ctx, gltfMaterial)).first;
+    }
+
+    GltfMaterialEntry& entry = it->second;
+
+    MaterialAttributes attributes = entry.attributes;
+    MaterialParameters parameters = entry.parameters;
+    ApplyPrimitiveMaterialSettings(primitive, attributes, parameters);
+
+    for (const Handle<Material>& variant : entry.variants)
+    {
+        if (variant->GetAttributes() == attributes && variant->GetParameters() == parameters)
+        {
+            return variant;
+        }
+    }
+
     Handle<Material> material = MakeHandle<Material>(
-        materialName,
-        materialAttributes,
+        entry.name,
+        attributes,
         parameters,
-        textures);
+        entry.textures);
 
     if (ShouldRegisterAssets(state))
     {
@@ -1626,7 +1694,7 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
 
     InitObject(material);
 
-    ctx.materialCache.Set(gltfMaterial, material);
+    entry.variants.PushBack(material);
 
     return material;
 }
@@ -1805,22 +1873,6 @@ void BuildTreeVertices(
         }
     }
 }
-
-struct PrimitiveBuildOutput
-{
-    Handle<Mesh> mesh;
-    Vec3f localTranslation = Vec3f::Zero();
-    bool skinned = false;
-    bool tree = false;
-    bool foliage = false;
-    bool groundCover = false;
-    float windFrequency = 0.0f;
-    float windTrunkFlexibility = 0.0f;
-    float windTreeHeight = 0.0f;
-    float windFlutter = 0.0f;
-    float foliageNormalBlend = 0.0f;
-    float foliageBackfaceVolume = 0.0f;
-};
 
 bool BuildPrimitive(GltfLoadContext& ctx,
                     const cgltf_mesh& gltfMesh,
@@ -2546,26 +2598,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
                 continue;
             }
 
-            Handle<Material> material = AcquireMaterial(state, ctx, gltfMesh.primitives[primitiveIndex].material, output.mesh);
-
-            {
-                MaterialParameters parameters = material->GetParameters();
-                parameters.foliage = output.foliage;
-                parameters.terrainColorMatch = output.groundCover;
-                parameters.windFrequency = output.windFrequency;
-                parameters.windTrunkFlexibility = output.windTrunkFlexibility;
-                parameters.windTreeHeight = output.windTreeHeight;
-                parameters.windFlutter = output.windFlutter;
-                parameters.foliageNormalBlend = output.foliageNormalBlend;
-                parameters.foliageBackfaceVolume = output.foliageBackfaceVolume;
-
-                if (parameters != material->GetParameters())
-                {
-                    material->SetParameters(parameters);
-                }
-            }
-
-            InitObject(material);
+            Handle<Material> material = AcquireMaterial(state, ctx, gltfMesh.primitives[primitiveIndex].material, output);
 
             meshResource.primitives.PushBack(GltfPrimitiveResource {
                 .mesh = output.mesh,

@@ -19,6 +19,7 @@ struct Refraction
 {
     float3 position;
     float3 direction;
+    float distance;
 };
 
 void RefractionSolidSphere(
@@ -35,6 +36,7 @@ void RefractionSolidSphere(
     Refraction refraction;
     refraction.position = float3(P + R * d);
     refraction.direction = refract(R, n1, eta_ir);
+    refraction.distance = d;
 
     out_refraction = refraction;
 }
@@ -45,14 +47,14 @@ float3 CalculateRefraction(
     uint2 image_dimensions,
     float3 P, float3 N, float3 V, float2 texcoord,
     float3 F0, float3 E,
-    float transmission, float roughness,
+    float transmission, float roughness, float ior,
     float4 opaque_color, float4 translucent_color,
     float3 brdf)
 {
     // dimensions of mip chain image
     const uint max_dimension = max(image_dimensions.x, image_dimensions.y);
 
-    const float IOR = 1.5;
+    const float IOR = max(ior, 1.0);
     const float air_ior = 1.0;
     const float eta_ir = air_ior / IOR;
 
@@ -67,7 +69,8 @@ float3 CalculateRefraction(
     const float lod = ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension));
 
     float absorption = 0.1; // TODO: material parameter
-    float3 T = min(float3(1.0, 1.0, 1.0), exp(-absorption * refraction.direction));
+    
+    const float T = exp(-absorption * refraction.distance);
 
     float3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, GBufferMipChain, refraction_texcoord, lod).rgb;
     Ft *= translucent_color.rgb;

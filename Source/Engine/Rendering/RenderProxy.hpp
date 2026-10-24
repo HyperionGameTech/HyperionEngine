@@ -491,7 +491,11 @@ struct MaterialShaderData
     // albedo with the diffuse map's average folded in, for shaders that can't sample the map itself
     Vec4f averageAlbedo;
 
-    Vec4f _pad[2];
+    // =====
+    // ior, unused, unused, unused
+    Vec4f refraction;
+
+    Vec4f _pad;
 };
 
 static_assert(sizeof(MaterialShaderData) % 64 == 0);

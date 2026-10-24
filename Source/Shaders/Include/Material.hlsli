@@ -40,8 +40,10 @@ struct Material
     // albedo with the diffuse map's average folded in
     float4 average_albedo;
 
+    // ior, unused, unused, unused
+    float4 refraction;
+
     float4 _pad0;
-    float4 _pad1;
 };
 
 // enum for packed params
