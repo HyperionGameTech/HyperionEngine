@@ -152,6 +152,10 @@ public:
         AddShaderModule(moduleType, moduleName, DefaultEntryPointNames[uint8(moduleType)], blobData);
     }
 
+    /*! \brief The compiled blob of the module of the given type.
+     *  Caller must have a read scope held */
+    ConstByteView GetModuleBlob(ShaderModuleType moduleType);
+
     bool GetShaderModuleInfo(
         uint32 index,
         ShaderModuleType& outModuleType,

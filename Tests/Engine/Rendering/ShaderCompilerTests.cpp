@@ -162,24 +162,53 @@ bool HasVertexAndPixelModules(const Shader& shader)
     return hasVertex && hasPixel;
 }
 
-/// True if every module has a non-empty compiled blob. The bytes themselves are paged out behind a protected API,
-/// so only their presence and size are checked here.
-bool AllBlobsNonEmpty(const Shader& shader)
+/// True if the check passes for the compiled blob of every module of the shader
+bool EveryModuleBlobPasses(Shader& shader, bool (*check)(ConstByteView))
 {
-    if (shader.shaderBlobs.Empty())
+    if (shader.moduleTypes.Empty())
     {
         return false;
     }
 
-    for (const BlobDataReference& blob : shader.shaderBlobs)
+    // blob data is paged in by a read scope, and only resident while it is held
+    auto readScope = shader.GetReadScope();
+
+    for (ShaderModuleType moduleType : shader.moduleTypes)
     {
-        if (blob.size == 0)
+        if (!check(shader.GetModuleBlob(moduleType)))
         {
             return false;
         }
     }
 
     return true;
+}
+
+/// True if the blob starts with the SPIR-V magic number
+bool IsSpirv(ConstByteView blob)
+{
+    return blob.Size() >= 4 && *reinterpret_cast<const uint32*>(blob.Data()) == 0x07230203;
+}
+
+/// True if the blob is a DXBC container
+bool IsDxbc(ConstByteView blob)
+{
+    return blob.Size() >= 4
+        && blob[0] == 'D' && blob[1] == 'X' && blob[2] == 'B' && blob[3] == 'C';
+}
+
+/// True if the blob contains a WGSL function declaration
+bool IsWgsl(ConstByteView blob)
+{
+    for (size_t i = 0; i + 2 < blob.Size(); i++)
+    {
+        if (blob[i] == 'f' && blob[i + 1] == 'n' && blob[i + 2] == ' ')
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace
@@ -266,7 +295,7 @@ HYP_ENGINE_TEST(ShaderCompiler, VulkanOutputIsSpirvForEveryStage)
     HYP_TEST_REQUIRE(shader != nullptr);
 
     HYP_TEST_CHECK(HasVertexAndPixelModules(*shader));
-    HYP_TEST_CHECK(AllBlobsNonEmpty(*shader));
+    HYP_TEST_CHECK(EveryModuleBlobPasses(*shader, &IsSpirv));
 }
 
 // The DX12 output must be a DXBC container for every stage, on Windows only
@@ -280,7 +309,7 @@ HYP_ENGINE_TEST(ShaderCompiler, Dx12OutputIsDxilContainerForEveryStage)
     HYP_TEST_REQUIRE(shader != nullptr);
 
     HYP_TEST_CHECK(HasVertexAndPixelModules(*shader));
-    HYP_TEST_CHECK(AllBlobsNonEmpty(*shader));
+    HYP_TEST_CHECK(EveryModuleBlobPasses(*shader, &IsDxbc));
 #endif
 }
 
@@ -316,7 +345,7 @@ HYP_ENGINE_TEST(ShaderCompiler, CompilesFallbackForWebGPU)
     HYP_TEST_REQUIRE(shader != nullptr);
 
     HYP_TEST_CHECK(HasVertexAndPixelModules(*shader));
-    HYP_TEST_CHECK(AllBlobsNonEmpty(*shader));
+    HYP_TEST_CHECK(EveryModuleBlobPasses(*shader, &IsWgsl));
 }
 
 // A TARGET value that isn't a known platform must never produce a compile

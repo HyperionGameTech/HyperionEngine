@@ -74,6 +74,25 @@ void Shader::AddShaderModule(
     AllocateBlobData(ref, blobData.Data(), blobData.Size(), 1);
 }
 
+ConstByteView Shader::GetModuleBlob(ShaderModuleType moduleType)
+{
+    const auto it = moduleTypes.Find(moduleType);
+
+    if (it == moduleTypes.End())
+    {
+        return ConstByteView();
+    }
+
+    const BlobDataReference& ref = shaderBlobs[it - moduleTypes.Begin()];
+
+    if (ref.raw == nullptr)
+    {
+        return ConstByteView();
+    }
+
+    return ConstByteView(reinterpret_cast<const ubyte*>(ref.raw), ref.size);
+}
+
 void Shader::PageBlobData()
 {
     Handle<AssetRegistry> registry = GetEngineAssetRegistry();
