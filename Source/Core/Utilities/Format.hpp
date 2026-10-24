@@ -7,6 +7,10 @@
 #include <Core/Containers/StaticString.hpp>
 
 #include <Core/Memory/ByteBuffer.hpp>
+#include <Core/Memory/Memory.hpp>
+
+#include <algorithm>
+#include <cstring>
 
 namespace Hyperion {
 namespace utilities {
@@ -482,9 +486,145 @@ constexpr auto Format(Args&&... args)
     return Format_Impl<Str>(std::forward<Args>(args)...);
 }
 
+#pragma region FormatInto
+
+class FormatBufferWriter final
+{
+public:
+    FormatBufferWriter(char* buffer, size_t capacity, size_t offset = 0)
+        : m_buffer(buffer),
+          m_capacity(capacity),
+          m_offset(offset),
+          m_size(0)
+    {
+    }
+
+    void Append(const char* begin, const char* end)
+    {
+        const size_t count = size_t(end - begin);
+        const size_t copyBegin = std::max(m_size, m_offset);
+        const size_t copyEnd = std::min(m_size + count, m_offset + m_capacity);
+
+        if (copyBegin < copyEnd)
+        {
+            Memory::Copy(m_buffer + (copyBegin - m_offset), begin + (copyBegin - m_size), copyEnd - copyBegin);
+        }
+
+        m_size += count;
+    }
+
+    void Append(const char* str)
+    {
+        Append(str, str + std::strlen(str));
+    }
+
+    void Append(char value)
+    {
+        Append(&value, &value + 1);
+    }
+
+    size_t Size() const
+    {
+        return m_size;
+    }
+
+private:
+    char* m_buffer;
+    size_t m_capacity;
+    size_t m_offset;
+    size_t m_size;
+};
+
+template <class OutStringType, class T>
+void FormatInto_AppendElement(OutStringType& out, const T& element)
+{
+    using ValueType = std::remove_cv_t<std::remove_reference_t<T>>;
+
+    if constexpr (std::is_same_v<ValueType, bool>)
+    {
+        out.Append(element ? "true" : "false");
+    }
+    else if constexpr (std::is_same_v<ValueType, char>)
+    {
+        out.Append(element);
+    }
+    else if constexpr (std::is_same_v<ValueType, char*> || std::is_same_v<ValueType, const char*>)
+    {
+        out.Append(element);
+    }
+    else if constexpr (std::is_integral_v<ValueType>)
+    {
+        using UnsignedType = std::make_unsigned_t<ValueType>;
+
+        UnsignedType magnitude = UnsignedType(element);
+        bool isNegative = false;
+
+        if constexpr (std::is_signed_v<ValueType>)
+        {
+            if (element < 0)
+            {
+                isNegative = true;
+                magnitude = static_cast<UnsignedType>(0u - magnitude);
+            }
+        }
+
+        char digits[sizeof(UnsignedType) * 3 + 2];
+        char* const end = digits + sizeof(digits);
+        char* begin = end;
+
+        do
+        {
+            *--begin = char('0' + magnitude % 10);
+            magnitude = UnsignedType(magnitude / 10);
+        } while (magnitude != 0);
+
+        if (isNegative)
+        {
+            *--begin = '-';
+        }
+
+        out.Append(begin, end);
+    }
+    else
+    {
+        const auto formatted = FormatString_FormatElement_Runtime<containers::StringType::UTF8>(element);
+
+        out.Append(formatted.Data(), formatted.Data() + formatted.Size());
+    }
+}
+
+template <class OutStringType, size_t Size>
+void FormatInto_AppendElement(OutStringType& out, const StaticString<Size>& element)
+{
+    out.Append(element.Data());
+}
+
+template <class OutStringType, class... Ts, size_t... Indices>
+void FormatString_AppendElements(OutStringType& out, const Tuple<Ts...>& args, std::index_sequence<Indices...>)
+{
+    (FormatInto_AppendElement(out, args.template GetElement<Indices>()), ...);
+}
+
+template <class OutStringType, class... Ts>
+void FormatString_AppendTuple(OutStringType& out, const Tuple<Ts...>& args)
+{
+    FormatString_AppendElements(out, args, std::make_index_sequence<sizeof...(Ts)>());
+}
+
+template <auto Str, class OutStringType, class... Args>
+size_t FormatInto(OutStringType& out, Args&&... args)
+{
+    FormatString_AppendTuple(out, FormatString_BuildTuple<Str, FormatTransformer> {}(std::forward<Args>(args)...));
+
+    return out.Size();
+}
+
+#pragma endregion FormatInto
+
 } // namespace utilities
 
 using utilities::Format;
+using utilities::FormatInto;
 
 } // namespace Hyperion
 
@@ -496,3 +636,7 @@ using utilities::Format;
 #endif
 
 #define HYP_FORMAT(fmt, ...) Format<HYP_STATIC_STRING(fmt)>(__VA_ARGS__)
+
+// Helper macro for utilities::FormatInto< FormatString >(out, ...), appends to an existing string
+
+#define HYP_FORMAT_INTO(out, fmt, ...) FormatInto<HYP_STATIC_STRING(fmt)>(out __VA_OPT__(, ) __VA_ARGS__)

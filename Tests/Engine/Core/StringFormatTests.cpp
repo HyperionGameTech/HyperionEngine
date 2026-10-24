@@ -58,6 +58,70 @@ HYP_ENGINE_TEST(StringFormat, FormatsIntegerArguments)
     HYP_TEST_CHECK(HYP_FORMAT("{} and {}", -5, 12) == "-5 and 12");
 }
 
+HYP_ENGINE_TEST(StringFormat, FormatIntoAppendsToExistingString)
+{
+    String buffer("Tris: ");
+    HYP_FORMAT_INTO(buffer, "{}, {} and {}", 42, -7, true);
+
+    HYP_TEST_CHECK(buffer == "Tris: 42, -7 and true");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoHandlesExtremeIntegers)
+{
+    String buffer;
+    HYP_FORMAT_INTO(buffer, "{}|{}|{}", std::numeric_limits<int64>::min(), std::numeric_limits<uint64>::max(), std::numeric_limits<int8>::min());
+
+    HYP_TEST_CHECK(buffer == "-9223372036854775808|18446744073709551615|-128");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoMatchesFormat)
+{
+    String buffer;
+    HYP_FORMAT_INTO(buffer, "{} [{}]: {} {} {}", "Name", 0, 1.5f, uint8(255), 'c');
+
+    HYP_TEST_CHECK(buffer == HYP_FORMAT("{} [{}]: {} {} {}", "Name", 0, 1.5f, uint8(255), 'c'));
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoWriterReturnsFullSizeWhenTruncated)
+{
+    char buffer[8];
+    utilities::FormatBufferWriter writer(buffer, sizeof(buffer));
+    const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
+
+    HYP_TEST_CHECK(size == 16);
+    HYP_TEST_CHECK(UTF8StringView(buffer, sizeof(buffer)) == "abcdefgh");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoWriterWritesWindowAtOffset)
+{
+    char buffer[8];
+    utilities::FormatBufferWriter writer(buffer, sizeof(buffer), 8);
+    const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
+
+    HYP_TEST_CHECK(size == 16);
+    HYP_TEST_CHECK(UTF8StringView(buffer, sizeof(buffer)) == "ij 12345");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoWindowsReassembleToFullOutput)
+{
+    String result;
+    size_t offset = 0;
+    size_t total = 0;
+
+    do
+    {
+        char window[5];
+        utilities::FormatBufferWriter writer(window, sizeof(window), offset);
+        total = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
+
+        const size_t windowSize = std::min(sizeof(window), total - offset);
+        result.Append(window, window + windowSize);
+        offset += windowSize;
+    } while (offset < total);
+
+    HYP_TEST_CHECK(result == "abcdefghij 12345");
+}
+
 } // namespace
 
 } // namespace core
