@@ -45,12 +45,6 @@ bool IsBoneWithin(Bone& bone, Name rootBoneName)
     return false;
 }
 
-HYP_FORCE_INLINE bool IsBoneOverlaid(Bone& bone, const ApplyAnimParams& params)
-{
-    return (params.overlayRootBone.IsValid() && IsBoneWithin(bone, params.overlayRootBone))
-        || (params.overlaySecondRootBone.IsValid() && IsBoneWithin(bone, params.overlaySecondRootBone));
-}
-
 } // namespace
 
 #pragma region AnimationTrack
@@ -326,7 +320,6 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
     float layerWeight = MathUtil::Clamp(params.layerWeight, 0.0f, 1.0f);
     float blend = MathUtil::Clamp(params.blend, 0.0f, 1.0f);
     float secondLayerWeight = MathUtil::Clamp(params.secondLayerWeight, 0.0f, 1.0f);
-    float overlayWeight = MathUtil::Clamp(params.overlayWeight, 0.0f, 1.0f);
 
     const Animation* layerAnimation = params.layerAnimation;
 
@@ -336,8 +329,6 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
     {
         secondLayerAnimation = nullptr;
     }
-
-    const Animation* overlayAnimation = overlayWeight > 0.0f ? params.overlayAnimation : nullptr;
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
@@ -362,14 +353,6 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
             if (const AnimationTrack* secondLayerTrack = secondLayerAnimation->FindTrack(track->GetBoneName()))
             {
                 frame = frame.Blend(secondLayerTrack->GetKeyframe(params.secondLayerTime), secondLayerWeight);
-            }
-        }
-
-        if (overlayAnimation != nullptr && IsBoneOverlaid(*bone, params))
-        {
-            if (const AnimationTrack* overlayTrack = overlayAnimation->FindTrack(track->GetBoneName()))
-            {
-                frame = frame.Blend(overlayTrack->GetKeyframe(params.overlayTime), overlayWeight);
             }
         }
 

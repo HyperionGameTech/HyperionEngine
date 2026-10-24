@@ -79,8 +79,6 @@
 
 #include <Framework/EngineGlobals.hpp>
 
-#include <Framework/Gameplay/Weapon.hpp>
-
 #include <Scene/Decal/Decal.hpp>
 
 #include <System/OpenFileDialog.hpp>

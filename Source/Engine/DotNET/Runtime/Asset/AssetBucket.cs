@@ -45,7 +45,7 @@ namespace Hyperion
         public static readonly AssetBucket Prefabs           = new(16);
         public static readonly AssetBucket Sounds            = new(17);
         public static readonly AssetBucket Terrain           = new(18);
-        public static readonly AssetBucket Weapons           = new(19);
+        public static readonly AssetBucket Reserved0         = new(19);
         public static readonly AssetBucket Decals            = new(20);
         public static readonly AssetBucket Misc              = new(21);
 
@@ -54,7 +54,7 @@ namespace Hyperion
             Meshes, Textures, Materials, InstanceData,
             Animations, AnimationTracks, Skeletons, Worlds, Scenes,
             Shaders, ShaderBundles, FontAtlases, PhysicsShapes,
-            Scripts, RawData, Prefabs, Sounds, Terrain, Weapons, Decals,
+            Scripts, RawData, Prefabs, Sounds, Terrain, Reserved0, Decals,
             Misc
         ];
 

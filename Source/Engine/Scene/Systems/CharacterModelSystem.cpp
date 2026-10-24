@@ -428,53 +428,6 @@ void ApplyAimTwist(
     playbackState.twistEndBone = clips.aimTwistEndBone;
 }
 
-void UpdateWeaponOverlay(CharacterModelComponent& component, float delta)
-{
-    const bool isSwitching = component.shownWeaponAnimation.IsValid() && component.shownWeaponAnimation != component.heldWeaponAnimation;
-
-    if (!component.shownWeaponAnimation.IsValid())
-    {
-        component.shownWeaponAnimation = component.heldWeaponAnimation;
-    }
-
-    const float targetWeight = component.heldWeaponAnimation.IsValid() && !isSwitching ? 1.0f : 0.0f;
-    const float step = delta / MathUtil::Max(component.weaponBlendTime, 0.001f);
-
-    component.weaponWeight = targetWeight > component.weaponWeight
-        ? MathUtil::Min(component.weaponWeight + step, targetWeight)
-        : MathUtil::Max(component.weaponWeight - step, targetWeight);
-
-    component.weaponTime += delta;
-
-    if (component.weaponWeight <= 0.0f)
-    {
-        component.shownWeaponAnimation = component.heldWeaponAnimation;
-    }
-}
-
-void ApplyWeaponOverlay(const CharacterModelComponent& component, const Skeleton& skeleton, AnimationComponent& animationComponent)
-{
-    AnimationPlaybackState& playbackState = animationComponent.playbackState;
-
-    const uint32 index = component.weaponWeight > 0.0f && component.shownWeaponAnimation.IsValid()
-        ? FindAnimationIndex(skeleton, component.shownWeaponAnimation)
-        : ~0u;
-
-    if (index == ~0u)
-    {
-        playbackState.overlayAnimationIndex = ~0u;
-        playbackState.overlayWeight = 0.0f;
-
-        return;
-    }
-
-    playbackState.overlayAnimationIndex = index;
-    playbackState.overlayTime = WrapTime(component.weaponTime, GetAnimationLength(skeleton, index));
-    playbackState.overlayWeight = MathUtil::SmoothStep(0.0f, 1.0f, component.weaponWeight);
-    playbackState.overlayRootBone = component.animations.weaponOverlayRootBone;
-    playbackState.overlaySecondRootBone = component.animations.weaponOverlaySecondRootBone;
-}
-
 DirectionalWalk GetDirectionalWalk(const CharacterModelComponent& component, const LocomotionClips& clips)
 {
     DirectionalWalk walk;
@@ -1183,7 +1136,6 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
             }
 
             UpdateLocomotionPhase(component, phaseClips, isMovingBackward, delta);
-            UpdateWeaponOverlay(component, delta);
 
             for (const LocomotionAnimatedEntity& animatedEntity : animatedEntities)
             {
@@ -1205,7 +1157,6 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     ApplyLocomotionPose(component, *pClips, *animatedEntity.animationComponent);
                 }
 
-                ApplyWeaponOverlay(component, *animatedEntity.skeleton, *animatedEntity.animationComponent);
                 ApplyAimTwist(component, *pClips, *animatedEntity.animationComponent);
             }
         }

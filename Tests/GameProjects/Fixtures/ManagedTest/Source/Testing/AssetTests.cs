@@ -14,7 +14,7 @@ namespace GameTests
             context.AssetRegistry.PutAsset(weapon);
 
             Check.True(weapon.IsRegistered(), "TestWeaponAsset was not registered");
-            Check.Equal(AssetBucket.Weapons.Index, weapon.Path.BucketIndex, "TestWeaponAsset bucket");
+            Check.Equal(AssetBucket.RawData.Index, weapon.Path.BucketIndex, "TestWeaponAsset bucket");
         }
 
         [GameTest]
@@ -30,7 +30,7 @@ namespace GameTests
         [GameTest]
         public static void WeaponAsset_SavesManifest(GameTestContext context)
         {
-            SaveAsset(context, CreateWeapon(WeaponName), AssetBucket.Weapons);
+            SaveAsset(context, CreateWeapon(WeaponName), AssetBucket.RawData);
         }
 
         [GameTest]
@@ -42,11 +42,11 @@ namespace GameTests
         [GameTest(GamePhases.Read)]
         public static void WeaponAsset_LoadsSavedFields(GameTestContext context)
         {
-            AssetObject? asset = context.AssetRegistry.GetAsset(AssetBucket.Weapons.Index, new Name(WeaponName));
-            Check.NotNull(asset, $"Weapons/{WeaponName}");
+            AssetObject? asset = context.AssetRegistry.GetAsset(AssetBucket.RawData.Index, new Name(WeaponName));
+            Check.NotNull(asset, $"RawData/{WeaponName}");
 
             TestWeaponAsset? weapon = asset as TestWeaponAsset;
-            Check.True(weapon != null, $"Weapons/{WeaponName} loaded as {asset!.GetType().Name}, not TestWeaponAsset");
+            Check.True(weapon != null, $"RawData/{WeaponName} loaded as {asset!.GetType().Name}, not TestWeaponAsset");
 
             Check.Equal(42, weapon!.Damage, "Damage");
             Check.Equal(2.5f, weapon.FireRate, "FireRate");

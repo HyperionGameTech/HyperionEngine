@@ -259,20 +259,11 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
             }
 
-            const Animation* overlayAnimation = playbackState.overlayWeight > 0.0f && playbackState.overlayAnimationIndex != ~0u
-                ? meshComponent.skeleton->GetAnimation(playbackState.overlayAnimationIndex).Get()
-                : nullptr;
-
-            if (overlayAnimation != nullptr)
-            {
-                playbackState.overlayTime = AdvanceLayerTime(playbackState.overlayTime, delta * playbackState.speed, overlayAnimation->GetLength());
-            }
-        
             ApplyAnimParams params{};
             params.time = playbackState.currentTime;
             params.blend = 0.5f;
 
-            if (layerAnimation != nullptr || secondLayerAnimation != nullptr || overlayAnimation != nullptr)
+            if (layerAnimation != nullptr || secondLayerAnimation != nullptr)
             {
                 if (layerAnimation != nullptr)
                 {
@@ -291,12 +282,6 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     params.layerTime = playbackState.secondLayerTime;
                     params.layerWeight = playbackState.secondLayerWeight;
                 }
-
-                params.overlayAnimation = overlayAnimation;
-                params.overlayTime = playbackState.overlayTime;
-                params.overlayWeight = playbackState.overlayWeight;
-                params.overlayRootBone = playbackState.overlayRootBone;
-                params.overlaySecondRootBone = playbackState.overlaySecondRootBone;
 
                 animation->ApplyLayered(*meshComponent.skeleton, params);
             }

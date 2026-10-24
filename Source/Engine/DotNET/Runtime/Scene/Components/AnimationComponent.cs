@@ -34,11 +34,6 @@ namespace Hyperion
         public uint SecondLayerAnimationIndex = uint.MaxValue;
         public float SecondLayerTime = 0.0f;
         public float SecondLayerWeight = 0.0f;
-        public uint OverlayAnimationIndex = uint.MaxValue;
-        public float OverlayTime = 0.0f;
-        public float OverlayWeight = 0.0f;
-        public Name OverlayRootBone;
-        public Name OverlaySecondRootBone;
         public float TwistAngle = 0.0f;
         public Name TwistRootBone;
         public Name TwistEndBone;

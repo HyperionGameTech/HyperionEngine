@@ -40,7 +40,7 @@ public:
     }
 };
 
-HYP_CLASS(AssetBucket = "Weapons")
+HYP_CLASS(AssetBucket = "RawData")
 class NativeTestWeaponAsset final : public AssetObject
 {
     HYP_OBJECT_BODY(NativeTestWeaponAsset);

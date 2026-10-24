@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -78,7 +77,6 @@ namespace Hyperion.Editor.ViewModels
         private static readonly KeyValuePair<string, Func<ContentBrowserViewModel, ICommand>>[] DedicatedCreatorTypes =
         {
             new(nameof(ScriptAsset), (ContentBrowserViewModel vm) => vm.NewScriptCommand),
-            new(nameof(Weapon), (ContentBrowserViewModel vm) => vm.NewWeaponCommand),
             new(nameof(World), (ContentBrowserViewModel vm) => vm.NewWorldCommand)
         };
 
@@ -189,7 +187,6 @@ namespace Hyperion.Editor.ViewModels
         public ICommand OpenFolderCommand { get; }
 
         public ICommand NewScriptCommand { get; }
-        public ICommand NewWeaponCommand { get; }
         public ICommand NewDecalCommand { get; }
         public ICommand NewWorldCommand { get; }
 
@@ -245,7 +242,6 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanCreateAssets));
 
             (NewScriptCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (NewWeaponCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewDecalCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewWorldCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (NewFolderCommand as RelayCommand<AssetFolderViewModel>)?.RaiseCanExecuteChanged();
@@ -350,26 +346,6 @@ namespace Hyperion.Editor.ViewModels
                     CreateInCurrentFolder("script", AssetBucket.Scripts.Value, openEditor: false, () =>
                     {
                         _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewScript"), $"{languageArg} {name}");
-                    });
-                });
-
-                PanelService.Instance.OpenPanel(panel);
-            }, () => CanCreateAssets);
-
-            NewWeaponCommand = new RelayCommand(() =>
-            {
-                var panel = new NewWeaponPanelViewModel(weaponType =>
-                {
-                    if (weaponType == null)
-                    {
-                        Logger.Log(LogLevel.Warning, "New weapon creation cancelled.");
-                        return;
-                    }
-
-                    CreateInCurrentFolder("weapon", AssetBucket.Weapons.Value, openEditor: true, () =>
-                    {
-                        // EditorCommandNewWeapon takes the WeaponType as an integer
-                        _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandNewWeapon"), Convert.ToString((int)weaponType.Value, CultureInfo.InvariantCulture));
                     });
                 });
 

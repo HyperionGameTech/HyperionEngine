@@ -57,7 +57,6 @@ enum class Icon : uint32
     AssetPrefab,
     AssetSound,
     AssetTerrain,
-    AssetWeapon,
     AssetFolder,
 
     MeshEditMode,

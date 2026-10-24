@@ -45,7 +45,6 @@ namespace Hyperion.Editor.ViewModels
             "Script" or "ScriptAsset"           => "AssetScript",
             "RawDataAsset"                      => "AssetRawData",
             "TerrainCellData"                   => "AssetTerrain",
-            "Weapon"                            => "AssetWeapon",
             _                                   => "File",
         };
 
@@ -69,7 +68,6 @@ namespace Hyperion.Editor.ViewModels
             if (bucket.Index == AssetBucket.Prefabs.Index)              return "AssetPrefab";
             if (bucket.Index == AssetBucket.Sounds.Index)               return "AssetSound";
             if (bucket.Index == AssetBucket.Terrain.Index)              return "AssetTerrain";
-            if (bucket.Index == AssetBucket.Weapons.Index)              return "AssetWeapon";
             if (bucket.Index == AssetBucket.Decals.Index)               return "Decal";
 
             return "File";

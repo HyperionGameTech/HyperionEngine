@@ -158,7 +158,7 @@ void CodeGen_ReflectsEnum(GameTestContext& context)
 
 void WeaponAsset_GoesInAttributeBucket(GameTestContext& context)
 {
-    CheckBucket(context, CreateWeapon("BucketProbeWeapon"), AssetBuckets::Weapons);
+    CheckBucket(context, CreateWeapon("BucketProbeWeapon"), AssetBuckets::RawData);
 }
 
 void NoteAsset_GoesInMiscBucket(GameTestContext& context)
@@ -168,7 +168,7 @@ void NoteAsset_GoesInMiscBucket(GameTestContext& context)
 
 void WeaponAsset_SavesManifest(GameTestContext& context)
 {
-    SaveAsset(context, CreateWeapon(g_weaponName), AssetBuckets::Weapons);
+    SaveAsset(context, CreateWeapon(g_weaponName), AssetBuckets::RawData);
 }
 
 void NoteAsset_SavesManifest(GameTestContext& context)
@@ -182,14 +182,14 @@ void NoteAsset_SavesManifest(GameTestContext& context)
 
 void WeaponAsset_LoadsSavedFields(GameTestContext& context)
 {
-    Handle<AssetObject> asset = context.GetAssetRegistry()->GetAsset(AssetBuckets::Weapons, StringHash(g_weaponName));
+    Handle<AssetObject> asset = context.GetAssetRegistry()->GetAsset(AssetBuckets::RawData, StringHash(g_weaponName));
 
-    if (!context.Check(asset.IsValid(), HYP_FORMAT("Weapons/{} did not load", g_weaponName)))
+    if (!context.Check(asset.IsValid(), HYP_FORMAT("RawData/{} did not load", g_weaponName)))
     {
         return;
     }
 
-    if (!context.Check(asset->IsA<NativeTestWeaponAsset>(), HYP_FORMAT("Weapons/{} loaded as {}", g_weaponName, asset->InstanceClass()->GetName())))
+    if (!context.Check(asset->IsA<NativeTestWeaponAsset>(), HYP_FORMAT("RawData/{} loaded as {}", g_weaponName, asset->InstanceClass()->GetName())))
     {
         return;
     }

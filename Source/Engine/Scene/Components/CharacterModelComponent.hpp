@@ -105,12 +105,6 @@ struct CharacterModelAnimations
 
     HYP_FIELD(Property = "RunReferenceSpeed", Serialize, Editor, Title = "Run Reference Speed")
     float runReferenceSpeed = 8.6f;
-
-    HYP_FIELD(Property = "WeaponOverlayRootBone", Serialize, Editor, Title = "Weapon Overlay Root Bone")
-    Name weaponOverlayRootBone = NAME("clavicle_l");
-
-    HYP_FIELD(Property = "WeaponOverlaySecondRootBone", Serialize, Editor, Title = "Weapon Overlay Second Root Bone")
-    Name weaponOverlaySecondRootBone = NAME("clavicle_r");
 };
 
 HYP_STRUCT(Component,
@@ -140,21 +134,6 @@ struct CharacterModelComponent
 
     HYP_FIELD(Property = "SpeedSmoothing", Serialize, Editor, Title = "Speed Smoothing")
     float speedSmoothing = 0.15f;
-
-    HYP_FIELD(Property = "HeldWeaponAnimation", Serialize, Editor, Title = "Held Weapon Animation")
-    Name heldWeaponAnimation;
-
-    HYP_FIELD(Property = "WeaponBlendTime", Serialize, Editor, Title = "Weapon Blend Time")
-    float weaponBlendTime = 0.25f;
-
-    HYP_FIELD(Transient)
-    Name shownWeaponAnimation;
-
-    HYP_FIELD(Transient)
-    float weaponWeight = 0.0f;
-
-    HYP_FIELD(Transient)
-    float weaponTime = 0.0f;
 
     HYP_FIELD(Transient)
     Vec3f previousTranslation;

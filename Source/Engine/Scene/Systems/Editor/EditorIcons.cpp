@@ -831,19 +831,6 @@ static SdfCanvas BuildAssetTerrain()
     return canvas;
 }
 
-static SdfCanvas BuildAssetWeapon()
-{
-    static const Vec2f s_blade[] = { Vec2f(-0.285f, -0.115f), Vec2f(-0.115f, -0.285f), Vec2f(0.62f, 0.45f), Vec2f(0.82f, 0.82f), Vec2f(0.45f, 0.62f) };
-
-    SdfCanvas canvas;
-    canvas.ConvexPolygon(s_blade)
-        .Segment(Vec2f(-0.53f, -0.03f), Vec2f(-0.03f, -0.53f), 0.075f)
-        .Segment(Vec2f(-0.32f, -0.32f), Vec2f(-0.6f, -0.6f), 0.07f)
-        .Circle(Vec2f(-0.7f, -0.7f), 0.12f);
-
-    return canvas;
-}
-
 static SdfCanvas BuildAssetFolder()
 {
     static const Vec2f s_tab[] = { Vec2f(-0.78f, 0.36f), Vec2f(-0.78f, 0.6f), Vec2f(-0.3f, 0.6f), Vec2f(-0.14f, 0.36f) };
@@ -905,7 +892,6 @@ static const Map<Icon, SdfCanvas (*)(void)> s_builders = {
     { Icon::AssetPrefab, &BuildAssetPrefab },
     { Icon::AssetSound, &BuildAssetSound },
     { Icon::AssetTerrain, &BuildAssetTerrain },
-    { Icon::AssetWeapon, &BuildAssetWeapon },
     { Icon::AssetFolder, &BuildAssetFolder },
     { Icon::MeshEditMode, &BuildMeshEditMode },
     { Icon::Import, &BuildImport }
@@ -1002,8 +988,6 @@ const char* GetFileStem(Icon icon)
         return "asset-sound";
     case Icon::AssetTerrain:
         return "asset-terrain";
-    case Icon::AssetWeapon:
-        return "asset-weapon";
     case Icon::AssetFolder:
         return "asset-folder";
     case Icon::MeshEditMode:

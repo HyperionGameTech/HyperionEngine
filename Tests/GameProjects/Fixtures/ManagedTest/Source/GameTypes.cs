@@ -11,7 +11,7 @@ public class TestPickup : ObjectBase
 }
 
 [ClassBinding(IsDynamic = true)]
-[AssetBucket("Weapons")]
+[AssetBucket("RawData")]
 public class TestWeaponAsset : AssetObject
 {
     [HypField(Serialize = true)]

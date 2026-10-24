@@ -32,7 +32,7 @@ namespace GameTests
             ClassAttribute? bucketAttribute = cls.GetAttribute(new Name("assetbucket"));
 
             Check.True(bucketAttribute != null && bucketAttribute.Value.IsString, "TestWeaponAsset class has no assetbucket attribute");
-            Check.Equal("Weapons", bucketAttribute!.Value.GetString(), "TestWeaponAsset assetbucket attribute");
+            Check.Equal("RawData",bucketAttribute!.Value.GetString(), "TestWeaponAsset assetbucket attribute");
         }
 
         [GameTest]

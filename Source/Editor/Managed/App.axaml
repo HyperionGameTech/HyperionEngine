@@ -26,9 +26,6 @@
         <DataTemplate DataType="vm:AddNewLayerPanelViewModel">
             <panels:AddNewLayerPanelView />
         </DataTemplate>
-        <DataTemplate DataType="vm:NewWeaponPanelViewModel">
-            <panels:NewWeaponPanelView />
-        </DataTemplate>
         <DataTemplate DataType="vm:AddNormalizedCubeSpherePanelViewModel">
             <panels:AddNormalizedCubeSpherePanelView />
         </DataTemplate>
