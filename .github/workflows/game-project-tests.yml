@@ -110,8 +110,9 @@ jobs:
 
       # the Linux SDK tarball ships headers and tools but no prebuilt loader, so libvulkan.so comes from libvulkan-dev
       - name: Install Vulkan SDK
+        timeout-minutes: 15
         run: |
-          curl -fsSL https://sdk.lunarg.com/sdk/download/latest/linux/vulkan_sdk.tar.xz -o "$RUNNER_TEMP/vulkan_sdk.tar.xz"
+          curl -fsSL --retry 3 --retry-all-errors --connect-timeout 20 --speed-limit 100000 --speed-time 30 https://sdk.lunarg.com/sdk/download/latest/linux/vulkan_sdk.tar.xz -o "$RUNNER_TEMP/vulkan_sdk.tar.xz"
           mkdir -p "$RUNNER_TEMP/VulkanSDK"
           tar -xJf "$RUNNER_TEMP/vulkan_sdk.tar.xz" -C "$RUNNER_TEMP/VulkanSDK"
           sdk="$(find "$RUNNER_TEMP/VulkanSDK" -mindepth 2 -maxdepth 2 -type d -name x86_64 | sort -r | head -n 1)"

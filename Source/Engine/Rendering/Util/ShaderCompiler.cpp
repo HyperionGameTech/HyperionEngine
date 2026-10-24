@@ -265,29 +265,40 @@ void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& 
         return;
     }
 
-    // Current platform + Graphics API
+    // Current platform + Graphics API, unless the request already names a target
 
+    const bool hasBackend = out.Test(s_propVulkan) || out.Test(s_propDX12) || out.Test(s_propWebGPU);
+
+    const bool hasTarget = out.Test(s_propTargetWindows) || out.Test(s_propTargetMac) || out.Test(s_propTargetLinux)
+        || out.Test(s_propTargetAndroid) || out.Test(s_propTargetIOS) || out.Test(s_propTargetWeb);
+
+    if (!hasBackend)
+    {
 #if defined(HYP_WEBGPU)
-    out.Add(s_propWebGPU);
+        out.Add(s_propWebGPU);
 #elif defined(HYP_DX12)
-    out.Add(s_propDX12);
+        out.Add(s_propDX12);
 #elif defined(HYP_VULKAN)
-    out.Add(s_propVulkan);
+        out.Add(s_propVulkan);
 #endif // HYP_WEBGPU || HYP_DX12 || HYP_VULKAN
+    }
 
+    if (!hasTarget)
+    {
 #if defined(HYP_WEB) || defined(HYP_WEBGPU)
-    out.Add(s_propTargetWeb);
+        out.Add(s_propTargetWeb);
 #elif defined(HYP_WINDOWS)
-    out.Add(s_propTargetWindows);
+        out.Add(s_propTargetWindows);
 #elif defined(HYP_MACOS)
-    out.Add(s_propTargetMac);
+        out.Add(s_propTargetMac);
 #elif defined(HYP_LINUX)
-    out.Add(s_propTargetLinux);
+        out.Add(s_propTargetLinux);
 #elif defined(HYP_ANDROID)
-    out.Add(s_propTargetAndroid);
+        out.Add(s_propTargetAndroid);
 #elif defined(HYP_IOS)
-    out.Add(s_propTargetIOS);
+        out.Add(s_propTargetIOS);
 #endif // HYP_WINDOWS || HYP_MACOS || HYP_LINUX || HYP_ANDROID || HYP_IOS
+    }
 
     if (RI.GetRenderConfig().bindlessTextures)
     {
