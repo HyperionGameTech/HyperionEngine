@@ -24,6 +24,8 @@
 
 #include <Core/DLL/DynamicLibrary.hpp>
 
+#include <Core/IO/ByteReader.hpp>
+
 #include <Core/Containers/Array.hpp>
 
 #include <Core/Threading/Mutex.hpp>
@@ -429,7 +431,7 @@ void UpdateRetiredModules()
     }
 }
 
-FilePath GetModuleBindingsPath(const FilePath& modulePath)
+String GetModuleTargetName(const FilePath& modulePath)
 {
     String moduleStem = FilePath(modulePath.Basename()).StripExtension();
 
@@ -440,7 +442,33 @@ FilePath GetModuleBindingsPath(const FilePath& modulePath)
     }
 #endif
 
-    return modulePath.BasePath() / (moduleStem + ".Bindings.dll");
+    return moduleStem;
+}
+
+FilePath GetModuleBindingsPath(const FilePath& modulePath)
+{
+    return modulePath.BasePath() / (GetModuleTargetName(modulePath) + ".Bindings.dll");
+}
+
+String CheckModuleEngineVersion(const FilePath& modulePath)
+{
+    const FilePath stampPath = modulePath.BasePath() / (GetModuleTargetName(modulePath) + ".EngineVersion.txt");
+
+    if (!stampPath.Exists())
+    {
+        return HYP_FORMAT("Game module {} has no engine version stamp ({}), so it was built for an older engine. Rebuild the game.", modulePath, stampPath);
+    }
+
+    const ByteBuffer stampBytes = FileByteReader(stampPath).Read();
+    const String builtVersion = String(ConstByteView(stampBytes.Data(), stampBytes.Size())).Trimmed();
+    const String engineVersion = HYP_FORMAT("{}.{}.{}", HYP_VERSION_MAJOR, HYP_VERSION_MINOR, HYP_VERSION_PATCH);
+
+    if (builtVersion != engineVersion)
+    {
+        return HYP_FORMAT("Game module {} was built for engine version {}, currently running on version {}. Rebuild the game.", modulePath, builtVersion, engineVersion);
+    }
+
+    return String();
 }
 
 #ifdef HYP_DOTNET
@@ -475,6 +503,13 @@ bool LoadModuleBindings(const FilePath& modulePath)
 
 void LoadModuleCopy(LoadedNativeModule& loadedModule)
 {
+    loadedModule.error = CheckModuleEngineVersion(loadedModule.modulePath);
+
+    if (loadedModule.error.Any())
+    {
+        return;
+    }
+
     DynamicLibrary* library = DynamicLibraryCache::GetInstance().LoadLibrary(PlatformString(String(loadedModule.image.copyPath)));
 
     if (library == nullptr)

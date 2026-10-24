@@ -50,6 +50,7 @@ public sealed class GameProject
     // what a C++ game's CodeGen run writes, and the C# bindings assembly its build compiles from it
     public string NativeGeneratedDirectory => Path.Combine(NativeBuildDirectory, "Generated");
     public string BindingsAssemblyPath => Path.Combine(BinariesDirectory, $"{Name}Game.Bindings.dll");
+    public string EngineVersionStampPath => Path.Combine(BinariesDirectory, $"{Name}Game.EngineVersion.txt");
     public string ScriptsDirectory => Path.Combine(ContentDirectory, "Scripts");
 
     private GameProject(string name, GameProjectLanguage language, string directory)
@@ -127,10 +128,12 @@ public sealed class GameProject
             File.Copy(path, Path.Combine(buildDirectory, Path.GetFileName(path)));
         }
 
-        // the bindings are named without the lib prefix on Linux and macOS
-        foreach (string path in System.IO.Directory.EnumerateFiles(BinariesDirectory, ClassName + ".Bindings.*"))
+        foreach (string pattern in new[] { ClassName + ".Bindings.*", ClassName + ".EngineVersion.*" })
         {
-            File.Copy(path, Path.Combine(buildDirectory, Path.GetFileName(path)), overwrite: true);
+            foreach (string path in System.IO.Directory.EnumerateFiles(BinariesDirectory, pattern))
+            {
+                File.Copy(path, Path.Combine(buildDirectory, Path.GetFileName(path)), overwrite: true);
+            }
         }
 
         return buildDirectory;

@@ -22,13 +22,13 @@ public static class HarnessEnvironment
     public static string GetCommandletPath(string commandletName) => Path.Combine(EngineBinDir, commandletName + ExecutableExtension);
 
     /// The compiler the SDK was built with ("cl", "clang-cl", or a CMake compiler id), which a game has to build with
-    public static string SdkCompiler { get; } = ReadSdkCompiler();
+    public static string SdkCompiler { get; } = ReadSdkVariable("HYPERION_SDK_COMPILER");
 
-    /// Visual Studio's install folder (with the C++ tools), where game builds on Windows get their environment from
+    public static string SdkVersion { get; } = ReadSdkVariable("HYPERION_SDK_VERSION");
+
     public static string? VisualStudioDir { get; } = OperatingSystem.IsWindows() ? FindVisualStudioDir() : null;
 
-    // mirrors HyperionSdk.Find() in Source/Editor/Managed/Services/Build/HyperionSdk.cs
-    private static string ReadSdkCompiler()
+    private static string ReadSdkVariable(string name)
     {
         string sdkFile = Path.Combine(SdkDir, "CMake", "HyperionSdk.cmake");
 
@@ -37,7 +37,7 @@ public static class HarnessEnvironment
             return "";
         }
 
-        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(sdkFile), "set\\(HYPERION_SDK_COMPILER \"([^\"]*)\"\\)");
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(sdkFile), $"set\\({name} \"([^\"]*)\"\\)");
 
         return match.Success ? match.Groups[1].Value : "";
     }

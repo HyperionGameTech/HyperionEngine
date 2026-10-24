@@ -27,6 +27,15 @@ public class NativeGameTests : IClassFixture<NativeTestFixture>
     }
 
     [Fact]
+    public void Build_StampsEngineVersion()
+    {
+        GameAssert.Succeeded(_fixture.Build);
+
+        Assert.True(File.Exists(_fixture.Project.EngineVersionStampPath), $"{_fixture.Project.EngineVersionStampPath} was not written");
+        Assert.Equal(HarnessEnvironment.SdkVersion, File.ReadAllText(_fixture.Project.EngineVersionStampPath).Trim());
+    }
+
+    [Fact]
     public void GameTypesAndAssets_PassInEngine()
     {
         GameAssert.Passed(_fixture.WritePhase, _output);

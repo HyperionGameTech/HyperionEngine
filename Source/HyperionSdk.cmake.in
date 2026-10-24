@@ -96,12 +96,24 @@ function(hyperion_copy_runtime target content_dir)
   endif()
 endfunction()
 
+# Writes <target>.EngineVersion.txt beside the game module once it links, which the editor checks before loading the module
+function(hyperion_stamp_engine_version target)
+  set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}.EngineVersion.txt")
+
+  file(CONFIGURE OUTPUT "${stamp}" CONTENT "${HYPERION_SDK_VERSION}\n")
+
+  add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${stamp}" "$<TARGET_FILE_DIR:${target}>")
+endfunction()
+
 # Runs CodeGen over the game's headers before it compiles (their reflection goes in <build>/Generated, included as <Foo.generated.inl>),
 # and builds <target>.Bindings.dll beside the game from the C# it writes, so scripts can use the game's classes.
 # The game's function-local statics (its class registrations) stay in the game, not shared with an earlier build of it: the editor
 # loads each build into the same process, and default-visibility statics are unified across dlopen'd modules. Only HYP_EXPORT symbols stay visible.
 function(hyperion_game_codegen target source_dir)
   set_target_properties(${target} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
+  hyperion_stamp_engine_version(${target})
 
   set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/Generated")
   set(generated_sources "${generated_dir}/GeneratedSources.cpp")
