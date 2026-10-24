@@ -80,6 +80,7 @@ static constexpr ProjectLoadStageInfo ProjectLoadStages[] = {
     { ProjectLoadStage::ReadAssetRegistry, "Reading asset registry", 1 },
     { ProjectLoadStage::ReadProjectFile, "Reading project file", 3 },
     { ProjectLoadStage::LoadGameModule, "Loading game module", 2 },
+    { ProjectLoadStage::RebuildGameModule, "This project's code needs to be recompiled before it can be opened. Please wait", 12 },
     { ProjectLoadStage::LoadScripts, "Loading scripts", 1 },
     { ProjectLoadStage::LoadAssetFolders, "Loading asset folders", 1 },
     { ProjectLoadStage::LoadWorld, "Loading world", 8 },

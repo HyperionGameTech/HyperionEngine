@@ -511,7 +511,7 @@ protected:
     void PageBlobData() override;
     void UnpageBlobData() override;
 
-    HYP_FIELD(Property = "Hulls", Serialize, EditEnabled = false)
+    HYP_FIELD(Property = "Hulls", Serialize, Editor = false)
     Array<ConvexHullRange> m_hulls;
 
     HYP_FIELD(Property = "VertexData", Serialize, Editor = false)

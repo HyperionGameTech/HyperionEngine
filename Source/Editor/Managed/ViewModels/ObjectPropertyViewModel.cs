@@ -820,7 +820,7 @@ namespace Hyperion.Editor.ViewModels
                     if (numMeshes > 1)
                     {
                         string warning = $"Imported prefab asset '{result.AssetName}' contains {numMeshes} meshes.\n"
-                            + "The largest mesh by world-space bounds has been selected ('{largestMesh.Name}'), as only one Mesh may be selected for '{Label}'.";
+                            + $"The largest mesh by world-space bounds has been selected ('{largestMesh.Name}'), as only one Mesh may be selected for '{Label}'.";
 
                         Logger.Log(LogLevel.Warning, $"Import: {warning}");
 

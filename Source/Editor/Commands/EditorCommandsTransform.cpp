@@ -183,6 +183,64 @@ public:
 
 DEFINE_EDITOR_COMMAND(FitCollisionToMesh);
 
+class EditorCommandSetPhysicsShape final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandSetPhysicsShape);
+
+public:
+    virtual ~EditorCommandSetPhysicsShape() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Set Physics Shape";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        if (NumArguments() < 2)
+        {
+            HYP_LOG(Editor, Warning, "Set Physics Shape: expected a node UUID and a shape class name");
+
+            return;
+        }
+
+        Node* node = ResolveNodeUuidArgument(subsystem, GetArgument(0));
+
+        if (node == nullptr)
+        {
+            HYP_LOG(Editor, Warning, "Set Physics Shape: node '{}' no longer exists", GetArgument(0));
+
+            return;
+        }
+
+        const Class* shapeClass = ClassRegistry::GetInstance().GetClass(Name(ANSIString(GetArgument(1))));
+
+        if (!shapeClass
+            || !shapeClass->IsDerivedFrom(PhysicsShape::StaticClass())
+            || shapeClass->IsAbstract() || !shapeClass->CanCreateInstance())
+        {
+            HYP_LOG(Editor, Error, "Set Physics Shape: '{}' is not a concrete physics shape class", GetArgument(1));
+
+            return;
+        }
+
+        BoxedValue boxed;
+
+        if (!shapeClass->CreateInstance(boxed) || !boxed.Is<Handle<AssetObject>>())
+        {
+            HYP_LOG(Editor, Error, "Set Physics Shape: could not create an instance of '{}'", GetArgument(1));
+
+            return;
+        }
+
+        subsystem->SetPhysicsShape(node, DynamicCast<PhysicsShape>(boxed.Get<Handle<AssetObject>>()));
+    }
+};
+
+DEFINE_EDITOR_COMMAND(SetPhysicsShape);
+
 #pragma endregion Collision
 
 #pragma region Volume

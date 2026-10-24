@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using Avalonia.Threading;
 using Avalonia.Media;
 using Hyperion;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -168,11 +170,21 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _canFitCollisionToMesh, value);
         }
 
-        /// <summary>
-        /// Whether either collision action applies to this node, so the submenu can hide entirely for
-        /// nodes that are not mesh entities.
-        /// </summary>
-        public bool HasCollisionActions => CanGenerateCollision || CanFitCollisionToMesh;
+        public bool HasCollisionActions => _node is Entity;
+
+        private ICommand? _setPhysicsShapeCommand;
+        public ICommand SetPhysicsShapeCommand => _setPhysicsShapeCommand ??= new RelayCommand<string>(shapeClassName =>
+        {
+            if (string.IsNullOrEmpty(shapeClassName))
+            {
+                return;
+            }
+
+            EngineManager.EditorGame?.EditorSubsystem?.ExecuteCommandByName(
+                new Name("EditorCommandSetPhysicsShape"),
+                _uuid.ToString(),
+                shapeClassName);
+        });
 
         /// <summary>
         /// Reads whether the collision actions apply to this node. The component lookups behind them have
@@ -200,8 +212,6 @@ namespace Hyperion.Editor.ViewModels
                 {
                     CanGenerateCollision = canGenerate;
                     CanFitCollisionToMesh = canFit;
-
-                    OnPropertyChanged(nameof(HasCollisionActions));
                 });
             });
         }

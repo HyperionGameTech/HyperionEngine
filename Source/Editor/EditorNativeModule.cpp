@@ -456,7 +456,7 @@ String CheckModuleEngineVersion(const FilePath& modulePath)
 
     if (!stampPath.Exists())
     {
-        return HYP_FORMAT("Game module {} has no engine version stamp ({}), so it was built for an older engine. Rebuild the game.", modulePath, stampPath);
+        return HYP_FORMAT("Game module {} has no engine version stamp ({}), so it was built for an older engine.", modulePath, stampPath);
     }
 
     const ByteBuffer stampBytes = FileByteReader(stampPath).Read();
@@ -465,7 +465,7 @@ String CheckModuleEngineVersion(const FilePath& modulePath)
 
     if (builtVersion != engineVersion)
     {
-        return HYP_FORMAT("Game module {} was built for engine version {}, currently running on version {}. Rebuild the game.", modulePath, builtVersion, engineVersion);
+        return HYP_FORMAT("Game module {} was built for engine version {}, currently running on version {}.", modulePath, builtVersion, engineVersion);
     }
 
     return String();
@@ -503,10 +503,10 @@ bool LoadModuleBindings(const FilePath& modulePath)
 
 void LoadModuleCopy(LoadedNativeModule& loadedModule)
 {
-    loadedModule.error = CheckModuleEngineVersion(loadedModule.modulePath);
-
-    if (loadedModule.error.Any())
+    if (const String versionError = CheckModuleEngineVersion(loadedModule.modulePath); versionError.Any())
     {
+        loadedModule.error = versionError + " Rebuild the game.";
+
         return;
     }
 
@@ -809,6 +809,13 @@ EDITOR_API FilePath GetNativeBuildScriptPath(const FilePath& projectFilepath)
 #endif
 
     return projectFilepath.BasePath() / "Build" / String(GetModulePlatformDirectory()) / BuildScriptName;
+}
+
+EDITOR_API String CheckNativeModuleEngineVersion(const FilePath& projectFilepath)
+{
+    const FilePath modulePath = GetNativeModulePath(projectFilepath);
+
+    return modulePath.Exists() ? CheckModuleEngineVersion(modulePath) : String();
 }
 
 EDITOR_API TResult<Handle<Game>> CreateGameFromNativeModule(const FilePath& projectFilepath)

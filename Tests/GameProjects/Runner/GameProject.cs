@@ -139,10 +139,14 @@ public sealed class GameProject
         return buildDirectory;
     }
 
-    /// Opens the project as the editor does, without the editor (Source/Editor/EditorGameTestCommandlet.cpp), loading each build of
-    /// the game module in turn the way the editor reloads a rebuilt game. The game's test class runs a phase on each build
-    public EditorTestRunResult RunEditorTests(string label, IReadOnlyList<string> buildDirectories, IReadOnlyList<string> phases, string testClassName,
-        string releasePhase = "", bool saveProject = false)
+    public EditorTestRunResult RunEditorTests(
+        string label,
+        IReadOnlyList<string> buildDirectories,
+        IReadOnlyList<string> phases,
+        string testClassName,
+        string releasePhase = "",
+        bool saveProject = false,
+        string rebuildScript = "")
     {
         string resultsPath = Path.Combine(LogsDirectory, $"results-{label}.json");
 
@@ -170,6 +174,11 @@ public sealed class GameProject
         if (saveProject)
         {
             arguments.Add("--save-project=true");
+        }
+
+        if (rebuildScript.Length > 0)
+        {
+            arguments.Add("--rebuild-script=" + rebuildScript);
         }
 
         ProcessResult process = ProcessRunner.Run(
@@ -417,6 +426,31 @@ public sealed class GameProject
     private ProcessResult BuildNative()
     {
         return BuildNative(NativeBuildDirectory, "");
+    }
+
+    /// A script that builds the game again as Build() did, for the editor host to run where the editor rebuilds the game
+    public string WriteRebuildScript()
+    {
+        // RunCMake() left the build in a script that sets up the compiler environment first
+        if (HarnessEnvironment.VisualStudioDir != null)
+        {
+            return Path.Combine(Directory, "Build", "build.bat");
+        }
+
+        string command = $"cmake --build \"{NativeBuildDirectory}\" --config Release";
+        string scriptPath = Path.Combine(Directory, "Build", OperatingSystem.IsWindows() ? "rebuild.bat" : "rebuild.sh");
+
+        if (OperatingSystem.IsWindows())
+        {
+            File.WriteAllText(scriptPath, command + "\r\nexit /b %errorlevel%\r\n");
+        }
+        else
+        {
+            File.WriteAllText(scriptPath, "#!/bin/sh\n" + command + "\n");
+            File.SetUnixFileMode(scriptPath, File.GetUnixFileMode(scriptPath) | UnixFileMode.UserExecute);
+        }
+
+        return scriptPath;
     }
 
     // the same configure + build as the editor's NativeGameBuildService: on Windows inside vcvars64, with the compiler the SDK

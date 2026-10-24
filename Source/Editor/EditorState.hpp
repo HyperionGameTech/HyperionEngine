@@ -40,6 +40,7 @@ enum class ProjectLoadStage : uint32
     ReadAssetRegistry,
     ReadProjectFile,
     LoadGameModule,
+    RebuildGameModule,
     LoadScripts,
     LoadAssetFolders,
     LoadWorld,
@@ -157,6 +158,9 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<bool, String, String, String> OnBuildPackageRequested;
+
+    HYP_FIELD()
+    ScriptableDelegate<bool, String> OnRebuildNativeGameRequested;
 
     /*! \brief Fired by EditorCommandSetViewportLayout; 0 = single, 1 = four viewports, 2 = perspective + three. */
     HYP_FIELD()

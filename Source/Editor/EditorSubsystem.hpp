@@ -584,6 +584,8 @@ public:
     HYP_METHOD()
     void FitPhysicsShapeToMesh(Node* node);
 
+    void SetPhysicsShape(Node* node, const Handle<PhysicsShape>& shape);
+
     void SyncBoxPhysicsShapeToLocalBounds(Entity* entity);
 
     HYP_METHOD()

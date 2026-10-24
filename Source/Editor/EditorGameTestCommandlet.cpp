@@ -9,6 +9,7 @@
 #include <Editor/EditorNativeModule.hpp>
 #include <Editor/EditorProject.hpp>
 #include <Editor/EditorProjectLayout.hpp>
+#include <Editor/EditorState.hpp>
 
 #include <Framework/Commandlet/Commandlet.hpp>
 #include <Framework/EngineDriver.hpp>
@@ -35,6 +36,7 @@
 
 #include <Core/Logging/Logger.hpp>
 
+#include <cstdlib>
 #include <filesystem>
 
 namespace Hyperion {
@@ -65,6 +67,7 @@ public:
             definitions.Add("test-class", "", "The game class with a static RunPhase(String phase, Game game, World world) method", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
             definitions.Add("results", "", "File to write the results to", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING);
             definitions.Add("save-project", "", "Save the project as the editor does once the phases have run", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, JSON::Value(false));
+            definitions.Add("rebuild-script", "", "Script to run where the editor would rebuild the game for this engine", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, JSON::Value(""));
 
             return definitions;
         }();
@@ -94,6 +97,18 @@ protected:
         }
 
         const FilePath binariesDirectory = GetNativeModulePath(projectFilepath).BasePath();
+
+        DelegateHandler rebuildHandler;
+
+        if (const String rebuildScript = args["rebuild-script"].ToString(); rebuildScript.Any())
+        {
+            rebuildHandler = g_editorState->OnRebuildNativeGameRequested.Bind(nullptr, [rebuildScript](const String&)
+                {
+                    HYP_LOG(Editor, Info, "Rebuilding the game with {}", rebuildScript);
+
+                    return std::system(HYP_FORMAT("\"{}\"", rebuildScript).Data()) == 0;
+                });
+        }
 
         JSON::JArray steps;
         Handle<EditorProject> project;

@@ -1,3 +1,5 @@
+global using ComponentId = System.UInt32;
+
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -8,7 +10,6 @@ using System.Diagnostics;
 
 namespace Hyperion
 {
-    using ComponentId = uint;
 
     [ClassBinding(Name = "EntityTag")]
     public struct EntityTag
@@ -156,7 +157,7 @@ namespace Hyperion
             // native copies the component's full native size out of the managed struct
             if (componentClass.Size != Unsafe.SizeOf<T>())
             {
-                throw new InvalidOperationException($"Component size mismatch for {typeof(T).Name}: native is {componentClass.Size} bytes, managed is {Unsafe.SizeOf<T>()}. The managed struct's layout is out of date.");
+                throw new InvalidOperationException($"Component size mismatch for {typeof(T).Name}! (native = {componentClass.Size} bytes, managed = {Unsafe.SizeOf<T>()})");
             }
 
             return AddComponent<T>(entity, componentClass, ref component);

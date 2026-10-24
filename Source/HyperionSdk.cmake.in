@@ -96,14 +96,17 @@ function(hyperion_copy_runtime target content_dir)
   endif()
 endfunction()
 
-# Writes <target>.EngineVersion.txt beside the game module once it links, which the editor checks before loading the module
+# Writes <target>.EngineVersion.txt beside the game module once it's up to date, which the editor checks before loading the module.
+# Copied on every build, not only when the module links, so building restores a stamp that was lost or written by another SDK
 function(hyperion_stamp_engine_version target)
   set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}.EngineVersion.txt")
 
   file(CONFIGURE OUTPUT "${stamp}" CONTENT "${HYPERION_SDK_VERSION}\n")
 
-  add_custom_command(TARGET ${target} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${stamp}" "$<TARGET_FILE_DIR:${target}>")
+  add_custom_target(${target}EngineVersion ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${stamp}" "$<TARGET_FILE_DIR:${target}>"
+      VERBATIM)
+  add_dependencies(${target}EngineVersion ${target})
 endfunction()
 
 # Runs CodeGen over the game's headers before it compiles (their reflection goes in <build>/Generated, included as <Foo.generated.inl>),

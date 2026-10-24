@@ -103,7 +103,7 @@
                         Classes="gizmo"
                         IsChecked="{Binding IsEditorExpanded, Mode=TwoWay}"
                         IsVisible="{Binding HasSubObject}"
-                        ToolTip.Tip="Edit this object">
+                        ToolTip.Tip="Edit this object...">
                         <controls:Codicon Kind="Edit" Size="14" />
                     </ToggleButton>
                 </StackPanel>

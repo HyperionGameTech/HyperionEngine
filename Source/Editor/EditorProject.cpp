@@ -773,6 +773,18 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     g_editorState->ReportProjectLoadStage(ProjectLoadStage::LoadGameModule);
 
+    if (const String versionError = CheckNativeModuleEngineVersion(projectFilepath); versionError.Any())
+    {
+        HYP_LOG(Editor, Info, "{} Rebuilding the game.", versionError);
+
+        g_editorState->ReportProjectLoadStage(ProjectLoadStage::RebuildGameModule);
+
+        if (!g_editorState->OnRebuildNativeGameRequested(String(projectFilepath)))
+        {
+            HYP_LOG(Editor, Warning, "Rebuilding the game of {} failed or isn't available here", projectFilepath);
+        }
+    }
+
     // a project with a built C++ game module plays with the module's Game class
     TResult<Handle<Game>> moduleGameResult = CreateGameFromNativeModule(projectFilepath);
 

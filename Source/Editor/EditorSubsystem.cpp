@@ -2854,6 +2854,67 @@ void EditorSubsystem::FitPhysicsShapeToMesh(Node* node)
         }));
 }
 
+void EditorSubsystem::SetPhysicsShape(Node* node, const Handle<PhysicsShape>& shape)
+{
+    Entity* entity = ResolveCollisionTargetEntity(node);
+
+    if (!entity || !shape)
+    {
+        return;
+    }
+
+    RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
+
+    const bool addedRigidBody = rigidBodyComponent == nullptr;
+    const Handle<PhysicsShape> previousShape = addedRigidBody ? Handle<PhysicsShape>::Null() : rigidBodyComponent->shape;
+
+    shape->SetName(NAME_FMT("{}_{}_PhysicsShape", entity->GetName(), entity->Id().Value()));
+    GetCurrentAssetRegistry()->PutAssetUnique(shape);
+
+    GetActionStackForNode(entity)->PushAction(MakeHandle<FunctionalEditorAction>(
+        "Set Physics Shape",
+        [entity = MakeStrongRef(entity), shape, previousShape, addedRigidBody]() -> EditorActionFunctions
+        {
+            return {
+                [entity, shape, addedRigidBody](EditorSubsystem*, EditorProject*)
+                {
+                    if (!entity.IsValid())
+                    {
+                        return;
+                    }
+
+                    if (addedRigidBody)
+                    {
+                        entity->AddComponent<RigidBodyComponent>(RigidBodyComponent {});
+                    }
+
+                    if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
+                    {
+                        rigidBodyComponent->shape = shape;
+                        entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                    }
+                },
+                [entity, previousShape, addedRigidBody](EditorSubsystem*, EditorProject*)
+                {
+                    if (!entity.IsValid())
+                    {
+                        return;
+                    }
+
+                    if (addedRigidBody)
+                    {
+                        entity->RemoveComponent<RigidBodyComponent>();
+                    }
+                    else if (RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>())
+                    {
+                        rigidBodyComponent->shape = previousShape;
+                        entity->AddTag<EntityTag::UpdatePhysicsShape>();
+                    }
+                }
+            };
+        }));
+}
+
 bool EditorSubsystem::CanGenerateConvexCollision(Node* node) const
 {
     if (!IsConvexDecompositionSupported())

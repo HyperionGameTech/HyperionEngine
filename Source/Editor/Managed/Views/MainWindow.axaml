@@ -1357,11 +1357,11 @@
                             </StackPanel>
                             <DropDownButton.ContextMenu>
                                 <ContextMenu Placement="Bottom" Opened="OnToolSettingsMenuOpened">
-                                    <MenuItem Header="Project Settings. . ."
+                                    <MenuItem Header="Project Settings..."
                                               Click="OnProjectSettingsClick"
                                               ToolTip.Tip="Manage settings for the project" />
 
-                                    <MenuItem Header="World Settings. . ."
+                                    <MenuItem Header="World Settings..."
                                               Click="OnWorldSettingsClick"
                                               ToolTip.Tip="Manage settings for currently opened world" />
                                   
@@ -1692,6 +1692,22 @@
                                                                                 Header="Fit Box To Mesh"
                                                                                 IsEnabled="{Binding CanFitCollisionToMesh}"
                                                                                 ToolTip.Tip="Resize this entity's box collision to match its mesh bounds" />
+                                                                            <Separator />
+                                                                            <MenuItem
+                                                                                Command="{Binding SetPhysicsShapeCommand}"
+                                                                                CommandParameter="BoxPhysicsShape"
+                                                                                Header="Box"
+                                                                                IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            <MenuItem
+                                                                                Command="{Binding SetPhysicsShapeCommand}"
+                                                                                CommandParameter="SpherePhysicsShape"
+                                                                                Header="Sphere"
+                                                                                IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                                                            <MenuItem
+                                                                                Command="{Binding SetPhysicsShapeCommand}"
+                                                                                CommandParameter="CapsulePhysicsShape"
+                                                                                Header="Capsule"
+                                                                                IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                         </MenuItem>
                                                                         <MenuItem
                                                                             Command="{Binding FitVolumeToSelection, Source={x:Static vm:MainWindowViewModel.Instance}}"
