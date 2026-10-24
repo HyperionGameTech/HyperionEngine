@@ -7,6 +7,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 #include <cstdint>
 
 namespace Hyperion {
@@ -147,6 +148,21 @@ protected:
     }
 
 #define HYP_HAS_STATIC_METHOD(T, methodName) HasStaticMethod_##methodName<T>::value
+
+#define HYP_MAKE_HAS_METHOD_CALL(methodName)                                                                                       \
+    template <class T, class Enabled, class... Args>                                                                               \
+    struct HasMethodCall_##methodName                                                                                              \
+    {                                                                                                                              \
+        static constexpr bool value = false;                                                                                       \
+    };                                                                                                                             \
+                                                                                                                                   \
+    template <class T, class... Args>                                                                                              \
+    struct HasMethodCall_##methodName<T, std::void_t<decltype(std::declval<T&>().methodName(std::declval<Args>()...))>, Args...>  \
+    {                                                                                                                              \
+        static constexpr bool value = true;                                                                                        \
+    }
+
+#define HYP_HAS_METHOD_CALL(T, methodName, ...) HasMethodCall_##methodName<T, void, __VA_ARGS__>::value
 
 template <class T>
 struct IsArray : std::false_type

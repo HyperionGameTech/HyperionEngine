@@ -2,6 +2,7 @@
 #include <Core/Utilities/FormatFwd.hpp>
 #include <Core/Utilities/StringView.hpp>
 #include <Core/Utilities/Tuple.hpp>
+#include <Core/Utilities/Traits.hpp>
 
 #include <Core/Containers/String.hpp>
 #include <Core/Containers/StaticString.hpp>
@@ -13,7 +14,51 @@
 #include <cstring>
 
 namespace Hyperion {
+
+class ByteWriter;
+
+} // namespace Hyperion
+
+namespace Hyperion {
 namespace utilities {
+
+// A sink is either a ByteWriter (Write and Position) or a string (Append and Size)
+template <class OutType>
+static inline void FormatInto_Write(OutType& out, const char* begin, size_t size)
+{
+    if constexpr (std::is_base_of_v<ByteWriter, OutType>)
+    {
+        out.Write(begin, size);
+    }
+    else
+    {
+        out.Append(begin, begin + size);
+    }
+}
+
+template <class OutType>
+static inline void FormatInto_WriteString(OutType& out, const char* str)
+{
+    FormatInto_Write(out, str, std::strlen(str));
+}
+
+template <class OutType>
+static inline size_t FormatInto_Size(const OutType& out)
+{
+    if constexpr (std::is_base_of_v<ByteWriter, OutType>)
+    {
+        return out.Position();
+    }
+    else
+    {
+        return out.Size();
+    }
+}
+
+HYP_MAKE_HAS_METHOD_CALL(Append);
+
+template <class FormatterType, class OutType, class T>
+using FormatterHasAppend = std::bool_constant<HYP_HAS_METHOD_CALL(const FormatterType, Append, OutType&, const T&)>;
 
 // int types
 template <class StringType, class T>
@@ -22,6 +67,41 @@ struct Formatter<StringType, T, std::enable_if_t<std::is_integral_v<T>>>
     auto operator()(T value) const
     {
         return StringType::ToString(value);
+    }
+
+    template <class OutType>
+    void Append(OutType& out, T value) const
+    {
+        using UnsignedType = std::make_unsigned_t<T>;
+
+        UnsignedType magnitude = UnsignedType(value);
+        bool isNegative = false;
+
+        if constexpr (std::is_signed_v<T>)
+        {
+            if (value < 0)
+            {
+                isNegative = true;
+                magnitude = static_cast<UnsignedType>(0u - magnitude);
+            }
+        }
+
+        char digits[sizeof(UnsignedType) * 3 + 2];
+        char* const end = digits + sizeof(digits);
+        char* begin = end;
+
+        do
+        {
+            *--begin = char('0' + magnitude % 10);
+            magnitude = UnsignedType(magnitude / 10);
+        } while (magnitude != 0);
+
+        if (isNegative)
+        {
+            *--begin = '-';
+        }
+
+        FormatInto_Write(out, begin, size_t(end - begin));
     }
 };
 
@@ -33,6 +113,12 @@ struct Formatter<StringType, char>
         const char charArray[2] = { value, '\0' };
 
         return StringType(&charArray[0]);
+    }
+
+    template <class OutType>
+    void Append(OutType& out, char value) const
+    {
+        FormatInto_Write(out, &value, 1);
     }
 };
 
@@ -47,6 +133,12 @@ struct Formatter<StringType, bool>
     const auto& operator()(bool value) const
     {
         return *boolStrings[value];
+    }
+
+    template <class OutType>
+    void Append(OutType& out, bool value) const
+    {
+        FormatInto_WriteString(out, value ? "true" : "false");
     }
 };
 
@@ -69,6 +161,15 @@ struct Formatter<StringType, float>
 
         return StringType(buf.ToByteView());
     }
+
+    template <class OutType>
+    void Append(OutType& out, float value) const
+    {
+        char buffer[32];
+        const int size = std::snprintf(buffer, sizeof(buffer), "%g", value);
+
+        FormatInto_Write(out, buffer, size_t(size));
+    }
 };
 
 template <class StringType>
@@ -90,6 +191,15 @@ struct Formatter<StringType, double>
 
         return StringType(buf.ToByteView());
     }
+
+    template <class OutType>
+    void Append(OutType& out, double value) const
+    {
+        char buffer[32];
+        const int size = std::snprintf(buffer, sizeof(buffer), "%g", value);
+
+        FormatInto_Write(out, buffer, size_t(size));
+    }
 };
 
 // Enum specialization
@@ -100,6 +210,12 @@ struct Formatter<StringType, T, std::enable_if_t<std::is_enum_v<T>>>
     {
         return Formatter<StringType, std::underlying_type_t<T>> {}(static_cast<std::underlying_type_t<T>>(value));
     }
+
+    template <class OutType>
+    void Append(OutType& out, T value) const
+    {
+        Formatter<StringType, std::underlying_type_t<T>> {}.Append(out, static_cast<std::underlying_type_t<T>>(value));
+    }
 };
 
 // StaticString< Size >
@@ -109,6 +225,12 @@ struct Formatter<StringType, StaticString<Size>>
     auto operator()(const StaticString<Size>& value) const
     {
         return StringType(value.Data());
+    }
+
+    template <class OutType>
+    void Append(OutType& out, const StaticString<Size>& value) const
+    {
+        FormatInto_WriteString(out, value.Data());
     }
 };
 
@@ -121,12 +243,42 @@ struct Formatter<StringType, containers::String<OtherStringType>>
     }
 };
 
+template <class StringType>
+struct Formatter<StringType, containers::String<containers::StringType::UTF8>>
+{
+    auto operator()(const containers::String<containers::StringType::UTF8>& value) const
+    {
+        return value.ToUtf8();
+    }
+
+    template <class OutType>
+    void Append(OutType& out, const containers::String<containers::StringType::UTF8>& value) const
+    {
+        FormatInto_Write(out, value.Data(), value.Size());
+    }
+};
+
 template <class StringType, int OtherStringType>
 struct Formatter<StringType, utilities::StringView<OtherStringType>>
 {
     auto operator()(const utilities::StringView<OtherStringType>& value) const
     {
         return StringType(value);
+    }
+};
+
+template <class StringType>
+struct Formatter<StringType, utilities::StringView<containers::StringType::UTF8>>
+{
+    auto operator()(const utilities::StringView<containers::StringType::UTF8>& value) const
+    {
+        return StringType(value);
+    }
+
+    template <class OutType>
+    void Append(OutType& out, const utilities::StringView<containers::StringType::UTF8>& value) const
+    {
+        FormatInto_Write(out, value.Data(), value.Size());
     }
 };
 
@@ -166,6 +318,12 @@ struct Formatter<StringType, char*>
     {
         return StringType(value);
     }
+
+    template <class OutType>
+    void Append(OutType& out, const char* value) const
+    {
+        FormatInto_WriteString(out, value);
+    }
 };
 
 template <class StringType, size_t Size>
@@ -174,6 +332,12 @@ struct Formatter<StringType, char[Size]>
     auto operator()(const char (&value)[Size]) const
     {
         return StringType(static_cast<const char*>(value), static_cast<const char*>(value) + Size - 1);
+    }
+
+    template <class OutType>
+    void Append(OutType& out, const char (&value)[Size]) const
+    {
+        FormatInto_Write(out, value, Size - 1);
     }
 };
 
@@ -488,115 +652,28 @@ constexpr auto Format(Args&&... args)
 
 #pragma region FormatInto
 
-class FormatBufferWriter final
-{
-public:
-    FormatBufferWriter(char* buffer, size_t capacity, size_t offset = 0)
-        : m_buffer(buffer),
-          m_capacity(capacity),
-          m_offset(offset),
-          m_size(0)
-    {
-    }
-
-    void Append(const char* begin, const char* end)
-    {
-        const size_t count = size_t(end - begin);
-        const size_t copyBegin = std::max(m_size, m_offset);
-        const size_t copyEnd = std::min(m_size + count, m_offset + m_capacity);
-
-        if (copyBegin < copyEnd)
-        {
-            Memory::Copy(m_buffer + (copyBegin - m_offset), begin + (copyBegin - m_size), copyEnd - copyBegin);
-        }
-
-        m_size += count;
-    }
-
-    void Append(const char* str)
-    {
-        Append(str, str + std::strlen(str));
-    }
-
-    void Append(char value)
-    {
-        Append(&value, &value + 1);
-    }
-
-    size_t Size() const
-    {
-        return m_size;
-    }
-
-private:
-    char* m_buffer;
-    size_t m_capacity;
-    size_t m_offset;
-    size_t m_size;
-};
-
 template <class OutStringType, class T>
 void FormatInto_AppendElement(OutStringType& out, const T& element)
 {
-    using ValueType = std::remove_cv_t<std::remove_reference_t<T>>;
+    using FormatterSpecializationType = std::conditional_t<
+        std::is_pointer_v<
+            std::remove_cv_t<std::remove_reference_t<T>>>,
+            std::add_pointer_t<std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<T>>>>,
+            std::remove_cv_t<std::remove_reference_t<T>>
+        >;
 
-    if constexpr (std::is_same_v<ValueType, bool>)
+    using FormatterType = Formatter<containers::String<containers::StringType::UTF8>, FormatterSpecializationType>;
+
+    if constexpr (FormatterHasAppend<FormatterType, OutStringType, FormatterSpecializationType>::value)
     {
-        out.Append(element ? "true" : "false");
-    }
-    else if constexpr (std::is_same_v<ValueType, char>)
-    {
-        out.Append(element);
-    }
-    else if constexpr (std::is_same_v<ValueType, char*> || std::is_same_v<ValueType, const char*>)
-    {
-        out.Append(element);
-    }
-    else if constexpr (std::is_integral_v<ValueType>)
-    {
-        using UnsignedType = std::make_unsigned_t<ValueType>;
-
-        UnsignedType magnitude = UnsignedType(element);
-        bool isNegative = false;
-
-        if constexpr (std::is_signed_v<ValueType>)
-        {
-            if (element < 0)
-            {
-                isNegative = true;
-                magnitude = static_cast<UnsignedType>(0u - magnitude);
-            }
-        }
-
-        char digits[sizeof(UnsignedType) * 3 + 2];
-        char* const end = digits + sizeof(digits);
-        char* begin = end;
-
-        do
-        {
-            *--begin = char('0' + magnitude % 10);
-            magnitude = UnsignedType(magnitude / 10);
-        } while (magnitude != 0);
-
-        if (isNegative)
-        {
-            *--begin = '-';
-        }
-
-        out.Append(begin, end);
+        FormatterType {}.Append(out, element);
     }
     else
     {
         const auto formatted = FormatString_FormatElement_Runtime<containers::StringType::UTF8>(element);
 
-        out.Append(formatted.Data(), formatted.Data() + formatted.Size());
+        FormatInto_Write(out, formatted.Data(), formatted.Size());
     }
-}
-
-template <class OutStringType, size_t Size>
-void FormatInto_AppendElement(OutStringType& out, const StaticString<Size>& element)
-{
-    out.Append(element.Data());
 }
 
 template <class OutStringType, class... Ts, size_t... Indices>
@@ -616,7 +693,7 @@ size_t FormatInto(OutStringType& out, Args&&... args)
 {
     FormatString_AppendTuple(out, FormatString_BuildTuple<Str, FormatTransformer> {}(std::forward<Args>(args)...));
 
-    return out.Size();
+    return FormatInto_Size(out);
 }
 
 #pragma endregion FormatInto

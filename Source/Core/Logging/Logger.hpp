@@ -12,6 +12,7 @@
 
 #include <Core/Utilities/StringView.hpp>
 #include <Core/Utilities/Format.hpp>
+#include <Core/Utilities/FormatBufferWriter.hpp>
 #include <Core/Utilities/Time.hpp>
 
 #include <Core/Memory/Pimpl.hpp>

@@ -11,8 +11,13 @@
 #include <Core/Containers/String.hpp>
 
 #include <Core/Utilities/Format.hpp>
+#include <Core/Utilities/FormatBufferWriter.hpp>
+
+#include <Core/IO/ByteWriter.hpp>
 
 #include <limits>
+#include <string_view>
+#include <type_traits>
 
 namespace Hyperion {
 namespace tests {
@@ -27,6 +32,45 @@ void CheckToString(EngineTestContext& context, T value, const char* expected)
 
     context.Check(expected, text == expected, HYP_FORMAT("got '{}'", text));
 }
+
+class RecordingByteWriter final : public ByteWriter
+{
+public:
+    virtual size_t Position() const override
+    {
+        return m_text.Size();
+    }
+
+    virtual void Seek(size_t position, bool truncate = false) override
+    {
+        (void)position;
+        (void)truncate;
+    }
+
+    virtual void Close() override
+    {
+        m_text.Clear();
+    }
+
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
+    const String& GetText() const
+    {
+        return m_text;
+    }
+
+protected:
+    virtual void WriteBytes(const char* ptr, size_t size) override
+    {
+        m_text.Append(ptr, ptr + size);
+    }
+
+private:
+    String m_text;
+};
 
 HYP_ENGINE_TEST(StringFormat, IntegersToString)
 {
@@ -120,6 +164,77 @@ HYP_ENGINE_TEST(StringFormat, FormatIntoWindowsReassembleToFullOutput)
     } while (offset < total);
 
     HYP_TEST_CHECK(result == "abcdefghij 12345");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatBufferWriterIsAByteWriter)
+{
+    HYP_TEST_CHECK((std::is_base_of_v<ByteWriter, utilities::FormatBufferWriter>));
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoWorksWithMemoryByteWriter)
+{
+    MemoryByteWriter<DynamicAllocator> writer;
+    const size_t size = HYP_FORMAT_INTO(writer, "{} {} {}", "abc", -42, 'z');
+
+    const auto view = writer.GetBuffer().ToByteView();
+
+    HYP_TEST_CHECK(size == 9);
+    HYP_TEST_CHECK(std::string_view(reinterpret_cast<const char*>(view.Data()), size) == "abc -42 z");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoWorksWithCustomByteWriter)
+{
+    RecordingByteWriter writer;
+    const size_t size = HYP_FORMAT_INTO(writer, "{} {}", 7, true);
+
+    HYP_TEST_CHECK(size == 6);
+    HYP_TEST_CHECK(writer.GetText() == "7 true");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoWithByteWriterWindowAtOffset)
+{
+    char buffer[4];
+    utilities::FormatBufferWriter writer(buffer, sizeof(buffer), 4);
+    const size_t size = HYP_FORMAT_INTO(writer, "{} {}", "abcdefghij", 12345);
+
+    HYP_TEST_CHECK(size == 16);
+    HYP_TEST_CHECK(std::string_view(buffer, sizeof(buffer)) == "efgh");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoStringViewSliceStopsAtSliceEnd)
+{
+    const char text[] = "hello world";
+    const utilities::StringView<containers::StringType::UTF8> slice(text, text + 5);
+
+    String buffer("[");
+    HYP_FORMAT_INTO(buffer, "{}]", slice);
+
+    HYP_TEST_CHECK(buffer == "[hello]");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoStringViewSliceInWindow)
+{
+    const char text[] = "hello world";
+    const utilities::StringView<containers::StringType::UTF8> slice(text, text + 5);
+
+    char buffer[4];
+    utilities::FormatBufferWriter writer(buffer, sizeof(buffer), 1);
+    const size_t size = HYP_FORMAT_INTO(writer, "[{}]", slice);
+
+    HYP_TEST_CHECK(size == 7);
+    HYP_TEST_CHECK(std::string_view(buffer, sizeof(buffer)) == "hell");
+}
+
+HYP_ENGINE_TEST(StringFormat, FormatIntoEmptyStringViewSliceWritesNothing)
+{
+    const char text[] = "hello";
+    const utilities::StringView<containers::StringType::UTF8> empty(text, text);
+
+    RecordingByteWriter writer;
+    const size_t size = HYP_FORMAT_INTO(writer, "<{}>", empty);
+
+    HYP_TEST_CHECK(size == 2);
+    HYP_TEST_CHECK(writer.GetText() == "<>");
 }
 
 } // namespace
