@@ -28,8 +28,7 @@
 
 namespace Hyperion {
 
-/// Runs the tests registered with HYP_ENGINE_TEST and writes a report in the shape the game project tests use, for Tests/GameProjects
-class EngineTestCommandlet : public CommandletBase
+class EngineTestCommandlet final : public CommandletBase
 {
     HYP_OBJECT_BODY(EngineTestCommandlet);
 
@@ -41,8 +40,8 @@ public:
         static const CommandLineArgumentDefinitions s_definitions = []()
         {
             CommandLineArgumentDefinitions definitions;
-            definitions.Add("filter", "", "Only run tests whose suite is this, or whose Suite.Name contains it", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, JSON::Value(""));
-            definitions.Add("list", "", "List the tests in the report without running them", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, JSON::Value(false));
+            definitions.Add("filter", "", "Only run these tests by name", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, JSON::Value(""));
+            definitions.Add("list", "", "List the tests in the report", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, JSON::Value(false));
             definitions.Add("results", "", "File to write the report to", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, JSON::Value(""));
 
             return definitions;
@@ -71,7 +70,8 @@ protected:
 
             JSON::Object report {
                 { "phase", JSON::Value(String(listOnly ? "list" : "engine")) },
-                { "tests", JSON::Value(resultsArray) } };
+                { "tests", JSON::Value(resultsArray) }
+            };
 
             const String reportText = JSON::Value(std::move(report)).ToString(true);
 
@@ -113,7 +113,8 @@ protected:
                 { "name", JSON::Value(result.name) },
                 { "passed", JSON::Value(result.passed) },
                 { "message", result.passed ? JSON::Value(JSON::JSNull()) : JSON::Value(result.message) },
-                { "durationMs", JSON::Value(result.durationMs) } });
+                { "durationMs", JSON::Value(result.durationMs) }
+            });
 
             if (Result writeResult = writeReport(); writeResult.HasError())
             {

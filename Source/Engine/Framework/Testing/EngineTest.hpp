@@ -68,7 +68,7 @@ private:
     String m_failureMessage;
 };
 
-/// Tests register at static initialization; the EngineTestCommandlet runs them
+/// Tests register at static initialization through this
 class ENGINE_API EngineTestRegistry
 {
 public:
@@ -107,13 +107,11 @@ public:
     /// "Suite.Name" of a test
     static String GetFullName(const EngineTestDefinition& test);
 
-    /// Whether the filter (empty for everything) names the test's suite or is part of its full name
     static bool MatchesFilter(const EngineTestDefinition& test, const String& filter);
 
     static EngineTestResult Run(const EngineTestDefinition& test);
 };
 
-/// Reports a check against the running test; for tests that don't take the context
 ENGINE_API bool Check(const char* checkName, bool condition, const String& detail = String::empty);
 
 } // namespace tests
@@ -125,15 +123,14 @@ ENGINE_API bool Check(const char* checkName, bool condition, const String& detai
         #suite, #name, &HYP_CONCAT(HypEngineTest_##suite##_, name));                                                                           \
     static void HYP_CONCAT(HypEngineTest_##suite##_, name)(::Hyperion::tests::EngineTestContext & context)
 
-/// Fails the test if the condition is false and carries on, naming the condition and the line
+/// Fails the test if the condition is false and carries on
 #define HYP_TEST_CHECK(condition) \
     context.Check(#condition, bool(condition), HYP_FORMAT("{}:{}", __FILE__, __LINE__))
 
-/// As HYP_TEST_CHECK, with a message built the way HYP_FORMAT does
 #define HYP_TEST_CHECK_MSG(condition, fmt, ...) \
     context.Check(#condition, bool(condition), HYP_FORMAT(fmt, ##__VA_ARGS__))
 
-/// Fails the test if the condition is false and returns from it, for when what follows can't run without it
+/// Fails the test if the condition is false and returns
 #define HYP_TEST_REQUIRE(condition)                \
     do                                             \
     {                                              \

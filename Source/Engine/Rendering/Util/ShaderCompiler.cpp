@@ -33,6 +33,7 @@
 #include <Core/Utilities/Time.hpp>
 
 #include <Core/Threading/Threads.hpp>
+#include <Core/Threading/Guarded.hpp>
 
 #include <Core/Reflection/Enum.hpp>
 
@@ -86,50 +87,6 @@ CVar<bool> g_cvCompileOnTheFly { "ShaderCompiler.CompileOnTheFly", true };
 /// Enabling this will cause shader compilation to happen during gameplay / editor.
 CVar<bool> g_cvShouldCompileMissingVariants { "ShaderCompiler.CompileMissingVariants", false };
 
-#ifdef HYP_DXC
-namespace {
-
-struct DxcThreadLocalCompiler
-{
-    IDxcUtils* utils = nullptr;
-    IDxcCompiler3* compiler = nullptr;
-
-    ~DxcThreadLocalCompiler()
-    {
-        if (compiler)
-        {
-            compiler->Release();
-            compiler = nullptr;
-        }
-
-        if (utils)
-        {
-            utils->Release();
-            utils = nullptr;
-        }
-    }
-};
-
-DxcThreadLocalCompiler& GetDxcThreadLocalCompiler()
-{
-    static thread_local DxcThreadLocalCompiler dxc;
-
-    if (!dxc.utils)
-    {
-        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), (void**)&dxc.utils);
-    }
-
-    if (!dxc.compiler)
-    {
-        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&dxc.compiler);
-    }
-
-    return dxc;
-}
-
-} // namespace
-#endif // HYP_DXC
-
 static constexpr uint32 NumPrecompileShadersThreads = 8;
 
 static const Map<VertexType, Array<const char*>> s_vertexTypeToVertexAttributes = {
@@ -157,7 +114,9 @@ PrecompileShadersWorkerPool* s_precompileShadersPool;
 
 #pragma region Helpers
 
-static const FilePath& GetShaderSourceDirectoryImpl()
+namespace {
+
+const FilePath& GetShaderSourceDirectoryImpl()
 {
 #ifndef HYP_SHIPPING
     static const FilePath s_path = CoreApi::GetBaseDirectory() / "Source/Shaders";
@@ -168,196 +127,22 @@ static const FilePath& GetShaderSourceDirectoryImpl()
 #endif  // !HYP_SHIPPING
 }
 
-FilePath ShaderCompiler::GetShaderSourceDirectory()
+constexpr const char* ShaderLanguageToBinaryExtension(ShaderCompileTargetBackend backend)
 {
-    return GetShaderSourceDirectoryImpl();
-}
-
-namespace {
-
-// Cache of #include directives scanned from shader source files,
-// invalidated when the file's last modified timestamp changes.
-struct IncludeScanCacheEntry
-{
-    Time lastModifiedTimestamp;
-    Array<FilePath> includes;
-};
-
-Mutex s_includeScanCacheMutex;
-Map<String, IncludeScanCacheEntry> s_includeScanCache;
-
-Mutex s_bundleCompileMutexesMutex;
-Map<Name, UniquePtr<Mutex>> s_bundleCompileMutexes;
-
-Mutex& GetBundleCompileMutex(Name bundleName)
-{
-    Mutex::Guard guard(s_bundleCompileMutexesMutex);
-
-    UniquePtr<Mutex>& mutex = s_bundleCompileMutexes[bundleName];
-
-    if (!mutex)
+    switch (backend)
     {
-        mutex = MakeUnique<Mutex>();
-    }
-
-    return *mutex;
-}
-
-} // namespace
-
-/*! \brief Scan a shader source file for local #include "..." directives,
-    resolving each path relative to the including file (then the shader source root). */
-static Array<FilePath> ScanSourceFileIncludes(const FilePath& filepath)
-{
-    Array<FilePath> includes;
-
-    FileByteReader reader { filepath };
-
-    if (reader.Eof())
-    {
-        return includes;
-    }
-
-    const String source { ByteBuffer(reader.Read()).ToByteView() };
-
-    for (const String& line : source.Split('\n'))
-    {
-        const String trimmedLine = line.TrimmedLeft();
-
-        if (!trimmedLine.StartsWith("#include"))
-        {
-            continue;
-        }
-
-        const size_t quoteStart = trimmedLine.FindFirstIndex('"');
-
-        if (quoteStart == String::NotFound)
-        {
-            // angle-bracket includes are not local to the shader source tree
-            continue;
-        }
-
-        const UTF8StringView remainder = trimmedLine.Substr(quoteStart + 1);
-        const size_t quoteEnd = remainder.FindFirstIndex('"');
-
-        if (quoteEnd == UTF8StringView::NotFound || quoteEnd == 0)
-        {
-            continue;
-        }
-
-        const String includeStr { remainder.Substr(0, quoteEnd) };
-
-        FilePath resolvedPath = filepath.BasePath() / includeStr;
-
-        if (!resolvedPath.Exists())
-        {
-            resolvedPath = GetShaderSourceDirectoryImpl() / includeStr;
-        }
-
-        if (!resolvedPath.Exists())
-        {
-            continue;
-        }
-
-        includes.PushBack(resolvedPath.ToCanonical());
-    }
-
-    return includes;
-}
-
-/*! \brief Get the latest last-modified timestamp across the bundle's entry source
-    files and all transitively #included files. */
-static Time GetTransitiveSourcesLastModifiedTimestamp(const ShaderBundleDecl& decl)
-{
-    Time maxLastModifiedTimestamp = Time(0);
-
-    Set<String> visitedFiles;
-    Array<FilePath> filesToProcess;
-
-    for (const auto& sourceFile : decl.sources)
-    {
-        filesToProcess.PushBack(FilePath(sourceFile.second).ToCanonical());
-    }
-
-    while (filesToProcess.Any())
-    {
-        const FilePath filepath = filesToProcess.Back();
-        filesToProcess.PopBack();
-
-        const String fileKey { filepath.Data() };
-
-        if (visitedFiles.Contains(fileKey))
-        {
-            continue;
-        }
-
-        visitedFiles.Insert(fileKey);
-
-        const Time lastModifiedTimestamp = filepath.LastModifiedTimestamp();
-
-        maxLastModifiedTimestamp = MathUtil::Max(maxLastModifiedTimestamp, lastModifiedTimestamp);
-
-        Array<FilePath> includes;
-        bool isCacheValid = false;
-
-        {
-            Mutex::Guard guard(s_includeScanCacheMutex);
-
-            auto it = s_includeScanCache.Find(fileKey);
-
-            if (it != s_includeScanCache.End() && it->second.lastModifiedTimestamp == lastModifiedTimestamp)
-            {
-                isCacheValid = true;
-                includes = it->second.includes;
-            }
-        }
-
-        if (!isCacheValid)
-        {
-            includes = ScanSourceFileIncludes(filepath);
-
-            Mutex::Guard guard(s_includeScanCacheMutex);
-
-            IncludeScanCacheEntry& entry = s_includeScanCache[fileKey];
-            entry.lastModifiedTimestamp = lastModifiedTimestamp;
-            entry.includes = includes;
-        }
-
-        for (const FilePath& includePath : includes)
-        {
-            filesToProcess.PushBack(includePath);
-        }
-    }
-
-    return maxLastModifiedTimestamp;
-}
-
-#ifdef HYP_DXC
-static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
-{
-    switch (type)
-    {
-    case ShaderModuleType::Vertex:
-        return L"vs_6_1"; // need 6.1 for multiple views
-    case ShaderModuleType::Pixel:
-        return L"ps_6_0";
-    case ShaderModuleType::Geometry:
-        return L"gs_6_0";
-    case ShaderModuleType::Compute:
-        return L"cs_6_0";
-    case ShaderModuleType::RayGen:
-    case ShaderModuleType::Miss:
-    case ShaderModuleType::ClosestHit:
-    case ShaderModuleType::AnyHit:
-    case ShaderModuleType::Intersect:
-        return L"lib_6_5";
+    case ShaderCompileTargetBackend::DX12:
+        return ".dxil";
+    case ShaderCompileTargetBackend::Vulkan:
+        return ".spv";
+    case ShaderCompileTargetBackend::WebGPU:
+        return ".wgsl";
     default:
-        return L"vs_6_0";
+        return "";
     }
 }
-#endif // HYP_DXC
 
-static String InputLayoutToString(const VertexInputLayoutDesc& inputLayout)
+String InputLayoutToString(const VertexInputLayoutDesc& inputLayout)
 {
     String str;
 
@@ -376,164 +161,6 @@ static String InputLayoutToString(const VertexInputLayoutDesc& inputLayout)
     }
 
     return str;
-}
-
-String GetShaderVersionFromSource(const String& source, String& outSourceWithoutVersion)
-{
-    outSourceWithoutVersion = source;
-
-    String sourceTrimmed = source.TrimmedLeft();
-
-    if (sourceTrimmed.StartsWith("#version"))
-    {
-        size_t firstNewline = sourceTrimmed.FindFirstIndex('\n');
-        String versionLine = sourceTrimmed.Substr(0, firstNewline);
-
-        outSourceWithoutVersion = sourceTrimmed.Substr(firstNewline + 1);
-
-        return versionLine.TrimmedRight();
-    }
-
-    return "#version 450";
-}
-
-static String BuildDescriptorTableDefines(const ShaderInputGroup& inputGroup, ShaderCompileTargetBackend targetBackend = ShaderCompileTargetBackend::Vulkan)
-{
-    String descriptorTableDefines;
-
-    // Generate descriptor table defines
-    for (const ShaderInputSet& inputSet : inputGroup.elements)
-    {
-        const ShaderInputSet* descriptorSetDeclarationPtr = &inputSet;
-
-        const uint32 setIndex = inputGroup.GetDescriptorSetIndex(inputSet.name);
-        Assert(setIndex != -1);
-
-        descriptorTableDefines += "#define _" + String(*inputSet.name) + "_SPACE" + " " + ("space" + String::ToString(setIndex)) + "\n";
-
-        if (inputSet.flags[ShaderInputSetFlags::Reference])
-        {
-            const ShaderInputSet* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(inputSet.name);
-            Assert(referencedDescriptorSetDeclaration != nullptr);
-
-            descriptorSetDeclarationPtr = referencedDescriptorSetDeclaration;
-        }
-
-        for (const Array<ShaderInput>& descriptorDeclarations : descriptorSetDeclarationPtr->slots)
-        {
-            for (const ShaderInput& shaderInput : descriptorDeclarations)
-            {
-                descriptorTableDefines += '\t';
-
-                char registerKey = 0;
-
-                switch (shaderInput.slot)
-                {
-                case ShaderRegister::SRV: // read-only storage buffers and textures
-                    registerKey = 't';
-                    break;
-                case ShaderRegister::UAV: // r/w storage buffers and images
-                    registerKey = 'u';
-                    break;
-                case ShaderRegister::BUFFER: // constant buffers
-                    registerKey = 'b';
-                    break;
-                case ShaderRegister::SAMPLER: // samplers
-                    registerKey = 's';
-                    break;
-                default:
-                    HYP_UNREACHABLE();
-                }
-
-                const uint32 registerIndex = (targetBackend == ShaderCompileTargetBackend::DX12)
-                    ? shaderInput.index                                                                    // DX12: use explicit binding index
-                    : descriptorSetDeclarationPtr->CalculateFlatIndex(shaderInput.slot, shaderInput.name); // Vulkan: use flattened index
-
-                descriptorTableDefines += HYP_FORMAT("#define _{}_{}_REGISTER {}{}",
-                                                     descriptorSetDeclarationPtr->name, shaderInput.name,
-                                                     registerKey, registerIndex);
-
-                descriptorTableDefines += '\n';
-            }
-        }
-    }
-
-    return descriptorTableDefines;
-}
-
-static String BuildAttributesDefines(const ShaderVariantPerms& perm)
-{
-    String preamble;
-
-    uint32 attrIndex = 0;
-
-    FOR_EACH_BIT(perm.GetRequiredVertexAttributes().flagMask, bit)
-    {
-        VertexType vt = VertexType(1 << bit);
-
-        auto it = s_vertexTypeToVertexAttributes.Find(vt);
-        Assert(it != s_vertexTypeToVertexAttributes.End());
-
-        const Array<const char*>& vertexAttributes = it->second;
-        Assert(vertexAttributes.Any());
-
-        preamble += String("#define VT_") + VertexUtils::ToString(vt) + "\n";
-
-        for (const String& attr : vertexAttributes)
-        {
-            preamble += HYP_FORMAT("#define HYP_ATTRIBUTE_{}\n", attr);
-            preamble += HYP_FORMAT("#define _{}_LOCATION {}\n", attr, attrIndex);
-
-            ++attrIndex;
-        }
-    }
-
-    // We do not do the same for Optional attributes, as they have not been
-    // instantiated at this point in time. before compiling the shader, they
-    // should have all been made Required.
-
-    Set<StringHash> definedNames;
-
-    for (const ShaderProperty& property : perm.GetPropertySet())
-    {
-        if (!property.name.IsValid())
-        {
-            continue;
-        }
-
-        if (definedNames.Contains(StringHash(property.name)))
-        {
-            HYP_LOG(ShaderCompiler,
-                    Warning,
-                    "Shader property {} defined multiple times in shader properties! This may cause shader compilation errors.",
-                    property.name);
-
-            continue;
-        }
-
-        definedNames.Insert(StringHash(property.name));
-
-        // property has a value -- if integral or float, use that value
-        if (property.HasValue())
-        {
-            if (property.currentValue.Is<Name>())
-            {
-                // string values are defined as KEY_VALUE = 1
-                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<Name>());
-            }
-            else
-            {
-                preamble += HYP_FORMAT("#define {} {}\n", property.name, property.GetValueString());
-            }
-
-            continue;
-        }
-
-        // no value set, treat it as boolean true (1)
-        preamble += HYP_FORMAT("#define {} 1\n", property.name);
-    }
-
-    return preamble;
 }
 
 // fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
@@ -582,7 +209,7 @@ static StaticShaderPropertyId s_propDebugVelocity { ShaderProperty(NAME("DEBUG_V
 static StaticShaderPropertyId s_propDebugNormals { ShaderProperty(NAME("DEBUG_NORMALS")) };
 static StaticShaderPropertyId s_propDebugAO { ShaderProperty(NAME("DEBUG_AO")) };
 
-static String ShaderPropertyValueToString(const ShaderProperty::Value& v)
+String ShaderPropertyValueToString(const ShaderProperty::Value& v)
 {
     String str;
 
@@ -594,7 +221,7 @@ static String ShaderPropertyValueToString(const ShaderProperty::Value& v)
     return str;
 }
 
-static bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, const ShaderProperty::Value& b)
+bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, const ShaderProperty::Value& b)
 {
     if (a.Is<int>() && b.Is<int>())
     {
@@ -628,14 +255,7 @@ static bool AreShaderPropertyValuesEquivalent(const ShaderProperty::Value& a, co
     return false;
 }
 
-static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& out);
-
-void MergeGlobalShaderProperties(ShaderPropertySet& out)
-{
-    MergeGlobalShaderProperties(/* isPrecompilingShaders */ false, out);
-}
-
-static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& out)
+void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderPropertySet& out)
 {
     // Num GBuffer textures is always static
     out.Add(s_propNumGBufferTextures);
@@ -675,7 +295,7 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderProper
     }
 }
 
-static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVariantPerms& inOutPerm)
+void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVariantPerms& inOutPerm)
 {
     ShaderPropertySet props;
     MergeGlobalShaderProperties(isPrecompilingShaders, props);
@@ -706,7 +326,7 @@ static void MergeGlobalShaderProperties(bool isPrecompilingShaders, ShaderVarian
     }
 }
 
-static bool SatisfiesRequested(
+bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties,
     const VertexInputLayoutDesc& requestedInputLayout,
     const Shader& candidate,
@@ -717,7 +337,7 @@ static bool SatisfiesRequested(
                                : (requestedProperties & candidate.properties) == candidate.properties);
 }
 
-static Name GetTargetPlatformPropertyValue(ShaderCompileTargetPlatform platform)
+Name GetTargetPlatformPropertyValue(ShaderCompileTargetPlatform platform)
 {
     switch (platform)
     {
@@ -738,7 +358,7 @@ static Name GetTargetPlatformPropertyValue(ShaderCompileTargetPlatform platform)
     }
 }
 
-static Name GetTargetBackendPropertyValue(ShaderCompileTargetBackend backend)
+Name GetTargetBackendPropertyValue(ShaderCompileTargetBackend backend)
 {
     switch (backend)
     {
@@ -753,489 +373,36 @@ static Name GetTargetBackendPropertyValue(ShaderCompileTargetBackend backend)
     }
 }
 
-#pragma endregion Helpers
-
-#pragma region DescriptorUsageSet
-
-void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table) const
-{
-    for (const DescriptorUsage& descriptorUsage : elements)
-    {
-        Assert(descriptorUsage.slot != ShaderRegister::NONE && descriptorUsage.slot < ShaderRegister::MAX,
-               "Descriptor usage {} has invalid slot {}",
-               descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
-
-        ShaderInputSet* inputSet = table.FindDescriptorSetDeclaration(descriptorUsage.setName);
-
-        // check if this descriptor set is defined in the static descriptor table
-        // if it is, we can use those definitions
-        // otherwise, it is a 'custom' descriptor set
-        ShaderInputSet* staticDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorUsage.setName);
-
-        if (staticDescriptorSetDeclaration != nullptr)
-        {
-            Assert(staticDescriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName) != nullptr,
-                   "Descriptor set {} is defined in the static descriptor table, but "
-                   "the descriptor {} is not",
-                   descriptorUsage.setName, descriptorUsage.descriptorName);
-
-            if (!inputSet)
-            {
-                const uint32 setIndex = uint32(table.elements.Size());
-
-                ShaderInputSet newDescriptorSetDeclaration(setIndex, staticDescriptorSetDeclaration->name);
-                newDescriptorSetDeclaration.flags = staticDescriptorSetDeclaration->flags | ShaderInputSetFlags::Reference;
-
-                table.AddDescriptorSetDeclaration(std::move(newDescriptorSetDeclaration));
-            }
-
-            continue;
-        }
-
-        if (!inputSet)
-        {
-            const uint32 setIndex = uint32(table.elements.Size());
-
-            inputSet = table.AddDescriptorSetDeclaration(ShaderInputSet(setIndex, descriptorUsage.setName));
-        }
-
-        AssertDebug(descriptorUsage.category != ShaderResourceCategory::Unknown);
-
-        ShaderInput shaderInput {};
-        shaderInput.slot = descriptorUsage.slot;
-        shaderInput.type = descriptorUsage.type;
-        shaderInput.category = descriptorUsage.category;
-        shaderInput.name = descriptorUsage.descriptorName;
-        shaderInput.count = descriptorUsage.GetCount();
-        shaderInput.size = descriptorUsage.GetSize();
-        shaderInput.isDynamic = bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC);
-        shaderInput.bufferType = descriptorUsage.bufferType;
-
-        if (auto* existingDecl = inputSet->FindDescriptorDeclaration(descriptorUsage.descriptorName))
-        {
-            // Already exists, just update the slot
-            *existingDecl = std::move(shaderInput);
-        }
-        else
-        {
-            inputSet->Add(std::move(shaderInput));
-        }
-    }
-}
-
-#pragma endregion DescriptorUsageSet
-
-#pragma region SPRIV Compilation
-
-static void GetSPIRVEnvironmentInfo(
-    ShaderModuleType type,
-    uint32& outSpirvVersion,
-    uint32& outVulkanVersion)
-{
-    outSpirvVersion = 450;
-
-    outVulkanVersion = HYP_VULKAN_API_VERSION;
-
-    if (IsRayTracingShaderModule(type))
-    {
-        outSpirvVersion = MathUtil::Max(outSpirvVersion, 460);
-
-        outVulkanVersion = MathUtil::Max(outVulkanVersion, VK_API_VERSION_1_2);
-    }
-}
-
-#ifdef HYP_DXC
-
-static bool PreprocessHLSL(
-    ShaderModuleType type,
-    const String& preamble,
-    const String& source,
-    const String& filename,
-    String& outPreprocessedSource,
-    Array<String>& outErrorMessages)
-{
-    DxcThreadLocalCompiler& dxc = GetDxcThreadLocalCompiler();
-    Assert(dxc.compiler && dxc.utils);
-
-    outPreprocessedSource = source;
-
-    WideString includeDirs[] = {
-        WideString(FilePath(filename).BasePath()),
-        WideString(GetShaderSourceDirectoryImpl()),
-        WideString(GetShaderSourceDirectoryImpl() / "include")
-    };
-
-    Array<LPCWSTR> args;
-
-    for (const WideString& str : includeDirs)
-    {
-        args.PushBack(L"-I");
-        args.PushBack(*str);
-    }
-
-    args.PushBack(L"-P");
-
-    String fullSource = preamble + "\n" + source;
-
-    HRESULT hr;
-
-    IDxcBlobEncoding* pSource = nullptr;
-    hr = dxc.utils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
-    HYP_DEFER({ if (pSource) pSource->Release(); });
-
-    if (FAILED(hr))
-    {
-        outErrorMessages.PushBack(HYP_FORMAT("Failed to create blob! HRESULT: {}", hr));
-
-        return false;
-    }
-
-    DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
-
-    IDxcResult* pResult = nullptr;
-    HYP_DEFER({ if (pResult) pResult->Release(); });
-
-    IDxcIncludeHandler* pIncludeHandler = nullptr;
-    hr = dxc.utils->CreateDefaultIncludeHandler(&pIncludeHandler);
-    HYP_DEFER({ if (pIncludeHandler) pIncludeHandler->Release(); });
-
-    if (FAILED(hr))
-    {
-        outErrorMessages.PushBack(HYP_FORMAT("Failed to create default include handler! HRESULT: {}", hr));
-
-        return false;
-    }
-
-    hr = dxc.compiler->Compile(
-        &sourceBuffer,
-        args.Data(),
-        (uint32)args.Size(),
-        pIncludeHandler,
-        IID_PPV_ARGS(&pResult));
-
-    IDxcBlobUtf8* pErrors = nullptr;
-    pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
-    HYP_DEFER({ if (pErrors) pErrors->Release(); });
-
-    if (pErrors && pErrors->GetStringLength() > 0)
-        outErrorMessages.PushBack(String(pErrors->GetStringPointer()));
-
-    HRESULT status;
-    pResult->GetStatus(&status);
-
-    if (FAILED(status))
-        return false;
-
-    IDxcBlobUtf8* pOutput = nullptr;
-    pResult->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&pOutput), nullptr);
-    HYP_DEFER({ if (pOutput) pOutput->Release(); });
-
-    if (pOutput)
-    {
-        outPreprocessedSource = String(pOutput->GetStringPointer());
-        return true;
-    }
-
-    return false;
-}
-
-enum class HLSLOutputType
-{
-    SPIRV,
-    DXIL
+const Map<String, ShaderModuleType> g_shaderTypeNames = {
+    { "vs", ShaderModuleType::Vertex },
+    { "ps", ShaderModuleType::Pixel },
+    { "gs", ShaderModuleType::Geometry },
+    { "cs", ShaderModuleType::Compute },
+    { "raygen", ShaderModuleType::RayGen },
+    { "closesthit", ShaderModuleType::ClosestHit },
+    { "anyhit", ShaderModuleType::AnyHit },
+    { "miss", ShaderModuleType::Miss },
+    { "intersect", ShaderModuleType::Intersect }
 };
 
-static ByteBuffer CompileHLSL(
-    ShaderModuleType type,
-    HLSLOutputType outputType,
-    DescriptorUsageSet& descriptorUsages,
-    String source, String filename,
-    const ShaderVariantPerms& perm,
-    ShaderCompileTargetBackend targetBackend,
-    Array<String>& errorMessages)
+const Map<StringHash, VertexType> g_nameHashToVertexType = {
+    { "Position"_sh, VT_Position },
+    { "Normal"_sh, VT_Normal },
+    { "UV0"_sh, VT_UV0 },
+    { "UV1"_sh, VT_UV1 },
+    { "Skeletal"_sh, VT_Skeletal },
+    { "Tree"_sh, VT_Tree },
+    { "Foliage"_sh, VT_Foliage }
+};
+
+
+// Cache of #include directives scanned from shader source files,
+// invalidated when the file's last modified timestamp changes.
+struct IncludeScanCacheEntry
 {
-    DxcThreadLocalCompiler& dxc = GetDxcThreadLocalCompiler();
-    Assert(dxc.compiler && dxc.utils);
-
-    ShaderInputGroup inputGroup;
-    descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
-
-    String preamble = BuildDescriptorTableDefines(inputGroup, targetBackend)
-        + "\n" + BuildAttributesDefines(perm);
-
-    String fullSource = preamble + "\n" + source;
-
-    IDxcBlobEncoding* pSource = nullptr;
-    dxc.utils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
-    HYP_DEFER({ if (pSource) pSource->Release(); });
-
-    const WideString entryPointName = WideString(DefaultEntryPointNames[uint8(type)]);
-
-    Array<LPCWSTR> args;
-
-    args.PushBack(L"-E");
-    args.PushBack(*entryPointName);
-
-    args.PushBack(L"-T");
-    args.PushBack(GetDXCTargetProfile(type));
-
-    args.PushBack(L"-HV 2021");
-
-#ifdef HYP_ENABLE_SHADER_DEBUGGING
-    args.PushBack(L"-Zi");
-    args.PushBack(L"-Od");
-#ifdef HYP_DX12
-    args.PushBack(L"-Qembed_debug");
-#endif // HYP_DX12
-#else
-    // Optimize that code.
-    args.PushBack(L"-O3");
-#endif
-
-    if (outputType == HLSLOutputType::SPIRV)
-    {
-        args.PushBack(L"-spirv");
-        // args.PushBack(L"-fvk-use-scalar-layout");
-        args.PushBack(L"-fvk-use-dx-layout");
-
-        uint32 spirvVersion;
-        uint32 vulkanApiVersion;
-        GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
-
-        // Tint only reads SPIR-V up to 1.3
-        if (targetBackend == ShaderCompileTargetBackend::WebGPU)
-        {
-            vulkanApiVersion = VK_API_VERSION_1_1;
-        }
-
-        switch (vulkanApiVersion)
-        {
-        case VK_API_VERSION_1_0:
-            args.PushBack(L"-fspv-target-env=vulkan1.0");
-            break;
-        case VK_API_VERSION_1_1:
-            args.PushBack(L"-fspv-target-env=vulkan1.1");
-            break;
-        case VK_API_VERSION_1_2:
-            args.PushBack(L"-fspv-target-env=vulkan1.2");
-            break;
-        case VK_API_VERSION_1_3:
-            args.PushBack(L"-fspv-target-env=vulkan1.3");
-            break;
-        case VK_API_VERSION_1_4:
-            args.PushBack(L"-fspv-target-env=vulkan1.4");
-            break;
-        default:
-            errorMessages.PushBack(HYP_FORMAT("Unsupported vulkan version {}", vulkanApiVersion));
-            return {};
-        }
-    }
-
-    DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
-    IDxcResult* pResult = nullptr;
-    HYP_DEFER({ if (pResult) pResult->Release(); });
-
-    HRESULT res = dxc.compiler->Compile(
-        &sourceBuffer,
-        args.Data(),
-        (uint32)args.Size(),
-        nullptr,
-        IID_PPV_ARGS(&pResult));
-
-    IDxcBlobUtf8* pErrors = nullptr;
-    pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
-    HYP_DEFER({ if (pErrors) pErrors->Release(); });
-
-    if (pErrors && pErrors->GetStringLength() != 0)
-    {
-        errorMessages.PushBack(String(pErrors->GetStringPointer()));
-    }
-
-    pResult->GetStatus(&res);
-
-    if (FAILED(res))
-    {
-        errorMessages.PushBack(HYP_FORMAT("Failed to compile HLSL shader {}, HRESULT: {}", filename, res));
-
-        return ByteBuffer();
-    }
-
-    IDxcBlob* pBlob = nullptr;
-    pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
-    HYP_DEFER({ if (pBlob) pBlob->Release(); });
-
-    ByteBuffer bytecode(pBlob->GetBufferSize());
-    Assert(bytecode.Size() > 0);
-
-    Memory::Copy(bytecode.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
-
-    return bytecode;
-}
-
-#endif // HYP_DXC
-
-#pragma endregion SPRIV Compilation
-
-#pragma region WGSL Conversion
-
-CVar<CVarString> g_cvTintPath("ShaderCompiler.TintPath", "");
-
-static FilePath GetTintPath()
-{
-    const CVarString configuredPath = g_cvTintPath.Get();
-
-    if (configuredPath != nullptr && *configuredPath != 0)
-    {
-        return FilePath(configuredPath);
-    }
-
-#ifdef HYP_WINDOWS
-    const char* executableName = "tint.exe";
-#else
-    const char* executableName = "tint";
-#endif
-
-    const FilePath besideExecutable = CoreApi::GetExecutablePath() / executableName;
-
-    if (besideExecutable.Exists())
-    {
-        return besideExecutable;
-    }
-
-    return CoreApi::GetBaseDirectory() / "External/ThirdParty/Binaries/Windows/Release" / executableName;
-}
-
-template <class SourceFileArray>
-static bool IsCompilableForWebGPU(const SourceFileArray& sourceFiles, const ShaderVariantPerms& perm)
-{
-    for (const ShaderProperty& property : perm.ToArray())
-    {
-        if (property.name == NAME("HYP_FEATURES_BINDLESS_TEXTURES"))
-        {
-            return false;
-        }
-    }
-
-    for (const auto& sourceFile : sourceFiles)
-    {
-        if (IsRayTracingShaderModule(sourceFile.type))
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-static ByteBuffer ConvertSPIRVToWGSL(const ByteBuffer& spirv, const FilePath& outputFilepath, Array<String>& errorMessages)
-{
-    const FilePath tintPath = GetTintPath();
-
-    if (!tintPath.Exists())
-    {
-        errorMessages.PushBack(HYP_FORMAT("Tint not found at {}; set ShaderCompiler.TintPath to compile WebGPU shaders", tintPath));
-
-        return ByteBuffer();
-    }
-
-    // Variants compile in parallel and several stages share a source file, so the scratch files need their own names
-    static std::atomic<uint32> conversionCounter { 0 };
-    const uint32 conversionIndex = conversionCounter.fetch_add(1);
-
-    const FilePath scratchBase = outputFilepath.BasePath() / HYP_FORMAT("tint_{}_{}", uint64(std::chrono::steady_clock::now().time_since_epoch().count()), conversionIndex);
-    const FilePath spirvFilepath = FilePath(String(scratchBase) + ".spv");
-    const FilePath wgslFilepath = FilePath(String(scratchBase) + ".wgsl");
-    const FilePath logFilepath = FilePath(String(scratchBase) + ".log");
-
-    // the SPIR-V of a failed conversion is left behind, it is the only way to reproduce the failure with Tint by hand
-    bool keepSpirv = false;
-
-    HYP_DEFER({
-        if (!keepSpirv)
-        {
-            spirvFilepath.Remove();
-        }
-
-        wgslFilepath.Remove();
-        logFilepath.Remove();
-    });
-
-    {
-        FileByteWriter spirvWriter(spirvFilepath.Data());
-
-        if (!spirvWriter.IsOpen())
-        {
-            errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", spirvFilepath));
-
-            return ByteBuffer();
-        }
-
-        spirvWriter.Write(spirv.Data(), spirv.Size());
-        spirvWriter.Close();
-    }
-
-    // cmd.exe strips the outermost quotes, so the whole command needs its own pair
-    const String command = HYP_FORMAT("\"\"{}\" --allow-non-uniform-derivatives \"{}\" -o \"{}\" > \"{}\" 2>&1\"",
-        tintPath, spirvFilepath, wgslFilepath, logFilepath);
-
-    // A virus scanner can briefly hold the file we just wrote, so Tint gets a few tries at opening it
-    constexpr uint32 maxAttempts = 4;
-
-    int exitCode = 0;
-    String log;
-
-    for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
-    {
-        exitCode = std::system(command.Data());
-        log.Clear();
-
-        if (exitCode == 0 && wgslFilepath.Exists())
-        {
-            break;
-        }
-
-        if (logFilepath.Exists())
-        {
-            const ByteBuffer logBytes = FileByteReader(logFilepath).Read();
-            log = String(ConstByteView(logBytes.Data(), MathUtil::Min(logBytes.Size(), size_t(2048))));
-        }
-
-        if (!log.Contains("Failed to open"))
-        {
-            break;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100 * (attempt + 1)));
-    }
-
-    if (exitCode != 0 || !wgslFilepath.Exists())
-    {
-        errorMessages.PushBack(HYP_FORMAT("Tint failed to convert {} to WGSL (exit code {}): {}", spirvFilepath, exitCode, log));
-
-        keepSpirv = true;
-
-        return ByteBuffer();
-    }
-
-    return FileByteReader(wgslFilepath).Read();
-}
-
-#pragma endregion WGSL Conversion
-
-static constexpr const char* ShaderLanguageToBinaryExtension(ShaderCompileTargetBackend backend)
-{
-    switch (backend)
-    {
-    case ShaderCompileTargetBackend::DX12:
-        return ".dxil";
-    case ShaderCompileTargetBackend::Vulkan:
-        return ".spv";
-    case ShaderCompileTargetBackend::WebGPU:
-        return ".wgsl";
-    default:
-        return "";
-    }
-}
+    Time lastModifiedTimestamp;
+    Array<FilePath> includes;
+};
 
 struct LoadedSourceFile
 {
@@ -1268,45 +435,90 @@ struct LoadedSourceFile
     }
 };
 
-static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
-    { "vs", ShaderModuleType::Vertex },
-    { "ps", ShaderModuleType::Pixel },
-    { "gs", ShaderModuleType::Geometry },
-    { "cs", ShaderModuleType::Compute },
-    { "raygen", ShaderModuleType::RayGen },
-    { "closesthit", ShaderModuleType::ClosestHit },
-    { "anyhit", ShaderModuleType::AnyHit },
-    { "miss", ShaderModuleType::Miss },
-    { "intersect", ShaderModuleType::Intersect }
-};
+Guarded<Map<String, IncludeScanCacheEntry>> g_includeScanCache;
+Guarded<Map<Name, UniquePtr<Mutex>>> g_bundleCompileMutexes;
 
-static VertexType FindVertexType(StringHash name)
+Mutex& GetBundleCompileMutex(Name bundleName)
 {
-    if (name == "Position"_sh)
-        return VT_Position;
+    Mutex* mtx;
+    g_bundleCompileMutexes.Access([&mtx, bundleName](auto&& mutexes)
+        {
+            UniquePtr<Mutex>& mutex = mutexes[bundleName];
 
-    if (name == "Normal"_sh)
-        return VT_Normal;
+            if (!mutex)
+            {
+                mutex = MakeUnique<Mutex>();
+            }
 
-    if (name == "UV0"_sh)
-        return VT_UV0;
+            mtx = mutex.Get();
+        });
 
-    if (name == "UV1"_sh)
-        return VT_UV1;
+    return *mtx;
+}
 
-    if (name == "Skeletal"_sh)
-        return VT_Skeletal;
+constexpr ShaderCompileTargetBackend GetShaderBackendForName(StringHash nameHash)
+{
+    constexpr auto VulkanNameHashValue = "VULKAN"_sh.hashCode;
+    constexpr auto DX12NameHashValue = "DX12"_sh.hashCode;
+    constexpr auto WebGPUNameHashValue = "WEBGPU"_sh.hashCode;
 
-    if (name == "Tree"_sh)
-        return VT_Tree;
+    const auto nameHashValue = nameHash.hashCode;
 
-    if (name == "Foliage"_sh)
-        return VT_Foliage;
+    switch (nameHashValue)
+    {
+    case VulkanNameHashValue:
+        return ShaderCompileTargetBackend::Vulkan;
+    case DX12NameHashValue:
+        return ShaderCompileTargetBackend::DX12;
+    case WebGPUNameHashValue:
+        return ShaderCompileTargetBackend::WebGPU;
+    default:
+        return ShaderCompileTargetBackend::None;
+    }
+}
+
+constexpr ShaderCompileTargetPlatform GetShaderPlatformForName(StringHash nameHash)
+{
+    constexpr auto WindowsNameHashValue = "WINDOWS"_sh.hashCode;
+    constexpr auto MacNameHashValue = "MAC"_sh.hashCode;
+    constexpr auto LinuxNameHashValue = "LINUX"_sh.hashCode;
+    constexpr auto AndroidNameHashValue = "ANDROID"_sh.hashCode;
+    constexpr auto IOSNameHashValue = "IOS"_sh.hashCode;
+    constexpr auto WebNameHashValue = "WEB"_sh.hashCode;
+
+    const auto nameHashValue = nameHash.hashCode;
+
+    switch (nameHashValue)
+    {
+    case WindowsNameHashValue:
+        return ShaderCompileTargetPlatform::Windows;
+    case MacNameHashValue:
+        return ShaderCompileTargetPlatform::Mac;
+    case LinuxNameHashValue:
+        return ShaderCompileTargetPlatform::Linux;
+    case AndroidNameHashValue:
+        return ShaderCompileTargetPlatform::Android;
+    case IOSNameHashValue:
+        return ShaderCompileTargetPlatform::IOS;
+    case WebNameHashValue:
+        return ShaderCompileTargetPlatform::Web;
+    default:
+        return ShaderCompileTargetPlatform::None;
+    }
+}
+
+VertexType FindVertexType(StringHash name)
+{
+    const auto it = g_nameHashToVertexType.Find(name);
+    if (it != g_nameHashToVertexType.End())
+    {
+        return it->second;
+    }
 
     return VT_Invalid;
 }
 
-static bool FindVertexType(const UTF8StringView& str, VertexType& outType)
+bool FindVertexType(const UTF8StringView& str, VertexType& outType)
 {
     if (str == "a_position")
     {
@@ -1353,7 +565,7 @@ static bool FindVertexType(const UTF8StringView& str, VertexType& outType)
     return false;
 }
 
-static VertexTypeMask BuildVertexTypeMask(const Array<VertexAttributeDefinition>& definitions)
+VertexTypeMask BuildVertexTypeMask(const Array<VertexAttributeDefinition>& definitions)
 {
     VertexTypeMask set {};
 
@@ -1374,7 +586,7 @@ static VertexTypeMask BuildVertexTypeMask(const Array<VertexAttributeDefinition>
     return set;
 }
 
-static bool IsShaderRequestCoveredByPerms(
+bool IsShaderRequestCoveredByPerms(
     const ShaderVariantPerms& bundlePerms,
     const Array<ShaderProperty>& requestedProperties,
     const VertexInputLayoutDesc& requestedInputLayout,
@@ -1485,7 +697,7 @@ static bool IsShaderRequestCoveredByPerms(
     return true;
 }
 
-static void ForEachPermutation(
+void ForEachPermutation(
     const ShaderVariantPerms& versions,
     const ProcRef<void(const ShaderVariantPerms&)>& callback,
     bool parallel)
@@ -1636,7 +848,7 @@ static void ForEachPermutation(
     }
 }
 
-static bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>& outBundle)
+bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
     Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(path.GetBucket(), path.assetName);
 
@@ -1649,6 +861,992 @@ static bool LoadBundleFromAssetPath(const AssetPath& path, Handle<ShaderBundle>&
 
     return true;
 }
+
+/*! \brief Scan a shader source file for local #include "..." directives,
+    resolving each path relative to the including file (then the shader source root). */
+Array<FilePath> ScanSourceFileIncludes(const FilePath& filepath)
+{
+    Array<FilePath> includes;
+
+    FileByteReader reader { filepath };
+
+    if (reader.Eof())
+    {
+        return includes;
+    }
+
+    const String source { ByteBuffer(reader.Read()).ToByteView() };
+
+    for (const String& line : source.Split('\n'))
+    {
+        const String trimmedLine = line.TrimmedLeft();
+
+        if (!trimmedLine.StartsWith("#include"))
+        {
+            continue;
+        }
+
+        const size_t quoteStart = trimmedLine.FindFirstIndex('"');
+
+        if (quoteStart == String::NotFound)
+        {
+            // angle-bracket includes are not local to the shader source tree
+            continue;
+        }
+
+        const UTF8StringView remainder = trimmedLine.Substr(quoteStart + 1);
+        const size_t quoteEnd = remainder.FindFirstIndex('"');
+
+        if (quoteEnd == UTF8StringView::NotFound || quoteEnd == 0)
+        {
+            continue;
+        }
+
+        const String includeStr { remainder.Substr(0, quoteEnd) };
+
+        FilePath resolvedPath = filepath.BasePath() / includeStr;
+
+        if (!resolvedPath.Exists())
+        {
+            resolvedPath = GetShaderSourceDirectoryImpl() / includeStr;
+        }
+
+        if (!resolvedPath.Exists())
+        {
+            continue;
+        }
+
+        includes.PushBack(resolvedPath.ToCanonical());
+    }
+
+    return includes;
+}
+
+/*! \brief Get the latest last-modified timestamp across the bundle's entry source
+    files and all transitively #included files. */
+Time GetTransitiveSourcesLastModifiedTimestamp(const ShaderBundleDecl& decl)
+{
+    Time maxLastModifiedTimestamp = Time(0);
+
+    Set<String> visitedFiles;
+    Array<FilePath> filesToProcess;
+
+    for (const auto& sourceFile : decl.sources)
+    {
+        filesToProcess.PushBack(FilePath(sourceFile.second).ToCanonical());
+    }
+
+    while (filesToProcess.Any())
+    {
+        const FilePath filepath = filesToProcess.Back();
+        filesToProcess.PopBack();
+
+        if (visitedFiles.Contains(filepath))
+        {
+            continue;
+        }
+
+        visitedFiles.Insert(filepath);
+
+        const Time lastModifiedTimestamp = filepath.LastModifiedTimestamp();
+
+        maxLastModifiedTimestamp = MathUtil::Max(maxLastModifiedTimestamp, lastModifiedTimestamp);
+
+        Array<FilePath> includes;
+        bool isCacheValid = false;
+
+        g_includeScanCache.Access([&](auto&& cache)
+            {
+                auto it = cache.Find(filepath);
+
+                if (it != cache.End() && it->second.lastModifiedTimestamp == lastModifiedTimestamp)
+                {
+                    isCacheValid = true;
+                    includes = it->second.includes;
+                }
+            });
+
+        if (!isCacheValid)
+        {
+            includes = ScanSourceFileIncludes(filepath);
+
+            g_includeScanCache.Access([&](auto&& cache)
+                {
+                    IncludeScanCacheEntry& entry = cache[filepath];
+                    entry.lastModifiedTimestamp = lastModifiedTimestamp;
+                    entry.includes = includes;
+                });
+        }
+
+        for (const FilePath& includePath : includes)
+        {
+            filesToProcess.PushBack(includePath);
+        }
+    }
+
+    return maxLastModifiedTimestamp;
+}
+
+String BuildDescriptorTableDefines(
+    const ShaderInputGroup& inputGroup,
+    ShaderCompileTargetBackend targetBackend = ShaderCompileTargetBackend::Vulkan)
+{
+    String descriptorTableDefines;
+
+    // Generate descriptor table defines
+    for (const ShaderInputSet& inputSet : inputGroup.elements)
+    {
+        const ShaderInputSet* descriptorSetDeclarationPtr = &inputSet;
+
+        const uint32 setIndex = inputGroup.GetDescriptorSetIndex(inputSet.name);
+        Assert(setIndex != -1);
+
+        descriptorTableDefines += "#define _" + String(*inputSet.name) + "_SPACE" + " " + ("space" + String::ToString(setIndex)) + "\n";
+
+        if (inputSet.flags[ShaderInputSetFlags::Reference])
+        {
+            const ShaderInputSet* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(inputSet.name);
+            Assert(referencedDescriptorSetDeclaration != nullptr);
+
+            descriptorSetDeclarationPtr = referencedDescriptorSetDeclaration;
+        }
+
+        for (const Array<ShaderInput>& descriptorDeclarations : descriptorSetDeclarationPtr->slots)
+        {
+            for (const ShaderInput& shaderInput : descriptorDeclarations)
+            {
+                descriptorTableDefines += '\t';
+
+                char registerKey = 0;
+
+                switch (shaderInput.slot)
+                {
+                case ShaderRegister::SRV: // read-only storage buffers and textures
+                    registerKey = 't';
+                    break;
+                case ShaderRegister::UAV: // r/w storage buffers and images
+                    registerKey = 'u';
+                    break;
+                case ShaderRegister::BUFFER: // constant buffers
+                    registerKey = 'b';
+                    break;
+                case ShaderRegister::SAMPLER: // samplers
+                    registerKey = 's';
+                    break;
+                default:
+                    HYP_UNREACHABLE();
+                }
+
+                const uint32 registerIndex = (targetBackend == ShaderCompileTargetBackend::DX12)
+                    ? shaderInput.index                                                                    // DX12: use explicit binding index
+                    : descriptorSetDeclarationPtr->CalculateFlatIndex(shaderInput.slot, shaderInput.name); // Vulkan: use flattened index
+
+                descriptorTableDefines += HYP_FORMAT("#define _{}_{}_REGISTER {}{}",
+                                                     descriptorSetDeclarationPtr->name, shaderInput.name,
+                                                     registerKey, registerIndex);
+
+                descriptorTableDefines += '\n';
+            }
+        }
+    }
+
+    return descriptorTableDefines;
+}
+
+String BuildAttributesDefines(const ShaderVariantPerms& perm)
+{
+    String preamble;
+
+    uint32 attrIndex = 0;
+
+    FOR_EACH_BIT(perm.GetRequiredVertexAttributes().flagMask, bit)
+    {
+        VertexType vt = VertexType(1 << bit);
+
+        auto it = s_vertexTypeToVertexAttributes.Find(vt);
+        Assert(it != s_vertexTypeToVertexAttributes.End());
+
+        const Array<const char*>& vertexAttributes = it->second;
+        Assert(vertexAttributes.Any());
+
+        preamble += String("#define VT_") + VertexUtils::ToString(vt) + "\n";
+
+        for (const String& attr : vertexAttributes)
+        {
+            preamble += HYP_FORMAT("#define HYP_ATTRIBUTE_{}\n", attr);
+            preamble += HYP_FORMAT("#define _{}_LOCATION {}\n", attr, attrIndex);
+
+            ++attrIndex;
+        }
+    }
+
+    // We do not do the same for Optional attributes, as they have not been
+    // instantiated at this point in time. before compiling the shader, they
+    // should have all been made Required.
+
+    Set<StringHash> definedNames;
+
+    for (const ShaderProperty& property : perm.GetPropertySet())
+    {
+        if (!property.name.IsValid())
+        {
+            continue;
+        }
+
+        if (definedNames.Contains(StringHash(property.name)))
+        {
+            HYP_LOG(ShaderCompiler,
+                    Warning,
+                    "Shader property {} defined multiple times in shader properties! This may cause shader compilation errors.",
+                    property.name);
+
+            continue;
+        }
+
+        definedNames.Insert(StringHash(property.name));
+
+        // property has a value -- if integral or float, use that value
+        if (property.HasValue())
+        {
+            if (property.currentValue.Is<Name>())
+            {
+                // string values are defined as KEY_VALUE = 1
+                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<Name>());
+            }
+            else
+            {
+                preamble += HYP_FORMAT("#define {} {}\n", property.name, property.GetValueString());
+            }
+
+            continue;
+        }
+
+        // no value set, treat it as boolean true (1)
+        preamble += HYP_FORMAT("#define {} 1\n", property.name);
+    }
+
+    return preamble;
+}
+
+// Hyperion-specific custom preprocessor directives
+
+String ExtractFirstToken(const String& str)
+{
+    String result;
+
+    for (size_t i = 0; i < str.Size(); i++)
+    {
+        const char ch = str.Data()[i];
+
+        if (std::isalnum(ch) || ch == '_')
+        {
+            result.Append(ch);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+bool MatchesAnyToken(const String& token, std::initializer_list<const char*> keywords)
+{
+    for (const char* keyword : keywords)
+    {
+        if (token == keyword)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+TResult<Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType>> ParseDescriptorTypeFromDeclaration(
+    ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
+{
+    const String trimmed = declaration.TrimmedLeft();
+    const String firstToken = ExtractFirstToken(trimmed);
+
+    auto makeCBVType = [flags]() -> ShaderInputType
+    {
+        return (flags & DescriptorUsageFlags::DYNAMIC)
+            ? ShaderInputType::CBV_Dynamic
+            : ShaderInputType::CBV;
+    };
+
+    auto makeSRVType = [flags]() -> ShaderInputType
+    {
+        return (flags & DescriptorUsageFlags::DYNAMIC)
+            ? ShaderInputType::SRV_Dynamic
+            : ShaderInputType::SRV;
+    };
+
+    auto makeUAVType = [flags]() -> ShaderInputType
+    {
+        return (flags & DescriptorUsageFlags::DYNAMIC)
+            ? ShaderInputType::UAV_Dynamic
+            : ShaderInputType::UAV;
+    };
+
+    if (language == ShaderLanguage::HLSL)
+    {
+        if (MatchesAnyToken(firstToken, { "cbuffer" }))
+        {
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { makeCBVType(), ShaderResourceCategory::Buffer, GpuBufferType::ConstantBuffer };
+        }
+
+        if (MatchesAnyToken(firstToken, { "StructuredBuffer", "ByteAddressBuffer", "Buffer" }))
+        {
+            GpuBufferType bufferType = GpuBufferType::StructuredBuffer;
+
+            if (firstToken == "ByteAddressBuffer")
+            {
+                bufferType = GpuBufferType::ByteAddressBuffer;
+            }
+
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { makeSRVType(), ShaderResourceCategory::Buffer, bufferType };
+        }
+
+        if (MatchesAnyToken(firstToken, { "RWStructuredBuffer", "RWByteAddressBuffer", "AppendStructuredBuffer", "ConsumeStructuredBuffer", "RWBuffer" }))
+        {
+            GpuBufferType bufferType = GpuBufferType::RWStructuredBuffer;
+            if (firstToken == "RWByteAddressBuffer")
+            {
+                bufferType = GpuBufferType::RWByteAddressBuffer;
+            }
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { makeUAVType(), ShaderResourceCategory::Buffer, bufferType };
+        }
+
+        if (MatchesAnyToken(firstToken, { "RWTexture1D", "RWTexture2D", "RWTexture3D", "RWTexture1DArray", "RWTexture2DArray" }))
+        {
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::UAV, ShaderResourceCategory::Image, GpuBufferType::NONE };
+        }
+
+        if (MatchesAnyToken(firstToken, { "Texture1D", "Texture2D", "Texture3D", "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
+        {
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::SRV, ShaderResourceCategory::Image, GpuBufferType::NONE };
+        }
+
+        if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
+        {
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::Sampler, ShaderResourceCategory::Sampler, GpuBufferType::NONE };
+        }
+
+        if (firstToken == "RaytracingAccelerationStructure")
+        {
+            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::SRV, ShaderResourceCategory::AccelerationStructure, GpuBufferType::NONE };
+        }
+
+        return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from HLSL declaration: '{}'", trimmed);
+    }
+
+    return HYP_MAKE_ERROR(Error, "Unsupported shader language: {}", language);
+}
+
+String FormatDescriptorDeclaration(
+    ShaderLanguage language,
+    const DescriptorUsage& usage,
+    const String& setName,
+    const String& descriptorName,
+    const String& declarationBody)
+{
+    String remaining = declarationBody.Trimmed();
+    size_t insertPos = remaining.FindFirstIndex(";");
+
+    if (insertPos == String::NotFound)
+    {
+        insertPos = remaining.FindFirstIndex("{");
+    }
+
+    String declaration = (insertPos == String::NotFound) ? remaining : String(remaining.Substr(0, insertPos));
+    String suffix = (insertPos == String::NotFound) ? String::empty : String(remaining.Substr(insertPos));
+
+    return HYP_FORMAT("{} : register(_{}_{}_REGISTER, _{}_SPACE) {}\n",
+                      declaration,
+                      setName, descriptorName,
+                      setName,
+                      suffix);
+}
+
+} // namespace
+
+FilePath ShaderCompiler::GetShaderSourceDirectory()
+{
+    return GetShaderSourceDirectoryImpl();
+}
+
+#ifdef HYP_DXC
+namespace {
+
+struct DxcThreadLocalCompiler
+{
+    IDxcUtils* utils = nullptr;
+    IDxcCompiler3* compiler = nullptr;
+
+    ~DxcThreadLocalCompiler()
+    {
+        if (compiler)
+        {
+            compiler->Release();
+            compiler = nullptr;
+        }
+
+        if (utils)
+        {
+            utils->Release();
+            utils = nullptr;
+        }
+    }
+};
+
+DxcThreadLocalCompiler& GetDxcThreadLocalCompiler()
+{
+    static thread_local DxcThreadLocalCompiler dxc;
+
+    if (!dxc.utils)
+    {
+        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), (void**)&dxc.utils);
+    }
+
+    if (!dxc.compiler)
+    {
+        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&dxc.compiler);
+    }
+
+    return dxc;
+}
+
+LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
+{
+    switch (type)
+    {
+    case ShaderModuleType::Vertex:
+        return L"vs_6_1"; // need 6.1 for multiple views
+    case ShaderModuleType::Pixel:
+        return L"ps_6_0";
+    case ShaderModuleType::Geometry:
+        return L"gs_6_0";
+    case ShaderModuleType::Compute:
+        return L"cs_6_0";
+    case ShaderModuleType::RayGen:
+    case ShaderModuleType::Miss:
+    case ShaderModuleType::ClosestHit:
+    case ShaderModuleType::AnyHit:
+    case ShaderModuleType::Intersect:
+        return L"lib_6_5";
+    default:
+        return L"vs_6_0";
+    }
+}
+
+void GetSPIRVEnvironmentInfo(
+    ShaderModuleType type,
+    uint32& outSpirvVersion,
+    uint32& outVulkanVersion)
+{
+    outSpirvVersion = 450;
+
+    outVulkanVersion = HYP_VULKAN_API_VERSION;
+
+    if (IsRayTracingShaderModule(type))
+    {
+        outSpirvVersion = MathUtil::Max(outSpirvVersion, 460);
+
+        outVulkanVersion = MathUtil::Max(outVulkanVersion, VK_API_VERSION_1_2);
+    }
+}
+
+bool PreprocessHLSL(
+    ShaderModuleType type,
+    const String& preamble,
+    const String& source,
+    const String& filename,
+    String& outPreprocessedSource,
+    Array<String>& outErrorMessages)
+{
+    DxcThreadLocalCompiler& dxc = GetDxcThreadLocalCompiler();
+    Assert(dxc.compiler && dxc.utils);
+
+    outPreprocessedSource = source;
+
+    WideString includeDirs[] = {
+        WideString(FilePath(filename).BasePath()),
+        WideString(GetShaderSourceDirectoryImpl()),
+        WideString(GetShaderSourceDirectoryImpl() / "include")
+    };
+
+    Array<LPCWSTR> args;
+
+    for (const WideString& str : includeDirs)
+    {
+        args.PushBack(L"-I");
+        args.PushBack(*str);
+    }
+
+    args.PushBack(L"-P");
+
+    String fullSource = preamble + "\n" + source;
+
+    HRESULT hr;
+
+    IDxcBlobEncoding* pSource = nullptr;
+    hr = dxc.utils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+    HYP_DEFER({ if (pSource) pSource->Release(); });
+
+    if (FAILED(hr))
+    {
+        outErrorMessages.PushBack(HYP_FORMAT("Failed to create blob! HRESULT: {}", hr));
+
+        return false;
+    }
+
+    DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
+
+    IDxcResult* pResult = nullptr;
+    HYP_DEFER({ if (pResult) pResult->Release(); });
+
+    IDxcIncludeHandler* pIncludeHandler = nullptr;
+    hr = dxc.utils->CreateDefaultIncludeHandler(&pIncludeHandler);
+    HYP_DEFER({ if (pIncludeHandler) pIncludeHandler->Release(); });
+
+    if (FAILED(hr))
+    {
+        outErrorMessages.PushBack(HYP_FORMAT("Failed to create default include handler! HRESULT: {}", hr));
+
+        return false;
+    }
+
+    hr = dxc.compiler->Compile(
+        &sourceBuffer,
+        args.Data(),
+        (uint32)args.Size(),
+        pIncludeHandler,
+        IID_PPV_ARGS(&pResult));
+
+    IDxcBlobUtf8* pErrors = nullptr;
+    pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+    HYP_DEFER({ if (pErrors) pErrors->Release(); });
+
+    if (pErrors && pErrors->GetStringLength() > 0)
+        outErrorMessages.PushBack(String(pErrors->GetStringPointer()));
+
+    HRESULT status;
+    pResult->GetStatus(&status);
+
+    if (FAILED(status))
+        return false;
+
+    IDxcBlobUtf8* pOutput = nullptr;
+    pResult->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&pOutput), nullptr);
+    HYP_DEFER({ if (pOutput) pOutput->Release(); });
+
+    if (pOutput)
+    {
+        outPreprocessedSource = String(pOutput->GetStringPointer());
+        return true;
+    }
+
+    return false;
+}
+
+enum class HLSLOutputType
+{
+    SPIRV,
+    DXIL
+};
+
+Optional<HLSLOutputType> GetHLSLOutputTypeForBackend(ShaderCompileTargetBackend backend)
+{
+    switch (backend)
+    {
+    case ShaderCompileTargetBackend::DX12:
+        return HLSLOutputType::DXIL;
+    case ShaderCompileTargetBackend::Vulkan:
+    case ShaderCompileTargetBackend::WebGPU:
+        return HLSLOutputType::SPIRV;
+    default:
+        return {};
+    }
+}
+
+ByteBuffer CompileHLSL(
+    ShaderModuleType type,
+    HLSLOutputType outputType,
+    DescriptorUsageSet& descriptorUsages,
+    String source, String filename,
+    const ShaderVariantPerms& perm,
+    ShaderCompileTargetBackend targetBackend,
+    Array<String>& errorMessages)
+{
+    DxcThreadLocalCompiler& dxc = GetDxcThreadLocalCompiler();
+    Assert(dxc.compiler && dxc.utils);
+
+    ShaderInputGroup inputGroup;
+    descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
+
+    String preamble = BuildDescriptorTableDefines(inputGroup, targetBackend)
+        + "\n" + BuildAttributesDefines(perm);
+
+    String fullSource = preamble + "\n" + source;
+
+    IDxcBlobEncoding* pSource = nullptr;
+    dxc.utils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+    HYP_DEFER({ if (pSource) pSource->Release(); });
+
+    const WideString entryPointName = WideString(DefaultEntryPointNames[uint8(type)]);
+
+    Array<LPCWSTR> args;
+
+    args.PushBack(L"-E");
+    args.PushBack(*entryPointName);
+
+    args.PushBack(L"-T");
+    args.PushBack(GetDXCTargetProfile(type));
+
+    args.PushBack(L"-HV 2021");
+
+#ifdef HYP_ENABLE_SHADER_DEBUGGING
+    args.PushBack(L"-Zi");
+    args.PushBack(L"-Od");
+#ifdef HYP_DX12
+    args.PushBack(L"-Qembed_debug");
+#endif // HYP_DX12
+#else
+    // Optimize that code.
+    args.PushBack(L"-O3");
+#endif
+
+    if (outputType == HLSLOutputType::SPIRV)
+    {
+        args.PushBack(L"-spirv");
+        // args.PushBack(L"-fvk-use-scalar-layout");
+        args.PushBack(L"-fvk-use-dx-layout");
+
+        uint32 spirvVersion;
+        uint32 vulkanApiVersion;
+        GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
+
+        // Tint only reads SPIR-V up to 1.3
+        if (targetBackend == ShaderCompileTargetBackend::WebGPU)
+        {
+            vulkanApiVersion = VK_API_VERSION_1_1;
+        }
+
+        switch (vulkanApiVersion)
+        {
+        case VK_API_VERSION_1_0:
+            args.PushBack(L"-fspv-target-env=vulkan1.0");
+            break;
+        case VK_API_VERSION_1_1:
+            args.PushBack(L"-fspv-target-env=vulkan1.1");
+            break;
+        case VK_API_VERSION_1_2:
+            args.PushBack(L"-fspv-target-env=vulkan1.2");
+            break;
+        case VK_API_VERSION_1_3:
+            args.PushBack(L"-fspv-target-env=vulkan1.3");
+            break;
+        case VK_API_VERSION_1_4:
+            args.PushBack(L"-fspv-target-env=vulkan1.4");
+            break;
+        default:
+            errorMessages.PushBack(HYP_FORMAT("Unsupported vulkan version {}", vulkanApiVersion));
+            return {};
+        }
+    }
+
+    DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
+    IDxcResult* pResult = nullptr;
+    HYP_DEFER({ if (pResult) pResult->Release(); });
+
+    HRESULT res = dxc.compiler->Compile(
+        &sourceBuffer,
+        args.Data(),
+        (uint32)args.Size(),
+        nullptr,
+        IID_PPV_ARGS(&pResult));
+
+    IDxcBlobUtf8* pErrors = nullptr;
+    pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+    HYP_DEFER({ if (pErrors) pErrors->Release(); });
+
+    if (pErrors && pErrors->GetStringLength() != 0)
+    {
+        errorMessages.PushBack(String(pErrors->GetStringPointer()));
+    }
+
+    pResult->GetStatus(&res);
+
+    if (FAILED(res))
+    {
+        errorMessages.PushBack(HYP_FORMAT("Failed to compile HLSL shader {}, HRESULT: {}", filename, res));
+
+        return ByteBuffer();
+    }
+
+    IDxcBlob* pBlob = nullptr;
+    pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
+    HYP_DEFER({ if (pBlob) pBlob->Release(); });
+
+    ByteBuffer bytecode(pBlob->GetBufferSize());
+    Assert(bytecode.Size() > 0);
+
+    Memory::Copy(bytecode.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+
+    return bytecode;
+}
+
+} // namespace
+#endif // HYP_DXC
+
+String GetShaderVersionFromSource(const String& source, String& outSourceWithoutVersion)
+{
+    outSourceWithoutVersion = source;
+
+    String sourceTrimmed = source.TrimmedLeft();
+
+    if (sourceTrimmed.StartsWith("#version"))
+    {
+        size_t firstNewline = sourceTrimmed.FindFirstIndex('\n');
+        String versionLine = sourceTrimmed.Substr(0, firstNewline);
+
+        outSourceWithoutVersion = sourceTrimmed.Substr(firstNewline + 1);
+
+        return versionLine.TrimmedRight();
+    }
+
+    return "#version 450";
+}
+
+void MergeGlobalShaderProperties(ShaderPropertySet& out)
+{
+    MergeGlobalShaderProperties(/* isPrecompilingShaders */ false, out);
+}
+
+#pragma endregion Helpers
+
+#pragma region DescriptorUsageSet
+
+void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table) const
+{
+    for (const DescriptorUsage& descriptorUsage : elements)
+    {
+        Assert(descriptorUsage.slot != ShaderRegister::NONE && descriptorUsage.slot < ShaderRegister::MAX,
+               "Descriptor usage {} has invalid slot {}",
+               descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
+
+        ShaderInputSet* inputSet = table.FindDescriptorSetDeclaration(descriptorUsage.setName);
+
+        // check if this descriptor set is defined in the static descriptor table
+        // if it is, we can use those definitions
+        // otherwise, it is a 'custom' descriptor set
+        ShaderInputSet* staticDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorUsage.setName);
+
+        if (staticDescriptorSetDeclaration != nullptr)
+        {
+            Assert(staticDescriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName) != nullptr,
+                   "Descriptor set {} is defined in the static descriptor table, but "
+                   "the descriptor {} is not",
+                   descriptorUsage.setName, descriptorUsage.descriptorName);
+
+            if (!inputSet)
+            {
+                const uint32 setIndex = uint32(table.elements.Size());
+
+                ShaderInputSet newDescriptorSetDeclaration(setIndex, staticDescriptorSetDeclaration->name);
+                newDescriptorSetDeclaration.flags = staticDescriptorSetDeclaration->flags | ShaderInputSetFlags::Reference;
+
+                table.AddDescriptorSetDeclaration(std::move(newDescriptorSetDeclaration));
+            }
+
+            continue;
+        }
+
+        if (!inputSet)
+        {
+            const uint32 setIndex = uint32(table.elements.Size());
+
+            inputSet = table.AddDescriptorSetDeclaration(ShaderInputSet(setIndex, descriptorUsage.setName));
+        }
+
+        AssertDebug(descriptorUsage.category != ShaderResourceCategory::Unknown);
+
+        ShaderInput shaderInput {};
+        shaderInput.slot = descriptorUsage.slot;
+        shaderInput.type = descriptorUsage.type;
+        shaderInput.category = descriptorUsage.category;
+        shaderInput.name = descriptorUsage.descriptorName;
+        shaderInput.count = descriptorUsage.GetCount();
+        shaderInput.size = descriptorUsage.GetSize();
+        shaderInput.isDynamic = bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC);
+        shaderInput.bufferType = descriptorUsage.bufferType;
+
+        if (auto* existingDecl = inputSet->FindDescriptorDeclaration(descriptorUsage.descriptorName))
+        {
+            // Already exists, just update the slot
+            *existingDecl = std::move(shaderInput);
+        }
+        else
+        {
+            inputSet->Add(std::move(shaderInput));
+        }
+    }
+}
+
+#pragma endregion DescriptorUsageSet
+
+#pragma region WGSL Conversion
+
+CVar<CVarString> g_cvTintPath("ShaderCompiler.TintPath", "");
+
+namespace /* WGSL */ {
+
+FilePath GetTintPath()
+{
+    const CVarString configuredPath = g_cvTintPath.Get();
+
+    if (configuredPath != nullptr && *configuredPath != 0)
+    {
+        return FilePath(configuredPath);
+    }
+
+#ifdef HYP_WINDOWS
+    const char* executableName = "tint.exe";
+#else
+    const char* executableName = "tint";
+#endif
+
+    const FilePath besideExecutable = CoreApi::GetExecutablePath() / executableName;
+
+    if (besideExecutable.Exists())
+    {
+        return besideExecutable;
+    }
+
+    return CoreApi::GetBaseDirectory() / "External/ThirdParty/Binaries/Windows/Release" / executableName;
+}
+
+template <class SourceFileArray>
+bool IsCompilableForWebGPU(const SourceFileArray& sourceFiles, const ShaderVariantPerms& perm)
+{
+    for (const ShaderProperty& property : perm.ToArray())
+    {
+        if (property.name == NAME("HYP_FEATURES_BINDLESS_TEXTURES"))
+        {
+            return false;
+        }
+    }
+
+    for (const auto& sourceFile : sourceFiles)
+    {
+        if (IsRayTracingShaderModule(sourceFile.type))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+ByteBuffer ConvertSPIRVToWGSL(const ByteBuffer& spirv, const FilePath& outputFilepath, Array<String>& errorMessages)
+{
+    const FilePath tintPath = GetTintPath();
+
+    if (!tintPath.Exists())
+    {
+        errorMessages.PushBack(HYP_FORMAT("Tint not found at {}; set ShaderCompiler.TintPath to compile WebGPU shaders", tintPath));
+
+        return ByteBuffer();
+    }
+
+    // Variants compile in parallel and several stages share a source file, so the scratch files need their own names
+    static std::atomic<uint32> conversionCounter { 0 };
+    const uint32 conversionIndex = conversionCounter.fetch_add(1);
+
+    const FilePath scratchBase = outputFilepath.BasePath() / HYP_FORMAT("tint_{}_{}", uint64(std::chrono::steady_clock::now().time_since_epoch().count()), conversionIndex);
+    const FilePath spirvFilepath = FilePath(String(scratchBase) + ".spv");
+    const FilePath wgslFilepath = FilePath(String(scratchBase) + ".wgsl");
+    const FilePath logFilepath = FilePath(String(scratchBase) + ".log");
+
+    // the SPIR-V of a failed conversion is left behind, it is the only way to reproduce the failure with Tint by hand
+    bool keepSpirv = false;
+
+    HYP_DEFER({
+        if (!keepSpirv)
+        {
+            spirvFilepath.Remove();
+        }
+
+        wgslFilepath.Remove();
+        logFilepath.Remove();
+    });
+
+    {
+        FileByteWriter spirvWriter(spirvFilepath.Data());
+
+        if (!spirvWriter.IsOpen())
+        {
+            errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", spirvFilepath));
+
+            return ByteBuffer();
+        }
+
+        spirvWriter.Write(spirv.Data(), spirv.Size());
+        spirvWriter.Close();
+    }
+
+    // cmd.exe strips the outermost quotes, so the whole command needs its own pair
+    const String command = HYP_FORMAT("\"\"{}\" --allow-non-uniform-derivatives \"{}\" -o \"{}\" > \"{}\" 2>&1\"",
+        tintPath, spirvFilepath, wgslFilepath, logFilepath);
+
+    // A virus scanner can briefly hold the file we just wrote, so Tint gets a few tries at opening it
+    constexpr uint32 maxAttempts = 4;
+
+    int exitCode = 0;
+    String log;
+
+    for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
+    {
+        exitCode = std::system(command.Data());
+        log.Clear();
+
+        if (exitCode == 0 && wgslFilepath.Exists())
+        {
+            break;
+        }
+
+        if (logFilepath.Exists())
+        {
+            const ByteBuffer logBytes = FileByteReader(logFilepath).Read();
+            log = String(ConstByteView(logBytes.Data(), MathUtil::Min(logBytes.Size(), size_t(2048))));
+        }
+
+        if (!log.Contains("Failed to open"))
+        {
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100 * (attempt + 1)));
+    }
+
+    if (exitCode != 0 || !wgslFilepath.Exists())
+    {
+        errorMessages.PushBack(HYP_FORMAT("Tint failed to convert {} to WGSL (exit code {}): {}", spirvFilepath, exitCode, log));
+
+        keepSpirv = true;
+
+        return ByteBuffer();
+    }
+
+    return FileByteReader(wgslFilepath).Read();
+}
+
+} // namespace
+
+#pragma endregion WGSL Conversion
 
 #pragma region ShaderProperty
 
@@ -2409,149 +2607,6 @@ bool ShaderCompiler::CanCompileShaders(const ShaderCompileParams& params) const
     HYP_LOG(ShaderCompiler, Warning, "Not linked with DXC");
 
     return false;
-}
-
-// Hyperion-specific custom preprocessor directives
-
-static String ExtractFirstToken(const String& str)
-{
-    String result;
-
-    for (size_t i = 0; i < str.Size(); i++)
-    {
-        const char ch = str.Data()[i];
-
-        if (std::isalnum(ch) || ch == '_')
-        {
-            result.Append(ch);
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    return result;
-}
-
-static bool MatchesAnyToken(const String& token, std::initializer_list<const char*> keywords)
-{
-    for (const char* keyword : keywords)
-    {
-        if (token == keyword)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static TResult<Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType>> ParseDescriptorTypeFromDeclaration(
-    ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
-{
-    const String trimmed = declaration.TrimmedLeft();
-    const String firstToken = ExtractFirstToken(trimmed);
-
-    auto makeCBVType = [flags]() -> ShaderInputType
-    {
-        return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::CBV_Dynamic
-            : ShaderInputType::CBV;
-    };
-
-    auto makeSRVType = [flags]() -> ShaderInputType
-    {
-        return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::SRV_Dynamic
-            : ShaderInputType::SRV;
-    };
-
-    auto makeUAVType = [flags]() -> ShaderInputType
-    {
-        return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? ShaderInputType::UAV_Dynamic
-            : ShaderInputType::UAV;
-    };
-
-    if (language == ShaderLanguage::HLSL)
-    {
-        if (MatchesAnyToken(firstToken, { "cbuffer" }))
-        {
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { makeCBVType(), ShaderResourceCategory::Buffer, GpuBufferType::ConstantBuffer };
-        }
-
-        if (MatchesAnyToken(firstToken, { "StructuredBuffer", "ByteAddressBuffer", "Buffer" }))
-        {
-            GpuBufferType bufferType = GpuBufferType::StructuredBuffer;
-
-            if (firstToken == "ByteAddressBuffer")
-            {
-                bufferType = GpuBufferType::ByteAddressBuffer;
-            }
-
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { makeSRVType(), ShaderResourceCategory::Buffer, bufferType };
-        }
-
-        if (MatchesAnyToken(firstToken, { "RWStructuredBuffer", "RWByteAddressBuffer", "AppendStructuredBuffer", "ConsumeStructuredBuffer", "RWBuffer" }))
-        {
-            GpuBufferType bufferType = GpuBufferType::RWStructuredBuffer;
-            if (firstToken == "RWByteAddressBuffer")
-            {
-                bufferType = GpuBufferType::RWByteAddressBuffer;
-            }
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { makeUAVType(), ShaderResourceCategory::Buffer, bufferType };
-        }
-
-        if (MatchesAnyToken(firstToken, { "RWTexture1D", "RWTexture2D", "RWTexture3D", "RWTexture1DArray", "RWTexture2DArray" }))
-        {
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::UAV, ShaderResourceCategory::Image, GpuBufferType::NONE };
-        }
-
-        if (MatchesAnyToken(firstToken, { "Texture1D", "Texture2D", "Texture3D", "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
-        {
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::SRV, ShaderResourceCategory::Image, GpuBufferType::NONE };
-        }
-
-        if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
-        {
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::Sampler, ShaderResourceCategory::Sampler, GpuBufferType::NONE };
-        }
-
-        if (firstToken == "RaytracingAccelerationStructure")
-        {
-            return Tuple<ShaderInputType, ShaderResourceCategory, GpuBufferType> { ShaderInputType::SRV, ShaderResourceCategory::AccelerationStructure, GpuBufferType::NONE };
-        }
-
-        return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from HLSL declaration: '{}'", trimmed);
-    }
-
-    return HYP_MAKE_ERROR(Error, "Unsupported shader language: {}", language);
-}
-
-static String FormatDescriptorDeclaration(
-    ShaderLanguage language,
-    const DescriptorUsage& usage,
-    const String& setName,
-    const String& descriptorName,
-    const String& declarationBody)
-{
-    String remaining = declarationBody.Trimmed();
-    size_t insertPos = remaining.FindFirstIndex(";");
-
-    if (insertPos == String::NotFound)
-    {
-        insertPos = remaining.FindFirstIndex("{");
-    }
-
-    String declaration = (insertPos == String::NotFound) ? remaining : String(remaining.Substr(0, insertPos));
-    String suffix = (insertPos == String::NotFound) ? String::empty : String(remaining.Substr(insertPos));
-
-    return HYP_FORMAT("{} : register(_{}_{}_REGISTER, _{}_SPACE) {}\n",
-                      declaration,
-                      setName, descriptorName,
-                      setName,
-                      suffix);
 }
 
 ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
@@ -3317,30 +3372,44 @@ bool ShaderCompiler::CompileBundle(
         auto addForPlatform = [&](Name platformName)
         {
             if (shouldCompileVulkan)
+            {
                 targetPairs.PushBack({ platformName, NAME("VULKAN") });
+            }
         };
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Windows])
         {
             addForPlatform(NAME("WINDOWS"));
             if (shouldCompileDX12)
+            {
                 targetPairs.PushBack({ NAME("WINDOWS"), NAME("DX12") });
+            }
         }
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Web] && shouldCompileWebGPU)
+        {
             targetPairs.PushBack({ NAME("WEB"), NAME("WEBGPU") });
+        }
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Mac])
+        {
             addForPlatform(NAME("MAC"));
+        }
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Linux])
+        {
             addForPlatform(NAME("LINUX"));
+        }
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::Android])
+        {
             addForPlatform(NAME("ANDROID"));
+        }
 
         if (m_compileParams.targetPlatforms[ShaderCompileTargetPlatform::IOS])
+        {
             addForPlatform(NAME("IOS"));
+        }
     }
     else
     {
@@ -3543,7 +3612,7 @@ bool ShaderCompiler::CompileBundle(
 #endif
 
     // Helper to extract target backend from permutation
-    auto GetTargetBackendFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetBackend>
+    auto getTargetBackendFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetBackend>
     {
         auto backendIt = perm.Find("BACKEND"_sh);
 
@@ -3551,21 +3620,14 @@ bool ShaderCompiler::CompileBundle(
         {
             const Name backendName = backendIt->currentValue.Get<Name>();
 
-            if (backendName == "VULKAN"_sh)
-                return ShaderCompileTargetBackend::Vulkan;
-
-            if (backendName == "DX12"_sh)
-                return ShaderCompileTargetBackend::DX12;
-
-            if (backendName == "WEBGPU"_sh)
-                return ShaderCompileTargetBackend::WebGPU;
+            return GetShaderBackendForName(backendName);
         }
 
         return {};
     };
 
     // Helper to extract target platform from permutation
-    auto GetTargetPlatformFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetPlatform>
+    auto getTargetPlatformFromPerm = [](const ShaderVariantPerms& perm) -> Optional<ShaderCompileTargetPlatform>
     {
         auto platformIt = perm.Find("TARGET"_sh);
 
@@ -3573,23 +3635,12 @@ bool ShaderCompiler::CompileBundle(
         {
             const Name platformName = platformIt->currentValue.Get<Name>();
 
-            if (platformName == "WINDOWS"_sh)
-                return ShaderCompileTargetPlatform::Windows;
+            const ShaderCompileTargetPlatform platform = GetShaderPlatformForName(platformName);
 
-            if (platformName == "MAC"_sh)
-                return ShaderCompileTargetPlatform::Mac;
-
-            if (platformName == "LINUX"_sh)
-                return ShaderCompileTargetPlatform::Linux;
-
-            if (platformName == "ANDROID"_sh)
-                return ShaderCompileTargetPlatform::Android;
-
-            if (platformName == "IOS"_sh)
-                return ShaderCompileTargetPlatform::IOS;
-
-            if (platformName == "WEB"_sh)
-                return ShaderCompileTargetPlatform::Web;
+            if (platform != ShaderCompileTargetPlatform::None)
+            {
+                return platform;
+            }
         }
 
         return {};
@@ -3597,7 +3648,7 @@ bool ShaderCompiler::CompileBundle(
 
     Set<Shader*> newShaders;
 
-    auto CompilePermFunctor = [&](const ShaderVariantPerms& perm)
+    const auto compilePermFunctor = [&](const ShaderVariantPerms& perm)
     {
         HYP_LOG(ShaderCompiler, Verbose, "Compiling shader {}\n\tProperties: {}\n\tAttributes: {}",
                 decl.name,
@@ -3605,8 +3656,8 @@ bool ShaderCompiler::CompileBundle(
                 perm.GetRequiredVertexAttributes().ToString());
 
         // Get the target backend and platform for this specific permutation
-        const Optional<ShaderCompileTargetBackend> targetBackend = GetTargetBackendFromPerm(perm);
-        const Optional<ShaderCompileTargetPlatform> targetPlatform = GetTargetPlatformFromPerm(perm);
+        const Optional<ShaderCompileTargetBackend> targetBackend = getTargetBackendFromPerm(perm);
+        const Optional<ShaderCompileTargetPlatform> targetPlatform = getTargetPlatformFromPerm(perm);
 
         if (!targetBackend.HasValue() || !targetPlatform.HasValue())
         {
@@ -3761,25 +3812,9 @@ bool ShaderCompiler::CompileBundle(
             ByteBuffer byteBuffer;
 
 #ifdef HYP_DXC
-            HLSLOutputType outputType;
-            ShaderCompileTargetBackend hlslTargetBackend;
+            const Optional<HLSLOutputType> outputType = GetHLSLOutputTypeForBackend(targetBackend.Get());
 
-            if (isDX12)
-            {
-                outputType = HLSLOutputType::DXIL;
-                hlslTargetBackend = ShaderCompileTargetBackend::DX12;
-            }
-            else if (isVulkan)
-            {
-                outputType = HLSLOutputType::SPIRV;
-                hlslTargetBackend = ShaderCompileTargetBackend::Vulkan;
-            }
-            else if (isWebGPU)
-            {
-                outputType = HLSLOutputType::SPIRV;
-                hlslTargetBackend = ShaderCompileTargetBackend::WebGPU;
-            }
-            else
+            if (!outputType.HasValue())
             {
                 Mutex::Guard guard(errorMessagesMutex);
                 outBundle->errorMessages.EmplaceBack("Cannot determine HLSL output type - no target backend specified for this variant");
@@ -3791,12 +3826,12 @@ bool ShaderCompiler::CompileBundle(
 
             byteBuffer = CompileHLSL(
                 item.type,
-                outputType,
+                outputType.Get(),
                 descriptorUsageSetsMerged,
                 processedSources[index],
                 item.file,
                 perm,
-                hlslTargetBackend,
+                targetBackend.Get(),
                 errorMessages);
 
             if (errorMessages.Any())
@@ -3936,12 +3971,12 @@ bool ShaderCompiler::CompileBundle(
             ShaderVariantPerms perm = permsToCompile;
             perm.Set(ShaderProperty(NAME("TARGET"), pair.platform));
             perm.Set(ShaderProperty(NAME("BACKEND"), pair.backend));
-            ForEachPermutation(perm, CompilePermFunctor, true);
+            ForEachPermutation(perm, compilePermFunctor, true);
         }
     }
     else
     {
-        ForEachPermutation(permsToCompile, CompilePermFunctor, true);
+        ForEachPermutation(permsToCompile, compilePermFunctor, true);
     }
 
     // Remove all null entries

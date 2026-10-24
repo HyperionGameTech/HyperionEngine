@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <Core/Threading/Mutex.hpp>
+#include <Core/Threading/SharedMutex.hpp>
 
 #include <utility>
 
@@ -34,7 +34,7 @@ public:
 
     HYP_FORCE_INLINE T Get() const
     {
-        Mutex::Guard guard(m_mutex);
+        TSharedLock guard(m_mutex);
 
         return m_value;
     }
@@ -44,7 +44,7 @@ public:
         T previousValue;
 
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
             previousValue = std::move(m_value);
             m_value = std::move(value);
@@ -54,7 +54,7 @@ public:
     template <class Function>
     HYP_FORCE_INLINE decltype(auto) Access(Function&& fn)
     {
-        Mutex::Guard guard(m_mutex);
+        TUniqueLock guard(m_mutex);
 
         return fn(m_value);
     }
@@ -62,13 +62,13 @@ public:
     template <class Function>
     HYP_FORCE_INLINE decltype(auto) Access(Function&& fn) const
     {
-        Mutex::Guard guard(m_mutex);
+        TSharedLock guard(m_mutex);
 
         return fn(m_value);
     }
 
 private:
-    mutable Mutex m_mutex;
+    SharedMutex m_mutex;
     T m_value;
 };
 

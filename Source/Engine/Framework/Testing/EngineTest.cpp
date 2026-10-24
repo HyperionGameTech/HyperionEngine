@@ -29,6 +29,8 @@ EngineTestContext* EngineTestContext::Current()
 
 bool EngineTestContext::Check(const char* checkName, bool condition, const String& detail)
 {
+    constexpr size_t MaxDetailLength = 200;
+
     ++m_numChecks;
 
     if (!condition)
@@ -44,12 +46,9 @@ bool EngineTestContext::Check(const char* checkName, bool condition, const Strin
 
         if (detail.Any())
         {
-            // a check can attach a whole document as its detail, which would bury the other failures
-            constexpr size_t maxDetailLength = 200;
-
             String shortenedDetail;
 
-            for (size_t index = 0; index < detail.Length() && index < maxDetailLength; index++)
+            for (size_t index = 0; index < detail.Length() && index < MaxDetailLength; index++)
             {
                 const char ch = char(detail[index]);
 
@@ -58,7 +57,7 @@ bool EngineTestContext::Check(const char* checkName, bool condition, const Strin
 
             m_failureMessage += " (";
             m_failureMessage += shortenedDetail;
-            m_failureMessage += detail.Length() > maxDetailLength ? "...)" : ")";
+            m_failureMessage += detail.Length() > MaxDetailLength ? "...)" : ")";
         }
     }
 

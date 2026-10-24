@@ -66,8 +66,8 @@ const char* MeshBoolean::GetErrorMessage(MeshBooleanError error)
 
 namespace {
 
-static constexpr float BrushProjectedUVScale = 0.5f;
-static constexpr float WeldToleranceScale = 1e-5f;
+constexpr float BrushProjectedUVScale = 0.5f;
+constexpr float WeldToleranceScale = 1e-5f;
 
 struct SolidSource
 {
@@ -76,7 +76,7 @@ struct SolidSource
     bool isInsideOut = false;
 };
 
-static size_t GetAttributeOffsetInFloats(const VertexInputLayoutDesc& inputLayout, VertexType vertexType)
+size_t GetAttributeOffsetInFloats(const VertexInputLayoutDesc& inputLayout, VertexType vertexType)
 {
     size_t offset = 0;
 
@@ -91,7 +91,7 @@ static size_t GetAttributeOffsetInFloats(const VertexInputLayoutDesc& inputLayou
     return offset / sizeof(float);
 }
 
-static bool CanReadMesh(const Mesh* mesh)
+bool CanReadMesh(const Mesh* mesh)
 {
     const MeshAttributes& meshAttributes = mesh->GetMeshDesc().meshAttributes;
 
@@ -100,7 +100,7 @@ static bool CanReadMesh(const Mesh* mesh)
         && MeshBoolean::IsLayoutSupported(meshAttributes.inputLayout);
 }
 
-static Vec2f ProjectBoxUV(const Vec3f& position, const Vec3f& normal)
+Vec2f ProjectBoxUV(const Vec3f& position, const Vec3f& normal)
 {
     const Vec3f absoluteNormal = Vec3f::Abs(normal);
 
@@ -117,7 +117,7 @@ static Vec2f ProjectBoxUV(const Vec3f& position, const Vec3f& normal)
     return Vec2f(position.x, position.y) * BrushProjectedUVScale;
 }
 
-static MeshBooleanError BuildSolidSource(
+MeshBooleanError BuildSolidSource(
     const MeshBooleanOperand& operand,
     const VertexInputLayoutDesc& outputLayout,
     bool projectUV0,
@@ -268,7 +268,7 @@ static MeshBooleanError BuildSolidSource(
     return MeshBooleanError::None;
 }
 
-static manifold::OpType ToManifoldOpType(MeshBooleanOperation operation)
+manifold::OpType ToManifoldOpType(MeshBooleanOperation operation)
 {
     switch (operation)
     {
