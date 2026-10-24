@@ -6498,6 +6498,7 @@ void EditorSubsystem::SetMeshPreview(const Handle<Mesh>& mesh, Name shapeName, c
     else if (MeshComponent* meshComponent = m_meshPreviewEntity->TryGetComponent<MeshComponent>())
     {
         GetCurrentAssetRegistry()->RemoveAsset(meshComponent->mesh);
+        EnqueueDeletion(Handle<Mesh>(meshComponent->mesh));
 
         meshComponent->mesh = mesh;
         m_meshPreviewEntity->AddTag<EntityTag::UpdateRenderProxy>();
@@ -6520,7 +6521,7 @@ void EditorSubsystem::CommitMeshPreview()
     m_meshPreviewEntity->Remove();
     m_meshPreviewEntity.Reset();
 
-    m_meshPreviewMaterial.Reset();
+    EnqueueDeletion(std::move(m_meshPreviewMaterial));
 
     Handle<EditorProject> currentProject = GetCurrentProject();
     if (!currentProject.IsValid())
@@ -6601,13 +6602,14 @@ void EditorSubsystem::CancelMeshPreview()
         if (MeshComponent* meshComponent = m_meshPreviewEntity->TryGetComponent<MeshComponent>())
         {
             GetCurrentAssetRegistry()->RemoveAsset(meshComponent->mesh);
+            EnqueueDeletion(Handle<Mesh>(meshComponent->mesh));
         }
 
         m_meshPreviewEntity->Remove();
         m_meshPreviewEntity = Handle<Entity>::Null();
     }
 
-    m_meshPreviewMaterial = Handle<Material>::Null();
+    EnqueueDeletion(std::move(m_meshPreviewMaterial));
 }
 
 void EditorSubsystem::SetHoveredGizmo(
