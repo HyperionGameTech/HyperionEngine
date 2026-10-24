@@ -218,6 +218,8 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand PlaceAsInstanceCommand { get; }
 
+        public ICommand GenerateCollisionCommand { get; }
+
         /// Simulation runs against a throwaway snapshot of the project, so anything authored while it
         /// runs would be thrown away with the snapshot.
         public bool CanCreateAssets => _editorSubsystem.CanCreateAssets();
@@ -414,6 +416,8 @@ namespace Hyperion.Editor.ViewModels
 
                 _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandPlaceAsInstance"), $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}");
             });
+
+            GenerateCollisionCommand = new RelayCommand<AssetObjectViewModel>(OpenGenerateCollisionPanel);
 
             _thumbnailService = new ThumbnailService(editorSubsystem);
 
@@ -1542,15 +1546,88 @@ namespace Hyperion.Editor.ViewModels
         }
 
         /// <summary>Opens the asset in a pop-out property editor panel, the same one used by the "Edit" button on asset-object properties in the inspector. Works for any AssetObject-derived type. Prefabs open in prefab edit mode instead.</summary>
-        private void OpenAssetEditor(AssetObjectViewModel? assetVm)
+        private void OpenGenerateCollisionPanel(AssetObjectViewModel? assetVm)
         {
-            if (assetVm?.Bucket == null)
+            if (assetVm?.Bucket == null || !assetVm.CanGenerateCollision)
                 return;
 
             uint bucketIndex = assetVm.Bucket.BucketIndex;
             Name assetName = assetVm.AssetDesc.Name;
             string displayName = assetVm.DisplayName;
 
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                uint numPresets = _editorSubsystem.GetNumConvexCollisionPresets();
+                List<string> presetNames = new List<string>((int)numPresets);
+
+                for (uint presetIndex = 0; presetIndex < numPresets; presetIndex++)
+                {
+                    presetNames.Add(_editorSubsystem.GetConvexCollisionPresetName(presetIndex));
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    GenerateConvexCollisionPanelViewModel? panel = null;
+
+                    panel = new GenerateConvexCollisionPanelViewModel(_editorSubsystem, displayName, presetNames, () =>
+                    {
+                        PanelService.Instance.RemovePanel(panel!);
+
+                        GenerateCollisionAsset(bucketIndex, assetName, displayName);
+                    });
+
+                    PanelService.Instance.OpenPanel(panel);
+                });
+            });
+        }
+
+        private void GenerateCollisionAsset(uint bucketIndex, Name assetName, string displayName)
+        {
+            string folderPath = _currentFolder.Path;
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                if (!CanCreateAssetsOnSimThread("physics shape"))
+                {
+                    return;
+                }
+
+                AssetObject? source = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
+
+                if (source == null || !source.IsValid)
+                {
+                    Logger.Log(LogLevel.Warning, $"Generate Collision: asset '{displayName}' could not be resolved.");
+                    return;
+                }
+
+                AssetObject? shape = _editorSubsystem.GenerateConvexCollisionAsset(source);
+
+                if (shape == null || !shape.IsRegistered())
+                {
+                    Logger.Log(LogLevel.Warning, $"Generate Collision: could not generate collision for '{displayName}'.");
+                    return;
+                }
+
+                uint shapeBucketIndex = shape.Path.BucketIndex;
+                Name shapeName = shape.Name;
+
+                EngineManager.CurrentProject?.AssetFolders?.SetAssetFolderOf(shapeBucketIndex, shapeName, folderPath);
+                NotifyAssetsChanged();
+
+                OpenAssetEditor(shapeBucketIndex, shapeName, shapeName.ToString());
+            });
+        }
+
+        private void OpenAssetEditor(AssetObjectViewModel? assetVm)
+        {
+            if (assetVm?.Bucket == null)
+                return;
+
+            OpenAssetEditor(assetVm.Bucket.BucketIndex, assetVm.AssetDesc.Name, assetVm.DisplayName);
+        }
+
+        private void OpenAssetEditor(uint bucketIndex, Name assetName, string displayName)
+        {
             // The asset's actual TypeInfo can only be read on the sim thread, since it depends
             // on reading the live object rather than any statically-known managed type.
             _ = EngineManager.PostToSimThread(() =>

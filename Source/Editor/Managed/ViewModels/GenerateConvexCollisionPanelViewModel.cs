@@ -12,8 +12,7 @@ namespace Hyperion.Editor.ViewModels
     public class GenerateConvexCollisionPanelViewModel : EditorPanelViewModel
     {
         private readonly EditorSubsystem _editorSubsystem;
-        private readonly ICommand _generateCommand;
-        private readonly string _nodeUuid;
+        private readonly Action _onGenerate;
 
         private readonly InspectorPropertyViewModelBase? _settingsProperty;
 
@@ -39,16 +38,27 @@ namespace Hyperion.Editor.ViewModels
         public ICommand GenerateCommand { get; }
         public ICommand CloseCommand { get; }
 
+        /// <summary>Targets a scene node: generating assigns convex collision to it.</summary>
         public GenerateConvexCollisionPanelViewModel(EditorSubsystem editorSubsystem, NodeViewModel node, IReadOnlyList<string> presetNames, ICommand generateCommand)
+            : this(editorSubsystem, node?.DisplayName ?? throw new ArgumentNullException(nameof(node)), presetNames, MakeNodeGenerateAction(generateCommand, node))
+        {
+            Node targetNode = node.Node;
+
+            _ = EngineManager.PostToSimThread(() => _editorSubsystem.SetConvexCollisionTarget(targetNode));
+
+            OnClosed = () =>
+            {
+                _ = EngineManager.PostToSimThread(() => _editorSubsystem.SetConvexCollisionTarget(null));
+            };
+        }
+
+        public GenerateConvexCollisionPanelViewModel(EditorSubsystem editorSubsystem, string targetName, IReadOnlyList<string> presetNames, Action onGenerate)
             : base("Generate Convex Collision")
         {
-            ArgumentNullException.ThrowIfNull(node);
-
             _editorSubsystem = editorSubsystem ?? throw new ArgumentNullException(nameof(editorSubsystem));
-            _generateCommand = generateCommand ?? throw new ArgumentNullException(nameof(generateCommand));
-            _nodeUuid = node.UUID.ToString();
+            _onGenerate = onGenerate ?? throw new ArgumentNullException(nameof(onGenerate));
 
-            TargetName = node.DisplayName;
+            TargetName = targetName;
 
             foreach (string presetName in presetNames)
             {
@@ -73,16 +83,26 @@ namespace Hyperion.Editor.ViewModels
             Properties = (_settingsProperty as StructPropertyViewModel)?.SubProperties
                 ?? new ObservableCollection<InspectorPropertyViewModelBase>();
 
-            GenerateCommand = new RelayCommand(OnGenerate);
+            GenerateCommand = new RelayCommand(_onGenerate);
             CloseCommand = new RelayCommand(() => PanelService.Instance.RemovePanel(this));
+        }
 
-            Node targetNode = node.Node;
+        private static Action MakeNodeGenerateAction(ICommand generateCommand, NodeViewModel node)
+        {
+            ArgumentNullException.ThrowIfNull(generateCommand);
 
-            _ = EngineManager.PostToSimThread(() => _editorSubsystem.SetConvexCollisionTarget(targetNode));
+            string nodeUuid = node.UUID.ToString();
 
-            OnClosed = () =>
+            return () =>
             {
-                _ = EngineManager.PostToSimThread(() => _editorSubsystem.SetConvexCollisionTarget(null));
+                if (!generateCommand.CanExecute(nodeUuid))
+                {
+                    Logger.Log(LogLevel.Warning, "Cannot generate convex collision while simulation is active.");
+
+                    return;
+                }
+
+                generateCommand.Execute(nodeUuid);
             };
         }
 
@@ -94,18 +114,6 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() => _settingsProperty?.RefreshValue());
             });
-        }
-
-        private void OnGenerate()
-        {
-            if (!_generateCommand.CanExecute(_nodeUuid))
-            {
-                Logger.Log(LogLevel.Warning, "Cannot generate convex collision while simulation is active.");
-
-                return;
-            }
-
-            _generateCommand.Execute(_nodeUuid);
         }
     }
 }

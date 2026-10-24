@@ -610,6 +610,9 @@ public:
     HYP_METHOD()
     void SetConvexCollisionTarget(Node* node);
 
+    HYP_METHOD()
+    Handle<AssetObject> GenerateConvexCollisionAsset(AssetObject* source);
+
     ///Prefabs
 
     /*! \brief The name of the Prefab \p node was spawned from */

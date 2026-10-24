@@ -976,6 +976,7 @@ namespace Hyperion.Editor.ViewModels
             List<AssetPickerItemViewModel> results = await EngineManager.PostToSimThread(() =>
             {
                 var found = new List<AssetPickerItemViewModel>();
+                string? firstAssetError = null;
 
                 try
                 {
@@ -1009,9 +1010,10 @@ namespace Hyperion.Editor.ViewModels
                                     found.Add(new AssetPickerItemViewModel(desc.Name, bucket.Value, nameStr, objClass.Name.ToString()));
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
                                 // Skip any asset we can't resolve.
+                                firstAssetError ??= $"'{desc.Name}': {ex.Message}";
                             }
 
                             if (found.Count >= maxResults)
@@ -1029,6 +1031,11 @@ namespace Hyperion.Editor.ViewModels
                 catch (Exception ex)
                 {
                     Logger.Log(LogLevel.Warning, $"Failed to query assets for picker: {ex.Message}");
+                }
+
+                if (firstAssetError != null)
+                {
+                    Logger.Log(LogLevel.Warning, $"Asset picker for '{Label}' skipped assets it could not resolve (first: {firstAssetError})");
                 }
 
                 found.Sort((a, b) => string.CompareOrdinal(a.DisplayName, b.DisplayName));

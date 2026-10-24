@@ -39,6 +39,7 @@ namespace Hyperion.Editor.Views.Inspector
             };
 
             PART_PickerToggle.Click += OnPickerToggleClicked;
+            PART_PickerBox.Populated += OnPickerPopulated;
             PART_PickerBox.LostFocus += OnPickerBoxLostFocus;
             PART_PickerBox.SelectionChanged += OnPickerSelectionChanged;
 
@@ -224,18 +225,48 @@ namespace Hyperion.Editor.Views.Inspector
             vm.PasteFromText(text);
         }
 
+        private bool _openOnPopulate;
+
         private void OnPickerToggleClicked(object? sender, RoutedEventArgs e)
         {
             // Browse mode: clear the current name so the drop-down lists every
             // type-compatible asset (limited to the top N) instead of just the
             // current selection. It is restored on lost focus if nothing is picked.
+            //
+            // The box only populates on a text change, and only keeps its drop-down open for
+            // typed text, so the list is opened from OnPickerPopulated once the query returns.
+            // The text is nudged through a non-empty value first so an already-empty box still
+            // repopulates; the populate delay coalesces the two sets into one query.
             if (DataContext is ObjectPropertyViewModel vm)
             {
+                _openOnPopulate = true;
+
+                vm.PickerFilter = " ";
                 vm.PickerFilter = string.Empty;
             }
 
-            PART_PickerBox.IsDropDownOpen = true;
             PART_PickerBox.Focus();
+        }
+
+        private void OnPickerPopulated(object? sender, PopulatedEventArgs e)
+        {
+            if (!_openOnPopulate)
+            {
+                return;
+            }
+
+            _openOnPopulate = false;
+
+            bool hasResults = e.Data.GetEnumerator().MoveNext();
+
+            // The box closes its drop-down for non-typed text right after raising this event, so open it afterwards.
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (hasResults)
+                {
+                    PART_PickerBox.IsDropDownOpen = true;
+                }
+            });
         }
 
         private void OnPickerBoxLostFocus(object? sender, FocusChangedEventArgs e)

@@ -3039,6 +3039,35 @@ void EditorSubsystem::SetConvexCollisionTarget(Node* node)
     m_convexCollisionTarget = MakeWeakRef(node);
 }
 
+Handle<AssetObject> EditorSubsystem::GenerateConvexCollisionAsset(AssetObject* source)
+{
+    if (source == nullptr || !m_currentProject.IsValid() || IsSimulating() || !IsConvexDecompositionSupported())
+    {
+        return Handle<AssetObject>::empty;
+    }
+
+    Mesh* meshPtr = DynamicCast<Mesh>(source);
+
+    if (meshPtr == nullptr)
+    {
+        HYP_LOG(Editor, Warning, "Cannot generate collision for '{}': it is not a mesh", source->GetName());
+
+        return Handle<AssetObject>::empty;
+    }
+
+    Handle<Mesh> mesh = MakeStrongRef(meshPtr);
+
+    Handle<CompoundPhysicsShape> compoundShape = MakeHandle<CompoundPhysicsShape>(NAME_FMT("{}_Collision", source->GetName()));
+    compoundShape->SetDecompositionSettings(m_convexCollisionSettings);
+
+    GetCurrentAssetRegistry()->PutAssetUnique(compoundShape);
+
+    // decomposes in the background with the settings above, then fills in the hulls
+    compoundShape->SetSourceMesh(mesh);
+
+    return compoundShape;
+}
+
 String EditorSubsystem::GetSourcePrefabName(Node* node) const
 {
     const UUID prefabUUID = Prefab::GetSourcePrefabUUID(node);

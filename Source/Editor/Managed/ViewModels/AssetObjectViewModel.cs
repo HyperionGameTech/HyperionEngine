@@ -31,7 +31,11 @@ namespace Hyperion.Editor.ViewModels
 
         public bool IsWorld => _bucket?.BucketIndex == AssetBucket.Worlds.Value;
 
+        public bool IsMesh => _bucket?.BucketIndex == AssetBucket.Meshes.Value;
+
         public bool HasSceneActions => IsPrefab || IsWorld;
+
+        public bool CanGenerateCollision => IsMesh;
 
         public string ToolTipText => _bucket != null
             ? $"{DisplayName}\n{_bucket.Name}"

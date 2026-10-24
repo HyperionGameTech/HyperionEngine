@@ -439,7 +439,7 @@ public:
 
     ~CompoundPhysicsShape() override;
 
-    HYP_METHOD(Property = "NumHulls", EditEnabled = false, Transient)
+    HYP_METHOD(Property = "NumHulls", Editor = false, Transient)
     uint32 NumHulls() const
     {
         return uint32(m_hulls.Size());
