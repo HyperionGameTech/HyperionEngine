@@ -20,6 +20,7 @@ namespace Hyperion {
 
 class Node;
 class World;
+class Mesh;
 
 extern void Prefab_OnPostLoad(class Prefab&);
 
@@ -58,6 +59,18 @@ public:
     Handle<Node> Spawn() const;
 
     Handle<Node> SpawnReplacementFor(const Node* instance) const;
+
+    /*! \brief Finds the mesh with the largest world-space bounds in this Prefab's node hierarchy.
+     *  Used in places where we allow importing a model from a Mesh selector.
+     *  \param outMesh Set to the largest mesh, or null if there are none
+     *  \returns The number of distinct meshes in the Prefab */
+    uint32 FindLargestMesh(Handle<Mesh>& outMesh) const;
+
+    HYP_METHOD()
+    Handle<Mesh> GetLargestMesh() const;
+
+    HYP_METHOD()
+    uint32 CountMeshes() const;
 
     HYP_METHOD()
     static Handle<Prefab> Find(const ANSIStringView& nameStr);

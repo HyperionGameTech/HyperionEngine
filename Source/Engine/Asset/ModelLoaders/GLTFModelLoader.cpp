@@ -1550,6 +1550,11 @@ Handle<Material> AcquireMaterial(LoaderState& state, GltfLoadContext& ctx, const
         translucentBlendFunction = blendModeOverride;
     }
 
+    if (!translucentBlendFunction.HasValue() && transmission > 0.0f)
+    {
+        translucentBlendFunction = BlendFunction::None();
+    }
+
     if (translucentBlendFunction.HasValue())
     {
         materialAttributes.bucket = RenderBucket::Translucent;

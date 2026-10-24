@@ -805,6 +805,32 @@ namespace Hyperion.Editor.ViewModels
 
                 Class objClass = obj.Class;
 
+                if (obj is Prefab importedPrefab && expectedClass.Name == nameof(Mesh))
+                {
+                    Mesh? largestMesh = importedPrefab.GetLargestMesh();
+
+                    if (largestMesh == null || !largestMesh.IsValid)
+                    {
+                        ShowImportError($"Imported prefab asset '{result.AssetName}' contains no meshes that can be assigned to '{Label}'.");
+                        return;
+                    }
+
+                    uint numMeshes = importedPrefab.CountMeshes();
+
+                    if (numMeshes > 1)
+                    {
+                        string warning = $"Imported prefab asset '{result.AssetName}' contains {numMeshes} meshes.\n"
+                            + "The largest mesh by world-space bounds has been selected ('{largestMesh.Name}'), as only one Mesh may be selected for '{Label}'.";
+
+                        Logger.Log(LogLevel.Warning, $"Import: {warning}");
+
+                        Dispatcher.UIThread.Post(() => MessageBox.Warning("Multiple Meshes Found", warning).Show());
+                    }
+
+                    obj = largestMesh;
+                    objClass = obj.Class;
+                }
+
                 if (objClass != expectedClass && !objClass.IsSubclassOf(expectedClass))
                 {
                     ShowImportError($"Imported asset '{result.AssetName}' is a {objClass.Name}, which can't be assigned to '{Label}' (expects {expectedClass.Name}).");

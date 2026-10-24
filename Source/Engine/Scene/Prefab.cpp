@@ -8,13 +8,18 @@
 
 #include <Scene/Prefab.hpp>
 #include <Scene/Node.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/World.hpp>
 #include <Scene/DetachedScene.hpp>
 
 #include <Asset/AssetRegistry.hpp>
 
+#include <Rendering/Mesh.hpp>
+
 #include <Core/Containers/Map.hpp>
+#include <Core/Containers/Set.hpp>
 
 #include <Framework/EngineGlobals.hpp>
 
@@ -194,6 +199,69 @@ Handle<Node> Prefab::SpawnReplacementFor(const Node* instance) const
     replacement->SetUUID(instance->GetUUID());
 
     return replacement;
+}
+
+uint32 Prefab::FindLargestMesh(Handle<Mesh>& outMesh) const
+{
+    outMesh = Handle<Mesh>::Null();
+
+    Set<const Mesh*> distinctMeshes;
+    float largestSurfaceArea = -1.0f;
+
+    auto visitNode = [&](Node* node)
+    {
+        Entity* entity = DynamicCast<Entity>(node);
+        MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+        if (!meshComponent || !meshComponent->mesh.IsValid())
+        {
+            return;
+        }
+
+        distinctMeshes.Insert(meshComponent->mesh.Get());
+
+        const BoundingBox worldBounds = node->GetWorldMatrix() * meshComponent->mesh->GetAABB();
+
+        if (!worldBounds.IsValid() || !worldBounds.IsFinite())
+        {
+            return;
+        }
+
+        const float surfaceArea = worldBounds.GetSurfaceArea();
+
+        if (surfaceArea > largestSurfaceArea)
+        {
+            largestSurfaceArea = surfaceArea;
+            outMesh = meshComponent->mesh;
+        }
+    };
+
+    if (Node* root = m_root.Get())
+    {
+        visitNode(root);
+
+        for (Node* descendant : root->GetDescendants())
+        {
+            visitNode(descendant);
+        }
+    }
+
+    return uint32(distinctMeshes.Size());
+}
+
+Handle<Mesh> Prefab::GetLargestMesh() const
+{
+    Handle<Mesh> mesh;
+    FindLargestMesh(mesh);
+
+    return mesh;
+}
+
+uint32 Prefab::CountMeshes() const
+{
+    Handle<Mesh> mesh;
+
+    return FindLargestMesh(mesh);
 }
 
 Handle<Prefab> Prefab::Find(const ANSIStringView& nameStr)
