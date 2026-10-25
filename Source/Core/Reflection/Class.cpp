@@ -132,13 +132,10 @@ CORE_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
             return uint32(otherClass->GetStaticIndex() - cls->GetStaticIndex()) <= cls->GetNumDescendants();
         }
 
-        if (otherClass->UseHandles()) // check is ObjectBase
-        {
-            // since we got the Class we can assume ptr is a ObjectBase or derived type.
-            // this could get iffy with multiple inheritance so it's best we disallow MI for Objects.
-            const ObjectBase* casted = reinterpret_cast<const ObjectBase*>(ptr);
-            otherClass = casted->InstanceClass();
-        }
+        // since we got the Class we can assume ptr is a ObjectBase or derived type.
+        // this could get iffy with multiple inheritance so it's best we disallow MI for Objects.
+        const ObjectBase* casted = reinterpret_cast<const ObjectBase*>(ptr);
+        otherClass = casted->InstanceClass();
     }
 
     // slow path
@@ -1266,11 +1263,6 @@ void Class::ForEachStaticallyDerivedClass(const ProcRef<void(const Class*)>& cal
 
 bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
-    if (!UseHandles()) // check is ObjectBase
-    {
-        return false;
-    }
-
     const ObjectBase* target = reinterpret_cast<const ObjectBase*>(objectPtr);
 
     if (!target)
@@ -1346,16 +1338,6 @@ bool DynamicClassInstance::IsValid() const
     return true;
 }
 
-ClassAllocationMethod DynamicClassInstance::GetAllocationMethod() const
-{
-    if (m_parent != nullptr)
-    {
-        return m_parent->GetAllocationMethod();
-    }
-
-    return ClassAllocationMethod::HANDLE;
-}
-
 TypeId DynamicClassInstance::GetUnderlyingTypeId() const
 {
     if (!IsEnumType())
@@ -1370,7 +1352,6 @@ TypeId DynamicClassInstance::GetUnderlyingTypeId() const
 bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
     Assert(m_parent != nullptr);
-    Assert(m_parent->UseHandles(), "Must be ObjectBase type to call GetManagedObject");
 
     ObjectBase* target = reinterpret_cast<ObjectBase*>(const_cast<void*>(objectPtr));
     Assert(target != nullptr);
@@ -1405,7 +1386,7 @@ bool DynamicClassInstance::CanCreateInstance() const
         Assert(m_parent != nullptr);
 
         // only ObjectBase-derived dynamic classes own their instances; others (e.g script classes) just describe a managed object
-        if (m_parent->UseHandles() && m_parent->CanCreateInstance() && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
+        if (m_parent->CanCreateInstance() && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
         {
             return true;
         }
@@ -1457,21 +1438,12 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
                 Assert(value.IsValid());
 
-                if (m_parent->UseHandles())
-                {
-                    Handle<ObjectBase> handle = std::move(value.Get<Handle<ObjectBase>>());
-                    Assert(handle.IsValid());
+                Handle<ObjectBase> handle = std::move(value.Get<Handle<ObjectBase>>());
+                Assert(handle.IsValid());
 
-                    out = BoxedValue(std::move(handle));
-                }
-                else
-                {
-                    out = std::move(value);
-                }
+                out = BoxedValue(std::move(handle));
             }
         }
-
-        AssertDebug(m_parent->UseHandles());
 
         ObjectBase* target = reinterpret_cast<ObjectBase*>(out.ToRef().GetPointer());
         Assert(target != nullptr);

@@ -30,11 +30,6 @@ public:
         return true;
     }
 
-    virtual ClassAllocationMethod GetAllocationMethod() const override
-    {
-        return ClassAllocationMethod::NONE;
-    }
-
 #ifdef HYP_DOTNET
     virtual bool GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const override = 0;
 #endif

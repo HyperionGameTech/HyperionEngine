@@ -37,8 +37,6 @@ ObjectInitializerGuardBase::ObjectInitializerGuardBase(TypedObjPtr ptr)
 
     count = 0;
 
-    AssertDebug(ptr.GetClass()->UseHandles());
-
     ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
     AssertDebug(target != nullptr, "ObjectInitializerGuardBase: TypedObjPtr is not valid!");
 
@@ -56,7 +54,6 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
     }
 
     const Class* cls = ptr.GetClass();
-    AssertDebug(cls->UseHandles()); // check is ObjectBase
 
     ObjectBase* target = reinterpret_cast<ObjectBase*>(ptr.GetPointer());
     AssertDebug(target->GetObjectHeader_Internal()->GetRefCountStrong() == 1);

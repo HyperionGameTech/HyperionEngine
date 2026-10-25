@@ -30,11 +30,6 @@ public:
         return true;
     }
 
-    virtual ClassAllocationMethod GetAllocationMethod() const override
-    {
-        return ClassAllocationMethod::NONE;
-    }
-
     virtual bool CanCreateInstance() const override = 0;
 
     virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override = 0;

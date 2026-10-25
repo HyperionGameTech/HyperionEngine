@@ -80,14 +80,7 @@ static ScriptObjectResource* GetScriptObjectResourceForTarget(const BoxedValue& 
         return nullptr;
     }
 
-    const Class* targetClass = targetRef.GetClass();
-
-    if (targetClass && targetClass->UseHandles())
-    {
-        return static_cast<ObjectBase*>(targetPtr)->GetScriptObjectResource();
-    }
-
-    return static_cast<ScriptObjectResource*>(targetPtr);
+    return static_cast<ObjectBase*>(targetPtr)->GetScriptObjectResource();
 }
 
 template <class Func>
@@ -233,16 +226,6 @@ extern "C"
         }
 
         return int32(cls->GetStaticIndex());
-    }
-
-    HYP_EXPORT uint8 Class_GetAllocationMethod(const Class* cls)
-    {
-        if (!cls)
-        {
-            return uint8(ClassAllocationMethod::INVALID);
-        }
-
-        return uint8(cls->GetAllocationMethod());
     }
 
     HYP_EXPORT const ClassAttribute* Class_GetAttribute(const Class* cls, const Name* name)

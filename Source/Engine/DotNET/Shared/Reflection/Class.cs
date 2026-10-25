@@ -20,14 +20,6 @@ namespace Hyperion
         Dynamic = 0x20
     }
 
-    public enum ClassAllocationMethod : byte
-    {
-        Invalid = 0xFF,
-
-        None = 0,
-        Handle = 1
-    }
-
     /// A wrapper struct, acts as a reference to a Hyperion::Class.
     /// (see: Core/Reflection/Class.hpp)
     public struct Class
@@ -578,9 +570,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "Class_GetStaticIndex")]
         private static extern int Class_GetStaticIndex([In] IntPtr classPtr);
-
-        [DllImport("hyperion", EntryPoint = "Class_GetAllocationMethod")]
-        private static extern byte Class_GetAllocationMethod([In] IntPtr classPtr);
 
         [DllImport("hyperion", EntryPoint = "Class_GetParent")]
         private static extern IntPtr Class_GetParent([In] IntPtr classPtr);

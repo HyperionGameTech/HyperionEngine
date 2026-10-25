@@ -7,7 +7,6 @@
 #pragma once
 
 #include <Core/Reflection/ObjectFwd.hpp>
-#include <Core/Reflection/ObjectEnums.hpp>
 #include <Core/Reflection/BoxedValue.hpp>
 #include <Core/Reflection/Member.hpp>
 #include <Core/Reflection/ClassAttribute.hpp>
@@ -370,18 +369,6 @@ public:
     HYP_FORCE_INLINE size_t GetAlignment() const
     {
         return m_alignment;
-    }
-
-    virtual ClassAllocationMethod GetAllocationMethod() const = 0;
-
-    HYP_FORCE_INLINE bool UseHandles() const
-    {
-        return GetAllocationMethod() == ClassAllocationMethod::HANDLE;
-    }
-
-    HYP_FORCE_INLINE bool IsReferenceCounted() const
-    {
-        return GetAllocationMethod() == ClassAllocationMethod::HANDLE;
     }
 
     HYP_FORCE_INLINE Name GetName() const
@@ -789,18 +776,6 @@ public:
         return true;
     }
 
-    virtual ClassAllocationMethod GetAllocationMethod() const override
-    {
-        if constexpr (std::is_base_of_v<ObjectBase, T>)
-        {
-            return ClassAllocationMethod::HANDLE;
-        }
-        else
-        {
-            return ClassAllocationMethod::NONE;
-        }
-    }
-
     virtual bool CanCreateInstance() const override
     {
         if constexpr (std::is_default_constructible_v<T>)
@@ -822,27 +797,9 @@ public:
         void* address = const_cast<void*>(reinterpret_cast<const void*>(memory.Data()));
         T* ptr = static_cast<T*>(address);
 
-        if (UseHandles())
-        {
-            if constexpr (std::is_base_of_v<ObjectBase, T>)
-            {
-                outBoxed = BoxedValue(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
-            }
-            else
-            {
-                HYP_UNREACHABLE();
-            }
+        outBoxed = BoxedValue(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
 
-            return true;
-        }
-        else
-        {
-            outBoxed = BoxedValue(Any(ptr));
-
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
 protected:
@@ -966,8 +923,6 @@ public:
     virtual ~DynamicClassInstance() override;
 
     virtual bool IsValid() const override;
-
-    virtual ClassAllocationMethod GetAllocationMethod() const override;
 
     virtual TypeId GetUnderlyingTypeId() const override;
 

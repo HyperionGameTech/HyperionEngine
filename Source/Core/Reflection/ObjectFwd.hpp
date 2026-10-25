@@ -38,7 +38,6 @@ using utilities::TypeId;
 using utilities::TypeIdOf;
 
 enum class ClassFlags : uint8;
-enum class ClassAllocationMethod : uint8;
 
 class ObjectContainerBase;
 class ObjectBase;

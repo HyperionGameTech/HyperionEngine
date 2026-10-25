@@ -3659,7 +3659,7 @@ bool ResolveAssetPath(const String& path, const TypeInfo& targetType, BoxedValue
 
     const Class* targetClass = targetType.GetClass();
 
-    if (targetType.IsHandleType() || (targetClass && targetClass->UseHandles()))
+    if (targetType.IsHandleType())
     {
         AssetReference ref(assetPath);
 

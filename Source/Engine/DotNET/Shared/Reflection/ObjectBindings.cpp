@@ -41,8 +41,6 @@ extern "C"
         Assert(objectReference != nullptr);
         Assert(outInstancePtr != nullptr);
 
-        Assert(cls->UseHandles());
-
 #ifdef HYP_DOTNET
         ObjectBase* ptr = nullptr;
 
