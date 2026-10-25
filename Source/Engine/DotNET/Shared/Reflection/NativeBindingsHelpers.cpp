@@ -16,7 +16,10 @@ using namespace Hyperion;
 
 extern "C"
 {
-    HYP_EXPORT int8 NativeBindings_GetManagedObject(const Class* cls, void* objectPtr, dotnet::ObjectReference* outObjectReference)
+    HYP_EXPORT int8 NativeBindings_GetManagedObject(
+        const Class* cls,
+        void* objectPtr,
+        dotnet::ObjectReference* outObjectReference)
     {
         if (!cls || !objectPtr || !outObjectReference)
         {

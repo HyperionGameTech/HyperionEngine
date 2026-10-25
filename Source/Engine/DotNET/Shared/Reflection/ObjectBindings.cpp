@@ -48,7 +48,10 @@ extern "C"
 
         {
             // Suppress default managed object creation
-            GlobalContextScope scope(ObjectInitializerContext { cls, ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
+            GlobalContextScope scope(ObjectInitializerContext {
+                cls,
+                ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION
+            });
 
             BoxedValue value;
 

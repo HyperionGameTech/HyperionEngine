@@ -23,7 +23,7 @@ namespace Hyperion
 
     public struct Method
     {
-        public static readonly Method Invalid = new Method(IntPtr.Zero);
+        public static readonly Method Invalid = new(IntPtr.Zero);
 
         internal IntPtr _ptr;
 
@@ -36,8 +36,7 @@ namespace Hyperion
         {
             get
             {
-                Name name;
-                Method_GetName(_ptr, out name);
+                Method_GetName(_ptr, out Name name);
                 return name;
             }
         }
@@ -46,8 +45,7 @@ namespace Hyperion
         {
             get
             {
-                TypeId returnTypeId;
-                Method_GetReturnTypeId(_ptr, out returnTypeId);
+                Method_GetReturnTypeId(_ptr, out TypeId returnTypeId);
                 return returnTypeId;
             }
         }
@@ -56,24 +54,16 @@ namespace Hyperion
         {
             get
             {
-                IntPtr pParams;
-                uint count = Method_GetParameters(_ptr, out pParams);
+                uint count = Method_GetParameters(_ptr, out IntPtr pParams);
 
                 for (int i = 0; i < count; i++)
                 {
-                    MethodParameter param = Marshal.PtrToStructure<MethodParameter>(pParams + i * Marshal.SizeOf<MethodParameter>());
-                    yield return param;
+                    yield return Marshal.PtrToStructure<MethodParameter>(pParams + i * Marshal.SizeOf<MethodParameter>());
                 }
             }
         }
 
-        public MethodFlags Flags
-        {
-            get
-            {
-                return (MethodFlags)Method_GetFlags(_ptr);
-            }
-        }
+        public MethodFlags Flags => (MethodFlags)Method_GetFlags(_ptr);
 
         public IEnumerable<ClassAttribute> Attributes
         {
@@ -111,21 +101,9 @@ namespace Hyperion
             return new ClassAttribute(attributePtr);
         }
 
-        public bool IsStatic
-        {
-            get
-            {
-                return (Flags & MethodFlags.Static) != 0;
-            }
-        }
+        public bool IsStatic => (Flags & MethodFlags.Static) != 0;
 
-        public bool IsMemberFunction
-        {
-            get
-            {
-                return (Flags & MethodFlags.Member) != 0;
-            }
-        }
+        public bool IsMemberFunction => (Flags & MethodFlags.Member) != 0;
 
         public BoxedValueInternal InvokeNativeWithThis(ObjectBase thisObject, object[]? args = null)
         {
@@ -134,15 +112,16 @@ namespace Hyperion
                 throw new InvalidOperationException("Cannot invoke method: Invalid method");
             }
 
-            uint numArgs = args == null ? 1 : (uint)args.Length + 1;
+            uint numArgs = args == null
+                ? 1
+                : (uint)args.Length + 1;
 
             if (!IsMemberFunction)
             {
                 throw new InvalidOperationException("Cannot invoke method: Method is not a member function");
             }
 
-            IntPtr pParams;
-            uint numParams = Method_GetParameters(_ptr, out pParams);
+            uint numParams = Method_GetParameters(_ptr, out IntPtr pParams);
 
             if (numArgs != numParams)
             {
@@ -158,8 +137,7 @@ namespace Hyperion
             int argIndex = 0;
 
             BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);
-            argsBuffers[argIndex].SetValue(thisObject);
-            argIndex++;
+            argsBuffers[argIndex++].SetValue(thisObject);
 
             if (numArgs > 1)
             {
@@ -182,10 +160,14 @@ namespace Hyperion
                     bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
                     for (int i = 0; i < numArgs; i++)
+                    {
                         argsBuffers[i].Dispose();
+                    }
 
                     if (!result)
+                    {
                         throw new InvalidOperationException("Failed to invoke method");
+                    }
                 }
             }
 
@@ -218,8 +200,7 @@ namespace Hyperion
                 }
             }
 
-            IntPtr pParams;
-            uint numParams = Method_GetParameters(_ptr, out pParams);
+            uint numParams = Method_GetParameters(_ptr, out IntPtr pParams);
 
             if (numArgs != numParams)
             {
@@ -248,8 +229,7 @@ namespace Hyperion
                             if (thisObject != null)
                             {
                                 BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);
-                                argsBuffers[argIndex].SetValue(thisObject);
-                                argIndex++;
+                                argsBuffers[argIndex++].SetValue(thisObject);
                             }
 
                             for (; argIndex < numArgs; argIndex++)
@@ -262,12 +242,16 @@ namespace Hyperion
                         bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
                         if (!result)
+                        {
                             throw new InvalidOperationException("Failed to invoke method");
+                        }
                     }
                     finally
                     {
                         for (int i = 0; i < argIndex; i++)
+                        {
                             argsBuffers[i].Dispose();
+                        }
                     }
                 }
             }

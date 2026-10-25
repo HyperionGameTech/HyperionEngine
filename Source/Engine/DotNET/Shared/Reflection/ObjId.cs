@@ -26,7 +26,7 @@ namespace Hyperion
             _value = value;
         }
 
-        public TypeId TypeId => new TypeId(_typeIdValue);
+        public TypeId TypeId => new(_typeIdValue);
         public uint Value => _value;
         public bool IsValid => _value != 0;
 

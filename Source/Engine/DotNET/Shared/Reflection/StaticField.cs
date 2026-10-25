@@ -87,7 +87,7 @@ namespace Hyperion
 
             object? result = null;
 
-            BoxedValueInternal outData = new BoxedValueInternal();
+            BoxedValueInternal outData = new();
 
             try
             {

@@ -44,7 +44,10 @@ namespace Hyperion
         public readonly IntPtr Invoke;
         public readonly Attribute[]? Attributes;
 
-        public unsafe HypMethodThunk(string name, delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> invoke, Attribute[]? attributes)
+        public unsafe HypMethodThunk(
+            string name,
+            delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> invoke,
+            Attribute[]? attributes)
         {
             Name = name;
             Invoke = (IntPtr)invoke;
@@ -65,12 +68,22 @@ namespace Hyperion
         // A value of MemberType (default, empty string or empty array) boxed to find its native type; generated so NativeAOT needs no runtime construction
         public readonly object? SampleValue;
 
-        public unsafe HypPropertyThunk(string name, delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> getter, delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> setter, Attribute[]? attributes)
+        public unsafe HypPropertyThunk(
+            string name,
+            delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> getter,
+            delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> setter,
+            Attribute[]? attributes)
             : this(name, getter, setter, attributes, null, null)
         {
         }
 
-        public unsafe HypPropertyThunk(string name, delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> getter, delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> setter, Attribute[]? attributes, Type? memberType, object? sampleValue)
+        public unsafe HypPropertyThunk(
+            string name,
+            delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> getter,
+            delegate*<object?, BoxedValueInternal**, BoxedValueInternal*, void> setter,
+            Attribute[]? attributes,
+            Type? memberType,
+            object? sampleValue)
         {
             Name = name;
             Getter = (IntPtr)getter;
@@ -85,12 +98,16 @@ namespace Hyperion
             get
             {
                 if (MemberType == null || Attributes == null)
+                {
                     return null;
+                }
 
                 foreach (Attribute attribute in Attributes)
                 {
                     if (attribute is HypMemberAttribute memberAttribute)
+                    {
                         return memberAttribute;
+                    }
                 }
 
                 return null;
@@ -108,7 +125,14 @@ namespace Hyperion
         public IntPtr NativeSize { get; }
         public IntPtr MarshalOut { get; }
 
-        internal HypTypeEntry(Type type, HypMethodThunk[] methods, HypPropertyThunk[] properties, IntPtr newObject, IntPtr marshalObject, IntPtr nativeSize, IntPtr marshalOut)
+        internal HypTypeEntry(
+            Type type,
+            HypMethodThunk[] methods,
+            HypPropertyThunk[] properties,
+            IntPtr newObject,
+            IntPtr marshalObject,
+            IntPtr nativeSize,
+            IntPtr marshalOut)
         {
             Type = type;
             Methods = methods;
@@ -130,7 +154,14 @@ namespace Hyperion
         public bool IsNotSerialized { get; }
         public object DefaultValue { get; }
 
-        public HypFieldLayout(string name, Type fieldType, int offset, int size, bool isPublic, bool isNotSerialized, object defaultValue)
+        public HypFieldLayout(
+            string name,
+            Type fieldType,
+            int offset,
+            int size,
+            bool isPublic,
+            bool isNotSerialized,
+            object defaultValue)
         {
             Name = name;
             FieldType = fieldType;
@@ -152,7 +183,12 @@ namespace Hyperion
 
         public int Size { get; }
 
-        internal HypStructLayout(int size, delegate*<IntPtr, object> reader, delegate*<object, IntPtr, void> writer, delegate*<object> createDefault, delegate*<HypFieldLayout[]> getFields)
+        internal HypStructLayout(
+            int size,
+            delegate*<IntPtr, object> reader,
+            delegate*<object, IntPtr, void> writer,
+            delegate*<object> createDefault,
+            delegate*<HypFieldLayout[]> getFields)
         {
             Size = size;
             _reader = reader;
@@ -172,8 +208,8 @@ namespace Hyperion
 
     public sealed class HypTypeRegistryBuilder
     {
-        internal readonly Dictionary<Type, HypTypeEntry> Entries = new Dictionary<Type, HypTypeEntry>();
-        internal readonly Dictionary<Type, HypStructLayout> StructLayouts = new Dictionary<Type, HypStructLayout>();
+        internal readonly Dictionary<Type, HypTypeEntry> Entries = new();
+        internal readonly Dictionary<Type, HypStructLayout> StructLayouts = new();
 
         public unsafe void AddStructLayout(
             Type type,
@@ -195,14 +231,21 @@ namespace Hyperion
             delegate*<int> nativeSize,
             delegate*<object, IntPtr, void> marshalOut)
         {
-            Entries[type] = new HypTypeEntry(type, methods, properties, (IntPtr)newObject, (IntPtr)marshalObject, (IntPtr)nativeSize, (IntPtr)marshalOut);
+            Entries[type] = new HypTypeEntry(
+                type,
+                methods,
+                properties,
+                (IntPtr)newObject,
+                (IntPtr)marshalObject,
+                (IntPtr)nativeSize,
+                (IntPtr)marshalOut);
         }
     }
 
     public static class HypTypeRegistry
     {
-        private static readonly ConditionalWeakTable<Assembly, HypTypeRegistryBuilder> s_registriesByAssembly = new ConditionalWeakTable<Assembly, HypTypeRegistryBuilder>();
-        private static readonly HypTypeRegistryBuilder s_emptyRegistry = new HypTypeRegistryBuilder();
+        private static readonly ConditionalWeakTable<Assembly, HypTypeRegistryBuilder> s_registriesByAssembly = new();
+        private static readonly HypTypeRegistryBuilder s_emptyRegistry = new();
 
         public static HypTypeEntry? Get(Type type)
         {

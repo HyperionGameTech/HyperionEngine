@@ -85,10 +85,11 @@ namespace Hyperion
 
     public class DynamicStruct : IDisposable
     {
-        private static readonly Dictionary<Type, DynamicStruct> cache = new Dictionary<Type, DynamicStruct>();
-        private static readonly object cacheLock = new object();
-        private static readonly ConcurrentDictionary<TypeId, DynamicStruct> typeIdCache = new ConcurrentDictionary<TypeId, DynamicStruct>();
-        private static readonly object typeIdCacheLock = new object();
+        private static readonly Dictionary<Type, DynamicStruct> cache = new();
+        private static readonly Lock cacheLock = new();
+        private static readonly ConcurrentDictionary<TypeId, DynamicStruct> typeIdCache = new();
+        private static readonly Lock typeIdCacheLock = new();
+
 
         private Class cls;
         private Type type;
@@ -241,9 +242,7 @@ namespace Hyperion
         {
             lock (cacheLock)
             {
-                DynamicStruct? dynamicStruct;
-
-                if (!cache.TryGetValue(type, out dynamicStruct))
+                if (!cache.TryGetValue(type, out DynamicStruct? dynamicStruct))
                 {
                     dynamicStruct = new DynamicStruct(type);
                 }
@@ -292,7 +291,7 @@ namespace Hyperion
 
         private static DynamicStructField[] GetLayoutFields(Type type, HypStructLayout layout)
         {
-            List<DynamicStructField> fields = new List<DynamicStructField>();
+            List<DynamicStructField> fields = new();
 
             foreach (HypFieldLayout field in layout.Fields)
             {
@@ -326,7 +325,7 @@ namespace Hyperion
         {
             try
             {
-                using BoxedValue boxed = new BoxedValue(value);
+                using BoxedValue boxed = new(value);
 
                 return boxed.TypeInfo;
             }

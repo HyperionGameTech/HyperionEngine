@@ -186,30 +186,12 @@ namespace Hyperion
             }
         }
 
-        public bool IsValid
-        {
-            get
-            {
-                return _classPtr != IntPtr.Zero
-                    && _nativeAddress != IntPtr.Zero;
-            }
-        }
+        public bool IsValid => _classPtr != IntPtr.Zero
+                            && _nativeAddress != IntPtr.Zero;
 
-        public Class Class
-        {
-            get
-            {
-                return new Class(_classPtr);
-            }
-        }
+        public Class Class => new(_classPtr);
 
-        public IntPtr NativeAddress
-        {
-            get
-            {
-                return _nativeAddress;
-            }
-        }
+        public IntPtr NativeAddress => _nativeAddress;
 
         public Property GetProperty(Name name)
         {
@@ -312,7 +294,7 @@ namespace Hyperion
             {
                 if (_classPtr == IntPtr.Zero)
                 {
-                throw new Exception("Class pointer is null for instance of type " + GetType().Name);
+                    throw new Exception("Class pointer is null for instance of type " + GetType().Name);
                 }
 
                 if (_nativeAddress == IntPtr.Zero)

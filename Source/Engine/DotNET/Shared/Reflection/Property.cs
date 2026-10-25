@@ -20,8 +20,7 @@ namespace Hyperion
         {
             get
             {
-                Name name;
-                Property_GetName(_ptr, out name);
+                Property_GetName(_ptr, out Name name);
                 return name;
             }
         }
@@ -30,8 +29,7 @@ namespace Hyperion
         {
             get
             {
-                TypeId typeId;
-                Property_GetTypeId(_ptr, out typeId);
+                Property_GetTypeId(_ptr, out TypeId typeId);
                 return typeId;
             }
         }
@@ -41,7 +39,7 @@ namespace Hyperion
             get
             {
                 IntPtr pTypeInfo = Property_GetTypeInfo(_ptr);
-                return new TypeInfo(pTypeInfo);
+                return new(pTypeInfo);
             }
         }
 
