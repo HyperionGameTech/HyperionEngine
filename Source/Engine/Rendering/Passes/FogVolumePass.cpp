@@ -348,7 +348,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(15, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
     cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
 
-    GlimmerPass* glimmerPass = Cast<GlimmerPass>(RI.namedPasses[NamedPass::Glimmer][0]);
+    GlimmerPass* glimmerPass = static_cast<GlimmerPass*>(RI.namedPasses[NamedPass::Glimmer][0]);
     const uint32 worldsBufferIndex = glimmerPass->BindApplyResources(cr, 17, renderSetup.world);
     cr << SetShaderUniform(worldsBufferIndex, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 
