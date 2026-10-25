@@ -107,6 +107,7 @@ namespace Hyperion
         private static extern uint AssetRegistry_GetBucketAssetDescs(IntPtr pRegistry, uint bucketIndex, IntPtr pOutAssetDescs, uint maxCount);
 
         [DllImport("hyperion", EntryPoint = "AssetRegistry_GetAssetBoxed")]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool AssetRegistry_GetAssetBoxed([In] IntPtr pRegistry, uint bucketIndex, [In] ref Name name, [Out] out BoxedValueInternal outBoxed);
 
         [DllImport("hyperion", EntryPoint = "AssetRegistry_GetEngineRegistryBoxed")]

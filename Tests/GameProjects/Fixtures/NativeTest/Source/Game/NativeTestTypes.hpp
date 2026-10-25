@@ -1,11 +1,15 @@
 #pragma once
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetReference.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Containers/String.hpp>
+#include <Core/Containers/Array.hpp>
+
+#include <Core/Name/Name.hpp>
 
 #include <Core/Math/Vector3.hpp>
 
@@ -77,6 +81,71 @@ class NativeTestNoteAsset final : public AssetObject
 public:
     HYP_FIELD(Property = "Text", Serialize)
     String text;
+};
+
+HYP_CLASS(AssetBucket = "Decals")
+class NativeTestGearAsset : public AssetObject
+{
+    HYP_OBJECT_BODY(NativeTestGearAsset);
+
+public:
+    HYP_FIELD(Property = "Weight", Serialize)
+    float weight = 0.0f;
+};
+
+// takes its bucket and weight from NativeTestGearAsset
+HYP_CLASS()
+class NativeTestArmorAsset final : public NativeTestGearAsset
+{
+    HYP_OBJECT_BODY(NativeTestArmorAsset);
+
+public:
+    HYP_FIELD(Property = "Defense", Serialize)
+    int32 defense = 0;
+};
+
+HYP_CLASS(AssetBucket = "RawData", NoScriptBindings)
+class NativeTestLoadoutAsset final : public AssetObject
+{
+    HYP_OBJECT_BODY(NativeTestLoadoutAsset);
+
+public:
+    HYP_FIELD(Property = "Tag", Serialize)
+    Name tag;
+
+    HYP_FIELD(Property = "Serial", Serialize)
+    int64 serial = 0;
+
+    HYP_FIELD(Property = "Mass", Serialize)
+    double mass = 0.0;
+
+    HYP_FIELD(Property = "Slot", Serialize)
+    uint8 slot = 0;
+
+    HYP_FIELD(Property = "Rarity", Serialize)
+    NativeTestRarity rarity = NativeTestRarity::Common;
+
+    HYP_FIELD(Property = "AmmoCounts", Serialize)
+    Array<int32> ammoCounts;
+
+    HYP_FIELD(Property = "Labels", Serialize)
+    Array<String> labels;
+
+    HYP_FIELD(Property = "Pickups", Serialize)
+    Array<Handle<NativeTestPickup>> pickups;
+
+    // other assets are saved as references to them
+    HYP_FIELD(Property = "Note", Serialize)
+    Handle<NativeTestNoteAsset> note;
+
+    HYP_FIELD(Property = "Primary", Serialize)
+    Handle<NativeTestWeaponAsset> primary;
+
+    HYP_FIELD(Property = "ExtraReference", Serialize)
+    AssetReference extraReference;
+
+    HYP_FIELD(Property = "Scratch", Transient)
+    int32 scratch = 7;
 };
 
 // members matched by name across classes, as a reloaded game class is matched to its previous build

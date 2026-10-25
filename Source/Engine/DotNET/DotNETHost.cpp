@@ -85,21 +85,16 @@ public:
         return assembly;
     }
 
-    bool UnloadAssembly(ManagedGuid assemblyGuid)
+    UnloadAssemblyDelegate GetUnloadDelegate(ManagedGuid assemblyGuid) const
     {
         if (IsCoreAssembly(assemblyGuid))
         {
-            return false;
+            return nullptr;
         }
 
-        HYP_LOG(DotNET, Verbose, "Unloading assembly...");
-
-        int32 result;
-
         Assert(m_managedDelegates.unloadAssembly != nullptr);
-        m_managedDelegates.unloadAssembly(&assemblyGuid, &result);
 
-        return bool(result);
+        return m_managedDelegates.unloadAssembly;
     }
 
     bool IsCoreAssembly(ManagedGuid assemblyGuid) const
@@ -134,8 +129,6 @@ public:
     {
         Map<FilePath, SharedPtr<Assembly>> assembliesByPath = std::move(m_assembliesByPath);
         assembliesByPath.Clear();
-
-        m_coreAssemblies.Clear();
     }
 
     static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const char* path)
@@ -215,16 +208,36 @@ void DotNETHost::SetHostedScriptAssembly(Assembly* assembly)
 
 bool DotNETHost::UnloadAssembly(ManagedGuid guid) const
 {
-    if (!m_impl)
+    UnloadAssemblyDelegate unloadAssembly = nullptr;
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        if (!m_impl)
+        {
+            return false;
+        }
+
+        unloadAssembly = m_impl->GetUnloadDelegate(guid);
+    }
+
+    if (!unloadAssembly)
     {
         return false;
     }
 
-    return m_impl->UnloadAssembly(guid);
+    HYP_LOG(DotNET, Verbose, "Unloading assembly...");
+
+    int32 result = 0;
+    unloadAssembly(&guid, &result);
+
+    return bool(result);
 }
 
 bool DotNETHost::IsCoreAssembly(const Assembly* assembly) const
 {
+    Mutex::Guard guard(m_mutex);
+
     if (!m_impl)
     {
         return false;
@@ -273,8 +286,16 @@ void DotNETHost::Shutdown()
 
     m_impl->ReleaseAssemblies();
 
-    delete m_impl;
-    m_impl = nullptr;
+    DotNetImpl* impl = nullptr;
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        impl = m_impl;
+        m_impl = nullptr;
+    }
+
+    delete impl;
 
     m_isInitialized = false;
     m_isShuttingDown = false;

@@ -58,11 +58,23 @@ public class NativeGameTests : IClassFixture<NativeTestFixture>
         AssertBinding(types, "NativeTestMedkit", "Hyperion.NativeTestPickup", "HealAmount");
         AssertBinding(types, "NativeTestWeaponAsset", "Hyperion.AssetObject", "Damage", "FireRate", "DisplayName", "IsAutomatic", "MuzzleOffset", "Rarity", "Ammo");
         AssertBinding(types, "NativeTestNoteAsset", "Hyperion.AssetObject", "Text");
+        AssertBinding(types, "NativeTestGearAsset", "Hyperion.AssetObject", "Weight");
+        AssertBinding(types, "NativeTestArmorAsset", "Hyperion.NativeTestGearAsset", "Defense");
         AssertBinding(types, "NativeTestGame", "Hyperion.Game");
         AssertBinding(types, "NativeTestRarity", "System.Enum");
 
         AssertMethod(types, "NativeTestPickupExtensions", "GetDoubledQuantity");
         AssertMethod(types, "NativeTestMedkitExtensions", "GetTotalHealing");
+    }
+
+    [Fact]
+    public void Bindings_SkipTypesMarkedNoScriptBindings()
+    {
+        GameAssert.Succeeded(_fixture.Build);
+
+        IReadOnlyDictionary<string, AssemblyType> types = AssemblyTypes.Read(_fixture.Project.BindingsAssemblyPath);
+
+        Assert.False(types.ContainsKey("Hyperion.NativeTestLoadoutAsset"), "The bindings declare NativeTestLoadoutAsset, which is marked NoScriptBindings");
     }
 
     [Fact]
@@ -95,8 +107,11 @@ public class NativeGameTests : IClassFixture<NativeTestFixture>
         Assert.True(RegistrationIndex("NativeTestRarity") < RegistrationIndex("NativeTestPickup"), "enums should register before classes");
         Assert.True(RegistrationIndex("NativeTestPickup") < RegistrationIndex("NativeTestMedkit"), "NativeTestPickup should register before NativeTestMedkit, which derives from it");
 
+        Assert.True(RegistrationIndex("NativeTestGearAsset") < RegistrationIndex("NativeTestArmorAsset"), "NativeTestGearAsset should register before NativeTestArmorAsset, which derives from it");
+
         RegistrationIndex("NativeTestWeaponAsset");
         RegistrationIndex("NativeTestNoteAsset");
+        RegistrationIndex("NativeTestLoadoutAsset");
         RegistrationIndex("NativeTestGame");
     }
 
