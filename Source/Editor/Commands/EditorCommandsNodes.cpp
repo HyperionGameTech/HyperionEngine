@@ -1050,9 +1050,9 @@ public:
         entity->SetLocalTransform(sourceNode->GetLocalTransform());
         entity->SetLocalBounds(sourceNode->GetLocalBounds());
 
-        for (const NodeTag& tag : sourceNode->GetTags())
+        for (const NodeData& data : sourceNode->GetDataEntries())
         {
-            entity->Node::AddTag(NodeTag(tag));
+            entity->AddDataEntry(data);
         }
 
         InitObject(entity);

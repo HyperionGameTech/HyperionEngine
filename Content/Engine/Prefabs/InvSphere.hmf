@@ -45,12 +45,12 @@ Prefab "InvSphere" {
                     }
                 }
                 Children = []
-                NodeTags = {
+                DataEntries = {
                     Values = []
                 }
             }
         ]
-        NodeTags = {
+        DataEntries = {
             Values = []
         }
     }

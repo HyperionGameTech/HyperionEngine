@@ -1580,7 +1580,7 @@ void EditorSubsystem::DiscardMeshEdits()
 
 static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* meshComponent)
 {
-    if (node->GetTag("HYP_MeshEditUniqueMesh"_sh))
+    if (node->GetDataEntry("HYP_MeshEditUniqueMesh"_sh))
     {
         return;
     }
@@ -1611,7 +1611,7 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
 
     meshComponent->mesh = clonedMesh;
 
-    node->AddTag(NodeTag(NAME("HYP_MeshEditUniqueMesh"), int(1)));
+    node->AddDataEntry(NodeData(NAME("HYP_MeshEditUniqueMesh"), int(1)));
 
     if (Entity* entity = TryCast<Entity>(node.Get()))
     {

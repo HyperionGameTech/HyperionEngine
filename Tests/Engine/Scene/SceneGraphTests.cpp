@@ -456,23 +456,23 @@ HYP_ENGINE_TEST(SceneGraph, TagsAddGetRemove)
     Handle<Node> node = CreateNode("Tagged");
     scene->GetRoot()->AddChild(node);
 
-    HYP_TEST_CHECK(!node->HasTag(StringHash("Health")));
+    HYP_TEST_CHECK(!node->HasDataEntry(StringHash("Health")));
 
-    node->AddTag(NodeTag(NAME("Health"), 42));
-    node->AddTag(NodeTag(NAME("Speed"), 1.5f));
+    node->AddDataEntry(NodeData(NAME("Health"), 42));
+    node->AddDataEntry(NodeData(NAME("Speed"), 1.5f));
 
-    HYP_TEST_CHECK(node->HasTag(StringHash("Health")));
-    HYP_TEST_CHECK(node->HasTag(StringHash("Speed")));
+    HYP_TEST_CHECK(node->HasDataEntry(StringHash("Health")));
+    HYP_TEST_CHECK(node->HasDataEntry(StringHash("Speed")));
 
-    const NodeTag& health = node->GetTag(StringHash("Health"));
+    const NodeData& health = node->GetDataEntry(StringHash("Health"));
 
     HYP_TEST_REQUIRE(health.data.Is<int>());
     HYP_TEST_CHECK(health.data.Get<int>() == 42);
 
-    HYP_TEST_CHECK(node->RemoveTag(StringHash("Health")));
-    HYP_TEST_CHECK(!node->HasTag(StringHash("Health")));
-    HYP_TEST_CHECK(node->HasTag(StringHash("Speed")));
-    HYP_TEST_CHECK(!node->RemoveTag(StringHash("Health")));
+    HYP_TEST_CHECK(node->RemoveDataEntry(StringHash("Health")));
+    HYP_TEST_CHECK(!node->HasDataEntry(StringHash("Health")));
+    HYP_TEST_CHECK(node->HasDataEntry(StringHash("Speed")));
+    HYP_TEST_CHECK(!node->RemoveDataEntry(StringHash("Health")));
 }
 
 HYP_ENGINE_TEST(SceneGraph, CloneCopiesSubtree)
@@ -482,7 +482,7 @@ HYP_ENGINE_TEST(SceneGraph, CloneCopiesSubtree)
 
     Handle<Node> original = CreateNode("Original", Vec3f(1.0f, 2.0f, 3.0f));
     Handle<Node> child = CreateNode("Child", Vec3f(0.0f, 1.0f, 0.0f));
-    original->AddTag(NodeTag(NAME("Mark"), 7));
+    original->AddDataEntry(NodeData(NAME("Mark"), 7));
     original->AddChild(child);
     root->AddChild(original);
 
@@ -494,7 +494,7 @@ HYP_ENGINE_TEST(SceneGraph, CloneCopiesSubtree)
     HYP_TEST_CHECK(clone->GetParent() == nullptr);
     HYP_TEST_CHECK(clone->GetName() == NAME("Original"));
     HYP_TEST_CHECK(Near(clone->GetLocalTranslation(), Vec3f(1.0f, 2.0f, 3.0f)));
-    HYP_TEST_CHECK(clone->HasTag(StringHash("Mark")));
+    HYP_TEST_CHECK(clone->HasDataEntry(StringHash("Mark")));
     HYP_TEST_CHECK(clone->GetUUID() != original->GetUUID());
 
     HYP_TEST_REQUIRE(clone->NumChildren() == 1);

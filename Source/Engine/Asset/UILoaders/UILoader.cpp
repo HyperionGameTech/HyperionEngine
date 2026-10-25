@@ -561,7 +561,7 @@ public:
                     // Strip the tag prefix
                     String attributeNameLower = String(attributeNameUpper.Substr(4)).ToLower();
 
-                    uiObject->SetNodeTag(NodeTag(Name(attributeNameLower.ToAnsi()), attribute.second));
+                    uiObject->SetDataEntry(NodeData(Name(attributeNameLower.ToAnsi()), attribute.second));
 
                     continue;
                 }

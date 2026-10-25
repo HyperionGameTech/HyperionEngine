@@ -1080,10 +1080,10 @@ public:
     BoundingBox GetWorldAABB() const;
     BoundingBox GetLocalAABB() const;
 
-    const NodeTag& GetNodeTag(StringHash key) const;
-    void SetNodeTag(NodeTag&& tag);
-    bool HasNodeTag(StringHash key) const;
-    bool RemoveNodeTag(StringHash key);
+    const NodeData& GetDataEntry(StringHash key) const;
+    void SetDataEntry(NodeData&& tag);
+    bool HasDataEntry(StringHash key) const;
+    bool RemoveDataEntry(StringHash key);
 
     /*! \brief The default event handler result which is combined with the results of bound event handlers, if the result is equal to OK.
      *  E.g UIButton could return OK if the button was clicked, and the default event handler result could be set to STOP_BUBBLING so that the event does not propagate to objects behind it. */

@@ -212,7 +212,7 @@ HYP_ENGINE_TEST(Serialization, NodeRoundTripsHMF)
     Handle<Node> node = MakeHandle<Node>();
     node->SetName(NAME("SerializedNode"));
     node->SetLocalTransform(Transform(Vec3f(1.0f, 2.0f, 3.0f), Vec3f(2.0f), Quat4f::Identity()));
-    node->AddTag(NodeTag(NAME("Health"), 42));
+    node->AddDataEntry(NodeData(NAME("Health"), 42));
 
     scene->GetRoot()->AddChild(node);
 
@@ -234,7 +234,7 @@ HYP_ENGINE_TEST(Serialization, NodeRoundTripsHMF)
     HYP_TEST_CHECK(loaded->GetName() == NAME("SerializedNode"));
     HYP_TEST_CHECK(loaded->GetUUID() == node->GetUUID());
     HYP_TEST_CHECK(loaded->GetLocalTransform() == node->GetLocalTransform());
-    HYP_TEST_CHECK(loaded->HasTag(StringHash("Health")));
+    HYP_TEST_CHECK(loaded->HasDataEntry("Health"_sh));
     HYP_TEST_CHECK(loaded->GetParent() == nullptr);
 }
 

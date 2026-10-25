@@ -245,22 +245,22 @@ Skeleton BaseHumanRig {
                                                             }
                                                         }
                                                         Children = []
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
                                                 ]
-                                                NodeTags = {
+                                                DataEntries = {
                                                     Values = []
                                                 }
                                             }
                                         ]
-                                        NodeTags = {
+                                        DataEntries = {
                                             Values = []
                                         }
                                     }
                                 ]
-                                NodeTags = {
+                                DataEntries = {
                                     Values = []
                                 }
                             }
@@ -614,17 +614,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -733,17 +733,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -852,17 +852,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -971,17 +971,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -1090,37 +1090,37 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
                                                                                 ]
-                                                                                NodeTags = {
+                                                                                DataEntries = {
                                                                                     Values = []
                                                                                 }
                                                                             }
                                                                         ]
-                                                                        NodeTags = {
+                                                                        DataEntries = {
                                                                             Values = []
                                                                         }
                                                                     }
                                                                 ]
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
                                                         ]
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
@@ -1369,17 +1369,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -1488,17 +1488,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -1607,17 +1607,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -1726,17 +1726,17 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
@@ -1845,37 +1845,37 @@ Skeleton BaseHumanRig {
                                                                                                             }
                                                                                                         }
                                                                                                         Children = []
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
                                                                                 ]
-                                                                                NodeTags = {
+                                                                                DataEntries = {
                                                                                     Values = []
                                                                                 }
                                                                             }
                                                                         ]
-                                                                        NodeTags = {
+                                                                        DataEntries = {
                                                                             Values = []
                                                                         }
                                                                     }
                                                                 ]
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
                                                         ]
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
@@ -1949,27 +1949,27 @@ Skeleton BaseHumanRig {
                                                                     }
                                                                 }
                                                                 Children = []
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
                                                         ]
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
                                                 ]
-                                                NodeTags = {
+                                                DataEntries = {
                                                     Values = []
                                                 }
                                             }
                                         ]
-                                        NodeTags = {
+                                        DataEntries = {
                                             Values = []
                                         }
                                     }
                                 ]
-                                NodeTags = {
+                                DataEntries = {
                                     Values = []
                                 }
                             }
@@ -2113,37 +2113,37 @@ Skeleton BaseHumanRig {
                                                             }
                                                         }
                                                         Children = []
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
                                                 ]
-                                                NodeTags = {
+                                                DataEntries = {
                                                     Values = []
                                                 }
                                             }
                                         ]
-                                        NodeTags = {
+                                        DataEntries = {
                                             Values = []
                                         }
                                     }
                                 ]
-                                NodeTags = {
+                                DataEntries = {
                                     Values = []
                                 }
                             }
                         ]
-                        NodeTags = {
+                        DataEntries = {
                             Values = []
                         }
                     }
                 ]
-                NodeTags = {
+                DataEntries = {
                     Values = []
                 }
             }
         ]
-        NodeTags = {
+        DataEntries = {
             Values = []
         }
     }

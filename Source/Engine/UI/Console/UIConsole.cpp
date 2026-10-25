@@ -513,7 +513,7 @@ public:
         Handle<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.text);
 
-        parent->SetNodeTag(NodeTag(NAME("ConsoleHistoryEntry"), value.uuid));
+        parent->SetDataEntry(NodeData(NAME("ConsoleHistoryEntry"), value.uuid));
 
         return text;
     }

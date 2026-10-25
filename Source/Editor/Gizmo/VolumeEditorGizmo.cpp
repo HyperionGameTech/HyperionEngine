@@ -196,14 +196,14 @@ void VolumeEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
         return;
     }
 
-    const NodeTag& faceTag = node->GetTag("VolumeFaceIndex"_sh);
+    const NodeData& faceData = node->GetDataEntry("VolumeFaceIndex"_sh);
 
-    if (!faceTag)
+    if (!faceData)
     {
         return;
     }
 
-    const int faceIndex = faceTag.data.TryGet<int>(-1);
+    const int faceIndex = faceData.data.TryGet<int>(-1);
 
     if (faceIndex < 0 || faceIndex >= VEF_Max)
     {
@@ -336,10 +336,10 @@ bool VolumeEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEv
     }
 
     // Restore original face color
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
+    if (const NodeData& entry = node->GetDataEntry("TransformWidgetElementColor"_sh))
     {
         MaterialParameters newParameters = meshComponent->material->GetParameters();
-        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
+        newParameters.albedo = entry.data.TryGet<Vec4f>(Vec4f::Zero());
 
         meshComponent->material->SetParameters(newParameters);
     }

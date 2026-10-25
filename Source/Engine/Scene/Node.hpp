@@ -83,9 +83,9 @@ enum class NodeFlags : uint32
 HYP_MAKE_ENUM_FLAGS(NodeFlags);
 
 HYP_STRUCT()
-struct NodeTag
+struct NodeData
 {
-    HYP_STRUCT_BODY(NodeTag);
+    HYP_STRUCT_BODY(NodeData);
 
     // UUID is before String intentionally, so it doesn't get binned as a String when reading the literal from HMF
     using VariantType = Variant<
@@ -104,34 +104,34 @@ struct NodeTag
     HYP_FIELD(Property = "Data", Serialize = true)
     VariantType data;
 
-    NodeTag() = default;
+    NodeData() = default;
 
-    NodeTag(Name name, const VariantType& data)
+    NodeData(Name name, const VariantType& data)
         : name(name),
           data(data)
     {
     }
 
-    NodeTag(Name name, VariantType&& data)
+    NodeData(Name name, VariantType&& data)
         : name(name),
           data(std::move(data))
     {
     }
 
     template <class T>
-    NodeTag(Name name, T&& value)
+    NodeData(Name name, T&& value)
         : name(name),
           data(std::forward<T>(value))
     {
     }
 
-    NodeTag(const NodeTag& other)
+    NodeData(const NodeData& other)
         : name(other.name),
           data(other.data)
     {
     }
 
-    NodeTag& operator=(const NodeTag& other)
+    NodeData& operator=(const NodeData& other)
     {
         if (this == &other)
         {
@@ -144,13 +144,13 @@ struct NodeTag
         return *this;
     }
 
-    NodeTag(NodeTag&& other) noexcept
+    NodeData(NodeData&& other) noexcept
         : name(std::move(other.name)),
           data(std::move(other.data))
     {
     }
 
-    NodeTag& operator=(NodeTag&& other) noexcept
+    NodeData& operator=(NodeData&& other) noexcept
     {
         if (this == &other)
         {
@@ -178,12 +178,12 @@ struct NodeTag
         return data.IsValid();
     }
 
-    HYP_FORCE_INLINE bool operator==(const NodeTag& other) const
+    HYP_FORCE_INLINE bool operator==(const NodeData& other) const
     {
         return name == other.name && data == other.data;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const NodeTag& other) const
+    HYP_FORCE_INLINE bool operator!=(const NodeData& other) const
     {
         return name != other.name || data != other.data;
     }
@@ -194,42 +194,42 @@ struct NodeTag
 struct NodeUnlockTransformScope;
 
 HYP_STRUCT()
-class NodeTagSet : HashTable<NodeTag, &NodeTag::name>
+class NodeDataSet : HashTable<NodeData, &NodeData::name, SceneAllocator>
 {
-    HYP_STRUCT_BODY(NodeTagSet);
+    HYP_STRUCT_BODY(NodeDataSet);
 
 public:
-    using Base = HashTable<NodeTag, &NodeTag::name>;
+    using Base = HashTable<NodeData, &NodeData::name, SceneAllocator>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
 
     using Base::Contains;
 
-    NodeTagSet() = default;
+    NodeDataSet() = default;
 
-    NodeTagSet(const Base& other)
+    NodeDataSet(const Base& other)
         : Base(other)
     {
     }
 
-    NodeTagSet(Base&& other) noexcept
+    NodeDataSet(Base&& other) noexcept
         : Base(std::move(other))
     {
     }
 
-    NodeTagSet(const NodeTagSet& other) = default;
-    NodeTagSet& operator=(const NodeTagSet& other) = default;
+    NodeDataSet(const NodeDataSet& other) = default;
+    NodeDataSet& operator=(const NodeDataSet& other) = default;
 
-    NodeTagSet(NodeTagSet&& other) noexcept = default;
-    NodeTagSet& operator=(NodeTagSet&& other) noexcept = default;
+    NodeDataSet(NodeDataSet&& other) noexcept = default;
+    NodeDataSet& operator=(NodeDataSet&& other) noexcept = default;
 
     HYP_FORCE_INLINE bool Has(StringHash name) const
     {
         return Base::Contains(Name(name));
     }
 
-    HYP_FORCE_INLINE const NodeTag* Get(StringHash name) const
+    HYP_FORCE_INLINE const NodeData* Get(StringHash name) const
     {
         const auto it = Base::Find(Name(name));
 
@@ -241,55 +241,55 @@ public:
         return nullptr;
     }
 
-    HYP_FORCE_INLINE NodeTag* Get(Name name)
+    HYP_FORCE_INLINE NodeData* Get(Name name)
     {
-        return const_cast<NodeTag*>(static_cast<const NodeTagSet*>(this)->Get(name));
+        return const_cast<NodeData*>(static_cast<const NodeDataSet*>(this)->Get(name));
     }
 
     template <class T, class... Args>
-    NodeTag* Add(Name name, Args&&... args)
+    NodeData* Add(Name name, Args&&... args)
     {
-        auto [it, inserted] = Base::Insert(NodeTag { name, NodeTag::VariantType(std::forward<Args>(args)...) });
+        auto [it, inserted] = Base::Insert(NodeData {
+            name,
+            NodeData::VariantType()
+        });
 
-        if (!inserted)
-        {
-            // update existing tag
-            it->data = NodeTag::VariantType(std::forward<Args>(args)...);
-        }
+        // update existing, or the new one that was added.
+        it->data = NodeData::VariantType(std::forward<Args>(args)...);
 
         return &(*it);
     }
 
-    NodeTag* Add(const NodeTag& tag)
+    NodeData* Add(const NodeData& data)
     {
-        NodeTag* pExistingTag = Get(tag.name);
+        NodeData* pExisting = Get(data.name);
 
-        if (pExistingTag != nullptr)
+        if (pExisting != nullptr)
         {
-            // update existing tag
-            pExistingTag->data = tag.data;
+            // update existing
+            pExisting->data = data.data;
 
-            return pExistingTag;
+            return pExisting;
         }
 
-        auto [it, inserted] = Base::Insert(tag);
+        auto [it, inserted] = Base::Insert(data);
 
         return &(*it);
     }
 
-    NodeTag* Add(NodeTag&& tag)
+    NodeData* Add(NodeData&& data)
     {
-        NodeTag* pExistingTag = Get(tag.name);
+        NodeData* pExisting = Get(data.name);
 
-        if (pExistingTag != nullptr)
+        if (pExisting != nullptr)
         {
-            // update existing tag
-            pExistingTag->data = std::move(tag.data);
+            // update existing
+            pExisting->data = std::move(data.data);
 
-            return pExistingTag;
+            return pExisting;
         }
 
-        auto [it, inserted] = Base::Insert(std::move(tag));
+        auto [it, inserted] = Base::Insert(std::move(data));
 
         return &(*it);
     }
@@ -304,13 +304,15 @@ public:
         Base::Clear();
     }
 
+    using Base::Merge;
+
     String ToString() const
     {
         String result = "{ ";
 
-        for (const auto& tag : *this)
+        for (const auto& data : *this)
         {
-            result += tag.ToString() + " ";
+            result += data.ToString() + " ";
         }
 
         result += "}";
@@ -320,27 +322,27 @@ public:
 
     /// Serialization
     HYP_METHOD(Property = "Values", Serialize = true, NoScriptBindings)
-    Array<NodeTag, DynamicAllocator> SerializeValues() const
+    Array<NodeData, DynamicAllocator> SerializeValues() const
     {
-        Array<NodeTag, DynamicAllocator> result;
+        Array<NodeData, DynamicAllocator> result;
         result.Reserve(m_size);
 
-        for (const NodeTag& tag : *this)
+        for (const NodeData& data : *this)
         {
-            result.PushBack(tag);
+            result.PushBack(data);
         }
 
         return result;
     }
 
     HYP_METHOD(Property = "Values", Serialize = true, NoScriptBindings)
-    void DeserializeValues(const Array<NodeTag, DynamicAllocator>& values)
+    void DeserializeValues(const Array<NodeData, DynamicAllocator>& datas)
     {
-        Reserve(values.Size());
+        Reserve(datas.Size());
 
-        for (const NodeTag& tag : values)
+        for (const NodeData& data : datas)
         {
-            Add(tag);
+            Add(data);
         }
     }
     /// End Serialization
@@ -925,28 +927,30 @@ public:
     HYP_METHOD()
     Node* FindChildByUUID(const UUID& uuid) const;
 
-    HYP_FORCE_INLINE const NodeTagSet& GetTags() const
+    HYP_FORCE_INLINE const NodeDataSet& GetDataEntries() const
     {
-        return m_tags;
+        return m_dataEntries;
     }
 
-    /*! \brief Add a tag to this Node. */
-    void AddTag(NodeTag&& value);
+    /*! \brief Add a data entry to this Node. */
+    void AddDataEntry(const NodeData& value);
+    /*! \brief Add a data entry to this Node. */
+    void AddDataEntry(NodeData&& value);
 
-    /*! \brief Remove a tag from this Node.
-     *  \param key The key the tag
-     *  \returns Whether the tag with the given key was successfully removed or not */
-    bool RemoveTag(StringHash key);
+    /*! \brief Remove a data entry from this Node.
+     *  \param key The key of the entry to remove.
+     *  \returns Whether the entry with the given key was successfully removed or not */
+    bool RemoveDataEntry(StringHash key);
 
-    /*! \brief Get a tag from this Node.
-     *  \param key The key the tag
-     *  \returns The tag with the given key. If the tag does not exist, an empty NodeTag is returned */
-    const NodeTag& GetTag(StringHash key) const;
+    /*! \brief Get a data entry from this Node.
+     *  \param key The key of the entry to remove.
+     *  \returns The entry with the given key. If the tag does not exist, an empty NodeData is returned */
+    const NodeData& GetDataEntry(StringHash key) const;
 
-    /*! \brief Check if this Node has a tag with the given name.
-     *  \param key The key the tag
-     *  \returns True if the tag exists, false otherwise. */
-    bool HasTag(StringHash key) const;
+    /*! \brief Check if this Node has an entry with the given name.
+     *  \param key The key of the entry to remove.
+     *  \returns True if the entry exists, false otherwise. */
+    bool HasDataEntry(StringHash key) const;
 
 #ifdef HYP_EDITOR
     HYP_METHOD(EditorOnly)
@@ -1031,8 +1035,8 @@ protected:
     HYP_FIELD(Property = "Scene", Transient, Editor = false)
     Scene* m_scene;
 
-    HYP_FIELD(Property = "NodeTags", Serialize, Editor = false)
-    NodeTagSet m_tags;
+    HYP_FIELD(Property = "DataEntries", Serialize, Editor = false)
+    NodeDataSet m_dataEntries;
 
     static constexpr uint32 s_currentRotationConvention = 1;
     uint32 m_rotationConvention = 0;

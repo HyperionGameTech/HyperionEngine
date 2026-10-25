@@ -80,15 +80,15 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
         return;
     }
 
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
+    const NodeData& axisDataEntry = node->GetDataEntry("TransformWidgetAxis"_sh);
 
-    if (!axisTag)
+    if (!axisDataEntry)
     {
         return;
     }
 
     int axis = -1;
-    axisTag.data.Visit(
+    axisDataEntry.data.Visit(
         [&axis](auto&& value)
         {
             if constexpr (std::is_integral_v<NormalizedType<decltype(value)>>)
@@ -292,10 +292,10 @@ bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEv
         return false;
     }
 
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
+    if (const NodeData& entry = node->GetDataEntry("TransformWidgetElementColor"_sh))
     {
         MaterialParameters newParameters = meshComponent->material->GetParameters();
-        newParameters.albedo = tag.data.TryGet<Vec4f>(Vec4f::Zero());
+        newParameters.albedo = entry.data.TryGet<Vec4f>(Vec4f::Zero());
 
         meshComponent->material->SetParameters(newParameters);
     }

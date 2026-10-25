@@ -52,9 +52,9 @@ ScriptableDelegate<void, Node*> Node::TransformUpdated;
 extern Handle<EditorState> g_editorState;
 #endif
 
-#pragma region NodeTag
+#pragma region NodeData
 
-String NodeTag::ToString() const
+String NodeData::ToString() const
 {
     if (!data.IsValid())
     {
@@ -71,7 +71,7 @@ String NodeTag::ToString() const
     return str;
 }
 
-#pragma endregion NodeTag
+#pragma endregion NodeData
 
 void Node_OnPostLoad(Node& node)
 {
@@ -163,10 +163,7 @@ Handle<Node> Node::CloneAs(const Class* nodeClass, bool cloneChildren) const
     cloned->SetLocalBounds(m_localBounds);
     cloned->SetName(m_name);
 
-    for (const NodeTag& tag : m_tags)
-    {
-        cloned->AddTag(NodeTag(tag));
-    }
+    cloned->m_dataEntries.Merge(m_dataEntries);
 
     if (!cloneChildren)
     {
@@ -1328,19 +1325,29 @@ Node* Node::FindChildByUUID(const UUID& uuid) const
     return nullptr;
 }
 
-void Node::AddTag(NodeTag&& value)
+void Node::AddDataEntry(const NodeData& value)
 {
-    if (!m_tags.Contains(value.name))
+    if (!m_dataEntries.Contains(value.name))
     {
-        m_tags.Add(std::move(value));
+        m_dataEntries.Add(value);
 
         MarkDirty();
     }
 }
 
-bool Node::RemoveTag(StringHash key)
+void Node::AddDataEntry(NodeData&& value)
 {
-    bool removed = m_tags.Remove(key);
+    if (!m_dataEntries.Contains(value.name))
+    {
+        m_dataEntries.Add(std::move(value));
+
+        MarkDirty();
+    }
+}
+
+bool Node::RemoveDataEntry(StringHash key)
+{
+    bool removed = m_dataEntries.Remove(key);
 
     if (removed)
     {
@@ -1352,18 +1359,20 @@ bool Node::RemoveTag(StringHash key)
     return false;
 }
 
-const NodeTag& Node::GetTag(StringHash key) const
+const NodeData& Node::GetDataEntry(StringHash key) const
 {
-    static const NodeTag emptyTag = NodeTag();
+    static const NodeData s_emptyDataEntry = NodeData();
 
-    const NodeTag* tag = m_tags.Get(key);
+    const NodeData* tag = m_dataEntries.Get(key);
 
-    return tag != nullptr ? *tag : emptyTag;
+    return tag != nullptr
+        ? *tag
+        : s_emptyDataEntry;
 }
 
-bool Node::HasTag(StringHash key) const
+bool Node::HasDataEntry(StringHash key) const
 {
-    return m_tags.Has(key);
+    return m_dataEntries.Has(key);
 }
 
 #ifdef HYP_EDITOR

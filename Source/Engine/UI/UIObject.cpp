@@ -2750,41 +2750,41 @@ void UIObject::SetNodeProxy(Handle<Node> node)
     }
 }
 
-const NodeTag& UIObject::GetNodeTag(StringHash key) const
+const NodeData& UIObject::GetDataEntry(StringHash key) const
 {
-    static const NodeTag emptyTag {};
+    static const NodeData emptyTag {};
 
     if (m_node.IsValid())
     {
-        return m_node->GetTag(key);
+        return m_node->GetDataEntry(key);
     }
 
     return emptyTag;
 }
 
-void UIObject::SetNodeTag(NodeTag&& tag)
+void UIObject::SetDataEntry(NodeData&& tag)
 {
     if (m_node.IsValid())
     {
-        m_node->AddTag(std::move(tag));
+        m_node->AddDataEntry(std::move(tag));
     }
 }
 
-bool UIObject::HasNodeTag(StringHash key) const
+bool UIObject::HasDataEntry(StringHash key) const
 {
     if (m_node.IsValid())
     {
-        return m_node->HasTag(key);
+        return m_node->HasDataEntry(key);
     }
 
     return false;
 }
 
-bool UIObject::RemoveNodeTag(StringHash key)
+bool UIObject::RemoveDataEntry(StringHash key)
 {
     if (m_node.IsValid())
     {
-        return m_node->RemoveTag(key);
+        return m_node->RemoveDataEntry(key);
     }
 
     return false;

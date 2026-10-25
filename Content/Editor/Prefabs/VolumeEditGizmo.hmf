@@ -52,12 +52,12 @@ Prefab VolumeEditGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag VolumeFaceIndex {
+                        NodeData VolumeFaceIndex {
                             Data = 0
                         }
                     ]
@@ -95,12 +95,12 @@ Prefab VolumeEditGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag VolumeFaceIndex {
+                        NodeData VolumeFaceIndex {
                             Data = 1
                         }
                     ]
@@ -138,12 +138,12 @@ Prefab VolumeEditGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag VolumeFaceIndex {
+                        NodeData VolumeFaceIndex {
                             Data = 2
                         }
                     ]
@@ -181,12 +181,12 @@ Prefab VolumeEditGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag VolumeFaceIndex {
+                        NodeData VolumeFaceIndex {
                             Data = 3
                         }
                     ]
@@ -224,12 +224,12 @@ Prefab VolumeEditGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag VolumeFaceIndex {
+                        NodeData VolumeFaceIndex {
                             Data = 4
                         }
                     ]
@@ -267,12 +267,12 @@ Prefab VolumeEditGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.3, 0, 0.28, 0.25)
                         }
-                        NodeTag VolumeFaceIndex {
+                        NodeData VolumeFaceIndex {
                             Data = 5
                         }
                     ]
@@ -280,7 +280,7 @@ Prefab VolumeEditGizmo {
             }
         ]
         RotationConvention = 1
-        NodeTags = {
+        DataEntries = {
             Values = []
         }
     }

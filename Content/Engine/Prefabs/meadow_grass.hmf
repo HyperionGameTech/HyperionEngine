@@ -67,17 +67,17 @@ Prefab meadow_grass {
                             }
                         }
                         Children = []
-                        NodeTags = {
+                        DataEntries = {
                             Values = []
                         }
                     }
                 ]
-                NodeTags = {
+                DataEntries = {
                     Values = []
                 }
             }
         ]
-        NodeTags = {
+        DataEntries = {
             Values = []
         }
     }

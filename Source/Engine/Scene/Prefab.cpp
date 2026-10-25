@@ -378,7 +378,7 @@ UUID Prefab::GetSourcePrefabUUID(const Node* node)
         return UUID::Invalid();
     }
 
-    if (const UUID* uuid = node->GetTag(s_namePrefabSource).data.TryGet<UUID>())
+    if (const UUID* uuid = node->GetDataEntry(s_namePrefabSource).data.TryGet<UUID>())
     {
         return *uuid;
     }
@@ -393,7 +393,7 @@ uint32 Prefab::GetInstanceRevision(const Node* node)
         return 0;
     }
 
-    if (const int* revision = node->GetTag(s_namePrefabRevision).data.TryGet<int>())
+    if (const int* revision = node->GetDataEntry(s_namePrefabRevision).data.TryGet<int>())
     {
         return uint32(*revision);
     }
@@ -409,14 +409,14 @@ void Prefab::TagAsPrefabInstance(Node* node, const UUID& prefabUUID, uint32 revi
     }
 
     // replace the existing tags, if any
-    node->RemoveTag(s_namePrefabSource);
-    node->RemoveTag(s_namePrefabRevision);
+    node->RemoveDataEntry(s_namePrefabSource);
+    node->RemoveDataEntry(s_namePrefabRevision);
 
-    node->AddTag(NodeTag(s_namePrefabSource, prefabUUID));
+    node->AddDataEntry(NodeData(s_namePrefabSource, prefabUUID));
 
     if (revision != 0)
     {
-        node->AddTag(NodeTag(s_namePrefabRevision, int(revision)));
+        node->AddDataEntry(NodeData(s_namePrefabRevision, int(revision)));
     }
 }
 
@@ -427,8 +427,8 @@ void Prefab::UntagAsPrefabInstance(Node* node)
         return;
     }
 
-    node->RemoveTag(s_namePrefabSource);
-    node->RemoveTag(s_namePrefabRevision);
+    node->RemoveDataEntry(s_namePrefabSource);
+    node->RemoveDataEntry(s_namePrefabRevision);
 }
 
 uint32 Prefab::SyncStaleInstances(Node* root)

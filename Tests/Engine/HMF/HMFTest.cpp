@@ -1185,10 +1185,10 @@ CameraOrthoRect {
     }
 
     {
-        const Class* cls = GetClass<NodeTag>();
+        const Class* cls = GetClass<NodeData>();
         if (!cls || !cls->CanCreateInstance())
         {
-            Check("NodeTag registered", false);
+            Check("NodeData registered", false);
         }
         else
         {
@@ -1199,41 +1199,41 @@ CameraOrthoRect {
             // Write it
             String text;
             ObjectToHMF(cls, obj, text);
-            HYP_LOG(Engine, Info, "NodeTag HMF:\n{}", text);
+            HYP_LOG(Engine, Info, "NodeData HMF:\n{}", text);
 
-            Check("NodeTag: has no name", !text.Contains("Name"), text);
-            Check("NodeTag: has Data field", text.Contains("Data"), text);
+            Check("NodeData: has no name", !text.Contains("Name"), text);
+            Check("NodeData: has Data field", text.Contains("Data"), text);
 
             // Parse back
             HMF::ParseResult result = HMF::Parse(text);
-            Check("NodeTag: round-trip parse succeeds", Success(result), result.GetError().GetMessage());
+            Check("NodeData: round-trip parse succeeds", Success(result), result.GetError().GetMessage());
 
             if (Success(result))
             {
-                Check("NodeTag: type correct", ClassNameIs(result.GetValue(), "NodeTag"));
+                Check("NodeData: type correct", ClassNameIs(result.GetValue(), "NodeData"));
             }
         }
     }
 
     {
-        const String manifest = R"(NodeTag {
+        const String manifest = R"(NodeData {
     Name = "Health"
     Data = 42.5
 }
 )";
 
         HMF::ParseResult result = HMF::Parse(manifest);
-        Check("Parse NodeTag (float variant) succeeds", Success(result), result.GetError().GetMessage());
+        Check("Parse NodeData (float variant) succeeds", Success(result), result.GetError().GetMessage());
 
         if (Success(result))
         {
-            Check("NodeTag float variant: type correct", ClassNameIs(result.GetValue(), "NodeTag"));
+            Check("NodeData float variant: type correct", ClassNameIs(result.GetValue(), "NodeData"));
 
             const Class* cls = GetClass(result.GetValue().GetTypeId());
             if (cls)
             {
                 Name tagName = GetFieldValue<Name>(result.GetValue(), cls, "Name");
-                Check("NodeTag float variant: Name == Health",
+                Check("NodeData float variant: Name == Health",
                       String(tagName.LookupString()) == String("Health"),
                       tagName.LookupString());
             }
@@ -1241,34 +1241,34 @@ CameraOrthoRect {
     }
 
     {
-        const String manifest = R"(NodeTag {
+        const String manifest = R"(NodeData {
     Name = "Level"
     Data = 99
 }
 )";
 
         HMF::ParseResult result = HMF::Parse(manifest);
-        Check("Parse NodeTag (int variant) succeeds", Success(result), result.GetError().GetMessage());
+        Check("Parse NodeData (int variant) succeeds", Success(result), result.GetError().GetMessage());
 
         if (Success(result))
         {
-            Check("NodeTag int variant: type correct", ClassNameIs(result.GetValue(), "NodeTag"));
+            Check("NodeData int variant: type correct", ClassNameIs(result.GetValue(), "NodeData"));
         }
     }
 
     {
-        const String manifest = R"(NodeTag {
+        const String manifest = R"(NodeData {
     Name = "Description"
     Data = "hello world"
 }
 )";
 
         HMF::ParseResult result = HMF::Parse(manifest);
-        Check("Parse NodeTag (String variant) succeeds", Success(result), result.GetError().GetMessage());
+        Check("Parse NodeData (String variant) succeeds", Success(result), result.GetError().GetMessage());
 
         if (Success(result))
         {
-            Check("NodeTag String variant: type correct", ClassNameIs(result.GetValue(), "NodeTag"));
+            Check("NodeData String variant: type correct", ClassNameIs(result.GetValue(), "NodeData"));
         }
     }
 
@@ -1542,42 +1542,42 @@ CameraOrthoRect {
         };
 
         const VariantTest tests[] = {
-            { "int", R"(NodeTag {
+            { "int", R"(NodeData {
     Name = "T"
     Data = 42
 }
 )" },
-            { "float", R"(NodeTag {
+            { "float", R"(NodeData {
     Name = "T"
     Data = 3.14
 }
 )" },
-            { "String", R"(NodeTag {
+            { "String", R"(NodeData {
     Name = "T"
     Data = "hello"
 }
 )" },
-            { "negative", R"(NodeTag {
+            { "negative", R"(NodeData {
     Name = "T"
     Data = -7
 }
 )" },
-            { "zero", R"(NodeTag {
+            { "zero", R"(NodeData {
     Name = "T"
     Data = 0
 }
 )" },
-            { "large_int", R"(NodeTag {
+            { "large_int", R"(NodeData {
     Name = "T"
     Data = 2000000000
 }
 )" },
-            { "Vec3f", R"(NodeTag {
+            { "Vec3f", R"(NodeData {
     Name = "T"
     Data = (1, 2.5, 3)
 }
 )" },
-            { "Vec4f", R"(NodeTag {
+            { "Vec4f", R"(NodeData {
     Name = "T"
     Data = (1, 2, 3, 4)
 }
@@ -1592,8 +1592,8 @@ CameraOrthoRect {
 
             if (Success(result))
             {
-                String label2 = String("Variant<") + vt.name + String(">: type is NodeTag");
-                Check(label2.Data(), ClassNameIs(result.GetValue(), "NodeTag"));
+                String label2 = String("Variant<") + vt.name + String(">: type is NodeData");
+                Check(label2.Data(), ClassNameIs(result.GetValue(), "NodeData"));
             }
         }
     }
@@ -1829,23 +1829,23 @@ CameraOrthoRect {
     }
 
     {
-        const String manifest = R"(NodeTag "TransformWidgetElementColor" {
+        const String manifest = R"(NodeData "TransformWidgetElementColor" {
     Data = (1, 0.02, 0.02, 1)
 }
 )";
 
         HMF::ParseResult result = HMF::Parse(manifest);
-        Check("Parse NodeTag (Vec4f variant) succeeds", Success(result), result.GetError().GetMessage());
+        Check("Parse NodeData (Vec4f variant) succeeds", Success(result), result.GetError().GetMessage());
 
         if (Success(result))
         {
-            Check("NodeTag Vec4f: type correct", ClassNameIs(result.GetValue(), "NodeTag"));
+            Check("NodeData Vec4f: type correct", ClassNameIs(result.GetValue(), "NodeData"));
 
             const Class* cls = GetClass(result.GetValue().GetTypeId());
             if (cls)
             {
                 Name tagName = GetFieldValue<Name>(result.GetValue(), cls, "Name");
-                Check("NodeTag Vec4f: Name == TransformWidgetElementColor",
+                Check("NodeData Vec4f: Name == TransformWidgetElementColor",
                       String(tagName.LookupString()) == String("TransformWidgetElementColor"),
                       tagName.LookupString());
             }
@@ -1853,13 +1853,13 @@ CameraOrthoRect {
     }
 
     {
-        const String manifest = R"(NodeTag "Speed" {
+        const String manifest = R"(NodeData "Speed" {
     Data = 42.5
 }
 )";
 
         HMF::ParseResult result = HMF::Parse(manifest);
-        Check("NodeTag RT: parse succeeds", Success(result), result.GetError().GetMessage());
+        Check("NodeData RT: parse succeeds", Success(result), result.GetError().GetMessage());
 
         if (Success(result))
         {
@@ -1869,20 +1869,20 @@ CameraOrthoRect {
             if (cls)
             {
                 ObjectToHMF(cls, result.GetValue(), rt);
-                HYP_LOG(Engine, Info, "NodeTag round-trip HMF:\n{}", rt);
+                HYP_LOG(Engine, Info, "NodeData round-trip HMF:\n{}", rt);
 
-                Check("NodeTag RT: has no Name field", !rt.Contains("Name ="), rt);
-                Check("NodeTag RT: has Name at top of object", rt.Contains("NodeTag Speed"), rt);
-                Check("NodeTag RT: has Data field", rt.Contains("Data"), rt);
-                Check("NodeTag RT: Data = 42.5", rt.Contains("Data = 42.5"), rt);
+                Check("NodeData RT: has no Name field", !rt.Contains("Name ="), rt);
+                Check("NodeData RT: has Name at top of object", rt.Contains("NodeData Speed"), rt);
+                Check("NodeData RT: has Data field", rt.Contains("Data"), rt);
+                Check("NodeData RT: Data = 42.5", rt.Contains("Data = 42.5"), rt);
 
                 // Parse the round-trip output again
                 HMF::ParseResult rtResult = HMF::Parse(rt);
-                Check("NodeTag RT: re-parse succeeds", Success(rtResult), rtResult.GetError().GetMessage());
+                Check("NodeData RT: re-parse succeeds", Success(rtResult), rtResult.GetError().GetMessage());
 
                 if (Success(rtResult))
                 {
-                    Check("NodeTag RT: re-parse type correct", ClassNameIs(rtResult.GetValue(), "NodeTag"));
+                    Check("NodeData RT: re-parse type correct", ClassNameIs(rtResult.GetValue(), "NodeData"));
                 }
             }
         }

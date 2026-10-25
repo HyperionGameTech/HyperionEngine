@@ -67,6 +67,7 @@ EditorPlayer CreatePlayer(Name playerName, Name cameraName, EnumFlags<NodeFlags>
     player.playerEntity = MakeHandle<Entity>();
     player.playerEntity->SetName(playerName);
     player.playerEntity->SetIsDynamic(true);
+    player.playerEntity->AddTag<EntityTag::Player>();
     InitObject(player.playerEntity);
 
     player.capsuleShape = MakeHandle<CapsulePhysicsShape>(NAME_FMT("{}CapsuleShape", playerName), PlayerCapsuleRadius, PlayerCapsuleHeight);

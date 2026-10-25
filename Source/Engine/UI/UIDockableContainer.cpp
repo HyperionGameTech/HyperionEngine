@@ -62,9 +62,9 @@ void UIDockableContainer::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     UIDockableItemPosition position = UIDockableItemPosition::CENTER;
 
-    if (const NodeTag& sideNodeTag = uiObject->GetNodeTag("side"_sh); sideNodeTag.IsValid())
+    if (const NodeData& sideData = uiObject->GetDataEntry("side"_sh); sideData.IsValid())
     {
-        Optional<const String&> sideOpt = sideNodeTag.data.TryGet<String>();
+        Optional<const String&> sideOpt = sideData.data.TryGet<String>();
 
         if (sideOpt.HasValue())
         {

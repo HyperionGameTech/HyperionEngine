@@ -58,8 +58,8 @@ static Handle<Entity> CreateAxisEntity(
 
     AssertDebug(axisEntity->GetScene() != nullptr);
 
-    axisEntity->Node::AddTag(NodeTag(NAME("TransformWidgetAxis"), axisIndex));
-    axisEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), axisColor));
+    axisEntity->AddDataEntry(NodeData(NAME("TransformWidgetAxis"), axisIndex));
+    axisEntity->AddDataEntry(NodeData(NAME("TransformWidgetElementColor"), axisColor));
 
     axisEntity->AddComponent<MeshComponent>(MeshComponent { axisMesh, material });
     axisEntity->SetLocalBounds(axisMesh->GetAABB());
@@ -93,8 +93,8 @@ static Handle<Entity> CreateCentroidEntity(
     centroidEntity->SetIsDynamic(true);
     InitObject(centroidEntity);
 
-    centroidEntity->Node::AddTag(NodeTag(NAME("TransformWidgetAxis"), -1));
-    centroidEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), centroidColor));
+    centroidEntity->AddDataEntry(NodeData(NAME("TransformWidgetAxis"), -1));
+    centroidEntity->AddDataEntry(NodeData(NAME("TransformWidgetElementColor"), centroidColor));
 
     centroidEntity->AddComponent<MeshComponent>(MeshComponent { centroidMesh, material });
     centroidEntity->SetLocalBounds(centroidMesh->GetAABB());
@@ -309,8 +309,8 @@ static void BuildVolumeGizmo(Handle<AssetRegistry>& assetRegistry)
         faceEntity->SetLocalRotation(s_faceRotations[i]);
         InitObject(faceEntity);
 
-        faceEntity->Node::AddTag(NodeTag(NAME("VolumeFaceIndex"), i));
-        faceEntity->Node::AddTag(NodeTag(NAME("TransformWidgetElementColor"), volumeColor));
+        faceEntity->AddDataEntry(NodeData(NAME("VolumeFaceIndex"), i));
+        faceEntity->AddDataEntry(NodeData(NAME("TransformWidgetElementColor"), volumeColor));
 
         faceEntity->AddComponent<MeshComponent>(MeshComponent { quadMesh, material });
         faceEntity->SetLocalBounds(quadMesh->GetAABB());

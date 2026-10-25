@@ -52,12 +52,12 @@ Prefab RotateGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (1, 0.02, 0.02, 1)
                         }
-                        NodeTag TransformWidgetAxis {
+                        NodeData TransformWidgetAxis {
                             Data = 0
                         }
                     ]
@@ -95,12 +95,12 @@ Prefab RotateGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.02, 1, 0.02, 1)
                         }
-                        NodeTag TransformWidgetAxis {
+                        NodeData TransformWidgetAxis {
                             Data = 1
                         }
                     ]
@@ -138,12 +138,12 @@ Prefab RotateGizmo {
                 }
                 Children = []
                 RotationConvention = 1
-                NodeTags = {
+                DataEntries = {
                     Values = [
-                        NodeTag TransformWidgetElementColor {
+                        NodeData TransformWidgetElementColor {
                             Data = (0.02, 0.02, 1, 1)
                         }
-                        NodeTag TransformWidgetAxis {
+                        NodeData TransformWidgetAxis {
                             Data = 2
                         }
                     ]
@@ -151,7 +151,7 @@ Prefab RotateGizmo {
             }
         ]
         RotationConvention = 1
-        NodeTags = {
+        DataEntries = {
             Values = []
         }
     }

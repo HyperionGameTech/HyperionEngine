@@ -109,12 +109,12 @@ Prefab ThirdPersonCharacter {
                                     }
                                 }
                                 Children = []
-                                NodeTags = {
+                                DataEntries = {
                                     Values = []
                                 }
                             }
                         ]
-                        NodeTags = {
+                        DataEntries = {
                             Values = []
                         }
                     }
@@ -334,17 +334,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -402,17 +402,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -470,17 +470,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -538,17 +538,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -606,37 +606,37 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
                                                                                 ]
-                                                                                NodeTags = {
+                                                                                DataEntries = {
                                                                                     Values = []
                                                                                 }
                                                                             }
                                                                         ]
-                                                                        NodeTags = {
+                                                                        DataEntries = {
                                                                             Values = []
                                                                         }
                                                                     }
                                                                 ]
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
@@ -766,17 +766,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -834,17 +834,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -902,17 +902,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -970,17 +970,17 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
@@ -1038,37 +1038,37 @@ Prefab ThirdPersonCharacter {
                                                                                                                     }
                                                                                                                 }
                                                                                                                 Children = []
-                                                                                                                NodeTags = {
+                                                                                                                DataEntries = {
                                                                                                                     Values = []
                                                                                                                 }
                                                                                                             }
                                                                                                         ]
-                                                                                                        NodeTags = {
+                                                                                                        DataEntries = {
                                                                                                             Values = []
                                                                                                         }
                                                                                                     }
                                                                                                 ]
-                                                                                                NodeTags = {
+                                                                                                DataEntries = {
                                                                                                     Values = []
                                                                                                 }
                                                                                             }
                                                                                         ]
-                                                                                        NodeTags = {
+                                                                                        DataEntries = {
                                                                                             Values = []
                                                                                         }
                                                                                     }
                                                                                 ]
-                                                                                NodeTags = {
+                                                                                DataEntries = {
                                                                                     Values = []
                                                                                 }
                                                                             }
                                                                         ]
-                                                                        NodeTags = {
+                                                                        DataEntries = {
                                                                             Values = []
                                                                         }
                                                                     }
                                                                 ]
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
@@ -1108,27 +1108,27 @@ Prefab ThirdPersonCharacter {
                                                                             }
                                                                         }
                                                                         Children = []
-                                                                        NodeTags = {
+                                                                        DataEntries = {
                                                                             Values = []
                                                                         }
                                                                     }
                                                                 ]
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
                                                         ]
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
                                                 ]
-                                                NodeTags = {
+                                                DataEntries = {
                                                     Values = []
                                                 }
                                             }
                                         ]
-                                        NodeTags = {
+                                        DataEntries = {
                                             Values = []
                                         }
                                     }
@@ -1204,22 +1204,22 @@ Prefab ThirdPersonCharacter {
                                                                     }
                                                                 }
                                                                 Children = []
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
                                                         ]
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
                                                 ]
-                                                NodeTags = {
+                                                DataEntries = {
                                                     Values = []
                                                 }
                                             }
                                         ]
-                                        NodeTags = {
+                                        DataEntries = {
                                             Values = []
                                         }
                                     }
@@ -1295,42 +1295,42 @@ Prefab ThirdPersonCharacter {
                                                                     }
                                                                 }
                                                                 Children = []
-                                                                NodeTags = {
+                                                                DataEntries = {
                                                                     Values = []
                                                                 }
                                                             }
                                                         ]
-                                                        NodeTags = {
+                                                        DataEntries = {
                                                             Values = []
                                                         }
                                                     }
                                                 ]
-                                                NodeTags = {
+                                                DataEntries = {
                                                     Values = []
                                                 }
                                             }
                                         ]
-                                        NodeTags = {
+                                        DataEntries = {
                                             Values = []
                                         }
                                     }
                                 ]
-                                NodeTags = {
+                                DataEntries = {
                                     Values = []
                                 }
                             }
                         ]
-                        NodeTags = {
+                        DataEntries = {
                             Values = []
                         }
                     }
                 ]
-                NodeTags = {
+                DataEntries = {
                     Values = []
                 }
             }
         ]
-        NodeTags = {
+        DataEntries = {
             Values = []
         }
     }
