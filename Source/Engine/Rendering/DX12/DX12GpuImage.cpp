@@ -982,8 +982,8 @@ void DX12GpuImage::CopyFromBuffer(
     const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
     const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format);
     const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-    const size_t requiredBufferSize = static_cast<size_t>(srcBufferOffset) + (static_cast<size_t>(mipExtent.y) * mipExtent.z * alignedRowPitch);
-    const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    const size_t requiredBufferSize = size_t(srcBufferOffset) + (size_t(mipExtent.y) * mipExtent.z * alignedRowPitch);
+    const size_t layerStep = ByteUtil::AlignAs(size_t(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
     AssertDebug(srcBufferOffset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT == 0,
         "Source buffer offset {} is not {} byte aligned", srcBufferOffset, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);

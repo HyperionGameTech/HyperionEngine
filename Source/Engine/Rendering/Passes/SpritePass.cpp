@@ -351,7 +351,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 {
     Assert(renderSetup.view != nullptr);
 
-    SpritePassData* pd = DynamicCast<SpritePassData>(FetchViewPassData(renderSetup.view));
+    SpritePassData* pd = TryCast<SpritePassData>(FetchViewPassData(renderSetup.view));
     AssertDebug(pd != nullptr);
 
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
@@ -630,7 +630,7 @@ void SpritePass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 continue;
             }
 
-            TextSprite* textSprite = StaticCast<TextSprite>(sprite);
+            TextSprite* textSprite = Cast<TextSprite>(sprite);
 
             RenderProxySprite* spriteProxy = rpl.GetSprites().GetProxy(textSprite->Id());
             if (!spriteProxy || !spriteProxy->fontAtlas)

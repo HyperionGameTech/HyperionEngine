@@ -204,7 +204,7 @@ void ParticlesPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(renderSetup.world && renderSetup.view && renderSetup.volume);
 
-    ParticleVolume* particleVolume = DynamicCast<ParticleVolume>(renderSetup.volume);
+    ParticleVolume* particleVolume = TryCast<ParticleVolume>(renderSetup.volume);
     AssertDebug(particleVolume != nullptr);
 
     View* view = renderSetup.view;

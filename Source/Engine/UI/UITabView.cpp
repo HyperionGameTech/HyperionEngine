@@ -156,7 +156,7 @@ void UITabView::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    Handle<UIObject> tab = DynamicCast<UITab>(uiObject);
+    Handle<UIObject> tab = TryCast<UITab>(uiObject);
     Assert(tab.IsValid(), "Cast to UITab failed");
 
     tab->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
@@ -178,7 +178,7 @@ void UITabView::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     UIPanel::AddChildUIObject(tab);
 
-    m_tabs.PushBack(DynamicCast<UITab>(tab));
+    m_tabs.PushBack(TryCast<UITab>(tab));
 
     UpdateTabSizes();
 

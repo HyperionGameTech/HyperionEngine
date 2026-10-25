@@ -75,7 +75,7 @@ static Handle<Texture> LoadTerrainTexture(const AssetPath& defaultPath)
 
     auto tryLoadFromRegistry = [name](AssetRegistry& registry) -> Handle<Texture>
     {
-        return DynamicCast<Texture>(registry.GetAsset(AssetBuckets::Textures, name));
+        return TryCast<Texture>(registry.GetAsset(AssetBuckets::Textures, name));
     };
 
     Handle<Texture> texture;
@@ -1067,7 +1067,7 @@ Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) 
                 break;
             }
 
-            if (Handle<TerrainCellData> cellData = DynamicCast<TerrainCellData>(assetReference.Resolve()); cellData.IsValid())
+            if (Handle<TerrainCellData> cellData = TryCast<TerrainCellData>(assetReference.Resolve()); cellData.IsValid())
             {
                 return cellData;
             }
@@ -1078,7 +1078,7 @@ Handle<TerrainCellData> TerrainWorldGridLayer::FindCellData(const Vec2i& coord) 
     {
         const AssetPath assetPath = assetReference.GetAssetPath();
 
-        Handle<TerrainCellData> cellData = DynamicCast<TerrainCellData>(assetReference.Resolve());
+        Handle<TerrainCellData> cellData = TryCast<TerrainCellData>(assetReference.Resolve());
 
         if (!cellData.IsValid())
         {

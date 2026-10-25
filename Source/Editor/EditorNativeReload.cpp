@@ -309,7 +309,7 @@ void ForEachHandleMember(ObjectBase* object, Callback&& callback)
         }
     }
 
-    Entity* entity = DynamicCast<Entity>(object);
+    Entity* entity = TryCast<Entity>(object);
     EntityManager* entityManager = entity != nullptr ? entity->GetEntityManager() : nullptr;
 
     if (entityManager == nullptr)
@@ -395,7 +395,7 @@ Handle<Node> Remap(const Handle<Node>& node, const Array<RebuiltObject>& rebuilt
 {
     const Handle<ObjectBase>* replacement = FindRebuilt(node.Get(), rebuiltObjects);
 
-    return replacement != nullptr ? DynamicCast<Node>(*replacement) : node;
+    return replacement != nullptr ? TryCast<Node>(*replacement) : node;
 }
 
 void RemapEditorReferences(EditorSubsystem* subsystem, EditorProject* project, const Array<RebuiltObject>& rebuiltObjects)

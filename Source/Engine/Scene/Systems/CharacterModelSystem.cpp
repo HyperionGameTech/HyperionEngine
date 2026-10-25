@@ -209,9 +209,10 @@ Entity* FindParentCharacterEntity(const Entity& entity)
 {
     for (Node* parentNode = entity.GetParent(); parentNode != nullptr; parentNode = parentNode->GetParent())
     {
-        if (parentNode->IsA<Entity>() && static_cast<Entity*>(parentNode)->HasComponent<CharacterControllerComponent>())
+        if (parentNode->IsA<Entity>()
+            && Cast<Entity>(parentNode)->HasComponent<CharacterControllerComponent>())
         {
-            return static_cast<Entity*>(parentNode);
+            return Cast<Entity>(parentNode);
         }
     }
 
@@ -225,9 +226,9 @@ Vec3f GetCharacterViewDirection(
     // Read the camera directly so the model turns on the same frame the view does
     for (const Handle<Node>& child : characterEntity.GetChildren())
     {
-        if (const Handle<Camera>& camera = DynamicCast<Camera>(child); camera.IsValid())
+        if (const Handle<Camera>& camera = TryCast<Camera>(child); camera.IsValid())
         {
-            if (const ThirdPersonCameraController* thirdPersonController = DynamicCast<ThirdPersonCameraController>(camera->GetCameraController().Get()))
+            if (const ThirdPersonCameraController* thirdPersonController = TryCast<ThirdPersonCameraController>(camera->GetCameraController().Get()))
             {
                 return thirdPersonController->GetViewDirection();
             }
@@ -243,7 +244,7 @@ float GetCapsuleFeetOffset(
     const CharacterControllerComponent& characterController,
     bool isPlaying)
 {
-    const CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(characterController.shape.Get());
+    const CapsulePhysicsShape* capsuleShape = TryCast<CapsulePhysicsShape>(characterController.shape.Get());
 
     if (!capsuleShape)
     {

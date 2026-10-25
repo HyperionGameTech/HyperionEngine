@@ -392,7 +392,7 @@ static inline constexpr TextureFormat ChangeFormatSRGB(TextureFormat fmt, bool u
 
     if (useSRGB)
     {
-        TextureFormat srgbVersion = static_cast<TextureFormat>(uint32(fmt) + BeginSRGB);
+        TextureFormat srgbVersion = TextureFormat(uint32(fmt) + BeginSRGB);
 
         if (IsSRGB(srgbVersion))
         {
@@ -404,7 +404,7 @@ static inline constexpr TextureFormat ChangeFormatSRGB(TextureFormat fmt, bool u
         int iFmt = int(fmt);
         if (iFmt - int(BeginSRGB) >= 0)
         {
-            return static_cast<TextureFormat>(iFmt - int(BeginSRGB));
+            return TextureFormat(iFmt - int(BeginSRGB));
         }
     }
 

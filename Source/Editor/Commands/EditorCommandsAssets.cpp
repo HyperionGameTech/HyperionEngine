@@ -80,10 +80,10 @@ void AddAssetToScene(EditorSubsystem& subsystem, const Handle<Scene>& scene, con
 {
     Handle<Node> clonedNode;
 
-    Handle<Mesh> mesh = DynamicCast<Mesh>(asset);
+    Handle<Mesh> mesh = TryCast<Mesh>(asset);
     Handle<Material> meshMaterial;
 
-    if (Handle<Prefab> prefab = DynamicCast<Prefab>(asset))
+    if (Handle<Prefab> prefab = TryCast<Prefab>(asset))
     {
         if (subsystem.IsEditingPrefab() && subsystem.GetPrefabEditState()->GetPrefab() == prefab)
         {
@@ -148,7 +148,7 @@ void AddAssetToScene(EditorSubsystem& subsystem, const Handle<Scene>& scene, con
                                 GetCurrentAssetRegistry()->PutAssetUnique(meshMaterial);
                                 editorSubsystem->OnAssetsChanged(AssetBuckets::Materials.GetIndex());
 
-                                Handle<Entity> meshEntity = DynamicCast<Entity>(clonedNode);
+                                Handle<Entity> meshEntity = TryCast<Entity>(clonedNode);
 
                                 if (!meshEntity->HasComponent<MeshComponent>())
                                 {
@@ -812,7 +812,7 @@ public:
             return;
         }
 
-        Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
+        Handle<Prefab> prefab = TryCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
         if (!prefab.IsValid())
         {
             HYP_LOG(Editor, Warning, "EditorCommandPlaceAsInstance: '{}' is not a prefab", assetName);
@@ -928,7 +928,7 @@ public:
             return;
         }
 
-        Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
+        Handle<Prefab> prefab = TryCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
         if (!prefab.IsValid())
         {
             HYP_LOG(Editor, Warning, "EditorCommandPlaceInstances: '{}' is not a prefab", assetName);
@@ -1135,7 +1135,7 @@ public:
             return;
         }
 
-        Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
+        Handle<Prefab> prefab = TryCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName)));
         if (!prefab.IsValid())
         {
             HYP_LOG(Editor, Warning, "EditorCommandScatterInstances: '{}' is not a prefab", assetName);
@@ -1148,7 +1148,7 @@ public:
         {
             for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
             {
-                if ((terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer)).IsValid())
+                if ((terrainLayer = TryCast<TerrainWorldGridLayer>(layer)).IsValid())
                 {
                     break;
                 }
@@ -1326,7 +1326,7 @@ public:
 
         for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
         {
-            if ((terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer)).IsValid())
+            if ((terrainLayer = TryCast<TerrainWorldGridLayer>(layer)).IsValid())
             {
                 break;
             }
@@ -1462,7 +1462,7 @@ public:
 
             GroundCoverType type;
 
-            Handle<Prefab> prefab = DynamicCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(AssetBuckets::Prefabs, Name(ANSIString(parts[0]))));
+            Handle<Prefab> prefab = TryCast<Prefab>(GetCurrentAssetRegistry()->GetAsset(AssetBuckets::Prefabs, Name(ANSIString(parts[0]))));
 
             if (!prefab.IsValid())
             {
@@ -1536,7 +1536,7 @@ public:
                 {
                     for (const Handle<WorldGridLayer>& worldGridLayer : worldGrid->GetLayers())
                     {
-                        if (Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(worldGridLayer); terrainLayer.IsValid())
+                        if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(worldGridLayer); terrainLayer.IsValid())
                         {
                             terrainLayers.PushBack(std::move(terrainLayer));
                         }
@@ -1662,7 +1662,7 @@ public:
             targetNode = ResolveNodeUuidArgument(subsystem, GetArgument(2));
         }
 
-        Entity* targetEntity = DynamicCast<Entity>(targetNode);
+        Entity* targetEntity = TryCast<Entity>(targetNode);
 
         if (!targetEntity || targetEntity->GetScene() != activeScene.Get() || !EditorEntityAssetDrop::CanApplyToEntity(asset.Get(), targetEntity))
         {

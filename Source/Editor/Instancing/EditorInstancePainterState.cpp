@@ -112,7 +112,7 @@ Transform EditorInstancePainterState::GetCursorTransform(const SurfaceHit& hit) 
 
 bool EditorInstancePainterState::ShouldIgnoreHit(const RayHit& hit) const
 {
-    Entity* entity = DynamicCast<Entity>(hit.node);
+    Entity* entity = TryCast<Entity>(hit.node);
 
     const InstanceClusterComponent* clusterComponent = entity != nullptr && entity->GetEntityManager() != nullptr
         ? entity->TryGetComponent<InstanceClusterComponent>()

@@ -188,19 +188,19 @@ void BakerSubsystem::OnBakeCompleted(Baking::BakeLayer& bakeLayer, ObjectBase* s
     bakeLayer.sceneHashes.Clear();
     bakeLayer.lightShadowEpochs.Clear();
 
-    if (LightmapVolume* lmv = DynamicCast<LightmapVolume>(source))
+    if (LightmapVolume* lmv = TryCast<LightmapVolume>(source))
     {
         UpdateEpoch(*lmv, bakeLayer);
     }
-    else if (EnvProbe* envProbe = DynamicCast<EnvProbe>(source))
+    else if (EnvProbe* envProbe = TryCast<EnvProbe>(source))
     {
         UpdateEpoch(*envProbe, bakeLayer);
     }
-    else if (FogVolume* fogVolume = DynamicCast<FogVolume>(source))
+    else if (FogVolume* fogVolume = TryCast<FogVolume>(source))
     {
         UpdateEpoch(*fogVolume, bakeLayer);
     }
-    else if (Light* light = DynamicCast<Light>(source))
+    else if (Light* light = TryCast<Light>(source))
     {
         UpdateEpoch(*light, bakeLayer);
     }

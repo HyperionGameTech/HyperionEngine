@@ -92,7 +92,7 @@ Handle<Node> AsNode(const BoxedValue& value)
 
     if (value.Is<Handle<ObjectBase>>())
     {
-        return DynamicCast<Node>(value.Get<Handle<ObjectBase>>());
+        return TryCast<Node>(value.Get<Handle<ObjectBase>>());
     }
 
     return Handle<Node>();

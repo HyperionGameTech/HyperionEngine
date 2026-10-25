@@ -185,7 +185,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr);
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);

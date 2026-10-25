@@ -569,7 +569,7 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
     {
-        return DynamicCast<Entity>(m_node);
+        return TryCast<Entity>(m_node);
     }
 
     HYP_METHOD()
@@ -939,7 +939,7 @@ public:
             return parent->IsA<T>();
         };
 
-        return DynamicCast<T>(GetClosestParentUIObject_Proc(Predicate));
+        return TryCast<T>(GetClosestParentUIObject_Proc(Predicate));
     }
 
     template <class T>
@@ -952,7 +952,7 @@ public:
             return parent->IsA<T>();
         };
 
-        return DynamicCast<T>(GetClosestSpawnParent_Proc(Predicate));
+        return TryCast<T>(GetClosestSpawnParent_Proc(Predicate));
     }
 
     /*! \brief The UIObject that this was spawned from. Not necessarily the parent UIObject that this is attached to in the graph.
@@ -1243,7 +1243,7 @@ public:
 
         InitObject(uiObject);
 
-        Handle<T> result = DynamicCast<T>(uiObject);
+        Handle<T> result = TryCast<T>(uiObject);
         Assert(result.IsValid(), "Failed to cast created UIObject to the requested type");
 
         return result;
@@ -1467,7 +1467,7 @@ private:
 
         Handle<UIObject> uiObject = MakeHandle<T>();
 
-        UIStage* stage = IsA<UIStage>() ? DynamicCast<UIStage>(this) : GetStage();
+        UIStage* stage = IsA<UIStage>() ? TryCast<UIStage>(this) : GetStage();
 
         uiObject->m_spawnParent = WeakHandleFromThis();
         uiObject->m_stage = stage;

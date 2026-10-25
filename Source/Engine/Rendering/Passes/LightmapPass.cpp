@@ -102,7 +102,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);

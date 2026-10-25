@@ -170,7 +170,7 @@ void UIStage::UpdateCameraControllerStack()
 
         if (controller->IsA<UICameraController>())
         {
-            currentController = DynamicCast<UICameraController>(controller);
+            currentController = TryCast<UICameraController>(controller);
             controllerIndex = i;
             break;
         }
@@ -308,7 +308,7 @@ void UIStage::SetWorld(World* world)
         m_scene->RemoveFromWorld();
         m_scene->Shutdown();
 
-        AssertDebug(StaticCast<Entity>(m_node)->GetEntityManager() == nullptr);
+        AssertDebug(Cast<Entity>(m_node)->GetEntityManager() == nullptr);
     }
 
     m_world = world;
@@ -569,7 +569,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
 
     for (const RayHit& hit : rayTestResults)
     {
-        if (Entity* entity = DynamicCast<Entity>(hit.node))
+        if (Entity* entity = TryCast<Entity>(hit.node))
         {
             UIComponent* uiComponent = entity->TryGetComponent<UIComponent>();
 

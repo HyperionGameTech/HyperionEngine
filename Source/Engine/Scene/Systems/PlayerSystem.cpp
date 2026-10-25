@@ -198,7 +198,7 @@ bool PlayerSystem::TrySpawnPlayerEntity(net::NetConnectionId connectionId, bool 
         return true;
     }
 
-    Handle<Entity> clone = DynamicCast<Entity>(templateEntity->Clone());
+    Handle<Entity> clone = TryCast<Entity>(templateEntity->Clone());
 
     if (!clone.IsValid())
     {

@@ -68,7 +68,7 @@ void EditorDecalPainterState::SetActiveDecalByName(Name assetName)
                 return;
             }
 
-            Handle<Decal> decal = DynamicCast<Decal>(registry->GetAsset(AssetBuckets::Decals, assetName));
+            Handle<Decal> decal = TryCast<Decal>(registry->GetAsset(AssetBuckets::Decals, assetName));
 
             if (!decal.IsValid())
             {

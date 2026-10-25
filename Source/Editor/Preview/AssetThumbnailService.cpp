@@ -454,14 +454,14 @@ bool AssetThumbnailService::PoseSubject(const PreviewAssetKey& key)
         return false;
     }
 
-    if (Material* material = DynamicCast<Material>(asset.Get()))
+    if (Material* material = TryCast<Material>(asset.Get()))
     {
         m_previewScene->ShowMaterial(material);
 
         return true;
     }
 
-    if (Decal* decal = DynamicCast<Decal>(asset.Get()))
+    if (Decal* decal = TryCast<Decal>(asset.Get()))
     {
         if (Material* decalMaterial = decal->GetMaterial().Get())
         {
@@ -473,14 +473,14 @@ bool AssetThumbnailService::PoseSubject(const PreviewAssetKey& key)
         return false;
     }
 
-    if (Mesh* mesh = DynamicCast<Mesh>(asset.Get()))
+    if (Mesh* mesh = TryCast<Mesh>(asset.Get()))
     {
         m_previewScene->ShowMesh(mesh);
 
         return true;
     }
 
-    if (Prefab* prefab = DynamicCast<Prefab>(asset.Get()))
+    if (Prefab* prefab = TryCast<Prefab>(asset.Get()))
     {
         return m_previewScene->ShowPrefab(prefab);
     }

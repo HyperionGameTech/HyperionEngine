@@ -48,7 +48,7 @@ static Array<SwatchOverrideTransformEditState> CaptureSwatchOverrideTransformEdi
 
     for (const auto& pair : nodeData)
     {
-        const Handle<Entity>& entity = DynamicCast<Entity>(pair.first);
+        const Handle<Entity>& entity = TryCast<Entity>(pair.first);
 
         if (!entity.IsValid())
         {

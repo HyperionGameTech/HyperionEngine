@@ -91,7 +91,7 @@ RendererResult VulkanGpuImageView::Create()
         return HYP_MAKE_ERROR(RendererError, "Mip index out of bounds");
     }
 
-    Assert(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
+    Assert(Cast<VulkanGpuImage>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
 
     if (m_viewType == VK_IMAGE_VIEW_TYPE_MAX_ENUM)
     {
@@ -126,7 +126,7 @@ RendererResult VulkanGpuImageView::Create()
     }
 
     VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-    viewInfo.image = static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle();
+    viewInfo.image = Cast<VulkanGpuImage>(m_image.Get())->GetVulkanHandle();
     viewInfo.viewType = m_viewType;
     viewInfo.format = ToVkFormat(m_image->GetTextureFormat());
 

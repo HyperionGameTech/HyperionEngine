@@ -360,7 +360,7 @@ void EditorViewport::OnAdded(EditorSubsystem* editorSubsystem)
     {
         EditorViewport* mainViewport = editorSubsystem->GetMainWindowViewport();
 
-        EditorOrthoCameraController* orthoController = DynamicCast<EditorOrthoCameraController>(m_camera->GetCameraController().Get());
+        EditorOrthoCameraController* orthoController = TryCast<EditorOrthoCameraController>(m_camera->GetCameraController().Get());
 
         if (mainViewport && mainViewport != this && !mainViewport->IsOrthographic() && orthoController)
         {
@@ -412,7 +412,7 @@ void EditorViewport::TryCenterOnMainViewport(EditorSubsystem* editorSubsystem)
 
     EditorViewport* mainViewport = editorSubsystem->GetMainWindowViewport();
 
-    EditorOrthoCameraController* orthoController = DynamicCast<EditorOrthoCameraController>(m_camera->GetCameraController().Get());
+    EditorOrthoCameraController* orthoController = TryCast<EditorOrthoCameraController>(m_camera->GetCameraController().Get());
 
     if (mainViewport && mainViewport != this && !mainViewport->IsOrthographic() && orthoController)
     {

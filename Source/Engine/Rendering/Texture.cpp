@@ -826,7 +826,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
                     {
                         f32Value = FLT16_MAX;
                     }
-                    else if (f32Value == static_cast<float32>(Float16::FromRaw(65504))) // nan
+                    else if (f32Value == float32(Float16::FromRaw(65504))) // nan
                     {
                         f32Value = 0.0f;
                     }
@@ -899,7 +899,7 @@ static size_t GetDX12ReadbackSize(const TextureDesc& desc, bool allMips)
         const Vec3u mipExtent = desc.GetMipExtent(mipIndex);
         const uint32 bytesPerPixel = TextureUtils::BytesPerComponent(desc.format) * TextureUtils::NumComponents(desc.format);
         const uint32 alignedRowPitch = ByteUtil::AlignAs(mipExtent.x * bytesPerPixel, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-        const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+        const size_t layerStep = ByteUtil::AlignAs(size_t(alignedRowPitch) * mipExtent.y * mipExtent.z, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
         totalSize += layerStep * numArrayLayers;
     }
 
@@ -921,7 +921,7 @@ static void UnpadDX12ReadbackData(const TextureDesc& desc, const ubyte* paddedDa
         const uint32 alignedRowPitch = ByteUtil::AlignAs(tightRowPitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
         const uint32 numRows = mipExtent.y * mipExtent.z;
         // must match DX12GpuImage::CopyToBuffer: each layer starts on a 512 byte boundary
-        const size_t layerStep = ByteUtil::AlignAs(static_cast<size_t>(alignedRowPitch) * numRows, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+        const size_t layerStep = ByteUtil::AlignAs(size_t(alignedRowPitch) * numRows, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
         for (uint16 layerIndex = 0; layerIndex < numArrayLayers; layerIndex++)
         {
@@ -934,7 +934,7 @@ static void UnpadDX12ReadbackData(const TextureDesc& desc, const ubyte* paddedDa
             }
 
             paddedOffset += layerStep;
-            tightOffset += static_cast<size_t>(tightRowPitch) * numRows;
+            tightOffset += size_t(tightRowPitch) * numRows;
         }
     }
 }
@@ -1017,6 +1017,7 @@ void Texture::Readback(GpuBufferRef& outBuffer)
         ByteBuffer tightBuffer;
         tightBuffer.SetSize(tightSize);
         UnpadDX12ReadbackData(desc, static_cast<const ubyte*>(outBuffer->Map()), tightBuffer.Data(), /* allMips */ true);
+
         outBuffer->Unmap();
 
         outBuffer = RI.MakeGpuBuffer(GpuBufferType::ReadbackBuffer, tightSize);
@@ -1126,7 +1127,11 @@ void Texture::EnqueueReadback(Proc<void(GpuBuffer&)>&& callback)
                               ByteBuffer tightBuffer;
                               tightBuffer.SetSize(tightSize);
 
-                              UnpadDX12ReadbackData(desc, static_cast<const ubyte*>(payload->readbackBuffer->Map()), tightBuffer.Data(), /* allMips */ true);
+                              UnpadDX12ReadbackData(
+                                desc,
+                                static_cast<const ubyte*>(payload->readbackBuffer->Map()),
+                                tightBuffer.Data(),
+                                /* allMips */ true);
 
                               payload->readbackBuffer->Unmap();
 

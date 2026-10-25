@@ -56,7 +56,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     CommandRecorder& cr = frame->cr;
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);

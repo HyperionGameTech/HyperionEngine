@@ -64,7 +64,7 @@ static void BuildInvSphere(Handle<AssetRegistry>& outputRegistry)
 
     prefab->SetName(NAME("InvSphere"));
     
-    Handle<Entity> e = StaticCast<Entity>(prefab->GetRoot()->GetChild(0));
+    Handle<Entity> e = Cast<Entity>(prefab->GetRoot()->GetChild(0));
 
     MeshComponent& mc = e->GetComponent<MeshComponent>();
     

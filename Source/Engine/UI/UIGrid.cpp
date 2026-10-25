@@ -56,7 +56,7 @@ void UIGridRow::AddChildUIObject(const Handle<UIObject>& uiObject)
     {
         UIObject::AddChildUIObject(uiObject);
 
-        m_columns.PushBack(DynamicCast<UIGridColumn>(uiObject));
+        m_columns.PushBack(TryCast<UIGridColumn>(uiObject));
 
         UpdateColumnSizes();
         UpdateColumnOffsets();
@@ -96,7 +96,7 @@ bool UIGridRow::RemoveChildUIObject(UIObject* uiObject)
 
     if (uiObjectHandle->IsA<UIGridColumn>())
     {
-        auto it = m_columns.Find(StaticCast<UIGridColumn>(uiObject));
+        auto it = m_columns.Find(Cast<UIGridColumn>(uiObject));
 
         if (it != m_columns.End())
         {
@@ -343,7 +343,7 @@ void UIGrid::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    if (const Handle<UIGridRow>& row = DynamicCast<UIGridRow>(uiObject))
+    if (const Handle<UIGridRow>& row = TryCast<UIGridRow>(uiObject))
     {
         row->SetNumColumns(m_numColumns);
 
@@ -413,7 +413,7 @@ bool UIGrid::RemoveChildUIObject(UIObject* uiObject)
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        auto it = m_rows.Find(StaticCast<UIGridRow>(uiObject));
+        auto it = m_rows.Find(Cast<UIGridRow>(uiObject));
 
         if (it != m_rows.End())
         {

@@ -43,12 +43,12 @@ Handle<Entity> EnsureEntityRoot(const Handle<Node>& node)
         return Handle<Entity>::Null();
     }
 
-    if (Handle<Entity> entity = DynamicCast<Entity>(node); entity.IsValid())
+    if (Handle<Entity> entity = TryCast<Entity>(node); entity.IsValid())
     {
         return entity;
     }
 
-    Handle<Entity> converted = DynamicCast<Entity>(node->CloneAs(Entity::StaticClass(), /* cloneChildren */ true));
+    Handle<Entity> converted = TryCast<Entity>(node->CloneAs(Entity::StaticClass(), /* cloneChildren */ true));
 
     if (!converted.IsValid())
     {
@@ -148,7 +148,7 @@ Result Prefab::Rename(Name name)
 
 Handle<Entity> Prefab::GetRoot() const
 {
-    return DynamicCast<Entity>(m_root);
+    return TryCast<Entity>(m_root);
 }
 
 void Prefab::SetRoot(const Handle<Node>& root)
@@ -249,7 +249,7 @@ uint32 Prefab::FindLargestMesh(Handle<Mesh>& outMesh) const
 
     auto visitNode = [&](Node* node)
     {
-        Entity* entity = DynamicCast<Entity>(node);
+        Entity* entity = TryCast<Entity>(node);
         MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
         if (!meshComponent || !meshComponent->mesh.IsValid())

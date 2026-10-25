@@ -117,7 +117,7 @@ void EditorSpriteSystem::Process(float delta, Span<Handle<Scene>> scenes)
             mapping.sprite->SetWorldTranslation(spritePosition);
         }
 
-        if (Light* light = DynamicCast<Light>(trackedEntity.Get()))
+        if (Light* light = TryCast<Light>(trackedEntity.Get()))
         {
             Color lightColor = light->GetColor();
             lightColor.SetAlpha(1.0f);
@@ -252,7 +252,7 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
     SpriteType spriteType = SpriteType::None;
     Color spriteColor = Color::White();
 
-    if (Light* light = DynamicCast<Light>(entity))
+    if (Light* light = TryCast<Light>(entity))
     {
         spriteType = SpriteType::Editor_Light;
         spriteColor = light->GetColor();
@@ -276,7 +276,7 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
             return;
         }
     }
-    else if (Camera* camera = DynamicCast<Camera>(entity))
+    else if (Camera* camera = TryCast<Camera>(entity))
     {
         if (camera->HasTag<EntityTag::EditorCamera>())
         {
@@ -292,7 +292,7 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
         icon = EditorIcons::Icon::Camera;
         spriteType = SpriteType::Editor_Camera;
     }
-    else if (EnvProbe* envProbe = DynamicCast<EnvProbe>(entity))
+    else if (EnvProbe* envProbe = TryCast<EnvProbe>(entity))
     {
         if (envProbe->IsA<SkyProbe>())
         {
@@ -303,7 +303,7 @@ void EditorSpriteSystem::CreateSprite(Entity* entity)
         spriteType = SpriteType::Editor_EnvProbe;
         spriteColor = Color(0.6f, 1.0f, 1.0f, 1.0f);
     }
-    else if (DynamicCast<LightmapVolume>(entity))
+    else if (TryCast<LightmapVolume>(entity))
     {
         icon = EditorIcons::Icon::LightmapVolume;
         spriteType = SpriteType::Editor_LightmapVolume;
@@ -369,7 +369,7 @@ const Handle<Texture>& EditorSpriteSystem::GetIconTexture(EditorIcons::Icon icon
 
     if (Handle<AssetRegistry> editorRegistry = GetEditorAssetRegistry(); editorRegistry.IsValid())
     {
-        iconTexture = DynamicCast<Texture>(editorRegistry->GetAsset(AssetBuckets::Textures, EditorIcons::GetSpriteTextureName(icon)));
+        iconTexture = TryCast<Texture>(editorRegistry->GetAsset(AssetBuckets::Textures, EditorIcons::GetSpriteTextureName(icon)));
     }
 
     if (!iconTexture.IsValid())

@@ -103,7 +103,7 @@ public:
     {
         if (Handle<AssetObject> asset = GetAsset(bucket, name); asset.IsValid())
         {
-            if (Handle<T> assetCasted = DynamicCast<T>(asset); assetCasted.IsValid())
+            if (Handle<T> assetCasted = TryCast<T>(asset); assetCasted.IsValid())
             {
                 return assetCasted;
             }

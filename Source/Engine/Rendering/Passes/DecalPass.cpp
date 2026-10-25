@@ -269,7 +269,7 @@ void DecalPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     instanceBuffer.FlushBatched();
 
-    DecalPassData* pd = DynamicCast<DecalPassData>(FetchViewPassData(view));
+    DecalPassData* pd = TryCast<DecalPassData>(FetchViewPassData(view));
     AssertDebug(pd != nullptr);
 
     UpdateFramebuffers(view, *pd);

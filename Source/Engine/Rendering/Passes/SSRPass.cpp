@@ -363,7 +363,7 @@ void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
         RI.cbufferAllocator->Commit(cbuffer, cbufferOffset, cbufferSize);
     }
     
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     GpuImageView* hiZTextureView = RI.textureViewCache->GetOrCreate(dpd->depthPyramidRenderer->GetHZBTexture());

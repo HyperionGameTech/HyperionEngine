@@ -355,7 +355,7 @@ const Handle<GroundCover>& TerrainGroundCoverResources::GetGroundCover() const
         return Handle<GroundCover>::empty;
     }
 
-    return DynamicCast<GroundCover>(m_groundCover.Resolve());
+    return TryCast<GroundCover>(m_groundCover.Resolve());
 }
 
 Handle<GroundCover> TerrainGroundCoverResources::GetPlantedGroundCover() const

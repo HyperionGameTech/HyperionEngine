@@ -69,10 +69,10 @@ void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const 
         switch (resource->InstanceClass()->GetTypeId().Value())
         {
         case TypeIdGpuImageView:
-            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, static_cast<GpuImageView*>(resource.Get()));
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, Cast<GpuImageView>(resource.Get()));
             break;
         case TypeIdGpuBuffer:
-            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, static_cast<GpuBuffer*>(resource.Get()));
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, Cast<GpuBuffer>(resource.Get()));
             break;
         default:
             HYP_UNREACHABLE();

@@ -248,7 +248,7 @@ Handle<Node> Entity::CloneAs(const Class* cls, bool cloneChildren) const
     }
 
     // baseClone would be an Entity because it uses InstanceClass() to create an instance based on the runtime type of this
-    Handle<Entity> cloned = DynamicCast<Entity>(baseClone);
+    Handle<Entity> cloned = TryCast<Entity>(baseClone);
     AssertDebug(cloned.IsValid());
 
     if (!cloned.IsValid())
@@ -905,7 +905,7 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     {
         AssertDebug(meshComponent.instanceData.IsLoaded());
 
-        const Handle<InstancedMeshData>& imd = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
+        const Handle<InstancedMeshData>& imd = TryCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
         AssertDebug(imd.IsValid());
 
         if (imd.IsValid())

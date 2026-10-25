@@ -91,7 +91,7 @@ GBuffer::GBuffer(Vec2u extent)
     for (uint8 pass = 0; pass < NumGBufferPasses; pass++)
     {
         m_passes[pass].gbuffer = this;
-        m_passes[pass].pass = static_cast<GBufferPass>(pass);
+        m_passes[pass].pass = GBufferPass(pass);
     }
 }
 

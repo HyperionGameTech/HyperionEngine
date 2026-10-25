@@ -1084,7 +1084,7 @@ void JoltPhysicsAdapter::OnCharacterControllerAdded(const CharacterControllerCon
         return;
     }
 
-    CapsulePhysicsShape* capsuleShape = StaticCast<CapsulePhysicsShape>(config.shape);
+    CapsulePhysicsShape* capsuleShape = Cast<CapsulePhysicsShape>(config.shape);
 
     const float radius = capsuleShape->GetRadius();
     const float cylinderHeight = MathUtil::Max(capsuleShape->GetHeight(), MathUtil::epsilonF);

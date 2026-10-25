@@ -57,7 +57,7 @@ RendererResult DX12RayTracingPipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Ray tracing shader not provided to pipeline");
     }
 
-    DX12ShaderInstance* shaderInstance = StaticCast<DX12ShaderInstance>(m_shaderInstance);
+    DX12ShaderInstance* shaderInstance = Cast<DX12ShaderInstance>(m_shaderInstance);
     Assert(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
 
     if (!shaderInstance->IsCreated())

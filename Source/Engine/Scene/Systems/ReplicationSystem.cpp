@@ -71,7 +71,7 @@ static ThreadBase* GetGameServerThread()
 
 static NetId GetReplicatedParentNetId(Entity* entity)
 {
-    Entity* parentEntity = DynamicCast<Entity>(entity->GetParent());
+    Entity* parentEntity = TryCast<Entity>(entity->GetParent());
 
     if (!parentEntity)
     {

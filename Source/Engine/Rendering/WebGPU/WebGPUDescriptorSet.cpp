@@ -177,15 +177,15 @@ uint64 WebGPUDescriptorSet::CalculateStateHashCode() const
         // wrappers get recycled and resized, so the native object they hold is part of the identity
         if (shaderInput->type == ShaderInputType::Sampler)
         {
-            hashCode.Add(uintptr_t(static_cast<WebGPUSampler*>(object)->GetWGPUSampler()));
+            hashCode.Add(uintptr_t(Cast<WebGPUSampler>(object)->GetWGPUSampler()));
         }
         else if (shaderInput->category == ShaderResourceCategory::Buffer || shaderInput->type == ShaderInputType::CBV || shaderInput->type == ShaderInputType::CBV_Dynamic)
         {
-            hashCode.Add(uintptr_t(static_cast<WebGPUGpuBuffer*>(object)->GetWGPUBuffer()));
+            hashCode.Add(uintptr_t(Cast<WebGPUGpuBuffer>(object)->GetWGPUBuffer()));
         }
         else if (shaderInput->category == ShaderResourceCategory::Image)
         {
-            const WebGPUGpuImageRef& image = static_cast<WebGPUGpuImageView*>(object)->GetImage();
+            const WebGPUGpuImageRef& image = Cast<WebGPUGpuImageView>(object)->GetImage();
 
             hashCode.Add(uintptr_t(image.IsValid() ? image->GetWGPUTexture() : nullptr));
         }

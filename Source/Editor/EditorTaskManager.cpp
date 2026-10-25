@@ -127,7 +127,7 @@ void EditorTaskManager::Tick()
             Assert(task->IsCommitted());
         }
 
-        if (TickableEditorTask* tickableTask = DynamicCast<TickableEditorTask>(task.Get()))
+        if (TickableEditorTask* tickableTask = TryCast<TickableEditorTask>(task.Get()))
         {
             if (tickableTask->GetTimer().Waiting())
             {

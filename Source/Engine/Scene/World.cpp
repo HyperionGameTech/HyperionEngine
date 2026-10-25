@@ -1990,7 +1990,7 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
             {
                 if (obj->IsA(Scene::StaticClass()))
                 {
-                    const Scene* scene = DynamicCast<Scene>(obj);
+                    const Scene* scene = TryCast<Scene>(obj);
 
                     world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
 
@@ -2008,7 +2008,7 @@ static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldG
             {
                 if (obj->IsA(Scene::StaticClass()))
                 {
-                    const Scene* scene = DynamicCast<Scene>(obj);
+                    const Scene* scene = TryCast<Scene>(obj);
 
                     world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
 
@@ -2459,7 +2459,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
     {
         for (const Handle<WorldGridLayer>& layer : m_worldGrid->GetLayers())
         {
-            if (const Handle<TerrainWorldGridLayer>& terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+            if (const Handle<TerrainWorldGridLayer>& terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
             {
                 // every terrain layer is handed the same viewpoints by TerrainLodSystem
                 const Array<Vec3f> viewpoints = terrainLayer->GetLodViewpoints();

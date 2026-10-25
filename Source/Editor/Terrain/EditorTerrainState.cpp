@@ -311,7 +311,7 @@ Array<Handle<TerrainWorldGridLayer>> EditorTerrainState::GetTerrainLayers() cons
 
     for (const Handle<WorldGridLayer>& layer : activeScene->GetWorld()->GetWorldGrid()->GetLayers())
     {
-        if (Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+        if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
         {
             terrainLayers.PushBack(std::move(terrainLayer));
         }
@@ -424,7 +424,7 @@ bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) co
 
     for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
     {
-        if (DynamicCast<TerrainWorldGridLayer>(layer).IsValid())
+        if (TryCast<TerrainWorldGridLayer>(layer).IsValid())
         {
             return true;
         }
@@ -462,7 +462,7 @@ bool EditorTerrainState::TryGetTerrainHit(const Vec2f& relativePos, Handle<Terra
 
     for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
     {
-        const Handle<TerrainWorldGridLayer>& terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer);
+        const Handle<TerrainWorldGridLayer>& terrainLayer = TryCast<TerrainWorldGridLayer>(layer);
 
         if (!terrainLayer.IsValid())
         {
@@ -637,7 +637,7 @@ void EditorTerrainState::EndStroke()
 
     for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
     {
-        if (Handle<TerrainWorldGridLayer> terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+        if (Handle<TerrainWorldGridLayer> terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
         {
             terrainLayer->EndBrushStroke();
 

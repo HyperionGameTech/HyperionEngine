@@ -26,12 +26,12 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 #pragma region GenerateLightmapsEditorTask
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<LightmapVolume>& volume)
-    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(volume) } })
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { Cast<ObjectBase>(volume) } })
 {
 }
 
 GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<EnvProbe>& probe)
-    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { StaticCast<ObjectBase>(probe) } })
+    : GenerateLightmapsEditorTask(Array<Handle<ObjectBase>> { { Cast<ObjectBase>(probe) } })
 {
 }
 
@@ -101,26 +101,26 @@ void GenerateLightmapsEditorTask::Start()
 
     for (const Handle<ObjectBase>& source : m_sources)
     {
-        Handle<Entity> entitySource = DynamicCast<Entity>(source);
+        Handle<Entity> entitySource = TryCast<Entity>(source);
         Assert(entitySource.IsValid());
 
         Task<void> task;
 
         if (source->IsA<LightmapVolume>())
         {
-            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, StaticCast<LightmapVolume>(source));
+            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, Cast<LightmapVolume>(source));
         }
         else if (source->IsA<EnvProbe>())
         {
-            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, StaticCast<EnvProbe>(source));
+            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, Cast<EnvProbe>(source));
         }
         else if (source->IsA<FogVolume>())
         {
-            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, StaticCast<FogVolume>(source));
+            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, Cast<FogVolume>(source));
         }
         else if (source->IsA<Light>())
         {
-            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, StaticCast<Light>(source));
+            task = bakerSubsystem->EnqueueBake(activeSwatch->bakeLayer, Cast<Light>(source));
         }
 
         if (task.IsValid())

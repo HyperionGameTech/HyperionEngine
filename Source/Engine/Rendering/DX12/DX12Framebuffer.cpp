@@ -532,10 +532,10 @@ void DX12Framebuffer::Clear(
     static uint32 numRects = 1;
 
     D3D12_RECT rects[1] {};
-    rects[0].left = static_cast<LONG>(rect.x0);
-    rects[0].right = static_cast<LONG>(rect.x1);
-    rects[0].top = static_cast<LONG>(rect.y0);
-    rects[0].bottom = static_cast<LONG>(rect.y1);
+    rects[0].left = LONG(rect.x0);
+    rects[0].right = LONG(rect.x1);
+    rects[0].top = LONG(rect.y0);
+    rects[0].bottom = LONG(rect.y1);
 
     for (const auto& it : m_attachmentMap)
     {

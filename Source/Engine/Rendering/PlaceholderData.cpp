@@ -249,7 +249,7 @@ void PlaceholderData::Initialize()
 
         //if (Handle<AssetObject> asset = GetEngineAssetRegistry()->GetAsset(AssetBuckets::Textures, name); asset.IsValid())
         //{
-        //    Handle<Texture> textureAsset = DynamicCast<Texture>(asset);
+        //    Handle<Texture> textureAsset = TryCast<Texture>(asset);
         //    Assert(textureAsset != nullptr);
 
         //    textureAsset->SetPersistentRequested(true, /* setFlag */ true);

@@ -146,7 +146,7 @@ public:
             {
                 if (node->IsA<ReflectionProbe>())
                 {
-                    ReflectionProbe* reflectionProbe = StaticCast<ReflectionProbe>(node);
+                    ReflectionProbe* reflectionProbe = Cast<ReflectionProbe>(node);
                     if (reflectionProbe->IsRealtime())
                     {
                         continue;
@@ -233,7 +233,7 @@ public:
             {
                 if (node->IsA<IrradianceProbe>())
                 {
-                    IrradianceProbe* irradianceProbe = StaticCast<IrradianceProbe>(node);
+                    IrradianceProbe* irradianceProbe = Cast<IrradianceProbe>(node);
                     if (irradianceProbe->IsRealtime())
                     {
                         continue;
@@ -407,7 +407,7 @@ public:
                     continue;
                 }
 
-                Light* light = StaticCast<Light>(node);
+                Light* light = Cast<Light>(node);
 
                 if (!light->CanBakeStaticShadows())
                 {
@@ -573,7 +573,7 @@ public:
             {
                 if (node->IsA<LightmapVolume>())
                 {
-                    lightmapVolumes.PushBack(MakeStrongRef(StaticCast<LightmapVolume>(node)));
+                    lightmapVolumes.PushBack(MakeStrongRef(Cast<LightmapVolume>(node)));
                 }
             }
         }

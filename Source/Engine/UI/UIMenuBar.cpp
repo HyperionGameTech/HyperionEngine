@@ -105,7 +105,7 @@ void UIMenuItem::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    if (Handle<UIMenuItem> menuItem = DynamicCast<UIMenuItem>(uiObject))
+    if (Handle<UIMenuItem> menuItem = TryCast<UIMenuItem>(uiObject))
     {
         OnMouseHover.Bind(menuItem, [weakThis = WeakHandleFromThis(), subMenuItemWeak = menuItem.ToWeak()](const MouseEvent& event) -> UIEventHandlerResult
             {
@@ -571,7 +571,7 @@ void UIMenuBar::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     UIPanel::AddChildUIObject(uiObject);
 
-    if (UIMenuItem* menuItem = DynamicCast<UIMenuItem>(uiObject))
+    if (UIMenuItem* menuItem = TryCast<UIMenuItem>(uiObject))
     {
         menuItem->SetSize(UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PERCENT }));
 
@@ -796,7 +796,7 @@ void UIMenuBar::UpdateMenuItemSizes()
 
         const Vec2i childPadding = childUiObjects[i]->GetPadding();
 
-        if (UISpacer* spacer = DynamicCast<UISpacer>(childUiObject))
+        if (UISpacer* spacer = TryCast<UISpacer>(childUiObject))
         {
             spacer->SetSize(UIObjectSize({ spacerWidth, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 

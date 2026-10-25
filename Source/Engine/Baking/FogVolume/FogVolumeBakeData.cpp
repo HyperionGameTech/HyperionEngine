@@ -114,7 +114,7 @@ Result BakeData<FogVolume>::GatherSceneData()
                 {
                     if (!foundSun)
                     {
-                        m_sunDirection = StaticCast<DirectionalLight>(light)->GetDirection();
+                        m_sunDirection = Cast<DirectionalLight>(light)->GetDirection();
                         foundSun = true;
                     }
 

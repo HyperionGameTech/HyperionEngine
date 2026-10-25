@@ -1665,7 +1665,7 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     Win32ApplicationWindow* win32Window = nullptr;
     if (window != nullptr)
     {
-        win32Window = DynamicCast<Win32ApplicationWindow>(window);
+        win32Window = TryCast<Win32ApplicationWindow>(window);
         Assert(win32Window != nullptr);
     }
 
@@ -1674,7 +1674,7 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     CocoaApplicationWindow* cocoaWindow = nullptr;
     if (window != nullptr)
     {
-        cocoaWindow = DynamicCast<CocoaApplicationWindow>(window);
+        cocoaWindow = TryCast<CocoaApplicationWindow>(window);
         Assert(cocoaWindow != nullptr);
     }
 
@@ -1683,7 +1683,7 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     IOSApplicationWindow* iosWindow = nullptr;
     if (window != nullptr)
     {
-        iosWindow = DynamicCast<IOSApplicationWindow>(window);
+        iosWindow = TryCast<IOSApplicationWindow>(window);
         Assert(iosWindow != nullptr);
     }
 
@@ -1694,7 +1694,7 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
         window = g_appContext->GetMainWindow();
     }
 
-    AndroidApplicationWindow* androidWindow = DynamicCast<AndroidApplicationWindow>(window);
+    AndroidApplicationWindow* androidWindow = TryCast<AndroidApplicationWindow>(window);
     Assert(androidWindow != nullptr);
 
     return AndroidAppContext::CreateVulkanSurface(androidWindow, ppOutDummySurfaceContext);
@@ -1702,7 +1702,7 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
     X11ApplicationWindow* x11Window = nullptr;
     if (window != nullptr)
     {
-        x11Window = DynamicCast<X11ApplicationWindow>(window);
+        x11Window = TryCast<X11ApplicationWindow>(window);
         Assert(x11Window != nullptr);
     }
 
@@ -1716,7 +1716,7 @@ VkSurfaceKHR VulkanRenderInterface::CreateSurface(ApplicationWindow* window, IDu
 RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExtensions)
 {
 #if HYP_MACOS
-    if (const CocoaAppContext* cocoaAppContext = DynamicCast<CocoaAppContext>(g_appContext))
+    if (const CocoaAppContext* cocoaAppContext = TryCast<CocoaAppContext>(g_appContext))
     {
         static constexpr const char* RequiredExtensions[] = {
             VK_KHR_SURFACE_EXTENSION_NAME,
@@ -1799,7 +1799,7 @@ RendererResult VulkanRenderInterface::GetVkExtensions(Array<const char*>& outExt
 #endif
 
 #if HYP_ANDROID
-    if (const AndroidAppContext* androidAppContext = DynamicCast<AndroidAppContext>(g_appContext))
+    if (const AndroidAppContext* androidAppContext = TryCast<AndroidAppContext>(g_appContext))
     {
         static const char* RequiredExtensions[] = {
             VK_KHR_SURFACE_EXTENSION_NAME,

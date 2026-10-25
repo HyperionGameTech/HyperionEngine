@@ -63,7 +63,7 @@ RendererResult DX12ComputePipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
     }
 
-    DX12ShaderInstance* shaderInstance = static_cast<DX12ShaderInstance*>(m_shaderInstance.Get());
+    DX12ShaderInstance* shaderInstance = Cast<DX12ShaderInstance>(m_shaderInstance.Get());
     Assert(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
 
     if (!shaderInstance->IsCreated())

@@ -334,7 +334,7 @@ void DX12GpuTimerBackend::ResolveFrameResults(uint32 completedFrameIndex)
 
             if (elapsedMs > 0.0)
             {
-                timer->RecordElapsedMs(static_cast<float>(elapsedMs));
+                timer->RecordElapsedMs(float(elapsedMs));
             }
         }
     }

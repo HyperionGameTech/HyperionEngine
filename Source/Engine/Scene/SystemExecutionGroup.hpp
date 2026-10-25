@@ -128,7 +128,7 @@ public:
             return nullptr;
         }
 
-        return DynamicCast<SystemType>(it->second);
+        return TryCast<SystemType>(it->second);
     }
 
     /*! \brief Removes a System from the SystemExecutionGroup.

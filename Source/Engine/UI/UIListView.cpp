@@ -263,7 +263,7 @@ void UIListView::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     if (uiObject->IsA<UIListViewItem>())
     {
-        listViewItem = DynamicCast<UIListViewItem>(uiObject);
+        listViewItem = TryCast<UIListViewItem>(uiObject);
         listViewItem->SetSize(listViewItemSize);
         m_listViewItems.PushBack(listViewItem);
 
@@ -464,7 +464,7 @@ UIListViewItem* UIListView::FindListViewItem(const UIObject* parentObject, const
     {
         if (object->IsA<UIListViewItem>() && object->GetDataSourceElementUUID() == dataSourceElementUuid)
         {
-            resultPtr = DynamicCast<UIListViewItem>(object);
+            resultPtr = TryCast<UIListViewItem>(object);
 
             return IterationResult::STOP;
         }
@@ -598,7 +598,7 @@ void UIListView::SetSelectedItem(UIListViewItem* listViewItem)
 
         while (parent != nullptr && parent != this)
         {
-            if (UIListViewItem* parentListViewItem = DynamicCast<UIListViewItem>(parent))
+            if (UIListViewItem* parentListViewItem = TryCast<UIListViewItem>(parent))
             {
                 if (!parentListViewItem->IsExpanded())
                 {

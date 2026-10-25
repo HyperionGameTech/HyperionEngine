@@ -217,7 +217,7 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
 
     if (window)
     {
-        CocoaApplicationWindow* cocoaWindow = DynamicCast<CocoaApplicationWindow>(window);
+        CocoaApplicationWindow* cocoaWindow = TryCast<CocoaApplicationWindow>(window);
         Assert(cocoaWindow != nullptr);
         __block CAMetalLayer* layer = (CAMetalLayer*)cocoaWindow->GetCAMetalLayer();
 

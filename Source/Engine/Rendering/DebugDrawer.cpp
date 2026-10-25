@@ -1267,7 +1267,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         cr << SetFaceCullMode(FaceCullMode::Back);
     });
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
 
     StructuredBuffer& instanceBuffer = RI.bufferAllocator->AcquireStructuredBuffer(m_headers[idx].Size(), sizeof(ImmediateDrawShaderData));
 

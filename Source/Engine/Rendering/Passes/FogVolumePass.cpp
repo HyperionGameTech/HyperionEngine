@@ -242,7 +242,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
     Attachment* normalsAttachment = m_gbuffer->GetPass(GBufferPass::Opaque).GetAttachment(GBufferTarget::Normals);
@@ -348,7 +348,7 @@ void FogVolumePass::Render(Frame* frame, const RenderSetup& renderSetup)
     cr << SetShaderUniform(15, "CloudWeatherMapTexture"_sh, dpd->cloudPass->GetWeatherMapView());
     cr << SetShaderUniform(16, "CloudShadowMapTexture"_sh, dpd->cloudPass->GetShadowMapView());
 
-    GlimmerPass* glimmerPass = StaticCast<GlimmerPass>(RI.namedPasses[NamedPass::Glimmer][0]);
+    GlimmerPass* glimmerPass = Cast<GlimmerPass>(RI.namedPasses[NamedPass::Glimmer][0]);
     const uint32 worldsBufferIndex = glimmerPass->BindApplyResources(cr, 17, renderSetup.world);
     cr << SetShaderUniform(worldsBufferIndex, "WorldsBuffer"_sh, RI.namedBuffers[NamedBuffer::Worlds]);
 

@@ -55,7 +55,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
 
     m_dragData.Unset();
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -270,7 +270,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
 
 bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -293,7 +293,7 @@ bool TranslateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const Mous
 
 bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -329,7 +329,7 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
         return false;
     }
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;

@@ -481,7 +481,7 @@ void UIText::UpdateMeshData_Internal()
 
     meshComponent.numInstances = uint32(instanceTransforms.Size());
 
-    Handle<InstancedMeshData> instancedMesh = DynamicCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
+    Handle<InstancedMeshData> instancedMesh = TryCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
     if (!instancedMesh)
     {

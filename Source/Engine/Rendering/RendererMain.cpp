@@ -1193,7 +1193,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
     }
 
     // Will only be non-null if we are in a deferred rendering pass.
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
 
     if (dpd != nullptr)
     {
@@ -1501,7 +1501,7 @@ static void PerformRenderingImpl(Frame* frame, const TPerformRenderingPayload<TC
 
     static const bool s_indirectRenderingEnabled = RI.GetRenderConfig().indirectRendering;
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
 
     const bool useIndirectRendering = indirectRenderer != nullptr
         && prepassStage != DepthPrepass::DPP_InPrepass

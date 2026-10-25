@@ -132,7 +132,7 @@ void EditorPlayerSetup::AttachToScene(const EditorPlayer& player)
     const float capsuleHalfHeight = player.capsuleShape->GetHeight() * 0.5f + player.capsuleShape->GetRadius();
 
     FirstPersonCameraController* firstPersonController = player.camera.IsValid()
-        ? DynamicCast<FirstPersonCameraController>(player.camera->GetCameraController().Get())
+        ? TryCast<FirstPersonCameraController>(player.camera->GetCameraController().Get())
         : nullptr;
 
     if (!playerEntity->HasComponent<CharacterControllerComponent>())
@@ -160,7 +160,7 @@ void EditorPlayerSetup::AttachToScene(const EditorPlayer& player)
         // Pivot is relative to the player's origin, which MoveCharacter places above the capsule center while playing
         const float playingFeetOffset = -(capsuleHalfHeight + SceneHelpers::GetCapsuleHeightOffset(playerEntity->GetComponent<CharacterControllerComponent>()));
 
-        if (ThirdPersonCameraController* thirdPersonController = DynamicCast<ThirdPersonCameraController>(player.camera->GetCameraController().Get()))
+        if (ThirdPersonCameraController* thirdPersonController = TryCast<ThirdPersonCameraController>(player.camera->GetCameraController().Get()))
         {
             thirdPersonController->SetPivotOffset(Vec3f(0.0f, playingFeetOffset + CameraPivotHeight, 0.0f));
         }

@@ -1015,7 +1015,7 @@ GltfSkinResource BuildSkinResource(GltfLoadContext& ctx, const cgltf_skin& skin)
 
     for (Node* descendant : rootBone->GetDescendants())
     {
-        if (Bone* bone = DynamicCast<Bone>(descendant))
+        if (Bone* bone = TryCast<Bone>(descendant))
         {
             boneIndices.Set(bone, traversalIndex);
         }

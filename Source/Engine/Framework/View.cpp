@@ -165,7 +165,7 @@ const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const
 
     if (m_impl->IsA<GBuffer>())
     {
-        return StaticCast<GBuffer>(m_impl);
+        return Cast<GBuffer>(m_impl);
     }
 
     return Handle<GBuffer>::Null();
@@ -180,10 +180,10 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 
     if (m_impl->IsA<GBuffer>())
     {
-        return StaticCast<GBuffer>(m_impl)->GetPass(GBufferPass::Opaque).framebuffer;
+        return Cast<GBuffer>(m_impl)->GetPass(GBufferPass::Opaque).framebuffer;
     }
 
-    return StaticCast<Framebuffer>(m_impl);
+    return Cast<Framebuffer>(m_impl);
 }
 
 const FramebufferRef& ViewOutputTarget::GetFramebuffer(GBufferPass pass) const
@@ -195,10 +195,10 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer(GBufferPass pass) const
 
     if (m_impl->IsA<GBuffer>())
     {
-        return StaticCast<GBuffer>(m_impl)->GetPass(pass).framebuffer;
+        return Cast<GBuffer>(m_impl)->GetPass(pass).framebuffer;
     }
 
-    return StaticCast<Framebuffer>(m_impl);
+    return Cast<Framebuffer>(m_impl);
 }
 
 Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
@@ -210,10 +210,10 @@ Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
 
     if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return StaticCast<GBuffer>(m_impl)->GetFramebuffers();
+        return Cast<GBuffer>(m_impl)->GetFramebuffers();
     }
 
-    return { &StaticCast<Framebuffer>(m_impl), 1 };
+    return { &Cast<Framebuffer>(m_impl), 1 };
 }
 
 #pragma endregion ViewOutputTarget
@@ -592,7 +592,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         // Shared CSM view matrix, anchored to the scene bounds so it is stable as the camera moves.
         if (isDirectional && isWorldBoundsSphereValid)
         {
-            LightCSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
+            LightCSMState& csmState = Cast<DirectionalLight>(light)->csmState;
 
             bool basisChanged = !csmState.basisInitialized;
             !basisChanged && (basisChanged |= (csmState.lastCommittedLightDir.Dot(lightDir) < MathUtil::Cos(MathUtil::DegToRad(g_cvCSMBasisAngleThresholdDegrees.Get()))));
@@ -716,7 +716,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
             if (isDirectional)
             {
-                LightCSMState& csmState = StaticCast<DirectionalLight>(light)->csmState;
+                LightCSMState& csmState = Cast<DirectionalLight>(light)->csmState;
 
                 View* currentCascadeView = shadowViewsDynamic[shadowViewIndex]
                     ? shadowViewsDynamic[shadowViewIndex]
@@ -900,7 +900,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
         // cascades below it starved.
         if (isDirectional && csmUpdatesSpentThisFrame == 0)
         {
-            StaticCast<DirectionalLight>(light)->csmState.nextUpdateCascade = 0;
+            Cast<DirectionalLight>(light)->csmState.nextUpdateCascade = 0;
         }
 
         light->forceRedrawShadows = false;
@@ -1971,7 +1971,7 @@ void View::CollectSprites(RenderProxyList& rpl)
 
             if (sprite->IsA<TextSprite>())
             {
-                TextSprite* textSprite = StaticCast<TextSprite>(sprite);
+                TextSprite* textSprite = Cast<TextSprite>(sprite);
 
                 if (Texture* fontAtlasTexture = textSprite->GetFontAtlasTexture())
                 {

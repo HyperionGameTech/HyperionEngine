@@ -57,7 +57,7 @@ Bone* Skeleton::FindBone(StringHash name) const
 
     if (m_rootBone->GetBoneName() == name)
     {
-        return static_cast<Bone*>(m_rootBone.Get());
+        return Cast<Bone>(m_rootBone.Get());
     }
 
     // @TODO Profile this
@@ -69,7 +69,7 @@ Bone* Skeleton::FindBone(StringHash name) const
             continue;
         }
 
-        Bone* bone = DynamicCast<Bone>(node);
+        Bone* bone = TryCast<Bone>(node);
 
         if (!bone)
         {
@@ -110,7 +110,7 @@ uint32 Skeleton::FindBoneIndex(StringHash name) const
             continue;
         }
 
-        Bone* bone = DynamicCast<Bone>(node);
+        Bone* bone = TryCast<Bone>(node);
 
         if (!bone)
         {
@@ -180,7 +180,7 @@ void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
                 continue;
             }
 
-            Bone* bone = DynamicCast<Bone>(descendant);
+            Bone* bone = TryCast<Bone>(descendant);
 
             if (!bone)
             {

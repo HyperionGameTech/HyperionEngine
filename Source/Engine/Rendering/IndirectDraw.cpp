@@ -425,7 +425,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
 
     PrepareDrawCommands(cr);
 
-    DeferredPassData* pd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* pd = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));

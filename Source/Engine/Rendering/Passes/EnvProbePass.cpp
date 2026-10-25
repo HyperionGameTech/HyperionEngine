@@ -86,7 +86,7 @@ namespace EnvProbeHelpers {
 
 static constexpr HYP_FORCE_INLINE EnumFlags<EnvProbeFlags> GetFlagsFromProxy(const RenderProxyEnvProbe& proxy)
 {
-    return static_cast<EnumFlags<EnvProbeFlags>>(proxy.bufferData.typeAndFlags >> 3);
+    return EnumFlags<EnvProbeFlags>(proxy.bufferData.typeAndFlags >> 3);
 }
 
 /// Get the attachment index of the hit mask target
@@ -500,7 +500,7 @@ static bool CaptureSkyProbeSky(const RenderSetup& renderSetup, SkyProbe* skyProb
         cr << InsertBarrier(colorAttachment->GetGpuImage(), ResourceState::ShaderResource);
     }
 
-    DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* cloudsPassData = TryCast<DeferredPassData>(renderSetup.passData);
 
     if (!cloudsPassData || !cloudsPassData->cloudPass->CanCompositeSkyProbe())
     {
@@ -1325,7 +1325,7 @@ void ReflectionProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
         // recapture as clouds move, and once when they appear or go away
         // DeferredPass hands over the pass data of the first view with active clouds, if there is one
-        const DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
+        const DeferredPassData* cloudsPassData = TryCast<DeferredPassData>(renderSetup.passData);
         const bool cloudsReady = cloudsPassData && cloudsPassData->cloudPass->CanCompositeSkyProbe();
 
         if (cloudsReady != pd->hasCompositedClouds
@@ -1489,7 +1489,7 @@ void IrradianceProbePass::RenderProbe(Frame* frame, const RenderSetup& renderSet
 
     AssertDebug(envProbe->IsA<IrradianceProbe>());
 
-    IrradianceProbe* irradianceProbe = StaticCast<IrradianceProbe>(envProbe);
+    IrradianceProbe* irradianceProbe = Cast<IrradianceProbe>(envProbe);
 
     RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(irradianceProbe));
     AssertDebug(envProbeProxy != nullptr);

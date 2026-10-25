@@ -281,7 +281,7 @@ void LightingPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return;
     }
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(rs.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
     Framebuffer* opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(GBufferPass::Opaque);

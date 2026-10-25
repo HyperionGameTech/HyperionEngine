@@ -262,7 +262,7 @@ void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)
         return;
     }
 
-    vbView.StrideInBytes = static_cast<UINT>(m_boundGraphicsPipeline->GetInputLayout().VertexSize());
+    vbView.StrideInBytes = UINT(m_boundGraphicsPipeline->GetInputLayout().VertexSize());
     AssertDebug(vbView.StrideInBytes > 0, "Vertex stride must be greater than 0!");
 
     m_commandList->IASetVertexBuffers(0, 1, &vbView);

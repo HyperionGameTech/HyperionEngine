@@ -43,7 +43,7 @@ void ApplyTwist(Skeleton& skeleton, Name rootBoneName, Name endBoneName, float a
 
     for (Node* node = endBone; node != nullptr; node = node->GetParent())
     {
-        Bone* bone = DynamicCast<Bone>(node);
+        Bone* bone = TryCast<Bone>(node);
 
         if (!bone)
         {

@@ -97,7 +97,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
 
     if (window != nullptr)
     {
-        Win32ApplicationWindow* win32Window = DynamicCast<Win32ApplicationWindow>(window);
+        Win32ApplicationWindow* win32Window = TryCast<Win32ApplicationWindow>(window);
         Assert(win32Window != nullptr);
 
         if (win32Window->GetVkSurface() != VK_NULL_HANDLE)

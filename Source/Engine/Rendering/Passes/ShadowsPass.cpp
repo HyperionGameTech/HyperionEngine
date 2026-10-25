@@ -497,7 +497,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
                 if (isStaticRplDirty)
                 {
-                    ShadowsPassData* staticPd = DynamicCast<ShadowsPassData>(FetchViewPassData(shadowViewStatic));
+                    ShadowsPassData* staticPd = TryCast<ShadowsPassData>(FetchViewPassData(shadowViewStatic));
                     AssertDebug(staticPd != nullptr);
 
                     staticPd->staticCacheNeedsRerender.Set(cascadeIndex, true);
@@ -772,7 +772,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 rs.framebuffer = framebuffer;
                 rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
 
-                ShadowsPassData* pd = DynamicCast<ShadowsPassData>(rs.passData);
+                ShadowsPassData* pd = TryCast<ShadowsPassData>(rs.passData);
                 AssertDebug(pd != nullptr);
 
                 RenderProxyList& rpl = GetConsumerProxyList(shadowView);
@@ -897,7 +897,7 @@ void ShadowsPassBase::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
                 rs.framebuffer = framebuffer;
                 rs.passData = FetchViewPassData(shadowView);
 
-                ShadowsPassData* pd = DynamicCast<ShadowsPassData>(rs.passData);
+                ShadowsPassData* pd = TryCast<ShadowsPassData>(rs.passData);
                 AssertDebug(pd != nullptr);
 
                 if (needsClearBeforeDraw)

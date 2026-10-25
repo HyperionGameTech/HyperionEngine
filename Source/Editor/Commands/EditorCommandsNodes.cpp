@@ -1285,7 +1285,7 @@ public:
 
         for (auto it = nodesToDelete.Begin(); it != nodesToDelete.End();)
         {
-            Handle<InstanceHandleNode> instanceHandle = DynamicCast<InstanceHandleNode>(*it);
+            Handle<InstanceHandleNode> instanceHandle = TryCast<InstanceHandleNode>(*it);
 
             if (instanceHandle.IsValid())
             {

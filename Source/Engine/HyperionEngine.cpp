@@ -1005,7 +1005,7 @@ extern "C"
             return nullptr;
         }
 
-        CocoaApplicationWindow* cocoaWindow = DynamicCast<CocoaApplicationWindow>(pWindow);
+        CocoaApplicationWindow* cocoaWindow = TryCast<CocoaApplicationWindow>(pWindow);
 
         if (!cocoaWindow)
         {
@@ -1316,7 +1316,7 @@ extern "C"
     {
         Assert(g_appContext.IsValid());
 
-        if (AndroidAppContext* androidAppContext = DynamicCast<AndroidAppContext>(g_appContext))
+        if (AndroidAppContext* androidAppContext = TryCast<AndroidAppContext>(g_appContext))
         {
             androidAppContext->SetNativeWindow(nativeWindow, Vec2i { width, height });
         }
@@ -1327,12 +1327,12 @@ extern "C"
         if (!g_appContext.IsValid())
             return;
 
-        AndroidAppContext* ctx = DynamicCast<AndroidAppContext>(g_appContext);
+        AndroidAppContext* ctx = TryCast<AndroidAppContext>(g_appContext);
 
         if (ctx == nullptr || ctx->GetMainWindow() == nullptr)
             return;
 
-        AndroidApplicationWindow* window = DynamicCast<AndroidApplicationWindow>(ctx->GetMainWindow());
+        AndroidApplicationWindow* window = TryCast<AndroidApplicationWindow>(ctx->GetMainWindow());
         if (window == nullptr)
             return;
 
@@ -1348,12 +1348,12 @@ extern "C"
         if (!g_appContext.IsValid())
             return;
 
-        AndroidAppContext* ctx = DynamicCast<AndroidAppContext>(g_appContext);
+        AndroidAppContext* ctx = TryCast<AndroidAppContext>(g_appContext);
 
         if (ctx == nullptr || ctx->GetMainWindow() == nullptr)
             return;
 
-        AndroidApplicationWindow* window = DynamicCast<AndroidApplicationWindow>(ctx->GetMainWindow());
+        AndroidApplicationWindow* window = TryCast<AndroidApplicationWindow>(ctx->GetMainWindow());
         if (window == nullptr)
             return;
 

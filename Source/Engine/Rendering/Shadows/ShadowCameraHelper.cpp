@@ -164,7 +164,7 @@ BoundingBox CalculateCascadeBounds(
 
     // Snap the cascade center to whole shadow-map texels so the shadows don't shimmer as the
     // camera moves. Only stable because shadowViewMatrix is anchored to the scene, not the camera.
-    const float worldUnitsPerTexel = (sphereRadius * 2.0f) / static_cast<float>(shadowMapResolution.Max());
+    const float worldUnitsPerTexel = (sphereRadius * 2.0f) / float(shadowMapResolution.Max());
 
     centerLS.x = MathUtil::Floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
     centerLS.y = MathUtil::Floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;

@@ -398,7 +398,7 @@ void EnvProbe::CreateCamera()
     auto cameraIt = GetChildren().FindIf(&ObjectBase::IsA<Camera>);
     if (cameraIt != GetChildren().End())
     {
-        m_camera = StaticCast<Camera>(cameraIt->Get());
+        m_camera = Cast<Camera>(cameraIt->Get());
 
         InitObject(m_camera);
 
@@ -1570,7 +1570,7 @@ void ReflectionProbe::BakeCubemap()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(swatch->bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    bakerSubsystem->EnqueueBake(swatch->bakeLayer, Cast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif
@@ -1669,7 +1669,7 @@ void IrradianceProbe::RecomputeIrradiance()
         bakerSubsystem = world->AddSubsystem<BakerSubsystem>();
     }
 
-    bakerSubsystem->EnqueueBake(swatch->bakeLayer, StaticCast<EnvProbe>(MakeStrongRef(this)));
+    bakerSubsystem->EnqueueBake(swatch->bakeLayer, Cast<EnvProbe>(MakeStrongRef(this)));
 }
 
 #endif // HYP_EDITOR

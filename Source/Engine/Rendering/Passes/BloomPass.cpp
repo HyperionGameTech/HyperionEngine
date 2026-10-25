@@ -190,7 +190,7 @@ void BloomPass::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr);
 
-    DeferredPassData* dpd = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* dpd = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
     ExtractBrightAreas(frame, renderSetup, dpd->GetSceneColorView());
     Downsample(frame, renderSetup);

@@ -32,8 +32,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-namespace
-{
+namespace {
 
 // standard (Hamilton) rotation taking +Y onto the given direction
 Quat4f RotationFromUpTo(const Vec3f& direction)
@@ -73,14 +72,13 @@ RenderableAttributeSet CursorDrawAttributes()
 #pragma region EditorSurfacePainterState
 
 EditorSurfacePainterState::EditorSurfacePainterState() = default;
-
 EditorSurfacePainterState::~EditorSurfacePainterState() = default;
 
 const RenderableAttributeSet& EditorSurfacePainterState::GetCursorDrawAttributes()
 {
-    static const RenderableAttributeSet attributes = CursorDrawAttributes();
+    static const RenderableAttributeSet s_attributes = CursorDrawAttributes();
 
-    return attributes;
+    return s_attributes;
 }
 
 void EditorSurfacePainterState::DispatchToSimThread(Proc<void()>&& proc)

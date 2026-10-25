@@ -360,7 +360,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 {
                     Assert(ptr != nullptr, "Buffer never bound for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
                     AssertDebug(ptr->IsA<DX12GpuBuffer>(), "Invalid buffer descriptor: {}", name);
-                    AssertDebug(StaticCast<DX12GpuBuffer>(ptr)->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                    AssertDebug(Cast<DX12GpuBuffer>(ptr)->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                     descriptor.binding = shaderInput->binding;
@@ -370,7 +370,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 else if (shaderInput->category == ShaderResourceCategory::Image)
                 {
                     AssertDebug(ptr && ptr->IsA<DX12GpuImageView>(), "Invalid image descriptor: {}", name);
-                    AssertDebug(StaticCast<DX12GpuImageView>(ptr)->IsCreated(), "Image view not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                    AssertDebug(Cast<DX12GpuImageView>(ptr)->IsCreated(), "Image view not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                     DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                     descriptor.binding = shaderInput->binding;
@@ -401,7 +401,7 @@ void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 [[maybe_unused]] ObjectBase* ptr = element.values[index];
 
                 AssertDebug(ptr && ptr->IsA<DX12Sampler>(), "Invalid sampler descriptor: {}", name);
-                AssertDebug(StaticCast<DX12Sampler>(ptr)->IsCreated(), "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                AssertDebug(Cast<DX12Sampler>(ptr)->IsCreated(), "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 DX12CachedDescriptor& descriptor = localDescriptors.EmplaceBack();
                 descriptor.binding = shaderInput->binding;
@@ -540,7 +540,7 @@ void DX12DescriptorSet::Update(bool force)
         {
             AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
 
-            DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
+            DX12GpuBuffer* buffer = Cast<DX12GpuBuffer>(ptr);
             if (!buffer->IsCreated())
             {
                 continue;
@@ -564,7 +564,7 @@ void DX12DescriptorSet::Update(bool force)
 
                 AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
 
-                DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
+                DX12GpuBuffer* buffer = Cast<DX12GpuBuffer>(ptr);
                 if (!buffer->IsCreated())
                 {
                     continue;
@@ -578,7 +578,7 @@ void DX12DescriptorSet::Update(bool force)
             {
                 AssertDebug(ptr && ptr->IsA<DX12GpuImageView>());
 
-                DX12GpuImageView* imageView = StaticCast<DX12GpuImageView>(ptr);
+                DX12GpuImageView* imageView = Cast<DX12GpuImageView>(ptr);
                 if (!imageView->IsCreated())
                 {
                     continue;
@@ -599,7 +599,7 @@ void DX12DescriptorSet::Update(bool force)
             {
                 AssertDebug(ptr && ptr->IsA<DX12TopLevelAS>());
 
-                DX12TopLevelAS* tlas = StaticCast<DX12TopLevelAS>(ptr);
+                DX12TopLevelAS* tlas = Cast<DX12TopLevelAS>(ptr);
                 if (!tlas || !tlas->IsCreated())
                 {
                     continue;
@@ -633,7 +633,7 @@ void DX12DescriptorSet::Update(bool force)
 
                 AssertDebug(ptr && ptr->IsA<DX12GpuBuffer>());
 
-                DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(ptr);
+                DX12GpuBuffer* buffer = Cast<DX12GpuBuffer>(ptr);
                 if (!buffer->IsCreated())
                 {
                     continue;
@@ -657,7 +657,7 @@ void DX12DescriptorSet::Update(bool force)
             }
             else if (foundShaderInput->category == ShaderResourceCategory::Image)
             {
-                DX12GpuImageView* imageView = static_cast<DX12GpuImageView*>(ptr);
+                DX12GpuImageView* imageView = Cast<DX12GpuImageView>(ptr);
                 if (!imageView->IsCreated())
                 {
                     continue;
@@ -684,7 +684,7 @@ void DX12DescriptorSet::Update(bool force)
         }
         case ShaderInputType::Sampler:
         {
-            DX12Sampler* sampler = static_cast<DX12Sampler*>(ptr);
+            DX12Sampler* sampler = Cast<DX12Sampler>(ptr);
             if (!sampler->IsCreated())
             {
                 continue;
@@ -777,7 +777,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Graphic
 
         const DescriptorSetElement& element = elementIt->second;
 
-        DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
+        DX12GpuBuffer* buffer = Cast<DX12GpuBuffer>(element.values[0]);
         Assert(buffer != nullptr && buffer->IsCreated(),
             "Dynamic buffer '{}' in descriptor set '{}' is null or not created", elementName, m_layout.GetName());
 
@@ -876,7 +876,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
 
         const DescriptorSetElement& element = elementIt->second;
 
-        DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
+        DX12GpuBuffer* buffer = Cast<DX12GpuBuffer>(element.values[0]);
         Assert(buffer != nullptr && buffer->IsCreated(),
             "Dynamic buffer '{}' in descriptor set '{}' is null or not created", elementName, m_layout.GetName());
 
@@ -975,7 +975,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTrac
 
         const DescriptorSetElement& element = elementIt->second;
 
-        DX12GpuBuffer* buffer = StaticCast<DX12GpuBuffer>(element.values[0]);
+        DX12GpuBuffer* buffer = Cast<DX12GpuBuffer>(element.values[0]);
         Assert(buffer != nullptr && buffer->IsCreated(),
             "Dynamic buffer '{}' in descriptor set '{}' is null or not created", elementName, m_layout.GetName());
 

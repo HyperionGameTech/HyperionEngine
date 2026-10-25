@@ -315,7 +315,7 @@ void Verify_MigratesComponents(GameTestContext& context)
         const char* tag;
     };
 
-    Entity* holder = DynamicCast<Entity>(FindNode(context, scene, "Holder"));
+    Entity* holder = TryCast<Entity>(FindNode(context, scene, "Holder"));
 
     const ExpectedComponent expectedComponents[] = {
         { holder, "Holder", 4.5f, "fast" },
@@ -421,7 +421,7 @@ void Release_RemovesWhatTheFirstBuildMade(GameTestContext& context)
 
     for (const UUID& uuid : { EntityAUuid, EntityBUuid })
     {
-        if (NativeTestReloadEntity* entity = DynamicCast<NativeTestReloadEntity>(scene->GetRoot()->FindChildByUUID(uuid)))
+        if (NativeTestReloadEntity* entity = TryCast<NativeTestReloadEntity>(scene->GetRoot()->FindChildByUUID(uuid)))
         {
             entity->partner.Reset();
         }

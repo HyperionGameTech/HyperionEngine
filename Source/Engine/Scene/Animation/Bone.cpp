@@ -54,7 +54,7 @@ void Bone::ClearPose()
             continue;
         }
 
-        static_cast<Bone&>(*child).ClearPose(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        Cast<Bone>(child)->ClearPose();
     }
 }
 
@@ -78,7 +78,7 @@ void Bone::StoreBindingPose()
             continue;
         }
 
-        static_cast<Bone&>(*child).StoreBindingPose(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        Cast<Bone>(child)->StoreBindingPose();
     }
 }
 
@@ -100,7 +100,7 @@ void Bone::SetToBindingPose()
             continue;
         }
 
-        static_cast<Bone&>(*child).SetToBindingPose(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        Cast<Bone>(child)->SetToBindingPose(); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
     }
 }
 
@@ -144,7 +144,7 @@ void Bone::SetSkeleton(Skeleton* skeleton)
             continue;
         }
 
-        static_cast<Bone&>(*child).SetSkeleton(skeleton); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        Cast<Bone>(child)->SetSkeleton(skeleton);
     }
 }
 

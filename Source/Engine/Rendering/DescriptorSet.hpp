@@ -440,7 +440,7 @@ public:
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
-            DescriptorSetBase* setBase = static_cast<DescriptorSetBase*>(set.ptr);
+            DescriptorSetBase* setBase = Cast<DescriptorSetBase*>(set.ptr);
 
             if (setBase->GetLayout().GetName() == name)
             {
@@ -455,7 +455,7 @@ public:
     {
         for (const DescriptorSetRef& set : m_sets[frameIndex])
         {
-            DescriptorSetBase* setBase = static_cast<DescriptorSetBase*>(set.ptr);
+            DescriptorSetBase* setBase = Cast<DescriptorSetBase*>(set.ptr);
 
             if (!setBase->GetLayout().IsValid())
             {

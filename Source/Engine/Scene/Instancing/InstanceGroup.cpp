@@ -72,7 +72,7 @@ Handle<Node> InstanceGroup::Clone() const
 {
     Handle<Node> cloned = Entity::Clone();
 
-    InstanceGroup* clonedGroup = DynamicCast<InstanceGroup>(cloned.Get());
+    InstanceGroup* clonedGroup = TryCast<InstanceGroup>(cloned.Get());
 
     if (!clonedGroup)
     {
@@ -97,7 +97,7 @@ Handle<Node> InstanceGroup::Clone() const
     }
     else if (m_instanceData.IsValid())
     {
-        instanceData = DynamicCast<InstanceSetData>(m_instanceData->CloneAsset());
+        instanceData = TryCast<InstanceSetData>(m_instanceData->CloneAsset());
     }
 
     if (!instanceData.IsValid())
@@ -509,7 +509,7 @@ uint32 InstanceGroup::CollectMembers(const Prefab& prefab, Array<InstanceGroupMe
 
     for (Node* node : nodes)
     {
-        Entity* entity = DynamicCast<Entity>(node);
+        Entity* entity = TryCast<Entity>(node);
 
         const MeshComponent* meshComponent = entity != nullptr && entity->GetEntityManager() != nullptr
             ? entity->TryGetComponent<MeshComponent>()

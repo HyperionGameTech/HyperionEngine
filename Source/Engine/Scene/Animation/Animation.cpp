@@ -29,7 +29,7 @@ bool IsBoneWithin(Bone& bone, Name rootBoneName)
 {
     for (Node* node = &bone; node != nullptr; node = node->GetParent())
     {
-        const Bone* ancestor = DynamicCast<Bone>(node);
+        const Bone* ancestor = TryCast<Bone>(node);
 
         if (!ancestor)
         {

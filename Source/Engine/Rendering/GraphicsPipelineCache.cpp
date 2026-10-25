@@ -163,7 +163,7 @@ public:
 
     GraphicsPipelineCacheHandle Alloc(size_t& outIndex)
     {
-        outIndex = static_cast<size_t>(indexAllocator.Allocate());
+        outIndex = size_t(indexAllocator.Allocate());
 
         Assert(!Base::HasIndex(outIndex));
 

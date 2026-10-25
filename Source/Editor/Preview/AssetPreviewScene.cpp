@@ -53,7 +53,7 @@ static Vec3f ViewRelativeLightDirection(float yaw, float pitch)
 
 static const MeshComponent* GetDrawableMeshComponent(const Node* node)
 {
-    const Entity* entity = DynamicCast<Entity>(node);
+    const Entity* entity = TryCast<Entity>(node);
 
     if (!entity || !entity->GetEntityManager())
     {

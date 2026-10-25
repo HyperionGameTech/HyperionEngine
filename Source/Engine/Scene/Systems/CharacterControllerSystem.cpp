@@ -225,7 +225,7 @@ static const Handle<Camera>& GetCameraChild(const Entity& entity)
 {
     for (const Handle<Node>& child : entity.GetChildren())
     {
-        if (const Handle<Camera>& camera = DynamicCast<Camera>(child); camera.IsValid())
+        if (const Handle<Camera>& camera = TryCast<Camera>(child); camera.IsValid())
         {
             return camera;
         }
@@ -239,7 +239,7 @@ static Vec3f GetPlayerViewDirection(const Entity& entity)
     const Handle<Camera>& cameraChild = GetCameraChild(entity);
     if (cameraChild.IsValid())
     {
-        if (const ThirdPersonCameraController* thirdPersonController = DynamicCast<ThirdPersonCameraController>(cameraChild->GetCameraController().Get()))
+        if (const ThirdPersonCameraController* thirdPersonController = TryCast<ThirdPersonCameraController>(cameraChild->GetCameraController().Get()))
         {
             return thirdPersonController->GetViewDirection();
         }
@@ -673,7 +673,7 @@ static void ProcessClientPrediction(Entity* entity, CharacterControllerComponent
         }
     }
 
-    CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
+    CharacterControllerInputHandler* inputHandler = Cast<CharacterControllerInputHandler>(component.inputHandler.Get());
 
     const Vec3f viewDirection = GetPlayerViewDirection(*entity);
 
@@ -797,7 +797,7 @@ void CharacterControllerSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 }
             }
             
-            CharacterControllerInputHandler* inputHandler = StaticCast<CharacterControllerInputHandler>(component.inputHandler.Get());
+            CharacterControllerInputHandler* inputHandler = Cast<CharacterControllerInputHandler>(component.inputHandler.Get());
             inputHandler->SetDeltaTime(GetWorld()->GetGameState().deltaTime);
 
             // Poll every tick: key events only refresh state for the keys the handler consumes, so Shift/Ctrl would otherwise go stale.

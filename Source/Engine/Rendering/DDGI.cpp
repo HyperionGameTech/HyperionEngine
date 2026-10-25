@@ -342,7 +342,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    RayTracingPassData* pd = DynamicCast<RayTracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = TryCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();

@@ -262,7 +262,7 @@ void UIPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
     Assert(renderSetup.view != nullptr);
 
-    UIPassData* pd = DynamicCast<UIPassData>(FetchViewPassData(renderSetup.view));
+    UIPassData* pd = TryCast<UIPassData>(FetchViewPassData(renderSetup.view));
     AssertDebug(pd != nullptr);
 
     if (!pd->renderCollector.batchAllocator)

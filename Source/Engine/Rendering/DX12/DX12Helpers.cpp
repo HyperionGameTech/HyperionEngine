@@ -741,7 +741,7 @@ D3D12_SAMPLER_DESC GetSamplerDesc(const DX12Sampler* sampler)
     else
     {
         // Upgrade the filter to a comparison type
-        desc.Filter = D3D12_FILTER(static_cast<UINT>(desc.Filter) | 0x80);
+        desc.Filter = D3D12_FILTER(UINT(desc.Filter) | 0x80);
         desc.ComparisonFunc = ToDX12SamplerCompareOp(compareOp);
     }
 

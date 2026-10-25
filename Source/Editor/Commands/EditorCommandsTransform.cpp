@@ -235,7 +235,7 @@ public:
             return;
         }
 
-        subsystem->SetPhysicsShape(node, DynamicCast<PhysicsShape>(boxed.Get<Handle<AssetObject>>()));
+        subsystem->SetPhysicsShape(node, TryCast<PhysicsShape>(boxed.Get<Handle<AssetObject>>()));
     }
 };
 
@@ -410,7 +410,7 @@ public:
         }
 
         // volumes are positioned by their local bounds rather than the node origin
-        if (VolumeBase* volume = DynamicCast<VolumeBase>(node.Get()))
+        if (VolumeBase* volume = TryCast<VolumeBase>(node.Get()))
         {
             const BoundingBox& localBounds = volume->GetLocalBounds();
 
@@ -693,7 +693,7 @@ public:
 
         for (auto it = clipboardNodes.Begin(); it != clipboardNodes.End();)
         {
-            Handle<InstanceHandleNode> instanceHandle = DynamicCast<InstanceHandleNode>(*it);
+            Handle<InstanceHandleNode> instanceHandle = TryCast<InstanceHandleNode>(*it);
 
             if (instanceHandle.IsValid())
             {

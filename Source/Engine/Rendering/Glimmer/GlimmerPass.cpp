@@ -292,7 +292,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    GlimmerScenePassData* scene = DynamicCast<GlimmerScenePassData>(FetchViewPassData(view));
+    GlimmerScenePassData* scene = TryCast<GlimmerScenePassData>(FetchViewPassData(view));
     AssertDebug(scene != nullptr);
 
     const uint32 frameCounter = GetFrameCounter();
@@ -467,7 +467,7 @@ void GlimmerPass::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     context.triangleCache = scene->triangleCache.Get();
     context.sceneInstances = scene->sceneInstances.Get();
 
-    if (const DeferredPassData* cloudsPassData = DynamicCast<DeferredPassData>(renderSetup.passData))
+    if (const DeferredPassData* cloudsPassData = TryCast<DeferredPassData>(renderSetup.passData))
     {
         context.cloudPass = cloudsPassData->cloudPass.Get();
     }
@@ -556,7 +556,7 @@ bool GlimmerPass::RenderDebugView(Frame* frame, const RenderSetup& renderSetup, 
         return false;
     }
 
-    GlimmerViewPassData* viewData = DynamicCast<GlimmerViewPassData>(FetchViewPassData(view));
+    GlimmerViewPassData* viewData = TryCast<GlimmerViewPassData>(FetchViewPassData(view));
     AssertDebug(viewData != nullptr);
 
     const Vec2u extent = MathUtil::Max(renderSetup.viewport.extent, Vec2u::One());

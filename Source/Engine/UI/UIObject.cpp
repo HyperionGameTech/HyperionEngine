@@ -504,7 +504,7 @@ float UIObject::GetUIScaleFactor() const
     // If this object is a UIStage, return its own scale factor
     if (IsA<UIStage>())
     {
-        return StaticCast<UIStage>(const_cast<UIObject*>(this))->GetUIScaleFactor();
+        return Cast<UIStage>(const_cast<UIObject*>(this))->GetUIScaleFactor();
     }
 
     return 1.0f;
@@ -2039,7 +2039,7 @@ UIObject* UIObject::GetParentUIObject() const
 
     while (parentNode != nullptr)
     {
-        if (Entity* entity = DynamicCast<Entity>(parentNode);
+        if (Entity* entity = TryCast<Entity>(parentNode);
             entity && entity->GetEntityManager() != nullptr) // check, in case UIObject was removed
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
@@ -2079,7 +2079,7 @@ Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIOb
 
     while (parentNode)
     {
-        if (Entity* entity = DynamicCast<Entity>(parentNode))
+        if (Entity* entity = TryCast<Entity>(parentNode))
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {
@@ -2212,7 +2212,7 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
     }
     else if (IsA<UIStage>())
     {
-        actualSize = DynamicCast<UIStage>(this)->GetSurfaceSize();
+        actualSize = TryCast<UIStage>(this)->GetSurfaceSize();
     }
     else
     {
@@ -2483,7 +2483,7 @@ void UIObject::UpdateMeshData_Internal()
 
     meshComponent->numInstances = 1;
 
-    Handle<InstancedMeshData> instancedMesh = DynamicCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+    Handle<InstancedMeshData> instancedMesh = TryCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
 
     if (!instancedMesh)
     {
@@ -2623,7 +2623,7 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
 
         if (node != nullptr)
         {
-            Entity* entity = DynamicCast<Entity>(node);
+            Entity* entity = TryCast<Entity>(node);
 
             if (entity != nullptr)
             {
@@ -2726,7 +2726,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
 
     if (m_node.IsValid())
     {
-        const Handle<Entity>& entity = DynamicCast<Entity>(m_node);
+        const Handle<Entity>& entity = TryCast<Entity>(m_node);
         Assert(entity != nullptr);
         Assert(entity->HasComponent<UIComponent>());
 
@@ -2740,7 +2740,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
     {
         Assert(m_node->IsA<Entity>());
 
-        Entity* entity = DynamicCast<Entity>(m_node.Get());
+        Entity* entity = TryCast<Entity>(m_node.Get());
         entity->AddComponent<UIComponent>(UIComponent { WeakHandleFromThis() });
 
         if (!m_affectsParentSize || !m_isVisible)
@@ -3009,7 +3009,7 @@ void UIObject::ForEachParentUIObject(Lambda&& lambda) const
 
     while (parentNode != nullptr)
     {
-        if (Entity* entity = DynamicCast<Entity>(parentNode))
+        if (Entity* entity = TryCast<Entity>(parentNode))
         {
             if (UIComponent* uiComponent = entity->TryGetComponent<UIComponent>())
             {
@@ -3162,7 +3162,7 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
     Assert(uiObject != nullptr);
 
     uiObject->m_spawnParent = WeakHandleFromThis();
-    uiObject->m_stage = IsA<UIStage>() ? DynamicCast<UIStage>(this) : GetStage();
+    uiObject->m_stage = IsA<UIStage>() ? TryCast<UIStage>(this) : GetStage();
 
     uiObject->SetNodeProxy(entity);
     uiObject->SetName(name);

@@ -204,7 +204,7 @@ bool CanSimulateEntityPhysics(const Entity& entity)
 
 float GetCapsuleHeightOffset(const CharacterControllerComponent& component)
 {
-    if (CapsulePhysicsShape* capsuleShape = DynamicCast<CapsulePhysicsShape>(component.shape.Get()))
+    if (CapsulePhysicsShape* capsuleShape = TryCast<CapsulePhysicsShape>(component.shape.Get()))
     {
         // amount to adjust the the final offset by after applying capsule height
         // otherwise the node will sit directly on top of the capsule,

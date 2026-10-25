@@ -653,7 +653,7 @@ Entity* ReplicationApplySystem::TryResolveSpawn(
 
     if (!existing)
     {
-        existing = DynamicCast<Entity>(targetScene->FindNodeByUUID(spawnOp.uuid));
+        existing = TryCast<Entity>(targetScene->FindNodeByUUID(spawnOp.uuid));
     }
 
     if (existing != nullptr)

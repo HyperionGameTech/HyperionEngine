@@ -64,7 +64,7 @@ void ScaleEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEven
 
     m_dragData.Unset();
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -250,7 +250,7 @@ void ScaleEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent&
 
 bool ScaleEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -273,7 +273,7 @@ bool ScaleEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEve
 
 bool ScaleEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -309,7 +309,7 @@ bool ScaleEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEven
         return false;
     }
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;

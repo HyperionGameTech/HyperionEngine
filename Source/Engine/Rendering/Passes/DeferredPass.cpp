@@ -1527,7 +1527,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             PassData* pd = FetchViewPassData(view);
             Assert(pd != nullptr);
 
-            DeferredPassData* pdCasted = DynamicCast<DeferredPassData>(pd);
+            DeferredPassData* pdCasted = TryCast<DeferredPassData>(pd);
             Assert(pdCasted != nullptr);
 
             if (!gbuffer || gbuffer->GetExtent() != viewViewport.extent || pdCasted->outputExtent != viewOutputExtent)
@@ -1538,7 +1538,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             }
 
             { // Clouds - before lighting, fog and the sky probe sample the view's weather and shadow maps
-                DeferredPassData* pd = DynamicCast<DeferredPassData>(FetchViewPassData(view));
+                DeferredPassData* pd = TryCast<DeferredPassData>(FetchViewPassData(view));
                 AssertDebug(pd != nullptr);
 
                 RenderSetup cloudRS = rs.Fork();
@@ -1570,7 +1570,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             PassData* pd = FetchViewPassData(view);
             Assert(pd != nullptr);
 
-            RayTracingPassData* pdCasted = DynamicCast<RayTracingPassData>(pd);
+            RayTracingPassData* pdCasted = TryCast<RayTracingPassData>(pd);
             Assert(pdCasted != nullptr);
 
             RenderSetup newRenderSetup = rs.Fork();
@@ -1756,7 +1756,7 @@ void DeferredPass::RenderFrame(Frame* frame, const RenderSetup& rs)
             continue; // Not yet ready
         }
 
-        DeferredPassData* pd = DynamicCast<DeferredPassData>(FetchViewPassData(view));
+        DeferredPassData* pd = TryCast<DeferredPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
 
         RenderSetup currentViewSetup = rs.Fork();
@@ -1801,7 +1801,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     RenderCollector& renderCollector = GetRenderCollector(view);
 
-    DeferredPassData* passDataCasted = DynamicCast<DeferredPassData>(rs.passData);
+    DeferredPassData* passDataCasted = TryCast<DeferredPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
 
     DeferredPassData& passData = *passDataCasted;
@@ -1977,7 +1977,7 @@ void DeferredPass::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         if (rayTracingView != nullptr)
         {
-            RayTracingPassData* rayTracingPassData = DynamicCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
+            RayTracingPassData* rayTracingPassData = TryCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
             Assert(rayTracingPassData != nullptr);
 
             const TopLevelASRef& tlas = rayTracingPassData->rayTracingTlases[frame->GetFrameIndex()];
@@ -2450,7 +2450,7 @@ void DeferredPass::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     const uint32 currentFrameIndex = GetFrameCounter() % NumFramesInFlight;
 
-    RayTracingPassData* pd = DynamicCast<RayTracingPassData>(rs.passData);
+    RayTracingPassData* pd = TryCast<RayTracingPassData>(rs.passData);
 
     RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
@@ -2640,7 +2640,7 @@ void DeferredPass::GenerateMipChain(
     RenderCollector& renderCollector,
     GpuImage* srcImage)
 {
-    DeferredPassData* pd = DynamicCast<DeferredPassData>(rs.passData);
+    DeferredPassData* pd = TryCast<DeferredPassData>(rs.passData);
 
     const Handle<Texture>& mipChainTexture = pd->mipChain;
     AssertDebug(mipChainTexture.IsValid());

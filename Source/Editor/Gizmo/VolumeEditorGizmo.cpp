@@ -142,7 +142,7 @@ Handle<Node> VolumeEditorGizmo::Load_Internal() const
         {
             for (const Handle<Node>& child : rootNode->GetChildren())
             {
-                if (Entity* entity = DynamicCast<Entity>(child.Get()))
+                if (Entity* entity = TryCast<Entity>(child.Get()))
                 {
                     if (VisibilityStateComponent* visibilityState = entity->TryGetComponent<VisibilityStateComponent>())
                     {
@@ -190,7 +190,7 @@ void VolumeEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     m_dragData.Unset();
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -300,7 +300,7 @@ void VolumeEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
 bool VolumeEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -322,7 +322,7 @@ bool VolumeEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
 
 bool VolumeEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;

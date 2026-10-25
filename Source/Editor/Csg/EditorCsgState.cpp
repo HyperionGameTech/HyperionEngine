@@ -105,14 +105,14 @@ RenderableAttributeSet BrushOverlayAttributes(FillMode fillMode)
 
 MeshComponent* GetMeshComponent(Node* node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
 
     return entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 }
 
 void AssignMesh(const Handle<Node>& node, const Handle<Mesh>& mesh)
 {
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !mesh.IsValid())
@@ -541,7 +541,7 @@ void EditorCsgState::Exit(bool saveEdits)
         if (target.IsValid() && m_baselineMesh.IsValid() && GetTargetMesh() != m_baselineMesh)
         {
             AssignMesh(target, m_baselineMesh);
-            m_subsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(target.Get()));
+            m_subsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(target.Get()));
         }
     }
 
@@ -1499,7 +1499,7 @@ void EditorCsgState::ApplyBrush()
                     }
 
                     AssignMesh(target, resultMesh);
-                    editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(target.Get()));
+                    editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(target.Get()));
 
                     const Handle<EditorCsgState>& csgState = editorSubsystem->GetCsgState();
 
@@ -1527,7 +1527,7 @@ void EditorCsgState::ApplyBrush()
                     }
 
                     AssignMesh(target, previousMesh);
-                    editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(target.Get()));
+                    editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(target.Get()));
 
                     const Handle<EditorCsgState>& csgState = editorSubsystem->GetCsgState();
 
@@ -1652,7 +1652,7 @@ void EditorCsgState::FinalizeMesh()
         GetCurrentAssetRegistry()->PutAssetUnique(finalMesh);
     }
 
-    if (Entity* entity = DynamicCast<Entity>(target.Get()))
+    if (Entity* entity = TryCast<Entity>(target.Get()))
     {
         RigidBodyComponent* rigidBodyComponent = entity->TryGetComponent<RigidBodyComponent>();
 

@@ -184,7 +184,7 @@ void GlimmerGroundClipmap::Update(
     {
         for (const Handle<WorldGridLayer>& layer : world->GetWorldGrid()->GetLayers())
         {
-            if (const Handle<TerrainWorldGridLayer>& terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+            if (const Handle<TerrainWorldGridLayer>& terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
             {
                 terrain = terrainLayer.Get();
 

@@ -32,7 +32,7 @@ static bool HandleSwatchOverridesSection(BoxedValue& owner, Array<HMF::SchemaSec
 
             if (IsA(Entity::StaticClass(), object->InstanceClass()))
             {
-                entity = static_cast<Entity*>(object);
+                entity = Cast<Entity>(object);
             }
         }
     }

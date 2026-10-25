@@ -1072,7 +1072,7 @@ static void CollectDrawnTransforms(const Entity* entity, const MeshComponent* me
         return;
     }
 
-    const Handle<InstancedMeshData> instanceData = DynamicCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
+    const Handle<InstancedMeshData> instanceData = TryCast<InstancedMeshData>(meshComponent->instanceData.Resolve());
 
     if (!instanceData.IsValid())
     {

@@ -121,7 +121,7 @@ namespace /* Script */ {
 
 bool ScriptAcceptsAsset(const AssetObject* asset)
 {
-    return DynamicCast<ScriptAsset>(asset) != nullptr;
+    return TryCast<ScriptAsset>(asset) != nullptr;
 }
 
 bool ScriptCanApply(const AssetObject* asset, const Entity* entity)
@@ -131,7 +131,7 @@ bool ScriptCanApply(const AssetObject* asset, const Entity* entity)
 
 Handle<EditorActionBase> ScriptCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
 {
-    Handle<ScriptAsset> scriptAsset = DynamicCast<ScriptAsset>(asset);
+    Handle<ScriptAsset> scriptAsset = TryCast<ScriptAsset>(asset);
 
     const bool hadScriptComponent = entity->HasComponent<ScriptComponent>();
     const Handle<ScriptAsset> previousScriptAsset = hadScriptComponent ? entity->GetComponent<ScriptComponent>().script : Handle<ScriptAsset>::empty;
@@ -202,7 +202,7 @@ namespace /* Material */ {
 
 bool MaterialAcceptsAsset(const AssetObject* asset)
 {
-    return DynamicCast<Material>(asset) != nullptr;
+    return TryCast<Material>(asset) != nullptr;
 }
 
 bool MaterialCanApply(const AssetObject* asset, const Entity* entity)
@@ -212,7 +212,7 @@ bool MaterialCanApply(const AssetObject* asset, const Entity* entity)
 
 Handle<EditorActionBase> MaterialCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
 {
-    Handle<Material> material = DynamicCast<Material>(asset);
+    Handle<Material> material = TryCast<Material>(asset);
 
     const Handle<Material> previousMaterial = entity->GetComponent<MeshComponent>().material;
 
@@ -241,19 +241,19 @@ namespace /* Texture */ {
 
 bool TextureAcceptsAsset(const AssetObject* asset)
 {
-    return DynamicCast<Texture>(asset) != nullptr;
+    return TryCast<Texture>(asset) != nullptr;
 }
 
 bool TextureCanApply(const AssetObject* asset, const Entity* entity)
 {
-    const Texture* texture = DynamicCast<Texture>(asset);
+    const Texture* texture = TryCast<Texture>(asset);
 
     return texture->GetType() == TextureType::Texture2D && EntityHasMesh(entity);
 }
 
 Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
 {
-    Handle<Texture> texture = DynamicCast<Texture>(asset);
+    Handle<Texture> texture = TryCast<Texture>(asset);
 
     const Handle<Material> previousMaterial = entity->GetComponent<MeshComponent>().material;
 

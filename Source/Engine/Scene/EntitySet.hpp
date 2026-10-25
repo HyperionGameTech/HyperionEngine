@@ -157,7 +157,7 @@ private:
         else
         {
             // Guaranteed to actually be T, so cast it
-            return StaticCast<std::remove_pointer_t<HeadType>>(entity);
+            return Cast<std::remove_pointer_t<HeadType>>(entity);
         }
     }
 

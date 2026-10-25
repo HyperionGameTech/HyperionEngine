@@ -209,7 +209,7 @@ RenderableAttributeSet PhysicsWireframeAttributes()
 /// A hit on an instance selects a InstanceHandleNode instead of the owning group
 Handle<Node> ResolvePickedNode(const RayHit& hit, EditorSubsystem& editorSubsystem)
 {
-    Entity* entity = DynamicCast<Entity>(hit.node);
+    Entity* entity = TryCast<Entity>(hit.node);
 
     const InstanceClusterComponent* clusterComponent = entity != nullptr && entity->GetEntityManager() != nullptr
         ? entity->TryGetComponent<InstanceClusterComponent>()
@@ -464,7 +464,7 @@ Node* EditorSubsystem::ResolveMeshEditTarget(MeshComponent** outMeshComponent) c
         return nullptr;
     }
 
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
 
     if (!entity)
     {
@@ -926,7 +926,7 @@ static void ApplyMeshEditVertexPositions(
     uint32 expectedVertexCount,
     bool recomputeDerivedData)
 {
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !meshComponent->mesh.IsValid())
@@ -1071,7 +1071,7 @@ static void WriteAllMeshVertexPositions(
     uint8 lodIndex,
     const Array<Vec3f, EditorAllocator>& positions)
 {
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !meshComponent->mesh.IsValid())
@@ -1257,7 +1257,7 @@ static uint8 SelectMeshLodForViews(Span<const LODViewData> viewDatas, const Mesh
 
 uint8 EditorSubsystem::ResolveMeshEditLod(Node* targetNode) const
 {
-    Entity* entity = DynamicCast<Entity>(targetNode);
+    Entity* entity = TryCast<Entity>(targetNode);
 
     if (entity == nullptr)
     {
@@ -1301,7 +1301,7 @@ void EditorSubsystem::SetMeshEditLod(uint8 lodIndex)
     }
 
     Handle<Node> targetNode = m_meshEditState.targetNode.Lock();
-    Entity* entity = DynamicCast<Entity>(targetNode.Get());
+    Entity* entity = TryCast<Entity>(targetNode.Get());
 
     if (entity == nullptr)
     {
@@ -1470,7 +1470,7 @@ void EditorSubsystem::SyncBoxPhysicsShapeToLocalBounds(Entity* entity)
 
     // Clone the shape first to prevent stomping something used by another
     Handle<PhysicsShape> uniqueShape = EnsureUniquePhysicsShape(entity);
-    Handle<BoxPhysicsShape> boxShape = DynamicCast<BoxPhysicsShape>(uniqueShape);
+    Handle<BoxPhysicsShape> boxShape = TryCast<BoxPhysicsShape>(uniqueShape);
 
     if (!boxShape.IsValid())
     {
@@ -1539,7 +1539,7 @@ void EditorSubsystem::CommitMeshEdits()
                     if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                     {
                         WriteAllMeshVertexPositions(node, lodIndex, finalPositions);
-                        editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(node.Get()));
+                        editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(node.Get()));
                     }
                 },
                 [nodeWeak, baselinePositions, lodIndex](EditorSubsystem* editorSubsystem, EditorProject* editorProject)
@@ -1547,7 +1547,7 @@ void EditorSubsystem::CommitMeshEdits()
                     if (Handle<Node> node = nodeWeak.Lock(); node.IsValid())
                     {
                         WriteAllMeshVertexPositions(node, lodIndex, baselinePositions);
-                        editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(DynamicCast<Entity>(node.Get()));
+                        editorSubsystem->SyncBoxPhysicsShapeToLocalBounds(TryCast<Entity>(node.Get()));
                     }
                 }
             };
@@ -1613,7 +1613,7 @@ static void EnsureUniqueMeshEditTarget(const Handle<Node>& node, MeshComponent* 
 
     node->AddTag(NodeTag(NAME("HYP_MeshEditUniqueMesh"), int(1)));
 
-    if (Entity* entity = DynamicCast<Entity>(node.Get()))
+    if (Entity* entity = TryCast<Entity>(node.Get()))
     {
         entity->AddTag<EntityTag::UpdateRenderProxy>();
     }
@@ -1886,7 +1886,7 @@ static bool BuildMeshEditFaceWorldPositions(
     const Array<Vec3f, EditorAllocator>* overrideLocalPositions,
     Array<Vec3f, EditorAllocator>& outWorldPositions)
 {
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !meshComponent->mesh.IsValid())
@@ -2032,7 +2032,7 @@ void EditorSubsystem::StartMeshEditDrag(const Handle<Camera>& camera, const Mous
         return;
     }
 
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !meshComponent->mesh.IsValid())
@@ -2192,7 +2192,7 @@ void EditorSubsystem::EndMeshEditDrag(bool saveEdits)
         return;
     }
 
-    Entity* entity = DynamicCast<Entity>(node.Get());
+    Entity* entity = TryCast<Entity>(node.Get());
     MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
     if (!meshComponent || !meshComponent->mesh.IsValid())
@@ -2340,7 +2340,7 @@ bool EditorSubsystem::CanUseVolumeEditTool() const
 
     Handle<Node> focusedNode = m_focusedNode.Lock();
 
-    return focusedNode.IsValid() && focusedNode->IsA<VolumeBase>() && StaticCast<VolumeBase>(focusedNode)->useVolumeEditTool;
+    return focusedNode.IsValid() && focusedNode->IsA<VolumeBase>() && Cast<VolumeBase>(focusedNode)->useVolumeEditTool;
 }
 
 Array<Handle<Node>> EditorSubsystem::GetGizmoTargetNodes() const
@@ -2664,10 +2664,10 @@ Entity* EditorSubsystem::ResolveCollisionTargetEntity(Node* node) const
     {
         Handle<Node> focusedNode = m_focusedNode.Lock();
 
-        return DynamicCast<Entity>(focusedNode.Get());
+        return TryCast<Entity>(focusedNode.Get());
     }
 
-    return DynamicCast<Entity>(node);
+    return TryCast<Entity>(node);
 }
 
 bool EditorSubsystem::CanFitPhysicsShapeToMesh(Node* node) const
@@ -2686,7 +2686,7 @@ bool EditorSubsystem::CanFitPhysicsShapeToMesh(Node* node) const
         && meshComponent->mesh.IsValid()
         && (rigidBodyComponent == nullptr
             || !rigidBodyComponent->shape.IsValid()
-            || DynamicCast<BoxPhysicsShape>(rigidBodyComponent->shape).IsValid());
+            || TryCast<BoxPhysicsShape>(rigidBodyComponent->shape).IsValid());
 }
 
 bool EditorSubsystem::IsPhysicsShapeShared(Entity* entity, const Handle<PhysicsShape>& shape) const
@@ -2826,7 +2826,7 @@ void EditorSubsystem::FitPhysicsShapeToMesh(Node* node)
 
     // Clone the shape first if any other entity references it, so we never mutate a shared asset.
     Handle<PhysicsShape> uniqueShape = EnsureUniquePhysicsShape(entity);
-    Handle<BoxPhysicsShape> boxShape = DynamicCast<BoxPhysicsShape>(uniqueShape);
+    Handle<BoxPhysicsShape> boxShape = TryCast<BoxPhysicsShape>(uniqueShape);
 
     if (!boxShape.IsValid())
     {
@@ -3196,7 +3196,7 @@ Handle<AssetObject> EditorSubsystem::GenerateConvexCollisionAsset(AssetObject* s
         return Handle<AssetObject>::empty;
     }
 
-    Mesh* meshPtr = DynamicCast<Mesh>(source);
+    Mesh* meshPtr = TryCast<Mesh>(source);
 
     if (meshPtr == nullptr)
     {
@@ -3264,7 +3264,7 @@ void EditorSubsystem::SetViewportForcedLod(int32 lodIndex)
 
 static VolumeBase* ResolveFittableVolume(Node* node)
 {
-    VolumeBase* volume = DynamicCast<VolumeBase>(node);
+    VolumeBase* volume = TryCast<VolumeBase>(node);
 
     // unbounded volumes (e.g. sky probe) have no box to fit
     if (volume == nullptr || !volume->GetLocalBounds().IsFinite())
@@ -3784,7 +3784,7 @@ void EditorSubsystem::DebugDrawPhysicsShapes(DebugDrawCommandList& debugDrawComm
     {
         auto drawHighlighted = [&debugDrawCommandList](Node* node)
         {
-            Entity* entity = DynamicCast<Entity>(node);
+            Entity* entity = TryCast<Entity>(node);
             RigidBodyComponent* rigidBodyComponent = entity != nullptr ? entity->TryGetComponent<RigidBodyComponent>() : nullptr;
 
             if (rigidBodyComponent != nullptr && rigidBodyComponent->shape.IsValid())
@@ -3937,7 +3937,7 @@ void EditorSubsystem::Update(float delta)
         {
             if (node.IsValid())
             {
-                if (const Light* light = DynamicCast<Light>(node.Get()); light && light->GetLightType() == LightType::Spot)
+                if (const Light* light = TryCast<Light>(node.Get()); light && light->GetLightType() == LightType::Spot)
                 {
                     DebugDrawSpotLight(dbg, *light);
 
@@ -5983,7 +5983,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     if (m_meshEditState.enabled && focusedNode != m_meshEditState.targetNode)
     {
-        Entity* entity = DynamicCast<Entity>(focusedNode.Get());
+        Entity* entity = TryCast<Entity>(focusedNode.Get());
         MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
         if (meshComponent && meshComponent->mesh.IsValid())
@@ -6010,7 +6010,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
     {
         if (focusedNode->GetScene() != nullptr)
         {
-            if (Entity* entity = DynamicCast<Entity>(focusedNode))
+            if (Entity* entity = TryCast<Entity>(focusedNode))
             {
                 entity->AddTag<EntityTag::FocusedInEditor>();
             }
@@ -6042,7 +6042,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     if (previousFocusedNode != nullptr)
     {
-        if (Entity* entity = DynamicCast<Entity>(previousFocusedNode))
+        if (Entity* entity = TryCast<Entity>(previousFocusedNode))
         {
             entity->RemoveTag<EntityTag::FocusedInEditor>();
         }
@@ -6380,7 +6380,7 @@ bool EditorSubsystem::SetAssetDropTargetNode(uint32 bucketIndex, Name assetName,
         }
     }
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     Handle<Scene> activeScene = GetActiveScene();
 
     if (entity != nullptr
@@ -7292,11 +7292,11 @@ void EditorSubsystem::UpdateBakeStatus()
 
             Array<String, EditorAllocator>* outNames;
 
-            if (DynamicCast<ReflectionProbe>(probe))
+            if (TryCast<ReflectionProbe>(probe))
             {
                 outNames = &reflectionProbeNames;
             }
-            else if (DynamicCast<IrradianceProbe>(probe))
+            else if (TryCast<IrradianceProbe>(probe))
             {
                 outNames = &irradianceProbeNames;
             }

@@ -64,7 +64,7 @@ struct EngineDefaults
     template <class T>
     static Handle<T> LoadAsset(const AssetPath& path)
     {
-        return DynamicCast<T>(LoadAsset(path));
+        return TryCast<T>(LoadAsset(path));
     }
 
     ENGINE_API static Handle<AssetObject> LoadAsset(const AssetPath& path);

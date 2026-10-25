@@ -108,7 +108,7 @@ protected:
 
         const auto tryLoadFromRegistry = [&textureName](AssetRegistry& registry) -> Handle<Texture>
         {
-            return DynamicCast<Texture>(registry.GetAsset(AssetBuckets::Textures, StringHash(textureName)));
+            return TryCast<Texture>(registry.GetAsset(AssetBuckets::Textures, StringHash(textureName)));
         };
 
         Handle<Texture> texture = tryLoadFromRegistry(*GetCurrentAssetRegistry());

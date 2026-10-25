@@ -55,7 +55,7 @@ void TerrainLodSystem::Process(float delta, Span<Handle<Scene>> scenes)
     {
         for (const Handle<WorldGridLayer>& layer : worldGrid->GetLayers())
         {
-            if (const Handle<TerrainWorldGridLayer>& terrainLayer = DynamicCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
+            if (const Handle<TerrainWorldGridLayer>& terrainLayer = TryCast<TerrainWorldGridLayer>(layer); terrainLayer.IsValid())
             {
                 terrainLayer->SetLodViewpoints(viewpointsView);
                 terrainLayer->UpdateLodSelection(viewpointsView);

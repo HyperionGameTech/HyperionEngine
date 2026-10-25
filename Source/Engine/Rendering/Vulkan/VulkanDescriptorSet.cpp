@@ -73,7 +73,7 @@ static inline void ValidateDynamicOffset(
         const auto firstValueIt = element->values.Begin();
         if (firstValueIt != element->values.End())
         {
-            VulkanGpuBuffer* buffer = DynamicCast<VulkanGpuBuffer>(*firstValueIt);
+            VulkanGpuBuffer* buffer = TryCast<VulkanGpuBuffer>(*firstValueIt);
 
             if (buffer != nullptr)
             {
@@ -284,7 +284,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 {
                     Assert(Hyperion::IsA<VulkanGpuBuffer>(ptr), "Invalid buffer descriptor: {}", name);
 
-                    VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(ptr);
+                    VulkanGpuBuffer* ref = Cast<VulkanGpuBuffer>(ptr);
                     AssertDebug(ref != nullptr);
 
                     // Default to VK_WHOLE_SIZE -- ByteAddressBuffers will use this.
@@ -335,7 +335,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 {
                     AssertDebug(Hyperion::IsA<VulkanGpuImageView>(ptr), "Invalid image descriptor: {}", name);
 
-                    VulkanGpuImageView* ref = static_cast<VulkanGpuImageView*>(ptr);
+                    VulkanGpuImageView* ref = Cast<VulkanGpuImageView>(ptr);
                     AssertDebug(ref != nullptr);
 
                     const bool isStorageImage = (shaderInput->type == ShaderInputType::UAV || shaderInput->type == ShaderInputType::UAV_Dynamic);
@@ -360,7 +360,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 {
                     AssertDebug(Hyperion::IsA<VulkanTopLevelAS>(ptr), "Invalid TLAS descriptor: {}", name);
 
-                    VulkanTopLevelAS* ref = DynamicCast<VulkanTopLevelAS>(ptr);
+                    VulkanTopLevelAS* ref = TryCast<VulkanTopLevelAS>(ptr);
                     AssertDebug(ref != nullptr, "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
                     AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
@@ -388,7 +388,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
                 AssertDebug(ptr && Hyperion::IsA<VulkanSampler>(ptr), "Invalid sampler descriptor: {}", name);
 
-                VulkanSampler* ref = static_cast<VulkanSampler*>(ptr);
+                VulkanSampler* ref = Cast<VulkanSampler>(ptr);
                 AssertDebug(ref != nullptr);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();

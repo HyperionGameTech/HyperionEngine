@@ -67,7 +67,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
 
     m_dragData.Unset();
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return;
@@ -256,7 +256,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
 
 bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -279,7 +279,7 @@ bool RotateEditorGizmo::OnMouseHover(const Handle<Camera>& camera, const MouseEv
 
 bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;
@@ -315,7 +315,7 @@ bool RotateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const MouseEve
         return false;
     }
 
-    Entity* entity = DynamicCast<Entity>(node);
+    Entity* entity = TryCast<Entity>(node);
     if (!entity)
     {
         return false;

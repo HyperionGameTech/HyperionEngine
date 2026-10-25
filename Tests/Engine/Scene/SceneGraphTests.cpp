@@ -576,7 +576,7 @@ HYP_ENGINE_TEST(SceneGraph, EntityCloneCopiesSerializedComponents)
     entity->AddComponent<CharacterModelComponent>(std::move(added));
 
     Handle<Node> cloneNode = entity->Clone();
-    Handle<Entity> clone = DynamicCast<Entity>(cloneNode);
+    Handle<Entity> clone = TryCast<Entity>(cloneNode);
 
     HYP_TEST_REQUIRE(clone.IsValid());
 

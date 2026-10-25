@@ -886,7 +886,7 @@ void CloudPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
 bool CloudPass::Trace(Frame* frame, const RenderSetup& renderSetup)
 {
-    DeferredPassData* deferredPassData = DynamicCast<DeferredPassData>(renderSetup.passData);
+    DeferredPassData* deferredPassData = TryCast<DeferredPassData>(renderSetup.passData);
     AssertDebug(deferredPassData != nullptr);
 
     RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
@@ -943,7 +943,7 @@ bool CloudPass::Trace(Frame* frame, const RenderSetup& renderSetup)
 
     if (skyProbes.Any())
     {
-        SkyProbe* skyProbe = static_cast<SkyProbe*>(*skyProbes.Begin());
+        SkyProbe* skyProbe = Cast<SkyProbe>(*skyProbes.Begin());
 
         if (RenderProxyEnvProbe* skyProbeProxy = static_cast<RenderProxyEnvProbe*>(GetRenderProxy(skyProbe)))
         {

@@ -308,7 +308,7 @@ bool EditorGridLabelFont::Update()
 #ifdef HYP_EDITOR
                     if (Handle<AssetRegistry> editorRegistry = GetEditorAssetRegistry(); editorRegistry.IsValid())
                     {
-                        texture = DynamicCast<Texture>(editorRegistry->GetAsset(AssetBuckets::Textures, GetGlyphTextureName()));
+                        texture = TryCast<Texture>(editorRegistry->GetAsset(AssetBuckets::Textures, GetGlyphTextureName()));
                     }
 #endif // HYP_EDITOR
 

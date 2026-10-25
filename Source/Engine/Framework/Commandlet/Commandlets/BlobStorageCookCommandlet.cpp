@@ -494,7 +494,7 @@ private:
 
         for (const Handle<AssetObject>& assetObject : assetsToCook)
         {
-            const Handle<Material>& material = DynamicCast<Material>(assetObject);
+            const Handle<Material>& material = TryCast<Material>(assetObject);
 
             if (!material.IsValid())
             {
@@ -1628,7 +1628,7 @@ private:
 
                     AssetRegistry::WalkAssetDeep(BoxedValue(worldAsset), callback);
 
-                    const Handle<World>& world = DynamicCast<World>(worldAsset);
+                    const Handle<World>& world = TryCast<World>(worldAsset);
 
                     if (world.IsValid() && world->GetWorldGrid().IsValid())
                     {
