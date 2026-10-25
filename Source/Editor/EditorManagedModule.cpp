@@ -78,7 +78,9 @@ void LoadManagedModuleCopy(
 
     if (!loadedModule.assembly)
     {
-        loadedModule.error = HYP_FORMAT("Failed to load game assembly {} (it may have been built for a different engine version). Rebuild the game.", loadedModule.modulePath);
+        loadedModule.loadedTimestampOrError = HYP_MAKE_ERROR(GameModuleError,
+            "Failed to load game assembly {} (it may have been built for a different engine version). Rebuild the game.",
+            loadedModule.modulePath);
 
         return;
     }
@@ -88,7 +90,9 @@ void LoadManagedModuleCopy(
     if (!loadedModule.gameClass || !loadedModule.gameClass->HasParentClass("Game"))
     {
         loadedModule.gameClass.Reset();
-        loadedModule.error = HYP_FORMAT("Game assembly {} has no Game subclass named '{}'", loadedModule.modulePath, gameClassName);
+        loadedModule.loadedTimestampOrError = HYP_MAKE_ERROR(GameModuleError,
+            "Game assembly {} has no Game subclass named '{}'",
+            loadedModule.modulePath, gameClassName);
     }
 }
 
@@ -100,7 +104,7 @@ TResult<LoadedManagedModule*> LoadLatestManagedModule(const FilePath& projectFil
 
     LoadedManagedModule* currentModule = FindGameModule(GetLoadedManagedModules(), modulePath);
 
-    if (currentModule != nullptr && timestamp <= currentModule->loadedTimestamp)
+    if (currentModule != nullptr && timestamp <= currentModule->GetLoadedTimestamp())
     {
         ScriptSystem::SetGameAssembly(projectFilepath.BasePath(), modulePath, /* isNewBuild */ false);
 
@@ -112,7 +116,7 @@ TResult<LoadedManagedModule*> LoadLatestManagedModule(const FilePath& projectFil
     if (copyResult.HasError())
     {
         // most likely still being written by the build
-        if (currentModule != nullptr && currentModule->error.Empty())
+        if (currentModule != nullptr && currentModule->IsLoaded())
         {
             HYP_LOG(Editor, Warning, "Using the previous build of game assembly {}: {}", modulePath, copyResult.GetError().GetMessage());
 
@@ -133,15 +137,15 @@ TResult<LoadedManagedModule*> LoadLatestManagedModule(const FilePath& projectFil
     LoadedManagedModule& loadedModule = *currentModule;
     loadedModule = LoadedManagedModule {};
     loadedModule.modulePath = modulePath;
-    loadedModule.loadedTimestamp = timestamp;
+    loadedModule.loadedTimestampOrError = timestamp;
 
     const String gameClassName = GetNativeProjectName(projectFilepath) + "Game";
 
     LoadManagedModuleCopy(loadedModule, copyResult.GetValue(), gameClassName);
 
-    if (loadedModule.error.Any())
+    if (const GameModuleError* error = loadedModule.GetLoadedError())
     {
-        HYP_LOG(Editor, Error, "{}", loadedModule.error);
+        HYP_LOG(Editor, Error, "{}", error->GetMessage());
 
         return &loadedModule;
     }
@@ -160,9 +164,9 @@ TResult<LoadedManagedModule*> LoadLatestManagedModule(const FilePath& projectFil
 
 TResult<Handle<Game>> CreateManagedGame(const LoadedManagedModule& loadedModule)
 {
-    if (loadedModule.error.Any())
+    if (const GameModuleError* error = loadedModule.GetLoadedError())
     {
-        return HYP_MAKE_ERROR(Error, "{}", loadedModule.error);
+        return *error;
     }
 
     Handle<Game> game;
@@ -201,9 +205,9 @@ bool IsCurrentManagedGame(Game* game, const LoadedManagedModule& loadedModule)
 // moves the project's objects and Game onto the latest build of the assembly
 Result ApplyManagedModule(EditorProject* project, LoadedManagedModule& loadedModule)
 {
-    if (loadedModule.error.Any())
+    if (const GameModuleError* error = loadedModule.GetLoadedError())
     {
-        return HYP_MAKE_ERROR(Error, "{}", loadedModule.error);
+        return *error;
     }
 
     if (loadedModule.flags & ManagedModuleFlags::NeedsRetarget)
@@ -323,7 +327,9 @@ void UpdateManagedGameModule(EditorProject* project)
         }
     }
 
-    if (managedModule == nullptr || managedModule->error.Any() || (managedModule->flags & ManagedModuleFlags::ApplyFailed))
+    if (managedModule == nullptr
+        || managedModule->GetLoadedError()
+        || (managedModule->flags & ManagedModuleFlags::ApplyFailed))
     {
         return;
     }

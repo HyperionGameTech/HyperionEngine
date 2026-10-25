@@ -26,15 +26,54 @@ namespace Hyperion {
 class EditorProject;
 class Game;
 
+class GameModuleError : public Error
+{
+public:
+    GameModuleError()
+        : Error()
+    {
+    }
+
+    template <auto CurrentFunctionString, auto FormatString, class... Args>
+    GameModuleError(ValueWrapper<CurrentFunctionString> fnName, ValueWrapper<FormatString> format, Args&&... args)
+        : Error(fnName, format, std::forward<Args>(args)...)
+    {
+    }
+};
+
 struct GameModuleBase
 {
     FilePath modulePath;
-    String error;
-    Time loadedTimestamp;
+    TResult<Time, GameModuleError> loadedTimestampOrError = Time();
 
     // a rebuilt module is only picked up once its timestamp has held for a poll since the build may still be writing it
     Time lastPollTime;
     Time pendingTimestamp;
+
+    bool IsLoaded() const
+    {
+        return loadedTimestampOrError.HasValue();
+    }
+
+    const GameModuleError* GetLoadedError() const
+    {
+        if (loadedTimestampOrError.HasError())
+        {
+            return &loadedTimestampOrError.GetError();
+        }
+
+        return nullptr;
+    }
+
+    Time GetLoadedTimestamp() const
+    {
+        if (loadedTimestampOrError.HasValue())
+        {
+            return *loadedTimestampOrError;
+        }
+
+        return Time();
+    }
 };
 
 template <class ModuleType>

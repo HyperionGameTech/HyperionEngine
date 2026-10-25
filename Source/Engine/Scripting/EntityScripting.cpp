@@ -651,7 +651,7 @@ static void ApplyScriptFieldValues(ScriptComponent& scriptComponent)
 
     BoxedValue target { AnyRef(scriptClass->GetTypeInfo(), scriptComponent.scriptObjectResource) };
 
-    for (size_t index = 0; index < scriptComponent.fieldValues.Size();)
+    for (size_t index = 0; index < scriptComponent.fieldValues.Size(); index++)
     {
         const ScriptFieldValue& fieldValue = scriptComponent.fieldValues[index];
 
@@ -678,8 +678,6 @@ static void ApplyScriptFieldValues(ScriptComponent& scriptComponent)
         {
             property->Set(target, valueResult.GetValue());
         }
-
-        index++;
     }
 }
 

@@ -80,7 +80,14 @@ static ScriptObjectResource* GetScriptObjectResourceForTarget(const BoxedValue& 
         return nullptr;
     }
 
-    return static_cast<ObjectBase*>(targetPtr)->GetScriptObjectResource();
+    const Class* targetClass = targetRef.GetClass();
+
+    if (targetClass && targetClass->IsObjectType())
+    {
+        return static_cast<ObjectBase*>(targetPtr)->GetScriptObjectResource();
+    }
+
+    return static_cast<ScriptObjectResource*>(targetPtr);
 }
 
 template <class Func>
