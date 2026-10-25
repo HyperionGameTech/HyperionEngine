@@ -63,14 +63,20 @@ void DrawCallCollection::PushInstances(DrawCallID id, const RenderProxyMesh* ren
     const uint32 entityBinding = Resources::GetBinding(renderProxy->entity);
 
     // every batch for this id but the last is full, so only the last can take more
-    size_t drawCallIndex = indexMapIt->second.Any() ? indexMapIt->second.Back() : ~size_t(0);
-    EntityInstanceBatch* batch = drawCallIndex != ~size_t(0) ? instancedDrawCalls.batches[drawCallIndex] : nullptr;
+    size_t drawCallIndex = SIZE_MAX;
+    EntityInstanceBatch* batch = nullptr;
+
+    if (indexMapIt->second.Any())
+    {
+        drawCallIndex = indexMapIt->second.Back();
+        batch = instancedDrawCalls.batches[drawCallIndex];
+    }
 
     bool batchWritten = false;
 
     for (uint32 instanceSlot : instanceSlots)
     {
-        if (batch == nullptr || batch->numEntities >= MaxInstancesPerBatch)
+        if (!batch || batch->numEntities >= MaxInstancesPerBatch)
         {
             if (batchWritten)
             {
@@ -79,15 +85,18 @@ void DrawCallCollection::PushInstances(DrawCallID id, const RenderProxyMesh* ren
                 batchWritten = false;
             }
 
-            batch = previous != nullptr ? previous->TakeBatch(id) : nullptr;
-
-            if (batch == nullptr)
+            if (previous)
+            {
+                batch = previous->TakeBatch(id);
+            }
+            
+            if (!batch)
             {
                 batch = batchAllocator->AcquireBatch();
             }
 
             // out of batches, the rest of these instances aren't drawn this frame
-            if (batch == nullptr)
+            if (!batch)
             {
                 return;
             }
@@ -153,7 +162,7 @@ void DrawCallCollection::ResetDrawCalls()
 
     for (EntityInstanceBatch*& batch : instancedDrawCalls.batches)
     {
-        if (batch != nullptr)
+        if (batch)
         {
             batchAllocator->ReleaseBatch(batch);
 

@@ -50,6 +50,14 @@ struct GBufferTarget
         Max
     };
 
+    static constexpr const char* NameStrings[Max] = {
+        "Color",
+        "Normals",
+        "MatData",
+        "Velocity",
+        "Depth"
+    };
+
     static_assert(uint8(Max) == NumGBufferTargets, "Max does not match NumGBufferTargets");
 
     GBuffer* gbuffer;

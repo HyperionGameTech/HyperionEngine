@@ -28,14 +28,6 @@ namespace Hyperion {
 
 extern CVar<bool> g_cvDepthPrepass;
 
-static constexpr const char* TargetNameStrings[GBufferTarget::Max] = {
-    "Color",
-    "Normals",
-    "MatData",
-    "Velocity",
-    "Depth"
-};
-
 struct GBufferTargetDesc
 {
     static constexpr size_t MaxFormats = 4;
@@ -67,7 +59,7 @@ static constexpr GBufferTargetDesc TargetDescs[GBufferTarget::Max] = {
     GBufferTargetDesc({ TextureFormat::D24_S8, TextureFormat::D32F_S8 }) // Depth
 };
 
-static inline TextureFormat GetImageFormat(GBufferTarget::TargetName targetName)
+static inline TextureFormat GetGBufferImageFormat(GBufferTarget::TargetName targetName)
 {
     for (auto it = std::begin(TargetDescs[targetName].formats); it != std::end(TargetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
     {
@@ -77,7 +69,7 @@ static inline TextureFormat GetImageFormat(GBufferTarget::TargetName targetName)
         }
     }
 
-    HYP_FAIL("Failed to find supported image format for gbuffer target {}", TargetNameStrings[targetName]);
+    HYP_FAIL("Failed to find supported image format for gbuffer target {}", GBufferTarget::NameStrings[targetName]);
 
     return InvalidTextureFormat;
 }
@@ -238,7 +230,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     {
         for (uint32 i = 0; i < GBufferTarget::Depth; i++)
         {
-            const TextureFormat format = GetImageFormat(GBufferTarget::TargetName(i));
+            const TextureFormat format = GetGBufferImageFormat(GBufferTarget::TargetName(i));
 
             addOwnedAttachment(i, format);
         }
@@ -247,12 +239,20 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         {
             // If DepthPrepass is enabled, we don't CLEAR the depth texture as DPP is responsible for clearing it.
             // Depth prepass only runs when indirect rendering is also enabled (see DeferredPass.cpp), so match that here.
-            addOwnedAttachment(GBufferTarget::Depth, GetImageFormat(GBufferTarget::Depth), LoadOperation::Load, StoreOperation::None);
+            addOwnedAttachment(
+                GBufferTarget::Depth,
+                GetGBufferImageFormat(GBufferTarget::Depth),
+                LoadOperation::Load,
+                StoreOperation::None);
         }
         else
         {
             // Otherwise, we clear it on render pass start.
-            addOwnedAttachment(GBufferTarget::Depth, GetImageFormat(GBufferTarget::Depth), LoadOperation::Clear, StoreOperation::Store);
+            addOwnedAttachment(
+                GBufferTarget::Depth,
+                GetGBufferImageFormat(GBufferTarget::Depth),
+                LoadOperation::Clear,
+                StoreOperation::Store);
         }
     }
     else
@@ -283,7 +283,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
                 // tonemap pass can composite it over the final image without bloom or tonemapping being applied to it
                 if (i == GBufferTarget::Depth || i == GBufferTarget::Color)
                 {
-                    const TextureFormat format = GetImageFormat(GBufferTarget::TargetName(i));
+                    const TextureFormat format = GetGBufferImageFormat(GBufferTarget::TargetName(i));
                     addOwnedAttachment(i, format);
 
                     continue;
