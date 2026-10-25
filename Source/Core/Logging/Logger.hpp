@@ -341,7 +341,7 @@ static inline void LogFormattedWindows(Logger& logger, const LogChannel& channel
 
         const Span<UTF8StringView> chunksSliced = Span<UTF8StringView>(
             chunks + firstChunk,
-            chunks + 2 - firstChunk);
+            chunks + std::size(chunks));
 
         if constexpr (Level == LogLevel::Fatal)
         {
