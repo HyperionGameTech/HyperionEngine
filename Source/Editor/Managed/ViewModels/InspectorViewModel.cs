@@ -101,6 +101,15 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasActions, value);
         }
 
+        public ObservableCollection<string> Warnings { get; } = new ObservableCollection<string>();
+
+        private bool _hasWarnings;
+        public bool HasWarnings
+        {
+            get => _hasWarnings;
+            private set => SetProperty(ref _hasWarnings, value);
+        }
+
         private bool _hasComponents;
         public bool HasComponents
         {
@@ -384,6 +393,8 @@ namespace Hyperion.Editor.ViewModels
             AddableComponents.Clear();
             SceneProperties.Clear();
             CopySwatchSources.Clear();
+            Warnings.Clear();
+            HasWarnings = false;
 
             AttachedScript = null;
             HasAttachedScript = false;
@@ -563,6 +574,7 @@ namespace Hyperion.Editor.ViewModels
 
                 // Also puts the active swatch back in the edit context, which multi-selection edits are routed by too.
                 _ = RefreshActiveSwatchInfoAsync();
+                _ = RefreshWarningsAsync();
 
                 if (!isMultiSelection)
                 {
@@ -623,6 +635,7 @@ namespace Hyperion.Editor.ViewModels
                             if (componentVm != null && componentVm.IsEditorVisible)
                             {
                                 componentVm.PeerEntities = peerEntities;
+                                componentVm.PropertiesRefreshed += OnComponentPropertiesRefreshed;
 
                                 Components.Add(componentVm);
                                 componentVm.PopulateProperties();
@@ -753,6 +766,52 @@ namespace Hyperion.Editor.ViewModels
 
             _ = RefreshOverrideSignifiersAsync();
             _ = RefreshActiveSwatchOverridesAsync();
+            _ = RefreshWarningsAsync();
+        }
+
+        private void OnComponentPropertiesRefreshed()
+        {
+            _ = RefreshWarningsAsync();
+        }
+
+        private async Task RefreshWarningsAsync()
+        {
+            List<Entity> entities = _selectedNodes.OfType<Entity>().Where(e => e.IsValid).ToList();
+            int refreshGeneration = _refreshGeneration;
+
+            if (entities.Count == 0 || entities.Count != _selectedNodes.Count)
+            {
+                return;
+            }
+
+            List<string> warnings = new();
+
+            await EngineManager.PostToSimThread(() =>
+            {
+                warnings = InspectorWarnings.Collect(entities);
+            });
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (refreshGeneration != _refreshGeneration)
+                {
+                    return;
+                }
+
+                if (Warnings.SequenceEqual(warnings))
+                {
+                    return;
+                }
+
+                Warnings.Clear();
+
+                foreach (string warning in warnings)
+                {
+                    Warnings.Add(warning);
+                }
+
+                HasWarnings = Warnings.Count > 0;
+            });
         }
 
         /// <summary>

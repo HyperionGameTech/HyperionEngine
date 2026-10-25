@@ -53,9 +53,13 @@ namespace Hyperion.Editor.ViewModels
         {
         }
 
+        public event Action? PropertiesRefreshed;
+
         /// <summary>Re-reads every property of this component. UI thread.</summary>
         public void RefreshProperties()
         {
+            PropertiesRefreshed?.Invoke();
+
             foreach (InspectorPropertyViewModelBase vm in Properties)
             {
                 vm.RefreshValue();

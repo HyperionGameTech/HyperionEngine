@@ -87,6 +87,7 @@
             <Color x:Key="Color.TextMuted">#FF72777E</Color>
             <Color x:Key="Color.TextFaint">#FF4A4E54</Color>
             <Color x:Key="Color.Warning">#FFE3A84D</Color>
+            <Color x:Key="Color.WarningSubtle">#14E3A84D</Color>
             <Color x:Key="Color.Danger">#FFE0555C</Color>
             <Color x:Key="Color.MenuHover">#FF141618</Color>
             <Color x:Key="Color.HoverBorder">#FF282C32</Color>
@@ -116,6 +117,7 @@
             <SolidColorBrush x:Key="Brush.TextFaint" Color="{StaticResource Color.TextFaint}" />
             <SolidColorBrush x:Key="Brush.TextSecondary" Color="{StaticResource Color.TextMuted}" />
             <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" />
+            <SolidColorBrush x:Key="Brush.WarningSubtle" Color="{StaticResource Color.WarningSubtle}" />
             <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" />
             <SolidColorBrush x:Key="Brush.MenuHover" Color="{StaticResource Color.MenuHover}" />
             <SolidColorBrush x:Key="Brush.HoverBorder" Color="{StaticResource Color.HoverBorder}" />
