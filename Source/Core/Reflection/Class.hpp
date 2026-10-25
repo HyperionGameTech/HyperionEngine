@@ -494,6 +494,8 @@ public:
         return m_flags & ClassFlags::DYNAMIC;
     }
 
+    bool IsObjectType() const;
+
     bool CanSerialize() const;
 
     HYP_FORCE_INLINE EnumFlags<ClassSerializationMode> GetSerializationMode() const

@@ -132,10 +132,12 @@ CORE_API bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
             return uint32(otherClass->GetStaticIndex() - cls->GetStaticIndex()) <= cls->GetNumDescendants();
         }
 
-        // since we got the Class we can assume ptr is a ObjectBase or derived type.
-        // this could get iffy with multiple inheritance so it's best we disallow MI for Objects.
-        const ObjectBase* casted = reinterpret_cast<const ObjectBase*>(ptr);
-        otherClass = casted->InstanceClass();
+        if (otherClass->IsObjectType())
+        {
+            // this could get iffy with multiple inheritance so it's best we disallow MI for Objects.
+            const ObjectBase* casted = reinterpret_cast<const ObjectBase*>(ptr);
+            otherClass = casted->InstanceClass();
+        }
     }
 
     // slow path
@@ -902,6 +904,11 @@ void Class::Initialize()
     }
 }
 
+bool Class::IsObjectType() const
+{
+    return IsA(g_clsObjectBase, this);
+}
+
 bool Class::CanSerialize() const
 {
     if (m_serializationMode == ClassSerializationMode::NONE)
@@ -1263,6 +1270,11 @@ void Class::ForEachStaticallyDerivedClass(const ProcRef<void(const Class*)>& cal
 
 bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
+    if (!IsObjectType())
+    {
+        return false;
+    }
+
     const ObjectBase* target = reinterpret_cast<const ObjectBase*>(objectPtr);
 
     if (!target)
@@ -1352,6 +1364,7 @@ TypeId DynamicClassInstance::GetUnderlyingTypeId() const
 bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& outObjectReference) const
 {
     Assert(m_parent != nullptr);
+    Assert(m_parent->IsObjectType(), "Must be ObjectBase type to call GetManagedObject");
 
     ObjectBase* target = reinterpret_cast<ObjectBase*>(const_cast<void*>(objectPtr));
     Assert(target != nullptr);
@@ -1386,7 +1399,7 @@ bool DynamicClassInstance::CanCreateInstance() const
         Assert(m_parent != nullptr);
 
         // only ObjectBase-derived dynamic classes own their instances; others (e.g script classes) just describe a managed object
-        if (m_parent->CanCreateInstance() && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
+        if (m_parent->IsObjectType() && m_parent->CanCreateInstance() && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
         {
             return true;
         }
@@ -1423,6 +1436,8 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     if (managedClass != nullptr)
     {
         Assert(m_parent != nullptr);
+        // only ObjectBase-derived dynamic classes own their instances (see CanCreateInstance())
+        Assert(m_parent->IsObjectType(), "Cannot create instance of dynamic class {}: parent class {} is not an ObjectBase type", GetName(), m_parent->GetName());
 
         {
             // suppress default managed object creation - we will create it ourselves
