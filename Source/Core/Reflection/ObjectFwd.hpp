@@ -267,6 +267,9 @@ struct ClassRef
 
 CORE_API extern const Class* GetClass(const TypeId& typeId);
 
+CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
+
 template <class T>
 const Class* GetClass()
 {
@@ -337,7 +340,7 @@ static inline const Handle<Other>& Cast(const Handle<T>& handle)
     {
         if constexpr (!std::is_same_v<T, Other> && !std::is_base_of_v<Other, T>)
         {
-            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass(TypeId::ForType<Other>())));
+            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass<Other>()));
         }
 
         return reinterpret_cast<const Handle<Other>&>(handle);
@@ -357,7 +360,7 @@ static inline Handle<Other> Cast(Handle<T>&& handle)
     {
         if constexpr (!std::is_same_v<T, Other> && !std::is_base_of_v<Other, T>)
         {
-            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass(TypeId::ForType<Other>())));
+            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass<Other>()));
         }
 
         return reinterpret_cast<Handle<Other>&&>(handle);
@@ -377,7 +380,7 @@ static inline const WeakHandle<Other>& Cast(const WeakHandle<T>& handle)
     {
         if constexpr (!std::is_same_v<T, Other> && !std::is_base_of_v<Other, T>)
         {
-            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass(TypeId::ForType<Other>())));
+            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass<Other>()));
         }
 
         return reinterpret_cast<const WeakHandle<Other>&>(handle);
@@ -397,7 +400,7 @@ static inline WeakHandle<Other> Cast(WeakHandle<T>&& handle)
     {
         if constexpr (!std::is_same_v<T, Other> && !std::is_base_of_v<Other, T>)
         {
-            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass(TypeId::ForType<Other>())));
+            AssertDebug(!handle || ::Hyperion::IsA(handle.GetClass(), ::Hyperion::GetClass<Other>()));
         }
 
         return reinterpret_cast<WeakHandle<Other>&&>(handle);
@@ -517,10 +520,6 @@ static inline WeakHandle<Other> TryCast(WeakHandle<T>&& handle)
 }
 
 /// IsA() checks ///
-
-// NOTE: These overloads are implemented in Class.cpp
-CORE_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
-CORE_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
 template <class ExpectedType, class InstanceType>
 static inline bool IsA()
