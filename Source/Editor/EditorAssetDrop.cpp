@@ -36,11 +36,20 @@ EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 struct EntityAssetDropHandler
 {
     bool (*acceptsAsset)(const AssetObject* asset);
-    bool (*canApply)(const AssetObject* asset, const Entity* entity);
-    Handle<EditorActionBase> (*createAction)(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity);
+    
+    bool (*canApply)(
+        const AssetObject* asset,
+        const Entity* entity);
+
+    Handle<EditorActionBase> (*createAction)(
+        EditorSubsystem* subsystem,
+        const Handle<AssetObject>& asset,
+        const Handle<Entity>& entity);
 };
 
-static Handle<EditorActionBase> MakeEntityDropAction(
+namespace /* Entity */ {
+
+Handle<EditorActionBase> MakeEntityDropAction(
     EditorSubsystem* subsystem,
     const String& text,
     const Handle<Entity>& entity,
@@ -84,7 +93,7 @@ static Handle<EditorActionBase> MakeEntityDropAction(
     return action;
 }
 
-static void SetEntityMaterial(Entity* entity, const Handle<Material>& material)
+void SetEntityMaterial(Entity* entity, const Handle<Material>& material)
 {
     MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
@@ -99,26 +108,28 @@ static void SetEntityMaterial(Entity* entity, const Handle<Material>& material)
     entity->MarkDirty();
 }
 
-static bool EntityHasMesh(const Entity* entity)
+bool EntityHasMesh(const Entity* entity)
 {
     const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
 
     return meshComponent != nullptr && meshComponent->mesh.IsValid();
 }
 
-#pragma region Script
+} // namespace /* Entity */
 
-static bool ScriptAcceptsAsset(const AssetObject* asset)
+namespace /* Script */ {
+
+bool ScriptAcceptsAsset(const AssetObject* asset)
 {
     return DynamicCast<ScriptAsset>(asset) != nullptr;
 }
 
-static bool ScriptCanApply(const AssetObject* asset, const Entity* entity)
+bool ScriptCanApply(const AssetObject* asset, const Entity* entity)
 {
     return true;
 }
 
-static Handle<EditorActionBase> ScriptCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+Handle<EditorActionBase> ScriptCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
 {
     Handle<ScriptAsset> scriptAsset = DynamicCast<ScriptAsset>(asset);
 
@@ -185,21 +196,21 @@ static Handle<EditorActionBase> ScriptCreateAction(EditorSubsystem* subsystem, c
         });
 }
 
-#pragma endregion Script
+} // namespace /* Script */
 
-#pragma region Material
+namespace /* Material */ {
 
-static bool MaterialAcceptsAsset(const AssetObject* asset)
+bool MaterialAcceptsAsset(const AssetObject* asset)
 {
     return DynamicCast<Material>(asset) != nullptr;
 }
 
-static bool MaterialCanApply(const AssetObject* asset, const Entity* entity)
+bool MaterialCanApply(const AssetObject* asset, const Entity* entity)
 {
     return EntityHasMesh(entity);
 }
 
-static Handle<EditorActionBase> MaterialCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+Handle<EditorActionBase> MaterialCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
 {
     Handle<Material> material = DynamicCast<Material>(asset);
 
@@ -224,23 +235,23 @@ static Handle<EditorActionBase> MaterialCreateAction(EditorSubsystem* subsystem,
         });
 }
 
-#pragma endregion Material
+} // namespace /* Material */
 
-#pragma region Texture
+namespace /* Texture */ {
 
-static bool TextureAcceptsAsset(const AssetObject* asset)
+bool TextureAcceptsAsset(const AssetObject* asset)
 {
     return DynamicCast<Texture>(asset) != nullptr;
 }
 
-static bool TextureCanApply(const AssetObject* asset, const Entity* entity)
+bool TextureCanApply(const AssetObject* asset, const Entity* entity)
 {
     const Texture* texture = DynamicCast<Texture>(asset);
 
     return texture->GetType() == TextureType::Texture2D && EntityHasMesh(entity);
 }
 
-static Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
 {
     Handle<Texture> texture = DynamicCast<Texture>(asset);
 
@@ -280,7 +291,7 @@ static Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, 
         });
 }
 
-#pragma endregion Texture
+} // namespace /* Texture */
 
 static const EntityAssetDropHandler g_entityAssetDropHandlers[] = {
     { &ScriptAcceptsAsset, &ScriptCanApply, &ScriptCreateAction },
