@@ -122,6 +122,9 @@ public:
     bool HasGameCode() const;
 
     HYP_METHOD()
+    Result WriteGameArgs() const;
+
+    HYP_METHOD()
     Result RenameGameCode(const String& newModuleName);
 
     HYP_METHOD()

@@ -93,16 +93,16 @@ namespace Hyperion.Editor.Services
 
         private LogCallbackDelegate _logCallback;
 
-        private readonly LogEntryRingBuffer _ringBuffer = new LogEntryRingBuffer(4096);
+        private readonly LogEntryRingBuffer _ringBuffer = new(4096);
 
-        private List<LogEntry> _pendingEntries = new List<LogEntry>(256);
-        private List<LogEntry> _submittingEntries = new List<LogEntry>(256);
+        private List<LogEntry> _pendingEntries = new(256);
+        private List<LogEntry> _submittingEntries = new(256);
         private int _isSubmittingPendingEntries = 0; // atomic
 
-        private readonly List<string> _cvarNames = new List<string>(256);
-        private readonly List<string> _commandletNames = new List<string>(128);
-        private readonly List<string> _editorCommandNames = new List<string>(128);
-        private readonly List<string> _allCompletionNames = new List<string>(512);
+        private readonly List<string> _cvarNames = new(256);
+        private readonly List<string> _commandletNames = new(128);
+        private readonly List<string> _editorCommandNames = new(128);
+        private readonly List<string> _allCompletionNames = new(512);
         private bool _completionNamesLoaded = false;
 
         public ConsoleService()

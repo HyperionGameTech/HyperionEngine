@@ -19,7 +19,6 @@ namespace Hyperion
         public bool UseCookedContent { get; set; } = false;
         public bool UseGlobalConfigArgs { get; set; } = false;
 
-        public bool SinglePlayer { get; set; } = true;
         public bool Headless { get; set; } = false;
         public int MainThreadHz { get; set; } = 120;
 
@@ -146,11 +145,6 @@ namespace Hyperion
             if (!options.UseCookedContent)
             {
                 engineArgs.Add("--cooked=false");
-            }
-
-            if (options.SinglePlayer)
-            {
-                engineArgs.Add("--singleplayer");
             }
 
             if (options.Headless)

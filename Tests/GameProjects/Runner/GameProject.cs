@@ -254,11 +254,8 @@ public sealed class GameProject
         string configDirectory = Path.Combine(packageDirectory, "Config");
         System.IO.Directory.CreateDirectory(configDirectory);
 
-        File.WriteAllText(Path.Combine(configDirectory, "GlobalConfig.json"),
-            "{\n  \"App\": {\n"
-            + $"    \"Name\": \"{Name}\",\n"
-            + $"    \"Args\": \"--basedir=./ --startupworld={startupWorldName} --singleplayer\"\n"
-            + "  }\n}\n");
+        WriteAppConfig(configDirectory);
+        WriteArgsFile(packageDirectory, "--basedir=./", "--startupworld=" + startupWorldName, "--singleplayer");
 
         return build;
     }
@@ -344,11 +341,8 @@ public sealed class GameProject
             File.Copy(file, Path.Combine(configDirectory, Path.GetFileName(file)), overwrite: true);
         }
 
-        File.WriteAllText(Path.Combine(configDirectory, "GlobalConfig.json"),
-            "{\n  \"App\": {\n"
-            + $"    \"Name\": \"{Name}\",\n"
-            + "    \"Args\": \"--basedir=./ --singleplayer\"\n"
-            + "  }\n}\n");
+        WriteAppConfig(configDirectory);
+        WriteArgsFile(packageDirectory, "--basedir=./", "--singleplayer");
 
         return publish;
     }
@@ -360,9 +354,30 @@ public sealed class GameProject
 
     public ProcessResult Build(params string[] managedBuildArguments)
     {
-        return Language == GameProjectLanguage.Managed
+        ProcessResult build = Language == GameProjectLanguage.Managed
             ? BuildManaged(managedBuildArguments)
             : BuildNative();
+
+        if (build.Succeeded)
+        {
+            WriteArgsFile(BinariesDirectory,
+                "--basedir=\"" + HarnessEnvironment.RepositoryRoot.Replace('\\', '/') + "\"",
+                "--contentdir=" + ContentDirFromBinaries,
+                "--cooked=false",
+                "--singleplayer");
+        }
+
+        return build;
+    }
+
+    private void WriteAppConfig(string configDirectory)
+    {
+        File.WriteAllText(Path.Combine(configDirectory, "GlobalConfig.json"), "{\n  \"App\": {\n" + $"    \"Name\": \"{Name}\"\n" + "  }\n}\n");
+    }
+
+    private static void WriteArgsFile(string directory, params string[] args)
+    {
+        File.WriteAllLines(Path.Combine(directory, "args.txt"), args);
     }
 
     public ProcessResult BuildScripts(string referenceAssemblyPath)

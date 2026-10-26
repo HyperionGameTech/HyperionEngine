@@ -13,6 +13,7 @@
 #include <Core/Reflection/BoxedValue.hpp>
 
 #include <Core/IO/ByteReader.hpp>
+#include <Core/IO/ByteWriter.hpp>
 
 #include <Core/Threading/Mutex.hpp>
 
@@ -147,6 +148,27 @@ EDITOR_API String MakeFileNameFromTitle(const String& title)
     }
 
     return fileName;
+}
+
+EDITOR_API Result WriteGameArgsFile(const FilePath& directory, const Array<String>& args)
+{
+    const FilePath argsFilePath = directory / "args.txt";
+
+    FileByteWriter writer { argsFilePath };
+
+    if (!writer.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to write {}", argsFilePath);
+    }
+
+    for (const String& arg : args)
+    {
+        writer.WriteString(arg + "\n");
+    }
+
+    writer.Close();
+
+    return {};
 }
 
 } // namespace Hyperion

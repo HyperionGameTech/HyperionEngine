@@ -14,11 +14,14 @@
 
 #include <Core/FileSystem/FilePath.hpp>
 
+#include <Core/Utilities/Result.hpp>
+
 #include <Asset/AssetPath.hpp>
 
 #include <Rendering/RenderableAttributes.hpp>
 
 #include <Editor/EditorMemory.hpp>
+#include <Editor/Net/EditorNetSettings.hpp>
 
 namespace Hyperion {
 
@@ -93,6 +96,9 @@ public:
     HYP_FIELD(Property = "ModuleName", Serialize)
     String moduleName;
 
+    HYP_FIELD(Property = "NetSettings", Serialize, Editor, Title = "Networking")
+    EditorNetSettings netSettings;
+
     HYP_FIELD(Property = "PlatformSettings", Serialize)
     EditorPlatformSettings platformSettings;
 };
@@ -104,5 +110,7 @@ EDITOR_API String ReadProjectModuleName(const FilePath& projectFilepath);
 EDITOR_API String GetProjectGameTitle(const FilePath& projectFilepath);
 
 EDITOR_API String MakeFileNameFromTitle(const String& title);
+
+EDITOR_API Result WriteGameArgsFile(const FilePath& directory, const Array<String>& args);
 
 } // namespace Hyperion

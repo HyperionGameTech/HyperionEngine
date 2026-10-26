@@ -28,4 +28,4 @@ add_executable(@NAME@ Launcher/main.cpp)
 target_link_libraries(@NAME@ PRIVATE Hyperion::Engine @NAME@Game)
 hyperion_link_scripts(@NAME@)
 
-hyperion_copy_runtime(@NAME@ "@CONTENT_DIR@")
+hyperion_copy_runtime(@NAME@)

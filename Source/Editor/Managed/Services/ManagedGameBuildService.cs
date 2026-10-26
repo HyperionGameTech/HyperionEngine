@@ -87,6 +87,8 @@ namespace Hyperion.Editor.Services
 
                 Logger.Log(BuildLogChannel, LogLevel.Info, "Game build succeeded");
 
+                await EngineManager.WriteGameArgs(projectFilePath).ConfigureAwait(false);
+
                 return true;
             }
             catch (System.ComponentModel.Win32Exception)

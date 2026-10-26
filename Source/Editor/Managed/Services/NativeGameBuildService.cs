@@ -103,6 +103,11 @@ namespace Hyperion.Editor.Services
 
                 Logger.Log(BuildLogChannel, LogLevel.Info, "Game build succeeded in {0}", buildDirectory);
 
+                if (!isPackage)
+                {
+                    await EngineManager.WriteGameArgs(projectFilePath).ConfigureAwait(false);
+                }
+
                 return true;
             }
             catch (Exception ex)

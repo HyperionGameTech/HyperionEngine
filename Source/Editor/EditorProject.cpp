@@ -13,6 +13,9 @@
 #include <Editor/EditorState.hpp>
 #include <Editor/EditorNativeModule.hpp>
 #include <Editor/EditorProjectLayout.hpp>
+#include <Editor/EditorGameModuleCommon.hpp>
+
+#include <Core/Core.hpp>
 
 #include <Framework/Game.hpp>
 #include <Framework/EngineGlobals.hpp>
@@ -538,6 +541,11 @@ Result EditorProject::SaveAs(FilePath filepath)
     m_lastSavedTime = Time::Now();
     m_hasUnsavedSettings = false;
 
+    if (Result argsResult = WriteGameArgs(); argsResult.HasError())
+    {
+        HYP_LOG(Editor, Warning, "Failed to write the game's args.txt: {}", argsResult.GetError().GetMessage());
+    }
+
     OnProjectSaved(MakeStrongRef(this));
 
     return {};
@@ -600,6 +608,31 @@ String EditorProject::GetModuleNameFromTitle() const
 bool EditorProject::HasGameCode() const
 {
     return IsSaved() && GetGameProjectLanguage(m_filepath) != GameProjectLanguage::None;
+}
+
+Result EditorProject::WriteGameArgs() const
+{
+    if (!HasGameCode())
+    {
+        return {};
+    }
+
+    const FilePath binariesDir = m_filepath.BasePath() / "Binaries" / String(GetModulePlatformDirectory());
+
+    if (!binariesDir.Exists())
+    {
+        return {};
+    }
+
+    Array<String> args {
+        HYP_FORMAT("--basedir=\"{}\"", CoreApi::GetBaseDirectory().ReplaceAll("\\", "/")),
+        HYP_FORMAT("--contentdir=\"{}\"", GetContentDirectory().ReplaceAll("\\", "/")),
+        "--cooked=false"
+    };
+
+    args.Concat(m_projectSettings->netSettings.GetGameArgs());
+
+    return WriteGameArgsFile(binariesDir, args);
 }
 
 Result EditorProject::RenameGameCode(const String& newModuleName)

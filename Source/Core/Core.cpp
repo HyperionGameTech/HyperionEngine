@@ -15,6 +15,8 @@
 #include <Core/Reflection/TypeInfo.hpp>
 #include <Core/Utilities/Uuid.hpp>
 
+#include <Core/IO/ByteReader.hpp>
+
 namespace Hyperion {
 
 namespace threading {
@@ -164,6 +166,8 @@ CORE_API bool Initialize(int argc, char** argv)
     config.Load();
     config.LogErrors(stderr);
 
+    CommandLineArguments configuredArgs(g_commandLineArguments.GetCommand());
+
     if (JSON::Value configArgs = config.Get("App.Args"))
     {
         JSON::JString configArgsString = configArgs.ToString();
@@ -172,10 +176,39 @@ CORE_API bool Initialize(int argc, char** argv)
 
         if (!parseResult.HasError())
         {
-            // merge argv last so that they may override what's in the config.
-            g_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), *parseResult, g_commandLineArguments);
+            configuredArgs = *parseResult;
         }
     }
+
+    const FilePath argsFilePath = GetExecutablePath() / "args.txt";
+
+    if (argsFilePath.Exists())
+    {
+        FileByteReader argsFileReader { argsFilePath };
+
+        const String argsFileText = String(argsFileReader.Read().ToByteView())
+            .ReplaceAll("\r", " ")
+            .ReplaceAll("\n", " ");
+
+        argsFileReader.Close();
+
+        parseResult = argParse.Parse(
+            g_commandLineArguments.GetCommand(),
+            CommandLineParser::SplitArguments(argsFileText),
+            false);
+
+        if (parseResult.HasError())
+        {
+            std::fprintf(stderr, "Error parsing %s: %s\n", argsFilePath.Data(), parseResult.GetError().GetMessage());
+        }
+        else
+        {
+            configuredArgs = CommandLineArguments::Merge(*argParse.GetDefinitions(), configuredArgs, *parseResult);
+        }
+    }
+
+    // merge argv last so that they may override what's in the config and args.txt.
+    g_commandLineArguments = CommandLineArguments::Merge(*argParse.GetDefinitions(), configuredArgs, g_commandLineArguments);
 
     argParse.ApplyDefaults(g_commandLineArguments);
 

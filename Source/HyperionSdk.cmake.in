@@ -107,7 +107,7 @@ if(NOT TARGET Hyperion::Engine)
 @HYP_SDK_COMPILE_DEFINITIONS@  )
 endif()
 
-function(hyperion_copy_runtime target content_dir)
+function(hyperion_copy_runtime target)
   set(runtime_files "")
 
   if(HYPERION_SDK_SHIPPING)
@@ -158,16 +158,14 @@ function(hyperion_copy_runtime target content_dir)
     file(WRITE "${global_config}"
 "{
   \"App\": {
-    \"Name\": \"${target}\",
-    \"Args\": \"--basedir=\\\"${HYPERION_SDK_BASE_DIR}\\\" --contentdir=${content_dir} --cooked=false --singleplayer\"
+    \"Name\": \"${target}\"
   }
 }
 ")
   endif()
 endfunction()
 
-# Writes <target>.EngineVersion.txt beside the game module once it's up to date, which the editor checks before loading the module.
-# Copied on every build, not only when the module links, so building restores a stamp that was lost or written by another SDK
+# Writes <target>.EngineVersion.txt beside the game module once it's up to date
 function(hyperion_stamp_engine_version target)
   set(stamp "${CMAKE_CURRENT_BINARY_DIR}/${target}.EngineVersion.txt")
 
@@ -179,10 +177,7 @@ function(hyperion_stamp_engine_version target)
   add_dependencies(${target}EngineVersion ${target})
 endfunction()
 
-# Runs CodeGen over the game's headers before it compiles (their reflection goes in <build>/Generated, included as <Foo.generated.inl>),
-# and builds <target>.Bindings.dll beside the game from the C# it writes, so scripts can use the game's classes.
-# The game's function-local statics (its class registrations) stay in the game, not shared with an earlier build of it: the editor
-# loads each build into the same process, and default-visibility statics are unified across dlopen'd modules. Only HYP_EXPORT symbols stay visible.
+# Runs CodeGen over the game's headers before it compiles
 function(hyperion_game_codegen target source_dir)
   get_target_property(module_type ${target} TYPE)
 
@@ -192,6 +187,11 @@ function(hyperion_game_codegen target source_dir)
   endif()
 
   set_target_properties(${target} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
+  # the editor loads <target>.dll on Windows (GetNativeModulePath()), which MinGW would name lib<target>.dll
+  if(WIN32)
+    set_target_properties(${target} PROPERTIES PREFIX "")
+  endif()
 
   # only a module the editor loads needs it
   if(NOT HYPERION_SDK_SHIPPING)

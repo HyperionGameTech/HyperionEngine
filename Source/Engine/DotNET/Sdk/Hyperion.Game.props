@@ -127,15 +127,8 @@
   </Target>
 
   <Target Name="HyperionWriteGlobalConfig" AfterTargets="HyperionCopyEngineRuntime" Condition="'$(HyperionWriteGlobalConfig)' == 'true' And '$(HyperionOutputToBinDir)' != 'true'">
-    <PropertyGroup>
-      <_HyperionConfigBaseDir>$([System.String]::Copy('$(HyperionBaseDir)').Replace('\', '/').TrimEnd('/'))</_HyperionConfigBaseDir>
-      <!-- %5C rather than a literal backslash, which MSBuild turns into / on Linux and macOS, leaving invalid JSON -->
-      <_HyperionConfigArgs>--basedir=%5C&quot;$(_HyperionConfigBaseDir)%5C&quot; --cooked=false --singleplayer</_HyperionConfigArgs>
-      <_HyperionConfigArgs Condition="'$(HyperionContentDir)' != ''">$(_HyperionConfigArgs) --contentdir=$(HyperionContentDir)</_HyperionConfigArgs>
-    </PropertyGroup>
-
     <WriteLinesToFile File="$(OutDir)Config/GlobalConfig.json"
-                      Lines="{ &quot;App&quot;: { &quot;Name&quot;: &quot;$(AssemblyName)&quot;, &quot;Args&quot;: &quot;$(_HyperionConfigArgs)&quot; } }"
+                      Lines="{ &quot;App&quot;: { &quot;Name&quot;: &quot;$(AssemblyName)&quot; } }"
                       Overwrite="true" />
   </Target>
 </Project>

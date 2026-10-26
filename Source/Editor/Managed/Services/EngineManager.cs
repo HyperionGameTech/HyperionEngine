@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using Hyperion;
@@ -417,6 +418,25 @@ namespace Hyperion.Editor
         public static async Task PostToSimThread(Action action)
         {
             await SimThread.PostTask(action).ConfigureAwait(false);
+        }
+
+        public static Task WriteGameArgs(string? projectFilePath)
+        {
+            return PostToSimThread(() =>
+            {
+                EditorProject? project = CurrentProject;
+
+                if (string.IsNullOrEmpty(projectFilePath) || project == null || !project.IsValid
+                    || !string.Equals(Path.GetFullPath(project.FilePath), Path.GetFullPath(projectFilePath), StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                if (!project.WriteGameArgs().IsValid)
+                {
+                    Logger.Log(LogLevel.Warning, "Failed to write the game's args.txt");
+                }
+            });
         }
 
         public static async Task<T> PostToSimThread<T>(Func<T> func)

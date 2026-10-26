@@ -17,7 +17,6 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
-    <HyperionContentDir>@CONTENT_DIR@</HyperionContentDir>
     <HyperionWriteGlobalConfig>true</HyperionWriteGlobalConfig>
   </PropertyGroup>
 

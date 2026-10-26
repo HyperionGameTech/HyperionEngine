@@ -402,7 +402,13 @@ bool HasNativeGameCode(const FilePath& projectFilepath)
     return (projectFilepath.BasePath() / "Source" / "Game").Exists();
 }
 
-Result StagePackagedGame(const FilePath& binariesDir, const FilePath& outputDir, const String& title, const String& moduleName, Name startupWorldName, const PackagingOptions& packagingOptions)
+Result StagePackagedGame(
+    const FilePath& binariesDir,
+    const FilePath& outputDir,
+    const String& title,
+    const String& moduleName,
+    Name startupWorldName,
+    const EditorNetSettings& netSettings)
 {
 #ifdef HYP_WINDOWS
     static const char* const s_executableExtension = ".exe";
@@ -429,13 +435,13 @@ Result StagePackagedGame(const FilePath& binariesDir, const FilePath& outputDir,
         }
     }
 
-    // a redistributed editor carries the C++ runtime next to it; a dev build relies on the installed one
-    static const char* const s_runtimeLibraries[] = {
+    /// @TODO Refactor this gubbins!
+    constexpr const char* const RuntimeLibraries[] = {
         "msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll", "msvcp140_atomic_wait.dll", "msvcp140_codecvt_ids.dll",
         "vcruntime140.dll", "vcruntime140_1.dll", "vcruntime140_threads.dll", "concrt140.dll", "vccorlib140.dll"
     };
 
-    for (const char* runtimeLibrary : s_runtimeLibraries)
+    for (const char* runtimeLibrary : RuntimeLibraries)
     {
         const FilePath source = CoreApi::GetExecutablePath() / runtimeLibrary;
 
@@ -471,28 +477,8 @@ Result StagePackagedGame(const FilePath& binariesDir, const FilePath& outputDir,
         return HYP_MAKE_ERROR(Error, "Failed to write {}", configDir / "GlobalConfig.json");
     }
 
-    String args = String("--basedir=./ --startupworld=") + *startupWorldName;
-
-    //if (packagingOptions.net.multiplayer)
-    //{
-    //    if (packagingOptions.net.serverAddress.Any())
-    //    {
-    //        args += String(" --host=") + packagingOptions.net.serverAddress;
-    //    }
-
-    //    args += HYP_FORMAT(" --gameport={}", packagingOptions.net.serverPort);
-    //}
-    //else
-    //{
-    //    args += " --singleplayer";
-    //}
-
-    // until packaging has multiplayer settings again. without it the game waits in its loading world for a server
-    args += " --singleplayer";
-
     JSON::Object appConfig;
     appConfig.Set("Name", JSON::JString(title));
-    appConfig.Set("Args", JSON::JString(args));
 
     JSON::Object config;
     config.Set("App", JSON::Value(std::move(appConfig)));
@@ -500,7 +486,10 @@ Result StagePackagedGame(const FilePath& binariesDir, const FilePath& outputDir,
     writer.WriteString(JSON::Value(std::move(config)).ToString(true).ToUtf8());
     writer.Close();
 
-    return {};
+    Array<String> args { "--basedir=./", String("--startupworld=") + *startupWorldName };
+    args.Concat(netSettings.GetGameArgs());
+
+    return WriteGameArgsFile(outputDir, args);
 }
 
 } // namespace
@@ -594,11 +583,14 @@ private:
                 projectFilepath = project->GetFilePath(),
                 binariesDir = GetNativeModulePath(project->GetFilePath()).BasePath(),
                 startupWorldName = project->GetEditWorldName(),
-                packagingOptions = project->GetPackagingSettings()->Resolve(GetHostTargetPlatform())]()
+                netSettings = project->GetProjectSettings()->netSettings]()
             {
                 Result result;
 
-                if (!g_editorState->OnBuildPackageRequested(String(projectFilepath), String(binariesDir), String(outputDir)))
+                if (!g_editorState->OnBuildPackageRequested(
+                        projectFilepath,
+                        binariesDir,
+                        outputDir))
                 {
                     result = HYP_MAKE_ERROR(Error, "Cooking or building the game failed, see the GameBuild log");
                 }
@@ -607,7 +599,13 @@ private:
                 {
                     editorTaskScope->GetEditorTask()->SetDescription("Copying the game");
 
-                    result = StagePackagedGame(binariesDir, outputDir, title, moduleName, startupWorldName, packagingOptions);
+                    result = StagePackagedGame(
+                        binariesDir,
+                        outputDir,
+                        title,
+                        moduleName,
+                        startupWorldName,
+                        netSettings);
                 }
 
                 if (result.HasError())
