@@ -74,7 +74,8 @@
     <DirectPInvoke Include="hyperion-net" />
   </ItemGroup>
 
-  <Target Name="HyperionAddEngineLinkInputs" BeforeTargets="LinkNative" Condition="'$(HyperionEngineLibrariesFile)' != ''">
+  <!-- before SetupOSSpecificProps, which turns NativeLibrary items into linker arguments (on Windows) and runs as one of LinkNative's dependencies -->
+  <Target Name="HyperionAddEngineLinkInputs" BeforeTargets="SetupOSSpecificProps" Condition="'$(HyperionEngineLibrariesFile)' != ''">
     <ReadLinesFromFile File="$(HyperionEngineLibrariesFile)">
       <Output TaskParameter="Lines" ItemName="NativeLibrary" />
     </ReadLinesFromFile>

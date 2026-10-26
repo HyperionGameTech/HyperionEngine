@@ -52,6 +52,8 @@
 
 #include <HyperionEngine.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <EditorProject.generated.inl>
 
 namespace Hyperion {
@@ -911,6 +913,21 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     project->m_filepath = projectFilepath;
 
     return project;
+}
+
+Array<Name> EditorProject::GetEnabledPlugins() const
+{
+    if (!m_projectSettings.IsValid())
+    {
+        return PluginManager::GetInstance().GetDefaultEnabledPlugins();
+    }
+
+    return m_projectSettings->ResolveEnabledPlugins();
+}
+
+Array<Name> EditorProject::GetEnabledPluginRuntimeModules() const
+{
+    return PluginManager::GetInstance().GetRuntimeModules(GetEnabledPlugins());
 }
 
 Handle<EditorProject> EditorProject::CreateNew()

@@ -111,7 +111,16 @@ bool SaveProjectWithPromptOrAlert(EditorProject* project, const String& abortTex
 
 } // namespace Hyperion
 
+// a built-in plugin's module is compiled with HYP_PLUGIN_NAME, so its commands only run while that plugin is enabled
+#ifdef HYP_PLUGIN_NAME
+#define HYP_REGISTER_PLUGIN_EDITOR_COMMAND(name) \
+    static PluginEditorCommandRegistration g_pluginEditorCommand##name { "EditorCommand" #name, HYP_PLUGIN_NAME };
+#else
+#define HYP_REGISTER_PLUGIN_EDITOR_COMMAND(name)
+#endif
+
 #define DEFINE_EDITOR_COMMAND(name)                                        \
+    HYP_REGISTER_PLUGIN_EDITOR_COMMAND(name)                               \
     const Class* g_clsEditorCommand##name = nullptr;                       \
                                                                            \
     const Class* EditorCommand##name ::StaticClass()                       \

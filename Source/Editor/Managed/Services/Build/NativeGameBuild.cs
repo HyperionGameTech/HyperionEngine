@@ -13,14 +13,23 @@ namespace Hyperion.Editor.Services
         }
 
         /// Package Game's build: against the shipping SDK, with the engine (and the NativeAOT-compiled scripts, if any) linked in
-        public static List<string> GetPackageArguments(string outputDirectory, string? scriptsLinkInputsFile)
+        public static List<string> GetPackageArguments(string outputDirectory, string? scriptsLinkInputsFile, string? pluginModulesFile = null)
         {
             return new List<string>
             {
                 "-DHYPERION_PACKAGE=ON",
                 "-DGAME_OUTPUT_DIR=" + ToCMakePath(outputDirectory),
-                "-DHYPERION_SCRIPTS_LINK_INPUTS=" + (scriptsLinkInputsFile != null ? ToCMakePath(scriptsLinkInputsFile) : "")
+                "-DHYPERION_SCRIPTS_LINK_INPUTS=" + (scriptsLinkInputsFile != null ? ToCMakePath(scriptsLinkInputsFile) : ""),
+                "-DHYPERION_PLUGIN_MODULES_FILE=" + (pluginModulesFile != null ? ToCMakePath(pluginModulesFile) : "")
             };
+        }
+
+        /// Package Game writes the project's enabled built-in plugin runtime modules here, beside the game module
+        public static string? GetPluginModulesFile(string binariesDirectory)
+        {
+            string path = Path.Combine(binariesDirectory, "PluginModules.txt");
+
+            return File.Exists(path) ? path : null;
         }
 
         /// Writes the script that configures and builds the game in buildDirectory inside the toolchain's environment, and returns its path

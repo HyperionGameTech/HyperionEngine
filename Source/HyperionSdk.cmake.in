@@ -298,3 +298,51 @@ function(hyperion_link_scripts target)
   hyperion_platform_link_scripts(${target} "${scripts_link_inputs}")
   target_compile_definitions(${target} PRIVATE HYP_GAME_SCRIPTS=1)
 endfunction()
+
+set(HYPERION_PLUGIN_MODULES_FILE "" CACHE FILEPATH "Runtime modules of the project's enabled built-in plugins, one per line, written by Package Game")
+
+# against a static (shipping) engine, the game executable registers the built-in plugin modules it links, so the others stay out of it.
+# The editor's engine library has every built-in plugin linked in already
+function(hyperion_link_plugin_modules target)
+  if(NOT HYPERION_SDK_SHIPPING)
+    return()
+  endif()
+
+  set(plugin_modules "")
+
+  if(HYPERION_PLUGIN_MODULES_FILE)
+    file(STRINGS "${HYPERION_PLUGIN_MODULES_FILE}" plugin_modules)
+  endif()
+
+  # <Module>=<registration object>: a file name in Lib, or a path in a build tree
+  get_filename_component(sdk_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
+  set(plugin_module_objects "")
+
+  if(EXISTS "${sdk_root}/PluginModuleObjects.txt")
+    file(STRINGS "${sdk_root}/PluginModuleObjects.txt" plugin_module_objects)
+  endif()
+
+  foreach(plugin_module ${plugin_modules})
+    set(plugin_module_object "")
+
+    foreach(entry ${plugin_module_objects})
+      if(entry MATCHES "^${plugin_module}=(.+)$")
+        set(plugin_module_object "${CMAKE_MATCH_1}")
+      endif()
+    endforeach()
+
+    if(NOT plugin_module_object)
+      message(WARNING "The shipping SDK has no plugin module ${plugin_module}, so ${target} is linked without it")
+      continue()
+    endif()
+
+    if(EXISTS "${sdk_root}/Lib/${plugin_module_object}")
+      set(plugin_module_object "${sdk_root}/Lib/${plugin_module_object}")
+    endif()
+
+    # an object file is always linked whole, so its static initializer adds the module, which pulls the module's code out of its archive
+    target_sources(${target} PRIVATE "${plugin_module_object}")
+  endforeach()
+
+  message(STATUS "Linking plugin modules into ${target}: ${plugin_modules}")
+endfunction()

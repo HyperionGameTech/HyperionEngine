@@ -286,10 +286,10 @@ function(RunCodeGen version_major version_minor)
   endif()
 endfunction()
 
-# Run CodeGen with version 0.19
+# Run CodeGen with version 0.21
 # HYP_CODEGEN_VERSION_MAJOR 0
-# HYP_CODEGEN_VERSION_MINOR 19
-RunCodeGen(0 19)
+# HYP_CODEGEN_VERSION_MINOR 21
+RunCodeGen(0 21)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -1195,6 +1195,56 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
   endif()
 endfunction()
 
+# built-in plugins: <dir>/<Plugin>/Source/<Module>, linked into the engine. Modules named *Editor are editor-only.
+# CodeGen (RunCodeGen.bat/.sh) reads the same directories
+set(HYP_PLUGIN_SEARCH_DIRECTORIES "${CMAKE_SOURCE_DIR}/../Plugins")
+
+# the plugin fixtures in Tests/Plugins; a shipping SDK build can turn them on to test Package Game with them
+if(HYP_TESTS)
+  set(HYP_TEST_PLUGINS_DEFAULT ON)
+else()
+  set(HYP_TEST_PLUGINS_DEFAULT OFF)
+endif()
+
+option(HYP_TEST_PLUGINS "Build the plugins in Tests/Plugins" ${HYP_TEST_PLUGINS_DEFAULT})
+
+if(HYP_TEST_PLUGINS)
+  list(APPEND HYP_PLUGIN_SEARCH_DIRECTORIES "${CMAKE_SOURCE_DIR}/../Tests/Plugins")
+endif()
+
+set(HYP_PLUGIN_MODULES "")
+
+foreach(plugin_search_dir ${HYP_PLUGIN_SEARCH_DIRECTORIES})
+  file(GLOB plugin_dirs LIST_DIRECTORIES true "${plugin_search_dir}/*")
+
+  foreach(plugin_dir ${plugin_dirs})
+    if(NOT IS_DIRECTORY "${plugin_dir}/Source")
+      continue()
+    endif()
+
+    file(GLOB plugin_module_dirs LIST_DIRECTORIES true "${plugin_dir}/Source/*")
+
+    foreach(plugin_module_dir ${plugin_module_dirs})
+      if(NOT IS_DIRECTORY "${plugin_module_dir}")
+        continue()
+      endif()
+
+      get_filename_component(plugin_module_name "${plugin_module_dir}" NAME)
+
+      if(plugin_module_name MATCHES "Editor$" AND NOT HYP_EDITOR)
+        continue()
+      endif()
+
+      list(APPEND HYP_PLUGIN_MODULES "${plugin_module_name}")
+      set(HYP_PLUGIN_MODULE_DIR_${plugin_module_name} "${plugin_module_dir}")
+      set(HYP_PLUGIN_SOURCE_ROOT_${plugin_module_name} "${plugin_dir}/Source")
+      get_filename_component(HYP_PLUGIN_NAME_${plugin_module_name} "${plugin_dir}" NAME)
+
+      message(STATUS "Plugin module ${plugin_module_name} (${plugin_module_dir})")
+    endforeach()
+  endforeach()
+endforeach()
+
 set(SUB_LIBRARIES "")
 
 collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Engine SOURCES HEADERS SUB_LIBRARIES)
@@ -1291,6 +1341,7 @@ include_directories(
 )
 
 file(GLOB REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
+
 source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
 
 if(HYP_DEBUG_MODE)
@@ -1508,6 +1559,74 @@ if(HYP_EDITOR)
   endif()
 endif()
 
+foreach(plugin_module ${HYP_PLUGIN_MODULES})
+  set(plugin_target "hyperion-plugin-${plugin_module}")
+  set(plugin_module_dir "${HYP_PLUGIN_MODULE_DIR_${plugin_module}}")
+  set(plugin_generated_dir "${HYP_GENERATED_DIR}/Plugins/${plugin_module}")
+
+  file(GLOB_RECURSE plugin_sources "${plugin_module_dir}/*.cpp")
+  file(GLOB_RECURSE plugin_headers "${plugin_module_dir}/*.hpp")
+  file(GLOB plugin_generated_sources "${plugin_generated_dir}/*.cpp")
+
+  source_group(TREE ${plugin_module_dir} PREFIX "Source Code" FILES ${plugin_sources} ${plugin_headers})
+  source_group(TREE ${plugin_generated_dir} PREFIX "Generated Code" FILES ${plugin_generated_sources})
+
+  add_library(${plugin_target} STATIC ${plugin_sources} ${plugin_headers} ${plugin_generated_sources})
+  target_compile_definitions(${plugin_target} PRIVATE HYP_BUILD_ENGINE=1 "HYP_PLUGIN_NAME=\"${HYP_PLUGIN_NAME_${plugin_module}}\"")
+
+  target_include_directories(${plugin_target} SYSTEM PRIVATE ${THIRD_PARTY_INCLUDE_DIR})
+  target_include_directories(${plugin_target} PRIVATE
+      ${CMAKE_SOURCE_DIR}
+      ${plugin_generated_dir}
+      ${HYP_GENERATED_DIR}
+      ${CMAKE_SOURCE_DIR}/Engine
+      ${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}})
+
+  hyp_link_core_library(${plugin_target})
+  target_link_libraries(${plugin_target} PRIVATE hyperion-scene hyperion-rendering hyperion-asset hyperion-ui hyperion-input hyperion-plugins)
+
+  if(plugin_module MATCHES "Editor$")
+    target_include_directories(${plugin_target} PRIVATE ${CMAKE_SOURCE_DIR}/Editor ${HYP_GENERATED_DIR}/Editor)
+    target_link_libraries(${plugin_target} PRIVATE hyperion-editor)
+
+    if(NOT HYP_ANDROID)
+      target_precompile_headers(${plugin_target} PRIVATE "${CMAKE_SOURCE_DIR}/Editor/EditorPch.hpp")
+    endif()
+  elseif(NOT HYP_ANDROID)
+    target_precompile_headers(${plugin_target} PRIVATE "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp")
+  endif()
+
+  # the module's registration (CodeGen's Register/PluginModuleRegister.cpp) is part of its library in the editor's engine. A static engine
+  # makes it an object of its own, which a game links for each plugin it uses (Sdk/PluginModuleObjects.txt, hyperion_link_plugin_modules)
+  set(plugin_register_source "${plugin_generated_dir}/Register/PluginModuleRegister.cpp")
+
+  if(HYP_BUILD_STATIC)
+    add_library(${plugin_target}-register OBJECT "${plugin_register_source}")
+    target_include_directories(${plugin_target}-register SYSTEM PRIVATE ${THIRD_PARTY_INCLUDE_DIR})
+    target_include_directories(${plugin_target}-register PRIVATE ${CMAKE_SOURCE_DIR} ${HYP_GENERATED_DIR} ${CMAKE_SOURCE_DIR}/Engine)
+    hyp_link_core_library(${plugin_target}-register)
+
+    add_dependencies(${BUILD_NAME} ${plugin_target}-register)
+
+    list(APPEND HYP_PLUGIN_MODULE_OBJECT_ITEMS "${plugin_module}=$<TARGET_OBJECTS:${plugin_target}-register>")
+  else()
+    target_sources(${plugin_target} PRIVATE "${plugin_register_source}")
+    set_source_files_properties("${plugin_register_source}" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+  endif()
+
+  add_dependencies(${BUILD_NAME} ${plugin_target})
+
+  if(HYP_BUILD_STATIC)
+    target_link_libraries(${BUILD_NAME} PRIVATE ${plugin_target})
+  elseif(APPLE)
+    target_link_libraries(${BUILD_NAME} PRIVATE "-force_load $<TARGET_FILE:${plugin_target}>")
+  elseif(MSVC)
+    target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${plugin_target}>")
+  else()
+    target_link_libraries(${BUILD_NAME} PRIVATE -Wl,--whole-archive $<TARGET_FILE:${plugin_target}> -Wl,--no-whole-archive)
+  endif()
+endforeach()
+
 function(hyp_collect_static_link_items rootTarget outVar)
   set(items "")
   set(visited "")
@@ -1714,10 +1833,24 @@ set(HYPERION_SDK_ENGINE_TYPES \"${HYP_GENERATED_DIR}/EngineTypes.json\")
 
   if(HYP_BUILD_STATIC)
     # what a packaged shipping SDK copies into its Lib folder and lists by file name (see HyperionSdk.cmake.in)
-    list(JOIN HYP_SDK_DEV_LIBRARIES "\n" HYP_SDK_STATIC_LIBRARIES_TEXT)
+    set(HYP_SDK_STATIC_LIBRARIES ${HYP_SDK_DEV_LIBRARIES})
+
+    # CMake links these by default (eg shell32), but other linkers (NativeAOT) don't
+    if(WIN32)
+      separate_arguments(HYP_SDK_STANDARD_LIBRARIES NATIVE_COMMAND "${CMAKE_CXX_STANDARD_LIBRARIES}")
+      list(APPEND HYP_SDK_STATIC_LIBRARIES ${HYP_SDK_STANDARD_LIBRARIES})
+    endif()
+
+    list(JOIN HYP_SDK_STATIC_LIBRARIES "\n" HYP_SDK_STATIC_LIBRARIES_TEXT)
 
     # (a generator expression that evaluates to nothing leaves a blank line, which readers skip)
     file(GENERATE OUTPUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Sdk/StaticLibraries.txt" CONTENT "${HYP_SDK_STATIC_LIBRARIES_TEXT}\n"
+        CONDITION "${HYP_SDK_DEV_PATHS_CONDITION}")
+
+    # <Module>=<registration object> for each built-in plugin module, which a game links for the plugins it uses
+    list(JOIN HYP_PLUGIN_MODULE_OBJECT_ITEMS "\n" HYP_SDK_PLUGIN_MODULE_OBJECTS_TEXT)
+
+    file(GENERATE OUTPUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Sdk/PluginModuleObjects.txt" CONTENT "${HYP_SDK_PLUGIN_MODULE_OBJECTS_TEXT}\n"
         CONDITION "${HYP_SDK_DEV_PATHS_CONDITION}")
   endif()
 
@@ -1777,6 +1910,7 @@ set(HYPERION_WEB_LIBRARIES [==[${HYP_WEB_SDK_LIBRARIES}]==])
 set(HYPERION_WEB_LINK_DIRECTORIES [==[${HYP_WEB_SDK_LINK_DIRS}]==])
 set(HYPERION_WEB_LINK_OPTIONS [==[${HYP_WEB_APP_LINK_OPTIONS}]==])
 set(HYPERION_WEB_BASE_DIR [==[${HYP_WEB_SDK_BASE_DIR}]==])
+set(HYPERION_WEB_PLUGIN_MODULE_OBJECTS [==[${HYP_PLUGIN_MODULE_OBJECT_ITEMS}]==])
 ")
 endif()
 

@@ -509,6 +509,23 @@ if ($IsMonolithic -and (Test-Path $SdkCMakeFile) -and (Test-Path $SdkImportLibra
         Set-Content -Path (Join-Path $ShippingStageDir "StaticLibraries.txt") -Value $staticLibraryLines -Encoding ascii
         Write-Host "    $($stagedLibraries.Count) libraries"
 
+        # each built-in plugin module's registration object, which a game links for the plugins it uses; they share a file name, so they're renamed
+        $ShippingPluginModuleObjectsFile = Join-Path $ShippingBinDir "Sdk/PluginModuleObjects.txt"
+        $pluginModuleObjectLines = @()
+        if (Test-Path $ShippingPluginModuleObjectsFile)
+        {
+            $pluginModuleObjectLines = foreach ($line in Get-Content $ShippingPluginModuleObjectsFile | Where-Object { $_.Contains("=") })
+            {
+                $pluginModule, $pluginModuleObject = $line.Trim().Split("=", 2)
+                if (-not (Test-Path -LiteralPath $pluginModuleObject)) { throw "The shipping SDK's plugin module $pluginModule has no object at $pluginModuleObject" }
+
+                $pluginModuleObjectName = "$pluginModule.PluginModuleRegister$([System.IO.Path]::GetExtension($pluginModuleObject))"
+                Copy-StagedFile $pluginModuleObject (Join-Path $ShippingStageDir "Lib/$pluginModuleObjectName")
+                "$pluginModule=$pluginModuleObjectName"
+            }
+        }
+        Set-Content -Path (Join-Path $ShippingStageDir "PluginModuleObjects.txt") -Value $pluginModuleObjectLines -Encoding ascii
+
         # what a game may import from the shipping build, and the assemblies a C# game is compiled against
         foreach ($file in "Hyperion.NET.Shared.dll", "Hyperion.NET.Runtime.dll", "Hyperion.NET.Interop.dll", "Hyperion.NET.Generators.dll")
         {

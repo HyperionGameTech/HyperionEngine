@@ -110,6 +110,13 @@ public:
     }
 
     HYP_METHOD()
+    Array<Name> GetEnabledPlugins() const;
+
+    /*! \brief The runtime modules of the enabled plugins and their dependencies, which a packaged or web build of the game links */
+    HYP_METHOD()
+    Array<Name> GetEnabledPluginRuntimeModules() const;
+
+    HYP_METHOD()
     String GetGameTitle() const;
 
     HYP_METHOD()

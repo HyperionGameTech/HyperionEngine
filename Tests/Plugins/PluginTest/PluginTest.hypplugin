@@ -1,0 +1,5 @@
+PluginDescriptor "PluginTest" {
+    Version = "1.0.0"
+    Description = "Built-in plugin fixture for the plugin module tests"
+    EnabledByDefault = true
+}

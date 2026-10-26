@@ -218,6 +218,8 @@ namespace Hyperion.Editor
 
             BindWorldSceneDelegates(CurrentProject?.World);
 
+            SyncEditorPlugins();
+
             _onCurrentProjectChanged?.Remove();
             _onCurrentProjectChanged = editorState.GetOnCurrentProjectChangedDelegate().Bind((EditorProject newProject, bool isSimulationStateChange) =>
             {
@@ -241,6 +243,8 @@ namespace Hyperion.Editor
                 CurrentProject = newProject;
 
                 Logger.Log(LogLevel.Verbose, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
+
+                SyncEditorPlugins();
 
                 // When returning to edit mode from simulation, isSimulationStateChange is true and the scene delegates
                 // are left unbound here - InitializeEditor() is called afterwards and rebinds them for the edit world.
@@ -394,6 +398,22 @@ namespace Hyperion.Editor
         }
 
         public static bool IsOnSimThread => SimThread.IsOnIt;
+
+        // the native side enables a project's plugins before its World initializes; the editor UI follows when the project changes
+        private static void SyncEditorPlugins()
+        {
+            List<string> enabledPlugins = new List<string>();
+
+            if (CurrentProject != null)
+            {
+                foreach (Name pluginName in CurrentProject.GetEnabledPlugins().Cast<Name>())
+                {
+                    enabledPlugins.Add(pluginName.ToString());
+                }
+            }
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => Services.EditorPluginService.Instance.SetEnabledPlugins(enabledPlugins));
+        }
 
         public static bool CanCreateAssets => EditorGame?.EditorSubsystem?.CanCreateAssets() ?? false;
 

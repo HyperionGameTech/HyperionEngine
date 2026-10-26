@@ -75,4 +75,16 @@ private:
     Array<String> m_args;
 };
 
+// commands defined in a built-in plugin's editor module (DEFINE_EDITOR_COMMAND under HYP_PLUGIN_NAME), which only run while it's enabled
+EDITOR_API void RegisterPluginEditorCommand(const char* commandClassName, const char* pluginName);
+EDITOR_API const char* GetPluginOfEditorCommand(Name commandClassName);
+
+struct PluginEditorCommandRegistration
+{
+    PluginEditorCommandRegistration(const char* commandClassName, const char* pluginName)
+    {
+        RegisterPluginEditorCommand(commandClassName, pluginName);
+    }
+};
+
 } // namespace Hyperion

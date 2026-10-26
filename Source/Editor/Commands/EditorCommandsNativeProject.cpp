@@ -13,6 +13,8 @@
 
 #include <Editor/EditorProjectSettings.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <Core/DataProcessing/JSON/JSON.hpp>
 
 #include <Core/Threading/Threads.hpp>
@@ -548,6 +550,33 @@ public:
     }
 
 private:
+    // the runtime modules of the project's enabled built-in plugins, which the game links (hyperion_link_plugin_modules in the SDK)
+    static Result WritePluginModulesFile(const EditorProject& project, const FilePath& binariesDir)
+    {
+        if (!binariesDir.Exists() && !binariesDir.MkDir())
+        {
+            return HYP_MAKE_ERROR(Error, "Could not create {}", binariesDir);
+        }
+
+        const FilePath pluginModulesPath = binariesDir / "PluginModules.txt";
+
+        FileByteWriter writer { pluginModulesPath };
+
+        if (!writer.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Could not write {}", pluginModulesPath);
+        }
+
+        for (Name pluginModuleName : project.GetEnabledPluginRuntimeModules())
+        {
+            writer.WriteString(String(pluginModuleName.LookupString()) + "\n");
+        }
+
+        writer.Close();
+
+        return {};
+    }
+
     static void Package(const Handle<EditorProject>& project, const FilePath& outputDir)
     {
         if (Result saveResult = project->Save(); saveResult.HasError())
@@ -563,6 +592,13 @@ private:
         if (!outputDir.Exists() && !outputDir.MkDir())
         {
             ShowPackageGameMessage(MessageBoxType::CRITICAL, "Packaging failed", String("Could not create ") + outputDir);
+
+            return;
+        }
+
+        if (Result writeResult = WritePluginModulesFile(*project, GetNativeModulePath(project->GetFilePath()).BasePath()); writeResult.HasError())
+        {
+            ShowPackageGameMessage(MessageBoxType::CRITICAL, "Packaging failed", writeResult.GetError().GetMessage());
 
             return;
         }

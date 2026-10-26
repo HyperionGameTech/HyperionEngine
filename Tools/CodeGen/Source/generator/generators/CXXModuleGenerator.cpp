@@ -55,6 +55,40 @@ const Array<ModuleAPIMapping>& CXXModuleGenerator::GetModuleAPIMappings()
     return s_moduleAPIMappings;
 }
 
+static const ModuleAPIMapping s_engineAPIMapping = { "", "ENGINE_API", "", "Engine" };
+
+ModuleAPIMapping CXXModuleGenerator::GetMappingForModule(const Analyzer& analyzer, const Module& mod)
+{
+    if (!mod.GetPath().Any())
+    {
+        return s_moduleAPIMappings[0];
+    }
+
+    // a built-in plugin's classes are part of the engine (or editor) library, but each module gets its own ClassDecls and init function
+    if (const PluginModuleInfo* pluginModule = analyzer.FindPluginModule(mod.GetPath()))
+    {
+        return {
+            String::empty,
+            pluginModule->isEditor ? "EDITOR_API" : "ENGINE_API",
+            "Plugins/" + pluginModule->name,
+            "Plugin_" + pluginModule->name,
+            pluginModule->name
+        };
+    }
+
+    const String relativePath = analyzer.GetRelativePath(mod.GetPath()).ReplaceAll("\\", "/");
+
+    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
+    {
+        if (relativePath.StartsWith(mapping.subdirPattern))
+        {
+            return mapping;
+        }
+    }
+
+    return s_engineAPIMapping;
+}
+
 String CXXModuleGenerator::GetAPIMacroForModule(const Analyzer& analyzer, const Module& mod)
 {
     if (analyzer.IsGameModule())
@@ -62,69 +96,36 @@ String CXXModuleGenerator::GetAPIMacroForModule(const Analyzer& analyzer, const 
         return String::empty;
     }
 
-    if (!mod.GetPath().Any())
-    {
-        return "CORE_API";
-    }
-
-    const String relativePath = FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory()).ReplaceAll("\\", "/");
-
-    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
-    {
-        if (relativePath.StartsWith(mapping.subdirPattern))
-        {
-            return mapping.apiMacro;
-        }
-    }
-
-    return "ENGINE_API";
+    return GetMappingForModule(analyzer, mod).apiMacro;
 }
 
-String CXXModuleGenerator::GetClassDeclsOutputSubdirForAPIMacro(const String& apiMacro)
+String CXXModuleGenerator::GetInitFunctionName(const ModuleAPIMapping& mapping)
 {
-    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
-    {
-        if (mapping.apiMacro == apiMacro)
-        {
-            return mapping.outputSubdir;
-        }
-    }
-
-    return String::empty;
+    return "InitializeModule_" + mapping.initSuffix;
 }
 
-String CXXModuleGenerator::GetInitFunctionNameForAPIMacro(const String& apiMacro)
+static String GetOutputSubdirForModule(const Analyzer& analyzer, const Module& mod)
 {
-    if (apiMacro == "ENGINE_API")
+    if (analyzer.IsGameModule())
     {
-        return "InitializeModule_Engine";
+        return String::empty;
     }
 
-    for (const ModuleAPIMapping& mapping : s_moduleAPIMappings)
-    {
-        if (mapping.apiMacro == apiMacro)
-        {
-            return "InitializeModule_" + mapping.initSuffix;
-        }
-    }
-
-    HYP_LOG(Tool, Warning, "No init function found for API macro: {}", apiMacro);
-
-    return String::empty;
+    return CXXModuleGenerator::GetMappingForModule(analyzer, mod).outputSubdir;
 }
 
 FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
-    const FilePath relativePath = FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory());
-    const FilePath subdir = GetClassDeclsOutputSubdirForAPIMacro(GetAPIMacroForModule(analyzer, mod));
+    const FilePath relativePath = analyzer.GetRelativePath(mod.GetPath());
+    const FilePath subdir = GetOutputSubdirForModule(analyzer, mod);
 
     return analyzer.GetCXXOutputDirectory() / subdir / String(StringUtil::StripExtension(relativePath.Basename())) + ".generated.cpp";
 }
 
 FilePath CXXModuleGenerator::GetInlineOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
-    const FilePath relativePath = FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory());
-    const FilePath subdir = GetClassDeclsOutputSubdirForAPIMacro(GetAPIMacroForModule(analyzer, mod));
+    const FilePath relativePath = analyzer.GetRelativePath(mod.GetPath());
+    const FilePath subdir = GetOutputSubdirForModule(analyzer, mod);
 
     // Flatten .inl files into the root of the CXX output directory so they can be included as <Foo.generated.inl>
     return analyzer.GetCXXOutputDirectory() / subdir / String(StringUtil::StripExtension(relativePath.Basename())) + ".generated.inl";
@@ -262,7 +263,7 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     return {};
 }
 
-Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, const String& apiMacro, ByteWriter& writer) const
+Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analyzer, const ModuleAPIMapping& mapping, ByteWriter& writer) const
 {
     writer.WriteString(GetGeneratedFilePreamble(String::empty));
     writer.WriteString("#include <Core/Reflection/Class.hpp>\n");
@@ -285,9 +286,9 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     for (const auto& it : analyzer.GetBuiltinClasses())
     {
         const bool isCoreBuiltin = (it.second.name == "ObjectBase");
-        const String builtinAPIMacro = isCoreBuiltin ? "CORE_API" : "ENGINE_API";
+        const String builtinInitSuffix = isCoreBuiltin ? "Core" : "Engine";
 
-        if (builtinAPIMacro != apiMacro)
+        if (builtinInitSuffix != mapping.initSuffix)
         {
             continue;
         }
@@ -312,12 +313,10 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         writer.WriteString("#pragma endregion Builtins\n\n");
     }
 
-    // Add module classes that match the target API macro
+    // Add module classes that belong to the target module group
     for (const UniquePtr<Module>& mod : analyzer.GetModules())
     {
-        const String modAPIMacro = GetAPIMacroForModule(analyzer, *mod);
-
-        if (modAPIMacro != apiMacro)
+        if (GetMappingForModule(analyzer, *mod).initSuffix != mapping.initSuffix)
         {
             continue;
         }
@@ -334,9 +333,32 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         }
     }
 
+    // a plugin module's entry point, which its PluginModuleRegister.cpp adds to the engine's plugin module initializers
+    const auto writePluginModuleEntry = [&writer, &mapping]()
+    {
+        if (mapping.pluginModuleName.Empty())
+        {
+            return;
+        }
+
+        writer.WriteString(HYP_FORMAT("\n// HYP_DEFINE_PLUGIN_MODULE\nvoid HypRegisterPluginModule_{}();\n\n", mapping.pluginModuleName));
+        writer.WriteString(HYP_FORMAT("HYP_EXPORT void HypInitializePluginModule_{}()\n", mapping.pluginModuleName) + "{\n");
+        writer.WriteString(String("    ") + BaseNamespace + "::" + GetInitFunctionName(mapping) + "();\n");
+        writer.WriteString(HYP_FORMAT("    HypRegisterPluginModule_{}();\n", mapping.pluginModuleName) + "}\n");
+    };
+
     if (allClasses.Empty())
     {
+        // the plugin module's entry point calls it, so it exists even with no classes
+        if (mapping.pluginModuleName.Any())
+        {
+            writer.WriteString(HYP_FORMAT("HYP_EXPORT void {}()\n", GetInitFunctionName(mapping)) + "{\n}\n\n");
+        }
+
         writer.WriteString("} // namespace " + String(BaseNamespace) + "\n");
+
+        writePluginModuleEntry();
+
         return {};
     }
 
@@ -461,7 +483,7 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     writer.WriteString("\n#pragma endregion Forward declarations\n\n");
 
     // now we need to add a method to be called that initializes all g_clsXXX variables (TClassStaticInit specializations)
-    const String initFunctionName = GetInitFunctionNameForAPIMacro(apiMacro);
+    const String initFunctionName = GetInitFunctionName(mapping);
     writer.WriteString(HYP_FORMAT("HYP_EXPORT void {}()\n", initFunctionName) + "{\n");
 
     for (const ClassInfo& classInfo : allClasses)
@@ -512,6 +534,23 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
     writer.WriteString("}\n\n");
 
     writer.WriteString("} // namespace " + String(BaseNamespace) + "\n");
+
+    writePluginModuleEntry();
+
+    return {};
+}
+
+Result CXXModuleGenerator::GeneratePluginModuleRegister(const Analyzer& analyzer, const PluginModuleInfo& pluginModule, ByteWriter& writer) const
+{
+    writer.WriteString(GetGeneratedFilePreamble(String::empty));
+    writer.WriteString("#include <Engine/Plugins/PluginModule.hpp>\n\n");
+
+    // compiled into the plugin's library in the editor's engine; with a static engine it's an object of its own, which only a game that uses
+    // the plugin links (the archive alone would be dropped by the linker)
+    writer.WriteString(HYP_FORMAT("void HypInitializePluginModule_{}();\n\n", pluginModule.name));
+    writer.WriteString(HYP_FORMAT("static const bool g_pluginModuleInitializerAdded = ({}::AddPluginModuleInitializer(&HypInitializePluginModule_{}), true);\n",
+        BaseNamespace,
+        pluginModule.name));
 
     return {};
 }
@@ -818,7 +857,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
     if (mod.GetPath().Any())
     {
-        FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+        FilePath relativePath = analyzer.GetRelativePath(mod.GetPath());
 
         writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relativePath).ReplaceAll("\\", "/"));
 
@@ -840,7 +879,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                     continue;
                 }
 
-                addInclude(FilePath::Relative(dependencyModule->GetPath(), analyzer.GetSourceDirectory()));
+                addInclude(analyzer.GetRelativePath(dependencyModule->GetPath()));
             }
 
             writer.WriteString("\n");

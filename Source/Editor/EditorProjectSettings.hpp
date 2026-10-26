@@ -12,6 +12,8 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
 
+#include <Core/Name/Name.hpp>
+
 #include <Core/FileSystem/FilePath.hpp>
 
 #include <Core/Utilities/Result.hpp>
@@ -101,6 +103,14 @@ public:
 
     HYP_FIELD(Property = "PlatformSettings", Serialize)
     EditorPlatformSettings platformSettings;
+
+    HYP_FIELD(Property = "EnabledPlugins", Serialize)
+    Array<Name> enabledPlugins;
+
+    HYP_FIELD(Property = "DisabledPlugins", Serialize)
+    Array<Name> disabledPlugins;
+
+    Array<Name> ResolveEnabledPlugins() const;
 };
 
 EDITOR_API String ResolveModuleName(const String& moduleName, const String& gameTitle, const FilePath& projectFilepath);

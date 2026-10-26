@@ -32,6 +32,23 @@ if(HYP_WEB_GAME_DIR)
   endif()
 endif()
 
+# the registration object of each of the project's enabled built-in plugin modules (BuildWebGame.ps1 -PluginModules), which pulls the module in
+foreach(pluginModule ${HYP_WEB_PLUGIN_MODULES})
+  set(pluginModuleObject "")
+
+  foreach(entry ${HYPERION_WEB_PLUGIN_MODULE_OBJECTS})
+    if(entry MATCHES "^${pluginModule}=(.+)$")
+      set(pluginModuleObject "${CMAKE_MATCH_1}")
+    endif()
+  endforeach()
+
+  if(pluginModuleObject)
+    list(APPEND PAGE_SOURCES "${pluginModuleObject}")
+  else()
+    message(WARNING "The engine's web build has no plugin module ${pluginModule}, so the page is linked without it")
+  endif()
+endforeach()
+
 add_executable(${HYP_WEB_PAGE_NAME} ${PAGE_SOURCES})
 
 target_include_directories(${HYP_WEB_PAGE_NAME} PRIVATE ${HYPERION_WEB_INCLUDE_DIRS})

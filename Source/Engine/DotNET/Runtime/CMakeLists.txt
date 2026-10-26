@@ -49,6 +49,30 @@ if(HYP_DOTNET)
     list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${HYP_GENERATED_DIR}/CSharp/Editor/")
   endif()
 
+  # bindings for plugin modules this build doesn't link (CodeGen sees every plugin, test ones included)
+  file(GLOB generated_plugin_csharp_dirs LIST_DIRECTORIES true "${HYP_GENERATED_DIR}/CSharp/Plugins/*" "${HYP_GENERATED_DIR}/CSharp/Editor/Plugins/*")
+
+  foreach(generated_plugin_csharp_dir ${generated_plugin_csharp_dirs})
+    get_filename_component(generated_plugin_module "${generated_plugin_csharp_dir}" NAME)
+
+    if(NOT generated_plugin_module IN_LIST HYP_PLUGIN_MODULES)
+      list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${generated_plugin_csharp_dir}/")
+    endif()
+  endforeach()
+
+  # the script-facing C# of built-in plugins' runtime modules: <Plugin>/Managed/<Module> (editor modules' go into Hyperion.Editor)
+  foreach(plugin_module ${HYP_PLUGIN_MODULES})
+    if(plugin_module MATCHES "Editor$")
+      continue()
+    endif()
+
+    get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
+
+    file(GLOB_RECURSE plugin_csharp_sources "${plugin_managed_dir}/*.cs")
+    list(FILTER plugin_csharp_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
+    list(APPEND CSHARP_RUNTIME_SOURCES ${plugin_csharp_sources})
+  endforeach()
+
   if(CSHARP_RUNTIME_SOURCES)
     file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime)
 

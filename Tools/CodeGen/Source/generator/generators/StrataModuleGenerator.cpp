@@ -136,7 +136,7 @@ String TranslateLimitMacros(const String& value)
 
 FilePath StrataModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
-    FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+    FilePath relativePath = analyzer.GetOutputRelativePath(mod.GetPath());
 
     return analyzer.GetStrataOutputDirectory() / relativePath.BasePath() / String(StringUtil::StripExtension(relativePath.Basename())) + ".strata";
 }

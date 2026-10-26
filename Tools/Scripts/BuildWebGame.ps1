@@ -8,6 +8,7 @@ param(
     [string]$Worlds = "",
     [string]$Name = "",
     [string]$Title = "",
+    [string]$PluginModules = "",
     [int]$Port = 8137
 )
 
@@ -422,7 +423,7 @@ $keepsFunctionNames = if ($Run) { "ON" } else { "OFF" }
 Invoke-Cmd ("set `"EMSDK_QUIET=1`" && call `"$env:EMSDK\emsdk_env.bat`" >nul && emcmake cmake -S `"$templateDir`" -B `"$cmakeDir`" -G Ninja -DCMAKE_BUILD_TYPE=Release " + `
     "-DHYPERION_WEB_SDK=`"$($webSdk -replace '\\', '/')`" -DHYP_WEB_PAGE_NAME=$name -DHYP_WEB_PAGE_TITLE=`"$pageTitle`" -DHYP_WEB_PACKAGE=`"$($packageDir -replace '\\', '/')`" " + `
     "-DHYP_WEB_GAME_DIR=`"$gameDirArgument`" -DHYP_WEB_GAME_GENERATED_DIR=`"$gameGeneratedDirArgument`" -DHYP_WEB_OUTPUT=`"$($pageDir -replace '\\', '/')`" -DHYP_WEB_LINK_OPTIMIZATION=$linkOptimization -DHYP_WEB_FUNCTION_NAMES=$keepsFunctionNames " + `
-    "-DHYP_WEB_MANAGED_LINK_INPUTS=`"$($managedLinkInputs -replace '\\', '/')`" -DHYP_WEB_GAME_CLASS=`"$gameClassArgument`" && cmake --build `"$cmakeDir`"") `
+    "-DHYP_WEB_MANAGED_LINK_INPUTS=`"$($managedLinkInputs -replace '\\', '/')`" -DHYP_WEB_GAME_CLASS=`"$gameClassArgument`" -DHYP_WEB_PLUGIN_MODULES=`"$($PluginModules -replace ',', ';')`" && cmake --build `"$cmakeDir`"") `
     "Building the page failed"
 
 # 5. stage everything a host needs into Binaries/Web, leaving anything else the folder holds (a CNAME, say) alone

@@ -29,10 +29,17 @@
 #include <Editor/Tasks/EditorTasks.hpp>
 
 #include <Editor/Terrain/EditorTerrainState.hpp>
+
 #include <Editor/Decal/EditorDecalPainterState.hpp>
-#include <Editor/Instancing/EditorInstancePainterState.hpp>
+
 #include <Editor/Csg/EditorCsgState.hpp>
+
 #include <Editor/Prefab/EditorPrefabEditState.hpp>
+
+#include <Editor/Instancing/EditorInstancePainterState.hpp>
+#include <Editor/Instancing/InstanceHandleNode.hpp>
+
+#include <Plugins/PluginManager.hpp>
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 
@@ -71,8 +78,6 @@
 #include <Scene/Components/InstanceClusterComponent.hpp>
 
 #include <Scene/Instancing/InstanceGroup.hpp>
-
-#include <Editor/Instancing/InstanceHandleNode.hpp>
 
 #include <Physics/PhysicsShape.hpp>
 #include <Physics/ConvexDecomposition.hpp>
@@ -5426,6 +5431,14 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
         return false;
     }
 
+    if (const char* pluginName = GetPluginOfEditorCommand(command->InstanceClass()->GetName());
+        pluginName != nullptr && !PluginManager::GetInstance().IsPluginEnabled(CreateNameFromDynamicString(pluginName)))
+    {
+        HYP_LOG(Editor, Warning, "Cannot execute command '{}': plugin {} isn't enabled for this project", command->InstanceClass()->GetName(), pluginName);
+
+        return false;
+    }
+
     HYP_LOG(Editor, Info, "Action: {} {}", command->InstanceClass()->GetName(), String::Join(command->GetArguments(), " "));
 
     if (IsOnThread(g_simThread))
@@ -5802,6 +5815,9 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     {
         g_editorState->ReportProjectLoadStage(ProjectLoadStage::LoadWorld);
     }
+
+    // must be before the project's World initializes.
+    PluginManager::GetInstance().SetEnabledPlugins(m_currentProject->GetEnabledPlugins());
 
     InitializeProjectWorld(m_currentProject, isStartSimulation);
 

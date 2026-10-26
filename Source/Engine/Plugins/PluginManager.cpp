@@ -10,6 +10,12 @@
 
 #include <Core/DLL/DynamicLibrary.hpp>
 
+#include <Core/DataProcessing/HMF/HMF.hpp>
+#include <Core/DataProcessing/Shared/CompilerError.hpp>
+#include <Core/DataProcessing/Shared/ErrorList.hpp>
+
+#include <Core/IO/ByteReader.hpp>
+
 #include <Core/Utilities/StringUtil.hpp>
 
 #include <algorithm>
@@ -17,6 +23,43 @@
 namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Plugins);
+
+static Array<PluginModuleRegistration>& GetPluginModuleRegistrations()
+{
+    static Array<PluginModuleRegistration> s_registrations;
+
+    return s_registrations;
+}
+
+void RegisterPluginModule(const PluginModuleRegistration& registration)
+{
+    GetPluginModuleRegistrations().PushBack(registration);
+}
+
+const Array<PluginModuleRegistration>& GetRegisteredPluginModules()
+{
+    return GetPluginModuleRegistrations();
+}
+
+static Array<PluginModuleInitializer>& GetPluginModuleInitializers()
+{
+    static Array<PluginModuleInitializer> s_initializers;
+
+    return s_initializers;
+}
+
+void AddPluginModuleInitializer(PluginModuleInitializer initializer)
+{
+    GetPluginModuleInitializers().PushBack(initializer);
+}
+
+void InitializePluginModules()
+{
+    for (PluginModuleInitializer initializer : GetPluginModuleInitializers())
+    {
+        initializer();
+    }
+}
 
 namespace {
 
@@ -100,6 +143,14 @@ void PluginManager::Initialize(PluginHostMode hostMode)
     m_hostMode = hostMode;
     s_pluginHost.SetHostMode(hostMode);
 
+    DiscoverBuiltinPlugins();
+
+    // the editor enables plugins per project when one opens
+    if (m_hostMode == PluginHostMode::Game)
+    {
+        SetEnabledPlugins(GetDefaultEnabledPlugins());
+    }
+
     const FilePath pluginsDir = CoreApi::GetExecutablePath() / "Plugins";
 
     if (!pluginsDir.Exists() || !pluginsDir.IsDirectory())
@@ -153,6 +204,8 @@ void PluginManager::Shutdown()
     {
         return;
     }
+
+    SetEnabledPlugins({});
 
     // Reverse load order so plugins that were loaded after another are torn down first.
     for (size_t index = m_plugins.Size(); index != 0; index--)
@@ -313,6 +366,242 @@ void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
         storedPlugin.manifest.name,
         storedPlugin.manifest.version,
         directory);
+}
+
+void PluginManager::DiscoverBuiltinPlugins()
+{
+    m_builtinPlugins.Clear();
+
+    const FilePath& baseDirectory = CoreApi::GetBaseDirectory();
+    const FilePath searchDirectories[] = { baseDirectory / "Plugins", baseDirectory / "Tests" / "Plugins" };
+
+    for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
+    {
+        const Name pluginName = CreateNameFromDynamicString(registration.pluginName);
+
+        if (FindBuiltinPlugin(pluginName) != nullptr)
+        {
+            continue;
+        }
+
+        // without a descriptor (a packaged game) the build only links the plugins the game uses
+        PluginDescriptor descriptor;
+        descriptor.enabledByDefault = true;
+
+        for (const FilePath& searchDirectory : searchDirectories)
+        {
+            const FilePath pluginDirectory = searchDirectory / pluginName.LookupString();
+            const FilePath descriptorPath = pluginDirectory / (String(pluginName.LookupString()) + ".hypplugin");
+
+            if (!descriptorPath.Exists())
+            {
+                continue;
+            }
+
+            FileByteReader stream { descriptorPath };
+
+            HMF::ErrorList errorList;
+            HMF::ParseResult parseResult = HMF::Parse(descriptorPath, stream, &errorList);
+
+            if (parseResult.HasError() || !parseResult.GetValue().Is<PluginDescriptor>())
+            {
+                String parseMessages;
+                errorList.WriteAllMessages(parseMessages);
+
+                HYP_LOG(Plugins, Warning, "Failed to read plugin descriptor {}: {}", descriptorPath, parseMessages);
+
+                break;
+            }
+
+            descriptor = parseResult.GetValue().Get<PluginDescriptor>();
+            descriptor.directory = pluginDirectory;
+
+            break;
+        }
+
+        descriptor.name = pluginName;
+
+        HYP_LOG(Plugins, Info, "Found built-in plugin '{}' v{}", pluginName, descriptor.version);
+
+        m_builtinPlugins.PushBack(std::move(descriptor));
+    }
+}
+
+const PluginDescriptor* PluginManager::FindBuiltinPlugin(Name pluginName) const
+{
+    auto it = m_builtinPlugins.FindIf([pluginName](const PluginDescriptor& descriptor)
+        {
+            return descriptor.name == pluginName;
+        });
+
+    return it != m_builtinPlugins.End() ? &*it : nullptr;
+}
+
+Array<Name> PluginManager::GetDefaultEnabledPlugins() const
+{
+    Array<Name> pluginNames;
+
+    for (const PluginDescriptor& descriptor : m_builtinPlugins)
+    {
+        if (descriptor.enabledByDefault)
+        {
+            pluginNames.PushBack(descriptor.name);
+        }
+    }
+
+    return pluginNames;
+}
+
+bool PluginManager::IsPluginEnabled(Name pluginName) const
+{
+    return m_enabledPlugins.Contains(pluginName);
+}
+
+Array<Name> PluginManager::GetRuntimeModules(const Array<Name>& pluginNames) const
+{
+    Array<Name> orderedPlugins;
+    Array<Name> visiting;
+
+    for (Name pluginName : pluginNames)
+    {
+        ResolveEnabledPlugin(pluginName, orderedPlugins, visiting);
+    }
+
+    Array<Name> moduleNames;
+
+    for (Name pluginName : orderedPlugins)
+    {
+        for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
+        {
+            if (CreateNameFromDynamicString(registration.pluginName) == pluginName && !String(registration.moduleName).EndsWith("Editor"))
+            {
+                moduleNames.PushBack(CreateNameFromDynamicString(registration.moduleName));
+            }
+        }
+    }
+
+    return moduleNames;
+}
+
+void PluginManager::ResolveEnabledPlugin(Name pluginName, Array<Name>& outOrdered, Array<Name>& visiting) const
+{
+    if (outOrdered.Contains(pluginName))
+    {
+        return;
+    }
+
+    const PluginDescriptor* descriptor = FindBuiltinPlugin(pluginName);
+
+    if (descriptor == nullptr)
+    {
+        HYP_LOG(Plugins, Warning, "Plugin '{}' is enabled but isn't built in", pluginName);
+
+        return;
+    }
+
+    if (visiting.Contains(pluginName))
+    {
+        HYP_LOG(Plugins, Error, "Plugin '{}' has a circular dependency", pluginName);
+
+        return;
+    }
+
+    visiting.PushBack(pluginName);
+
+    for (Name dependency : descriptor->dependencies)
+    {
+        ResolveEnabledPlugin(dependency, outOrdered, visiting);
+    }
+
+    visiting.PopBack();
+
+    outOrdered.PushBack(pluginName);
+}
+
+void PluginManager::SetEnabledPlugins(const Array<Name>& pluginNames)
+{
+    Array<Name> orderedPlugins;
+    Array<Name> visiting;
+
+    for (Name pluginName : pluginNames)
+    {
+        ResolveEnabledPlugin(pluginName, orderedPlugins, visiting);
+    }
+
+    if (orderedPlugins == m_enabledPlugins)
+    {
+        return;
+    }
+
+    // unload in reverse, so a plugin goes before the ones it depends on
+    for (size_t index = m_activeModules.Size(); index != 0; index--)
+    {
+        ActiveModule& activeModule = m_activeModules[index - 1];
+
+        if (!orderedPlugins.Contains(activeModule.pluginName))
+        {
+            UnloadModule(activeModule);
+
+            m_activeModules.EraseAt(index - 1);
+        }
+    }
+
+    for (Name pluginName : orderedPlugins)
+    {
+        if (m_enabledPlugins.Contains(pluginName))
+        {
+            continue;
+        }
+
+        // a plugin's editor modules (named *Editor) load after its runtime ones
+        Array<const PluginModuleRegistration*> registrations;
+
+        for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
+        {
+            if (CreateNameFromDynamicString(registration.pluginName) == pluginName && !String(registration.moduleName).EndsWith("Editor"))
+            {
+                registrations.PushBack(&registration);
+            }
+        }
+
+        for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
+        {
+            if (CreateNameFromDynamicString(registration.pluginName) == pluginName && String(registration.moduleName).EndsWith("Editor"))
+            {
+                registrations.PushBack(&registration);
+            }
+        }
+
+        for (const PluginModuleRegistration* registrationPtr : registrations)
+        {
+            const PluginModuleRegistration& registration = *registrationPtr;
+
+            ActiveModule activeModule;
+            activeModule.pluginName = pluginName;
+            activeModule.moduleName = CreateNameFromDynamicString(registration.moduleName);
+            activeModule.module = registration.create();
+            activeModule.context = MakeUnique<PluginContext>(pluginName, activeModule.moduleName, m_hostMode);
+
+            activeModule.module->OnLoad(*activeModule.context);
+
+            HYP_LOG(Plugins, Info, "Loaded plugin module {}.{}", pluginName, activeModule.moduleName);
+
+            m_activeModules.PushBack(std::move(activeModule));
+        }
+    }
+
+    m_enabledPlugins = std::move(orderedPlugins);
+}
+
+void PluginManager::UnloadModule(ActiveModule& activeModule)
+{
+    activeModule.module->OnUnload();
+    activeModule.context->Release();
+
+    HYP_LOG(Plugins, Info, "Unloaded plugin module {}.{}", activeModule.pluginName, activeModule.moduleName);
+
+    activeModule.module.Reset();
+    activeModule.context.Reset();
 }
 
 } // namespace Hyperion
