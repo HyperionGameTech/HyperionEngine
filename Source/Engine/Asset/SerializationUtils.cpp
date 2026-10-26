@@ -1561,7 +1561,8 @@ ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& ty
 
         const JSON::JString& jsonString = jsonValue.AsString();
 
-        outBoxed = BoxedValue(Name(CreateNameFromDynamicString(*jsonString.ToAnsi())));
+        // an unset Name is written as an empty string, and has to read back as unset
+        outBoxed = BoxedValue(jsonString.Empty() ? Name::Invalid() : Name(CreateNameFromDynamicString(*jsonString.ToAnsi())));
 
         return {};
     }

@@ -60,6 +60,14 @@ ENGINE_API void ComputeMatrices(
     Span<Mat4f> outModelMatrices,
     Span<Mat4f> outSkinningMatrices);
 
+ENGINE_API void SampleClip(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> pose);
+
+// boneWeights, when not empty, scale weight per slot (a BoneMask)
+ENGINE_API void BlendPoses(Span<const Transform> from, Span<const Transform> to, float weight, Span<const float> boneWeights, Span<Transform> outPose);
+
+// adds additive's difference from the rest pose onto pose
+ENGINE_API void ApplyAdditive(const SkeletonBindData& bindData, Span<const Transform> additive, float weight, Span<Transform> pose);
+
 // easing toward the clip by delta / remaining covers the gap linearly over the fade
 ENGINE_API float AdvanceCrossFade(float delta, float& remaining, float defaultBlend);
 

@@ -18,6 +18,7 @@
 #include <Scene/Components/AnimationComponent.hpp>
 
 #include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/AnimationGraph.hpp>
 
 #include <Scripting/Asset/ScriptAsset.hpp>
 
@@ -351,13 +352,60 @@ Handle<EditorActionBase> AnimationCreateAction(EditorSubsystem* subsystem, const
         });
 }
 
+bool AnimationGraphAcceptsAsset(const AssetObject* asset)
+{
+    return TryCast<AnimationGraph>(asset) != nullptr;
+}
+
+Handle<EditorActionBase> AnimationGraphCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+{
+    Handle<AnimationGraph> graph = TryCast<AnimationGraph>(asset);
+
+    const bool hadAnimationComponent = entity->HasComponent<AnimationComponent>();
+    const Handle<AnimationGraph> previousGraph = hadAnimationComponent ? entity->GetComponent<AnimationComponent>().graph : Handle<AnimationGraph>::empty;
+
+    if (hadAnimationComponent && previousGraph == graph)
+    {
+        return nullptr;
+    }
+
+    return MakeEntityDropAction(
+        subsystem,
+        HYP_FORMAT("Assign Animation Graph {}", graph->GetName()),
+        entity,
+        [entity, graph](EditorSubsystem*)
+        {
+            if (!entity->HasComponent<AnimationComponent>())
+            {
+                entity->AddComponent<AnimationComponent>(AnimationComponent {});
+            }
+
+            entity->GetComponent<AnimationComponent>().graph = graph;
+            entity->MarkDirty();
+        },
+        [entity, hadAnimationComponent, previousGraph](EditorSubsystem*)
+        {
+            if (!hadAnimationComponent)
+            {
+                entity->RemoveComponent<AnimationComponent>();
+            }
+            else if (AnimationComponent* animationComponent = entity->TryGetComponent<AnimationComponent>())
+            {
+                animationComponent->graph = previousGraph;
+            }
+
+            entity->MarkDirty();
+        });
+}
+
 } // namespace /* Animation */
 
 static const EntityAssetDropHandler g_entityAssetDropHandlers[] = {
     { &ScriptAcceptsAsset, &ScriptCanApply, &ScriptCreateAction },
     { &MaterialAcceptsAsset, &MaterialCanApply, &MaterialCreateAction },
     { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction },
-    { &AnimationAcceptsAsset, &AnimationCanApply, &AnimationCreateAction }
+    { &AnimationAcceptsAsset, &AnimationCanApply, &AnimationCreateAction },
+    { &AnimationGraphAcceptsAsset, &AnimationCanApply, &AnimationGraphCreateAction }
 };
 
 static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObject* asset)

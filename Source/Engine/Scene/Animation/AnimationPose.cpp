@@ -276,6 +276,63 @@ void ComputeMatrices(
     }
 }
 
+void SampleClip(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> pose)
+{
+    HYP_SCOPE;
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        pose[slot] = bindData.restLocals[slot];
+    }
+
+    for (uint32 trackIndex = 0; trackIndex < uint32(binding.trackSlots.Size()); ++trackIndex)
+    {
+        const uint32 slot = binding.trackSlots[trackIndex];
+
+        if (slot != SkeletonBindData::InvalidSlot)
+        {
+            pose[slot] = animation.GetTrack(trackIndex)->GetKeyframe(time).transform;
+        }
+    }
+}
+
+void BlendPoses(Span<const Transform> from, Span<const Transform> to, float weight, Span<const float> boneWeights, Span<Transform> outPose)
+{
+    HYP_SCOPE;
+
+    for (size_t slot = 0; slot < outPose.Size(); ++slot)
+    {
+        const float slotWeight = MathUtil::Clamp(boneWeights.Size() == outPose.Size() ? weight * boneWeights[slot] : weight, 0.0f, 1.0f);
+
+        // @FIXME NASTY! AWFUL TERNARY !!!!
+        outPose[slot] = slotWeight <= 0.0f ? from[slot]
+            : slotWeight >= 1.0f           ? to[slot]
+                                           : BlendTransforms(from[slot], to[slot], slotWeight);
+    }
+}
+
+void ApplyAdditive(const SkeletonBindData& bindData, Span<const Transform> additive, float weight, Span<Transform> pose)
+{
+    HYP_SCOPE;
+
+    if (weight <= 0.0f)
+    {
+        return;
+    }
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        const Transform& rest = bindData.restLocals[slot];
+
+        const Vec3f deltaTranslation = additive[slot].GetTranslation() - rest.GetTranslation();
+        const Quat4f deltaRotation = rest.GetRotation().Inverse() * additive[slot].GetRotation();
+
+        Transform& target = pose[slot];
+        target.SetTranslation(target.GetTranslation() + deltaTranslation * weight);
+        target.SetRotation(target.GetRotation() * Quat4f::Identity().Slerp(deltaRotation, weight));
+    }
+}
+
 float AdvanceCrossFade(float delta, float& remaining, float defaultBlend)
 {
     if (remaining <= 0.0f)

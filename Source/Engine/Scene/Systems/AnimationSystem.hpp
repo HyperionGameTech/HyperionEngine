@@ -86,6 +86,7 @@ private:
     const ClipBinding& GetClipBinding(Entity* entity, AnimationInstanceState& state, const Animation& animation, const SkeletonBindData& bindData);
 
     void EvaluatePose(Entity* entity, const AnimationComponent& animationComponent, MeshComponent& meshComponent, const Animation& animation, float time, float blend);
+    void EvaluateGraph(Entity* entity, AnimationComponent& animationComponent, MeshComponent& meshComponent, float delta);
 
     // keyed per entity since clones share a Skeleton
     Map<Entity*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;

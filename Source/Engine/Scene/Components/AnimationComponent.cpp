@@ -4,6 +4,7 @@
 
 #include <Scene/Animation/Animation.hpp>
 #include <Scene/Animation/BoneMask.hpp>
+#include <Scene/Animation/AnimationGraphInstance.hpp>
 
 #include <AnimationComponent.generated.inl>
 

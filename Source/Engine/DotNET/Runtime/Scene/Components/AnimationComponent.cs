@@ -44,7 +44,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="AnimationComponent")]
-    [StructLayout(LayoutKind.Sequential, Size = 96)]
+    [StructLayout(LayoutKind.Sequential, Size = 112)]
     public ref struct AnimationComponent : IComponent
     {
         public AnimationPlaybackState PlaybackState = new();
@@ -52,6 +52,10 @@ namespace Hyperion
         private Handle<Animation> _animationHandle;
 
         private Handle<BoneMask> _layerMaskHandle;
+
+        private Handle<AnimationGraph> _graphHandle;
+
+        private Handle<AnimationGraphInstance> _graphInstanceHandle;
 
         private float _crossFadeRemaining;
 
@@ -63,6 +67,8 @@ namespace Hyperion
         {
             _animationHandle.Dispose();
             _layerMaskHandle.Dispose();
+            _graphHandle.Dispose();
+            _graphInstanceHandle.Dispose();
         }
 
         public Animation? Animation
@@ -92,6 +98,27 @@ namespace Hyperion
                 _layerMaskHandle = value != null ? new Handle<BoneMask>(value) : Handle<BoneMask>.Empty;
             }
         }
+
+        public AnimationGraph? Graph
+        {
+            get => _graphHandle.GetValue();
+            set
+            {
+                _graphHandle.Dispose();
+                _graphHandle = value != null ? new Handle<AnimationGraph>(value) : Handle<AnimationGraph>.Empty;
+            }
+        }
+
+        // created by the animation system once the graph first plays
+        public AnimationGraphInstance? GraphInstance => _graphInstanceHandle.GetValue();
+
+        public void SetFloat(string parameter, float value) => GraphInstance?.SetFloat(new Name(parameter), value);
+
+        public void SetBool(string parameter, bool value) => GraphInstance?.SetBool(new Name(parameter), value);
+
+        public void SetTrigger(string parameter) => GraphInstance?.SetTrigger(new Name(parameter));
+
+        public void SetVector2(string parameter, Vec2f value) => GraphInstance?.SetVector2(new Name(parameter), value);
 
         public bool IsPlaying => PlaybackState.Status == AnimationPlaybackStatus.Playing;
 

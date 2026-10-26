@@ -18,6 +18,7 @@
 #include <Scene/Animation/AnimationPose.hpp>
 #include <Scene/Animation/Skeleton.hpp>
 #include <Scene/Animation/BoneMask.hpp>
+#include <Scene/Animation/AnimationGraphInstance.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -361,6 +362,54 @@ void AnimationSystem::EvaluatePose(Entity* entity, const AnimationComponent& ani
     state.instance->SetPoseMatrices(state.modelMatrices.ToSpan(), state.skinningMatrices.ToSpan());
 }
 
+void AnimationSystem::EvaluateGraph(Entity* entity, AnimationComponent& animationComponent, MeshComponent& meshComponent, float delta)
+{
+    auto stateIt = m_instanceStates.Find(entity);
+
+    AnimationInstanceState& state = stateIt != m_instanceStates.End()
+            && stateIt->second.source == meshComponent.skeleton.Get()
+            && stateIt->second.sourceRevision == meshComponent.skeleton->GetRevision()
+        ? stateIt->second
+        : CreateInstanceState(entity, meshComponent);
+
+    if (!animationComponent.graphInstance.IsValid() || animationComponent.graphInstance->GetGraph() != animationComponent.graph)
+    {
+        animationComponent.graphInstance = MakeHandle<AnimationGraphInstance>(animationComponent.graph);
+        InitObject(animationComponent.graphInstance);
+
+        // the graph's clips aren't always among the skeleton's own, which OnEntityAdded locked
+        auto& locks = m_resourceHandles[entity];
+
+        for (const Handle<Animation>& clip : animationComponent.graph->CollectClips())
+        {
+            for (const Handle<AnimationTrack>& track : clip->GetTracks())
+            {
+                if (track.IsValid())
+                {
+                    locks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
+                }
+            }
+        }
+    }
+
+    const Skeleton& skeleton = *meshComponent.skeleton;
+    const SkeletonBindData& bindData = skeleton.GetBindData();
+
+    state.pose.Resize(bindData.NumSlots());
+
+    animationComponent.graphInstance->Update(delta, skeleton);
+    animationComponent.graphInstance->Evaluate(skeleton, state.pose.ToSpan());
+
+    state.renderPose = state.pose;
+
+    state.modelMatrices.Resize(bindData.NumSlots());
+    state.skinningMatrices.Resize(bindData.NumSlots());
+
+    PoseOps::ComputeMatrices(bindData, state.renderPose.ToSpan(), state.modelMatrices.ToSpan(), state.skinningMatrices.ToSpan());
+
+    state.instance->SetPoseMatrices(state.modelMatrices.ToSpan(), state.skinningMatrices.ToSpan());
+}
+
 void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
@@ -400,6 +449,13 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 {
                     EvaluatePose(entity, animationComponent, meshComponent, *animation, stateIt->second.previewTime, 1.0f);
                 }
+
+                continue;
+            }
+
+            if (animationComponent.graph.IsValid())
+            {
+                EvaluateGraph(entity, animationComponent, meshComponent, delta);
 
                 continue;
             }

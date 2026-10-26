@@ -15,6 +15,7 @@
 
 #include <Scene/Animation/Skeleton.hpp>
 #include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/AnimationGraphInstance.hpp>
 
 namespace Hyperion {
 
@@ -407,5 +408,66 @@ public:
 DEFINE_EDITOR_COMMAND(ResolveModelImport);
 
 #pragma endregion ModelImport
+
+#pragma region AnimationGraph
+
+/// logs each node of an entity's running animation graph with its weight and time
+class EditorCommandDumpAnimationGraph final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandDumpAnimationGraph);
+
+public:
+    virtual ~EditorCommandDumpAnimationGraph() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Dump Animation Graph";
+    }
+
+    virtual bool AllowedWhileSimulating() const override
+    {
+        return true;
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        Entity* entity = NumArguments() >= 1 ? TryCast<Entity>(ResolveNodeUuidArgument(subsystem, GetArgument(0))) : nullptr;
+        const AnimationComponent* animationComponent = entity ? entity->TryGetComponent<AnimationComponent>() : nullptr;
+
+        if (!animationComponent || !animationComponent->graphInstance.IsValid())
+        {
+            HYP_LOG(Editor, Info, "DumpAnimationGraph: no running animation graph");
+            return;
+        }
+
+        const AnimationGraphInstance& instance = *animationComponent->graphInstance;
+        const AnimationGraph& graph = *instance.GetGraph();
+
+        for (uint32 nodeIndex = 0; nodeIndex < graph.NumNodes(); ++nodeIndex)
+        {
+            const AnimationGraphNode* node = graph.GetNode(nodeIndex);
+
+            HYP_LOG(Editor, Info, "DumpAnimationGraph: node {} '{}' ({}) weight {} time {}",
+                nodeIndex,
+                node ? node->name : Name::Invalid(),
+                node ? node->InstanceClass()->GetName() : Name::Invalid(),
+                instance.GetNodeWeight(nodeIndex),
+                instance.GetNodeTime(nodeIndex));
+
+            if (const AnimationClipNode* clipNode = TryCast<AnimationClipNode>(node))
+            {
+                HYP_LOG(Editor, Info, "DumpAnimationGraph:   clip {} length {}",
+                    clipNode->clip.IsValid() ? clipNode->clip->GetName() : Name::Invalid(),
+                    clipNode->clip.IsValid() ? clipNode->clip->GetLength() : 0.0f);
+            }
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(DumpAnimationGraph);
+
+#pragma endregion AnimationGraph
 
 } // namespace Hyperion

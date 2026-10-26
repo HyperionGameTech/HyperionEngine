@@ -77,7 +77,7 @@ namespace Hyperion.Editor.ViewModels
                 return null;
             }
 
-            return "Animation component has nothing to animate: the mesh has no skeleton.";
+            return "AnimationComponent will be non-functional because no skeleton is associated with the MeshComponent.";
         }
 
         private static string? CheckClipMatchesSkeleton(Entity entity)
@@ -109,7 +109,7 @@ namespace Hyperion.Editor.ViewModels
 
             int numBones = skeleton.GetBoneNames().Length;
 
-            return numBones > MaxSkinnedBones ? $"Skeleton {skeleton.Name} has {numBones} bones; only the first {MaxSkinnedBones} are skinned." : null;
+            return numBones > MaxSkinnedBones ? $"Skeleton {skeleton.Name} has {numBones} bones which is over the limit ({MaxSkinnedBones})" : null;
         }
     }
 }

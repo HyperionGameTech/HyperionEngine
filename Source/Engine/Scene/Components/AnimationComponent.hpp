@@ -19,6 +19,8 @@ namespace Hyperion {
 
 class Animation;
 class BoneMask;
+class AnimationGraph;
+class AnimationGraphInstance;
 
 HYP_ENUM()
 enum class AnimationPlaybackStatus : uint8
@@ -126,6 +128,13 @@ struct ENGINE_API AnimationComponent
     HYP_FIELD(Property = "LayerMask", Serialize = true, Editor = true)
     Handle<BoneMask> layerMask;
 
+    // when set, the graph drives the pose and playbackState is ignored
+    HYP_FIELD(Property = "Graph", Serialize = true, Editor = true)
+    Handle<AnimationGraph> graph;
+
+    HYP_FIELD(Transient, Editor = false)
+    Handle<AnimationGraphInstance> graphInstance;
+
     HYP_FIELD(Transient, Editor = false)
     float crossFadeRemaining = 0.0f;
 
@@ -145,6 +154,7 @@ struct ENGINE_API AnimationComponent
         hc.Add(playbackState);
         hc.Add(animation);
         hc.Add(layerMask);
+        hc.Add(graph);
 
         return hc;
     }
