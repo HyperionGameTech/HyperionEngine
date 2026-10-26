@@ -17,16 +17,11 @@
         </DataTemplate>
     </UserControl.Resources>
     <ItemsControl
+        x:Name="PropertyItems"
         HorizontalAlignment="Stretch"
         Grid.IsSharedSizeScope="True"
         ItemsSource="{Binding #Root.ItemsSource}">
         <ItemsControl.DataTemplates>
-            <DataTemplate x:DataType="vm:SkeletonChoicePropertyViewModel">
-                <local:SkeletonChoicePropertyEditor DataContext="{Binding}" />
-            </DataTemplate>
-            <DataTemplate x:DataType="vm:AnimationPreviewViewModel">
-                <local:AnimationPreviewEditor DataContext="{Binding}" />
-            </DataTemplate>
             <DataTemplate x:DataType="vm:TextPropertyViewModel">
                 <local:StringNamePropertyEditor DataContext="{Binding}" />
             </DataTemplate>

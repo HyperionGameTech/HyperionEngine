@@ -8,7 +8,7 @@
 
 #include <Asset/ModelImport.hpp>
 
-#include <Core/Reflection/ObjectBase.hpp>
+#include <Editor/EditorImportReview.hpp>
 
 #include <Core/Containers/String.hpp>
 
@@ -20,7 +20,7 @@ class EditorSubsystem;
 
 // a loaded model held back from the registry while the import panel picks its settings
 HYP_CLASS(Serialize = false)
-class EDITOR_API EditorModelImportReview final : public ObjectBase
+class EDITOR_API EditorModelImportReview final : public EditorImportReview
 {
     HYP_OBJECT_BODY(EditorModelImportReview);
 
@@ -29,8 +29,9 @@ public:
     EditorModelImportReview(ModelImportContents&& contents, const AssetImportInfo& importInfo, const String& targetFolder);
     ~EditorModelImportReview() override;
 
-    HYP_METHOD()
-    String GetFileName() const;
+    String GetFileName() const override;
+    bool Commit(EditorSubsystem* subsystem) override;
+    void Cancel() override;
 
     HYP_METHOD()
     bool HasMesh() const;
@@ -77,15 +78,6 @@ public:
     HYP_METHOD()
     void AddSplit(Name name, Name takeName, uint32 startFrame, uint32 endFrame, bool loop, bool rootMotion);
 
-    HYP_METHOD()
-    bool Commit(EditorSubsystem* subsystem);
-
-    HYP_METHOD()
-    void Cancel();
-
-    HYP_METHOD()
-    bool IsFinished() const;
-
 private:
     const Handle<Animation>& GetTake(Name takeName) const;
 
@@ -93,7 +85,6 @@ private:
     Array<Handle<Animation>> m_takes;
     AssetImportInfo m_importInfo;
     String m_targetFolder;
-    bool m_isFinished = false;
 };
 
 } // namespace Hyperion

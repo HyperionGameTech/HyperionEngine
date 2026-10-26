@@ -3133,6 +3133,45 @@ public:
 
 DEFINE_EDITOR_COMMAND(EditPrefab);
 
+/// EditAsset <bucket index> <name>
+class EditorCommandEditAsset final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandEditAsset);
+
+public:
+    virtual ~EditorCommandEditAsset() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Edit Asset";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        uint32 bucketIndex = 0;
+
+        if (NumArguments() < 2 || !StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex() || bucketIndex >= MaxAssetBuckets)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditAsset requires a bucket index and an asset name");
+            return;
+        }
+
+        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(ANSIString(GetArgument(1))));
+
+        if (!asset.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditAsset: could not find asset '{}'", GetArgument(1));
+            return;
+        }
+
+        subsystem->EnterEditStateForAsset(asset);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(EditAsset);
+
 class EditorCommandApplyPrefabEdit final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandApplyPrefabEdit);

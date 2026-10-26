@@ -127,6 +127,16 @@ bool EditorPrefabEditState::IsActive() const
     return m_prefab.IsValid() && m_editScene.IsValid();
 }
 
+bool EditorPrefabEditState::CanEditAsset(const Handle<AssetObject>& asset) const
+{
+    return asset.IsValid() && asset->IsA<Prefab>();
+}
+
+bool EditorPrefabEditState::EnterAsset(const Handle<AssetObject>& asset)
+{
+    return CanEditAsset(asset) && Enter(Cast<Prefab>(asset));
+}
+
 bool EditorPrefabEditState::Enter(const Handle<Prefab>& prefab)
 {
     AssertOnThread(g_simThread);

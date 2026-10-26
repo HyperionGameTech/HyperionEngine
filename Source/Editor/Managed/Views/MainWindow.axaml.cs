@@ -22,6 +22,7 @@ using Hyperion;
 using Hyperion.Editor.Views;
 using Hyperion.Editor.ViewModels;
 using Hyperion.Editor.Services;
+using Hyperion.Editor.Commands;
 using Document = Dock.Model.Avalonia.Controls.Document;
 using DocumentDock = Dock.Model.Avalonia.Controls.DocumentDock;
 using ProportionalDock = Dock.Model.Avalonia.Controls.ProportionalDock;
@@ -48,7 +49,7 @@ namespace Hyperion.Editor
 
         // what can be applied to an Entity via D&D
         private static readonly HashSet<string> EntityAssetTypeNames
-            = ["Script", "ScriptAsset", "Material", "Texture", "Animation", "AnimationGraph"];
+            = ["Script", "ScriptAsset", "Material", "Texture"];
 
         private static readonly object AssetCreationEntryTag = new();
         
@@ -92,7 +93,7 @@ namespace Hyperion.Editor
         private PackagingSettingsWindow? _packagingSettingsWindow;
         private IDock? _dynamicPanelsDock;
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
-        private Document? _animationGraphDocument;
+        private readonly Dictionary<EditorDocumentViewModel, Document> _pluginDocuments = new();
         private int _frameCounter;
         private bool _viewportNativeHidden;
         private bool _isClosing;
@@ -135,17 +136,23 @@ namespace Hyperion.Editor
             InitializeComponent();
 
             viewModel.SceneHierarchy.PropertyChanged += OnSceneHierarchyPropertyChanged;
-            viewModel.AnimationGraphDocument.PropertyChanged += (_, e) =>
+
+            EditorPluginService.Instance.Documents.CollectionChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(AnimationGraphDocumentViewModel.Title) && _animationGraphDocument != null)
+                foreach (EditorDocumentViewModel document in e.NewItems?.OfType<EditorDocumentViewModel>() ?? [])
                 {
-                    _animationGraphDocument.Title = viewModel.AnimationGraphDocument.Title;
+                    document.PropertyChanged += OnPluginDocumentPropertyChanged;
                 }
-                else if (e.PropertyName == nameof(AnimationGraphDocumentViewModel.IsOpen))
+
+                foreach (EditorDocumentViewModel document in e.OldItems?.OfType<EditorDocumentViewModel>() ?? [])
                 {
-                    SyncAnimationGraphDocument();
+                    document.PropertyChanged -= OnPluginDocumentPropertyChanged;
                 }
+
+                SyncPluginDocuments();
             };
+
+            EditorPluginService.Instance.RegisterAlwaysEnabled();
 
             foreach (Control entry in BuildAddSceneMenuEntries(viewModel))
             {
@@ -857,7 +864,7 @@ namespace Hyperion.Editor
             _dynamicPanelsDock = null;
             _dynamicPanelTools.Clear();
             PanelService.Instance.ClosePanel();
-            _animationGraphDocument = null;
+            _pluginDocuments.Clear();
 
             IDock root = BuildDefaultLayout();
             DockControl.Layout = root;
@@ -885,48 +892,80 @@ namespace Hyperion.Editor
             DockControl.LayoutUpdated -= OnDockControlLayoutUpdated;
             DockControl.LayoutUpdated += OnDockControlLayoutUpdated;
 
-            SyncAnimationGraphDocument();
+            SyncPluginDocuments();
         }
 
-        private void SyncAnimationGraphDocument()
+        private void OnPluginDocumentPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (_isClosing || DataContext is not MainWindowViewModel viewModel || DockControl.Factory is not FactoryBase factory || DockControl.Layout is not { } layout)
+            if (sender is not EditorDocumentViewModel document)
             {
                 return;
             }
 
-            if (!viewModel.AnimationGraphDocument.IsOpen)
+            if (e.PropertyName == nameof(EditorDocumentViewModel.Title) && _pluginDocuments.TryGetValue(document, out Document? dockable))
             {
-                if (_animationGraphDocument != null)
+                dockable.Title = document.Title;
+            }
+            else if (e.PropertyName == nameof(EditorDocumentViewModel.IsOpen))
+            {
+                SyncPluginDocuments();
+            }
+        }
+
+        // a plugin document is a dock tab while it's open; its content is the view the plugin registered for it
+        private void SyncPluginDocuments()
+        {
+            if (_isClosing || DockControl.Factory is not FactoryBase factory || DockControl.Layout is not { } layout)
+            {
+                return;
+            }
+
+            foreach ((EditorDocumentViewModel document, Document dockable) in _pluginDocuments.ToList())
+            {
+                if (!document.IsOpen || !EditorPluginService.Instance.Documents.Contains(document))
                 {
-                    factory.RemoveDockable(_animationGraphDocument, false);
-                    _animationGraphDocument = null;
+                    factory.RemoveDockable(dockable, false);
+                    _pluginDocuments.Remove(document);
+                }
+            }
+
+            foreach (EditorDocumentViewModel document in EditorPluginService.Instance.Documents)
+            {
+                if (!document.IsOpen || _pluginDocuments.ContainsKey(document))
+                {
+                    continue;
                 }
 
-                return;
-            }
-
-            if (_animationGraphDocument == null)
-            {
                 if (FindDockableById(layout, "Documents") is not IDock documentsDock)
                 {
                     return;
                 }
 
-                _animationGraphDocument = new Document
+                Control? content = EditorPluginService.Instance.ViewLocator.Build(document);
+
+                if (content == null)
                 {
-                    Id = "AnimationGraph",
-                    Title = viewModel.AnimationGraphDocument.Title,
-                    Content = new AnimationGraphDocumentView { DataContext = viewModel.AnimationGraphDocument },
+                    continue;
+                }
+
+                content.DataContext = document;
+
+                Document dockable = new Document
+                {
+                    Id = document.Id,
+                    Title = document.Title,
+                    Content = content,
                     CanFloat = false,
                     CanPin = false,
                     CanClose = false
                 };
 
+                _pluginDocuments[document] = dockable;
+
                 documentsDock.VisibleDockables ??= factory.CreateList<IDockable>();
-                factory.AddDockable(documentsDock, _animationGraphDocument);
-                factory.SetActiveDockable(_animationGraphDocument);
-                factory.SetFocusedDockable(documentsDock, _animationGraphDocument);
+                factory.AddDockable(documentsDock, dockable);
+                factory.SetActiveDockable(dockable);
+                factory.SetFocusedDockable(documentsDock, dockable);
             }
         }
 
@@ -1154,6 +1193,8 @@ namespace Hyperion.Editor
                 {
                     nodeViewModel.RefreshSelectionContext(mvm.SceneHierarchy.SelectedNodes);
                 }
+
+                AddPluginNodeMenuItems(contextMenu, nodeViewModel.Node);
             }
 
             if (contextMenu.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag as string == "AddSceneMenu") is { Items.Count: 0 } addMenuItem
@@ -1164,6 +1205,43 @@ namespace Hyperion.Editor
                     addMenuItem.Items.Add(entry);
                 }
             }
+        }
+
+        // entries from editor plugins go where the anchor sits; whether each applies is read on the sim thread
+        private static void AddPluginNodeMenuItems(ContextMenu contextMenu, Node node)
+        {
+            foreach (Control staleEntry in contextMenu.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag)).ToList())
+            {
+                contextMenu.Items.Remove(staleEntry);
+            }
+
+            List<EditorNodeMenuItem> pluginItems = EditorPluginService.Instance.NodeMenuItems.ToList();
+
+            if (pluginItems.Count == 0)
+            {
+                return;
+            }
+
+            _ = EngineManager.PostToSimThread(() =>
+            {
+                List<EditorNodeMenuItem> applicableItems = pluginItems.Where(pluginItem => pluginItem.CanExecute(node)).ToList();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    int anchorIndex = contextMenu.Items.IndexOf(contextMenu.Items.OfType<Control>().FirstOrDefault(item => item.Tag as string == "PluginNodeMenuAnchor"));
+                    int insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : contextMenu.Items.Count;
+
+                    foreach (EditorNodeMenuItem pluginItem in applicableItems)
+                    {
+                        contextMenu.Items.Insert(insertIndex++, new MenuItem
+                        {
+                            Header = pluginItem.Header,
+                            Command = new RelayCommand(() => pluginItem.Execute(node)),
+                            Tag = PluginMenuEntryTag
+                        });
+                    }
+                });
+            });
         }
 
         private void OnAssetContextMenuOpened(object? sender, RoutedEventArgs e)
@@ -1253,7 +1331,15 @@ namespace Hyperion.Editor
 
             foreach (EditorPluginMenuItem pluginItem in pluginItems)
             {
-                menu.Items.Add(new MenuItem { Header = pluginItem.Header, Command = pluginItem.Command, Tag = PluginMenuEntryTag });
+                MenuItem menuItem = new MenuItem { Header = pluginItem.Header, Command = pluginItem.Command, Tag = PluginMenuEntryTag };
+
+                if (pluginItem.IsChecked != null)
+                {
+                    menuItem.ToggleType = MenuItemToggleType.CheckBox;
+                    menuItem.IsChecked = pluginItem.IsChecked();
+                }
+
+                menu.Items.Add(menuItem);
             }
         }
 
@@ -2417,7 +2503,7 @@ namespace Hyperion.Editor
             {
                 dataItem.Set(AssetDragFormat, $"{asset.Bucket?.BucketIndex ?? 0}|{asset.AssetDesc.Name}");
 
-                if (asset.TypeName != null && EntityAssetTypeNames.Contains(asset.TypeName))
+                if (asset.TypeName != null && (EntityAssetTypeNames.Contains(asset.TypeName) || EditorPluginService.Instance.IsEntityDropAssetClass(asset.TypeName)))
                 {
                     dataItem.Set(EntityAssetDragFormat, asset.AssetDesc.Name.ToString());
                 }

@@ -175,6 +175,9 @@ if(DOTNET_EXECUTABLE)
     list(FILTER plugin_cs_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
     list(FILTER plugin_axaml_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
 
+    # class bindings compile into Hyperion.NET.Runtime (see Engine/DotNET/Runtime/CMakeLists.txt)
+    list(FILTER plugin_cs_sources EXCLUDE REGEX "^${plugin_managed_dir}/Bindings/.*")
+
     foreach(plugin_cs_source ${plugin_cs_sources})
       file(RELATIVE_PATH REL_PATH "${plugin_managed_dir}" "${plugin_cs_source}")
       file(APPEND ${EDITOR_CSPROJ_PATH} "    <Compile Include=\"${plugin_cs_source}\" Link=\"Plugins/${plugin_module}/${REL_PATH}\" />\n")

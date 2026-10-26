@@ -26,6 +26,8 @@
 #include <Core/Reflection/ClassRegistry.hpp>
 #include <Core/Reflection/Method.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 namespace Hyperion {
 
 class EngineTestCommandlet final : public CommandletBase
@@ -59,6 +61,12 @@ protected:
 
         JSON::JArray resultsArray;
         uint32 numFailed = 0;
+
+        // as a game would: the default plugins load, so plugin tests run with what their modules register
+        if (!listOnly && !PluginManager::GetInstance().IsInitialized())
+        {
+            PluginManager::GetInstance().Initialize(PluginHostMode::Game);
+        }
 
         // rewritten after each test, so a test that crashes the process still leaves the results before it
         const auto writeReport = [&]() -> Result

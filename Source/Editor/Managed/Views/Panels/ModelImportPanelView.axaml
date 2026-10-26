@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:DataType="vm:ModelImportPanelViewModel"
@@ -23,11 +24,9 @@
                         <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding BoneCountText}" />
                     </Grid>
                     <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding RigModes}" SelectedIndex="{Binding RigModeIndex}" />
-                    <ComboBox
-                        HorizontalAlignment="Stretch"
-                        IsVisible="{Binding IsUsingExistingSkeleton}"
-                        ItemsSource="{Binding SkeletonNames}"
-                        SelectedItem="{Binding TargetSkeleton}" />
+                    <Panel IsVisible="{Binding IsUsingExistingSkeleton}">
+                        <inspector:AssetObjectPropertyEditor DataContext="{Binding SkeletonPicker}" />
+                    </Panel>
                     <TextBlock Classes="hint-text" IsVisible="{Binding IsUsingExistingSkeleton}" Text="{Binding UnmatchedTracksText}" />
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock VerticalAlignment="Center" Text="Scale" />
@@ -97,6 +96,17 @@
                     <TextBlock Classes="section-label" Text="Mesh" />
                     <CheckBox Content="Generate LODs" IsChecked="{Binding GenerateMeshLods}" />
                 </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding SettingsSections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ImportSettingsSectionViewModel">
+                            <StackPanel Margin="0,0,0,8" Spacing="6">
+                                <TextBlock Classes="section-label" Text="{Binding Label}" />
+                                <inspector:InspectorPropertyItemsControl IsVisible="{Binding Body.HasProperties}" ItemsSource="{Binding Body.Properties}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

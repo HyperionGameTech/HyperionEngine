@@ -20,6 +20,8 @@
 
 #include <Scripting/ScriptableDelegate.hpp>
 
+#include <Asset/AssetObject.hpp>
+
 #include <Editor/EditorMemory.hpp>
 
 namespace Hyperion {
@@ -40,9 +42,33 @@ public:
     ~EditorIsolatedEditState() override;
 
     void Initialize(EditorSubsystem* subsystem);
+    void Shutdown();
 
     HYP_METHOD()
     virtual bool IsActive() const = 0;
+
+    HYP_METHOD()
+    virtual bool CanEditAsset(const Handle<AssetObject>& asset) const
+    {
+        return false;
+    }
+
+    HYP_METHOD()
+    virtual bool EnterAsset(const Handle<AssetObject>& asset)
+    {
+        return false;
+    }
+
+    HYP_METHOD()
+    virtual Handle<AssetObject> GetInspectedAsset() const
+    {
+        return Handle<AssetObject>::Null();
+    }
+
+    virtual bool IsProtectedNode(const Node* node) const
+    {
+        return false;
+    }
 
     HYP_METHOD()
     bool CanEnter() const;

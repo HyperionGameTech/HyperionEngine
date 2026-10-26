@@ -1,0 +1,68 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Inspector.AssetExtensionsView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:AssetExtensionsViewModel"
+    mc:Ignorable="d">
+    <StackPanel>
+        <ItemsControl ItemsSource="{Binding Sections}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AssetExtensionSectionViewModel">
+                    <StackPanel Margin="0,0,0,10">
+                        <Grid Margin="8,0,8,2" ColumnDefinitions="*,Auto">
+                            <TextBlock
+                                Grid.Column="0"
+                                Classes="header"
+                                FontSize="14"
+                                Text="{Binding Label}" />
+                            <Button
+                                Grid.Column="1"
+                                Classes="gizmo"
+                                Command="{Binding RemoveCommand}"
+                                ToolTip.Tip="Remove">
+                                <controls:Codicon Kind="Trash" Size="14" />
+                            </Button>
+                        </Grid>
+                        <inspector:InspectorPropertyItemsControl IsVisible="{Binding Body.HasProperties}" ItemsSource="{Binding Body.Properties}" />
+                        <ItemsControl ItemsSource="{Binding Body.Actions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                    <Button
+                                        Padding="10,4"
+                                        Margin="8,6,8,0"
+                                        HorizontalAlignment="Stretch"
+                                        Command="{Binding ExecuteActionCommand}"
+                                        Content="{Binding Label}"
+                                        IsEnabled="{Binding IsEnabled}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button
+            Margin="8,0,8,0"
+            Padding="8,2"
+            HorizontalAlignment="Left"
+            IsVisible="{Binding HasAddableExtensions}"
+            ToolTip.Tip="Add extension">
+            <controls:Codicon Kind="Add" Size="14" />
+            <Button.Flyout>
+                <MenuFlyout ItemsSource="{Binding AddableExtensions}">
+                    <MenuFlyout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AddAssetExtensionOptionViewModel">
+                            <MenuItem Command="{Binding AddCommand}" Header="{Binding Label}" />
+                        </DataTemplate>
+                    </MenuFlyout.ItemTemplate>
+                </MenuFlyout>
+            </Button.Flyout>
+        </Button>
+    </StackPanel>
+</UserControl>

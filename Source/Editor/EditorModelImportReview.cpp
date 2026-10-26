@@ -11,6 +11,7 @@
 #include <Editor/EditorSubsystem.hpp>
 
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/ModelImportProcessor.hpp>
 
 #include <Scene/Prefab.hpp>
 
@@ -36,6 +37,16 @@ EditorModelImportReview::EditorModelImportReview(ModelImportContents&& contents,
       m_targetFolder(targetFolder)
 {
     m_takes = m_contents.animations;
+
+    AddMissingProcessorSettings(m_importInfo.settings);
+
+    for (const Handle<ModelImportProcessorSettings>& processorSettings : m_importInfo.settings.processorSettings)
+    {
+        if (processorSettings.IsValid())
+        {
+            m_settings.PushBack(processorSettings);
+        }
+    }
 }
 
 EditorModelImportReview::~EditorModelImportReview() = default;
@@ -212,11 +223,6 @@ void EditorModelImportReview::Cancel()
 
     m_contents = {};
     m_takes.Clear();
-}
-
-bool EditorModelImportReview::IsFinished() const
-{
-    return m_isFinished;
 }
 
 } // namespace Hyperion

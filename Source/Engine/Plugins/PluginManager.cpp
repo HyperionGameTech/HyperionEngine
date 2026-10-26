@@ -6,15 +6,11 @@
 
 #include <Engine/Plugins/PluginManager.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Core/Core.hpp>
 
 #include <Core/DLL/DynamicLibrary.hpp>
-
-#include <Core/DataProcessing/HMF/HMF.hpp>
-#include <Core/DataProcessing/Shared/CompilerError.hpp>
-#include <Core/DataProcessing/Shared/ErrorList.hpp>
-
-#include <Core/IO/ByteReader.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
 
@@ -216,7 +212,7 @@ void PluginManager::Shutdown()
         loadedPlugin.unloadFn(loadedPlugin.plugin);
         loadedPlugin.plugin = nullptr;
 
-        HYP_LOG(Plugins, Info, "Unloaded plugin '{}'", loadedPlugin.manifest.name);
+        HYP_LOG(Plugins, Info, "Unloaded plugin '{}'", loadedPlugin.descriptor.name);
     }
 
     m_plugins.Clear();
@@ -234,53 +230,55 @@ void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
         ? HypPluginHostFlags::Editor
         : HypPluginHostFlags::Game;
 
-    const FilePath manifestPath = directory / "plugin.json";
+    const String directoryName = directory.Basename();
+    const FilePath descriptorPath = directory / (directoryName + ".hypplugin");
 
-    TResult<PluginManifest> manifestResult = PluginManifest::Parse(manifestPath);
+    TResult<PluginDescriptor> descriptorResult = PluginDescriptor::Read(descriptorPath);
 
-    if (manifestResult.HasError())
+    if (descriptorResult.HasError())
     {
-        HYP_LOG(Plugins, Warning, "Skipping plugin directory {}: {}", directory, manifestResult.GetError().GetMessage());
+        HYP_LOG(Plugins, Warning, "Skipping plugin directory {}: {}", directory, descriptorResult.GetError().GetMessage());
 
         return;
     }
 
-    PluginManifest manifest = manifestResult.GetValue();
+    PluginDescriptor pluginDescriptor = descriptorResult.GetValue();
+    pluginDescriptor.name = Name(directoryName.ToAnsi());
 
-    if (!(manifest.hostFlags & hostFlag))
+    if (!(pluginDescriptor.hostFlags & hostFlag))
     {
-        HYP_LOG(Plugins, Verbose, "Skipping plugin '{}' (host not supported by manifest)", manifest.name);
+        HYP_LOG(Plugins, Verbose, "Skipping plugin '{}' (host not supported by descriptor)", pluginDescriptor.name);
 
         return;
     }
 
     for (const LoadedPlugin& loadedPlugin : m_plugins)
     {
-        if (loadedPlugin.manifest.name == manifest.name)
+        if (loadedPlugin.descriptor.name == pluginDescriptor.name)
         {
             HYP_LOG(Plugins, Warning, "Skipping plugin '{}' from {} - a plugin with this name is already loaded",
-                manifest.name,
+                pluginDescriptor.name,
                 directory);
 
             return;
         }
     }
 
-    if (!manifest.engineMinVersion.Empty())
+    if (!pluginDescriptor.engineMinVersion.Empty())
     {
         uint32 minMajor = 0;
         uint32 minMinor = 0;
         uint32 minPatch = 0;
 
-        if (!ParseVersionString(manifest.engineMinVersion, minMajor, minMinor, minPatch)
+        if (!ParseVersionString(pluginDescriptor.engineMinVersion, minMajor, minMinor, minPatch)
             || HYP_VERSION_MAJOR < minMajor
             || (HYP_VERSION_MAJOR == minMajor && HYP_VERSION_MINOR < minMinor)
             || (HYP_VERSION_MAJOR == minMajor && HYP_VERSION_MINOR == minMinor && HYP_VERSION_PATCH < minPatch))
         {
             HYP_LOG(Plugins, Warning,
-                "Skipping plugin '{}': requires engine version >= {} but host is {}.{}.{}",
-                manifest.name,
-                manifest.engineMinVersion,
+                "Plugin '{}' requires engine version >= {} but host is {}.{}.{}, skipping",
+                pluginDescriptor.name,
+                pluginDescriptor.engineMinVersion,
                 HYP_VERSION_MAJOR,
                 HYP_VERSION_MINOR,
                 HYP_VERSION_PATCH);
@@ -289,11 +287,11 @@ void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
         }
     }
 
-    const FilePath libraryPath = directory / manifest.entry;
+    const FilePath libraryPath = directory / (pluginDescriptor.entry.Empty() ? directoryName + ".dll" : pluginDescriptor.entry);
 
     if (!libraryPath.Exists())
     {
-        HYP_LOG(Plugins, Warning, "Skipping plugin '{}': entry library does not exist at {}", manifest.name, libraryPath);
+        HYP_LOG(Plugins, Warning, "Library does not exist at {}, plugin will be skipped for {}", libraryPath, pluginDescriptor.name);
 
         return;
     }
@@ -302,7 +300,7 @@ void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
 
     if (library == nullptr)
     {
-        HYP_LOG(Plugins, Error, "Failed to load plugin '{}' library at {}", manifest.name, libraryPath);
+        HYP_LOG(Plugins, Error, "Failed to load plugin '{}' library at {}", pluginDescriptor.name, libraryPath);
 
         return;
     }
@@ -352,8 +350,7 @@ void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
     plugin->OnInitialize(&s_pluginHost);
 
     LoadedPlugin loadedPlugin;
-    loadedPlugin.manifest = std::move(manifest);
-    loadedPlugin.directory = directory;
+    loadedPlugin.descriptor = std::move(pluginDescriptor);
     loadedPlugin.library = library;
     loadedPlugin.plugin = plugin;
     loadedPlugin.unloadFn = unloadFn;
@@ -363,8 +360,8 @@ void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
     LoadedPlugin& storedPlugin = m_plugins.Back();
 
     HYP_LOG(Plugins, Info, "Loaded plugin '{}' v{} from {}",
-        storedPlugin.manifest.name,
-        storedPlugin.manifest.version,
+        storedPlugin.descriptor.name,
+        storedPlugin.descriptor.version,
         directory);
 }
 
@@ -373,7 +370,10 @@ void PluginManager::DiscoverBuiltinPlugins()
     m_builtinPlugins.Clear();
 
     const FilePath& baseDirectory = CoreApi::GetBaseDirectory();
-    const FilePath searchDirectories[] = { baseDirectory / "Plugins", baseDirectory / "Tests" / "Plugins" };
+    const FilePath searchDirectories[] = {
+        baseDirectory / "Source" / "Plugins",
+        baseDirectory / "Tests" / "Plugins"
+    };
 
     for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
     {
@@ -384,37 +384,28 @@ void PluginManager::DiscoverBuiltinPlugins()
             continue;
         }
 
-        // without a descriptor (a packaged game) the build only links the plugins the game uses
         PluginDescriptor descriptor;
         descriptor.enabledByDefault = true;
 
         for (const FilePath& searchDirectory : searchDirectories)
         {
-            const FilePath pluginDirectory = searchDirectory / pluginName.LookupString();
-            const FilePath descriptorPath = pluginDirectory / (String(pluginName.LookupString()) + ".hypplugin");
+            const FilePath descriptorPath = searchDirectory / pluginName.LookupString() / (String(pluginName.LookupString()) + ".hypplugin");
 
             if (!descriptorPath.Exists())
             {
                 continue;
             }
 
-            FileByteReader stream { descriptorPath };
+            TResult<PluginDescriptor> descriptorResult = PluginDescriptor::Read(descriptorPath);
 
-            HMF::ErrorList errorList;
-            HMF::ParseResult parseResult = HMF::Parse(descriptorPath, stream, &errorList);
-
-            if (parseResult.HasError() || !parseResult.GetValue().Is<PluginDescriptor>())
+            if (descriptorResult.HasError())
             {
-                String parseMessages;
-                errorList.WriteAllMessages(parseMessages);
-
-                HYP_LOG(Plugins, Warning, "Failed to read plugin descriptor {}: {}", descriptorPath, parseMessages);
+                HYP_LOG(Plugins, Warning, "{}", descriptorResult.GetError().GetMessage());
 
                 break;
             }
 
-            descriptor = parseResult.GetValue().Get<PluginDescriptor>();
-            descriptor.directory = pluginDirectory;
+            descriptor = descriptorResult.GetValue();
 
             break;
         }
@@ -473,9 +464,10 @@ Array<Name> PluginManager::GetRuntimeModules(const Array<Name>& pluginNames) con
     {
         for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
         {
-            if (CreateNameFromDynamicString(registration.pluginName) == pluginName && !String(registration.moduleName).EndsWith("Editor"))
+            if (StringHash(registration.pluginName) == pluginName
+                && !registration.moduleName.EndsWith("Editor"))
             {
-                moduleNames.PushBack(CreateNameFromDynamicString(registration.moduleName));
+                moduleNames.PushBack(Name(registration.moduleName));
             }
         }
     }
@@ -546,6 +538,14 @@ void PluginManager::SetEnabledPlugins(const Array<Name>& pluginNames)
         }
     }
 
+    for (Name pluginName : m_enabledPlugins)
+    {
+        if (!orderedPlugins.Contains(pluginName))
+        {
+            SetPluginContentMounted(pluginName, false);
+        }
+    }
+
     for (Name pluginName : orderedPlugins)
     {
         if (m_enabledPlugins.Contains(pluginName))
@@ -553,12 +553,16 @@ void PluginManager::SetEnabledPlugins(const Array<Name>& pluginNames)
             continue;
         }
 
+        // before its modules load, so they can use its assets
+        SetPluginContentMounted(pluginName, true);
+
         // a plugin's editor modules (named *Editor) load after its runtime ones
         Array<const PluginModuleRegistration*> registrations;
 
         for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
         {
-            if (CreateNameFromDynamicString(registration.pluginName) == pluginName && !String(registration.moduleName).EndsWith("Editor"))
+            if (StringHash(registration.pluginName) == pluginName
+                && !registration.moduleName.EndsWith("Editor"))
             {
                 registrations.PushBack(&registration);
             }
@@ -566,7 +570,8 @@ void PluginManager::SetEnabledPlugins(const Array<Name>& pluginNames)
 
         for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
         {
-            if (CreateNameFromDynamicString(registration.pluginName) == pluginName && String(registration.moduleName).EndsWith("Editor"))
+            if (StringHash(registration.pluginName) == pluginName
+                && registration.moduleName.EndsWith("Editor"))
             {
                 registrations.PushBack(&registration);
             }
@@ -602,6 +607,74 @@ void PluginManager::UnloadModule(ActiveModule& activeModule)
 
     activeModule.module.Reset();
     activeModule.context.Reset();
+}
+
+Array<FilePath> PluginManager::GetBuiltinPluginContentDirectories(const Array<Name>& pluginNames)
+{
+    if (m_builtinPlugins.Empty())
+    {
+        DiscoverBuiltinPlugins();
+    }
+
+    Array<Name> orderedPlugins;
+    Array<Name> visiting;
+
+    for (Name pluginName : pluginNames)
+    {
+        ResolveEnabledPlugin(pluginName, orderedPlugins, visiting);
+    }
+
+    Array<FilePath> contentDirectories;
+
+    for (Name pluginName : orderedPlugins)
+    {
+        if (const PluginDescriptor* descriptor = FindBuiltinPlugin(pluginName); descriptor && (descriptor->directory / "Content").IsDirectory())
+        {
+            contentDirectories.PushBack(descriptor->directory / "Content");
+        }
+    }
+
+    return contentDirectories;
+}
+
+void PluginManager::SetPluginContentMounted(Name pluginName, bool mounted) const
+{
+    // a packaged game has no plugin folders; the cook put their content in with the engine's
+    const PluginDescriptor* descriptor = FindBuiltinPlugin(pluginName);
+
+    if (!descriptor)
+    {
+        return;
+    }
+
+    const FilePath contentDirectory = descriptor->directory / "Content";
+
+    if (!contentDirectory.IsDirectory())
+    {
+        return;
+    }
+
+    const Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
+
+    // at shutdown the registry can be gone already, which is fine for an unmount
+    if (!engineRegistry.IsValid())
+    {
+        if (mounted)
+        {
+            HYP_LOG(Plugins, Warning, "No engine asset registry to add the content of plugin {} to", pluginName);
+        }
+
+        return;
+    }
+
+    if (mounted)
+    {
+        engineRegistry->AddContentRoot(contentDirectory);
+    }
+    else
+    {
+        engineRegistry->RemoveContentRoot(contentDirectory);
+    }
 }
 
 } // namespace Hyperion

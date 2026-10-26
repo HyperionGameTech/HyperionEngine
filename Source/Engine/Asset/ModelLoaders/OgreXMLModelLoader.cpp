@@ -20,7 +20,6 @@
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/MeshComponent.hpp>
-#include <Scene/Components/AnimationComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/VisibilityStateComponent.hpp>
 
@@ -162,7 +161,7 @@ public:
             const float y = StringUtil::Parse<float>(attributes.At("y"));
             const float z = StringUtil::Parse<float>(attributes.At("z"));
 
-            m_model.positions.PushBack(Vec3f(x, y, z));
+            m_model.positions.PushBack(Vec3f(x, y, -z));
         }
         else if (name == "normal")
         {
@@ -175,7 +174,7 @@ public:
             const float y = StringUtil::Parse<float>(attributes.At("y"));
             const float z = StringUtil::Parse<float>(attributes.At("z"));
 
-            m_model.normals.PushBack(Vec3f(x, y, z));
+            m_model.normals.PushBack(Vec3f(x, y, -z));
         }
         else if (name == "texcoord")
         {
@@ -485,12 +484,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             continue;
         }
 
-        // Reverse triangle winding: convert right-handed CCW to left-handed CW
-        for (uint32 i = 0; i + 2 < subMesh.indices.Size(); i += 3)
-        {
-            std::swap(subMesh.indices[i + 1], subMesh.indices[i + 2]);
-        }
-
         Scene& scene = GetDetachedSceneForCurrentThread();
 
         const Handle<Entity> entity = scene.GetEntityManager()->AddEntity();
@@ -576,17 +569,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         if (skeleton.IsValid())
         {
             entity->SetIsDynamic(true);
-
-            AnimationComponent animationComponent {};
-            animationComponent.playbackState = {
-                .animationIndex = 0,
-                .status = AnimationPlaybackStatus::PLAYING,
-                .loopMode = AnimationLoopMode::REPEAT,
-                .speed = 1.0f,
-                .currentTime = 0.0f
-            };
-
-            scene.GetEntityManager()->AddComponent<AnimationComponent>(entity, animationComponent);
         }
 
         top->AddChild(std::move(node));

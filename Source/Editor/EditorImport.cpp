@@ -288,7 +288,7 @@ void ImportEditorContent(
                               Handle<EditorModelImportReview> review = MakeHandle<EditorModelImportReview>(std::move(contents), importInfo, normalizedTargetFolder);
                               InitObject(review);
 
-                              subsystem->QueueModelImportReview(review);
+                              subsystem->QueueImportReview(review);
 
                               continue;
                           }

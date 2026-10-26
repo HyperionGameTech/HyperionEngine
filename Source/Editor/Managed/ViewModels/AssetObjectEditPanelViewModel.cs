@@ -40,6 +40,21 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasSubHeading, value);
         }
 
+        private AssetExtensionsViewModel? _extensions;
+        public AssetExtensionsViewModel? Extensions
+        {
+            get => _extensions;
+            private set
+            {
+                if (SetProperty(ref _extensions, value))
+                {
+                    OnPropertyChanged(nameof(HasExtensions));
+                }
+            }
+        }
+
+        public bool HasExtensions => _extensions != null;
+
         private MaterialPreviewViewModel? _preview;
 
         /// <summary>Live preview of the edited asset, or null for asset types that have no preview.</summary>
@@ -88,6 +103,9 @@ namespace Hyperion.Editor.ViewModels
                 Preview?.Dispose();
                 Preview = null;
 
+                Extensions?.Dispose();
+                Extensions = null;
+
                 onClosed?.Invoke();
             };
 
@@ -122,11 +140,18 @@ namespace Hyperion.Editor.ViewModels
             HasSubHeading = hasPath;
 
             SyncPreview();
+            SyncExtensions();
 
             if (SubObject == null)
             {
                 PanelService.Instance.RemovePanel(this);
             }
+        }
+
+        private void SyncExtensions()
+        {
+            Extensions?.Dispose();
+            Extensions = SubObject?.Target is AssetObject asset ? new AssetExtensionsViewModel(asset) : null;
         }
 
         /// <summary>Creates or tears down the preview to match whatever the panel is currently editing.</summary>

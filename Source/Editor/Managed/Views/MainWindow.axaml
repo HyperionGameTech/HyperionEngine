@@ -9,6 +9,7 @@
     xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
     xmlns:local="clr-namespace:Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:services="clr-namespace:Hyperion.Editor.Services;assembly=Hyperion.Editor"
     xmlns:views="clr-namespace:Hyperion.Editor.Views;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
@@ -1409,12 +1410,6 @@
                                         ToggleType="CheckBox"
                                         ToolTip.Tip="Show the engine stats overlay, in both editor and simulation mode" />
 
-                                    <MenuItem
-                                        Command="{Binding ToggleShowBones}"
-                                        Header="Show Bones"
-                                        IsChecked="{Binding IsShowBonesEnabled, Mode=OneWay}"
-                                        ToggleType="CheckBox" />
-
                                     <Separator />
                                     <MenuItem Header="Layout">
                                         <MenuItem Click="OnViewportLayoutSingleClick" Header="Single Viewport" />
@@ -1811,10 +1806,7 @@
                                                                                 </MultiBinding>
                                                                             </MenuItem.IsVisible>
                                                                         </MenuItem>
-                                                                        <MenuItem
-                                                                            Command="{Binding EditAnimationCommand}"
-                                                                            Header="Edit Animation"
-                                                                            IsVisible="{Binding CanEditAnimation}" />
+                                                                        <Separator IsVisible="False" Tag="PluginNodeMenuAnchor" />
                                                                         <MenuItem
                                                                             Command="{Binding SaveAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding MakeTemplateHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -1938,6 +1930,33 @@
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
+
+                                                    <!--  The asset an edit mode is editing, while no node is selected  -->
+                                                    <StackPanel
+                                                        Margin="0,8,0,0"
+                                                        DataContext="{Binding Inspector}"
+                                                        IsVisible="{Binding HasAsset}">
+                                                        <TextBlock
+                                                            Margin="8,0,8,4"
+                                                            Classes="header"
+                                                            FontSize="14"
+                                                            Text="{Binding AssetHeading}" />
+                                                        <inspector:InspectorPropertyItemsControl IsVisible="{Binding AssetProperties.HasProperties}" ItemsSource="{Binding AssetProperties.Properties}" />
+                                                        <ItemsControl ItemsSource="{Binding AssetProperties.Actions}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                                    <Button
+                                                                        Padding="10,4"
+                                                                        Margin="8,6,8,0"
+                                                                        HorizontalAlignment="Stretch"
+                                                                        Command="{Binding ExecuteActionCommand}"
+                                                                        Content="{Binding Label}"
+                                                                        IsEnabled="{Binding IsEnabled}" />
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                        <inspector:AssetExtensionsView Margin="0,12,0,0" DataContext="{Binding AssetExtensions}" />
+                                                    </StackPanel>
 
                                                     <Grid
                                                         Margin="0"
@@ -2621,10 +2640,13 @@
                                                     HorizontalAlignment="Stretch"
                                                     VerticalAlignment="Stretch" />
                                             </Border>
-                                            <views:AnimationTimelineBar
-                                                Grid.Row="1"
-                                                DataContext="{Binding AnimationTimeline, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                IsVisible="{Binding IsEditingAnimation, Source={x:Static vm:MainWindowViewModel.Instance}}" />
+                                            <ItemsControl Grid.Row="1" ItemsSource="{Binding EditModeBars, Source={x:Static services:EditorPluginService.Instance}}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="services:EditModeBarViewModel">
+                                                        <ContentControl Content="{Binding}" IsVisible="{Binding IsVisible}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </Grid>
                                     </Document>
                                 </DocumentDock>

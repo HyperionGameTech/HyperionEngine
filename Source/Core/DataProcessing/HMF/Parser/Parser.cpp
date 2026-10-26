@@ -201,6 +201,8 @@ bool Parser::Parse()
         return false;
     }
 
+    m_target->GetTypeInfo()->GetClass()->PostLoad(m_target->ToRef().GetPointer());
+
     return true;
 }
 

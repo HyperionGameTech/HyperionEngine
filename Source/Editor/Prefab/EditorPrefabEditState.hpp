@@ -23,6 +23,9 @@ public:
 
     bool IsActive() const override;
 
+    bool CanEditAsset(const Handle<AssetObject>& asset) const override;
+    bool EnterAsset(const Handle<AssetObject>& asset) override;
+
     HYP_METHOD()
     bool Enter(const Handle<Prefab>& prefab);
 

@@ -1663,23 +1663,9 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                if (obj is Skeleton skeleton)
+                if (_editorSubsystem.FindEditStateForAsset(obj) != null)
                 {
-                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterSkeleton(skeleton)));
-
-                    return;
-                }
-
-                if (obj is AnimationGraph graph)
-                {
-                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterGraph(graph)));
-
-                    return;
-                }
-
-                if (obj is Animation animation)
-                {
-                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterAnimation(animation)));
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAsset(obj));
 
                     return;
                 }

@@ -244,7 +244,55 @@ namespace Hyperion.Editor.ViewModels
         public Node? SelectedNode
         {
             get => _selectedNode;
-            private set => SetProperty(ref _selectedNode, value);
+            private set
+            {
+                if (SetProperty(ref _selectedNode, value))
+                {
+                    OnPropertyChanged(nameof(HasAsset));
+                }
+            }
+        }
+
+        private AssetObject? _asset;
+
+        private ComponentSubObjectViewModel? _assetProperties;
+        public ComponentSubObjectViewModel? AssetProperties
+        {
+            get => _assetProperties;
+            private set => SetProperty(ref _assetProperties, value);
+        }
+
+        private AssetExtensionsViewModel? _assetExtensions;
+        public AssetExtensionsViewModel? AssetExtensions
+        {
+            get => _assetExtensions;
+            private set => SetProperty(ref _assetExtensions, value);
+        }
+
+        public string AssetHeading => _asset?.Name.ToString() ?? string.Empty;
+
+        /// <summary>The asset an edit mode is editing is shown while no node is selected.</summary>
+        public bool HasAsset => _assetProperties != null && _selectedNode == null;
+
+        public void SetEditedAsset(AssetObject? asset)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (asset?.NativeAddress == _asset?.NativeAddress)
+            {
+                return;
+            }
+
+            AssetProperties?.Dispose();
+            AssetExtensions?.Dispose();
+
+            _asset = asset != null && asset.IsValid ? asset : null;
+
+            AssetProperties = _asset != null ? new ComponentSubObjectViewModel(AssetHeading, _asset) : null;
+            AssetExtensions = _asset != null ? new AssetExtensionsViewModel(_asset) : null;
+
+            OnPropertyChanged(nameof(AssetHeading));
+            OnPropertyChanged(nameof(HasAsset));
         }
 
         // Every node shown, SelectedNode first.

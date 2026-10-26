@@ -1751,7 +1751,10 @@ bool String<TStringType, TAllocator>::StartsWith(const utilities::StringView<TSt
         return false;
     }
 
-    return std::equal(Begin(), Begin() + comp.Size(), comp.Begin());
+    return std::equal(
+        Begin(),
+        Begin() + comp.Size(),
+        comp.Begin());
 }
 
 template <int TStringType, class TAllocator>
@@ -1762,7 +1765,10 @@ bool String<TStringType, TAllocator>::EndsWith(const utilities::StringView<TStri
         return false;
     }
 
-    return std::equal(Begin() + (Size() - comp.Size()), End(), comp.Begin());
+    return std::equal(
+        Begin() + (Size() - comp.Size()),
+        End(),
+        comp.Begin());
 }
 
 template <int TStringType, class TAllocator>

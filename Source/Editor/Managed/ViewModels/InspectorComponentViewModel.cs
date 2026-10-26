@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -180,12 +181,12 @@ namespace Hyperion.Editor.ViewModels
 
                     List<InspectorPropertyViewModelBase> vms = new();
 
-                    if (className == "AnimationComponent")
+                    foreach (Func<Entity, InspectorPropertyViewModelBase> createItem in EditorPluginService.Instance.GetComponentInspectorItems(className))
                     {
-                        AnimationPreviewViewModel previewVm = new AnimationPreviewViewModel(_target);
-                        previewVm.RefreshValue();
+                        InspectorPropertyViewModelBase itemVm = createItem(_target);
+                        itemVm.RefreshValue();
 
-                        vms.Add(previewVm);
+                        vms.Add(itemVm);
                     }
 
                     bool isMeshComponent = componentTypeId == s_meshComponentTypeId;

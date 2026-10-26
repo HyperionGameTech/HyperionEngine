@@ -13,6 +13,8 @@
 
 #include <Core/Reflection/ObjectMacros.hpp>
 
+#include <Asset/ModelImportProcessor.hpp>
+
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -77,6 +79,9 @@ struct ModelImportSettings
 
     HYP_FIELD(Property = "Splits", Serialize = true)
     Array<AnimationClipSplit> splits;
+
+    HYP_FIELD(Property = "ProcessorSettings", Serialize = true)
+    Array<Handle<ModelImportProcessorSettings>> processorSettings;
 };
 
 // where an imported asset came from, so Reimport can rerun the import with the same settings

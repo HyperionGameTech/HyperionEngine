@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -170,9 +171,10 @@ namespace Hyperion.Editor.ViewModels
 
             InspectorPropertyViewModelBase vm;
 
-            if (ownerEntity != null && TryGetSkeletonChoiceKind(property, isNameType, out SkeletonChoiceKind choiceKind))
+            if (ownerEntity != null && FindPluginPropertyEditor(property) is { } pluginEditor
+                && pluginEditor(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, isNameType) is { } pluginVm)
             {
-                vm = new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, choiceKind);
+                vm = pluginVm;
             }
             else if (typeInfo.IsArray)
             {
@@ -281,31 +283,16 @@ namespace Hyperion.Editor.ViewModels
             return initialize ? Initialize(vm) : vm;
         }
 
-        private static bool TryGetSkeletonChoiceKind(Property property, bool isNameType, out SkeletonChoiceKind choiceKind)
+        private static PropertyEditorFactory? FindPluginPropertyEditor(Property property)
         {
-            choiceKind = default;
-
             ClassAttribute? attrEditorType = property.GetAttribute("editortype");
 
             if (attrEditorType == null || !attrEditorType.Value.IsString)
             {
-                return false;
+                return null;
             }
 
-            switch (attrEditorType.Value.GetString())
-            {
-            case "Bone" when isNameType:
-                choiceKind = SkeletonChoiceKind.Bone;
-                return true;
-            case "Socket" when isNameType:
-                choiceKind = SkeletonChoiceKind.Socket;
-                return true;
-            case "AnimationClip":
-                choiceKind = SkeletonChoiceKind.AnimationClip;
-                return true;
-            default:
-                return false;
-            }
+            return EditorPluginService.Instance.FindPropertyEditor(attrEditorType.Value.GetString());
         }
 
         public static InspectorPropertyViewModelBase CreateForValue(

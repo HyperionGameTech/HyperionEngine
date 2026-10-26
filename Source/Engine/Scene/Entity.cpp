@@ -173,7 +173,8 @@ void Entity::RemoveFromLayer(LayerId layerId)
 
 bool Entity::IsMeshEntity() const
 {
-    return HasComponent<MeshComponent>();
+    return GetEntityManager() != nullptr
+        && HasComponent<MeshComponent>();
 }
 
 bool Entity::IsInLayerByName(Name layerName) const

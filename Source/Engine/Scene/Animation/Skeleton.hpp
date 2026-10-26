@@ -10,7 +10,7 @@
 #include <Asset/AssetImportInfo.hpp>
 #include <Asset/AssetReference.hpp>
 
-#include <Scene/Animation/HumanoidMapping.hpp>
+#include <Core/Reflection/BoxedValue.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
 
@@ -59,6 +59,9 @@ struct SkeletonBindData
     bool IsSlotWithin(uint32 slot, Name ancestorBoneName) const;
 };
 
+// each slot's model matrix from a pose of local transforms, and the skinning matrix that takes the bind pose to it
+ENGINE_API void ComputeSkeletonPoseMatrices(const SkeletonBindData& bindData, Span<const Transform> pose, Span<Mat4f> outModelMatrices, Span<Mat4f> outSkinningMatrices);
+
 HYP_STRUCT()
 struct SkeletonSocket
 {
@@ -95,7 +98,6 @@ class ENGINE_API Skeleton final : public AssetObject
     HYP_OBJECT_BODY(Skeleton);
 
     friend class Bone;
-    friend class AnimationSystem;
 
 public:
     Skeleton();
@@ -162,8 +164,13 @@ public:
     HYP_METHOD()
     Array<Name> GetBoneNames() const;
 
+    // tracks of the clip that drive a bone of this skeleton; by bone name, unless a plugin that retargets counts them
     HYP_METHOD()
     uint32 CountBoundTracks(const Handle<Animation>& animation) const;
+
+    using BoundTrackCounter = uint32 (*)(const Animation& animation, const Skeleton& skeleton);
+
+    static void SetBoundTrackCounter(BoundTrackCounter counter);
 
     HYP_METHOD(Property = "Sockets", NoScriptBindings)
     const Array<SkeletonSocket>& GetSockets() const
@@ -177,38 +184,17 @@ public:
         m_sockets = sockets;
     }
 
-    // a skeleton saved before humanoid mapping existed is auto-mapped the first time it's asked
-    HYP_METHOD(Property = "Humanoid", NoScriptBindings)
-    const HumanoidMapping& GetHumanoidMapping() const;
-
-    HYP_METHOD(Property = "Humanoid", NoScriptBindings)
-    void SetHumanoidMapping(const HumanoidMapping& humanoid);
-
-    HYP_METHOD()
-    bool IsHumanoid() const
+    // the humanoid mapping of a skeleton saved before it became an extension, kept as HMF until the extension takes it
+    HYP_METHOD(Property = "Humanoid", NoScriptBindings, Editor = false, OmitNull)
+    const BoxedValue& GetLegacyHumanoid() const
     {
-        return GetHumanoidMapping().IsHumanoid(GetBindData());
+        return m_legacyHumanoid;
     }
 
-    HYP_METHOD()
-    Name GetHumanoidBoneName(uint32 bone) const;
+    HYP_METHOD(Property = "Humanoid", NoScriptBindings, Editor = false, OmitNull)
+    void SetLegacyHumanoid(const BoxedValue& legacyHumanoid);
 
-    HYP_METHOD()
-    void SetHumanoidBoneName(uint32 bone, Name boneName);
-
-    // its own clips, then for a humanoid skeleton the clips of every other humanoid rig, named "Clip (Rig)"
-    HYP_METHOD()
-    Array<Name> GetCompatibleClipNames() const;
-
-    HYP_METHOD()
-    Handle<Animation> FindCompatibleClip(Name name) const;
-
-    // the humanoid skeletons in the current project and the engine content
-    static Array<Handle<Skeleton>> CollectHumanoidSkeletons();
-
-    // fills in the humanoid mapping from the bone names, keeping bones already mapped
-    HYP_METHOD(EditorOnly, EditorAction = "Auto-map Humanoid")
-    void AutoMapHumanoid();
+    BoxedValue TakeLegacyHumanoid() const;
 
     const SkeletonSocket* FindSocket(Name name) const;
 
@@ -240,12 +226,22 @@ public:
         return m_instanceSource;
     }
 
+    // false once the source's bones changed since this instance was made from it
+    bool IsInstanceCurrent() const;
+
     HYP_FORCE_INLINE Span<const Mat4f> GetPoseModelMatrices() const
     {
         return m_poseModelMatrices.ToSpan();
     }
 
-    void SetPoseMatrices(Span<const Mat4f> modelMatrices, Span<const Mat4f> skinningMatrices);
+    HYP_FORCE_INLINE Span<const Transform> GetPose() const
+    {
+        return m_pose.ToSpan();
+    }
+
+    // an instance's pose, local transforms by bind data slot, from a pose writer (eg the animation system); the skeleton works
+    // out the model and skinning matrices from it. An empty pose shows the bind pose
+    void SetPose(Span<const Transform> localPose);
 
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
 
@@ -263,6 +259,9 @@ protected:
     // marks the clips this skeleton lists as authored for it, for clips saved before they recorded their skeleton
     void OnLoaded() override;
 
+    // clips bound to this skeleton choose between name binding and retargeting by its humanoid mapping
+    void OnExtensionChanged(AssetExtension& extension) override;
+
 private:
     HYP_FIELD(Property = "RootBone")
     Handle<Bone> m_rootBone;
@@ -273,9 +272,7 @@ private:
     HYP_FIELD(Property = "Sockets")
     Array<SkeletonSocket> m_sockets;
 
-    HYP_FIELD(Property = "Humanoid")
-    mutable HumanoidMapping m_humanoid;
-    mutable bool m_isHumanoidResolved = false;
+    mutable BoxedValue m_legacyHumanoid;
 
     HYP_FIELD(Property = "ImportInfo", Serialize, Editor = false)
     AssetImportInfo m_importInfo;
@@ -285,10 +282,12 @@ private:
     int m_renderProxyVersion;
 
     const Skeleton* m_instanceSource = nullptr;
+    uint32 m_instanceSourceRevision = 0;
 
     mutable SkeletonBindData m_bindData;
     mutable bool m_bindDataBuilt = false;
 
+    Array<Transform> m_pose;
     Array<Mat4f> m_poseModelMatrices;
     Array<Mat4f> m_poseSkinningMatrices;
 };

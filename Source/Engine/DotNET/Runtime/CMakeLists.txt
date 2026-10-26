@@ -62,11 +62,17 @@ if(HYP_DOTNET)
 
   # the script-facing C# of built-in plugins' runtime modules: <Plugin>/Managed/<Module> (editor modules' go into Hyperion.Editor)
   foreach(plugin_module ${HYP_PLUGIN_MODULES})
+    get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
+
+    # an editor module's class bindings (Managed/<Module>/Bindings) sit beside the generated ones for its classes, here
     if(plugin_module MATCHES "Editor$")
+      if(HYP_EDITOR)
+        file(GLOB_RECURSE plugin_binding_sources "${plugin_managed_dir}/Bindings/*.cs")
+        list(APPEND CSHARP_RUNTIME_SOURCES ${plugin_binding_sources})
+      endif()
+
       continue()
     endif()
-
-    get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
 
     file(GLOB_RECURSE plugin_csharp_sources "${plugin_managed_dir}/*.cs")
     list(FILTER plugin_csharp_sources EXCLUDE REGEX ".*/(obj|bin)/.*")

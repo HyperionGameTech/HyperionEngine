@@ -10,16 +10,12 @@
 #include <Editor/EditorAction.hpp>
 #include <Editor/EditorSubsystem.hpp>
 
+
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/ScriptComponent.hpp>
-#include <Scene/Components/AnimationComponent.hpp>
-#include <Scene/Components/CharacterModelComponent.hpp>
-
-#include <Scene/Animation/Animation.hpp>
-#include <Scene/Animation/AnimationGraph.hpp>
 
 #include <Scripting/Asset/ScriptAsset.hpp>
 
@@ -51,8 +47,6 @@ struct EntityAssetDropHandler
         const Handle<AssetObject>& asset,
         const Handle<Entity>& entity);
 };
-
-namespace /* Entity */ {
 
 Handle<EditorActionBase> MakeEntityDropAction(
     EditorSubsystem* subsystem,
@@ -97,6 +91,8 @@ Handle<EditorActionBase> MakeEntityDropAction(
 
     return action;
 }
+
+namespace /* Entity */ {
 
 void SetEntityMaterial(Entity* entity, const Handle<Material>& material)
 {
@@ -298,164 +294,102 @@ Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const H
 
 } // namespace /* Texture */
 
-namespace /* Animation */ {
-
-bool AnimationAcceptsAsset(const AssetObject* asset)
+class FunctionEntityAssetDropHandler final : public IEntityAssetDropHandler
 {
-    return TryCast<Animation>(asset) != nullptr;
-}
-
-bool AnimationCanApply(const AssetObject* asset, const Entity* entity)
-{
-    const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
-
-    return meshComponent != nullptr && meshComponent->skeleton.IsValid();
-}
-
-Handle<EditorActionBase> AnimationCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
-{
-    Handle<Animation> animation = TryCast<Animation>(asset);
-
-    const bool hadAnimationComponent = entity->HasComponent<AnimationComponent>();
-    const AnimationComponent previousAnimationComponent = hadAnimationComponent ? entity->GetComponent<AnimationComponent>() : AnimationComponent {};
-
-    if (hadAnimationComponent && previousAnimationComponent.animation == animation)
+public:
+    FunctionEntityAssetDropHandler(const EntityAssetDropHandler& functions)
+        : m_functions(functions)
     {
-        return nullptr;
     }
 
-    return MakeEntityDropAction(
-        subsystem,
-        HYP_FORMAT("Assign Animation {}", animation->GetName()),
-        entity,
-        [entity, animation](EditorSubsystem*)
-        {
-            if (!entity->HasComponent<AnimationComponent>())
-            {
-                entity->AddComponent<AnimationComponent>(AnimationComponent {});
-            }
-
-            entity->GetComponent<AnimationComponent>().Play(animation);
-            entity->MarkDirty();
-        },
-        [entity, hadAnimationComponent, previousAnimationComponent](EditorSubsystem*)
-        {
-            if (!hadAnimationComponent)
-            {
-                entity->RemoveComponent<AnimationComponent>();
-            }
-            else if (AnimationComponent* animationComponent = entity->TryGetComponent<AnimationComponent>())
-            {
-                *animationComponent = previousAnimationComponent;
-            }
-
-            entity->MarkDirty();
-        });
-}
-
-bool AnimationGraphAcceptsAsset(const AssetObject* asset)
-{
-    return TryCast<AnimationGraph>(asset) != nullptr;
-}
-
-// a character model hands its graph to its meshes when it plays, so a graph dropped on one goes to the model
-bool AnimationGraphCanApply(const AssetObject* asset, const Entity* entity)
-{
-    return entity->HasComponent<CharacterModelComponent>() || AnimationCanApply(asset, entity);
-}
-
-Handle<EditorActionBase> AnimationGraphCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
-{
-    Handle<AnimationGraph> graph = TryCast<AnimationGraph>(asset);
-
-    if (const CharacterModelComponent* characterModel = entity->TryGetComponent<CharacterModelComponent>())
+    bool AcceptsAsset(const AssetObject* asset) const override
     {
-        const Handle<AnimationGraph> previousGraph = characterModel->graph;
-
-        if (previousGraph == graph)
-        {
-            return nullptr;
-        }
-
-        return MakeEntityDropAction(
-            subsystem,
-            HYP_FORMAT("Assign Character Graph {}", graph->GetName()),
-            entity,
-            [entity, graph](EditorSubsystem*)
-            {
-                entity->GetComponent<CharacterModelComponent>().graph = graph;
-                entity->MarkDirty();
-            },
-            [entity, previousGraph](EditorSubsystem*)
-            {
-                if (CharacterModelComponent* characterModelComponent = entity->TryGetComponent<CharacterModelComponent>())
-                {
-                    characterModelComponent->graph = previousGraph;
-                }
-
-                entity->MarkDirty();
-            });
+        return m_functions.acceptsAsset(asset);
     }
 
-    const bool hadAnimationComponent = entity->HasComponent<AnimationComponent>();
-    const Handle<AnimationGraph> previousGraph = hadAnimationComponent ? entity->GetComponent<AnimationComponent>().graph : Handle<AnimationGraph>::empty;
-
-    if (hadAnimationComponent && previousGraph == graph)
+    bool CanApply(const AssetObject* asset, const Entity* entity) const override
     {
-        return nullptr;
+        return m_functions.canApply(asset, entity);
     }
 
-    return MakeEntityDropAction(
-        subsystem,
-        HYP_FORMAT("Assign Animation Graph {}", graph->GetName()),
-        entity,
-        [entity, graph](EditorSubsystem*)
-        {
-            if (!entity->HasComponent<AnimationComponent>())
-            {
-                entity->AddComponent<AnimationComponent>(AnimationComponent {});
-            }
+    Handle<EditorActionBase> CreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity) const override
+    {
+        return m_functions.createAction(subsystem, asset, entity);
+    }
 
-            entity->GetComponent<AnimationComponent>().graph = graph;
-            entity->MarkDirty();
-        },
-        [entity, hadAnimationComponent, previousGraph](EditorSubsystem*)
-        {
-            if (!hadAnimationComponent)
-            {
-                entity->RemoveComponent<AnimationComponent>();
-            }
-            else if (AnimationComponent* animationComponent = entity->TryGetComponent<AnimationComponent>())
-            {
-                animationComponent->graph = previousGraph;
-            }
-
-            entity->MarkDirty();
-        });
-}
-
-} // namespace /* Animation */
-
-static const EntityAssetDropHandler g_entityAssetDropHandlers[] = {
-    { &ScriptAcceptsAsset, &ScriptCanApply, &ScriptCreateAction },
-    { &MaterialAcceptsAsset, &MaterialCanApply, &MaterialCreateAction },
-    { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction },
-    { &AnimationAcceptsAsset, &AnimationCanApply, &AnimationCreateAction },
-    { &AnimationGraphAcceptsAsset, &AnimationGraphCanApply, &AnimationGraphCreateAction }
+private:
+    EntityAssetDropHandler m_functions;
 };
 
-static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObject* asset)
+EntityAssetDropHandlerRegistry& EntityAssetDropHandlerRegistry::GetInstance()
+{
+    static EntityAssetDropHandlerRegistry s_instance;
+
+    return s_instance;
+}
+
+EntityAssetDropHandlerRegistry::EntityAssetDropHandlerRegistry()
+{
+    Register(MakeUniqueWithAllocator<FunctionEntityAssetDropHandler, EditorAllocator>(EntityAssetDropHandler {
+        &ScriptAcceptsAsset,
+        &ScriptCanApply,
+        &ScriptCreateAction
+    }));
+
+    Register(MakeUniqueWithAllocator<FunctionEntityAssetDropHandler, EditorAllocator>(EntityAssetDropHandler {
+        &MaterialAcceptsAsset,
+        &MaterialCanApply,
+        &MaterialCreateAction
+    }));
+
+    Register(MakeUniqueWithAllocator<FunctionEntityAssetDropHandler, EditorAllocator>(EntityAssetDropHandler {
+        &TextureAcceptsAsset,
+        &TextureCanApply,
+        &TextureCreateAction
+    }));
+
+}
+
+uint32 EntityAssetDropHandlerRegistry::Register(UniquePtr<IEntityAssetDropHandler, EditorAllocator>&& handler)
+{
+    Mutex::Guard guard(m_mutex);
+
+    const uint32 id = m_nextId++;
+
+    m_entries.PushBack(Entry { id, std::move(handler) });
+
+    return id;
+}
+
+void EntityAssetDropHandlerRegistry::Unregister(uint32 id)
+{
+    Mutex::Guard guard(m_mutex);
+
+    auto it = m_entries.FindIf([id](const Entry& entry)
+        {
+            return entry.id == id;
+        });
+
+    if (it != m_entries.End())
+    {
+        m_entries.Erase(it);
+    }
+}
+
+const IEntityAssetDropHandler* EntityAssetDropHandlerRegistry::FindHandler(const AssetObject* asset) const
 {
     if (!asset)
     {
         return nullptr;
     }
 
-    for (const EntityAssetDropHandler& handler : g_entityAssetDropHandlers)
+    Mutex::Guard guard(m_mutex);
+
+    for (const Entry& entry : m_entries)
     {
-        if (handler.acceptsAsset(asset))
+        if (entry.handler->AcceptsAsset(asset))
         {
-            return &handler;
+            return entry.handler.Get();
         }
     }
 
@@ -464,7 +398,7 @@ static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObjec
 
 bool EditorEntityAssetDrop::TargetsEntity(const AssetObject* asset)
 {
-    return FindEntityAssetDropHandler(asset) != nullptr;
+    return EntityAssetDropHandlerRegistry::GetInstance().FindHandler(asset) != nullptr;
 }
 
 bool EditorEntityAssetDrop::CanApplyToEntity(const AssetObject* asset, const Entity* entity)
@@ -474,9 +408,9 @@ bool EditorEntityAssetDrop::CanApplyToEntity(const AssetObject* asset, const Ent
         return false;
     }
 
-    const EntityAssetDropHandler* handler = FindEntityAssetDropHandler(asset);
+    const IEntityAssetDropHandler* handler = EntityAssetDropHandlerRegistry::GetInstance().FindHandler(asset);
 
-    return handler != nullptr && handler->canApply(asset, entity);
+    return handler != nullptr && handler->CanApply(asset, entity);
 }
 
 Handle<EditorActionBase> EditorEntityAssetDrop::CreateApplyAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
@@ -486,7 +420,7 @@ Handle<EditorActionBase> EditorEntityAssetDrop::CreateApplyAction(EditorSubsyste
         return nullptr;
     }
 
-    return FindEntityAssetDropHandler(asset.Get())->createAction(subsystem, asset, entity);
+    return EntityAssetDropHandlerRegistry::GetInstance().FindHandler(asset.Get())->CreateAction(subsystem, asset, entity);
 }
 
 } // namespace Hyperion

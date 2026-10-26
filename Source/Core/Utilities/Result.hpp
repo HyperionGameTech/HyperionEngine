@@ -149,6 +149,16 @@ protected:
 template <class T = void, class ErrorType = Error>
 class TResult;
 
+template <class T>
+struct IsTResult : std::false_type
+{
+};
+
+template <class T, class TError>
+struct IsTResult<TResult<T, TError>> : std::true_type
+{
+};
+
 template <class T, class TError>
 class TResult
 {
@@ -161,6 +171,12 @@ public:
     // friend decl
     template <class OtherT, class OtherErrorType>
     friend class TResult;
+
+    template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<T, Args&&...> && !(sizeof...(Args) == 1 && ((IsTResult<std::remove_cvref_t<Args>>::value || std::is_base_of_v<Error, std::remove_cvref_t<Args>>) || ...))>>
+    TResult(Args&&... args)
+        : m_value(T(std::forward<Args>(args)...))
+    {
+    }
 
     TResult(const T& value)
         : m_value(value)

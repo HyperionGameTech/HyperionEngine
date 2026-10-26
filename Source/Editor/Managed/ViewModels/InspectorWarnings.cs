@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -10,8 +12,6 @@ namespace Hyperion.Editor.ViewModels
         private static readonly Func<Entity, string?>[] s_entityChecks =
         {
             CheckDynamicBodyIsNotStatic,
-            CheckAnimationHasSkeleton,
-            CheckClipMatchesSkeleton,
             CheckSkeletonBoneCount
         };
 
@@ -19,7 +19,7 @@ namespace Hyperion.Editor.ViewModels
         {
             List<string> warnings = new();
 
-            foreach (Func<Entity, string?> check in s_entityChecks)
+            foreach (Func<Entity, string?> check in s_entityChecks.Concat(EditorPluginService.Instance.InspectorWarnings))
             {
                 string? message = null;
                 int affected = 0;
@@ -68,34 +68,6 @@ namespace Hyperion.Editor.ViewModels
         private static Skeleton? GetSkeleton(Entity entity)
         {
             return entity.TryGetComponent(out MeshComponent meshComponent) ? meshComponent.Skeleton : null;
-        }
-
-        private static string? CheckAnimationHasSkeleton(Entity entity)
-        {
-            if (!entity.TryGetComponent(out AnimationComponent _) || GetSkeleton(entity) != null)
-            {
-                return null;
-            }
-
-            return "AnimationComponent will be non-functional because no skeleton is associated with the MeshComponent.";
-        }
-
-        private static string? CheckClipMatchesSkeleton(Entity entity)
-        {
-            if (!entity.TryGetComponent(out AnimationComponent animationComponent))
-            {
-                return null;
-            }
-
-            Animation? clip = animationComponent.Animation;
-            Skeleton? skeleton = GetSkeleton(entity);
-
-            if (clip == null || skeleton == null || skeleton.CountBoundTracks(clip) > 0)
-            {
-                return null;
-            }
-
-            return $"Clip {clip.Name} doesn't drive any bone of skeleton {skeleton.Name}.";
         }
 
         private static string? CheckSkeletonBoneCount(Entity entity)

@@ -22,7 +22,6 @@
 #include <Core/Name/Name.hpp>
 
 #include <Engine/Plugins/PluginAPI.hpp>
-#include <Engine/Plugins/PluginManifest.hpp>
 #include <Engine/Plugins/PluginDescriptor.hpp>
 #include <Engine/Plugins/PluginModule.hpp>
 #include <Engine/Plugins/PluginContext.hpp>
@@ -70,6 +69,10 @@ public:
 
     const PluginDescriptor* FindBuiltinPlugin(Name pluginName) const;
 
+    // the Content folders of these built-in plugins and the ones they depend on, for a process that reads their assets
+    // without loading them (the cook)
+    Array<FilePath> GetBuiltinPluginContentDirectories(const Array<Name>& pluginNames);
+
     Array<Name> GetDefaultEnabledPlugins() const;
 
     HYP_FORCE_INLINE const Array<Name>& GetEnabledPlugins() const
@@ -90,8 +93,7 @@ private:
 
     struct LoadedPlugin
     {
-        PluginManifest manifest;
-        FilePath directory;
+        PluginDescriptor descriptor;
         DynamicLibrary* library = nullptr;
         IPlugin* plugin = nullptr;
 
@@ -112,6 +114,9 @@ private:
     void DiscoverBuiltinPlugins();
     void ResolveEnabledPlugin(Name pluginName, Array<Name>& outOrdered, Array<Name>& visiting) const;
     void UnloadModule(ActiveModule& activeModule);
+
+    // a built-in plugin's Content folder joins the engine registry while the plugin is enabled
+    void SetPluginContentMounted(Name pluginName, bool mounted) const;
 
     bool m_initialized = false;
 

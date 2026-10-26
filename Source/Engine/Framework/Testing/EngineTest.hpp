@@ -138,4 +138,14 @@ ENGINE_API bool Check(const char* checkName, bool condition, const String& detai
     }                                              \
     while (false)
 
+#define HYP_TEST_REQUIRE_MSG(condition, fmt, ...)               \
+    do                                                          \
+    {                                                           \
+        if (!HYP_TEST_CHECK_MSG(condition, fmt, ##__VA_ARGS__)) \
+        {                                                       \
+            return;                                             \
+        }                                                       \
+    }                                                           \
+    while (false)
+
 #endif // HYP_TESTS

@@ -710,13 +710,27 @@ public:
             return;
         }
 
+        // the enabled plugins' content is cooked whole, as their code loads it by path
+        String enabledPlugins;
+
+        for (Name pluginName : currentProject->GetEnabledPlugins())
+        {
+            if (enabledPlugins.Any())
+            {
+                enabledPlugins += ",";
+            }
+
+            enabledPlugins += pluginName.LookupString();
+        }
+
         TaskSystem::GetInstance().Enqueue(
-            [editorTaskScope, projectDir = currentProject->GetFilePath().BasePath(), outCacheDir, outContentDir]()
+            [editorTaskScope, projectDir = currentProject->GetFilePath().BasePath(), outCacheDir, outContentDir, enabledPlugins]()
             {
                 CommandLineArguments args;
                 args.Set("project", projectDir);
                 args.Set("out-cache", outCacheDir);
                 args.Set("out-content", outContentDir);
+                args.Set("plugins", enabledPlugins);
 
                 Result cookResult = g_appContext->RunCommandlet("BlobStorageCookCommandlet", args);
 

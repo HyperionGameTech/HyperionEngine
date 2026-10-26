@@ -38,6 +38,16 @@ static constexpr uint32 SettleFrames = 4;
 //!< Gives up on a capture that never completes rather than wedging the queue forever.
 static constexpr uint32 CaptureTimeoutFrames = 240;
 
+// the buckets PoseSubject can draw; anything else would be loaded only to be skipped
+static bool IsDrawableBucket(uint32 bucketIndex)
+{
+    return bucketIndex == AssetBuckets::Meshes.GetIndex()
+        || bucketIndex == AssetBuckets::Textures.GetIndex()
+        || bucketIndex == AssetBuckets::Materials.GetIndex()
+        || bucketIndex == AssetBuckets::Prefabs.GetIndex()
+        || bucketIndex == AssetBuckets::Decals.GetIndex();
+}
+
 bool ConvertPreviewPixelsToRgba8(
     const ByteBuffer& linearRgba16f,
     const ByteBuffer& coverageRgba16f,
@@ -255,7 +265,7 @@ void AssetThumbnailService::Request(uint32 bucketIndex, Name assetName)
 
     const PreviewAssetKey key { bucketIndex, assetName };
 
-    if (!key.IsValid())
+    if (!key.IsValid() || !IsDrawableBucket(bucketIndex))
     {
         return;
     }

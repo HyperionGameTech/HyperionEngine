@@ -25,7 +25,6 @@
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/MeshComponent.hpp>
-#include <Scene/Components/AnimationComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/VisibilityStateComponent.hpp>
 
@@ -99,6 +98,55 @@ static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVer
     }
 
     return { std::move(newVertices), std::move(indices) };
+}
+
+// FBX is right handed so we need to correct for it.
+static Vec3f MirrorFBXVector(Vec3f vector, int32 axis)
+{
+    vector[axis] = -vector[axis];
+
+    return vector;
+}
+
+static Quat4f MirrorFBXRotation(const Quat4f& rotation, int32 axis)
+{
+    Quat4f mirrored(-rotation.x, -rotation.y, -rotation.z, rotation.w);
+
+    if (axis == 0)
+    {
+        mirrored.x = rotation.x;
+    }
+    else if (axis == 1)
+    {
+        mirrored.y = rotation.y;
+    }
+    else
+    {
+        mirrored.z = rotation.z;
+    }
+
+    return mirrored;
+}
+
+static Transform MirrorFBXTransform(const Transform& transform, int32 axis)
+{
+    return Transform(MirrorFBXVector(transform.GetTranslation(), axis), transform.GetScale(), MirrorFBXRotation(transform.GetRotation(), axis));
+}
+
+static Mat4f MirrorFBXMatrix(Mat4f matrix, int32 axis)
+{
+    for (int32 row = 0; row < 4; ++row)
+    {
+        for (int32 column = 0; column < 4; ++column)
+        {
+            if ((row == axis) != (column == axis))
+            {
+                matrix.values[row * 4 + column] = -matrix.values[row * 4 + column];
+            }
+        }
+    }
+
+    return matrix;
 }
 
 #pragma endregion Helpers
@@ -1202,7 +1250,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return nullptr;
     };
 
-    const auto readMatrix = [](const FBXObject& object) -> Mat4f
+    int32 mirrorAxis = 2;
+
+    const auto readMatrix = [&mirrorAxis](const FBXObject& object) -> Mat4f
     {
         if (!object)
         {
@@ -1236,7 +1286,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }
 
         // FBX stores matrices column-major, with the translation in elements 12-14
-        return matrix.Transpose();
+        return MirrorFBXMatrix(matrix.Transpose(), mirrorAxis);
     };
 
     const auto readVec3Property = [](const FBXObject& object) -> Vec3f
@@ -1294,7 +1344,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    // indexed by FbxTime::EMode; the default mode is the FBX SDK's 30 fps
+    // Correct axis
+    mirrorAxis = upAxis == 1 ? 2 : 1;
+
+    // indexed by FbxTime::EMode.
+    // the default mode is the FBX SDK's 30 fps
     constexpr double TimeModeFrameRates[] = { 30.0, 120.0, 100.0, 60.0, 50.0, 48.0, 30.0, 30.0, 29.97, 29.97, 25.0, 24.0, 1000.0, 23.976, 0.0, 96.0, 72.0, 59.94, 119.88 };
     constexpr int32 CustomTimeMode = 14;
 
@@ -1696,7 +1750,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             }
                         }
 
-                        modelVertices[index] = position;
+                        modelVertices[index] = MirrorFBXVector(position, mirrorAxis);
                     }
                 }
 
@@ -1839,7 +1893,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                             Vec3f normal { float(normalFlat[sourceIndex * 3 + 0]), float(normalFlat[sourceIndex * 3 + 1]), float(normalFlat[sourceIndex * 3 + 2]) };
 
-                            verticesUnpacked[index].SetNormal(normal);
+                            verticesUnpacked[index].SetNormal(MirrorFBXVector(normal, mirrorAxis));
                         }
                     }
                 }
@@ -1885,12 +1939,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 }
 
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
-
-                // Fix coordinate space
-                for (size_t index = 0; index + 2 < fbxMesh.indices.Size(); index += 3)
-                {
-                    std::swap(fbxMesh.indices[index + 1], fbxMesh.indices[index + 2]);
-                }
 
                 mapping.data.Set(std::move(fbxMesh));
             }
@@ -1939,7 +1987,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 fbxNode.srcObject = childObject;
                 fbxNode.name = nodeName;
                 fbxNode.isLimb = modelType == "LimbNode";
-                fbxNode.localTransform = transform;
+                fbxNode.localTransform = MirrorFBXTransform(transform, mirrorAxis);
 
                 mapping.data.Set(fbxNode);
             }
@@ -2558,17 +2606,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 if (meshSkeleton.IsValid())
                 {
                     entity->SetIsDynamic(true);
-
-                    AnimationComponent animationComponent {};
-                    animationComponent.playbackState = {
-                        .animationIndex = 0,
-                        .status = AnimationPlaybackStatus::PLAYING,
-                        .loopMode = AnimationLoopMode::REPEAT,
-                        .speed = 1.0f,
-                        .currentTime = 0.0f
-                    };
-
-                    entity->AddComponent<AnimationComponent>(animationComponent);
                 }
 
                 if (fbxMesh->isInModelSpace)
@@ -2983,7 +3020,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                const Vec3f defaultTranslation = targetNode->localTransform.GetTranslation();
+                const Vec3f defaultTranslation = MirrorFBXVector(targetNode->localTransform.GetTranslation(), mirrorAxis);
                 const Vec3f defaultScale = targetNode->localTransform.GetScale();
 
                 Array<Keyframe, FBXAllocator> keyframes;
@@ -3012,7 +3049,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     const Vec3f radians(MathUtil::DegToRad(degrees.x), MathUtil::DegToRad(degrees.y), MathUtil::DegToRad(degrees.z));
                     const Quat4f rotation = Quat4f(radians);
 
-                    const Mat4f skeletonSpaceMatrix = targetNode->skeletonSpaceCorrection * Transform(translation, scale, rotation).GetMatrix();
+                    const Mat4f skeletonSpaceMatrix = targetNode->skeletonSpaceCorrection * MirrorFBXTransform(Transform(translation, scale, rotation), mirrorAxis).GetMatrix();
 
                     keyframes.EmplaceBack(takeTimeSeconds, Transform(skeletonSpaceMatrix.ExtractTranslation(), skeletonSpaceMatrix.ExtractScale(), skeletonSpaceMatrix.ExtractRotation()));
                 }

@@ -9,7 +9,6 @@
 #include <Scene/Animation/Skeleton.hpp>
 #include <Scene/Animation/Bone.hpp>
 #include <Scene/Animation/Animation.hpp>
-#include <Scene/Animation/AnimationPose.hpp>
 
 #include <Rendering/RenderProxy.hpp>
 
@@ -228,6 +227,13 @@ Array<Name> Skeleton::GetSocketNames() const
     return names;
 }
 
+static Skeleton::BoundTrackCounter g_boundTrackCounter = nullptr;
+
+void Skeleton::SetBoundTrackCounter(BoundTrackCounter counter)
+{
+    g_boundTrackCounter = counter;
+}
+
 uint32 Skeleton::CountBoundTracks(const Handle<Animation>& animation) const
 {
     if (!animation)
@@ -235,7 +241,24 @@ uint32 Skeleton::CountBoundTracks(const Handle<Animation>& animation) const
         return 0;
     }
 
-    return PoseOps::CountBoundSlots(PoseOps::BindClip(*animation, *this));
+    if (g_boundTrackCounter != nullptr)
+    {
+        return g_boundTrackCounter(*animation, *this);
+    }
+
+    const SkeletonBindData& bindData = GetBindData();
+
+    uint32 count = 0;
+
+    for (const Handle<AnimationTrack>& track : animation->GetTracks())
+    {
+        if (track.IsValid() && bindData.FindSlot(track->GetBoneName()) != SkeletonBindData::InvalidSlot)
+        {
+            ++count;
+        }
+    }
+
+    return count;
 }
 
 bool SkeletonBindData::IsSlotWithin(uint32 slot, Name ancestorBoneName) const
@@ -256,145 +279,23 @@ bool SkeletonBindData::IsSlotWithin(uint32 slot, Name ancestorBoneName) const
     return false;
 }
 
-const HumanoidMapping& Skeleton::GetHumanoidMapping() const
+void Skeleton::SetLegacyHumanoid(const BoxedValue& legacyHumanoid)
 {
-    if (!m_isHumanoidResolved)
-    {
-        m_isHumanoidResolved = true;
-
-        if (m_humanoid.bones.Empty())
-        {
-            m_humanoid = HumanoidMapping::AutoMap(GetBindData());
-        }
-    }
-
-    return m_humanoid;
+    // a skeleton written with no legacy mapping has a null in its place
+    m_legacyHumanoid = legacyHumanoid.IsValid() && !legacyHumanoid.Is<Handle<ObjectBase>>() ? legacyHumanoid : BoxedValue();
 }
 
-void Skeleton::SetHumanoidMapping(const HumanoidMapping& humanoid)
+BoxedValue Skeleton::TakeLegacyHumanoid() const
 {
-    m_humanoid = humanoid;
-    m_isHumanoidResolved = true;
+    BoxedValue legacyHumanoid = std::move(m_legacyHumanoid);
+    m_legacyHumanoid = BoxedValue();
 
-    // clips bound to this skeleton choose between name binding and retargeting by the mapping
+    return legacyHumanoid;
+}
+
+void Skeleton::OnExtensionChanged(AssetExtension& extension)
+{
     ++m_revision;
-}
-
-Name Skeleton::GetHumanoidBoneName(uint32 bone) const
-{
-    return bone < NumHumanoidBones ? GetHumanoidMapping().GetBoneName(HumanoidBone(bone)) : Name::Invalid();
-}
-
-void Skeleton::SetHumanoidBoneName(uint32 bone, Name boneName)
-{
-    if (bone >= NumHumanoidBones)
-    {
-        return;
-    }
-
-    HumanoidMapping humanoid = GetHumanoidMapping();
-    humanoid.SetBoneName(HumanoidBone(bone), boneName);
-
-    SetHumanoidMapping(humanoid);
-}
-
-void Skeleton::AutoMapHumanoid()
-{
-    const HumanoidMapping autoMapped = HumanoidMapping::AutoMap(GetBindData());
-
-    HumanoidMapping humanoid = m_humanoid;
-
-    for (const HumanoidBoneBinding& binding : autoMapped.bones)
-    {
-        if (!humanoid.GetBoneName(binding.bone).IsValid())
-        {
-            humanoid.SetBoneName(binding.bone, binding.boneName);
-        }
-    }
-
-    SetHumanoidMapping(humanoid);
-}
-
-Array<Handle<Skeleton>> Skeleton::CollectHumanoidSkeletons()
-{
-    Array<Handle<Skeleton>> skeletons;
-
-    for (const Handle<AssetRegistry>& registry : { GetCurrentAssetRegistry(), GetEngineAssetRegistry() })
-    {
-        if (!registry.IsValid())
-        {
-            continue;
-        }
-
-        Array<AssetDesc> skeletonDescs;
-        registry->GetBucketAssetDescs(AssetBuckets::Skeletons.GetIndex(), skeletonDescs);
-
-        for (const AssetDesc& skeletonDesc : skeletonDescs)
-        {
-            Handle<Skeleton> skeleton = registry->GetAsset<Skeleton>(AssetBuckets::Skeletons, skeletonDesc.name);
-
-            if (skeleton.IsValid() && skeleton->IsHumanoid() && !skeletons.Contains(skeleton))
-            {
-                skeletons.PushBack(std::move(skeleton));
-            }
-        }
-    }
-
-    return skeletons;
-}
-
-Array<Name> Skeleton::GetCompatibleClipNames() const
-{
-    Array<Name> clipNames = GetAnimationNames();
-
-    if (!IsHumanoid())
-    {
-        return clipNames;
-    }
-
-    for (const Handle<Skeleton>& skeleton : CollectHumanoidSkeletons())
-    {
-        if (skeleton.Get() == this || skeleton.Get() == m_instanceSource)
-        {
-            continue;
-        }
-
-        for (const Handle<Animation>& animation : skeleton->GetAnimations())
-        {
-            if (animation.IsValid())
-            {
-                clipNames.PushBack(NAME_FMT("{} ({})", animation->GetName(), skeleton->GetName()));
-            }
-        }
-    }
-
-    return clipNames;
-}
-
-Handle<Animation> Skeleton::FindCompatibleClip(Name name) const
-{
-    if (const Handle<Animation>& animation = FindAnimation(name); animation.IsValid())
-    {
-        return animation;
-    }
-
-    if (!IsHumanoid())
-    {
-        return Handle<Animation>::empty;
-    }
-
-    for (const Handle<Skeleton>& skeleton : CollectHumanoidSkeletons())
-    {
-        for (const Handle<Animation>& animation : skeleton->GetAnimations())
-        {
-            if (animation.IsValid() && NAME_FMT("{} ({})", animation->GetName(), skeleton->GetName()) == name)
-            {
-                return animation;
-            }
-        }
-    }
-
-    return Handle<Animation>::empty;
 }
 
 void Skeleton::OnLoaded()
@@ -492,9 +393,9 @@ Handle<Skeleton> Skeleton::CreateInstance() const
     instance->SetName(GetName());
     instance->m_animations = m_animations;
     instance->m_sockets = m_sockets;
-    instance->m_humanoid = GetHumanoidMapping();
-    instance->m_isHumanoidResolved = true;
+    instance->ShareExtensionsFrom(*this);
     instance->m_instanceSource = this;
+    instance->m_instanceSourceRevision = m_revision;
 
     if (m_rootBone)
     {
@@ -506,10 +407,52 @@ Handle<Skeleton> Skeleton::CreateInstance() const
     return instance;
 }
 
-void Skeleton::SetPoseMatrices(Span<const Mat4f> modelMatrices, Span<const Mat4f> skinningMatrices)
+void ComputeSkeletonPoseMatrices(const SkeletonBindData& bindData, Span<const Transform> pose, Span<Mat4f> outModelMatrices, Span<Mat4f> outSkinningMatrices)
 {
-    m_poseModelMatrices = Array<Mat4f>(modelMatrices);
-    m_poseSkinningMatrices = Array<Mat4f>(skinningMatrices);
+    HYP_SCOPE;
+
+    const uint32 numSlots = bindData.NumSlots();
+
+    for (uint32 slot = 0; slot < numSlots; ++slot)
+    {
+        const uint32 parentSlot = bindData.parentSlots[slot];
+
+        outModelMatrices[slot] = parentSlot != SkeletonBindData::InvalidSlot
+            ? outModelMatrices[parentSlot] * pose[slot].GetMatrix()
+            : pose[slot].GetMatrix();
+
+        outSkinningMatrices[slot] = outModelMatrices[slot] * bindData.inverseBindMatrices[slot];
+    }
+}
+
+bool Skeleton::IsInstanceCurrent() const
+{
+    return m_instanceSource == nullptr || m_instanceSource->GetRevision() == m_instanceSourceRevision;
+}
+
+void Skeleton::SetPose(Span<const Transform> localPose)
+{
+    const SkeletonBindData& bindData = GetBindData();
+
+    if (localPose.Size() != bindData.NumSlots())
+    {
+        if (localPose.Size() != 0)
+        {
+            HYP_LOG(Animation, Warning, "Skeleton '{}' was given a pose of {} bones, but has {}; showing the bind pose", GetName(), localPose.Size(), bindData.NumSlots());
+        }
+
+        m_pose.Clear();
+        m_poseModelMatrices.Clear();
+        m_poseSkinningMatrices.Clear();
+    }
+    else
+    {
+        m_pose = Array<Transform>(localPose);
+        m_poseModelMatrices.Resize(bindData.NumSlots());
+        m_poseSkinningMatrices.Resize(bindData.NumSlots());
+
+        ComputeSkeletonPoseMatrices(bindData, localPose, m_poseModelMatrices.ToSpan(), m_poseSkinningMatrices.ToSpan());
+    }
 
     SetNeedsRenderProxyUpdate();
 }

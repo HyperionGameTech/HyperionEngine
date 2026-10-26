@@ -9,13 +9,13 @@
 #include <Asset/ModelImport.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/Assets.hpp>
+#include <Asset/ModelImportProcessor.hpp>
 
 #include <Scene/Prefab.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
-#include <Scene/Components/AnimationComponent.hpp>
 
 #include <Scene/Animation/Skeleton.hpp>
 #include <Scene/Animation/Bone.hpp>
@@ -240,7 +240,7 @@ Handle<Animation> MakeSubClip(const Animation& source, Name name, float startTim
     return clip;
 }
 
-Result ApplyModelImportSettings(ModelImportContents& contents, const AssetImportInfo& importInfo, const Handle<Skeleton>& targetSkeleton)
+static Result ApplyLoadedModelSettings(ModelImportContents& contents, const AssetImportInfo& importInfo, const Handle<Skeleton>& targetSkeleton)
 {
     const ModelImportSettings& settings = importInfo.settings;
 
@@ -326,11 +326,6 @@ Result ApplyModelImportSettings(ModelImportContents& contents, const AssetImport
             ForEachSkinnedEntity(*contents.prefab->GetRoot(), [](Entity& entity, MeshComponent& meshComponent)
                 {
                     meshComponent.skeleton = Handle<Skeleton>::empty;
-
-                    if (entity.HasComponent<AnimationComponent>())
-                    {
-                        entity.RemoveComponent<AnimationComponent>();
-                    }
                 });
         }
 
@@ -363,10 +358,6 @@ Result ApplyModelImportSettings(ModelImportContents& contents, const AssetImport
         contents.skeleton->SetAnimations(clips);
         contents.skeleton->SetImportInfo(appliedImportInfo);
 
-        if (settings.autoMapHumanoid)
-        {
-            contents.skeleton->AutoMapHumanoid();
-        }
         contents.animations = std::move(clips);
     }
 
@@ -383,18 +374,6 @@ Result ApplyModelImportSettings(ModelImportContents& contents, const AssetImport
         root->SetLocalScale(root->GetLocalScale() * settings.scale);
     }
 
-    const Handle<Animation> firstClip = contents.animations.Any() ? contents.animations[0] : Handle<Animation>::empty;
-
-    ForEachSkinnedEntity(*contents.prefab->GetRoot(), [&firstClip](Entity& entity, MeshComponent&)
-        {
-            AnimationComponent* animationComponent = entity.TryGetComponent<AnimationComponent>();
-
-            if (animationComponent && !animationComponent->animation.IsValid())
-            {
-                animationComponent->animation = firstClip;
-            }
-        });
-
     if (settings.generateMeshLods && MeshLodGenerator::IsSupported())
     {
         auto generateMeshLods = [](const Handle<AssetObject>& assetObject)
@@ -407,6 +386,18 @@ Result ApplyModelImportSettings(ModelImportContents& contents, const AssetImport
 
         AssetRegistry::WalkAssetDeep(BoxedValue(contents.prefab), generateMeshLods);
     }
+
+    return {};
+}
+
+Result ApplyModelImportSettings(ModelImportContents& contents, const AssetImportInfo& importInfo, const Handle<Skeleton>& targetSkeleton)
+{
+    if (Result applyResult = ApplyLoadedModelSettings(contents, importInfo, targetSkeleton); applyResult.HasError())
+    {
+        return applyResult;
+    }
+
+    RunModelImportProcessors(contents, importInfo);
 
     return {};
 }
@@ -583,7 +574,7 @@ void MergeModelReimport(AssetRegistry& registry, ModelImportContents& fresh, con
             });
     }
 
-    ForEachMeshEntity(*fresh.prefab->GetRoot(), [&](Entity& entity, MeshComponent& meshComponent)
+    ForEachMeshEntity(*fresh.prefab->GetRoot(), [&](Entity&, MeshComponent& meshComponent)
         {
             if (meshComponent.skeleton.IsValid() && meshComponent.skeleton == fresh.skeleton)
             {
@@ -611,14 +602,11 @@ void MergeModelReimport(AssetRegistry& registry, ModelImportContents& fresh, con
                     break;
                 }
             }
+        });
 
-            if (AnimationComponent* animationComponent = entity.TryGetComponent<AnimationComponent>(); animationComponent && animationComponent->animation.IsValid())
-            {
-                if (auto mergedIt = mergedClipsByFreshClip.Find(animationComponent->animation.Get()); mergedIt != mergedClipsByFreshClip.End())
-                {
-                    animationComponent->animation = mergedIt->second;
-                }
-            }
+    ModelImportProcessorRegistry::GetInstance().ForEach([&fresh, &mergedClipsByFreshClip](IModelImportProcessor& processor)
+        {
+            processor.OnClipsMerged(*fresh.prefab->GetRoot(), mergedClipsByFreshClip);
         });
 
     existingPrefab->SetRoot(fresh.prefab->GetRoot());

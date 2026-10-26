@@ -34,6 +34,20 @@ EditorIsolatedEditState::~EditorIsolatedEditState() = default;
 void EditorIsolatedEditState::Initialize(EditorSubsystem* subsystem)
 {
     m_subsystem = subsystem;
+    m_subsystem->RegisterIsolatedEditState(HandleFromThis());
+}
+
+void EditorIsolatedEditState::Shutdown()
+{
+    if (!m_subsystem)
+    {
+        return;
+    }
+
+    Exit(/* apply */ false);
+
+    m_subsystem->UnregisterIsolatedEditState(this);
+    m_subsystem = nullptr;
 }
 
 bool EditorIsolatedEditState::CanEnter() const

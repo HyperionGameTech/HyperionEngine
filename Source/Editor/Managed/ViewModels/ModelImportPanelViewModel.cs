@@ -10,7 +10,25 @@ using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
-    public record ModelImportSnapshot(string FileName, bool HasMesh, uint BoneCount, IReadOnlyList<(string Id, string Name, uint FrameCount)> Takes, IReadOnlyList<string> SkeletonNames);
+    public record ModelImportSnapshot(
+        string FileName,
+        bool HasMesh,
+        uint BoneCount,
+        IReadOnlyList<(string Id, string Name, uint FrameCount)> Takes,
+        IReadOnlyList<string> SkeletonNames,
+        IReadOnlyList<ObjectBase> Settings);
+
+    public class ImportSettingsSectionViewModel
+    {
+        public string Label { get; }
+        public ComponentSubObjectViewModel Body { get; }
+
+        public ImportSettingsSectionViewModel(string label, ComponentSubObjectViewModel body)
+        {
+            Label = label;
+            Body = body;
+        }
+    }
 
     public class ModelImportTakeViewModel : ViewModelBase
     {
@@ -107,6 +125,7 @@ namespace Hyperion.Editor.ViewModels
         private readonly Action _onFinished;
 
         private int _rigModeIndex;
+        private Skeleton? _targetSkeletonAsset;
         private string? _targetSkeleton;
         private decimal _scale = 1.0m;
         private bool _generateMeshLods = true;
@@ -129,9 +148,29 @@ namespace Hyperion.Editor.ViewModels
                 Takes.Add(new ModelImportTakeViewModel(id, name, frameCount));
             }
 
-            foreach (string skeletonName in snapshot.SkeletonNames)
+            // getter and setter run on the sim thread
+            SkeletonPicker = new ObjectPropertyViewModel(
+                "Skeleton",
+                Class.GetClass<Skeleton>().TypeInfo,
+                getter: () => new BoxedValue(_targetSkeletonAsset),
+                setter: value =>
+                {
+                    _targetSkeletonAsset = value.GetValue() as Skeleton;
+
+                    string? skeletonName = _targetSkeletonAsset != null && _targetSkeletonAsset.IsValid ? _targetSkeletonAsset.Name.ToString() : null;
+
+                    Dispatcher.UIThread.Post(() => TargetSkeleton = skeletonName);
+                },
+                isReadOnly: false);
+
+            SkeletonPicker.RefreshValue();
+
+            foreach (ObjectBase settings in snapshot.Settings)
             {
-                SkeletonNames.Add(skeletonName);
+                ClassAttribute? labelAttribute = settings.Class.GetAttribute("label");
+                string label = labelAttribute.HasValue ? labelAttribute.Value.GetString() : settings.Class.Name.ToString();
+
+                SettingsSections.Add(new ImportSettingsSectionViewModel(label, new ComponentSubObjectViewModel(label, settings, depth: 1)));
             }
 
             AddSplitCommand = new RelayCommand(AddSplit, () => Takes.Count > 0);
@@ -148,11 +187,13 @@ namespace Hyperion.Editor.ViewModels
 
         public IReadOnlyList<string> RigModes => RigModeNames;
 
-        public ObservableCollection<string> SkeletonNames { get; } = new ObservableCollection<string>();
+        public ObjectPropertyViewModel SkeletonPicker { get; }
 
         public ObservableCollection<ModelImportTakeViewModel> Takes { get; } = new ObservableCollection<ModelImportTakeViewModel>();
 
         public ObservableCollection<ModelImportSplitViewModel> Splits { get; } = new ObservableCollection<ModelImportSplitViewModel>();
+
+        public ObservableCollection<ImportSettingsSectionViewModel> SettingsSections { get; } = new ObservableCollection<ImportSettingsSectionViewModel>();
 
         public bool HasMesh { get; }
 
@@ -178,7 +219,7 @@ namespace Hyperion.Editor.ViewModels
         public string? TargetSkeleton
         {
             get => _targetSkeleton;
-            set
+            private set
             {
                 if (SetProperty(ref _targetSkeleton, value))
                 {
@@ -331,6 +372,11 @@ namespace Hyperion.Editor.ViewModels
         {
             _resolved = true;
             _pollTimer.Stop();
+
+            foreach (ImportSettingsSectionViewModel section in SettingsSections)
+            {
+                section.Body.Dispose();
+            }
 
             PanelService.Instance.RemovePanel(this);
 

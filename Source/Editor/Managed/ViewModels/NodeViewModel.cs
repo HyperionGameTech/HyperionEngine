@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using Avalonia.Media;
 using Hyperion;
 using Hyperion.Editor.Commands;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -92,12 +93,11 @@ namespace Hyperion.Editor.ViewModels
             FogVolume           => "FogVolume",
             DecalProxy          => "Decal",
             Bone                => "AssetSkeleton",
-            EditorBoneNode      => "AssetSkeleton",
             VolumeBase          => "Package",
             TextSprite          => "TextSprite",
             Sprite              => "Sprite",
             Entity              => "Entity",
-            _                   => "Node",
+            _                   => EditorPluginService.Instance.FindAssetIcon(_node.Class.Name.ToString()) ?? "Node",
         };
 
         private string _sourcePrefabName;
@@ -173,22 +173,6 @@ namespace Hyperion.Editor.ViewModels
 
         public bool HasCollisionActions => _node is Entity;
 
-        private bool _canEditAnimation;
-        public bool CanEditAnimation
-        {
-            get => _canEditAnimation;
-            private set => SetProperty(ref _canEditAnimation, value);
-        }
-
-        private ICommand? _editAnimationCommand;
-        public ICommand EditAnimationCommand => _editAnimationCommand ??= new RelayCommand(() =>
-        {
-            if (_node is Entity entity)
-            {
-                MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterEntity(entity));
-            }
-        });
-
         private ICommand? _setPhysicsShapeCommand;
         public ICommand SetPhysicsShapeCommand => _setPhysicsShapeCommand ??= new RelayCommand<string>(shapeClassName =>
         {
@@ -224,13 +208,11 @@ namespace Hyperion.Editor.ViewModels
 
                 bool canGenerate = editorSubsystem.CanGenerateConvexCollision(node);
                 bool canFit = editorSubsystem.CanFitPhysicsShapeToMesh(node);
-                bool canEditAnimation = editorSubsystem.CanEditAnimation(node);
 
                 Dispatcher.UIThread.Post(() =>
                 {
                     CanGenerateCollision = canGenerate;
                     CanFitCollisionToMesh = canFit;
-                    CanEditAnimation = canEditAnimation;
                 });
             });
         }

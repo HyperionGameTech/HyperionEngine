@@ -20,6 +20,7 @@
 
 #include <Core/Utilities/ByteUtil.hpp>
 #include <Core/Utilities/GlobalContext.hpp>
+#include <Core/Utilities/StringUtil.hpp>
 
 #include <Core/Containers/Set.hpp>
 
@@ -39,6 +40,8 @@
 #include <Asset/AssetBucket.hpp>
 #include <Asset/BlobStorage.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <Rendering/Shared.hpp>
 #include <Rendering/RenderInterface.hpp>
 #include <Rendering/Shader.hpp>
@@ -54,6 +57,7 @@
 #ifdef HYP_EDITOR
 
 #include <Scene/World.hpp>
+
 #include <Scene/Scene.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/EnvProbe.hpp>
@@ -150,6 +154,14 @@ public:
                 "worlds",
                 "",
                 "Comma-separated World asset names to cook game content for (all Worlds in the project when empty)",
+                CommandLineArgumentFlags::NONE,
+                {},
+                JSON::Value(""));
+
+            s_definitions.Add(
+                "plugins",
+                "",
+                "Comma-separated built-in plugins the project enables, whose content is cooked with the engine's",
                 CommandLineArgumentFlags::NONE,
                 {},
                 JSON::Value(""));
@@ -363,6 +375,27 @@ protected:
             engineRegistry->Initialize(nullptr);
         }
 
+        // the editor cooking in-process has its project's plugins mounted already
+        if (const String pluginsArgument = args["plugins"].ToString(); pluginsArgument.Any())
+        {
+            Array<Name> pluginNames;
+
+            for (const String& pluginName : pluginsArgument.Split(','))
+            {
+                if (pluginName.Any())
+                {
+                    pluginNames.PushBack(CreateNameFromDynamicString(pluginName.ToAnsi()));
+                }
+            }
+
+            s_pluginContentDirectories = PluginManager::GetInstance().GetBuiltinPluginContentDirectories(pluginNames);
+
+            for (const FilePath& contentDirectory : s_pluginContentDirectories)
+            {
+                engineRegistry->AddContentRoot(contentDirectory);
+            }
+        }
+
         HYP_LOG(Assets, Info, "Cooking blob storage");
 
         const FilePath outCacheDir = GetDirectory(args["out-cache"].ToString(), true);
@@ -458,6 +491,58 @@ private:
     static inline TargetPlatform s_targetPlatform = TargetPlatform::Windows;
 #endif // HYP_EDITOR
     static inline Set<const AssetObject*> s_dataOnlyTextures;
+
+    static inline Array<FilePath> s_pluginContentDirectories;
+
+    // all of the enabled plugins' content: their code loads assets by path, where no world shows them
+    static void AddPluginContent(const Handle<AssetRegistry>& engineRegistry, const ProcRef<void(const Handle<AssetObject>&)>& onAssetFound)
+    {
+        if (!engineRegistry.IsValid())
+        {
+            return;
+        }
+
+        GlobalContextScope engineContextScope { AssetRegistryContext { engineRegistry } };
+
+        for (const FilePath& contentDirectory : s_pluginContentDirectories)
+        {
+            uint32 numAssets = 0;
+
+            for (const AssetBucket* bucket : AssetBuckets::AllBuckets)
+            {
+                const FilePath bucketDirectory = contentDirectory / bucket->GetName();
+
+                if (bucket == &AssetBuckets::None || !bucketDirectory.IsDirectory())
+                {
+                    continue;
+                }
+
+                for (auto iter = bucketDirectory.OpenDirectory(); iter.HasNext(); iter.Advance())
+                {
+                    const FilePath current = iter.Current();
+
+                    if (iter.CurrentIsDirectory() || current.GetExtension() != "hmf")
+                    {
+                        continue;
+                    }
+
+                    const Handle<AssetObject> asset = engineRegistry->GetAsset(*bucket, StringHash(StringUtil::StripExtension(current.Basename())));
+
+                    if (!asset.IsValid())
+                    {
+                        HYP_LOG(Assets, Warning, "Plugin asset '{}' could not be loaded for the cook", current);
+
+                        continue;
+                    }
+
+                    AssetRegistry::WalkAssetDeep(BoxedValue(asset), onAssetFound);
+                    ++numAssets;
+                }
+            }
+
+            HYP_LOG(Assets, Info, "Cooking {} asset(s) of plugin content '{}'", numAssets, contentDirectory);
+        }
+    }
 
 #ifdef HYP_EDITOR
     static bool IsDataTextureSlot(uint32 slotIndex)
@@ -1642,6 +1727,7 @@ private:
                 HYP_LOG(Assets, Info, "Found {} asset(s) reachable from project at \"{}\"", assetsToCook.Size(), projectPath);
 
                 AddEngineDefaults(engineRegistry, usesTerrain, callback);
+                AddPluginContent(engineRegistry, callback);
 
                 const EditorCookSettings& cookSettings = loadProjectResult.GetValue()->GetPlatformSettings().cook;
 
@@ -1699,6 +1785,7 @@ private:
                     };
 
                 AddEngineDefaults(engineRegistry, usesTerrain, addUnseen);
+                AddPluginContent(engineRegistry, addUnseen);
             }
 
             for (const Handle<AssetObject>& assetObject : assetsToCook)

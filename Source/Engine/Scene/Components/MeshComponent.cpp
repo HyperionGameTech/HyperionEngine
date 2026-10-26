@@ -8,6 +8,7 @@
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Entity.hpp>
 
 #include <Rendering/Mesh.hpp>
 #include <Rendering/Material.hpp>
@@ -140,6 +141,47 @@ MeshComponent::~MeshComponent()
 
     if (skeletonInstance.IsValid())
         EnqueueDeletion(std::move(skeletonInstance));
+}
+
+const Handle<Skeleton>& AcquireSkeletonInstance(Entity& entity, MeshComponent& meshComponent)
+{
+    if (!meshComponent.skeleton.IsValid())
+    {
+        ReleaseSkeletonInstance(entity, meshComponent);
+
+        return meshComponent.skeletonInstance;
+    }
+
+    if (meshComponent.skeletonInstance.IsValid()
+        && meshComponent.skeletonInstance->GetInstanceSource() == meshComponent.skeleton.Get()
+        && meshComponent.skeletonInstance->IsInstanceCurrent())
+    {
+        return meshComponent.skeletonInstance;
+    }
+
+    // the render proxies may still point at the old instance for a few frames
+    if (meshComponent.skeletonInstance.IsValid())
+    {
+        EnqueueDeletion(std::move(meshComponent.skeletonInstance));
+    }
+
+    meshComponent.skeletonInstance = meshComponent.skeleton->CreateInstance();
+
+    entity.SetNeedsRenderProxyUpdate();
+
+    return meshComponent.skeletonInstance;
+}
+
+void ReleaseSkeletonInstance(Entity& entity, MeshComponent& meshComponent)
+{
+    if (!meshComponent.skeletonInstance.IsValid())
+    {
+        return;
+    }
+
+    EnqueueDeletion(std::move(meshComponent.skeletonInstance));
+
+    entity.SetNeedsRenderProxyUpdate();
 }
 
 } // namespace Hyperion

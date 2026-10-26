@@ -9,7 +9,10 @@
 
 namespace Hyperion {
 
-PluginContext::PluginContext(Name pluginName, Name moduleName, PluginHostMode hostMode)
+PluginContext::PluginContext(
+    Name pluginName,
+    Name moduleName,
+    PluginHostMode hostMode)
     : m_pluginName(pluginName),
       m_moduleName(moduleName),
       m_hostMode(hostMode)
@@ -46,6 +49,13 @@ void PluginContext::Release()
     }
 
     m_worldSystemIds.Clear();
+
+    for (uint32 processorId : m_modelImportProcessorIds)
+    {
+        ModelImportProcessorRegistry::GetInstance().Unregister(processorId);
+    }
+
+    m_modelImportProcessorIds.Clear();
 }
 
 } // namespace Hyperion

@@ -23,6 +23,7 @@
 #include <Core/Utilities/Result.hpp>
 
 #include <Core/Threading/SharedMutex.hpp>
+#include <Core/Threading/Mutex.hpp>
 #include <Core/Threading/ThreadSignal.hpp>
 #include <Core/Threading/SchedulerFwd.hpp>
 
@@ -177,6 +178,13 @@ public:
     FilePath GetManifestPath(const AssetPath& assetPath) const;
     FilePath FindManifestPath(const AssetPath& assetPath) const;
 
+    // a folder of assets read alongside the root, laid out the same way (eg a plugin's Content); assets found there are saved back there
+    void AddContentRoot(const FilePath& directory);
+    void RemoveContentRoot(const FilePath& directory);
+
+    // where an asset's manifest and blob files go: the content root it came from, else its bucket's directory
+    FilePath GetAssetDirectory(uint32 bucketIndex, Name assetName) const;
+
     /*! \param outSyncContentTask if not nullptr, will attempt to download cache from url pointed to at CacheServer CLI arg
      *      The Task itself will be set to a task that on completes indicates the download has completed.
      *  \param onSyncProgressCallback if \p outSyncContentTask is not nullptr and this is not nullptr, will call periodically to
@@ -200,6 +208,9 @@ private:
     AssetRegistryId m_registryId;
     FilePath m_rootPath;
     FilePath m_bucketWriteDirectories[MaxAssetBuckets];
+
+    mutable Mutex m_contentRootsMutex;
+    Array<FilePath> m_contentRoots;
 
     bool m_isInitialized;
     bool m_isSyncingCache;

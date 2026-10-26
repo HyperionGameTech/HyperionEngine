@@ -18,9 +18,14 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Utilities/Result.hpp>
+
+#include <Engine/Plugins/PluginAPI.hpp>
+
 namespace Hyperion {
 
-/// <Plugin>/<Plugin>.hypplugin
+/// a mapping of a <Plugin>/<Plugin>.hypplugin
+/// describes both built-in plugins and plugin libraries loaded from <exe>/Plugins
 
 HYP_STRUCT()
 struct PluginDescriptor
@@ -42,7 +47,18 @@ struct PluginDescriptor
     HYP_FIELD(Property = "Dependencies", Serialize)
     Array<Name> dependencies;
 
+    HYP_FIELD(Property = "EngineMinVersion", Serialize)
+    String engineMinVersion;
+
+    HYP_FIELD(Property = "Entry", Serialize)
+    String entry;
+
+    HYP_FIELD(Property = "Host", Serialize)
+    EnumFlags<HypPluginHostFlags> hostFlags = HypPluginHostFlags::Editor | HypPluginHostFlags::Game;
+
     FilePath directory;
+
+    ENGINE_API static TResult<PluginDescriptor> Read(const FilePath& descriptorPath);
 };
 
 } // namespace Hyperion

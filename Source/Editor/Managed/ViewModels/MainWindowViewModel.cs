@@ -22,9 +22,9 @@ namespace Hyperion.Editor.ViewModels
     {
         public bool Active;
         public bool Dirty;
-        public bool IsGraph;
         public string Name = string.Empty;
         public string Kind = string.Empty;
+        public AssetObject? InspectedAsset;
 
         public EditModeStateSnapshot()
         {
@@ -45,10 +45,6 @@ namespace Hyperion.Editor.ViewModels
         public SceneHierarchyViewModel SceneHierarchy { get; private set; }
         public InspectorViewModel Inspector { get; private set; }
         public ContentBrowserViewModel ContentBrowser { get; private set; }
-
-        public AnimationTimelineViewModel AnimationTimeline { get; } = new AnimationTimelineViewModel();
-
-        public AnimationGraphDocumentViewModel AnimationGraphDocument { get; } = new AnimationGraphDocumentViewModel();
 
         public EditorPanelViewModel? ActivePanel => PanelService.Instance.ActivePanel;
 
@@ -799,14 +795,10 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleShowStats { get; private set; }
         public bool IsShowStatsEnabled => _editorSubsystem?.IsShowStatsEnabled() ?? false;
 
-        public ICommand ToggleShowBones { get; private set; }
-        public bool IsShowBonesEnabled => _editorSubsystem?.IsShowBonesEnabled() ?? false;
-
         public void RefreshDebugOverlayToggleStates()
         {
             OnPropertyChanged(nameof(IsShowStatsEnabled));
             OnPropertyChanged(nameof(IsGhostModeEnabled));
-            OnPropertyChanged(nameof(IsShowBonesEnabled));
         }
 
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
@@ -925,8 +917,6 @@ namespace Hyperion.Editor.ViewModels
         public bool IsInEditMode => _editModeState.Active;
         public string EditModeName => _editModeState.Name;
         public bool IsEditModeDirty => _editModeState.Active && _editModeState.Dirty;
-        public bool IsEditingAnimation => _editModeState.Active && (_editModeState.Kind == "skeleton" || _editModeState.IsGraph);
-        public bool IsEditingGraph => _editModeState.Active && _editModeState.IsGraph;
         public string EditModeDescription => $"Editing {_editModeState.Kind} {EditModeName}";
         public string ExitEditModeHeader => _editModeState.Kind.Length > 0
             ? $"Exit {char.ToUpperInvariant(_editModeState.Kind[0])}{_editModeState.Kind.Substring(1)} Edit"
@@ -1107,10 +1097,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(IsSimulating));
             OnPropertyChanged(nameof(CanAddNewScene));
 
-            if (!IsSimulating)
-            {
-                AnimationGraphDocument.DetachDebug();
-            }
+            EditorPluginService.Instance.NotifySimulationChanged(IsSimulating);
 
             OnPropertyChanged(nameof(GameStateText));
             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
@@ -1150,10 +1137,7 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
         private DelegateHandler? _csgStateChangedHandler;
-        private DelegateHandler? _prefabEditActiveChangedHandler;
-        private DelegateHandler? _prefabEditDirtyChangedHandler;
-        private DelegateHandler? _animationEditActiveChangedHandler;
-        private DelegateHandler? _animationEditDirtyChangedHandler;
+        private DelegateHandler? _editStateChangedHandler;
         private DelegateHandler? _modelImportReviewQueuedHandler;
         private bool _isShowingModelImport;
         private DelegateHandler? _activeActionStackChangedHandler;
@@ -1293,16 +1277,6 @@ namespace Hyperion.Editor.ViewModels
                     _editorSubsystem.SetShowStatsEnabled(!_editorSubsystem.IsShowStatsEnabled());
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsShowStatsEnabled)));
-                });
-            });
-
-            ToggleShowBones = new RelayCommand(() =>
-            {
-                _ = EngineManager.PostToSimThread(() =>
-                {
-                    _editorSubsystem.SetShowBonesEnabled(!_editorSubsystem.IsShowBonesEnabled());
-
-                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsShowBonesEnabled)));
                 });
             });
 
@@ -2003,10 +1977,7 @@ namespace Hyperion.Editor.ViewModels
             _projectWorldChangedHandler?.Remove();
             _prefabAssetsChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
-            _prefabEditActiveChangedHandler?.Remove();
-            _prefabEditDirtyChangedHandler?.Remove();
-            _animationEditActiveChangedHandler?.Remove();
-            _animationEditDirtyChangedHandler?.Remove();
+            _editStateChangedHandler?.Remove();
             _modelImportReviewQueuedHandler?.Remove();
             _activeActionStackChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
@@ -2887,7 +2858,7 @@ namespace Hyperion.Editor.ViewModels
                     {
                         SceneHierarchy.UpdateSelectionFromEngine(selectedNodes.Cast<Node>());
 
-                        FollowSelectionInGraphDebugger(selectedNodes.Cast<Node>());
+                        EditorPluginService.Instance.NotifySelectionChanged(selectedNodes.Cast<Node>().ToList());
 
                         UpdateCopyDeleteHeaders();
                         Interlocked.Exchange(ref _isUpdatingSelectionFromEngine, 0);
@@ -3261,28 +3232,18 @@ namespace Hyperion.Editor.ViewModels
         {
             WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
 
-            Action<bool> refresh = (bool _) =>
-            {
-                if (weakThis.TryGetTarget(out MainWindowViewModel? target))
+            _editStateChangedHandler?.Remove();
+            _editStateChangedHandler = _editorSubsystem.GetOnIsolatedEditStateChangedDelegate()
+                .Bind(() =>
                 {
-                    target.RefreshEditModeState();
-                }
-            };
-
-            _prefabEditActiveChangedHandler?.Remove();
-            _prefabEditActiveChangedHandler = _editorSubsystem.EditorPrefabEditState?.GetOnActiveChangedDelegate().Bind((bool changed) => refresh(changed));
-
-            _prefabEditDirtyChangedHandler?.Remove();
-            _prefabEditDirtyChangedHandler = _editorSubsystem.EditorPrefabEditState?.GetOnDirtyChangedDelegate().Bind((bool changed) => refresh(changed));
-
-            _animationEditActiveChangedHandler?.Remove();
-            _animationEditActiveChangedHandler = _editorSubsystem.EditorAnimationEditState?.GetOnActiveChangedDelegate().Bind((bool changed) => refresh(changed));
-
-            _animationEditDirtyChangedHandler?.Remove();
-            _animationEditDirtyChangedHandler = _editorSubsystem.EditorAnimationEditState?.GetOnDirtyChangedDelegate().Bind((bool changed) => refresh(changed));
+                    if (weakThis.TryGetTarget(out MainWindowViewModel? target))
+                    {
+                        target.RefreshEditModeState();
+                    }
+                });
 
             _modelImportReviewQueuedHandler?.Remove();
-            _modelImportReviewQueuedHandler = _editorSubsystem.GetOnModelImportReviewQueuedDelegate()
+            _modelImportReviewQueuedHandler = _editorSubsystem.GetOnImportReviewQueuedDelegate()
                 .Bind(() =>
                 {
                     if (weakThis.TryGetTarget(out MainWindowViewModel? target))
@@ -3315,7 +3276,24 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
-                EditorModelImportReview? review = _editorSubsystem.GetPendingModelImportReview();
+                EditorImportReview? pending = _editorSubsystem.GetPendingImportReview();
+                EditorModelImportReview? review = pending as EditorModelImportReview;
+
+                if (pending != null && review == null)
+                {
+                    Logger.Log(LogLevel.Warning, $"No import panel shows '{pending.GetFileName()}'; it was skipped.");
+
+                    pending.Cancel();
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isShowingModelImport = false;
+
+                        ShowNextModelImport();
+                    });
+
+                    return;
+                }
 
                 if (review == null)
                 {
@@ -3338,7 +3316,23 @@ namespace Hyperion.Editor.ViewModels
                     skeletonNames.Add(skeletonName.ToString());
                 }
 
-                ModelImportSnapshot snapshot = new ModelImportSnapshot(review.GetFileName() ?? string.Empty, review.HasMesh(), review.GetBoneCount(), takes, skeletonNames);
+                List<ObjectBase> settings = new List<ObjectBase>();
+
+                for (uint settingsIndex = 0; settingsIndex < review.NumSettings(); settingsIndex++)
+                {
+                    if (review.GetSettings(settingsIndex) is ObjectBase settingsObject)
+                    {
+                        settings.Add(settingsObject);
+                    }
+                }
+
+                ModelImportSnapshot snapshot = new(
+                    review.GetFileName() ?? string.Empty,
+                    review.HasMesh(),
+                    review.GetBoneCount(),
+                    takes,
+                    skeletonNames,
+                    settings);
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -3357,67 +3351,56 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            if (IsInEditMode && !IsEditingAnimation && prefabName == EditModeName)
+            if (IsInEditMode && _editModeState.Kind == "prefab" && prefabName == EditModeName)
             {
                 return;
             }
 
             RequestExitEditMode(afterExit: () =>
             {
-                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
                 Prefab? prefab = AssetManager.Instance.AssetRegistry.GetAsset(AssetBucket.Prefabs.Value, new Name(prefabName)) as Prefab;
 
-                if (prefabEditState == null || prefab == null || !prefab.IsValid)
+                if (prefab == null || !prefab.IsValid)
                 {
                     Logger.Log(LogLevel.Warning, $"EditPrefab: prefab '{prefabName}' could not be resolved.");
 
                     return;
                 }
 
-                if (!prefabEditState.Enter(prefab))
-                {
-                    Logger.Log(LogLevel.Warning, $"EditPrefab: could not open prefab '{prefabName}' for editing.");
-                }
+                EnterEditStateForAsset(prefab);
             });
         }
 
-        /// <summary>Opens animation edit mode once any current edit mode is left; <paramref name="enter"/> runs on the sim thread.</summary>
-        public void RequestEditAnimation(Func<EditorAnimationEditState, bool> enter)
+        /// <summary>Opens <paramref name="asset"/> in the edit mode that edits its kind, leaving any edit mode first.</summary>
+        public void RequestEditAsset(AssetObject asset)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            RequestExitEditMode(afterExit: () => EnterEditStateForAsset(asset));
+        }
+
+        private void EnterEditStateForAsset(AssetObject asset)
+        {
+            if (!_editorSubsystem.EnterEditStateForAsset(asset))
+            {
+                Logger.Log(LogLevel.Warning, $"Could not open '{asset.Name}' for editing.");
+            }
+        }
+
+        /// <summary>Opens an edit mode once any current edit mode is left; <paramref name="enter"/> runs on the sim thread.</summary>
+        public void RequestEnterEditMode(string editModeName, Func<bool> enter)
         {
             Dispatcher.UIThread.VerifyAccess();
 
             RequestExitEditMode(afterExit: () =>
             {
-                EditorAnimationEditState animationEditState = _editorSubsystem.EditorAnimationEditState
-                    ?? throw new InvalidOperationException("The editor subsystem has no animation edit state");
-
-                if (!enter(animationEditState))
+                if (!enter())
                 {
-                    Logger.Log(LogLevel.Error, "EditAnimation: could not open animation edit mode.");
+                    Logger.Log(LogLevel.Error, $"Could not open {editModeName} edit mode.");
 
-                    Dispatcher.UIThread.Post(() => MessageBox.Critical("Animation Edit", "Could not open animation edit mode. See the log.").Button("OK", () => { }).Show());
+                    Dispatcher.UIThread.Post(() => MessageBox.Critical("Edit Mode", $"Could not open {editModeName} edit mode. See the log.").Button("OK", () => { }).Show());
                 }
             });
-        }
-
-        private void FollowSelectionInGraphDebugger(IEnumerable<Node> selectedNodes)
-        {
-            List<Node> nodes = selectedNodes.ToList();
-
-            if (nodes.Count == 1 && nodes[0] is Entity entity)
-            {
-                AnimationGraphDocument.FollowSelection(entity);
-            }
-        }
-
-        public void OpenGraphDebugger(Entity entity)
-        {
-            Dispatcher.UIThread.VerifyAccess();
-
-            if (IsSimulating)
-            {
-                AnimationGraphDocument.AttachDebug(entity);
-            }
         }
 
         public void RequestExitEditMode(Action? afterExit, Action? onCancelled = null)
@@ -3510,7 +3493,7 @@ namespace Hyperion.Editor.ViewModels
                     snapshot.Dirty = editModeState.IsDirty();
                     snapshot.Name = editModeState.GetDisplayName() ?? string.Empty;
                     snapshot.Kind = editModeState.GetKindName() ?? string.Empty;
-                    snapshot.IsGraph = _editorSubsystem.EditorAnimationEditState?.IsEditingGraph() ?? false;
+                    snapshot.InspectedAsset = editModeState.GetInspectedAsset();
                 }
             }
             catch (Exception ex)
@@ -3520,9 +3503,12 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
+            EditorPluginService.Instance.NotifyEditModeChanged(snapshot.Active ? _editorSubsystem.ActiveIsolatedEditState : null);
+
             Dispatcher.UIThread.Post(() =>
             {
                 _editModeState = snapshot;
+                Inspector.SetEditedAsset(snapshot.InspectedAsset);
 
                 NotifyEditModeStateChanged();
             });
@@ -3533,8 +3519,6 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(IsInEditMode));
             OnPropertyChanged(nameof(EditModeName));
             OnPropertyChanged(nameof(IsEditModeDirty));
-            OnPropertyChanged(nameof(IsEditingAnimation));
-            OnPropertyChanged(nameof(IsEditingGraph));
             OnPropertyChanged(nameof(EditModeDescription));
             OnPropertyChanged(nameof(ExitEditModeHeader));
             OnPropertyChanged(nameof(SceneSelectorTooltip));
@@ -3546,8 +3530,6 @@ namespace Hyperion.Editor.ViewModels
             (ExitEditModeCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
-            AnimationTimeline.SetActive(IsEditingAnimation);
-            AnimationGraphDocument.SetActive(IsEditingGraph);
         }
 
         private void HandleSelectionUpdate()
@@ -3566,7 +3548,7 @@ namespace Hyperion.Editor.ViewModels
                     try
                     {
                         SceneHierarchy.UpdateSelectionFromEngine(selectedNodes.Cast<Node>());
-                        FollowSelectionInGraphDebugger(selectedNodes.Cast<Node>());
+                        EditorPluginService.Instance.NotifySelectionChanged(selectedNodes.Cast<Node>().ToList());
                         UpdateCopyDeleteHeaders();
                     }
                     finally

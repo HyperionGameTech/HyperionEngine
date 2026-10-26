@@ -1,3 +1,5 @@
+using Hyperion.Editor.Services;
+
 namespace Hyperion.Editor.ViewModels
 {
     /// @TODO : Don't switch on typename, use type so we don't have to add for every derived type
@@ -19,8 +21,6 @@ namespace Hyperion.Editor.ViewModels
             "ParticleVolume"                    => "ParticleVolume",
             "InstancedMeshData"                 => "AssetInstancedMesh",
             "Skeleton"                          => "AssetSkeleton",
-            "Animation"                         => "AssetAnimation",
-            "AnimationTrack"                    => "AssetAnimationTrack",
             "Scene"                             => "AssetScene",
             "World"                             => "AssetWorld",
             "LightmapVolume"                    => "LightmapVolume",
@@ -45,7 +45,7 @@ namespace Hyperion.Editor.ViewModels
             "Script" or "ScriptAsset"           => "AssetScript",
             "RawDataAsset"                      => "AssetRawData",
             "TerrainCellData"                   => "AssetTerrain",
-            _                                   => "File",
+            _                                   => (typeName != null ? EditorPluginService.Instance.FindAssetIcon(typeName) : null) ?? "File",
         };
 
         public static string FromBucket(AssetBucket bucket)
