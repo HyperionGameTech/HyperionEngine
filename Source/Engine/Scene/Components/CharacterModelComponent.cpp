@@ -7,6 +7,7 @@
 #include <ScenePch.hpp>
 
 #include <Scene/Components/CharacterModelComponent.hpp>
+#include <Scene/Animation/AnimationGraph.hpp>
 
 #include <CharacterModelComponent.generated.inl>
 

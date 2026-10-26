@@ -18,6 +18,20 @@
 
 namespace Hyperion {
 
+MeshComponent::MeshComponent(const MeshComponent& other)
+    : mesh(other.mesh),
+      material(other.material),
+      skeleton(other.skeleton),
+      enableAutoInstancing(other.enableAutoInstancing),
+      instanceData(other.instanceData),
+      numInstances(other.numInstances),
+      previousModelMatrix(other.previousModelMatrix),
+      userData(other.userData),
+      forcedLod(other.forcedLod),
+      lodBias(other.lodBias)
+{
+}
+
 MeshComponent& MeshComponent::operator=(const MeshComponent& other)
 {
     if (this == &other)
@@ -50,6 +64,11 @@ MeshComponent& MeshComponent::operator=(const MeshComponent& other)
     instanceData = other.instanceData;
     previousModelMatrix = other.previousModelMatrix;
     userData = other.userData;
+
+    if (skeletonInstance)
+    {
+        EnqueueDeletion(std::move(skeletonInstance));
+    }
 
     return *this;
 }
@@ -87,7 +106,25 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
     previousModelMatrix = std::move(other.previousModelMatrix);
     userData = std::move(other.userData);
 
+    if (skeletonInstance)
+    {
+        EnqueueDeletion(std::move(skeletonInstance));
+    }
+
+    skeletonInstance = std::move(other.skeletonInstance);
+
     return *this;
+}
+
+const Handle<Skeleton>& MeshComponent::GetRenderSkeleton() const
+{
+    // after `skeleton` is swapped the instance is stale until the AnimationSystem replaces it
+    if (skeletonInstance.IsValid() && skeletonInstance->GetInstanceSource() == skeleton.Get())
+    {
+        return skeletonInstance;
+    }
+
+    return skeleton;
 }
 
 MeshComponent::~MeshComponent()
@@ -100,6 +137,9 @@ MeshComponent::~MeshComponent()
 
     if (skeleton.IsValid())
         EnqueueDeletion(std::move(skeleton));
+
+    if (skeletonInstance.IsValid())
+        EnqueueDeletion(std::move(skeletonInstance));
 }
 
 } // namespace Hyperion

@@ -180,6 +180,14 @@ namespace Hyperion.Editor.ViewModels
 
                     List<InspectorPropertyViewModelBase> vms = new();
 
+                    if (className == "AnimationComponent")
+                    {
+                        AnimationPreviewViewModel previewVm = new AnimationPreviewViewModel(_target);
+                        previewVm.RefreshValue();
+
+                        vms.Add(previewVm);
+                    }
+
                     bool isMeshComponent = componentTypeId == s_meshComponentTypeId;
                     bool isRigidBodyComponent = componentTypeId == s_rigidBodyComponentTypeId;
 
@@ -229,7 +237,8 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly,
                                 initialize: false,
                                 postWriteCallback: CreatePostWrite(_target),
-                                valueChangedCallback: RefreshProperties);
+                                valueChangedCallback: RefreshProperties,
+                                ownerEntity: _target);
 
                             List<PropertyTarget> peers = peerEntities
                                 .Select(peer => PropertyTarget.ForAddress(

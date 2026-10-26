@@ -15,6 +15,11 @@
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/ScriptComponent.hpp>
+#include <Scene/Components/AnimationComponent.hpp>
+#include <Scene/Components/CharacterModelComponent.hpp>
+
+#include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/AnimationGraph.hpp>
 
 #include <Scripting/Asset/ScriptAsset.hpp>
 
@@ -293,10 +298,150 @@ Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const H
 
 } // namespace /* Texture */
 
+namespace /* Animation */ {
+
+bool AnimationAcceptsAsset(const AssetObject* asset)
+{
+    return TryCast<Animation>(asset) != nullptr;
+}
+
+bool AnimationCanApply(const AssetObject* asset, const Entity* entity)
+{
+    const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    return meshComponent != nullptr && meshComponent->skeleton.IsValid();
+}
+
+Handle<EditorActionBase> AnimationCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+{
+    Handle<Animation> animation = TryCast<Animation>(asset);
+
+    const bool hadAnimationComponent = entity->HasComponent<AnimationComponent>();
+    const AnimationComponent previousAnimationComponent = hadAnimationComponent ? entity->GetComponent<AnimationComponent>() : AnimationComponent {};
+
+    if (hadAnimationComponent && previousAnimationComponent.animation == animation)
+    {
+        return nullptr;
+    }
+
+    return MakeEntityDropAction(
+        subsystem,
+        HYP_FORMAT("Assign Animation {}", animation->GetName()),
+        entity,
+        [entity, animation](EditorSubsystem*)
+        {
+            if (!entity->HasComponent<AnimationComponent>())
+            {
+                entity->AddComponent<AnimationComponent>(AnimationComponent {});
+            }
+
+            entity->GetComponent<AnimationComponent>().Play(animation);
+            entity->MarkDirty();
+        },
+        [entity, hadAnimationComponent, previousAnimationComponent](EditorSubsystem*)
+        {
+            if (!hadAnimationComponent)
+            {
+                entity->RemoveComponent<AnimationComponent>();
+            }
+            else if (AnimationComponent* animationComponent = entity->TryGetComponent<AnimationComponent>())
+            {
+                *animationComponent = previousAnimationComponent;
+            }
+
+            entity->MarkDirty();
+        });
+}
+
+bool AnimationGraphAcceptsAsset(const AssetObject* asset)
+{
+    return TryCast<AnimationGraph>(asset) != nullptr;
+}
+
+// a character model hands its graph to its meshes when it plays, so a graph dropped on one goes to the model
+bool AnimationGraphCanApply(const AssetObject* asset, const Entity* entity)
+{
+    return entity->HasComponent<CharacterModelComponent>() || AnimationCanApply(asset, entity);
+}
+
+Handle<EditorActionBase> AnimationGraphCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+{
+    Handle<AnimationGraph> graph = TryCast<AnimationGraph>(asset);
+
+    if (const CharacterModelComponent* characterModel = entity->TryGetComponent<CharacterModelComponent>())
+    {
+        const Handle<AnimationGraph> previousGraph = characterModel->graph;
+
+        if (previousGraph == graph)
+        {
+            return nullptr;
+        }
+
+        return MakeEntityDropAction(
+            subsystem,
+            HYP_FORMAT("Assign Character Graph {}", graph->GetName()),
+            entity,
+            [entity, graph](EditorSubsystem*)
+            {
+                entity->GetComponent<CharacterModelComponent>().graph = graph;
+                entity->MarkDirty();
+            },
+            [entity, previousGraph](EditorSubsystem*)
+            {
+                if (CharacterModelComponent* characterModelComponent = entity->TryGetComponent<CharacterModelComponent>())
+                {
+                    characterModelComponent->graph = previousGraph;
+                }
+
+                entity->MarkDirty();
+            });
+    }
+
+    const bool hadAnimationComponent = entity->HasComponent<AnimationComponent>();
+    const Handle<AnimationGraph> previousGraph = hadAnimationComponent ? entity->GetComponent<AnimationComponent>().graph : Handle<AnimationGraph>::empty;
+
+    if (hadAnimationComponent && previousGraph == graph)
+    {
+        return nullptr;
+    }
+
+    return MakeEntityDropAction(
+        subsystem,
+        HYP_FORMAT("Assign Animation Graph {}", graph->GetName()),
+        entity,
+        [entity, graph](EditorSubsystem*)
+        {
+            if (!entity->HasComponent<AnimationComponent>())
+            {
+                entity->AddComponent<AnimationComponent>(AnimationComponent {});
+            }
+
+            entity->GetComponent<AnimationComponent>().graph = graph;
+            entity->MarkDirty();
+        },
+        [entity, hadAnimationComponent, previousGraph](EditorSubsystem*)
+        {
+            if (!hadAnimationComponent)
+            {
+                entity->RemoveComponent<AnimationComponent>();
+            }
+            else if (AnimationComponent* animationComponent = entity->TryGetComponent<AnimationComponent>())
+            {
+                animationComponent->graph = previousGraph;
+            }
+
+            entity->MarkDirty();
+        });
+}
+
+} // namespace /* Animation */
+
 static const EntityAssetDropHandler g_entityAssetDropHandlers[] = {
     { &ScriptAcceptsAsset, &ScriptCanApply, &ScriptCreateAction },
     { &MaterialAcceptsAsset, &MaterialCanApply, &MaterialCreateAction },
-    { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction }
+    { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction },
+    { &AnimationAcceptsAsset, &AnimationCanApply, &AnimationCreateAction },
+    { &AnimationGraphAcceptsAsset, &AnimationGraphCanApply, &AnimationGraphCreateAction }
 };
 
 static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObject* asset)

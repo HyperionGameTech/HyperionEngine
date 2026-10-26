@@ -14,7 +14,10 @@
 #include <Scene/EntityManager.hpp>
 
 #include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/AnimationGraph.hpp>
+#include <Scene/Animation/AnimationGraphInstance.hpp>
 #include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/HumanoidMapping.hpp>
 
 #include <Scene/Camera/Camera.hpp>
 #include <Scene/Camera/ThirdPersonCamera.hpp>
@@ -23,7 +26,10 @@
 
 #include <Scene/Util/SceneHelpers.hpp>
 
+#include <Asset/AssetRegistry.hpp>
+
 #include <Physics/PhysicsShape.hpp>
+#include <Physics/PhysicsWorld.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Math/Quat4f.hpp>
@@ -36,123 +42,46 @@
 
 namespace Hyperion {
 
-struct DirectionalWalk
+// what the character is doing this frame, written to its graph as parameters
+struct CharacterMotionSignals
 {
-    uint32 fromIndex = ~0u;
-    float fromTime = 0.0f;
+    float speed = 0.0f;
+    float moveAngle = 0.0f;
+    float windup = 0.0f;
+    bool isAirborne = false;
+    bool isJumping = false;
+    bool isRunningJump = false;
+    float airTime = 0.0f;
+    float turnStep = 0.0f;
+    float turnStepKind = 0.0f;
+    float turnStepProgress = 0.0f;
+    float aimTwist = 0.0f;
 
-    uint32 toIndex = ~0u;
-    float toTime = 0.0f;
-    float toWeight = 0.0f;
+    // for motion matching: the body's velocity and the one it wants (x to its right, y forward), and where it wants to face
+    Vec2f velocity;
+    Vec2f desiredVelocity;
+    float desiredFacing = 0.0f;
+    float trajectoryAcceleration = 0.0f;
+    float trajectoryTurnSharpness = 0.0f;
 };
 
-/// @TODO Refactor, too many fields all over the place
-struct LocomotionClips
+// the turn step clips in the character's graph, found by node name, which time the body's turn
+struct TurnStepClips
 {
-    uint32 idleIndex = ~0u;
-    uint32 walkIndex = ~0u;
-    uint32 runIndex = ~0u;
-    uint32 jumpWindupIndex = ~0u;
-    uint32 jumpIndex = ~0u;
-    uint32 fallIndex = ~0u;
-    uint32 landIndex = ~0u;
+    float leftLength = 0.0f;
+    float rightLength = 0.0f;
+    float leftSmallLength = 0.0f;
+    float rightSmallLength = 0.0f;
 
-    float idleLength = 0.0f;
-    float walkLength = 0.0f;
-    float runLength = 0.0f;
-    float jumpWindupLength = 0.0f;
-    float jumpLength = 0.0f;
-    float fallLength = 0.0f;
-    float landLength = 0.0f;
-
-    float aimRange = 0.0f;
-    Name aimTwistRootBone;
-    Name aimTwistEndBone;
-
-    uint32 turnLeftIndex = ~0u;
-    uint32 turnRightIndex = ~0u;
-    uint32 turnLeftSmallIndex = ~0u;
-    uint32 turnRightSmallIndex = ~0u;
-    float turnLeftSmallLength = 0.0f;
-    float turnRightSmallLength = 0.0f;
-    float turnStepSmallAngle = 0.0f;
-    float settleAngle = 0.0f;
-
-    float turnLeftLength = 0.0f;
-    float turnRightLength = 0.0f;
-    float turnStepAngle = 0.0f;
-    float turnStepStartAngle = 0.0f;
-
-    uint32 strafeLeftIndex = ~0u;
-    uint32 strafeRightIndex = ~0u;
-    uint32 walkBackwardIndex = ~0u;
-    float strafeLeftLength = 0.0f;
-    float strafeRightLength = 0.0f;
-    float walkBackwardLength = 0.0f;
-
-    uint32 runJumpIndex = ~0u;
-    uint32 runFallIndex = ~0u;
-    uint32 runLandIndex = ~0u;
-    float runJumpLength = 0.0f;
-    float runFallLength = 0.0f;
-    float runLandLength = 0.0f;
-
-    float walkReferenceSpeed = 0.0f;
-    float runReferenceSpeed = 0.0f;
-
-    bool IsValid() const
+    bool HasFullSteps() const
     {
-        return walkIndex != ~0u;
+        return leftLength > 0.0f && rightLength > 0.0f;
     }
 
-    bool HasDirectionalWalks() const
+    bool HasSmallSteps() const
     {
-        return strafeLeftIndex != ~0u && strafeRightIndex != ~0u && walkBackwardIndex != ~0u;
+        return leftSmallLength > 0.0f && rightSmallLength > 0.0f;
     }
-
-    bool HasRunningJump() const
-    {
-        return runJumpIndex != ~0u && runFallIndex != ~0u && runLandIndex != ~0u;
-    }
-
-    float GetWalkClipLength(uint32 index) const
-    {
-        if (index == strafeLeftIndex)
-        {
-            return strafeLeftLength;
-        }
-
-        if (index == strafeRightIndex)
-        {
-            return strafeRightLength;
-        }
-
-        if (index == walkBackwardIndex)
-        {
-            return walkBackwardLength;
-        }
-
-        return walkLength;
-    }
-
-    bool HasSmallTurnSteps() const
-    {
-        return (turnLeftSmallIndex != ~0u && turnRightSmallIndex != ~0u && turnStepSmallAngle > 0.0f);
-    }
-
-
-    bool CanStandAndAim() const
-    {
-        return (aimTwistRootBone.IsValid() && aimTwistEndBone.IsValid() && aimRange > 0.0f)
-            && (turnLeftIndex != ~0u && turnRightIndex != ~0u && turnStepAngle > 0.0f);
-    }
-
-};
-
-struct LocomotionAnimatedEntity
-{
-    AnimationComponent* animationComponent = nullptr;
-    const Skeleton* skeleton = nullptr;
 };
 
 namespace /* Constants */ {
@@ -160,25 +89,15 @@ namespace /* Constants */ {
 static constexpr float MaxTrackedSpeed = 50.0f;
 static constexpr float IdleSpeedThreshold = 0.3f;
 
-static constexpr float BackwardSpeedFraction = 0.5f;
-
 static constexpr float JumpTakeoffSpeed = 1.0f;
 
 static constexpr float FallGraceTime = 0.12f;
 
 static constexpr float RemoteAirborneVerticalSpeed = 1.5f;
 
-static constexpr float FallBlendInTime = 0.2f;
-
-static constexpr float JumpBlendInTime = 0.25f;
-
 static constexpr float JumpWindupHoldTime = 0.1f;
 
-static constexpr float JumpWindupBlendOutTime = 0.05f;
-
-static constexpr float MovingLandFraction = 0.35f;
-
-// Leaving the ground faster than this (m/s) is a running jump
+// Leaving the ground faster than this (m/s) is a running jump, which has no windup
 static constexpr float RunningJumpSpeed = 3.0f;
 
 static constexpr float StandingSpeedFraction = 0.3f;
@@ -201,7 +120,7 @@ static constexpr float AimTwistSharpness = 10.0f;
 static constexpr float SettleMaxViewTurnRate = MathUtil::DegToRad(30.0f);
 static constexpr float SettleViewStillTime = 0.05f;
 
-} // namespace 
+} // namespace
 
 namespace /* Helpers */ {
 
@@ -217,6 +136,27 @@ Entity* FindParentCharacterEntity(const Entity& entity)
     }
 
     return nullptr;
+}
+
+// bone-attached entities (weapons, props) keep their own animation
+void CollectBodyAnimatedEntities(const Node& node, Array<Entity*>& out)
+{
+    for (const Handle<Node>& child : node.GetChildren())
+    {
+        Entity* childEntity = TryCast<Entity>(child.Get());
+
+        if (childEntity && childEntity->HasComponent<BoneAttachmentComponent>())
+        {
+            continue;
+        }
+
+        if (childEntity && childEntity->HasComponent<AnimationComponent>())
+        {
+            out.PushBack(childEntity);
+        }
+
+        CollectBodyAnimatedEntities(*child, out);
+    }
 }
 
 Vec3f GetCharacterViewDirection(
@@ -257,150 +197,44 @@ float GetCapsuleFeetOffset(
     return -(capsuleHalfHeight + (isPlaying ? SceneHelpers::GetCapsuleHeightOffset(characterController) : 0.0f));
 }
 
-uint32 FindAnimationIndex(const Skeleton& skeleton, Name animationName)
+Handle<AnimationGraph> GetDefaultLocomotionGraph()
 {
-    if (!animationName.IsValid())
+    const Handle<AssetRegistry> engineRegistry = GetEngineAssetRegistry();
+
+    if (!engineRegistry.IsValid())
     {
-        return ~0u;
+        return Handle<AnimationGraph>::empty;
     }
 
-    const ANSIString wantedName(animationName.LookupString());
-    const ANSIString uniquifiedPrefix = wantedName + "_";
-
-    const Array<Handle<Animation>>& animations = skeleton.GetAnimations();
-
-    for (uint32 animationIndex = 0; animationIndex < animations.Size(); ++animationIndex)
-    {
-        if (!animations[animationIndex].IsValid())
-        {
-            continue;
-        }
-
-        const ANSIString candidateName(animations[animationIndex]->GetName().LookupString());
-
-        // The asset registry renames duplicates to Name_N, so accept those too
-        if (candidateName == wantedName || candidateName.StartsWith(uniquifiedPrefix))
-        {
-            return animationIndex;
-        }
-    }
-
-    return ~0u;
+    return engineRegistry->GetAsset<AnimationGraph>(AssetBuckets::Animations, NAME("HumanoidLocomotion"));
 }
 
-float GetAnimationLength(const Skeleton& skeleton, uint32 animationIndex)
+float GetGraphClipLength(const AnimationGraph& graph, Name nodeName)
 {
-    const Animation* animation = skeleton.GetAnimation(animationIndex).Get();
+    const AnimationClipNode* clipNode = TryCast<AnimationClipNode>(graph.GetNode(graph.FindNode(nodeName)));
 
-    return animation != nullptr ? animation->GetLength() : 0.0f;
+    return clipNode && clipNode->clip.IsValid() ? clipNode->clip->GetLength() : 0.0f;
 }
 
-void FindLocomotionClips(
-    const CharacterModelAnimations& animations,
-    const Skeleton& skeleton,
-    LocomotionClips& outClips)
+TurnStepClips FindTurnStepClips(const AnimationGraph& graph)
 {
-    LocomotionClips& clips = outClips;
+    TurnStepClips clips;
+    clips.leftLength = GetGraphClipLength(graph, NAME("TurnLeft"));
+    clips.rightLength = GetGraphClipLength(graph, NAME("TurnRight"));
+    clips.leftSmallLength = GetGraphClipLength(graph, NAME("TurnLeftSmall"));
+    clips.rightSmallLength = GetGraphClipLength(graph, NAME("TurnRightSmall"));
 
-    clips = {};
-
-    clips.idleIndex = FindAnimationIndex(skeleton, animations.idleAnimation);
-    clips.walkIndex = FindAnimationIndex(skeleton, animations.walkAnimation);
-    clips.runIndex = FindAnimationIndex(skeleton, animations.runAnimation);
-
-    if (clips.walkIndex == ~0u)
-    {
-        clips.walkIndex = clips.runIndex;
-    }
-
-    if (clips.runIndex == ~0u)
-    {
-        clips.runIndex = clips.walkIndex;
-    }
-
-    clips.strafeLeftIndex = FindAnimationIndex(skeleton, animations.strafeLeftAnimation);
-    clips.strafeRightIndex = FindAnimationIndex(skeleton, animations.strafeRightAnimation);
-    clips.walkBackwardIndex = FindAnimationIndex(skeleton, animations.walkBackwardAnimation);
-    clips.strafeLeftLength = GetAnimationLength(skeleton, clips.strafeLeftIndex);
-    clips.strafeRightLength = GetAnimationLength(skeleton, clips.strafeRightIndex);
-    clips.walkBackwardLength = GetAnimationLength(skeleton, clips.walkBackwardIndex);
-
-    clips.runJumpIndex = FindAnimationIndex(skeleton, animations.runJumpAnimation);
-    clips.runFallIndex = FindAnimationIndex(skeleton, animations.runFallAnimation);
-    clips.runLandIndex = FindAnimationIndex(skeleton, animations.runLandAnimation);
-    clips.runJumpLength = GetAnimationLength(skeleton, clips.runJumpIndex);
-    clips.runFallLength = GetAnimationLength(skeleton, clips.runFallIndex);
-    clips.runLandLength = GetAnimationLength(skeleton, clips.runLandIndex);
-
-    clips.jumpWindupIndex = FindAnimationIndex(skeleton, animations.jumpWindupAnimation);
-    clips.jumpIndex = FindAnimationIndex(skeleton, animations.jumpAnimation);
-    clips.fallIndex = FindAnimationIndex(skeleton, animations.fallAnimation);
-    clips.landIndex = FindAnimationIndex(skeleton, animations.landAnimation);
-
-    clips.idleLength = GetAnimationLength(skeleton, clips.idleIndex);
-    clips.walkLength = GetAnimationLength(skeleton, clips.walkIndex);
-    clips.runLength = GetAnimationLength(skeleton, clips.runIndex);
-    clips.jumpWindupLength = GetAnimationLength(skeleton, clips.jumpWindupIndex);
-    clips.jumpLength = GetAnimationLength(skeleton, clips.jumpIndex);
-    clips.fallLength = GetAnimationLength(skeleton, clips.fallIndex);
-    clips.landLength = GetAnimationLength(skeleton, clips.landIndex);
-
-    clips.aimRange = MathUtil::DegToRad(animations.aimRange);
-    clips.aimTwistRootBone = animations.aimTwistRootBone;
-    clips.aimTwistEndBone = animations.aimTwistEndBone;
-
-    clips.turnLeftIndex = FindAnimationIndex(skeleton, animations.turnLeftAnimation);
-    clips.turnRightIndex = FindAnimationIndex(skeleton, animations.turnRightAnimation);
-    clips.turnLeftLength = GetAnimationLength(skeleton, clips.turnLeftIndex);
-    clips.turnRightLength = GetAnimationLength(skeleton, clips.turnRightIndex);
-    clips.turnLeftSmallIndex = FindAnimationIndex(skeleton, animations.turnLeftSmallAnimation);
-    clips.turnRightSmallIndex = FindAnimationIndex(skeleton, animations.turnRightSmallAnimation);
-    clips.turnLeftSmallLength = GetAnimationLength(skeleton, clips.turnLeftSmallIndex);
-    clips.turnRightSmallLength = GetAnimationLength(skeleton, clips.turnRightSmallIndex);
-    clips.turnStepSmallAngle = MathUtil::DegToRad(animations.turnStepSmallAngle);
-    clips.settleAngle = MathUtil::DegToRad(animations.settleAngle);
-    clips.turnStepAngle = MathUtil::DegToRad(animations.turnStepAngle);
-    clips.turnStepStartAngle = MathUtil::DegToRad(animations.turnStepStartAngle);
-
-    // Keep run strictly above walk so the walk -> run blend never divides by zero
-    clips.walkReferenceSpeed = MathUtil::Max(animations.walkReferenceSpeed, 0.01f);
-    clips.runReferenceSpeed = MathUtil::Max(animations.runReferenceSpeed, clips.walkReferenceSpeed + 0.01f);
+    return clips;
 }
 
-float WrapTime(float time, float length)
+bool CanStandAndAim(const CharacterModelComponent& component, const TurnStepClips& clips)
 {
-    if (length <= 0.0f)
-    {
-        return 0.0f;
-    }
-
-    time = std::fmod(time, length);
-
-    return time < 0.0f ? time + length : time;
+    return component.aimRange > 0.0f && component.turnStepAngle > 0.0f && clips.HasFullSteps();
 }
 
-void UpdateLocomotionPhase(
-    CharacterModelComponent& component,
-    const LocomotionClips& clips,
-    bool isMovingBackward,
-    float delta)
+bool HasSmallTurnSteps(const CharacterModelComponent& component, const TurnStepClips& clips)
 {
-    const float runWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, component.smoothedSpeed);
-
-    // Distance covered by one full cycle of each clip at its reference speed
-    const float walkStride = clips.walkReferenceSpeed * clips.walkLength;
-    const float runStride = clips.runReferenceSpeed * clips.runLength;
-    const float stride = MathUtil::Lerp(walkStride, runStride, runWeight);
-
-    if (stride > 0.0f)
-    {
-        // With a backward walk of its own the cycle always runs forward; otherwise Walk plays in reverse
-        const float direction = isMovingBackward && !clips.HasDirectionalWalks() ? -1.0f : 1.0f;
-
-        component.locomotionPhase = WrapTime(component.locomotionPhase + direction * component.smoothedSpeed * delta / stride, 1.0f);
-    }
-
-    component.idleTime = WrapTime(component.idleTime + delta, clips.idleLength);
+    return component.turnStepSmallAngle > 0.0f && clips.HasSmallSteps();
 }
 
 // How far the facing direction is turned from the feet; positive when the view is to the character's right
@@ -409,156 +243,17 @@ float GetStandingTwist(const CharacterModelComponent& component)
     return float(std::remainder(component.facingYaw - component.bodyYaw, 2.0f * MathUtil::pi<float>));
 }
 
-///Turns the upper body the rest of the way from the feet to the view
-void ApplyAimTwist(
-    const CharacterModelComponent& component,
-    const LocomotionClips& clips,
-    AnimationComponent& animationComponent)
+float GetTurnStepClipLength(const CharacterModelComponent& component, const TurnStepClips& clips)
 {
-    AnimationPlaybackState& playbackState = animationComponent.playbackState;
-
-    if (!clips.CanStandAndAim())
+    if (component.isTurnStepSmall)
     {
-        playbackState.twistAngle = 0.0f;
-
-        return;
+        return component.isTurnStepLeft ? clips.leftSmallLength : clips.rightSmallLength;
     }
 
-    playbackState.twistAngle = MathUtil::Clamp(component.aimTwist, -clips.aimRange, clips.aimRange);
-    playbackState.twistRootBone = clips.aimTwistRootBone;
-    playbackState.twistEndBone = clips.aimTwistEndBone;
+    return component.isTurnStepLeft ? clips.leftLength : clips.rightLength;
 }
 
-DirectionalWalk GetDirectionalWalk(const CharacterModelComponent& component, const LocomotionClips& clips)
-{
-    DirectionalWalk walk;
-    walk.fromIndex = clips.walkIndex;
-
-    if (clips.HasDirectionalWalks())
-    {
-        const float quarterTurn = MathUtil::pi<float> * 0.5f;
-        const float angle = MathUtil::Abs(component.moveAngle);
-        const uint32 sideIndex = component.moveAngle >= 0.0f ? clips.strafeRightIndex : clips.strafeLeftIndex;
-
-        if (angle <= quarterTurn)
-        {
-            walk.toIndex = sideIndex;
-            walk.toWeight = angle / quarterTurn;
-        }
-        else
-        {
-            walk.fromIndex = sideIndex;
-            walk.toIndex = clips.walkBackwardIndex;
-            walk.toWeight = MathUtil::Min((angle - quarterTurn) / quarterTurn, 1.0f);
-        }
-    }
-
-    walk.fromTime = component.locomotionPhase * clips.GetWalkClipLength(walk.fromIndex);
-    walk.toTime = component.locomotionPhase * clips.GetWalkClipLength(walk.toIndex);
-
-    return walk;
-}
-
-void LayerDirectionalWalk(const DirectionalWalk& walk, float walkWeight, AnimationPlaybackState& playbackState)
-{
-    const float toWeight = walk.toIndex != ~0u ? walkWeight * walk.toWeight : 0.0f;
-
-    playbackState.layerAnimationIndex = walk.fromIndex;
-    playbackState.layerTime = walk.fromTime;
-    playbackState.layerWeight = toWeight < 1.0f ? (walkWeight - toWeight) / (1.0f - toWeight) : 0.0f;
-
-    playbackState.secondLayerAnimationIndex = walk.toIndex;
-    playbackState.secondLayerTime = walk.toTime;
-    playbackState.secondLayerWeight = toWeight;
-}
-
-void ApplyLocomotionPose(
-    const CharacterModelComponent& component,
-    const LocomotionClips& clips,
-    AnimationComponent& animationComponent)
-{
-    const float speed = component.smoothedSpeed;
-
-    AnimationPlaybackState& playbackState = animationComponent.playbackState;
-    playbackState.status = AnimationPlaybackStatus::PLAYING;
-    playbackState.loopMode = AnimationLoopMode::REPEAT;
-
-    // Times are driven from here, so AnimationSystem shouldn't advance them
-    playbackState.speed = 0.0f;
-    playbackState.layerExcludedBone = Name::Invalid();
-    playbackState.secondLayerAnimationIndex = ~0u;
-    playbackState.secondLayerWeight = 0.0f;
-
-    const DirectionalWalk walk = GetDirectionalWalk(component, clips);
-
-    if (speed < clips.walkReferenceSpeed && clips.CanStandAndAim())
-    {
-        // Idle underneath; the upper body's turn toward the view is added on top by the twist (see ApplyAimTwist)
-        if (clips.idleIndex != ~0u)
-        {
-            playbackState.animationIndex = clips.idleIndex;
-            playbackState.currentTime = component.idleTime;
-        }
-        else
-        {
-            playbackState.animationIndex = clips.walkIndex;
-            playbackState.currentTime = 0.0f;
-        }
-
-        const float walkWeight = MathUtil::SmoothStep(0.0f, clips.walkReferenceSpeed, speed);
-
-        // A step still fading out gives way as soon as walking outweighs it
-        if (component.turnStepWeight > 0.001f && component.turnStepWeight >= walkWeight)
-        {
-            if (component.isTurnStepSmall)
-            {
-                playbackState.layerAnimationIndex = component.isTurnStepLeft ? clips.turnLeftSmallIndex : clips.turnRightSmallIndex;
-                playbackState.layerTime = component.turnStepProgress * (component.isTurnStepLeft ? clips.turnLeftSmallLength : clips.turnRightSmallLength);
-            }
-            else
-            {
-                playbackState.layerAnimationIndex = component.isTurnStepLeft ? clips.turnLeftIndex : clips.turnRightIndex;
-                playbackState.layerTime = component.turnStepProgress * (component.isTurnStepLeft ? clips.turnLeftLength : clips.turnRightLength);
-            }
-
-            playbackState.layerWeight = component.turnStepWeight;
-        }
-        else
-        {
-            LayerDirectionalWalk(walk, walkWeight, playbackState);
-        }
-    }
-    else if (speed < clips.walkReferenceSpeed)
-    {
-        if (clips.idleIndex != ~0u)
-        {
-            playbackState.animationIndex = clips.idleIndex;
-            playbackState.currentTime = component.idleTime;
-        }
-        else
-        {
-            playbackState.animationIndex = clips.walkIndex;
-            playbackState.currentTime = 0.0f;
-        }
-
-        LayerDirectionalWalk(walk, MathUtil::SmoothStep(0.0f, clips.walkReferenceSpeed, speed), playbackState);
-    }
-    else
-    {
-        playbackState.animationIndex = walk.fromIndex;
-        playbackState.currentTime = walk.fromTime;
-
-        playbackState.layerAnimationIndex = walk.toIndex;
-        playbackState.layerTime = walk.toTime;
-        playbackState.layerWeight = walk.toWeight;
-
-        playbackState.secondLayerAnimationIndex = clips.runIndex;
-        playbackState.secondLayerTime = component.locomotionPhase * clips.runLength;
-        playbackState.secondLayerWeight = MathUtil::SmoothStep(clips.walkReferenceSpeed, clips.runReferenceSpeed, speed);
-    }
-}
-
-void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* clips, float delta)
+void UpdateBodyYaw(CharacterModelComponent& component, const TurnStepClips& clips, float delta)
 {
     if (!component.hasBodyYaw)
     {
@@ -568,9 +263,13 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
         component.hasBodyYaw = true;
     }
 
-    const bool isStanding = clips != nullptr && clips->CanStandAndAim()
-        && !component.isAirborne && component.landTime < 0.0f
-        && component.smoothedSpeed < clips->walkReferenceSpeed * StandingSpeedFraction;
+    const float aimRange = MathUtil::DegToRad(component.aimRange);
+    const float turnStepAngle = MathUtil::DegToRad(component.turnStepAngle);
+    const float turnStepSmallAngle = MathUtil::DegToRad(component.turnStepSmallAngle);
+
+    const bool isStanding = CanStandAndAim(component, clips)
+        && !component.isAirborne
+        && component.smoothedSpeed < component.walkReferenceSpeed * StandingSpeedFraction;
 
     if (!isStanding)
     {
@@ -591,10 +290,11 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
 
         component.viewStillTime = viewTurnRate < SettleMaxViewTurnRate ? component.viewStillTime + delta : 0.0f;
 
-        const bool isFinishingStep = (component.turnStepWeight > 0.5f);
+        const bool isFinishingStep = component.turnStepWeight > 0.5f;
+        const bool hasSmallSteps = HasSmallTurnSteps(component, clips);
 
-        const bool shouldTurn = absTwist > clips->turnStepStartAngle;
-        const bool shouldSettle = clips->HasSmallTurnSteps() && absTwist > clips->settleAngle
+        const bool shouldTurn = absTwist > MathUtil::DegToRad(component.turnStepStartAngle);
+        const bool shouldSettle = hasSmallSteps && absTwist > MathUtil::DegToRad(component.settleAngle)
             && (component.viewStillTime > SettleViewStillTime || isFinishingStep);
 
         if (!component.isTurnStepping && (shouldTurn || shouldSettle))
@@ -602,37 +302,32 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
             component.isTurnStepping = true;
             component.isTurnStepLeft = twist < 0.0f;
             component.turnStepFromYaw = component.bodyYaw;
-
-            component.isTurnStepSmall = (clips->HasSmallTurnSteps() && absTwist < (clips->turnStepSmallAngle + clips->turnStepAngle) * 0.5f);
-            
-            float stepAngle = clips->turnStepAngle;
-            if (component.isTurnStepSmall)
-            {
-                stepAngle = clips->turnStepSmallAngle;
-            }
+            component.isTurnStepSmall = hasSmallSteps && absTwist < (turnStepSmallAngle + turnStepAngle) * 0.5f;
 
             // Full steps turn exactly their clip's angle, so the recorded feet stay planted; the smaller everyday steps
             // catch up the actual twist, staying close to their clip's angle
-            component.turnStepSize = component.isTurnStepSmall ? MathUtil::Clamp(absTwist, stepAngle * 0.5f, stepAngle * 1.25f) : stepAngle;
+            if (component.isTurnStepSmall)
+            {
+                component.turnStepSize = MathUtil::Clamp(absTwist, turnStepSmallAngle * 0.5f, turnStepSmallAngle * 1.25f);
+            }
+            else
+            {
+                component.turnStepSize = turnStepAngle;
+            }
+
             component.turnStepTime = 0.0f;
-            component.turnStepProgress = 0.0f;
         }
 
         if (component.isTurnStepping)
         {
-            const float clipLength = component.isTurnStepSmall
-                ? (component.isTurnStepLeft ? clips->turnLeftSmallLength : clips->turnRightSmallLength)
-                : (component.isTurnStepLeft ? clips->turnLeftLength : clips->turnRightLength);
+            const float duration = MathUtil::Max(GetTurnStepClipLength(component, clips), 0.1f) / (absTwist > aimRange ? TurnStepFastSpeed : 1.0f);
 
-            const float duration = MathUtil::Max(clipLength, 0.1f) / (absTwist > clips->aimRange ? TurnStepFastSpeed : 1.0f);
-
-            component.turnStepTime = MathUtil::Min(component.turnStepTime + delta / duration, 1.0f);
             // The clips are authored against a body turning at a steady rate, so the feet only stay planted if it does
-            component.turnStepProgress = component.turnStepTime;
+            component.turnStepTime = MathUtil::Min(component.turnStepTime + delta / duration, 1.0f);
 
             const float direction = component.isTurnStepLeft ? -1.0f : 1.0f;
 
-            component.bodyYaw = component.turnStepFromYaw + direction * component.turnStepSize * component.turnStepProgress;
+            component.bodyYaw = component.turnStepFromYaw + direction * component.turnStepSize * component.turnStepTime;
 
             if (component.turnStepTime >= 1.0f)
             {
@@ -643,7 +338,7 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
 
     const float targetWeight = component.isTurnStepping ? 1.0f : 0.0f;
 
-    float blendTime;
+    float blendTime = TurnStepInterruptBlendOutTime;
 
     if (targetWeight > component.turnStepWeight)
     {
@@ -652,10 +347,6 @@ void UpdateBodyYaw(CharacterModelComponent& component, const LocomotionClips* cl
     else if (isStanding)
     {
         blendTime = TurnStepBlendOutTime;
-    }
-    else
-    {
-        blendTime = TurnStepInterruptBlendOutTime;
     }
 
     component.turnStepWeight = MathUtil::Lerp(component.turnStepWeight, targetWeight, MathUtil::Clamp(1.0f - MathUtil::Exp(-delta / blendTime), 0.0f, 1.0f));
@@ -678,8 +369,7 @@ void UpdateAirborneState(
         if (!component.isAirborne)
         {
             component.isAirborne = true;
-            // A wound-up takeoff is a jump even when the capsule hasn't moved since the last update, otherwise the
-            // first airborne frame drops back to the locomotion pose
+            // A wound-up takeoff is a jump even when the capsule hasn't moved since the last update
             component.isJumping = component.verticalSpeed > JumpTakeoffSpeed || component.isJumpWoundUp;
             component.isRunningJump = component.smoothedSpeed > RunningJumpSpeed;
             component.airTime = 0.0f;
@@ -701,13 +391,6 @@ void UpdateAirborneState(
     {
         component.isAirborne = false;
         component.isJumpWoundUp = false;
-
-        // A step down that never left the locomotion pose doesn't need a landing
-        component.landTime = (component.isJumping || component.airTime > FallGraceTime) ? 0.0f : -1.0f;
-    }
-    else if (component.landTime >= 0.0f)
-    {
-        component.landTime += delta;
     }
 }
 
@@ -752,156 +435,54 @@ void UpdateJumpWindup(
     }
 }
 
-uint32 GetDominantLocomotionClip(
-    const CharacterModelComponent& component,
-    const LocomotionClips& clips,
-    float& outTime)
+CharacterMotionSignals GatherSignals(const CharacterModelComponent& component, const TurnStepClips& clips)
 {
-    const float speed = component.smoothedSpeed;
+    CharacterMotionSignals signals;
+    signals.speed = component.smoothedSpeed;
+    signals.moveAngle = MathUtil::RadToDeg(component.moveAngle);
+    signals.isAirborne = component.isAirborne;
+    signals.isJumping = component.isAirborne && component.isJumping;
+    signals.isRunningJump = component.isRunningJump;
+    signals.airTime = component.isAirborne ? component.airTime : 0.0f;
 
-    if (speed < clips.walkReferenceSpeed * 0.5f && clips.idleIndex != ~0u)
+    // a running takeoff skips the windup; a finished one holds its last frame until the feet leave the ground
+    if (component.isJumpWoundUp && component.smoothedSpeed <= RunningJumpSpeed)
     {
-        outTime = component.idleTime;
-
-        return clips.idleIndex;
+        signals.windup = component.jumpWindup >= 0.0f ? component.jumpWindup : 1.0f;
     }
 
-    if (speed < (clips.walkReferenceSpeed + clips.runReferenceSpeed) * 0.5f)
+    signals.turnStep = component.turnStepWeight;
+    signals.turnStepProgress = component.turnStepTime;
+    signals.turnStepKind = float((component.isTurnStepSmall ? 2 : 0) + (component.isTurnStepLeft ? 0 : 1));
+
+    if (CanStandAndAim(component, clips))
     {
-        const DirectionalWalk walk = GetDirectionalWalk(component, clips);
+        const float aimRange = MathUtil::DegToRad(component.aimRange);
 
-        if (walk.toIndex != ~0u && walk.toWeight > 0.5f)
-        {
-            outTime = walk.toTime;
-
-            return walk.toIndex;
-        }
-
-        outTime = walk.fromTime;
-
-        return walk.fromIndex;
+        signals.aimTwist = MathUtil::Clamp(component.aimTwist, -aimRange, aimRange);
     }
 
-    outTime = component.locomotionPhase * clips.runLength;
-
-    return clips.runIndex;
+    return signals;
 }
 
-bool ApplyAirbornePose(
-    CharacterModelComponent& component,
-    const LocomotionClips& clips,
-    AnimationComponent& animationComponent)
+void WriteSignals(const CharacterMotionSignals& signals, AnimationGraphInstance& instance)
 {
-    AnimationPlaybackState& playbackState = animationComponent.playbackState;
-    playbackState.layerExcludedBone = Name::Invalid();
-    playbackState.secondLayerAnimationIndex = ~0u;
-    playbackState.secondLayerWeight = 0.0f;
-
-    const bool isRunningWindup = clips.HasRunningJump() && component.smoothedSpeed > RunningJumpSpeed;
-    const bool isRunning = component.isRunningJump && clips.HasRunningJump();
-    const bool isWoundUp = component.isJumpWoundUp && !isRunning;
-
-    const uint32 jumpIndex = isRunning ? clips.runJumpIndex : clips.jumpIndex;
-    const float jumpLength = isRunning ? clips.runJumpLength : clips.jumpLength;
-    
-    const uint32 fallIndex = isRunning ? clips.runFallIndex : clips.fallIndex;
-    const float fallLength = isRunning ? clips.runFallLength : clips.fallLength;
-    
-    const uint32 landIndex = isRunning ? clips.runLandIndex : clips.landIndex;
-    const float landLength = isRunning ? clips.runLandLength : clips.landLength;
-
-    if (!component.isAirborne && component.isJumpWoundUp && clips.jumpWindupIndex != ~0u && !isRunningWindup)
-    {
-        const float windup = component.jumpWindup >= 0.0f ? component.jumpWindup : 1.0f;
-        float locomotionTime = 0.0f;
-
-        playbackState.animationIndex = clips.jumpWindupIndex;
-        playbackState.currentTime = windup * clips.jumpWindupLength;
-        playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
-        playbackState.layerTime = locomotionTime;
-        playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, 1.0f, windup);
-    }
-    else if (component.isAirborne)
-    {
-        if (!component.isJumping && component.airTime < FallGraceTime)
-        {
-            return false;
-        }
-
-        if (component.isJumping && jumpIndex != ~0u)
-        {
-            playbackState.animationIndex = jumpIndex;
-            playbackState.currentTime = MathUtil::Min(component.airTime, jumpLength);
-
-            if (isWoundUp && clips.jumpWindupIndex != ~0u && component.airTime < JumpWindupBlendOutTime)
-            {
-                playbackState.layerAnimationIndex = clips.jumpWindupIndex;
-                playbackState.layerTime = clips.jumpWindupLength;
-                playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, JumpWindupBlendOutTime, component.airTime);
-            }
-            else if (component.airTime < JumpBlendInTime && !isWoundUp)
-            {
-                float locomotionTime = 0.0f;
-
-                playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
-                playbackState.layerTime = locomotionTime;
-                playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(0.0f, JumpBlendInTime, component.airTime);
-            }
-            else
-            {
-                playbackState.layerAnimationIndex = fallIndex;
-                playbackState.layerTime = WrapTime(MathUtil::Max(component.airTime - jumpLength, 0.0f), fallLength);
-                playbackState.layerWeight = fallIndex != ~0u
-                    ? MathUtil::SmoothStep(jumpLength * 0.6f, jumpLength, component.airTime)
-                    : 0.0f;
-            }
-        }
-        else if (fallIndex != ~0u)
-        {
-            float locomotionTime = 0.0f;
-
-            playbackState.animationIndex = fallIndex;
-            playbackState.currentTime = WrapTime(component.airTime, fallLength);
-            playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
-            playbackState.layerTime = locomotionTime;
-            playbackState.layerWeight = 1.0f - MathUtil::SmoothStep(FallGraceTime, FallGraceTime + FallBlendInTime, component.airTime);
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else
-    {
-        if (component.landTime < 0.0f || landIndex == ~0u)
-        {
-            return false;
-        }
-
-        const bool isMoving = component.smoothedSpeed > clips.walkReferenceSpeed * 0.5f;
-        const float landDuration = landLength * (isMoving ? MovingLandFraction : 1.0f);
-
-        if (component.landTime >= landDuration)
-        {
-            component.landTime = -1.0f;
-
-            return false;
-        }
-
-        float locomotionTime = 0.0f;
-
-        playbackState.animationIndex = landIndex;
-        playbackState.currentTime = component.landTime;
-        playbackState.layerAnimationIndex = GetDominantLocomotionClip(component, clips, locomotionTime);
-        playbackState.layerTime = locomotionTime;
-        playbackState.layerWeight = MathUtil::SmoothStep(0.0f, landDuration, component.landTime);
-    }
-
-    playbackState.status = AnimationPlaybackStatus::PLAYING;
-    playbackState.loopMode = AnimationLoopMode::REPEAT;
-    playbackState.speed = 0.0f;
-
-    return true;
+    instance.SetFloat(NAME("Speed"), signals.speed);
+    instance.SetFloat(NAME("MoveAngle"), signals.moveAngle);
+    instance.SetFloat(NAME("Windup"), signals.windup);
+    instance.SetBool(NAME("Airborne"), signals.isAirborne);
+    instance.SetBool(NAME("Jumping"), signals.isJumping);
+    instance.SetBool(NAME("RunningJump"), signals.isRunningJump);
+    instance.SetFloat(NAME("AirTime"), signals.airTime);
+    instance.SetFloat(NAME("TurnStep"), signals.turnStep);
+    instance.SetFloat(NAME("TurnStepKind"), signals.turnStepKind);
+    instance.SetFloat(NAME("TurnStepProgress"), signals.turnStepProgress);
+    instance.SetFloat(NAME("AimTwist"), signals.aimTwist);
+    instance.SetVector2(NAME("Velocity"), signals.velocity);
+    instance.SetVector2(NAME("DesiredVelocity"), signals.desiredVelocity);
+    instance.SetFloat(NAME("DesiredFacing"), signals.desiredFacing);
+    instance.SetFloat(NAME("TrajectoryAcceleration"), signals.trajectoryAcceleration);
+    instance.SetFloat(NAME("TrajectoryTurnSharpness"), signals.trajectoryTurnSharpness);
 }
 
 float GetFacingTurnAlpha(const CharacterModelComponent& component, float delta)
@@ -935,6 +516,101 @@ void ApplyBodyRotation(Entity& entity, const CharacterModelComponent& component)
     entity.SetWorldRotation(Quat4f(Vec3f::UnitY(), modelYaw), TransformChangeType::Simulation);
 }
 
+// how far the ground under a foot is above the capsule's floor; zero when nothing is in reach
+float ProbeFootOffset(PhysicsWorldBase& physicsWorld, const CharacterModelComponent& component, const Vec3f& footPosition, float floorHeight)
+{
+    const Vec3f origin(footPosition.x, floorHeight + component.footProbeHeight, footPosition.z);
+
+    PhysicsRayHit hit;
+
+    if (!physicsWorld.CastRayStatic(origin, -Vec3f::UnitY(), component.footProbeHeight + component.footProbeDepth, hit))
+    {
+        return 0.0f;
+    }
+
+    return MathUtil::Clamp(hit.position.y - floorHeight, -component.footProbeDepth, component.footProbeHeight);
+}
+
+void UpdateFootOffsets(CharacterModelComponent& component, const Entity& meshEntity, PhysicsWorldBase* physicsWorld, float floorHeight, float delta)
+{
+    float leftTarget = 0.0f;
+    float rightTarget = 0.0f;
+
+    const MeshComponent* meshComponent = meshEntity.TryGetComponent<MeshComponent>();
+
+    if (component.footIK && !component.isAirborne && physicsWorld != nullptr && meshComponent != nullptr && meshComponent->skeleton.IsValid())
+    {
+        const Skeleton& skeleton = *meshComponent->skeleton;
+        const SkeletonBindData& bindData = skeleton.GetBindData();
+        const HumanoidMapping& mapping = skeleton.GetHumanoidMapping();
+
+        const Handle<Skeleton>& renderSkeleton = meshComponent->GetRenderSkeleton();
+        const Span<const Mat4f> poseMatrices = renderSkeleton.IsValid() ? renderSkeleton->GetPoseModelMatrices() : Span<const Mat4f>();
+
+        // only the feet's ground position matters, so last frame's pose (with its foot IK) is as good as any
+        const auto probeFoot = [&](HumanoidBone bone)
+        {
+            const uint32 slot = bindData.FindSlot(mapping.GetBoneName(bone));
+            Assert(slot != SkeletonBindData::InvalidSlot);
+
+            const Vec3f footPosition = (meshEntity.GetWorldMatrix() * poseMatrices[slot]).ExtractTranslation();
+
+            return ProbeFootOffset(*physicsWorld, component, footPosition, floorHeight);
+        };
+
+        if (skeleton.IsHumanoid() && poseMatrices.Size() == bindData.NumSlots())
+        {
+            leftTarget = probeFoot(HumanoidBone::LeftFoot);
+            rightTarget = probeFoot(HumanoidBone::RightFoot);
+        }
+    }
+
+    float alpha = 1.0f;
+
+    if (component.footIKSmoothing > 0.0f)
+    {
+        alpha = MathUtil::Clamp(1.0f - MathUtil::Exp(-delta / component.footIKSmoothing), 0.0f, 1.0f);
+    }
+
+    component.leftFootOffset = MathUtil::Lerp(component.leftFootOffset, leftTarget, alpha);
+    component.rightFootOffset = MathUtil::Lerp(component.rightFootOffset, rightTarget, alpha);
+}
+
+void WriteFootOffsets(const CharacterModelComponent& component, const Entity& meshEntity, AnimationGraphInstance& instance)
+{
+    // parts with partial rigs (clothing, hair) follow the body's pose but can't take foot IK
+    const MeshComponent* meshComponent = meshEntity.TryGetComponent<MeshComponent>();
+
+    if (!meshComponent || !meshComponent->skeleton.IsValid() || !meshComponent->skeleton->IsHumanoid())
+    {
+        return;
+    }
+
+    // the graph works in the skeleton's model space, which the mesh entity scales into the world
+    const float worldScale = MathUtil::Max(MathUtil::Abs(meshEntity.GetWorldScale().y), 1e-6f);
+
+    instance.SetFloat(NAME("LeftFootOffset"), component.leftFootOffset / worldScale);
+    instance.SetFloat(NAME("RightFootOffset"), component.rightFootOffset / worldScale);
+}
+
+void ApplyRootMotion(const Entity& meshEntity, const AnimationGraphInstance& instance, CharacterControllerComponent& characterController, float delta)
+{
+    const float weight = instance.GetRootMotionWeight();
+
+    if (weight <= 0.0f || delta <= 0.0f)
+    {
+        characterController.rootMotionVelocity = Vec3f::Zero();
+        characterController.rootMotionWeight = 0.0f;
+
+        return;
+    }
+
+    const Vec3f worldMotion = meshEntity.GetWorldRotation().RotateVector(instance.GetRootMotion() * meshEntity.GetWorldScale());
+
+    characterController.rootMotionVelocity = worldMotion / delta;
+    characterController.rootMotionWeight = weight;
+}
+
 } // namespace
 
 bool CharacterModelSystem::ShouldProcessScene(Scene* scene) const
@@ -962,9 +638,9 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
         for (auto [entity, component] : scene->GetEntityManager()->GetEntitySet<CharacterModelComponent>().GetScopedView(GetComponentInfos()))
         {
-            const Entity* characterEntity = FindParentCharacterEntity(*entity);
+            Entity* characterEntity = FindParentCharacterEntity(*entity);
 
-            const CharacterControllerComponent* characterController = characterEntity != nullptr
+            CharacterControllerComponent* characterController = characterEntity != nullptr
                 ? characterEntity->TryGetComponent<CharacterControllerComponent>()
                 : nullptr;
 
@@ -983,10 +659,16 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 component.hasPreviousTranslation = false;
                 component.smoothedSpeed = 0.0f;
                 component.isAirborne = false;
-                component.landTime = -1.0f;
                 component.hasBodyYaw = false;
                 component.isTurnStepping = false;
                 component.turnStepWeight = 0.0f;
+                component.leftFootOffset = 0.0f;
+                component.rightFootOffset = 0.0f;
+
+                if (characterController != nullptr)
+                {
+                    characterController->rootMotionWeight = 0.0f;
+                }
 
                 continue;
             }
@@ -1073,92 +755,104 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 break;
             }
 
-            const Vec3f facingForward = Vec3f(std::sin(component.facingYaw), 0.0f, std::cos(component.facingYaw));
-            const bool isMovingBackward = movementDirection.Dot(facingForward) < -BackwardSpeedFraction * movementDirection.Length();
-
-            Array<LocomotionAnimatedEntity, SceneTempAllocator> animatedEntities;
-
-            for (Node* descendant : entity->GetDescendants())
-            {
-                if (!descendant->IsA<Entity>())
-                {
-                    continue;
-                }
-
-                Entity* descendantEntity = static_cast<Entity*>(descendant);
-
-                AnimationComponent* animationComponent = descendantEntity->TryGetComponent<AnimationComponent>();
-                const MeshComponent* meshComponent = descendantEntity->TryGetComponent<MeshComponent>();
-
-                if (!animationComponent || !meshComponent || !meshComponent->skeleton.IsValid())
-                {
-                    continue;
-                }
-
-                animatedEntities.PushBack(LocomotionAnimatedEntity { animationComponent, meshComponent->skeleton.Get() });
-            }
-
-            // Submeshes of one model share a skeleton; advance the phase once per character, from the first one
-            LocomotionClips phaseClips;
-            
-            if (animatedEntities.Any())
-            {
-                FindLocomotionClips(component.animations, *animatedEntities[0].skeleton, phaseClips);
-            }
+            const Handle<AnimationGraph> graph = component.graph.IsValid() ? component.graph : GetDefaultLocomotionGraph();
+            const TurnStepClips turnStepClips = graph.IsValid() ? FindTurnStepClips(*graph) : TurnStepClips {};
 
             // With no facing mode the model keeps whatever rotation it has
             if (component.hasFacingYaw)
             {
-                UpdateBodyYaw(component, phaseClips.IsValid() ? &phaseClips : nullptr, delta);
+                UpdateBodyYaw(component, turnStepClips, delta);
                 ApplyBodyRotation(*entity, component);
             }
 
+            const Vec3f bodyForward = Vec3f(std::sin(component.bodyYaw), 0.0f, std::cos(component.bodyYaw));
+            const Vec3f bodyRight = Vec3f::UnitY().Cross(bodyForward);
+            const Vec2f localVelocity = Vec2f(horizontalVelocity.Dot(bodyRight), horizontalVelocity.Dot(bodyForward));
+
+            component.smoothedLocalVelocity += (localVelocity - component.smoothedLocalVelocity) * MathUtil::Clamp(speedAlpha, 0.0f, 1.0f);
+
+            if (component.facingMode == CharacterFacingMode::MovementDirection)
             {
-                const Vec3f bodyForward = Vec3f(std::sin(component.bodyYaw), 0.0f, std::cos(component.bodyYaw));
-                const Vec3f bodyRight = Vec3f::UnitY().Cross(bodyForward);
-                const Vec2f localVelocity = Vec2f(horizontalVelocity.Dot(bodyRight), horizontalVelocity.Dot(bodyForward));
-
-                component.smoothedLocalVelocity += (localVelocity - component.smoothedLocalVelocity) * MathUtil::Clamp(speedAlpha, 0.0f, 1.0f);
-
-                if (component.facingMode == CharacterFacingMode::MovementDirection)
-                {
-                    // The body turns to face its movement, so it always walks forward; strafing while it comes round reads as a sidestep
-                    component.moveAngle = 0.0f;
-                }
-                else if (component.smoothedLocalVelocity.Length() > IdleSpeedThreshold * 0.5f)
-                {
-                    component.moveAngle = std::atan2(component.smoothedLocalVelocity.x, component.smoothedLocalVelocity.y);
-                }
+                // The body turns to face its movement, so it always walks forward; strafing while it comes round reads as a sidestep
+                component.moveAngle = 0.0f;
+            }
+            else if (component.smoothedLocalVelocity.Length() > IdleSpeedThreshold * 0.5f)
+            {
+                component.moveAngle = std::atan2(component.smoothedLocalVelocity.x, component.smoothedLocalVelocity.y);
             }
 
-            if (!phaseClips.IsValid())
+            if (!graph.IsValid())
             {
                 continue;
             }
 
-            UpdateLocomotionPhase(component, phaseClips, isMovingBackward, delta);
+            CharacterMotionSignals signals = GatherSignals(component, turnStepClips);
 
-            for (const LocomotionAnimatedEntity& animatedEntity : animatedEntities)
+            const Vec3f desiredVelocity = characterController != nullptr && !isRemotePlayer ? characterController->wishVelocity : horizontalVelocity;
+
+            signals.velocity = component.smoothedLocalVelocity;
+            signals.desiredVelocity = Vec2f(desiredVelocity.Dot(bodyRight), desiredVelocity.Dot(bodyForward));
+            signals.trajectoryAcceleration = characterController != nullptr ? characterController->movement.groundAcceleration : 0.0f;
+            signals.trajectoryTurnSharpness = component.turnSharpness;
+
+            if (component.facingMode == CharacterFacingMode::ViewDirection)
             {
-                Optional<LocomotionClips> clipsOpt;
-                LocomotionClips* pClips = nullptr;
-                
-                if (animatedEntity.skeleton == animatedEntities[0].skeleton)
+                signals.desiredFacing = MathUtil::RadToDeg(GetStandingTwist(component));
+            }
+            else if (component.facingMode == CharacterFacingMode::MovementDirection && signals.desiredVelocity.Length() > IdleSpeedThreshold)
+            {
+                signals.desiredFacing = MathUtil::RadToDeg(std::atan2(signals.desiredVelocity.x, signals.desiredVelocity.y));
+            }
+
+            const bool appliesRootMotion = component.applyRootMotion && characterController != nullptr && !isRemotePlayer;
+            bool hasDrivenCharacter = false;
+
+            float floorHeight = worldTranslation.y;
+
+            if (characterController != nullptr)
+            {
+                floorHeight = characterEntity->GetWorldTranslation().y + GetCapsuleFeetOffset(*characterController, isPlaying);
+            }
+
+            Array<Entity*> bodyEntities;
+            CollectBodyAnimatedEntities(*entity, bodyEntities);
+
+            for (Entity* descendantEntity : bodyEntities)
+            {
+                AnimationComponent* animationComponent = &descendantEntity->GetComponent<AnimationComponent>();
+
+                if (animationComponent->graph != graph)
                 {
-                    pClips = &phaseClips;
-                }
-                else
-                {
-                    FindLocomotionClips(component.animations, *animatedEntity.skeleton, clipsOpt.Emplace());
-                    pClips = &clipsOpt.GetUnchecked();
+                    animationComponent->graph = graph;
                 }
 
-                if (pClips->IsValid() && !ApplyAirbornePose(component, *pClips, *animatedEntity.animationComponent))
+                // the animation system makes the instance on the graph's first update, so the very first frame has none
+                if (!animationComponent->graphInstance.IsValid())
                 {
-                    ApplyLocomotionPose(component, *pClips, *animatedEntity.animationComponent);
+                    continue;
                 }
 
-                ApplyAimTwist(component, *pClips, *animatedEntity.animationComponent);
+                WriteSignals(signals, *animationComponent->graphInstance);
+
+                // the first animated mesh stands for the character's feet and root
+                if (!hasDrivenCharacter)
+                {
+                    hasDrivenCharacter = true;
+
+                    UpdateFootOffsets(component, *descendantEntity, GetWorld()->GetPhysicsWorld().Get(), floorHeight, delta);
+
+                    if (appliesRootMotion)
+                    {
+                        ApplyRootMotion(*descendantEntity, *animationComponent->graphInstance, *characterController, delta);
+                    }
+                }
+
+                WriteFootOffsets(component, *descendantEntity, *animationComponent->graphInstance);
+            }
+
+            if (characterController != nullptr && (!hasDrivenCharacter || !appliesRootMotion))
+            {
+                characterController->rootMotionWeight = 0.0f;
             }
         }
     }

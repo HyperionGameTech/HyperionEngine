@@ -48,7 +48,7 @@ namespace Hyperion.Editor
 
         // what can be applied to an Entity via D&D
         private static readonly HashSet<string> EntityAssetTypeNames
-            = ["Script", "ScriptAsset", "Material", "Texture"];
+            = ["Script", "ScriptAsset", "Material", "Texture", "Animation", "AnimationGraph"];
 
         private static readonly object AssetCreationEntryTag = new();
         
@@ -92,6 +92,7 @@ namespace Hyperion.Editor
         private PackagingSettingsWindow? _packagingSettingsWindow;
         private IDock? _dynamicPanelsDock;
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
+        private Document? _animationGraphDocument;
         private int _frameCounter;
         private bool _viewportNativeHidden;
         private bool _isClosing;
@@ -134,6 +135,17 @@ namespace Hyperion.Editor
             InitializeComponent();
 
             viewModel.SceneHierarchy.PropertyChanged += OnSceneHierarchyPropertyChanged;
+            viewModel.AnimationGraphDocument.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(AnimationGraphDocumentViewModel.Title) && _animationGraphDocument != null)
+                {
+                    _animationGraphDocument.Title = viewModel.AnimationGraphDocument.Title;
+                }
+                else if (e.PropertyName == nameof(AnimationGraphDocumentViewModel.IsOpen))
+                {
+                    SyncAnimationGraphDocument();
+                }
+            };
 
             foreach (Control entry in BuildAddSceneMenuEntries(viewModel))
             {
@@ -845,6 +857,7 @@ namespace Hyperion.Editor
             _dynamicPanelsDock = null;
             _dynamicPanelTools.Clear();
             PanelService.Instance.ClosePanel();
+            _animationGraphDocument = null;
 
             IDock root = BuildDefaultLayout();
             DockControl.Layout = root;
@@ -871,6 +884,50 @@ namespace Hyperion.Editor
 
             DockControl.LayoutUpdated -= OnDockControlLayoutUpdated;
             DockControl.LayoutUpdated += OnDockControlLayoutUpdated;
+
+            SyncAnimationGraphDocument();
+        }
+
+        private void SyncAnimationGraphDocument()
+        {
+            if (_isClosing || DataContext is not MainWindowViewModel viewModel || DockControl.Factory is not FactoryBase factory || DockControl.Layout is not { } layout)
+            {
+                return;
+            }
+
+            if (!viewModel.AnimationGraphDocument.IsOpen)
+            {
+                if (_animationGraphDocument != null)
+                {
+                    factory.RemoveDockable(_animationGraphDocument, false);
+                    _animationGraphDocument = null;
+                }
+
+                return;
+            }
+
+            if (_animationGraphDocument == null)
+            {
+                if (FindDockableById(layout, "Documents") is not IDock documentsDock)
+                {
+                    return;
+                }
+
+                _animationGraphDocument = new Document
+                {
+                    Id = "AnimationGraph",
+                    Title = viewModel.AnimationGraphDocument.Title,
+                    Content = new AnimationGraphDocumentView { DataContext = viewModel.AnimationGraphDocument },
+                    CanFloat = false,
+                    CanPin = false,
+                    CanClose = false
+                };
+
+                documentsDock.VisibleDockables ??= factory.CreateList<IDockable>();
+                factory.AddDockable(documentsDock, _animationGraphDocument);
+                factory.SetActiveDockable(_animationGraphDocument);
+                factory.SetFocusedDockable(documentsDock, _animationGraphDocument);
+            }
         }
 
         /// <summary>

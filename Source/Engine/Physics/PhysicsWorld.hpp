@@ -81,6 +81,9 @@ public:
     virtual void SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState) = 0;
     virtual void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out) = 0;
 
+    // nearest static, non-sensor surface along the ray; one that starts inside a collider passes out of it without a hit
+    virtual bool CastRayStatic(const Vec3f& origin, const Vec3f& direction, float maxDistance, PhysicsRayHit& outHit) = 0;
+
 protected:
     Vec3f m_gravity = EarthGravity;
 
@@ -218,6 +221,11 @@ public:
     void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out) override
     {
         m_adapter.GetCharacterTouchedRigidBodies(physicsHandle, out);
+    }
+
+    bool CastRayStatic(const Vec3f& origin, const Vec3f& direction, float maxDistance, PhysicsRayHit& outHit) override
+    {
+        return m_adapter.CastRayStatic(origin, direction, maxDistance, outHit);
     }
 
     void Initialize() override

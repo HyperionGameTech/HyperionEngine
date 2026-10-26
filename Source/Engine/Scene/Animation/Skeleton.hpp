@@ -7,15 +7,24 @@
 #pragma once
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetImportInfo.hpp>
 #include <Asset/AssetReference.hpp>
+
+#include <Scene/Animation/HumanoidMapping.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Debug/Debug.hpp>
 
 #include <Core/Math/Mat4f.hpp>
+#include <Core/Math/Transform.hpp>
+
+#include <Core/Name/Name.hpp>
+
+#include <Core/Utilities/Span.hpp>
 
 #include <Core/Types.hpp>
 
@@ -24,6 +33,61 @@ namespace Hyperion {
 class Bone;
 class Animation;
 struct RenderProxySkeleton;
+
+struct SkeletonBindData
+{
+    static constexpr uint32 InvalidSlot = ~0u;
+
+    Array<Name> boneNames;
+    Array<uint32> parentSlots;
+    Array<Transform> restLocals;
+    Array<Mat4f> inverseBindMatrices;
+    Map<Name, uint32> slotsByBoneName;
+
+    HYP_FORCE_INLINE uint32 NumSlots() const
+    {
+        return uint32(boneNames.Size());
+    }
+
+    HYP_FORCE_INLINE uint32 FindSlot(Name boneName) const
+    {
+        auto it = slotsByBoneName.Find(boneName);
+
+        return it != slotsByBoneName.End() ? it->second : InvalidSlot;
+    }
+
+    bool IsSlotWithin(uint32 slot, Name ancestorBoneName) const;
+};
+
+HYP_STRUCT()
+struct SkeletonSocket
+{
+    HYP_STRUCT_BODY(SkeletonSocket);
+
+    HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
+    Name name;
+
+    HYP_FIELD(Property = "BoneName", Serialize = true, Editor = true, EditorType = "Bone")
+    Name boneName;
+
+    HYP_FIELD(Property = "Offset", Serialize = true, Editor = true)
+    Transform offset;
+
+    HYP_FORCE_INLINE bool operator==(const SkeletonSocket& other) const
+    {
+        return name == other.name && boneName == other.boneName && offset == other.offset;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(boneName);
+        hc.Add(offset);
+
+        return hc;
+    }
+};
 
 HYP_CLASS(AssetBucket = "Skeletons")
 class ENGINE_API Skeleton final : public AssetObject
@@ -89,6 +153,100 @@ public:
         return m_animations[index];
     }
 
+    HYP_METHOD()
+    const Handle<Animation>& FindAnimation(Name name) const;
+
+    HYP_METHOD()
+    Array<Name> GetAnimationNames() const;
+
+    HYP_METHOD()
+    Array<Name> GetBoneNames() const;
+
+    HYP_METHOD()
+    uint32 CountBoundTracks(const Handle<Animation>& animation) const;
+
+    HYP_METHOD(Property = "Sockets", NoScriptBindings)
+    const Array<SkeletonSocket>& GetSockets() const
+    {
+        return m_sockets;
+    }
+
+    HYP_METHOD(Property = "Sockets", NoScriptBindings)
+    void SetSockets(const Array<SkeletonSocket>& sockets)
+    {
+        m_sockets = sockets;
+    }
+
+    // a skeleton saved before humanoid mapping existed is auto-mapped the first time it's asked
+    HYP_METHOD(Property = "Humanoid", NoScriptBindings)
+    const HumanoidMapping& GetHumanoidMapping() const;
+
+    HYP_METHOD(Property = "Humanoid", NoScriptBindings)
+    void SetHumanoidMapping(const HumanoidMapping& humanoid);
+
+    HYP_METHOD()
+    bool IsHumanoid() const
+    {
+        return GetHumanoidMapping().IsHumanoid(GetBindData());
+    }
+
+    HYP_METHOD()
+    Name GetHumanoidBoneName(uint32 bone) const;
+
+    HYP_METHOD()
+    void SetHumanoidBoneName(uint32 bone, Name boneName);
+
+    // its own clips, then for a humanoid skeleton the clips of every other humanoid rig, named "Clip (Rig)"
+    HYP_METHOD()
+    Array<Name> GetCompatibleClipNames() const;
+
+    HYP_METHOD()
+    Handle<Animation> FindCompatibleClip(Name name) const;
+
+    // the humanoid skeletons in the current project and the engine content
+    static Array<Handle<Skeleton>> CollectHumanoidSkeletons();
+
+    // fills in the humanoid mapping from the bone names, keeping bones already mapped
+    HYP_METHOD(EditorOnly, EditorAction = "Auto-map Humanoid")
+    void AutoMapHumanoid();
+
+    const SkeletonSocket* FindSocket(Name name) const;
+
+    HYP_METHOD()
+    Array<Name> GetSocketNames() const;
+
+    const SkeletonBindData& GetBindData() const;
+
+    HYP_FORCE_INLINE const AssetImportInfo& GetImportInfo() const
+    {
+        return m_importInfo;
+    }
+
+    HYP_FORCE_INLINE void SetImportInfo(const AssetImportInfo& importInfo)
+    {
+        m_importInfo = importInfo;
+    }
+
+    // bumped whenever the bone tree is replaced, so pose instances know to rebuild
+    HYP_FORCE_INLINE uint32 GetRevision() const
+    {
+        return m_revision;
+    }
+
+    Handle<Skeleton> CreateInstance() const;
+
+    HYP_FORCE_INLINE const Skeleton* GetInstanceSource() const
+    {
+        return m_instanceSource;
+    }
+
+    HYP_FORCE_INLINE Span<const Mat4f> GetPoseModelMatrices() const
+    {
+        return m_poseModelMatrices.ToSpan();
+    }
+
+    void SetPoseMatrices(Span<const Mat4f> modelMatrices, Span<const Mat4f> skinningMatrices);
+
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
 
     const int* GetRenderProxyVersionPtr() const
@@ -101,6 +259,10 @@ public:
         ++m_renderProxyVersion;
     }
 
+protected:
+    // marks the clips this skeleton lists as authored for it, for clips saved before they recorded their skeleton
+    void OnLoaded() override;
+
 private:
     HYP_FIELD(Property = "RootBone")
     Handle<Bone> m_rootBone;
@@ -108,7 +270,27 @@ private:
     HYP_FIELD(Property = "Animations")
     Array<Handle<Animation>> m_animations;
 
+    HYP_FIELD(Property = "Sockets")
+    Array<SkeletonSocket> m_sockets;
+
+    HYP_FIELD(Property = "Humanoid")
+    mutable HumanoidMapping m_humanoid;
+    mutable bool m_isHumanoidResolved = false;
+
+    HYP_FIELD(Property = "ImportInfo", Serialize, Editor = false)
+    AssetImportInfo m_importInfo;
+
+    uint32 m_revision = 0;
+
     int m_renderProxyVersion;
+
+    const Skeleton* m_instanceSource = nullptr;
+
+    mutable SkeletonBindData m_bindData;
+    mutable bool m_bindDataBuilt = false;
+
+    Array<Mat4f> m_poseModelMatrices;
+    Array<Mat4f> m_poseSkinningMatrices;
 };
 
 } // namespace Hyperion

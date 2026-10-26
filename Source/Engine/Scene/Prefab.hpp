@@ -9,6 +9,7 @@
 #include <Core/Types.hpp>
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetImportInfo.hpp>
 
 #include <Core/Name/Name.hpp>
 #include <Core/Containers/String.hpp>
@@ -22,6 +23,7 @@ class Node;
 class Entity;
 class World;
 class Mesh;
+class Skeleton;
 
 extern void Prefab_OnPostLoad(class Prefab&);
 
@@ -93,6 +95,27 @@ public:
 
     static uint32 SyncStaleInstances(Node* root);
 
+    const AssetImportInfo& GetImportInfo() const
+    {
+        return m_importInfo;
+    }
+
+    void SetImportInfo(const AssetImportInfo& importInfo)
+    {
+        m_importInfo = importInfo;
+    }
+
+    // the rig a model loader built, reachable even when no skinned mesh uses it; not saved
+    const Handle<Skeleton>& GetLoadedSkeleton() const
+    {
+        return m_loadedSkeleton;
+    }
+
+    void SetLoadedSkeleton(const Handle<Skeleton>& skeleton)
+    {
+        m_loadedSkeleton = skeleton;
+    }
+
     static Delegate<void, Prefab*> OnPrefabChanged;
 
 private:
@@ -101,6 +124,11 @@ private:
 
     HYP_FIELD(Property = "Revision", Serialize)
     uint32 m_revision = 0;
+
+    HYP_FIELD(Property = "ImportInfo", Serialize, Editor = false)
+    AssetImportInfo m_importInfo;
+
+    Handle<Skeleton> m_loadedSkeleton;
 };
 
 } // namespace Hyperion

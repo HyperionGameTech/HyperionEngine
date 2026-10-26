@@ -750,7 +750,7 @@ public:
             files.PushBack(std::move(filePath));
         }
 
-        ImportEditorContent(subsystem, files, fields[0]);
+        ImportEditorContent(subsystem, files, fields[0], {}, /* reviewModels */ true);
     }
 };
 
@@ -1639,6 +1639,11 @@ public:
         }
 
         Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
+
+        if (!asset.IsValid() && GetEngineAssetRegistry().IsValid())
+        {
+            asset = GetEngineAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
+        }
 
         if (!EditorEntityAssetDrop::TargetsEntity(asset.Get()))
         {
@@ -3111,9 +3116,15 @@ public:
 
         const Handle<EditorPrefabEditState>& prefabEditState = subsystem->GetPrefabEditState();
 
-        if (prefabEditState->IsActive() && prefabEditState->GetPrefab() != prefab)
+        if (prefabEditState->IsActive() && prefabEditState->GetPrefab() == prefab)
         {
-            prefabEditState->Exit(/* apply */ true);
+            return;
+        }
+
+        if (!subsystem->ExitIsolatedEditStates(/* apply */ true))
+        {
+            HYP_LOG(Editor, Error, "EditorCommandEditPrefab: the open edit mode could not apply its edits");
+            return;
         }
 
         prefabEditState->Enter(prefab);

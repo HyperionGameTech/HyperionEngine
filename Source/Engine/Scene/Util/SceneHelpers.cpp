@@ -353,6 +353,13 @@ void MoveCharacter(Entity* entity, CharacterControllerComponent& component, cons
         walkDirection = wishDirection * wishSpeed;
     }
 
+    component.wishVelocity = walkDirection;
+
+    if (component.rootMotionWeight > 0.0f && component.isOnGround)
+    {
+        walkDirection = walkDirection * (1.0f - component.rootMotionWeight) + Vec3f { component.rootMotionVelocity.x, 0.0f, component.rootMotionVelocity.z };
+    }
+
     physicsWorld->ApplyCharacterJump(component.physicsHandle, bool(move.jumpRequested), bool(move.jumpHeld));
 
     physicsWorld->SetCharacterWalkDirection(component.physicsHandle, walkDirection);

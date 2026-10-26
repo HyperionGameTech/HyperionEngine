@@ -49,6 +49,10 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 
 #include <cmath>
 #include <cstring>
@@ -1788,6 +1792,59 @@ void JoltPhysicsAdapter::GetCharacterTouchedRigidBodies(const SharedPtr<void>& p
 
         out.PushBack(rigidBody);
     }
+}
+
+class JoltNonSensorBodyFilter final : public JPH::BodyFilter
+{
+public:
+    virtual bool ShouldCollideLocked(const JPH::Body& body) const override
+    {
+        return !body.IsSensor();
+    }
+};
+
+bool JoltPhysicsAdapter::CastRayStatic(const Vec3f& origin, const Vec3f& direction, float maxDistance, PhysicsRayHit& outHit)
+{
+    Assert(m_physicsSystem != nullptr);
+    Assert(direction.LengthSquared() > 1e-12f);
+
+    if (maxDistance <= 0.0f)
+    {
+        return false;
+    }
+
+    const JPH::RRayCast ray { JPH::RVec3(origin.x, origin.y, origin.z), ToJPHVec(direction.Normalized() * maxDistance) };
+
+    const JPH::SpecifiedBroadPhaseLayerFilter broadPhaseLayerFilter(JoltBroadPhaseNON_MOVING);
+    const JPH::SpecifiedObjectLayerFilter objectLayerFilter(JoltLayers::NON_MOVING);
+    const JoltNonSensorBodyFilter bodyFilter;
+
+    // a ray starting inside a collider (a foot against a crate) passes out of it and finds the surface below
+    JPH::RayCastSettings settings;
+    settings.mTreatConvexAsSolid = false;
+
+    JPH::ClosestHitCollisionCollector<JPH::CastRayCollector> collector;
+    m_physicsSystem->GetNarrowPhaseQuery().CastRay(ray, settings, collector, broadPhaseLayerFilter, objectLayerFilter, bodyFilter);
+
+    if (!collector.HadHit())
+    {
+        return false;
+    }
+
+    const JPH::RVec3 hitPosition = ray.GetPointOnRay(collector.mHit.mFraction);
+
+    outHit.position = Vec3f(float(hitPosition.GetX()), float(hitPosition.GetY()), float(hitPosition.GetZ()));
+    outHit.distance = collector.mHit.mFraction * maxDistance;
+    outHit.normal = -direction.Normalized();
+
+    JPH::BodyLockRead lock(m_physicsSystem->GetBodyLockInterface(), collector.mHit.mBodyID);
+
+    if (lock.Succeeded())
+    {
+        outHit.normal = FromJPHVec(lock.GetBody().GetWorldSpaceSurfaceNormal(collector.mHit.mSubShapeID2, hitPosition));
+    }
+
+    return true;
 }
 
 } // namespace Hyperion

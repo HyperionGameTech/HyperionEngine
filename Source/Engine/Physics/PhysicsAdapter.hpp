@@ -22,6 +22,13 @@ class PhysicsWorldBase;
 class RigidBody;
 class PhysicsShape;
 
+struct PhysicsRayHit
+{
+    Vec3f position;
+    Vec3f normal;
+    float distance = 0.0f;
+};
+
 struct CharacterControllerConfig
 {
     Handle<PhysicsShape> shape;
@@ -212,6 +219,11 @@ public:
     void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out)
     {
         GetDerivedAdapter()->DerivedAdapter::GetCharacterTouchedRigidBodies(physicsHandle, out);
+    }
+
+    bool CastRayStatic(const Vec3f& origin, const Vec3f& direction, float maxDistance, PhysicsRayHit& outHit)
+    {
+        return GetDerivedAdapter()->DerivedAdapter::CastRayStatic(origin, direction, maxDistance, outHit);
     }
 };
 

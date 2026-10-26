@@ -14,6 +14,7 @@
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/PlayerComponent.hpp>
+#include <Scene/Components/BoneAttachmentComponent.hpp>
 
 namespace Hyperion {
 
@@ -38,10 +39,11 @@ private:
         return {
             ComponentDescriptor<CharacterModelComponent, ComponentAccess::READ_WRITE> {},
             ComponentDescriptor<TransformComponent, ComponentAccess::READ_WRITE> {},
-            ComponentDescriptor<CharacterControllerComponent, ComponentAccess::READ, false> {},
+            ComponentDescriptor<CharacterControllerComponent, ComponentAccess::READ_WRITE, false> {},
             ComponentDescriptor<AnimationComponent, ComponentAccess::READ_WRITE, false> {},
             ComponentDescriptor<MeshComponent, ComponentAccess::READ, false> {},
-            ComponentDescriptor<PlayerComponent, ComponentAccess::READ, false> {}
+            ComponentDescriptor<PlayerComponent, ComponentAccess::READ, false> {},
+            ComponentDescriptor<BoneAttachmentComponent, ComponentAccess::READ, false> {}
         };
     }
 };

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Asset/Loader.hpp>
+#include <Asset/ModelImport.hpp>
 
 #include <Core/FileSystem/FilePath.hpp>
 #include <Core/Containers/String.hpp>
@@ -22,13 +23,24 @@ class AssetObject;
 
 using EditorImportCallback = Proc<void(EditorSubsystem&, const Array<Handle<AssetObject>>&)>;
 
-/// Imported assets are filed under targetFolder.
-/// a model gets its own <targetFolder>/<ModelName>/ with a subfolder per asset type
 void ImportEditorContent(
     EditorSubsystem* subsystem,
     const Array<FilePath>& files,
     const String& targetFolder,
-    EditorImportCallback&& onImported = {});
+    EditorImportCallback&& onImported = {},
+    bool reviewModels = false);
+
+Array<Handle<AssetObject>> CommitEditorModelImport(
+    EditorSubsystem& subsystem,
+    const ModelImportContents& contents,
+    const AssetImportInfo& importInfo,
+    const String& targetFolder);
+
+const AssetImportInfo* GetEditorAssetImportInfo(const AssetObject* asset);
+
+bool ReimportEditorAsset(EditorSubsystem& subsystem, const Handle<AssetObject>& asset);
+
+// @TODO Clean up
 
 static inline bool IsEditorImportModelFile(const FilePath& filepath)
 {
@@ -46,6 +58,8 @@ static inline bool IsEditorImportModelFile(const FilePath& filepath)
 
     return String(filepath.Basename()).ToLower().EndsWith(".mesh.xml");
 }
+
+// @TODO Clean up
 
 static inline EnumFlags<AssetLoadHint> GetEditorImportLoadHint(const FilePath& filepath)
 {

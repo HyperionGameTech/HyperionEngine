@@ -194,6 +194,7 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand DeleteAssetCommand { get; }
         public ICommand EditAssetCommand { get; }
+        public ICommand ReimportAssetCommand { get; }
 
         public ICommand NewFolderCommand { get; }
         public ICommand DeleteFolderCommand { get; }
@@ -297,6 +298,34 @@ namespace Hyperion.Editor.ViewModels
             EditAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
                 OpenAssetEditor(asset);
+            });
+
+            ReimportAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
+            {
+                if (asset?.Bucket == null)
+                {
+                    return;
+                }
+
+                uint bucketIndex = asset.Bucket.BucketIndex;
+                Name assetName = asset.AssetDesc.Name;
+                string displayName = asset.DisplayName;
+
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    AssetObject? obj = AssetManager.Instance.AssetRegistry.GetAsset(bucketIndex, assetName);
+
+                    if (obj == null || !obj.IsValid)
+                    {
+                        Logger.Log(LogLevel.Error, $"Reimport: asset '{displayName}' could not be resolved");
+                        return;
+                    }
+
+                    if (!_editorSubsystem.ReimportAsset(obj))
+                    {
+                        Logger.Log(LogLevel.Error, $"Reimport of '{displayName}' failed");
+                    }
+                });
             });
 
             NewFolderCommand = new RelayCommand<AssetFolderViewModel>(parent =>
@@ -1630,6 +1659,27 @@ namespace Hyperion.Editor.ViewModels
                 if (obj is Prefab)
                 {
                     Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditPrefab(assetName.ToString()));
+
+                    return;
+                }
+
+                if (obj is Skeleton skeleton)
+                {
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterSkeleton(skeleton)));
+
+                    return;
+                }
+
+                if (obj is AnimationGraph graph)
+                {
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterGraph(graph)));
+
+                    return;
+                }
+
+                if (obj is Animation animation)
+                {
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterAnimation(animation)));
 
                     return;
                 }

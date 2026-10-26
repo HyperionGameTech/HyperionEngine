@@ -150,7 +150,7 @@ bool EditorSurfacePainterState::CanEnterTool() const
 {
     AssertOnThread(g_simThread);
 
-    return !m_subsystem->IsSimulating() && !m_subsystem->IsEditingPrefab();
+    return !m_subsystem->IsSimulating() && !m_subsystem->IsInIsolatedEditMode();
 }
 
 float EditorSurfacePainterState::GetScale() const

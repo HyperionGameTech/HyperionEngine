@@ -5,9 +5,14 @@ namespace Hyperion.Editor.ViewModels
 {
     public static class InspectorWarnings
     {
+        private const int MaxSkinnedBones = 128;
+
         private static readonly Func<Entity, string?>[] s_entityChecks =
         {
-            CheckDynamicBodyIsNotStatic
+            CheckDynamicBodyIsNotStatic,
+            CheckAnimationHasSkeleton,
+            CheckClipMatchesSkeleton,
+            CheckSkeletonBoneCount
         };
 
         public static List<string> Collect(IReadOnlyList<Entity> entities)
@@ -58,6 +63,53 @@ namespace Hyperion.Editor.ViewModels
 
             return "Rigid body has a non-zero mass but the entity is static.\n"
                 + "This may cause performance degredation and visual irregularities (due to caching) when/if the entity is moved.";
+        }
+
+        private static Skeleton? GetSkeleton(Entity entity)
+        {
+            return entity.TryGetComponent(out MeshComponent meshComponent) ? meshComponent.Skeleton : null;
+        }
+
+        private static string? CheckAnimationHasSkeleton(Entity entity)
+        {
+            if (!entity.TryGetComponent(out AnimationComponent _) || GetSkeleton(entity) != null)
+            {
+                return null;
+            }
+
+            return "AnimationComponent will be non-functional because no skeleton is associated with the MeshComponent.";
+        }
+
+        private static string? CheckClipMatchesSkeleton(Entity entity)
+        {
+            if (!entity.TryGetComponent(out AnimationComponent animationComponent))
+            {
+                return null;
+            }
+
+            Animation? clip = animationComponent.Animation;
+            Skeleton? skeleton = GetSkeleton(entity);
+
+            if (clip == null || skeleton == null || skeleton.CountBoundTracks(clip) > 0)
+            {
+                return null;
+            }
+
+            return $"Clip {clip.Name} doesn't drive any bone of skeleton {skeleton.Name}.";
+        }
+
+        private static string? CheckSkeletonBoneCount(Entity entity)
+        {
+            Skeleton? skeleton = GetSkeleton(entity);
+
+            if (skeleton == null)
+            {
+                return null;
+            }
+
+            int numBones = skeleton.GetBoneNames().Length;
+
+            return numBones > MaxSkinnedBones ? $"Skeleton {skeleton.Name} has {numBones} bones which is over the limit ({MaxSkinnedBones})" : null;
         }
     }
 }

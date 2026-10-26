@@ -75,6 +75,9 @@ class EditorInstancePainterState;
 class EditorSurfacePainterState;
 class EditorCsgState;
 class EditorPrefabEditState;
+class EditorAnimationEditState;
+class EditorModelImportReview;
+class EditorIsolatedEditState;
 class InstanceGroup;
 class InstanceHandleNode;
 class AppContextBase;
@@ -314,6 +317,17 @@ public:
     HYP_METHOD()
     void RequestAssetImport(uint32 requestId);
 
+    void QueueModelImportReview(const Handle<EditorModelImportReview>& review);
+
+    HYP_METHOD()
+    Handle<EditorModelImportReview> GetPendingModelImportReview();
+
+    HYP_METHOD()
+    bool CanReimportAsset(const Handle<AssetObject>& asset) const;
+
+    HYP_METHOD()
+    bool ReimportAsset(const Handle<AssetObject>& asset);
+
     ////////////////////
 
     HYP_METHOD()
@@ -412,6 +426,27 @@ public:
 
     HYP_METHOD()
     bool IsEditingPrefab() const;
+
+    ///Animation editing
+
+    HYP_METHOD()
+    Handle<EditorAnimationEditState> GetAnimationEditState();
+
+    HYP_METHOD()
+    bool IsEditingAnimation() const;
+
+    HYP_METHOD()
+    bool CanEditAnimation(const Handle<Node>& node) const;
+
+    HYP_METHOD()
+    EditorIsolatedEditState* GetActiveIsolatedEditState() const;
+
+    HYP_METHOD()
+    bool IsInIsolatedEditMode() const;
+
+    bool ExitIsolatedEditStates(bool apply);
+
+    bool IsProtectedNode(const Node* node) const;
 
     void UpdateViewportIsolation();
 
@@ -595,6 +630,41 @@ public:
 
     HYP_METHOD()
     void SetShowStatsEnabled(bool enabled);
+
+    HYP_METHOD()
+    bool IsShowBonesEnabled() const;
+
+    HYP_METHOD()
+    void SetShowBonesEnabled(bool enabled);
+
+    ///Animation preview
+
+    HYP_METHOD()
+    void StartAnimationPreview(const Handle<Entity>& entity);
+
+    HYP_METHOD()
+    void StopAnimationPreview();
+
+    HYP_METHOD()
+    bool IsAnimationPreviewActive(const Handle<Entity>& entity) const;
+
+    HYP_METHOD()
+    bool IsAnimationPreviewPlaying() const;
+
+    HYP_METHOD()
+    void SetAnimationPreviewPlaying(bool playing);
+
+    HYP_METHOD()
+    float GetAnimationPreviewTime() const;
+
+    HYP_METHOD()
+    void SetAnimationPreviewTime(float time);
+
+    HYP_METHOD()
+    float GetAnimationPreviewLength() const;
+
+    HYP_METHOD()
+    float GetAnimationClipLength(const Handle<Entity>& entity) const;
 
     HYP_METHOD()
     bool CanFitPhysicsShapeToMesh(Node* node) const;
@@ -811,6 +881,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, uint32, uint32, Name, String> OnAssetImportCompleted;
 
+    HYP_FIELD()
+    ScriptableDelegate<void> OnModelImportReviewQueued;
+
     /*! \brief Fired when the live material preview has a newly rendered frame waiting to be copied. */
     HYP_FIELD()
     ScriptableDelegate<void> OnMaterialPreviewUpdated;
@@ -952,6 +1025,9 @@ private:
 
     void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
     void DebugDrawMeshLods(class DebugDrawCommandList& debugDrawCommandList);
+    void DebugDrawSelectedBones(class DebugDrawCommandList& debugDrawCommandList);
+
+    void UpdateAnimationPreview(float delta);
     void DebugDrawSpotLight(class DebugDrawCommandList& debugDrawCommandList, const class Light& light);
     void DebugDrawSelectedInstances(class DebugDrawCommandList& debugDrawCommandList);
 
@@ -1020,6 +1096,9 @@ private:
     Handle<EditorCsgState> m_csgState;
 
     Handle<EditorPrefabEditState> m_prefabEditState;
+    Handle<EditorAnimationEditState> m_animationEditState;
+
+    Array<Handle<EditorModelImportReview>> m_pendingModelImportReviews;
 
     HYP_FIELD(Property = "ConvexCollisionSettings")
     ConvexDecompositionSettings m_convexCollisionSettings;
@@ -1044,6 +1123,10 @@ private:
     UniquePtr<EditorGizmoController> m_gizmoController;
 
     WeakHandle<Node> m_focusedNode;
+
+    WeakHandle<Entity> m_animationPreviewEntity;
+    float m_animationPreviewTime = 0.0f;
+    bool m_isAnimationPreviewPlaying = false;
     // the actual node that displays the highlight for the focused item
     Handle<Node> m_highlightNode;
 

@@ -7,10 +7,7 @@
 #include <EditorPch.hpp>
 
 #include <Editor/Prefab/EditorPrefabEditState.hpp>
-#include <Editor/Csg/EditorCsgState.hpp>
-#include <Editor/Terrain/EditorTerrainState.hpp>
 #include <Editor/EditorSubsystem.hpp>
-#include <Editor/EditorViewport.hpp>
 #include <Editor/EditorProject.hpp>
 #include <Editor/EditorAction.hpp>
 #include <Editor/EditorActionStack.hpp>
@@ -19,13 +16,8 @@
 #include <Scene/World.hpp>
 #include <Scene/Node.hpp>
 #include <Scene/Prefab.hpp>
-#include <Scene/Light/Light.hpp>
-
-#include <Scene/Camera/Camera.hpp>
 
 #include <Asset/AssetRegistry.hpp>
-
-#include <Core/Math/MathUtil.hpp>
 
 #include <Core/Logging/Logger.hpp>
 
@@ -130,22 +122,9 @@ EditorPrefabEditState::EditorPrefabEditState() = default;
 
 EditorPrefabEditState::~EditorPrefabEditState() = default;
 
-void EditorPrefabEditState::Initialize(EditorSubsystem* subsystem)
-{
-    m_subsystem = subsystem;
-}
-
 bool EditorPrefabEditState::IsActive() const
 {
     return m_prefab.IsValid() && m_editScene.IsValid();
-}
-
-bool EditorPrefabEditState::CanEnter() const
-{
-    return m_subsystem != nullptr
-        && m_subsystem->GetCurrentProject().IsValid()
-        && m_subsystem->GetProjectWorld().IsValid()
-        && !m_subsystem->IsSimulating();
 }
 
 bool EditorPrefabEditState::Enter(const Handle<Prefab>& prefab)
@@ -159,116 +138,41 @@ bool EditorPrefabEditState::Enter(const Handle<Prefab>& prefab)
         return false;
     }
 
-    if (IsActive())
-    {
-        // Switching to another prefab is the caller's job, since it has to decide what happens to pending edits
-        return m_prefab == prefab;
-    }
+    Assert(!IsActive(), "Exit prefab edit mode before entering it again");
 
-    if (!CanEnter())
+    if (!BeginEnter())
     {
         return false;
     }
 
-    m_subsystem->ExitMeshEditMode(/* saveEdits */ true);
-    m_subsystem->GetCsgState()->Exit(/* saveEdits */ true);
-    m_subsystem->GetTerrainState()->SetEnabled(false);
-    m_subsystem->DisableSurfacePainters();
-
-    m_previousActiveScene = m_subsystem->GetActiveScene();
-
-    m_subsystem->SetFocusedNode(Handle<Node>::Null());
-    m_subsystem->ClearSelection();
-
     m_prefab = prefab;
 
-    CreateScenes();
+    CreateScenes(NAME_FMT("PrefabEdit_{}", m_prefab->GetName()));
     SetWorkingRoot(CloneWorkingRoot());
-
-    ResetActionStack();
-    SetDirty(false);
-
-    m_subsystem->UpdateViewportIsolation();
-
-    FrameCamera();
-
-    m_subsystem->SetActiveScene(m_editScene);
 
     HYP_LOG(Editor, Info, "Editing prefab '{}'", m_prefab->GetName());
 
-    OnActiveChanged(true);
+    FinishEnter();
 
     return true;
 }
 
-void EditorPrefabEditState::Exit(bool apply)
+void EditorPrefabEditState::ClearTarget()
 {
-    AssertOnThread(g_simThread);
-
-    if (!IsActive())
-    {
-        return;
-    }
-
-    if (apply && m_dirty)
-    {
-        Apply();
-    }
-
-    m_subsystem->SetFocusedNode(Handle<Node>::Null());
-    m_subsystem->ClearSelection();
-
-    Handle<Scene> previousActiveScene = m_previousActiveScene.Lock();
-
-    if (!previousActiveScene.IsValid())
-    {
-        for (const Handle<Scene>& scene : m_subsystem->GetProjectWorld()->GetScenes())
-        {
-            if (scene.IsValid() && (scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
-            {
-                previousActiveScene = scene;
-
-                break;
-            }
-        }
-    }
-
     m_prefab.Reset();
-    m_previousActiveScene.Reset();
-
-    m_actionStackStateHandler.Reset();
-    m_actionStack.Reset();
-
-    m_subsystem->UpdateViewportIsolation();
-
-    RestoreCamera();
-
-    m_subsystem->SetActiveScene(previousActiveScene);
-    m_subsystem->OnActiveActionStackChanged();
-
-    // removed only once the active scene has moved off it
-    DestroyScenes();
-
-    SetDirty(false);
-
-    OnActiveChanged(false);
 }
 
-void EditorPrefabEditState::Apply()
+bool EditorPrefabEditState::Apply()
 {
     AssertOnThread(g_simThread);
 
     if (!IsActive())
     {
-        return;
+        return false;
     }
 
     const Handle<EditorProject>& project = m_subsystem->GetCurrentProject();
-
-    if (!project.IsValid())
-    {
-        return;
-    }
+    Assert(project.IsValid());
 
     Handle<Node> newRoot = m_editScene->GetRoot()->Clone();
 
@@ -276,7 +180,7 @@ void EditorPrefabEditState::Apply()
     {
         HYP_LOG(Editor, Error, "Failed to clone the working tree of prefab '{}'", m_prefab->GetName());
 
-        return;
+        return false;
     }
 
     Prefab::UntagAsPrefabInstance(newRoot.Get());
@@ -378,6 +282,8 @@ void EditorPrefabEditState::Apply()
 
     ResetActionStack();
     SetDirty(false);
+
+    return true;
 }
 
 void EditorPrefabEditState::Revert()
@@ -398,11 +304,6 @@ void EditorPrefabEditState::Revert()
     SetDirty(false);
 }
 
-bool EditorPrefabEditState::IsDirty() const
-{
-    return m_dirty;
-}
-
 const Handle<Prefab>& EditorPrefabEditState::GetPrefab() const
 {
     return m_prefab;
@@ -413,19 +314,14 @@ String EditorPrefabEditState::GetPrefabName() const
     return m_prefab.IsValid() ? String(*m_prefab->GetName()) : String::empty;
 }
 
-const Handle<Scene>& EditorPrefabEditState::GetEditScene() const
+String EditorPrefabEditState::GetDisplayName() const
 {
-    return m_editScene;
+    return GetPrefabName();
 }
 
-bool EditorPrefabEditState::IsEditScene(const Handle<Scene>& scene) const
+String EditorPrefabEditState::GetKindName() const
 {
-    return scene.IsValid() && scene == m_editScene;
-}
-
-EditorActionStack* EditorPrefabEditState::GetActionStack() const
-{
-    return IsActive() ? m_actionStack.Get() : nullptr;
+    return "prefab";
 }
 
 uint32 EditorPrefabEditState::GetNumLiveInstances() const
@@ -446,16 +342,6 @@ bool EditorPrefabEditState::IsUpdateInstancesOnApply() const
 void EditorPrefabEditState::SetUpdateInstancesOnApply(bool updateInstancesOnApply)
 {
     m_updateInstancesOnApply = updateInstancesOnApply;
-}
-
-Array<Handle<Scene>> EditorPrefabEditState::GetIsolatedScenes() const
-{
-    if (!IsActive())
-    {
-        return {};
-    }
-
-    return { m_editScene, m_stageScene };
 }
 
 Handle<Node> EditorPrefabEditState::CloneWorkingRoot() const
@@ -484,133 +370,6 @@ void EditorPrefabEditState::SetWorkingRoot(const Handle<Node>& workingRoot)
     }
 
     m_editScene->SetRoot(workingRoot);
-}
-
-void EditorPrefabEditState::CreateScenes()
-{
-    const Handle<World>& world = m_subsystem->GetProjectWorld();
-    Assert(world.IsValid());
-
-    m_editScene = MakeHandle<Scene>(NAME_FMT("PrefabEdit_{}", m_prefab->GetName()), SceneFlags::EDITOR | SceneFlags::HAS_OCTREE);
-    m_editScene->SetIsTransient(true);
-    InitObject(m_editScene);
-
-    world->AddScene(m_editScene, /* addToStreamingLayer */ false);
-
-    m_stageScene = MakeHandle<Scene>(NAME("PrefabEditStage"), SceneFlags::EDITOR);
-    m_stageScene->SetIsTransient(true);
-    InitObject(m_stageScene);
-
-    Handle<DirectionalLight> keyLight = MakeHandle<DirectionalLight>(
-        Vec3f(-0.4f, 0.75f, 0.5f).Normalized(),
-        Color(1.0f, 0.98f, 0.94f, 1.0f),
-        4.0f);
-
-    keyLight->SetName(NAME("PrefabEditKeyLight"));
-    keyLight->SetLightFlags(LightFlags::None);
-    InitObject(keyLight);
-    m_stageScene->GetRoot()->AddChild(keyLight);
-
-    Handle<DirectionalLight> fillLight = MakeHandle<DirectionalLight>(
-        Vec3f(0.5f, 0.2f, -0.8f).Normalized(),
-        Color(0.6f, 0.7f, 0.85f, 1.0f),
-        1.5f);
-
-    fillLight->SetName(NAME("PrefabEditFillLight"));
-    fillLight->SetLightFlags(LightFlags::None);
-    InitObject(fillLight);
-    m_stageScene->GetRoot()->AddChild(fillLight);
-
-    world->AddScene(m_stageScene, /* addToStreamingLayer */ false);
-}
-
-void EditorPrefabEditState::DestroyScenes()
-{
-    const Handle<World>& world = m_subsystem->GetProjectWorld();
-
-    for (Handle<Scene>* scene : { &m_editScene, &m_stageScene })
-    {
-        if (scene->IsValid() && world.IsValid())
-        {
-            world->RemoveScene(scene->Get());
-        }
-
-        scene->Reset();
-    }
-}
-
-void EditorPrefabEditState::FrameCamera()
-{
-    EditorViewport* viewport = m_subsystem->GetActiveViewport();
-
-    if (!viewport || !viewport->GetCamera().IsValid())
-    {
-        return;
-    }
-
-    const Handle<Camera>& camera = viewport->GetCamera();
-
-    m_savedCameraTranslation = camera->GetWorldTranslation();
-    m_savedCameraDirection = camera->GetDirection();
-    m_hasSavedCamera = true;
-
-    const BoundingBox bounds = m_editScene->GetRoot()->GetWorldBounds();
-
-    const Vec3f center = bounds.IsValid() ? bounds.GetCenter() : Vec3f::Zero();
-    const float radius = bounds.IsValid() ? MathUtil::Max(bounds.GetRadius(), 0.5f) : 1.0f;
-
-    const Vec3f viewDirection = Vec3f(-1.0f, -0.6f, -1.0f).Normalized();
-
-    camera->SetWorldTranslation(center - viewDirection * (radius * 2.5f));
-    camera->SetDirection(viewDirection);
-}
-
-void EditorPrefabEditState::RestoreCamera()
-{
-    if (!m_hasSavedCamera)
-    {
-        return;
-    }
-
-    m_hasSavedCamera = false;
-
-    EditorViewport* viewport = m_subsystem->GetActiveViewport();
-
-    if (!viewport || !viewport->GetCamera().IsValid())
-    {
-        return;
-    }
-
-    viewport->GetCamera()->SetWorldTranslation(m_savedCameraTranslation);
-    viewport->GetCamera()->SetDirection(m_savedCameraDirection);
-}
-
-void EditorPrefabEditState::ResetActionStack()
-{
-    m_actionStackStateHandler.Reset();
-
-    m_actionStack = MakeHandle<EditorActionStack>(m_subsystem->GetCurrentProject().ToWeak());
-
-    m_actionStackStateHandler = m_actionStack->OnStateChange.Bind(
-        this,
-        [this](EnumFlags<EditorActionStackState>, int)
-        {
-            SetDirty(m_actionStack.IsValid() && m_actionStack->CanUndo());
-        });
-
-    m_subsystem->OnActiveActionStackChanged();
-}
-
-void EditorPrefabEditState::SetDirty(bool dirty)
-{
-    if (m_dirty == dirty)
-    {
-        return;
-    }
-
-    m_dirty = dirty;
-
-    OnDirtyChanged(dirty);
 }
 
 } // namespace Hyperion

@@ -204,15 +204,28 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         return { time, keyframes[keyframes.Size() - 1].transform };
     }
 
-    for (int i = 0; i < int(keyframes.Size()) - 1; i++)
+    if (time >= keyframes[0].time)
     {
-        if (MathUtil::InRange(time, { keyframes[i].time, keyframes[i + 1].time }))
-        {
-            first = i;
-            second = i + 1;
+        // last keyframe at or before time; the hold check above keeps it short of the final keyframe
+        size_t low = 0;
+        size_t high = keyframes.Size() - 1;
 
-            break;
+        while (high - low > 1)
+        {
+            const size_t middle = low + (high - low) / 2;
+
+            if (keyframes[middle].time <= time)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle;
+            }
         }
+
+        first = int(low);
+        second = int(low + 1);
     }
 
     const Keyframe& current = keyframes[first];
@@ -256,6 +269,7 @@ void Animation::AddTrack(const Handle<AnimationTrack>& track)
     track->SetPersistentRequested(true);
 
     m_tracks.PushBack(track);
+    ++m_revision;
 }
 
 void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
@@ -266,6 +280,7 @@ void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
     }
 
     m_tracks = tracks;
+    ++m_revision;
 }
 
 void Animation::Apply(Skeleton& skeleton, const ApplyAnimParams& params)
@@ -381,6 +396,70 @@ void Animation::ApplyLayered(Skeleton& skeleton, const ApplyAnimParams& params)
         bone->SetKeyframe(bone->GetKeyframe().Blend(layerTrack->GetKeyframe(params.layerTime), blend * layerWeight));
     }
 }
+
+bool Animation::StampSourceSkeleton(const Skeleton& skeleton)
+{
+    AssetPath path = skeleton.GetPath();
+
+    if (!path.IsValid())
+    {
+        const Handle<AssetRegistry> registry = skeleton.GetAssetRegistry();
+
+        path = AssetPath(registry.IsValid() ? registry->GetRegistryId() : AssetRegistryId::Game, AssetBuckets::Skeletons, skeleton.GetName());
+    }
+
+    if (m_sourceSkeleton.GetAssetPath() == path)
+    {
+        return false;
+    }
+
+    m_sourceSkeleton = AssetReference(path);
+    ++m_revision;
+
+    return true;
+}
+
+Handle<Skeleton> Animation::ResolveSourceSkeleton() const
+{
+    const AssetPath& path = m_sourceSkeleton.GetAssetPath();
+
+    if (!path.IsValid())
+    {
+        return Handle<Skeleton>::empty;
+    }
+
+    Handle<AssetRegistry> registry;
+
+    switch (path.registryId)
+    {
+    case AssetRegistryId::Engine:
+        registry = GetEngineAssetRegistry();
+        break;
+#ifdef HYP_EDITOR
+    case AssetRegistryId::Editor:
+        registry = GetEditorAssetRegistry();
+        break;
+#endif // HYP_EDITOR
+    default:
+        // a game clip looks in its own registry first, which a tool or test may have made apart from the current one
+        registry = GetAssetRegistry();
+
+        if (!registry.IsValid() || registry->GetRegistryId() != AssetRegistryId::Game)
+        {
+            registry = GetCurrentAssetRegistry();
+        }
+
+        break;
+    }
+
+    if (!registry.IsValid())
+    {
+        return Handle<Skeleton>::empty;
+    }
+
+    return registry->GetAsset<Skeleton>(path.GetBucket(), path.assetName);
+}
+
 
 AnimationTrack* Animation::FindTrack(Name boneName) const
 {

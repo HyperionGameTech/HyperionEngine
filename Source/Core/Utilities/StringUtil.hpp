@@ -353,6 +353,26 @@ static inline auto TakeWhile(const containers::String<StringType, AllocatorType>
     return dst;
 }
 
+// true for a non-empty string of only decimal digits
+template <int StringType, class AllocatorType>
+static inline bool IsDigits(const containers::String<StringType, AllocatorType>& str)
+{
+    if (str.Empty())
+    {
+        return false;
+    }
+
+    for (auto ch : str)
+    {
+        if (ch < '0' || ch > '9')
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 template <int StringType, class AllocatorType>
 static inline bool Parse(const containers::String<StringType, AllocatorType>& str, int8* outValue)
 {

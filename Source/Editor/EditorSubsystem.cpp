@@ -19,6 +19,7 @@
 #include <Editor/EditorConfig.hpp>
 #include <Editor/EditorAssetDrop.hpp>
 #include <Editor/EditorImport.hpp>
+#include <Editor/EditorModelImportReview.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
 #include <Editor/EditorTemplateLibrary.hpp>
 #include <Editor/EditorNativeModule.hpp>
@@ -33,6 +34,7 @@
 #include <Editor/Instancing/EditorInstancePainterState.hpp>
 #include <Editor/Csg/EditorCsgState.hpp>
 #include <Editor/Prefab/EditorPrefabEditState.hpp>
+#include <Editor/Animation/EditorAnimationEditState.hpp>
 
 #include <Scene/Systems/Editor/EditorSpriteSystem.hpp>
 
@@ -51,6 +53,7 @@
 #include <Scene/System.hpp>
 #include <Scene/Systems/ScriptSystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
+#include <Scene/Systems/AnimationSystem.hpp>
 
 #include <Scene/WorldGrid/WorldGrid.hpp>
 #include <Scene/WorldGrid/WorldGridLayer.hpp>
@@ -69,6 +72,10 @@
 #include <Scene/Components/CharacterControllerComponent.hpp>
 #include <Scene/Components/TerrainCellComponent.hpp>
 #include <Scene/Components/InstanceClusterComponent.hpp>
+
+#include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/Bone.hpp>
+#include <Scene/Animation/Animation.hpp>
 
 #include <Scene/Instancing/InstanceGroup.hpp>
 
@@ -168,6 +175,7 @@ CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };
 static CVar<bool> s_cvDebugDrawPhysics { "Physics.DebugDraw", false };
 static CVar<bool> s_cvShowMeshLods { "Editor.ShowMeshLods", false };
 static CVar<bool> s_cvDebugDrawProbes { "Editor.DebugDrawProbes", false };
+static CVar<bool> s_cvShowBones { "Editor.ShowBones", false };
 
 static constexpr const char* PlayNetModeConfigKey = "PlayInEditor.NetMode";
 static constexpr const char* PlayNetHostConfigKey = "PlayInEditor.Host";
@@ -393,6 +401,78 @@ bool EditorSubsystem::IsEditingPrefab() const
     return m_prefabEditState.IsValid() && m_prefabEditState->IsActive();
 }
 
+Handle<EditorAnimationEditState> EditorSubsystem::GetAnimationEditState()
+{
+    if (!m_animationEditState.IsValid())
+    {
+        m_animationEditState = MakeHandle<EditorAnimationEditState>();
+        InitObject(m_animationEditState);
+
+        m_animationEditState->Initialize(this);
+    }
+
+    return m_animationEditState;
+}
+
+bool EditorSubsystem::IsEditingAnimation() const
+{
+    return m_animationEditState.IsValid() && m_animationEditState->IsActive();
+}
+
+bool EditorSubsystem::CanEditAnimation(const Handle<Node>& node) const
+{
+    const Entity* entity = TryCast<Entity>(node.Get());
+
+    if (!entity || !entity->GetEntityManager() || IsSimulating() || IsInIsolatedEditMode())
+    {
+        return false;
+    }
+
+    const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    return meshComponent && meshComponent->skeleton.IsValid();
+}
+
+EditorIsolatedEditState* EditorSubsystem::GetActiveIsolatedEditState() const
+{
+    if (IsEditingPrefab())
+    {
+        return m_prefabEditState.Get();
+    }
+
+    if (IsEditingAnimation())
+    {
+        return m_animationEditState.Get();
+    }
+
+    return nullptr;
+}
+
+bool EditorSubsystem::IsInIsolatedEditMode() const
+{
+    return GetActiveIsolatedEditState() != nullptr;
+}
+
+bool EditorSubsystem::ExitIsolatedEditStates(bool apply)
+{
+    if (m_prefabEditState.IsValid() && !m_prefabEditState->Exit(apply))
+    {
+        return false;
+    }
+
+    if (m_animationEditState.IsValid() && !m_animationEditState->Exit(apply))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool EditorSubsystem::IsProtectedNode(const Node* node) const
+{
+    return IsEditingAnimation() && m_animationEditState->IsProtectedNode(node);
+}
+
 void EditorSubsystem::SyncStalePrefabInstances(Scene* scene)
 {
     AssertOnThread(g_simThread);
@@ -434,8 +514,10 @@ void EditorSubsystem::UpdateViewportIsolation()
 {
     AssertOnThread(g_simThread);
 
-    const Array<Handle<Scene>> isolatedScenes = IsEditingPrefab()
-        ? m_prefabEditState->GetIsolatedScenes()
+    const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState();
+
+    const Array<Handle<Scene>> isolatedScenes = isolatedEditState
+        ? isolatedEditState->GetIsolatedScenes()
         : Array<Handle<Scene>>();
 
     for (const Handle<EditorViewport>& viewport : m_editorViewports)
@@ -493,7 +575,7 @@ bool EditorSubsystem::CanEnableMeshEditMode() const
         return true;
     }
 
-    if (!m_currentProject.IsValid() || IsSimulating() || IsEditingPrefab())
+    if (!m_currentProject.IsValid() || IsSimulating() || IsInIsolatedEditMode())
     {
         return false;
     }
@@ -548,9 +630,9 @@ EditorActionStack* EditorSubsystem::GetActiveActionStack() const
 
 EditorActionStack* EditorSubsystem::GetSceneActionStack() const
 {
-    if (IsEditingPrefab())
+    if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState())
     {
-        return m_prefabEditState->GetActionStack();
+        return isolatedEditState->GetActionStack();
     }
 
     if (!m_currentProject.IsValid())
@@ -563,9 +645,11 @@ EditorActionStack* EditorSubsystem::GetSceneActionStack() const
 
 EditorActionStack* EditorSubsystem::GetActionStackForNode(Node* node) const
 {
-    if (node != nullptr && IsEditingPrefab() && node->GetScene() == m_prefabEditState->GetEditScene().Get())
+    const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState();
+
+    if (node != nullptr && isolatedEditState && node->GetScene() == isolatedEditState->GetEditScene().Get())
     {
-        return m_prefabEditState->GetActionStack();
+        return isolatedEditState->GetActionStack();
     }
 
     if (!m_currentProject.IsValid())
@@ -1099,7 +1183,7 @@ void EditorSubsystem::EnterMeshEditMode()
         return;
     }
 
-    if (!m_currentProject.IsValid() || IsEditingPrefab())
+    if (!m_currentProject.IsValid() || IsInIsolatedEditMode())
     {
         return;
     }
@@ -2594,6 +2678,160 @@ void EditorSubsystem::SetShowStatsEnabled(bool enabled)
     StatsOverlay::SetStatsOverlayEnabled(enabled);
 }
 
+bool EditorSubsystem::IsShowBonesEnabled() const
+{
+    return s_cvShowBones.Get();
+}
+
+void EditorSubsystem::SetShowBonesEnabled(bool enabled)
+{
+    s_cvShowBones.Set(enabled);
+}
+
+static Animation* ResolvePreviewAnimation(Entity& entity)
+{
+    if (!entity.GetEntityManager())
+    {
+        return nullptr;
+    }
+
+    const AnimationComponent* animationComponent = entity.TryGetComponent<AnimationComponent>();
+    const MeshComponent* meshComponent = entity.TryGetComponent<MeshComponent>();
+
+    if (!animationComponent || !meshComponent || !meshComponent->skeleton.IsValid())
+    {
+        return nullptr;
+    }
+
+    return animationComponent->animation.IsValid()
+        ? animationComponent->animation.Get()
+        : meshComponent->skeleton->GetAnimation(animationComponent->playbackState.animationIndex).Get();
+}
+
+static AnimationSystem* GetAnimationSystem(Entity& entity)
+{
+    Scene* scene = entity.GetScene();
+    World* world = scene ? scene->GetWorld() : nullptr;
+
+    return world ? world->GetSystem<AnimationSystem>() : nullptr;
+}
+
+void EditorSubsystem::StartAnimationPreview(const Handle<Entity>& entity)
+{
+    StopAnimationPreview();
+
+    if (!entity || IsSimulating() || !ResolvePreviewAnimation(*entity))
+    {
+        return;
+    }
+
+    AnimationSystem* animationSystem = GetAnimationSystem(*entity);
+
+    if (!animationSystem)
+    {
+        return;
+    }
+
+    m_animationPreviewEntity = MakeWeakRef(entity);
+    m_animationPreviewTime = entity->GetComponent<AnimationComponent>().playbackState.currentTime;
+    m_isAnimationPreviewPlaying = false;
+
+    animationSystem->SetPreviewTime(entity.Get(), m_animationPreviewTime);
+}
+
+void EditorSubsystem::StopAnimationPreview()
+{
+    if (Handle<Entity> entity = m_animationPreviewEntity.Lock())
+    {
+        if (AnimationSystem* animationSystem = GetAnimationSystem(*entity))
+        {
+            animationSystem->StopPreview(entity.Get());
+        }
+    }
+
+    m_animationPreviewEntity.Reset();
+    m_isAnimationPreviewPlaying = false;
+}
+
+bool EditorSubsystem::IsAnimationPreviewActive(const Handle<Entity>& entity) const
+{
+    return entity.IsValid() && m_animationPreviewEntity.GetUnsafe() == entity.Get();
+}
+
+bool EditorSubsystem::IsAnimationPreviewPlaying() const
+{
+    return m_isAnimationPreviewPlaying;
+}
+
+void EditorSubsystem::SetAnimationPreviewPlaying(bool playing)
+{
+    m_isAnimationPreviewPlaying = playing && m_animationPreviewEntity.IsValid();
+}
+
+float EditorSubsystem::GetAnimationPreviewTime() const
+{
+    return m_animationPreviewTime;
+}
+
+void EditorSubsystem::SetAnimationPreviewTime(float time)
+{
+    m_animationPreviewTime = MathUtil::Clamp(time, 0.0f, GetAnimationPreviewLength());
+}
+
+float EditorSubsystem::GetAnimationPreviewLength() const
+{
+    Handle<Entity> entity = m_animationPreviewEntity.Lock();
+
+    return GetAnimationClipLength(entity);
+}
+
+float EditorSubsystem::GetAnimationClipLength(const Handle<Entity>& entity) const
+{
+    const Animation* animation = entity ? ResolvePreviewAnimation(*entity) : nullptr;
+
+    return animation ? animation->GetLength() : 0.0f;
+}
+
+void EditorSubsystem::UpdateAnimationPreview(float delta)
+{
+    Handle<Entity> entity = m_animationPreviewEntity.Lock();
+
+    if (!entity)
+    {
+        m_animationPreviewEntity.Reset();
+
+        return;
+    }
+
+    bool isSelected = false;
+
+    for (const Node* node = entity.Get(); node != nullptr && !isSelected; node = node->GetParent())
+    {
+        isSelected = AnyOf(m_selectedNodes, [node](const Handle<Node>& selectedNode)
+            {
+                return selectedNode.Get() == node;
+            });
+    }
+
+    AnimationSystem* animationSystem = GetAnimationSystem(*entity);
+
+    if (!isSelected || IsSimulating() || !animationSystem)
+    {
+        StopAnimationPreview();
+
+        return;
+    }
+
+    const float length = GetAnimationPreviewLength();
+
+    if (m_isAnimationPreviewPlaying && length > 0.0f)
+    {
+        m_animationPreviewTime = std::fmod(m_animationPreviewTime + delta, length);
+    }
+
+    animationSystem->SetPreviewTime(entity.Get(), MathUtil::Min(m_animationPreviewTime, length));
+}
+
 // Deep-copy a PhysicsShape asset (there is no reflection-based clone, so switch on the concrete type).
 static Handle<PhysicsShape> ClonePhysicsShape(const Handle<PhysicsShape>& source)
 {
@@ -3593,6 +3831,125 @@ void EditorSubsystem::DebugDrawMeshLods(DebugDrawCommandList& debugDrawCommandLi
     }
 }
 
+void EditorSubsystem::DebugDrawSelectedBones(DebugDrawCommandList& debugDrawCommandList)
+{
+    if (!s_cvShowBones.Get())
+    {
+        return;
+    }
+
+    static const RenderableAttributeSet s_jointAttributes = []()
+    {
+        RenderableAttributeSet attributes = PhysicsWireframeAttributes();
+        attributes.GetMaterialAttributes().flags = MaterialAttributeFlags::None;
+
+        return attributes;
+    }();
+
+    static const RenderableAttributeSet s_boneAttributes = []()
+    {
+        RenderableAttributeSet attributes = s_jointAttributes;
+        attributes.GetMeshAttributes().topology = Topology::Lines;
+        attributes.GetMaterialAttributes().fillMode = FillMode::Fill;
+
+        return attributes;
+    }();
+
+    static const Color s_boneColor = Color(0.35f, 0.85f, 1.0f, 1.0f);
+
+    Array<const Skeleton*> drawnSkeletons;
+
+    const auto drawSkeleton = [&](const Entity& entity, const Skeleton& skeleton)
+    {
+        if (drawnSkeletons.Contains(&skeleton) || !skeleton.GetRootBone())
+        {
+            return;
+        }
+
+        drawnSkeletons.PushBack(&skeleton);
+
+        const SkeletonBindData& bindData = skeleton.GetBindData();
+        const Span<const Mat4f> poseMatrices = skeleton.GetPoseModelMatrices();
+
+        Array<const Node*> slotNodes;
+        slotNodes.Reserve(bindData.NumSlots());
+        slotNodes.PushBack(skeleton.GetRootBone().Get());
+
+        for (Node* descendant : skeleton.GetRootBone()->GetDescendants())
+        {
+            slotNodes.PushBack(descendant);
+        }
+
+        if (slotNodes.Size() != bindData.NumSlots())
+        {
+            return;
+        }
+
+        const Mat4f entityMatrix = entity.GetWorldMatrix();
+
+        const auto jointPosition = [&](uint32 slot)
+        {
+            const Mat4f& modelMatrix = poseMatrices.Size() == bindData.NumSlots() ? poseMatrices[slot] : slotNodes[slot]->GetWorldMatrix();
+
+            return (entityMatrix * modelMatrix).ExtractTranslation();
+        };
+
+        float jointRadius = 0.01f;
+
+        for (uint32 slot = 1; slot < bindData.NumSlots(); ++slot)
+        {
+            if (!slotNodes[slot]->IsA<Bone>())
+            {
+                continue;
+            }
+
+            const Vec3f joint = jointPosition(slot);
+            const uint32 parentSlot = bindData.parentSlots[slot];
+
+            // the loaders add a synthetic root above the real ones; it has no joint of its own
+            if (parentSlot != SkeletonBindData::InvalidSlot && parentSlot != 0 && slotNodes[parentSlot]->IsA<Bone>())
+            {
+                const Vec3f parentJoint = jointPosition(parentSlot);
+                jointRadius = MathUtil::Max((joint - parentJoint).Length() * 0.08f, 0.002f);
+
+                debugDrawCommandList.line(parentJoint, joint, s_boneColor, s_boneAttributes);
+            }
+
+            debugDrawCommandList.sphere(joint, jointRadius, s_boneColor, s_jointAttributes);
+        }
+    };
+
+    for (const Handle<Node>& selectedNode : m_selectedNodes)
+    {
+        if (!selectedNode.IsValid())
+        {
+            continue;
+        }
+
+        const auto visit = [&](Node* node)
+        {
+            Entity* entity = TryCast<Entity>(node);
+
+            if (!entity || !entity->GetEntityManager())
+            {
+                return;
+            }
+
+            if (const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->GetRenderSkeleton().IsValid())
+            {
+                drawSkeleton(*entity, *meshComponent->GetRenderSkeleton());
+            }
+        };
+
+        visit(selectedNode.Get());
+
+        for (Node* descendant : selectedNode->GetDescendants())
+        {
+            visit(descendant);
+        }
+    }
+}
+
 // Hulls of one decomposition are easier to tell apart when each gets its own colour.
 static Color HullDebugColor(uint32 hullIndex)
 {
@@ -3873,6 +4230,12 @@ void EditorSubsystem::Update(float delta)
     GetCsgState()->Update();
     UpdateBakeStatus();
     UpdatePlayNetState();
+    UpdateAnimationPreview(delta);
+
+    if (m_animationEditState.IsValid())
+    {
+        m_animationEditState->Update(delta);
+    }
 
     if (m_thumbnailService)
     {
@@ -3890,6 +4253,12 @@ void EditorSubsystem::Update(float delta)
     DebugDrawPhysicsShapes(dbg);
     DebugDrawMeshLods(dbg);
     DebugDrawSelectedInstances(dbg);
+    DebugDrawSelectedBones(dbg);
+
+    if (IsEditingAnimation())
+    {
+        m_animationEditState->DebugDraw(dbg, GetSelectedNodes().ToSpan());
+    }
     
     GetTerrainState()->DebugDrawCursor(dbg);
     GetDecalPainterState()->DebugDrawCursor(dbg);
@@ -4029,9 +4398,11 @@ bool EditorSubsystem::StartSimulation()
     }
 
     // Pending prefab edits go into the snapshot too
-    if (m_prefabEditState.IsValid())
+    if (!ExitIsolatedEditStates(/* apply */ true))
     {
-        m_prefabEditState->Exit(/* apply */ true);
+        HYP_LOG(Editor, Error, "The open edit mode could not apply its edits. Simulation will not be started.");
+
+        return false;
     }
 
     // Save the edits to meshes before simulating.
@@ -4697,7 +5068,10 @@ void EditorSubsystem::InitViewport()
                             continue;
                         }
 
-                        nodeStrong = ResolvePickTarget(nodeStrong, m_selectedNodes);
+                        if (!nodeStrong->IsA<EditorBoneNode>() && !nodeStrong->IsA<EditorSocketNode>())
+                        {
+                            nodeStrong = ResolvePickTarget(nodeStrong, m_selectedNodes);
+                        }
 
                         bool shouldMutateSelection = false;
 
@@ -5419,9 +5793,9 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
         return false;
     }
 
-    if (IsEditingPrefab() && !command->AllowedWhileEditingPrefab())
+    if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState(); isolatedEditState && !command->AllowedWhileEditingPrefab())
     {
-        HYP_LOG(Editor, Warning, "Cannot execute command '{}' while editing a prefab", command->InstanceClass()->GetName());
+        HYP_LOG(Editor, Warning, "Cannot execute command '{}' while editing a {}", command->InstanceClass()->GetName(), isolatedEditState->GetKindName());
 
         return false;
     }
@@ -5605,9 +5979,11 @@ bool EditorSubsystem::OpenWorld(Name worldName)
 
     CancelMeshPreview();
 
-    if (m_prefabEditState.IsValid())
+    if (!ExitIsolatedEditStates(/* apply */ true))
     {
-        m_prefabEditState->Exit(/* apply */ true);
+        HYP_LOG(Editor, Error, "Cannot open World '{}', the open edit mode could not apply its edits", worldName);
+
+        return false;
     }
 
     ExitMeshEditMode(/* saveEdits */ true);
@@ -5688,10 +6064,7 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
-        if (m_prefabEditState.IsValid())
-        {
-            m_prefabEditState->Exit(/* apply */ false);
-        }
+        ExitIsolatedEditStates(/* apply */ false);
 
         GetCsgState()->Exit(/* saveEdits */ true);
 
@@ -5916,6 +6289,42 @@ void EditorSubsystem::ShowImportContentDialog()
 
             // Note: The batch will be destroyed automatically by AssetManager when complete
         });
+}
+
+void EditorSubsystem::QueueModelImportReview(const Handle<EditorModelImportReview>& review)
+{
+    AssertOnThread(g_simThread);
+
+    m_pendingModelImportReviews.PushBack(review);
+
+    OnModelImportReviewQueued();
+}
+
+Handle<EditorModelImportReview> EditorSubsystem::GetPendingModelImportReview()
+{
+    AssertOnThread(g_simThread);
+
+    while (m_pendingModelImportReviews.Any() && m_pendingModelImportReviews.Front()->IsFinished())
+    {
+        m_pendingModelImportReviews.PopFront();
+    }
+
+    return m_pendingModelImportReviews.Any() ? m_pendingModelImportReviews.Front() : Handle<EditorModelImportReview>::empty;
+}
+
+bool EditorSubsystem::CanReimportAsset(const Handle<AssetObject>& asset) const
+{
+    return !IsSimulating() && GetEditorAssetImportInfo(asset.Get()) != nullptr;
+}
+
+bool EditorSubsystem::ReimportAsset(const Handle<AssetObject>& asset)
+{
+    if (!CanReimportAsset(asset))
+    {
+        return false;
+    }
+
+    return ReimportEditorAsset(*this, asset);
 }
 
 void EditorSubsystem::RequestAssetImport(uint32 requestId)
@@ -6276,6 +6685,22 @@ bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
 {
     bool hasHits = false;
 
+    if (IsEditingAnimation())
+    {
+        float jointDistance = 0.0f;
+
+        if (EditorBoneNode* joint = m_animationEditState->PickJoint(ray, jointDistance))
+        {
+            RayHit jointHit {};
+            jointHit.node = joint;
+            jointHit.hitpoint = ray.position + ray.direction * jointDistance;
+            // joints sit inside the mesh, so they rank ahead of every surface hit
+            jointHit.distance = -1.0f / MathUtil::Max(jointDistance, 0.001f);
+
+            hasHits |= outResults.AddHit(jointHit);
+        }
+    }
+
     for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
         if (vp->GetView()->TestRay(ray, outResults, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
@@ -6288,12 +6713,12 @@ bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
     {
         if (EditorSpriteSystem* spriteSystem = projectWorld->GetSystem<EditorSpriteSystem>())
         {
-            if (IsEditingPrefab())
+            if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState())
             {
                 RayTestResults spriteResults;
                 spriteSystem->TestRay(ray, spriteResults);
 
-                const Handle<Scene>& editScene = m_prefabEditState->GetEditScene();
+                const Handle<Scene>& editScene = isolatedEditState->GetEditScene();
 
                 for (const RayHit& hit : spriteResults)
                 {
@@ -6925,9 +7350,9 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
     viewport->OnAdded(this);
     m_editorViewports.PushBack(viewportStrong);
 
-    if (IsEditingPrefab())
+    if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState())
     {
-        viewport->SetIsolatedScenes(this, m_prefabEditState->GetIsolatedScenes());
+        viewport->SetIsolatedScenes(this, isolatedEditState->GetIsolatedScenes());
     }
 
     // active VP is always the first one in the array
