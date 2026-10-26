@@ -17,7 +17,7 @@ public sealed class NativeEngineVersionFixture
     {
         _otherEngineBuild = new Lazy<string>(SaveOtherEngineBuild);
         _run = new Lazy<EditorTestRunResult>(() => Load("engine-version", rebuildScript: ""));
-        _rebuildRun = new Lazy<EditorTestRunResult>(() => Load("engine-version-rebuild", _project.Value.WriteRebuildScript()));
+        _rebuildRun = new Lazy<EditorTestRunResult>(() => Load("engine-version-rebuild", _project.Value.NativeBuildScriptPath!));
     }
 
     // loaded where nothing can rebuild the game, as in the editor without a C++ toolchain

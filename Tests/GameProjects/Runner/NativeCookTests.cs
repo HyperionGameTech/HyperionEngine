@@ -129,6 +129,18 @@ public class NativeCookTests : IClassFixture<NativeCookFixture>
     }
 
     [Fact]
+    public void Package_LinksShippingEngineStatically()
+    {
+        GameAssert.Succeeded(_fixture.Package);
+
+        GameAssert.NoEngineLibraries(_fixture.PackageDirectory);
+
+        string compileCommandsPath = Path.Combine(_fixture.Project.PackageBuildDirectory, "compile_commands.json");
+        Assert.True(File.Exists(compileCommandsPath), $"{compileCommandsPath} was not written");
+        Assert.Contains("HYP_SHIPPING=1", File.ReadAllText(compileCommandsPath));
+    }
+
+    [Fact]
     public void PackagedGame_LoadsCookedContent()
     {
         GameAssert.Passed(_fixture.PackagedRun, _output);

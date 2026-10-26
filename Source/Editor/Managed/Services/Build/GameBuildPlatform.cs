@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using Avalonia.Threading;
 
 namespace Hyperion.Editor.Services
 {
-    public abstract class GameBuildPlatform
+    public abstract partial class GameBuildPlatform
     {
         private static readonly Lazy<GameBuildPlatform> s_current = new Lazy<GameBuildPlatform>(CreateForHost);
 
@@ -40,8 +39,6 @@ namespace Hyperion.Editor.Services
         }
 
         public abstract NativeToolchain FindNativeToolchain(string sdkCompiler);
-
-        public abstract void PromptInstallNativeToolchain(IReadOnlyList<string> missing);
 
         public abstract string? FindNativeAotToolchainError(out string? extraPath);
 
@@ -96,11 +93,6 @@ namespace Hyperion.Editor.Services
             }
 
             return null;
-        }
-
-        protected static void ShowMessage(MessageBox messageBox)
-        {
-            Dispatcher.UIThread.Post(() => messageBox.Show());
         }
 
         protected static string? FirstExisting(params string[] paths)

@@ -17,7 +17,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${GAME_OUTPUT_DIR}")
 
 file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS "Game/*.cpp" "Game/*.hpp")
 
-add_library(@NAME@Game SHARED ${GAME_SOURCES})
+# a shared library the editor loads, or linked into the launcher when Package Game builds against the shipping SDK
+add_library(@NAME@Game ${HYPERION_GAME_MODULE_TYPE} ${GAME_SOURCES})
 target_include_directories(@NAME@Game PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(@NAME@Game PRIVATE Hyperion::Engine)
 target_precompile_headers(@NAME@Game PRIVATE "${HYPERION_SDK_PCH}")

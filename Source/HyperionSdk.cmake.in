@@ -4,7 +4,23 @@ set(HYPERION_SDK_THIRD_PARTY_DIRS "@HYP_SDK_THIRD_PARTY_SUBDIRS@")
 set(HYPERION_SDK_RUNTIME_LIBRARIES "")
 set(HYPERION_SDK_SHADER_COMPILER_LIBRARIES "@HYP_SDK_SHADER_COMPILER_LIBRARIES@")
 
+# a shipping SDK (Sdk/Shipping of an editor install) holds the static HYP_SHIPPING engine, which is linked into the game's executable
+set(HYPERION_SDK_SHIPPING @HYP_SDK_SHIPPING@)
+set(HYPERION_SDK_LINK_OPTIONS "@HYP_SDK_LINK_OPTIONS@")
+
 set(HYPERION_PACKAGE OFF CACHE BOOL "Build for a specific package")
+
+# Package Game links the shipping engine; the editor's SDK has the editor's engine, which isn't meant to be redistributed
+if(HYPERION_PACKAGE AND NOT HYPERION_SDK_SHIPPING)
+  message(FATAL_ERROR "HYPERION_PACKAGE needs a shipping SDK (Sdk/Shipping of an editor install), but ${CMAKE_CURRENT_LIST_DIR} is the editor's SDK")
+endif()
+
+# the game module is loaded by the game's executable and the editor, or built into the executable along with a static engine
+if(HYPERION_SDK_SHIPPING)
+  set(HYPERION_GAME_MODULE_TYPE OBJECT)
+else()
+  set(HYPERION_GAME_MODULE_TYPE SHARED)
+endif()
 
 # runtime layout, link flags and script linking for the platform the engine was built for
 include("${CMAKE_CURRENT_LIST_DIR}/HyperionSdkPlatform.cmake")
@@ -19,32 +35,71 @@ include("${CMAKE_CURRENT_LIST_DIR}/HyperionSdkDevPaths.cmake" OPTIONAL)
 if(NOT DEFINED HYPERION_SDK_INCLUDE_DIRS)
   get_filename_component(HYPERION_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
+  if(HYPERION_SDK_SHIPPING)
+    # Sdk/Shipping holds the libraries, and shares the headers and tools of the Sdk folder it's in
+    get_filename_component(HYPERION_SDK_SHARED_ROOT "${HYPERION_SDK_ROOT}/.." ABSOLUTE)
+    get_filename_component(HYPERION_SDK_BASE_DIR "${HYPERION_SDK_SHARED_ROOT}/.." ABSOLUTE)
+    set(HYPERION_SDK_RUNTIME_DIR "${HYPERION_SDK_ROOT}/Bin")
+    set(HYPERION_SDK_CONFIG_DIR "${HYPERION_SDK_BASE_DIR}/Config")
+
+    # file names in Lib, or system libraries and flags
+    file(STRINGS "${HYPERION_SDK_ROOT}/StaticLibraries.txt" static_libraries)
+
+    set(HYPERION_SDK_LIBRARIES "")
+
+    foreach(static_library ${static_libraries})
+      if(EXISTS "${HYPERION_SDK_ROOT}/Lib/${static_library}")
+        list(APPEND HYPERION_SDK_LIBRARIES "${HYPERION_SDK_ROOT}/Lib/${static_library}")
+      else()
+        list(APPEND HYPERION_SDK_LIBRARIES "${static_library}")
+      endif()
+    endforeach()
+  else()
+    set(HYPERION_SDK_SHARED_ROOT "${HYPERION_SDK_ROOT}")
+    get_filename_component(HYPERION_SDK_RUNTIME_DIR "${HYPERION_SDK_ROOT}/.." ABSOLUTE)
+    hyperion_sdk_packaged_libraries("${HYPERION_SDK_ROOT}" "${HYPERION_SDK_RUNTIME_DIR}" HYPERION_SDK_LIBRARIES)
+    set(HYPERION_SDK_BASE_DIR "${HYPERION_SDK_RUNTIME_DIR}")
+  endif()
+
   set(HYPERION_SDK_INCLUDE_DIRS
-      "${HYPERION_SDK_ROOT}/Include/Generated"
-      "${HYPERION_SDK_ROOT}/Include"
-      "${HYPERION_SDK_ROOT}/Include/Engine")
+      "${HYPERION_SDK_SHARED_ROOT}/Include/Generated"
+      "${HYPERION_SDK_SHARED_ROOT}/Include"
+      "${HYPERION_SDK_SHARED_ROOT}/Include/Engine")
 
   foreach(third_party_dir ${HYPERION_SDK_THIRD_PARTY_DIRS})
-    list(APPEND HYPERION_SDK_INCLUDE_DIRS "${HYPERION_SDK_ROOT}/ThirdParty/${third_party_dir}")
+    list(APPEND HYPERION_SDK_INCLUDE_DIRS "${HYPERION_SDK_SHARED_ROOT}/ThirdParty/${third_party_dir}")
   endforeach()
 
-  get_filename_component(HYPERION_SDK_RUNTIME_DIR "${HYPERION_SDK_ROOT}/.." ABSOLUTE)
-  hyperion_sdk_packaged_libraries("${HYPERION_SDK_ROOT}" "${HYPERION_SDK_RUNTIME_DIR}" HYPERION_SDK_LIBRARIES)
-  set(HYPERION_SDK_BASE_DIR "${HYPERION_SDK_RUNTIME_DIR}")
-  set(HYPERION_SDK_PCH "${HYPERION_SDK_ROOT}/Include/Engine/HyperionPch.hpp")
+  set(HYPERION_SDK_PCH "${HYPERION_SDK_SHARED_ROOT}/Include/Engine/HyperionPch.hpp")
   if(CMAKE_HOST_WIN32)
-    set(HYPERION_SDK_CODEGEN "${HYPERION_SDK_ROOT}/Bin/hyperion-codegen.exe")
+    set(HYPERION_SDK_CODEGEN "${HYPERION_SDK_SHARED_ROOT}/Bin/hyperion-codegen.exe")
   else()
-    set(HYPERION_SDK_CODEGEN "${HYPERION_SDK_ROOT}/Bin/hyperion-codegen")
+    set(HYPERION_SDK_CODEGEN "${HYPERION_SDK_SHARED_ROOT}/Bin/hyperion-codegen")
   endif()
-  set(HYPERION_SDK_ENGINE_TYPES "${HYPERION_SDK_ROOT}/Include/Generated/EngineTypes.json")
+  set(HYPERION_SDK_ENGINE_TYPES "${HYPERION_SDK_SHARED_ROOT}/Include/Generated/EngineTypes.json")
+endif()
+
+if(NOT DEFINED HYPERION_SDK_CONFIG_DIR)
+  set(HYPERION_SDK_CONFIG_DIR "${HYPERION_SDK_RUNTIME_DIR}/Config")
 endif()
 
 if(NOT TARGET Hyperion::Engine)
   add_library(Hyperion::Engine INTERFACE IMPORTED)
 
+  set(engine_libraries ${HYPERION_SDK_LIBRARIES})
+
+  # GNU-style linkers search an archive only once, in order, and the engine's archives reference each other
+  if(HYPERION_SDK_SHIPPING AND NOT MSVC AND NOT APPLE)
+    set(engine_libraries -Wl,--start-group ${engine_libraries} -Wl,--end-group)
+  endif()
+
   target_include_directories(Hyperion::Engine INTERFACE ${HYPERION_SDK_INCLUDE_DIRS})
-  target_link_libraries(Hyperion::Engine INTERFACE ${HYPERION_SDK_LIBRARIES})
+  target_link_libraries(Hyperion::Engine INTERFACE ${engine_libraries})
+
+  if(HYPERION_SDK_LINK_OPTIONS)
+    target_link_options(Hyperion::Engine INTERFACE ${HYPERION_SDK_LINK_OPTIONS})
+  endif()
+
   target_compile_features(Hyperion::Engine INTERFACE cxx_std_20)
   target_compile_options(Hyperion::Engine INTERFACE @HYP_SDK_COMPILE_OPTIONS@)
 
@@ -55,12 +110,25 @@ endif()
 function(hyperion_copy_runtime target content_dir)
   set(runtime_files "")
 
-  if(HYPERION_SDK_RUNTIME_LIBRARIES)
-    set(runtime_libraries ${HYPERION_SDK_RUNTIME_LIBRARIES})
+  if(HYPERION_SDK_SHIPPING)
+    hyperion_sdk_dependency_tool(dependency_platform dependency_tool dependency_tool_command)
 
-    if(NOT HYPERION_PACKAGE)
-      list(APPEND runtime_libraries ${HYPERION_SDK_SHADER_COMPILER_LIBRARIES})
+    if(dependency_tool)
+      add_custom_command(TARGET ${target} POST_BUILD
+          COMMAND ${CMAKE_COMMAND}
+              "-DEXECUTABLE=$<TARGET_FILE:${target}>"
+              "-DRUNTIME_DIR=${HYPERION_SDK_RUNTIME_DIR}"
+              "-DPLATFORM=${dependency_platform}"
+              "-DTOOL=${dependency_tool}"
+              "-DTOOL_COMMAND=${dependency_tool_command}"
+              -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/HyperionCopyRuntimeDependencies.cmake"
+          VERBATIM)
+    else()
+      message(WARNING "No dumpbin, objdump or otool found, so no libraries are copied beside ${target}")
     endif()
+  elseif(HYPERION_SDK_RUNTIME_LIBRARIES)
+    # the editor's engine compiles shaders at runtime
+    set(runtime_libraries ${HYPERION_SDK_RUNTIME_LIBRARIES} ${HYPERION_SDK_SHADER_COMPILER_LIBRARIES})
 
     foreach(runtime_library ${runtime_libraries})
       list(APPEND runtime_files "${HYPERION_SDK_RUNTIME_DIR}/${runtime_library}")
@@ -69,11 +137,13 @@ function(hyperion_copy_runtime target content_dir)
     file(GLOB runtime_files "${HYPERION_SDK_RUNTIME_DIR}/${HYPERION_SDK_RUNTIME_LIBRARY_PATTERN}")
   endif()
 
-  file(GLOB config_files "${HYPERION_SDK_RUNTIME_DIR}/Config/*")
+  file(GLOB config_files "${HYPERION_SDK_CONFIG_DIR}/*")
   list(FILTER config_files EXCLUDE REGEX "GlobalConfig\\.json$")
 
-  add_custom_command(TARGET ${target} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${runtime_files} "$<TARGET_FILE_DIR:${target}>")
+  if(runtime_files)
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${runtime_files} "$<TARGET_FILE_DIR:${target}>")
+  endif()
 
   if(config_files)
     add_custom_command(TARGET ${target} POST_BUILD
@@ -114,9 +184,19 @@ endfunction()
 # The game's function-local statics (its class registrations) stay in the game, not shared with an earlier build of it: the editor
 # loads each build into the same process, and default-visibility statics are unified across dlopen'd modules. Only HYP_EXPORT symbols stay visible.
 function(hyperion_game_codegen target source_dir)
+  get_target_property(module_type ${target} TYPE)
+
+  if(HYPERION_SDK_SHIPPING AND NOT module_type STREQUAL "OBJECT_LIBRARY")
+    message(FATAL_ERROR "A shipping SDK links the game module into the game's executable, so ${target} has to be declared with "
+        "add_library(${target} \${HYPERION_GAME_MODULE_TYPE} ...) in ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt (it is ${module_type})")
+  endif()
+
   set_target_properties(${target} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
-  hyperion_stamp_engine_version(${target})
+  # only a module the editor loads needs it
+  if(NOT HYPERION_SDK_SHIPPING)
+    hyperion_stamp_engine_version(${target})
+  endif()
 
   set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/Generated")
   set(generated_sources "${generated_dir}/GeneratedSources.cpp")
@@ -144,7 +224,7 @@ function(hyperion_game_codegen target source_dir)
   target_include_directories(${target} BEFORE PRIVATE "${generated_dir}")
 
   # a package links the scripts with NativeAOT, which compiles the generated C# itself
-  if(HYPERION_PACKAGE)
+  if(HYPERION_PACKAGE OR HYPERION_SDK_SHIPPING)
     return()
   endif()
 

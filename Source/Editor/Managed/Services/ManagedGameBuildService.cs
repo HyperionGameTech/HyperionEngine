@@ -272,6 +272,19 @@ namespace Hyperion.Editor.Services
         private bool PublishAot(string projectFilePath, string binariesDirectory, string outputDirectory)
         {
             string projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectFilePath))!;
+
+            HyperionSdk? shippingSdk = HyperionSdk.Find(shipping: true);
+
+            if (shippingSdk == null)
+            {
+                string message = $"Hyperion SDK is invalid in {HyperionSdk.ExpectedShippingDirectory}";
+
+                Logger.Log(BuildLogChannel, LogLevel.Error, "{0}", message);
+
+                ShowMessage(MessageBox.Critical("Shipping SDK not found", message).Button("OK", () => { }));
+
+                return false;
+            }
             string? managedProjectFile = FindProjectFile(projectFilePath);
             bool isScriptsLibrary = false;
 
@@ -318,7 +331,7 @@ namespace Hyperion.Editor.Services
                     "<Project Sdk=\"Microsoft.NET.Sdk\">\n"
                     + "  <PropertyGroup>\n"
                     + "    <HyperionProjectDir>" + projectDirectory.Replace('\\', '/') + "/</HyperionProjectDir>\n"
-                    + "    <HyperionBinDir>" + AppContext.BaseDirectory.Replace('\\', '/') + "</HyperionBinDir>\n"
+                    + "    <HyperionBinDir>" + HyperionSdk.EnsureTrailingSeparator(shippingSdk.RuntimeDirectory).Replace('\\', '/') + "</HyperionBinDir>\n"
                     + (isScriptsLibrary
                         ? "    <OutputType>Library</OutputType>\n    <NativeLib>Static</NativeLib>\n    <HyperionHostedEntry>true</HyperionHostedEntry>\n"
                         : "    <OutputType>Exe</OutputType>\n    <HyperionScriptsProgram>true</HyperionScriptsProgram>\n")
@@ -398,6 +411,9 @@ namespace Hyperion.Editor.Services
                     arguments.Add("-p:HyperionGameBindingsDir=" + gameBindingsDirectory + Path.DirectorySeparatorChar);
                 }
 
+                // a C# game's executable is linked by NativeAOT, so it links the engine's archives too (a C++ launcher gets them from CMake)
+                arguments.AddRange(shippingSdk.GetStaticEnginePublishProperties(intermediateDirectory, linksExecutable: !isScriptsLibrary));
+
                 string? firstError = null;
 
                 int exitCode = RunDotNetAsync(managedProjectFile, arguments.ToArray(), toolchainPath, line =>
@@ -436,7 +452,7 @@ namespace Hyperion.Editor.Services
                     File.Copy(file, Path.Combine(outputDirectory, Path.GetFileName(file)), overwrite: true);
                 }
 
-                foreach (string file in GetRuntimeLibraries())
+                foreach (string file in shippingSdk.GetRuntimeLibraries())
                 {
                     File.Copy(file, Path.Combine(outputDirectory, Path.GetFileName(file)), overwrite: true);
                 }
@@ -487,43 +503,6 @@ namespace Hyperion.Editor.Services
             string extension = Path.GetExtension(path);
 
             return extension == ".pdb" || extension == ".dbg" || extension == ".dSYM";
-        }
-
-        private static IEnumerable<string> GetRuntimeLibraries()
-        {
-            string runtimeLibrariesFile = Path.Combine(AppContext.BaseDirectory, "Sdk", "RuntimeLibraries.txt");
-
-            if (!File.Exists(runtimeLibrariesFile))
-            {
-                return Directory.GetFiles(AppContext.BaseDirectory).Where(IsNativeLibrary);
-            }
-
-            return File.ReadAllLines(runtimeLibrariesFile)
-                .Where(line => !string.IsNullOrWhiteSpace(line))
-                .Select(line => Path.Combine(AppContext.BaseDirectory, line.Trim()))
-                .Where(File.Exists);
-        }
-
-        private static bool IsNativeLibrary(string path)
-        {
-            string extension = Path.GetExtension(path);
-
-            if (extension != ".dll" && extension != ".so" && extension != ".dylib")
-            {
-                return false;
-            }
-
-            try
-            {
-                using FileStream stream = File.OpenRead(path);
-                using PEReader reader = new PEReader(stream);
-
-                return !reader.HasMetadata;
-            }
-            catch (BadImageFormatException)
-            {
-                return true;
-            }
         }
 
         private static Task<int> RunDotNetAsync(string managedProjectFile, string[] arguments, string? extraPath, Action<string> onOutputLine)

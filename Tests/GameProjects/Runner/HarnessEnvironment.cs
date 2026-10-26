@@ -4,6 +4,8 @@ namespace Hyperion.GameProjectTests;
 ///   HYPERION_ROOT            the engine repository (default: found by walking up from the test assembly)
 ///   HYPERION_BIN_DIR         the engine build to test against (default: Binaries/<Platform>/<Release|RelWithDebInfo|Debug>)
 ///   HYPERION_GAME_TESTS_DIR  where the game projects are generated and built (default: Build/GameProjectTests)
+///   HYPERION_SHIPPING_SDK_DIR the shipping SDK Package Game links against (default: <bin dir>/Sdk/Shipping, or the
+///                            Binaries/<Platform>/ShippingSdk/Sdk that `BuildHyperion sdk` writes)
 public static class HarnessEnvironment
 {
     public static string PlatformName { get; } =
@@ -13,20 +15,22 @@ public static class HarnessEnvironment
 
     public static string ExecutableExtension { get; } = OperatingSystem.IsWindows() ? ".exe" : "";
 
+    /// What NativeAOT publishes a packaged C# game for, as GameBuildPlatform.RuntimeIdentifier in the editor
+    public static string RuntimeIdentifier { get; } =
+        (OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux")
+        + "-" + System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
+
     public static string RepositoryRoot { get; } = FindRepositoryRoot();
 
     public static string EngineBinDir { get; } = FindEngineBinDir();
 
     public static string SdkDir => Path.Combine(EngineBinDir, "Sdk");
 
+    public static string ShippingSdkDir { get; } = FindShippingSdkDir();
+
     public static string GetCommandletPath(string commandletName) => Path.Combine(EngineBinDir, commandletName + ExecutableExtension);
 
-    /// The compiler the SDK was built with ("cl", "clang-cl", or a CMake compiler id), which a game has to build with
-    public static string SdkCompiler { get; } = ReadSdkVariable("HYPERION_SDK_COMPILER");
-
     public static string SdkVersion { get; } = ReadSdkVariable("HYPERION_SDK_VERSION");
-
-    public static string? VisualStudioDir { get; } = OperatingSystem.IsWindows() ? FindVisualStudioDir() : null;
 
     private static string ReadSdkVariable(string name)
     {
@@ -40,40 +44,6 @@ public static class HarnessEnvironment
         System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(File.ReadAllText(sdkFile), $"set\\({name} \"([^\"]*)\"\\)");
 
         return match.Success ? match.Groups[1].Value : "";
-    }
-
-    private static string? FindVisualStudioDir()
-    {
-        string vswhere = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio", "Installer", "vswhere.exe");
-
-        if (!File.Exists(vswhere))
-        {
-            return null;
-        }
-
-        System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo(vswhere)
-        {
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        foreach (string argument in new[] { "-latest", "-products", "*", "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath" })
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
-
-        using System.Diagnostics.Process? process = System.Diagnostics.Process.Start(startInfo);
-
-        if (process == null)
-        {
-            return null;
-        }
-
-        string installPath = process.StandardOutput.ReadToEnd().Trim();
-        process.WaitForExit();
-
-        return Directory.Exists(installPath) ? installPath : null;
     }
 
     public static string TemplatesDir => Path.Combine(RepositoryRoot, "Source", "Templates");
@@ -111,6 +81,23 @@ public static class HarnessEnvironment
         }
 
         throw new InvalidOperationException($"Could not find the engine repository above {AppContext.BaseDirectory}; set HYPERION_ROOT");
+    }
+
+    // mirrors HyperionSdk.Find(shipping: true) in Source/Editor/Managed/Services/Build/HyperionSdk.cs
+    private static string FindShippingSdkDir()
+    {
+        string? sdkDir = Environment.GetEnvironmentVariable("HYPERION_SHIPPING_SDK_DIR");
+
+        if (!string.IsNullOrEmpty(sdkDir))
+        {
+            return Path.GetFullPath(sdkDir);
+        }
+
+        string packaged = Path.Combine(EngineBinDir, "Sdk", "Shipping");
+
+        return File.Exists(Path.Combine(packaged, "CMake", "HyperionSdk.cmake"))
+            ? packaged
+            : Path.GetFullPath(Path.Combine(EngineBinDir, "..", "ShippingSdk", "Sdk"));
     }
 
     private static string FindEngineBinDir()

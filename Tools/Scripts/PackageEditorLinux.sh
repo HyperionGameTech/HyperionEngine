@@ -1,6 +1,7 @@
 #!/bin/bash
 # 
-#   Tools/Scripts/BuildHyperion.sh distribution ninja regenerate
+#   Tools/Scripts/BuildHyperion.sh distribution tracy ninja regenerate
+#   Tools/Scripts/BuildHyperion.sh sdk ninja regenerate
 #   Tools/Scripts/PackageEditorLinux.sh [output dir]
 
 set -euo pipefail
@@ -183,8 +184,11 @@ if [[ -f "$SDK_CMAKE_FILE" ]]; then
 
     third_party_dirs="$(sed -nE 's/^set\(HYPERION_SDK_THIRD_PARTY_DIRS "([^"]*)"\)/\1/p' "$SDK_CMAKE_FILE")"
     for third_party_dir in ${third_party_dirs//;/ }; do
+        # External/ThirdParty/Source, or a submodule (tracy/public)
+        third_party_source="$ROOT_DIR/External/ThirdParty/Source/$third_party_dir"
+        [[ -d "$third_party_source" ]] || third_party_source="$ROOT_DIR/External/Submodules/$third_party_dir"
         mkdir -p "$SDK_STAGE_DIR/ThirdParty/$third_party_dir"
-        cp -R "$ROOT_DIR/External/ThirdParty/Source/$third_party_dir/." "$SDK_STAGE_DIR/ThirdParty/$third_party_dir/"
+        cp -R "$third_party_source/." "$SDK_STAGE_DIR/ThirdParty/$third_party_dir/"
     done
 
     mkdir -p "$SDK_STAGE_DIR/CMake"
@@ -200,6 +204,15 @@ if [[ -f "$SDK_CMAKE_FILE" ]]; then
     if grep -q -F "$ROOT_DIR" "$SDK_STAGE_DIR/CMake/HyperionSdk.cmake"; then
         warn "Sdk/CMake/HyperionSdk.cmake has the source tree path ($ROOT_DIR) in it"
     fi
+
+    if ! grep -q -F "TRACY_ENABLE" "$SDK_STAGE_DIR/CMake/HyperionSdk.cmake"; then
+        warn "The editor was built without Tracy, so games built against it can't be profiled. Rebuild with 'Tools/Scripts/BuildHyperion.sh distribution tracy ninja regenerate'"
+    fi
+
+    # Sdk/Shipping: the static HYP_SHIPPING engine Package Game links into a game
+    step "Staging shipping SDK"
+    source "$SCRIPT_DIR/StageShippingSdk.sh"
+    stage_shipping_sdk "$ROOT_DIR/Binaries/Linux/ShippingSdk" "$SDK_STAGE_DIR" "$ROOT_DIR" "*.so*"
 
     if [[ ! -f "$SDK_STAGE_DIR/Include/Engine/HyperionPch.hpp" || ! -f "$SDK_STAGE_DIR/Include/Generated/CodeGenOutput.inc" ]]; then
         echo "SDK headers are incomplete (HyperionPch.hpp or CodeGen output missing); run CodeGen and rebuild" >&2

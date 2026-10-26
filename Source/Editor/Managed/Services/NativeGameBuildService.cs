@@ -29,17 +29,13 @@ namespace Hyperion.Editor.Services
 
         public bool BuildPackage(string projectFilePath, string outputDirectory, string? scriptsLinkInputsFile)
         {
-            string[] cmakeArguments =
-            {
-                "-DHYPERION_PACKAGE=ON",
-                "-DGAME_OUTPUT_DIR=" + ToCMakePath(outputDirectory),
-                "-DHYPERION_SCRIPTS_LINK_INPUTS=" + (scriptsLinkInputsFile != null ? ToCMakePath(scriptsLinkInputsFile) : "")
-            };
-
-            return BuildAsync(projectFilePath, isPackage: true, cmakeArguments).GetAwaiter().GetResult();
+            return BuildAsync(projectFilePath, isPackage: true, NativeGameBuild.GetPackageArguments(outputDirectory, scriptsLinkInputsFile)).GetAwaiter().GetResult();
         }
 
-        private async Task<bool> BuildAsync(string? projectFilePath, bool isPackage, IReadOnlyList<string> cmakeArguments)
+        private async Task<bool> BuildAsync(
+            string? projectFilePath,
+            bool isPackage,
+            IReadOnlyList<string> cmakeArguments)
         {
             GameBuildPlatform platform = GameBuildPlatform.Current;
 
@@ -47,16 +43,18 @@ namespace Hyperion.Editor.Services
 
             if (projectDirectory == null || !File.Exists(Path.Combine(projectDirectory, "Source", "CMakeLists.txt")))
             {
-                ShowMessage(MessageBox.Info("No game project", "Generate a game project first (Build > Generate Game Project...).").Button("OK", () => { }));
+                ShowMessage(MessageBox.Info("No game project", "Generate a game project first (Build > Generate Game Project...)").Button("OK", () => { }));
 
                 return false;
             }
 
-            HyperionSdk? sdk = HyperionSdk.Find();
+            HyperionSdk? sdk = HyperionSdk.Find(shipping: isPackage);
 
             if (sdk == null)
             {
-                ShowMessage(MessageBox.Critical("SDK not found", $"This editor install has no SDK at {HyperionSdk.ExpectedDirectory}.").Button("OK", () => { }));
+                ShowMessage(isPackage
+                    ? MessageBox.Critical("Shipping SDK not found", $"Engine static libraries not found in {HyperionSdk.ExpectedShippingDirectory}").Button("OK", () => { })
+                    : MessageBox.Critical("SDK not found", $"This editor install has no SDK at {HyperionSdk.ExpectedDirectory}.").Button("OK", () => { }));
 
                 return false;
             }
@@ -79,26 +77,8 @@ namespace Hyperion.Editor.Services
 
             try
             {
-                string buildDirectory = Path.Combine(projectDirectory, "Build", isPackage ? platform.Name + "Package" : platform.Name);
-                Directory.CreateDirectory(buildDirectory);
-
-                List<string> configureCommand = new List<string>
-                {
-                    toolchain.CMakePath!,
-                    "-S", Path.Combine(projectDirectory, "Source"),
-                    "-B", buildDirectory,
-                    "-G", toolchain.Generator,
-                    "-DCMAKE_MAKE_PROGRAM=" + ToCMakePath(toolchain.MakeProgramPath!),
-                    "-DCMAKE_BUILD_TYPE=Release",
-                    "-DCMAKE_CXX_COMPILER=" + ToCMakePath(toolchain.CompilerPath!),
-                    "-DHYPERION_SDK_DIR=" + ToCMakePath(sdk.Directory)
-                };
-
-                configureCommand.AddRange(cmakeArguments);
-
-                string[] buildCommand = { toolchain.CMakePath!, "--build", buildDirectory, "--parallel", Environment.ProcessorCount.ToString() };
-
-                string scriptPath = platform.WriteBuildScript(buildDirectory, toolchain, new IReadOnlyList<string>[] { configureCommand, buildCommand });
+                string buildDirectory = NativeGameBuild.GetBuildDirectory(projectDirectory, platform, isPackage);
+                string scriptPath = NativeGameBuild.WriteBuildScript(platform, toolchain, sdk, projectDirectory, buildDirectory, cmakeArguments);
 
                 Logger.Log(BuildLogChannel, LogLevel.Info, "Building game in {0}", projectDirectory);
 
@@ -140,11 +120,6 @@ namespace Hyperion.Editor.Services
         private static void ShowMessage(MessageBox messageBox)
         {
             Dispatcher.UIThread.Post(() => messageBox.Show());
-        }
-
-        private static string ToCMakePath(string path)
-        {
-            return path.Replace('\\', '/');
         }
     }
 }

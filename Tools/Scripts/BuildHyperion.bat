@@ -15,6 +15,7 @@ set "HYP_ARM64=0"
 set "HYP_BACKEND="
 set "HYP_DISTRIBUTION=0"
 set "HYP_TRACY=0"
+set "HYP_SHIPPING_SDK=0"
 
 :PARSE_ARGS
 IF "%~1"=="" GOTO END_PARSE_ARGS
@@ -36,6 +37,7 @@ IF /I "%~1"=="regenerate" set "HYP_REGENERATE=1"
 IF /I "%~1"=="nowait" set "HYP_NOWAIT=1"
 IF /I "%~1"=="distribution" set "HYP_DISTRIBUTION=1"
 IF /I "%~1"=="tracy" set "HYP_TRACY=1"
+IF /I "%~1"=="sdk" set "HYP_SHIPPING_SDK=1"
 SHIFT
 GOTO PARSE_ARGS
 :END_PARSE_ARGS
@@ -45,8 +47,13 @@ REM configuration) knows to build the CodeGen tool with the same MinGW toolchain
 REM instead of assuming a Visual Studio generator is available.
 set "HYP_MINGW=%HYP_MINGW%"
 
+REM "sdk" builds the static shipping engine that Package Game links games against (Sdk/Shipping in an editor package)
+if "%HYP_SHIPPING_SDK%"=="1" set "HYP_SHIPPING=1"
+if "%HYP_SHIPPING_SDK%"=="1" set "HYP_BUILD_TYPE=Release"
+
 set "HYP_BUILD_DIR=%HYP_BUILD_TYPE%"
 if "%HYP_SHIPPING%"=="1" set "HYP_BUILD_DIR=Shipping"
+if "%HYP_SHIPPING_SDK%"=="1" set "HYP_BUILD_DIR=ShippingSdk"
 if "%HYP_DISTRIBUTION%"=="1" if not "%HYP_SHIPPING%"=="1" set "HYP_BUILD_DIR=Distribution"
 
 set "HYP_SHIPPING_CMAKE="
@@ -63,7 +70,11 @@ set "HYP_TRACY_CMAKE=-DHYP_TRACY=OFF"
 if "%HYP_TRACY%"=="1" set "HYP_TRACY_CMAKE=-DHYP_TRACY=ON"
 
 set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=ON -DHYP_ENABLE_AFTERMATH=ON"
-if "%HYP_DISTRIBUTION%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=OFF -DHYP_ENABLE_AFTERMATH=OFF -DHYP_MONOLITHIC=ON -DVCPKG_TARGET_TRIPLET=x64-windows-hyp-static -DVCPKG_OVERLAY_TRIPLETS=%~dp0..\vcpkg\triplets"
+if "%HYP_DISTRIBUTION%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_BAKE_ROOT_DIR=OFF -DHYP_ENABLE_AFTERMATH=OFF -DHYP_MONOLITHIC=ON -DHYP_TRACY_ONLY_LOCALHOST=ON -DVCPKG_TARGET_TRIPLET=x64-windows-hyp-static -DVCPKG_OVERLAY_TRIPLETS=%~dp0..\vcpkg\triplets"
+
+REM static third-party libraries on the static VC runtime
+if "%HYP_SHIPPING_SDK%"=="1" set "HYP_DISTRIBUTION_CMAKE=-DHYP_SHIPPING_SDK=ON -DHYP_ENABLE_AFTERMATH=OFF"
+if "%HYP_SHIPPING_SDK%"=="1" if not "%HYP_MINGW%"=="1" set "HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DVCPKG_TARGET_TRIPLET=x64-windows-hyp-static-mt -DVCPKG_OVERLAY_TRIPLETS=%~dp0..\vcpkg\triplets"
 
 REM Optional: set HYP_VS_INSTANCE to a Visual Studio install path to pick which one the Visual Studio generator binds to.
 if defined HYP_VS_INSTANCE set HYP_DISTRIBUTION_CMAKE=%HYP_DISTRIBUTION_CMAKE% -DCMAKE_GENERATOR_INSTANCE="%HYP_VS_INSTANCE%"
@@ -79,6 +90,7 @@ REM Shipping builds output to Binaries/Windows/Shipping instead of Binaries/Wind
 REM but keep the Release build type and third-party libs.
 set "HYP_OUTPUT_SUFFIX_ARG="
 if "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
+if "%HYP_SHIPPING_SDK%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=ShippingSdk"
 if "%HYP_DISTRIBUTION%"=="1" if not "%HYP_SHIPPING%"=="1" set "HYP_OUTPUT_SUFFIX_ARG=-DHYP_OUTPUT_DIRECTORY_SUFFIX=Distribution"
 
 REM "web" builds the WebAssembly + WebGPU sample with Emscripten. EMSDK has to point at an emsdk checkout with a

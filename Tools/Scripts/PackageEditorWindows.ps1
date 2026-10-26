@@ -12,6 +12,7 @@
 #>
 param(
     [string]$Configuration = "Distribution",
+    [string]$ShippingSdkConfiguration = "ShippingSdk",
     [string]$OutputDir,
     [switch]$Build,
     [switch]$IncludeShaderCache,
@@ -162,9 +163,14 @@ if ($Build)
     Push-Location $RootDir
     try
     {
-        # regenerate so the distribution options reach the CMake cache
-        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" Release ninja distribution $Backend regenerate"
+        # regenerate so the distribution options reach the CMake cache. Tracy only collects while a profiler is connected, so the
+        # editor (and the games it builds against it) can be profiled
+        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" Release ninja distribution tracy $Backend regenerate"
         if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+
+        Write-Step "Building the shipping SDK"
+        & cmd /c "`"$RootDir\Tools\Scripts\BuildHyperion.bat`" Release ninja sdk $Backend regenerate"
+        if ($LASTEXITCODE -ne 0) { throw "Shipping SDK build failed" }
     }
     finally { Pop-Location }
 }
@@ -442,7 +448,11 @@ if ($IsMonolithic -and (Test-Path $SdkCMakeFile) -and (Test-Path $SdkImportLibra
     if ($sdkCMakeText -notmatch 'set\(HYPERION_SDK_THIRD_PARTY_DIRS "([^"]*)"\)') { throw "HYPERION_SDK_THIRD_PARTY_DIRS not found in $SdkCMakeFile" }
     foreach ($thirdPartyDir in ($Matches[1] -split ";" | Where-Object { $_ }))
     {
-        Copy-Directory (Join-Path $RootDir "External/ThirdParty/Source/$thirdPartyDir") (Join-Path $SdkStageDir "ThirdParty/$thirdPartyDir")
+        # External/ThirdParty/Source, or a submodule (tracy/public)
+        $thirdPartySource = Join-Path $RootDir "External/ThirdParty/Source/$thirdPartyDir"
+        if (-not (Test-Path $thirdPartySource)) { $thirdPartySource = Join-Path $RootDir "External/Submodules/$thirdPartyDir" }
+        if (-not (Test-Path $thirdPartySource)) { throw "SDK include folder $thirdPartyDir not found under External/ThirdParty/Source or External/Submodules" }
+        Copy-Directory $thirdPartySource (Join-Path $SdkStageDir "ThirdParty/$thirdPartyDir")
     }
 
     Copy-StagedFile $SdkCMakeFile (Join-Path $SdkStageDir "CMake/HyperionSdk.cmake")
@@ -454,6 +464,73 @@ if ($IsMonolithic -and (Test-Path $SdkCMakeFile) -and (Test-Path $SdkImportLibra
     Copy-StagedFile $SdkImportLibrary (Join-Path $SdkStageDir "Lib/hyperion.lib")
 
     if ($sdkCMakeText.Contains($RootDir.Replace("\", "/"))) { Add-Warning "Sdk/CMake/HyperionSdk.cmake has the source tree path ($RootDir) in it" }
+    if ($sdkCMakeText -notmatch "TRACY_ENABLE") { Add-Warning "The editor was built without Tracy, so games built against it can't be profiled. Rebuild with 'BuildHyperion.bat Release ninja distribution tracy regenerate' (or pass -Build)." }
+
+    # --- Shipping SDK ---
+
+    # Sdk/Shipping: the static HYP_SHIPPING engine Package Game links into a game, sharing the headers and CodeGen above
+    $ShippingBinDir = Join-Path $RootDir "Binaries/Windows/$ShippingSdkConfiguration"
+    $ShippingSdkCMakeFile = Join-Path $ShippingBinDir "Sdk/CMake/HyperionSdk.cmake"
+    $ShippingStaticLibrariesFile = Join-Path $ShippingBinDir "Sdk/StaticLibraries.txt"
+
+    if ((Test-Path $ShippingSdkCMakeFile) -and (Test-Path $ShippingStaticLibrariesFile))
+    {
+        Write-Step "Staging shipping SDK"
+        $ShippingStageDir = Join-Path $SdkStageDir "Shipping"
+
+        $shippingCMakeText = Get-Content $ShippingSdkCMakeFile -Raw
+        if ($shippingCMakeText -notmatch "set\(HYPERION_SDK_SHIPPING ON\)") { throw "$ShippingSdkCMakeFile isn't a shipping SDK" }
+        if ($shippingCMakeText -notmatch 'set\(HYPERION_SDK_THIRD_PARTY_DIRS "([^"]*)"\)') { throw "HYPERION_SDK_THIRD_PARTY_DIRS not found in $ShippingSdkCMakeFile" }
+        foreach ($thirdPartyDir in ($Matches[1] -split ";" | Where-Object { $_ }))
+        {
+            if (-not (Test-Path (Join-Path $SdkStageDir "ThirdParty/$thirdPartyDir"))) { throw "The shipping SDK includes ThirdParty/$thirdPartyDir, which the editor's SDK doesn't stage" }
+        }
+
+        foreach ($file in "HyperionSdk.cmake", "HyperionSdkPlatform.cmake", "HyperionCopyRuntimeDependencies.cmake")
+        {
+            Copy-StagedFile (Join-Path $ShippingBinDir "Sdk/CMake/$file") (Join-Path $ShippingStageDir "CMake/$file")
+        }
+
+        # archives go in Lib and are listed by file name; system libraries and link flags stay as they are
+        $stagedLibraries = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $staticLibraryLines = foreach ($line in Get-Content $ShippingStaticLibrariesFile | Where-Object { $_.Trim() })
+        {
+            $line = $line.Trim()
+            if (-not [System.IO.Path]::IsPathRooted($line) -or $line.StartsWith("/")) { $line; continue }
+            if (-not (Test-Path -LiteralPath $line)) { throw "The shipping SDK links $line, which doesn't exist" }
+
+            $libraryName = Split-Path $line -Leaf
+            if ($stagedLibraries.ContainsKey($libraryName) -and $stagedLibraries[$libraryName] -ne $line) { throw "Two shipping SDK libraries are named $libraryName ($($stagedLibraries[$libraryName]) and $line)" }
+            $stagedLibraries[$libraryName] = $line
+
+            Copy-StagedFile $line (Join-Path $ShippingStageDir "Lib/$libraryName")
+            $libraryName
+        }
+        Set-Content -Path (Join-Path $ShippingStageDir "StaticLibraries.txt") -Value $staticLibraryLines -Encoding ascii
+        Write-Host "    $($stagedLibraries.Count) libraries"
+
+        # what a game may import from the shipping build, and the assemblies a C# game is compiled against
+        foreach ($file in "Hyperion.NET.Shared.dll", "Hyperion.NET.Runtime.dll", "Hyperion.NET.Interop.dll", "Hyperion.NET.Generators.dll")
+        {
+            $source = Join-Path $ShippingBinDir $file
+            if (-not (Test-Path $source)) { throw "Missing $file in $ShippingBinDir" }
+            Copy-StagedFile $source (Join-Path $ShippingStageDir "Bin/$file")
+        }
+
+        foreach ($dll in Get-ChildItem $ShippingBinDir -Filter *.dll -File)
+        {
+            # managed assemblies have a CLR header
+            if ((& $Dumpbin /nologo /clrheader $dll.FullName) -match "clr Header:") { continue }
+            Copy-StagedFile $dll.FullName (Join-Path $ShippingStageDir "Bin/$($dll.Name)")
+        }
+
+        if ($shippingCMakeText.Contains($RootDir.Replace("\", "/"))) { Add-Warning "Sdk/Shipping/CMake/HyperionSdk.cmake has the source tree path ($RootDir) in it" }
+        if ($shippingCMakeText -notmatch "HYP_SHIPPING=1") { Add-Warning "The shipping SDK doesn't define HYP_SHIPPING" }
+    }
+    else
+    {
+        Add-Warning "Shipping SDK not staged (needs $ShippingSdkCMakeFile and $ShippingStaticLibrariesFile from 'BuildHyperion.bat Release ninja sdk regenerate'); Package Game won't work from this package"
+    }
 }
 else
 {

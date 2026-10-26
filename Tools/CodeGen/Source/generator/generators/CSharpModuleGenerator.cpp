@@ -855,6 +855,11 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             continue;
         }
 
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
+        }
+
         writer.WriteString(HYP_FORMAT("    public static unsafe partial class {}Extensions\n", cls.name));
         writer.WriteString("    {\n");
 
@@ -876,6 +881,30 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
                     continue;
                 }
             }
+
+            const size_t positionBeforeMember = writer.Position();
+            const int numMembersWrittenBefore = numMembersWritten;
+
+            if (member.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#if {}\n", member.condition));
+            }
+
+            HYP_DEFER({
+                if (!member.condition.Any())
+                {
+                    return;
+                }
+
+                if (numMembersWritten == numMembersWrittenBefore)
+                {
+                    writer.Seek(positionBeforeMember, /* truncate */ true);
+                }
+                else
+                {
+                    writer.WriteString(HYP_FORMAT("#endif // {}\n", member.condition));
+                }
+            });
 
             String managedName = member.friendlyName;
 
@@ -1079,6 +1108,11 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         }
 
         writer.WriteString("    }\n");
+
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+        }
     }
 
     writer.WriteString("}\n");

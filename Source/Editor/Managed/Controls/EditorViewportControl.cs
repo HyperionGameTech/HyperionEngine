@@ -131,6 +131,7 @@ namespace Hyperion.Editor
 
                 return new PlatformHandle(hwnd, "HWND");
             }
+#if HYP_MACOS // CocoaApplicationWindow's bindings only exist in a macOS build
             else if (OperatingSystem.IsMacOS())
             {
                 CocoaApplicationWindow? cocoaApplicationWindow = Window as CocoaApplicationWindow;
@@ -148,6 +149,7 @@ namespace Hyperion.Editor
 
                 return new PlatformHandle(nsView, "NSView");
             }
+#endif
             else if (OperatingSystem.IsLinux())
             {
                 if (!(Window is X11ApplicationWindow))
@@ -219,6 +221,7 @@ namespace Hyperion.Editor
                 return;
             }
 
+#if HYP_MACOS
             if (OperatingSystem.IsMacOS() && Window is CocoaApplicationWindow cocoaWindow)
             {
                 IntPtr nsView = cocoaWindow.GetNSView();
@@ -227,6 +230,7 @@ namespace Hyperion.Editor
                     MacInterop.ResizeEmbeddedView(nsView, width, height);
                 }
             }
+#endif
             // else if (OperatingSystem.IsWindows() && Window is Win32ApplicationWindow win32Window)
             // {
             //     IntPtr hwnd = win32Window.GetHWND();

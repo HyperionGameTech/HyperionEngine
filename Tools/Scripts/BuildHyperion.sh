@@ -12,6 +12,7 @@ HYP_SHIPPING=0
 HYP_RUNTIME=0
 HYP_DISTRIBUTION=0
 HYP_TRACY=0
+HYP_SHIPPING_SDK=0
 
 USE_NINJA=0
 
@@ -59,11 +60,17 @@ for arg in "$@"; do
         CONFIG="Release"
     elif [[ "$arg" == "Tracy" || "$arg" == "tracy" ]]; then
         HYP_TRACY=1
+    elif [[ "$arg" == "Sdk" || "$arg" == "sdk" ]]; then
+        HYP_SHIPPING_SDK=1
+        HYP_SHIPPING=1
+        CONFIG="Release"
     fi
 done
 
 BUILD_DIR_SUFFIX="$CONFIG"
-if [[ $HYP_SHIPPING -eq 1 ]]; then
+if [[ $HYP_SHIPPING_SDK -eq 1 ]]; then
+    BUILD_DIR_SUFFIX="ShippingSdk"
+elif [[ $HYP_SHIPPING -eq 1 ]]; then
     BUILD_DIR_SUFFIX="Shipping"
 elif [[ $HYP_DISTRIBUTION -eq 1 ]]; then
     BUILD_DIR_SUFFIX="Distribution"
@@ -112,7 +119,9 @@ if [[ $DO_CMAKE -eq 1 ]]; then
     # Shipping builds output to Binaries/<Platform>/Shipping instead of Binaries/<Platform>/Release,
     # but keep the Release build type and third-party libs. Skip for Android, whose Gradle project
     # only looks for a Debug or Release output folder.
-    if [[ $HYP_SHIPPING -eq 1 && $HYP_ANDROID -eq 0 ]]; then
+    if [[ $HYP_SHIPPING_SDK -eq 1 ]]; then
+        HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_SHIPPING_SDK=ON -DHYP_OUTPUT_DIRECTORY_SUFFIX=ShippingSdk -DSTRATA_ENABLE_LLVM=OFF"
+    elif [[ $HYP_SHIPPING -eq 1 && $HYP_ANDROID -eq 0 ]]; then
         HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_OUTPUT_DIRECTORY_SUFFIX=Shipping"
     fi
 
@@ -129,7 +138,7 @@ if [[ $DO_CMAKE -eq 1 ]]; then
     # distribution: binaries that are safe to redistribute (no source tree path baked in, Strata without its LLVM JIT),
     # built into <Platform>/Distribution so the dev build is left alone. Packaged by PackageEditorMacOS.sh.
     if [[ $HYP_DISTRIBUTION -eq 1 && $HYP_SHIPPING -eq 0 ]]; then
-        HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_OUTPUT_DIRECTORY_SUFFIX=Distribution -DHYP_BAKE_ROOT_DIR=OFF -DSTRATA_ENABLE_LLVM=OFF"
+        HYP_CMAKE_PARAMS="$HYP_CMAKE_PARAMS -DHYP_OUTPUT_DIRECTORY_SUFFIX=Distribution -DHYP_BAKE_ROOT_DIR=OFF -DSTRATA_ENABLE_LLVM=OFF -DHYP_TRACY_ONLY_LOCALHOST=ON"
     fi
 
     if [[ $HYP_ANDROID -eq 1 ]]; then

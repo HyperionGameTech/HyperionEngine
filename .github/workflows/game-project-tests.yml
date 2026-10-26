@@ -128,6 +128,15 @@ jobs:
           test -f Binaries/Linux/Release/libhyperion.so
           test -f Binaries/Linux/Release/Sdk/CMake/HyperionSdk.cmake
 
+      # the static shipping engine the packaging tests link games against, as Package Game does
+      - name: Build shipping SDK
+        env:
+          HYP_BUILD_JOBS: 4
+          HYP_SKIP_CODEGEN: 1
+        run: |
+          bash Tools/Scripts/BuildHyperion.sh ninja sdk regenerate
+          test -f Binaries/Linux/ShippingSdk/Sdk/StaticLibraries.txt
+
       # artifacts don't keep the executable bit
       - name: Make CodeGen tool executable
         run: chmod +x Build/hyperion-codegen
@@ -216,6 +225,15 @@ jobs:
           if not exist Binaries\Windows\Release\hyperion.dll exit /b 1
           if not exist Binaries\Windows\Release\Sdk\CMake\HyperionSdk.cmake exit /b 1
 
+      # the static shipping engine the packaging tests link games against, as Package Game does
+      - name: Build shipping SDK
+        shell: cmd
+        env:
+          HYP_SKIP_CODEGEN: 1
+        run: |
+          Tools\Scripts\BuildHyperion.bat Release ninja sdk regenerate
+          if not exist Binaries\Windows\ShippingSdk\Sdk\StaticLibraries.txt exit /b 1
+
       # the engine tests need no game project, so they run first and report in seconds
       - name: Run engine tests
         shell: pwsh
@@ -287,6 +305,15 @@ jobs:
           bash Tools/Scripts/BuildHyperion.sh Release ninja regenerate
           test -f Binaries/Mac/Release/libhyperion.dylib
           test -f Binaries/Mac/Release/Sdk/CMake/HyperionSdk.cmake
+
+      # the static shipping engine the packaging tests link games against, as Package Game does
+      - name: Build shipping SDK
+        env:
+          HYP_BUILD_JOBS: 4
+          HYP_SKIP_CODEGEN: 1
+        run: |
+          bash Tools/Scripts/BuildHyperion.sh ninja sdk regenerate
+          test -f Binaries/Mac/ShippingSdk/Sdk/StaticLibraries.txt
 
       # artifacts don't keep the executable bit
       - name: Make CodeGen tool executable

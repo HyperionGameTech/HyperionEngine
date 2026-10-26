@@ -7,18 +7,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion.Editor.Services
 {
-    public sealed class WindowsGameBuildPlatform : GameBuildPlatform
+    public sealed partial class WindowsGameBuildPlatform : GameBuildPlatform
     {
-        private const string BuildToolsPackageId = "Microsoft.VisualStudio.BuildTools";
-
-        private const string BuildToolsInstallerArguments = "--passive --wait"
-            + " --add Microsoft.VisualStudio.Workload.VCTools"
-            + " --add Microsoft.VisualStudio.Component.VC.Llvm.Clang"
-            + " --add Microsoft.VisualStudio.Component.VC.CMake.Project"
-            + " --includeRecommended";
-
-        private static readonly LogChannel BuildLogChannel = LogChannel.ByName("GameBuild");
-
         private static readonly string[] s_stripToolNames = { "strip.exe", "llvm-strip.exe" };
 
         public override string Name => "Windows";
@@ -33,6 +23,11 @@ namespace Hyperion.Editor.Services
 
         public override NativeToolchain FindNativeToolchain(string sdkCompiler)
         {
+            if (sdkCompiler == "GNU")
+            {
+                return FindMinGWToolchain();
+            }
+
             NativeToolchain? best = null;
 
             foreach (string installPath in FindVisualStudioInstalls())
@@ -91,14 +86,33 @@ namespace Hyperion.Editor.Services
             return best;
         }
 
-        public override void PromptInstallNativeToolchain(IReadOnlyList<string> missing)
+        // an engine built with MinGW (BuildHyperion mingw): its g++, CMake and Ninja from PATH, without vcvars
+        private static NativeToolchain FindMinGWToolchain()
         {
-            string text = "Building the game needs:\n  - " + string.Join("\n  - ", missing)
-                + "\n\nInstall Visual Studio Build Tools?";
+            NativeToolchain toolchain = new NativeToolchain
+            {
+                Generator = "Ninja",
+                CMakePath = FindOnPath("cmake.exe"),
+                MakeProgramPath = FindOnPath("ninja.exe"),
+                CompilerPath = FindOnPath("g++.exe")
+            };
 
-            ShowMessage(MessageBox.Warning("C++ build tools required", text)
-                .Button("Install", StartBuildToolsInstall)
-                .Button("Cancel", () => { }));
+            if (toolchain.CompilerPath == null)
+            {
+                toolchain.Missing.Add("MinGW-w64 GCC C++ compiler (g++)");
+            }
+
+            if (toolchain.CMakePath == null)
+            {
+                toolchain.Missing.Add("CMake");
+            }
+
+            if (toolchain.MakeProgramPath == null)
+            {
+                toolchain.Missing.Add("Ninja");
+            }
+
+            return toolchain;
         }
 
         public override string? FindNativeAotToolchainError(out string? extraPath)
@@ -211,38 +225,14 @@ namespace Hyperion.Editor.Services
             }
             catch (Exception ex)
             {
-                Logger.Log(BuildLogChannel, LogLevel.Warning, "Could not run vswhere: {0}", ex.Message);
+                OnVsWhereFailed(ex);
 
                 return string.Empty;
             }
         }
 
-        private static void StartBuildToolsInstall()
-        {
-            try
-            {
-                ProcessStartInfo startInfo = new ProcessStartInfo
-                {
-                    FileName = "winget",
-                    UseShellExecute = true
-                };
-
-                foreach (string argument in new[] { "install", "--id", BuildToolsPackageId, "--exact", "--override", BuildToolsInstallerArguments })
-                {
-                    startInfo.ArgumentList.Add(argument);
-                }
-
-                Logger.Log(BuildLogChannel, LogLevel.Info, "Starting winget {0}", string.Join(" ", startInfo.ArgumentList));
-
-                Process.Start(startInfo)?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(BuildLogChannel, LogLevel.Error, "Could not start winget: {0}", ex.Message);
-
-                ShowMessage(MessageBox.Critical("Could not start the install", "winget was not found. Install Visual Studio Build Tools with the C++ workload, Clang and CMake components manually.").Button("OK", () => { }));
-            }
-        }
+        // logged in the editor (WindowsGameBuildPlatform.Editor.cs)
+        static partial void OnVsWhereFailed(Exception ex);
 
         // batch expands %VAR% even inside quotes
         private static string Quote(string argument)

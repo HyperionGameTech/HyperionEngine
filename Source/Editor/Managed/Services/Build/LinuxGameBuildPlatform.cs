@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 namespace Hyperion.Editor.Services
 {
     [SupportedOSPlatform("linux")]
-    public sealed class LinuxGameBuildPlatform : PosixGameBuildPlatform
+    public sealed partial class LinuxGameBuildPlatform : PosixGameBuildPlatform
     {
         public override string Name => "Linux";
 
@@ -28,13 +28,6 @@ namespace Hyperion.Editor.Services
             return sdkCompiler == "Clang"
                 ? "Clang C++ compiler (clang++)"
                 : "GCC C++ compiler (g++)";
-        }
-
-        public override void PromptInstallNativeToolchain(IReadOnlyList<string> missing)
-        {
-            ShowMessage(MessageBox.Warning("C++ build tools required",
-                    FormatMissing(missing) + "\n\nInstall usimh your distribution's package manager, for example:\n  sudo apt install cmake ninja-build g++\n  sudo dnf install cmake ninja-build gcc-c++")
-                .Button("OK", () => { }));
         }
 
         public override string? FindNativeAotToolchainError(out string? extraPath)

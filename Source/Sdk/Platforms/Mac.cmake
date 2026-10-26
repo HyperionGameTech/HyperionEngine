@@ -11,6 +11,19 @@ function(hyperion_sdk_packaged_libraries sdk_root runtime_dir out_var)
   set(${out_var} ${libraries} PARENT_SCOPE)
 endfunction()
 
+function(hyperion_sdk_dependency_tool out_platform out_tool out_command)
+  find_program(HYPERION_SDK_OTOOL otool)
+
+  set(${out_platform} "macos+macho" PARENT_SCOPE)
+
+  if(HYPERION_SDK_OTOOL)
+    set(${out_tool} "otool" PARENT_SCOPE)
+    set(${out_command} "${HYPERION_SDK_OTOOL}" PARENT_SCOPE)
+  else()
+    set(${out_tool} "" PARENT_SCOPE)
+  endif()
+endfunction()
+
 function(hyperion_platform_link_scripts target link_inputs)
   target_link_libraries(${target} PRIVATE ${link_inputs})
 endfunction()

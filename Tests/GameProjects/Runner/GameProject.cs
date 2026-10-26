@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text.Json;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.GameProjectTests;
 
@@ -20,11 +22,8 @@ public sealed record EditorTestReport(List<EditorTestStep> Steps, bool RetiredBe
 
 public sealed record EditorTestRunResult(ProcessResult Process, EditorTestReport? Report);
 
-/// A game project generated from Source/Templates the way the editor's Generate C# / C++ Project does, optionally with
-/// a fixture from Tests/GameProjects/Fixtures copied over it
 public sealed class GameProject
 {
-    // the editor's projects keep their content in a Content subfolder, which the templates reach from Binaries/<Platform>/
     private const string ContentDirFromBinaries = "../../Content/";
 
     private static readonly JsonSerializerOptions s_reportJsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -37,7 +36,7 @@ public sealed class GameProject
     public string SourceDirectory => Path.Combine(Directory, "Source");
     public string ContentDirectory => Path.Combine(Directory, "Content");
     public string BinariesDirectory => Path.Combine(Directory, "Binaries", HarnessEnvironment.PlatformName);
-    public string NativeBuildDirectory => Path.Combine(Directory, "Build", HarnessEnvironment.PlatformName);
+    public string NativeBuildDirectory => NativeGameBuild.GetBuildDirectory(Directory, GameBuildPlatform.Current, isPackage: false);
     public string LogsDirectory => Path.Combine(Directory, "Logs");
     public string ExecutablePath => Path.Combine(BinariesDirectory, Name + HarnessEnvironment.ExecutableExtension);
     public string ProjectFilePath => Path.Combine(Directory, Name + ".hypproject");
@@ -238,16 +237,14 @@ public sealed class GameProject
             HarnessEnvironment.BuildTimeout);
     }
 
-    /// Builds the game into a package directory as Package Game does (NativeGameBuildService.BuildPackage()), and writes the
-    /// config StagePackagedGame() in Source/Editor/Commands/EditorCommandsNativeProject.cpp writes
+    public string PackageBuildDirectory => NativeGameBuild.GetBuildDirectory(Directory, GameBuildPlatform.Current, isPackage: true);
+
     public ProcessResult BuildPackage(string packageDirectory, string startupWorldName)
     {
-        ProcessResult build = BuildNative(
-            Path.Combine(Directory, "Build", HarnessEnvironment.PlatformName + "Package"),
-            "package",
-            "-DHYPERION_PACKAGE=ON",
-            "-DGAME_OUTPUT_DIR=" + packageDirectory.Replace('\\', '/'),
-            "-DHYPERION_SCRIPTS_LINK_INPUTS=");
+        List<string> cmakeArguments = NativeGameBuild.GetPackageArguments(packageDirectory, scriptsLinkInputsFile: null);
+        cmakeArguments.Add("-DCMAKE_EXPORT_COMPILE_COMMANDS=ON");
+
+        ProcessResult build = BuildNative(isPackage: true, cmakeArguments);
 
         if (!build.Succeeded)
         {
@@ -264,6 +261,96 @@ public sealed class GameProject
             + "  }\n}\n");
 
         return build;
+    }
+
+    public ProcessResult PublishManagedPackage(string packageDirectory)
+    {
+        HyperionSdk shippingSdk = HyperionSdk.Load(HarnessEnvironment.ShippingSdkDir, isShipping: true)
+            ?? throw new InvalidOperationException($"No shipping SDK at {HarnessEnvironment.ShippingSdkDir}; build it with BuildHyperion sdk or set HYPERION_SHIPPING_SDK_DIR");
+
+        string intermediateDirectory = Path.Combine(Directory, "Build", "AotPackage", HarnessEnvironment.RuntimeIdentifier);
+        string publishDirectory = Path.Combine(intermediateDirectory, "publish");
+
+        if (System.IO.Directory.Exists(publishDirectory))
+        {
+            System.IO.Directory.Delete(publishDirectory, recursive: true);
+        }
+
+        List<string> arguments = new List<string>
+        {
+            "publish", Path.Combine(SourceDirectory, Name + ".csproj"),
+            "--configuration", "Release",
+            "--runtime", HarnessEnvironment.RuntimeIdentifier,
+            "--output", publishDirectory,
+            "--disable-build-servers", "--nologo",
+            "-p:PublishAot=true",
+            "-p:HyperionOutputToBinDir=false",
+            "-p:HyperionIncludeScripts=true",
+            "-p:HyperionProjectContentDir=" + ContentDirectory + Path.DirectorySeparatorChar,
+            "-p:HyperionWriteGlobalConfig=false",
+            "-p:OutputPath=" + Path.Combine(intermediateDirectory, "bin") + Path.DirectorySeparatorChar,
+            "-p:IntermediateOutputPath=" + Path.Combine(intermediateDirectory, "obj") + Path.DirectorySeparatorChar
+        };
+
+        arguments.AddRange(shippingSdk.GetStaticEnginePublishProperties(intermediateDirectory, linksExecutable: true));
+
+        // NativeAOT finds the MSVC linker through vswhere (WindowsGameBuildPlatform.FindNativeAotToolchainError())
+        Dictionary<string, string> environment = new Dictionary<string, string>();
+
+        if (OperatingSystem.IsWindows())
+        {
+            string installerDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio", "Installer");
+            environment["PATH"] = installerDirectory + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH");
+        }
+
+        ProcessResult publish = ProcessRunner.Run(
+            $"Publishing {Name} with NativeAOT",
+            "dotnet",
+            arguments,
+            SourceDirectory,
+            Path.Combine(LogsDirectory, "publish-aot.log"),
+            HarnessEnvironment.BuildTimeout,
+            environment);
+
+        if (!publish.Succeeded)
+        {
+            return publish;
+        }
+
+        System.IO.Directory.CreateDirectory(packageDirectory);
+
+        foreach (string file in System.IO.Directory.GetFiles(publishDirectory).Where(file => Path.GetExtension(file) is not ".pdb" and not ".dbg"))
+        {
+            File.Copy(file, Path.Combine(packageDirectory, Path.GetFileName(file)), overwrite: true);
+        }
+
+        foreach (string file in shippingSdk.GetRuntimeLibraries())
+        {
+            File.Copy(file, Path.Combine(packageDirectory, Path.GetFileName(file)), overwrite: true);
+        }
+
+        string configDirectory = Path.Combine(packageDirectory, "Config");
+        System.IO.Directory.CreateDirectory(configDirectory);
+
+        string sourceConfigDirectory = Path.Combine(shippingSdk.RuntimeDirectory, "Config");
+
+        if (!System.IO.Directory.Exists(sourceConfigDirectory))
+        {
+            sourceConfigDirectory = Path.Combine(HarnessEnvironment.EngineBinDir, "Config");
+        }
+
+        foreach (string file in System.IO.Directory.GetFiles(sourceConfigDirectory).Where(file => Path.GetFileName(file) != "GlobalConfig.json"))
+        {
+            File.Copy(file, Path.Combine(configDirectory, Path.GetFileName(file)), overwrite: true);
+        }
+
+        File.WriteAllText(Path.Combine(configDirectory, "GlobalConfig.json"),
+            "{\n  \"App\": {\n"
+            + $"    \"Name\": \"{Name}\",\n"
+            + "    \"Args\": \"--basedir=./ --singleplayer\"\n"
+            + "  }\n}\n");
+
+        return publish;
     }
 
     public GameRunResult RunPackaged(string packageDirectory, string phase)
@@ -296,7 +383,6 @@ public sealed class GameProject
             HarnessEnvironment.BuildTimeout);
     }
 
-    // mirrors GenerateCSharpProjectFile() in Source/Engine/DotNET/Scripting/CSharpScriptCompiler.cs
     private string RenderScriptsProject(string referenceAssemblyPath, string outputDirectory)
     {
         string Reference(string name, string path) =>
@@ -390,7 +476,6 @@ public sealed class GameProject
         }
     }
 
-    // mirrors RenderGameProjectTemplate() in Source/Editor/EditorNativeModule.cpp
     private string RenderTemplate(string templatePath)
     {
         return File.ReadAllText(templatePath)
@@ -399,7 +484,6 @@ public sealed class GameProject
             .Replace("@CONTENT_DIR@", ContentDirFromBinaries);
     }
 
-    // the editor's project file, with only what differs from a new project's; the editor tools (cook, reload) open the project through it
     private void WriteProjectFile()
     {
         File.WriteAllText(ProjectFilePath,
@@ -409,7 +493,6 @@ public sealed class GameProject
             + "}\n");
     }
 
-    // mirrors WriteManagedProjectProps() in Source/Editor/EditorNativeModule.cpp
     private void WriteManagedProjectProps(string engineBinDir)
     {
         string binDir = engineBinDir.Replace('\\', '/').TrimEnd('/');
@@ -423,7 +506,6 @@ public sealed class GameProject
             + "  </PropertyGroup>\n</Project>\n");
     }
 
-    // the same command the editor's ManagedGameBuildService runs
     private ProcessResult BuildManaged(string[] extraArguments)
     {
         return ProcessRunner.Run(
@@ -437,128 +519,45 @@ public sealed class GameProject
 
     private ProcessResult BuildNative()
     {
-        return BuildNative(NativeBuildDirectory, "");
+        return BuildNative(isPackage: false, Array.Empty<string>());
     }
 
-    /// A script that builds the game again as Build() did, for the editor host to run where the editor rebuilds the game
-    public string WriteRebuildScript()
+    /// The script the last native build ran, which configures and builds the game again, as the editor's rebuild does
+    public string? NativeBuildScriptPath { get; private set; }
+
+    // the editor's NativeGameBuildService configure + build, with the toolchain it would pick for the SDK
+    private ProcessResult BuildNative(bool isPackage, IReadOnlyList<string> cmakeArguments)
     {
-        // RunCMake() left the build in a script that sets up the compiler environment first
-        if (HarnessEnvironment.VisualStudioDir != null)
+        GameBuildPlatform platform = GameBuildPlatform.Current;
+
+        string sdkDirectory = isPackage ? HarnessEnvironment.ShippingSdkDir : HarnessEnvironment.SdkDir;
+        HyperionSdk sdk = HyperionSdk.Load(sdkDirectory, isShipping: isPackage)
+            ?? throw new InvalidOperationException($"No {(isPackage ? "shipping " : "")}SDK at {sdkDirectory}");
+
+        NativeToolchain toolchain = platform.FindNativeToolchain(sdk.Compiler);
+
+        if (toolchain.Missing.Count > 0)
         {
-            return Path.Combine(Directory, "Build", "build.bat");
+            throw new InvalidOperationException($"Building a C++ game with the {sdk.Compiler} SDK needs: {string.Join(", ", toolchain.Missing)}");
         }
 
-        string command = $"cmake --build \"{NativeBuildDirectory}\" --config Release";
-        string scriptPath = Path.Combine(Directory, "Build", OperatingSystem.IsWindows() ? "rebuild.bat" : "rebuild.sh");
+        string buildDirectory = NativeGameBuild.GetBuildDirectory(Directory, platform, isPackage);
+        string scriptPath = NativeGameBuild.WriteBuildScript(platform, toolchain, sdk, Directory, buildDirectory, cmakeArguments);
 
-        if (OperatingSystem.IsWindows())
+        if (!isPackage)
         {
-            File.WriteAllText(scriptPath, command + "\r\nexit /b %errorlevel%\r\n");
-        }
-        else
-        {
-            File.WriteAllText(scriptPath, "#!/bin/sh\n" + command + "\n");
-            File.SetUnixFileMode(scriptPath, File.GetUnixFileMode(scriptPath) | UnixFileMode.UserExecute);
+            NativeBuildScriptPath = scriptPath;
         }
 
-        return scriptPath;
-    }
+        ProcessStartInfo startInfo = platform.CreateBuildScriptStartInfo(scriptPath, buildDirectory);
 
-    // the same configure + build as the editor's NativeGameBuildService: on Windows inside vcvars64, with the compiler the SDK
-    // was built with; elsewhere the compiler comes from CXX, as for any CMake project
-    private ProcessResult BuildNative(string buildDirectory, string label, params string[] cmakeArguments)
-    {
-        string logSuffix = label.Length > 0 ? "-" + label : "";
-
-        List<string> configureArguments = new List<string>
-        {
-            "-S", SourceDirectory,
-            "-B", buildDirectory,
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DHYPERION_SDK_DIR=" + HarnessEnvironment.SdkDir.Replace('\\', '/')
-        };
-
-        if (HarnessEnvironment.VisualStudioDir != null)
-        {
-            configureArguments.AddRange(new[] { "-G", "Ninja", "-DCMAKE_CXX_COMPILER=" + FindWindowsCompiler().Replace('\\', '/') });
-        }
-        else if (FindOnPath("ninja") != null)
-        {
-            configureArguments.AddRange(new[] { "-G", "Ninja" });
-        }
-
-        configureArguments.AddRange(cmakeArguments);
-
-        ProcessResult configure = RunCMake(
-            $"Configuring {Name}",
-            configureArguments,
-            Path.Combine(LogsDirectory, $"configure{logSuffix}.log"));
-
-        if (!configure.Succeeded)
-        {
-            return configure;
-        }
-
-        return RunCMake(
+        return ProcessRunner.Run(
             $"Building {Name}",
-            new[] { "--build", buildDirectory, "--config", "Release", "--parallel", Environment.ProcessorCount.ToString() },
-            Path.Combine(LogsDirectory, $"build{logSuffix}.log"));
-    }
-
-    // mirrors WindowsGameBuildPlatform.FindNativeToolchain() in Source/Editor/Managed/Services/Build
-    private static string FindWindowsCompiler()
-    {
-        if (HarnessEnvironment.SdkCompiler == "cl")
-        {
-            return "cl.exe";
-        }
-
-        string clangCl = Path.Combine(HarnessEnvironment.VisualStudioDir!, "VC", "Tools", "Llvm", "x64", "bin", "clang-cl.exe");
-
-        return File.Exists(clangCl) ? clangCl : "clang-cl.exe";
-    }
-
-    private ProcessResult RunCMake(string description, IReadOnlyList<string> arguments, string logPath)
-    {
-        if (HarnessEnvironment.VisualStudioDir == null)
-        {
-            return ProcessRunner.Run(description, "cmake", arguments, Directory, logPath, HarnessEnvironment.BuildTimeout);
-        }
-
-        string vcVarsPath = Path.Combine(HarnessEnvironment.VisualStudioDir, "VC", "Auxiliary", "Build", "vcvars64.bat");
-        string scriptPath = Path.Combine(Directory, "Build", Path.GetFileNameWithoutExtension(logPath) + ".bat");
-
-        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(scriptPath)!);
-
-        File.WriteAllText(scriptPath,
-            "@echo off\r\n"
-            + $"call \"{vcVarsPath}\" >nul\r\n"
-            + "if errorlevel 1 exit /b 1\r\n"
-            + "cmake " + string.Join(" ", arguments.Select(argument => "\"" + argument + "\"")) + "\r\n"
-            + "exit /b %errorlevel%\r\n");
-
-        return ProcessRunner.Run(description, "cmd.exe", new[] { "/d", "/c", scriptPath }, Directory, logPath, HarnessEnvironment.BuildTimeout);
-    }
-
-    private static string? FindOnPath(string program)
-    {
-        string[] extensions = OperatingSystem.IsWindows() ? new[] { ".exe", ".cmd", ".bat" } : new[] { "" };
-
-        foreach (string directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            foreach (string extension in extensions)
-            {
-                string candidate = Path.Combine(directory, program + extension);
-
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return null;
+            startInfo.FileName,
+            startInfo.ArgumentList,
+            buildDirectory,
+            Path.Combine(LogsDirectory, isPackage ? "build-package.log" : "build.log"),
+            HarnessEnvironment.BuildTimeout);
     }
 
     private static void CopyDirectory(string sourceDirectory, string destinationDirectory)

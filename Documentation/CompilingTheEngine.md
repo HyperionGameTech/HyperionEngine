@@ -31,7 +31,7 @@ git submodule update --init --recursive
 
 DXC is the shader compiler used for all platforms and rendering backends. All engine shaders are written in HLSL (`.hlsl` / `.hlsli`), and DXC compiles them to the appropriate target (SPIR-V for Vulkan, DXIL for DX12).
 
-DXC headers and libraries are bundled in `External/ThirdParty/Source/dxc/` and `External/ThirdParty/Binaries/<Platform>/`. CMake auto-detects DXC and sets `HYP_DXC=1` when found.
+DXC headers and libraries are bundled in `External/ThirdParty/Source/dxc/` and `External/ThirdParty/Binaries/<Platform>/`. CMake auto-detects DXC and sets `HYP_DXC=1` when found. Not included in your shipped game as the cook process precompiles all your shaders ahead of time.
 
 ### .NET Core (for C# Scripting and Editor UI)
 
@@ -143,7 +143,28 @@ Pass `tracy` to the build script when regenerating CMake (sets `HYP_TRACY=ON`, i
 
 `HYP_SCOPE`, `HYP_NAMED_SCOPE`, `ENGINE_STAT_SCOPE` and `HYP_PROFILE_BEGIN` become Tracy CPU zones, and `ENGINE_STAT_GPU_SCOPE` becomes a Tracy GPU zone (Vulkan only for now). The render thread marks the main frame and the sim thread marks a separate `Simulation` frame.
 
-The client only collects data while a profiler is connected. Run the engine, open `tracy-profiler` and connect to it. The profiler must be built from the same version as `External/Submodules/tracy` (see `External/Submodules/tracy/profiler`), otherwise it will refuse the connection.
+The client only collects data while a profiler is connected. Run the engine, open `tracy-profiler` and connect to it. The profiler must be built from the same version as `External/Submodules/tracy` (v0.14.1; see `External/Submodules/tracy/profiler`), otherwise it will refuse the connection.
+
+### Profiling a game
+
+A game made with **Build Game** links the editor's engine library, and the SDK compiles it with the same Tracy definitions and headers, so its own `HYP_SCOPE`s show up beside the engine's.
+
+Run the built game, or play it in the editor, and connect `tracy-profiler` to it.
+
+**Package Game** doesn't include Tracy (see below).
+
+## Shipping SDK (Package Game)
+
+**Package Game** links the game against a static, `HYP_SHIPPING` build of the engine, never the editor's engine library. That build lives in `Sdk/Shipping` of an editor package, and in `Binaries/<Platform>/ShippingSdk/Sdk` of a source tree. Build it with `sdk`:
+
+```bash
+Tools\Scripts\BuildHyperion.bat Release ninja sdk regenerate
+./Tools/Scripts/BuildHyperion.sh sdk ninja regenerate
+```
+
+`sdk` sets `HYP_SHIPPING=1` and `HYP_SHIPPING_SDK=ON`. That builds every engine library as a static archive without LTO, so any linker can read it, NativeAOT's `link.exe` included. It also writes `Sdk/StaticLibraries.txt`, which lists every archive and system library the engine needs. On Windows the engine and its vcpkg dependencies (the `x64-windows-hyp-static-mt` triplet) are built on the static VC runtime. The game swaps in the dynamic UCRT at link time, as NativeAOT does, so a game's C# scripts can be linked into the same executable.
+
+Games build against it with `-DHYPERION_PACKAGE=ON`. Their module is then an `OBJECT` library linked into the launcher (`HYPERION_GAME_MODULE_TYPE`), and only the libraries the executable imports from the SDK are copied beside it. A project made before this change declares its module `SHARED`. Change it to `add_library(<Name>Game ${HYPERION_GAME_MODULE_TYPE} ...)` in `Source/CMakeLists.txt`; configuring stops with that message until you do.
 
 ## Shader Compilation
 

@@ -68,13 +68,28 @@
     </AssemblyAttribute>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(HyperionStaticEngine)' == 'true'">
+    <DirectPInvoke Include="hyperion" />
+    <DirectPInvoke Include="hyperion-core" />
+    <DirectPInvoke Include="hyperion-net" />
+  </ItemGroup>
+
+  <Target Name="HyperionAddEngineLinkInputs" BeforeTargets="LinkNative" Condition="'$(HyperionEngineLibrariesFile)' != ''">
+    <ReadLinesFromFile File="$(HyperionEngineLibrariesFile)">
+      <Output TaskParameter="Lines" ItemName="NativeLibrary" />
+    </ReadLinesFromFile>
+
+    <ReadLinesFromFile File="$(HyperionEngineLinkOptionsFile)" Condition="'$(HyperionEngineLinkOptionsFile)' != '' And Exists('$(HyperionEngineLinkOptionsFile)')">
+      <Output TaskParameter="Lines" ItemName="LinkerArg" />
+    </ReadLinesFromFile>
+  </Target>
+
   <Target Name="HyperionWriteStaticLinkInputs" AfterTargets="LinkNative" Condition="'$(HyperionStaticLinkInputsFile)' != '' And '$(NativeLib)' == 'Static' And '$(HyperionWebBuild)' != 'true'">
     <ItemGroup>
       <_HyperionStaticLinkInput Include="$(NativeBinary)" />
       <_HyperionStaticLinkInput Include="@(NativeLibrary)" Condition="'%(Filename)' != 'dllmain'" />
     </ItemGroup>
 
-    <!-- system libraries: SdkNativeLibrary on Windows, NativeSystemLibrary / NativeFramework on Unix -->
     <ItemGroup>
       <_HyperionStaticLinkSystemInput Include="@(SdkNativeLibrary)" />
       <_HyperionStaticLinkSystemInput Include="@(NativeSystemLibrary->'-l%(Identity)')" />
@@ -85,8 +100,11 @@
   </Target>
 
   <Target Name="HyperionCheckBinDir" BeforeTargets="ResolveAssemblyReferences" Condition="'$(HyperionWebBuild)' != 'true'">
-    <Error Condition="'$(HyperionBinDir)' == '/' Or (!Exists('$(HyperionBinDir)hyperion.dll') And !Exists('$(HyperionBinDir)libhyperion.so') And !Exists('$(HyperionBinDir)libhyperion.dylib'))"
+    <Error Condition="'$(HyperionBinDir)' == '/' Or ('$(HyperionStaticEngine)' != 'true' And !Exists('$(HyperionBinDir)hyperion.dll') And !Exists('$(HyperionBinDir)libhyperion.so') And !Exists('$(HyperionBinDir)libhyperion.dylib'))"
            Text="HyperionBinDir must point at a Hyperion engine build (containing the native hyperion library); got '$(HyperionBinDir)'" />
+    <!-- a shipping SDK has no native hyperion library, only its archives and the assemblies built with it -->
+    <Error Condition="'$(HyperionStaticEngine)' == 'true' And !Exists('$(HyperionManagedDir)Hyperion.NET.Runtime.dll')"
+           Text="HyperionBinDir must point at a shipping SDK's runtime folder (containing Hyperion.NET.Runtime.dll) for a static engine; got '$(HyperionBinDir)'" />
     <!-- without the generator the assembly has no type registry, so the engine finds none of its classes -->
     <Warning Condition="'$(HyperionGeneratorsPath)' == ''"
              Text="Hyperion.NET.Generators.dll not found in '$(HyperionManagedDir)', '$(HyperionBinDir)' or '$(HyperionBinDir)ref/'; the engine won't find any classes in this assembly" />

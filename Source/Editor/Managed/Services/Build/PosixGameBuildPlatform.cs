@@ -9,7 +9,7 @@ namespace Hyperion.Editor.Services
 {
     [SupportedOSPlatform("linux")]
     [SupportedOSPlatform("macos")]
-    public abstract class PosixGameBuildPlatform : GameBuildPlatform
+    public abstract partial class PosixGameBuildPlatform : GameBuildPlatform
     {
         private static readonly string[] s_stripToolNames = { "strip", "llvm-strip" };
 

@@ -75,6 +75,9 @@ option(HYP_MONOLITHIC "Build a single hyperion shared library" OFF)
 # Connect with a tracy-profiler built from the same submodule version. BuildHyperion.bat/.sh pass this for the `tracy` argument.
 option(HYP_TRACY "Enable Tracy profiler instrumentation" OFF)
 
+option(HYP_TRACY_ONLY_LOCALHOST "Limit the Tracy client to localhost" OFF)
+option(HYP_SHIPPING_SDK "Build the engines's libraries as static libraries (for a shipped game)" OFF)
+
 set(HYP_RUNTIME_DIRECTORY_SUFFIX "")
 if(HYP_RUNTIME_ONLY)
   set(HYP_RUNTIME_DIRECTORY_SUFFIX "-Runtime")
@@ -111,6 +114,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project(${BUILD_NAME} CXX)
 
 set(CMAKE_OPTIMIZE_DEPENDENCIES ON)
+
+if(HYP_SHIPPING_SDK)
+  if(NOT HYP_SHIPPING)
+    message(FATAL_ERROR "HYP_SHIPPING_SDK needs a shipping build (-DHYP_SHIPPING=1)")
+  endif()
+
+  # NativeAOT's runtime is built on the static VC runtime (with the dynamic UCRT), and the game links it into the same image
+  if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+  endif()
+endif()
 
 if(CMAKE_GENERATOR MATCHES "^Visual Studio")
   set(CMAKE_VS_GLOBALS "UseMultiToolTask=true" "EnforceProcessCountAcrossBuilds=true")
@@ -345,6 +359,11 @@ if(HYP_MSVC)
     else()
       set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Zi /GL /GF /Zc:inline /constexpr:depth1024 /bigobj /arch:AVX2 /fp:fast")
     endif()
+
+    if(HYP_SHIPPING_SDK)
+      string(REPLACE " /MD " " /MT " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+      string(REPLACE " /GL " " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    endif()
   else()
     if(HYP_ARCH STREQUAL "ARM64")
       set(CMAKE_CXX_FLAGS "/Zc:preprocessor /Zc:__cplusplus /O2 /Oi /MD /Z7 /constexpr:depth1024 /bigobj /fp:fast")
@@ -370,7 +389,9 @@ else()
     message(STATUS "Building with Clang on Windows, adding NOMINMAX definition to avoid min/max macro conflicts")
   endif()
 
-  if(HYP_SHIPPING)
+  if(HYP_SHIPPING_SDK)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+  elseif(HYP_SHIPPING)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -flto=thin")
   elseif(NOT HYP_DEBUG_MODE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -Werror=return-type -Werror=address -Werror=non-virtual-dtor -Werror=unused-result")
@@ -497,8 +518,12 @@ if(HYP_JOLT)
   set(JPH_USE_MTL OFF CACHE BOOL "" FORCE)
 
   if(MSVC)
-    # The engine links against the dynamic CRT (/MD).
-    set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
+    # The engine links against the dynamic CRT (/MD), or the static one for a shipping SDK.
+    if(HYP_SHIPPING_SDK)
+      set(USE_STATIC_MSVC_RUNTIME_LIBRARY ON CACHE BOOL "" FORCE)
+    else()
+      set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
+    endif()
   endif()
 
   add_subdirectory("${JOLT_SUBMODULE_DIR}/Build" "${CMAKE_BINARY_DIR}/JoltPhysicsBuild")
@@ -559,6 +584,8 @@ if(HYP_RUNTIME_ONLY)
   set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-Runtime")
 elseif(HYP_WEB)
   set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-Web")
+elseif(HYP_SHIPPING_SDK)
+  set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-ShippingSdk")
 elseif(HYP_OUTPUT_DIRECTORY_SUFFIX STREQUAL "Distribution")
   set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects-Distribution")
 else()
@@ -631,6 +658,10 @@ if(HYP_TRACY)
 
   if(WIN32 AND NOT HYP_BUILD_STATIC AND NOT HYP_MONOLITHIC)
     add_definitions(-DTRACY_IMPORTS)
+  endif()
+
+  if(HYP_TRACY_ONLY_LOCALHOST)
+    add_definitions(-DTRACY_ONLY_LOCALHOST)
   endif()
 
   # rpmalloc's initial-exec TLS would stop hyperion-core from being dlopen'd (see TracyPlatform.hpp)
@@ -887,6 +918,12 @@ else()
   message(FATAL_ERROR "No rendering backend found!")
 endif()
 
+foreach(backend_define HYP_VULKAN HYP_DX12 HYP_WEBGPU)
+  if(${backend_define})
+    list(APPEND CSHARP_CONSTANTS "${backend_define}")
+  endif()
+endforeach()
+
 if (RENDERING_BACKEND STREQUAL "Vulkan")
   if (HYP_CLANG_WINDOWS)
     message(STATUS "Building with Clang on Windows - not including glslang due to build issues with Clang on Windows. If you want to use glslang, build with MSVC or on another platform.")
@@ -922,8 +959,10 @@ if(HYP_WINDOWS)
   endif()
 endif()
 
-# setup DXC if found
-if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
+# setup DXC if found. only for non-shipping builds
+if(HYP_SHIPPING)
+  message(STATUS "Shipping build: shaders are compiled ahead of time, skipping DXC setup")
+elseif(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
   message(STATUS "DXC headers found, setting up DXC")
 
   include_directories(BEFORE SYSTEM ${THIRD_PARTY_INCLUDE_DIR}/dxc)
@@ -1453,7 +1492,7 @@ if(HYP_WEB)
     -Wl,--wrap=emscripten_futex_wait)
 endif()
 
-if(NOT HYP_MONOLITHIC)
+if(NOT HYP_MONOLITHIC AND NOT HYP_SHIPPING_SDK)
   add_subdirectory(Sample)
 endif()
 
@@ -1479,11 +1518,80 @@ if(HYP_EDITOR)
   endif()
 endif()
 
-if(NOT HYP_BUILD_STATIC AND NOT HYP_ANDROID AND NOT HYP_IOS)
+function(hyp_collect_static_link_items rootTarget outVar)
+  set(items "")
+  set(visited "")
+  set(pending ${rootTarget})
+
+  while(pending)
+    list(POP_FRONT pending current)
+
+    if(current IN_LIST visited)
+      continue()
+    endif()
+
+    list(APPEND visited ${current})
+
+    get_target_property(aliasedTarget ${current} ALIASED_TARGET)
+
+    if(aliasedTarget)
+      list(APPEND pending ${aliasedTarget})
+      continue()
+    endif()
+
+    get_target_property(targetType ${current} TYPE)
+    get_target_property(isImported ${current} IMPORTED)
+
+    if(targetType STREQUAL "STATIC_LIBRARY" OR (isImported AND targetType STREQUAL "UNKNOWN_LIBRARY"))
+      list(APPEND items "$<TARGET_LINKER_FILE:${current}>")
+    endif()
+
+    set(linkProperties INTERFACE_LINK_LIBRARIES)
+
+    if(NOT isImported AND NOT targetType STREQUAL "INTERFACE_LIBRARY")
+      list(APPEND linkProperties LINK_LIBRARIES)
+    endif()
+
+    foreach(linkProperty ${linkProperties})
+      get_target_property(dependencies ${current} ${linkProperty})
+
+      if(NOT dependencies)
+        continue()
+      endif()
+
+      foreach(dependency ${dependencies})
+        string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" dependency "${dependency}")
+
+        if(TARGET ${dependency})
+          list(APPEND pending ${dependency})
+        elseif(NOT dependency IN_LIST items)
+          list(APPEND items ${dependency})
+        endif()
+      endforeach()
+    endforeach()
+  endwhile()
+
+  set(${outVar} ${items} PARENT_SCOPE)
+endfunction()
+
+# the SDK native game projects build against: the editor's shared engine, or the static engine of a shipping SDK (Package Game)
+if((NOT HYP_BUILD_STATIC OR HYP_SHIPPING_SDK) AND NOT HYP_ANDROID AND NOT HYP_IOS)
   get_directory_property(HYP_SDK_DEFINITION_LIST COMPILE_DEFINITIONS)
+
+  # only the Tracy client in core includes it, and it names the source tree
+  list(FILTER HYP_SDK_DEFINITION_LIST EXCLUDE REGEX "^TRACY_PLATFORM_HEADER=")
+
+  # the client is exported from hyperion.dll (see Core/CMakeLists.txt), so a game's zones import it
+  if(HYP_TRACY AND WIN32 AND NOT HYP_BUILD_STATIC)
+    list(APPEND HYP_SDK_DEFINITION_LIST "TRACY_IMPORTS")
+  endif()
 
   if(WIN32)
     list(APPEND HYP_SDK_DEFINITION_LIST "_HAS_EXCEPTIONS=0" "NOMINMAX")
+  endif()
+
+  # cl and clang-cl; MinGW takes the GNU flags
+  if(MSVC)
     set(HYP_SDK_COMPILE_OPTIONS "/EHs-c- /GR-")
 
     if(HYP_MSVC)
@@ -1511,17 +1619,61 @@ if(NOT HYP_BUILD_STATIC AND NOT HYP_ANDROID AND NOT HYP_IOS)
     endif()
   endif()
 
+  # ProfileScope.hpp includes <tracy/Tracy.hpp>
+  if(HYP_TRACY)
+    list(APPEND HYP_SDK_THIRD_PARTY_SUBDIRS "tracy/public")
+  endif()
+
+  # under External/ThirdParty/Source, or a submodule under External/Submodules; a packaged SDK has them all in Sdk/ThirdParty
   foreach(third_party_subdir ${HYP_SDK_THIRD_PARTY_SUBDIRS})
-    list(APPEND HYP_SDK_DEV_INCLUDE_DIRS "${THIRD_PARTY_INCLUDE_DIR}/${third_party_subdir}")
+    if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/${third_party_subdir}")
+      list(APPEND HYP_SDK_DEV_INCLUDE_DIRS "${THIRD_PARTY_INCLUDE_DIR}/${third_party_subdir}")
+    else()
+      list(APPEND HYP_SDK_DEV_INCLUDE_DIRS "${SUBMODULES_DIR}/${third_party_subdir}")
+    endif()
   endforeach()
 
   if(HYP_VULKAN AND Vulkan_INCLUDE_DIRS)
     list(APPEND HYP_SDK_DEV_INCLUDE_DIRS ${Vulkan_INCLUDE_DIRS})
   endif()
 
-  set(HYP_SDK_DEV_LIBRARIES "$<TARGET_LINKER_FILE:${BUILD_NAME}>")
-  if(NOT HYP_MONOLITHIC)
-    list(APPEND HYP_SDK_DEV_LIBRARIES "$<TARGET_LINKER_FILE:hyperion-core>")
+  set(HYP_SDK_SHIPPING OFF)
+  set(HYP_SDK_LINK_OPTIONS "")
+
+  if(HYP_BUILD_STATIC)
+    set(HYP_SDK_SHIPPING ON)
+
+    # every archive and system library the engine pulls in, linked straight into the game's executable
+    hyp_collect_static_link_items(${BUILD_NAME} HYP_SDK_STATIC_LINK_ITEMS)
+
+    # third-party paths come from the build scripts with backslashes, which would be escapes in the generated CMake
+    set(HYP_SDK_DEV_LIBRARIES "")
+    foreach(link_item ${HYP_SDK_STATIC_LINK_ITEMS})
+      if(IS_ABSOLUTE "${link_item}")
+        get_filename_component(link_item "${link_item}" ABSOLUTE)
+      endif()
+
+      list(APPEND HYP_SDK_DEV_LIBRARIES "${link_item}")
+    endforeach()
+
+    get_filename_component(HYP_SDK_DEV_RUNTIME_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" ABSOLUTE)
+
+    # the config a game copies beside it (hyperion_copy_runtime), which the sample would otherwise have copied
+    add_custom_command(TARGET ${BUILD_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -D CONFIG_SRC_DIR="${CMAKE_SOURCE_DIR}/../Config"
+          -D CONFIG_DST_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Config"
+          -D PLATFORM="${HYP_PLATFORM_NAME}"
+          -P "${CMAKE_SOURCE_DIR}/Sample/CopyPlatformConfigs.cmake"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CMAKE_SOURCE_DIR}/../Config/Shaders.hmf" "${CMAKE_SOURCE_DIR}/../Config/DeviceTiers.hmf"
+          "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Config")
+  else()
+    set(HYP_SDK_DEV_LIBRARIES "$<TARGET_LINKER_FILE:${BUILD_NAME}>")
+    if(NOT HYP_MONOLITHIC)
+      list(APPEND HYP_SDK_DEV_LIBRARIES "$<TARGET_LINKER_FILE:hyperion-core>")
+    endif()
+
+    set(HYP_SDK_DEV_RUNTIME_DIR "$<TARGET_FILE_DIR:${BUILD_NAME}>")
   endif()
 
   if(HYP_MSVC)
@@ -1535,7 +1687,7 @@ if(NOT HYP_BUILD_STATIC AND NOT HYP_ANDROID AND NOT HYP_IOS)
   get_filename_component(HYP_SDK_DEV_BASE_DIR "${CMAKE_SOURCE_DIR}/.." ABSOLUTE)
 
   set(HYP_SDK_SHADER_COMPILER_LIBRARIES "")
-  if(HYP_DXC AND WIN32 AND NOT HYP_BUILD_STATIC)
+  if(HYP_DXC AND WIN32)
     set(HYP_SDK_SHADER_COMPILER_LIBRARIES "dxcompiler.dll")
   endif()
 
@@ -1543,6 +1695,7 @@ if(NOT HYP_BUILD_STATIC AND NOT HYP_ANDROID AND NOT HYP_IOS)
 
   configure_file(${CMAKE_SOURCE_DIR}/HyperionSdk.cmake.in "${HYP_SDK_OUTPUT_DIR}/HyperionSdk.cmake" @ONLY)
   configure_file(${CMAKE_SOURCE_DIR}/Sdk/Platforms/${HYP_PLATFORM_NAME}.cmake "${HYP_SDK_OUTPUT_DIR}/HyperionSdkPlatform.cmake" COPYONLY)
+  configure_file(${CMAKE_SOURCE_DIR}/Sdk/CopyRuntimeDependencies.cmake "${HYP_SDK_OUTPUT_DIR}/HyperionCopyRuntimeDependencies.cmake" COPYONLY)
 
   set(HYP_SDK_DEV_PATHS_CONDITION "1")
   get_property(HYP_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -1558,15 +1711,25 @@ if(NOT HYP_BUILD_STATIC AND NOT HYP_ANDROID AND NOT HYP_IOS)
   file(GENERATE OUTPUT "${HYP_SDK_OUTPUT_DIR}/HyperionSdkDevPaths.cmake" CONTENT
 "set(HYPERION_SDK_INCLUDE_DIRS \"${HYP_SDK_DEV_INCLUDE_DIRS}\")
 set(HYPERION_SDK_LIBRARIES \"${HYP_SDK_DEV_LIBRARIES}\")
-set(HYPERION_SDK_RUNTIME_DIR \"$<TARGET_FILE_DIR:${BUILD_NAME}>\")
+set(HYPERION_SDK_RUNTIME_DIR \"${HYP_SDK_DEV_RUNTIME_DIR}\")
 set(HYPERION_SDK_BASE_DIR \"${HYP_SDK_DEV_BASE_DIR}\")
 set(HYPERION_SDK_PCH \"${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp\")
 set(HYPERION_SDK_CODEGEN \"${HYP_SDK_DEV_BASE_DIR}/Build/hyperion-codegen${CMAKE_EXECUTABLE_SUFFIX}\")
 set(HYPERION_SDK_ENGINE_TYPES \"${HYP_GENERATED_DIR}/EngineTypes.json\")
 " CONDITION "${HYP_SDK_DEV_PATHS_CONDITION}")
 
-  # the libraries a game ships beside it, read by the SDK and by Package Game
-  if(WIN32)
+  if(HYP_BUILD_STATIC)
+    # what a packaged shipping SDK copies into its Lib folder and lists by file name (see HyperionSdk.cmake.in)
+    list(JOIN HYP_SDK_DEV_LIBRARIES "\n" HYP_SDK_STATIC_LIBRARIES_TEXT)
+
+    # (a generator expression that evaluates to nothing leaves a blank line, which readers skip)
+    file(GENERATE OUTPUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Sdk/StaticLibraries.txt" CONTENT "${HYP_SDK_STATIC_LIBRARIES_TEXT}\n"
+        CONDITION "${HYP_SDK_DEV_PATHS_CONDITION}")
+  endif()
+
+  # the libraries a game ships beside it, read by the SDK and by Package Game. A static engine has none of its own; the game's
+  # imports are resolved when it's built instead (HyperionCopyRuntimeDependencies.cmake)
+  if(WIN32 AND NOT HYP_BUILD_STATIC)
     get_filename_component(HYP_LINKER_DIR "${CMAKE_LINKER}" DIRECTORY)
 
     set(HYP_DEPENDENCY_PLATFORM "windows+pe")
@@ -1578,7 +1741,7 @@ set(HYPERION_SDK_ENGINE_TYPES \"${HYP_GENERATED_DIR}/EngineTypes.json\")
       set(HYP_DEPENDENCY_TOOL "objdump")
       set(HYP_DEPENDENCY_TOOL_COMMAND "${CMAKE_OBJDUMP}")
     endif()
-  elseif(HYP_LINUX AND CMAKE_OBJDUMP)
+  elseif(HYP_LINUX AND CMAKE_OBJDUMP AND NOT HYP_BUILD_STATIC)
     set(HYP_DEPENDENCY_PLATFORM "linux+elf")
     set(HYP_DEPENDENCY_TOOL "objdump")
     set(HYP_DEPENDENCY_TOOL_COMMAND "${CMAKE_OBJDUMP}")
@@ -1598,64 +1761,7 @@ set(HYPERION_SDK_ENGINE_TYPES \"${HYP_GENERATED_DIR}/EngineTypes.json\")
 endif()
 
 if(HYP_WEB)
-  # everything static that linking hyperion pulls in, as files or flags; the engine's own targets are all defined by now
-  function(hyp_collect_web_link_items rootTarget outVar)
-    set(items "")
-    set(visited "")
-    set(pending ${rootTarget})
-
-    while(pending)
-      list(POP_FRONT pending current)
-
-      if(current IN_LIST visited)
-        continue()
-      endif()
-
-      list(APPEND visited ${current})
-
-      get_target_property(aliasedTarget ${current} ALIASED_TARGET)
-
-      if(aliasedTarget)
-        list(APPEND pending ${aliasedTarget})
-        continue()
-      endif()
-
-      get_target_property(targetType ${current} TYPE)
-      get_target_property(isImported ${current} IMPORTED)
-
-      if(targetType STREQUAL "STATIC_LIBRARY" OR (isImported AND targetType STREQUAL "UNKNOWN_LIBRARY"))
-        list(APPEND items "$<TARGET_LINKER_FILE:${current}>")
-      endif()
-
-      set(linkProperties INTERFACE_LINK_LIBRARIES)
-
-      if(NOT isImported AND NOT targetType STREQUAL "INTERFACE_LIBRARY")
-        list(APPEND linkProperties LINK_LIBRARIES)
-      endif()
-
-      foreach(linkProperty ${linkProperties})
-        get_target_property(dependencies ${current} ${linkProperty})
-
-        if(NOT dependencies)
-          continue()
-        endif()
-
-        foreach(dependency ${dependencies})
-          string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" dependency "${dependency}")
-
-          if(TARGET ${dependency})
-            list(APPEND pending ${dependency})
-          elseif(NOT dependency IN_LIST items)
-            list(APPEND items ${dependency})
-          endif()
-        endforeach()
-      endforeach()
-    endwhile()
-
-    set(${outVar} ${items} PARENT_SCOPE)
-  endfunction()
-
-  hyp_collect_web_link_items(${BUILD_NAME} HYP_WEB_SDK_LIBRARIES)
+  hyp_collect_static_link_items(${BUILD_NAME} HYP_WEB_SDK_LIBRARIES)
 
   get_directory_property(HYP_WEB_SDK_INCLUDE_DIRS INCLUDE_DIRECTORIES)
   list(APPEND HYP_WEB_SDK_INCLUDE_DIRS "${HYP_GENERATED_DIR}" "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/Engine")

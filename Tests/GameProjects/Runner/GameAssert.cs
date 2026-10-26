@@ -23,6 +23,19 @@ public static class GameAssert
         Assert.True(result.Process.Succeeded, $"All game tests passed, but the game did not exit cleanly.\n{result.Process.Summary}");
     }
 
+    public static void NoEngineLibraries(string packageDirectory)
+    {
+        string enginePrefix = Path.GetFileNameWithoutExtension(HarnessEnvironment.NativeLibraryName);
+
+        string[] engineLibraries = Directory.GetFiles(packageDirectory)
+            .Select(file => Path.GetFileName(file))
+            .Where(name => (name.StartsWith(enginePrefix, StringComparison.OrdinalIgnoreCase) || name.Contains("dxcompiler", StringComparison.OrdinalIgnoreCase))
+                && (name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || name.Contains(".so") || name.EndsWith(".dylib")))
+            .ToArray();
+
+        Assert.True(engineLibraries.Length == 0, $"The package has engine libraries beside the game: {string.Join(", ", engineLibraries)}");
+    }
+
     /// The tests the game ran for one phase all passed
     public static void TestsPassed(GameTestReport report, ITestOutputHelper output)
     {

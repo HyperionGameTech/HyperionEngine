@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 namespace Hyperion.Editor.Services
 {
     [SupportedOSPlatform("macos")]
-    public sealed class MacGameBuildPlatform : PosixGameBuildPlatform
+    public sealed partial class MacGameBuildPlatform : PosixGameBuildPlatform
     {
         public override string Name => "Darwin";
 
@@ -28,13 +28,6 @@ namespace Hyperion.Editor.Services
             return sdkCompiler == "GNU"
                 ? "GCC C++ compiler (g++)"
                 : "Xcode command line tools (clang++)";
-        }
-
-        public override void PromptInstallNativeToolchain(IReadOnlyList<string> missing)
-        {
-            ShowMessage(MessageBox.Warning("C++ build tools required",
-                    FormatMissing(missing) + "\n\nInstall them with:\n  xcode-select --install\n  brew install cmake ninja")
-                .Button("OK", () => { }));
         }
 
         public override string? FindNativeAotToolchainError(out string? extraPath)
