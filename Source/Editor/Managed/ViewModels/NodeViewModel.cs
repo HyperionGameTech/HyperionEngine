@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using Avalonia.Media;
 using Hyperion;
 using Hyperion.Editor.Commands;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -96,7 +97,7 @@ namespace Hyperion.Editor.ViewModels
             TextSprite          => "TextSprite",
             Sprite              => "Sprite",
             Entity              => "Entity",
-            _                   => "Node",
+            _                   => EditorPluginService.Instance.FindAssetIcon(_node.Class.Name.ToString()) ?? "Node",
         };
 
         private string _sourcePrefabName;
@@ -107,7 +108,7 @@ namespace Hyperion.Editor.ViewModels
         public string EditPrefabHeader => $"Edit Prefab '{_sourcePrefabName}'";
         public string PrefabInstanceTooltip => $"Prefab instance: {_sourcePrefabName}";
 
-        public bool CanUsePrefabActions => !(MainWindowViewModel.Instance?.IsEditingPrefab ?? false);
+        public bool CanUsePrefabActions => !(MainWindowViewModel.Instance?.IsInEditMode ?? false);
 
         public void RefreshSourcePrefab()
         {
@@ -308,7 +309,7 @@ namespace Hyperion.Editor.ViewModels
 
             MainWindowViewModel? mainWindowViewModel = MainWindowViewModel.Instance;
 
-            if (mainWindowViewModel != null && !IsRootNode && !mainWindowViewModel.IsEditingPrefab)
+            if (mainWindowViewModel != null && !IsRootNode && !mainWindowViewModel.IsInEditMode)
             {
                 Scene? currentScene = _node.IsValid ? _node.Scene : null;
 
@@ -338,7 +339,7 @@ namespace Hyperion.Editor.ViewModels
 
             if (mainWindowViewModel != null
                 && !IsRootNode
-                && !mainWindowViewModel.IsEditingPrefab
+                && !mainWindowViewModel.IsInEditMode
                 && _node.IsValid && ClassName == "Node")
             {
                 List<string> classNames = [];

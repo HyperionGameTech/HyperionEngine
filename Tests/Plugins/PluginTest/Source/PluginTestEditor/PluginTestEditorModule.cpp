@@ -6,6 +6,8 @@
 
 #include <Editor/Commands/EditorCommandsCommon.hpp>
 
+#include <PluginTestEditor/PluginTestEditorExtension.hpp>
+
 #include <Plugins/PluginModule.hpp>
 #include <Plugins/PluginContext.hpp>
 #include <Plugins/PluginManager.hpp>
@@ -22,6 +24,8 @@ public:
     void OnLoad(PluginContext& context) override
     {
         HYP_LOG(Editor, Info, "PluginTestEditor loaded (editor host: {})", context.IsEditorHost());
+
+        RegisterEditorExtension<PluginTestEditorExtension>(context);
     }
 };
 
@@ -52,9 +56,12 @@ public:
         const Handle<EditorProject>& project = subsystem->GetCurrentProject();
         const World* world = project.IsValid() ? project->GetWorld().Get() : nullptr;
 
-        HYP_LOG(Editor, Info, "PluginTestStatus: enabled plugins [ {}], world has PluginTestSystem: {}",
+        const Handle<PluginTestEditorExtension> extension = subsystem->GetExtension<PluginTestEditorExtension>();
+
+        HYP_LOG(Editor, Info, "PluginTestStatus: enabled plugins [ {}], world has PluginTestSystem: {}, editor extension updates: {}",
             enabledPlugins,
-            world != nullptr && world->GetSystem<PluginTestSystem>() != nullptr);
+            world != nullptr && world->GetSystem<PluginTestSystem>() != nullptr,
+            extension.IsValid() ? int64(extension->GetNumUpdates()) : int64(-1));
     }
 };
 

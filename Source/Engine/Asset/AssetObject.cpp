@@ -7,6 +7,7 @@
 #include <AssetPch.hpp>
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetExtension.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetBatch.hpp>
 #include <Asset/Assets.hpp>
@@ -399,6 +400,7 @@ Handle<AssetObject> AssetObject::CloneAsset() const
 
     Handle<AssetObject> clone = dst.Get<Handle<AssetObject>>();
     clone->SetUUID(UUID());
+    clone->DeserializeExtensions(SerializeExtensions());
 
     return clone;
 }
@@ -486,7 +488,7 @@ Result AssetObject::PersistBlobData(
         return HYP_MAKE_ERROR(Error, "Asset '{}' does not have a valid bucket, cannot persist blob data", m_name);
     }
 
-    const FilePath bucketDir = registry->GetBucketDirectory(bucket);
+    const FilePath bucketDir = registry->GetAssetDirectory(bucket.GetIndex(), m_name);
 
     if (!bucketDir.Exists() && !bucketDir.MkDir())
     {
@@ -1059,6 +1061,330 @@ bool AssetObject::ShouldUseBlobStorage()
         && !EngineGlobals::IsCacheServer()
         && EngineGlobals::UseCookedContent();
 }
+
+#pragma region Extensions
+
+static auto IsOfClass(const Class* extensionClass)
+{
+    return [extensionClass](const Handle<AssetExtension>& extension)
+    {
+        return extension->IsA(extensionClass);
+    };
+}
+
+Array<Handle<AssetExtension>> AssetObject::GetExtensions() const
+{
+    Mutex::Guard guard(m_extensionsMutex);
+
+    return m_extensions;
+}
+
+Array<Name> AssetObject::GetExtensionClassNames() const
+{
+    Mutex::Guard guard(m_extensionsMutex);
+
+    Array<Name> classNames;
+    classNames.Reserve(m_extensions.Size());
+
+    for (const Handle<AssetExtension>& extension : m_extensions)
+    {
+        classNames.PushBack(extension->InstanceClass()->GetName());
+    }
+
+    return classNames;
+}
+
+Handle<AssetExtension> AssetObject::GetExtension(const Class* extensionClass) const
+{
+    Mutex::Guard guard(m_extensionsMutex);
+
+    if (auto it = m_extensions.FindIf(IsOfClass(extensionClass)); it != m_extensions.End())
+    {
+        return *it;
+    }
+
+    return ResolveExtension(extensionClass);
+}
+
+Handle<AssetExtension> AssetObject::ResolveExtension(const Class* extensionClass) const
+{
+    auto unresolvedIt = m_unresolvedExtensions.FindIf([extensionClass](const HMF::UnresolvedObject& unresolvedExtension)
+        {
+            return unresolvedExtension.className == extensionClass->GetName();
+        });
+
+    if (unresolvedIt == m_unresolvedExtensions.End())
+    {
+        return Handle<AssetExtension>::empty;
+    }
+
+    TResult<BoxedValue> parseResult = BoxedAsType(BoxedValue(*unresolvedIt), TypeInfo::ForType<Handle<AssetExtension>>());
+
+    if (parseResult.HasError() || !parseResult.GetValue().Is<Handle<AssetExtension>>())
+    {
+        return Handle<AssetExtension>::empty;
+    }
+
+    Handle<AssetExtension> extension = parseResult.GetValue().Get<Handle<AssetExtension>>();
+
+    if (extension.IsValid())
+    {
+        m_unresolvedExtensions.Erase(unresolvedIt);
+
+        extension->m_owner = WeakHandleFromThis();
+        m_extensions.PushBack(extension);
+    }
+
+    return extension;
+}
+
+void AssetObject::AddExtension(const Handle<AssetExtension>& extension)
+{
+    if (!extension.IsValid())
+    {
+        return;
+    }
+
+    {
+        Mutex::Guard guard(m_extensionsMutex);
+
+        auto it = m_extensions.FindIf([extensionClass = extension->InstanceClass()](const Handle<AssetExtension>& existing)
+            {
+                return existing->InstanceClass() == extensionClass;
+            });
+
+        if (it != m_extensions.End())
+        {
+            if (*it == extension)
+            {
+                return;
+            }
+
+            (*it)->m_owner = WeakHandle<AssetObject>();
+            *it = extension;
+        }
+        else
+        {
+            m_extensions.PushBack(extension);
+        }
+
+        extension->m_owner = WeakHandleFromThis();
+    }
+
+    OnExtensionChanged(*extension);
+    MarkDirty();
+}
+
+void AssetObject::RemoveExtension(const Handle<AssetExtension>& extension)
+{
+    {
+        Mutex::Guard guard(m_extensionsMutex);
+
+        auto it = m_extensions.Find(extension);
+
+        if (it == m_extensions.End())
+        {
+            return;
+        }
+
+        m_extensions.Erase(it);
+        extension->m_owner = WeakHandle<AssetObject>();
+    }
+
+    OnExtensionChanged(*extension);
+    MarkDirty();
+}
+
+Handle<AssetExtension> AssetObject::GetOrAddExtension(const Class* extensionClass) const
+{
+    if (!AssetExtension::CanExtend(extensionClass, InstanceClass()))
+    {
+        HYP_LOG(Assets, Warning, "{} doesn't apply to asset '{}'", extensionClass ? extensionClass->GetName() : Name::Invalid(), m_name);
+
+        return Handle<AssetExtension>::empty;
+    }
+
+    Mutex::Guard guard(m_extensionsMutex);
+
+    if (auto it = m_extensions.FindIf(IsOfClass(extensionClass)); it != m_extensions.End())
+    {
+        return *it;
+    }
+
+    if (Handle<AssetExtension> resolvedExtension = ResolveExtension(extensionClass))
+    {
+        return resolvedExtension;
+    }
+
+    Handle<AssetExtension> extension = AssetExtension::Create(extensionClass);
+
+    if (!extension.IsValid())
+    {
+        return Handle<AssetExtension>::empty;
+    }
+
+    extension->InitForAsset(*this);
+
+    extension->m_owner = WeakHandleFromThis();
+    m_extensions.PushBack(extension);
+
+    return extension;
+}
+
+const Class* AssetObject::FindExtensionClass(Name className) const
+{
+    for (const Class* extensionClass : AssetExtension::GetExtensionClasses(InstanceClass()))
+    {
+        if (extensionClass->GetName() == className)
+        {
+            return extensionClass;
+        }
+    }
+
+    HYP_LOG(Assets, Warning, "{} doesn't apply to asset '{}'", className, m_name);
+
+    return nullptr;
+}
+
+Handle<AssetExtension> AssetObject::GetOrAddExtensionOfClass(Name className) const
+{
+    const Class* extensionClass = FindExtensionClass(className);
+
+    return extensionClass ? GetOrAddExtension(extensionClass) : Handle<AssetExtension>::empty;
+}
+
+Array<Name> AssetObject::GetAddableExtensionClasses() const
+{
+    Array<Name> classNames;
+
+    for (const Class* extensionClass : AssetExtension::GetExtensionClasses(InstanceClass()))
+    {
+        if (!GetExtension(extensionClass).IsValid())
+        {
+            classNames.PushBack(extensionClass->GetName());
+        }
+    }
+
+    return classNames;
+}
+
+Handle<AssetExtension> AssetObject::AddExtensionOfClass(Name className)
+{
+    const Class* extensionClass = FindExtensionClass(className);
+
+    if (!extensionClass)
+    {
+        return Handle<AssetExtension>::empty;
+    }
+
+    Handle<AssetExtension> extension = AssetExtension::Create(extensionClass);
+
+    if (!extension.IsValid())
+    {
+        return Handle<AssetExtension>::empty;
+    }
+
+    extension->InitForAsset(*this);
+
+    AddExtension(extension);
+
+    return extension;
+}
+
+void AssetObject::RemoveExtensionOfClass(Name className)
+{
+    if (const Class* extensionClass = FindExtensionClass(className))
+    {
+        RemoveExtension(GetExtension(extensionClass));
+    }
+}
+
+Array<BoxedValue> AssetObject::SerializeExtensions() const
+{
+    Mutex::Guard guard(m_extensionsMutex);
+
+    Array<BoxedValue> extensions;
+    extensions.Reserve(m_extensions.Size() + m_unresolvedExtensions.Size());
+
+    for (const Handle<AssetExtension>& extension : m_extensions)
+    {
+        extensions.PushBack(BoxedValue(extension));
+    }
+
+    for (const HMF::UnresolvedObject& unresolvedExtension : m_unresolvedExtensions)
+    {
+        extensions.PushBack(BoxedValue(unresolvedExtension));
+    }
+
+    return extensions;
+}
+
+void AssetObject::DeserializeExtensions(const Array<BoxedValue>& extensions)
+{
+    Mutex::Guard guard(m_extensionsMutex);
+
+    for (const Handle<AssetExtension>& extension : m_extensions)
+    {
+        extension->m_owner = WeakHandle<AssetObject>();
+    }
+
+    m_extensions.Clear();
+    m_unresolvedExtensions.Clear();
+
+    for (const BoxedValue& value : extensions)
+    {
+        if (value.Is<HMF::UnresolvedObject>())
+        {
+            m_unresolvedExtensions.PushBack(value.Get<HMF::UnresolvedObject>());
+
+            continue;
+        }
+
+        if (!value.Is<Handle<AssetExtension>>())
+        {
+            HYP_LOG(Assets, Warning, "Asset '{}' has an extension that isn't an AssetExtension; it is dropped", m_name);
+
+            continue;
+        }
+
+        Handle<AssetExtension> extension = value.Get<Handle<AssetExtension>>();
+
+        if (!extension.IsValid())
+        {
+            continue;
+        }
+
+        // a cloned asset is handed its source's extensions, which stay the source's
+        if (Handle<AssetObject> owner = extension->m_owner.Lock(); owner.IsValid() && owner.Get() != this)
+        {
+            BoxedValue copy;
+
+            if (!CloneWithoutTransientMembers(BoxedValue(extension), copy) || !copy.Is<Handle<AssetExtension>>())
+            {
+                HYP_LOG(Assets, Warning, "Failed to copy extension {} for asset '{}'", extension->InstanceClass()->GetName(), m_name);
+
+                continue;
+            }
+
+            extension = copy.Get<Handle<AssetExtension>>();
+        }
+
+        extension->m_owner = WeakHandleFromThis();
+        m_extensions.PushBack(std::move(extension));
+    }
+}
+
+// @TODO: Refactor away?
+void AssetObject::ShareExtensionsFrom(const AssetObject& source)
+{
+    Array<Handle<AssetExtension>> extensions = source.GetExtensions();
+
+    Mutex::Guard guard(m_extensionsMutex);
+
+    m_extensions = std::move(extensions);
+}
+
+#pragma endregion Extensions
 
 #pragma endregion AssetObject
 

@@ -29,6 +29,16 @@ ENGINE_API HYP_DECLARE_LOG_CHANNEL(Assets);
 
 using OgreXMLSkeleton = OgreXMLSkeletonLoader::OgreXMLSkeleton;
 
+static Vec3f MirrorZ(const Vec3f& translation)
+{
+    return Vec3f(translation.x, translation.y, -translation.z);
+}
+
+static Quat4f MirrorZ(const Quat4f& rotation)
+{
+    return Quat4f(-rotation.x, -rotation.y, rotation.z, rotation.w);
+}
+
 class OgreXMLSkeletonSAXHandler : public xml::SAXHandler
 {
 public:
@@ -104,7 +114,7 @@ public:
 
             if (!m_skeleton.bones.Empty())
             {
-                m_skeleton.bones.Back().bindingTranslation = Vec3f(x, y, z);
+                m_skeleton.bones.Back().bindingTranslation = MirrorZ(Vec3f(x, y, z));
             }
             else
             {
@@ -155,7 +165,7 @@ public:
             auto y = StringUtil::Parse<float>(attributes.At("y"));
             auto z = StringUtil::Parse<float>(attributes.At("z"));
 
-            LastKeyframe().translation = Vec3f(x, y, z);
+            LastKeyframe().translation = MirrorZ(Vec3f(x, y, z));
         }
         else if (name == "rotate")
         {
@@ -181,7 +191,7 @@ public:
                 }
                 else
                 {
-                    LastKeyframe().rotation = Quat4f(axis, m_keyframeAngles.Top());
+                    LastKeyframe().rotation = MirrorZ(Quat4f(axis, m_keyframeAngles.Top()));
 
                     m_keyframeAngles.Pop();
                 }
@@ -200,7 +210,7 @@ public:
                     }
                     else
                     {
-                        m_skeleton.bones.Back().bindingRotation = Quat4f(axis, m_bindingAngles.Top());
+                        m_skeleton.bones.Back().bindingRotation = MirrorZ(Quat4f(axis, m_bindingAngles.Top()));
                     }
 
                     m_bindingAngles.Pop();

@@ -1,0 +1,58 @@
+AnimationGraph HumanoidMotionMatching {
+    RootNode = 1
+    Nodes = [
+        AnimationMotionMatchingNode Motion {
+            Database = @"Engine://Animations/HumanoidMotion"
+            SearchInterval = 0.1
+            BlendTime = 0.2
+            SameClipWindow = 0.2
+            VelocityParameter = Velocity
+            DesiredVelocityParameter = DesiredVelocity
+            DesiredFacingParameter = DesiredFacing
+            AccelerationParameter = TrajectoryAcceleration
+            TurnSharpnessParameter = TrajectoryTurnSharpness
+            Acceleration = 12
+            TurnSharpness = 10
+            EditorPosition = (0, 0)
+        }
+        AnimationFootIKNode FootIK {
+            Input = 0
+            LeftOffsetParameter = LeftFootOffset
+            RightOffsetParameter = RightFootOffset
+            Weight = 1
+            WeightParameter = ""
+            EditorPosition = (300, 0)
+        }
+    ]
+    Parameters = [
+        AnimationGraphParameter Velocity {
+            Type = Vector2
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter DesiredVelocity {
+            Type = Vector2
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter DesiredFacing {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter TrajectoryAcceleration {
+            Type = Float
+            DefaultValue = (12, 0)
+        }
+        AnimationGraphParameter TrajectoryTurnSharpness {
+            Type = Float
+            DefaultValue = (10, 0)
+        }
+        AnimationGraphParameter LeftFootOffset {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter RightFootOffset {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+    ]
+    UUID = "d951f32c-6585-43cf-892f-19f24079997e"
+}

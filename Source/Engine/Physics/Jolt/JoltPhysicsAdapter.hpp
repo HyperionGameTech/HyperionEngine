@@ -60,6 +60,8 @@ public:
     void SetCharacterMotionState(const SharedPtr<void>& physicsHandle, const CharacterMotionState& motionState);
     void GetCharacterTouchedRigidBodies(const SharedPtr<void>& physicsHandle, Array<Handle<RigidBody>, PhysicsAllocator>& out);
 
+    bool CastRayStatic(const Vec3f& origin, const Vec3f& direction, float maxDistance, PhysicsRayHit& outHit);
+
 private:
     JPH::PhysicsSystem* m_physicsSystem;
     JPH::JobSystem* m_jobSystem;

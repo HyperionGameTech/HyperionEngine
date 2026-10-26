@@ -32,7 +32,6 @@
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/MeshComponent.hpp>
-#include <Scene/Components/AnimationComponent.hpp>
 
 #include <Core/Utilities/StringUtil.hpp>
 #include <Core/Utilities/Optional.hpp>
@@ -2436,17 +2435,6 @@ Handle<Entity> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
                 if (skeleton.IsValid())
                 {
                     entity->SetIsDynamic(true);
-
-                    AnimationComponent animationComponent {};
-                    animationComponent.playbackState = {
-                        .animationIndex = 0,
-                        .status = AnimationPlaybackStatus::PLAYING,
-                        .loopMode = AnimationLoopMode::REPEAT,
-                        .speed = 1.0f,
-                        .currentTime = 0.0f
-                    };
-
-                    ctx.scene->GetEntityManager()->AddComponent<AnimationComponent>(entity, animationComponent);
                 }
 
                 nodeHandle->AddChild(entity);

@@ -681,10 +681,25 @@ private:
 
     void FindModules()
     {
+        // plugins kept under the source directory are read once, as plugin modules
+        Set<FilePath> pluginDirectories;
+
+        for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
+        {
+            pluginDirectories.Insert(FilePath::Relative(pluginModule.sourceRoot.BasePath(), m_analyzer.GetSourceDirectory()));
+        }
+
+        bool isScanningPlugins = false;
+
         Proc<void(const FilePath&)> iterateFilesAndSubdirectories;
 
         iterateFilesAndSubdirectories = [&](const FilePath& dir)
         {
+            if (!isScanningPlugins && pluginDirectories.Contains(FilePath::Relative(dir, m_analyzer.GetSourceDirectory())))
+            {
+                return;
+            }
+
             for (const String& excludeDir : m_analyzer.GetExcludeDirectories())
             {
                 const FilePath relativePath = FilePath(FileSystem::RelativePath(dir.Data(), m_analyzer.GetSourceDirectory().Data()).c_str());
@@ -726,6 +741,8 @@ private:
         };
 
         iterateFilesAndSubdirectories(m_analyzer.GetSourceDirectory());
+
+        isScanningPlugins = true;
 
         for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
         {

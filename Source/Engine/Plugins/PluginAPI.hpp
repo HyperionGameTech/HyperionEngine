@@ -9,6 +9,8 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
+#include <Core/Reflection/ObjectMacros.hpp>
+
 #include <Core/Utilities/EnumFlags.hpp>
 
 #define HYP_PLUGIN_ABI_VERSION 1
@@ -21,10 +23,11 @@
 
 namespace Hyperion {
 
-static constexpr const char PluginFunctionName_Query[] = "HypPluginQuery";
-static constexpr const char PluginFunctionName_Load[] = "HypPluginLoad";
-static constexpr const char PluginFunctionName_Unload[] = "HypPluginUnload";
+constexpr const char PluginFunctionName_Query[] = "HypPluginQuery";
+constexpr const char PluginFunctionName_Load[] = "HypPluginLoad";
+constexpr const char PluginFunctionName_Unload[] = "HypPluginUnload";
 
+HYP_ENUM()
 enum class HypPluginHostFlags : uint32
 {
     None = 0x0,

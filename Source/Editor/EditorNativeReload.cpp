@@ -451,10 +451,8 @@ EDITOR_API void RebuildRetiredModuleObjects(EditorProject* project, EditorSubsys
 
     if (subsystem)
     {
-        if (subsystem->IsEditingPrefab())
-        {
-            subsystem->GetPrefabEditState()->Exit(/* apply */ true);
-        }
+        const bool exitedEditModes = subsystem->ExitIsolatedEditStates(/* apply */ true);
+        Assert(exitedEditModes, "The open edit mode could not apply its edits before the module reload");
 
         subsystem->ExitMeshEditMode(/* saveEdits */ true);
         subsystem->GetCsgState()->Exit(/* saveEdits */ true);

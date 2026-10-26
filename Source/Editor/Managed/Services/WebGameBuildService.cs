@@ -67,6 +67,14 @@ namespace Hyperion.Editor.Services
                     arguments.Add(string.Join(",", pluginModules));
                 }
 
+                List<string> plugins = EngineManager.CurrentProject?.GetEnabledPlugins().Cast<Name>().Select(pluginName => pluginName.ToString()).ToList() ?? new List<string>();
+
+                if (plugins.Count > 0)
+                {
+                    arguments.Add("-Plugins");
+                    arguments.Add(string.Join(",", plugins));
+                }
+
                 if (run)
                 {
                     arguments.Add("-Run");

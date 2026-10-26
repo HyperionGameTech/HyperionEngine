@@ -582,6 +582,32 @@ public:
         return lastFound;
     }
 
+    constexpr bool StartsWith(const StringView& comp) const
+    {
+        if (Size() < comp.Size())
+        {
+            return false;
+        }
+
+        return std::equal(
+            Begin(),
+            Begin() + comp.Size(),
+            comp.Begin());
+    }
+
+    constexpr bool EndsWith(const StringView& comp) const
+    {
+        if (Size() < comp.Size())
+        {
+            return false;
+        }
+
+        return std::equal(
+            Begin() + (Size() - comp.Size()),
+            End(),
+            comp.Begin());
+    }
+
     constexpr StringView Substr(size_t first, size_t last) const
     {
         first = MathUtil::Min(first, m_length);

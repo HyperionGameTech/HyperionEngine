@@ -8,9 +8,6 @@
 
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
-#include <Scene/Systems/AnimationSystem.hpp>
-#include <Scene/Systems/BoneAttachmentSystem.hpp>
-#include <Scene/Systems/CharacterModelSystem.hpp>
 #include <Scene/Systems/AudioSystem.hpp>
 #include <Scene/Systems/PhysicsSystem.hpp>
 #include <Scene/Systems/CameraSystem.hpp>
@@ -40,9 +37,6 @@ WorldSystemRegistry::WorldSystemRegistry()
     Register<PhysicsSystem>(WorldFlags::HasPhysics);
     Register<VisibilityStateUpdaterSystem>();
     Register<LightmapSystem>();
-    Register<CharacterModelSystem>();
-    Register<AnimationSystem>();
-    Register<BoneAttachmentSystem>();
     Register<AudioSystem>();
     Register<ScriptSystem>();
     Register<InstanceGroupSystem>();

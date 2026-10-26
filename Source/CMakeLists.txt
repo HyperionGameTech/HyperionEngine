@@ -286,10 +286,10 @@ function(RunCodeGen version_major version_minor)
   endif()
 endfunction()
 
-# Run CodeGen with version 0.21
+# Run CodeGen with version 0.22
 # HYP_CODEGEN_VERSION_MAJOR 0
-# HYP_CODEGEN_VERSION_MINOR 21
-RunCodeGen(0 21)
+# HYP_CODEGEN_VERSION_MINOR 22
+RunCodeGen(0 22)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -1197,7 +1197,7 @@ endfunction()
 
 # built-in plugins: <dir>/<Plugin>/Source/<Module>, linked into the engine. Modules named *Editor are editor-only.
 # CodeGen (RunCodeGen.bat/.sh) reads the same directories
-set(HYP_PLUGIN_SEARCH_DIRECTORIES "${CMAKE_SOURCE_DIR}/../Plugins")
+set(HYP_PLUGIN_SEARCH_DIRECTORIES "${CMAKE_SOURCE_DIR}/Plugins")
 
 # the plugin fixtures in Tests/Plugins; a shipping SDK build can turn them on to test Package Game with them
 if(HYP_TESTS)
@@ -1239,6 +1239,12 @@ foreach(plugin_search_dir ${HYP_PLUGIN_SEARCH_DIRECTORIES})
       set(HYP_PLUGIN_MODULE_DIR_${plugin_module_name} "${plugin_module_dir}")
       set(HYP_PLUGIN_SOURCE_ROOT_${plugin_module_name} "${plugin_dir}/Source")
       get_filename_component(HYP_PLUGIN_NAME_${plugin_module_name} "${plugin_dir}" NAME)
+
+      set(plugin_name "${HYP_PLUGIN_NAME_${plugin_module_name}}")
+
+      if(plugin_module_name STREQUAL plugin_name OR (NOT plugin_module_name MATCHES "Editor$" AND NOT DEFINED HYP_PLUGIN_TESTS_MODULE_${plugin_name}))
+        set(HYP_PLUGIN_TESTS_MODULE_${plugin_name} "${plugin_module_name}")
+      endif()
 
       message(STATUS "Plugin module ${plugin_module_name} (${plugin_module_dir})")
     endforeach()
@@ -1570,6 +1576,16 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
 
   source_group(TREE ${plugin_module_dir} PREFIX "Source Code" FILES ${plugin_sources} ${plugin_headers})
   source_group(TREE ${plugin_generated_dir} PREFIX "Generated Code" FILES ${plugin_generated_sources})
+
+  if(HYP_TESTS AND plugin_module STREQUAL "${HYP_PLUGIN_TESTS_MODULE_${HYP_PLUGIN_NAME_${plugin_module}}}")
+    get_filename_component(plugin_tests_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Tests" ABSOLUTE)
+    file(GLOB_RECURSE plugin_test_sources "${plugin_tests_dir}/*.cpp")
+
+    if(plugin_test_sources)
+      source_group(TREE ${plugin_tests_dir} PREFIX "Tests" FILES ${plugin_test_sources})
+      list(APPEND plugin_sources ${plugin_test_sources})
+    endif()
+  endif()
 
   add_library(${plugin_target} STATIC ${plugin_sources} ${plugin_headers} ${plugin_generated_sources})
   target_compile_definitions(${plugin_target} PRIVATE HYP_BUILD_ENGINE=1 "HYP_PLUGIN_NAME=\"${HYP_PLUGIN_NAME_${plugin_module}}\"")

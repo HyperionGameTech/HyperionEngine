@@ -19,6 +19,7 @@
 #include <Editor/EditorConfig.hpp>
 #include <Editor/EditorAssetDrop.hpp>
 #include <Editor/EditorImport.hpp>
+#include <Editor/EditorImportReview.hpp>
 #include <Editor/EditorPlayerSetup.hpp>
 #include <Editor/EditorTemplateLibrary.hpp>
 #include <Editor/EditorNativeModule.hpp>
@@ -398,6 +399,146 @@ bool EditorSubsystem::IsEditingPrefab() const
     return m_prefabEditState.IsValid() && m_prefabEditState->IsActive();
 }
 
+Handle<EditorExtension> EditorSubsystem::GetExtension(const Class* extensionClass) const
+{
+    for (const Handle<EditorExtension>& extension : m_extensions)
+    {
+        if (extension->IsA(extensionClass))
+        {
+            return extension;
+        }
+    }
+
+    return Handle<EditorExtension>::empty;
+}
+
+Handle<EditorExtension> EditorSubsystem::GetExtensionOfClass(Name className) const
+{
+    for (const Handle<EditorExtension>& extension : m_extensions)
+    {
+        if (extension->InstanceClass()->GetName() == className)
+        {
+            return extension;
+        }
+    }
+
+    return Handle<EditorExtension>::empty;
+}
+
+void EditorSubsystem::SetExtensions(Array<Handle<EditorExtension>>&& extensions)
+{
+    m_extensions = std::move(extensions);
+}
+
+void EditorSubsystem::RegisterIsolatedEditState(const Handle<EditorIsolatedEditState>& editState)
+{
+    if (!editState.IsValid() || AnyOf(m_isolatedEditStates, [&editState](const IsolatedEditStateEntry& entry)
+            {
+                return entry.editState == editState;
+            }))
+    {
+        return;
+    }
+
+    IsolatedEditStateEntry& entry = m_isolatedEditStates.EmplaceBack();
+    entry.editState = editState;
+
+    entry.activeChangedHandler = editState->OnActiveChanged.Bind(this, [this](...)
+        {
+            OnIsolatedEditStateChanged();
+        });
+
+    entry.dirtyChangedHandler = editState->OnDirtyChanged.Bind(this, [this](...)
+        {
+            OnIsolatedEditStateChanged();
+        });
+}
+
+void EditorSubsystem::UnregisterIsolatedEditState(EditorIsolatedEditState* editState)
+{
+    auto it = m_isolatedEditStates.FindIf([editState](const IsolatedEditStateEntry& entry)
+        {
+            return entry.editState.Get() == editState;
+        });
+
+    if (it != m_isolatedEditStates.End())
+    {
+        m_isolatedEditStates.Erase(it);
+    }
+}
+
+EditorIsolatedEditState* EditorSubsystem::FindEditStateForAsset(const Handle<AssetObject>& asset) const
+{
+    for (const IsolatedEditStateEntry& entry : m_isolatedEditStates)
+    {
+        if (entry.editState->CanEditAsset(asset))
+        {
+            return entry.editState.Get();
+        }
+    }
+
+    return nullptr;
+}
+
+bool EditorSubsystem::EnterEditStateForAsset(const Handle<AssetObject>& asset)
+{
+    AssertOnThread(g_simThread);
+
+    EditorIsolatedEditState* editState = FindEditStateForAsset(asset);
+
+    if (!editState)
+    {
+        HYP_LOG(Editor, Warning, "No edit mode opens '{}'", asset.IsValid() ? asset->GetName() : Name::Invalid());
+
+        return false;
+    }
+
+    if (!ExitIsolatedEditStates(/* apply */ true))
+    {
+        return false;
+    }
+
+    return editState->EnterAsset(asset);
+}
+
+EditorIsolatedEditState* EditorSubsystem::GetActiveIsolatedEditState() const
+{
+    for (const IsolatedEditStateEntry& entry : m_isolatedEditStates)
+    {
+        if (entry.editState->IsActive())
+        {
+            return entry.editState.Get();
+        }
+    }
+
+    return nullptr;
+}
+
+bool EditorSubsystem::IsInIsolatedEditMode() const
+{
+    return GetActiveIsolatedEditState() != nullptr;
+}
+
+bool EditorSubsystem::ExitIsolatedEditStates(bool apply)
+{
+    for (const IsolatedEditStateEntry& entry : m_isolatedEditStates)
+    {
+        if (!entry.editState->Exit(apply))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool EditorSubsystem::IsProtectedNode(const Node* node) const
+{
+    EditorIsolatedEditState* editState = GetActiveIsolatedEditState();
+
+    return editState != nullptr && editState->IsProtectedNode(node);
+}
+
 void EditorSubsystem::SyncStalePrefabInstances(Scene* scene)
 {
     AssertOnThread(g_simThread);
@@ -439,8 +580,10 @@ void EditorSubsystem::UpdateViewportIsolation()
 {
     AssertOnThread(g_simThread);
 
-    const Array<Handle<Scene>> isolatedScenes = IsEditingPrefab()
-        ? m_prefabEditState->GetIsolatedScenes()
+    const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState();
+
+    const Array<Handle<Scene>> isolatedScenes = isolatedEditState
+        ? isolatedEditState->GetIsolatedScenes()
         : Array<Handle<Scene>>();
 
     for (const Handle<EditorViewport>& viewport : m_editorViewports)
@@ -498,7 +641,7 @@ bool EditorSubsystem::CanEnableMeshEditMode() const
         return true;
     }
 
-    if (!m_currentProject.IsValid() || IsSimulating() || IsEditingPrefab())
+    if (!m_currentProject.IsValid() || IsSimulating() || IsInIsolatedEditMode())
     {
         return false;
     }
@@ -553,9 +696,9 @@ EditorActionStack* EditorSubsystem::GetActiveActionStack() const
 
 EditorActionStack* EditorSubsystem::GetSceneActionStack() const
 {
-    if (IsEditingPrefab())
+    if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState())
     {
-        return m_prefabEditState->GetActionStack();
+        return isolatedEditState->GetActionStack();
     }
 
     if (!m_currentProject.IsValid())
@@ -568,9 +711,11 @@ EditorActionStack* EditorSubsystem::GetSceneActionStack() const
 
 EditorActionStack* EditorSubsystem::GetActionStackForNode(Node* node) const
 {
-    if (node != nullptr && IsEditingPrefab() && node->GetScene() == m_prefabEditState->GetEditScene().Get())
+    const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState();
+
+    if (node != nullptr && isolatedEditState && node->GetScene() == isolatedEditState->GetEditScene().Get())
     {
-        return m_prefabEditState->GetActionStack();
+        return isolatedEditState->GetActionStack();
     }
 
     if (!m_currentProject.IsValid())
@@ -1104,7 +1249,7 @@ void EditorSubsystem::EnterMeshEditMode()
         return;
     }
 
-    if (!m_currentProject.IsValid() || IsEditingPrefab())
+    if (!m_currentProject.IsValid() || IsInIsolatedEditMode())
     {
         return;
     }
@@ -2521,6 +2666,10 @@ void EditorSubsystem::OnAddedToWorld()
             OnScriptReloaded();
         }));
 
+    GetPrefabEditState();
+
+    EditorExtensionRegistry::GetInstance().Attach(this);
+
     if (const String startupProjectPath = g_editorState->GetStartupProjectPath(); startupProjectPath.Any())
     {
         TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(FilePath(startupProjectPath));
@@ -2565,6 +2714,15 @@ void EditorSubsystem::OnRemovedFromWorld()
         m_currentProject->Close();
         m_currentProject.Reset();
     }
+
+    EditorExtensionRegistry::GetInstance().Detach();
+
+    if (m_prefabEditState.IsValid())
+    {
+        m_prefabEditState->Shutdown();
+    }
+
+    m_isolatedEditStates.Clear();
 
     m_editorViewports.Clear();
 }
@@ -3879,6 +4037,11 @@ void EditorSubsystem::Update(float delta)
     UpdateBakeStatus();
     UpdatePlayNetState();
 
+    for (const Handle<EditorExtension>& extension : m_extensions)
+    {
+        extension->Update(delta);
+    }
+
     if (m_thumbnailService)
     {
         m_thumbnailService->Update();
@@ -3895,7 +4058,12 @@ void EditorSubsystem::Update(float delta)
     DebugDrawPhysicsShapes(dbg);
     DebugDrawMeshLods(dbg);
     DebugDrawSelectedInstances(dbg);
-    
+
+    for (const Handle<EditorExtension>& extension : m_extensions)
+    {
+        extension->DebugDraw(dbg);
+    }
+
     GetTerrainState()->DebugDrawCursor(dbg);
     GetDecalPainterState()->DebugDrawCursor(dbg);
     GetInstancePainterState()->DebugDrawCursor(dbg);
@@ -4034,9 +4202,11 @@ bool EditorSubsystem::StartSimulation()
     }
 
     // Pending prefab edits go into the snapshot too
-    if (m_prefabEditState.IsValid())
+    if (!ExitIsolatedEditStates(/* apply */ true))
     {
-        m_prefabEditState->Exit(/* apply */ true);
+        HYP_LOG(Editor, Error, "The open edit mode could not apply its edits. Simulation will not be started.");
+
+        return false;
     }
 
     // Save the edits to meshes before simulating.
@@ -4702,7 +4872,15 @@ void EditorSubsystem::InitViewport()
                             continue;
                         }
 
-                        nodeStrong = ResolvePickTarget(nodeStrong, m_selectedNodes);
+                        const Node* pickedNode = nodeStrong.Get();
+
+                        if (!AnyOf(m_extensions, [pickedNode](const Handle<EditorExtension>& extension)
+                                {
+                                    return extension->SelectsPickedNode(pickedNode);
+                                }))
+                        {
+                            nodeStrong = ResolvePickTarget(nodeStrong, m_selectedNodes);
+                        }
 
                         bool shouldMutateSelection = false;
 
@@ -5424,9 +5602,9 @@ bool EditorSubsystem::ExecuteCommand(const Handle<EditorCommandBase>& command)
         return false;
     }
 
-    if (IsEditingPrefab() && !command->AllowedWhileEditingPrefab())
+    if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState(); isolatedEditState && !command->AllowedWhileEditingPrefab())
     {
-        HYP_LOG(Editor, Warning, "Cannot execute command '{}' while editing a prefab", command->InstanceClass()->GetName());
+        HYP_LOG(Editor, Warning, "Cannot execute command '{}' while editing a {}", command->InstanceClass()->GetName(), isolatedEditState->GetKindName());
 
         return false;
     }
@@ -5618,9 +5796,11 @@ bool EditorSubsystem::OpenWorld(Name worldName)
 
     CancelMeshPreview();
 
-    if (m_prefabEditState.IsValid())
+    if (!ExitIsolatedEditStates(/* apply */ true))
     {
-        m_prefabEditState->Exit(/* apply */ true);
+        HYP_LOG(Editor, Error, "Cannot open World '{}', the open edit mode could not apply its edits", worldName);
+
+        return false;
     }
 
     ExitMeshEditMode(/* saveEdits */ true);
@@ -5701,10 +5881,7 @@ void EditorSubsystem::CloseProject(bool shutdownWorld)
 
     if (m_currentProject)
     {
-        if (m_prefabEditState.IsValid())
-        {
-            m_prefabEditState->Exit(/* apply */ false);
-        }
+        ExitIsolatedEditStates(/* apply */ false);
 
         GetCsgState()->Exit(/* saveEdits */ true);
 
@@ -5932,6 +6109,44 @@ void EditorSubsystem::ShowImportContentDialog()
 
             // Note: The batch will be destroyed automatically by AssetManager when complete
         });
+}
+
+void EditorSubsystem::QueueImportReview(const Handle<EditorImportReview>& review)
+{
+    AssertOnThread(g_simThread);
+
+    m_pendingImportReviews.PushBack(review);
+
+    OnImportReviewQueued();
+}
+
+Handle<EditorImportReview> EditorSubsystem::GetPendingImportReview()
+{
+    AssertOnThread(g_simThread);
+
+    while (m_pendingImportReviews.Any() && m_pendingImportReviews.Front()->IsFinished())
+    {
+        m_pendingImportReviews.PopFront();
+    }
+
+    return m_pendingImportReviews.Any()
+        ? m_pendingImportReviews.Front()
+        : Handle<EditorImportReview>::Null();
+}
+
+bool EditorSubsystem::CanReimportAsset(const Handle<AssetObject>& asset) const
+{
+    return !IsSimulating() && GetEditorAssetImportInfo(asset.Get()) != nullptr;
+}
+
+bool EditorSubsystem::ReimportAsset(const Handle<AssetObject>& asset)
+{
+    if (!CanReimportAsset(asset))
+    {
+        return false;
+    }
+
+    return ReimportEditorAsset(*this, asset);
 }
 
 void EditorSubsystem::RequestAssetImport(uint32 requestId)
@@ -6292,6 +6507,11 @@ bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
 {
     bool hasHits = false;
 
+    for (const Handle<EditorExtension>& extension : m_extensions)
+    {
+        hasHits |= extension->TestPickRay(ray, outResults);
+    }
+
     for (const Handle<EditorViewport>& vp : m_editorViewports)
     {
         if (vp->GetView()->TestRay(ray, outResults, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
@@ -6304,12 +6524,12 @@ bool EditorSubsystem::TestPickRay(const Ray& ray, RayTestResults& outResults)
     {
         if (EditorSpriteSystem* spriteSystem = projectWorld->GetSystem<EditorSpriteSystem>())
         {
-            if (IsEditingPrefab())
+            if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState())
             {
                 RayTestResults spriteResults;
                 spriteSystem->TestRay(ray, spriteResults);
 
-                const Handle<Scene>& editScene = m_prefabEditState->GetEditScene();
+                const Handle<Scene>& editScene = isolatedEditState->GetEditScene();
 
                 for (const RayHit& hit : spriteResults)
                 {
@@ -6941,9 +7161,9 @@ void EditorSubsystem::AddViewport(const Handle<EditorViewport>& viewport)
     viewport->OnAdded(this);
     m_editorViewports.PushBack(viewportStrong);
 
-    if (IsEditingPrefab())
+    if (const EditorIsolatedEditState* isolatedEditState = GetActiveIsolatedEditState())
     {
-        viewport->SetIsolatedScenes(this, m_prefabEditState->GetIsolatedScenes());
+        viewport->SetIsolatedScenes(this, isolatedEditState->GetIsolatedScenes());
     }
 
     // active VP is always the first one in the array

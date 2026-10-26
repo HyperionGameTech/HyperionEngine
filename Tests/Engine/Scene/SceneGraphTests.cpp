@@ -12,7 +12,7 @@
 #include <Scene/Node.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/EntityManager.hpp>
-#include <Scene/Components/CharacterModelComponent.hpp>
+#include <Scene/Components/AudioComponent.hpp>
 #include <Scene/Components/InstanceClusterComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
 
@@ -568,12 +568,11 @@ HYP_ENGINE_TEST(SceneGraph, EntityCloneCopiesSerializedComponents)
     scene->GetRoot()->AddChild(entity);
 
     // components are cloned by serializing them, so only a component with serialized fields carries over
-    CharacterModelComponent added;
-    added.turnSharpness = 3.5f;
-    added.forwardYawOffset = 1.25f;
-    added.alignToCapsule = false;
+    AudioComponent added;
+    added.playbackState.speed = 3.5f;
+    added.playbackState.currentTime = 1.25f;
 
-    entity->AddComponent<CharacterModelComponent>(std::move(added));
+    entity->AddComponent<AudioComponent>(std::move(added));
 
     Handle<Node> cloneNode = entity->Clone();
     Handle<Entity> clone = TryCast<Entity>(cloneNode);
@@ -582,17 +581,16 @@ HYP_ENGINE_TEST(SceneGraph, EntityCloneCopiesSerializedComponents)
 
     HYP_TEST_CHECK(clone != entity);
     HYP_TEST_CHECK(clone->GetName() == NAME("Source"));
-    HYP_TEST_REQUIRE(clone->HasComponent<CharacterModelComponent>());
+    HYP_TEST_REQUIRE(clone->HasComponent<AudioComponent>());
 
-    const CharacterModelComponent& clonedComponent = clone->GetComponent<CharacterModelComponent>();
+    const AudioComponent& clonedComponent = clone->GetComponent<AudioComponent>();
 
-    HYP_TEST_CHECK(clonedComponent.turnSharpness == 3.5f);
-    HYP_TEST_CHECK(clonedComponent.forwardYawOffset == 1.25f);
-    HYP_TEST_CHECK(!clonedComponent.alignToCapsule);
+    HYP_TEST_CHECK(clonedComponent.playbackState.speed == 3.5f);
+    HYP_TEST_CHECK(clonedComponent.playbackState.currentTime == 1.25f);
 
-    clone->GetComponent<CharacterModelComponent>().turnSharpness = 99.0f;
+    clone->GetComponent<AudioComponent>().playbackState.speed = 99.0f;
 
-    HYP_TEST_CHECK(entity->GetComponent<CharacterModelComponent>().turnSharpness == 3.5f);
+    HYP_TEST_CHECK(entity->GetComponent<AudioComponent>().playbackState.speed == 3.5f);
 }
 
 HYP_ENGINE_TEST(SceneGraph, EntityManagerOwnsEntitiesOfScene)

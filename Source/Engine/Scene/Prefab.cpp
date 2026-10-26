@@ -250,7 +250,7 @@ uint32 Prefab::FindLargestMesh(Handle<Mesh>& outMesh) const
     auto visitNode = [&](Node* node)
     {
         Entity* entity = TryCast<Entity>(node);
-        MeshComponent* meshComponent = entity ? entity->TryGetComponent<MeshComponent>() : nullptr;
+        MeshComponent* meshComponent = entity && entity->GetEntityManager() ? entity->TryGetComponent<MeshComponent>() : nullptr;
 
         if (!meshComponent || !meshComponent->mesh.IsValid())
         {

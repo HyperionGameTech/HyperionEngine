@@ -176,6 +176,17 @@ struct CharacterControllerComponent
 
     HYP_FIELD(Transient)
     float jumpWindupRemaining = 0.0f;
+
+    // set by an animation driving the character with root motion; blends over the input's walk velocity by its weight while on the ground
+    HYP_FIELD(Transient)
+    Vec3f rootMotionVelocity = Vec3f::Zero();
+
+    HYP_FIELD(Transient)
+    float rootMotionWeight = 0.0f;
+
+    // the walk velocity the input asked for on the last move
+    HYP_FIELD(Transient)
+    Vec3f wishVelocity = Vec3f::Zero();
 };
 
 } // namespace Hyperion

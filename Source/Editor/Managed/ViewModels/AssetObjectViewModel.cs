@@ -37,6 +37,8 @@ namespace Hyperion.Editor.ViewModels
 
         public bool CanGenerateCollision => IsMesh;
 
+        public bool CanReimport => IsPrefab || _bucket?.BucketIndex == AssetBucket.Skeletons.Value || _bucket?.BucketIndex == AssetBucket.Animations.Value;
+
         public string ToolTipText => _bucket != null
             ? $"{DisplayName}\n{_bucket.Name}"
             : DisplayName;

@@ -5,7 +5,7 @@ Tests run through one xUnit project, `Tests/GameProjects/Runner`, which CI runs 
 ```bash
 ./Tools/Scripts/RunTests.sh               # everything
 ./Tools/Scripts/RunTests.sh EngineTests   # only the engine tests
-./Tools/Scripts/RunTests.sh Native        # only the C++ game project tests
+./Tools/Scripts/RunTests.sh Native        # only the C++ tests
 ```
 
 The engine has to be built first (`Binaries/<Platform>/Release`, or point `HYPERION_BIN_DIR` at another build).

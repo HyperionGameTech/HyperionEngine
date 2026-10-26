@@ -18,13 +18,15 @@ using System.Windows.Input;
 
 namespace Hyperion.Editor.ViewModels
 {
-    public struct PrefabEditStateSnapshot
+    public struct EditModeStateSnapshot
     {
         public bool Active;
         public bool Dirty;
-        public string PrefabName = string.Empty;
+        public string Name = string.Empty;
+        public string Kind = string.Empty;
+        public AssetObject? InspectedAsset;
 
-        public PrefabEditStateSnapshot()
+        public EditModeStateSnapshot()
         {
         }
     }
@@ -910,20 +912,24 @@ namespace Hyperion.Editor.ViewModels
 
         private CsgPanelViewModel? _csgPanel;
 
-        private PrefabEditStateSnapshot _prefabEditState = new PrefabEditStateSnapshot();
+        private EditModeStateSnapshot _editModeState = new EditModeStateSnapshot();
 
-        public bool IsEditingPrefab => _prefabEditState.Active;
-        public string EditingPrefabName => _prefabEditState.PrefabName;
-        public bool IsEditingPrefabDirty => _prefabEditState.Active && _prefabEditState.Dirty;
+        public bool IsInEditMode => _editModeState.Active;
+        public string EditModeName => _editModeState.Name;
+        public bool IsEditModeDirty => _editModeState.Active && _editModeState.Dirty;
+        public string EditModeDescription => $"Editing {_editModeState.Kind} {EditModeName}";
+        public string ExitEditModeHeader => _editModeState.Kind.Length > 0
+            ? $"Exit {char.ToUpperInvariant(_editModeState.Kind[0])}{_editModeState.Kind.Substring(1)} Edit"
+            : "Exit Edit Mode";
 
-        public string? SceneSelectorTooltip => IsEditingPrefab
-            ? $"Editing prefab '{EditingPrefabName}'. Pick a scene to exit prefab edit mode."
+        public string? SceneSelectorTooltip => IsInEditMode
+            ? $"Editing {_editModeState.Kind} '{EditModeName}'. Pick a scene to exit {_editModeState.Kind} edit mode."
             : null;
 
         public ICommand EditPrefabCommand { get; private set; }
-        public ICommand ApplyPrefabEditCommand { get; private set; }
-        public ICommand RevertPrefabEditCommand { get; private set; }
-        public ICommand ExitPrefabEditCommand { get; private set; }
+        public ICommand ApplyEditModeCommand { get; private set; }
+        public ICommand RevertEditModeCommand { get; private set; }
+        public ICommand ExitEditModeCommand { get; private set; }
 
         public ICommand ToggleCsgMode { get; private set; }
         public bool IsCsgModeEnabled => _csgState.Enabled;
@@ -1090,6 +1096,9 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanSetGameModeStopped));
             OnPropertyChanged(nameof(IsSimulating));
             OnPropertyChanged(nameof(CanAddNewScene));
+
+            EditorPluginService.Instance.NotifySimulationChanged(IsSimulating);
+
             OnPropertyChanged(nameof(GameStateText));
             OnPropertyChanged(nameof(CanToggleTerrainSculptMode));
             OnPropertyChanged(nameof(CanAddTerrainLayer));
@@ -1128,8 +1137,9 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler? _actionStackStateChangedHandler;
         private DelegateHandler? _meshEditStateChangedHandler;
         private DelegateHandler? _csgStateChangedHandler;
-        private DelegateHandler? _prefabEditActiveChangedHandler;
-        private DelegateHandler? _prefabEditDirtyChangedHandler;
+        private DelegateHandler? _editStateChangedHandler;
+        private DelegateHandler? _modelImportReviewQueuedHandler;
+        private bool _isShowingModelImport;
         private DelegateHandler? _activeActionStackChangedHandler;
         private DelegateHandler? _scriptReloadedHandler;
         private DelegateHandler? _activeSwatchChangedHandler;
@@ -1172,9 +1182,9 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public bool CanAddToScene => ActiveScene != null || IsEditingPrefab;
+        public bool CanAddToScene => ActiveScene != null || IsInEditMode;
 
-        public bool CanAddNewScene => !IsSimulating && !IsEditingPrefab;
+        public bool CanAddNewScene => !IsSimulating && !IsInEditMode;
 
         public ICommand SetActiveSceneCommand { get; private set; }
         public ICommand AddNewSceneCommand { get; private set; }
@@ -1531,7 +1541,7 @@ namespace Hyperion.Editor.ViewModels
                 }
 
                 // Picking a scene is how prefab edit mode is left
-                RequestExitPrefabEdit(afterExit: SetActiveScene);
+                RequestExitEditMode(afterExit: SetActiveScene);
             });
 
             EditPrefabCommand = new RelayCommand<string>(prefabName =>
@@ -1542,9 +1552,9 @@ namespace Hyperion.Editor.ViewModels
                 }
             }, _ => !IsSimulating);
 
-            ApplyPrefabEditCommand = new RelayCommand(() => PostToPrefabEditState(prefabEditState => prefabEditState.Apply()), () => IsEditingPrefabDirty);
-            RevertPrefabEditCommand = new RelayCommand(RequestRevertPrefabEdit, () => IsEditingPrefabDirty);
-            ExitPrefabEditCommand = new RelayCommand(() => RequestExitPrefabEdit(afterExit: null), () => IsEditingPrefab);
+            ApplyEditModeCommand = new RelayCommand(() => PostToEditModeState(editModeState => editModeState.Apply()), () => IsEditModeDirty);
+            RevertEditModeCommand = new RelayCommand(RequestRevertEditMode, () => IsEditModeDirty);
+            ExitEditModeCommand = new RelayCommand(() => RequestExitEditMode(afterExit: null), () => IsInEditMode);
 
             AddNewSceneCommand = new RelayCommand(() =>
             {
@@ -1920,7 +1930,7 @@ namespace Hyperion.Editor.ViewModels
             BindSelectionChanged();
             BindMeshEditStateChanged();
             BindCsgStateChanged();
-            BindPrefabEditStateChanged();
+            BindEditModeStateChanged();
             BindScriptReloaded();
             BindPlayNetStateChanged();
             BindGameModeRequested();
@@ -1967,8 +1977,8 @@ namespace Hyperion.Editor.ViewModels
             _projectWorldChangedHandler?.Remove();
             _prefabAssetsChangedHandler?.Remove();
             _actionStackStateChangedHandler?.Remove();
-            _prefabEditActiveChangedHandler?.Remove();
-            _prefabEditDirtyChangedHandler?.Remove();
+            _editStateChangedHandler?.Remove();
+            _modelImportReviewQueuedHandler?.Remove();
             _activeActionStackChangedHandler?.Remove();
             _activeSwatchChangedHandler?.Remove();
             _activeLayersChangedHandler?.Remove();
@@ -2083,7 +2093,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void HandleActiveSceneChanged(Scene? scene)
         {
-            bool isPrefabEditScene = scene != null && (_editorSubsystem.EditorPrefabEditState?.IsEditScene(scene) ?? false);
+            bool isPrefabEditScene = scene != null && (_editorSubsystem.ActiveIsolatedEditState?.IsEditScene(scene) ?? false);
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -2847,6 +2857,9 @@ namespace Hyperion.Editor.ViewModels
                     Dispatcher.UIThread.Post(() =>
                     {
                         SceneHierarchy.UpdateSelectionFromEngine(selectedNodes.Cast<Node>());
+
+                        EditorPluginService.Instance.NotifySelectionChanged(selectedNodes.Cast<Node>().ToList());
+
                         UpdateCopyDeleteHeaders();
                         Interlocked.Exchange(ref _isUpdatingSelectionFromEngine, 0);
                     });
@@ -3215,27 +3228,27 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        private void BindPrefabEditStateChanged()
+        private void BindEditModeStateChanged()
         {
             WeakReference<MainWindowViewModel> weakThis = new WeakReference<MainWindowViewModel>(this);
 
-            _prefabEditActiveChangedHandler?.Remove();
-            _prefabEditActiveChangedHandler = _editorSubsystem.EditorPrefabEditState?.GetOnActiveChangedDelegate()
-                .Bind((bool active) =>
+            _editStateChangedHandler?.Remove();
+            _editStateChangedHandler = _editorSubsystem.GetOnIsolatedEditStateChangedDelegate()
+                .Bind(() =>
                 {
                     if (weakThis.TryGetTarget(out MainWindowViewModel? target))
                     {
-                        target.RefreshPrefabEditState();
+                        target.RefreshEditModeState();
                     }
                 });
 
-            _prefabEditDirtyChangedHandler?.Remove();
-            _prefabEditDirtyChangedHandler = _editorSubsystem.EditorPrefabEditState?.GetOnDirtyChangedDelegate()
-                .Bind((bool dirty) =>
+            _modelImportReviewQueuedHandler?.Remove();
+            _modelImportReviewQueuedHandler = _editorSubsystem.GetOnImportReviewQueuedDelegate()
+                .Bind(() =>
                 {
                     if (weakThis.TryGetTarget(out MainWindowViewModel? target))
                     {
-                        target.RefreshPrefabEditState();
+                        Dispatcher.UIThread.Post(target.ShowNextModelImport);
                     }
                 });
 
@@ -3250,58 +3263,180 @@ namespace Hyperion.Editor.ViewModels
                 });
         }
 
-        /// <summary>Opens <paramref name="prefabName"/> in prefab edit mode, leaving any prefab currently being edited first.</summary>
-        public void RequestEditPrefab(string prefabName)
+        private void ShowNextModelImport()
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            if (IsEditingPrefab && prefabName == EditingPrefabName)
+            if (_isShowingModelImport)
             {
                 return;
             }
 
-            RequestExitPrefabEdit(afterExit: () =>
+            _isShowingModelImport = true;
+
+            _ = EngineManager.PostToSimThread(() =>
             {
-                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+                EditorImportReview? pending = _editorSubsystem.GetPendingImportReview();
+                EditorModelImportReview? review = pending as EditorModelImportReview;
+
+                if (pending != null && review == null)
+                {
+                    Logger.Log(LogLevel.Warning, $"No import panel shows '{pending.GetFileName()}'; it was skipped.");
+
+                    pending.Cancel();
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isShowingModelImport = false;
+
+                        ShowNextModelImport();
+                    });
+
+                    return;
+                }
+
+                if (review == null)
+                {
+                    Dispatcher.UIThread.Post(() => _isShowingModelImport = false);
+
+                    return;
+                }
+
+                List<(string Id, string Name, uint FrameCount)> takes = new List<(string Id, string Name, uint FrameCount)>();
+
+                foreach (Name takeId in review.GetTakeIds())
+                {
+                    takes.Add((takeId.ToString(), review.GetTakeDisplayName(takeId).ToString(), review.GetTakeFrameCount(takeId)));
+                }
+
+                List<string> skeletonNames = new List<string>();
+
+                foreach (Name skeletonName in review.GetSkeletonNames())
+                {
+                    skeletonNames.Add(skeletonName.ToString());
+                }
+
+                List<ObjectBase> settings = new List<ObjectBase>();
+
+                for (uint settingsIndex = 0; settingsIndex < review.NumSettings(); settingsIndex++)
+                {
+                    if (review.GetSettings(settingsIndex) is ObjectBase settingsObject)
+                    {
+                        settings.Add(settingsObject);
+                    }
+                }
+
+                ModelImportSnapshot snapshot = new(
+                    review.GetFileName() ?? string.Empty,
+                    review.HasMesh(),
+                    review.GetBoneCount(),
+                    takes,
+                    skeletonNames,
+                    settings);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    PanelService.Instance.OpenPanel(new ModelImportPanelViewModel(_editorSubsystem, review, snapshot, () =>
+                    {
+                        _isShowingModelImport = false;
+
+                        ShowNextModelImport();
+                    }));
+                });
+            });
+        }
+
+        /// <summary>Opens <paramref name="prefabName"/> in prefab edit mode, leaving any edit mode first.</summary>
+        public void RequestEditPrefab(string prefabName)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            if (IsInEditMode && _editModeState.Kind == "prefab" && prefabName == EditModeName)
+            {
+                return;
+            }
+
+            RequestExitEditMode(afterExit: () =>
+            {
                 Prefab? prefab = AssetManager.Instance.AssetRegistry.GetAsset(AssetBucket.Prefabs.Value, new Name(prefabName)) as Prefab;
 
-                if (prefabEditState == null || prefab == null || !prefab.IsValid)
+                if (prefab == null || !prefab.IsValid)
                 {
                     Logger.Log(LogLevel.Warning, $"EditPrefab: prefab '{prefabName}' could not be resolved.");
 
                     return;
                 }
 
-                if (!prefabEditState.Enter(prefab))
+                EnterEditStateForAsset(prefab);
+            });
+        }
+
+        /// <summary>Opens <paramref name="asset"/> in the edit mode that edits its kind, leaving any edit mode first.</summary>
+        public void RequestEditAsset(AssetObject asset)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            RequestExitEditMode(afterExit: () => EnterEditStateForAsset(asset));
+        }
+
+        private void EnterEditStateForAsset(AssetObject asset)
+        {
+            if (!_editorSubsystem.EnterEditStateForAsset(asset))
+            {
+                Logger.Log(LogLevel.Warning, $"Could not open '{asset.Name}' for editing.");
+            }
+        }
+
+        /// <summary>Opens an edit mode once any current edit mode is left; <paramref name="enter"/> runs on the sim thread.</summary>
+        public void RequestEnterEditMode(string editModeName, Func<bool> enter)
+        {
+            Dispatcher.UIThread.VerifyAccess();
+
+            RequestExitEditMode(afterExit: () =>
+            {
+                if (!enter())
                 {
-                    Logger.Log(LogLevel.Warning, $"EditPrefab: could not open prefab '{prefabName}' for editing.");
+                    Logger.Log(LogLevel.Error, $"Could not open {editModeName} edit mode.");
+
+                    Dispatcher.UIThread.Post(() => MessageBox.Critical("Edit Mode", $"Could not open {editModeName} edit mode. See the log.").Button("OK", () => { }).Show());
                 }
             });
         }
 
-        public void RequestExitPrefabEdit(Action? afterExit, Action? onCancelled = null)
+        public void RequestExitEditMode(Action? afterExit, Action? onCancelled = null)
         {
             _ = EngineManager.PostToSimThread(() =>
             {
-                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+                EditorIsolatedEditState? editModeState = _editorSubsystem.ActiveIsolatedEditState;
 
-                if (prefabEditState == null || !prefabEditState.IsActive() || !prefabEditState.IsDirty())
+                if (editModeState == null || !editModeState.IsDirty())
                 {
-                    prefabEditState?.Exit(/* apply */ false);
+                    editModeState?.Exit(/* apply */ false);
                     afterExit?.Invoke();
 
-                    RefreshPrefabEditState();
+                    RefreshEditModeState();
 
                     return;
                 }
 
-                string prefabName = prefabEditState.GetPrefabName() ?? string.Empty;
+                string name = editModeState.GetDisplayName() ?? string.Empty;
+                string kind = editModeState.GetKindName() ?? string.Empty;
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    MessageBox.Warning("Unapplied Prefab Changes", $"Prefab '{prefabName}' has changes that haven't been applied. Apply them before leaving prefab edit mode?")
-                        .Button("Apply", () => PostToPrefabEditState(state => state.Exit(/* apply */ true), afterExit))
-                        .Button("Discard", () => PostToPrefabEditState(state => state.Exit(/* apply */ false), afterExit))
+                    MessageBox.Warning("Unapplied Changes", $"The {kind} '{name}' has changes that haven't been applied. Apply them before leaving {kind} edit mode?")
+                        .Button("Apply", () => PostToEditModeState(state =>
+                        {
+                            if (state.Exit(/* apply */ true))
+                            {
+                                afterExit?.Invoke();
+                            }
+                            else
+                            {
+                                Logger.Log(LogLevel.Error, $"Could not apply the edits to {kind} '{name}'; staying in {kind} edit mode.");
+                            }
+                        }))
+                        .Button("Discard", () => PostToEditModeState(state => state.Exit(/* apply */ false), afterExit))
                         .Button("Cancel", () =>
                         {
                             if (onCancelled != null)
@@ -3314,79 +3449,87 @@ namespace Hyperion.Editor.ViewModels
             });
         }
 
-        private void RequestRevertPrefabEdit()
+        private void RequestRevertEditMode()
         {
-            MessageBox.Warning("Revert Prefab Changes?", $"Discard all unapplied changes to prefab '{EditingPrefabName}'?")
-                .Button("Revert", () => PostToPrefabEditState(prefabEditState => prefabEditState.Revert()))
+            MessageBox.Warning("Revert Changes?", $"Discard all unapplied changes to {_editModeState.Kind} '{EditModeName}'?")
+                .Button("Revert", () => PostToEditModeState(editModeState => editModeState.Revert()))
                 .Button("Cancel", () => { })
                 .Show();
         }
 
-        private void PostToPrefabEditState(Action<EditorPrefabEditState> action, Action? afterwards = null)
+        private void PostToEditModeState(Action<EditorIsolatedEditState> action, Action? afterwards = null)
         {
             _ = EngineManager.PostToSimThread(() =>
             {
-                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+                EditorIsolatedEditState? editModeState = _editorSubsystem.ActiveIsolatedEditState;
 
-                if (prefabEditState != null)
+                if (editModeState != null)
                 {
-                    action(prefabEditState);
+                    action(editModeState);
                 }
 
                 afterwards?.Invoke();
 
-                RefreshPrefabEditState();
+                RefreshEditModeState();
             });
         }
 
-        private void RefreshPrefabEditState()
+        private void RefreshEditModeState()
         {
             if (_editorSubsystem == null)
             {
                 return;
             }
 
-            PrefabEditStateSnapshot snapshot = new();
+            EditModeStateSnapshot snapshot = new();
 
             try
             {
-                EditorPrefabEditState? prefabEditState = _editorSubsystem.EditorPrefabEditState;
+                EditorIsolatedEditState? editModeState = _editorSubsystem.ActiveIsolatedEditState;
 
-                if (prefabEditState != null && prefabEditState.IsActive())
+                if (editModeState != null && editModeState.IsActive())
                 {
                     snapshot.Active = true;
-                    snapshot.Dirty = prefabEditState.IsDirty();
-                    snapshot.PrefabName = prefabEditState.GetPrefabName() ?? string.Empty;
+                    snapshot.Dirty = editModeState.IsDirty();
+                    snapshot.Name = editModeState.GetDisplayName() ?? string.Empty;
+                    snapshot.Kind = editModeState.GetKindName() ?? string.Empty;
+                    snapshot.InspectedAsset = editModeState.GetInspectedAsset();
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Warning, $"Failed to read prefab edit state from engine: {ex.Message}");
+                Logger.Log(LogLevel.Warning, $"Failed to read edit mode state from engine: {ex.Message}");
 
                 return;
             }
 
+            EditorPluginService.Instance.NotifyEditModeChanged(snapshot.Active ? _editorSubsystem.ActiveIsolatedEditState : null);
+
             Dispatcher.UIThread.Post(() =>
             {
-                _prefabEditState = snapshot;
+                _editModeState = snapshot;
+                Inspector.SetEditedAsset(snapshot.InspectedAsset);
 
-                NotifyPrefabEditStateChanged();
+                NotifyEditModeStateChanged();
             });
         }
 
-        private void NotifyPrefabEditStateChanged()
+        private void NotifyEditModeStateChanged()
         {
-            OnPropertyChanged(nameof(IsEditingPrefab));
-            OnPropertyChanged(nameof(EditingPrefabName));
-            OnPropertyChanged(nameof(IsEditingPrefabDirty));
+            OnPropertyChanged(nameof(IsInEditMode));
+            OnPropertyChanged(nameof(EditModeName));
+            OnPropertyChanged(nameof(IsEditModeDirty));
+            OnPropertyChanged(nameof(EditModeDescription));
+            OnPropertyChanged(nameof(ExitEditModeHeader));
             OnPropertyChanged(nameof(SceneSelectorTooltip));
             OnPropertyChanged(nameof(CanAddToScene));
             OnPropertyChanged(nameof(CanAddNewScene));
 
-            (ApplyPrefabEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (RevertPrefabEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (ExitPrefabEditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ApplyEditModeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RevertEditModeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExitEditModeCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
+
         }
 
         private void HandleSelectionUpdate()
@@ -3405,6 +3548,7 @@ namespace Hyperion.Editor.ViewModels
                     try
                     {
                         SceneHierarchy.UpdateSelectionFromEngine(selectedNodes.Cast<Node>());
+                        EditorPluginService.Instance.NotifySelectionChanged(selectedNodes.Cast<Node>().ToList());
                         UpdateCopyDeleteHeaders();
                     }
                     finally

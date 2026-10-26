@@ -57,6 +57,12 @@ namespace Hyperion {
 
 struct LoadAssetsFromReferencesContext {};
 
+struct BoxedToHMFData
+{
+    bool skipValue = false;
+};
+using BoxedToHMFResult = TResult<BoxedToHMFData, Error>;
+
 // If true, class names will always be written when serializing objects IF the type != the declared type.
 // For example, we're serializing an array of Animal and we encounter a Dog object, we need to write the class name
 // otherwise we won't know to deserialize it as a Dog.
@@ -1561,7 +1567,8 @@ ENGINE_API Result BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& ty
 
         const JSON::JString& jsonString = jsonValue.AsString();
 
-        outBoxed = BoxedValue(Name(CreateNameFromDynamicString(*jsonString.ToAnsi())));
+        // an unset Name is written as an empty string, and has to read back as unset
+        outBoxed = BoxedValue(jsonString.Empty() ? Name::Invalid() : Name(CreateNameFromDynamicString(*jsonString.ToAnsi())));
 
         return {};
     }
@@ -2523,7 +2530,7 @@ Result ObjectToHMFImpl(
     int indent,
     bool skipNameProperty = false);
 
-Result BoxedToHMFImpl(
+BoxedToHMFResult BoxedToHMFImpl(
     const BoxedValue& value,
     String& outText,
     const TypeInfo* declaredTypeInfo,
@@ -2533,20 +2540,20 @@ Result BoxedToHMFImpl(
     if (value.IsNull())
     {
         outText += "null";
-        return {};
+        return BoxedToHMFData {};
     }
 
     // an object whose class wasn't registered when it was read (eg a script component); written back exactly as it was read
     if (value.Is<HMF::UnresolvedObject>())
     {
         outText += value.Get<HMF::UnresolvedObject>().source;
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (value.Is<HMF::UnresolvedValue>())
     {
         outText += value.Get<HMF::UnresolvedValue>().source;
-        return {};
+        return BoxedToHMFData {};
     }
 
     // a generic (BoxedValue) slot is written as whatever it holds
@@ -2570,7 +2577,7 @@ Result BoxedToHMFImpl(
         {
             // Nothing here -- just emit ""
             outText += "\"\"";
-            return {};
+            return BoxedToHMFData {};
         }
 
         if (DataProcessing::IsValidIdentifier(str))
@@ -2582,13 +2589,13 @@ Result BoxedToHMFImpl(
             EscapeString(outText, str);
         }
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (value.Is<UUID>())
     {
         EscapeString(outText, value.Get<UUID>().ToString());
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (value.Is<AssetReference>())
@@ -2598,11 +2605,11 @@ Result BoxedToHMFImpl(
         {
             outText += "@";
             EscapeString(outText, ref.GetAssetPath().ToString());
-            return {};
+            return BoxedToHMFData {};
         }
 
         outText += "null";
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (value.Is<AssetPath>())
@@ -2612,7 +2619,7 @@ Result BoxedToHMFImpl(
             const AssetPath& path = value.Get<AssetPath>();
             outText += "@";
             EscapeString(outText, path.ToString());
-            return {};
+            return BoxedToHMFData {};
         }
 
         // fall through to struct serialization
@@ -2634,7 +2641,7 @@ Result BoxedToHMFImpl(
     if (value.Is<bool>(/* strict */ true))
     {
         outText += value.Get<bool>() ? "true" : "false";
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (typeInfo.IsEnumFlags())
@@ -2654,7 +2661,7 @@ Result BoxedToHMFImpl(
             FormatEnumFlags(outText, enumClass, flagsValue);
         }
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (typeInfo.IsEnum())
@@ -2673,60 +2680,60 @@ Result BoxedToHMFImpl(
             outText += HYP_FORMAT("{}", enumValue);
         }
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (value.Is<int64>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<int64>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<uint64>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<uint64>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<int32>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<int32>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<uint32>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<uint32>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<int16>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<int16>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<uint16>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<uint16>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<int8>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<int8>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<uint8>(/* strict */ true))
     {
         outText += HYP_FORMAT("{}", value.Get<uint8>());
-        return {};
+        return BoxedToHMFData {};
     }
 
     // Floats
     if (value.Is<float>(/* strict */ true))
     {
         WriteFloatValue(outText, value.Get<float>());
-        return {};
+        return BoxedToHMFData {};
     }
     if (value.Is<double>(/* strict */ true))
     {
         WriteFloatValue(outText, value.Get<double>());
-        return {};
+        return BoxedToHMFData {};
     }
 
     // String / Name
@@ -2750,7 +2757,7 @@ Result BoxedToHMFImpl(
             EscapeString(outText, value.Get<String>());
         }
 
-        return {};
+        return BoxedToHMFData {};
     }
     
     if (typeInfo.IsVectorType())
@@ -2780,7 +2787,7 @@ Result BoxedToHMFImpl(
 
         outText += ")";
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (typeInfo.IsArrayType())
@@ -2797,7 +2804,11 @@ Result BoxedToHMFImpl(
         {
             // Don't break line for empty array.
             outText += "[]";
-            return {};
+
+            BoxedToHMFData data;
+            data.skipValue = true;
+            
+            return data;
         }
 
         outText += "[\n";
@@ -2834,7 +2845,7 @@ Result BoxedToHMFImpl(
                     actualElementType = element.GetTypeInfo();
                 }
 
-                if (Result elementResult = BoxedToHMFImpl(element, outText, actualElementType, elementOpts, indent + 1);  elementResult.HasError())
+                if (auto elementResult = BoxedToHMFImpl(element, outText, actualElementType, elementOpts, indent + 1);  elementResult.HasError())
                 {
                     outText += "null";
                 }
@@ -2846,7 +2857,7 @@ Result BoxedToHMFImpl(
         WriteIndent(outText, indent);
         outText += "]";
 
-        return {};
+        return BoxedToHMFData {};
     }
 
 
@@ -2880,7 +2891,7 @@ Result BoxedToHMFImpl(
 
         outText += ")";
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     // Tuple
@@ -2924,7 +2935,7 @@ Result BoxedToHMFImpl(
 
         outText += ")";
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     // Matrix
@@ -2966,7 +2977,7 @@ Result BoxedToHMFImpl(
         WriteIndent(outText, indent);
         outText += "]";
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     if (typeInfo.IsVariantType())
@@ -2976,7 +2987,7 @@ Result BoxedToHMFImpl(
         if (!handler)
         {
             outText += "null";
-            return {};
+            return BoxedToHMFData {};
         }
 
         const int activeIndex = handler->GetCurrentTypeIndex(value);
@@ -2984,7 +2995,7 @@ Result BoxedToHMFImpl(
         if (activeIndex < 0)
         {
             outText += "null";
-            return {};
+            return BoxedToHMFData {};
         }
 
         BoxedValue activeValue = DereferenceElement(handler->GetValue(value));
@@ -2992,7 +3003,7 @@ Result BoxedToHMFImpl(
         if (!activeValue.IsValid())
         {
             outText += "null";
-            return {};
+            return BoxedToHMFData {};
         }
 
         const TypeInfo* activeTypeInfo = activeValue.GetTypeInfo();
@@ -3061,18 +3072,23 @@ Result BoxedToHMFImpl(
 
                     if (name.IsValid())
                     {
-                        outText += " ";
+                        String entryText;
 
                         // This will write IDENT if possible otherwise write string literal
-                        Result res = BoxedToHMFImpl(
+                        auto res = BoxedToHMFImpl(
                             nameValue,
-                            outText,
+                            entryText,
                             &nameProp->GetTypeInfo(),
                             opts,
                             0);
 
                         // Shouldn't happen
                         Assert(!res.HasError());
+
+                        if (!res.GetValue().skipValue)
+                        {
+                            outText += " " + entryText;
+                        }
                     }
                 }
             }
@@ -3095,7 +3111,7 @@ Result BoxedToHMFImpl(
             outText += "}";
         }
 
-        return {};
+        return BoxedToHMFData {};
     }
 
     return HYP_MAKE_ERROR(Error, "Don't know how to serialize BoxedValue with type \"{}\" to HMF", typeInfo.name);
@@ -3228,8 +3244,8 @@ static void WriteEntitySwatchOverridesSection(const Entity& entity, String& outT
                     memberOpts.followAssetPaths = ToHMFOptions::FollowAssetPathsMode::Never;
                 }
 
-                if (Result result = BoxedToHMFImpl(overrideEntry.value, outText, &member->GetTypeInfo(), memberOpts, indent + 2);
-                    result.HasError())
+                if (auto result = BoxedToHMFImpl(overrideEntry.value, outText, &member->GetTypeInfo(), memberOpts, indent + 2);
+                        result.HasError())
                 {
                     HYP_LOG(Core, Warning, "Failed to serialize swatch override \"{}\" of Entity \"{}\": {}",
                         overrideEntry.property, entity.GetName(), result.GetError().GetMessage());
@@ -3338,9 +3354,16 @@ Result ObjectToHMFImpl(
                 continue;
             }
 
-            WriteIndent(outText, indent);
-            outText += member.GetName().LookupString();
-            outText += " = ";
+            if (memberValue.IsNull() && member.GetAttribute("omitnull"_sh).GetBool())
+            {
+                continue;
+            }
+
+            String entryText;
+
+            WriteIndent(entryText, indent);
+            entryText += member.GetName().LookupString();
+            entryText += " = ";
             
             const bool typesDiffer = member.GetTypeInfo().GetClass() != memberValue.GetTypeInfo()->GetClass();
 
@@ -3355,15 +3378,26 @@ Result ObjectToHMFImpl(
 
             const TypeInfo* declaredTypeInfo = &member.GetTypeInfo();
 
-            if (Result result = BoxedToHMFImpl(memberValue, outText, declaredTypeInfo, memberOpts, indent);
-                result.HasError())
+            bool skipValue = false;
+
+            auto result = BoxedToHMFImpl(memberValue, entryText, declaredTypeInfo, memberOpts, indent);
+
+            if (result.HasError())
             {
+                skipValue = true;
+
                 HYP_LOG(Core, Warning, "Failed to serialize property \"{}\" of Class \"{}\" to HMF: {}",
                         member.GetName(), cls->GetName(), result.GetError().GetMessage());
-                outText += "null";
+            }
+            else
+            {
+                skipValue = result.GetValue().skipValue;
             }
 
-            outText += "\n";
+            if (!skipValue)
+            {
+                outText += entryText + "\n";
+            }
         }
 
         cls = cls->GetParent();
@@ -3426,7 +3460,13 @@ Result BoxedToHMF(
         pOptions = &s_defaultOptions;
     }
 
-    return BoxedToHMFImpl(value, outText, declaredTypeInfo, *pOptions, 0);
+    auto res = BoxedToHMFImpl(value, outText, declaredTypeInfo, *pOptions, 0);
+    if (res.HasError())
+    {
+        return res.GetError();
+    }
+
+    return {};
 }
 
 Result ObjectToHMF(
@@ -3462,18 +3502,23 @@ Result ObjectToHMF(
             // Write object name
             if (name.IsValid())
             {
-                outText += " ";
+                String entryText;
 
                 // This will write IDENT if possible otherwise write string literal
-                Result res = BoxedToHMFImpl(
+                auto res = BoxedToHMFImpl(
                     nameValue,
-                    outText,
+                    entryText,
                     &nameProp->GetTypeInfo(),
                     *pOptions,
                     0);
 
                 // Shouldn't happen
                 Assert(!res.HasError());
+
+                if (!res.GetValue().skipValue)
+                {
+                    outText += " " + entryText;
+                }
             }
         }
     }

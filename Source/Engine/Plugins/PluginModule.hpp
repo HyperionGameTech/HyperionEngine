@@ -40,8 +40,6 @@ struct PluginModuleRegistration
 ENGINE_API void RegisterPluginModule(const PluginModuleRegistration& registration);
 ENGINE_API const Array<PluginModuleRegistration>& GetRegisteredPluginModules();
 
-// each linked plugin module adds one at static init (Generated/Plugins/<Module>/Register/PluginModuleRegister.cpp), and InitializePluginModules
-// runs them during engine init. The editor's engine library links every built-in plugin's; a game on a static engine links the ones it uses
 using PluginModuleInitializer = void (*)();
 
 ENGINE_API void AddPluginModuleInitializer(PluginModuleInitializer initializer);

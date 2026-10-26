@@ -9,6 +9,7 @@ param(
     [string]$Name = "",
     [string]$Title = "",
     [string]$PluginModules = "",
+    [string]$Plugins = "",
     [int]$Port = 8137
 )
 
@@ -20,6 +21,7 @@ param(
 #   -ServeOnly  skip the build: serve the last one and open it in the browser
 #   -FastLink   link at -O1: minutes faster, for testing locally; a build to host links at -Oz
 #   -Name       the name of the game's code and page files, -Title the page title; the editor passes both from the project settings
+#   -PluginModules  the enabled built-in plugins' runtime modules, linked into the page; -Plugins those plugins, whose content the cook mounts
 #
 # Build/Web/Built.stamp is written by a finished build, dated when that build started.
 
@@ -292,6 +294,11 @@ if ($worldList.Count -gt 0)
 if ($MaxTextureSize -gt 0)
 {
     $cookArguments += "--max-texture-size=$MaxTextureSize"
+}
+
+if ($Plugins -ne "")
+{
+    $cookArguments += "--plugins=$Plugins"
 }
 
 $cookLog = Join-Path $buildDir "Cook.log"

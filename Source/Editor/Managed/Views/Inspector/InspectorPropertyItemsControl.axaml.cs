@@ -1,6 +1,7 @@
 using System.Collections;
 using Avalonia;
 using Avalonia.Controls;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.Views.Inspector
 {
@@ -31,6 +32,9 @@ namespace Hyperion.Editor.Views.Inspector
         public InspectorPropertyItemsControl()
         {
             InitializeComponent();
+
+            // plugin property views come first, ahead of the catch-all InspectorPropertyViewModelBase template
+            PropertyItems.DataTemplates.Insert(0, EditorPluginService.Instance.ViewLocator);
         }
     }
 }

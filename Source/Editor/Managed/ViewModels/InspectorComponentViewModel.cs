@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -180,6 +181,14 @@ namespace Hyperion.Editor.ViewModels
 
                     List<InspectorPropertyViewModelBase> vms = new();
 
+                    foreach (Func<Entity, InspectorPropertyViewModelBase> createItem in EditorPluginService.Instance.GetComponentInspectorItems(className))
+                    {
+                        InspectorPropertyViewModelBase itemVm = createItem(_target);
+                        itemVm.RefreshValue();
+
+                        vms.Add(itemVm);
+                    }
+
                     bool isMeshComponent = componentTypeId == s_meshComponentTypeId;
                     bool isRigidBodyComponent = componentTypeId == s_rigidBodyComponentTypeId;
 
@@ -229,7 +238,8 @@ namespace Hyperion.Editor.ViewModels
                                 isReadOnly,
                                 initialize: false,
                                 postWriteCallback: CreatePostWrite(_target),
-                                valueChangedCallback: RefreshProperties);
+                                valueChangedCallback: RefreshProperties,
+                                ownerEntity: _target);
 
                             List<PropertyTarget> peers = peerEntities
                                 .Select(peer => PropertyTarget.ForAddress(

@@ -173,7 +173,8 @@ void Entity::RemoveFromLayer(LayerId layerId)
 
 bool Entity::IsMeshEntity() const
 {
-    return HasComponent<MeshComponent>();
+    return GetEntityManager() != nullptr
+        && HasComponent<MeshComponent>();
 }
 
 bool Entity::IsInLayerByName(Name layerName) const
@@ -858,7 +859,7 @@ void Entity::UpdateRenderProxy(RenderProxyMesh* proxy)
     proxy->entity = this;
     proxy->mesh = meshComponent.mesh;
     proxy->material = meshComponent.material;
-    proxy->skeleton = meshComponent.skeleton;
+    proxy->skeleton = meshComponent.GetRenderSkeleton();
 
     proxy->numLods = MathUtil::Max<uint8>(meshComponent.mesh->GetMeshDesc().GetNumLods(), 1);
 

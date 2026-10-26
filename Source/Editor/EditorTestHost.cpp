@@ -22,6 +22,8 @@
 
 #include <Framework/Threads/MainThread.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <Asset/AssetRegistry.hpp>
 
 #include <Scene/World.hpp>
@@ -225,6 +227,14 @@ HYP_EXPORT int EditorTestHost_Simulate(const char* projectDirectory, int numFram
 
     Handle<EditorProject> project = std::move(loadResult.GetValue());
     InitObject(project);
+
+    // as the editor does (EditorGame::OnLaunch, then EditorSubsystem::OpenProject), so the project's plugins load before its game does
+    if (!PluginManager::GetInstance().IsInitialized())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    }
+
+    PluginManager::GetInstance().SetEnabledPlugins(project->GetEnabledPlugins());
 
     Handle<Game> game = project->GetGame();
 

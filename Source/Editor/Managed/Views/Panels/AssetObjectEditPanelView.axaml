@@ -99,6 +99,10 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Grid>
+
+            <Panel Margin="0,12,0,0" IsVisible="{Binding HasExtensions}">
+                <inspector:AssetExtensionsView DataContext="{Binding Extensions}" />
+            </Panel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

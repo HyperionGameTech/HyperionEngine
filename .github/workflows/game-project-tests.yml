@@ -1,4 +1,4 @@
-name: Game Project Tests
+name: Tests
 
 # Builds the engine, then runs the engine tests (Tests/Engine), and generates, builds and runs C# and C++ game projects against it (Tests/GameProjects)
 on:
@@ -18,9 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # CodeGen output is the same for every platform, so it is generated once (on Linux) and skipped in the build jobs.
-  # The tool itself is native, so each platform builds it here, in parallel with the other platforms, and the test
-  # jobs download it for the C++ games, which run it over their own headers.
   codegen:
     name: codegen (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -78,7 +75,7 @@ jobs:
           if-no-files-found: error
 
   test-linux:
-    name: game project tests (linux-x64)
+    name: linux-x64
     needs: codegen
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -152,7 +149,6 @@ jobs:
           --logger "trx;LogFileName=engine-tests.trx"
           --results-directory Build/GameProjectTests/EngineTestResults
 
-      # the game projects run headless, so no GPU or display is needed
       - name: Run game project tests
         if: ${{ !cancelled() }}
         env:
@@ -175,7 +171,7 @@ jobs:
           if-no-files-found: ignore
 
   test-windows:
-    name: game project tests (win-x64)
+    name: win-x64
     needs: codegen
     runs-on: windows-2025
     timeout-minutes: 240
@@ -269,7 +265,7 @@ jobs:
           if-no-files-found: ignore
 
   test-macos:
-    name: game project tests (macos-arm64)
+    name: macos-arm64
     needs: codegen
     runs-on: macos-15
     timeout-minutes: 240

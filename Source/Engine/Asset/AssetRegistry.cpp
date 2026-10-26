@@ -1099,7 +1099,7 @@ void AssetRegistry::PutAsset(const AssetBucket& bucket, const Handle<AssetObject
     if (!IsGlobalContextActive<AssetLoadingContext>())
     {
         // Blob data must be persisted before it can be unpaged on last read scope release
-        const FilePath localBlobDir = GetBucketDirectory(bucket);
+        const FilePath localBlobDir = GetAssetDirectory(bucket.GetIndex(), assetObject->GetName());
         if (Result persistResult = assetObject->PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
         {
             HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
@@ -1179,7 +1179,7 @@ void AssetRegistry::PutAssetUnique(const AssetBucket& bucket, const Handle<Asset
 
     // Blob data must be persisted before it can be unpaged (last read scope release),
     // otherwise unpaging a never-saved asset would lose its data.
-    const FilePath localBlobDir = GetBucketDirectory(bucket);
+    const FilePath localBlobDir = GetAssetDirectory(bucket.GetIndex(), assetObject->GetName());
     if (Result persistResult = assetObject->PersistBlobData(nullptr, localBlobDir); persistResult.HasError())
     {
         HYP_LOG(Assets, Warning, "Failed to persist blob data for asset '{}': {}",
@@ -1596,7 +1596,7 @@ void AssetRegistry::SyncAssetName(const AssetBucket& bucket, Name oldName, Name 
         (*pAssetObject)->m_assetPath = AssetPath(m_registryId, bucket, newName);
     }
 
-    const FilePath bucketDir = GetBucketDirectory(bucket);
+    const FilePath bucketDir = GetAssetDirectory(bucket.GetIndex(), oldName);
     const String oldPrefix = oldName.ToString() + ".";
 
     if (bucketDir.IsDirectory())
@@ -1652,8 +1652,17 @@ bool AssetRegistry::LoadAssetDescs()
 
         Array<FilePath> assetFiles;
 
-        // a bucket with its own write directory can have assets in both places; the same name is only added once
-        FixedArray<FilePath, 2> subdirs { rootPath / bucket->GetName(), m_bucketWriteDirectories[bucket->GetIndex()] };
+        // a bucket with its own write directory can have assets in both places, and content roots add theirs; the same name is only added once
+        Array<FilePath> subdirs { rootPath / bucket->GetName(), m_bucketWriteDirectories[bucket->GetIndex()] };
+
+        {
+            Mutex::Guard contentRootsGuard(m_contentRootsMutex);
+
+            for (const FilePath& contentRoot : m_contentRoots)
+            {
+                subdirs.PushBack(contentRoot / bucket->GetName());
+            }
+        }
 
         for (const FilePath& subdir : subdirs)
         {
@@ -1846,7 +1855,8 @@ void AssetRegistry::SaveDirtyAssets()
                 continue;
             }
 
-            const FilePath manifestPath = bucketDir / (assetName.ToString() + ".hmf");
+            const FilePath assetDir = GetAssetDirectory(bucketIndex, assetName);
+            const FilePath manifestPath = assetDir / (assetName.ToString() + ".hmf");
 
             Result saveBlobResult;
 
@@ -1858,7 +1868,7 @@ void AssetRegistry::SaveDirtyAssets()
                     data.dirtyIndices.Set(assetIndex, false);
                 }
 
-                saveBlobResult = assetObject->PersistBlobData(nullptr, bucketDir);
+                saveBlobResult = assetObject->PersistBlobData(nullptr, assetDir);
             }
 
             if (saveBlobResult.HasError())
@@ -2123,9 +2133,116 @@ FilePath AssetRegistry::GetBucketDirectory(uint32 bucketIndex) const
     return GetRootPath() / bucketName;
 }
 
+FilePath AssetRegistry::GetAssetDirectory(uint32 bucketIndex, Name assetName) const
+{
+    const FilePath bucketDirectory = GetBucketDirectory(bucketIndex);
+
+    Mutex::Guard guard(m_contentRootsMutex);
+
+    if (m_contentRoots.Empty())
+    {
+        return bucketDirectory;
+    }
+
+    const String manifestName = String(*assetName) + ".hmf";
+
+    // the root wins over content roots, as when the assets were listed
+    if ((bucketDirectory / manifestName).Exists())
+    {
+        return bucketDirectory;
+    }
+
+    for (const FilePath& contentRoot : m_contentRoots)
+    {
+        const FilePath directory = contentRoot / GetAssetBucketName(bucketIndex);
+
+        if ((directory / manifestName).Exists())
+        {
+            return directory;
+        }
+    }
+
+    return bucketDirectory;
+}
+
+void AssetRegistry::AddContentRoot(const FilePath& directory)
+{
+    {
+        Mutex::Guard guard(m_contentRootsMutex);
+
+        if (m_contentRoots.Contains(directory))
+        {
+            return;
+        }
+
+        m_contentRoots.PushBack(directory);
+    }
+
+    HYP_LOG(Assets, Info, "Added content root '{}' to the {} registry", directory, GetAssetRegistryName(m_registryId));
+
+    if (m_isInitialized)
+    {
+        LoadAssetDescs();
+    }
+}
+
+void AssetRegistry::RemoveContentRoot(const FilePath& directory)
+{
+    {
+        Mutex::Guard guard(m_contentRootsMutex);
+
+        auto it = m_contentRoots.Find(directory);
+
+        if (it == m_contentRoots.End())
+        {
+            return;
+        }
+
+        m_contentRoots.Erase(it);
+    }
+
+    // its assets leave the registry; their files stay where they are
+    for (const AssetBucket* bucket : AssetBuckets::AllBuckets)
+    {
+        if (bucket == &AssetBuckets::None)
+        {
+            continue;
+        }
+
+        const FilePath bucketDirectory = directory / bucket->GetName();
+
+        if (!bucketDirectory.IsDirectory())
+        {
+            continue;
+        }
+
+        for (auto iter = bucketDirectory.OpenDirectory(); iter.HasNext(); iter.Advance())
+        {
+            const FilePath current = iter.Current();
+
+            if (iter.CurrentIsDirectory() || current.GetExtension() != "hmf")
+            {
+                continue;
+            }
+
+            const String assetName = StringUtil::StripExtension(current.Basename());
+
+            // an asset of the same name in the root, which the content root's one was skipped for, stays
+            if ((GetBucketDirectory(*bucket) / current.Basename()).Exists())
+            {
+                continue;
+            }
+
+            RemoveAsset(*bucket, StringHash(assetName));
+        }
+    }
+
+    HYP_LOG(Assets, Info, "Removed content root '{}' from the {} registry", directory, GetAssetRegistryName(m_registryId));
+}
+
 FilePath AssetRegistry::GetManifestPath(const AssetPath& assetPath) const
 {
-    return GetBucketDirectory(assetPath.bucketIndex) / (String(*assetPath.assetName) + ".hmf");
+    return GetAssetDirectory(assetPath.bucketIndex, assetPath.assetName) / (String(*assetPath.assetName) + ".hmf");
 }
 
 FilePath AssetRegistry::FindManifestPath(const AssetPath& assetPath) const

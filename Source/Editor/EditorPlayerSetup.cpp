@@ -18,7 +18,6 @@
 #include <Scene/Camera/ThirdPersonCamera.hpp>
 
 #include <Scene/Components/CharacterControllerComponent.hpp>
-#include <Scene/Components/CharacterModelComponent.hpp>
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/RigidBodyComponent.hpp>
 
@@ -96,7 +95,14 @@ EditorPlayer EditorPlayerSetup::CreateFirstPersonPlayer(Name playerName, Name ca
     cameraController->SetMovementEnabled(false);
 
     // The camera rides the player at eye height but keeps its own look rotation
-    return CreatePlayer(playerName, cameraName, NodeFlags::IgnoreParentRotation, cameraController);
+    EditorPlayer player = CreatePlayer(playerName, cameraName, NodeFlags::IgnoreParentRotation, cameraController);
+
+    PlayerSetupProcessorRegistry::GetInstance().ForEach([&player](IPlayerSetupProcessor& processor)
+        {
+            processor.OnCreatePlayer(player, /* isThirdPerson */ false);
+        });
+
+    return player;
 }
 
 EditorPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerName, Name cameraName)
@@ -104,21 +110,10 @@ EditorPlayer EditorPlayerSetup::CreateThirdPersonPlayer(Name playerName, Name ca
     // The third person controller positions the camera in world space itself
     EditorPlayer player = CreatePlayer(playerName, cameraName, NodeFlags::IgnoreParentTransform, MakeHandle<ThirdPersonCameraController>());
 
-    Handle<Prefab> characterPrefab = GetEngineAssetRegistry()->GetAsset<Prefab>(AssetBuckets::Prefabs, "ThirdPersonCharacter"_sh);
-
-    if (Handle<Node> characterNode = characterPrefab.IsValid() ? characterPrefab->Spawn() : Handle<Node>::Null())
-    {
-        player.characterModel = MakeHandle<Entity>();
-        player.characterModel->SetName(NAME("CharacterModel"));
-        player.characterModel->SetIsDynamic(true);
-        InitObject(player.characterModel);
-
-        player.characterModel->AddChild(characterNode);
-    }
-    else
-    {
-        HYP_LOG(Editor, Warning, "ThirdPersonCharacter prefab not found in the engine asset registry; run BuildShapesCommandlet to build it. The player will have no visible model.");
-    }
+    PlayerSetupProcessorRegistry::GetInstance().ForEach([&player](IPlayerSetupProcessor& processor)
+        {
+            processor.OnCreatePlayer(player, /* isThirdPerson */ true);
+        });
 
     return player;
 }
@@ -178,17 +173,56 @@ void EditorPlayerSetup::AttachToScene(const EditorPlayer& player)
             playerEntity->AddChild(player.characterModel);
         }
 
-        // CharacterModelSystem keeps this aligned from here on; start with the feet at the bottom of the capsule
         player.characterModel->SetLocalTranslation(Vec3f(0.0f, -capsuleHalfHeight, 0.0f));
+    }
 
-        if (!player.characterModel->HasComponent<CharacterModelComponent>())
+    PlayerSetupProcessorRegistry::GetInstance().ForEach([&player](IPlayerSetupProcessor& processor)
         {
-            CharacterModelComponent characterModelComponent;
-            characterModelComponent.facingMode = CharacterFacingMode::MovementDirection;
-            characterModelComponent.turnSharpness = 20.0f;
+            processor.OnAttachToScene(player);
+        });
+}
 
-            player.characterModel->AddComponent<CharacterModelComponent>(characterModelComponent);
-        }
+PlayerSetupProcessorRegistry& PlayerSetupProcessorRegistry::GetInstance()
+{
+    static PlayerSetupProcessorRegistry s_instance;
+
+    return s_instance;
+}
+
+
+uint32 PlayerSetupProcessorRegistry::Register(UniquePtr<IPlayerSetupProcessor, EditorAllocator>&& processor)
+{
+    Mutex::Guard guard(m_mutex);
+
+    const uint32 id = m_nextId++;
+
+    m_entries.PushBack(Entry { id, std::move(processor) });
+
+    return id;
+}
+
+void PlayerSetupProcessorRegistry::Unregister(uint32 id)
+{
+    Mutex::Guard guard(m_mutex);
+
+    auto it = m_entries.FindIf([id](const Entry& entry)
+        {
+            return entry.id == id;
+        });
+
+    if (it != m_entries.End())
+    {
+        m_entries.Erase(it);
+    }
+}
+
+void PlayerSetupProcessorRegistry::ForEach(const Proc<void(IPlayerSetupProcessor&)>& proc) const
+{
+    Mutex::Guard guard(m_mutex);
+
+    for (const Entry& entry : m_entries)
+    {
+        proc(*entry.processor);
     }
 }
 

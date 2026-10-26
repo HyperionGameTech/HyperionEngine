@@ -18,6 +18,10 @@
 
 #include <Core/Threading/Mutex.hpp>
 
+#include <Core/Functional/Proc.hpp>
+
+#include <Core/DataProcessing/HMF/HMF.hpp>
+
 #include <Core/FileSystem/FilePath.hpp>
 
 #include <Core/Resource/Resource.hpp>
@@ -43,6 +47,8 @@ class BlobStorageCookCommandlet;
 
 struct BoxedValue;
 
+class AssetExtension;
+
 HYP_CLASS(Abstract)
 class ENGINE_API AssetObject : public ObjectBase
 {
@@ -51,6 +57,7 @@ class ENGINE_API AssetObject : public ObjectBase
 public:
     friend class AssetRegistry;
     friend class AssetBucketData;
+    friend class AssetExtension;
 
     friend class BlobStorageCookCommandlet;
 
@@ -138,6 +145,55 @@ public:
     HYP_METHOD()
     bool IsSaved() const;
 
+    ///Extensions
+
+    Array<Handle<AssetExtension>> GetExtensions() const;
+
+    HYP_METHOD()
+    Array<Name> GetExtensionClassNames() const;
+
+    Handle<AssetExtension> GetExtension(const Class* extensionClass) const;
+
+    template <class ExtensionType>
+    Handle<ExtensionType> GetExtension() const
+    {
+        return Cast<ExtensionType>(GetExtension(ExtensionType::StaticClass()));
+    }
+
+    HYP_METHOD()
+    void AddExtension(const Handle<AssetExtension>& extension);
+
+    HYP_METHOD()
+    void RemoveExtension(const Handle<AssetExtension>& extension);
+
+    Handle<AssetExtension> GetOrAddExtension(const Class* extensionClass) const;
+
+    template <class ExtensionType>
+    Handle<ExtensionType> GetOrAddExtension() const
+    {
+        return Cast<ExtensionType>(GetOrAddExtension(ExtensionType::StaticClass()));
+    }
+
+    HYP_METHOD()
+    Handle<AssetExtension> GetOrAddExtensionOfClass(Name className) const;
+
+    HYP_METHOD()
+    Array<Name> GetAddableExtensionClasses() const;
+
+    HYP_METHOD()
+    Handle<AssetExtension> AddExtensionOfClass(Name className);
+
+    HYP_METHOD()
+    void RemoveExtensionOfClass(Name className);
+
+    HYP_METHOD(Property = "Extensions", NoScriptBindings, Editor = false)
+    Array<BoxedValue> SerializeExtensions() const;
+
+    HYP_METHOD(Property = "Extensions", NoScriptBindings, Editor = false)
+    void DeserializeExtensions(const Array<BoxedValue>& extensions);
+
+    ///
+
     HYP_METHOD()
     Result Save();
 
@@ -190,6 +246,13 @@ protected:
         // do nothing
     }
 
+    virtual void OnExtensionChanged(AssetExtension& extension)
+    {
+    }
+
+    // for an instance of this asset that reads its source's extensions without owning them
+    void ShareExtensionsFrom(const AssetObject& source);
+
     virtual void PageBlobData()
     {
         // do nothing
@@ -238,7 +301,16 @@ protected:
 
     HYP_FIELD(Transient)
     AssetPath m_assetPath;
-    
+
+    Handle<AssetExtension> ResolveExtension(const Class* extensionClass) const;
+
+    const Class* FindExtensionClass(Name className) const;
+
+    mutable Mutex m_extensionsMutex;
+    mutable Array<Handle<AssetExtension>> m_extensions;
+    // extensions of classes that aren't registered (a disabled plugin's), kept as HMF so a save writes them back
+    mutable Array<HMF::UnresolvedObject> m_unresolvedExtensions;
+
 #ifdef HYP_ASSET_OBJECT_THREAD_SAFE
     mutable volatile int64 m_rwState;
 

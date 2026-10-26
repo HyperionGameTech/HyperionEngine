@@ -1,0 +1,113 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.Panels.ModelImportPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inspector="clr-namespace:Hyperion.Editor.Views.Inspector;assembly=Hyperion.Editor"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:ModelImportPanelViewModel"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Brush.PanelAlt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="12,10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Padding="20,6" Classes="Primary" Command="{Binding ImportCommand}" Content="Import" />
+                <Button Padding="20,6" Command="{Binding CancelCommand}" Content="Cancel" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Padding="4,0" Offset="{Binding ScrollOffset, Mode=TwoWay}">
+            <StackPanel Margin="12,12,12,8" Spacing="14">
+                <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section-label" Text="Rig" />
+                        <TextBlock Grid.Column="1" Classes="hint-text" Text="{Binding BoneCountText}" />
+                    </Grid>
+                    <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding RigModes}" SelectedIndex="{Binding RigModeIndex}" />
+                    <Panel IsVisible="{Binding IsUsingExistingSkeleton}">
+                        <inspector:AssetObjectPropertyEditor DataContext="{Binding SkeletonPicker}" />
+                    </Panel>
+                    <TextBlock Classes="hint-text" IsVisible="{Binding IsUsingExistingSkeleton}" Text="{Binding UnmatchedTracksText}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock VerticalAlignment="Center" Text="Scale" />
+                        <NumericUpDown
+                            Grid.Column="1"
+                            Width="110"
+                            FormatString="0.###"
+                            Increment="0.1"
+                            Minimum="0.0001"
+                            Value="{Binding Scale}" />
+                    </Grid>
+                    <CheckBox Content="Auto-map humanoid" IsChecked="{Binding AutoMapHumanoid}" IsVisible="{Binding !IsUsingExistingSkeleton}" />
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding HasTakes}" Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="section-label" Text="Animations" />
+                        <Button Grid.Column="1" Padding="10,2" Command="{Binding AddSplitCommand}" Content="Split" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Takes}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ModelImportTakeViewModel">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsIncluded}" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="hint-text" Text="{Binding FrameCountText}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Splits}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ModelImportSplitViewModel">
+                                <Border Margin="0,4,0,0" Padding="8" Background="{DynamicResource Brush.PanelRaised}" CornerRadius="3">
+                                    <StackPanel Spacing="4">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBox Text="{Binding Name}" />
+                                            <Button Grid.Column="1" Margin="4,0,0,0" Padding="8,2" Command="{Binding RemoveCommand}" Content="Remove" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Width="50" VerticalAlignment="Center" Text="Take" />
+                                            <ComboBox
+                                                Grid.Column="1"
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{Binding $parent[ItemsControl].((vm:ModelImportPanelViewModel)DataContext).Takes}"
+                                                SelectedValue="{Binding Take}"
+                                                SelectedValueBinding="{Binding Id, x:DataType=vm:ModelImportTakeViewModel}"
+                                                DisplayMemberBinding="{Binding Name, x:DataType=vm:ModelImportTakeViewModel}" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="Auto,*,Auto,*">
+                                            <TextBlock Width="50" VerticalAlignment="Center" Text="Frames" />
+                                            <NumericUpDown Grid.Column="1" FormatString="0" Minimum="0" Value="{Binding StartFrame}" />
+                                            <TextBlock Grid.Column="2" Margin="6,0" VerticalAlignment="Center" Text="to" />
+                                            <NumericUpDown Grid.Column="3" FormatString="0" Minimum="0" Value="{Binding EndFrame}" />
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <CheckBox Content="Loop" IsChecked="{Binding Loop}" />
+                                            <CheckBox Content="Root motion" IsChecked="{Binding RootMotion}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding HasMesh}" Spacing="6">
+                    <TextBlock Classes="section-label" Text="Mesh" />
+                    <CheckBox Content="Generate LODs" IsChecked="{Binding GenerateMeshLods}" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding SettingsSections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ImportSettingsSectionViewModel">
+                            <StackPanel Margin="0,0,0,8" Spacing="6">
+                                <TextBlock Classes="section-label" Text="{Binding Label}" />
+                                <inspector:InspectorPropertyItemsControl IsVisible="{Binding Body.HasProperties}" ItemsSource="{Binding Body.Properties}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

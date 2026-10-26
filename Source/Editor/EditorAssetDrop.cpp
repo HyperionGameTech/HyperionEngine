@@ -10,6 +10,7 @@
 #include <Editor/EditorAction.hpp>
 #include <Editor/EditorSubsystem.hpp>
 
+
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
 
@@ -46,8 +47,6 @@ struct EntityAssetDropHandler
         const Handle<AssetObject>& asset,
         const Handle<Entity>& entity);
 };
-
-namespace /* Entity */ {
 
 Handle<EditorActionBase> MakeEntityDropAction(
     EditorSubsystem* subsystem,
@@ -92,6 +91,8 @@ Handle<EditorActionBase> MakeEntityDropAction(
 
     return action;
 }
+
+namespace /* Entity */ {
 
 void SetEntityMaterial(Entity* entity, const Handle<Material>& material)
 {
@@ -293,24 +294,102 @@ Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const H
 
 } // namespace /* Texture */
 
-static const EntityAssetDropHandler g_entityAssetDropHandlers[] = {
-    { &ScriptAcceptsAsset, &ScriptCanApply, &ScriptCreateAction },
-    { &MaterialAcceptsAsset, &MaterialCanApply, &MaterialCreateAction },
-    { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction }
+class FunctionEntityAssetDropHandler final : public IEntityAssetDropHandler
+{
+public:
+    FunctionEntityAssetDropHandler(const EntityAssetDropHandler& functions)
+        : m_functions(functions)
+    {
+    }
+
+    bool AcceptsAsset(const AssetObject* asset) const override
+    {
+        return m_functions.acceptsAsset(asset);
+    }
+
+    bool CanApply(const AssetObject* asset, const Entity* entity) const override
+    {
+        return m_functions.canApply(asset, entity);
+    }
+
+    Handle<EditorActionBase> CreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity) const override
+    {
+        return m_functions.createAction(subsystem, asset, entity);
+    }
+
+private:
+    EntityAssetDropHandler m_functions;
 };
 
-static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObject* asset)
+EntityAssetDropHandlerRegistry& EntityAssetDropHandlerRegistry::GetInstance()
+{
+    static EntityAssetDropHandlerRegistry s_instance;
+
+    return s_instance;
+}
+
+EntityAssetDropHandlerRegistry::EntityAssetDropHandlerRegistry()
+{
+    Register(MakeUniqueWithAllocator<FunctionEntityAssetDropHandler, EditorAllocator>(EntityAssetDropHandler {
+        &ScriptAcceptsAsset,
+        &ScriptCanApply,
+        &ScriptCreateAction
+    }));
+
+    Register(MakeUniqueWithAllocator<FunctionEntityAssetDropHandler, EditorAllocator>(EntityAssetDropHandler {
+        &MaterialAcceptsAsset,
+        &MaterialCanApply,
+        &MaterialCreateAction
+    }));
+
+    Register(MakeUniqueWithAllocator<FunctionEntityAssetDropHandler, EditorAllocator>(EntityAssetDropHandler {
+        &TextureAcceptsAsset,
+        &TextureCanApply,
+        &TextureCreateAction
+    }));
+
+}
+
+uint32 EntityAssetDropHandlerRegistry::Register(UniquePtr<IEntityAssetDropHandler, EditorAllocator>&& handler)
+{
+    Mutex::Guard guard(m_mutex);
+
+    const uint32 id = m_nextId++;
+
+    m_entries.PushBack(Entry { id, std::move(handler) });
+
+    return id;
+}
+
+void EntityAssetDropHandlerRegistry::Unregister(uint32 id)
+{
+    Mutex::Guard guard(m_mutex);
+
+    auto it = m_entries.FindIf([id](const Entry& entry)
+        {
+            return entry.id == id;
+        });
+
+    if (it != m_entries.End())
+    {
+        m_entries.Erase(it);
+    }
+}
+
+const IEntityAssetDropHandler* EntityAssetDropHandlerRegistry::FindHandler(const AssetObject* asset) const
 {
     if (!asset)
     {
         return nullptr;
     }
 
-    for (const EntityAssetDropHandler& handler : g_entityAssetDropHandlers)
+    Mutex::Guard guard(m_mutex);
+
+    for (const Entry& entry : m_entries)
     {
-        if (handler.acceptsAsset(asset))
+        if (entry.handler->AcceptsAsset(asset))
         {
-            return &handler;
+            return entry.handler.Get();
         }
     }
 
@@ -319,7 +398,7 @@ static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObjec
 
 bool EditorEntityAssetDrop::TargetsEntity(const AssetObject* asset)
 {
-    return FindEntityAssetDropHandler(asset) != nullptr;
+    return EntityAssetDropHandlerRegistry::GetInstance().FindHandler(asset) != nullptr;
 }
 
 bool EditorEntityAssetDrop::CanApplyToEntity(const AssetObject* asset, const Entity* entity)
@@ -329,9 +408,9 @@ bool EditorEntityAssetDrop::CanApplyToEntity(const AssetObject* asset, const Ent
         return false;
     }
 
-    const EntityAssetDropHandler* handler = FindEntityAssetDropHandler(asset);
+    const IEntityAssetDropHandler* handler = EntityAssetDropHandlerRegistry::GetInstance().FindHandler(asset);
 
-    return handler != nullptr && handler->canApply(asset, entity);
+    return handler != nullptr && handler->CanApply(asset, entity);
 }
 
 Handle<EditorActionBase> EditorEntityAssetDrop::CreateApplyAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
@@ -341,7 +420,7 @@ Handle<EditorActionBase> EditorEntityAssetDrop::CreateApplyAction(EditorSubsyste
         return nullptr;
     }
 
-    return FindEntityAssetDropHandler(asset.Get())->createAction(subsystem, asset, entity);
+    return EntityAssetDropHandlerRegistry::GetInstance().FindHandler(asset.Get())->CreateAction(subsystem, asset, entity);
 }
 
 } // namespace Hyperion

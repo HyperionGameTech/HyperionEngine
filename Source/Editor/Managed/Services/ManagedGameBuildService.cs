@@ -229,7 +229,7 @@ namespace Hyperion.Editor.Services
             string cookCacheDirectory = Path.Combine(projectDirectory, "Build", "PackageCook");
             Directory.CreateDirectory(cookCacheDirectory);
 
-            string[] arguments =
+            List<string> arguments = new List<string>
             {
                 "--project=" + projectDirectory,
                 "--out-cache=" + Path.Combine(outputDirectory, "Cache"),
@@ -240,6 +240,14 @@ namespace Hyperion.Editor.Services
                 "--target-config=" + Path.Combine(editorDirectory, "Config", "EngineConfig.json"),
                 "--cachedir=" + cookCacheDirectory
             };
+
+            // the enabled built-in plugins, whose content the cook mounts with the engine's
+            List<string> plugins = EngineManager.CurrentProject?.GetEnabledPlugins().Cast<Name>().Select(pluginName => pluginName.ToString()).ToList() ?? new List<string>();
+
+            if (plugins.Count > 0)
+            {
+                arguments.Add("--plugins=" + string.Join(",", plugins));
+            }
 
             Logger.Log(BuildLogChannel, LogLevel.Info, "Cooking {0} into {1}", projectDirectory, outputDirectory);
 

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -162,14 +163,20 @@ namespace Hyperion.Editor.ViewModels
             bool initialize = true,
             Action? preWriteCallback = null,
             Action? postWriteCallback = null,
-            Action? valueChangedCallback = null)
+            Action? valueChangedCallback = null,
+            Entity? ownerEntity = null)
         {
             TypeInfo typeInfo = property.TypeInfo;
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
 
             InspectorPropertyViewModelBase vm;
 
-            if (typeInfo.IsArray)
+            if (ownerEntity != null && FindPluginPropertyEditor(property) is { } pluginEditor
+                && pluginEditor(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, isNameType) is { } pluginVm)
+            {
+                vm = pluginVm;
+            }
+            else if (typeInfo.IsArray)
             {
                 vm = new ArrayPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
             }
@@ -263,7 +270,7 @@ namespace Hyperion.Editor.ViewModels
             }
             else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsStructType)
             {
-                vm = new StructPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
+                vm = new StructPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth) { OwnerEntity = ownerEntity };
             }
             else
             {
@@ -274,6 +281,18 @@ namespace Hyperion.Editor.ViewModels
             AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
             return initialize ? Initialize(vm) : vm;
+        }
+
+        private static PropertyEditorFactory? FindPluginPropertyEditor(Property property)
+        {
+            ClassAttribute? attrEditorType = property.GetAttribute("editortype");
+
+            if (attrEditorType == null || !attrEditorType.Value.IsString)
+            {
+                return null;
+            }
+
+            return EditorPluginService.Instance.FindPropertyEditor(attrEditorType.Value.GetString());
         }
 
         public static InspectorPropertyViewModelBase CreateForValue(

@@ -20,6 +20,7 @@ namespace Hyperion {
 class Mesh;
 class Material;
 class Skeleton;
+class Entity;
 class BVHNode;
 struct RenderProxyMesh;
 struct MeshRayTracingData;
@@ -67,6 +68,10 @@ struct ENGINE_API MeshComponent
     HYP_FIELD(Property = "LodBias", Serialize)
     int8 lodBias = 0;
 
+    // per-entity pose of `skeleton`, owned by the AnimationSystem
+    HYP_FIELD(Transient, Editor = false, NoScriptBindings)
+    Handle<Skeleton> skeletonInstance;
+
     MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),
           material(material),
@@ -76,13 +81,22 @@ struct ENGINE_API MeshComponent
     {
     }
 
-    MeshComponent(const MeshComponent& other) = default;
+    MeshComponent(const MeshComponent& other);
     MeshComponent& operator=(const MeshComponent& other);
 
     MeshComponent(MeshComponent&& other) noexcept = default;
     MeshComponent& operator=(MeshComponent&& other) noexcept;
 
     ~MeshComponent();
+
+    const Handle<Skeleton>& GetRenderSkeleton() const;
 };
+
+// the entity's own copy of `skeleton` for a pose writer (eg the animation system) to pose with Skeleton::SetPose; made again
+// when `skeleton` is swapped or its bones change
+ENGINE_API const Handle<Skeleton>& AcquireSkeletonInstance(Entity& entity, MeshComponent& meshComponent);
+
+// back to drawing the shared skeleton's bind pose
+ENGINE_API void ReleaseSkeletonInstance(Entity& entity, MeshComponent& meshComponent);
 
 } // namespace Hyperion

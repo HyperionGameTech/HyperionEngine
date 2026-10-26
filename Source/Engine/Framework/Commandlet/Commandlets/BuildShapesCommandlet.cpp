@@ -9,6 +9,7 @@
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
+#include <Asset/ModelImport.hpp>
 
 #include <Scene/Node.hpp>
 #include <Scene/Entity.hpp>
@@ -16,6 +17,11 @@
 #include <Scene/EntityManager.hpp>
 
 #include <Scene/Components/MeshComponent.hpp>
+
+#include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/Skeleton.hpp>
+
+#include <Core/Resource/ResLock.hpp>
 
 #include <Scene/WorldGrid/Terrain/GroundCover.hpp>
 
@@ -100,6 +106,9 @@ static void BuildThirdPersonCharacter(Handle<AssetRegistry>& outputRegistry, con
 
     Handle<Prefab> prefab = characterPrefabResult->Result();
     Assert(prefab.IsValid());
+
+    ModelImportContents contents = GatherModelImportContents(prefab);
+    RunModelImportProcessors(contents, AssetImportInfo {});
 
     prefab->SetName(NAME("ThirdPersonCharacter"));
 
@@ -239,7 +248,7 @@ public:
             s_definitions.Add(
                 "parts",
                 "p",
-                "Comma separated parts to build: invsphere, character, groundcover. Everything when empty",
+                "Comma separated parts to build: invsphere, character, groundcover. Everything when empty (animation content is BuildAnimationContentCommandlet)",
                 CommandLineArgumentFlags::NONE,
                 CommandLineArgumentType::STRING,
                 JSON::Value(""));

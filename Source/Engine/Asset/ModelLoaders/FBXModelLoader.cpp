@@ -25,7 +25,6 @@
 
 #include <Scene/EntityManager.hpp>
 #include <Scene/Components/MeshComponent.hpp>
-#include <Scene/Components/AnimationComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/VisibilityStateComponent.hpp>
 
@@ -99,6 +98,55 @@ static Pair<Array<FatVertex>, Array<uint32>> CalculateIndices(const Array<FatVer
     }
 
     return { std::move(newVertices), std::move(indices) };
+}
+
+// FBX is right handed so we need to correct for it.
+static Vec3f MirrorFBXVector(Vec3f vector, int32 axis)
+{
+    vector[axis] = -vector[axis];
+
+    return vector;
+}
+
+static Quat4f MirrorFBXRotation(const Quat4f& rotation, int32 axis)
+{
+    Quat4f mirrored(-rotation.x, -rotation.y, -rotation.z, rotation.w);
+
+    if (axis == 0)
+    {
+        mirrored.x = rotation.x;
+    }
+    else if (axis == 1)
+    {
+        mirrored.y = rotation.y;
+    }
+    else
+    {
+        mirrored.z = rotation.z;
+    }
+
+    return mirrored;
+}
+
+static Transform MirrorFBXTransform(const Transform& transform, int32 axis)
+{
+    return Transform(MirrorFBXVector(transform.GetTranslation(), axis), transform.GetScale(), MirrorFBXRotation(transform.GetRotation(), axis));
+}
+
+static Mat4f MirrorFBXMatrix(Mat4f matrix, int32 axis)
+{
+    for (int32 row = 0; row < 4; ++row)
+    {
+        for (int32 column = 0; column < 4; ++column)
+        {
+            if ((row == axis) != (column == axis))
+            {
+                matrix.values[row * 4 + column] = -matrix.values[row * 4 + column];
+            }
+        }
+    }
+
+    return matrix;
 }
 
 #pragma endregion Helpers
@@ -338,13 +386,26 @@ struct FBXAnimCurveNode
 
     FBXObjectID targetNodeId = 0;
     String targetProperty; // "Lcl Translation", "Lcl Rotation", "Lcl Scaling"
+
+    FBXObjectID layerId = 0;
+};
+
+struct FBXAnimLayer
+{
+    FBXObjectID stackId = 0;
+};
+
+struct FBXAnimStack
+{
+    String name;
+    int64 localStart = 0;
 };
 
 struct FBXCluster
 {
     String name;
-    Mat4f transform;
-    Mat4f transformLink;
+    Mat4f transform = Mat4f::zeros;
+    Mat4f transformLink = Mat4f::zeros;
     Array<int32, FBXAllocator> vertexIndices;
     Array<double, FBXAllocator> boneWeights;
 
@@ -386,6 +447,8 @@ struct FBXMesh
     // center of the original vertex bounds -- applied to the node transform
     // so meshes pivot around their content instead of their raw origin
     Vec3f pivotOffset;
+
+    bool isInModelSpace = false;
 
     Optional<Handle<Mesh>> result;
 
@@ -429,6 +492,7 @@ struct FBXNode
     FBXObject* srcObject = nullptr;
 
     String name;
+    bool isLimb = false;
 
     FBXObjectID parentId = 0;
     FBXObjectID skeletonHolderNodeId = 0;
@@ -441,7 +505,11 @@ struct FBXNode
     Transform localTransform;
 
     Mat4f worldBindMatrix;
+    bool hasBindPose = false;
     Mat4f localBindMatrix;
+
+    // for a root limb: moves its animated local transform from its parent's space into model space
+    Mat4f skeletonSpaceCorrection;
 
     Optional<Handle<Skeleton>> skeleton;
 };
@@ -459,7 +527,9 @@ struct FBXNodeMapping
         FBXMaterial,
         FBXTexture,
         FBXAnimCurve,
-        FBXAnimCurveNode>
+        FBXAnimCurveNode,
+        FBXAnimLayer,
+        FBXAnimStack>
         data;
 };
 
@@ -1071,10 +1141,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     const FilePath path = state.filepath;
 
+    const bool shouldRegisterAssets = !(state.hint & AssetLoadHint::Transient);
+
     const String baseName = StringUtil::StripExtension(path.Basename());
 
     Handle<Entity> top = MakeHandle<Entity>(CreateNameFromDynamicString(ANSIString(baseName)));
     Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
+    rootSkeleton->SetName(CreateNameFromDynamicString(ANSIString(baseName + "_Skeleton")));
 
     FileByteReader fbr { path };
 
@@ -1118,7 +1191,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
         if (!result)
         {
-            return HYP_MAKE_ERROR(AssetLoadError, "Failed to read FBX node: {}", 0, result.GetError().GetMessage());
+            return HYP_MAKE_ERROR(AssetLoadError, "Failed to read FBX node: {}", result.GetError().GetMessage());
         }
 
         if (object == nullptr || object->Empty())
@@ -1177,7 +1250,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return nullptr;
     };
 
-    const auto readMatrix = [](const FBXObject& object) -> Mat4f
+    int32 mirrorAxis = 2;
+
+    const auto readMatrix = [&mirrorAxis](const FBXObject& object) -> Mat4f
     {
         if (!object)
         {
@@ -1210,7 +1285,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             }
         }
 
-        return matrix;
+        // FBX stores matrices column-major, with the translation in elements 12-14
+        return MirrorFBXMatrix(matrix.Transpose(), mirrorAxis);
     };
 
     const auto readVec3Property = [](const FBXObject& object) -> Vec3f
@@ -1230,6 +1306,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     // 0 = X, 1 = Y, 2 = Z
     int32 upAxis = 1;
+
+    int32 timeMode = 0;
+    double customFrameRate = 0.0;
 
     if (const FBXObject& globalSettingsNode = root["GlobalSettings"])
     {
@@ -1253,8 +1332,36 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 {
                     propertiesChild->GetFBXPropertyValue<int32>(4, upAxis);
                 }
+                else if (propertiesChildName == "TimeMode")
+                {
+                    propertiesChild->GetFBXPropertyValue<int32>(4, timeMode);
+                }
+                else if (propertiesChildName == "CustomFrameRate")
+                {
+                    propertiesChild->GetFBXPropertyValue<double>(4, customFrameRate);
+                }
             }
         }
+    }
+
+    // Correct axis
+    mirrorAxis = upAxis == 1 ? 2 : 1;
+
+    // indexed by FbxTime::EMode.
+    // the default mode is the FBX SDK's 30 fps
+    constexpr double TimeModeFrameRates[] = { 30.0, 120.0, 100.0, 60.0, 50.0, 48.0, 30.0, 30.0, 29.97, 29.97, 25.0, 24.0, 1000.0, 23.976, 0.0, 96.0, 72.0, 59.94, 119.88 };
+    constexpr int32 CustomTimeMode = 14;
+
+    if (timeMode < 0 || timeMode >= int32(std::size(TimeModeFrameRates)))
+    {
+        return HYP_MAKE_ERROR(AssetLoadError, "Unknown FBX time mode {}", timeMode);
+    }
+
+    const double frameRate = timeMode == CustomTimeMode ? customFrameRate : TimeModeFrameRates[timeMode];
+
+    if (frameRate <= 0.0)
+    {
+        return HYP_MAKE_ERROR(AssetLoadError, "FBX custom frame rate {} is not positive", customFrameRate);
     }
 
     const auto getFbxObject = [&objectMapping](FBXObjectID id, auto*& out)
@@ -1643,7 +1750,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                             }
                         }
 
-                        modelVertices[index] = position;
+                        modelVertices[index] = MirrorFBXVector(position, mirrorAxis);
                     }
                 }
 
@@ -1786,7 +1893,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                             Vec3f normal { float(normalFlat[sourceIndex * 3 + 0]), float(normalFlat[sourceIndex * 3 + 1]), float(normalFlat[sourceIndex * 3 + 2]) };
 
-                            verticesUnpacked[index].SetNormal(normal);
+                            verticesUnpacked[index].SetNormal(MirrorFBXVector(normal, mirrorAxis));
                         }
                     }
                 }
@@ -1832,12 +1939,6 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 }
 
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
-
-                // Fix coordinate space
-                for (size_t index = 0; index + 2 < fbxMesh.indices.Size(); index += 3)
-                {
-                    std::swap(fbxMesh.indices[index + 1], fbxMesh.indices[index + 2]);
-                }
 
                 mapping.data.Set(std::move(fbxMesh));
             }
@@ -1885,7 +1986,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 FBXNode fbxNode;
                 fbxNode.srcObject = childObject;
                 fbxNode.name = nodeName;
-                fbxNode.localTransform = transform;
+                fbxNode.isLimb = modelType == "LimbNode";
+                fbxNode.localTransform = MirrorFBXTransform(transform, mirrorAxis);
 
                 mapping.data.Set(fbxNode);
             }
@@ -1994,6 +2096,35 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             else if (fbxTemplate->name == "AnimationCurveNode")
             {
                 mapping.data.Set(FBXAnimCurveNode {});
+            }
+            else if (fbxTemplate->name == "AnimationLayer")
+            {
+                mapping.data.Set(FBXAnimLayer {});
+            }
+            else if (fbxTemplate->name == "AnimationStack")
+            {
+                FBXAnimStack stack;
+                stack.name = nodeName;
+
+                for (FBXObject* stackChild : childObject->children)
+                {
+                    if (!stackChild->name.StartsWith("Properties"))
+                    {
+                        continue;
+                    }
+
+                    for (FBXObject* propertiesChild : stackChild->children)
+                    {
+                        String propertiesChildName;
+
+                        if (propertiesChild->GetFBXPropertyValue<String>(0, propertiesChildName) && propertiesChildName == "LocalStart")
+                        {
+                            propertiesChild->GetFBXPropertyValue<int64>(4, stack.localStart);
+                        }
+                    }
+                }
+
+                mapping.data.Set(std::move(stack));
             }
 
             objectMapping[objectId] = std::move(mapping);
@@ -2122,7 +2253,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             }
             else if (auto* rightCluster = rightIt->second.data.TryGet<FBXCluster>())
             {
-                if (leftNode->srcObject->IsFBXType("FbxLimbNode"))
+                if (leftNode->isLimb)
                 {
                     rightCluster->limbId = leftIt->first;
 
@@ -2193,6 +2324,20 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 leftCurveNode->targetProperty = connection.propertyName;
 
                 continue;
+            }
+
+            if (rightIt->second.data.TryGet<FBXAnimLayer>())
+            {
+                leftCurveNode->layerId = rightIt->first;
+            }
+
+            continue;
+        }
+        else if (auto* leftLayer = leftIt->second.data.TryGet<FBXAnimLayer>())
+        {
+            if (rightIt->second.data.TryGet<FBXAnimStack>())
+            {
+                leftLayer->stackId = rightIt->first;
             }
 
             continue;
@@ -2291,7 +2436,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     texture->SetName(CreateNameFromDynamicString(ANSIString(fbxTexture->name)));
                 }
 
-                GetCurrentAssetRegistry()->PutAssetUnique(texture);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(texture);
+                }
 
                 textureCache[it.first] = std::move(texture);
             }
@@ -2357,7 +2505,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             InitObject(result);
 
-            GetCurrentAssetRegistry()->PutAssetUnique(result);
+            if (shouldRegisterAssets)
+            {
+                GetCurrentAssetRegistry()->PutAssetUnique(result);
+            }
         }
 
         materialCache[materialId] = result;
@@ -2365,23 +2516,28 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         return result;
     };
 
-    Proc<void(FBXNode&, Node*)> buildNodes;
+    Proc<void(FBXNode&, Node*, bool)> buildNodes;
 
-    buildNodes = [&](FBXNode& fbxNode, Node* parentNode)
+    buildNodes = [&](FBXNode& fbxNode, Node* parentNode, bool isSkeletonPass)
     {
         Assert(parentNode != nullptr);
         Assert(fbxNode.srcObject != nullptr);
 
+        if (fbxNode.isLimb && !isSkeletonPass)
+        {
+            return;
+        }
+
         Handle<Node> node;
 
-        if (fbxNode.srcObject->IsFBXType("LimbNode"))
+        if (fbxNode.isLimb)
         {
             Transform bindingTransform;
             bindingTransform.SetTranslation(fbxNode.localBindMatrix.ExtractTranslation());
             bindingTransform.SetRotation(fbxNode.localBindMatrix.ExtractRotation());
             bindingTransform.SetScale(fbxNode.localBindMatrix.ExtractScale());
 
-            Handle<Bone> bone = MakeHandle<Bone>();
+            Handle<Bone> bone = MakeHandle<Bone>(CreateNameFromDynamicString(ANSIString(fbxNode.name)));
             bone->SetBindingTransform(bindingTransform);
 
             node = bone;
@@ -2403,10 +2559,14 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             if (getFbxObject(fbxNode.meshId, fbxMesh))
             {
                 const Handle<Skeleton> meshSkeleton = applyClustersToMesh(*fbxMesh);
+                Assert(meshSkeleton.IsValid() == fbxMesh->isInModelSpace);
 
                 Handle<Mesh> mesh = fbxMesh->GetResultObject();
 
-                GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+                }
 
                 Handle<Material> material = fbxNode.materialId ? acquireMaterial(fbxNode.materialId) : Handle<Material>::empty;
 
@@ -2430,7 +2590,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                     InitObject(material);
 
-                    GetCurrentAssetRegistry()->PutAssetUnique(material);
+                    if (shouldRegisterAssets)
+                    {
+                        GetCurrentAssetRegistry()->PutAssetUnique(material);
+                    }
                 }
 
                 Scene& scene = GetDetachedSceneForCurrentThread();
@@ -2443,23 +2606,21 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 if (meshSkeleton.IsValid())
                 {
                     entity->SetIsDynamic(true);
-
-                    AnimationComponent animationComponent {};
-                    animationComponent.playbackState = {
-                        .animationIndex = 0,
-                        .status = AnimationPlaybackStatus::PLAYING,
-                        .loopMode = AnimationLoopMode::REPEAT,
-                        .speed = 1.0f,
-                        .currentTime = 0.0f
-                    };
-
-                    entity->AddComponent<AnimationComponent>(animationComponent);
                 }
 
-                const Vec3f pivotTranslation = fbxNode.localTransform.GetRotation().RotateVector(fbxNode.localTransform.GetScale() * fbxMesh->pivotOffset);
-                node->SetLocalTranslation(node->GetLocalTranslation() + pivotTranslation);
+                if (fbxMesh->isInModelSpace)
+                {
+                    entity->SetName(mesh->GetName());
 
-                node->AddChild(entity);
+                    top->AddChild(entity);
+                }
+                else
+                {
+                    const Vec3f pivotTranslation = fbxNode.localTransform.GetRotation().RotateVector(fbxNode.localTransform.GetScale() * fbxMesh->pivotOffset);
+                    node->SetLocalTranslation(node->GetLocalTranslation() + pivotTranslation);
+
+                    node->AddChild(entity);
+                }
             }
             else
             {
@@ -2475,7 +2636,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 if (getFbxObject(id, childNode))
                 {
-                    buildNodes(*childNode, node);
+                    buildNodes(*childNode, node, isSkeletonPass);
 
                     continue;
                 }
@@ -2510,81 +2671,119 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 }
 
                 linkedNode->worldBindMatrix = poseNode.matrix;
-            }
-        }
-    };
-
-    Proc<void(FBXNode&)> applyLocalBindPose;
-
-    applyLocalBindPose = [&](FBXNode& fbxNode)
-    {
-        fbxNode.localBindMatrix = fbxNode.worldBindMatrix;
-
-        if (fbxNode.parentId)
-        {
-            FBXNode* parentNode;
-
-            if (getFbxObject(fbxNode.parentId, parentNode))
-            {
-                fbxNode.localBindMatrix = parentNode->worldBindMatrix.Inverse() * fbxNode.localBindMatrix;
-            }
-        }
-
-        for (const FBXObjectID id : fbxNode.childIds)
-        {
-            if (id)
-            {
-                FBXNode* childNode;
-
-                if (getFbxObject(id, childNode))
-                {
-                    applyLocalBindPose(*childNode);
-                }
-            }
-        }
-    };
-
-    auto calculateLocalBindPoses = [&]()
-    {
-        for (const FBXObjectID id : bindPoseIds)
-        {
-            FBXBindPose* bindPose;
-
-            if (!getFbxObject(id, bindPose))
-            {
-                HYP_LOG(Assets, Warning, "Not a valid bind pose fbx_node: {}", id);
-
-                continue;
-            }
-
-            for (const FBXPoseNode& poseNode : bindPose->poseNodes)
-            {
-                FBXNode* linkedNode;
-
-                if (!getFbxObject(poseNode.nodeId, linkedNode))
-                {
-                    HYP_LOG(Assets, Warning, "Linked fbx_node {} to pose fbx_node is not valid", poseNode.nodeId);
-
-                    continue;
-                }
-
-                applyLocalBindPose(*linkedNode);
+                linkedNode->hasBindPose = true;
             }
         }
     };
 
     applyBindPoses();
-    calculateLocalBindPoses();
+
+    Proc<Mat4f(const FBXNode&)> getRestWorldMatrix;
+
+    getRestWorldMatrix = [&](const FBXNode& fbxNode) -> Mat4f
+    {
+        if (fbxNode.hasBindPose)
+        {
+            return fbxNode.worldBindMatrix;
+        }
+
+        FBXNode* parentNode;
+
+        if (fbxNode.parentId && getFbxObject(fbxNode.parentId, parentNode))
+        {
+            return getRestWorldMatrix(*parentNode) * fbxNode.localTransform.GetMatrix();
+        }
+
+        return fbxNode.localTransform.GetMatrix();
+    };
+
+    // the skeleton lives in the file's model space, so a root bone keeps its parents' transforms
+    for (auto& mappingIt : objectMapping)
+    {
+        FBXNode* fbxNode = mappingIt.second.data.TryGet<FBXNode>();
+
+        if (!fbxNode || !fbxNode->isLimb)
+        {
+            continue;
+        }
+
+        FBXNode* parentNode = nullptr;
+        const bool hasParentNode = fbxNode->parentId && getFbxObject(fbxNode->parentId, parentNode);
+
+        const Mat4f restWorld = getRestWorldMatrix(*fbxNode);
+
+        if (hasParentNode && parentNode->isLimb)
+        {
+            fbxNode->localBindMatrix = getRestWorldMatrix(*parentNode).Inverse() * restWorld;
+
+            continue;
+        }
+
+        fbxNode->skeletonSpaceCorrection = hasParentNode ? getRestWorldMatrix(*parentNode) : Mat4f::Identity();
+        fbxNode->localBindMatrix = restWorld;
+    }
+
+    // skinned vertices move into model space too, so every skinned mesh agrees with the one skeleton
+    Set<FBXObjectID, FBXAllocator> modelSpaceMeshIds;
+
+    for (auto& mappingIt : objectMapping)
+    {
+        const FBXNode* fbxNode = mappingIt.second.data.TryGet<FBXNode>();
+        FBXMesh* fbxMesh;
+        FBXSkin* skin;
+
+        if (!fbxNode || !fbxNode->meshId || !getFbxObject(fbxNode->meshId, fbxMesh) || !fbxMesh->skinId || !getFbxObject(fbxMesh->skinId, skin))
+        {
+            continue;
+        }
+
+        if (!modelSpaceMeshIds.Insert(fbxNode->meshId).second)
+        {
+            return HYP_MAKE_ERROR(AssetLoadError, "Skinned mesh '{}' is used by more than one model", fbxMesh->name);
+        }
+
+        // the mesh's world matrix at bind time is TransformLink * Transform of any of its clusters; Blender leaves it out of the bind pose
+        Mat4f meshWorld = getRestWorldMatrix(*fbxNode);
+
+        for (const FBXObjectID clusterId : skin->clusterIds)
+        {
+            FBXCluster* cluster;
+
+            if (getFbxObject(clusterId, cluster) && cluster->transform != Mat4f::zeros && cluster->transformLink != Mat4f::zeros)
+            {
+                meshWorld = cluster->transformLink * cluster->transform;
+
+                break;
+            }
+        }
+
+        const Mat4f vertexToModel = meshWorld * Mat4f::Translation(fbxMesh->pivotOffset);
+        const Mat4f normalToModel = vertexToModel.Inverse().Transpose();
+
+        const size_t numVertices = fbxMesh->vertexData.ByteSize() / sizeof(FatVertex);
+        FatVertex* vertices = reinterpret_cast<FatVertex*>(fbxMesh->vertexData.Data());
+
+        for (size_t vertexIndex = 0; vertexIndex < numVertices; ++vertexIndex)
+        {
+            FatVertex& vertex = vertices[vertexIndex];
+
+            vertex.SetPosition(vertexToModel.TransformVector(vertex.GetPosition()));
+            vertex.SetNormal(normalToModel.TransformVector(Vec4f(vertex.GetNormal(), 0.0f)).GetXYZ().Normalized());
+        }
+
+        fbxMesh->pivotOffset = Vec3f::Zero();
+        fbxMesh->isInModelSpace = true;
+    }
 
     Proc<void(FBXNode&)> buildLimbNodes;
 
     buildLimbNodes = [&](FBXNode& fbxNode)
     {
-        if (fbxNode.srcObject->IsFBXType("FbxLimbNode"))
+        if (fbxNode.isLimb)
         {
             foundFirstBone = true;
 
-            buildNodes(fbxNode, rootBone);
+            buildNodes(fbxNode, rootBone, true);
         }
         else
         {
@@ -2611,7 +2810,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
     {
         Assert(fbxNode.srcObject != nullptr);
 
-        if (fbxNode.srcObject->IsFBXType("FbxLimbNode"))
+        if (fbxNode.isLimb)
         {
             return &fbxNode;
         }
@@ -2652,68 +2851,128 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (getFbxObject(id, childNode))
             {
-                buildNodes(*childNode, parentNode);
+                buildNodes(*childNode, parentNode, false);
             }
         }
     }
 
     if (foundFirstBone)
     {
-        GetCurrentAssetRegistry()->PutAssetUnique(rootSkeleton);
+        if (shouldRegisterAssets)
+        {
+            GetCurrentAssetRegistry()->PutAssetUnique(rootSkeleton);
+        }
+
         InitObject(rootSkeleton);
 
-        Map<FBXObjectID, Array<FBXAnimCurveNode*, FBXAllocator>, FBXAllocator> curveNodesByTarget;
+        Map<FBXObjectID, Map<FBXObjectID, Array<FBXAnimCurveNode*, FBXAllocator>, FBXAllocator>, FBXAllocator> curveNodesByStack;
 
         for (auto& mappingIt : objectMapping)
         {
-            if (auto* curveNode = mappingIt.second.data.TryGet<FBXAnimCurveNode>())
+            auto* curveNode = mappingIt.second.data.TryGet<FBXAnimCurveNode>();
+
+            if (!curveNode || !curveNode->targetNodeId)
             {
-                if (curveNode->targetNodeId)
-                {
-                    curveNodesByTarget[curveNode->targetNodeId].PushBack(curveNode);
-                }
+                continue;
             }
+
+            FBXAnimLayer* layer;
+            FBXAnimStack* stack;
+
+            if (!curveNode->layerId || !getFbxObject(curveNode->layerId, layer) || !layer->stackId || !getFbxObject(layer->stackId, stack))
+            {
+                return HYP_MAKE_ERROR(AssetLoadError, "Animation curves for node {} belong to no take", curveNode->targetNodeId);
+            }
+
+            curveNodesByStack[layer->stackId][curveNode->targetNodeId].PushBack(curveNode);
         }
 
-        if (curveNodesByTarget.Any())
+        constexpr UTF8StringView const ComponentNames[3] = { "d|X", "d|Y", "d|Z" };
+
+        const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*, FBXAllocator>& curveNodes, const UTF8StringView& propertyName, FBXAnimCurve** outCurves)
         {
-            Handle<Animation> animation = MakeHandle<Animation>(NAME("Take"));
-
-            constexpr UTF8StringView const ComponentNames[3] = { "d|X", "d|Y", "d|Z" };
-
-            const auto getComponentCurves = [&](const Array<FBXAnimCurveNode*, FBXAllocator>& curveNodes, const UTF8StringView& propertyName, FBXAnimCurve** outCurves)
+            for (FBXAnimCurveNode* curveNode : curveNodes)
             {
-                for (FBXAnimCurveNode* curveNode : curveNodes)
+                if (curveNode->targetProperty != propertyName)
                 {
-                    if (curveNode->targetProperty != propertyName)
+                    continue;
+                }
+
+                for (int component = 0; component < 3; component++)
+                {
+                    const auto curveIdIt = curveNode->curveIds.FindAs(ComponentNames[component]);
+
+                    if (curveIdIt == curveNode->curveIds.End())
                     {
                         continue;
                     }
 
-                    for (int component = 0; component < 3; component++)
+                    FBXAnimCurve* curve;
+
+                    if (getFbxObject(curveIdIt->second, curve))
                     {
-                        const auto curveIdIt = curveNode->curveIds.FindAs(ComponentNames[component]);
-
-                        if (curveIdIt == curveNode->curveIds.End())
-                        {
-                            continue;
-                        }
-
-                        FBXAnimCurve* curve;
-
-                        if (getFbxObject(curveIdIt->second, curve))
-                        {
-                            outCurves[component] = curve;
-                        }
+                        outCurves[component] = curve;
                     }
                 }
-            };
+            }
+        };
 
-            for (auto& targetIt : curveNodesByTarget)
+        Array<Handle<Animation>> animations;
+        Array<Name> takeIds;
+        Array<Name> takeNames;
+
+        for (auto& stackIt : curveNodesByStack)
+        {
+            FBXAnimStack* stack = nullptr;
+            const bool isStack = getFbxObject(stackIt.first, stack);
+            Assert(isStack);
+
+            const int64 takeStart = stack->localStart;
+
+            // reimport finds the clip by the full stack name, which stays put when the file gains takes
+            const Name takeId = CreateNameFromDynamicString(ANSIString(stack->name));
+
+            if (!takeId.IsValid() || takeIds.Contains(takeId))
+            {
+                return HYP_MAKE_ERROR(AssetLoadError, "Take '{}' is unnamed or named twice", stack->name);
+            }
+
+            takeIds.PushBack(takeId);
+
+            const size_t separatorIndex = stack->name.FindLastIndex('|');
+            String takeName = separatorIndex != String::NotFound ? String(stack->name.Substr(separatorIndex + 1)) : stack->name;
+
+            // a lone take is usually named after the exporter (e.g. "mixamo.com"), so use the file's name
+            if (curveNodesByStack.Size() == 1 || takeName.Empty())
+            {
+                takeName = baseName;
+            }
+
+            Name animationName = CreateNameFromDynamicString(ANSIString(takeName));
+
+            if (takeNames.Contains(animationName))
+            {
+                animationName = takeId;
+            }
+
+            if (takeNames.Contains(animationName))
+            {
+                return HYP_MAKE_ERROR(AssetLoadError, "Take '{}' has the same name as another take", stack->name);
+            }
+
+            takeNames.PushBack(animationName);
+
+            AssetImportInfo takeImportInfo;
+            takeImportInfo.sourceClip = takeId;
+
+            Handle<Animation> animation = MakeHandle<Animation>(animationName);
+            animation->SetImportInfo(takeImportInfo);
+
+            for (auto& targetIt : stackIt.second)
             {
                 FBXNode* targetNode;
 
-                if (!getFbxObject(targetIt.first, targetNode) || !targetNode->srcObject->IsFBXType("FbxLimbNode"))
+                if (!getFbxObject(targetIt.first, targetNode) || !targetNode->isLimb)
                 {
                     continue;
                 }
@@ -2761,7 +3020,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     }
                 }
 
-                const Vec3f defaultTranslation = targetNode->localTransform.GetTranslation();
+                const Vec3f defaultTranslation = MirrorFBXVector(targetNode->localTransform.GetTranslation(), mirrorAxis);
                 const Vec3f defaultScale = targetNode->localTransform.GetScale();
 
                 Array<Keyframe, FBXAllocator> keyframes;
@@ -2770,6 +3029,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 for (const int64 timeUnits : uniqueKeyTimes)
                 {
                     const float timeSeconds = float(double(timeUnits) / double(FBXTimeUnitsPerSecond));
+                    const float takeTimeSeconds = MathUtil::Max(float(double(timeUnits - takeStart) / double(FBXTimeUnitsPerSecond)), 0.0f);
 
                     const Vec3f translation(
                         translationCurves[0] ? translationCurves[0]->Evaluate(timeSeconds, defaultTranslation.x) : defaultTranslation.x,
@@ -2789,26 +3049,39 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     const Vec3f radians(MathUtil::DegToRad(degrees.x), MathUtil::DegToRad(degrees.y), MathUtil::DegToRad(degrees.z));
                     const Quat4f rotation = Quat4f(radians);
 
-                    keyframes.EmplaceBack(timeSeconds, Transform(translation, scale, rotation));
+                    const Mat4f skeletonSpaceMatrix = targetNode->skeletonSpaceCorrection * MirrorFBXTransform(Transform(translation, scale, rotation), mirrorAxis).GetMatrix();
+
+                    keyframes.EmplaceBack(takeTimeSeconds, Transform(skeletonSpaceMatrix.ExtractTranslation(), skeletonSpaceMatrix.ExtractScale(), skeletonSpaceMatrix.ExtractRotation()));
                 }
 
                 Handle<AnimationTrack> track = MakeHandle<AnimationTrack>(
-                    NAME_FMT("Take_{}", targetNode->name),
+                    NAME_FMT("{}_{}", takeName, targetNode->name),
                     CreateNameFromDynamicString(ANSIString(targetNode->name)));
 
                 track->SetKeyframes(keyframes);
 
-                GetCurrentAssetRegistry()->PutAssetUnique(track);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(track);
+                }
 
                 animation->AddTrack(track);
             }
 
             if (animation->NumTracks() > 0)
             {
-                GetCurrentAssetRegistry()->PutAssetUnique(animation);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(animation);
+                }
 
-                rootSkeleton->SetAnimations({ animation });
+                animations.PushBack(std::move(animation));
             }
+        }
+
+        if (animations.Any())
+        {
+            rootSkeleton->SetAnimations(animations);
         }
     }
 
@@ -2830,7 +3103,18 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     top->Scale(0.01f);
 
-    return LoadedAsset { MakeHandle<Prefab>(top->GetName(), top) };
+    Handle<Prefab> prefab = MakeHandle<Prefab>(top->GetName(), top);
+
+    AssetImportInfo fileImportInfo;
+    fileImportInfo.settings.frameRate = float(frameRate);
+    prefab->SetImportInfo(fileImportInfo);
+
+    if (foundFirstBone)
+    {
+        prefab->SetLoadedSkeleton(rootSkeleton);
+    }
+
+    return LoadedAsset { std::move(prefab) };
 }
 
 void InitFBXLoaderMemory()

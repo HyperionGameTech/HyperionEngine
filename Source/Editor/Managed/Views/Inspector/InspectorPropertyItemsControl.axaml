@@ -17,6 +17,7 @@
         </DataTemplate>
     </UserControl.Resources>
     <ItemsControl
+        x:Name="PropertyItems"
         HorizontalAlignment="Stretch"
         Grid.IsSharedSizeScope="True"
         ItemsSource="{Binding #Root.ItemsSource}">

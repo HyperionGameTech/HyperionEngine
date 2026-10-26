@@ -75,6 +75,9 @@ class EditorInstancePainterState;
 class EditorSurfacePainterState;
 class EditorCsgState;
 class EditorPrefabEditState;
+class EditorExtension;
+class EditorImportReview;
+class EditorIsolatedEditState;
 class InstanceGroup;
 class InstanceHandleNode;
 class AppContextBase;
@@ -314,6 +317,17 @@ public:
     HYP_METHOD()
     void RequestAssetImport(uint32 requestId);
 
+    void QueueImportReview(const Handle<EditorImportReview>& review);
+
+    HYP_METHOD()
+    Handle<EditorImportReview> GetPendingImportReview();
+
+    HYP_METHOD()
+    bool CanReimportAsset(const Handle<AssetObject>& asset) const;
+
+    HYP_METHOD()
+    bool ReimportAsset(const Handle<AssetObject>& asset);
+
     ////////////////////
 
     HYP_METHOD()
@@ -412,6 +426,45 @@ public:
 
     HYP_METHOD()
     bool IsEditingPrefab() const;
+
+    ///Extensions
+
+    HYP_FORCE_INLINE const Array<Handle<EditorExtension>>& GetExtensions() const
+    {
+        return m_extensions;
+    }
+
+    Handle<EditorExtension> GetExtension(const Class* extensionClass) const;
+
+    template <class ExtensionType>
+    Handle<ExtensionType> GetExtension() const
+    {
+        return Cast<ExtensionType>(GetExtension(ExtensionType::StaticClass()));
+    }
+
+    HYP_METHOD()
+    Handle<EditorExtension> GetExtensionOfClass(Name className) const;
+
+    ///Isolated edit states
+
+    void RegisterIsolatedEditState(const Handle<EditorIsolatedEditState>& editState);
+    void UnregisterIsolatedEditState(EditorIsolatedEditState* editState);
+
+    HYP_METHOD()
+    EditorIsolatedEditState* FindEditStateForAsset(const Handle<AssetObject>& asset) const;
+
+    HYP_METHOD()
+    bool EnterEditStateForAsset(const Handle<AssetObject>& asset);
+
+    HYP_METHOD()
+    EditorIsolatedEditState* GetActiveIsolatedEditState() const;
+
+    HYP_METHOD()
+    bool IsInIsolatedEditMode() const;
+
+    bool ExitIsolatedEditStates(bool apply);
+
+    bool IsProtectedNode(const Node* node) const;
 
     void UpdateViewportIsolation();
 
@@ -811,6 +864,13 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, uint32, uint32, Name, String> OnAssetImportCompleted;
 
+    HYP_FIELD()
+    ScriptableDelegate<void> OnImportReviewQueued;
+
+    // an isolated edit state was entered, left, or became dirty or clean
+    HYP_FIELD()
+    ScriptableDelegate<void> OnIsolatedEditStateChanged;
+
     /*! \brief Fired when the live material preview has a newly rendered frame waiting to be copied. */
     HYP_FIELD()
     ScriptableDelegate<void> OnMaterialPreviewUpdated;
@@ -1021,6 +1081,23 @@ private:
 
     Handle<EditorPrefabEditState> m_prefabEditState;
 
+    friend class EditorExtensionRegistry;
+
+    void SetExtensions(Array<Handle<EditorExtension>>&& extensions);
+
+    Array<Handle<EditorExtension>> m_extensions;
+
+    struct IsolatedEditStateEntry
+    {
+        Handle<EditorIsolatedEditState> editState;
+        DelegateHandler activeChangedHandler;
+        DelegateHandler dirtyChangedHandler;
+    };
+
+    Array<IsolatedEditStateEntry> m_isolatedEditStates;
+
+    Array<Handle<EditorImportReview>> m_pendingImportReviews;
+
     HYP_FIELD(Property = "ConvexCollisionSettings")
     ConvexDecompositionSettings m_convexCollisionSettings;
 
@@ -1044,6 +1121,7 @@ private:
     UniquePtr<EditorGizmoController> m_gizmoController;
 
     WeakHandle<Node> m_focusedNode;
+
     // the actual node that displays the highlight for the focused item
     Handle<Node> m_highlightNode;
 

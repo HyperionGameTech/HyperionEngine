@@ -1,0 +1,614 @@
+AnimationGraph HumanoidLocomotion {
+    RootNode = 27
+    Nodes = [
+        AnimationClipNode Idle {
+            Clip = @"Engine://Animations/Idle"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (0, 0)
+        }
+        AnimationClipNode Walk {
+            Clip = @"Engine://Animations/Walk"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = Locomotion
+            SyncLeader = false
+            SpeedParameter = Speed
+            ReferenceSpeed = 1.02
+            NormalizedTime = false
+            EditorPosition = (0, 60)
+        }
+        AnimationClipNode StrafeLeft {
+            Clip = @"Engine://Animations/StrafeLeft"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = Locomotion
+            SyncLeader = false
+            SpeedParameter = Speed
+            ReferenceSpeed = 1.02
+            NormalizedTime = false
+            EditorPosition = (0, 120)
+        }
+        AnimationClipNode StrafeRight {
+            Clip = @"Engine://Animations/StrafeRight"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = Locomotion
+            SyncLeader = false
+            SpeedParameter = Speed
+            ReferenceSpeed = 1.02
+            NormalizedTime = false
+            EditorPosition = (0, 180)
+        }
+        AnimationClipNode WalkBackward {
+            Clip = @"Engine://Animations/WalkBackward"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = Locomotion
+            SyncLeader = false
+            SpeedParameter = Speed
+            ReferenceSpeed = 1.02
+            NormalizedTime = false
+            EditorPosition = (0, 240)
+        }
+        AnimationClipNode Run {
+            Clip = @"Engine://Animations/Run"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = Locomotion
+            SyncLeader = false
+            SpeedParameter = Speed
+            ReferenceSpeed = 8.6
+            NormalizedTime = false
+            EditorPosition = (0, 300)
+        }
+        AnimationBlend1DNode Directional {
+            Parameter = MoveAngle
+            Samples = [
+                AnimationBlendSample {
+                    Input = 4
+                    Position = (-180, 0)
+                }
+                AnimationBlendSample {
+                    Input = 2
+                    Position = (-90, 0)
+                }
+                AnimationBlendSample {
+                    Input = 1
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 3
+                    Position = (90, 0)
+                }
+                AnimationBlendSample {
+                    Input = 4
+                    Position = (180, 0)
+                }
+            ]
+            Smooth = false
+            EditorPosition = (250, 120)
+        }
+        AnimationBlend1DNode Locomotion {
+            Parameter = Speed
+            Samples = [
+                AnimationBlendSample {
+                    Input = 0
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 6
+                    Position = (1.02, 0)
+                }
+                AnimationBlendSample {
+                    Input = 5
+                    Position = (8.6, 0)
+                }
+            ]
+            Smooth = true
+            EditorPosition = (500, 60)
+        }
+        AnimationClipNode TurnLeft {
+            Clip = @"Engine://Animations/TurnLeft"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = TurnStepProgress
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = true
+            EditorPosition = (0, 380)
+        }
+        AnimationClipNode TurnRight {
+            Clip = @"Engine://Animations/TurnRight"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = TurnStepProgress
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = true
+            EditorPosition = (0, 440)
+        }
+        AnimationClipNode TurnLeftSmall {
+            Clip = @"Engine://Animations/TurnLeftSmall"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = TurnStepProgress
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = true
+            EditorPosition = (0, 500)
+        }
+        AnimationClipNode TurnRightSmall {
+            Clip = @"Engine://Animations/TurnRightSmall"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = TurnStepProgress
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = true
+            EditorPosition = (0, 560)
+        }
+        AnimationBlend1DNode TurnSteps {
+            Parameter = TurnStepKind
+            Samples = [
+                AnimationBlendSample {
+                    Input = 8
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 9
+                    Position = (1, 0)
+                }
+                AnimationBlendSample {
+                    Input = 10
+                    Position = (2, 0)
+                }
+                AnimationBlendSample {
+                    Input = 11
+                    Position = (3, 0)
+                }
+            ]
+            Smooth = false
+            EditorPosition = (250, 440)
+        }
+        AnimationLayerNode Standing {
+            Base = 7
+            Layer = 12
+            Mask = null
+            Weight = 1
+            WeightParameter = TurnStep
+            EditorPosition = (750, 200)
+        }
+        AnimationClipNode JumpWindup {
+            Clip = @"Engine://Animations/JumpWindup"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = Windup
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = true
+            EditorPosition = (500, 380)
+        }
+        AnimationBlend1DNode Ground {
+            Parameter = Windup
+            Samples = [
+                AnimationBlendSample {
+                    Input = 13
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 14
+                    Position = (1, 0)
+                }
+            ]
+            Smooth = true
+            EditorPosition = (1000, 200)
+        }
+        AnimationClipNode Jump {
+            Clip = @"Engine://Animations/Jump"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (750, 640)
+        }
+        AnimationClipNode RunJump {
+            Clip = @"Engine://Animations/RunJump"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (750, 700)
+        }
+        AnimationClipNode Fall {
+            Clip = @"Engine://Animations/Fall"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (750, 780)
+        }
+        AnimationClipNode RunFall {
+            Clip = @"Engine://Animations/RunFall"
+            PlayRate = 1
+            Loop = true
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (750, 840)
+        }
+        AnimationClipNode Land {
+            Clip = @"Engine://Animations/Land"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (750, 920)
+        }
+        AnimationClipNode RunLand {
+            Clip = @"Engine://Animations/RunLand"
+            PlayRate = 1
+            Loop = false
+            StartOffset = 0
+            TimeParameter = ""
+            SyncGroup = ""
+            SyncLeader = false
+            SpeedParameter = ""
+            ReferenceSpeed = 1
+            NormalizedTime = false
+            EditorPosition = (750, 980)
+        }
+        AnimationBlend1DNode JumpVariant {
+            Parameter = RunningJump
+            Samples = [
+                AnimationBlendSample {
+                    Input = 16
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 17
+                    Position = (1, 0)
+                }
+            ]
+            Smooth = false
+            EditorPosition = (1000, 670)
+        }
+        AnimationBlend1DNode FallVariant {
+            Parameter = RunningJump
+            Samples = [
+                AnimationBlendSample {
+                    Input = 18
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 19
+                    Position = (1, 0)
+                }
+            ]
+            Smooth = false
+            EditorPosition = (1000, 810)
+        }
+        AnimationBlend1DNode LandVariant {
+            Parameter = RunningJump
+            Samples = [
+                AnimationBlendSample {
+                    Input = 20
+                    Position = (0, 0)
+                }
+                AnimationBlendSample {
+                    Input = 21
+                    Position = (1, 0)
+                }
+            ]
+            Smooth = false
+            EditorPosition = (1000, 950)
+        }
+        AnimationStateMachineNode Movement {
+            States = [
+                AnimationState Ground {
+                    Input = 15
+                    EditorPosition = (0, 0)
+                }
+                AnimationState Jump {
+                    Input = 22
+                    EditorPosition = (250, -120)
+                }
+                AnimationState Fall {
+                    Input = 23
+                    EditorPosition = (500, 0)
+                }
+                AnimationState Land {
+                    Input = 24
+                    EditorPosition = (250, 120)
+                }
+            ]
+            Transitions = [
+                AnimationStateTransition {
+                    From = 0
+                    FromAnyState = false
+                    To = 1
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = Airborne
+                            Op = IsTrue
+                            Value = 0
+                        }
+                        AnimationTransitionCondition {
+                            Parameter = Jumping
+                            Op = IsTrue
+                            Value = 0
+                        }
+                        AnimationTransitionCondition {
+                            Parameter = Windup
+                            Op = Greater
+                            Value = 0.5
+                        }
+                    ]
+                    Duration = 0.05
+                    Curve = SmoothStep
+                    Priority = 1
+                    Interruptible = false
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 0
+                    FromAnyState = false
+                    To = 1
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = Airborne
+                            Op = IsTrue
+                            Value = 0
+                        }
+                        AnimationTransitionCondition {
+                            Parameter = Jumping
+                            Op = IsTrue
+                            Value = 0
+                        }
+                    ]
+                    Duration = 0.25
+                    Curve = SmoothStep
+                    Priority = 0
+                    Interruptible = false
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 0
+                    FromAnyState = false
+                    To = 2
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = Airborne
+                            Op = IsTrue
+                            Value = 0
+                        }
+                        AnimationTransitionCondition {
+                            Parameter = Jumping
+                            Op = IsFalse
+                            Value = 0
+                        }
+                        AnimationTransitionCondition {
+                            Parameter = AirTime
+                            Op = Greater
+                            Value = 0.12
+                        }
+                    ]
+                    Duration = 0.2
+                    Curve = SmoothStep
+                    Priority = 0
+                    Interruptible = false
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 1
+                    FromAnyState = false
+                    To = 2
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = ""
+                            Op = StateNormalizedTimeAtLeast
+                            Value = 0.6
+                        }
+                    ]
+                    Duration = 0.32000002
+                    Curve = SmoothStep
+                    Priority = 0
+                    Interruptible = false
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 1
+                    FromAnyState = false
+                    To = 3
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = Airborne
+                            Op = IsFalse
+                            Value = 0
+                        }
+                    ]
+                    Duration = 0
+                    Curve = SmoothStep
+                    Priority = 0
+                    Interruptible = false
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 2
+                    FromAnyState = false
+                    To = 3
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = Airborne
+                            Op = IsFalse
+                            Value = 0
+                        }
+                    ]
+                    Duration = 0
+                    Curve = SmoothStep
+                    Priority = 0
+                    Interruptible = false
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 3
+                    FromAnyState = false
+                    To = 0
+                    Conditions = [
+                        AnimationTransitionCondition {
+                            Parameter = Speed
+                            Op = Greater
+                            Value = 0.51
+                        }
+                    ]
+                    Duration = 0.23333333
+                    Curve = SmoothStep
+                    Priority = 1
+                    Interruptible = true
+                    Mode = Crossfade
+                }
+                AnimationStateTransition {
+                    From = 3
+                    FromAnyState = false
+                    To = 0
+                    Conditions = []
+                    Duration = 0.6666667
+                    Curve = SmoothStep
+                    Priority = 0
+                    Interruptible = true
+                    Mode = Crossfade
+                }
+            ]
+            EntryState = 0
+            EditorPosition = (1250, 400)
+        }
+        AnimationFootIKNode FootIK {
+            Input = 25
+            LeftOffsetParameter = LeftFootOffset
+            RightOffsetParameter = RightFootOffset
+            Weight = 1
+            WeightParameter = ""
+            EditorPosition = (1500, 400)
+        }
+        AnimationChainTwistNode Aim {
+            Input = 26
+            RootBone = spine_01
+            EndBone = spine_03
+            Angle = 0
+            AngleParameter = AimTwist
+            SmoothingTime = 0
+            EditorPosition = (1800, 400)
+        }
+    ]
+    Parameters = [
+        AnimationGraphParameter Speed {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter MoveAngle {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter Windup {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter Airborne {
+            Type = Bool
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter Jumping {
+            Type = Bool
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter RunningJump {
+            Type = Bool
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter AirTime {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter TurnStep {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter TurnStepKind {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter TurnStepProgress {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter AimTwist {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter LeftFootOffset {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+        AnimationGraphParameter RightFootOffset {
+            Type = Float
+            DefaultValue = (0, 0)
+        }
+    ]
+    UUID = "f099bf36-29ec-4e1c-a110-b68106399e36"
+}

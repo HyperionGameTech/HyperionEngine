@@ -403,7 +403,7 @@ bool EditorTerrainState::CanEnterTerrainTools() const
 {
     AssertOnThread(g_simThread);
 
-    return !m_subsystem->IsSimulating() && !m_subsystem->IsEditingPrefab();
+    return !m_subsystem->IsSimulating() && !m_subsystem->IsInIsolatedEditMode();
 }
 
 bool EditorTerrainState::CanSculptTerrainForWorld(const Handle<World>& world) const

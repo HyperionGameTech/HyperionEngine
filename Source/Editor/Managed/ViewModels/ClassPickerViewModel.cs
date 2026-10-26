@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia;
 using Hyperion;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -128,7 +129,7 @@ namespace Hyperion.Editor.ViewModels
                 return false;
             }
 
-            return assetClass.IsUserDefined || CreatableEngineAssetTypeNames.Contains(className);
+            return assetClass.IsUserDefined || CreatableEngineAssetTypeNames.Contains(className) || EditorPluginService.Instance.IsCreatableAssetClass(className);
         }
 
         public static IReadOnlyList<ClassPickerEntry> BuildCreatableEntries(Class expected)

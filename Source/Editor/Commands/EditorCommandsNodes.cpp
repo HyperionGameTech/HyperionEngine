@@ -623,7 +623,7 @@ public:
 
                 if (Handle<EditorSubsystem> subsystem = weakSubsystem.Lock())
                 {
-                    ImportEditorContent(subsystem.Get(), result.GetValue(), targetFolder);
+                    ImportEditorContent(subsystem.Get(), result.GetValue(), targetFolder, {}, /* reviewModels */ true);
                 }
             });
     }
@@ -1278,6 +1278,11 @@ public:
                     nodesToDelete.PushBack(focusedNode);
                 }
             }
+        }
+
+        for (auto it = nodesToDelete.Begin(); it != nodesToDelete.End();)
+        {
+            it = subsystem->IsProtectedNode(it->Get()) ? nodesToDelete.Erase(it) : it + 1;
         }
 
         // instance handles delete their instance rather than themselves

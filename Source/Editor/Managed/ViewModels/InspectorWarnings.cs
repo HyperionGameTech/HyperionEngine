@@ -1,20 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Hyperion.Editor.Services;
 
 namespace Hyperion.Editor.ViewModels
 {
     public static class InspectorWarnings
     {
+        private const int MaxSkinnedBones = 128;
+
         private static readonly Func<Entity, string?>[] s_entityChecks =
         {
-            CheckDynamicBodyIsNotStatic
+            CheckDynamicBodyIsNotStatic,
+            CheckSkeletonBoneCount
         };
 
         public static List<string> Collect(IReadOnlyList<Entity> entities)
         {
             List<string> warnings = new();
 
-            foreach (Func<Entity, string?> check in s_entityChecks)
+            foreach (Func<Entity, string?> check in s_entityChecks.Concat(EditorPluginService.Instance.InspectorWarnings))
             {
                 string? message = null;
                 int affected = 0;
@@ -58,6 +63,25 @@ namespace Hyperion.Editor.ViewModels
 
             return "Rigid body has a non-zero mass but the entity is static.\n"
                 + "This may cause performance degredation and visual irregularities (due to caching) when/if the entity is moved.";
+        }
+
+        private static Skeleton? GetSkeleton(Entity entity)
+        {
+            return entity.TryGetComponent(out MeshComponent meshComponent) ? meshComponent.Skeleton : null;
+        }
+
+        private static string? CheckSkeletonBoneCount(Entity entity)
+        {
+            Skeleton? skeleton = GetSkeleton(entity);
+
+            if (skeleton == null)
+            {
+                return null;
+            }
+
+            int numBones = skeleton.GetBoneNames().Length;
+
+            return numBones > MaxSkinnedBones ? $"Skeleton {skeleton.Name} has {numBones} bones which is over the limit ({MaxSkinnedBones})" : null;
         }
     }
 }

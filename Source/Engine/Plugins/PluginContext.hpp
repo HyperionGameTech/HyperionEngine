@@ -16,17 +16,23 @@
 
 #include <Scene/WorldSystemRegistry.hpp>
 
+#include <Asset/ModelImportProcessor.hpp>
+
 namespace Hyperion {
 
 enum class PluginHostMode : uint32;
 
-// what a plugin module registers through here is removed again when the module unloads
 class ENGINE_API PluginContext
 {
 public:
-    PluginContext(Name pluginName, Name moduleName, PluginHostMode hostMode);
+    PluginContext(
+        Name pluginName,
+        Name moduleName,
+        PluginHostMode hostMode);
+
     PluginContext(const PluginContext& other) = delete;
     PluginContext& operator=(const PluginContext& other) = delete;
+
     ~PluginContext();
 
     HYP_FORCE_INLINE Name GetPluginName() const
@@ -46,11 +52,22 @@ public:
 
     bool IsEditorHost() const;
 
-    // added to Worlds that initialize from now on; changing plugins needs the project's World to be recreated
-    template <class SystemType>
-    void RegisterWorldSystem(EnumFlags<WorldFlags> requiredFlags = WorldFlags::None, EnumFlags<WorldFlags> excludedFlags = WorldFlags::None, Proc<bool(const World&)>&& predicate = {})
+    template <typename SystemType>
+    void RegisterWorldSystem(
+        EnumFlags<WorldFlags> requiredFlags = WorldFlags::None,
+        EnumFlags<WorldFlags> excludedFlags = WorldFlags::None,
+        Proc<bool(const World&)>&& predicate = {})
     {
-        m_worldSystemIds.PushBack(WorldSystemRegistry::GetInstance().Register<SystemType>(requiredFlags, excludedFlags, std::move(predicate)));
+        m_worldSystemIds.PushBack(WorldSystemRegistry::GetInstance().Register<SystemType>(
+            requiredFlags,
+            excludedFlags,
+            std::move(predicate)));
+    }
+
+    template <typename ProcessorType>
+    void RegisterModelImportProcessor()
+    {
+        m_modelImportProcessorIds.PushBack(ModelImportProcessorRegistry::GetInstance().Register<ProcessorType>());
     }
 
     void AddCleanup(Proc<void()>&& cleanup);
@@ -63,6 +80,7 @@ private:
     PluginHostMode m_hostMode;
 
     Array<uint32> m_worldSystemIds;
+    Array<uint32> m_modelImportProcessorIds;
     Array<Proc<void()>> m_cleanups;
 };
 

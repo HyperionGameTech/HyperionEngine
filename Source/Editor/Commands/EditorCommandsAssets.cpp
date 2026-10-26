@@ -750,7 +750,7 @@ public:
             files.PushBack(std::move(filePath));
         }
 
-        ImportEditorContent(subsystem, files, fields[0]);
+        ImportEditorContent(subsystem, files, fields[0], {}, /* reviewModels */ true);
     }
 };
 
@@ -1639,6 +1639,11 @@ public:
         }
 
         Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
+
+        if (!asset.IsValid() && GetEngineAssetRegistry().IsValid())
+        {
+            asset = GetEngineAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(assetName));
+        }
 
         if (!EditorEntityAssetDrop::TargetsEntity(asset.Get()))
         {
@@ -3111,9 +3116,15 @@ public:
 
         const Handle<EditorPrefabEditState>& prefabEditState = subsystem->GetPrefabEditState();
 
-        if (prefabEditState->IsActive() && prefabEditState->GetPrefab() != prefab)
+        if (prefabEditState->IsActive() && prefabEditState->GetPrefab() == prefab)
         {
-            prefabEditState->Exit(/* apply */ true);
+            return;
+        }
+
+        if (!subsystem->ExitIsolatedEditStates(/* apply */ true))
+        {
+            HYP_LOG(Editor, Error, "EditorCommandEditPrefab: the open edit mode could not apply its edits");
+            return;
         }
 
         prefabEditState->Enter(prefab);
@@ -3121,6 +3132,45 @@ public:
 };
 
 DEFINE_EDITOR_COMMAND(EditPrefab);
+
+/// EditAsset <bucket index> <name>
+class EditorCommandEditAsset final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandEditAsset);
+
+public:
+    virtual ~EditorCommandEditAsset() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Edit Asset";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        uint32 bucketIndex = 0;
+
+        if (NumArguments() < 2 || !StringUtil::Parse(GetArgument(0), &bucketIndex) || bucketIndex == AssetBuckets::None.GetIndex() || bucketIndex >= MaxAssetBuckets)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditAsset requires a bucket index and an asset name");
+            return;
+        }
+
+        Handle<AssetObject> asset = GetCurrentAssetRegistry()->GetAsset(*AssetBuckets::AllBuckets[bucketIndex], Name(ANSIString(GetArgument(1))));
+
+        if (!asset.IsValid())
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditAsset: could not find asset '{}'", GetArgument(1));
+            return;
+        }
+
+        subsystem->EnterEditStateForAsset(asset);
+    }
+};
+
+DEFINE_EDITOR_COMMAND(EditAsset);
 
 class EditorCommandApplyPrefabEdit final : public EditorCommandBase
 {
