@@ -32,6 +32,7 @@ namespace Hyperion.Editor.ViewModels
         private float _time;
         private float _length;
         private float _frameRate = 30.0f;
+        private bool _isEditingGraph;
 
         public AnimationTimelineViewModel()
         {
@@ -128,6 +129,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     OnPropertyChanged(nameof(TimeText));
                     OnPropertyChanged(nameof(HasClip));
+                    OnPropertyChanged(nameof(CanPlay));
                 }
             }
         }
@@ -135,6 +137,20 @@ namespace Hyperion.Editor.ViewModels
         public float FrameRate => _frameRate;
 
         public bool HasClip => _length > 0.0f;
+
+        public bool CanPlay => HasClip || _isEditingGraph;
+
+        public bool IsEditingGraph
+        {
+            get => _isEditingGraph;
+            private set
+            {
+                if (SetProperty(ref _isEditingGraph, value))
+                {
+                    OnPropertyChanged(nameof(CanPlay));
+                }
+            }
+        }
 
         public string TimeText => $"{_time:0.00} / {_length:0.00} s  ({(int)MathF.Round(_time * _frameRate)})";
 
@@ -290,6 +306,7 @@ namespace Hyperion.Editor.ViewModels
                 bool isLooping = animationEditState.IsLooping();
                 float speed = animationEditState.GetSpeed();
                 float frameRate = animationEditState.GetFrameRate();
+                bool isEditingGraph = animationEditState.IsEditingGraph();
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -312,6 +329,7 @@ namespace Hyperion.Editor.ViewModels
                     _isApplyingState = false;
 
                     _frameRate = frameRate;
+                    IsEditingGraph = isEditingGraph;
 
                     Notifies = notifies;
                     NotifiesChanged?.Invoke();

@@ -18,13 +18,14 @@
                 Width="150"
                 Margin="6,0,4,0"
                 VerticalAlignment="Center"
+                IsVisible="{Binding !IsEditingGraph}"
                 ItemsSource="{Binding ClipNames}"
                 SelectedItem="{Binding SelectedClip}"
                 ToolTip.Tip="Clip" />
             <StackPanel
                 Grid.Column="1"
                 VerticalAlignment="Center"
-                IsEnabled="{Binding HasClip}"
+                IsEnabled="{Binding CanPlay}"
                 Orientation="Horizontal"
                 Spacing="2">
                 <Button
@@ -32,6 +33,7 @@
                     Height="24"
                     Classes="gizmo"
                     Command="{Binding StepBackCommand}"
+                    IsEnabled="{Binding HasClip}"
                     ToolTip.Tip="Previous frame">
                     <controls:Codicon Kind="ChevronLeft" Size="14" />
                 </Button>
@@ -48,6 +50,7 @@
                     Height="24"
                     Classes="gizmo"
                     Command="{Binding StepForwardCommand}"
+                    IsEnabled="{Binding HasClip}"
                     ToolTip.Tip="Next frame">
                     <controls:Codicon Kind="ChevronRight" Size="14" />
                 </Button>

@@ -166,6 +166,24 @@ void AnimationSystem::SetPreviewTime(Entity* entity, float time)
     it->second.previewTime = time;
 }
 
+void AnimationSystem::AdvanceGraphPreview(Entity* entity, float delta)
+{
+    auto it = m_instanceStates.Find(entity);
+
+    if (it == m_instanceStates.End())
+    {
+        return;
+    }
+
+    if (!it->second.isPreviewing)
+    {
+        it->second.isPreviewing = true;
+        ++m_numPreviewing;
+    }
+
+    it->second.previewDelta += delta;
+}
+
 void AnimationSystem::StopPreview(Entity* entity)
 {
     auto it = m_instanceStates.Find(entity);
@@ -372,10 +390,20 @@ void AnimationSystem::EvaluateGraph(Entity* entity, AnimationComponent& animatio
         ? stateIt->second
         : CreateInstanceState(entity, meshComponent);
 
-    if (!animationComponent.graphInstance.IsValid() || animationComponent.graphInstance->GetGraph() != animationComponent.graph)
+    const Handle<AnimationGraphInstance> previousInstance = animationComponent.graphInstance;
+
+    if (!previousInstance.IsValid()
+        || previousInstance->GetGraph() != animationComponent.graph
+        || previousInstance->GetGraphRevision() != animationComponent.graph->GetRevision())
     {
         animationComponent.graphInstance = MakeHandle<AnimationGraphInstance>(animationComponent.graph);
         InitObject(animationComponent.graphInstance);
+
+        // an edited graph keeps the values its parameters were already set to
+        if (previousInstance.IsValid())
+        {
+            animationComponent.graphInstance->CopyParameterValues(*previousInstance);
+        }
 
         // the graph's clips aren't always among the skeleton's own, which OnEntityAdded locked
         auto& locks = m_resourceHandles[entity];
@@ -441,6 +469,14 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 if (stateIt == m_instanceStates.End() || !stateIt->second.isPreviewing)
                 {
+                    continue;
+                }
+
+                if (animationComponent.graph.IsValid())
+                {
+                    EvaluateGraph(entity, animationComponent, meshComponent, stateIt->second.previewDelta);
+                    stateIt->second.previewDelta = 0.0f;
+
                     continue;
                 }
 

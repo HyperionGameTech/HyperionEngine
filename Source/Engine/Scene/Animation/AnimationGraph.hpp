@@ -12,6 +12,7 @@
 #include <Core/Reflection/Handle.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/String.hpp>
 
 #include <Core/Math/Vector2.hpp>
 #include <Core/Math/Transform.hpp>
@@ -19,6 +20,7 @@
 #include <Core/Name/Name.hpp>
 
 #include <Core/Utilities/Span.hpp>
+#include <Core/Utilities/Result.hpp>
 
 #include <Core/Types.hpp>
 
@@ -27,6 +29,7 @@ namespace Hyperion {
 class Animation;
 class BoneMask;
 class AnimationGraphContext;
+struct AnimationGraphNodeState;
 
 static constexpr uint32 InvalidAnimationGraphNode = ~0u;
 
@@ -68,7 +71,7 @@ struct AnimationBlendSample
     Vec2f position;
 };
 
-HYP_CLASS(Abstract, NoScriptBindings)
+HYP_CLASS(Abstract)
 class ENGINE_API AnimationGraphNode : public ObjectBase
 {
     HYP_OBJECT_BODY(AnimationGraphNode);
@@ -76,9 +79,40 @@ class ENGINE_API AnimationGraphNode : public ObjectBase
 public:
     ~AnimationGraphNode() override = default;
 
-    virtual void GetInputs(Array<uint32>& outInputs) const
+    virtual uint32 NumInputs() const
+    {
+        return 0;
+    }
+
+    virtual Name GetInputName(uint32 slot) const
+    {
+        return Name::Invalid();
+    }
+
+    virtual uint32 GetInput(uint32 slot) const
+    {
+        return InvalidAnimationGraphNode;
+    }
+
+    virtual void SetInput(uint32 slot, uint32 nodeIndex)
     {
     }
+
+    // nodes with a variable number of inputs (blend samples) take a new one here
+    virtual bool AddInput(uint32 nodeIndex)
+    {
+        return false;
+    }
+
+    virtual void RemoveInput(uint32 slot)
+    {
+        SetInput(slot, InvalidAnimationGraphNode);
+    }
+
+    // renumbers inputs after removedIndex leaves the graph, dropping inputs that pointed at it
+    virtual void OnNodeRemoved(uint32 removedIndex);
+
+    void GetInputs(Array<uint32>& outInputs) const;
 
     // weight is this node's share of the output; the update pass runs before any pose is built
     virtual void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const = 0;
@@ -87,9 +121,12 @@ public:
 
     HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
     Name name;
+
+    HYP_FIELD(Property = "EditorPosition", Serialize = true, Editor = false)
+    Vec2f editorPosition;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class ENGINE_API AnimationClipNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationClipNode);
@@ -121,13 +158,20 @@ public:
     bool syncLeader = false;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class ENGINE_API AnimationBlend1DNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationBlend1DNode);
 
 public:
-    void GetInputs(Array<uint32>& outInputs) const override;
+    uint32 NumInputs() const override;
+    Name GetInputName(uint32 slot) const override;
+    uint32 GetInput(uint32 slot) const override;
+    void SetInput(uint32 slot, uint32 nodeIndex) override;
+    bool AddInput(uint32 nodeIndex) override;
+    void RemoveInput(uint32 slot) override;
+    void OnNodeRemoved(uint32 removedIndex) override;
+
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
@@ -142,13 +186,20 @@ public:
 };
 
 // gradient band interpolation over freely placed samples, exact at each sample
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class ENGINE_API AnimationBlend2DNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationBlend2DNode);
 
 public:
-    void GetInputs(Array<uint32>& outInputs) const override;
+    uint32 NumInputs() const override;
+    Name GetInputName(uint32 slot) const override;
+    uint32 GetInput(uint32 slot) const override;
+    void SetInput(uint32 slot, uint32 nodeIndex) override;
+    bool AddInput(uint32 nodeIndex) override;
+    void RemoveInput(uint32 slot) override;
+    void OnNodeRemoved(uint32 removedIndex) override;
+
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
@@ -161,13 +212,17 @@ public:
     Array<AnimationBlendSample> samples;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class ENGINE_API AnimationLayerNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationLayerNode);
 
 public:
-    void GetInputs(Array<uint32>& outInputs) const override;
+    uint32 NumInputs() const override;
+    Name GetInputName(uint32 slot) const override;
+    uint32 GetInput(uint32 slot) const override;
+    void SetInput(uint32 slot, uint32 nodeIndex) override;
+
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
@@ -188,13 +243,17 @@ public:
     Name weightParameter;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class ENGINE_API AnimationAdditiveNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationAdditiveNode);
 
 public:
-    void GetInputs(Array<uint32>& outInputs) const override;
+    uint32 NumInputs() const override;
+    Name GetInputName(uint32 slot) const override;
+    uint32 GetInput(uint32 slot) const override;
+    void SetInput(uint32 slot, uint32 nodeIndex) override;
+
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
@@ -212,13 +271,17 @@ public:
     Name weightParameter;
 };
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS()
 class ENGINE_API AnimationChainTwistNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationChainTwistNode);
 
 public:
-    void GetInputs(Array<uint32>& outInputs) const override;
+    uint32 NumInputs() const override;
+    Name GetInputName(uint32 slot) const override;
+    uint32 GetInput(uint32 slot) const override;
+    void SetInput(uint32 slot, uint32 nodeIndex) override;
+
     void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
     void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
 
@@ -243,6 +306,125 @@ public:
     float smoothingTime = 0.0f;
 };
 
+HYP_ENUM()
+enum class AnimationConditionOp : uint8
+{
+    Greater = 0,
+    Less,
+    Equal,
+    NotEqual,
+    IsTrue,
+    IsFalse,
+    Triggered,
+    StateTimeAtLeast,
+    StateTimeRemainingBelow,
+    StateNormalizedTimeAtLeast
+};
+
+HYP_ENUM()
+enum class AnimationBlendCurve : uint8
+{
+    Linear = 0,
+    SmoothStep,
+    EaseIn,
+    EaseOut
+};
+
+HYP_STRUCT()
+struct AnimationTransitionCondition
+{
+    HYP_STRUCT_BODY(AnimationTransitionCondition);
+
+    // the State* ops read the current state's time and ignore this
+    HYP_FIELD(Property = "Parameter", Serialize = true, Editor = true)
+    Name parameter;
+
+    HYP_FIELD(Property = "Op", Serialize = true, Editor = true)
+    AnimationConditionOp op = AnimationConditionOp::Greater;
+
+    HYP_FIELD(Property = "Value", Serialize = true, Editor = true)
+    float value = 0.0f;
+};
+
+HYP_STRUCT()
+struct AnimationStateTransition
+{
+    HYP_STRUCT_BODY(AnimationStateTransition);
+
+    HYP_FIELD(Property = "From", Serialize = true, Editor = true)
+    uint32 from = 0;
+
+    // leaves whatever state is current, even mid-transition
+    HYP_FIELD(Property = "FromAnyState", Serialize = true, Editor = true)
+    bool fromAnyState = false;
+
+    HYP_FIELD(Property = "To", Serialize = true, Editor = true)
+    uint32 to = 0;
+
+    // all must hold; none means the transition is taken straight away
+    HYP_FIELD(Property = "Conditions", Serialize = true, Editor = true)
+    Array<AnimationTransitionCondition> conditions;
+
+    HYP_FIELD(Property = "Duration", Serialize = true, Editor = true)
+    float duration = 0.2f;
+
+    HYP_FIELD(Property = "Curve", Serialize = true, Editor = true)
+    AnimationBlendCurve curve = AnimationBlendCurve::Linear;
+
+    // the highest priority wins when several transitions are ready
+    HYP_FIELD(Property = "Priority", Serialize = true, Editor = true)
+    int32 priority = 0;
+};
+
+HYP_STRUCT()
+struct AnimationState
+{
+    HYP_STRUCT_BODY(AnimationState);
+
+    HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
+    Name name;
+
+    HYP_FIELD(Property = "Input", Serialize = true, Editor = true)
+    uint32 input = InvalidAnimationGraphNode;
+};
+
+// each state is an input; transitions crossfade between them
+HYP_CLASS()
+class ENGINE_API AnimationStateMachineNode final : public AnimationGraphNode
+{
+    HYP_OBJECT_BODY(AnimationStateMachineNode);
+
+public:
+    uint32 NumInputs() const override;
+    Name GetInputName(uint32 slot) const override;
+    uint32 GetInput(uint32 slot) const override;
+    void SetInput(uint32 slot, uint32 nodeIndex) override;
+    bool AddInput(uint32 nodeIndex) override;
+    void RemoveInput(uint32 slot) override;
+
+    void Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const override;
+    void Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const override;
+
+    Name GetStateName(uint32 stateIndex) const;
+
+    // "Walk", or "Walk -> Run 40%" mid-transition
+    String DescribeState(const AnimationGraphNodeState& state) const;
+
+    HYP_FIELD(Property = "States", Serialize = true, Editor = true)
+    Array<AnimationState> states;
+
+    HYP_FIELD(Property = "Transitions", Serialize = true, Editor = true)
+    Array<AnimationStateTransition> transitions;
+
+    HYP_FIELD(Property = "EntryState", Serialize = true, Editor = true)
+    uint32 entryState = 0;
+
+private:
+    uint32 ChooseTransition(AnimationGraphContext& context, const AnimationGraphNodeState& state) const;
+    bool MeetsCondition(AnimationGraphContext& context, const AnimationTransitionCondition& condition, const AnimationGraphNodeState& state) const;
+    void StartTransition(AnimationGraphNodeState& state, uint32 transitionIndex) const;
+};
+
 HYP_CLASS(AssetBucket = "Animations")
 class ENGINE_API AnimationGraph final : public AssetObject
 {
@@ -265,6 +447,19 @@ public:
 
     uint32 AddNode(const Handle<AnimationGraphNode>& node);
 
+    HYP_FORCE_INLINE AnimationGraphNode* GetMutableNode(uint32 nodeIndex)
+    {
+        return nodeIndex < m_nodes.Size() ? m_nodes[nodeIndex].Get() : nullptr;
+    }
+
+    // drops the node and renumbers every reference to the nodes after it
+    void RemoveNode(uint32 nodeIndex);
+
+    // creates a node of a concrete AnimationGraphNode class, or null for any other class
+    static Handle<AnimationGraphNode> CreateNode(Name className);
+
+    static Array<Name> GetNodeClassNames();
+
     HYP_METHOD()
     uint32 NumNodes() const
     {
@@ -281,6 +476,7 @@ public:
     void SetRootNode(uint32 rootNode)
     {
         m_rootNode = rootNode;
+        MarkChanged();
     }
 
     HYP_FORCE_INLINE const Array<AnimationGraphParameter>& GetParameters() const
@@ -290,11 +486,28 @@ public:
 
     void AddParameter(Name name, AnimationGraphParameterType type, const Vec2f& defaultValue = Vec2f::Zero());
 
+    void RemoveParameter(Name name);
+
     HYP_METHOD()
     Array<Name> GetParameterNames() const;
 
     // the clips any node plays, so their track data can be kept resident
     Array<Handle<Animation>> CollectClips() const;
+
+    // bumped on any change to nodes, wiring or parameters, so running instances rebuild
+    HYP_FORCE_INLINE uint32 GetRevision() const
+    {
+        return m_revision;
+    }
+
+    HYP_FORCE_INLINE void MarkChanged()
+    {
+        ++m_revision;
+    }
+
+    // the nodes, root and parameters as HMF text; LoadContents replaces them with what SaveContents wrote
+    Result SaveContents(String& outText) const;
+    Result LoadContents(const String& text);
 
 private:
     HYP_FIELD(Property = "Nodes", Serialize = true)
@@ -305,6 +518,8 @@ private:
 
     HYP_FIELD(Property = "Parameters", Serialize = true)
     Array<AnimationGraphParameter> m_parameters;
+
+    uint32 m_revision = 0;
 };
 
 } // namespace Hyperion

@@ -479,6 +479,276 @@ HYP_ENGINE_TEST(AnimationGraph, CyclesAreIgnored)
     HYP_TEST_CHECK(LargestPoseDifference(pose.ToSpan(), rig.skeleton->GetBindData().restLocals.ToSpan()) < 1e-6f);
 }
 
+namespace {
+
+AnimationStateTransition MakeTransition(uint32 from, uint32 to, float duration, Array<AnimationTransitionCondition> conditions, int32 priority = 0)
+{
+    AnimationStateTransition transition;
+    transition.from = from;
+    transition.to = to;
+    transition.duration = duration;
+    transition.conditions = std::move(conditions);
+    transition.priority = priority;
+
+    return transition;
+}
+
+String DescribeStateMachine(const AnimationGraph& graph, const AnimationGraphInstance& instance, uint32 nodeIndex)
+{
+    const AnimationStateMachineNode* stateMachine = TryCast<AnimationStateMachineNode>(graph.GetNode(nodeIndex));
+    const AnimationGraphNodeState* nodeState = instance.GetNodeState(nodeIndex);
+
+    return stateMachine && nodeState ? stateMachine->DescribeState(*nodeState) : String::empty;
+}
+
+} // namespace
+
+HYP_ENGINE_TEST(AnimationGraph, StateMachineCrossfadesOnCondition)
+{
+    GraphTestRig rig = LoadGraphTestRig(context);
+    HYP_TEST_REQUIRE(rig.skeleton.IsValid() && rig.wave.IsValid() && rig.bend.IsValid());
+
+    Handle<AnimationGraph> graph = MakeHandle<AnimationGraph>(NAME("StateGraph"));
+    graph->AddParameter(NAME("Speed"), AnimationGraphParameterType::Float);
+
+    const uint32 idleClip = AddClipNode(*graph, rig.wave);
+    const uint32 moveClip = AddClipNode(*graph, rig.bend);
+
+    Handle<AnimationStateMachineNode> stateMachine = MakeHandle<AnimationStateMachineNode>();
+    stateMachine->states = { AnimationState { NAME("Idle"), idleClip }, AnimationState { NAME("Move"), moveClip } };
+    stateMachine->transitions = {
+        MakeTransition(0, 1, 0.2f, { AnimationTransitionCondition { NAME("Speed"), AnimationConditionOp::Greater, 0.5f } }),
+        MakeTransition(1, 0, 0.0f, { AnimationTransitionCondition { NAME("Speed"), AnimationConditionOp::Less, 0.5f } })
+    };
+
+    const uint32 stateMachineIndex = graph->AddNode(stateMachine);
+    graph->SetRootNode(stateMachineIndex);
+
+    Handle<AnimationGraphInstance> instance = MakeHandle<AnimationGraphInstance>(graph);
+
+    instance->Update(0.1f, *rig.skeleton);
+    HYP_TEST_CHECK(instance->GetNodeWeight(idleClip) == 1.0f && instance->GetNodeWeight(moveClip) == 0.0f);
+    HYP_TEST_CHECK(DescribeStateMachine(*graph, *instance, stateMachineIndex) == "Idle");
+
+    // the transition starts at zero blend, then crossfades over its duration
+    instance->SetFloat(NAME("Speed"), 1.0f);
+    instance->Update(0.1f, *rig.skeleton);
+    instance->Update(0.1f, *rig.skeleton);
+
+    HYP_TEST_CHECK_MSG(MathUtil::Abs(instance->GetNodeWeight(moveClip) - 0.5f) < 1e-4f, "move weight {}", instance->GetNodeWeight(moveClip));
+    HYP_TEST_CHECK(MathUtil::Abs(instance->GetNodeWeight(idleClip) - 0.5f) < 1e-4f);
+    HYP_TEST_CHECK_MSG(DescribeStateMachine(*graph, *instance, stateMachineIndex) == "Idle -> Move 50%", "described as {}", DescribeStateMachine(*graph, *instance, stateMachineIndex));
+
+    const Array<Transform> blendedPose = EvaluatedPose(*instance, *rig.skeleton);
+
+    Array<Transform> expectedPose = SampledPose(rig.skeleton->GetBindData(), *rig.wave, instance->GetNodeTime(idleClip));
+    const Array<Transform> movePose = SampledPose(rig.skeleton->GetBindData(), *rig.bend, instance->GetNodeTime(moveClip));
+    PoseOps::BlendPoses(expectedPose.ToSpan(), movePose.ToSpan(), 0.5f, {}, expectedPose.ToSpan());
+
+    HYP_TEST_CHECK(LargestPoseDifference(blendedPose.ToSpan(), expectedPose.ToSpan()) < 1e-4f);
+
+    instance->Update(0.1f, *rig.skeleton);
+    HYP_TEST_CHECK(instance->GetNodeWeight(moveClip) == 1.0f && instance->GetNodeWeight(idleClip) == 0.0f);
+
+    // a zero-length transition switches at once
+    instance->SetFloat(NAME("Speed"), 0.0f);
+    instance->Update(0.1f, *rig.skeleton);
+    HYP_TEST_CHECK(instance->GetNodeWeight(idleClip) == 1.0f && instance->GetNodeWeight(moveClip) == 0.0f);
+}
+
+HYP_ENGINE_TEST(AnimationGraph, AnyStateTriggerWinsByPriority)
+{
+    GraphTestRig rig = LoadGraphTestRig(context);
+    HYP_TEST_REQUIRE(rig.skeleton.IsValid() && rig.wave.IsValid() && rig.bend.IsValid());
+
+    Handle<AnimationGraph> graph = MakeHandle<AnimationGraph>(NAME("AnyStateGraph"));
+    graph->AddParameter(NAME("Hit"), AnimationGraphParameterType::Trigger);
+
+    const uint32 firstClip = AddClipNode(*graph, rig.wave);
+    const uint32 secondClip = AddClipNode(*graph, rig.bend);
+    const uint32 hitClip = AddClipNode(*graph, rig.wave);
+
+    AnimationStateTransition anyToHit = MakeTransition(0, 2, 0.0f, { AnimationTransitionCondition { NAME("Hit"), AnimationConditionOp::Triggered, 0.0f } }, 1);
+    anyToHit.fromAnyState = true;
+
+    Handle<AnimationStateMachineNode> stateMachine = MakeHandle<AnimationStateMachineNode>();
+    stateMachine->states = { AnimationState { NAME("First"), firstClip }, AnimationState { NAME("Second"), secondClip }, AnimationState { NAME("Hit"), hitClip } };
+    stateMachine->transitions = {
+        MakeTransition(0, 1, 0.0f, { AnimationTransitionCondition { Name::Invalid(), AnimationConditionOp::StateTimeAtLeast, 0.25f } }),
+        anyToHit
+    };
+
+    graph->SetRootNode(graph->AddNode(stateMachine));
+
+    Handle<AnimationGraphInstance> instance = MakeHandle<AnimationGraphInstance>(graph);
+
+    for (uint32 update = 0; update < 3; ++update)
+    {
+        instance->Update(0.1f, *rig.skeleton);
+    }
+
+    HYP_TEST_CHECK(instance->GetNodeWeight(firstClip) == 1.0f);
+
+    // both transitions are ready on this update; the any-state one has the higher priority
+    instance->SetTrigger(NAME("Hit"));
+    instance->Update(0.1f, *rig.skeleton);
+
+    HYP_TEST_CHECK(instance->GetNodeWeight(hitClip) == 1.0f && instance->GetNodeWeight(secondClip) == 0.0f);
+
+    instance->Update(0.1f, *rig.skeleton);
+    HYP_TEST_CHECK(instance->GetNodeWeight(hitClip) == 1.0f);
+}
+
+HYP_ENGINE_TEST(AnimationGraph, AnyStateInterruptsTransition)
+{
+    GraphTestRig rig = LoadGraphTestRig(context);
+    HYP_TEST_REQUIRE(rig.skeleton.IsValid() && rig.wave.IsValid() && rig.bend.IsValid());
+
+    Handle<AnimationGraph> graph = MakeHandle<AnimationGraph>(NAME("InterruptGraph"));
+    graph->AddParameter(NAME("Go"), AnimationGraphParameterType::Bool);
+    graph->AddParameter(NAME("Fall"), AnimationGraphParameterType::Bool);
+
+    const uint32 firstClip = AddClipNode(*graph, rig.wave);
+    const uint32 secondClip = AddClipNode(*graph, rig.bend);
+    const uint32 fallClip = AddClipNode(*graph, rig.wave);
+
+    AnimationStateTransition anyToFall = MakeTransition(0, 2, 0.2f, { AnimationTransitionCondition { NAME("Fall"), AnimationConditionOp::IsTrue, 0.0f } });
+    anyToFall.fromAnyState = true;
+
+    Handle<AnimationStateMachineNode> stateMachine = MakeHandle<AnimationStateMachineNode>();
+    stateMachine->states = { AnimationState { NAME("First"), firstClip }, AnimationState { NAME("Second"), secondClip }, AnimationState { NAME("Fall"), fallClip } };
+    stateMachine->transitions = {
+        MakeTransition(0, 1, 0.4f, { AnimationTransitionCondition { NAME("Go"), AnimationConditionOp::IsTrue, 0.0f } }),
+        anyToFall
+    };
+
+    const uint32 stateMachineIndex = graph->AddNode(stateMachine);
+    graph->SetRootNode(stateMachineIndex);
+
+    Handle<AnimationGraphInstance> instance = MakeHandle<AnimationGraphInstance>(graph);
+    instance->Update(0.1f, *rig.skeleton);
+
+    instance->SetBool(NAME("Go"), true);
+    instance->Update(0.1f, *rig.skeleton);
+    instance->Update(0.1f, *rig.skeleton);
+
+    HYP_TEST_CHECK_MSG(DescribeStateMachine(*graph, *instance, stateMachineIndex) == "First -> Second 25%", "described as {}", DescribeStateMachine(*graph, *instance, stateMachineIndex));
+
+    // a quarter of the way to Second, so the fall fades out of First
+    instance->SetBool(NAME("Fall"), true);
+    instance->Update(0.1f, *rig.skeleton);
+    instance->Update(0.1f, *rig.skeleton);
+
+    HYP_TEST_CHECK_MSG(DescribeStateMachine(*graph, *instance, stateMachineIndex) == "First -> Fall 50%", "described as {}", DescribeStateMachine(*graph, *instance, stateMachineIndex));
+    HYP_TEST_CHECK(instance->GetNodeWeight(secondClip) == 0.0f);
+    HYP_TEST_CHECK(MathUtil::Abs(instance->GetNodeWeight(firstClip) - 0.5f) < 1e-4f);
+}
+
+HYP_ENGINE_TEST(AnimationGraph, TimeRemainingEndsOneShot)
+{
+    GraphTestRig rig = LoadGraphTestRig(context);
+    HYP_TEST_REQUIRE(rig.skeleton.IsValid() && rig.wave.IsValid() && rig.bend.IsValid());
+
+    constexpr float Delta = 0.05f;
+    constexpr float Remaining = 0.15f;
+
+    const float length = rig.wave->GetLength();
+    HYP_TEST_REQUIRE(length > Remaining + Delta * 2.0f);
+
+    Handle<AnimationGraph> graph = MakeHandle<AnimationGraph>(NAME("OneShotGraph"));
+
+    Handle<AnimationClipNode> shotNode = MakeHandle<AnimationClipNode>();
+    shotNode->clip = rig.wave;
+    shotNode->loop = false;
+
+    const uint32 shotClip = graph->AddNode(shotNode);
+    const uint32 idleClip = AddClipNode(*graph, rig.bend);
+
+    Handle<AnimationStateMachineNode> stateMachine = MakeHandle<AnimationStateMachineNode>();
+    stateMachine->states = { AnimationState { NAME("Shot"), shotClip }, AnimationState { NAME("Idle"), idleClip } };
+    stateMachine->transitions = {
+        MakeTransition(0, 1, 0.0f, { AnimationTransitionCondition { Name::Invalid(), AnimationConditionOp::StateTimeRemainingBelow, Remaining } })
+    };
+
+    graph->SetRootNode(graph->AddNode(stateMachine));
+
+    Handle<AnimationGraphInstance> instance = MakeHandle<AnimationGraphInstance>(graph);
+
+    float lastShotTime = 0.0f;
+    bool switched = false;
+
+    for (uint32 update = 0; update < 1000 && !switched; ++update)
+    {
+        lastShotTime = instance->GetNodeTime(shotClip);
+
+        instance->Update(Delta, *rig.skeleton);
+
+        switched = instance->GetNodeWeight(idleClip) == 1.0f;
+    }
+
+    HYP_TEST_REQUIRE(switched);
+
+    // it switches on the first update after less than Remaining was left, not before
+    HYP_TEST_CHECK_MSG(length - lastShotTime < Remaining, "switched with {} left", length - lastShotTime);
+    HYP_TEST_CHECK_MSG(length - (lastShotTime - Delta) >= Remaining - 1e-4f, "should have switched earlier, at {}", lastShotTime - Delta);
+}
+
+HYP_ENGINE_TEST(AnimationGraph, RemovingStateFixesTransitions)
+{
+    Handle<AnimationStateMachineNode> stateMachine = MakeHandle<AnimationStateMachineNode>();
+    stateMachine->AddInput(InvalidAnimationGraphNode);
+    stateMachine->AddInput(InvalidAnimationGraphNode);
+    stateMachine->AddInput(InvalidAnimationGraphNode);
+    stateMachine->transitions = { MakeTransition(0, 1, 0.1f, {}), MakeTransition(1, 2, 0.1f, {}), MakeTransition(2, 0, 0.1f, {}) };
+    stateMachine->entryState = 2;
+
+    stateMachine->RemoveInput(1);
+
+    HYP_TEST_CHECK(stateMachine->states.Size() == 2 && stateMachine->states[1].name == NAME("State2"));
+    HYP_TEST_REQUIRE(stateMachine->transitions.Size() == 1);
+    HYP_TEST_CHECK(stateMachine->transitions[0].from == 1 && stateMachine->transitions[0].to == 0);
+    HYP_TEST_CHECK(stateMachine->entryState == 1);
+}
+
+HYP_ENGINE_TEST(AnimationGraph, StateMachineRoundTripsThroughHMF)
+{
+    Handle<AnimationGraph> graph = MakeHandle<AnimationGraph>(NAME("SavedStateGraph"));
+    graph->AddParameter(NAME("Grounded"), AnimationGraphParameterType::Bool);
+
+    AnimationStateTransition fall = MakeTransition(0, 1, 0.25f, { AnimationTransitionCondition { NAME("Grounded"), AnimationConditionOp::IsFalse, 0.0f } }, 3);
+    fall.fromAnyState = true;
+    fall.curve = AnimationBlendCurve::SmoothStep;
+
+    Handle<AnimationStateMachineNode> stateMachine = MakeHandle<AnimationStateMachineNode>();
+    stateMachine->states = { AnimationState { NAME("Ground"), InvalidAnimationGraphNode }, AnimationState { NAME("Air"), InvalidAnimationGraphNode } };
+    stateMachine->transitions = { fall };
+    stateMachine->entryState = 1;
+
+    graph->SetRootNode(graph->AddNode(stateMachine));
+
+    String text;
+    HYP_TEST_REQUIRE(!graph->SaveContents(text).HasError());
+
+    Handle<AnimationGraph> loaded = MakeHandle<AnimationGraph>(NAME("LoadedStateGraph"));
+    HYP_TEST_REQUIRE(!loaded->LoadContents(text).HasError());
+
+    const AnimationStateMachineNode* loadedMachine = TryCast<AnimationStateMachineNode>(loaded->GetNode(0));
+    HYP_TEST_CHECK_MSG(loadedMachine != nullptr, "didn't read back a state machine: {}", text);
+    HYP_TEST_REQUIRE(loadedMachine != nullptr);
+
+    HYP_TEST_CHECK(loadedMachine->states.Size() == 2 && loadedMachine->states[1].name == NAME("Air"));
+    HYP_TEST_CHECK(loadedMachine->entryState == 1);
+    HYP_TEST_REQUIRE(loadedMachine->transitions.Size() == 1);
+
+    const AnimationStateTransition& loadedFall = loadedMachine->transitions[0];
+
+    HYP_TEST_CHECK(loadedFall.fromAnyState && loadedFall.to == 1 && loadedFall.duration == 0.25f && loadedFall.priority == 3);
+    HYP_TEST_CHECK(loadedFall.curve == AnimationBlendCurve::SmoothStep);
+    HYP_TEST_CHECK_MSG(loadedFall.conditions.Size() == 1, "conditions didn't read back: {}", text);
+    HYP_TEST_REQUIRE(loadedFall.conditions.Size() == 1);
+    HYP_TEST_CHECK(loadedFall.conditions[0].parameter == NAME("Grounded") && loadedFall.conditions[0].op == AnimationConditionOp::IsFalse);
+}
+
 } // namespace scene
 } // namespace tests
 } // namespace Hyperion

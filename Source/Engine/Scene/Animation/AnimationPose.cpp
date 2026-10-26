@@ -304,10 +304,18 @@ void BlendPoses(Span<const Transform> from, Span<const Transform> to, float weig
     {
         const float slotWeight = MathUtil::Clamp(boneWeights.Size() == outPose.Size() ? weight * boneWeights[slot] : weight, 0.0f, 1.0f);
 
-        // @FIXME NASTY! AWFUL TERNARY !!!!
-        outPose[slot] = slotWeight <= 0.0f ? from[slot]
-            : slotWeight >= 1.0f           ? to[slot]
-                                           : BlendTransforms(from[slot], to[slot], slotWeight);
+        if (slotWeight <= 0.0f)
+        {
+            outPose[slot] = from[slot];
+        }
+        else if (slotWeight >= 1.0f)
+        {
+            outPose[slot] = to[slot];
+        }
+        else
+        {
+            outPose[slot] = BlendTransforms(from[slot], to[slot], slotWeight);
+        }
     }
 }
 

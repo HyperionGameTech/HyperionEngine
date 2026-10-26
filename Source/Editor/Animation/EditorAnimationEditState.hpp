@@ -12,6 +12,7 @@
 
 #include <Scene/Animation/Animation.hpp>
 #include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/AnimationGraph.hpp>
 
 #include <Core/Containers/Map.hpp>
 
@@ -22,6 +23,7 @@ namespace Hyperion {
 class Entity;
 class EditorAnimationEditState;
 class DebugDrawCommandList;
+class AnimationGraphInstance;
 struct Ray;
 
 HYP_CLASS(Serialize = false)
@@ -198,15 +200,137 @@ public:
 
     void DebugDraw(DebugDrawCommandList& debugDrawCommandList, Span<const Handle<Node>> selectedNodes) const;
 
+    HYP_METHOD()
+    bool EnterGraph(const Handle<AnimationGraph>& graph);
+
+    // the working copy the document edits; Apply writes it back to the asset
+    HYP_METHOD()
+    const Handle<AnimationGraph>& GetGraph() const;
+
+    HYP_METHOD()
+    bool IsEditingGraph() const;
+
+    HYP_METHOD()
+    Array<Name> GetGraphNodeClasses() const;
+
+    HYP_METHOD()
+    uint32 NumGraphNodes() const;
+
+    HYP_METHOD()
+    AnimationGraphNode* GetGraphNode(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    Name GetGraphNodeClass(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    Name GetGraphNodeName(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    Vec2f GetGraphNodePosition(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    uint32 GetGraphNodeInputCount(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    Name GetGraphNodeInputName(uint32 nodeIndex, uint32 slot) const;
+
+    HYP_METHOD()
+    uint32 GetGraphNodeInput(uint32 nodeIndex, uint32 slot) const;
+
+    HYP_METHOD()
+    bool CanAddGraphNodeInputs(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    uint32 GetGraphRootNode() const;
+
+    HYP_METHOD()
+    uint32 AddGraphNode(Name className, Vec2f position);
+
+    HYP_METHOD()
+    uint32 AddGraphClipNode(const Handle<Animation>& clip, Vec2f position);
+
+    HYP_METHOD()
+    void RemoveGraphNode(uint32 nodeIndex);
+
+    // slot at or past the node's input count adds an input, for nodes that take any number
+    HYP_METHOD()
+    void ConnectGraphNodes(uint32 fromNode, uint32 toNode, uint32 slot);
+
+    HYP_METHOD()
+    void DisconnectGraphInput(uint32 nodeIndex, uint32 slot);
+
+    HYP_METHOD()
+    void SetGraphRootNode(uint32 nodeIndex);
+
+    HYP_METHOD()
+    void MoveGraphNode(uint32 nodeIndex, Vec2f position);
+
+    HYP_METHOD()
+    void SetBlendSamplePosition(uint32 nodeIndex, uint32 sample, Vec2f position);
+
+    HYP_METHOD()
+    void RenameGraphState(uint32 nodeIndex, uint32 stateIndex, Name name);
+
+    HYP_METHOD()
+    uint32 AddGraphTransition(uint32 nodeIndex, uint32 from, bool fromAnyState, uint32 to, float duration);
+
+    HYP_METHOD()
+    void AddGraphTransitionCondition(uint32 nodeIndex, uint32 transitionIndex, Name parameter, uint32 op, float value);
+
+    HYP_METHOD()
+    Vec2f GetBlendSamplePosition(uint32 nodeIndex, uint32 sample) const;
+
+    HYP_METHOD()
+    Name GetBlendParameter(uint32 nodeIndex) const;
+
+    HYP_METHOD()
+    Array<Name> GetGraphParameterNames() const;
+
+    HYP_METHOD()
+    uint32 GetGraphParameterType(Name parameter) const;
+
+    HYP_METHOD()
+    void AddGraphParameter(Name parameter, uint32 type);
+
+    HYP_METHOD()
+    void RemoveGraphParameter(Name parameter);
+
+    // records whatever was written straight to the working graph (e.g. by the property panel) as one undoable edit
+    HYP_METHOD()
+    void CommitGraphEdit(const String& actionName);
+
+    HYP_METHOD()
+    void SetPreviewParameter(Name parameter, Vec2f value);
+
+    HYP_METHOD()
+    void TriggerPreviewParameter(Name parameter);
+
+    HYP_METHOD()
+    Vec2f GetPreviewParameter(Name parameter) const;
+
+    HYP_METHOD()
+    float GetPreviewNodeWeight(uint32 nodeIndex) const;
+
+    // a state machine's current state and any running transition, empty for other nodes
+    HYP_METHOD()
+    String GetPreviewNodeStatus(uint32 nodeIndex) const;
+
+    AnimationGraphInstance* GetPreviewGraphInstance() const;
+
     HYP_FIELD()
     ScriptableDelegate<void> OnTimelineChanged;
+
+    HYP_FIELD()
+    ScriptableDelegate<void> OnGraphChanged;
 
 private:
     void ClearTarget() override;
 
     bool EnterWith(const Handle<Skeleton>& skeleton, const Handle<Animation>& animation, const Handle<Entity>& sourceEntity);
 
-    Handle<Entity> FindPreviewSource() const;
+    void SetUpGraph(const Handle<AnimationGraph>& sourceGraph);
+    void RestoreGraph(const String& text);
+
     void BuildWorkingRoot();
 
     void ApplyPreviewClip();
@@ -229,6 +353,10 @@ private:
     Array<Handle<EditorBoneNode>> m_boneNodes;
 
     Map<Handle<Animation>, Array<AnimationNotify>> m_workingNotifies;
+
+    Handle<AnimationGraph> m_sourceGraph;
+    Handle<AnimationGraph> m_graph;
+    String m_graphSnapshot;
 
     float m_time = 0.0f;
     float m_speed = 1.0f;

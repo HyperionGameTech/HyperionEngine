@@ -109,6 +109,12 @@ public:
             return;
         }
 
+        if (Handle<AnimationGraph> graph = GetCurrentAssetRegistry()->GetAsset<AnimationGraph>(AssetBuckets::Animations, assetName))
+        {
+            animationEditState->EnterGraph(graph);
+            return;
+        }
+
         if (Handle<Animation> animation = GetCurrentAssetRegistry()->GetAsset<Animation>(AssetBuckets::Animations, assetName))
         {
             animationEditState->EnterAnimation(animation);
@@ -411,7 +417,7 @@ DEFINE_EDITOR_COMMAND(ResolveModelImport);
 
 #pragma region AnimationGraph
 
-/// logs each node of an entity's running animation graph with its weight and time
+/// logs each node of an entity's running animation graph (or the animation edit preview's) with its weight and time
 class EditorCommandDumpAnimationGraph final : public EditorCommandBase
 {
     HYP_OBJECT_BODY(EditorCommandDumpAnimationGraph);
@@ -436,13 +442,20 @@ public:
         Entity* entity = NumArguments() >= 1 ? TryCast<Entity>(ResolveNodeUuidArgument(subsystem, GetArgument(0))) : nullptr;
         const AnimationComponent* animationComponent = entity ? entity->TryGetComponent<AnimationComponent>() : nullptr;
 
-        if (!animationComponent || !animationComponent->graphInstance.IsValid())
+        const AnimationGraphInstance* runningInstance = animationComponent ? animationComponent->graphInstance.Get() : nullptr;
+
+        if (!entity)
+        {
+            runningInstance = subsystem->GetAnimationEditState()->GetPreviewGraphInstance();
+        }
+
+        if (!runningInstance || !runningInstance->GetGraph().IsValid())
         {
             HYP_LOG(Editor, Info, "DumpAnimationGraph: no running animation graph");
             return;
         }
 
-        const AnimationGraphInstance& instance = *animationComponent->graphInstance;
+        const AnimationGraphInstance& instance = *runningInstance;
         const AnimationGraph& graph = *instance.GetGraph();
 
         for (uint32 nodeIndex = 0; nodeIndex < graph.NumNodes(); ++nodeIndex)
@@ -462,11 +475,142 @@ public:
                     clipNode->clip.IsValid() ? clipNode->clip->GetName() : Name::Invalid(),
                     clipNode->clip.IsValid() ? clipNode->clip->GetLength() : 0.0f);
             }
+
+            const AnimationStateMachineNode* stateMachine = TryCast<AnimationStateMachineNode>(node);
+            const AnimationGraphNodeState* nodeState = instance.GetNodeState(nodeIndex);
+
+            if (stateMachine && nodeState)
+            {
+                HYP_LOG(Editor, Info, "DumpAnimationGraph:   state {} for {}s", stateMachine->DescribeState(*nodeState), nodeState->stateTime);
+            }
         }
     }
 };
 
 DEFINE_EDITOR_COMMAND(DumpAnimationGraph);
+
+/// edits the graph open in animation edit mode:
+/// add <class> <x> <y> | clip <animation> <x> <y> | remove <node> | connect <from> <to> <slot> | disconnect <node> <slot>
+/// | output <node> | move <node> <x> <y> | sample <node> <sample> <x> <y> | parameter <name> <type> | unparameter <name>
+/// | preview <name> <x> [y]
+/// | fire <trigger> | state <node> <state> <name> | transition <node> <from|any> <to> <duration> | condition <node> <transition> <parameter|-> <op index> <value>
+class EditorCommandEditAnimationGraph final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandEditAnimationGraph);
+
+public:
+    virtual ~EditorCommandEditAnimationGraph() override = default;
+
+    virtual String GetText() const override
+    {
+        return "Edit Animation Graph";
+    }
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        AssertOnThread(g_simThread);
+
+        const Handle<EditorAnimationEditState>& animationEditState = subsystem->GetAnimationEditState();
+
+        if (!animationEditState->IsEditingGraph() || NumArguments() < 2)
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditAnimationGraph: no graph is being edited, or no operation was given");
+            return;
+        }
+
+        const String& operation = GetArgument(0);
+
+        const auto number = [this](int argumentIndex) -> float
+        {
+            float value = 0.0f;
+
+            if (argumentIndex < NumArguments())
+            {
+                StringUtil::Parse(GetArgument(argumentIndex), &value);
+            }
+
+            return value;
+        };
+
+        const auto index = [&number](int argumentIndex)
+        {
+            return uint32(number(argumentIndex));
+        };
+
+        const Name nameArgument = Name(ANSIString(GetArgument(1)));
+
+        if (operation == "add")
+        {
+            animationEditState->AddGraphNode(nameArgument, Vec2f(number(2), number(3)));
+        }
+        else if (operation == "clip")
+        {
+            animationEditState->AddGraphClipNode(GetCurrentAssetRegistry()->GetAsset<Animation>(AssetBuckets::Animations, nameArgument), Vec2f(number(2), number(3)));
+        }
+        else if (operation == "remove")
+        {
+            animationEditState->RemoveGraphNode(index(1));
+        }
+        else if (operation == "connect")
+        {
+            animationEditState->ConnectGraphNodes(index(1), index(2), index(3));
+        }
+        else if (operation == "disconnect")
+        {
+            animationEditState->DisconnectGraphInput(index(1), index(2));
+        }
+        else if (operation == "output")
+        {
+            animationEditState->SetGraphRootNode(index(1));
+        }
+        else if (operation == "move")
+        {
+            animationEditState->MoveGraphNode(index(1), Vec2f(number(2), number(3)));
+        }
+        else if (operation == "sample")
+        {
+            animationEditState->SetBlendSamplePosition(index(1), index(2), Vec2f(number(3), number(4)));
+        }
+        else if (operation == "parameter")
+        {
+            animationEditState->AddGraphParameter(nameArgument, index(2));
+        }
+        else if (operation == "unparameter")
+        {
+            animationEditState->RemoveGraphParameter(nameArgument);
+        }
+        else if (operation == "state")
+        {
+            animationEditState->RenameGraphState(index(1), index(2), NumArguments() > 3 ? Name(ANSIString(GetArgument(3))) : Name::Invalid());
+        }
+        else if (operation == "transition")
+        {
+            const bool fromAnyState = NumArguments() > 2 && GetArgument(2) == "any";
+
+            animationEditState->AddGraphTransition(index(1), fromAnyState ? 0 : index(2), fromAnyState, index(3), number(4));
+        }
+        else if (operation == "condition")
+        {
+            const bool hasParameter = NumArguments() > 3 && GetArgument(3) != "-";
+
+            animationEditState->AddGraphTransitionCondition(index(1), index(2), hasParameter ? Name(ANSIString(GetArgument(3))) : Name::Invalid(), index(4), number(5));
+        }
+        else if (operation == "fire")
+        {
+            animationEditState->TriggerPreviewParameter(nameArgument);
+        }
+        else if (operation == "preview")
+        {
+            animationEditState->SetPreviewParameter(nameArgument, Vec2f(number(2), number(3)));
+        }
+        else
+        {
+            HYP_LOG(Editor, Warning, "EditorCommandEditAnimationGraph: unknown operation '{}'", operation);
+        }
+    }
+};
+
+DEFINE_EDITOR_COMMAND(EditAnimationGraph);
 
 #pragma endregion AnimationGraph
 

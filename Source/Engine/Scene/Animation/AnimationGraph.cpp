@@ -13,6 +13,13 @@
 #include <Scene/Animation/BoneMask.hpp>
 #include <Scene/Animation/Skeleton.hpp>
 
+#include <Asset/SerializationUtils.hpp>
+
+#include <Core/DataProcessing/HMF/HMF.hpp>
+
+#include <Core/Reflection/Class.hpp>
+#include <Core/Reflection/ClassRegistry.hpp>
+
 #include <Core/Math/MathUtil.hpp>
 
 #include <cmath>
@@ -71,11 +78,30 @@ void UpdateWeightedInputs(AnimationGraphContext& context, const Array<AnimationB
     }
 }
 
-void GetSampleInputs(const Array<AnimationBlendSample>& samples, Array<uint32>& outInputs)
+uint32 RenumberAfterRemoval(uint32 input, uint32 removedIndex)
 {
-    for (const AnimationBlendSample& sample : samples)
+    if (input == removedIndex)
     {
-        outInputs.PushBack(sample.input);
+        return InvalidAnimationGraphNode;
+    }
+
+    return input != InvalidAnimationGraphNode && input > removedIndex ? input - 1 : input;
+}
+
+void RemoveSamplesOfNode(Array<AnimationBlendSample>& samples, uint32 removedIndex)
+{
+    for (auto it = samples.Begin(); it != samples.End();)
+    {
+        if (it->input == removedIndex)
+        {
+            it = samples.Erase(it);
+
+            continue;
+        }
+
+        it->input = RenumberAfterRemoval(it->input, removedIndex);
+
+        ++it;
     }
 }
 
@@ -85,6 +111,26 @@ float ResolveWeight(const AnimationGraphContext& context, Name weightParameter, 
 }
 
 } // namespace
+
+#pragma region AnimationGraphNode
+
+void AnimationGraphNode::OnNodeRemoved(uint32 removedIndex)
+{
+    for (uint32 slot = 0; slot < NumInputs(); ++slot)
+    {
+        SetInput(slot, RenumberAfterRemoval(GetInput(slot), removedIndex));
+    }
+}
+
+void AnimationGraphNode::GetInputs(Array<uint32>& outInputs) const
+{
+    for (uint32 slot = 0; slot < NumInputs(); ++slot)
+    {
+        outInputs.PushBack(GetInput(slot));
+    }
+}
+
+#pragma endregion AnimationGraphNode
 
 #pragma region AnimationClipNode
 
@@ -110,9 +156,54 @@ void AnimationClipNode::Evaluate(AnimationGraphContext& context, uint32 nodeInde
 
 #pragma region AnimationBlend1DNode
 
-void AnimationBlend1DNode::GetInputs(Array<uint32>& outInputs) const
+uint32 AnimationBlend1DNode::NumInputs() const
 {
-    GetSampleInputs(samples, outInputs);
+    return uint32(samples.Size());
+}
+
+Name AnimationBlend1DNode::GetInputName(uint32 slot) const
+{
+    return slot < samples.Size() ? NAME_FMT("{}", samples[slot].position.x) : Name::Invalid();
+}
+
+uint32 AnimationBlend1DNode::GetInput(uint32 slot) const
+{
+    return slot < samples.Size() ? samples[slot].input : InvalidAnimationGraphNode;
+}
+
+void AnimationBlend1DNode::SetInput(uint32 slot, uint32 nodeIndex)
+{
+    if (slot < samples.Size())
+    {
+        samples[slot].input = nodeIndex;
+    }
+}
+
+bool AnimationBlend1DNode::AddInput(uint32 nodeIndex)
+{
+    float position = 0.0f;
+
+    for (const AnimationBlendSample& sample : samples)
+    {
+        position = MathUtil::Max(position, sample.position.x + 1.0f);
+    }
+
+    samples.PushBack(AnimationBlendSample { nodeIndex, Vec2f(position, 0.0f) });
+
+    return true;
+}
+
+void AnimationBlend1DNode::RemoveInput(uint32 slot)
+{
+    if (slot < samples.Size())
+    {
+        samples.EraseAt(slot);
+    }
+}
+
+void AnimationBlend1DNode::OnNodeRemoved(uint32 removedIndex)
+{
+    RemoveSamplesOfNode(samples, removedIndex);
 }
 
 void AnimationBlend1DNode::ComputeWeights(float value, Array<float>& outWeights) const
@@ -184,9 +275,48 @@ void AnimationBlend1DNode::Evaluate(AnimationGraphContext& context, uint32 nodeI
 
 #pragma region AnimationBlend2DNode
 
-void AnimationBlend2DNode::GetInputs(Array<uint32>& outInputs) const
+uint32 AnimationBlend2DNode::NumInputs() const
 {
-    GetSampleInputs(samples, outInputs);
+    return uint32(samples.Size());
+}
+
+Name AnimationBlend2DNode::GetInputName(uint32 slot) const
+{
+    return slot < samples.Size() ? NAME_FMT("{}, {}", samples[slot].position.x, samples[slot].position.y) : Name::Invalid();
+}
+
+uint32 AnimationBlend2DNode::GetInput(uint32 slot) const
+{
+    return slot < samples.Size() ? samples[slot].input : InvalidAnimationGraphNode;
+}
+
+void AnimationBlend2DNode::SetInput(uint32 slot, uint32 nodeIndex)
+{
+    if (slot < samples.Size())
+    {
+        samples[slot].input = nodeIndex;
+    }
+}
+
+bool AnimationBlend2DNode::AddInput(uint32 nodeIndex)
+{
+    // spread new samples along x so they don't start on top of each other
+    samples.PushBack(AnimationBlendSample { nodeIndex, Vec2f(float(samples.Size()), 0.0f) });
+
+    return true;
+}
+
+void AnimationBlend2DNode::RemoveInput(uint32 slot)
+{
+    if (slot < samples.Size())
+    {
+        samples.EraseAt(slot);
+    }
+}
+
+void AnimationBlend2DNode::OnNodeRemoved(uint32 removedIndex)
+{
+    RemoveSamplesOfNode(samples, removedIndex);
 }
 
 void AnimationBlend2DNode::ComputeWeights(const Vec2f& value, Array<float>& outWeights) const
@@ -252,10 +382,31 @@ void AnimationBlend2DNode::Evaluate(AnimationGraphContext& context, uint32 nodeI
 
 #pragma region AnimationLayerNode
 
-void AnimationLayerNode::GetInputs(Array<uint32>& outInputs) const
+uint32 AnimationLayerNode::NumInputs() const
 {
-    outInputs.PushBack(base);
-    outInputs.PushBack(layer);
+    return 2;
+}
+
+Name AnimationLayerNode::GetInputName(uint32 slot) const
+{
+    return slot == 0 ? NAME("Base") : NAME("Layer");
+}
+
+uint32 AnimationLayerNode::GetInput(uint32 slot) const
+{
+    return slot == 0 ? base : layer;
+}
+
+void AnimationLayerNode::SetInput(uint32 slot, uint32 nodeIndex)
+{
+    if (slot == 0)
+    {
+        base = nodeIndex;
+    }
+    else
+    {
+        layer = nodeIndex;
+    }
 }
 
 void AnimationLayerNode::Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const
@@ -292,10 +443,31 @@ void AnimationLayerNode::Evaluate(AnimationGraphContext& context, uint32 nodeInd
 
 #pragma region AnimationAdditiveNode
 
-void AnimationAdditiveNode::GetInputs(Array<uint32>& outInputs) const
+uint32 AnimationAdditiveNode::NumInputs() const
 {
-    outInputs.PushBack(base);
-    outInputs.PushBack(additive);
+    return 2;
+}
+
+Name AnimationAdditiveNode::GetInputName(uint32 slot) const
+{
+    return slot == 0 ? NAME("Base") : NAME("Additive");
+}
+
+uint32 AnimationAdditiveNode::GetInput(uint32 slot) const
+{
+    return slot == 0 ? base : additive;
+}
+
+void AnimationAdditiveNode::SetInput(uint32 slot, uint32 nodeIndex)
+{
+    if (slot == 0)
+    {
+        base = nodeIndex;
+    }
+    else
+    {
+        additive = nodeIndex;
+    }
 }
 
 void AnimationAdditiveNode::Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const
@@ -333,9 +505,24 @@ void AnimationAdditiveNode::Evaluate(AnimationGraphContext& context, uint32 node
 
 #pragma region AnimationChainTwistNode
 
-void AnimationChainTwistNode::GetInputs(Array<uint32>& outInputs) const
+uint32 AnimationChainTwistNode::NumInputs() const
 {
-    outInputs.PushBack(input);
+    return 1;
+}
+
+Name AnimationChainTwistNode::GetInputName(uint32 slot) const
+{
+    return NAME("Input");
+}
+
+uint32 AnimationChainTwistNode::GetInput(uint32 slot) const
+{
+    return input;
+}
+
+void AnimationChainTwistNode::SetInput(uint32 slot, uint32 nodeIndex)
+{
+    input = nodeIndex;
 }
 
 void AnimationChainTwistNode::Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const
@@ -369,6 +556,347 @@ void AnimationChainTwistNode::Evaluate(AnimationGraphContext& context, uint32 no
 
 #pragma endregion AnimationChainTwistNode
 
+#pragma region AnimationStateMachineNode
+
+namespace {
+
+float ApplyBlendCurve(AnimationBlendCurve curve, float alpha)
+{
+    alpha = MathUtil::Clamp(alpha, 0.0f, 1.0f);
+
+    switch (curve)
+    {
+    case AnimationBlendCurve::SmoothStep:
+        return alpha * alpha * (3.0f - 2.0f * alpha);
+    case AnimationBlendCurve::EaseIn:
+        return alpha * alpha;
+    case AnimationBlendCurve::EaseOut:
+        return 1.0f - (1.0f - alpha) * (1.0f - alpha);
+    default:
+        return alpha;
+    }
+}
+
+} // namespace
+
+uint32 AnimationStateMachineNode::NumInputs() const
+{
+    return uint32(states.Size());
+}
+
+Name AnimationStateMachineNode::GetInputName(uint32 slot) const
+{
+    return GetStateName(slot);
+}
+
+uint32 AnimationStateMachineNode::GetInput(uint32 slot) const
+{
+    return slot < states.Size() ? states[slot].input : InvalidAnimationGraphNode;
+}
+
+void AnimationStateMachineNode::SetInput(uint32 slot, uint32 nodeIndex)
+{
+    if (slot < states.Size())
+    {
+        states[slot].input = nodeIndex;
+    }
+}
+
+bool AnimationStateMachineNode::AddInput(uint32 nodeIndex)
+{
+    states.PushBack(AnimationState { NAME_FMT("State{}", states.Size()), nodeIndex });
+
+    return true;
+}
+
+void AnimationStateMachineNode::RemoveInput(uint32 slot)
+{
+    if (slot >= states.Size())
+    {
+        return;
+    }
+
+    states.EraseAt(slot);
+
+    for (auto it = transitions.Begin(); it != transitions.End();)
+    {
+        if (it->to == slot || (!it->fromAnyState && it->from == slot))
+        {
+            it = transitions.Erase(it);
+
+            continue;
+        }
+
+        if (it->to > slot)
+        {
+            --it->to;
+        }
+
+        if (it->from > slot)
+        {
+            --it->from;
+        }
+
+        ++it;
+    }
+
+    if (entryState == slot)
+    {
+        entryState = 0;
+    }
+    else if (entryState > slot)
+    {
+        --entryState;
+    }
+}
+
+Name AnimationStateMachineNode::GetStateName(uint32 stateIndex) const
+{
+    if (stateIndex >= states.Size())
+    {
+        return Name::Invalid();
+    }
+
+    if (states[stateIndex].name.IsValid())
+    {
+        return states[stateIndex].name;
+    }
+
+    return NAME_FMT("State{}", stateIndex);
+}
+
+String AnimationStateMachineNode::DescribeState(const AnimationGraphNodeState& state) const
+{
+    if (state.currentState >= states.Size())
+    {
+        return String::empty;
+    }
+
+    if (state.previousState == InvalidAnimationGraphNode || state.previousState >= states.Size())
+    {
+        return HYP_FORMAT("{}", GetStateName(state.currentState));
+    }
+
+    return HYP_FORMAT("{} -> {} {}%", GetStateName(state.previousState), GetStateName(state.currentState), int(state.blendAlpha * 100.0f + 0.5f));
+}
+
+bool AnimationStateMachineNode::MeetsCondition(AnimationGraphContext& context, const AnimationTransitionCondition& condition, const AnimationGraphNodeState& state) const
+{
+    // the heaviest clip the state played last update times it
+    const AnimationClipNode* stateClipNode = TryCast<AnimationClipNode>(context.GetGraph().GetNode(state.stateClip));
+    const float clipLength = stateClipNode && stateClipNode->clip.IsValid() ? stateClipNode->clip->GetLength() : 0.0f;
+    const float clipTime = stateClipNode ? context.GetState(state.stateClip).time : 0.0f;
+
+    switch (condition.op)
+    {
+    case AnimationConditionOp::Greater:
+        return context.GetFloat(condition.parameter) > condition.value;
+    case AnimationConditionOp::Less:
+        return context.GetFloat(condition.parameter) < condition.value;
+    case AnimationConditionOp::Equal:
+        return context.GetFloat(condition.parameter) == condition.value;
+    case AnimationConditionOp::NotEqual:
+        return context.GetFloat(condition.parameter) != condition.value;
+    case AnimationConditionOp::IsTrue:
+        return context.GetBool(condition.parameter);
+    case AnimationConditionOp::IsFalse:
+        return !context.GetBool(condition.parameter);
+    case AnimationConditionOp::Triggered:
+        return context.IsTriggered(condition.parameter);
+    case AnimationConditionOp::StateTimeAtLeast:
+        return state.stateTime >= condition.value;
+    case AnimationConditionOp::StateTimeRemainingBelow:
+        if (clipLength <= 0.0f || stateClipNode->playRate <= 0.0f)
+        {
+            return false;
+        }
+
+        return (clipLength - clipTime) / stateClipNode->playRate < condition.value;
+    case AnimationConditionOp::StateNormalizedTimeAtLeast:
+        return clipLength > 0.0f && clipTime / clipLength >= condition.value;
+    default:
+        return false;
+    }
+}
+
+uint32 AnimationStateMachineNode::ChooseTransition(AnimationGraphContext& context, const AnimationGraphNodeState& state) const
+{
+    const bool isTransitioning = state.previousState != InvalidAnimationGraphNode;
+
+    uint32 chosen = InvalidAnimationGraphNode;
+
+    for (uint32 transitionIndex = 0; transitionIndex < uint32(transitions.Size()); ++transitionIndex)
+    {
+        const AnimationStateTransition& transition = transitions[transitionIndex];
+
+        if (transition.to >= states.Size() || transition.to == state.currentState)
+        {
+            continue;
+        }
+
+        // only any-state transitions interrupt a running one
+        if (!transition.fromAnyState && (isTransitioning || transition.from != state.currentState))
+        {
+            continue;
+        }
+
+        if (chosen != InvalidAnimationGraphNode && transition.priority <= transitions[chosen].priority)
+        {
+            continue;
+        }
+
+        bool meetsConditions = true;
+
+        for (const AnimationTransitionCondition& condition : transition.conditions)
+        {
+            if (!MeetsCondition(context, condition, state))
+            {
+                meetsConditions = false;
+
+                break;
+            }
+        }
+
+        if (meetsConditions)
+        {
+            chosen = transitionIndex;
+        }
+    }
+
+    return chosen;
+}
+
+void AnimationStateMachineNode::StartTransition(AnimationGraphNodeState& state, uint32 transitionIndex) const
+{
+    const AnimationStateTransition& transition = transitions[transitionIndex];
+
+    // an interrupted transition fades out from whichever side it was closer to
+    uint32 outgoingState = state.currentState;
+
+    if (state.previousState != InvalidAnimationGraphNode && state.blendAlpha < 0.5f)
+    {
+        outgoingState = state.previousState;
+    }
+
+    state.currentState = transition.to;
+    state.stateClip = InvalidAnimationGraphNode;
+    state.stateTime = 0.0f;
+    state.transitionIndex = transitionIndex;
+    state.transitionTime = 0.0f;
+    state.transitionDuration = transition.duration;
+    state.previousState = InvalidAnimationGraphNode;
+
+    if (transition.duration > 0.0f && outgoingState != transition.to)
+    {
+        state.previousState = outgoingState;
+    }
+}
+
+void AnimationStateMachineNode::Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const
+{
+    AnimationGraphNodeState& state = context.GetState(nodeIndex);
+    state.weight += weight;
+
+    if (states.Empty())
+    {
+        return;
+    }
+
+    const bool isFirstUpdate = context.BeginNodeUpdate(nodeIndex);
+
+    if (isFirstUpdate)
+    {
+        if (!state.wasActive || state.currentState >= states.Size())
+        {
+            state.currentState = entryState < states.Size() ? entryState : 0;
+            state.previousState = InvalidAnimationGraphNode;
+            state.stateClip = InvalidAnimationGraphNode;
+            state.stateTime = 0.0f;
+            state.transitionIndex = InvalidAnimationGraphNode;
+        }
+        else
+        {
+            state.stateTime += context.GetDelta();
+            state.transitionTime += context.GetDelta();
+
+            if (state.previousState != InvalidAnimationGraphNode && (state.transitionTime >= state.transitionDuration || state.previousState >= states.Size()))
+            {
+                state.previousState = InvalidAnimationGraphNode;
+            }
+        }
+
+        if (const uint32 transitionIndex = ChooseTransition(context, state); transitionIndex != InvalidAnimationGraphNode)
+        {
+            StartTransition(state, transitionIndex);
+        }
+
+        state.blendAlpha = 1.0f;
+
+        if (state.previousState != InvalidAnimationGraphNode)
+        {
+            state.blendAlpha = ApplyBlendCurve(transitions[state.transitionIndex].curve, state.transitionTime / state.transitionDuration);
+        }
+    }
+
+    if (state.previousState != InvalidAnimationGraphNode && state.blendAlpha < 1.0f)
+    {
+        context.UpdateInput(states[state.previousState].input, weight * (1.0f - state.blendAlpha));
+    }
+
+    const uint32 firstClip = context.NumActiveClips();
+
+    context.UpdateInput(states[state.currentState].input, weight * state.blendAlpha);
+
+    if (!isFirstUpdate)
+    {
+        return;
+    }
+
+    state.stateClip = InvalidAnimationGraphNode;
+
+    for (uint32 clipIndex = firstClip; clipIndex < context.NumActiveClips(); ++clipIndex)
+    {
+        const uint32 clipNode = context.GetActiveClip(clipIndex);
+
+        if (state.stateClip == InvalidAnimationGraphNode || context.GetState(clipNode).weight > context.GetState(state.stateClip).weight)
+        {
+            state.stateClip = clipNode;
+        }
+    }
+}
+
+void AnimationStateMachineNode::Evaluate(AnimationGraphContext& context, uint32 nodeIndex, Span<Transform> outPose) const
+{
+    const AnimationGraphNodeState& state = context.GetState(nodeIndex);
+
+    if (state.currentState >= states.Size())
+    {
+        context.EvaluateInput(InvalidAnimationGraphNode, outPose);
+
+        return;
+    }
+
+    const uint32 currentInput = states[state.currentState].input;
+
+    if (state.previousState == InvalidAnimationGraphNode || state.blendAlpha >= 1.0f)
+    {
+        context.EvaluateInput(currentInput, outPose);
+
+        return;
+    }
+
+    context.EvaluateInput(states[state.previousState].input, outPose);
+
+    Span<Transform> currentPose = context.AcquireScratchPose();
+    context.EvaluateInput(currentInput, currentPose);
+
+    PoseOps::BlendPoses(outPose, currentPose, state.blendAlpha, {}, outPose);
+
+    context.ReleaseScratchPose();
+}
+
+#pragma endregion AnimationStateMachineNode
+
 #pragma region AnimationGraph
 
 AnimationGraph::AnimationGraph() = default;
@@ -384,12 +912,118 @@ uint32 AnimationGraph::AddNode(const Handle<AnimationGraphNode>& node)
 {
     m_nodes.PushBack(node);
 
+    MarkChanged();
+
     return uint32(m_nodes.Size() - 1);
+}
+
+void AnimationGraph::RemoveNode(uint32 nodeIndex)
+{
+    if (nodeIndex >= m_nodes.Size())
+    {
+        return;
+    }
+
+    m_nodes.EraseAt(nodeIndex);
+
+    for (const Handle<AnimationGraphNode>& node : m_nodes)
+    {
+        if (node.IsValid())
+        {
+            node->OnNodeRemoved(nodeIndex);
+        }
+    }
+
+    m_rootNode = RenumberAfterRemoval(m_rootNode, nodeIndex);
+
+    MarkChanged();
+}
+
+Handle<AnimationGraphNode> AnimationGraph::CreateNode(Name className)
+{
+    const Class* nodeClass = ClassRegistry::GetInstance().GetClass(className);
+
+    if (!nodeClass || !nodeClass->IsDerivedFrom(AnimationGraphNode::StaticClass()) || nodeClass->IsAbstract() || !nodeClass->CanCreateInstance())
+    {
+        return Handle<AnimationGraphNode>::empty;
+    }
+
+    BoxedValue boxed;
+
+    if (!nodeClass->CreateInstance(boxed) || !boxed.Is<Handle<ObjectBase>>())
+    {
+        return Handle<AnimationGraphNode>::empty;
+    }
+
+    Handle<AnimationGraphNode> node = TryCast<AnimationGraphNode>(boxed.Get<Handle<ObjectBase>>());
+    InitObject(node);
+
+    return node;
+}
+
+Array<Name> AnimationGraph::GetNodeClassNames()
+{
+    return {
+        AnimationClipNode::StaticClass()->GetName(),
+        AnimationBlend1DNode::StaticClass()->GetName(),
+        AnimationBlend2DNode::StaticClass()->GetName(),
+        AnimationLayerNode::StaticClass()->GetName(),
+        AnimationAdditiveNode::StaticClass()->GetName(),
+        AnimationChainTwistNode::StaticClass()->GetName(),
+        AnimationStateMachineNode::StaticClass()->GetName()
+    };
 }
 
 void AnimationGraph::AddParameter(Name name, AnimationGraphParameterType type, const Vec2f& defaultValue)
 {
     m_parameters.PushBack(AnimationGraphParameter { name, type, defaultValue });
+
+    MarkChanged();
+}
+
+void AnimationGraph::RemoveParameter(Name name)
+{
+    for (auto it = m_parameters.Begin(); it != m_parameters.End(); ++it)
+    {
+        if (it->name == name)
+        {
+            m_parameters.Erase(it);
+
+            MarkChanged();
+
+            return;
+        }
+    }
+}
+
+Result AnimationGraph::SaveContents(String& outText) const
+{
+    return ObjectToHMF(StaticClass(), BoxedValue(MakeStrongRef(const_cast<AnimationGraph*>(this))), outText);
+}
+
+Result AnimationGraph::LoadContents(const String& text)
+{
+    HMF::ParseResult parsed = HMF::Parse(text);
+
+    if (parsed.HasError() || !parsed.GetValue().Is<Handle<ObjectBase>>())
+    {
+        return HYP_MAKE_ERROR(Error, "Animation graph '{}': couldn't read its contents back", GetName());
+    }
+
+    Handle<AnimationGraph> loaded = TryCast<AnimationGraph>(parsed.GetValue().Get<Handle<ObjectBase>>());
+
+    if (!loaded.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Animation graph '{}': the text isn't an animation graph", GetName());
+    }
+
+    m_nodes = loaded->m_nodes;
+    m_rootNode = loaded->m_rootNode;
+    m_parameters = loaded->m_parameters;
+
+    MarkChanged();
+
+    return {};
 }
 
 Array<Name> AnimationGraph::GetParameterNames() const

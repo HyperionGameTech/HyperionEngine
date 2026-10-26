@@ -29,6 +29,15 @@ struct AnimationGraphNodeState
     uint32 lastUpdateSerial = ~0u;
     bool wasActive = false;
     bool isRegistered = false;
+
+    uint32 currentState = 0;
+    uint32 previousState = InvalidAnimationGraphNode;
+    uint32 stateClip = InvalidAnimationGraphNode;
+    float stateTime = 0.0f;
+    float transitionTime = 0.0f;
+    float transitionDuration = 0.0f;
+    float blendAlpha = 1.0f;
+    uint32 transitionIndex = InvalidAnimationGraphNode;
 };
 
 // what a node sees during the update and pose passes
@@ -49,6 +58,7 @@ public:
 
     float GetFloat(Name parameter, float fallback = 0.0f) const;
     bool GetBool(Name parameter) const;
+    bool IsTriggered(Name parameter) const;
     Vec2f GetVector2(Name parameter) const;
 
     AnimationGraphNodeState& GetState(uint32 nodeIndex);
@@ -60,6 +70,11 @@ public:
     void EvaluateInput(uint32 nodeIndex, Span<Transform> outPose);
 
     void RegisterActiveClip(uint32 nodeIndex);
+
+    const AnimationGraph& GetGraph() const;
+
+    uint32 NumActiveClips() const;
+    uint32 GetActiveClip(uint32 index) const;
 
     const ClipBinding& GetClipBinding(const Animation& animation);
     Span<const float> GetMaskWeights(const BoneMask& mask);
@@ -95,6 +110,15 @@ public:
         return m_graph;
     }
 
+    // the graph revision this instance was built from; a newer one means the graph changed under it
+    HYP_FORCE_INLINE uint32 GetGraphRevision() const
+    {
+        return m_graphRevision;
+    }
+
+    // takes the other instance's values for every parameter both graphs have
+    void CopyParameterValues(const AnimationGraphInstance& other);
+
     HYP_METHOD()
     void SetFloat(Name parameter, float value);
 
@@ -120,6 +144,8 @@ public:
     HYP_METHOD()
     Array<Name> GetFiredNotifies() const;
 
+    const AnimationGraphNodeState* GetNodeState(uint32 nodeIndex) const;
+
     float GetNodeWeight(uint32 nodeIndex) const;
     float GetNodeTime(uint32 nodeIndex) const;
 
@@ -137,6 +163,7 @@ private:
     void AdvanceClip(uint32 nodeIndex, const AnimationClipNode& clipNode, float time, bool fireNotifies);
 
     Handle<AnimationGraph> m_graph;
+    uint32 m_graphRevision = 0;
 
     Map<Name, uint32> m_parameterIndices;
     Array<Vec2f> m_values;

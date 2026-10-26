@@ -22,6 +22,7 @@ namespace Hyperion.Editor.ViewModels
     {
         public bool Active;
         public bool Dirty;
+        public bool IsGraph;
         public string Name = string.Empty;
         public string Kind = string.Empty;
 
@@ -46,6 +47,8 @@ namespace Hyperion.Editor.ViewModels
         public ContentBrowserViewModel ContentBrowser { get; private set; }
 
         public AnimationTimelineViewModel AnimationTimeline { get; } = new AnimationTimelineViewModel();
+
+        public AnimationGraphDocumentViewModel AnimationGraphDocument { get; } = new AnimationGraphDocumentViewModel();
 
         public EditorPanelViewModel? ActivePanel => PanelService.Instance.ActivePanel;
 
@@ -922,7 +925,8 @@ namespace Hyperion.Editor.ViewModels
         public bool IsInEditMode => _editModeState.Active;
         public string EditModeName => _editModeState.Name;
         public bool IsEditModeDirty => _editModeState.Active && _editModeState.Dirty;
-        public bool IsEditingAnimation => _editModeState.Active && _editModeState.Kind == "skeleton";
+        public bool IsEditingAnimation => _editModeState.Active && (_editModeState.Kind == "skeleton" || _editModeState.IsGraph);
+        public bool IsEditingGraph => _editModeState.Active && _editModeState.IsGraph;
         public string EditModeDescription => $"Editing {_editModeState.Kind} {EditModeName}";
         public string ExitEditModeHeader => _editModeState.Kind.Length > 0
             ? $"Exit {char.ToUpperInvariant(_editModeState.Kind[0])}{_editModeState.Kind.Substring(1)} Edit"
@@ -3466,6 +3470,7 @@ namespace Hyperion.Editor.ViewModels
                     snapshot.Dirty = editModeState.IsDirty();
                     snapshot.Name = editModeState.GetDisplayName() ?? string.Empty;
                     snapshot.Kind = editModeState.GetKindName() ?? string.Empty;
+                    snapshot.IsGraph = _editorSubsystem.EditorAnimationEditState?.IsEditingGraph() ?? false;
                 }
             }
             catch (Exception ex)
@@ -3489,6 +3494,7 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(EditModeName));
             OnPropertyChanged(nameof(IsEditModeDirty));
             OnPropertyChanged(nameof(IsEditingAnimation));
+            OnPropertyChanged(nameof(IsEditingGraph));
             OnPropertyChanged(nameof(EditModeDescription));
             OnPropertyChanged(nameof(ExitEditModeHeader));
             OnPropertyChanged(nameof(SceneSelectorTooltip));
@@ -3501,6 +3507,7 @@ namespace Hyperion.Editor.ViewModels
             (AddNewSceneCommand as RelayCommand)?.RaiseCanExecuteChanged();
 
             AnimationTimeline.SetActive(IsEditingAnimation);
+            AnimationGraphDocument.SetActive(IsEditingGraph);
         }
 
         private void HandleSelectionUpdate()

@@ -86,6 +86,13 @@ bool AnimationGraphContext::GetBool(Name parameter) const
     return m_instance->m_triggers[it->second] || m_instance->m_values[it->second].x != 0.0f;
 }
 
+bool AnimationGraphContext::IsTriggered(Name parameter) const
+{
+    auto it = m_instance->m_parameterIndices.Find(parameter);
+
+    return it != m_instance->m_parameterIndices.End() && m_instance->m_triggers[it->second];
+}
+
 Vec2f AnimationGraphContext::GetVector2(Name parameter) const
 {
     auto it = m_instance->m_parameterIndices.Find(parameter);
@@ -149,6 +156,21 @@ void AnimationGraphContext::RegisterActiveClip(uint32 nodeIndex)
     }
 }
 
+const AnimationGraph& AnimationGraphContext::GetGraph() const
+{
+    return *m_instance->m_graph;
+}
+
+uint32 AnimationGraphContext::NumActiveClips() const
+{
+    return uint32(m_instance->m_activeClips.Size());
+}
+
+uint32 AnimationGraphContext::GetActiveClip(uint32 index) const
+{
+    return m_instance->m_activeClips[index];
+}
+
 const ClipBinding& AnimationGraphContext::GetClipBinding(const Animation& animation)
 {
     auto it = m_instance->m_clipBindings.Find(&animation);
@@ -207,6 +229,8 @@ AnimationGraphInstance::AnimationGraphInstance(const Handle<AnimationGraph>& gra
     {
         return;
     }
+
+    m_graphRevision = m_graph->GetRevision();
 
     for (const AnimationGraphParameter& parameter : m_graph->GetParameters())
     {
@@ -332,6 +356,27 @@ void AnimationGraphInstance::SetValue(Name parameter, const Vec2f& value, bool i
     }
 }
 
+void AnimationGraphInstance::CopyParameterValues(const AnimationGraphInstance& other)
+{
+    if (&other == this)
+    {
+        return;
+    }
+
+    Mutex::Guard otherGuard(other.m_pendingMutex);
+    Mutex::Guard guard(m_pendingMutex);
+
+    for (const auto& it : m_parameterIndices)
+    {
+        auto otherIt = other.m_parameterIndices.Find(it.first);
+
+        if (otherIt != other.m_parameterIndices.End())
+        {
+            m_pendingValues[it.second] = other.m_pendingValues[otherIt->second];
+        }
+    }
+}
+
 void AnimationGraphInstance::SetFloat(Name parameter, float value)
 {
     SetValue(parameter, Vec2f(value, 0.0f), false);
@@ -376,6 +421,11 @@ Array<Name> AnimationGraphInstance::GetFiredNotifies() const
     Mutex::Guard guard(m_pendingMutex);
 
     return m_publishedNotifies;
+}
+
+const AnimationGraphNodeState* AnimationGraphInstance::GetNodeState(uint32 nodeIndex) const
+{
+    return nodeIndex < m_nodeStates.Size() ? &m_nodeStates[nodeIndex] : nullptr;
 }
 
 float AnimationGraphInstance::GetNodeWeight(uint32 nodeIndex) const
@@ -497,9 +547,18 @@ void AnimationGraphInstance::AdvanceClips(float delta)
             const AnimationClipNode& clipNode = static_cast<const AnimationClipNode&>(*m_graph->GetNode(nodeIndex));
             const AnimationClipNode& leaderNode = static_cast<const AnimationClipNode&>(*m_graph->GetNode(leader));
 
-            if (clipNode.syncLeader != leaderNode.syncLeader
-                    ? clipNode.syncLeader
-                    : m_nodeStates[nodeIndex].weight > m_nodeStates[leader].weight)
+            bool isLeader = false;
+
+            if (clipNode.syncLeader != leaderNode.syncLeader)
+            {
+                isLeader = clipNode.syncLeader;
+            }
+            else
+            {
+                isLeader = m_nodeStates[nodeIndex].weight > m_nodeStates[leader].weight;
+            }
+
+            if (isLeader)
             {
                 leader = nodeIndex;
             }

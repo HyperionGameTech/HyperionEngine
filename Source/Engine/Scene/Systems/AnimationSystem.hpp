@@ -47,6 +47,7 @@ struct AnimationInstanceState
     Array<float> layerMaskWeights;
 
     float previewTime = 0.0f;
+    float previewDelta = 0.0f;
     bool isPreviewing = false;
 };
 
@@ -68,6 +69,9 @@ public:
     // edit-mode preview: poses the entity at `time` of its current clip while the game isn't simulating
     void SetPreviewTime(Entity* entity, float time);
     void StopPreview(Entity* entity);
+
+    // runs an entity's graph outside simulation, advancing it by delta on the next update
+    void AdvanceGraphPreview(Entity* entity, float delta);
 
     Span<const Transform> GetRenderPose(Entity* entity) const;
 
