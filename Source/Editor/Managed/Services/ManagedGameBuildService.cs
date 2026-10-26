@@ -124,7 +124,7 @@ namespace Hyperion.Editor.Services
             }
 
             bool isBuilt = FindProjectFile(projectFilePath) == null && !HasScripts(projectFilePath)
-                ? NativeGameBuildService.Instance.BuildPackage(projectFilePath, outputDirectory, scriptsLinkInputsFile: null)
+                ? NativeGameBuildService.Instance.BuildPackage(projectFilePath, outputDirectory, scriptsLinkInputsFile: null, NativeGameBuild.GetPluginModulesFile(binariesDirectory))
                 : PublishAot(projectFilePath, binariesDirectory, outputDirectory);
 
             if (isBuilt)
@@ -414,7 +414,17 @@ namespace Hyperion.Editor.Services
                 }
 
                 // a C# game's executable is linked by NativeAOT, so it links the engine's archives too (a C++ launcher gets them from CMake)
-                arguments.AddRange(shippingSdk.GetStaticEnginePublishProperties(intermediateDirectory, linksExecutable: !isScriptsLibrary));
+                // and the project's enabled built-in plugins, which Package Game listed beside the game module
+                string? pluginModulesFile = NativeGameBuild.GetPluginModulesFile(binariesDirectory);
+                string[] pluginModules = pluginModulesFile != null ? File.ReadAllLines(pluginModulesFile).Where(line => line.Trim().Length > 0).ToArray() : Array.Empty<string>();
+                List<string> missingPluginModules = new List<string>();
+
+                arguments.AddRange(shippingSdk.GetStaticEnginePublishProperties(intermediateDirectory, linksExecutable: !isScriptsLibrary, pluginModules, missingPluginModules));
+
+                foreach (string missingPluginModule in missingPluginModules)
+                {
+                    Logger.Log(BuildLogChannel, LogLevel.Warning, "The shipping SDK has no plugin module {0}, so the game is linked without it", missingPluginModule);
+                }
 
                 string? firstError = null;
 
@@ -441,7 +451,7 @@ namespace Hyperion.Editor.Services
                 {
                     Logger.Log(BuildLogChannel, LogLevel.Info, "Linking the scripts into the game");
 
-                    return NativeGameBuildService.Instance.BuildPackage(projectFilePath, outputDirectory, scriptsLinkInputsFile);
+                    return NativeGameBuildService.Instance.BuildPackage(projectFilePath, outputDirectory, scriptsLinkInputsFile, NativeGameBuild.GetPluginModulesFile(binariesDirectory));
                 }
 
                 foreach (string file in Directory.GetFiles(publishDirectory))

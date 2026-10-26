@@ -80,6 +80,18 @@ namespace Hyperion
             return this.GetSubsystemByName(cls.Value.Name) as T;
         }
 
+        public T? GetSystem<T>() where T : SystemBase
+        {
+            Class? cls = Class.TryGetClass<T>();
+
+            if (cls == null)
+            {
+                throw new InvalidOperationException($"Type {typeof(T).Name} has no associated Class.");
+            }
+
+            return this.GetSystemByName(cls.Value.Name) as T;
+        }
+
         public void AddSubsystem<T>(T subsystem) where T : Subsystem
         {
             if (!this.TryAddSubsystem(subsystem))

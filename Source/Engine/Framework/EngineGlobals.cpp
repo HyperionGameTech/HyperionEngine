@@ -245,6 +245,17 @@ HYP_EXPORT const FilePath& GetContentDirectory()
                     // <exe>/Content
                     s_contentDirectory = CoreApi::GetExecutablePath() / "Content";
                 }
+
+#ifdef HYP_SHIPPING
+                // Package Game cooks Engine/Editor content into Content/<Package> (--out-engine-content); the web build cooks it all into Content
+                if constexpr (!Memory::StrEqual(PackageName.data, "Game", 4))
+                {
+                    if (const FilePath packageContentDirectory = s_contentDirectory / String(PackageName.data); packageContentDirectory.IsDirectory())
+                    {
+                        s_contentDirectory = packageContentDirectory;
+                    }
+                }
+#endif // HYP_SHIPPING
             }
 
             if (s_contentDirectory.Empty() || (!s_contentDirectory.Exists() && !s_contentDirectory.MkDir()))

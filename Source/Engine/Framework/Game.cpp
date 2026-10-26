@@ -49,6 +49,8 @@
 
 #include <HyperionEngine.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <Input/Event.hpp>
 
 #include <System/MessageBox.hpp>
@@ -184,6 +186,12 @@ void Game::Initialize()
     if (m_isInitialized || IsSyncingOrPreparingContent() || m_connectionState.state == ServerConnectionState::Connecting)
     {
         return;
+    }
+
+    // before the World initializes, so it gets the plugins' systems; the editor enables plugins per project instead
+    if (!EngineGlobals::IsEditor())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Game);
     }
 
     if (!m_assetRegistry)

@@ -63,7 +63,7 @@ constexpr UTF8StringView InteropServices = "global::System.Runtime.InteropServic
 
 String NativeLibraryForModule(const Analyzer& analyzer, const Module& mod)
 {
-    const String relativePath = String(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str()).ReplaceAll("\\", "/");
+    const String relativePath = analyzer.GetRelativePath(mod.GetPath()).ReplaceAll("\\", "/");
 
     if (relativePath.StartsWith("Core/"))
     {
@@ -709,7 +709,7 @@ int EmitGameTypes(const Analyzer& analyzer, const Module& mod, ByteWriter& write
 
 FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
-    FilePath relativePath = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+    FilePath relativePath = analyzer.GetOutputRelativePath(mod.GetPath());
 
     return analyzer.GetCSharpOutputDirectory() / relativePath.BasePath() / String(StringUtil::StripExtension(relativePath.Basename())) + ".cs";
 }
@@ -800,7 +800,7 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
         namespaceName = BaseNamespace;
     }
 
-    writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod.GetPath(), analyzer.GetSourceDirectory())));
+    writer.WriteString(GetGeneratedFilePreamble(analyzer.GetRelativePath(mod.GetPath())));
 
     if (analyzer.IsGameModule())
     {

@@ -7,6 +7,7 @@
 #include <ScenePch.hpp>
 
 #include <Scene/World.hpp>
+#include <Scene/WorldSystemRegistry.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/EntityManager.hpp>
 #include <Scene/Entity.hpp>
@@ -20,26 +21,14 @@
 
 #include <Scene/Sky/DynamicSkySystem.hpp>
 
-#include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
-#include <Scene/Systems/AnimationSystem.hpp>
-#include <Scene/Systems/BoneAttachmentSystem.hpp>
-#include <Scene/Systems/CharacterModelSystem.hpp>
-#include <Scene/Systems/AudioSystem.hpp>
-#include <Scene/Systems/PhysicsSystem.hpp>
-#include <Scene/Systems/CameraSystem.hpp>
-#include <Scene/Systems/CharacterControllerSystem.hpp>
-#include <Scene/Systems/PlayerSystem.hpp>
-#include <Scene/Systems/ScriptSystem.hpp>
-#include <Scene/Systems/InstanceGroupSystem.hpp>
 #include <Scene/Systems/TerrainLodSystem.hpp>
 #include <Scene/Systems/ReplicationSystem.hpp>
 #include <Scene/Systems/ReplicationApplySystem.hpp>
 #include <Scene/Systems/SwatchOverrideSystem.hpp>
 
-#include <Scene/Systems/Glimmer/GlimmerSystem.hpp>
-
 #include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/RigidBodyComponent.hpp>
 #include <Scene/Components/TransformComponent.hpp>
 #include <Scene/Components/BoundingBoxComponent.hpp>
 #include <Scene/Components/TerrainCellComponent.hpp>
@@ -96,21 +85,72 @@ ScriptableDelegate<void, const EnvironmentSettings&> World::OnEnvironmentSetting
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 // #define HYP_SYSTEM_LOG_PERFORMANCE
 
-// if the number of systems in a group is less than this value, they will be executed sequentially
-static constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
-
 extern CVar<bool> g_cvRayTracingEnabled;
 extern CVar<float> g_cvCutoutDitherAmount;
 extern CVar<bool> g_cvTAA;
 
 EngineStatTimer g_statScriptUpdate("Script/Update");
-static EngineStatTimer s_statPhysicsUpdate("Physics/Update");
+EngineStatTimer g_statPhysicsUpdate("Physics/Update");
 
-static const Name s_nameStreamingLayerScenes = NAME("Scenes_Layer");
-static const Name s_nameUnnamedWorld = NAME("<unnamed world>");
+namespace {
+
+// if the number of systems in a group is less than this value, they will be executed sequentially
+constexpr double SystemExecutionGroupLagSpikeThreshold = 50.0;
+
+const Name g_nameStreamingLayerScenes = NAME("Scenes_Layer");
+const Name g_nameUnnamedWorld = NAME("<unnamed world>");
+
+void BindStreamingDelegates(
+    DelegateHandlerSet& set,
+    World& world,
+    WorldGridLayer& layer)
+{
+    set.Remove(&layer.OnStreamingObjectsLoaded);
+    set.Remove(&layer.OnStreamingObjectsUnloaded);
+
+    set.Add(layer.OnStreamingObjectsLoaded.Bind(
+        [&world](StreamingCell* cell, Span<const AssetObject*> objs)
+        {
+            AssertOnThread(g_simThread);
+
+            for (const AssetObject* obj : objs)
+            {
+                if (obj->IsA(Scene::StaticClass()))
+                {
+                    const Scene* scene = TryCast<Scene>(obj);
+
+                    world.AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
+
+                    continue;
+                }
+            }
+        }));
+
+    set.Add(layer.OnStreamingObjectsUnloaded.Bind(
+        [&world](StreamingCell* cell, Span<const AssetObject*> objs)
+        {
+            AssertOnThread(g_simThread);
+
+            for (const AssetObject* obj : objs)
+            {
+                if (obj->IsA(Scene::StaticClass()))
+                {
+                    const Scene* scene = TryCast<Scene>(obj);
+
+                    world.RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
+
+                    continue;
+                }
+            }
+        }));
+}
+
+} // namespace
+
+#pragma region World
 
 World::World()
-    : World(s_nameUnnamedWorld)
+    : World(g_nameUnnamedWorld)
 {
 }
 
@@ -254,7 +294,7 @@ void World::Initialize()
         // add to streaming layer if applicable
         if ((m_worldFlags & WorldFlags::HasSceneStreamingLayer) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
-            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(g_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
             scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
         }
@@ -268,57 +308,9 @@ void World::Initialize()
         }
 
         m_physicsWorld->Initialize();
-
-        if (!HasSystem<PhysicsSystem>())
-        {
-            AddSystem(MakeHandle<PhysicsSystem>());
-        }
     }
 
-    if (!HasSystem<VisibilityStateUpdaterSystem>())
-        AddSystem(MakeHandle<VisibilityStateUpdaterSystem>());
-
-    if (!HasSystem<LightmapSystem>())
-        AddSystem(MakeHandle<LightmapSystem>());
-
-    if (!HasSystem<CharacterModelSystem>())
-        AddSystem(MakeHandle<CharacterModelSystem>());
-
-    if (!HasSystem<AnimationSystem>())
-        AddSystem(MakeHandle<AnimationSystem>());
-
-    if (!HasSystem<BoneAttachmentSystem>())
-        AddSystem(MakeHandle<BoneAttachmentSystem>());
-
-    if (!HasSystem<AudioSystem>())
-        AddSystem(MakeHandle<AudioSystem>());
-
-    if (!HasSystem<ScriptSystem>())
-        AddSystem(MakeHandle<ScriptSystem>());
-
-    if (!HasSystem<InstanceGroupSystem>())
-        AddSystem(MakeHandle<InstanceGroupSystem>());
-
-    if (!HasSystem<TerrainLodSystem>())
-        AddSystem(MakeHandle<TerrainLodSystem>());
-
-    if (!HasSystem<GlimmerSystem>() && !EngineGlobals::IsHeadless())
-        AddSystem(MakeHandle<GlimmerSystem>());
-
-    if (!HasSystem<CameraSystem>())
-        AddSystem(MakeHandle<CameraSystem>());
-
-    if (!HasSystem<SwatchOverrideSystem>())
-        AddSystem(MakeHandle<SwatchOverrideSystem>());
-
-    if (!(m_worldFlags & WorldFlags::Editor))
-    {
-        if (!HasSystem<CharacterControllerSystem>())
-            AddSystem(MakeHandle<CharacterControllerSystem>());
-
-        if (!HasSystem<PlayerSystem>())
-            AddSystem(MakeHandle<PlayerSystem>());
-    }
+    SyncRegisteredSystems(/* removeInapplicable */ false);
 
     UpdateReplicationSystems();
 
@@ -509,11 +501,6 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
             }
 
             m_physicsWorld->Initialize();
-
-            if (!HasSystem<PhysicsSystem>())
-            {
-                AddSystem(MakeHandle<PhysicsSystem>());
-            }
         }
         else
         {
@@ -522,14 +509,12 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
                 m_physicsWorld->Teardown();
                 m_physicsWorld.Reset();
             }
-
-            PhysicsSystem* physicsSystem = GetSystem<PhysicsSystem>();
-
-            if (physicsSystem != nullptr)
-            {
-                RemoveSystem(physicsSystem);
-            }
         }
+    }
+
+    if (m_isInitialized)
+    {
+        SyncRegisteredSystems(/* removeInapplicable */ true);
     }
 
     // Same thing for replication
@@ -570,7 +555,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
     {
         if (m_worldFlags & WorldFlags::HasSceneStreamingLayer)
         {
-            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(g_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
 
             for (const Handle<Scene>& scene : m_scenes)
@@ -1022,7 +1007,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     {
         if (m_physicsWorld != nullptr)
         {
-            ENGINE_STAT_SCOPE(&s_statPhysicsUpdate);
+            ENGINE_STAT_SCOPE(&g_statPhysicsUpdate);
 
             // This needs to run regardless of authority because clients simulate non-replicated entities locally
             SyncPhysicsBodyKinematicStates();
@@ -1557,6 +1542,21 @@ Subsystem* World::GetSubsystemByName(StringHash name) const
     return *it;
 }
 
+SystemBase* World::GetSystemByName(StringHash name) const
+{
+    const auto it = m_systems.FindIf([name](const Handle<SystemBase>& system)
+        {
+            return system->InstanceClass()->GetName() == name;
+        });
+
+    if (it == m_systems.End())
+    {
+        return nullptr;
+    }
+
+    return it->Get();
+}
+
 bool World::RemoveSubsystem(Subsystem* subsystem)
 {
     if (!subsystem)
@@ -1659,7 +1659,7 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
 
         if (addToStreamingLayer && (m_worldFlags & WorldFlags::HasSceneStreamingLayer) && (scene->GetSceneFlags() & SceneFlags::STREAMED))
         {
-            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(s_nameStreamingLayerScenes);
+            Handle<WorldGridLayer> scenesStreamingLayer = GetOrCreateStreamingLayer(g_nameStreamingLayerScenes);
             AssertDebug(scenesStreamingLayer != nullptr);
             scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
         }
@@ -1687,7 +1687,7 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
         {
             if (removeFromStreamingLayer && (m_worldFlags & WorldFlags::HasSceneStreamingLayer))
             {
-                if (Handle<WorldGridLayer> scenesStreamingLayer = GetStreamingLayer(s_nameStreamingLayerScenes); scenesStreamingLayer)
+                if (Handle<WorldGridLayer> scenesStreamingLayer = GetStreamingLayer(g_nameStreamingLayerScenes); scenesStreamingLayer)
                 {
                     scenesStreamingLayer->RemoveStreamingObject(scene);
                 }
@@ -1873,7 +1873,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
         if (m_worldFlags & WorldFlags::HasSceneStreamingLayer)
         {
-            if (Handle<WorldGridLayer> scenesStreamingLayer = GetStreamingLayer(s_nameStreamingLayerScenes); scenesStreamingLayer)
+            if (Handle<WorldGridLayer> scenesStreamingLayer = GetStreamingLayer(g_nameStreamingLayerScenes); scenesStreamingLayer)
             {
                 scenesStreamingLayer->RemoveStreamingObject(scene);
             }
@@ -1978,50 +1978,6 @@ Array<Handle<Scene>> World::SerializeNonStreamingScenes() const
     return scenes;
 }
 
-static void BindStreamingDelegates(DelegateHandlerSet& set, World* world, WorldGridLayer* layer)
-{
-    AssertDebug(world != nullptr && layer != nullptr);
-
-    set.Remove(&layer->OnStreamingObjectsLoaded);
-    set.Remove(&layer->OnStreamingObjectsUnloaded);
-
-    set.Add(layer->OnStreamingObjectsLoaded.Bind(
-        [world](StreamingCell* cell, Span<const AssetObject*> objs)
-        {
-            AssertOnThread(g_simThread);
-
-            for (const AssetObject* obj : objs)
-            {
-                if (obj->IsA(Scene::StaticClass()))
-                {
-                    const Scene* scene = TryCast<Scene>(obj);
-
-                    world->AddScene(MakeStrongRef(scene), /* addToStreamingLayer */ false);
-
-                    continue;
-                }
-            }
-        }));
-
-    set.Add(layer->OnStreamingObjectsUnloaded.Bind(
-        [world](StreamingCell* cell, Span<const AssetObject*> objs)
-        {
-            AssertOnThread(g_simThread);
-
-            for (const AssetObject* obj : objs)
-            {
-                if (obj->IsA(Scene::StaticClass()))
-                {
-                    const Scene* scene = TryCast<Scene>(obj);
-
-                    world->RemoveScene(const_cast<Scene*>(scene), /* removeFromStreamingLayer */ false);
-
-                    continue;
-                }
-            }
-        }));
-}
-
 Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
 {
     AssertDebug(streamingLayerName.IsValid());
@@ -2047,7 +2003,7 @@ Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
     }
 
     Handle<WorldGridLayer> layer = MakeHandle<WorldGridLayer>(streamingLayerName);
-    BindStreamingDelegates(m_delegateHandlers, this, layer);
+    BindStreamingDelegates(m_delegateHandlers, *this, *layer);
 
     m_worldGrid->AddLayer(layer);
 
@@ -2075,6 +2031,8 @@ Handle<WorldGridLayer> World::GetStreamingLayer(Name streamingLayerName) const
 
     return Handle<WorldGridLayer>::Null();
 }
+
+//////////
 
 void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator>& streamingLayers)
 {
@@ -2106,7 +2064,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
 
     for (const Handle<WorldGridLayer>& layer : m_worldGrid->GetLayers())
     {
-        BindStreamingDelegates(m_delegateHandlers, this, layer);
+        BindStreamingDelegates(m_delegateHandlers, *this, *layer);
 
         /// \todo if scene streaming is enabled and we're Init()'d, stream them in!
     }
@@ -2129,6 +2087,8 @@ Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
     return m_worldGrid->GetStreamingLayerDescs();
 }
 
+//////////
+
 bool World::IsServerWorld() const
 {
     return m_isServerWorld || EngineGlobals::IsServer();
@@ -2146,12 +2106,55 @@ void World::SetIsServerWorld(bool isServerWorld)
     m_isServerWorld = isServerWorld;
 }
 
+void World::SyncRegisteredSystems(bool removeThoseNotApplicable)
+{
+    Array<const Class*> systemClassesToAdd;
+    Array<SystemBase*> systemsToRemove;
+
+    WorldSystemRegistry::GetInstance().ForEach([&](const WorldSystemEntry& entry)
+        {
+            auto it = m_systems.FindIf([systemClass = entry.systemClass](const Handle<SystemBase>& system)
+                {
+                    return Hyperion::IsA(systemClass, system->InstanceClass());
+                });
+
+            const bool applies = entry.AppliesTo(*this, m_worldFlags);
+
+            if (applies && it == m_systems.End())
+            {
+                systemClassesToAdd.PushBack(entry.systemClass);
+            }
+            else if (!applies && removeThoseNotApplicable && it != m_systems.End())
+            {
+                systemsToRemove.PushBack(it->Get());
+            }
+        });
+
+    for (SystemBase* system : systemsToRemove)
+    {
+        RemoveSystem(system);
+    }
+
+    for (const Class* systemClass : systemClassesToAdd)
+    {
+        BoxedValue boxed;
+
+        if (!systemClass->CreateInstance(boxed))
+        {
+            HYP_LOG(Scene, Error, "Failed to create registered system {}", systemClass->GetName());
+
+            continue;
+        }
+
+        AddSystem(boxed.Get<Handle<SystemBase>>());
+    }
+}
+
 void World::UpdateReplicationSystems()
 {
     const bool isReplicated = bool(m_worldFlags & WorldFlags::IsReplicated);
     const bool isServerWorld = IsServerWorld();
 
-    // Saved worlds serialize whichever replication system the saving process had, so the wrong one can be present
     const auto removeSystem = [this](SystemBase* system)
     {
         if (system == nullptr)
@@ -2521,5 +2524,7 @@ void World::FillWorldShaderData(WorldShaderData& outShaderData) const
         }
     }
 }
+
+#pragma endregion World
 
 } // namespace Hyperion

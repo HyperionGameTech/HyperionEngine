@@ -32,6 +32,14 @@ struct AnalyzerState
     }
 };
 
+struct PluginModuleInfo
+{
+    String name;
+    FilePath sourceRoot;
+    FilePath moduleDirectory;
+    bool isEditor = false;
+};
+
 const String& ClassDefinitionTypeToString(ClassDefinitionType type);
 const String& MemberTypeToString(MemberType type);
 
@@ -114,6 +122,24 @@ public:
     {
         m_excludeFiles = excludeFiles;
     }
+
+    HYP_FORCE_INLINE const Array<PluginModuleInfo>& GetPluginModules() const
+    {
+        return m_pluginModules;
+    }
+
+    HYP_FORCE_INLINE void SetPluginModules(Array<PluginModuleInfo>&& pluginModules)
+    {
+        m_pluginModules = std::move(pluginModules);
+    }
+
+    const PluginModuleInfo* FindPluginModule(const FilePath& path) const;
+
+    // relative to the plugin's Source directory for plugin modules (so includes are <Module/Foo.hpp>), otherwise to the source directory
+    FilePath GetRelativePath(const FilePath& path) const;
+
+    // where generated C# and Strata for the file go: plugin modules under Plugins/<Module>, or Editor/Plugins/<Module> for editor modules
+    FilePath GetOutputRelativePath(const FilePath& path) const;
 
     HYP_FORCE_INLINE const AnalyzerState& GetState() const
     {
@@ -219,6 +245,8 @@ private:
 
     Set<FilePath> m_excludeDirectories;
     Set<FilePath> m_excludeFiles;
+
+    Array<PluginModuleInfo> m_pluginModules;
 
     AnalyzerState m_state;
     Array<UniquePtr<Module>> m_modules;

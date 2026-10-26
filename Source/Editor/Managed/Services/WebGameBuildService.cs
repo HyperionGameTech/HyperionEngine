@@ -58,6 +58,15 @@ namespace Hyperion.Editor.Services
                 List<string> arguments = new List<string> { "-ContentDir", ProjectLayout.GetContentDirectory(projectFilePath!) };
                 arguments.AddRange(GetNameArguments(projectFilePath!));
 
+                // the enabled built-in plugins' runtime modules, linked into the page
+                List<string> pluginModules = EngineManager.CurrentProject?.GetEnabledPluginRuntimeModules().Cast<Name>().Select(moduleName => moduleName.ToString()).ToList() ?? new List<string>();
+
+                if (pluginModules.Count > 0)
+                {
+                    arguments.Add("-PluginModules");
+                    arguments.Add(string.Join(",", pluginModules));
+                }
+
                 if (run)
                 {
                     arguments.Add("-Run");

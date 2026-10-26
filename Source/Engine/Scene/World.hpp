@@ -371,6 +371,9 @@ public:
         return nullptr;
     }
 
+    HYP_METHOD()
+    SystemBase* GetSystemByName(StringHash name) const;
+
     template <class SystemType>
     HYP_FORCE_INLINE bool HasSystem() const
     {
@@ -424,6 +427,7 @@ private:
     bool AddSystemToExecutionGroup(SystemBase* system);
 
     void UpdateReplicationSystems();
+    void SyncRegisteredSystems(bool removeThoseNotApplicable);
 
     Handle<WorldGridLayer> GetOrCreateStreamingLayer(Name streamingLayerName);
     Handle<WorldGridLayer> GetStreamingLayer(Name streamingLayerName) const;

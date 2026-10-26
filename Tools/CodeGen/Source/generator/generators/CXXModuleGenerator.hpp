@@ -12,12 +12,15 @@
 namespace Hyperion {
 namespace CodeGen {
 
+struct PluginModuleInfo;
+
 struct ModuleAPIMapping
 {
     String subdirPattern;
     String apiMacro;
     String outputSubdir;
     String initSuffix;
+    String pluginModuleName;
 };
 
 class CXXModuleGenerator : public GeneratorBase
@@ -37,12 +40,13 @@ public:
     FilePath GetInlineOutputFilePath(const Analyzer& analyzer, const Module& mod) const;
 
     static const Array<ModuleAPIMapping>& GetModuleAPIMappings();
+    static ModuleAPIMapping GetMappingForModule(const Analyzer& analyzer, const Module& mod);
     static String GetAPIMacroForModule(const Analyzer& analyzer, const Module& mod);
-    static String GetClassDeclsOutputSubdirForAPIMacro(const String& apiMacro);
-    static String GetInitFunctionNameForAPIMacro(const String& apiMacro);
+    static String GetInitFunctionName(const ModuleAPIMapping& mapping);
 
     Result GenerateClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
-    Result GenerateClassDeclImplementation(const Analyzer& analyzer, const String& apiMacro, ByteWriter& writer) const;
+    Result GenerateClassDeclImplementation(const Analyzer& analyzer, const ModuleAPIMapping& mapping, ByteWriter& writer) const;
+    Result GeneratePluginModuleRegister(const Analyzer& analyzer, const PluginModuleInfo& pluginModule, ByteWriter& writer) const;
 
 protected:
 };

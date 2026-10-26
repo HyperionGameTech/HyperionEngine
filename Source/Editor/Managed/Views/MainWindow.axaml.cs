@@ -1222,11 +1222,38 @@ namespace Hyperion.Editor
             }
         }
 
+        private static readonly object PluginMenuEntryTag = new object();
+
         private void OnToolSettingsMenuOpened(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainWindowViewModel vm)
             {
                 vm.RefreshDebugOverlayToggleStates();
+            }
+
+            if (sender is not ContextMenu menu)
+            {
+                return;
+            }
+
+            // entries from enabled editor plugins go at the end; they're rebuilt each time since plugins change with the project
+            foreach (Control staleEntry in menu.Items.OfType<Control>().Where(item => ReferenceEquals(item.Tag, PluginMenuEntryTag)).ToList())
+            {
+                menu.Items.Remove(staleEntry);
+            }
+
+            List<EditorPluginMenuItem> pluginItems = EditorPluginService.Instance.ToolMenuItems.ToList();
+
+            if (pluginItems.Count == 0)
+            {
+                return;
+            }
+
+            menu.Items.Add(new Separator { Tag = PluginMenuEntryTag });
+
+            foreach (EditorPluginMenuItem pluginItem in pluginItems)
+            {
+                menu.Items.Add(new MenuItem { Header = pluginItem.Header, Command = pluginItem.Command, Tag = PluginMenuEntryTag });
             }
         }
 

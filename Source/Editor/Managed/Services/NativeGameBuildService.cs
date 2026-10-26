@@ -27,9 +27,9 @@ namespace Hyperion.Editor.Services
             return BuildAsync(projectFilePath, isPackage: false, Array.Empty<string>());
         }
 
-        public bool BuildPackage(string projectFilePath, string outputDirectory, string? scriptsLinkInputsFile)
+        public bool BuildPackage(string projectFilePath, string outputDirectory, string? scriptsLinkInputsFile, string? pluginModulesFile)
         {
-            return BuildAsync(projectFilePath, isPackage: true, NativeGameBuild.GetPackageArguments(outputDirectory, scriptsLinkInputsFile)).GetAwaiter().GetResult();
+            return BuildAsync(projectFilePath, isPackage: true, NativeGameBuild.GetPackageArguments(outputDirectory, scriptsLinkInputsFile, pluginModulesFile)).GetAwaiter().GetResult();
         }
 
         private async Task<bool> BuildAsync(

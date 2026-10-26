@@ -13,6 +13,7 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/Game.hpp>
+#include <Plugins/PluginModule.hpp>
 #include <Framework/CacheClient.hpp>
 #include <Framework/DeviceTier/DeviceTierResolver.hpp>
 
@@ -497,6 +498,8 @@ extern "C"
 #ifdef HYP_EDITOR
         InitializeModule_Editor();
 #endif // HYP_EDITOR
+
+        InitializePluginModules();
 
 #if HYP_ANDROID
         const FilePath basePath = FilePath(AndroidAssetPathPrefix);

@@ -534,7 +534,8 @@ public:
         const Set<FilePath>& excludeDirectories,
         const Set<FilePath>& excludeFiles,
         CXXGenerationMode cxxMode = CXXGenerationMode::CPP,
-        const FilePath& engineTypesFile = FilePath())
+        const FilePath& engineTypesFile = FilePath(),
+        Array<PluginModuleInfo>&& pluginModules = {})
         : m_strataBodiesFile(strataBodiesFile),
           m_engineTypesFile(engineTypesFile)
     {
@@ -542,6 +543,7 @@ public:
 
         m_analyzer.SetWorkingDirectory(workingDirectory);
         m_analyzer.SetSourceDirectory(sourceDirectory);
+        m_analyzer.SetPluginModules(std::move(pluginModules));
 
         m_analyzer.SetCXXOutputDirectory(cxxOutputDirectory);
         m_analyzer.SetCSharpOutputDirectory(csharpOutputDirectory);
@@ -664,10 +666,17 @@ private:
     {
         const FilePath& workingDirectory = m_analyzer.GetWorkingDirectory();
 
-        return {
+        Set<String> includePaths {
             workingDirectory / "Source/Engine",
             workingDirectory / "include"
         };
+
+        for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
+        {
+            includePaths.Insert(pluginModule.sourceRoot);
+        }
+
+        return includePaths;
     }
 
     void FindModules()
@@ -717,6 +726,11 @@ private:
         };
 
         iterateFilesAndSubdirectories(m_analyzer.GetSourceDirectory());
+
+        for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
+        {
+            iterateFilesAndSubdirectories(pluginModule.moduleDirectory);
+        }
     }
 
     Task<void> ProcessModules()
@@ -1441,7 +1455,7 @@ private:
 
                 cxxModuleWriter = new FileByteWriter(m_analyzer.GetCXXOutputDirectory() / filenameBuffer);
 
-                cxxModuleWriter->WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod->GetPath(), m_analyzer.GetSourceDirectory())));
+                cxxModuleWriter->WriteString(GetGeneratedFilePreamble(m_analyzer.GetRelativePath(mod->GetPath())));
 
                 // add main required header that is shared across all generated modules.
                 cxxModuleWriter->WriteString("#include <Core/Reflection/ClassUtils.hpp>\n");
@@ -1523,7 +1537,7 @@ private:
         {
             if (mod->GetClasses().Any())
             {
-                headers.PushBack(FilePath::Relative(mod->GetPath(), m_analyzer.GetSourceDirectory()).ReplaceAll("\\", "/"));
+                headers.PushBack(m_analyzer.GetRelativePath(mod->GetPath()).ReplaceAll("\\", "/"));
             }
         }
 
@@ -1644,22 +1658,29 @@ private:
             }
         }
 
-        // Determine all unique API macros used across modules (always include ENGINE_API for builtins/fallback)
-        Set<String> apiMacros;
-        apiMacros.Insert("ENGINE_API");
+        // one ClassDecls implementation per module group: Engine (builtins and fallback), Core, Editor, Script, and each plugin module
+        Map<String, ModuleAPIMapping> moduleGroups;
+        moduleGroups.Set("Engine", ModuleAPIMapping { String::empty, "ENGINE_API", String::empty, "Engine" });
 
         for (const UniquePtr<Module>& mod : m_analyzer.GetModules())
         {
-            if (!mod->GetClasses().Empty())
+            const ModuleAPIMapping mapping = CXXModuleGenerator::GetMappingForModule(m_analyzer, *mod);
+
+            if (!mod->GetClasses().Empty() || m_analyzer.FindPluginModule(mod->GetPath()) != nullptr)
             {
-                apiMacros.Insert(CXXModuleGenerator::GetAPIMacroForModule(m_analyzer, *mod));
+                moduleGroups.Set(mapping.initSuffix, mapping);
             }
         }
 
-        // Generate a separate ClassDecls implementation file per API macro group
-        for (const String& apiMacro : apiMacros)
+        for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
         {
-            const String outputSubdir = CXXModuleGenerator::GetClassDeclsOutputSubdirForAPIMacro(apiMacro);
+            moduleGroups.Set("Plugin_" + pluginModule.name, ModuleAPIMapping { String::empty, pluginModule.isEditor ? "EDITOR_API" : "ENGINE_API", "Plugins/" + pluginModule.name, "Plugin_" + pluginModule.name, pluginModule.name });
+        }
+
+        for (const Pair<String, ModuleAPIMapping>& moduleGroup : moduleGroups)
+        {
+            const ModuleAPIMapping& mapping = moduleGroup.second;
+            const String& outputSubdir = mapping.outputSubdir;
 
             FilePath classDeclImplDir = m_analyzer.GetCXXOutputDirectory();
 
@@ -1679,7 +1700,7 @@ private:
             }
             else
             {
-                if (Result res = cxxModuleGenerator.GenerateClassDeclImplementation(m_analyzer, apiMacro, classDeclImplWriter); res.HasError())
+                if (Result res = cxxModuleGenerator.GenerateClassDeclImplementation(m_analyzer, mapping, classDeclImplWriter); res.HasError())
                 {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), tmpClassDeclImplPath));
                 }
@@ -1688,6 +1709,39 @@ private:
             }
 
             ReplaceFileIfDifferent(tmpClassDeclImplPath, classDeclImplPath);
+        }
+
+        // the earlier single list of plugin modules, which every module's own registration replaced
+        if (const FilePath stalePluginModulesPath = m_analyzer.GetCXXOutputDirectory() / "PluginModules.cpp"; stalePluginModulesPath.Exists())
+        {
+            stalePluginModulesPath.Remove();
+        }
+
+        // Plugins/<Module>/Register/PluginModuleRegister.cpp, a subdirectory so the module's library doesn't glob it (Source/CMakeLists.txt)
+        for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
+        {
+            const FilePath registerDir = m_analyzer.GetCXXOutputDirectory() / "Plugins" / pluginModule.name / "Register";
+            Assert(registerDir.MkDir(), "Failed to create plugin module register directory: {}", registerDir);
+
+            const FilePath registerPath = registerDir / "PluginModuleRegister.cpp";
+            FilePath tmpRegisterPath = registerPath + ".tmp";
+            FileByteWriter registerWriter(tmpRegisterPath);
+
+            if (!registerWriter.IsOpen())
+            {
+                m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Failed to open plugin module register file: {}", {}, -1, tmpRegisterPath));
+
+                continue;
+            }
+
+            if (Result res = cxxModuleGenerator.GeneratePluginModuleRegister(m_analyzer, pluginModule, registerWriter); res.HasError())
+            {
+                m_analyzer.AddError(AnalyzerError(res.GetError(), tmpRegisterPath));
+            }
+
+            registerWriter.Close();
+
+            ReplaceFileIfDifferent(tmpRegisterPath, registerPath);
         }
     }
 
@@ -1773,7 +1827,7 @@ private:
         if (!cxxPath.Exists() || cxxPath.IsDirectory())
         {
             // No implementation file exists in src; create a small generated .cpp that includes the header and the .inl
-            const FilePath relHeaderPath = FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory());
+            const FilePath relHeaderPath = m_analyzer.GetRelativePath(headerPath);
 
             const FilePath genCxxPath = inlPath.BasePath() / (stem + ".generated.cpp");
             FilePath tmpGenCxxPath = genCxxPath + ".tmp";
@@ -1789,7 +1843,7 @@ private:
                 return HYP_MAKE_ERROR(Error, "Failed to open generated implementation file '{}' for writing", tmpGenCxxPath);
             }
 
-            writer.WriteString(GetGeneratedFilePreamble(FilePath::Relative(headerPath, m_analyzer.GetSourceDirectory())));
+            writer.WriteString(GetGeneratedFilePreamble(m_analyzer.GetRelativePath(headerPath)));
             writer.WriteString(HYP_FORMAT("#include <{}>\n", relHeaderPath.ReplaceAll("\\", "/")));
 
             // Include dependency module headers (relative to source directory), like the non-inline path
@@ -1805,7 +1859,7 @@ private:
                         continue;
                     }
 
-                    FilePath relDepPath = FilePath::Relative(dependencyModule->GetPath(), m_analyzer.GetSourceDirectory());
+                    FilePath relDepPath = m_analyzer.GetRelativePath(dependencyModule->GetPath());
                     String includeDepPathStr = relDepPath.Data();
                     writer.WriteString(HYP_FORMAT("#include <{}>\n", includeDepPathStr.ReplaceAll("\\", "/")));
                 }
@@ -2673,6 +2727,7 @@ int main(int argc, char** argv)
     definitions.Add("StrataBodiesFile", "", "Authored Strata struct bodies (extern struct) merged into Engine.strata", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
     definitions.Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+    definitions.Add("PluginDirectories", "", "Directories of built-in plugins (<dir>/<Plugin>/Source/<Module>), separated by ';'", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("Mode", "m", "Mode to run in. Use `Game` to just generate a game module's sources (against the engine types in --EngineTypes)", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders", "Game" }, String("ParseHeaders"));
     definitions.Add("EngineTypes", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, /* defaultValue */ String::empty);
     definitions.Add("CXXMode", "", "C++ code generation mode (Cpp or Inl)", CommandLineArgumentFlags::NONE, Array<String> { "Cpp", "Inl" }, String("Inl"));
@@ -2766,6 +2821,54 @@ int main(int argc, char** argv)
             strataBodiesFile = FilePath();
         }
 
+        Array<CodeGen::PluginModuleInfo> pluginModules;
+
+        if (!engineTypesFile.Any())
+        {
+            for (const String& pluginsDirectoryStr : parseResult.GetValue()["PluginDirectories"].AsString().Split(';'))
+            {
+                const FilePath pluginsDirectory = FilePath(pluginsDirectoryStr.Trimmed());
+
+                if (!pluginsDirectory.IsDirectory())
+                {
+                    continue;
+                }
+
+                for (const FilePath& pluginDirectory : pluginsDirectory.GetSubdirectories())
+                {
+                    const FilePath pluginSourceDirectory = pluginDirectory / "Source";
+
+                    if (!pluginSourceDirectory.IsDirectory())
+                    {
+                        continue;
+                    }
+
+                    for (const FilePath& moduleDirectory : pluginSourceDirectory.GetSubdirectories())
+                    {
+                        CodeGen::PluginModuleInfo pluginModule;
+                        pluginModule.name = moduleDirectory.Basename();
+                        pluginModule.sourceRoot = pluginSourceDirectory;
+                        pluginModule.moduleDirectory = moduleDirectory;
+                        pluginModule.isEditor = pluginModule.name.EndsWith("Editor");
+
+                        for (const CodeGen::PluginModuleInfo& otherModule : pluginModules)
+                        {
+                            if (otherModule.name == pluginModule.name)
+                            {
+                                HYP_LOG(Tool, Error, "Plugin module name {} is used by both {} and {}", pluginModule.name, otherModule.moduleDirectory, moduleDirectory);
+
+                                return 1;
+                            }
+                        }
+
+                        HYP_LOG(Tool, Info, "Plugin module {} ({})", pluginModule.name, pluginModule.isEditor ? "editor" : "runtime");
+
+                        pluginModules.PushBack(std::move(pluginModule));
+                    }
+                }
+            }
+        }
+
         CodeGen::Tool tool {
             workingDirectory,
             sourceDirectory,
@@ -2776,7 +2879,8 @@ int main(int argc, char** argv)
             excludeDirectories,
             excludeFiles,
             cxxMode,
-            engineTypesFile
+            engineTypesFile,
+            std::move(pluginModules)
         };
 
         Result res = tool.Run();

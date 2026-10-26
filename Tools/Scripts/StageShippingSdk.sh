@@ -71,6 +71,30 @@ stage_shipping_sdk() {
 
     echo "    $library_count libraries"
 
+    # each built-in plugin module's registration object, which a game links for the plugins it uses; they share a file name, so they're renamed
+    local plugin_module_objects_file="$shipping_bin_dir/Sdk/PluginModuleObjects.txt"
+    local plugin_module plugin_module_object plugin_module_object_name
+    : > "$shipping_stage_dir/PluginModuleObjects.txt"
+
+    if [[ -f "$plugin_module_objects_file" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ "$line" == *=* ]] || continue
+
+            plugin_module="${line%%=*}"
+            plugin_module_object="${line#*=}"
+
+            if [[ ! -f "$plugin_module_object" ]]; then
+                echo "The shipping SDK's plugin module $plugin_module has no object at $plugin_module_object" >&2
+                exit 1
+            fi
+
+            plugin_module_object_name="$plugin_module.PluginModuleRegister.${plugin_module_object##*.}"
+
+            cp "$plugin_module_object" "$shipping_stage_dir/Lib/$plugin_module_object_name"
+            echo "$plugin_module=$plugin_module_object_name" >> "$shipping_stage_dir/PluginModuleObjects.txt"
+        done < "$plugin_module_objects_file"
+    fi
+
     # the assemblies a C# game is compiled against, and what a game may load from the shipping build
     for file in Hyperion.NET.Shared.dll Hyperion.NET.Runtime.dll Hyperion.NET.Interop.dll Hyperion.NET.Generators.dll; do
         if [[ ! -f "$shipping_bin_dir/$file" ]]; then

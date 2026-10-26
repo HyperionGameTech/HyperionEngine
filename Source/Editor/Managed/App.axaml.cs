@@ -22,6 +22,8 @@ namespace Hyperion.Editor
         {
             AvaloniaXamlLoader.Load(this);
 
+            DataTemplates.Add(EditorPluginService.Instance.ViewLocator);
+
             // An exception in managed code should not take down the entire application, ideally.
             Dispatcher.UIThread.UnhandledException += OnUIThreadUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;

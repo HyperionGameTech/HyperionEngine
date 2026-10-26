@@ -121,7 +121,42 @@ namespace Hyperion.Editor.Services
             return (libraries, linkOptions);
         }
 
-        public List<string> GetStaticEnginePublishProperties(string intermediateDirectory, bool linksExecutable)
+        /// The registration objects of these built-in plugin modules (Sdk/PluginModuleObjects.txt); linking one into the executable adds its module.
+        /// Modules the SDK doesn't have go in missingModules
+        public List<string> GetPluginModuleObjects(IEnumerable<string> pluginModules, List<string>? missingModules = null)
+        {
+            List<string> objects = new List<string>();
+
+            string objectsFile = Path.Combine(Directory, "PluginModuleObjects.txt");
+
+            if (!IsShipping || !File.Exists(objectsFile))
+            {
+                return objects;
+            }
+
+            Dictionary<string, string> moduleObjects = File.ReadAllLines(objectsFile)
+                .Select(line => line.Trim().Split('=', 2))
+                .Where(parts => parts.Length == 2)
+                .ToDictionary(parts => parts[0], parts => parts[1]);
+
+            foreach (string pluginModule in pluginModules)
+            {
+                if (!moduleObjects.TryGetValue(pluginModule, out string? moduleObject))
+                {
+                    missingModules?.Add(pluginModule);
+
+                    continue;
+                }
+
+                string packagedObject = Path.Combine(Directory, "Lib", moduleObject);
+
+                objects.Add(File.Exists(packagedObject) ? packagedObject : moduleObject);
+            }
+
+            return objects;
+        }
+
+        public List<string> GetStaticEnginePublishProperties(string intermediateDirectory, bool linksExecutable, IEnumerable<string>? pluginModules = null, List<string>? missingPluginModules = null)
         {
             List<string> properties = new List<string>
             {
@@ -139,6 +174,11 @@ namespace Hyperion.Editor.Services
             if (engineLibraries.Count == 0)
             {
                 throw new InvalidOperationException($"The shipping SDK at {Directory} contains no engine libraries");
+            }
+
+            if (pluginModules != null)
+            {
+                engineLibraries.AddRange(GetPluginModuleObjects(pluginModules, missingPluginModules));
             }
 
             string engineLibrariesFile = Path.Combine(intermediateDirectory, "EngineLibraries.txt");

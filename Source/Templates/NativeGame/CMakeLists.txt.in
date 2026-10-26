@@ -27,5 +27,6 @@ hyperion_game_codegen(@NAME@Game "${CMAKE_CURRENT_SOURCE_DIR}")
 add_executable(@NAME@ Launcher/main.cpp)
 target_link_libraries(@NAME@ PRIVATE Hyperion::Engine @NAME@Game)
 hyperion_link_scripts(@NAME@)
+hyperion_link_plugin_modules(@NAME@)
 
 hyperion_copy_runtime(@NAME@)

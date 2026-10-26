@@ -20,6 +20,8 @@
 #include <Core/Utilities/StringUtil.hpp>
 #include <Core/Utilities/Time.hpp>
 
+#include <Plugins/PluginManager.hpp>
+
 #include <EditorProjectSettings.generated.inl>
 
 namespace Hyperion {
@@ -85,6 +87,26 @@ CachedProjectSettings ReadCachedProjectSettings(const FilePath& projectFilepath)
 }
 
 } // namespace
+
+Array<Name> EditorProjectSettings::ResolveEnabledPlugins() const
+{
+    Array<Name> pluginNames = PluginManager::GetInstance().GetDefaultEnabledPlugins();
+
+    for (Name pluginName : enabledPlugins)
+    {
+        if (!pluginNames.Contains(pluginName))
+        {
+            pluginNames.PushBack(pluginName);
+        }
+    }
+
+    for (Name pluginName : disabledPlugins)
+    {
+        pluginNames.Erase(pluginName);
+    }
+
+    return pluginNames;
+}
 
 EDITOR_API String ResolveModuleName(const String& moduleName, const String& gameTitle, const FilePath& projectFilepath)
 {

@@ -1431,6 +1431,43 @@ const ClassDefinition* Analyzer::FindClassDefinition_Internal(UTF8StringView cla
     return nullptr;
 }
 
+const PluginModuleInfo* Analyzer::FindPluginModule(const FilePath& path) const
+{
+    const String normalizedPath = path.ReplaceAll("\\", "/");
+
+    for (const PluginModuleInfo& pluginModule : m_pluginModules)
+    {
+        if (normalizedPath.StartsWith(pluginModule.moduleDirectory.ReplaceAll("\\", "/") + "/"))
+        {
+            return &pluginModule;
+        }
+    }
+
+    return nullptr;
+}
+
+FilePath Analyzer::GetRelativePath(const FilePath& path) const
+{
+    if (const PluginModuleInfo* pluginModule = FindPluginModule(path))
+    {
+        return FilePath::Relative(path, pluginModule->sourceRoot);
+    }
+
+    return FilePath::Relative(path, m_sourceDirectory);
+}
+
+FilePath Analyzer::GetOutputRelativePath(const FilePath& path) const
+{
+    if (const PluginModuleInfo* pluginModule = FindPluginModule(path))
+    {
+        const FilePath prefix = pluginModule->isEditor ? FilePath("Editor/Plugins") : FilePath("Plugins");
+
+        return prefix / FilePath::Relative(path, pluginModule->sourceRoot);
+    }
+
+    return FilePath::Relative(path, m_sourceDirectory);
+}
+
 Module* Analyzer::AddModule(const FilePath& path)
 {
     Mutex::Guard guard(m_mutex);
