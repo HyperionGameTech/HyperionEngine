@@ -8,13 +8,18 @@ public static unsafe class Program
     {
         if (args.Length < 3)
         {
-            Console.Error.WriteLine("Usage: EditorTestHost create <project file> <managed|native> | simulate <project directory> <frames> <results file>");
+            Console.Error.WriteLine("Usage: EditorTestHost create <project file> <managed|native> | simulate <project directory> <frames> <results file> | play <project directory> <frames> <Standalone|Client|DedicatedServer> <host> <port> <expected clients> <results file>");
 
             return 2;
         }
 
         string command = args[0];
-        int numCommandArgs = command == "simulate" ? 4 : 3;
+        int numCommandArgs = command switch
+        {
+            "simulate" => 4,
+            "play" => 8,
+            _ => 3
+        };
 
         List<string> engineArgs = new List<string>
         {
@@ -40,6 +45,7 @@ public static unsafe class Program
         {
             "create" => EditorTestHost_CreateProject(args[1], args[2] == "managed" ? 1 : 0),
             "simulate" => EditorTestHost_Simulate(args[1], int.Parse(args[2]), args[3]),
+            "play" => EditorTestHost_Play(args[1], int.Parse(args[2]), args[3], args[4], int.Parse(args[5]), int.Parse(args[6]), args[7]),
             _ => 0
         };
 
@@ -116,4 +122,14 @@ public static unsafe class Program
 
     [DllImport("hyperion", CharSet = CharSet.Ansi)]
     private static extern int EditorTestHost_Simulate([MarshalAs(UnmanagedType.LPUTF8Str)] string projectDirectory, int numFrames, [MarshalAs(UnmanagedType.LPUTF8Str)] string resultsPath);
+
+    [DllImport("hyperion", CharSet = CharSet.Ansi)]
+    private static extern int EditorTestHost_Play(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string projectDirectory,
+        int numFrames,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string netMode,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string host,
+        int port,
+        int expectedClients,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string resultsPath);
 }

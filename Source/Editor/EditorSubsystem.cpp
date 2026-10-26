@@ -4391,6 +4391,11 @@ void EditorSubsystem::LoadPlayNetSettings()
 
 void EditorSubsystem::SavePlayNetSettings()
 {
+    if (!m_persistPlayNetSettings)
+    {
+        return;
+    }
+
     EditorConfig config;
     config.Load();
 

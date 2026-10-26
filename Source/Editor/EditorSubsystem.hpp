@@ -256,6 +256,13 @@ public:
         return m_playNetState.status;
     }
 
+    /*! \brief Should PIE net settings be saved to the user's config?
+     *  This is used when we drive the editor via tools or tests, and don't want to write into the user's config. */
+    void SetPersistPlayNetSettings(bool persist)
+    {
+        m_persistPlayNetSettings = persist;
+    }
+
     HYP_METHOD()
     String GetPlayNetContentDirectory() const;
 
@@ -1075,6 +1082,7 @@ private:
     FilePath m_simulationSnapshotPath;
 
     EditorPlayNetState m_playNetState;
+    bool m_persistPlayNetSettings = true;
 
     Handle<Entity> m_meshPreviewEntity;
     Handle<Material> m_meshPreviewMaterial;

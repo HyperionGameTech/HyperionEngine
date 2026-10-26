@@ -59,12 +59,14 @@ struct DelegateHandler;
 static constexpr uint64 ExclusiveAccessFlag = 0x1;
 
 static constexpr uint64 MarkedForRemovalFlag = uint64(1) << 63;
+static constexpr uint64 OrphanedFlag = uint64(1) << 62;
+
 // A mask that is written when marking an entry for removal.
 // An entry is marked for removal rather than being removed directly to limit the amount of exclusive locking required.
 
 // When calling Broadcast(), delegate will also set this mask on a handler while executing the function that is assigned to the handler,
 // preventing an entry from being deleted while it is executing (but still allowing other threads to MARK an entry for removal at a later time)
-static constexpr uint64 SharedAccessMask = (UINT64_MAX & ~ExclusiveAccessFlag) & (UINT64_MAX >> 1);
+static constexpr uint64 SharedAccessMask = UINT64_MAX & ~(ExclusiveAccessFlag | OrphanedFlag | MarkedForRemovalFlag);
 
 struct DelegateHandlerEntryBase
 {
@@ -255,13 +257,7 @@ public:
 
         for (DelegateHandlerEntry<ProcType>* entry : m_lists[0])
         {
-            while (HYP_UNLIKELY(entry->mask.Get(MemoryOrder::ACQUIRE) & SharedAccessMask))
-            {
-                HYP_NAMED_SCOPE("~DelegateImpl() - Waiting for read scopes to finish");
-                ThreadSleep(0);
-            }
-
-            delete entry;
+            ReleaseEntry(entry);
         }
     }
 
@@ -347,7 +343,7 @@ public:
         {
             DelegateHandlerEntry<ProcType>* current = *it;
 
-            // set write mask, loop until we have exclusive access.
+            // set write mask
             uint64 state = current->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE);
 
             if (state & ExclusiveAccessFlag)
@@ -357,17 +353,12 @@ public:
                 continue;
             }
 
-            while (state & SharedAccessMask)
-            {
-                state = current->mask.Get(MemoryOrder::ACQUIRE);
-                HYP_WAIT_IDLE();
-            }
-
             if (state & MarkedForRemovalFlag)
             {
-                delete current;
-
                 it = list.Erase(it);
+
+                // tasks queued by Broadcast() may still be reading it - the last of them deletes it then
+                ReleaseEntry(current);
 
                 ++numRemoved;
 
@@ -587,7 +578,7 @@ public:
                                 // handler was removed while this task was queued; other queued tasks may still
                                 // reference this entry, so release the Proc and drop our read access without calling
                                 current->proc.Reset();
-                                current->mask.Decrement(2, MemoryOrder::RELEASE);
+                                ReleaseQueuedRead(current);
                                 return;
                             }
 
@@ -600,7 +591,7 @@ public:
                             }
 
                             // Done reading
-                            current->mask.Decrement(2, MemoryOrder::RELEASE);
+                            ReleaseQueuedRead(current);
                         },
                         TaskEnqueueFlags::FIRE_AND_FORGET);
                 }
@@ -685,6 +676,26 @@ protected:
         delegateCasted->DetachDelegateHandler(std::move(handler));
     }
 
+    static void ReleaseEntry(DelegateHandlerEntry<ProcType>* entry)
+    {
+        const uint64 state = entry->mask.BitOr(OrphanedFlag, MemoryOrder::ACQUIRE_RELEASE);
+
+        if (!(state & SharedAccessMask))
+        {
+            delete entry;
+        }
+    }
+
+    static void ReleaseQueuedRead(DelegateHandlerEntry<ProcType>* entry)
+    {
+        const uint64 state = entry->mask.Decrement(2, MemoryOrder::ACQUIRE_RELEASE) - 2;
+
+        if ((state & OrphanedFlag) && !(state & SharedAccessMask))
+        {
+            delete entry;
+        }
+    }
+
     /*! \brief Add a delegate handler to hang around after its DelegateHandler is destructed */
     void DetachDelegateHandler(DelegateHandler&& handler)
     {
@@ -725,7 +736,7 @@ protected:
 
     void UnlockList(ProcList& list)
     {
-        const int32 i = &list == &m_lists[0] ? 0 : 1;
+        const int32 i = int32(&list - &m_lists[0]);
         m_listMtx[i].Unlock();
     }
 

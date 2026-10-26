@@ -1415,7 +1415,11 @@ if(APPLE)
   # for the Hyperion.NET assemblies, since we define functions for P/Invoke there.
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
     if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
-      target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
+      if(HYP_BUILD_STATIC)
+        target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+      else()
+        target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
+      endif()
     else()
       target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
     endif()
@@ -1425,11 +1429,6 @@ elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
     if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
       if(HYP_BUILD_STATIC)
-        # static build: the consuming executable links the dotnet sub-libs directly,
-        # and plain linking pulls in exactly the referenced symbols (e.g. Class_GetMethod).
-        # /WHOLEARCHIVE must not be used here - a raw /WHOLEARCHIVE:path link item is treated
-        # as a file path by the Ninja generator, and link options on a static lib do not
-        # propagate to consumers.
         target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
       else()
         # shared (DLL) build: force every object in so the C# P/Invoke bindings are exported
@@ -1440,14 +1439,6 @@ elseif(HYP_MSVC OR HYP_CLANG_WINDOWS)
     endif()
   endforeach()
 else()
-  # GNU ld's equivalent of the /WHOLEARCHIVE (MSVC) / -force_load (Apple) handling above: an
-  # object's dllexport directives (its embedded .drectve "-export:..." entries, or plain
-  # default-visibility symbols on non-Windows) are only honored if the linker actually pulls
-  # that object out of the static archive, which only happens if something else in the link
-  # references one of its symbols. The C# P/Invoke bindings in hyperion-dotnet-* are called
-  # exclusively from managed code -- nothing in this C++ link references them -- so without
-  # forcing the whole archive in, they're silently dropped and P/Invoke fails at runtime with
-  # "Unable to find an entry point named ... in DLL 'hyperion'" despite compiling cleanly.
   foreach(SUB_LIBRARY ${SUB_LIBRARIES})
     if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*")
       if(HYP_BUILD_STATIC)
@@ -1471,7 +1462,6 @@ endif()
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 if(HYP_WEB)
-  # how a page is linked: the sample, and a project's page through Sdk/CMake/HyperionWebSdk.cmake
   set(HYP_WEB_APP_LINK_OPTIONS
     ${HYP_WEB_LINK_OPTIONS}
     -sPROXY_TO_PTHREAD=1
@@ -1574,11 +1564,10 @@ function(hyp_collect_static_link_items rootTarget outVar)
   set(${outVar} ${items} PARENT_SCOPE)
 endfunction()
 
-# the SDK native game projects build against: the editor's shared engine, or the static engine of a shipping SDK (Package Game)
+# sdk for native game projects
 if((NOT HYP_BUILD_STATIC OR HYP_SHIPPING_SDK) AND NOT HYP_ANDROID AND NOT HYP_IOS)
   get_directory_property(HYP_SDK_DEFINITION_LIST COMPILE_DEFINITIONS)
 
-  # only the Tracy client in core includes it, and it names the source tree
   list(FILTER HYP_SDK_DEFINITION_LIST EXCLUDE REGEX "^TRACY_PLATFORM_HEADER=")
 
   # the client is exported from hyperion.dll (see Core/CMakeLists.txt), so a game's zones import it

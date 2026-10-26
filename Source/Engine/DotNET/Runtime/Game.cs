@@ -8,7 +8,7 @@ namespace Hyperion
     {
         protected override void Dispose(bool isDisposing)
         {
-            if (IsValid)
+            if (IsValid && !IsEngineShuttingDown)
             {
                 World?.Dispose();
                 AssetRegistry?.Dispose();

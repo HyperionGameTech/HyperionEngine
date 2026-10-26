@@ -25,6 +25,101 @@ public sealed record ProcessResult(string Description, int ExitCode, bool TimedO
     }
 }
 
+/// A process started by ProcessRunner.Start() that is still running, so a test can run something else alongside it
+public sealed class RunningProcess
+{
+    private readonly string _description;
+    private readonly Process _process;
+    private readonly StreamWriter _logWriter;
+    private readonly StringBuilder _output = new();
+
+    private ProcessResult? _result;
+
+    internal RunningProcess(string description, Process process, StreamWriter logWriter, string logPath)
+    {
+        _description = description;
+        _process = process;
+        _logWriter = logWriter;
+        LogPath = logPath;
+    }
+
+    public string LogPath { get; }
+
+    public bool HasExited => _result != null || _process.HasExited;
+
+    /// What the process has printed so far
+    public string OutputSoFar
+    {
+        get
+        {
+            lock (_output)
+            {
+                return _output.ToString();
+            }
+        }
+    }
+
+    internal void AppendLine(string? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        lock (_output)
+        {
+            _output.AppendLine(line);
+            _logWriter.WriteLine(line);
+        }
+    }
+
+    /// Kills the process tree if it is still running. Wait() then collects what it printed.
+    public void Kill()
+    {
+        if (_result == null && !_process.HasExited)
+        {
+            _process.Kill(entireProcessTree: true);
+        }
+    }
+
+    public ProcessResult Wait(TimeSpan timeout)
+    {
+        if (_result != null)
+        {
+            return _result;
+        }
+
+        bool timedOut = !_process.WaitForExit(timeout);
+
+        if (timedOut)
+        {
+            _process.Kill(entireProcessTree: true);
+            _process.WaitForExit();
+        }
+        else
+        {
+            // flushes the redirected streams
+            _process.WaitForExit();
+        }
+
+        int exitCode = timedOut
+            ? -1
+            : _process.ExitCode;
+
+        _process.Dispose();
+        _logWriter.Dispose();
+
+        _result = new ProcessResult(
+            _description,
+            exitCode,
+            timedOut,
+            OutputSoFar,
+            LogPath);
+
+        return _result;
+    }
+}
+
 public static class ProcessRunner
 {
     public static ProcessResult Run(
@@ -34,6 +129,17 @@ public static class ProcessRunner
         string workingDirectory,
         string logPath,
         TimeSpan timeout,
+        IReadOnlyDictionary<string, string>? environment = null)
+    {
+        return Start(description, fileName, arguments, workingDirectory, logPath, environment).Wait(timeout);
+    }
+
+    public static RunningProcess Start(
+        string description,
+        string fileName,
+        IEnumerable<string> arguments,
+        string workingDirectory,
+        string logPath,
         IReadOnlyDictionary<string, string>? environment = null)
     {
         ProcessStartInfo startInfo = new ProcessStartInfo(fileName)
@@ -61,54 +167,20 @@ public static class ProcessRunner
         Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
         // written as it arrives, so a game that hangs until the timeout still leaves a log to look at
-        using StreamWriter logWriter = new StreamWriter(logPath) { AutoFlush = true };
+        StreamWriter logWriter = new StreamWriter(logPath) { AutoFlush = true };
 
-        StringBuilder output = new StringBuilder();
+        Process process = new Process { StartInfo = startInfo };
+        RunningProcess running = new RunningProcess(description, process, logWriter, logPath);
 
-        void AppendLine(string? line)
-        {
-            if (line == null)
-            {
-                return;
-            }
+        running.AppendLine($"> {fileName} {string.Join(' ', startInfo.ArgumentList)}");
 
-            lock (output)
-            {
-                output.AppendLine(line);
-                logWriter.WriteLine(line);
-            }
-        }
-
-        AppendLine($"> {fileName} {string.Join(' ', startInfo.ArgumentList)}");
-
-        using Process process = new Process { StartInfo = startInfo };
-        process.OutputDataReceived += (_, e) => AppendLine(e.Data);
-        process.ErrorDataReceived += (_, e) => AppendLine(e.Data);
+        process.OutputDataReceived += (_, e) => running.AppendLine(e.Data);
+        process.ErrorDataReceived += (_, e) => running.AppendLine(e.Data);
 
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        bool timedOut = !process.WaitForExit(timeout);
-
-        if (timedOut)
-        {
-            process.Kill(entireProcessTree: true);
-            process.WaitForExit();
-        }
-        else
-        {
-            // flushes the redirected streams
-            process.WaitForExit();
-        }
-
-        string text;
-
-        lock (output)
-        {
-            text = output.ToString();
-        }
-
-        return new ProcessResult(description, timedOut ? -1 : process.ExitCode, timedOut, text, logPath);
+        return running;
     }
 }
