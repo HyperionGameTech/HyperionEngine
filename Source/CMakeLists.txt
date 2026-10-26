@@ -1653,6 +1653,11 @@ if((NOT HYP_BUILD_STATIC OR HYP_SHIPPING_SDK) AND NOT HYP_ANDROID AND NOT HYP_IO
         get_filename_component(link_item "${link_item}" ABSOLUTE)
       endif()
 
+      if(link_item MATCHES "\\.framework$")
+        get_filename_component(framework_name "${link_item}" NAME_WE)
+        set(link_item "-framework ${framework_name}")
+      endif()
+
       list(APPEND HYP_SDK_DEV_LIBRARIES "${link_item}")
     endforeach()
 
