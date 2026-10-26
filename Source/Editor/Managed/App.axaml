@@ -62,6 +62,9 @@
         <DataTemplate DataType="vm:SaveAsTemplatePanelViewModel">
             <panels:SaveAsTemplatePanelView />
         </DataTemplate>
+        <DataTemplate DataType="vm:ModelImportPanelViewModel">
+            <panels:ModelImportPanelView />
+        </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Resources>

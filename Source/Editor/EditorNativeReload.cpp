@@ -451,10 +451,7 @@ EDITOR_API void RebuildRetiredModuleObjects(EditorProject* project, EditorSubsys
 
     if (subsystem)
     {
-        if (subsystem->IsEditingPrefab())
-        {
-            subsystem->GetPrefabEditState()->Exit(/* apply */ true);
-        }
+        subsystem->ExitIsolatedEditStates(/* apply */ true);
 
         subsystem->ExitMeshEditMode(/* saveEdits */ true);
         subsystem->GetCsgState()->Exit(/* saveEdits */ true);

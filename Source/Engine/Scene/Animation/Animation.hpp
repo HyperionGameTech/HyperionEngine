@@ -12,6 +12,8 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/String.hpp>
 
+#include <Core/Utilities/Span.hpp>
+
 #include <Core/Reflection/ObjectBase.hpp>
 #include <Core/Reflection/Handle.hpp>
 
@@ -20,6 +22,7 @@
 #include <Scene/Animation/Keyframe.hpp>
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetImportInfo.hpp>
 
 namespace Hyperion {
 
@@ -35,6 +38,8 @@ struct ApplyAnimParams
     float layerWeight = 1.0f;
     float blend = 0.5f;
     Name layerExcludedBone;
+    // per-slot multipliers on layerWeight (a BoneMask); empty applies the layer evenly, apart from layerExcludedBone
+    Span<const float> layerBoneWeights;
 
     // optional stuff below
     const Animation* secondLayerAnimation = nullptr;
@@ -128,6 +133,36 @@ private:
     uint32 m_storedRotationConvention = 0;
 };
 
+HYP_STRUCT()
+struct AnimationNotify
+{
+    HYP_STRUCT_BODY(AnimationNotify);
+
+    HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
+    Name name;
+
+    HYP_FIELD(Property = "Time", Serialize = true, Editor = true)
+    float time = 0.0f;
+
+    HYP_FIELD(Property = "Duration", Serialize = true, Editor = true)
+    float duration = 0.0f;
+
+    HYP_FORCE_INLINE bool operator==(const AnimationNotify& other) const
+    {
+        return name == other.name && time == other.time && duration == other.duration;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(time);
+        hc.Add(duration);
+
+        return hc;
+    }
+};
+
 HYP_CLASS(AssetBucket = "Animations")
 class ENGINE_API Animation final : public AssetObject
 {
@@ -184,9 +219,75 @@ public:
     HYP_METHOD()
     AnimationTrack* FindTrack(Name boneName) const;
 
+    HYP_METHOD(Property = "Loop")
+    bool IsLooping() const
+    {
+        return m_isLooping;
+    }
+
+    HYP_METHOD(Property = "Loop")
+    void SetLooping(bool isLooping)
+    {
+        m_isLooping = isLooping;
+    }
+
+    HYP_METHOD(Property = "RootMotion")
+    bool HasRootMotion() const
+    {
+        return m_hasRootMotion;
+    }
+
+    HYP_METHOD(Property = "RootMotion")
+    void SetRootMotion(bool hasRootMotion)
+    {
+        m_hasRootMotion = hasRootMotion;
+    }
+
+    HYP_FORCE_INLINE const AssetImportInfo& GetImportInfo() const
+    {
+        return m_importInfo;
+    }
+
+    HYP_FORCE_INLINE void SetImportInfo(const AssetImportInfo& importInfo)
+    {
+        m_importInfo = importInfo;
+    }
+
+    // bumped whenever the tracks change, so cached track bindings know to rebuild
+    HYP_FORCE_INLINE uint32 GetRevision() const
+    {
+        return m_revision;
+    }
+
+    HYP_METHOD(Property = "Notifies", NoScriptBindings)
+    const Array<AnimationNotify>& GetNotifies() const
+    {
+        return m_notifies;
+    }
+
+    HYP_METHOD(Property = "Notifies", NoScriptBindings)
+    void SetNotifies(const Array<AnimationNotify>& notifies)
+    {
+        m_notifies = notifies;
+    }
+
 private:
     HYP_FIELD(Property = "Tracks")
     Array<Handle<AnimationTrack>> m_tracks;
+
+    HYP_FIELD(Property = "Notifies")
+    Array<AnimationNotify> m_notifies;
+
+    HYP_FIELD(Property = "Loop")
+    bool m_isLooping = true;
+
+    HYP_FIELD(Property = "RootMotion")
+    bool m_hasRootMotion = false;
+
+    HYP_FIELD(Property = "ImportInfo", Serialize, Editor = false)
+    AssetImportInfo m_importInfo;
+
+    uint32 m_revision = 0;
 };
 
 } // namespace Hyperion

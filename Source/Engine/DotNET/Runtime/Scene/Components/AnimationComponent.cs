@@ -19,7 +19,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="AnimationPlaybackState")]
-    [StructLayout(LayoutKind.Sequential, Size = 104)]
+    [StructLayout(LayoutKind.Sequential, Size = 72)]
     public struct AnimationPlaybackState
     {
         public uint AnimationIndex = uint.MaxValue;
@@ -44,12 +44,16 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="AnimationComponent")]
-    [StructLayout(LayoutKind.Sequential, Size = 112)]
+    [StructLayout(LayoutKind.Sequential, Size = 96)]
     public ref struct AnimationComponent : IComponent
     {
         public AnimationPlaybackState PlaybackState = new();
 
         private Handle<Animation> _animationHandle;
+
+        private Handle<BoneMask> _layerMaskHandle;
+
+        private float _crossFadeRemaining;
 
         public AnimationComponent()
         {
@@ -58,6 +62,7 @@ namespace Hyperion
         public void Dispose()
         {
             _animationHandle.Dispose();
+            _layerMaskHandle.Dispose();
         }
 
         public Animation? Animation
@@ -78,6 +83,16 @@ namespace Hyperion
             }
         }
 
+        public BoneMask? LayerMask
+        {
+            get => _layerMaskHandle.GetValue();
+            set
+            {
+                _layerMaskHandle.Dispose();
+                _layerMaskHandle = value != null ? new Handle<BoneMask>(value) : Handle<BoneMask>.Empty;
+            }
+        }
+
         public bool IsPlaying => PlaybackState.Status == AnimationPlaybackStatus.Playing;
 
         public void Play(Animation? clip, AnimationLoopMode loopMode = AnimationLoopMode.Repeat, float speed = 1.0f)
@@ -88,6 +103,17 @@ namespace Hyperion
             PlaybackState.LoopMode = loopMode;
             PlaybackState.Speed = speed;
             PlaybackState.CurrentTime = 0.0f;
+
+            _crossFadeRemaining = 0.0f;
+        }
+
+        public void CrossFade(Animation? clip, float duration, AnimationLoopMode loopMode = AnimationLoopMode.Repeat, float speed = 1.0f)
+        {
+            bool wasPlaying = IsPlaying;
+
+            Play(clip, loopMode, speed);
+
+            _crossFadeRemaining = wasPlaying && clip != null ? duration : 0.0f;
         }
 
         public void Stop()

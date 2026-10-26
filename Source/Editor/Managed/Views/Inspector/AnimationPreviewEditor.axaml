@@ -7,7 +7,7 @@
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:DataType="vm:AnimationPreviewViewModel"
     mc:Ignorable="d">
-    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
         <Button
             Grid.Column="0"
             MinWidth="56"
@@ -25,5 +25,10 @@
             Margin="6,0,0,0"
             VerticalAlignment="Center"
             Text="{Binding TimeText}" />
+        <Button
+            Grid.Column="3"
+            Margin="6,0,0,0"
+            Command="{Binding EditCommand}"
+            Content="Edit" />
     </Grid>
 </UserControl>

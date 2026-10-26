@@ -9,12 +9,22 @@
 #include <Editor/EditorTask.hpp>
 #include <Editor/EditorProject.hpp>
 #include <Editor/EditorAssetFolders.hpp>
+#include <Editor/EditorModelImportReview.hpp>
 #include <Editor/Tasks/EditorTasks.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetBatch.hpp>
 #include <Asset/AssetRegistry.hpp>
 #include <Asset/AssetObject.hpp>
+
+#include <Scene/Prefab.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/EntityManager.hpp>
+
+#include <Scene/Components/MeshComponent.hpp>
+
+#include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/Animation.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 #include <Core/Logging/Logger.hpp>
@@ -23,22 +33,15 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-static void HandleModelImport(
+static void FileImportedAssets(
     EditorAssetFolders& assetFolders,
-    AssetRegistry& registry,
-    const Handle<AssetObject>& modelAsset,
-    const String& targetFolder,
+    const Handle<AssetObject>& rootAsset,
+    const String& modelFolder,
     Set<uint32, EditorAllocator>& changedBuckets)
 {
-    registry.PutAssetsDeep(modelAsset);
-
-    const String modelFolder = EditorAssetFolders::JoinFolderPath(targetFolder, assetFolders.MakeUniqueFolderName(targetFolder, String(*modelAsset->GetName())));
-
-    assetFolders.SetAssetFolder(modelAsset->GetPath(), modelFolder);
-
     auto onSubAssetFound = [&](const Handle<AssetObject>& subAsset)
     {
-        if (!subAsset.IsValid() || subAsset == modelAsset || !subAsset->IsRegistered())
+        if (!subAsset.IsValid() || subAsset == rootAsset || !subAsset->IsRegistered())
         {
             return;
         }
@@ -55,10 +58,78 @@ static void HandleModelImport(
         changedBuckets.Insert(subAssetPath.GetBucket().GetIndex());
     };
 
-    AssetRegistry::WalkAssetDeep(BoxedValue(modelAsset), onSubAssetFound);
+    AssetRegistry::WalkAssetDeep(BoxedValue(rootAsset), onSubAssetFound);
 }
 
-void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& files, const String& targetFolder, EditorImportCallback&& onImported)
+Array<Handle<AssetObject>> CommitEditorModelImport(EditorSubsystem& subsystem, const ModelImportContents& contents, const String& targetFolder)
+{
+    AssetRegistry& registry = *GetCurrentAssetRegistry();
+
+    RegisterModelImport(registry, contents);
+
+    Array<Handle<AssetObject>> importedAssets;
+
+    if (contents.prefab.IsValid())
+    {
+        importedAssets.PushBack(contents.prefab);
+    }
+    else
+    {
+        for (const Handle<Animation>& clip : contents.animations)
+        {
+            importedAssets.PushBack(clip);
+        }
+    }
+
+    Set<uint32, EditorAllocator> changedBuckets;
+
+    for (const Handle<AssetObject>& asset : importedAssets)
+    {
+        if (asset->GetPath().IsValid())
+        {
+            changedBuckets.Insert(asset->GetPath().GetBucket().GetIndex());
+        }
+    }
+
+    if (contents.skeleton.IsValid() && contents.skeleton->GetPath().IsValid())
+    {
+        changedBuckets.Insert(contents.skeleton->GetPath().GetBucket().GetIndex());
+    }
+
+    Handle<EditorAssetFolders> assetFolders = subsystem.GetCurrentProject().IsValid()
+        ? subsystem.GetCurrentProject()->GetAssetFolders()
+        : Handle<EditorAssetFolders>::empty;
+
+    if (assetFolders.IsValid() && importedAssets.Any())
+    {
+        // an animation-only import has no prefab to name its folder after, so it takes the file's name
+        const String folderName = contents.prefab.IsValid()
+            ? String(*contents.prefab->GetName())
+            : String(StringUtil::StripExtension(FilePath(contents.animations[0]->GetImportInfo().sourcePath).Basename()));
+
+        const String modelFolder = EditorAssetFolders::JoinFolderPath(targetFolder, assetFolders->MakeUniqueFolderName(targetFolder, folderName));
+
+        for (const Handle<AssetObject>& asset : importedAssets)
+        {
+            const String assetFolder = contents.prefab.IsValid()
+                ? modelFolder
+                : EditorAssetFolders::JoinFolderPath(modelFolder, asset->GetPath().GetBucket().GetName());
+
+            assetFolders->SetAssetFolder(asset->GetPath(), assetFolder);
+
+            FileImportedAssets(*assetFolders, asset, modelFolder, changedBuckets);
+        }
+    }
+
+    for (uint32 bucketIndex : changedBuckets)
+    {
+        subsystem.OnAssetsChanged(bucketIndex);
+    }
+
+    return importedAssets;
+}
+
+void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& files, const String& targetFolder, EditorImportCallback&& onImported, bool reviewModels)
 {
     if (files.Empty())
     {
@@ -107,9 +178,18 @@ void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& file
 
     AssetBatch* batch = AssetManager::GetInstance()->CreateBatch(identifier);
 
+    Map<String, FilePath> sourcePathsByKey;
+
     for (const FilePath& file : files)
     {
-        batch->Add(file.Basename(), file, GetEditorImportLoadHint(file));
+        // models stay unregistered until their import settings are applied
+        const EnumFlags<AssetLoadHint> hint = IsEditorImportModelFile(file)
+            ? GetEditorImportLoadHint(file) | AssetLoadHint::Transient
+            : GetEditorImportLoadHint(file);
+
+        batch->Add(file.Basename(), file, hint);
+
+        sourcePathsByKey[file.Basename()] = file;
     }
 
     batch->GetCallbacks().OnItemComplete
@@ -130,7 +210,7 @@ void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& file
     const String normalizedTargetFolder = EditorAssetFolders::NormalizeFolderPath(targetFolder);
 
     batch->OnComplete
-        .Bind([context, editorTaskScope, weakSubsystem = MakeWeakRef(subsystem), normalizedTargetFolder](AssetMap& results) mutable
+        .Bind([context, editorTaskScope, weakSubsystem = MakeWeakRef(subsystem), normalizedTargetFolder, sourcePathsByKey = std::move(sourcePathsByKey), reviewModels](AssetMap& results) mutable
               {
                   HYP_LOG(Editor, Verbose, "{} assets loaded.", results.Size());
 
@@ -174,6 +254,34 @@ void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& file
                           continue;
                       }
 
+                      if (Handle<Prefab> prefab = TryCast<Prefab>(assetObject); prefab.IsValid() && subsystem.IsValid() && IsEditorImportModelFile(FilePath(key)))
+                      {
+                          ModelImportContents contents = GatherModelImportContents(prefab);
+
+                          AssetImportInfo importInfo;
+
+                          if (auto sourcePathIt = sourcePathsByKey.Find(key); sourcePathIt != sourcePathsByKey.End())
+                          {
+                              importInfo.sourcePath = sourcePathIt->second;
+                          }
+
+                          if (reviewModels && contents.skeleton.IsValid())
+                          {
+                              Handle<EditorModelImportReview> review = MakeHandle<EditorModelImportReview>(std::move(contents), importInfo, normalizedTargetFolder);
+                              InitObject(review);
+
+                              subsystem->QueueModelImportReview(review);
+
+                              continue;
+                          }
+
+                          ApplyModelImportSettings(contents, importInfo, Handle<Skeleton>::empty);
+
+                          importedAssets.Concat(CommitEditorModelImport(*subsystem, contents, normalizedTargetFolder));
+
+                          continue;
+                      }
+
                       GetCurrentAssetRegistry()->PutAssetUnique(assetObject);
 
                       importedAssets.PushBack(assetObject);
@@ -187,16 +295,7 @@ void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& file
 
                       changedBuckets.Insert(assetPath.GetBucket().GetIndex());
 
-                      if (!assetFolders.IsValid())
-                      {
-                          continue;
-                      }
-
-                      if (IsEditorImportModelFile(FilePath(key)))
-                      {
-                          HandleModelImport(*assetFolders, *GetCurrentAssetRegistry(), assetObject, normalizedTargetFolder, changedBuckets);
-                      }
-                      else
+                      if (assetFolders.IsValid())
                       {
                           assetFolders->SetAssetFolder(assetPath, normalizedTargetFolder);
                       }
@@ -222,6 +321,133 @@ void ImportEditorContent(EditorSubsystem* subsystem, const Array<FilePath>& file
     batch->LoadAsync();
 
     // Note: The batch will be destroyed automatically by AssetManager when complete
+}
+
+const AssetImportInfo* GetEditorAssetImportInfo(const AssetObject* asset)
+{
+    const AssetImportInfo* importInfo = nullptr;
+
+    if (const Prefab* prefab = TryCast<Prefab>(asset))
+    {
+        importInfo = &prefab->GetImportInfo();
+    }
+    else if (const Skeleton* skeleton = TryCast<Skeleton>(asset))
+    {
+        importInfo = &skeleton->GetImportInfo();
+    }
+    else if (const Animation* animation = TryCast<Animation>(asset))
+    {
+        importInfo = &animation->GetImportInfo();
+    }
+
+    return importInfo && importInfo->IsValid() ? importInfo : nullptr;
+}
+
+template <class T, class Predicate>
+static Handle<T> FindRegisteredAsset(const AssetBucket& bucket, Predicate&& predicate)
+{
+    Array<AssetDesc> assetDescs;
+    GetCurrentAssetRegistry()->GetBucketAssetDescs(bucket.GetIndex(), assetDescs);
+
+    for (const AssetDesc& assetDesc : assetDescs)
+    {
+        Handle<T> asset = GetCurrentAssetRegistry()->GetAsset<T>(bucket, assetDesc.name);
+
+        if (asset.IsValid() && predicate(*asset))
+        {
+            return asset;
+        }
+    }
+
+    return Handle<T>::empty;
+}
+
+static Handle<Skeleton> FindPrefabSkeleton(const Prefab& prefab)
+{
+    if (!prefab.GetRoot().IsValid())
+    {
+        return Handle<Skeleton>::empty;
+    }
+
+    for (Node* descendant : prefab.GetRoot()->GetDescendants())
+    {
+        const Entity* entity = TryCast<Entity>(descendant);
+        const MeshComponent* meshComponent = entity && entity->GetEntityManager() ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+        if (meshComponent && meshComponent->skeleton.IsValid())
+        {
+            return meshComponent->skeleton;
+        }
+    }
+
+    return Handle<Skeleton>::empty;
+}
+
+bool ReimportEditorAsset(EditorSubsystem& subsystem, const Handle<AssetObject>& asset)
+{
+    AssertOnThread(g_simThread);
+
+    const AssetImportInfo* storedImportInfo = GetEditorAssetImportInfo(asset.Get());
+
+    if (!storedImportInfo)
+    {
+        HYP_LOG(Editor, Warning, "Cannot reimport '{}': it wasn't imported from a file", asset.IsValid() ? asset->GetName() : Name::Invalid());
+
+        return false;
+    }
+
+    const AssetImportInfo importInfo = *storedImportInfo;
+    const bool usesExistingSkeleton = importInfo.settings.rigMode == ImportRigMode::UseExisting;
+
+    const auto isFromSameSource = [&importInfo](const auto& candidate)
+    {
+        return candidate.GetImportInfo().sourcePath == importInfo.sourcePath;
+    };
+
+    Handle<Prefab> prefab = TryCast<Prefab>(asset);
+    Handle<Skeleton> skeleton = TryCast<Skeleton>(asset);
+
+    if (!prefab.IsValid() && !usesExistingSkeleton)
+    {
+        prefab = FindRegisteredAsset<Prefab>(AssetBuckets::Prefabs, isFromSameSource);
+    }
+
+    if (usesExistingSkeleton)
+    {
+        skeleton = GetCurrentAssetRegistry()->GetAsset<Skeleton>(AssetBuckets::Skeletons, importInfo.settings.targetSkeleton);
+    }
+    else if (!skeleton.IsValid() && prefab.IsValid())
+    {
+        skeleton = FindPrefabSkeleton(*prefab);
+    }
+    else if (!skeleton.IsValid())
+    {
+        skeleton = FindRegisteredAsset<Skeleton>(AssetBuckets::Skeletons, isFromSameSource);
+    }
+
+    auto loadResult = LoadModelForImport(importInfo, usesExistingSkeleton ? skeleton : Handle<Skeleton>::empty);
+
+    if (loadResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Reimport failed: {}", loadResult.GetError().GetMessage());
+
+        return false;
+    }
+
+    ModelImportContents contents = loadResult.GetValue();
+
+    MergeModelReimport(*GetCurrentAssetRegistry(), contents, prefab, skeleton);
+
+    subsystem.SyncStalePrefabInstances();
+
+    for (const AssetBucket& bucket : { AssetBuckets::Prefabs, AssetBuckets::Skeletons, AssetBuckets::Animations, AssetBuckets::AnimationTracks, AssetBuckets::Meshes, AssetBuckets::Materials })
+    {
+        subsystem.OnAssetsChanged(bucket.GetIndex());
+    }
+
+    HYP_LOG(Editor, Info, "Reimported '{}' ({} clips)", importInfo.sourcePath, contents.animations.Size());
+
+    return true;
 }
 
 } // namespace Hyperion

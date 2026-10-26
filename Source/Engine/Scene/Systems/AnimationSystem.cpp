@@ -17,6 +17,7 @@
 #include <Scene/Animation/Animation.hpp>
 #include <Scene/Animation/AnimationPose.hpp>
 #include <Scene/Animation/Skeleton.hpp>
+#include <Scene/Animation/BoneMask.hpp>
 
 #include <Rendering/Util/DeletionQueue.hpp>
 
@@ -178,7 +179,20 @@ void AnimationSystem::StopPreview(Entity* entity)
     --m_numPreviewing;
 
     state.pose.Clear();
+    state.renderPose.Clear();
     state.instance->SetPoseMatrices({}, {});
+}
+
+Span<const Transform> AnimationSystem::GetRenderPose(Entity* entity) const
+{
+    auto it = m_instanceStates.Find(entity);
+
+    if (it == m_instanceStates.End())
+    {
+        return {};
+    }
+
+    return it->second.renderPose.ToSpan();
 }
 
 AnimationInstanceState& AnimationSystem::CreateInstanceState(Entity* entity, MeshComponent& meshComponent)
@@ -187,6 +201,7 @@ AnimationInstanceState& AnimationSystem::CreateInstanceState(Entity* entity, Mes
 
     AnimationInstanceState& state = m_instanceStates[entity];
     state.source = meshComponent.skeleton.Get();
+    state.sourceRevision = meshComponent.skeleton->GetRevision();
     state.instance = meshComponent.skeleton->CreateInstance();
     state.pose = PoseOps::MakeRestPose(meshComponent.skeleton->GetBindData());
 
@@ -224,7 +239,7 @@ const ClipBinding& AnimationSystem::GetClipBinding(Entity* entity, AnimationInst
 {
     auto it = state.clipBindings.Find(&animation);
 
-    if (it != state.clipBindings.End())
+    if (it != state.clipBindings.End() && it->second.animationRevision == animation.GetRevision())
     {
         return it->second;
     }
@@ -240,6 +255,13 @@ const ClipBinding& AnimationSystem::GetClipBinding(Entity* entity, AnimationInst
         }
     }
 
+    if (it != state.clipBindings.End())
+    {
+        it->second = PoseOps::BindClip(animation, bindData);
+
+        return it->second;
+    }
+
     return state.clipBindings.Insert({ &animation, PoseOps::BindClip(animation, bindData) }).first->second;
 }
 
@@ -250,6 +272,7 @@ void AnimationSystem::EvaluatePose(Entity* entity, const AnimationComponent& ani
     auto stateIt = m_instanceStates.Find(entity);
 
     AnimationInstanceState& state = stateIt != m_instanceStates.End() && stateIt->second.source == meshComponent.skeleton.Get()
+        && stateIt->second.sourceRevision == meshComponent.skeleton->GetRevision()
         ? stateIt->second
         : CreateInstanceState(entity, meshComponent);
 
@@ -275,6 +298,17 @@ void AnimationSystem::EvaluatePose(Entity* entity, const AnimationComponent& ani
             params.layerTime = playbackState.layerTime;
             params.layerWeight = playbackState.layerWeight;
             params.layerExcludedBone = playbackState.layerExcludedBone;
+
+            if (animationComponent.layerMask.IsValid())
+            {
+                if (state.layerMask != animationComponent.layerMask.Get() || state.layerMaskWeights.Size() != bindData.NumSlots())
+                {
+                    state.layerMask = animationComponent.layerMask.Get();
+                    state.layerMaskWeights = animationComponent.layerMask->BuildSlotWeights(bindData);
+                }
+
+                params.layerBoneWeights = state.layerMaskWeights.ToSpan();
+            }
 
             params.secondLayerAnimation = secondLayerAnimation;
             params.secondLayerTime = playbackState.secondLayerTime;
@@ -440,7 +474,9 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
             }
 
-            EvaluatePose(entity, animationComponent, meshComponent, *animation, playbackState.currentTime, 0.5f);
+            const float blend = PoseOps::AdvanceCrossFade(delta, animationComponent.crossFadeRemaining, 0.5f);
+
+            EvaluatePose(entity, animationComponent, meshComponent, *animation, playbackState.currentTime, blend);
         }
     }
 }

@@ -194,6 +194,7 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand DeleteAssetCommand { get; }
         public ICommand EditAssetCommand { get; }
+        public ICommand ReimportAssetCommand { get; }
 
         public ICommand NewFolderCommand { get; }
         public ICommand DeleteFolderCommand { get; }
@@ -297,6 +298,18 @@ namespace Hyperion.Editor.ViewModels
             EditAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
             {
                 OpenAssetEditor(asset);
+            });
+
+            ReimportAssetCommand = new RelayCommand<AssetObjectViewModel>(asset =>
+            {
+                if (asset?.Bucket == null)
+                {
+                    return;
+                }
+
+                string args = $"{asset.Bucket.BucketIndex} {asset.AssetDesc.Name}";
+
+                _ = EngineManager.PostToSimThread(() => _editorSubsystem.ExecuteCommandByName(new Name("EditorCommandReimportAsset"), args));
             });
 
             NewFolderCommand = new RelayCommand<AssetFolderViewModel>(parent =>
@@ -1630,6 +1643,20 @@ namespace Hyperion.Editor.ViewModels
                 if (obj is Prefab)
                 {
                     Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditPrefab(assetName.ToString()));
+
+                    return;
+                }
+
+                if (obj is Skeleton skeleton)
+                {
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterSkeleton(skeleton)));
+
+                    return;
+                }
+
+                if (obj is Animation animation)
+                {
+                    Dispatcher.UIThread.Post(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterAnimation(animation)));
 
                     return;
                 }

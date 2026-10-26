@@ -1,0 +1,89 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.AnimationTimelineBar"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:AnimationTimelineViewModel"
+    mc:Ignorable="d">
+    <Border
+        Background="{DynamicResource Brush.Panel}"
+        BorderBrush="{DynamicResource Brush.Border}"
+        BorderThickness="0,1,0,0">
+        <Grid Height="40" ColumnDefinitions="Auto,Auto,*,Auto">
+            <ComboBox
+                Grid.Column="0"
+                Width="150"
+                Margin="6,0,4,0"
+                VerticalAlignment="Center"
+                ItemsSource="{Binding ClipNames}"
+                SelectedItem="{Binding SelectedClip}"
+                ToolTip.Tip="Clip" />
+            <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                IsEnabled="{Binding HasClip}"
+                Orientation="Horizontal"
+                Spacing="2">
+                <Button
+                    Width="24"
+                    Height="24"
+                    Classes="gizmo"
+                    Command="{Binding StepBackCommand}"
+                    ToolTip.Tip="Previous frame">
+                    <controls:Codicon Kind="ChevronLeft" Size="14" />
+                </Button>
+                <Button
+                    Width="24"
+                    Height="24"
+                    Classes="gizmo"
+                    Command="{Binding TogglePlayCommand}"
+                    ToolTip.Tip="Play/Pause">
+                    <controls:Codicon Kind="{Binding PlayButtonIcon}" Size="14" />
+                </Button>
+                <Button
+                    Width="24"
+                    Height="24"
+                    Classes="gizmo"
+                    Command="{Binding StepForwardCommand}"
+                    ToolTip.Tip="Next frame">
+                    <controls:Codicon Kind="ChevronRight" Size="14" />
+                </Button>
+                <ToggleButton
+                    Width="24"
+                    Height="24"
+                    Classes="gizmo"
+                    IsChecked="{Binding IsLooping}"
+                    ToolTip.Tip="Loop">
+                    <controls:Codicon Kind="Refresh" Size="14" />
+                </ToggleButton>
+                <ComboBox
+                    Width="64"
+                    Margin="4,0,0,0"
+                    ItemsSource="{Binding Speeds}"
+                    SelectedItem="{Binding Speed}"
+                    ToolTip.Tip="Speed">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding StringFormat='{}{0}x'}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+            <controls:AnimationTimelineControl
+                Grid.Column="2"
+                Margin="6,3"
+                IsEnabled="{Binding HasClip}" />
+            <TextBlock
+                Grid.Column="3"
+                Width="130"
+                Margin="4,0,8,0"
+                VerticalAlignment="Center"
+                FontSize="11"
+                Foreground="{DynamicResource Brush.TextMuted}"
+                Text="{Binding TimeText}" />
+        </Grid>
+    </Border>
+</UserControl>

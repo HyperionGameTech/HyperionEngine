@@ -18,6 +18,7 @@
 namespace Hyperion {
 
 class Animation;
+class BoneMask;
 
 HYP_ENUM()
 enum class AnimationPlaybackStatus : uint8
@@ -122,7 +123,14 @@ struct ENGINE_API AnimationComponent
     HYP_FIELD(Property = "Animation", Serialize = true, Editor = true, EditorType = "AnimationClip")
     Handle<Animation> animation;
 
+    HYP_FIELD(Property = "LayerMask", Serialize = true, Editor = true)
+    Handle<BoneMask> layerMask;
+
+    HYP_FIELD(Transient, Editor = false)
+    float crossFadeRemaining = 0.0f;
+
     void Play(const Handle<Animation>& clip, AnimationLoopMode loopMode = AnimationLoopMode::REPEAT, float speed = 1.0f);
+    void CrossFade(const Handle<Animation>& clip, float duration, AnimationLoopMode loopMode = AnimationLoopMode::REPEAT, float speed = 1.0f);
     void Stop();
 
     HYP_FORCE_INLINE bool IsPlaying() const
@@ -136,6 +144,7 @@ struct ENGINE_API AnimationComponent
 
         hc.Add(playbackState);
         hc.Add(animation);
+        hc.Add(layerMask);
 
         return hc;
     }

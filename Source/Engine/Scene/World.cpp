@@ -23,6 +23,7 @@
 #include <Scene/Systems/VisibilityStateUpdaterSystem.hpp>
 #include <Scene/Systems/LightmapSystem.hpp>
 #include <Scene/Systems/AnimationSystem.hpp>
+#include <Scene/Systems/BoneAttachmentSystem.hpp>
 #include <Scene/Systems/CharacterModelSystem.hpp>
 #include <Scene/Systems/AudioSystem.hpp>
 #include <Scene/Systems/PhysicsSystem.hpp>
@@ -285,6 +286,9 @@ void World::Initialize()
 
     if (!HasSystem<AnimationSystem>())
         AddSystem(MakeHandle<AnimationSystem>());
+
+    if (!HasSystem<BoneAttachmentSystem>())
+        AddSystem(MakeHandle<BoneAttachmentSystem>());
 
     if (!HasSystem<AudioSystem>())
         AddSystem(MakeHandle<AudioSystem>());

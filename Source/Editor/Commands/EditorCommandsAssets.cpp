@@ -750,7 +750,7 @@ public:
             files.PushBack(std::move(filePath));
         }
 
-        ImportEditorContent(subsystem, files, fields[0]);
+        ImportEditorContent(subsystem, files, fields[0], {}, /* reviewModels */ true);
     }
 };
 

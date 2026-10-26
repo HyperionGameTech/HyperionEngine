@@ -3,6 +3,7 @@
 #include <Scene/Components/AnimationComponent.hpp>
 
 #include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/BoneMask.hpp>
 
 #include <AnimationComponent.generated.inl>
 
@@ -16,6 +17,17 @@ void AnimationComponent::Play(const Handle<Animation>& clip, AnimationLoopMode l
     playbackState.loopMode = loopMode;
     playbackState.speed = speed;
     playbackState.currentTime = 0.0f;
+
+    crossFadeRemaining = 0.0f;
+}
+
+void AnimationComponent::CrossFade(const Handle<Animation>& clip, float duration, AnimationLoopMode loopMode, float speed)
+{
+    const bool wasPlaying = IsPlaying();
+
+    Play(clip, loopMode, speed);
+
+    crossFadeRemaining = wasPlaying && clip.IsValid() ? duration : 0.0f;
 }
 
 void AnimationComponent::Stop()

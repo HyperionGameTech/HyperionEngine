@@ -297,6 +297,9 @@ namespace Hyperion.Editor.ViewModels
             case "Bone" when isNameType:
                 choiceKind = SkeletonChoiceKind.Bone;
                 return true;
+            case "Socket" when isNameType:
+                choiceKind = SkeletonChoiceKind.Socket;
+                return true;
             case "AnimationClip":
                 choiceKind = SkeletonChoiceKind.AnimationClip;
                 return true;

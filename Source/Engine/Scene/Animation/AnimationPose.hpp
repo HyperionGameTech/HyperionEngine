@@ -27,6 +27,7 @@ struct ApplyAnimParams;
 struct ClipBinding
 {
     Array<uint32> trackSlots;
+    uint32 animationRevision = 0;
 };
 
 namespace PoseOps {
@@ -58,6 +59,9 @@ ENGINE_API void ComputeMatrices(
     Span<const Transform> pose,
     Span<Mat4f> outModelMatrices,
     Span<Mat4f> outSkinningMatrices);
+
+// easing toward the clip by delta / remaining covers the gap linearly over the fade
+ENGINE_API float AdvanceCrossFade(float delta, float& remaining, float defaultBlend);
 
 } // namespace PoseOps
 

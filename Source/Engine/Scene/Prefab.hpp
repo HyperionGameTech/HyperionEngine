@@ -9,6 +9,7 @@
 #include <Core/Types.hpp>
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetImportInfo.hpp>
 
 #include <Core/Name/Name.hpp>
 #include <Core/Containers/String.hpp>
@@ -93,6 +94,16 @@ public:
 
     static uint32 SyncStaleInstances(Node* root);
 
+    const AssetImportInfo& GetImportInfo() const
+    {
+        return m_importInfo;
+    }
+
+    void SetImportInfo(const AssetImportInfo& importInfo)
+    {
+        m_importInfo = importInfo;
+    }
+
     static Delegate<void, Prefab*> OnPrefabChanged;
 
 private:
@@ -101,6 +112,9 @@ private:
 
     HYP_FIELD(Property = "Revision", Serialize)
     uint32 m_revision = 0;
+
+    HYP_FIELD(Property = "ImportInfo", Serialize, Editor = false)
+    AssetImportInfo m_importInfo;
 };
 
 } // namespace Hyperion

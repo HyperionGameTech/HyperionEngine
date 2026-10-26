@@ -7,6 +7,7 @@
 #include <ScenePch.hpp>
 
 #include <Scene/Animation/AnimationPose.hpp>
+#include <Scene/Animation/BoneMask.hpp>
 #include <Scene/Animation/Animation.hpp>
 #include <Scene/Animation/Skeleton.hpp>
 #include <Scene/Animation/Keyframe.hpp>
@@ -82,6 +83,7 @@ namespace PoseOps {
 ClipBinding BindClip(const Animation& animation, const SkeletonBindData& bindData)
 {
     ClipBinding binding;
+    binding.animationRevision = animation.GetRevision();
     binding.trackSlots.Reserve(animation.NumTracks());
 
     for (const Handle<AnimationTrack>& track : animation.GetTracks())
@@ -151,9 +153,18 @@ void ApplyLayered(
     const Array<uint32> layerTracksBySlot = layerAnimation ? TracksBySlot(*layerBinding, numSlots) : Array<uint32>();
     const Array<uint32> secondLayerTracksBySlot = secondLayerAnimation ? TracksBySlot(*secondLayerBinding, numSlots) : Array<uint32>();
 
-    const auto isExcludedFromLayer = [&](uint32 slot)
+    Array<float> excludedBoneWeights;
+    Span<const float> layerBoneWeights = params.layerBoneWeights;
+
+    if (layerAnimation && layerBoneWeights.Size() != numSlots && params.layerExcludedBone.IsValid())
     {
-        return params.layerExcludedBone.IsValid() && bindData.IsSlotWithin(slot, params.layerExcludedBone);
+        excludedBoneWeights = BoneMask::BuildExcludingSubtree(bindData, params.layerExcludedBone);
+        layerBoneWeights = excludedBoneWeights.ToSpan();
+    }
+
+    const auto layerWeightAt = [&](uint32 slot)
+    {
+        return layerBoneWeights.Size() == numSlots ? layerWeight * MathUtil::Clamp(layerBoneWeights[slot], 0.0f, 1.0f) : layerWeight;
     };
 
     for (uint32 trackIndex = 0; trackIndex < uint32(binding.trackSlots.Size()); ++trackIndex)
@@ -167,9 +178,9 @@ void ApplyLayered(
 
         Keyframe frame = animation.GetTrack(trackIndex)->GetKeyframe(params.time);
 
-        if (layerAnimation && layerTracksBySlot[slot] != SkeletonBindData::InvalidSlot && !isExcludedFromLayer(slot))
+        if (layerAnimation && layerTracksBySlot[slot] != SkeletonBindData::InvalidSlot && layerWeightAt(slot) > 0.0f)
         {
-            frame = frame.Blend(layerAnimation->GetTrack(layerTracksBySlot[slot])->GetKeyframe(params.layerTime), layerWeight);
+            frame = frame.Blend(layerAnimation->GetTrack(layerTracksBySlot[slot])->GetKeyframe(params.layerTime), layerWeightAt(slot));
         }
 
         if (secondLayerAnimation && secondLayerTracksBySlot[slot] != SkeletonBindData::InvalidSlot)
@@ -192,14 +203,14 @@ void ApplyLayered(
     {
         const uint32 slot = layerBinding->trackSlots[layerTrackIndex];
 
-        if (slot == SkeletonBindData::InvalidSlot || baseTracksBySlot[slot] != SkeletonBindData::InvalidSlot || isExcludedFromLayer(slot))
+        if (slot == SkeletonBindData::InvalidSlot || baseTracksBySlot[slot] != SkeletonBindData::InvalidSlot || layerWeightAt(slot) <= 0.0f)
         {
             continue;
         }
 
         const Keyframe layerFrame = layerAnimation->GetTrack(layerTrackIndex)->GetKeyframe(params.layerTime);
 
-        pose[slot] = BlendTransforms(pose[slot], layerFrame.transform, blend * layerWeight);
+        pose[slot] = BlendTransforms(pose[slot], layerFrame.transform, blend * layerWeightAt(slot));
     }
 }
 
@@ -263,6 +274,19 @@ void ComputeMatrices(
 
         outSkinningMatrices[slot] = outModelMatrices[slot] * bindData.inverseBindMatrices[slot];
     }
+}
+
+float AdvanceCrossFade(float delta, float& remaining, float defaultBlend)
+{
+    if (remaining <= 0.0f)
+    {
+        return defaultBlend;
+    }
+
+    const float blend = MathUtil::Min(delta / remaining, 1.0f);
+    remaining = MathUtil::Max(remaining - delta, 0.0f);
+
+    return blend;
 }
 
 } // namespace PoseOps

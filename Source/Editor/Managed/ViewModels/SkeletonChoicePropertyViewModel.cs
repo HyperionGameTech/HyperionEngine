@@ -10,6 +10,7 @@ namespace Hyperion.Editor.ViewModels
     public enum SkeletonChoiceKind
     {
         Bone,
+        Socket,
         AnimationClip
     }
 
@@ -63,7 +64,15 @@ namespace Hyperion.Editor.ViewModels
 
                     if (skeleton != null)
                     {
-                        Array names = _kind == SkeletonChoiceKind.Bone ? skeleton.GetBoneNames() : skeleton.GetAnimationNames();
+                        if (_kind == SkeletonChoiceKind.Socket)
+                        {
+                            foreach (Name name in skeleton.GetSocketNames())
+                            {
+                                choices.Add(name.ToString());
+                            }
+                        }
+
+                        Array names = _kind == SkeletonChoiceKind.AnimationClip ? skeleton.GetAnimationNames() : skeleton.GetBoneNames();
 
                         foreach (Name name in names)
                         {
@@ -131,12 +140,25 @@ namespace Hyperion.Editor.ViewModels
 
         private Skeleton? GetSkeleton()
         {
-            if (_ownerEntity.EntityManager == null || !_ownerEntity.TryGetComponent(out MeshComponent meshComponent))
+            // a socket belongs to the skinned entity the attachment sits under
+            Node? node = _kind == SkeletonChoiceKind.Socket ? _ownerEntity.Parent : _ownerEntity;
+
+            while (node != null)
             {
-                return null;
+                if (node is Entity entity && entity.EntityManager != null && entity.TryGetComponent(out MeshComponent meshComponent) && meshComponent.Skeleton != null)
+                {
+                    return meshComponent.Skeleton;
+                }
+
+                if (_kind != SkeletonChoiceKind.Socket)
+                {
+                    break;
+                }
+
+                node = node.Parent;
             }
 
-            return meshComponent.Skeleton;
+            return null;
         }
 
         private void CommitChoice(string choice)
@@ -147,7 +169,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    if (_kind == SkeletonChoiceKind.Bone)
+                    if (_kind != SkeletonChoiceKind.AnimationClip)
                     {
                         using BoxedValue boxedName = new BoxedValue(new Name(captured));
                         CommitPropertyChange($"Set {Label}", boxedName);

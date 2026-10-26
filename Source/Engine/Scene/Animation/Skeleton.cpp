@@ -155,6 +155,7 @@ void Skeleton::SetRootBone(const Handle<Bone>& bone)
     m_rootBone->StoreBindingPose();
 
     m_bindDataBuilt = false;
+    ++m_revision;
 }
 
 const Handle<Animation>& Skeleton::FindAnimation(Name name) const
@@ -191,13 +192,58 @@ Array<Name> Skeleton::GetBoneNames() const
 
     for (const Name boneName : GetBindData().boneNames)
     {
-        if (boneName.IsValid())
+        // the loaders' synthetic root bone has no name of its own
+        if (boneName.IsValid() && *boneName.LookupString() != '\0')
         {
             names.PushBack(boneName);
         }
     }
 
     return names;
+}
+
+const SkeletonSocket* Skeleton::FindSocket(Name name) const
+{
+    for (const SkeletonSocket& socket : m_sockets)
+    {
+        if (socket.name == name)
+        {
+            return &socket;
+        }
+    }
+
+    return nullptr;
+}
+
+Array<Name> Skeleton::GetSocketNames() const
+{
+    Array<Name> names;
+
+    for (const SkeletonSocket& socket : m_sockets)
+    {
+        names.PushBack(socket.name);
+    }
+
+    return names;
+}
+
+uint32 Skeleton::CountBoundTracks(const Handle<Animation>& animation) const
+{
+    if (!animation)
+    {
+        return 0;
+    }
+
+    const SkeletonBindData& bindData = GetBindData();
+
+    uint32 numBound = 0;
+
+    for (const Handle<AnimationTrack>& track : animation->GetTracks())
+    {
+        numBound += track.IsValid() && bindData.FindSlot(track->GetBoneName()) != SkeletonBindData::InvalidSlot ? 1 : 0;
+    }
+
+    return numBound;
 }
 
 bool SkeletonBindData::IsSlotWithin(uint32 slot, Name ancestorBoneName) const
@@ -301,6 +347,7 @@ Handle<Skeleton> Skeleton::CreateInstance() const
     Handle<Skeleton> instance = MakeHandle<Skeleton>();
     instance->SetName(GetName());
     instance->m_animations = m_animations;
+    instance->m_sockets = m_sockets;
     instance->m_instanceSource = this;
 
     if (m_rootBone)

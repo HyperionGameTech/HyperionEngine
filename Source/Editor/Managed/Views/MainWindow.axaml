@@ -1484,7 +1484,7 @@
                                                             BorderThickness="0"
                                                             ToolTip.Tip="{Binding SceneSelectorTooltip}">
                                                             <Panel>
-                                                                <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsEditingPrefab}">
+                                                                <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding !IsInEditMode}">
                                                                     <TextBlock
                                                                         VerticalAlignment="Center"
                                                                         Classes="header"
@@ -1496,7 +1496,7 @@
                                                                     BorderBrush="{DynamicResource DockApplicationAccentBrushHigh}"
                                                                     BorderThickness="1"
                                                                     CornerRadius="3"
-                                                                    IsVisible="{Binding IsEditingPrefab}">
+                                                                    IsVisible="{Binding IsInEditMode}">
                                                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                                                         <TextBlock
                                                                             VerticalAlignment="Center"
@@ -1506,12 +1506,12 @@
                                                                         <TextBlock
                                                                             VerticalAlignment="Center"
                                                                             Classes="header"
-                                                                            Text="{Binding EditingPrefabName}" />
+                                                                            Text="{Binding EditModeName}" />
                                                                         <TextBlock
                                                                             VerticalAlignment="Center"
                                                                             Classes="header"
                                                                             Foreground="{DynamicResource DockApplicationAccentBrushMed}"
-                                                                            IsVisible="{Binding IsEditingPrefabDirty}"
+                                                                            IsVisible="{Binding IsEditModeDirty}"
                                                                             Text="&#x2022;" />
                                                                     </StackPanel>
                                                                 </Border>
@@ -1519,10 +1519,10 @@
                                                             <DropDownButton.Flyout>
                                                                 <Flyout Placement="Bottom">
                                                                     <StackPanel MinWidth="150">
-                                                                        <StackPanel IsVisible="{Binding IsEditingPrefab, Source={x:Static vm:MainWindowViewModel.Instance}}">
+                                                                        <StackPanel IsVisible="{Binding IsInEditMode, Source={x:Static vm:MainWindowViewModel.Instance}}">
                                                                             <MenuItem
-                                                                                Command="{Binding ExitPrefabEditCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
-                                                                                Header="Exit Prefab Edit" />
+                                                                                Command="{Binding ExitEditModeCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                Header="{Binding ExitEditModeHeader, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                                                             <Separator />
                                                                         </StackPanel>
                                                                         <ItemsControl ItemsSource="{Binding Scenes}">
@@ -1812,6 +1812,10 @@
                                                                             </MenuItem.IsVisible>
                                                                         </MenuItem>
                                                                         <MenuItem
+                                                                            Command="{Binding EditAnimationCommand}"
+                                                                            Header="Edit Animation"
+                                                                            IsVisible="{Binding CanEditAnimation}" />
+                                                                        <MenuItem
                                                                             Command="{Binding SaveAsTemplate, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             Header="{Binding MakeTemplateHeader, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                             IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
@@ -1849,7 +1853,7 @@
                                                     Background="{DynamicResource Brush.PanelAlt}"
                                                     BorderBrush="{DynamicResource Brush.Border}"
                                                     BorderThickness="0,1,0,0"
-                                                    IsVisible="{Binding IsEditingPrefab}">
+                                                    IsVisible="{Binding IsInEditMode}">
                                                     <Grid ColumnDefinitions="*,Auto">
                                                         <TextBlock
                                                             Grid.Column="0"
@@ -1857,7 +1861,7 @@
                                                             VerticalAlignment="Center"
                                                             FontSize="11"
                                                             Foreground="{DynamicResource Brush.TextMuted}"
-                                                            Text="{Binding EditingPrefabName, StringFormat='Editing prefab {0}'}"
+                                                            Text="{Binding EditModeDescription}"
                                                             TextTrimming="CharacterEllipsis" />
                                                         <StackPanel
                                                             Grid.Column="1"
@@ -1865,12 +1869,12 @@
                                                             Spacing="6">
                                                             <Button
                                                                 Padding="14,4"
-                                                                Command="{Binding RevertPrefabEditCommand}"
+                                                                Command="{Binding RevertEditModeCommand}"
                                                                 Content="Revert" />
                                                             <Button
                                                                 Padding="14,4"
                                                                 Classes="Primary"
-                                                                Command="{Binding ApplyPrefabEditCommand}"
+                                                                Command="{Binding ApplyEditModeCommand}"
                                                                 Content="Apply" />
                                                         </StackPanel>
                                                     </Grid>
@@ -2605,9 +2609,10 @@
                                         CanFloat="False"
                                         CanPin="False"
                                         Id="Scene">
-                                        <Grid>
+                                        <Grid RowDefinitions="*,Auto">
                                             <Border
                                                 x:Name="ViewportDropTarget"
+                                                Grid.Row="0"
                                                 Background="{DynamicResource Brush.Background}"
                                                 BorderBrush="{DynamicResource Brush.Border}"
                                                 BorderThickness="0">
@@ -2616,6 +2621,10 @@
                                                     HorizontalAlignment="Stretch"
                                                     VerticalAlignment="Stretch" />
                                             </Border>
+                                            <views:AnimationTimelineBar
+                                                Grid.Row="1"
+                                                DataContext="{Binding AnimationTimeline, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                IsVisible="{Binding IsEditingAnimation, Source={x:Static vm:MainWindowViewModel.Instance}}" />
                                         </Grid>
                                     </Document>
                                 </DocumentDock>
@@ -3132,6 +3141,12 @@
                                                                                         Header="_Edit"
                                                                                         IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
                                                                                         IsVisible="{Binding !IsWorld}" />
+                                                                                    <MenuItem
+                                                                                        Command="{Binding ContentBrowser.ReimportAssetCommand, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                        CommandParameter="{Binding}"
+                                                                                        Header="Reimport"
+                                                                                        IsEnabled="{Binding !IsSimulating, Source={x:Static vm:MainWindowViewModel.Instance}}"
+                                                                                        IsVisible="{Binding CanReimport}" />
                                                                                     <MenuItem
                                                                                         Click="OnWorldSettingsClick"
                                                                                         Header="World Settings..."

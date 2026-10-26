@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Asset/AssetObject.hpp>
+#include <Asset/AssetImportInfo.hpp>
 #include <Asset/AssetReference.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
@@ -55,6 +56,36 @@ struct SkeletonBindData
     }
 
     bool IsSlotWithin(uint32 slot, Name ancestorBoneName) const;
+};
+
+HYP_STRUCT()
+struct SkeletonSocket
+{
+    HYP_STRUCT_BODY(SkeletonSocket);
+
+    HYP_FIELD(Property = "Name", Serialize = true, Editor = true)
+    Name name;
+
+    HYP_FIELD(Property = "BoneName", Serialize = true, Editor = true, EditorType = "Bone")
+    Name boneName;
+
+    HYP_FIELD(Property = "Offset", Serialize = true, Editor = true)
+    Transform offset;
+
+    HYP_FORCE_INLINE bool operator==(const SkeletonSocket& other) const
+    {
+        return name == other.name && boneName == other.boneName && offset == other.offset;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(boneName);
+        hc.Add(offset);
+
+        return hc;
+    }
 };
 
 HYP_CLASS(AssetBucket = "Skeletons")
@@ -130,7 +161,43 @@ public:
     HYP_METHOD()
     Array<Name> GetBoneNames() const;
 
+    HYP_METHOD()
+    uint32 CountBoundTracks(const Handle<Animation>& animation) const;
+
+    HYP_METHOD(Property = "Sockets", NoScriptBindings)
+    const Array<SkeletonSocket>& GetSockets() const
+    {
+        return m_sockets;
+    }
+
+    HYP_METHOD(Property = "Sockets", NoScriptBindings)
+    void SetSockets(const Array<SkeletonSocket>& sockets)
+    {
+        m_sockets = sockets;
+    }
+
+    const SkeletonSocket* FindSocket(Name name) const;
+
+    HYP_METHOD()
+    Array<Name> GetSocketNames() const;
+
     const SkeletonBindData& GetBindData() const;
+
+    HYP_FORCE_INLINE const AssetImportInfo& GetImportInfo() const
+    {
+        return m_importInfo;
+    }
+
+    HYP_FORCE_INLINE void SetImportInfo(const AssetImportInfo& importInfo)
+    {
+        m_importInfo = importInfo;
+    }
+
+    // bumped whenever the bone tree is replaced, so pose instances know to rebuild
+    HYP_FORCE_INLINE uint32 GetRevision() const
+    {
+        return m_revision;
+    }
 
     Handle<Skeleton> CreateInstance() const;
 
@@ -164,6 +231,14 @@ private:
 
     HYP_FIELD(Property = "Animations")
     Array<Handle<Animation>> m_animations;
+
+    HYP_FIELD(Property = "Sockets")
+    Array<SkeletonSocket> m_sockets;
+
+    HYP_FIELD(Property = "ImportInfo", Serialize, Editor = false)
+    AssetImportInfo m_importInfo;
+
+    uint32 m_revision = 0;
 
     int m_renderProxyVersion;
 

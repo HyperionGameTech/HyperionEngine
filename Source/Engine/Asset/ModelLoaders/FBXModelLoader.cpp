@@ -1091,6 +1091,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     const FilePath path = state.filepath;
 
+    const bool shouldRegisterAssets = !(state.hint & AssetLoadHint::Transient);
+
     const String baseName = StringUtil::StripExtension(path.Basename());
 
     Handle<Entity> top = MakeHandle<Entity>(CreateNameFromDynamicString(ANSIString(baseName)));
@@ -2357,7 +2359,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     texture->SetName(CreateNameFromDynamicString(ANSIString(fbxTexture->name)));
                 }
 
-                GetCurrentAssetRegistry()->PutAssetUnique(texture);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(texture);
+                }
 
                 textureCache[it.first] = std::move(texture);
             }
@@ -2423,7 +2428,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             InitObject(result);
 
-            GetCurrentAssetRegistry()->PutAssetUnique(result);
+            if (shouldRegisterAssets)
+            {
+                GetCurrentAssetRegistry()->PutAssetUnique(result);
+            }
         }
 
         materialCache[materialId] = result;
@@ -2477,7 +2485,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 Handle<Mesh> mesh = fbxMesh->GetResultObject();
 
-                GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(mesh);
+                }
 
                 Handle<Material> material = fbxNode.materialId ? acquireMaterial(fbxNode.materialId) : Handle<Material>::empty;
 
@@ -2501,7 +2512,10 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                     InitObject(material);
 
-                    GetCurrentAssetRegistry()->PutAssetUnique(material);
+                    if (shouldRegisterAssets)
+                    {
+                        GetCurrentAssetRegistry()->PutAssetUnique(material);
+                    }
                 }
 
                 Scene& scene = GetDetachedSceneForCurrentThread();
@@ -2820,7 +2834,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     if (foundFirstBone)
     {
-        GetCurrentAssetRegistry()->PutAssetUnique(rootSkeleton);
+        if (shouldRegisterAssets)
+        {
+            GetCurrentAssetRegistry()->PutAssetUnique(rootSkeleton);
+        }
+
         InitObject(rootSkeleton);
 
         Map<FBXObjectID, Map<FBXObjectID, Array<FBXAnimCurveNode*, FBXAllocator>, FBXAllocator>, FBXAllocator> curveNodesByStack;
@@ -2992,14 +3010,20 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 track->SetKeyframes(keyframes);
 
-                GetCurrentAssetRegistry()->PutAssetUnique(track);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(track);
+                }
 
                 animation->AddTrack(track);
             }
 
             if (animation->NumTracks() > 0)
             {
-                GetCurrentAssetRegistry()->PutAssetUnique(animation);
+                if (shouldRegisterAssets)
+                {
+                    GetCurrentAssetRegistry()->PutAssetUnique(animation);
+                }
 
                 animations.PushBack(std::move(animation));
             }

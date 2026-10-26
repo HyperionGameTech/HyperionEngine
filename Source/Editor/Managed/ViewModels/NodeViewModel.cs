@@ -92,6 +92,7 @@ namespace Hyperion.Editor.ViewModels
             FogVolume           => "FogVolume",
             DecalProxy          => "Decal",
             Bone                => "AssetSkeleton",
+            EditorBoneNode      => "AssetSkeleton",
             VolumeBase          => "Package",
             TextSprite          => "TextSprite",
             Sprite              => "Sprite",
@@ -107,7 +108,7 @@ namespace Hyperion.Editor.ViewModels
         public string EditPrefabHeader => $"Edit Prefab '{_sourcePrefabName}'";
         public string PrefabInstanceTooltip => $"Prefab instance: {_sourcePrefabName}";
 
-        public bool CanUsePrefabActions => !(MainWindowViewModel.Instance?.IsEditingPrefab ?? false);
+        public bool CanUsePrefabActions => !(MainWindowViewModel.Instance?.IsInEditMode ?? false);
 
         public void RefreshSourcePrefab()
         {
@@ -172,6 +173,22 @@ namespace Hyperion.Editor.ViewModels
 
         public bool HasCollisionActions => _node is Entity;
 
+        private bool _canEditAnimation;
+        public bool CanEditAnimation
+        {
+            get => _canEditAnimation;
+            private set => SetProperty(ref _canEditAnimation, value);
+        }
+
+        private ICommand? _editAnimationCommand;
+        public ICommand EditAnimationCommand => _editAnimationCommand ??= new RelayCommand(() =>
+        {
+            if (_node is Entity entity)
+            {
+                MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterEntity(entity));
+            }
+        });
+
         private ICommand? _setPhysicsShapeCommand;
         public ICommand SetPhysicsShapeCommand => _setPhysicsShapeCommand ??= new RelayCommand<string>(shapeClassName =>
         {
@@ -207,11 +224,13 @@ namespace Hyperion.Editor.ViewModels
 
                 bool canGenerate = editorSubsystem.CanGenerateConvexCollision(node);
                 bool canFit = editorSubsystem.CanFitPhysicsShapeToMesh(node);
+                bool canEditAnimation = editorSubsystem.CanEditAnimation(node);
 
                 Dispatcher.UIThread.Post(() =>
                 {
                     CanGenerateCollision = canGenerate;
                     CanFitCollisionToMesh = canFit;
+                    CanEditAnimation = canEditAnimation;
                 });
             });
         }
@@ -308,7 +327,7 @@ namespace Hyperion.Editor.ViewModels
 
             MainWindowViewModel? mainWindowViewModel = MainWindowViewModel.Instance;
 
-            if (mainWindowViewModel != null && !IsRootNode && !mainWindowViewModel.IsEditingPrefab)
+            if (mainWindowViewModel != null && !IsRootNode && !mainWindowViewModel.IsInEditMode)
             {
                 Scene? currentScene = _node.IsValid ? _node.Scene : null;
 
@@ -338,7 +357,7 @@ namespace Hyperion.Editor.ViewModels
 
             if (mainWindowViewModel != null
                 && !IsRootNode
-                && !mainWindowViewModel.IsEditingPrefab
+                && !mainWindowViewModel.IsInEditMode
                 && _node.IsValid && ClassName == "Node")
             {
                 List<string> classNames = [];

@@ -23,6 +23,7 @@ namespace Hyperion {
 
 class Skeleton;
 class Animation;
+class BoneMask;
 struct SkeletonBindData;
 
 struct MeshComponent;
@@ -30,6 +31,7 @@ struct MeshComponent;
 struct AnimationInstanceState
 {
     const Skeleton* source = nullptr;
+    uint32 sourceRevision = 0;
     Handle<Skeleton> instance;
 
     // blended keyframes carried between frames; the twist and other per-frame offsets go on renderPose only
@@ -40,6 +42,9 @@ struct AnimationInstanceState
     Array<Mat4f> skinningMatrices;
 
     Map<const Animation*, ClipBinding> clipBindings;
+
+    const BoneMask* layerMask = nullptr;
+    Array<float> layerMaskWeights;
 
     float previewTime = 0.0f;
     bool isPreviewing = false;
@@ -63,6 +68,8 @@ public:
     // edit-mode preview: poses the entity at `time` of its current clip while the game isn't simulating
     void SetPreviewTime(Entity* entity, float time);
     void StopPreview(Entity* entity);
+
+    Span<const Transform> GetRenderPose(Entity* entity) const;
 
 private:
     SystemComponentDescriptors GetComponentDescriptors() const override

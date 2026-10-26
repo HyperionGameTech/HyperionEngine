@@ -17,10 +17,12 @@
 #include <Scene/EntityManager.hpp>
 #include <Scene/Prefab.hpp>
 #include <Scene/Components/MeshComponent.hpp>
+#include <Scene/Components/AnimationComponent.hpp>
 #include <Scene/Animation/Skeleton.hpp>
 #include <Scene/Animation/Bone.hpp>
 #include <Scene/Animation/Animation.hpp>
 #include <Scene/Animation/AnimationPose.hpp>
+#include <Scene/Animation/BoneMask.hpp>
 
 #include <Core/FileSystem/FilePath.hpp>
 
@@ -463,12 +465,180 @@ HYP_ENGINE_TEST(AnimationPose, MeasureFlatPoseCost)
     HYP_TEST_CHECK_MSG(largest < 1e-3f, "synthetic rig: flat pose differs from the node pose by {}", largest);
 }
 
+HYP_ENGINE_TEST(AnimationPose, CrossFadeReachesClipLinearly)
+{
+    Handle<Skeleton> skeleton = LoadRigSkeleton(context, "TwoTakeRig.glb");
+    HYP_TEST_REQUIRE(skeleton.IsValid());
+
+    const SkeletonBindData& bindData = skeleton->GetBindData();
+    Animation* bend = FindRigAnimation(*skeleton, NAME("Bend"));
+    HYP_TEST_REQUIRE(bend != nullptr);
+
+    const ClipBinding binding = PoseOps::BindClip(*bend, bindData);
+
+    ApplyAnimParams params {};
+    params.time = bend->GetLength() * 0.5f;
+
+    const auto poseAfter = [&](float blend)
+    {
+        Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+        params.blend = blend;
+        PoseOps::ApplyBlended(*bend, binding, bindData, params, pose.ToSpan());
+        return pose;
+    };
+
+    constexpr float FadeDuration = 0.5f;
+    constexpr float Delta = 1.0f / 60.0f;
+    constexpr uint32 NumSteps = 30;
+
+    Array<Transform> fadingPose = PoseOps::MakeRestPose(bindData);
+    float remaining = FadeDuration;
+
+    for (uint32 step = 0; step < NumSteps; ++step)
+    {
+        if (step == NumSteps / 2)
+        {
+            const Array<Transform> halfway = poseAfter(0.5f);
+
+            for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+            {
+                HYP_TEST_CHECK(LargestDifference(fadingPose[slot].GetMatrix(), halfway[slot].GetMatrix()) < 1e-3f);
+            }
+        }
+
+        params.blend = PoseOps::AdvanceCrossFade(Delta, remaining, 0.5f);
+        PoseOps::ApplyBlended(*bend, binding, bindData, params, fadingPose.ToSpan());
+    }
+
+    HYP_TEST_CHECK(remaining == 0.0f);
+
+    const Array<Transform> target = poseAfter(1.0f);
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        HYP_TEST_CHECK(LargestDifference(fadingPose[slot].GetMatrix(), target[slot].GetMatrix()) < 1e-4f);
+    }
+
+    float noFade = 0.0f;
+    HYP_TEST_CHECK(PoseOps::AdvanceCrossFade(Delta, noFade, 0.5f) == 0.5f);
+}
+
+HYP_ENGINE_TEST(AnimationPose, BoneMaskMatchesExcludedBone)
+{
+    Handle<Skeleton> skeleton = LoadRigSkeleton(context, "TwoTakeRig.glb");
+    HYP_TEST_REQUIRE(skeleton.IsValid());
+
+    const SkeletonBindData& bindData = skeleton->GetBindData();
+    Animation* wave = FindRigAnimation(*skeleton, NAME("Wave"));
+    Animation* bend = FindRigAnimation(*skeleton, NAME("Bend"));
+    HYP_TEST_REQUIRE(wave != nullptr && bend != nullptr);
+
+    const ClipBinding waveBinding = PoseOps::BindClip(*wave, bindData);
+    const ClipBinding bendBinding = PoseOps::BindClip(*bend, bindData);
+
+    ApplyAnimParams params {};
+    params.time = wave->GetLength() * 0.5f;
+    params.blend = 1.0f;
+    params.layerAnimation = bend;
+    params.layerTime = bend->GetLength() * 0.5f;
+    params.layerWeight = 0.8f;
+    params.layerExcludedBone = NAME("Mid");
+
+    Array<Transform> excludedPose = PoseOps::MakeRestPose(bindData);
+    PoseOps::ApplyLayered(*wave, waveBinding, &bendBinding, nullptr, bindData, params, excludedPose.ToSpan());
+
+    const Array<float> maskWeights = BoneMask::BuildExcludingSubtree(bindData, NAME("Mid"));
+    params.layerExcludedBone = Name::Invalid();
+    params.layerBoneWeights = maskWeights.ToSpan();
+
+    Array<Transform> maskedPose = PoseOps::MakeRestPose(bindData);
+    PoseOps::ApplyLayered(*wave, waveBinding, &bendBinding, nullptr, bindData, params, maskedPose.ToSpan());
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        HYP_TEST_CHECK(LargestDifference(excludedPose[slot].GetMatrix(), maskedPose[slot].GetMatrix()) < 1e-6f);
+    }
+}
+
+HYP_ENGINE_TEST(AnimationPose, BoneMaskWeightsEachBone)
+{
+    Handle<Skeleton> skeleton = LoadRigSkeleton(context, "TwoTakeRig.glb");
+    HYP_TEST_REQUIRE(skeleton.IsValid());
+
+    const SkeletonBindData& bindData = skeleton->GetBindData();
+    Animation* wave = FindRigAnimation(*skeleton, NAME("Wave"));
+    Animation* bend = FindRigAnimation(*skeleton, NAME("Bend"));
+    HYP_TEST_REQUIRE(wave != nullptr && bend != nullptr);
+
+    const uint32 midSlot = bindData.FindSlot(NAME("Mid"));
+    HYP_TEST_REQUIRE(midSlot != SkeletonBindData::InvalidSlot);
+
+    const ClipBinding waveBinding = PoseOps::BindClip(*wave, bindData);
+    const ClipBinding bendBinding = PoseOps::BindClip(*bend, bindData);
+
+    Handle<BoneMask> mask = MakeHandle<BoneMask>(NAME("HalfMid"));
+    mask->SetDefaultWeight(1.0f);
+    mask->SetEntries({ BoneMaskEntry { NAME("Mid"), 0.5f, false } });
+
+    const Array<float> maskWeights = mask->BuildSlotWeights(bindData);
+    HYP_TEST_REQUIRE(maskWeights.Size() == bindData.NumSlots());
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        HYP_TEST_CHECK(maskWeights[slot] == (slot == midSlot ? 0.5f : 1.0f));
+    }
+
+    const auto layeredPose = [&](float layerWeight, Span<const float> boneWeights)
+    {
+        ApplyAnimParams params {};
+        params.time = wave->GetLength() * 0.5f;
+        params.blend = 1.0f;
+        params.layerAnimation = bend;
+        params.layerTime = bend->GetLength() * 0.5f;
+        params.layerWeight = layerWeight;
+        params.layerBoneWeights = boneWeights;
+
+        Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+        PoseOps::ApplyLayered(*wave, waveBinding, &bendBinding, nullptr, bindData, params, pose.ToSpan());
+
+        return pose;
+    };
+
+    const Array<Transform> maskedPose = layeredPose(1.0f, maskWeights.ToSpan());
+    const Array<Transform> halfPose = layeredPose(0.5f, {});
+    const Array<Transform> fullPose = layeredPose(1.0f, {});
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        const Transform& expected = slot == midSlot ? halfPose[slot] : fullPose[slot];
+
+        HYP_TEST_CHECK_MSG(LargestDifference(maskedPose[slot].GetMatrix(), expected.GetMatrix()) < 1e-5f, "slot {} differs", slot);
+    }
+
+    mask->SetEntries({ BoneMaskEntry { NAME("Mid"), 0.25f, true } });
+
+    const Array<float> subtreeWeights = mask->BuildSlotWeights(bindData);
+
+    for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
+    {
+        HYP_TEST_CHECK(subtreeWeights[slot] == (bindData.IsSlotWithin(slot, NAME("Mid")) ? 0.25f : 1.0f));
+    }
+}
+
 HYP_ENGINE_TEST(AnimationPose, MeshComponentLayoutMatchesManaged)
 {
 #ifndef HYP_WEB
     HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(MeshComponent, skeletonInstance) == 168, "skeletonInstance at {}, MeshComponent.cs expects 168", HYP_OFFSET_OF(MeshComponent, skeletonInstance));
     HYP_TEST_CHECK_MSG(sizeof(MeshComponent) == 176, "MeshComponent is {} bytes, MeshComponent.cs expects 176", sizeof(MeshComponent));
 #endif
+}
+
+HYP_ENGINE_TEST(AnimationPose, AnimationComponentLayoutMatchesManaged)
+{
+    HYP_TEST_CHECK_MSG(sizeof(AnimationPlaybackState) == 72, "AnimationPlaybackState is {} bytes, AnimationComponent.cs expects 72", sizeof(AnimationPlaybackState));
+    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, animation) == 72, "animation at {}, AnimationComponent.cs expects 72", HYP_OFFSET_OF(AnimationComponent, animation));
+    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, layerMask) == 80, "layerMask at {}, AnimationComponent.cs expects 80", HYP_OFFSET_OF(AnimationComponent, layerMask));
+    HYP_TEST_CHECK_MSG(sizeof(AnimationComponent) == 96, "AnimationComponent is {} bytes, AnimationComponent.cs expects 96", sizeof(AnimationComponent));
 }
 
 } // namespace scene

@@ -24,6 +24,7 @@ namespace Hyperion.Editor.ViewModels
             _entity = entity;
 
             TogglePlayCommand = new RelayCommand(TogglePlay);
+            EditCommand = new RelayCommand(() => MainWindowViewModel.Instance?.RequestEditAnimation(state => state.EnterEntity(_entity)));
 
             _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PollIntervalMs) };
             _pollTimer.Tick += (_, _) => RefreshValue();
@@ -32,6 +33,8 @@ namespace Hyperion.Editor.ViewModels
         public override bool SupportsMultipleTargets => false;
 
         public ICommand TogglePlayCommand { get; }
+
+        public ICommand EditCommand { get; }
 
         public bool IsPlaying
         {

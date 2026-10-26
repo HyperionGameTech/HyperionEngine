@@ -269,6 +269,7 @@ void Animation::AddTrack(const Handle<AnimationTrack>& track)
     track->SetPersistentRequested(true);
 
     m_tracks.PushBack(track);
+    ++m_revision;
 }
 
 void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
@@ -279,6 +280,7 @@ void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
     }
 
     m_tracks = tracks;
+    ++m_revision;
 }
 
 void Animation::Apply(Skeleton& skeleton, const ApplyAnimParams& params)
