@@ -87,7 +87,25 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
     previousModelMatrix = std::move(other.previousModelMatrix);
     userData = std::move(other.userData);
 
+    if (skeletonInstance)
+    {
+        EnqueueDeletion(std::move(skeletonInstance));
+    }
+
+    skeletonInstance = std::move(other.skeletonInstance);
+
     return *this;
+}
+
+const Handle<Skeleton>& MeshComponent::GetRenderSkeleton() const
+{
+    // a copied component can still point at another entity's instance until the AnimationSystem replaces it
+    if (skeletonInstance.IsValid() && skeletonInstance->GetInstanceSource() == skeleton.Get())
+    {
+        return skeletonInstance;
+    }
+
+    return skeleton;
 }
 
 MeshComponent::~MeshComponent()
@@ -100,6 +118,9 @@ MeshComponent::~MeshComponent()
 
     if (skeleton.IsValid())
         EnqueueDeletion(std::move(skeleton));
+
+    if (skeletonInstance.IsValid())
+        EnqueueDeletion(std::move(skeletonInstance));
 }
 
 } // namespace Hyperion

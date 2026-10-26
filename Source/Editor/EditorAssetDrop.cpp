@@ -15,6 +15,9 @@
 
 #include <Scene/Components/MeshComponent.hpp>
 #include <Scene/Components/ScriptComponent.hpp>
+#include <Scene/Components/AnimationComponent.hpp>
+
+#include <Scene/Animation/Animation.hpp>
 
 #include <Scripting/Asset/ScriptAsset.hpp>
 
@@ -293,10 +296,68 @@ Handle<EditorActionBase> TextureCreateAction(EditorSubsystem* subsystem, const H
 
 } // namespace /* Texture */
 
+namespace /* Animation */ {
+
+bool AnimationAcceptsAsset(const AssetObject* asset)
+{
+    return TryCast<Animation>(asset) != nullptr;
+}
+
+bool AnimationCanApply(const AssetObject* asset, const Entity* entity)
+{
+    const MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>();
+
+    return meshComponent != nullptr && meshComponent->skeleton.IsValid();
+}
+
+Handle<EditorActionBase> AnimationCreateAction(EditorSubsystem* subsystem, const Handle<AssetObject>& asset, const Handle<Entity>& entity)
+{
+    Handle<Animation> animation = TryCast<Animation>(asset);
+
+    const bool hadAnimationComponent = entity->HasComponent<AnimationComponent>();
+    const AnimationComponent previousAnimationComponent = hadAnimationComponent ? entity->GetComponent<AnimationComponent>() : AnimationComponent {};
+
+    if (hadAnimationComponent && previousAnimationComponent.animation == animation)
+    {
+        return nullptr;
+    }
+
+    return MakeEntityDropAction(
+        subsystem,
+        HYP_FORMAT("Assign Animation {}", animation->GetName()),
+        entity,
+        [entity, animation](EditorSubsystem*)
+        {
+            if (!entity->HasComponent<AnimationComponent>())
+            {
+                entity->AddComponent<AnimationComponent>(AnimationComponent {});
+            }
+
+            entity->GetComponent<AnimationComponent>().Play(animation);
+            entity->MarkDirty();
+        },
+        [entity, hadAnimationComponent, previousAnimationComponent](EditorSubsystem*)
+        {
+            if (!hadAnimationComponent)
+            {
+                entity->RemoveComponent<AnimationComponent>();
+            }
+            else if (AnimationComponent* animationComponent = entity->TryGetComponent<AnimationComponent>())
+            {
+                *animationComponent = previousAnimationComponent;
+            }
+
+            entity->MarkDirty();
+        });
+}
+
+} // namespace /* Animation */
+
 static const EntityAssetDropHandler g_entityAssetDropHandlers[] = {
     { &ScriptAcceptsAsset, &ScriptCanApply, &ScriptCreateAction },
     { &MaterialAcceptsAsset, &MaterialCanApply, &MaterialCreateAction },
-    { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction }
+    { &TextureAcceptsAsset, &TextureCanApply, &TextureCreateAction },
+    { &AnimationAcceptsAsset, &AnimationCanApply, &AnimationCreateAction }
 };
 
 static const EntityAssetDropHandler* FindEntityAssetDropHandler(const AssetObject* asset)

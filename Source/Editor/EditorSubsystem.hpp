@@ -590,6 +590,41 @@ public:
     void SetShowStatsEnabled(bool enabled);
 
     HYP_METHOD()
+    bool IsShowBonesEnabled() const;
+
+    HYP_METHOD()
+    void SetShowBonesEnabled(bool enabled);
+
+    ///Animation preview
+
+    HYP_METHOD()
+    void StartAnimationPreview(Entity* entity);
+
+    HYP_METHOD()
+    void StopAnimationPreview();
+
+    HYP_METHOD()
+    bool IsAnimationPreviewActive(Entity* entity) const;
+
+    HYP_METHOD()
+    bool IsAnimationPreviewPlaying() const;
+
+    HYP_METHOD()
+    void SetAnimationPreviewPlaying(bool playing);
+
+    HYP_METHOD()
+    float GetAnimationPreviewTime() const;
+
+    HYP_METHOD()
+    void SetAnimationPreviewTime(float time);
+
+    HYP_METHOD()
+    float GetAnimationPreviewLength() const;
+
+    HYP_METHOD()
+    float GetAnimationClipLength(Entity* entity) const;
+
+    HYP_METHOD()
     bool CanFitPhysicsShapeToMesh(Node* node) const;
 
     /*! \brief Resize the entity's BoxPhysicsShape so its local AABB matches its mesh AABB. Undoable.
@@ -945,6 +980,9 @@ private:
 
     void DebugDrawPhysicsShapes(class DebugDrawCommandList& debugDrawCommandList);
     void DebugDrawMeshLods(class DebugDrawCommandList& debugDrawCommandList);
+    void DebugDrawSelectedBones(class DebugDrawCommandList& debugDrawCommandList);
+
+    void UpdateAnimationPreview(float delta);
     void DebugDrawSpotLight(class DebugDrawCommandList& debugDrawCommandList, const class Light& light);
     void DebugDrawSelectedInstances(class DebugDrawCommandList& debugDrawCommandList);
 
@@ -1037,6 +1075,10 @@ private:
     UniquePtr<EditorGizmoController> m_gizmoController;
 
     WeakHandle<Node> m_focusedNode;
+
+    WeakHandle<Entity> m_animationPreviewEntity;
+    float m_animationPreviewTime = 0.0f;
+    bool m_isAnimationPreviewPlaying = false;
     // the actual node that displays the highlight for the focused item
     Handle<Node> m_highlightNode;
 

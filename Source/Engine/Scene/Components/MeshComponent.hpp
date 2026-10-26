@@ -67,6 +67,10 @@ struct ENGINE_API MeshComponent
     HYP_FIELD(Property = "LodBias", Serialize)
     int8 lodBias = 0;
 
+    // per-entity pose of `skeleton`, owned by the AnimationSystem
+    HYP_FIELD(Transient, Editor = false, NoScriptBindings)
+    Handle<Skeleton> skeletonInstance;
+
     MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),
           material(material),
@@ -83,6 +87,8 @@ struct ENGINE_API MeshComponent
     MeshComponent& operator=(MeshComponent&& other) noexcept;
 
     ~MeshComponent();
+
+    const Handle<Skeleton>& GetRenderSkeleton() const;
 };
 
 } // namespace Hyperion

@@ -48,7 +48,7 @@ namespace Hyperion.Editor
 
         // what can be applied to an Entity via D&D
         private static readonly HashSet<string> EntityAssetTypeNames
-            = ["Script", "ScriptAsset", "Material", "Texture"];
+            = ["Script", "ScriptAsset", "Material", "Texture", "Animation"];
 
         private static readonly object AssetCreationEntryTag = new();
         

@@ -162,14 +162,19 @@ namespace Hyperion.Editor.ViewModels
             bool initialize = true,
             Action? preWriteCallback = null,
             Action? postWriteCallback = null,
-            Action? valueChangedCallback = null)
+            Action? valueChangedCallback = null,
+            Entity? ownerEntity = null)
         {
             TypeInfo typeInfo = property.TypeInfo;
             bool isNameType = InspectorPropertyViewModelBase.IsNameType(typeInfo);
 
             InspectorPropertyViewModelBase vm;
 
-            if (typeInfo.IsArray)
+            if (ownerEntity != null && TryGetSkeletonChoiceKind(property, isNameType, out SkeletonChoiceKind choiceKind))
+            {
+                vm = new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, choiceKind);
+            }
+            else if (typeInfo.IsArray)
             {
                 vm = new ArrayPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
             }
@@ -263,7 +268,7 @@ namespace Hyperion.Editor.ViewModels
             }
             else if (typeInfo.Class.HasValue && typeInfo.Class.Value.IsStructType)
             {
-                vm = new StructPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth);
+                vm = new StructPropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, depth) { OwnerEntity = ownerEntity };
             }
             else
             {
@@ -274,6 +279,30 @@ namespace Hyperion.Editor.ViewModels
             AttachCallbacks(vm, preWriteCallback, postWriteCallback, valueChangedCallback);
 
             return initialize ? Initialize(vm) : vm;
+        }
+
+        private static bool TryGetSkeletonChoiceKind(Property property, bool isNameType, out SkeletonChoiceKind choiceKind)
+        {
+            choiceKind = default;
+
+            ClassAttribute? attrEditorType = property.GetAttribute("editortype");
+
+            if (attrEditorType == null || !attrEditorType.Value.IsString)
+            {
+                return false;
+            }
+
+            switch (attrEditorType.Value.GetString())
+            {
+            case "Bone" when isNameType:
+                choiceKind = SkeletonChoiceKind.Bone;
+                return true;
+            case "AnimationClip":
+                choiceKind = SkeletonChoiceKind.AnimationClip;
+                return true;
+            default:
+                return false;
+            }
         }
 
         public static InspectorPropertyViewModelBase CreateForValue(

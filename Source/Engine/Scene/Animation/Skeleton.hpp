@@ -12,10 +12,16 @@
 #include <Core/Memory/SharedPtr.hpp>
 
 #include <Core/Containers/Array.hpp>
+#include <Core/Containers/Map.hpp>
 
 #include <Core/Debug/Debug.hpp>
 
 #include <Core/Math/Mat4f.hpp>
+#include <Core/Math/Transform.hpp>
+
+#include <Core/Name/Name.hpp>
+
+#include <Core/Utilities/Span.hpp>
 
 #include <Core/Types.hpp>
 
@@ -24,6 +30,32 @@ namespace Hyperion {
 class Bone;
 class Animation;
 struct RenderProxySkeleton;
+
+// slots follow the skinning index order (root, then its descendants); non-bone slots have an invalid name
+struct SkeletonBindData
+{
+    static constexpr uint32 InvalidSlot = ~0u;
+
+    Array<Name> boneNames;
+    Array<uint32> parentSlots;
+    Array<Transform> restLocals;
+    Array<Mat4f> inverseBindMatrices;
+    Map<Name, uint32> slotsByBoneName;
+
+    HYP_FORCE_INLINE uint32 NumSlots() const
+    {
+        return uint32(boneNames.Size());
+    }
+
+    HYP_FORCE_INLINE uint32 FindSlot(Name boneName) const
+    {
+        auto it = slotsByBoneName.Find(boneName);
+
+        return it != slotsByBoneName.End() ? it->second : InvalidSlot;
+    }
+
+    bool IsSlotWithin(uint32 slot, Name ancestorBoneName) const;
+};
 
 HYP_CLASS(AssetBucket = "Skeletons")
 class ENGINE_API Skeleton final : public AssetObject
@@ -89,6 +121,31 @@ public:
         return m_animations[index];
     }
 
+    HYP_METHOD()
+    const Handle<Animation>& FindAnimation(Name name) const;
+
+    HYP_METHOD()
+    Array<Name> GetAnimationNames() const;
+
+    HYP_METHOD()
+    Array<Name> GetBoneNames() const;
+
+    const SkeletonBindData& GetBindData() const;
+
+    Handle<Skeleton> CreateInstance() const;
+
+    HYP_FORCE_INLINE const Skeleton* GetInstanceSource() const
+    {
+        return m_instanceSource;
+    }
+
+    HYP_FORCE_INLINE Span<const Mat4f> GetPoseModelMatrices() const
+    {
+        return m_poseModelMatrices.ToSpan();
+    }
+
+    void SetPoseMatrices(Span<const Mat4f> modelMatrices, Span<const Mat4f> skinningMatrices);
+
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
 
     const int* GetRenderProxyVersionPtr() const
@@ -109,6 +166,14 @@ private:
     Array<Handle<Animation>> m_animations;
 
     int m_renderProxyVersion;
+
+    const Skeleton* m_instanceSource = nullptr;
+
+    mutable SkeletonBindData m_bindData;
+    mutable bool m_bindDataBuilt = false;
+
+    Array<Mat4f> m_poseModelMatrices;
+    Array<Mat4f> m_poseSkinningMatrices;
 };
 
 } // namespace Hyperion

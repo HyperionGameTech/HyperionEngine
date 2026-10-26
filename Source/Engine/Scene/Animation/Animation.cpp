@@ -204,15 +204,28 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         return { time, keyframes[keyframes.Size() - 1].transform };
     }
 
-    for (int i = 0; i < int(keyframes.Size()) - 1; i++)
+    if (time >= keyframes[0].time)
     {
-        if (MathUtil::InRange(time, { keyframes[i].time, keyframes[i + 1].time }))
-        {
-            first = i;
-            second = i + 1;
+        // last keyframe at or before time; the hold check above keeps it short of the final keyframe
+        size_t low = 0;
+        size_t high = keyframes.Size() - 1;
 
-            break;
+        while (high - low > 1)
+        {
+            const size_t middle = low + (high - low) / 2;
+
+            if (keyframes[middle].time <= time)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle;
+            }
         }
+
+        first = int(low);
+        second = int(low + 1);
     }
 
     const Keyframe& current = keyframes[first];

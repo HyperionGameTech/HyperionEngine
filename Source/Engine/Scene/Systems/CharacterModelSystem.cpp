@@ -1095,6 +1095,8 @@ void CharacterModelSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     continue;
                 }
 
+                animationComponent->animation = Handle<Animation>::empty;
+
                 animatedEntities.PushBack(LocomotionAnimatedEntity { animationComponent, meshComponent->skeleton.Get() });
             }
 

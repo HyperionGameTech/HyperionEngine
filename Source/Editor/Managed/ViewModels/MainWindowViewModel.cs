@@ -793,10 +793,14 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ToggleShowStats { get; private set; }
         public bool IsShowStatsEnabled => _editorSubsystem?.IsShowStatsEnabled() ?? false;
 
+        public ICommand ToggleShowBones { get; private set; }
+        public bool IsShowBonesEnabled => _editorSubsystem?.IsShowBonesEnabled() ?? false;
+
         public void RefreshDebugOverlayToggleStates()
         {
             OnPropertyChanged(nameof(IsShowStatsEnabled));
             OnPropertyChanged(nameof(IsGhostModeEnabled));
+            OnPropertyChanged(nameof(IsShowBonesEnabled));
         }
 
         // Collision authoring is per-entity, so it lives on the node context menu and acts on the node
@@ -1267,6 +1271,16 @@ namespace Hyperion.Editor.ViewModels
                     _editorSubsystem.SetShowStatsEnabled(!_editorSubsystem.IsShowStatsEnabled());
 
                     Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsShowStatsEnabled)));
+                });
+            });
+
+            ToggleShowBones = new RelayCommand(() =>
+            {
+                _ = EngineManager.PostToSimThread(() =>
+                {
+                    _editorSubsystem.SetShowBonesEnabled(!_editorSubsystem.IsShowBonesEnabled());
+
+                    Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsShowBonesEnabled)));
                 });
             });
 

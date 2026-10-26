@@ -11,10 +11,10 @@ namespace Hyperion
         {
 #if HYP_WEB
             public const int Material = 4, Skeleton = 8, EnableAutoInstancing = 12, InstanceData = 16, NumInstances = 32,
-                PreviousModelMatrix = 48, UserData = 112, ForcedLod = 144, LodBias = 145, Size = 160;
+                PreviousModelMatrix = 48, UserData = 112, ForcedLod = 144, LodBias = 145, SkeletonInstance = 148, Size = 160;
 #else
             public const int Material = 8, Skeleton = 16, EnableAutoInstancing = 24, InstanceData = 32, NumInstances = 56,
-                PreviousModelMatrix = 64, UserData = 128, ForcedLod = 160, LodBias = 161, Size = 176;
+                PreviousModelMatrix = 64, UserData = 128, ForcedLod = 160, LodBias = 161, SkeletonInstance = 168, Size = 176;
 #endif
         }
 
@@ -48,6 +48,9 @@ namespace Hyperion
         [FieldOffset(Layout.LodBias)]
         private sbyte _lodBias;
 
+        [FieldOffset(Layout.SkeletonInstance)]
+        private Handle<Skeleton> _skeletonInstanceHandle;
+
         public MeshComponent()
         {
             _instanceData = new AssetReference();
@@ -59,6 +62,7 @@ namespace Hyperion
             _meshHandle.Dispose();
             _materialHandle.Dispose();
             _skeletonHandle.Dispose();
+            _skeletonInstanceHandle.Dispose();
         }
 
         public Mesh? Mesh

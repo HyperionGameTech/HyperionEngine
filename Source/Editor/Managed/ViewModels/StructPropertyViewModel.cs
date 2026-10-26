@@ -15,6 +15,9 @@ namespace Hyperion.Editor.ViewModels
         private readonly int _depth;
         private readonly Class _structClass;
 
+        // the entity owning the component this struct lives in, for editors that list its bones or clips
+        public Entity? OwnerEntity { get; init; }
+
         // Sim-thread-owned copy of the struct. Sub-property view models read and write through this
         // copy and then it is written back to the parent as a whole.
         private BoxedValue? _currentStructValue;
@@ -269,7 +272,8 @@ namespace Hyperion.Editor.ViewModels
                         initialize: false,
                         preWriteCallback: ReloadStructFromParent,
                         postWriteCallback: WriteStructToParent,
-                        valueChangedCallback: () => ValueChangedCallback?.Invoke());
+                        valueChangedCallback: () => ValueChangedCallback?.Invoke(),
+                        ownerEntity: OwnerEntity);
 
                     SubProperties.Add(vm);
                 }

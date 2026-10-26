@@ -71,11 +71,6 @@ Prefab ThirdPersonCharacter {
                                             SecondLayerAnimationIndex = 4294967295
                                             SecondLayerTime = 0
                                             SecondLayerWeight = 0
-                                            OverlayAnimationIndex = 4294967295
-                                            OverlayTime = 0
-                                            OverlayWeight = 0
-                                            OverlayRootBone = ""
-                                            OverlaySecondRootBone = ""
                                             TwistAngle = 0
                                             TwistRootBone = ""
                                             TwistEndBone = ""

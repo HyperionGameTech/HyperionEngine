@@ -44,13 +44,55 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="AnimationComponent")]
-    [StructLayout(LayoutKind.Sequential, Size = 104)]
+    [StructLayout(LayoutKind.Sequential, Size = 112)]
     public ref struct AnimationComponent : IComponent
     {
         public AnimationPlaybackState PlaybackState = new();
 
+        private Handle<Animation> _animationHandle;
+
         public AnimationComponent()
         {
+        }
+
+        public void Dispose()
+        {
+            _animationHandle.Dispose();
+        }
+
+        public Animation? Animation
+        {
+            get => _animationHandle.GetValue();
+            set
+            {
+                _animationHandle.Dispose();
+
+                if (value == null)
+                {
+                    _animationHandle = Handle<Animation>.Empty;
+
+                    return;
+                }
+
+                _animationHandle = new Handle<Animation>(value);
+            }
+        }
+
+        public bool IsPlaying => PlaybackState.Status == AnimationPlaybackStatus.Playing;
+
+        public void Play(Animation? clip, AnimationLoopMode loopMode = AnimationLoopMode.Repeat, float speed = 1.0f)
+        {
+            Animation = clip;
+
+            PlaybackState.Status = clip != null ? AnimationPlaybackStatus.Playing : AnimationPlaybackStatus.Stopped;
+            PlaybackState.LoopMode = loopMode;
+            PlaybackState.Speed = speed;
+            PlaybackState.CurrentTime = 0.0f;
+        }
+
+        public void Stop()
+        {
+            PlaybackState.Status = AnimationPlaybackStatus.Stopped;
         }
     }
 }

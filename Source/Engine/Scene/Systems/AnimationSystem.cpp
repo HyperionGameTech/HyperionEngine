@@ -15,8 +15,10 @@
 #include <Scene/Components/MeshComponent.hpp>
 
 #include <Scene/Animation/Animation.hpp>
+#include <Scene/Animation/AnimationPose.hpp>
 #include <Scene/Animation/Skeleton.hpp>
-#include <Scene/Animation/Bone.hpp>
+
+#include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Core/Reflection/Handle.hpp>
 
@@ -29,50 +31,6 @@
 namespace Hyperion {
 
 namespace /* Helpers */ {
-
-void ApplyTwist(Skeleton& skeleton, Name rootBoneName, Name endBoneName, float angle)
-{
-    Bone* endBone = skeleton.FindBone(endBoneName);
-
-    if (!endBone)
-    {
-        return;
-    }
-
-    Array<Bone*> chain;
-
-    for (Node* node = endBone; node != nullptr; node = node->GetParent())
-    {
-        Bone* bone = TryCast<Bone>(node);
-
-        if (!bone)
-        {
-            return;
-        }
-
-        chain.PushBack(bone);
-
-        if (bone->GetBoneName() == rootBoneName)
-        {
-            break;
-        }
-    }
-
-    if (chain.Empty() || chain.Back()->GetBoneName() != rootBoneName)
-    {
-        return;
-    }
-
-    // an even share per bone, root first; each bone's children follow it, so every bone only adds its own share
-    const Quat4f shareRotation(Vec3f::UnitY(), angle / float(chain.Size()));
-
-    for (size_t index = chain.Size(); index > 0; --index)
-    {
-        Bone* bone = chain[index - 1];
-
-        bone->SetWorldRotation(bone->GetWorldRotation() * shareRotation);
-    }
-}
 
 float AdvanceLayerTime(float time, float step, float length)
 {
@@ -95,7 +53,23 @@ float AdvanceLayerTime(float time, float step, float length)
 
     return time;
 }
+
+Animation* ResolveAnimation(const AnimationComponent& animationComponent, const MeshComponent& meshComponent)
+{
+    return animationComponent.animation.IsValid()
+        ? animationComponent.animation.Get()
+        : meshComponent.skeleton->GetAnimation(animationComponent.playbackState.animationIndex).Get();
+}
+
+const Animation* ResolveLayerAnimation(const MeshComponent& meshComponent, uint32 animationIndex, float weight)
+{
+    return weight > 0.0f && animationIndex != ~0u
+        ? meshComponent.skeleton->GetAnimation(animationIndex).Get()
+        : nullptr;
+}
 } // namespace
+
+AnimationSystem::~AnimationSystem() = default;
 
 bool AnimationSystem::ShouldProcessScene(Scene* scene) const
 {
@@ -106,24 +80,19 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    const MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
+    MeshComponent& meshComponent = entity->GetEntityManager()->GetComponent<MeshComponent>(entity);
     InitObject(meshComponent.skeleton);
+
+    AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);
 
     if (meshComponent.skeleton.IsValid())
     {
         auto& locks = m_resourceHandles[entity];
         locks.Clear();
 
-        for (const Handle<Animation>& anim : meshComponent.skeleton->GetAnimations())
+        const auto lockTracks = [&locks](const Animation& animation)
         {
-            Assert(anim.IsValid());
-
-            if (!anim.IsValid())
-            {
-                continue;
-            }
-
-            for (const Handle<AnimationTrack>& track : anim->GetTracks())
+            for (const Handle<AnimationTrack>& track : animation.GetTracks())
             {
                 Assert(track.IsValid());
 
@@ -134,18 +103,31 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 
                 locks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
             }
+        };
+
+        for (const Handle<Animation>& anim : meshComponent.skeleton->GetAnimations())
+        {
+            Assert(anim.IsValid());
+
+            if (!anim.IsValid())
+            {
+                continue;
+            }
+
+            lockTracks(*anim);
         }
+
+        CreateInstanceState(entity, meshComponent);
     }
 
-    AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);
-    
-    // reset the animation state to default values
-    animationComponent.playbackState = {};
-    animationComponent.playbackState.animationIndex = 0;
-    animationComponent.playbackState.status = AnimationPlaybackStatus::PLAYING;
-    animationComponent.playbackState.loopMode = AnimationLoopMode::REPEAT;
-    animationComponent.playbackState.speed = 1.0f;
-    animationComponent.playbackState.currentTime = 0.0f;
+    AnimationPlaybackState& playbackState = animationComponent.playbackState;
+
+    if (!animationComponent.animation.IsValid() && playbackState.animationIndex == ~0u)
+    {
+        playbackState.animationIndex = 0;
+        playbackState.status = AnimationPlaybackStatus::PLAYING;
+        playbackState.loopMode = AnimationLoopMode::REPEAT;
+    }
 }
 
 void AnimationSystem::OnEntityRemoved(Entity* entity)
@@ -158,13 +140,200 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
     {
         m_resourceHandles.Erase(it);
     }
+
+    MeshComponent* meshComponent = entity->GetEntityManager() ? entity->TryGetComponent<MeshComponent>() : nullptr;
+
+    DestroyInstanceState(entity, meshComponent);
+}
+
+void AnimationSystem::SetPreviewTime(Entity* entity, float time)
+{
+    auto it = m_instanceStates.Find(entity);
+
+    if (it == m_instanceStates.End())
+    {
+        return;
+    }
+
+    if (!it->second.isPreviewing)
+    {
+        it->second.isPreviewing = true;
+        ++m_numPreviewing;
+    }
+
+    it->second.previewTime = time;
+}
+
+void AnimationSystem::StopPreview(Entity* entity)
+{
+    auto it = m_instanceStates.Find(entity);
+
+    if (it == m_instanceStates.End() || !it->second.isPreviewing)
+    {
+        return;
+    }
+
+    AnimationInstanceState& state = it->second;
+    state.isPreviewing = false;
+    --m_numPreviewing;
+
+    state.pose.Clear();
+    state.instance->SetPoseMatrices({}, {});
+}
+
+AnimationInstanceState& AnimationSystem::CreateInstanceState(Entity* entity, MeshComponent& meshComponent)
+{
+    DestroyInstanceState(entity, &meshComponent);
+
+    AnimationInstanceState& state = m_instanceStates[entity];
+    state.source = meshComponent.skeleton.Get();
+    state.instance = meshComponent.skeleton->CreateInstance();
+    state.pose = PoseOps::MakeRestPose(meshComponent.skeleton->GetBindData());
+
+    meshComponent.skeletonInstance = state.instance;
+
+    entity->SetNeedsRenderProxyUpdate();
+
+    return state;
+}
+
+void AnimationSystem::DestroyInstanceState(Entity* entity, MeshComponent* meshComponent)
+{
+    auto it = m_instanceStates.Find(entity);
+
+    if (it != m_instanceStates.End())
+    {
+        if (it->second.isPreviewing)
+        {
+            --m_numPreviewing;
+        }
+
+        m_instanceStates.Erase(it);
+    }
+
+    // the render proxies may still point at the instance for a few frames
+    if (meshComponent && meshComponent->skeletonInstance.IsValid())
+    {
+        EnqueueDeletion(std::move(meshComponent->skeletonInstance));
+
+        entity->SetNeedsRenderProxyUpdate();
+    }
+}
+
+const ClipBinding& AnimationSystem::GetClipBinding(Entity* entity, AnimationInstanceState& state, const Animation& animation, const SkeletonBindData& bindData)
+{
+    auto it = state.clipBindings.Find(&animation);
+
+    if (it != state.clipBindings.End())
+    {
+        return it->second;
+    }
+
+    // clips played from scripts or the inspector aren't always among the skeleton's own, which OnEntityAdded locked
+    auto& locks = m_resourceHandles[entity];
+
+    for (const Handle<AnimationTrack>& track : animation.GetTracks())
+    {
+        if (track.IsValid())
+        {
+            locks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
+        }
+    }
+
+    return state.clipBindings.Insert({ &animation, PoseOps::BindClip(animation, bindData) }).first->second;
+}
+
+void AnimationSystem::EvaluatePose(Entity* entity, const AnimationComponent& animationComponent, MeshComponent& meshComponent, const Animation& animation, float time, float blend)
+{
+    const AnimationPlaybackState& playbackState = animationComponent.playbackState;
+
+    auto stateIt = m_instanceStates.Find(entity);
+
+    AnimationInstanceState& state = stateIt != m_instanceStates.End() && stateIt->second.source == meshComponent.skeleton.Get()
+        ? stateIt->second
+        : CreateInstanceState(entity, meshComponent);
+
+    const SkeletonBindData& bindData = meshComponent.skeleton->GetBindData();
+
+    if (state.pose.Size() != bindData.NumSlots())
+    {
+        state.pose = PoseOps::MakeRestPose(bindData);
+    }
+
+    const Animation* layerAnimation = ResolveLayerAnimation(meshComponent, playbackState.layerAnimationIndex, playbackState.layerWeight);
+    const Animation* secondLayerAnimation = ResolveLayerAnimation(meshComponent, playbackState.secondLayerAnimationIndex, playbackState.secondLayerWeight);
+
+    ApplyAnimParams params {};
+    params.time = time;
+    params.blend = blend;
+
+    if (layerAnimation != nullptr || secondLayerAnimation != nullptr)
+    {
+        if (layerAnimation != nullptr)
+        {
+            params.layerAnimation = layerAnimation;
+            params.layerTime = playbackState.layerTime;
+            params.layerWeight = playbackState.layerWeight;
+            params.layerExcludedBone = playbackState.layerExcludedBone;
+
+            params.secondLayerAnimation = secondLayerAnimation;
+            params.secondLayerTime = playbackState.secondLayerTime;
+            params.secondLayerWeight = playbackState.secondLayerWeight;
+        }
+        else
+        {
+            params.layerAnimation = secondLayerAnimation;
+            params.layerTime = playbackState.secondLayerTime;
+            params.layerWeight = playbackState.secondLayerWeight;
+        }
+
+        // bind everything first; a later insert may move the bindings already fetched
+        GetClipBinding(entity, state, animation, bindData);
+        GetClipBinding(entity, state, *params.layerAnimation, bindData);
+
+        if (params.secondLayerAnimation != nullptr)
+        {
+            GetClipBinding(entity, state, *params.secondLayerAnimation, bindData);
+        }
+
+        PoseOps::ApplyLayered(
+            animation,
+            GetClipBinding(entity, state, animation, bindData),
+            &GetClipBinding(entity, state, *params.layerAnimation, bindData),
+            params.secondLayerAnimation != nullptr ? &GetClipBinding(entity, state, *params.secondLayerAnimation, bindData) : nullptr,
+            bindData,
+            params,
+            state.pose.ToSpan());
+    }
+    else
+    {
+        PoseOps::ApplyBlended(animation, GetClipBinding(entity, state, animation, bindData), bindData, params, state.pose.ToSpan());
+    }
+
+    state.renderPose = state.pose;
+
+    if (playbackState.twistAngle != 0.0f
+        && playbackState.twistRootBone.IsValid()
+        && playbackState.twistEndBone.IsValid())
+    {
+        PoseOps::ApplyTwist(bindData, playbackState.twistRootBone, playbackState.twistEndBone, playbackState.twistAngle, state.renderPose.ToSpan());
+    }
+
+    state.modelMatrices.Resize(bindData.NumSlots());
+    state.skinningMatrices.Resize(bindData.NumSlots());
+
+    PoseOps::ComputeMatrices(bindData, state.renderPose.ToSpan(), state.modelMatrices.ToSpan(), state.skinningMatrices.ToSpan());
+
+    state.instance->SetPoseMatrices(state.modelMatrices.ToSpan(), state.skinningMatrices.ToSpan());
 }
 
 void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
     HYP_SCOPE;
 
-    if (!GetWorld()->GetGameState().IsSimulating())
+    const bool isSimulating = GetWorld()->GetGameState().IsSimulating();
+
+    if (!isSimulating && m_numPreviewing == 0)
     {
         return;
     }
@@ -183,20 +352,40 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 continue;
             }
 
+            if (!isSimulating)
+            {
+                auto stateIt = m_instanceStates.Find(entity);
+
+                if (stateIt == m_instanceStates.End() || !stateIt->second.isPreviewing)
+                {
+                    continue;
+                }
+
+                // a preview snaps to the scrubbed time instead of easing toward it
+                if (const Animation* animation = ResolveAnimation(animationComponent, meshComponent))
+                {
+                    EvaluatePose(entity, animationComponent, meshComponent, *animation, stateIt->second.previewTime, 1.0f);
+                }
+
+                continue;
+            }
+
             AnimationPlaybackState& playbackState = animationComponent.playbackState;
 
             if (playbackState.status != AnimationPlaybackStatus::PLAYING)
             {
                 continue;
             }
-            if (playbackState.animationIndex == ~0u)
+
+            if (!animationComponent.animation.IsValid() && playbackState.animationIndex == ~0u)
             {
                 playbackState = {};
 
                 continue;
             }
 
-            Animation* animation = meshComponent.skeleton->GetAnimation(playbackState.animationIndex);
+            Animation* animation = ResolveAnimation(animationComponent, meshComponent);
+
             if (!animation)
             {
                 HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
@@ -241,63 +430,17 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 }
             }
 
-            const Animation* layerAnimation = playbackState.layerWeight > 0.0f && playbackState.layerAnimationIndex != ~0u
-                ? meshComponent.skeleton->GetAnimation(playbackState.layerAnimationIndex).Get()
-                : nullptr;
-
-            const Animation* secondLayerAnimation = playbackState.secondLayerWeight > 0.0f && playbackState.secondLayerAnimationIndex != ~0u
-                ? meshComponent.skeleton->GetAnimation(playbackState.secondLayerAnimationIndex).Get()
-                : nullptr;
-
-            if (layerAnimation != nullptr)
+            if (const Animation* layerAnimation = ResolveLayerAnimation(meshComponent, playbackState.layerAnimationIndex, playbackState.layerWeight))
             {
                 playbackState.layerTime = AdvanceLayerTime(playbackState.layerTime, delta * playbackState.speed, layerAnimation->GetLength());
             }
 
-            if (secondLayerAnimation != nullptr)
+            if (const Animation* secondLayerAnimation = ResolveLayerAnimation(meshComponent, playbackState.secondLayerAnimationIndex, playbackState.secondLayerWeight))
             {
                 playbackState.secondLayerTime = AdvanceLayerTime(playbackState.secondLayerTime, delta * playbackState.speed, secondLayerAnimation->GetLength());
             }
 
-            ApplyAnimParams params{};
-            params.time = playbackState.currentTime;
-            params.blend = 0.5f;
-
-            if (layerAnimation != nullptr || secondLayerAnimation != nullptr)
-            {
-                if (layerAnimation != nullptr)
-                {
-                    params.layerAnimation = layerAnimation;
-                    params.layerTime = playbackState.layerTime;
-                    params.layerWeight = playbackState.layerWeight;
-                    params.layerExcludedBone = playbackState.layerExcludedBone;
-
-                    params.secondLayerAnimation = secondLayerAnimation;
-                    params.secondLayerTime = playbackState.secondLayerTime;
-                    params.secondLayerWeight = playbackState.secondLayerWeight;
-                }
-                else if (secondLayerAnimation != nullptr)
-                {
-                    params.layerAnimation = secondLayerAnimation;
-                    params.layerTime = playbackState.secondLayerTime;
-                    params.layerWeight = playbackState.secondLayerWeight;
-                }
-
-                animation->ApplyLayered(*meshComponent.skeleton, params);
-            }
-            else
-            {
-                animation->ApplyBlended(*meshComponent.skeleton, params);
-            }
-
-            if (playbackState.twistAngle != 0.0f
-                && playbackState.twistRootBone.IsValid()
-                && playbackState.twistEndBone.IsValid())
-            {
-                ApplyTwist(*meshComponent.skeleton, playbackState.twistRootBone, playbackState.twistEndBone, playbackState.twistAngle);
-            }
-
-            meshComponent.skeleton->SetNeedsRenderProxyUpdate();
+            EvaluatePose(entity, animationComponent, meshComponent, *animation, playbackState.currentTime, 0.5f);
         }
     }
 }

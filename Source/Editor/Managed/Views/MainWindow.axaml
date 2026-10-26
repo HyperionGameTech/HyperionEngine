@@ -1409,6 +1409,12 @@
                                         ToggleType="CheckBox"
                                         ToolTip.Tip="Show the engine stats overlay, in both editor and simulation mode" />
 
+                                    <MenuItem
+                                        Command="{Binding ToggleShowBones}"
+                                        Header="Show Bones"
+                                        IsChecked="{Binding IsShowBonesEnabled, Mode=OneWay}"
+                                        ToggleType="CheckBox" />
+
                                     <Separator />
                                     <MenuItem Header="Layout">
                                         <MenuItem Click="OnViewportLayoutSingleClick" Header="Single Viewport" />

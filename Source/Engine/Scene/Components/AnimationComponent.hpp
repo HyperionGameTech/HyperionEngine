@@ -11,9 +11,13 @@
 
 #include <Core/Name/Name.hpp>
 
+#include <Core/Reflection/Handle.hpp>
+
 #include <Core/Reflection/ObjectMacros.hpp>
 
 namespace Hyperion {
+
+class Animation;
 
 HYP_ENUM()
 enum class AnimationPlaybackStatus : uint8
@@ -61,7 +65,7 @@ struct AnimationPlaybackState
     float layerWeight = 0.0f;
 
     /// if set, the layer leaves this bone and everything beneath it to the base animation
-    HYP_FIELD(Property = "LayerExcludedBone", Editor = true)
+    HYP_FIELD(Property = "LayerExcludedBone", Editor = true, EditorType = "Bone")
     Name layerExcludedBone;
 
     HYP_FIELD(Property = "SecondLayerAnimationIndex", Editor = true)
@@ -76,10 +80,10 @@ struct AnimationPlaybackState
     HYP_FIELD(Property = "TwistAngle", Editor = true)
     float twistAngle = 0.0f;
 
-    HYP_FIELD(Property = "TwistRootBone", Editor = true)
+    HYP_FIELD(Property = "TwistRootBone", Editor = true, EditorType = "Bone")
     Name twistRootBone;
 
-    HYP_FIELD(Property = "TwistEndBone", Editor = true)
+    HYP_FIELD(Property = "TwistEndBone", Editor = true, EditorType = "Bone")
     Name twistEndBone;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -108,18 +112,30 @@ struct AnimationPlaybackState
 
 /*! \brief A component that holds animation play state for a given entity. */
 HYP_STRUCT(Component, Label = "Animation Component", Editor = true)
-struct AnimationComponent
+struct ENGINE_API AnimationComponent
 {
     HYP_STRUCT_BODY(AnimationComponent);
 
     HYP_FIELD(Property = "PlaybackState", Serialize = true, Editor = true)
     AnimationPlaybackState playbackState;
 
+    HYP_FIELD(Property = "Animation", Serialize = true, Editor = true, EditorType = "AnimationClip")
+    Handle<Animation> animation;
+
+    void Play(const Handle<Animation>& clip, AnimationLoopMode loopMode = AnimationLoopMode::REPEAT, float speed = 1.0f);
+    void Stop();
+
+    HYP_FORCE_INLINE bool IsPlaying() const
+    {
+        return playbackState.status == AnimationPlaybackStatus::PLAYING;
+    }
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 
         hc.Add(playbackState);
+        hc.Add(animation);
 
         return hc;
     }

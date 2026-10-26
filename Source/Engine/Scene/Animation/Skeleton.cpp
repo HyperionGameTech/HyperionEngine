@@ -96,7 +96,7 @@ uint32 Skeleton::FindBoneIndex(StringHash name) const
 
     uint32 index = 0;
 
-    if (m_rootBone->GetName() == name)
+    if (m_rootBone->GetBoneName() == name)
     {
         return index;
     }
@@ -117,7 +117,7 @@ uint32 Skeleton::FindBoneIndex(StringHash name) const
             continue;
         }
 
-        if (bone->GetName() == name)
+        if (bone->GetBoneName() == name)
         {
             return index;
         }
@@ -153,11 +153,194 @@ void Skeleton::SetRootBone(const Handle<Bone>& bone)
     // The inverse bind matrices are Transient, so a skeleton loaded from disk needs them rebuilt here
     m_rootBone->SetToBindingPose();
     m_rootBone->StoreBindingPose();
+
+    m_bindDataBuilt = false;
+}
+
+const Handle<Animation>& Skeleton::FindAnimation(Name name) const
+{
+    for (const Handle<Animation>& animation : m_animations)
+    {
+        if (animation.IsValid() && animation->GetName() == name)
+        {
+            return animation;
+        }
+    }
+
+    return Handle<Animation>::empty;
+}
+
+Array<Name> Skeleton::GetAnimationNames() const
+{
+    Array<Name> names;
+
+    for (const Handle<Animation>& animation : m_animations)
+    {
+        if (animation.IsValid())
+        {
+            names.PushBack(animation->GetName());
+        }
+    }
+
+    return names;
+}
+
+Array<Name> Skeleton::GetBoneNames() const
+{
+    Array<Name> names;
+
+    for (const Name boneName : GetBindData().boneNames)
+    {
+        if (boneName.IsValid())
+        {
+            names.PushBack(boneName);
+        }
+    }
+
+    return names;
+}
+
+bool SkeletonBindData::IsSlotWithin(uint32 slot, Name ancestorBoneName) const
+{
+    for (uint32 current = slot; current != InvalidSlot; current = parentSlots[current])
+    {
+        if (!boneNames[current].IsValid())
+        {
+            return false;
+        }
+
+        if (boneNames[current] == ancestorBoneName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+const SkeletonBindData& Skeleton::GetBindData() const
+{
+    if (m_bindDataBuilt)
+    {
+        return m_bindData;
+    }
+
+    m_bindData = SkeletonBindData {};
+    m_bindDataBuilt = true;
+
+    if (!m_rootBone)
+    {
+        return m_bindData;
+    }
+
+    Map<const Node*, uint32> slotsByNode;
+
+    const auto addSlot = [&](const Node& node)
+    {
+        const uint32 slot = m_bindData.NumSlots();
+        slotsByNode[&node] = slot;
+
+        const auto parentIt = slotsByNode.Find(node.GetParent());
+        const Bone* bone = TryCast<Bone>(&node);
+
+        m_bindData.boneNames.PushBack(bone ? bone->GetBoneName() : Name::Invalid());
+        m_bindData.parentSlots.PushBack(slot > 0 && parentIt != slotsByNode.End() ? parentIt->second : SkeletonBindData::InvalidSlot);
+        m_bindData.restLocals.PushBack(bone ? bone->GetBindingTransform() : node.GetLocalTransform());
+        m_bindData.inverseBindMatrices.PushBack(bone ? bone->m_inverseBindMatrix : Mat4f::Identity());
+
+        if (bone && bone->GetBoneName().IsValid() && !m_bindData.slotsByBoneName.Contains(bone->GetBoneName()))
+        {
+            m_bindData.slotsByBoneName[bone->GetBoneName()] = slot;
+        }
+    };
+
+    addSlot(*m_rootBone);
+
+    for (Node* descendant : m_rootBone->GetDescendants())
+    {
+        addSlot(*descendant);
+    }
+
+    return m_bindData;
+}
+
+static Handle<Node> CloneSkeletonNode(const Node& source)
+{
+    Handle<Node> clone;
+
+    if (const Bone* sourceBone = TryCast<Bone>(&source))
+    {
+        Handle<Bone> bone = MakeHandle<Bone>(sourceBone->GetBoneName());
+        bone->SetBindingTransform(sourceBone->GetBindingTransform());
+
+        clone = bone;
+    }
+    else
+    {
+        clone = MakeHandle<Node>();
+    }
+
+    clone->SetName(source.GetName());
+    clone->SetLocalTransform(source.GetLocalTransform());
+
+    for (const Handle<Node>& child : source.GetChildren())
+    {
+        if (child.IsValid())
+        {
+            clone->AddChild(CloneSkeletonNode(*child));
+        }
+    }
+
+    return clone;
+}
+
+Handle<Skeleton> Skeleton::CreateInstance() const
+{
+    HYP_SCOPE;
+
+    Handle<Skeleton> instance = MakeHandle<Skeleton>();
+    instance->SetName(GetName());
+    instance->m_animations = m_animations;
+    instance->m_instanceSource = this;
+
+    if (m_rootBone)
+    {
+        instance->SetRootBone(Cast<Bone>(CloneSkeletonNode(*m_rootBone)));
+    }
+
+    InitObject(instance);
+
+    return instance;
+}
+
+void Skeleton::SetPoseMatrices(Span<const Mat4f> modelMatrices, Span<const Mat4f> skinningMatrices)
+{
+    m_poseModelMatrices = Array<Mat4f>(modelMatrices);
+    m_poseSkinningMatrices = Array<Mat4f>(skinningMatrices);
+
+    SetNeedsRenderProxyUpdate();
 }
 
 void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
 {
     proxy->skeleton = this;
+
+    if (m_poseSkinningMatrices.Any())
+    {
+        if (m_poseSkinningMatrices.Size() > MaxBonesPerSkeleton)
+        {
+            HYP_LOG_ONCE(Animation, Warning, "Skeleton has more bones than supported by the shader ({}). Some bones will be ignored in skinning.", MaxBonesPerSkeleton);
+        }
+
+        const size_t numBones = MathUtil::Min(m_poseSkinningMatrices.Size(), size_t(MaxBonesPerSkeleton));
+
+        for (size_t boneIndex = 0; boneIndex < numBones; ++boneIndex)
+        {
+            proxy->bufferData.bones[boneIndex] = m_poseSkinningMatrices[boneIndex];
+        }
+
+        return;
+    }
 
     if (m_rootBone != nullptr)
     {
