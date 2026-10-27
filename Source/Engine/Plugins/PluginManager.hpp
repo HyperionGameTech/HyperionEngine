@@ -100,7 +100,6 @@ private:
     void ResolveEnabledPlugin(StringHash pluginName, Array<Name>& outOrdered, Array<Name>& visiting) const;
     void UnloadModule(ActiveModule& activeModule);
 
-    // a plugin's Content folder joins the engine registry while the plugin is enabled
     void SetPluginContentMounted(Name pluginName, bool mounted) const;
 
     bool m_initialized = false;

@@ -3276,6 +3276,27 @@ namespace Hyperion.Editor.ViewModels
 
             _ = EngineManager.PostToSimThread(() =>
             {
+                try
+                {
+                    BuildNextModelImport();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogLevel.Error, $"Could not show the model import panel: {ex}");
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _isShowingModelImport = false;
+
+                        ShowNextModelImport();
+                    });
+                }
+            });
+        }
+
+        private void BuildNextModelImport()
+        {
+            {
                 EditorImportReview? pending = _editorSubsystem.GetPendingImportReview();
                 EditorModelImportReview? review = pending as EditorModelImportReview;
 
@@ -3336,14 +3357,27 @@ namespace Hyperion.Editor.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    PanelService.Instance.OpenPanel(new ModelImportPanelViewModel(_editorSubsystem, review, snapshot, () =>
+                    try
                     {
+                        PanelService.Instance.OpenPanel(new ModelImportPanelViewModel(_editorSubsystem, review, snapshot, () =>
+                        {
+                            _isShowingModelImport = false;
+
+                            ShowNextModelImport();
+                        }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Error, $"Could not open the model import panel for '{snapshot.FileName}': {ex}");
+
+                        _ = EngineManager.PostToSimThread(() => review.Cancel());
+
                         _isShowingModelImport = false;
 
                         ShowNextModelImport();
-                    }));
+                    }
                 });
-            });
+            }
         }
 
         /// <summary>Opens <paramref name="prefabName"/> in prefab edit mode, leaving any edit mode first.</summary>
