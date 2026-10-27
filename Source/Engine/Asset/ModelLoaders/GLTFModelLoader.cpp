@@ -2053,6 +2053,12 @@ bool BuildPrimitive(GltfLoadContext& ctx,
                     }
                 }
 
+                if (boneIndex >= MaxBonesPerSkeleton)
+                {
+                    boneIndex = 0;
+                    weight = 0.0f;
+                }
+
                 vertex.SetBoneIndex(i, uint8(boneIndex));
                 vertex.SetBoneWeight(i, weight);
             }
