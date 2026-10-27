@@ -65,7 +65,9 @@ namespace Hyperion.Editor.ViewModels
             private set
             {
                 if (SetProperty(ref _hasSubObject, value))
+                {
                     OnPropertyChanged(nameof(SubclassDisplay));
+                }
 
                 UpdateCanClone();
             }
@@ -181,25 +183,49 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        public string SubclassDisplay => HasSubObject ? _currentTypeName : HasMixedValues ? "—" : "None";
+        public string SubclassDisplay
+        {
+            get
+            {
+                if (HasSubObject)
+                {
+                    return _currentTypeName;
+                }
+
+                if (HasMixedValues)
+                {
+                    return "—";
+                }
+
+                return "None";
+            }
+        }
 
         public void PickSubclass(string? className)
         {
             if (className == null)
             {
                 if (!IsPending && (HasSubObject || HasMixedValues))
+                {
                     OnClear();
+                }
 
                 return;
             }
 
             if (!HasMixedValues && HasSubObject && className == _currentTypeName)
+            {
                 return;
+            }
 
             CommitSubclass(className);
         }
 
-        public ObjectPropertyViewModel(ObjectBase target, Property property, bool isReadOnly, int depth = 0)
+        public ObjectPropertyViewModel(
+            ObjectBase target,
+            Property property,
+            bool isReadOnly,
+            int depth = 0)
             : base(target, property, isReadOnly)
         {
             _depth = depth;
@@ -220,7 +246,12 @@ namespace Hyperion.Editor.ViewModels
             UpdateCanClone();
         }
 
-        public ObjectPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, int depth = 0)
+        public ObjectPropertyViewModel(
+            IntPtr classAddress,
+            Func<IntPtr> targetAddressResolver,
+            Property property,
+            bool isReadOnly,
+            int depth = 0)
             : base(classAddress, targetAddressResolver, property, isReadOnly)
         {
             _depth = depth;
@@ -241,7 +272,14 @@ namespace Hyperion.Editor.ViewModels
             UpdateCanClone();
         }
 
-        public ObjectPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly, int depth = 0, Func<Type?>? declaredTypeResolver = null)
+        public ObjectPropertyViewModel(
+            string label,
+            TypeInfo typeInfo,
+            Func<BoxedValue> getter,
+            Action<BoxedValue> setter,
+            bool isReadOnly,
+            int depth = 0,
+            Func<Type?>? declaredTypeResolver = null)
             : base(label, typeInfo, getter, setter, isReadOnly)
         {
             _depth = depth;

@@ -46,7 +46,9 @@ namespace Hyperion.Editor.ViewModels
 
         public string DisplayName => string.IsNullOrEmpty(_name) ? $"Unnamed {_node.GetType().Name}" : _name;
         public bool IsUnnamed => string.IsNullOrEmpty(_name);
-        public FontStyle NameFontStyle => IsUnnamed ? FontStyle.Italic : FontStyle.Normal;
+        public FontStyle NameFontStyle => IsUnnamed
+            ? FontStyle.Italic
+            : FontStyle.Normal;
 
         public string ClassName => _node.Class.Name.ToString();
 
@@ -124,13 +126,13 @@ namespace Hyperion.Editor.ViewModels
             OnPropertyChanged(nameof(CanUsePrefabActions));
         }
 
-        private readonly List<NodeViewModel> _allChildren = new List<NodeViewModel>();
+        private readonly List<NodeViewModel> _allChildren = new();
 
-        public ObservableCollection<NodeViewModel> Children { get; } = new ObservableCollection<NodeViewModel>();
+        public ObservableCollection<NodeViewModel> Children { get; } = new();
 
         public IReadOnlyList<NodeViewModel> AllChildren => _allChildren;
 
-        public ObservableCollection<InspectorActionViewModel> Actions { get; } = new ObservableCollection<InspectorActionViewModel>();
+        public ObservableCollection<InspectorActionViewModel> Actions { get; } = new();
 
         private bool _hasActions;
         public bool HasActions
@@ -139,7 +141,7 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasActions, value);
         }
 
-        public ObservableCollection<MoveToSceneItemViewModel> MoveToSceneTargets { get; } = new ObservableCollection<MoveToSceneItemViewModel>();
+        public ObservableCollection<MoveToSceneItemViewModel> MoveToSceneTargets { get; } = new();
 
         private bool _hasMoveToSceneTargets;
         public bool HasMoveToSceneTargets
@@ -148,7 +150,7 @@ namespace Hyperion.Editor.ViewModels
             private set => SetProperty(ref _hasMoveToSceneTargets, value);
         }
 
-        public ObservableCollection<ConvertToEntityTypeItemViewModel> ConvertToEntityTypeTargets { get; } = new ObservableCollection<ConvertToEntityTypeItemViewModel>();
+        public ObservableCollection<ConvertToEntityTypeItemViewModel> ConvertToEntityTypeTargets { get; } = new();
 
         private bool _hasConvertToEntityTypeTargets;
         public bool HasConvertToEntityTypeTargets
@@ -220,6 +222,7 @@ namespace Hyperion.Editor.ViewModels
         public bool IsVolume => _node is VolumeBase;
 
         private bool _isOutsideSelection;
+
         /// <summary>
         /// Whether the context menu was opened on this node without it being selected (right-clicking a volume
         /// leaves the selection alone), in which case Copy and Delete act on this node rather than the selection.
@@ -256,7 +259,9 @@ namespace Hyperion.Editor.ViewModels
             }
 
             int fitTargetCount = selectedNodes.Count(selectedNode => !ReferenceEquals(selectedNode, this));
-            FitVolumeToSelectionHeader = fitTargetCount > 1 ? $"Fit to {fitTargetCount} Selected Nodes" : "Fit to Selected Node";
+            FitVolumeToSelectionHeader = fitTargetCount > 1
+                ? $"Fit to {fitTargetCount} Selected Nodes"
+                : "Fit to Selected Node";
 
             // Bounds are read on the sim thread, so the item starts disabled and enables itself a frame later.
             CanFitVolumeToSelection = false;
@@ -409,7 +414,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (child != null)
                 {
-                    NodeViewModel childViewModel = new NodeViewModel(child, this, onChildrenChanged, index);
+                    NodeViewModel childViewModel = new(child, this, onChildrenChanged, index);
 
                     _allChildren.Add(childViewModel);
                     Children.Add(childViewModel);
@@ -421,7 +426,9 @@ namespace Hyperion.Editor.ViewModels
             _onChildAdded = node.GetOnChildAddedDelegate().Bind((Node child, bool isDirect) =>
             {
                 if (!isDirect)
+                {
                     return;
+                }
 
                 NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
@@ -431,7 +438,7 @@ namespace Hyperion.Editor.ViewModels
                 }
 
                 // built inline on the thread attaching the child; its subtree may be mutated again before the UI gets to it
-                NodeViewModel childViewModel = new NodeViewModel(child, target, target!._onChildrenChanged, target!._index);
+                NodeViewModel childViewModel = new(child, target, target!._onChildrenChanged, target!._index);
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -446,7 +453,9 @@ namespace Hyperion.Editor.ViewModels
             _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
             {
                 if (!isDirect)
+                {
                     return;
+                }
 
                 NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
@@ -566,7 +575,9 @@ namespace Hyperion.Editor.ViewModels
 
         public NodeViewModel? Find(UUID uuid)
         {
-            return _nodeViewModelsByUUID.TryGetValue(uuid, out NodeViewModel? nodeViewModel) ? nodeViewModel : null;
+            return _nodeViewModelsByUUID.TryGetValue(uuid, out NodeViewModel? nodeViewModel)
+                ? nodeViewModel
+                : null;
         }
 
         public void Clear()

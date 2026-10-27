@@ -91,7 +91,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = new BoxedValue(captured);
+                    using BoxedValue boxed = new(captured);
                     CommitPropertyChange($"Set {Label}", boxed);
                 }
                 catch (Exception ex)

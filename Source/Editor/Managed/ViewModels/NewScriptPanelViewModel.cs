@@ -20,8 +20,8 @@ namespace Hyperion.Editor.ViewModels
         private string _scriptName = DefaultScriptName;
         private ScriptLanguageEntry _selectedLanguage;
 
-        private static readonly ScriptLanguageEntry StrataLanguage = new ScriptLanguageEntry("Strata", "strata", ".strata");
-        private static readonly ScriptLanguageEntry CSharpLanguage = new ScriptLanguageEntry("C#", "csharp", ".cs");
+        private static readonly ScriptLanguageEntry StrataLanguage = new("Strata", "strata", ".strata");
+        private static readonly ScriptLanguageEntry CSharpLanguage = new("C#", "csharp", ".cs");
 
         public bool IsStrataAvailable { get; } = EngineManager.IsStrataEnabled;
 
@@ -93,8 +93,8 @@ namespace Hyperion.Editor.ViewModels
             _onCompleted = onCompleted ?? throw new ArgumentNullException(nameof(onCompleted));
 
             Languages = IsStrataAvailable
-                ? new[] { StrataLanguage, CSharpLanguage }
-                : new[] { CSharpLanguage };
+                ? [StrataLanguage, CSharpLanguage]
+                : [CSharpLanguage];
 
             _selectedLanguage = Languages[0];
 
@@ -150,7 +150,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void OnConfirm()
         {
-            // Script names are identifiers; they must not contain spaces because the command parses args by splitting on spaces.
+            // escape the string to be a valid identifier
             string name = (ScriptName ?? string.Empty).Trim();
 
             if (string.IsNullOrWhiteSpace(name) || name.Contains(' ') || IsNameTaken)

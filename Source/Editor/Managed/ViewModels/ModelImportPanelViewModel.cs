@@ -133,7 +133,11 @@ namespace Hyperion.Editor.ViewModels
         private string _unmatchedTracksText = string.Empty;
         private bool _resolved;
 
-        public ModelImportPanelViewModel(EditorSubsystem editorSubsystem, EditorModelImportReview review, ModelImportSnapshot snapshot, Action onFinished)
+        public ModelImportPanelViewModel(
+            EditorSubsystem editorSubsystem,
+            EditorModelImportReview review,
+            ModelImportSnapshot snapshot,
+            Action onFinished)
             : base($"Import {snapshot.FileName}")
         {
             _editorSubsystem = editorSubsystem;
@@ -157,7 +161,9 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _targetSkeletonAsset = value.GetValue() as Skeleton;
 
-                    string? skeletonName = _targetSkeletonAsset != null && _targetSkeletonAsset.IsValid ? _targetSkeletonAsset.Name.ToString() : null;
+                    string? skeletonName = _targetSkeletonAsset != null && _targetSkeletonAsset.IsValid
+                        ? _targetSkeletonAsset.Name.ToString()
+                        : null;
 
                     Dispatcher.UIThread.Post(() => TargetSkeleton = skeletonName);
                 },
@@ -189,11 +195,11 @@ namespace Hyperion.Editor.ViewModels
 
         public ObjectPropertyViewModel SkeletonPicker { get; }
 
-        public ObservableCollection<ModelImportTakeViewModel> Takes { get; } = new ObservableCollection<ModelImportTakeViewModel>();
+        public ObservableCollection<ModelImportTakeViewModel> Takes { get; } = new();
 
-        public ObservableCollection<ModelImportSplitViewModel> Splits { get; } = new ObservableCollection<ModelImportSplitViewModel>();
+        public ObservableCollection<ModelImportSplitViewModel> Splits { get; } = new();
 
-        public ObservableCollection<ImportSettingsSectionViewModel> SettingsSections { get; } = new ObservableCollection<ImportSettingsSectionViewModel>();
+        public ObservableCollection<ImportSettingsSectionViewModel> SettingsSections { get; } = new();
 
         public bool HasMesh { get; }
 

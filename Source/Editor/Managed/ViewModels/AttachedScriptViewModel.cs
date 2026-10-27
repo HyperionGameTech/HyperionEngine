@@ -566,7 +566,7 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     // Set the script asset
-                    using BoxedValue newBoxed = new BoxedValue(scriptAsset);
+                    using BoxedValue newBoxed = new(scriptAsset);
                     _assetRefProperty.Set(s_scriptComponentClass!.Value.Address, componentPtr, newBoxed);
                 }
                 else
@@ -577,7 +577,7 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     // Set to null
-                    using BoxedValue nullBoxed = new BoxedValue(null);
+                    using BoxedValue nullBoxed = new(null);
                     _assetRefProperty.Set(s_scriptComponentClass!.Value.Address, componentPtr, nullBoxed);
                 }
 
@@ -620,7 +620,7 @@ namespace Hyperion.Editor.ViewModels
                         return;
                     }
 
-                    using BoxedValue bv = new BoxedValue(valueObj);
+                    using BoxedValue bv = new(valueObj);
                     capturedProperty.Set(capturedClass.Address, ptr, bv);
 
                     ScriptSystem_RecreateEntityScript(capturedEntity.NativeAddress);

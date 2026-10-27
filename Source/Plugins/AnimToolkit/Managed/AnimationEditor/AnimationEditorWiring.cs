@@ -76,7 +76,7 @@ namespace Hyperion.Editor.ViewModels
             registry.AddCreatableAssetClass("AnimationGraph");
         }
 
-        /// <summary>Opens animation edit mode once any current edit mode is left; <paramref name="enter"/> runs on the sim thread.</summary>
+        /// <summary>Opens animation edit mode once any current edit mode is left.</summary>
         public static void RequestEditAnimation(Func<EditorAnimationEditState, bool> enter)
         {
             MainWindowViewModel.Instance?.RequestEnterEditMode("animation", () =>

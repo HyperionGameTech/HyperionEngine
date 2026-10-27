@@ -203,7 +203,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = new BoxedValue(newValue);
+                    using BoxedValue boxed = new(newValue);
                     CommitPropertyChange(actionText, boxed);
                 }
                 catch (Exception ex)

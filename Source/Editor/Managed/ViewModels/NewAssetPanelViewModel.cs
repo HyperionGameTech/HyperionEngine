@@ -44,7 +44,10 @@ namespace Hyperion.Editor.ViewModels
         public ICommand ConfirmCommand { get; }
         public ICommand CancelCommand { get; }
 
-        public NewAssetPanelViewModel(IReadOnlyList<ClassPickerEntry> classEntries, Func<string, AssetObject?> createInstance, Action<AssetObject?> onCompleted)
+        public NewAssetPanelViewModel(
+            IReadOnlyList<ClassPickerEntry> classEntries,
+            Func<string, AssetObject?> createInstance,
+            Action<AssetObject?> onCompleted)
             : base("New Asset")
         {
             _createInstance = createInstance ?? throw new ArgumentNullException(nameof(createInstance));

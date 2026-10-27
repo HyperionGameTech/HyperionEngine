@@ -18,19 +18,31 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _editableValue, value);
         }
 
-        public NumericPropertyViewModel(ObjectBase target, Property property, bool isReadOnly)
+        public NumericPropertyViewModel(
+            ObjectBase target,
+            Property property,
+            bool isReadOnly)
             : base(target, property, isReadOnly)
         {
             _typeName = property.TypeInfo.Name.ToString();
         }
 
-        public NumericPropertyViewModel(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly)
+        public NumericPropertyViewModel(
+            IntPtr classAddress,
+            Func<IntPtr> targetAddressResolver,
+            Property property,
+            bool isReadOnly)
             : base(classAddress, targetAddressResolver, property, isReadOnly)
         {
             _typeName = property.TypeInfo.Name.ToString();
         }
 
-        public NumericPropertyViewModel(string label, TypeInfo typeInfo, Func<BoxedValue> getter, Action<BoxedValue> setter, bool isReadOnly)
+        public NumericPropertyViewModel(
+            string label,
+            TypeInfo typeInfo,
+            Func<BoxedValue> getter,
+            Action<BoxedValue> setter,
+            bool isReadOnly)
             : base(label, typeInfo, getter, setter, isReadOnly)
         {
             _typeName = typeInfo.Name.ToString();
@@ -108,7 +120,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = new BoxedValue(captured);
+                    using BoxedValue boxed = new(captured);
                     CommitPropertyChange($"Set {Label}", boxed);
                 }
                 catch (Exception ex)

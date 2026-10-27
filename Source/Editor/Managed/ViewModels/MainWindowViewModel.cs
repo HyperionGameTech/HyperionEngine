@@ -3302,7 +3302,7 @@ namespace Hyperion.Editor.ViewModels
 
                 if (pending != null && review == null)
                 {
-                    Logger.Log(LogLevel.Warning, $"No import panel shows '{pending.GetFileName()}'; it was skipped.");
+                    Logger.Log(LogLevel.Warning, $"No import panel shows '{pending.GetFileName()}'. Skipping.");
 
                     pending.Cancel();
 
@@ -3421,7 +3421,7 @@ namespace Hyperion.Editor.ViewModels
             }
         }
 
-        /// <summary>Opens an edit mode once any current edit mode is left; <paramref name="enter"/> runs on the sim thread.</summary>
+        /// <summary>Opens an edit mode once any current edit mode is left.</summary>
         public void RequestEnterEditMode(string editModeName, Func<bool> enter)
         {
             Dispatcher.UIThread.VerifyAccess();

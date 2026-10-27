@@ -285,7 +285,7 @@ namespace Hyperion.Editor.ViewModels
                     }
                     else
                     {
-                        using BoxedValue boxed = new BoxedValue(combined);
+                        using BoxedValue boxed = new(combined);
                         CommitPropertyChange($"Set {Label}", boxed);
                     }
 

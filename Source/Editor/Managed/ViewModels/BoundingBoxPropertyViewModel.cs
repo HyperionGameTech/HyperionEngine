@@ -39,7 +39,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue boxed = new BoxedValue(EmptyBoundingBox);
+                    using BoxedValue boxed = new(EmptyBoundingBox);
                     CommitPropertyChange($"Reset {Label}", boxed);
                 }
                 catch (Exception ex)

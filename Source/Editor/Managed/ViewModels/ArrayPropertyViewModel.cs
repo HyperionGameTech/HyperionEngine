@@ -518,7 +518,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 try
                 {
-                    using BoxedValue restored = new BoxedValue(value);
+                    using BoxedValue restored = new(value);
                     array.SetArrayElement(insertIndex, restored);
 
                     return;

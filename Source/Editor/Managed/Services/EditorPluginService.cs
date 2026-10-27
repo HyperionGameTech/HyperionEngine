@@ -28,12 +28,10 @@ namespace Hyperion.Editor.Services
 
     public sealed record EditorPluginMenuItem(string Header, ICommand Command, Func<bool>? IsChecked = null);
 
-    /// An entry in a scene hierarchy node's context menu; canExecute runs on the sim thread when the menu opens
     public sealed record EditorNodeMenuItem(string Header, Func<Node, bool> CanExecute, Action<Node> Execute);
 
     public delegate InspectorPropertyViewModelBase? PropertyEditorFactory(IntPtr classAddress, Func<IntPtr> targetAddressResolver, Property property, bool isReadOnly, Entity ownerEntity, bool isNameType);
 
-    /// A dock tab in the documents area, shown while IsOpen; its content comes from the view registered for its type
     public abstract class EditorDocumentViewModel : ViewModelBase
     {
         public abstract string Id { get; }
