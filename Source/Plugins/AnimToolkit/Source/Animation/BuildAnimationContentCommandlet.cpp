@@ -119,8 +119,18 @@ void BuildHumanoidLocomotionGraph(const Handle<AssetRegistry>& clipRegistry, con
     const uint32 run = addClip(NAME("Run"), NAME("Run"), Vec2f(0.0f, 300.0f), true, NAME("Locomotion"), LocomotionRunSpeed);
 
     // MoveAngle is in degrees from the body's forward, positive to the right
-    const uint32 directional = addBlend1D(NAME("Directional"), NAME("MoveAngle"), Vec2f(250.0f, 120.0f), false,
-        { sample(walkBackward, -180.0f), sample(strafeLeft, -90.0f), sample(walk, 0.0f), sample(strafeRight, 90.0f), sample(walkBackward, 180.0f) });
+    const uint32 directional = addBlend1D(
+        NAME("Directional"),
+        NAME("MoveAngle"),
+        Vec2f(250.0f, 120.0f),
+        false,
+        {
+            sample(walkBackward, -180.0f),
+            sample(strafeLeft, -90.0f),
+            sample(walk, 0.0f),
+            sample(strafeRight, 90.0f),
+            sample(walkBackward, 180.0f)
+        });
 
     const uint32 locomotion = addBlend1D(NAME("Locomotion"), NAME("Speed"), Vec2f(500.0f, 60.0f), true,
         { sample(idle, 0.0f), sample(directional, LocomotionWalkSpeed), sample(run, LocomotionRunSpeed) });
@@ -131,8 +141,17 @@ void BuildHumanoidLocomotionGraph(const Handle<AssetRegistry>& clipRegistry, con
     const uint32 turnLeftSmall = addClip(NAME("TurnLeftSmall"), NAME("TurnLeftSmall"), Vec2f(0.0f, 500.0f), false, Name::Invalid(), 0.0f, NAME("TurnStepProgress"));
     const uint32 turnRightSmall = addClip(NAME("TurnRightSmall"), NAME("TurnRightSmall"), Vec2f(0.0f, 560.0f), false, Name::Invalid(), 0.0f, NAME("TurnStepProgress"));
 
-    const uint32 turnSteps = addBlend1D(NAME("TurnSteps"), NAME("TurnStepKind"), Vec2f(250.0f, 440.0f), false,
-        { sample(turnLeft, 0.0f), sample(turnRight, 1.0f), sample(turnLeftSmall, 2.0f), sample(turnRightSmall, 3.0f) });
+    const uint32 turnSteps = addBlend1D(
+        NAME("TurnSteps"),
+        NAME("TurnStepKind"),
+        Vec2f(250.0f, 440.0f),
+        false,
+        {
+            sample(turnLeft, 0.0f),
+            sample(turnRight, 1.0f),
+            sample(turnLeftSmall, 2.0f),
+            sample(turnRightSmall, 3.0f)
+        });
 
     Handle<AnimationLayerNode> standingNode = MakeHandle<AnimationLayerNode>();
     standingNode->name = NAME("Standing");
@@ -186,7 +205,12 @@ void BuildHumanoidLocomotionGraph(const Handle<AssetRegistry>& clipRegistry, con
     const float jumpLength = clipLength(jumpClip);
     const float landLength = clipLength(landClip);
 
-    const auto transition = [](uint32 from, uint32 to, float duration, Array<AnimationTransitionCondition> conditions, int32 priority = 0)
+    const auto transition = [](
+        uint32 from,
+        uint32 to,
+        float duration,
+        Array<AnimationTransitionCondition> conditions,
+        int32 priority = 0)
     {
         AnimationStateTransition stateTransition;
         stateTransition.from = from;
@@ -222,6 +246,7 @@ void BuildHumanoidLocomotionGraph(const Handle<AssetRegistry>& clipRegistry, con
 
     AnimationStateTransition landToMoving = transition(LandState, GroundState, landLength * LocomotionMovingLandFraction,
         { condition(NAME("Speed"), AnimationConditionOp::Greater, LocomotionWalkSpeed * 0.5f) }, 1);
+
     landToMoving.interruptible = true;
 
     AnimationStateTransition landToStanding = transition(LandState, GroundState, landLength, {});

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <Animation/AnimationMemory.hpp>
 #include <Asset/AssetObject.hpp>
 
 #include <Core/Reflection/ObjectBase.hpp>
@@ -76,6 +77,8 @@ class ANIMATION_API AnimationGraphNode : public ObjectBase
     HYP_OBJECT_BODY(AnimationGraphNode);
 
 public:
+    static Pool* GetAllocator() { return g_animPool; }
+
     ~AnimationGraphNode() override = default;
 
     virtual uint32 NumInputs() const
@@ -587,6 +590,8 @@ class ANIMATION_API AnimationGraph final : public AssetObject
     HYP_OBJECT_BODY(AnimationGraph);
 
 public:
+    static Pool* GetAllocator() { return g_animPool; }
+
     AnimationGraph();
     explicit AnimationGraph(Name name);
     ~AnimationGraph() override;

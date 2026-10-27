@@ -8,6 +8,7 @@
 
 #include <Animation/AnimationGraph.hpp>
 #include <Animation/AnimationPose.hpp>
+#include <Animation/AnimationMemory.hpp>
 
 #include <Core/Containers/Map.hpp>
 
@@ -48,18 +49,19 @@ struct AnimationGraphNodeState
     bool isInertializePending = false;
 };
 
-// a state machine's last output and, while it inertializes, how far that was from the new state's first pose
+/// a state machine's last output and, while it inertializes,
+/// how far that was from the new state's first pose
 struct AnimationInertialization
 {
-    Array<Transform> lastPose;
-    Array<Quat4f> rotationOffsets;
-    Array<Vec3f> translationOffsets;
+    Array<Transform, AnimAllocator> lastPose;
+    Array<Quat4f, AnimAllocator> rotationOffsets;
+    Array<Vec3f, AnimAllocator> translationOffsets;
 };
 
 struct AnimationSlotPlayback
 {
     Handle<Animation> clip;
-    Array<UniquePtr<TSharedResLock<AssetObject>>> trackLocks;
+    Array<UniquePtr<TSharedResLock<AssetObject>, AnimAllocator>, AnimAllocator> trackLocks;
     float time = 0.0f;
     float previousTime = 0.0f;
     float playRate = 1.0f;
@@ -141,6 +143,8 @@ class ANIMATION_API AnimationGraphInstance final : public ObjectBase
     friend class AnimationGraphContext;
 
 public:
+    static Pool* GetAllocator() { return g_animPool; }
+
     AnimationGraphInstance();
     explicit AnimationGraphInstance(const Handle<AnimationGraph>& graph);
 
@@ -264,21 +268,21 @@ private:
     Handle<AnimationGraph> m_graph;
     uint32 m_graphRevision = 0;
 
-    Map<Name, uint32> m_parameterIndices;
-    Array<Vec2f> m_values;
-    Array<bool> m_triggers;
+    Map<Name, uint32, AnimAllocator> m_parameterIndices;
+    Array<Vec2f, AnimAllocator> m_values;
+    Array<bool, AnimAllocator> m_triggers;
 
     mutable Mutex m_pendingMutex;
-    Array<Vec2f> m_pendingValues;
-    Array<bool> m_pendingTriggers;
-    Array<Name> m_publishedNotifies;
+    Array<Vec2f, AnimAllocator> m_pendingValues;
+    Array<bool, AnimAllocator> m_pendingTriggers;
+    Array<Name, AnimAllocator> m_publishedNotifies;
 
-    Array<Pair<Name, AnimationSlotPlayback>> m_pendingSlotPlays;
-    Array<Pair<Name, float>> m_pendingSlotStops;
-    Array<Name> m_publishedSlots;
-    Map<Name, AnimationSlotPlayback> m_slots;
+    Array<Pair<Name, AnimationSlotPlayback>, AnimAllocator> m_pendingSlotPlays;
+    Array<Pair<Name, float>, AnimAllocator> m_pendingSlotStops;
+    Array<Name, AnimAllocator> m_publishedSlots;
+    Map<Name, AnimationSlotPlayback, AnimAllocator> m_slots;
 
-    Map<uint32, AnimationInertialization> m_inertialization;
+    Map<uint32, AnimationInertialization, AnimAllocator> m_inertialization;
 
     Vec3f m_rootMotion;
     Vec3f m_publishedRootMotion;
@@ -288,21 +292,21 @@ private:
     Vec3f m_modelUp = Vec3f::UnitY();
 
     bool m_isDebugCaptured = false;
-    Array<AnimationGraphNodeState> m_debugNodeStates;
-    Array<Vec2f> m_debugValues;
+    Array<AnimationGraphNodeState, AnimAllocator> m_debugNodeStates;
+    Array<Vec2f, AnimAllocator> m_debugValues;
 
-    Array<AnimationGraphNodeState> m_nodeStates;
-    Array<bool> m_nodeValid;
-    Array<uint32> m_activeClips;
-    Array<Name> m_firedNotifies;
+    Array<AnimationGraphNodeState, AnimAllocator> m_nodeStates;
+    Array<bool, AnimAllocator> m_nodeValid;
+    Array<uint32, AnimAllocator> m_activeClips;
+    Array<Name, AnimAllocator> m_firedNotifies;
     uint32 m_updateSerial = 0;
 
     WeakHandle<Skeleton> m_boundSkeleton;
     uint32 m_boundSkeletonRevision = ~0u;
-    Map<WeakHandle<Animation>, ClipBinding> m_clipBindings;
-    Map<WeakHandle<BoneMask>, Pair<uint32, Array<float>>> m_maskWeights;
+    Map<WeakHandle<Animation>, ClipBinding, AnimAllocator> m_clipBindings;
+    Map<WeakHandle<BoneMask>, Pair<uint32, Array<float, AnimAllocator>>, AnimAllocator> m_maskWeights;
 
-    Array<Array<Transform>> m_scratchPoses;
+    Array<Array<Transform, AnimAllocator>, AnimAllocator> m_scratchPoses;
     uint32 m_scratchDepth = 0;
 };
 

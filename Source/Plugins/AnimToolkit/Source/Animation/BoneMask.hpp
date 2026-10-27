@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <Animation/AnimationMemory.hpp>
 #include <Asset/AssetObject.hpp>
 
 #include <Core/Containers/Array.hpp>
@@ -56,6 +57,8 @@ class ANIMATION_API BoneMask final : public AssetObject
     HYP_OBJECT_BODY(BoneMask);
 
 public:
+    static Pool* GetAllocator() { return g_animPool; }
+
     BoneMask();
     explicit BoneMask(Name name);
 
@@ -92,7 +95,7 @@ public:
         return m_revision;
     }
 
-    Array<float> BuildSlotWeights(const SkeletonBindData& bindData) const;
+    Array<float, AnimAllocator> BuildSlotWeights(const SkeletonBindData& bindData) const;
 
     static Array<float> BuildExcludingSubtree(const SkeletonBindData& bindData, Name excludedBoneName);
 

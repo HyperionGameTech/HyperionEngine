@@ -95,7 +95,7 @@ uint32 AddClipNode(AnimationGraph& graph, const Handle<Animation>& clip, Name sy
 
 Array<Transform> SampledPose(const SkeletonBindData& bindData, const Animation& clip, float time)
 {
-    Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
     PoseOps::SampleClip(clip, PoseOps::BindClip(clip, bindData), bindData, time, pose.ToSpan());
 
     return pose;
@@ -192,7 +192,7 @@ HYP_ENGINE_TEST(AnimationGraph, Blend1DWeightsAndPose)
     const Array<Transform> wavePose = SampledPose(bindData, *rig.wave, 0.0f);
     const Array<Transform> bendPose = SampledPose(bindData, *rig.bend, 0.0f);
 
-    Array<Transform> expected = PoseOps::MakeRestPose(bindData);
+    Array<Transform> expected = Array<Transform>(PoseOps::GetRestPose(bindData));
     PoseOps::BlendPoses(wavePose.ToSpan(), bendPose.ToSpan(), 0.25f, {}, expected.ToSpan());
 
     const Array<Transform> pose = EvaluatedPose(*instance, *rig.skeleton);

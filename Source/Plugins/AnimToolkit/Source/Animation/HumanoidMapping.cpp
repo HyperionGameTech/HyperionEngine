@@ -57,7 +57,7 @@ static const HumanoidBoneNames HumanoidAutoMapTable[] = {
     { HumanoidBone::RightToes, { "righttoes", "righttoebase", "ballr", "toer", "ccbasertoebase", "deftoer", "rtoe" } }
 };
 
-static constexpr const char* MixamoPrefix = "mixamorig";
+static constexpr ANSIStringView MixamoPrefix = "mixamorig";
 
 Array<ANSIString> SplitBoneName(Name boneName)
 {
@@ -69,7 +69,6 @@ bool HasNumericSuffix(const Array<ANSIString>& parts)
     return parts.Size() > 1 && StringUtil::IsDigits(parts.Back());
 }
 
-// the name as compared: its parts joined, without Mixamo's prefix and, for an importer-numbered rig, the trailing number
 ANSIString GetBoneNameKey(Array<ANSIString> parts, bool stripNumericSuffix)
 {
     if (stripNumericSuffix && HasNumericSuffix(parts))
@@ -79,11 +78,9 @@ ANSIString GetBoneNameKey(Array<ANSIString> parts, bool stripNumericSuffix)
 
     ANSIString key = ANSIString::Join(parts);
 
-    const ANSIString mixamoPrefix(MixamoPrefix);
-
-    if (key.StartsWith(mixamoPrefix) && key.Size() > mixamoPrefix.Size())
+    if (key.StartsWith(MixamoPrefix) && key.Size() > MixamoPrefix.Size())
     {
-        key = ANSIString(key.Substr(mixamoPrefix.Size()));
+        key = ANSIString(key.Substr(MixamoPrefix.Size()));
     }
 
     return key;
@@ -263,9 +260,7 @@ void HumanoidSkeletonData::SetBones(const Array<HumanoidBoneBinding>& bones)
 
 Handle<Skeleton> HumanoidSkeletonData::GetSkeleton() const
 {
-    Handle<AssetObject> owner = GetOwner();
-
-    return owner.IsValid() && owner->IsA<Skeleton>() ? Cast<Skeleton>(owner) : Handle<Skeleton>::empty;
+    return TryCast<Skeleton>(GetOwner());
 }
 
 void HumanoidSkeletonData::InitForAsset(const AssetObject& asset)
@@ -274,7 +269,9 @@ void HumanoidSkeletonData::InitForAsset(const AssetObject& asset)
 
     if (BoxedValue legacyHumanoid = skeleton.TakeLegacyHumanoid(); legacyHumanoid.IsValid())
     {
-        TResult<BoxedValue> legacyResult = BoxedAsType(legacyHumanoid, TypeInfo::ForType<HumanoidMapping>());
+        TResult<BoxedValue> legacyResult = BoxedAsType(
+            legacyHumanoid,
+            TypeInfo::ForType<HumanoidMapping>());
 
         if (legacyResult.HasValue() && legacyResult.GetValue().Is<HumanoidMapping>())
         {
@@ -408,7 +405,7 @@ bool HumanoidSkeletonData::IsHumanoid(const Skeleton& skeleton)
 
 void HumanoidSkeletonData::AutoMapSkeleton(Skeleton& skeleton)
 {
-    if (const Handle<HumanoidSkeletonData> data = ForSkeleton(skeleton))
+    if (const Handle<HumanoidSkeletonData> data = ForSkeleton(skeleton); data.IsValid())
     {
         data->AutoMap();
     }

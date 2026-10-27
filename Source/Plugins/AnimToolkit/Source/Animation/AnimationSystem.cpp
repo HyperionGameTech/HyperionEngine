@@ -59,14 +59,19 @@ float AdvanceLayerTime(float time, float step, float length)
     return time;
 }
 
-Animation* ResolveAnimation(const AnimationComponent& animationComponent, const MeshComponent& meshComponent)
+Animation* ResolveAnimation(
+    const AnimationComponent& animationComponent,
+    const MeshComponent& meshComponent)
 {
     return animationComponent.animation.IsValid()
         ? animationComponent.animation.Get()
         : meshComponent.skeleton->GetAnimation(animationComponent.playbackState.animationIndex).Get();
 }
 
-const Animation* ResolveLayerAnimation(const MeshComponent& meshComponent, uint32 animationIndex, float weight)
+const Animation* ResolveLayerAnimation(
+    const MeshComponent& meshComponent,
+    uint32 animationIndex,
+    float weight)
 {
     return weight > 0.0f && animationIndex != ~0u
         ? meshComponent.skeleton->GetAnimation(animationIndex).Get()
@@ -81,7 +86,7 @@ AnimationTrackLocks LockTracks(const Animation& animation)
     {
         Assert(track.IsValid(), "Animation '{}' has a null track", animation.GetName());
 
-        locks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
+        locks.EmplaceBack(MakeUniqueWithAllocator<TSharedResLock<AssetObject>, AnimAllocator>(*track));
     }
 
     return locks;
@@ -89,7 +94,8 @@ AnimationTrackLocks LockTracks(const Animation& animation)
 
 bool IsStateFor(const AnimationInstanceState& state, const MeshComponent& meshComponent)
 {
-    return state.source.GetUnsafe() == meshComponent.skeleton.Get() && state.sourceRevision == meshComponent.skeleton->GetRevision();
+    return state.source.GetUnsafe() == meshComponent.skeleton.Get()
+        && state.sourceRevision == meshComponent.skeleton->GetRevision();
 }
 } // namespace
 
@@ -165,7 +171,9 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
         m_resourceHandles.Erase(it);
     }
 
-    MeshComponent* meshComponent = entity->GetEntityManager() ? entity->TryGetComponent<MeshComponent>() : nullptr;
+    MeshComponent* meshComponent = entity->GetEntityManager()
+        ? entity->TryGetComponent<MeshComponent>()
+        : nullptr;
 
     DestroyInstanceState(entity, meshComponent);
 }
@@ -241,10 +249,10 @@ AnimationInstanceState& AnimationSystem::CreateInstanceState(Entity* entity, Mes
     DestroyInstanceState(entity, &meshComponent);
 
     AnimationInstanceState& state = m_instanceStates[entity];
-    state.source = WeakHandle<Skeleton>(meshComponent.skeleton);
+    state.source = meshComponent.skeleton;
     state.sourceRevision = meshComponent.skeleton->GetRevision();
     state.instance = AcquireSkeletonInstance(*entity, meshComponent);
-    state.pose = PoseOps::MakeRestPose(meshComponent.skeleton->GetBindData());
+    state.pose = Array<Transform, AnimAllocator>(PoseOps::GetRestPose(meshComponent.skeleton->GetBindData()));
 
     return state;
 }
@@ -302,7 +310,13 @@ const ClipBinding& AnimationSystem::GetClipBinding(AnimationInstanceState& state
     return it->second.binding;
 }
 
-void AnimationSystem::EvaluatePose(Entity* entity, const AnimationComponent& animationComponent, MeshComponent& meshComponent, const Animation& animation, float time, float blend)
+void AnimationSystem::EvaluatePose(
+    Entity* entity,
+    const AnimationComponent& animationComponent,
+    MeshComponent& meshComponent,
+    const Animation& animation,
+    float time,
+    float blend)
 {
     const AnimationPlaybackState& playbackState = animationComponent.playbackState;
 
@@ -317,11 +331,18 @@ void AnimationSystem::EvaluatePose(Entity* entity, const AnimationComponent& ani
 
     if (state.pose.Size() != bindData.NumSlots())
     {
-        state.pose = PoseOps::MakeRestPose(bindData);
+        state.pose = Array<Transform, AnimAllocator>(PoseOps::GetRestPose(bindData));
     }
 
-    const Animation* layerAnimation = ResolveLayerAnimation(meshComponent, playbackState.layerAnimationIndex, playbackState.layerWeight);
-    const Animation* secondLayerAnimation = ResolveLayerAnimation(meshComponent, playbackState.secondLayerAnimationIndex, playbackState.secondLayerWeight);
+    const Animation* layerAnimation = ResolveLayerAnimation(
+        meshComponent,
+        playbackState.layerAnimationIndex,
+        playbackState.layerWeight);
+
+    const Animation* secondLayerAnimation = ResolveLayerAnimation(
+        meshComponent,
+        playbackState.secondLayerAnimationIndex,
+        playbackState.secondLayerWeight);
 
     ApplyAnimParams params {};
     params.time = time;
@@ -428,7 +449,7 @@ void AnimationSystem::EvaluateGraph(Entity* entity, AnimationComponent& animatio
 
         for (const Handle<Animation>& clip : animationComponent.graph->CollectClips())
         {
-            for (UniquePtr<TSharedResLock<AssetObject>>& lock : LockTracks(*clip))
+            for (auto& lock : LockTracks(*clip))
             {
                 graphTrackLocks.PushBack(std::move(lock));
             }

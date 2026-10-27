@@ -198,7 +198,7 @@ void CheckPoseMatchesNodes(EngineTestContext& context, const char* fileName)
         HYP_TEST_CHECK_MSG(largest < tolerance, "{}: {} frame {} differs from the node pose by {} (tolerance {})", fileName, step, frame, largest, tolerance);
     };
 
-    Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
     skeleton->GetRootBone()->SetToBindingPose();
 
     for (uint32 frame = 0; frame < 12; ++frame)
@@ -214,7 +214,7 @@ void CheckPoseMatchesNodes(EngineTestContext& context, const char* fileName)
         compare("ApplyBlended", frame);
     }
 
-    pose = PoseOps::MakeRestPose(bindData);
+    pose = Array<Transform>(PoseOps::GetRestPose(bindData));
     skeleton->GetRootBone()->SetToBindingPose();
 
     for (uint32 frame = 0; frame < 12; ++frame)
@@ -288,7 +288,7 @@ HYP_ENGINE_TEST(AnimationPose, InstancesPoseIndependently)
     Animation* wave = FindRigAnimation(*skeleton, NAME("Wave"));
     HYP_TEST_REQUIRE(wave != nullptr);
 
-    Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
 
     ApplyAnimParams params {};
     params.time = 0.5f;
@@ -440,7 +440,7 @@ HYP_ENGINE_TEST(AnimationPose, MeasureFlatPoseCost)
     const SkeletonBindData& bindData = skeleton->GetBindData();
     const ClipBinding binding = PoseOps::BindClip(*animation, bindData);
 
-    Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
     Array<Mat4f> modelMatrices;
     Array<Mat4f> skinningMatrices;
     modelMatrices.Resize(bindData.NumSlots());
@@ -504,7 +504,7 @@ HYP_ENGINE_TEST(AnimationPose, CrossFadeReachesClipLinearly)
 
     const auto poseAfter = [&](float blend)
     {
-        Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+        Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
         params.blend = blend;
         PoseOps::ApplyBlended(*bend, binding, bindData, params, pose.ToSpan());
         return pose;
@@ -514,7 +514,7 @@ HYP_ENGINE_TEST(AnimationPose, CrossFadeReachesClipLinearly)
     constexpr float Delta = 1.0f / 60.0f;
     constexpr uint32 NumSteps = 30;
 
-    Array<Transform> fadingPose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> fadingPose = Array<Transform>(PoseOps::GetRestPose(bindData));
     float remaining = FadeDuration;
 
     for (uint32 step = 0; step < NumSteps; ++step)
@@ -567,14 +567,14 @@ HYP_ENGINE_TEST(AnimationPose, BoneMaskMatchesExcludedBone)
     params.layerWeight = 0.8f;
     params.layerExcludedBone = NAME("Mid");
 
-    Array<Transform> excludedPose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> excludedPose = Array<Transform>(PoseOps::GetRestPose(bindData));
     PoseOps::ApplyLayered(*wave, waveBinding, &bendBinding, nullptr, bindData, params, excludedPose.ToSpan());
 
     const Array<float> maskWeights = BoneMask::BuildExcludingSubtree(bindData, NAME("Mid"));
     params.layerExcludedBone = Name::Invalid();
     params.layerBoneWeights = maskWeights.ToSpan();
 
-    Array<Transform> maskedPose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> maskedPose = Array<Transform>(PoseOps::GetRestPose(bindData));
     PoseOps::ApplyLayered(*wave, waveBinding, &bendBinding, nullptr, bindData, params, maskedPose.ToSpan());
 
     for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
@@ -603,7 +603,7 @@ HYP_ENGINE_TEST(AnimationPose, BoneMaskWeightsEachBone)
     mask->SetDefaultWeight(1.0f);
     mask->SetEntries({ BoneMaskEntry { NAME("Mid"), 0.5f, false } });
 
-    const Array<float> maskWeights = mask->BuildSlotWeights(bindData);
+    const Array<float, AnimAllocator> maskWeights = mask->BuildSlotWeights(bindData);
     HYP_TEST_REQUIRE(maskWeights.Size() == bindData.NumSlots());
 
     for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
@@ -621,7 +621,7 @@ HYP_ENGINE_TEST(AnimationPose, BoneMaskWeightsEachBone)
         params.layerWeight = layerWeight;
         params.layerBoneWeights = boneWeights;
 
-        Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+        Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
         PoseOps::ApplyLayered(*wave, waveBinding, &bendBinding, nullptr, bindData, params, pose.ToSpan());
 
         return pose;
@@ -640,7 +640,7 @@ HYP_ENGINE_TEST(AnimationPose, BoneMaskWeightsEachBone)
 
     mask->SetEntries({ BoneMaskEntry { NAME("Mid"), 0.25f, true } });
 
-    const Array<float> subtreeWeights = mask->BuildSlotWeights(bindData);
+    const Array<float, AnimAllocator> subtreeWeights = mask->BuildSlotWeights(bindData);
 
     for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
     {

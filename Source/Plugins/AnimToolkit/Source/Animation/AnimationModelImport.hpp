@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <Animation/AnimationMemory.hpp>
 #include <Asset/ModelImportProcessor.hpp>
 
 namespace Hyperion {
@@ -16,6 +17,8 @@ class ANIMATION_API AnimationModelImportSettings final : public ModelImportProce
     HYP_OBJECT_BODY(AnimationModelImportSettings);
 
 public:
+    static Pool* GetAllocator() { return g_animPool; }
+
     HYP_FIELD(Property = "AddAnimationComponent", Serialize = true, Editor = true)
     bool addAnimationComponent = true;
 };
@@ -26,7 +29,10 @@ class ANIMATION_API AnimationModelImportProcessor final : public IModelImportPro
 public:
     const Class* GetSettingsClass() const override;
 
-    void Process(ModelImportContents& contents, const AssetImportInfo& importInfo, const ModelImportProcessorSettings* settings) override;
+    void Process(
+        ModelImportContents& contents,
+        const AssetImportInfo& importInfo,
+        const ModelImportProcessorSettings* settings) override;
 
     void OnClipsMerged(Node& root, const Map<const Animation*, Handle<Animation>>& mergedClipsByFreshClip) override;
 };

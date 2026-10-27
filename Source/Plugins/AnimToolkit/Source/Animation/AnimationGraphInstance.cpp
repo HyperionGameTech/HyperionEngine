@@ -211,7 +211,7 @@ void AnimationGraphContext::ApplyInertialization(uint32 nodeIndex, Span<Transfor
         }
     }
 
-    inertialization.lastPose = Array<Transform>(Span<const Transform>(outPose.Data(), outPose.Size()));
+    inertialization.lastPose = Array<Transform, AnimAllocator>(Span<const Transform>(outPose.Data(), outPose.Size()));
 }
 
 void AnimationGraphContext::AddRootMotion(const Vec3f& motion, float weight)
@@ -442,7 +442,7 @@ void AnimationGraphInstance::ResetBindings(const Skeleton& skeleton)
 
     m_modelUp = PoseOps::GetModelUp(skeleton);
 
-    for (Array<Transform>& scratchPose : m_scratchPoses)
+    for (Array<Transform, AnimAllocator>& scratchPose : m_scratchPoses)
     {
         scratchPose.Resize(skeleton.GetBindData().NumSlots());
     }
@@ -533,7 +533,7 @@ Array<Name> AnimationGraphInstance::GetFiredNotifies() const
 {
     Mutex::Guard guard(m_pendingMutex);
 
-    return m_publishedNotifies;
+    return Array<Name>(m_publishedNotifies);
 }
 
 const AnimationGraphNodeState* AnimationGraphInstance::GetNodeState(uint32 nodeIndex) const
@@ -619,7 +619,7 @@ void AnimationGraphInstance::ApplySlotRequests()
         {
             Assert(track.IsValid(), "Slot clip '{}' has an empty track", playback.clip->GetName());
 
-            playback.trackLocks.EmplaceBack(MakeUnique<TSharedResLock<AssetObject>>(*track));
+            playback.trackLocks.EmplaceBack(MakeUniqueWithAllocator<TSharedResLock<AssetObject>, AnimAllocator>(*track));
         }
     }
 

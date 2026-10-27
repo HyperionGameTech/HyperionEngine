@@ -286,7 +286,7 @@ HYP_ENGINE_TEST(ModelImport, FbxAndGltfBendTheSameWay)
             return {};
         }
 
-        Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+        Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
         PoseOps::SampleClip(**bend, PoseOps::BindClip(**bend, bindData), bindData, (*bend)->GetLength() * 0.5f, pose.ToSpan());
 
         Array<Transform> model;

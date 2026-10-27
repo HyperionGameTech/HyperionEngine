@@ -22,13 +22,30 @@ namespace Hyperion {
 
 namespace {
 
-Transform BlendTransforms(const Transform& from, const Transform& to, float blend)
+struct RetargetScratch
+{
+    Array<Transform, AnimAllocator> sourcePose;
+    Array<RetargetModelTransform, AnimAllocator> sourceModel;
+    Array<RetargetModelTransform, AnimAllocator> targetModel;
+};
+
+thread_local RetargetScratch* t_retargetScratch;
+
+const RetargetModelTransform g_emptyRMT {};
+
+Transform BlendTransforms(
+    const Transform& from,
+    const Transform& to,
+    float blend)
 {
     return Keyframe(0.0f, from).Blend(Keyframe(0.0f, to), blend).transform;
 }
 
 // Bone::ClearPose() resets a bone and every bone beneath it, stopping at nodes that aren't bones
-void ClearSubtree(const SkeletonBindData& bindData, uint32 slot, Span<Transform> pose)
+void ClearSubtree(
+    const SkeletonBindData& bindData,
+    uint32 slot,
+    Span<Transform> pose)
 {
     pose[slot] = bindData.restLocals[slot];
 
@@ -78,7 +95,9 @@ Array<uint32> TracksBySlot(const ClipBinding& binding, uint32 numSlots)
     return tracksBySlot;
 }
 
-RetargetModelTransform ComposeModelTransform(const RetargetModelTransform& parent, const Transform& local)
+RetargetModelTransform ComposeModelTransform(
+    const RetargetModelTransform& parent,
+    const Transform& local)
 {
     RetargetModelTransform model;
     model.rotation = parent.rotation * local.GetRotation();
@@ -88,7 +107,10 @@ RetargetModelTransform ComposeModelTransform(const RetargetModelTransform& paren
     return model;
 }
 
-void ComputeModelTransforms(const SkeletonBindData& bindData, Span<const Transform> pose, Array<RetargetModelTransform>& outModel)
+void ComputeModelTransforms(
+    const SkeletonBindData& bindData,
+    Span<const Transform> pose,
+    Array<RetargetModelTransform, AnimAllocator>& outModel)
 {
     outModel.Resize(bindData.NumSlots());
 
@@ -96,11 +118,17 @@ void ComputeModelTransforms(const SkeletonBindData& bindData, Span<const Transfo
     {
         const uint32 parentSlot = bindData.parentSlots[slot];
 
-        outModel[slot] = ComposeModelTransform(parentSlot != SkeletonBindData::InvalidSlot ? outModel[parentSlot] : RetargetModelTransform {}, pose[slot]);
+        outModel[slot] = ComposeModelTransform(
+            parentSlot != SkeletonBindData::InvalidSlot ? outModel[parentSlot] : RetargetModelTransform {},
+            pose[slot]);
     }
 }
 
-Vec3f GetHumanoidBindPosition(const SkeletonBindData& bindData, const HumanoidMapping& mapping, const Array<RetargetModelTransform>& bindModel, HumanoidBone bone)
+Vec3f GetHumanoidBindPosition(
+    const SkeletonBindData& bindData,
+    const HumanoidMapping& mapping,
+    const Array<RetargetModelTransform, AnimAllocator>& bindModel,
+    HumanoidBone bone)
 {
     const uint32 slot = bindData.FindSlot(mapping.GetBoneName(bone));
     Assert(slot != SkeletonBindData::InvalidSlot, "Humanoid bone {} isn't a bone of the skeleton", uint32(bone));
@@ -113,14 +141,20 @@ struct CharacterAxes
     Vec3f up;
     Vec3f right;
     Vec3f forward;
-    // its right arm is on its left by the engine's handedness (forward = right x up): a mirror image, or left and right swapped
+
     bool mirrored = false;
 };
 
-Vec3f GetHumanoidFacing(const SkeletonBindData& bindData, const HumanoidMapping& mapping, const Array<RetargetModelTransform>& model, const Vec3f& up);
+Vec3f GetHumanoidFacing(
+    const SkeletonBindData& bindData,
+    const HumanoidMapping& mapping,
+    const Array<RetargetModelTransform, AnimAllocator>& model,
+    const Vec3f& up);
 
-// the rig's facing in its own model space: up from hips to head, right from the left arm to the right one, forward from the feet
-CharacterAxes GetCharacterAxes(const SkeletonBindData& bindData, const HumanoidMapping& mapping, const Array<RetargetModelTransform>& bindModel)
+CharacterAxes GetCharacterAxes(
+    const SkeletonBindData& bindData,
+    const HumanoidMapping& mapping,
+    const Array<RetargetModelTransform, AnimAllocator>& bindModel)
 {
     const Vec3f hips = GetHumanoidBindPosition(bindData, mapping, bindModel, HumanoidBone::Hips);
     const Vec3f head = GetHumanoidBindPosition(bindData, mapping, bindModel, HumanoidBone::Head);
@@ -138,7 +172,6 @@ CharacterAxes GetCharacterAxes(const SkeletonBindData& bindData, const HumanoidM
     return axes;
 }
 
-// a rotation seen in a mirror across the plane with this normal: its axis reflects and its turn reverses
 Quat4f MirrorRotation(const Quat4f& rotation, const Vec3f& normal)
 {
     const Vec3f axis(rotation.x, rotation.y, rotation.z);
@@ -152,9 +185,11 @@ Vec3f MirrorPoint(const Vec3f& point, const Vec3f& normal)
     return point - normal * (2.0f * point.Dot(normal));
 }
 
-// which way a posed humanoid faces across the ground: where its toes point, or else from the line across its hips,
-// taking the engine's handedness (forward = right x up)
-Vec3f GetHumanoidFacing(const SkeletonBindData& bindData, const HumanoidMapping& mapping, const Array<RetargetModelTransform>& model, const Vec3f& up)
+Vec3f GetHumanoidFacing(
+    const SkeletonBindData& bindData,
+    const HumanoidMapping& mapping,
+    const Array<RetargetModelTransform, AnimAllocator>& model,
+    const Vec3f& up)
 {
     const auto slotOf = [&](HumanoidBone bone)
     {
@@ -205,8 +240,6 @@ Quat4f RotationBetween(const Vec3f& from, const Vec3f& to)
     }
 
     Vec3f axis = from.Cross(to);
-
-    // opposite vectors: any axis at right angles to them will do
     if (axis.LengthSquared() < 1e-12f)
     {
         axis = MathUtil::Abs(from.x) < 0.9f ? Vec3f::UnitX().Cross(from) : Vec3f::UnitY().Cross(from);
@@ -221,13 +254,10 @@ Quat4f RotationBetween(const Vec3f& from, const Vec3f& to)
     return rotation;
 }
 
-// turns the source rig's up and facing onto the target rig's; facing rather than right, so a mirrored rig still faces the same way
 Quat4f GetSourceToTarget(const CharacterAxes& source, const CharacterAxes& target)
 {
     const Quat4f alignUp = RotationBetween(source.up, target.up);
     const Quat4f alignForward = RotationBetween(alignUp.RotateVector(source.forward), target.forward);
-
-    // the up alignment first, then the turn about up; checked the same way, since products compose in the engine's order
     const Quat4f upThenForward = alignForward * alignUp;
     const Quat4f forwardThenUp = alignUp * alignForward;
 
@@ -239,7 +269,10 @@ Quat4f GetSourceToTarget(const CharacterAxes& source, const CharacterAxes& targe
     return upThenForward;
 }
 
-float GetHipsHeight(const SkeletonBindData& bindData, const HumanoidMapping& mapping, const Array<RetargetModelTransform>& bindModel)
+float GetHipsHeight(
+    const SkeletonBindData& bindData,
+    const HumanoidMapping& mapping,
+    const Array<RetargetModelTransform, AnimAllocator>& bindModel)
 {
     const Vec3f hips = GetHumanoidBindPosition(bindData, mapping, bindModel, HumanoidBone::Hips);
     const Vec3f head = GetHumanoidBindPosition(bindData, mapping, bindModel, HumanoidBone::Head);
@@ -250,21 +283,23 @@ float GetHipsHeight(const SkeletonBindData& bindData, const HumanoidMapping& map
     return (hips - feet).Dot((head - hips).Normalized());
 }
 
-struct RetargetScratch
-{
-    Array<Transform> sourcePose;
-    Array<RetargetModelTransform> sourceModel;
-    Array<RetargetModelTransform> targetModel;
-};
-
-thread_local RetargetScratch t_retargetScratch;
-
-void SampleRetargeted(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> outPose)
+void SampleRetargeted(
+    const Animation& animation,
+    const ClipBinding& binding,
+    const SkeletonBindData& bindData,
+    float time,
+    Span<Transform> outPose)
 {
     const RetargetBinding& retarget = *binding.retarget;
     const SkeletonBindData& sourceBindData = retarget.sourceSkeleton->GetBindData();
 
-    RetargetScratch& scratch = t_retargetScratch;
+    if (HYP_UNLIKELY(!t_retargetScratch))
+    {
+        /// note: leaked intentionally
+        t_retargetScratch = new RetargetScratch;
+    }
+
+    RetargetScratch& scratch = *t_retargetScratch;
     scratch.sourcePose = sourceBindData.restLocals;
 
     for (uint32 trackIndex = 0; trackIndex < uint32(binding.trackSlots.Size()); ++trackIndex)
@@ -286,7 +321,10 @@ void SampleRetargeted(const Animation& animation, const ClipBinding& binding, co
     for (uint32 slot = 0; slot < bindData.NumSlots(); ++slot)
     {
         const uint32 parentSlot = bindData.parentSlots[slot];
-        const RetargetModelTransform parentModel = parentSlot != SkeletonBindData::InvalidSlot ? scratch.targetModel[parentSlot] : RetargetModelTransform {};
+
+        const RetargetModelTransform& parentModel = parentSlot != SkeletonBindData::InvalidSlot
+            ? scratch.targetModel[parentSlot]
+            : g_emptyRMT;
 
         Transform local = bindData.restLocals[slot];
 
@@ -316,7 +354,8 @@ void SampleRetargeted(const Animation& animation, const ClipBinding& binding, co
 
                 const Vec3f offset = retarget.sourceToTarget.RotateVector(sourceOffset) * retarget.hipsScale;
 
-                local.SetTranslation(parentModel.rotation.Inverse().RotateVector(retarget.targetHipsBindPosition + offset - parentModel.position) / parentModel.scale);
+                local.SetTranslation(parentModel.rotation.Inverse().RotateVector(
+                        retarget.targetHipsBindPosition + offset - parentModel.position) / parentModel.scale);
             }
         }
 
@@ -344,14 +383,17 @@ Vec3f SampleRootPosition(const Animation& animation, const ClipBinding& binding,
                     : sourceBindData.restLocals[retarget.sourceHipsChain[index]]);
         }
 
-        const Vec3f sourcePosition = retarget.mirrored ? MirrorPoint(sourceModel.position, retarget.mirrorNormal) : sourceModel.position;
+        const Vec3f sourcePosition = retarget.mirrored
+            ? MirrorPoint(sourceModel.position, retarget.mirrorNormal)
+            : sourceModel.position;
 
         return retarget.sourceToTarget.RotateVector(sourcePosition) * retarget.hipsScale;
     }
 
     const RetargetModelTransform& parentModel = binding.rootParentModel;
 
-    return parentModel.rotation.RotateVector(animation.GetTrack(binding.rootTrack)->GetKeyframe(time).transform.GetTranslation() * parentModel.scale);
+    return parentModel.rotation.RotateVector(
+        animation.GetTrack(binding.rootTrack)->GetKeyframe(time).transform.GetTranslation() * parentModel.scale);
 }
 
 // the clip's track nearest the skeleton's root, which carries its root motion
@@ -394,7 +436,15 @@ RetargetModelTransform GetParentModelTransform(const SkeletonBindData& bindData,
 }
 
 // bends the middle joint so the chain's end can reach target, then swings the chain at it; the end keeps its model-space rotation
-void SolveTwoBoneIK(const SkeletonBindData& bindData, const Array<RetargetModelTransform>& model, uint32 upper, uint32 lower, uint32 end, const Vec3f& target, const Vec3f& kneeForward, Span<Transform> pose)
+void SolveTwoBoneIK(
+    const SkeletonBindData& bindData,
+    const Array<RetargetModelTransform, AnimAllocator>& model,
+    uint32 upper,
+    uint32 lower,
+    uint32 end,
+    const Vec3f& target,
+    const Vec3f& kneeForward,
+    Span<Transform> pose)
 {
     const Vec3f a = model[upper].position;
     const Vec3f b = model[lower].position;
@@ -574,7 +624,7 @@ ClipBinding BindClip(const Animation& animation, const Skeleton& skeleton)
     const SkeletonBindData& sourceBindData = sourceSkeleton->GetBindData();
     const HumanoidMapping& sourceMapping = HumanoidSkeletonData::GetSkeletonMapping(*sourceSkeleton);
 
-    SharedPtr<RetargetBinding> retarget = MakeShared<RetargetBinding>();
+    SharedPtr<RetargetBinding> retarget = MakeSharedWithAllocator<RetargetBinding, AnimAllocator>();
     retarget->sourceSkeleton = sourceSkeleton;
     retarget->sourceSkeletonRevision = sourceSkeleton->GetRevision();
     retarget->targetHips = targetHips;
@@ -597,8 +647,8 @@ ClipBinding BindClip(const Animation& animation, const Skeleton& skeleton)
         }
     }
 
-    Array<RetargetModelTransform> sourceBindModel;
-    Array<RetargetModelTransform> targetBindModel;
+    Array<RetargetModelTransform, AnimAllocator> sourceBindModel;
+    Array<RetargetModelTransform, AnimAllocator> targetBindModel;
 
     ComputeModelTransforms(sourceBindData, sourceBindData.restLocals.ToSpan(), sourceBindModel);
     ComputeModelTransforms(bindData, bindData.restLocals.ToSpan(), targetBindModel);
@@ -676,7 +726,7 @@ bool IsBindingCurrent(const ClipBinding& binding, const Animation& animation)
 
 uint32 CountBoundSlots(const ClipBinding& binding)
 {
-    const Array<uint32>& slots = binding.retarget ? binding.retarget->sourceSlotByTarget : binding.trackSlots;
+    const Array<uint32, AnimAllocator>& slots = binding.retarget ? binding.retarget->sourceSlotByTarget : binding.trackSlots;
 
     uint32 count = 0;
 
@@ -700,7 +750,7 @@ Vec3f GetModelUp(const Skeleton& skeleton)
 
     const SkeletonBindData& bindData = skeleton.GetBindData();
 
-    Array<RetargetModelTransform> bindModel;
+    Array<RetargetModelTransform, AnimAllocator> bindModel;
     ComputeModelTransforms(bindData, bindData.restLocals.ToSpan(), bindModel);
 
     return GetCharacterAxes(bindData, HumanoidSkeletonData::GetSkeletonMapping(skeleton), bindModel).up;
@@ -715,7 +765,7 @@ Vec3f GetModelForward(const Skeleton& skeleton)
 
     const SkeletonBindData& bindData = skeleton.GetBindData();
 
-    Array<RetargetModelTransform> bindModel;
+    Array<RetargetModelTransform, AnimAllocator> bindModel;
     ComputeModelTransforms(bindData, bindData.restLocals.ToSpan(), bindModel);
 
     const HumanoidMapping& mapping = HumanoidSkeletonData::GetSkeletonMapping(skeleton);
@@ -789,7 +839,7 @@ void ApplyFootIK(const Skeleton& skeleton, const Vec3f& up, float leftOffset, fl
         { slotOf(HumanoidBone::RightUpperLeg), slotOf(HumanoidBone::RightLowerLeg), slotOf(HumanoidBone::RightFoot) }
     };
 
-    Array<RetargetModelTransform> model;
+    Array<RetargetModelTransform, AnimAllocator> model;
     ComputeModelTransforms(bindData, pose, model);
 
     const Vec3f targets[2] = {
@@ -814,13 +864,21 @@ void ApplyFootIK(const Skeleton& skeleton, const Vec3f& up, float leftOffset, fl
 
     for (uint32 side = 0; side < 2; ++side)
     {
-        SolveTwoBoneIK(bindData, model, legs[side][0], legs[side][1], legs[side][2], targets[side], kneeForward, pose);
+        SolveTwoBoneIK(
+            bindData,
+            model,
+            legs[side][0],
+            legs[side][1], 
+            legs[side][2],
+            targets[side],
+            kneeForward,
+            pose);
     }
 }
 
-Array<Transform> MakeRestPose(const SkeletonBindData& bindData)
+Span<const Transform> GetRestPose(const SkeletonBindData& bindData)
 {
-    return Array<Transform>(bindData.restLocals.ToSpan());
+    return bindData.restLocals;
 }
 
 void ApplyBlended(
@@ -1010,7 +1068,12 @@ void ComputeMatrices(
     ComputeSkeletonPoseMatrices(bindData, pose, outModelMatrices, outSkinningMatrices);
 }
 
-void SampleClip(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> pose)
+void SampleClip(
+    const Animation& animation,
+    const ClipBinding& binding,
+    const SkeletonBindData& bindData,
+    float time,
+    Span<Transform> pose)
 {
     HYP_SCOPE;
 

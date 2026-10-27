@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <Animation/AnimationMemory.hpp>
 #include <Asset/AssetExtension.hpp>
 
 #include <Core/Containers/Array.hpp>
@@ -129,6 +130,8 @@ class ANIMATION_API HumanoidSkeletonData final : public AssetExtension
     HYP_OBJECT_BODY(HumanoidSkeletonData);
 
 public:
+    static Pool* GetAllocator() { return g_animPool; }
+
     HumanoidSkeletonData() = default;
 
     explicit HumanoidSkeletonData(const HumanoidMapping& mapping)

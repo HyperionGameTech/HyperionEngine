@@ -170,7 +170,7 @@ const Handle<Animation>& Skeleton::FindAnimation(Name name) const
         }
     }
 
-    return Handle<Animation>::empty;
+    return Handle<Animation>::Null();
 }
 
 Array<Name> Skeleton::GetAnimationNames() const
@@ -449,7 +449,7 @@ void Skeleton::SetPose(Span<const Transform> localPose)
     }
     else
     {
-        m_pose = Array<Transform>(localPose);
+        m_pose = Array<Transform, SceneAllocator>(localPose);
         m_poseModelMatrices.Resize(bindData.NumSlots());
         m_poseSkinningMatrices.Resize(bindData.NumSlots());
 

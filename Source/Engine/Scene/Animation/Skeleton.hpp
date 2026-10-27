@@ -10,6 +10,8 @@
 #include <Asset/AssetImportInfo.hpp>
 #include <Asset/AssetReference.hpp>
 
+#include <Framework/EngineMemory.hpp>
+
 #include <Core/Reflection/BoxedValue.hpp>
 
 #include <Core/Memory/SharedPtr.hpp>
@@ -38,11 +40,11 @@ struct SkeletonBindData
 {
     static constexpr uint32 InvalidSlot = ~0u;
 
-    Array<Name> boneNames;
-    Array<uint32> parentSlots;
-    Array<Transform> restLocals;
-    Array<Mat4f> inverseBindMatrices;
-    Map<Name, uint32> slotsByBoneName;
+    Array<Name, SceneAllocator> boneNames;
+    Array<uint32, SceneAllocator> parentSlots;
+    Array<Transform, SceneAllocator> restLocals;
+    Array<Mat4f, SceneAllocator> inverseBindMatrices;
+    Map<Name, uint32, SceneAllocator> slotsByBoneName;
 
     HYP_FORCE_INLINE uint32 NumSlots() const
     {
@@ -103,6 +105,10 @@ class ENGINE_API Skeleton final : public AssetObject
     friend class Bone;
 
 public:
+    using BoundTrackCounter = uint32 (*)(
+        const Animation& animation,
+        const Skeleton& skeleton);
+
     Skeleton();
 
     explicit Skeleton(const Handle<Bone>& rootBone);
@@ -170,8 +176,6 @@ public:
     // tracks of the clip that drive a bone of this skeleton; by bone name, unless a plugin that retargets counts them
     HYP_METHOD()
     uint32 CountBoundTracks(const Handle<Animation>& animation) const;
-
-    using BoundTrackCounter = uint32 (*)(const Animation& animation, const Skeleton& skeleton);
 
     static void SetBoundTrackCounter(BoundTrackCounter counter);
 
@@ -290,9 +294,9 @@ private:
     mutable SkeletonBindData m_bindData;
     mutable bool m_bindDataBuilt = false;
 
-    Array<Transform> m_pose;
-    Array<Mat4f> m_poseModelMatrices;
-    Array<Mat4f> m_poseSkinningMatrices;
+    Array<Transform, SceneAllocator> m_pose;
+    Array<Mat4f, SceneAllocator> m_poseModelMatrices;
+    Array<Mat4f, SceneAllocator> m_poseSkinningMatrices;
 };
 
 } // namespace Hyperion

@@ -276,10 +276,10 @@ HYP_ENGINE_TEST(HumanoidRetarget, ClipMovesJointsOnAnotherRig)
     HYP_TEST_REQUIRE(bool(binding.retarget));
     HYP_TEST_CHECK(PoseOps::CountBoundSlots(binding) == NumTestBones);
 
-    Array<Transform> sourcePose = PoseOps::MakeRestPose(sourceBindData);
+    Array<Transform> sourcePose = Array<Transform>(PoseOps::GetRestPose(sourceBindData));
     PoseOps::SampleClip(*clip, PoseOps::BindClip(*clip, *source), sourceBindData, 0.5f, sourcePose.ToSpan());
 
-    Array<Transform> targetPose = PoseOps::MakeRestPose(targetBindData);
+    Array<Transform> targetPose = Array<Transform>(PoseOps::GetRestPose(targetBindData));
     PoseOps::SampleClip(*clip, binding, targetBindData, 0.5f, targetPose.ToSpan());
 
     const Array<Vec3f> sourceJoints = ModelPositions(sourceBindData, sourcePose.ToSpan());
@@ -370,7 +370,7 @@ HYP_ENGINE_TEST(HumanoidPose, FootIKPlantsFeetOnOffsets)
     const uint32 rightFoot = bindData.FindSlot(NAME("foot_r"));
 
     // straight legs: the left foot steps up, the right one down, so the pelvis comes down with it
-    Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
     PoseOps::ApplyFootIK(*skeleton, up, 0.1f, -0.05f, pose.ToSpan());
 
     Array<Vec3f> joints = ModelPositions(bindData, pose.ToSpan());
@@ -413,7 +413,7 @@ HYP_ENGINE_TEST(HumanoidPose, RootMotionMovesAcrossGround)
     const Vec3f stepBack = PoseOps::GetRootMotion(*clip, binding, up, 0.75f, 0.25f, false);
     HYP_TEST_CHECK_MSG((stepBack - Vec3f(0.0f, 0.0f, -1.0f)).Length() < 1e-4f, "step back {}", stepBack);
 
-    Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+    Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
     PoseOps::SampleClip(*clip, binding, bindData, 0.5f, pose.ToSpan());
     PoseOps::RemoveRootMotion(*clip, binding, up, 0.5f, pose.ToSpan());
 
@@ -567,10 +567,10 @@ HYP_ENGINE_TEST(HumanoidRetarget, MirroredRigKeepsJointBends)
     HYP_TEST_REQUIRE(bool(binding.retarget));
     HYP_TEST_CHECK(binding.retarget->mirrored);
 
-    Array<Transform> sourcePose = PoseOps::MakeRestPose(sourceBindData);
+    Array<Transform> sourcePose = Array<Transform>(PoseOps::GetRestPose(sourceBindData));
     PoseOps::SampleClip(*clip, PoseOps::BindClip(*clip, *source), sourceBindData, 0.5f, sourcePose.ToSpan());
 
-    Array<Transform> targetPose = PoseOps::MakeRestPose(targetBindData);
+    Array<Transform> targetPose = Array<Transform>(PoseOps::GetRestPose(targetBindData));
     PoseOps::SampleClip(*clip, binding, targetBindData, 0.5f, targetPose.ToSpan());
 
     const Array<Vec3f> sourceJoints = ModelPositions(sourceBindData, sourcePose.ToSpan());

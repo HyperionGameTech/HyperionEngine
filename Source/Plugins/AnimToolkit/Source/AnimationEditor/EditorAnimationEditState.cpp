@@ -1272,7 +1272,7 @@ void EditorAnimationEditState::UpdateRootTrail()
 
     for (uint32 sample = 0; sample < RootTrailSamples; ++sample)
     {
-        Array<Transform> pose = PoseOps::MakeRestPose(bindData);
+        Array<Transform> pose = Array<Transform>(PoseOps::GetRestPose(bindData));
 
         ApplyAnimParams params {};
         params.time = length * float(sample) / float(RootTrailSamples - 1);

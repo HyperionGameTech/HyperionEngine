@@ -25,9 +25,9 @@ namespace Hyperion {
 
 namespace {
 
-static constexpr float VelocitySampleTime = 1.0f / 60.0f;
+constexpr float VelocitySampleTime = 1.0f / 60.0f;
 
-static constexpr uint32 FeatureGroupStarts[] = {
+constexpr uint32 FeatureGroupStarts[] = {
     uint32(MotionFeature::LeftFootPosition),
     uint32(MotionFeature::LeftFootVelocity),
     uint32(MotionFeature::HipVelocity),
@@ -36,7 +36,7 @@ static constexpr uint32 FeatureGroupStarts[] = {
     uint32(MotionFeature::Count)
 };
 
-static constexpr uint32 NumFeatureGroups = uint32(sizeof(FeatureGroupStarts) / sizeof(FeatureGroupStarts[0])) - 1;
+constexpr uint32 NumFeatureGroups = uint32(GetArrayCount(FeatureGroupStarts)) - 1;
 
 float GetGroupWeight(const MotionFeatureWeights& weights, uint32 group)
 {
@@ -66,7 +66,11 @@ struct CharacterFrame
 class ClipSampler
 {
 public:
-    ClipSampler(const MotionDatabaseClip& entry, const Skeleton& skeleton, const Vec3f& up, const Vec3f& forward)
+    ClipSampler(
+        const MotionDatabaseClip& entry,
+        const Skeleton& skeleton,
+        const Vec3f& up,
+        const Vec3f& forward)
         : m_clip(*entry.clip),
           m_bindData(skeleton.GetBindData()),
           m_binding(PoseOps::BindClip(*entry.clip, skeleton)),
@@ -152,7 +156,7 @@ private:
         return direction - m_up * direction.Dot(m_up);
     }
 
-    // poses the model at time, returning how many whole loops came before it
+    /// poses the model at \p time, returning # loops that before.
     float SampleModel(float time)
     {
         float cycles = 0.0f;
@@ -160,7 +164,7 @@ private:
 
         if (m_isLooping && m_length > 0.0f)
         {
-            cycles = std::floor(time / m_length);
+            cycles = MathUtil::Floor(time / m_length);
             clipTime = time - cycles * m_length;
         }
 
@@ -182,6 +186,7 @@ private:
 
     const Animation& m_clip;
     const SkeletonBindData& m_bindData;
+
     ClipBinding m_binding;
     Vec3f m_up;
     Vec3f m_forward;
@@ -255,8 +260,8 @@ bool MotionDatabase::Build()
     }
 
     const bool hasPoseFeatures = leftFoot != SkeletonBindData::InvalidSlot
-        && rightFoot != SkeletonBindData::InvalidSlot
-        && hips != SkeletonBindData::InvalidSlot;
+                                && rightFoot != SkeletonBindData::InvalidSlot
+                                && hips != SkeletonBindData::InvalidSlot;
 
     if (!hasPoseFeatures)
     {
@@ -298,7 +303,9 @@ bool MotionDatabase::Build()
         const float length = sampler.GetLength();
 
         // a clip that ends needs its whole trajectory inside it
-        const float lastTime = sampler.IsLooping() ? length - frameStep * 0.5f : length - m_trajectoryHorizon;
+        const float lastTime = sampler.IsLooping()
+            ? length - frameStep * 0.5f
+            : length - m_trajectoryHorizon;
 
         if (lastTime < 0.0f)
         {
@@ -314,12 +321,15 @@ bool MotionDatabase::Build()
 
             const auto toCharacter = [&](const Vec3f& vector)
             {
-                return Vec3f(vector.Dot(nowRight), vector.Dot(up), vector.Dot(now.facing));
+                return Vec3f(
+                    vector.Dot(nowRight),
+                    vector.Dot(up),
+                    vector.Dot(now.facing));
             };
 
-            float features[NumFeatures] = {};
+            float features[NumFeatures] {};
 
-            const auto write = [&features](MotionFeature feature, uint32 offset, const Vec3f& value)
+            const auto putFeature = [&features](MotionFeature feature, uint32 offset, const Vec3f& value)
             {
                 const uint32 index = uint32(feature) + offset;
 
@@ -339,16 +349,16 @@ bool MotionDatabase::Build()
                     after = MathUtil::Min(after, length);
                 }
 
-                const auto velocityOf = [&](uint32 slot)
+                const auto getVelocity = [&](uint32 slot)
                 {
                     return (sampler.GetBonePosition(slot, after) - sampler.GetBonePosition(slot, before)) / MathUtil::Max(after - before, 1e-6f);
                 };
 
-                write(MotionFeature::LeftFootPosition, 0, toCharacter(sampler.GetBonePosition(leftFoot, time) - now.position));
-                write(MotionFeature::RightFootPosition, 0, toCharacter(sampler.GetBonePosition(rightFoot, time) - now.position));
-                write(MotionFeature::LeftFootVelocity, 0, toCharacter(velocityOf(leftFoot)));
-                write(MotionFeature::RightFootVelocity, 0, toCharacter(velocityOf(rightFoot)));
-                write(MotionFeature::HipVelocity, 0, toCharacter(velocityOf(hips)));
+                putFeature(MotionFeature::LeftFootPosition, 0, toCharacter(sampler.GetBonePosition(leftFoot, time) - now.position));
+                putFeature(MotionFeature::RightFootPosition, 0, toCharacter(sampler.GetBonePosition(rightFoot, time) - now.position));
+                putFeature(MotionFeature::LeftFootVelocity, 0, toCharacter(getVelocity(leftFoot)));
+                putFeature(MotionFeature::RightFootVelocity, 0, toCharacter(getVelocity(rightFoot)));
+                putFeature(MotionFeature::HipVelocity, 0, toCharacter(getVelocity(hips)));
             }
 
             for (uint32 point = 0; point < NumTrajectoryPoints; ++point)
@@ -380,7 +390,6 @@ bool MotionDatabase::Build()
         return false;
     }
 
-    // each group is scaled by how much it varies, so the weights compare like with like
     m_featureSpreads.Resize(NumFeatureGroups);
 
     for (uint32 group = 0; group < NumFeatureGroups; ++group)
@@ -408,7 +417,7 @@ bool MotionDatabase::Build()
 
         variance /= double(m_frames.Size()) * double(FeatureGroupStarts[group + 1] - FeatureGroupStarts[group]);
 
-        m_featureSpreads[group] = float(std::sqrt(variance));
+        m_featureSpreads[group] = float(MathUtil::Sqrt(variance));
     }
 
     UpdateScales();
@@ -498,7 +507,11 @@ uint32 MotionDatabase::Search(Span<const float> query, bool includePose) const
     return best;
 }
 
-Vec2f MotionDatabase::PredictPosition(const Vec2f& velocity, const Vec2f& desiredVelocity, float acceleration, float time)
+Vec2f MotionDatabase::PredictPosition(
+    const Vec2f& velocity,
+    const Vec2f& desiredVelocity,
+    float acceleration,
+    float time)
 {
     if (acceleration <= 1e-4f)
     {
@@ -512,7 +525,10 @@ Vec2f MotionDatabase::PredictPosition(const Vec2f& velocity, const Vec2f& desire
 
 #pragma region AnimationMotionMatchingNode
 
-void AnimationMotionMatchingNode::Update(AnimationGraphContext& context, uint32 nodeIndex, float weight) const
+void AnimationMotionMatchingNode::Update(
+    AnimationGraphContext& context,
+    uint32 nodeIndex,
+    float weight) const
 {
     AnimationGraphNodeState& state = context.GetState(nodeIndex);
     state.weight += weight;
@@ -524,7 +540,7 @@ void AnimationMotionMatchingNode::Update(AnimationGraphContext& context, uint32 
 
     if (!database->IsBuilt())
     {
-        HYP_LOG_ONCE(Animation, Error, "Motion database '{}' isn't built, so its motion matching node plays nothing", database->GetName());
+        HYP_LOG_ONCE(Animation, Error, "Motion database '{}' is not built", database->GetName());
 
         return;
     }
@@ -557,7 +573,7 @@ void AnimationMotionMatchingNode::Update(AnimationGraphContext& context, uint32 
             {
                 if (entry.loop && length > 0.0f)
                 {
-                    state.time = std::fmod(state.time, length);
+                    state.time = MathUtil::Mod(state.time, length);
                 }
                 else
                 {
@@ -590,24 +606,31 @@ void AnimationMotionMatchingNode::Update(AnimationGraphContext& context, uint32 
 
     const Animation& clip = *clips[state.currentState].clip;
 
-    // time only runs forward here and a search jump starts previousTime over, so going back means the clip looped
     if (clip.HasRootMotion())
     {
-        context.AddRootMotion(PoseOps::GetRootMotion(clip, context.GetClipBinding(clip), context.GetModelUp(), state.previousTime, state.time, state.time < state.previousTime), weight);
+        context.AddRootMotion(PoseOps::GetRootMotion(
+                                clip,
+                                context.GetClipBinding(clip),
+                                context.GetModelUp(),
+                                state.previousTime,
+                                state.time,
+                                state.time < state.previousTime),
+            weight);
     }
 }
 
-void AnimationMotionMatchingNode::Search(AnimationGraphContext& context, AnimationGraphNodeState& state) const
+void AnimationMotionMatchingNode::Search(
+    AnimationGraphContext& context,
+    AnimationGraphNodeState& state) const
 {
     const MotionDatabase& motionDatabase = *database;
 
-    float query[MotionDatabase::NumFeatures] = {};
+    float query[MotionDatabase::NumFeatures] {};
 
     const uint32 currentFrame = state.currentState != InvalidAnimationGraphNode
         ? motionDatabase.FindFrame(state.currentState, state.time)
         : ~0u;
 
-    // the pose part of the query is where the playing clip already is
     if (currentFrame != ~0u)
     {
         const Span<const float> currentFeatures = motionDatabase.GetFrameFeatures(currentFrame);
@@ -633,8 +656,8 @@ void AnimationMotionMatchingNode::Search(AnimationGraphContext& context, Animati
 
         query[uint32(MotionFeature::TrajectoryPosition) + point * 2] = position.x;
         query[uint32(MotionFeature::TrajectoryPosition) + point * 2 + 1] = position.y;
-        query[uint32(MotionFeature::TrajectoryFacing) + point * 2] = std::sin(facingAngle);
-        query[uint32(MotionFeature::TrajectoryFacing) + point * 2 + 1] = std::cos(facingAngle);
+        query[uint32(MotionFeature::TrajectoryFacing) + point * 2] = MathUtil::Sin(facingAngle);
+        query[uint32(MotionFeature::TrajectoryFacing) + point * 2 + 1] = MathUtil::Cos(facingAngle);
     }
 
     const uint32 best = motionDatabase.Search(Span<const float>(query, MotionDatabase::NumFeatures), currentFrame != ~0u);

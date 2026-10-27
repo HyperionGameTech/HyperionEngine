@@ -21,6 +21,8 @@
 
 #include <Core/Utilities/Span.hpp>
 
+#include <Animation/AnimationMemory.hpp>
+
 #include <Core/Types.hpp>
 
 namespace Hyperion {
@@ -44,23 +46,23 @@ struct RetargetBinding
 {
     Handle<Skeleton> sourceSkeleton;
     uint32 sourceSkeletonRevision = 0;
-    Array<uint32> sourceSlotByTarget;
+    Array<uint32, AnimAllocator> sourceSlotByTarget;
     uint32 targetHips = ~0u;
     float hipsScale = 1.0f;
     Quat4f sourceToTarget = Quat4f::Identity();
     bool mirrored = false;
     Vec3f mirrorNormal;
-    Array<Quat4f> inverseSourceBindRotations;
-    Array<Quat4f> targetBindRotations;
+    Array<Quat4f, AnimAllocator> inverseSourceBindRotations;
+    Array<Quat4f, AnimAllocator> targetBindRotations;
     Vec3f sourceHipsBindPosition;
     Vec3f targetHipsBindPosition;
-    Array<uint32> sourceHipsChain;
-    Array<uint32> sourceHipsChainTracks;
+    Array<uint32, AnimAllocator> sourceHipsChain;
+    Array<uint32, AnimAllocator> sourceHipsChainTracks;
 };
 
 struct ClipBinding
 {
-    Array<uint32> trackSlots;
+    Array<uint32, AnimAllocator> trackSlots;
     uint32 animationRevision = 0;
     
     /// the slot that carries the clip's root motion
@@ -74,34 +76,55 @@ struct ClipBinding
 
 namespace PoseOps {
 
-ANIMATION_API ClipBinding BindClip(const Animation& animation, const SkeletonBindData& bindData);
+ANIMATION_API ClipBinding BindClip(
+    const Animation& animation,
+    const SkeletonBindData& bindData);
 
-// binds by bone name, or retargets through both humanoid mappings when the clip was recorded on another rig
-ANIMATION_API ClipBinding BindClip(const Animation& animation, const Skeleton& skeleton);
+/// binds by bone name, or retargets through both humanoid mappings when the clip was recorded on another rig
+ANIMATION_API ClipBinding BindClip(
+    const Animation& animation,
+    const Skeleton& skeleton);
 
-// false once the clip or the rig it's retargeted from has changed since it was bound
-ANIMATION_API bool IsBindingCurrent(const ClipBinding& binding, const Animation& animation);
+/// \return false once the clip or the rig it's retargeted from has changed since it was bound
+ANIMATION_API bool IsBindingCurrent(
+    const ClipBinding& binding,
+    const Animation& animation);
 
-// how many of the skeleton's bones the binding moves
+/// \return how many of the skeleton's bones the binding moves
 ANIMATION_API uint32 CountBoundSlots(const ClipBinding& binding);
 
-// the skeleton's up in model space: hips to head for a humanoid, otherwise +Y
+/// \return the skeleton's up in model space
 ANIMATION_API Vec3f GetModelUp(const Skeleton& skeleton);
 
-// the way the skeleton faces in model space: where a humanoid's toes point (or across its hips), otherwise +Z
+/// \return direction the skeleton faces in model space
 ANIMATION_API Vec3f GetModelForward(const Skeleton& skeleton);
 
-// how far a root motion clip moves the character across the ground between two times, in model space;
-// wrapped means a looping clip passed its end (or its start, playing backwards) on the way
-ANIMATION_API Vec3f GetRootMotion(const Animation& animation, const ClipBinding& binding, const Vec3f& up, float fromTime, float toTime, bool wrapped);
+/// \return how far a root motion clip moves the character across the ground between two times, in model space
+ANIMATION_API Vec3f GetRootMotion(
+    const Animation& animation,
+    const ClipBinding& binding,
+    const Vec3f& up,
+    float fromTime,
+    float toTime,
+    bool wrapped);
 
-// takes that movement back out of a sampled pose, so the clip plays in place
-ANIMATION_API void RemoveRootMotion(const Animation& animation, const ClipBinding& binding, const Vec3f& up, float time, Span<Transform> pose);
+/// takes that movement back out of a sampled pose, so the clip plays in place
+ANIMATION_API void RemoveRootMotion(
+    const Animation& animation,
+    const ClipBinding& binding,
+    const Vec3f& up,
+    float time,
+    Span<Transform> pose);
 
-// raises each foot of a humanoid by its offset along up with two-bone IK, lowering the pelvis for the lower one
-ANIMATION_API void ApplyFootIK(const Skeleton& skeleton, const Vec3f& up, float leftOffset, float rightOffset, Span<Transform> pose);
+/// raises each foot of a humanoid by its offset along up with two-bone IK, lowering the pelvis for the lower one
+ANIMATION_API void ApplyFootIK(
+    const Skeleton& skeleton,
+    const Vec3f& up,
+    float leftOffset,
+    float rightOffset,
+    Span<Transform> pose);
 
-ANIMATION_API Array<Transform> MakeRestPose(const SkeletonBindData& bindData);
+ANIMATION_API Span<const Transform> GetRestPose(const SkeletonBindData& bindData);
 
 ANIMATION_API void ApplyBlended(
     const Animation& animation,
@@ -127,13 +150,27 @@ ANIMATION_API void ComputeMatrices(
     Span<Mat4f> outModelMatrices,
     Span<Mat4f> outSkinningMatrices);
 
-ANIMATION_API void SampleClip(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> pose);
+ANIMATION_API void SampleClip(
+    const Animation& animation,
+    const ClipBinding& binding,
+    const SkeletonBindData& bindData,
+    float time,
+    Span<Transform> pose);
 
 // boneWeights, when not empty, scale weight per slot (a BoneMask)
-ANIMATION_API void BlendPoses(Span<const Transform> from, Span<const Transform> to, float weight, Span<const float> boneWeights, Span<Transform> outPose);
+ANIMATION_API void BlendPoses(
+    Span<const Transform> from,
+    Span<const Transform> to,
+    float weight,
+    Span<const float> boneWeights,
+    Span<Transform> outPose);
 
 // adds additive's difference from the rest pose onto pose
-ANIMATION_API void ApplyAdditive(const SkeletonBindData& bindData, Span<const Transform> additive, float weight, Span<Transform> pose);
+ANIMATION_API void ApplyAdditive(
+    const SkeletonBindData& bindData,
+    Span<const Transform> additive,
+    float weight,
+    Span<Transform> pose);
 
 // easing toward the clip by delta / remaining covers the gap linearly over the fade
 ANIMATION_API float AdvanceCrossFade(float delta, float& remaining, float defaultBlend);

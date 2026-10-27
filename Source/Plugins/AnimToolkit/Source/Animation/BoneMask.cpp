@@ -22,9 +22,9 @@ BoneMask::BoneMask(Name name)
 
 BoneMask::~BoneMask() = default;
 
-Array<float> BoneMask::BuildSlotWeights(const SkeletonBindData& bindData) const
+Array<float, AnimAllocator> BoneMask::BuildSlotWeights(const SkeletonBindData& bindData) const
 {
-    Array<float> weights;
+    Array<float, AnimAllocator> weights;
     weights.ResizeUninitialized(bindData.NumSlots());
 
     for (float& weight : weights)

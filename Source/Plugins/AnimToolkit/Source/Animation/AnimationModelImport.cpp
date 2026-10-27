@@ -77,7 +77,7 @@ void AnimationModelImportProcessor::Process(ModelImportContents& contents, const
         return;
     }
 
-    const Handle<Animation> firstClip = contents.animations.Any() ? contents.animations[0] : Handle<Animation>::empty;
+    const Handle<Animation>& firstClip = contents.animations.Any() ? contents.animations[0] : Handle<Animation>::Null();
 
     ForEachAnimatableEntity(*contents.prefab->GetRoot(), [&firstClip](Entity& entity)
         {
@@ -105,7 +105,9 @@ void AnimationModelImportProcessor::Process(ModelImportContents& contents, const
         });
 }
 
-void AnimationModelImportProcessor::OnClipsMerged(Node& root, const Map<const Animation*, Handle<Animation>>& mergedClipsByFreshClip)
+void AnimationModelImportProcessor::OnClipsMerged(
+    Node& root,
+    const Map<const Animation*, Handle<Animation>>& mergedClipsByFreshClip)
 {
     ForEachAnimatableEntity(root, [&mergedClipsByFreshClip](Entity& entity)
         {

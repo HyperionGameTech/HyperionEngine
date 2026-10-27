@@ -47,10 +47,16 @@ public:
         return nullptr;
     }
 
-    virtual void Process(ModelImportContents& contents, const AssetImportInfo& importInfo, const ModelImportProcessorSettings* settings) = 0;
+    virtual void Process(
+        ModelImportContents& contents,
+        const AssetImportInfo& importInfo,
+        const ModelImportProcessorSettings* settings) = 0;
 
-    virtual void OnClipsMerged(Node& root, const Map<const Animation*, Handle<Animation>>& mergedClipsByFreshClip)
+    virtual void OnClipsMerged(
+        Node& root,
+        const Map<const Animation*, Handle<Animation>>& mergedClipsByFreshClip)
     {
+        //no-op
     }
 };
 

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Scene/System.hpp>
+
 #include <Animation/AnimationComponent.hpp>
 #include <Animation/AnimationPose.hpp>
 
@@ -28,7 +29,7 @@ struct SkeletonBindData;
 
 struct MeshComponent;
 
-using AnimationTrackLocks = Array<UniquePtr<TSharedResLock<AssetObject>>>;
+using AnimationTrackLocks = Array<UniquePtr<TSharedResLock<AssetObject>, AnimAllocator>, AnimAllocator>;
 
 struct AnimationBoundClip
 {
@@ -43,11 +44,11 @@ struct AnimationInstanceState
     Handle<Skeleton> instance;
 
     /// blended keyframes carried between frames
-    Array<Transform> pose;
+    Array<Transform, AnimAllocator> pose;
     /// twist and other per-frame offsets go on renderPose only
-    Array<Transform> renderPose;
+    Array<Transform, AnimAllocator> renderPose;
 
-    Map<WeakHandle<Animation>, AnimationBoundClip> clipBindings;
+    Map<WeakHandle<Animation>, AnimationBoundClip, AnimAllocator> clipBindings;
 
     AnimationTrackLocks graphTrackLocks;
     WeakHandle<AnimationGraph> lockedGraph;
@@ -55,7 +56,7 @@ struct AnimationInstanceState
 
     WeakHandle<BoneMask> layerMask;
     uint32 layerMaskRevision = 0;
-    Array<float> layerMaskWeights;
+    Array<float, AnimAllocator> layerMaskWeights;
 
     float previewTime = 0.0f;
     float previewDelta = 0.0f;
@@ -106,7 +107,8 @@ private:
     void EvaluateGraph(Entity* entity, AnimationComponent& animationComponent, MeshComponent& meshComponent, float delta);
 
     /// the skeleton's own clips, keyed per entity since clones share a Skeleton.
-    Map<Entity*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator> m_resourceHandles;
+    using ResourceHandles = Map<Entity*, Array<UniquePtr<TSharedResLock<AssetObject>>, SceneAllocator>, SceneAllocator>;
+    ResourceHandles m_resourceHandles;
 
     Map<Entity*, AnimationInstanceState, SceneAllocator> m_instanceStates;
 
