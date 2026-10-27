@@ -13,7 +13,6 @@
 #include <Framework/EngineGlobals.hpp>
 #include <Framework/CVarManager.hpp>
 #include <Framework/Game.hpp>
-#include <Plugins/PluginModule.hpp>
 #include <Framework/CacheClient.hpp>
 #include <Framework/DeviceTier/DeviceTierResolver.hpp>
 
@@ -25,6 +24,9 @@
 
 #include <Framework/Server/GameServer.hpp>
 #include <Framework/Client/GameClient.hpp>
+
+#include <Plugins/PluginModule.hpp>
+#include <Plugins/PluginManager.hpp>
 
 #include <Asset/Assets.hpp>
 #include <Asset/AssetRegistry.hpp>
@@ -785,6 +787,8 @@ extern "C"
         }
 
         g_engineDriver->Shutdown();
+
+        PluginManager::GetInstance().Shutdown();
 
         if (g_gameServer != nullptr)
         {
