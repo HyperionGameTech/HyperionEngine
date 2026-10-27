@@ -211,11 +211,7 @@ void Pool::Reset()
         AssertOnThread(m_ownerThreadId, "Pool reset from wrong thread!");
     }
 
-    for (Block& block : m_blocks)
-    {
-        m_tlsf.RemovePool(block.memory);
-    }
-
+    m_tlsf.Reset();
     m_blocks.Clear();
 
     for (const auto& it : m_fallbackAllocations)

@@ -8,7 +8,7 @@ public static unsafe class Program
     {
         if (args.Length < 3)
         {
-            Console.Error.WriteLine("Usage: EditorTestHost create <project file> <managed|native> | simulate <project directory> <frames> <results file> | play <project directory> <frames> <Standalone|Client|DedicatedServer> <host> <port> <expected clients> <results file>");
+            Console.Error.WriteLine("Usage: EditorTestHost create <project file> <managed|native> <disabled plugins, comma separated, or -> | simulate <project directory> <frames> <results file> | switch <project directories, ';' separated> <frames> <results file> | play <project directory> <frames> <Standalone|Client|DedicatedServer> <host> <port> <expected clients> <results file>");
 
             return 2;
         }
@@ -16,7 +16,9 @@ public static unsafe class Program
         string command = args[0];
         int numCommandArgs = command switch
         {
+            "create" => 4,
             "simulate" => 4,
+            "switch" => 4,
             "play" => 8,
             _ => 3
         };
@@ -43,8 +45,9 @@ public static unsafe class Program
 
         int succeeded = command switch
         {
-            "create" => EditorTestHost_CreateProject(args[1], args[2] == "managed" ? 1 : 0),
+            "create" => EditorTestHost_CreateProject(args[1], args[2] == "managed" ? 1 : 0, args[3] == "-" ? "" : args[3]),
             "simulate" => EditorTestHost_Simulate(args[1], int.Parse(args[2]), args[3]),
+            "switch" => EditorTestHost_Switch(args[1], int.Parse(args[2]), args[3]),
             "play" => EditorTestHost_Play(args[1], int.Parse(args[2]), args[3], args[4], int.Parse(args[5]), int.Parse(args[6]), args[7]),
             _ => 0
         };
@@ -89,6 +92,7 @@ public static unsafe class Program
 
         pManagedDelegates->initializeAssembly = (delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int>)&NativeInterop.InitializeAssembly;
         pManagedDelegates->unloadAssembly = (delegate* unmanaged<IntPtr, IntPtr, void>)&NativeInterop.UnloadAssembly;
+        pManagedDelegates->pluginModuleLoaded = &OnPluginModuleLoaded;
 
         foreach (System.Reflection.Assembly assembly in new[] { typeof(ObjectBase).Assembly, typeof(Game).Assembly }.Distinct())
         {
@@ -101,11 +105,43 @@ public static unsafe class Program
         }
     }
 
+    // the editor's (EngineManager.OnPluginModuleLoaded), less editor modules, whose C# is the editor's UI
+    [UnmanagedCallersOnly]
+    private static void OnPluginModuleLoaded(IntPtr moduleNamePtr)
+    {
+        string moduleName = Marshal.PtrToStringUTF8(moduleNamePtr) ?? string.Empty;
+        string assemblyPath = Path.Combine(AppContext.BaseDirectory, EngineAssemblies.PluginPrefix + moduleName + ".dll");
+
+        if (moduleName.EndsWith("Editor") || !File.Exists(assemblyPath))
+        {
+            return;
+        }
+
+        IntPtr assemblyGuidPtr = Marshal.AllocHGlobal(Marshal.SizeOf<Guid>());
+        IntPtr assemblyPathPtr = Marshal.StringToCoTaskMemUTF8(assemblyPath);
+
+        try
+        {
+            int result = NativeInterop.InitializeAssemblyManaged(assemblyGuidPtr, IntPtr.Zero, assemblyPathPtr, /* isCoreAssembly */ 1, out Exception? error);
+
+            if (result != (int)LoadAssemblyResult.Ok)
+            {
+                Console.Error.WriteLine($"EditorTestHost: failed to initialize plugin assembly {assemblyPath}: {(LoadAssemblyResult)result} {error?.Message}");
+            }
+        }
+        finally
+        {
+            Marshal.FreeCoTaskMem(assemblyPathPtr);
+            Marshal.FreeHGlobal(assemblyGuidPtr);
+        }
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     private struct ManagedDelegates
     {
         public delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int> initializeAssembly;
         public delegate* unmanaged<IntPtr, IntPtr, void> unloadAssembly;
+        public delegate* unmanaged<IntPtr, void> pluginModuleLoaded;
     }
 
     [DllImport("hyperion")]
@@ -118,10 +154,13 @@ public static unsafe class Program
     private static extern void Hyp_Shutdown();
 
     [DllImport("hyperion", CharSet = CharSet.Ansi)]
-    private static extern int EditorTestHost_CreateProject([MarshalAs(UnmanagedType.LPUTF8Str)] string projectFilepath, int isManaged);
+    private static extern int EditorTestHost_CreateProject([MarshalAs(UnmanagedType.LPUTF8Str)] string projectFilepath, int isManaged, [MarshalAs(UnmanagedType.LPUTF8Str)] string disabledPlugins);
 
     [DllImport("hyperion", CharSet = CharSet.Ansi)]
     private static extern int EditorTestHost_Simulate([MarshalAs(UnmanagedType.LPUTF8Str)] string projectDirectory, int numFrames, [MarshalAs(UnmanagedType.LPUTF8Str)] string resultsPath);
+
+    [DllImport("hyperion", CharSet = CharSet.Ansi)]
+    private static extern int EditorTestHost_Switch([MarshalAs(UnmanagedType.LPUTF8Str)] string projectDirectories, int numFrames, [MarshalAs(UnmanagedType.LPUTF8Str)] string resultsPath);
 
     [DllImport("hyperion", CharSet = CharSet.Ansi)]
     private static extern int EditorTestHost_Play(

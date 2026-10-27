@@ -1691,7 +1691,7 @@ private:
 
         for (const PluginModuleInfo& pluginModule : m_analyzer.GetPluginModules())
         {
-            moduleGroups.Set("Plugin_" + pluginModule.name, ModuleAPIMapping { String::empty, pluginModule.isEditor ? "EDITOR_API" : "ENGINE_API", "Plugins/" + pluginModule.name, "Plugin_" + pluginModule.name, pluginModule.name });
+            moduleGroups.Set("Plugin_" + pluginModule.name, ModuleAPIMapping { String::empty, CXXModuleGenerator::GetPluginAPIMacro(pluginModule), "Plugins/" + pluginModule.name, "Plugin_" + pluginModule.name, pluginModule.name });
         }
 
         for (const Pair<String, ModuleAPIMapping>& moduleGroup : moduleGroups)

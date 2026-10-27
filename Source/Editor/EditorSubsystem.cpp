@@ -37,6 +37,8 @@
 
 #include <Editor/Prefab/EditorPrefabEditState.hpp>
 
+#include <Editor/EditorExtension.hpp>
+
 #include <Editor/Instancing/EditorInstancePainterState.hpp>
 #include <Editor/Instancing/InstanceHandleNode.hpp>
 
@@ -168,6 +170,7 @@
 
 namespace Hyperion {
 
+EDITOR_API HYP_DECLARE_LOG_CHANNEL(Editor);
 HYP_DEFINE_LOG_CHANNEL(Editor);
 
 CVar<CVarString> g_cvCodeEditor { "Editor.CodeEditor", "VSCode" };

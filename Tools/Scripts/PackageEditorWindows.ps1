@@ -223,6 +223,11 @@ if ($IsMonolithic)
     {
         Copy-StagedFile (Join-Path $BinDir $file) (Join-Path $StageDir "ref/$file")
     }
+
+    foreach ($file in Get-ChildItem $BinDir -Filter "Hyperion.Plugin.*.dll" -File)
+    {
+        Copy-StagedFile $file.FullName (Join-Path $StageDir "ref/$($file.Name)")
+    }
 }
 
 foreach ($file in $ManagedEditorFiles)
@@ -313,6 +318,37 @@ if ($StagedBinaries.Contains("GFSDK_Aftermath_Lib.x64.dll"))
 if ($StagedBinaries.Contains("steam_api64.dll"))
 {
     Add-Warning "steam_api64.dll was staged. Steamworks redistribution is limited to Steam partners; build without the Steam SDK for public releases."
+}
+
+# --- Built-in plugins -------------------------------------------------------------------------------------------------
+
+Write-Step "Staging built-in plugins"
+
+# a built-in plugin's module libraries and descriptor are in Plugins/<Plugin>, with its content; the editor loads them when a project enables
+# the plugin. Test plugins and editor-wide library plugins (MCPBridge) aren't part of the editor
+foreach ($pluginBinDir in Get-ChildItem (Join-Path $BinDir "Plugins") -Directory -ErrorAction SilentlyContinue)
+{
+    $pluginSourceDir = Join-Path $RootDir "Source/Plugins/$($pluginBinDir.Name)"
+    if (-not (Test-Path $pluginSourceDir) -or -not (Get-ChildItem $pluginBinDir.FullName -Filter "hyperion-plugin-*.dll" -File)) { continue }
+
+    $pluginStageDir = Join-Path $StageDir "Plugins/$($pluginBinDir.Name)"
+    foreach ($file in Get-ChildItem $pluginBinDir.FullName -File | Where-Object { $_.Extension -in ".dll", ".hypplugin" })
+    {
+        Copy-StagedFile $file.FullName (Join-Path $pluginStageDir $file.Name)
+    }
+
+    if (Test-Path (Join-Path $pluginSourceDir "Content")) { Copy-Directory (Join-Path $pluginSourceDir "Content") (Join-Path $pluginStageDir "Content") }
+
+    # the plugin's C#, which the editor loads by name when the plugin loads, so it sits beside the editor rather than in it
+    foreach ($moduleLibrary in Get-ChildItem $pluginBinDir.FullName -Filter "hyperion-plugin-*.dll" -File)
+    {
+        $assemblyFile = "Hyperion.Plugin.$($moduleLibrary.BaseName.Substring('hyperion-plugin-'.Length)).dll"
+        if (Test-Path (Join-Path $BinDir $assemblyFile))
+        {
+            Copy-StagedFile (Join-Path $BinDir $assemblyFile) (Join-Path $StageDir $assemblyFile)
+            [void]$StagedBinaries.Add($assemblyFile)
+        }
+    }
 }
 
 Write-Step "Staging VC++ runtime from $CrtRedistDir"
@@ -532,6 +568,12 @@ if ($IsMonolithic -and (Test-Path $SdkCMakeFile) -and (Test-Path $SdkImportLibra
             $source = Join-Path $ShippingBinDir $file
             if (-not (Test-Path $source)) { throw "Missing $file in $ShippingBinDir" }
             Copy-StagedFile $source (Join-Path $ShippingStageDir "Bin/$file")
+        }
+
+        # built-in plugins' C#, which a C# game references for the plugins it links
+        foreach ($file in Get-ChildItem $ShippingBinDir -Filter "Hyperion.Plugin.*.dll" -File)
+        {
+            Copy-StagedFile $file.FullName (Join-Path $ShippingStageDir "Bin/$($file.Name)")
         }
 
         foreach ($dll in Get-ChildItem $ShippingBinDir -Filter *.dll -File)

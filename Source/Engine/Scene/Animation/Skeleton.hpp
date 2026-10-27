@@ -56,7 +56,7 @@ struct SkeletonBindData
         return it != slotsByBoneName.End() ? it->second : InvalidSlot;
     }
 
-    bool IsSlotWithin(uint32 slot, Name ancestorBoneName) const;
+    ENGINE_API bool IsSlotWithin(uint32 slot, Name ancestorBoneName) const;
 };
 
 ENGINE_API void ComputeSkeletonPoseMatrices(

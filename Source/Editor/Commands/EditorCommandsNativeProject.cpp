@@ -410,7 +410,8 @@ Result StagePackagedGame(
     const String& title,
     const String& moduleName,
     Name startupWorldName,
-    const EditorNetSettings& netSettings)
+    const EditorNetSettings& netSettings,
+    const String& pluginsArgument)
 {
 #ifdef HYP_WINDOWS
     static const char* const s_executableExtension = ".exe";
@@ -490,6 +491,7 @@ Result StagePackagedGame(
 
     Array<String> args { "--basedir=./", String("--startupworld=") + *startupWorldName };
     args.Concat(netSettings.GetGameArgs());
+    args.PushBack(pluginsArgument);
 
     return WriteGameArgsFile(outputDir, args);
 }
@@ -619,7 +621,8 @@ private:
                 projectFilepath = project->GetFilePath(),
                 binariesDir = GetNativeModulePath(project->GetFilePath()).BasePath(),
                 startupWorldName = project->GetEditWorldName(),
-                netSettings = project->GetProjectSettings()->netSettings]()
+                netSettings = project->GetProjectSettings()->netSettings,
+                pluginsArgument = project->GetPluginsGameArgument()]()
             {
                 Result result;
 
@@ -641,7 +644,8 @@ private:
                         title,
                         moduleName,
                         startupWorldName,
-                        netSettings);
+                        netSettings,
+                        pluginsArgument);
                 }
 
                 if (result.HasError())

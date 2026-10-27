@@ -98,9 +98,9 @@ public:
 
     ~ScriptObjectResource();
 
-    uint32 GetScriptLanguageMask() const;
+    ENGINE_API uint32 GetScriptLanguageMask() const;
 
-    dotnet::ManagedObject* GetManagedObject() const;
+    ENGINE_API dotnet::ManagedObject* GetManagedObject() const;
     const SharedPtr<dotnet::ManagedClass> GetManagedClass() const;
 
 #ifdef HYP_DOTNET

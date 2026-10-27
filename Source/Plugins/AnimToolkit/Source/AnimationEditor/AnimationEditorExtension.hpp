@@ -14,7 +14,7 @@ class Entity;
 class EditorAnimationEditState;
 
 HYP_CLASS(Serialize = false)
-class EDITOR_API AnimationEditorExtension final : public EditorExtension
+class ANIMATIONEDITOR_API AnimationEditorExtension final : public EditorExtension
 {
     HYP_OBJECT_BODY(AnimationEditorExtension);
 

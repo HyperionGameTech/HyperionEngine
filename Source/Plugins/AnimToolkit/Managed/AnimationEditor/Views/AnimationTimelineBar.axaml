@@ -2,10 +2,10 @@
     x:Class="Hyperion.Editor.Views.AnimationTimelineBar"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
+    xmlns:controls="using:Hyperion.Editor.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    xmlns:vm="using:Hyperion.Editor.ViewModels"
     x:DataType="vm:AnimationTimelineViewModel"
     mc:Ignorable="d">
     <Border

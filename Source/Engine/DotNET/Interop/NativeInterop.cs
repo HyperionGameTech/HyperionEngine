@@ -60,6 +60,18 @@ namespace Hyperion
                 Logger.Log(LogLevel.Error, "{0} has no type registry: build it with Hyperion.NET.Generators as an analyzer", assembly.GetName().Name);
             }
 
+            if ((assembly.GetName().Name ?? string.Empty).StartsWith(EngineAssemblies.PluginPrefix, StringComparison.Ordinal))
+            {
+                try
+                {
+                    NativeLibrary.SetDllImportResolver(assembly, ResolvePluginLibrary);
+                }
+                catch (InvalidOperationException)
+                {
+                    // set already
+                }
+            }
+
             IEnumerable<Type> types = HypTypeRegistry.GetTypes(assembly);
 
             s_registrationStats = default;
@@ -94,6 +106,57 @@ namespace Hyperion
                 s_registrationStats.Properties,
                 s_registrationStats.Constructors,
                 registrationTimer.ElapsedMilliseconds);
+        }
+
+        // a plugin assembly's bindings import from hyperion-plugin-<Module>, which the engine loaded from its Plugins folder, or which is
+        // linked into the engine library when plugins are
+        private static IntPtr ResolvePluginLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            if (!libraryName.StartsWith("hyperion-plugin-", StringComparison.Ordinal))
+            {
+                return IntPtr.Zero;
+            }
+
+            if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out IntPtr handle))
+            {
+                return handle;
+            }
+
+            string fileName;
+
+            if (OperatingSystem.IsWindows())
+            {
+                fileName = libraryName + ".dll";
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                fileName = "lib" + libraryName + ".dylib";
+            }
+            else
+            {
+                fileName = "lib" + libraryName + ".so";
+            }
+            string pluginsDirectory = System.IO.Path.Combine(AppContext.BaseDirectory, "Plugins");
+
+            if (System.IO.Directory.Exists(pluginsDirectory))
+            {
+                foreach (string pluginDirectory in System.IO.Directory.GetDirectories(pluginsDirectory))
+                {
+                    string libraryPath = System.IO.Path.Combine(pluginDirectory, fileName);
+
+                    if (System.IO.File.Exists(libraryPath) && NativeLibrary.TryLoad(libraryPath, out handle))
+                    {
+                        return handle;
+                    }
+                }
+            }
+
+            if (NativeLibrary.TryLoad("hyperion", assembly, searchPath, out handle))
+            {
+                return handle;
+            }
+
+            return IntPtr.Zero;
         }
 
         private static void RegisterComponentType(Type type)

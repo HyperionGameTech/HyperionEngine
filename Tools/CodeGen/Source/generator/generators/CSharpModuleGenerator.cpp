@@ -63,6 +63,12 @@ constexpr UTF8StringView InteropServices = "global::System.Runtime.InteropServic
 
 String NativeLibraryForModule(const Analyzer& analyzer, const Module& mod)
 {
+    // a built-in plugin module's own library (Hyperion.Plugin.<Module> resolves it, or the engine's when the plugin is linked in)
+    if (const PluginModuleInfo* pluginModule = analyzer.FindPluginModule(mod.GetPath()))
+    {
+        return "hyperion-plugin-" + pluginModule->name;
+    }
+
     const String relativePath = analyzer.GetRelativePath(mod.GetPath()).ReplaceAll("\\", "/");
 
     if (relativePath.StartsWith("Core/"))

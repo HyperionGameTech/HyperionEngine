@@ -187,11 +187,28 @@ namespace Hyperion.Editor.Services
         public IEnumerable<EditorNodeMenuItem> NodeMenuItems => _registries.Values.SelectMany(registry => registry.NodeMenuItems);
         public IEnumerable<Func<Entity, string?>> InspectorWarnings => _registries.Values.SelectMany(registry => registry.InspectorWarnings);
 
+        private readonly HashSet<string> _enabledPlugins = new();
+
         private EditorPluginService()
         {
             ViewLocator = new PluginViewLocator(this);
 
-            foreach (Type type in typeof(EditorPluginService).Assembly.GetTypes())
+            AddPluginTypes(typeof(EditorPluginService).Assembly);
+        }
+
+        /// A plugin's editor assembly (Hyperion.Plugin.<Module>), loaded when a project enabled the plugin; its [EditorPlugin] registers if the plugin is enabled
+        public void AddPluginAssembly(Assembly assembly)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                AddPluginTypes(assembly);
+                SetEnabledPlugins(_enabledPlugins.ToList());
+            });
+        }
+
+        private void AddPluginTypes(Assembly assembly)
+        {
+            foreach (Type type in assembly.GetTypes())
             {
                 if (type.GetCustomAttribute<EditorPluginAttribute>() is { } attribute && typeof(IEditorPlugin).IsAssignableFrom(type))
                 {
@@ -204,6 +221,9 @@ namespace Hyperion.Editor.Services
         public void SetEnabledPlugins(IEnumerable<string> pluginNames)
         {
             HashSet<string> enabled = pluginNames.ToHashSet();
+
+            _enabledPlugins.Clear();
+            _enabledPlugins.UnionWith(enabled);
 
             foreach (string pluginName in _registries.Keys.Where(pluginName => !enabled.Contains(pluginName)).ToList())
             {

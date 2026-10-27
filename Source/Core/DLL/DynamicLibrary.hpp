@@ -39,6 +39,9 @@ public:
 
     bool GetImageRange(UIntPtr& outBegin, UIntPtr& outEnd) const;
 
+    /// \return the path of the lib whose image holds \p address
+    static PlatformString GetPathOfAddress(const void* address);
+
 private:
     Pimpl<struct DynamicLibraryImpl> m_impl;
 };

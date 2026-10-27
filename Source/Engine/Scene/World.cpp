@@ -310,6 +310,8 @@ void World::Initialize()
         m_physicsWorld->Initialize();
     }
 
+    SyncRegisteredSystems(/* removeInapplicable */ false);
+
     UpdateReplicationSystems();
 
     if (m_activeSwatchId == Invalid<SwatchId>)

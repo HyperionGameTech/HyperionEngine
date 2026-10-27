@@ -34,6 +34,7 @@ namespace Hyperion
     {
         private static readonly List<Assembly> s_coreAssemblies = new();
         private static Assembly? s_gameAssembly;
+        private static readonly Dictionary<string, Assembly> s_pluginAssemblies = new();
 
         public static Game? CurrentGame { get; private set; }
 
@@ -91,6 +92,8 @@ namespace Hyperion
             s_coreAssemblies.Add(typeof(ObjectBase).Assembly);
             s_coreAssemblies.Add(typeof(Game).Assembly);
 
+            RegisterPluginAssemblies(gameAssembly);
+
             if (!s_coreAssemblies.Contains(gameAssembly))
             {
                 s_coreAssemblies.Add(gameAssembly);
@@ -99,6 +102,38 @@ namespace Hyperion
             unsafe
             {
                 Hyp_SetInitFromManagedCallback(&InitFromManagedCallback);
+            }
+        }
+
+        // the plugin assemblies (Hyperion.Plugin.<Module>) hostAssembly is built against; each is initialized once the engine loads its module
+        // (PluginModuleLoadedCallback), as its classes only exist from then on
+        public static void RegisterPluginAssemblies(Assembly hostAssembly)
+        {
+            foreach (HypAssemblyDependencyAttribute dependency in hostAssembly.GetCustomAttributes<HypAssemblyDependencyAttribute>())
+            {
+                Assembly assembly = dependency.RegistryType.Assembly;
+
+                s_pluginAssemblies[assembly.GetName().Name!] = assembly;
+            }
+        }
+
+        public static unsafe delegate* unmanaged<IntPtr, void> PluginModuleLoadedCallback => &OnPluginModuleLoaded;
+
+        [UnmanagedCallersOnly]
+        private static void OnPluginModuleLoaded(IntPtr moduleNamePtr)
+        {
+            string assemblyName = EngineAssemblies.PluginPrefix + (Marshal.PtrToStringUTF8(moduleNamePtr) ?? string.Empty);
+
+            if (!s_pluginAssemblies.TryGetValue(assemblyName, out Assembly? assembly))
+            {
+                return;
+            }
+
+            int result = NativeInterop.InitializeLoadedAssembly(assembly, isCoreAssembly: true);
+
+            if (result != (int)LoadAssemblyResult.Ok)
+            {
+                Logger.Log(LogLevel.Error, "Failed to initialize plugin assembly {0}: {1}", assemblyName, (LoadAssemblyResult)result);
             }
         }
 
@@ -265,6 +300,7 @@ namespace Hyperion
 
             pManagedDelegates->initializeAssembly = (delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int>)&NativeInterop.InitializeAssembly;
             pManagedDelegates->unloadAssembly = (delegate* unmanaged<IntPtr, IntPtr, void>)&NativeInterop.UnloadAssembly;
+            pManagedDelegates->pluginModuleLoaded = PluginModuleLoadedCallback;
 
             foreach (Assembly assembly in s_coreAssemblies)
             {
@@ -288,6 +324,7 @@ namespace Hyperion
         {
             public delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int> initializeAssembly;
             public delegate* unmanaged<IntPtr, IntPtr, void> unloadAssembly;
+            public delegate* unmanaged<IntPtr, void> pluginModuleLoaded;
         }
 
         ////////////////////

@@ -188,8 +188,9 @@ public:
     void Register(TypeId typeId, UniquePtr<ComponentInterface> (*createFunction)());
 
     /*! \brief replaces interfaces of the same types from an earlier build,
-     *  for a module loaded after Initialize() (e.g a game DLL) */
-    uint32 PublishModuleComponents();
+     *  for a module loaded after Initialize() (e.g a game DLL
+     *  \p resident == stays loaded, so its types get containers in every EntityManager like the ones registered at startup, rather than on first use */
+    uint32 PublishModuleComponents(bool resident = false);
 
     void UnregisterComponentsInRange(UIntPtr begin, UIntPtr end);
 

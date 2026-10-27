@@ -1022,7 +1022,7 @@ HYP_ENGINE_TEST(AnimationGraph, HumanoidLocomotionFollowsSignals)
     }
 
     // the test host doesn't enable plugins, so the graph's plugin content is mounted here
-    for (const FilePath& contentDirectory : PluginManager::GetInstance().GetBuiltinPluginContentDirectories({ NAME("AnimToolkit") }))
+    for (const FilePath& contentDirectory : PluginManager::GetInstance().GetPluginContentDirectories({ NAME("AnimToolkit") }))
     {
         GetEngineAssetRegistry()->AddContentRoot(contentDirectory);
     }

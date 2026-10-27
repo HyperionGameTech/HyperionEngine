@@ -40,11 +40,13 @@ using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
 
 using InitializeAssemblyDelegate = int (*)(dotnet::ManagedGuid*, dotnet::Assembly*, const char*, int32);
 using UnloadAssemblyDelegate = void (*)(dotnet::ManagedGuid*, int32*);
+using PluginModuleLoadedDelegate = void (*)(const char*);
 
 struct ManagedDelegates
 {
     InitializeAssemblyDelegate initializeAssembly;
     UnloadAssemblyDelegate unloadAssembly;
+    PluginModuleLoadedDelegate pluginModuleLoaded;
 };
 
 enum class LoadAssemblyResult : int32
@@ -106,6 +108,8 @@ public:
     /*! \brief Script assemblies resolve to this one instead of loading from disk: a game hosted by HyperionApp has its scripts compiled in. */
     void SetHostedScriptAssembly(dotnet::Assembly* assembly);
     bool IsCoreAssembly(const dotnet::Assembly* assembly) const;
+
+    void NotifyPluginModuleLoaded(ANSIStringView moduleName) const;
 
     bool IsInitialized() const;
 

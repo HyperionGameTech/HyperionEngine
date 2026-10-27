@@ -65,7 +65,7 @@ if(USE_MSBUILD_FOR_CSHARP_BUILD)
       TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
   )
 
-  add_dependencies(${SAMPLE_NAME} hyperion Hyperion.NET.Shared Hyperion.NET.Interop Hyperion.NET.Runtime)
+  add_dependencies(${SAMPLE_NAME} hyperion Hyperion.NET.Shared Hyperion.NET.Interop Hyperion.NET.Runtime ${HYP_PLUGIN_ASSEMBLIES})
 else()
   if(CMAKE_HOST_WIN32)
     set(DOTNET_BUILD_WRAPPER "${SAMPLE_PROJECT_DIR}/dotnet-build.bat")
@@ -89,7 +89,7 @@ else()
         -D CONFIG_DST_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Config"
         -D PLATFORM="${HYP_PLATFORM_NAME}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/../CopyPlatformConfigs.cmake"
-      DEPENDS hyperion Hyperion.NET.Shared Hyperion.NET.Interop Hyperion.NET.Runtime
+      DEPENDS hyperion Hyperion.NET.Shared Hyperion.NET.Interop Hyperion.NET.Runtime ${HYP_PLUGIN_ASSEMBLIES}
       WORKING_DIRECTORY ${SAMPLE_PROJECT_DIR}
   )
 

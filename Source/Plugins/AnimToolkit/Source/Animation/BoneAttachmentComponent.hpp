@@ -19,7 +19,7 @@ namespace Hyperion {
 
 /*! \brief Keeps an entity on a socket or bone of the nearest skinned entity in the hierarchy. */
 HYP_STRUCT(Component, Label = "Bone Attachment Component", Editor = true, NoScriptBindings)
-struct ENGINE_API BoneAttachmentComponent
+struct ANIMATION_API BoneAttachmentComponent
 {
     HYP_STRUCT_BODY(BoneAttachmentComponent);
 

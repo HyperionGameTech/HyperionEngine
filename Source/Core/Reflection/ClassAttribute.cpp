@@ -105,7 +105,7 @@ String ClassAttributeValue::ToString() const
         switch (type)
         {
         case ClassAttributeType::STRING:
-            return "\"" + String(GetString()) + "\"";
+            return "\"" + String(GetString()).ReplaceAll("\\", "\\\\").ReplaceAll("\"", "\\\"") + "\"";
         case ClassAttributeType::INT:
             return String::ToString(iValue);
         case ClassAttributeType::BOOLEAN:

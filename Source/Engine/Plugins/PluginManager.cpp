@@ -10,15 +10,41 @@
 
 #include <Core/Core.hpp>
 
+#include <Core/CLI/CommandLine.hpp>
+
 #include <Core/DLL/DynamicLibrary.hpp>
 
+#include <Core/Reflection/ClassRegistry.hpp>
+
+#include <Scene/ComponentInterface.hpp>
+
 #include <Core/Utilities/StringUtil.hpp>
+
+#ifdef HYP_DOTNET
+#include <DotNET/DotNETHost.hpp>
+#endif
 
 #include <algorithm>
 
 namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Plugins);
+
+static CommandLineArgumentRegistration g_argPlugins {
+    "plugins",
+    {},
+    "The plugins a game loads, comma separated",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
+
+static CommandLineArgumentRegistration g_argPluginDir {
+    "plugindir",
+    {},
+    "Directory for a development game to discover plugins when running as a standalone exe",
+    CommandLineArgumentFlags::NONE,
+    CommandLineArgumentType::STRING
+};
 
 static Array<PluginModuleRegistration>& GetPluginModuleRegistrations()
 {
@@ -51,56 +77,104 @@ void AddPluginModuleInitializer(PluginModuleInitializer initializer)
 
 void InitializePluginModules()
 {
-    for (PluginModuleInitializer initializer : GetPluginModuleInitializers())
+    static size_t s_numInitialized = 0;
+
+    Array<PluginModuleInitializer>& initializers = GetPluginModuleInitializers();
+
+    for (; s_numInitialized < initializers.Size(); s_numInitialized++)
     {
-        initializer();
+        initializers[s_numInitialized]();
     }
 }
 
 namespace {
 
-class PluginHostImpl final : public IPluginHost
+#if defined(HYP_WINDOWS)
+static constexpr ANSIStringView PluginModuleLibraryPrefix = "hyperion-plugin-";
+static constexpr ANSIStringView PluginModuleLibraryExtension = ".dll";
+#elif defined(HYP_MACOS)
+static constexpr ANSIStringView PluginModuleLibraryPrefix = "libhyperion-plugin-";
+static constexpr ANSIStringView PluginModuleLibraryExtension = ".dylib";
+#else
+static constexpr ANSIStringView PluginModuleLibraryPrefix = "libhyperion-plugin-";
+static constexpr ANSIStringView PluginModuleLibraryExtension = ".so";
+#endif
+
+static Array<FilePath> GetPluginLibraryDirectories()
 {
-public:
-    uint32 GetABIVersion() const override
+    Array<FilePath> directories;
+
+    if (const auto& pluginDirArgument = CoreApi::GetCommandLineArguments()["plugindir"]; pluginDirArgument.IsString())
     {
-        return HYP_PLUGIN_ABI_VERSION;
+        directories.PushBack(FilePath(pluginDirArgument.ToString()));
     }
 
-    uint32 GetEngineVersionMajor() const override
+    const FilePath engineLibraryPath = FilePath(DynamicLibrary::GetPathOfAddress(reinterpret_cast<const void*>(&InitializePluginModules)).ToUtf8());
+
+    if (!engineLibraryPath.Empty() && !directories.Contains(engineLibraryPath.BasePath() / "Plugins"))
     {
-        return HYP_VERSION_MAJOR;
+        directories.PushBack(engineLibraryPath.BasePath() / "Plugins");
     }
 
-    uint32 GetEngineVersionMinor() const override
+    const FilePath executableDirectory = CoreApi::GetExecutablePath() / "Plugins";
+
+    if (!directories.Contains(executableDirectory))
     {
-        return HYP_VERSION_MINOR;
+        directories.PushBack(executableDirectory);
     }
 
-    uint32 GetEngineVersionPatch() const override
+    return directories;
+}
+
+static String GetPluginModuleNameOfLibrary(const FilePath& library)
+{
+    const String fileName = library.Basename();
+
+    if (!fileName.StartsWith(UTF8StringView(PluginModuleLibraryPrefix.Data())) || !fileName.EndsWith(UTF8StringView(PluginModuleLibraryExtension.Data())))
     {
-        return HYP_VERSION_PATCH;
+        return String::empty;
     }
 
-    bool IsEditorHost() const override
+    return String(fileName.Substr(PluginModuleLibraryPrefix.Length(), fileName.Length() - PluginModuleLibraryExtension.Length()));
+}
+
+// runtime modules first, then editor modules (named *Editor), which use them
+static Array<FilePath> FindPluginModuleLibraries(const FilePath& directory)
+{
+    Array<FilePath> runtimeLibraries;
+    Array<FilePath> editorLibraries;
+
+    if (!directory.IsDirectory())
     {
-        return m_hostMode == PluginHostMode::Editor;
+        return runtimeLibraries;
     }
 
-    void SetHostMode(PluginHostMode hostMode)
+    for (const FilePath& file : directory.GetAllFilesInDirectory())
     {
-        m_hostMode = hostMode;
+        const String moduleName = GetPluginModuleNameOfLibrary(file);
+
+        if (moduleName.Empty())
+        {
+            continue;
+        }
+
+        if (moduleName.EndsWith("Editor"))
+        {
+            editorLibraries.PushBack(file);
+        }
+        else
+        {
+            runtimeLibraries.PushBack(file);
+        }
     }
 
-private:
-    PluginHostMode m_hostMode = PluginHostMode::Game;
-};
+    std::sort(runtimeLibraries.Begin(), runtimeLibraries.End());
+    std::sort(editorLibraries.Begin(), editorLibraries.End());
 
-using PluginQueryFn = HypPluginDescriptor* (*)();
-using PluginLoadFn = IPlugin* (*)(const IPluginHost*);
-using PluginUnloadFn = void (*)(IPlugin*);
+    runtimeLibraries.Concat(std::move(editorLibraries));
 
-static PluginHostImpl s_pluginHost;
+    return runtimeLibraries;
+}
 
 bool ParseVersionString(const String& versionString, uint32& outMajor, uint32& outMinor, uint32& outPatch)
 {
@@ -137,61 +211,38 @@ void PluginManager::Initialize(PluginHostMode hostMode)
     }
 
     m_hostMode = hostMode;
-    s_pluginHost.SetHostMode(hostMode);
 
-    DiscoverBuiltinPlugins();
+    DiscoverPlugins();
 
-    // the editor enables plugins per project when one opens
     if (m_hostMode == PluginHostMode::Game)
     {
-        SetEnabledPlugins(GetDefaultEnabledPlugins());
-    }
+        const CommandLineArguments& arguments = CoreApi::GetCommandLineArguments();
 
-    const FilePath pluginsDir = CoreApi::GetExecutablePath() / "Plugins";
-
-    if (!pluginsDir.Exists() || !pluginsDir.IsDirectory())
-    {
-        HYP_LOG(Plugins, Info, "No Plugins directory at {} - no plugins loaded", pluginsDir);
-
-        m_initialized = true;
-
-        return;
-    }
-
-    Array<FilePath> pluginDirectories = pluginsDir.GetSubdirectories();
-    std::sort(pluginDirectories.Begin(), pluginDirectories.End());
-
-    for (const FilePath& pluginDirectory : pluginDirectories)
-    {
-        if (!pluginDirectory.IsDirectory())
+        if (arguments.Contains("plugins") && arguments["plugins"].IsString())
         {
-            continue;
-        }
+            Array<Name> pluginNames;
 
-        LoadPluginFromDirectory(pluginDirectory);
+            for (const String& pluginName : arguments["plugins"].ToString().Split(','))
+            {
+                if (pluginName.Any())
+                {
+                    pluginNames.PushBack(CreateNameFromDynamicString(pluginName.ToAnsi()));
+                }
+            }
+
+            SetEnabledPlugins(pluginNames);
+        }
+        else
+        {
+            SetEnabledPlugins(GetDefaultEnabledPlugins());
+        }
     }
 
     m_initialized = true;
 
-    HYP_LOG(Plugins, Info, "Plugin manager initialized (host: {}, {} plugin(s) loaded)",
+    HYP_LOG(Plugins, Info, "Plugin manager initialized (host: {}, {} plugin(s) found)",
         m_hostMode == PluginHostMode::Editor ? "editor" : "game",
         m_plugins.Size());
-}
-
-void PluginManager::OnEditorLaunch()
-{
-    for (LoadedPlugin& loadedPlugin : m_plugins)
-    {
-        loadedPlugin.plugin->OnEditorLaunch();
-    }
-}
-
-void PluginManager::OnEditorShutdown()
-{
-    for (LoadedPlugin& loadedPlugin : m_plugins)
-    {
-        loadedPlugin.plugin->OnEditorShutdown();
-    }
 }
 
 void PluginManager::Shutdown()
@@ -203,187 +254,61 @@ void PluginManager::Shutdown()
 
     SetEnabledPlugins({});
 
-    // Reverse load order so plugins that were loaded after another are torn down first.
-    for (size_t index = m_plugins.Size(); index != 0; index--)
-    {
-        LoadedPlugin& loadedPlugin = m_plugins[index - 1];
-
-        loadedPlugin.plugin->OnShutdown();
-        loadedPlugin.unloadFn(loadedPlugin.plugin);
-        loadedPlugin.plugin = nullptr;
-
-        HYP_LOG(Plugins, Info, "Unloaded plugin '{}'", loadedPlugin.descriptor.name);
-    }
-
-    m_plugins.Clear();
-
-    // DynamicLibrary objects are owned by the DynamicLibraryCache and are intentionally
-    // left loaded - unloading DLLs whose code may still be referenced (task threads,
-    // static destructors) is not safe at this point in shutdown.
+    // the libraries stay loaded (the DynamicLibraryCache owns them), as task threads and static destructors can still run their code
 
     m_initialized = false;
 }
 
-void PluginManager::LoadPluginFromDirectory(const FilePath& directory)
+void PluginManager::DiscoverPlugins()
 {
-    const EnumFlags<HypPluginHostFlags> hostFlag = (m_hostMode == PluginHostMode::Editor)
-        ? HypPluginHostFlags::Editor
-        : HypPluginHostFlags::Game;
-
-    const String directoryName = directory.Basename();
-    const FilePath descriptorPath = directory / (directoryName + ".hypplugin");
-
-    TResult<PluginDescriptor> descriptorResult = PluginDescriptor::Read(descriptorPath);
-
-    if (descriptorResult.HasError())
-    {
-        HYP_LOG(Plugins, Warning, "Skipping plugin directory {}: {}", directory, descriptorResult.GetError().GetMessage());
-
-        return;
-    }
-
-    PluginDescriptor pluginDescriptor = descriptorResult.GetValue();
-    pluginDescriptor.name = Name(directoryName.ToAnsi());
-
-    if (!(pluginDescriptor.hostFlags & hostFlag))
-    {
-        HYP_LOG(Plugins, Verbose, "Skipping plugin '{}' (host not supported by descriptor)", pluginDescriptor.name);
-
-        return;
-    }
-
-    for (const LoadedPlugin& loadedPlugin : m_plugins)
-    {
-        if (loadedPlugin.descriptor.name == pluginDescriptor.name)
-        {
-            HYP_LOG(Plugins, Warning, "Skipping plugin '{}' from {} - a plugin with this name is already loaded",
-                pluginDescriptor.name,
-                directory);
-
-            return;
-        }
-    }
-
-    if (!pluginDescriptor.engineMinVersion.Empty())
-    {
-        uint32 minMajor = 0;
-        uint32 minMinor = 0;
-        uint32 minPatch = 0;
-
-        if (!ParseVersionString(pluginDescriptor.engineMinVersion, minMajor, minMinor, minPatch)
-            || HYP_VERSION_MAJOR < minMajor
-            || (HYP_VERSION_MAJOR == minMajor && HYP_VERSION_MINOR < minMinor)
-            || (HYP_VERSION_MAJOR == minMajor && HYP_VERSION_MINOR == minMinor && HYP_VERSION_PATCH < minPatch))
-        {
-            HYP_LOG(Plugins, Warning,
-                "Plugin '{}' requires engine version >= {} but host is {}.{}.{}, skipping",
-                pluginDescriptor.name,
-                pluginDescriptor.engineMinVersion,
-                HYP_VERSION_MAJOR,
-                HYP_VERSION_MINOR,
-                HYP_VERSION_PATCH);
-
-            return;
-        }
-    }
-
-    const FilePath libraryPath = directory / (pluginDescriptor.entry.Empty() ? directoryName + ".dll" : pluginDescriptor.entry);
-
-    if (!libraryPath.Exists())
-    {
-        HYP_LOG(Plugins, Warning, "Library does not exist at {}, plugin will be skipped for {}", libraryPath, pluginDescriptor.name);
-
-        return;
-    }
-
-    DynamicLibrary* library = DynamicLibraryCache::GetInstance().LoadLibrary(PlatformString(String(libraryPath)));
-
-    if (library == nullptr)
-    {
-        HYP_LOG(Plugins, Error, "Failed to load plugin '{}' library at {}", pluginDescriptor.name, libraryPath);
-
-        return;
-    }
-
-    const PluginQueryFn queryFn = reinterpret_cast<PluginQueryFn>(library->GetFunction(PluginFunctionName_Query));
-    const PluginLoadFn loadFn = reinterpret_cast<PluginLoadFn>(library->GetFunction(PluginFunctionName_Load));
-    const PluginUnloadFn unloadFn = reinterpret_cast<PluginUnloadFn>(library->GetFunction(PluginFunctionName_Unload));
-
-    if (queryFn == nullptr || loadFn == nullptr || unloadFn == nullptr)
-    {
-        HYP_LOG(Plugins, Error,
-            "Library at {} is missing plugin entry points",
-            libraryPath);
-
-        return;
-    }
-
-    HypPluginDescriptor* descriptor = queryFn();
-
-    if (descriptor == nullptr || descriptor->name == nullptr)
-    {
-        HYP_LOG(Plugins, Error, "Plugin library at {} returned no descriptor from HypPluginQuery()", libraryPath);
-
-        return;
-    }
-
-    if (descriptor->abiVersion != HYP_PLUGIN_ABI_VERSION)
-    {
-        HYP_LOG(Plugins, Error,
-            "Plugin '{}' was built against plugin ABI version {} but the host uses ABI version {} - rebuild the plugin against this engine version",
-            descriptor->name,
-            descriptor->abiVersion,
-            HYP_PLUGIN_ABI_VERSION);
-
-        return;
-    }
-
-    IPlugin* plugin = loadFn(&s_pluginHost);
-
-    if (plugin == nullptr)
-    {
-        HYP_LOG(Plugins, Error, "Plugin '{}' failed to initialize", descriptor->name);
-
-        return;
-    }
-
-    plugin->OnInitialize(&s_pluginHost);
-
-    LoadedPlugin loadedPlugin;
-    loadedPlugin.descriptor = std::move(pluginDescriptor);
-    loadedPlugin.library = library;
-    loadedPlugin.plugin = plugin;
-    loadedPlugin.unloadFn = unloadFn;
-
-    m_plugins.PushBack(std::move(loadedPlugin));
-
-    LoadedPlugin& storedPlugin = m_plugins.Back();
-
-    HYP_LOG(Plugins, Info, "Loaded plugin '{}' v{} from {}",
-        storedPlugin.descriptor.name,
-        storedPlugin.descriptor.version,
-        directory);
-}
-
-void PluginManager::DiscoverBuiltinPlugins()
-{
-    m_builtinPlugins.Clear();
+    m_plugins.Clear();
 
     const FilePath& baseDirectory = CoreApi::GetBaseDirectory();
-    const FilePath searchDirectories[] = {
+    const Array<FilePath> libraryDirectories = GetPluginLibraryDirectories();
+
+    // the source tree's descriptors come first, as their folders hold the content; a packaged editor has them beside the libraries
+    Array<FilePath> searchDirectories = {
         baseDirectory / "Source" / "Plugins",
         baseDirectory / "Tests" / "Plugins"
     };
+
+    searchDirectories.Concat(libraryDirectories);
+
+    // plugins are the ones whose modules are linked in (registered) or built as libraries
+    Array<Name> pluginNames;
 
     for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
     {
         const Name pluginName = CreateNameFromDynamicString(registration.pluginName);
 
-        if (FindBuiltinPlugin(pluginName) != nullptr)
+        if (!pluginNames.Contains(pluginName))
+        {
+            pluginNames.PushBack(pluginName);
+        }
+    }
+
+#ifdef HYP_DYNAMIC_PLUGINS
+    for (const FilePath& libraryDirectory : libraryDirectories)
+    {
+        if (!libraryDirectory.IsDirectory())
         {
             continue;
         }
 
+        for (const FilePath& pluginDirectory : libraryDirectory.GetSubdirectories())
+        {
+            const Name pluginName = CreateNameFromDynamicString(pluginDirectory.Basename().ToAnsi());
+
+            if (!pluginNames.Contains(pluginName) && FindPluginModuleLibraries(pluginDirectory).Any())
+            {
+                pluginNames.PushBack(pluginName);
+            }
+        }
+    }
+#endif
+
+    for (Name pluginName : pluginNames)
+    {
         PluginDescriptor descriptor;
         descriptor.enabledByDefault = true;
 
@@ -412,27 +337,64 @@ void PluginManager::DiscoverBuiltinPlugins()
 
         descriptor.name = pluginName;
 
-        HYP_LOG(Plugins, Info, "Found built-in plugin '{}' v{}", pluginName, descriptor.version);
+        for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
+        {
+            if (StringHash(registration.pluginName) != pluginName)
+            {
+                continue;
+            }
 
-        m_builtinPlugins.PushBack(std::move(descriptor));
+            const Name moduleName = CreateNameFromDynamicString(registration.moduleName);
+
+            if (!descriptor.modules.Contains(moduleName))
+            {
+                descriptor.modules.PushBack(moduleName);
+            }
+        }
+
+#ifdef HYP_DYNAMIC_PLUGINS
+        for (const FilePath& libraryDirectory : libraryDirectories)
+        {
+            descriptor.moduleLibraries = FindPluginModuleLibraries(libraryDirectory / pluginName.LookupString());
+
+            if (descriptor.moduleLibraries.Any())
+            {
+                break;
+            }
+        }
+
+        for (const FilePath& moduleLibrary : descriptor.moduleLibraries)
+        {
+            const Name moduleName = CreateNameFromDynamicString(GetPluginModuleNameOfLibrary(moduleLibrary).ToAnsi());
+
+            if (!descriptor.modules.Contains(moduleName))
+            {
+                descriptor.modules.PushBack(moduleName);
+            }
+        }
+#endif
+
+        HYP_LOG(Plugins, Info, "Found plugin '{}' v{}", pluginName, descriptor.version);
+
+        m_plugins.PushBack(std::move(descriptor));
     }
 }
 
-const PluginDescriptor* PluginManager::FindBuiltinPlugin(Name pluginName) const
+const PluginDescriptor* PluginManager::FindPlugin(StringHash pluginName) const
 {
-    auto it = m_builtinPlugins.FindIf([pluginName](const PluginDescriptor& descriptor)
+    auto it = m_plugins.FindIf([pluginName](const PluginDescriptor& descriptor)
         {
             return descriptor.name == pluginName;
         });
 
-    return it != m_builtinPlugins.End() ? &*it : nullptr;
+    return it != m_plugins.End() ? &*it : nullptr;
 }
 
 Array<Name> PluginManager::GetDefaultEnabledPlugins() const
 {
     Array<Name> pluginNames;
 
-    for (const PluginDescriptor& descriptor : m_builtinPlugins)
+    for (const PluginDescriptor& descriptor : m_plugins)
     {
         if (descriptor.enabledByDefault)
         {
@@ -448,7 +410,7 @@ bool PluginManager::IsPluginEnabled(Name pluginName) const
     return m_enabledPlugins.Contains(pluginName);
 }
 
-Array<Name> PluginManager::GetRuntimeModules(const Array<Name>& pluginNames) const
+Array<Name> PluginManager::GetRuntimeModules(Span<const Name> pluginNames) const
 {
     Array<Name> orderedPlugins;
     Array<Name> visiting;
@@ -462,12 +424,18 @@ Array<Name> PluginManager::GetRuntimeModules(const Array<Name>& pluginNames) con
 
     for (Name pluginName : orderedPlugins)
     {
-        for (const PluginModuleRegistration& registration : GetRegisteredPluginModules())
+        const PluginDescriptor* descriptor = FindPlugin(pluginName);
+
+        if (!descriptor)
         {
-            if (StringHash(registration.pluginName) == pluginName
-                && !registration.moduleName.EndsWith("Editor"))
+            continue;
+        }
+
+        for (Name moduleName : descriptor->modules)
+        {
+            if (!ANSIStringView(moduleName.LookupString()).EndsWith("Editor"))
             {
-                moduleNames.PushBack(Name(registration.moduleName));
+                moduleNames.PushBack(moduleName);
             }
         }
     }
@@ -475,30 +443,162 @@ Array<Name> PluginManager::GetRuntimeModules(const Array<Name>& pluginNames) con
     return moduleNames;
 }
 
-void PluginManager::ResolveEnabledPlugin(Name pluginName, Array<Name>& outOrdered, Array<Name>& visiting) const
+bool PluginManager::ArePluginLibrariesLoaded(Name pluginName) const
+{
+#ifdef HYP_DYNAMIC_PLUGINS
+    return m_pluginsWithLibrariesLoaded.Contains(pluginName);
+#else
+    return FindPlugin(pluginName) != nullptr;
+#endif
+}
+
+void PluginManager::LoadAllPluginLibraries()
+{
+    if (m_plugins.Empty())
+    {
+        DiscoverPlugins();
+    }
+
+    for (const PluginDescriptor& descriptor : m_plugins)
+    {
+        LoadPluginLibraries(descriptor);
+    }
+}
+
+void PluginManager::PreloadPlugins(Span<const Name> pluginNames)
+{
+    if (!m_initialized)
+    {
+        return;
+    }
+
+    Array<Name> orderedPlugins;
+    Array<Name> visiting;
+
+    for (Name pluginName : pluginNames)
+    {
+        ResolveEnabledPlugin(pluginName, orderedPlugins, visiting);
+    }
+
+    for (Name pluginName : orderedPlugins)
+    {
+        if (const PluginDescriptor* descriptor = FindPlugin(pluginName))
+        {
+            LoadPluginCode(*descriptor);
+        }
+    }
+}
+
+void PluginManager::LoadPluginCode(const PluginDescriptor& descriptor)
+{
+    LoadPluginLibraries(descriptor);
+
+#ifdef HYP_DOTNET
+    for (Name moduleName : descriptor.modules)
+    {
+        const ANSIStringView moduleNameString = moduleName.LookupString();
+
+        if ((m_hostMode != PluginHostMode::Editor && moduleNameString.EndsWith("Editor"))
+            || m_modulesAnnouncedToManaged.Contains(moduleName))
+        {
+            continue;
+        }
+
+        m_modulesAnnouncedToManaged.PushBack(moduleName);
+
+        DotNETHost::GetInstance().NotifyPluginModuleLoaded(moduleNameString);
+    }
+#endif
+}
+
+void PluginManager::LoadPluginLibraries(const PluginDescriptor& descriptor)
+{
+    if (descriptor.moduleLibraries.Empty() || m_pluginsWithLibrariesLoaded.Contains(descriptor.name))
+    {
+        return;
+    }
+
+    if (descriptor.engineMinVersion.Any())
+    {
+        uint32 minMajor = 0;
+        uint32 minMinor = 0;
+        uint32 minPatch = 0;
+
+        if (!ParseVersionString(descriptor.engineMinVersion, minMajor, minMinor, minPatch)
+            || HYP_VERSION_MAJOR < minMajor
+            || (HYP_VERSION_MAJOR == minMajor && HYP_VERSION_MINOR < minMinor)
+            || (HYP_VERSION_MAJOR == minMajor && HYP_VERSION_MINOR == minMinor && HYP_VERSION_PATCH < minPatch))
+        {
+            HYP_LOG(Plugins, Warning, "Plugin '{}' requires engine version >= {} but this is {}.{}.{}",
+                descriptor.name,
+                descriptor.engineMinVersion,
+                HYP_VERSION_MAJOR,
+                HYP_VERSION_MINOR,
+                HYP_VERSION_PATCH);
+
+            return;
+        }
+    }
+
+    m_pluginsWithLibrariesLoaded.PushBack(descriptor.name);
+
+    // the plugin's classes register as its libraries load, in no particular order, so they're initialized once all of them are in
+    ClassRegistry::GetInstance().BeginDeferredInitialization();
+
+    for (const FilePath& moduleLibrary : descriptor.moduleLibraries)
+    {
+        // an editor module only runs in the editor, and needs the editor's code
+        if (m_hostMode != PluginHostMode::Editor && GetPluginModuleNameOfLibrary(moduleLibrary).EndsWith("Editor"))
+        {
+            continue;
+        }
+
+        if (DynamicLibraryCache::GetInstance().LoadLibrary(PlatformString(String(moduleLibrary))) == nullptr)
+        {
+            HYP_LOG(Plugins, Error, "Failed to load plugin '{}' library at {}", descriptor.name, moduleLibrary);
+
+            continue;
+        }
+
+        HYP_LOG(Plugins, Info, "Loaded plugin '{}' library {}", descriptor.name, moduleLibrary.Basename());
+    }
+
+    // the libraries' static initializers added their modules' initializers, which register their classes and modules
+    InitializePluginModules();
+
+    ClassRegistry::GetInstance().EndDeferredInitialization();
+
+    // like a game module loaded after startup, its components join the registry now
+    ComponentInterfaceRegistry::GetInstance().PublishModuleComponents(/* resident */ true);
+}
+
+void PluginManager::ResolveEnabledPlugin(
+    StringHash pluginName,
+    Array<Name>& outOrdered,
+    Array<Name>& visiting) const
 {
     if (outOrdered.Contains(pluginName))
     {
         return;
     }
 
-    const PluginDescriptor* descriptor = FindBuiltinPlugin(pluginName);
+    const PluginDescriptor* descriptor = FindPlugin(pluginName);
 
     if (descriptor == nullptr)
     {
-        HYP_LOG(Plugins, Warning, "Plugin '{}' is enabled but isn't built in", pluginName);
+        HYP_LOG(Plugins, Warning, "Plugin '{}' is enabled but wasn't found", Name(pluginName));
 
         return;
     }
 
     if (visiting.Contains(pluginName))
     {
-        HYP_LOG(Plugins, Error, "Plugin '{}' has a circular dependency", pluginName);
+        HYP_LOG(Plugins, Error, "Plugin '{}' has a circular dependency", Name(pluginName));
 
         return;
     }
 
-    visiting.PushBack(pluginName);
+    visiting.PushBack(Name(pluginName));
 
     for (Name dependency : descriptor->dependencies)
     {
@@ -507,10 +607,10 @@ void PluginManager::ResolveEnabledPlugin(Name pluginName, Array<Name>& outOrdere
 
     visiting.PopBack();
 
-    outOrdered.PushBack(pluginName);
+    outOrdered.PushBack(Name(pluginName));
 }
 
-void PluginManager::SetEnabledPlugins(const Array<Name>& pluginNames)
+void PluginManager::SetEnabledPlugins(Span<const Name> pluginNames)
 {
     Array<Name> orderedPlugins;
     Array<Name> visiting;
@@ -551,6 +651,11 @@ void PluginManager::SetEnabledPlugins(const Array<Name>& pluginNames)
         if (m_enabledPlugins.Contains(pluginName))
         {
             continue;
+        }
+
+        if (const PluginDescriptor* descriptor = FindPlugin(pluginName))
+        {
+            LoadPluginCode(*descriptor);
         }
 
         // before its modules load, so they can use its assets
@@ -609,17 +714,17 @@ void PluginManager::UnloadModule(ActiveModule& activeModule)
     activeModule.context.Reset();
 }
 
-Array<FilePath> PluginManager::GetBuiltinPluginContentDirectories(const Array<Name>& pluginNames)
+Array<FilePath> PluginManager::GetPluginContentDirectories(Span<const StringHash> pluginNames)
 {
-    if (m_builtinPlugins.Empty())
+    if (m_plugins.Empty())
     {
-        DiscoverBuiltinPlugins();
+        DiscoverPlugins();
     }
 
     Array<Name> orderedPlugins;
     Array<Name> visiting;
 
-    for (Name pluginName : pluginNames)
+    for (StringHash pluginName : pluginNames)
     {
         ResolveEnabledPlugin(pluginName, orderedPlugins, visiting);
     }
@@ -628,7 +733,8 @@ Array<FilePath> PluginManager::GetBuiltinPluginContentDirectories(const Array<Na
 
     for (Name pluginName : orderedPlugins)
     {
-        if (const PluginDescriptor* descriptor = FindBuiltinPlugin(pluginName); descriptor && (descriptor->directory / "Content").IsDirectory())
+        if (const PluginDescriptor* descriptor = FindPlugin(pluginName);
+                descriptor && (descriptor->directory / "Content").IsDirectory())
         {
             contentDirectories.PushBack(descriptor->directory / "Content");
         }
@@ -639,8 +745,7 @@ Array<FilePath> PluginManager::GetBuiltinPluginContentDirectories(const Array<Na
 
 void PluginManager::SetPluginContentMounted(Name pluginName, bool mounted) const
 {
-    // a packaged game has no plugin folders; the cook put their content in with the engine's
-    const PluginDescriptor* descriptor = FindBuiltinPlugin(pluginName);
+    const PluginDescriptor* descriptor = FindPlugin(pluginName);
 
     if (!descriptor)
     {

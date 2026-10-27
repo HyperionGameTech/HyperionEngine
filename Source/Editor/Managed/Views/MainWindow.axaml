@@ -1362,6 +1362,10 @@
                                               Click="OnProjectSettingsClick"
                                               ToolTip.Tip="Manage settings for the project" />
 
+                                    <MenuItem Header="Plugins..."
+                                              Click="OnPluginsClick"
+                                              ToolTip.Tip="Choose the plugins the project uses" />
+
                                     <MenuItem Header="World Settings..."
                                               Click="OnWorldSettingsClick"
                                               ToolTip.Tip="Manage settings for currently opened world" />

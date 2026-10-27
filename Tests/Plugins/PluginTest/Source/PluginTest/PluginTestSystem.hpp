@@ -13,7 +13,7 @@
 namespace Hyperion {
 
 HYP_CLASS(Serialize = false)
-class ENGINE_API PluginTestSystem final : public SystemBase
+class PLUGINTEST_API PluginTestSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(PluginTestSystem);
 

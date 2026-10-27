@@ -63,7 +63,7 @@ struct AnimationInstanceState
 };
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
-class AnimationSystem final : public SystemBase
+class ANIMATION_API AnimationSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(AnimationSystem);
 

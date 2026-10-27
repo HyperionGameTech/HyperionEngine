@@ -332,6 +332,15 @@ void ClassRegistry::Register(TypeId typeId, Class* cls, bool* outWasRegistered)
     m_mutex.Lock();
 
     HYP_DEFER({
+        if (m_isInitialized && m_deferInitializationDepth != 0)
+        {
+            m_classesPendingInitialization.PushBack(cls);
+
+            m_mutex.Unlock();
+
+            return;
+        }
+
         m_mutex.Unlock();
 
         if (m_isInitialized)
@@ -520,6 +529,36 @@ void ClassRegistry::Initialize()
         HYP_CORE_ASSERT(it.second != nullptr);
 
         it.second->Initialize();
+    }
+}
+
+void ClassRegistry::BeginDeferredInitialization()
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_deferInitializationDepth++;
+}
+
+void ClassRegistry::EndDeferredInitialization()
+{
+    Array<Class*> classes;
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        HYP_CORE_ASSERT(m_deferInitializationDepth != 0);
+
+        if (--m_deferInitializationDepth != 0)
+        {
+            return;
+        }
+
+        classes = std::move(m_classesPendingInitialization);
+    }
+
+    for (Class* cls : classes)
+    {
+        cls->Initialize();
     }
 }
 

@@ -281,6 +281,39 @@ bool DynamicLibrary::GetImageRange(UIntPtr& outBegin, UIntPtr& outEnd) const
 #endif
 }
 
+PlatformString DynamicLibrary::GetPathOfAddress(const void* address)
+{
+#ifdef HYP_WINDOWS
+    HMODULE module = nullptr;
+
+    if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, reinterpret_cast<LPCWSTR>(address), &module))
+    {
+        return PlatformString();
+    }
+
+    wchar_t buffer[MAX_PATH];
+    const DWORD length = GetModuleFileNameW(module, buffer, MAX_PATH);
+
+    if (length == 0 || length >= MAX_PATH)
+    {
+        return PlatformString();
+    }
+
+    return PlatformString(buffer, buffer + length);
+#elif defined(HYP_UNIX)
+    Dl_info info;
+
+    if (dladdr(address, &info) == 0 || info.dli_fname == nullptr)
+    {
+        return PlatformString();
+    }
+
+    return PlatformString(info.dli_fname);
+#else
+    return PlatformString();
+#endif
+}
+
 #pragma endregion DynamicLibrary
 
 #pragma region DynamicLibraryCacheImpl

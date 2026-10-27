@@ -18,7 +18,7 @@ namespace Hyperion {
 class EditorSubsystem;
 
 HYP_CLASS(Abstract)
-class EditorCommandBase : public ObjectBase
+class EDITOR_API EditorCommandBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorCommandBase);
 

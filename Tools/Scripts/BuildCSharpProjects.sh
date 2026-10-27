@@ -14,7 +14,15 @@ if [ ! -z "$1" ]; then
     CONFIG="$1"
 fi
 
-projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop" "Hyperion.NET.Scripting" "Hyperion.Editor")
+projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop")
+
+for plugin_project in Build/CSharpProjects/Hyperion.Plugin.*; do
+    if [ -d "$plugin_project" ]; then
+        projects+=("$(basename "$plugin_project")")
+    fi
+done
+
+projects+=("Hyperion.NET.Scripting" "Hyperion.Editor")
 
 pushd Build
 buildDir="$(pwd)"

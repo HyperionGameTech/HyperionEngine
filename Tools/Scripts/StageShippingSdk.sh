@@ -105,6 +105,11 @@ stage_shipping_sdk() {
         cp "$shipping_bin_dir/$file" "$shipping_stage_dir/Bin/$file"
     done
 
+    # built-in plugins' C#, which a C# game references for the plugins it links
+    for plugin_assembly in "$shipping_bin_dir"/Hyperion.Plugin.*.dll; do
+        if [[ -f "$plugin_assembly" ]]; then cp "$plugin_assembly" "$shipping_stage_dir/Bin/"; fi
+    done
+
     for file in "$shipping_bin_dir"/$library_glob; do
         cp -P "$file" "$shipping_stage_dir/Bin/"
     done

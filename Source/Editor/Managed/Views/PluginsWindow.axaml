@@ -1,0 +1,105 @@
+<Window
+    x:Class="Hyperion.Editor.Views.PluginsWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="clr-namespace:Hyperion.Editor.Controls;assembly=Hyperion.Editor"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    x:DataType="vm:PluginsViewModel"
+    mc:Ignorable="d"
+    Title="Plugins"
+    Icon="/Assets/Branding/hyperion-icon.ico"
+    Width="560"
+    Height="440"
+    MinWidth="420"
+    MinHeight="280"
+    Background="{DynamicResource Brush.Background}">
+
+    <DockPanel>
+        <Border
+            DockPanel.Dock="Bottom"
+            Padding="12,8"
+            Background="{DynamicResource Brush.Panel}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <Border
+                    Grid.Column="0"
+                    Margin="0,0,12,0"
+                    Padding="8,4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource Brush.AccentSubtle}"
+                    CornerRadius="{DynamicResource Radius.Medium}"
+                    IsVisible="{Binding NeedsRestart}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <controls:Codicon VerticalAlignment="Center" Kind="Info" Size="14" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="11.5"
+                            Text="Plugins will remain loaded until the editor is restarted"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button
+                        Classes="Primary"
+                        Click="OnApplyClick"
+                        Content="Apply"
+                        IsEnabled="{Binding HasChanges}"
+                        ToolTip.Tip="Save the project and reopen it with these plugins" />
+                    <Button
+                        Click="OnCloseClick"
+                        Content="Close"
+                        ToolTip.Tip="Close (Esc)" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Padding="0">
+            <StackPanel Margin="16,14" Spacing="6">
+                <TextBlock
+                    Classes="muted"
+                    FontSize="11.5"
+                    IsVisible="{Binding !HasProject}"
+                    Text="No project is open." />
+
+                <ItemsControl IsVisible="{Binding HasProject}" ItemsSource="{Binding Plugins}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PluginItemViewModel">
+                            <Border
+                                Margin="0,0,0,6"
+                                Padding="10,8"
+                                Background="{DynamicResource Brush.PanelRaised}"
+                                BorderBrush="{DynamicResource Brush.BorderLight}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource Radius.Medium}">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <CheckBox
+                                        Grid.Column="0"
+                                        VerticalAlignment="Top"
+                                        IsChecked="{Binding IsEnabled}" />
+
+                                    <StackPanel Grid.Column="1" Margin="4,2,8,0" Spacing="2">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                            <TextBlock Classes="muted" FontSize="11" Text="{Binding Version}" />
+                                        </StackPanel>
+                                        <TextBlock
+                                            Classes="muted"
+                                            FontSize="11.5"
+                                            IsVisible="{Binding HasDescription}"
+                                            Text="{Binding Description}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

@@ -33,7 +33,6 @@ struct MotionDatabaseClip
     HYP_FIELD(Property = "Clip", Serialize = true, Editor = true)
     Handle<Animation> clip;
 
-    // how an in-place clip moves the character, in m/s, x to its right and y forward; a root motion clip moves it by its root instead
     HYP_FIELD(Property = "Velocity", Serialize = true, Editor = true)
     Vec2f velocity;
 
@@ -41,7 +40,6 @@ struct MotionDatabaseClip
     bool loop = true;
 };
 
-// the trajectory leads: with a few looping clips and no transitions between them, the pose can only pick where in a clip to land
 HYP_STRUCT()
 struct MotionFeatureWeights
 {
@@ -87,10 +85,8 @@ enum class MotionFeature : uint32
     Count = 27
 };
 
-/*! \brief Every frame of a set of clips described by where the feet are and where the character is heading, for a
- *  MotionMatching node to search. Features are in the character's space: x to its right, y up, z forward. */
 HYP_CLASS(AssetBucket = "Animations")
-class ENGINE_API MotionDatabase final : public AssetObject
+class ANIMATION_API MotionDatabase final : public AssetObject
 {
     HYP_OBJECT_BODY(MotionDatabase);
 
@@ -100,6 +96,7 @@ public:
 
     MotionDatabase();
     explicit MotionDatabase(Name name);
+
     ~MotionDatabase() override;
 
     HYP_METHOD(Property = "Skeleton")
@@ -167,13 +164,11 @@ public:
         ClearBuild();
     }
 
-    // seconds ahead of each trajectory point, evenly spaced up to the horizon
     float GetTrajectoryTime(uint32 point) const
     {
         return m_trajectoryHorizon * float(point + 1) / float(NumTrajectoryPoints);
     }
 
-    // samples every clip into feature vectors; the clips' tracks are loaded while it runs
     HYP_METHOD(EditorAction = "Build Database")
     bool Build();
 
@@ -248,10 +243,8 @@ private:
     Array<float> m_scales;
 };
 
-/*! \brief Plays whichever database frame best continues the character's pose toward its predicted path, searching
- *  again every SearchInterval and jumping there through inertialization. */
 HYP_CLASS()
-class ENGINE_API AnimationMotionMatchingNode final : public AnimationGraphNode
+class ANIMATION_API AnimationMotionMatchingNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationMotionMatchingNode);
 
@@ -275,14 +268,12 @@ public:
     HYP_FIELD(Property = "SameClipWindow", Serialize = true, Editor = true)
     float sameClipWindow = 0.2f;
 
-    // the character's velocity and the velocity it wants, in m/s, x to its right and y forward
     HYP_FIELD(Property = "VelocityParameter", Serialize = true, Editor = true)
     Name velocityParameter = NAME("Velocity");
 
     HYP_FIELD(Property = "DesiredVelocityParameter", Serialize = true, Editor = true)
     Name desiredVelocityParameter = NAME("DesiredVelocity");
 
-    // degrees from the body's forward to where it wants to face, positive to the right
     HYP_FIELD(Property = "DesiredFacingParameter", Serialize = true, Editor = true)
     Name desiredFacingParameter = NAME("DesiredFacing");
 
@@ -292,7 +283,6 @@ public:
     HYP_FIELD(Property = "TurnSharpnessParameter", Serialize = true, Editor = true)
     Name turnSharpnessParameter = NAME("TrajectoryTurnSharpness");
 
-    // used when the parameters above aren't set
     HYP_FIELD(Property = "Acceleration", Serialize = true, Editor = true)
     float acceleration = 12.0f;
 

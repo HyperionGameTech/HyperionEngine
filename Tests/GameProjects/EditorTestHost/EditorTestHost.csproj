@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <HyperionOutputToBinDir>true</HyperionOutputToBinDir>
     <HyperionCopyEngineRuntime>false</HyperionCopyEngineRuntime>
+    <!-- like the editor, it loads plugin assemblies by path as the engine loads their modules, so a game can't lean on its references -->
+    <HyperionReferencePlugins>false</HyperionReferencePlugins>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)../../../Source/Engine/DotNET/Sdk/Hyperion.Game.props" />

@@ -71,6 +71,9 @@ mkdir -p "$APP_ROOT/ref"
 for name in Hyperion.NET.Shared.dll Hyperion.NET.Runtime.dll Hyperion.NET.Interop.dll Hyperion.NET.Generators.dll; do
     cp "$BIN_DIR/$name" "$APP_ROOT/ref/"
 done
+for plugin_assembly in "$BIN_DIR"/Hyperion.Plugin.*.dll; do
+    if [[ -f "$plugin_assembly" ]]; then cp "$plugin_assembly" "$APP_ROOT/ref/"; fi
+done
 
 # --- Native binaries --------------------------------------------------------------------------------------------------
 
@@ -82,6 +85,38 @@ for path in "$BIN_DIR"/*.dylib; do
     cp "$path" "$APP_ROOT/"
     # the debug map names the build machine's object files
     strip -S "$APP_ROOT/$(basename "$path")" 2> >(grep -v "invalidate the code signature" >&2)
+done
+
+# a built-in plugin's module libraries and descriptor are in Plugins/<Plugin>, with its content; the editor loads them when a project enables
+# the plugin. Test plugins and editor-wide library plugins (MCPBridge) aren't part of the editor
+for plugin_bin_dir in "$BIN_DIR"/Plugins/*/; do
+    plugin_name="$(basename "$plugin_bin_dir")"
+    plugin_source_dir="$ROOT_DIR/Source/Plugins/$plugin_name"
+
+    if [[ ! -d "$plugin_source_dir" ]] || ! compgen -G "$plugin_bin_dir/libhyperion-plugin-*.dylib" > /dev/null; then
+        continue
+    fi
+
+    plugin_stage_dir="$APP_ROOT/Plugins/$plugin_name"
+    mkdir -p "$plugin_stage_dir"
+    cp "$plugin_bin_dir"/libhyperion-plugin-*.dylib "$plugin_bin_dir"/*.hypplugin "$plugin_stage_dir/"
+
+    if [[ -d "$plugin_source_dir/Content" ]]; then
+        cp -R "$plugin_source_dir/Content" "$plugin_stage_dir/"
+    fi
+
+    for library in "$plugin_stage_dir"/libhyperion-plugin-*.dylib; do
+        strip -S "$library" 2> >(grep -v "invalidate the code signature" >&2)
+        install_name_tool -add_rpath "@loader_path/../.." "$library" 2>/dev/null || true
+
+        # the plugin's C#, which the editor loads by name when the plugin loads
+        module="$(basename "$library" .dylib)"
+        module="${module#libhyperion-plugin-}"
+
+        if [[ -f "$BIN_DIR/Hyperion.Plugin.$module.dll" ]]; then
+            cp "$BIN_DIR/Hyperion.Plugin.$module.dll" "$APP_ROOT/"
+        fi
+    done
 done
 
 # --- Bundle non-system libraries --------------------------------------------------------------------------------------

@@ -30,6 +30,7 @@ namespace Hyperion.Editor
     {
         public delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int> initializeAssembly;
         public delegate* unmanaged<IntPtr, IntPtr, void> unloadAssembly;
+        public delegate* unmanaged<IntPtr, void> pluginModuleLoaded;
     }
 
     public static partial class NativeBindings

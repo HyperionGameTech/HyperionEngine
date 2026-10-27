@@ -44,8 +44,10 @@ void EditorGame::OnLaunch()
 {
     HYP_LOG(Editor, Info, "EditorGame Launched");
 
-    PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
-    PluginManager::GetInstance().OnEditorLaunch();
+    if (!PluginManager::GetInstance().IsInitialized())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    }
 
     Assert(GetWorld() != nullptr);
 
@@ -106,8 +108,6 @@ Handle<World> EditorGame::LoadWorld(Name unusedName)
 void EditorGame::BeforeShutdown()
 {
     HYP_LOG(Editor, Debug, "EditorGame BeforeShutdown");
-
-    PluginManager::GetInstance().OnEditorShutdown();
 
     Game::BeforeShutdown();
 

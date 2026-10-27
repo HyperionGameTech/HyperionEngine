@@ -1243,6 +1243,21 @@ void EntityManager::MigrateStaleComponentContainers()
         allMigrated &= EnsureCurrentComponentLayout(*it.second);
     }
 
+    for (const ComponentInterface* componentInterface : registry.GetComponentInterfaces())
+    {
+        if (componentInterface->IsModuleComponent() || componentInterface->IsRuntimeComponent())
+        {
+            continue;
+        }
+
+        TUniqueLock lock(m_componentContainersMtx);
+
+        if (m_containers.Find(componentInterface->GetTypeId()) == m_containers.End())
+        {
+            m_containers.Set(componentInterface->GetTypeId(), MakeUniqueWithAllocator<ComponentContainer, SceneAllocator>(*componentInterface));
+        }
+    }
+
     if (allMigrated)
     {
         m_migratedRegistrationGeneration = registrationGeneration;

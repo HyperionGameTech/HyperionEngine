@@ -51,7 +51,7 @@ struct BoneMaskEntry
 };
 
 HYP_CLASS(AssetBucket = "Animations")
-class ENGINE_API BoneMask final : public AssetObject
+class ANIMATION_API BoneMask final : public AssetObject
 {
     HYP_OBJECT_BODY(BoneMask);
 

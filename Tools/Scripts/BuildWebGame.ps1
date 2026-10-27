@@ -398,7 +398,7 @@ if ($needsManaged)
     $gameBindingsProperty = if ($hasGameCode) { "-p:HyperionGameBindingsDir=`"$gameGeneratedDir\CSharp\\`" " } else { "" }
 
     Invoke-Cmd ("set `"MSBuildSdksPath=`" && dotnet publish `"$publishProject`" -c Release -r browser-wasm --disable-build-servers -nologo " + `
-        "-p:HyperionWebBuild=true -p:HyperionBinDir=`"$engineWebDir`" -p:HyperionWebEmsdk=`"$managedEmsdk`" $gameClassProperty$gameBindingsProperty-p:HyperionWriteGlobalConfig=false " + `
+        "-p:HyperionWebBuild=true -p:HyperionBinDir=`"$engineWebDir`" -p:HyperionPluginModules=`"$($PluginModules -replace ',', '+')`" -p:HyperionWebEmsdk=`"$managedEmsdk`" $gameClassProperty$gameBindingsProperty-p:HyperionWriteGlobalConfig=false " + `
         "-p:HyperionProjectContentDir=`"$(($contentDir -replace '\\', '/') + '/')`" " + `
         "-p:OutputPath=`"$managedDir\bin\\`" -p:IntermediateOutputPath=`"$managedDir\obj\\`" -p:MSBuildProjectExtensionsPath=`"$managedDir\ext\\`" " + `
         "-p:HyperionWebLinkInputsFile=`"$managedLinkInputs`" > `"$managedDir\Publish.log`" 2>&1") `

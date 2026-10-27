@@ -323,6 +323,10 @@ public:
 
     const Class* FindCommandletClass(ANSIStringView commandletName);
 
+private:
+    const Class* FindLoadedCommandletClass(ANSIStringView commandletName);
+
+public:
     virtual int PollEvents(Event& event) = 0;
 
     HYP_FIELD()

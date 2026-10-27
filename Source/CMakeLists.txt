@@ -286,10 +286,10 @@ function(RunCodeGen version_major version_minor)
   endif()
 endfunction()
 
-# Run CodeGen with version 0.22
+# Run CodeGen with version 0.23
 # HYP_CODEGEN_VERSION_MAJOR 0
-# HYP_CODEGEN_VERSION_MINOR 22
-RunCodeGen(0 22)
+# HYP_CODEGEN_VERSION_MINOR 23
+RunCodeGen(0 23)
 
 # set HYP_DEBUG_MODE to 1 for debug builds, 0 for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -1251,6 +1251,21 @@ foreach(plugin_search_dir ${HYP_PLUGIN_SEARCH_DIRECTORIES})
   endforeach()
 endforeach()
 
+# built-in plugin modules are libraries of their own that the editor and development games load only for the projects that use them;
+# static engines (shipping, iOS), the web and Android link them in
+if(NOT HYP_BUILD_STATIC AND NOT HYP_WEB AND NOT HYP_ANDROID)
+  set(HYP_DYNAMIC_PLUGINS 1)
+  add_definitions(-DHYP_DYNAMIC_PLUGINS=1)
+endif()
+
+# <MODULE>_API (CodeGen's API macro for plugin modules) imports from every plugin module but the one being built
+set(HYP_PLUGIN_API_IMPORTS "")
+
+foreach(plugin_module ${HYP_PLUGIN_MODULES})
+  string(TOUPPER "${plugin_module}" plugin_module_upper)
+  list(APPEND HYP_PLUGIN_API_IMPORTS "${plugin_module_upper}_API=HYP_IMPORT")
+endforeach()
+
 set(SUB_LIBRARIES "")
 
 collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Engine SOURCES HEADERS SUB_LIBRARIES)
@@ -1587,8 +1602,18 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
     endif()
   endif()
 
-  add_library(${plugin_target} STATIC ${plugin_sources} ${plugin_headers} ${plugin_generated_sources})
-  target_compile_definitions(${plugin_target} PRIVATE HYP_BUILD_ENGINE=1 "HYP_PLUGIN_NAME=\"${HYP_PLUGIN_NAME_${plugin_module}}\"")
+  string(TOUPPER "${plugin_module}" plugin_module_upper)
+  set(plugin_api_definitions ${HYP_PLUGIN_API_IMPORTS})
+  list(REMOVE_ITEM plugin_api_definitions "${plugin_module_upper}_API=HYP_IMPORT")
+  list(APPEND plugin_api_definitions "${plugin_module_upper}_API=HYP_EXPORT")
+
+  if(HYP_DYNAMIC_PLUGINS)
+    add_library(${plugin_target} SHARED ${plugin_sources} ${plugin_headers} ${plugin_generated_sources})
+    target_compile_definitions(${plugin_target} PRIVATE ${plugin_api_definitions} "HYP_PLUGIN_NAME=\"${HYP_PLUGIN_NAME_${plugin_module}}\"")
+  else()
+    add_library(${plugin_target} STATIC ${plugin_sources} ${plugin_headers} ${plugin_generated_sources})
+    target_compile_definitions(${plugin_target} PRIVATE HYP_BUILD_ENGINE=1 ${plugin_api_definitions} "HYP_PLUGIN_NAME=\"${HYP_PLUGIN_NAME_${plugin_module}}\"")
+  endif()
 
   target_include_directories(${plugin_target} SYSTEM PRIVATE ${THIRD_PARTY_INCLUDE_DIR})
   target_include_directories(${plugin_target} PRIVATE
@@ -1599,11 +1624,40 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
       ${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}})
 
   hyp_link_core_library(${plugin_target})
-  target_link_libraries(${plugin_target} PRIVATE hyperion-scene hyperion-rendering hyperion-asset hyperion-ui hyperion-input hyperion-plugins)
+
+  if(HYP_DYNAMIC_PLUGINS)
+    # the engine's libraries are in hyperion's, so they only lend their compile settings
+    target_link_libraries(${plugin_target} PRIVATE ${BUILD_NAME} hyperion-core
+      $<COMPILE_ONLY:hyperion-scene> $<COMPILE_ONLY:hyperion-rendering> $<COMPILE_ONLY:hyperion-asset> $<COMPILE_ONLY:hyperion-ui> $<COMPILE_ONLY:hyperion-input> $<COMPILE_ONLY:hyperion-plugins>)
+
+    set_target_properties(${plugin_target} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}"
+      RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}"
+      RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}"
+      LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}"
+      LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}")
+
+    # an editor module uses its plugin's runtime modules
+    if(plugin_module MATCHES "Editor$")
+      foreach(sibling_module ${HYP_PLUGIN_MODULES})
+        if(NOT sibling_module MATCHES "Editor$" AND HYP_PLUGIN_NAME_${sibling_module} STREQUAL HYP_PLUGIN_NAME_${plugin_module})
+          target_link_libraries(${plugin_target} PRIVATE hyperion-plugin-${sibling_module})
+        endif()
+      endforeach()
+    endif()
+  else()
+    target_link_libraries(${plugin_target} PRIVATE hyperion-scene hyperion-rendering hyperion-asset hyperion-ui hyperion-input hyperion-plugins)
+  endif()
 
   if(plugin_module MATCHES "Editor$")
     target_include_directories(${plugin_target} PRIVATE ${CMAKE_SOURCE_DIR}/Editor ${HYP_GENERATED_DIR}/Editor)
-    target_link_libraries(${plugin_target} PRIVATE hyperion-editor)
+
+    if(HYP_DYNAMIC_PLUGINS)
+      target_link_libraries(${plugin_target} PRIVATE $<COMPILE_ONLY:hyperion-editor>)
+    else()
+      target_link_libraries(${plugin_target} PRIVATE hyperion-editor)
+    endif()
 
     if(NOT HYP_ANDROID)
       target_precompile_headers(${plugin_target} PRIVATE "${CMAKE_SOURCE_DIR}/Editor/EditorPch.hpp")
@@ -1628,6 +1682,16 @@ foreach(plugin_module ${HYP_PLUGIN_MODULES})
   else()
     target_sources(${plugin_target} PRIVATE "${plugin_register_source}")
     set_source_files_properties("${plugin_register_source}" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+  endif()
+
+  if(HYP_DYNAMIC_PLUGINS)
+    # the descriptor sits beside the module libraries, so a packaged editor finds the plugin without its source
+    add_custom_command(TARGET ${plugin_target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../${HYP_PLUGIN_NAME_${plugin_module}}.hypplugin"
+        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Plugins/${HYP_PLUGIN_NAME_${plugin_module}}/${HYP_PLUGIN_NAME_${plugin_module}}.hypplugin")
+
+    continue()
   endif()
 
   add_dependencies(${BUILD_NAME} ${plugin_target})

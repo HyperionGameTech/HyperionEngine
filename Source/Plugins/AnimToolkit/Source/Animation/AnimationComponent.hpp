@@ -115,7 +115,7 @@ struct AnimationPlaybackState
 
 /*! \brief A component that holds animation play state for a given entity. */
 HYP_STRUCT(Component, Label = "Animation Component", Editor = true)
-struct ENGINE_API AnimationComponent
+struct ANIMATION_API AnimationComponent
 {
     HYP_STRUCT_BODY(AnimationComponent);
 

@@ -11,7 +11,7 @@
 namespace Hyperion {
 
 HYP_CLASS(Label = "Plugin Test")
-class ENGINE_API PluginTestImportSettings final : public ModelImportProcessorSettings
+class PLUGINTEST_API PluginTestImportSettings final : public ModelImportProcessorSettings
 {
     HYP_OBJECT_BODY(PluginTestImportSettings);
 

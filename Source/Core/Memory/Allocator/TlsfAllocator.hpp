@@ -24,6 +24,8 @@ public:
     void AddPool(void* memory, size_t bytes);
     void RemovePool(void* memory);
 
+    void Reset();
+
     void* Allocate(size_t bytes, size_t alignment = 16);
     void* Reallocate(void* ptr, size_t newSize, size_t alignment = 16);
     void Free(void* ptr);

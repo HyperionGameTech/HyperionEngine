@@ -64,12 +64,12 @@ ModuleAPIMapping CXXModuleGenerator::GetMappingForModule(const Analyzer& analyze
         return s_moduleAPIMappings[0];
     }
 
-    // a built-in plugin's classes are part of the engine (or editor) library, but each module gets its own ClassDecls and init function
+    // each built-in plugin module gets its own ClassDecls, init function and API macro
     if (const PluginModuleInfo* pluginModule = analyzer.FindPluginModule(mod.GetPath()))
     {
         return {
             String::empty,
-            pluginModule->isEditor ? "EDITOR_API" : "ENGINE_API",
+            GetPluginAPIMacro(*pluginModule),
             "Plugins/" + pluginModule->name,
             "Plugin_" + pluginModule->name,
             pluginModule->name
@@ -87,6 +87,11 @@ ModuleAPIMapping CXXModuleGenerator::GetMappingForModule(const Analyzer& analyze
     }
 
     return s_engineAPIMapping;
+}
+
+String CXXModuleGenerator::GetPluginAPIMacro(const PluginModuleInfo& pluginModule)
+{
+    return pluginModule.name.ToUpper() + "_API";
 }
 
 String CXXModuleGenerator::GetAPIMacroForModule(const Analyzer& analyzer, const Module& mod)

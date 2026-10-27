@@ -633,6 +633,8 @@ Result EditorProject::WriteGameArgs() const
     };
 
     args.Concat(m_projectSettings->netSettings.GetGameArgs());
+    args.PushBack(GetPluginsGameArgument());
+    args.PushBack(HYP_FORMAT("--plugindir=\"{}\"", (CoreApi::GetExecutablePath() / "Plugins").ReplaceAll("\\", "/")));
 
     return WriteGameArgsFile(binariesDir, args);
 }
@@ -833,7 +835,8 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         }
     }
 
-    // a project with a built C++ game module plays with the module's Game class
+    PluginManager::GetInstance().PreloadPlugins(project->GetEnabledPlugins());
+
     TResult<Handle<Game>> moduleGameResult = CreateGameFromNativeModule(projectFilepath);
 
     if (moduleGameResult.HasError())
@@ -928,6 +931,83 @@ Array<Name> EditorProject::GetEnabledPlugins() const
 Array<Name> EditorProject::GetEnabledPluginRuntimeModules() const
 {
     return PluginManager::GetInstance().GetRuntimeModules(GetEnabledPlugins());
+}
+
+String EditorProject::GetPluginsGameArgument() const
+{
+    String pluginNames;
+
+    for (Name pluginName : GetEnabledPlugins())
+    {
+        if (pluginNames.Any())
+        {
+            pluginNames += ",";
+        }
+
+        pluginNames += pluginName.LookupString();
+    }
+
+    return "--plugins=" + pluginNames;
+}
+
+Array<Name> EditorProject::GetAvailablePlugins() const
+{
+    Array<Name> pluginNames;
+
+    for (const PluginDescriptor& descriptor : PluginManager::GetInstance().GetPlugins())
+    {
+        pluginNames.PushBack(descriptor.name);
+    }
+
+    return pluginNames;
+}
+
+String EditorProject::GetPluginVersion(Name pluginName) const
+{
+    const PluginDescriptor* descriptor = PluginManager::GetInstance().FindPlugin(pluginName);
+
+    return descriptor ? descriptor->version : String::empty;
+}
+
+String EditorProject::GetPluginDescription(Name pluginName) const
+{
+    const PluginDescriptor* descriptor = PluginManager::GetInstance().FindPlugin(pluginName);
+
+    return descriptor ? descriptor->description : String::empty;
+}
+
+Array<Name> EditorProject::GetPluginDependencies(Name pluginName) const
+{
+    const PluginDescriptor* descriptor = PluginManager::GetInstance().FindPlugin(pluginName);
+
+    return descriptor ? descriptor->dependencies : Array<Name>();
+}
+
+bool EditorProject::ArePluginLibrariesLoaded(Name pluginName) const
+{
+    return PluginManager::GetInstance().ArePluginLibrariesLoaded(pluginName);
+}
+
+void EditorProject::SetPluginEnabled(Name pluginName, bool enabled)
+{
+    if (!m_projectSettings.IsValid())
+    {
+        return;
+    }
+
+    const bool enabledByDefault = PluginManager::GetInstance().GetDefaultEnabledPlugins().Contains(pluginName);
+
+    m_projectSettings->enabledPlugins.Erase(pluginName);
+    m_projectSettings->disabledPlugins.Erase(pluginName);
+
+    if (enabled && !enabledByDefault)
+    {
+        m_projectSettings->enabledPlugins.PushBack(pluginName);
+    }
+    else if (!enabled && enabledByDefault)
+    {
+        m_projectSettings->disabledPlugins.PushBack(pluginName);
+    }
 }
 
 Handle<EditorProject> EditorProject::CreateNew()

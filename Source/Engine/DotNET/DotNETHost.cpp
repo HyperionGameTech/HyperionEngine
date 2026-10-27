@@ -85,6 +85,11 @@ public:
         return assembly;
     }
 
+    PluginModuleLoadedDelegate GetPluginModuleLoadedDelegate() const
+    {
+        return m_managedDelegates.pluginModuleLoaded;
+    }
+
     UnloadAssemblyDelegate GetUnloadDelegate(ManagedGuid assemblyGuid) const
     {
         if (IsCoreAssembly(assemblyGuid))
@@ -232,6 +237,27 @@ bool DotNETHost::UnloadAssembly(ManagedGuid guid) const
     unloadAssembly(&guid, &result);
 
     return bool(result);
+}
+
+void DotNETHost::NotifyPluginModuleLoaded(ANSIStringView moduleName) const
+{
+    PluginModuleLoadedDelegate pluginModuleLoaded = nullptr;
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        if (!m_impl)
+        {
+            return;
+        }
+
+        pluginModuleLoaded = m_impl->GetPluginModuleLoadedDelegate();
+    }
+
+    if (pluginModuleLoaded)
+    {
+        pluginModuleLoaded(ANSIString(moduleName).Data());
+    }
 }
 
 bool DotNETHost::IsCoreAssembly(const Assembly* assembly) const

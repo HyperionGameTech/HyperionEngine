@@ -261,7 +261,7 @@ void ComponentInterfaceRegistry::Register(TypeId typeId, UniquePtr<ComponentInte
     }
 }
 
-uint32 ComponentInterfaceRegistry::PublishModuleComponents()
+uint32 ComponentInterfaceRegistry::PublishModuleComponents(bool resident)
 {
     Mutex::Guard guard(m_writeMutex);
 
@@ -290,7 +290,10 @@ uint32 ComponentInterfaceRegistry::PublishModuleComponents()
         Assert(componentInterface != nullptr);
         Assert(componentInterface->GetTypeId() == it.first);
 
-        componentInterface->m_flags |= ComponentInterfaceFlags::MODULE;
+        if (!resident)
+        {
+            componentInterface->m_flags |= ComponentInterfaceFlags::MODULE;
+        }
 
         moduleInterfaces.PushBack(std::move(componentInterface));
     }

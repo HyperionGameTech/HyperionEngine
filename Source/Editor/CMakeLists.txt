@@ -127,6 +127,13 @@ if(DOTNET_EXECUTABLE)
     file(APPEND ${EDITOR_CSPROJ_PATH} "     </Reference>\n")
   endif()
 
+  # a plugin's editor module is an assembly of its own (below), built against the editor's internals
+  foreach(plugin_module ${HYP_PLUGIN_MODULES})
+    if(plugin_module MATCHES "Editor$")
+      file(APPEND ${EDITOR_CSPROJ_PATH} "    <InternalsVisibleTo Include=\"Hyperion.Plugin.${plugin_module}\" />\n")
+    endif()
+  endforeach()
+
   # need exact versions here!
   # or else it may fail to load if we build a plugin against a different version than the editor
   set(HYP_AVALONIA_VERSION "12.1.4")
@@ -158,35 +165,6 @@ if(DOTNET_EXECUTABLE)
   foreach(SOURCE_FILE ${EDITOR_CS_SOURCES})
     file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/Managed" "${SOURCE_FILE}")
     file(APPEND ${EDITOR_CSPROJ_PATH} "    <Compile Include=\"${SOURCE_FILE}\" Link=\"${REL_PATH}\" />\n")
-  endforeach()
-  file(APPEND ${EDITOR_CSPROJ_PATH} "  </ItemGroup>\n")
-
-  # the editor UI of built-in plugins: <Plugin>/Managed/<Module> of each editor module (see HYP_PLUGIN_MODULES in Source/CMakeLists.txt)
-  file(APPEND ${EDITOR_CSPROJ_PATH} "  <ItemGroup>\n")
-  foreach(plugin_module ${HYP_PLUGIN_MODULES})
-    if(NOT plugin_module MATCHES "Editor$")
-      continue()
-    endif()
-
-    get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
-
-    file(GLOB_RECURSE plugin_cs_sources "${plugin_managed_dir}/*.cs")
-    file(GLOB_RECURSE plugin_axaml_sources "${plugin_managed_dir}/*.axaml")
-    list(FILTER plugin_cs_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
-    list(FILTER plugin_axaml_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
-
-    # class bindings compile into Hyperion.NET.Runtime (see Engine/DotNET/Runtime/CMakeLists.txt)
-    list(FILTER plugin_cs_sources EXCLUDE REGEX "^${plugin_managed_dir}/Bindings/.*")
-
-    foreach(plugin_cs_source ${plugin_cs_sources})
-      file(RELATIVE_PATH REL_PATH "${plugin_managed_dir}" "${plugin_cs_source}")
-      file(APPEND ${EDITOR_CSPROJ_PATH} "    <Compile Include=\"${plugin_cs_source}\" Link=\"Plugins/${plugin_module}/${REL_PATH}\" />\n")
-    endforeach()
-
-    foreach(plugin_axaml_source ${plugin_axaml_sources})
-      file(RELATIVE_PATH REL_PATH "${plugin_managed_dir}" "${plugin_axaml_source}")
-      file(APPEND ${EDITOR_CSPROJ_PATH} "    <AvaloniaXaml Include=\"${plugin_axaml_source}\" Link=\"Plugins/${plugin_module}/${REL_PATH}\" />\n")
-    endforeach()
   endforeach()
   file(APPEND ${EDITOR_CSPROJ_PATH} "  </ItemGroup>\n")
 
@@ -288,4 +266,149 @@ if(DOTNET_EXECUTABLE)
       set_target_properties(Hyperion.Editor PROPERTIES XCODE_SCHEME_HIDE_BUILDABLE_NAME OFF)
     endif()
   endif()
+
+  # a built-in plugin editor module's C# (<Plugin>/Managed/<Module>, with its class bindings) is Hyperion.Plugin.<Module>, which the editor
+  # loads when a project enables the plugin
+  foreach(plugin_module ${HYP_PLUGIN_MODULES})
+    if(NOT plugin_module MATCHES "Editor$")
+      continue()
+    endif()
+
+    get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
+    set(plugin_generated_csharp_dir "${CMAKE_SOURCE_DIR}/Generated/CSharp/Editor/Plugins/${plugin_module}")
+
+    file(GLOB_RECURSE plugin_cs_sources "${plugin_managed_dir}/*.cs" "${plugin_generated_csharp_dir}/*.cs")
+    file(GLOB_RECURSE plugin_axaml_sources "${plugin_managed_dir}/*.axaml")
+    list(FILTER plugin_cs_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
+    list(FILTER plugin_axaml_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
+
+    if(NOT plugin_cs_sources)
+      continue()
+    endif()
+
+    set(plugin_assembly "Hyperion.Plugin.${plugin_module}")
+    set(plugin_project_dir "${CSHARP_PROJECTS_DIR}/${plugin_assembly}")
+    set(plugin_csproj_path "${plugin_project_dir}/${plugin_assembly}.csproj")
+
+    file(MAKE_DIRECTORY ${plugin_project_dir})
+
+    file(WRITE ${plugin_csproj_path} "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+    file(APPEND ${plugin_csproj_path} "  <PropertyGroup>\n")
+    file(APPEND ${plugin_csproj_path} "    <OutputType>Library</OutputType>\n")
+    file(APPEND ${plugin_csproj_path} "    <TargetFramework>net10.0</TargetFramework>\n")
+    file(APPEND ${plugin_csproj_path} "    <Nullable>enable</Nullable>\n")
+    file(APPEND ${plugin_csproj_path} "    <ImplicitUsings>enable</ImplicitUsings>\n")
+    file(APPEND ${plugin_csproj_path} "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+    file(APPEND ${plugin_csproj_path} "    <LangVersion>13.0</LangVersion>\n")
+    file(APPEND ${plugin_csproj_path} "    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>\n")
+    file(APPEND ${plugin_csproj_path} "    <OutputPath>${CMAKE_RUNTIME_OUTPUT_DIRECTORY}</OutputPath>\n")
+    file(APPEND ${plugin_csproj_path} "    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>\n")
+    file(APPEND ${plugin_csproj_path} "    <RootNamespace>Hyperion.Editor</RootNamespace>\n")
+    file(APPEND ${plugin_csproj_path} "    <AssemblyName>${plugin_assembly}</AssemblyName>\n")
+    file(APPEND ${plugin_csproj_path} "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
+    file(APPEND ${plugin_csproj_path} "    <Platforms>x64;ARM64</Platforms>\n")
+    if(CSHARP_CONSTANTS)
+      file(APPEND ${plugin_csproj_path} "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
+    endif()
+    file(APPEND ${plugin_csproj_path} "  </PropertyGroup>\n")
+
+    # the editor and the plugin's runtime modules' assemblies are loaded by the editor itself
+    set(plugin_references Hyperion.NET.Interop Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.Editor)
+
+    foreach(sibling_module ${HYP_PLUGIN_MODULES})
+      if(NOT sibling_module MATCHES "Editor$" AND HYP_PLUGIN_NAME_${sibling_module} STREQUAL HYP_PLUGIN_NAME_${plugin_module} AND "Hyperion.Plugin.${sibling_module}" IN_LIST HYP_PLUGIN_ASSEMBLIES)
+        list(APPEND plugin_references "Hyperion.Plugin.${sibling_module}")
+      endif()
+    endforeach()
+
+    file(APPEND ${plugin_csproj_path} "  <ItemGroup>\n")
+    foreach(plugin_reference ${plugin_references})
+      if(USE_MSBUILD_FOR_CSHARP_BUILD)
+        file(APPEND ${plugin_csproj_path} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/${plugin_reference}/${plugin_reference}.csproj\" Private=\"false\" />\n")
+      else()
+        if(plugin_reference STREQUAL "Hyperion.Editor")
+          set(plugin_reference_path "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${plugin_reference}.dll")
+        else()
+          set(plugin_reference_path "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${plugin_reference}.dll")
+        endif()
+
+        file(APPEND ${plugin_csproj_path} "    <Reference Include=\"${plugin_reference}\" Private=\"false\">\n")
+        file(APPEND ${plugin_csproj_path} "        <HintPath>${plugin_reference_path}</HintPath>\n")
+        file(APPEND ${plugin_csproj_path} "    </Reference>\n")
+      endif()
+    endforeach()
+
+    file(APPEND ${plugin_csproj_path} "    <PackageReference Include=\"Avalonia\" Version=\"${HYP_AVALONIA_VERSION}\" />\n")
+    file(APPEND ${plugin_csproj_path} "    <PackageReference Include=\"DynamicData\" Version=\"9.*\" />\n")
+    file(APPEND ${plugin_csproj_path} "    <PackageReference Include=\"Dock.Avalonia\" Version=\"${HYP_DOCK_VERSION}\" />\n")
+    file(APPEND ${plugin_csproj_path} "    <PackageReference Include=\"Dock.Model.Avalonia\" Version=\"${HYP_DOCK_VERSION}\" />\n")
+    hyp_append_type_registry_generator(${plugin_csproj_path})
+
+    foreach(plugin_cs_source ${plugin_cs_sources})
+      file(APPEND ${plugin_csproj_path} "    <Compile Include=\"${plugin_cs_source}\" />\n")
+    endforeach()
+
+    foreach(plugin_axaml_source ${plugin_axaml_sources})
+      file(RELATIVE_PATH REL_PATH "${plugin_managed_dir}" "${plugin_axaml_source}")
+      file(APPEND ${plugin_csproj_path} "    <AvaloniaXaml Include=\"${plugin_axaml_source}\" Link=\"${REL_PATH}\" />\n")
+    endforeach()
+
+    file(APPEND ${plugin_csproj_path} "  </ItemGroup>\n")
+    file(APPEND ${plugin_csproj_path} "</Project>\n")
+
+    set(MSBuildSdksPath_BACKUP $ENV{MSBuildSdksPath})
+    unset(ENV{MSBuildSdksPath})
+
+    execute_process(
+          COMMAND ${DOTNET_EXECUTABLE} restore
+          WORKING_DIRECTORY ${plugin_project_dir}
+      )
+
+    if(MSBuildSdksPath_BACKUP)
+      set(ENV{MSBuildSdksPath} ${MSBuildSdksPath_BACKUP})
+    endif()
+
+    set(plugin_dependencies Hyperion.Editor Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
+
+    foreach(plugin_reference ${plugin_references})
+      if(plugin_reference MATCHES "^Hyperion\\.Plugin\\.")
+        list(APPEND plugin_dependencies ${plugin_reference})
+      endif()
+    endforeach()
+
+    if(USE_MSBUILD_FOR_CSHARP_BUILD)
+      include_external_msproject(
+              ${plugin_assembly}
+              "${plugin_csproj_path}"
+              TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
+          )
+    else()
+      if(CMAKE_HOST_WIN32)
+        set(plugin_build_wrapper "${plugin_project_dir}/dotnet-build.bat")
+        file(WRITE ${plugin_build_wrapper} "@echo off\n")
+        file(APPEND ${plugin_build_wrapper} "set MSBuildSdksPath=\n")
+      else()
+        set(plugin_build_wrapper "${plugin_project_dir}/dotnet-build.sh")
+        file(WRITE ${plugin_build_wrapper} "#!/bin/bash\n")
+        file(APPEND ${plugin_build_wrapper} "unset MSBuildSdksPath\n")
+      endif()
+
+      file(APPEND ${plugin_build_wrapper} "\"${DOTNET_EXECUTABLE}\" build \"${plugin_csproj_path}\" --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
+
+      if(NOT CMAKE_HOST_WIN32)
+        execute_process(COMMAND chmod +x ${plugin_build_wrapper})
+      endif()
+
+      add_custom_target(${plugin_assembly} ALL
+                COMMAND ${plugin_build_wrapper}
+                WORKING_DIRECTORY ${plugin_project_dir}
+            )
+    endif()
+
+    add_dependencies(${plugin_assembly} ${plugin_dependencies})
+
+    if(TARGET Hyperion.NET.Generators)
+      add_dependencies(${plugin_assembly} Hyperion.NET.Generators)
+    endif()
+  endforeach()
 endif()

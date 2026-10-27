@@ -44,6 +44,9 @@ public:
     static String GetAPIMacroForModule(const Analyzer& analyzer, const Module& mod);
     static String GetInitFunctionName(const ModuleAPIMapping& mapping);
 
+    // <MODULE>_API: exports from the plugin module's own library, imports elsewhere (Source/CMakeLists.txt defines it per target)
+    static String GetPluginAPIMacro(const PluginModuleInfo& pluginModule);
+
     Result GenerateClassDeclHeader(const Analyzer& analyzer, ByteWriter& writer) const;
     Result GenerateClassDeclImplementation(const Analyzer& analyzer, const ModuleAPIMapping& mapping, ByteWriter& writer) const;
     Result GeneratePluginModuleRegister(const Analyzer& analyzer, const PluginModuleInfo& pluginModule, ByteWriter& writer) const;

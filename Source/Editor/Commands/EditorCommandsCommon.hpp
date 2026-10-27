@@ -103,7 +103,7 @@ namespace CoreApi {
 CORE_API extern const FilePath& GetExecutablePath();
 } // namespace CoreApi
 
-Node* ResolveNodeUuidArgument(EditorSubsystem* subsystem, const String& nodeUuidArgument);
+EDITOR_API Node* ResolveNodeUuidArgument(EditorSubsystem* subsystem, const String& nodeUuidArgument);
 
 TResult<bool> SaveProjectAsWithPrompt(EditorProject* project);
 TResult<bool> SaveProjectWithPrompt(EditorProject* project);

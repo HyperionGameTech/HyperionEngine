@@ -54,7 +54,7 @@ Handle<AssetRegistry> GetTestEngineRegistry()
     }
 
     // the test host doesn't enable plugins, so the motion database's plugin content is mounted here
-    for (const FilePath& contentDirectory : PluginManager::GetInstance().GetBuiltinPluginContentDirectories({ NAME("AnimToolkit") }))
+    for (const FilePath& contentDirectory : PluginManager::GetInstance().GetPluginContentDirectories({ NAME("AnimToolkit") }))
     {
         GetEngineAssetRegistry()->AddContentRoot(contentDirectory);
     }

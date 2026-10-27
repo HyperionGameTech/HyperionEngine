@@ -14,7 +14,7 @@
 namespace Hyperion {
 
 HYP_STRUCT(Component, Label = "Plugin Test Component", Editor = true)
-struct ENGINE_API PluginTestComponent
+struct PLUGINTEST_API PluginTestComponent
 {
     HYP_STRUCT_BODY(PluginTestComponent);
 

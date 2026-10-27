@@ -47,6 +47,8 @@
 
 #include <Framework/Commandlet/Commandlet.hpp>
 
+#include <Engine/Plugins/PluginManager.hpp>
+
 #include <Framework/Threads/MainThread.hpp>
 #include <Framework/Threads/RenderThread.hpp>
 
@@ -465,6 +467,19 @@ Result AppContextBase::RunCommandlet(ANSIStringView commandletName, const Comman
 }
 
 const Class* AppContextBase::FindCommandletClass(ANSIStringView commandletName)
+{
+    if (const Class* commandletClass = FindLoadedCommandletClass(commandletName))
+    {
+        return commandletClass;
+    }
+
+    // a commandlet can live in a plugin, whose code isn't loaded until a project enables it
+    PluginManager::GetInstance().LoadAllPluginLibraries();
+
+    return FindLoadedCommandletClass(commandletName);
+}
+
+const Class* AppContextBase::FindLoadedCommandletClass(ANSIStringView commandletName)
 {
     const Class* commandletClass = ClassRegistry::GetInstance().GetClass(commandletName, /* ignoreCase */ true);
 

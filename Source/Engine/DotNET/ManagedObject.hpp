@@ -58,7 +58,7 @@ static_assert(sizeof(void*) != 8 || sizeof(ObjectReference) == 16, "ObjectRefere
  *
  *  \details To create a new ManagedObject, use the ManagedClass::NewObject method.
  * */
-class ManagedObject final
+class ENGINE_API ManagedObject final
 {
 public:
     ManagedObject();

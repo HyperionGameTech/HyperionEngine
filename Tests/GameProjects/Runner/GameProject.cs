@@ -94,7 +94,7 @@ public sealed class GameProject
         return project;
     }
 
-    public static GameProject CreateInEditor(string name, GameProjectLanguage language)
+    public static GameProject CreateInEditor(string name, GameProjectLanguage language, params string[] disabledPlugins)
     {
         string directory = Path.Combine(HarnessEnvironment.WorkDir, name);
 
@@ -105,7 +105,7 @@ public sealed class GameProject
 
         GameProject project = new GameProject(name, language, directory);
 
-        GameAssert.Succeeded(EditorTestHost.CreateProject(project));
+        GameAssert.Succeeded(EditorTestHost.CreateProject(project, disabledPlugins));
 
         return project;
     }

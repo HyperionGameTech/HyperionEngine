@@ -43,10 +43,18 @@ namespace Hyperion {
 
 namespace {
 
+// HandleExit (atexit) runs after the registry's static destructor in a statically linked game
+bool s_windowRegistryDestroyed = false;
+
 struct Win32WindowRegistry
 {
     Set<WideString> registeredClasses;
     Mutex mutex;
+
+    ~Win32WindowRegistry()
+    {
+        s_windowRegistryDestroyed = true;
+    }
 
     static Win32WindowRegistry& GetInstance()
     {
@@ -148,6 +156,11 @@ void Win32_UnregisterWindowClass(const WideString& className)
 
 void Win32_CleanupWindowClasses()
 {
+    if (s_windowRegistryDestroyed)
+    {
+        return;
+    }
+
     Win32WindowRegistry::GetInstance().Cleanup();
 }
 

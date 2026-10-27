@@ -71,7 +71,7 @@ struct AnimationBlendSample
 };
 
 HYP_CLASS(Abstract)
-class ENGINE_API AnimationGraphNode : public ObjectBase
+class ANIMATION_API AnimationGraphNode : public ObjectBase
 {
     HYP_OBJECT_BODY(AnimationGraphNode);
 
@@ -128,7 +128,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationClipNode final : public AnimationGraphNode
+class ANIMATION_API AnimationClipNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationClipNode);
 
@@ -169,7 +169,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationBlend1DNode final : public AnimationGraphNode
+class ANIMATION_API AnimationBlend1DNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationBlend1DNode);
 
@@ -203,7 +203,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationBlend2DNode final : public AnimationGraphNode
+class ANIMATION_API AnimationBlend2DNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationBlend2DNode);
 
@@ -234,7 +234,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationLayerNode final : public AnimationGraphNode
+class ANIMATION_API AnimationLayerNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationLayerNode);
 
@@ -265,7 +265,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationAdditiveNode final : public AnimationGraphNode
+class ANIMATION_API AnimationAdditiveNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationAdditiveNode);
 
@@ -293,7 +293,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationChainTwistNode final : public AnimationGraphNode
+class ANIMATION_API AnimationChainTwistNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationChainTwistNode);
 
@@ -326,7 +326,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationSlotNode final : public AnimationGraphNode
+class ANIMATION_API AnimationSlotNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationSlotNode);
 
@@ -350,7 +350,7 @@ public:
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationFootIKNode final : public AnimationGraphNode
+class ANIMATION_API AnimationFootIKNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationFootIKNode);
 
@@ -478,7 +478,7 @@ struct AnimationState
 };
 
 HYP_CLASS()
-class ENGINE_API AnimationStateMachineNode final : public AnimationGraphNode
+class ANIMATION_API AnimationStateMachineNode final : public AnimationGraphNode
 {
     HYP_OBJECT_BODY(AnimationStateMachineNode);
 
@@ -582,7 +582,7 @@ private:
 };
 
 HYP_CLASS(AssetBucket = "Animations")
-class ENGINE_API AnimationGraph final : public AssetObject
+class ANIMATION_API AnimationGraph final : public AssetObject
 {
     HYP_OBJECT_BODY(AnimationGraph);
 

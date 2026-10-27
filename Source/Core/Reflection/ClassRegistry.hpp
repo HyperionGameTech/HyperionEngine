@@ -150,6 +150,11 @@ public:
 
     void Initialize();
 
+    // classes registered after Initialize() between these are initialized together at the end, so a library's classes can find their
+    // parents among each other whatever order they register in (a plugin library loaded later)
+    void BeginDeferredInitialization();
+    void EndDeferredInitialization();
+
 private:
     Array<Class*> m_classesByStaticIndex;
 
@@ -163,6 +168,9 @@ private:
     mutable Mutex m_managedClassesMutex;
 
     bool m_isInitialized : 1;
+
+    uint32 m_deferInitializationDepth = 0;
+    Array<Class*> m_classesPendingInitialization;
 
     AtomicVar<uint32> m_cacheGeneration;
 };

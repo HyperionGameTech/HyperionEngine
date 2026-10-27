@@ -58,7 +58,9 @@ bool Assembly::Unload()
             continue;
         }
 
-        if (const Class* cls = classObject->GetClass())
+        // its class can be gone already: a dynamic class whose managed type released it, or a class of an unloaded game module
+        if (const Class* cls = classObject->GetClass();
+                cls && ClassRegistry::GetInstance().GetClass(classObject->GetTypeId()) == cls)
         {
             cls->SetManagedClass(nullptr);
         }

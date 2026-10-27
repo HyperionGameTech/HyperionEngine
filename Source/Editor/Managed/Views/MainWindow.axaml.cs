@@ -90,6 +90,7 @@ namespace Hyperion.Editor
         private EditorViewportControl? _editorViewport;
         private WorldSettingsWindow? _worldSettingsWindow;
         private ProjectSettingsWindow? _projectSettingsWindow;
+        private PluginsWindow? _pluginsWindow;
         private PackagingSettingsWindow? _packagingSettingsWindow;
         private IDock? _dynamicPanelsDock;
         private readonly Dictionary<EditorPanelViewModel, Tool> _dynamicPanelTools = new();
@@ -329,6 +330,11 @@ namespace Hyperion.Editor
         private void OnProjectSettingsClick(object? sender, RoutedEventArgs e)
         {
             ShowProjectSettingsWindow();
+        }
+
+        private void OnPluginsClick(object? sender, RoutedEventArgs e)
+        {
+            ShowPluginsWindow();
         }
 
         private void OnDropDownClick(object? sender, RoutedEventArgs e)
@@ -1011,6 +1017,26 @@ namespace Hyperion.Editor
 
             _worldSettingsWindow = window;
             window.Closed += (_, _) => _worldSettingsWindow = null;
+
+            await window.ShowDialog(this);
+        }
+
+        private async void ShowPluginsWindow()
+        {
+            if (_pluginsWindow != null)
+            {
+                _pluginsWindow.Activate();
+
+                return;
+            }
+
+            var window = new PluginsWindow
+            {
+                DataContext = new PluginsViewModel()
+            };
+
+            _pluginsWindow = window;
+            window.Closed += (_, _) => _pluginsWindow = null;
 
             await window.ShowDialog(this);
         }

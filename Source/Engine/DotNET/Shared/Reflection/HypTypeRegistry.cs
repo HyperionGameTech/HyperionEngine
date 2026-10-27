@@ -25,6 +25,17 @@ namespace Hyperion
         public abstract void Register(HypTypeRegistryBuilder builder);
     }
 
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    public sealed class HypAssemblyDependencyAttribute : Attribute
+    {
+        public Type RegistryType { get; }
+
+        public HypAssemblyDependencyAttribute(Type registryType)
+        {
+            RegistryType = registryType;
+        }
+    }
+
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false)]
     public sealed class HypTypeRegistryAttribute<T> : HypTypeRegistryAttribute where T : IHypTypeRegistry
     {

@@ -464,6 +464,38 @@ DEFINE_EDITOR_COMMAND(OpenProjectAtPath);
 
 #pragma endregion OpenProjectAtPath
 
+#pragma region ReopenProject
+
+// saves the open project and opens it again, which applies a change of its plugins
+class EditorCommandReopenProject final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandReopenProject);
+
+public:
+    virtual ~EditorCommandReopenProject() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+        Handle<EditorProject> currentProject = subsystem->GetCurrentProject();
+
+        if (!currentProject.IsValid())
+        {
+            return;
+        }
+
+        if (!SaveProjectWithPromptOrAlert(currentProject.Get(), "The project was not reopened."))
+        {
+            return;
+        }
+
+        LoadAndOpenProject(subsystem, currentProject->GetFilePath());
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ReopenProject);
+
+#pragma endregion ReopenProject
+
 #pragma region SaveProject
 
 class EditorCommandSaveProject final : public EditorCommandBase

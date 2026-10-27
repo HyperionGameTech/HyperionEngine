@@ -10,7 +10,7 @@ namespace Hyperion
     [ClassBinding(Name = "SystemBase")]
     public class SystemBase : ObjectBase
     {
-        internal SystemBase()
+        protected SystemBase()
         {
         }
     }

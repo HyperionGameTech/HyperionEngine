@@ -313,7 +313,7 @@ protected:
 };
 
 HYP_CLASS()
-class CapsulePhysicsShape final : public PhysicsShape
+class ENGINE_API CapsulePhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(CapsulePhysicsShape);
 

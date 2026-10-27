@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Reflection;
 using Hyperion;
 
 namespace Hyperion.Editor
@@ -53,6 +54,7 @@ namespace Hyperion.Editor
 
         private static bool _editorViewportsEnabled = false;
 
+        // a plugin's assemblies (Hyperion.Plugin.<Module>) load when the engine loads its modules (OnPluginModuleLoaded)
         private static ReadOnlySpan<string> CoreAssemblyNames => new[] {
             EngineAssemblies.FileName(EngineAssemblies.Shared),
             EngineAssemblies.FileName(EngineAssemblies.Runtime),
@@ -356,6 +358,7 @@ namespace Hyperion.Editor
 
             pManagedDelegates->initializeAssembly = (delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, int>)&NativeInterop.InitializeAssembly;
             pManagedDelegates->unloadAssembly = (delegate* unmanaged<IntPtr, IntPtr, void>)&NativeInterop.UnloadAssembly;
+            pManagedDelegates->pluginModuleLoaded = &OnPluginModuleLoaded;
 
             IntPtr assemblyGuidPtr = Marshal.AllocHGlobal(Marshal.SizeOf<Guid>());
             IntPtr assemblyPathPtr = IntPtr.Zero;
@@ -394,6 +397,44 @@ namespace Hyperion.Editor
                 {
                     Marshal.FreeHGlobal(assemblyGuidPtr);
                 }
+            }
+        }
+
+        // a project enabled a built-in plugin: its module's assembly, if it has one, needs the module's classes, which exist from now on
+        [UnmanagedCallersOnly]
+        private static unsafe void OnPluginModuleLoaded(IntPtr moduleNamePtr)
+        {
+            string assemblyName = EngineAssemblies.PluginPrefix + (Marshal.PtrToStringUTF8(moduleNamePtr) ?? string.Empty);
+            string assemblyPath = Path.Combine(AppContext.BaseDirectory, EngineAssemblies.FileName(assemblyName));
+
+            if (!File.Exists(assemblyPath))
+            {
+                return;
+            }
+
+            IntPtr assemblyGuidPtr = Marshal.AllocHGlobal(Marshal.SizeOf<Guid>());
+            IntPtr assemblyPathPtr = Marshal.StringToCoTaskMemUTF8(assemblyPath);
+
+            try
+            {
+                int res = NativeInterop.InitializeAssemblyManaged(assemblyGuidPtr, IntPtr.Zero, assemblyPathPtr, /* isCoreAssembly */ 1, out Exception? error);
+
+                if (res != (int)LoadAssemblyResult.Ok)
+                {
+                    Logger.Log(LogLevel.Error, "Failed to initialize plugin assembly {0}: {1}{2}", assemblyName, (LoadAssemblyResult)res, error != null ? " (" + error.Message + ")" : string.Empty);
+
+                    return;
+                }
+
+                if (AssemblyCache.Instance.Get(assemblyPath)?.Assembly is Assembly assembly)
+                {
+                    Services.EditorPluginService.Instance.AddPluginAssembly(assembly);
+                }
+            }
+            finally
+            {
+                Marshal.FreeCoTaskMem(assemblyPathPtr);
+                Marshal.FreeHGlobal(assemblyGuidPtr);
             }
         }
 

@@ -378,17 +378,17 @@ protected:
         // the editor cooking in-process has its project's plugins mounted already
         if (const String pluginsArgument = args["plugins"].ToString(); pluginsArgument.Any())
         {
-            Array<Name> pluginNames;
+            Array<StringHash> pluginNames;
 
             for (const String& pluginName : pluginsArgument.Split(','))
             {
                 if (pluginName.Any())
                 {
-                    pluginNames.PushBack(CreateNameFromDynamicString(pluginName.ToAnsi()));
+                    pluginNames.PushBack(StringHash(pluginName.ToAnsi()));
                 }
             }
 
-            s_pluginContentDirectories = PluginManager::GetInstance().GetBuiltinPluginContentDirectories(pluginNames);
+            s_pluginContentDirectories = PluginManager::GetInstance().GetPluginContentDirectories(pluginNames);
 
             for (const FilePath& contentDirectory : s_pluginContentDirectories)
             {

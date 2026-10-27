@@ -38,6 +38,119 @@ endif()
 
 hyp_link_core_library(${BUILD_NAME})
 
+# writes <Assembly>.csproj (an AOT-compatible library with the type registry generator) and the target that builds it into the library
+# output directory; REFERENCES are other generated projects' assembly names, DEPENDS the targets that build them
+function(hyp_add_managed_runtime_assembly assembly_name)
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "" "" "SOURCES;REFERENCES;DEPENDS;PACKAGE_REFERENCES")
+
+  set(project_dir "${CSHARP_PROJECTS_DIR}/${assembly_name}")
+  set(csproj_path "${project_dir}/${assembly_name}.csproj")
+
+  file(MAKE_DIRECTORY ${project_dir})
+
+  file(WRITE ${csproj_path} "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
+  file(APPEND ${csproj_path} "  <PropertyGroup>\n")
+  file(APPEND ${csproj_path} "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
+  file(APPEND ${csproj_path} "    <OutputType>Library</OutputType>\n")
+  file(APPEND ${csproj_path} "    <TargetFramework>net10.0</TargetFramework>\n")
+  file(APPEND ${csproj_path} "    <LangVersion>13.0</LangVersion>\n")
+  file(APPEND ${csproj_path} "    <ImplicitUsings>enable</ImplicitUsings>\n")
+  file(APPEND ${csproj_path} "    <Nullable>enable</Nullable>\n")
+  file(APPEND ${csproj_path} "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
+  file(APPEND ${csproj_path} "    <IsAotCompatible>true</IsAotCompatible>\n")
+  file(APPEND ${csproj_path} "    <AssemblyName>${assembly_name}</AssemblyName>\n")
+  file(APPEND ${csproj_path} "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
+  file(APPEND ${csproj_path} "    <Platforms>x64;ARM64</Platforms>\n")
+  if(CSHARP_CONSTANTS)
+    file(APPEND ${csproj_path} "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
+  endif()
+  file(APPEND ${csproj_path} "  </PropertyGroup>\n")
+
+  file(APPEND ${csproj_path} "  <ItemGroup>\n")
+  foreach(package_reference ${ARG_PACKAGE_REFERENCES})
+    file(APPEND ${csproj_path} "    ${package_reference}\n")
+  endforeach()
+  hyp_append_type_registry_generator(${csproj_path})
+  foreach(source ${ARG_SOURCES})
+    file(APPEND ${csproj_path} "    <Compile Include=\"${source}\" />\n")
+  endforeach()
+
+  foreach(reference ${ARG_REFERENCES})
+    if(USE_MSBUILD_FOR_CSHARP_BUILD)
+      file(APPEND ${csproj_path} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/${reference}/${reference}.csproj\" />\n")
+    else()
+      file(APPEND ${csproj_path} "    <Reference Include=\"${reference}\" >\n")
+      file(APPEND ${csproj_path} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${reference}.dll</HintPath>\n")
+      file(APPEND ${csproj_path} "    </Reference>\n")
+    endif()
+  endforeach()
+
+  file(APPEND ${csproj_path} "  </ItemGroup>\n")
+  # copy dll
+  file(APPEND ${csproj_path} "  <Target Name=\"CopyDLL\" AfterTargets=\"AfterBuild\">\n")
+  file(APPEND ${csproj_path} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
+  file(APPEND ${csproj_path} "  </Target>\n")
+  file(APPEND ${csproj_path} "</Project>\n")
+
+  # find dotnet executable
+  find_program(DOTNET_EXE dotnet)
+  if(NOT DOTNET_EXE)
+    message(SEND_ERROR "dotnet executable not found. Please install the .NET SDK to build C# projects.")
+  endif()
+
+  # Clear MSBuildSdksPath environment variable if set to prevent SDK resolution issues
+  set(MSBuildSdksPath_BACKUP $ENV{MSBuildSdksPath})
+  unset(ENV{MSBuildSdksPath})
+
+  execute_process(
+          COMMAND ${DOTNET_EXE} restore
+          WORKING_DIRECTORY ${project_dir}
+      )
+
+  # Restore environment variable
+  if(MSBuildSdksPath_BACKUP)
+    set(ENV{MSBuildSdksPath} ${MSBuildSdksPath_BACKUP})
+  endif()
+
+  if(NOT USE_MSBUILD_FOR_CSHARP_BUILD)
+    message(STATUS "Using dotnet CLI to build ${assembly_name}")
+
+    if(CMAKE_HOST_WIN32)
+      set(DOTNET_BUILD_WRAPPER "${project_dir}/dotnet-build.bat")
+      file(WRITE ${DOTNET_BUILD_WRAPPER} "@echo off\n")
+      file(APPEND ${DOTNET_BUILD_WRAPPER} "set MSBuildSdksPath=\n")
+      file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXE}\" build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
+    else()
+      set(DOTNET_BUILD_WRAPPER "${project_dir}/dotnet-build.sh")
+      file(WRITE ${DOTNET_BUILD_WRAPPER} "#!/bin/bash\n")
+      file(APPEND ${DOTNET_BUILD_WRAPPER} "unset MSBuildSdksPath\n")
+      file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXE}\" build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
+      execute_process(COMMAND chmod +x ${DOTNET_BUILD_WRAPPER})
+    endif()
+
+    add_custom_target(${assembly_name} ALL
+              COMMAND ${DOTNET_BUILD_WRAPPER}
+              DEPENDS ${ARG_DEPENDS}
+              WORKING_DIRECTORY ${project_dir}
+          )
+  else()
+    enable_language(CSharp)
+    include_external_msproject(
+              ${assembly_name}
+              ${csproj_path}
+              TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
+          )
+
+    if(ARG_DEPENDS)
+      add_dependencies(${assembly_name} ${ARG_DEPENDS})
+    endif()
+  endif()
+
+  if(TARGET Hyperion.NET.Generators)
+    add_dependencies(${assembly_name} Hyperion.NET.Generators)
+  endif()
+endfunction()
+
 if(HYP_DOTNET)
   include(${CMAKE_CURRENT_SOURCE_DIR}/../Generators/Generators.cmake)
 
@@ -49,146 +162,49 @@ if(HYP_DOTNET)
     list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${HYP_GENERATED_DIR}/CSharp/Editor/")
   endif()
 
-  # bindings for plugin modules this build doesn't link (CodeGen sees every plugin, test ones included)
-  file(GLOB generated_plugin_csharp_dirs LIST_DIRECTORIES true "${HYP_GENERATED_DIR}/CSharp/Plugins/*" "${HYP_GENERATED_DIR}/CSharp/Editor/Plugins/*")
+  # plugin modules' bindings go into assemblies of their own (runtime modules, below) or into Hyperion.Editor (editor modules)
+  list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${HYP_GENERATED_DIR}/CSharp/Plugins/")
+  list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${HYP_GENERATED_DIR}/CSharp/Editor/Plugins/")
 
-  foreach(generated_plugin_csharp_dir ${generated_plugin_csharp_dirs})
-    get_filename_component(generated_plugin_module "${generated_plugin_csharp_dir}" NAME)
-
-    if(NOT generated_plugin_module IN_LIST HYP_PLUGIN_MODULES)
-      list(FILTER CSHARP_RUNTIME_SOURCES EXCLUDE REGEX "^${generated_plugin_csharp_dir}/")
-    endif()
-  endforeach()
-
-  # the script-facing C# of built-in plugins' runtime modules: <Plugin>/Managed/<Module> (editor modules' go into Hyperion.Editor)
-  foreach(plugin_module ${HYP_PLUGIN_MODULES})
-    get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
-
-    # an editor module's class bindings (Managed/<Module>/Bindings) sit beside the generated ones for its classes, here
-    if(plugin_module MATCHES "Editor$")
-      if(HYP_EDITOR)
-        file(GLOB_RECURSE plugin_binding_sources "${plugin_managed_dir}/Bindings/*.cs")
-        list(APPEND CSHARP_RUNTIME_SOURCES ${plugin_binding_sources})
-      endif()
-
-      continue()
-    endif()
-
-    file(GLOB_RECURSE plugin_csharp_sources "${plugin_managed_dir}/*.cs")
-    list(FILTER plugin_csharp_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
-    list(APPEND CSHARP_RUNTIME_SOURCES ${plugin_csharp_sources})
-  endforeach()
+  set(HYP_PLUGIN_ASSEMBLIES "")
 
   if(CSHARP_RUNTIME_SOURCES)
-    file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime)
-
-    set(CSPROJ_PATH "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj")
-
-    file(WRITE ${CSPROJ_PATH} "<Project Sdk=\"Microsoft.NET.Sdk\">\n")
-    file(APPEND ${CSPROJ_PATH} "  <PropertyGroup>\n")
-    file(APPEND ${CSPROJ_PATH} "    <Version>${HYP_VERSION_MAJOR}.${HYP_VERSION_MINOR}.${HYP_VERSION_PATCH}.0</Version>\n")
-    file(APPEND ${CSPROJ_PATH} "    <OutputType>Library</OutputType>\n")
-    file(APPEND ${CSPROJ_PATH} "    <TargetFramework>net10.0</TargetFramework>\n")
-    file(APPEND ${CSPROJ_PATH} "    <LangVersion>13.0</LangVersion>\n")
-    file(APPEND ${CSPROJ_PATH} "    <ImplicitUsings>enable</ImplicitUsings>\n")
-    file(APPEND ${CSPROJ_PATH} "    <Nullable>enable</Nullable>\n")
-    file(APPEND ${CSPROJ_PATH} "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n")
-    file(APPEND ${CSPROJ_PATH} "    <IsAotCompatible>true</IsAotCompatible>\n")
-    file(APPEND ${CSPROJ_PATH} "    <AssemblyName>Hyperion.NET.Runtime</AssemblyName>\n")
-    file(APPEND ${CSPROJ_PATH} "    <EnableDynamicLoading>true</EnableDynamicLoading>\n")
-    file(APPEND ${CSPROJ_PATH} "    <Platforms>x64;ARM64</Platforms>\n")
-    if(CSHARP_CONSTANTS)
-      file(APPEND ${CSPROJ_PATH} "    <DefineConstants>${CSHARP_CONSTANTS}</DefineConstants>\n")
-    endif()
-    file(APPEND ${CSPROJ_PATH} "  </PropertyGroup>\n")
-
-    file(APPEND ${CSPROJ_PATH} "  <ItemGroup>\n")
-    file(APPEND ${CSPROJ_PATH} "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
-    hyp_append_type_registry_generator(${CSPROJ_PATH})
-    foreach(CSHARP_RUNTIME_SOURCE ${CSHARP_RUNTIME_SOURCES})
-      file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
-    endforeach()
-
     # Interop is referenced for HyperionApp, which boots the engine from a C# game
-    if(USE_MSBUILD_FOR_CSHARP_BUILD)
-      file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" />\n")
-      file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop/Hyperion.NET.Interop.csproj\" />\n")
-    else()
-      file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
-      file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
-      file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
-      file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Interop\" >\n")
-      file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Interop.dll</HintPath>\n")
-      file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
-    endif()
-
-    file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
-    # copy dll
-    file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDLL\" AfterTargets=\"AfterBuild\">\n")
-    file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
-    file(APPEND ${CSPROJ_PATH} "  </Target>\n")
-    file(APPEND ${CSPROJ_PATH} "</Project>\n")
-
-    # find dotnet executable
-    find_program(DOTNET_EXE dotnet)
-    if(NOT DOTNET_EXE)
-      message(SEND_ERROR "dotnet executable not found. Please install the .NET SDK to build C# projects.")
-    endif()
-
-    # Clear MSBuildSdksPath environment variable if set to prevent SDK resolution issues
-    set(MSBuildSdksPath_BACKUP $ENV{MSBuildSdksPath})
-    unset(ENV{MSBuildSdksPath})
-
-    execute_process(
-            COMMAND ${DOTNET_EXE} restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
-        )
-
-    # Restore environment variable
-    if(MSBuildSdksPath_BACKUP)
-      set(ENV{MSBuildSdksPath} ${MSBuildSdksPath_BACKUP})
-    endif()
-
-    if(NOT USE_MSBUILD_FOR_CSHARP_BUILD)
-      message(STATUS "Using dotnet CLI to build Hyperion.NET.Runtime")
-
-      if(CMAKE_HOST_WIN32)
-        set(DOTNET_BUILD_WRAPPER "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/dotnet-build.bat")
-        file(WRITE ${DOTNET_BUILD_WRAPPER} "@echo off\n")
-        file(APPEND ${DOTNET_BUILD_WRAPPER} "set MSBuildSdksPath=\n")
-        file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXE}\" build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
-        add_custom_target(Hyperion.NET.Runtime ALL
-                  COMMAND ${DOTNET_BUILD_WRAPPER}
-                  DEPENDS hyperion-dotnet-shared Hyperion.NET.Interop
-                  WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
-              )
-      else()
-        set(DOTNET_BUILD_WRAPPER "${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/dotnet-build.sh")
-        file(WRITE ${DOTNET_BUILD_WRAPPER} "#!/bin/bash\n")
-        file(APPEND ${DOTNET_BUILD_WRAPPER} "unset MSBuildSdksPath\n")
-        file(APPEND ${DOTNET_BUILD_WRAPPER} "\"${DOTNET_EXE}\" build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}\n")
-        execute_process(COMMAND chmod +x ${DOTNET_BUILD_WRAPPER})
-        add_custom_target(Hyperion.NET.Runtime ALL
-                  COMMAND ${DOTNET_BUILD_WRAPPER}
-                  DEPENDS hyperion-dotnet-shared Hyperion.NET.Interop
-                  WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
-              )
-      endif()
-    else()
-      enable_language(CSharp)
-      include_external_msproject(
-                Hyperion.NET.Runtime
-                ${CSPROJ_PATH}
-                TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
-            )
-
-      add_dependencies(Hyperion.NET.Runtime hyperion-dotnet-shared Hyperion.NET.Interop)
-    endif()
-
-    if(TARGET Hyperion.NET.Generators)
-      add_dependencies(Hyperion.NET.Runtime Hyperion.NET.Generators)
-    endif()
+    hyp_add_managed_runtime_assembly(Hyperion.NET.Runtime
+      SOURCES ${CSHARP_RUNTIME_SOURCES}
+      REFERENCES Hyperion.NET.Shared Hyperion.NET.Interop
+      DEPENDS hyperion-dotnet-shared Hyperion.NET.Interop
+      PACKAGE_REFERENCES "<PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />"
+    )
 
     add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime)
+
+    # a built-in plugin runtime module's C# (its bindings and <Plugin>/Managed/<Module>) is Hyperion.Plugin.<Module>, which a game
+    # references only when it links the module
+    foreach(plugin_module ${HYP_PLUGIN_MODULES})
+      if(plugin_module MATCHES "Editor$")
+        continue()
+      endif()
+
+      get_filename_component(plugin_managed_dir "${HYP_PLUGIN_SOURCE_ROOT_${plugin_module}}/../Managed/${plugin_module}" ABSOLUTE)
+
+      file(GLOB_RECURSE plugin_csharp_sources "${plugin_managed_dir}/*.cs" "${HYP_GENERATED_DIR}/CSharp/Plugins/${plugin_module}/*.cs")
+      list(FILTER plugin_csharp_sources EXCLUDE REGEX ".*/(obj|bin)/.*")
+
+      if(NOT plugin_csharp_sources)
+        continue()
+      endif()
+
+      hyp_add_managed_runtime_assembly(Hyperion.Plugin.${plugin_module}
+        SOURCES ${plugin_csharp_sources}
+        REFERENCES Hyperion.NET.Shared Hyperion.NET.Interop Hyperion.NET.Runtime
+        DEPENDS hyperion-dotnet-shared Hyperion.NET.Interop Hyperion.NET.Runtime
+      )
+
+      add_dependencies(${BUILD_NAME} Hyperion.Plugin.${plugin_module})
+      list(APPEND HYP_PLUGIN_ASSEMBLIES Hyperion.Plugin.${plugin_module})
+    endforeach()
   endif()
+
+  set(HYP_PLUGIN_ASSEMBLIES ${HYP_PLUGIN_ASSEMBLIES} CACHE INTERNAL "Hyperion.Plugin.<Module>: the assemblies of built-in plugin runtime modules that have C#")
 endif()

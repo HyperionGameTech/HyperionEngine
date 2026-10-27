@@ -71,7 +71,7 @@ protected:
         // plugin tests register as their libraries load, so a listing loads them too
         if (listOnly)
         {
-            PluginManager::GetInstance().LoadAllBuiltinPluginLibraries();
+            PluginManager::GetInstance().LoadAllPluginLibraries();
         }
 
         // rewritten after each test, so a test that crashes the process still leaves the results before it

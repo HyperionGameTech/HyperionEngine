@@ -59,7 +59,7 @@ public:
     virtual int RemoveAllFromSet(DelegateHandlerSet& handlerSet) const = 0;
 };
 
-class ScriptableDelegateHelper
+class ENGINE_API ScriptableDelegateHelper
 {
 public:
     static void InvokeMethod_Internal(BoxedValue* pOutBoxed, const Method* method, const Handle<ObjectBase>& target, Span<BoxedValue> argsBoxed);

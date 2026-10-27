@@ -10,9 +10,15 @@ public sealed record SimulationReport(
     bool Launched,
     int SimulatedFrames,
     double GameTime,
-    bool Stopped);
+    bool Stopped,
+    List<string>? EnabledPlugins,
+    List<string>? WorldSystems);
 
 public sealed record SimulationRunResult(ProcessResult Process, SimulationReport? Report);
+
+public sealed record SwitchReport(List<SimulationReport> Steps);
+
+public sealed record SwitchRunResult(ProcessResult Process, SwitchReport? Report);
 
 /// What the editor's Play did, as the `play` command reports it
 public sealed record PlayReport(
@@ -68,7 +74,7 @@ public static class EditorTestHost
 
     public static string ExecutablePath => Path.Combine(HarnessEnvironment.EngineBinDir, "EditorTestHost" + HarnessEnvironment.ExecutableExtension);
 
-    public static ProcessResult CreateProject(GameProject project)
+    public static ProcessResult CreateProject(GameProject project, IReadOnlyList<string> disabledPlugins)
     {
         string typeStr = project.Language == GameProjectLanguage.Managed
             ? "managed"
@@ -78,7 +84,7 @@ public static class EditorTestHost
             $"Creating {project.Name} in the editor",
             project,
             "create",
-            [project.ProjectFilePath, typeStr]);
+            [project.ProjectFilePath, typeStr, disabledPlugins.Count > 0 ? string.Join(",", disabledPlugins) : "-"]);
     }
 
     public static SimulationRunResult Simulate(GameProject project, int numFrames, string label)
@@ -102,6 +108,31 @@ public static class EditorTestHost
             : null;
 
         return new SimulationRunResult(process, report);
+    }
+
+    /// Simulates \p projects one after another in one editor process, the way the editor opens one project after another
+    public static SwitchRunResult Switch(IReadOnlyList<GameProject> projects, int numFrames, string label)
+    {
+        GameProject logProject = projects[0];
+        string resultsPath = Path.Combine(logProject.LogsDirectory, $"results-{label}.json");
+
+        if (File.Exists(resultsPath))
+        {
+            File.Delete(resultsPath);
+        }
+
+        ProcessResult process = Run(
+            $"Switching between {string.Join(", ", projects.Select(project => project.Name))} in the editor ({label})",
+            logProject,
+            label,
+            [string.Join(";", projects.Select(project => project.Directory)), numFrames.ToString(), resultsPath],
+            command: "switch");
+
+        SwitchReport? report = File.Exists(resultsPath)
+            ? JsonSerializer.Deserialize<SwitchReport>(File.ReadAllText(resultsPath), s_reportJsonOptions)
+            : null;
+
+        return new SwitchRunResult(process, report);
     }
 
     /// Plays the project the way the editor's Play does, in \p netMode (Standalone, Client or DedicatedServer), and waits for it

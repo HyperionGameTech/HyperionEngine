@@ -19,10 +19,9 @@
 #include <AnimationGraphInstance.generated.inl>
 
 namespace Hyperion {
-
-static constexpr float NotifyWeightThreshold = 0.5f;
-
+    
 namespace {
+constexpr float NotifyWeightThreshold = 0.5f;
 
 float WrapClipTime(float time, float length, bool loop)
 {
@@ -48,7 +47,6 @@ bool CrossedTime(float previousTime, float time, float markerTime)
         return false;
     }
 
-    // a loop wrapped between the two times
     if (time < previousTime)
     {
         return markerTime > previousTime || markerTime <= time;
@@ -175,7 +173,6 @@ void AnimationGraphContext::ApplyInertialization(uint32 nodeIndex, Span<Transfor
     AnimationInertialization& inertialization = GetInertialization(nodeIndex);
     const size_t numSlots = outPose.Size();
 
-    // the gap between what the old state last showed and the new state's first pose, eased out over the transition
     if (state.isInertializePending)
     {
         state.isInertializePending = false;
@@ -297,11 +294,20 @@ Span<const float> AnimationGraphContext::GetMaskWeights(const BoneMask& mask)
 
     if (it == m_instance->m_maskWeights.End())
     {
-        it = m_instance->m_maskWeights.Insert({ mask.WeakHandleFromThis(), { mask.GetRevision(), mask.BuildSlotWeights(*m_bindData) } }).first;
+        it = m_instance->m_maskWeights.Insert({
+            mask.WeakHandleFromThis(),
+            {
+                mask.GetRevision(),
+                mask.BuildSlotWeights(*m_bindData)
+            }
+        }).first;
     }
     else if (it->second.first != mask.GetRevision())
     {
-        it->second = { mask.GetRevision(), mask.BuildSlotWeights(*m_bindData) };
+        it->second = {
+            mask.GetRevision(),
+            mask.BuildSlotWeights(*m_bindData)
+        };
     }
 
     return it->second.second.ToSpan();

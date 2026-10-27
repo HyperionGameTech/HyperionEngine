@@ -6,6 +6,7 @@
     <HyperionManagedDir>$([MSBuild]::EnsureTrailingSlash('$(HyperionManagedDir)'))</HyperionManagedDir>
     <HyperionBaseDir Condition="'$(HyperionBaseDir)' == ''">$([System.IO.Path]::GetFullPath('$(HyperionBinDir)../../../'))</HyperionBaseDir>
     <HyperionOutputToBinDir Condition="'$(HyperionOutputToBinDir)' == ''">false</HyperionOutputToBinDir>
+    <HyperionReferencePlugins Condition="'$(HyperionReferencePlugins)' == ''">true</HyperionReferencePlugins>
 
     <!-- the Linux and macOS packages ship the generator only in ref/, while their managed dir is the bin dir -->
     <HyperionGeneratorsPath Condition="'$(HyperionGeneratorsPath)' == '' And Exists('$(HyperionManagedDir)Hyperion.NET.Generators.dll')">$(HyperionManagedDir)Hyperion.NET.Generators.dll</HyperionGeneratorsPath>
@@ -40,6 +41,24 @@
 
     <AssemblyMetadata Include="HyperionBaseDir" Value="$(HyperionBaseDir)" />
   </ItemGroup>
+
+  <Target Name="HyperionAddPluginReferences" BeforeTargets="ResolveAssemblyReferences" Condition="'$(HyperionReferencePlugins)' == 'true'">
+    <ItemGroup Condition="'$(HyperionStaticEngine)' != 'true' And '$(HyperionWebBuild)' != 'true'">
+      <_HyperionPluginAssembly Include="$(HyperionManagedDir)Hyperion.Plugin.*.dll" Exclude="$(HyperionManagedDir)Hyperion.Plugin.*Editor.dll" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(HyperionStaticEngine)' == 'true' Or '$(HyperionWebBuild)' == 'true'">
+      <_HyperionPluginModule Include="$(HyperionPluginModules.Replace('+', ';').Replace(',', ';'))" />
+      <_HyperionPluginAssembly Include="@(_HyperionPluginModule->'$(HyperionManagedDir)Hyperion.Plugin.%(Identity).dll')" />
+      <_HyperionPluginAssembly Remove="@(_HyperionPluginAssembly)" Condition="!Exists('%(FullPath)')" />
+
+      <DirectPInvoke Include="@(_HyperionPluginModule->'hyperion-plugin-%(Identity)')" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="@(_HyperionPluginAssembly)" />
+    </ItemGroup>
+  </Target>
 
   <Import Project="$(MSBuildThisFileDirectory)Hyperion.Web.targets" Condition="'$(HyperionWebBuild)' == 'true'" />
 
@@ -113,7 +132,7 @@
 
   <Target Name="HyperionCopyEngineRuntime" AfterTargets="Build" Condition="'$(HyperionOutputToBinDir)' != 'true' And '$(HyperionWebBuild)' != 'true' And '$(HyperionCopyEngineRuntime)' != 'false'">
     <ItemGroup>
-      <_HyperionNativeLibraries Include="$(HyperionBinDir)*.dll;$(HyperionBinDir)*.so;$(HyperionBinDir)*.dylib" Exclude="$(HyperionBinDir)Hyperion.NET.*.dll" />
+      <_HyperionNativeLibraries Include="$(HyperionBinDir)*.dll;$(HyperionBinDir)*.so;$(HyperionBinDir)*.dylib" Exclude="$(HyperionBinDir)Hyperion.NET.*.dll;$(HyperionBinDir)Hyperion.Plugin.*.dll" />
       <_HyperionConfigFiles Include="$(HyperionBinDir)Config/**/*" />
     </ItemGroup>
 

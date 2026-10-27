@@ -73,6 +73,12 @@ void TlsfAllocator::RemovePool(void* memory)
     }
 }
 
+void TlsfAllocator::Reset()
+{
+    m_tlsf = tlsf_create(m_mem);
+    m_pools.Clear();
+}
+
 void* TlsfAllocator::Allocate(size_t bytes, size_t alignment)
 {
     if (HYP_UNLIKELY(m_tlsf == nullptr))

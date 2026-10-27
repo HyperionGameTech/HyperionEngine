@@ -27,6 +27,7 @@
 #include <Asset/AssetRegistry.hpp>
 
 #include <Scene/World.hpp>
+#include <Scene/System.hpp>
 
 #include <Scripting/ScriptObjectResource.hpp>
 
@@ -154,67 +155,28 @@ bool WriteResults(const FilePath& resultsPath, JSON::Object&& results)
     return true;
 }
 
-} // namespace
-
-} // namespace Hyperion
-
-using namespace Hyperion;
-
-extern "C" {
-
-HYP_EXPORT int EditorTestHost_CreateProject(const char* projectFilepath, int isManaged)
+JSON::JArray ToJSONArray(Span<const Name> names)
 {
-    AssertOnThread(g_mainThread);
+    JSON::JArray values;
 
-    if (!StartEngine())
+    for (Name name : names)
     {
-        return 0;
+        values.PushBack(JSON::Value(String(name.LookupString())));
     }
 
-    Handle<EditorProject> project = EditorProject::CreateNew();
-
-    EditorHelpers::PopulateNewWorld(*project->GetWorld(), project->GetGame()->GetAssetRegistry(), NAME("MainScene"));
-
-    if (Result saveResult = project->SaveAs(FilePath(projectFilepath)); saveResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to save project to {}: {}", projectFilepath, saveResult.GetError().GetMessage());
-
-        return 0;
-    }
-
-    project->GetProjectSettings()->moduleName = project->GetModuleName();
-
-    if (Result saveResult = project->Save(); saveResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to save project {}: {}", projectFilepath, saveResult.GetError().GetMessage());
-
-        return 0;
-    }
-
-    if (Result generateResult = GenerateGameProjectFiles(project->GetFilePath(), isManaged ? GameProjectLanguage::Managed : GameProjectLanguage::Native); generateResult.HasError())
-    {
-        HYP_LOG(Editor, Error, "Failed to generate the game project for {}: {}", projectFilepath, generateResult.GetError().GetMessage());
-
-        return 0;
-    }
-
-    project->Close();
-
-    return 1;
+    return values;
 }
 
-HYP_EXPORT int EditorTestHost_Simulate(const char* projectDirectory, int numFrames, const char* resultsPath)
+JSON::Object SimulateProject(const FilePath& projectDirectory, int numFrames)
 {
-    AssertOnThread(g_mainThread);
-
-    if (!StartEngine())
-    {
-        return 0;
-    }
-
     JSON::Object results;
 
-    TResult<Handle<EditorProject>> loadResult = EditorProject::Load(FindProjectFile(FilePath(projectDirectory)));
+    if (!PluginManager::GetInstance().IsInitialized())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    }
+
+    TResult<Handle<EditorProject>> loadResult = EditorProject::Load(FindProjectFile(projectDirectory));
 
     results.Set("loaded", JSON::Value(!loadResult.HasError()));
 
@@ -222,19 +184,15 @@ HYP_EXPORT int EditorTestHost_Simulate(const char* projectDirectory, int numFram
     {
         results.Set("loadError", JSON::Value(String(loadResult.GetError().GetMessage())));
 
-        return WriteResults(FilePath(resultsPath), std::move(results)) ? 1 : 0;
+        return results;
     }
 
     Handle<EditorProject> project = std::move(loadResult.GetValue());
     InitObject(project);
 
-    // as the editor does (EditorGame::OnLaunch, then EditorSubsystem::OpenProject), so the project's plugins load before its game does
-    if (!PluginManager::GetInstance().IsInitialized())
-    {
-        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
-    }
-
     PluginManager::GetInstance().SetEnabledPlugins(project->GetEnabledPlugins());
+
+    results.Set("enabledPlugins", JSON::Value(ToJSONArray(PluginManager::GetInstance().GetEnabledPlugins())));
 
     Handle<Game> game = project->GetGame();
 
@@ -268,11 +226,123 @@ HYP_EXPORT int EditorTestHost_Simulate(const char* projectDirectory, int numFram
     results.Set("simulatedFrames", JSON::Value(simulatedFrames));
     results.Set("gameTime", JSON::Value(double(game->GetGameState().gameTime)));
 
+    Array<Name> worldSystems;
+
+    if (const Handle<World>& world = game->GetWorld(); world.IsValid())
+    {
+        for (const Handle<SystemBase>& system : world->GetSystems())
+        {
+            worldSystems.PushBack(system->InstanceClass()->GetName());
+        }
+    }
+
+    results.Set("worldSystems", JSON::Value(ToJSONArray(worldSystems)));
+
     game->StopSimulating();
 
     results.Set("stopped", JSON::Value(game->GetGameState().mode == GameStateMode::STOPPED));
 
     project->Close();
+
+    return results;
+}
+
+} // namespace
+
+} // namespace Hyperion
+
+using namespace Hyperion;
+
+extern "C" {
+
+HYP_EXPORT int EditorTestHost_CreateProject(const char* projectFilepath, int isManaged, const char* disabledPlugins)
+{
+    AssertOnThread(g_mainThread);
+
+    if (!StartEngine())
+    {
+        return 0;
+    }
+
+    if (!PluginManager::GetInstance().IsInitialized())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    }
+
+    Handle<EditorProject> project = EditorProject::CreateNew();
+
+    EditorHelpers::PopulateNewWorld(*project->GetWorld(), project->GetGame()->GetAssetRegistry(), NAME("MainScene"));
+
+    if (Result saveResult = project->SaveAs(FilePath(projectFilepath)); saveResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to save project to {}: {}", projectFilepath, saveResult.GetError().GetMessage());
+
+        return 0;
+    }
+
+    project->GetProjectSettings()->moduleName = project->GetModuleName();
+
+    for (const String& pluginName : String(disabledPlugins).Split(','))
+    {
+        if (pluginName.Any())
+        {
+            project->SetPluginEnabled(CreateNameFromDynamicString(pluginName.ToAnsi()), false);
+        }
+    }
+
+    if (Result saveResult = project->Save(); saveResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to save project {}: {}", projectFilepath, saveResult.GetError().GetMessage());
+
+        return 0;
+    }
+
+    if (Result generateResult = GenerateGameProjectFiles(project->GetFilePath(), isManaged ? GameProjectLanguage::Managed : GameProjectLanguage::Native); generateResult.HasError())
+    {
+        HYP_LOG(Editor, Error, "Failed to generate the game project for {}: {}", projectFilepath, generateResult.GetError().GetMessage());
+
+        return 0;
+    }
+
+    project->Close();
+
+    return 1;
+}
+
+HYP_EXPORT int EditorTestHost_Simulate(const char* projectDirectory, int numFrames, const char* resultsPath)
+{
+    AssertOnThread(g_mainThread);
+
+    if (!StartEngine())
+    {
+        return 0;
+    }
+
+    return WriteResults(FilePath(resultsPath), SimulateProject(FilePath(projectDirectory), numFrames)) ? 1 : 0;
+}
+
+// simulates each project in turn in one process, as the editor does when it opens one project after another
+HYP_EXPORT int EditorTestHost_Switch(const char* projectDirectories, int numFrames, const char* resultsPath)
+{
+    AssertOnThread(g_mainThread);
+
+    if (!StartEngine())
+    {
+        return 0;
+    }
+
+    JSON::JArray steps;
+
+    for (const String& projectDirectory : String(projectDirectories).Split(';'))
+    {
+        if (projectDirectory.Any())
+        {
+            steps.PushBack(JSON::Value(SimulateProject(FilePath(projectDirectory), numFrames)));
+        }
+    }
+
+    JSON::Object results;
+    results.Set("steps", JSON::Value(std::move(steps)));
 
     return WriteResults(FilePath(resultsPath), std::move(results)) ? 1 : 0;
 }
@@ -287,6 +357,11 @@ HYP_EXPORT int EditorTestHost_Play(const char* projectDirectory, int numFrames, 
     }
 
     JSON::Object results;
+
+    if (!PluginManager::GetInstance().IsInitialized())
+    {
+        PluginManager::GetInstance().Initialize(PluginHostMode::Editor);
+    }
 
     TResult<Handle<EditorProject>> loadResult = EditorProject::Load(FindProjectFile(FilePath(projectDirectory)));
 

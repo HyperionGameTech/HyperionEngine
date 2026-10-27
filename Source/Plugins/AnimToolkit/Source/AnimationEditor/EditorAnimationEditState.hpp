@@ -27,7 +27,7 @@ class AnimationGraphInstance;
 struct Ray;
 
 HYP_CLASS(Serialize = false)
-class EDITOR_API EditorBoneNode final : public Node
+class ANIMATIONEDITOR_API EditorBoneNode final : public Node
 {
     HYP_OBJECT_BODY(EditorBoneNode);
 
@@ -73,7 +73,7 @@ private:
 };
 
 HYP_CLASS(Serialize = false)
-class EDITOR_API EditorSocketNode final : public Node
+class ANIMATIONEDITOR_API EditorSocketNode final : public Node
 {
     HYP_OBJECT_BODY(EditorSocketNode);
 
@@ -84,7 +84,7 @@ public:
 };
 
 HYP_CLASS(Serialize = false)
-class EDITOR_API EditorAnimationEditState final : public EditorIsolatedEditState
+class ANIMATIONEDITOR_API EditorAnimationEditState final : public EditorIsolatedEditState
 {
     HYP_OBJECT_BODY(EditorAnimationEditState);
 

@@ -68,7 +68,7 @@ struct AnimationSlotPlayback
     bool isStopping = false;
 };
 
-class ENGINE_API AnimationGraphContext
+class ANIMATION_API AnimationGraphContext
 {
     friend class AnimationGraphInstance;
 
@@ -134,7 +134,7 @@ private:
 };
 
 HYP_CLASS(Serialize = false)
-class ENGINE_API AnimationGraphInstance final : public ObjectBase
+class ANIMATION_API AnimationGraphInstance final : public ObjectBase
 {
     HYP_OBJECT_BODY(AnimationGraphInstance);
 

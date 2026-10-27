@@ -46,7 +46,7 @@ struct PlayerComponent
     }
 
     // True if this component's connection is the local client's own connection.
-    bool IsLocalPlayer() const;
+    ENGINE_API bool IsLocalPlayer() const;
 };
 
 } // namespace Hyperion

@@ -74,43 +74,43 @@ struct ClipBinding
 
 namespace PoseOps {
 
-ENGINE_API ClipBinding BindClip(const Animation& animation, const SkeletonBindData& bindData);
+ANIMATION_API ClipBinding BindClip(const Animation& animation, const SkeletonBindData& bindData);
 
-/// \brief binds by bone name, or retargets through both humanoid mappings when the clip was recorded on another rig.
+// binds by bone name, or retargets through both humanoid mappings when the clip was recorded on another rig
 ANIMATION_API ClipBinding BindClip(const Animation& animation, const Skeleton& skeleton);
 
-/// \return false once the clip or the rig it's retargeted from has changed since it was bound.
+// false once the clip or the rig it's retargeted from has changed since it was bound
 ANIMATION_API bool IsBindingCurrent(const ClipBinding& binding, const Animation& animation);
 
-/// \return how many of the skeleton's bones the binding moves.
+// how many of the skeleton's bones the binding moves
 ANIMATION_API uint32 CountBoundSlots(const ClipBinding& binding);
 
-/// \return the skeleton's up in model space
+// the skeleton's up in model space: hips to head for a humanoid, otherwise +Y
 ANIMATION_API Vec3f GetModelUp(const Skeleton& skeleton);
 
-/// \return direction a skeleton faces in model space
+// the way the skeleton faces in model space: where a humanoid's toes point (or across its hips), otherwise +Z
 ANIMATION_API Vec3f GetModelForward(const Skeleton& skeleton);
 
-/// \brief \p wrapped == a looping clip passed its end (or its start, playing backwards)
-/// \return how far a root motion clip moves the character across the ground between two times, in model space.
+// how far a root motion clip moves the character across the ground between two times, in model space;
+// wrapped means a looping clip passed its end (or its start, playing backwards) on the way
 ANIMATION_API Vec3f GetRootMotion(const Animation& animation, const ClipBinding& binding, const Vec3f& up, float fromTime, float toTime, bool wrapped);
 
-/// \brief takes that movement back out of a sampled pose, so the clip plays in place
+// takes that movement back out of a sampled pose, so the clip plays in place
 ANIMATION_API void RemoveRootMotion(const Animation& animation, const ClipBinding& binding, const Vec3f& up, float time, Span<Transform> pose);
 
-/// \brief raises each foot of a humanoid by its offset along up with two-bone IK, lowering the pelvis for the lower one
+// raises each foot of a humanoid by its offset along up with two-bone IK, lowering the pelvis for the lower one
 ANIMATION_API void ApplyFootIK(const Skeleton& skeleton, const Vec3f& up, float leftOffset, float rightOffset, Span<Transform> pose);
 
-ENGINE_API Array<Transform> MakeRestPose(const SkeletonBindData& bindData);
+ANIMATION_API Array<Transform> MakeRestPose(const SkeletonBindData& bindData);
 
-ENGINE_API void ApplyBlended(
+ANIMATION_API void ApplyBlended(
     const Animation& animation,
     const ClipBinding& binding,
     const SkeletonBindData& bindData,
     const ApplyAnimParams& params,
     Span<Transform> pose);
 
-ENGINE_API void ApplyLayered(
+ANIMATION_API void ApplyLayered(
     const Animation& animation,
     const ClipBinding& binding,
     const ClipBinding* layerBinding,
@@ -119,23 +119,23 @@ ENGINE_API void ApplyLayered(
     const ApplyAnimParams& params,
     Span<Transform> pose);
 
-ENGINE_API void ApplyTwist(const SkeletonBindData& bindData, Name rootBoneName, Name endBoneName, float angle, Span<Transform> pose);
+ANIMATION_API void ApplyTwist(const SkeletonBindData& bindData, Name rootBoneName, Name endBoneName, float angle, Span<Transform> pose);
 
-ENGINE_API void ComputeMatrices(
+ANIMATION_API void ComputeMatrices(
     const SkeletonBindData& bindData,
     Span<const Transform> pose,
     Span<Mat4f> outModelMatrices,
     Span<Mat4f> outSkinningMatrices);
 
-ENGINE_API void SampleClip(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> pose);
+ANIMATION_API void SampleClip(const Animation& animation, const ClipBinding& binding, const SkeletonBindData& bindData, float time, Span<Transform> pose);
 
-/// \p boneWeights, when not empty, scale weight per slot (a BoneMask)
+// boneWeights, when not empty, scale weight per slot (a BoneMask)
 ANIMATION_API void BlendPoses(Span<const Transform> from, Span<const Transform> to, float weight, Span<const float> boneWeights, Span<Transform> outPose);
 
-/// \brief adds additive's difference from the rest pose onto pose
+// adds additive's difference from the rest pose onto pose
 ANIMATION_API void ApplyAdditive(const SkeletonBindData& bindData, Span<const Transform> additive, float weight, Span<Transform> pose);
 
-/// easing toward the clip by delta / remaining covers the gap linearly over the fade
+// easing toward the clip by delta / remaining covers the gap linearly over the fade
 ANIMATION_API float AdvanceCrossFade(float delta, float& remaining, float defaultBlend);
 
 } // namespace PoseOps

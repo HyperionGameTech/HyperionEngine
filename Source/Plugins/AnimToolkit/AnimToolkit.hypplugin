@@ -1,5 +1,5 @@
 PluginDescriptor "AnimToolkit" {
     Version = "1.0.0"
-    Description = "Character animation tools for runtime and editing. Animation graphs with blends, state machines, sync groups, motion matching, humanoid retargeting, bone masks and attachments, and character models with a ready-made locomotion graph as well as editor tools: skeleton and clip editing, graph editor, etc."
+    Description = "Character animation tools, for Hyperion Editor as well as for runtime use in games"
     EnabledByDefault = true
 }

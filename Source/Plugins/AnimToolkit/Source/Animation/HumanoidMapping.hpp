@@ -124,7 +124,7 @@ struct HumanoidMapping
 
 /// a skeleton's humanoid bone roles, which retargeting, foot IK and motion matching read
 HYP_CLASS(ExtendsAsset = "Skeleton", Label = "Humanoid")
-class ENGINE_API HumanoidSkeletonData final : public AssetExtension
+class ANIMATION_API HumanoidSkeletonData final : public AssetExtension
 {
     HYP_OBJECT_BODY(HumanoidSkeletonData);
 

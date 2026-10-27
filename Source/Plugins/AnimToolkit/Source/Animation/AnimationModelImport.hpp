@@ -11,7 +11,7 @@
 namespace Hyperion {
 
 HYP_CLASS(Label = "Animation")
-class ENGINE_API AnimationModelImportSettings final : public ModelImportProcessorSettings
+class ANIMATION_API AnimationModelImportSettings final : public ModelImportProcessorSettings
 {
     HYP_OBJECT_BODY(AnimationModelImportSettings);
 
@@ -20,7 +20,7 @@ public:
     bool addAnimationComponent = true;
 };
 
-/// gives each skinned entity of an imported model an AnimationComponent playing the first clip
+// gives each skinned entity of an imported model an AnimationComponent playing the first clip
 class ANIMATION_API AnimationModelImportProcessor final : public IModelImportProcessor
 {
 public:

@@ -119,6 +119,11 @@ namespace Hyperion
                         maxTimestamp = Math.Max(maxTimestamp, File.GetLastWriteTime(engineAssemblyPath).ToFileTime());
                     }
                 }
+
+                foreach (string pluginAssemblyPath in EngineAssemblies.FindPluginAssemblies(dependenciesDirectory))
+                {
+                    maxTimestamp = Math.Max(maxTimestamp, File.GetLastWriteTime(pluginAssemblyPath).ToFileTime());
+                }
             }
 
             foreach (string referenceAssemblyPath in GetReferenceAssemblyPaths(scriptDirectory))
@@ -346,7 +351,8 @@ namespace Hyperion
                 ? $"<Analyzer Include=\"{EscapePath(generatorPath)}\" />\n"
                 : string.Empty;
 
-            string referenceItems = string.Join("", GetReferenceAssemblyPaths(scriptDirectory).Select(referenceAssemblyPath =>
+            // scripts run in the editor or a development build, which link every built-in plugin
+            string referenceItems = string.Join("", EngineAssemblies.FindPluginAssemblies(dependenciesDirectory).Concat(GetReferenceAssemblyPaths(scriptDirectory)).Select(referenceAssemblyPath =>
                 $"<Reference Include=\"{Path.GetFileNameWithoutExtension(referenceAssemblyPath)}\">\n"
                     + $"<HintPath>{EscapePath(Path.GetFullPath(referenceAssemblyPath))}</HintPath>\n"
                     + "<Private>false</Private>\n"

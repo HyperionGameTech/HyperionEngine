@@ -131,6 +131,8 @@ namespace Hyperion.Editor.Services
 
             if (!IsShipping || !File.Exists(objectsFile))
             {
+                missingModules?.AddRange(pluginModules);
+
                 return objects;
             }
 
@@ -164,6 +166,19 @@ namespace Hyperion.Editor.Services
                 "-p:HyperionStaticEngine=true"
             };
 
+            List<string> pluginModuleObjects = new List<string>();
+
+            if (pluginModules != null)
+            {
+                List<string> missingModules = new List<string>();
+
+                pluginModuleObjects = GetPluginModuleObjects(pluginModules, missingModules);
+                missingPluginModules?.AddRange(missingModules);
+
+                // the C# of the plugin modules linked in, and of no others (Hyperion.Game.props)
+                properties.Add("-p:HyperionPluginModules=" + string.Join("+", pluginModules.Except(missingModules)));
+            }
+
             if (!linksExecutable)
             {
                 return properties;
@@ -176,10 +191,7 @@ namespace Hyperion.Editor.Services
                 throw new InvalidOperationException($"The shipping SDK at {Directory} contains no engine libraries");
             }
 
-            if (pluginModules != null)
-            {
-                engineLibraries.AddRange(GetPluginModuleObjects(pluginModules, missingPluginModules));
-            }
+            engineLibraries.AddRange(pluginModuleObjects);
 
             string engineLibrariesFile = Path.Combine(intermediateDirectory, "EngineLibraries.txt");
             string engineLinkOptionsFile = Path.Combine(intermediateDirectory, "EngineLinkOptions.txt");

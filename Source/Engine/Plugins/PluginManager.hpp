@@ -21,7 +21,6 @@
 
 #include <Core/Name/Name.hpp>
 
-#include <Engine/Plugins/PluginAPI.hpp>
 #include <Engine/Plugins/PluginDescriptor.hpp>
 #include <Engine/Plugins/PluginModule.hpp>
 #include <Engine/Plugins/PluginContext.hpp>
@@ -29,8 +28,6 @@
 namespace Hyperion {
 
 ENGINE_API HYP_DECLARE_LOG_CHANNEL(Plugins);
-
-class DynamicLibrary;
 
 enum class PluginHostMode : uint32
 {
@@ -54,24 +51,16 @@ public:
         return m_initialized;
     }
 
-    void OnEditorLaunch();
-    void OnEditorShutdown();
-
-    uint32 NumLoadedPlugins() const
+    HYP_FORCE_INLINE const Array<PluginDescriptor>& GetPlugins() const
     {
-        return uint32(m_plugins.Size());
+        return m_plugins;
     }
 
-    HYP_FORCE_INLINE const Array<PluginDescriptor>& GetBuiltinPlugins() const
-    {
-        return m_builtinPlugins;
-    }
+    const PluginDescriptor* FindPlugin(StringHash pluginName) const;
 
-    const PluginDescriptor* FindBuiltinPlugin(Name pluginName) const;
-
-    // the Content folders of these built-in plugins and the ones they depend on, for a process that reads their assets
-    // without loading them (the cook)
-    Array<FilePath> GetBuiltinPluginContentDirectories(const Array<Name>& pluginNames);
+    /// the Content folders of these plugins and the ones they depend on, for a process that reads their assets
+    /// without loading them (the cook)
+    Array<FilePath> GetPluginContentDirectories(Span<const StringHash> pluginNames);
 
     Array<Name> GetDefaultEnabledPlugins() const;
 
@@ -82,24 +71,20 @@ public:
 
     bool IsPluginEnabled(Name pluginName) const;
 
-    // the modules a game links for these plugins and their dependencies (no *Editor modules)
-    Array<Name> GetRuntimeModules(const Array<Name>& pluginNames) const;
+    /// the modules a game links for these plugins and their dependencies (no *Editor modules)
+    Array<Name> GetRuntimeModules(Span<const Name> pluginNames) const;
 
-    void SetEnabledPlugins(const Array<Name>& pluginNames);
+    void SetEnabledPlugins(Span<const Name> pluginNames);
+
+    /// loads the libraries and C# of these plugins and their dependencies without starting their modules
+    void PreloadPlugins(Span<const Name> pluginNames);
+
+    bool ArePluginLibrariesLoaded(Name pluginName) const;
+    void LoadAllPluginLibraries();
 
 private:
     PluginManager() = default;
     ~PluginManager() = default;
-
-    struct LoadedPlugin
-    {
-        PluginDescriptor descriptor;
-        DynamicLibrary* library = nullptr;
-        IPlugin* plugin = nullptr;
-
-        using UnloadFn = void (*)(IPlugin*);
-        UnloadFn unloadFn = nullptr;
-    };
 
     struct ActiveModule
     {
@@ -109,23 +94,23 @@ private:
         UniquePtr<PluginContext> context;
     };
 
-    void LoadPluginFromDirectory(const FilePath& directory);
-
-    void DiscoverBuiltinPlugins();
-    void ResolveEnabledPlugin(Name pluginName, Array<Name>& outOrdered, Array<Name>& visiting) const;
+    void DiscoverPlugins();
+    void LoadPluginCode(const PluginDescriptor& descriptor);
+    void LoadPluginLibraries(const PluginDescriptor& descriptor);
+    void ResolveEnabledPlugin(StringHash pluginName, Array<Name>& outOrdered, Array<Name>& visiting) const;
     void UnloadModule(ActiveModule& activeModule);
 
-    // a built-in plugin's Content folder joins the engine registry while the plugin is enabled
+    // a plugin's Content folder joins the engine registry while the plugin is enabled
     void SetPluginContentMounted(Name pluginName, bool mounted) const;
 
     bool m_initialized = false;
 
     PluginHostMode m_hostMode = PluginHostMode::Game;
-    Array<LoadedPlugin> m_plugins;
-
-    Array<PluginDescriptor> m_builtinPlugins;
+    Array<PluginDescriptor> m_plugins;
     Array<Name> m_enabledPlugins;
     Array<ActiveModule> m_activeModules;
+    Array<Name> m_pluginsWithLibrariesLoaded;
+    Array<Name> m_modulesAnnouncedToManaged;
 };
 
 } // namespace Hyperion
