@@ -14,6 +14,8 @@
 #include <Core/Containers/Array.hpp>
 #include <Core/Containers/Set.hpp>
 
+#include <Core/Utilities/Span.hpp>
+
 #include <Rendering/RenderResult.hpp>
 #include <Rendering/RenderTypes.hpp>
 #include <Rendering/Shared.hpp>

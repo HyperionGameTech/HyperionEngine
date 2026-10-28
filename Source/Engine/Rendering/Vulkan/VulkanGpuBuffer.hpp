@@ -52,6 +52,8 @@ public:
     void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const override;
     void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
 
+    static void InsertBarriers(VulkanCommandBuffer* commandBuffer, Span<const VulkanGpuBuffer* const> buffers, ResourceState newState);
+
     void CopyFrom(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuBuffer* srcBuffer,

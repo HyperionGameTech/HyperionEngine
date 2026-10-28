@@ -48,8 +48,7 @@ void RawBuffer::Shutdown()
 
     cpuBuffer.Clear();
 
-    dirtyRangeStart = SIZE_MAX;
-    dirtyRangeEnd = 0;
+    ClearDirty();
 }
 
 void RawBuffer::Write(size_t offset, size_t count, const void* data)
@@ -67,8 +66,7 @@ void RawBuffer::Write(size_t offset, size_t count, const void* data)
         cpuBuffer.Write(count, offset, data);
     }
 
-    dirtyRangeStart = MathUtil::Min(dirtyRangeStart, offset);
-    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
+    MarkDirty(offset, count);
 }
 
 void RawBuffer::Fill(size_t offset, size_t count, ubyte value)
@@ -86,45 +84,150 @@ void RawBuffer::Fill(size_t offset, size_t count, ubyte value)
         cpuBuffer.Fill(count, offset, value);
     }
 
-    dirtyRangeStart = MathUtil::Min(dirtyRangeStart, offset);
-    dirtyRangeEnd = MathUtil::Max(dirtyRangeEnd, offset + count);
+    MarkDirty(offset, count);
 }
 
-void RawBuffer::FlushInto(CommandBuffer& cmdBuffer)
+uint32 RawBuffer::CollectDirtyRanges(RawBufferDirtyRange (&outRanges)[MaxDirtyRanges]) const
 {
-    if (!IsDirty())
+    const size_t bufferSize = gpuBuffer->Size();
+
+    uint32 numRanges = 0;
+
+    for (uint32 i = 0; i < numDirtyRanges; i++)
+    {
+        const RawBufferDirtyRange range { dirtyRanges[i].start, MathUtil::Min(dirtyRanges[i].end, bufferSize) };
+
+        if (range.start >= range.end)
+        {
+            continue;
+        }
+
+        uint32 insertIndex = numRanges;
+
+        while (insertIndex > 0 && outRanges[insertIndex - 1].start > range.start)
+        {
+            outRanges[insertIndex] = outRanges[insertIndex - 1];
+            --insertIndex;
+        }
+
+        outRanges[insertIndex] = range;
+        ++numRanges;
+    }
+
+    // ranges grown after they were added can overlap their neighbours
+    uint32 numMerged = 0;
+
+    for (uint32 i = 0; i < numRanges; i++)
+    {
+        if (numMerged != 0 && outRanges[i].start <= outRanges[numMerged - 1].end)
+        {
+            outRanges[numMerged - 1].end = MathUtil::Max(outRanges[numMerged - 1].end, outRanges[i].end);
+
+            continue;
+        }
+
+        outRanges[numMerged++] = outRanges[i];
+    }
+
+    return numMerged;
+}
+
+void RawBuffer::FlushAllInto(CommandBuffer& cmdBuffer, Span<RawBuffer* const> buffers)
+{
+    struct PendingCopy
+    {
+        const RawBuffer* buffer;
+        size_t stagingOffset;
+        RawBufferDirtyRange range;
+    };
+
+    static constexpr size_t StagingCopyAlignment = 16;
+
+    FatArray<PendingCopy, InlineAllocator<32, RenderAllocator>> copies;
+    FatArray<const GpuBuffer*, InlineAllocator<16, RenderAllocator>> dstBuffers;
+
+    size_t stagingSize = 0;
+
+    for (RawBuffer* buffer : buffers)
+    {
+        if (!buffer->IsDirty())
+        {
+            continue;
+        }
+
+        Assert(buffer->gpuBuffer && buffer->gpuBuffer->IsCreated());
+        Assert(!(buffer->flags & RawBufferFlags::GpuOnly));
+
+        RawBufferDirtyRange ranges[MaxDirtyRanges];
+        const uint32 numRanges = buffer->CollectDirtyRanges(ranges);
+
+        if (buffer->flags & RawBufferFlags::CpuWriteCoherent)
+        {
+            for (uint32 i = 0; i < numRanges; i++)
+            {
+                buffer->gpuBuffer->Flush(ranges[i].start, ranges[i].end - ranges[i].start);
+            }
+
+            buffer->ClearDirty();
+
+            continue;
+        }
+
+        for (uint32 i = 0; i < numRanges; i++)
+        {
+            copies.PushBack(PendingCopy { buffer, stagingSize, ranges[i] });
+
+            stagingSize += ByteUtil::AlignAs(ranges[i].end - ranges[i].start, StagingCopyAlignment);
+        }
+
+        if (numRanges != 0)
+        {
+            dstBuffers.PushBack(buffer->gpuBuffer);
+        }
+
+        buffer->ClearDirty();
+    }
+
+    if (copies.Empty())
     {
         return;
     }
 
-    Assert(gpuBuffer && gpuBuffer->IsCreated());
-    Assert(!(flags & RawBufferFlags::GpuOnly));
+    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(stagingSize);
+    Assert(stagingBuffer != nullptr);
 
-    // Capped to allow us to use SIZE_MAX and to prevent OOM.
-    const size_t realDirtyRangeEnd = MathUtil::Min(dirtyRangeEnd, gpuBuffer->Size());
+    ubyte* stagingData = static_cast<ubyte*>(stagingBuffer->Map());
 
-    if (flags & RawBufferFlags::CpuWriteCoherent)
+    for (const PendingCopy& copy : copies)
     {
-        // In the case of a coherent buffer, dirty range start/end are used as markers for where we wrote and need to flush.
-        gpuBuffer->Flush(dirtyRangeStart, realDirtyRangeEnd - dirtyRangeStart);
-    }
-    else
-    {
-        GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(realDirtyRangeEnd - dirtyRangeStart);
-        Assert(stagingBuffer != nullptr);
-
-        Memory::Copy(stagingBuffer->Map(), cpuBuffer.Data() + dirtyRangeStart, realDirtyRangeEnd - dirtyRangeStart);
-
-        stagingBuffer->InsertBarrier(&cmdBuffer, ResourceState::CopySrc);
-        gpuBuffer->InsertBarrier(&cmdBuffer, ResourceState::CopyDst);
-        gpuBuffer->CopyFrom(&cmdBuffer, stagingBuffer, 0, dirtyRangeStart, realDirtyRangeEnd - dirtyRangeStart);
-        gpuBuffer->InsertBarrier(&cmdBuffer, ResourceState::ShaderResource);
-
-        RI.stagingBufferPool->RetainForCommandBuffer(stagingBuffer, &cmdBuffer);
+        Memory::Copy(stagingData + copy.stagingOffset, copy.buffer->cpuBuffer.Data() + copy.range.start, copy.range.end - copy.range.start);
     }
 
-    dirtyRangeStart = SIZE_MAX;
-    dirtyRangeEnd = 0;
+    const Span<const GpuBuffer* const> dstBufferSpan(dstBuffers.Data(), dstBuffers.Size());
+
+    stagingBuffer->InsertBarrier(&cmdBuffer, ResourceState::CopySrc);
+    GpuBuffer::InsertBarriers(&cmdBuffer, dstBufferSpan, ResourceState::CopyDst);
+
+    for (const PendingCopy& copy : copies)
+    {
+        copy.buffer->gpuBuffer->CopyFrom(
+            &cmdBuffer,
+            stagingBuffer,
+            uint32(copy.stagingOffset),
+            uint32(copy.range.start),
+            uint32(copy.range.end - copy.range.start));
+    }
+
+    GpuBuffer::InsertBarriers(&cmdBuffer, dstBufferSpan, ResourceState::ShaderResource);
+
+    RI.stagingBufferPool->RetainForCommandBuffer(stagingBuffer, &cmdBuffer);
+}
+
+void RawBuffer::FlushInto(CommandBuffer& cmdBuffer)
+{
+    RawBuffer* self = this;
+
+    FlushAllInto(cmdBuffer, Span<RawBuffer* const>(&self, 1));
 }
 
 void RawBuffer::Flush()
@@ -136,14 +239,15 @@ void RawBuffer::Flush()
     
     if (flags & RawBufferFlags::CpuWriteCoherent)
     {
-        // Capped to allow us to use SIZE_MAX and to prevent OOM.
-        const size_t realDirtyRangeEnd = MathUtil::Min(dirtyRangeEnd, gpuBuffer->Size());
+        RawBufferDirtyRange ranges[MaxDirtyRanges];
+        const uint32 numRanges = CollectDirtyRanges(ranges);
 
-        // In the case of a coherent buffer, dirrty range start/end are used as markers for where we wrote and need to flush.
-        gpuBuffer->Flush(dirtyRangeStart, realDirtyRangeEnd - dirtyRangeStart);
+        for (uint32 i = 0; i < numRanges; i++)
+        {
+            gpuBuffer->Flush(ranges[i].start, ranges[i].end - ranges[i].start);
+        }
 
-        dirtyRangeStart = SIZE_MAX;
-        dirtyRangeEnd = 0;
+        ClearDirty();
 
         // Don't allocate a command buffer for coherent buffers
         return;
@@ -204,19 +308,17 @@ bool RawBuffer::Resize(size_t newSize)
         }
     }
     
+    ClearDirty();
+
     if (flags & RawBufferFlags::GpuOnly)
     {
-        dirtyRangeStart = SIZE_MAX;
-        dirtyRangeEnd = 0;
-
         return true;
     }
 
     cpuBuffer.SetSize(newSize, /* zeroize */ true);
 
     // Need to copy everything over from CPU to GPU on next flush.
-    dirtyRangeStart = 0;
-    dirtyRangeEnd = SIZE_MAX;
+    MarkDirty(0, newSize);
 
     return true;
 }

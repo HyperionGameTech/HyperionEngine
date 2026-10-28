@@ -35,9 +35,20 @@ enum class RawBufferFlags : uint8
 
 HYP_MAKE_ENUM_FLAGS(RawBufferFlags);
 
+struct RawBufferDirtyRange
+{
+    size_t start;
+    size_t end;
+};
+
 /// A wrapper interface for a GPU-accessible buffer.
 class RawBuffer
 {
+public:
+    static constexpr uint32 MaxDirtyRanges = 8;
+    static constexpr size_t DirtyRangeMergeGap = 1024;
+
+protected:
 protected:
     RawBuffer(
         GpuBufferType bufferType,
@@ -49,6 +60,7 @@ protected:
           elementSize(elementSize),
           dirtyRangeStart(SIZE_MAX),
           dirtyRangeEnd(0),
+          numDirtyRanges(0),
           flags(flags)
     {
         if (!(flags & (RawBufferFlags::GpuOnly | RawBufferFlags::CpuWriteCoherent)))
@@ -71,6 +83,7 @@ public:
           elementSize(0),
           dirtyRangeStart(SIZE_MAX),
           dirtyRangeEnd(0),
+          numDirtyRanges(0),
           flags(RawBufferFlags::Default)
     {
     }
@@ -84,9 +97,13 @@ public:
           elementSize(other.elementSize),
           dirtyRangeStart(other.dirtyRangeStart),
           dirtyRangeEnd(other.dirtyRangeEnd),
+          numDirtyRanges(other.numDirtyRanges),
           flags(other.flags)
     {
+        Memory::Copy(dirtyRanges, other.dirtyRanges, sizeof(dirtyRanges));
+
         other.gpuBuffer = nullptr;
+        other.ClearDirty();
     }
 
     RawBuffer& operator=(RawBuffer&& other) noexcept
@@ -106,7 +123,11 @@ public:
             elementSize = other.elementSize;
             dirtyRangeStart = other.dirtyRangeStart;
             dirtyRangeEnd = other.dirtyRangeEnd;
+            numDirtyRanges = other.numDirtyRanges;
+            Memory::Copy(dirtyRanges, other.dirtyRanges, sizeof(dirtyRanges));
             flags = other.flags;
+
+            other.ClearDirty();
         }
 
         return *this;
@@ -125,8 +146,24 @@ public:
 
     HYP_FORCE_INLINE void MarkDirty(size_t offset, size_t count)
     {
+        if (count == 0)
+        {
+            return;
+        }
+
+        const size_t end = offset + count;
+
         dirtyRangeStart = offset < dirtyRangeStart ? offset : dirtyRangeStart;
-        dirtyRangeEnd = (offset + count) > dirtyRangeEnd ? (offset + count) : dirtyRangeEnd;
+        dirtyRangeEnd = end > dirtyRangeEnd ? end : dirtyRangeEnd;
+
+        AddDirtyRange(offset, end);
+    }
+
+    HYP_FORCE_INLINE void ClearDirty()
+    {
+        dirtyRangeStart = SIZE_MAX;
+        dirtyRangeEnd = 0;
+        numDirtyRanges = 0;
     }
 
     HYP_FORCE_INLINE size_t TotalSizeBytes() const
@@ -180,6 +217,8 @@ public:
     void FlushInto(CommandBuffer& cmdBuffer);
     void Flush();
 
+    static void FlushAllInto(CommandBuffer& cmdBuffer, Span<RawBuffer* const> buffers);
+
     /// Sets the buffer to be flushed at the top of the frame, preceding other recorded rendering commands.
     void FlushBatched();
 
@@ -195,9 +234,57 @@ public:
     size_t dirtyRangeStart;
     size_t dirtyRangeEnd;
 
+    RawBufferDirtyRange dirtyRanges[MaxDirtyRanges];
+    uint32 numDirtyRanges;
+
     EnumFlags<RawBufferFlags> flags;
 
 protected:
+    HYP_FORCE_INLINE static size_t GetDirtyRangeGap(const RawBufferDirtyRange& range, size_t start, size_t end)
+    {
+        if (start > range.end)
+        {
+            return start - range.end;
+        }
+
+        if (range.start > end)
+        {
+            return range.start - end;
+        }
+
+        return 0;
+    }
+
+    HYP_FORCE_INLINE void AddDirtyRange(size_t start, size_t end)
+    {
+        uint32 closestIndex = 0;
+        size_t closestGap = SIZE_MAX;
+
+        for (uint32 i = 0; i < numDirtyRanges; i++)
+        {
+            const size_t gap = GetDirtyRangeGap(dirtyRanges[i], start, end);
+
+            if (gap < closestGap)
+            {
+                closestGap = gap;
+                closestIndex = i;
+            }
+        }
+
+        if (closestGap > DirtyRangeMergeGap && numDirtyRanges < MaxDirtyRanges)
+        {
+            dirtyRanges[numDirtyRanges++] = RawBufferDirtyRange { start, end };
+
+            return;
+        }
+
+        RawBufferDirtyRange& range = dirtyRanges[closestIndex];
+        range.start = start < range.start ? start : range.start;
+        range.end = end > range.end ? end : range.end;
+    }
+
+    uint32 CollectDirtyRanges(RawBufferDirtyRange (&outRanges)[MaxDirtyRanges]) const;
+
     static inline constexpr size_t GetAlignedBufferSize(size_t numElements, size_t elementSize, size_t alignment)
     {
         size_t totalSize = elementSize != 0 ? numElements * elementSize : numElements;

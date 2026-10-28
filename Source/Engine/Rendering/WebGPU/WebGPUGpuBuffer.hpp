@@ -55,6 +55,8 @@ public:
     void InsertBarrier(WebGPUCommandBuffer* commandBuffer, ResourceState newState) const override;
     void InsertBarrier(WebGPUCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
 
+    static void InsertBarriers(WebGPUCommandBuffer* commandBuffer, Span<const WebGPUGpuBuffer* const> buffers, ResourceState newState);
+
     void CopyFrom(
         WebGPUCommandBuffer* commandBuffer,
         const WebGPUGpuBuffer* srcBuffer,

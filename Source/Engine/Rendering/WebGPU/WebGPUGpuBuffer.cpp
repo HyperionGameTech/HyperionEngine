@@ -137,6 +137,14 @@ void WebGPUGpuBuffer::InsertBarrier(WebGPUCommandBuffer* commandBuffer, Resource
     m_resourceState = newState;
 }
 
+void WebGPUGpuBuffer::InsertBarriers(WebGPUCommandBuffer* commandBuffer, Span<const WebGPUGpuBuffer* const> buffers, ResourceState newState)
+{
+    for (const WebGPUGpuBuffer* buffer : buffers)
+    {
+        buffer->m_resourceState = newState;
+    }
+}
+
 void WebGPUGpuBuffer::CopyFrom(WebGPUCommandBuffer* commandBuffer, const WebGPUGpuBuffer* srcBuffer, uint32 count)
 {
     CopyFrom(commandBuffer, srcBuffer, 0, 0, count);

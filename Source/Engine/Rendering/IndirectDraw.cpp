@@ -30,11 +30,16 @@
 #include <Rendering/Util/DeletionQueue.hpp>
 
 #include <Framework/CVarManager.hpp>
+#include <Framework/EngineStats.hpp>
 #include <Framework/View.hpp>
 
 #include <Core/Math/MathUtil.hpp>
 
 namespace Hyperion {
+
+static EngineStatTimer s_statWriteInstances("Rendering/CPU/IndirectDraw/WriteInstances");
+static EngineStatTimer s_statUpdateBuffers("Rendering/CPU/IndirectDraw/UpdateBuffers");
+static EngineStatGpuTimer s_statCull("Rendering/GPU/IndirectDraw/Cull");
 
 struct ComputeVisibilityConstants
 {
@@ -370,6 +375,8 @@ void IndirectRenderer::Create(EntityBatchAllocator* batchAllocator)
 
 void IndirectRenderer::PushDrawCallsToIndirectState(CommandRecorder& cr, DrawCallCollection& drawCallCollection)
 {
+    ENGINE_STAT_SCOPE(&s_statWriteInstances);
+
     size_t numInstances = drawCallCollection.drawCalls.Size();
 
     for (size_t i = 0; i < drawCallCollection.instancedDrawCalls.Size(); i++)
@@ -398,6 +405,8 @@ void IndirectRenderer::PushDrawCallsToIndirectState(CommandRecorder& cr, DrawCal
 
 void IndirectRenderer::PrepareDrawCommands(CommandRecorder& cr)
 {
+    ENGINE_STAT_SCOPE(&s_statUpdateBuffers);
+
     bool wasBufferResized = false;
     m_indirectDrawState.UpdateBufferData(cr, &wasBufferResized);
 }
@@ -470,7 +479,11 @@ void IndirectRenderer::ExecuteCullShaderInBatches(CommandRecorder& cr, const Ren
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), ResourceState::UnorderedAccess, ShaderModuleType::Compute);
     cr << InsertBarrier(entityInstanceBatchesBuffer, ResourceState::UnorderedAccess, ShaderModuleType::Compute);
 
-    cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
+    {
+        ENGINE_STAT_GPU_SCOPE(&s_statCull, &cr);
+
+        cr << DispatchCompute(Vec3u { numBatches, 1, 1 });
+    }
 
     cr << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), ResourceState::IndirectArg);
     cr << InsertBarrier(entityInstanceBatchesBuffer, ResourceState::ShaderResource, ShaderModuleType::Vertex);

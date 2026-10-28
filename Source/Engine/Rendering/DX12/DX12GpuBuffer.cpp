@@ -304,6 +304,64 @@ void DX12GpuBuffer::InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceStat
     InsertBarrier(commandBuffer, newState);
 }
 
+void DX12GpuBuffer::InsertBarriers(DX12CommandBuffer* commandBuffer, Span<const DX12GpuBuffer* const> buffers, ResourceState newState)
+{
+    FatArray<D3D12_RESOURCE_BARRIER, InlineAllocator<16, DX12Allocator>> barriers;
+
+    const D3D12_RESOURCE_STATES dstState = ToDX12ResourceStates(newState);
+
+    for (const DX12GpuBuffer* buffer : buffers)
+    {
+        if (!buffer->IsCreated())
+        {
+            continue;
+        }
+
+        const D3D12_HEAP_TYPE heapType = GetHeapType(buffer->m_type, buffer->m_cpuAccessible);
+
+        if (heapType == D3D12_HEAP_TYPE_UPLOAD || heapType == D3D12_HEAP_TYPE_READBACK)
+        {
+            buffer->m_resourceState = newState;
+
+            continue;
+        }
+
+        const D3D12_RESOURCE_STATES srcState = ToDX12ResourceStates(buffer->m_resourceState);
+
+        buffer->m_resourceState = newState;
+
+        D3D12_RESOURCE_BARRIER barrier {};
+
+        if (srcState == dstState)
+        {
+            if (dstState != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+            {
+                continue;
+            }
+
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.UAV.pResource = buffer->m_resource.Get();
+        }
+        else
+        {
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.Transition.pResource = buffer->m_resource.Get();
+            barrier.Transition.StateBefore = srcState;
+            barrier.Transition.StateAfter = dstState;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        }
+
+        barriers.PushBack(barrier);
+    }
+
+    if (barriers.Any())
+    {
+        commandBuffer->GetCommandList()->ResourceBarrier(UINT(barriers.Size()), barriers.Data());
+    }
+}
+
 void DX12GpuBuffer::CopyFrom(
     DX12CommandBuffer* commandBuffer,
     const DX12GpuBuffer* srcBuffer,

@@ -359,6 +359,54 @@ void VulkanGpuBuffer::InsertBarrier(
     m_resourceState = newState;
 }
 
+void VulkanGpuBuffer::InsertBarriers(VulkanCommandBuffer* commandBuffer, Span<const VulkanGpuBuffer* const> buffers, ResourceState newState)
+{
+    AssertDebug(!commandBuffer->IsInRenderPass());
+
+    FatArray<VkBufferMemoryBarrier, InlineAllocator<16, VulkanAllocator>> barriers;
+
+    VkPipelineStageFlags srcStageMask = 0;
+    VkPipelineStageFlags dstStageMask = 0;
+
+    for (const VulkanGpuBuffer* buffer : buffers)
+    {
+        if (!buffer->IsCreated())
+        {
+            continue;
+        }
+
+        VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+        barrier.srcAccessMask = GetVkAccessMask(buffer->m_resourceState, false);
+        barrier.dstAccessMask = GetVkAccessMask(newState, false);
+        barrier.buffer = buffer->m_handle;
+        barrier.offset = 0;
+        barrier.size = buffer->m_size;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+        srcStageMask |= GetVkShaderStageMask(buffer->m_resourceState, true, false);
+        dstStageMask |= GetBufferDstStageMask(buffer->m_type, newState, GetVkShaderStageMask(newState, false, false));
+
+        barriers.PushBack(barrier);
+
+        buffer->m_resourceState = newState;
+    }
+
+    if (barriers.Empty())
+    {
+        return;
+    }
+
+    vkCmdPipelineBarrier(
+        commandBuffer->GetVulkanHandle(),
+        srcStageMask,
+        dstStageMask,
+        0,
+        0, nullptr,
+        uint32(barriers.Size()), barriers.Data(),
+        0, nullptr);
+}
+
 void VulkanGpuBuffer::InsertHostReadBarrier(VulkanCommandBuffer* commandBuffer) const
 {
     if (m_type != GpuBufferType::ReadbackBuffer || !IsCreated())

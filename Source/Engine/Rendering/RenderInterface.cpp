@@ -2266,19 +2266,17 @@ void RenderInterface::FlushStructuredBuffers()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    bool anyNeedStaging = false;
+    FatArray<RawBuffer*, InlineAllocator<16, RenderAllocator>> dirtyBuffers;
 
     for (StructuredBuffer& sbuffer : namedBuffers)
     {
         if (sbuffer.IsDirty())
         {
-            anyNeedStaging = true;
-
-            break;
+            dirtyBuffers.PushBack(&sbuffer);
         }
     }
 
-    if (!anyNeedStaging)
+    if (dirtyBuffers.Empty())
     {
         return;
     }
@@ -2286,13 +2284,7 @@ void RenderInterface::FlushStructuredBuffers()
     // Batch all dirty structured buffers that need to use a staging buffer to copy data from the CPU to the GPU.
     CommandBuffer& cmdBuffer = GetTransientCommandBuffer();
 
-    for (StructuredBuffer& sbuffer : namedBuffers)
-    {
-        if (sbuffer.IsDirty())
-        {
-            sbuffer.FlushInto(cmdBuffer);
-        }
-    }
+    RawBuffer::FlushAllInto(cmdBuffer, Span<RawBuffer* const>(dirtyBuffers.Data(), dirtyBuffers.Size()));
 
     SubmitTransientCommandBuffer(cmdBuffer);
 }

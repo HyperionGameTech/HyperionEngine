@@ -70,6 +70,8 @@ extern EngineStatTimer g_statTotalStallTime;
 
 EngineStatTimer g_statFrameLimiterWait("Rendering/CPU/FrameLimiterWait");
 
+static EngineStatTimer s_statDeferredFlushBuffers("Rendering/CPU/DeferredFlushBuffers");
+
 extern ThreadSignal g_renderInitSignal;
 
 namespace PlatformUtils {
@@ -341,15 +343,9 @@ void RenderThread::Update()
 
     if (RI.deferredFlushBuffers.Any())
     {
-        for (RawBuffer* buffer : RI.deferredFlushBuffers)
-        {
-            if (!buffer->IsDirty())
-            {
-                continue;
-            }
+        ENGINE_STAT_SCOPE(&s_statDeferredFlushBuffers);
 
-            buffer->FlushInto(commandBuffer);
-        }
+        RawBuffer::FlushAllInto(commandBuffer, RI.deferredFlushBuffers.ToSpan());
 
         RI.deferredFlushBuffers.Clear();
     }

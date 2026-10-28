@@ -56,6 +56,8 @@ public:
     void InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceState newState) const override;
     void InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
 
+    static void InsertBarriers(DX12CommandBuffer* commandBuffer, Span<const DX12GpuBuffer* const> buffers, ResourceState newState);
+
     void CopyFrom(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuBuffer* srcBuffer,
