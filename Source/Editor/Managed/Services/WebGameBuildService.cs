@@ -50,7 +50,7 @@ namespace Hyperion.Editor.Services
 
             try
             {
-                Logger.Log(BuildLogChannel, LogLevel.Info, "Building {0} for the web", projectDirectory);
+                Logger.Log(BuildLogChannel, LogLevel.Info, "Building {0} for web", projectDirectory);
 
                 string? firstError = null;
                 bool isCancelled = false;

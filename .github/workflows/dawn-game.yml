@@ -1,0 +1,153 @@
+name: Dawn Game
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dawn-game-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codegen:
+    name: codegen (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64, os: ubuntu-24.04, submodules: false }
+          - { name: win-x64, os: windows-2025, submodules: recursive }
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: ${{ matrix.submodules }}
+
+      - name: Install dependencies
+        if: matrix.name == 'linux-x64'
+        run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+
+      - name: Run CodeGen
+        if: matrix.name == 'linux-x64'
+        run: |
+          version="$(grep -oE '^RunCodeGen\([0-9]+ [0-9]+\)' Source/CMakeLists.txt | grep -oE '[0-9]+ [0-9]+')"
+          if [ -z "$version" ]; then echo "RunCodeGen(<major> <minor>) not found in Source/CMakeLists.txt"; exit 1; fi
+          bash Tools/Scripts/RunCodeGen.sh $version
+          test -f Source/Generated/CodeGenOutput.inc
+
+      - name: Build CodeGen tool
+        if: matrix.name == 'win-x64'
+        shell: cmd
+        run: |
+          echo y| call Tools\Scripts\BuildCodeGen.bat
+          if not exist Build\hyperion-codegen.exe exit /b 1
+
+      - uses: actions/upload-artifact@v7
+        if: matrix.name == 'linux-x64'
+        with:
+          name: codegen
+          path: |
+            Source/Generated
+            Data/Scripts/Strata
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: matrix.name == 'win-x64'
+        with:
+          name: codegen-tool-win-x64
+          path: Build/hyperion-codegen*
+          if-no-files-found: error
+
+  package-windows:
+    name: win-x64 (webgpu)
+    needs: codegen
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: codegen
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: codegen-tool-win-x64
+          path: Build
+
+      - name: Point VCPKG_ROOT at the runner's vcpkg
+        shell: pwsh
+        run: '"VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV'
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\vcpkg\archives
+          key: vcpkg-tests-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'Source/vcpkg.json', 'Tools/vcpkg/**') }}
+
+      # DXC, which compiles the HLSL that Tint then turns into WGSL
+      - name: Install Vulkan SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe -OutFile $env:RUNNER_TEMP/vulkan_sdk.exe
+          & $env:RUNNER_TEMP/vulkan_sdk.exe --accept-licenses --default-answer --confirm-command install | Out-Host
+          $sdk = Get-ChildItem C:\VulkanSDK -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $sdk) { throw "Vulkan SDK was not installed under C:\VulkanSDK" }
+          "VULKAN_SDK=$($sdk.FullName)" >> $env:GITHUB_ENV
+
+      # the editor build's commandlets cook the games and compile their shaders for the host backend, WebGPU here
+      - name: Build engine (WebGPU)
+        shell: cmd
+        env:
+          HYP_SKIP_CODEGEN: 1
+        run: |
+          Tools\Scripts\BuildHyperion.bat Release ninja webgpu regenerate
+          if not exist Binaries\Windows\Release\hyperion.dll exit /b 1
+          if not exist Binaries\Windows\Release\webgpu_dawn.dll exit /b 1
+
+      - name: Build shipping SDK (WebGPU)
+        shell: cmd
+        env:
+          HYP_SKIP_CODEGEN: 1
+        run: |
+          Tools\Scripts\BuildHyperion.bat Release ninja sdk webgpu regenerate
+          if not exist Binaries\Windows\ShippingSdk\Sdk\StaticLibraries.txt exit /b 1
+
+      - name: Package and run the games
+        shell: pwsh
+        env:
+          HYPERION_BIN_DIR: ${{ github.workspace }}\Binaries\Windows\Release
+          HYPERION_PACKAGE_SHADERS: 1
+        run: >
+          dotnet test Tests/GameProjects/Runner/GameProjectTests.csproj
+          --filter "FullyQualifiedName~Hyperion.GameProjectTests.NativeCookTests|FullyQualifiedName~Hyperion.GameProjectTests.ManagedPackageTests"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=dawn-game.trx"
+          --results-directory Build/GameProjectTests/TestResults
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dawn-games-win-x64
+          path: |
+            Build/GameProjectTests/NativeCook/Packaged
+            Build/GameProjectTests/ManagedPackageTest/Packaged
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dawn-game-logs-win-x64
+          path: |
+            Build/GameProjectTests/TestResults
+            Build/GameProjectTests/*/Logs
+          if-no-files-found: ignore
+          retention-days: 7

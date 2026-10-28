@@ -185,7 +185,7 @@ namespace Hyperion.Editor.Services
 
     public sealed class EditorPluginService
     {
-        public static EditorPluginService Instance { get; } = new EditorPluginService();
+        public static EditorPluginService Instance { get; } = new();
 
         private static readonly LogChannel PluginsLogChannel = LogChannel.ByName("Plugins");
 
@@ -210,7 +210,6 @@ namespace Hyperion.Editor.Services
             AddPluginTypes(typeof(EditorPluginService).Assembly);
         }
 
-        /// A plugin's editor assembly (Hyperion.Plugin.<Module>), loaded when a project enabled the plugin; its [EditorPlugin] registers if the plugin is enabled
         public void AddPluginAssembly(Assembly assembly)
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -254,7 +253,7 @@ namespace Hyperion.Editor.Services
                     EditModeBars.Remove(bar);
                 }
 
-                Logger.Log(PluginsLogChannel, LogLevel.Info, "Unregistered editor plugin {0}", pluginName);
+                Logger.Log(PluginsLogChannel, LogLevel.Verbose, "Unregistered editor plugin {0}", pluginName);
             }
 
             foreach (string pluginName in enabled)
@@ -289,7 +288,7 @@ namespace Hyperion.Editor.Services
                     EditModeBars.Add(bar);
                 }
 
-                Logger.Log(PluginsLogChannel, LogLevel.Info, "Registered editor plugin {0} ({1} view(s), {2} menu item(s))",
+                Logger.Log(PluginsLogChannel, LogLevel.Verbose, "Registered editor plugin {0} ({1} view(s), {2} menu item(s))",
                     pluginName, registry.Views.Count, registry.ToolMenuItems.Count + registry.NodeMenuItems.Count);
             }
         }

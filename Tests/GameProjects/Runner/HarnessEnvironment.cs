@@ -6,6 +6,8 @@ namespace Hyperion.GameProjectTests;
 ///   HYPERION_GAME_TESTS_DIR  where the game projects are generated and built (default: Build/GameProjectTests)
 ///   HYPERION_SHIPPING_SDK_DIR the shipping SDK Package Game links against (default: <bin dir>/Sdk/Shipping, or the
 ///                            Binaries/<Platform>/ShippingSdk/Sdk that `BuildHyperion sdk` writes)
+///   HYPERION_PACKAGE_SHADERS 1 to cook packages with the engine build's shaders, as Package Game does, so they can render
+///                            (default: no shaders, which a headless game doesn't use)
 public static class HarnessEnvironment
 {
     public static string PlatformName { get; } =
@@ -53,6 +55,8 @@ public static class HarnessEnvironment
     public static string WorkDir { get; } = Path.GetFullPath(
         Environment.GetEnvironmentVariable("HYPERION_GAME_TESTS_DIR")
             ?? Path.Combine(RepositoryRoot, "Build", "GameProjectTests"));
+
+    public static bool PackageShaders { get; } = Environment.GetEnvironmentVariable("HYPERION_PACKAGE_SHADERS") == "1";
 
     public static TimeSpan BuildTimeout { get; } = TimeSpan.FromMinutes(20);
 

@@ -858,7 +858,15 @@ bool Parser::ParseStringValue(const TypeInfo& typeInfo, BoxedValue& out)
         || typeInfo.id == TypeId::ForType<StringHash>())
     {
         // an unset Name is written as an empty string, and has to read back as unset
-        out = BoxedValue(text.Empty() ? Name::Invalid() : CreateNameFromDynamicString(text.Data()));
+
+        if (text.Empty())
+        {
+            out = BoxedValue(Name());
+        }
+        else
+        {
+            out = BoxedValue(Name(text.ToAnsi()));
+        }
     }
     else if (typeInfo.id == TypeId::ForType<UUID>())
     {

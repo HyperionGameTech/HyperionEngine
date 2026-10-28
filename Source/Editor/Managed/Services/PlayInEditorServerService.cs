@@ -63,7 +63,7 @@ namespace Hyperion.Editor.Services
             {
                 if (string.IsNullOrEmpty(projectDirectory) || !Directory.Exists(projectDirectory))
                 {
-                    Logger.Log(CacheServerLogChannel, LogLevel.Error, "Cannot start cache server: project directory '{0}' does not exist", projectDirectory);
+                    Logger.Log(CacheServerLogChannel, LogLevel.Error, "project directory '{0}' does not exist, cannot start the cache server", projectDirectory);
 
                     return LocalServerLaunchResult.Failed;
                 }
@@ -71,7 +71,7 @@ namespace Hyperion.Editor.Services
                 await EnsureCacheServerAsync(projectDirectory, cachePort, cancellationToken).ConfigureAwait(false);
                 await RefreshCacheServerAsync(projectDirectory, cachePort, cancellationToken).ConfigureAwait(false);
 
-                Logger.Log(CacheServerLogChannel, LogLevel.Info, "Clients can sync this project with --cacheserver=http://127.0.0.1:{0}", cachePort);
+                Logger.Log(CacheServerLogChannel, LogLevel.Info, "Clients can sync to project content using cli args:\t--cacheserver=http://127.0.0.1:{0}", cachePort);
 
                 return LocalServerLaunchResult.Ready;
             }
@@ -81,7 +81,7 @@ namespace Hyperion.Editor.Services
             }
             catch (Exception ex)
             {
-                Logger.Log(CacheServerLogChannel, LogLevel.Error, "Failed to start cache server: {0}", ex.Message);
+                Logger.Log(CacheServerLogChannel, LogLevel.Error, "Failed to start cache server! {0}", ex.Message);
 
                 return LocalServerLaunchResult.Failed;
             }

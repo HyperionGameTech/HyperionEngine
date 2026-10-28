@@ -211,7 +211,7 @@ public sealed class GameProject
     }
 
     /// Cooks the project into a package directory with the same arguments as the editor's Package Game (CookPackage() in
-    /// Source/Editor/Managed/Services/ManagedGameBuildService.cs), less the shaders, which a headless game doesn't use
+    /// Source/Editor/Managed/Services/ManagedGameBuildService.cs), less the shaders unless HYPERION_PACKAGE_SHADERS asks for them
     public ProcessResult Cook(string packageDirectory)
     {
         string cookCacheDirectory = Path.Combine(Directory, "Build", "PackageCook");
@@ -219,19 +219,26 @@ public sealed class GameProject
 
         string cookTargetPlatform = OperatingSystem.IsWindows() ? "windows" : OperatingSystem.IsMacOS() ? "mac" : "linux";
 
+        List<string> arguments = new List<string>
+        {
+            "--project=" + Directory,
+            "--out-cache=" + Path.Combine(packageDirectory, "Cache"),
+            "--out-content=" + Path.Combine(packageDirectory, "Content"),
+            "--out-engine-content=" + Path.Combine(packageDirectory, "Content", "Engine"),
+            "--target-platform=" + cookTargetPlatform,
+            "--target-config=" + Path.Combine(HarnessEnvironment.EngineBinDir, "Config", "EngineConfig.json"),
+            "--cachedir=" + cookCacheDirectory
+        };
+
+        if (HarnessEnvironment.PackageShaders)
+        {
+            arguments.Add("--shader-target=host");
+        }
+
         return ProcessRunner.Run(
             $"Cooking {Name}",
             HarnessEnvironment.GetCommandletPath("BlobStorageCookCommandlet"),
-            new[]
-            {
-                "--project=" + Directory,
-                "--out-cache=" + Path.Combine(packageDirectory, "Cache"),
-                "--out-content=" + Path.Combine(packageDirectory, "Content"),
-                "--out-engine-content=" + Path.Combine(packageDirectory, "Content", "Engine"),
-                "--target-platform=" + cookTargetPlatform,
-                "--target-config=" + Path.Combine(HarnessEnvironment.EngineBinDir, "Config", "EngineConfig.json"),
-                "--cachedir=" + cookCacheDirectory
-            },
+            arguments,
             HarnessEnvironment.EngineBinDir,
             Path.Combine(LogsDirectory, "cook.log"),
             HarnessEnvironment.BuildTimeout);

@@ -166,7 +166,7 @@ namespace Hyperion.Editor.Services
                     continue;
                 }
 
-                Logger.Log(BuildLogChannel, LogLevel.Info, "Debug Info Stripped {0}: {1} MB -> {2} MB",
+                Logger.Log(BuildLogChannel, LogLevel.Verbose, "Debug Info Stripped {0}: {1} MB -> {2} MB",
                     Path.GetFileName(binary),
                     sizeBefore / (1024 * 1024),
                     new FileInfo(binary).Length / (1024 * 1024));

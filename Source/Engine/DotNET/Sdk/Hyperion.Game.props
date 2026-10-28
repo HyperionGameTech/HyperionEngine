@@ -95,9 +95,18 @@
 
   <!-- before SetupOSSpecificProps, which turns NativeLibrary items into linker arguments (on Windows) and runs as one of LinkNative's dependencies -->
   <Target Name="HyperionAddEngineLinkInputs" BeforeTargets="SetupOSSpecificProps" Condition="'$(HyperionEngineLibrariesFile)' != ''">
+    <!-- the engine archives depend on each other in both directions, which GNU ld only resolves inside a group -->
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+      <NativeLibrary Include="-Wl,--start-group" />
+    </ItemGroup>
+
     <ReadLinesFromFile File="$(HyperionEngineLibrariesFile)">
       <Output TaskParameter="Lines" ItemName="NativeLibrary" />
     </ReadLinesFromFile>
+
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+      <NativeLibrary Include="-Wl,--end-group" />
+    </ItemGroup>
 
     <ReadLinesFromFile File="$(HyperionEngineLinkOptionsFile)" Condition="'$(HyperionEngineLinkOptionsFile)' != '' And Exists('$(HyperionEngineLinkOptionsFile)')">
       <Output TaskParameter="Lines" ItemName="LinkerArg" />
@@ -107,7 +116,7 @@
   <Target Name="HyperionWriteStaticLinkInputs" AfterTargets="LinkNative" Condition="'$(HyperionStaticLinkInputsFile)' != '' And '$(NativeLib)' == 'Static' And '$(HyperionWebBuild)' != 'true'">
     <ItemGroup>
       <_HyperionStaticLinkInput Include="$(NativeBinary)" />
-      <_HyperionStaticLinkInput Include="@(NativeLibrary)" Condition="'%(Filename)' != 'dllmain'" />
+      <_HyperionStaticLinkInput Include="@(NativeLibrary)" Condition="'%(Filename)' != 'dllmain' And !$([System.String]::new('%(Identity)').StartsWith('-Wl,'))" />
     </ItemGroup>
 
     <ItemGroup>
