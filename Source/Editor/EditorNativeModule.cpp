@@ -86,7 +86,6 @@ struct NativeModuleImage
     UIntPtr imageBegin = 0;
     UIntPtr imageEnd = 0;
 
-    // without an image range, what the module registered can't be told apart, so it stays loaded
     bool CanUnload() const
     {
         return imageEnd > imageBegin;
@@ -100,7 +99,7 @@ struct LoadedNativeModule : GameModuleBase
     EnumFlags<NativeModuleFlags> flags = NativeModuleFlags::None;
 };
 
-// a build that was replaced; unlike a loaded module it's never polled or reloaded, only freed once nothing uses it
+// a build that was replaced, freed once nothing uses it
 struct RetiredNativeModule
 {
     NativeModuleImage image;

@@ -6,6 +6,7 @@
 
 #include <Core/DLL/DynamicLibrary.hpp>
 
+#include <Core/Containers/Array.hpp>
 #include <Core/Containers/Map.hpp>
 #include <Core/Containers/String.hpp>
 
@@ -29,12 +30,12 @@
 #include <cstdlib>
 #include <cstring>
 
-#if defined(HYP_MACOS)
+#if defined(HYP_APPLE)
 
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
 
-#elif HYP_LINUX
+#elif HYP_LINUX || HYP_ANDROID
 
 #include <link.h>
 
@@ -48,6 +49,25 @@ typedef void* HMODULE;
 #endif
 
 namespace Hyperion {
+
+#if HYP_LINUX || HYP_ANDROID
+static void GetLoadSegmentRange(const dl_phdr_info* info, UIntPtr& outBegin, UIntPtr& outEnd)
+{
+    outBegin = ~UIntPtr(0);
+    outEnd = 0;
+
+    for (int headerIndex = 0; headerIndex < info->dlpi_phnum; headerIndex++)
+    {
+        const ElfW(Phdr)& programHeader = info->dlpi_phdr[headerIndex];
+
+        if (programHeader.p_type == PT_LOAD)
+        {
+            outBegin = MathUtil::Min(outBegin, UIntPtr(info->dlpi_addr + programHeader.p_vaddr));
+            outEnd = MathUtil::Max(outEnd, UIntPtr(info->dlpi_addr + programHeader.p_vaddr + programHeader.p_memsz));
+        }
+    }
+}
+#endif
 
 #pragma region DynamicLibraryImpl
 
@@ -177,7 +197,7 @@ bool DynamicLibrary::GetImageRange(UIntPtr& outBegin, UIntPtr& outEnd) const
     outEnd = base + ntHeaders->OptionalHeader.SizeOfImage;
 
     return true;
-#elif HYP_MACOS
+#elif HYP_APPLE
     char libraryPath[PATH_MAX];
 
     if (!realpath(m_impl->path.Data(), libraryPath))
@@ -257,16 +277,7 @@ bool DynamicLibrary::GetImageRange(UIntPtr& outBegin, UIntPtr& outEnd) const
                 return 0;
             }
 
-            for (int headerIndex = 0; headerIndex < info->dlpi_phnum; headerIndex++)
-            {
-                const ElfW(Phdr)& programHeader = info->dlpi_phdr[headerIndex];
-
-                if (programHeader.p_type == PT_LOAD)
-                {
-                    search.begin = MathUtil::Min(search.begin, UIntPtr(info->dlpi_addr + programHeader.p_vaddr));
-                    search.end = MathUtil::Max(search.end, UIntPtr(info->dlpi_addr + programHeader.p_vaddr + programHeader.p_memsz));
-                }
-            }
+            GetLoadSegmentRange(info, search.begin, search.end);
 
             return 1;
         },
@@ -276,6 +287,58 @@ bool DynamicLibrary::GetImageRange(UIntPtr& outBegin, UIntPtr& outEnd) const
     outEnd = search.end;
 
     return search.end > search.begin;
+#elif HYP_ANDROID
+    // bionic has no RTLD_DI_LINKMAP, so find the loaded image whose path reopens to our handle.
+    // dlopen can't be called inside dl_iterate_phdr since it holds the loader lock
+    struct LoadedImage
+    {
+        String path;
+        UIntPtr begin;
+        UIntPtr end;
+    };
+
+    Array<LoadedImage> loadedImages;
+
+    dl_iterate_phdr(
+        [](dl_phdr_info* info, size_t, void* data) -> int
+        {
+            if (info->dlpi_name == nullptr || info->dlpi_name[0] == '\0')
+            {
+                return 0;
+            }
+
+            LoadedImage loadedImage { String(info->dlpi_name), 0, 0 };
+            GetLoadSegmentRange(info, loadedImage.begin, loadedImage.end);
+
+            static_cast<Array<LoadedImage>*>(data)->PushBack(std::move(loadedImage));
+
+            return 0;
+        },
+        &loadedImages);
+
+    for (const LoadedImage& loadedImage : loadedImages)
+    {
+        void* handle = dlopen(loadedImage.path.Data(), RTLD_NOW | RTLD_NOLOAD);
+
+        if (handle == nullptr)
+        {
+            continue;
+        }
+
+        dlclose(handle);
+
+        if (handle != m_impl->handle)
+        {
+            continue;
+        }
+
+        outBegin = loadedImage.begin;
+        outEnd = loadedImage.end;
+
+        return loadedImage.end > loadedImage.begin;
+    }
+
+    return false;
 #else
     return false;
 #endif

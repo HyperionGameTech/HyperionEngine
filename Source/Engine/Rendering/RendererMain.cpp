@@ -1356,7 +1356,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         if (UseIndirectRendering && drawCalls.drawCommandIndices[i] != ~0u)
         {
             cr << DrawIndexedIndirect(
-                indirectRenderer->GetDrawState().GetIndirectBuffer(frame->GetFrameIndex()),
+                indirectRenderer->GetDrawState().GetIndirectBuffer().gpuBuffer,
                 drawCalls.drawCommandIndices[i] * uint32(sizeof(IndirectDrawCommand)));
         }
         else
@@ -1468,7 +1468,7 @@ static void RenderAll(Frame* frame, const TPerformRenderingPayload<TCommandRecor
         if (UseIndirectRendering && instancedDrawCalls.drawCommandIndices[i] != ~0u)
         {
             cr << DrawIndexedIndirect(
-                indirectRenderer->GetDrawState().GetIndirectBuffer(frame->GetFrameIndex()),
+                indirectRenderer->GetDrawState().GetIndirectBuffer().gpuBuffer,
                 instancedDrawCalls.drawCommandIndices[i] * uint32(sizeof(IndirectDrawCommand)));
         }
         else

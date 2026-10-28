@@ -405,4 +405,31 @@ public:
     }
 };
 
+/// A buffer of indirect draw/dispatch arguments. CPU writes, compute shaders may write, consumed by indirect draws.
+class IndirectArgsBuffer : public RawBuffer
+{
+public:
+    static constexpr GpuBufferType BufferType = GpuBufferType::IndirectArgsBuffer;
+
+    IndirectArgsBuffer() = default;
+
+    IndirectArgsBuffer(size_t numElements, size_t elementSize)
+        : RawBuffer(GpuBufferType::IndirectArgsBuffer, numElements, elementSize)
+    {
+    }
+
+    IndirectArgsBuffer(const IndirectArgsBuffer& other) = delete;
+    IndirectArgsBuffer& operator=(const IndirectArgsBuffer& other) = delete;
+
+    IndirectArgsBuffer(IndirectArgsBuffer&& other) noexcept
+        : RawBuffer(static_cast<RawBuffer&&>(other))
+    {
+    }
+
+    IndirectArgsBuffer& operator=(IndirectArgsBuffer&& other) noexcept
+    {
+        return static_cast<IndirectArgsBuffer&>(static_cast<RawBuffer&>(*this) = static_cast<RawBuffer&&>(other));
+    }
+};
+
 } // namespace Hyperion

@@ -9,7 +9,6 @@
 #include <Core/Constants.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/Containers/FixedArray.hpp>
 #include <Core/Containers/Array.hpp>
 
 #include <Rendering/Shared.hpp>
@@ -70,9 +69,9 @@ public:
         return m_instanceOffset;
     }
 
-    HYP_FORCE_INLINE const GpuBufferRef& GetIndirectBuffer(uint32 frameIndex) const
+    HYP_FORCE_INLINE const IndirectArgsBuffer& GetIndirectBuffer() const
     {
-        return m_indirectBuffers[frameIndex];
+        return m_indirectBuffer;
     }
 
     void Create();
@@ -89,7 +88,7 @@ public:
 private:
     Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_indirectBuffers;
+    IndirectArgsBuffer m_indirectBuffer;
 
     ObjectInstance& NextInstance();
 
@@ -99,7 +98,6 @@ private:
     size_t m_numReservedInstances;
 
     uint32 m_numDrawCommands;
-    uint8 m_dirtyBits;
 };
 
 class IndirectRenderer
