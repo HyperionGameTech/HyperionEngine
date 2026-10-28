@@ -273,7 +273,7 @@ void UIObject::Init()
     meshComponent.userData = MeshComponentUserData {};
 
     Entity* entity = GetEntity();
-    scene->GetEntityManager()->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+    entity->AddComponent<MeshComponent>(std::move(meshComponent));
 
     SetReady(true);
 

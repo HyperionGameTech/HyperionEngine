@@ -660,10 +660,11 @@ HYP_ENGINE_TEST(AnimationPose, AnimationComponentLayoutMatchesManaged)
 {
     HYP_TEST_CHECK_MSG(sizeof(AnimationPlaybackState) == 72, "AnimationPlaybackState is {} bytes, AnimationComponent.cs expects 72", sizeof(AnimationPlaybackState));
     HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, animation) == 72, "animation at {}, AnimationComponent.cs expects 72", HYP_OFFSET_OF(AnimationComponent, animation));
-    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, layerMask) == 80, "layerMask at {}, AnimationComponent.cs expects 80", HYP_OFFSET_OF(AnimationComponent, layerMask));
-    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, graph) == 88, "graph at {}, AnimationComponent.cs expects 88", HYP_OFFSET_OF(AnimationComponent, graph));
-    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, graphInstance) == 96, "graphInstance at {}, AnimationComponent.cs expects 96", HYP_OFFSET_OF(AnimationComponent, graphInstance));
-    HYP_TEST_CHECK_MSG(sizeof(AnimationComponent) == 112, "AnimationComponent is {} bytes, AnimationComponent.cs expects 112", sizeof(AnimationComponent));
+    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, playOnStart) == 80, "playOnStart at {}, AnimationComponent.cs expects 80", HYP_OFFSET_OF(AnimationComponent, playOnStart));
+    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, layerMask) == 88, "layerMask at {}, AnimationComponent.cs expects 88", HYP_OFFSET_OF(AnimationComponent, layerMask));
+    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, graph) == 96, "graph at {}, AnimationComponent.cs expects 96", HYP_OFFSET_OF(AnimationComponent, graph));
+    HYP_TEST_CHECK_MSG(HYP_OFFSET_OF(AnimationComponent, graphInstance) == 104, "graphInstance at {}, AnimationComponent.cs expects 104", HYP_OFFSET_OF(AnimationComponent, graphInstance));
+    HYP_TEST_CHECK_MSG(sizeof(AnimationComponent) == 120, "AnimationComponent is {} bytes, AnimationComponent.cs expects 120", sizeof(AnimationComponent));
 }
 
 } // namespace scene

@@ -14,7 +14,7 @@ void AnimationComponent::Play(const Handle<Animation>& clip, AnimationLoopMode l
 {
     animation = clip;
 
-    playbackState.status = clip.IsValid() ? AnimationPlaybackStatus::PLAYING : AnimationPlaybackStatus::STOPPED;
+    playbackState.status = clip.IsValid() ? AnimationPlaybackStatus::Playing : AnimationPlaybackStatus::Stopped;
     playbackState.loopMode = loopMode;
     playbackState.speed = speed;
     playbackState.currentTime = 0.0f;
@@ -33,7 +33,7 @@ void AnimationComponent::CrossFade(const Handle<Animation>& clip, float duration
 
 void AnimationComponent::Stop()
 {
-    playbackState.status = AnimationPlaybackStatus::STOPPED;
+    playbackState.status = AnimationPlaybackStatus::Stopped;
 }
 
 } // namespace Hyperion

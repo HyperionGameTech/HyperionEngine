@@ -1919,6 +1919,11 @@ set(HYPERION_SDK_ENGINE_TYPES \"${HYP_GENERATED_DIR}/EngineTypes.json\")
     if(WIN32)
       separate_arguments(HYP_SDK_STANDARD_LIBRARIES NATIVE_COMMAND "${CMAKE_CXX_STANDARD_LIBRARIES}")
       list(APPEND HYP_SDK_STATIC_LIBRARIES ${HYP_SDK_STANDARD_LIBRARIES})
+    elseif(APPLE)
+      # NativeAOT links with the C driver, which leaves out the C++ standard library
+      list(APPEND HYP_SDK_STATIC_LIBRARIES "c++")
+    else()
+      list(APPEND HYP_SDK_STATIC_LIBRARIES "stdc++")
     endif()
 
     list(JOIN HYP_SDK_STATIC_LIBRARIES "\n" HYP_SDK_STATIC_LIBRARIES_TEXT)

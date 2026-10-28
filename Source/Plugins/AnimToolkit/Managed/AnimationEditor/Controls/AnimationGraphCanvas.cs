@@ -256,9 +256,14 @@ namespace Hyperion.Editor.Controls
 
         private Rect? OutputRect()
         {
-            if (_viewModel == null || _viewModel.Nodes.Count == 0)
+            if (_viewModel == null)
             {
                 return null;
+            }
+
+            if (_viewModel.Nodes.Count == 0)
+            {
+                return new Rect(0.0, 0.0, OutputWidth, HeaderHeight + RowHeight + 6.0);
             }
 
             if (RootNode() is { } root)

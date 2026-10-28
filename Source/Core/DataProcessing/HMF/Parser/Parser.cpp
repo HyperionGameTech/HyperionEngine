@@ -892,12 +892,12 @@ bool Parser::ResolveEnumName(const Class* enumClass, const String& name, BoxedVa
     }
 
     // Backward compatibility:
-    // HMF files written before enum members were renamed to TitleCase use SCREAMING_SNAKE_CASE names,
-    // optionally with a leading prefix segment (e.g. MAF_DEPTH_WRITE).
+    // HMF files written before enum members were renamed to TitleCase use SCREAMING_SNAKE_CASE names
+    // (or a single upper-case word, e.g. PLAYING), optionally with a leading prefix segment (e.g. MAF_DEPTH_WRITE).
     //
     // Try each underscore-delimited suffix (and the full name) as a TitleCase member name.
 
-    if (name != name.ToUpper() || !name.Contains('_'))
+    if (name != name.ToUpper())
     {
         return false;
     }

@@ -242,6 +242,21 @@ public:
     bool IsGraphReadOnly() const;
 
     HYP_METHOD()
+    Array<Name> GetSkeletonAssetNames() const;
+
+    HYP_METHOD()
+    Name GetFocusedSkeletonName() const;
+
+    HYP_METHOD()
+    Handle<AnimationGraph> CreateGraphAsset(Name name, Name skeletonName);
+
+    HYP_METHOD()
+    Name GetGraphTargetSkeletonName() const;
+
+    HYP_METHOD()
+    void SetGraphTargetSkeleton(Name skeletonName);
+
+    HYP_METHOD()
     bool CopyGraphToProject();
 
     HYP_METHOD()

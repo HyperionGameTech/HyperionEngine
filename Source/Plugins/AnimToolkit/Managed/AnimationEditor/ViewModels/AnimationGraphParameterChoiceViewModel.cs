@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -14,9 +15,13 @@ namespace Hyperion.Editor.ViewModels
         private bool _hasModelValue;
         private bool _isApplying;
 
-        public AnimationGraphParameterChoiceViewModel(ObjectBase target, Property property, bool isReadOnly)
+        private readonly Func<IEnumerable<string>> _source;
+
+        public AnimationGraphParameterChoiceViewModel(ObjectBase target, Property property, bool isReadOnly, Func<IEnumerable<string>> source)
             : base(target, property, isReadOnly, true)
         {
+            _source = source;
+
             PropertyChanged += OnOwnPropertyChanged;
 
             RebuildChoices();
@@ -55,10 +60,7 @@ namespace Hyperion.Editor.ViewModels
         {
             List<string> choices = new List<string> { NoneChoice };
 
-            if (AnimationEditorWiring.Instance is { } wiring)
-            {
-                choices.AddRange(wiring.GraphDocument.Parameters.Select(p => p.Name));
-            }
+            choices.AddRange(_source());
 
             if (_modelValue.Length > 0 && !choices.Contains(_modelValue))
             {

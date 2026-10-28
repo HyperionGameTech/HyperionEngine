@@ -1307,6 +1307,7 @@ Result AnimationGraph::LoadContents(const String& text)
     m_nodes = loaded->m_nodes;
     m_rootNode = loaded->m_rootNode;
     m_parameters = loaded->m_parameters;
+    m_targetSkeleton = loaded->m_targetSkeleton;
 
     MarkChanged();
 

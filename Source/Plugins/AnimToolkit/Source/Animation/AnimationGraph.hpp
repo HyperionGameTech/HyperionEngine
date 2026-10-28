@@ -30,6 +30,7 @@
 namespace Hyperion {
 
 class Animation;
+class Skeleton;
 class BoneMask;
 class AnimationGraphContext;
 struct AnimationGraphNodeState;
@@ -349,10 +350,10 @@ public:
     HYP_FIELD(Property = "Input", Serialize = true, Editor = false)
     uint32 input = InvalidAnimationGraphNode;
 
-    HYP_FIELD(Property = "RootBone", Serialize = true, Editor = true, EditorType = "Bone")
+    HYP_FIELD(Property = "RootBone", Serialize = true, Editor = true, EditorType = "GraphBone")
     Name rootBone;
 
-    HYP_FIELD(Property = "EndBone", Serialize = true, Editor = true, EditorType = "Bone")
+    HYP_FIELD(Property = "EndBone", Serialize = true, Editor = true, EditorType = "GraphBone")
     Name endBone;
 
     HYP_FIELD(Property = "Angle", Serialize = true, Editor = true)
@@ -682,6 +683,18 @@ public:
         return uint32(m_nodes.Size());
     }
 
+    HYP_METHOD()
+    const Handle<Skeleton>& GetTargetSkeleton() const
+    {
+        return m_targetSkeleton;
+    }
+
+    void SetTargetSkeleton(const Handle<Skeleton>& skeleton)
+    {
+        m_targetSkeleton = skeleton;
+        MarkChanged();
+    }
+
     HYP_METHOD(Property = "RootNode")
     uint32 GetRootNode() const
     {
@@ -781,6 +794,9 @@ private:
 
     HYP_FIELD(Property = "RootNode", Serialize = true, Editor = false)
     uint32 m_rootNode = 0;
+
+    HYP_FIELD(Property = "TargetSkeleton", Serialize = true, Editor = false)
+    Handle<Skeleton> m_targetSkeleton;
 
     HYP_FIELD(Property = "Parameters", Serialize = true, Editor = false)
     Array<AnimationGraphParameter> m_parameters;

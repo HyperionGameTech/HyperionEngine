@@ -91,6 +91,11 @@ namespace Hyperion.Editor.ViewModels
                             _ => null
                         };
 
+                        if (string.IsNullOrEmpty(rawName) && _kind == SkeletonChoiceKind.AnimationClip && skeleton != null)
+                        {
+                            rawName = GetIndexedClipName(skeleton);
+                        }
+
                         if (!string.IsNullOrEmpty(rawName))
                         {
                             currentChoice = rawName;
@@ -138,6 +143,19 @@ namespace Hyperion.Editor.ViewModels
                     }
                 });
             });
+        }
+
+        private string? GetIndexedClipName(Skeleton skeleton)
+        {
+            if (!_ownerEntity.TryGetComponent(out AnimationComponent animationComponent))
+            {
+                return null;
+            }
+
+            uint index = animationComponent.PlaybackState.AnimationIndex;
+            Name[] names = skeleton.GetAnimationNames().Cast<Name>().ToArray();
+
+            return index < names.Length ? names[index].ToString() : null;
         }
 
         private static HumanoidSkeletonData? GetHumanoidData(Skeleton skeleton)

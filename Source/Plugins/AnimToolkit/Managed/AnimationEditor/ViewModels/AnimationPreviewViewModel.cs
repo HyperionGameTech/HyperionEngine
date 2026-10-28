@@ -9,16 +9,18 @@ namespace Hyperion.Editor.ViewModels
     public class AnimationPreviewViewModel : InspectorPropertyViewModelBase
     {
         private const int PollIntervalMs = 100;
+        private const int ScrubHoldMs = 300;
 
         private readonly Entity _entity;
-        private readonly DispatcherTimer _pollTimer;
 
+        private DispatcherTimer? _pollTimer;
+        private bool _isShown;
         private bool _isPlaying;
+        private bool _hasGraph;
         private float _time;
         private float _length;
         private bool _isApplyingTime;
-        private bool _canOpenGraph;
-        private bool _isShown;
+        private DateTime _lastScrub = DateTime.MinValue;
 
         public AnimationPreviewViewModel(Entity entity)
             : base("Preview", default, null, null, false)
@@ -28,12 +30,11 @@ namespace Hyperion.Editor.ViewModels
             TogglePlayCommand = new RelayCommand(TogglePlay);
             EditCommand = new RelayCommand(() => AnimationEditorWiring.RequestEditAnimation(state => state.EnterEntity(_entity)));
             OpenGraphCommand = new RelayCommand(() => AnimationEditorWiring.OpenEntityGraph(_entity));
-
-            _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PollIntervalMs) };
-            _pollTimer.Tick += (_, _) => RefreshValue();
         }
 
         public override bool SupportsMultipleTargets => false;
+
+        public override bool ShowInlineLabel => false;
 
         public ICommand TogglePlayCommand { get; }
 
@@ -41,11 +42,19 @@ namespace Hyperion.Editor.ViewModels
 
         public ICommand OpenGraphCommand { get; }
 
-        public bool CanOpenGraph
+        public bool HasGraph
         {
-            get => _canOpenGraph;
-            private set => SetProperty(ref _canOpenGraph, value);
+            get => _hasGraph;
+            private set
+            {
+                if (SetProperty(ref _hasGraph, value))
+                {
+                    OnPropertyChanged(nameof(HasClip));
+                }
+            }
         }
+
+        public bool HasClip => !_hasGraph && _length > 0.0f;
 
         public bool IsPlaying
         {
@@ -54,17 +63,24 @@ namespace Hyperion.Editor.ViewModels
             {
                 if (SetProperty(ref _isPlaying, value))
                 {
-                    OnPropertyChanged(nameof(PlayButtonText));
+                    OnPropertyChanged(nameof(PlayIcon));
                 }
             }
         }
 
-        public string PlayButtonText => _isPlaying ? "Pause" : "Play";
+        public string PlayIcon => _isPlaying ? "DebugPause" : "Play";
 
         public float Length
         {
             get => _length;
-            private set => SetProperty(ref _length, value);
+            private set
+            {
+                if (SetProperty(ref _length, value))
+                {
+                    OnPropertyChanged(nameof(HasClip));
+                    OnPropertyChanged(nameof(TimeText));
+                }
+            }
         }
 
         public float Time
@@ -72,14 +88,17 @@ namespace Hyperion.Editor.ViewModels
             get => _time;
             set
             {
-                if (SetProperty(ref _time, value))
+                if (!SetProperty(ref _time, value))
                 {
-                    OnPropertyChanged(nameof(TimeText));
+                    return;
+                }
 
-                    if (!_isApplyingTime)
-                    {
-                        Scrub(value);
-                    }
+                OnPropertyChanged(nameof(TimeText));
+
+                if (!_isApplyingTime)
+                {
+                    _lastScrub = DateTime.UtcNow;
+                    Scrub(value);
                 }
             }
         }
@@ -96,13 +115,15 @@ namespace Hyperion.Editor.ViewModels
             }
             else
             {
-                _pollTimer.Stop();
+                _pollTimer?.Stop();
             }
         }
 
+        private static AnimationEditorExtension? GetExtension() => EngineManager.EditorGame?.EditorSubsystem?.GetAnimationEditorExtension();
+
         public override void RefreshValue()
         {
-            AnimationEditorExtension? animationExtension = EngineManager.EditorGame?.EditorSubsystem?.GetAnimationEditorExtension();
+            AnimationEditorExtension? animationExtension = GetExtension();
 
             if (animationExtension == null)
             {
@@ -117,39 +138,45 @@ namespace Hyperion.Editor.ViewModels
                 float length = animationExtension.GetAnimationClipLength(_entity);
                 bool hasGraph = _entity.TryGetComponent(out AnimationComponent animationComponent) && animationComponent.Graph != null;
 
-                Dispatcher.UIThread.Post(() =>
-                {
-                    CanOpenGraph = hasGraph;
-
-                    ApplyState(isActive, isPlaying, time, length);
-                });
+                Dispatcher.UIThread.Post(() => ApplyState(isPlaying, time, length, hasGraph));
             });
         }
 
-        private void ApplyState(bool isActive, bool isPlaying, float time, float length)
+        private void ApplyState(bool isPlaying, float time, float length, bool hasGraph)
         {
+            HasGraph = hasGraph;
             IsPlaying = isPlaying;
             Length = length;
 
-            _isApplyingTime = true;
-            Time = time;
-            _isApplyingTime = false;
-
-            OnPropertyChanged(nameof(TimeText));
-
-            if (_isShown && isActive && isPlaying)
+            if ((DateTime.UtcNow - _lastScrub).TotalMilliseconds > ScrubHoldMs)
             {
+                _isApplyingTime = true;
+                Time = time;
+                _isApplyingTime = false;
+            }
+
+            if (isPlaying)
+            {
+                _pollTimer ??= CreatePollTimer();
                 _pollTimer.Start();
             }
             else
             {
-                _pollTimer.Stop();
+                _pollTimer?.Stop();
             }
+        }
+
+        private DispatcherTimer CreatePollTimer()
+        {
+            DispatcherTimer timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PollIntervalMs) };
+            timer.Tick += (_, _) => RefreshValue();
+
+            return timer;
         }
 
         private void TogglePlay()
         {
-            AnimationEditorExtension? animationExtension = EngineManager.EditorGame?.EditorSubsystem?.GetAnimationEditorExtension();
+            AnimationEditorExtension? animationExtension = GetExtension();
 
             if (animationExtension == null)
             {
@@ -157,6 +184,8 @@ namespace Hyperion.Editor.ViewModels
             }
 
             bool play = !_isPlaying;
+
+            IsPlaying = play;
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -171,12 +200,15 @@ namespace Hyperion.Editor.ViewModels
 
         private void Scrub(float time)
         {
-            AnimationEditorExtension? animationExtension = EngineManager.EditorGame?.EditorSubsystem?.GetAnimationEditorExtension();
+            AnimationEditorExtension? animationExtension = GetExtension();
 
             if (animationExtension == null)
             {
                 return;
             }
+
+            IsPlaying = false;
+            _pollTimer?.Stop();
 
             _ = EngineManager.PostToSimThread(() =>
             {
@@ -187,7 +219,7 @@ namespace Hyperion.Editor.ViewModels
 
                 animationExtension.SetAnimationPreviewPlaying(false);
                 animationExtension.SetAnimationPreviewTime(time);
-            }).ContinueWith(_ => Dispatcher.UIThread.Post(RefreshValue));
+            });
         }
     }
 }

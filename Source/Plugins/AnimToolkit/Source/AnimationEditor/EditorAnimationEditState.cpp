@@ -1141,7 +1141,7 @@ void EditorAnimationEditState::ApplyPreviewClip()
     {
         animationComponent->animation = m_animation;
         animationComponent->graph = m_graph;
-        animationComponent->playbackState.status = AnimationPlaybackStatus::STOPPED;
+        animationComponent->playbackState.status = AnimationPlaybackStatus::Stopped;
     }
 
     AnimationSystem* animationSystem = GetProjectAnimationSystem(*m_subsystem);
@@ -1614,6 +1614,16 @@ bool EditorAnimationEditState::EnterGraphFrom(const Handle<AnimationGraph>& grap
         source = MakeStrongRef(FindSkinnedSelfOrDescendant(*owner));
     }
 
+    if (!source.IsValid() && graph->GetTargetSkeleton().IsValid())
+    {
+        source = MakeStrongRef(FindSkinnedEntityInWorld(*m_subsystem, graph->GetTargetSkeleton().Get(), nullptr));
+
+        if (!source.IsValid())
+        {
+            source = FindSkinnedEntityInPrefabs(graph->GetTargetSkeleton().Get(), nullptr);
+        }
+    }
+
     for (const Handle<Animation>& clip : graph->CollectClips())
     {
         if (source.IsValid())
@@ -1654,6 +1664,12 @@ bool EditorAnimationEditState::EnterGraphFrom(const Handle<AnimationGraph>& grap
     m_graphOwner = owner;
     m_isGraphReadOnly = graph->GetAssetRegistry() != GetCurrentAssetRegistry();
 
+    if (!m_isGraphReadOnly && owner.IsValid() && !m_graph->GetTargetSkeleton().IsValid())
+    {
+        m_graph->SetTargetSkeleton(m_skeleton);
+        m_graphSnapshot = SaveGraphText(*m_graph);
+    }
+
     OnGraphChanged();
 
     return true;
@@ -1662,6 +1678,164 @@ bool EditorAnimationEditState::EnterGraphFrom(const Handle<AnimationGraph>& grap
 bool EditorAnimationEditState::IsGraphReadOnly() const
 {
     return IsEditingGraph() && m_isGraphReadOnly;
+}
+
+static Handle<Skeleton> FindSkeletonAsset(Name skeletonName)
+{
+    for (const Handle<AssetRegistry>& registry : { GetCurrentAssetRegistry(), GetEngineAssetRegistry() })
+    {
+        if (!registry.IsValid())
+        {
+            continue;
+        }
+
+        if (Handle<Skeleton> skeleton = registry->GetAsset<Skeleton>(AssetBuckets::Skeletons, skeletonName); skeleton.IsValid())
+        {
+            return skeleton;
+        }
+    }
+
+    return Handle<Skeleton>::empty;
+}
+
+static bool IsPreviewCompatible(const Skeleton& entitySkeleton, const Skeleton& targetSkeleton)
+{
+    return &entitySkeleton == &targetSkeleton || (HumanoidSkeletonData::IsHumanoid(entitySkeleton) && HumanoidSkeletonData::IsHumanoid(targetSkeleton));
+}
+
+Array<Name> EditorAnimationEditState::GetSkeletonAssetNames() const
+{
+    Array<Name> names;
+
+    for (const Handle<AssetRegistry>& registry : { GetCurrentAssetRegistry(), GetEngineAssetRegistry() })
+    {
+        if (!registry.IsValid())
+        {
+            continue;
+        }
+
+        Array<AssetDesc> descs;
+        registry->GetBucketAssetDescs(AssetBuckets::Skeletons.GetIndex(), descs);
+
+        for (const AssetDesc& desc : descs)
+        {
+            if (desc.name.IsValid() && !names.Contains(desc.name))
+            {
+                names.PushBack(desc.name);
+            }
+        }
+    }
+
+    return names;
+}
+
+Name EditorAnimationEditState::GetFocusedSkeletonName() const
+{
+    const Handle<Node> focused = m_subsystem->GetFocusedNode();
+
+    if (!focused.IsValid())
+    {
+        return Name::Invalid();
+    }
+
+    for (Node* node = focused.Get(); node; node = node->GetParent())
+    {
+        if (const Entity* entity = TryCast<Entity>(node); entity && GetEntitySkeleton(*entity).IsValid())
+        {
+            return GetEntitySkeleton(*entity)->GetName();
+        }
+    }
+
+    if (Entity* skinned = FindSkinnedSelfOrDescendant(*focused))
+    {
+        return GetEntitySkeleton(*skinned)->GetName();
+    }
+
+    return Name::Invalid();
+}
+
+Handle<AnimationGraph> EditorAnimationEditState::CreateGraphAsset(Name name, Name skeletonName)
+{
+    AssertOnThread(g_simThread);
+
+    const Handle<EditorProject>& project = m_subsystem->GetCurrentProject();
+
+    if (!project.IsValid() || !GetCurrentAssetRegistry().IsValid())
+    {
+        return Handle<AnimationGraph>::empty;
+    }
+
+    Handle<AnimationGraph> graph = MakeHandle<AnimationGraph>(name.IsValid() ? name : NAME("NewAnimationGraph"));
+    InitObject(graph);
+
+    graph->SetTargetSkeleton(FindSkeletonAsset(skeletonName));
+
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
+        "New AnimationGraph",
+        Proc<EditorActionFunctions()>(
+            [graph]() -> EditorActionFunctions
+            {
+                return EditorActionFunctions {
+                    .execute = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [graph](EditorSubsystem*, EditorProject*)
+                        {
+                            GetCurrentAssetRegistry()->PutAssetUnique(AssetBuckets::Animations, graph);
+                        }),
+                    .revert = Proc<void(EditorSubsystem*, EditorProject*)>(
+                        [graph](EditorSubsystem*, EditorProject*)
+                        {
+                            GetCurrentAssetRegistry()->RemoveAsset(graph);
+                        })
+                };
+            }));
+
+    InitObject(action);
+    project->GetActionStack()->PushAction(action);
+
+    return graph;
+}
+
+Name EditorAnimationEditState::GetGraphTargetSkeletonName() const
+{
+    if (!IsEditingGraph() || !m_graph->GetTargetSkeleton().IsValid())
+    {
+        return Name::Invalid();
+    }
+
+    return m_graph->GetTargetSkeleton()->GetName();
+}
+
+void EditorAnimationEditState::SetGraphTargetSkeleton(Name skeletonName)
+{
+    AssertOnThread(g_simThread);
+
+    if (!IsEditingGraph())
+    {
+        return;
+    }
+
+    const Handle<Skeleton> skeleton = FindSkeletonAsset(skeletonName);
+
+    m_graph->SetTargetSkeleton(skeleton);
+
+    CommitGraphEdit("Set Graph Skeleton");
+
+    if (!skeleton.IsValid() || (m_skeleton.IsValid() && IsPreviewCompatible(*m_skeleton, *skeleton)))
+    {
+        return;
+    }
+
+    Handle<Entity> source = MakeStrongRef(FindSkinnedEntityInWorld(*m_subsystem, skeleton.Get(), nullptr));
+
+    if (!source.IsValid())
+    {
+        source = FindSkinnedEntityInPrefabs(skeleton.Get(), nullptr);
+    }
+
+    if (source.IsValid())
+    {
+        SetGraphPreviewSource(source);
+    }
 }
 
 bool EditorAnimationEditState::CopyGraphToProject()
@@ -1768,6 +1942,8 @@ Array<Handle<Entity>> EditorAnimationEditState::GetGraphPreviewCandidates() cons
         return candidates;
     }
 
+    const Skeleton* target = m_graph->GetTargetSkeleton().Get();
+
     for (const Handle<Scene>& scene : world->GetScenes())
     {
         if (!scene.IsValid() || !scene->GetRoot().IsValid() || (scene->GetSceneFlags() & SceneFlags::EDITOR))
@@ -1777,10 +1953,19 @@ Array<Handle<Entity>> EditorAnimationEditState::GetGraphPreviewCandidates() cons
 
         for (Node* descendant : scene->GetRoot()->GetDescendants())
         {
-            if (Entity* entity = TryCast<Entity>(descendant); entity && GetEntitySkeleton(*entity).IsValid())
+            Entity* entity = TryCast<Entity>(descendant);
+
+            if (!entity || !GetEntitySkeleton(*entity).IsValid())
             {
-                candidates.PushBack(MakeStrongRef(entity));
+                continue;
             }
+
+            if (target && !IsPreviewCompatible(*GetEntitySkeleton(*entity), *target) && entity != m_sourceEntity.Get())
+            {
+                continue;
+            }
+
+            candidates.PushBack(MakeStrongRef(entity));
         }
     }
 

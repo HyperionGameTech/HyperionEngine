@@ -155,8 +155,12 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
     if (!animationComponent.animation.IsValid() && playbackState.animationIndex == ~0u)
     {
         playbackState.animationIndex = 0;
-        playbackState.status = AnimationPlaybackStatus::PLAYING;
-        playbackState.loopMode = AnimationLoopMode::REPEAT;
+        playbackState.loopMode = AnimationLoopMode::Repeat;
+    }
+
+    if (animationComponent.playOnStart)
+    {
+        playbackState.status = AnimationPlaybackStatus::Playing;
     }
 }
 
@@ -533,7 +537,7 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             AnimationPlaybackState& playbackState = animationComponent.playbackState;
 
-            if (playbackState.status != AnimationPlaybackStatus::PLAYING)
+            if (playbackState.status != AnimationPlaybackStatus::Playing)
             {
                 continue;
             }
@@ -562,10 +566,10 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (playbackState.currentTime > animationLength)
             {
-                if (playbackState.loopMode == AnimationLoopMode::ONCE)
+                if (playbackState.loopMode == AnimationLoopMode::Once)
                 {
                     // hold the last frame instead of snapping back to frame 0
-                    playbackState.status = AnimationPlaybackStatus::STOPPED;
+                    playbackState.status = AnimationPlaybackStatus::Stopped;
                     playbackState.currentTime = animationLength;
                 }
                 else
@@ -578,9 +582,9 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
             else if (playbackState.currentTime < 0.0f)
             {
                 // playing in reverse
-                if (playbackState.loopMode == AnimationLoopMode::ONCE)
+                if (playbackState.loopMode == AnimationLoopMode::Once)
                 {
-                    playbackState.status = AnimationPlaybackStatus::STOPPED;
+                    playbackState.status = AnimationPlaybackStatus::Stopped;
                     playbackState.currentTime = 0.0f;
                 }
                 else

@@ -23,11 +23,58 @@
 
 #include <DotNET/ManagedClass.hpp>
 
+#include <Scripting/ScriptObjectResource.hpp>
+
+#include <Core/Reflection/ObjectPool.hpp>
+
 #include <HyperionEngine.hpp>
 
 namespace Hyperion {
 
 using namespace dotnet;
+
+// a wrapper's strong ref is only given back by its Dispose or finalizer, neither of which runs once the host is shut down
+static void ReleaseManagedObjectRefs()
+{
+    Array<ObjectBase*> objects;
+
+    auto collectObject = [&objects](const ObjectHeader* header)
+    {
+        if (header->GetRefCountStrong() == 0)
+        {
+            return;
+        }
+
+        ObjectBase* ptr = ObjectHeader::GetObjectPointer(const_cast<ObjectHeader*>(header));
+        ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
+
+        if (scriptObjectResource == nullptr)
+        {
+            return;
+        }
+
+        if (ScriptObjectData_DotNet* dotNetData = scriptObjectResource->GetScriptObjectData_DotNet(); dotNetData && dotNetData->objectPtr)
+        {
+            objects.PushBack(ptr);
+        }
+    };
+
+    auto collectFromContainer = [&collectObject](TypeId, ObjectContainerBase* container)
+    {
+        if (container != nullptr)
+        {
+            container->ForEachHeader(collectObject);
+        }
+    };
+
+    GetObjectContainerMap().ForEachContainer(collectFromContainer);
+
+    for (ObjectBase* ptr : objects)
+    {
+        ptr->GetScriptObjectResource()->DetachManagedObject();
+        ptr->Release();
+    }
+}
 
 class DotNetImpl
 {
@@ -325,6 +372,8 @@ void DotNETHost::Shutdown()
 
     m_isInitialized = false;
     m_isShuttingDown = false;
+
+    ReleaseManagedObjectRefs();
 }
 
 } // namespace Hyperion

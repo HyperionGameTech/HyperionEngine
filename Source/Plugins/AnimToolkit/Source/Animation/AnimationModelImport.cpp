@@ -95,8 +95,8 @@ void AnimationModelImportProcessor::Process(ModelImportContents& contents, const
             animationComponent.animation = firstClip;
             animationComponent.playbackState = {
                 .animationIndex = 0,
-                .status = AnimationPlaybackStatus::PLAYING,
-                .loopMode = AnimationLoopMode::REPEAT,
+                .status = AnimationPlaybackStatus::Playing,
+                .loopMode = AnimationLoopMode::Repeat,
                 .speed = 1.0f,
                 .currentTime = 0.0f
             };

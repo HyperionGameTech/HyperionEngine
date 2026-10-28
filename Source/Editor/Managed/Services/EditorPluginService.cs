@@ -84,6 +84,7 @@ namespace Hyperion.Editor.Services
         internal readonly Dictionary<string, string> AssetIcons = new();
         internal readonly HashSet<string> EntityDropAssetClasses = new();
         internal readonly HashSet<string> CreatableAssetClasses = new();
+        internal readonly Dictionary<string, Action<string>> AssetCreators = new();
 
         public string PluginName { get; }
 
@@ -171,9 +172,14 @@ namespace Hyperion.Editor.Services
         }
 
         /// An asset class the content browser can create
-        public void AddCreatableAssetClass(string assetClassName)
+        public void AddCreatableAssetClass(string assetClassName, Action<string>? create = null)
         {
             CreatableAssetClasses.Add(assetClassName);
+
+            if (create != null)
+            {
+                AssetCreators[assetClassName] = create;
+            }
         }
     }
 
@@ -376,6 +382,19 @@ namespace Hyperion.Editor.Services
         public bool IsCreatableAssetClass(string assetClassName)
         {
             return _registries.Values.Any(registry => registry.CreatableAssetClasses.Contains(assetClassName));
+        }
+
+        public Action<string>? FindAssetCreator(string assetClassName)
+        {
+            foreach (EditorPluginRegistry registry in _registries.Values)
+            {
+                if (registry.AssetCreators.TryGetValue(assetClassName, out Action<string>? create))
+                {
+                    return create;
+                }
+            }
+
+            return null;
         }
 
         private static void Invoke(EditorPluginRegistry registry, Action action)

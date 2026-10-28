@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Commands;
@@ -29,6 +30,7 @@ namespace Hyperion.Editor.ViewModels
             registry.RegisterView<AnimationGraphLinkViewModel, AnimationGraphLinkEditor>();
             registry.RegisterView<AnimationGraphInspectorViewModel, AnimationGraphInspectorView>();
             registry.RegisterView<AnimationGraphParameterChoiceViewModel, AnimationGraphParameterChoiceEditor>();
+            registry.RegisterView<NewAnimationGraphPanelViewModel, NewAnimationGraphPanelView>();
 
             registry.AddEditModeBar(Timeline);
             registry.AddDocument(GraphDocument);
@@ -72,7 +74,10 @@ namespace Hyperion.Editor.ViewModels
                 isNameType ? new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, SkeletonChoiceKind.Socket) : null);
 
             registry.RegisterObjectPropertyEditor("GraphParameter", (target, property, isReadOnly, isNameType) =>
-                isNameType ? new AnimationGraphParameterChoiceViewModel(target, property, isReadOnly) : null);
+                isNameType ? new AnimationGraphParameterChoiceViewModel(target, property, isReadOnly, () => GraphDocument.Parameters.Select(p => p.Name)) : null);
+
+            registry.RegisterObjectPropertyEditor("GraphBone", (target, property, isReadOnly, isNameType) =>
+                isNameType ? new AnimationGraphParameterChoiceViewModel(target, property, isReadOnly, () => GraphDocument.BoneNames) : null);
 
             registry.RegisterPropertyEditor("AnimationClip", (classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, _) =>
                 new SkeletonChoicePropertyViewModel(classAddress, targetAddressResolver, property, isReadOnly, ownerEntity, SkeletonChoiceKind.AnimationClip));
@@ -91,7 +96,7 @@ namespace Hyperion.Editor.ViewModels
             registry.AddEntityDropAssetClass("Animation");
             registry.AddEntityDropAssetClass("AnimationGraph");
 
-            registry.AddCreatableAssetClass("AnimationGraph");
+            registry.AddCreatableAssetClass("AnimationGraph", folderPath => PanelService.Instance.OpenPanel(new NewAnimationGraphPanelViewModel(folderPath)));
         }
 
         /// <summary>Opens animation edit mode once any current edit mode is left.</summary>

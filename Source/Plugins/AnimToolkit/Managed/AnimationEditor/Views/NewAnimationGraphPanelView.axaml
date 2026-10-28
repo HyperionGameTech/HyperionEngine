@@ -1,0 +1,47 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.NewAnimationGraphPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Hyperion.Editor.ViewModels"
+    x:DataType="vm:NewAnimationGraphPanelViewModel"
+    mc:Ignorable="d">
+    <DockPanel>
+        <Border
+            Padding="12,10"
+            Background="{DynamicResource Brush.PanelAlt}"
+            BorderBrush="{DynamicResource Brush.Border}"
+            BorderThickness="0,1,0,0"
+            DockPanel.Dock="Bottom">
+            <StackPanel
+                HorizontalAlignment="Right"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Padding="20,6"
+                    Classes="Primary"
+                    Command="{Binding CreateCommand}"
+                    Content="Create" />
+                <Button
+                    Padding="20,6"
+                    Command="{Binding CancelCommand}"
+                    Content="Cancel" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Margin="12,12,12,8" Spacing="12">
+            <StackPanel Spacing="6">
+                <TextBlock Classes="section-label" Text="Name" />
+                <TextBox Text="{Binding GraphName, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Spacing="6">
+                <TextBlock Classes="section-label" Text="Skeleton" />
+                <ComboBox
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{Binding SkeletonChoices}"
+                    SelectedItem="{Binding SelectedSkeleton}" />
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
+</UserControl>

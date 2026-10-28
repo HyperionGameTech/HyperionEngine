@@ -44,12 +44,14 @@ namespace Hyperion
     }
 
     [ClassBinding(Name="AnimationComponent")]
-    [StructLayout(LayoutKind.Sequential, Size = 112)]
+    [StructLayout(LayoutKind.Sequential, Size = 120)]
     public ref struct AnimationComponent : IComponent
     {
         public AnimationPlaybackState PlaybackState = new();
 
         private Handle<Animation> _animationHandle;
+
+        private byte _playOnStart = 1;
 
         private Handle<BoneMask> _layerMaskHandle;
 
@@ -87,6 +89,12 @@ namespace Hyperion
 
                 _animationHandle = new Handle<Animation>(value);
             }
+        }
+
+        public bool PlayOnStart
+        {
+            get => _playOnStart != 0;
+            set => _playOnStart = value ? (byte)1 : (byte)0;
         }
 
         public BoneMask? LayerMask

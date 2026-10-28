@@ -1290,6 +1290,13 @@ namespace Hyperion.Editor.ViewModels
         {
             string folderPath = _currentFolder.Path;
 
+            if (EditorPluginService.Instance.FindAssetCreator(className) is { } create)
+            {
+                create(folderPath);
+
+                return;
+            }
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 if (!CanCreateAssetsOnSimThread(className))

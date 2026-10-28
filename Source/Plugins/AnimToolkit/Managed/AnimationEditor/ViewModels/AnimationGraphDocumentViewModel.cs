@@ -289,6 +289,7 @@ namespace Hyperion.Editor.ViewModels
         private List<Entity> _previewEntities = new List<Entity>();
         private int _selectedPreviewIndex = -1;
         private bool _isApplyingPreview;
+        private string? _selectedSkeleton;
         private bool _isPreviewPlaying;
 
         private int _openStateMachine = AnimationGraphNodeView.NoInput;
@@ -366,7 +367,27 @@ namespace Hyperion.Editor.ViewModels
 
         public ObservableCollection<string> PreviewChoices { get; } = new ObservableCollection<string>();
 
+        public const string NoSkeletonChoice = "(no skeleton)";
+
+        public ObservableCollection<string> SkeletonChoices { get; } = new ObservableCollection<string>();
+
+        public string? SelectedSkeleton
+        {
+            get => _selectedSkeleton;
+            set
+            {
+                if (SetProperty(ref _selectedSkeleton, value) && !_isApplyingPreview && value != null)
+                {
+                    string name = value == NoSkeletonChoice ? string.Empty : value;
+
+                    PostEdit(state => state.SetGraphTargetSkeleton(new Name(name)));
+                }
+            }
+        }
+
         public IReadOnlyList<string> ClipChoices { get; private set; } = Array.Empty<string>();
+
+        public IReadOnlyList<string> BoneNames { get; private set; } = Array.Empty<string>();
 
         public IReadOnlyList<(string ClassName, string Label)> NodeKindChoices { get; } = NodeKinds.Select(kv => (kv.Key, kv.Value.Label)).ToList();
 
@@ -1031,6 +1052,9 @@ namespace Hyperion.Editor.ViewModels
                 List<string> previewNames = new List<string>();
                 int previewIndex = -1;
                 List<string> clipChoices = new List<string>();
+                List<string> skeletonNames = new List<string> { NoSkeletonChoice };
+                string targetSkeleton = string.Empty;
+                List<string> boneNames = new List<string>();
 
                 if (state != null)
                 {
@@ -1050,6 +1074,13 @@ namespace Hyperion.Editor.ViewModels
                     }
 
                     clipChoices = state.GetClipNames().Cast<Name>().Select(n => n.ToString()).ToList();
+                    skeletonNames.AddRange(state.GetSkeletonAssetNames().Cast<Name>().Select(n => n.ToString()).OrderBy(n => n));
+                    targetSkeleton = state.GetGraphTargetSkeletonName().ToString();
+
+                    if (state.GetSkeleton() is { } previewSkeleton)
+                    {
+                        boneNames = previewSkeleton.GetBoneNames().Cast<Name>().Select(n => n.ToString()).ToList();
+                    }
                 }
 
                 Dispatcher.UIThread.Post(() =>
@@ -1062,8 +1093,10 @@ namespace Hyperion.Editor.ViewModels
                     IsGraphReadOnly = isGraphReadOnly;
                     Nodes = nodes;
                     ClipChoices = clipChoices;
+                    BoneNames = boneNames;
 
                     ApplyPreviewChoices(previewEntities, previewNames, previewIndex);
+                    ApplySkeletonChoices(skeletonNames, targetSkeleton);
 
                     if (!Parameters.Select(p => (p.Name, p.Type)).SequenceEqual(parameters))
                     {
@@ -1100,7 +1133,7 @@ namespace Hyperion.Editor.ViewModels
 
                     GraphChanged?.Invoke();
 
-                    if (_frameOnNextRefresh && nodes.Count > 0)
+                    if (_frameOnNextRefresh)
                     {
                         _frameOnNextRefresh = false;
                         FrameRequested?.Invoke();
@@ -1109,6 +1142,25 @@ namespace Hyperion.Editor.ViewModels
                     PollPreview();
                 });
             });
+        }
+
+        private void ApplySkeletonChoices(List<string> names, string targetSkeleton)
+        {
+            _isApplyingPreview = true;
+
+            if (!SkeletonChoices.SequenceEqual(names))
+            {
+                SkeletonChoices.Clear();
+
+                foreach (string name in names)
+                {
+                    SkeletonChoices.Add(name);
+                }
+            }
+
+            SelectedSkeleton = targetSkeleton.Length > 0 ? targetSkeleton : NoSkeletonChoice;
+
+            _isApplyingPreview = false;
         }
 
         private void ApplyPreviewChoices(List<Entity> entities, List<string> names, int selectedIndex)

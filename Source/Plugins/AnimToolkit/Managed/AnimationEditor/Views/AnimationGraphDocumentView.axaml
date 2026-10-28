@@ -71,6 +71,12 @@
                         Spacing="4">
                         <ComboBox
                             MinWidth="120"
+                            IsEnabled="{Binding IsEditable}"
+                            ItemsSource="{Binding SkeletonChoices}"
+                            SelectedItem="{Binding SelectedSkeleton}"
+                            ToolTip.Tip="Skeleton" />
+                        <ComboBox
+                            MinWidth="120"
                             ItemsSource="{Binding PreviewChoices}"
                             SelectedIndex="{Binding SelectedPreviewIndex}"
                             ToolTip.Tip="Preview on" />
