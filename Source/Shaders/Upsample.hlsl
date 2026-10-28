@@ -1,6 +1,6 @@
-#include "../Include/Defines.hlsli"
-#include "../Include/Shared.hlsli"
-#include "../Include/Scene.hlsli"
+#include "./Include/Defines.hlsli"
+#include "./Include/Shared.hlsli"
+#include "./Include/Scene.hlsli"
 
 PERMUTE(RED_TO_WHITE);
 
@@ -69,11 +69,11 @@ DECLARE_BUFFER_DYNAMIC(Upsample, CBuffer) cbuffer CBuffer
 };
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../Include/Shared.hlsli"
-#include "../Include/Scene.hlsli"
-#include "../Include/Gbuffer.hlsli"
-#include "../Include/Packing.hlsli"
-#include "../Include/Noise.hlsli"
+#include "./Include/Shared.hlsli"
+#include "./Include/Scene.hlsli"
+#include "./Include/Gbuffer.hlsli"
+#include "./Include/Packing.hlsli"
+#include "./Include/Noise.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
     
 static const float SpatialWeights[5] = { 0.0545f, 0.2442f, 0.4026f, 0.2442f, 0.0545f };

@@ -63,6 +63,7 @@ float3 CalculateRefraction(
 
     float4 refraction_pos = mul(camera.viewProjMat, float4(refraction.position, 1.0));
     refraction_pos /= refraction_pos.w;
+    refraction_pos.xy += camera.jitter.xy;
 
     float2 refraction_texcoord = float2(refraction_pos.x * 0.5 + 0.5, (-refraction_pos.y) * 0.5 + 0.5);
 

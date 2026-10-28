@@ -86,11 +86,11 @@ public:
     void ResetDrawState();
 
 private:
+    ObjectInstance& NextInstance();
+
     Array<IndirectDrawCommand, RHIAllocator> m_drawCommandsBuffer;
 
     IndirectArgsBuffer m_indirectBuffer;
-
-    ObjectInstance& NextInstance();
 
     StructuredBuffer m_instances;
     ObjectInstance* m_instanceData;

@@ -81,6 +81,8 @@ EDITOR_API bool IsGameProjectUnmodified(const FilePath& projectFilepath);
 
 EDITOR_API Result GenerateGameProjectFiles(const FilePath& projectFilepath, GameProjectLanguage language, Span<const Name> pluginModules);
 
+EDITOR_API Result UpgradeGameProjectFiles(const FilePath& projectFilepath);
+
 EDITOR_API Result RemoveGameProjectFiles(const FilePath& projectFilepath);
 
 EDITOR_API Result RenameGameProjectFiles(const FilePath& projectFilepath, const String& oldName, const String& newName);

@@ -322,6 +322,53 @@ EDITOR_API Result GenerateGameProjectFiles(
     return {};
 }
 
+EDITOR_API Result UpgradeGameProjectFiles(const FilePath& projectFilepath)
+{
+    if (GetGameProjectLanguage(projectFilepath) != GameProjectLanguage::Native)
+    {
+        return {};
+    }
+
+    const FilePath cmakeListsPath = projectFilepath.BasePath() / "Source" / "CMakeLists.txt";
+    const String name = GetNativeProjectName(projectFilepath);
+
+    String text;
+
+    if (!ReadTextFile(cmakeListsPath, text))
+    {
+        return {};
+    }
+
+    const String newline = text.Contains("\r\n") ? "\r\n" : "\n";
+
+    String upgradedText = text;
+
+    upgradedText = upgradedText.ReplaceAll(
+        String("add_library(") + name + "Game SHARED ",
+        String("add_library(") + name + "Game ${HYPERION_GAME_MODULE_TYPE} ");
+
+    if (!upgradedText.Contains("hyperion_link_plugin_modules("))
+    {
+        upgradedText = upgradedText.ReplaceAll(
+            String("hyperion_link_scripts(") + name + ")" + newline,
+            String("hyperion_link_scripts(") + name + ")" + newline + "hyperion_link_plugin_modules(" + name + ")" + newline);
+    }
+
+    if (upgradedText == text)
+    {
+        return {};
+    }
+
+    if (!WriteTextFile(cmakeListsPath, upgradedText))
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open {} for writing", cmakeListsPath);
+    }
+
+    HYP_LOG(Editor, Info, "Upgraded {} to the current game project template", cmakeListsPath);
+
+    return {};
+}
+
 EDITOR_API Result RemoveGameProjectFiles(const FilePath& projectFilepath)
 {
     if (!IsGameProjectUnmodified(projectFilepath))

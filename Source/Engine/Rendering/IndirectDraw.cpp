@@ -74,10 +74,7 @@ void IndirectDrawState::Create()
     AssertOnThread(g_renderThread);
 
     m_instances = StructuredBuffer(1, sizeof(ObjectInstance));
-    m_instances.Initialize();
-
     m_indirectBuffer = IndirectArgsBuffer(1, sizeof(IndirectDrawCommand));
-    m_indirectBuffer.Initialize();
 }
 
 void IndirectDrawState::ReserveInstances(size_t count)
@@ -90,6 +87,11 @@ void IndirectDrawState::ReserveInstances(size_t count)
 
         m_instances.ClearDirty();
         m_instances.MarkDirty(0, m_instanceOffset * sizeof(ObjectInstance));
+    }
+
+    if (!m_instances.IsInitialized())
+    {
+        m_instances.Initialize();
     }
 
     m_instanceData = m_instances.GetWritePtr<ObjectInstance>(m_instanceOffset, count) - m_instanceOffset;
@@ -199,6 +201,11 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
 
         // all draw commands are rewritten below, so skip uploading the whole new buffer
         m_indirectBuffer.ClearDirty();
+    }
+
+    if (!m_indirectBuffer.IsInitialized())
+    {
+        m_indirectBuffer.Initialize();
     }
 
     m_indirectBuffer.Write(0, drawCommandsBufferSize, m_drawCommandsBuffer.Data());

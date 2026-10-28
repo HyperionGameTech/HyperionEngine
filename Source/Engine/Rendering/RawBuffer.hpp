@@ -138,6 +138,11 @@ public:
         Shutdown();
     }
 
+    HYP_FORCE_INLINE bool IsInitialized() const
+    {
+        return gpuBuffer && gpuBuffer->IsCreated();
+    }
+
     HYP_FORCE_INLINE bool IsDirty() const
     {
         return dirtyRangeStart < dirtyRangeEnd
@@ -168,7 +173,7 @@ public:
 
     HYP_FORCE_INLINE size_t TotalSizeBytes() const
     {
-        return gpuBuffer->Size();
+        return gpuBuffer ? gpuBuffer->Size() : 0;
     }
 
     template <typename T>
@@ -287,13 +292,16 @@ protected:
 
     static inline constexpr size_t GetAlignedBufferSize(size_t numElements, size_t elementSize, size_t alignment)
     {
-        size_t totalSize = elementSize != 0 ? numElements * elementSize : numElements;
+        const size_t totalSize = (elementSize != 0)
+            ? numElements * elementSize
+            : numElements; // ByteAddressBuffers do not have an element size
+            
         return alignment != 0 ? ByteUtil::AlignAs(totalSize, alignment) : totalSize;
     }
 
     HYP_FORCE_INLINE const ubyte* GetReadDataPtr() const
     {
-        AssertDebug(!(flags & RawBufferFlags::GpuOnly));
+        AssertDebug(!(flags & RawBufferFlags::GpuOnly) && IsInitialized());
 
         if (flags & (RawBufferFlags::CpuWriteCoherent | RawBufferFlags::CpuReadCoherent))
         {
@@ -305,7 +313,7 @@ protected:
 
     HYP_FORCE_INLINE ubyte* GetWriteDataPtr()
     {
-        AssertDebug(!(flags & RawBufferFlags::GpuOnly));
+        AssertDebug(!(flags & RawBufferFlags::GpuOnly) && IsInitialized());
 
         if (flags & RawBufferFlags::CpuWriteCoherent)
         {

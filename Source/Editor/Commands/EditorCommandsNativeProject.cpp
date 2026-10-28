@@ -211,6 +211,14 @@ public:
             }
         }
 
+        if (currentProject.IsValid() && currentProject->IsSaved())
+        {
+            if (Result result = UpgradeGameProjectFiles(currentProject->GetFilePath()); result.HasError())
+            {
+                HYP_LOG(Editor, Error, "{}", result.GetError().GetMessage());
+            }
+        }
+
         g_editorState->OnBuildNativeGameRequested();
     }
 };
@@ -593,7 +601,20 @@ private:
     {
         if (Result saveResult = project->Save(); saveResult.HasError())
         {
-            ShowPackageGameMessage(MessageBoxType::CRITICAL, "Project could not be saved", saveResult.GetError().GetMessage());
+            ShowPackageGameMessage(
+                MessageBoxType::CRITICAL,
+                "Project could not be saved",
+                saveResult.GetError().GetMessage());
+
+            return;
+        }
+
+        if (Result upgradeResult = UpgradeGameProjectFiles(project->GetFilePath()); upgradeResult.HasError())
+        {
+            ShowPackageGameMessage(
+                MessageBoxType::CRITICAL,
+                "Packaging failed",
+                upgradeResult.GetError().GetMessage());
 
             return;
         }
@@ -603,14 +624,20 @@ private:
 
         if (!outputDir.Exists() && !outputDir.MkDir())
         {
-            ShowPackageGameMessage(MessageBoxType::CRITICAL, "Packaging failed", String("Could not create ") + outputDir);
+            ShowPackageGameMessage(
+                MessageBoxType::CRITICAL,
+                "Packaging failed",
+                String("Could not create ") + outputDir);
 
             return;
         }
 
         if (Result writeResult = WritePluginModulesFile(*project, GetNativeModulePath(project->GetFilePath()).BasePath()); writeResult.HasError())
         {
-            ShowPackageGameMessage(MessageBoxType::CRITICAL, "Packaging failed", writeResult.GetError().GetMessage());
+            ShowPackageGameMessage(
+                MessageBoxType::CRITICAL,
+                "Packaging failed",
+                writeResult.GetError().GetMessage());
 
             return;
         }

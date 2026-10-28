@@ -153,6 +153,11 @@ namespace Hyperion.Editor
                 SyncPluginDocuments();
             };
 
+            foreach (EditorDocumentViewModel document in EditorPluginService.Instance.Documents)
+            {
+                document.PropertyChanged += OnPluginDocumentPropertyChanged;
+            }
+
             foreach (Control entry in BuildAddSceneMenuEntries(viewModel))
             {
                 AddSceneContextMenu.Items.Add(entry);
