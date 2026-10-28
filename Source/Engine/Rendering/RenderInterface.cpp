@@ -961,6 +961,12 @@ void RenderInterface::Shutdown()
     blueNoiseBuffer.Shutdown();
     sphereSamplesBuffer.Shutdown();
 
+    // Resource binders and passes torn down above may have enqueued copies into the env probe
+    // and shadow atlas textures (commands hold raw GpuImage pointers). Execute them now, while
+    // those images are still alive - the final flush in commandRecorderAllocator.Shutdown()
+    // runs after they have been destroyed.
+    commandRecorderAllocator.Flush(/* isShuttingDown */ false);
+
     envProbesColorTexture.Reset();
     envProbesDepthTexture.Reset();
 

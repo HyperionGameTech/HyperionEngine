@@ -238,6 +238,30 @@ HYP_ENGINE_TEST(Serialization, NodeRoundTripsHMF)
     HYP_TEST_CHECK(loaded->GetParent() == nullptr);
 }
 
+HYP_ENGINE_TEST(Serialization, NodeLoadsLegacyNodeTags)
+{
+    Handle<Node> node = MakeHandle<Node>();
+    node->SetName(NAME("LegacyNode"));
+    node->AddDataEntry(NodeData(NAME("Health"), 42));
+
+    String text;
+    HYP_TEST_REQUIRE(!ObjectToHMF(Node::StaticClass(), BoxedValue(node), text).HasError());
+
+    const String legacy = text.ReplaceAll("DataEntries", "NodeTags").ReplaceAll("NodeData", "NodeTag");
+
+    HYP_TEST_REQUIRE_MSG(legacy.Contains("NodeTags") && legacy.Contains("NodeTag "), "the legacy names weren't written:\n{}", legacy);
+
+    HMF::ParseResult parsed = HMF::Parse(legacy);
+
+    HYP_TEST_REQUIRE(parsed.HasValue());
+
+    Handle<Node> loaded = AsNode(parsed.GetValue());
+
+    HYP_TEST_REQUIRE(loaded.IsValid());
+
+    HYP_TEST_CHECK(loaded->HasDataEntry("Health"_sh));
+}
+
 HYP_ENGINE_TEST(Serialization, NodeTreeKeepsChildrenOrderAndParents)
 {
     Handle<Scene> scene = MakeHandle<Scene>(NAME("SerializationTreeScene"), ThreadId::Current(), SceneFlags::NONE);

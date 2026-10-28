@@ -76,6 +76,60 @@ String LegacyEnumNameToTitleCase(const String& name, size_t start)
     return result;
 }
 
+// Looks up a class by the name written in the file, following a redirect if the class has since been renamed
+const Class* FindClass(const String& className)
+{
+    const StringHash classNameHash = StringHash(className);
+
+    if (const Class* cls = Hyperion::GetClass(classNameHash))
+    {
+        return cls;
+    }
+
+    if (const StringHash redirect = GetClassRedirect(classNameHash))
+    {
+        return Hyperion::GetClass(redirect);
+    }
+
+    return nullptr;
+}
+
+// Looks up the field or property named in the file, following a redirect if the member has since been renamed.
+// A field declared with `Property = ...` resolves to the synthetic Property created for it.
+const IMember* FindMember(const Class* cls, const String& fieldName)
+{
+    StringHash memberName = StringHash(fieldName);
+
+    const IMember* member = cls->GetMember(memberName, MemberType::Field | MemberType::Property);
+
+    if (!member)
+    {
+        memberName = GetMemberRedirect(cls, memberName);
+
+        if (!memberName)
+        {
+            return nullptr;
+        }
+
+        member = cls->GetMember(memberName, MemberType::Field | MemberType::Property);
+
+        if (!member)
+        {
+            return nullptr;
+        }
+    }
+
+    if (member->GetMemberType() == MemberType::Field && member->GetAttribute(Attributes::g_attrProperty).IsValid())
+    {
+        if (Property* prop = cls->GetProperty(memberName))
+        {
+            return prop;
+        }
+    }
+
+    return member;
+}
+
 } // namespace
 
 Parser::Parser(
@@ -138,7 +192,7 @@ bool Parser::Parse()
         return false;
     }
 
-    const Class* cls = Hyperion::GetClass(StringHash(className));
+    const Class* cls = FindClass(className);
 
     if (!cls)
     {
@@ -301,7 +355,7 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
         }
 
         // Look up the member on the class
-        const IMember* member = cls->GetMember(StringHash(fieldName), MemberType::Field | MemberType::Property);
+        const IMember* member = FindMember(cls, fieldName);
 
         if (!member)
         {
@@ -311,15 +365,6 @@ bool Parser::ParseObjectBody(const Class* cls, BoxedValue& target, const UTF8Str
             SkipValue();
 
             continue;
-        }
-
-        // If has `Property = ...`, we want to grab the synthetic Property created instead.
-        if (member->GetMemberType() == MemberType::Field && member->GetAttribute(Attributes::g_attrProperty).IsValid())
-        {
-            if (Property* prop = cls->GetProperty(StringHash(fieldName)))
-            {
-                member = prop;
-            }
         }
 
         if (member->GetAttribute(Attributes::g_attrJsonIgnore).IsValid())
@@ -494,7 +539,7 @@ bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSI
                 return false;
             }
 
-            const IMember* member = cls->GetMember(StringHash(fieldName), MemberType::Field | MemberType::Property);
+            const IMember* member = FindMember(cls, fieldName);
 
             if (!member)
             {
@@ -503,15 +548,6 @@ bool Parser::ParseSchemaSection(const Class* cls, BoxedValue& target, const ANSI
                 SkipValue();
 
                 continue;
-            }
-
-            // If has `Property = ...`, we want to grab the synthetic Property created instead.
-            if (member->GetMemberType() == MemberType::Field && member->GetAttribute(Attributes::g_attrProperty).IsValid())
-            {
-                if (Property* prop = cls->GetProperty(StringHash(fieldName)))
-                {
-                    member = prop;
-                }
             }
 
             if (member->GetAttribute(Attributes::g_attrJsonIgnore).IsValid())
@@ -1445,7 +1481,7 @@ bool Parser::ParseObjectValue(const TypeInfo& typeInfo, BoxedValue& out)
         Token classToken = Next(); // consume IDENT
         const String& runtimeClassName = classToken.GetValue();
 
-        actualClass = Hyperion::GetClass(StringHash(runtimeClassName));
+        actualClass = FindClass(runtimeClassName);
 
         if (!actualClass)
         {

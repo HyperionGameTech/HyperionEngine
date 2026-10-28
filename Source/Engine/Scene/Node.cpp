@@ -22,6 +22,8 @@
 
 #include <Core/Debug/Debug.hpp>
 
+#include <Core/DataProcessing/HMF/HMF.hpp>
+
 #ifdef HYP_EDITOR
 #include <Editor/EditorSubsystem.hpp>
 #include <Editor/EditorState.hpp>
@@ -73,6 +75,18 @@ String NodeData::ToString() const
 
 #pragma endregion NodeData
 
+#pragma region Backward compatibility
+
+// NodeTag -> NodeData, Node.NodeTags -> Node.DataEntries
+static struct InitializeNodeHMFRedirects
+{
+    InitializeNodeHMFRedirects()
+    {
+        HMF::AddClassRedirect("NodeTag", "NodeData");
+        HMF::AddMemberRedirect("Node", "NodeTags", "DataEntries");
+    }
+} s_initializeNodeHMFRedirects;
+
 void Node_OnPostLoad(Node& node)
 {
     if (node.m_rotationConvention >= Node::s_currentRotationConvention)
@@ -83,6 +97,8 @@ void Node_OnPostLoad(Node& node)
     node.m_rotationConvention = Node::s_currentRotationConvention;
     node.ConvertLegacyRotations();
 }
+
+#pragma endregion Backward compatibility
 
 #pragma region Node
 

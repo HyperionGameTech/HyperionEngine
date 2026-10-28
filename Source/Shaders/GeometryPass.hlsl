@@ -392,6 +392,21 @@ PSOutput PSMain(PSInput input)
     }
 
     // roughness is authored as perceptual roughness; need to convert to physical roughness for the BRDF calculations
+#if SHADING_TYPE_FORWARD
+    // geometric specular AA (Tokuyoshi & Kaplanyan 2019)
+    // smooth curved surfaces like glass alias badly at a distance once the normal turns a lot within a pixel
+    // and TAA can't hold on to it as the jitter lands on a different lobe every frame
+    {
+        const float3 dNdx = ddx(N);
+        const float3 dNdy = ddy(N);
+        const float variance = 0.15 * (dot(dNdx, dNdx) + dot(dNdy, dNdy));
+        const float kernelRoughness = min(2.0 * variance, 0.2);
+        const float alpha = roughness * roughness;
+
+        roughness = sqrt(sqrt(saturate(alpha * alpha + kernelRoughness)));
+    }
+#endif // SHADING_TYPE_FORWARD
+
     const float perceptualRoughness = roughness;
     roughness = roughness * roughness;
 

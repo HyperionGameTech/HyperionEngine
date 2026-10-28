@@ -25,6 +25,7 @@
 
 namespace Hyperion {
 class ByteReader;
+class Class;
 } // namespace Hyperion
 
 namespace Hyperion::DataProcessing {
@@ -69,6 +70,19 @@ using ParseSchemaSectionFn = bool (*)(BoxedValue& owner, Array<SchemaSectionEntr
 
 CORE_API void SetParseSchemaSectionFn(const ANSIStringView& sectionName, ParseSchemaSectionFn fn);
 CORE_API ParseSchemaSectionFn GetParseSchemaSectionFn(const ANSIStringView& sectionName);
+
+/*! \brief Redirects let HMF written before a class or member was renamed still load. They are only consulted when a name
+ *  isn't found, so the normal path pays nothing. Register them where the renamed type lives, eg from a static initializer. */
+CORE_API void AddClassRedirect(const ANSIStringView& oldClassName, const ANSIStringView& newClassName);
+
+/*! \brief Redirects a member of \p className (and its subclasses) from \p oldMemberName to \p newMemberName */
+CORE_API void AddMemberRedirect(const ANSIStringView& className, const ANSIStringView& oldMemberName, const ANSIStringView& newMemberName);
+
+/*! \brief Returns the current name of a renamed class, or an invalid StringHash if \p className has no redirect */
+CORE_API StringHash GetClassRedirect(StringHash className);
+
+/*! \brief Returns the current name of a renamed member of \p cls or one of its parents, or an invalid StringHash if there's no redirect */
+CORE_API StringHash GetMemberRedirect(const Class* cls, StringHash memberName);
 
 ////////////////////
 

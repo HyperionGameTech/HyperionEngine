@@ -151,6 +151,7 @@ void ShadowMapAllocator::Shutdown()
 
     EnqueueDeletion(std::move(m_atlasTextureArray));
     EnqueueDeletion(std::move(m_pointLightTextureArray));
+    EnqueueDeletion(std::move(m_clearTexture));
 }
 
 ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, const Vec2u& dimensions)
@@ -323,7 +324,9 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRe
             }
             else
             {
-                if (clearTextureRegion)
+                // After Shutdown() the atlas has been handed off for deletion - nothing to clear,
+                // and recording a copy here would leave a dangling image in the command recorder
+                if (clearTextureRegion && m_atlasTextureArray.IsValid() && m_clearTexture.IsValid())
                 {
                     Frame* currentFrame = nullptr;
 
@@ -349,6 +352,11 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap, bool clearTextureRe
                     // on the destination side
                     const Vec3u dstOffset = Vec3u(atlasElement.offsetCoords, 0);
                     Vec3u extent = Vec3u(atlasElement.dimensions, 1);
+
+                    cr << InsertBarrier(
+                        m_clearTexture->GetGpuImage(),
+                        ResourceState::CopySrc,
+                        srcSubResource);
 
                     cr << InsertBarrier(
                         m_atlasTextureArray->GetGpuImage(),

@@ -67,7 +67,15 @@ float3 CalculateRefraction(
 
     float2 refraction_texcoord = float2(refraction_pos.x * 0.5 + 0.5, (-refraction_pos.y) * 0.5 + 0.5);
 
-    const float lod = ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension));
+    uint2 mip_chain_dimensions;
+    GBufferMipChain.GetDimensions(mip_chain_dimensions.x, mip_chain_dimensions.y);
+
+    // the refracted lookup can spread across many texels per pixel, so filter it by its footprint or it aliases as the jitter moves
+    const float2 footprint_dx = ddx(refraction_texcoord) * float2(mip_chain_dimensions);
+    const float2 footprint_dy = ddy(refraction_texcoord) * float2(mip_chain_dimensions);
+    const float footprint_lod = 0.5 * log2(max(max(dot(footprint_dx, footprint_dx), dot(footprint_dy, footprint_dy)), 1.0));
+
+    const float lod = max(ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension)), footprint_lod);
 
     float absorption = 0.1; // TODO: material parameter
     

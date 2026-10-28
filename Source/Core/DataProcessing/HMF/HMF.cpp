@@ -18,14 +18,31 @@
 #include <Core/IO/ByteReader.hpp>
 
 #include <Core/Reflection/TypeInfo.hpp>
+#include <Core/Reflection/Class.hpp>
 
 namespace Hyperion::DataProcessing::HMF {
 
 ResolveAssetPathFn g_resolveAssetPath = nullptr;
 
-static const FilePath s_inMemoryFilePath = FilePath("<memory-buffer>");
-
 namespace /* Helpers */ {
+
+const FilePath g_inMemoryFilePath = FilePath("<memory-buffer>");
+
+struct Redirects
+{
+    Mutex mutex;
+
+    // old class name hash -> current class name hash
+    Map<StringHash, StringHash> classes;
+    // owning class name -> (old member name -> current member name)
+    Map<StringHash, Map<StringHash, StringHash>> members;
+};
+
+Redirects& GetRedirects()
+{
+    static Redirects s_redirects;
+    return s_redirects;
+}
 
 ParseResult RunParse(
     const FilePath& filePath,
@@ -104,48 +121,132 @@ ParseSchemaSectionFn GetParseSchemaSectionFn(const ANSIStringView& sectionName)
     return it->second;
 }
 
-void SetParseSchemaSectionFn(const ANSIStringView& sectionName, ParseSchemaSectionFn fn)
+void SetParseSchemaSectionFn(
+    const ANSIStringView& sectionName,
+    ParseSchemaSectionFn fn)
 {
     Mutex::Guard guard(GetParseSchemaSectionFnsMutex());
 
     GetParseSchemaSectionFns()[sectionName] = fn;
 }
 
-ParseResult Parse(const FilePath& filePath, ByteReader& reader, ErrorList* outErrors, BoxedValue* target)
+void AddClassRedirect(
+    const ANSIStringView& oldClassName,
+    const ANSIStringView& newClassName)
+{
+    Redirects& redirects = GetRedirects();
+    Mutex::Guard guard(redirects.mutex);
+
+    redirects.classes[StringHash(oldClassName)] = StringHash(newClassName);
+}
+
+void AddMemberRedirect(
+    const ANSIStringView& className,
+    const ANSIStringView& oldMemberName,
+    const ANSIStringView& newMemberName)
+{
+    Redirects& redirects = GetRedirects();
+    Mutex::Guard guard(redirects.mutex);
+
+    redirects.members[StringHash(className)][StringHash(oldMemberName)] = StringHash(newMemberName);
+}
+
+StringHash GetClassRedirect(StringHash className)
+{
+    Redirects& redirects = GetRedirects();
+    Mutex::Guard guard(redirects.mutex);
+
+    const auto it = redirects.classes.Find(className);
+
+    if (it == redirects.classes.End())
+    {
+        return StringHash();
+    }
+
+    return it->second;
+}
+
+StringHash GetMemberRedirect(const Class* cls, StringHash memberName)
+{
+    Redirects& redirects = GetRedirects();
+    Mutex::Guard guard(redirects.mutex);
+
+    for (; cls != nullptr; cls = cls->GetParent())
+    {
+        const auto classIt = redirects.members.Find(StringHash(cls->GetName()));
+
+        if (classIt == redirects.members.End())
+        {
+            continue;
+        }
+
+        const auto memberIt = classIt->second.Find(memberName);
+
+        if (memberIt != classIt->second.End())
+        {
+            return memberIt->second;
+        }
+    }
+
+    return StringHash();
+}
+
+ParseResult Parse(
+    const FilePath& filePath,
+    ByteReader& reader,
+    ErrorList* outErrors,
+    BoxedValue* target)
 {
     return RunParse(filePath, reader, outErrors, target);
 }
 
-ParseResult Parse(const FilePath& filePath, const String& source, ErrorList* outErrors, BoxedValue* target)
+ParseResult Parse(
+    const FilePath& filePath,
+    const String& source,
+    ErrorList* outErrors,
+    BoxedValue* target)
 {
     MemoryByteReader reader(ConstByteView(reinterpret_cast<const ubyte*>(source.Data()), source.Size()));
 
     return RunParse(filePath, reader, outErrors, target);
 }
 
-ParseResult Parse(ByteReader& reader, ErrorList* outErrors, BoxedValue* target)
+ParseResult Parse(
+    ByteReader& reader,
+    ErrorList* outErrors,
+    BoxedValue* target)
 {
-    return RunParse(s_inMemoryFilePath, reader, outErrors, target);
+    return RunParse(g_inMemoryFilePath, reader, outErrors, target);
 }
 
-ParseResult Parse(const String& source, ErrorList* outErrors, BoxedValue* target)
+ParseResult Parse(
+    const String& source,
+    ErrorList* outErrors,
+    BoxedValue* target)
 {
-    return Parse(s_inMemoryFilePath, source, outErrors, target);
+    return Parse(g_inMemoryFilePath, source, outErrors, target);
 }
 
-ParseResult Parse(const FilePath& filePath, ByteReader& reader, const ParseOptions& options, ErrorList* outErrors)
+ParseResult Parse(
+    const FilePath& filePath,
+    ByteReader& reader,
+    const ParseOptions& options,
+    ErrorList* outErrors)
 {
     return RunParse(filePath, reader, outErrors, nullptr, &options);
 }
 
-ParseResult ParseValue(const String& source, const TypeInfo& typeInfo, ErrorList* outErrors)
+ParseResult ParseValue(
+    const String& source,
+    const TypeInfo& typeInfo,
+    ErrorList* outErrors)
 {
     ErrorList errorList;
 
     MemoryByteReader sourceReader(ConstByteView(reinterpret_cast<const ubyte*>(source.Data()), source.Size()));
 
-    SourceStream sourceStream { &sourceReader, s_inMemoryFilePath };
-    TokenStream tokenStream { TokenStreamInfo(s_inMemoryFilePath) };
+    SourceStream sourceStream { &sourceReader, g_inMemoryFilePath };
+    TokenStream tokenStream { TokenStreamInfo(g_inMemoryFilePath) };
 
     Lexer lexer(sourceStream, &tokenStream, &errorList);
     lexer.Analyze();
