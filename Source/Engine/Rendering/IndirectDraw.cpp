@@ -52,36 +52,6 @@ struct ComputeVisibilityConstants
     uint32 entityInstanceBatchStride;
 };
 
-static void ZeroizeBuffer(CommandRecorder& cr, GpuBuffer* dstBuffer)
-{
-    AssertDebug(dstBuffer != nullptr);
-
-    const size_t bufferSize = dstBuffer->Size();
-
-    if (dstBuffer->IsCpuAccessible())
-    {
-        // zeroize buffer, flush
-        dstBuffer->Memset(bufferSize, 0);
-        dstBuffer->Flush(0, bufferSize);
-
-        return;
-    }
-
-    // staging buffer cannot be null if dstBuffer isn't cpu accessible.
-    GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(bufferSize);
-    Assert(stagingBuffer != nullptr);
-
-    // set all to zero
-    stagingBuffer->Memset(bufferSize, 0);
-
-    cr << InsertBarrier(stagingBuffer, ResourceState::CopySrc);
-    cr << InsertBarrier(dstBuffer, ResourceState::CopyDst);
-
-    cr << CopyBuffer(stagingBuffer, dstBuffer, bufferSize);
-
-    cr << InsertBarrier(dstBuffer, ResourceState::IndirectArg);
-}
-
 static inline bool CreateOrResizeBuffer(
     CommandRecorder& cr,
     GpuBufferRef& buffer,
@@ -126,17 +96,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
     GpuBufferRef& indirectBuffer)
 {
     const size_t requiredSize = drawCommandsBuffer.Size() * sizeof(IndirectDrawCommand);
-
-    const bool wasCreatedOrResized = CreateOrResizeBuffer(cr, indirectBuffer, requiredSize);
-
-    if (!wasCreatedOrResized)
-    {
-        return false;
-    }
-
-    ZeroizeBuffer(cr, indirectBuffer);
-
-    return true;
+    return CreateOrResizeBuffer(cr, indirectBuffer, requiredSize);
 }
 
 static bool ResizeIfNeeded(
@@ -208,6 +168,9 @@ void IndirectDrawState::ReserveInstances(size_t count)
     if (m_instances.TotalSizeBytes() / sizeof(ObjectInstance) < requiredInstances)
     {
         m_instances.Resize(MathUtil::NextPowerOf2(requiredInstances) * sizeof(ObjectInstance));
+
+        m_instances.ClearDirty();
+        m_instances.MarkDirty(0, m_instanceOffset * sizeof(ObjectInstance));
     }
 
     m_instanceData = m_instances.GetWritePtr<ObjectInstance>(m_instanceOffset, count) - m_instanceOffset;
@@ -326,12 +289,15 @@ void IndirectDrawState::UpdateBufferData(CommandRecorder& cr, bool* outWasResize
 
     // indirect buffer
     // ===============
-    const bool needsStaging = !indirectBuffer->IsCpuAccessible();
+    const size_t drawCommandsBufferSize = m_drawCommandsBuffer.ByteSize();
 
-    if (needsStaging)
+    if (indirectBuffer->IsCpuAccessible())
     {
-        const size_t drawCommandsBufferSize = m_drawCommandsBuffer.ByteSize();
-
+        indirectBuffer->Copy(drawCommandsBufferSize, m_drawCommandsBuffer.Data());
+        indirectBuffer->Flush(0, drawCommandsBufferSize);
+    }
+    else
+    {
         GpuBuffer* stagingBuffer = RI.stagingBufferPool->AcquireStagingBuffer(drawCommandsBufferSize);
         Assert(stagingBuffer != nullptr);
 

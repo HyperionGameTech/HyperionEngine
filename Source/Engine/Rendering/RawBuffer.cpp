@@ -203,6 +203,8 @@ void RawBuffer::FlushAllInto(CommandBuffer& cmdBuffer, Span<RawBuffer* const> bu
         Memory::Copy(stagingData + copy.stagingOffset, copy.buffer->cpuBuffer.Data() + copy.range.start, copy.range.end - copy.range.start);
     }
 
+    stagingBuffer->Flush(0, stagingSize);
+
     const Span<const GpuBuffer* const> dstBufferSpan(dstBuffers.Data(), dstBuffers.Size());
 
     stagingBuffer->InsertBarrier(&cmdBuffer, ResourceState::CopySrc);
