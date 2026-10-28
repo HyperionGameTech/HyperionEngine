@@ -887,6 +887,8 @@ RendererResult RenderInterface::Initialize()
 
 void RenderInterface::Shutdown()
 {
+    commandRecorderAllocator.Flush(/* isShuttingDown */ false);
+
     deferredFlushBuffers.Clear();
 
     for (uint32 i = 0; i < RingBufferDepth; i++)

@@ -60,7 +60,7 @@ void CommandRecorderAllocator::Flush(bool isShuttingDown)
         return;
     }
 
-    m_isShuttingDown = true;
+    m_isShuttingDown = isShuttingDown;
 
     UpdateQueue_Internal();
 
